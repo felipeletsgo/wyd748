@@ -1,5 +1,6 @@
 #include "../internal/ui/GridInsertion.h"
 #include "../internal/ui/NativeSaleQuote.h"
+#include "../internal/core/NativeSalePrice.h"
 #include <array>
 #include <climits>
 #include <cstddef>
@@ -24,6 +25,8 @@ int RunGridInsertionTests(int& checks)
         {16777223, 2097152}, {INT_MAX, 268435455}
     };
     for (const auto& fixture : quoteCases) {
+        check(native_sale_price::Calculate(fixture[0]) == fixture[1],
+            "legacy response preserves native price bands and full signed catalog precision");
         for (int itemIndex : {1, 413, 6499})
             check(native_sale_quote::Calculate(itemIndex, fixture[0], 0) == fixture[1],
                 "ordinary quote and item 413 preserve native bands and integer precision");
@@ -35,6 +38,15 @@ int RunGridInsertionTests(int& checks)
             check(native_sale_quote::Calculate(412, fixture[0], ability) == 800000,
                 "item 412 quotes 800000 after every ability override");
     }
+    check(native_sale_price::Calculate(1000000) == 125000 &&
+        native_sale_quote::Calculate(412, 1000000, 185) == 800000,
+        "response bands do not inherit the quote-only item 412 or ability 185 overrides");
+    // Signed storage is not a reason to introduce a new negative-price policy.
+    // These checks cover arithmetic only, not approval of negative sale credits.
+    check(native_sale_price::Calculate(-3) == 0 &&
+        native_sale_price::Calculate(-4) == -1 &&
+        native_sale_price::Calculate(INT_MIN) == INT_MIN / 4,
+        "shared price arithmetic preserves signed truncation without overflow or clamping");
     for (int itemIndex : {INT_MIN, -1, 0, 6500, INT_MAX}) {
         check(!native_sale_quote::IsValidCatalogIndex(itemIndex), "invalid quote index rejected");
         check(native_sale_quote::Calculate(itemIndex, INT_MAX, 185) == 0,

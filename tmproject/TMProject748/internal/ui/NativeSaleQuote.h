@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../core/NativeItemVolatile.h"
+#include "../core/NativeSalePrice.h"
 
 // Native 7.48 grid-type-3 display calculation (FUN_00418828).
 // This is a quote, never authorization to mutate gold or inventory.
@@ -27,12 +28,7 @@ namespace native_sale_quote
         if (!IsValidCatalogIndex(itemIndex))
             return 0;
 
-        // FILD/FMUL 0.25 followed by truncation, without float32 rounding.
-        int price = catalogPrice / 4;
-        if (price >= 5001 && price <= 10000)
-            price = 2 * price / 3;
-        else if (price > 10000)
-            price /= 2;
+        int price = native_sale_price::Calculate(catalogPrice);
 
         if (volatileAbility == 185)
             price = catalogPrice;

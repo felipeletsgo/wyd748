@@ -367,7 +367,9 @@ item, position, and cooldown.
   authoritative item/gold snapshots. Full native sale UI/price parity and
   executable-client validation are not claimed.
   The response's quarter-price reduction bands are now proven from retained
-  instructions; Go currently omits them. The native grid-type-3 quote and
+  instructions and shared with the quote through `NativeSalePrice.h`, without
+  intermediate float32 rounding or quote-only exceptions in the response;
+  Go currently omits those bands. The native grid-type-3 quote and
   special-item overrides are now traced and implemented in the client without
   a wire change. The shared core type-38 lookup also implements the proven
   signed effects, special-domain exclusion, and catalog-only mount paths, with

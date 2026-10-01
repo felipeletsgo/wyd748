@@ -993,6 +993,13 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto saleEnd = fieldSource.find("int TMFieldScene::OnPacketCNFMobKill", saleStart);
     const auto saleHandler = saleStart != std::string::npos && saleEnd != std::string::npos
         ? fieldSource.substr(saleStart, saleEnd - saleStart) : std::string{};
+    const auto salePrice = saleHandler.find("native_sale_price::Calculate(catalogPrice)");
+    const auto saleCredit = saleHandler.find("m_stMobData.Coin += nPrice;");
+    check(salePrice != std::string::npos && saleCredit != std::string::npos &&
+        saleHandler.find("itemIndex > 0 && itemIndex < MAX_ITEMLIST") < salePrice &&
+        salePrice < saleCredit && saleHandler.find("(float)") == std::string::npos &&
+        saleHandler.find("native_sale_quote::Calculate") == std::string::npos,
+        "legacy sale uses bounded native integer arithmetic without quote-only overrides or float32 rounding");
     const auto salePickup = saleHandler.find("pGridDest[pSell->MyPos]->PickupItem(0, 0)");
     check(!saleHandler.empty() && salePickup != std::string::npos &&
         saleHandler.find("!g_pObjectManager") < salePickup &&

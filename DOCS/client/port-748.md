@@ -299,11 +299,16 @@ installation was performed; the record remains `CONTRACT`, not `CLIENT_TESTED`.
 The subsequent arithmetic inspection reused the existing native instruction
 export: the response truncates the quarter catalog price, applies integer
 two-thirds for quarter prices `5001..10000`, and halves those above `10000`.
-Both source branches in `OnPacketSell` already contain these bands, while Go
+The common equipment/Carry price block in `OnPacketSell` contains these bands, while Go
 `onSellItem` uses a straight quarter price before its passive and city-tax
 adjustments. That response evidence alone does not establish the complete
-shop policy. The native loads use x87 `FILD`/`FMUL`, so the response handler's
-C++ intermediate float32 cast is not claimed equivalent for all inputs.
+shop policy. The native loads use x87 `FILD`/`FMUL`. The response now uses
+the same ordinary integer calculation as the quote through `NativeSalePrice.h`,
+removing intermediate float32 rounding while preserving the existing index
+guard and lifecycle. Fixtures cover the discontinuities, `16777223`, and
+`INT_MAX`; the response does not receive the quote-only ability-185/item-412
+overrides. Negative-price policy and final balance overflow remain outside
+this arithmetic correction.
 See the existing record's
 [response arithmetic](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#response-price-arithmetic)
 for addresses, exact boundaries, and the remaining adaptation requirements.
@@ -326,9 +331,9 @@ See the same record's
 and [type-38 lookup contract](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#type-38-ability-used-by-the-quote).
 Server payment remains unchanged, including the current item-412 quote/payment
 mismatch; authoritative special-item/passive/tax policy is still pending.
-The latest no-deploy incremental build passed with 60,969 architecture checks
-(154 arithmetic checks, 2134 shared lookup checks, and an exclusive type-38
-routing regression), 221 socket checks, and
+The latest no-deploy incremental build passed with 60,987 architecture checks
+(154 quote arithmetic checks, 2134 shared lookup checks, an exclusive type-38
+routing regression, and eighteen response arithmetic/routing checks), 221 socket checks, and
 asset/shader gates. No
 candidate was installed or visually tested; no `CLIENT_TESTED` claim is made.
 The published server tests in `aa5e88fb` characterize 98 current-payment

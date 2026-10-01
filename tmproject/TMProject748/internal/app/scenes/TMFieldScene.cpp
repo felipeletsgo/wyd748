@@ -6,6 +6,7 @@
 #include "../../ui/ObservedAffectProjection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/MiniMapLayout.h"
+#include "../../core/NativeSalePrice.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "dsutil.h"
@@ -24992,15 +24993,12 @@ int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)
 	if (!hasItem)
 		return 1;
 
-	// Preserve the inherited calculation. WYD-Go does not use this reply:
+	// Use the native response bands without intermediate float32 rounding.
+	// WYD-Go does not use this reply:
 	// its sale path sends authoritative SendItem and UpdateEtc snapshots.
-	int nPrice = itemIndex > 0 && itemIndex < MAX_ITEMLIST
+	const int catalogPrice = itemIndex > 0 && itemIndex < MAX_ITEMLIST
 		? g_pItemList[itemIndex].nPrice : 0;
-	nPrice = static_cast<int>((float)nPrice * 0.25f);
-	if (nPrice >= 5001 && nPrice <= 10000)
-		nPrice = 2 * nPrice / 3;
-	else if (nPrice > 10000)
-		nPrice /= 2;
+	const int nPrice = native_sale_price::Calculate(catalogPrice);
 
 	STRUCT_ITEM* soldSlot = pSell->MyType == 0
 		? &g_pObjectManager->m_stMobData.Equip[pSell->MyPos]

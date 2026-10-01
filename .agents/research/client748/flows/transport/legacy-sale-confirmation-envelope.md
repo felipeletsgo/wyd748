@@ -42,6 +42,9 @@ Complete merchant UI behavior and historical server policy remain open.
   quote uses the existing item catalog and message IDs 58/340 without edits.
 - **USED:** buildable `LegacySalePacket.h`, `ReceivedPacketDispatch.h`, and
   `TMFieldScene::OnPacketSell`; tests in `SceneDisconnectContractTests.cpp`.
+- **USED:** `NativeSalePrice.h`, shared by `TMFieldScene::OnPacketSell` and
+  the ordinary quote calculation; price/routing regressions retain their
+  separate exception and lifecycle boundaries.
 - **USED:** `SGridControl::MouseOver`, `NativeSaleQuote.h`, and quote fixtures
   in `GridInsertionTests.cpp`; the complete type-38 path is resolved below.
 - **USED:** `Basedef.cpp::BASE_GetItemAbility` and `NativeItemVolatile.h`.
@@ -116,6 +119,12 @@ let `q` be the truncated quarter price. The response then credits:
 For example, catalog prices `20000`, `20004`, `40000`, and `40004` produce
 local credits `5000`, `3334`, `6666`, and `5000`. These discontinuities are
 present in the binary; do not replace them with a smooth or monotonic formula.
+For nonnegative signed 32-bit catalog prices, integer division by four is
+equivalent to the exact x87 quarter followed by truncation. The two-thirds
+branch only doubles values up to 10000; the other branch only halves the
+quarter. Neither calculation can overflow that price domain. An intermediate
+float32 cast loses this equivalence: price `16777223` produces `2097153`
+instead of `2097152`, and `INT_MAX` produces `268435456` instead of `268435455`.
 This proves the response calculation only. It does not prove merchant tax,
 stack quantities, passive bonuses, or a missing historical server emitter.
 
@@ -349,10 +358,16 @@ refactor the legacy handler's direct-call parser; all network dispatch goes
 through the validated ingress. Valid requests retain unchanged prices,
 merchant checks, rollback, and `SendItem`/`UpdateEtc` publication.
 
-The current `TMFieldScene::OnPacketSell` already has the proven quarter-price
-bands. Its initial float32 cast is not proven identical to the native x87
-sequence for every catalog value; negative/large catalog inputs and integer
-overflow are not approved by this arithmetic continuation.
+The current `TMFieldScene::OnPacketSell` routes its common equipment/Carry
+price block through `native_sale_price::Calculate` in `NativeSalePrice.h`.
+This removes the initial float32 rounding while retaining the existing catalog
+index guard, model/visual cleanup, and credit ordering. The quote uses the same
+ordinary arithmetic, then applies its own ability-185 and item-412 overrides;
+the response must not inherit those quote-only exceptions. Focused fixtures
+cover native discontinuities, float32 precision boundaries, and `INT_MAX`.
+Signed-storage truncation checks do not approve a negative-price policy.
+Final balance overflow, complete UI behavior, and server payment parity are
+outside this price-only correction.
 `onSellItem` currently computes `uint64(def.Price)/4`, then the merchant
 passive and city tax, without the two response bands. This is a concrete
 comparison gap, not proof that the response formula can be transplanted as
@@ -377,7 +392,7 @@ but deliberately preserve the server policy until its separate decision.
 | Exact envelope | Size-policy case requires 20 | Exact-size receive gate rejects larger frames | Struct is 20 bytes | Input intent is 20 bytes | PARIDADE_NATIVA: require exact receive size |
 | Actual-size/opcode consistency | Native size/opcode words identified | Shared gate checks both discriminants and actual size | Internal guard | Unchanged | MODERNIZACAO_COMPATIVEL: reuse fail-closed gate |
 | Complete source words | Request writes words at 14/16; response sign-extends them | Representation unchanged | No new sender or response | Reject high-byte aliases before dispatch | MODERNIZACAO_COMPATIVEL: enforce existing Carry policy on full fields |
-| Response base-price bands | Quarter price, then two-thirds for 5001..10000 or half above 10000 | Same bands; floating precision still unproven | Candidate calculation is secondary | Omits these response bands | CONFIRMED response arithmetic; authoritative policy remains separate |
+| Response base-price bands | Exact quarter price, then two-thirds for 5001..10000 or half above 10000 | Shared NativeSalePrice.h removes float32 rounding; response does not apply quote-only exceptions | Candidate calculation is secondary | Omits these response bands | PARIDADE_NATIVA for nonnegative signed catalog arithmetic; authoritative policy remains separate |
 | Grid-type-3 sale quote | Ordinary bands; ability 185 full price; item 412 fixed at 800000; item 413 ordinary | Implemented in NativeSaleQuote.h with 154 focused arithmetic checks | Secondary candidate | Payment unchanged | PARIDADE_NATIVA for cleared calculation; invalid-index protection is MODERNIZACAO_COMPATIVEL |
 | Fixed type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | Core GetAbility shared by MouseOver and BASE_GetItemAbility; 2134 existing fixtures plus exclusive-routing regression | Other ability types and caller lifecycles unchanged | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
@@ -394,6 +409,9 @@ Adapt the cleared quote calculation and share its fixed type-38 lookup with
 `BASE_GetItemAbility`; retain other ability types, authoritative payment, and
 snapshot lifecycle. Quote tests are not evidence of payment parity or
 validation of other ability types.
+Share the proven ordinary price bands between quote and legacy response,
+without sharing the quote's item/ability overrides. Keep the server's
+snapshot-based confirmation; no new response emitter is authorized here.
 
 ## Gaps
 
@@ -401,7 +419,7 @@ validation of other ability types.
   not `CLIENT_TESTED`.
 - Downstream native grid class identity and UI refresh parity remain open.
   The response bands and quote exceptions are proven; only the displayed
-  quote and fixed type-38 lookup changed, not server payment.
+  quote, fixed type-38 lookup, and response price precision changed, not server payment.
 - The shared type-38 lookup is adapted and automated-tested. Real UI
   execution is still pending, and other ability types and full consumer
   lifecycles remain outside this evidence boundary. Do not use these fixtures to approve a global rewrite
@@ -513,3 +531,19 @@ validation of other ability types.
   `1F36C6A6FE1364D8BB18C6A91266720E1A4579763FDD85E73451D6906B06ACC5`.
   No server source changed or Go tests were rerun. No runtime installation,
   real item-use/pickup execution, or `CLIENT_TESTED` promotion occurred.
+- Response precision continuation (2026-10-01): reused the retained equipment
+  and Carry x87 instructions; no new native export. Added the shared ordinary
+  `NativeSalePrice.h` calculation, routed the response through it after the
+  unchanged catalog guard, and retained quote-only overrides in
+  `NativeSaleQuote.h`. The source-routing regression failed before the patch.
+  Seventeen arithmetic checks cover the existing fifteen boundary/precision
+  fixtures, separation from quote overrides, and signed-storage truncation;
+  the latter is not native negative-price policy approval. Together with the
+  routing regression, these add eighteen checks to the existing suite.
+  `Build-Client.ps1 -Configuration Release -NoDeploy` passed: 60,987 architecture
+  checks, 221 socket checks, asset/shader gates, and an incremental x86 build.
+  Existing signedness and deprecated Winsock warnings remain. Artifact
+  `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `3AA30AD35A61FC9E807A1CA068EE7FF657624EBE79D89805D27EA73FA94750A3`.
+  No server source or wire changed; unchanged Go validation was not repeated.
+  No installation, client execution, or `CLIENT_TESTED` promotion occurred.
