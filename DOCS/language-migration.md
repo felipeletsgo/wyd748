@@ -109,6 +109,13 @@ a partial translation as completion.
   clearing interaction aliases. A source-contract check protects that
   ownership ordering; no client execution is implied.
 
+- The server's shared ingress/security file (`internal/game/security.go`) now
+  uses English comments and rejection diagnostics, including framing, phase,
+  opcode, movement, and sale-source checks. The sale ingress helper and its
+  regression tests are also in English. The full Go suite and vet passed in
+  `64336041`; packet bytes and established identifiers are unchanged. This
+  does not migrate the separate legacy `handlers.go` or all server output.
+
 ## Remaining work
 
 1. Audit client-visible strings, resource text, and error paths in

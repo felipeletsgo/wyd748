@@ -253,7 +253,8 @@ destructor does not clear interaction aliases. The existing
 remains in force. This is not a native-parity claim for the sale response.
 The current Go `onSellItem` persists the sale and sends `SendItem` followed
 by `UpdateEtc`; it does not send this inherited `0x37A` response. Server
-authority, persistence, prices, and outgoing packets are unchanged.
+authority, persistence, prices, and outgoing packets were unchanged by that
+client safety patch.
 
 Three source-contract regressions failed before the patch and passed after
 it. The incremental `Build-Client.ps1 -Configuration Release -NoDeploy`
@@ -294,6 +295,19 @@ Remaining boundary: full downstream native grid/UI and price parity is not
 established by the envelope trace. The current server's snapshot-based sale
 does not exercise this legacy callback. No visual client execution or
 installation was performed; the record remains `CONTRACT`, not `CLIENT_TESTED`.
+
+The subsequent server ingress correction (`64336041`) reads the complete
+source type and position words at bytes 14/16 before sale dispatch. Carry
+type `1` and positions `0..62` remain the allowed domain. Low-byte aliases
+such as type `0x0101`, position `0x0100`, and negative words no longer sell a
+different slot; other invalid sources cannot cancel a live trade before
+rejection. The [same evidence record](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md)
+links the retained native 20-byte request builder and the ingress regressions.
+This is `MODERNIZACAO_COMPATIVEL`: no request format, price, persistence
+ordering, or confirmation opcode changed. Tests through `World.handle`
+cover eight rejections without side effects, valid edge slots, replay, and
+save rollback. The full Go suite and vet passed for that batch; these results
+are reused for this documentation update, not rerun as client validation.
 
 ### First trade-check acknowledgement
 

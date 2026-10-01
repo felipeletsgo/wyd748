@@ -14,6 +14,7 @@ updated: 2026-09-30
 Does native 7.48 consume `0x37A` as a sale response, and does its packet-size
 policy allow consistent frames longer than the current 20-byte representation?
 This record closes the received envelope, not complete merchant UI or price parity.
+It also records the unchanged request widths reused for server ingress hardening.
 
 ## Evidence boundary
 
@@ -27,13 +28,17 @@ This record closes the received envelope, not complete merchant UI or price pari
   Full decompilations and logs remain ignored build artifacts. Export runs
   contained the expected program hash, requested instruction/table summaries,
   and no `SCRIPT ERROR`; decompiler runs completed with `inspection_complete`.
+- **USED:** the retained [request instruction export](../../exports/trade-session-input-routes.tsv),
+  whose program identity matches the same native hash. `FUN_00416196` writes
+  the request payload as words and sends 20 bytes; no new export is needed.
 - **NOT APPLICABLE:** runtime assets; the changed receive gate does not load
   textures, UI resources, or item tables.
 - **USED:** buildable `LegacySalePacket.h`, `ReceivedPacketDispatch.h`, and
   `TMFieldScene::OnPacketSell`; tests in `SceneDisconnectContractTests.cpp`.
 - **USED:** `wydgo748/internal/game/handlers.go::onSellItem`, inbound size
-  validation, and merchant lifecycle/range/tax tests. The server does not emit
-  the inherited sale response.
+  validation, `sale_ingress.go::validSaleInventorySource`, and merchant
+  lifecycle/range/tax and network-ingress tests. The server does not emit the
+  inherited sale response.
 - **NOT APPLICABLE:** external legacy clients and guides. TMProject 7.69 is
   only the candidate source's origin, not evidence for this envelope.
 - **CONTRADICTORY:** the previous assumption that no native consumer was
@@ -72,6 +77,14 @@ the detached visual. A final scene refresh also runs after a merchant mismatch.
 These observations identify the consumer; its full arithmetic and safety are
 not the parity claim made by this record.
 
+The separate outgoing branch of `FUN_00416196` zeroes a 20-byte buffer at
+`EBP-0x2c`, writes opcode `0x37A` at `0x004162bf`, then writes merchant,
+source type, and position as words at `0x004162d2`, `0x004162da`, and
+`0x004162e2`. Relative to the buffer, these occupy bytes 12, 14, and 16.
+`PUSH 0x14` at `0x004162e6` and the send call at `0x004162ec` independently
+establish the request size. This does not establish that the native request
+domain is carry-only; that restriction belongs to the current server policy.
+
 ### Callees
 
 The handler uses grid receiver vtable offsets `+0xa4` (equipment branch) and
@@ -99,6 +112,7 @@ the borrowed bytes or call the receiver.
 | Received sale frame | Both opcodes match; declared and actual lengths are 20 | Candidate receive gate | One borrowed callback | No copy or mutation of payload | Reject before callback otherwise |
 | Native merchant match | Target and type select an existing sale branch | `FUN_00487e23` | Model item cleared; detached visual destroyed | Local gold and UI refresh | Merchant mismatch skips sale mutation |
 | Native size mismatch | `0x37A`, size other than 20 | `FUN_0055890a`, case `0x0055927c` | Rejection flag set | No size-policy payload mutation | Returns invalid-size result |
+| Invalid network sale source | Full type word is not Carry, or signed position is outside 0..62 | `World.validateInboundCommand` | Character, shop, and trade unchanged | Security violation counted; no save or response | Reject before movement advancement and sale dispatch |
 
 ### Vtables, vptrs, and receivers
 
@@ -117,6 +131,9 @@ do not change the candidate's existing grid ownership or alias safety policy.
 Malformed envelope rejection happens before a handler cast or model/UI mutation.
 Semantic rejection and persistence failure remain server-authoritative;
 this change adds no local success state or packet emission.
+The server's source-domain gate runs before `onSellItem` can cancel trade or
+project the source into byte-sized coordinates. Valid sales keep their
+existing persistence rollback and authoritative snapshot responses.
 
 ### Cleanup and teardown
 
@@ -154,14 +171,17 @@ interpreted here. The fixed 20-byte regression fixture, size/offset assertions,
 and mismatch tests make the decision falsifiable. No assets or resource IDs change.
 The native server emitter is not available; receipt is proven by the field
 consumer, not by claiming a recovered historical server implementation.
+The outgoing native request uses the same 20-byte representation and payload
+word offsets, independently proven by the retained builder instructions above.
 
 ## Current mapping
 
 ### Buildable source
 
-`LegacySalePacket.h` holds the unchanged 20-byte representation. Add `0x37A`
-to the existing fixed-size dispatch policy instead of retaining the inherited
-minimum-only exception. `TMFieldScene::OnPacketSell` remains unchanged.
+`LegacySalePacket.h` holds the unchanged 20-byte representation. `0x37A`
+is part of the fixed-size dispatch policy rather than the inherited
+minimum-only exception. The envelope patch did not change
+`TMFieldScene::OnPacketSell`.
 
 ### WYD-Go
 
@@ -171,6 +191,18 @@ and `UpdateEtc` snapshots. Do not add `S->C 0x37A`: the inherited handler
 would perform an additional local gold/item mutation outside this flow.
 Repurchase remains intentionally removed; successful merchant sales are final.
 
+Commit `64336041` adds full-word source validation at the shared network
+ingress, after envelope and phase checks but before dispatch. Type must be
+Carry (`1`), and the signed position must be within `0..62`. Previously,
+`onSellItem` read only the low bytes at 14 and 16: `0x0101` could alias Carry
+and `0x0100` could alias slot 0. Negative words could alias these same values.
+Other invalid sources could cancel an existing trade before being rejected.
+The new gate rejects all these requests without changing inventory, gold,
+merchant context, trade, persistence, or outbound snapshots. It does not
+refactor the legacy handler's direct-call parser; all network dispatch goes
+through the validated ingress. Valid requests retain unchanged prices,
+merchant checks, rollback, and `SendItem`/`UpdateEtc` publication.
+
 ## Delta matrix
 
 | Claim | Native 7.48 | Current source | TMProject | WYD-Go | Decision |
@@ -178,7 +210,8 @@ Repurchase remains intentionally removed; successful merchant sales are final.
 | Received `0x37A` consumer | Field receiver calls `FUN_00487e23` | Inherited sale handler exists | Secondary candidate | Does not emit response | CONFIRMED; retain guarded consumer |
 | Exact envelope | Size-policy case requires 20 | Minimum-only gate accepts larger frames | Struct is 20 bytes | Input intent is 20 bytes | PARIDADE_NATIVA: require exact receive size |
 | Actual-size/opcode consistency | Native size/opcode words identified | Shared gate checks both discriminants and actual size | Internal guard | Unchanged | MODERNIZACAO_COMPATIVEL: reuse fail-closed gate |
-| Complete UI/price parity | Not fully validated by this slice | Existing safety modernization | Different architecture | Authoritative snapshots | No broader parity claim or server change |
+| Complete source words | Request writes words at 14/16; response sign-extends them | Representation unchanged | No new sender or response | Reject high-byte aliases before dispatch | MODERNIZACAO_COMPATIVEL: enforce existing Carry policy on full fields |
+| Complete UI/price parity | Not fully validated by this slice | Existing safety modernization | Different architecture | Authoritative snapshots | No broader parity claim or price change |
 
 ## Decisions
 
@@ -186,6 +219,8 @@ Use the native exact envelope in the shared receive gate; keep the established
 server snapshot lifecycle and handler safety. Preserve identifiers and bytes.
 Do not remove the consumer merely because WYD-Go currently uses a different
 authoritative confirmation path.
+Classify the server source-domain gate as `MODERNIZACAO_COMPATIVEL`, not
+proof that every native sale source follows the server's Carry-only policy.
 
 ## Gaps
 
@@ -216,12 +251,22 @@ authoritative confirmation path.
   integrated incremental x86 build. Existing warnings in unchanged legacy source
   remain. Artifact `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
   `56A0A7E1D2D7B1B36C6B9658A7D77D1110AFF64F643636435E2F09CF22F9AB57`.
-- Server: focused `go test -count=1 -v ./internal/game -run` executed and passed
+- Initial envelope batch: focused `go test -count=1 -v ./internal/game -run` executed and passed
   `TestShopOpenBuyAndSellLifecycle`, `TestShopAndCargoRejectInvalidOperations`,
   `TestShopOperationsRevalidateRangeAndRejectEquipmentSale`,
   `TestCityTaxBuySellAndTOTOArithmetic`, and
   `TestCityTaxPersistenceFailureRollsBackPlayerAndTreasury`. This does not prove
-  a live PostgreSQL or DirectX UI flow; no server source changed.
+  a live PostgreSQL or DirectX UI flow; no server source changed in that batch.
+- Server ingress continuation (`64336041`): eight malformed-source scenarios
+  failed before the gate and passed afterward through `World.handle`.
+  `TestSaleIngressRejectsFullWidthSourceBeforeSideEffects` covers high-byte
+  aliases, negative words, equipment, cargo, and reserved slot 63, including
+  unchanged trade and borrowed bytes. `TestSaleIngressValidSlotsPersistOnceAndRejectReplay`
+  covers slots 0/62, uninterpreted tail padding, and repeated requests;
+  `TestSaleIngressPersistenceFailureRestoresState` covers save failure.
+  `go test -count=1 ./...` and `go vet ./...` passed for that server batch.
+  These automated results do not establish a live database or client UI flow.
+  This documentation continuation reuses them; it changes no product input.
 - Structure: `validate_research.py --repo .` passed; repository layout and
   local links passed with 152 indexed documents. `git diff --check` passed.
 - Real client: not run; no candidate installation or visual validation.
