@@ -654,6 +654,18 @@ int RunSceneDisconnectContractTests(int& checks)
     check(validCatalogIndex(abilitySource, itemAbilityStart) &&
         validCatalogIndex(abilitySource, staticAbilityStart),
         "item ability readers reject the first index beyond the 7.48 ItemList before lookup");
+    const auto itemAbilityBody = itemAbilityStart != std::string::npos
+        ? abilitySource.substr(itemAbilityStart, 1024) : std::string{};
+    const auto volatileGuard = itemAbilityBody.find("if (Type == EF_VOLATILE)");
+    const auto volatileReturn = itemAbilityBody.find(
+        "return native_item_volatile::GetAbility(idx, g_pItemList[idx].stEffect, item->stEffect);");
+    const auto legacyAbilityStart = itemAbilityBody.find("int nUnique = g_pItemList[idx].nUnique;");
+    check(volatileGuard != std::string::npos && volatileReturn != std::string::npos &&
+        legacyAbilityStart != std::string::npos && volatileGuard < volatileReturn &&
+        volatileReturn < legacyAbilityStart &&
+        itemAbilityBody.substr(volatileGuard, volatileReturn - volatileGuard) ==
+            "if (Type == EF_VOLATILE)\n        ",
+        "only type 38 uses the shared native lookup before legacy ability branches");
     const auto bonusNoSancStart = abilitySource.find("int BASE_GetBonusItemAbilityNosanc(");
     const auto bonusStart = abilitySource.find("int BASE_GetBonusItemAbility(", bonusNoSancStart);
     const auto bonusEnd = abilitySource.find("int BASE_GetItemAbilityNosanc(", bonusStart);

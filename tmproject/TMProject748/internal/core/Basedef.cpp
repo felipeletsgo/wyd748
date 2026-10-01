@@ -7,6 +7,7 @@
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "ItemEffect.h"
+#include "NativeItemVolatile.h"
 #include "WYD748Assets.h"
 #include "ServerListAsset.h"
 #include <WinInet.h>
@@ -14,6 +15,10 @@
 
 namespace
 {
+    static_assert(EF_VOLATILE == native_item_volatile::Effect,
+        "Native volatile ability type changed");
+    static_assert(MAX_ITEMLIST == native_item_volatile::CatalogLimit,
+        "Native volatile catalog bound changed");
     constexpr int SharedHeightMapWidth = 4096;
     constexpr std::size_t SharedHeightMapSize =
         SharedHeightMapWidth * SharedHeightMapWidth;
@@ -496,6 +501,9 @@ int BASE_GetItemAbility(STRUCT_ITEM* item, char Type)
 
     if (idx <= 0 || idx >= MAX_ITEMLIST)
         return 0;
+
+    if (Type == EF_VOLATILE)
+        return native_item_volatile::GetAbility(idx, g_pItemList[idx].stEffect, item->stEffect);
 
     int nUnique = g_pItemList[idx].nUnique;
     int nPos = g_pItemList[idx].nPos;

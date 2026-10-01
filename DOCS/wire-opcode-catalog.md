@@ -369,9 +369,10 @@ item, position, and cooldown.
   The response's quarter-price reduction bands are now proven from retained
   instructions; Go currently omits them. The native grid-type-3 quote and
   special-item overrides are now traced and implemented in the client without
-  a wire change. The quote-specific type-38 lookup also implements the proven
+  a wire change. The shared core type-38 lookup also implements the proven
   signed effects, special-domain exclusion, and catalog-only mount paths, with
-  automated fixtures; this does not approve the general ability helper.
+  automated fixtures. Only `EF_VOLATILE` in `BASE_GetItemAbility` delegates to
+  it; other ability types and full consumer lifecycles are not approved by this evidence.
   Authoritative special-item/passive/tax policy, including the item-412
   quote/payment mismatch, remains open before changing the server economy.
 

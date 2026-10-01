@@ -18,7 +18,8 @@ It also records the unchanged request widths reused for server ingress hardening
 The arithmetic continuations close the response consumer's base-price bands
 and the grid-type-3 quote calculation and exceptions. The type-38 continuation
 also closes the native contract for the ability lookup required by that quote,
-not every ability type. The candidate quote now uses that resolved lookup.
+not every ability type. The candidate quote and the type-38 entry of
+`BASE_GetItemAbility` now share that resolved lookup.
 Complete merchant UI behavior and historical server policy remain open.
 
 ## Evidence boundary
@@ -43,6 +44,9 @@ Complete merchant UI behavior and historical server policy remain open.
   `TMFieldScene::OnPacketSell`; tests in `SceneDisconnectContractTests.cpp`.
 - **USED:** `SGridControl::MouseOver`, `NativeSaleQuote.h`, and quote fixtures
   in `GridInsertionTests.cpp`; the complete type-38 path is resolved below.
+- **USED:** `Basedef.cpp::BASE_GetItemAbility` and `NativeItemVolatile.h`.
+  The shared query also serves existing item initialization, grid movement,
+  pickup, and item-use callers; no caller lifecycle or packet builder changes.
 - **USED:** `FUN_0054e06c`, the refinement callee reached by ordinary ability
   lookup. Its matching 158-instruction export proves read-only item access,
   no further calls, and stack-only writes. Other ability types are not approved.
@@ -170,12 +174,12 @@ Ordinary items call `FUN_0054e06c` at `0x0054d278` before deciding whether to
 scale. That callee reads the item and writes only its own stack, with no calls
 or external mutation in the full 158-instruction body. Its return value cannot
 change type 38: `0x0054d374..0x0054d377` skips scaling, and all later modifiers
-test other types before the final sum is returned. The quote-specific lookup
+test other types before the final sum is returned. The fixed type-38 lookup
 can therefore omit the refinement call without losing side effects. This does
 not approve changing refinement computation for other consumers.
 
 The sale quote itself already bounds catalog reads to `1..6499`. The
-quote-specific lookup retains that bound rather than reproducing the native helper's index
+shared lookup retains that bound rather than reproducing the native helper's index
 6500 access. This invalid-index protection is `MODERNIZACAO_COMPATIVEL`;
 the proven type-38 sums, exclusions, and mount paths are `PARIDADE_NATIVA`.
 No item bytes, catalog data, price policy, or persisted effects are changed.
@@ -215,6 +219,7 @@ the borrowed bytes or call the receiver.
 | Native merchant match | Target and type select an existing sale branch | `FUN_00487e23` | Model item cleared; detached visual destroyed | Local gold and UI refresh | Merchant mismatch skips sale mutation |
 | Native size mismatch | `0x37A`, size other than 20 | `FUN_0055890a`, case `0x0055927c` | Rejection flag set | No size-policy payload mutation | Returns invalid-size result |
 | Invalid network sale source | Full type word is not Carry, or signed position is outside 0..62 | `World.validateInboundCommand` | Character, shop, and trade unchanged | Security violation counted; no save or response | Reject before movement advancement and sale dispatch |
+| Local type-38 query | Valid item index and borrowed twelve/three effect arrays | `BASE_GetItemAbility` or sale quote -> `native_item_volatile::GetAbility` | Signed native sum, catalog-only mount result, or zero exclusion | No allocation, mutation, retained pointer, or packet | Invalid indices return zero; other ability types retain existing branches |
 
 ### Vtables, vptrs, and receivers
 
@@ -227,7 +232,7 @@ Downstream grid/manager slots are observed, not renamed as proven classes.
 The receive gate owns no packet or scene. Storage remains transport-owned and
 is borrowed synchronously once. Native detachment/deletion observations above
 do not change the candidate's existing grid ownership or alias safety policy.
-The quote lookup synchronously borrows the catalog and item effect arrays as
+The shared type-38 lookup synchronously borrows the catalog and item effect arrays as
 const references, allocates nothing, and retains or modifies neither input.
 
 ### Partial failure
@@ -308,8 +313,21 @@ the inclusive 3200..3300 exclusion, and catalog-only mount domains
 call site; the template takes the actual twelve/three effect arrays without
 changing their shared storage ABI. It omits refinement computation because
 the native type-38 result is independent of that side-effect-free callee.
-The general `BASE_GetItemAbility` and all of its other consumers are unchanged;
-this focused adaptation does not establish parity for every ability type.
+`NativeSaleQuote.h` delegates that query to the core `NativeItemVolatile.h`.
+`BASE_GetItemAbility` returns the same query only when `Type == EF_VOLATILE`,
+after its existing catalog bound and before the inherited ability branches.
+Compile-time assertions retain type 38 and the 6500-entry catalog limit.
+The existing callers in `TMItem::InitObject`, `SGridControl` movement,
+`TMHuman` pickup, and `TMFieldScene` item-use/drop routes therefore receive
+the same type-38 calculation. Catalog codes above 127, such as the existing
+230 selector, stay signed-word catalog values; only instance bytes are
+sign-extended. Mount instance fields remain packed and are not interpreted as
+ordinary effects. The server catalog's 3200..3299 lottery entries have no
+type-38 effects; the exclusion is justified by the native helper, not that
+server data. No catalog entries are removed or translated.
+Other ability types, static/no-refinement helpers, caller state machines,
+and wire formats are unchanged. This closes the fixed helper result, not
+native parity of every consumer or the entire general ability algorithm.
 
 ### WYD-Go
 
@@ -341,13 +359,15 @@ comparison gap, not proof that the response formula can be transplanted as
 the complete authoritative shop policy. The native client quote and its
 special-item overrides are now traced and adapted, without changing server
 payment. No passive/tax adjustment occurs in that native quote block; the
-authoritative policy still requires separate validation. The quote-specific
-type-38 lookup is now adapted and automated-tested; general ability parity
-and real client execution are not established by that result.
+authoritative policy still requires separate validation. The fixed type-38
+lookup is now shared and automated-tested; other ability types, full consumer
+parity, and real client execution are not established by that result.
 For the current catalog, item 412 quotes 800000 while Go's straight quarter
 of 1000000 is 250000 before other adjustments. This mismatch is recorded,
-not silently treated as economic parity. Existing low-price server tests do
-not distinguish the response bands: their quarter prices remain below 5001.
+not silently treated as economic parity. Earlier low-price server tests did
+not distinguish the response bands: their quarter prices remained below 5001.
+The subsequently published current-payment tests distinguish those inputs,
+but deliberately preserve the server policy until its separate decision.
 
 ## Delta matrix
 
@@ -359,7 +379,7 @@ not distinguish the response bands: their quarter prices remain below 5001.
 | Complete source words | Request writes words at 14/16; response sign-extends them | Representation unchanged | No new sender or response | Reject high-byte aliases before dispatch | MODERNIZACAO_COMPATIVEL: enforce existing Carry policy on full fields |
 | Response base-price bands | Quarter price, then two-thirds for 5001..10000 or half above 10000 | Same bands; floating precision still unproven | Candidate calculation is secondary | Omits these response bands | CONFIRMED response arithmetic; authoritative policy remains separate |
 | Grid-type-3 sale quote | Ordinary bands; ability 185 full price; item 412 fixed at 800000; item 413 ordinary | Implemented in NativeSaleQuote.h with 154 focused arithmetic checks | Secondary candidate | Payment unchanged | PARIDADE_NATIVA for cleared calculation; invalid-index protection is MODERNIZACAO_COMPATIVEL |
-| Quote type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | GetVolatileAbility integrated into MouseOver with 2134 additional checks | General helper not changed or approved | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
+| Fixed type-38 ability | Signed catalog words and instance bytes; special exclusion and catalog-only mount paths; no refinement scaling | Core GetAbility shared by MouseOver and BASE_GetItemAbility; 2134 existing fixtures plus exclusive-routing regression | Other ability types and caller lifecycles unchanged | Payment unchanged | PARIDADE_NATIVA for proven lookup; reject index 6500 as MODERNIZACAO_COMPATIVEL |
 | Complete UI/price parity | Authoritative policy and refresh not fully validated | Quote corrected; runtime pending | Different architecture | Authoritative snapshots | No broader parity claim or server price change |
 
 ## Decisions
@@ -370,9 +390,10 @@ Do not remove the consumer merely because WYD-Go currently uses a different
 authoritative confirmation path.
 Classify the server source-domain gate as `MODERNIZACAO_COMPATIVEL`, not
 proof that every native sale source follows the server's Carry-only policy.
-Adapt the cleared quote calculation and its fixed type-38 lookup; retain the
-general ability helper, authoritative payment, and snapshot lifecycle. Quote
-tests are not evidence of payment parity or validation of other ability types.
+Adapt the cleared quote calculation and share its fixed type-38 lookup with
+`BASE_GetItemAbility`; retain other ability types, authoritative payment, and
+snapshot lifecycle. Quote tests are not evidence of payment parity or
+validation of other ability types.
 
 ## Gaps
 
@@ -380,15 +401,18 @@ tests are not evidence of payment parity or validation of other ability types.
   not `CLIENT_TESTED`.
 - Downstream native grid class identity and UI refresh parity remain open.
   The response bands and quote exceptions are proven; only the displayed
-  quote changed in this continuation, not server payment.
-- The quote-specific type-38 lookup is adapted and automated-tested. Real UI
-  execution is still pending, and other ability types/consumers remain outside
-  this evidence boundary. Do not use these fixtures to approve a global rewrite
+  quote and fixed type-38 lookup changed, not server payment.
+- The shared type-38 lookup is adapted and automated-tested. Real UI
+  execution is still pending, and other ability types and full consumer
+  lifecycles remain outside this evidence boundary. Do not use these fixtures to approve a global rewrite
   of `BASE_GetItemAbility`.
 - Next economic gate: establish the authoritative ordinary/special-item,
   passive, and city-tax policy, including the item-412 quote/payment mismatch.
-  Cover catalog boundaries `20000/20004/40000/40004` through persistence,
-  rollback, repetition, and snapshot publication before adapting payment.
+  Published current-policy characterization in `aa5e88fb` covers catalog
+  boundaries `20000/20004/40000/40004`, items 412/413, and ability 185 through
+  persistence, rollback/retry, repetition, caps, and decrypted snapshot
+  publication. Its 98 scenarios preserve current payment; they are not
+  approval of native payment parity. The requested policy choice is unanswered.
 - Other documented legacy gaps (`0xED7/0xED8`, dormant `0x2C4`, unavailable
   transfer `0xFAA`) remain separate work; this evidence does not close them.
 
@@ -474,3 +498,18 @@ tests are not evidence of payment parity or validation of other ability types.
   No server input changed, so earlier server tests were not repeated. No new
   native export was needed for this adaptation. No installation or real client
   execution occurred; the record remains `CONTRACT`, not `CLIENT_TESTED`.
+- Shared type-38 continuation (2026-10-01): reused the complete helper path
+  and side-effect-free refinement-callee evidence above; no new native
+  export or catalog sweep. Extracted the unchanged query into
+  `NativeItemVolatile.h` and routed only type 38 from `BASE_GetItemAbility`.
+  The new source-routing regression failed before the production edit and
+  passed afterward. The existing 2134 lookup fixtures now exercise the shared
+  core through the quote wrapper; production compilation checks both callers'
+  actual array types. Other ability branches are unchanged in the scoped diff.
+  `Build-Client.ps1 -Configuration Release -NoDeploy` passed with 60,969
+  architecture checks, 221 socket checks, asset/shader gates, and an incremental
+  x86 build. Existing signedness and deprecated Winsock warnings remain.
+  Artifact `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `1F36C6A6FE1364D8BB18C6A91266720E1A4579763FDD85E73451D6906B06ACC5`.
+  No server source changed or Go tests were rerun. No runtime installation,
+  real item-use/pickup execution, or `CLIENT_TESTED` promotion occurred.

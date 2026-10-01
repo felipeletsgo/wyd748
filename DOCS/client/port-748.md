@@ -316,17 +316,25 @@ division preserves native nonnegative price precision without float32 rounding.
 The quote now uses a fixed type-38 lookup proven from the native helper:
 signed catalog words and instance bytes, the inclusive 3200..3300 exclusion,
 catalog-only mount domains 2330..2389 and 3980..3999, and no refinement scaling.
-The general ability helper and other consumers remain unchanged and unapproved
-by this focused evidence.
+The query is now shared in `NativeItemVolatile.h`: `BASE_GetItemAbility`
+delegates only `EF_VOLATILE` to it, so existing item initialization, movement,
+pickup, and use callers no longer retain a separate 7.69 type-38 calculation.
+Other ability types, static/no-refinement helpers, and consumer state machines
+are unchanged and are not approved by this focused evidence.
 See the same record's
 [sale quote arithmetic](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#sale-quote-arithmetic)
 and [type-38 lookup contract](../../.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md#type-38-ability-used-by-the-quote).
 Server payment remains unchanged, including the current item-412 quote/payment
 mismatch; authoritative special-item/passive/tax policy is still pending.
-The latest no-deploy incremental build passed with 60,968 architecture checks
-(154 arithmetic checks plus 2134 lookup checks), 221 socket checks, and
+The latest no-deploy incremental build passed with 60,969 architecture checks
+(154 arithmetic checks, 2134 shared lookup checks, and an exclusive type-38
+routing regression), 221 socket checks, and
 asset/shader gates. No
 candidate was installed or visually tested; no `CLIENT_TESTED` claim is made.
+The published server tests in `aa5e88fb` characterize 98 current-payment
+scenarios, including price-band boundaries, special items, merchant passive,
+tax, rollback/retry, replay, caps, and encrypted snapshots. They do not settle
+the pending authoritative payment policy and were not rerun for this client-only batch.
 
 The subsequent server ingress correction (`64336041`) reads the complete
 source type and position words at bytes 14/16 before sale dispatch. Carry
