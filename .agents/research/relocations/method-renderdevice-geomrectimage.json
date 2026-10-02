@@ -1,0 +1,19 @@
+{
+ "source": "tmproject/TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp",
+ "header": "tmproject/TMProject748/internal/platform/windows/RenderDevice.h",
+ "class": "RenderDevice",
+ "method": "void RenderDevice::RenderGeomRectImage(GeomControl* ipControl)",
+ "extractions": [
+  {
+   "helper": "RenderGuildMarkImage",
+   "after": "else",
+   "nth": 0,
+   "params": [
+    [
+     "GeomControl*&",
+     "ipControl"
+    ]
+   ]
+  }
+ ]
+}

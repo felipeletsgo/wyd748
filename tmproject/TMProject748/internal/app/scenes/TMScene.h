@@ -1,8 +1,13 @@
 #pragma once
+#include "ExtractedFlow.h"
 
+#include <cstdio>
 #include "TreeNode.h"
 #include "Structures.h"
 #include "Basedef.h"
+
+// Defined in ui/controls/SControlBase.h; the RC reader helpers only take it by reference.
+enum class CONTROL_TYPE : int;
 
 enum class ESCENE_TYPE
 {
@@ -144,4 +149,25 @@ public:
     stCameraTick m_stCameraTick[1000];
     unsigned int m_dwDelayDisconnectTime;
     int m_bMsgRemoveServer;
+
+private:
+	// Helpers extracted from TMScene::OnMessagePanelPacket.
+	int OnIndexedSceneMessage(MSG_STANDARD*& pStd);
+	ExtractedFlow ShowFireworkMessage(MSG_MessagePanel*& pMsgPanel, int& extractedResult);
+	void ShowSmsMessage(MSG_MessagePanel*& pMsgPanel);
+	void AppendMessagePanelToChat(MSG_MessagePanel*& pMsgPanel);
+	// Helpers extracted from TMScene::OnPacketEvent.
+	int OnMessagePanelPacket(MSG_STANDARD*& pStd);
+	// Helpers extracted from TMScene::OnPacketEvent.
+	ExtractedFlow OnShoutMessage(MSG_STANDARD*& pStd, int& extractedResult);
+	// Helpers extracted from TMScene::ReadRCBin.
+	ExtractedFlow ReadRCPanel(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult);
+	ExtractedFlow ReadRCGrid(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult);
+	ExtractedFlow ReadRC3DObj(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult);
+	ExtractedFlow ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, const bool& legacyInlineCaptions, int& extractedResult);
+	ExtractedFlow ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, const bool& legacyInlineCaptions, int& extractedResult);
+	ExtractedFlow ReadRCEditableText(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult);
+	ExtractedFlow ReadRCProgressBar(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult);
+	ExtractedFlow ReadRCCheckBox(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult);
+	ExtractedFlow ReadRCListBox(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult);
 };

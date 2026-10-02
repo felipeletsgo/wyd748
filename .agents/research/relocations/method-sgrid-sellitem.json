@@ -1,0 +1,66 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SGridCommerce.cpp",
+ "header": "tmproject/TMProject748/internal/ui/SGrid.h",
+ "class": "SGridControl",
+ "method": "int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigned int wParam)",
+ "extractions": [
+  {
+   "helper": "SellItemOnShop",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_SHOP)",
+   "flow": true,
+   "params": [
+    [
+     "TMFieldScene*&",
+     "pScene"
+    ]
+   ]
+  },
+  {
+   "helper": "SellItemOnSkillBelt",
+   "after": "else if (m_eGridType == TMEGRIDTYPE::GRID_SKILLB)",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pScene"
+    ]
+   ]
+  },
+  {
+   "helper": "SellItemOnOtherGrid",
+   "after": "else",
+   "nth": 1,
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "unsigned int&",
+     "dwFlags"
+    ],
+    [
+     "unsigned int&",
+     "wParam"
+    ],
+    [
+     "TMFieldScene*&",
+     "pScene"
+    ]
+   ]
+  }
+ ]
+}

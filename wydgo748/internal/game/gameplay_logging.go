@@ -79,7 +79,7 @@ func (w *World) flushGameplayLog(now time.Time, initial bool) {
 	}
 	stats := w.gameplayLog
 	if initial || stats != (gameplayLogStats{}) {
-		log.Printf("GAMEPLAY resumo: skills=%d ataques=%d mortes=%d drops=%d gold=%d lotes=%d",
+		log.Printf("GAMEPLAY summary: skills=%d attacks=%d kills=%d drops=%d gold=%d batches=%d",
 			stats.Skills, stats.Attacks, stats.Kills, stats.Drops, stats.Gold, stats.Batches)
 	}
 	w.gameplayLog = gameplayLogStats{}

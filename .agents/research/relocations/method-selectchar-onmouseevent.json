@@ -1,0 +1,19 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMSelectCharSceneInput.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMSelectCharScene.h",
+ "class": "TMSelectCharScene",
+ "method": "int TMSelectCharScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)",
+ "extractions": [
+  {
+   "helper": "OnMouseEventWhileSelecting",
+   "after": "if (m_bSelect == 1)",
+   "returns": true,
+   "params": [
+    [
+     "TMHuman*&",
+     "pOver"
+    ]
+   ]
+  }
+ ]
+}

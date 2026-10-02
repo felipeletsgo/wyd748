@@ -1,0 +1,44 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/ui/SControl.h",
+    "tmproject/TMProject748/internal/ui/SControl.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/ui/controls/S3DObj.cpp",
+    "tmproject/TMProject748/internal/ui/controls/S3DObj.h",
+    "tmproject/TMProject748/internal/ui/controls/SButton.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SButton.h",
+    "tmproject/TMProject748/internal/ui/controls/SButtonBox.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SButtonBox.h",
+    "tmproject/TMProject748/internal/ui/controls/SCheckBox.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SCheckBox.h",
+    "tmproject/TMProject748/internal/ui/controls/SControlBase.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SControlBase.h",
+    "tmproject/TMProject748/internal/ui/controls/SCursor.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SCursor.h",
+    "tmproject/TMProject748/internal/ui/controls/SEditableText.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SEditableText.h",
+    "tmproject/TMProject748/internal/ui/controls/SListBox.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SListBox.h",
+    "tmproject/TMProject748/internal/ui/controls/SMessageBox.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SMessageBox.h",
+    "tmproject/TMProject748/internal/ui/controls/SMessagePanel.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SMessagePanel.h",
+    "tmproject/TMProject748/internal/ui/controls/SPanel.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SPanel.h",
+    "tmproject/TMProject748/internal/ui/controls/SProgressBar.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SProgressBar.h",
+    "tmproject/TMProject748/internal/ui/controls/SReelPanel.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SReelPanel.h",
+    "tmproject/TMProject748/internal/ui/controls/SScrollBar.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SScrollBar.h",
+    "tmproject/TMProject748/internal/ui/controls/SText.cpp",
+    "tmproject/TMProject748/internal/ui/controls/SText.h",
+    "tmproject/TMProject748/internal/ui/SControl.h"
+   ]
+  }
+ ]
+}

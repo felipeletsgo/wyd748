@@ -20,7 +20,8 @@ HEADER = BASE.replace('.cpp', '.h')
 REVISION = '77e8dcc7f1af929be1c6418d08b97c7dd8412713'
 CHAT_DISPATCH = 'int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)'
 CHAT_BASELINE = '2652319983dad3511638716101b8b90a6ad80fdffed238c831ec640faede56bb'
-CHAT_REVIEWED = 'b823b55387fb0774bc1319987c087fb202bf46a924cdf332d91b366339769829'
+# Native chat filters (batch 9), chat submission (batch 11) and coin input (batch 12).
+CHAT_REVIEWED = '0e40bcc8dbf0b8e135e8148a24c72c5441a3db01100288df6d642c52e1076de7'
 REVIEWED_METHODS = {
     CHAT_DISPATCH: (CHAT_BASELINE, CHAT_REVIEWED),
     'int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)': (
@@ -29,6 +30,9 @@ REVIEWED_METHODS = {
     'int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)': (
         'a3f0c57393e332aa27bfbaed0bd71eb30f57352680b4c1ab2c3ce6812387911f',
         'cb52fbbc6943b811817a37a5b8a97b73ebb01d112377a3f5cd8f528981fac237'),
+    'int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)': (
+        '8e95108a23f3c67ec66820f4001be4ee3f00a6330ce3d605115f3036c64cba9d',
+        'a61b63b9a17ced56e53510a1285e62d9bd983ad20a7b5d87816adc0142704e93'),
 }
 POLICIES = {
     'internal/application/FieldChatControlPolicy.h': 'd0f7cc6d45f4fd84901ceeb31402f8263c3d152bd8cddb67805b3f3f083279c1',
@@ -36,6 +40,10 @@ POLICIES = {
     'internal/application/SkillRequestPolicy.h': '18b58c7be20336bf5f2d1ecdeaa6843ae667aee323aef5d2c597bfa333915ba8',
     'internal/wire/SkillAttackRequest.h': '43b9dd2cc5d1f2ef8e8af94b86aa23341af78c3bc2b9bdf47eaefe7c01cedb07',
     'internal/wire/AttackVisualDamage.h': '251333095d26e0b71b05c752aefbf5afc39567e30ba6781d075280389485844f',
+    'internal/application/AttackAttackerState.h': '906651063bd612ed34e856ee0c4f0851d2d9a81c0c9fc4bb565d87842fdbb9cf',
+    'internal/application/AttackTargetState.h': 'c3909e55c16af8c741b6335f9cf568a425b819f26b731a055d087a89ee6f702e',
+    'internal/application/FieldChatSubmitPolicy.h': 'f731cac995656b2a5385b8601777a954d264eb4a5d91a2e725f630b6d5432fd4',
+    'internal/application/FieldCoinInputPolicy.h': '114d8c4af4f91076e2370be22fb9be256e7913da073b7989dbbdacb74e4fbb7e',
 }
 REVIEWED_HELPERS = {
     'GetWYD748AttackVisualDamage': (

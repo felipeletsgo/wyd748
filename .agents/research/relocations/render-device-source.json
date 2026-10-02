@@ -1,0 +1,33 @@
+{
+ "source": "tmproject/TMProject748/internal/platform/windows/RenderDevice.cpp",
+ "header_note": "RenderDevice split by responsibility; device lifecycle stays in RenderDevice.cpp.",
+ "targets": {
+  "tmproject/TMProject748/internal/platform/windows/RenderDeviceState.cpp": [
+   "\\bRenderDevice::SetRenderState\\(",
+   "\\bRenderDevice::SetTextureStageState\\(",
+   "\\bRenderDevice::SetTexture\\(",
+   "\\bRenderDevice::SetSamplerState\\(",
+   "\\bRenderDevice::SetGamma\\(",
+   "\\bRenderDevice::InitializeRenderingState\\(",
+   "\\bRenderDevice::SetRenderStateBlock\\(",
+   "\\bRenderDevice::SetViewVector\\(",
+   "\\bRenderDevice::SetProjectionMatrix\\(",
+   "\\bRenderDevice::SetMatrixForUI\\(",
+   "\\bRenderDevice::GetPickRayVector\\(",
+   "\\bRenderDevice::SetLight\\("
+  ],
+  "tmproject/TMProject748/internal/platform/windows/RenderDeviceShaders.cpp": [
+   "\\bRenderDevice::InitVertexShader\\(",
+   "\\bRenderDevice::InitPixelShader\\("
+  ],
+  "tmproject/TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp": [
+   "\\bRenderDevice::RenderRect\\w*\\(",
+   "\\bRenderDevice::RenderGeom\\w*\\("
+  ],
+  "tmproject/TMProject748/internal/platform/windows/RenderDeviceDiagnostics.cpp": [
+   "\\bRenderDevice::LogRenderState\\(",
+   "\\bRenderDevice::LogSamplerState\\(",
+   "\\bRenderDevice::LogTextureStageState\\("
+  ]
+ }
+}

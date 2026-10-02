@@ -1,0 +1,22 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMSelectCharScene.cpp",
+ "header_note": "TMSelectCharScene split by responsibility; scene setup and character list stay in TMSelectCharScene.cpp.",
+ "targets": {
+  "tmproject/TMProject748/internal/app/scenes/TMSelectCharSceneInput.cpp": [
+   "^namespace$",
+   "\\bTMSelectCharScene::OnControlEvent\\(",
+   "\\bTMSelectCharScene::OnCharEvent\\(",
+   "\\bTMSelectCharScene::OnKeyDownEvent\\(",
+   "\\bTMSelectCharScene::OnMouseEvent\\("
+  ],
+  "tmproject/TMProject748/internal/app/scenes/TMSelectCharScenePackets.cpp": [
+   "\\bTMSelectCharScene::HandleJudgementEffect\\(",
+   "\\bTMSelectCharScene::HandleCharacterLogin\\(",
+   "\\bTMSelectCharScene::HandleCharacterCreated\\(",
+   "\\bTMSelectCharScene::HandleCharacterDeleted\\(",
+   "\\bTMSelectCharScene::ShowCharacterOperationMessage\\(",
+   "\\bTMSelectCharScene::HandleMoveServerNotification\\(",
+   "\\bTMSelectCharScene::OnPacketEvent\\("
+  ]
+ }
+}

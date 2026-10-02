@@ -1,4 +1,5 @@
 #pragma once
+#include "ExtractedFlow.h"
 
 #include "TreeNode.h"
 #include "Structures.h"
@@ -76,4 +77,11 @@ public:
     float m_fEffHeight;
     TMVector2 m_vecEffset;
     unsigned int m_dwEffStart;
+
+private:
+	// Helpers extracted from TMGround::Render.
+	ExtractedFlow BuildVoodooTileVertices(char& bCoordIndex, unsigned int (&dwColor)[4], int& nTexIndex, int& nTickX, int& nTickY, int& nX, int& nY);
+	ExtractedFlow SetTileTextureCoordinates(char& bCoordBackIndex, char& bCoordIndex, float (&fX)[4], float (&fY)[4], int& k, int& nIndex, int& nTexIndex, int& nX, int& nY);
+	// Helpers extracted from TMGround::Render.
+	void BuildTileVertices(int& nTickX, int& nTickY, int& nX, int& nY);
 };

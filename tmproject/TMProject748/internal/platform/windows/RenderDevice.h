@@ -1,4 +1,5 @@
 #pragma once
+#include "ExtractedFlow.h"
 
 #include "D3DDevice.h"
 #include "Structures.h"
@@ -164,4 +165,12 @@ public:
 	int m_bDrawFPS;
 
 	static int m_bCameraRot;
+
+private:
+	// Helpers extracted from RenderDevice::RenderGeomRectImage.
+	ExtractedFlow RenderTexturedGeomRect(GeomControl*& ipControl);
+	// Helpers extracted from RenderDevice::RenderRectProgress2.
+	void RenderProgressFill(float& iX, float& iY, float& iCX, float& iCY, float& fProgress, DWORD& dwColor);
+	// Helpers extracted from RenderDevice::RenderGeomRectImage.
+	void RenderGuildMarkImage(GeomControl*& ipControl);
 };

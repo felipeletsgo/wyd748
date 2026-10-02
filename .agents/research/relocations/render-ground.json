@@ -1,0 +1,33 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/render/world/terrain/TMGround.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/render/world/terrain/TMGround.cpp",
+    "tmproject/TMProject748/internal/render/world/terrain/TMGroundData.cpp",
+    "tmproject/TMProject748/internal/render/world/terrain/TMGroundRender.cpp",
+    "tmproject/TMProject748/internal/render/world/terrain/TMGroundQueries.cpp",
+    "tmproject/TMProject748/internal/render/world/terrain/TMGroundAttach.cpp"
+   ],
+   "new_items": {
+    "TMGround::BuildTileVertices": "f8992525bfa8f069fd039dec9c9c53545619a6867df6d9844d4b4002013e6993",
+    "TMGround::BuildVoodooTileVertices": "3b299c2c16b765fa619380318556a1388c6e0d2e2d9ee7a05abebe1581cb3777",
+    "TMGround::SetTileTextureCoordinates": "05a81716cb172fa5435c336d3341da3867457a73e2a5abfbffb7364316105bb5"
+   }
+  }
+ ],
+ "reviewed": {
+  "TMGround::SetAttatchEnable branch chain replaced by TMGroundAttachTable.h (GroundAttachTableTests)": {
+   "before": "18f79f4cc137c5f7bb55fd9a7b232de015bc80f318b03ad3e95fdb91643d0777",
+   "after": "2a196645b5463f8278c0e9664ca862910338adccc897b4c3e485141c2b7abee4"
+  },
+  "TMGround::Render: helpers extracted by extract-method.py (method-ground-render-2.json)": {
+   "method": "int TMGround :: Render ( )",
+   "before": "0450160345112e0425c7b14a97765ca5e9af5ad2b525401096484ed5b692eae3",
+   "after": "549f2b304f4401348dd2942c0a688d458e9b4f6b780c066146dd4189ac37eb35"
+  }
+ }
+}

@@ -2,19 +2,15 @@
 #include "TMSelectServerScene.h"
 #include "TMGlobal.h"
 #include "DirShow.h"
-#include "ObjectManager.h"
 #include "TMHuman.h"
 #include "SControlContainer.h"
 #include "TMCamera.h"
-#include "TMObject.h"
 #include "TMGround.h"
 #include "TMSun.h"
 #include "TMSky.h"
 #include "TMSnow.h"
 #include "TMLog.h"
 #include "TMObjectContainer.h"
-#include "NewApp.h"
-#include "Basedef.h"
 #include "ServerEndpoint.h"
 #include "ServerStatus.h"
 #include "ServerChannelLabel.h"
@@ -291,7 +287,7 @@ int TMSelectServerScene::InitializeScene()
 
 	sprintf_s(szMapPath, "Env\\Character.trn");
 	sprintf_s(szDataPath, "Env\\Character.dat");
-	m_nDemoType = 2;//3 para castelo
+	m_nDemoType = 2;//3 for the castle
 	if (m_nDemoType)
 	{ 
 		switch (m_nDemoType)
@@ -426,202 +422,10 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 	{
 	case L_SELECT_SERVERG:
 	{
-		// The list event is a zero-based visible-row index.  Native 7.48 stores
-		// groups in reverse display order, so validate before indexing the table.
-		if (idwEvent >= static_cast<unsigned int>(nMaxGroupN))
-			return 1;
-		const int nIndexN = g_nServerCountList[m_nVisibleGroupSlots[idwEvent]] - 1;
-		if (nIndexN < 0 || nIndexN >= MAX_SERVERGROUP)
-			return 1;
-
-		char szStr[128] = { 0 };
-
-		int nUserCount[MAX_SERVERNUMBER] = { 0 };
-		int nUserCount2[MAX_SERVERNUMBER] = { 0 };
-		char szUserCount[1024] = { 0 };
-		for (int k = 0; k < MAX_SERVERNUMBER; ++k)
-			nUserCount[k] = -1;
-		int nAspGetweek = -1;
-		int nAspGetday = -1;
-
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[23], 0);
-		m_pMessagePanel->SetVisible(1, 0);
-
-		m_pMessagePanel->m_nPosX = BASE_ScreenResize(210.0f);//alterado//alterado 2.0
-
-		if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
-		{
-			for (int i = m_nAdmitGroup; i < 10; ++i)
-				g_pServerList[i][0][0] = 0;
-
-			for (int i = 0; i < m_nAdmitGroup; ++i)
-			{
-				memset(nUserCount2, -1, sizeof nUserCount2);
-				szUserCount[0] = 0;
-				char szStatusEndpoint[64]{};
-				if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[i][0]))
-					BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
-
-				ParseServerStatus(szUserCount, nUserCount2, 11);
-
-				// 
-				nUserCount[m_nDay[m_nAdmitGroup - i]] = nUserCount2[m_nDay[m_nAdmitGroup - i]];
-				auto& aggregateEndpoint = g_pServerList[nIndexN][i + 1];
-				CopyServerEndpointAt(aggregateEndpoint, g_pServerList,
-					m_nAdmitGroup - i - 1, m_nDay[m_nAdmitGroup - i] + 1);
-			}
-		}
-		else
-		{
-			szUserCount[0] = 0;
-			char szStatusEndpoint[64]{};
-			if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[nIndexN][0]))
-				BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
-int statusValues[12];
-			for (int& value : statusValues)
-				value = -1;
-			ParseServerStatus(szUserCount, statusValues, 12);
-			for (int i = 0; i < 10; ++i)
-				nUserCount[i] = statusValues[i];
-			nAspGetweek = statusValues[10];
-			nAspGetday = statusValues[11];
-		}
-
-		_SYSTEMTIME time{};
-		GetLocalTime(&time);
-		if (nAspGetday == -1)
-			nAspGetday = time.wDay;
-
-		for (int i = 0; i < MAX_SERVERGROUP; ++i)
-		{
-			m_nDay[i] = 0;
-			for (int k = 1; k < MAX_SERVERNUMBER; ++k)
-				if (g_pServerList[i][k][0] != 0)
-					++m_nDay[i];
-
-			if (m_nDay[i])
-			{
-				int nDay = time.wDay % m_nDay[i];
-				if (!nDay)
-					nDay = m_nDay[i];
-
-				m_nDay[i] = nDay;
-			}
-		}
-
-		m_pMessagePanel->SetVisible(0, 1);
-
-		SListBox* pServerList = m_pNServerList;
-
-		if (pServerList)
-		{
-			pServerList->Empty();
-			m_nVisibleChannelCount = 0;
-			// A channel selected in the previous group must not remain selected
-			// when the new group's rows replace it.
-			pServerList->SetSelectedIndex(-1);
-
-			for (int num = 1;; ++num)
-			{
-				if (num >= MAX_SERVERNUMBER)
-				{
-					pServerList->SetVisible(1);
-					break;
-				}
-
-				if (g_pServerList[nIndexN][num][0])
-				{
-					int nCastle = 0;
-					if (nAspGetweek == -1 || nAspGetweek != 1)
-						nCastle = IsCastle(num - 1);
-					else
-						nCastle = num % 2 == ((nAspGetday - 1) / 7 + 1) % 2;
-
-					int nServerAge = num;
-
-					if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
-					{
-						int nGIndex = m_nAdmitGroup - num;
-						if (nGIndex < 0)
-							continue;
-
-						bool nCheckServer = false;
-						for (int k = 0; k < m_nAdmitGroup; ++k)
-						{
-							if (g_nServerCountList[k] == nGIndex + 1)
-								nCheckServer = true;
-						}
-
-						if (!nCheckServer)
-							continue;
-
-						nCastle = IsCastle(m_nDay[nGIndex] - 1);
-
-						const char* selectedName = ServerChannelNameAt(g_szServerName, nGIndex, m_nDay[nGIndex]);
-						const char* displayName = ServerChannelNameAt(g_szServerName, nGIndex, m_nDay[nGIndex] - 1);
-						if (selectedName && displayName)
-							sprintf_s(szStr, "%s-%s", g_szServerNameList[nGIndex], displayName);
-						else
-						{
-							sprintf_s(szStr, "%s-%d", g_szServerNameList[nGIndex], m_nDay[nGIndex]);
-
-							nServerAge = m_nDay[nGIndex];
-
-							// Native 7.48 marks and rejects a channel only after 700 users.
-							if (nUserCount[num] > 700)
-								AppendFullChannelLabel(szStr, sizeof(szStr));
-						}
-					}
-					else if (g_szServerNameList[nIndexN][0])
-					{
-						if (const char* channelName = ServerChannelNameAt(g_szServerName, nIndexN, num))
-							sprintf_s(szStr, "%s-%s", g_szServerNameList[nIndexN], channelName);
-						else
-						{
-							sprintf_s(szStr, "%s-%d", g_szServerNameList[nIndexN], num);
-
-							if (nUserCount[num] > 700)
-								AppendFullChannelLabel(szStr, sizeof(szStr));
-						}
-					}
-					else
-						sprintf_s(szStr, g_pMessageStringTable[68], nIndexN + 1, num);
-
-					int nCount = nUserCount[num];
-					if (nCount < 0)
-						nCount = 0;
-
-					int nTextureSet = -1;
-					if (m_bAdmit == 1 && m_nDay[nIndexN] == num)
-						nTextureSet = -2;
-
-					if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
-						nTextureSet = -2;
-
-					// -1??
-					pServerItem[num] = new SListBoxServerItem(nTextureSet, szStr, 0xFFFFFFFF, 0.0f, 0.0f, static_cast<float>(g_nChannelWidth), 16.0f, nCount, nCastle, 0, nServerAge);
-
-					if (nUserCount[num] < 0)
-						pServerItem[num]->m_cConnected = 0;
-
-					pServerList->AddItem(pServerItem[num]);
-					m_nVisibleChannelSlots[m_nVisibleChannelCount++] = num;
-				}
-				else if (m_bAdmit == 1 && num < m_nMaxGroup)
-				{
-					sprintf_s(szStr, g_pMessageStringTable[70]);
-
-					pServerItem[num - 1] = new SListBoxServerItem(6, szStr, 0xFFFFFFFF, 0.0f, 0.0f, static_cast<float>(g_nChannelWidth), 16.0f, nUserCount2[num], 0, 0, 0);
-
-					if (nUserCount[num] < 0)
-						pServerItem[num - 1]->m_cConnected = 0;
-
-					// TODO : review code					
-					pServerList->AddItem(pServerItem[num - 1]);
-					m_nVisibleChannelSlots[m_nVisibleChannelCount++] = num;
-				}
-			}
-		}
+		int extractedResult{};
+		const ExtractedFlow extractedFlow = OnServerGroupList(idwEvent, nMaxGroupN, pServerItem, extractedResult);
+		if (extractedFlow == ExtractedFlow::Return)
+			return extractedResult;
 	}
 
 	SwapLauncher();
@@ -629,75 +433,7 @@ int statusValues[12];
 	break;
 	case B_SERVER_SEL_OK:
 	{
-		if (!m_pNServerGroupList || !m_pNServerList)
-			return 1;
-
-		const int selectedGroup = m_pNServerGroupList->GetSelectedIndex();
-		const int selectedChannel = m_pNServerList->GetSelectedIndex();
-		SListBoxServerItem* pItem = static_cast<SListBoxServerItem*>(m_pNServerList->GetItem(selectedChannel));
-		const int displayedChannel = ChannelForVisibleRow(
-			m_nVisibleChannelSlots, m_nVisibleChannelCount, selectedChannel);
-		if (!pItem || selectedGroup < 0 || selectedGroup >= nMaxGroupN || displayedChannel < 1)
-		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-			return 1;
-		}
-
-		// FUN_004ac985 resolves the reverse-ordered visible group first.  The
-		// admission aggregate then maps its selected row back to that group's
-		// rotating daily channel; no 7.59 server-index shortcut is valid here.
-		int nServerGroupIndex = g_nServerCountList[m_nVisibleGroupSlots[selectedGroup]] - 1;
-		int nServerIndex = displayedChannel;
-		if (m_bAdmit == 1 && nServerGroupIndex == m_nAdmitGroup)
-		{
-			const int mappedGroupSlot = nMaxGroupN - selectedChannel - 1;
-			if (mappedGroupSlot < 0 || mappedGroupSlot >= nMaxGroupN)
-				return 1;
-			nServerGroupIndex = g_nServerCountList[mappedGroupSlot] - 1;
-			if (nServerGroupIndex < 0 || nServerGroupIndex >= MAX_SERVERGROUP)
-				return 1;
-			nServerIndex = m_nDay[nServerGroupIndex];
-		}
-
-		if (nServerGroupIndex < 0 || nServerGroupIndex >= MAX_SERVERGROUP ||
-			nServerIndex < 1 || nServerIndex >= MAX_SERVERNUMBER)
-		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-			return 1;
-		}
-
-		// FUN_004ac985 normally treats population and m_cConnected as launcher
-		// availability hints.  This 7.48 client must still reach login when that
-		// status feed is stale or unavailable; the selected endpoint and the game
-		// server remain authoritative and can reject a genuinely offline channel.
-
-		// WYD 7.48 resolves the selected endpoint from the decrypted serverlist;
-		// a loopback override bypassed the distributed channel configuration. The
-		// fixed-width asset cell must terminate before the next channel entry.
-		if (!CopyServerEndpoint(g_pApp->m_szServerIP, g_pServerList[nServerGroupIndex][nServerIndex]))
-		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-			return 1;
-		}
-
-		g_pObjectManager->m_nServerGroupIndex = nServerGroupIndex;
-		g_pObjectManager->m_nServerIndex = nServerIndex;
-		printf("Server endpoint: \"%s\"\n", g_pApp->m_szServerIP);
-
-		m_pNServerSelect->SetVisible(0);
-		for (int i = 0; i < 3; ++i)
-			m_pLoginBtns[i]->SetVisible(1);
-
-		m_pLoginPanel->SetVisible(1);
-		m_pControlContainer->SetFocusedControl(m_pEditID);
-		m_cLogin = 1;
-		m_dwLoginTime = g_pTimerManager->GetServerTime();
-		CheckPKNonePK(nServerIndex);
-
-		return 1;
+		return OnServerSelectOk(nMaxGroupN);
 	}
 	break;
 	case TMM_MESSAGE_BOX:
@@ -728,106 +464,10 @@ int statusValues[12];
 	{
 	case B_LOGIN_OK:
 	{
-		unsigned int LiveTime = g_pTimerManager->GetServerTime();
-		if (LastSendMsgTime + 1500 > LiveTime)
-			return 1;
-
-		auto pLoginOK = m_pLoginBtns[0];
-		auto pEditID = m_pEditID;
-		auto pEditPassword = m_pEditPW;
-
-		if (strlen(pEditID->GetText()) < 4)
-		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[3], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-
-			return 1;
-		}
-
-
-		if (strlen(pEditID->GetText()) > 12)
-		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[4], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-
-			return 1;
-		}
-
-		if (strlen(pEditPassword->GetText()) < 4)
-		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[5], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-
-			return 1;
-		}
-
-		if (strlen(pEditPassword->GetText()) > 10)
-		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[6], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-
-			return 1;
-		}
-
-		pLoginOK->SetEnable(0);
-		pEditPassword->SetEnable(0);
-		m_dwLastClickLoginBtnTime = g_pTimerManager->GetServerTime();
-
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 4000);
-		m_pMessagePanel->SetVisible(1, 1);
-
-
-		if (!g_pSocketManager->ConnectServer(g_pApp->m_szServerIP, TM_CONNECTION_PORT, 0, 1124))
-		{
-			pLoginOK->SetEnable(1);
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);
-			m_pMessagePanel->SetVisible(1, 1);
-			return 1;
-		}
-
-		g_bMoveServer = 0;
-
-		MSG_AccountLogin stAccountLogin{};
-		stAccountLogin.Header.ID = 0;
-		stAccountLogin.Header.Type = MSG_AccountLogin_Opcode;
-		// The source-built client must identify the same 7.48 protocol selected by
-		// its packet layouts; advertising TMProject's newer value is rejected by
-		// the server before password verification.
-		stAccountLogin.ClientVersion = 748;
-
-		ReadFirstAdapterIdentity(stAccountLogin.AdapterName);
-
-		// The 7.48 login envelope has fixed 16/12-byte credential fields. Bounded
-		// copies preserve the protocol marker at byte 44 and prevent a long edit
-		// value from silently changing ClientVersion before encryption.
-		strncpy_s(stAccountLogin.AccountName, pEditID->GetText(), _TRUNCATE);
-		strncpy_s(stAccountLogin.AccountPassword, pEditPassword->GetText(), _TRUNCATE);
-		sprintf_s(g_pObjectManager->m_szAccountName, "%s", stAccountLogin.AccountName);
-		g_pObjectManager->m_szAccountPass[0] = stAccountLogin.AccountPassword[0];
-		g_pObjectManager->m_szAccountPass[1] = stAccountLogin.AccountPassword[1];
-		for (int mm = 2; mm < 16; ++mm)
-			g_pObjectManager->m_szAccountPass[mm] = rand() % 10 + 48;
-
-		g_pObjectManager->m_szAccountPass[15] = '\0';
-
-		sprintf_s(g_pObjectManager->m_szAccountName, "%s", _strupr(g_pObjectManager->m_szAccountName));
-		sprintf_s(g_pObjectManager->m_szAccountPass, "%s", _strupr(g_pObjectManager->m_szAccountPass));
-
-		int nLen1 = strlen(g_pObjectManager->m_szAccountName);
-		int nLen2 = strlen(g_pObjectManager->m_szAccountPass);
-
-		for (int i = 0; i < nLen1; ++i)
-			g_pObjectManager->m_szAccountName[i] += i;
-
-		// Account and generated local proof have independent lengths. Reusing the
-		// account length here truncated or overran the password-derived proof even
-		// though the plaintext login packet itself was already correct.
-		for (int i = 0; i < nLen2; ++i)
-			g_pObjectManager->m_szAccountPass[i] += i;
-
-		g_pSocketManager->SendPacket({MSG_AccountLogin_Opcode,
-			reinterpret_cast<char*>(&stAccountLogin), sizeof MSG_AccountLogin});
-		LastSendMsgTime = g_pTimerManager->GetServerTime();
+		int extractedResult{};
+		const ExtractedFlow extractedFlow = OnLoginOk(extractedResult);
+		if (extractedFlow == ExtractedFlow::Return)
+			return extractedResult;
 	}
 	break;
 	case B_CREATE_ID:
@@ -847,6 +487,390 @@ int statusValues[12];
 	}
 	return 1;
 }
+
+// Extracted from TMSelectServerScene::OnControlEvent; behavior is unchanged.
+ExtractedFlow TMSelectServerScene::OnServerGroupList(unsigned int& idwEvent, const int& nMaxGroupN, SListBoxServerItem* (&pServerItem)[11], int& extractedResult)
+{
+	// The list event is a zero-based visible-row index.  Native 7.48 stores
+	// groups in reverse display order, so validate before indexing the table.
+	if (idwEvent >= static_cast<unsigned int>(nMaxGroupN))
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	const int nIndexN = g_nServerCountList[m_nVisibleGroupSlots[idwEvent]] - 1;
+	if (nIndexN < 0 || nIndexN >= MAX_SERVERGROUP)
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+
+	char szStr[128] = { 0 };
+
+	int nUserCount[MAX_SERVERNUMBER] = { 0 };
+	int nUserCount2[MAX_SERVERNUMBER] = { 0 };
+	char szUserCount[1024] = { 0 };
+	for (int k = 0; k < MAX_SERVERNUMBER; ++k)
+		nUserCount[k] = -1;
+	int nAspGetweek = -1;
+	int nAspGetday = -1;
+
+	m_pMessagePanel->SetMessage(g_pMessageStringTable[23], 0);
+	m_pMessagePanel->SetVisible(1, 0);
+
+	m_pMessagePanel->m_nPosX = BASE_ScreenResize(210.0f);//alterado//alterado 2.0
+
+	if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
+	{
+		for (int i = m_nAdmitGroup; i < 10; ++i)
+			g_pServerList[i][0][0] = 0;
+
+		for (int i = 0; i < m_nAdmitGroup; ++i)
+		{
+			memset(nUserCount2, -1, sizeof nUserCount2);
+			szUserCount[0] = 0;
+			char szStatusEndpoint[64]{};
+			if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[i][0]))
+				BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
+
+			ParseServerStatus(szUserCount, nUserCount2, 11);
+
+			//
+			nUserCount[m_nDay[m_nAdmitGroup - i]] = nUserCount2[m_nDay[m_nAdmitGroup - i]];
+			auto& aggregateEndpoint = g_pServerList[nIndexN][i + 1];
+			CopyServerEndpointAt(aggregateEndpoint, g_pServerList,
+				m_nAdmitGroup - i - 1, m_nDay[m_nAdmitGroup - i] + 1);
+		}
+	}
+	else
+	{
+		szUserCount[0] = 0;
+		char szStatusEndpoint[64]{};
+		if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[nIndexN][0]))
+			BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
+int statusValues[12];
+		for (int& value : statusValues)
+			value = -1;
+		ParseServerStatus(szUserCount, statusValues, 12);
+		for (int i = 0; i < 10; ++i)
+			nUserCount[i] = statusValues[i];
+		nAspGetweek = statusValues[10];
+		nAspGetday = statusValues[11];
+	}
+
+	_SYSTEMTIME time{};
+	GetLocalTime(&time);
+	if (nAspGetday == -1)
+		nAspGetday = time.wDay;
+
+	for (int i = 0; i < MAX_SERVERGROUP; ++i)
+	{
+		m_nDay[i] = 0;
+		for (int k = 1; k < MAX_SERVERNUMBER; ++k)
+			if (g_pServerList[i][k][0] != 0)
+				++m_nDay[i];
+
+		if (m_nDay[i])
+		{
+			int nDay = time.wDay % m_nDay[i];
+			if (!nDay)
+				nDay = m_nDay[i];
+
+			m_nDay[i] = nDay;
+		}
+	}
+
+	m_pMessagePanel->SetVisible(0, 1);
+
+	SListBox* pServerList = m_pNServerList;
+
+	if (pServerList)
+	{
+		pServerList->Empty();
+		m_nVisibleChannelCount = 0;
+		// A channel selected in the previous group must not remain selected
+		// when the new group's rows replace it.
+		pServerList->SetSelectedIndex(-1);
+
+		for (int num = 1;; ++num)
+		{
+			if (num >= MAX_SERVERNUMBER)
+			{
+				pServerList->SetVisible(1);
+				break;
+			}
+
+			if (g_pServerList[nIndexN][num][0])
+			{
+				int nCastle = 0;
+				if (nAspGetweek == -1 || nAspGetweek != 1)
+					nCastle = IsCastle(num - 1);
+				else
+					nCastle = num % 2 == ((nAspGetday - 1) / 7 + 1) % 2;
+
+				int nServerAge = num;
+
+				if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
+				{
+					int nGIndex = m_nAdmitGroup - num;
+					if (nGIndex < 0)
+						continue;
+
+					bool nCheckServer = false;
+					for (int k = 0; k < m_nAdmitGroup; ++k)
+					{
+						if (g_nServerCountList[k] == nGIndex + 1)
+							nCheckServer = true;
+					}
+
+					if (!nCheckServer)
+						continue;
+
+					nCastle = IsCastle(m_nDay[nGIndex] - 1);
+
+					const char* selectedName = ServerChannelNameAt(g_szServerName, nGIndex, m_nDay[nGIndex]);
+					const char* displayName = ServerChannelNameAt(g_szServerName, nGIndex, m_nDay[nGIndex] - 1);
+					if (selectedName && displayName)
+						sprintf_s(szStr, "%s-%s", g_szServerNameList[nGIndex], displayName);
+					else
+					{
+						sprintf_s(szStr, "%s-%d", g_szServerNameList[nGIndex], m_nDay[nGIndex]);
+
+						nServerAge = m_nDay[nGIndex];
+
+						// Native 7.48 marks and rejects a channel only after 700 users.
+						if (nUserCount[num] > 700)
+							AppendFullChannelLabel(szStr, sizeof(szStr));
+					}
+				}
+				else if (g_szServerNameList[nIndexN][0])
+				{
+					if (const char* channelName = ServerChannelNameAt(g_szServerName, nIndexN, num))
+						sprintf_s(szStr, "%s-%s", g_szServerNameList[nIndexN], channelName);
+					else
+					{
+						sprintf_s(szStr, "%s-%d", g_szServerNameList[nIndexN], num);
+
+						if (nUserCount[num] > 700)
+							AppendFullChannelLabel(szStr, sizeof(szStr));
+					}
+				}
+				else
+					sprintf_s(szStr, g_pMessageStringTable[68], nIndexN + 1, num);
+
+				int nCount = nUserCount[num];
+				if (nCount < 0)
+					nCount = 0;
+
+				int nTextureSet = -1;
+				if (m_bAdmit == 1 && m_nDay[nIndexN] == num)
+					nTextureSet = -2;
+
+				if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
+					nTextureSet = -2;
+
+				// -1??
+				pServerItem[num] = new SListBoxServerItem(nTextureSet, szStr, 0xFFFFFFFF, 0.0f, 0.0f, static_cast<float>(g_nChannelWidth), 16.0f, nCount, nCastle, 0, nServerAge);
+
+				if (nUserCount[num] < 0)
+					pServerItem[num]->m_cConnected = 0;
+
+				pServerList->AddItem(pServerItem[num]);
+				m_nVisibleChannelSlots[m_nVisibleChannelCount++] = num;
+			}
+			else if (m_bAdmit == 1 && num < m_nMaxGroup)
+			{
+				sprintf_s(szStr, g_pMessageStringTable[70]);
+
+				pServerItem[num - 1] = new SListBoxServerItem(6, szStr, 0xFFFFFFFF, 0.0f, 0.0f, static_cast<float>(g_nChannelWidth), 16.0f, nUserCount2[num], 0, 0, 0);
+
+				if (nUserCount[num] < 0)
+					pServerItem[num - 1]->m_cConnected = 0;
+
+				// TODO : review code
+				pServerList->AddItem(pServerItem[num - 1]);
+				m_nVisibleChannelSlots[m_nVisibleChannelCount++] = num;
+			}
+		}
+	}
+	return ExtractedFlow::Next;
+}
+
+// Extracted from TMSelectServerScene::OnControlEvent; behavior is unchanged.
+int TMSelectServerScene::OnServerSelectOk(const int& nMaxGroupN)
+{
+	if (!m_pNServerGroupList || !m_pNServerList)
+		return 1;
+
+	const int selectedGroup = m_pNServerGroupList->GetSelectedIndex();
+	const int selectedChannel = m_pNServerList->GetSelectedIndex();
+	SListBoxServerItem* pItem = static_cast<SListBoxServerItem*>(m_pNServerList->GetItem(selectedChannel));
+	const int displayedChannel = ChannelForVisibleRow(
+		m_nVisibleChannelSlots, m_nVisibleChannelCount, selectedChannel);
+	if (!pItem || selectedGroup < 0 || selectedGroup >= nMaxGroupN || displayedChannel < 1)
+	{
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+		return 1;
+	}
+
+	// FUN_004ac985 resolves the reverse-ordered visible group first.  The
+	// admission aggregate then maps its selected row back to that group's
+	// rotating daily channel; no 7.59 server-index shortcut is valid here.
+	int nServerGroupIndex = g_nServerCountList[m_nVisibleGroupSlots[selectedGroup]] - 1;
+	int nServerIndex = displayedChannel;
+	if (m_bAdmit == 1 && nServerGroupIndex == m_nAdmitGroup)
+	{
+		const int mappedGroupSlot = nMaxGroupN - selectedChannel - 1;
+		if (mappedGroupSlot < 0 || mappedGroupSlot >= nMaxGroupN)
+			return 1;
+		nServerGroupIndex = g_nServerCountList[mappedGroupSlot] - 1;
+		if (nServerGroupIndex < 0 || nServerGroupIndex >= MAX_SERVERGROUP)
+			return 1;
+		nServerIndex = m_nDay[nServerGroupIndex];
+	}
+
+	if (nServerGroupIndex < 0 || nServerGroupIndex >= MAX_SERVERGROUP ||
+		nServerIndex < 1 || nServerIndex >= MAX_SERVERNUMBER)
+	{
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+		return 1;
+	}
+
+	// FUN_004ac985 normally treats population and m_cConnected as launcher
+	// availability hints.  This 7.48 client must still reach login when that
+	// status feed is stale or unavailable; the selected endpoint and the game
+	// server remain authoritative and can reject a genuinely offline channel.
+
+	// WYD 7.48 resolves the selected endpoint from the decrypted serverlist;
+	// a loopback override bypassed the distributed channel configuration. The
+	// fixed-width asset cell must terminate before the next channel entry.
+	if (!CopyServerEndpoint(g_pApp->m_szServerIP, g_pServerList[nServerGroupIndex][nServerIndex]))
+	{
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[24], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+		return 1;
+	}
+
+	g_pObjectManager->m_nServerGroupIndex = nServerGroupIndex;
+	g_pObjectManager->m_nServerIndex = nServerIndex;
+	printf("Server endpoint: \"%s\"\n", g_pApp->m_szServerIP);
+
+	m_pNServerSelect->SetVisible(0);
+	for (int i = 0; i < 3; ++i)
+		m_pLoginBtns[i]->SetVisible(1);
+
+	m_pLoginPanel->SetVisible(1);
+	m_pControlContainer->SetFocusedControl(m_pEditID);
+	m_cLogin = 1;
+	m_dwLoginTime = g_pTimerManager->GetServerTime();
+	CheckPKNonePK(nServerIndex);
+
+	return 1;
+
+}
+
+// Extracted from TMSelectServerScene::OnControlEvent; behavior is unchanged.
+ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
+{
+	unsigned int LiveTime = g_pTimerManager->GetServerTime();
+	if (LastSendMsgTime + 1500 > LiveTime)
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+
+	auto pLoginOK = m_pLoginBtns[0];
+	auto pEditID = m_pEditID;
+	auto pEditPassword = m_pEditPW;
+
+	if (strlen(pEditID->GetText()) < 4)
+	{
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[3], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
+
+
+	if (strlen(pEditID->GetText()) > 12)
+	{
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[4], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
+
+	if (strlen(pEditPassword->GetText()) < 4)
+	{
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[5], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
+
+	if (strlen(pEditPassword->GetText()) > 10)
+	{
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[6], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
+
+	pLoginOK->SetEnable(0);
+	pEditPassword->SetEnable(0);
+	m_dwLastClickLoginBtnTime = g_pTimerManager->GetServerTime();
+
+	m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 4000);
+	m_pMessagePanel->SetVisible(1, 1);
+
+
+	if (!g_pSocketManager->ConnectServer(g_pApp->m_szServerIP, TM_CONNECTION_PORT, 0, 1124))
+	{
+		pLoginOK->SetEnable(1);
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
+
+	g_bMoveServer = 0;
+
+	MSG_AccountLogin stAccountLogin{};
+	stAccountLogin.Header.ID = 0;
+	stAccountLogin.Header.Type = MSG_AccountLogin_Opcode;
+	// The source-built client must identify the same 7.48 protocol selected by
+	// its packet layouts; advertising TMProject's newer value is rejected by
+	// the server before password verification.
+	stAccountLogin.ClientVersion = 748;
+
+	ReadFirstAdapterIdentity(stAccountLogin.AdapterName);
+
+	// The 7.48 login envelope has fixed 16/12-byte credential fields. Bounded
+	// copies preserve the protocol marker at byte 44 and prevent a long edit
+	// value from silently changing ClientVersion before encryption.
+	strncpy_s(stAccountLogin.AccountName, pEditID->GetText(), _TRUNCATE);
+	strncpy_s(stAccountLogin.AccountPassword, pEditPassword->GetText(), _TRUNCATE);
+	sprintf_s(g_pObjectManager->m_szAccountName, "%s", stAccountLogin.AccountName);
+	g_pObjectManager->m_szAccountPass[0] = stAccountLogin.AccountPassword[0];
+	g_pObjectManager->m_szAccountPass[1] = stAccountLogin.AccountPassword[1];
+	for (int mm = 2; mm < 16; ++mm)
+		g_pObjectManager->m_szAccountPass[mm] = rand() % 10 + 48;
+
+	g_pObjectManager->m_szAccountPass[15] = '\0';
+
+	sprintf_s(g_pObjectManager->m_szAccountName, "%s", _strupr(g_pObjectManager->m_szAccountName));
+	sprintf_s(g_pObjectManager->m_szAccountPass, "%s", _strupr(g_pObjectManager->m_szAccountPass));
+
+	int nLen1 = strlen(g_pObjectManager->m_szAccountName);
+	int nLen2 = strlen(g_pObjectManager->m_szAccountPass);
+
+	for (int i = 0; i < nLen1; ++i)
+		g_pObjectManager->m_szAccountName[i] += i;
+
+	// Account and generated local proof have independent lengths. Reusing the
+	// account length here truncated or overran the password-derived proof even
+	// though the plaintext login packet itself was already correct.
+	for (int i = 0; i < nLen2; ++i)
+		g_pObjectManager->m_szAccountPass[i] += i;
+
+	g_pSocketManager->SendPacket({MSG_AccountLogin_Opcode,
+		reinterpret_cast<char*>(&stAccountLogin), sizeof MSG_AccountLogin});
+	LastSendMsgTime = g_pTimerManager->GetServerTime();
+	return ExtractedFlow::Next;
+}
+
 
 int TMSelectServerScene::OnCharEvent(char iCharCode, int lParam)
 {

@@ -10,40 +10,40 @@ import (
 	"wydgo/internal/wire"
 )
 
-// boss_spawn.go -- nascimento e renascimento dos bosses.
+// boss_spawn.go -- boss spawning and respawning.
 //
-// Bosses NAO passam pelo NPCGener. Cada um tem posicao e respawn proprios,
-// declarados no seu .lua. Do NPC do catalogo vem apenas os ASSETS (rosto,
-// equipamento, atributos base), que o .lua pode sobrescrever.
+// Bosses do NOT go through the NPCGener. Each one has its own position and
+// respawn, declared in its .lua. Only the ASSETS (face, equipment, base
+// attributes) come from the catalog NPC, and the .lua may override them.
 //
-// Isso mantem a promessa central: nenhum mob existente do mundo vira boss.
+// This keeps the central promise: no existing world mob becomes a boss.
 
-// bossSpawnState acompanha um boss configurado ao longo do tempo.
+// bossSpawnState tracks a configured boss over time.
 type bossSpawnState struct {
 	revision uint64 // Increments on spawn/death; rejects stale administrative intents.
 	config   model.BossConfig
 	profile  *BossProfile
-	// def e o NPCDef proprio deste boss: uma COPIA do NPC base com os
-	// atributos sobrescritos. Copia, e nao referencia, senao alterar o boss
-	// alteraria todos os mobs comuns daquele NPC.
+	// def is this boss's own NPCDef: a COPY of the base NPC with the
+	// attributes overridden. A copy, not a reference, otherwise changing the boss
+	// would change every ordinary mob of that NPC.
 	def *model.NPCDef
-	// mobID e a instancia viva; zero quando o boss esta morto.
+	// mobID is the living instance; zero while the boss is dead.
 	mobID uint16
-	// respawnAt e quando renasce. Zero = sem respawn agendado.
+	// respawnAt is when it respawns. Zero means no respawn is scheduled.
 	respawnAt time.Time
 }
 
-// WithBossCatalog injeta os bosses carregados de data/boss/.
+// WithBossCatalog injects the bosses loaded from data/boss/.
 func WithBossCatalog(catalog model.BossCatalog) WorldOption {
 	return func(w *World) { w.bossCatalog = catalog }
 }
 
-// spawnConfiguredBosses monta o NPCDef de cada boss e o materializa. Roda no
-// fim do boot, depois do NPCGener.
+// spawnConfiguredBosses builds each boss's NPCDef and materializes it. It runs
+// at the end of the boot, after the NPCGener.
 //
-// Erro aqui DERRUBA O BOOT de proposito: um boss que referencia NPC inexistente
-// e erro de conteudo, e falhar cedo e melhor que descobrir em producao que o
-// chefe do servidor nunca nasceu.
+// An error here STOPS THE BOOT on purpose: a boss referencing a missing NPC is
+// a content error, and failing early is better than finding out in production
+// that the server boss never spawned.
 func (w *World) spawnConfiguredBosses() error {
 	if len(w.bossCatalog.Bosses) == 0 {
 		return nil
@@ -52,14 +52,14 @@ func (w *World) spawnConfiguredBosses() error {
 	for _, config := range w.bossCatalog.Bosses {
 		base := w.npcDefByName(config.NPC)
 		if base == nil {
-			return fmt.Errorf("boss %q (%s): NPC base %q nao existe em data/npcs",
+			return fmt.Errorf("boss %q (%s): NPC base %q does not exist in data/npcs",
 				config.ID, config.SourceFile, config.NPC)
 		}
-		// O loader de NPC ja recusa score ausente; a guarda existe para
-		// que um catalogo montado a mao (teste, ferramenta) devolva erro claro
-		// em vez de panicar no deref logo abaixo.
+		// The NPC loader already rejects a missing score; this guard makes a
+		// hand-built catalog (test, tool) return a clear error instead of
+		// panicking on the dereference just below.
 		if base.Score == nil {
-			return fmt.Errorf("boss %q (%s): NPC base %q sem score",
+			return fmt.Errorf("boss %q (%s): base NPC %q has no score",
 				config.ID, config.SourceFile, config.NPC)
 		}
 		profile, err := compileBossProfile(config)
@@ -76,22 +76,22 @@ func (w *World) spawnConfiguredBosses() error {
 			return err
 		}
 	}
-	log.Printf("bosses: %d encontros carregados de data/boss", len(w.bossSpawns))
+	log.Printf("bosses: %d encounters loaded from data/boss", len(w.bossSpawns))
 	return nil
 }
 
-// bossDefFrom cria o NPCDef do boss: copia do NPC base (assets) com os
-// atributos do .lua por cima.
+// bossDefFrom creates the boss NPCDef: a copy of the base NPC (assets) with
+// the .lua attributes on top.
 func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
 	def := *base // copia rasa: Equip e array, ExpReward/Gold sao escalares
 	if config.Name != "" {
 		def.Name = config.Name
 	}
-	// Um boss e sempre hostil, mesmo que o NPC base nao fosse.
+	// A boss is always hostile, even if the base NPC was not.
 	def.Tipo = model.TipoMonstro
 
-	// Score e ponteiro no base: copiar o valor evita que o boss altere os
-	// atributos de todos os mobs daquele NPC.
+	// Score is a pointer in the base: copying the value keeps the boss from
+	// changing the attributes of every mob of that NPC.
 	extended := *base.Score
 	def.Score = &extended
 
@@ -118,12 +118,12 @@ func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
 	if stats.Gold != nil {
 		def.Gold = *stats.Gold
 	}
-	// O carry do NPC base nao vale para o boss: os drops especiais dele saem da
-	// tabela propria (config.Drops), rolada em rollBossDrops. Zerar aqui tambem
-	// evita drop duplo, porque killMobState continua chamando rollMobDrops.
+	// The base NPC carry does not apply to the boss: its special drops come from
+	// its own table (config.Drops), rolled in rollBossDrops. Clearing it here also
+	// prevents a double drop, because killMobState still calls rollMobDrops.
 	def.Carry = nil
-	// Vende so faz sentido em mercador, e boss e sempre hostil. Zerar corta o
-	// compartilhamento do slice com o NPC base que a copia rasa deixaria.
+	// Vende only makes sense for a merchant, and a boss is always hostile. Clearing
+	// it cuts the slice sharing with the base NPC that the shallow copy would leave.
 	def.Vende = nil
 	return &def
 }
@@ -133,13 +133,13 @@ func (w *World) spawnBoss(state *bossSpawnState) error {
 	x, y := w.findFreePosition(state.config.Spawn.X, state.config.Spawn.Y, 3)
 	mobID := w.allocMobID()
 	if mobID == 0 {
-		return fmt.Errorf("boss %q: faixa de IDs de mob esgotada", state.config.ID)
+		return fmt.Errorf("boss %q: mob ID range exhausted", state.config.ID)
 	}
 	mob := &Mob{
 		ID: mobID, Def: state.def, X: x, Y: y,
 		HP: state.def.Score.MaxHP, GenerIndex: -1,
 	}
-	// Segments[0] e a "casa" usada pelo leash da IA comum.
+	// Segments[0] is the "home" used by the ordinary AI leash.
 	mob.Segments[0].X, mob.Segments[0].Y = state.config.Spawn.X, state.config.Spawn.Y
 	w.appendMobInstance(mob)
 	w.registerMobSpatial(mob)
@@ -153,18 +153,18 @@ func (w *World) spawnBoss(state *bossSpawnState) error {
 	state.respawnAt = time.Time{}
 
 	w.announceBoss(x, y, state.config.SpawnMessage)
-	log.Printf("BOSS %q nasceu em (%d,%d) mob=%d hp=%d",
+	log.Printf("BOSS %q spawned at (%d,%d) mob=%d hp=%d",
 		state.config.ID, x, y, mob.ID, mob.HP)
 	return nil
 }
 
-// bossAnnounceRadius e o alcance dos avisos de boss, em tiles Chebyshev (a
-// area 16x16 pedida). Anuncio de boss e informacao do ENCONTRO: quem esta do
-// outro lado do mapa nao tem o que fazer com ela, e um broadcast global vira
-// spam para o servidor inteiro a cada respawn.
+// bossAnnounceRadius is the reach of boss notices, in Chebyshev tiles (the
+// requested 16x16 area). A boss notice is ENCOUNTER information: players on the
+// other side of the map cannot act on it, and a global broadcast becomes spam
+// for the whole server at every respawn.
 const bossAnnounceRadius = 16
 
-// announceBoss manda o aviso so para quem esta perto o bastante para lutar.
+// announceBoss sends the notice only to players close enough to fight.
 func (w *World) announceBoss(x, y uint16, message string) {
 	if message == "" {
 		return
@@ -174,54 +174,53 @@ func (w *World) announceBoss(x, y uint16, message string) {
 	}
 }
 
-// spawnBossAreaReward espalha a premiacao coletiva pelo chao ao redor do boss.
-// E diferente dos Drops: aquilo vai para o inventario de quem deu o golpe
-// final, isto fica no chao para todos que participaram recolherem.
+// spawnBossAreaReward spreads the shared reward on the ground around the boss.
+// It differs from Drops: those go to the inventory of whoever landed the final
+// blow, while this stays on the ground for every participant to pick up.
 //
-// Uma unidade por celula, em aneis crescentes a partir do corpo -- empilhar
-// tudo numa celula so daria a premiacao inteira a quem estivesse em cima.
+// One unit per cell, in growing rings from the body -- stacking everything on
+// one cell would give the whole reward to whoever stood on it.
 func (w *World) spawnBossAreaReward(m *Mob, reward model.BossAreaReward) {
 	if reward.Item == 0 || reward.Amount <= 0 {
 		return
 	}
 	if _, ok := w.items[reward.Item]; !ok {
-		log.Printf("BOSS: premiacao de area ignorada, item %d nao existe", reward.Item)
+		log.Printf("BOSS: area reward skipped, item %d does not exist", reward.Item)
 		return
 	}
-	ocupada := make(map[uint32]bool, reward.Amount)
+	occupied := make(map[uint32]bool, reward.Amount)
 	for _, g := range w.nearbyGroundItems(m.X, m.Y, bossAnnounceRadius) {
-		ocupada[uint32(g.X)<<16|uint32(g.Y)] = true
+		occupied[uint32(g.X)<<16|uint32(g.Y)] = true
 	}
-	postos := 0
-	for raio := 1; raio <= bossAnnounceRadius && postos < reward.Amount; raio++ {
-		for dx := -raio; dx <= raio && postos < reward.Amount; dx++ {
-			for dy := -raio; dy <= raio && postos < reward.Amount; dy++ {
-				// So a borda do anel: o interior ja foi coberto pelos raios
-				// anteriores.
-				if abs(dx) != raio && abs(dy) != raio {
+	placed := 0
+	for radius := 1; radius <= bossAnnounceRadius && placed < reward.Amount; radius++ {
+		for dx := -radius; dx <= radius && placed < reward.Amount; dx++ {
+			for dy := -radius; dy <= radius && placed < reward.Amount; dy++ {
+				// Only the ring edge: the smaller radii already covered the interior.
+				if abs(dx) != radius && abs(dy) != radius {
 					continue
 				}
 				x, y := int(m.X)+dx, int(m.Y)+dy
 				if x < 0 || y < 0 || x > 0xFFFF || y > 0xFFFF {
 					continue
 				}
-				chave := uint32(x)<<16 | uint32(y)
-				if ocupada[chave] {
+				key := uint32(x)<<16 | uint32(y)
+				if occupied[key] {
 					continue
 				}
 				if w.spawnGroundReward(uint16(x), uint16(y), reward.Item) {
-					ocupada[chave] = true
-					postos++
+					occupied[key] = true
+					placed++
 				}
 			}
 		}
 	}
-	log.Printf("BOSS %q: premiacao de area, %d de %d unidades do item %d no chao",
-		m.Def.Name, postos, reward.Amount, reward.Item)
+	log.Printf("BOSS %q: area reward, %d of %d units of item %d on the ground",
+		m.Def.Name, placed, reward.Amount, reward.Item)
 }
 
-// spawnGroundReward poe UMA unidade no chao na celula exata, sem o jitter do
-// spawnDrop -- aqui a posicao ja foi escolhida pelo anel.
+// spawnGroundReward puts ONE unit on the ground at the exact cell, without the
+// spawnDrop jitter -- here the ring already chose the position.
 func (w *World) spawnGroundReward(x, y uint16, index uint16) bool {
 	id, ok := w.allocGroundItemID(index)
 	if !ok {
@@ -238,8 +237,8 @@ func (w *World) spawnGroundReward(x, y uint16, index uint16) bool {
 	return true
 }
 
-// groundRewardLifetime da mais folga que o drop comum: a premiacao de area cai
-// de uma vez e o grupo precisa de tempo para recolher tudo.
+// groundRewardLifetime allows more time than an ordinary drop: the area reward
+// falls at once and the group needs time to pick everything up.
 const groundRewardLifetime = 5 * time.Minute
 
 func abs(v int) int {
@@ -249,8 +248,8 @@ func abs(v int) int {
 	return v
 }
 
-// onBossMobKilled reage a morte de um boss configurado: anuncia, agenda o
-// renascimento e devolve o estado. Devolve nil se o mob nao era um boss.
+// onBossMobKilled reacts to the death of a configured boss: it announces it,
+// schedules the respawn and returns the state. It returns nil if the mob was not a boss.
 func (w *World) onBossMobKilled(m *Mob) *bossSpawnState {
 	return w.finishBossMobKilled(m, true)
 }
@@ -271,16 +270,16 @@ func (w *World) finishBossMobKilled(m *Mob, publishAreaReward bool) *bossSpawnSt
 		}
 		if state.config.RespawnDelay() > 0 {
 			state.respawnAt = w.now().Add(state.config.RespawnDelay())
-			log.Printf("BOSS %q morreu; renasce em %s", state.config.ID, state.config.RespawnDelay())
+			log.Printf("BOSS %q died; respawns in %s", state.config.ID, state.config.RespawnDelay())
 		} else {
-			log.Printf("BOSS %q morreu; sem respawn configurado", state.config.ID)
+			log.Printf("BOSS %q died; no respawn configured", state.config.ID)
 		}
 		return state
 	}
 	return nil
 }
 
-// tickBossRespawns renasce os bosses vencidos. Chamado pelo tick do World.
+// tickBossRespawns respawns the bosses whose time has come. Called by the World tick.
 func (w *World) tickBossRespawns(now time.Time) {
 	for _, state := range w.bossSpawns {
 		if state.mobID != 0 || state.respawnAt.IsZero() || now.Before(state.respawnAt) {
@@ -288,24 +287,24 @@ func (w *World) tickBossRespawns(now time.Time) {
 		}
 		state.respawnAt = time.Time{}
 		if err := w.spawnBoss(state); err != nil {
-			// Respawn nao derruba o servidor: registra e tenta de novo no
-			// proximo ciclo, em vez de matar o mundo por um boss.
-			log.Printf("BOSS %q: falha ao renascer: %v", state.config.ID, err)
+			// A respawn failure does not bring the server down: it logs and retries
+			// on the next cycle instead of killing the world over one boss.
+			log.Printf("BOSS %q: respawn failed: %v", state.config.ID, err)
 			state.respawnAt = now.Add(time.Minute)
 		}
 	}
 }
 
-// setItemAmount grava o EF_AMOUNT nativo (a pilha), espelhando a leitura de
-// itemStackAmount. Reusa um par de efeito ja marcado como quantidade ou ocupa o
-// primeiro livre; sem espaco, o item fica com uma unidade em vez de perder o
-// efeito de outra coisa.
+// setItemAmount writes the native EF_AMOUNT (the stack), mirroring how
+// itemStackAmount reads it. It reuses an effect pair already marked as amount or
+// takes the first free one; without room, the item keeps one unit instead of
+// losing another effect.
 func setItemAmount(item *model.Item, amount int) {
 	if item == nil || amount <= 1 {
 		return
 	}
 	if amount > 255 {
-		amount = 255 // EF_AMOUNT e um byte no wire nativo
+		amount = 255 // EF_AMOUNT is one byte on the native wire
 	}
 	for i := 0; i < 3; i++ {
 		if item.Eff[i*2] == effectAmount || item.Eff[i*2] == 0 {
@@ -316,12 +315,12 @@ func setItemAmount(item *model.Item, amount int) {
 	}
 }
 
-// rollBossDrops entrega os drops especiais ao matador. E INDEPENDENTE do carry
-// nativo (que foi zerado em bossDefFrom): a tabela vem do .lua e cada linha tem
-// sua propria chance percentual, em vez do rand()%rate por slot do WYD.
+// rollBossDrops gives the special drops to the killer. It is INDEPENDENT of the
+// native carry (cleared in bossDefFrom): the table comes from the .lua and each
+// row has its own percentage chance, instead of WYD's per-slot rand()%rate.
 //
-// Reusa addToInv/spawnDrop, o mesmo caminho do drop comum: inventario cheio faz
-// o item cair no chao em vez de sumir.
+// It reuses addToInv/spawnDrop, the same path as an ordinary drop: a full
+// inventory makes the item fall to the ground instead of disappearing.
 func (w *World) rollBossDrops(p *Player, mob *Mob, state *bossSpawnState) {
 	w.publishPlannedDrops(w.planBossDrops(p, mob, state))
 }

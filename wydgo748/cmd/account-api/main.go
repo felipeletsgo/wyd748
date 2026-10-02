@@ -1,5 +1,5 @@
-// Comando account-api expoe somente cadastro/saude. Ele nao conhece protocolo,
-// mundo, personagens ou gameplay; compartilha apenas a camada de contas/store.
+// The account-api command exposes only registration and health. It does not
+// know the protocol, world, characters or gameplay; it shares only the account/store layer.
 package main
 
 import (
@@ -22,17 +22,17 @@ import (
 func main() {
 	addr := flag.String("addr", "127.0.0.1:8080", "endereco HTTP; publique via proxy HTTPS")
 	databaseURLEnv := flag.String("database-url-env", "WYD_DATABASE_URL",
-		"variavel de ambiente com a URL PostgreSQL")
-	maxConns := flag.Int("database-max-conns", 4, "maximo de conexoes PostgreSQL")
-	requestsPerMinute := flag.Int("requests-per-minute", 10, "limite de cadastros por IP/minuto")
-	hashConcurrency := flag.Int("hash-concurrency", 4, "maximo de hashes PBKDF2 simultaneos")
+		"environment variable containing the PostgreSQL URL")
+	maxConns := flag.Int("database-max-conns", 4, "maximum PostgreSQL connections")
+	requestsPerMinute := flag.Int("requests-per-minute", 10, "registration limit per IP per minute")
+	hashConcurrency := flag.Int("hash-concurrency", 4, "maximum concurrent PBKDF2 hashes")
 	trustedProxyList := flag.String("trusted-proxies", "127.0.0.0/8,::1/128",
-		"prefixos CIDR de proxies que podem definir X-Forwarded-For")
+		"CIDR prefixes of proxies allowed to set X-Forwarded-For")
 	flag.Parse()
 
 	databaseURL := os.Getenv(*databaseURLEnv)
 	if databaseURL == "" {
-		log.Fatalf("account-api: variavel %s esta vazia", *databaseURLEnv)
+		log.Fatalf("account-api: variable %s is empty", *databaseURLEnv)
 	}
 	st, err := store.NewPostgresStore(context.Background(), store.PostgresConfig{
 		URL: databaseURL, MaxConns: int32(*maxConns),
@@ -65,7 +65,7 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 		MaxHeaderBytes:    8 << 10,
 	}
-	log.Printf("WYD-Go Account API escutando em http://%s", *addr)
+	log.Printf("WYD-Go Account API listening on http://%s", *addr)
 	errCh := make(chan error, 1)
 	go func() { errCh <- server.ListenAndServe() }()
 	stop := make(chan os.Signal, 1)

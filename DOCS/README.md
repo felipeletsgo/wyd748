@@ -24,6 +24,7 @@ documentation, research evidence, and continuity records.
 | Adapt the 7.48 client | [Client port](client/port-748.md) |
 | Plan the TMHuman source separation | [TMHuman separation plan](client/tmhuman-separation-plan.md) |
 | Plan the TMFieldScene refactoring | [TMFieldScene refactoring plan](client/tmfieldscene-refactoring-plan.md) |
+| Find where client code lives after the source split | [TMProject source organization plan](client/tmproject-source-organization-plan.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Work with Codex or Claude Code | [Agent environments](agent-environments.md) |

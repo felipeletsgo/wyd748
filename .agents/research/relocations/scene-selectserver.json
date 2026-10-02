@@ -1,0 +1,25 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/app/scenes/TMSelectServerScene.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/app/scenes/TMSelectServerScene.cpp"
+   ],
+   "new_items": {
+    "TMSelectServerScene::OnServerGroupList": "c112a8020d4de6d922e016785f4d04de94b63c148d10bdfce0c871480a254642",
+    "TMSelectServerScene::OnServerSelectOk": "30c9f52bf62ce7029b501088d5331a1cc6295fd141eadc124454cbc464c3e11b",
+    "TMSelectServerScene::OnLoginOk": "5aa6a172867e5b9005df28f2dc885c1ff63611b0a0b5eb6131d2501b2fafbdb1"
+   }
+  }
+ ],
+ "reviewed": {
+  "TMSelectServerScene::OnControlEvent: helpers extracted by extract-method.py (method-selectserver-oncontrolevent.json)": {
+   "method": "int TMSelectServerScene :: OnControlEvent ( unsigned int idwControlID , unsigned int idwEvent )",
+   "before": "415c05e8a349e46841bc7bdd5a3d89e523825b52bd146848cfd78b3d23079ad6",
+   "after": "2d09dbee35bb56b1fbeffb83d5bbf9462dbb1e59d6db69b7ddee5653e4369023"
+  }
+ }
+}

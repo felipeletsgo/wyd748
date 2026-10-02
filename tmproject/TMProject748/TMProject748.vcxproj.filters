@@ -399,6 +399,21 @@
     <ClInclude Include="internal\core\Basedef.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\core\ExtractedFlow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\BasedefLimits.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\BasedefStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\BasedefPackets.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\BasedefTables.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\LoginPacketContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -418,6 +433,9 @@
       <Filter>Header Files\Skills</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\mesh\TMSkinMesh.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\mesh\FallbackCostumeTable.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\world\sky\TMSky.h">
@@ -546,6 +564,9 @@
     <ClInclude Include="internal\render\world\terrain\TMGround.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="internal\render\world\terrain\TMGroundAttachTable.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
     <ClInclude Include="internal\game\entities\TMGate.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
@@ -582,7 +603,19 @@
     <ClInclude Include="internal\application\FieldChatControlPolicy.h">
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>
+    <ClInclude Include="internal\application\FieldChatSubmitPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\FieldCoinInputPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
     <ClInclude Include="internal\application\SkillRequestPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\AttackAttackerState.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\AttackTargetState.h">
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>
     <ClInclude Include="internal\wire\SkillAttackRequest.h">
@@ -687,10 +720,58 @@
     <ClInclude Include="internal\ui\SGrid.h">
       <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
+    <ClInclude Include="internal\ui\SGridSupport.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
     <ClInclude Include="internal\ui\SControlContainer.h">
       <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
     <ClInclude Include="internal\ui\SControl.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SControlBase.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SPanel.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\S3DObj.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SCursor.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SText.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SEditableText.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SButton.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SButtonBox.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SCheckBox.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SProgressBar.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SScrollBar.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SListBox.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SMessageBox.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SMessagePanel.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\controls\SReelPanel.h">
       <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
     <ClInclude Include="internal\platform\windows\RenderDevice.h">
@@ -845,6 +926,24 @@
     <ClCompile Include="internal\core\Basedef.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="internal\core\BasedefItems.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\core\BasedefAppearance.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\core\BasedefCombat.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\core\BasedefWorld.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\core\BasedefText.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\core\BasedefSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="internal\platform\windows\DXUtil.cpp">
       <Filter>Source Files\Engine\Core</Filter>
     </ClCompile>
@@ -852,6 +951,9 @@
       <Filter>Source Files\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\mesh\TMSkinMesh.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\render\mesh\TMSkinMeshCostumes.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\core\CFrame.cpp">
@@ -864,6 +966,18 @@
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\platform\windows\RenderDevice.cpp">
+      <Filter>Source Files\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\platform\windows\RenderDeviceState.cpp">
+      <Filter>Source Files\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\platform\windows\RenderDeviceShaders.cpp">
+      <Filter>Source Files\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\platform\windows\RenderDevicePrimitives.cpp">
+      <Filter>Source Files\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\platform\windows\RenderDeviceDiagnostics.cpp">
       <Filter>Source Files\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\resources\TextureManager.cpp">
@@ -959,6 +1073,12 @@
     <ClCompile Include="internal\app\scenes\TMScene.cpp">
       <Filter>Source Files\Engine\Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMSceneResources.cpp">
+      <Filter>Source Files\Engine\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMSceneGround.cpp">
+      <Filter>Source Files\Engine\Scenes</Filter>
+    </ClCompile>
     <ClCompile Include="internal\game\entities\TMObject.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
@@ -978,6 +1098,18 @@
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\world\terrain\TMGround.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\render\world\terrain\TMGroundData.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\render\world\terrain\TMGroundRender.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\render\world\terrain\TMGroundQueries.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\render\world\terrain\TMGroundAttach.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\game\entities\TMHuman.cpp">
@@ -1038,6 +1170,12 @@
       <Filter>Source Files\Systems</Filter>
     </ClCompile>
     <ClCompile Include="internal\app\scenes\NewApp.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\NewAppWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\NewAppServices.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="internal\platform\windows\DirShow.cpp">
@@ -1160,6 +1298,12 @@
     <ClCompile Include="internal\app\scenes\TMSelectCharScene.cpp">
       <Filter>Source Files\Engine\Scenes</Filter>
     </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMSelectCharSceneInput.cpp">
+      <Filter>Source Files\Engine\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMSelectCharScenePackets.cpp">
+      <Filter>Source Files\Engine\Scenes</Filter>
+    </ClCompile>
     <ClCompile Include="internal\app\scenes\TMSelectServerScene.cpp">
       <Filter>Source Files\Engine\Scenes</Filter>
     </ClCompile>
@@ -1220,13 +1364,67 @@
     <ClCompile Include="internal\app\scenes\TMFieldSceneChat.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
-    <ClCompile Include="internal\ui\SControl.cpp">
-      <Filter>Source Files\Engine\UI</Filter>
-    </ClCompile>
     <ClCompile Include="internal\ui\SControlContainer.cpp">
       <Filter>Source Files\Engine\UI</Filter>
     </ClCompile>
+    <ClCompile Include="internal\ui\controls\SControlBase.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SPanel.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\S3DObj.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SCursor.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SText.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SEditableText.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SButton.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SButtonBox.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SCheckBox.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SProgressBar.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SScrollBar.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SListBox.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SMessageBox.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SMessagePanel.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\controls\SReelPanel.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
     <ClCompile Include="internal\ui\SGrid.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\SGridInput.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\SGridCommerce.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\SGridTooltip.cpp">
+      <Filter>Source Files\Engine\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\ui\SGridItem.cpp">
       <Filter>Source Files\Engine\UI</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\world\objects\TMObjectContainer.cpp">

@@ -1,0 +1,87 @@
+{
+ "source": "tmproject/TMProject748/internal/render/world/terrain/TMGroundRender.cpp",
+ "header": "tmproject/TMProject748/internal/render/world/terrain/TMGround.h",
+ "class": "TMGround",
+ "method": "int TMGround::Render()",
+ "extractions": [
+  {
+   "helper": "BuildVoodooTileVertices",
+   "after": "if (g_pDevice->m_bVoodoo == 1)",
+   "nth": 1,
+   "flow": true,
+   "params": [
+    [
+     "char&",
+     "bCoordIndex"
+    ],
+    [
+     "unsigned int (&)[4]",
+     "dwColor"
+    ],
+    [
+     "int&",
+     "nTexIndex"
+    ],
+    [
+     "int&",
+     "nTickX"
+    ],
+    [
+     "int&",
+     "nTickY"
+    ],
+    [
+     "int&",
+     "nX"
+    ],
+    [
+     "int&",
+     "nY"
+    ]
+   ]
+  },
+  {
+   "helper": "SetTileTextureCoordinates",
+   "after": "for (int k = 0; k < 4; k++)",
+   "flow": true,
+   "params": [
+    [
+     "char&",
+     "bCoordBackIndex"
+    ],
+    [
+     "char&",
+     "bCoordIndex"
+    ],
+    [
+     "float (&)[4]",
+     "fX"
+    ],
+    [
+     "float (&)[4]",
+     "fY"
+    ],
+    [
+     "int&",
+     "k"
+    ],
+    [
+     "int&",
+     "nIndex"
+    ],
+    [
+     "int&",
+     "nTexIndex"
+    ],
+    [
+     "int&",
+     "nX"
+    ],
+    [
+     "int&",
+     "nY"
+    ]
+   ]
+  }
+ ]
+}

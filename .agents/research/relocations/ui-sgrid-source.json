@@ -1,0 +1,29 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SGrid.cpp",
+ "header_note": "SGridControl split by responsibility; see SGrid.cpp for the grid model.",
+ "targets": {
+  "tmproject/TMProject748/internal/ui/SGridInput.cpp": [
+   "\\bSGridControl::OnMouseEvent\\(",
+   "\\bSGridControl::OnKeyDownEvent\\(",
+   "\\bSGridControl::RButton\\(",
+   "\\bSGridControl::Check_ItemRightClick\\(",
+   "\\bSGridControl::automove\\("
+  ],
+  "tmproject/TMProject748/internal/ui/SGridCommerce.cpp": [
+   "\\bSGridControl::BuyItem\\(",
+   "\\bSGridControl::TradeItem\\(",
+   "\\bSGridControl::SellItem\\(",
+   "\\bSGridControl::SellItem2\\(",
+   "\\bSGridControl::SwapItem\\(",
+   "\\bSGridControl::AutoSellShowPrice\\("
+  ],
+  "tmproject/TMProject748/internal/ui/SGridTooltip.cpp": [
+   "\\bSGridControl::MouseOver\\(",
+   "\\bSGridControl::UpdateDescPanelHeight\\(",
+   "\\bSGridControl::UpdateCapsuleInfo\\("
+  ],
+  "tmproject/TMProject748/internal/ui/SGridItem.cpp": [
+   "\\bSGridControlItem::"
+  ]
+ }
+}

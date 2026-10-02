@@ -1,0 +1,55 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/NewAppWindow.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/NewApp.h",
+ "class": "NewApp",
+ "method": "HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)",
+ "extractions": [
+  {
+   "helper": "OnInputLanguageChange",
+   "after": "case WM_INPUTLANGCHANGE:",
+   "params": [
+    [
+     "HWND&",
+     "hWnd"
+    ]
+   ]
+  },
+  {
+   "helper": "OnKeyDownMessage",
+   "after": "case WM_KEYDOWN:",
+   "flow": true,
+   "params": [
+    [
+     "DWORD&",
+     "wParam"
+    ]
+   ]
+  },
+  {
+   "helper": "OnNetworkMessage",
+   "after": "case WM_USER + 100:",
+   "flow": true,
+   "params": [
+    [
+     "DWORD&",
+     "wParam"
+    ],
+    [
+     "int&",
+     "lParam"
+    ]
+   ]
+  },
+  {
+   "helper": "OnCloseMessage",
+   "after": "case WM_CLOSE:",
+   "returns": true,
+   "params": [
+    [
+     "HWND&",
+     "hWnd"
+    ]
+   ]
+  }
+ ]
+}

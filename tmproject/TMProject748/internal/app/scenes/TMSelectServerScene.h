@@ -1,4 +1,5 @@
 #pragma once
+#include "ExtractedFlow.h"
 
 #include "TMScene.h"
 #include "Structures.h"
@@ -6,6 +7,7 @@
 class SPanel;
 class SButton;
 class SEditableText;
+class SListBoxServerItem;
 class TMRain;
 class TMSnow;
 
@@ -32,6 +34,10 @@ public:
 	void InitializeUI();
 
 private:
+	// Helpers extracted from TMSelectServerScene::OnControlEvent.
+	ExtractedFlow OnServerGroupList(unsigned int& idwEvent, const int& nMaxGroupN, SListBoxServerItem* (&pServerItem)[11], int& extractedResult);
+	int OnServerSelectOk(const int& nMaxGroupN);
+	ExtractedFlow OnLoginOk(int& extractedResult);
 	int FrameMoveGameGrade(unsigned int dwServerTime);
 	void GameGradeScene();
 

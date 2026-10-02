@@ -1,0 +1,63 @@
+{
+ "mode": "header",
+ "source": "tmproject/TMProject748/internal/ui/SControl.h",
+ "header_note": "Widget control; split from SControl.h/.cpp. Include \"SControl.h\" for the whole library.",
+ "umbrella_note": "Umbrella for the widget library; each control lives in ui/controls/.",
+ "targets": {
+  "tmproject/TMProject748/internal/ui/controls/SControlBase.h": [
+   "^enum class CONTROL_TYPE",
+   "^static_assert",
+   "^class IEventListener;?$",
+   "^class SControl : public TreeNode",
+   "\\bPointInRect\\(",
+   "\\bRemoveRenderControlItem\\(",
+   "\\bAddRenderControlItem\\("
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SPanel.h": [
+   "^class SPanel\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/S3DObj.h": [
+   "^class S3DObj\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SCursor.h": [
+   "^enum class ECursorStyle",
+   "^class SGridControlItem;?$",
+   "^class SCursor\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SText.h": [
+   "^class SText\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SEditableText.h": [
+   "^class SEditableText\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SButton.h": [
+   "^class SButton\\b(?!Box)"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SButtonBox.h": [
+   "^class SButtonBox\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SCheckBox.h": [
+   "^class SCheckBox\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SProgressBar.h": [
+   "^class SProgressBar\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SScrollBar.h": [
+   "^class SScrollBar\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SListBox.h": [
+   "^class SListBox;?$",
+   "^class SListBox\\w*Item\\b",
+   "^class SListBox :"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SMessageBox.h": [
+   "^class SMessageBox\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SMessagePanel.h": [
+   "^class SMessagePanel\\b"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SReelPanel.h": [
+   "^class SReelPanel\\b"
+  ]
+ }
+}

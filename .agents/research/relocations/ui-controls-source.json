@@ -1,0 +1,58 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SControl.cpp",
+ "header_note": "Widget control; split from SControl.h/.cpp. Include \"SControl.h\" for the whole library.",
+ "targets": {
+  "tmproject/TMProject748/internal/ui/controls/SControlBase.cpp": [
+   "\\bSControl::",
+   "^int PointInRect\\(",
+   "^void RemoveRenderControlItem\\(",
+   "^int AddRenderControlItem\\("
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SPanel.cpp": [
+   "\\bSPanel::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/S3DObj.cpp": [
+   "\\bS3DObj::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SCursor.cpp": [
+   "\\bSCursor::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SText.cpp": [
+   "\\bSText::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SEditableText.cpp": [
+   "\\bSEditableText::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SButton.cpp": [
+   "\\bSButton::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SButtonBox.cpp": [
+   "\\bSButtonBox::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SCheckBox.cpp": [
+   "\\bSCheckBox::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SProgressBar.cpp": [
+   "\\bSProgressBar::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SScrollBar.cpp": [
+   "\\bSScrollBar::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SListBox.cpp": [
+   "\\bSListBox::",
+   "\\bSListBoxItem::",
+   "\\bSListBoxBoardItem::",
+   "\\bSListBoxPartyItem::",
+   "\\bSListBoxServerItem::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SMessageBox.cpp": [
+   "\\bSMessageBox::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SMessagePanel.cpp": [
+   "\\bSMessagePanel::"
+  ],
+  "tmproject/TMProject748/internal/ui/controls/SReelPanel.cpp": [
+   "\\bSReelPanel::"
+  ]
+ }
+}

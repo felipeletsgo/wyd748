@@ -1,13 +1,11 @@
 #include "pch.h"
 #include "SControlContainer.h"
-#include "SControl.h"
 #include "SGrid.h"
 #include "UIBinary.h"
 #include "TMGround.h"
 #include "TMSky.h"
 #include "TMSun.h"
 #include "TMLight.h"
-#include "TMHuman.h"
 #include "TMObject.h"
 #include "TMCamera.h"
 #include "TMObjectContainer.h"
@@ -21,28 +19,12 @@
 #include "TMRain.h"
 #include "WYD748Assets.h"
 
-#include <cstdint>
-#include <cstring>
 
 namespace
 {
 	constexpr size_t kIndexedMessageCapacity = MAX_STRING_LENGTH;
 	constexpr size_t kIndexedParameterCount = 6;
 	constexpr size_t kIndexedParameterCapacity = sizeof(MSG_MessageChat::String) - 3;
-
-	bool CopyUIString(int stringIndex, char* output, size_t outputCapacity,
-		int controlID, const char* resourceName)
-	{
-		if (!output || outputCapacity == 0 || stringIndex < 0 || stringIndex >= MAX_STRING)
-		{
-			LOG_WRITELOG("Invalid UI string index [%d] for control [%d] in [%s]\r\n",
-				stringIndex, controlID, resourceName ? resourceName : "<unknown>");
-			return false;
-		}
-
-		strncpy_s(output, outputCapacity, g_UIString[stringIndex], _TRUNCATE);
-		return true;
-	}
 
 	bool DecodeIndexedMessage(const MSG_STANDARD* pStd, const MSG_MessageChat*& pMessage,
 		std::int16_t& relativeIndex, int& tableIndex)
@@ -442,628 +424,6 @@ SControlContainer* TMScene::GetCtrlContainer()
 	return m_pControlContainer;
 }
 
-int TMScene::LoadRC(const char* szFileName)
-{
-	if (!m_pControlContainer)
-		m_pControlContainer = new SControlContainer(this);
-
-	char szBinFileName[128]{};
-
-	sprintf_s(szBinFileName, "%s", szFileName);
-	
-	int nLength = strlen(szBinFileName);
-
-	if (strchr(szBinFileName, '_'))
-		sprintf_s(&szBinFileName[nLength - 7], sizeof(szBinFileName) - nLength - 7, ".bin");
-	else
-		sprintf_s(&szBinFileName[nLength - 3], sizeof(szBinFileName) - nLength - 3, "bin");
-
-	return ReadRCBin(szBinFileName);
-}
-
-int TMScene::ParseRC(FILE* fp, FILE* fpBinary, char* szControlType)
-{
-	return 0;
-}
-
-int TMScene::ReadRCBin(char* szBinFileName)
-{
-	FILE* fpBinary = nullptr;
-	
-	fopen_s(&fpBinary, szBinFileName, "rb");
-
-	if (!fpBinary)
-		return 0;
-
-	// Some older 7.48-compatible RC files store button/text captions inline.
-	// Detect that ABI once per file while the primary Scene2 UI keeps the compact
-	// indexed-string parser used by the live 7.48 selection screen.
-	const bool legacyInlineCaptions = WYD748_IsLegacyRCFile(szBinFileName);
-
-	int rawControlType = 0;
-	while (true)
-	{
-		const auto readResult = ReadRCControlType(fpBinary, rawControlType);
-		if (readResult == RCControlTypeReadResult::End)
-			break;
-		if (readResult != RCControlTypeReadResult::Record)
-		{
-			LOG_WRITELOG("Incomplete RC control type in [%s]\r\n", szBinFileName);
-			fclose(fpBinary);
-			return 0;
-		}
-		const auto nControlType = static_cast<CONTROL_TYPE>(rawControlType);
-		switch (nControlType)
-		{
-		case CONTROL_TYPE::CTRL_TYPE_PANEL:
-		{
-			BinPanel binPanelData;
-
-			if (!fread(&binPanelData, sizeof(binPanelData), 1, fpBinary))
-			{
-				LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-				fclose(fpBinary);
-				return 0;
-			}
-
-			auto pPanel = new SPanel(
-				binPanelData.nTextureSetIndex,
-				(float)binPanelData.nStartX,
-				(float)binPanelData.nStartY,
-				(float)binPanelData.nWidth,
-				(float)binPanelData.nHeight,
-				binPanelData.nColor,
-				static_cast<RENDERCTRLTYPE>(binPanelData.nFillType));
-
-			if (!pPanel)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binPanelData.nID, GetSceneType());
-				return 0;
-			}
-
-			pPanel->SetControlID(binPanelData.nID);
-			pPanel->SetCenterPos(binPanelData.nID,
-				(float)binPanelData.nStartX,
-				(float)binPanelData.nStartY,
-				(float)binPanelData.nWidth,
-				(float)binPanelData.nHeight);
-
-			if (binPanelData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binPanelData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pPanel));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pPanel));
-			}
-
-			pPanel->m_bPickable = binPanelData.nPickable;
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_GRID:
-		{
-			BinGrid binGridData;
-
-			if (!fread(&binGridData, sizeof(binGridData), 1, fpBinary))
-			{
-				LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-				fclose(fpBinary);
-				return 0;
-			}
-
-			auto pGrid = new SGridControl(
-				binGridData.nTextureSetIndex,
-				binGridData.nRowCount,
-				binGridData.nColumnCount,
-				(float)binGridData.nStartX,
-				(float)binGridData.nStartY,
-				(float)binGridData.nWidth,
-				(float)binGridData.nHeight,
-				static_cast<TMEITEMTYPE>(binGridData.nType));
-
-			if (!pGrid)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binGridData.nID, GetSceneType());
-				return 0;
-			}
-
-			pGrid->SetControlID(binGridData.nID);
-
-			pGrid->SetCenterPos(binGridData.nID,
-				(float)binGridData.nStartX,
-				(float)binGridData.nStartY,
-				(float)binGridData.nWidth,
-				(float)binGridData.nHeight);
-
-			if (m_pControlContainer)
-				pGrid->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
-			else
-				pGrid->SetEventListener(nullptr);
-
-			if (binGridData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binGridData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pGrid));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pGrid));
-			}
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_3DOBJ:
-		{
-			Bin3DObj bin3DObjData;
-
-			if (!fread(&bin3DObjData, sizeof(bin3DObjData), 1, fpBinary))
-			{
-				LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-				fclose(fpBinary);
-				return 0;
-			}
-
-			auto p3DObj = new S3DObj(bin3DObjData.n3DObjIndex,
-				(float)bin3DObjData.nStartX,
-				(float)bin3DObjData.nStartY,
-				(float)bin3DObjData.nWidth,
-				(float)bin3DObjData.nHeight);
-
-			if (!p3DObj)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", bin3DObjData.nID, GetSceneType());
-				return 0;
-			}
-
-			p3DObj->SetControlID(bin3DObjData.nID);
-			p3DObj->SetCenterPos(bin3DObjData.nID,
-				(float)bin3DObjData.nStartX,
-				(float)bin3DObjData.nStartY,
-				(float)bin3DObjData.nWidth,
-				(float)bin3DObjData.nHeight);
-
-			if (bin3DObjData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(bin3DObjData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(p3DObj));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(p3DObj));
-			}
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_BUTTON:
-		{
-			BinButton binButtonData{};
-			char strbuf[128]{};
-			if (legacyInlineCaptions)
-			{
-				// Map the disk-only 7.48 record into the common modern fields;
-				// the caption is already part of the record and needs no index.
-				LegacyBinButton legacy{};
-				if (!fread(&legacy, sizeof(legacy), 1, fpBinary))
-				{
-					LOG_WRITELOG("Can't Read Legacy Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-					fclose(fpBinary);
-					return 0;
-				}
-				binButtonData.nID = legacy.nID;
-				binButtonData.nParentID = legacy.nParentID;
-				binButtonData.nTextureSetIndex = legacy.nTextureSetIndex;
-				binButtonData.nStartX = legacy.nStartX;
-				binButtonData.nStartY = legacy.nStartY;
-				binButtonData.nWidth = legacy.nWidth;
-				binButtonData.nHeight = legacy.nHeight;
-				binButtonData.nColor = legacy.nColor;
-				binButtonData.nSound = legacy.nSound;
-				strcpy_s(strbuf, legacy.szString);
-			}
-			else
-			{
-				if (!fread(&binButtonData, sizeof(binButtonData), 1, fpBinary))
-				{
-					LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-					fclose(fpBinary);
-					return 0;
-				}
-				if (!CopyUIString(binButtonData.nStringIndex, strbuf, sizeof(strbuf),
-					binButtonData.nID, szBinFileName))
-				{
-					fclose(fpBinary);
-					return 0;
-				}
-			}
-
-			auto pButton = new SButton(
-				binButtonData.nTextureSetIndex,
-				(float)binButtonData.nStartX,
-				(float)binButtonData.nStartY,
-				(float)binButtonData.nWidth,
-				(float)binButtonData.nHeight,
-				binButtonData.nColor,
-				binButtonData.nSound,
-				strbuf);
-
-			if (!pButton)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binButtonData.nID, GetSceneType());
-				return 0;
-			}
-
-			pButton->SetControlID(binButtonData.nID);
-
-			pButton->SetCenterPos(binButtonData.nID,
-				(float)binButtonData.nStartX,
-				(float)binButtonData.nStartY,
-				(float)binButtonData.nWidth,
-				(float)binButtonData.nHeight);
-
-			if (binButtonData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binButtonData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pButton));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pButton));
-			}
-
-			if (m_pControlContainer)
-				pButton->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
-			else
-				pButton->SetEventListener(nullptr);
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_TEXT:
-		{
-			BinText binTextData{};
-			char strbuf[128]{};
-			if (legacyInlineCaptions)
-			{
-				// Text records use the same inline-caption contract as legacy
-				// buttons; copy fields explicitly so layouts never alias.
-				LegacyBinText legacy{};
-				if (!fread(&legacy, sizeof(legacy), 1, fpBinary))
-				{
-					LOG_WRITELOG("Can't Read Legacy Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-					fclose(fpBinary);
-					return 0;
-				}
-				binTextData.nID = legacy.nID;
-				binTextData.nParentID = legacy.nParentID;
-				binTextData.nTextureSetIndex = legacy.nTextureSetIndex;
-				binTextData.nStartX = legacy.nStartX;
-				binTextData.nStartY = legacy.nStartY;
-				binTextData.nWidth = legacy.nWidth;
-				binTextData.nHeight = legacy.nHeight;
-				binTextData.nFontColor = legacy.nFontColor;
-				binTextData.nBorder = legacy.nBorder;
-				binTextData.nBorderColor = legacy.nBorderColor;
-				binTextData.nTextType = legacy.nTextType;
-				binTextData.nAlignType = legacy.nAlignType;
-				strcpy_s(strbuf, legacy.szString);
-			}
-			else
-			{
-				if (!fread(&binTextData, sizeof(binTextData), 1, fpBinary))
-				{
-					LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-					fclose(fpBinary);
-					return 0;
-				}
-				if (!CopyUIString(binTextData.nStringIndex, strbuf, sizeof(strbuf),
-					binTextData.nID, szBinFileName))
-				{
-					fclose(fpBinary);
-					return 0;
-				}
-			}
-
-			auto pText = new SText(
-				binTextData.nTextureSetIndex,
-				strbuf,
-				binTextData.nFontColor,
-				(float)binTextData.nStartX,
-				(float)binTextData.nStartY,
-				(float)binTextData.nWidth,
-				(float)binTextData.nHeight,
-				binTextData.nBorder,
-				binTextData.nBorderColor,
-				binTextData.nTextType,
-				binTextData.nAlignType);
-
-			if (!pText)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binTextData.nID, GetSceneType());
-				return 0;
-			}
-
-			pText->SetControlID(binTextData.nID);
-
-			pText->SetCenterPos(binTextData.nID,
-				(float)binTextData.nStartX,
-				(float)binTextData.nStartY,
-				(float)binTextData.nWidth,
-				(float)binTextData.nHeight);
-
-			if (binTextData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binTextData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pText));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pText));
-			}
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT:
-		{
-			BinEdit binEditData;
-
-			if (!fread(&binEditData, sizeof(binEditData), 1, fpBinary))
-			{
-				LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-				fclose(fpBinary);
-				return 0;
-			}
-
-			auto pEdit = new SEditableText(
-				binEditData.nTextureSetIndex,
-				binEditData.szString,
-				binEditData.nMaxStringLength,
-				binEditData.nPassword,
-				binEditData.nFontColor,
-				(float)binEditData.nStartX,
-				(float)binEditData.nStartY,
-				(float)binEditData.nWidth,
-				(float)binEditData.nHeight,
-				binEditData.nBorder,
-				binEditData.nBorderColor,
-				binEditData.nTextType,
-				binEditData.nAlignType);
-
-			if (!pEdit)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binEditData.nID, GetSceneType());
-				return 0;
-			}
-
-			pEdit->SetControlID(binEditData.nID);
-
-			pEdit->SetCenterPos(binEditData.nID,
-				(float)binEditData.nStartX,
-				(float)binEditData.nStartY,
-				(float)binEditData.nWidth,
-				(float)binEditData.nHeight);
-
-			if (binEditData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binEditData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pEdit));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pEdit));
-			}
-
-			if (m_pControlContainer)
-				pEdit->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
-			else
-				pEdit->SetEventListener(nullptr);
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_PROGRESSBAR:
-		{
-			BinProgress binProgressData;
-
-			if (!fread(&binProgressData, sizeof(binProgressData), 1, fpBinary))
-			{
-				LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-				fclose(fpBinary);
-				return 0;
-			}
-
-			auto pProgress = new SProgressBar(
-				binProgressData.nTextureSetIndex,
-				binProgressData.nCurrent,
-				binProgressData.nMaxValue,
-				(float)binProgressData.nStartX,
-				(float)binProgressData.nStartY,
-				(float)binProgressData.nWidth,
-				(float)binProgressData.nHeight,
-				binProgressData.nProgressColor,
-				binProgressData.nColor,
-				binProgressData.nStyle);
-
-			if (!pProgress)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binProgressData.nID, GetSceneType());
-				return 0;
-			}
-
-			pProgress->SetControlID(binProgressData.nID);
-
-			pProgress->SetCenterPos(binProgressData.nID,
-				(float)binProgressData.nStartX,
-				(float)binProgressData.nStartY,
-				(float)binProgressData.nWidth,
-				(float)binProgressData.nHeight);
-
-			if (binProgressData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binProgressData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pProgress));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pProgress));
-			}
-
-			if (m_pControlContainer)
-				pProgress->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
-			else
-				pProgress->SetEventListener(nullptr);
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_CHECKBOX:
-		{
-			BinCheckBox binCheckBoxData;
-
-			if (!fread(&binCheckBoxData, sizeof(binCheckBoxData), 1, fpBinary))
-			{
-				LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-				fclose(fpBinary);
-				return 0;
-			}
-
-			auto pCheckBox = new SCheckBox(
-				binCheckBoxData.nTextureSetIndex,
-				(float)binCheckBoxData.nStartX,
-				(float)binCheckBoxData.nStartY,
-				(float)binCheckBoxData.nWidth,
-				(float)binCheckBoxData.nHeight,
-				binCheckBoxData.nColor);
-
-			if (!pCheckBox)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binCheckBoxData.nID, GetSceneType());
-				return 0;
-			}
-
-			pCheckBox->SetControlID(binCheckBoxData.nID);
-
-			pCheckBox->SetCenterPos(binCheckBoxData.nID,
-				(float)binCheckBoxData.nStartX,
-				(float)binCheckBoxData.nStartY,
-				(float)binCheckBoxData.nWidth,
-				(float)binCheckBoxData.nHeight);
-
-			if (binCheckBoxData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binCheckBoxData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pCheckBox));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pCheckBox));
-			}
-
-			if (m_pControlContainer)
-				pCheckBox->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
-			else
-				pCheckBox->SetEventListener(nullptr);
-		}
-		break;
-		case CONTROL_TYPE::CTRL_TYPE_LISTBOX:
-		{
-			BinListBox binListBoxData;
-
-			if (!fread(&binListBoxData, sizeof(binListBoxData), 1, fpBinary))
-			{
-				LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-				fclose(fpBinary);
-				return 0;
-			}
-
-			auto pListBox = new SListBox(
-				binListBoxData.nTextureSetIndex,
-				binListBoxData.nMaxCount,
-				binListBoxData.nVisibleCount,
-				(float)binListBoxData.nStartX,
-				(float)binListBoxData.nStartY,
-				(float)binListBoxData.nWidth,
-				(float)binListBoxData.nHeight,
-				binListBoxData.nColor,
-				static_cast<RENDERCTRLTYPE>(binListBoxData.nFillType),
-				binListBoxData.nSelect,
-				binListBoxData.nScroll,
-				0);
-
-			if (!pListBox)
-			{
-				LOG_WRITELOG("Can't Create [%d] in Scene [%d]\r\n", binListBoxData.nID, GetSceneType());
-				return 0;
-			}
-
-			pListBox->SetControlID(binListBoxData.nID);
-
-			pListBox->SetCenterPos(binListBoxData.nID,
-				(float)binListBoxData.nStartX,
-				(float)binListBoxData.nStartY,
-				(float)binListBoxData.nWidth,
-				(float)binListBoxData.nHeight);
-
-			if (binListBoxData.nParentID)
-			{
-				auto pParent = m_pControlContainer->FindControl(binListBoxData.nParentID);
-
-				if (pParent)
-					pParent->AddChild(static_cast<TreeNode*>(pListBox));
-			}
-			else
-			{
-				m_pControlContainer->AddItem(static_cast<SControl*>(pListBox));
-			}
-
-			if (m_pControlContainer)
-				pListBox->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
-			else
-				pListBox->SetEventListener(nullptr);
-		}
-		break;
-		default:
-			LOG_WRITELOG("Not Support Control Type [%d]\r\n", nControlType);
-			fclose(fpBinary);
-			return 0;
-		}
-	}
-
-	fclose(fpBinary);
-	return 1;
-}
-
-int TMScene::FindID(char* szID)
-{
-	int nID = 0;
-	int bFindID = 0;
-
-	if (!strcmp(szID, "NONE"))
-		return 0;
-
-	for (int i = 0; i < 2560; ++i)
-	{
-		if (!strcmp(szID, g_pObjectManager->m_ResourceList[i].szString))
-		{
-			nID = g_pObjectManager->m_ResourceList[i].nNumber;
-			bFindID = 1;
-			break;
-		}
-	}
-
-	if (!bFindID)
-		LOG_WRITELOG("Cannot Match Resource ID [%s] in [%s].\r\n", szID, "UI\\TMResource.h");
-
-	return nID;
-}
-
 int TMScene::InitializeScene()
 {
 	SetFocus(g_pApp->m_hWnd);
@@ -1188,354 +548,14 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 		pStd->Type == MSG_LegacySceneMessage102_Opcode || pStd->Type == MSG_LegacySceneMessage104_Opcode ||
 		pStd->Type == MSG_MessageIndexed_Opcode || pStd->Type == MSG_MessageParameterized_Opcode))
 	{
-		char szStr[128] = { 0 };
-		if (pStd->Type != MSG_MessagePanel_Opcode)
-		{
-			// Native FUN_0055890A admits only these exact frame sizes, while
-			// FUN_0049889A consumes both opcodes without reading their payload.
-			// Silently consume malformed variants as well so they cannot fall
-			// through to unrelated controls in this rebuilt dispatcher.
-			if ((pStd->Type == MSG_LegacySceneMessage102_Opcode &&
-				pStd->Size != sizeof(MSG_LegacySceneMessage102)) ||
-				(pStd->Type == MSG_LegacySceneMessage104_Opcode &&
-					pStd->Size != sizeof(MSG_LegacySceneMessage104)))
-			{
-				return 1;
-			}
-
-			if (pStd->Type == MSG_MessageIndexed_Opcode || pStd->Type == MSG_MessageParameterized_Opcode)
-			{
-				const MSG_MessageChat* pMessageChat = nullptr;
-				std::int16_t relativeIndex = 0;
-				int tableIndex = 0;
-				if (DecodeIndexedMessage(pStd, pMessageChat, relativeIndex, tableIndex) && m_pMessagePanel)
-				{
-					char messageTemplate[kIndexedMessageCapacity]{};
-					char messageText[kIndexedMessageCapacity]{};
-					if (!CopyIndexedTemplate(tableIndex, messageTemplate, sizeof(messageTemplate)))
-						CopyRelativeIndexFallback(relativeIndex, messageText, sizeof(messageText));
-					else if (pStd->Type == MSG_MessageParameterized_Opcode)
-					{
-						char parameters[kIndexedParameterCount][kIndexedParameterCapacity]{};
-						const size_t parameterCount = ParseIndexedParameters(pMessageChat, parameters);
-						FormatIndexedTemplate(messageTemplate, parameters, parameterCount, messageText, sizeof(messageText));
-					}
-					else
-					{
-						std::memcpy(messageText, messageTemplate, sizeof(messageText));
-						messageText[sizeof(messageText) - 1] = '\0';
-					}
-
-					m_pMessagePanel->SetMessage(messageText, IndexedMessageDuration(tableIndex));
-					m_pMessagePanel->SetVisible(1, 1);
-				}
-			}
-
-			return 1;
-		}
-
-		if (pStd->Size != sizeof(MSG_MessagePanel))
-			return 1;
-
-		auto pMsgPanel = reinterpret_cast<MSG_MessagePanel*>(pStd);
-
-		// The 7.48 message-panel payload is 96 bytes (108 including Header).
-		// The imported newer client used a 128-byte body and wrote past the
-		// canonical packet, corrupting the next receive-buffer frame.
-		pMsgPanel->String[sizeof(pMsgPanel->String) - 1] = 0;
-
-		if (m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR && pMsgPanel->String[0] == '^')
-		{
-			char szMsg[128]{ 0 };
-			sprintf_s(szMsg, "%s", &pMsgPanel->String[1]);
-
-			m_pMessageBox2->SetMessage(szMsg, 0, nullptr);
-			m_pMessageBox2->SetVisible(1);
-		}
-		else if (pMsgPanel->String[0] == '^')
-		{
-			char szMsg[128]{ 0 };
-			sprintf_s(szMsg, "%s", &pMsgPanel->String[1]);
-
-			m_pMessagePanel->SetMessage(szMsg, 7000);
-			m_pMessagePanel->SetVisible(1, 1);
-		}
-		else if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD &&
-			pMsgPanel->String[0] == '!' && pMsgPanel->String[1] == '#')
-		{
-			for (int i = 2; i <= 6; ++i)
-			{
-				if (pMsgPanel->String[i] < '0' || pMsgPanel->String[i] > '9')
-					pMsgPanel->String[i] = '0';
-			}
-
-			TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-			pFScene->m_nYear = static_cast<unsigned short>(pMsgPanel->String[3] - 48)
-				+ 10 * static_cast<unsigned short>(pMsgPanel->String[2] - 48);
-			pFScene->m_nDays = static_cast<unsigned short>(pMsgPanel->String[6] - 48)
-				+ 10 * static_cast<unsigned short>(pMsgPanel->String[5] - 48)
-				+ 100 * static_cast<unsigned short>(pMsgPanel->String[4] - 48);
-
-			return 1;
-		}
-		else if (pMsgPanel->String[1] == '!' && pMsgPanel->String[2] == '!' && pMsgPanel->String[3] == '!')
-		{
-			if (m_eSceneType != ESCENE_TYPE::ESCENE_FIELD || !m_pMyHuman)
-				return 1;
-
-			auto pFocusedObject = static_cast<TMObject*>(m_pMyHuman);
-
-			if ((int)pFocusedObject->m_vecPosition.x >> 7 == 31 && (int)pFocusedObject->m_vecPosition.y >> 7 == 31)
-			{
-				for (int nType = 0; nType < 5; ++nType)
-				{
-					for (int j = 0; j < 5; ++j)
-					{
-						auto pFireWork = new TMEffectFireWork({ (pFocusedObject->m_vecPosition.x) - 10.0f + (5.0f * nType), 7.0f, ((pFocusedObject->m_vecPosition.y - 10.0f) + 5.0f * j) + 8.0f }, nType);
-
-						g_pCurrentScene->AddChild(pFireWork);
-					}
-				}
-			}
-
-			if (pFocusedObject->IsInTown() == 1 || (int)pFocusedObject->m_vecPosition.x >> 7 != 31 || (int)pFocusedObject->m_vecPosition.y >> 7 != 31)
-			{
-				m_pMessagePanel->SetMessage(pMsgPanel->String, 4000);
-				m_pMessagePanel->SetVisible(1, 1);
-			}
-		}
-		else if (pMsgPanel->String[1] == '!' && pMsgPanel->String[2] == '!' && pMsgPanel->String[3] == '#')
-		{
-			if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && pMsgPanel->String[4] == 'E')
-			{
-				auto pKilled = static_cast<TMHuman*>(g_pObjectManager->GetHumanByID(static_cast<TMFieldScene*>(g_pCurrentScene)->m_dwKhepraID));
-
-				if (pKilled)
-				{
-					pKilled->m_stScore.CurHP = 0;
-					pKilled->Die();
-				}
-
-				static_cast<TMFieldScene*>(g_pCurrentScene)->m_dwKhepraID = 0;
-
-				for (int iSt = 0; iSt < 5; ++iSt)
-					pMsgPanel->String[iSt] = '_';
-			}
-		}
-		else if (pMsgPanel->String[0] == '!' || pMsgPanel->String[1] == '!')
-		{
-			if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-			{
-				for (int n = 2; n < 8; ++n)
-				{
-					if (pMsgPanel->String[n] < '0' || pMsgPanel->String[n] > '9')
-						pMsgPanel->String[n] = '0';
-				}
-
-				TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-				pFScene->m_NightmareTime.wHour = pMsgPanel->String[3] - 48 + 10 * (pMsgPanel->String[2] - 48);
-				pFScene->m_NightmareTime.wMonth = pMsgPanel->String[5] - 48 + 10 * (pMsgPanel->String[4] - 48);
-				pFScene->m_NightmareTime.wSecond = pMsgPanel->String[7] - 48 + 10 * (pMsgPanel->String[6] - 48);
-				pFScene->m_dwLastNightmareTime = g_pTimerManager->GetServerTime();
-				return 1;
-			}
-		}
-		else if (pMsgPanel->String[0] == '!')
-		{
-			SYSTEMTIME sysTime;
-			GetLocalTime(&sysTime);
-
-			if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-			{
-				auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-
-				auto pItem3 = new SListBoxItem(" ", 0xFFFFFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777u, 1u, 0);
-				pFScene->m_pHelpList[3]->AddItem(pItem3);
-
-				char szTime[128]{ 0 };
-				char _Buffer[128]{ 0 };
-
-				sprintf_s(szTime, "SMS [%02d:%02d:%02d]", sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
-				auto pItem = new SListBoxItem(szTime, 0xFFBBFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777u, 1u, 0);
-				pFScene->m_pHelpList[3]->AddItem(pItem);
-
-				sprintf_s(_Buffer, "%s", &pMsgPanel->String[1]);
-
-				auto pItem2 = new SListBoxItem(_Buffer, 0xFFBBFFCC, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777u, 1u, 0);
-				pFScene->m_pHelpList[3]->AddItem(pItem2);
-
-				if (pFScene->m_pHelpMemo)
-					pFScene->m_pHelpMemo->SetVisible(1);
-			}
-			else
-			{
-				for (int l = 0; l < 98; ++l)//
-				{
-					if (!g_pObjectManager->m_stMemo[l].szString[0] && !g_pObjectManager->m_stMemo[l + 1].szString[0])
-					{
-						g_pObjectManager->m_stMemo[l].dwColor = -1;
-						sprintf_s(g_pObjectManager->m_stMemo[l].szString, "");
-						g_pObjectManager->m_stMemo[l + 1].dwColor = 0xFFBBFFFF;
-						sprintf_s(g_pObjectManager->m_stMemo[l + 1].szString, "SMS [%02d:%02d:%02d]", sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
-
-						g_pObjectManager->m_stMemo[l + 2].dwColor = 0xFFBBFFCC;
-						sprintf_s(g_pObjectManager->m_stMemo[l + 2].szString, "%s", &pMsgPanel->String[1]);
-					}
-				}
-			}
-
-			m_pMessagePanel->SetMessage(&pMsgPanel->String[1], 4000u);
-			m_pMessagePanel->SetVisible(1, 1);
-		}
-		else if (pMsgPanel->String[0] == '2' && pMsgPanel->String[1] == '0' && pMsgPanel->String[2] == '0')
-		{
-			char Msg[128]{ 0 };
-			if (m_pMyHuman)
-				sprintf_s(Msg, "%s %d %d %d", pMsgPanel->String, g_pObjectManager->m_nServerIndex, static_cast<int>(m_pMyHuman->m_vecPosition.x), 
-					static_cast<int>(m_pMyHuman->m_vecPosition.y));
-			else
-				sprintf_s(Msg, "%s %d", pMsgPanel->String, g_pObjectManager->m_nServerIndex);
-
-			m_pMessagePanel->SetMessage(Msg, 4000u);
-			m_pMessagePanel->SetVisible(1, 1);
-		}
-		else
-		{
-			m_pMessagePanel->SetMessage(pMsgPanel->String, 4000u);
-			m_pMessagePanel->SetVisible(1, 1);
-		}
-
-		SListBox* pChatList = m_pControlContainer
-			? static_cast<SListBox*>(m_pControlContainer->FindControl(65667))
-			: nullptr;
-
-		int len = strlen(pMsgPanel->String);
-		int size = 50;
-		if (len > size)
-		{
-			char szMsg2[128]{};
-			char szMsg3[128]{};
-
-			if (IsClearString(pMsgPanel->String, size - 1))
-			{
-				strncpy(szMsg3, pMsgPanel->String, size);
-				sprintf_s(szMsg2, "%s", &pMsgPanel->String[size]);
-			}
-			else
-			{
-				strncpy(szMsg3, pMsgPanel->String, size - 1);
-				sprintf_s(szMsg2, "%s", &pMsgPanel->String[size - 1]);
-			}
-
-			SListBoxItem* ipNewItem = new SListBoxItem(szMsg3, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
-			if (ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
-
-			SListBoxItem* ipNewItem2 = new SListBoxItem(szMsg2, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0, 0, 0x77777777, 1u, 0);
-			if (ipNewItem2 && pChatList)
-				pChatList->AddItem(ipNewItem2);
-		}
-		else
-		{
-			if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-			{
-				TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-				if (!strcmp(pMsgPanel->String, "Whisper : Off"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[447]);
-					pFScene->SetWhisper(0);
-				}
-				if (!strcmp(pMsgPanel->String, "Whisper : On"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[446]);
-					pFScene->SetWhisper(1);
-				}
-				if (!strcmp(pMsgPanel->String, "Citizen Chatting : Off"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[447]);
-					pFScene->SetPartyChat(0);
-				}
-				if (!strcmp(pMsgPanel->String, "Citizen Chatting : On"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[446]);
-					pFScene->SetPartyChat(1);
-				}
-				if (!strcmp(pMsgPanel->String, "Guild Chatting : Off"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[447]);
-					pFScene->SetGuildChat(0);
-				}
-				if (!strcmp(pMsgPanel->String, "Guild Chatting : On"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[446]);
-					pFScene->SetGuildChat(1);
-				}
-				if (!strcmp(pMsgPanel->String, "Kingdom Chatting : On"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[446]);
-					pFScene->SetKingDomChat(1);
-				}
-				if (!strcmp(pMsgPanel->String, "Kingdom Chatting : Off"))
-				{
-					sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[447]);
-					pFScene->SetKingDomChat(0);
-				}
-			}
-
-			SListBoxItem* ipNewItem = new SListBoxItem(pMsgPanel->String, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
-			if (ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
-		}
-
-		SControl* pLoginOK = m_pControlContainer
-			? m_pControlContainer->FindControl(65873)
-			: nullptr;
-		if (pLoginOK)
-			pLoginOK->SetEnable(1);
-		return 1;
+		return OnMessagePanelPacket(pStd);
 	}
 	if (pStd->Type == MSG_MessageShout_Opcode)
 	{
-		if (pStd->Size != sizeof(MSG_MessageWhisper))
-			return 1;
-
-		MSG_MessageWhisper* pShoutMessage = reinterpret_cast<MSG_MessageWhisper*>(pStd);
-		pShoutMessage->MobName[sizeof(pShoutMessage->MobName) - 1] = 0;
-		pShoutMessage->String[sizeof(pShoutMessage->String) - 1] = 0;
-
-		if (GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
-			return 1;
-
-		TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-		if (!pFScene->m_pChatGeneral || !pFScene->m_pCHP || pFScene->m_pCHP->m_bSelectEnable)
-		{
-			int nIndex = 0;
-			unsigned int dwColor = 0xFF00CD00;
-
-			SListBox* pChatList = pFScene->m_pChatList;
-
-			int nLen = strlen(pShoutMessage->MobName);
-
-			SListBoxItem* ipNewItem = new SListBoxItem(pShoutMessage->MobName,
-				dwColor,
-				0.0f,
-				0.0f,
-				(float)nLen * 6.6999998f,
-				16.0f,
-				0,
-				0xFFFFFF00,
-				1u,
-				0);
-
-			ipNewItem->m_bBGColor = 0;
-			if (ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
-
-			pFScene->m_dwChatTime = g_pTimerManager->GetServerTime();
-			return 1;
-		}
-		else
-			return 1;
+		int extractedResult{};
+		const ExtractedFlow extractedFlow = OnShoutMessage(pStd, extractedResult);
+		if (extractedFlow == ExtractedFlow::Return)
+			return extractedResult;
 	}
 	if (pStd->Type == MSG_ChinaPlaytime_Opcode)
 	{
@@ -1557,6 +577,395 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 	return 0;
 }
 
+// Extracted from TMScene::OnPacketEvent; behavior is unchanged.
+int TMScene::OnMessagePanelPacket(MSG_STANDARD*& pStd)
+{
+	char szStr[128] = { 0 };
+	if (pStd->Type != MSG_MessagePanel_Opcode)
+	{
+		return OnIndexedSceneMessage(pStd);
+	}
+
+	if (pStd->Size != sizeof(MSG_MessagePanel))
+		return 1;
+
+	auto pMsgPanel = reinterpret_cast<MSG_MessagePanel*>(pStd);
+
+	// The 7.48 message-panel payload is 96 bytes (108 including Header).
+	// The imported newer client used a 128-byte body and wrote past the
+	// canonical packet, corrupting the next receive-buffer frame.
+	pMsgPanel->String[sizeof(pMsgPanel->String) - 1] = 0;
+
+	if (m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR && pMsgPanel->String[0] == '^')
+	{
+		char szMsg[128]{ 0 };
+		sprintf_s(szMsg, "%s", &pMsgPanel->String[1]);
+
+		m_pMessageBox2->SetMessage(szMsg, 0, nullptr);
+		m_pMessageBox2->SetVisible(1);
+	}
+	else if (pMsgPanel->String[0] == '^')
+	{
+		char szMsg[128]{ 0 };
+		sprintf_s(szMsg, "%s", &pMsgPanel->String[1]);
+
+		m_pMessagePanel->SetMessage(szMsg, 7000);
+		m_pMessagePanel->SetVisible(1, 1);
+	}
+	else if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD &&
+		pMsgPanel->String[0] == '!' && pMsgPanel->String[1] == '#')
+	{
+		for (int i = 2; i <= 6; ++i)
+		{
+			if (pMsgPanel->String[i] < '0' || pMsgPanel->String[i] > '9')
+				pMsgPanel->String[i] = '0';
+		}
+
+		TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+		pFScene->m_nYear = static_cast<unsigned short>(pMsgPanel->String[3] - 48)
+			+ 10 * static_cast<unsigned short>(pMsgPanel->String[2] - 48);
+		pFScene->m_nDays = static_cast<unsigned short>(pMsgPanel->String[6] - 48)
+			+ 10 * static_cast<unsigned short>(pMsgPanel->String[5] - 48)
+			+ 100 * static_cast<unsigned short>(pMsgPanel->String[4] - 48);
+
+		return 1;
+	}
+	else if (pMsgPanel->String[1] == '!' && pMsgPanel->String[2] == '!' && pMsgPanel->String[3] == '!')
+	{
+		int extractedResult{};
+		const ExtractedFlow extractedFlow = ShowFireworkMessage(pMsgPanel, extractedResult);
+		if (extractedFlow == ExtractedFlow::Return)
+			return extractedResult;
+	}
+	else if (pMsgPanel->String[1] == '!' && pMsgPanel->String[2] == '!' && pMsgPanel->String[3] == '#')
+	{
+		if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && pMsgPanel->String[4] == 'E')
+		{
+			auto pKilled = static_cast<TMHuman*>(g_pObjectManager->GetHumanByID(static_cast<TMFieldScene*>(g_pCurrentScene)->m_dwKhepraID));
+
+			if (pKilled)
+			{
+				pKilled->m_stScore.CurHP = 0;
+				pKilled->Die();
+			}
+
+			static_cast<TMFieldScene*>(g_pCurrentScene)->m_dwKhepraID = 0;
+
+			for (int iSt = 0; iSt < 5; ++iSt)
+				pMsgPanel->String[iSt] = '_';
+		}
+	}
+	else if (pMsgPanel->String[0] == '!' || pMsgPanel->String[1] == '!')
+	{
+		if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+		{
+			for (int n = 2; n < 8; ++n)
+			{
+				if (pMsgPanel->String[n] < '0' || pMsgPanel->String[n] > '9')
+					pMsgPanel->String[n] = '0';
+			}
+
+			TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+			pFScene->m_NightmareTime.wHour = pMsgPanel->String[3] - 48 + 10 * (pMsgPanel->String[2] - 48);
+			pFScene->m_NightmareTime.wMonth = pMsgPanel->String[5] - 48 + 10 * (pMsgPanel->String[4] - 48);
+			pFScene->m_NightmareTime.wSecond = pMsgPanel->String[7] - 48 + 10 * (pMsgPanel->String[6] - 48);
+			pFScene->m_dwLastNightmareTime = g_pTimerManager->GetServerTime();
+			return 1;
+		}
+	}
+	else if (pMsgPanel->String[0] == '!')
+	{
+		ShowSmsMessage(pMsgPanel);
+	}
+	else if (pMsgPanel->String[0] == '2' && pMsgPanel->String[1] == '0' && pMsgPanel->String[2] == '0')
+	{
+		char Msg[128]{ 0 };
+		if (m_pMyHuman)
+			sprintf_s(Msg, "%s %d %d %d", pMsgPanel->String, g_pObjectManager->m_nServerIndex, static_cast<int>(m_pMyHuman->m_vecPosition.x),
+				static_cast<int>(m_pMyHuman->m_vecPosition.y));
+		else
+			sprintf_s(Msg, "%s %d", pMsgPanel->String, g_pObjectManager->m_nServerIndex);
+
+		m_pMessagePanel->SetMessage(Msg, 4000u);
+		m_pMessagePanel->SetVisible(1, 1);
+	}
+	else
+	{
+		m_pMessagePanel->SetMessage(pMsgPanel->String, 4000u);
+		m_pMessagePanel->SetVisible(1, 1);
+	}
+
+	AppendMessagePanelToChat(pMsgPanel);
+	SControl* pLoginOK = m_pControlContainer
+		? m_pControlContainer->FindControl(65873)
+		: nullptr;
+	if (pLoginOK)
+		pLoginOK->SetEnable(1);
+	return 1;
+
+}
+
+// Extracted from TMScene::OnMessagePanelPacket; behavior is unchanged.
+int TMScene::OnIndexedSceneMessage(MSG_STANDARD*& pStd)
+{
+	// Native FUN_0055890A admits only these exact frame sizes, while
+	// FUN_0049889A consumes both opcodes without reading their payload.
+	// Silently consume malformed variants as well so they cannot fall
+	// through to unrelated controls in this rebuilt dispatcher.
+	if ((pStd->Type == MSG_LegacySceneMessage102_Opcode &&
+		pStd->Size != sizeof(MSG_LegacySceneMessage102)) ||
+		(pStd->Type == MSG_LegacySceneMessage104_Opcode &&
+			pStd->Size != sizeof(MSG_LegacySceneMessage104)))
+	{
+		return 1;
+	}
+
+	if (pStd->Type == MSG_MessageIndexed_Opcode || pStd->Type == MSG_MessageParameterized_Opcode)
+	{
+		const MSG_MessageChat* pMessageChat = nullptr;
+		std::int16_t relativeIndex = 0;
+		int tableIndex = 0;
+		if (DecodeIndexedMessage(pStd, pMessageChat, relativeIndex, tableIndex) && m_pMessagePanel)
+		{
+			char messageTemplate[kIndexedMessageCapacity]{};
+			char messageText[kIndexedMessageCapacity]{};
+			if (!CopyIndexedTemplate(tableIndex, messageTemplate, sizeof(messageTemplate)))
+				CopyRelativeIndexFallback(relativeIndex, messageText, sizeof(messageText));
+			else if (pStd->Type == MSG_MessageParameterized_Opcode)
+			{
+				char parameters[kIndexedParameterCount][kIndexedParameterCapacity]{};
+				const size_t parameterCount = ParseIndexedParameters(pMessageChat, parameters);
+				FormatIndexedTemplate(messageTemplate, parameters, parameterCount, messageText, sizeof(messageText));
+			}
+			else
+			{
+				std::memcpy(messageText, messageTemplate, sizeof(messageText));
+				messageText[sizeof(messageText) - 1] = '\0';
+			}
+
+			m_pMessagePanel->SetMessage(messageText, IndexedMessageDuration(tableIndex));
+			m_pMessagePanel->SetVisible(1, 1);
+		}
+	}
+
+	return 1;
+
+}
+
+// Extracted from TMScene::OnMessagePanelPacket; behavior is unchanged.
+ExtractedFlow TMScene::ShowFireworkMessage(MSG_MessagePanel*& pMsgPanel, int& extractedResult)
+{
+	if (m_eSceneType != ESCENE_TYPE::ESCENE_FIELD || !m_pMyHuman)
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+
+	auto pFocusedObject = static_cast<TMObject*>(m_pMyHuman);
+
+	if ((int)pFocusedObject->m_vecPosition.x >> 7 == 31 && (int)pFocusedObject->m_vecPosition.y >> 7 == 31)
+	{
+		for (int nType = 0; nType < 5; ++nType)
+		{
+			for (int j = 0; j < 5; ++j)
+			{
+				auto pFireWork = new TMEffectFireWork({ (pFocusedObject->m_vecPosition.x) - 10.0f + (5.0f * nType), 7.0f, ((pFocusedObject->m_vecPosition.y - 10.0f) + 5.0f * j) + 8.0f }, nType);
+
+				g_pCurrentScene->AddChild(pFireWork);
+			}
+		}
+	}
+
+	if (pFocusedObject->IsInTown() == 1 || (int)pFocusedObject->m_vecPosition.x >> 7 != 31 || (int)pFocusedObject->m_vecPosition.y >> 7 != 31)
+	{
+		m_pMessagePanel->SetMessage(pMsgPanel->String, 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+	}
+	return ExtractedFlow::Next;
+}
+
+// Extracted from TMScene::OnMessagePanelPacket; behavior is unchanged.
+void TMScene::ShowSmsMessage(MSG_MessagePanel*& pMsgPanel)
+{
+	SYSTEMTIME sysTime;
+	GetLocalTime(&sysTime);
+
+	if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+	{
+		auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+
+		auto pItem3 = new SListBoxItem(" ", 0xFFFFFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777u, 1u, 0);
+		pFScene->m_pHelpList[3]->AddItem(pItem3);
+
+		char szTime[128]{ 0 };
+		char _Buffer[128]{ 0 };
+
+		sprintf_s(szTime, "SMS [%02d:%02d:%02d]", sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+		auto pItem = new SListBoxItem(szTime, 0xFFBBFFFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777u, 1u, 0);
+		pFScene->m_pHelpList[3]->AddItem(pItem);
+
+		sprintf_s(_Buffer, "%s", &pMsgPanel->String[1]);
+
+		auto pItem2 = new SListBoxItem(_Buffer, 0xFFBBFFCC, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777u, 1u, 0);
+		pFScene->m_pHelpList[3]->AddItem(pItem2);
+
+		if (pFScene->m_pHelpMemo)
+			pFScene->m_pHelpMemo->SetVisible(1);
+	}
+	else
+	{
+		for (int l = 0; l < 98; ++l)//
+		{
+			if (!g_pObjectManager->m_stMemo[l].szString[0] && !g_pObjectManager->m_stMemo[l + 1].szString[0])
+			{
+				g_pObjectManager->m_stMemo[l].dwColor = -1;
+				sprintf_s(g_pObjectManager->m_stMemo[l].szString, "");
+				g_pObjectManager->m_stMemo[l + 1].dwColor = 0xFFBBFFFF;
+				sprintf_s(g_pObjectManager->m_stMemo[l + 1].szString, "SMS [%02d:%02d:%02d]", sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+
+				g_pObjectManager->m_stMemo[l + 2].dwColor = 0xFFBBFFCC;
+				sprintf_s(g_pObjectManager->m_stMemo[l + 2].szString, "%s", &pMsgPanel->String[1]);
+			}
+		}
+	}
+
+	m_pMessagePanel->SetMessage(&pMsgPanel->String[1], 4000u);
+	m_pMessagePanel->SetVisible(1, 1);
+
+}
+
+// Extracted from TMScene::OnMessagePanelPacket; behavior is unchanged.
+void TMScene::AppendMessagePanelToChat(MSG_MessagePanel*& pMsgPanel)
+{
+	SListBox* pChatList = m_pControlContainer
+		? static_cast<SListBox*>(m_pControlContainer->FindControl(65667))
+		: nullptr;
+
+	int len = strlen(pMsgPanel->String);
+	int size = 50;
+	if (len > size)
+	{
+		char szMsg2[128]{};
+		char szMsg3[128]{};
+
+		if (IsClearString(pMsgPanel->String, size - 1))
+		{
+			strncpy(szMsg3, pMsgPanel->String, size);
+			sprintf_s(szMsg2, "%s", &pMsgPanel->String[size]);
+		}
+		else
+		{
+			strncpy(szMsg3, pMsgPanel->String, size - 1);
+			sprintf_s(szMsg2, "%s", &pMsgPanel->String[size - 1]);
+		}
+
+		SListBoxItem* ipNewItem = new SListBoxItem(szMsg3, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
+		if (ipNewItem && pChatList)
+			pChatList->AddItem(ipNewItem);
+
+		SListBoxItem* ipNewItem2 = new SListBoxItem(szMsg2, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0, 0, 0x77777777, 1u, 0);
+		if (ipNewItem2 && pChatList)
+			pChatList->AddItem(ipNewItem2);
+	}
+	else
+	{
+		if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+		{
+			TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+			if (!strcmp(pMsgPanel->String, "Whisper : Off"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[447]);
+				pFScene->SetWhisper(0);
+			}
+			if (!strcmp(pMsgPanel->String, "Whisper : On"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[446]);
+				pFScene->SetWhisper(1);
+			}
+			if (!strcmp(pMsgPanel->String, "Citizen Chatting : Off"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[447]);
+				pFScene->SetPartyChat(0);
+			}
+			if (!strcmp(pMsgPanel->String, "Citizen Chatting : On"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[446]);
+				pFScene->SetPartyChat(1);
+			}
+			if (!strcmp(pMsgPanel->String, "Guild Chatting : Off"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[447]);
+				pFScene->SetGuildChat(0);
+			}
+			if (!strcmp(pMsgPanel->String, "Guild Chatting : On"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[446]);
+				pFScene->SetGuildChat(1);
+			}
+			if (!strcmp(pMsgPanel->String, "Kingdom Chatting : On"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[446]);
+				pFScene->SetKingDomChat(1);
+			}
+			if (!strcmp(pMsgPanel->String, "Kingdom Chatting : Off"))
+			{
+				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[447]);
+				pFScene->SetKingDomChat(0);
+			}
+		}
+
+		SListBoxItem* ipNewItem = new SListBoxItem(pMsgPanel->String, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
+		if (ipNewItem && pChatList)
+			pChatList->AddItem(ipNewItem);
+	}
+}
+
+
+
+// Extracted from TMScene::OnPacketEvent; behavior is unchanged.
+ExtractedFlow TMScene::OnShoutMessage(MSG_STANDARD*& pStd, int& extractedResult)
+{
+	if (pStd->Size != sizeof(MSG_MessageWhisper))
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+
+	MSG_MessageWhisper* pShoutMessage = reinterpret_cast<MSG_MessageWhisper*>(pStd);
+	pShoutMessage->MobName[sizeof(pShoutMessage->MobName) - 1] = 0;
+	pShoutMessage->String[sizeof(pShoutMessage->String) - 1] = 0;
+
+	if (GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+
+	TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	if (!pFScene->m_pChatGeneral || !pFScene->m_pCHP || pFScene->m_pCHP->m_bSelectEnable)
+	{
+		int nIndex = 0;
+		unsigned int dwColor = 0xFF00CD00;
+
+		SListBox* pChatList = pFScene->m_pChatList;
+
+		int nLen = strlen(pShoutMessage->MobName);
+
+		SListBoxItem* ipNewItem = new SListBoxItem(pShoutMessage->MobName,
+			dwColor,
+			0.0f,
+			0.0f,
+			(float)nLen * 6.6999998f,
+			16.0f,
+			0,
+			0xFFFFFF00,
+			1u,
+			0);
+
+		ipNewItem->m_bBGColor = 0;
+		if (ipNewItem && pChatList)
+			pChatList->AddItem(ipNewItem);
+
+		pFScene->m_dwChatTime = g_pTimerManager->GetServerTime();
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
+	else
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	return ExtractedFlow::Next;
+}
+
+
 int TMScene::OnKeyDownEvent(unsigned int iKeyCode)
 {
 	if (g_pCurrentScene != this)
@@ -1564,7 +973,7 @@ int TMScene::OnKeyDownEvent(unsigned int iKeyCode)
 
 	if (m_pControlContainer && m_pControlContainer->OnKeyDownEvent(iKeyCode) == 1)
 		return 1;
-	
+
 	TreeNode::OnKeyDownEvent(iKeyCode);
 	return 0;
 }
@@ -1748,886 +1157,6 @@ void TMScene::Cleanup()
 	;
 }
 
-char heightMapData[128][128]{};
-int TMScene::GroundNewAttach(EDirection eDir)
-{
-	memset(heightMapData, 0, sizeof(heightMapData));
-	if (m_bCriticalError == 1 || !m_pGround)
-		return 0;
-
-	int x{};
-	int y{};
-
-	if (eDir == EDirection::EDIR_LEFT)
-	{
-		if (m_pGround->m_pLeftGround || m_pGround->m_cLeftEnable != 1)
-			return 0;
-
-		x = m_pGround->m_vecOffsetIndex.x - 1;
-		y = m_pGround->m_vecOffsetIndex.y;
-	}
-	else if (eDir == EDirection::EDIR_RIGHT)
-	{
-		if (m_pGround->m_pRightGround || m_pGround->m_cRightEnable != 1)
-			return 0;
-
-		x = m_pGround->m_vecOffsetIndex.x + 1;
-		y = m_pGround->m_vecOffsetIndex.y;
-	}
-	else if (eDir == EDirection::EDIR_UP)
-	{
-		if (m_pGround->m_pUpGround || m_pGround->m_cUpEnable != 1)
-			return 0;
-
-		x = m_pGround->m_vecOffsetIndex.x;
-		y = m_pGround->m_vecOffsetIndex.y - 1;
-	}
-	else if (eDir == EDirection::EDIR_DOWN)
-	{
-		if (m_pGround->m_pDownGround || m_pGround->m_cDownEnable != 1)
-			return 0;
-
-		x = m_pGround->m_vecOffsetIndex.x;
-		y = m_pGround->m_vecOffsetIndex.y + 1;
-	}
-
-	char fileNameTrn[128]{};
-	char fileNameDat[128]{};
-
-	sprintf_s(fileNameTrn, "Env\\Field%02d%02d.trn", x, y);
-	sprintf_s(fileNameDat, "Env\\Field%02d%02d.dat", x, y);
-
-	int gId = (m_nCurrentGroundIndex + 1) % 2;
-
-	if (m_pGroundList[gId])
-	{
-		if (m_pGroundList[gId]->m_vecOffsetIndex.x == m_pGround->m_vecOffsetIndex.x + 1 &&
-			m_pGroundList[gId]->m_vecOffsetIndex.y == m_pGround->m_vecOffsetIndex.y)
-		{
-			for (int i = 0; i < 128; ++i)
-				memcpy(heightMapData[i], m_HeightMapData[i], 128);
-		}
-		else if (m_pGroundList[gId]->m_vecOffsetIndex.x == m_pGround->m_vecOffsetIndex.x &&
-			m_pGroundList[gId]->m_vecOffsetIndex.y == m_pGround->m_vecOffsetIndex.y + 1)
-		{
-			for (int i = 0; i < 128; ++i)
-				memcpy(heightMapData[i], m_HeightMapData[i], 128);
-		}
-		else if (m_pGroundList[gId]->m_vecOffsetIndex.x == m_pGround->m_vecOffsetIndex.x - 1 &&
-			m_pGroundList[gId]->m_vecOffsetIndex.y == m_pGround->m_vecOffsetIndex.y)
-		{
-			for (int i = 0; i < 128; ++i)
-				memcpy(heightMapData[i], &m_HeightMapData[i][128], 128);
-		}
-		else if (m_pGroundList[gId]->m_vecOffsetIndex.x == m_pGround->m_vecOffsetIndex.x &&
-			m_pGroundList[gId]->m_vecOffsetIndex.y == m_pGround->m_vecOffsetIndex.y - 1)
-		{
-			for (int i = 0; i < 128; ++i)
-				memcpy(heightMapData[i], m_HeightMapData[i + 128], 128);
-		}
-	}
-	else
-	{
-		for (int i = 0; i < 128; ++i)
-			memcpy(heightMapData[i], m_HeightMapData[i], 128);
-	}
-	
-	auto pGround = new TMGround();
-
-	if (!pGround->LoadTileMap(fileNameTrn))
-	{
-		LOG_WRITELOG("TerrainFile Not Found or Invalid : %s\r\n", fileNameTrn);
-		if (!m_bCriticalError)
-			LogMsgCriticalError(10, 0, 0, 0, 0);
-		m_bCriticalError = 1;
-		delete pGround;
-		return 0;
-	}
-	if (pGround->m_vecOffsetIndex.x != x || pGround->m_vecOffsetIndex.y != y)
-	{
-		LOG_WRITELOG("TerrainFile Position Mismatch : %s\r\n", fileNameTrn);
-		if (!m_bCriticalError)
-			LogMsgCriticalError(10, 0, 0, 0, 0);
-		m_bCriticalError = 1;
-		delete pGround;
-		return 0;
-	}
-
-	if (m_pObjectContainerList[gId])
-	{
-		delete m_pObjectContainerList[gId];
-
-		m_pObjectContainerList[gId] = nullptr;
-	}
-
-	if (m_pGroundList[gId])
-	{
-		if (m_pGround->m_pLeftGround == m_pGroundList[gId])
-			m_pGround->m_pLeftGround = nullptr;
-		if (m_pGround->m_pRightGround == m_pGroundList[gId])
-			m_pGround->m_pRightGround = nullptr;
-		if (m_pGround->m_pUpGround == m_pGroundList[gId])
-			m_pGround->m_pUpGround = nullptr;
-		if (m_pGround->m_pDownGround == m_pGroundList[gId])
-			m_pGround->m_pDownGround = nullptr;
-		delete m_pGroundList[gId];
-
-		m_pGroundList[gId] = nullptr;
-	}
-
-	m_pGroundList[gId] = pGround;
-
-	m_pGroundObjectContainer->AddChild(m_pGroundList[gId]);
-
-	// Attach must precede object creation: light effects in Field*.dat use
-	// GroundGetColor/GroundSetColor through the scene's neighbor links.
-	FileTileInfo previousBorder[64]{};
-	TMVector3 previousNormals[64]{};
-	const int previousMiniMapPos = m_pGround->m_nMiniMapPos;
-	const bool changesCurrentBorder =
-		eDir == EDirection::EDIR_LEFT || eDir == EDirection::EDIR_UP;
-	if (changesCurrentBorder)
-	{
-		for (int i = 0; i < 64; ++i)
-		{
-			const int index = eDir == EDirection::EDIR_LEFT ? i * 64 : i;
-			previousBorder[i] = m_pGround->m_TileMapData[index];
-			previousNormals[i] = m_pGround->m_TileNormalVector[index];
-		}
-	}
-
-	if (!m_pGroundList[m_nCurrentGroundIndex] ||
-		!m_pGroundList[m_nCurrentGroundIndex]->Attach(m_pGroundList[gId]))
-	{
-		SAFE_DELETE(m_pGroundList[gId]);
-		LOG_WRITELOG("TerrainFile Attach Failed : %s\r\n", fileNameTrn);
-		if (!m_bCriticalError)
-			LogMsgCriticalError(10, 0, 0, 0, 0);
-		m_bCriticalError = 1;
-		return 0;
-	}
-
-	m_pObjectContainerList[gId] = new TMObjectContainer(m_pGroundList[gId]);
-
-	if (!m_pObjectContainerList[gId]->Load(fileNameDat))
-	{
-		SAFE_DELETE(m_pObjectContainerList[gId]);
-		if (m_pGround->m_pLeftGround == m_pGroundList[gId])
-			m_pGround->m_pLeftGround = nullptr;
-		if (m_pGround->m_pRightGround == m_pGroundList[gId])
-			m_pGround->m_pRightGround = nullptr;
-		if (m_pGround->m_pUpGround == m_pGroundList[gId])
-			m_pGround->m_pUpGround = nullptr;
-		if (m_pGround->m_pDownGround == m_pGroundList[gId])
-			m_pGround->m_pDownGround = nullptr;
-		if (changesCurrentBorder)
-		{
-			for (int i = 0; i < 64; ++i)
-			{
-				const int index = eDir == EDirection::EDIR_LEFT ? i * 64 : i;
-				m_pGround->m_TileMapData[index] = previousBorder[i];
-				m_pGround->m_TileNormalVector[index] = previousNormals[i];
-			}
-		}
-		m_pGround->m_nMiniMapPos = previousMiniMapPos;
-
-		SAFE_DELETE(m_pGroundList[gId]);
-		
-		LOG_WRITELOG("DataFile Not Found : %s\r\n", fileNameDat);
-		
-		if (!m_bCriticalError)
-			LogMsgCriticalError(12, 0, 0, 0, 0);
-
-		m_bCriticalError = 1;
-		return 0;
-	}
-
-	if (m_pObjectContainerList[m_nCurrentGroundIndex])
-	{
-		if (eDir == EDirection::EDIR_DOWN)
-			m_pObjectContainerList[m_nCurrentGroundIndex]->SetPrevNode(m_pObjectContainerList[gId]);
-		else
-			m_pObjectContainerList[m_nCurrentGroundIndex]->SetNextNode(m_pObjectContainerList[gId]);
-	}
-
-	g_pTextureManager->ReleaseNotUsingTexture();
-	
-	memset(m_HeightMapData, 0, sizeof(m_HeightMapData));
-
-	switch (eDir)
-	{
-	case EDirection::EDIR_LEFT:
-		for (int i = 0; i < 128; ++i)
-		{
-			memcpy(m_HeightMapData[i], m_pGround->m_pLeftGround->m_pMaskData[i], 128);
-			memcpy(&m_HeightMapData[i][128], heightMapData[i], 128);
-		}
-		g_HeightPosX = (int)m_pGround->m_pLeftGround->m_vecOffset.x;
-		g_HeightPosY = (int)m_pGround->m_pLeftGround->m_vecOffset.y;
-		break;
-	case EDirection::EDIR_RIGHT:
-		for (int i = 0; i < 128; ++i)
-		{
-			memcpy(&m_HeightMapData[i][128], m_pGround->m_pRightGround->m_pMaskData[i], 128);
-			memcpy(m_HeightMapData[i], heightMapData[i], 128);
-		}
-		g_HeightPosX = (int)m_pGround->m_vecOffset.x;
-		g_HeightPosY = (int)m_pGround->m_vecOffset.y;
-		break;
-	case EDirection::EDIR_UP:
-		for (int i = 0; i < 128; ++i)
-		{
-			memcpy(&m_HeightMapData[i], m_pGround->m_pUpGround->m_pMaskData[i], 128);
-			memcpy(&m_HeightMapData[i + 128], heightMapData[i], 128);
-		}
-		g_HeightPosX = (int)m_pGround->m_pUpGround->m_vecOffset.x;
-		g_HeightPosY = (int)m_pGround->m_pUpGround->m_vecOffset.y;
-		break;
-	case EDirection::EDIR_DOWN:
-		for (int i = 0; i < 128; ++i)
-		{
-			memcpy(&m_HeightMapData[i + 128], m_pGround->m_pDownGround->m_pMaskData[i], 128);
-			memcpy(&m_HeightMapData[i], heightMapData[i], 128);
-		}
-		g_HeightPosX = (int)m_pGround->m_vecOffset.x;
-		g_HeightPosY = (int)m_pGround->m_vecOffset.y;
-		break;
-	}
-
-	BASE_ApplyAttribute((char*)m_HeightMapData, 256);
-
-	memcpy(m_GateMapData, m_HeightMapData, sizeof(m_HeightMapData));
-
-	SaveHeightMap(fileNameTrn);
-
-	m_pGround->SetMiniMapData();
-
-	m_nAdjustTime = 0;
-	m_dwInitTime = g_pTimerManager->GetServerTime();
-
-	return 1;
-}
-
-D3DXVECTOR3 TMScene::GroundGetPickPos()
-{
-	D3DXVECTOR3 vPickPos{ 0.0f, -10000.0f, 0.0f };
-	D3DXVECTOR3 vPickTempPos{ 0.0f, -10000.0f, 0.0f };
-	D3DXVECTOR3 vFocusePos{ 0.0f, -9000.0f, 0.0f };
-
-	auto pFocusedObject = static_cast<TMObject*>(m_pMyHuman);
-
-	if (pFocusedObject)
-	{
-		vFocusePos.x = pFocusedObject->m_vecPosition.x;
-		vFocusePos.y = pFocusedObject->m_fHeight;
-		vFocusePos.z = pFocusedObject->m_vecPosition.x;
-	}
-
-	if (!m_pGround)
-		return vPickPos;
-
-	vPickTempPos = m_pGround->GetPickPos();
-
-	if (fabsf(vFocusePos.y - vPickTempPos.y) < 4.0f)
-		vPickPos = vPickTempPos;
-
-	if (vPickPos.y >= -5000.0f && fabsf(vFocusePos.y - vPickPos.y) < 2.0f)
-		return vPickPos;
-
-	if (m_pGround->m_pLeftGround)
-	{
-		vPickTempPos = m_pGround->m_pLeftGround->GetPickPos();
-
-		if (fabsf(vFocusePos.y - vPickPos.y) > fabsf(vFocusePos.y - vPickTempPos.y) || fabsf(vFocusePos.y - vPickTempPos.y) < 4.0f)
-		{
-			vPickPos = vPickTempPos;
-
-			if (vPickTempPos.y > -5000.0f && fabsf(vFocusePos.y - vPickPos.y) < 2.0f)
-				return vPickPos;
-		}
-	}
-
-	if (m_pGround->m_pRightGround)
-	{
-		vPickTempPos = m_pGround->m_pRightGround->GetPickPos();
-
-		if (fabsf(vFocusePos.y - vPickPos.y) > fabsf(vFocusePos.y - vPickTempPos.y))
-		{
-			vPickPos = vPickTempPos;
-
-			if (vPickTempPos.y > -5000.0f && fabsf(vFocusePos.y - vPickPos.y) < 2.0f || fabsf(vFocusePos.y - vPickTempPos.y < 4.0f))
-				return vPickPos;
-		}
-	}
-
-	if (m_pGround->m_pUpGround)
-	{
-		vPickTempPos = m_pGround->m_pUpGround->GetPickPos();
-
-		if (fabsf(vFocusePos.y - vPickPos.y) > fabsf(vFocusePos.y - vPickTempPos.y))
-		{
-			vPickPos = vPickTempPos;
-
-			if (vPickTempPos.y > -5000.0f && fabsf(vFocusePos.y - vPickPos.y) < 2.0f || fabsf(vFocusePos.y - vPickTempPos.y) < 4.0f)
-				return vPickPos;
-		}
-	}
-
-	if (m_pGround->m_pDownGround)
-	{
-		vPickTempPos = m_pGround->m_pDownGround->GetPickPos();
-
-		if (fabsf(vFocusePos.y - vPickPos.y) > fabsf(vFocusePos.y - vPickTempPos.y))
-		{
-			vPickPos = vPickTempPos;
-
-			if (vPickTempPos.y > -5000.0 && fabsf(vFocusePos.y - vPickPos.y) < 2.0f || fabsf(vFocusePos.y - vPickTempPos.y) < 4.0f)
-				return vPickPos;
-
-		}
-	}
-
-	return vPickPos;
-}
-
-int TMScene::GroundGetTileType(TMVector2 vecPosition)
-{
-	int nTileType{};
-
-	if (m_pGround)
-	{
-		if (vecPosition.x >= m_pGround->m_vecOffset.x &&
-			vecPosition.x < (m_pGround->m_vecOffset.x + 128.0f) && 
-			vecPosition.y >= m_pGround->m_vecOffset.y &&
-			vecPosition.y < (m_pGround->m_vecOffset.y + 128.0f))
-		{
-			nTileType = m_pGround->GetTileType(vecPosition);
-		}
-		else if (m_pGround->m_pLeftGround
-			&& vecPosition.x >= m_pGround->m_pLeftGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pLeftGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pLeftGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pLeftGround->m_vecOffset.y + 128.0f))
-		{
-			nTileType = m_pGround->m_pLeftGround->GetTileType(vecPosition);
-		}
-		else if (m_pGround->m_pRightGround
-			&& vecPosition.x >= m_pGround->m_pRightGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pRightGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pRightGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pRightGround->m_vecOffset.y + 128.0f))
-		{
-			nTileType = m_pGround->m_pRightGround->GetTileType(vecPosition);
-		}
-		else if (m_pGround->m_pUpGround
-			&& vecPosition.x >= m_pGround->m_pUpGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pUpGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pUpGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pUpGround->m_vecOffset.y + 128.0f))
-		{
-			nTileType = m_pGround->m_pUpGround->GetTileType(vecPosition);
-		}
-		else if (m_pGround->m_pDownGround
-			&& vecPosition.x >= m_pGround->m_pDownGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pDownGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pDownGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pDownGround->m_vecOffset.y + 128.0f))
-		{
-			nTileType = m_pGround->m_pDownGround->GetTileType(vecPosition);
-		}
-	}
-
-	return nTileType;
-}
-
-int TMScene::GroundGetMask(TMVector2 vecPosition)
-{
-	int nXIndex = (int)vecPosition.x - g_HeightPosX;
-	int nYIndex = (int)vecPosition.y - g_HeightPosY;
-
-	if (nXIndex < 0)
-		nXIndex = 0;
-
-	if (nYIndex < 0)
-		nYIndex = 0;
-
-	if (nXIndex >= 256)
-		nXIndex = 255;
-
-	if (nYIndex >= 256)
-		nYIndex = 255;
-
-	int value = m_HeightMapData[nYIndex][nXIndex];
-	return m_HeightMapData[nYIndex][nXIndex];
-}
-
-int TMScene::GroundGetMask(IVector2 vecPosition)
-{
-	int nXIndex = vecPosition.x - g_HeightPosX;
-	int nYIndex = vecPosition.y - g_HeightPosY;
-
-	if (nXIndex < 0)
-		nXIndex = 0;
-
-	if (nYIndex < 0)
-		nYIndex = 0;
-
-	if (nXIndex >= 256)
-		nXIndex = 255;
-
-	if (nYIndex >= 256)
-		nYIndex = 255;
-
-	return m_HeightMapData[nYIndex][nXIndex];
-}
-
-float TMScene::GroundGetHeight(TMVector2 vecPosition)
-{
-	float fHeight{ -10000.0f };
-
-	if (m_pGround != nullptr)
-	{
-		if (vecPosition.x >= m_pGround->m_vecOffset.x &&
-			vecPosition.x < (m_pGround->m_vecOffset.x + 128.0f) &&
-			vecPosition.y >= m_pGround->m_vecOffset.y &&
-			vecPosition.y < (m_pGround->m_vecOffset.y + 128.0f))
-		{
-			fHeight = m_pGround->GetHeight(vecPosition);
-		}
-		else if (m_pGround->m_pLeftGround
-			&& vecPosition.x >= m_pGround->m_pLeftGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pLeftGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pLeftGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pLeftGround->m_vecOffset.y + 128.0f))
-		{
-			fHeight = m_pGround->m_pLeftGround->GetHeight(vecPosition);
-		}
-		else if (m_pGround->m_pRightGround
-			&& vecPosition.x >= m_pGround->m_pRightGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pRightGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pRightGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pRightGround->m_vecOffset.y + 128.0f))
-		{
-			fHeight = m_pGround->m_pRightGround->GetHeight(vecPosition);
-		}
-		else if (m_pGround->m_pUpGround
-			&& vecPosition.x >= m_pGround->m_pUpGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pUpGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pUpGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pUpGround->m_vecOffset.y + 128.0f))
-		{
-			fHeight = m_pGround->m_pUpGround->GetHeight(vecPosition);
-		}
-		else if (m_pGround->m_pDownGround
-			&& vecPosition.x >= m_pGround->m_pDownGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pDownGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pDownGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pDownGround->m_vecOffset.y + 128.0f))
-		{
-			fHeight = m_pGround->m_pDownGround->GetHeight(vecPosition);
-		}
-	}
-
-	return fHeight;
-}
-
-D3DCOLORVALUE TMScene::GroundGetColor(TMVector2 vecPosition)
-{
-	D3DCOLORVALUE color{ 1.0f, 1.0f, 1.0f, 1.0f };
-
-	if (m_pGround != nullptr)
-	{
-		if (vecPosition.x >= m_pGround->m_vecOffset.x &&
-			vecPosition.x < (m_pGround->m_vecOffset.x + 128.0f) &&
-			vecPosition.y >= m_pGround->m_vecOffset.y &&
-			vecPosition.y < (m_pGround->m_vecOffset.y + 128.0f))
-		{
-			color = m_pGround->GetColor(vecPosition);
-		}
-
-		else if (m_pGround->m_pLeftGround
-			&& vecPosition.x >= m_pGround->m_pLeftGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pLeftGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pLeftGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pLeftGround->m_vecOffset.y + 128.0f))
-		{
-			color = m_pGround->m_pLeftGround->GetColor(vecPosition);
-		}
-
-		else if (m_pGround->m_pRightGround
-			&& vecPosition.x >= m_pGround->m_pRightGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pRightGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pRightGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pRightGround->m_vecOffset.y + 128.0f))
-		{
-			color = m_pGround->m_pRightGround->GetColor(vecPosition);
-		}
-
-		else if (m_pGround->m_pUpGround
-			&& vecPosition.x >= m_pGround->m_pUpGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pUpGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pUpGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pUpGround->m_vecOffset.y + 128.0f))
-		{
-			color = m_pGround->m_pUpGround->GetColor(vecPosition);
-		}
-
-		else if (m_pGround->m_pDownGround
-			&& vecPosition.x >= m_pGround->m_pDownGround->m_vecOffset.x
-			&& vecPosition.x < (m_pGround->m_pDownGround->m_vecOffset.x + 128.0f)
-			&& vecPosition.y >= m_pGround->m_pDownGround->m_vecOffset.y
-			&& vecPosition.y < (m_pGround->m_pDownGround->m_vecOffset.y + 128.0f))
-		{
-			color = m_pGround->m_pDownGround->GetColor(vecPosition);
-		}
-	}
-
-	return color;
-}
-
-void TMScene::GroundSetColor(TMVector2 vecPosition, unsigned int dwColor)
-{
-	if (!m_pGround)
-		return;
-
-	if (vecPosition.x >= m_pGround->m_vecOffset.x && vecPosition.x < (m_pGround->m_vecOffset.x + 128.0f) &&
-		vecPosition.y >= m_pGround->m_vecOffset.y && vecPosition.y < (m_pGround->m_vecOffset.y + 128.0f))
-	{
-		m_pGround->SetColor(vecPosition, dwColor);
-	}
-	else if (m_pGround->m_pLeftGround 
-		&& vecPosition.x >= m_pGround->m_pLeftGround->m_vecOffset.x
-		&& vecPosition.x < (m_pGround->m_pLeftGround->m_vecOffset.x + 128.0f)
-		&& vecPosition.y >= m_pGround->m_pLeftGround->m_vecOffset.y
-		&& vecPosition.y < (m_pGround->m_pLeftGround->m_vecOffset.y + 128.0f))
-	{
-		m_pGround->m_pLeftGround->SetColor(vecPosition, dwColor);
-	}
-	else if (m_pGround->m_pRightGround
-		&& vecPosition.x >= m_pGround->m_pRightGround->m_vecOffset.x
-		&& vecPosition.x < (m_pGround->m_pRightGround->m_vecOffset.x + 128.0f)
-		&& vecPosition.y >= m_pGround->m_pRightGround->m_vecOffset.y
-		&& vecPosition.y < (m_pGround->m_pRightGround->m_vecOffset.y + 128.0f))
-	{
-		m_pGround->m_pRightGround->SetColor(vecPosition, dwColor);
-	}
-	else if (m_pGround->m_pUpGround
-		&& vecPosition.x >= m_pGround->m_pUpGround->m_vecOffset.x
-		&& vecPosition.x < (m_pGround->m_pUpGround->m_vecOffset.x + 128.0f)
-		&& vecPosition.y >= m_pGround->m_pUpGround->m_vecOffset.y
-		&& vecPosition.y < (m_pGround->m_pUpGround->m_vecOffset.y + 128.0f))
-	{
-		m_pGround->m_pUpGround->SetColor(vecPosition, dwColor);
-	}
-	else if (m_pGround->m_pDownGround
-		&& vecPosition.x >= m_pGround->m_pDownGround->m_vecOffset.x
-		&& vecPosition.x < (m_pGround->m_pDownGround->m_vecOffset.x + 128.0f)
-		&& vecPosition.y >= m_pGround->m_pDownGround->m_vecOffset.y
-		&& vecPosition.y < (m_pGround->m_pDownGround->m_vecOffset.y + 128.0f))
-	{
-		m_pGround->m_pDownGround->SetColor(vecPosition, dwColor);
-	}
-}
-
-int TMScene::GroundIsInWater(TMVector2 vecPosition, float fHeight, float* pfWaterHeight)
-{
-	if (!m_pGround)
-		return 0;
-
-	if (vecPosition.x >= m_pGround->m_vecOffset.x && (float)(m_pGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_vecOffset.y && (float)(m_pGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->IsInWater(vecPosition, fHeight, pfWaterHeight);
-	}
-	if (m_pGround->m_pLeftGround && 
-		vecPosition.x >= m_pGround->m_pLeftGround->m_vecOffset.x && (float)(m_pGround->m_pLeftGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pLeftGround->m_vecOffset.y && (float)(m_pGround->m_pLeftGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pLeftGround->IsInWater(vecPosition, fHeight, pfWaterHeight);
-	}
-	if (m_pGround->m_pRightGround
-		&& vecPosition.x >= m_pGround->m_pRightGround->m_vecOffset.x && (float)(m_pGround->m_pRightGround->m_vecOffset.x + 128.0f) > vecPosition.x
-		&& vecPosition.y >= m_pGround->m_pRightGround->m_vecOffset.y && (float)(m_pGround->m_pRightGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pRightGround->IsInWater(vecPosition, fHeight, pfWaterHeight);
-	}
-	if (m_pGround->m_pUpGround
-		&& vecPosition.x >= m_pGround->m_pUpGround->m_vecOffset.x && (float)(m_pGround->m_pUpGround->m_vecOffset.x + 128.0f) > vecPosition.x
-		&& vecPosition.y >= m_pGround->m_pUpGround->m_vecOffset.y && (float)(m_pGround->m_pUpGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pUpGround->IsInWater(vecPosition, fHeight, pfWaterHeight);
-	}
-	if (m_pGround->m_pDownGround
-		&& vecPosition.x >= m_pGround->m_pDownGround->m_vecOffset.x && (float)(m_pGround->m_pDownGround->m_vecOffset.x + 128.0f) > vecPosition.x
-		&& vecPosition.y >= m_pGround->m_pDownGround->m_vecOffset.y && (float)(m_pGround->m_pDownGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pDownGround->IsInWater(vecPosition, fHeight, pfWaterHeight);
-	}
-
-	return 0;
-}
-
-int TMScene::GroundIsInWater2(TMVector2 vecPosition, float* pfWaterHeight)
-{
-	if (!m_pGround)
-		return 0;
-
-	if (vecPosition.x >= m_pGround->m_vecOffset.x && (float)(m_pGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_vecOffset.y && (float)(m_pGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->IsInWater(vecPosition, (float)GroundGetMask(vecPosition) * 0.1f, pfWaterHeight);
-	}
-	if (m_pGround->m_pLeftGround && 
-		vecPosition.x >= m_pGround->m_pLeftGround->m_vecOffset.x && (float)(m_pGround->m_pLeftGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pLeftGround->m_vecOffset.y && (float)(m_pGround->m_pLeftGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pLeftGround->IsInWater(vecPosition, (float)GroundGetMask(vecPosition) * 0.1f, pfWaterHeight);
-	}
-	if (m_pGround->m_pRightGround && 
-		vecPosition.x >= m_pGround->m_pRightGround->m_vecOffset.x && (float)(m_pGround->m_pRightGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pRightGround->m_vecOffset.y && (float)(m_pGround->m_pRightGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pRightGround->IsInWater(vecPosition, (float)GroundGetMask(vecPosition) * 0.1f, pfWaterHeight);
-	}
-	if (m_pGround->m_pUpGround && 
-		vecPosition.x >= m_pGround->m_pUpGround->m_vecOffset.x && (float)(m_pGround->m_pUpGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pUpGround->m_vecOffset.y && (float)(m_pGround->m_pUpGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pUpGround->IsInWater(vecPosition, (float)GroundGetMask(vecPosition) * 0.1f, pfWaterHeight);
-	}
-	if (!m_pGround->m_pDownGround || 
-		vecPosition.x < m_pGround->m_pDownGround->m_vecOffset.x || (float)(m_pGround->m_pDownGround->m_vecOffset.x + 128.0f) <= vecPosition.x || 
-		vecPosition.y < m_pGround->m_pDownGround->m_vecOffset.y || (float)(m_pGround->m_pDownGround->m_vecOffset.y + 128.0f) <= vecPosition.y)
-	{
-		return 0;
-	}
-
-	return m_pGround->m_pDownGround->IsInWater(vecPosition, (float)GroundGetMask(vecPosition) * 0.1f, pfWaterHeight);
-}
-
-float TMScene::GroundGetWaterHeight(TMVector2 vecPosition, float* pfWaterHeight)
-{
-	if (!m_pGround)
-		return -100.0f;
-
-	if (vecPosition.x >= m_pGround->m_vecOffset.x && (float)(m_pGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_vecOffset.y && (float)(m_pGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->GetWaterHeight(vecPosition, pfWaterHeight);
-	}
-	if (m_pGround->m_pLeftGround && 
-		vecPosition.x >= m_pGround->m_pLeftGround->m_vecOffset.x && (float)(m_pGround->m_pLeftGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pLeftGround->m_vecOffset.y && (float)(m_pGround->m_pLeftGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pLeftGround->GetWaterHeight(vecPosition, pfWaterHeight);
-	}
-	if (m_pGround->m_pRightGround && 
-		vecPosition.x >= m_pGround->m_pRightGround->m_vecOffset.x && (float)(m_pGround->m_pRightGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pRightGround->m_vecOffset.y && (float)(m_pGround->m_pRightGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pRightGround->GetWaterHeight(vecPosition, pfWaterHeight);
-	}
-	if (m_pGround->m_pUpGround && 
-		vecPosition.x >= m_pGround->m_pUpGround->m_vecOffset.x && (float)(m_pGround->m_pUpGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pUpGround->m_vecOffset.y && (float)(m_pGround->m_pUpGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-		return m_pGround->m_pUpGround->GetWaterHeight(vecPosition, pfWaterHeight);
-	}
-	if (m_pGround->m_pDownGround && 
-		vecPosition.x >= m_pGround->m_pDownGround->m_vecOffset.x && (float)(m_pGround->m_pDownGround->m_vecOffset.x + 128.0f) > vecPosition.x && 
-		vecPosition.y >= m_pGround->m_pDownGround->m_vecOffset.y && (float)(m_pGround->m_pDownGround->m_vecOffset.y + 128.0f) > vecPosition.y)
-	{
-	    return m_pGround->m_pDownGround->GetWaterHeight(vecPosition, pfWaterHeight);
-	}
-
-	return -100.0f;
-}
-
-int TMScene::GetMask2(TMVector2 vecPosition)
-{
-	int nMaskX = (int)(vecPosition.x - (float)g_HeightPosX);
-	int nMaskY = (int)(vecPosition.y - (float)g_HeightPosY);
-
-	if (nMaskX >= 0 && nMaskY >= 0 && nMaskX < 256 && nMaskY < 256)
-		return m_GateMapData[nMaskY][nMaskX];
-
-	return -10000;
-}
-
-void TMScene::Warp()
-{
-	if (m_bCriticalError == 1)
-		return;
-
-	auto pFocusedObject = static_cast<TMObject*>(m_pMyHuman);
-
-	if (pFocusedObject)
-	{
-		if (m_pGround)
-			Warp2((int)(pFocusedObject->m_vecPosition.x / 128.0f), (int)(pFocusedObject->m_vecPosition.y / 128.0f));
-	}
-}
-
-void TMScene::Warp2(int nZoneX, int nZoneY)
-{
-	if (m_bCriticalError == 1 || !m_pGround)
-		return;
-
-	m_bAutoRun = 0;
-	if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && static_cast<TMFieldScene*>(this)->m_pAutoRunBtn)
-		static_cast<TMFieldScene*>(this)->m_pAutoRunBtn->SetSelected(m_bAutoRun);
-
-	TMGround* pNeighbor = nullptr;
-	if (m_pGround->m_pLeftGround)
-		pNeighbor = m_pGround->m_pLeftGround;
-	if (m_pGround->m_pRightGround)
-		pNeighbor = m_pGround->m_pRightGround;
-	if (m_pGround->m_pUpGround)
-		pNeighbor = m_pGround->m_pUpGround;
-	if (m_pGround->m_pDownGround)
-		pNeighbor = m_pGround->m_pDownGround;
-
-	if (!pNeighbor && 
-		(nZoneX != m_pGround->m_vecOffsetIndex.x || nZoneY != m_pGround->m_vecOffsetIndex.y) || 
-		pNeighbor && 
-		(nZoneX != m_pGround->m_vecOffsetIndex.x && nZoneX != pNeighbor->m_vecOffsetIndex.x || 
-		 nZoneY != m_pGround->m_vecOffsetIndex.y && nZoneY != pNeighbor->m_vecOffsetIndex.y))
-	{
-		char szMapPath[128]{};
-		char szDataPath[128]{};
-		sprintf(szMapPath, "env\\Field%02d%02d.trn", nZoneX, nZoneY);
-		sprintf(szDataPath, "env\\Field%02d%02d.dat", nZoneX, nZoneY);
-
-		TMGround* pGround = new TMGround();
-
-		if (!pGround->LoadTileMap(szMapPath))
-		{
-			if (!m_bCriticalError)
-				LogMsgCriticalError(10, 0, 0, 0, 0);
-
-			m_bCriticalError = 1;
-			delete pGround;
-			return;
-		}
-		if (pGround->m_vecOffsetIndex.x != nZoneX || pGround->m_vecOffsetIndex.y != nZoneY)
-		{
-			LOG_WRITELOG("TerrainFile Position Mismatch : %s\r\n", szMapPath);
-			if (!m_bCriticalError)
-				LogMsgCriticalError(10, 0, 0, 0, 0);
-			m_bCriticalError = 1;
-			delete pGround;
-			return;
-		}
-
-		TMGround* pOldGround = m_pGround;
-		m_pGround = pGround;
-
-		for (int i = 0; i < 2; ++i)
-		{
-			SAFE_DELETE(m_pObjectContainerList[i]);
-			SAFE_DELETE(m_pGroundList[i]);
-		}
-
-		g_HeightPosX = nZoneX << 7;
-		g_HeightPosY = nZoneY << 7;
-
-		m_nCurrentGroundIndex = 0;
-		m_pGroundList[0] = m_pGround;
-
-		m_pObjectContainerList[0] = new TMObjectContainer(m_pGround);
-
-		if (!m_pObjectContainerList[0]->Load(szDataPath))
-		{
-			LOG_WRITELOG("DataFile Not Found : %s\r\n", szDataPath);
-			if (!m_bCriticalError)
-				LogMsgCriticalError(11, 0, 0, 0, 0);
-
-			m_bCriticalError = 1;
-			SAFE_DELETE(m_pObjectContainerList[0]);
-			SAFE_DELETE(m_pGroundList[0]);
-			m_pGround = nullptr;
-			return;
-		}
-
-		memset(m_HeightMapData, 0, sizeof(m_HeightMapData));
-
-		for (int nY = 0; nY < 128; ++nY)
-			memcpy(m_HeightMapData[nY], m_pGround->m_pMaskData[nY], 128);
-
-		m_pGround->SetMiniMapData();
-		m_pGroundObjectContainer->AddChild(m_pObjectContainerList[0]);
-		m_pGroundObjectContainer->AddChild(m_pGroundList[0]);
-
-		BASE_ApplyAttribute((char*)m_HeightMapData, 256);
-
-		memcpy(m_GateMapData, m_HeightMapData, sizeof(m_GateMapData));
-
-		SaveHeightMap(szMapPath);
-		m_nAdjustTime = 0;
-		m_dwInitTime = g_pTimerManager->GetServerTime();
-	}
-	else if (pNeighbor && nZoneX == pNeighbor->m_vecOffsetIndex.x && nZoneY == pNeighbor->m_vecOffsetIndex.y)
-	{
-		m_pGround = pNeighbor;
-		m_nCurrentGroundIndex = (m_nCurrentGroundIndex + 1) % 2;
-		m_pGround->SetMiniMapData();
-	}
-	if (m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-	{
-		auto pFieldScene = static_cast<TMFieldScene*>(this);
-		auto pSoundManager = g_pSoundManager;
-		if (pSoundManager)
-		{
-			auto pSoundData = pSoundManager->GetSoundData(6);
-			if (pSoundData && pSoundData->IsSoundPlaying())
-			{
-				pSoundData->Stop();
-			}
-		}
-		if (RenderDevice::m_bDungeon && RenderDevice::m_bDungeon != 3 && RenderDevice::m_bDungeon != 4)
-		{
-			g_nWeather = 0;
-			if (pFieldScene->m_pRain)
-				pFieldScene->m_pRain->m_bVisible = 0;
-			if (pFieldScene->m_pSnow)
-				pFieldScene->m_pSnow->m_bVisible = 0;
-			if (pFieldScene->m_pSnow2)
-				pFieldScene->m_pSnow2->m_bVisible = 0;
-			pFieldScene->m_bQuater = 1;
-			pFieldScene->UpdateScoreUI(0);
-
-			// WYD-Go 7.48 compatibility: terrain warps are gameplay state, while the
-			// 7.59 minimap panel is optional and absent from the compact 7.48 UI.
-			if (pFieldScene->m_pMiniMapPanel)
-				pFieldScene->m_pMiniMapPanel->m_GCPanel.dwColor = 0x80FFFFFF;
-		}
-		else
-		{
-			if (RenderDevice::m_bDungeon == 3 || RenderDevice::m_bDungeon == 4)
-			{
-				if (pFieldScene->m_pSnow)
-					pFieldScene->m_pSnow->m_bVisible = 0;
-				if (pFieldScene->m_pSnow2)
-					pFieldScene->m_pSnow2->m_bVisible = 0;
-			}
-
-			pFieldScene->SetWeather(g_nWeather);
-			if (g_pObjectManager && g_pObjectManager->m_pCamera)
-				g_pObjectManager->m_pCamera->m_fHorizonAngle = 0.78539819f;
-
-			// WYD-Go 7.48 compatibility: do not make a successful world warp depend
-			// on a presentation-only control that does not exist in Interface 7.48.
-			if (pFieldScene->m_pMiniMapPanel)
-				pFieldScene->m_pMiniMapPanel->m_GCPanel.dwColor = 0x80FFFFFF;
-		}
-	}
-}
-
-void TMScene::SaveHeightMap(char* szFileName)
-{
-	;
-}
-
 void TMScene::CameraAction()
 {
 	if (m_dwStartCamTime == 0)
@@ -2731,277 +1260,6 @@ void TMScene::ReadCameraPos(const char* szFileName)
 
 	fread(m_stCameraTick, 1, 28 * m_nCameraLoop, fpBin);
 	fclose(fpBin);
-}
-
-int TMScene::LoadMsgText(SListBox* pListBox, const char* szFileName)
-{
-	FILE* fp{};
-
-	fopen_s(&fp, szFileName, "rt");
-
-	if (!fp)
-		return 0;
-
-	if (!pListBox)
-		return 0;
-
-	char szText[256]{};
-	char szTemp[256]{};
-
-	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
-	{
-		char szCol[7]{};
-
-		strncpy(szCol, szTemp, 6);
-
-		DWORD dwCol{};
-
-		sscanf(szCol, "%x", &dwCol);
-
-		char* szRet = strstr(szTemp, "\n");
-
-		if (szRet)
-			*szRet = 0;
-
-		if (szTemp[6] == 32)
-		{
-			sprintf_s(szText, "%s", &szTemp[6]);
-			
-			pListBox->AddItem(new SListBoxItem(
-				szText,
-				dwCol | 0xFF000000,
-				0.0f,
-				0.0f,
-				pListBox->m_nWidth,
-				16.0f,
-				0,
-				0x77777777u,
-				1u,
-				0));
-		}
-	}
-
-	if (pListBox->m_pScrollBar)
-		pListBox->m_pScrollBar->SetCurrentPos(0);
-
-	fclose(fp);
-	return 1;
-}
-
-int TMScene::LoadMsgText2(SListBox* pListBox, const char* szFileName, int nStartLine, int nEndLine)
-{
-	FILE* fp{};
-
-	fopen_s(&fp, szFileName, "rt");
-
-	if (!fp)
-		return 0;
-
-	if (!pListBox)
-		return 0;
-
-	char szText[256]{};
-	char szTemp[256]{};
-
-	int nCount = 0;
-
-	pListBox->Empty();
-
-	for (int i = 0; i < 560 && fgets(szTemp, 256, fp); ++i)
-	{
-		char szCol[7]{};
-		
-		strncpy(szCol, szTemp, 6);
-
-		DWORD dwCol{};
-
-		sscanf(szCol, "%x", &dwCol);
-
-		char* szRet = strstr(szTemp, "\n");
-
-		if (szRet)
-			*szRet = 0;
-
-		if (szTemp[6] == 32 && i >= nStartLine && i <= nEndLine)
-		{
-			sprintf_s(szText, "%s", &szTemp[6]);
-
-			pListBox->AddItem(new SListBoxItem(
-				szText,
-				dwCol | 0xFF000000,
-				0.0f,
-				0.0f,
-				pListBox->m_nWidth,
-				16.0f,
-				0,
-				0x77777777u,
-				1u,
-				0));
-
-			if (++nCount > 100)
-				break;
-		}
-	}
-
-	if (pListBox->m_pScrollBar)
-		pListBox->m_pScrollBar->SetCurrentPos(0);
-
-	fclose(fp);
-	return 1;
-}
-
-int TMScene::LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, int ntrans)
-{
-	FILE* fp{};
-
-	fopen_s(&fp, szFileName, "rt");
-
-	if (!fp)
-		return 0;
-
-	if (!pListBox)
-		return 0;
-
-	char szText[256]{};
-	char szTemp[256]{};
-
-	int nLvLimit = 300;
-
-	pListBox->Empty();
-
-	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
-	{
-		char szCol[11]{};
-		
-		strncpy(szCol, szTemp, 10);
-
-		DWORD dwCol{};
-
-		sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol);
-
-		if (nLvLimit > nLv)
-			dwCol = 0xFF777777;
-
-		if (nLvLimit > 350 && ntrans < 6)
-			dwCol = 0xFF777777;
-
-		if (g_pCurrentScene)
-		{
-			if (m_pMyHuman->Is2stClass() == 2)
-				dwCol = 0xFF777777;
-
-			else if (nLvLimit > nLv)
-				dwCol = 0xFF777777;
-		}
-
-		char* szRet = strstr(szTemp, "\n");
-
-		if (szRet)
-			*szRet = 0;
-
-		if (szTemp[10] == 32)
-		{
-			sprintf(szText, "%s", &szTemp[10]);
-			
-			pListBox->AddItem(new SListBoxItem(
-				szText,
-				dwCol | 0xFF000000,
-				0.0f,
-				0.0f,
-				pListBox->m_nWidth,
-				16.0f,
-				0,
-				0x77777777u,
-				1u,
-				0));
-		}
-	}
-
-	if (pListBox->m_pScrollBar)
-		pListBox->m_pScrollBar->SetCurrentPos(0);
-
-	fclose(fp);
-	return 1;
-}
-
-unsigned int TMScene::LoadMsgText4(char* pStr, int dwStrSize, const char* szFileName, int nLv, int ntrans)
-{
-	FILE* fp{};
-
-	fopen_s(&fp, szFileName, "rt");
-
-	if (!fp)
-		return 0;
-
-	int nLvLimit = 300;
-	DWORD dwCol = 0;
-
-	char szTemp[256]{};
-
-	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
-	{
-		char szCol[11]{};
-
-		strncpy(szCol, szTemp, 10);
-
-		sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol);
-
-		if (nLvLimit == nLv)
-		{
-			if (dwCol == 0xFFAAAA && ntrans >= 6)
-			{
-				dwCol = 0;
-			}
-			else if (nLvLimit <= 350 || ntrans >= 6)
-			{
-				char* szRet = strstr(szTemp, "\n");
-
-				if (szRet)
-					*szRet = 0;
-
-				if (szTemp[10] == 32)
-					sprintf_s(pStr, dwStrSize, "%s", &szTemp[10]);
-			}
-			else
-			{
-				dwCol = 0;
-			}
-			
-			break;
-		}
-	}
-
-	fclose(fp);
-
-	return dwCol | 0xFF000000;
-}
-
-int TMScene::LoadMsgLevel(char* LevelQuest, const char* szFileName, char cType)
-{
-	FILE* fp{};
-
-	fopen_s(&fp, szFileName, "rt");
-
-	if (!fp)
-		return 0;
-
-	char szTemp[256]{};
-
-	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
-	{
-		char szCol[11]{};
-
-		strncpy(szCol, szTemp, 10);
-
-		int nLvLimit{};
-		DWORD dwCol{};
-
-		sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol);
-
-		LevelQuest[nLvLimit - 1] = cType;
-	}
-	fclose(fp);
-	return 1;
 }
 
 void TMScene::CheckPKNonePK(int nServerIndex)

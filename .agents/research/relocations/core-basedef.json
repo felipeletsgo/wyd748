@@ -1,0 +1,19 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/core/Basedef.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/core/Basedef.cpp",
+    "tmproject/TMProject748/internal/core/BasedefItems.cpp",
+    "tmproject/TMProject748/internal/core/BasedefAppearance.cpp",
+    "tmproject/TMProject748/internal/core/BasedefCombat.cpp",
+    "tmproject/TMProject748/internal/core/BasedefWorld.cpp",
+    "tmproject/TMProject748/internal/core/BasedefText.cpp",
+    "tmproject/TMProject748/internal/core/BasedefSystem.cpp"
+   ]
+  }
+ ]
+}

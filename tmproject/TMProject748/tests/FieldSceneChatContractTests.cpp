@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <iterator>
 #include <string>
 #include <windows.h>
@@ -92,6 +93,34 @@ int RunFieldSceneChatContractTests(int& checks)
         previousDomain < chatDomain && chatDomain < consumption && consumption < nextDomain &&
         controls.substr(consumption, nextDomain - consumption).find("return 0;") != std::string::npos,
         "chat keeps dispatcher precedence and consumes both handled and rejected events");
+    // Chat submission keeps the original decision order inside the chat edit.
+    std::size_t cursor = controls.find("if (isChatEdit && !idwEvent)");
+    bool ordered = cursor != std::string::npos;
+    for (const auto step : {
+        "chat_submit::RecordSubmission(m_dwLastChatTime, dwServerTime)",
+        "if (chatFlood)",
+        "chat_submit::Remember(m_szLastChatList, pEditChat->GetText())",
+        "chat_submit::ClassifyLocal(pEditChat->GetText(), g_pMessageStringTable[191])",
+        "if (!BASE_CheckChatValid(Chat))",
+        "chat_submit::ClassifyPrefix(Chat)",
+        "if (pPartyList->m_nNumItem <= 0)",
+        "InsertInChatList(pChatList, pMobData, pEditChat, idwFontColor, route.colorId, route.startIndex)",
+        "chat_submit::IsRelocate(str1, g_pMessageStringTable[234])",
+        "sprintf(stMsgWhisper.MobName, \"%s\", str1);",
+        "chat_submit::TruncateCommandName(str1)",
+        "chat_submit::Remember(m_szWhisperList, str1)",
+        "BASE_TransCurse(stMsgWhisper.String)",
+        "chat_submit::ClassifyCommand(str1, commandNames)",
+        "chat_submit::IsReplyAlias(str1)",
+        "if (isChatEdit && (idwEvent == 2 || idwEvent == 3))"}) {
+        const auto next = ordered ? controls.find(step, cursor) : std::string::npos;
+        ordered = next != std::string::npos;
+        cursor = next;
+    }
+    check(ordered, "chat submission decisions keep their original order");
+    check(controls.find("m_dwLastChatTime[3] = m_dwLastChatTime[2]") == std::string::npos &&
+        controls.find("memcpy(m_szWhisperList[l]") == std::string::npos,
+        "chat submission history is updated only through the policy");
     const auto inventory = ReadFieldUnit("TMFieldSceneInventory.cpp");
     const auto ui = ReadFieldUnit("TMFieldSceneUI.cpp");
     const auto mix = ReadFieldUnit("TMFieldSceneMix.cpp");

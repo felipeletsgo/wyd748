@@ -1,0 +1,33 @@
+{
+ "source": "tmproject/TMProject748/internal/render/world/terrain/TMGroundRender.cpp",
+ "header": "tmproject/TMProject748/internal/render/world/terrain/TMGround.h",
+ "class": "TMGround",
+ "method": "int TMGround::Render()",
+ "extractions": [
+  {
+   "helper": "BuildTileVertices",
+   "from": "if (nX < 63 && nY < 63)",
+   "nth_from": 1,
+   "until": "if (m_dwEffStart && m_dwServertime < (m_dwEffStart + 2000))",
+   "nth_until": 1,
+   "params": [
+    [
+     "int&",
+     "nTickX"
+    ],
+    [
+     "int&",
+     "nTickY"
+    ],
+    [
+     "int&",
+     "nX"
+    ],
+    [
+     "int&",
+     "nY"
+    ]
+   ]
+  }
+ ]
+}

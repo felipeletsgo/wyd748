@@ -1,0 +1,34 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMScene.cpp",
+ "header_note": "TMScene split by responsibility; the scene lifecycle and dispatch stay in TMScene.cpp.",
+ "targets": {
+  "tmproject/TMProject748/internal/app/scenes/TMSceneResources.cpp": [
+   "\\bTMScene::LoadRC\\(",
+   "\\bTMScene::ParseRC\\(",
+   "\\bTMScene::ReadRCBin\\(",
+   "\\bTMScene::FindID\\(",
+   "\\bTMScene::LoadMsgText\\(",
+   "\\bTMScene::LoadMsgText2\\(",
+   "\\bTMScene::LoadMsgText3\\(",
+   "\\bTMScene::LoadMsgText4\\(",
+   "\\bTMScene::LoadMsgLevel\\("
+  ],
+  "tmproject/TMProject748/internal/app/scenes/TMSceneGround.cpp": [
+   "\\bTMScene::GroundNewAttach\\(",
+   "\\bTMScene::GroundGetPickPos\\(",
+   "\\bTMScene::GroundGetTileType\\(",
+   "\\bTMScene::GroundGetMask\\(",
+   "\\bTMScene::GroundGetHeight\\(",
+   "\\bTMScene::GroundGetColor\\(",
+   "\\bTMScene::GroundSetColor\\(",
+   "\\bTMScene::GroundIsInWater\\(",
+   "\\bTMScene::GroundIsInWater2\\(",
+   "\\bTMScene::GroundGetWaterHeight\\(",
+   "\\bTMScene::GetMask2\\(",
+   "\\bTMScene::Warp\\(",
+   "\\bTMScene::Warp2\\(",
+   "\\bTMScene::SaveHeightMap\\(",
+   "^char heightMapData\\["
+  ]
+ }
+}

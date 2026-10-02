@@ -1,0 +1,14 @@
+{
+ "source": "tmproject/TMProject748/internal/render/mesh/TMSkinMesh.cpp",
+ "header_note": "TMSkinMesh costume and mantle selection; mesh lifecycle and rendering stay in TMSkinMesh.cpp.",
+ "targets": {
+  "tmproject/TMProject748/internal/render/mesh/TMSkinMeshCostumes.cpp": [
+   "\\bTMSkinMesh::SetHardcoreMantle\\(",
+   "\\bTMSkinMesh::SetOldCostume\\(",
+   "\\bTMSkinMesh::SetRenewOldCostume\\(",
+   "\\bTMSkinMesh::SetCostume\\(",
+   "\\bTMSkinMesh::MantleException\\(",
+   "\\bTMSkinMesh::God2Exception\\("
+  ]
+ }
+}

@@ -16,7 +16,8 @@ import (
 )
 
 func TestGroundMaskBitsMatchClientSource(t *testing.T) {
-	path := filepath.Join("..", "..", "..", "tmproject", "TMProject748", "internal", "core", "Basedef.h")
+	// Basedef.h is an umbrella; the constant tables live in its BasedefTables.h chapter.
+	path := filepath.Join("..", "..", "..", "tmproject", "TMProject748", "internal", "core", "BasedefTables.h")
 	source, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)

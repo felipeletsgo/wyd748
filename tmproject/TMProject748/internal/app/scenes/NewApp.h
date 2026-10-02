@@ -1,4 +1,5 @@
 #pragma once
+#include "ExtractedFlow.h"
 
 class EventTranslator;
 class RenderDevice;
@@ -73,5 +74,12 @@ public:
     bool china_bWrite;
     int china_Playtime;
     JBlur* m_pBlur;
+
+private:
+	// Helpers extracted from NewApp::MsgProc.
+	void OnInputLanguageChange(HWND& hWnd);
+	ExtractedFlow OnKeyDownMessage(DWORD& wParam);
+	ExtractedFlow OnNetworkMessage(DWORD& wParam, int& lParam);
+	HRESULT OnCloseMessage(HWND& hWnd);
 };
 void CreateConsole();

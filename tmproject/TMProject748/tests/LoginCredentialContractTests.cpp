@@ -54,13 +54,15 @@ int RunLoginCredentialContractTests(int& checks)
         "TMProject748/internal/app/scenes/TMSelectServerScene.cpp");
     check(!source.empty(), "select-server source is available");
 
-    const auto handlerStart = source.find("case B_LOGIN_OK:");
-    const auto handlerEnd = source.find("case B_CREATE_ID:", handlerStart);
-    check(handlerStart != std::string::npos && handlerEnd != std::string::npos,
+    // OnControlEvent routes B_LOGIN_OK to OnLoginOk; check that helper by its own boundaries.
+    const auto routeStart = source.find("case B_LOGIN_OK:");
+    const auto routeEnd = source.find("case B_CREATE_ID:", routeStart);
+    check(routeStart != std::string::npos && routeEnd != std::string::npos &&
+        source.substr(routeStart, routeEnd - routeStart).find("= OnLoginOk(extractedResult);") != std::string::npos,
         "login handler is delimited");
+    const std::string handler = source_contract::Method(source, "ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)");
 
-    if (handlerStart != std::string::npos && handlerEnd != std::string::npos) {
-        const std::string handler = source.substr(handlerStart, handlerEnd - handlerStart);
+    if (!handler.empty()) {
         const auto minimum = handler.find("strlen(pEditPassword->GetText()) < 4");
         const auto maximum = handler.find("strlen(pEditPassword->GetText()) > 10");
         const auto maximumMessage = handler.find("g_pMessageStringTable[6]", maximum);

@@ -5,67 +5,67 @@ import (
 	"time"
 )
 
-// boss.go -- runtime e registro dos bosses.
+// boss.go -- boss runtime and registration.
 //
-// ARQUITETURA (DOCS/IMPLEMENTED.md, Bosses): todo boss E um Mob comum e
-// continua participando de grid, visibilidade, combate, morte e pacotes como
-// qualquer outro. O comportamento extra vive num BossRuntime PARALELO, indexado
-// pelo ID do mob. Consequencias praticas:
+// ARCHITECTURE (DOCS/IMPLEMENTED.md, Bosses): every boss IS an ordinary Mob and
+// keeps taking part in the grid, visibility, combat, death and packets like any
+// other. The extra behavior lives in a PARALLEL BossRuntime, indexed by the mob
+// ID. Practical consequences:
 //
-//   - a IA de mob comum nao muda e nao paga nada por existir boss no mundo;
-//   - nao ha `if mob.IsBoss` espalhado pelo servidor: a logica exclusiva fica
-//     concentrada aqui e nos boss_*.go;
-//   - nenhuma goroutine por boss -- o World continua sendo o unico executor.
+//   - the ordinary mob AI does not change and pays nothing for bosses existing;
+//   - there is no `if mob.IsBoss` scattered across the server: the exclusive
+//     logic is concentrated here and in boss_*.go;
+//   - no goroutine per boss -- the World remains the only executor.
 
-// BossPendingAction e uma acao ja aceita, aguardando o instante de execucao.
+// BossPendingAction is an already accepted action waiting for its execution time.
 type BossPendingAction struct {
-	// Generation identifica ESTA execucao. Um callback so age se a geracao
-	// ainda bate; reset, cancelamento e substituicao incrementam o contador e
-	// invalidam o que estava agendado.
+	// Generation identifies THIS execution. A callback acts only while the
+	// generation still matches; reset, cancellation and replacement increment the
+	// counter and invalidate what was scheduled.
 	Generation uint64
 	ActionID   BossActionID
 	TargetID   uint16
 	ExecuteAt  time.Time
 	Priority   int
-	// Interruptible permite que uma acao de prioridade maior a substitua.
+	// Interruptible lets a higher-priority action replace it.
 	Interruptible bool
 }
 
-// BossRuntime e o estado de comportamento de um boss. O estado FISICO (posicao,
-// HP, affects) continua no Mob.
+// BossRuntime is the behavior state of a boss. The PHYSICAL state (position,
+// HP, affects) stays in the Mob.
 type BossRuntime struct {
 	MobID   uint16
 	Profile *BossProfile
 
 	Phase BossPhaseID
 
-	// InCombat marca que o encontro comecou. Nao volta a false: o HP do boss
-	// PERMANECE onde os jogadores o deixaram, de proposito -- um chefe de HP
-	// altissimo e feito para cair ao longo de horas, e restaurar vida
-	// inviabilizaria o combate em varias sessoes.
+	// InCombat marks that the encounter started. It never returns to false: the
+	// boss HP STAYS where the players left it, on purpose -- a boss with very
+	// high HP is meant to fall over hours, and restoring health would make a
+	// fight across several sessions impossible.
 	InCombat bool
 
 	Cooldowns map[BossActionID]time.Time
 	Pending   *BossPendingAction
-	// ConsumedRules guarda as regras Once ja aceitas.
+	// ConsumedRules keeps the Once rules already accepted.
 	ConsumedRules map[BossRuleID]struct{}
 
-	// Generation cresce a cada acao iniciada, cancelamento ou reset.
+	// Generation grows with every started action, cancellation or reset.
 	Generation uint64
 
-	// Adds sao os mobs invocados por ESTE encontro, para contagem e limpeza.
+	// Adds are the mobs summoned by THIS encounter, for counting and cleanup.
 	Adds map[uint16]struct{}
 
-	// crossedThresholds evita reemitir um limiar ja atravessado enquanto o
-	// encontro nao reseta.
+	// crossedThresholds avoids re-emitting a threshold already crossed while
+	// the encounter has not reset.
 	crossedThresholds map[int]struct{}
-	// pendingThresholds preserva uma transicao obrigatoria cujo evento foi
-	// avaliado, mas nenhuma acao pode ser aceita por causa de conflito de
-	// prioridade/acao pendente. O limiar so vira crossed depois de aceito.
+	// pendingThresholds keeps a mandatory transition whose event was evaluated
+	// while no action could be accepted because of a priority or pending-action
+	// conflict. The threshold becomes crossed only after it is accepted.
 	pendingThresholds map[int]BossEvent
 }
 
-// newBossRuntime cria o runtime no estado inicial do perfil.
+// newBossRuntime creates the runtime in the profile's initial state.
 func newBossRuntime(mobID uint16, profile *BossProfile) *BossRuntime {
 	return &BossRuntime{
 		MobID:             mobID,
@@ -79,17 +79,17 @@ func newBossRuntime(mobID uint16, profile *BossProfile) *BossRuntime {
 	}
 }
 
-// actionReady informa se a acao esta fora de cooldown.
+// actionReady reports whether the action is off cooldown.
 func (b *BossRuntime) actionReady(actionID BossActionID, now time.Time) bool {
 	ready, tracked := b.Cooldowns[actionID]
 	return !tracked || !now.Before(ready)
 }
 
-// addsAlive conta os adds vivos do encontro.
+// addsAlive counts the encounter's living adds.
 func (b *BossRuntime) addsAlive() int { return len(b.Adds) }
 
-// RegisterBoss liga um perfil a um mob ja spawnado. Devolve erro em vez de
-// panicar: um perfil torto nao pode derrubar o boot do mundo inteiro.
+// RegisterBoss binds a profile to an already spawned mob. It returns an error
+// instead of panicking: a malformed profile must not bring down the whole world boot.
 func (w *World) RegisterBoss(mobID uint16, profile *BossProfile) error {
 	if profile == nil {
 		return errBossProfileNil
@@ -107,12 +107,12 @@ func (w *World) RegisterBoss(mobID uint16, profile *BossProfile) error {
 		w.bosses = make(map[uint16]*BossRuntime)
 	}
 	w.bosses[mobID] = newBossRuntime(mobID, profile)
-	log.Printf("BOSS %q registrado no mob id=%d (%d regras)", profile.ID, mobID, len(profile.Rules))
+	log.Printf("BOSS %q registered on mob id=%d (%d rules)", profile.ID, mobID, len(profile.Rules))
 	return nil
 }
 
-// UnregisterBoss remove o runtime (morte definitiva, despawn). Os adds do
-// encontro sao removidos junto: sem isso ficariam orfaos no mundo.
+// UnregisterBoss removes the runtime (final death, despawn). The encounter's
+// adds are removed with it; otherwise they would be orphaned in the world.
 func (w *World) UnregisterBoss(mobID uint16) {
 	boss := w.bosses[mobID]
 	if boss == nil {
@@ -122,9 +122,9 @@ func (w *World) UnregisterBoss(mobID uint16) {
 	delete(w.bosses, mobID)
 }
 
-// bossFor devolve o runtime de um mob, ou nil se nao for boss. E o unico ponto
-// de entrada usado pelos caminhos de gameplay comuns -- uma consulta de mapa,
-// barata o bastante para ficar no caminho de dano.
+// bossFor returns a mob's runtime, or nil if it is not a boss. It is the only
+// entry point used by ordinary gameplay paths -- a map lookup, cheap enough to
+// stay on the damage path.
 func (w *World) bossFor(mobID uint16) *BossRuntime {
 	if len(w.bosses) == 0 {
 		return nil
@@ -132,9 +132,10 @@ func (w *World) bossFor(mobID uint16) *BossRuntime {
 	return w.bosses[mobID]
 }
 
-// removeBossAdds tira do mundo os adds ainda vivos do encontro. Segue o mesmo
-// caminho dos summons (removePlayerSummons): esconde de quem via e so entao
-// descarta a instancia, para nao deixar entrada fantasma no Visible do client.
+// removeBossAdds removes the encounter's living adds from the world. It follows
+// the same path as summons (removePlayerSummons): it hides them from whoever saw
+// them and only then discards the instance, so no ghost entry remains in the
+// client's Visible list.
 func (w *World) removeBossAdds(boss *BossRuntime) {
 	for addID := range boss.Adds {
 		if mob := w.mobsByID[addID]; mob != nil && !mob.Dead {

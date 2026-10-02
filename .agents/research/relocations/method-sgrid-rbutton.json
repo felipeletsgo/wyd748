@@ -1,0 +1,70 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SGridInput.cpp",
+ "header": "tmproject/TMProject748/internal/ui/SGrid.h",
+ "class": "SGridControl",
+ "method": "void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)",
+ "extractions": [
+  {
+   "helper": "RButtonUseItems3468To3471",
+   "after": "if (nItemSIndex >= 3468 && nItemSIndex <= 3471)",
+   "returns": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "const short&",
+     "nativeCarryPos"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ],
+    [
+     "SGridControlItem*&",
+     "pItem"
+    ],
+    [
+     "TMHuman*&",
+     "pMyHuman"
+    ]
+   ]
+  },
+  {
+   "helper": "RButtonUseItem3467",
+   "after": "if (nItemSIndex == 3467)",
+   "returns": true,
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "const short&",
+     "nativeCarryPos"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ],
+    [
+     "SGridControlItem*&",
+     "pItem"
+    ],
+    [
+     "TMHuman*&",
+     "pMyHuman"
+    ]
+   ]
+  }
+ ]
+}

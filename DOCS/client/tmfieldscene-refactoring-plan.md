@@ -1,10 +1,13 @@
 # TMFieldScene refactoring and architecture plan
 
-Status: Stage 1 source separation complete; Stage 2 native chat-filter domain
-implemented and automatically validated. Built-client acceptance remains pending.
-Snapshot: 2026-10-01, HEAD `77e8dcc7f1af929be1c6418d08b97c7dd8412713`,
-including the current working tree. This record describes source changes, not
-a commit, deployed candidate, runtime acceptance or global release approval.
+Status: Stage 1 source separation complete. Stage 2 batches 9-13 (chat filters,
+skill requests, attack visual damage, attacker and target state, chat submission
+and coin input) implemented and automatically validated. Header-changing
+decomposition and built-client acceptance remain pending.
+Snapshot: 2026-10-02, HEAD `71c4b313` plus the working tree; the relocation
+gate still compares against the fixed baseline `77e8dcc7f1af929be1c6418d08b97c7dd8412713`.
+This record describes source changes, not a deployed candidate, runtime
+acceptance or global release approval.
 
 ## Implementation progress
 
@@ -33,9 +36,21 @@ and narrow scene-internal declarations. No UI/entity ownership moved. TMHuman's
 relocation/policy gate and its 11 regression tests passed before this continuation;
 its installed-runtime gate remains pending.
 
-Further Stage 2 domains are separate work: skill target/request decisions,
-attack-frame validation/application, and remaining large core sequences have
-not been internally decomposed. Moving their bodies does not close those gaps.
+Batches 10-13 continue Stage 2 with pure policies under `internal/application/`
+and `internal/wire/`, each called at the original position by its existing
+owner. The gate now pins four reviewed member bodies (`OnControlEvent`,
+`SkillUse`, `AutoSkillUse`, `OnPacketAttack`), one reviewed helper
+(`GetWYD748AttackVisualDamage`) and nine policy headers; the other 289 bodies
+and 10 helpers remain token-identical to the baseline. See
+[Implemented Stage 2 contracts](#implemented-stage-2-contracts-batches-10-13).
+ArchitectureTests now passes 974,712 checks; the growth is exhaustive oracle
+sweeps, not new runtime coverage.
+
+The remaining decomposition (attack visual dispatch, the other `OnControlEvent`
+domains, `FrameMove`, `SkillUse`/`AutoSkillUse` sequences and `InitializeScene`)
+needs new private member helpers or narrowly owned components. That changes the
+pinned scene header and therefore requires the separate review described in
+[Remaining work](#remaining-work-and-the-next-decision).
 No runtime executable was replaced and no game process was launched or stopped.
 All runtime flows listed below remain pending; these results are not
 `CLIENT_TESTED` and do not prove complete visual or gameplay parity.
@@ -323,6 +338,62 @@ constructor-initializer and destructor signatures in the actual owning files.
 Runtime acceptance still needs native channel toggles, missing-resource behavior,
 whisper reception, focus and exit/re-entry; fake controls do not prove rendering.
 
+## Implemented Stage 2 contracts (batches 10-13)
+
+All are `MODERNIZACAO_COMPATIVEL`: no packet layout, opcode, resource ID, scene
+declaration or ownership changed, so no native/Ghidra or Go gate applies. Each
+policy is header-only, has no scene/entity/control pointer and is pinned by
+fingerprint. Every executable test compares the policy with an independent
+literal copy of the replaced statements; source-contract checks pin call order.
+
+| Batch | Policy | Replaced decision | Executable coverage |
+| --- | --- | --- | --- |
+| 10a | [`SkillRequestPolicy.h`](../../tmproject/TMProject748/internal/application/SkillRequestPolicy.h), [`SkillAttackRequest.h`](../../tmproject/TMProject748/internal/wire/SkillAttackRequest.h) | Area/primary-target routing, range checks, area radius/limits and `MSG_Attack` preparation/envelope selection in `SkillUse` and `AutoSkillUse` | `SkillAttackRequestTests.cpp` |
+| 10b | [`AttackVisualDamage.h`](../../tmproject/TMProject748/internal/wire/AttackVisualDamage.h) | Optional `DMGX` wide-damage projection used only for damage text | `AttackVisualDamageTests.cpp` |
+| 10c | [`AttackAttackerState.h`](../../tmproject/TMProject748/internal/application/AttackAttackerState.h) | Swing force/start time, attacker mana application with local snapshot callback, visual-dispatch gate in `OnPacketAttack` | `AttackAttackerStateTests.cpp`: all mesh/class/weapon precedences, present/absent swings, every flag/skill/motion combination, actor-before-local order |
+| 11 | [`FieldChatSubmitPolicy.h`](../../tmproject/TMProject748/internal/application/FieldChatSubmitPolicy.h) | Chat-edit flood window, chat/whisper recall lists, local commands, prefix routing, relocation aliases (before truncation), command routing (after truncation), server keywords, handover level and progress gates | `FieldChatSubmitPolicyTests.cpp`: unsigned wrap, all 255x256 prefix pairs, literal/table collisions |
+| 12 | [`FieldCoinInputPolicy.h`](../../tmproject/TMProject748/internal/application/FieldCoinInputPolicy.h) | `B_IG_OK` non-digit scan and `%` rewrite, rejection order for every prompt mode, `all` amount source | `FieldCoinInputPolicyTests.cpp`: every mode, boundary values, and an identical count of carried-coin reads |
+| 13 | [`AttackTargetState.h`](../../tmproject/TMProject748/internal/application/AttackTargetState.h) | Target HP projection for healing/damage on regular and big pools in both receive loops | `AttackTargetStateTests.cpp`: unsigned/short boundary values, negative rates, zero-rate normalization |
+
+Behavior that is preserved deliberately and recorded as separate defects, not
+fixed here:
+
+- Target `CurHP` is unsigned: the scene's `CurHP < 0` clamps never fire, an
+  over-subtraction in the second receive loop wraps, and big-pool HP passes
+  through `short`. Fixing this changes visible HP and needs a separate review.
+- Whisper preparation copies the untruncated typed name into the 16-byte
+  `MobName` and 32-byte `m_cWhisperName` before truncation; long names can
+  overflow those buffers. Command names of sixteen or more bytes are cut to
+  fourteen, not fifteen.
+- The coin prompt's carried-coin read dereferences `g_pObjectManager` without
+  the null guard used later in the same block; the policy reads it lazily at
+  the original point so behavior and failure mode are unchanged.
+
+Runtime acceptance for these batches still requires chat submission, whisper,
+relocation and guild commands; every coin/price/server-war prompt; and attack,
+healing, death and big-pool targets in the built client.
+
+## Remaining work and the next decision
+
+Stage 2 is complete per extracted domain. The domains above are closed at
+`AUTOMATED TESTED`. The following remain, in recommended order:
+
+1. Attack visual dispatch in `OnPacketAttack` (per-skill effect creation,
+   about 1,800 lines) and the damage-text projection.
+2. The other `OnControlEvent` domains: AutoTrade preparation/publication, gamble,
+   Hell store, mix, CC mode and panel toggles.
+3. `SkillUse`/`AutoSkillUse` effect and UI sequences after request preparation.
+4. `FrameMove`, `TimeDelay` and `InitializeScene` phases.
+
+None of these contain further self-contained decisions comparable to the
+batches above; they are mostly ordered side effects on scene-owned controls,
+entities and effect containers. Splitting them requires private member helpers
+(or narrowly owned components) declared in `TMFieldScene.h`. Adding non-virtual
+member declarations does not change the object layout, but the relocation gate
+pins the header byte-for-byte and the Stage 2 rules require a separate review
+for declaration changes. That review is the next explicit decision; do not
+bypass the header pin to continue.
+
 ## Helper ownership and caller inventory
 
 The following inventory excludes commented-out legacy code. Shared declarations
@@ -358,10 +429,15 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tmproject/Build-Client.ps1 -Config
 git diff --check
 ```
 
+Latest results (2026-10-02, after batch 13): relocation gate PASS (293
+definitions; 289 unchanged bodies, 4 pinned bodies, 10 unchanged helpers and
+1 pinned helper); its 18 regression tests PASS; Release `-NoDeploy` build PASS
+with ArchitectureTests 974,712 checks and SocketReceiveTests 221 checks; Debug
+Win32 compile/link PASS; repository layout PASS (162 documents);
+`git diff --check` PASS. The installed `project.exe` was not modified.
+
 Release integration also passed the costume dependency audit (135 items,
 129 renderers, 774 parts), four shader contracts and shader rejection cases.
-Repository layout/local links passed with 155 indexed documents; all 28 directly
-affected source, test, tool and plan files passed the trailing-whitespace check.
 Existing compiler warnings remain; passing compile/link does not mean a
 warning-free build. No Go or new Ghidra gate was needed: the wire and native
 boundaries are unchanged.

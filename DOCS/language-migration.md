@@ -118,6 +118,22 @@ a partial translation as completion.
   regression tests are also in English. The full Go suite and vet passed in
   `64336041`; packet bytes and established identifiers are unchanged. This
   does not migrate the separate legacy `handlers.go` or all server output.
+- The client's received-packet dispatch tests
+  (`tests/ReceivedPacketDispatch*Tests.cpp` and their support header) are in
+  English, covering comments and check descriptions. Code tokens are unchanged
+  except for two fixture strings, `"preservado"` -> `"stale-data"` and
+  `"Teste"` -> `"Hello"`. Each replacement has the same length, so the packet
+  sizes, offsets, and assertions those cases check are unchanged. The client
+  units moved by the source-organization plan
+  ([plan](client/tmproject-source-organization-plan.md)) were translated where
+  they were touched.
+- The server boss runtime and spawning (`internal/game/boss.go`,
+  `boss_spawn.go` and its integration test), the gameplay summary log, the TMSrv
+  listener, and the account-api command are in English. This covers comments,
+  flags, startup and boss logs, and the two boss-configuration errors with the
+  test assertions that match them. Two local variables were renamed (`raio` ->
+  `radius`, `postos` -> `placed`, plus `ocupada`/`chave`). No packet, persisted
+  value, or configuration key changed, and the full Go suite and vet pass.
 
 ## Remaining work
 

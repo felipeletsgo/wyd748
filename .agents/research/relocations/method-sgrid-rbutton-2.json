@@ -1,0 +1,43 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SGridInput.cpp",
+ "header": "tmproject/TMProject748/internal/ui/SGrid.h",
+ "class": "SGridControl",
+ "method": "void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)",
+ "extractions": [
+  {
+   "helper": "RButtonUseItemType11Or13",
+   "after": "if (nType == 11 || nType == 13)",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "int&",
+     "nType"
+    ],
+    [
+     "const short&",
+     "nativeCarryPos"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ],
+    [
+     "SGridControlItem*&",
+     "pItem"
+    ],
+    [
+     "TMHuman*&",
+     "pMyHuman"
+    ]
+   ]
+  }
+ ]
+}

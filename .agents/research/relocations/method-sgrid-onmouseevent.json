@@ -1,0 +1,89 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SGridInput.cpp",
+ "header": "tmproject/TMProject748/internal/ui/SGrid.h",
+ "class": "SGridControl",
+ "method": "int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)",
+ "extractions": [
+  {
+   "helper": "OnLeftButtonDown",
+   "after": "if (dwFlags == 513)",
+   "flow": true,
+   "params": [
+    [
+     "bool&",
+     "bClick"
+    ],
+    [
+     "int&",
+     "bPtInRect"
+    ],
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ]
+   ]
+  },
+  {
+   "helper": "OnLeftButtonUp",
+   "after": "else if (dwFlags == 514)",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "bPtInRect"
+    ],
+    [
+     "int&",
+     "nCellVHeight"
+    ],
+    [
+     "int&",
+     "nCellVWidth"
+    ],
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ],
+    [
+     "unsigned int&",
+     "wParam"
+    ]
+   ]
+  },
+  {
+   "helper": "OnShiftLeftButtonDown",
+   "after": "else if (dwFlags == 513 && g_pEventTranslator->m_bShift)",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "bPtInRect"
+    ],
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  }
+ ]
+}

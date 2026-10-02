@@ -1,0 +1,25 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/app/scenes/TMSelectCharScene.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/app/scenes/TMSelectCharScene.cpp",
+    "tmproject/TMProject748/internal/app/scenes/TMSelectCharSceneInput.cpp",
+    "tmproject/TMProject748/internal/app/scenes/TMSelectCharScenePackets.cpp"
+   ],
+   "new_items": {
+    "TMSelectCharScene::OnMouseEventWhileSelecting": "a0dfae80b4d5e855328a2b10eab61b0ea77b0fb673129f77a5f72f973dcd8f8d"
+   }
+  }
+ ],
+ "reviewed": {
+  "TMSelectCharScene::OnMouseEvent: helpers extracted by extract-method.py (method-selectchar-onmouseevent.json)": {
+   "method": "int TMSelectCharScene :: OnMouseEvent ( unsigned int dwFlags , unsigned int wParam , int nX , int nY )",
+   "before": "bf48c603862f75c0da99d42659a2d2531d07f900b7e0fd76b3b6fb72430a86a7",
+   "after": "bae9a28aace957a48ee7821b951ec0f727301bca9b67574b52f23bf07cc3bb3a"
+  }
+ }
+}

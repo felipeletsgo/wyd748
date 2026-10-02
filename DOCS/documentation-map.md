@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 162.
+Markdown documents: 163.
 
 | Document | Type |
 | --- | --- |
@@ -148,6 +148,7 @@ Markdown documents: 162.
 | [DOCS/client/port-748.md](<client/port-748.md>) | Product documentation |
 | [DOCS/client/tmfieldscene-refactoring-plan.md](<client/tmfieldscene-refactoring-plan.md>) | Product documentation |
 | [DOCS/client/tmhuman-separation-plan.md](<client/tmhuman-separation-plan.md>) | Product documentation |
+| [DOCS/client/tmproject-source-organization-plan.md](<client/tmproject-source-organization-plan.md>) | Product documentation |
 | [DOCS/client/ui-windows.md](<client/ui-windows.md>) | Product documentation |
 | [DOCS/documentation-map.md](<documentation-map.md>) | Product documentation |
 | [DOCS/features-macro.md](<features-macro.md>) | Product documentation |

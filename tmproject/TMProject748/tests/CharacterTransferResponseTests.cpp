@@ -96,7 +96,7 @@ int RunCharacterTransferResponseTests(int& checks)
         }
     }
 
-    const auto source = FindFile("TMProject748/internal/app/scenes/TMSelectCharScene.cpp");
+    const auto source = FindFile("TMProject748/internal/app/scenes/TMSelectCharScenePackets.cpp");
     check(!source.empty(), "selection scene source is available");
     if (!source.empty()) {
         std::ifstream input(source, std::ios::binary);

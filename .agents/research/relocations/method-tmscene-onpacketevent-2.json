@@ -1,0 +1,14 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMScene.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMScene.h",
+ "class": "TMScene",
+ "method": "int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)",
+ "extractions": [
+  {
+   "helper": "OnMessagePanelPacket",
+   "after": "if (!pStd->ID && (pStd->Type == MSG_MessagePanel_Opcode ||",
+   "returns": true,
+   "params": [["MSG_STANDARD*&", "pStd"]]
+  }
+ ]
+}

@@ -1,0 +1,44 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/app/scenes/TMScene.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/app/scenes/TMScene.cpp",
+    "tmproject/TMProject748/internal/app/scenes/TMSceneResources.cpp",
+    "tmproject/TMProject748/internal/app/scenes/TMSceneGround.cpp"
+   ],
+   "new_items": {
+    "TMScene::ReadRCPanel": "ff1ee936021e0bf7a683aa7c8a5d5c595bf13ecb6eaf2dd736654cdfe5929400",
+    "TMScene::ReadRCGrid": "569262d5dd03806f305d3d49cb651a1cce518aae2fd5c7cf81531dd2a92f73df",
+    "TMScene::ReadRC3DObj": "a5d2b5e536e3b160826d118acb61ad6dbdfe62c8679bde9682958bb9c28174a0",
+    "TMScene::ReadRCButton": "d0ec1eea1c01e8184f916e93d72f70318fe15ef4f2fa90ca3dcf3c2e842f27c2",
+    "TMScene::ReadRCText": "5a95275af1c1a6adf7b4713a18aefaaa0bf834043fd21809c5d019d071871208",
+    "TMScene::ReadRCEditableText": "ac115c54b3238c1c0cae8aa940c30b56d0ce37ed547934eec7980834febda27f",
+    "TMScene::ReadRCProgressBar": "bb7ae3bb2a0ffdb3f2911e297ec6592ed177fe39e6470b8363b28c11bf3fd346",
+    "TMScene::ReadRCCheckBox": "ff4ae97cbae37b8a81e377e7ec05b488b36e1d579d46a8df68b388e9d580fc4e",
+    "TMScene::ReadRCListBox": "09a21e8b4578bdb5545d2f3807820ca79eee819d95d4bfabeaee028a3aec4f25",
+    "TMScene::OnShoutMessage": "9778563471192fd3565f41ff04fc35b74e0d566ccf7115a18df36eaac4d0bbf3",
+    "TMScene::OnMessagePanelPacket": "b96a529363a2dd35ba5a3e4061e8169dcc67d8d752a1837f2af37b7dbe79d754",
+    "TMScene::OnIndexedSceneMessage": "9f23723310259508630d9ac9b0a10f40a5d5e49130768ec61822a7088f6f8d95",
+    "TMScene::ShowFireworkMessage": "586f83eb5684ccd1e95f82041919286d7c2b4f0f8b05667364a594821de237ac",
+    "TMScene::ShowSmsMessage": "4b3e9f0adb5998b442be140544297dd55545e7fd257545a54f7820ebfcbeeb1e",
+    "TMScene::AppendMessagePanelToChat": "6e2927d7a0cac4f55fb748dadb99909f1f9b6b695b164d410e801c9c3383cf85"
+   }
+  }
+ ],
+ "reviewed": {
+  "TMScene::ReadRCBin: helpers extracted by extract-method.py (method-tmscene-readrcbin.json)": {
+   "method": "int TMScene :: ReadRCBin ( char * szBinFileName )",
+   "before": "442febea2e817d3579c9d6698b5ea1ca40cdc469558e9c4661d29cac7b8720ff",
+   "after": "aed76b2f5303df4825d31f53ff8333db3164ddbb1dce84796dcf2b545c8619fb"
+  },
+  "TMScene::OnPacketEvent: helpers extracted by extract-method.py (method-tmscene-onpacketevent-2.json)": {
+   "method": "int TMScene :: OnPacketEvent ( unsigned int dwCode , char * pSBuffer )",
+   "before": "b2511a010437fe16eeddd62edfed658a7576ba84462cd593581ca24967c4219b",
+   "after": "b70eace1aabc8ffa893c2ae7aedecdc92d8c625e032909f50979765bed22ba1b"
+  }
+ }
+}

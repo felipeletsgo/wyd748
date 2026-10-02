@@ -1,0 +1,44 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMSelectServerScene.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMSelectServerScene.h",
+ "class": "TMSelectServerScene",
+ "method": "int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)",
+ "extractions": [
+  {
+   "helper": "OnServerGroupList",
+   "after": "case L_SELECT_SERVERG:",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "idwEvent"
+    ],
+    [
+     "const int&",
+     "nMaxGroupN"
+    ],
+    [
+     "SListBoxServerItem* (&)[11]",
+     "pServerItem"
+    ]
+   ]
+  },
+  {
+   "helper": "OnServerSelectOk",
+   "after": "case B_SERVER_SEL_OK:",
+   "returns": true,
+   "params": [
+    [
+     "const int&",
+     "nMaxGroupN"
+    ]
+   ]
+  },
+  {
+   "helper": "OnLoginOk",
+   "after": "case B_LOGIN_OK:",
+   "flow": true,
+   "params": []
+  }
+ ]
+}

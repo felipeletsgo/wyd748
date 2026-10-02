@@ -1,0 +1,133 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SGridCommerce.cpp",
+ "header": "tmproject/TMProject748/internal/ui/SGrid.h",
+ "class": "SGridControl",
+ "method": "int SGridControl::TradeItem(int nCellX, int nCellY)",
+ "extractions": [
+  {
+   "helper": "TradeItemOnTradeInv",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV)",
+   "returns": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  },
+  {
+   "helper": "TradeItemOnTradeInv2",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV2)",
+   "returns": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  },
+  {
+   "helper": "TradeItemOnTradeInv6",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV6)",
+   "returns": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  },
+  {
+   "helper": "TradeItemOnTradeMy",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_TRADEMY)",
+   "returns": true,
+   "params": [
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  },
+  {
+   "helper": "TradeItemOnItemMix",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_ITEMMIX)",
+   "returns": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  },
+  {
+   "helper": "TradeItemOnItemMix4",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_ITEMMIX4)",
+   "returns": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  },
+  {
+   "helper": "TradeItemOnTradeMy2",
+   "after": "if (m_eGridType == TMEGRIDTYPE::GRID_TRADEMY2)",
+   "returns": true,
+   "params": [
+    [
+     "int&",
+     "nCellX"
+    ],
+    [
+     "int&",
+     "nCellY"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ]
+   ]
+  }
+ ]
+}

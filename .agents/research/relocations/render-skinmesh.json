@@ -1,0 +1,27 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/render/mesh/TMSkinMesh.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/render/mesh/TMSkinMesh.cpp",
+    "tmproject/TMProject748/internal/render/mesh/TMSkinMeshCostumes.cpp"
+   ],
+   "new_items": {
+    "kMantleExceptionTextures table": "5205498647745437be93514314695e1e362e898b3f0231973e5a092aa63b6ab8"
+   }
+  }
+ ],
+ "reviewed": {
+  "TMSkinMesh::SetCostume branch chain replaced by FallbackCostumeTable.h (fallback-costume-table.mjs --check)": {
+   "before": "81b3e2ba867b895a64f21bd14b953517e2b988755e64a8ed68ae81e0c642e209",
+   "after": "196d7a502a44ca5897e7399f426bcae881ccbe8da2a8f45addc7562bc8dd3335"
+  },
+  "TMSkinMesh::MantleException strcmp chain replaced by kMantleExceptionTextures (same 30 names)": {
+   "before": "1a8fe8a124f0c736a0600f80d82e31cc2b23b9ca055c7f026bfc4d40ae31237c",
+   "after": "17d1a1ebc4919b81e966bf6f0e140fda0feeb4ba643c2bf1b66241870de20b44"
+  }
+ }
+}

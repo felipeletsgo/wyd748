@@ -1,0 +1,187 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMSceneResources.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMScene.h",
+ "class": "TMScene",
+ "method": "int TMScene::ReadRCBin(char* szBinFileName)",
+ "extractions": [
+  {
+   "helper": "ReadRCPanel",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_PANEL:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRCGrid",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_GRID:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRC3DObj",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_3DOBJ:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRCButton",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_BUTTON:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ],
+    [
+     "const bool&",
+     "legacyInlineCaptions"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRCText",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_TEXT:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ],
+    [
+     "const bool&",
+     "legacyInlineCaptions"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRCEditableText",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRCProgressBar",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_PROGRESSBAR:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRCCheckBox",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_CHECKBOX:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ]
+   ]
+  },
+  {
+   "helper": "ReadRCListBox",
+   "after": "case CONTROL_TYPE::CTRL_TYPE_LISTBOX:",
+   "flow": true,
+   "params": [
+    [
+     "FILE*&",
+     "fpBinary"
+    ],
+    [
+     "const CONTROL_TYPE&",
+     "nControlType"
+    ],
+    [
+     "char*&",
+     "szBinFileName"
+    ]
+   ]
+  }
+ ]
+}

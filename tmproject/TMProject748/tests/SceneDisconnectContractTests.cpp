@@ -24,6 +24,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <initializer_list>
 #include <iterator>
 #include <limits>
 #include <string>
@@ -123,6 +124,23 @@ std::string LoadSource(const char* relativePath)
     // LF. Keep these source-contract checks independent of checkout policy.
     return NormalizeLineEndings({std::istreambuf_iterator<char>(input),
         std::istreambuf_iterator<char>()});
+}
+
+// Concatenates the translation units of a split owner in a fixed order. Each
+// checked range stays inside one function, so the order never implies flow.
+std::string LoadUnits(const char* directory, std::initializer_list<const char*> units)
+{
+    std::string source;
+    for (const auto unit : units)
+        source += LoadSource((std::string(directory) + unit + ".cpp").c_str());
+    return source;
+}
+
+// Basedef.cpp owns the global tables and loaders; BASE_* queries live in domain units.
+std::string LoadBasedefSources()
+{
+    return LoadUnits("TMProject748/internal/core/", {"Basedef", "BasedefItems",
+        "BasedefAppearance", "BasedefCombat", "BasedefWorld", "BasedefText", "BasedefSystem"});
 }
 }
 
@@ -386,10 +404,10 @@ int RunSceneDisconnectContractTests(int& checks)
         ground.substr(record, setPosition - record).find("if (!validRecord)") != std::string::npos &&
         ground.substr(record, setPosition - record).find("return 0;") != std::string::npos,
         "invalid terrain is rejected before ground position and masks are derived");
-    const auto groundAttach = ground.find("int TMGround::Attach(TMGround* pGround)");
-    const auto groundLoad = ground.find("int TMGround::LoadTileMap", groundAttach);
-    const auto attachBody = groundAttach != std::string::npos && groundLoad != std::string::npos
-        ? ground.substr(groundAttach, groundLoad - groundAttach) : std::string{};
+    // Attach lives in TMGroundAttach.cpp; extract it by its own boundaries.
+    const auto attachBody = source_contract::Method(
+        LoadSource("TMProject748/internal/render/world/terrain/TMGroundAttach.cpp"),
+        "int TMGround::Attach(TMGround* pGround)");
     const auto rejectNonNeighbor = attachBody.find("if (!((deltaX == 1 || deltaX == -1) && deltaY == 0) &&");
     const auto clearLinks = attachBody.find("m_pLeftGround = 0;");
     check(rejectNonNeighbor != std::string::npos && clearLinks != std::string::npos &&
@@ -407,7 +425,8 @@ int RunSceneDisconnectContractTests(int& checks)
         maskBody.find("m_pMaskData[maskY][maskX]") != std::string::npos &&
         maskBody.find("m_pMaskData[y][128 * nBaseY") == std::string::npos,
         "object masks reject invalid indices and stay within the 128-by-128 terrain");
-    const auto selectCharacter = LoadSource("TMProject748/internal/app/scenes/TMSelectCharScene.cpp");
+    const auto selectCharacter = LoadUnits("TMProject748/internal/app/scenes/",
+        {"TMSelectCharScene", "TMSelectCharSceneInput", "TMSelectCharScenePackets"});
     const auto reloadCharacters = selectCharacter.find("void TMSelectCharScene::ReloadCharList(");
     const auto previewFaceOverride = selectCharacter.find(
         "pSelChar->Equip[i][0].sIndex = g_nBattleMaster;", reloadCharacters);
@@ -816,7 +835,7 @@ int RunSceneDisconnectContractTests(int& checks)
         sendItemHandler.find("pFScene->UpdateScoreUI(0);", applyAppearance) != std::string::npos &&
         sendItemHandler.find("SGridControl::m_sLastMouseOverIndex = -1;", applyAppearance) != std::string::npos,
         "SendItem keeps appearance, score UI, and hover invalidation after all destination branches");
-    const auto abilitySource = LoadSource("TMProject748/internal/core/Basedef.cpp");
+    const auto abilitySource = LoadBasedefSources();
     const auto itemAbilityStart = abilitySource.find("int BASE_GetItemAbility(STRUCT_ITEM* item, char Type)");
     const auto staticAbilityStart = abilitySource.find("int BASE_GetStaticItemAbility(STRUCT_ITEM* item, char Type)");
     const auto validCatalogIndex = [](const std::string& source, std::size_t start) {
@@ -1083,8 +1102,9 @@ int RunSceneDisconnectContractTests(int& checks)
         prepareBody.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
         "seller preparation releases all listing aliases after restoring cargo highlighting");
     const auto priceStart = controlSource.find("constexpr int kNativeAutoTradeSlots = 12;");
+    // coin_input::Validate maps an invalid mode-4 price to these rejections.
     const auto priceGuard = controlSource.find(
-        "if (m_nCoinMsgType == 4 && !field_interaction::IsValidAutoTradePrice(nInputValue))");
+        "case coin_input::Rejection::AutoTradeNonPositive:\n\t\t\tcase coin_input::Rejection::AutoTradeAboveLimit:");
     const auto priceGuardEnd = controlSource.find("switch (m_nCoinMsgType)", priceGuard);
     const auto priceGuardBody = priceGuard != std::string::npos && priceGuardEnd != std::string::npos
         ? controlSource.substr(priceGuard, priceGuardEnd - priceGuard) : std::string{};
@@ -1095,6 +1115,14 @@ int RunSceneDisconnectContractTests(int& checks)
         priceGuardBody.find("SetFocusedControl(pInputText);") != std::string::npos &&
         priceGuardBody.find("return 1;") != std::string::npos,
         "invalid shop price keeps the prompt focused and returns before reserving cargo or an offer slot");
+    const auto coinScan = controlSource.find("coin_input::ScanAndSanitize(inputText, inputTextLen)");
+    const auto coinParse = controlSource.find("_atoi64(pInputText->GetText())", coinScan);
+    const auto coinValidate = controlSource.find("coin_input::Validate(m_nCoinMsgType", coinParse);
+    const auto coinAction = controlSource.find("switch (m_nCoinMsgType)", coinValidate);
+    check(coinScan != std::string::npos && coinParse != std::string::npos &&
+        coinValidate != std::string::npos && coinAction != std::string::npos &&
+        coinAction == priceGuardEnd,
+        "coin input scans, parses and validates before any mode action");
     const auto priceEnd = controlSource.find("m_nLastAutoTradePos = -1;", priceStart);
     const auto priceBody = priceStart != std::string::npos && priceEnd != std::string::npos
         ? controlSource.substr(priceStart, priceEnd - priceStart) : std::string{};
@@ -1408,12 +1436,21 @@ int RunSceneDisconnectContractTests(int& checks)
 		sellHandler.find("m_pGridShop->m_dwMerchantID") != std::string::npos,
 		"shop sell confirmation sends the native Carry slot and visible merchant");
 
-    const auto gridSource = LoadSource("TMProject748/internal/ui/SGrid.cpp");
-    const auto splitPromptStart = gridSource.find("else if (dwFlags == 513 && g_pEventTranslator->m_bShift)");
-    const auto splitPromptEnd = gridSource.find("else if (!bClick && dwFlags == 517", splitPromptStart);
-    const auto splitPrompt = splitPromptStart != std::string::npos && splitPromptEnd != std::string::npos
-        ? gridSource.substr(splitPromptStart, splitPromptEnd - splitPromptStart) : std::string{};
-    const auto splitControlsGuard = splitPrompt.find("if (!pText || !pEdit || !pInputGold)\n\t\t\treturn 0;");
+    // SGridControl is split by responsibility; each checked range stays inside one method.
+    const auto gridSource = LoadSource("TMProject748/internal/ui/SGrid.cpp") +
+        LoadSource("TMProject748/internal/ui/SGridInput.cpp") +
+        LoadSource("TMProject748/internal/ui/SGridCommerce.cpp") +
+        LoadSource("TMProject748/internal/ui/SGridTooltip.cpp") +
+        LoadSource("TMProject748/internal/ui/SGridItem.cpp");
+    // OnMouseEvent hands the shift-click split prompt to its own helper; an early
+    // "return 0;" there is written as the equivalent ExtractedFlow return.
+    const auto splitPrompt = source_contract::Method(gridSource,
+        "ExtractedFlow SGridControl::OnShiftLeftButtonDown(int& bPtInRect, int& nCellX, int& nCellY, TMFieldScene*& pFScene, int& extractedResult)");
+    const std::string splitReturnZero = "\n\t\t{ extractedResult = 0; return ExtractedFlow::Return; }";
+    check(gridSource.find("else if (dwFlags == 513 && g_pEventTranslator->m_bShift)\n\t{\n\t\tint extractedResult{};\n"
+        "\t\tconst ExtractedFlow extractedFlow = OnShiftLeftButtonDown(bPtInRect, nCellX, nCellY, pFScene, extractedResult);")
+        != std::string::npos, "shift-click split prompt is routed to its helper");
+    const auto splitControlsGuard = splitPrompt.find("if (!pText || !pEdit || !pInputGold)" + splitReturnZero);
     check(!splitPrompt.empty() && splitControlsGuard != std::string::npos &&
         splitPrompt.find("if (!pFScene || !pFScene->m_pControlContainer)") < splitPrompt.find("SelectItem(") &&
         splitPrompt.find("if (!pItem || !pItem->m_pItem)") < splitPrompt.find("BASE_GetItemAmount(") &&
@@ -1423,20 +1460,21 @@ int RunSceneDisconnectContractTests(int& checks)
         splitControlsGuard < splitPrompt.find("pText->SetText("),
         "split prompt rejects missing controls before reserving or dereferencing dialog state");
     const auto splitSelection = splitPrompt.find("SelectItem(");
-    const auto splitHitGuard = splitPrompt.find("if (!bPtInRect || this != pFScene->m_pGridInv)\n\t\t\treturn 0;");
-    const auto splitBusyGuard = splitPrompt.find("if (pInputGold->IsVisible())\n\t\t\treturn 0;");
+    const auto splitHitGuard = splitPrompt.find("if (!bPtInRect || this != pFScene->m_pGridInv)" + splitReturnZero);
+    const auto splitBusyGuard = splitPrompt.find("if (pInputGold->IsVisible())" + splitReturnZero);
     check(splitSelection != std::string::npos && splitHitGuard != std::string::npos &&
         splitHitGuard < splitSelection,
         "broadcast shift-click cannot select a split source outside the Carry grid");
     check(splitSelection != std::string::npos && splitBusyGuard != std::string::npos &&
         splitControlsGuard < splitBusyGuard && splitBusyGuard < splitSelection,
         "split entry preserves selection and pending intent while the shared prompt is open");
-    const auto pricePromptStart = gridSource.find("if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV2)");
-    const auto pricePromptEnd = gridSource.find("if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV3)", pricePromptStart);
-    const auto pricePrompt = pricePromptStart != std::string::npos && pricePromptEnd != std::string::npos
-        ? gridSource.substr(pricePromptStart, pricePromptEnd - pricePromptStart) : std::string{};
-    const auto priceControlsGuard = pricePrompt.find("if (!pText || !pEdit)\n\t\t\t\t\treturn 1;");
-    const auto priceSlotGuard = pricePrompt.find("if (cargoSlot < 0)\n\t\t\t\t\treturn 1;");
+    // TradeItem delegates the auto-trade price prompt to its own helper.
+    const auto pricePrompt = source_contract::Method(gridSource,
+        "int SGridControl::TradeItemOnTradeInv2(int& nCellX, int& nCellY, TMFieldScene*& pFScene)");
+    const auto priceControlsGuard = pricePrompt.find("if (!pText || !pEdit)\n\t\t\t\treturn 1;");
+    const auto priceSlotGuard = pricePrompt.find("if (cargoSlot < 0)\n\t\t\t\treturn 1;");
+    check(gridSource.find("if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV2)\n\t{\n\t\treturn TradeItemOnTradeInv2(nCellX, nCellY, pFScene);")
+        != std::string::npos, "trade item routes the auto-trade price prompt to its helper");
     check(!pricePrompt.empty() && priceControlsGuard != std::string::npos && priceSlotGuard != std::string::npos &&
         priceControlsGuard < priceSlotGuard &&
         priceSlotGuard < pricePrompt.find("pItem->m_GCObj.dwColor = 0xFFFF00FF;") &&
@@ -1497,7 +1535,8 @@ int RunSceneDisconnectContractTests(int& checks)
         "both sell interactions and the drag path use the bounded formatter");
 
     // Exercise the actual record-boundary reader without constructing DirectX UI.
-    const auto sceneLoader = LoadSource("TMProject748/internal/app/scenes/TMScene.cpp");
+    const auto sceneLoader = LoadUnits("TMProject748/internal/app/scenes/",
+        {"TMScene", "TMSceneResources", "TMSceneGround"});
     const auto warp = sceneLoader.find("void TMScene::Warp2(int nZoneX, int nZoneY)");
     const auto warpTerrain = sceneLoader.find("if (!pGround->LoadTileMap(szMapPath))", warp);
     const auto warpCommit = sceneLoader.find("m_pGround = pGround;", warpTerrain);
@@ -1655,10 +1694,13 @@ int RunSceneDisconnectContractTests(int& checks)
     // otherwise Connect can reuse the same index for a different endpoint.
     const auto groupEvent = source.find("case L_SELECT_SERVERG:");
     const auto connectEvent = source.find("case B_SERVER_SEL_OK:", groupEvent);
-    check(groupEvent != std::string::npos && connectEvent != std::string::npos,
+    check(groupEvent != std::string::npos && connectEvent != std::string::npos &&
+        source.substr(groupEvent, connectEvent - groupEvent).find("= OnServerGroupList(") != std::string::npos,
         "group selection precedes connect handler");
-    if (groupEvent != std::string::npos && connectEvent != std::string::npos) {
-        const std::string handler = source.substr(groupEvent, connectEvent - groupEvent);
+    // The group-selection body lives in OnServerGroupList.
+    const std::string handler = source_contract::Method(source,
+        "ExtractedFlow TMSelectServerScene::OnServerGroupList(unsigned int& idwEvent, const int& nMaxGroupN, SListBoxServerItem* (&pServerItem)[11], int& extractedResult)");
+    if (!handler.empty()) {
         const auto clearRows = handler.find("pServerList->Empty();");
         const auto clearSlots = handler.find("m_nVisibleChannelCount = 0;", clearRows);
         const auto clearSelection = handler.find("pServerList->SetSelectedIndex(-1);");
@@ -1734,8 +1776,23 @@ int RunSceneDisconnectContractTests(int& checks)
             missingAttacker < fallbackStart &&
             attack.find("TMVector2 vecAttackerPos{", missingAttacker) == std::string::npos,
             "missing-attacker fallback uses packet position without shadowing it");
+        // Target HP projection goes through the policy before the local snapshot copy.
+        const auto heal = attack.find("attack_target::HealPool(");
+        const auto bigHeal = attack.find("attack_target::HealBigPool(", heal);
+        const auto healSnapshot = attack.find("memcpy(&g_pObjectManager->m_stMobData.CurrentScore", bigHeal);
+        const auto damage = attack.find("int nValue = attack_target::Damage(", healSnapshot);
+        const auto damageSnapshot = attack.find("memcpy(&g_pObjectManager->m_stMobData.CurrentScore", damage);
+        const auto subtract = attack.find("attack_target::SubtractPool(", damageSnapshot);
+        const auto bigSubtract = attack.find("attack_target::SubtractBigPool(", subtract);
+        check(heal != std::string::npos && bigHeal != std::string::npos &&
+            healSnapshot != std::string::npos && damage != std::string::npos &&
+            damageSnapshot != std::string::npos && subtract != std::string::npos &&
+            bigSubtract != std::string::npos &&
+            attack.find("pTargetHuman->m_BigHp -=") == std::string::npos,
+            "target HP projection is applied through the policy before snapshot copies");
     }
-    const std::string selectChar = LoadSource("TMProject748/internal/app/scenes/TMSelectCharScene.cpp");
+    const std::string selectChar = LoadUnits("TMProject748/internal/app/scenes/",
+        {"TMSelectCharScene", "TMSelectCharSceneInput", "TMSelectCharScenePackets"});
     const auto charLoad = selectChar.find("if (!LoadRC(\"UI\\\\SelCharScene2.txt\"))");
     const auto charSceneSetup = selectChar.find("g_pDevice->m_dwClearColor", charLoad);
     check(charLoad != std::string::npos && charSceneSetup != std::string::npos &&
@@ -1768,7 +1825,7 @@ int RunSceneDisconnectContractTests(int& checks)
 
     // Channel population is advisory. A failed or full-buffer HTTP read must
     // not leak stale/unterminated text into the selection parser.
-    const std::string basedef = LoadSource("TMProject748/internal/core/Basedef.cpp");
+    const std::string basedef = LoadBasedefSources();
     const auto httpStart = basedef.find("int BASE_GetHttpRequest(");
     const auto httpEnd = basedef.find("int BASE_GetWeekNumber()", httpStart);
     check(httpStart != std::string::npos && httpEnd != std::string::npos,
@@ -2235,8 +2292,9 @@ int RunSceneDisconnectContractTests(int& checks)
             "invalid item-name destinations and dimensions are rejected");
     }
 
-    const auto startupSource = LoadSource("TMProject748/internal/app/scenes/NewApp.cpp");
-    const auto basedefSource = LoadSource("TMProject748/internal/core/Basedef.cpp");
+    const auto startupSource = LoadUnits("TMProject748/internal/app/scenes/",
+        {"NewApp", "NewAppWindow", "NewAppServices"});
+    const auto basedefSource = LoadBasedefSources();
     const auto receiveLoop = startupSource.find("ReadPacketView(&ErrorCode, &ErrorType)");
     const auto readError = startupSource.find("if (ErrorCode != 0)", receiveLoop);
     const auto closeOnError = startupSource.find("m_pSocketManager->CloseSocket();", readError);

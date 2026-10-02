@@ -54,68 +54,68 @@ func TestConfiguredBossSpawnDeathAndRespawnLifecycle(t *testing.T) {
 		t.Fatalf("spawnConfiguredBosses: %v", err)
 	}
 	if len(w.bossSpawns) != 1 || len(w.mobs) != 1 {
-		t.Fatalf("estado de spawn inesperado: states=%d mobs=%d", len(w.bossSpawns), len(w.mobs))
+		t.Fatalf("unexpected spawn state: states=%d mobs=%d", len(w.bossSpawns), len(w.mobs))
 	}
 
 	state := w.bossSpawns[0]
 	first := w.mobsByID[state.mobID]
 	if first == nil || w.bossFor(first.ID) == nil {
-		t.Fatal("boss nao foi registrado no mundo e no runtime")
+		t.Fatal("boss was not registered in the world and the runtime")
 	}
 	if first.Def.Name != "Configured Boss" || first.Def.Tipo != model.TipoMonstro {
-		t.Fatalf("identidade do boss incorreta: nome=%q tipo=%q", first.Def.Name, first.Def.Tipo)
+		t.Fatalf("wrong boss identity: name=%q type=%q", first.Def.Name, first.Def.Tipo)
 	}
 	if first.HP != 50000 || first.Def.Score.Level != 200 ||
 		first.Def.Score.Attack != 900 || first.Def.Score.Defense != 700 ||
 		first.Def.Score.AttackRun != 6 || first.Def.ExpReward != 12345 || first.Def.Gold != 678 {
-		t.Fatalf("overrides nao aplicados: mob=%+v extended=%+v", first, first.Def.Score)
+		t.Fatalf("overrides not applied: mob=%+v extended=%+v", first, first.Def.Score)
 	}
 	if len(first.Def.Carry) != 0 || len(first.Def.Vende) != 0 {
-		t.Fatal("boss herdou carry/vende do NPC base")
+		t.Fatal("boss inherited carry/vende from the base NPC")
 	}
 	if w.npcs[0].Tipo != model.TipoNPC || w.npcs[0].Score.MaxHP != 1000 ||
 		len(w.npcs[0].Carry) != 1 || len(w.npcs[0].Vende) != 1 {
-		t.Fatal("configuracao do boss alterou o NPC base")
+		t.Fatal("boss configuration changed the base NPC")
 	}
 
 	killed := w.onBossMobKilled(first)
 	if killed != state || state.mobID != 0 {
-		t.Fatal("morte nao desligou a instancia do boss")
+		t.Fatal("death did not detach the boss instance")
 	}
 	if len(w.groundItems) != 3 {
-		t.Fatalf("premiacao de area=%d, quer 3", len(w.groundItems))
+		t.Fatalf("area reward=%d, want 3", len(w.groundItems))
 	}
 	wantRespawn := clock.Now().Add(5 * time.Second)
 	if !state.respawnAt.Equal(wantRespawn) {
-		t.Fatalf("deadline=%v, quer %v", state.respawnAt, wantRespawn)
+		t.Fatalf("deadline=%v, want %v", state.respawnAt, wantRespawn)
 	}
 	w.removeMobInstance(first)
 
 	w.tickBossRespawns(wantRespawn.Add(-time.Nanosecond))
 	if state.mobID != 0 {
-		t.Fatal("boss renasceu antes do prazo")
+		t.Fatal("boss respawned before the deadline")
 	}
 	clock.Advance(5 * time.Second)
 	w.tickBossRespawns(clock.Now())
 	if state.mobID == 0 || state.mobID == first.ID {
-		t.Fatalf("boss nao recebeu nova instancia/ID: antigo=%d novo=%d", first.ID, state.mobID)
+		t.Fatalf("boss did not get a new instance/ID: old=%d new=%d", first.ID, state.mobID)
 	}
 	if w.mobsByID[state.mobID] == nil || w.bossFor(state.mobID) == nil {
-		t.Fatal("boss renascido nao foi indexado")
+		t.Fatal("respawned boss was not indexed")
 	}
 }
 
 func TestConfiguredBossRejectsMissingOrLegacyBase(t *testing.T) {
 	w, _ := bossSpawnTestWorld()
 	w.bossCatalog.Bosses[0].NPC = "Missing"
-	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "nao existe") {
+	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "does not exist") {
 		t.Fatalf("NPC ausente deveria falhar claramente: %v", err)
 	}
 
 	w, _ = bossSpawnTestWorld()
 	w.npcs[0].Score = nil
-	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "sem score") {
-		t.Fatalf("NPC sem extended deveria falhar claramente: %v", err)
+	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "has no score") {
+		t.Fatalf("an NPC without extended data should fail clearly: %v", err)
 	}
 }
 
@@ -155,7 +155,7 @@ func TestBossDropsApplyChanceAmountAndInventoryFallback(t *testing.T) {
 		t.Fatalf("drop garantido/pilha incorretos: %+v", p.Char.Inv[0])
 	}
 	if p.Char.Inv[1].Index != 999 {
-		t.Fatal("RNG fixo deveria aceitar o drop de 50%")
+		t.Fatal("a fixed RNG should accept the 50% drop")
 	}
 
 	for i := range p.Char.Inv {
@@ -163,7 +163,7 @@ func TestBossDropsApplyChanceAmountAndInventoryFallback(t *testing.T) {
 	}
 	w.rollBossDrops(p, mob, state)
 	if len(w.groundItems) == 0 {
-		t.Fatal("inventario cheio deveria derrubar o premio no chao")
+		t.Fatal("a full inventory should drop the reward on the ground")
 	}
 }
 
@@ -171,14 +171,14 @@ func TestSetItemAmountPreservesEffectsAndClamps(t *testing.T) {
 	item := model.Item{Index: 1, Eff: [6]byte{10, 2}}
 	setItemAmount(&item, 999)
 	if item.Eff[0] != 10 || item.Eff[2] != effectAmount || item.Eff[3] != 255 {
-		t.Fatalf("quantidade nao ocupou par livre/clampou: %v", item.Eff)
+		t.Fatalf("amount did not take a free pair or was not clamped: %v", item.Eff)
 	}
 
 	full := model.Item{Index: 2, Eff: [6]byte{1, 1, 2, 2, 3, 3}}
 	before := full
 	setItemAmount(&full, 10)
 	if full != before {
-		t.Fatal("item sem par livre perdeu outro efeito")
+		t.Fatal("item without a free pair lost another effect")
 	}
 	setItemAmount(nil, 10)
 	setItemAmount(&full, 1)

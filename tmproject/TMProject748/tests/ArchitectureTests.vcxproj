@@ -35,13 +35,29 @@
     <ClCompile Include="PacketViewTests.cpp" />
     <ClCompile Include="CharacterLoginUseCaseTests.cpp" />
     <ClCompile Include="ReceivedPacketDispatchTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchSelectionTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchGroundItemsTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchWorldStateTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchEntitiesAndShopTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchTradeTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchActionsAndInventoryTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchFeaturesTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchMessagesAndServerListTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchSessionAndPartyTests.cpp" />
+    <ClCompile Include="ReceivedPacketDispatchRequestsAndEventsTests.cpp" />
     <ClCompile Include="CargoSlotTests.cpp" />
     <ClCompile Include="GridInsertionTests.cpp" />
     <ClCompile Include="CostumeSelectionTests.cpp" />
     <ClCompile Include="HumanCostumeRefinementTests.cpp" />
     <ClCompile Include="FieldSceneChatContractTests.cpp" />
     <ClCompile Include="FieldChatControlTests.cpp" />
+    <ClCompile Include="FieldChatSubmitPolicyTests.cpp" />
+    <ClCompile Include="FieldCoinInputPolicyTests.cpp" />
     <ClCompile Include="AttackVisualDamageTests.cpp" />
+    <ClCompile Include="AttackAttackerStateTests.cpp" />
+    <ClCompile Include="AttackTargetStateTests.cpp" />
+    <ClCompile Include="GroundAttachTableTests.cpp" />
+    <ClCompile Include="FallbackCostumeTableTests.cpp" />
     <ClCompile Include="SkillAttackRequestTests.cpp">
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>

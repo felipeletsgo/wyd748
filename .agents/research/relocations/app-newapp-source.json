@@ -1,0 +1,20 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/NewApp.cpp",
+ "header_note": "NewApp split by responsibility; application lifecycle stays in NewApp.cpp.",
+ "targets": {
+  "tmproject/TMProject748/internal/app/scenes/NewAppWindow.cpp": [
+   "\\bNewApp::MsgProc\\(",
+   "\\bNewApp::OnCreate\\(",
+   "\\bNewApp::CheckResolution\\("
+  ],
+  "tmproject/TMProject748/internal/app/scenes/NewAppServices.cpp": [
+   "\\bNewApp::GetHttpRequest\\(",
+   "\\bNewApp::SwitchWebBrowserState\\(",
+   "\\bNewApp::SwitchWebBoard\\(",
+   "\\bNewApp::MixHelp\\(",
+   "\\bNewApp::BASE_Initialize_NewServerList\\(",
+   "\\bNewApp::InitServerNameMR\\(",
+   "\\bNewApp::base_chinaTid\\("
+  ]
+ }
+}

@@ -1,0 +1,31 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMScene.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMScene.h",
+ "class": "TMScene",
+ "method": "int TMScene::OnMessagePanelPacket(MSG_STANDARD*& pStd)",
+ "extractions": [
+  {
+   "helper": "OnIndexedSceneMessage",
+   "after": "if (pStd->Type != MSG_MessagePanel_Opcode)",
+   "returns": true,
+   "params": [["MSG_STANDARD*&", "pStd"]]
+  },
+  {
+   "helper": "ShowFireworkMessage",
+   "after": "else if (pMsgPanel->String[1] == '!' && pMsgPanel->String[2] == '!' && pMsgPanel->String[3] == '!')",
+   "flow": true,
+   "params": [["MSG_MessagePanel*&", "pMsgPanel"]]
+  },
+  {
+   "helper": "ShowSmsMessage",
+   "after": "else if (pMsgPanel->String[0] == '!')",
+   "params": [["MSG_MessagePanel*&", "pMsgPanel"]]
+  },
+  {
+   "helper": "AppendMessagePanelToChat",
+   "from": "SListBox* pChatList = m_pControlContainer",
+   "until": "SControl* pLoginOK = m_pControlContainer",
+   "params": [["MSG_MessagePanel*&", "pMsgPanel"]]
+  }
+ ]
+}

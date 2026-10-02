@@ -37,6 +37,7 @@
 #include "../../game/entities/DeathMotionPolicy.h"
 #include "../../wire/AttackVisualDamage.h"
 #include "../../application/AttackAttackerState.h"
+#include "../../application/AttackTargetState.h"
 #include "TMHuman.h"
 #include "TMEffectLevelUp.h"
 #include "TMFont3.h"
@@ -1469,29 +1470,11 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 						if (!pAttack->FlagLocal)
 						{
 							if (!pTargetHuman->m_MaxBigHp)
-							{
-								int HealDam = pAttack->Dam[i].Damage / nDamageRate;
-								int Dam = pTargetHuman->m_stScore.CurHP - HealDam;
-
-								if (Dam > pTargetHuman->m_stScore.MaxHP)
-									Dam = pTargetHuman->m_stScore.MaxHP;
-								if (Dam <= 0)
-									pTargetHuman->m_stScore.CurHP = 0;
-								else
-									pTargetHuman->m_stScore.CurHP = Dam;
-							}
+								attack_target::HealPool(pTargetHuman->m_stScore.CurHP,
+									pTargetHuman->m_stScore.MaxHP, pAttack->Dam[i].Damage, nDamageRate);
 							else
-							{
-								int Dam = pAttack->Dam[i].Damage;
-								if (pTargetHuman->m_BigHp == Dam)
-									pTargetHuman->m_BigHp = 0;
-								else
-									pTargetHuman->m_BigHp -= Dam;
-								if (!nDamageRate)
-									nDamageRate = 1;
-
-								pTargetHuman->m_stScore.CurHP = (short)(pTargetHuman->m_BigHp / nDamageRate);
-							}
+								attack_target::HealBigPool(pTargetHuman->m_stScore.CurHP,
+									pTargetHuman->m_BigHp, pAttack->Dam[i].Damage, nDamageRate);
 
 							if (pTargetHuman == m_pMyHuman)
 							{
@@ -1548,25 +1531,9 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					{
 						if (!pAttack->FlagLocal)
 						{
-							int nValue = pAttack->Dam[i].Damage;
-							if (nValue > 1000000)
-								nValue = 0;
-							if (nValue >= 0)
-							{
-								if (!pTargetHuman->m_MaxBigHp)
-								{
-									nValue /= nDamageRate;
-									int hp = pTargetHuman->m_stScore.CurHP - nValue;
-									if (hp < 0)
-										hp = 0;
-									pTargetHuman->m_stScore.CurHP = hp;
-								}
-								else
-								{
-									pTargetHuman->m_BigHp -= nValue;
-									pTargetHuman->m_stScore.CurHP = (short)(pTargetHuman->m_BigHp / nDamageRate);
-								}
-							}
+							int nValue = attack_target::Damage(pTargetHuman->m_stScore.CurHP,
+								pTargetHuman->m_BigHp, pTargetHuman->m_MaxBigHp != 0,
+								pAttack->Dam[i].Damage, nDamageRate);
 							if (pTargetHuman->m_stScore.CurHP < 0)
 								pTargetHuman->m_stScore.CurHP = 0;
 							if (pTargetHuman == m_pMyHuman)
@@ -2031,10 +1998,8 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 					{
 						if (!pAttack->FlagLocal)
 						{
-							if (pTargetHuman->m_stScore.CurHP - pAttack->Dam[i].Damage / nDamageRate <= 0)
-								pTargetHuman->m_stScore.CurHP = 0;
-							else
-								pTargetHuman->m_stScore.CurHP -= pAttack->Dam[i].Damage / nDamageRate;
+							attack_target::SubtractPool(pTargetHuman->m_stScore.CurHP,
+								pAttack->Dam[i].Damage, nDamageRate);
 							if (pTargetHuman == m_pMyHuman)
 							{
 								if (m_nReqHP - pAttack->Dam[i].Damage <= 0)
@@ -2087,20 +2052,11 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 						if (!pAttack->FlagLocal)
 						{
 							if (!pTargetHuman->m_MaxBigHp)
-							{
-								if (pTargetHuman->m_stScore.CurHP - pAttack->Dam[i].Damage / nDamageRate <= 0)
-									pTargetHuman->m_stScore.CurHP = 0;
-								else
-									pTargetHuman->m_stScore.CurHP -= pAttack->Dam[i].Damage / nDamageRate;
-							}
+								attack_target::SubtractPool(pTargetHuman->m_stScore.CurHP,
+									pAttack->Dam[i].Damage, nDamageRate);
 							else
-							{
-								if (pTargetHuman->m_BigHp == pAttack->Dam[i].Damage)
-									pTargetHuman->m_BigHp = 0;
-								else
-									pTargetHuman->m_BigHp -= pAttack->Dam[i].Damage;
-								pTargetHuman->m_stScore.CurHP = (short)pTargetHuman->m_BigHp;
-							}
+								attack_target::SubtractBigPool(pTargetHuman->m_stScore.CurHP,
+									pTargetHuman->m_BigHp, pAttack->Dam[i].Damage);
 							if (pTargetHuman == m_pMyHuman)
 							{
 								if (m_nReqHP - pAttack->Dam[i].Damage <= 0)

@@ -1,0 +1,81 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/ui/SGrid.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/ui/SGrid.cpp",
+    "tmproject/TMProject748/internal/ui/SGridInput.cpp",
+    "tmproject/TMProject748/internal/ui/SGridCommerce.cpp",
+    "tmproject/TMProject748/internal/ui/SGridTooltip.cpp",
+    "tmproject/TMProject748/internal/ui/SGridItem.cpp",
+    "tmproject/TMProject748/internal/ui/SGridSupport.h"
+   ],
+   "new_declarations": [
+    "bool WYD748_ReplaceGridVisual ( SGridControl * grid , SGridControlItem * replacement , int x , int y , SGridControlItem * & previous )",
+    "bool WYD748_IsValidItemIndex ( const short itemIndex )",
+    "bool WYD748_FormatSellConfirmation ( char ( & message ) [ 128 ] , const SGridControlItem * item )",
+    "int WYD748_ResolveWireSlot ( TMFieldScene * scene , const SGridControl * grid , short wireType , int cellX , int cellY )",
+    "bool WYD748_IsCenteredSingleCellGrid ( const TMEGRIDTYPE gridType )",
+    "float WYD748_GetGridMeshScale ( const SGridControlItem * item )",
+    "void WYD748_ApplyGridMeshScale ( SGridControlItem * item , const bool fitSingleCell )"
+   ],
+   "new_items": {
+    "SGridControl::DescribeItemName": "086867cee7b1fa68550212054cd9831fcef88eb58289499ecf3cde47fe7493d2",
+    "SGridControl::DescribeSkillItem": "fcaeb9e6186cd715b5e6896625c37b6fb4f8957e6cffce4d1f45dc73b6ea9c87",
+    "SGridControl::DescribeTimedItem": "0d1910ea661eb4ad386676aa3a2ce3bfdf200427b42dc8188fbb2b8cbf1fe8b3",
+    "SGridControl::DescribeGeneralItem": "dc846de84d28c9dc01a1f7a9054c1202b6cc0bc30a8466ae657fc799a8d2edc7",
+    "SGridControl::RButtonUseItems3468To3471": "82a129ccef1cf54946c6c569d2b711b99cb9d3cba9f283b1dbbfe68b051b41cf",
+    "SGridControl::RButtonUseItem3467": "12876d4fbd9380b3736bac60f26caf6e79d8544b0cd798a868c748341950e76a",
+    "SGridControl::TradeItemOnTradeInv": "28ce66aeb9c63a1d9de38a2e6ba11533542291346263b2736ca884e528a5d1fe",
+    "SGridControl::TradeItemOnTradeInv2": "e9a06dbc654554ca36a5e3659ee26d3c7482a90bfec4de94fe49e88ead5a4934",
+    "SGridControl::TradeItemOnTradeInv6": "900137f6a478a6184751f9dc9312d2fa433684db118965e52f9593a16359fe75",
+    "SGridControl::TradeItemOnTradeMy": "ad5c547fb15adbf99d247109eb9a9bc499b8ea1aee23a28f77b0b29df8c76d4c",
+    "SGridControl::TradeItemOnItemMix": "de482b38d635529b9f5b17db448a5804f86196554c2997cf06753f1f7409e88b",
+    "SGridControl::TradeItemOnItemMix4": "c4ba3b9f3c08147b5b52942830d4d0ace7bf4c3b705f96359035e67db2697ace",
+    "SGridControl::TradeItemOnTradeMy2": "06847717b62caea98076e0dc7bfbd7081f2e9ae750583cfb649ae7f2e8173b70",
+    "SGridControl::SellItemOnShop": "5cc9d91469c19aa6ef358b739c55ec1e4e2aa116fe5a19f4d75bb90880edee35",
+    "SGridControl::SellItemOnSkillBelt": "f8437c1a71780ccb1fbf9428a2b535aaff95d59ba5327a53475d68ddf41b9be4",
+    "SGridControl::SellItemOnOtherGrid": "8137f1a392f5b1f2f693924eb5e4b92cc89b4176cbcab64975a889621e5fd934",
+    "SGridControl::OnLeftButtonDown": "a14b1072776842c3e333c9b0a6b2de5503a098d8f8d4bbbd8e62bc429b5429e8",
+    "SGridControl::OnLeftButtonUp": "646c7ec157cfed8f99070b196bb74f9fe5438a9836ffb2ac2ec76e5b1658198a",
+    "SGridControl::OnShiftLeftButtonDown": "30a52f937355de74adc54b4959de0df5d0cc7de7584dbb610a6eeb30dab8bafe",
+    "SGridControl::MouseOverWithoutHandCursor": "b64dd3f6279df6e2231bbf2ed61221589a89251e62f134720eb8c61ac2629a33",
+    "SGridControl::DescribeItem3443": "b1f606a161957de5519a19625592736671154c2a1e841d7e42d1efe49a03dd71",
+    "SGridControl::DescribeItem3444": "7a5939dfe72690782fa70f8cde39067a792666b2da26b0b8af2eae890853e1b5",
+    "SGridControl::DescribeItem4147": "b90988e1d73dab5c70f3fd3d9faadd39afaef9718db78caae0a17051fc883f0c",
+    "SGridControl::DescribeOutsideShop": "249d74786da35da10e39283546d8feaea27438ee6bed16f0bf72ed0c92c8724e",
+    "SGridControl::RButtonUseItemType11Or13": "66007ed65d1f7b50da4fbfdb96d85975e0a2e6c77537f722ecfe7e22d767bf9c"
+   }
+  }
+ ],
+ "reviewed": {
+  "SGridControl::TradeItem: helpers extracted by extract-method.py (method-sgrid-tradeitem.json)": {
+   "method": "int SGridControl :: TradeItem ( int nCellX , int nCellY )",
+   "before": "7656946e0b8d2bcae2e8308db34b78774b2900299c4888620b4a70158d20f871",
+   "after": "9dce30dafeea2d5c55601d30ddea08d41aea8a139af12318435bb2a21b35248a"
+  },
+  "SGridControl::SellItem: helpers extracted by extract-method.py (method-sgrid-sellitem.json)": {
+   "method": "int SGridControl :: SellItem ( int nCellX , int nCellY , unsigned int dwFlags , unsigned int wParam )",
+   "before": "73dcdeda91b05c9c551bb74cd09ed4faa1d4703ebe52049589f9f3c3e6063649",
+   "after": "2c4d65dbfcf31bca7e0bd455a3153cfcaff2918548f96e7eed9c03c94b1f10dd"
+  },
+  "SGridControl::OnMouseEvent: helpers extracted by extract-method.py (method-sgrid-onmouseevent.json)": {
+   "method": "int SGridControl :: OnMouseEvent ( unsigned int dwFlags , unsigned int wParam , int nX , int nY )",
+   "before": "bf24c4988d5568493291ad613ac52e68223b41042e383693328509c6565159a1",
+   "after": "02071134e3227a483958b86ef8a637c07b6aecce5ee19175595338431341bfe0"
+  },
+  "SGridControl::MouseOver: helpers extracted by extract-method.py (method-sgrid-mouseover-2.json)": {
+   "method": "int SGridControl :: MouseOver ( int nCellX , int nCellY , int bPtInRect )",
+   "before": "b45a96ebb4363e3c4effb05af8d341859ee3bbf2644981331505b14eba898c71",
+   "after": "437e00c83b64f80a8de8f6e9f5d582a58c997f3779ca1a3f497e96d0dceb8812"
+  },
+  "SGridControl::RButton: helpers extracted by extract-method.py (method-sgrid-rbutton-2.json)": {
+   "method": "void SGridControl :: RButton ( int nCellX , int nCellY , int bPtInRect )",
+   "before": "b95705765db5224f8385bb9d0be2cec3f76bb57916ca40c33fdcd6c20ebf1a82",
+   "after": "045f5d0e29fcf55c00090d333459fc3e102ee04114820ff3ec9d4fd286054e3f"
+  }
+ }
+}

@@ -37,6 +37,8 @@ public:
 	void LookSampleHuman(int nIndex, int bLook, int bSelect);
 
 private:
+	// Helpers extracted from TMSelectCharScene::OnMouseEvent.
+	int OnMouseEventWhileSelecting(TMHuman*& pOver);
 	void ReloadCharList(RELOAD_CHARLIST_TYPE type);
 	// Consumes the judgement visual effect without mixing geometry into the dispatcher.
 	bool HandleJudgementEffect(char* buf);

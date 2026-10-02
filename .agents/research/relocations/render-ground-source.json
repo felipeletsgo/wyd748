@@ -1,0 +1,29 @@
+{
+ "source": "tmproject/TMProject748/internal/render/world/terrain/TMGround.cpp",
+ "header_note": "TMGround split by responsibility; terrain lifecycle and loading stay in TMGround.cpp.",
+ "targets": {
+  "tmproject/TMProject748/internal/render/world/terrain/TMGroundData.cpp": [
+   "\\bTMGround::TileCoordList\\[",
+   "\\bTMGround::BackTileCoordList\\[",
+   "\\bTMGround::m_nCheckSum\\["
+  ],
+  "tmproject/TMProject748/internal/render/world/terrain/TMGroundRender.cpp": [
+   "\\bTMGround::Render\\("
+  ],
+  "tmproject/TMProject748/internal/render/world/terrain/TMGroundQueries.cpp": [
+   "\\bTMGround::GetPickPos\\(",
+   "\\bTMGround::GetHeight\\(",
+   "\\bTMGround::GetMask\\(",
+   "\\bTMGround::GetColor\\(",
+   "\\bTMGround::GetTileType\\(",
+   "\\bTMGround::SetColor\\(",
+   "\\bTMGround::GetNormalInGround\\(",
+   "\\bTMGround::IsInWater\\(",
+   "\\bTMGround::GetWaterHeight\\("
+  ],
+  "tmproject/TMProject748/internal/render/world/terrain/TMGroundAttach.cpp": [
+   "\\bTMGround::Attach\\(",
+   "\\bTMGround::SetAttatchEnable\\("
+  ]
+ }
+}

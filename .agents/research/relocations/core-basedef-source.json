@@ -1,0 +1,85 @@
+{
+ "source": "tmproject/TMProject748/internal/core/Basedef.cpp",
+ "header_note": "BASE_* functions split by domain; declarations stay in Basedef.h, global tables and loaders in Basedef.cpp.",
+ "targets": {
+  "tmproject/TMProject748/internal/core/BasedefItems.cpp": [
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemSanc\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemAbility\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetStaticItemAbility\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemAmount\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CanCarry\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CanTrade\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_ClearItem\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_SortTradeItem\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CanCargo\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CanEquip\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CanEquip_RecvRes\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetBonusItemAbilityNosanc\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetBonusItemAbility\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemAbilityNosanc\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_SetItemAmount\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CanRefine\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_HasSancAdd\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetSancEffValue\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemSancSuccess\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetEffectValue\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_ChangeOrAddEffectValue\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_RemoveEffect\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetSubGuild\\s*\\("
+  ],
+  "tmproject/TMProject748/internal/core/BasedefAppearance.cpp": [
+   "^[\\w\\s\\*&:]*?\\bBASE_DefineSkinMeshType\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetMountScale\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetMeshIndex\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemTenColor\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemColorEffect\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetItemColor\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetColorCount\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetOptionColor\\s*\\("
+  ],
+  "tmproject/TMProject748/internal/core/BasedefCombat.cpp": [
+   "^[\\w\\s\\*&:]*?\\bBASE_GetSpeed\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bIsSkill\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bGetSkillIndex\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bIsValidSkill\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bIsValidClassSkill\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bIsPassiveSkill\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetManaSpent\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetSkillDamage\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetMobAbility\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetMaxAbility\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetDoubleCritical\\s*\\("
+  ],
+  "tmproject/TMProject748/internal/core/BasedefWorld.cpp": [
+   "^[\\w\\s\\*&:]*?\\bBASE_GetRoute\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetDistance\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetVillage\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetAttribute\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetAttr\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_IsInLowZone\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetHitPosition\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetHitPosition2\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_Get3DTo2DPos\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_SetBit\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_UpdateItem2\\s*\\("
+  ],
+  "tmproject/TMProject748/internal/core/BasedefText.cpp": [
+   "^[\\w\\s\\*&:]*?\\bstrfmt\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_UnderBarToSpace\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bIsClearString\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bIsClearString2\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CheckValidString\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_TransCurse\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_CheckChatValid\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bCheckGuildName\\s*\\("
+  ],
+  "tmproject/TMProject748/internal/core/BasedefSystem.cpp": [
+   "^[\\w\\s\\*&:]*?\\bBASE_ScreenResize\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetHttpRequest\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bBASE_GetWeekNumber\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bEnableSysKey\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bCheckOS\\s*\\(",
+   "^[\\w\\s\\*&:]*?\\bDisableSysKey\\s*\\("
+  ]
+ }
+}

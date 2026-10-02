@@ -15,8 +15,8 @@ var connSeq atomic.Int64
 
 const defaultOutputQueueSize = 256
 
-// ListenerConfig contem somente protecoes operacionais do transporte. Regras
-// de gameplay e autenticacao continuam no World.
+// ListenerConfig holds only operational transport protections. Gameplay and
+// authentication rules stay in the World.
 type ListenerConfig struct {
 	OutputQueueSize      int
 	MaxConnections       int
@@ -65,8 +65,8 @@ func (l *connectionLimiter) release(origin string) {
 	}
 }
 
-// ParseOriginIP canonicaliza exclusivamente o IP observado no socket. Campos
-// declarados pelo client nunca participam desta identidade operacional.
+// ParseOriginIP canonicalizes only the IP observed on the socket. Fields
+// declared by the client never take part in this operational identity.
 func ParseOriginIP(ip string) (netip.Addr, bool) {
 	addr, err := netip.ParseAddr(strings.TrimSpace(ip))
 	if err != nil {
@@ -75,8 +75,8 @@ func ParseOriginIP(ip string) (netip.Addr, bool) {
 	return addr.Unmap(), true
 }
 
-// OriginLimitKey agrupa IPv6 pelo /64 para impedir que enderecos temporarios
-// do mesmo prefixo multipliquem o limite pre-auth. IPv4 permanece individual.
+// OriginLimitKey groups IPv6 by /64 so temporary addresses from the same
+// prefix cannot multiply the pre-auth limit. IPv4 stays individual.
 func OriginLimitKey(ip string) (string, bool) {
 	addr, ok := ParseOriginIP(ip)
 	if !ok {
@@ -88,9 +88,9 @@ func OriginLimitKey(ip string) (string, bool) {
 	return addr.String(), true
 }
 
-// ListenWithConfig limita sockets antes do InitCode. O limite de pacotes da
-// Session so comeca depois do handshake e, sozinho, nao protege contra
-// Slowloris nem exaustao de descritores.
+// ListenWithConfig limits sockets before the InitCode. The Session packet
+// limit starts only after the handshake and, on its own, does not protect
+// against Slowloris or descriptor exhaustion.
 func ListenWithConfig(addr string, cfg ListenerConfig, onConn func(*Session)) error {
 	if cfg.OutputQueueSize < 1 {
 		cfg.OutputQueueSize = defaultOutputQueueSize
@@ -99,7 +99,7 @@ func ListenWithConfig(addr string, cfg ListenerConfig, onConn func(*Session)) er
 	if err != nil {
 		return err
 	}
-	log.Printf("WYD-Go TMSrv escutando em %s", addr)
+	log.Printf("WYD-Go TMSrv listening on %s", addr)
 	limiter := newConnectionLimiter(cfg.MaxConnections, cfg.MaxConnectionsPerIP)
 	for {
 		c, err := ln.Accept()

@@ -1,0 +1,38 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/platform/windows/RenderDevice.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/platform/windows/RenderDevice.cpp",
+    "tmproject/TMProject748/internal/platform/windows/RenderDeviceState.cpp",
+    "tmproject/TMProject748/internal/platform/windows/RenderDeviceShaders.cpp",
+    "tmproject/TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp",
+    "tmproject/TMProject748/internal/platform/windows/RenderDeviceDiagnostics.cpp"
+   ],
+   "new_items": {
+    "RenderDevice::RenderGuildMarkImage": "c71bfafc04e0db3d4271486a6a055c9f08ee87bbdd482aff1f3615dcaf8f178b",
+    "RenderDevice::RenderProgressFill": "6e82eb0f3227d63ae9ac91208d166be879470e341dfad5afe2249e7609a7523d",
+    "RenderDevice::RenderTexturedGeomRect": "ee8103fa39d86ad2f13d1bfbaa2dd61c31bdba0e0db9b5c78b363b6b690aa5cc"
+   }
+  }
+ ],
+ "reviewed": {
+  "int RenderDevice :: InitVertexShader : vertex declarations as tables (vertex-decl-tables.py --check)": {
+   "before": "85dc6babeb5a13c23483f694dfca3abfdc866a7ac2cbf01cfb7dc7201acbd7ca",
+   "after": "e7b2da3f6e8bb9ffaabc27eb7bb1694db2aa8d25a1d9001e83156ad6e90821c9"
+  },
+  "RenderDevice::RenderRectProgress2: helpers extracted by extract-method.py (method-renderdevice-progress.json)": {
+   "method": "void RenderDevice :: RenderRectProgress2 ( float iX , float iY , float iCX , float iCY , float fProgress , DWORD dwColor )",
+   "before": "0a3e0d56b994c464af4d10f9d1c66c4ec8a35b497f29ca6d614a016ea0f8bd71",
+   "after": "a516b9b62310e197ed2de66e6e27908b72059e883bb0dd505800f0f8d4c51d49"
+  },
+  "RenderDevice::RenderGeomRectImage: helpers extracted by extract-method.py (method-renderdevice-geomrectimage-2.json)": {
+   "method": "void RenderDevice :: RenderGeomRectImage ( GeomControl * ipControl )",
+   "before": "214eb9af6df1f8cd5f7f3a71e0c59c91cca32636e3623086d8735f9dd8f48f4a",
+   "after": "080bb66ecdacb9fd39508924ccd18dce24f3dc41d0cf6efd8f6a89a2e5ef8a12"
+  }
+ }
+}

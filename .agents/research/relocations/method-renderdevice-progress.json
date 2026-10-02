@@ -1,0 +1,38 @@
+{
+ "source": "tmproject/TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp",
+ "header": "tmproject/TMProject748/internal/platform/windows/RenderDevice.h",
+ "class": "RenderDevice",
+ "method": "void RenderDevice::RenderRectProgress2(float iX, float iY, float iCX, float iCY, float fProgress, DWORD dwColor)",
+ "extractions": [
+  {
+   "helper": "RenderProgressFill",
+   "after": "if (fProgress > 0.0)",
+   "params": [
+    [
+     "float&",
+     "iX"
+    ],
+    [
+     "float&",
+     "iY"
+    ],
+    [
+     "float&",
+     "iCX"
+    ],
+    [
+     "float&",
+     "iCY"
+    ],
+    [
+     "float&",
+     "fProgress"
+    ],
+    [
+     "DWORD&",
+     "dwColor"
+    ]
+   ]
+  }
+ ]
+}

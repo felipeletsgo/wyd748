@@ -1,0 +1,19 @@
+{
+ "source": "tmproject/TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp",
+ "header": "tmproject/TMProject748/internal/platform/windows/RenderDevice.h",
+ "class": "RenderDevice",
+ "method": "void RenderDevice::RenderGeomRectImage(GeomControl* ipControl)",
+ "extractions": [
+  {
+   "helper": "RenderTexturedGeomRect",
+   "after": "if (ipControl->nTextureSetIndex >= 0)",
+   "flow": true,
+   "params": [
+    [
+     "GeomControl*&",
+     "ipControl"
+    ]
+   ]
+  }
+ ]
+}

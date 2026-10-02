@@ -1,0 +1,117 @@
+{
+ "source": "tmproject/TMProject748/internal/ui/SGridTooltip.cpp",
+ "header": "tmproject/TMProject748/internal/ui/SGrid.h",
+ "class": "SGridControl",
+ "method": "int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)",
+ "extractions": [
+  {
+   "helper": "DescribeItemName",
+   "after": "else if (pDescNameText)",
+   "params": [
+    [
+     "SGridControlItem*&",
+     "pItem"
+    ],
+    [
+     "SText*&",
+     "pDescNameText"
+    ],
+    [
+     "int&",
+     "nSanc"
+    ]
+   ]
+  },
+  {
+   "helper": "DescribeSkillItem",
+   "after": "if (IsSkill(pItem->m_pItem->sIndex) == 1)",
+   "params": [
+    [
+     "SGridControlItem*&",
+     "pItem"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ],
+    [
+     "unsigned int&",
+     "dwColor"
+    ],
+    [
+     "int&",
+     "nLineId"
+    ],
+    [
+     "char (&)[128]",
+     "szDesc"
+    ]
+   ]
+  },
+  {
+   "helper": "DescribeTimedItem",
+   "after": "else if (pItem->m_pItem->sIndex >= 3900 && pItem->m_pItem->sIndex < 3980)",
+   "params": [
+    [
+     "SGridControlItem*&",
+     "pItem"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ],
+    [
+     "int&",
+     "nLineId"
+    ],
+    [
+     "char (&)[128]",
+     "szDesc"
+    ]
+   ]
+  },
+  {
+   "helper": "DescribeGeneralItem",
+   "after": "else",
+   "nth": 27,
+   "params": [
+    [
+     "SGridControlItem*&",
+     "pItem"
+    ],
+    [
+     "TMFieldScene*&",
+     "pFScene"
+    ],
+    [
+     "unsigned int&",
+     "dwColor"
+    ],
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "unsigned int&",
+     "nItemPos"
+    ],
+    [
+     "int&",
+     "nLineId"
+    ],
+    [
+     "int&",
+     "nWeaponType"
+    ],
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ],
+    [
+     "char (&)[128]",
+     "szDesc"
+    ]
+   ]
+  }
+ ]
+}

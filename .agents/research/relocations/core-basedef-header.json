@@ -1,0 +1,17 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/core/Basedef.h"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/core/Basedef.h",
+    "tmproject/TMProject748/internal/core/BasedefLimits.h",
+    "tmproject/TMProject748/internal/core/BasedefStructs.h",
+    "tmproject/TMProject748/internal/core/BasedefPackets.h",
+    "tmproject/TMProject748/internal/core/BasedefTables.h"
+   ]
+  }
+ ]
+}

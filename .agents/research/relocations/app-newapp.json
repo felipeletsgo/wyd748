@@ -1,0 +1,28 @@
+{
+ "revision": "71c4b313",
+ "groups": [
+  {
+   "baseline": [
+    "tmproject/TMProject748/internal/app/scenes/NewApp.cpp"
+   ],
+   "current": [
+    "tmproject/TMProject748/internal/app/scenes/NewApp.cpp",
+    "tmproject/TMProject748/internal/app/scenes/NewAppWindow.cpp",
+    "tmproject/TMProject748/internal/app/scenes/NewAppServices.cpp"
+   ],
+   "new_items": {
+    "NewApp::OnInputLanguageChange": "0347cfcfc50ad6402344350af6248595d30a3b0027c3d5d388ff4cd7b00fd817",
+    "NewApp::OnKeyDownMessage": "12a0e625d4bac7a654d7e2472c9109624c2497d671472ff14fccccca4e7eb2bf",
+    "NewApp::OnNetworkMessage": "acc0a3e6e0d7af38e4f48559597a29d7e242b622d78aa407afaba42b1427aad5",
+    "NewApp::OnCloseMessage": "afcdf0c2aee981c52b5fb2f3ed601d6ab55783b1cca230f668a70bf42ba19b30"
+   }
+  }
+ ],
+ "reviewed": {
+  "NewApp::MsgProc: helpers extracted by extract-method.py (method-newapp-msgproc.json)": {
+   "method": "HRESULT NewApp :: MsgProc ( HWND hWnd , DWORD uMsg , DWORD wParam , int lParam )",
+   "before": "24c77f4e397142d4e3e2e0afcc971308569b2fdafaa795a3f93476b95350bbba",
+   "after": "ff572e279e58e8baeef223ecc8ae8efbec282a6078ae34043f25e06309b3014a"
+  }
+ }
+}

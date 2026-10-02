@@ -1,4 +1,5 @@
 #pragma once
+#include "ExtractedFlow.h"
 
 #include "SControl.h"
 #include "GeomObject.h"
@@ -52,6 +53,8 @@ static int g_pItemGridXY[8][2] =
 };
 
 class SGridControlItem;
+class TMFieldScene;
+class TMHuman;
 class SGridControl : public SPanel
 {
 public:
@@ -60,10 +63,10 @@ public:
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;
     int CanItAdd(int* bFilledBuffer, int inCellIndexX, int inCellIndexY, int inCellWidth, int inCellHeight);
-    // Insercoes: 1 transfere ownership para a grid; 0 preserva o item no
-    // caller (nulo/lista cheia, contador ou geometria invalida), sem mutacao.
-    // Origem deve estar na grade; footprint positivo pode exceder o receptaculo
-    // e sera recortado. Sobreposicao continua permitida, sem CanItAdd implicito.
+    // Insertions: 1 transfers ownership to the grid; 0 leaves the item with the
+    // caller (null/full list, invalid counter or geometry), without mutation.
+    // The origin must be on the grid; a positive footprint may exceed the
+    // receptacle and is clipped. Overlap stays allowed, with no implicit CanItAdd.
     int AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     int AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     int SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
@@ -125,6 +128,40 @@ public:
     static SGridControlItem* m_pSellItem;
     static int m_bNeedUpdate;
     static char* m_szParamString[49];
+
+private:
+	// Helpers extracted from SGridControl::RButton.
+	ExtractedFlow RButtonUseItemType11Or13(int& nCellX, int& nCellY, int& nType, const short& nativeCarryPos, TMFieldScene*& pFScene, SGridControlItem*& pItem, TMHuman*& pMyHuman);
+	// Helpers extracted from SGridControl::MouseOver.
+	int MouseOverWithoutHandCursor(const ECursorStyle& eCursorStyle, int& nCellX, int& nCellY);
+	ExtractedFlow DescribeItem3443(SGridControlItem*& pItem, SText*& pParamText, int& extractedResult);
+	ExtractedFlow DescribeItem3444(TMFieldScene*& pFScene, SGridControlItem*& pItem, SText*& pParamText, int& extractedResult);
+	int DescribeItem4147(int& nLineId, TMFieldScene*& pFScene, SGridControlItem*& pItem, char (&szDesc)[128]);
+	int DescribeOutsideShop(SGridControlItem*& pItem, SText*& pParamText);
+	// Helpers extracted from SGridControl::OnMouseEvent.
+	ExtractedFlow OnLeftButtonDown(bool& bClick, int& bPtInRect, int& nCellX, int& nCellY, int& extractedResult);
+	ExtractedFlow OnLeftButtonUp(int& bPtInRect, int& nCellVHeight, int& nCellVWidth, int& nCellX, int& nCellY, TMFieldScene*& pFScene, unsigned int& wParam, int& extractedResult);
+	ExtractedFlow OnShiftLeftButtonDown(int& bPtInRect, int& nCellX, int& nCellY, TMFieldScene*& pFScene, int& extractedResult);
+	// Helpers extracted from SGridControl::SellItem.
+	ExtractedFlow SellItemOnShop(TMFieldScene*& pScene, int& extractedResult);
+	ExtractedFlow SellItemOnSkillBelt(int& nCellX, int& nCellY, TMFieldScene*& pScene, int& extractedResult);
+	ExtractedFlow SellItemOnOtherGrid(int& nCellX, int& nCellY, unsigned int& dwFlags, unsigned int& wParam, TMFieldScene*& pScene, int& extractedResult);
+	// Helpers extracted from SGridControl::RButton.
+	void RButtonUseItems3468To3471(int& nCellX, int& nCellY, unsigned int& dwServerTime, const short& nativeCarryPos, TMFieldScene*& pFScene, SGridControlItem*& pItem, TMHuman*& pMyHuman);
+	void RButtonUseItem3467(unsigned int& dwServerTime, const short& nativeCarryPos, TMFieldScene*& pFScene, SGridControlItem*& pItem, TMHuman*& pMyHuman);
+	// Helpers extracted from SGridControl::TradeItem.
+	int TradeItemOnTradeInv(int& nCellX, int& nCellY, TMFieldScene*& pFScene);
+	int TradeItemOnTradeInv2(int& nCellX, int& nCellY, TMFieldScene*& pFScene);
+	int TradeItemOnTradeInv6(int& nCellX, int& nCellY, TMFieldScene*& pFScene);
+	int TradeItemOnTradeMy(TMFieldScene*& pFScene);
+	int TradeItemOnItemMix(int& nCellX, int& nCellY, TMFieldScene*& pFScene);
+	int TradeItemOnItemMix4(int& nCellX, int& nCellY, TMFieldScene*& pFScene);
+	int TradeItemOnTradeMy2(int& nCellX, int& nCellY, TMFieldScene*& pFScene);
+	// Helpers extracted from SGridControl::MouseOver.
+	void DescribeItemName(SGridControlItem*& pItem, SText*& pDescNameText, int& nSanc);
+	void DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, unsigned int& dwColor, int& nLineId, char (&szDesc)[128]);
+	void DescribeTimedItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, int& nLineId, char (&szDesc)[128]);
+	void DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, unsigned int& dwColor, unsigned int& dwServerTime, unsigned int& nItemPos, int& nLineId, int& nWeaponType, STRUCT_MOB*& pMobData, char (&szDesc)[128]);
 };
 
 class SGridControlItem : public S3DObj

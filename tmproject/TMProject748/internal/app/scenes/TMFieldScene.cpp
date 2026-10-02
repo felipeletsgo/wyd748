@@ -12,6 +12,8 @@
 #include "FieldSceneWorldSupport.h"
 #include "../../application/FieldInteractionPolicy.h"
 #include "../../application/CCModePolicy.h"
+#include "../../application/FieldChatSubmitPolicy.h"
+#include "../../application/FieldCoinInputPolicy.h"
 #include "../../ui/FieldChatControl.h"
 #include "../../core/NativeSalePrice.h"
 #include "TMLog.h"
@@ -3324,15 +3326,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			return 1;
 		}
 
-		unsigned int dwLastChatTime = m_dwLastChatTime[3];
-		m_dwLastChatTime[3] = m_dwLastChatTime[2];
-		m_dwLastChatTime[2] = m_dwLastChatTime[1];
-		m_dwLastChatTime[1] = m_dwLastChatTime[0];
-		m_dwLastChatTime[0] = dwServerTime;
+		const bool chatFlood = chat_submit::RecordSubmission(m_dwLastChatTime, dwServerTime);
 
 		char istrText[128]{};
 
-		if (dwServerTime - dwLastChatTime < 4000)
+		if (chatFlood)
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[33], 2000);
 			m_pMessagePanel->SetVisible(1, 1);
@@ -3341,39 +3339,25 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			return 1;
 		}
 
-		if (m_szLastChatList[0][0])
-		{
-			if (strcmp(m_szLastChatList[0], pEditChat->GetText()))
-			{
-				for (int j = 4; j > 0; --j)
-					memcpy(m_szLastChatList[j], m_szLastChatList[j - 1], 128);
-
-				sprintf(m_szLastChatList[0], "%s", pEditChat->GetText());
-			}
-		}
-		else
-		{
-			for (int k = 0; k < 5; ++k)
-			{
-				sprintf(m_szLastChatList[k], "%s", pEditChat->GetText());
-			}
-		}
+		chat_submit::Remember(m_szLastChatList, pEditChat->GetText());
 
 		m_sChatIndex = 0;
 
-		if (!strcmp(pEditChat->GetText(), g_pMessageStringTable[191]))
+		switch (chat_submit::ClassifyLocal(pEditChat->GetText(), g_pMessageStringTable[191]))
+		{
+		case chat_submit::LocalCommand::Clear:
 		{
 			pEditChat->SetText((char*)"");
 			m_pControlContainer->SetFocusedControl(0);
 			return 1;
 		}
-		else if (!strcmp(pEditChat->GetText(), "/help"))
+		case chat_submit::LocalCommand::Help:
 		{
 			OnKeyHelp(104, 0);
 			pEditChat->SetText((char*)"");
 			return 1;
 		}
-		else if (!strcmp(pEditChat->GetText(), "effects"))
+		case chat_submit::LocalCommand::Effects:
 		{
 			if (g_bHideEffect)
 			{
@@ -3392,7 +3376,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			m_pControlContainer->SetFocusedControl(0);
 			return 1;
 		}
-		else if (!strcmp(pEditChat->GetText(), "fps"))
+		case chat_submit::LocalCommand::Fps:
 		{
 			g_pDevice->m_bDrawFPS = g_pDevice->m_bDrawFPS == 0;
 			pEditChat->SetText((char*)"");
@@ -3400,22 +3384,21 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			UpdateScoreUI(0);
 			return 1;
 		}
-
-		else if (!strcmp(pEditChat->GetText(), "effects2"))
+		case chat_submit::LocalCommand::Effects2:
 		{
 			g_pDevice->m_bShowEffects = !g_pDevice->m_bShowEffects;
 			pEditChat->SetText((char*)"");
 			m_pControlContainer->SetFocusedControl(0);
 			return 1;
 		}
-		else if (!strcmp(pEditChat->GetText(), "effectold"))
+		case chat_submit::LocalCommand::EffectOld:
 		{
 			g_bHideSkillBuffEffect = !g_bHideSkillBuffEffect;
 			pEditChat->SetText((char*)"");
 			m_pControlContainer->SetFocusedControl(0);
 			return 1;
 		}
-		else if (!strcmp(pEditChat->GetText(), "exp"))
+		case chat_submit::LocalCommand::Exp:
 		{
 			m_bShowExp = m_bShowExp == 0;
 			char str[128]{};
@@ -3427,8 +3410,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			SysMsgChat(str);
 			return 1;
 		}
+		case chat_submit::LocalCommand::None:
+			break;
+		}
 
-		unsigned int idwFontColor = 0xFFFFAAAA;
+		unsigned int idwFontColor = chat_submit::kPlainColor;
 
 		char Chat[128]{};
 		sprintf(Chat, "%s", pEditChat->GetText());
@@ -3437,68 +3423,32 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		auto pPartyList = m_pPartyList;
 		auto pChatList = m_pChatList;
+		const auto route = chat_submit::ClassifyPrefix(Chat);
 		int idx = 0;
-		switch (Chat[0])
+		switch (route.prefix)
 		{
-		case '-':
-		{
-			idwFontColor = 0xFFAAFFFF;
-			idx = 1;
-			int nStartIndex = 1;
-			if (Chat[1] == '-')
-			{
-				idwFontColor = 0xFF00FFFF;
-				nStartIndex = 2;
-				idx = 2;
-			}
-
-			InsertInChatList(pChatList, pMobData, pEditChat, idwFontColor, 3, nStartIndex);
-		}
-		break;
-		case '=':
-		{
+		case chat_submit::Prefix::Party:
 			if (pPartyList->m_nNumItem <= 0)
 			{
 				pEditChat->SetText((char*)"");
 				return 0;
 			}
-			idx = 2;
-			idwFontColor = 0xFFFF99FF;
-
-			InsertInChatList(pChatList, pMobData, pEditChat, idwFontColor, 1, 1);
-		}
-		break;
-
-		case '@':
+			[[fallthrough]];
+		case chat_submit::Prefix::Dash:
+		case chat_submit::Prefix::DoubleDash:
+		case chat_submit::Prefix::At:
+		case chat_submit::Prefix::DoubleAt:
+			idwFontColor = route.color;
+			idx = route.idx;
+			InsertInChatList(pChatList, pMobData, pEditChat, idwFontColor, route.colorId, route.startIndex);
+			break;
+		case chat_submit::Prefix::Slash:
 		{
-			idwFontColor = 0xFFAAFFFF;
-
-			int nStartIndex = 1;
-			if (Chat[1] == '@')
-			{
-
-				idwFontColor = 0xF0F60AFF;
-				idx = 3;
-				nStartIndex = 2;
-			}
-			else
-			{
-				idwFontColor = 0xFF00AAFF;
-				idx = 2;
-				nStartIndex = 1;
-			}
-
-			InsertInChatList(pChatList, pMobData, pEditChat, idwFontColor, 3, nStartIndex);
-
-		}
-		break;
-		case '/':
-		{
-			idx = 3;
+			idx = route.idx;
 			char str1[128]{};
 			sscanf(Chat, "/%s", str1);
 
-			if (!strcmp(str1, "relo") || !strcmp(str1, g_pMessageStringTable[234]) || !strcmp(str1, "Relocate") || !strcmp(str1, "relocate"))
+			if (chat_submit::IsRelocate(str1, g_pMessageStringTable[234]))
 			{
 				if (!m_pAutoTrade->IsVisible())
 				{
@@ -3516,7 +3466,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				return 1;
 			}
 
-			idwFontColor = 0xFFFFFF00;
+			idwFontColor = chat_submit::kCommandColor;
 
 			MSG_MessageWhisper stMsgWhisper{};
 			stMsgWhisper.Header.ID = g_pObjectManager->m_dwCharID;
@@ -3525,26 +3475,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			sprintf(stMsgWhisper.MobName, "%s", str1);
 			strcpy(m_cWhisperName, str1);
 
-			if (strlen(str1) >= 16)
-			{
-				str1[15] = 0;
-				str1[14] = 0;
-			}
-			if (m_szWhisperList[0][0])
-			{
-				if (strcmp(m_szWhisperList[0], str1))
-				{
-					for (int l = 4; l > 0; --l)
-						memcpy(m_szWhisperList[l], m_szWhisperList[l - 1], 16);
-
-					sprintf(m_szWhisperList[0], "%s", str1);
-				}
-			}
-			else
-			{
-				for (int m = 0; m < 5; ++m)
-					sprintf(m_szWhisperList[m], "%s", str1);
-			}
+			chat_submit::TruncateCommandName(str1);
+			chat_submit::Remember(m_szWhisperList, str1);
 
 			m_sWhisperIndex = 0;
 			auto pChatText = pEditChat->GetText();
@@ -3556,29 +3488,39 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 			BASE_TransCurse(stMsgWhisper.String);
 
-			if (!strcmp(str1, "summonguild"))
+			const chat_submit::CommandNames commandNames{
+				g_pMessageStringTable[389], g_pMessageStringTable[386], g_pMessageStringTable[387],
+				g_pMessageStringTable[391], g_pMessageStringTable[390], g_pMessageStringTable[496],
+				g_pMessageStringTable[497]};
+			const auto command = chat_submit::ClassifyCommand(str1, commandNames);
+			switch (command)
 			{
-				if (m_pMyHuman->m_fProgressRate < 0.89999998f && m_pMyHuman->m_fProgressRate > 0.0f)
+			case chat_submit::Command::SummonGuild:
+			{
+				if (chat_submit::IsBlockedByProgress(m_pMyHuman->m_fProgressRate))
 					return 1;
 
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
-			else if (!strcmp(str1, "king") || !strcmp(str1, "kingdom") || !strcmp(str1, "King") || !strcmp(str1, "Kingdom"))
+			break;
+			case chat_submit::Command::Kingdom:
 			{
-				if (m_pMyHuman->m_fProgressRate < 0.89999998f && m_pMyHuman->m_fProgressRate > 0.0f)
+				if (chat_submit::IsBlockedByProgress(m_pMyHuman->m_fProgressRate))
 					return 1;
 
 				m_stLastWhisper = stMsgWhisper;
 				m_cLastWhisper = 1;
 				m_dwLastWhisper = g_pTimerManager->GetServerTime();
 			}
-			else if (!strcmp(str1, g_pMessageStringTable[389]))
+			break;
+			case chat_submit::Command::Speaker:
 			{
-				sprintf(stMsgWhisper.MobName, "%s", "spk");
+				sprintf(stMsgWhisper.MobName, "%s", chat_submit::ServerKeyword(command));
 				strcpy(m_cWhisperName, g_pMessageStringTable[389]);
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
-			else if (!strcmp(str1, g_pMessageStringTable[386]))
+			break;
+			case chat_submit::Command::GuildCreate:
 			{
 				if (m_pMyHuman->m_sGuildLevel)
 				{
@@ -3592,47 +3534,36 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 					m_pMessagePanel->SetVisible(1, 1);
 					return 1;
 				}
-				sprintf(stMsgWhisper.MobName, "%s", "create");
+				sprintf(stMsgWhisper.MobName, "%s", chat_submit::ServerKeyword(command));
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
-			else if (!strcmp(str1, g_pMessageStringTable[387]))
+			break;
+			case chat_submit::Command::GuildHandover:
 			{
-				if (m_pMyHuman->m_sGuildLevel != 9 && (m_pMyHuman->m_sGuildLevel < 3 || m_pMyHuman->m_sGuildLevel > 8))
+				if (!chat_submit::CanHandOverGuild(m_pMyHuman->m_sGuildLevel))
 				{
 					m_pMessagePanel->SetMessage(g_pMessageStringTable[373], 2000);
 					m_pMessagePanel->SetVisible(1, 1);
 					return 1;
 				}
-				sprintf(stMsgWhisper.MobName, "%s", "handover");
+				sprintf(stMsgWhisper.MobName, "%s", chat_submit::ServerKeyword(command));
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
-			else if (!strcmp(str1, g_pMessageStringTable[391]))
+			break;
+			case chat_submit::Command::GuildExpel:
+			case chat_submit::Command::GuildWar:
+			case chat_submit::Command::ItemLock:
+			case chat_submit::Command::ItemUnlock:
 			{
-				sprintf(stMsgWhisper.MobName, "%s", "getout");
+				sprintf(stMsgWhisper.MobName, "%s", chat_submit::ServerKeyword(command));
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
-			else if (!strcmp(str1, g_pMessageStringTable[390]))
-			{
-				sprintf(stMsgWhisper.MobName, "%s", "war");
-				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
-			}
-			else if (!strcmp(str1, "srv"))
-			{
+			break;
+			case chat_submit::Command::ServerQuery:
 				return 1;
-			}
-			else if (!strcmp(str1, g_pMessageStringTable[496]))
+			case chat_submit::Command::Nickname:
 			{
-				sprintf(stMsgWhisper.MobName, "%s", "item_lock");
-				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
-			}
-			else if (!strcmp(str1, g_pMessageStringTable[497]))
-			{
-				sprintf(stMsgWhisper.MobName, "%s", "item_unlock");
-				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
-			}
-			else if (!strcmp(str1, "tab"))
-			{
-				if (m_pMyHuman->m_fProgressRate < 0.89999998f && m_pMyHuman->m_fProgressRate > 0.0f)
+				if (chat_submit::IsBlockedByProgress(m_pMyHuman->m_fProgressRate))
 					return 1;
 
 				if (!strcmp(m_pMyHuman->m_szNickName, stMsgWhisper.String))
@@ -3642,10 +3573,13 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 			}
-			else
+			break;
+			case chat_submit::Command::Whisper:
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
+				break;
+			}
 
-			if (!strcmp(str1, "r") || !(strcmp(str1, "re")))
+			if (chat_submit::IsReplyAlias(str1))
 			{
 				sprintf(str1, g_pMessageStringTable[61]);
 				sprintf(istrText, "[%s] [%s]> %s", g_pObjectManager->m_stMobData.MobName, str1, stMsgWhisper.String);
@@ -3903,59 +3837,38 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 		if (strcmp(inputText, "all"))
 		{
-			bool bFind = false;
-
-			for (int n = 0; n < inputTextLen; ++n)
-			{
-				if (inputText[n] < '0' || inputText[n] > '9')
-				{
-					bFind = true;
-					break;
-				}
-			}
-
-			for (int n = 0; n < inputTextLen; ++n)
-			{
-				if (inputText[n] == '%')
-					inputText[n] = '!';
-			}
+			const bool bFind = coin_input::ScanAndSanitize(inputText, inputTextLen);
 
 			long long nInputValue = _atoi64(pInputText->GetText());
 
-			if (strlen(pInputText->GetText()) <= 0)
+			switch (coin_input::Validate(m_nCoinMsgType, strlen(pInputText->GetText()), bFind,
+				nInputValue, [] { return g_pObjectManager->m_stMobData.Coin; }))
+			{
+			case coin_input::Rejection::Empty:
 			{
 				m_pControlContainer->SetFocusedControl(pInputText);
 				return 1;
 			}
-
-			if (m_nCoinMsgType != 12 &&
-				m_nCoinMsgType != 11 &&
-				m_nCoinMsgType != 8 &&
-				m_nCoinMsgType != 3 &&
-				m_nCoinMsgType != 6)
+			case coin_input::Rejection::InvalidAmount:
 			{
-				if (bFind == true || nInputValue < 0 || nInputValue > g_pObjectManager->m_stMobData.Coin && !m_nCoinMsgType)
-				{
-					m_pMessagePanel->SetMessage(g_pMessageStringTable[34], 1000);
-					m_pMessagePanel->SetVisible(1, 1);
-					m_pControlContainer->SetFocusedControl(pInputText);
-					// The stock 7.48 price prompt has no newer chat selector; keep
-					// invalid-price feedback usable when that optional control is absent.
-					if (m_pChatSelectPanel)
-						m_pChatSelectPanel->SetVisible(0);
-					return 1;
-				}
+				m_pMessagePanel->SetMessage(g_pMessageStringTable[34], 1000);
+				m_pMessagePanel->SetVisible(1, 1);
+				m_pControlContainer->SetFocusedControl(pInputText);
+				// The stock 7.48 price prompt has no newer chat selector; keep
+				// invalid-price feedback usable when that optional control is absent.
+				if (m_pChatSelectPanel)
+					m_pChatSelectPanel->SetVisible(0);
+				return 1;
 			}
-
-			if (bFind == true && m_nCoinMsgType == 12)
+			case coin_input::Rejection::InvalidName:
 			{
 				m_pMessagePanel->SetMessage(g_pMessageStringTable[409], 1000);
 				m_pMessagePanel->SetVisible(1, 1);
 				m_pControlContainer->SetFocusedControl(pInputText);
 				return 1;
 			}
-
-			if (m_nCoinMsgType == 4 && !field_interaction::IsValidAutoTradePrice(nInputValue))
+			case coin_input::Rejection::AutoTradeNonPositive:
+			case coin_input::Rejection::AutoTradeAboveLimit:
 			{
 				char istrMessage[128]{};
 
@@ -3970,15 +3883,15 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				m_pControlContainer->SetFocusedControl(pInputText);
 				return 1;
 			}
-
-			if ((m_nCoinMsgType == kDeclareServerWarPromptMode ||
-				m_nCoinMsgType == kRefuseServerWarPromptMode) &&
-				!IsEncodableServerWarTargetChannel(nInputValue))
+			case coin_input::Rejection::ServerWarChannel:
 			{
 				m_pMessagePanel->SetMessage(g_pMessageStringTable[34], 1000);
 				m_pMessagePanel->SetVisible(1, 1);
 				m_pControlContainer->SetFocusedControl(pInputText);
 				return 1;
+			}
+			case coin_input::Rejection::None:
+				break;
 			}
 
 			switch (m_nCoinMsgType)
@@ -4320,13 +4233,14 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			//{
 
 			//}
-			if (!m_nCoinMsgType || m_nCoinMsgType == 1 || m_nCoinMsgType == 7)
+			const auto allSource = coin_input::AllAmountSource(m_nCoinMsgType);
+			if (allSource == coin_input::AllSource::Carried)
 			{
 				sprintf_s(szText, "%d", g_pObjectManager->m_stMobData.Coin);
 
 				pInputText->SetText(szText);
 			}
-			else if (m_nCoinMsgType == 2)
+			else if (allSource == coin_input::AllSource::Cargo)
 			{
 				sprintf_s(szText, "%d", g_pObjectManager->m_nCargoCoin);
 
