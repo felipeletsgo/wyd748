@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD-Go 7.48 Feature"
-  short_description: "Implementar server autoritativo e contratos client/server"
-  default_prompt: "Use $wydgo748-feature para implementar o delta autoritativo em patches pequenos, reutilizando contratos comprovados e aplicando testes proporcionais aos consumidores afetados."
+  short_description: "Implement the authoritative server and client/server contracts"
+  default_prompt: "Use $wydgo748-feature to implement the authoritative delta in small patches, reusing proven contracts and applying tests proportional to the affected consumers."

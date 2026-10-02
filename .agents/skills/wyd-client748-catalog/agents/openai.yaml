@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD Client 7.48 Catalog"
-  short_description: "Priorizar funções nativas 7.48 com evidência"
-  default_prompt: "Use $wyd-client748-catalog para localizar a próxima raiz ainda sem seed, reutilizando o censo válido e entregando candidatos e lacunas à pesquisa sem refazer a triagem global."
+  short_description: "Prioritize native 7.48 functions with evidence"
+  default_prompt: "Use $wyd-client748-catalog to locate the next root that has no seed yet, reusing the valid census and handing candidates and gaps to research without redoing the global triage."

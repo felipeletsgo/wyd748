@@ -8,6 +8,9 @@ a partial translation as completion.
 ## Completed entry points
 
 - Root repository rules and all active skill entry points.
+- The Codex `agents/openai.yaml` metadata of the catalog, research, and
+  server feature skills; keys and `$skill` references are unchanged. The
+  Claude Code entry points (`CLAUDE.md`, `.claude/`) were authored in English.
 - The emulator and cross-cutting contract references in the server feature
   skill are in English. The latter no longer permits Portuguese logs or
   comments; both now follow the repository-wide rule. Its session-continuity

@@ -26,6 +26,7 @@
 /wydgo748/web/portal/.astro/
 /wydgo748/web/portal/.env*
 /.codex/
+/.claude/settings.local.json
 /.tmp/
 /tmp/
 .gocache*/

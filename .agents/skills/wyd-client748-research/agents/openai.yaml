@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD Client 7.48 Research"
-  short_description: "Rastrear fluxos nativos 7.48 com evidência"
-  default_prompt: "Use $wyd-client748-research para resolver a lacuna da transição legada afetada, reutilizar evidência válida e liberar a adaptação assim que o gate necessário estiver comprovado."
+  short_description: "Trace native 7.48 flows with evidence"
+  default_prompt: "Use $wyd-client748-research to close the gap in the affected legacy transition, reuse valid evidence, and release the adaptation as soon as the required gate is proven."

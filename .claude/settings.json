@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Bash(git reset --hard)",
+      "Bash(git reset --hard *)",
+      "Bash(git checkout -- *)",
+      "Bash(git push *--force*)",
+      "Bash(git push *-f *)",
+      "Bash(git push *-f)",
+      "Bash(git clean *)",
+      "PowerShell(git reset --hard)",
+      "PowerShell(git reset --hard *)",
+      "PowerShell(git checkout -- *)",
+      "PowerShell(git push *--force*)",
+      "PowerShell(git push *-f *)",
+      "PowerShell(git push *-f)",
+      "PowerShell(git clean *)",
+      "Edit(references/**)"
+    ]
+  }
+}

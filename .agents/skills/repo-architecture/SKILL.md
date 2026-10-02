@@ -14,10 +14,14 @@ Use this skill for structural, documentation, or skill-maintenance tasks.
 - `DOCS/`: durable documentation, indexed by `README.md` and
   `documentation-map.md`;
 - `.agents/skills/`: active skills;
-- `.agents/research/` and `.agents/handoffs/`: evidence and continuity records.
+- `.agents/research/` and `.agents/handoffs/`: evidence and continuity records;
+- `CLAUDE.md` and `.claude/`: Claude Code entry points only (an `AGENTS.md`
+  import, skill pointers, shared settings); see
+  `DOCS/agent-environments.md`.
 
 Do not create `AGENTS.md`, `CLAUDE.md`, a project README, research script,
-dump, log, or temporary file inside the source trees. Keep only the two active
+dump, log, or temporary file inside the source trees. Never add rules to the
+root `CLAUDE.md` or procedure to `.claude/skills/`. Keep only the two active
 source roots above. Binary evidence belongs in `references/client748/`.
 Follow the repository-wide English-only language rule in `AGENTS.md`.
 
@@ -43,8 +47,12 @@ Each active skill has one short, specific `SKILL.md`. Avoid duplicating global
 rules in every skill. References and scripts need a clear purpose, current
 paths, and reproducible tests.
 
-When creating or revising skills, use the session's `skill-creator` skill.
-Validate frontmatter and review triggering, evidence reuse, and blocking
-scenarios. Valid YAML alone does not prove that the workflow avoids loops. Do
+Adding, renaming, removing, or redescribing a skill also updates its pointer
+in `.claude/skills/<name>/SKILL.md` (same `name` and `description`, link to
+the canonical file); the layout validator enforces this parity.
+
+When creating or revising skills, use the agent's `skill-creator` skill
+(Codex or Claude Code). Validate frontmatter and review triggering, evidence
+reuse, and blocking scenarios. Valid YAML alone does not prove that the workflow avoids loops. Do
 not invoke gameplay skills merely because documentation mentions a client or
 server.

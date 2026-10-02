@@ -1,8 +1,10 @@
 # WYD-Go — repository rules
 
 This is the repository's only active rule file. Do not create another
-`AGENTS.md`, `CLAUDE.md`, or equivalent inside a source tree. Archived rules
-are documentation, not active instructions.
+`AGENTS.md`, `CLAUDE.md`, or equivalent inside a source tree. The root
+`CLAUDE.md` only imports this file for Claude Code and must hold no rules
+([agent environments](DOCS/agent-environments.md)). Archived rules are
+documentation, not active instructions.
 
 ## Project language
 
@@ -142,7 +144,9 @@ builds, static checks, and isolated tests do not substitute for it.
 | Native census and root selection | `wyd-client748-catalog` |
 | Runtime assets and resources | `wyd-client748-assets` |
 
-Skills detail procedures; this file holds global rules.
+Skills detail procedures; this file holds global rules. Canonical skills live
+in `.agents/skills/`; each `.claude/skills/<name>/SKILL.md` is a Claude Code
+pointer with the same name and description and holds no procedure.
 
 ## Proportional validation
 

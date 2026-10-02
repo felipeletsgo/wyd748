@@ -24,6 +24,7 @@ documentation, research evidence, and continuity records.
 | Adapt the 7.48 client | [Client port](client/port-748.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
+| Work with Codex or Claude Code | [Agent environments](agent-environments.md) |
 | Track the English-only migration | [Language migration](language-migration.md) |
 
 The schedule, rewards, commands, and open guild-war work are documented in
@@ -50,7 +51,8 @@ snapshot, not the current work queue.
   `DOCS/`.
 - Technical evidence for agent work belongs in `.agents/research/`; handoffs
   belong in `.agents/handoffs/`.
-- Operational skills belong in `.agents/skills/`.
+- Operational skills belong in `.agents/skills/`. The root `CLAUDE.md` and
+  `.claude/skills/` only point Claude Code to `AGENTS.md` and those skills.
 - `tmproject/` and `wydgo748/` are reserved for source, assets, and data needed
   for execution or builds. Do not place documentation or temporary files there.
 - `testdata/protocol/` contains canonical fixtures shared by client and

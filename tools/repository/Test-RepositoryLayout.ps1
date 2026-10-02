@@ -1,6 +1,7 @@
 <#
 .SYNOPSIS
-Checks the single rules file, documentation placement, and reproducible inventory.
+Checks the single rules file and its Claude Code import, Claude Code skill
+pointers, documentation placement, and reproducible inventory.
 #>
 [CmdletBinding()]
 param([switch]$UpdateMap)
@@ -11,7 +12,7 @@ $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $mapPath = Join-Path $repoRoot 'DOCS/documentation-map.md'
 $issues = [Collections.Generic.List[string]]::new()
 $documents = @(Get-ChildItem -LiteralPath $repoRoot -File -Filter '*.md')
-foreach ($directory in @('DOCS', '.agents')) {
+foreach ($directory in @('DOCS', '.agents', '.claude')) {
     $documents += @(Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -File -Recurse -Filter '*.md')
 }
 $documents = @($documents | Sort-Object FullName -Culture en-US)
@@ -29,9 +30,58 @@ foreach ($directory in @('tmproject', 'wydgo748', 'tools', '.github')) {
         $issues.Add("Documentation outside its canonical location: $($file.FullName)")
     }
 }
+# The root CLAUDE.md is a Claude Code import of AGENTS.md; it may hold nothing else.
+$claudeShimPath = Join-Path $repoRoot 'CLAUDE.md'
+$claudeShim = "<!-- Claude Code entry point: imports AGENTS.md, the single rules file. Add no rules here. -->`n@AGENTS.md"
 foreach ($file in $documents) {
-    if ($file.Name -match '^(AGENTS|CLAUDE)(.*)\.md$' -and $file.FullName -ne (Join-Path $repoRoot 'AGENTS.md')) {
-        $issues.Add("Duplicate rules file: $($file.FullName)")
+    if ($file.Name -notmatch '^(AGENTS|CLAUDE)(.*)\.md$' -or $file.FullName -eq (Join-Path $repoRoot 'AGENTS.md')) { continue }
+    if ($file.FullName -eq $claudeShimPath) {
+        if ([IO.File]::ReadAllText($file.FullName).Replace("`r`n", "`n").Trim() -cne $claudeShim) {
+            $issues.Add("CLAUDE.md must contain only the AGENTS.md import shim: $($file.FullName)")
+        }
+        continue
+    }
+    $issues.Add("Duplicate rules file: $($file.FullName)")
+}
+
+# Each canonical skill needs a Claude Code pointer with identical name and description.
+function Get-SkillFrontmatter([string]$path) {
+    $fields = @{}
+    $text = [IO.File]::ReadAllText($path).Replace("`r`n", "`n")
+    $match = [regex]::Match($text, '\A---\n(?<body>.*?)\n---\n', 'Singleline')
+    if (-not $match.Success) { return $fields }
+    foreach ($line in $match.Groups['body'].Value -split "`n") {
+        if ($line -match '^(?<key>[a-z-]+):\s*(?<value>.*)$') { $fields[$Matches['key']] = $Matches['value'].Trim() }
+    }
+    return $fields
+}
+$canonicalSkills = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot '.agents/skills') -Directory | Where-Object { Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md') })
+$pointerRoot = Join-Path $repoRoot '.claude/skills'
+foreach ($skill in $canonicalSkills) {
+    $canonical = Get-SkillFrontmatter (Join-Path $skill.FullName 'SKILL.md')
+    $pointerPath = Join-Path $pointerRoot "$($skill.Name)/SKILL.md"
+    if (-not $canonical['name'] -or -not $canonical['description']) {
+        $issues.Add("Skill without name/description frontmatter: .agents/skills/$($skill.Name)/SKILL.md")
+    }
+    if (-not (Test-Path -LiteralPath $pointerPath)) {
+        $issues.Add("Missing Claude Code skill pointer: .claude/skills/$($skill.Name)/SKILL.md")
+        continue
+    }
+    $pointer = Get-SkillFrontmatter $pointerPath
+    foreach ($key in @('name', 'description')) {
+        if ($pointer[$key] -cne $canonical[$key]) {
+            $issues.Add("Claude Code skill pointer $key differs from canonical: .claude/skills/$($skill.Name)/SKILL.md")
+        }
+    }
+    if (-not [IO.File]::ReadAllText($pointerPath).Contains("(../../../.agents/skills/$($skill.Name)/SKILL.md)")) {
+        $issues.Add("Claude Code skill pointer does not link its canonical skill: .claude/skills/$($skill.Name)/SKILL.md")
+    }
+}
+if (Test-Path -LiteralPath $pointerRoot) {
+    foreach ($pointer in Get-ChildItem -LiteralPath $pointerRoot -Directory) {
+        if (-not (Test-Path -LiteralPath (Join-Path $repoRoot ".agents/skills/$($pointer.Name)/SKILL.md"))) {
+            $issues.Add("Claude Code skill pointer without a canonical skill: .claude/skills/$($pointer.Name)")
+        }
     }
 }
 
@@ -54,7 +104,9 @@ foreach ($file in $documents) {
         elseif ($relative -like '.agents/skills/*') { 'Operational reference' }
         elseif ($relative -like '.agents/research/*') { 'Research evidence' }
         elseif ($relative -like '.agents/handoffs/*') { 'Historical continuity' }
+        elseif ($relative -like '.claude/skills/*/SKILL.md') { 'Claude Code skill pointer' }
         elseif ($relative -eq 'AGENTS.md') { 'Single rules file' }
+        elseif ($relative -eq 'CLAUDE.md') { 'Claude Code import of AGENTS.md' }
         else { 'Product documentation' }
     $lines.Add("| [$relative](<$target>) | $kind |")
 }

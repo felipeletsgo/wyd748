@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 152.
+Markdown documents: 159.
 
 | Document | Type |
 | --- | --- |
@@ -133,7 +133,14 @@ Markdown documents: 152.
 | [.agents/skills/wydgo748-feature/references/repository-contracts.md](<../.agents/skills/wydgo748-feature/references/repository-contracts.md>) | Operational reference |
 | [.agents/skills/wydgo748-feature/references/session-continuity.md](<../.agents/skills/wydgo748-feature/references/session-continuity.md>) | Operational reference |
 | [.agents/skills/wydgo748-feature/SKILL.md](<../.agents/skills/wydgo748-feature/SKILL.md>) | Active skill |
+| [.claude/skills/repo-architecture/SKILL.md](<../.claude/skills/repo-architecture/SKILL.md>) | Claude Code skill pointer |
+| [.claude/skills/wyd-client748-assets/SKILL.md](<../.claude/skills/wyd-client748-assets/SKILL.md>) | Claude Code skill pointer |
+| [.claude/skills/wyd-client748-catalog/SKILL.md](<../.claude/skills/wyd-client748-catalog/SKILL.md>) | Claude Code skill pointer |
+| [.claude/skills/wyd-client748-research/SKILL.md](<../.claude/skills/wyd-client748-research/SKILL.md>) | Claude Code skill pointer |
+| [.claude/skills/wydgo748-feature/SKILL.md](<../.claude/skills/wydgo748-feature/SKILL.md>) | Claude Code skill pointer |
 | [AGENTS.md](<../AGENTS.md>) | Single rules file |
+| [CLAUDE.md](<../CLAUDE.md>) | Claude Code import of AGENTS.md |
+| [DOCS/agent-environments.md](<agent-environments.md>) | Product documentation |
 | [DOCS/architecture-map.md](<architecture-map.md>) | Product documentation |
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Product documentation |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Product documentation |
