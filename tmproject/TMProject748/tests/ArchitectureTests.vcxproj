@@ -38,6 +38,13 @@
     <ClCompile Include="CargoSlotTests.cpp" />
     <ClCompile Include="GridInsertionTests.cpp" />
     <ClCompile Include="CostumeSelectionTests.cpp" />
+    <ClCompile Include="HumanCostumeRefinementTests.cpp" />
+    <ClCompile Include="FieldSceneChatContractTests.cpp" />
+    <ClCompile Include="FieldChatControlTests.cpp" />
+    <ClCompile Include="AttackVisualDamageTests.cpp" />
+    <ClCompile Include="SkillAttackRequestTests.cpp">
+      <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
     <ClCompile Include="ResourceBarProjectionTests.cpp" />
     <ClCompile Include="ObservedAffectProjectionTests.cpp" />
     <ClCompile Include="CCModePolicyTests.cpp" />

@@ -3,20 +3,23 @@ param([string]$Root = (Resolve-Path "$PSScriptRoot/../../..").Path,
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $runtime = Join-Path $Root 'tmproject/client748'
-$human = Get-Content (Join-Path $Root 'tmproject/TMProject748/internal/game/entities/TMHuman.cpp') -Raw
+$combat = Get-Content (Join-Path $Root 'tmproject/TMProject748/internal/game/entities/TMHumanCombat.cpp') -Raw
+$effects = Get-Content (Join-Path $Root 'tmproject/TMProject748/internal/game/entities/TMHumanEffects.cpp') -Raw
 $failures = [Collections.Generic.List[string]]::new()
 function Check([bool]$condition, [string]$message) {
     if (!$condition) { $failures.Add($message) }
 }
 
 # Static regression checks on production code, not an in-game visual test.
-Check (!$human.Contains('Act1[i + m_cMount ?') -and !$human.Contains('Act2[i + m_cMount ?')) 'Ground motion precedence regression'
+Check (!$combat.Contains('Act1[i + m_cMount ?') -and !$combat.Contains('Act2[i + m_cMount ?')) 'Ground motion precedence regression'
 foreach ($act in 'Act1','Act2') {
-    Check ($human.Contains("$act[i + (m_cMount == 1 ? 3 : 0)]")) "Missing native ground $act indexing"
+    Check ($combat.Contains("$act[i + (m_cMount == 1 ? 3 : 0)]")) "Missing native ground $act indexing"
 }
-$eventStart = $human.IndexOf('if (m_stEffectEvent.dwTime &&')
-$eventEnd = $human.IndexOf('memset(&m_stEffectEvent', $eventStart)
-$event = $human.Substring($eventStart, $eventEnd - $eventStart)
+$eventStart = $effects.IndexOf('if (m_stEffectEvent.dwTime &&')
+if ($eventStart -lt 0) { throw 'Deferred effect event is missing from TMHumanEffects.cpp.' }
+$eventEnd = $effects.IndexOf('memset(&m_stEffectEvent', $eventStart)
+if ($eventEnd -le $eventStart) { throw 'Deferred effect event reset is missing or misplaced.' }
+$event = $effects.Substring($eventStart, $eventEnd - $eventStart)
 Check (!$event.Contains('m_stEffectEvent.sEffectIndex = 0')) 'Ground cast ID is erased'
 Check (!$event.Contains('sEffectIndex != 90')) 'Non-projectile skill 90 can repeat forever'
 

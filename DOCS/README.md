@@ -22,10 +22,13 @@ documentation, research evidence, and continuity records.
 | Check server state | [Server operations](server/operations.md) and code/tests in `wydgo748/` |
 | Check open 7.48 adaptation work | [Client port](client/port-748.md), [opcode catalog](wire-opcode-catalog.md), and the flow records in `.agents/research/client748/` |
 | Adapt the 7.48 client | [Client port](client/port-748.md) |
+| Plan the TMHuman source separation | [TMHuman separation plan](client/tmhuman-separation-plan.md) |
+| Plan the TMFieldScene refactoring | [TMFieldScene refactoring plan](client/tmfieldscene-refactoring-plan.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Work with Codex or Claude Code | [Agent environments](agent-environments.md) |
 | Track the English-only migration | [Language migration](language-migration.md) |
+| Reduce agent context/token costs and evaluate Jev | [Agent token efficiency](agent-token-efficiency.md) |
 
 The schedule, rewards, commands, and open guild-war work are documented in
 [Guild wars](guild-wars.md). The [WYD Web Platform](WYD-WEB-PLATAFORM.md)

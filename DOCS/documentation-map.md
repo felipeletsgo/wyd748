@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 159.
+Markdown documents: 162.
 
 | Document | Type |
 | --- | --- |
@@ -141,10 +141,13 @@ Markdown documents: 159.
 | [AGENTS.md](<../AGENTS.md>) | Single rules file |
 | [CLAUDE.md](<../CLAUDE.md>) | Claude Code import of AGENTS.md |
 | [DOCS/agent-environments.md](<agent-environments.md>) | Product documentation |
+| [DOCS/agent-token-efficiency.md](<agent-token-efficiency.md>) | Product documentation |
 | [DOCS/architecture-map.md](<architecture-map.md>) | Product documentation |
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Product documentation |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Product documentation |
 | [DOCS/client/port-748.md](<client/port-748.md>) | Product documentation |
+| [DOCS/client/tmfieldscene-refactoring-plan.md](<client/tmfieldscene-refactoring-plan.md>) | Product documentation |
+| [DOCS/client/tmhuman-separation-plan.md](<client/tmhuman-separation-plan.md>) | Product documentation |
 | [DOCS/client/ui-windows.md](<client/ui-windows.md>) | Product documentation |
 | [DOCS/documentation-map.md](<documentation-map.md>) | Product documentation |
 | [DOCS/features-macro.md](<features-macro.md>) | Product documentation |

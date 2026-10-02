@@ -5,6 +5,7 @@
 #include <string>
 #include <windows.h>
 #include "../internal/platform/windows/AdapterIdentity.h"
+#include "SourceMethod.h"
 
 namespace {
 std::filesystem::path FindSource(const char* relativePath)
@@ -100,8 +101,9 @@ int RunLoginCredentialContractTests(int& checks)
 
     check(source.find("ReadFirstAdapterIdentity(stAccountLogin.AdapterName)") !=
         std::string::npos, "initial login uses bounded adapter identity");
-    const std::string fieldSource = LoadSource(
-        "TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    const std::string fieldSource = source_contract::Method(LoadSource(
+        "TMProject748/internal/app/scenes/TMFieldSceneSessionPackets.cpp"),
+        "int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)");
     check(fieldSource.find("ReadFirstAdapterIdentity(stAccountLogin.AdapterName)") !=
         std::string::npos, "migration login uses bounded adapter identity");
 

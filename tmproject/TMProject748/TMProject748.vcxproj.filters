@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Source Files">
@@ -243,6 +243,9 @@
     <ClInclude Include="internal\wire\AttackFrameContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\wire\AttackVisualDamage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\AirMoveContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -256,6 +259,9 @@
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="internal\game\entities\BaseCostumeLook.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\game\entities\HumanCostumeRefinement.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="internal\game\entities\SkinMotionPolicy.h">
@@ -563,6 +569,27 @@
     </ClInclude>
     <ClInclude Include="internal\app\scenes\TMFieldScene.h">
       <Filter>Header Files\Engine\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\app\scenes\FieldSceneInventorySupport.h">
+      <Filter>Header Files\Engine\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\app\scenes\FieldSceneTradeSupport.h">
+      <Filter>Header Files\Engine\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\app\scenes\FieldSceneWorldSupport.h">
+      <Filter>Header Files\Engine\Scenes</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\FieldChatControlPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\SkillRequestPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\SkillAttackRequest.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\FieldChatControl.h">
+      <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\effects\core\TMEffectSWSwing.h">
       <Filter>Header Files\Effects</Filter>
@@ -956,6 +983,33 @@
     <ClCompile Include="internal\game\entities\TMHuman.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanPackets.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanEffects.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanRender.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanMounts.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanAppearance.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanCombat.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanAnimation.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanUI.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\game\entities\TMHumanMovement.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
     <ClCompile Include="internal\game\entities\TMItem.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
@@ -1114,6 +1168,57 @@
     </ClCompile>
     <ClCompile Include="internal\app\scenes\TMFieldScene.cpp">
       <Filter>Source Files\Engine\Scenes</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneSessionPackets.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneAutomation.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneEvents.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneSocial.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneWorld.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneMovement.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneCombatPackets.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneCombat.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneSkills.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneInput.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneUI.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneMix.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneTrade.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneMerchant.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneInventoryPackets.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneInventory.cpp">
+      <Filter>Source Files\Engine</Filter>
+    </ClCompile>
+    <ClCompile Include="internal\app\scenes\TMFieldSceneChat.cpp">
+      <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\ui\SControl.cpp">
       <Filter>Source Files\Engine\UI</Filter>
