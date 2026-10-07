@@ -18,6 +18,7 @@ type quizState struct {
 	status       control.QuizStatus
 	participants map[*net.Session]*quizParticipant
 	claimed      map[string]bool
+	criticalRewards int
 }
 type quizReceipt struct {
 	command control.QuizCommand
@@ -70,7 +71,7 @@ func (w *World) quizSnapshot() control.QuizStatus {
 		}
 		w.quizEpoch = hex.EncodeToString(b[:])
 	}
-	if w.quiz != nil && w.quiz.status.EndsAt != nil && !w.now().Before(*w.quiz.status.EndsAt) {
+	if !w.shuttingDown && w.quiz != nil && w.quiz.status.EndsAt != nil && !w.now().Before(*w.quiz.status.EndsAt) {
 		w.endQuiz("time")
 	}
 	s := control.QuizStatus{}
@@ -127,6 +128,12 @@ func (w *World) handleQuiz(req *quizRequest) {
 	}
 	// Exhausting the bounded receipt cache must never prevent stopping the
 	// current event. This permits at most one extra receipt until restart.
+	if w.quiz != nil && w.quiz.criticalRewards != 0 {
+		// Do not retain a busy receipt: the same authorized operation may retry
+		// after the outstanding reward has reached a certified outcome.
+		finish("event_busy")
+		return
+	}
 	canStop := c.Action == "stop" && result.Status.Active && c.ExpectedEventID == result.Status.EventID
 	if len(w.quizReceipts) >= 1024 && !canStop {
 		finish("operation_capacity")

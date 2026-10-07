@@ -138,15 +138,39 @@ func (w *World) resolveBigCubeQuestion(inst *ItemInstance, now time.Time) bool {
 		inst.TransitionAt = now.Add(time.Duration(delay) * time.Second)
 		inst.TransitionDeadline = inst.TransitionAt
 	}
-	if err := w.saveAccountsAndInstanceState(accounts...); err != nil {
+	published := make([]bigCubeResult, 0, len(results))
+	for _, current := range results {
+		published = append(published, bigCubeResult{player: current.player, ok: current.ok,
+			levels: current.levels, exp: current.exp})
+	}
+	restore := func() {
 		*inst = oldInstance
 		for _, current := range results {
 			*current.player.Char = current.char
 			current.player.X, current.player.Y = current.x, current.y
 		}
+	}
+	completed := true
+	admitted := w.commitInstanceMutation("Big Cube answer", accounts, restore, func() {
+		completed = w.publishBigCubeAnswer(inst, published, survivors, lastQuestion, now)
+	}, nil)
+	if !admitted {
 		return false
 	}
+	return completed
+}
 
+// bigCubeResult is the published part of one member's answer.
+type bigCubeResult struct {
+	player *Player
+	ok     bool
+	levels int
+	exp    uint32
+}
+
+// publishBigCubeAnswer runs after the answer is durable.
+func (w *World) publishBigCubeAnswer(inst *ItemInstance, results []bigCubeResult, survivors []uint16,
+	lastQuestion bool, now time.Time) bool {
 	for _, current := range results {
 		p := current.player
 		if !current.ok {
@@ -161,6 +185,7 @@ func (w *World) resolveBigCubeQuestion(inst *ItemInstance, now time.Time) bool {
 		w.updatePartyMember(p)
 		if current.levels > 0 {
 			p.Session.Send(playerScorePacket(p))
+			w.syncPlayerChaos(p)
 		}
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		p.Session.Send(wire.MessagePanel(fmt.Sprintf("Correct! +%d EXP.", current.exp)))

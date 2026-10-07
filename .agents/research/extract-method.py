@@ -207,7 +207,11 @@ def all_declared(method_tokens):
         elif t == ')':
             paren -= 1
         elif t == '{':
-            braces.append(i > 0 and method_tokens[i - 1] in ('=', ',', '{', ']'))
+            # '= {', '{ {', '] {' and 'Type name {' open initializer lists; a
+            # keyword or ')' before '{' opens a statement block.
+            previous = method_tokens[i - 1] if i > 0 else ''
+            braces.append(previous in ('=', ',', '{', ']') or
+                          (re.match(r'^[A-Za-z_]\w*$', previous) is not None and previous not in KEYWORDS))
         elif t == '}':
             if braces:
                 braces.pop()
@@ -428,7 +432,9 @@ def run(spec, write):
             if range_tokens[-1] not in (';', '}'):
                 raise ValueError(f"{ex['helper']}: range must end with a complete statement")
             after_tokens = tokens(text[close_brace:m_close + 1])
-            leaked = sorted(all_declared(range_tokens) & used_names(after_tokens))
+            # Only declarations still in scope at the end of the range are visible
+            # afterwards; loop variables and nested-block locals are not.
+            leaked = sorted(declared_names(range_tokens) & used_names(after_tokens))
             if leaked:
                 raise ValueError(f"{ex['helper']}: names declared in the range are used after it: {leaked}")
         else:
@@ -458,9 +464,11 @@ def run(spec, write):
                 raise ValueError(f"{ex['helper']}: flow mode rejects goto and lambdas")
             if not escapes:
                 raise ValueError(f"{ex['helper']}: block has no escaping statement; omit 'flow'")
-            method_names = set(tokens(original_method))
-            if method_names & set(FLOW_NAMES):
-                raise ValueError(f"{ex['helper']}: the method already uses {sorted(method_names & set(FLOW_NAMES))}")
+            # Earlier flow call sites live in their own braces, so only a block that
+            # itself contains the flow names could shadow or be confused with them.
+            block_names = set(inner_tokens)
+            if block_names & set(FLOW_NAMES):
+                raise ValueError(f"{ex['helper']}: the block already uses {sorted(block_names & set(FLOW_NAMES))}")
             positions = escape_positions(inner_tokens)
             valued = any(k == 'return' and inner_tokens[i + 1] != ';' for i, k in positions)
             rtype = _method_return_type(spec)

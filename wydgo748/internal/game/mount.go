@@ -10,13 +10,13 @@ import (
 	"wydgo/internal/wire"
 )
 
-// Subsistema de montaria fiel ao WYD 7.48. O estado (HP/level/longevidade/comida)
-// vive nos slots de efeito do item (ver model/mount.go). Este arquivo concentra
-// a logica de dominio: bonus de atributo, evolucao de estagio e casamento
-// item->montaria dos consumiveis. O wiring de pacote fica em consumables.go.
+// Mount state (HP, level, longevity and food) lives in item effect slots; see
+// model/mount.go. This file owns bonuses, stage evolution and consumable
+// matching. Packet dispatch lives in consumables.go. Historical/native evidence
+// for individual behaviors is tracked separately from these implementation notes.
 
-// mountSlot e o slot nativo de montaria (Equip[14]). Equip[15] e reservado a
-// capa, inclusive as medalhas que definem Akelonia/Hekalotia.
+// mountSlot is the native mount slot (Equip[14]). Equip[15] holds the cape,
+// including medals that select Akelonia/Hekalotia.
 const mountSlot = 14
 
 // equippedMount accepts only the canonical 7.48 mount slot. Invalid persisted
@@ -29,9 +29,8 @@ func equippedMount(ch *model.Char) (*model.Item, int) {
 	return &ch.Equip[mountSlot], mountSlot
 }
 
-// mountStageThreshold devolve o level em que uma CRIA evolui para o proximo
-// estagio (sIndex+=30). Porta os limites do handler de amago do WYD 7.48: crias
-// 2330-2335 evoluem em 25/35/45/55/65/75; as demais (2336+) em 100.
+// mountStageThreshold returns the hatchling's evolution level (sIndex += 30).
+// Types 2330-2335 evolve at 25/35/45/55/65/75; other types evolve at 100.
 func mountStageThreshold(sIndex uint16) int {
 	if !model.IsMountBaby(sIndex) {
 		return 0
@@ -43,10 +42,9 @@ func mountStageThreshold(sIndex uint16) int {
 	return 100
 }
 
-// mountBonus devolve o incremento que a montaria adulta equipada concede ao
-// cavaleiro e o piso de velocidade. Fiel a BASE_GetItemAbility(EF_MOUNTLIFE):
-// dano += (level+20)*attack/100; magia += (level+15)*magic/100; evasao/resist
-// flat; velocidade vira piso. So conta com HP > 0 (montaria viva).
+// mountBonus returns the equipped adult mount's stat bonuses and speed floor.
+// BASE_GetItemAbility(EF_MOUNTLIFE) uses (level+20)*attack/100 and
+// (level+15)*magic/100, flat evasion/resistance and a speed floor. HP must be > 0.
 func (w *World) mountBonus(ch *model.Char) (attack, magic, evasion, resist, runSpeedFloor int) {
 	mount, _ := equippedMount(ch)
 	if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 {
@@ -88,8 +86,7 @@ func (w *World) premiumMountBonus(ch *model.Char, now time.Time) premiumMountSta
 	}
 }
 
-// mountMaxHP devolve o teto de HP da montaria pelo tipo (data-driven), com
-// fallback no teto global.
+// mountMaxHP returns the data-driven HP cap, falling back to the global cap.
 func (w *World) mountMaxHP(sIndex uint16) int {
 	if stats, ok := w.mounts.Stats(model.MountType(sIndex)); ok && stats.MaxHP > 0 {
 		return stats.MaxHP
@@ -97,19 +94,17 @@ func (w *World) mountMaxHP(sIndex uint16) int {
 	return model.MountMaxHP
 }
 
-// advanceMountStage evolui a cria para o proximo estagio: sIndex += 30 (novo
-// mesh cria->adulta), longevidade += rand(1..bonus), level zera. Fiel ao amago
-// (bonus 14) e a pocao de crescimento (bonus 20).
+// advanceMountStage adds 30 to the item index, adds random longevity and resets
+// level. Essence uses bonus 14; growth potions use bonus 20.
 func advanceMountStage(mount *model.Item, longevityBonus int, intn func(int) int) {
 	mount.Index += model.MountTypeCount
 	mount.SetMountLongev(mount.MountLongev() + intn(longevityBonus) + 1)
 	mount.SetMountLevel(0)
-	mount.SetMountFood(mount.MountFood()) // preserva comida; WYD 7.48 zera o flag stEffect[2].cValue
+	mount.SetMountFood(mount.MountFood()) // Preserve food; clear stEffect[2].cValue below.
 	mount.Eff[5] = 0
 }
 
-// essenceMatchesMount confirma que o amago (2390+) casa com o tipo da montaria.
-// amgIndex = (essence-2390)%30 deve igualar o tipo da montaria.
+// essenceMatchesMount requires (essence-2390)%30 to match the mount type.
 func essenceMatchesMount(essenceIndex, mountIndex uint16) bool {
 	if essenceIndex < 2390 {
 		return false
@@ -118,8 +113,7 @@ func essenceMatchesMount(essenceIndex, mountIndex uint16) bool {
 	return amg == model.MountType(mountIndex)
 }
 
-// feedMatchesMount confirma que a racao casa com a montaria. Porta o remapeamento
-// do handler Vol 15: varios tipos compartilham a mesma familia de racao.
+// feedMatchesMount applies the Vol 15 mapping: several mount types share feed.
 func feedMatchesMount(feedIndex, mountIndex uint16) bool {
 	mount := int(mountIndex-model.MountBabyBase) % model.MountTypeCount
 	if mountIndex >= model.MountAdultBase {
@@ -148,31 +142,31 @@ func feedMatchesMount(feedIndex, mountIndex uint16) bool {
 	return mount == feed
 }
 
-// mountFoodInterval e o intervalo de dreno de comida da montaria adulta enquanto
-// o personagem permanece online com ela equipada, viva e sem invulnerabilidade.
-// Cada hora completa elegivel consome exatamente 1 de Food.
+// mountFoodInterval is one complete eligible online hour with an equipped,
+// living, unprotected adult mount. Each such hour consumes one food point.
 const mountFoodInterval = time.Hour
 
-// tickPlayerMounts drena a comida da montaria adulta equipada e viva. Ao zerar a
-// comida, a montaria fica sem HP (fiel ao ProcessAdultMount: comida 0 -> HP 0) e
-// perde longevidade; o bonus some no recalc. O affect 51 (invuln) suspende o
-// dreno.
+// tickPlayerMounts drains adult mount food. Zero food removes HP and longevity;
+// recalculation removes the bonus. Affect 51 suspends food consumption.
 func (w *World) tickPlayerMounts(now time.Time) {
 	for _, p := range w.players {
-		if !p.InWorld || p.Char == nil {
+		if p == nil || !p.InWorld || p.Char == nil || w.criticalPlayerReserved(p) {
 			continue
 		}
 
-		// Incubacao possui deadline proprio e a cria precisa ser sincronizada
-		// independentemente do relogio horario de Food.
+		// Incubation and pet reconciliation are independent of the food clock.
 		w.tickEquippedEggIncubation(p, now)
+		// Incubation can acquire a fence during this iteration. Do not reset
+		// clocks or reconcile followers against its still-uncommitted proposal.
+		if w.criticalPlayerReserved(p) {
+			continue
+		}
 		w.syncCriaPet(p)
 
 		mount, mslot := equippedMount(p.Char)
 		if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 ||
 			mountInvulnActiveAt(p.Char, now) {
-			// Tempo desequipado, morto ou protegido nao conta como uma fracao da
-			// proxima hora elegivel.
+			// Unequipped, dead or protected time does not count toward the next hour.
 			p.NextMountTick = time.Time{}
 			continue
 		}
@@ -190,7 +184,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 		}
 		mount.SetMountFood(food)
 		if food == 0 {
-			// Faminta: perde o HP (e o bonus) e -0..3 longevidade.
+			// Starvation removes HP, bonuses and 0..3 longevity points.
 			mount.SetMountHP(0)
 			loseMountLongevity(mount, w.intn)
 			w.recalcPlayer(p.Char)
@@ -206,17 +200,16 @@ func (w *World) tickPlayerMounts(now time.Time) {
 	}
 }
 
-// --- Ovo -> choco (incubacao) ---
+// Egg incubation.
 //
-// O ovo (2300-2329) usa o formato nativo do STRUCT_ITEM:
+// Eggs (2300-2329) use native STRUCT_ITEM effects:
 //
-//	EF_SANC(43)      = refinacoes bem-sucedidas da incubacao
-//	EF_INCUDELAY(84) = horas ONLINE restantes ate a proxima tentativa
+//	EF_SANC(43)      = successful incubation refinements
+//	EF_INCUDELAY(84) = online hours until the next attempt
 //
-// EF_INCUBATE vem exclusivamente do itemlist.csv e e o valor critico do ovo.
-// Um ovo de valor 3 recebe +1, espera, +2, espera, +3, espera; a proxima
-// refinacao bem-sucedida o transforma em cria. A hora so corre com o mesmo ovo
-// equipado no slot 14.
+// EF_INCUBATE comes from itemlist.csv and sets the threshold. A threshold-3 egg
+// advances to +1, +2 and +3 with waits; the next successful refinement hatches
+// it. Only online time with the same egg equipped in slot 14 counts.
 const (
 	eggIncubationDelayEffect = 84
 	eggHatchDelayMinHours    = 6
@@ -250,8 +243,8 @@ func setEggDelay(egg *model.Item, v int) bool {
 			return true
 		}
 	}
-	// O fluxo nativo 7.48 decrementa diretamente stEffect[2].cValue;
-	// mantenha EF_INCUDELAY no terceiro par mesmo havendo lacuna no segundo.
+	// The 7.48 flow decrements stEffect[2].cValue directly. Keep EF_INCUDELAY
+	// in the third pair even if the second pair is empty.
 	if egg.Eff[4] == 0 {
 		egg.Eff[4] = eggIncubationDelayEffect
 		egg.Eff[5] = byte(v)
@@ -277,13 +270,13 @@ func eggIncubationClockKey(egg *model.Item) string {
 	if egg.UID != "" {
 		return egg.UID
 	}
-	// Itens materializados possuem UID. O fallback existe somente para contas
-	// legadas/testes e continua seguro porque ha um unico slot de incubacao.
+	// Materialized items have UIDs. Legacy accounts/tests use this fallback;
+	// there is only one incubation slot.
 	return fmt.Sprintf("egg:%d", egg.Index)
 }
 
 func (w *World) resetEggIncubationClock(p *Player) {
-	if p == nil {
+	if p == nil || w.criticalPlayerReserved(p) {
 		return
 	}
 	p.EggIncubationUID = ""
@@ -291,6 +284,9 @@ func (w *World) resetEggIncubationClock(p *Player) {
 }
 
 func (w *World) startEggIncubationClock(p *Player, egg *model.Item, now time.Time) {
+	if w.criticalPlayerReserved(p) {
+		return
+	}
 	if p == nil || egg == nil || eggDelay(*egg) <= 0 {
 		w.resetEggIncubationClock(p)
 		return
@@ -299,12 +295,11 @@ func (w *World) startEggIncubationClock(p *Player, egg *model.Item, now time.Tim
 	p.NextEggIncubationTick = now.Add(eggIncubationHour)
 }
 
-// tickEquippedEggIncubation debita somente horas completas, online e com o
-// mesmo ovo no slot 14. O valor inteiro e persistido no item; a fracao da hora
-// fica em Player e se perde ao desequipar/deslogar, exatamente como nos guias
-// e no contador de sessao do WYD 7.48.
+// tickEquippedEggIncubation charges complete online hours with the same egg in
+// slot 14. Whole hours are persisted in the item; the fractional Player clock
+// is discarded on unequip or logout.
 func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
-	if p == nil || p.Char == nil {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
 		return
 	}
 	if !p.InWorld {
@@ -329,6 +324,10 @@ func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
 	if hours > remaining {
 		hours = remaining
 	}
+	if w.criticalWrites != nil {
+		w.submitEggIncubationHours(p, hours)
+		return
+	}
 	oldEgg := *egg
 	if !setEggDelay(egg, remaining-hours) {
 		return
@@ -336,7 +335,7 @@ func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
 	if p.Account != nil {
 		if err := w.saveAccount(p.Account); err != nil {
 			*egg = oldEgg
-			log.Printf("[#%d] ERRO ao salvar hora de incubacao do ovo %d: %v", p.ID, egg.Index, err)
+			log.Printf("[#%d] save egg %d incubation hour: %v", p.ID, egg.Index, err)
 			return
 		}
 	}
@@ -344,7 +343,45 @@ func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
 	if eggDelay(*egg) == 0 {
 		w.resetEggIncubationClock(p)
 	}
-	if p.Session != nil {
+	w.publishEggIncubationHours(p)
+}
+
+// Keep item state and the fractional clock unchanged until World acknowledges
+// the persisted whole hours. Rejections never fall back to an inline save.
+func (w *World) submitEggIncubationHours(p *Player, hours int) {
+	if p.Account == nil || p.CharSlot < 0 || p.CharSlot >= len(p.Account.Chars) ||
+		p.Char != &p.Account.Chars[p.CharSlot] {
+		log.Printf("Egg incubation rejected: %v", errCriticalPersistenceIdentity)
+		return
+	}
+	proposal := accountStateSnapshot(p.Account)
+	newEgg := proposal.Chars[p.CharSlot].Equip[mountSlot]
+	if hours <= 0 || hours > eggDelay(newEgg) || !setEggDelay(&newEgg, eggDelay(newEgg)-hours) {
+		return
+	}
+	proposal.Chars[p.CharSlot].Equip[mountSlot] = newEgg
+	next := p.NextEggIncubationTick.Add(time.Duration(hours) * eggIncubationHour)
+	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposal}}, []*Player{p},
+		func(criticalPersistenceResult) error {
+			p.Char.Equip[mountSlot] = newEgg
+			p.NextEggIncubationTick = next
+			if eggDelay(newEgg) == 0 {
+				// The ordinary clock helper deliberately rejects reserved players.
+				// This identity-checked continuation owns the committed transition.
+				p.EggIncubationUID = ""
+				p.NextEggIncubationTick = time.Time{}
+			}
+			w.publishEggIncubationHours(p)
+			return nil
+		})
+	if err != nil {
+		log.Printf("Egg incubation admission rejected: %v", err)
+	}
+}
+
+func (w *World) publishEggIncubationHours(p *Player) {
+	egg := &p.Char.Equip[mountSlot]
+	if p.Session != nil && !p.Session.IsClosed() {
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, mountSlot, *egg))
 		if eggDelay(*egg) == 0 {
 			p.Session.Send(wire.MessagePanel("Incubation is complete. Apply Ori/Lac again to continue hatching."))
@@ -354,8 +391,8 @@ func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
 	}
 }
 
-// destEggTarget exige o ovo equipado no slot nativo de montaria. Inventario e
-// Cargo pausam a incubacao e nao aceitam Ori/Lac.
+// destEggTarget requires an equipped egg. Inventory/cargo pause incubation and
+// do not accept Ori/Lac.
 func (w *World) destEggTarget(p *Player, req useItemRequest) (*model.Item, uint32, uint32) {
 	if p != nil && p.Char != nil && req.dstType == placeEquip && req.dstPos == mountSlot {
 		if it := &p.Char.Equip[mountSlot]; model.IsMountEgg(it.Index) {
@@ -365,12 +402,18 @@ func (w *World) destEggTarget(p *Player, req useItemRequest) (*model.Item, uint3
 	return nil, 0, 0
 }
 
-// incubateEgg processa Ori/Lac (Vol 4/5) sobre o ovo equipado. A tentativa usa
-// a curva nativa de refino, consome a poeira em sucesso e falha e inicia uma
-// espera aleatoria de 6..8 horas online. Ao ja estar no valor critico, a proxima
-// tentativa bem-sucedida transforma o ovo em cria.
+// incubateEgg applies Ori/Lac (Vol 4/5), consuming powder on success or failure
+// and starting a 6..8 online-hour wait. Success at the threshold hatches the egg.
 func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powderSlot byte,
 	egg *model.Item, eggType, eggSlot uint32, vol int) {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitMountConsumable(p, powderSlot, model.VolatileRule{},
+			useItemRequest{dstType: eggType, dstPos: eggSlot}, true)
+		return
+	}
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder)) }
 	if eggDelay(*egg) > 0 {
 		resend()
@@ -393,7 +436,7 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 	oldEgg, oldPowder := *egg, *powder
 	hatched := success && progressBefore >= threshold
 	if hatched {
-		egg.Index += model.MountTypeCount // 2300 -> 2330 (cria)
+		egg.Index += model.MountTypeCount // 2300 -> 2330 (hatchling).
 		egg.Eff = [6]byte{}
 		w.initFreshMount(egg)
 	} else {
@@ -411,10 +454,10 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 			return
 		}
 	}
-	consumeOne(powder) // Ori/Lac sempre consomem (sucesso e falha), como no refino
+	consumeOne(powder) // Refinement consumes Ori/Lac on both success and failure.
 	if err := w.saveAccount(p.Account); err != nil {
 		*egg, *powder = oldEgg, oldPowder
-		log.Printf("[#%d] ERRO ao salvar incubacao: %v", s.ID, err)
+		log.Printf("[#%d] save incubation: %v", s.ID, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
 		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
@@ -439,15 +482,21 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 		w.startEggIncubationClock(p, egg, w.now())
 		s.Send(wire.MessagePanel(fmt.Sprintf("Refinement failed. Wait %d hour(s) before trying again.", eggDelay(*egg))))
 	}
-	log.Printf("[#%d] incubacao vol=%d ovo->%d progresso=+%d critico=%d espera=%dh chocou=%v roll=%d/%d",
+	log.Printf("[#%d] incubation vol=%d egg->%d progress=+%d threshold=%d wait=%dh hatched=%v roll=%d/%d",
 		s.ID, vol, egg.Index, eggProgress(*egg), threshold, eggDelay(*egg), hatched, roll.Roll, roll.Chance)
 }
 
-// accelerateHatch (Vol 196) porta o item 3438 do WYD 7.48: usado sobre o ovo
-// equipado, transforma-o imediatamente em cria. O consumo e a transformacao
-// sao confirmados no mesmo save.
+// accelerateHatch (Vol 196, item 3438) immediately hatches an equipped egg.
+// Consumption and transformation are confirmed in the same save.
 func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, invSlot byte,
 	req useItemRequest) {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitMountConsumable(p, invSlot, model.VolatileRule{MountAction: "hatch"}, req, false)
+		return
+	}
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item)) }
 	egg, eggType, eggSlot := w.destEggTarget(p, req)
 	if egg == nil {
@@ -462,7 +511,7 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 	consumeOne(item)
 	if err := w.saveAccount(p.Account); err != nil {
 		*item, *egg = oldItem, oldEgg
-		log.Printf("[#%d] ERRO ao salvar acelerador do ovo %d: %v", s.ID, oldEgg.Index, err)
+		log.Printf("[#%d] save egg %d hatch accelerator: %v", s.ID, oldEgg.Index, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
 		s.Send(wire.MessagePanel("Save failed. The accelerator was not consumed."))
@@ -476,15 +525,14 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 	w.syncCriaPet(p)
 	w.refreshAppearance(p)
 	s.Send(wire.MessagePanel("The hatch accelerator transformed the egg into a hatchling."))
-	log.Printf("[#%d] acelerador chocou ovo %d -> cria %d", s.ID, oldEgg.Index, egg.Index)
+	log.Printf("[#%d] accelerator hatched egg %d -> hatchling %d", s.ID, oldEgg.Index, egg.Index)
 }
 
-// --- Cria como pet que segue o dono ---
+// Hatchling follower pets.
 //
-// No WYD 7.48 a CRIA (2330-2358) e evocada como um mob que acompanha o dono (a
-// adulta voce monta). O pet tem o rosto 315+tipo (face 315-344), reusa a infra
-// de evocacao (SummonerID) e o tick de evocacao ja o faz seguir; aqui ele e
-// PASSIVO (nunca ataca). Ver Server.cpp MountProcess/LinkMountHp.
+// Hatchlings (2330-2358) follow their owner as passive mobs; adult mounts are
+// ridden. Face 315+type (315-344) and SummonerID reuse summon infrastructure.
+// See historical Server.cpp MountProcess/LinkMountHp.
 
 const (
 	criaPetFaceBase = 315
@@ -495,7 +543,7 @@ func isCriaPetFace(face uint16) bool {
 	return face >= criaPetFaceBase && face < criaPetFaceEnd
 }
 
-// findCriaPet devolve o pet-cria vivo de um dono, se houver.
+// findCriaPet finds an owner's living hatchling follower.
 func (w *World) findCriaPet(ownerID uint16) *Mob {
 	for _, m := range w.summons {
 		if m == nil || m.Dead || m.SummonerID != ownerID || m.Def == nil {
@@ -508,8 +556,11 @@ func (w *World) findCriaPet(ownerID uint16) *Mob {
 	return nil
 }
 
-// spawnCriaPet cria o mob seguidor da cria equipada.
+// spawnCriaPet creates the equipped hatchling's follower mob.
 func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
+	if p == nil || p.Char == nil || cria == nil || w.criticalPlayerReserved(p) {
+		return
+	}
 	mt := model.MountType(cria.Index)
 	if mt < 0 {
 		return
@@ -521,7 +572,7 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 		hp = 1
 	}
 	def := &model.NPCDef{
-		Name: "Cria^", Tipo: model.TipoMonstro,
+		Name: "Hatchling^", Tipo: model.TipoMonstro,
 		Equip: model.Equip{Rosto: model.Item{Index: face}},
 		Score: &model.Score{
 			Version:   model.ScoreVersion,
@@ -533,7 +584,7 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 	}
 	mobID := w.allocMobID()
 	if mobID == 0 {
-		log.Printf("[#%d] cria-pet nao nasceu: faixa de IDs de mob esgotada", p.ID)
+		log.Printf("[#%d] hatchling pet spawn rejected: mob ID range exhausted", p.ID)
 		return
 	}
 	m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: uint32(hp),
@@ -541,10 +592,10 @@ func (w *World) spawnCriaPet(p *Player, cria *model.Item) {
 		GenerIndex: -1, SummonerID: p.ID, SummonKind: summonKindMount, SummonRange: mobAttackRange}
 	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
-	log.Printf("[#%d] cria-pet nasceu face=%d", p.ID, face)
+	log.Printf("[#%d] hatchling pet spawned face=%d", p.ID, face)
 }
 
-// removeCriaPet retira o pet da cena.
+// removeCriaPet removes the pet from the scene. Lifecycle callers own ordering.
 func (w *World) removeCriaPet(m *Mob) {
 	for _, viewer := range w.players {
 		w.hideMob(viewer, m, 0)
@@ -553,11 +604,11 @@ func (w *World) removeCriaPet(m *Mob) {
 	w.removeMobInstance(m)
 }
 
-// syncCriaPet reconcilia o pet com o estado atual: nasce se ha cria viva
-// equipada e nenhum pet; some se nao ha cria (desequipou, morreu ou virou
-// adulta). Chamado apos qualquer mudanca de montaria.
+// syncCriaPet reconciles the follower with the equipped living hatchling.
+// Reserved owners cannot spawn, remove or rebind pets. Future asynchronous
+// mount continuations must explicitly order reconciliation with acknowledgement.
 func (w *World) syncCriaPet(p *Player) {
-	if p == nil || p.Char == nil || !p.InWorld {
+	if p == nil || p.Char == nil || !p.InWorld || w.criticalPlayerReserved(p) {
 		return
 	}
 	mount, _ := equippedMount(p.Char)
@@ -573,16 +624,14 @@ func (w *World) syncCriaPet(p *Player) {
 	}
 }
 
-// --- XP de caca da cria ---
+// Hatchling hunting experience.
 
-// criaKillsPerLevel: mortes de mob (level >= level da cria) para subir 1 level.
-// TESTE: 2. Ajuste ao gosto (o blog fala em "growth value + 100" de exp).
+// criaKillsPerLevel counts qualifying mob kills per hatchling level. The
+// current value is 2; historical descriptions refer to growth value + 100 EXP.
 const criaKillsPerLevel = 2
 
-// grantMountHuntExp da XP de caca a cria equipada quando o dono mata um mob de
-// level >= o level da cria (fiel ao blog: a cria sobe 1..99 cacando). O
-// progresso acumula em Eff[5]; ao atingir criaKillsPerLevel sobe 1 level e evolui
-// de estagio no limite. Montaria ADULTA nao ganha XP de caca (sobe por amago).
+// Hunting increments Eff[5] when mob level >= hatchling level. At the threshold
+// it gains a level and may evolve. Adult mounts gain levels from essence instead.
 type mountHuntUpdate struct {
 	player  *Player
 	slot    int
@@ -597,7 +646,7 @@ func (w *World) grantMountHuntExp(p *Player, m *Mob) {
 
 func (w *World) applyMountHuntExp(p *Player, m *Mob) mountHuntUpdate {
 	result := mountHuntUpdate{player: p, slot: -1}
-	if p == nil || p.Char == nil || m == nil || m.Def == nil {
+	if p == nil || p.Char == nil || m == nil || m.Def == nil || w.criticalPlayerReserved(p) {
 		return result
 	}
 	mount, mslot := equippedMount(p.Char)
@@ -609,7 +658,7 @@ func (w *World) applyMountHuntExp(p *Player, m *Mob) mountHuntUpdate {
 		mobLevel = int(m.Def.Score.Level)
 	}
 	if mobLevel < mount.MountLevel() {
-		return result // mob fraco demais nao ensina a cria
+		return result // Lower-level mobs do not grant hatchling experience.
 	}
 	result.slot, result.changed = mslot, true
 	if prog := int(mount.Eff[5]) + 1; prog < criaKillsPerLevel {
@@ -652,11 +701,11 @@ func (w *World) publishMountHuntUpdate(result mountHuntUpdate) {
 	}
 	w.refreshAppearance(p)
 	if result.evolved {
-		w.syncCriaPet(p) // virou adulta -> remove o pet
+		w.syncCriaPet(p) // Adult evolution removes the follower.
 	}
 }
 
-// mountInvulnActive diz se o affect 51 (protecao da montaria) esta ativo.
+// mountInvulnActiveAt tests active mount protection (affect 51).
 func mountInvulnActiveAt(ch *model.Char, now time.Time) bool {
 	for i := range ch.Affects {
 		if ch.Affects[i].Type == 51 && ch.Affects[i].ExpiresAt.After(now) {
@@ -666,22 +715,22 @@ func mountInvulnActiveAt(ch *model.Char, now time.Time) bool {
 	return false
 }
 
-// loseMountLongevity tira 0..3 pontos de longevidade (na morte da montaria,
-// comida zerada ou morte do cavaleiro). Fiel ao WYD 7.48 (rand%4). A 0 a montaria
-// morre de vez e precisa reviver no mestre de montaria.
+// loseMountLongevity removes 0..3 longevity points on mount death, starvation
+// or rider death. Zero longevity prevents ordinary revival.
 func loseMountLongevity(mount *model.Item, intn func(int) int) {
 	mount.SetMountLongev(mount.MountLongev() - intn(4))
 }
 
-// absorbMountDamage aplica a absorcao da montaria adulta viva. A tabela nativa
-// g_pMountBonus[30][6] usa uma parcela de dano do cavaleiro por tipo (65..75),
-// em vez de uma absorcao fixa para todas as montarias. Ao zerar o HP, a
-// montaria fica ferida (perde o bonus de stat e -0..3 longevidade). Devolve o
-// dano que o cavaleiro efetivamente recebe. O bonus de nivel 120 documentado
-// no guia KR ainda nao foi atribuido a esta fronteira sem evidencia do fluxo.
+// absorbMountDamage uses the adult mount's type-specific rider damage share
+// (65..75 in g_pMountBonus[30][6]). Zero mount HP removes stat bonuses and
+// 0..3 longevity. The return value is rider damage. The KR level-120 bonus
+// remains unassigned at this boundary without flow evidence.
 func (w *World) absorbMountDamage(target *Player, incoming int) int {
 	if incoming <= 0 || target == nil || target.Char == nil {
 		return incoming
+	}
+	if w.criticalPlayerReserved(target) {
+		return 0
 	}
 	mount, mslot := equippedMount(target.Char)
 	if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 {
@@ -697,7 +746,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 		rider = 1
 	}
 	if mountInvulnActiveAt(target.Char, w.now()) {
-		return rider // affect 51: montaria nao perde HP
+		return rider // Affect 51 prevents mount HP loss.
 	}
 	absorbed := incoming - rider
 	hp := mount.MountHP() - absorbed
@@ -706,7 +755,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 	}
 	mount.SetMountHP(hp)
 	if hp == 0 {
-		// Ferida: perde longevidade, o bonus some (recalc) e o dono ve o estado.
+		// Injury removes longevity and bonuses, then publishes the new state.
 		loseMountLongevity(mount, w.intn)
 		w.recalcPlayer(target.Char)
 		if target.Session != nil {
@@ -719,10 +768,9 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 	return rider
 }
 
-// mountRiderDied tira longevidade da montaria quando o cavaleiro morre (fiel ao
-// WYD 7.48: morte do dono custa 0..3 de longevidade a montaria).
+// mountRiderDied charges 0..3 mount longevity points when the rider dies.
 func (w *World) mountRiderDied(target *Player) {
-	if target == nil || target.Char == nil {
+	if target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
 		return
 	}
 	mount, mslot := equippedMount(target.Char)
@@ -735,8 +783,8 @@ func (w *World) mountRiderDied(target *Player) {
 	}
 }
 
-// mountGrowthRate porta g_pSancRate[2] (amagos): chance de sucesso do amago por
-// level/10 (0..11). level 0-9 = 100%, cai ate 20% em 110-119.
+// mountGrowthRate uses g_pSancRate[2], indexed by level/10: 100% at 0-9,
+// decreasing to 20% at 110-119.
 var mountGrowthRate = [12]int{100, 90, 85, 75, 65, 55, 50, 40, 35, 30, 25, 20}
 
 func mountSuccessRate(level int) int {
@@ -750,11 +798,16 @@ func mountSuccessRate(level int) int {
 	return mountGrowthRate[idx]
 }
 
-// applyMountItem trata os consumiveis de montaria (rule.MountAction). Fiel ao
-// WYD 7.48: cada um valida o casamento item->montaria, muta o estado no item e
-// persiste antes de confirmar ao client.
+// applyMountItem validates consumable matching and persists before confirmation.
 func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invSlot byte,
 	rule model.VolatileRule, code int, req useItemRequest) {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitMountConsumable(p, invSlot, rule, req, false)
+		return
+	}
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, invSlot, *item)) }
 
 	if rule.MountAction == "hatch" {
@@ -770,7 +823,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	}
 
 	old, oldItem := *mount, *item
-	usedIndex := item.Index // o consumo pode zerar o Index; loga o real
+	usedIndex := item.Index // Consumption may clear Index; log the original value.
 	var ok bool
 	var msg string
 	var rolls []percentRoll
@@ -791,7 +844,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		ok, msg = mountGrowthWithRNG(mount, item.Index, w.intn)
 	default:
 		resend()
-		log.Printf("[#%d] mountAction desconhecida %q item=%d", s.ID, rule.MountAction, item.Index)
+		log.Printf("[#%d] unknown mountAction %q item=%d", s.ID, rule.MountAction, item.Index)
 		return
 	}
 	if !ok {
@@ -806,7 +859,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	}
 	if err := w.saveAccount(p.Account); err != nil {
 		*mount, *item = old, oldItem
-		log.Printf("[#%d] ERRO ao salvar mount %s: %v", s.ID, rule.MountAction, err)
+		log.Printf("[#%d] save mount %s: %v", s.ID, rule.MountAction, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
 		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
@@ -819,7 +872,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	s.Send(playerScorePacket(p))
 	w.syncPlayerVitals(p)
 	w.refreshAppearance(p)
-	w.syncCriaPet(p) // cria pode ter virado adulta (some) ou continuar cria
+	w.syncCriaPet(p) // Remove an evolved hatchling or retain its follower.
 	for i, roll := range rolls {
 		message := roll.message()
 		if i > 0 {
@@ -830,23 +883,21 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	if msg != "" {
 		s.Send(wire.MessagePanel(msg))
 	}
-	log.Printf("[#%d] mount %s item=%d montaria=%d lvl=%d hp=%d comida=%d long=%d",
+	log.Printf("[#%d] mount %s item=%d mount=%d lvl=%d hp=%d food=%d longevity=%d",
 		s.ID, rule.MountAction, usedIndex, mount.Index, mount.MountLevel(), mount.MountHP(), mount.MountFood(), mount.MountLongev())
 }
 
-// mountEssenceOutcome carrega as decisoes percentuais que precisam ser
-// publicadas somente depois da persistencia. Rolls[0] e o crescimento adulto;
-// Rolls[1], quando existe, e a penalidade por falha em level par.
+// mountEssenceOutcome retains percent rolls until persistence succeeds.
+// Rolls[0] is adult growth; optional Rolls[1] is the even-level failure penalty.
 type mountEssenceOutcome struct {
 	OK      bool
 	Message string
 	Rolls   []percentRoll
 }
 
-// mountEssence porta o handler do amago (Vol 16): restaura HP a 20000, sobe 1
-// level. Em ADULTA rola a chance de sucesso (g_pSancRate[2]); na falha ha chance
-// de reduzir 1 level (so level par: 20% <50, 40% 50-99, 70% >=100). Toda chance
-// usa 1..100 e sucesso em roll <= chance.
+// mountEssence (Vol 16) restores 20000 HP and attempts level growth. Adults
+// use g_pSancRate[2]; failed even-level growth may lose a level (20% below 50,
+// 40% at 50-99, 70% at 100+). Rolls use 1..100, succeeding at roll <= chance.
 func (w *World) mountEssence(mount *model.Item, essenceIndex uint16) mountEssenceOutcome {
 	if !essenceMatchesMount(essenceIndex, mount.Index) {
 		return mountEssenceOutcome{Message: "This essence does not match the mount."}
@@ -889,9 +940,8 @@ func (w *World) mountEssence(mount *model.Item, essenceIndex uint16) mountEssenc
 	return mountEssenceOutcome{OK: true, Message: "Your mount gained a level.", Rolls: rolls}
 }
 
-// initShopMounts inicializa o estado das montarias que os NPCs vendem (HP,
-// comida, longevidade), no carregamento. Sem isso elas apareceriam e seriam
-// compradas MORTAS (Eff zerado = HP 0). Roda apos as options (w.mounts pronto).
+// initShopMounts initializes NPC stock after mount options load. Without HP,
+// food and longevity initialization, zero-effect mounts would be sold dead.
 func (w *World) initShopMounts() {
 	for i := range w.npcs {
 		vende := w.npcs[i].Vende
@@ -903,31 +953,27 @@ func (w *World) initShopMounts() {
 	}
 }
 
-// initFreshMount inicializa uma montaria recem-obtida (Eff todo zerado): HP
-// cheio, comida cheia e longevidade inicial 10..30 (fiel ao nascimento da cria).
-// Sem isso, uma montaria concedida com estado zerado nasceria "morta" (HP 0).
-// Devolve true se inicializou.
+// initFreshMount initializes zero-effect mounts with HP, food and 10..30
+// longevity. Returns whether it initialized the item, avoiding zero-HP grants.
 func (w *World) initFreshMount(mount *model.Item) bool {
 	if mount == nil || !model.IsMount(mount.Index) {
 		return false
 	}
 	if mount.MountHP() != 0 || mount.MountLevel() != 0 || mount.MountLongev() != 0 || mount.MountFood() != 0 {
-		return false // ja inicializada
+		return false // Already initialized.
 	}
 	mount.SetMountHP(w.mountMaxHP(mount.Index))
 	mount.SetMountLongev(w.intn(21) + 10) // 10..30
 	if model.IsMountAdult(mount.Index) {
-		mount.SetMountFood(model.MountMaxFood) // adulta: teto 100
+		mount.SetMountFood(model.MountMaxFood) // Adult cap: 100.
 	} else {
-		mount.SetMountFood(30) // cria: teto 30
+		mount.SetMountFood(30) // Hatchling cap: 30.
 	}
 	return true
 }
 
-// mountFeed porta o handler da racao (Vol 15): HP += 5000 (teto 30000) e comida
-// += 2 (teto 100). Em montaria MORTA (HP 0) com longevidade, a racao REVIVE com
-// 100 HP + 5 de comida (valores do mestre de montaria do WYD 7.48) -- atalho ao NPC
-// de revive, que ainda nao existe.
+// mountFeed (Vol 15) adds 5000 HP (cap 30000) and 2 food (cap 100). A dead
+// mount with longevity revives at 100 HP and 5 food, using mount-master values.
 func mountFeed(mount *model.Item, feedIndex uint16) (bool, string) {
 	if !feedMatchesMount(feedIndex, mount.Index) {
 		return false, "This feed does not match the mount."
@@ -938,7 +984,7 @@ func mountFeed(mount *model.Item, feedIndex uint16) (bool, string) {
 		}
 		mount.SetMountHP(100)
 		mount.SetMountFood(5)
-		return true, "Montaria revivida (100 HP, 5 de comida)."
+		return true, "Mount revived (100 HP, 5 food)."
 	}
 	hp := mount.MountHP() + 5000
 	if hp > model.MountMaxHP {
@@ -950,11 +996,11 @@ func mountFeed(mount *model.Item, feedIndex uint16) (bool, string) {
 		food = model.MountMaxFood
 	}
 	mount.SetMountFood(food)
-	return true, "Montaria alimentada."
+	return true, "Mount fed."
 }
 
-// mountLongevityRecover porta o Vol 93: longevidade += 1..3 (teto 60). Recusa se
-// ja estiver no maximo ou zerada (montaria morta -> precisa reviver primeiro).
+// mountLongevityRecoverWithRNG (Vol 93) adds 1..3 longevity (cap 60).
+// Zero or maximum longevity is rejected.
 func mountLongevityRecoverWithRNG(mount *model.Item, intn func(int) int) (bool, string) {
 	long := mount.MountLongev()
 	if long < 1 || long >= model.MountMaxLongevity {
@@ -972,9 +1018,8 @@ func mountLongevityRecover(mount *model.Item) (bool, string) {
 	return mountLongevityRecoverWithRNG(mount, realRNG{}.Intn)
 }
 
-// mountLongevityRestore porta o item 3315 do client 7.48. O itemhelp.dat e o
-// handler do WYD 7.48 concordam que ele restaura LP (longevidade), nao HP nem
-// invulnerabilidade. Montaria com LP zero permanece irrecuperavel e o teto e 60.
+// mountLongevityRestore (item 3315) restores LP, not HP or invulnerability.
+// itemhelp.dat and the legacy handler agree; zero LP is rejected, cap 60.
 func mountLongevityRestore(mount *model.Item, amount int) (bool, string) {
 	if mount == nil || !model.IsMountAdult(mount.Index) {
 		return false, "This potion can only be used on an adult mount."
@@ -994,9 +1039,8 @@ func mountLongevityRestore(mount *model.Item, amount int) (bool, string) {
 	return true, "The mount recovered 1 life point."
 }
 
-// mountSetLevel porta os itens 3316/3317 confirmados no WYD 7.48: o primeiro
-// leva uma montaria adulta abaixo de 100 ao level 100; o segundo aceita apenas
-// level 100..119 e a leva ao 120. Ambos exigem pelo menos 3 LP.
+// mountSetLevel handles items 3316/3317: adults below 100 reach 100, or adults
+// at 100..119 reach 120. Both require at least 3 LP.
 func mountSetLevel(mount *model.Item, minLevel, targetLevel int) (bool, string) {
 	if mount == nil || !model.IsMountAdult(mount.Index) {
 		return false, "This catalyst can only be used on an adult mount."
@@ -1009,9 +1053,8 @@ func mountSetLevel(mount *model.Item, minLevel, targetLevel int) (bool, string) 
 	return true, fmt.Sprintf("The mount reached level %d.", targetLevel)
 }
 
-// mountGrowth porta a pocao de crescimento (Vol 94): evolui o estagio na hora
-// (sIndex+=30), sem depender de level. A categoria da pocao (3344+) deve casar
-// com a familia da montaria.
+// mountGrowthWithRNG (Vol 94) evolves the stage immediately (sIndex += 30).
+// Potion category (3344+) must match the mount family; level is not required.
 func mountGrowthWithRNG(mount *model.Item, potionIndex uint16, intn func(int) int) (bool, string) {
 	cat := int(potionIndex) - 3344
 	if cat < 0 || growthCategory(mount.Index) != cat {
@@ -1025,13 +1068,12 @@ func mountGrowth(mount *model.Item, potionIndex uint16) (bool, string) {
 	return mountGrowthWithRNG(mount, potionIndex, realRNG{}.Intn)
 }
 
-// growthCategory mapeia o sIndex da montaria para a categoria da pocao de
-// crescimento (item 3344+ -> cat = sIndex-3344). Porta o handler Vol 94.
+// growthCategory maps mount sIndex to Vol 94 growth potion category (3344+).
 func growthCategory(mountIndex uint16) int {
 	m := int(mountIndex)
 	switch {
 	case m >= 2333 && m <= 2335:
-		return 0 // Kapel: Dente de Sabre, Dragao Menor, Urso
+		return 0 // Kapel: Saber Tooth, Lesser Dragon, Bear.
 	case (m >= 2336 && m <= 2338) || (m >= 2341 && m <= 2343) || (m >= 2357 && m <= 2358):
 		return 1 // Acuban
 	case m == 2339 || m == 2340 || (m >= 2344 && m <= 2345):

@@ -8,7 +8,6 @@
 #include "controls/SText.h"
 #include "controls/SEditableText.h"
 #include "controls/SButton.h"
-#include "controls/SButtonBox.h"
 #include "controls/SCheckBox.h"
 #include "controls/SProgressBar.h"
 #include "controls/SScrollBar.h"

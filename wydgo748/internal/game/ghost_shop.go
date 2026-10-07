@@ -188,7 +188,8 @@ func (w *World) applyGhostShopLook(shop *GhostShop) {
 
 func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 ||
+		w.shuttingDown || p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) {
 		return
 	}
 	// WYD 7.48 uses a second listing request to toggle the ghost shop off.
@@ -202,7 +203,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("Finish the current trade before opening the shop."))
 		return
 	}
-	if !inArmiaCity(p.X, p.Y) {
+	if w.gameplaySpaceForPlayer(p) != "" || !inArmiaCity(p.X, p.Y) {
 		s.Send(wire.CloseTrade(p.ID))
 		s.Send(wire.MessagePanel("Auto Trade can only be opened in Armia."))
 		return
@@ -284,7 +285,8 @@ func ghostShopOwnerResetPackets(p *Player) [][]byte {
 
 func (w *World) onReqTradeList(s *net.Session, pkt []byte) {
 	buyer := w.players[s]
-	if buyer == nil || buyer.Char == nil || !buyer.InWorld || playerCurHP(buyer.Char) == 0 || len(pkt) != 16 {
+	if buyer == nil || buyer.Char == nil || !buyer.InWorld || playerCurHP(buyer.Char) == 0 || len(pkt) != 16 ||
+		w.shuttingDown || buyer.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(buyer) {
 		return
 	}
 	// The request carries a DWORD, but live shop identities are uint16.
@@ -294,7 +296,7 @@ func (w *World) onReqTradeList(s *net.Session, pkt []byte) {
 		return
 	}
 	shop := w.ghostShops[uint16(target)]
-	if shop == nil || !inView(buyer.X, buyer.Y, shop.X, shop.Y) {
+	if !w.ghostShopVisibleToPlayer(buyer, shop) || !inView(buyer.X, buyer.Y, shop.X, shop.Y) {
 		return
 	}
 	owner := w.playerByID(shop.OwnerID)
@@ -317,7 +319,8 @@ func ghostShopTradeListPacket(shop *GhostShop) []byte {
 
 func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	buyer := w.players[s]
-	if buyer == nil || buyer.Char == nil || !buyer.InWorld || playerCurHP(buyer.Char) == 0 {
+	if buyer == nil || buyer.Account == nil || buyer.Char == nil || !buyer.InWorld || playerCurHP(buyer.Char) == 0 ||
+		w.shuttingDown || buyer.PersistencePoisoned || s.IsClosed() || w.criticalTradeReserved(buyer) {
 		return
 	}
 	req, err := parseReqBuyAutoTrade(pkt)
@@ -328,12 +331,16 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 	// TargetID is the virtual ID advertised to the client (25000 + owner),
 	// never the real character ID. Only the server maps it back to the owner.
 	shop := w.ghostShops[req.TargetID]
-	if shop == nil || buyer.BrowsingGhostShopID != shop.ID {
+	if !w.ghostShopVisibleToPlayer(buyer, shop) || buyer.BrowsingGhostShopID != shop.ID {
 		return
 	}
 	seller := w.playerByID(shop.OwnerID)
-	if seller == nil || seller == buyer || seller.Char == nil || seller.GhostShop != shop ||
+	if seller == nil || seller == buyer || seller.Account == nil || seller.Char == nil || seller.GhostShop != shop ||
 		seller.Account == buyer.Account {
+		return
+	}
+	if w.criticalWrites != nil && (!seller.InWorld || seller.Session == nil || seller.Session.IsClosed() ||
+		seller.PersistencePoisoned || w.criticalTradeReserved(seller)) {
 		return
 	}
 	if !inView(buyer.X, buyer.Y, shop.X, shop.Y) {
@@ -344,6 +351,14 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] GHOST SHOP purchase differs from listing owner=%d pos=%d", s.ID, seller.ID, req.Pos)
 		return
 	}
+	if w.criticalWrites != nil {
+		// Recheck the opening rules at the economic boundary. A stale or
+		// invalid listing cannot bypass tradability or seal ownership.
+		_, filled := model.CelestialSealID(shop.Items[req.Pos])
+		if filled || w.validateTradableItem(shop.Items[req.Pos]) != nil {
+			return
+		}
+	}
 	buyerInv, sellerCargo, buyerGold, sellerCargoGold, buyerSlot, err :=
 		buildGhostShopPurchase(buyer.Char, seller.Account, shop, req.Pos)
 	if err != nil {
@@ -351,6 +366,13 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 			s.Send(wire.MessageIndexed(-845))
 		} else {
 			s.Send(wire.MessagePanel(err.Error()))
+		}
+		return
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueGhostShopPurchase(buyer, seller, shop, req.Pos, buyerInv, sellerCargo, buyerGold, sellerCargoGold, buyerSlot); err != nil {
+			log.Printf("GHOST SHOP submit accounts %q/%q: %v", buyer.Account.Name, seller.Account.Name, err)
+			s.Send(wire.MessagePanel("The purchase could not be saved. No items or gold were transferred."))
 		}
 		return
 	}
@@ -367,24 +389,38 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 		return
 	}
 
-	item, price := shop.Items[req.Pos], shop.Prices[req.Pos]
-	storageSlot := int(shop.CarryPos[req.Pos])
-	shop.Items[req.Pos] = model.Item{}
-	shop.CarryPos[req.Pos] = -1
-	shop.Prices[req.Pos] = 0
-	buyer.Session.Send(wire.UpdateCarry(buyer.ID, buyer.Char.Inv[:], buyer.Char.Gold))
-	seller.Session.Send(wire.SendItem(seller.ID, placeStorage, byte(storageSlot), model.Item{}))
-	seller.Session.Send(wire.UpdateCargoGold(wire.SceneField, seller.Account.CargoGold))
-	w.publishGhostShopItemSold(shop, uint32(req.Pos))
+	item, price, storageSlot := shop.Items[req.Pos], shop.Prices[req.Pos], int(shop.CarryPos[req.Pos])
+	shop.Items[req.Pos], shop.CarryPos[req.Pos], shop.Prices[req.Pos] = model.Item{}, -1, 0
+	w.finishGhostShopPurchase(buyer, seller, shop, req.Pos, item, price, storageSlot, buyerSlot)
+}
+
+// Both accounts and the listing already reflect the durable result. Under the
+// staged owner this runs after acknowledgement, without yielding actor ownership.
+func (w *World) finishGhostShopPurchase(buyer, seller *Player, shop *GhostShop, pos int,
+	item model.Item, price uint32, storageSlot, buyerSlot int) {
+	if !buyer.Session.IsClosed() {
+		buyer.Session.Send(wire.UpdateCarry(buyer.ID, buyer.Char.Inv[:], buyer.Char.Gold))
+	}
+	if !seller.Session.IsClosed() {
+		seller.Session.Send(wire.SendItem(seller.ID, placeStorage, byte(storageSlot), model.Item{}))
+		seller.Session.Send(wire.UpdateCargoGold(wire.SceneField, seller.Account.CargoGold))
+	}
+	w.publishGhostShopItemSold(shop, uint32(pos))
 	// Only acknowledge the buyer after the atomic account save succeeded; a
 	// rejected or rolled-back purchase must never display a false success.
-	buyer.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d purchased for %d gold.", item.Index, price)))
-	seller.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d sold for %d gold.", item.Index, price)))
+	if !buyer.Session.IsClosed() {
+		buyer.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d purchased for %d gold.", item.Index, price)))
+	}
+	if !seller.Session.IsClosed() {
+		seller.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d sold for %d gold.", item.Index, price)))
+	}
 	log.Printf("[#%d] GHOST SHOP purchase owner=%s buyer=%s item=%d price=%d inv[%d]",
-		s.ID, seller.Char.Name, buyer.Char.Name, item.Index, price, buyerSlot)
+		buyer.Session.ID, seller.Char.Name, buyer.Char.Name, item.Index, price, buyerSlot)
 	if shopItemCount(shop) == 0 {
 		w.closeGhostShop(seller, "stock sold out")
-		seller.Session.Send(wire.MessagePanel("Auto Trade closed: stock sold out."))
+		if !seller.Session.IsClosed() {
+			seller.Session.Send(wire.MessagePanel("Auto Trade closed: stock sold out."))
+		}
 	}
 }
 
@@ -457,7 +493,7 @@ func (w *World) findGhostShopPosition(x, y uint16) (uint16, uint16, bool) {
 }
 
 func (w *World) closeGhostShop(owner *Player, reason string) {
-	if owner == nil || owner.GhostShop == nil {
+	if owner == nil || owner.GhostShop == nil || w.criticalPlayerWriteReserved(owner) {
 		return
 	}
 	shop := owner.GhostShop

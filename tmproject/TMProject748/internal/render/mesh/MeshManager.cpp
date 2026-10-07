@@ -4,6 +4,26 @@
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "TMPaths.h"
+#include "../../application/AssetLoadValidation.h"
+#include <climits>
+static_assert(sizeof(D3DXMATRIX) == 64, "Animation extents require 64-byte matrices");
+
+namespace
+{
+void ClearBoneAnimations()
+{
+	for (auto& animation : MeshManager::m_BoneAnimationList)
+	{
+		free(animation.pBone);
+		free(animation.matAnimation);
+		free(animation.matQuaternion);
+		animation = {};
+	}
+	memset(MeshManager::m_sAnimationArray, 0, sizeof(MeshManager::m_sAnimationArray));
+	memset(g_nMaxSizeOffset, 0, sizeof(g_nMaxSizeOffset));
+	MeshManager::m_nFullCount = 0;
+}
+}
 
 int g_nMaxSizeOffset[MAX_BONE_ANIMATION_LIST];
 
@@ -39,6 +59,7 @@ MeshManager::MeshManager()
 MeshManager::~MeshManager()
 {
 	ReleaseMesh();
+	ClearBoneAnimations();
 	g_pMeshManager = nullptr;
 }
 
@@ -56,12 +77,19 @@ int MeshManager::InitMeshManager()
 	if (fp == nullptr)
 		return 0;
 
-	int nIndex = 0;
-	char szMeshName[255]{};
-
-	while (fscanf(fp, "%d %s\r\n", &nIndex, szMeshName) != -1)
+	char line[512]{};
+	for (;;)
 	{
-		sprintf(m_stCommonMesh[nIndex].szFileName, "%s", szMeshName);
+		const auto result = asset_load::ReadLine(fp, line);
+		if (result == asset_load::LineResult::End) break;
+		if (result == asset_load::LineResult::Blank) continue;
+		int index, count, parts;
+		std::string path;
+		if (result == asset_load::LineResult::Invalid ||
+			!asset_load::ParseList(line, index, path, count, parts, false, false,
+				MAX_COMMON_MESH, sizeof(m_stCommonMesh[0].szFileName)))
+		{ fclose(fp); return 0; }
+		strcpy_s(m_stCommonMesh[index].szFileName, path.c_str());
 	}
 
 	fclose(fp);
@@ -71,86 +99,105 @@ int MeshManager::InitMeshManager()
 
 int MeshManager::InitBoneAnimation()
 {
-	memset(MeshManager::m_BoneAnimationList, 0, sizeof(MeshManager::m_BoneAnimationList));
+	ClearBoneAnimations();
 
 	char szFileName[128]{};
-	sprintf(szFileName, BoneAni4_Path);
+	strcpy_s(szFileName, BoneAni4_Path);
 
 	FILE* fpList = nullptr;
 	fopen_s(&fpList, szFileName, "rt");
 
-	// TODO: add a message box here
 	if (fpList == nullptr)
 		return 0;
+	const auto fail = [&]() { fclose(fpList); ClearBoneAnimations(); return 0; };
 
 	FILE* fpValidAni = nullptr;
 	fopen_s(&fpValidAni, ValidIndex_Path, "rb");
 
-	// TODO: add a message box here if fails
 	if (fpValidAni != nullptr)
 	{
-		fread(m_stValidAniList, sizeof(m_stValidAniList), 1, fpValidAni);
+		const bool complete = fread(m_stValidAniList, sizeof(m_stValidAniList), 1, fpValidAni) == 1;
 		fclose(fpValidAni);
+		if (!complete) return fail();
 	}
 
 	int nCount = 0;
 	int nAniTypeCount = 0;
 	int nParts = 0;
 
-	char temp[256]{};
-	for (int Count = 0; Count < MAX_BONE_ANIMATION_LIST; ++Count)
+	char line[512]{};
+	bool loaded[MAX_BONE_ANIMATION_LIST]{};
+	for (;;)
 	{
 		int nFullTickCount = 0;
-		if (fscanf(fpList, "%d %d %d %s\r\n", &nCount, &nAniTypeCount, &nParts, temp) == -1)
-			break;
+		const auto result = asset_load::ReadLine(fpList, line);
+		if (result == asset_load::LineResult::End) break;
+		if (result == asset_load::LineResult::Blank) continue;
+		std::string path;
+		if (result == asset_load::LineResult::Invalid ||
+			!asset_load::ParseList(line, nCount, path, nAniTypeCount, nParts, false, true,
+				MAX_BONE_ANIMATION_LIST, 116) || loaded[nCount]) return fail();
+		loaded[nCount] = true;
 
 		MeshManager::m_BoneAnimationList[nCount].numAniTypeCount = nAniTypeCount;
 		MeshManager::m_BoneAnimationList[nCount].numParts = nParts;
 
-		sprintf(MeshManager::m_BoneAnimationList[nCount].szAniName, "%s", temp);
+		strcpy_s(MeshManager::m_BoneAnimationList[nCount].szAniName, path.c_str());
 
 		char szTemp[128];
-		sprintf(szTemp, "%s.bon", MeshManager::m_BoneAnimationList[nCount].szAniName);
+		sprintf_s(szTemp, "%s.bon", MeshManager::m_BoneAnimationList[nCount].szAniName);
 
 		int handle = _open(szTemp, _O_BINARY);
+		if (handle < 0) return fail();
 		int sz = _filelength(handle);
+		if (sz <= 0) { _close(handle); return fail(); }
 
 		MeshManager::m_BoneAnimationList[nCount].pBone = (unsigned int*)malloc(sz);
 
-		_read(handle, MeshManager::m_BoneAnimationList[nCount].pBone, sz);
+		if (!MeshManager::m_BoneAnimationList[nCount].pBone ||
+			_read(handle, MeshManager::m_BoneAnimationList[nCount].pBone, sz) != sz)
+		{ _close(handle); return fail(); }
 		_close(handle);
 
 		MeshManager::m_BoneAnimationList[nCount].numBone = sz / 8;
 		MeshManager::m_BoneAnimationList[nCount].numBoneBytes = static_cast<unsigned int>(sz);
 		unsigned int dwFileIndex = 0;
+		std::size_t allocationBytes = 0;
+		unsigned int ticks[186]{}, frames[186]{};
 		for (size_t nFI = 0; nFI < MeshManager::m_BoneAnimationList[nCount].numAniTypeCount; ++nFI)
 		{
-			sprintf(szTemp,	"%s%04d.ani", MeshManager::m_BoneAnimationList[nCount].szAniName, m_stValidAniList[nCount][nFI].nI + 1);
+			if (m_stValidAniList[nCount][nFI].nI < 0 || m_stValidAniList[nCount][nFI].nI == INT_MAX) return fail();
+			const int pathLength = snprintf(szTemp, sizeof(szTemp), "%s%04d.ani", MeshManager::m_BoneAnimationList[nCount].szAniName, m_stValidAniList[nCount][nFI].nI + 1);
+			if (pathLength < 0 || pathLength >= sizeof(szTemp)) return fail();
 			handle = _open(szTemp, _O_BINARY, 0);
 
 			if (handle >= 0)
 			{
-				int numAniTick = 0;
-				_read(handle, &numAniTick, 4);
-				_read(handle, &MeshManager::m_BoneAnimationList[nCount].numAniFrame, 4);
+				std::size_t bytes = 0;
+				// Alternate resources remain loadable even when their legacy character alias is invalid.
+				const bool valid = (nCount == 3 || nCount == 5 || asset_load::AnimationMapping(nCount, m_stValidAniList[nCount][nFI].nI)) &&
+					_read(handle, &ticks[nFI], 4) == 4 && _read(handle, &frames[nFI], 4) == 4 &&
+					asset_load::AnimationBytes(ticks[nFI], frames[nFI], MeshManager::m_BoneAnimationList[nCount].numAniFrame, bytes) &&
+					_filelength(handle) >= 8 && static_cast<std::size_t>(_filelength(handle) - 8) == bytes &&
+					allocationBytes <= static_cast<std::size_t>(INT_MAX) - bytes;
 				_close(handle);
-				nFullTickCount += numAniTick;
+				if (!valid) return fail();
+				MeshManager::m_BoneAnimationList[nCount].numAniFrame = frames[nFI];
+				allocationBytes += bytes;
+				nFullTickCount += ticks[nFI];
 				++dwFileIndex;
 			}
 		}
 
 		MeshManager::m_nFullCount = nFullTickCount;
-		MeshManager::m_BoneAnimationList[nCount].matAnimation = (LPD3DXMATRIX)malloc(
-			MeshManager::m_BoneAnimationList[nCount].numAniFrame
-			* (nFullTickCount * sizeof(D3DXMATRIX)));
+		MeshManager::m_BoneAnimationList[nCount].matAnimation = allocationBytes ? (LPD3DXMATRIX)malloc(allocationBytes) : nullptr;
+		if (allocationBytes && !MeshManager::m_BoneAnimationList[nCount].matAnimation) return fail();
 
 		// This is used on characters animation/bone read. (ch01/02)
 		if (nCount == 0 || nCount == 1)
 		{
-			MeshManager::m_BoneAnimationList[nCount].matQuaternion = (LPD3DXQUATERNION)malloc(
-				MeshManager::m_BoneAnimationList[nCount].numAniFrame
-				* (sizeof(D3DXQUATERNION)
-				* nFullTickCount));
+			MeshManager::m_BoneAnimationList[nCount].matQuaternion = allocationBytes ? (LPD3DXQUATERNION)malloc(allocationBytes / sizeof(D3DXMATRIX) * sizeof(D3DXQUATERNION)) : nullptr;
+			if (allocationBytes && !MeshManager::m_BoneAnimationList[nCount].matQuaternion) return fail();
 		}		
 		
 		dwFileIndex = 0;
@@ -159,18 +206,24 @@ int MeshManager::InitBoneAnimation()
 		// This loop is related with weapon animations
 		for (size_t nFI = 0; nFI < MeshManager::m_BoneAnimationList[nCount].numAniTypeCount; ++nFI)
 		{
-			sprintf(szTemp,	"%s%04d.ani", MeshManager::m_BoneAnimationList[nCount].szAniName, m_stValidAniList[nCount][nFI].nI + 1);
+			if (!ticks[nFI]) continue; // Missing cuts remain sparse; never read newly appeared files into the allocation.
+			const int pathLength = snprintf(szTemp, sizeof(szTemp), "%s%04d.ani", MeshManager::m_BoneAnimationList[nCount].szAniName, m_stValidAniList[nCount][nFI].nI + 1);
+			if (pathLength < 0 || pathLength >= sizeof(szTemp)) return fail();
 			handle = _open(szTemp, _O_BINARY, 0);
 
 			if (handle < 0)
-				continue;
+				return fail();
 
-			unsigned int buffer;
-			_read(handle, &buffer, 4);
-			_read(handle, &MeshManager::m_BoneAnimationList[nCount].numAniFrame, 4);
+			unsigned int buffer = 0, frameCount = 0;
+			std::size_t bytes = 0;
+			const bool valid = _read(handle, &buffer, 4) == 4 && _read(handle, &frameCount, 4) == 4 &&
+				buffer == ticks[nFI] && frameCount == frames[nFI] &&
+				asset_load::AnimationBytes(buffer, frameCount, frames[nFI], bytes) &&
+				bytes <= allocationBytes && static_cast<std::size_t>(nOffset) * sizeof(D3DXMATRIX) <= allocationBytes - bytes;
+			if (!valid) { _close(handle); return fail(); }
 			MeshManager::m_BoneAnimationList[nCount].numAniCut[dwFileIndex] = buffer;
-			_read(handle, &MeshManager::m_BoneAnimationList[nCount].matAnimation[nOffset],
-				MeshManager::m_BoneAnimationList[nCount].numAniFrame * (buffer * sizeof(D3DXMATRIX)));
+			if (_read(handle, &MeshManager::m_BoneAnimationList[nCount].matAnimation[nOffset], static_cast<unsigned int>(bytes)) != static_cast<int>(bytes))
+			{ _close(handle); return fail(); }
 
 			if (nCount == 0 || nCount == 1)
 			{
@@ -276,7 +329,8 @@ int MeshManager::InitBoneAnimation()
 			else if (nCount == 5)
 			{
 				int nArrayIndex = m_stValidAniList[5][nFI].nI + 1;
-				MeshManager::m_sAnimationArray[4][nArrayIndex / 100 + 59][nArrayIndex % 100 - 1] = dwFileIndex;
+				if (asset_load::AnimationMapping(nCount, m_stValidAniList[nCount][nFI].nI))
+					MeshManager::m_sAnimationArray[4][nArrayIndex / 100 + 59][nArrayIndex % 100 - 1] = dwFileIndex;
 				if (nArrayIndex == 111)
 				{
 					for (int nAniTypeNum = 1; nAniTypeNum < MAX_ANI_TYPE; ++nAniTypeNum)
@@ -289,7 +343,8 @@ int MeshManager::InitBoneAnimation()
 			else if (nCount == 3)
 			{
 				int nArrayIndex = m_stValidAniList[3][nFI].nI + 1;
-				MeshManager::m_sAnimationArray[2][nArrayIndex / 100 + 59][nArrayIndex % 100 - 1] = dwFileIndex;
+				if (asset_load::AnimationMapping(nCount, m_stValidAniList[nCount][nFI].nI))
+					MeshManager::m_sAnimationArray[2][nArrayIndex / 100 + 59][nArrayIndex % 100 - 1] = dwFileIndex;
 				if (nArrayIndex == 108)
 				{
 					for (int nAniTypeNum = 1; nAniTypeNum < MAX_ANI_TYPE; ++nAniTypeNum)
@@ -320,17 +375,8 @@ int MeshManager::InitBoneAnimation()
 					}
 				}
 			}
-			else if(nCount == 28 || nCount == 7)
-			{
-				if (m_stValidAniList[nCount][nFI].nI == 107)
-				{
-					for (int nAniTypeNum = 1; nAniTypeNum < MAX_ANI_TYPE; ++nAniTypeNum)
-					{
-						for (int nAniMotionNum = 0; nAniMotionNum < MAX_ANI_MOTION; ++nAniMotionNum)
-							MeshManager::m_sAnimationArray[nCount][nAniTypeNum][nAniMotionNum] = MeshManager::m_sAnimationArray[nCount][0][nAniMotionNum];
-					}
-				}
-			}
+			// Resource IDs 7 and 28 are not character classes in the six-class mapping.
+			// Their former alias branch indexed outside m_sAnimationArray.
 
 			if (++dwFileIndex >= MeshManager::m_BoneAnimationList[nCount].numAniTypeCount)
 			{
@@ -338,6 +384,7 @@ int MeshManager::InitBoneAnimation()
 				break;
 			}
 		}
+		g_nMaxSizeOffset[nCount] = static_cast<int>(allocationBytes);
 	}
 
 	fclose(fpList);

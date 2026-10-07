@@ -242,7 +242,7 @@ void SEditableText::Update()
 	else
 	{
 		for (int nIndex = 0; nIndex < nComposeStringLen + nStringLen; ++nIndex)
-			m_GCText.strString[nIndex] = '•';
+			m_GCText.strString[nIndex] = '\242'; // Byte MSVC kept from the imported multi-character bullet literal; native 7.48 mask unverified.
 
 		m_GCText.strString[nStringLen] = 0;
 	}

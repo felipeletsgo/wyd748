@@ -13,21 +13,21 @@ import (
 	"wydgo/internal/model"
 )
 
-// LoadCatalog carrega as fontes autoritativas do catalogo. Itemname substitui
-// somente o nome do itemlist; ItemEffect traduz os IDs dos efeitos persistidos;
-// todos os campos das skills vem de SkillData.
+// LoadCatalog loads the authoritative catalog sources. Itemname replaces only
+// the itemlist name; ItemEffect translates the persisted effect IDs; every
+// skill field comes from SkillData.
 func LoadCatalog(itemListPath, itemNamePath string, paths ...string) (model.Catalog, error) {
 	var itemEffectPath, skillPath string
 	switch len(paths) {
 	case 1:
-		// Compatibilidade para consumidores internos: ItemEffect.h continua
-		// obrigatorio e e localizado ao lado do itemlist.
+		// Compatibility for internal consumers: ItemEffect.h stays mandatory
+		// and is found next to the itemlist.
 		itemEffectPath = filepath.Join(filepath.Dir(itemListPath), "ItemEffect.h")
 		skillPath = paths[0]
 	case 2:
 		itemEffectPath, skillPath = paths[0], paths[1]
 	default:
-		return model.Catalog{}, fmt.Errorf("LoadCatalog requer SkillData e, opcionalmente, ItemEffect explicito")
+		return model.Catalog{}, fmt.Errorf("LoadCatalog requires SkillData and, optionally, an explicit ItemEffect")
 	}
 	effects, err := loadItemEffects(itemEffectPath)
 	if err != nil {
@@ -60,18 +60,22 @@ func validateStaticEffects(items map[uint16]model.ItemDef, effects map[byte]stri
 		known[name] = struct{}{}
 	}
 	for index, def := range items {
-		for _, effect := range def.StaticEffects {
+		for i, effect := range def.StaticEffects {
 			if _, ok := known[effect.Name]; !ok {
-				// O ItemList 7.48 possui alguns efeitos proprietarios escritos
-				// diretamente como ID numerico (por exemplo 111), mesmo sem
-				// alias EF_* no ItemEffect.h. Eles continuam autoritativos e
-				// sao preservados, nao inventamos um nome no servidor.
+				// The 7.48 item list writes some effects as a numeric ID (for
+				// example 111, the client's EF_NOTRADE). When ItemEffect.h names
+				// that ID, use the name so rules that look an effect up by name
+				// (trade, refine, consumables) see it; otherwise keep the number.
 				if numeric, err := strconv.Atoi(effect.Name); err == nil && numeric > 0 && numeric <= 255 {
+					if name, named := effects[byte(numeric)]; named {
+						def.StaticEffects[i].Name = name
+					}
 					continue
 				}
-				return fmt.Errorf("itemlist item %d usa efeito %q ausente do ItemEffect.h", index, effect.Name)
+				return fmt.Errorf("itemlist item %d uses effect %q missing from ItemEffect.h", index, effect.Name)
 			}
 		}
+		items[index] = def
 	}
 	return nil
 }
@@ -79,7 +83,7 @@ func validateStaticEffects(items map[uint16]model.ItemDef, effects map[byte]stri
 func loadItemEffects(path string) (map[byte]string, error) {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("abrir ItemEffect %q: %w", path, err)
+		return nil, fmt.Errorf("open ItemEffect %q: %w", path, err)
 	}
 	defer file.Close()
 
@@ -93,22 +97,22 @@ func loadItemEffects(path string) (map[byte]string, error) {
 		}
 		value, err := strconv.Atoi(fields[2])
 		if err != nil || value <= 0 || value > 255 {
-			return nil, fmt.Errorf("ItemEffect %s linha %d: ID invalido %q", path, line, fields[2])
+			return nil, fmt.Errorf("ItemEffect %s line %d: invalid ID %q", path, line, fields[2])
 		}
 		id, name := byte(value), fields[1]
 		if previous, ok := effects[id]; ok && previous != name {
-			return nil, fmt.Errorf("ItemEffect %s linha %d: ID %d duplicado (%s/%s)", path, line, id, previous, name)
+			return nil, fmt.Errorf("ItemEffect %s line %d: duplicate ID %d (%s/%s)", path, line, id, previous, name)
 		}
 		if previous, ok := names[name]; ok && previous != id {
-			return nil, fmt.Errorf("ItemEffect %s linha %d: efeito %s duplicado (%d/%d)", path, line, name, previous, id)
+			return nil, fmt.Errorf("ItemEffect %s line %d: duplicate effect %s (%d/%d)", path, line, name, previous, id)
 		}
 		effects[id], names[name] = name, id
 	}
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("ler ItemEffect %q: %w", path, err)
+		return nil, fmt.Errorf("read ItemEffect %q: %w", path, err)
 	}
 	if len(effects) == 0 {
-		return nil, fmt.Errorf("ItemEffect %q nao possui definicoes EF_*", path)
+		return nil, fmt.Errorf("ItemEffect %q has no EF_* definitions", path)
 	}
 	return effects, nil
 }
@@ -128,13 +132,13 @@ func records(path string, visit func([]string) error) error {
 			return nil
 		}
 		if err != nil {
-			return fmt.Errorf("data: %s linha %d: %w", path, line, err)
+			return fmt.Errorf("data: %s line %d: %w", path, line, err)
 		}
 		if len(row) == 0 || strings.HasPrefix(strings.TrimSpace(row[0]), "#") {
 			continue
 		}
 		if err := visit(row); err != nil {
-			return fmt.Errorf("data: %s linha %d: %w", path, line, err)
+			return fmt.Errorf("data: %s line %d: %w", path, line, err)
 		}
 	}
 }
@@ -142,7 +146,7 @@ func records(path string, visit func([]string) error) error {
 func integer(s string) (int, error) {
 	v, err := strconv.Atoi(strings.TrimSpace(s))
 	if err != nil {
-		return 0, fmt.Errorf("inteiro invalido %q", s)
+		return 0, fmt.Errorf("invalid integer %q", s)
 	}
 	return v, nil
 }
@@ -167,14 +171,14 @@ func loadItemList(path string) (map[uint16]model.ItemDef, error) {
 	items := make(map[uint16]model.ItemDef)
 	err := records(path, func(row []string) error {
 		if len(row) < 9 {
-			return fmt.Errorf("itemlist requer ao menos 9 colunas, recebeu %d", len(row))
+			return fmt.Errorf("itemlist needs at least 9 columns, got %d", len(row))
 		}
 		idx, err := integer(row[0])
 		if err != nil || idx <= 0 || idx >= model.ItemListSize {
-			return fmt.Errorf("index invalido %q", row[0])
+			return fmt.Errorf("invalid index %q", row[0])
 		}
 		if _, duplicate := items[uint16(idx)]; duplicate {
-			return fmt.Errorf("itemlist possui index duplicado %d", idx)
+			return fmt.Errorf("itemlist has duplicate index %d", idx)
 		}
 		mesh, err := dotted(row[2], 2)
 		if err != nil {
@@ -190,7 +194,7 @@ func loadItemList(path string) (map[uint16]model.ItemDef, error) {
 		}
 		price, err := integer(row[5])
 		if err != nil || price < 0 {
-			return fmt.Errorf("preco invalido %q", row[5])
+			return fmt.Errorf("invalid price %q", row[5])
 		}
 		pos, err := integer(row[6])
 		if err != nil {
@@ -228,11 +232,11 @@ func loadItemList(path string) (map[uint16]model.ItemDef, error) {
 func loadItemNames(path string, items map[uint16]model.ItemDef) error {
 	return records(path, func(row []string) error {
 		if len(row) < 2 {
-			return fmt.Errorf("itemname requer index,nome")
+			return fmt.Errorf("itemname needs index,name")
 		}
 		idx, err := integer(row[0])
 		if err != nil || idx <= 0 || idx >= model.ItemListSize {
-			return fmt.Errorf("index invalido %q", row[0])
+			return fmt.Errorf("invalid index %q", row[0])
 		}
 		if def, ok := items[uint16(idx)]; ok {
 			def.Name = strings.TrimSpace(row[1])
@@ -245,11 +249,11 @@ func loadItemNames(path string, items map[uint16]model.ItemDef) error {
 func loadSkills(path string) (map[int]model.SkillDef, error) {
 	skills := make(map[int]model.SkillDef)
 	err := records(path, func(row []string) error {
-		// Layout 7.48: Id + 12 parametros + Act + ActAlt + 7 atributos
-		// finais + Name = 23 colunas. O campo Unknown presente em algumas
-		// exportacoes de versoes posteriores nao faz parte desta fonte.
+		// 7.48 layout: Id + 12 parameters + Act + ActAlt + 7 final
+		// attributes + Name = 23 columns. The Unknown field found in some
+		// exports of later versions is not part of this source.
 		if len(row) != 23 {
-			return fmt.Errorf("SkillData requer exatamente 23 colunas, recebeu %d", len(row))
+			return fmt.Errorf("SkillData needs exactly 23 columns, got %d", len(row))
 		}
 		values := make([]int, 13)
 		for i := range values {
@@ -260,7 +264,7 @@ func loadSkills(path string) (map[int]model.SkillDef, error) {
 			values[i] = v
 		}
 		if values[0] < 0 || values[0] >= model.SkillListSize {
-			return fmt.Errorf("SkillData possui index fora da tabela 7.48: %d", values[0])
+			return fmt.Errorf("SkillData has an index outside the 7.48 table: %d", values[0])
 		}
 		act, err := dotted(row[13], 8)
 		if err != nil {
@@ -271,11 +275,11 @@ func loadSkills(path string) (map[int]model.SkillDef, error) {
 			return err
 		}
 		if _, duplicate := skills[values[0]]; duplicate {
-			return fmt.Errorf("SkillData possui index duplicado %d", values[0])
+			return fmt.Errorf("SkillData has duplicate index %d", values[0])
 		}
 		for i := range act {
 			if act[i] < 0 || act[i] > 255 || actAlt[i] < 0 || actAlt[i] > 255 {
-				return fmt.Errorf("SkillData skill %d possui Act[%d] fora de byte", values[0], i)
+				return fmt.Errorf("SkillData skill %d has Act[%d] outside a byte", values[0], i)
 			}
 		}
 		tail := make([]int, 7)

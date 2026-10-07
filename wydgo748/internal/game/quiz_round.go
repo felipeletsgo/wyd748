@@ -22,7 +22,7 @@ type quizParticipant struct {
 
 func (w *World) closeQuizRound() {
 	e := w.quiz
-	if e == nil {
+	if e == nil || e.criticalRewards != 0 {
 		return
 	}
 	for session, p := range e.participants {
@@ -35,7 +35,7 @@ func (w *World) closeQuizRound() {
 	e.status.RoundClosesAt = nil
 }
 func (w *World) endQuiz(reason string) {
-	if w.quiz == nil || !w.quiz.status.Active {
+	if w.quiz == nil || !w.quiz.status.Active || w.quiz.criticalRewards != 0 {
 		return
 	}
 	w.closeQuizRound()
@@ -47,10 +47,10 @@ func (w *World) endQuiz(reason string) {
 }
 func (w *World) tickQuiz(now time.Time) {
 	e := w.quiz
-	if e == nil || !e.status.Active {
+	if e == nil || !e.status.Active || e.criticalRewards != 0 {
 		return
 	}
-	if !now.Before(*e.status.EndsAt) {
+	if e.status.EndsAt != nil && !now.Before(*e.status.EndsAt) {
 		w.endQuiz("time")
 		return
 	}
@@ -64,7 +64,7 @@ func (w *World) tickQuiz(now time.Time) {
 	w.closeQuizRound()
 	next := now.Add(time.Minute)
 	deadline := now.Add(10 * time.Second)
-	if deadline.After(*e.status.EndsAt) {
+	if e.status.EndsAt != nil && deadline.After(*e.status.EndsAt) {
 		e.status.NextRoundAt = nil
 		return
 	}
@@ -133,13 +133,19 @@ func (w *World) onQuizAnswer(session *net.Session, pkt []byte) {
 		return
 	}
 	e := w.quiz
-	if e == nil || !e.status.Active || e.status.RoundClosesAt == nil || !w.now().Before(*e.status.RoundClosesAt) || !w.now().Before(*e.status.EndsAt) {
+	if e == nil || !e.status.Active || e.status.RoundClosesAt == nil || !w.now().Before(*e.status.RoundClosesAt) ||
+		(e.status.EndsAt != nil && !w.now().Before(*e.status.EndsAt)) {
 		return
 	}
 	participant := e.participants[session]
 	p := w.players[session]
 	if participant == nil || p == nil || p != participant.player || p.Char != participant.character || !p.InWorld || p.Account == nil || p.PersistencePoisoned || session.IsClosed() || p.ID != response.ID ||
-		strings.ToLower(p.Account.Name) != participant.account || participant.answered || e.claimed[participant.account] || participant.token != response.Token {
+		strings.ToLower(p.Account.Name) != participant.account || participant.answered || e.claimed[participant.account] || participant.token != response.Token ||
+		w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil && response.Choice == participant.correct {
+		w.admitQuizReward(e, participant, p)
 		return
 	}
 	// Consume even a wrong answer before saving: no slot brute force or retry
@@ -148,7 +154,7 @@ func (w *World) onQuizAnswer(session *net.Session, pkt []byte) {
 	e.claimed[participant.account] = true
 	session.Send(wire.QuizClose(p.ID, participant.token))
 	if response.Choice != participant.correct {
-		session.Send(wire.MessagePanel("Quiz: resposta incorreta."))
+		session.Send(wire.MessagePanel("Quiz: incorrect answer."))
 		return
 	}
 	e.status.Correct++
@@ -159,14 +165,14 @@ func (w *World) onQuizAnswer(session *net.Session, pkt []byte) {
 		if err != nil {
 			*p.Char = before
 			e.status.DeliveryFailures++
-			session.Send(wire.MessagePanel("Quiz: falha ao preparar recompensa. Contate a equipe."))
+			session.Send(wire.MessagePanel("Quiz: the reward could not be prepared. Contact staff."))
 			return
 		}
 		pos := addToInv(p.Char, item)
 		if pos < 0 {
 			*p.Char = before
 			e.status.DeliveryFailures++
-			session.Send(wire.MessagePanel("Quiz: correto, mas sem espaco para a recompensa. Libere espaco antes da proxima pergunta."))
+			session.Send(wire.MessagePanel("Quiz: correct, but your inventory is full. Make room before the next question."))
 			return
 		}
 		drops = append(drops, plannedDrop{player: p, inventoryPos: pos, item: item, source: "quiz", sourceSlot: -1})
@@ -180,6 +186,6 @@ func (w *World) onQuizAnswer(session *net.Session, pkt []byte) {
 	}
 	w.publishPlannedDrops(drops)
 	e.status.Rewarded++
-	session.Send(wire.MessagePanel("Quiz: resposta correta! Recompensa entregue."))
+	session.Send(wire.MessagePanel("Quiz: correct answer! Reward delivered."))
 	log.Printf("[event] quiz reward event=%q round=%d account=%q item=%d quantity=%d", e.status.EventID, e.status.Rounds, participant.account, e.status.ItemID, e.status.RewardQuantity)
 }

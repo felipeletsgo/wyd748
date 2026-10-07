@@ -21,10 +21,4 @@ void ProjectNativeHpVisual(Bar* bar, int current, int maximum)
     Project(bar, current, maximum);
     bar->SetVisible(current > 0);
 }
-
-inline const char* MaximumTextFormat(bool nativeLayout)
-{
-    // Native HUD has independent numeric cells, not a combined "cur / max".
-    return nativeLayout ? "%u" : "/ %u";
-}
 } // namespace resource_ui

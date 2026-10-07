@@ -6,7 +6,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// RegenMob aplica MaxHP/MP * EF_REGEN / 120 e soma o piso natural de 10.
+// RegenMob applies MaxHP/MP * EF_REGEN / 120 plus the natural floor of 10.
 const playerRegenInterval = 3 * time.Second
 
 func regenAmount(max uint32, rate int) uint32 {
@@ -30,7 +30,7 @@ func applyPlayerRegen(ch *model.Char) bool {
 
 func (w *World) tickPlayerRegen(now time.Time) {
 	for _, p := range w.players {
-		if !p.InWorld || p.Char == nil || now.Before(p.NextRegen) {
+		if p == nil || !p.InWorld || p.Char == nil || w.criticalPlayerReserved(p) || now.Before(p.NextRegen) {
 			continue
 		}
 		p.NextRegen = now.Add(playerRegenInterval)

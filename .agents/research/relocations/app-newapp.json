@@ -1,28 +1,92 @@
 {
- "revision": "71c4b313",
- "groups": [
-  {
-   "baseline": [
-    "tmproject/TMProject748/internal/app/scenes/NewApp.cpp"
-   ],
-   "current": [
-    "tmproject/TMProject748/internal/app/scenes/NewApp.cpp",
-    "tmproject/TMProject748/internal/app/scenes/NewAppWindow.cpp",
-    "tmproject/TMProject748/internal/app/scenes/NewAppServices.cpp"
-   ],
-   "new_items": {
-    "NewApp::OnInputLanguageChange": "0347cfcfc50ad6402344350af6248595d30a3b0027c3d5d388ff4cd7b00fd817",
-    "NewApp::OnKeyDownMessage": "12a0e625d4bac7a654d7e2472c9109624c2497d671472ff14fccccca4e7eb2bf",
-    "NewApp::OnNetworkMessage": "acc0a3e6e0d7af38e4f48559597a29d7e242b622d78aa407afaba42b1427aad5",
-    "NewApp::OnCloseMessage": "afcdf0c2aee981c52b5fb2f3ed601d6ab55783b1cca230f668a70bf42ba19b30"
-   }
+  "revision": "71c4b313",
+  "groups": [
+    {
+      "baseline": [
+        "tmproject/TMProject748/internal/app/scenes/NewApp.cpp"
+      ],
+      "current": [
+        "tmproject/TMProject748/internal/app/scenes/NewApp.cpp",
+        "tmproject/TMProject748/internal/app/scenes/NewAppWindow.cpp",
+        "tmproject/TMProject748/internal/app/scenes/NewAppServices.cpp"
+      ],
+      "new_items": {
+        "NewApp::OnInputLanguageChange": "7a5702a5b3e971349d7a42b97e53161b8378877622e8b5ad226f73d23ad37434",
+        "NewApp::OnKeyDownMessage": "12a0e625d4bac7a654d7e2472c9109624c2497d671472ff14fccccca4e7eb2bf",
+        "NewApp::OnNetworkMessage": "acc0a3e6e0d7af38e4f48559597a29d7e242b622d78aa407afaba42b1427aad5",
+        "NewApp::OnCloseMessage": "afcdf0c2aee981c52b5fb2f3ed601d6ab55783b1cca230f668a70bf42ba19b30"
+      }
+    }
+  ],
+  "reviewed": {
+    "NewApp::MsgProc: helpers extracted by extract-method.py (method-newapp-msgproc.json)": {
+      "method": "HRESULT NewApp :: MsgProc ( HWND hWnd , DWORD uMsg , DWORD wParam , int lParam )",
+      "before": "24c77f4e397142d4e3e2e0afcc971308569b2fdafaa795a3f93476b95350bbba",
+      "after": "60015d5ebad59fe8b9b1bad1f7ee8f98cac5c9017e978c871dde4cf33cca5c26"
+    },
+    "NewApp::OnKeyDownMessage: TMVideoWnd/JBlur stubs removed (no intro video in 7.48; blur never rendered)": {
+      "before": "12a0e625d4bac7a654d7e2472c9109624c2497d671472ff14fccccca4e7eb2bf",
+      "after": "885ff7105f09fd7f1ed708f84a3bb0b56930a6115b4d068a154895830fd8e986"
+    },
+    "NewApp :: NewApp ( ): TMVideoWnd/JBlur stubs removed (no intro video in 7.48; blur never rendered)": {
+      "before": "19d06b9210e5d09efe624d6c00f2194bb661d093478e858f0c7470d3e4654f09",
+      "after": "3bcbb943c9d53fe745ae911b9221bd060aeb4680c97e33e688ff6489436d16ab"
+    },
+    "HRESULT NewApp :: Initialize ( HINSTANCE hInstance , int nFull ): TMVideoWnd/JBlur stubs removed (no intro video in 7.48; blur never rendered)": {
+      "before": "866fff0a451e08ad8cc16404d9414d94ea75d2d456eeaf972beb78fa5206f76a",
+      "after": "db279367ddb249b000f4a988312828e7da0deb7f38fb8b191e631fac2d94471b"
+    },
+    "HRESULT NewApp :: InitDevice ( ): TMVideoWnd/JBlur stubs removed (no intro video in 7.48; blur never rendered)": {
+      "before": "affc42d53640ed533fcda0743224e2c437b9610589dcfbaa7473fb3e9aa268c0",
+      "after": "db3466a4104a783429dbe2d32c238ad38b108ba4a3fdfe1d035b02ab687eb00f"
+    },
+    "void NewApp :: InitMusicList ( ): Music.txt lines parsed by the tested music_list::ParseLine": {
+      "before": "ef4250334488f90b93d3c4f82048ebd4fd12cf5916232b7bb8c8dea1d3940170",
+      "after": "05228f9df8c9b42489f4a1a7be84e54e956506b109cc85fffac7bfb6399dda93"
+    },
+    "HRESULT NewApp :: Finalize ( ): TMVideoWnd/JBlur stubs removed (no intro video in 7.48; blur never rendered)": {
+      "before": "e3629c7457764c769719f74a6d688e39f77e4c3c8f7f2307b41bbab5ead8e43d",
+      "after": "f05c7b5b1c0eda75acad93aa0965a2aa1e7d567d41db95619005c382291d0335"
+    },
+    "DWORD NewApp :: Run ( ): TMVideoWnd/JBlur stubs removed (no intro video in 7.48; blur never rendered)": {
+      "before": "cf274dc08d1e48af75ac44d1220936345ade0f00903aa5a63e93cc0dfe3552ea",
+      "after": "33b2b765114cf25014d66d2ce3f171e43ce14a625d2e3f5617275ec800c75909"
+    },
+    "void NewApp :: SwitchWebBoard ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "5a95084d252f673d695eba63c5bf8f23c4f01d07d48534574a427d37d1b94716",
+      "after": null
+    },
+    "DWORD NewApp :: GetHttpRequest ( char * httpname , char * Request , int MaxBuffer ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "823abb2b47439c777044ee922b27aefcf0b27148b2b3a6d34c99c1a60513e923",
+      "after": null
+    },
+    "int NewApp :: BASE_Initialize_NewServerList ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "baf1adc5829be377b7ed86177a19aa894061aa6bb92a4eac11c9ccae2667b46c",
+      "after": null
+    },
+    "void NewApp :: InitServerNameMR ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "89766c071d6f63c990fe86ab31e0461e3b7ac6b76eda0f821f828ee6dd02602d",
+      "after": null
+    },
+    "char NewApp :: base_chinaTid ( char * TID , char * Id ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "551673c086e12470ada2e2150fbfefb95fd71b2ac89ae249d4ac8d8fb3ee8a12",
+      "after": null
+    },
+    "void CreateConsole ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "07e41eef49a0f893ff1c702e243a73cdc0525936348ebea4a4cc4ffee2217650",
+      "after": null
+    },
+    "HRESULT NewApp :: MsgProc ( HWND hWnd , DWORD uMsg , DWORD wParam , int lParam ): TMVideoWnd/JBlur stubs removed (no intro video in 7.48; blur never rendered)": {
+      "before": "60015d5ebad59fe8b9b1bad1f7ee8f98cac5c9017e978c871dde4cf33cca5c26",
+      "after": "272a66d30714785564ace19ddca98d8c5a811161523cbd4c628685464b42d972"
+    },
+    "void NewApp :: SwitchWebBrowserState ( int nEmptyCargo ): empty stub of the later client's web browser removed (dead-code-map.md)": {
+      "before": "dc3420b2293563e846038fd6301be8a0d773d6d89ba674821511373007857a6c",
+      "after": null
+    },
+    "HRESULT NewApp :: MsgProc ( HWND hWnd , DWORD uMsg , DWORD wParam , int lParam ): empty EventTranslator::OnIME2 stub call removed (dead-code-map.md)": {
+      "before": "272a66d30714785564ace19ddca98d8c5a811161523cbd4c628685464b42d972",
+      "after": "b880e93de7185c89e643e615a1268e3487b06af131baea516b3dd37a0284637f"
+    }
   }
- ],
- "reviewed": {
-  "NewApp::MsgProc: helpers extracted by extract-method.py (method-newapp-msgproc.json)": {
-   "method": "HRESULT NewApp :: MsgProc ( HWND hWnd , DWORD uMsg , DWORD wParam , int lParam )",
-   "before": "24c77f4e397142d4e3e2e0afcc971308569b2fdafaa795a3f93476b95350bbba",
-   "after": "ff572e279e58e8baeef223ecc8ae8efbec282a6078ae34043f25e06309b3014a"
-  }
- }
 }

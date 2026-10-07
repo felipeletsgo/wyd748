@@ -10,7 +10,9 @@ import (
 	"wydgo/internal/wire"
 )
 
-const premiumTimedMarker = "111"
+// Effect 111 is the native EF_NOTRADE; premium costumes and mounts carry it with
+// their EF_WDAY/EF_HOUR/EF_MIN lifetime, and the catalog now loads it by name.
+const premiumTimedMarker = "EF_NOTRADE"
 
 var errTimedItemExpired = errors.New("timed item expired")
 
@@ -151,7 +153,35 @@ func (w *World) prepareTimedEquipmentForEnter(p *Player, now time.Time) error {
 	if w == nil || p == nil || p.Char == nil || p.Account == nil {
 		return nil
 	}
+	if w.criticalPlayerReserved(p) {
+		return errCriticalPersistenceBusy
+	}
 	snapshot := snapshotTimedAccountItems(p.Account)
+	changed, err := w.planTimedEquipmentForEnter(p, now)
+	if err != nil {
+		restoreTimedAccountItems(p.Account, snapshot)
+		return err
+	}
+	if !changed {
+		return nil
+	}
+	// This synchronous API cannot confirm a queued save. Staged entry uses the
+	// detached planner and its identity-bound continuation instead.
+	if w.criticalWrites != nil {
+		restoreTimedAccountItems(p.Account, snapshot)
+		return errCriticalPersistenceUnsupported
+	}
+	if err := w.saveAccount(p.Account); err != nil {
+		restoreTimedAccountItems(p.Account, snapshot)
+		return fmt.Errorf("persist timed equipment: %w", err)
+	}
+	return nil
+}
+
+// planTimedEquipmentForEnter operates on the caller's supplied private state.
+// The synchronous legacy wrapper restores it on error; staged entry never
+// exposes the proposal until its durable write is acknowledged.
+func (w *World) planTimedEquipmentForEnter(p *Player, now time.Time) (bool, error) {
 	changed := len(expireTimedAccountItems(p.Account, now)) != 0
 	for _, slot := range []byte{fairySlot, mountSlot} {
 		item := &p.Char.Equip[slot]
@@ -160,19 +190,11 @@ func (w *World) prepareTimedEquipmentForEnter(p *Player, now time.Time) error {
 		}
 		activated, err := w.activateTimedItem(item, slot, now)
 		if err != nil {
-			restoreTimedAccountItems(p.Account, snapshot)
-			return err
+			return false, err
 		}
 		changed = changed || activated
 	}
-	if !changed {
-		return nil
-	}
-	if err := w.saveAccount(p.Account); err != nil {
-		restoreTimedAccountItems(p.Account, snapshot)
-		return fmt.Errorf("persist timed equipment: %w", err)
-	}
-	return nil
+	return changed, nil
 }
 
 const timedItemSweepInterval = time.Minute
@@ -187,13 +209,19 @@ func (w *World) tickTimedItems(now time.Time) {
 	w.nextTimedItemSweep = now.Add(timedItemSweepInterval)
 	seenAccounts := make(map[*model.Account]struct{}, len(w.players))
 	for _, p := range w.players {
-		if p == nil || !p.InWorld || p.Char == nil || p.Account == nil {
+		if p == nil || !p.InWorld || p.Char == nil || p.Account == nil || w.criticalPlayerReserved(p) {
 			continue
 		}
 		if _, done := seenAccounts[p.Account]; done {
 			continue
 		}
 		seenAccounts[p.Account] = struct{}{}
+		if w.criticalWrites != nil {
+			if err := w.queueTimedItemExpiry(p, now); err != nil {
+				log.Printf("[#%d] failed to submit timed item expiry: %v", p.ID, err)
+			}
+			continue
+		}
 		snapshot := snapshotTimedAccountItems(p.Account)
 		removals := expireTimedAccountItems(p.Account, now)
 		if len(removals) == 0 {
@@ -204,31 +232,38 @@ func (w *World) tickTimedItems(now time.Time) {
 			log.Printf("[#%d] failed to expire timed equipment: %v", p.ID, err)
 			continue
 		}
-		activeEquipChanged := false
-		for _, removal := range removals {
-			activeEquipChanged = activeEquipChanged ||
-				removal.charIndex == p.CharSlot && removal.place == placeEquip
-		}
-		if p.Session != nil {
-			for _, removal := range removals {
-				if removal.charIndex == p.CharSlot {
-					p.Session.Send(wire.SendItem(p.ID, removal.place, removal.slot, model.Item{}))
-				} else if removal.place == placeStorage {
-					p.Session.Send(wire.SendItem(p.ID, placeStorage, removal.slot, model.Item{}))
-				}
-			}
-			p.Session.Send(wire.MessagePanel("One or more timed items have expired."))
-		}
-		if !activeEquipChanged {
-			continue
-		}
-		w.recalcPlayer(p.Char)
-		if p.Session != nil {
-			p.Session.Send(playerScorePacket(p))
-			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-		}
-		w.syncPlayerVitalsToObservers(p)
-		w.syncCriaPet(p)
-		w.refreshAppearance(p)
+		w.publishTimedItemExpiry(p, removals)
 	}
+}
+
+// publishTimedItemExpiry runs only after durable removal, on World. The staged
+// caller invokes it after acknowledgement so guarded follower helpers can run.
+func (w *World) publishTimedItemExpiry(p *Player, removals []timedItemRemoval) {
+	activeEquipChanged := false
+	for _, removal := range removals {
+		activeEquipChanged = activeEquipChanged ||
+			removal.charIndex == p.CharSlot && removal.place == placeEquip
+	}
+	if p.Session != nil && !p.Session.IsClosed() {
+		for _, removal := range removals {
+			if removal.charIndex == p.CharSlot || removal.place == placeStorage {
+				p.Session.Send(wire.SendItem(p.ID, removal.place, removal.slot, model.Item{}))
+			}
+		}
+		p.Session.Send(wire.MessagePanel("One or more timed items have expired."))
+	}
+	if !activeEquipChanged {
+		return
+	}
+	w.recalcPlayer(p.Char)
+	if p.Session != nil && p.Session.IsClosed() {
+		return // Final lifecycle persistence sees committed items and score.
+	}
+	if p.Session != nil {
+		p.Session.Send(playerScorePacket(p))
+		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+	}
+	w.syncPlayerVitalsToObservers(p)
+	w.syncCriaPet(p)
+	w.refreshAppearance(p)
 }

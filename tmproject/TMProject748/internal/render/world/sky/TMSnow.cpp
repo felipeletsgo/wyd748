@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "ClientSettings.h"
 #include "TMSnow.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
@@ -46,6 +47,10 @@ TMSnow::~TMSnow()
 
 int TMSnow::Render()
 {
+    // Light profile: ambient decoration is not drawn while the window is idle.
+    if (IdleHidesAmbient())
+        return 0;
+
     if (g_bHideEffect == 1)
         return 1;
     if (m_fScale <= 0.07f)

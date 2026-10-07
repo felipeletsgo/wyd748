@@ -32,7 +32,6 @@ int RunFieldChatControlTests(int& checks)
         Channel::General, Channel::Party, Channel::Whisper, Channel::Guild,
         Channel::General, Channel::Party, Channel::Whisper, Channel::Guild};
     for (int i = 0; i < 8; ++i)
-    for (bool nativeHUD : {false, true})
     for (bool primaryPresent : {false, true})
     for (bool statePresent : {false, true})
     for (int selected : {-2, 0, 1})
@@ -42,14 +41,13 @@ int RunFieldChatControlTests(int& checks)
         const ButtonPair<Button> pair{
             primaryPresent ? &primary : nullptr, statePresent ? &state : nullptr};
         const Buttons<Button> buttons{pair, pair, pair, pair};
-        const auto expectedChannel = nativeHUD ? channels[i] : Channel::None;
-        const auto expectedOutcome = !nativeHUD ? Outcome::Unhandled :
-            !primaryPresent ? Outcome::Rejected : Outcome::Handled;
+        const auto expectedChannel = channels[i];
+        const auto expectedOutcome = !primaryPresent ? Outcome::Rejected : Outcome::Handled;
         const bool enabled = selected == 0;
         int callbacks = 0;
         Channel callbackChannel = Channel::None;
         bool callbackEnabled = false;
-        const auto outcome = Handle(nativeHUD, controls[i], buttons,
+        const auto outcome = Handle(controls[i], buttons,
             [&](Channel channel, bool value) {
                 ++callbacks;
                 callbackChannel = channel;
@@ -63,8 +61,8 @@ int RunFieldChatControlTests(int& checks)
                     state.Update();
                 }
             });
-        check(Route(nativeHUD, controls[i]) == expectedChannel, "resource hit targets retain channel identity");
-        check(outcome == expectedOutcome, "native rejection is consumed and imported input stays unhandled");
+        check(Route(controls[i]) == expectedChannel, "resource hit targets retain channel identity");
+        check(outcome == expectedOutcome, "a native rejection is consumed");
         const bool handled = expectedOutcome == Outcome::Handled;
         const bool channelFlag = handled && channels[i] != Channel::General;
         check(callbacks == (channelFlag ? 1 : 0) &&
@@ -82,7 +80,6 @@ int RunFieldChatControlTests(int& checks)
         }
         check(trace == expectedTrace, "callback and primary/state update order is preserved exactly");
     }
-    for (bool nativeHUD : {false, true})
     for (unsigned int control : {0u, static_cast<unsigned int>(TMB_CHAT_GENERAL - 1),
         static_cast<unsigned int>(TMB_CHAT_GUILD_T + 1), 0xFFFFFFFFu})
     {
@@ -91,7 +88,7 @@ int RunFieldChatControlTests(int& checks)
         const ButtonPair<Button> pair{&primary, &state};
         const Buttons<Button> buttons{pair, pair, pair, pair};
         int callbacks = 0;
-        check(Handle(nativeHUD, control, buttons,
+        check(Handle(control, buttons,
             [&](Channel, bool) { ++callbacks; }) == Outcome::Unhandled,
             "out-of-domain controls are not swallowed");
         check(callbacks == 0 && trace.empty() && primary.m_bSelected == 0 && state.m_bSelected == 1,
@@ -106,7 +103,7 @@ int RunFieldChatControlTests(int& checks)
     Button general{0, 1, &trace}, party{1, 2, &trace}, whisper{1, 3, &trace}, guild{1, 4, &trace};
     const Buttons<Button> distinct{{&general, nullptr}, {&party, nullptr},
         {&whisper, nullptr}, {&guild, nullptr}};
-    check(Handle(true, TMB_CHAT_GENERAL_T, distinct, [](Channel, bool) {}) == Outcome::Handled &&
+    check(Handle(TMB_CHAT_GENERAL_T, distinct, [](Channel, bool) {}) == Outcome::Handled &&
         general.m_bSelected == 1 && party.m_bSelected == 1 && whisper.m_bSelected == 1 &&
         guild.m_bSelected == 1 && trace == std::vector<int>{1},
         "general filter touches only its borrowed primary control");

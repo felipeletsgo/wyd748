@@ -199,8 +199,8 @@ int TMSelectCharScene::InitializeScene()
 			m_pSelbackpanel->SetStickLeft();
 			m_pSelbackpanel->SetStickBottom();
 
-			m_pSelbackpanel->m_nPosX += (30.0f * RenderDevice::m_fWidthRatio);
-			m_pSelbackpanel->m_nPosY -= (30.0f * RenderDevice::m_fHeightRatio);
+			m_pSelbackpanel->m_nPosX += (30.0f * RenderDevice::m_fUIScaleX);
+			m_pSelbackpanel->m_nPosY -= (30.0f * RenderDevice::m_fUIScaleY);
 		}
 
 		m_pGuildCaption = static_cast<SText*>(m_pControlContainer->FindControl(1312u));
@@ -439,7 +439,12 @@ void TMSelectCharScene::VisibleSelectCreate(int bSelect)
 		auto pCreBG4 = m_pControlContainer->FindControl(1541u);
 		auto pCreWin = m_pControlContainer->FindControl(1542u);
 
-		pCreWin->SetPos(RenderDevice::m_fWidthRatio * 514.0f, RenderDevice::m_fHeightRatio * 35.0f);
+		// FUN_004a250f (UI mode 2): the creation window is centred on the
+		// right-hand three quarters (W/4 - w/2 + W/2) and vertically.
+		if (pCreWin)
+			pCreWin->SetPos(
+				static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.75f - pCreWin->m_nWidth * 0.5f,
+				static_cast<float>(g_pDevice->m_dwScreenHeight) * 0.5f - pCreWin->m_nHeight * 0.5f);
 
 		if (pCreTitle)
 			pCreTitle->SetVisible(1);
@@ -480,33 +485,28 @@ void TMSelectCharScene::VisibleSelectCreate(int bSelect)
 		{
 			if (m_pNewCharPanel)
 				m_pNewCharPanel->SetPos(
-					(27.0f * RenderDevice::m_fWidthRatio) + m_pSelbackpanel->m_nPosX,
-					(13.0f * RenderDevice::m_fHeightRatio) + m_pSelbackpanel->m_nPosY);
+					(27.0f * RenderDevice::m_fUIScaleX) + m_pSelbackpanel->m_nPosX,
+					(13.0f * RenderDevice::m_fUIScaleY) + m_pSelbackpanel->m_nPosY);
 
 			if (m_pDelCharPanel)
 				m_pDelCharPanel->SetPos(
-					(27.0f * RenderDevice::m_fWidthRatio) + m_pSelbackpanel->m_nPosX,
-					(39.0f * RenderDevice::m_fHeightRatio) + m_pSelbackpanel->m_nPosY);
+					(27.0f * RenderDevice::m_fUIScaleX) + m_pSelbackpanel->m_nPosX,
+					(39.0f * RenderDevice::m_fUIScaleY) + m_pSelbackpanel->m_nPosY);
 
 			if (m_pReturnSvrSelPanel)
 				m_pReturnSvrSelPanel->SetPos(
-					(27.0f * RenderDevice::m_fWidthRatio) + m_pSelbackpanel->m_nPosX,
-					(64.0f * RenderDevice::m_fHeightRatio) + m_pSelbackpanel->m_nPosY);
+					(27.0f * RenderDevice::m_fUIScaleX) + m_pSelbackpanel->m_nPosX,
+					(64.0f * RenderDevice::m_fUIScaleY) + m_pSelbackpanel->m_nPosY);
 		}
 		else
 		{
-			// 7.48 stores these three panels at legacy top-left coordinates,
-			// while the shipped client anchors them to the lower-left edge.  Use
-			// scaled dimensions so hit testing and rendering share one layout.
-			const float left = 30.0f * RenderDevice::m_fWidthRatio;
-			const float bottom = 30.0f * RenderDevice::m_fHeightRatio;
-			const float gap = 5.0f * RenderDevice::m_fHeightRatio;
-			const float buttonHeight = m_pNewCharPanel ? m_pNewCharPanel->m_nHeight
-				: (21.0f * RenderDevice::m_fHeightRatio);
-			const float returnY = static_cast<float>(g_pDevice->m_dwScreenHeight)
-				- bottom - buttonHeight;
-			const float deleteY = returnY - gap - buttonHeight;
-			const float createY = deleteY - gap - buttonHeight;
+			// FUN_004a250f (UI mode 2) anchors the three panels at x=30 and
+			// 90/65/40 pixels above the bottom edge.
+			const float left = 30.0f;
+			const float viewportH = static_cast<float>(g_pDevice->m_dwScreenHeight);
+			const float createY = viewportH - 90.0f;
+			const float deleteY = viewportH - 65.0f;
+			const float returnY = viewportH - 40.0f;
 
 			if (m_pNewCharPanel)
 				m_pNewCharPanel->SetPos(left, createY);

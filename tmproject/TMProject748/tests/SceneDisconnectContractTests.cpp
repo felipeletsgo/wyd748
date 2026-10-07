@@ -260,16 +260,14 @@ int RunSceneDisconnectContractTests(int& checks)
             }
         }
     }
-    for (bool nativeHUD : {false, true}) {
-        for (unsigned int control = 0; control <= 665; ++control) {
-            const int expected = control >= 653 && control < (nativeHUD ? 665u : 663u)
-                ? static_cast<int>(control - 653) : -1;
-            check(field_interaction::AutoTradeSlotIndex(nativeHUD, control) == expected,
-                "auto-trade control maps only to an available listing slot");
-        }
-        check(field_interaction::AutoTradeSlotIndex(nativeHUD, UINT_MAX) == -1,
-            "auto-trade control rejects unsigned overflow boundary");
+    for (unsigned int control = 0; control <= 665; ++control) {
+        const int expected = control >= 653 && control < 665u
+            ? static_cast<int>(control - 653) : -1;
+        check(field_interaction::AutoTradeSlotIndex(control) == expected,
+            "auto-trade control maps only to one of the twelve native listing slots");
     }
+    check(field_interaction::AutoTradeSlotIndex(UINT_MAX) == -1,
+        "auto-trade control rejects unsigned overflow boundary");
     for (int sold = 0; sold < 12; ++sold) {
         for (int selected = 0; selected < 12; ++selected) {
             check(field_interaction::ShouldCancelAutoTradePurchase(646, 653u + selected, sold) == (sold == selected),
@@ -456,28 +454,24 @@ int RunSceneDisconnectContractTests(int& checks)
         selectCharacter.substr(characterTerrain, characterMiniMap - characterTerrain).find("return 0;") != std::string::npos,
         "character selection stops before using an invalid terrain");
     const auto fieldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
-    const auto frameSource = source_contract::Method(fieldSource,
-        "int TMFieldScene::FrameMove(unsigned int dwServerTime)");
+    const auto frameSource = source_contract::WithHelpers(fieldSource,
+        "int TMFieldScene::FrameMove(unsigned int dwServerTime)", "TMFieldScene");
     const auto delaySource = source_contract::Method(fieldSource,
         "int TMFieldScene::TimeDelay(unsigned int dwServerTime)");
-    const auto controlSource = source_contract::Method(fieldSource,
-        "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)");
+    const auto controlSource = source_contract::WithHelpers(fieldSource,
+        "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)", "TMFieldScene");
     const auto dialogSource = source_contract::Method(fieldSource,
         "int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent, unsigned int dwServerTime)");
-    const auto initSource = source_contract::Method(fieldSource,
-        "int TMFieldScene::InitializeScene()");
     const auto fieldTickStart = frameSource.find("int TMFieldScene::FrameMove(unsigned int dwServerTime)");
-    const auto compactTickStart = frameSource.find("\tif (m_bCompatFieldScene)\n", fieldTickStart);
-    const auto regularTickStart = frameSource.find("\tif (g_bEffectFirst == 1)", compactTickStart);
+    // FieldScene2 (7.48) is the only field lifecycle.
+    const auto compactTickStart = frameSource.find("// The 7.48 FieldScene2 HUD tick.", fieldTickStart);
     const auto compactRecall = frameSource.find("recallDeadPlayer(dwServerTime);", compactTickStart);
-    const auto regularRecall = frameSource.find("recallDeadPlayer(dwServerTime);", regularTickStart);
     check(fieldTickStart != std::string::npos && compactTickStart != std::string::npos &&
-        regularTickStart != std::string::npos && compactRecall != std::string::npos &&
-        regularRecall != std::string::npos && compactRecall < regularTickStart &&
-        regularRecall > regularTickStart &&
+        compactRecall != std::string::npos &&
+        frameSource.find("recallDeadPlayer(dwServerTime);", compactRecall + 1) == std::string::npos &&
         frameSource.find("MSG_STANDARD request{};", fieldTickStart) < compactTickStart &&
         frameSource.find("m_dwLastDeadTime = 0;", fieldTickStart) < compactTickStart,
-        "both field lifecycles send one initialized recall request after prolonged death");
+        "the field lifecycle sends one initialized recall request after prolonged death");
     const auto restoredHpGuard = frameSource.find(
         "m_pMessageBox && g_pObjectManager &&", fieldTickStart);
     const auto restoredHpCheck = frameSource.find(
@@ -490,7 +484,7 @@ int RunSceneDisconnectContractTests(int& checks)
         closeRespawnPrompt < compactTickStart &&
         frameSource.substr(restoredHpGuard, closeRespawnPrompt - restoredHpGuard).find(
             "m_pMessageBox->m_dwMessage == 11") != std::string::npos,
-        "both field lifecycles close only the respawn prompt after authoritative HP recovery");
+        "the field lifecycle closes only the respawn prompt after authoritative HP recovery");
     const auto timeDelayStart = delaySource.find("int TMFieldScene::TimeDelay(unsigned int dwServerTime)");
     const auto recallCountdownStart = delaySource.find("if (m_dwLastTown)", timeDelayStart);
     const auto recallCountdownEnd = delaySource.find("if (m_dwLastResurrect)", recallCountdownStart);
@@ -545,8 +539,8 @@ int RunSceneDisconnectContractTests(int& checks)
         deathBody.find("if (bFind && m_pHelpList[3])") != std::string::npos,
         "death notification tolerates missing inventory and help controls");
     const auto deathHumanSource = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
-    const auto humanFrame = source_contract::Method(deathHumanSource,
-        "int TMHuman::FrameMove(unsigned int dwServerTime)");
+    const auto humanFrame = source_contract::WithHelpers(deathHumanSource,
+        "int TMHuman::FrameMove(unsigned int dwServerTime)", "TMHuman");
     const auto animationSource = LoadSource("TMProject748/internal/game/entities/TMHumanAnimation.cpp");
     const auto animationBody = source_contract::Method(animationSource,
         "void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)");
@@ -706,18 +700,6 @@ int RunSceneDisconnectContractTests(int& checks)
         shopListHandler.substr(skillFirstItemGuard, skillGridUse - skillFirstItemGuard)
             .find("return 0;") != std::string::npos,
         "skill ShopList rejects a malformed first item before replacing the visible grid");
-    const auto rmbShopHandler = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneMerchant.cpp"),
-        "int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)");
-    const auto rmbMerchantGuard = rmbShopHandler.find("if (!m_pGridShop)");
-    const auto rmbCouponStateChange = rmbShopHandler.find("m_bEventCouponClick = 0;");
-    const auto rmbMerchantGridUse = rmbShopHandler.find("pGrid->Empty();");
-    check(!rmbShopHandler.empty() && rmbMerchantGuard != std::string::npos &&
-        rmbCouponStateChange != std::string::npos && rmbMerchantGridUse != std::string::npos &&
-        rmbMerchantGuard < rmbCouponStateChange &&
-        rmbCouponStateChange < rmbMerchantGridUse &&
-        rmbShopHandler.substr(rmbMerchantGuard, rmbCouponStateChange - rmbMerchantGuard)
-            .find("return 0;") != std::string::npos,
-        "RMB merchant ShopList rejects an unbound grid before changing coupon or shop state");
     const auto carryGridBody = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneInventory.cpp"),
         "SGridControl* TMFieldScene::GetCarryGridForSlot(int slot) const");
     check(carryGridBody.find("slot < 0 || slot >= MAX_VISIBLE_CARRY") != std::string::npos,
@@ -890,22 +872,6 @@ int RunSceneDisconnectContractTests(int& checks)
         shortcutPassive != std::string::npos && shortcutCatalog != std::string::npos &&
         shortcutGuard < shortcutPassive && shortcutPassive < shortcutCatalog,
         "shortcuts reject invalid 7.48 item IDs before passive-skill and catalog lookups");
-    check(source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneSkills.cpp"),
-        "int TMFieldScene::GetSkillDelay(int skillIndex) const").find("g_pObjectManager->m_stMobData.Equip[4].sIndex < MAX_ITEMLIST") != std::string::npos &&
-        source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneUI.cpp"),
-        "void TMFieldScene::UpdateScoreUI(unsigned int unFlag)").find("capeIndex > 0 && capeIndex < MAX_ITEMLIST") != std::string::npos,
-        "equipment-derived skill delay and cape text bound ItemList indexes");
-    const auto storeBody = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneMerchant.cpp"),
-        "void TMFieldScene::UpdateNewStore(int idwControlID)");
-    const auto purchaseLoop = storeBody.find("for (const int buttonControlId : Buttons)");
-    const auto purchaseGridGuard = storeBody.find("if (!GridSlot)", purchaseLoop);
-    const auto purchaseItemGuard = storeBody.find("Item->m_pItem->sIndex < MAX_ITEMLIST", purchaseLoop);
-    const auto purchaseName = storeBody.find("g_pItemList[Item->m_pItem->sIndex].Name", purchaseLoop);
-    check(purchaseLoop != std::string::npos && purchaseGridGuard != std::string::npos &&
-        purchaseItemGuard != std::string::npos && purchaseName != std::string::npos &&
-        purchaseGridGuard < purchaseItemGuard && purchaseItemGuard < purchaseName &&
-        storeBody.find("sizeof(Buttons)") == std::string::npos,
-        "donation-store purchase walks only its buttons and checks item bounds before naming it");
     const auto weaponDamageBody = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneCombat.cpp"),
         "int TMFieldScene::GetWeaponDamage()");
     check(!weaponDamageBody.empty() &&
@@ -990,7 +956,8 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto inventorySource = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneInventory.cpp"),
         "void TMFieldScene::SetVisibleInventory()");
     const auto inventoryStart = inventorySource.find("void TMFieldScene::SetVisibleInventory()");
-    const auto inventoryEnd = inventorySource.find("auto pCargoPanel = m_pCargoPanel;", inventoryStart);
+    // The method is the native UI2 inventory path only.
+    const auto inventoryEnd = inventoryStart != std::string::npos ? inventorySource.size() : std::string::npos;
     const auto inventoryCompat = inventoryStart != std::string::npos && inventoryEnd != std::string::npos
         ? inventorySource.substr(inventoryStart, inventoryEnd - inventoryStart) : std::string{};
     const auto inventoryTarget = inventoryCompat.find("const int visible = m_pInvenPanel->IsVisible() == 0;");
@@ -1080,22 +1047,21 @@ int RunSceneDisconnectContractTests(int& checks)
         "void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)");
     const auto nativeListingCloseRelease = listingClose.find("WYD748_ReleaseAutoTradeItem(pItem);");
     check(listingClose.find("if (!bShow)\n\t\tWYD748_CancelAutoTradePurchase(m_pMessageBox);") <
-        listingClose.find("if (m_bCompatFieldScene)"),
-        "closing either shop layout cancels purchase before optional-control early returns");
-    const auto importedListingCloseRelease = nativeListingCloseRelease != std::string::npos
-        ? listingClose.find("WYD748_ReleaseAutoTradeItem(pItem);", nativeListingCloseRelease + 1) : std::string::npos;
-    check(nativeListingCloseRelease != std::string::npos && importedListingCloseRelease != std::string::npos &&
+        listingClose.find("if (!m_pControlContainer || !m_pAutoTrade)"),
+        "closing the shop cancels purchase before optional-control early returns");
+    check(nativeListingCloseRelease != std::string::npos &&
+        listingClose.find("WYD748_ReleaseAutoTradeItem(pItem);", nativeListingCloseRelease + 1) == std::string::npos &&
         listingClose.find("for (int slot = 0; slot < 12; ++slot)") < nativeListingCloseRelease &&
         listingClose.find("SAFE_DELETE(pItem);") == std::string::npos &&
         listingClose.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
-        "both auto-trade close paths release matching interaction aliases through the shared cleanup");
+        "the auto-trade close path releases matching interaction aliases through the shared cleanup");
     const auto prepareStart = controlSource.find("auto pATradeTitle = (SText*)m_pControlContainer->FindControl(TMT_ATRADE_TITLE);");
     const auto prepareEnd = controlSource.find("SetVisibleAutoTrade(1, 1);", prepareStart);
     const auto prepareBody = prepareStart != std::string::npos && prepareEnd != std::string::npos
         ? controlSource.substr(prepareStart, prepareEnd - prepareStart) : std::string{};
     const auto prepareRelease = prepareBody.find("WYD748_ReleaseAutoTradeItem(pAutoTradeItem);");
     check(prepareRelease != std::string::npos &&
-        prepareBody.find("m_bCompatFieldScene ? 12 : 10") < prepareRelease &&
+        prepareBody.find("const int autoTradeSlotCount = 12;") < prepareRelease &&
         prepareBody.find("pAutoTradeGrid->PickupAtItem(0, 0);") < prepareRelease &&
         prepareBody.find("pCargoItem->m_GCObj.dwColor = -1;") < prepareRelease &&
         prepareBody.find("delete pAutoTradeItem;") == std::string::npos &&
@@ -1139,7 +1105,7 @@ int RunSceneDisconnectContractTests(int& checks)
         "shop publication checks the complete wire item array before sending");
     const auto buyHandler = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneTrade.cpp"),
         "void TMFieldScene::SendReqBuy(unsigned int dwControlID)");
-    check(buyHandler.find("field_interaction::AutoTradeSlotIndex(m_bCompatFieldScene != 0, dwControlID)") != std::string::npos &&
+    check(buyHandler.find("field_interaction::AutoTradeSlotIndex(dwControlID)") != std::string::npos &&
         buyHandler.find("if (slot < 0") < buyHandler.find("m_pGridAutoTrade[slot]") &&
         buyHandler.find("!m_pMyHuman || !m_pAutoTrade || !m_pAutoTrade->IsVisible()") != std::string::npos &&
         buyHandler.find("grid->GetAtItem(0, 0)") < buyHandler.find("MSG_ReqBuy stReqBuy{};") &&
@@ -1412,10 +1378,12 @@ int RunSceneDisconnectContractTests(int& checks)
         closeSplit.find("SGridControl::m_pSellItem = nullptr;") != std::string::npos &&
         closeSplit.find("m_nCoinMsgType = -1;") != std::string::npos,
         "closing a split clears its mode and alias and restores only a live item highlight");
-    const auto fieldTerrain = initSource.find("if (!m_pGroundList[0]->LoadTileMap(szMapPath))");
-    const auto fieldMiniMap = initSource.find("m_pGround->SetMiniMapData();", fieldTerrain);
+    const auto compatInit = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneUI.cpp"),
+        "int TMFieldScene::InitializeCompatFieldScene()");
+    const auto fieldTerrain = compatInit.find("if (!m_pGroundList[0] || !m_pGroundList[0]->LoadTileMap(szMapPath))");
+    const auto fieldMiniMap = compatInit.find("m_pGround->SetMiniMapData();", fieldTerrain);
     check(fieldTerrain != std::string::npos && fieldMiniMap != std::string::npos &&
-        initSource.substr(fieldTerrain, fieldMiniMap - fieldTerrain).find("return 0;") != std::string::npos,
+        compatInit.substr(fieldTerrain, fieldMiniMap - fieldTerrain).find("return 0;") != std::string::npos,
         "field initialization stops before using an invalid terrain");
     const auto deleteConfirm = dialogSource.find("case 740:");
     const auto sellConfirm = dialogSource.find("case 890:", deleteConfirm);
@@ -1496,7 +1464,7 @@ int RunSceneDisconnectContractTests(int& checks)
         cubeHandler.find("g_pCursor->m_pAttachedItem = nullptr;", cubePickup) < cubeRelease,
         "cube-box removal clears all interaction aliases before releasing its visual");
     const auto deleteDrop = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_DELETE)");
-    const auto nextDrop = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT1", deleteDrop);
+    const auto nextDrop = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_SKILLB)", deleteDrop);
     const auto deleteDropHandler = deleteDrop != std::string::npos && nextDrop != std::string::npos
         ? gridSource.substr(deleteDrop, nextDrop - deleteDrop) : std::string{};
     const auto validItem = deleteDropHandler.find("WYD748_IsValidItemIndex");
@@ -1538,7 +1506,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto sceneLoader = LoadUnits("TMProject748/internal/app/scenes/",
         {"TMScene", "TMSceneResources", "TMSceneGround"});
     const auto warp = sceneLoader.find("void TMScene::Warp2(int nZoneX, int nZoneY)");
-    const auto warpTerrain = sceneLoader.find("if (!pGround->LoadTileMap(szMapPath))", warp);
+    const auto warpTerrain = sceneLoader.find("if (!fromCache && !pGround->LoadTileMap(szMapPath))", warp);
     const auto warpCommit = sceneLoader.find("m_pGround = pGround;", warpTerrain);
     check(warp != std::string::npos && warpTerrain != std::string::npos &&
         warpCommit != std::string::npos &&
@@ -1558,8 +1526,8 @@ int RunSceneDisconnectContractTests(int& checks)
     if (attachStart != std::string::npos && attachEnd != std::string::npos) {
         const auto attach = sceneLoader.substr(attachStart, attachEnd - attachStart);
         const auto guard = attach.find("if (m_bCriticalError == 1 || !m_pGround)");
-        const auto neighborLoad = attach.find("if (!pGround->LoadTileMap(fileNameTrn))");
-        const auto commitTerrain = attach.find("delete m_pObjectContainerList[gId];", neighborLoad);
+        const auto neighborLoad = attach.find("if (!fromCache && !pGround->LoadTileMap(fileNameTrn))");
+        const auto commitTerrain = attach.find("ReleaseFieldSlot(gId);", neighborLoad);
         const auto rejectedTerrain = neighborLoad != std::string::npos && commitTerrain != std::string::npos
             ? attach.substr(neighborLoad, commitTerrain - neighborLoad) : std::string{};
         check(guard != std::string::npos && neighborLoad != std::string::npos && guard < neighborLoad &&
@@ -1572,18 +1540,28 @@ int RunSceneDisconnectContractTests(int& checks)
             rejectedTerrain.find("TerrainFile Position Mismatch") != std::string::npos &&
             rejectedTerrain.find("m_bCriticalError = 1;") != std::string::npos,
             "neighbor load rejects a terrain with a different embedded position before attaching it");
-        const auto releaseObjects = attach.find("delete m_pObjectContainerList[gId];");
-        const auto releaseGround = attach.find("delete m_pGroundList[gId];");
-        check(releaseObjects != std::string::npos && releaseGround != std::string::npos &&
-            releaseObjects < releaseGround,
+        // The replaced neighbor is released (cached or deleted) by ReleaseFieldSlot.
+        const auto releaseGround = attach.find("ReleaseFieldSlot(gId);");
+        const auto slotReleaseStart = sceneLoader.find("void TMScene::ReleaseFieldSlot(int slot)");
+        const auto slotReleaseEnd = sceneLoader.find("bool TMScene::TakeCachedField(", slotReleaseStart);
+        const auto release = slotReleaseStart != std::string::npos && slotReleaseEnd != std::string::npos
+            ? sceneLoader.substr(slotReleaseStart, slotReleaseEnd - slotReleaseStart) : std::string{};
+        const auto deleteObjects = release.find("SAFE_DELETE(objects);");
+        const auto deleteGround = release.find("SAFE_DELETE(ground);");
+        const auto evictObjects = release.find("SAFE_DELETE(entry.objects);");
+        const auto evictGround = release.find("SAFE_DELETE(entry.ground);");
+        check(releaseGround != std::string::npos && deleteObjects != std::string::npos &&
+            deleteObjects < deleteGround && evictObjects != std::string::npos && evictObjects < evictGround,
             "previous neighbor objects are released before their ground");
-        const auto detachOld = attach.find("if (m_pGround->m_pLeftGround == m_pGroundList[gId])", releaseObjects);
-        check(detachOld != std::string::npos && detachOld < releaseGround &&
-            attach.find("m_pGround->m_pRightGround = nullptr;", detachOld) < releaseGround &&
-            attach.find("m_pGround->m_pUpGround = nullptr;", detachOld) < releaseGround &&
-            attach.find("m_pGround->m_pDownGround = nullptr;", detachOld) < releaseGround,
-            "old neighbor links are cleared before its ground is released");
-        const auto failedLoad = attach.find("if (!m_pObjectContainerList[gId]->Load(fileNameDat))");
+        const auto detachOld = release.find("if (other->m_pLeftGround == ground)");
+        check(detachOld != std::string::npos && detachOld < deleteObjects &&
+            release.find("other->m_pRightGround = nullptr;", detachOld) < deleteObjects &&
+            release.find("other->m_pUpGround = nullptr;", detachOld) < deleteObjects &&
+            release.find("other->m_pDownGround = nullptr;", detachOld) < deleteObjects &&
+            release.find("objects->Unlink();") != std::string::npos &&
+            release.find("ground->m_pLeftGround = nullptr;") != std::string::npos,
+            "old neighbor links are cleared before its ground is released or cached");
+        const auto failedLoad = attach.find("if (!fromCache && !m_pObjectContainerList[gId]->Load(fileNameDat))");
         const auto reportFailure = attach.find("LOG_WRITELOG(\"DataFile Not Found", failedLoad);
         const auto rollback = failedLoad != std::string::npos && reportFailure != std::string::npos
             ? attach.substr(failedLoad, reportFailure - failedLoad) : std::string{};
@@ -1746,17 +1724,19 @@ int RunSceneDisconnectContractTests(int& checks)
     }
 
     const std::string field = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
-    const auto fieldInitialize = source_contract::Method(field,
-        "int TMFieldScene::InitializeScene()");
-    const auto fieldControls = source_contract::Method(field,
-        "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)");
+    const auto fieldInitialize = source_contract::WithHelpers(field,
+        "int TMFieldScene::InitializeScene()", "TMFieldScene");
+    const auto fieldControls = source_contract::WithHelpers(field,
+        "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)", "TMFieldScene");
     check(AttackTargetCapacity(MSG_Attack_One_Opcode) == 1 &&
         AttackTargetCapacity(MSG_Attack_Two_Opcode) == 2 &&
         AttackTargetCapacity(MSG_Attack_Multi_Opcode) == 13 &&
         AttackTargetCapacity(0) == 0,
         "attack target capacity follows the native opcode prefixes");
-    const auto attack = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneCombatPackets.cpp"),
-        "int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)");
+    // OnPacketAttack with the helpers it delegates to, in their original order.
+    const auto attack = source_contract::WithHelpers(
+        LoadSource("TMProject748/internal/app/scenes/TMFieldSceneCombatPackets.cpp"),
+        "int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)", "TMFieldScene");
     check(!attack.empty(),
         "attack handler is available for missing-attacker checks");
     if (!attack.empty()) {
@@ -1803,25 +1783,14 @@ int RunSceneDisconnectContractTests(int& checks)
     check(fieldLoad != std::string::npos && fieldFallback != std::string::npos &&
         fieldInitialize.substr(fieldLoad, fieldFallback - fieldLoad).find("return 0;") != std::string::npos,
         "field RC failure cannot enter the valid 7.48 compatibility fallback");
-    const auto rebuild = fieldControls.find("SListBox* pServerList = m_pServerList;");
-    const auto moveEvent = fieldControls.find("if (idwControlID == 12289)", rebuild);
-    check(rebuild != std::string::npos && moveEvent != std::string::npos,
-        "field server switch and row event are available");
-    if (rebuild != std::string::npos && moveEvent != std::string::npos) {
-        const std::string listBuilder = fieldControls.substr(rebuild, moveEvent - rebuild);
-        const auto clearRows = listBuilder.find("pServerList->Empty();");
-        const auto clearSelection = listBuilder.find("pServerList->SetSelectedIndex(-1);");
-        const auto addRows = listBuilder.find("for (int num = 1;; ++num)");
-        check(clearRows != std::string::npos && clearSelection != std::string::npos &&
-            addRows != std::string::npos && clearRows < clearSelection &&
-            clearSelection < addRows,
-            "field server switch clears stale selection before adding rows");
-        const auto nullGuard = fieldControls.find("if (!pItem)", moveEvent);
-        const auto itemRead = fieldControls.find("if (pItem->m_nCurrent < 500)", moveEvent);
-        check(nullGuard != std::string::npos && itemRead != std::string::npos &&
-            nullGuard < itemRead,
-            "field server switch rejects a missing row before reading it");
-    }
+    // The native server list row (12289) stays guarded; System button 633
+    // rebuilds it (OpenNativeServerPanel) and 0x3001 refuses above 699 users.
+    const auto moveEvent = fieldControls.find("if (idwControlID == 12289)");
+    const auto nullGuard = fieldControls.find("if (!pItem)", moveEvent);
+    const auto itemRead = fieldControls.find("if (pItem->m_nCurrent < 700)", moveEvent);
+    check(moveEvent != std::string::npos && nullGuard != std::string::npos &&
+        itemRead != std::string::npos && nullGuard < itemRead,
+        "field server switch rejects a missing row before reading it");
 
     // Channel population is advisory. A failed or full-buffer HTTP read must
     // not leak stale/unterminated text into the selection parser.
@@ -1849,10 +1818,8 @@ int RunSceneDisconnectContractTests(int& checks)
 
     check(source.find("ParseServerStatus(szUserCount, nUserCount, 11);") != std::string::npos &&
         source.find("ParseServerStatus(szUserCount, nUserCount2, 11);") != std::string::npos &&
-        source.find("ParseServerStatus(szUserCount, statusValues, 12);") != std::string::npos &&
-        fieldControls.find("ParseServerStatus(szUserCount, nUserCount2, 11);") != std::string::npos &&
-        fieldControls.find("ParseServerStatus(szUserCount, nUserCount, 10);") != std::string::npos,
-        "selection and field scenes use the same status parser");
+        source.find("ParseServerStatus(szUserCount, statusValues, 12);") != std::string::npos,
+        "server selection uses the shared status parser");
 
     int counts[4]{-1, -1, -1, -1};
     check(ParseServerStatus("12\n34\r\n56\n78\n", counts, 4) == 4 &&
@@ -2064,7 +2031,7 @@ int RunSceneDisconnectContractTests(int& checks)
         "field loader checks the real sea and light array capacities before constructing objects");
 
     const auto sample = FindSource("client748/Env/Field1616.dat");
-    check(!sample.empty(), "7.48 field object assets are available");
+    check(!sample.empty(), "field object assets are available");
     if (!sample.empty()) {
         std::size_t fieldCount = 0;
         bool allValid = true;
@@ -2084,8 +2051,8 @@ int RunSceneDisconnectContractTests(int& checks)
             allValid = allValid && valid;
             ++fieldCount;
         }
-        check(fieldCount == 96 && allValid,
-            "all 96 native 7.48 Field object files retain their record layout");
+        check(fieldCount == 119 && allValid,
+            "all 119 KR Field object files keep the shared record layout");
     }
 
     const auto sampleAsset = FindSource("client748/UI/selchar.txt");

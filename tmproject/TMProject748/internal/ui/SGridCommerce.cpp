@@ -144,31 +144,9 @@ int SGridControl::TradeItem(int nCellX, int nCellY)
 	{
 		return TradeItemOnTradeInv2(nCellX, nCellY, pFScene);
 	}
-	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV3)
-	{
-		auto pItem = GetItem(nCellX, nCellY);
-		if (pItem)
-		{
-			// Missions consume Carry page zero because the 7.48 client has no page
-			// selector or secondary inventory controls.
-			pFScene->m_MissionClass.ClickInvItem(pItem, pFScene->m_pGridInvList, 0);
-		}
-		return 2;
-	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV6)
 	{
 		return TradeItemOnTradeInv6(nCellX, nCellY, pFScene);
-	}
-	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEINV8)
-	{
-		auto pItem = GetItem(nCellX, nCellY);
-		if (pItem)
-		{
-			// Item mix uses the sole native 7.48 Carry page; deriving a page from
-			// 67072..67075 could select controls absent from FieldScene2.bin.
-			pFScene->m_ItemMixClass.ClickInvItem(pItem, pFScene->m_pGridInvList, 0);
-		}
-		return 2;
 	}
 	if (m_eGridType == TMEGRIDTYPE::GRID_TRADEMY)
 	{
@@ -745,8 +723,8 @@ int SGridControl::TradeItemOnTradeMy2(int& nCellX, int& nCellY, TMFieldScene*& p
 int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigned int wParam)
 {
 	auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-	// A drop onto a native mix slot must win over the modern quickslot branches
-	// sharing raw values 18..22, otherwise recipes silently become shortcuts.
+	// A drop onto a native mix slot is staged first: the native mix grids use
+	// raw grid types 12..22, which overlap other enumerators.
 	if (g_pCursor && g_pCursor->m_pAttachedItem)
 	{
 		auto sourceItem = g_pCursor->m_pAttachedItem;
@@ -782,79 +760,6 @@ int SGridControl::SellItem(int nCellX, int nCellY, unsigned int dwFlags, unsigne
 		pScene->m_pMessageBox->SetMessage(szMessage, 740, g_pMessageStringTable[18]);
 		pScene->m_pMessageBox->SetVisible(1);
 		g_pCursor->m_pAttachedItem = 0;
-	}
-	else if (m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT1 ||
-			 m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT2 ||
-			 m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT3 ||
-			 m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT4 ||
-			 m_eGridType == TMEGRIDTYPE::GRID_QUICKSLOAT5)
-	{
-		if (!g_pCursor || !g_pCursor->m_pAttachedItem ||
-			!g_pCursor->m_pAttachedItem->m_pItem)
-			return 1;
-		auto pReturnItem = g_pCursor->m_pAttachedItem;
-		int itemcheck = 0;
-		int itemidx = g_pCursor->m_pAttachedItem->m_pItem->sIndex;
-
-		if (itemidx >= 400 && itemidx <= 409)
-			itemcheck = 1;
-		else if (itemidx >= 415 && itemidx <= 416)
-			itemcheck = 1;
-		else if (itemidx >= 428 && itemidx <= 435)
-			itemcheck = 1;
-		else if (itemidx >= 646 && itemidx <= 647)
-			itemcheck = 1;
-		else if (itemidx >= 680 && itemidx <= 691)
-			itemcheck = 1;
-		else if (itemidx >= 3310 && itemidx <= 3312)
-			itemcheck = 1;
-		else if (itemidx >= 3319 && itemidx <= 3323)
-			itemcheck = 1;
-		else if (itemidx >= 3368 && itemidx <= 3377)
-			itemcheck = 1;
-		else if (itemidx >= 3383 && itemidx <= 3384)
-			itemcheck = 1;
-		else if (itemidx == 3431 || itemidx == 4145 || itemidx == 1739 || itemidx == 3477)
-			itemcheck = 1;
-		else if (itemidx == 3472 || itemidx == 4097)
-			itemcheck = 1;
-		else if (itemidx >= 3200 && itemidx <= 3210)
-			itemcheck = 1;
-		if (itemidx == 3207)
-			itemcheck = 0;
-
-		if (!itemcheck)
-		{
-			g_pCursor->DetachItem();
-			return 1;
-		}
-
-		if (BASE_GetItemAbility(pReturnItem->m_pItem, 33) >= 1)
-			return 1;
-
-		auto quickGrid = pScene->m_pQuick_Sloat[
-			(int)m_eGridType - (int)TMEGRIDTYPE::GRID_QUICKSLOAT1];
-		if (!quickGrid)
-			return 1;
-
-		auto pNewItem = new STRUCT_ITEM;
-		memcpy(pNewItem, pReturnItem->m_pItem, sizeof(STRUCT_ITEM));
-
-		auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0f, 0.0f);
-		pNewControlItem->m_nWidth = pNewControlItem->m_nWidth * 0.9f;
-		pNewControlItem->m_nHeight = pNewControlItem->m_nHeight * 0.9f;
-		pNewControlItem->m_GCObj.m_fWidth = pNewControlItem->m_GCObj.m_fWidth * 0.9f;
-		pNewControlItem->m_GCObj.m_fHeight = pNewControlItem->m_GCObj.m_fHeight * 0.9f;
-
-		SGridControlItem* pOldItem = nullptr;
-		if (!WYD748_ReplaceGridVisual(quickGrid, pNewControlItem,
-			nCellX, nCellY, pOldItem))
-		{
-			SAFE_DELETE(pNewControlItem);
-			return 1;
-		}
-		g_pCursor->DetachItem();
-		SAFE_DELETE(pOldItem);
 	}
 	else if (m_eGridType == TMEGRIDTYPE::GRID_SKILLB)
 	{
@@ -1025,10 +930,6 @@ ExtractedFlow SGridControl::SellItemOnOtherGrid(int& nCellX, int& nCellY, unsign
 	short sDestPos = CheckPos(m_eItemType);
 	if (pItem)
 	{
-	if (!pScene->m_bCompatFieldScene && nVolatile == 5 && sDestType == 1)
-	{
-		nVolatile = 190;
-	}
 	nDestVolatile = BASE_GetItemAbility(pItem->m_pItem, 38);
 	itemidx = pItem->m_pItem->sIndex;
 	}

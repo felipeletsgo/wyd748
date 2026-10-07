@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "ClientSettings.h"
 #include "TMButterFly.h"
 #include "TMSkinMesh.h"
 #include "TMGlobal.h"
@@ -107,6 +108,10 @@ int TMButterFly::InitObject()
 
 int TMButterFly::Render()
 {
+	// Light profile: ambient decoration is not drawn while the window is idle.
+	if (IdleHidesAmbient())
+		return 0;
+
 	if (m_dwKey != -1
 		&& m_dwKey != TreeNode::m_VisualKey1
 		&& m_dwKey != TreeNode::m_VisualKey2

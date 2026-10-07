@@ -256,7 +256,7 @@ int TMHuman::Render()
                 vecPosScale.x = vecPosScale.x + 0.9f;
                 vecPosScale.z = vecPosScale.z - 0.8f;
             }
-            else if (m_nMountSkinMeshType == 50)//balan�o
+            else if (m_nMountSkinMeshType == 50)// swing
             {
                 vecPosScale.x = vecPosScale.x - 0.5f;
                 vecPosScale.z = vecPosScale.z - 0.3f;

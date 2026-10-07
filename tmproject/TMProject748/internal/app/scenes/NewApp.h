@@ -4,9 +4,7 @@
 class EventTranslator;
 class RenderDevice;
 class CSoundManager;
-class TMVideoWnd;
 class DS_SOUND_MANAGER;
-class JBlur;
 class TimerManager;
 class ObjectManager;
 class CPSock;
@@ -30,20 +28,18 @@ public:
     virtual DWORD Run();
     virtual void OnCreate(HWND hWnd, DWORD wParam, int lParam);
     virtual HRESULT RenderScene();
+    // Writes one opt-in perf_trace sample (WYD_PERF_LOG).
+    void WritePerfSample();
+    // True when the window is unfocused or minimized (light profile).
+    bool IsIdleWindow() const;
     virtual void SetObjectManager(ObjectManager* pManager);
     virtual EventTranslator* GetEventTranslator();
 
     HWND GetSafeHwnd();
-    void SwitchWebBrowserState(int nEmptyCargo);
-    void SwitchWebBoard();
-    DWORD GetHttpRequest(char* httpname, char* Request, int MaxBuffer);
     void MixHelp();
-    int BASE_Initialize_NewServerList();
-    void InitServerNameMR();
     HRESULT MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam);
     bool CheckResolution(DWORD x, DWORD y, DWORD bpp);
 
-    char base_chinaTid(char* TID, char* Id);
 
 public:
     HWND m_hWnd;
@@ -58,7 +54,6 @@ public:
     char m_szLoginServerIP[128];
     RenderDevice* m_pRenderDevice;
     CSoundManager* m_pSoundManager;
-    TMVideoWnd* m_pAviPlayer;
     DS_SOUND_MANAGER* m_pBGMManager;
     EventTranslator* m_pEventTranslator;
     TimerManager* m_pTimerManager;
@@ -73,7 +68,6 @@ public:
     HBITMAP m_hBMBtnBG;
     bool china_bWrite;
     int china_Playtime;
-    JBlur* m_pBlur;
 
 private:
 	// Helpers extracted from NewApp::MsgProc.
@@ -82,4 +76,3 @@ private:
 	ExtractedFlow OnNetworkMessage(DWORD& wParam, int& lParam);
 	HRESULT OnCloseMessage(HWND& hWnd);
 };
-void CreateConsole();

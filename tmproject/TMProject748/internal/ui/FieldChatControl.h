@@ -22,10 +22,10 @@ struct Buttons
 // The only scene capability supplied is setting one channel flag through its
 // existing member method. No scene pointer, packet buffer or global lookup.
 template <typename Button, typename SetChannel>
-Outcome Handle(bool nativeHUD, unsigned int controlID, const Buttons<Button>& buttons,
+Outcome Handle(unsigned int controlID, const Buttons<Button>& buttons,
     SetChannel&& setChannel)
 {
-    const auto channel = Route(nativeHUD, controlID);
+    const auto channel = Route(controlID);
     if (channel == Channel::None)
         return Outcome::Unhandled;
     ButtonPair<Button> pair{};

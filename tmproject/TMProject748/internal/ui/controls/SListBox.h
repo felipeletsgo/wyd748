@@ -22,22 +22,6 @@ public:
     int m_bBGColor;
 };
 
-class SListBoxBoardItem : public SListBoxItem
-{
-public:
-    SListBoxBoardItem(char* szIndex, char* szVIndex, char* szTitle, char* szWriter, char* szCount, char* szDate, unsigned int dwColor, int bTitile);
-    ~SListBoxBoardItem();
-    void FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, int inParentLayer, int nFlag) override;
-    void SetPos(float nPosX, float nPosY) override;
-
-public:
-    SText* m_pTitleText;
-    SText* m_pWriterText;
-    SText* m_pCountText;
-    SText* m_pDateText;
-    char m_szIndex[256];
-};
-
 class SListBoxPartyItem : public SListBoxItem
 {
 public:
@@ -99,7 +83,6 @@ public:
     int GetSelectedIndex();
     void SetSelectedIndex(int nIndex);
     void SetSize(float nWidth, float nHeight) override;
-    void SetPickSize(float nWidth, float nHeight);
     void SetEditable();
     int OnControlEvent(DWORD idwControlID, DWORD idwEvent) override;
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;

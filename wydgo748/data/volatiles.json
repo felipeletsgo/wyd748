@@ -1,56 +1,56 @@
 {
-  "_comment": "Todos os itens com EF_VOLATILE sao descobertos automaticamente no itemlist.csv. Regras em items substituem completamente a regra do codigo para um item especifico (casar por INDEX). Numeros de balanceamento (affectValue = %, durationUnits = blocos de 8s, exp) sao tunaveis aqui sem recompilar.",
+  "_comment": "Every item with EF_VOLATILE is discovered automatically from itemlist.csv. Rules under items fully replace the code rule for one specific item (matched by INDEX). Balance numbers (affectValue = %, durationUnits = 8-second blocks, exp) are tunable here without recompiling.",
   "default": {
     "action": "generic",
     "consume": false,
-    "description": "Handler generico: registra o uso e nao consome o item ate sua funcao definitiva ser configurada."
+    "description": "Generic handler: logs the use and does not consume the item until its final function is configured."
   },
   "rules": {
     "0": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "EF_VOLATILE=0 e multiplexado por INDEX; itens sem uso direto pertencem ao NPC/comando correspondente."
+      "description": "EF_VOLATILE=0 is multiplexed by INDEX; items without direct use belong to the matching NPC/command."
     },
     "1": {
       "action": "restore",
       "consume": true,
       "valueSource": "item_effects",
-      "description": "Restaura EF_HP/EF_MP definidos no itemlist."
+      "description": "Restores the EF_HP/EF_MP defined in itemlist."
     },
     "2": {
       "action": "ground_gold",
       "consume": true,
       "valueSource": "coin_effects",
-      "description": "Moeda do chao; valor = EF_HWORDCOIN * 256 + EF_LWORDCOIN."
+      "description": "Ground coin; value = EF_HWORDCOIN * 256 + EF_LWORDCOIN."
     },
     "3": {
       "action": "gate_key",
       "consume": true,
       "valueSource": "item_effects",
-      "description": "Chave de porta: casa com a porta no chao pelo EF_KEYID do itemlist, abre a porta e some do inventario."
+      "description": "Door key: matches the ground door by the itemlist EF_KEYID, opens the door and leaves the inventory."
     },
     "4": {
       "action": "refine",
       "consume": true,
       "refineMax": 6,
-      "description": "Poeira de Ori (PO): refina o item-alvo ate +6. Consome em sucesso E falha; chance por g_pCelestialRate."
+      "description": "Ori Dust (PO): refines the target item up to +6. Consumed on success AND failure; chance from g_pCelestialRate."
     },
     "5": {
       "action": "refine",
       "consume": true,
       "refineMax": 9,
-      "description": "Poeira de Lac (PL): refina o item-alvo ate +9."
+      "description": "Lac Dust (PL): refines the target item up to +9."
     },
     "6": {
       "action": "magical_pill",
       "consume": true,
-      "description": "Magical Pill: +9 pontos de skill permanentes, uma vez por personagem."
+      "description": "Magical Pill: +9 permanent skill points, once per character."
     },
     "7": {
       "action": "grant_next_level",
       "consume": true,
       "mortalOnly": true,
-      "description": "Poeira de Fada: eleva exatamente um nivel, conforme _MSG_UseItem.cpp."
+      "description": "Fairy Dust: raises exactly one level, as in _MSG_UseItem.cpp."
     },
     "8": {
       "action": "quest_reward",
@@ -60,14 +60,14 @@
       "maxLevelExclusive": 399,
       "exp": 5000,
       "gold": 50000000,
-      "description": "Eye Wax customizado pelo projeto: preservar estes valores; divergencia nativa intencional."
+      "description": "Project-customized Eye Wax: keep these values; intentional native divergence."
     },
     "9": {
       "action": "ore_upgrade",
       "consume": true,
       "variant": 3,
       "successPercent": 50,
-      "description": "Adamantita (578): transforma equipamento compativel de grade 1..3 no resultado Lendario indicado por Extra. Consome em sucesso e falha."
+      "description": "Adamantite (578): turns compatible grade 1..3 equipment into the Legendary result given by Extra. Consumed on success and failure."
     },
     "10": {
       "action": "buff",
@@ -75,82 +75,82 @@
       "affectType": 4,
       "affectValue": 10,
       "durationUnits": 225,
-      "description": "Pocao Kappa: +10% dano fisico/magico por ~30min. Ajuste affectValue/durationUnits ao gosto."
+      "description": "Kappa Potion: +10% physical/magic damage for ~30min. Tune affectValue/durationUnits as desired."
     },
     "11": {
       "action": "teleport",
       "consume": true,
       "x": 2112,
       "y": 2088,
-      "description": "Recall para Armia."
+      "description": "Recall to Armia."
     },
     "12": {
       "action": "save_position",
       "consume": true,
-      "description": "Gema Estelar: grava a coordenada atual para o Warp usar."
+      "description": "Star Gem: stores the current coordinate for Warp."
     },
     "13": {
       "action": "warp_saved",
       "consume": true,
-      "description": "Warp: teleporta para a coordenada gravada pela Gema Estelar."
+      "description": "Warp: teleports to the coordinate stored by the Star Gem."
     },
     "15": {
       "action": "mount",
       "mountAction": "feed",
       "consume": true,
-      "description": "Racao (2420+/3367+): +5000 HP (teto 30000) e +2 comida (teto 100) na montaria equipada. Casa por familia de tipo (fiel ao WYD 7.48 Vol 15)."
+      "description": "Feed (2420+/3367+): +5000 HP (cap 30000) and +2 food (cap 100) on the equipped mount. Matched by type family (faithful to WYD 7.48 Vol 15)."
     },
     "16": {
       "action": "mount",
       "mountAction": "essence",
       "consume": true,
-      "description": "Amago/Essence (2390+): +1 level; adulta rola chance de sucesso (g_pSancRate[2]), falha pode baixar level; evolui estagio ao cruzar o limite (fiel ao Vol 16)."
+      "description": "Core/Essence (2390+): +1 level; an adult rolls a success chance (g_pSancRate[2]) and a failure may lower the level; evolves the stage when crossing the limit (faithful to Vol 16)."
     },
     "18": {
       "action": "gold",
       "consume": true,
       "valueSource": "price",
-      "description": "Money Envelope: converte no valor server-side Price do itemlist."
+      "description": "Money Envelope: converts to the server-side itemlist Price."
     },
     "19": {
       "action": "firework",
       "consume": true,
-      "description": "Fogos: emote Motion=100 com variante aleatoria 0..5."
+      "description": "Fireworks: Motion=100 emote with a random variant 0..5."
     },
     "20": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Cartas N/M/A usam instancias por etapas configuradas por INDEX."
+      "description": "N/M/A letters use staged instances configured by INDEX."
     },
     "32": {
       "action": "learn_special_skill",
       "consume": true,
       "learnedBit": 25,
-      "description": "Livro Sephira: Conjure Cannon (skill 97)."
+      "description": "Sephira Book: Conjure Cannon (skill 97)."
     },
     "33": {
       "action": "learn_special_skill",
       "consume": true,
       "learnedBit": 26,
-      "description": "Livro Sephira: Thorn Wall (skill 98)."
+      "description": "Sephira Book: Thorn Wall (skill 98)."
     },
     "34": {
       "action": "learn_special_skill",
       "consume": true,
       "learnedBit": 27,
-      "description": "Livro Sephira: Resurrect (skill 99)."
+      "description": "Sephira Book: Resurrect (skill 99)."
     },
     "35": {
       "action": "learn_special_skill",
       "consume": true,
       "learnedBit": 28,
-      "description": "Livro Sephira: Cancellation (skill 100)."
+      "description": "Sephira Book: Cancellation (skill 100)."
     },
     "36": {
       "action": "learn_special_skill",
       "consume": true,
       "learnedBit": 29,
-      "description": "Livro Sephira: Spectral Force (skill 101)."
+      "description": "Sephira Book: Spectral Force (skill 101)."
     },
     "41": {
       "action": "summon_contract",
@@ -166,7 +166,7 @@
         "moveSpeed": 4,
         "attackRange": 3
       },
-      "description": "Contrato de knight troop; uso livre temporario."
+      "description": "Knight troop contract; temporary free use."
     },
     "42": {
       "action": "summon_contract",
@@ -182,7 +182,7 @@
         "moveSpeed": 4,
         "attackRange": 8
       },
-      "description": "Contrato de archer troop; uso livre temporario."
+      "description": "Archer troop contract; temporary free use."
     },
     "43": {
       "action": "summon_contract",
@@ -199,7 +199,7 @@
         "moveSpeed": 4,
         "attackRange": 8
       },
-      "description": "Contrato de mage troop; uso livre temporario."
+      "description": "Mage troop contract; temporary free use."
     },
     "46": {
       "action": "summon_contract",
@@ -215,7 +215,7 @@
         "moveSpeed": 4,
         "attackRange": 3
       },
-      "description": "Carta de guarda cavaleiro; identidade separada para reino futuro."
+      "description": "Knight guard letter; separate identity for a future kingdom."
     },
     "47": {
       "action": "summon_contract",
@@ -231,7 +231,7 @@
         "moveSpeed": 4,
         "attackRange": 8
       },
-      "description": "Carta de guarda arqueiro; identidade separada para reino futuro."
+      "description": "Archer guard letter; separate identity for a future kingdom."
     },
     "48": {
       "action": "summon_contract",
@@ -248,7 +248,7 @@
         "moveSpeed": 4,
         "attackRange": 8
       },
-      "description": "Carta de guarda mago; identidade separada para reino futuro."
+      "description": "Mage guard letter; separate identity for a future kingdom."
     },
     "52": {
       "action": "buff",
@@ -256,7 +256,7 @@
       "affectType": 4,
       "affectValue": 15,
       "durationUnits": 225,
-      "description": "Pocao Competente: +15% dano por ~30min."
+      "description": "Competent Potion: +15% damage for ~30min."
     },
     "53": {
       "action": "buff",
@@ -264,7 +264,7 @@
       "affectType": 4,
       "affectValue": 25,
       "durationUnits": 225,
-      "description": "Pocao Mental: +25% dano por ~30min."
+      "description": "Mental Potion: +25% damage for ~30min."
     },
     "55": {
       "action": "buff",
@@ -272,7 +272,7 @@
       "affectType": 4,
       "affectValue": 10,
       "durationUnits": 450,
-      "description": "Kappa (P): +10% dano por ~1h."
+      "description": "Kappa (P): +10% damage for ~1h."
     },
     "56": {
       "action": "buff",
@@ -280,7 +280,7 @@
       "affectType": 4,
       "affectValue": 15,
       "durationUnits": 450,
-      "description": "Competente (P): +15% dano por ~1h."
+      "description": "Competent (P): +15% damage for ~1h."
     },
     "57": {
       "action": "buff",
@@ -288,7 +288,7 @@
       "affectType": 4,
       "affectValue": 25,
       "durationUnits": 450,
-      "description": "Mental (P): +25% dano por ~1h."
+      "description": "Mental (P): +25% damage for ~1h."
     },
     "58": {
       "action": "buff",
@@ -296,7 +296,7 @@
       "affectType": 35,
       "affectValue": 10,
       "durationUnits": 450,
-      "description": "Bigger Potion: +10% HP maximo; duracao padrao 1h."
+      "description": "Bigger Potion: +10% maximum HP; default duration 1h."
     },
     "60": {
       "action": "buff",
@@ -305,7 +305,7 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Bread): Courage affect 30, +4h por uso ate 24h; +1000 no hit fisico e +2000 no hit magico, somente PvE."
+      "description": "Food (Bread): Courage affect 30, +4h per use up to 24h; +1000 on a physical hit and +2000 on a magic hit, PvE only."
     },
     "61": {
       "action": "buff",
@@ -314,7 +314,7 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Sausage): Courage affect 30, +4h por uso ate 24h; bonus fixo somente no hit PvE."
+      "description": "Food (Sausage): Courage affect 30, +4h per use up to 24h; fixed bonus on PvE hits only."
     },
     "62": {
       "action": "buff",
@@ -323,7 +323,7 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Meat): Courage affect 30, +4h por uso ate 24h; bonus fixo somente no hit PvE."
+      "description": "Food (Meat): Courage affect 30, +4h per use up to 24h; fixed bonus on PvE hits only."
     },
     "63": {
       "action": "buff",
@@ -332,28 +332,28 @@
       "durationUnits": 1800,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Comida (Roast Chicken): Courage affect 30, +4h por uso ate 24h; +1000 fisico/+2000 magico por hit PvE."
+      "description": "Food (Roast Chicken): Courage affect 30, +4h per use up to 24h; +1000 physical/+2000 magic per PvE hit."
     },
     "64": {
       "action": "buff",
       "consume": true,
       "affectType": 30,
       "durationUnits": 75600,
-      "description": "Panqueca 7 dias: Courage affect 30 por 7d; bonus fixo somente no hit PvE."
+      "description": "Pancake 7 days: Courage affect 30 for 7d; fixed bonus on PvE hits only."
     },
     "65": {
       "action": "buff",
       "consume": true,
       "affectType": 30,
       "durationUnits": 162000,
-      "description": "Panqueca 15 dias: Courage affect 30 por 15d; bonus fixo somente no hit PvE."
+      "description": "Pancake 15 days: Courage affect 30 for 15d; fixed bonus on PvE hits only."
     },
     "66": {
       "action": "buff",
       "consume": true,
       "affectType": 30,
       "durationUnits": 324000,
-      "description": "Panqueca 30 dias: Courage affect 30 por 30d; bonus fixo somente no hit PvE."
+      "description": "Pancake 30 days: Courage affect 30 for 30d; fixed bonus on PvE hits only."
     },
     "67": {
       "action": "buff",
@@ -361,82 +361,82 @@
       "affectType": 4,
       "affectValue": 10,
       "durationUnits": 450,
-      "description": "Codigo LIVRE aceito pelo client no botao direito (vizinho das comidas 60-66). Portador dos buffs Sefirah/Chocolate/Doce/Coragem, cujo EF_VOLATILE no itemlist foi trocado de 202/204/205/230 para 67 (o client 7.48 nao usa 202+). Params reais por item em items[]."
+      "description": "FREE code accepted by the client on right-click (next to foods 60-66). Carrier of the Sefirah/Chocolate/Candy/Courage buffs, whose itemlist EF_VOLATILE changed from 202/204/205/230 to 67 (the 7.48 client does not use 202+). Real parameters per item in items[]."
     },
     "70": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 202,
-      "durationUnits": 10800,
-      "description": "Vira Gremlin (rosto 202). Ajuste faceMesh/dur se o visual nao bater."
+      "durationUnits": 75,
+      "description": "Turns into a Gremlin (face 202) for 10 minutes. Adjust faceMesh/duration if the visual does not match."
     },
     "71": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 209,
-      "durationUnits": 10800,
-      "description": "Vira Archer Orc (rosto 209)."
+      "durationUnits": 75,
+      "description": "Turns into an Archer Orc (face 209) for 10 minutes."
     },
     "72": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 212,
-      "durationUnits": 10800,
-      "description": "Vira Troll (rosto 212)."
+      "durationUnits": 75,
+      "description": "Turns into a Troll (face 212) for 10 minutes."
     },
     "73": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 230,
-      "durationUnits": 10800,
-      "description": "Vira Carbunkle (rosto 230)."
+      "durationUnits": 75,
+      "description": "Turns into a Carbunkle (face 230) for 10 minutes."
     },
     "74": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 229,
-      "durationUnits": 10800,
-      "description": "Vira Ghoul Chief (rosto 229)."
+      "durationUnits": 75,
+      "description": "Turns into a Ghoul Chief (face 229) for 10 minutes."
     },
     "75": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 216,
-      "durationUnits": 10800,
-      "description": "Vira Wild Boar/Javali (rosto 216)."
+      "durationUnits": 75,
+      "description": "Turns into a Wild Boar (face 216) for 10 minutes."
     },
     "76": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 299,
-      "durationUnits": 10800,
-      "description": "Vira Wolf (rosto 299)."
+      "durationUnits": 75,
+      "description": "Turns into a Wolf (face 299) for 10 minutes."
     },
     "77": {
       "action": "face_transform",
       "consume": true,
       "faceMesh": 297,
-      "durationUnits": 10800,
-      "description": "Vira Fire Golem (rosto 297)."
+      "durationUnits": 75,
+      "description": "Turns into a Fire Golem (face 297) for 10 minutes."
     },
     "89": {
       "action": "face_restore",
       "consume": true,
-      "description": "Volta ao rosto real do jogador."
+      "description": "Restores the player's real face."
     },
     "90": {
       "action": "mount",
       "mountAction": "longevity_restore",
       "consume": true,
       "amount": 1,
-      "description": "Mount Recovery Potion 3315: restaura exatamente 1 LP/longevidade da montaria adulta equipada, ate o teto 60 (itemhelp do client 7.48)."
+      "description": "Mount Recovery Potion 3315: restores exactly 1 LP/longevity of the equipped adult mount, up to the cap of 60 (7.48 client itemhelp)."
     },
     "91": {
       "action": "mount",
       "mountAction": "level_set",
       "consume": true,
       "amount": 100,
-      "description": "Item 3316: catalisador que eleva a montaria adulta equipada abaixo do nivel 100 diretamente ao nivel 100."
+      "description": "Item 3316: catalyst that raises an equipped adult mount below level 100 straight to level 100."
     },
     "92": {
       "action": "mount",
@@ -444,44 +444,44 @@
       "consume": true,
       "mountMinLevel": 100,
       "amount": 120,
-      "description": "Item 3317: catalisador que eleva a montaria adulta equipada do nivel 100-119 diretamente ao nivel 120."
+      "description": "Item 3317: catalyst that raises an equipped adult mount of level 100-119 straight to level 120."
     },
     "93": {
       "action": "mount",
       "mountAction": "longevity",
       "consume": true,
-      "description": "Length Of Life Recovery (3351+): longevidade +1~3 (teto 60). Recusa se no maximo ou montaria morta (fiel ao Vol 93)."
+      "description": "Length Of Life Recovery (3351+): longevity +1~3 (cap 60). Refused at the maximum or with a dead mount (faithful to Vol 93)."
     },
     "94": {
       "action": "mount",
       "mountAction": "growth",
       "consume": true,
-      "description": "Growth Potion (3344+): evolui o estagio da montaria na hora (sIndex+=30), por categoria (fiel ao Vol 94)."
+      "description": "Growth Potion (3344+): evolves the mount stage immediately (sIndex+=30), by category (faithful to Vol 94)."
     },
     "173": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Nightmare Normal usa instancia configurada por INDEX (party/personal)."
+      "description": "Nightmare Normal uses the instance configured by INDEX (party/personal)."
     },
     "174": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Nightmare Mystic usa instancia configurada por INDEX (party/personal)."
+      "description": "Nightmare Mystic uses the instance configured by INDEX (party/personal)."
     },
     "175": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Nightmare Arcane usa instancia configurada por INDEX (party/personal)."
+      "description": "Nightmare Arcane uses the instance configured by INDEX (party/personal)."
     },
     "176": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Hell Gate usa instancia completa configurada por INDEX (party/personal)."
+      "description": "Hell Gate uses the full instance configured by INDEX (party/personal)."
     },
     "177": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Hidden Ruins usa acesso temporizado configurado por INDEX."
+      "description": "Hidden Ruins uses timed access configured by INDEX."
     },
     "178": {
       "action": "grant_counter_once",
@@ -492,7 +492,7 @@
       "rewardItems": [
         4104
       ],
-      "description": "Passe do evento: desbloqueio permanente e entrega do identificador 4104, uma unica vez."
+      "description": "Event pass: permanent unlock and delivery of identifier 4104, only once."
     },
     "179": {
       "action": "refine_equipped",
@@ -503,63 +503,63 @@
         1726
       ],
       "refineMax": 6,
-      "description": "Fairy Bless Water: refina Naiads/Grewpain equipado no slot 13, garantido, ate +6."
+      "description": "Fairy Bless Water: refines the Naiads/Grewpain equipped in slot 13, guaranteed, up to +6."
     },
     "180": {
       "action": "equipment_gem",
       "consume": true,
       "variant": 0,
-      "description": "Diamond Gem: aplica a variante Diamond em equipamento +10..+15 ou arma Ancient."
+      "description": "Diamond Gem: applies the Diamond variant to +10..+15 equipment or an Ancient weapon."
     },
     "181": {
       "action": "equipment_gem",
       "consume": true,
       "variant": 1,
-      "description": "Emerald Gem: aplica a variante Emerald em equipamento +10..+15 ou arma Ancient."
+      "description": "Emerald Gem: applies the Emerald variant to +10..+15 equipment or an Ancient weapon."
     },
     "182": {
       "action": "equipment_gem",
       "consume": true,
       "variant": 2,
-      "description": "Coral Gem: aplica a variante Coral em equipamento +10..+15 ou arma Ancient."
+      "description": "Coral Gem: applies the Coral variant to +10..+15 equipment or an Ancient weapon."
     },
     "183": {
       "action": "equipment_gem",
       "consume": true,
       "variant": 3,
-      "description": "Garnet Gem: aplica a variante Garnet em equipamento +10..+15 ou arma Ancient."
+      "description": "Garnet Gem: applies the Garnet variant to +10..+15 equipment or an Ancient weapon."
     },
     "184": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Moedas Wyden/Honor usam saldos server-side configurados por INDEX."
+      "description": "Wyden/Honor coins use server-side balances configured by INDEX."
     },
     "185": {
       "action": "gold",
       "consume": true,
       "valueSource": "price",
-      "description": "Converte Silver Wyden em gold usando o Price server-side do itemlist."
+      "description": "Converts Silver Wyden into gold using the server-side itemlist Price."
     },
     "186": {
       "action": "tint",
       "consume": true,
       "color": 116,
-      "description": "Tintura (Enamel): pinta o item-alvo (equip ou inv). Fallback azul; cor real por item em items[]. O Remover_Enamel usa untint."
+      "description": "Dye (Enamel): paints the target item (equipment or inventory). Blue fallback; real color per item in items[]. Remover_Enamel uses untint."
     },
     "187": {
       "action": "arch_crystal",
       "consume": true,
-      "description": "Cristais elementais de Kefra (4106 Elime, 4107 Sylphid, 4108 Salion, 4109 Nohas). Feitos como Arch, EM ORDEM; cada um cobra 100 milhoes de EXP e o nivel e recalculado a partir da EXP reduzida. Cada cristal concede 100 pontos ao futuro Celestial; a criacao em si nao os exige."
+      "description": "Kefra elemental crystals (4106 Elime, 4107 Sylphid, 4108 Salion, 4109 Nohas). Made as Arch, IN ORDER; each costs 100 million EXP and the level is recalculated from the reduced EXP. Each crystal grants 100 points to the future Celestial; the creation itself does not require them."
     },
     "189": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Medalhas da Game Room usam contadores separados configurados por INDEX."
+      "description": "Game Room medals use separate counters configured by INDEX."
     },
     "190": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction nativo: substitui os dois adicionais da armadura por um par sorteado de data/repliction.json e preserva refino/tintura."
+      "description": "Native Repliction: replaces the armor's two additional options with a pair drawn from data/repliction.json and keeps refinement/dye."
     },
     "192": {
       "action": "mastery_reset",
@@ -568,7 +568,7 @@
       "minLevel": 69,
       "maxLevelExclusive": 74,
       "amount": 50,
-      "description": "Opportunity Compound: uma vez, devolve ate 50 mastery dos ramos 1/2 e reinicia skills Mortais."
+      "description": "Opportunity Compound: once, returns up to 50 mastery from branches 1/2 and resets Mortal skills."
     },
     "193": {
       "action": "mastery_reset",
@@ -577,7 +577,7 @@
       "minLevel": 119,
       "maxLevelExclusive": 124,
       "amount": 100,
-      "description": "Balance Compound: uma vez, devolve ate 100 mastery dos ramos 1/2 e reinicia skills Mortais."
+      "description": "Balance Compound: once, returns up to 100 mastery from branches 1/2 and resets Mortal skills."
     },
     "194": {
       "action": "refine_set",
@@ -587,7 +587,7 @@
       "maxLevelExclusive": 256,
       "onceQuestId": -194,
       "refineMax": 6,
-      "description": "Molar do Gargoyle: quest de uso unico para Mortal interno 200..255 (niveis exibidos 201..256); refino FIXO ate +6 nas pecas de armadura equipadas (slots 1-5), sem rolagem."
+      "description": "Gargoyle Molar: single-use quest for internal Mortal 200..255 (displayed levels 201..256); FIXED refinement up to +6 on the equipped armor pieces (slots 1-5), without a roll."
     },
     "195": {
       "action": "hunting_teleport",
@@ -634,18 +634,18 @@
           "y": 1755
         }
       ],
-      "description": "Hunting Scroll; destinos especificos por item."
+      "description": "Hunting Scroll; destinations specific to each item."
     },
     "196": {
       "action": "mount",
       "mountAction": "hatch",
       "consume": true,
-      "description": "Hatch accelerator: usado sobre o ovo equipado, transforma-o imediatamente em cria."
+      "description": "Hatch accelerator: used on the equipped egg, turns it into a foal immediately."
     },
     "197": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Service Ticket usa acesso temporizado configurado por INDEX."
+      "description": "Service Ticket uses timed access configured by INDEX."
     },
     "198": {
       "action": "buff",
@@ -654,7 +654,7 @@
       "durationUnits": 900,
       "accumulate": true,
       "maxDurationUnits": 10800,
-      "description": "Bau de Experiencia: buff que DOBRA a EXP recebida, +2h por uso acumulando ate 24h (affect 39)."
+      "description": "Experience Chest: buff that DOUBLES received EXP, +2h per use stacking up to 24h (affect 39)."
     },
     "199": {
       "action": "grant_counter",
@@ -662,56 +662,56 @@
       "counters": {
         "fame": 10
       },
-      "description": "Warrior's_Seal (4146): +10 de fama. Porte de _MSG_UseItem.cpp:7147, onde extra.Fame += 10. A fama e gasta na Lindy (1, destrave do nivel 370 do Arch) e no Odin (200, nivel 40 do Celestial)."
+      "description": "Warrior's_Seal (4146): +10 fame. Port of _MSG_UseItem.cpp:7147, where extra.Fame += 10. Fame is spent at Lindy (1, unlocks Arch level 370) and Odin (200, Celestial level 40)."
     },
     "203": {
       "action": "chaos_remission",
       "consume": true,
-      "description": "Carta de Remissao: restaura o CP assinado ao maximo +75 (byte nativo 150)."
+      "description": "Remission Letter: restores the signed CP to the maximum +75 (native byte 150)."
     },
     "206": {
       "action": "celestial_capsule",
       "consume": true,
-      "description": "Spirit's Seal vazio encapsula a ficha Celestial; a extracao usa o pacote nativo 0x3CC."
+      "description": "An empty Spirit's Seal encapsulates the Celestial record; extraction uses the native 0x3CC packet."
     },
     "207": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "WYD TOTO e validado no NPC/evento correspondente, nao por clique direto."
+      "description": "WYD TOTO is validated at the matching NPC/event, not by a direct click."
     },
     "208": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Contract Seal e material do NPC de contrato, nao possui uso direto."
+      "description": "Contract Seal is a material for the contract NPC and has no direct use."
     },
     "211": {
       "action": "celestial_ideal",
       "consume": true,
-      "description": "Pedra Ideal: cria o Celestial a partir do Arch ou a forma SubCelestial a partir do Celestial 121+."
+      "description": "Ideal Stone: creates the Celestial from the Arch, or the SubCelestial form from Celestial 121+."
     },
     "212": {
       "action": "nightmare_ticket",
       "consume": true,
       "amount": 13,
       "cooldownSeconds": 43200,
-      "description": "Nightmare Letter: +13 entradas, cooldown persistente de 12 horas."
+      "description": "Nightmare Letter: +13 entries, persistent 12-hour cooldown."
     },
     "213": {
       "action": "celestial_fury",
       "consume": true,
-      "description": "Pedra da Furia: destrava o Celestial 90 ou tenta compor a Cythera Arcana no nivel 200."
+      "description": "Fury Stone: unlocks Celestial 90 or tries to compose the Arcane Cythera at level 200."
     },
     "214": {
       "action": "celestial_switch",
       "consume": true,
-      "description": "Pedra Misteriosa: alterna Celestial/SubCelestial dentro de uma cidade."
+      "description": "Mysterious Stone: switches Celestial/SubCelestial inside a city."
     }
   },
   "items": {
     "417": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Adelas e processado pelo NPC/crafting correspondente."
+      "description": "Adelas is processed by the matching NPC/crafting."
     },
     "646": {
       "action": "buff",
@@ -720,7 +720,7 @@
       "affectValue": 1,
       "affectLevel": 500,
       "durationUnits": 100,
-      "description": "Secret Medicine of Courage: bonus de hit PvE (+1000 fisico/+2000 magico), 800 segundos."
+      "description": "Secret Medicine of Courage: PvE hit bonus (+1000 physical/+2000 magic), 800 seconds."
     },
     "647": {
       "action": "buff",
@@ -729,7 +729,7 @@
       "affectValue": 1,
       "affectLevel": 2000,
       "durationUnits": 450,
-      "description": "Wonder Drug of Courage: bonus de hit PvE (+1000 fisico/+2000 magico), uma hora."
+      "description": "Wonder Drug of Courage: PvE hit bonus (+1000 physical/+2000 magic), one hour."
     },
     "1739": {
       "action": "buff",
@@ -756,7 +756,7 @@
           "durationUnits": 320
         }
       ],
-      "description": "Chocolate do Amor: pacote nativo simultaneo dos affects 43, 44, 45 e 41."
+      "description": "Love Chocolate: simultaneous native package of affects 43, 44, 45 and 41."
     },
     "3313": {
       "action": "buff",
@@ -764,32 +764,32 @@
       "affectType": 35,
       "affectValue": 10,
       "durationUnits": 450,
-      "description": "Bigger Potion: +10% HP por 1 hora."
+      "description": "Bigger Potion: +10% HP for 1 hour."
     },
     "3330": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Shout e consumido pelo comando /spk, nao por duplo clique."
+      "description": "Shout is consumed by the /spk command, not by a double click."
     },
     "3336": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Return of Ability e consumido pelo Mestre de Skill no reset completo."
+      "description": "Return of Ability is consumed by the Skill Master in the full reset."
     },
     "3337": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Ingrediente interno sem uso direto."
+      "description": "Internal ingredient without direct use."
     },
     "3338": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Ingrediente interno sem uso direto."
+      "description": "Internal ingredient without direct use."
     },
     "3339": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Ingrediente interno sem uso direto."
+      "description": "Internal ingredient without direct use."
     },
     "3361": {
       "action": "buff",
@@ -797,7 +797,7 @@
       "affectType": 4,
       "affectValue": 10,
       "durationUnits": 75600,
-      "description": "Sefirah 7 dias (buff de dano)."
+      "description": "Sefirah 7 days (damage buff)."
     },
     "3362": {
       "action": "buff",
@@ -805,7 +805,7 @@
       "affectType": 4,
       "affectValue": 10,
       "durationUnits": 162000,
-      "description": "Sefirah 15 dias."
+      "description": "Sefirah 15 days."
     },
     "3363": {
       "action": "buff",
@@ -813,7 +813,7 @@
       "affectType": 4,
       "affectValue": 10,
       "durationUnits": 324000,
-      "description": "Sefirah 30 dias."
+      "description": "Sefirah 30 days."
     },
     "3364": {
       "action": "buff",
@@ -821,7 +821,7 @@
       "affectType": 35,
       "affectValue": 10,
       "durationUnits": 75600,
-      "description": "Health Potion: +10% HP por 7 dias."
+      "description": "Health Potion: +10% HP for 7 days."
     },
     "3365": {
       "action": "buff",
@@ -829,7 +829,7 @@
       "affectType": 35,
       "affectValue": 10,
       "durationUnits": 162000,
-      "description": "Health Potion: +10% HP por 15 dias."
+      "description": "Health Potion: +10% HP for 15 days."
     },
     "3366": {
       "action": "buff",
@@ -837,7 +837,7 @@
       "affectType": 35,
       "affectValue": 10,
       "durationUnits": 324000,
-      "description": "Health Potion: +10% HP por 30 dias."
+      "description": "Health Potion: +10% HP for 30 days."
     },
     "3378": {
       "action": "buff",
@@ -846,7 +846,7 @@
       "affectValue": 1,
       "affectLevel": 2000,
       "durationUnits": 324000,
-      "description": "Wonder Drug of Courage 30 dias: mesmo bonus de hit PvE do affect 30."
+      "description": "Wonder Drug of Courage 30 days: same PvE hit bonus as affect 30."
     },
     "3393": {
       "action": "grant_counter",
@@ -854,7 +854,7 @@
       "counters": {
         "honor": 50
       },
-      "description": "Coin Wyden: +50 de honra, conforme WYD 7.48."
+      "description": "Coin Wyden: +50 honor, as in WYD 7.48."
     },
     "3394": {
       "action": "grant_counter",
@@ -862,7 +862,7 @@
       "counters": {
         "donate": 100
       },
-      "description": "Gold Wyden: +100 de donate."
+      "description": "Gold Wyden: +100 donate."
     },
     "3395": {
       "action": "grant_counter",
@@ -870,7 +870,7 @@
       "counters": {
         "donate": 1000
       },
-      "description": "Gold Wyden: +1000 de donate."
+      "description": "Gold Wyden: +1000 donate."
     },
     "3396": {
       "action": "grant_counter",
@@ -878,13 +878,13 @@
       "counters": {
         "donate": 5000
       },
-      "description": "Gold Wyden: +5000 de donate."
+      "description": "Gold Wyden: +5000 donate."
     },
     "3407": {
       "action": "tint",
       "consume": true,
       "color": 116,
-      "description": "Blue Enamel (mesh 2782.0 -> cor 116)."
+      "description": "Blue Enamel (mesh 2782.0 -> color 116)."
     },
     "3408": {
       "action": "tint",
@@ -943,7 +943,7 @@
     "3417": {
       "action": "untint",
       "consume": true,
-      "description": "Remover Enamel: remove a cor (volta o sanc para 43)."
+      "description": "Remover Enamel: removes the color (sanc returns to 43)."
     },
     "3432": {
       "action": "hunting_teleport",
@@ -1232,14 +1232,14 @@
       "consume": true,
       "accessKey": "service",
       "durationSeconds": 86400,
-      "description": "Service Ticket por 24 horas."
+      "description": "Service Ticket for 24 hours."
     },
     "3440": {
       "action": "timed_access",
       "consume": true,
       "accessKey": "service",
       "durationSeconds": 604800,
-      "description": "Service Ticket por 7 dias."
+      "description": "Service Ticket for 7 days."
     },
     "3441": {
       "action": "grant_counter",
@@ -1247,49 +1247,49 @@
       "counters": {
         "donate": 10000
       },
-      "description": "Gold Wyden: +10000 de donate."
+      "description": "Gold Wyden: +10000 donate."
     },
     "3442": {
       "action": "firework",
       "consume": true,
       "customPattern": true,
-      "description": "Premium Firecracker: desenho 10x10 enviado pelo client 7.48 e publicado aos jogadores visiveis."
+      "description": "Premium Firecracker: 10x10 drawing sent by the 7.48 client and published to visible players."
     },
     "3453": {
       "action": "mount_revive",
       "consume": true,
-      "description": "Revive a montaria ferida equipada, cobrando o preco dela e reduzindo 0..2 de longevidade."
+      "description": "Revives the equipped injured mount, charging its price and reducing longevity by 0..2."
     },
     "3454": {
       "action": "mount_revive",
       "consume": true,
-      "description": "Revival Horse premium: mesma regra nativa de recuperacao da montaria."
+      "description": "Premium Revival Horse: same native mount recovery rule."
     },
     "3455": {
       "action": "no_direct_use",
       "consume": false,
-      "description": "Extraction of Magical Power nao e consumivel diretamente no WYD 7.48; permanece material do fluxo nativo de extracao."
+      "description": "Extraction of Magical Power is not directly consumable in WYD 7.48; it remains a material of the native extraction flow."
     },
     "3909": {
       "action": "timed_access",
       "consume": true,
       "accessKey": "hidden_ruins",
       "durationSeconds": 86400,
-      "description": "Hidden Ruins por 24 horas."
+      "description": "Hidden Ruins for 24 hours."
     },
     "3910": {
       "action": "timed_access",
       "consume": true,
       "accessKey": "hidden_ruins",
       "durationSeconds": 604800,
-      "description": "Hidden Ruins por 7 dias (descricao nativa do itemhelp)."
+      "description": "Hidden Ruins for 7 days (native itemhelp description)."
     },
     "3974": {
       "action": "timed_access",
       "consume": true,
       "accessKey": "hidden_ruins",
       "durationSeconds": 28800,
-      "description": "Hidden Ruins por 8 horas."
+      "description": "Hidden Ruins for 8 hours."
     },
     "4003": {
       "action": "loot_box",
@@ -1306,7 +1306,7 @@
         2308,
         2309
       ],
-      "description": "Mount Box Normal: sorteia um ovo da faixa normal."
+      "description": "Mount Box Normal: draws an egg from the normal tier."
     },
     "4004": {
       "action": "loot_box",
@@ -1323,7 +1323,7 @@
         2318,
         2319
       ],
-      "description": "Mount Box Mystic: sorteia um ovo da faixa mystic."
+      "description": "Mount Box Mystic: draws an egg from the mystic tier."
     },
     "4005": {
       "action": "loot_box",
@@ -1339,7 +1339,7 @@
         2327,
         2328
       ],
-      "description": "Mount Box Arcane: sorteia um ovo da faixa arcane."
+      "description": "Mount Box Arcane: draws an egg from the arcane tier."
     },
     "4007": {
       "action": "loot_box",
@@ -1359,57 +1359,57 @@
         2327,
         2328
       ],
-      "description": "Premium Box: sorteia um ovo das faixas raras mystic/arcane."
+      "description": "Premium Box: draws an egg from the rare mystic/arcane tiers."
     },
     "4016": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction normal para equipamento Grade A, ate +6."
+      "description": "Normal Repliction for Grade A equipment, up to +6."
     },
     "4017": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction normal para equipamento Grade B, ate +6."
+      "description": "Normal Repliction for Grade B equipment, up to +6."
     },
     "4018": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction normal para equipamento Grade C, ate +6."
+      "description": "Normal Repliction for Grade C equipment, up to +6."
     },
     "4019": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction normal para equipamento Grade D, ate +6."
+      "description": "Normal Repliction for Grade D equipment, up to +6."
     },
     "4020": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction normal para equipamento Grade E, ate +6."
+      "description": "Normal Repliction for Grade E equipment, up to +6."
     },
     "4021": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction Premium para equipamento Grade A, ate +9."
+      "description": "Premium Repliction for Grade A equipment, up to +9."
     },
     "4022": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction Premium para equipamento Grade B, ate +9."
+      "description": "Premium Repliction for Grade B equipment, up to +9."
     },
     "4023": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction Premium para equipamento Grade C, ate +9."
+      "description": "Premium Repliction for Grade C equipment, up to +9."
     },
     "4024": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction Premium para equipamento Grade D, ate +9."
+      "description": "Premium Repliction for Grade D equipment, up to +9."
     },
     "4025": {
       "action": "repliction",
       "consume": true,
-      "description": "Repliction Premium para equipamento Grade E, ate +9."
+      "description": "Premium Repliction for Grade E equipment, up to +9."
     },
     "4111": {
       "action": "territory_pass",
@@ -1417,7 +1417,7 @@
       "requiredEvolution": "mortal",
       "x": 3639,
       "y": 3639,
-      "description": "Game Room Bead Mortal: entrada no territorio Mortal."
+      "description": "Game Room Bead Mortal: entrance to the Mortal territory."
     },
     "4112": {
       "action": "territory_pass",
@@ -1425,7 +1425,7 @@
       "requiredEvolution": "arch",
       "x": 3782,
       "y": 3527,
-      "description": "Game Room Bead Arch: entrada no territorio Arch."
+      "description": "Game Room Bead Arch: entrance to the Arch territory."
     },
     "4113": {
       "action": "territory_pass",
@@ -1433,7 +1433,7 @@
       "requiredEvolution": "celestial",
       "x": 3911,
       "y": 3655,
-      "description": "Game Room Bead Celestial: entrada no territorio Celestial/Subcelestial."
+      "description": "Game Room Bead Celestial: entrance to the Celestial/Subcelestial territory."
     },
     "4114": {
       "action": "grant_counter",
@@ -1467,7 +1467,7 @@
       "maxLevelExclusive": 115,
       "exp": 70000,
       "gold": 2000,
-      "description": "Box of Wisdom: recompensa da area do Gravedigger."
+      "description": "Box of Wisdom: reward of the Gravedigger area."
     },
     "4118": {
       "action": "quest_reward",
@@ -1477,7 +1477,7 @@
       "maxLevelExclusive": 190,
       "exp": 140000,
       "gold": 2500,
-      "description": "Tears of Angell: recompensa da area dos Carbuncles."
+      "description": "Tears of Angell: reward of the Carbuncle area."
     },
     "4119": {
       "action": "quest_reward",
@@ -1487,7 +1487,7 @@
       "maxLevelExclusive": 265,
       "exp": 320000,
       "gold": 3000,
-      "description": "Heart of Kaizen: recompensa da area de Kaizen."
+      "description": "Heart of Kaizen: reward of the Kaizen area."
     },
     "4120": {
       "action": "quest_reward",
@@ -1497,7 +1497,7 @@
       "maxLevelExclusive": 320,
       "exp": 640000,
       "gold": 2000,
-      "description": "Blood Eye: recompensa da area das Hidras."
+      "description": "Blood Eye: reward of the Hydra area."
     },
     "4121": {
       "action": "quest_reward",
@@ -1507,7 +1507,7 @@
       "maxLevelExclusive": 350,
       "exp": 1300000,
       "gold": 4000,
-      "description": "Elf's Spirit Stone: recompensa da area dos Elfos."
+      "description": "Elf's Spirit Stone: reward of the Elf area."
     },
     "4145": {
       "action": "buff",
@@ -1534,7 +1534,7 @@
           "durationUnits": 320
         }
       ],
-      "description": "Doce do Amor: mesma familia de evento do Chocolate, com o pacote completo de affects."
+      "description": "Love Candy: same event family as the Chocolate, with the full affect package."
     }
   }
 }

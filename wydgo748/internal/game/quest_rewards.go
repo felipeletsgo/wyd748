@@ -10,9 +10,8 @@ import (
 	"wydgo/internal/wire"
 )
 
-// cloneCharacterState faz o snapshot profundo necessario para operacoes que
-// podem subir level. grantExp altera EXP, Score e campos derivados;
-// restaurar apenas o item deixaria progressao aplicada quando o save falhasse.
+// cloneCharacterState retains progression, nested scores and sidecar fields.
+// Restoring only an item would leave a level-up applied after a failed save.
 func cloneCharacterState(ch *model.Char) model.Char {
 	clone := *ch
 	clone.QuestsDone = append([]int32(nil), ch.QuestsDone...)
@@ -35,10 +34,8 @@ func cloneCharacterState(ch *model.Char) model.Char {
 	return clone
 }
 
-// expRewardOutcome informa POR QUE grantItemExpReward parou, para cada efeito
-// logar/mensagear na sua propria voz sem duplicar a transacao. OK=false com
-// Err==nil significa "sem ganho" (EXP no teto Mortal); Err!=nil e falha de
-// persistencia -- nos dois casos o char e o item ja foram restaurados.
+// expRewardOutcome distinguishes a capped reward from a persistence failure.
+// Both outcomes leave the character and item unchanged in the legacy path.
 type expRewardOutcome struct {
 	Levels int
 	Exp    uint32
@@ -47,24 +44,18 @@ type expRewardOutcome struct {
 	Err    error
 }
 
-// grantItemExpReward concentra a transacao "consumir item -> ganhar EXP (e gold)"
-// dos baus de XP (grant_exp) e das caixas de quest (quest_reward). Faz SNAPSHOT
-// COMPLETO do personagem porque grantExp altera level, Score e pontos --
-// nao so a EXP; restaurar apenas o item deixaria progressao aplicada numa falha
-// de save. O chamador ja validou os requisitos e calculou `exp` (bruto para os
-// baus; escalado por rate/buff para as caixas). Persist-before-confirm: nada e
-// confirmado ao client antes do save.
+// grantItemExpReward is the synchronous nil-owner reward transaction. Callers
+// validate requirements and calculate raw or rate/buff-adjusted experience.
+// The coordinated path prepares the same changes in queueItemExperience.
 func (w *World) grantItemExpReward(s *net.Session, p *Player, item *model.Item,
 	slot byte, exp, gold uint32, consume bool) expRewardOutcome {
 	snapshot := cloneCharacterState(p.Char)
-	// O recalc CRU dentro de grantExp clampa HP/MP no max sem buffs; preserva os
-	// valores atuais para um jogador buffado nao perder recurso ao ganhar EXP.
+	// Preserve buffed resources across grantExp's unmodified score calculation.
 	oldHP, oldMP := playerCurHP(p.Char), playerCurMP(p.Char)
 
 	levels, applied := grantExp(p.Char, exp)
 	if applied == 0 {
-		// EXP no teto Mortal: nada a conceder. Restaura (grantExp ja tocou o
-		// runtime) e reenvia o item intacto, sem prometer um ganho inexistente.
+		// The cap granted nothing; restore runtime fields and resync the item.
 		*p.Char = snapshot
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return expRewardOutcome{}
@@ -85,8 +76,7 @@ func (w *World) grantItemExpReward(s *net.Session, p *Player, item *model.Item,
 		consumeOne(item)
 	}
 
-	// grantExp recalcula o score cru. Reaplique equipamento/affects e restabeleca
-	// os recursos atuais antes de persistir, para o JSON nao guardar HP/MP cru.
+	// Reapply equipment and affects, then restore resources before persistence.
 	w.recalcPlayer(p.Char)
 	if oldHP > 0 {
 		setPlayerCurHP(p.Char, minU32(oldHP, playerMaxHP(p.Char)))
@@ -105,6 +95,7 @@ func (w *World) grantItemExpReward(s *net.Session, p *Player, item *model.Item,
 	w.updatePartyMember(p)
 	if levels > 0 {
 		s.Send(playerScorePacket(p))
+		w.syncPlayerChaos(p)
 	}
 	if cytheraChanged {
 		s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
@@ -126,11 +117,17 @@ func questRewardAllowed(ch *model.Char, rule model.VolatileRule) bool {
 	return level >= rule.MinLevel && level < rule.MaxLevelExclusive
 }
 
-// useQuestReward porta o Vol 191: valida a caixa pelo indice configurado,
-// concede EXP/gold e so confirma o consumo depois da persistencia. O maximo de
-// level e exclusivo, preservando inclusive as sobreposicoes nativas dos tiers.
+// useQuestReward validates Vol 191 using its exclusive upper level bound.
+// Reward publication and consumption follow the persistence acknowledgement.
 func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule, code int) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitItemExperience(p, slot, rule, code)
+		return
+	}
 	if !questRewardAllowed(p.Char, rule) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("This reward cannot be used at this level or evolution."))
@@ -139,8 +136,7 @@ func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot
 
 	reward := expWithDoubleBuffAt(p.Char, scaledQuestExperience(rule.Exp, w.gameplay), w.now())
 	if reward == 0 {
-		// exp_rate=0 desativa o ganho: preserve a caixa e o gold para nao confirmar
-		// uma recompensa incompleta.
+		// A disabled rate must preserve both the box and its accompanying gold.
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("Experience gain is disabled."))
 		return
@@ -150,7 +146,7 @@ func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot
 	res := w.grantItemExpReward(s, p, item, slot, reward, rule.Gold, rule.Consume)
 	if !res.OK {
 		if res.Err != nil {
-			log.Printf("[#%d] ERRO ao salvar recompensa de quest item=%d: %v", s.ID, oldItemIndex, res.Err)
+			log.Printf("[#%d] failed to save quest reward item=%d: %v", s.ID, oldItemIndex, res.Err)
 			s.Send(wire.MessagePanel("Save failed. The reward was not consumed."))
 		}
 		return

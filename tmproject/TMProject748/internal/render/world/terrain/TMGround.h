@@ -3,16 +3,9 @@
 
 #include "TreeNode.h"
 #include "Structures.h"
+#include "TerrainTileMapReader.h"
 
-struct FileTileInfo
-{
-    char cHeight;
-    char byTileIndex;
-    char byTileCoord;
-    char byBackTileIndex;
-    char byBackTileCoord;
-    unsigned int dwColor;
-};
+// FileTileInfo (KR terrain tile layout) lives in TerrainTileMapReader.h.
 
 class TMSea;
 class TMGround : public TreeNode
@@ -29,7 +22,6 @@ public:
     int FrameMove(unsigned int dwServerTime) override;
     D3DXVECTOR3 GetPickPos();
     float GetHeight(TMVector2 vecPosition);
-    int GetMask(TMVector2 vecPosition);
     D3DCOLORVALUE GetColor(TMVector2 vecPosition);
     int GetTileType(TMVector2 vecPosition);
     void SetColor(TMVector2 vecPosition, unsigned int dwColor);

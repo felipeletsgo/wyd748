@@ -2,7 +2,7 @@
 
 Status: complete. File organization, data tables, method decomposition, test
 split and include pruning are done and `CLIENT-TESTED` (visual acceptance).
-Snapshot: 2026-10-02, HEAD `71c4b313` plus working tree.
+Snapshot: 2026-10-02, HEAD `34b7dcae` plus working tree.
 Scope: the large or multi-responsibility TMProject748 files found by the
 2026-10-02 survey, excluding `TMFieldScene*` and `TMHuman*`, which have their
 own [TMFieldScene](tmfieldscene-refactoring-plan.md) and
@@ -181,6 +181,24 @@ example `Basedef.h`, `TMFieldScene.h` and `EventTranslator.h` in widget units,
 or terrain effect headers in `TMGroundData.cpp`) and duplicates already
 supplied by the unit's own header. Run it after a Debug|Win32 build:
 `python .agents/research/include-prune.py --list <units.txt> [--write]`.
+
+## Source encoding
+
+The client is compiled without `/utf-8`, so non-ASCII bytes in literals depend
+on the file encoding and the build machine's code page.
+`.agents/research/literal-escape.py` rewrote every such literal (in
+`NewAppWindow.cpp`, `TMScene.cpp`, `Basedef.cpp`, `DirShow.cpp` and
+`SEditableText.cpp`) as octal escapes holding the bytes compiled today. It also
+converted the CP949 comments of `ui/ItemEffect.h` to UTF-8 with BOM.
+`--against HEAD` compiles the 30 affected units with the old and the new files
+and requires identical objects; it passed. The multi-byte `'•'` mask
+literal became the single byte MSVC already kept, which removes C4305/C4309.
+
+Not changed, because the native 7.48 value is unverified (a Ghidra question,
+not an encoding one): the password-mask byte, the IME comparison text and the
+billing label. `wydgo748/data/ItemEffect.h` lost 735 comment characters before
+this work (U+FFFD); it differs from the client copy, so the comments cannot be
+restored mechanically.
 
 ## Remaining work
 

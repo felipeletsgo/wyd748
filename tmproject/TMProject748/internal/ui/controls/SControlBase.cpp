@@ -23,12 +23,11 @@ SControl::SControl(float inPosX, float inPosY, float inWidth, float inHeight)
 	m_pEventListener = nullptr;
 	m_bModal = 0;
 
-	float fWidthRatio = (float)g_pDevice->m_dwScreenWidth / WYD748_UI_BASE_WIDTH;
-	float fHeightRatio = (float)g_pDevice->m_dwScreenHeight / WYD748_UI_BASE_HEIGHT;
-	m_nPosX = inPosX * fWidthRatio;
-	m_nPosY = inPosY * fHeightRatio;
-	m_nWidth = inWidth * fWidthRatio;
-	m_nHeight = inHeight * fHeightRatio;
+	// FUN_0040104c (UI mode 2): resource coordinates and sizes are pixels.
+	m_nPosX = inPosX * RenderDevice::m_fUIScaleX;
+	m_nPosY = inPosY * RenderDevice::m_fUIScaleY;
+	m_nWidth = inWidth * RenderDevice::m_fUIScaleX;
+	m_nHeight = inHeight * RenderDevice::m_fUIScaleY;
 	m_dwUniqueID = SControl::m_dwStaticID++;
 }
 
@@ -175,18 +174,6 @@ void SControl::SetRealSize(float nWidth, float nHeight)
 	m_nHeight = nHeight;
 }
 
-void SControl::SetAutoSize()
-{
-	m_nPosX = (m_nPosX / WYD748_UI_BASE_WIDTH) * (float)g_pDevice->m_dwScreenWidth;
-	m_nPosY = (m_nPosY / WYD748_UI_BASE_HEIGHT) * (float)g_pDevice->m_dwScreenHeight;
-}
-
-void SControl::SetCenterSize()
-{
-	m_nPosX = ((float)g_pDevice->m_dwScreenWidth - WYD748_UI_BASE_WIDTH) * 0.5f + m_nPosX;
-	m_nPosY = ((float)g_pDevice->m_dwScreenHeight - WYD748_UI_BASE_HEIGHT) * 0.5f + m_nPosY;
-}
-
 void SControl::SetStickLeft()
 {
 	m_nPosX = 0.0f;
@@ -195,11 +182,6 @@ void SControl::SetStickLeft()
 void SControl::SetStickRight()
 {
 	m_nPosX = (float)g_pDevice->m_dwScreenWidth - m_nWidth;
-}
-
-void SControl::SetStickTop()
-{
-	m_nPosY = 0.0f;
 }
 
 void SControl::SetStickBottom()

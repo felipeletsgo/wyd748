@@ -5,6 +5,7 @@
 #include "TreeNode.h"
 #include "Structures.h"
 #include "Basedef.h"
+#include "FieldCachePolicy.h"
 
 // Defined in ui/controls/SControlBase.h; the RC reader helpers only take it by reference.
 enum class CONTROL_TYPE : int;
@@ -101,7 +102,6 @@ public:
     int LoadMsgLevel(char* LevelQuest, const char* szFileName, char cType);
     void CheckPKNonePK(int nServerIndex);
     void LogMsgCriticalError(int Type, int ID, int nMesh, int X, int Y);
-    void DeleteOwnerAllContainer();
 
 public:
     ESCENE_TYPE m_eSceneType; // 36
@@ -149,6 +149,16 @@ public:
     stCameraTick m_stCameraTick[1000];
     unsigned int m_dwDelayDisconnectTime;
     int m_bMsgRemoveServer;
+
+    // Released terrain fields kept for revisits (ClientSettings FieldCache).
+    field_cache::Entry<TMGround, TMObjectContainer> m_fieldCache[field_cache::kMaxEntries];
+    unsigned int m_fieldCacheClock = 0;
+    // Moves the field of a ground slot to the cache, or deletes it when the
+    // cache is disabled. The remaining slot's neighbor links are cleared.
+    void ReleaseFieldSlot(int slot);
+    // Takes the cached field (x, y); returns false when it is not cached.
+    bool TakeCachedField(int x, int y, TMGround*& ground, TMObjectContainer*& objects);
+    void ClearFieldCache();
 
 private:
 	// Helpers extracted from TMScene::OnMessagePanelPacket.

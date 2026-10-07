@@ -25,6 +25,11 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 		wire.OpCreateCharacter:         36,
 		wire.OpDeleteCharacter:         44,
 		wire.OpCharacterTransfer:       52,
+		wire.OpDeclareServerWar:        serverWarLetterPacketSize,
+		wire.OpRefuseServerWar:         serverWarLetterPacketSize,
+		wire.OpBuyLotteryTicket:        lotteryTicketPacketSize,
+		wire.OpHellStoreBuy:            hellStorePacketSize,
+		wire.OpStoreGoldRequest:        storeGoldRequestPacketSize,
 		wire.OpCharacterLogin:          characterLoginPacketSize,
 		wire.OpCharacterLogout:         12,
 		wire.OpClientIntegrityResponse: wire.ClientIntegrityPacketSize,
@@ -94,12 +99,12 @@ func TestExactInboundPacketSizeCoversEveryConfirmed748Opcode(t *testing.T) {
 	for opcode, expected := range tests {
 		got, exact := exactInboundPacketSize(opcode)
 		if !exact || got != expected {
-			t.Errorf("opcode 0x%X: size=%d exact=%v, esperado=%d",
+			t.Errorf("opcode 0x%X: size=%d exact=%v, want=%d",
 				opcode, got, exact, expected)
 		}
 	}
 	if size, exact := exactInboundPacketSize(0xFFFF); exact || size != 0 {
-		t.Fatalf("opcode desconhecido ganhou framing: size=%d exact=%v", size, exact)
+		t.Fatalf("an unknown opcode got framing: size=%d exact=%v", size, exact)
 	}
 }
 
@@ -116,7 +121,7 @@ func TestConfirmedEconomicPacketsRejectAppendedPayload(t *testing.T) {
 			w := worldWithNetworkedPlayers(p)
 			expected, _ := exactInboundPacketSize(opcode)
 			if w.validateInboundCommand(p.Session, inboundPacket(opcode, expected+8)) {
-				t.Fatalf("opcode 0x%X aceitou cauda arbitraria", opcode)
+				t.Fatalf("opcode 0x%X accepted an arbitrary tail", opcode)
 			}
 		})
 	}
@@ -125,12 +130,12 @@ func TestConfirmedEconomicPacketsRejectAppendedPayload(t *testing.T) {
 func TestRemovedRebuyOpcodeIsRejected(t *testing.T) {
 	const removedRebuyOpcode = 0x3E8
 	if knownInboundOpcode(removedRebuyOpcode) {
-		t.Fatal("opcode de recompra removido continua na allowlist C->S")
+		t.Fatal("the removed buy-back opcode is still in the C->S allowlist")
 	}
 	p, _ := networkedTestPlayer(1, "NoRebuy", 2100, 2100)
 	w := worldWithNetworkedPlayers(p)
 	if w.validateInboundCommand(p.Session, inboundPacket(removedRebuyOpcode, wire.HeaderSize)) {
-		t.Fatal("opcode de recompra removido foi aceito pelo servidor")
+		t.Fatal("the removed buy-back opcode was accepted by the server")
 	}
 }
 
@@ -148,10 +153,10 @@ func TestValidateInboundCommandRejectsCharacterLoginReplayInWorld(t *testing.T) 
 	packet := inboundPacket(wire.OpCharacterLogin, characterLoginPacketSize)
 
 	if w.validateInboundCommand(p.Session, packet) {
-		t.Fatal("CharacterLogin repetido durante gameplay foi aceito")
+		t.Fatal("a repeated CharacterLogin during gameplay was accepted")
 	}
 	if state := w.security[p.Session]; state == nil || state.violations != 1 {
-		t.Fatalf("replay nao foi contabilizado: %+v", state)
+		t.Fatalf("the replay was not counted: %+v", state)
 	}
 }
 
@@ -160,7 +165,7 @@ func TestValidateInboundCommandAcceptsCharacterLogin748Layout(t *testing.T) {
 	packet := inboundPacket(wire.OpCharacterLogin, characterLoginPacketSize)
 
 	if !w.validateInboundCommand(session, packet) {
-		t.Fatal("CharacterLogin de 36 bytes do client 7.48 foi recusado")
+		t.Fatal("the 36-byte CharacterLogin of the 7.48 client was refused")
 	}
 }
 
@@ -169,7 +174,7 @@ func TestValidateInboundCommandRejectsTruncatedCharacterLogin(t *testing.T) {
 	packet := inboundPacket(wire.OpCharacterLogin, 16)
 
 	if w.validateInboundCommand(session, packet) {
-		t.Fatal("CharacterLogin truncado de 16 bytes foi aceito")
+		t.Fatal("a truncated 16-byte CharacterLogin was accepted")
 	}
 }
 
@@ -178,7 +183,7 @@ func TestValidateInboundCommandRejectsAttackWithAppendedPayload(t *testing.T) {
 	w := worldWithNetworkedPlayers(p)
 	packet := inboundPacket(wire.OpAttackOne, 512)
 	if w.validateInboundCommand(p.Session, packet) {
-		t.Fatal("ataque com cauda arbitraria foi aceito")
+		t.Fatal("an attack with an arbitrary tail was accepted")
 	}
 }
 
@@ -217,7 +222,7 @@ func TestValidateInboundCommandRejectsGuildControlPayloadSmuggling(t *testing.T)
 			w := worldWithNetworkedPlayers(p)
 			expected, _ := exactInboundPacketSize(opcode)
 			if w.validateInboundCommand(p.Session, inboundPacket(opcode, expected+16)) {
-				t.Fatalf("opcode 0x%X aceitou cauda arbitraria", opcode)
+				t.Fatalf("opcode 0x%X accepted an arbitrary tail", opcode)
 			}
 		})
 	}
@@ -229,7 +234,7 @@ func TestValidateInboundCommandAcceptsApplyBonus748Layout(t *testing.T) {
 	packet := inboundPacket(wire.OpApplyBonus, applyBonusPacketSize)
 
 	if !w.validateInboundCommand(p.Session, packet) {
-		t.Fatal("ApplyBonus de 20 bytes do client 7.48 foi recusado")
+		t.Fatal("the 20-byte ApplyBonus of the 7.48 client was refused")
 	}
 }
 
@@ -239,7 +244,7 @@ func TestValidateInboundCommandRejectsTruncatedApplyBonus(t *testing.T) {
 	packet := inboundPacket(wire.OpApplyBonus, 18)
 
 	if w.validateInboundCommand(p.Session, packet) {
-		t.Fatal("ApplyBonus truncado sem o layout nativo de 20 bytes foi aceito")
+		t.Fatal("a truncated ApplyBonus without the native 20-byte layout was accepted")
 	}
 }
 
@@ -254,7 +259,7 @@ func TestMovementRejectsTeleportAndBlockedRoute(t *testing.T) {
 	binary.LittleEndian.PutUint16(teleport[26:28], p.Y)
 	w.onMove(p.Session, teleport)
 	if p.X != 2100 || p.Y != 2100 {
-		t.Fatalf("teleporte por 0x366 aplicado: (%d,%d)", p.X, p.Y)
+		t.Fatalf("teleport through 0x366 applied: (%d,%d)", p.X, p.Y)
 	}
 
 	w.terrain = loadedFlatTerrain()
@@ -267,7 +272,7 @@ func TestMovementRejectsTeleportAndBlockedRoute(t *testing.T) {
 	blocked[28], blocked[29] = '6', '6'
 	w.onMove(p.Session, blocked)
 	if p.X != 2100 || p.Y != 2100 {
-		t.Fatalf("rota atravessou parede: (%d,%d)", p.X, p.Y)
+		t.Fatalf("the route crossed a wall: (%d,%d)", p.X, p.Y)
 	}
 }
 
@@ -283,25 +288,25 @@ func TestMovementAdvancesOnlyAsAuthoritativeTimePasses(t *testing.T) {
 	binary.LittleEndian.PutUint16(first[26:28], p.Y)
 	w.onMove(p.Session, first)
 	if p.X != 2100 || !p.MovePublished {
-		t.Fatalf("destino futuro virou autoridade: x=%d published=%v", p.X, p.MovePublished)
+		t.Fatalf("a future destination became authority: x=%d published=%v", p.X, p.MovePublished)
 	}
 
 	clock.Advance(249 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2100 {
-		t.Fatalf("passo venceu antes do intervalo server-side: x=%d", p.X)
+		t.Fatalf("a step completed before the server-side interval: x=%d", p.X)
 	}
 
-	clock.Advance(time.Millisecond) // RunSpeed 4: um passo a cada 250 ms.
+	clock.Advance(time.Millisecond) // RunSpeed 4: one step every 250 ms.
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2101 {
-		t.Fatalf("primeiro passo nao venceu no tempo esperado: x=%d", p.X)
+		t.Fatalf("the first step did not complete in the expected time: x=%d", p.X)
 	}
 
 	clock.Advance(1750 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2108 || p.MovePublished {
-		t.Fatalf("rota nao terminou no destino: x=%d published=%v", p.X, p.MovePublished)
+		t.Fatalf("the route did not end at the destination: x=%d published=%v", p.X, p.MovePublished)
 	}
 }
 
@@ -325,7 +330,7 @@ func TestMovementUsesNative748MaximumSpeedSeven(t *testing.T) {
 	clock.Advance(time.Second)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2107 || p.Y != 2100 || p.MovePublished {
-		t.Fatalf("RunSpeed 7 nao avancou sete tiles em um segundo: (%d,%d) moving=%v",
+		t.Fatalf("RunSpeed 7 did not advance seven tiles in one second: (%d,%d) moving=%v",
 			p.X, p.Y, p.MovePublished)
 	}
 }
@@ -364,18 +369,18 @@ func TestMovementUsesCaptured748RouteDirections(t *testing.T) {
 			move[28] = test.encoded
 			w.onMove(p.Session, move)
 			if !p.MovePublished {
-				t.Fatalf("direcao nativa %q foi recusada", test.encoded)
+				t.Fatalf("native direction %q was refused", test.encoded)
 			}
 
 			clock.Advance(time.Second)
 			w.advancePlayerMovement(p, clock.Now())
 			if p.X != targetX || p.Y != targetY {
-				t.Fatalf("direcao %q terminou em (%d,%d), esperado (%d,%d)",
+				t.Fatalf("direction %q ended at (%d,%d), want (%d,%d)",
 					test.encoded, p.X, p.Y, targetX, targetY)
 			}
 			encoded := directMovementRoute(originX, originY, targetX, targetY)
 			if len(encoded) != 1 || encoded[0] != test.encoded {
-				t.Fatalf("encoder gerou %q para delta (%d,%d), esperado %q",
+				t.Fatalf("the encoder produced %q for delta (%d,%d), want %q",
 					encoded, test.dx, test.dy, test.encoded)
 			}
 		})
@@ -405,11 +410,11 @@ func TestMovementContinuousReplansPreserveAuthoritativeCadence(t *testing.T) {
 		clock.Advance(50 * time.Millisecond)
 	}
 
-	// RunSpeed 4 equivale a 4 tiles/s. Atualizar o destino a cada 50 ms nao
-	// pode reiniciar indefinidamente o relogio do primeiro passo.
+	// RunSpeed 4 is 4 tiles/s. Updating the destination every 50 ms must not
+	// restart the clock of the first step indefinitely.
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X < 2101 {
-		t.Fatalf("replanejamento continuo congelou autoridade em x=%d", p.X)
+		t.Fatalf("continuous replanning froze authority at x=%d", p.X)
 	}
 }
 
@@ -430,9 +435,9 @@ func TestMovementBridgesSkippedClientSegmentWithoutGrantingFutureAuthority(t *te
 	clock.Advance(50 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 
-	// O 7.48 envia planos continuamente. Se um segmento intermediario nao
-	// chegou, o proximo PosX pode estar poucos tiles alem do destino publicado,
-	// mas o servidor ainda deve percorrer todo o corredor no seu proprio tempo.
+	// The 7.48 client sends plans continuously. If an intermediate segment did
+	// not arrive, the next PosX may be a few tiles past the published destination,
+	// but the server must still walk the whole corridor on its own time.
 	second := make([]byte, 52)
 	binary.LittleEndian.PutUint16(second[12:14], p.X+10)
 	binary.LittleEndian.PutUint16(second[14:16], p.Y)
@@ -441,17 +446,17 @@ func TestMovementBridgesSkippedClientSegmentWithoutGrantingFutureAuthority(t *te
 	copy(second[28:], []byte("66666666"))
 	w.onMove(p.Session, second)
 	if p.X != 2100 {
-		t.Fatalf("origem futura virou autoridade imediatamente: x=%d", p.X)
+		t.Fatalf("a future origin became authority at once: x=%d", p.X)
 	}
 	if !p.MovePublished || p.MovePublishedTargetX != 2118 {
-		t.Fatalf("segmento continuo nao foi reconciliado: published=%v target=%d",
+		t.Fatalf("a continuous segment was not reconciled: published=%v target=%d",
 			p.MovePublished, p.MovePublishedTargetX)
 	}
 
 	clock.Advance(5 * time.Second)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2118 || p.Y != 2100 {
-		t.Fatalf("corredor reconciliado nao chegou ao destino: (%d,%d)", p.X, p.Y)
+		t.Fatalf("the reconciled corridor did not reach the destination: (%d,%d)", p.X, p.Y)
 	}
 }
 
@@ -463,12 +468,12 @@ func TestMovementReconcilesCurvedVisualLeadWithoutLineOfSight(t *testing.T) {
 	p.X, p.Y = 1116, 1713
 	p.Char.X, p.Char.Y = p.X, p.Y
 
-	// A reta autoridade->Pos cruza uma célula bloqueada, mas existe uma curva
-	// curta válida. Este é o formato do primeiro pacote recusado no teste real:
+	// The straight line authority->Pos crosses a blocked cell, but a short valid
+	// curve exists. This is the shape of the first packet refused in the real test:
 	// auth=(1116,1713), Pos=(1114,1710), Target=(1116,1707), Route="233".
 	w.terrain.Height[1712*model.TerrainWidth+1115] = model.TerrainBlockedByte
 	if w.terrain.LineOfSight(1116, 1713, 1114, 1710) {
-		t.Fatal("fixture deveria bloquear apenas a ponte em linha reta")
+		t.Fatal("the fixture should block only the straight bridge")
 	}
 	move := make([]byte, 52)
 	binary.LittleEndian.PutUint16(move[12:14], 1114)
@@ -479,13 +484,13 @@ func TestMovementReconcilesCurvedVisualLeadWithoutLineOfSight(t *testing.T) {
 	copy(move[28:], []byte("233"))
 	w.onMove(p.Session, move)
 	if !p.MovePublished || p.X != 1116 || p.Y != 1713 {
-		t.Fatalf("ponte curva foi recusada ou aplicada como salto: moving=%v pos=(%d,%d)",
+		t.Fatalf("the curved bridge was refused or applied as a jump: moving=%v pos=(%d,%d)",
 			p.MovePublished, p.X, p.Y)
 	}
 	clock.Advance(2 * time.Second)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 1116 || p.Y != 1707 || p.MovePublished {
-		t.Fatalf("ponte curva nao terminou no destino: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+		t.Fatalf("the curved bridge did not end at the destination: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
 	}
 }
 
@@ -501,7 +506,7 @@ func TestMovementAcceptsCapturedNoatumReplanOnAuthoritativeTerrain(t *testing.T)
 	p.Char.Score.AttackRun = 6
 	applyScore(p.Char)
 
-	// Primeiro pacote da captura que iniciou a cascata de recusas em Noatum.
+	// First packet of the capture that started the cascade of refusals in Noatum.
 	move := make([]byte, 52)
 	binary.LittleEndian.PutUint16(move[12:14], 1114)
 	binary.LittleEndian.PutUint16(move[14:16], 1710)
@@ -511,11 +516,11 @@ func TestMovementAcceptsCapturedNoatumReplanOnAuthoritativeTerrain(t *testing.T)
 	copy(move[28:], []byte("233"))
 	w.onMove(p.Session, move)
 	if !p.MovePublished || p.MovePublishedTargetX != 1116 || p.MovePublishedTargetY != 1707 {
-		t.Fatalf("replanejamento real de Noatum foi recusado: moving=%v target=(%d,%d)",
+		t.Fatalf("the real Noatum replanning was refused: moving=%v target=(%d,%d)",
 			p.MovePublished, p.MovePublishedTargetX, p.MovePublishedTargetY)
 	}
 	if p.MovePublishedStartX != 1116 || p.MovePublishedStartY != 1713 {
-		t.Fatalf("observer recebeu origem visual adiantada em vez da autoridade: (%d,%d)",
+		t.Fatalf("the observer got the early visual origin instead of the authority: (%d,%d)",
 			p.MovePublishedStartX, p.MovePublishedStartY)
 	}
 	x, y := int(p.MovePublishedStartX), int(p.MovePublishedStartY)
@@ -527,7 +532,7 @@ func TestMovementAcceptsCapturedNoatumReplanOnAuthoritativeTerrain(t *testing.T)
 		x, y = x+direction[0], y+direction[1]
 	}
 	if x != 1116 || y != 1707 {
-		t.Fatalf("rota publicada ao observer terminou em (%d,%d)", x, y)
+		t.Fatalf("the route published to the observer ended at (%d,%d)", x, y)
 	}
 }
 
@@ -539,7 +544,7 @@ func TestMovementVisualCatchupUsesMaximumSpeedWithoutAcceleratingFutureRoute(t *
 	p.Char.Score.AttackRun = 1
 	applyScore(p.Char)
 
-	// Sete passos até o Pos já percorrido visualmente + um passo futuro.
+	// Seven steps up to the Pos already walked visually + one future step.
 	move := make([]byte, 52)
 	binary.LittleEndian.PutUint16(move[12:14], p.X+7)
 	binary.LittleEndian.PutUint16(move[14:16], p.Y)
@@ -551,17 +556,17 @@ func TestMovementVisualCatchupUsesMaximumSpeedWithoutAcceleratingFutureRoute(t *
 	clock.Advance(time.Second)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2107 || p.Y != 2100 {
-		t.Fatalf("catch-up nao usou velocidade maxima: (%d,%d)", p.X, p.Y)
+		t.Fatalf("the catch-up did not use the maximum speed: (%d,%d)", p.X, p.Y)
 	}
 	clock.Advance(999 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2107 {
-		t.Fatalf("trecho futuro foi acelerado junto com catch-up: x=%d", p.X)
+		t.Fatalf("the future stretch was accelerated together with the catch-up: x=%d", p.X)
 	}
 	clock.Advance(time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2108 || p.MovePublished {
-		t.Fatalf("trecho futuro nao respeitou RunSpeed 1: x=%d moving=%v", p.X, p.MovePublished)
+		t.Fatalf("the future stretch did not respect RunSpeed 1: x=%d moving=%v", p.X, p.MovePublished)
 	}
 }
 
@@ -575,8 +580,8 @@ func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
 	}
 	w.playerInstance[p.ID] = "private-a"
 
-	// Um mob publico na mesma coordenada fisica nao existe dentro da sala
-	// privada e portanto nao pode bloquear o passo do jogador.
+	// A public mob at the same physical coordinate does not exist inside the
+	// private room, so it cannot block the player's step.
 	public := &Mob{ID: 1000, X: p.X + 1, Y: p.Y, HP: 100,
 		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.appendMobInstance(public)
@@ -592,10 +597,10 @@ func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
 	clock.Advance(250 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2101 {
-		t.Fatalf("mob publico bloqueou runtime privado: x=%d", p.X)
+		t.Fatalf("a public mob blocked a private runtime: x=%d", p.X)
 	}
 
-	// Uma entidade da propria sala continua sendo colisao autoritativa.
+	// An entity of the room itself is still an authoritative collision.
 	private := &Mob{ID: 1001, X: p.X + 1, Y: p.Y, HP: 100, InstanceID: "private-a",
 		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100})}
 	w.appendMobInstance(private)
@@ -606,7 +611,7 @@ func TestMovementCollisionUsesPlayersGameplaySpace(t *testing.T) {
 	clock.Advance(250 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2101 {
-		t.Fatalf("jogador atravessou entidade do proprio runtime: x=%d", p.X)
+		t.Fatalf("the player walked through an entity of its own runtime: x=%d", p.X)
 	}
 }
 
@@ -616,8 +621,8 @@ func TestMovementCrossesOccupiedIntermediateTileButNotOccupiedDestination(t *tes
 	clock := newFakeClock(time.Unix(100, 0))
 	w.clock = clock
 
-	// O NPC está no meio da rota, como as lojas de teste em Armia. O client
-	// nativo permite atravessá-lo porque o destino final continua livre.
+	// The NPC stands in the middle of the route, like the test shops in Armia.
+	// The native client walks through it because the final destination is free.
 	npc := &Mob{ID: 1000, X: p.X + 2, Y: p.Y, HP: 100,
 		Def: testNPCDef(model.Score{MaxHP: 100, CurHP: 100, Merchant: 1})}
 	w.appendMobInstance(npc)
@@ -632,10 +637,10 @@ func TestMovementCrossesOccupiedIntermediateTileButNotOccupiedDestination(t *tes
 	clock.Advance(time.Second)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2104 || p.Y != 2100 || p.MovePublished {
-		t.Fatalf("NPC intermediario interrompeu a rota: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+		t.Fatalf("an NPC on the way interrupted the route: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
 	}
 
-	// A coordenada final ocupada continua bloqueada server-side.
+	// An occupied final coordinate stays blocked server-side.
 	w.unregisterMobSpatial(npc)
 	npc.X = p.X + 2
 	w.registerMobSpatial(npc)
@@ -646,7 +651,7 @@ func TestMovementCrossesOccupiedIntermediateTileButNotOccupiedDestination(t *tes
 	clock.Advance(500 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2105 || p.Y != 2100 || p.MovePublished {
-		t.Fatalf("destino ocupado nao foi bloqueado: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+		t.Fatalf("an occupied destination was not blocked: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
 	}
 }
 
@@ -671,7 +676,7 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	p.show(hostile.ID)
 	w.onAttack(p.Session, physicalAttackPacket(1000, hostile.ID, hostile.X, hostile.Y))
 	if hostile.HP != 100 {
-		t.Fatal("ataque usou o destino futuro como origem")
+		t.Fatal("the attack used the future destination as its origin")
 	}
 
 	merchant := &Mob{ID: 1100, X: targetX, Y: p.Y,
@@ -683,7 +688,7 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	binary.LittleEndian.PutUint16(useNPC[12:14], merchant.ID)
 	w.onUseNPC(p.Session, useNPC)
 	if p.ShopNPC != 0 {
-		t.Fatal("NPC no destino futuro foi aberto")
+		t.Fatal("an NPC at the future destination was opened")
 	}
 
 	ground := &GroundItem{ID: 10001, X: targetX, Y: p.Y, Item: model.Item{Index: 412},
@@ -695,17 +700,17 @@ func TestMovementDoesNotGrantInteractionsAtFutureDestination(t *testing.T) {
 	binary.LittleEndian.PutUint16(get[20:22], ground.ID)
 	w.onGetItem(p.Session, get)
 	if w.groundItems[ground.ID] == nil || p.Char.Inv[0].Index != 0 {
-		t.Fatal("item no destino futuro foi coletado")
+		t.Fatal("an item at the future destination was picked up")
 	}
 	if p.X != 2100 {
-		t.Fatalf("alguma interacao promoveu o destino futuro: x=%d", p.X)
+		t.Fatalf("an interaction promoted the future destination: x=%d", p.X)
 	}
 }
 
 func TestMovementAcceptsFull748RouteForSlowCharacter(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
 	w.terrain = loadedFlatTerrain()
-	p.Char.Score.AttackRun = 0 // reproduz o antigo limite artificial de 8.
+	p.Char.Score.AttackRun = 0 // reproduces the old artificial limit of 8.
 
 	packet := make([]byte, 52)
 	binary.LittleEndian.PutUint16(packet[12:14], p.X)
@@ -717,7 +722,7 @@ func TestMovementAcceptsFull748RouteForSlowCharacter(t *testing.T) {
 	}
 
 	if !w.validPlayerMovePacket(p, packet) {
-		t.Fatal("rota legitima de 11 tiles do client 7.48 foi recusada")
+		t.Fatal("a legitimate 11-tile route of the 7.48 client was refused")
 	}
 }
 
@@ -734,14 +739,14 @@ func TestMovementAcceptsRepeatedRouteWhileClientInterpolates(t *testing.T) {
 		packet[28+i] = '6'
 	}
 	if !w.validPlayerMovePacket(p, packet) {
-		t.Fatal("primeiro envio da rota foi recusado")
+		t.Fatal("the first send of the route was refused")
 	}
 
-	// onMove ja teria registrado o destino, mas o client ainda envia PosX na
-	// origem durante a interpolacao do mesmo segmento.
+	// onMove would already have recorded the destination, but the client still
+	// sends PosX at the origin while interpolating the same segment.
 	p.X += 11
 	if !w.validPlayerMovePacket(p, packet) {
-		t.Fatal("repeticao legitima da rota em animacao foi recusada")
+		t.Fatal("a legitimate repeat of the route during the animation was refused")
 	}
 }
 
@@ -757,7 +762,7 @@ func TestStopPacketsCannotRepositionPlayer(t *testing.T) {
 	binary.LittleEndian.PutUint32(moveStop[24:28], uint32(p.Y))
 	w.onMoveStop(p.Session, moveStop)
 	if p.X != 2100 || p.Y != 2100 {
-		t.Fatalf("Stop reposicionou player: (%d,%d)", p.X, p.Y)
+		t.Fatalf("Stop repositioned the player: (%d,%d)", p.X, p.Y)
 	}
 }
 
@@ -782,12 +787,12 @@ func TestStopCannotClaimFutureValidatedRoutePosition(t *testing.T) {
 	binary.LittleEndian.PutUint16(stop[26:28], 2100)
 	w.onActionStop(p.Session, stop)
 	if p.X != 2100 || p.Y != 2100 {
-		t.Fatalf("Stop promoveu destino futuro imediatamente: (%d,%d)", p.X, p.Y)
+		t.Fatalf("Stop promoted the future destination at once: (%d,%d)", p.X, p.Y)
 	}
 	clock.Advance(1250 * time.Millisecond)
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2105 || p.Y != 2100 {
-		t.Fatalf("Stop nao chegou pelo relogio autoritativo: (%d,%d)", p.X, p.Y)
+		t.Fatalf("Stop did not arrive on the authoritative clock: (%d,%d)", p.X, p.Y)
 	}
 }
 
@@ -799,8 +804,8 @@ func TestActionStopAcceptsNative748FiveTileFinalPlan(t *testing.T) {
 	p.X, p.Y = 2485, 2016
 	p.Char.X, p.Char.Y = p.X, p.Y
 
-	// Captura real 7.48: Pos=(2485,2016), Speed=3,
-	// Target=(2480,2015), Route[24] zerada.
+	// Real 7.48 capture: Pos=(2485,2016), Speed=3,
+	// Target=(2480,2015), Route[24] zeroed.
 	stop := make([]byte, 52)
 	binary.LittleEndian.PutUint16(stop[12:14], 2485)
 	binary.LittleEndian.PutUint16(stop[14:16], 2016)
@@ -809,15 +814,15 @@ func TestActionStopAcceptsNative748FiveTileFinalPlan(t *testing.T) {
 	binary.LittleEndian.PutUint16(stop[26:28], 2015)
 	w.onActionStop(p.Session, stop)
 	if p.X != 2485 || p.Y != 2016 {
-		t.Fatalf("ActionStop concedeu destino antecipado: (%d,%d)", p.X, p.Y)
+		t.Fatalf("ActionStop granted an early destination: (%d,%d)", p.X, p.Y)
 	}
 	if !p.MovePublished || p.MovePublishedTargetX != 2480 || p.MovePublishedTargetY != 2015 {
-		t.Fatal("ActionStop nativo nao criou o plano final autoritativo")
+		t.Fatal("the native ActionStop did not create the final authoritative plan")
 	}
-	clock.Advance(1250 * time.Millisecond) // RunSpeed 4: cinco passos.
+	clock.Advance(1250 * time.Millisecond) // RunSpeed 4: five steps.
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2480 || p.Y != 2015 || p.MovePublished {
-		t.Fatalf("ActionStop nao terminou no alvo: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+		t.Fatalf("ActionStop did not end at the target: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
 	}
 }
 
@@ -831,7 +836,7 @@ func TestActionStopRejectsRouteLongerThanNativeLimit(t *testing.T) {
 	binary.LittleEndian.PutUint16(stop[26:28], p.Y)
 	w.onActionStop(p.Session, stop)
 	if p.X != 2100 || p.Y != 2100 || p.MovePublished {
-		t.Fatalf("ActionStop invalido alterou movimento: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
+		t.Fatalf("an invalid ActionStop changed the movement: (%d,%d) moving=%v", p.X, p.Y, p.MovePublished)
 	}
 }
 
@@ -851,7 +856,7 @@ func TestPhysicalAttackCannotCrossBlockedTerrain(t *testing.T) {
 
 	w.onAttack(p.Session, physicalAttackPacket(1000, mob.ID, mob.X, mob.Y))
 	if mob.HP != 10_000 || mob.TargetID != 0 {
-		t.Fatalf("ataque atravessou parede: hp=%d target=%d", mob.HP, mob.TargetID)
+		t.Fatalf("the attack went through a wall: hp=%d target=%d", mob.HP, mob.TargetID)
 	}
 }
 
@@ -866,7 +871,7 @@ func TestGroundItemTransactionsRollbackOnSaveFailure(t *testing.T) {
 	binary.LittleEndian.PutUint32(drop[16:20], 0)
 	w.onDropItem(p.Session, drop)
 	if p.Char.Inv[0].Index != 412 || len(w.groundItems) != 0 {
-		t.Fatalf("drop sem save nao fez rollback: inv=%d ground=%d", p.Char.Inv[0].Index, len(w.groundItems))
+		t.Fatalf("a drop without a save did not roll back: inv=%d ground=%d", p.Char.Inv[0].Index, len(w.groundItems))
 	}
 
 	p.Char.Inv[0] = model.Item{}
@@ -878,7 +883,7 @@ func TestGroundItemTransactionsRollbackOnSaveFailure(t *testing.T) {
 	binary.LittleEndian.PutUint16(get[20:22], g.ID)
 	w.onGetItem(p.Session, get)
 	if p.Char.Inv[0].Index != 0 || w.groundItems[g.ID] != g {
-		t.Fatal("pickup sem save nao restaurou inventario/objeto do chao")
+		t.Fatal("a pickup without a save did not restore the inventory/ground object")
 	}
 }
 
@@ -902,7 +907,7 @@ func TestShopOperationsRevalidateRangeAndRejectEquipmentSale(t *testing.T) {
 	binary.LittleEndian.PutUint16(buy[12:14], shop.ID)
 	w.onBuyItem(p.Session, buy)
 	if p.Char.Inv[0].Index != 0 || p.Char.Gold != 5000 || p.ShopNPC != 0 {
-		t.Fatal("compra remota em loja stale foi aceita")
+		t.Fatal("a remote purchase in a stale shop was accepted")
 	}
 
 	p.X = shop.X
@@ -913,7 +918,7 @@ func TestShopOperationsRevalidateRangeAndRejectEquipmentSale(t *testing.T) {
 	sell[14], sell[16] = placeEquip, 0
 	w.onSellItem(p.Session, sell)
 	if p.Char.Equip[0].Index != 400 || p.Char.Gold != 5000 {
-		t.Fatal("venda forjada do slot de rosto foi aceita")
+		t.Fatal("a forged sale of the face slot was accepted")
 	}
 }
 
@@ -933,6 +938,6 @@ func TestSkillDelayUsesSecondsFromCatalog(t *testing.T) {
 	w.onSkillAttack(p, skillCastRequest{Skill: 27})
 	remaining := p.SkillReady[27].Sub(before)
 	if remaining < 4*time.Second || remaining >= 5*time.Second {
-		t.Fatalf("Delay=4 gerou cooldown %s, esperado 4s", remaining)
+		t.Fatalf("Delay=4 produced cooldown %s, want 4s", remaining)
 	}
 }

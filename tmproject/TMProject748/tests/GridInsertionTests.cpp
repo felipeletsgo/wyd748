@@ -1,4 +1,5 @@
 #include "../internal/ui/GridInsertion.h"
+#include "../internal/ui/GridItemPresentation.h"
 #include "../internal/ui/NativeSaleQuote.h"
 #include "../internal/core/NativeSalePrice.h"
 #include <array>
@@ -16,6 +17,26 @@ int RunGridInsertionTests(int& checks)
         ++checks;
         if (!ok) { ++failures; std::fprintf(stderr, "FAIL: %s\n", name); }
     };
+    const char* emptyCaptions[] = {nullptr, "", " \t\r\n"};
+    for (const char* caption : emptyCaptions)
+        check(std::strcmp(grid_item_presentation::SplitCaption(caption),
+            "Enter the quantity to split.") == 0, "missing split resource has an English caption");
+    const char custom[] = "Choose an amount.";
+    check(grid_item_presentation::SplitCaption(custom) == custom, "nonempty resource remains authoritative");
+    struct Label { char strString[8]; int nPosX, nPosY, nLayer; };
+    for (const char* text : {"", " 1", "99", "255", "+12"}) {
+        Label label{};
+        std::memcpy(label.strString, text, std::strlen(text) + 1);
+        int queued = 0;
+        grid_item_presentation::QueueLabel(label, 123.5f, 48.9f, 7,
+            [&](Label* node, int layer) {
+                ++queued;
+                check(node == &label && layer == 7 && node->nPosX == 123 &&
+                    node->nPosY == 48 && node->nLayer == 7, "text node is centred and queued in the parent layer");
+            });
+        check(queued == (text[0] ? 1 : 0), "nonempty amounts and refinements queue exactly one text node");
+    }
+
     // The production MouseOver quote must preserve the native discontinuities
     // and override order; these fixtures do not simulate authoritative payment.
     const int quoteCases[][2] = {

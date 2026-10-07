@@ -14,8 +14,12 @@ Manifest format:
   {"revision": "<commit>",
    "groups": [{"baseline": ["path/at/revision", ...],
                "current": ["path/in/worktree", ...]}],
-   "reviewed": {"<item key>": {"before": "<sha256>", "after": "<sha256>"}}}
-'reviewed' pins an intentional, reviewed change of a single definition.
+   "reviewed": {"<item key>": {"before": "<sha256>", "after": "<sha256>" | null}}}
+'reviewed' pins an intentional, reviewed change of a single definition. Pins
+chain: a later pin may start from an earlier pin's "after". "after": null is a
+reviewed removal: the definition must be gone. A group may list
+"removed_files": current paths deleted on purpose, which must not exist; any
+other missing current file fails the gate instead of raising.
 """
 import argparse
 import collections
@@ -154,16 +158,33 @@ def verify(manifest):
     total = 0
     for group in manifest['groups']:
         before, before_keys = collect(revision_source(revision, p) for p in group['baseline'])
+        removed_files = set(group.get('removed_files', []))
+        present = []
+        for p in group['current']:
+            if (ROOT / p).is_file():
+                if p in removed_files:
+                    failures.append(f'file listed as removed still exists: {p}')
+                present.append(p)
+            elif p not in removed_files:
+                failures.append(f'current file missing (not a reviewed removal): {p}')
         after, after_keys = collect((ROOT / p).read_text(encoding='utf-8-sig', errors='replace')
-                                    for p in group['current'])
+                                    for p in present)
+        # Apply the reviewed pins to the baseline side in order, so a chain
+        # (baseline -> extraction -> later reviewed edit) ends at the current
+        # digest. A pin whose starting point is absent belongs to another group
+        # unless its result is present here, which makes it stale.
         for name, pin in reviewed.items():
-            # The reviewed version replaces the baseline definition; both sides
-            # must be present, otherwise the pin is stale and the gate fails.
-            if before.get(pin['before']) and after.get(pin['after']):
+            if before.get(pin['before']):
                 before[pin['before']] -= 1
-                before[pin['after']] += 1
-            elif before.get(pin['before']) or after.get(pin['after']):
+                if pin['after'] is not None:
+                    before[pin['after']] += 1
+                    after_keys.setdefault(pin['after'], before_keys.get(pin['before'], name))
+                    before_keys.setdefault(pin['after'], before_keys.get(pin['before'], name))
+            elif pin['after'] is not None and after.get(pin['after']) and not any(
+                    other['after'] == pin['before'] for other in reviewed.values()) and                     pin['before'] not in group.get('new_items', {}).values():
                 failures.append(f'reviewed change not matched: {name}')
+        before = +before
+        chain = {pin['before']: pin['after'] for pin in reviewed.values()}
         missing = before - after
         extra = after - before
         # Declarations of relocated helpers (no body) may be added to a support
@@ -178,6 +199,12 @@ def verify(manifest):
         # Reviewed new definitions (for example a data table that replaced a
         # branch chain) are pinned by digest, so any later edit fails the gate.
         for label, pinned in group.get('new_items', {}).items():
+            seen = set()
+            while pinned in chain and pinned not in seen:  # reviewed edits of a new item
+                seen.add(pinned)
+                pinned = chain[pinned]
+            if pinned is None:  # a reviewed removal of the new item
+                continue
             if extra.get(pinned):
                 extra[pinned] -= 1
                 if extra[pinned] <= 0:

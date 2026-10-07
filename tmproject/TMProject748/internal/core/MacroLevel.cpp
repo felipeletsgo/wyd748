@@ -9,8 +9,6 @@
 #include "DirShow.h"
 #include "SControlContainer.h"
 #include "SGrid.h"
-#include "Mission.h"
-#include "MrItemMix.h"
 #include "TMGround.h"
 #include "TMHuman.h"
 #include "TMObjectContainer.h"
@@ -25,7 +23,6 @@
 #include "TMEffectBillBoard.h"
 #include "TMUtil.h"
 #include "TMHouse.h"
-#include "TMEffectBillBoard4.h"
 #include "TMSkillMagicArrow.h"
 #include "TMEffectStart.h"
 #include "TMSkillJudgement.h"
@@ -136,7 +133,7 @@ void Macro::Water_N::UseItem(const int posX, const int posY, const int level)
 					repeat = true;
 					itemId = firstScroll;
 				}
-				else // Olhou todo o invent�rio e n�o encontrou nenhum pergaminho mais.
+				else // Searched the whole inventory and found no more scrolls.
 					break;
 			}
 		}
@@ -261,7 +258,7 @@ void Macro::Water_M::UseItem(const int posX, const int posY, const int level)
 					repeat = true;
 					itemId = firstScroll;
 				}
-				else // Olhou todo o invent�rio e n�o encontrou nenhum pergaminho mais.
+				else // Searched the whole inventory and found no more scrolls.
 					break;
 			}
 		}
@@ -385,7 +382,7 @@ void Macro::Water_A::UseItem(const int posX, const int posY, const int level)
 					repeat = true;
 					itemId = firstScroll;
 				}
-				else // Olhou todo o invent�rio e n�o encontrou nenhum pergaminho mais.
+				else // Searched the whole inventory and found no more scrolls.
 					break;
 			}
 		}

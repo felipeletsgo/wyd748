@@ -40,6 +40,11 @@ int RunFieldSceneChatContractTests(int& checks);
 int RunFieldChatControlTests(int& checks);
 int RunFieldChatSubmitPolicyTests(int& checks);
 int RunFieldCoinInputPolicyTests(int& checks);
+int RunMusicListLineTests(int& checks);
+int RunAuditSafetyTests(int& checks);
+int RunHellStoreClickContractTests(int& checks);
+int RunUiModeContractTests(int& checks);
+int RunFieldViewContractTests(int& checks);
 int RunSkillAttackRequestTests(int& checks);
 int RunAttackVisualDamageTests(int& checks);
 int RunAttackAttackerStateTests(int& checks);
@@ -47,6 +52,14 @@ int RunAttackTargetStateTests(int& checks);
 int RunGroundAttachTableTests(int& checks);
 int RunFallbackCostumeTableTests(int& checks);
 int RunResourceBarProjectionTests(int& checks);
+int RunNativeScoreHudTests(int& checks);
+int RunPerfTraceTests(int& checks);
+int RunClientSettingsTests(int& checks);
+int RunWeatherPacketTests(int& checks);
+int RunLightingProfileTests(int& checks);
+int RunGroundNeighborPolicyTests(int& checks);
+int RunFieldCachePolicyTests(int& checks);
+int RunRuntimeAssetLimitsTests(int& checks);
 int RunObservedAffectProjectionTests(int& checks);
 int RunCCModePolicyTests(int& checks);
 int RunEffectVertexColorTests(int& checks);
@@ -411,13 +424,6 @@ int main()
         offsetof(MSG_GuildRelation, TargetGuildID) == 16,
         "GuildRelation preserves alliance opcode and native offsets");
 
-    for (char key : {'Q', 'q', 'W', 'w', 'E', 'e', 'R', 'r', 'T', 't'})
-        check(field_interaction::QuickSlotIndex(true, key) == -1,
-            "native HUD never dereferences modern quick slots");
-    check(field_interaction::QuickSlotIndex(false, 'q') == 0 &&
-        field_interaction::QuickSlotIndex(false, 'T') == 4 &&
-        field_interaction::QuickSlotIndex(false, '-') == -1,
-        "modern quick slots preserve key mapping");
     check(!field_interaction::ShouldCloseOnDelayAck(0),
         "recall/logout/server-select/unsolicited ack does not close client");
     check(field_interaction::ShouldCloseOnDelayAck(1) &&
@@ -523,6 +529,11 @@ int main()
     failures += RunFieldChatControlTests(checks);
     failures += RunFieldChatSubmitPolicyTests(checks);
     failures += RunFieldCoinInputPolicyTests(checks);
+    failures += RunMusicListLineTests(checks);
+    failures += RunAuditSafetyTests(checks);
+    failures += RunHellStoreClickContractTests(checks);
+    failures += RunUiModeContractTests(checks);
+    failures += RunFieldViewContractTests(checks);
     failures += RunSkillAttackRequestTests(checks);
     failures += RunAttackVisualDamageTests(checks);
     failures += RunAttackAttackerStateTests(checks);
@@ -530,6 +541,14 @@ int main()
     failures += RunGroundAttachTableTests(checks);
     failures += RunFallbackCostumeTableTests(checks);
     failures += RunResourceBarProjectionTests(checks);
+    failures += RunNativeScoreHudTests(checks);
+    failures += RunPerfTraceTests(checks);
+    failures += RunClientSettingsTests(checks);
+    failures += RunWeatherPacketTests(checks);
+    failures += RunLightingProfileTests(checks);
+    failures += RunGroundNeighborPolicyTests(checks);
+    failures += RunFieldCachePolicyTests(checks);
+    failures += RunRuntimeAssetLimitsTests(checks);
     failures += RunObservedAffectProjectionTests(checks);
     failures += RunCCModePolicyTests(checks);
     failures += RunEffectVertexColorTests(checks);

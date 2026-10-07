@@ -200,6 +200,14 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 44, true
 	case wire.OpCharacterTransfer:
 		return 52, true
+	case wire.OpDeclareServerWar, wire.OpRefuseServerWar:
+		return serverWarLetterPacketSize, true
+	case wire.OpBuyLotteryTicket:
+		return lotteryTicketPacketSize, true
+	case wire.OpHellStoreBuy:
+		return hellStorePacketSize, true
+	case wire.OpStoreGoldRequest:
+		return storeGoldRequestPacketSize, true
 	case wire.OpCharacterLogin:
 		// Client 7.48: header(12) + Slot(4) + Force(4) + SecretCode(16).
 		// The slot remains at @12; the tail belongs to the framing contract

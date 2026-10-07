@@ -89,11 +89,6 @@ int RunResourceBarProjectionTests(int& checks)
     check(true, "missing native HP visual is safe");
     resource_ui::Project(static_cast<Bar*>(nullptr), 10, 20);
     check(true, "missing optional control is safe");
-    char text[32]{};
-    std::snprintf(text, sizeof(text), resource_ui::MaximumTextFormat(true), 2000000000u);
-    check(std::strcmp(text, "2000000000") == 0, "native max cell contains only full numeric value");
-    std::snprintf(text, sizeof(text), resource_ui::MaximumTextFormat(false), 2000000000u);
-    check(std::strcmp(text, "/ 2000000000") == 0, "combined layout retains max separator");
     check(death_motion::MayEnterTravelAnimation(82, false, false), "living character may enter travel animation");
     check(!death_motion::MayEnterTravelAnimation(0, false, false), "zero HP prevents travel before death confirmation");
     check(!death_motion::MayEnterTravelAnimation(0, true, false), "death confirmation cannot resume a running route");

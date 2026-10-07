@@ -5,6 +5,7 @@
 #include "SControl.h"
 #include "SControlContainer.h"
 #include "TMUtil.h"
+#include "../../application/IndexedPartyMessage.h"
 
 void TMFieldScene::SetWhisper(char cOn)
 {
@@ -16,7 +17,7 @@ void TMFieldScene::SetWhisper(char cOn)
 	}
 	if (m_pChatWhisper_C)
 	{
-		m_pChatWhisper_C->m_bSelected = m_bCompatFieldScene ? cOn != 0 : cOn == 0;
+		m_pChatWhisper_C->m_bSelected = cOn != 0;
 		m_pChatWhisper_C->Update();
 	}
 }
@@ -31,7 +32,7 @@ void TMFieldScene::SetPartyChat(char cOn)
 	}
 	if (m_pChatParty_C)
 	{
-		m_pChatParty_C->m_bSelected = m_bCompatFieldScene ? cOn != 0 : cOn == 0;
+		m_pChatParty_C->m_bSelected = cOn != 0;
 		m_pChatParty_C->Update();
 	}
 }
@@ -46,7 +47,7 @@ void TMFieldScene::SetGuildChat(char cOn)
 	}
 	if (m_pChatGuild_C)
 	{
-		m_pChatGuild_C->m_bSelected = m_bCompatFieldScene ? cOn != 0 : cOn == 0;
+		m_pChatGuild_C->m_bSelected = cOn != 0;
 		m_pChatGuild_C->Update();
 	}
 }
@@ -81,7 +82,7 @@ int TMFieldScene::OnPacketMessageChat(MSG_MessageChat* pStd)
 				auto pChatList = m_pChatList;
 
 				char szMsg[128]{};
-				sprintf(szMsg, "[%s]> %s", pPartyItem->GetText(), pStd->String);
+				snprintf(szMsg, sizeof(szMsg), "[%s]> %s", pPartyItem->GetText(), pStd->String);
 
 				pChatList->AddItem(new SListBoxItem(szMsg, 0xFFAAFFAA, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
@@ -101,22 +102,12 @@ int TMFieldScene::OnPacketMessageChat_Index(MSG_MessageChat* pStd)
 	if (!pStd || !m_pChatList || !m_pPartyList)
 		return 0;
 
-	if (pStd->String[0] != 1)
+	if (pStd->Header.Size != sizeof(MSG_MessageChat))
 		return 0;
 
 	char str[128]{};
-	char num[5]{};
-
-	g_pMessageStringTable[*(short*)&pStd->String[2] + 1000][127] = 0;
-	g_pMessageStringTable[*(short*)&pStd->String[2] + 1000][126] = 0;
-
-	strcpy(str, g_pMessageStringTable[*(short*)&pStd->String[2] + 1000]);
-
-	if (strlen(str) < 1)
-	{
-		_itoa(*(short*)&pStd->String[2], num, 10);
-		strcpy(str, num);
-	}
+	if (!party_message::Decode(pStd->String, sizeof(pStd->String), g_pMessageStringTable, str))
+		return 0;
 
 	if (m_pPartyList->m_nNumItem <= 0)
 		return 0;
@@ -129,13 +120,10 @@ int TMFieldScene::OnPacketMessageChat_Index(MSG_MessageChat* pStd)
 			auto pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[i];
 			if (pPartyItem->m_dwCharID == pStd->Header.ID)
 			{
-				pStd->String[sizeof(pStd->String) - 2] = 0;
-				pStd->String[sizeof(pStd->String) - 1] = 0;
-
 				auto pChatList = m_pChatList;
 
 				char szMsg[128]{};
-				sprintf(szMsg, "[%s]> %s", pPartyItem->GetText(), pStd->String);
+				snprintf(szMsg, sizeof(szMsg), "[%s]> %s", pPartyItem->GetText(), str);
 
 				pChatList->AddItem(new SListBoxItem(szMsg, 0xFFAAFFAA, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
@@ -145,11 +133,6 @@ int TMFieldScene::OnPacketMessageChat_Index(MSG_MessageChat* pStd)
 		}
 	}
 
-	return 0;
-}
-
-int TMFieldScene::OnPacketMessageChat_Param(MSG_STANDARD* pStd)
-{
 	return 0;
 }
 

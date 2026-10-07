@@ -83,6 +83,15 @@ TMHuman::~TMHuman() { }
                 'human_costume::UsesFixedBodyRefinement(m_sCostume)',
                 'human_costume::UsesFixedBodyRefinement(m_sCostume + 1)'), 'Unreviewed'),
             ('TMHuman.cpp', lambda text: text + '\nstatic int unreviewed = 1;\n', 'Core static data'),
+            # The reviewed namespace-scope change removed one overload only; also
+            # changing the remaining one is an unexpected namespace change.
+            ('TMHuman.cpp', lambda text: text.replace('bool _locationCheck(TMVector2 vec2, int mapX, int mapY)',
+                                                      'bool _locationCheckGone(TMVector2 vec2, int mapX, int mapY)'),
+             'Core static data'),
+            # A body changed after its review no longer matches the recorded digest.
+            ('TMHumanEffects.cpp', lambda text: text.replace('beriel_aura::InRange(', 'beriel_aura::InRange(1.0f + '),
+             'changed'),
+            ('TMHuman.h', lambda text: text + '\nint unreviewedDeclaration;\n', 'class declaration changed'),
         ]
         for filename, mutate, message in mutations:
             with self.subTest(filename=filename):
@@ -92,6 +101,20 @@ TMHuman::~TMHuman() { }
                 with patch.object(relocation, 'read', side_effect=altered_read):
                     with self.assertRaisesRegex(ValueError, message):
                         relocation.verify(baseline, complete=True, with_policies=True)
+
+    def test_method_counts_reconcile(self):
+        spec = importlib.util.spec_from_file_location('method_counts', Path(__file__).with_name('method_counts.py'))
+        counts_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(counts_module)
+        baseline = {'same': 'a', 'pinned': 'b', 'reviewed': 'c', 'loose': 'd', 'removed': 'e'}
+        actual = {'same': 'a', 'pinned': 'B', 'reviewed': 'C', 'loose': 'D', 'added': 'f'}
+        counts = counts_module.categories(baseline, actual, pinned={'pinned', 'added'}, reviewed={'reviewed'})
+        self.assertEqual((counts['identical'], counts['pinned'], counts['reviewed'], counts['added'],
+                          counts['removed']), (1, 1, 1, 1, 1))
+        self.assertEqual(counts['unexplained'], ['loose'])
+        both = counts['identical'] + counts['pinned'] + counts['reviewed'] + len(counts['unexplained'])
+        self.assertEqual(both + counts['removed'], counts['baseline'])
+        self.assertEqual(both + counts['added'], counts['current'])
 
 
 if __name__ == '__main__':

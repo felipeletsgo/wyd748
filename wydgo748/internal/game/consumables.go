@@ -19,9 +19,8 @@ const (
 	buffRejectedMessage      = "This buff cannot be applied right now."
 )
 
-// useItemRequest e o MSG_UseItem 0x373 nativo (36 bytes). Os campos sao DWORD;
-// validar antes de converter evita que valores forjados sejam truncados para um
-// slot valido.
+// useItemRequest is native MSG_UseItem 0x373 (36 bytes). Validate DWORD fields
+// before conversion so forged values cannot truncate to a valid slot.
 type useItemRequest struct {
 	srcType, srcPos uint32
 	dstType, dstPos uint32
@@ -45,8 +44,8 @@ func parseUseItemRequest(pkt []byte) (useItemRequest, bool) {
 		gridY:   binary.LittleEndian.Uint16(pkt[30:32]),
 		warpID:  binary.LittleEndian.Uint32(pkt[32:36]),
 	}
-	// O plugin 7.54 aceita uso somente a partir do Carry/Inv. Destino ainda e
-	// validado, mesmo que pocao e barra nao o utilizem.
+	// The 7.54 plugin accepts use only from Carry/Inv. Validate the destination
+	// even when potions and gold bars do not use it.
 	if r.srcType != placeInv || r.srcPos >= model.PlayerCarrySlots ||
 		r.dstType > placeStorage || r.dstPos >= model.PlayerCarrySlots {
 		return useItemRequest{}, false
@@ -54,8 +53,8 @@ func parseUseItemRequest(pkt []byte) (useItemRequest, bool) {
 	return r, true
 }
 
-// consumeOne porta AmountMinus: EF_AMOUNT (61) representa a pilha; sem esse
-// efeito o STRUCT_ITEM e uma unidade e o slot deve ser zerado.
+// consumeOne ports AmountMinus: EF_AMOUNT (61) represents a stack. Without it,
+// STRUCT_ITEM represents one unit and consumption must clear the slot.
 func consumeOne(item *model.Item) {
 	for i := 0; i < 3; i++ {
 		if item.Eff[i*2] != effectAmount {
@@ -101,47 +100,155 @@ func applyRestore(ch *model.Char, item model.Item, def model.ItemDef, rule model
 	return hp, mp
 }
 
-// resyncUsedItem desfaz a reducao visual otimista que o client 7.48 aplica ao
-// enviar MSG_UseItem. Toda recusa ou falha de persistencia deve republicar o
-// slot autoritativo, mesmo quando o estado server-side ja foi restaurado.
+// resyncUsedItem reverses the 7.48 client's optimistic MSG_UseItem decrement.
+// Rejections and persistence failures must republish the authoritative slot,
+// even when server-side state has already been restored.
 func resyncUsedItem(s *net.Session, p *Player, slot byte) {
 	s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
 }
 
-// resyncUsedItemTarget restaura as duas pontas de um uso por arraste; o client
-// pode ter antecipado tanto o consumo da origem quanto a alteracao do destino.
+// resyncUsedItemTarget restores both ends of drag-and-drop item use; the client
+// may have anticipated both source consumption and destination changes.
 func resyncUsedItemTarget(s *net.Session, p *Player, slot, destType, destPos byte, dest model.Item) {
 	resyncUsedItem(s, p, slot)
 	s.Send(wire.SendItem(p.ID, destType, destPos, dest))
 }
 
-// onUseItem trata o MSG_UseItem 0x373. Toda decisao usa o item e o catalogo
-// presentes no servidor; o ID/efeito alegado pelo cliente nunca e confiado.
+// onUseItem handles MSG_UseItem 0x373 using authoritative items and catalog
+// definitions. Never trust the item ID or effect claimed by the client.
 func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || w.criticalTradeReserved(p) {
 		return
 	}
 	req, ok := parseUseItemRequest(pkt)
 	if !ok {
-		log.Printf("[#%d] pacote de uso de item invalido", s.ID)
+		log.Printf("[#%d] invalid item-use packet", s.ID)
 		return
 	}
-	w.cancelTrade(p, "item consumido")
 	slot := byte(req.srcPos)
 	item := &p.Char.Inv[slot]
+	// Migrated native consumables reserve both trade participants and cancel
+	// only after durable acknowledgement. All other paths retain legacy ordering.
+	if w.criticalWrites != nil {
+		if rule, _, registered := w.volatiles.Rule(item.Index); registered && criticalTeleportConsumable(rule.Action) {
+			if _, exists := w.items[item.Index]; exists {
+				w.admitTeleportConsumable(p, slot, rule, req)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+		if rule, code, registered := w.volatiles.Rule(item.Index); registered &&
+			(rule.Action == "gate_key" || rule.Action == "summon_contract") {
+			if _, exists := w.items[item.Index]; !exists {
+				resyncUsedItem(s, p, slot)
+			} else if rule.Action == "gate_key" {
+				w.useGateKey(s, p, item, slot, rule, code)
+			} else {
+				w.admitContractSummon(p, slot, rule)
+			}
+			return
+		}
+		if rule, _, registered := w.volatiles.Rule(item.Index); registered && criticalCelestialConsumable(rule.Action) {
+			if _, exists := w.items[item.Index]; exists {
+				w.admitCelestialConsumable(p, slot, rule.Action)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+		if rule, code, registered := w.volatiles.Rule(item.Index); registered && rule.Action == "mount" {
+			if _, exists := w.items[item.Index]; exists {
+				w.applyMountItem(p, s, item, slot, rule, code, req)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+		if rule, code, registered := w.volatiles.Rule(item.Index); registered && criticalEquipmentConsumable(rule.Action) {
+			if _, exists := w.items[item.Index]; !exists {
+				resyncUsedItem(s, p, slot)
+			} else if egg, eggType, eggSlot := w.destEggTarget(p, req); rule.Action == "refine" && egg != nil {
+				w.incubateEgg(p, s, item, slot, egg, eggType, eggSlot, code)
+			} else {
+				w.admitEquipmentConsumable(p, slot, req, rule)
+			}
+			return
+		}
+		if rule, _, registered := w.volatiles.Rule(item.Index); registered && criticalItemReward(rule.Action) {
+			if _, exists := w.items[item.Index]; exists {
+				w.admitItemReward(p, slot, rule)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+		if rule, _, registered := w.volatiles.Rule(item.Index); registered && criticalSidecarConsumable(rule.Action) {
+			if _, exists := w.items[item.Index]; exists {
+				w.admitSidecarConsumable(p, slot, rule)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+		if rule, _, registered := w.volatiles.Rule(item.Index); registered && criticalBasicConsumable(rule.Action) {
+			if def, exists := w.items[item.Index]; exists {
+				w.admitBasicConsumable(p, slot, rule, def)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+		if rule, code, registered := w.volatiles.Rule(item.Index); registered && criticalItemExperience(rule.Action) {
+			if _, exists := w.items[item.Index]; exists {
+				w.admitItemExperience(p, slot, rule, code)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+		if rule, _, registered := w.volatiles.Rule(item.Index); registered &&
+			(rule.Action == "equipment_gem" || rule.Action == "ore_upgrade") {
+			if _, exists := w.items[item.Index]; !exists {
+				resyncUsedItem(s, p, slot)
+				return
+			}
+			if rule.Action == "equipment_gem" {
+				w.useEquipmentGem(s, p, item, slot, rule, req)
+			} else {
+				w.useOreUpgrade(s, p, item, slot, rule, req)
+			}
+			return
+		}
+		if rule, code, registered := w.volatiles.Rule(item.Index); registered && criticalNativeConsumable(rule.Action) {
+			if _, exists := w.items[item.Index]; exists {
+				w.admitNativeConsumable(p, item, slot, rule, code)
+			} else {
+				resyncUsedItem(s, p, slot)
+			}
+			return
+		}
+	}
+	if w.criticalWrites != nil {
+		if rule, _, registered := w.volatiles.Rule(item.Index); registered && rule.Action == "instance_ticket" {
+			w.admitCriticalInstanceTicket(p, slot, rule, "")
+			return
+		}
+	}
+	w.cancelTrade(p, "item consumed")
 	if item.Index == 0 {
 		return
 	}
 	def, ok := w.items[item.Index]
 	if !ok {
-		log.Printf("[#%d] uso rejeitado: item %d ausente do catalogo server-side", s.ID, item.Index)
+		log.Printf("[#%d] use rejected: item %d missing from server-side catalog", s.ID, item.Index)
 		resyncUsedItem(s, p, slot)
 		return
 	}
 	rule, code, registered := w.volatiles.Rule(item.Index)
 	if !registered {
-		log.Printf("[#%d] uso rejeitado: item %d nao possui EF_VOLATILE server-side", s.ID, item.Index)
+		log.Printf("[#%d] use rejected: item %d has no server-side EF_VOLATILE", s.ID, item.Index)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -197,9 +304,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.useMasteryReset(s, p, item, slot, rule, code)
 
 	case "firework":
-		// O Premium FireCracker nao usa MSG_UseItem 0x373. A janela 10x10 do
-		// client envia MSG_UseItem2 0x3C9; aceitar este caminho descartaria o
-		// desenho e transformaria o item premium em um fogo comum.
+		// Premium FireCracker uses MSG_UseItem2 0x3C9 from the client's 10x10
+		// pattern window. Accepting MSG_UseItem here would discard the pattern
+		// and turn the premium item into an ordinary firework.
 		if rule.CustomPattern {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
@@ -218,10 +325,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 100, parm) })
 
 	case "chaos_remission":
-		// O nativo chama SetPKPoint(150): 150 e o byte bruto CP+75, portanto
-		// a Carta do Perdao leva o CP autoritativo para o maximo +75.
-		// Confirma o efeito somente depois de persistir, evitando carta duplicada
-		// ou CP restaurado apenas em memoria numa queda.
+		// Native SetPKPoint(150) uses the raw CP+75 byte, so the forgiveness
+		// letter sets authoritative CP to its maximum of +75. Confirm only
+		// after persistence to prevent duplication or memory-only recovery.
 		oldItem, oldCP := *item, p.Char.CP
 		p.Char.CP = model.MaxCP
 		if rule.Consume {
@@ -237,8 +343,8 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.syncPlayerChaos(p)
 
 	case "grant_next_level":
-		// Poeira de Fada nativa: posiciona a EXP exatamente no proximo marco,
-		// portanto concede um unico nivel (e nao uma quantidade fixa arbitraria).
+		// Native Fairy Dust sets EXP exactly to the next threshold, granting
+		// one level rather than an arbitrary fixed amount.
 		if !matchesEvolution(p.Char, "mortal") ||
 			p.Char.Score == nil || p.Char.Score.Level >= maxMortalLevel {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -253,7 +359,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		oldIndex := item.Index
 		res := w.grantItemExpReward(s, p, item, slot, next-p.Char.Exp, 0, rule.Consume)
 		if !res.OK && res.Err != nil {
-			log.Printf("[#%d] ERRO ao salvar poeira de fada item=%d: %v", s.ID, oldIndex, res.Err)
+			log.Printf("[#%d] failed to save Fairy Dust item=%d: %v", s.ID, oldIndex, res.Err)
 		}
 
 	case "quest_reward":
@@ -356,7 +462,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	case "restore":
 		now := w.now()
 		if !p.LastPotion.IsZero() && now.Sub(p.LastPotion) < potionCooldown {
-			// O cliente antecipa parte do uso visualmente; reenvia o slot real.
+			// The client anticipates use visually; resend the authoritative slot.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
@@ -364,9 +470,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		oldLastPotion := p.LastPotion
 		hp, mp := applyRestore(p.Char, *item, def, rule)
 		if hp == 0 && mp == 0 {
-			// O cliente pode repetir automaticamente o uso de uma pilha. Se
-			// ambos os recursos ja estao cheios, restaura o slot autoritativo
-			// sem consumir uma unidade nem registrar uma cura inexistente.
+			// The client may automatically repeat stack use. When both resources
+			// are full, restore the slot without consuming a unit or recording
+			// a heal that never occurred.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
@@ -382,7 +488,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			*p.Char = snapshot
 			p.LastPotion = oldLastPotion
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			log.Printf("[#%d] ERRO ao salvar pocao item=%d: %v", s.ID, item.Index, err)
+			log.Printf("[#%d] failed to save potion item=%d: %v", s.ID, item.Index, err)
 			return
 		}
 		w.syncPlayerVitals(p)
@@ -392,15 +498,15 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	case "gold":
 		value := volatileGoldValue(rule, *item, def)
 		if value == 0 || value > maxCharacterGold {
-			log.Printf("[#%d] volatile gold invalido item=%d valor=%d", s.ID, item.Index, value)
+			log.Printf("[#%d] invalid volatile gold item=%d value=%d", s.ID, item.Index, value)
 			resyncUsedItem(s, p, slot)
 			return
 		}
 		if p.Char.Gold > maxCharacterGold || value > maxCharacterGold-p.Char.Gold {
-			// Nativo nao consome a barra quando o total ultrapassaria 2 bilhoes.
+			// Native behavior does not consume a bar if the total would exceed two billion.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			s.Send(wire.UpdateEtc(p.ID, *p.Char))
-			log.Printf("[#%d] barra item=%d rejeitada: gold=%d valor=%d teto=%d",
+			log.Printf("[#%d] bar item=%d rejected: gold=%d value=%d limit=%d",
 				s.ID, item.Index, p.Char.Gold, value, maxCharacterGold)
 			return
 		}
@@ -409,17 +515,17 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			consumeOne(item)
 		}
 		p.Char.Gold += value
-		// Barra vale ate 2 bilhoes: persiste antes de confirmar ao cliente para
-		// impedir duplicacao por desconexao entre o uso e o autosave.
+		// A bar may be worth up to two billion: persist before confirmation to
+		// prevent duplication by disconnecting between use and autosave.
 		if err := w.saveAccount(p.Account); err != nil {
 			*item, p.Char.Gold = oldItem, oldGold
 			resyncUsedItem(s, p, slot)
-			log.Printf("[#%d] ERRO ao salvar uso da barra item=%d: %v", s.ID, oldItem.Index, err)
+			log.Printf("[#%d] failed to save bar use item=%d: %v", s.ID, oldItem.Index, err)
 			return
 		}
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] usou barra item=%d gold=+%d total=%d",
+		log.Printf("[#%d] used bar item=%d gold=+%d total=%d",
 			s.ID, oldItem.Index, value, p.Char.Gold)
 
 	case "teleport":
@@ -434,23 +540,22 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] usou teleporte item=%d volatile=%d @(%d,%d)->(%d,%d)",
+		log.Printf("[#%d] used teleport item=%d volatile=%d @(%d,%d)->(%d,%d)",
 			s.ID, def.Index, code, oldX, oldY, p.X, p.Y)
 
 	case "refine":
-		// Refino Ori/Lac (item-alvo no DestPos do 0x373). Toda a validacao e o
-		// consumo ficam em refineItem: e o unico ponto destas fases onde um bug
-		// vira exploit economico (refino infinito).
+		// Ori/Lac refinement targets DestPos in 0x373. Validation and consumption
+		// are centralized in refineItem to prevent infinite-refinement exploits.
 		w.refineItem(p, s, item, slot, req, rule, code)
 
 	case "refine_set":
-		// Molar do Gargula: refino FIXO no set de armadura (slots 1-5), sem
-		// rolagem. Nao usa item-alvo -- age nas pecas equipadas.
+		// Gargoyle Molar deterministically refines equipped armor slots 1-5,
+		// without a roll or a drag-and-drop target.
 		w.refineSet(p, s, item, slot, rule, code)
 
 	case "save_position":
-		// Gema Estelar (volatile 12): grava a coordenada ATUAL na ficha para o
-		// Warp usar depois. Persiste antes de confirmar para nao duplicar o item.
+		// Star Gem (volatile 12) records the current position for later Warp use.
+		// Persist before confirmation to prevent item duplication.
 		oldSX, oldSY, oldItem := p.Char.SavedX, p.Char.SavedY, *item
 		p.Char.SavedX, p.Char.SavedY = p.X, p.Y
 		if rule.Consume {
@@ -459,17 +564,17 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if err := w.saveAccount(p.Account); err != nil {
 			p.Char.SavedX, p.Char.SavedY, *item = oldSX, oldSY, oldItem
 			resyncUsedItem(s, p, slot)
-			log.Printf("[#%d] ERRO ao salvar save_position item=%d: %v", s.ID, oldItem.Index, err)
+			log.Printf("[#%d] failed to save save_position item=%d: %v", s.ID, oldItem.Index, err)
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("Position saved."))
-		log.Printf("[#%d] gema estelar salvou (%d,%d) item=%d volatile=%d",
+		log.Printf("[#%d] Star Gem saved (%d,%d) item=%d volatile=%d",
 			s.ID, p.X, p.Y, oldItem.Index, code)
 
 	case "warp_saved":
-		// Warp (volatile 13): teleporta para a coordenada gravada pela Gema. Sem
-		// coordenada salva, nao consome. Mesmo fluxo do teleporte fixo.
+		// Warp (volatile 13) teleports to the Gem's saved position. Without one,
+		// do not consume. Otherwise use the fixed-teleport flow.
 		if p.Char.SavedX == 0 || p.Char.SavedY == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			s.Send(wire.MessagePanel("No position saved."))
@@ -485,16 +590,16 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] warp para coordenada salva (%d,%d) item=%d volatile=%d",
+		log.Printf("[#%d] warped to saved position (%d,%d) item=%d volatile=%d",
 			s.ID, p.X, p.Y, oldItem.Index, code)
 
 	case "buff":
-		// Pocoes de dano, comidas e buffs de tempo. O affect e escolhido por
-		// dado (AffectType) e sua formula vive em applyExtendedAffectStats. O
-		// numero de balanceamento (% ou nivel) e a duracao vem do volatiles.json.
+		// Damage potions, food and timed buffs select AffectType from data.
+		// applyExtendedAffectStats supplies formulas; volatiles.json supplies
+		// balancing values (percentage or level) and duration.
 		snapshot := cloneCharacterState(p.Char)
-		// O slot pode ser zerado ao consumir a ultima unidade; preserve antes o
-		// indice e o UID usados tanto pelo charstate quanto pela auditoria.
+		// Consuming the last unit may clear the slot. Retain its index and UID
+		// for both character-state persistence and auditing.
 		usedItem := *item
 		affects := rule.Affects
 		if len(affects) == 0 && rule.AffectType > 0 {
@@ -504,21 +609,21 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			}}
 		}
 		if len(affects) == 0 {
-			log.Printf("[#%d] volatile buff sem affect item=%d code=%d", s.ID, item.Index, code)
+			log.Printf("[#%d] volatile buff has no affect item=%d code=%d", s.ID, item.Index, code)
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
 		buffResult := w.applyVolatileBuff(p.Char, rule, usedItem)
 		if buffResult != volatileBuffApplied {
-			// Buff igual/mais forte ja ativo, ou tempo ja no teto: o nativo nao deixa
-			// "usar/comer mais". Reenvia o slot autoritativo, avisa o motivo e nao
-			// consome nem persiste a unidade.
+			// Native behavior rejects another use when an equal/stronger buff is
+			// active or duration is capped. Resynchronize, explain the rejection,
+			// and neither consume nor persist the unit.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			if buffResult == volatileBuffAlreadyActive {
 				s.Send(wire.MessagePanel(buffAlreadyActiveMessage))
 			} else {
 				s.Send(wire.MessagePanel(buffRejectedMessage))
-				log.Printf("[#%d] buff item=%d recusado: configuracao invalida ou slots de affect cheios",
+				log.Printf("[#%d] buff item=%d rejected: invalid configuration or affect slots full",
 					s.ID, item.Index)
 			}
 			return
@@ -527,21 +632,21 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			consumeOne(item)
 		}
 		w.recalcPlayer(p.Char)
-		// Affects temporizados tambem sao estado economico: confirma consumo e
-		// duracao no mesmo save. Sem isto, desconectar antes do autosave devolvia
-		// o item e permitia repetir Bigger Potion/comidas/bau de EXP.
+		// Timed affects are economic state: commit consumption and duration in
+		// the same save. Otherwise disconnecting before autosave restored the
+		// item and allowed repeating Bigger Potion, food or EXP chests.
 		if err := w.saveAccountAndCharStateResult(p); err != nil {
 			*p.Char = snapshot
 			s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
-			log.Printf("[#%d] ERRO ao salvar buff item=%d: %v", s.ID, item.Index, err)
+			log.Printf("[#%d] failed to save buff item=%d: %v", s.ID, item.Index, err)
 			return
 		}
 		w.publishPlayerAffects(p)
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		// Registre os tipos e prazos que ficaram ativos, nao apenas a quantidade
-		// configurada. Isso diferencia itens que compartilham EF_VOLATILE.
+		// Log actual active types and expiration times, not just configured
+		// amounts, to distinguish items sharing EF_VOLATILE.
 		appliedTypes := make([]byte, 0, len(affects))
 		expiresUnix := make([]int64, 0, len(affects))
 		for _, configured := range affects {
@@ -554,12 +659,12 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 				expiresUnix = append(expiresUnix, active.ExpiresAt.Unix())
 			}
 		}
-		log.Printf("[#%d] usou buff item=%d uid=%q volatile=%d affects=%v expires_unix=%v",
+		log.Printf("[#%d] used buff item=%d uid=%q volatile=%d affects=%v expires_unix=%v",
 			s.ID, usedItem.Index, usedItem.UID, code, appliedTypes, expiresUnix)
 
 	case "grant_exp":
-		// Baus e poeiras de XP. Delegam a transacao comum de EXP (snapshot completo
-		// + persist-before-confirm); aqui a EXP e bruta, sem rate/buff nem gold.
+		// EXP chests and powders use the shared EXP transaction (full snapshot
+		// and persistence before confirmation), with raw EXP and no rate, buff or gold.
 		if rule.Exp == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
@@ -568,17 +673,16 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		res := w.grantItemExpReward(s, p, item, slot, rule.Exp, 0, rule.Consume)
 		if !res.OK {
 			if res.Err != nil {
-				log.Printf("[#%d] ERRO ao salvar grant_exp item=%d: %v", s.ID, oldIndex, res.Err)
+				log.Printf("[#%d] failed to save grant_exp item=%d: %v", s.ID, oldIndex, res.Err)
 			}
 			return
 		}
-		log.Printf("[#%d] usou grant_exp item=%d volatile=%d exp=+%d niveis=+%d",
+		log.Printf("[#%d] used grant_exp item=%d volatile=%d exp=+%d levels=+%d",
 			s.ID, oldIndex, code, res.Exp, res.Levels)
 
 	case "disabled":
-		// Item que NAO deveria ter volatile (ex.: code 9). Consome sem efeito, para
-		// tirar de circulacao um item cujo volatile so causaria confusao. A decisao
-		// de consumir e explicita: difere do generic, que preserva o item.
+		// Explicitly disabled volatile (e.g. code 9): consume without an effect
+		// to remove the confusing item. Unlike generic, this action consumes it.
 		oldItem := *item
 		if rule.Consume {
 			consumeOne(item)
@@ -586,15 +690,15 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if err := w.saveAccount(p.Account); err != nil {
 			*item = oldItem
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			log.Printf("[#%d] ERRO ao salvar volatile desativado item=%d: %v", s.ID, oldItem.Index, err)
+			log.Printf("[#%d] failed to save disabled volatile item=%d: %v", s.ID, oldItem.Index, err)
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] volatile desativado item=%d code=%d (consumido=%v)", s.ID, item.Index, code, rule.Consume)
+		log.Printf("[#%d] disabled volatile item=%d code=%d (consumed=%v)", s.ID, item.Index, code, rule.Consume)
 
 	case "face_transform":
-		// Transforma o rosto em monstro (70-77), COSMETICO. O mesh vai no Value do
-		// affect; bodyMesh o aplica e o visual e propagado aos observadores.
+		// Cosmetic monster-face transformation (70-77): store the mesh in the
+		// affect Value; bodyMesh applies it and observers receive the appearance.
 		snapshot := cloneCharacterState(p.Char)
 		if !setFaceAffectAt(p.Char, rule.FaceMesh, rule.DurationUnits, w.now()) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -606,18 +710,18 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if err := w.saveAccountAndCharStateResult(p); err != nil {
 			*p.Char = snapshot
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			log.Printf("[#%d] ERRO ao salvar transformacao facial item=%d: %v", s.ID, item.Index, err)
+			log.Printf("[#%d] failed to save face transformation item=%d: %v", s.ID, item.Index, err)
 			return
 		}
 		w.recalcPlayer(p.Char)
 		w.publishPlayerAffects(p)
-		w.refreshAppearance(p) // forca a skin no proprio dono (SelfEquip) + observadores
+		w.refreshAppearance(p) // Refresh the owner's SelfEquip and observers.
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] transformou rosto item=%d volatile=%d mesh=%d dur=%d",
+		log.Printf("[#%d] transformed face item=%d volatile=%d mesh=%d duration=%d",
 			s.ID, item.Index, code, rule.FaceMesh, rule.DurationUnits)
 
 	case "face_restore":
-		// Volta ao rosto real (volatile 89). So consome se havia transformacao.
+		// Restore the original face (volatile 89); consume only if transformed.
 		snapshot := cloneCharacterState(p.Char)
 		restored := removeFaceAffect(p.Char)
 		if rule.Consume && restored {
@@ -627,21 +731,20 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			if err := w.saveAccountAndCharStateResult(p); err != nil {
 				*p.Char = snapshot
 				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-				log.Printf("[#%d] ERRO ao salvar restauracao facial item=%d: %v", s.ID, item.Index, err)
+				log.Printf("[#%d] failed to save face restoration item=%d: %v", s.ID, item.Index, err)
 				return
 			}
 		}
 		w.recalcPlayer(p.Char)
 		w.publishPlayerAffects(p)
-		w.refreshAppearance(p) // forca a volta da skin no dono + observadores
+		w.refreshAppearance(p) // Restore appearance for the owner and observers.
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		log.Printf("[#%d] restaurou rosto item=%d volatile=%d (havia=%v)", s.ID, item.Index, code, restored)
+		log.Printf("[#%d] restored face item=%d volatile=%d (was_transformed=%v)", s.ID, item.Index, code, restored)
 
 	case "tint":
-		// Tintura (186): pinta o item-alvo trocando o codigo do slot de sanc para
-		// a cor (116-125). COSMETICO -- o nivel de refino (valor) nao muda, entao
-		// nao ha recalculo de stats. Persiste antes de confirmar e propaga o visual
-		// aos observadores quando o alvo esta equipado.
+		// Tint (186) replaces the target's sanc effect code with color (116-125).
+		// Refinement value is unchanged, so no stat recalculation is needed.
+		// Persist before confirming; notify observers if the target is equipped.
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -663,7 +766,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			if destType == placeEquip {
 				w.refreshAppearance(p)
 			}
-			log.Printf("[#%d] ERRO ao salvar tint: %v", s.ID, err)
+			log.Printf("[#%d] failed to save tint: %v", s.ID, err)
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -671,12 +774,12 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if destType == placeEquip {
 			w.refreshAppearance(p)
 		}
-		log.Printf("[#%d] tinturou item=%d alvo=%d cor=%d volatile=%d",
+		log.Printf("[#%d] tinted item=%d target=%d color=%d volatile=%d",
 			s.ID, item.Index, dest.Index, rule.Color, code)
 
 	case "untint":
-		// Removedor de tintura (Remover_Enamel 3417): converte a cor de volta para
-		// EF_SANC (43). So consome se removeu algo.
+		// Remover_Enamel (3417) converts color back to EF_SANC (43).
+		// Consume only when a tint was removed.
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -698,7 +801,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			if destType == placeEquip {
 				w.refreshAppearance(p)
 			}
-			log.Printf("[#%d] ERRO ao salvar untint: %v", s.ID, err)
+			log.Printf("[#%d] failed to save untint: %v", s.ID, err)
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -706,13 +809,13 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if destType == placeEquip {
 			w.refreshAppearance(p)
 		}
-		log.Printf("[#%d] removeu tintura item=%d alvo=%d volatile=%d",
+		log.Printf("[#%d] removed tint item=%d target=%d volatile=%d",
 			s.ID, item.Index, dest.Index, code)
 
 	case "repliction":
-		// Repliction (190, A-E normal/premium) porta SetItemBonus2: sorteia um
-		// PAR completo conforme a parte da armadura e substitui os dois adds.
-		// O terceiro par logico permanece reservado para refino/tintura.
+		// Repliction (190, normal/premium A-E) ports SetItemBonus2: roll a full
+		// bonus pair for the armor part and replace both adds. Reserve the third
+		// logical pair for refinement/tint.
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if destType != placeEquip || destPos >= 16 || dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -740,14 +843,14 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		if err := w.saveAccount(p.Account); err != nil {
 			*dest, *item = oldDest, oldItem
 			resyncUsedItemTarget(s, p, slot, byte(destType), byte(destPos), *dest)
-			// Repliction altera bonus de equipamento; republica score, equipamento
-			// e vitais para eliminar qualquer preview otimista no dono/observadores.
+			// Equipment bonuses changed: republish score, equipment and vitals
+			// to remove optimistic previews for the owner and observers.
 			w.recalcPlayer(p.Char)
 			equip := clientEquipProjection(p.Char)
 			s.Send(wire.SelfEquip(p.ID, equip[:]))
 			s.Send(playerScorePacket(p))
 			w.syncPlayerVitalsToObservers(p)
-			log.Printf("[#%d] ERRO ao salvar repliction: %v", s.ID, err)
+			log.Printf("[#%d] failed to save repliction: %v", s.ID, err)
 			return
 		}
 
@@ -770,7 +873,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("The item gained a new bonus!"))
 
 		log.Printf(
-			"[#%d] repliction item=%d alvo=%d adds=ef%d/v%d+ef%d/v%d volatile=%d",
+			"[#%d] repliction item=%d target=%d adds=ef%d/v%d+ef%d/v%d volatile=%d",
 			s.ID,
 			item.Index,
 			dest.Index,
@@ -780,22 +883,20 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		)
 
 	case "mount":
-		// Consumiveis de montaria (amago 16, racao 15, LP/catalisadores 90-92,
-		// longevidade 93, crescimento 94, choco 196). rule.MountAction escolhe o efeito; a logica
-		// fiel ao WYD 7.48 fica em mount.go.
+		// Mount consumables: essence 16, feed 15, LP/catalysts 90-92, longevity 93,
+		// growth 94 and hatch 196. MountAction selects the effect in mount.go.
 		w.applyMountItem(p, s, item, slot, rule, code, req)
 
 	case "generic":
-		// Ponto unico para os volatiles ainda sem regra definitiva. Nao altera
-		// estado nem consome o item: o log fornece todos os campos necessarios
-		// para identificar o comportamento quando ele for configurado.
-		log.Printf("[#%d] VOLATILE GENERICO code=%d item=%d src=%d/%d dst=%d/%d grid=(%d,%d) packetItem=%d",
+		// Unconfigured volatile fallback: retain state and item. Log all fields
+		// needed to identify behavior when the rule is configured.
+		log.Printf("[#%d] GENERIC VOLATILE code=%d item=%d src=%d/%d dst=%d/%d grid=(%d,%d) packetItem=%d",
 			s.ID, code, item.Index, req.srcType, req.srcPos, req.dstType, req.dstPos,
 			req.gridX, req.gridY, req.warpID)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 
 	default:
-		log.Printf("[#%d] item %d volatile=%d action=%s ainda nao possui handler ativo",
+		log.Printf("[#%d] item %d volatile=%d action=%s has no active handler yet",
 			s.ID, item.Index, code, rule.Action)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	}
@@ -824,8 +925,8 @@ func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID ui
 		return model.ReplictionBonus{}, clientError("The repliction grade does not match the item.")
 	}
 
-	// Preserva refino ou tintura independentemente do slot em que o item antigo
-	// o armazenava. Item ainda sem refino recebe EF_SANC +0, como SetItemBonus2.
+	// Preserve refinement or tint regardless of its old effect slot.
+	// An unrefined item receives EF_SANC +0, as in SetItemBonus2.
 	sancEffect, sancValue := byte(0), byte(0)
 	for id, name := range def.DynamicEffectNames {
 		if name == "EF_SANC" {
@@ -852,9 +953,8 @@ func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID ui
 	return bonus, nil
 }
 
-// refineChance devolve a chance configurada para o nivel atual. A decisao
-// percentual e centralizada em World.rollPercent: dominio uniforme 1..100 e
-// sucesso quando roll <= chance.
+// refineChance returns the configured chance for the current level.
+// World.rollPercent uses a uniform 1..100 domain and success when roll <= chance.
 func refineChance(sanc int) int {
 	if sanc < 0 || sanc >= len(celestialRate) {
 		return 0
@@ -862,12 +962,18 @@ func refineChance(sanc int) int {
 	return clampInt(celestialRate[sanc], 0, 100)
 }
 
-// refineSet porta o Molar do Gargula (WYD 7.48 MolarGargula): refino FIXO no
-// set de armadura equipado (slots 1-5), sem rolagem. Sobe cada peca ate o teto
-// (RefineMax=6), nunca rebaixa, e so consome se ALGO mudou. Persiste antes de
-// confirmar, como o refino Ori/Lac.
+// refineSet ports MolarGargula: deterministic refinement of equipped armor
+// slots 1-5, capped at RefineMax=6 without downgrades. Consume only if something
+// changed and persist before confirmation, as in Ori/Lac refinement.
 func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderSlot byte,
 	rule model.VolatileRule, code int) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitEquipmentConsumable(p, powderSlot, useItemRequest{}, rule)
+		return
+	}
 	if p == nil || p.Char == nil || p.Char.Score == nil {
 		return
 	}
@@ -876,10 +982,9 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 			s.Send(wire.SendItem(p.ID, placeInv, powderSlot, p.Char.Inv[powderSlot]))
 		}
 	}
-	// O Molar e uma quest do Mortal, nao um consumivel de refino generico.
-	// Os limites sao internos: 200..255 correspondem aos niveis exibidos
-	// 201..256 no client 7.48. A flag negativa e deliberadamente separada das
-	// quests de data para impedir que uma quest configurada reutilize o premio.
+	// Molar is a Mortal quest, not a generic refinement consumable. Internal
+	// levels 200..255 display as 201..256 in the 7.48 client. Its negative flag
+	// is separate from data-driven quests to prevent reward reuse.
 	if rule.MortalOnly && !matchesEvolution(p.Char, "mortal") {
 		resend()
 		s.Send(wire.MessagePanel("This item is exclusive to Mortals."))
@@ -940,15 +1045,14 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	}
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*p.Char = snapshot
-		log.Printf("[#%d] ERRO ao salvar refine_set: %v", s.ID, err)
+		log.Printf("[#%d] failed to save refine_set: %v", s.ID, err)
 		resend()
 		return
 	}
 	w.recalcPlayer(p.Char)
 	resend()
-	// Reenvia CADA peca de armadura equipada individualmente: e o SendItem por
-	// slot (nao o SelfEquip do array inteiro) que faz o client redesenhar o brilho
-	// do refino sem precisar desequipar/equipar. Mesmo padrao do refino individual.
+	// Resend each equipped armor slot individually. Per-slot SendItem, rather
+	// than full-array SelfEquip, redraws refinement glow without re-equipping.
 	for slot := 1; slot <= 5; slot++ {
 		if p.Char.Equip[slot].Index != 0 {
 			s.Send(wire.SendItem(p.ID, placeEquip, byte(slot), p.Char.Equip[slot]))
@@ -956,17 +1060,17 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	}
 	s.Send(playerScorePacket(p))
 	w.syncPlayerVitalsToObservers(p)
-	// O brilho/mesh do refino viaja no UpdateEquip incremental.
+	// Incremental UpdateEquip carries the refinement glow/mesh.
 	w.refreshAppearance(p)
 	s.Send(wire.MessagePanel("Set refined!"))
-	log.Printf("[#%d] refine_set code=%d po=%d pecas=%d nivel=+%d",
+	log.Printf("[#%d] refine_set code=%d powder=%d pieces=%d level=+%d",
 		s.ID, code, oldPowder.Index, changed, level)
 }
 
-// destRefineTarget resolve o item-alvo do refino pelo DestType/DestPos do 0x373.
-// Refino e SOMENTE em item EQUIPADO (regra do felipe e do client 7.48, que so
-// deixa arrastar Ori/Lac sobre o equip -- SGrid:2324). Alvo no inventario/cargo
-// devolve nil, e refineItem responde "equipe o item para refinar".
+// destRefineTarget resolves the 0x373 DestType/DestPos refinement target.
+// Only equipped items are allowed: the 7.48 client's SGrid:2324 permits Ori/Lac
+// dragging only onto equipment. Inventory/cargo returns nil; refineItem asks
+// the player to equip the target first.
 func (w *World) destRefineTarget(p *Player, req useItemRequest) (*model.Item, uint32, uint32) {
 	if req.dstType == placeEquip && req.dstPos < model.MaxEquipSlots &&
 		clientEquipSlotSupported(byte(req.dstPos)) {
@@ -975,9 +1079,8 @@ func (w *World) destRefineTarget(p *Player, req useItemRequest) (*model.Item, ui
 	return nil, 0, 0
 }
 
-// destItemTarget resolve o item-alvo aceitando equip OU inventario (usado pela
-// tintura, que pode pintar item guardado ou vestido). Cargo nao entra: o client
-// nao arrasta consumivel sobre o bau.
+// destItemTarget accepts equipment or inventory for tinting. Exclude cargo:
+// the client does not drag a consumable onto storage.
 func (w *World) destItemTarget(p *Player, req useItemRequest) (*model.Item, uint32, uint32) {
 	switch req.dstType {
 	case placeEquip:
@@ -992,16 +1095,26 @@ func (w *World) destItemTarget(p *Player, req useItemRequest) (*model.Item, uint
 	return nil, 0, 0
 }
 
-// refineItem porta o handler de refino Ori/Lac do WYD 7.48. Regras server-side:
-// so equipamento, recusa consumivel/EF_NOSANC, respeita o teto por tipo de po,
-// consome a poeira em sucesso E falha, e PERSISTE antes de confirmar ao client
-// (refino e o vetor classico de dupe/refino infinito).
+// refineItem ports WYD 7.48 Ori/Lac refinement. Accept only equipment; reject
+// consumables/EF_NOSANC; respect each powder's cap. Consume on success and
+// failure, and persist before confirmation to prevent duplication exploits.
 func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powderSlot byte,
 	req useItemRequest, rule model.VolatileRule, code int) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		if egg, eggType, eggSlot := w.destEggTarget(p, req); egg != nil {
+			w.incubateEgg(p, s, powder, powderSlot, egg, eggType, eggSlot, code)
+		} else {
+			w.admitEquipmentConsumable(p, powderSlot, req, rule)
+		}
+		return
+	}
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder)) }
 
-	// Ori/Lac sobre o OVO equipado inicia/avanca a incubacao em vez de refinar.
-	// O slot 14 e obrigatorio e tambem governa o contador de horas online.
+	// Ori/Lac on an equipped egg starts/advances incubation instead of refining.
+	// Slot 14 is required and also controls the online-hour counter.
 	if egg, eggType, eggSlot := w.destEggTarget(p, req); egg != nil {
 		w.incubateEgg(p, s, powder, powderSlot, egg, eggType, eggSlot, code)
 		return
@@ -1009,7 +1122,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 
 	dest, destType, destPos := w.destRefineTarget(p, req)
 	if dest == nil {
-		// Alvo nao e um slot de equip: refino e somente em item equipado.
+		// Reject non-equipment destinations: refinement requires an equipped item.
 		resend()
 		s.Send(wire.MessagePanel("Equip the item to refine it."))
 		return
@@ -1023,8 +1136,8 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 		resend()
 		return
 	}
-	// So equipamento (tem EF_POS), nao consumivel (EF_VOLATILE), nao selado
-	// (EF_NOSANC). itemAbility soma efeitos estaticos do def e da instancia.
+	// Require EF_POS equipment without EF_VOLATILE or EF_NOSANC.
+	// itemAbility combines definition and instance effects.
 	if def.Pos == 0 || itemAbility(*dest, def, "EF_VOLATILE") != 0 ||
 		itemAbility(*dest, def, "EF_NOSANC") != 0 {
 		resend()
@@ -1047,8 +1160,8 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	success := roll.Success
 	if success {
 		if !setItemSanc(dest, sanc+1) {
-			// Sem par EF_SANC e sem slot livre (item cheio de adds): nao refina e
-			// NAO consome a poeira, para nao punir o jogador por um item invalido.
+			// Without EF_SANC or a free effect pair, reject without consuming
+			// powder: do not penalize the player for an invalid target.
 			*dest = oldDest
 			resend()
 			s.Send(wire.MessagePanel("That item cannot be refined."))
@@ -1058,11 +1171,11 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	if rule.Consume {
 		consumeOne(powder)
 	}
-	// Persiste ANTES de confirmar. Se a gravacao falhar, reverte tudo: nunca
-	// confirmar ao client um refino que o disco nao guardou.
+	// Persist before confirming. Roll back on failure; never confirm refinement
+	// that storage did not retain.
 	if err := w.saveAccount(p.Account); err != nil {
 		*powder, *dest = oldPowder, oldDest
-		log.Printf("[#%d] ERRO ao salvar refino po=%d po_uid=%q alvo=%d alvo_uid=%q consumiu=false: %v",
+		log.Printf("[#%d] failed to save refinement powder=%d powder_uid=%q target=%d target_uid=%q consumed=false: %v",
 			s.ID, oldPowder.Index, oldPowder.UID, oldDest.Index, oldDest.UID, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
@@ -1076,23 +1189,23 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 		w.recalcPlayer(p.Char)
 		s.Send(playerScorePacket(p))
 		w.syncPlayerVitals(p)
-		// O brilho/mesh do refino viaja no UpdateEquip incremental.
+		// Incremental UpdateEquip carries the refinement glow/mesh.
 		w.refreshAppearance(p)
 	}
 	s.Send(wire.MessagePanel(roll.message()))
-	result := "FALHOU"
+	result := "FAILED"
 	if success {
 		result = "OK"
 	}
-	// UID distingue unidades e pilhas iguais; a quantidade restante comprova se
-	// a tentativa valida consumiu a poeira no sucesso ou na falha da rolagem.
+	// UID distinguishes otherwise identical units/stacks. Remaining quantity
+	// proves whether a valid attempt consumed powder on success or failure.
 	remaining := uint32(0)
 	if powder.Index != 0 {
-		// itemStackAmount devolve 1 para itens nao empilhados; slot vazio e a
-		// excecao economica que precisa aparecer como zero na auditoria.
+		// itemStackAmount returns 1 for unstacked items. Log an empty slot as zero
+		// to retain the actual economic outcome in the audit.
 		remaining = itemStackAmount(*powder)
 	}
-	log.Printf("[#%d] refino code=%d po=%d po_uid=%q alvo=%d alvo_uid=%q +%d->%d %s consumiu=%t restante=%d roll=%d/%d",
+	log.Printf("[#%d] refinement code=%d powder=%d powder_uid=%q target=%d target_uid=%q +%d->%d %s consumed=%t remaining=%d roll=%d/%d",
 		s.ID, code, oldPowder.Index, oldPowder.UID, oldDest.Index, oldDest.UID,
 		sanc, sanc+1, result, rule.Consume, remaining, roll.Roll, roll.Chance)
 }

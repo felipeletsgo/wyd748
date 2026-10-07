@@ -227,23 +227,18 @@ void SControlContainer::SetFocusedControl(SControl* pControl)
 		TMScene* pScene = g_pCurrentScene;
 		if (pScene)
 		{
-			// WYD 7.48's compact FieldScene2 resource intentionally omits the
-			// newer TMProject IME and chat helper panels.  Focus changes still
-			// have to work, but must not dereference those optional controls.
+			// WYD 7.48's FieldScene2 resource has no IME or chat helper panels.
+			// Focus changes still have to work without those controls.
 			if (pScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 			{
-				auto pFieldScene = static_cast<TMFieldScene*>(pScene);
-				if (pFieldScene->m_bCompatFieldScene)
+				if (m_pFocusControl && m_pFocusControl->IsIMENative())
 				{
-					if (m_pFocusControl && m_pFocusControl->IsIMENative())
-					{
-						if (g_pEventTranslator)
-							g_pEventTranslator->SetIMENative();
-					}
-					else if (g_pEventTranslator)
-						g_pEventTranslator->SetIMEAlphaNumeric();
-					return;
+					if (g_pEventTranslator)
+						g_pEventTranslator->SetIMENative();
 				}
+				else if (g_pEventTranslator)
+					g_pEventTranslator->SetIMEAlphaNumeric();
+				return;
 			}
 
 			if (m_pFocusControl != nullptr && m_pFocusControl->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT)
@@ -252,16 +247,7 @@ void SControlContainer::SetFocusedControl(SControl* pControl)
 				// optional IME widgets during partial initialization or shutdown.
 				if (pScene->m_pAlphaNative)
 					pScene->m_pAlphaNative->SetVisible(1);
-				if (g_pEventTranslator)
-					g_pEventTranslator->UpdateCompositionPos();
 
-				SPanel* panel = static_cast<SPanel*>(pScene->m_pControlContainer->FindControl(P_CHAT));
-				if (panel && panel->m_bVisible && pScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-				{
-					auto pFieldScene = static_cast<TMFieldScene*>(pScene);
-					if (pFieldScene->m_pChatSelectPanel)
-						pFieldScene->m_pChatSelectPanel->SetVisible(1);
-				}
 			}
 			else
 			{
@@ -415,41 +401,4 @@ SControl* SControlContainer::FindControl(unsigned int dwID)
 	if (auto exact = findMatchingControl(dwID, false))
 		return exact;
 	return findMatchingControl(WYD748_TranslateControlID(dwID), true);
-}
-
-void SControlContainer::GenerateText(const char* pFileName)
-{
-	// Skip that function for now... just create a text file with content on screen
-	/*FILE* fp = nullptr;
-	fopen_s(&fp, pFileName, "wt");
-
-	if (fp)
-	{
-		SControl* pCurrentControl = m_pControlRoot;
-		SControl* pRootControl = m_pControlRoot;
-
-		if (pCurrentControl)
-		{
-			do 
-			{
-				if (!pCurrentControl->m_cDeleted)
-				{
-					if (pCurrentControl->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_TEXT)
-					{
-						for (int i = 0 < MAX_RESOURCE_LIST; ++i)
-						{
-							if (g_pObjectManager->m_ResourceList[i].nNumber == pCurrentControl->m_dwControlID)
-							{
-								const char* text = TMFont2 pCurrentControl->
-							}
-						}
-					}
-				}
-
-
-			} while (pCurrentControl != pRootControl && pCurrentControl != nullptr);
-		}
-
-		fclose(fp);
-	}*/
 }

@@ -2,6 +2,7 @@
 #include "D3DDevice.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
+#include "PerfTrace.h"
 
 int D3DDevice::m_bDxt = 1;
 int D3DDevice::m_nMipMap = 20;
@@ -600,6 +601,8 @@ HRESULT D3DDevice::Initialize3DEnvironment()
 
 	if (SUCCEEDED(hr))
 	{
+		perf_trace::InstallDeviceHooks(m_pd3dDevice);
+
 		// When moving from fullscreen to windowed mode, it is important to
 		// adjust the window size after recreating the device rather than
 		// beforehand to ensure that you get the window size you want.  For
@@ -727,46 +730,6 @@ HRESULT D3DDevice::Initialize3DEnvironment()
 	return hr;
 }
 
-HRESULT D3DDevice::HandlePossibleSizeChange()
-{
-	HRESULT hr = S_OK;
-	RECT rcClientOld;
-	rcClientOld = m_rcWindowClient;
-
-	if (m_bIgnoreSizeChange)
-		return S_OK;
-
-	// Update window properties
-	GetWindowRect(m_hWnd, &m_rcWindowBounds);
-	GetClientRect(m_hWnd, &m_rcWindowClient);
-
-	if (rcClientOld.right - rcClientOld.left !=
-		m_rcWindowClient.right - m_rcWindowClient.left ||
-		rcClientOld.bottom - rcClientOld.top !=
-		m_rcWindowClient.bottom - m_rcWindowClient.top)
-	{
-		// A new window size will require a new backbuffer
-		// size, so the 3D structures must be changed accordingly.
-		Pause(true);
-
-		m_d3dpp.BackBufferWidth = m_rcWindowClient.right - m_rcWindowClient.left;
-		m_d3dpp.BackBufferHeight = m_rcWindowClient.bottom - m_rcWindowClient.top;
-
-		if (m_pd3dDevice != NULL)
-		{
-			// Reset the 3D environment
-			if (FAILED(hr = Reset3DEnvironment()))
-			{
-				if (hr != D3DERR_OUTOFVIDEOMEMORY)
-					hr = D3DAPPERR_RESETFAILED;
-				DisplayErrorMsg(hr, MSGERR_APPMUSTEXIT);
-			}
-		}
-		Pause(false);
-	}
-	return hr;
-}
-
 HRESULT D3DDevice::Reset3DEnvironment()
 {
 	HRESULT hr;
@@ -862,79 +825,6 @@ HRESULT D3DDevice::ToggleFullscreen()
 
 	Pause(false);
 	return S_OK;
-}
-
-HRESULT D3DDevice::ForceWindowed()
-{
-	HRESULT hr;
-
-	if (m_bWindowed)
-		return S_OK;
-
-	if (!FindBestWindowedMode(false, false))
-	{
-		return E_FAIL;
-	}
-	m_bWindowed = true;
-
-	// Now destroy the current 3D device objects, then reinitialize
-
-	Pause(true);
-
-	// Release all scene objects that will be re-created for the new device
-	Cleanup3DEnvironment();
-
-	// Create the new device
-	if (FAILED(hr = Initialize3DEnvironment()))
-		return DisplayErrorMsg(hr, MSGERR_APPMUSTEXIT);
-
-	Pause(false);
-	return S_OK;
-}
-
-HRESULT D3DDevice::UserSelectNewDevice()
-{
-	HRESULT result;
-	HRESULT hr;
-
-	if (m_bWindowed || ToggleFullscreen() >= 0)
-	{
-		m_bWindowed = m_d3dSettings.IsWindowed;
-		Cleanup3DEnvironment();
-		hr = Initialize3DEnvironment();
-
-		if (hr >= 0)
-		{
-			result = 0;
-		}
-		else
-		{
-			if (hr != D3DERR_OUTOFVIDEOMEMORY)
-				hr = -2113929204;
-			if (!m_bWindowed)
-			{
-				m_bWindowed = m_bWindowed == false;
-				m_d3dSettings.IsWindowed = m_bWindowed;
-
-				AdjustWindowForChange();
-				SetWindowPos(m_hWnd,
-					HWND_TOPMOST,
-					m_rcWindowBounds.left,
-					m_rcWindowBounds.top,
-					m_rcWindowBounds.right - m_rcWindowBounds.left,
-					m_rcWindowBounds.bottom - m_rcWindowBounds.top,
-					SWP_SHOWWINDOW);
-			}
-			result = DisplayErrorMsg(hr, 1);
-		}
-	}
-	else
-	{
-		DisplayErrorMsg(-2113929204, 1);
-		result = E_FAIL;
-	}
-
-	return result;
 }
 
 void D3DDevice::Cleanup3DEnvironment()

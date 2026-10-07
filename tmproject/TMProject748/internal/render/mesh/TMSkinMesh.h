@@ -15,19 +15,16 @@ public:
 	TMSkinMesh(LOOK_INFO* pLook, SANC_INFO* pSanc, int nBoneAniIndex, int bExpand, SANC_INFO* pColor, short nMeshType, short nCos, int mount);
 	~TMSkinMesh();
 
-	HRESULT InitDeviceObjects();
 	HRESULT RestoreDeviceObjects();
 
 	void FrameMove(unsigned int dwServerTime);
 	void InitMaterial(D3DMATERIAL9 material);
 	int Render(float fLen, float fScale, float fLen2);
 
-	HRESULT DeleteDeviceObjects();
 	HRESULT InvalidateDeviceObjects();
 
 	int SetAnimation(int nIndex);
 
-	void SetPosition(D3DXVECTOR3 vPos);
 	void SetPosition(float fX, float fY, float fZ);
 
 	void SetAngle(D3DXVECTOR3 vAngle);

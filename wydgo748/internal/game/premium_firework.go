@@ -14,8 +14,7 @@ import (
 const (
 	premiumFireworkUsePacketSize = 52
 	premiumFireworkPatternBytes  = 16
-	// TMFieldScene::UseFireWork bloqueia novas tentativas por 200 ms. Repetir o
-	// mesmo limite no servidor protege o save sincrono contra replay de pacote.
+	// Match TMFieldScene::UseFireWork's 200 ms replay limit on the server.
 	premiumFireworkCooldown = 200 * time.Millisecond
 )
 
@@ -26,9 +25,8 @@ type premiumFireworkRequest struct {
 	pattern   [premiumFireworkPatternBytes]byte
 }
 
-// parsePremiumFireworkRequest porta o MSG_UseItem2 que o client 7.48 monta em
-// TMFieldScene::UseFireWork. Somente os primeiros 100 bits sao pixels; os 28
-// bits finais e os dois bytes de padding da struct devem continuar zerados.
+// MSG_UseItem2 contains 100 pixel bits. The remaining 28 pattern bits and
+// the two structure padding bytes must be zero.
 func parsePremiumFireworkRequest(pkt []byte) (premiumFireworkRequest, bool) {
 	if len(pkt) != premiumFireworkUsePacketSize ||
 		binary.LittleEndian.Uint32(pkt[12:16]) != placeInv ||
@@ -63,26 +61,26 @@ func (w *World) resyncPremiumFireworkSlot(s *net.Session, p *Player, pkt []byte)
 	s.Send(wire.SendItem(p.ID, placeInv, byte(pos), p.Char.Inv[pos]))
 }
 
-// onUsePremiumFirework trata o fluxo desenhavel separado dos fogos comuns.
-// O client remove a unidade localmente ao enviar 0x3C9, portanto toda recusa
-// ressincroniza o slot; o desenho so e publicado depois do commit da conta.
+// Custom fireworks use a separate flow from ordinary fireworks. The client
+// consumes optimistically on 0x3C9, so rejections resynchronize the slot.
+// Publish the pattern only after account persistence is acknowledged.
 func (w *World) onUsePremiumFirework(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || w.criticalTradeReserved(p) {
 		return
 	}
 	req, ok := parsePremiumFireworkRequest(pkt)
 	if !ok {
 		w.resyncPremiumFireworkSlot(s, p, pkt)
 		w.recordSecurityViolation(s, wire.OpUsePremiumFirework,
-			"layout ou bitmap do Premium FireCracker invalido")
+			"invalid Premium FireCracker layout or bitmap")
 		return
 	}
 	if absDiff(req.gridX, p.X) > maxStopPositionDrift ||
 		absDiff(req.gridY, p.Y) > maxStopPositionDrift {
 		w.resyncPremiumFireworkSlot(s, p, pkt)
 		w.recordSecurityViolation(s, wire.OpUsePremiumFirework,
-			"coordenada do Premium FireCracker diverge da posicao autoritativa")
+			"Premium FireCracker coordinates differ from authoritative position")
 		return
 	}
 
@@ -92,12 +90,12 @@ func (w *World) onUsePremiumFirework(s *net.Session, pkt []byte) {
 		!rule.CustomPattern || !rule.Consume {
 		w.resyncPremiumFireworkSlot(s, p, pkt)
 		w.recordSecurityViolation(s, wire.OpUsePremiumFirework,
-			fmt.Sprintf("slot %d nao contem Premium FireCracker", req.sourcePos))
+			fmt.Sprintf("slot %d does not contain Premium FireCracker", req.sourcePos))
 		return
 	}
 	if _, exists := w.items[item.Index]; !exists {
 		w.resyncPremiumFireworkSlot(s, p, pkt)
-		log.Printf("[#%d] Premium FireCracker %d ausente do catalogo server-side",
+		log.Printf("[#%d] Premium FireCracker %d missing from server catalog",
 			s.ID, item.Index)
 		return
 	}
@@ -109,13 +107,29 @@ func (w *World) onUsePremiumFirework(s *net.Session, pkt []byte) {
 		return
 	}
 
-	w.cancelTrade(p, "item consumido")
+	if w.criticalWrites != nil {
+		proposed := accountStateSnapshot(p.Account)
+		consumeOne(&proposed.Chars[p.CharSlot].Inv[req.sourcePos])
+		result := proposed.Chars[p.CharSlot].Inv[req.sourcePos]
+		if err := w.queueCriticalAccountMutation(p, proposed, "premium firework", "Firework use could not be saved.", func() {
+			p.Char.Inv[req.sourcePos] = result
+			p.LastPremiumFirework = now
+		}, func() {
+			s.Send(wire.SendItem(p.ID, placeInv, req.sourcePos, p.Char.Inv[req.sourcePos]))
+			w.sendToPlayerView(p, func() []byte { return wire.PremiumFirework(p.ID, req.pattern) })
+		}, true); err != nil {
+			w.resyncPremiumFireworkSlot(s, p, pkt)
+			log.Printf("[#%d] Premium FireCracker admission: %v", s.ID, err)
+		}
+		return
+	}
+	w.cancelTrade(p, "item consumed")
 	oldItem := *item
 	consumeOne(item)
 	if err := w.saveAccount(p.Account); err != nil {
 		*item = oldItem
 		w.resyncPremiumFireworkSlot(s, p, pkt)
-		log.Printf("[#%d] Premium FireCracker nao persistido: %v", s.ID, err)
+		log.Printf("[#%d] Premium FireCracker persistence failed: %v", s.ID, err)
 		return
 	}
 

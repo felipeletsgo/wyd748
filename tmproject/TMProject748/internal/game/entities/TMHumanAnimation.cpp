@@ -445,6 +445,24 @@ void TMHuman::AnimationFrame(int nWalkSndIndex)
 
     if (m_nClass != 45 && (m_eMotion == ECHAR_MOTION::ECMOTION_WALK || m_eMotion == ECHAR_MOTION::ECMOTION_RUN))
     {
+        const ExtractedFlow extractedFlow = PlayWalkFrame(nWalkSndIndex);
+        if (extractedFlow == ExtractedFlow::Return)
+            return;
+    }
+
+    if ((int)m_eMotion < 4 || (int)m_eMotion > 9)
+    {
+        PlayNonAttackFrame();
+    }
+    else
+    {
+        PlayAttackFrame();
+    }
+}
+
+// Extracted from TMHuman::AnimationFrame; behavior is unchanged.
+ExtractedFlow TMHuman::PlayWalkFrame(int& nWalkSndIndex)
+{
         float fWaterHeight = 0.0f;
 
         if (g_pCurrentScene->GroundIsInWater(m_vecPosition, m_fHeight, &fWaterHeight) == 1)
@@ -508,12 +526,12 @@ void TMHuman::AnimationFrame(int nWalkSndIndex)
                     if (dwOffset >= 7 && dwOffset < 9)
                     {
                         if (g_pSoundManager == nullptr)
-                            return;
+                            return ExtractedFlow::Return;
 
                         auto pSoundData = g_pSoundManager->GetSoundData(2 * nWalkSndIndex + 183);
 
                         if (pSoundData == nullptr || pSoundData->IsSoundPlaying())
-                            return;
+                            return ExtractedFlow::Return;
 
                         if (nSkinMeshType == 20 && (!nHeadMesh || nHeadMesh == 2) && m_eMotion == ECHAR_MOTION::ECMOTION_RUN)
                         {
@@ -548,7 +566,7 @@ void TMHuman::AnimationFrame(int nWalkSndIndex)
                     auto pSoundData = g_pSoundManager->GetSoundData(2 * nWalkSndIndex + 182);
 
                     if (pSoundData == nullptr || pSoundData->IsSoundPlaying())
-                        return;
+                        return ExtractedFlow::Return;
 
                     if (nSkinMeshType == 20 && (!nHeadMesh || nHeadMesh == 2) && m_eMotion == ECHAR_MOTION::ECMOTION_RUN)
                     {
@@ -665,11 +683,13 @@ void TMHuman::AnimationFrame(int nWalkSndIndex)
                 GetSoundAndPlayIfNot(nSoundIndex, 0, 0);
             }
         }
-        return;
-    }
+        return ExtractedFlow::Return;
 
-    if ((int)m_eMotion < 4 || (int)m_eMotion > 9)
-    {
+}
+
+// Extracted from TMHuman::AnimationFrame; behavior is unchanged.
+void TMHuman::PlayNonAttackFrame()
+{
         if (m_eMotion == ECHAR_MOTION::ECMOTION_STRIKE)
         {
             if (m_pSkinMesh->m_dwOffset < 2)
@@ -739,9 +759,12 @@ void TMHuman::AnimationFrame(int nWalkSndIndex)
 
             GetSoundAndPlayIfNot(nSoundIndex, 0, 0);
         }
-    }
-    else
-    {
+
+}
+
+// Extracted from TMHuman::AnimationFrame; behavior is unchanged.
+void TMHuman::PlayAttackFrame()
+{
         if (m_pSkinMesh->m_dwOffset >= 6 && m_pSkinMesh->m_dwOffset < 8)
         {
             if (m_nSkinMeshType == 4 || m_nSkinMeshType == 2)
@@ -1240,8 +1263,9 @@ void TMHuman::AnimationFrame(int nWalkSndIndex)
             }
             m_vecOldFire = m_vecTempPos[0];
         }
-    }
+
 }
+
 
 void TMHuman::SetMotion(ECHAR_MOTION eMotion, float fAngle)
 {

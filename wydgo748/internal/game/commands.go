@@ -116,18 +116,37 @@ func (w *World) executeClearInventory(s *net.Session, p *Player) {
 			return
 		}
 	}
+	images := criticalPreimages(p)
 	oldInv := p.Char.Inv
 	removed := clearInventory(p.Char)
+	failed := func() {
+		if !s.IsClosed() {
+			s.Send(wire.MessagePanel("Save failed. The inventory was not changed."))
+		}
+	}
+	publish := func() {
+		if !s.IsClosed() {
+			s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
+			s.Send(wire.MessagePanel("Inventory cleared."))
+		}
+		log.Printf("[#%d] /limparinv removed %d item(s) from account %q",
+			s.ID, removed, p.Account.Name)
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueCriticalLiveMutation("clear inventory", images, publish,
+			criticalLiveMutationOptions{reject: failed}); err != nil {
+			log.Printf("[#%d] ERROR /limparinv account=%q: %v", s.ID, p.Account.Name, err)
+			failed()
+		}
+		return
+	}
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Char.Inv = oldInv
 		log.Printf("[#%d] ERROR /limparinv account=%q: %v", s.ID, p.Account.Name, err)
-		s.Send(wire.MessagePanel("Save failed. The inventory was not changed."))
+		failed()
 		return
 	}
-	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
-	s.Send(wire.MessagePanel("Inventory cleared."))
-	log.Printf("[#%d] /limparinv removed %d item(s) from account %q",
-		s.ID, removed, p.Account.Name)
+	publish()
 }
 
 func (w *World) onMessageChat(s *net.Session, pkt []byte) {
@@ -588,15 +607,34 @@ func (w *World) executeShout(s *net.Session, p *Player, message string) {
 		s.Send(wire.MessagePanel("You need a Shout to announce."))
 		return
 	}
+	images := criticalPreimages(p)
 	previous := p.Char.Inv[slot]
 	p.Char.Inv[slot] = model.Item{}
+	failed := func() {
+		if !s.IsClosed() {
+			s.Send(wire.MessagePanel("Failed to consume the Shout. No announcement was sent."))
+		}
+	}
+	publish := func() {
+		if !s.IsClosed() {
+			s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
+		}
+		w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", message, 7) })
+		log.Printf("[#%d] /spk %q", s.ID, message)
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueCriticalLiveMutation("shout", images, publish,
+			criticalLiveMutationOptions{reject: failed}); err != nil {
+			log.Printf("[#%d] ERROR /spk account=%q: %v", s.ID, p.Account.Name, err)
+			failed()
+		}
+		return
+	}
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Char.Inv[slot] = previous
 		log.Printf("[#%d] ERROR /spk account=%q: %v", s.ID, p.Account.Name, err)
-		s.Send(wire.MessagePanel("Failed to consume the Shout. No announcement was sent."))
+		failed()
 		return
 	}
-	s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", message, 7) })
-	log.Printf("[#%d] /spk %q", s.ID, message)
+	publish()
 }

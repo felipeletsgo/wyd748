@@ -12,14 +12,29 @@ type guildFlowStore struct {
 	craftStore
 	gameSaves int
 	snapshots []*model.InstanceStateSnapshot
+	// durable is a copy of the guild registry of the last successful save:
+	// what a restart would load.
+	durable *model.GuildRegistry
+}
+
+func cloneGuildRegistry(r *model.GuildRegistry) *model.GuildRegistry {
+	clone := &model.GuildRegistry{Version: r.Version, Wars: r.Wars.Clone()}
+	clone.Guilds = append([]model.Guild(nil), r.Guilds...)
+	return clone
 }
 
 func (s *guildFlowStore) LoadGuilds() (*model.GuildRegistry, error) {
+	if s.durable != nil {
+		return cloneGuildRegistry(s.durable), nil
+	}
 	return &model.GuildRegistry{Version: model.GuildRegistryVersion}, nil
 }
 
-func (s *guildFlowStore) SaveGameState(_ *model.GuildRegistry, _ ...*model.Account) error {
+func (s *guildFlowStore) SaveGameState(guilds *model.GuildRegistry, _ ...*model.Account) error {
 	s.gameSaves++
+	if s.err == nil && guilds != nil {
+		s.durable = cloneGuildRegistry(guilds)
+	}
 	return s.err
 }
 
@@ -65,30 +80,30 @@ func TestGuildCreateInviteAcceptChatPromoteAndExpel(t *testing.T) {
 	guild := w.guilds.FindByName("Alpha")
 	if guild == nil || leader.Char.GuildID != guild.ID ||
 		leader.Char.GuildRank != model.GuildRankLeader || st.gameSaves != 1 {
-		t.Fatalf("criacao de guild incorreta: guild=%+v char=%d/%d saves=%d",
+		t.Fatalf("wrong guild creation: guild=%+v char=%d/%d saves=%d",
 			guild, leader.Char.GuildID, leader.Char.GuildRank, st.gameSaves)
 	}
 
 	w.guildCommandInvite(leader.Session, leader, member.Char.Name)
 	if member.GuildInviteFrom != guild.ID || member.GuildInviteUntil.IsZero() {
-		t.Fatal("convite de guild nao foi registrado")
+		t.Fatal("guild invitation was not recorded")
 	}
 	w.guildCommandAccept(member.Session, member, "")
 	if member.Char.GuildID != guild.ID || guild.Member(member.Char.Name) == nil || st.gameSaves != 2 {
-		t.Fatalf("aceite incorreto: charGuild=%d members=%d saves=%d",
+		t.Fatalf("wrong acceptance: charGuild=%d members=%d saves=%d",
 			member.Char.GuildID, len(guild.Members), st.gameSaves)
 	}
 
 	before := member.Session.QueuedPacketsForTest()
 	w.sendGuildChat(leader, "-hello")
 	if member.Session.QueuedPacketsForTest() != before+1 {
-		t.Fatal("chat de guild nao chegou ao membro")
+		t.Fatal("guild chat did not reach the member")
 	}
 
 	w.guildCommandSubLeader(leader.Session, leader, member.Char.Name)
 	if member.Char.GuildRank != model.GuildRankSubFirst ||
 		guild.Member(member.Char.Name).Rank != model.GuildRankSubFirst {
-		t.Fatalf("promocao nao sincronizou char e registro: %d/%d",
+		t.Fatalf("promotion did not sync character and registry: %d/%d",
 			member.Char.GuildRank, guild.Member(member.Char.Name).Rank)
 	}
 
@@ -96,7 +111,7 @@ func TestGuildCreateInviteAcceptChatPromoteAndExpel(t *testing.T) {
 	binary.LittleEndian.PutUint32(deprivate[12:16], uint32(member.ID))
 	w.onGuildDeprivate(leader.Session, deprivate)
 	if member.Char.GuildID != 0 || guild.Member(member.Char.Name) != nil {
-		t.Fatal("expulsao nao removeu o membro")
+		t.Fatal("expulsion did not remove the member")
 	}
 }
 
@@ -115,7 +130,7 @@ func TestGuildCommandExpelUsesAuthoritativeHierarchy(t *testing.T) {
 	w.guildCommandExpel(leader.Session, leader, member.Char.Name)
 	if member.Char.GuildID != 0 || guild.Member(member.Char.Name) != nil ||
 		st.gameSaves != 2 {
-		t.Fatalf("expulsao: guild=%d membro=%+v saves=%d",
+		t.Fatalf("expulsion: guild=%d member=%+v saves=%d",
 			member.Char.GuildID, guild.Member(member.Char.Name), st.gameSaves)
 	}
 }
@@ -140,7 +155,7 @@ func TestGuildLeavePromotesOldestMember(t *testing.T) {
 	if current == nil || leader.Char.GuildID != 0 ||
 		member.Char.GuildRank != model.GuildRankLeader ||
 		current.Member(member.Char.Name).Rank != model.GuildRankLeader || st.gameSaves != 1 {
-		t.Fatalf("sucessao incorreta: guild=%+v leader=%d memberRank=%d saves=%d",
+		t.Fatalf("wrong succession: guild=%+v leader=%d memberRank=%d saves=%d",
 			current, leader.Char.GuildID, member.Char.GuildRank, st.gameSaves)
 	}
 }
@@ -152,7 +167,7 @@ func TestGuildPersistenceFailureRollsBackCreationAndAlliance(t *testing.T) {
 
 	w.guildCommandCreate(leader.Session, leader, "Alpha")
 	if len(w.guilds.Guilds) != 0 || leader.Char.GuildID != 0 {
-		t.Fatal("falha ao criar guild nao restaurou o estado")
+		t.Fatal("a failed guild creation did not restore the state")
 	}
 
 	st.err = nil
@@ -170,13 +185,13 @@ func TestGuildPersistenceFailureRollsBackCreationAndAlliance(t *testing.T) {
 	binary.LittleEndian.PutUint32(ally[16:20], 2)
 	w.onGuildAlly(leader.Session, ally)
 	if w.guilds.FindByID(1).Ally != 2 {
-		t.Fatal("alianca valida nao foi aplicada")
+		t.Fatal("a valid alliance was not applied")
 	}
 
 	st.err = errors.New("disk full")
 	binary.LittleEndian.PutUint32(ally[16:20], 0)
 	w.onGuildAlly(leader.Session, ally)
 	if w.guilds.FindByID(1).Ally != 2 {
-		t.Fatal("falha ao desfazer alianca nao restaurou o snapshot")
+		t.Fatal("a failed alliance removal did not restore the snapshot")
 	}
 }

@@ -267,6 +267,9 @@
     <ClInclude Include="internal\game\entities\SkinMotionPolicy.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="internal\game\entities\BerielAuraPolicy.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
     <ClInclude Include="internal\wire\InventoryTransactionContract.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -447,9 +450,6 @@
     <ClInclude Include="internal\render\world\vegetation\TMTree.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="internal\platform\windows\media\TMVideoWnd.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
     <ClInclude Include="internal\render\effects\skills\TMSkillThunderBolt.h">
       <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
@@ -458,9 +458,6 @@
     </ClInclude>
     <ClInclude Include="internal\render\effects\skills\TMSkillSpChange.h">
       <Filter>Header Files\Internal\Render</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\render\effects\skills\TMSkillSnow.h">
-      <Filter>Header Files\Skills</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\effects\skills\TMSkillSlowSlash.h">
       <Filter>Header Files\Internal\Render</Filter>
@@ -476,9 +473,6 @@
     </ClInclude>
     <ClInclude Include="internal\render\effects\skills\TMSkillMagicArrow.h">
       <Filter>Header Files\Skills</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\render\effects\skills\TMSkillLusterFurnish.h">
-      <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\effects\skills\TMSkillJudgement.h">
       <Filter>Header Files\Internal\Render</Filter>
@@ -579,9 +573,6 @@
     <ClInclude Include="internal\render\world\water\TMFloat.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="internal\game\entities\TMFlail.h">
-      <Filter>Header Files\Engine</Filter>
-    </ClInclude>
     <ClInclude Include="internal\game\entities\TMFish.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
@@ -607,6 +598,18 @@
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>
     <ClInclude Include="internal\application\FieldCoinInputPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\MusicListLine.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\AssetLoadValidation.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\IndexedPartyMessage.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\OwnedSoundBuffers.h">
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>
     <ClInclude Include="internal\application\SkillRequestPolicy.h">
@@ -651,9 +654,6 @@
     <ClInclude Include="internal\render\effects\status\TMEffectLevelUp.h">
       <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
-    <ClInclude Include="internal\render\effects\pending\TMEffectGold.h">
-      <Filter>Header Files\Effects</Filter>
-    </ClInclude>
     <ClInclude Include="internal\render\effects\core\TMEffectFirework.h">
       <Filter>Header Files\Effects</Filter>
     </ClInclude>
@@ -661,9 +661,6 @@
       <Filter>Header Files\Internal\Render</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\effects\core\TMEffectCharge.h">
-      <Filter>Header Files\Effects</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\render\effects\core\TMEffectBillBoard4.h">
       <Filter>Header Files\Effects</Filter>
     </ClInclude>
     <ClInclude Include="internal\render\effects\core\TMEffectBillBoard3.h">
@@ -711,6 +708,15 @@
     <ClInclude Include="internal\ui\ResourceBarProjection.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="internal\ui\NativeScoreHud.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\NameColorPolicy748.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\GridItemPresentation.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
     <ClInclude Include="internal\render\mesh\CostumeTable.generated.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
@@ -750,9 +756,6 @@
     <ClInclude Include="internal\ui\controls\SButton.h">
       <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
-    <ClInclude Include="internal\ui\controls\SButtonBox.h">
-      <Filter>Header Files\Engine\UI</Filter>
-    </ClInclude>
     <ClInclude Include="internal\ui\controls\SCheckBox.h">
       <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
@@ -789,12 +792,6 @@
     <ClInclude Include="internal\app\scenes\NewApp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="internal\core\MrItemMix.h">
-      <Filter>Header Files\Systems</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\core\Mission.h">
-      <Filter>Header Files\Systems</Filter>
-    </ClInclude>
     <ClInclude Include="internal\render\mesh\MeshManager.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
@@ -803,9 +800,6 @@
     </ClInclude>
     <ClInclude Include="internal\wire\crypto\md5.h">
       <Filter>Header Files\Internal\Wire</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\render\effects\core\JBlur.h">
-      <Filter>Header Files\Engine</Filter>
     </ClInclude>
     <ClInclude Include="internal\core\EventTranslator.h">
       <Filter>Header Files</Filter>
@@ -901,7 +895,7 @@
       <Filter>Header Files\Features\Macro</Filter>
     </ClInclude>
     <ClInclude Include="internal\core\singleton.h">
-      <Filter>Source Files\Macro</Filter>
+      <Filter>Header Files\Features\Macro</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -977,9 +971,6 @@
     <ClCompile Include="internal\platform\windows\RenderDevicePrimitives.cpp">
       <Filter>Source Files\Engine\Core</Filter>
     </ClCompile>
-    <ClCompile Include="internal\platform\windows\RenderDeviceDiagnostics.cpp">
-      <Filter>Source Files\Engine\Core</Filter>
-    </ClCompile>
     <ClCompile Include="internal\render\resources\TextureManager.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
@@ -994,9 +985,6 @@
     </ClCompile>
     <ClCompile Include="internal\core\EventTranslator.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="internal\render\effects\core\JBlur.cpp">
-      <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\platform\windows\TMLog.cpp">
       <Filter>Source Files</Filter>
@@ -1019,9 +1007,6 @@
     <ClCompile Include="internal\render\effects\core\TMEffectBillBoard3.cpp">
       <Filter>Source Files\Effects</Filter>
     </ClCompile>
-    <ClCompile Include="internal\render\effects\core\TMEffectBillBoard4.cpp">
-      <Filter>Source Files\Effects</Filter>
-    </ClCompile>
     <ClCompile Include="internal\render\effects\core\TMEffectCharge.cpp">
       <Filter>Source Files\Effects</Filter>
     </ClCompile>
@@ -1029,9 +1014,6 @@
       <Filter>Source Files\Effects</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\effects\core\TMEffectFirework.cpp">
-      <Filter>Source Files\Effects</Filter>
-    </ClCompile>
-    <ClCompile Include="internal\render\effects\pending\TMEffectGold.cpp">
       <Filter>Source Files\Effects</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\effects\core\TMEffectLevelUp.cpp">
@@ -1086,9 +1068,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="internal\game\entities\TMArrow.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="internal\game\entities\TMFlail.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\world\objects\TMFloat.cpp">
@@ -1163,12 +1142,6 @@
     <ClCompile Include="internal\platform\windows\D3DDevice.cpp">
       <Filter>Source Files\Engine\Core</Filter>
     </ClCompile>
-    <ClCompile Include="internal\core\Mission.cpp">
-      <Filter>Source Files\Systems</Filter>
-    </ClCompile>
-    <ClCompile Include="internal\core\MrItemMix.cpp">
-      <Filter>Source Files\Systems</Filter>
-    </ClCompile>
     <ClCompile Include="internal\app\scenes\NewApp.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1220,9 +1193,6 @@
     <ClCompile Include="internal\render\effects\skills\TMSkillJudgement.cpp">
       <Filter>Source Files\Skills</Filter>
     </ClCompile>
-    <ClCompile Include="internal\render\effects\skills\TMSkillLusterFurnish.cpp">
-      <Filter>Source Files\Skills</Filter>
-    </ClCompile>
     <ClCompile Include="internal\render\effects\skills\TMSkillMagicArrow.cpp">
       <Filter>Source Files\Skills</Filter>
     </ClCompile>
@@ -1236,9 +1206,6 @@
       <Filter>Source Files\Skills</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\effects\skills\TMSkillSlowSlash.cpp">
-      <Filter>Source Files\Skills</Filter>
-    </ClCompile>
-    <ClCompile Include="internal\render\effects\skills\TMSkillSnow.cpp">
       <Filter>Source Files\Skills</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\effects\skills\TMSkillSpChange.cpp">
@@ -1287,9 +1254,6 @@
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\render\world\sky\TMTree.cpp">
-      <Filter>Source Files\Engine</Filter>
-    </ClCompile>
-    <ClCompile Include="internal\platform\windows\media\TMVideoWnd.cpp">
       <Filter>Source Files\Engine</Filter>
     </ClCompile>
     <ClCompile Include="internal\core\ObjectManager.cpp">
@@ -1388,9 +1352,6 @@
     <ClCompile Include="internal\ui\controls\SButton.cpp">
       <Filter>Source Files\Engine\UI</Filter>
     </ClCompile>
-    <ClCompile Include="internal\ui\controls\SButtonBox.cpp">
-      <Filter>Source Files\Engine\UI</Filter>
-    </ClCompile>
     <ClCompile Include="internal\ui\controls\SCheckBox.cpp">
       <Filter>Source Files\Engine\UI</Filter>
     </ClCompile>
@@ -1447,6 +1408,96 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="internal\application\CCModePolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\DamageNumberPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\FieldInteractionPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\NativeVolatileRoutes.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\ShadeGrid.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\SkillCooldownPolicy.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\WrappedTexture.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\NativeItemVolatile.h">
+      <Filter>Header Files\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\NativeSalePrice.h">
+      <Filter>Header Files\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\ServerChannelLabel.h">
+      <Filter>Header Files\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\ServerListAsset.h">
+      <Filter>Header Files\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\ServerStatus.h">
+      <Filter>Header Files\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\platform\windows\AdapterIdentity.h">
+      <Filter>Header Files\Internal\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\mesh\DyePixelShader.h">
+      <Filter>Header Files\Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\mesh\DyeTextureStages.h">
+      <Filter>Header Files\Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\mesh\EffectVertexColor.h">
+      <Filter>Header Files\Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\world\objects\ObjectFileRecordLayout.h">
+      <Filter>Header Files\Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\world\terrain\TerrainTileMapReader.h">
+      <Filter>Header Files\Internal\Render</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\MiniMapLayout.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\NativeSaleQuote.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\LegacySalePacket.h">
+      <Filter>Header Files\Internal\Wire</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\QuizEventPacket.h">
+      <Filter>Header Files\Internal\Wire</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\ServerWarLetterContract.h">
+      <Filter>Header Files\Internal\Wire</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\game\entities\DeathMotionPolicy.h">
+      <Filter>Header Files\Internal\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\wire\GuildChallengePromptPacket.h">
+      <Filter>Header Files\Internal\Wire</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\platform\diagnostics\ClientDiagnostics.h">
+      <Filter>Header Files\Internal\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\platform\diagnostics\PerfTrace.h">
+      <Filter>Header Files\Internal\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\render\resources\RuntimeAssetLimits.h">
+      <Filter>Header Files\Internal\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\core\ClientSettings.h">
+      <Filter>Header Files\Internal\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\ui\ObservedAffectProjection.h">
+      <Filter>Header Files\Engine\UI</Filter>
+    </ClInclude>
     <ResourceCompile Include="TMProject.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>

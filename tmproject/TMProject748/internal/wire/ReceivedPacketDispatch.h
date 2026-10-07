@@ -51,6 +51,7 @@
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
 #include "GuildChallengePromptPacket.h"
+#include "WeatherPacket.h"
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
@@ -127,6 +128,7 @@ namespace received_packet
         case MSG_REQParty_Opcode: return sizeof(MSG_REQParty);
         case MSG_Motion_Opcode: return sizeof(MSG_Motion);
         case MSG_ReqChallenge_Opcode: return sizeof(MSG_STANDARD);
+        case MSG_Weather_Opcode: return kWeatherPacketSize;
         default: return 0;
         }
     }

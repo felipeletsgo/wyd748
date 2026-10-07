@@ -19,6 +19,7 @@
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/ObservedAffectProjection.h"
+#include "../../ui/NameColorPolicy748.h"
 #include "SControlContainer.h"
 #include "TMEffectSWSwing.h"
 #include "ObjectManager.h"
@@ -551,125 +552,7 @@ int TMHuman::InitObject()
             || m_nSkinMeshType == 58
             || m_nSkinMeshType == 59))
     {
-        m_stLookInfo.HelmMesh = m_stLookInfo.FaceMesh;
-        m_stLookInfo.HelmSkin = m_stLookInfo.FaceSkin;
-        m_stSancInfo.Sanc1 = m_stSancInfo.Sanc0;
-        m_stSancInfo.Legend1 = m_stSancInfo.Legend0;
-        m_stColorInfo.Sanc1 = m_stColorInfo.Sanc0;
-        if (m_nSkinMeshType == 45)
-        {
-            m_stSancInfo.Legend7 = 0;
-            m_stSancInfo.Legend6 = 0;
-            m_stSancInfo.Legend5 = 0;
-            m_stSancInfo.Legend4 = 0;
-            m_stSancInfo.Legend3 = 0;
-            m_stSancInfo.Legend2 = 0;
-            m_stSancInfo.Legend1 = 0;
-            m_stSancInfo.Legend0 = 0;
-            m_stSancInfo.Sanc7 = 0;
-            m_stSancInfo.Sanc6 = 0;
-            m_stSancInfo.Sanc5 = 0;
-            m_stSancInfo.Sanc4 = 0;
-            m_stSancInfo.Sanc3 = 0;
-            m_stSancInfo.Sanc2 = 0;
-            m_stSancInfo.Sanc1 = 0;
-            m_stSancInfo.Sanc0 = 0;
-            m_stSancInfo.Legend2 = 2;
-            m_stSancInfo.Sanc2 = 8;
-        }
-        if (m_nSkinMeshType == 46)
-        {
-            m_stSancInfo.Legend7 = 0;
-            m_stSancInfo.Legend6 = 0;
-            m_stSancInfo.Legend5 = 0;
-            m_stSancInfo.Legend4 = 0;
-            m_stSancInfo.Legend3 = 0;
-            m_stSancInfo.Legend2 = 0;
-            m_stSancInfo.Legend1 = 0;
-            m_stSancInfo.Legend0 = 0;
-            m_stSancInfo.Sanc7 = 0;
-            m_stSancInfo.Sanc6 = 0;
-            m_stSancInfo.Sanc5 = 0;
-            m_stSancInfo.Sanc4 = 0;
-            m_stSancInfo.Sanc3 = 0;
-            m_stSancInfo.Sanc2 = 0;
-            m_stSancInfo.Sanc1 = 0;
-            m_stSancInfo.Sanc0 = 0;
-            m_stSancInfo.Legend2 = 2;
-            m_stSancInfo.Sanc2 = 13;
-        }
-        if (m_nSkinMeshType == 53)
-        {
-            m_stSancInfo.Legend7 = 0;
-            m_stSancInfo.Legend6 = 0;
-            m_stSancInfo.Legend5 = 0;
-            m_stSancInfo.Legend4 = 0;
-            m_stSancInfo.Legend3 = 0;
-            m_stSancInfo.Legend2 = 0;
-            m_stSancInfo.Legend1 = 0;
-            m_stSancInfo.Legend0 = 0;
-            m_stSancInfo.Sanc7 = 0;
-            m_stSancInfo.Sanc6 = 0;
-            m_stSancInfo.Sanc5 = 0;
-            m_stSancInfo.Sanc4 = 0;
-            m_stSancInfo.Sanc3 = 0;
-            m_stSancInfo.Sanc2 = 0;
-            m_stSancInfo.Sanc1 = 0;
-            m_stSancInfo.Sanc0 = 0;
-            m_stSancInfo.Sanc0 = 13;
-            m_stSancInfo.Sanc2 = 13;
-            m_stSancInfo.Sanc1 = 13;
-            m_fScale = 2.0f;
-        }
-        if (m_nSkinMeshType == 56 || m_nSkinMeshType == 57)
-        {
-            m_stSancInfo.Legend7 = 0;
-            m_stSancInfo.Legend6 = 0;
-            m_stSancInfo.Legend5 = 0;
-            m_stSancInfo.Legend4 = 0;
-            m_stSancInfo.Legend3 = 0;
-            m_stSancInfo.Legend2 = 0;
-            m_stSancInfo.Legend1 = 0;
-            m_stSancInfo.Legend0 = 0;
-            m_stSancInfo.Sanc7 = 0;
-            m_stSancInfo.Sanc6 = 0;
-            m_stSancInfo.Sanc5 = 0;
-            m_stSancInfo.Sanc4 = 0;
-            m_stSancInfo.Sanc3 = 0;
-            m_stSancInfo.Sanc2 = 0;
-            m_stSancInfo.Sanc1 = 0;
-            m_stSancInfo.Sanc0 = 0;
-            m_stSancInfo.Sanc4 = 13;
-            m_stSancInfo.Sanc3 = 13;
-            m_stSancInfo.Sanc2 = 13;
-            m_stSancInfo.Sanc1 = 13;
-            m_stSancInfo.Sanc0 = 13;
-        }
-        if (m_nSkinMeshType == 55)
-        {
-            m_stSancInfo.Legend7 = 0;
-            m_stSancInfo.Legend6 = 0;
-            m_stSancInfo.Legend5 = 0;
-            m_stSancInfo.Legend4 = 0;
-            m_stSancInfo.Legend3 = 0;
-            m_stSancInfo.Legend2 = 0;
-            m_stSancInfo.Legend1 = 0;
-            m_stSancInfo.Legend0 = 0;
-            m_stSancInfo.Sanc7 = 0;
-            m_stSancInfo.Sanc6 = 0;
-            m_stSancInfo.Sanc5 = 0;
-            m_stSancInfo.Sanc4 = 0;
-            m_stSancInfo.Sanc3 = 0;
-            m_stSancInfo.Sanc2 = 0;
-            m_stSancInfo.Sanc1 = 0;
-            m_stSancInfo.Sanc0 = 0;
-            m_stSancInfo.Sanc1 = 13;
-            m_stSancInfo.Sanc0 = 13;
-
-            TMHuman::m_vecPickSize[55].y = 0.449f;
-            TMHuman::m_vecPickSize[55].x = 0.449f;
-        }
-
+        InitSkinLookInfo();
     }
 
     if (m_nClass == 40)
@@ -910,95 +793,7 @@ int TMHuman::InitObject()
 
     if (m_nClass == 36 || m_nClass == 37)
     {
-        int nSkelType = 0;
-        if (m_nClass == 37)
-            nSkelType = 3;
-        if (m_stLookInfo.HelmMesh == 11)
-            nSkelType = 1;
-        if (m_stLookInfo.HelmMesh == 10)
-            nSkelType = 2;
-
-        unsigned int dwColor[4]{};
-        dwColor[0] = 0xFF005555;
-        dwColor[1] = 0xFF885500;
-        dwColor[2] = 0xFF550000;
-        dwColor[3] = 0xFF005500;
-
-        if (nSkelType == 2 && m_stLookInfo.LeftMesh != 930)
-        {
-            int nMeshIndex[7]{};
-            nMeshIndex[0] = 3;
-            nMeshIndex[1] = 6;
-            nMeshIndex[2] = 4;
-            nMeshIndex[3] = 7;
-            nMeshIndex[4] = 5;
-            nMeshIndex[5] = 6;
-            nMeshIndex[6] = 7;
-
-            for (int j = 0; j < 7; ++j)
-            {
-                m_pRotateBone[j] = nullptr;
-                m_pRotateBone[j] = new TMEffectMeshRotate(TMVector3(m_vecPosition.x, (float)(m_fHeight + 0.80000001f) + (float)((float)j * 0.2f), m_vecPosition.y), 0, this, 1, 0);
-
-                if (m_pRotateBone[j])
-                {
-                    m_pRotateBone[j]->m_dwStartTime = 150 * j;
-                    m_pRotateBone[j]->m_nMeshIndex = nMeshIndex[j];
-                    g_pCurrentScene->m_pEffectContainer->AddChild(m_pRotateBone[j]);
-                }
-            }
-        }
-
-        int nPosIndex[7]{};
-        nPosIndex[0] = 8;
-        nPosIndex[1] = 9;
-        nPosIndex[2] = 1;
-        nPosIndex[3] = 6;
-        nPosIndex[4] = 7;
-        nPosIndex[5] = 2;
-        nPosIndex[6] = 3;
-
-        float fSizeX[4][7] = {
-            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
-            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
-            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
-            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
-        };
-
-        float fSizeY[4][7] = {
-            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
-            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
-            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
-            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
-        };
-
-        for (int k = 0; k < 7; ++k)
-        {
-            if (k != 2 || nSkelType != 1 && nSkelType != 2)
-            {
-                if (k >= 5 && nSkelType != 2)
-                    break;
-
-                m_pEyeFire[k] = new TMEffectBillBoard(101,
-                    0,
-                    fSizeX[nSkelType][k] * m_fScale,
-                    fSizeY[nSkelType][k] * m_fScale,
-                    fSizeX[nSkelType][k] * m_fScale,
-                    0.0,
-                    8,
-                    80);
-
-                if (m_pEyeFire[k])
-                {
-                    m_pEyeFire[k]->SetColor(dwColor[nSkelType]);
-                    m_pEyeFire[k]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                    m_pEyeFire[k]->m_nFade = 0;
-                    m_pEyeFire[k]->m_vecPosition = m_vecTempPos[nPosIndex[k]];
-                    m_pEyeFire[k]->m_bFrameMove = 0;
-                    g_pCurrentScene->m_pEffectContainer->AddChild(m_pEyeFire[k]);
-                }
-            }
-        }
+        InitEyeFireEffects();
     }
 
     for (int i = 0; i < 4; ++i)
@@ -1301,6 +1096,283 @@ int TMHuman::InitObject()
 
     if (!g_bHideEffect && !g_pDevice->m_bSavage && !g_pDevice->m_bIntel)
     {
+        InitShadeEffects();
+    }
+
+    GetLegType();
+
+    if (m_pEleStream)
+    {
+        g_pObjectManager->DeleteObject(m_pEleStream);
+        m_pEleStream = 0;
+    }
+    if (m_pEleStream2)
+    {
+        g_pObjectManager->DeleteObject(m_pEleStream2);
+        m_pEleStream2 = 0;
+    }
+    if (m_pRescue)
+    {
+        g_pObjectManager->DeleteObject(m_pRescue);
+        m_pRescue = 0;
+    }
+    if (m_pMagicShield)
+    {
+        g_pObjectManager->DeleteObject(m_pMagicShield);
+        m_pMagicShield = 0;
+    }
+    if (m_pCancelation)
+    {
+        g_pObjectManager->DeleteObject(m_pCancelation);
+        m_pCancelation = 0;
+    }
+
+    if (m_nClass <= 8)
+    {
+        m_pMagicShield = new TMSkillMagicShield(this, 0);
+        m_pRescue = new TMSkillMagicShield(this, 1);
+        m_pEleStream = new TMSkillMagicShield(this, 2);
+        m_pEleStream2 = new TMSkillMagicShield(this, 3);
+        m_pCancelation = new TMSkillMagicShield(this, 4);
+    }
+
+    if (m_pRescue)
+        g_pCurrentScene->m_pEffectContainer->AddChild(m_pRescue);
+    if (m_pMagicShield)
+        g_pCurrentScene->m_pEffectContainer->AddChild(m_pMagicShield);
+    if (m_pCancelation)
+        g_pCurrentScene->m_pEffectContainer->AddChild(m_pCancelation);
+    if (m_pEleStream)
+        g_pCurrentScene->m_pEffectContainer->AddChild(m_pEleStream);
+    if (m_pEleStream2)
+        g_pCurrentScene->m_pEffectContainer->AddChild(m_pEleStream2);
+
+    return 1;
+}
+
+// Extracted from TMHuman::InitObject; behavior is unchanged.
+void TMHuman::InitSkinLookInfo()
+{
+        m_stLookInfo.HelmMesh = m_stLookInfo.FaceMesh;
+        m_stLookInfo.HelmSkin = m_stLookInfo.FaceSkin;
+        m_stSancInfo.Sanc1 = m_stSancInfo.Sanc0;
+        m_stSancInfo.Legend1 = m_stSancInfo.Legend0;
+        m_stColorInfo.Sanc1 = m_stColorInfo.Sanc0;
+        if (m_nSkinMeshType == 45)
+        {
+            m_stSancInfo.Legend7 = 0;
+            m_stSancInfo.Legend6 = 0;
+            m_stSancInfo.Legend5 = 0;
+            m_stSancInfo.Legend4 = 0;
+            m_stSancInfo.Legend3 = 0;
+            m_stSancInfo.Legend2 = 0;
+            m_stSancInfo.Legend1 = 0;
+            m_stSancInfo.Legend0 = 0;
+            m_stSancInfo.Sanc7 = 0;
+            m_stSancInfo.Sanc6 = 0;
+            m_stSancInfo.Sanc5 = 0;
+            m_stSancInfo.Sanc4 = 0;
+            m_stSancInfo.Sanc3 = 0;
+            m_stSancInfo.Sanc2 = 0;
+            m_stSancInfo.Sanc1 = 0;
+            m_stSancInfo.Sanc0 = 0;
+            m_stSancInfo.Legend2 = 2;
+            m_stSancInfo.Sanc2 = 8;
+        }
+        if (m_nSkinMeshType == 46)
+        {
+            m_stSancInfo.Legend7 = 0;
+            m_stSancInfo.Legend6 = 0;
+            m_stSancInfo.Legend5 = 0;
+            m_stSancInfo.Legend4 = 0;
+            m_stSancInfo.Legend3 = 0;
+            m_stSancInfo.Legend2 = 0;
+            m_stSancInfo.Legend1 = 0;
+            m_stSancInfo.Legend0 = 0;
+            m_stSancInfo.Sanc7 = 0;
+            m_stSancInfo.Sanc6 = 0;
+            m_stSancInfo.Sanc5 = 0;
+            m_stSancInfo.Sanc4 = 0;
+            m_stSancInfo.Sanc3 = 0;
+            m_stSancInfo.Sanc2 = 0;
+            m_stSancInfo.Sanc1 = 0;
+            m_stSancInfo.Sanc0 = 0;
+            m_stSancInfo.Legend2 = 2;
+            m_stSancInfo.Sanc2 = 13;
+        }
+        if (m_nSkinMeshType == 53)
+        {
+            m_stSancInfo.Legend7 = 0;
+            m_stSancInfo.Legend6 = 0;
+            m_stSancInfo.Legend5 = 0;
+            m_stSancInfo.Legend4 = 0;
+            m_stSancInfo.Legend3 = 0;
+            m_stSancInfo.Legend2 = 0;
+            m_stSancInfo.Legend1 = 0;
+            m_stSancInfo.Legend0 = 0;
+            m_stSancInfo.Sanc7 = 0;
+            m_stSancInfo.Sanc6 = 0;
+            m_stSancInfo.Sanc5 = 0;
+            m_stSancInfo.Sanc4 = 0;
+            m_stSancInfo.Sanc3 = 0;
+            m_stSancInfo.Sanc2 = 0;
+            m_stSancInfo.Sanc1 = 0;
+            m_stSancInfo.Sanc0 = 0;
+            m_stSancInfo.Sanc0 = 13;
+            m_stSancInfo.Sanc2 = 13;
+            m_stSancInfo.Sanc1 = 13;
+            m_fScale = 2.0f;
+        }
+        if (m_nSkinMeshType == 56 || m_nSkinMeshType == 57)
+        {
+            m_stSancInfo.Legend7 = 0;
+            m_stSancInfo.Legend6 = 0;
+            m_stSancInfo.Legend5 = 0;
+            m_stSancInfo.Legend4 = 0;
+            m_stSancInfo.Legend3 = 0;
+            m_stSancInfo.Legend2 = 0;
+            m_stSancInfo.Legend1 = 0;
+            m_stSancInfo.Legend0 = 0;
+            m_stSancInfo.Sanc7 = 0;
+            m_stSancInfo.Sanc6 = 0;
+            m_stSancInfo.Sanc5 = 0;
+            m_stSancInfo.Sanc4 = 0;
+            m_stSancInfo.Sanc3 = 0;
+            m_stSancInfo.Sanc2 = 0;
+            m_stSancInfo.Sanc1 = 0;
+            m_stSancInfo.Sanc0 = 0;
+            m_stSancInfo.Sanc4 = 13;
+            m_stSancInfo.Sanc3 = 13;
+            m_stSancInfo.Sanc2 = 13;
+            m_stSancInfo.Sanc1 = 13;
+            m_stSancInfo.Sanc0 = 13;
+        }
+        if (m_nSkinMeshType == 55)
+        {
+            m_stSancInfo.Legend7 = 0;
+            m_stSancInfo.Legend6 = 0;
+            m_stSancInfo.Legend5 = 0;
+            m_stSancInfo.Legend4 = 0;
+            m_stSancInfo.Legend3 = 0;
+            m_stSancInfo.Legend2 = 0;
+            m_stSancInfo.Legend1 = 0;
+            m_stSancInfo.Legend0 = 0;
+            m_stSancInfo.Sanc7 = 0;
+            m_stSancInfo.Sanc6 = 0;
+            m_stSancInfo.Sanc5 = 0;
+            m_stSancInfo.Sanc4 = 0;
+            m_stSancInfo.Sanc3 = 0;
+            m_stSancInfo.Sanc2 = 0;
+            m_stSancInfo.Sanc1 = 0;
+            m_stSancInfo.Sanc0 = 0;
+            m_stSancInfo.Sanc1 = 13;
+            m_stSancInfo.Sanc0 = 13;
+
+            TMHuman::m_vecPickSize[55].y = 0.449f;
+            TMHuman::m_vecPickSize[55].x = 0.449f;
+        }
+
+
+}
+
+// Extracted from TMHuman::InitObject; behavior is unchanged.
+void TMHuman::InitEyeFireEffects()
+{
+        int nSkelType = 0;
+        if (m_nClass == 37)
+            nSkelType = 3;
+        if (m_stLookInfo.HelmMesh == 11)
+            nSkelType = 1;
+        if (m_stLookInfo.HelmMesh == 10)
+            nSkelType = 2;
+
+        unsigned int dwColor[4]{};
+        dwColor[0] = 0xFF005555;
+        dwColor[1] = 0xFF885500;
+        dwColor[2] = 0xFF550000;
+        dwColor[3] = 0xFF005500;
+
+        if (nSkelType == 2 && m_stLookInfo.LeftMesh != 930)
+        {
+            int nMeshIndex[7]{};
+            nMeshIndex[0] = 3;
+            nMeshIndex[1] = 6;
+            nMeshIndex[2] = 4;
+            nMeshIndex[3] = 7;
+            nMeshIndex[4] = 5;
+            nMeshIndex[5] = 6;
+            nMeshIndex[6] = 7;
+
+            for (int j = 0; j < 7; ++j)
+            {
+                m_pRotateBone[j] = nullptr;
+                m_pRotateBone[j] = new TMEffectMeshRotate(TMVector3(m_vecPosition.x, (float)(m_fHeight + 0.80000001f) + (float)((float)j * 0.2f), m_vecPosition.y), 0, this, 1, 0);
+
+                if (m_pRotateBone[j])
+                {
+                    m_pRotateBone[j]->m_dwStartTime = 150 * j;
+                    m_pRotateBone[j]->m_nMeshIndex = nMeshIndex[j];
+                    g_pCurrentScene->m_pEffectContainer->AddChild(m_pRotateBone[j]);
+                }
+            }
+        }
+
+        int nPosIndex[7]{};
+        nPosIndex[0] = 8;
+        nPosIndex[1] = 9;
+        nPosIndex[2] = 1;
+        nPosIndex[3] = 6;
+        nPosIndex[4] = 7;
+        nPosIndex[5] = 2;
+        nPosIndex[6] = 3;
+
+        float fSizeX[4][7] = {
+            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
+            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
+            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
+            { 0.2f, 0.8f, 0.2f, 0.6f, 0.8f, 0.6f, 0.8f },
+        };
+
+        float fSizeY[4][7] = {
+            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
+            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
+            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
+            { 0.3f, 1.0f, 0.3f, 0.8f, 1.0f, 0.8f, 1.0f },
+        };
+
+        for (int k = 0; k < 7; ++k)
+        {
+            if (k != 2 || nSkelType != 1 && nSkelType != 2)
+            {
+                if (k >= 5 && nSkelType != 2)
+                    break;
+
+                m_pEyeFire[k] = new TMEffectBillBoard(101,
+                    0,
+                    fSizeX[nSkelType][k] * m_fScale,
+                    fSizeY[nSkelType][k] * m_fScale,
+                    fSizeX[nSkelType][k] * m_fScale,
+                    0.0,
+                    8,
+                    80);
+
+                if (m_pEyeFire[k])
+                {
+                    m_pEyeFire[k]->SetColor(dwColor[nSkelType]);
+                    m_pEyeFire[k]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                    m_pEyeFire[k]->m_nFade = 0;
+                    m_pEyeFire[k]->m_vecPosition = m_vecTempPos[nPosIndex[k]];
+                    m_pEyeFire[k]->m_bFrameMove = 0;
+                    g_pCurrentScene->m_pEffectContainer->AddChild(m_pEyeFire[k]);
+                }
+            }
+        }
+
+}
+
+// Extracted from TMHuman::InitObject; behavior is unchanged.
+void TMHuman::InitShadeEffects()
+{
         switch (m_nSkinMeshType)
         {
         case 0:
@@ -1379,58 +1451,9 @@ int TMHuman::InitObject()
             m_pShade->SetPosition(TMVector2(0.0f, 0.0f));
             g_pCurrentScene->m_pShadeContainer->AddChild(m_pShade);
         }
-    }
 
-    GetLegType();
-
-    if (m_pEleStream)
-    {
-        g_pObjectManager->DeleteObject(m_pEleStream);
-        m_pEleStream = 0;
-    }
-    if (m_pEleStream2)
-    {
-        g_pObjectManager->DeleteObject(m_pEleStream2);
-        m_pEleStream2 = 0;
-    }
-    if (m_pRescue)
-    {
-        g_pObjectManager->DeleteObject(m_pRescue);
-        m_pRescue = 0;
-    }
-    if (m_pMagicShield)
-    {
-        g_pObjectManager->DeleteObject(m_pMagicShield);
-        m_pMagicShield = 0;
-    }
-    if (m_pCancelation)
-    {
-        g_pObjectManager->DeleteObject(m_pCancelation);
-        m_pCancelation = 0;
-    }
-
-    if (m_nClass <= 8)
-    {
-        m_pMagicShield = new TMSkillMagicShield(this, 0);
-        m_pRescue = new TMSkillMagicShield(this, 1);
-        m_pEleStream = new TMSkillMagicShield(this, 2);
-        m_pEleStream2 = new TMSkillMagicShield(this, 3);
-        m_pCancelation = new TMSkillMagicShield(this, 4);
-    }
-
-    if (m_pRescue)
-        g_pCurrentScene->m_pEffectContainer->AddChild(m_pRescue);
-    if (m_pMagicShield)
-        g_pCurrentScene->m_pEffectContainer->AddChild(m_pMagicShield);
-    if (m_pCancelation)
-        g_pCurrentScene->m_pEffectContainer->AddChild(m_pCancelation);
-    if (m_pEleStream)
-        g_pCurrentScene->m_pEffectContainer->AddChild(m_pEleStream);
-    if (m_pEleStream2)
-        g_pCurrentScene->m_pEffectContainer->AddChild(m_pEleStream2);
-
-    return 1;
 }
+
 
 int TMHuman::FrameMove(unsigned int dwServerTime)
 {
@@ -1562,75 +1585,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
 
     if (m_dwEarthQuakeTime && dwServerTime - m_dwEarthQuakeTime > 0x3E8)
     {
-        m_dwEarthQuakeTime = 0;
-        if (m_nClass == 56)
-            g_pObjectManager->GetCamera()->EarthQuake(1);
-        else if (m_nClass == 32)
-        {
-            g_pObjectManager->GetCamera()->EarthQuake(1);
-
-            int nTexIndex = 0;
-            float fWaterHeight = 0.0f;
-            int nSoundIndex = 142;
-
-            TMVector2 vec((float)(cosf(m_fAngle - 3.1415927f) * 1.5f) + m_vecPosition.x,
-                m_vecPosition.y - (float)(sinf(m_fAngle - 3.1415927f) * 1.5f));
-
-            if (pScene->GroundIsInWater(vec, m_fHeight, &fWaterHeight) == 1)
-            {
-                nTexIndex = 151;
-                nSoundIndex = 10;
-            }
-
-            auto pSoundManager = g_pSoundManager;
-            if (pSoundManager)
-            {
-                auto pSoundData = pSoundManager->GetSoundData(nSoundIndex);
-                if (pSoundData && !pSoundData->IsSoundPlaying())
-                {
-                    pSoundData->Play();
-                }
-            }
-
-            if (nTexIndex == 0)
-            {
-                TMShade* pCrater = new TMShade(2, 117, 1.0f);
-
-                if (pCrater)
-                {
-                    pCrater->m_bFI = 0;
-                    pCrater->m_dwLifeTime = 5000;
-                    pCrater->SetColor(0xAAAAAAAA);
-                    pCrater->SetPosition(vec);
-
-                    g_pCurrentScene->m_pShadeContainer->AddChild(pCrater);
-                }
-            }
-
-            if (!g_pDevice->m_bSavage && !g_pDevice->m_bIntel)
-            {
-                for (int i = 0; i < 3; ++i)
-                {
-                    TMEffectBillBoard* pBillEffect = new TMEffectBillBoard(nTexIndex,
-                        2000,
-                        0.80000001f,
-                        0.80000001f,
-                        0.80000001f,
-                        0.001f,
-                        1,
-                        80);
-
-                    if (pBillEffect)
-                    {
-                        pBillEffect->m_bStickGround = 1;
-                        pBillEffect->m_vecPosition = TMVector3((float)((float)(i * (rand() % 3 - 1)) * 0.40000001f) + vec.x, m_fHeight,
-                            (float)((float)(i * (rand() % 3 - 1)) * 0.40000001f) + vec.y);
-                        g_pCurrentScene->m_pShadeContainer->AddChild(pBillEffect);
-                        m_dwLastDustTime = dwServerTime;
-                    }
-                }
-            }
-        }
+        UpdateEarthQuake(dwServerTime, pScene);
     }
     if (m_nSkinMeshType == 20 && !m_stLookInfo.HelmMesh && !(dwServerTime % 5000 / 100))
     {
@@ -1841,74 +1796,10 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
 
     if (vecNow.x == vecNext.x && vecNow.y == vecNext.y)
     {
-        if (m_stScore.CurHP > 0 && (m_eMotion == ECHAR_MOTION::ECMOTION_WALK || m_eMotion == ECHAR_MOTION::ECMOTION_RUN))
-        {
-            SetAnimation(ECHAR_MOTION::ECMOTION_STAND02, 1);
-
-            if (m_fMaxSpeed <= 10.0f)
-            {
-                for (int l = nRouteIndex + 1; l < 48; ++l)
-                    m_vecRouteBuffer[l] = m_vecRouteBuffer[nRouteIndex];
-            }
-            else
-            {
-                for (int nIndex = 0; nIndex < 48; ++nIndex)
-                    m_vecRouteBuffer[nIndex] = m_vecRouteBuffer[nRouteIndex];
-            }
-
-            m_cOnlyMove = 0;
-            SetSpeed(0);
-
-            TMFieldScene* pFScene = (TMFieldScene*)g_pCurrentScene;
-            if (g_pCurrentScene->m_pMyHuman == this && m_pMoveTargetHuman)
-            {
-                if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-                {
-                    if (pFScene->m_cAutoAttack == 1)
-                        pFScene->m_pTargetHuman = m_pMoveTargetHuman;
-                }
-                MoveAttack(m_pMoveTargetHuman);
-                m_pMoveTargetHuman = 0;
-                return 1;
-            }
-            if (g_pCurrentScene->m_pMyHuman == this && m_pMoveSkillTargetHuman)
-            {
-                if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-                {
-                    pFScene->SkillUse((int)m_pMoveSkillTargetHuman->m_vecPosition.x, (int)m_pMoveSkillTargetHuman->m_vecPosition.y,
-                        pScene->GroundGetPickPos(), dwServerTime, 1, m_pMoveSkillTargetHuman);
-                }
-                m_pMoveSkillTargetHuman = 0;
-                return 1;
-            }
-        }
-        else if (m_stScore.CurHP <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_nWillDie == 4)
-            SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 1);
-
-        else if (m_stScore.CurHP <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_eMotion != ECHAR_MOTION::ECMOTION_DEAD
-            && m_nWillDie == 1)
-        {
-            SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 0);
-        }
-        else if (m_eMotion == ECHAR_MOTION::ECMOTION_STAND01 || m_eMotion == ECHAR_MOTION::ECMOTION_STAND02)
-        {
-            if (m_cOnlyMove == 1 && m_bSliding == 1)
-            {
-                if (m_fMaxSpeed > 6.0f)
-                {
-                    for (int k = 0; k < 48; ++k)
-                        m_vecRouteBuffer[k] = m_vecRouteBuffer[nRouteIndex];
-                }
-            }
-
-            m_pMoveTargetHuman = 0;
-            m_pMoveSkillTargetHuman = 0;
-            if (m_cOnlyMove == 1)
-                SetSpeed(0);
-
-            m_cOnlyMove = 0;
-            m_bSliding = 0;
-        }
+        int extractedResult{};
+        const ExtractedFlow extractedFlow = UpdateMoveTargetsOnArrival(dwServerTime, nRouteIndex, pScene, extractedResult);
+        if (extractedFlow == ExtractedFlow::Return)
+            return extractedResult;
     }
     else if (death_motion::MayEnterTravelAnimation(m_stScore.CurHP, m_cDie == 1, m_bSliding != 0))
     {
@@ -2014,6 +1905,214 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
     }
     if (m_nClass != 45 && !m_cHide)
     {
+        UpdateShadeVisibility(dwServerTime, nWalkSndIndex);
+    }
+    if (m_nSkinMeshType == 20 && (m_stLookInfo.HelmMesh == 2 || m_stLookInfo.HelmMesh == 4 && m_stLookInfo.HelmSkin == 1))
+    {
+        unsigned int dwTime = 1000;
+        int nParts = 2;
+        unsigned int dwColor = 0xFFFF0000;
+
+        if (m_stLookInfo.HelmMesh == 2 && m_fScale < 0.60000002f)
+        {
+            dwTime = 1200;
+            nParts = 6;
+        }
+        else if (m_stLookInfo.HelmMesh == 4)
+        {
+            nParts = 4;
+            dwColor = 0x0FFFF9900;
+            if (m_fScale < 0.60000002f)
+            {
+                dwTime = 800;
+                nParts = 6;
+            }
+        }
+        if (dwServerTime - m_dwLastDFire > dwTime)
+        {
+            for (int m = 1; m < 10 - nParts; ++m)
+            {
+                TMEffectBillBoard* pFire = new TMEffectBillBoard(44,
+                    2000,
+                    m_fScale * 4.0f,
+                    m_fScale * 4.0f,
+                    m_fScale * 4.0f,
+                    0.00050000002f,
+                    1,
+                    80);
+
+                if (pFire)
+                {
+                    pFire->SetColor(dwColor);
+                    pFire->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                    pFire->m_nFade = 1;
+                    pFire->m_vecPosition = m_vecTempPos[m];
+                    g_pCurrentScene->m_pEffectContainer->AddChild(pFire);
+                }
+            }
+            m_dwLastDFire = dwServerTime;
+        }
+    }
+    if (m_pSkinMesh)
+    {
+        FrameMoveSkinMesh(dwServerTime, nWalkSndIndex);
+    }
+
+    return 1;
+}
+
+// Extracted from TMHuman::FrameMove; behavior is unchanged.
+void TMHuman::UpdateEarthQuake(unsigned int& dwServerTime, TMScene*& pScene)
+{
+        m_dwEarthQuakeTime = 0;
+        if (m_nClass == 56)
+            g_pObjectManager->GetCamera()->EarthQuake(1);
+        else if (m_nClass == 32)
+        {
+            g_pObjectManager->GetCamera()->EarthQuake(1);
+
+            int nTexIndex = 0;
+            float fWaterHeight = 0.0f;
+            int nSoundIndex = 142;
+
+            TMVector2 vec((float)(cosf(m_fAngle - 3.1415927f) * 1.5f) + m_vecPosition.x,
+                m_vecPosition.y - (float)(sinf(m_fAngle - 3.1415927f) * 1.5f));
+
+            if (pScene->GroundIsInWater(vec, m_fHeight, &fWaterHeight) == 1)
+            {
+                nTexIndex = 151;
+                nSoundIndex = 10;
+            }
+
+            auto pSoundManager = g_pSoundManager;
+            if (pSoundManager)
+            {
+                auto pSoundData = pSoundManager->GetSoundData(nSoundIndex);
+                if (pSoundData && !pSoundData->IsSoundPlaying())
+                {
+                    pSoundData->Play();
+                }
+            }
+
+            if (nTexIndex == 0)
+            {
+                TMShade* pCrater = new TMShade(2, 117, 1.0f);
+
+                if (pCrater)
+                {
+                    pCrater->m_bFI = 0;
+                    pCrater->m_dwLifeTime = 5000;
+                    pCrater->SetColor(0xAAAAAAAA);
+                    pCrater->SetPosition(vec);
+
+                    g_pCurrentScene->m_pShadeContainer->AddChild(pCrater);
+                }
+            }
+
+            if (!g_pDevice->m_bSavage && !g_pDevice->m_bIntel)
+            {
+                for (int i = 0; i < 3; ++i)
+                {
+                    TMEffectBillBoard* pBillEffect = new TMEffectBillBoard(nTexIndex,
+                        2000,
+                        0.80000001f,
+                        0.80000001f,
+                        0.80000001f,
+                        0.001f,
+                        1,
+                        80);
+
+                    if (pBillEffect)
+                    {
+                        pBillEffect->m_bStickGround = 1;
+                        pBillEffect->m_vecPosition = TMVector3((float)((float)(i * (rand() % 3 - 1)) * 0.40000001f) + vec.x, m_fHeight,
+                            (float)((float)(i * (rand() % 3 - 1)) * 0.40000001f) + vec.y);
+                        g_pCurrentScene->m_pShadeContainer->AddChild(pBillEffect);
+                        m_dwLastDustTime = dwServerTime;
+                    }
+                }
+            }
+        }
+
+}
+
+// Extracted from TMHuman::FrameMove; behavior is unchanged.
+ExtractedFlow TMHuman::UpdateMoveTargetsOnArrival(unsigned int& dwServerTime, int& nRouteIndex, TMScene*& pScene, int& extractedResult)
+{
+        if (m_stScore.CurHP > 0 && (m_eMotion == ECHAR_MOTION::ECMOTION_WALK || m_eMotion == ECHAR_MOTION::ECMOTION_RUN))
+        {
+            SetAnimation(ECHAR_MOTION::ECMOTION_STAND02, 1);
+
+            if (m_fMaxSpeed <= 10.0f)
+            {
+                for (int l = nRouteIndex + 1; l < 48; ++l)
+                    m_vecRouteBuffer[l] = m_vecRouteBuffer[nRouteIndex];
+            }
+            else
+            {
+                for (int nIndex = 0; nIndex < 48; ++nIndex)
+                    m_vecRouteBuffer[nIndex] = m_vecRouteBuffer[nRouteIndex];
+            }
+
+            m_cOnlyMove = 0;
+            SetSpeed(0);
+
+            TMFieldScene* pFScene = (TMFieldScene*)g_pCurrentScene;
+            if (g_pCurrentScene->m_pMyHuman == this && m_pMoveTargetHuman)
+            {
+                if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+                {
+                    if (pFScene->m_cAutoAttack == 1)
+                        pFScene->m_pTargetHuman = m_pMoveTargetHuman;
+                }
+                MoveAttack(m_pMoveTargetHuman);
+                m_pMoveTargetHuman = 0;
+                { extractedResult = 1; return ExtractedFlow::Return; }
+            }
+            if (g_pCurrentScene->m_pMyHuman == this && m_pMoveSkillTargetHuman)
+            {
+                if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+                {
+                    pFScene->SkillUse((int)m_pMoveSkillTargetHuman->m_vecPosition.x, (int)m_pMoveSkillTargetHuman->m_vecPosition.y,
+                        pScene->GroundGetPickPos(), dwServerTime, 1, m_pMoveSkillTargetHuman);
+                }
+                m_pMoveSkillTargetHuman = 0;
+                { extractedResult = 1; return ExtractedFlow::Return; }
+            }
+        }
+        else if (m_stScore.CurHP <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_nWillDie == 4)
+            SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 1);
+
+        else if (m_stScore.CurHP <= 0 && m_eMotion != ECHAR_MOTION::ECMOTION_DIE && m_eMotion != ECHAR_MOTION::ECMOTION_DEAD
+            && m_nWillDie == 1)
+        {
+            SetAnimation(ECHAR_MOTION::ECMOTION_DEAD, 0);
+        }
+        else if (m_eMotion == ECHAR_MOTION::ECMOTION_STAND01 || m_eMotion == ECHAR_MOTION::ECMOTION_STAND02)
+        {
+            if (m_cOnlyMove == 1 && m_bSliding == 1)
+            {
+                if (m_fMaxSpeed > 6.0f)
+                {
+                    for (int k = 0; k < 48; ++k)
+                        m_vecRouteBuffer[k] = m_vecRouteBuffer[nRouteIndex];
+                }
+            }
+
+            m_pMoveTargetHuman = 0;
+            m_pMoveSkillTargetHuman = 0;
+            if (m_cOnlyMove == 1)
+                SetSpeed(0);
+
+            m_cOnlyMove = 0;
+            m_bSliding = 0;
+        }
+	return ExtractedFlow::Next;
+}
+
+// Extracted from TMHuman::FrameMove; behavior is unchanged.
+void TMHuman::UpdateShadeVisibility(unsigned int& dwServerTime, int& nWalkSndIndex)
+{
         unsigned dwFootTerm = (unsigned int)((1000.0f * m_fScale) / m_fMaxSpeed);
         if (dwFootTerm > 230 && dwFootTerm < 350)
             dwFootTerm = 230;
@@ -2084,55 +2183,12 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
                 }
             }
         }
-    }
-    if (m_nSkinMeshType == 20 && (m_stLookInfo.HelmMesh == 2 || m_stLookInfo.HelmMesh == 4 && m_stLookInfo.HelmSkin == 1))
-    {
-        unsigned int dwTime = 1000;
-        int nParts = 2;
-        unsigned int dwColor = 0xFFFF0000;
 
-        if (m_stLookInfo.HelmMesh == 2 && m_fScale < 0.60000002f)
-        {
-            dwTime = 1200;
-            nParts = 6;
-        }
-        else if (m_stLookInfo.HelmMesh == 4)
-        {
-            nParts = 4;
-            dwColor = 0x0FFFF9900;
-            if (m_fScale < 0.60000002f)
-            {
-                dwTime = 800;
-                nParts = 6;
-            }
-        }
-        if (dwServerTime - m_dwLastDFire > dwTime)
-        {
-            for (int m = 1; m < 10 - nParts; ++m)
-            {
-                TMEffectBillBoard* pFire = new TMEffectBillBoard(44,
-                    2000,
-                    m_fScale * 4.0f,
-                    m_fScale * 4.0f,
-                    m_fScale * 4.0f,
-                    0.00050000002f,
-                    1,
-                    80);
+}
 
-                if (pFire)
-                {
-                    pFire->SetColor(dwColor);
-                    pFire->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                    pFire->m_nFade = 1;
-                    pFire->m_vecPosition = m_vecTempPos[m];
-                    g_pCurrentScene->m_pEffectContainer->AddChild(pFire);
-                }
-            }
-            m_dwLastDFire = dwServerTime;
-        }
-    }
-    if (m_pSkinMesh)
-    {
+// Extracted from TMHuman::FrameMove; behavior is unchanged.
+void TMHuman::FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex)
+{
         if (!m_bVisible && m_bDoubleAttack == 1)
         {
             unsigned int dwFPS = m_pSkinMesh->m_dwFPS;
@@ -2375,10 +2431,9 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
                     m_pShade->SetPosition(TMVector2(m_pSkinMesh->m_vPosition.x, m_pSkinMesh->m_vPosition.z));
             }
         }
-    }
 
-    return 1;
 }
+
 
 void TMHuman::RestoreDeviceObjects()
 {
@@ -2655,14 +2710,12 @@ void TMHuman::UpdateScore(int nGuildLevel)
                 m_pTitleProgressBar->SetCurrentProgress(m_stScore.CurHP);
             }
 
-            SetGuildBattleHPBar(m_stScore.CurHP);
         }
         else
         {
             m_pProgressBar->SetMaxProgress(m_MaxBigHp);
             m_pProgressBar->SetCurrentProgress(m_BigHp);
 
-            SetGuildBattleHPBar(m_BigHp);
         }
         if (!m_MaxBigMp)
         {
@@ -2672,76 +2725,17 @@ void TMHuman::UpdateScore(int nGuildLevel)
                 m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
             }
 
-            SetGuildBattleHPBar(m_stScore.CurHP);
         }
         else
         {
             m_pProgressBar1->SetMaxProgress(m_MaxBigMp);
             m_pProgressBar1->SetCurrentProgress(m_BigMp);
 
-            SetGuildBattleHPBar(m_BigMp);
         }
 
-        SetGuildBattleLifeCount();
 
         TMFieldScene* pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
-        if (auto panelWarTower = (SPanel*)pScene->m_pControlContainer->FindControl(90624))
-        {
-            auto Tower = _HudControl.GuerraTorres.Packet;
-            int X = (int)pScene->m_pMyHuman->m_vecPosition.x;
-            int Y = (int)pScene->m_pMyHuman->m_vecPosition.y;
-
-            /* Tower war score panel. */
-            if (_HudControl.GuerraTorres.Packet.Header.Tick && _HudControl.GuerraTorres.Packet.Header.Tick != -1)
-            {
-                int TowerMinX = 0;
-                int TowerMinY = 0;
-                int TowerPosX = 0;
-                int TowerPosY = 0;
-
-                bool inBattle = (X / 128 == 1 && Y / 128 == 4);
-
-                if (!(X < TowerMinX || X > TowerPosX || Y < TowerMinY || Y > TowerPosY) || inBattle)
-                {
-
-                    if (Tower.Header.ID)
-                        panelWarTower->SetVisible(true);
-
-                    else
-                    {
-                        memset(&_HudControl.GuerraTorres.Packet, 0, sizeof(_HudControl.GuerraTorres.Packet));
-                        panelWarTower->SetVisible(false);
-                        _HudControl.GuerraTorres.Packet.Header.Tick = -1;
-                    }
-
-                    char view[127] = { 0, };
-                    bool isFlag = false;
-
-                    for (int i = 0; i < 5; i++)
-                    {
-                        if (Tower.Name[i][0])
-                        {
-                            auto views = (SText*)pScene->m_pControlContainer->FindControl(90626 + i);
-
-                            if (!views)
-                                continue;
-
-                            sprintf(view, "[%s] - %d points", Tower.Name[i], Tower.Point[i]);
-                            views->SetText(view, 0);
-
-                            isFlag = true;
-                        }
-                    }
-
-                    if (isFlag == false)
-                        panelWarTower->SetVisible(false);
-                }
-                else
-                    if (panelWarTower)
-                        panelWarTower->SetVisible(false);
-            }
-        }
 
         if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD && pScene->m_pMyHuman == this)
         {
@@ -2767,7 +2761,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
             if (pMaxHPText)
             {
                 char _Buffer[32] = { 0 };
-                sprintf_s(_Buffer, resource_ui::MaximumTextFormat(pScene->m_bCompatFieldScene), m_stScore.MaxHP);
+                sprintf_s(_Buffer, "%u", m_stScore.MaxHP);
                 pMaxHPText->SetText(_Buffer, 0);
             }
             if (pCurrentMPText)
@@ -2779,7 +2773,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
             if (pMaxMPText)
             {
                 char szMP[32] = { 0 };
-                sprintf_s(szMP, resource_ui::MaximumTextFormat(pScene->m_bCompatFieldScene), m_stScore.MaxMP);
+                sprintf_s(szMP, "%u", m_stScore.MaxMP);
                 pMaxMPText->SetText(szMP, 0);
             }
             if (pHPBar)
@@ -2832,35 +2826,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
                 }
             }
 
-            // this && was added to prevent null dereferencing
-            if (m_ucChaosLevel < 10 && m_pNameLabel)
-            {
-                m_pNameLabel->m_cBorder = 1;
-                m_pNameLabel->SetTextColor(0xFF000000);
-            }
-            else
-            {
-                if (m_ucChaosLevel > 150)
-                    m_ucChaosLevel = 150;
-                else if (m_ucChaosLevel < 10)
-                    m_ucChaosLevel = 5;
-
-                int nIndex = (m_ucChaosLevel - 5) / 20;
-                float fPos = (float)(m_ucChaosLevel - (20 * nIndex + 5)) / 20.0f;
-
-                unsigned int dwR = (unsigned int)(((float)(((unsigned int)0xFF0000 & TMHuman::m_dwNameColor[nIndex]) >> 16) * (1.0f - fPos)) +
-                    ((float)(((unsigned int)0xFF0000 & TMHuman::m_dwNameColor[nIndex + 1]) >> 16) * fPos)) << 16;
-                unsigned int dwG = (unsigned int)(((float)((TMHuman::m_dwNameColor[nIndex] & 0xFF00) >> 8) * (1.0f - fPos)) +
-                    ((float)((TMHuman::m_dwNameColor[nIndex + 1] & 0xFF00) >> 8) * fPos)) << 8;
-                unsigned int dwB = (unsigned int)(((float)(TMHuman::m_dwNameColor[nIndex] & 0xFF) * (1.0f - fPos)) +
-                    ((float)(TMHuman::m_dwNameColor[nIndex + 1] & 0xFF) * fPos));
-
-                m_pNameLabel->SetTextColor(dwB | dwG | dwR | 0xFF000000);
-
-                // this && was added to prevent null dereferencing
-                if (m_dwID > 0 && m_dwID < 1000 && m_pNameLabel)
-                    m_pNameLabel->m_cBorder = 0;
-            }
+            UpdateNameColor748();
 
             m_pNameLabel->SetSize(strlen(m_szName) * 6.0f + 18.0f, 16.0f);
 
@@ -2879,6 +2845,8 @@ void TMHuman::UpdateScore(int nGuildLevel)
                 m_pTitleNameLabel->SetText(szMyMob, 0);
 
             m_pNameLabel->SetSize(strlen(szMyMob) * 6.0f + 18.0f, 16.0f);
+            if (m_dwID >= 1000)
+                UpdateNameColor748();
         }
 
         if (m_pSkinMesh)
@@ -2888,6 +2856,15 @@ void TMHuman::UpdateScore(int nGuildLevel)
             m_pSkinMesh->m_vScale.z = m_fScale;
         }
     }
+}
+
+void TMHuman::UpdateNameColor748()
+{
+    if (!m_pNameLabel)
+        return;
+    const auto style = name_color_748::Calculate(m_dwID, m_ucChaosLevel, m_dwNameColor);
+    m_pNameLabel->m_cBorder = style.border ? 1 : 0;
+    m_pNameLabel->SetTextColor(style.color);
 }
 
 void TMHuman::CheckAffect()
@@ -3378,11 +3355,6 @@ int TMHuman::Is2stClass()
 int TMHuman::IAmkhepra()
 {
     return m_nClass == 56 && !m_stLookInfo.FaceMesh;
-}
-
-bool _locationCheck(float posx, float posy, int mapX, int mapY)
-{
-    return (int)(posx * 0.0078125f) == mapX && (int)(posy * 0.0078125f) == mapY;
 }
 
 bool _locationCheck(TMVector2 vec2, int mapX, int mapY)

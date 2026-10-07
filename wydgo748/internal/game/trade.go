@@ -135,7 +135,8 @@ func (w *World) tradeRequestValid(p, opponent *Player) bool {
 
 func (w *World) onTrade(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 ||
+		w.shuttingDown || p.PersistencePoisoned || s.IsClosed() || w.criticalTradeReserved(p) {
 		return
 	}
 	p.BrowsingGhostShopID = 0
@@ -146,6 +147,9 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 		return
 	}
 	opponent := w.playerByID(req.OpponentID)
+	if w.criticalTradeReserved(opponent) {
+		return
+	}
 	if !w.tradeRequestValid(p, opponent) {
 		s.Send(wire.MessagePanel("Player unavailable or out of range."))
 		w.cancelTrade(p, "opponent unavailable")
@@ -324,6 +328,20 @@ func (w *World) commitTrade(a, b *Player) {
 		!a.Trade.Checked || !b.Trade.Checked || a.Trade.OpponentID != b.ID || b.Trade.OpponentID != a.ID {
 		return
 	}
+	if w.criticalWrites != nil {
+		if w.shuttingDown || a.Account == nil || b.Account == nil || a.Session == nil || b.Session == nil ||
+			a.Session.IsClosed() || b.Session.IsClosed() || a.PersistencePoisoned || b.PersistencePoisoned ||
+			w.criticalTradeReserved(a) || w.criticalTradeReserved(b) || !w.tradeRequestValid(a, b) {
+			return
+		}
+		for _, p := range []*Player{a, b} {
+			if err := w.validateTradableItems(p.Trade.Items); err != nil {
+				p.Session.Send(wire.MessagePanel(err.Error()))
+				w.cancelTrade(a, "item cannot be traded at final validation")
+				return
+			}
+		}
+	}
 	if err := w.validateTradeCapsules(a.Account, a.Trade.Items); err != nil {
 		a.Session.Send(wire.MessagePanel(err.Error()))
 		b.Session.Send(wire.MessagePanel("The other player's Spirit's Seal is invalid."))
@@ -344,6 +362,15 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
 		b.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
 		w.cancelTrade(a, "final validation failed")
+		return
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueTrade(a, b, aInv, bInv, aGold, bGold); err != nil {
+			log.Printf("TRADE submit accounts %q/%q: %v", a.Account.Name, b.Account.Name, err)
+			a.Session.Send(wire.MessagePanel("The trade could not be saved. No items or gold were transferred."))
+			b.Session.Send(wire.MessagePanel("The trade could not be saved. No items or gold were transferred."))
+			w.cancelTrade(a, "persistence admission rejected")
+		}
 		return
 	}
 
@@ -466,6 +493,9 @@ type tradeBatchStore interface {
 }
 
 func (w *World) saveTradeAccounts(accounts ...*model.Account) error {
+	if err := w.syncPersistenceAllowed("trade accounts"); err != nil {
+		return err
+	}
 	snapshots := accountPersistenceSnapshots(accounts...)
 	if batch, ok := w.store.(tradeBatchStore); ok {
 		return batch.SaveAccounts(snapshots...)
@@ -482,13 +512,23 @@ func (w *World) saveTradeAccounts(accounts ...*model.Account) error {
 }
 
 func (w *World) onCloseTrade(s *net.Session) {
-	if p := w.players[s]; p != nil {
+	if p := w.players[s]; p != nil && !w.criticalTradeReserved(p) {
 		p.BrowsingGhostShopID = 0
 		w.cancelTrade(p, "canceled by player")
 	}
 }
 
 func (w *World) cancelTrade(p *Player, reason string) {
+	if p == nil || p.Trade == nil || w.criticalTradeReserved(p) {
+		return
+	}
+	w.closeTradeContext(p, reason)
+}
+
+// closeTradeContext runs on World after the caller has excluded participant
+// writes. Final acknowledged disconnect cleanup may ignore retained disconnect
+// intents, which otherwise fence the very trade cancellation it must finish.
+func (w *World) closeTradeContext(p *Player, reason string) {
 	if p == nil || p.Trade == nil {
 		return
 	}
@@ -505,6 +545,19 @@ func (w *World) cancelTrade(p *Player, reason string) {
 		}
 	}
 	log.Printf("TRADE canceled for player=%d: %s", p.ID, reason)
+}
+
+// A reciprocal context is shared even when only one participant has a pending
+// account write. Do not cancel it from the other player's timeout or command.
+func (w *World) criticalTradeReserved(p *Player) bool {
+	if w.criticalPlayerReserved(p) {
+		return true
+	}
+	if p != nil && p.Trade != nil {
+		opponent := w.playerByID(p.Trade.OpponentID)
+		return opponent != nil && opponent.Trade != nil && opponent.Trade.OpponentID == p.ID && w.criticalPlayerReserved(opponent)
+	}
+	return false
 }
 
 func (w *World) tickTrades(now time.Time) {

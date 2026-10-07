@@ -110,12 +110,6 @@ TMSkinMesh::~TMSkinMesh()
 	}
 }
 
-HRESULT TMSkinMesh::InitDeviceObjects()
-{
-	RestoreDeviceObjects();
-	return 0;
-}
-
 HRESULT TMSkinMesh::RestoreDeviceObjects()
 {
 	m_bMeshGenerated = 0;
@@ -729,12 +723,6 @@ int TMSkinMesh::Render(float fLen, float fScale, float fLen2)
 	return 1;
 }
 
-HRESULT TMSkinMesh::DeleteDeviceObjects()
-{
-	SAFE_DELETE(m_pRoot);
-	return 0;
-}
-
 HRESULT TMSkinMesh::InvalidateDeviceObjects()
 {
 	if (m_pRoot != nullptr)
@@ -769,11 +757,6 @@ int TMSkinMesh::SetAnimation(int nIndex)
 	}
 
 	return 1;
-}
-
-void TMSkinMesh::SetPosition(D3DXVECTOR3 vPos)
-{
-	m_vPosition = vPos;
 }
 
 void TMSkinMesh::SetPosition(float fX, float fY, float fZ)

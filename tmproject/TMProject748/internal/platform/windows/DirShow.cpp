@@ -1,6 +1,9 @@
 #include "pch.h"
 #include "DirShow.h"
 #include "TMGlobal.h"
+#include "../../application/AssetLoadValidation.h"
+#include <memory>
+#include <new>
 
 int DS_SOUND_MANAGER::m_nMusicIndex = -1;
 int DS_SOUND_MANAGER::m_nCastleIndex = -1;
@@ -44,43 +47,40 @@ void ConvertBGM(const char* szFileName)
 {
 	static char byte_801BB0[172] =
 	{
-	  '±', 'Ý', '°', '­', '»', 'ê', 'Ã', '£', '¾', 'Æ', '°', '¡', 'À', 'Ú', 'À', 'Ï', '¸', '¸', 'À', 'Ì', 'Ã', 'µ', 'º',
-	  'À', 'º', '¼', '¼', 'ö', '·', 'Ï', '¾', 'Æ', '¸', '§', '´', 'ä', '°', 'í', '½', 'Å', 'º', 'ñ', 'Ç', 'Ï', '±', '¸',
-	  '³', 'ª', '¿', 'ì', '¸', '®', '³', 'ª', '¶', 'ó', 'Á', 'Á', 'À', 'º', '³', 'ª', '¶', 'ó', '»', 'õ', '³', 'ª', '¶',
-	  'ó', 'À', 'Ç', '¾', 'î', '¸', '°', 'À', 'Ì', '´', 'Â', 'À', 'Ï', 'Â', 'ï', 'À', 'Ï', '¾', 'î', '³', '³', '´', 'Ï',
-	  '´', 'Ù', 'À', 'á', '²', 'Ù', '·', '¯', '±', 'â', '¾', 'ø', '´', 'Â', '³', 'ª', '¶', 'ó', '¿', 'ì', '¸', '®', '³',
-	  'ª', '¶', 'ó', 'Á', 'Á', 'À', 'º', '³', 'ª', '¶', 'ó', '¹', '«', '±', 'Ã', 'È', '­', '¹', '«', '±', 'Ã', 'È', '­',
-	  '¿', 'ì', '¸', '®', '³', 'ª', '¶', 'ó', '²', 'É', '»', 'ï', 'Ã', 'µ', '¸', '®', '°', '­', '»', 'ê', '¿', '¡', '¿',
-	  'ì', '¸', '®', '³', 'ª', '¶', 'ó', '²', 'É', '\0' 
+	  '\261', '\335', '\260', '\255', '\273', '\352', '\303', '\243', '\276', '\306', '\260', '\241', '\300', '\332', '\300', '\317', '\270', '\270', '\300', '\314', '\303', '\265', '\272',
+	  '\300', '\272', '\274', '\274', '\366', '\267', '\317', '\276', '\306', '\270', '\247', '\264', '\344', '\260', '\355', '\275', '\305', '\272', '\361', '\307', '\317', '\261', '\270',
+	  '\263', '\252', '\277', '\354', '\270', '\256', '\263', '\252', '\266', '\363', '\301', '\301', '\300', '\272', '\263', '\252', '\266', '\363', '\273', '\365', '\263', '\252', '\266',
+	  '\363', '\300', '\307', '\276', '\356', '\270', '\260', '\300', '\314', '\264', '\302', '\300', '\317', '\302', '\357', '\300', '\317', '\276', '\356', '\263', '\263', '\264', '\317',
+	  '\264', '\331', '\300', '\341', '\262', '\331', '\267', '\257', '\261', '\342', '\276', '\370', '\264', '\302', '\263', '\252', '\266', '\363', '\277', '\354', '\270', '\256', '\263',
+	  '\252', '\266', '\363', '\301', '\301', '\300', '\272', '\263', '\252', '\266', '\363', '\271', '\253', '\261', '\303', '\310', '\255', '\271', '\253', '\261', '\303', '\310', '\255',
+	  '\277', '\354', '\270', '\256', '\263', '\252', '\266', '\363', '\262', '\311', '\273', '\357', '\303', '\265', '\270', '\256', '\260', '\255', '\273', '\352', '\277', '\241', '\277',
+	  '\354', '\270', '\256', '\263', '\252', '\266', '\363', '\262', '\311', '\0'
 	};
 
-	auto nLenF = strlen(szFileName);
-	char szTemp[MAX_PATH];
-	sprintf_s(szTemp, szFileName);
-	sprintf_s((char*)szTemp[nLenF + 3], 256, "bon");
+	char source[MAX_PATH]{};
+	if (!asset_load::BoneSourcePath(szFileName, source, sizeof(source))) return;
+	const int handle = _open(source, _O_BINARY | _O_RDONLY);
+	if (handle < 0) return;
+	const int size = _filelength(handle);
+	if (size <= 0) { _close(handle); return; }
+	std::unique_ptr<unsigned char[]> buffer(new (std::nothrow) unsigned char[size]);
+	const bool complete = buffer && _read(handle, buffer.get(), size) == size;
+	_close(handle);
+	if (!complete) return;
+	const std::size_t keySize = sizeof(byte_801BB0) - 1;
+	for (int i = 0; i < size; ++i)
+		buffer[i] = static_cast<unsigned char>(buffer[i] - static_cast<unsigned char>(byte_801BB0[i % keySize]));
 
-	auto handle = _open(szTemp, 0x8000, 0);
-	if (handle != -1)
-	{
-		auto sz = _filelength(handle);
-		auto pBuffer = (char*)malloc(sz);
-
-		_read(handle, pBuffer, sz);
-		_close(handle);
-
-		int nLen2 = strlen(byte_801BB0);
-		for (int i = 0; i < sz; ++i)
-			pBuffer[i] -= byte_801BB0[i % nLen2];
-
-		auto fp = fopen(szFileName, "wb");
-		if (fp)
-		{
-			fwrite(pBuffer, sz, 1, fp);
-			fclose(fp);
-		}
-
-		free(pBuffer);
-	}
+	// Never truncate the destination until a complete sibling file is durable.
+	char temporary[MAX_PATH]{};
+	if (std::strlen(szFileName) + 5 >= sizeof(temporary)) return;
+	sprintf_s(temporary, "%s.tmp", szFileName);
+	const int output = _open(temporary, _O_BINARY | _O_WRONLY | _O_CREAT | _O_EXCL, _S_IREAD | _S_IWRITE);
+	if (output < 0) return;
+	const bool written = _write(output, buffer.get(), size) == size && _commit(output) == 0;
+	const bool closed = _close(output) == 0;
+	if (!written || !closed || !MoveFileExA(temporary, szFileName, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+		_unlink(temporary);
 }
 
 DS_SOUND_CHANNEL::DS_SOUND_CHANNEL()
@@ -336,7 +336,7 @@ int DS_SOUND_MANAGER::PlaySoundA(const char* path, const bool BGM_flag)
 
 	if (BGM_flag == 1)
 		return 0;
-	
+
 	auto play_channel = cur_channel;
 	if (cur_channel + 1 == channel_num)
 		cur_channel = 1;

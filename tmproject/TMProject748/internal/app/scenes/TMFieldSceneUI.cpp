@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "WeatherPacket.h"
 #include "TMFieldScene.h"
 #include "FieldSceneWorldSupport.h"
 #include "ItemEffect.h"
@@ -11,12 +12,16 @@
 #include "WYD748Assets.h"
 #include "../../ui/ObservedAffectProjection.h"
 #include "../../ui/ResourceBarProjection.h"
+#include "../../ui/NativeScoreHud.h"
 #include "TMLog.h"
 #include "ClientDiagnostics.h"
 #include "TMGround.h"
 #include "TMHuman.h"
 #include "TMObjectContainer.h"
 #include "TMCamera.h"
+#include "ServerEndpoint.h"
+#include "ServerStatus.h"
+#include "ServerChannelLabel.h"
 #include "TMSun.h"
 #include "TMSky.h"
 #include "TMSnow.h"
@@ -80,6 +85,11 @@ void TMFieldScene::UpdateCompatScoreUI()
 		m_pMPBar->SetMaxProgress(pMobData->CurrentScore.MaxMP);
 		m_pMPBar->SetCurrentProgress(pMobData->CurrentScore.CurMP);
 	}
+	// FUN_004431e4 also feeds the translucent MP overlay 1159 (Field+0x27adc),
+	// the MP counterpart of 1158; leaving it unfed froze it at its resource value.
+	resource_ui::Project(
+		static_cast<SProgressBar*>(m_pControlContainer->FindControl(TMP_MP_PROGRESS_TR)),
+		pMobData->CurrentScore.CurMP, pMobData->CurrentScore.MaxMP);
 
 	auto setNumber = [this](unsigned int controlID, long long value)
 	{
@@ -90,6 +100,40 @@ void TMFieldScene::UpdateCompatScoreUI()
 			pText->SetText(text, 0);
 		}
 	};
+
+	// FUN_004431e4 totals the Q/W/E shortcut items of the 9x7 Carry into the
+	// bottom-bar counters 1042/1043 (and 1044/5730/5731 where a resource has
+	// them). FieldScene2 has no 1044; FindControl returns null for it.
+	native_score_hud::QuickPotionCounts potionCounts;
+	if (m_pGridInv)
+	{
+		for (int y = 0; y < 7; ++y)
+		{
+			for (int x = 0; x < 9; ++x)
+			{
+				auto* pCell = m_pGridInv->GetItem(x, y);
+				if (!pCell || !pCell->m_pItem)
+					continue;
+				native_score_hud::AddCarryCell(potionCounts, pCell->m_pItem->sIndex,
+					BASE_GetItemAmount(pCell->m_pItem), BASE_GetItemAbility(pCell->m_pItem, 38));
+			}
+		}
+	}
+	const bool shortcutCancelled = m_pMyHuman && m_pMyHuman->m_cCancel == 1;
+	auto setShortcutCount = [this](unsigned int controlID, int count, bool cancelled)
+	{
+		if (auto pText = static_cast<SText*>(m_pControlContainer->FindControl(controlID)))
+		{
+			char text[16]{};
+			native_score_hud::FormatShortcutCount(text, sizeof(text), count, cancelled);
+			pText->SetText(text, 0);
+		}
+	};
+	setShortcutCount(TMT_HPOTION, potionCounts.hp, shortcutCancelled);
+	setShortcutCount(TMT_HPOTION2, potionCounts.hp, shortcutCancelled);
+	setShortcutCount(TMT_MPOTION, potionCounts.mp, shortcutCancelled);
+	setShortcutCount(TMT_MPOTION2, potionCounts.mp, shortcutCancelled);
+	setShortcutCount(TMT_PPOTION, potionCounts.special, false);
 
 	setNumber(TMT_CURRENT_HP, pMobData->CurrentScore.CurHP);
 	setNumber(TMT_MAX_HP, pMobData->CurrentScore.MaxHP);
@@ -102,36 +146,46 @@ void TMFieldScene::UpdateCompatScoreUI()
 		m_pSkBonus->SetText(skillPoints, 0);
 	}
 
-	// FUN_004431e4 writes paired values into the resource-owned ATT and DEF
-	// cells.  Keep that split intact instead of duplicating one value into the
-	// later 7.59 labels: current attack/defense are the primary values, while
-	// selected-skill damage and native base/ability defense are the companions.
-	int selectedSkillDamage = 0;
+	// FUN_004431e4 writes the selected skill's damage into HUD 1030 and
+	// Character 1104 together. Skills outside the native 0..103 range show "0"
+	// and keep their color; healing (negative) is shown absolute in green,
+	// damage in blue.
 	const int selectedShortSlot = g_pObjectManager->m_cSelectShortSkill;
-	if (m_pMyHuman && selectedShortSlot >= 0 && selectedShortSlot < 20)
+	const int selectedSkill = selectedShortSlot >= 0 && selectedShortSlot < 20
+		? g_pObjectManager->m_cShortSkill[selectedShortSlot] : -1;
+	char skillDamageText[32]{};
+	unsigned int skillDamageColor = 0;
+	if (m_pMyHuman && selectedSkill >= 0 && selectedSkill <= 103)
 	{
-		const int selectedSkill = g_pObjectManager->m_cShortSkill[selectedShortSlot];
-		if (selectedSkill >= 0 && selectedSkill < 248)
+		SetMyHumanMagic();
+		const int weather = SkillDamageWeather(g_nWeather,
+			static_cast<int>(m_pMyHuman->m_vecPosition.x) >> 7,
+			static_cast<int>(m_pMyHuman->m_vecPosition.y) >> 7);
+		const int skillDamage = BASE_GetSkillDamage(selectedSkill, pMobData,
+			weather, GetWeaponDamage(), pMobData->Equip[0].sIndex);
+		sprintf_s(skillDamageText, "%d", skillDamage < 0 ? -skillDamage : skillDamage);
+		skillDamageColor = skillDamage < 0 ? 0xFFAAFFAA : 0xFFBBBBFF;
+	}
+	else
+		sprintf_s(skillDamageText, "%d", 0);
+	for (unsigned int controlID : { TMT_ATT_ENC, TMT_CI_ATRT })
+	{
+		if (auto pText = static_cast<SText*>(m_pControlContainer->FindControl(controlID)))
 		{
-			SetMyHumanMagic();
-			int weather = g_nWeather == 3 ? 2 : g_nWeather;
-			const int mapX = static_cast<int>(m_pMyHuman->m_vecPosition.x) >> 7;
-			const int mapY = static_cast<int>(m_pMyHuman->m_vecPosition.y) >> 7;
-			if (mapX > 26 && mapX < 31 && mapY > 20 && mapY < 25)
-				weather = 2;
-			selectedSkillDamage = BASE_GetSkillDamage(selectedSkill, pMobData,
-				weather, GetWeaponDamage(), pMobData->Equip[0].sIndex);
-			if (selectedSkillDamage < 0)
-				selectedSkillDamage = -selectedSkillDamage;
+			pText->SetText(skillDamageText, 0);
+			if (skillDamageColor)
+				pText->SetTextColor(skillDamageColor);
 		}
 	}
 
+	// HUD ATT 1029 and Character 1096 show the current attack. HUD DEF 1033
+	// (white) is base defense plus abilities 3 and 53; the blue 1040 and
+	// Character 1108 repeat the current defense (Field+0x27a80/0x27a84).
 	const int nativeDefense = BASE_GetMobAbility(pMobData, 53)
 		+ BASE_GetMobAbility(pMobData, 3) + pMobData->BaseScore.Defense;
 	setNumber(TMT_ATT, pMobData->CurrentScore.Attack);
-	setNumber(TMT_ATT_ENC, selectedSkillDamage);
-	setNumber(TMT_DEF, pMobData->CurrentScore.Defense);
-	setNumber(TMT_DEF_ENC, nativeDefense);
+	setNumber(TMT_DEF, nativeDefense);
+	setNumber(TMT_DEF_ENC, pMobData->CurrentScore.Defense);
 
 	// The EXP band is two absolute counters in 7.48 (current and next-level
 	// threshold).  FUN_004431e4 updates 1031 and 1032 independently; leaving the
@@ -144,8 +198,15 @@ void TMFieldScene::UpdateCompatScoreUI()
 		currentLevel = 0;
 	if (currentLevel >= levelTableCount - 1)
 		currentLevel = levelTableCount - 2;
-	setNumber(TMT_EXP, pMobData->Exp);
-	setNumber(TMT_EXP_ENC, levelTable[currentLevel + 1]);
+	// FieldScene2 overlaps 1031 (x=40, w=130) and 1032 (x=104, w=64). The
+	// native modern HUD hides 1032 and shows "current / next" in 1031 only.
+	char expRange[64]{};
+	native_score_hud::FormatExpRange(expRange, sizeof(expRange),
+		pMobData->Exp, levelTable[currentLevel + 1]);
+	if (auto pExpText = static_cast<SText*>(m_pControlContainer->FindControl(TMT_EXP)))
+		pExpText->SetText(expRange, 0);
+	if (auto pNextExp = m_pControlContainer->FindControl(TMT_EXP_ENC))
+		pNextExp->SetVisible(0);
 
 	// FUN_004431e4 divides the active 7.48 level interval into four quarters:
 	// panels 1172..1174 mark completed quarters and progress 1171 renders only
@@ -191,15 +252,38 @@ void TMFieldScene::UpdateCompatScoreUI()
 		pNativeExpProgress->SetCurrentProgress(nativeQuarterProgress);
 	}
 	setNumber(TMT_MONEY_C, pMobData->Coin);
-	setNumber(TMT_MONEY, pMobData->Coin);
-	setNumber(TMT_MONEY_TEXT, pMobData->Coin);
+	// FUN_004431e4 formats gold as "%10d" with SText comma grouping (+0xcdd = 1):
+	// inventory 370/1041, gamble balance 6408 (gold minus the pending bet) and
+	// cargo gold 1835/812 from the ObjectManager cargo counter.
+	// The auto-trade copy 812 is written without touching its comma flag.
+	auto setGold = [this](unsigned int controlID, long long value, bool comma)
+	{
+		if (auto pText = static_cast<SText*>(m_pControlContainer->FindControl(controlID)))
+		{
+			char text[32]{};
+			sprintf_s(text, "%10lld", value);
+			if (comma)
+				pText->m_cComma = 1;
+			pText->SetText(text, 0);
+		}
+	};
+	setGold(TMT_MONEY_TEXT, pMobData->Coin, true);
+	setGold(TMT_MONEY, pMobData->Coin, true);
+	setGold(TMT_GAMBLE_MONEY, static_cast<long long>(pMobData->Coin) - m_nBet, true);
+	if (m_pControlContainer->FindControl(TMT_CMONEY_TEXT))
+	{
+		setGold(TMT_CMONEY_TEXT, g_pObjectManager->m_nCargoCoin, true);
+		setGold(TMT_ATRADE_COIN, g_pObjectManager->m_nCargoCoin, false);
+	}
 
 	// The compact 7.48 character window uses the original 10xx control IDs,
 	// whereas the imported 7.59 initializer only binds its replacement 65xxx
 	// controls.  Project the same authoritative score into the legacy fields.
 	setNumber(TMT_CI_LEVEL, pMobData->CurrentScore.Level + 1);
+	// FUN_004431e4 writes the current EXP into 1061 and the next-level
+	// threshold into 1062; repeating the current value hid the target.
 	setNumber(TMT_CI_EXP, pMobData->Exp);
-	setNumber(TMT_CI_EXP_E, pMobData->Exp);
+	setNumber(TMT_CI_EXP_E, levelTable[currentLevel + 1]);
 	setNumber(TMT_CI_STR, pMobData->CurrentScore.Str);
 	setNumber(TMT_CI_INT, pMobData->CurrentScore.Int);
 	setNumber(TMT_CI_DEX, pMobData->CurrentScore.Dex);
@@ -209,7 +293,11 @@ void TMFieldScene::UpdateCompatScoreUI()
 	setNumber(TMT_CI_MP, pMobData->CurrentScore.CurMP);
 	setNumber(TMT_CI_ATT, pMobData->CurrentScore.Attack);
 	setNumber(TMT_CI_DFE, pMobData->CurrentScore.Defense);
-	setNumber(TMT_CI_SPEED, pMobData->CurrentScore.AttackRun & 0x0F);
+	// FUN_004431e4 prints (int)TMHuman::m_fMaxSpeed (+0x220), the clamped
+	// 1..7 BASE_GetSpeed result, not the raw AttackRun nibble.
+	setNumber(TMT_CI_SPEED, m_pMyHuman
+		? static_cast<int>(m_pMyHuman->m_fMaxSpeed)
+		: BASE_GetSpeed(&pMobData->CurrentScore));
 	setNumber(TMT_CI_HOLY, pMobData->CurrentScore.ResistHoly);
 	setNumber(TMT_CI_THUNDER, pMobData->CurrentScore.ResistThunder);
 	setNumber(TMT_CI_FIRE, pMobData->CurrentScore.ResistFire);
@@ -225,18 +313,45 @@ void TMFieldScene::UpdateCompatScoreUI()
 			pText->SetText(const_cast<char*>(value ? value : ""), 0);
 		}
 	};
-	setCompatText(TMT_CI_NAME, pMobData->MobName);
+	// Name 1057 is "[%s]" drawn with slashed zeros (SetText second argument 1).
+	if (auto pName = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_NAME)))
+	{
+		char nameText[64]{};
+		native_score_hud::FormatCharacterName(nameText, sizeof(nameText), pMobData->MobName);
+		pName->SetText(nameText, 1);
+	}
+	// Guild 5752: the slot's guild name in grey, or an empty white text.
+	if (auto pGuild = static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_GUILD)))
+	{
+		const int slot = g_pObjectManager->m_cCharacterSlot;
+		if (pMobData->Guild != 0 && slot >= 0 && slot < 4)
+		{
+			char guildText[16]{};
+			sprintf_s(guildText, "%.11s", g_pObjectManager->m_strGuildName[slot]);
+			pGuild->SetText(guildText, 0);
+			pGuild->SetTextColor(0xFFAAAAAA);
+		}
+		else
+		{
+			pGuild->SetText(const_cast<char*>(""), 0);
+			pGuild->SetTextColor(0xFFFFFFFF);
+		}
+	}
 	static const unsigned int classMessage[4] = { 121, 122, 123, 124 };
 	const int characterClass = pMobData->Class >= 0 && pMobData->Class < 4 ? pMobData->Class : 0;
-	setCompatText(TMT_CI_CLASS, g_pMessageStringTable[classMessage[characterClass]]);
-	if (pMobData->Equip[0].sIndex < 40 && pMobData->Equip[0].sIndex % 10 >= 6)
+	if (pMobData->Equip[0].sIndex >= 40)
 	{
-		const int bodyClass = pMobData->Equip[0].sIndex / 10;
-		setCompatText(TMT_CI_CLASS2,
-			bodyClass >= 0 && bodyClass < 4 ? g_pMessageStringTable[classMessage[bodyClass]] : "");
+		// A non-player face shows the native "Monster" caption.
+		setCompatText(TMT_CI_CLASS, "Monster");
+		setCompatText(TMT_CI_CLASS2, "");
 	}
 	else
-		setCompatText(TMT_CI_CLASS2, "");
+	{
+		setCompatText(TMT_CI_CLASS, g_pMessageStringTable[classMessage[characterClass]]);
+		const int bodyClass = pMobData->Equip[0].sIndex / 10;
+		setCompatText(TMT_CI_CLASS2, pMobData->Equip[0].sIndex % 10 >= 6
+			&& bodyClass >= 0 && bodyClass < 4 ? g_pMessageStringTable[classMessage[bodyClass]] : "");
+	}
 
 	// WYD.exe 7.48 FUN_004431e4 formats every mastery as current/native-max.
 	// Deliberately omit the 7.59 skill IDs 200/204/205/208/233/238: they change
@@ -262,7 +377,9 @@ void TMFieldScene::UpdateCompatScoreUI()
 	for (unsigned int mastery = 0; mastery < _countof(masteryMax); ++mastery)
 	{
 		char masteryText[32]{};
-		sprintf_s(masteryText, "%3d/%3d", pMobData->CurrentScore.Mastery[mastery], masteryMax[mastery]);
+		// Native format "%3d/%-3d": the cap is left-aligned after the slash.
+		native_score_hud::FormatMastery(masteryText, sizeof(masteryText),
+			static_cast<int>(pMobData->CurrentScore.Mastery[mastery]), masteryMax[mastery]);
 		setCompatText(masteryValueIDs[mastery], masteryText);
 	}
 
@@ -272,6 +389,12 @@ void TMFieldScene::UpdateCompatScoreUI()
 	for (unsigned int mastery = 0; mastery < 4; ++mastery)
 		setCompatText(TMT_CI_SPECIAL1_C + mastery,
 			g_pMessageStringTable[242 + characterClass * 4 + mastery]);
+	// Skill-window section captions 5788..5790 follow the class as well
+	// (strings 107..115 for the first three classes, 133..135 for Hunter).
+	static const unsigned int skillSectionMessage[4] = { 107, 110, 113, 133 };
+	for (unsigned int section = 0; section < 3; ++section)
+		setCompatText(TMT_SKILL_SEC1_C + section,
+			g_pMessageStringTable[skillSectionMessage[characterClass] + section]);
 
 	// Control 1376 is the native C.POINT value. FUN_004431e4 derives the shown
 	// percentage from the reserved hold counter and the active class EXP table;
@@ -351,7 +474,8 @@ void TMFieldScene::UpdateCompatScoreUI()
 	char percent[32]{};
 	sprintf_s(percent, "%d%%", attackSpeed);
 	setCompatText(TMT_CI_DFBT, percent);
-	sprintf_s(percent, "%d.%d%%", (pMobData->CurrentScore.Critical * 4) / 10, (pMobData->CurrentScore.Critical * 4) % 10);
+	// FUN_004431e4 shows the critical byte << 1 per mille, not << 2.
+	native_score_hud::FormatCritical(percent, sizeof(percent), pMobData->CurrentScore.Critical);
 	setCompatText(TMT_CI_CRITICAL, percent);
 
 	if (m_pMainCharName && m_pMyHuman)
@@ -367,7 +491,7 @@ void TMFieldScene::UpdateCompatScoreUI()
 
 void TMFieldScene::UpdateCompatLearnedSkillUI()
 {
-	if (!m_bCompatFieldScene || !g_pObjectManager)
+	if (!g_pObjectManager)
 		return;
 
 	auto pMobData = &g_pObjectManager->m_stMobData;
@@ -422,13 +546,6 @@ void TMFieldScene::UpdateCompatLearnedSkillUI()
 				learnedMask, i, controlID, itemIndex);
 			continue;
 		}
-		// The 7.48 config selects the classic UI (UIVer=1), whose generic item
-		// constructor points learned skills at the legacy Amulet atlas (set 1).
-		// FieldScene2's native learned-skill surface uses the color atlas instead;
-		// keep this override local so inventory and equipment retain their native
-		// classic presentation.
-		pControlItem->m_GCObj.nTextureSetIndex = 199;
-
 		const IVector2 inserted = pGrid->AddItemInEmpty(pControlItem);
 		WYD748_DiagnosticsLog(
 			"compat learned skill mask=0x%08X bit=%d control=%u item=%d result=%d,%d\r\n",
@@ -444,7 +561,7 @@ void TMFieldScene::InitializeRuntimeCounterTexts()
 		return;
 
 	m_pRankTimeText = new SText(-2, "00 : 00", 0xFF00FF00,
-		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) / 2.0f) - 42.0f,
+		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) / 2.0f) - 42.0f,
 		30.0f, 200.0f, 16.0f, 0, 0x77777777, 1, 0);
 	if (m_pRankTimeText)
 	{
@@ -464,7 +581,7 @@ void TMFieldScene::InitializeRuntimeCounterTexts()
 	// instance-mob path rather than changing the shared string table ABI.
 	sprintf(szTempLeft, "Monsters 100");
 	m_pRemainText = new SText(-2, szTempLeft, 0xFFFFAA00,
-		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 210.0f,
+		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 210.0f,
 		30.0f, 100.0f, 16.0f, 0, 0x77777777, 1, 0);
 	if (m_pRemainText)
 	{
@@ -476,19 +593,20 @@ void TMFieldScene::InitializeRuntimeCounterTexts()
 	}
 
 	m_pQuestRemainTime = new SText(-2, "", 0xDDFFFF33,
-		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 140.0f,
+		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 140.0f,
 		5.0f * RenderDevice::m_fHeightRatio, 100.0f, 16.0f,
 		0, 0x77777777, 1, 0);
 	if (m_pQuestRemainTime)
 	{
 		m_pQuestRemainTime->m_Font.m_fSize = 1.0f;
 		m_pQuestRemainTime->SetVisible(1);
+		// FUN_00435b13 (UI mode 2): top-right corner, W-140 from 800 pixels up.
 		if (g_pDevice->m_dwScreenWidth < 800)
 			m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth + 35.0f,
 				5.0f * RenderDevice::m_fHeightRatio);
 		else
-			m_pQuestRemainTime->SetPos(276.0f * RenderDevice::m_fWidthRatio,
-				525.0f * RenderDevice::m_fHeightRatio);
+			m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth - 140.0f,
+				5.0f * RenderDevice::m_fHeightRatio);
 		m_pControlContainer->AddItem(m_pQuestRemainTime);
 	}
 }
@@ -499,7 +617,6 @@ int TMFieldScene::InitializeCompatFieldScene()
 	// required to render the 7.48 world.  The imported source's full HUD setup
 	// dereferences controls that do not exist in the original FieldScene2.bin;
 	// entering the world must not depend on those optional controls.
-	m_bCompatFieldScene = true;
 	// Record the exact legacy control tree before changing visibility.  This
 	// gives us the real 7.48 IDs and prevents future ports from guessing IDs
 	// from the newer TMProject resource.
@@ -720,7 +837,36 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pNativeCCMagicBtn->SetEnable(0);
 			m_pNativeCCMagicBtn = nullptr;
 		}
-		m_pServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12288));
+		// Ghidra FUN_00435b13 (0x00440a35..0x00440e60): the in-world channel
+		// selector is FieldScene2 panel 0x3000 with list 0x3001. The modern UI
+		// sets the channel width to 140, adds the 7.48 header caps (-392..-394)
+		// and the list body (-396; its height reuses a loop counter left at 128),
+		// centers the panel, then hides panel and list until button 633.
+		m_pServerPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_MOVE_SELSERVER));
+		if (m_pServerPanel)
+		{
+			g_nChannelWidth = 140;
+			const float middleWidth = static_cast<float>(g_nChannelWidth - 65);
+			m_pServerPanel->AddChild(new SPanel(-392, 0.0f, 0.0f, 40.0f, 45.0f,
+				0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH));
+			m_pServerPanel->AddChild(new SPanel(-393, 23.0f, 0.0f, middleWidth, 45.0f,
+				0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH));
+			m_pServerPanel->AddChild(new SPanel(-394, middleWidth + 23.0f, 0.0f, 40.0f, 45.0f,
+				0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH));
+			m_pServerPanel->SetPos(
+				static_cast<float>(g_pDevice->m_dwScreenWidth >> 1) - static_cast<float>(g_nChannelWidth + 15) / 2.0f,
+				static_cast<float>(g_pDevice->m_dwScreenHeight >> 1) - m_pServerPanel->m_nHeight / 2.0f);
+			m_pServerPanel->AddChild(new SPanel(-396, -1.0f, 45.0f, static_cast<float>(g_nChannelWidth),
+				128.0f + 63.0f, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH));
+		}
+		m_pServerList = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_MOVE_SELECT_SERVER));
+		if (m_pServerList)
+		{
+			m_pServerList->SetVisible(0);
+			if (m_pServerPanel)
+				m_pServerPanel->SetVisible(0);
+			m_pServerList->SetEventListener(m_pControlContainer);
+		}
 		m_pPartyPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1857));
 		m_pPartyList = static_cast<SListBox*>(m_pControlContainer->FindControl(1863));
 		m_pPartyBtn = static_cast<SButton*>(m_pControlContainer->FindControl(5742));
@@ -735,10 +881,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 		}
 		if (m_pInputBG2)
 			m_pInputBG2->SetVisible(0);
-		// Ghidra FUN_00435b13 anchors the native bottom controls to the viewport,
-		// places the 292 flyout immediately above/left of button 5744 and hides it.
-		// FieldScene2.bin contains absolute 800x600 coordinates, so this must run
-		// after RC scaling to make the bar reach the actual window edge.
+		// Bottom HUD roots anchored below (FUN_00435b13, UI mode 2).
 		SControl* pNativeMainMenuButton = m_pControlContainer->FindControl(5744);
 		SControl* pNativeShortSkillBar = m_pControlContainer->FindControl(5745);
 		SControl* pNativeChatBar = m_pControlContainer->FindControl(5739);
@@ -788,10 +931,14 @@ int TMFieldScene::InitializeCompatFieldScene()
 		m_pChatParty = static_cast<SButton*>(m_pControlContainer->FindControl(5698));
 		m_pChatWhisper = static_cast<SButton*>(m_pControlContainer->FindControl(5699));
 		m_pChatGuild = static_cast<SButton*>(m_pControlContainer->FindControl(5700));
-		m_pChatGeneral_C = static_cast<SButton*>(m_pControlContainer->FindControl(5701));
-		m_pChatParty_C = static_cast<SButton*>(m_pControlContainer->FindControl(5702));
-		m_pChatWhisper_C = static_cast<SButton*>(m_pControlContainer->FindControl(5703));
-		m_pChatGuild_C = static_cast<SButton*>(m_pControlContainer->FindControl(5704));
+		// FUN_00435b13 pairs each tab with the 4x8 indicator buttons
+		// 12835..12838. 5701..5704 are SText captions in FieldScene2.bin;
+		// treating them as SButton wrote past the text object and left the
+		// on/off indicators unbound, so a toggled filter showed no change.
+		m_pChatGeneral_C = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAT_GENERAL_C));
+		m_pChatParty_C = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAT_PARTY_C));
+		m_pChatWhisper_C = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAT_WHISPER_C));
+		m_pChatGuild_C = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAT_GUILD_C));
 		// The primary buttons are the receive gates. The native 7.48 scene keeps
 		// each paired *_C control selected in the same state as its primary.
 		if (m_pChatGeneral)
@@ -810,6 +957,13 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pChatWhisper_C->m_bSelected = 1;
 		if (m_pChatGuild_C)
 			m_pChatGuild_C->m_bSelected = 1;
+		// Show the initial "all channels on" state before the first mouse event.
+		for (SButton* chatButton : { m_pChatGeneral, m_pChatParty, m_pChatWhisper, m_pChatGuild,
+			m_pChatGeneral_C, m_pChatParty_C, m_pChatWhisper_C, m_pChatGuild_C })
+		{
+			if (chatButton)
+				chatButton->Update();
+		}
 		// Bind the graph actually loaded from FieldScene2.bin. The CLASSIC
 		// option does not remove UI2 children from that resource.
 		m_pPositionText = static_cast<SText*>(m_pControlContainer->FindControl(771));
@@ -863,33 +1017,72 @@ int TMFieldScene::InitializeCompatFieldScene()
 				}
 			}
 		}
+		// FUN_00435b13 (UI mode 2) anchors the bottom HUD in this order; the
+		// helpers are FUN_00401304 (scale the resource position from 800x600),
+		// FUN_004013c2/FUN_0040137c/FUN_00401367/FUN_004013ad (stick bottom,
+		// right, left, top) and FUN_004013f3 (centre the 800x600 layout).
+		const float viewportW = static_cast<float>(g_pDevice->m_dwScreenWidth);
+		const float viewportH = static_cast<float>(g_pDevice->m_dwScreenHeight);
+		auto scaleResourcePos = [viewportW, viewportH](SControl* control)
+		{
+			control->m_nPosX = control->m_nPosX / WYD748_UI_BASE_WIDTH * viewportW;
+			control->m_nPosY = control->m_nPosY / WYD748_UI_BASE_HEIGHT * viewportH;
+		};
+		if (pNativeMainInfo)
+		{
+			scaleResourcePos(pNativeMainInfo);
+			pNativeMainInfo->SetStickBottom();
+			pNativeMainInfo->m_nPosX = viewportW * 0.5f - pNativeMainInfo->m_nWidth * 0.5f + 4.0f;
+		}
+		SControl* pNativeChatStrip = m_pControlContainer->FindControl(12624);
+		if (pNativeChatStrip && pNativeMainInfo)
+		{
+			scaleResourcePos(pNativeChatStrip);
+			pNativeChatStrip->SetStickBottom();
+			pNativeChatStrip->m_nPosX = pNativeMainInfo->m_nPosX - pNativeChatStrip->m_nWidth;
+			if (SControl* pChatList = m_pControlContainer->FindControl(5377))
+				pChatList->m_nPosY = pNativeChatStrip->m_nPosY - pChatList->m_nHeight - 6.0f;
+		}
+		if (SControl* pBottomCenter = m_pControlContainer->FindControl(5722))
+			pBottomCenter->SetPos(viewportW * 0.5f - pBottomCenter->m_nWidth * 0.5f,
+				viewportH - pBottomCenter->m_nHeight);
+		if (SControl* pStatusOrb = m_pControlContainer->FindControl(5723))
+		{
+			scaleResourcePos(pStatusOrb);
+			pStatusOrb->m_nPosX = 0.0f;
+			pStatusOrb->m_nPosY = 0.0f;
+		}
+		if (SControl* pBottomLeft = m_pControlContainer->FindControl(5732))
+			pBottomLeft->SetPos(0.0f, viewportH - pBottomLeft->m_nHeight);
+		SControl* pBottomRight = m_pControlContainer->FindControl(5733);
+		if (pBottomRight && pNativeMainInfo)
+			pBottomRight->SetPos(viewportW - pBottomRight->m_nWidth,
+				viewportH - pNativeMainInfo->m_nHeight - 30.0f);
+		if (SControl* pBottomRightTab = m_pControlContainer->FindControl(5735))
+			if (pBottomRight)
+				pBottomRightTab->SetPos(viewportW - 10.0f, pBottomRight->m_nPosY);
+		if (pNativeChatBar && pNativeChatStrip)
+			pNativeChatBar->SetPos(pNativeChatStrip->m_nPosX, pNativeChatStrip->m_nPosY);
 		if (pNativeMainMenuButton)
 		{
+			scaleResourcePos(pNativeMainMenuButton);
 			pNativeMainMenuButton->SetStickRight();
 			pNativeMainMenuButton->SetStickBottom();
 		}
-		if (pNativeShortSkillBar && pNativeMainMenuButton)
-		{
-			pNativeShortSkillBar->SetStickBottom();
-			pNativeShortSkillBar->SetPos(
-				pNativeMainMenuButton->m_nPosX - pNativeShortSkillBar->m_nWidth,
-				pNativeShortSkillBar->m_nPosY);
-		}
-		if (pNativeChatBar)
-		{
-			pNativeChatBar->SetStickLeft();
-			pNativeChatBar->SetStickBottom();
-		}
-		if (pNativeMainInfo)
-			pNativeMainInfo->SetStickBottom();
 		if (pNativeMainMenuPanel && pNativeMainMenuButton)
 		{
-			// FUN_00435b13 preserves root 292's resource-authored X and subtracts
-			// _DAT_005A365C (2.0f); only Y is anchored above button 5744.
-			pNativeMainMenuPanel->SetPos(
-				pNativeMainMenuPanel->m_nPosX - 2.0f,
-				pNativeMainMenuButton->m_nPosY - pNativeMainMenuPanel->m_nHeight);
+			scaleResourcePos(pNativeMainMenuPanel);
+			pNativeMainMenuPanel->SetStickRight();
+			pNativeMainMenuPanel->m_nPosY = pNativeMainMenuButton->m_nPosY - pNativeMainMenuPanel->m_nHeight;
+			pNativeMainMenuPanel->m_nPosX -= 2.0f;
 			pNativeMainMenuPanel->SetVisible(0);
+		}
+		if (pNativeShortSkillBar && pNativeMainInfo)
+		{
+			pNativeShortSkillBar->m_nPosX += (viewportW - WYD748_UI_BASE_WIDTH) * 0.5f;
+			pNativeShortSkillBar->m_nPosY += (viewportH - WYD748_UI_BASE_HEIGHT) * 0.5f;
+			pNativeShortSkillBar->SetStickBottom();
+			pNativeShortSkillBar->m_nPosX = pNativeMainInfo->m_nPosX + pNativeMainInfo->m_nWidth;
 		}
 		// Bind the native 7.48 feature-panel IDs as real scene members.  Keyboard
 		// dispatch runs before the requested panel is opened, so leaving the newer
@@ -977,6 +1170,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pPGTPanel, m_pPGTText, m_pBtnPGTParty, m_pBtnPGTGuild, m_pBtnPGTTrade,
 			m_pBtnPGTChallenge);
 		PositionCompatFeaturePanels();
+		PositionCompatNativeRoots();
 		// FUN_00435b13 binds all six stock artisan panels.  Numeric grid values
 		// 14..23 were later reused by TMProject for unrelated controls, so retain
 		// the native values only on these exact FieldScene2 control IDs and let the
@@ -1253,7 +1447,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 
 void TMFieldScene::PositionCompatFeaturePanels()
 {
-	if (!m_bCompatFieldScene || !g_pDevice)
+	if (!g_pDevice)
 		return;
 
 	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
@@ -1286,9 +1480,46 @@ void TMFieldScene::PositionCompatFeaturePanels()
 	PositionCompatTradePanels();
 }
 
+void TMFieldScene::PositionCompatNativeRoots()
+{
+	if (!g_pDevice || !m_pControlContainer)
+		return;
+
+	const float viewportW = static_cast<float>(g_pDevice->m_dwScreenWidth);
+	const float viewportH = static_cast<float>(g_pDevice->m_dwScreenHeight);
+	auto centre = [&](unsigned int controlID)
+	{
+		if (SControl* control = m_pControlContainer->FindControl(controlID))
+			control->SetPos(viewportW * 0.5f - control->m_nWidth * 0.5f,
+				viewportH * 0.5f - control->m_nHeight * 0.5f);
+	};
+	// Auto trade 646, input boxes 640/626, skill master 1889, 669 and 6185.
+	for (unsigned int controlID : { 646u, 640u, 626u, 1889u, 669u, 6185u })
+		centre(controlID);
+	// 8705 and 8961 use (W - w) / 2 and (H - h) / 2.
+	for (unsigned int controlID : { 8705u, 8961u })
+	{
+		if (SControl* control = m_pControlContainer->FindControl(controlID))
+			control->SetPos((viewportW - control->m_nWidth) * 0.5f,
+				(viewportH - control->m_nHeight) * 0.5f);
+	}
+	// 2048 centres its width plus a 40-pixel margin.
+	if (SControl* control = m_pControlContainer->FindControl(2048))
+		control->SetPos(viewportW * 0.5f - (control->m_nWidth + 40.0f) * 0.5f,
+			viewportH * 0.5f - control->m_nHeight * 0.5f);
+	// 880 sits 200 pixels above the viewport centre.
+	if (SControl* control = m_pControlContainer->FindControl(880))
+		control->SetPos(viewportW * 0.5f - control->m_nWidth * 0.5f, viewportH * 0.5f - 200.0f);
+	// Cargo 1825 sits immediately left of Inventory 257's native position.
+	if (m_pCargoPanel && m_pInvenPanel)
+		m_pCargoPanel->SetPos(
+			viewportW * 0.5f + m_pInvenPanel->m_nWidth * 0.5f + 10.0f - m_pCargoPanel->m_nWidth,
+			viewportH * 0.5f - m_pCargoPanel->m_nHeight * 0.5f);
+}
+
 void TMFieldScene::PositionCompatNativeMixPanels()
 {
-	if (!m_bCompatFieldScene || !g_pDevice)
+	if (!g_pDevice)
 		return;
 
 	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
@@ -1317,7 +1548,7 @@ void TMFieldScene::PositionCompatNativeMixPanels()
 
 void TMFieldScene::PositionCompatShopPanels()
 {
-	if (!m_bCompatFieldScene || !g_pDevice)
+	if (!g_pDevice)
 		return;
 
 	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
@@ -1341,7 +1572,7 @@ void TMFieldScene::PositionCompatShopPanels()
 
 void TMFieldScene::PositionCompatTradePanels()
 {
-	if (!m_bCompatFieldScene || !g_pDevice)
+	if (!g_pDevice)
 		return;
 
 	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
@@ -1365,7 +1596,7 @@ void TMFieldScene::PositionCompatTradePanels()
 
 void TMFieldScene::PositionCompatGamblePanel()
 {
-	if (!m_bCompatFieldScene || !g_pDevice || !m_pGambleStore)
+	if (!g_pDevice || !m_pGambleStore)
 		return;
 
 	const float viewportCenterX = static_cast<float>(g_pDevice->m_dwScreenWidth) * 0.5f;
@@ -1380,7 +1611,7 @@ void TMFieldScene::PositionCompatGamblePanel()
 
 void TMFieldScene::PositionCompatPartyPanel()
 {
-	if (!m_bCompatFieldScene || !g_pDevice || !m_pPartyPanel)
+	if (!g_pDevice || !m_pPartyPanel)
 		return;
 
 	// Native WYD 7.48 FUN_00435b13 places both the Party root 1857 and its
@@ -1605,1192 +1836,45 @@ void TMFieldScene::SetVisibleCharInfo()
 	SGridControl::m_sLastMouseOverIndex = -1;
 	// The native 7.48 character panel is self-contained; toggling it must not
 	// dereference the cargo/gamble extensions introduced by later clients.
-	if (m_bCompatFieldScene)
-	{
-		if (m_pCPanel)
-			m_pCPanel->SetVisible(m_pCPanel->IsVisible() == 0);
-		GetSoundAndPlay(51, 0, 0);
-		return;
-	}
-
-	auto pCPanel = m_pCPanel;
-	auto pCargoPanel = m_pCargoPanel;
-	auto pCargoPanel1 = m_pCargoPanel1;
-	auto pSkillMPanel = m_pSkillMPanel;
-	auto pSkillPanel = m_pSkillPanel;
-	auto pTradePanel = m_pTradePanel;
-	auto pATradePanel = m_pAutoTrade;
-	auto pHellgateStore = m_pHellgateStore;
-	auto pGambleStore = m_pGambleStore;
-
-	bool bInv = m_pInvenPanel->m_bVisible;
-	bool bVisible = pCPanel->m_bVisible == 0;
-
-	pCPanel->SetVisible(bVisible);
-	pCPanel->SetVisible(bVisible);
-
-	auto pSoundManager = g_pSoundManager;
-	if (pSoundManager)
-	{
-		auto pSoundData = pSoundManager->GetSoundData(51);
-		if (pSoundData)
-		{
-			pSoundData->Play();
-		}
-	}
+	if (m_pCPanel)
+		m_pCPanel->SetVisible(m_pCPanel->IsVisible() == 0);
+	GetSoundAndPlay(51, 0, 0);
+	return;
 }
 
 void TMFieldScene::UpdateScoreUI(unsigned int unFlag)
 {
 	// The 7.48 HUD has a different control graph.  Its dedicated projector
 	// updates the same authoritative score without dereferencing 7.59-only UI.
-	if (m_bCompatFieldScene)
-	{
-		UpdateCompatScoreUI();
-		UpdateCompatLearnedSkillUI();
-		return;
-	}
-
-	auto pMobData = &g_pObjectManager->m_stMobData;
-	if (g_pObjectManager->m_stMobData.Equip[13].sIndex == 769)
-	{
-		int sanc = BASE_GetItemSanc(&pMobData->Equip[13]);
-		int hpprogress = 0;
-
-		if (sanc > 6)
-			hpprogress = 545;
-		else if (sanc > 3)
-			hpprogress = 546;
-		else if (sanc > 0)
-			hpprogress = 547;
-		else
-			hpprogress = 538;
-		m_pHPBar->m_GCProgress.nTextureSetIndex = hpprogress;
-		m_pHPBar->Update();
-	}
-	else
-	{
-		m_pHPBar->m_GCProgress.nTextureSetIndex = 538;
-		m_pHPBar->Update();
-	}
-
-	if (pMobData->CurrentScore.CurHP > pMobData->CurrentScore.MaxHP)
-		pMobData->CurrentScore.CurHP = pMobData->CurrentScore.MaxHP;
-
-	if (m_pHPBar)
-		m_pHPBar->SetMaxProgress(pMobData->CurrentScore.MaxHP);
-
-	if (m_pHPBar)
-		m_pHPBar->SetCurrentProgress(pMobData->CurrentScore.CurHP);
-
-	char szStr[128]{};
-	sprintf(szStr, "%d", pMobData->CurrentScore.CurHP);
-	if (m_pCHP)
-		m_pCHP->SetText(szStr, 0);
-
-	// HP on "C"
-	sprintf(szStr, "%d", pMobData->CurrentScore.CurHP);
-	if (m_pCIHP)
-		m_pCIHP->SetText(szStr, 0);
-	if (m_pMPBar)
-		m_pMPBar->SetMaxProgress(pMobData->CurrentScore.MaxMP);
-	if (m_pMPBar)
-		m_pMPBar->SetCurrentProgress(pMobData->CurrentScore.CurMP);
-
-	// MP on "C"
-	sprintf(szStr, "%d", pMobData->CurrentScore.CurMP);
-	if (m_pCMP)
-		m_pCMP->SetText(szStr, 0);
-	if (m_pCIMP)
-		m_pCIMP->SetText(szStr, 0);
-
-	if (m_pMainCharName)
-		m_pMainCharName->SetText(pMobData->MobName, 0);
-
-	if (!(unFlag & 0x10))
-	{
-		sprintf(szStr, "%I64d", pMobData->Exp);
-		if (m_pCIEXP)
-		{
-			m_pCIEXP->m_cComma = 1;
-			m_pCIEXP->SetText(szStr, 0);
-		}
-
-		long long nLevelCount = 0;
-		int ckind = m_pMyHuman->Is2stClass();
-		int CurLevel = pMobData->CurrentScore.Level;
-		if (ckind == 2)
-			nLevelCount = (g_pNextLevel_G2[CurLevel + 1] - g_pNextLevel_G2[CurLevel]) / 10;
-		else
-			nLevelCount = (g_pNextLevel[CurLevel + 1] - g_pNextLevel[CurLevel]) / 10;
-
-		nLevelCount = nLevelCount > 0
-			? static_cast<int>((((float)g_pObjectManager->m_nFakeExp * 100.0f) / (float)nLevelCount))
-			: 0;
-		sprintf(szStr, g_pMessageStringTable[304], g_pObjectManager->m_nFakeExp, nLevelCount);
-		if (m_pGridCharFace)
-		{
-			m_pGridCharFace->m_GCPanel.nTextureSetIndex = 541;
-			m_pGridCharFace->m_GCPanel.nTextureIndex = ckind + 3 * pMobData->Class;
-		}
-		if (m_pCIFakeExp)
-		{
-			m_pCIFakeExp->SetText(szStr, 0);
-			if (nLevelCount < 80)
-				m_pCIFakeExp->SetTextColor(0xFFFFFFFF);
-			else
-				m_pCIFakeExp->SetTextColor(0xFFFF0000);
-		}
-		if (m_pExpHold)
-		{
-			if (g_pObjectManager->m_nFakeExp <= 0)
-				m_pExpHold->SetVisible(0);
-			else
-				m_pExpHold->SetVisible(1);
-		}
-
-		sprintf(szStr, "%d", pMobData->CurrentScore.Level + 1);
-		m_Level = pMobData->CurrentScore.Level + 1;
-		if (m_pCLevel)
-			m_pCLevel->SetText(szStr, 0);
-		if (m_pMainInfo2_Lv)
-			m_pMainInfo2_Lv->SetText(szStr, 0);
-
-		ckind = m_pMyHuman->Is2stClass();
-		CurLevel = pMobData->CurrentScore.Level;
-		if (ckind == 2)
-			sprintf(szStr, "%I64d", g_pNextLevel_G2[CurLevel + 1]);
-		else
-			sprintf(szStr, "%I64d", g_pNextLevel[CurLevel + 1]);
-
-		char strEXP[256]{};
-		if (m_pCIEXPE)
-		{
-			m_pCIEXPE->m_cComma = 1;
-			m_pCIEXPE->SetText(szStr, 0);
-		}
-
-		// The UI renders authoritative counters, not their signed-short
-		// compatibility projection stored inside STRUCT_MOB.
-		sprintf(szStr, "%u", g_pObjectManager->m_stMobData.CurrentScore.StatusPts);
-		if (m_pScBonus)
-			m_pScBonus->SetText(szStr, 0);
-
-		sprintf(szStr, "%u", g_pObjectManager->m_stMobData.CurrentScore.MasterPts);
-		if (m_pSpBonus)
-			m_pSpBonus->SetText(szStr, 0);
-
-		sprintf(szStr, "%u", g_pObjectManager->m_stMobData.CurrentScore.SkillPts);
-		if (m_pSkBonus)
-			m_pSkBonus->SetText(szStr, 0);
-
-		char szMoeny[64]{};
-		char szRMoeny[64]{};
-		sprintf(szMoeny, "%10d", pMobData->Coin);
-		sprintf(szRMoeny, "%10d", g_pObjectManager->m_RMBCount);
-		m_Coin = pMobData->Coin;
-		m_RMB = g_pObjectManager->m_RMBCount;
-		if (m_pMoney1)
-		{
-			m_pMoney1->m_cComma = 1;
-			m_pMoney1->SetText(szMoeny, 0);
-		}
-		if (m_pMoney4)
-		{
-			m_pMoney4->m_cComma = 1;
-			m_pMoney4->SetText(szRMoeny, 0);
-		}
-		if (m_pMoney2)
-		{
-			m_pMoney2->m_cComma = 1;
-			m_pMoney2->SetText(szMoeny, 0);
-		}
-
-		sprintf(szMoeny, "%10d", pMobData->Coin);
-		if (m_pMoney3)
-		{
-			m_pMoney3->m_cComma = 1;
-			m_pMoney3->SetText(szMoeny, 0);
-		}
-
-		char szNameTemp[128]{};
-		sprintf(szNameTemp, "[%s]:%d", pMobData->MobName, strlen(pMobData->MobName));
-		if (m_pCIName)
-			m_pCIName->SetText(szNameTemp, 1);
-
-		static const char* szClass[4] = {
-			g_pMessageStringTable[121],
-			g_pMessageStringTable[122],
-			g_pMessageStringTable[123],
-			g_pMessageStringTable[124]
-		};
-
-		char szValue[256]{};
-		sprintf(szValue, "%d", m_pMyHuman->m_nTotalKill);
-		m_pMyHuman->m_pKillLabel->SetText(szValue, 0);
-
-		m_pCIGuild->SetText(szValue, 0);
-		m_pCIGuild->SetTextColor(0xFFAAAAAA);
-		if (pMobData->Equip[0].sIndex >= 40)
-		{
-			m_pCIClass->SetText((char*)"Monster", 0);
-			m_pCIClass2->SetText((char*)" ", 0);
-		}
-		else if (pMobData->Equip[0].sIndex % 10 >= 6)
-		{
-			m_pCIClass->SetText((char*)szClass[pMobData->Class], 0);
-			m_pCIClass2->SetText((char*)szClass[pMobData->Equip[0].sIndex / 10], 0);
-		}
-		else
-		{
-			m_pCIClass->SetText((char*)szClass[pMobData->Class], 0);
-			m_pCIClass2->SetText((char*)" ", 0);
-		}
-
-		sprintf(szStr, "%d", pMobData->CurrentScore.Str);
-		if (m_pCIStr)
-			m_pCIStr->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->CurrentScore.Int);
-		if (m_pCIInt)
-			m_pCIInt->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->CurrentScore.Dex);
-		if (m_pCIDex)
-			m_pCIDex->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->CurrentScore.Con);
-		if (m_pCICon)
-			m_pCICon->SetText(szStr, 0);
-
-		int nMaxLevel = 0;
-		if (m_pMyHuman->Is2stClass() == 2)
-		{
-			nMaxLevel = 200;
-		}
-		else
-		{
-			nMaxLevel = 3 * (pMobData->CurrentScore.Level + 1) / 2;
-			if (nMaxLevel > 200)
-				nMaxLevel = 200;
-		}
-
-		int nMax3 = nMaxLevel;
-		int nMax2 = nMaxLevel;
-		int nMax1 = nMaxLevel;
-		if (!pMobData->Class && IsValidSkill(205) == 1)
-			nMaxLevel = 280;
-		else if (pMobData->Class == 2 && IsValidSkill(233) == 1)
-			nMaxLevel = 230;
-		if (pMobData->Class == 3 && IsValidSkill(238) == 1)
-			nMax1 = 400;
-		else if (IsValidSkill(200) == 1)
-			nMax1 = 320;
-		else if (IsValidSkill(31) == 1)
-			nMax1 = 255;
-		if (IsValidSkill(204) == 1)
-			nMax2 = 320;
-		else if (IsValidSkill(39) == 1)
-			nMax2 = 255;
-		if (IsValidSkill(208) == 1)
-			nMax3 = 320;
-		else if (IsValidSkill(47) == 1)
-			nMax3 = 255;
-
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[0], nMaxLevel);
-		if (m_pCISpecial1)
-			m_pCISpecial1->SetText(szStr, 0);
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[1], nMax1);
-		if (m_pCISpecial2)
-			m_pCISpecial2->SetText(szStr, 0);
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[2], nMax2);
-		if (m_pCISpecial3)
-			m_pCISpecial3->SetText(szStr, 0);
-		sprintf(szStr, "%3d/%3d", pMobData->CurrentScore.Mastery[3], nMax3);
-		if (m_pCISpecial4)
-			m_pCISpecial4->SetText(szStr, 0);
-
-		long long nMax = 0;
-		long long nCur = 0;
-		if (ckind == 2)
-		{
-			nMax = (g_pNextLevel_G2[CurLevel + 1] - g_pNextLevel_G2[CurLevel]);
-			nCur = pMobData->Exp - g_pNextLevel_G2[CurLevel];
-		}
-		else
-		{
-			nMax = g_pNextLevel[CurLevel + 1] -g_pNextLevel[CurLevel];
-			nCur = pMobData->Exp - g_pNextLevel[CurLevel];
-		}
-
-		int nLamp = static_cast<int>(nMax / 4);
-		int nGrid = 4;
-
-		if (nCur >= nMax / 4)
-		{
-			if (nCur < static_cast<long long>(2 * static_cast<long long>(nLamp)))
-			{
-				nGrid = 2;
-			}
-			else
-			{
-				if (nCur < static_cast<long long>(3 * static_cast<long long>(nLamp)))
-					nGrid = 3;
-			}
-		}
-		else
-		{
-			nGrid = 1;
-		}
-
-		for (int l = 0; l < 3; ++l)
-		{
-			if (m_pExpLamp[l])
-				m_pExpLamp[l]->m_GCPanel.nTextureIndex = l < nGrid - 1;
-		}
-
-		nCur -= (static_cast<long long>(nGrid) - 1) * static_cast<long long>(nLamp);
-		nMax = static_cast<long long>((double)nLamp * 0.1);
-
-		for (int n = 0; n < 10; ++n)
-		{
-			if (nCur > nMax)
-			{
-				nCur -= nMax;
-				if (m_pExpProgress[n])
-				{
-					m_pExpProgress[n]->SetMaxProgress(static_cast<int>(nMax));
-					m_pExpProgress[n]->SetCurrentProgress(static_cast<int>(nMax));
-				}
-			}
-			else if (m_pExpProgress[n])
-			{
-				m_pExpProgress[n]->SetMaxProgress(static_cast<int>(nMax));
-				m_pExpProgress[n]->SetCurrentProgress(static_cast<int>(nCur));
-				nCur = 0;
-			}
-		}
-
-		int face = pMobData->Equip[0].sIndex;
-		int cls = 0;
-		if (face < 40)
-		{
-			if (face == 32)
-			{
-				cls = 2;
-			}
-			else
-			{
-				int mod = face % 10;
-				int div = face / 10;
-				if (face % 10 < 6 || mod > 9)
-					cls = div;
-				else
-					cls = mod - 6;
-			}
-			pMobData->Class = cls;
-		}
-
-		if (!(unFlag & 1))
-		{
-			int sIndex = 0;
-			int ItemIndex = 0;
-			// Skill list on "S"
-			for (int i = 0; i < 24; ++i)
-			{
-				unsigned int dwBit = 1 << i;
-
-				if (!m_pSkillSecGrid[i])
-					continue;
-
-				if ((dwBit & pMobData->LearnedSkill[0]) != dwBit)
-				{
-					m_pSkillSecGrid[i]->Empty();
-					continue;
-				}
-
-				auto pSkillItem = m_pSkillSecGrid[i]->GetItem(0, 0);
-				sIndex = 24 * pMobData->Class + i + 5000;
-
-				if (pSkillItem)
-				{
-					auto pstOldItem = pSkillItem->GetItem();
-					ItemIndex = pstOldItem->sIndex;
-
-					if (ItemIndex > 0 && sIndex == ItemIndex)
-					{
-						pSkillItem = 0;
-						continue;
-					}
-				}
-
-				m_pSkillSecGrid[i]->Empty();
-
-				auto pStructItem = new STRUCT_ITEM;
-				memset(pStructItem, 0, sizeof(STRUCT_ITEM));
-
-				pStructItem->sIndex = sIndex;
-
-				auto ipCtrlItem = new SGridControlItem(0, pStructItem, 0.0f, 0.0f);
-				if (ipCtrlItem && m_pSkillSecGrid[i]->AddItemInEmpty(ipCtrlItem).x < 0)
-					SAFE_DELETE(ipCtrlItem);
-			}
-			// Skill bar 2
-			for (int i = 0; i < 12; ++i)
-			{
-				if (!m_pSkillSecGrid2[i])
-					continue;
-
-				if (((1 << i) & pMobData->LearnedSkill[1]) != 1 << i)
-				{
-					m_pSkillSecGrid2[i]->Empty();
-					continue;
-				}
-
-				SGridControlItem* pSkillItem = m_pSkillSecGrid2[i]->GetItem(0, 0);
-				sIndex = 12 * pMobData->Class + i + 5400;
-
-				if (pSkillItem)
-				{
-					auto pstOldItem = pSkillItem->GetItem();
-					if (ItemIndex > 0 && sIndex == ItemIndex)
-					{
-						pSkillItem = nullptr;
-						continue;
-					}
-				}
-
-				m_pSkillSecGrid2[i]->Empty();
-
-				auto pStructItem = new STRUCT_ITEM;
-				memset(pStructItem, 0, sizeof(STRUCT_ITEM));
-
-				pStructItem->sIndex = sIndex;
-
-				auto ipCtrlItem = new SGridControlItem(0, pStructItem, 0.0f, 0.0f);
-				if (ipCtrlItem && m_pSkillSecGrid2[i]->AddItemInEmpty(ipCtrlItem).x < 0)
-					SAFE_DELETE(ipCtrlItem);
-			}
-			// Skill bar 1
-			for (int i = 0; i < 8; ++i)
-			{
-				unsigned int dwBit = 1 << (i + 24);
-				if (!m_pGridSkillBelt)
-					continue;
-
-				auto pSkillItem = m_pGridSkillBelt->GetItem(i % 4, i / 4);
-				sIndex = i + 5096;
-				if (pSkillItem)
-				{
-					auto pstOldItem = pSkillItem->GetItem();
-					ItemIndex = pstOldItem->sIndex;
-					if (ItemIndex > 0 && sIndex == ItemIndex)
-					{
-						pSkillItem = 0;
-						continue;
-					}
-				}
-
-				auto pOldItem = m_pGridSkillBelt->PickupItem(i % 4, i / 4);
-				if ((dwBit & pMobData->LearnedSkill[0]) == dwBit)
-				{
-				auto pItem = new STRUCT_ITEM;
-				memset(pItem, 0, sizeof(STRUCT_ITEM));
-				pItem->sIndex = i + 5096;
-
-				auto pControlItem = new SGridControlItem(0, pItem, 0.0f, 0.0f);
-				if (pControlItem)
-				{
-					if (!m_pGridSkillBelt->AddItem(pControlItem, i % 4, i / 4))
-						SAFE_DELETE(pControlItem);
-				}
-				else
-					SAFE_DELETE(pItem);
-				}
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pOldItem)
-					g_pCursor->m_pAttachedItem = 0;
-
-				//TODO: check this strange bOld
-				bool bOld = false;
-				if (bOld != 1 && pOldItem)
-				{
-					SAFE_DELETE(pOldItem);
-				}
-			}
-		}
-		if (m_pSLPanel1 && !pMobData->Class)
-			m_pSLPanel1->SetVisible(0);
-		else if (m_pSLPanel1)
-		{
-			m_pSLPanel1->SetVisible(1);
-			if (pMobData->Class == 1)
-				m_pSLPanel1->m_GCPanel.nTextureIndex = 0;
-			if (pMobData->Class == 2)
-				m_pSLPanel1->m_GCPanel.nTextureIndex = 1;
-			if (pMobData->Class == 3)
-				m_pSLPanel1->m_GCPanel.nTextureIndex = 2;
-		}
-		if (m_pSLPanel2 && !pMobData->Class)
-			m_pSLPanel2->SetVisible(0);
-		else if (m_pSLPanel2)
-		{
-			m_pSLPanel2->SetVisible(1);
-			if (pMobData->Class == 1)
-				m_pSLPanel2->m_GCPanel.nTextureIndex = 0;
-			if (pMobData->Class == 2)
-				m_pSLPanel2->m_GCPanel.nTextureIndex = 1;
-			if (pMobData->Class == 3)
-				m_pSLPanel2->m_GCPanel.nTextureIndex = 2;
-		}
-		if (m_pSLPanel3 && !pMobData->Class)
-			m_pSLPanel3->SetVisible(0);
-		else if (m_pSLPanel3)
-		{
-			m_pSLPanel3->SetVisible(1);
-			if (pMobData->Class == 1)
-				m_pSLPanel3->m_GCPanel.nTextureIndex = 0;
-			if (pMobData->Class == 2)
-				m_pSLPanel3->m_GCPanel.nTextureIndex = 1;
-			if (pMobData->Class == 3)
-				m_pSLPanel3->m_GCPanel.nTextureIndex = 2;
-		}
-		if (m_pSkillCover && !pMobData->Class)
-			m_pSkillCover->SetVisible( 0);
-		else if (m_pSkillCover)
-		{
-			m_pSkillCover->SetVisible(1);
-			if (pMobData->Class == 1)
-				m_pSkillCover->m_GCPanel.nTextureIndex = 0;
-			if (pMobData->Class == 2)
-				m_pSkillCover->m_GCPanel.nTextureIndex = 1;
-			if (pMobData->Class == 3)
-				m_pSkillCover->m_GCPanel.nTextureIndex = 2;
-		}
-
-		switch (pMobData->Class)
-		{
-		case 0:
-			m_pCISp1Caption->SetText(g_pMessageStringTable[242], 0);
-			m_pCISp2Caption->SetText(g_pMessageStringTable[243], 0);
-			m_pCISp3Caption->SetText(g_pMessageStringTable[244], 0);
-			m_pCISp4Caption->SetText(g_pMessageStringTable[245], 0);
-			m_pSkillSec1->SetText(g_pMessageStringTable[107], 0);
-			m_pSkillSec2->SetText(g_pMessageStringTable[108], 0);
-			m_pSkillSec3->SetText(g_pMessageStringTable[109], 0);
-			break;
-		case 1:
-			m_pCISp1Caption->SetText(g_pMessageStringTable[246], 0);
-			m_pCISp2Caption->SetText(g_pMessageStringTable[247], 0);
-			m_pCISp3Caption->SetText(g_pMessageStringTable[248], 0);
-			m_pCISp4Caption->SetText(g_pMessageStringTable[249], 0);
-			m_pSkillSec1->SetText(g_pMessageStringTable[110], 0);
-			m_pSkillSec2->SetText(g_pMessageStringTable[111], 0);
-			m_pSkillSec3->SetText(g_pMessageStringTable[112], 0);
-			break;
-		case 2:
-			m_pCISp1Caption->SetText(g_pMessageStringTable[250], 0);
-			m_pCISp2Caption->SetText(g_pMessageStringTable[251], 0);
-			m_pCISp3Caption->SetText(g_pMessageStringTable[252], 0);
-			m_pCISp4Caption->SetText(g_pMessageStringTable[253], 0);
-			m_pSkillSec1->SetText(g_pMessageStringTable[113], 0);
-			m_pSkillSec2->SetText(g_pMessageStringTable[114], 0);
-			m_pSkillSec3->SetText(g_pMessageStringTable[115], 0);
-			break;
-		case 3:
-			m_pCISp1Caption->SetText(g_pMessageStringTable[254], 0);
-			m_pCISp2Caption->SetText(g_pMessageStringTable[255], 0);
-			m_pCISp3Caption->SetText(g_pMessageStringTable[256], 0);
-			m_pCISp4Caption->SetText(g_pMessageStringTable[257], 0);
-			m_pSkillSec1->SetText(g_pMessageStringTable[133], 0);
-			m_pSkillSec2->SetText(g_pMessageStringTable[134], 0);
-			m_pSkillSec3->SetText(g_pMessageStringTable[135], 0);
-			break;
-		}
-
-		int nRate = pMobData->CurrentScore.Mastery[0];
-		int nDamageValue = pMobData->CurrentScore.Attack;
-		if (nRate > 100)
-			nRate = 100;
-
-		sprintf(szStr, "%d", nDamageValue);
-		if (m_pDamage)
-			m_pDamage->SetText(szStr, 0);
-
-		int cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
-		if (cSkillIndex >= 0 && cSkillIndex < 248)
-		{
-			SetMyHumanMagic();
-			int nIdx = g_pObjectManager->m_stMobData.Equip[6].sIndex;
-			int nWeather = g_nWeather;
-			if (g_nWeather == 3)
-				nWeather = 2;
-
-			if ((int)m_pMyHuman->m_vecPosition.x >> 7 > 26 && (int)m_pMyHuman->m_vecPosition.x >> 7 < 31 &&
-				(int)m_pMyHuman->m_vecPosition.y >> 7 > 20 && (int)m_pMyHuman->m_vecPosition.y >> 7 < 25)
-				nWeather = 2;
-
-			int nSkillDam = BASE_GetSkillDamage(cSkillIndex, pMobData, nWeather, GetWeaponDamage(),
-				g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex);
-			if (nSkillDam >= 0)
-			{
-				sprintf(szStr, "%d", nSkillDam);
-				if (m_pSkillDam)
-					m_pSkillDam->SetText(szStr, 0);
-				if (m_pSkillDam)
-					m_pSkillDam->SetTextColor(0xFFBBBBFF);
-			}
-			else
-			{
-				sprintf(szStr, "%d", -nSkillDam);
-				if (m_pSkillDam)
-					m_pSkillDam->SetText(szStr, 0);
-				if (m_pSkillDam)
-					m_pSkillDam->SetTextColor(0xFFBBBBFF);
-			}
-		}
-		else
-		{
-			sprintf(szStr, "%d", 0);
-			if (m_pSkillDam)
-				m_pSkillDam->SetText(szStr, 0);
-		}
-
-		if (!m_pMyHuman->m_cOnlyMove)
-			m_pMyHuman->SetSpeed(m_bMountDead);
-
-		int nSpeedValue = (int)m_pMyHuman->m_fMaxSpeed;
-
-		sprintf(szStr, "%d", nSpeedValue);
-		if (m_pSpeed)
-			m_pSpeed->SetText(szStr, 0);
-
-		int nACValue = pMobData->CurrentScore.Defense;
-		sprintf(szStr, "%d", nACValue);
-		if (m_pDefence)
-			m_pDefence->SetText(szStr, 0);
-
-		int nDef = BASE_GetMobAbility(pMobData, 53) + (BASE_GetMobAbility(pMobData, 3) + pMobData->BaseScore.Defense);
-		sprintf(szStr, "%d", nDef);
-		int nSpeedClass = 0;
-
-		if (m_pMyHuman->m_nClass == 26 && !m_pMyHuman->m_stLookInfo.FaceMesh)
-		{
-			nSpeedClass = 10;
-			if (pMobData->LearnedSkill[0] & 0x20000)
-				nSpeedClass = 20;
-		}
-		else if (m_pMyHuman->m_nClass == 26 && m_pMyHuman->m_stLookInfo.FaceMesh == 1)
-			nSpeedClass = 0;
-		else if (m_pMyHuman->m_nClass == 33)
-		{
-			nSpeedClass = 20;
-			if (pMobData->LearnedSkill[0] & 0x200000)
-				nSpeedClass = 40;
-		}
-		else if(m_pMyHuman->m_nClass == 40)
-			nSpeedClass = 20;
-		else if (m_pMyHuman->m_nClass == 63)
-			nSpeedClass = 30;
-
-		int nAttSpeedValue = (pMobData->CurrentScore.Mastery[2] / 10 + 10)
-			* (m_pMyHuman->m_cSpeedUp - m_pMyHuman->m_cSpeedDown)
-			+ pMobData->CurrentScore.Dex / 5
-			+ nSpeedClass
-			+ BASE_GetMobAbility(pMobData, 26)
-			+ 100;
-
-		if (m_pMyHuman->m_cFreeze == 1)
-			nAttSpeedValue -= 30;
-
-		sprintf(szStr, "%d%%", nAttSpeedValue);
-		if (m_pAttackSpeed)
-			m_pAttackSpeed->SetText(szStr, 0);
-		int nCriticalValue = pMobData->CurrentScore.Critical;
-		nCriticalValue *= 4;
-
-		sprintf(szStr, "%d.%d%%", nCriticalValue / 10, nCriticalValue % 10);
-		if (m_pCritical)
-			m_pCritical->SetText(szStr, 0);
-
-		sprintf(szStr, "%d", pMobData->CurrentScore.ResistHoly);
-		if (m_pRegist1)
-			m_pRegist1->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->CurrentScore.ResistThunder);
-		if (m_pRegist2)
-			m_pRegist2->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->CurrentScore.ResistFire);
-		if (m_pRegist3)
-			m_pRegist3->SetText(szStr, 0);
-		sprintf(szStr, "%d", pMobData->CurrentScore.ResistIce);
-		if (m_pRegist4)
-			m_pRegist4->SetText(szStr, 0);
-
-		//new char
-
-		int PvpDam = BASE_GetMobAbility(pMobData, EF_HWORDGUILD);
-		sprintf(szStr, "%d.%d%%", PvpDam / 10, PvpDam % 10);
-
-		if (m_pPvpDamage)
-			m_pPvpDamage->SetText(szStr, 0);
-
-		int PvpAc = BASE_GetMobAbility(pMobData, EF_LWORDGUILD);
-		sprintf(szStr, "%d.%d%%", PvpAc / 10, PvpAc % 10);
-
-		if (m_pPvpAc)
-			m_pPvpAc->SetText(szStr, 0);
-
-		sprintf(szStr, "%d%%", ValueEffectSrver[0]);
-		if (m_pPerfuDamage)
-			m_pPerfuDamage->SetText(szStr, 0);
-
-		sprintf(szStr, "%d%%", ValueEffectSrver[1]);
-		if (m_pAbsDamage)
-			m_pAbsDamage->SetText(szStr, 0);
-
-		int Precision = BASE_GetMobAbility(pMobData, 103);
-		sprintf(szStr, "%d.%d%%", Precision / 10, Precision % 10);
-
-		if (m_pPrecision)
-			m_pPrecision->SetText(szStr, 0);
-
-		int ParryRate = BASE_GetMobAbility(pMobData, EF_PARRY);
-		sprintf(szStr, "%d.%d%%", ParryRate / 10, ParryRate % 10);
-
-		if (m_pParryRate)
-			m_pParryRate->SetText(szStr, 0);
-
-		sprintf(szStr, "%d", pMobData->CurrentScore.SaveMana);
-		if (m_pSaveMana)
-			m_pSaveMana->SetText(szStr, 0);
-
-		sprintf(szStr, "%d", pMobData->CurrentScore.RegenHP);
-		m_pRegenHP->SetText(szStr, 0);
-
-		if (m_pRegenHP)
-			m_pRegenHP->SetText(szStr, 0);
-
-		sprintf(szStr, "%d", pMobData->CurrentScore.RegenMP);
-		m_pRegenMP->SetText(szStr, 0);
-
-		if (m_pRegenMP)
-			m_pRegenMP->SetText(szStr, 0);
-
-		sprintf(szStr, "%d.%d%%", nCriticalValue / 10, nCriticalValue % 10);
-		if (m_pCriticalDamInc)
-			m_pCriticalDamInc->SetText(szStr, 0);
-
-		sprintf(szStr, "%d", BASE_GetMobAbility(pMobData, EF_RANGE));
-		if (m_pAttackRange)
-			m_pAttackRange->SetText(szStr, 0);
-
-		sprintf(szStr, "%d", BASE_GetMobAbility(pMobData, 98)); //new
-		if (m_pSkillDelayDec)
-			m_pSkillDelayDec->SetText(szStr, 0);
-
-		sprintf(szStr, "%d.%d%%", nCriticalValue / 10, nCriticalValue % 10);
-		if (m_pCriticalNew)
-			m_pCriticalNew->SetText(szStr, 0);
-
-		sprintf(szStr, "%d%%", pMobData->CurrentScore.MagicAmp * 4);
-		if (m_pAtkMagic)
-			m_pAtkMagic->SetText(szStr, 0);
-
-		sprintf(szStr, "%d%%", Exp);
-		if (m_pBonusEXP)
-			m_pBonusEXP->SetText(szStr, 0);
-
-		sprintf(szStr, "%d%%", Drop);
-		if (m_pBonusDROP)
-			m_pBonusDROP->SetText(szStr, 0);
-
-		auto labelcash = (SText*)m_pControlContainer->FindControl(3000069); // Cash label.
-		sprintf(szStr, "%d", Cash);
-		labelcash->SetText(szStr, 0);
-
-		for (int i = 0; i < 32; ++i)
-		{
-			int nType = (signed int)m_pMyHuman->m_usAffect[i] >> 8;
-			if (m_pAffectL[i])
-			{
-				if (nType >= 0 && nType < 50)
-					m_pAffectL[i]->SetText(g_pAffectTable[nType], 0);
-				else
-					m_pAffectL[i]->SetText((char*)" ", 0);
-			}
-		}
-
-		char szVal[32]{};
-
-		for (int i = 0; i < 32; ++i)
-		{
-			if (m_pMyHuman->m_stAffect[i].Type > 0)
-			{
-				if (m_pMyHuman->m_stAffect[i].Time < 1000000)
-				{
-					sprintf(szVal, "%5d", m_pMyHuman->m_stAffect[i].Time);
-				}
-				else
-				{
-					int add = m_pMyHuman->m_stAffect[i].Time / 1000000;
-					int Year = m_pMyHuman->m_stAffect[i].Time % 1000000 / 10000;
-					int Day = m_pMyHuman->m_stAffect[i].Time % 10000;
-					int nYearDay = 365;
-					if (!(Year % 4))
-						nYearDay = 366;
-					int nDafaultDay = 0;
-					switch (add)
-					{
-					case 4:
-						nDafaultDay = 7;
-						break;
-					case 5:
-						nDafaultDay = 15;
-						break;
-					case 6:
-						nDafaultDay = 30;
-						break;
-					}
-
-					if (add)
-					{
-						int freeDay = nDafaultDay - nYearDay * (m_nYear - Year) - (m_nDays - Day);
-						sprintf(szVal, g_pMessageStringTable[291], freeDay);
-					}
-				}
-				if (m_pAffectL[i] && !i)
-				{
-					int sTime = m_pMyHuman->m_stAffect[0].Time;
-					if (sTime >= 7375)
-					{
-						m_pAffect[i]->SetTextColor(0xFFFFFFFF);
-					}
-					else
-					{
-						for (int nJ = 0; nJ < 7; ++nJ)
-						{
-							if (sTime < g_sTimeTable[nJ])
-							{
-								m_pAffect[i]->SetTextColor(g_dwFoodColor[nJ]);
-								break;
-							}
-						}
-					}
-				}
-				if (m_pMiniPanel && m_pAffectIcon[i])
-				{
-					if (m_pMyHuman->m_stAffect[i].Type < 50)
-						m_pAffectIcon[i]->m_GCPanel.nTextureIndex = g_AffectSkillType[m_pMyHuman->m_stAffect[i].Type];
-					else
-						m_pAffectIcon[i]->m_GCPanel.nTextureIndex = 0;
-					m_pAffectIcon[i]->m_GCPanel.nLayer = 29;
-				}
-			}
-			else
-			{
-				if (m_pAffectL[i])
-					m_pAffectL[i]->SetVisible(0);
-				if (m_pAffectIcon[i] && m_pMiniPanel)
-				{
-					m_pAffectIcon[i]->SetVisible(0);
-					m_dwAffectBlinkTime[i] = 0;
-				}
-			}
-		}
-		if (m_pCargoCoin)
-		{
-			sprintf(szVal, "%10d", g_pObjectManager->m_nCargoCoin);
-			m_pCargoCoin->m_cComma = 1;
-			m_pCargoCoin->SetText(szVal, 0);
-			if (m_pMyCargoCoin)
-				m_pMyCargoCoin->SetText(szVal, 0);
-		}
-
-		if (m_pKingDomFlag)
-		{
-			if (!m_pMyHuman->m_pMantua || m_pMyHuman->m_pMantua->m_Look.Skin0 == 19)
-				m_pKingDomFlag->SetVisible(0);
-			else
-			{
-				char szTemp[256]{};
-				m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->m_pMantua->m_Look.Skin0;
-				if ((m_pMyHuman->m_sHelmIndex == 3503 || m_pMyHuman->m_sHelmIndex == 3504 ||
-					m_pMyHuman->m_sHelmIndex == 3505 || m_pMyHuman->m_sHelmIndex == 3506) &&
-					m_pMyHuman->m_pMantua->m_Look.Skin0 == 2)
-				{
-					m_pKingDomFlag->m_GCPanel.nTextureIndex = 33;
-				}
-
-				m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->UnSetCitizenMantle(m_pKingDomFlag->m_GCPanel.nTextureIndex);
-				if (m_pFlagDescText[0])
-				{
-					const int capeIndex = pMobData->Equip[15].sIndex;
-					m_pFlagDescText[0]->SetText(capeIndex > 0 && capeIndex < MAX_ITEMLIST
-						? g_pItemList[capeIndex].Name : nullptr, 0);
-				}
-
-				sprintf(szTemp, "%s %d", g_pMessageStringTable[80], BASE_GetItemAbility(&pMobData->Equip[15], 3));
-				if (m_pFlagDescText[1])
-					m_pFlagDescText[1]->SetText(szTemp, 0);
-
-				sprintf(szTemp, "%s %d", g_pMessageStringTable[81], BASE_GetItemAbility(&pMobData->Equip[15], 4));
-				if (m_pFlagDescText[2])
-					m_pFlagDescText[2]->SetText(szTemp, 0);
-				m_pKingDomFlag->SetVisible(1);
-			}
-		}
-
-		if (m_pMyHuman->m_cMount == 1 &&
-			(m_pMyHuman->m_nMountSkinMeshType == 31	|| m_pMyHuman->m_nMountSkinMeshType == 40 ||
-			 m_pMyHuman->m_nMountSkinMeshType == 20 && m_pMyHuman->m_stMountLook.Mesh0 != 7 || m_pMyHuman->m_nMountSkinMeshType == 39))
-		{
-			if (m_pBtnMountRun)
-			{
-				m_pBtnMountRun->m_bEnable = 1;
-				m_pBtnMountRun->m_bSelected = g_bRunning;
-			}
-		}
-		else if (m_pBtnMountRun)
-		{
-			m_pBtnMountRun->m_bEnable = 0;
-		}
-
-		SetPosPKRun();
-	}
+	UpdateCompatScoreUI();
+	UpdateCompatLearnedSkillUI();
+	return;
 }
 
-void TMFieldScene::InitBoard()
+void TMFieldScene::UpdateScoreButtonRepeat(unsigned int dwServerTime)
 {
-	if (m_pGMsgPanel)
+	// FUN_004776c3 polls the eight native '+' buttons only while Character
+	// panel 513 is visible. The last hovered ID wins, and the held control is
+	// re-dispatched through the regular control event so every server gate
+	// (dead, no points, mastery cap) still applies to each repeat.
+	if (!m_pCPanel || !m_pCPanel->IsVisible() || !m_pControlContainer)
 	{
-		SListBoxBoardItem* pBoardItem = new SListBoxBoardItem((char*)"0",
-			g_pMessageStringTable[176],
-			g_pMessageStringTable[177],
-			g_pMessageStringTable[178],
-			g_pMessageStringTable[179],
-			g_pMessageStringTable[180],
-			0x5588FFFFu,
-			1);
-
-		pBoardItem->SetControlID(824);
-		pBoardItem->SetPos(4.0f, 28.0f);
-		m_pGMsgListPanel->AddChild(pBoardItem);
-
-		m_pButtonBox = new SButtonBox(4.0f, 320.0f, 500.0f, 16.0f, 1, 10, 1, 1, 10, 1, 10);
-		m_pButtonBox->SetControlID(826);
-		m_pButtonBox->SetEventListener(m_pControlContainer ? m_pControlContainer : nullptr);
-
-		m_pGMsgListPanel->AddChild(m_pButtonBox);
-		m_pGMsgPanel->SetVisible(0);
+		m_scoreButtonRepeat.Reset();
+		return;
 	}
-
-	m_pHelpPanel = (SPanel*)m_pControlContainer->FindControl(864);
-
-	if (m_pHelpPanel)
+	static const unsigned int scoreButtons[] = {
+		TMB_CI_STR_E, TMB_CI_INT_E, TMB_CI_DEX_E, TMB_CI_CON_E,
+		TMB_CI_SPECIAL1_E, TMB_CI_SPECIAL2_E, TMB_CI_SPECIAL3_E, TMB_CI_SPECIAL4_E };
+	unsigned int heldButton = 0;
+	for (unsigned int controlID : scoreButtons)
 	{
-		m_pHelpText = (SText*)m_pControlContainer->FindControl(865);
-		m_pHelpButton[0] = (SButton*)m_pControlContainer->FindControl(867);
-		m_pHelpList[0] = (SListBox*)m_pControlContainer->FindControl(868);
-		m_pHelpButton[1] = (SButton*)m_pControlContainer->FindControl(869);
-		m_pHelpList[1] = (SListBox*)m_pControlContainer->FindControl(870);
-		m_pHelpButton[2] = (SButton*)m_pControlContainer->FindControl(871);
-		m_pHelpList[2] = (SListBox*)m_pControlContainer->FindControl(872);
-		m_pHelpButton[3] = (SButton*)m_pControlContainer->FindControl(873);
-		m_pHelpList[3] = (SListBox*)m_pControlContainer->FindControl(874);
-		m_pHelpMemo = (SButton*)m_pControlContainer->FindControl(875);
-		m_pHelpSummon = (SButton*)m_pControlContainer->FindControl(878);
-
-		m_pHelpSummon->m_cAlwaysAlt = 1;
-		m_pHelpSummon->m_cBlink = 1;
-
-		m_pHelpSummon->m_pAltText->SetPos(-26.0f * RenderDevice::m_fWidthRatio,
-			-17.0f * RenderDevice::m_fHeightRatio);
-		m_pHelpMemo->m_pAltText->SetPos(-26.0f * RenderDevice::m_fWidthRatio,
-			-17.0f * RenderDevice::m_fHeightRatio);
-
-		m_pHelpSummon->m_cAlwaysAlt = 0;
-		m_pHelpMemo->m_nPosX = (float)(665.0f * RenderDevice::m_fWidthRatio)
-			+ m_pMainInfo1->m_nPosX;
-		m_pHelpMemo->m_nPosY = m_pMainInfo1->m_nPosY
-			- (float)(105.0f * RenderDevice::m_fHeightRatio);
-		m_pHelpMemo->m_cBlink = 1;
-		m_pHelpSummon->m_nPosX = (float)(616.0f * RenderDevice::m_fWidthRatio)
-			+ m_pMainInfo1->m_nPosX;
-		m_pHelpSummon->m_nPosY = m_pMainInfo1->m_nPosY
-			- (float)(90.0f * RenderDevice::m_fHeightRatio);
-
-		LoadMsgText(m_pHelpList[0], (char*)"UI\\interface.txt");
-		LoadMsgText(m_pHelpList[1], (char*)"UI\\command.txt");
-		LoadMsgText(m_pHelpList[2], (char*)"UI\\etc.txt");
-
-		if (m_pHelpMemo)
-			m_pHelpMemo->SetVisible(0);
-		if (m_pHelpList[0])
-			m_pHelpList[0]->SetVisible(0);
-		if (m_pHelpList[1])
-			m_pHelpList[1]->SetVisible(0);
-		if (m_pHelpList[2])
-			m_pHelpList[2]->SetVisible(0);
-		if (m_pHelpList[3])
-			m_pHelpList[3]->SetVisible(0);
-
-		if (m_pHelpSummon)
-			m_pHelpSummon->SetVisible(0);
-
-		m_pHelpPanel->SetVisible(0);
-		m_pHelpPanel->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pHelpPanel->m_nWidth * 0.5f),
-			((float)g_pDevice->m_dwScreenHeight * 0.5f) - (m_pHelpPanel->m_nHeight * 0.6f));
-
-		m_pHelpInterface = (SPanel*)m_pControlContainer->FindControl(6067);
-		for (int i = 0; i < 3; ++i)
-		{
-			m_pHelpInterfacePanel[i] = (SPanel*)m_pControlContainer->FindControl(i + 6064);
-			m_pHelpInterfaceList[i] = (SListBox*)m_pControlContainer->FindControl(i + 6074);
-			if (m_pHelpInterfacePanel[i])
-				m_pHelpInterfacePanel[i]->SetVisible(0);
-			if (m_pHelpInterfaceList[i])
-				m_pHelpInterfaceList[i]->SetVisible(0);
-		}
-		if (m_pHelpInterfaceList[0])
-			LoadMsgText(m_pHelpInterfaceList[0], (char*)"UI\\interface1.txt");
-		if (m_pHelpInterfaceList[1])
-			LoadMsgText(m_pHelpInterfaceList[1], (char*)"UI\\interface2.txt");
-		if (m_pHelpInterfaceList[2])
-			LoadMsgText(m_pHelpInterfaceList[2], (char*)"UI\\interface3.txt");
-		m_nCurrInterfacePanelIndex = 0;
-		SelectHelpTab(0);
+		auto* pButton = m_pControlContainer->FindControl(controlID);
+		if (pButton && pButton->m_bOver == 1)
+			heldButton = controlID;
 	}
-
-	m_pQuestPanel = (SPanel*)m_pControlContainer->FindControl(1054256);
-	if (m_pQuestPanel)
-	{
-		m_pQuestQuitBtn = (SButton*)m_pControlContainer->FindControl(B_QUEST_QUIT);
-		m_pQuestButton[0] = (SButton*)m_pControlContainer->FindControl(1054259);
-		m_pQuestList[0] = (SListBox*)m_pControlContainer->FindControl(1054260);
-		m_pQuestContentList[0] = (SListBox*)m_pControlContainer->FindControl(1054261);
-		m_pQuestButton[1] = (SButton*)m_pControlContainer->FindControl(1054262);
-		m_pQuestList[1] = (SListBox*)m_pControlContainer->FindControl(1054263);
-		m_pQuestContentList[1] = (SListBox*)m_pControlContainer->FindControl(1054264);
-		m_pQuestButton[2] = (SButton*)m_pControlContainer->FindControl(1054265);
-		m_pQuestList[2] = (SListBox*)m_pControlContainer->FindControl(1054266);
-		m_pQuestContentList[2] = (SListBox*)m_pControlContainer->FindControl(1054267);
-		m_pQuestButton[3] = (SButton*)m_pControlContainer->FindControl(1054268);
-		m_pQuestList[3] = (SListBox*)m_pControlContainer->FindControl(1054269);
-		m_pQuestContentList[3] = (SListBox*)m_pControlContainer->FindControl(1054271);
-
-		for (int questIndex = 0; questIndex < 4; ++questIndex)
-		{
-			if (m_pQuestList[questIndex])
-			{
-				m_pQuestList[questIndex]->SetVisible(0);
-				m_pQuestList[questIndex]->m_bSelectEnable = 0;
-				m_pQuestList[questIndex]->SetEventListener(m_pControlContainer);
-			}
-			if (m_pQuestContentList[questIndex])
-				m_pQuestContentList[questIndex]->SetVisible(0);
-		}
-
-		m_pQuestPanel->SetVisible(0);
-		PositionCompatQuestPanel();
-
-		memset(m_pLevelQuest, 0, sizeof(m_pLevelQuest));
-
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects.txt", 97);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects2.txt", 98);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects3.txt", 99);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects4.txt", 101);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestMessage.txt", 100);
-
-		m_pQuestMemo = (SButton*)m_pControlContainer->FindControl(1054273);
-		if (m_pQuestMemo)
-		{
-			m_pQuestMemo->m_cAlwaysAlt = 1;// blinking button
-			m_pQuestMemo->m_cBlink = 1;
-			if (m_pQuestMemo->m_pAltText)
-				m_pQuestMemo->m_pAltText->SetPos(-20.0f, -10.0f);
-
-			if (m_pMainInfo1)
-			{
-				m_pQuestMemo->m_nPosX = (float)(300.0f * RenderDevice::m_fWidthRatio)
-					+ m_pMainInfo1->m_nPosX;//adicionado
-				m_pQuestMemo->m_nPosY = m_pMainInfo1->m_nPosY
-					- (float)(480.0f * RenderDevice::m_fHeightRatio);
-			}
-		}
-
-		if (g_pObjectManager && !g_pObjectManager->m_stMobData.CurrentScore.Level)
-		{
-			const STRUCT_MOB* pMobData = &g_pObjectManager->m_stMobData;
-			static const char* const questSubjectFiles[4] =
-			{
-				"UI\\QuestSubjects.txt",
-				"UI\\QuestSubjects2.txt",
-				"UI\\QuestSubjects3.txt",
-				"UI\\QuestSubjects4.txt"
-			};
-			for (int questIndex = 0; questIndex < 4; ++questIndex)
-			{
-				if (m_pQuestList[questIndex])
-				{
-					LoadMsgText3(
-						m_pQuestList[questIndex],
-						questSubjectFiles[questIndex],
-						pMobData->CurrentScore.Level + 1,
-						pMobData->Equip[0].sIndex % 10);
-				}
-			}
-
-			if (m_pQuestMemo)
-				m_pQuestMemo->SetVisible(1);
-
-			char szStr[128]{};
-			unsigned int dwCol = 0xFFAAAAFF;
-			if (m_pLevelQuest[pMobData->CurrentScore.Level] == 100)
-				dwCol = LoadMsgText4(
-					szStr,
-					sizeof szStr,
-					(char*)"UI\\QuestMessage.txt",
-					pMobData->CurrentScore.Level + 1,
-					pMobData->Equip[0].sIndex % 10);
-			else
-				sprintf(szStr, g_pMessageStringTable[307]);
-
-			SListBoxItem* pChatItem = new SListBoxItem(szStr, dwCol, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0);
-
-			if (pChatItem && m_pChatList)
-				m_pChatList->AddItem(pChatItem);
-		}
-		else if (m_pQuestMemo)
-		{
-
-			m_pQuestMemo->SetVisible(0);
-		}
-	}
-
-	m_pPotalPanel = (SPanel*)m_pControlContainer->FindControl(12544);
-	m_pPotalList = (SListBox*)m_pControlContainer->FindControl(12545);
-	m_pPotalText = (SText*)m_pControlContainer->FindControl(12551);
-	m_pPotalText1 = (SText*)m_pControlContainer->FindControl(12552);
-	m_pPotalText2 = (SText*)m_pControlContainer->FindControl(12553);
-	m_pPotalText3 = (SText*)m_pControlContainer->FindControl(12560);
-
-	m_pPotalPanel->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pQuestPanel->m_nWidth * 0.5f),
-		((float)g_pDevice->m_dwScreenHeight * 0.5f) - (m_pQuestPanel->m_nHeight * 0.6f));
-
-	if (g_pApp->m_dwScreenWidth <= 1024)
-	{//adicionado
-	m_pPotalList->m_nWidth = BASE_ScreenResize(312.0f);
-	}
-
-	if (m_pPotalList)
-	{
-		m_pPotalList->SetEventListener(m_pControlContainer ? m_pControlContainer : nullptr);
-	}
-
-	if (m_pPotalPanel)
-		m_pPotalPanel->SetVisible(0);
-
-	for (int j = 0; j < 4; ++j)
-	{
-		m_pQuestList[j]->SetSize(200.0f, m_pQuestList[j]->m_nHeight);
-		m_pQuestContentList[j]->SetSize(300.0f, m_pQuestContentList[j]->m_nHeight);
-	}
+	const bool held = heldButton != 0 && g_pEventTranslator && g_pEventTranslator->button[0] != 0;
+	if (m_scoreButtonRepeat.Tick(held, dwServerTime))
+		OnControlEvent(heldButton, 0);
 }
 
 int TMFieldScene::LoadMsgText(SListBox* pListBox, char* szFileName)
@@ -2852,40 +1936,6 @@ void TMFieldScene::VisibleInputPass()
 	}
 }
 
-void TMFieldScene::SetButtonTextXY(SButton* pButton)
-{
-	if (m_pSystemPanel && pButton)
-	{
-		TMVector2 vecXY{};
-		auto vec = pButton->GetPos();
-
-		int nLen = strlen(pButton->m_GCPanel.pFont->m_szString);
-		if (RenderDevice::m_fWidthRatio == 0.80000001f)
-		{
-			vecXY.x = 43.0f - ((float)(nLen - 1) * 3.0f);
-			vecXY.y = 2.0f;
-		}
-		else if (RenderDevice::m_fWidthRatio == 1.28f)
-		{
-			vecXY.x = 66.0f - ((float)(nLen - 1) * 4.0f);
-			vecXY.y = 5.0f;
-		}
-		else if (RenderDevice::m_fWidthRatio == 1.6f)
-		{
-			vecXY.x = 75.0f - ((float)(nLen - 1) * 5.0f);
-			vecXY.y = 5.0f;
-		}
-		else if (RenderDevice::m_fWidthRatio == 2.0f)
-		{
-			vecXY.x = 90.0f - ((float)(nLen - 1) * 5.0f);
-			vecXY.y = 5.0f;
-		}
-
-		pButton->m_GCPanel.pFont->m_nPosX = (int)((m_pSystemPanel->m_nPosX + vec.x) + vecXY.x);
-		pButton->m_GCPanel.pFont->m_nPosY = (int)((m_pSystemPanel->m_nPosY + vec.y) + vecXY.y);
-	}
-}
-
 void TMFieldScene::UpdateCompatObservedAffects()
 {
 	// Reproject every frame, including empty/hidden states. Never borrow the
@@ -2893,7 +1943,7 @@ void TMFieldScene::UpdateCompatObservedAffects()
 	TMHuman* target = m_pMouseOverHuman;
 	SProgressBar* bar = target ? target->m_pTitleProgressBar : nullptr;
 	const auto* targetWords = bar && bar->IsVisible() ? observed_affect_ui::InViewAffects(target) : nullptr;
-	const float targetSize = 18.0f * RenderDevice::m_fHeightRatio;
+	const float targetSize = 18.0f * RenderDevice::m_fUIScaleY;
 	const int targetColumns = bar ? max(1, static_cast<int>(bar->m_nWidth / (targetSize + 1.0f))) : 1;
 	observed_affect_ui::Project(m_pTargetAffectIcon, targetWords,
 		g_AffectSkillType, 41, bar ? bar->m_nPosX : 0.0f,
@@ -2914,7 +1964,7 @@ void TMFieldScene::UpdateCompatObservedAffects()
 	}
 	const float rowHeight = showParty ? m_pPartyList->m_nHeight / m_pPartyList->m_nVisibleCount : 0.0f;
 	// One readable row aligned with the member name, using the row's full height.
-	const float partySize = min(18.0f * RenderDevice::m_fHeightRatio, max(1.0f, rowHeight - 2.0f));
+	const float partySize = min(18.0f * RenderDevice::m_fUIScaleY, max(1.0f, rowHeight - 2.0f));
 	for (int row = 0; row < 13; ++row)
 	{
 		const unsigned short* words = nullptr;
@@ -2940,354 +1990,81 @@ int TMFieldScene::Affect_Main(unsigned int dwServerTime)
 	if (!m_pMyHuman || !m_pMiniPanel)
 		return 0;
 
-	if (m_bCompatFieldScene)
+	// FUN_004770ad defines the stock row geometry: only the first sixteen
+	// STRUCT_AFFECT entries are visualized, types 0..40 are accepted, and the
+	// row begins three pixels after HUD anchor 5723 at y=5.  The source's
+	// compatibility scene explicitly recreates these panels over the
+	// FieldScene2 tree; they do not depend on an imported UI2-only gate.
+
+	SControl* pNativeAffectAnchor = m_pControlContainer
+		? m_pControlContainer->FindControl(5723)
+		: nullptr;
+	if (!pNativeAffectAnchor)
+		return 0;
+
+	if (m_pAffectDesc)
 	{
-		// FUN_004770ad defines the stock row geometry: only the first sixteen
-		// STRUCT_AFFECT entries are visualized, types 0..40 are accepted, and the
-		// row begins three pixels after HUD anchor 5723 at y=5.  The source's
-		// compatibility scene explicitly recreates these panels over the classic
-		// FieldScene2 tree, so applying the imported UI2-only gate here would make
-		// the original 7.48 CLASSIC=1 configuration hide every buff icon.
-
-		SControl* pNativeAffectAnchor = m_pControlContainer
-			? m_pControlContainer->FindControl(5723)
-			: nullptr;
-		if (!pNativeAffectAnchor)
-			return 0;
-
-		if (m_pAffectDesc)
-		{
-			m_pAffectDesc->SetVisible(0);
-			m_pAffectDesc->SetText((char*)"", 0);
-		}
-
-		int visibleCount = 0;
-		for (int affectIndex = 0; affectIndex < 16; ++affectIndex)
-		{
-			SPanel* pIcon = m_pAffectIcon[affectIndex];
-			if (!pIcon)
-				continue;
-
-			const unsigned char affectType =
-				static_cast<unsigned char>(m_pMyHuman->m_stAffect[affectIndex].Type);
-			const int nativeTime = m_pMyHuman->m_stAffect[affectIndex].Time;
-			const bool active = affectType < 41
-				&& ((affectIndex != 0 && affectType != 0) || (affectIndex == 0 && nativeTime > 0));
-			if (!active)
-			{
-				pIcon->SetVisible(0);
-				m_dwAffectBlinkTime[affectIndex] = 0;
-				continue;
-			}
-
-			const int secondsLeft = nativeTime * 8
-				- static_cast<int>((dwServerTime - m_dwStartAffectTime[affectIndex]) / 1000);
-			pIcon->m_GCPanel.nTextureIndex = g_AffectSkillType[affectType];
-			pIcon->m_GCPanel.nLayer = 29;
-			pIcon->SetPos(pNativeAffectAnchor->m_nPosX + pNativeAffectAnchor->m_nWidth
-				+ 3.0f + static_cast<float>(visibleCount) * (pIcon->m_nWidth + 3.0f), 5.0f);
-			++visibleCount;
-
-			if (pIcon->m_bOver == 1 && m_pAffectDesc)
-			{
-				char timeText[128]{};
-				char affectText[128]{};
-				GetTimeString(timeText, secondsLeft, nativeTime, affectIndex);
-				sprintf_s(affectText, "%s : %s", g_pAffectTable[affectType], timeText);
-				m_pAffectDesc->SetText(affectText, 0);
-				m_pAffectDesc->SetPos(pIcon->m_nPosX, pIcon->m_nPosY + 40.0f);
-				m_pAffectDesc->SetVisible(1);
-			}
-
-			if (!m_dwAffectBlinkTime[affectIndex] && secondsLeft <= 10 && secondsLeft > 1)
-				m_dwAffectBlinkTime[affectIndex] = dwServerTime;
-			else if (!m_dwAffectBlinkTime[affectIndex] || secondsLeft >= 10)
-				pIcon->SetVisible(1);
-			else
-			{
-				const unsigned int blinkDelay = 3 * nativeTime * nativeTime + 200;
-				if (dwServerTime - m_dwAffectBlinkTime[affectIndex] >= blinkDelay)
-				{
-					pIcon->SetVisible(pIcon->m_bVisible == 0);
-					m_dwAffectBlinkTime[affectIndex] = dwServerTime;
-				}
-			}
-			if (nativeTime >= 10)
-			{
-				pIcon->SetVisible(1);
-				m_dwAffectBlinkTime[affectIndex] = 0;
-			}
-		}
-		return 1;
+		m_pAffectDesc->SetVisible(0);
+		m_pAffectDesc->SetText((char*)"", 0);
 	}
 
-	int i = 0;
-	int nAvailCount = 0;
-	m_pAffectDesc->SetVisible(0);
-	m_pAffectDesc->SetText((char*)"", 0);
-	bool bomb = false;
-	for (int i = 0; i < 32; ++i)
+	int visibleCount = 0;
+	for (int affectIndex = 0; affectIndex < 16; ++affectIndex)
 	{
-		if ((unsigned char)m_pMyHuman->m_stAffect[i].Type <= 50)
+		SPanel* pIcon = m_pAffectIcon[affectIndex];
+		if (!pIcon)
+			continue;
+
+		const unsigned char affectType =
+			static_cast<unsigned char>(m_pMyHuman->m_stAffect[affectIndex].Type);
+		const int nativeTime = m_pMyHuman->m_stAffect[affectIndex].Time;
+		const bool active = affectType < 41
+			&& ((affectIndex != 0 && affectType != 0) || (affectIndex == 0 && nativeTime > 0));
+		if (!active)
 		{
-			if (!m_pAffectIcon[i]->IsVisible())
-				m_pAffect[i]->SetVisible(0);
-
-			int sTime = 8 * m_pMyHuman->m_stAffect[i].Time - (dwServerTime - m_dwStartAffectTime[i]) / 1000;
-
-			char szVal[128]{};
-			GetTimeString(szVal, sTime, m_pMyHuman->m_stAffect[i].Time, i);
-			int nTime = m_pMyHuman->m_stAffect[i].Time;
-
-			if (m_pAffectIcon[i] && i && (unsigned char)m_pMyHuman->m_stAffect[i].Type > 0 || !i && nTime > 0)
-			{
-				m_pAffectIcon[i]->m_nPosX = BASE_ScreenResize(30.0f);
-				m_pAffectIcon[i]->m_nPosX = ((float)(BASE_ScreenResize(1.0f) + m_pAffectIcon[i]->m_nWidth) * (float)(nAvailCount + 1))
-					+ m_pAffectIcon[i]->m_nPosX;
-				m_pAffectIcon[i]->m_nPosY = BASE_ScreenResize(80.0f);
-
-				m_pAffectIcon[i]->m_nPosY = 60.0f * RenderDevice::m_fWidthRatio;// skill position adjustment
-				m_pAffectIcon[i]->m_nPosY = 80.0f * RenderDevice::m_fHeightRatio;
-
-				if (m_pAffectIcon[i]->m_bOver == 1)
-				{
-					if (m_pAffectL[i])
-					{
-						m_pAffect[i]->SetVisible(0);
-						m_pAffectL[i]->SetVisible(0);
-					}
-
-					char strAffectString[128]{};
-					if (m_pMyHuman->m_stAffect[i].Type == 8)
-					{
-						auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-						int efvalue = m_pMyHuman->m_stAffect[i].Value;
-						int CheckBit = 0;
-						int Cnt = 0;
-						for (int k = 0; k < 10; ++k)
-						{
-							CheckBit = 1 << k;
-							if ((1 << k) & efvalue)
-							{
-								sprintf(strAffectString, "%s %s", strAffectString, g_pAffectSubTable[k]);
-								++Cnt;
-							}
-						}
-
-						int slen = strlen(strAffectString) + 4;
-						sprintf(strAffectString, "%s : %s", strAffectString, szVal);
-						m_pAffectDesc->SetText(strAffectString, 0);
-						m_pAffectDesc->m_nPosX = m_pAffectIcon[i]->m_nPosX;
-						if ((float)(m_pAffectDesc->m_nWidth + 60.0f) + m_pAffectDesc->m_nPosX > (float)g_pDevice->m_dwScreenWidth)
-							m_pAffectDesc->m_nPosX = (float)g_pDevice->m_dwScreenWidth - (float)(m_pAffectDesc->m_nWidth + 60.0f);
-
-						m_pAffectDesc->m_nPosY = m_pAffectIcon[i]->m_nPosY + 40.0f;
-						m_pAffectDesc->SetVisible(1);
-					}
-					else
-					{
-						sprintf(strAffectString, "%s : %s", g_pAffectTable[(unsigned char)m_pMyHuman->m_stAffect[i].Type], szVal);
-						m_pAffectDesc->SetText(strAffectString, 0);
-						m_pAffectDesc->m_nPosX = m_pAffectIcon[i]->m_nPosX;
-						if ((float)(m_pAffectDesc->m_nWidth + 60.0f) + m_pAffectDesc->m_nPosX > (float)g_pDevice->m_dwScreenWidth)
-							m_pAffectDesc->m_nPosX = (float)g_pDevice->m_dwScreenWidth - (float)(m_pAffectDesc->m_nWidth + 60.0f);
-						m_pAffectDesc->m_nPosY = m_pAffectIcon[i]->m_nPosY + 40.0f;
-						m_pAffectDesc->SetVisible(1);
-					}
-				}
-				else
-				{
-					int len = strlen(m_pAffect[i]->m_Font.m_szString);
-					int test = 1;
-					for (int l = 0; l < len; ++l)
-					{
-						if (!isdigit(m_pAffect[i]->m_Font.m_szString[l]) && m_pAffect[i]->m_Font.m_szString[l] != ' ')
-							test = 0;
-					}
-
-					m_pAffect[i]->m_nPosX = m_pAffectIcon[i]->m_nPosX + (test ? -8.0f : 3.0f);
-					if ((float)(m_pAffect[i]->m_nWidth + 60.0f) + m_pAffect[i]->m_nPosX > (float)g_pDevice->m_dwScreenWidth)
-						m_pAffect[i]->m_nPosX = (float)g_pDevice->m_dwScreenWidth - (float)(m_pAffect[i]->m_nWidth + 60.0f);
-
-					m_pAffect[i]->m_nPosY = m_pAffectIcon[i]->m_nPosY + 24.0f;
-					m_pAffect[i]->SetVisible(1);
-				}
-
-				++nAvailCount;
-				if (!m_dwAffectBlinkTime[i] && sTime <= 10 && sTime > 1)
-					m_dwAffectBlinkTime[i] = dwServerTime;
-				else if (!m_dwAffectBlinkTime[i] || sTime >= 10)
-					m_pAffectIcon[i]->SetVisible(1);
-				else
-				{
-					unsigned int dwDelay = 3 * nTime * nTime + 200;
-					if (dwServerTime - m_dwAffectBlinkTime[i] >= dwDelay)
-					{
-						m_pAffectIcon[i]->SetVisible(m_pAffectIcon[i]->m_bVisible == 0);
-						m_dwAffectBlinkTime[i] = dwServerTime;
-					}
-				}
-				if (nTime >= 10)
-				{
-					m_pAffectIcon[i]->SetVisible(1);
-					m_dwAffectBlinkTime[i] = 0;
-				}
-			}
+			pIcon->SetVisible(0);
+			m_dwAffectBlinkTime[affectIndex] = 0;
+			continue;
 		}
-	}
 
-	nAvailCount = 0;
-	int YnAvailCount = 0;
-	int index = 0;
+		const int secondsLeft = nativeTime * 8
+			- static_cast<int>((dwServerTime - m_dwStartAffectTime[affectIndex]) / 1000);
+		pIcon->m_GCPanel.nTextureIndex = g_AffectSkillType[affectType];
+		pIcon->m_GCPanel.nLayer = 29;
+		pIcon->SetPos(pNativeAffectAnchor->m_nPosX + pNativeAffectAnchor->m_nWidth
+			+ 3.0f + static_cast<float>(visibleCount) * (pIcon->m_nWidth + 3.0f), 5.0f);
+		++visibleCount;
 
-	if (m_pMyHuman->m_pTitleProgressBar)
-	{
-		for (int i = 0; i < 32; ++i)
+		if (pIcon->m_bOver == 1 && m_pAffectDesc)
 		{
-			m_pTargetAffectIcon[i]->m_GCPanel.nTextureIndex = -1;
-			index = (int)m_TargetAffect[i] >> 8;
-			if (index == 0)
-			{
-				m_pTargetAffectIcon[i]->m_GCPanel.nTextureIndex = -1;
-			}
-			else
-			{
-				m_pTargetAffectIcon[i]->m_GCPanel.nTextureIndex = g_AffectSkillType[index];
-				++nAvailCount;
-
-				auto vecTitleProgressBar = m_pMyHuman->m_pTitleProgressBar->GetPos();
-				m_pTargetAffectIcon[i]->m_nPosX = vecTitleProgressBar.x
-					- (float)(m_pTargetAffectIcon[i]->m_nWidth * 2.0f);
-				m_pTargetAffectIcon[i]->m_nPosX = ((float)(BASE_ScreenResize(1.0f) + m_pTargetAffectIcon[i]->m_nWidth) * (float)(nAvailCount + 1))
-					+ m_pTargetAffectIcon[i]->m_nPosX;
-				m_pTargetAffectIcon[i]->m_nPosY = ((float)(m_pMyHuman->m_pTitleProgressBar->m_nHeight * 2.0f) / 3.0f) + vecTitleProgressBar.y;
-
-				if (nAvailCount > 9)
-				{
-					m_pTargetAffectIcon[i]->m_nPosY = m_pTargetAffectIcon[i]->m_nPosY + m_pTargetAffectIcon[i]->m_nHeight;
-					m_pTargetAffectIcon[i]->m_nPosX = vecTitleProgressBar.x - (float)(m_pTargetAffectIcon[i]->m_nWidth * 2.0f);
-					m_pTargetAffectIcon[i]->m_nPosX = ((float)(BASE_ScreenResize(1.0f)
-						+ m_pTargetAffectIcon[i]->m_nWidth)
-						* (float)(++YnAvailCount + 1))
-						+ m_pTargetAffectIcon[i]->m_nPosX;
-				}
-			}
-
-			m_pTargetAffectIcon[i]->m_GCPanel.nLayer = 29;
+			char timeText[128]{};
+			char affectText[128]{};
+			GetTimeString(timeText, secondsLeft, nativeTime, affectIndex);
+			sprintf_s(affectText, "%s : %s", g_pAffectTable[affectType], timeText);
+			m_pAffectDesc->SetText(affectText, 0);
+			m_pAffectDesc->SetPos(pIcon->m_nPosX, pIcon->m_nPosY + 40.0f);
+			m_pAffectDesc->SetVisible(1);
 		}
-	}
 
-	int j = 0;
-	index = 0;
-	m_pPartyAffectText->SetVisible(0);
-	auto PartyExit = (SButton*)m_pControlContainer->FindControl(475139);
-	if (PartyExit)
-	{
-		PartyExit->SetVisible(1);
-		float size = (((float)(m_pPartyList->m_nNumItem - m_pPartyList->m_nStartItemIndex)
-			* m_pPartyList->m_nHeight)
-			/ (float)m_pPartyList->m_nVisibleCount)
-			+ 30.0f;
-
-		auto vecPartyExitPos = PartyExit->GetPos();
-		PartyExit->SetPos(vecPartyExitPos.x, size);
-
-		m_pPartyAutoButton->SetVisible(0);
-		m_pPartyAutoText->SetVisible(0);
-
-		auto partyback = (SPanel*)m_pControlContainer->FindControl(7602196);
-		if (partyback)
-			partyback->SetVisible(0);
-		if (m_pPartyList->m_nNumItem >= 1)
-		{
-			m_pPartyPanel->SetSize(m_pPartyPanel->m_nWidth,	(float)m_pPartyList->m_nNumItem * 20.0f);
-		}
+		if (!m_dwAffectBlinkTime[affectIndex] && secondsLeft <= 10 && secondsLeft > 1)
+			m_dwAffectBlinkTime[affectIndex] = dwServerTime;
+		else if (!m_dwAffectBlinkTime[affectIndex] || secondsLeft >= 10)
+			pIcon->SetVisible(1);
 		else
 		{
-			PartyExit->SetVisible(0);
-			m_pPartyAutoButton->SetVisible(1);
-			m_pPartyAutoText->SetVisible(1);
-			if (partyback)
-				partyback->SetVisible(1);
-			if (m_bAutoParty)
-				m_pPartyAutoButton->m_GCPanel.bVisible = 1;
-			else
-				m_pPartyAutoButton->m_GCPanel.bVisible = 0;
-
-			m_pPartyPanel->SetSize(m_pPartyPanel->m_nWidth, 50.0f);
-		}
-	}
-	for (i = 0; i < 13; ++i)
-	{
-		for (j = 0; j < 32; ++j)
-		{
-			m_pPartyAffectIcon[i][j]->m_GCPanel.nTextureIndex = -1;
-			m_pPartyAffectIcon[i][j]->m_GCPanel.nLayer = 29;
-		}
-	}
-
-	for (i = 0; i < m_pPartyList->m_nNumItem; ++i)
-	{
-		auto pPartyItem = (SListBoxPartyItem*)m_pPartyList->m_pItemList[i];
-		auto pHuman = (TMHuman*)g_pObjectManager->GetHumanByID(pPartyItem->m_dwCharID);
-		nAvailCount = 0;
-		YnAvailCount = 0;
-
-		for (j = 0; j < 32; ++j)
-		{
-			if (pHuman)
+			const unsigned int blinkDelay = 3 * nativeTime * nativeTime + 200;
+			if (dwServerTime - m_dwAffectBlinkTime[affectIndex] >= blinkDelay)
 			{
-				index = (signed int)pHuman->m_usAffect[j] >> 8;
-
-				if (!index)
-				{
-					m_pPartyAffectIcon[i][j]->m_GCPanel.nTextureIndex = -1;
-				}
-				else
-				{
-					m_pPartyAffectIcon[i][j]->m_GCPanel.nTextureIndex = g_AffectSkillType[index];
-					++nAvailCount;
-
-					auto vecPartyListPos = m_pPartyList->GetPos();
-					m_pPartyAffectIcon[i][j]->m_nPosX = (float)(vecPartyListPos.x + m_pPartyList->m_nWidth)
-						- 20.0f;
-					m_pPartyAffectIcon[i][j]->m_nPosX = ((BASE_ScreenResize(1.0f) + m_pPartyAffectIcon[i][j]->m_nWidth)
-						* (float)(nAvailCount + 1))
-						+ m_pPartyAffectIcon[i][j]->m_nPosX;
-
-					m_pPartyAffectIcon[i][j]->m_nPosY = (float)((float)((float)(i
-						- m_pPartyList->m_nStartItemIndex)
-						* m_pPartyList->m_nHeight)
-						/ (float)m_pPartyList->m_nVisibleCount)
-						+ 12.0f;
-
-					if (nAvailCount > 10)
-					{
-						m_pPartyAffectIcon[i][j]->m_nPosX = (float)(vecPartyListPos.x + m_pPartyList->m_nWidth)
-							- 20.0f;
-						m_pPartyAffectIcon[i][j]->m_nPosX = ((BASE_ScreenResize(1.0f)
-							+ m_pPartyAffectIcon[i][j]->m_nWidth)
-							* (float)(++YnAvailCount + 1))
-							+ m_pPartyAffectIcon[i][j]->m_nPosX;
-						m_pPartyAffectIcon[i][j]->m_nPosY = (((float)(i
-							- m_pPartyList->m_nStartItemIndex)
-							* m_pPartyList->m_nHeight)
-							/ (float)m_pPartyList->m_nVisibleCount)
-							+ 22.0f;
-					}
-					if (m_pPartyAffectIcon[i][j]->IsOver() == 1)
-					{
-						m_pPartyAffectText->SetRealPos(m_pPartyAffectIcon[i][j]->m_nPosX - m_pPartyAffectIcon[i][j]->m_nWidth,
-							m_pPartyAffectIcon[i][j]->m_nPosY - (float)(m_pPartyAffectIcon[i][j]->m_nHeight * 1.5f));
-
-						m_pPartyAffectText->SetText(g_pAffectTable[index], 0);
-						m_pPartyAffectText->SetVisible(1);
-					}
-				}
+				pIcon->SetVisible(pIcon->m_bVisible == 0);
+				m_dwAffectBlinkTime[affectIndex] = dwServerTime;
 			}
 		}
+		if (nativeTime >= 10)
+		{
+			pIcon->SetVisible(1);
+			m_dwAffectBlinkTime[affectIndex] = 0;
+		}
 	}
-
 	return 1;
 }
 
@@ -3302,22 +2079,137 @@ unsigned int TMFieldScene::GetLascDescParamId()
 	return 0;
 }
 
-int TMFieldScene::StrByteCheck(char* szString)
+// Ghidra FUN_004662c5, control 0x279 (633): with panel 0x3000 present the
+// native client lists the channels of the current group instead of quitting;
+// only the panel's own 0x3003 starts the 0x3AE countdown. Without the panel it
+// falls back to the immediate 0x3AE request.
+int TMFieldScene::OpenNativeServerPanel()
 {
-	int value = 0;
-	int byteCheck = 0;
-	for (size_t i = 0; i < strlen(szString); ++i)
+	if (!m_pServerPanel)
 	{
-		if (szString[i] >= 'A' && szString[i] <= 'z')
-			++value;
-		else if (byteCheck == 1)
-		{
-			++value;
-			byteCheck = 0;
-		}
-		else
-			byteCheck = 1;
+		m_dwLastSelServer = g_pTimerManager->GetServerTime();
+		MSG_SysQuit stParm{};
+		stParm.Header.ID = m_pMyHuman->m_dwID;
+		stParm.Header.Type = MSG_SysQuit_Opcode;
+		g_pSocketManager->SendPacket({reinterpret_cast<MSG_STANDARD*>(&stParm)->Type, reinterpret_cast<char*>(&stParm), sizeof(stParm)});
+		return 1;
 	}
 
-	return value;
+	if (m_pSystemPanel)
+		m_pSystemPanel->SetVisible(0);
+	if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
+		button->SetSelected(0);
+	m_pMessagePanel->SetMessage(g_pMessageStringTable[23], 0);
+	m_pMessagePanel->SetVisible(1, 0);
+
+	const int serverGroup = LastConfiguredServerGroup(g_pServerList);
+	const int currentGroup = g_pObjectManager->m_nServerGroupIndex;
+	if (serverGroup < 0 || currentGroup < 0 || currentGroup >= MAX_SERVERGROUP)
+		return 1;
+
+	// Each group rotates its channel numbering by the local day of month.
+	_SYSTEMTIME time{};
+	GetLocalTime(&time);
+	int nDay[MAX_SERVERGROUP]{};
+	for (int i = 0; i < MAX_SERVERGROUP; ++i)
+	{
+		for (int k = 1; k < MAX_SERVERNUMBER; ++k)
+			if (g_pServerList[i][k][0] != 0)
+				++nDay[i];
+		if (nDay[i])
+			nDay[i] = !(time.wDay % nDay[i]) ? nDay[i] : time.wDay % nDay[i];
+	}
+
+	char szUserCount[1024]{};
+	int nUserCount[MAX_SERVERNUMBER]{};
+	int nUserCount2[MAX_SERVERNUMBER]{};
+	if (currentGroup == serverGroup)
+	{
+		// The last configured group aggregates the selected channel of every
+		// other group.
+		for (int i = serverGroup; i < MAX_SERVERGROUP; ++i)
+			g_pServerList[i][0][0] = 0;
+		for (int i = 0; i < serverGroup; ++i)
+		{
+			memset(nUserCount2, -1, sizeof nUserCount2);
+			szUserCount[0] = 0;
+			char szStatusEndpoint[64]{};
+			if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[i][0]))
+				BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
+			ParseServerStatus(szUserCount, nUserCount2, 11);
+			nUserCount[nDay[serverGroup - i]] = nUserCount2[nDay[serverGroup - i]];
+			CopyServerEndpointAt(g_pServerList[currentGroup][i + 1], g_pServerList,
+				serverGroup - i - 1, nDay[serverGroup - i] + 1);
+		}
+	}
+	else
+	{
+		char szStatusEndpoint[64]{};
+		if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[currentGroup][0]))
+			BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
+		ParseServerStatus(szUserCount, nUserCount, 10);
+	}
+
+	m_pMessagePanel->SetVisible(0, 1);
+	if (!m_pServerList)
+		return 1;
+
+	m_pServerList->Empty();
+	m_pServerList->SetSelectedIndex(-1);
+	for (int num = 1; num < MAX_SERVERNUMBER; ++num)
+	{
+		char szText[32]{};
+		if (g_pServerList[currentGroup][num][0])
+		{
+			if (currentGroup == serverGroup)
+			{
+				const int group = currentGroup - num;
+				if (group < 0)
+					continue;
+				const char* selectedName = ServerChannelNameAt(g_szServerName, group, nDay[group]);
+				const char* displayName = ServerChannelNameAt(g_szServerName, group, nDay[group] - 1);
+				if (selectedName && displayName)
+					sprintf_s(szText, "%s-%s", g_szServerNameList[group], displayName);
+				else
+				{
+					sprintf_s(szText, "%s-%d", g_szServerNameList[group], nDay[group]);
+					if (nUserCount[num] > 700)
+						AppendFullChannelLabel(szText, sizeof(szText));
+				}
+			}
+			else if (g_szServerNameList[currentGroup][0])
+			{
+				if (const char* channelName = ServerChannelNameAt(g_szServerName, currentGroup, num))
+					sprintf_s(szText, "%s-%s", g_szServerNameList[currentGroup], channelName);
+				else
+				{
+					sprintf_s(szText, "%s-%d", g_szServerNameList[currentGroup], num);
+					if (nUserCount[num] > 700)
+						AppendFullChannelLabel(szText, sizeof(szText));
+				}
+			}
+			else
+				sprintf_s(szText, g_pMessageStringTable[68], num + 1, num);
+
+			// The current channel and the aggregate group use the selected skin.
+			const int nTextureSet = (nDay[currentGroup] == num || currentGroup == serverGroup) ? -2 : 6;
+			auto server = new SListBoxServerItem(nTextureSet, szText, 0xFFFFFFFF, 0.0f, 0.0f,
+				static_cast<float>(g_nChannelWidth), 16.0f, nUserCount[num] < 0 ? 0 : nUserCount[num], 0, 0, num);
+			if (nUserCount[num] < 0)
+				server->m_cConnected = 0;
+			m_pServerList->AddItem(server);
+		}
+		else if (currentGroup == serverGroup && num < serverGroup)
+		{
+			sprintf_s(szText, "%s", g_pMessageStringTable[70]);
+			auto server = new SListBoxServerItem(6, szText, 0xFFFFFFFF, 0.0f, 0.0f,
+				static_cast<float>(g_nChannelWidth), 16.0f, nUserCount2[num] < 0 ? 0 : nUserCount2[num], 0, 0, 0);
+			if (nUserCount[num] < 0)
+				server->m_cConnected = 0;
+			m_pServerList->AddItem(server);
+		}
+	}
+	m_pServerList->SetVisible(1);
+	m_pServerPanel->SetVisible(1);
+	return 1;
 }

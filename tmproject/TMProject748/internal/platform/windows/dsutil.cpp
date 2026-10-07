@@ -2,6 +2,10 @@
 #include "dsutil.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
+#include "../../application/AssetLoadValidation.h"
+#include "../../application/OwnedSoundBuffers.h"
+#include <memory>
+#include <new>
 
 CSoundManager::CSoundManager()
 {
@@ -22,6 +26,7 @@ CSoundManager::CSoundManager()
 
 CSoundManager::~CSoundManager()
 {
+	if (g_pSoundManager == this) g_pSoundManager = nullptr;
 	SAFE_RELEASE(m_pDSListener);
 
 	for (int i = 0; i < 512; ++i)
@@ -43,7 +48,7 @@ int CSoundManager::LoadSoundData()
 
 HRESULT CSoundManager::Initialize(HWND hWnd, DWORD dwCoopLevel, DWORD dwPrimaryChannels, DWORD dwPrimaryFreq, DWORD dwPrimaryBitRate)
 {
-	// yea...
+	SAFE_RELEASE(m_pDSListener);
 	SAFE_RELEASE(m_pDS);
 
 	HRESULT hr = DirectSoundCreate8(nullptr, &m_pDS, nullptr);
@@ -52,33 +57,40 @@ HRESULT CSoundManager::Initialize(HWND hWnd, DWORD dwCoopLevel, DWORD dwPrimaryC
 		hr = m_pDS->SetCooperativeLevel(hWnd, dwCoopLevel);
 		if (SUCCEEDED(hr))
 		{
-			SetPrimaryBufferFormat(dwPrimaryChannels, dwPrimaryFreq, dwPrimaryBitRate);
+			hr = SetPrimaryBufferFormat(dwPrimaryChannels, dwPrimaryFreq, dwPrimaryBitRate);
+			if (FAILED(hr)) return hr;
 
 			FILE* fp = nullptr;
 			fopen_s(&fp, SoundList_Path, "rt");
 
 			if (fp)
 			{
-				int nIndex = -1;
-
-				while (fscanf(fp, "%d", &nIndex) != -1)
+				char line[512]{};
+				for (;;)
 				{
-					if (nIndex > 0 && nIndex < MAX_SOUNDLIST && fscanf(fp, "%s %d", m_stSoundDataList[nIndex].szFileName, &m_stSoundDataList[nIndex].nChannel) == -1)
-					{
-						LOG_WRITELOG("Cannot Init Sound Index : %d\n", nIndex);
-
-						break;
-					}
+					const auto result = asset_load::ReadLine(fp, line);
+					if (result == asset_load::LineResult::End) break;
+					if (result == asset_load::LineResult::Blank) continue;
+					int index, channels, parts;
+					std::string path;
+					if (result == asset_load::LineResult::Invalid ||
+						!asset_load::ParseList(line, index, path, channels, parts, true, false,
+							MAX_SOUNDLIST, sizeof(m_stSoundDataList[0].szFileName)))
+					{ fclose(fp); return E_INVALIDARG; }
+					strcpy_s(m_stSoundDataList[index].szFileName, path.c_str());
+					m_stSoundDataList[index].nChannel = channels;
 				}
 
 				fclose(fp);
 			}
 
 			fp = nullptr;
-			Get3DListenerInterface(&m_pDSListener);
+			hr = Get3DListenerInterface(&m_pDSListener);
+			if (FAILED(hr) || !m_pDSListener) return FAILED(hr) ? hr : E_FAIL;
 			memset(&m_dsListenerParams, 0, sizeof m_dsListenerParams);
 			m_dsListenerParams.dwSize = 64;
-			m_pDSListener->GetAllParameters(&m_dsListenerParams);
+			hr = m_pDSListener->GetAllParameters(&m_dsListenerParams);
+			if (FAILED(hr)) return hr;
 
 			return S_OK;
 		}
@@ -92,7 +104,7 @@ HRESULT CSoundManager::Initialize(HWND hWnd, DWORD dwCoopLevel, DWORD dwPrimaryC
 	}
 
 	LOG_WRITEERROR(0);
-	LOG_WRITELOG("Sound Error Tpye: 0x%x\r\n", hr);
+	LOG_WRITELOG("Sound error type: 0x%x\r\n", hr);
 	g_pSoundManager = nullptr;
 
 	return hr;
@@ -126,10 +138,10 @@ HRESULT CSoundManager::SetPrimaryBufferFormat(DWORD dwPrimaryChannels, DWORD dwP
 	wfx.nAvgBytesPerSec = dwPrimaryFreq * wfx.nBlockAlign;
 
 	HRESULT hra = pDSBPrimary->SetFormat(&wfx);
+	SAFE_RELEASE(pDSBPrimary);
 	if (FAILED(hra))
 		return hra;
 
-	SAFE_RELEASE(pDSBPrimary);
 	return S_OK;
 }
 
@@ -140,10 +152,10 @@ HRESULT CSoundManager::Get3DListenerInterface(LPDIRECTSOUND3DLISTENER* ppDSListe
 	if (!ppDSListener)
 		return E_INVALIDARG;
 
+	*ppDSListener = nullptr;
 	if (!m_pDS)
 		return DDERR_NOTINITIALIZED;
 
-	*ppDSListener = nullptr;
 	_DSBUFFERDESC dsbdesc{};
 
 	memset(&dsbdesc, 0, sizeof _DSBUFFERDESC);
@@ -168,83 +180,50 @@ HRESULT CSoundManager::Get3DListenerInterface(LPDIRECTSOUND3DLISTENER* ppDSListe
 
 HRESULT CSoundManager::Create(CSound** ppSound, LPTSTR strWaveFileName, DWORD dwCreationFlags, GUID guid3DAlgorithm, DWORD dwNumBuffers)
 {
-	CWaveFile* pWaveFile = nullptr;
-	_DSBUFFERDESC dsbd;
-	HRESULT hrRet = S_OK;
-	HRESULT hra = S_OK;
-	HRESULT hrb = S_OK;
-	unsigned int dwDSBufferSize = 0;
-	constexpr int a = DSERR_BUFFERTOOSMALL;
+    if (!ppSound) return E_INVALIDARG;
+    *ppSound = nullptr;
+    if (!m_pDS) return DDERR_NOTINITIALIZED;
+    if (!strWaveFileName || !*strWaveFileName || !dwNumBuffers || dwNumBuffers > 512)
+        return E_INVALIDARG;
 
-	if (!m_pDS)
-		return DDERR_NOTINITIALIZED;
+    try
+    {
+        OwnedSoundBuffers<IDirectSoundBuffer> buffers(dwNumBuffers);
+        auto wave = std::make_unique<CWaveFile>();
+        HRESULT hr = wave->Open(strWaveFileName, nullptr, WAVEFILE_READ);
+        if (FAILED(hr)) return hr;
+        if (!wave->GetSize() || !wave->m_pwfx) return E_FAIL;
 
-	if (!strWaveFileName || !ppSound || dwNumBuffers < 1)
-		return E_INVALIDARG;
-
-	IDirectSoundBuffer** apDSBuffer = new IDirectSoundBuffer*[4 * dwNumBuffers];
-	if (!apDSBuffer)
-	{
-		hrRet = ERROR_OUTOFMEMORY;
-
-		goto cleanup;
-	}
-
-	pWaveFile = new CWaveFile();
-	if (!pWaveFile)
-	{
-		hrRet = ERROR_OUTOFMEMORY;
-
-		goto cleanup;
-	}
-
-	pWaveFile->Open(strWaveFileName, nullptr, WAVEFILE_READ);
-
-	if (!pWaveFile->GetSize())
-	{
-		hrRet = E_FAIL;
-
-		goto cleanup;
-	}
-
-	dwDSBufferSize = pWaveFile->GetSize();
-	memset(&dsbd, 0, sizeof dsbd);
-
-	dsbd.dwSize = 36;
-	dsbd.dwFlags = dwCreationFlags;
-	dsbd.dwBufferBytes = dwDSBufferSize;
-	dsbd.guid3DAlgorithm = guid3DAlgorithm;
-	dsbd.lpwfxFormat = pWaveFile->m_pwfx;
-	
-	hra = m_pDS->CreateSoundBuffer(&dsbd, apDSBuffer, nullptr);
-	if (hra == DS_NO_VIRTUALIZATION)
-		hrRet = DS_NO_VIRTUALIZATION;
-
-	if (SUCCEEDED(hra) || hra == DSERR_BUFFERTOOSMALL)
-	{
-		for (DWORD i = 1; i < dwNumBuffers; ++i)
-		{
-			hrb = m_pDS->DuplicateSoundBuffer(*apDSBuffer, &apDSBuffer[i]);
-			if (FAILED(hrb))
-			{
-				hrRet = hrb;
-				goto cleanup;
-			}
-		}
-
-		*ppSound = new CSound(apDSBuffer, dwDSBufferSize, dwNumBuffers, pWaveFile);
-		delete[] apDSBuffer;
-
-		return hrRet;
-	}
-cleanup:
-	if (pWaveFile)
-		delete pWaveFile;
-
-	if (apDSBuffer)
-		delete []apDSBuffer;
-
-	return hrRet;
+        _DSBUFFERDESC description{};
+        description.dwSize = sizeof(description);
+        description.dwFlags = dwCreationFlags;
+        description.dwBufferBytes = wave->GetSize();
+        description.guid3DAlgorithm = guid3DAlgorithm;
+        description.lpwfxFormat = wave->m_pwfx;
+        hr = m_pDS->CreateSoundBuffer(&description, buffers.data(), nullptr);
+        if (FAILED(hr)) return hr;
+        if (!buffers.data()[0]) return E_FAIL;
+        const HRESULT result = hr; // Preserve DS_NO_VIRTUALIZATION without accepting failure.
+        for (DWORD i = 1; i < dwNumBuffers; ++i)
+        {
+            hr = m_pDS->DuplicateSoundBuffer(buffers.data()[0], &buffers.data()[i]);
+            if (FAILED(hr)) return hr;
+            if (!buffers.data()[i]) return E_FAIL;
+        }
+        auto sound = std::make_unique<CSound>(buffers.data(), wave->GetSize(), dwNumBuffers, wave.get());
+        buffers.transfer();
+        wave.release();
+        hr = sound->FillBufferWithSound(sound->GetBuffer(0), false);
+        if (FAILED(hr)) return hr;
+        for (DWORD i = 0; i < dwNumBuffers; ++i)
+        {
+            hr = sound->GetBuffer(i)->SetCurrentPosition(0);
+            if (FAILED(hr)) return hr;
+        }
+        *ppSound = sound.release();
+        return result;
+    }
+    catch (const std::bad_alloc&) { return E_OUTOFMEMORY; }
 }
 
 HRESULT CSoundManager::CreateFromMemory(CSound** ppSound, BYTE* pbData, ULONG ulDataSize, LPWAVEFORMATEX pwfx, DWORD dwCreationFlags, GUID guid3DAlgorithm, DWORD dwNumBuffers)
@@ -343,15 +322,9 @@ HRESULT CSound::RestoreBuffer(LPDIRECTSOUNDBUFFER pDSB, BOOL* pbWasRestored)
 	if (!(dwStatus & 2))
 		return 1;
 
-	do
-	{
-		hr = pDSB->Restore();
-
-		if (hr == DSERR_BUFFERLOST)
-			Sleep(10);
-
-		hr = pDSB->Restore();
-	} while (hr);
+	// Avoid an unbounded startup loop when the device cannot be restored.
+	hr = pDSB->Restore();
+	if (FAILED(hr)) return hr;
 
 	if (pbWasRestored)
 		*pbWasRestored = 1;
@@ -361,7 +334,7 @@ HRESULT CSound::RestoreBuffer(LPDIRECTSOUNDBUFFER pDSB, BOOL* pbWasRestored)
 
 CSound::CSound(LPDIRECTSOUNDBUFFER* apDSBuffer, DWORD dwDSBufferSize, DWORD dwNumBuffers, CWaveFile* pWaveFile)
 {
-	m_apDSBuffer = new IDirectSoundBuffer*[4 * dwNumBuffers];
+	m_apDSBuffer = new IDirectSoundBuffer*[dwNumBuffers];
 
 	for (DWORD i = 0; i < dwNumBuffers; ++i)
 		m_apDSBuffer[i] = apDSBuffer[i];
@@ -370,10 +343,6 @@ CSound::CSound(LPDIRECTSOUNDBUFFER* apDSBuffer, DWORD dwDSBufferSize, DWORD dwNu
 	m_dwNumBuffers = dwNumBuffers;
 	m_pWaveFile = pWaveFile;
 
-	FillBufferWithSound(m_apDSBuffer[0], false);
-
-	for (DWORD ia = 0; ia < dwNumBuffers; ++ia)
-		m_apDSBuffer[ia]->SetCurrentPosition(0);
 }
 
 CSound::~CSound()
@@ -381,7 +350,7 @@ CSound::~CSound()
 	for (DWORD i = 0; i < m_dwNumBuffers; ++i)
 		SAFE_RELEASE(m_apDSBuffer[i]);
 
-	SAFE_DELETE(m_apDSBuffer);
+	delete[] m_apDSBuffer;
 	SAFE_DELETE(m_pWaveFile);
 }
 
@@ -418,10 +387,15 @@ HRESULT CSound::FillBufferWithSound(LPDIRECTSOUNDBUFFER pDSB, BOOL bRepeatWavIfB
 	if (FAILED(hr))
 		return hr;
 
-	m_pWaveFile->ResetFile();
+	const auto finish = [&](HRESULT result) {
+		const HRESULT unlocked = pDSB->Unlock(pDSLockedBuffer, dwDSLockedBufferSize, 0, 0);
+		return FAILED(result) ? result : unlocked;
+	};
+	hr = m_pWaveFile->ResetFile();
+	if (FAILED(hr)) return finish(hr);
 	hr = m_pWaveFile->Read((BYTE*)pDSLockedBuffer, dwDSLockedBufferSize, &dwWavDataRead);
 	if (FAILED(hr))
-		return hr;
+		return finish(hr);
 
 	if (!dwWavDataRead)
 	{
@@ -445,20 +419,20 @@ HRESULT CSound::FillBufferWithSound(LPDIRECTSOUNDBUFFER pDSB, BOOL bRepeatWavIfB
 			{
 				hr = m_pWaveFile->ResetFile();
 				if (FAILED(hr))
-					return hr;
+					return finish(hr);
 
 				hr = m_pWaveFile->Read((BYTE*)pDSLockedBuffer + dwReadSoFar,
 					dwDSLockedBufferSize - dwReadSoFar,
 					&dwWavDataRead);
 
 				if (FAILED(hr))
-					return hr;
+					return finish(hr);
+				if (!dwWavDataRead) return finish(E_FAIL);
 			}
 		}
 	}
 
-	pDSB->Unlock(pDSLockedBuffer, dwDSLockedBufferSize, 0, 0);
-	return S_OK;
+	return finish(S_OK);
 }
 
 LPDIRECTSOUNDBUFFER CSound::GetFreeBuffer()

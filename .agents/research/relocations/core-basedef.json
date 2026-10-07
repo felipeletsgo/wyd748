@@ -1,19 +1,78 @@
 {
- "revision": "71c4b313",
- "groups": [
-  {
-   "baseline": [
-    "tmproject/TMProject748/internal/core/Basedef.cpp"
-   ],
-   "current": [
-    "tmproject/TMProject748/internal/core/Basedef.cpp",
-    "tmproject/TMProject748/internal/core/BasedefItems.cpp",
-    "tmproject/TMProject748/internal/core/BasedefAppearance.cpp",
-    "tmproject/TMProject748/internal/core/BasedefCombat.cpp",
-    "tmproject/TMProject748/internal/core/BasedefWorld.cpp",
-    "tmproject/TMProject748/internal/core/BasedefText.cpp",
-    "tmproject/TMProject748/internal/core/BasedefSystem.cpp"
-   ]
+  "revision": "71c4b313",
+  "groups": [
+    {
+      "baseline": [
+        "tmproject/TMProject748/internal/core/Basedef.cpp"
+      ],
+      "current": [
+        "tmproject/TMProject748/internal/core/Basedef.cpp",
+        "tmproject/TMProject748/internal/core/BasedefItems.cpp",
+        "tmproject/TMProject748/internal/core/BasedefAppearance.cpp",
+        "tmproject/TMProject748/internal/core/BasedefCombat.cpp",
+        "tmproject/TMProject748/internal/core/BasedefWorld.cpp",
+        "tmproject/TMProject748/internal/core/BasedefText.cpp",
+        "tmproject/TMProject748/internal/core/BasedefSystem.cpp"
+      ]
+    }
+  ],
+  "reviewed": {
+    "BASE_CanEquip: signed 64-bit requirement comparison (audit L9)": {
+      "before": "8aef488cb67df1bc24d2537382ad2e74a9d8958a5ecc5ae3d7ff463e47e22b4a",
+      "after": "1a2d2a252580dd0e18c394cccdc785bb854c9a943083d3ced410e4cc7646c50d"
+    },
+    "BASE_CanEquip_RecvRes: signed 64-bit requirement comparison (audit L9)": {
+      "before": "6ad6a32a2db8f97f5a2f06cb9327f60017d822a44c924cee836d305be42af2c5",
+      "after": "2d7dd694d3e74e2f9c1c9af3a6faddf2b728c581f36d7939dd56fccd81cb5562"
+    },
+    "BASE_InitializeServerList: literal escapes (literal-escape.py --against HEAD: identical objects)": {
+      "method": "int BASE_InitializeServerList ( )",
+      "before": "222395def22acee414eedd0268186554b7695e0663b690a087925609d94fb262",
+      "after": "eb1efb143e84d7cd8bafc05861ab12abba4b697458d1e0e69dcc6e9d010f8996"
+    },
+    "void BASE_InitialItemRePrice ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "32c41bffb7ac6f75d317c7fe54bb3f401d2b8df514435e94005b3eb19a623c1e",
+      "after": null
+    },
+    "int BASE_GetSum2 ( char * p , int size ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "16f062966364d5465d9cd528639985f77d28d80e017cebc83b2b10eff9c4d2ab",
+      "after": null
+    },
+    "char BASE_GetAttribute ( int x , int y ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "a435da03620ff57a005acb8a948ff1ff2437160748493f63a23478676fa9aef4",
+      "after": null
+    },
+    "int BASE_ReadTOTOList ( char * szFileName ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "1851ff9a89445ce55d9d5943f5495cd4450236a16bc4996715224853e4d60c61",
+      "after": null
+    },
+    "int BASE_IsInLowZone ( int nX , int nY ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "1eb77c45c4ca05bf1b18e5be166d1e2da4010cd3eec495e34365e647051597b8",
+      "after": null
+    },
+    "int BASE_CanCarry ( STRUCT_ITEM * Carry , int pos ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "43a34e7ccc68ced3fc7fde12477325750df8556070140a874871a3da667a6ca0",
+      "after": null
+    },
+    "int BASE_CanTrade ( STRUCT_ITEM * Dest , STRUCT_ITEM * Carry , char * MyTrade , STRUCT_ITEM * OpponentTrade ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "6483f9d98a4363e62f1e1d3f487ab4e6827ea52e2131484476e27e00d081c9c1",
+      "after": null
+    },
+    "void BASE_ClearItem ( STRUCT_ITEM * item ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "c39b9408efe8367bff9be23a1765c020c6b1adde87ac732cf842b904aaa65166",
+      "after": null
+    },
+    "void BASE_SortTradeItem ( STRUCT_ITEM * Item , int Type ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "dfbc61d1f4b63ef23cc5799131ffee85c37d16e060cb3dcf7575d62210545a31",
+      "after": null
+    },
+    "int BASE_CanCargo ( STRUCT_ITEM * item , STRUCT_ITEM * cargo , int DestX , int DestY ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "f038f2a53c4dc385a22f114a31abdf9b56c601cb55d2e2b08ca4ab84aeff6269",
+      "after": null
+    },
+    "int BASE_GetSkillDamage ( int dam , int ac , int combat ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "4184384752136c5f730348d8a107f259b84cd8dbab4cbd2ced14b24a9835f94f",
+      "after": null
+    }
   }
- ]
 }

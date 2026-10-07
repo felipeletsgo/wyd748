@@ -11,8 +11,8 @@ import (
 	"wydgo/internal/wire"
 )
 
-// IDs internos reservados: registram as duas recompensas one-shot sem misturar
-// seu estado com quests configuradas positivas de data/quests.json.
+// Reserved internal IDs track the two one-shot rewards separately from the
+// positive quest IDs configured in data/quests.json.
 const (
 	questFlagOpportunityCompound = -192
 	questFlagBalanceCompound     = -193
@@ -32,8 +32,8 @@ func matchesEvolution(ch *model.Char, required string) bool {
 	actual := strings.ToLower(strings.TrimSpace(ch.Evolution))
 	switch strings.ToLower(strings.TrimSpace(required)) {
 	case "mortal":
-		// Fichas nativas antigas deixam Evolution vazio; dados novos podem
-		// persistir o nome explicito. Ambos representam o mesmo Mortal.
+		// Old native records leave Evolution empty; newer data can persist the
+		// explicit name. Both represent the same Mortal evolution.
 		return actual == "" || actual == "mortal"
 	case "arch":
 		return actual == "arch"
@@ -46,6 +46,10 @@ func matchesEvolution(ch *model.Char, required string) bool {
 
 func (w *World) useTerritoryPass(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule) {
+	if w.criticalWrites != nil {
+		w.admitTeleportConsumable(p, slot, rule, useItemRequest{})
+		return
+	}
 	if !matchesEvolution(p.Char, rule.RequiredEvolution) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("This pass does not belong to your evolution."))
@@ -55,8 +59,8 @@ func (w *World) useTerritoryPass(s *net.Session, p *Player, item *model.Item, sl
 	if rule.Consume {
 		consumeOne(item)
 	}
-	// teleportPlayer persiste a conta (incluindo o consumo) antes de publicar a
-	// nova posicao. Em falha ele volta a coordenada; restaure tambem o passe.
+	// teleportPlayer persists the account (including consumption) before
+	// publishing position. It restores position on failure; also restore the pass.
 	if !w.teleportPlayer(p, rule.X, rule.Y) {
 		*item = oldItem
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -74,10 +78,14 @@ func containsItemIndex(indices []uint16, index uint16) bool {
 	return false
 }
 
-// useEquippedRefine cobre itens que refinam um slot fixo sem rolagem. A Agua
-// das Fadas (3367) aceita somente Naiads/Grewpain no slot 13 e vai ate +6.
+// useEquippedRefine handles deterministic refinement of a fixed slot. Fairy
+// Water (3367) accepts only Naiads/Grewpain in slot 13, up to +6.
 func (w *World) useEquippedRefine(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule) {
+	if w.criticalWrites != nil {
+		w.admitNativeConsumable(p, item, slot, rule, 0)
+		return
+	}
 	if rule.TargetSlot < 0 || rule.TargetSlot >= len(p.Char.Equip) {
 		return
 	}
@@ -111,6 +119,10 @@ func (w *World) useEquippedRefine(s *net.Session, p *Player, item *model.Item, s
 
 func (w *World) useNightmareTicket(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule) {
+	if w.criticalWrites != nil {
+		w.admitNativeConsumable(p, item, slot, rule, 0)
+		return
+	}
 	now := w.now()
 	readyAt := time.Unix(p.Char.LastNightmareUnix, 0).Add(time.Duration(rule.CooldownSeconds) * time.Second)
 	if p.Char.LastNightmareUnix > 0 && now.Before(readyAt) {
@@ -143,12 +155,16 @@ func (w *World) useNightmareTicket(s *net.Session, p *Player, item *model.Item, 
 	s.Send(wire.MessagePanel(fmt.Sprintf("%d Nightmare entries received.", amount)))
 }
 
-// useMasteryReset porta os Compostos de Chance/Equilibrio. O nativo devolve
-// ate 50/100 pontos de cada um dos ramos 1 e 2 e apaga as skills Mortais.
-// No modelo Score, MasterPts e derivado do orçamento; reduzir Mastery
-// e recalcular devolve os pontos sem manter um segundo saldo mutável.
+// useMasteryReset handles Opportunity/Balance Compounds. The native restores
+// up to 50/100 points from each of branches 1 and 2 and clears Mortal skills.
+// Score derives MasterPts from the budget; reducing Mastery and recalculating
+// restores points without maintaining a second mutable balance.
 func (w *World) useMasteryReset(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule, code int) {
+	if w.criticalWrites != nil {
+		w.admitNativeConsumable(p, item, slot, rule, code)
+		return
+	}
 	ch := p.Char
 	if ch == nil || ch.Score == nil || !matchesEvolution(ch, "mortal") ||
 		ch.Score.Level < rule.MinLevel || ch.Score.Level >= rule.MaxLevelExclusive ||

@@ -1,0 +1,30 @@
+{
+ "source": "tmproject/TMProject748/internal/game/entities/TMHumanAnimation.cpp",
+ "header": "tmproject/TMProject748/internal/game/entities/TMHuman.h",
+ "class": "TMHuman",
+ "method": "void TMHuman::AnimationFrame(int nWalkSndIndex)",
+ "extractions": [
+  {
+   "helper": "PlayWalkFrame",
+   "after": "if (m_nClass != 45 && (m_eMotion == ECHAR_MOTION::ECMOTION_WALK || m_eMotion == ECHAR_MOTION::ECMOTION_RUN))",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "nWalkSndIndex"
+    ]
+   ]
+  },
+  {
+   "helper": "PlayNonAttackFrame",
+   "after": "if ((int)m_eMotion < 4 || (int)m_eMotion > 9)",
+   "params": []
+  },
+  {
+   "helper": "PlayAttackFrame",
+   "after": "else",
+   "params": [],
+   "nth": 3
+  }
+ ]
+}

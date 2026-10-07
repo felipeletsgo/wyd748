@@ -1,157 +1,126 @@
-# Auditoria do WYD-Go
+# WYD-Go audit guidance
 
-Use quando a tarefa pedir auditoria/diagnóstico ou quando um risco concreto
-exigir revisão adicional. Não executar uma auditoria global como etapa de toda
-feature. Delimitar a invariável e seguir apenas representações/entradas que a
-alcançam; ampliar se surgir evidência de impacto transversal.
+Use this guidance for an audit or diagnosis, or when a concrete risk warrants
+additional review. Do not perform a global audit for every feature. Define the
+invariant and follow only the representations and inputs that reach it; expand
+the scope when evidence demonstrates cross-cutting impact.
 
-Revisão e diagnóstico são somente leitura, salvo pedido de correção. Relatório
-anterior e comentário são índices de busca; evidência técnica já comprovada
-pode ser reutilizada conforme o [AGENTS.md](../../../../AGENTS.md).
+Review and diagnosis are read-only unless the user requests corrections.
+Earlier reports and comments are search indexes, not current-code authority.
+Reuse valid technical evidence according to [AGENTS.md](../../../../AGENTS.md).
 
-## 1. Fixar a invariável
+## 1. Define the invariant
 
-Escrever em uma frase o contrato que não pode ser quebrado. Exemplos:
+State the contract that must hold in one sentence. Examples:
 
-- o servidor deriva o resultado e o client só envia intenção;
-- a mesma operação não duplica item após erro/relogin;
-- wire 7.48 preserva tamanho e offsets comprovados;
-- UI fecha sem manter modal ou captura de input;
-- item 1×1 ocupa uma célula no inventário, mas preenche a região equipado.
+- The server derives the result; the client sends only intent.
+- An operation cannot duplicate an item after failure or relogin.
+- The 7.48 wire preserves proven sizes and offsets.
+- Closing UI releases modal state and input capture.
+- A 1x1 item occupies one inventory cell but fills its equipped region.
 
-Sem uma invariável precisa, a auditoria tende a listar diferenças sem decidir
-quais são defeitos.
+Without a precise invariant, an audit lists differences without deciding which
+ones are defects.
 
-## 2. Mapear todas as representações
+## 2. Map all representations
 
-Procurar com `rg` e seguir:
-
-```text
-wire ↔ parser/handler ↔ model/runtime ↔ store ↔ dados base ↔ client/UI
-```
-
-Registrar conversões, cópias, valores derivados, caches e representações
-legadas. Para client 7.48, aplicar o gate Ghidra antes de concluir que o
-TMProject representa o contrato nativo.
-
-## 3. Enumerar entradas e escritores
-
-Entre as entradas que alcançam a invariável, considerar:
-
-- login/relogin e carregamento inicial;
-- packet de ação e handlers alternativos;
-- tick, IA, timer, callback e hook;
-- reload/admin/script/fallback;
-- transição de mapa, disconnect e rollback;
-- input, click, hotkey, `Esc`, `X` e callback de UI.
-
-Se houver mais de um escritor, demonstrar quem serializa a mutação. Estado de
-gameplay deve convergir no `World`.
-
-## 4. Seguir a transição completa
-
-Para cada entrada, verificar:
-
-1. validação de identidade, estado, distância, ownership e limites;
-2. mutação em cópia ou estado transacional;
-3. persistência e comportamento em falha;
-4. publicação para dono e observers;
-5. limpeza de estado temporário/modal;
-6. resultado após relogin ou repetição do packet.
-
-Procurar retorno antecipado entre mutação, persistência e publicação.
-
-## 5. Procurar bypasses
-
-- handler antigo ainda registrado;
-- opcode/tamanho alternativo aceito;
-- função exportada chamada fora do fluxo novo;
-- mock que evita parser, store ou `World`;
-- controle moderno que mascara recurso ausente do 7.48;
-- branch de 7.59 ainda alcançável;
-- scan global usado como fallback de consulta local;
-- erro que deixa item, moeda, modal ou observer parcialmente atualizado.
-
-## 6. Revisar testes e evidência
-
-Abrir o teste e confirmar que ele atravessa o caminho real. Um teste pode passar
-enquanto mocka justamente a fronteira defeituosa. Avaliar cobertura dos casos
-abaixo quando aplicáveis à invariável; em auditoria somente leitura, registrar
-testes ausentes como lacunas, sem implementar correções por iniciativa própria:
-
-- sucesso e rejeição;
-- repetição/idempotência;
-- falha de persistência e rollback;
-- disconnect/relogin;
-- owner/observer;
-- limites e dados malformados;
-- layout byte a byte quando houver ABI;
-- interação real quando o defeito for visual/input.
-
-Classificar resultado por evidência:
+Search with `rg` and follow the complete path:
 
 ```text
-IMPLEMENTED          alteração existe
-STATICALLY VERIFIED  inspeção/build estático passou
-AUTOMATED TESTED     teste relevante passou
-CLIENT-TESTED        fluxo real no client passou
+wire <-> parser/handler <-> model/runtime <-> store <-> base data <-> client/UI
 ```
 
-Não usar o nível mais alto para inferir os anteriores em áreas diferentes.
+Record conversions, copies, derived values, caches, and legacy projections.
+For a legacy client boundary, apply the native-evidence gate before claiming
+that TMProject represents the native 7.48 contract. Reuse unchanged evidence;
+internal contract-preserving changes do not require fresh native research.
 
-## 7. Código morto e duplicação
+## 3. Enumerate inputs and writers
 
-Análise global de código morto é opcional e restrita à tarefa de remoção ou
-suspeita concreta de duplicação inalcançável. Começar por callers e registros
-do símbolo. Se precisar de ferramenta, reutilizar versão instalada/fixada e
-registrá-la; não baixar `@latest` automaticamente em cada revisão.
+Consider each input that reaches the invariant:
 
-Antes de remover:
+- Login, relogin, and initial loading.
+- Action packets and alternative handlers.
+- Ticks, AI, timers, callbacks, and hooks.
+- Reload, administration, scripts, and fallbacks.
+- Map transitions, disconnect, and rollback.
+- UI input, clicks, hotkeys, Escape, close controls, and callbacks.
 
-- provar ausência de callers estáticos e dinâmicos;
-- verificar registro por opcode, tabela, callback, reflection, hook ou script;
-- confirmar que não é fallback, migração ou compatibilidade distribuída ativa;
-- buscar nomes/IDs equivalentes e side effects não óbvios;
-- remover em patch pequeno e executar teste/build afetado.
+For multiple writers, demonstrate who serializes mutations. Gameplay state
+must converge in `World`.
 
-Classificar `Scaffolding` quando houver TODO/pendência ou sistema incompleto;
-classificar `Morto real` somente após provar que o caminho ativo o substituiu.
-Não remover stubs sem autorização. `vet` e `deadcode` limpos não detectam
-transações duplicadas; procurar grants, saves e rollbacks copiados.
+## 4. Follow the entire transition
 
-### Símbolos intencionalmente sem uso
+For every input, verify identity, state, distance, ownership, and limits;
+mutation in a copy or transactional state; persistence and failure handling;
+publication to the owner and observers; temporary/modal cleanup; and the
+result after relogin or packet repetition. Look for early returns between
+mutation, persistence, and publication.
 
-- `internal/game/mob_combat.go: World.mobHasActivePlayer`: aguarda rework da IA.
-- `internal/game/combat.go: magicDamage`: marcador até portar dano mágico e
-  resistências; o caminho vivo usa `skillFinalDamage`/`skillUsesMagic`.
-- `cmd/npcconvert/main.go: cstr/indexByte`: utilitários de conversão pontual.
+## 5. Look for bypasses
 
-Antes de alterar esta lista, conferir se o complemento já foi implementado.
+- An old handler remains registered.
+- An alternative opcode or size is accepted.
+- An exported function bypasses the new flow.
+- A mock avoids the faulty parser, store, or World boundary.
+- A modern control hides a missing 7.48 resource.
+- A later-version branch remains reachable.
+- A global scan substitutes for a local lookup.
+- Failure leaves partial item, currency, modal, or observer state.
 
-## Perguntas conforme a invariável
+## 6. Review tests and evidence
 
-- O client envia valor que deveria ser derivado?
-- Existe mais de um escritor do mesmo estado?
-- A rejeição deixa estado parcial?
-- Dono e observers recebem a mesma verdade?
-- Relogin restaura o mesmo resultado?
-- Consulta local faz scan global?
-- O teste evita o fluxo real por mock?
-- Há caminho 7.59 ainda executável no produto 7.48?
-- A UI fecha lifecycle/input ou só desaparece visualmente?
-- Evidência atual contradiz handoff, comentário ou relatório anterior?
+Open tests and confirm that they traverse the relevant production path. A test
+can pass while mocking the defective boundary. Evaluate success, rejection,
+repetition/idempotency, persistence failure/rollback, disconnect/relogin,
+owner/observer publication, malformed data and limits, byte-exact ABI layout,
+and real interaction for visual/input defects as applicable. In a read-only
+audit, record missing tests without implementing changes unasked.
 
-## Saída da auditoria
-
-Listar primeiro defeitos concretos, ordenados por severidade. Cada achado deve
-conter arquivo/linha, invariante violada, cenário, impacto e evidência. Separar:
+Distinguish validation levels:
 
 ```text
-CONFIRMADO     fluxo demonstrado no código/dado/binário atual
-PROVÁVEL       forte evidência, reprodução ainda pendente
-HIPÓTESE       pista que exige investigação adicional
-NÃO DEFEITO    diferença explicada pelo contrato da versão
+IMPLEMENTED          the change exists
+STATICALLY VERIFIED  relevant inspection/static build checks passed
+AUTOMATED TESTED     relevant automated tests passed
+CLIENT-TESTED        the actual built-client flow passed
 ```
 
-Depois dos achados, registrar fluxos auditados e lacunas. Não declarar
-“100% compatível” ou “cobertura total” sem enumerar e testar os critérios.
+Do not infer validation of unrelated areas from a higher level elsewhere.
+
+## 7. Dead code and duplication
+
+Global dead-code analysis is optional and limited to removal tasks or a
+concrete suspicion of unreachable duplication. Start with callers and symbol
+registrations. Reuse an installed/pinned tool and record its version; do not
+automatically download `@latest` for each review.
+
+Before removal, prove the absence of static and dynamic callers, inspect
+opcode/table/callback/reflection/hook/script registration, exclude active
+fallbacks and migrations, search equivalent names/IDs and indirect effects,
+then remove in a focused patch and run the affected test/build.
+
+Classify incomplete TODO paths as scaffolding, not dead code. A path is truly
+dead only after its active replacement and unreachability are demonstrated.
+Do not remove stubs without authorization. Clean `vet` or dead-code output
+does not detect duplicate transactions; inspect copied grants, saves, and
+rollbacks. Verify intentionally unused symbols against the current tree;
+do not maintain an unverified exemption list of historical function names.
+
+## Audit output
+
+List concrete findings first, ordered by severity. Each finding needs exact
+file/line, violated invariant, triggering scenario, impact, and evidence.
+Use these classifications consistently:
+
+```text
+CONFIRMED     demonstrated in current code, data, or native evidence
+PROBABLE      strong evidence; reproduction is still pending
+HYPOTHESIS    a lead requiring further investigation
+NOT A DEFECT  a difference explained by the applicable contract
+```
+
+Then record reviewed flows, missing prerequisites, and coverage gaps. Do not
+claim full compatibility or total coverage without enumerating and testing
+the criteria. Check whether current evidence contradicts an earlier report,
+handoff, or comment.

@@ -17,10 +17,9 @@ func (w *World) onLearnSkill(s *net.Session, p *Player, itemIndex int) {
 	w.onLearnSkillAtMaster(s, p, itemIndex, 0)
 }
 
-// onLearnSkillAtMaster valida a requisicao de aprendizado tanto da loja
-// legada (0x379) quanto do fluxo real do client 7.48 (ApplyBonus tipo 2).
-// O TargetID recebido nunca escolhe o mestre: apenas deve confirmar a loja
-// que o servidor ja marcou como aberta para este jogador.
+// onLearnSkillAtMaster validates legacy shop (0x379) and 7.48 ApplyBonus type 2
+// learning requests. TargetID confirms the server-selected master; it cannot
+// select a different master or bypass the current interaction boundary.
 func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, requestedMasterID uint16) {
 	reject := func(message string) {
 		if s != nil {
@@ -31,14 +30,31 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		reject("The character could not be validated to learn this skill.")
 		return
 	}
+	ch := p.Char
+	var proposed *model.Account
+	if w.criticalWrites != nil {
+		if w.shuttingDown || p.PersistencePoisoned || s == nil || s != p.Session || s.IsClosed() ||
+			w.criticalPlayerReserved(p) {
+			return
+		}
+		if p.Account == nil || p.CharSlot < 0 || p.CharSlot >= len(p.Account.Chars) ||
+			p.Char != &p.Account.Chars[p.CharSlot] {
+			reject("The character could not be validated to learn this skill.")
+			return
+		}
+		// Recalculation also changes persisted point balances and base vitals.
+		// Validate and plan on a private character, never on a reserved/live one.
+		proposed = accountStateSnapshot(p.Account)
+		ch = &proposed.Chars[p.CharSlot]
+	}
 	if requestedMasterID != 0 && requestedMasterID != p.ShopNPC {
-		log.Printf("[#%d] skill mestre invalido recebido=%d aberto=%d", s.ID, requestedMasterID, p.ShopNPC)
+		log.Printf("[#%d] invalid skill master requested=%d open=%d", s.ID, requestedMasterID, p.ShopNPC)
 		reject("Invalid skill master.")
 		return
 	}
-	master := w.mobByID(p.ShopNPC)
-	if master == nil || master.Def.Score == nil || master.Def.Score.Merchant != skillMasterMerchant {
-		log.Printf("[#%d] aprender skill sem mestre aberto", s.ID)
+	master, interactionErr := w.resolveNPCInteraction(p, p.ShopNPC)
+	if interactionErr != nil || master.Def.Score == nil || master.Def.Score.Merchant != skillMasterMerchant {
+		log.Printf("[#%d] skill learning without a valid open master", s.ID)
 		reject("Open a valid skill master first.")
 		return
 	}
@@ -50,92 +66,97 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 		}
 	}
 	if !found || itemIndex < 5000 || itemIndex > 5095 {
-		log.Printf("[#%d] skill item=%d nao pertence ao mestre aberto", s.ID, itemIndex)
+		log.Printf("[#%d] skill item=%d not sold by the open master", s.ID, itemIndex)
 		reject("This skill is not available from this master.")
 		return
 	}
 	globalSkill := itemIndex - 5000
 	skillClass, localSkill := globalSkill/24, globalSkill%24
-	if skillClass != int(p.Char.Class) {
-		log.Printf("[#%d] tentou aprender skill de outra classe: item=%d", s.ID, itemIndex)
+	if skillClass != int(ch.Class) {
+		log.Printf("[#%d] attempted to learn another class's skill: item=%d", s.ID, itemIndex)
 		reject("This skill belongs to another class.")
 		return
 	}
 	skill, ok := w.skills[globalSkill]
 	itemDef, itemOK := w.items[uint16(itemIndex)]
 	if !ok || !itemOK {
-		log.Printf("[#%d] skill %d ausente do catalogo", s.ID, globalSkill)
+		log.Printf("[#%d] skill %d missing from catalog", s.ID, globalSkill)
 		reject("This skill's data is unavailable.")
 		return
 	}
 	bit := uint32(1) << localSkill
-	if p.Char.LearnedSkill&bit != 0 {
+	if ch.LearnedSkill&bit != 0 {
 		reject("This skill has already been learned.")
 		return
 	}
-	w.recalcPlayer(p.Char)
+	w.recalcPlayer(ch)
 	// Only Mortal uses the book level requirement. Arch, Celestial and
 	// SubCelestial still validate class, points, mastery, chain and gold.
-	// mastery, cadeia da skill final e gold continuam autoritativos.
-	levelRequirementMet := isArch(p.Char) || isCelestialEvolution(p.Char) ||
-		int(playerLevel(p.Char)) >= itemDef.ReqLevel
-	if int(playerSkillPoints(p.Char)) < skill.SkillPoint {
-		log.Printf("[#%d] pontos insuficientes para skill=%d pts=%d/%d", s.ID,
-			globalSkill, playerSkillPoints(p.Char), skill.SkillPoint)
+	levelRequirementMet := isArch(ch) || isCelestialEvolution(ch) ||
+		int(playerLevel(ch)) >= itemDef.ReqLevel
+	if int(playerSkillPoints(ch)) < skill.SkillPoint {
+		log.Printf("[#%d] insufficient points for skill=%d points=%d/%d", s.ID,
+			globalSkill, playerSkillPoints(ch), skill.SkillPoint)
 		reject("Insufficient Skill Points to learn this skill.")
 		return
 	}
 	if !levelRequirementMet {
-		log.Printf("[#%d] level insuficiente para skill=%d level=%d/%d", s.ID,
-			globalSkill, playerLevel(p.Char), itemDef.ReqLevel)
+		log.Printf("[#%d] insufficient level for skill=%d level=%d/%d", s.ID,
+			globalSkill, playerLevel(ch), itemDef.ReqLevel)
 		reject("Insufficient level to learn this skill.")
 		return
 	}
-	if int(playerMastery(p.Char, 1)) < itemDef.ReqInt ||
-		int(playerMastery(p.Char, 2)) < itemDef.ReqDex ||
-		int(playerMastery(p.Char, 3)) < itemDef.ReqCon {
-		log.Printf("[#%d] mastery insuficiente para skill=%d mastery=%v", s.ID,
-			globalSkill, effectiveScore(p.Char).Mastery)
+	if int(playerMastery(ch, 1)) < itemDef.ReqInt ||
+		int(playerMastery(ch, 2)) < itemDef.ReqDex ||
+		int(playerMastery(ch, 3)) < itemDef.ReqCon {
+		log.Printf("[#%d] insufficient mastery for skill=%d mastery=%v", s.ID,
+			globalSkill, effectiveScore(ch).Mastery)
 		reject("Insufficient mastery to learn this skill.")
 		return
 	}
-	oldGold, oldLearned := p.Char.Gold, p.Char.LearnedSkill
+	oldGold, oldLearned := ch.Gold, ch.LearnedSkill
 	if localSkill == 7 || localSkill == 15 || localSkill == 23 {
-		if p.Char.LearnedSkill&((1<<7)|(1<<15)|(1<<23)) != 0 {
+		if ch.LearnedSkill&((1<<7)|(1<<15)|(1<<23)) != 0 {
 			reject("You have already learned the ultimate skill from another branch.")
 			return
 		}
 		branchStart := localSkill - 7
 		for i := branchStart; i < localSkill; i++ {
-			if p.Char.LearnedSkill&(uint32(1)<<i) == 0 {
+			if ch.LearnedSkill&(uint32(1)<<i) == 0 {
 				reject("Learn all previous skills in this branch first.")
 				return
 			}
 		}
-		if p.Char.Gold < ultimateSkillGold {
+		if ch.Gold < ultimateSkillGold {
 			reject("Insufficient gold to learn the ultimate skill.")
 			return
 		}
-		p.Char.Gold -= ultimateSkillGold
+		ch.Gold -= ultimateSkillGold
 	}
-	p.Char.LearnedSkill |= bit
-	w.recalcPlayer(p.Char)
-	filterShortSkills(p.Char)
-	// Persist-before-confirm: aprender skill deduz gold (skill final) e altera a
-	// mascara persistida; grava ANTES de confirmar ao client e reverte gold+skill
-	// se o disco falhar, como refino/trade/quest.
+	ch.LearnedSkill |= bit
+	w.recalcPlayer(ch)
+	filterShortSkills(ch)
+	if proposed != nil {
+		if err := w.queueSkillLearning(p, proposed, globalSkill, skill); err != nil {
+			log.Printf("[#%d] submit learned skill: %v", s.ID, err)
+			reject("The skill could not be saved. Please try again.")
+		}
+		return
+	}
+	// Persist before confirmation: learning changes the skill mask and may
+	// deduct gold. Restore both on failure, as with refinement, trade and quests.
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Char.Gold, p.Char.LearnedSkill = oldGold, oldLearned
 		w.recalcPlayer(p.Char)
 		filterShortSkills(p.Char)
-		log.Printf("[#%d] salvar skill aprendida: %v", s.ID, err)
+		log.Printf("[#%d] save learned skill: %v", s.ID, err)
 		reject("The skill could not be saved. Please try again.")
 		return
 	}
 	s.Send(playerScorePacket(p))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
-	log.Printf("[#%d] aprendeu skill=%d %q custo=%d pontos restantes=%d", s.ID,
+	log.Printf("[#%d] learned skill=%d %q cost=%d remaining points=%d", s.ID,
 		globalSkill, skill.Name, skill.SkillPoint, playerSkillPoints(p.Char))
 }
 
@@ -149,8 +170,8 @@ type skillCastRequest struct {
 }
 
 func parseAttackSkill(pkt []byte) skillCastRequest {
-	// p39D_754/p36C do PacketProtocolV754: o 7.48 sempre envia SkillId@24
-	// e Motion@28, inclusive quando 0x36C possui varios alvos depois de @44.
+	// Unlike p39D_754/p36C in PacketProtocolV754, 7.48 always sends SkillId@24
+	// and Motion@28, including multi-target 0x36C packets after offset 44.
 	if len(pkt) >= 30 {
 		req := skillCastRequest{
 			Skill:   int(int16(binary.LittleEndian.Uint16(pkt[24:26]))),
@@ -158,8 +179,8 @@ func parseAttackSkill(pkt []byte) skillCastRequest {
 			TargetX: binary.LittleEndian.Uint16(pkt[20:22]),
 			TargetY: binary.LittleEndian.Uint16(pkt[22:24]),
 		}
-		// A familia p39D/p39E/p367 carrega o primeiro alvo em @44. O servidor
-		// valida esse ID antes de usa-lo; dano e demais campos do client sao ignorados.
+		// The p39D/p39E/p367 family carries its first target at offset 44.
+		// Validate that ID; ignore client-provided damage and other state fields.
 		if len(pkt) >= 46 {
 			req.TargetID = binary.LittleEndian.Uint16(pkt[44:46])
 		}
@@ -194,20 +215,20 @@ func explosionBashBaseDamage(baseDamage, intelligence, currentMP int) int {
 }
 
 func skillCooldownDuration(skill model.SkillDef) time.Duration {
-	if skill.Index == 47 || skill.Index == 102 { // Cancelamento/Limite da Alma: W2PP força skilldelay=1.
+	if skill.Index == 47 || skill.Index == 102 { // Cancellation/Soul Limit: W2PP forces skilldelay=1.
 		return time.Second
 	}
 	return time.Duration(skill.Delay) * time.Second
 }
 
-// O TK possui duas familias magicas (Confianca e Espada Magica) e uma
-// familia fisica (Trans). A divisao deve usar o indice local da classe.
+// TK has two magical families (Trust and Magic Sword) and one physical family
+// (Trans). Classification uses the class-local skill index.
 func tkTransformationSkill(skillIndex int) bool {
 	return skillIndex >= 0 && skillIndex < 24 && (skillIndex%24)/8 == 1
 }
 
-// baseSkillDamage porta BASE_GetSkillDamage da source 7.59 para os
-// dados/structs do Go. Weather fica zero enquanto clima nao for modelado.
+// baseSkillDamage adapts the historical 7.59 BASE_GetSkillDamage algorithm,
+// including its weather modifiers for the caster's position (weather.go).
 func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	local := skill.Index % 24
 	kind := local/8 + 1
@@ -252,10 +273,9 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	if adc {
 		levelPart = level
 	}
-	// O MagicAttack BASE do personagem (ch.Score.MagicAttack) integra o core
-	// magico exatamente como no calculo do MagicAttack exibido (equipment.go
-	// magicCore = base.MagicAttack + ...). Sem ele, um char com muito magic
-	// persistido mostrava o valor alto mas a skill saia so com o termo de INT.
+	// Include base MagicAttack just as the displayed equipment.go calculation
+	// does. Omitting it made a high persisted value affect the display but not
+	// the skill, which then used only its INT component.
 	magicAttackBase := 0
 	if ch.Score != nil {
 		magicAttackBase = int(ch.Score.MagicAttack)
@@ -283,6 +303,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 			damage = 3*weapon + 3*playerStr(ch) + level/2 + special + base
 		}
 	}
+	damage = applyWeatherDamage(damage, skillWeatherAt(w.weather, ch.X, ch.Y), skill)
 	if skill.Index != 97 {
 		if ch.Class != 3 && (ch.Class != 0 || !tkTransformationSkill(skill.Index)) {
 			damage = (4*int(effectiveScore(ch).MagicAmp) + 100) * damage / 100
@@ -319,8 +340,8 @@ func resistanceForInstance(instance int, resist model.ElementalResists) int {
 	}
 }
 
-// applySkillResistance replica _MSG_Attack 7.59. Mobs usam metade da
-// resistencia antes do multiplicador (150-resist)%, exatamente como a source.
+// applySkillResistance follows the historical 7.59 _MSG_Attack algorithm:
+// mobs use half resistance before the (150-resist)% multiplier.
 func applySkillResistance(damage, instance int, resist model.ElementalResists, targetIsMob bool) int {
 	if instance < 1 || instance > 5 {
 		return damage
@@ -367,7 +388,7 @@ func (w *World) skillFinalDamage(damage, defense, mastery int) int {
 }
 
 func skillDamageMastery(ch *model.Char) int {
-	if ch != nil && ch.Class == 0 && learnedLocal(ch, 14) { // Nocao de Combate
+	if ch != nil && ch.Class == 0 && learnedLocal(ch, 14) { // Combat Awareness
 		return clampInt(int(playerMastery(ch, 2))/20, 0, 15)
 	}
 	return 0
@@ -492,6 +513,9 @@ func (w *World) skillMonsterTargets(p *Player, req skillCastRequest, skill model
 }
 
 func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
+		return
+	}
 	skillIndex, motion := req.Skill, req.Motion
 	local := skillIndex - int(p.Char.Class)*24
 	special := specialSkillLearned(p.Char, skillIndex)
@@ -503,9 +527,6 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		return
 	}
 	now := w.now()
-	if p.SkillReady == nil {
-		p.SkillReady = make(map[int]time.Time)
-	}
 	if now.Before(p.SkillReady[skillIndex]) {
 		return
 	}
@@ -544,23 +565,46 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		chebyshev(p.X, p.Y, targets[0].X, targets[0].Y) < 4) {
 		return
 	}
+	if len(targets) > 0 && w.criticalKillParticipantsReserved(p) {
+		return
+	}
 	mana := skillManaCost(skill, mastery, int(effectiveScore(p.Char).SaveMana))
 	if playerCurMP(p.Char) < uint32(mana) {
 		return
 	}
-	if skillIndex == 85 { // Escudo Dourado: _MSG_Attack.cpp cobra 10 * Level.
+	if skillIndex == 85 { // Golden Shield: historical _MSG_Attack.cpp charges 10 * Level.
 		cost := playerLevel(p.Char) * 10
-		if p.Char.Gold < cost {
+		if p.goldenShieldPaid {
+			// The committed charge belongs to exactly this resumed cast.
+			p.goldenShieldPaid = false
+		} else if p.Char.Gold < cost {
 			return
-		}
-		oldGold := p.Char.Gold
-		p.Char.Gold -= cost
-		if err := w.saveAccount(p.Account); err != nil {
-			p.Char.Gold = oldGold
-			log.Printf("[#%d] salvar custo do Escudo Dourado: %v", p.Session.ID, err)
+		} else if w.criticalWrites != nil {
+			// Commit the native gold charge first, then resume this same cast
+			// on acknowledgement without charging again.
+			images := criticalPreimages(p)
+			p.Char.Gold -= cost
+			if err := w.queueCriticalLiveMutation("Golden Shield cost", images, func() {
+				if !p.Session.IsClosed() {
+					p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+				}
+				p.goldenShieldPaid = true
+				w.onSkillAttack(p, req)
+				p.goldenShieldPaid = false
+			}, criticalLiveMutationOptions{}); err != nil {
+				log.Printf("[#%d] Golden Shield cost admission rejected: %v", p.Session.ID, err)
+			}
 			return
+		} else {
+			oldGold := p.Char.Gold
+			p.Char.Gold -= cost
+			if err := w.saveAccount(p.Account); err != nil {
+				p.Char.Gold = oldGold
+				log.Printf("[#%d] save Golden Shield cost: %v", p.Session.ID, err)
+				return
+			}
+			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		}
-		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	}
 	if !spendPlayerMP(p.Char, uint32(mana)) {
 		return
@@ -568,9 +612,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if skill.Aggressive != 0 {
 		w.breakHideOnAttack(p)
 	}
-	// SkillData.Delay e expresso em segundos tanto pelo client quanto no TMSrv.
-	// Multiplicar por 250 ms permitia quatro casts no periodo de um.
+	// SkillData.Delay is in seconds in both client and TMSrv. Using 250 ms
+	// instead allowed four casts in the intended interval for one.
 	delay := skillCooldownDuration(skill)
+	if p.SkillReady == nil {
+		p.SkillReady = make(map[int]time.Time)
+	}
 	p.SkillReady[skillIndex] = now.Add(delay)
 	if motion == 0 {
 		motion = 5
@@ -578,7 +625,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if skillIndex == 98 {
 		if w.castThornWall(p, req, skill, mastery, motion) {
 			w.syncPlayerScoreAndVitals(p)
-			w.gameplayLogf("skill", "[#%d] criou Vinha skill=98 @(%d,%d)", p.Session.ID, req.TargetX, req.TargetY)
+			w.gameplayLogf("skill", "[#%d] created Thorn Wall skill=98 @(%d,%d)", p.Session.ID, req.TargetX, req.TargetY)
 		}
 		return
 	}
@@ -586,9 +633,8 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if skill.Aggressive == 0 {
 		affected := w.applySupportSkillToTargets(p, supportTargets, skill, mastery)
 		if skillIndex >= 56 && skillIndex <= 63 && len(affected) == 0 {
-			// GenerateSummon devolve 0 quando a evocacao falha (familia em
-			// conflito, limite ja atingido, party/mob slot indisponivel). O
-			// TMSrv restaura o MP cobrado antes de retornar o resultado.
+			// GenerateSummon returns zero for a family conflict, reached limit or
+			// unavailable party/mob slot. TMSrv restores the charged MP on failure.
 			restorePlayerMP(p.Char, uint32(mana))
 		}
 		primary := p
@@ -597,8 +643,8 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			primary = affected[0].player
 			wireTargets = make([]wire.SkillTarget, 0, len(affected))
 			for _, result := range affected {
-				// O protocolo representa cura como Damage short negativo; o
-				// builder faz essa conversao e aplica a mesma escala do dano.
+				// Healing is negative short Damage; the builder applies the same
+				// scaling as damage before converting.
 				wireTargets = append(wireTargets, wire.SkillTarget{
 					ID: result.player.ID, Heal: result.hpDelta,
 					MaxHP: playerMaxHP(result.player.Char)})
@@ -611,29 +657,24 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		})
 		for _, result := range affected {
 			target := result.player
-			// O dono PRECISA do 0x181 alem do 0x336. Os dois handlers wide da
-			// source alimentam o sidecar que o HUD le, e o 0x336 sozinho nao
-			// estava bastando: com so ele, as barras de HP e MP ficavam quase
-			// zeradas -- o desenho caia para o WORD escalado (29.322) sobre o
-			// MaxHP wide (1.202.183), 2,4% da barra.
-			//
-			// O custo e o flicker de um redesenho nativo a mais por cast. E o
-			// lado certo desse trade: piscar incomoda, barra vazia engana.
+			// The owner needs both 0x181 and 0x336 to populate the HUD's wide
+			// sidecar. With only 0x336 the bars used a scaled WORD against wide
+			// MaxHP (29,322 / 1,202,183, about 2.4%). The extra update may flicker
+			// but avoids displaying an almost empty bar for a healthy character.
 			w.publishPlayerAffects(target)
 			w.syncPlayerVitals(target)
 			w.updatePartyMember(target)
 			if result.revived {
-				// Ressurreicao e a excecao intencional: o client conserva o
-				// TMHuman morto e so volta ao estado vivo apos RemoveMob(type 3)
-				// seguido de uma materializacao nova. Atualizacoes comuns nunca
-				// passam por este caminho.
+				// Resurrection intentionally removes type 3 then materializes a
+				// new entity: ordinary updates do not revive the client's dead
+				// TMHuman. Normal updates must never use this path.
 				w.rematerializePlayerAfterRevive(target)
 			} else {
 				w.sendToPlayerView(target, func() []byte { return playerAppearancePacket(target) })
 			}
 		}
 		w.syncPlayerScoreAndVitals(p)
-		w.gameplayLogf("skill", "[#%d] usou skill=%d %q mp=-%d cooldown=%s", p.Session.ID,
+		w.gameplayLogf("skill", "[#%d] used skill=%d %q mp=-%d cooldown=%s", p.Session.ID,
 			skillIndex, skill.Name, mana, delay)
 		return
 	}
@@ -651,11 +692,11 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	results := make([]skillResult, 0, len(targets))
 	wireTargets := make([]wire.SkillTarget, 0, len(targets))
 	baseDamage := w.baseSkillDamage(p.Char, skill)
-	if skillIndex == 30 { // Julgamento Divino: soma o HP e sacrifica 5/6 dele.
+	if skillIndex == 30 { // Divine Judgment adds HP damage and sacrifices five sixths of HP.
 		baseDamage += int(playerCurHP(p.Char))
 		setPlayerCurHP(p.Char, playerCurHP(p.Char)/6+1)
 	}
-	if skillIndex == 22 { // Explosion Bash: converte toda a mana atual e INT em dano.
+	if skillIndex == 22 { // Explosion Bash converts current MP and INT into damage.
 		baseDamage = explosionBashBaseDamage(baseDamage, playerInt(p.Char), int(playerCurMP(p.Char)))
 		setPlayerCurMP(p.Char, 0)
 		if len(targets) > 0 {
@@ -680,7 +721,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		calculatedTotal := uint32(0)
 		if directDamage {
 			damageValue := w.skillFinalDamage(baseDamage, effectiveMobDefenseAt(target, now), skillDamageMastery(p.Char))
-			damageValue = damageValue * 70 / 100 // reducao PvE Mortal da _MSG_Attack 7.59
+			damageValue = damageValue * 70 / 100 // Historical 7.59 _MSG_Attack Mortal PvE reduction.
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, effectiveMobResistancesAt(target, now), true)
 			damageValue = applyCouragePvEDamageAt(p.Char, damageValue, magicDamage, now)
 			damageValue = int(addFlatDamage(uint32(clampInt(damageValue, 1, int(maxScoreValue))),
@@ -692,34 +733,33 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			}
 			calculatedTotal = uint32(calculatedWide)
 			hpBeforeSkill := target.HP
-			// Escudo de boss absorve cada golpe da skill.
+			// The boss shield absorbs each skill hit.
 			perHitCalculated = w.bossMitigateDamage(target, perHitCalculated)
 			for hit := 0; hit < hitCount && target.HP > 0; hit++ {
 				applied := minU32(perHitCalculated, target.HP)
 				target.HP -= applied
 				appliedTotal += applied
-				// O HP recebe somente o que ainda restava no alvo, mas o numero
-				// flutuante representa o dano calculado (overkill inclusive).
-				// O mesmo pacote carrega o WORD projetado da barra e o uint32
-				// real na cauda DMGX consumida pelo client recompilado.
+				// HP loses at most its remaining value, while floating text shows
+				// calculated damage including overkill. This packet carries both
+				// the projected bar WORD and the rebuilt client's uint32 DMGX tail.
 				wireTargets = append(wireTargets, wire.SkillTarget{
 					ID: target.ID, Damage: perHitCalculated, MaxHP: target.Def.Score.MaxHP,
 				})
 			}
-			// Uma notificacao com o TOTAL da skill, nao uma por golpe: um limiar
-			// de HP tem de ser atravessado uma vez so.
+			// Notify once with total skill damage, not once per hit, so each HP
+			// threshold is crossed only once.
 			if damage := hpBeforeSkill - target.HP; damage > 0 {
 				w.notifyMobDamaged(target, hpBeforeSkill, p.ID, damage)
 			}
 		} else {
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
 		}
-		if skillIndex == 6 { // Furia Divina puxa o alvo para junto do caster.
+		if skillIndex == 6 { // Divine Fury pulls the target toward the caster.
 			oldX, oldY := target.X, target.Y
 			target.X, target.Y = w.findFreePosition(p.X, p.Y, 2)
 			w.publishMobMove(target, oldX, oldY, uint32(target.Def.Score.AttackRun&0x0f))
 		}
-		if skillIndex == 26 { // Flash encerra o combate/aggro do alvo.
+		if skillIndex == 26 { // Flash ends the target's combat and aggro.
 			target.TargetID = 0
 		}
 		results = append(results, skillResult{mob: target, calculated: calculatedTotal, applied: appliedTotal})
@@ -737,12 +777,12 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			offensiveSkillWireMaxTargets(p.Char, skill), wireTargets))
 	})
 	w.syncPlayerScoreAndVitals(p)
-	w.gameplayLogf("skill", "[#%d] executou skill=%d %q alvos=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",
+	w.gameplayLogf("skill", "[#%d] executed skill=%d %q targets=%d base=%d magic=%t amp=%d mastery=%d mp=-%d",
 		p.Session.ID, skillIndex, skill.Name, len(results), baseDamage, magicDamage,
 		effectiveScore(p.Char).MagicAmp, mastery, mana)
-	// Capture os receptores antes da primeira morte. Um membro pode atingir o
-	// level maximo no meio do lote e deixaria de aparecer se recalculassemos a
-	// elegibilidade somente no final, fazendo sua ultima EXP nao ser persistida.
+	// Capture recipients before the first death. A member can reach the level
+	// cap during this batch; recomputing eligibility afterward would omit that
+	// member and lose persistence of their final EXP award.
 	batchAccounts := uniqueKillAccounts(p, w.partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
 	batchPlans := make([]*killRewardPlan, 0, len(results))
 	for _, result := range results {
@@ -762,7 +802,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				effectiveScore(p.Char).MagicAmp, mastery, mob.HP, mob.Def.Score.MaxHP, mana)
 		}
 	}
-	w.commitKillRewardBatch(p, batchPlans, batchAccounts, "mortes multi-alvo")
+	w.commitKillRewardBatch(p, batchPlans, batchAccounts, "multi-target kills")
 }
 
 func skillHitCount(skill model.SkillDef) int {
@@ -789,10 +829,9 @@ func uniqueShareAccounts(shares []partyExpShare) []*model.Account {
 	return accounts
 }
 
-// uniqueKillAccounts inclui sempre o dono do loot, mesmo quando ele nao recebe
-// EXP (por exemplo, personagem no level cap). Usar apenas os shares deixava
-// gold/itens do killer fora da transacao quando outros membros ainda eram
-// elegiveis para experiencia.
+// uniqueKillAccounts always includes the loot owner, even at the level cap.
+// Using only EXP shares omitted the killer's gold/items from the transaction
+// when other members were still eligible for experience.
 func uniqueKillAccounts(killer *Player, shares []partyExpShare) []*model.Account {
 	accounts := make([]*model.Account, 0, len(shares)+1)
 	seen := make(map[*model.Account]struct{}, len(shares)+1)

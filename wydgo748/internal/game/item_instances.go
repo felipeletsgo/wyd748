@@ -1,6 +1,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"strings"
@@ -15,8 +16,8 @@ const instanceSignalID = uint16(0x7530)
 
 type ItemInstance struct {
 	Config model.VolatileInstance
-	// RuntimeID e a chave efetiva no World. Para execucoes privadas coincide
-	// com Config.ID; para zonas compartilhadas usa shared:<SharedGroup>.
+	// RuntimeID is the effective World key. Private executions use Config.ID;
+	// shared zones use shared:<SharedGroup>.
 	RuntimeID string
 	LeaderID  uint16
 	MemberIDs []uint16
@@ -34,17 +35,15 @@ type ItemInstance struct {
 	QuizAt              time.Time
 	ExitAt              time.Time
 	RewardGranted       bool
-	// Prazos independentes. Deadline/TransitionAt/QuizAt/ExitAt permanecem
-	// como aliases de compatibilidade com fixtures antigas, mas o runtime novo
-	// nunca usa o deadline de combate para cancelar uma transicao ou quiz.
+	// Independent deadlines. Deadline/TransitionAt/QuizAt/ExitAt remain legacy
+	// fixture aliases; combat expiry never cancels a transition or quiz.
 	CombatDeadline     time.Time
 	TransitionDeadline time.Time
 	QuizDeadline       time.Time
 	ExitDeadline       time.Time
 	BossSpawned        bool
-	// Estado runtime de maquinas especiais. O estado nunca e inferido de
-	// pacotes do client: cada mob criado pela maquina carrega sua quadrante
-	// autoritativa ate a morte.
+	// Special state-machine runtime. State is never inferred from client
+	// packets: each spawned mob retains its authoritative quadrant until death.
 	State                   string
 	HellGateVariant         int
 	HellGateClearedMask     uint8
@@ -54,9 +53,8 @@ type ItemInstance struct {
 	MobQuadrants            map[uint16]uint8
 	HellGateLichIDs         map[uint8]uint16
 	NPCIDs                  map[uint16]struct{}
-	// UxmalRoom/Slot identificam a sala e a vaga da Pista de Runas. O
-	// configurador reduz a execucao a uma unica stage por grupo, mas mantem a
-	// origem para recompensas e auditoria.
+	// UxmalRoom/Slot identify the Rune Track room and slot. Configuration uses
+	// one stage per group while retaining the reward/audit origin.
 	UxmalRoom int
 	UxmalSlot int
 }
@@ -177,9 +175,8 @@ func instanceCombatDeadline(inst *ItemInstance) time.Time {
 		return time.Time{}
 	}
 	if !inst.CombatDeadline.IsZero() {
-		// Fixtures e mundos migrados ainda podem alterar o alias Deadline
-		// diretamente. Honrar o menor prazo evita manter uma sala antiga viva
-		// depois de um timeout administrativo.
+		// Legacy fixtures and migrated worlds may modify Deadline directly.
+		// Honor the earlier deadline after an administrative timeout.
 		if !inst.Deadline.IsZero() && inst.Deadline.Before(inst.CombatDeadline) {
 			return inst.Deadline
 		}
@@ -196,11 +193,10 @@ func setInstanceCombatDeadline(inst *ItemInstance, deadline time.Time) {
 	inst.Deadline = deadline
 }
 
-// generatorReservedForItemInstance identifica os spawns permanentes que
-// pertencem a uma sala configurada. Algumas distribuicoes posicionam o
-// NPCGener quatro tiles ao lado do centro usado por _MSG_UseItem, por isso a
-// tolerancia pequena e intencional. Geradores de respawn normais continuam
-// intactos fora dessas areas.
+// generatorReservedForItemInstance identifies permanent spawns belonging to a
+// configured room. Some distributions place NPCGener four tiles from the
+// _MSG_UseItem center; the small tolerance is intentional. Ordinary respawn
+// generators remain unchanged outside these areas.
 func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 	reservedAt := func(rule model.VolatileRule, x, y uint16) bool {
 		if rule.Action != "instance_ticket" || rule.Instance == nil {
@@ -235,10 +231,9 @@ func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 			if minY > maxY {
 				minY, maxY = maxY, minY
 			}
-			// Os movimentos de NPCGener seguem trechos monotonicos entre
-			// pontos. A caixa expandida e uma reserva conservadora: se o
-			// trecho puder cruzar a area da sala, o gerador nao pode ser
-			// reativado ali.
+			// NPCGener moves monotonically between route points. The expanded
+			// box conservatively reserves any segment crossing the room so
+			// the generator cannot be reactivated there.
 			if int(stage.X) >= minX-radius && int(stage.X) <= maxX+radius &&
 				int(stage.Y) >= minY-radius && int(stage.Y) <= maxY+radius {
 				return true
@@ -264,9 +259,8 @@ func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 			}
 		}
 	}
-	// Reserve tambem o corredor entre pontos consecutivos. O mob caminha
-	// coordenada a coordenada e nao apenas salta entre os endpoints; testar
-	// somente os pontos permitia que ele atravessasse uma sala privada.
+	// Reserve corridors between consecutive points too. Mobs walk between
+	// endpoints; checking endpoints alone allowed them to cross private rooms.
 	var previous *model.GenerSegment
 	for index := range g.Segments {
 		segment := &g.Segments[index]
@@ -290,10 +284,9 @@ func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 	return false
 }
 
-// validateItemInstanceTemplates valida no boot tanto as regras por codigo
-// quanto os overrides por item. Antes, apenas os overrides eram percorridos;
-// isso deixava Cube/Big Cube/Hell Gate (que nascem em rules) falharem somente
-// depois de o jogador consumir o convite.
+// validateItemInstanceTemplates checks code rules and item overrides at boot.
+// Checking only overrides allowed Cube/Big Cube/Hell Gate rule failures to
+// surface after a player consumed the invitation.
 func (w *World) validateItemInstanceTemplates() error {
 	validated := make(map[string]struct{})
 	validate := func(source string, rule model.VolatileRule) error {
@@ -322,7 +315,7 @@ func (w *World) validateItemInstanceTemplates() error {
 			for _, spawn := range cfg.HellGate.FinalNPCs {
 				def := w.npcDefByName(spawn.NPC)
 				if spawn.Count <= 0 || def == nil || def.IsMonster() || def.Score == nil {
-					return fmt.Errorf("volatile %s: template NPC final %q ausente ou hostil", source, spawn.NPC)
+					return fmt.Errorf("volatile %s: final NPC template %q is missing or hostile", source, spawn.NPC)
 				}
 			}
 		}
@@ -330,7 +323,7 @@ func (w *World) validateItemInstanceTemplates() error {
 			def := w.npcDefByName(spawn.NPC)
 			if spawn.Count <= 0 || def == nil || !def.IsMonster() ||
 				def.Score == nil {
-				return fmt.Errorf("volatile %s: template de instancia %q ausente ou nao-monstro",
+				return fmt.Errorf("volatile %s: instance template %q is missing or not a monster",
 					source, spawn.NPC)
 			}
 		}
@@ -416,10 +409,9 @@ func instanceAllowsEvolution(ch *model.Char, allowed []string) bool {
 	return false
 }
 
-// instanceAreaOccupied reproduz a trava de ocupacao para a mesma
-// GameplaySpace. Jogadores de outros runtimes nao bloqueiam a entrada; a
-// alocacao final ainda passa por positionOccupiedInGameplaySpace, que tambem
-// considera terreno, NPCs globais e lojas fantasma.
+// instanceAreaOccupied applies the occupancy lock within one GameplaySpace.
+// Other runtimes do not block entry; final allocation also checks terrain,
+// global NPCs and ghost shops through positionOccupiedInGameplaySpace.
 func (w *World) instanceAreaOccupied(cfg *model.VolatileInstance, space string,
 	ignored ...*Player) bool {
 	if cfg == nil {
@@ -456,6 +448,9 @@ func (w *World) instanceAreaOccupied(cfg *model.VolatileInstance, space string,
 }
 
 func (w *World) saveAccountsAtomic(accounts ...*model.Account) error {
+	if err := w.syncPersistenceAllowed("multi-account"); err != nil {
+		return err
+	}
 	snapshots := accountPersistenceSnapshots(accounts...)
 	if batch, ok := w.store.(tradeBatchStore); ok {
 		return batch.SaveAccounts(snapshots...)
@@ -468,7 +463,7 @@ func (w *World) saveAccountsAtomic(accounts ...*model.Account) error {
 		return gameState.SaveGameState(nil, snapshots...)
 	}
 	if len(snapshots) > 1 {
-		return fmt.Errorf("store atual nao suporta transacao multi-conta")
+		return fmt.Errorf("current store does not support multi-account transactions")
 	}
 	if len(snapshots) == 1 {
 		return w.store.SaveAccount(snapshots[0])
@@ -606,11 +601,10 @@ func ensureItemInstanceLeader(inst *ItemInstance) {
 	inst.LeaderID = inst.MemberIDs[0]
 }
 
-// itemInstanceInExitGrace representa os dez segundos nativos entre a morte
-// do ultimo mob e o recall da sala. A recompensa ja foi confirmada, portanto
-// a sala nao deve bloquear o lider de consumir o pergaminho seguinte da
-// cadeia Water. O cleanup ainda conserva a lista antiga ate observar a nova
-// instancia e, nesse caso, nao teleporta o jogador de volta para a cidade.
+// itemInstanceInExitGrace represents the native ten-second window between the
+// last mob's death and recall. The confirmed reward permits the next Water
+// scroll. Cleanup retains old membership until observing the new instance;
+// it must not recall a player already transferred to the next room.
 func itemInstanceInExitGraceAt(inst *ItemInstance, now time.Time) bool {
 	return inst != nil && inst.Config.AllowChainDuringExitGrace && expectedChainItem(&inst.Config) != 0 &&
 		inst.RewardGranted && !inst.ExitAt.IsZero() && now.Before(inst.ExitAt)
@@ -824,11 +818,9 @@ func (w *World) playerInOtherItemInstance(playerID uint16, current *ItemInstance
 	return false
 }
 
-// instanceForMob devolve a execucao que possui o mob. Mobs de instancia sao
-// publicados no mesmo mapa fisico, mas a IA precisa trata-los como entidades
-// privadas: somente os membros inscritos podem ser alvos e a sala e o limite
-// de movimento. Se a instancia ja foi encerrada, o mob fica adormecido ate a
-// limpeza do indice (defesa contra referencias antigas durante um tick).
+// instanceForMob returns the execution owning the mob. Although instances use
+// one physical map, AI targets only registered members within the room. After
+// closure, the mob sleeps until index cleanup removes stale tick references.
 func (w *World) instanceForMob(m *Mob) *ItemInstance {
 	if w == nil || m == nil || m.InstanceID == "" {
 		return nil
@@ -948,10 +940,9 @@ func instanceScheduleEnd(cfg *model.VolatileInstance, now time.Time) (time.Time,
 	if cfg == nil || len(cfg.Schedule) == 0 {
 		return time.Time{}, true
 	}
-	// As janelas se repetem a cada hora. Calcular somente
-	// (now.Minute()-StartMinute) falha quando uma janela atravessa 59:xx
-	// (por exemplo, start=59, duration=240): depois da virada da hora o
-	// valor fica negativo e a sala e recusada enquanto ainda esta aberta.
+	// Windows repeat hourly. Minute subtraction alone fails across 59:xx
+	// (for example start=59, duration=240), incorrectly closing admission
+	// when the difference becomes negative after the hour boundary.
 	secondOfHour := now.Minute()*60 + now.Second()
 	var best time.Time
 	for _, window := range cfg.Schedule {
@@ -999,9 +990,9 @@ func instanceEntryAreaAt(cfg *model.VolatileInstance, x, y uint16) (model.Volati
 	return model.VolatileInstanceEntryArea{}, false
 }
 
-// detachPlayerFromItemInstances libera imediatamente a vaga de quem saiu do
-// mundo. IDs de entidade mudam no próximo login; mantê-los na sala bloquearia
-// uma vaga do Cube e poderia deixar a recompensa presa ao líder desconectado.
+// detachPlayerFromItemInstances releases a departing player's slot. Entity IDs
+// change at login; retaining them would block Cube capacity and could strand
+// the reward with a disconnected leader.
 func (w *World) detachPlayerFromItemInstances(playerID uint16, now time.Time) {
 	w.detachPlayerFromItemInstancesMode(playerID, now, true)
 }
@@ -1082,8 +1073,8 @@ func (w *World) detachPlayerFromItemInstancesMode(playerID uint16, now time.Time
 				w.markInstanceStateDirty()
 				continue
 			}
-			// O tick comum remove os mobs e encerra a instância sem criar um
-			// segundo caminho de cleanup durante logout/desconexão.
+			// The regular tick removes mobs and closes the instance without
+			// introducing a second logout/disconnect cleanup path.
 			inst.TransitionAt = time.Time{}
 			inst.QuizAt = time.Time{}
 			inst.TransitionDeadline = time.Time{}
@@ -1113,9 +1104,9 @@ func remainingInstanceSeconds(deadline, now time.Time) int {
 	return remaining
 }
 
-// joinSharedItemInstance reproduz o ingresso individual do Cube: cada jogador
-// consome o proprio convite e entra numa execucao ainda parada na primeira sala.
-// Nenhum ingresso transporta automaticamente os demais membros da party.
+// joinSharedItemInstance implements individual Cube entry: each player spends
+// their own invitation to join an execution still in its first room. Entry
+// never transports the other party members automatically.
 func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.Item,
 	slot byte, rule model.VolatileRule, inst *ItemInstance, req useItemRequest) {
 	cfg := rule.Instance
@@ -1132,10 +1123,9 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 		reject("Only the next Water Scroll can be used during the exit window.")
 		return
 	}
-	// O alvo do pacote 0x373 e controlado pelo cliente. A fonte nativa decide
-	// a entrada pela posição autoritativa do personagem (TargetX/TargetY), não
-	// por GridX/GridY forjáveis; usar o campo do pacote permitia abrir Water ou
-	// Nightmare a partir de qualquer mapa enviando as coordenadas da sala.
+	// The client controls the 0x373 target. Entry uses the authoritative player
+	// position (TargetX/TargetY), not forgeable GridX/GridY. Trusting the packet
+	// previously allowed Water or Nightmare entry from any map.
 	if !instanceTargetAllowedAt(cfg, p.X, p.Y) {
 		reject("This ticket cannot be used from here.")
 		return
@@ -1197,14 +1187,12 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 	if rule.Consume {
 		consumeOne(item)
 	}
-	// Registre a adesao antes do commit. Se o processo cair entre o commit e
-	// o append, o item e a posicao persistidos nao podem ficar sem membro na
-	// memoria; em falha restauramos tambem a lista de membros.
+	// Record membership before commit to avoid persisted item/position changes
+	// without membership after a crash. Restore membership on rejection too.
 	inst.MemberIDs = append(inst.MemberIDs, p.ID)
 	w.setPlayerInstanceIndex(p.ID, inst.RuntimeID)
-	// A entrada individual altera simultaneamente o convite, a posição e a
-	// lista de membros. Usar somente SaveGameState deixava o ticket confirmado
-	// sem o membro no agregado durável de uma store que persiste instâncias.
+	// Individual entry changes the invitation, position and membership together.
+	// SaveGameState alone omitted membership from the durable instance aggregate.
 	if err := w.saveAccountsAndInstanceState(p.Account); err != nil {
 		restoreNightmareEntries(nightmareCharges)
 		*item = oldItem
@@ -1228,14 +1216,13 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 	}
 	p.Session.Send(wire.MessagePanel(name))
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	log.Printf("[#%d] INSTANCIA %q ingresso individual membros=%d",
+	log.Printf("[#%d] INSTANCE %q individual entry members=%d",
 		s.ID, cfg.ID, len(inst.MemberIDs))
 }
 
-// joinSharedTimedItemInstance admite uma nova party (ou jogador pessoal) na
-// mesma zona fisica. Ao contrario do Cube, nenhuma copia de mobs e criada:
-// todos os participantes apontam para o mesmo ItemInstance e enxergam a
-// mesma onda. O ticket usado pelo solicitante e o unico consumido.
+// joinSharedTimedItemInstance admits a party or solo player to the same zone.
+// Unlike Cube, it creates no mob copy: participants share one ItemInstance
+// and wave. Only the requester's ticket is consumed.
 func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *model.Item,
 	slot byte, rule model.VolatileRule, inst *ItemInstance) {
 	cfg := rule.Instance
@@ -1376,7 +1363,7 @@ func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *mod
 	}
 	p.Session.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	w.sendItemInstanceStageStatus(inst)
-	log.Printf("[#%d] INSTANCIA %q ingresso em zona compartilhada membros=%d",
+	log.Printf("[#%d] INSTANCE %q shared zone entry members=%d",
 		s.ID, cfg.ID, len(inst.MemberIDs))
 }
 
@@ -1397,7 +1384,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 			}
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			s.Send(wire.MessagePanel("Another instance of this type is already active."))
-			log.Printf("[#%d] instancia recusada exclusiveGroup=%q ativa=%s", s.ID, group, activeID)
+			log.Printf("[#%d] instance rejected exclusiveGroup=%q active=%s", s.ID, group, activeID)
 			return
 		}
 	}
@@ -1613,8 +1600,8 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		inst.MemberIDs = append(inst.MemberIDs, member.ID)
 	}
 	w.indexInstanceMembers(inst)
-	// O primeiro conteudo existe antes de confirmar o ticket. Ele ainda nao e
-	// publicado; logo qualquer falha pode ser revertida sem deixar sala vazia.
+	// Prepare the first wave before confirming the ticket. It is unpublished,
+	// so rejection can roll it back without leaving an empty room.
 	if ok, _ := w.spawnItemInstanceStage(inst, 0, now, false, false); !ok {
 		w.rebuildPlayerInstanceIndex()
 		restoreNightmareEntries(nightmareCharges)
@@ -1674,9 +1661,9 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	// The persistence boundary succeeded. Old and new memberships already
 	// represent the committed final state; publish only after that boundary.
 	w.markInstanceStateDirty()
-	// O primeiro spawn foi montado antes de publicar a execucao para permitir
-	// rollback. Recalcule a vigilia agora que o mapa de instancias existe;
-	// sem isto os mobs nasciam dormindo ate o proximo movimento de jogador.
+	// The first spawn was prepared before runtime publication for rollback.
+	// Recompute activation now that the instance map exists; otherwise mobs
+	// would sleep until the next player movement.
 	for mobID := range inst.MobIDs {
 		if mob := w.mobsByID[mobID]; mob != nil {
 			w.recomputeMobActive(mob)
@@ -1692,10 +1679,10 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		// explicit so a hot-reloaded/broken file cannot leave a ticket consumed
 		// in an unwinnable room.
 		setInstanceCombatDeadline(inst, now)
-		log.Printf("INSTANCIA %q: Big Cube sem pergunta inicial valida", cfg.ID)
+		log.Printf("INSTANCE %q: Big Cube has no valid initial question", cfg.ID)
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	log.Printf("[#%d] INSTANCIA %q aberta membros=%d mobs=%d", s.ID, cfg.ID, len(members), totalMobs)
+	log.Printf("[#%d] INSTANCE %q opened members=%d mobs=%d", s.ID, cfg.ID, len(members), totalMobs)
 }
 
 func cfgCopy(cfg model.VolatileInstance) model.VolatileInstance {
@@ -1760,10 +1747,12 @@ func stageMobCount(stage model.VolatileInstanceStage) int {
 	return total
 }
 
-// moveInstanceMembersAtomic troca a sala do grupo em um unico commit. Fazer
-// teleportPlayer membro a membro poderia deixar metade do grupo na sala
-// anterior quando o PostgreSQL falhasse no meio da transicao.
-func (w *World) moveInstanceMembersAtomic(inst *ItemInstance, stage model.VolatileInstanceStage) bool {
+// moveInstanceMembersAtomic changes the group's room in one commit. Individual
+// teleportPlayer calls could strand half the group on a PostgreSQL failure.
+// then runs after the move is durable and published; rejected runs after a
+// certified rejection under the coordinator, once positions were restored.
+func (w *World) moveInstanceMembersAtomic(inst *ItemInstance, stage model.VolatileInstanceStage,
+	then, rejected func()) bool {
 	if inst == nil {
 		return false
 	}
@@ -1802,20 +1791,23 @@ func (w *World) moveInstanceMembersAtomic(inst *ItemInstance, stage model.Volati
 			accounts = append(accounts, member.Account)
 		}
 	}
-	if err := w.saveAccountsAndInstanceState(accounts...); err != nil {
+	restore := func() {
 		for _, old := range oldPositions {
 			old.player.X, old.player.Y = old.x, old.y
 			old.player.Char.X, old.player.Char.Y = old.x, old.y
 		}
-		return false
 	}
-	for _, member := range members {
-		w.refreshPlayerVisibility(member)
-		w.sendToPlayerView(member, func() []byte {
-			return wire.ActionStop(member.ID, member.X, member.Y)
-		})
-	}
-	return true
+	return w.commitInstanceMutation("instance room move", accounts, restore, func() {
+		for _, member := range members {
+			w.refreshPlayerVisibility(member)
+			w.sendToPlayerView(member, func() []byte {
+				return wire.ActionStop(member.ID, member.X, member.Y)
+			})
+		}
+		if then != nil {
+			then()
+		}
+	}, rejected)
 }
 
 func (w *World) sendItemInstanceStageStatus(inst *ItemInstance) {
@@ -1862,10 +1854,9 @@ func (w *World) removeUnpublishedItemInstanceMobs(inst *ItemInstance) {
 	inst.Remaining = 0
 }
 
-// rollbackItemInstanceMobs desfaz somente os mobs criados pela tentativa
-// corrente. Quando a sala ja foi publicada, os observadores precisam receber
-// o mesmo pacote de morte/remocao que receberiam num encerramento normal;
-// remover apenas do indice server-side deixaria um mob fantasma no client.
+// rollbackItemInstanceMobs removes only mobs created by this attempt. Published
+// rooms require ordinary death/removal packets; removing only the server index
+// would leave ghost mobs on clients.
 func (w *World) rollbackItemInstanceMobs(created []*Mob, published bool) {
 	for _, mob := range created {
 		if mob == nil {
@@ -1878,14 +1869,22 @@ func (w *World) rollbackItemInstanceMobs(created []*Mob, published bool) {
 	}
 }
 
-// spawnItemInstanceStage inicia uma sala/onda autoritativa. publish=false e
-// usado apenas na abertura: monta todo o primeiro conteudo antes do commit do
-// ingresso, sem expor estado que ainda pode sofrer rollback.
-// O segundo retorno informa se uma falha é transitória (persistência/movimento)
-// e deve ser repetida. Falha de conteúdo, terreno, ocupação ou IDs encerra a
-// execução em vez de deixar uma transição infinita prendendo a sala.
+// spawnItemInstanceStage starts an authoritative room/wave. Opening uses
+// publish=false to prepare content before entry commit without exposing it.
+// The second result identifies retryable persistence/movement failures.
+// Content, terrain, occupancy or ID failures close the execution rather than
+// trapping the room in an endless transition.
 func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now time.Time,
 	move, publish bool) (bool, bool) {
+	return w.spawnItemInstanceStageThen(inst, stageIndex, now, move, publish, nil, nil)
+}
+
+// spawnItemInstanceStageThen runs after once the stage is durable and
+// published. With move under the coordinator, the room transition is pending
+// until acknowledgement; undo runs if the transaction is certified rejected,
+// after the stage itself was rolled back.
+func (w *World) spawnItemInstanceStageThen(inst *ItemInstance, stageIndex int, now time.Time,
+	move, publish bool, after, undo func()) (bool, bool) {
 	if inst == nil {
 		return false, false
 	}
@@ -1901,11 +1900,10 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 			return false, false
 		}
 	}
-	// Construa e reserve a nova onda antes de mover os jogadores. O caminho
-	// antigo movia o grupo primeiro e, se faltasse um ID/posição para um mob,
-	// deixava a party persistida na sala nova enquanto CurrentStage continuava
-	// na sala antiga. A transição precisa ser um commit único: spawn em memória,
-	// movimento persistido, publicação e só então troca do estado da instância.
+	// Reserve the wave before moving players. Moving first could persist the
+	// group in a new room while CurrentStage still identified the old one after
+	// mob allocation failed. Movement and instance state need one commit before
+	// publication.
 	created := make([]*Mob, 0, stageMobCount(stage))
 	reserved := make(map[uint32]struct{}, len(created))
 	instanceID := itemInstanceGameplaySpace(inst)
@@ -1936,9 +1934,8 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 		return 0, 0, false
 	}
 	rollback := func() {
-		// Os mobs ainda não foram publicados nem registrados no spatial index.
-		// Se publish=true, rollbackItemInstanceMobs continua sendo seguro para
-		// chamadas futuras caso um novo publicador seja introduzido.
+		// Mobs are not published or spatially registered yet. With publish=true,
+		// rollbackItemInstanceMobs remains safe if a future publisher is added.
 		w.rollbackItemInstanceMobs(created, false)
 	}
 	for _, spawn := range stage.Spawns {
@@ -1949,8 +1946,8 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 				spawnX, spawnY = spawn.X, spawn.Y
 			}
 			x, y, ok := findFree(spawnX, spawnY, stage.AreaRadius)
-			// Instancias nao aceitam fallback para um tile bloqueado: alem de nascer
-			// em terreno invalido, mobs poderiam se sobrepor e ficar inalvejaveis.
+			// No blocked-tile fallback: invalid terrain or overlapping mobs would
+			// make the wave impossible to target.
 			if !ok {
 				rollback()
 				return false, false
@@ -2001,33 +1998,51 @@ func (w *World) spawnItemInstanceStage(inst *ItemInstance, stageIndex int, now t
 		deadline = inst.HardDeadline
 	}
 	setInstanceCombatDeadline(inst, deadline)
-	if move && !w.moveInstanceMembersAtomic(inst, stage) {
-		*inst = oldInstance
-		rollback()
-		log.Printf("INSTANCIA %q: falha atomica ao mover grupo para sala %d",
-			inst.Config.ID, stageIndex+1)
-		return false, true
-	}
-	for _, mob := range created {
+	finish := func() {
+		for _, mob := range created {
+			if publish {
+				w.publishMobSpawn(mob)
+			} else {
+				// The first room is not publishable yet, but the post-commit refresh
+				// needs its mobs in the spatial index.
+				w.registerMobSpatial(mob)
+			}
+		}
 		if publish {
-			w.publishMobSpawn(mob)
-		} else {
-			// A primeira sala ainda nao pode ser enviada, mas precisa entrar
-			// no indice espacial para o refresh posterior ao commit encontra-la.
-			w.registerMobSpatial(mob)
+			w.sendItemInstanceStageStatus(inst)
+		}
+		log.Printf("INSTANCE %q room=%d/%d mobs=%d",
+			inst.Config.ID, stageIndex+1, len(stages), inst.Remaining)
+		if after != nil {
+			after()
 		}
 	}
-	if publish {
-		w.sendItemInstanceStageStatus(inst)
+	if move {
+		undoStage := func() {
+			*inst = oldInstance
+			rollback()
+			log.Printf("INSTANCE %q: room %d transition rejected by persistence",
+				inst.Config.ID, stageIndex+1)
+			if undo != nil {
+				undo()
+			}
+		}
+		if !w.moveInstanceMembersAtomic(inst, stage, finish, undoStage) {
+			*inst = oldInstance
+			rollback()
+			log.Printf("INSTANCE %q: atomic group movement failed for room %d",
+				inst.Config.ID, stageIndex+1)
+			return false, true
+		}
+		return true, false
 	}
-	log.Printf("INSTANCIA %q sala=%d/%d mobs=%d",
-		inst.Config.ID, stageIndex+1, len(stages), inst.Remaining)
+	finish()
 	return true, false
 }
 
-// spawnItemInstanceCompletionWave materializa uma onda especial na mesma
-// sala, sem reiniciar CurrentStage ou CombatDeadline. E usado pela Magic
-// Chamber para colocar o chefe apos os 100 mobs da quarta sala.
+// spawnItemInstanceCompletionWave creates a special wave without resetting
+// CurrentStage or CombatDeadline. Magic Chamber uses it for the boss after
+// the fourth room's 100 mobs.
 func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 	stage model.VolatileInstanceStage, now time.Time) bool {
 	if inst == nil || len(stage.CompletionSpawns) == 0 {
@@ -2111,7 +2126,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 	inst.MobIDs = newMobIDs
 	inst.Remaining = len(created)
 	w.sendItemInstanceStageStatus(inst)
-	log.Printf("INSTANCIA %q chefe/onda de conclusao mobs=%d", inst.Config.ID, inst.Remaining)
+	log.Printf("INSTANCE %q boss/completion wave mobs=%d", inst.Config.ID, inst.Remaining)
 	return true
 }
 
@@ -2127,9 +2142,9 @@ func firstFreeVisibleInventorySlot(ch *model.Char) int {
 	return -1
 }
 
-// grantItemInstanceReward implementa PutItem do Water: a recompensa pertence
-// somente ao lider. Inventario cheio usa o mesmo fallback nativo de item no
-// chao; persistencia falha mantem a sala pendente para uma nova tentativa.
+// grantItemInstanceReward implements Water PutItem: only the leader receives
+// the reward. A full inventory uses the native ground fallback. A failed
+// legacy persistence attempt leaves the room pending.
 func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (itemInstanceRewardReceipt, bool) {
 	if inst == nil {
 		return itemInstanceRewardReceipt{}, false
@@ -2163,7 +2178,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 		finish()
 		if err := persistRewardState(nil); err != nil {
 			inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
-			log.Printf("INSTANCIA %q: salvar transicao sem recompensa: %v", inst.Config.ID, err)
+			log.Printf("INSTANCE %q: save transition without reward: %v", inst.Config.ID, err)
 			return itemInstanceRewardReceipt{}, false
 		}
 		return itemInstanceRewardReceipt{}, true
@@ -2174,7 +2189,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 	}
 	reward, err := materializeItem(model.Item{Index: inst.Config.RewardItem})
 	if err != nil {
-		log.Printf("INSTANCIA %q: materializar recompensa %d: %v",
+		log.Printf("INSTANCE %q: materialize reward %d: %v",
 			inst.Config.ID, inst.Config.RewardItem, err)
 		return itemInstanceRewardReceipt{}, false
 	}
@@ -2192,7 +2207,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 			w.publishItemRemove(ground)
 			w.unregisterGroundItem(ground)
 			inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
-			log.Printf("INSTANCIA %q: salvar recompensa %d no chao: %v",
+			log.Printf("INSTANCE %q: save ground reward %d: %v",
 				inst.Config.ID, inst.Config.RewardItem, err)
 			return itemInstanceRewardReceipt{}, false
 		}
@@ -2201,20 +2216,19 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 	}
 
 	leader.Char.Inv[slot] = reward
-	// O grant e a primeira fronteira duravel. O recibo server-side conserva
-	// o UID exato materializado para que uma automacao posterior jamais
-	// consuma outro pergaminho do mesmo indice.
+	// The grant is the first durable boundary. The server receipt retains the
+	// exact materialized UID so automation cannot consume a different scroll.
 	finish()
 	if err := persistRewardState(leader.Account); err != nil {
 		leader.Char.Inv[slot] = model.Item{}
 		inst.RewardGranted, inst.ExitAt, inst.ExitDeadline = oldRewardGranted, oldExitAt, oldExitDeadline
-		log.Printf("INSTANCIA %q: salvar recompensa %d: %v",
+		log.Printf("INSTANCE %q: save reward %d: %v",
 			inst.Config.ID, inst.Config.RewardItem, err)
 		return itemInstanceRewardReceipt{}, false
 	}
 	leader.Session.Send(wire.SendItem(leader.ID, placeInv, byte(slot), reward))
 	leader.Session.Send(wire.MessagePanel("You received the next Water Scroll."))
-	log.Printf("[#%d] INSTANCIA %q concluida: item %d -> inv[%d]",
+	log.Printf("[#%d] INSTANCE %q completed: item %d -> inv[%d]",
 		leader.Session.ID, inst.Config.ID, inst.Config.RewardItem, slot)
 	return itemInstanceRewardReceipt{
 		Slot: byte(slot), ItemIndex: reward.Index, ItemUID: reward.UID,
@@ -2225,13 +2239,19 @@ func (w *World) completeItemInstance(inst *ItemInstance, now time.Time) {
 	if inst == nil || !inst.ExitAt.IsZero() {
 		return
 	}
-	// O ultimo golpe pode chegar no mesmo ciclo em que o prazo vence. O
-	// servidor nao deve conceder a recompensa depois do timeout; deixar o
-	// ExitAt vazio permite que tickItemInstances execute o cleanup normal.
+	// A final hit can arrive in the timeout tick. Never grant after expiry;
+	// leaving ExitAt empty lets tickItemInstances perform ordinary cleanup.
 	combatDeadline := instanceCombatDeadline(inst)
 	if (!combatDeadline.IsZero() && !now.Before(combatDeadline)) ||
 		(!inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline)) ||
 		(!instanceAdmissionOnlySchedule(inst) && !inst.ScheduleEnd.IsZero() && !now.Before(inst.ScheduleEnd)) {
+		return
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueCriticalInstanceReward(inst, now); err != nil &&
+			!errors.Is(err, errCriticalPersistenceBusy) && !errors.Is(err, errCriticalPersistenceFull) {
+			log.Printf("INSTANCE %q: reward admission failed: %v", inst.Config.ID, err)
+		}
 		return
 	}
 	receipt, ok := w.grantItemInstanceReward(inst, now)
@@ -2261,8 +2281,8 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 		combatExpired = true
 	}
 	if combatExpired || (!inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline)) {
-		// Marca expiracao sem agendar proxima sala/recompensa. O tick seguinte
-		// remove os mobs restantes e recolhe os membros.
+		// Expire without scheduling a room or reward. The next tick removes
+		// remaining mobs and recalls members.
 		inst.TransitionAt = time.Time{}
 		inst.QuizAt = time.Time{}
 		inst.TransitionDeadline = time.Time{}
@@ -2376,9 +2396,9 @@ func instanceQuizCorrect(p *Player, quiz *model.VolatileInstanceQuiz) bool {
 	return p.X >= minX && p.X <= x && p.Y >= minY && p.Y <= y
 }
 
-// resolveItemInstanceQuiz confirma em um unico commit tanto a EXP dos acertos
-// quanto a retirada dos erros. Assim uma falha do banco nao divide a party nem
-// concede a recompensa duas vezes.
+// resolveItemInstanceQuiz commits correct-answer EXP and wrong-answer departure
+// together, preventing a store failure from splitting the party or duplicating
+// the reward.
 func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool {
 	if inst == nil {
 		return false
@@ -2437,10 +2457,9 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 		w.markInstanceStateDirty()
 		return true
 	}
-	// A resposta altera simultaneamente personagens e a maquina da instancia.
-	// Prepare ambos antes do commit para que PostgreSQL/JSON possam persistir o
-	// snapshot da sala no mesmo commit das EXP/posicoes; salvar somente as
-	// contas deixava a pergunta respondida voltar apos um crash.
+	// The answer changes characters and instance state together. Persist the
+	// room snapshot with EXP/positions; accounts alone replayed answered
+	// questions after a crash.
 	oldInstance := *inst
 	survivors := make([]uint16, 0, len(states))
 	for _, result := range states {
@@ -2462,49 +2481,49 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 		inst.TransitionAt = now.Add(time.Duration(delay) * time.Second)
 		inst.TransitionDeadline = inst.TransitionAt
 	}
-	if err := w.saveAccountsAndInstanceState(accounts...); err != nil {
+	restore := func() {
 		*inst = oldInstance
 		for _, old := range states {
 			*old.player.Char = old.char
 			old.player.X, old.player.Y = old.x, old.y
 		}
-		return false
 	}
-
-	for _, result := range states {
-		p := result.player
-		if !result.ok {
-			w.refreshPlayerVisibility(p)
-			w.sendToPlayerView(p, func() []byte {
-				return wire.ActionStop(p.ID, p.X, p.Y)
-			})
-			p.Session.Send(wire.StandardParm(
-				wire.OpInstanceTime, instanceSignalID, 0))
-			p.Session.Send(wire.StandardParm(
-				wire.OpInstanceMobs, instanceSignalID, 0))
-			p.Session.Send(wire.MessagePanel("Wrong answer. You left the Cube."))
-			continue
+	return w.commitInstanceMutation("instance quiz answer", accounts, restore, func() {
+		for _, result := range states {
+			p := result.player
+			if !result.ok {
+				w.refreshPlayerVisibility(p)
+				w.sendToPlayerView(p, func() []byte {
+					return wire.ActionStop(p.ID, p.X, p.Y)
+				})
+				p.Session.Send(wire.StandardParm(
+					wire.OpInstanceTime, instanceSignalID, 0))
+				p.Session.Send(wire.StandardParm(
+					wire.OpInstanceMobs, instanceSignalID, 0))
+				p.Session.Send(wire.MessagePanel("Wrong answer. You left the Cube."))
+				continue
+			}
+			w.syncPlayerVitals(p)
+			w.updatePartyMember(p)
+			if result.levels > 0 {
+				p.Session.Send(playerScorePacket(p))
+				w.syncPlayerChaos(p)
+			}
+			if result.cytheraChanged {
+				p.Session.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
+				w.refreshAppearance(p)
+			}
+			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf(
+				"Correct! +%d EXP.", result.exp)))
 		}
-		w.syncPlayerVitals(p)
-		w.updatePartyMember(p)
-		if result.levels > 0 {
-			p.Session.Send(playerScorePacket(p))
-		}
-		if result.cytheraChanged {
-			p.Session.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
-			w.refreshAppearance(p)
-		}
-		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-		p.Session.Send(wire.MessagePanel(fmt.Sprintf(
-			"Correct! +%d EXP.", result.exp)))
-	}
-	if len(survivors) == 0 {
-		return true
-	}
-	return true
+	}, nil)
 }
 
 func (w *World) tickItemInstances(now time.Time) {
+	if w.criticalInstanceReserved() {
+		return
+	}
 	for id, inst := range w.itemInstances {
 		hardExpired := !inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline)
 		scheduleExpired := !inst.ScheduleEnd.IsZero() && !now.Before(inst.ScheduleEnd)
@@ -2542,15 +2561,14 @@ func (w *World) tickItemInstances(now time.Time) {
 				}
 			}
 		}
-		// A pergunta/transicao e uma nova fase. Ela continua valida mesmo se o
-		// prazo de combate da onda anterior ja tiver vencido no mesmo tick.
+		// A question/transition is a separate phase and survives expiration of
+		// the preceding wave's combat clock in this tick.
 		if !hardExpired && !scheduleExpired && !inst.QuizAt.IsZero() && !now.Before(quizDeadline) {
 			if !w.resolveItemInstanceQuiz(inst, now) {
 				continue
 			}
-			// A resposta cria um novo prazo de transição. Não reutilize o
-			// deadline calculado antes de resolver a pergunta: em configurações
-			// com atraso positivo isso avançaria a sala no mesmo tick.
+			// The answer starts a new transition deadline. Reusing the old clock
+			// would advance a positive-delay room immediately in this tick.
 			transitionDeadline = inst.TransitionDeadline
 			if transitionDeadline.IsZero() {
 				transitionDeadline = inst.TransitionAt
@@ -2560,14 +2578,13 @@ func (w *World) tickItemInstances(now time.Time) {
 			previousStage := inst.CurrentStage
 			if ok, retryable := w.spawnItemInstanceStage(inst, previousStage+1, now, true, true); !ok {
 				if retryable {
-					// Falha de persistencia no movimento e transitoria: mantenha a
-					// transicao pendente para o proximo tick.
+					// A movement persistence failure is retryable. Retain the
+					// transition until the next tick.
 					continue
 				}
-				// O grupo ja foi movido, mas o conteudo da nova sala nao pode ser
-				// materializado. Nao deixe CurrentStage/Remaining=0 com um prazo
-				// futuro: isso seria interpretado como sala concluida e concederia
-				// recompensa sem matar a onda. Encerre a execucao neste tick.
+				// The group moved but the next wave could not be materialized.
+				// Remaining=0 with a future clock would incorrectly grant an
+				// unearned reward. Close the execution in this tick.
 				inst.TransitionAt = time.Time{}
 				inst.QuizAt = time.Time{}
 				inst.TransitionDeadline = time.Time{}
@@ -2585,6 +2602,9 @@ func (w *World) tickItemInstances(now time.Time) {
 		if (hellGateAcceptsFinalState(inst) || linearCompletion) && inst.Remaining == 0 && inst.TransitionAt.IsZero() && inst.QuizAt.IsZero() &&
 			inst.ExitAt.IsZero() && (hellGateAcceptsFinalState(inst) || now.Before(combatDeadline)) {
 			w.completeItemInstance(inst, now)
+			if w.criticalInstanceReserved() {
+				return
+			}
 		}
 		expired := hardExpired || scheduleExpired
 		if !sharedTimed && inst.TransitionAt.IsZero() && inst.QuizAt.IsZero() && combatExpired {
@@ -2607,6 +2627,15 @@ func (w *World) tickItemInstances(now time.Time) {
 				w.removeMobInstance(npc)
 			}
 		}
+		if w.criticalWrites != nil {
+			// All members leave in one durable transition; the room closes
+			// only after that commit. A rejected or busy exit retries next tick.
+			w.queueCriticalInstanceExit(id, inst)
+			if w.criticalInstanceReserved() {
+				return
+			}
+			continue
+		}
 		allExited := true
 		for _, playerID := range inst.MemberIDs {
 			if member := w.playersByID[playerID]; member != nil && member.InWorld {
@@ -2627,20 +2656,79 @@ func (w *World) tickItemInstances(now time.Time) {
 		if !allExited {
 			continue
 		}
-		// A reward dropped on the floor is private while its Water room exists.
-		// Once the room is definitively gone, release it to the public world so
-		// an uncollected fallback is not stranded behind a deleted RuntimeID.
-		for _, ground := range w.groundItems {
-			if ground == nil || ground.InstanceID != id {
-				continue
-			}
-			ground.InstanceID = ""
-			w.publishItemSpawn(ground)
-		}
-		delete(w.itemInstances, id)
-		delete(w.pendingInstanceMembers, id)
-		delete(w.pendingInstanceLeaders, id)
-		w.markInstanceStateDirty()
-		log.Printf("INSTANCIA %q encerrada", id)
+		w.closeItemInstance(id)
 	}
+}
+
+// closeItemInstance removes a room whose members have all left durably.
+func (w *World) closeItemInstance(id string) {
+	// A reward dropped on the floor is private while its Water room exists.
+	// Once the room is definitively gone, release it to the public world so
+	// an uncollected fallback is not stranded behind a deleted RuntimeID.
+	for _, ground := range w.groundItems {
+		if ground == nil || ground.InstanceID != id {
+			continue
+		}
+		ground.InstanceID = ""
+		w.publishItemSpawn(ground)
+	}
+	delete(w.itemInstances, id)
+	delete(w.pendingInstanceMembers, id)
+	delete(w.pendingInstanceLeaders, id)
+	w.markInstanceStateDirty()
+	log.Printf("INSTANCE %q closed", id)
+}
+
+// queueCriticalInstanceExit moves every remaining member of an expired room
+// to its exit in one account/instance transaction, then closes the room.
+func (w *World) queueCriticalInstanceExit(id string, inst *ItemInstance) {
+	type moved struct {
+		player *Player
+		x, y   uint16
+		image  []criticalPreimage
+	}
+	var players []moved
+	var accounts []*model.Account
+	seen := make(map[*model.Account]bool)
+	restore := func() {
+		for i := len(players) - 1; i >= 0; i-- {
+			m := players[i]
+			m.player.X, m.player.Y = m.x, m.y
+			w.restoreCriticalPreimages(m.image)
+		}
+	}
+	for _, playerID := range inst.MemberIDs {
+		member := w.playersByID[playerID]
+		if member == nil || !member.InWorld || w.playerInOtherItemInstance(playerID, inst) {
+			continue
+		}
+		x, y, ok := w.resolvePlayerTeleportDestination(member, inst.Config.ExitX, inst.Config.ExitY)
+		if !ok || w.criticalPlayerReserved(member) {
+			restore()
+			return
+		}
+		players = append(players, moved{player: member, x: member.X, y: member.Y, image: criticalPreimages(member)})
+		member.X, member.Y = x, y
+		member.Char.X, member.Char.Y = x, y
+		stagePlayerHomeCity(member)
+		if !seen[member.Account] {
+			seen[member.Account] = true
+			accounts = append(accounts, member.Account)
+		}
+	}
+	w.commitInstanceMutation("instance exit", accounts, restore, func() {
+		for _, m := range players {
+			p := m.player
+			clearAirMove(p)
+			clearPublishedPlayerMove(p)
+			w.publishPlayerTeleport(p)
+			if !p.Session.IsClosed() {
+				p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, 0))
+				p.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, 0))
+			}
+		}
+		if w.itemInstances[id] == inst {
+			w.closeItemInstance(id)
+		}
+	}, nil)
 }

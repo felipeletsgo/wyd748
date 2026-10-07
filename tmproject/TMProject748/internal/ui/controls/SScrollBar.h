@@ -37,16 +37,8 @@ public:
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
 
-    void upbarSetPos(float x, float y);
-    void downbarSetPos(float x, float y);
-    void upbarSetsize(float x, float y);
-    void downbarSetsize(float x, float y);
 
 
-    void upbarSetvisible(bool bSet);
-    void downbarSetvisible(bool bSet);
-    void scrollbarSetvisible(bool bSet);
-    void scrollbarbackSetvisible(bool bSet);
 
 protected:
     unsigned int m_dwStyle;

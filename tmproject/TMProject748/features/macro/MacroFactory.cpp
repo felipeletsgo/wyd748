@@ -6,9 +6,9 @@ MacroFactory::MacroFactory() : _map()
 {
 }
 
-// Localiza o controlador da macro por nivel e o cria sob demanda. A factory
-// conserva ownership exclusivo no mapa; o ponteiro devolvido e emprestado e
-// permanece valido enquanto a factory e a entrada correspondente existirem.
+// Finds the macro controller for a level and creates it on demand. The factory
+// keeps exclusive ownership in the map; the returned pointer is borrowed and
+// stays valid while the factory and the matching entry exist.
 Macro::MacroLevel* MacroFactory::getMacroLevel(const uint32_t level)
 {
 	auto it = _map.find(level);
@@ -17,8 +17,8 @@ Macro::MacroLevel* MacroFactory::getMacroLevel(const uint32_t level)
 	{
 		Macro::MacroLevel* currentLevel = nullptr;
 
-		// Cada faixa de agua possui estrategia propria. Niveis desconhecidos nao
-		// sao materializados para evitar uma macro parcialmente configurada.
+		// Each water tier has its own strategy. Unknown levels are not
+		// materialized, to avoid a partially configured macro.
 		if (level == 1)
 			currentLevel = new Macro::Water_N();
 
@@ -34,29 +34,11 @@ Macro::MacroLevel* MacroFactory::getMacroLevel(const uint32_t level)
 		if (currentLevel == nullptr)
 			return nullptr;
 
-		// A partir daqui a unique_ptr transfere o ownership para a factory.
+		// From here the unique_ptr transfers ownership to the factory.
 		_map.insert(std::make_pair(level, std::unique_ptr<Macro::MacroLevel>(currentLevel)));
 	}
 
-	// operator[] e seguro aqui porque a entrada existente ou recem-criada foi
-	// confirmada acima; o chamador nao deve liberar o ponteiro retornado.
+	// operator[] is safe here because the existing or newly created entry was
+	// confirmed above; the caller must not free the returned pointer.
 	return _map[level].get();
-}
-
-// Produz uma visao nao proprietaria dos niveis ja instanciados. O vetor e uma
-// copia, mas seus elementos continuam pertencendo a factory.
-const std::vector<Macro::MacroLevel*> MacroFactory::getAllMacroLevel() const
-{
-	auto tmp = std::vector<Macro::MacroLevel*>();
-
-	for (auto& i : _map)
-		tmp.push_back(i.second.get());
-
-	return tmp;
-}
-
-void MacroFactory::onEvent()
-{
-	// Ponto de extensao preservado por compatibilidade. Nao ha evento global da
-	// factory implementado no fluxo atual.
 }

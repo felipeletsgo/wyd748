@@ -4,6 +4,7 @@
 #include "TMGlobal.h"
 #include "TMHuman.h"
 #include "TMLog.h"
+#include "PerfTrace.h"
 #include "TMGround.h"
 #include "TerrainTileMapReader.h"
 #include "TMCamera.h"
@@ -157,6 +158,7 @@ void TMGround::SetPos(int nX, int nY)
 
 int TMGround::LoadTileMap(const char* szFileName)
 {
+    perf_trace::ScopedLoad perfLoad(perf_trace::LoadKind::Terrain, szFileName);
     FILE* fp = nullptr;
     fopen_s(&fp, szFileName, "rb");
 

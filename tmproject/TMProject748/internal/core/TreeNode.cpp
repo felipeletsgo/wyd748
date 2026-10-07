@@ -128,19 +128,6 @@ void TreeNode::AddChild(TreeNode* pChild)
 		pChild->m_pNextLink->m_pPrevLink = pChild;
 }
 
-void TreeNode::AddChild(TreeNode* pChild, unsigned int id)
-{
-	pChild->m_pTop = this;
-	pChild->m_pNextLink = m_pDown;
-
-	m_pDown = pChild;
-
-	if (pChild->m_pNextLink)
-		pChild->m_pNextLink->m_pPrevLink = pChild;
-
-	pChild->m_dwID = id;
-}
-
 void TreeNode::AddChild(TreeNode* pChild, unsigned int id, unsigned int key)
 {
 	pChild->m_pTop = this;
@@ -160,13 +147,15 @@ void TreeNode::SetPrevNode(TreeNode* pPrev)
 	pPrev->m_pTop = m_pTop;
 	pPrev->m_pNextLink = this;
 
-	m_pPrevLink->m_pNextLink = pPrev;
+	// The first child has no previous sibling.
+	if (m_pPrevLink)
+		m_pPrevLink->m_pNextLink = pPrev;
 
 	pPrev->m_pPrevLink = m_pPrevLink;
 
 	m_pPrevLink = pPrev;
 
-	if (m_pTop->m_pDown == this)
+	if (m_pTop && m_pTop->m_pDown == this)
 		m_pTop->m_pDown = pPrev;
 }
 
@@ -177,15 +166,28 @@ void TreeNode::SetNextNode(TreeNode* pNext)
 	pNext->m_pPrevLink = this;
 	pNext->m_pNextLink = m_pNextLink;
 
+	// Keep the old next sibling's back link on the inserted node.
+	if (m_pNextLink)
+		m_pNextLink->m_pPrevLink = pNext;
+
 	m_pNextLink = pNext;
 }
 
-void TreeNode::SetDeleted()
+void TreeNode::Unlink()
 {
-	m_cDeleted = 1;
-
-	if (m_pDown)
-		m_pDown->SetDeleted();
+	if (m_pPrevLink)
+		m_pPrevLink->m_pNextLink = m_pNextLink;
+	if (m_pNextLink)
+		m_pNextLink->m_pPrevLink = m_pPrevLink;
+	if (m_pTop && m_pTop->m_pDown == this)
+	{
+		m_pTop->m_pDown = m_pNextLink;
+		if (m_pNextLink)
+			m_pNextLink->m_pTop = m_pTop;
+	}
+	m_pTop = nullptr;
+	m_pPrevLink = nullptr;
+	m_pNextLink = nullptr;
 }
 
 void TreeNode::AddChildWithKey(TreeNode* node, unsigned int Key)

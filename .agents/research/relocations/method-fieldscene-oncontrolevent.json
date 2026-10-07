@@ -1,0 +1,218 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.h",
+ "class": "TMFieldScene",
+ "method": "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)",
+ "extractions": [
+  {
+   "helper": "OnCompatFieldControl",
+   "after": "if (m_bCompatFieldScene)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "unsigned int&",
+     "idwControlID"
+    ]
+   ],
+   "nth": 0
+  },
+  {
+   "helper": "OnHellStoreSelect",
+   "after": "if (idwControlID >= TMB_HELLSTORE_SELECT_1 && idwControlID <= TMB_HELLSTORE_SELECT_4)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "idwControlID"
+    ]
+   ]
+  },
+  {
+   "helper": "OnGambleButton",
+   "after": "if (idwControlID >= TMB_GAMBLE_LEFTX2 && idwControlID <= TMB_GAMBLE_RIGHT)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "idwControlID"
+    ]
+   ]
+  },
+  {
+   "helper": "OnChatEditSubmit",
+   "after": "if (isChatEdit && !idwEvent)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ]
+   ]
+  },
+  {
+   "helper": "OnMoneyButton",
+   "after": "if (idwControlID == B_MONEY)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnChatListLightButton",
+   "after": "if (idwControlID == B_CHATLIST_LIGHT)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnChatSelectButton",
+   "after": "if (idwControlID >= B_CHAT_SELECT_NOMAL && idwControlID <= B_CHAT_SELECT_SHOUT)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "idwControlID"
+    ]
+   ]
+  },
+  {
+   "helper": "OnSystemServerButton",
+   "after": "if (idwControlID == B_SYS_SERVER)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnSystemCharacterButton",
+   "after": "if (idwControlID == 65881)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnPgtPartyButton",
+   "after": "if (idwControlID == 641)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnPgtTradeButton",
+   "after": "if (idwControlID == 643)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnPgtGuildButton",
+   "after": "if (idwControlID == 642)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnPgtGuildCommonButton",
+   "after": "if (idwControlID == 912)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnPgtGuildChiefButton",
+   "after": "if (idwControlID >= 913 && idwControlID <= 915)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnPgtChallengeButton",
+   "after": "if (idwControlID == 639 || idwControlID == 621 || idwControlID == 622 || idwControlID == 623)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "idwControlID"
+    ]
+   ]
+  },
+  {
+   "helper": "OnSpecialMastery1Button",
+   "after": "if (idwControlID == 65754)",
+   "flow": true,
+   "params": [
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ]
+   ]
+  },
+  {
+   "helper": "OnSpecialMastery2Button",
+   "after": "if (idwControlID == 65757)",
+   "flow": true,
+   "params": [
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ]
+   ]
+  },
+  {
+   "helper": "OnSpecialMastery3Button",
+   "after": "if (idwControlID == 65760)",
+   "flow": true,
+   "params": [
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ]
+   ]
+  },
+  {
+   "helper": "OnSpecialMastery4Button",
+   "after": "if (idwControlID == 65763)",
+   "flow": true,
+   "params": [
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ]
+   ]
+  },
+  {
+   "helper": "OnPartyListSelect",
+   "after": "if (idwControlID == 475138 || (m_bCompatFieldScene && idwControlID == 1863))",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "cktrans"
+    ],
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "unsigned int&",
+     "idwEvent"
+    ]
+   ]
+  },
+  {
+   "helper": "OnTradeMyCheck",
+   "after": "if (idwControlID == 617)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnAutoTradeRun",
+   "after": "if (idwControlID == 667)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "OnPortalButton",
+   "after": "if (idwControlID == 12546 && m_pPotalList)",
+   "flow": true,
+   "params": []
+  }
+ ]
+}

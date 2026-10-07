@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "ClientSettings.h"
 #include "TMRain.h"
 #include "TMGlobal.h"
 #include "TMUtil.h"
@@ -45,6 +46,10 @@ TMRain::~TMRain()
 
 int TMRain::Render()
 {
+    // Light profile: ambient decoration is not drawn while the window is idle.
+    if (IdleHidesAmbient())
+        return 0;
+
     if (g_bHideBackground == 1)
         return 0;
     if (g_bHideEffect == 1)

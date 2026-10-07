@@ -28,12 +28,6 @@ TMVector3 TMVector3Cross(const TMVector3* pV1, const TMVector3* pV2)
     return v;
 }
 
-float disTanceSq(float stX, float stY, float taX, float taY)
-{
-    return (((taX - stX) * (taX - stX)) 
-         + ((taY - stY) * (taY - stY)));
-}
-
 void SendOneMessage(char* Msg, int Size)
 {
     if (Msg == nullptr || Size < static_cast<int>(sizeof(MSG_STANDARD)))
@@ -55,12 +49,12 @@ void SendOneMessage(char* Msg, int Size)
 
 void SendPacket(const MutablePacketView& packet)
 {
-    // Rejeitar antes de o limitador ler Type ou converter size para int.
-    // Fachada transitoria: AddMessage altera Size/KeyWord/CheckSum/Tick no
-    // buffer original. Os emissores devem fornecer armazenamento gravavel.
+    // Reject before the limiter reads Type or converts size to int.
+    // Transitional facade: AddMessage edits Size/KeyWord/CheckSum/Tick in the
+    // original buffer. Senders must provide writable storage.
     SendValidatedPacket(packet, sizeof(MSG_STANDARD), [](char* data, int size) {
         SendOneMessage(data, size);
-        // A API global nao informa entrega nem rejeicao pelo limitador.
+        // The global API reports neither delivery nor rejection by the limiter.
         return true;
     });
 }
@@ -76,17 +70,6 @@ void GetSoundAndPlay(int soundId, int priority, int flag)
     }
 }
 
-void GetSoundAndPause(int soundId, int priority, int flag)
-{
-    auto pSoundManager = g_pSoundManager;
-    if (pSoundManager)
-    {
-        auto pSoundData = pSoundManager->GetSoundData(soundId);
-        if (pSoundData)
-            pSoundData->Stop();
-    }
-}
-
 void GetSoundAndPlayIfNot(int soundId, int priority, int flag)
 {
     auto pSoundManager = g_pSoundManager;
@@ -95,17 +78,6 @@ void GetSoundAndPlayIfNot(int soundId, int priority, int flag)
         auto pSoundData = pSoundManager->GetSoundData(soundId);
         if (pSoundData && !pSoundData->IsSoundPlaying())
             pSoundData->Play(priority, flag);
-    }
-}
-
-void GetSoundAndPauseIfNot(int soundId, int priority, int flag)
-{
-    auto pSoundManager = g_pSoundManager;
-    if (pSoundManager)
-    {
-        auto pSoundData = pSoundManager->GetSoundData(soundId);
-        if (pSoundData && pSoundData->IsSoundPlaying())
-            pSoundData->Stop();
     }
 }
 

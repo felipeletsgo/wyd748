@@ -1,4 +1,5 @@
 #pragma once
+#include "ExtractedFlow.h"
 
 #include "TMObject.h"
 #include "Structures.h"
@@ -13,6 +14,7 @@ class SPanel;
 class SProgressBar;
 class TMItem;
 class TMScene;
+class TMFieldScene;
 class TMSkillMagicShield;
 class TMEffectBillBoard;
 class TMEffectBillBoard2;
@@ -87,8 +89,6 @@ public:
     int OnPacketSetHpMp(MSG_SetHpMp* pStd);
     int OnPacketSetHpDam(MSG_STANDARD* pStd);
     int OnPacketMessageChat(MSG_STANDARD* pStd);
-    int OnPacketMessageChat_Index(MSG_STANDARD* pStd);
-    int OnPacketMessageChat_Param(MSG_STANDARD* pStd);
     int OnPacketMessageWhisper(MSG_MessageWhisper* pMsg);
     int OnPacketUpdateEtc(MSG_STANDARD* pStd);
     int OnPacketUpdateCoin(MSG_STANDARDPARM* pStd);
@@ -122,12 +122,8 @@ public:
     void Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, char cSkillIndex);
     void Attack(ECHAR_MOTION eMotion, TMHuman* pTarget, short cSkillIndex);
     void Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex = -1);
-    void Punched(int nDamage, TMHuman* pFrom);
     void Fire(TMObject* pTarget, int nSkill);
     void Die();
-    void Stand();
-    void OnlyMove(int nX, int nY, int nLocal);
-    int IsGoMore();
     void SetWantAngle(float fAngle);
     void SetWeaponType(int nWeaponType);
     void CheckWeapon(short sIndexL, short sIndexR);
@@ -136,7 +132,6 @@ public:
     void SetMotion(ECHAR_MOTION eMotion, float fAngle);
     void GetRoute(IVector2 vecTarget, int nCount, int bStop);
     void GenerateRouteTable(int nSX, int nSY, char* pRouteBuffer, TMVector2* pRouteTable, int* pMaxRouteIndex);
-    int StraightRouteTable(int nSX, int nSY, int nTargetX, int nTargetY, TMVector2* pRouteTable, int* pMaxRouteIndex, int distance, char* pHeight, int MH);
     int ChangeRouteBuffer(int nSX, int nSY, TMVector2* pRouteTable, int* pMaxRouteIndex);
     void SetHandEffect(int nHandEffect);
     void CheckAffect();
@@ -156,15 +151,8 @@ public:
     void SetAvatar(char cAvatar);
     void UpdateMount();
     float GetMyHeight();
-    void SetGuildBattleHPColor();
-    void SetGuildBattleHPBar(int nHP);
-    void SetGuildBattleMPBar(int nMP);
-    void SetGuildBattleLifeCount();
     int Is2stClass();
     int IAmkhepra();
-    void CreateControl();
-    void DestroyControl();
-    int StrByteCheck(const char* szString);
 
     void SetMantua(int nTexture);
     int SetCitizenMantle(int BaseSkin);
@@ -176,6 +164,22 @@ public:
     bool SetImportedMountCostume(unsigned int itemIndex);
 
 private:
+	// Helpers extracted from TMHuman::FrameMoveEffect.
+	ExtractedFlow UpdateHiddenEffects();
+	void PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene);
+	// Helpers extracted from TMHuman::AnimationFrame.
+	ExtractedFlow PlayWalkFrame(int& nWalkSndIndex);
+	void PlayNonAttackFrame();
+	void PlayAttackFrame();
+	// Helpers extracted from TMHuman::FrameMove.
+	void UpdateEarthQuake(unsigned int& dwServerTime, TMScene*& pScene);
+	ExtractedFlow UpdateMoveTargetsOnArrival(unsigned int& dwServerTime, int& nRouteIndex, TMScene*& pScene, int& extractedResult);
+	void UpdateShadeVisibility(unsigned int& dwServerTime, int& nWalkSndIndex);
+	void FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex);
+	// Helpers extracted from TMHuman::InitObject.
+	void InitSkinLookInfo();
+	void InitEyeFireEffects();
+	void InitShadeEffects();
     bool _locationCheck(TMVector2 vec2, int mapX, int mapY);
     int SetHumanCostume();
     void RenderEffect_RudolphCostume(unsigned int dwServerTime);
@@ -201,6 +205,7 @@ public:
     short m_nCurrentKill;
     unsigned short m_nTotalKill;
     unsigned char m_ucChaosLevel;
+    void UpdateNameColor748();
     TMSkinMesh* m_pMount;
     short m_sMountIndex;
     LOOK_INFO m_stMountLook;
@@ -537,5 +542,4 @@ static float fMantuaList[4][20] =
   }
 };
 
-bool _locationCheck(float posx, float posy, int mapX, int mapY);
 bool _locationCheck(TMVector2 vec2, int mapX, int mapY);

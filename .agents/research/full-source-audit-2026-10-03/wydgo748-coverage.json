@@ -1,0 +1,4969 @@
+{
+  "root": "wydgo748",
+  "enumeration": "rg --files, active non-ignored C/C++ source or Go files; generated build outputs excluded",
+  "decoding": "UTF-8 for lexical markers only; no legacy-encoding language-completeness claim",
+  "marker_policy": "Signals for investigation, not findings and not AST or behavior equivalence.",
+  "files": [
+    {
+      "path": "wydgo748/cmd/account-api/main.go",
+      "group": "cmd/account-api",
+      "bytes": 2726,
+      "lines": 85,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 3,
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/cmd/account-create/main.go",
+      "group": "cmd/account-create",
+      "bytes": 2717,
+      "lines": 98,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/cmd/account-create/password_other.go",
+      "group": "cmd/account-create",
+      "bytes": 159,
+      "lines": 9,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/cmd/account-create/password_windows.go",
+      "group": "cmd/account-create",
+      "bytes": 1034,
+      "lines": 46,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/cmd/loadtest/main.go",
+      "group": "cmd/loadtest",
+      "bytes": 5343,
+      "lines": 141,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/cmd/network-admission/main_test.go",
+      "group": "cmd/network-admission",
+      "bytes": 1639,
+      "lines": 59,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/cmd/network-admission/main.go",
+      "group": "cmd/network-admission",
+      "bytes": 2332,
+      "lines": 72,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/cmd/npcconvert/main_test.go",
+      "group": "cmd/npcconvert",
+      "bytes": 4358,
+      "lines": 135,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/cmd/npcconvert/main.go",
+      "group": "cmd/npcconvert",
+      "bytes": 8861,
+      "lines": 290,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1,
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/cmd/server/main_test.go",
+      "group": "cmd/server",
+      "bytes": 1086,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/cmd/server/main.go",
+      "group": "cmd/server",
+      "bytes": 15382,
+      "lines": 372,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 18,
+        "concurrency": 5,
+        "hard_exit": 29
+      }
+    },
+    {
+      "path": "wydgo748/cmd/server/web_admin_test.go",
+      "group": "cmd/server",
+      "bytes": 7801,
+      "lines": 243,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 33
+      }
+    },
+    {
+      "path": "wydgo748/cmd/server/web_admin.go",
+      "group": "cmd/server",
+      "bytes": 5102,
+      "lines": 156,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1
+      }
+    },
+    {
+      "path": "wydgo748/cmd/web-api/main.go",
+      "group": "cmd/web-api",
+      "bytes": 4916,
+      "lines": 137,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "concurrency": 2,
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/account/password_test.go",
+      "group": "internal/account",
+      "bytes": 513,
+      "lines": 21,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/account/password.go",
+      "group": "internal/account",
+      "bytes": 1698,
+      "lines": 56,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/account/service_test.go",
+      "group": "internal/account",
+      "bytes": 2824,
+      "lines": 100,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 13
+      }
+    },
+    {
+      "path": "wydgo748/internal/account/service.go",
+      "group": "internal/account",
+      "bytes": 2199,
+      "lines": 80,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/account/validation.go",
+      "group": "internal/account",
+      "bytes": 1352,
+      "lines": 55,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/accountapi/handler_test.go",
+      "group": "internal/accountapi",
+      "bytes": 5235,
+      "lines": 142,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "concurrency": 1,
+        "hard_exit": 13
+      }
+    },
+    {
+      "path": "wydgo748/internal/accountapi/handler.go",
+      "group": "internal/accountapi",
+      "bytes": 4598,
+      "lines": 138,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/accountapi/rate_limit.go",
+      "group": "internal/accountapi",
+      "bytes": 2478,
+      "lines": 100,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/control/bosses.go",
+      "group": "internal/control",
+      "bytes": 2285,
+      "lines": 68,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/control/control_test.go",
+      "group": "internal/control",
+      "bytes": 3423,
+      "lines": 98,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/control/control.go",
+      "group": "internal/control",
+      "bytes": 7580,
+      "lines": 237,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/control/global_drop_test.go",
+      "group": "internal/control",
+      "bytes": 1678,
+      "lines": 46,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/control/global_drop.go",
+      "group": "internal/control",
+      "bytes": 3059,
+      "lines": 83,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/control/kick_test.go",
+      "group": "internal/control",
+      "bytes": 1280,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/control/kick.go",
+      "group": "internal/control",
+      "bytes": 1859,
+      "lines": 47,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/control/quiz_test.go",
+      "group": "internal/control",
+      "bytes": 1178,
+      "lines": 36,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/control/quiz.go",
+      "group": "internal/control",
+      "bytes": 2494,
+      "lines": 70,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/control/teleport_test.go",
+      "group": "internal/control",
+      "bytes": 1469,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/control/teleport.go",
+      "group": "internal/control",
+      "bytes": 2151,
+      "lines": 50,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/data/boss_lua.go",
+      "group": "internal/data",
+      "bytes": 4196,
+      "lines": 160,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/data/boss_test.go",
+      "group": "internal/data",
+      "bytes": 6929,
+      "lines": 189,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 7,
+        "hard_exit": 13
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/boss.go",
+      "group": "internal/data",
+      "bytes": 10500,
+      "lines": 269,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/carbuncle_master_test.go",
+      "group": "internal/data",
+      "bytes": 1625,
+      "lines": 57,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/catalog_test.go",
+      "group": "internal/data",
+      "bytes": 6001,
+      "lines": 184,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 31
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/catalog.go",
+      "group": "internal/data",
+      "bytes": 9038,
+      "lines": 307,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/character_templates_test.go",
+      "group": "internal/data",
+      "bytes": 1653,
+      "lines": 56,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 4,
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/character_templates.go",
+      "group": "internal/data",
+      "bytes": 2510,
+      "lines": 72,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/client_integrity_test.go",
+      "group": "internal/data",
+      "bytes": 2290,
+      "lines": 66,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/client_integrity.go",
+      "group": "internal/data",
+      "bytes": 792,
+      "lines": 34,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/crafting_npcs_test.go",
+      "group": "internal/data",
+      "bytes": 1988,
+      "lines": 71,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/data_test.go",
+      "group": "internal/data",
+      "bytes": 868,
+      "lines": 34,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/data.go",
+      "group": "internal/data",
+      "bytes": 4458,
+      "lines": 140,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/droprate_test.go",
+      "group": "internal/data",
+      "bytes": 1286,
+      "lines": 55,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/droprate.go",
+      "group": "internal/data",
+      "bytes": 855,
+      "lines": 31,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/hell_store_npc_test.go",
+      "group": "internal/data",
+      "bytes": 1173,
+      "lines": 43,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/init_items_748_test.go",
+      "group": "internal/data",
+      "bytes": 1797,
+      "lines": 65,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/init_items_client_itemlist_test.go",
+      "group": "internal/data",
+      "bytes": 2381,
+      "lines": 78,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/init_items_validation_test.go",
+      "group": "internal/data",
+      "bytes": 1579,
+      "lines": 57,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/init_items.go",
+      "group": "internal/data",
+      "bytes": 2080,
+      "lines": 72,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/item_notrade_client_test.go",
+      "group": "internal/data",
+      "bytes": 2128,
+      "lines": 72,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/kefra_hall_test.go",
+      "group": "internal/data",
+      "bytes": 1148,
+      "lines": 38,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/kr_mobs_test.go",
+      "group": "internal/data",
+      "bytes": 2462,
+      "lines": 88,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/mounts_test.go",
+      "group": "internal/data",
+      "bytes": 570,
+      "lines": 23,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/mounts.go",
+      "group": "internal/data",
+      "bytes": 1095,
+      "lines": 37,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/network_admission_test.go",
+      "group": "internal/data",
+      "bytes": 1522,
+      "lines": 54,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/network_admission.go",
+      "group": "internal/data",
+      "bytes": 992,
+      "lines": 37,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/npc_names_test.go",
+      "group": "internal/data",
+      "bytes": 2723,
+      "lines": 80,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/npc_refs_test.go",
+      "group": "internal/data",
+      "bytes": 2196,
+      "lines": 79,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/npcgener_test.go",
+      "group": "internal/data",
+      "bytes": 4875,
+      "lines": 164,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 7,
+        "hard_exit": 21
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/npcgener.go",
+      "group": "internal/data",
+      "bytes": 4567,
+      "lines": 170,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/quest_zones.go",
+      "group": "internal/data",
+      "bytes": 1074,
+      "lines": 40,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/quests.go",
+      "group": "internal/data",
+      "bytes": 1207,
+      "lines": 43,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/repliction_test.go",
+      "group": "internal/data",
+      "bytes": 859,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/repliction.go",
+      "group": "internal/data",
+      "bytes": 3735,
+      "lines": 104,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/server_config_test.go",
+      "group": "internal/data",
+      "bytes": 10864,
+      "lines": 311,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 19,
+        "hard_exit": 39
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/server_config.go",
+      "group": "internal/data",
+      "bytes": 21246,
+      "lines": 457,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/skill_masters_test.go",
+      "group": "internal/data",
+      "bytes": 1275,
+      "lines": 49,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/teleports_test.go",
+      "group": "internal/data",
+      "bytes": 886,
+      "lines": 33,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/teleports.go",
+      "group": "internal/data",
+      "bytes": 2034,
+      "lines": 70,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/terrain.go",
+      "group": "internal/data",
+      "bytes": 950,
+      "lines": 29,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/test_shop_coverage_test.go",
+      "group": "internal/data",
+      "bytes": 14439,
+      "lines": 426,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 9,
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/volatile_client_routes_test.go",
+      "group": "internal/data",
+      "bytes": 3579,
+      "lines": 115,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/volatile_coverage_test.go",
+      "group": "internal/data",
+      "bytes": 12473,
+      "lines": 362,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 13,
+        "hard_exit": 26,
+        "pending": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/volatiles_phase_d_test.go",
+      "group": "internal/data",
+      "bytes": 556,
+      "lines": 21,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/volatiles_test.go",
+      "group": "internal/data",
+      "bytes": 25967,
+      "lines": 631,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 18,
+        "hard_exit": 83
+      }
+    },
+    {
+      "path": "wydgo748/internal/data/volatiles.go",
+      "group": "internal/data",
+      "bytes": 33688,
+      "lines": 884,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/account_persistence.go",
+      "group": "internal/game",
+      "bytes": 2708,
+      "lines": 71,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/account_session_test.go",
+      "group": "internal/game",
+      "bytes": 1563,
+      "lines": 52,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/affects_integration_test.go",
+      "group": "internal/game",
+      "bytes": 8686,
+      "lines": 252,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 25
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/affects_test.go",
+      "group": "internal/game",
+      "bytes": 7157,
+      "lines": 202,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/affects.go",
+      "group": "internal/game",
+      "bytes": 37379,
+      "lines": 1143,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/airmove_death_test.go",
+      "group": "internal/game",
+      "bytes": 917,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/airmove_test.go",
+      "group": "internal/game",
+      "bytes": 5787,
+      "lines": 171,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 17
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/airmove.go",
+      "group": "internal/game",
+      "bytes": 3360,
+      "lines": 109,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/arch_crystals_test.go",
+      "group": "internal/game",
+      "bytes": 5820,
+      "lines": 172,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/arch_crystals.go",
+      "group": "internal/game",
+      "bytes": 5362,
+      "lines": 140,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/arch_locks_test.go",
+      "group": "internal/game",
+      "bytes": 4263,
+      "lines": 123,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/arch_points_test.go",
+      "group": "internal/game",
+      "bytes": 4637,
+      "lines": 115,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ascension_test.go",
+      "group": "internal/game",
+      "bytes": 15561,
+      "lines": 471,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 25
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ascension.go",
+      "group": "internal/game",
+      "bytes": 15199,
+      "lines": 421,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/audit_determinism_test.go",
+      "group": "internal/game",
+      "bytes": 3932,
+      "lines": 105,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/autosave_test.go",
+      "group": "internal/game",
+      "bytes": 6699,
+      "lines": 197,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 18
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/beginner_spawn_test.go",
+      "group": "internal/game",
+      "bytes": 2509,
+      "lines": 66,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/big_cube_test.go",
+      "group": "internal/game",
+      "bytes": 2888,
+      "lines": 79,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/big_cube.go",
+      "group": "internal/game",
+      "bytes": 5913,
+      "lines": 182,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/boss_actions.go",
+      "group": "internal/game",
+      "bytes": 10326,
+      "lines": 275,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/boss_area_test.go",
+      "group": "internal/game",
+      "bytes": 3371,
+      "lines": 98,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/boss_events.go",
+      "group": "internal/game",
+      "bytes": 11033,
+      "lines": 333,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/boss_phase_test.go",
+      "group": "internal/game",
+      "bytes": 3772,
+      "lines": 120,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/boss_profile.go",
+      "group": "internal/game",
+      "bytes": 9532,
+      "lines": 290,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/boss_spawn_integration_test.go",
+      "group": "internal/game",
+      "bytes": 6611,
+      "lines": 185,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/boss_spawn.go",
+      "group": "internal/game",
+      "bytes": 11835,
+      "lines": 351,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/boss_test.go",
+      "group": "internal/game",
+      "bytes": 16271,
+      "lines": 461,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 44
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/boss_types_test.go",
+      "group": "internal/game",
+      "bytes": 7713,
+      "lines": 228,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 22
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/boss_types.go",
+      "group": "internal/game",
+      "bytes": 11181,
+      "lines": 310,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/boss.go",
+      "group": "internal/game",
+      "bytes": 5145,
+      "lines": 150,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/bosses_control_test.go",
+      "group": "internal/game",
+      "bytes": 5827,
+      "lines": 181,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "concurrency": 5,
+        "hard_exit": 20
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/bosses_control.go",
+      "group": "internal/game",
+      "bytes": 4650,
+      "lines": 161,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1,
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/carbuncle_master_test.go",
+      "group": "internal/game",
+      "bytes": 3775,
+      "lines": 116,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/carbuncle_master.go",
+      "group": "internal/game",
+      "bytes": 2947,
+      "lines": 94,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/cargo_gold_contract_test.go",
+      "group": "internal/game",
+      "bytes": 6724,
+      "lines": 213,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/celestial_capsule_test.go",
+      "group": "internal/game",
+      "bytes": 14270,
+      "lines": 342,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 29
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/celestial_capsule.go",
+      "group": "internal/game",
+      "bytes": 14014,
+      "lines": 435,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/celestial_level40_recipe_test.go",
+      "group": "internal/game",
+      "bytes": 2175,
+      "lines": 69,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/celestial_native_progression_test.go",
+      "group": "internal/game",
+      "bytes": 6184,
+      "lines": 167,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 18
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/celestial_test.go",
+      "group": "internal/game",
+      "bytes": 22484,
+      "lines": 633,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 49
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/celestial.go",
+      "group": "internal/game",
+      "bytes": 17986,
+      "lines": 567,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/character_creation_integration_test.go",
+      "group": "internal/game",
+      "bytes": 4245,
+      "lines": 131,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/character_creation_test.go",
+      "group": "internal/game",
+      "bytes": 1975,
+      "lines": 65,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/character_name_test.go",
+      "group": "internal/game",
+      "bytes": 4570,
+      "lines": 150,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/character_runtime_test.go",
+      "group": "internal/game",
+      "bytes": 8461,
+      "lines": 227,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4,
+        "pending": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/character_session.go",
+      "group": "internal/game",
+      "bytes": 12204,
+      "lines": 348,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/character_transfer_test.go",
+      "group": "internal/game",
+      "bytes": 2436,
+      "lines": 64,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/charstate_test.go",
+      "group": "internal/game",
+      "bytes": 9329,
+      "lines": 277,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 4,
+        "hard_exit": 29
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/charstate.go",
+      "group": "internal/game",
+      "bytes": 7413,
+      "lines": 208,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/client_admission_test.go",
+      "group": "internal/game",
+      "bytes": 10753,
+      "lines": 261,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 29
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/client_admission.go",
+      "group": "internal/game",
+      "bytes": 5320,
+      "lines": 193,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/client_error.go",
+      "group": "internal/game",
+      "bytes": 405,
+      "lines": 10,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/client_integrity_test.go",
+      "group": "internal/game",
+      "bytes": 6851,
+      "lines": 186,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/client_integrity.go",
+      "group": "internal/game",
+      "bytes": 2796,
+      "lines": 95,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/client_protocol.go",
+      "group": "internal/game",
+      "bytes": 1848,
+      "lines": 51,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/clock_test_helpers_test.go",
+      "group": "internal/game",
+      "bytes": 704,
+      "lines": 46,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/clock_test.go",
+      "group": "internal/game",
+      "bytes": 3399,
+      "lines": 103,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/clock.go",
+      "group": "internal/game",
+      "bytes": 1640,
+      "lines": 58,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/combat_accuracy.go",
+      "group": "internal/game",
+      "bytes": 3695,
+      "lines": 108,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/combat_test.go",
+      "group": "internal/game",
+      "bytes": 10488,
+      "lines": 274,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 41
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/combat.go",
+      "group": "internal/game",
+      "bytes": 10841,
+      "lines": 345,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/command_batch_hotpath_test.go",
+      "group": "internal/game",
+      "bytes": 4751,
+      "lines": 165,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/command_queue_metrics_test.go",
+      "group": "internal/game",
+      "bytes": 1202,
+      "lines": 48,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 3,
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/commands_sephira_test.go",
+      "group": "internal/game",
+      "bytes": 9979,
+      "lines": 255,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 27
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/commands_test.go",
+      "group": "internal/game",
+      "bytes": 6267,
+      "lines": 203,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 25
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/commands.go",
+      "group": "internal/game",
+      "bytes": 20352,
+      "lines": 602,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/consumables_handler_test.go",
+      "group": "internal/game",
+      "bytes": 45715,
+      "lines": 1144,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 104
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/consumables_native.go",
+      "group": "internal/game",
+      "bytes": 6108,
+      "lines": 188,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/consumables_remaining_test.go",
+      "group": "internal/game",
+      "bytes": 2496,
+      "lines": 81,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/consumables_remaining.go",
+      "group": "internal/game",
+      "bytes": 4487,
+      "lines": 150,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/consumables_test.go",
+      "group": "internal/game",
+      "bytes": 10755,
+      "lines": 299,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 35
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/consumables.go",
+      "group": "internal/game",
+      "bytes": 38351,
+      "lines": 1098,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/control_test.go",
+      "group": "internal/game",
+      "bytes": 5941,
+      "lines": 156,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "concurrency": 13,
+        "hard_exit": 17
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/control.go",
+      "group": "internal/game",
+      "bytes": 5181,
+      "lines": 174,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/counters_test.go",
+      "group": "internal/game",
+      "bytes": 4482,
+      "lines": 133,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/counters.go",
+      "group": "internal/game",
+      "bytes": 7705,
+      "lines": 224,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/coverage_more_test.go",
+      "group": "internal/game",
+      "bytes": 24685,
+      "lines": 660,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1,
+        "hard_exit": 74
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/cp_test.go",
+      "group": "internal/game",
+      "bytes": 2176,
+      "lines": 72,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/cp.go",
+      "group": "internal/game",
+      "bytes": 4066,
+      "lines": 138,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/crafting_advanced.go",
+      "group": "internal/game",
+      "bytes": 11183,
+      "lines": 371,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/crafting_compositor_test.go",
+      "group": "internal/game",
+      "bytes": 11647,
+      "lines": 343,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/crafting_odin_secret_stone_test.go",
+      "group": "internal/game",
+      "bytes": 3642,
+      "lines": 109,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/crafting_simple.go",
+      "group": "internal/game",
+      "bytes": 17695,
+      "lines": 491,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/crafting_skills_test.go",
+      "group": "internal/game",
+      "bytes": 10044,
+      "lines": 314,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 21
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/crafting_skills.go",
+      "group": "internal/game",
+      "bytes": 6584,
+      "lines": 210,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/crafting_test.go",
+      "group": "internal/game",
+      "bytes": 24991,
+      "lines": 688,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 5,
+        "hard_exit": 34
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/crafting.go",
+      "group": "internal/game",
+      "bytes": 7497,
+      "lines": 232,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/death_letters.go",
+      "group": "internal/game",
+      "bytes": 508,
+      "lines": 17,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/dispatch_test.go",
+      "group": "internal/game",
+      "bytes": 3366,
+      "lines": 108,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/drops_test.go",
+      "group": "internal/game",
+      "bytes": 3365,
+      "lines": 100,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/drops.go",
+      "group": "internal/game",
+      "bytes": 5925,
+      "lines": 200,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/economy_integration_test.go",
+      "group": "internal/game",
+      "bytes": 9122,
+      "lines": 233,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 20
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/enter_world_test.go",
+      "group": "internal/game",
+      "bytes": 8569,
+      "lines": 261,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 20
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/equipment_gems_test.go",
+      "group": "internal/game",
+      "bytes": 3242,
+      "lines": 101,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/equipment_gems.go",
+      "group": "internal/game",
+      "bytes": 3343,
+      "lines": 121,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/equipment_test.go",
+      "group": "internal/game",
+      "bytes": 14520,
+      "lines": 407,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 43
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/equipment.go",
+      "group": "internal/game",
+      "bytes": 19025,
+      "lines": 597,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/experience_party_bonus_test.go",
+      "group": "internal/game",
+      "bytes": 5655,
+      "lines": 162,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/experience_test.go",
+      "group": "internal/game",
+      "bytes": 1323,
+      "lines": 47,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/experience.go",
+      "group": "internal/game",
+      "bytes": 2752,
+      "lines": 72,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/fairies_test.go",
+      "group": "internal/game",
+      "bytes": 3811,
+      "lines": 123,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/fairies.go",
+      "group": "internal/game",
+      "bytes": 1730,
+      "lines": 62,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/fame_test.go",
+      "group": "internal/game",
+      "bytes": 5048,
+      "lines": 132,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 5,
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/gamble_test.go",
+      "group": "internal/game",
+      "bytes": 10555,
+      "lines": 306,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 5,
+        "hard_exit": 22
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/gamble.go",
+      "group": "internal/game",
+      "bytes": 7174,
+      "lines": 252,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/gameplay_logging.go",
+      "group": "internal/game",
+      "bytes": 2467,
+      "lines": 87,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/gameplay_space.go",
+      "group": "internal/game",
+      "bytes": 5913,
+      "lines": 182,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/gate_key_test.go",
+      "group": "internal/game",
+      "bytes": 6628,
+      "lines": 191,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/gate_key.go",
+      "group": "internal/game",
+      "bytes": 5893,
+      "lines": 177,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/gate_update_wire_test.go",
+      "group": "internal/game",
+      "bytes": 1139,
+      "lines": 38,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ghost_shop_browse_test.go",
+      "group": "internal/game",
+      "bytes": 4877,
+      "lines": 127,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ghost_shop_test.go",
+      "group": "internal/game",
+      "bytes": 12335,
+      "lines": 342,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 29
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ghost_shop.go",
+      "group": "internal/game",
+      "bytes": 15842,
+      "lines": 501,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/global_drop_test.go",
+      "group": "internal/game",
+      "bytes": 8361,
+      "lines": 249,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "concurrency": 4,
+        "hard_exit": 35
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/global_drop.go",
+      "group": "internal/game",
+      "bytes": 7090,
+      "lines": 225,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1,
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ground_expiry_test.go",
+      "group": "internal/game",
+      "bytes": 1194,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ground_expiry.go",
+      "group": "internal/game",
+      "bytes": 2006,
+      "lines": 71,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/ground_item_collision_test.go",
+      "group": "internal/game",
+      "bytes": 7001,
+      "lines": 196,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 24
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ground_item_collision.go",
+      "group": "internal/game",
+      "bytes": 1745,
+      "lines": 53,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ground_item_packet_test.go",
+      "group": "internal/game",
+      "bytes": 2031,
+      "lines": 59,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/ground_item_packet.go",
+      "group": "internal/game",
+      "bytes": 1116,
+      "lines": 39,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/guild_city_contract_test.go",
+      "group": "internal/game",
+      "bytes": 17376,
+      "lines": 427,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 40
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/guild_economy.go",
+      "group": "internal/game",
+      "bytes": 9869,
+      "lines": 316,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/guild_flow_test.go",
+      "group": "internal/game",
+      "bytes": 7136,
+      "lines": 197,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/guild_protocol_test.go",
+      "group": "internal/game",
+      "bytes": 3463,
+      "lines": 82,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/guild_protocol.go",
+      "group": "internal/game",
+      "bytes": 4573,
+      "lines": 123,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/guild_scheduled_wars_test.go",
+      "group": "internal/game",
+      "bytes": 12131,
+      "lines": 358,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 50
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/guild_test.go",
+      "group": "internal/game",
+      "bytes": 7934,
+      "lines": 236,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 24
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/guild_war_test.go",
+      "group": "internal/game",
+      "bytes": 3721,
+      "lines": 96,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/guild_wars.go",
+      "group": "internal/game",
+      "bytes": 22562,
+      "lines": 713,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/guild.go",
+      "group": "internal/game",
+      "bytes": 25448,
+      "lines": 729,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/handlers_coverage_test.go",
+      "group": "internal/game",
+      "bytes": 12030,
+      "lines": 338,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 29
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/handlers_lifecycle_integration_test.go",
+      "group": "internal/game",
+      "bytes": 12813,
+      "lines": 349,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/handlers.go",
+      "group": "internal/game",
+      "bytes": 94874,
+      "lines": 2551,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "concurrency": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/held_experience_test.go",
+      "group": "internal/game",
+      "bytes": 3548,
+      "lines": 120,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/hell_gate.go",
+      "group": "internal/game",
+      "bytes": 10589,
+      "lines": 362,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/hell_store_test.go",
+      "group": "internal/game",
+      "bytes": 7374,
+      "lines": 201,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 17
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/hell_store.go",
+      "group": "internal/game",
+      "bytes": 7300,
+      "lines": 235,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/home_city_test.go",
+      "group": "internal/game",
+      "bytes": 7640,
+      "lines": 205,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 17
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/hp_base_invariant_test.go",
+      "group": "internal/game",
+      "bytes": 2333,
+      "lines": 70,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/hp_equip_base_test.go",
+      "group": "internal/game",
+      "bytes": 2605,
+      "lines": 82,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/indexed_use_items_test.go",
+      "group": "internal/game",
+      "bytes": 7371,
+      "lines": 189,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/indexed_use_items.go",
+      "group": "internal/game",
+      "bytes": 7284,
+      "lines": 212,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/init_items_748_test.go",
+      "group": "internal/game",
+      "bytes": 4701,
+      "lines": 144,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 22
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/init_items_test.go",
+      "group": "internal/game",
+      "bytes": 4943,
+      "lines": 158,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "concurrency": 1,
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/instance_state_test.go",
+      "group": "internal/game",
+      "bytes": 10369,
+      "lines": 244,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 4,
+        "hard_exit": 17
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/instance_state.go",
+      "group": "internal/game",
+      "bytes": 19272,
+      "lines": 553,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/inventory_handlers_test.go",
+      "group": "internal/game",
+      "bytes": 9510,
+      "lines": 266,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/inventory_handlers.go",
+      "group": "internal/game",
+      "bytes": 5002,
+      "lines": 144,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/inventory_test.go",
+      "group": "internal/game",
+      "bytes": 489,
+      "lines": 20,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/item_instances_nightmare.go",
+      "group": "internal/game",
+      "bytes": 5243,
+      "lines": 172,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/item_instances_test.go",
+      "group": "internal/game",
+      "bytes": 68050,
+      "lines": 1759,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 153
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/item_instances.go",
+      "group": "internal/game",
+      "bytes": 91128,
+      "lines": 2646,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/item_uid.go",
+      "group": "internal/game",
+      "bytes": 829,
+      "lines": 33,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/kefra_test.go",
+      "group": "internal/game",
+      "bytes": 14307,
+      "lines": 397,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 47
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/kefra.go",
+      "group": "internal/game",
+      "bytes": 6758,
+      "lines": 212,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/kick_control_test.go",
+      "group": "internal/game",
+      "bytes": 5883,
+      "lines": 176,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "concurrency": 7,
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/kick_control.go",
+      "group": "internal/game",
+      "bytes": 3375,
+      "lines": 126,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1,
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/kill_rewards_test.go",
+      "group": "internal/game",
+      "bytes": 5681,
+      "lines": 153,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 4,
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/kill_rewards.go",
+      "group": "internal/game",
+      "bytes": 13239,
+      "lines": 416,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/kingdom_integration_test.go",
+      "group": "internal/game",
+      "bytes": 4479,
+      "lines": 123,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/kingdom_test.go",
+      "group": "internal/game",
+      "bytes": 5896,
+      "lines": 151,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/kingdom.go",
+      "group": "internal/game",
+      "bytes": 13089,
+      "lines": 405,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/login_result_integration_test.go",
+      "group": "internal/game",
+      "bytes": 6017,
+      "lines": 169,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/lottery_ticket_test.go",
+      "group": "internal/game",
+      "bytes": 1548,
+      "lines": 44,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/lottery_ticket.go",
+      "group": "internal/game",
+      "bytes": 1048,
+      "lines": 29,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/mana_control_test.go",
+      "group": "internal/game",
+      "bytes": 10514,
+      "lines": 271,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 18
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/metrics_hotpath_test.go",
+      "group": "internal/game",
+      "bytes": 2458,
+      "lines": 91,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/metrics_test.go",
+      "group": "internal/game",
+      "bytes": 2796,
+      "lines": 82,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/metrics.go",
+      "group": "internal/game",
+      "bytes": 9420,
+      "lines": 239,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/mob_ai_test.go",
+      "group": "internal/game",
+      "bytes": 4504,
+      "lines": 134,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mob_ai.go",
+      "group": "internal/game",
+      "bytes": 4596,
+      "lines": 187,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/mob_combat_integration_test.go",
+      "group": "internal/game",
+      "bytes": 4807,
+      "lines": 157,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mob_combat_test.go",
+      "group": "internal/game",
+      "bytes": 2205,
+      "lines": 64,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mob_combat.go",
+      "group": "internal/game",
+      "bytes": 8512,
+      "lines": 264,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/motion_test.go",
+      "group": "internal/game",
+      "bytes": 2816,
+      "lines": 84,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mount_death_visual_test.go",
+      "group": "internal/game",
+      "bytes": 1946,
+      "lines": 54,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mount_food_test.go",
+      "group": "internal/game",
+      "bytes": 2516,
+      "lines": 76,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mount_incubation_test.go",
+      "group": "internal/game",
+      "bytes": 5920,
+      "lines": 165,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 16
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mount_master_test.go",
+      "group": "internal/game",
+      "bytes": 4771,
+      "lines": 135,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mount_master.go",
+      "group": "internal/game",
+      "bytes": 3175,
+      "lines": 103,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/mount_visibility_test.go",
+      "group": "internal/game",
+      "bytes": 1539,
+      "lines": 45,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/mount.go",
+      "group": "internal/game",
+      "bytes": 34749,
+      "lines": 1049,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/movement_life_guard_test.go",
+      "group": "internal/game",
+      "bytes": 1677,
+      "lines": 51,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/movement_rejection_test.go",
+      "group": "internal/game",
+      "bytes": 2857,
+      "lines": 74,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/movement_test.go",
+      "group": "internal/game",
+      "bytes": 483,
+      "lines": 19,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/npc_interaction.go",
+      "group": "internal/game",
+      "bytes": 2081,
+      "lines": 59,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/npcgener_logging_test.go",
+      "group": "internal/game",
+      "bytes": 1902,
+      "lines": 67,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/operational_test.go",
+      "group": "internal/game",
+      "bytes": 4266,
+      "lines": 128,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 20
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/operational.go",
+      "group": "internal/game",
+      "bytes": 5318,
+      "lines": 171,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/packet_corpus_test.go",
+      "group": "internal/game",
+      "bytes": 1303,
+      "lines": 53,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/packet_fuzz_test.go",
+      "group": "internal/game",
+      "bytes": 846,
+      "lines": 31,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/party_packet_contract_test.go",
+      "group": "internal/game",
+      "bytes": 6276,
+      "lines": 183,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 15
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/party_test.go",
+      "group": "internal/game",
+      "bytes": 4416,
+      "lines": 136,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/party.go",
+      "group": "internal/game",
+      "bytes": 9462,
+      "lines": 308,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/pending_command_queue_test.go",
+      "group": "internal/game",
+      "bytes": 3191,
+      "lines": 103,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/percent_roll_test.go",
+      "group": "internal/game",
+      "bytes": 1362,
+      "lines": 33,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/percent_roll.go",
+      "group": "internal/game",
+      "bytes": 642,
+      "lines": 34,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/player_movement.go",
+      "group": "internal/game",
+      "bytes": 6069,
+      "lines": 178,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/premium_firework_test.go",
+      "group": "internal/game",
+      "bytes": 6464,
+      "lines": 179,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/premium_firework.go",
+      "group": "internal/game",
+      "bytes": 4110,
+      "lines": 127,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/progression_test.go",
+      "group": "internal/game",
+      "bytes": 2798,
+      "lines": 82,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 13
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/progression.go",
+      "group": "internal/game",
+      "bytes": 13734,
+      "lines": 410,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/protocol_misc_test.go",
+      "group": "internal/game",
+      "bytes": 3770,
+      "lines": 84,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/protocol_misc.go",
+      "group": "internal/game",
+      "bytes": 3250,
+      "lines": 88,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/pvp_rewards_test.go",
+      "group": "internal/game",
+      "bytes": 3622,
+      "lines": 96,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/quest_data_test.go",
+      "group": "internal/game",
+      "bytes": 9546,
+      "lines": 283,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 11,
+        "concurrency": 1,
+        "hard_exit": 25
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/quest_dialogue_test.go",
+      "group": "internal/game",
+      "bytes": 5217,
+      "lines": 155,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/quest_rewards_test.go",
+      "group": "internal/game",
+      "bytes": 2725,
+      "lines": 85,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/quest_rewards.go",
+      "group": "internal/game",
+      "bytes": 5757,
+      "lines": 161,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/quest_test.go",
+      "group": "internal/game",
+      "bytes": 19954,
+      "lines": 568,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 64
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/quest_zones_test.go",
+      "group": "internal/game",
+      "bytes": 2638,
+      "lines": 81,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/quest.go",
+      "group": "internal/game",
+      "bytes": 17398,
+      "lines": 519,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/quiz_round.go",
+      "group": "internal/game",
+      "bytes": 6099,
+      "lines": 185,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/quiz_test.go",
+      "group": "internal/game",
+      "bytes": 8941,
+      "lines": 262,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "concurrency": 4,
+        "hard_exit": 27
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/quiz.go",
+      "group": "internal/game",
+      "bytes": 5033,
+      "lines": 173,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1,
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/regen_test.go",
+      "group": "internal/game",
+      "bytes": 894,
+      "lines": 33,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/regen.go",
+      "group": "internal/game",
+      "bytes": 1088,
+      "lines": 42,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/regressions_test.go",
+      "group": "internal/game",
+      "bytes": 2755,
+      "lines": 83,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/repliction_consumption_regression_test.go",
+      "group": "internal/game",
+      "bytes": 3147,
+      "lines": 91,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/runtime_isolation_matrix_test.go",
+      "group": "internal/game",
+      "bytes": 14569,
+      "lines": 320,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 24
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/sale_economy_contract_test.go",
+      "group": "internal/game",
+      "bytes": 8270,
+      "lines": 216,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 5,
+        "hard_exit": 18
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/sale_ingress_test.go",
+      "group": "internal/game",
+      "bytes": 3843,
+      "lines": 111,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/sale_ingress.go",
+      "group": "internal/game",
+      "bytes": 595,
+      "lines": 19,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/score_test.go",
+      "group": "internal/game",
+      "bytes": 3883,
+      "lines": 113,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/score.go",
+      "group": "internal/game",
+      "bytes": 6322,
+      "lines": 272,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/security_runtime_regression_test.go",
+      "group": "internal/game",
+      "bytes": 8121,
+      "lines": 230,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/security_test.go",
+      "group": "internal/game",
+      "bytes": 33876,
+      "lines": 943,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 61
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/security.go",
+      "group": "internal/game",
+      "bytes": 25723,
+      "lines": 794,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/server_war_letters_test.go",
+      "group": "internal/game",
+      "bytes": 2996,
+      "lines": 94,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/server_war_letters.go",
+      "group": "internal/game",
+      "bytes": 2027,
+      "lines": 67,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/session_drops_test.go",
+      "group": "internal/game",
+      "bytes": 5866,
+      "lines": 154,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 13
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/shop_items_test.go",
+      "group": "internal/game",
+      "bytes": 5494,
+      "lines": 192,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 17
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/shop_items.go",
+      "group": "internal/game",
+      "bytes": 2448,
+      "lines": 76,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/shortskills_test.go",
+      "group": "internal/game",
+      "bytes": 430,
+      "lines": 19,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/shutdown_test.go",
+      "group": "internal/game",
+      "bytes": 8080,
+      "lines": 289,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "concurrency": 16,
+        "hard_exit": 26
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/shutdown.go",
+      "group": "internal/game",
+      "bytes": 3577,
+      "lines": 115,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/skill_ingress_regression_test.go",
+      "group": "internal/game",
+      "bytes": 1409,
+      "lines": 48,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/skill_master_reset_test.go",
+      "group": "internal/game",
+      "bytes": 4172,
+      "lines": 126,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/skill_master_reset.go",
+      "group": "internal/game",
+      "bytes": 3757,
+      "lines": 128,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/skill_passives_test.go",
+      "group": "internal/game",
+      "bytes": 3174,
+      "lines": 87,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/skill_passives.go",
+      "group": "internal/game",
+      "bytes": 2227,
+      "lines": 67,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/skill_pvp.go",
+      "group": "internal/game",
+      "bytes": 11259,
+      "lines": 307,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/skill_sephira.go",
+      "group": "internal/game",
+      "bytes": 2788,
+      "lines": 89,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/skill_summons.go",
+      "group": "internal/game",
+      "bytes": 13539,
+      "lines": 409,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/skills_integration_test.go",
+      "group": "internal/game",
+      "bytes": 28253,
+      "lines": 827,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 61
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/skills_test.go",
+      "group": "internal/game",
+      "bytes": 25691,
+      "lines": 683,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 67
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/skills.go",
+      "group": "internal/game",
+      "bytes": 28058,
+      "lines": 811,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/spatial_hotpath_test.go",
+      "group": "internal/game",
+      "bytes": 6643,
+      "lines": 276,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 13
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/spatial.go",
+      "group": "internal/game",
+      "bytes": 12657,
+      "lines": 449,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/stats_test.go",
+      "group": "internal/game",
+      "bytes": 6884,
+      "lines": 215,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 24
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/stats.go",
+      "group": "internal/game",
+      "bytes": 8156,
+      "lines": 331,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/store_gold_request_test.go",
+      "group": "internal/game",
+      "bytes": 1183,
+      "lines": 35,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/store_gold_request.go",
+      "group": "internal/game",
+      "bytes": 1003,
+      "lines": 29,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/summon_security_test.go",
+      "group": "internal/game",
+      "bytes": 930,
+      "lines": 29,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/teleport_control_test.go",
+      "group": "internal/game",
+      "bytes": 7345,
+      "lines": 213,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "concurrency": 6,
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/teleport_control.go",
+      "group": "internal/game",
+      "bytes": 4693,
+      "lines": 160,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/teleports_test.go",
+      "group": "internal/game",
+      "bytes": 5431,
+      "lines": 156,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/teleports.go",
+      "group": "internal/game",
+      "bytes": 7353,
+      "lines": 239,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/timed_items_test.go",
+      "group": "internal/game",
+      "bytes": 7301,
+      "lines": 204,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 15
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/timed_items.go",
+      "group": "internal/game",
+      "bytes": 7644,
+      "lines": 236,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/toto_test.go",
+      "group": "internal/game",
+      "bytes": 6202,
+      "lines": 175,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/trade_check_contract_test.go",
+      "group": "internal/game",
+      "bytes": 6488,
+      "lines": 142,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/trade_notrade_catalog_test.go",
+      "group": "internal/game",
+      "bytes": 1118,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/trade_test.go",
+      "group": "internal/game",
+      "bytes": 5850,
+      "lines": 174,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 21
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/trade.go",
+      "group": "internal/game",
+      "bytes": 16918,
+      "lines": 516,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/uxmal_test.go",
+      "group": "internal/game",
+      "bytes": 8892,
+      "lines": 241,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 22
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/uxmal.go",
+      "group": "internal/game",
+      "bytes": 14850,
+      "lines": 449,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/visibility_delta_test.go",
+      "group": "internal/game",
+      "bytes": 6063,
+      "lines": 187,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/visibility_delta.go",
+      "group": "internal/game",
+      "bytes": 7659,
+      "lines": 231,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/visibility_integration_test.go",
+      "group": "internal/game",
+      "bytes": 6279,
+      "lines": 165,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/visibility_test.go",
+      "group": "internal/game",
+      "bytes": 6221,
+      "lines": 174,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/visibility.go",
+      "group": "internal/game",
+      "bytes": 25973,
+      "lines": 786,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/volatile_actions_test.go",
+      "group": "internal/game",
+      "bytes": 10803,
+      "lines": 316,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 43
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/volatile_phase_d_test.go",
+      "group": "internal/game",
+      "bytes": 2170,
+      "lines": 66,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/water_auto_test.go",
+      "group": "internal/game",
+      "bytes": 8518,
+      "lines": 246,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/water_auto.go",
+      "group": "internal/game",
+      "bytes": 2943,
+      "lines": 77,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/game/water_data_test.go",
+      "group": "internal/game",
+      "bytes": 1832,
+      "lines": 57,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 2,
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/water_isolation_test.go",
+      "group": "internal/game",
+      "bytes": 11773,
+      "lines": 292,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/water_test.go",
+      "group": "internal/game",
+      "bytes": 4447,
+      "lines": 119,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/world_entity_ids_test.go",
+      "group": "internal/game",
+      "bytes": 2010,
+      "lines": 58,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/world_integration_test.go",
+      "group": "internal/game",
+      "bytes": 6560,
+      "lines": 186,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 18
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/world_lifecycle_test.go",
+      "group": "internal/game",
+      "bytes": 7574,
+      "lines": 233,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2,
+        "hard_exit": 26
+      }
+    },
+    {
+      "path": "wydgo748/internal/game/world.go",
+      "group": "internal/game",
+      "bytes": 72183,
+      "lines": 2215,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 7,
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/loadtest/client_test.go",
+      "group": "internal/loadtest",
+      "bytes": 3383,
+      "lines": 117,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 12,
+        "concurrency": 2,
+        "hard_exit": 14
+      }
+    },
+    {
+      "path": "wydgo748/internal/loadtest/client.go",
+      "group": "internal/loadtest",
+      "bytes": 12597,
+      "lines": 468,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 19,
+        "concurrency": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/loadtest/provision_test.go",
+      "group": "internal/loadtest",
+      "bytes": 5474,
+      "lines": 174,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 20
+      }
+    },
+    {
+      "path": "wydgo748/internal/loadtest/provision.go",
+      "group": "internal/loadtest",
+      "bytes": 9306,
+      "lines": 279,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/arch_test.go",
+      "group": "internal/model",
+      "bytes": 849,
+      "lines": 34,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/boss_limits_test.go",
+      "group": "internal/model",
+      "bytes": 2014,
+      "lines": 52,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/boss.go",
+      "group": "internal/model",
+      "bytes": 12838,
+      "lines": 353,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/catalog.go",
+      "group": "internal/model",
+      "bytes": 1916,
+      "lines": 69,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/celestial_capsule.go",
+      "group": "internal/model",
+      "bytes": 2777,
+      "lines": 82,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/character_template_test.go",
+      "group": "internal/model",
+      "bytes": 985,
+      "lines": 28,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/character_template.go",
+      "group": "internal/model",
+      "bytes": 2653,
+      "lines": 80,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/charstate.go",
+      "group": "internal/model",
+      "bytes": 2016,
+      "lines": 40,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/citizenship_test.go",
+      "group": "internal/model",
+      "bytes": 1481,
+      "lines": 43,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/citizenship.go",
+      "group": "internal/model",
+      "bytes": 1464,
+      "lines": 45,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/client_integrity.go",
+      "group": "internal/model",
+      "bytes": 3221,
+      "lines": 91,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/gameplay_config_test.go",
+      "group": "internal/model",
+      "bytes": 1327,
+      "lines": 39,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/gameplay_config.go",
+      "group": "internal/model",
+      "bytes": 1777,
+      "lines": 58,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/guild_test.go",
+      "group": "internal/model",
+      "bytes": 9106,
+      "lines": 245,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 27
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/guild_wars_test.go",
+      "group": "internal/model",
+      "bytes": 1757,
+      "lines": 62,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/guild_wars.go",
+      "group": "internal/model",
+      "bytes": 5390,
+      "lines": 167,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/guild.go",
+      "group": "internal/model",
+      "bytes": 11255,
+      "lines": 340,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/init_item.go",
+      "group": "internal/model",
+      "bytes": 729,
+      "lines": 25,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/item_uid_test.go",
+      "group": "internal/model",
+      "bytes": 2700,
+      "lines": 93,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 15
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/kingdom_test.go",
+      "group": "internal/model",
+      "bytes": 1910,
+      "lines": 57,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/kingdom.go",
+      "group": "internal/model",
+      "bytes": 3734,
+      "lines": 120,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/marshal_test.go",
+      "group": "internal/model",
+      "bytes": 3237,
+      "lines": 141,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/model_test.go",
+      "group": "internal/model",
+      "bytes": 12709,
+      "lines": 435,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 55
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/model.go",
+      "group": "internal/model",
+      "bytes": 42459,
+      "lines": 1128,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/mount.go",
+      "group": "internal/model",
+      "bytes": 4209,
+      "lines": 130,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/network_admission_test.go",
+      "group": "internal/model",
+      "bytes": 1387,
+      "lines": 35,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 1
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/network_admission.go",
+      "group": "internal/model",
+      "bytes": 2944,
+      "lines": 93,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/npc_type_test.go",
+      "group": "internal/model",
+      "bytes": 366,
+      "lines": 14,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/quest_zone_test.go",
+      "group": "internal/model",
+      "bytes": 1457,
+      "lines": 49,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/quest_zone.go",
+      "group": "internal/model",
+      "bytes": 1918,
+      "lines": 65,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/quest.go",
+      "group": "internal/model",
+      "bytes": 9801,
+      "lines": 268,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/model/terrain_test.go",
+      "group": "internal/model",
+      "bytes": 1862,
+      "lines": 55,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/terrain.go",
+      "group": "internal/model",
+      "bytes": 3899,
+      "lines": 137,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/model/volatile.go",
+      "group": "internal/model",
+      "bytes": 21727,
+      "lines": 416,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/net/listener_test.go",
+      "group": "internal/net",
+      "bytes": 2410,
+      "lines": 81,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/net/listener.go",
+      "group": "internal/net",
+      "bytes": 3696,
+      "lines": 147,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/net/session_handshake_fragment_test.go",
+      "group": "internal/net",
+      "bytes": 994,
+      "lines": 39,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2,
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/net/session_test.go",
+      "group": "internal/net",
+      "bytes": 5597,
+      "lines": 204,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 16,
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/net/session.go",
+      "group": "internal/net",
+      "bytes": 9071,
+      "lines": 298,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/networkpolicy/import_test.go",
+      "group": "internal/networkpolicy",
+      "bytes": 3934,
+      "lines": 126,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "hard_exit": 15
+      }
+    },
+    {
+      "path": "wydgo748/internal/networkpolicy/import.go",
+      "group": "internal/networkpolicy",
+      "bytes": 7701,
+      "lines": 266,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/store/character_uids.go",
+      "group": "internal/store",
+      "bytes": 1645,
+      "lines": 60,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/store/charstate_test.go",
+      "group": "internal/store",
+      "bytes": 4235,
+      "lines": 127,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 10,
+        "hard_exit": 19
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/charstate.go",
+      "group": "internal/store",
+      "bytes": 4541,
+      "lines": 152,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 3,
+        "concurrency": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/guild_txn_test.go",
+      "group": "internal/store",
+      "bytes": 14630,
+      "lines": 428,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 17,
+        "concurrency": 1,
+        "hard_exit": 58
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/item_uids.go",
+      "group": "internal/store",
+      "bytes": 5721,
+      "lines": 206,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/store/loadtest.go",
+      "group": "internal/store",
+      "bytes": 991,
+      "lines": 33,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/store/postgres_fence_test.go",
+      "group": "internal/store",
+      "bytes": 4465,
+      "lines": 160,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 5,
+        "concurrency": 9,
+        "hard_exit": 17
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/postgres_fence.go",
+      "group": "internal/store",
+      "bytes": 3504,
+      "lines": 153,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/postgres_metrics_test.go",
+      "group": "internal/store",
+      "bytes": 1004,
+      "lines": 42,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 1,
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/postgres_test.go",
+      "group": "internal/store",
+      "bytes": 18035,
+      "lines": 516,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 17,
+        "concurrency": 5,
+        "hard_exit": 71
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/postgres.go",
+      "group": "internal/store",
+      "bytes": 57184,
+      "lines": 1895,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 19,
+        "concurrency": 25
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/store_queue_test.go",
+      "group": "internal/store",
+      "bytes": 2016,
+      "lines": 79,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 14,
+        "hard_exit": 8
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/store_test.go",
+      "group": "internal/store",
+      "bytes": 10658,
+      "lines": 348,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 25,
+        "hard_exit": 54
+      }
+    },
+    {
+      "path": "wydgo748/internal/store/store.go",
+      "group": "internal/store",
+      "bytes": 31717,
+      "lines": 1053,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 12,
+        "concurrency": 18
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/accounts_test.go",
+      "group": "internal/webadmin",
+      "bytes": 5449,
+      "lines": 143,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 8,
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/accounts.go",
+      "group": "internal/webadmin",
+      "bytes": 3293,
+      "lines": 101,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/webadmin/bosses_test.go",
+      "group": "internal/webadmin",
+      "bytes": 3789,
+      "lines": 90,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/bosses.go",
+      "group": "internal/webadmin",
+      "bytes": 3016,
+      "lines": 95,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/global_drop_test.go",
+      "group": "internal/webadmin",
+      "bytes": 3891,
+      "lines": 90,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/global_drop.go",
+      "group": "internal/webadmin",
+      "bytes": 3343,
+      "lines": 104,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/handler_test.go",
+      "group": "internal/webadmin",
+      "bytes": 17128,
+      "lines": 454,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "persistence": 1,
+        "concurrency": 6,
+        "hard_exit": 55
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/handler.go",
+      "group": "internal/webadmin",
+      "bytes": 19819,
+      "lines": 704,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 11
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/kick_test.go",
+      "group": "internal/webadmin",
+      "bytes": 3385,
+      "lines": 81,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/kick.go",
+      "group": "internal/webadmin",
+      "bytes": 2744,
+      "lines": 84,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/persistent_test.go",
+      "group": "internal/webadmin",
+      "bytes": 4569,
+      "lines": 112,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 15
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/persistent.go",
+      "group": "internal/webadmin",
+      "bytes": 6917,
+      "lines": 192,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/webadmin/quiz_test.go",
+      "group": "internal/webadmin",
+      "bytes": 3777,
+      "lines": 90,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 10
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/quiz.go",
+      "group": "internal/webadmin",
+      "bytes": 3018,
+      "lines": 95,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/site_test.go",
+      "group": "internal/webadmin",
+      "bytes": 3047,
+      "lines": 97,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 12
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/site.go",
+      "group": "internal/webadmin",
+      "bytes": 1974,
+      "lines": 64,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/webadmin/staff.go",
+      "group": "internal/webadmin",
+      "bytes": 2188,
+      "lines": 71,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/webadmin/teleport_test.go",
+      "group": "internal/webadmin",
+      "bytes": 3491,
+      "lines": 81,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 9
+      }
+    },
+    {
+      "path": "wydgo748/internal/webadmin/teleport.go",
+      "group": "internal/webadmin",
+      "bytes": 2854,
+      "lines": 84,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "concurrency": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/capsule_packets_test.go",
+      "group": "internal/wire",
+      "bytes": 1084,
+      "lines": 37,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 7
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/client_integrity_test.go",
+      "group": "internal/wire",
+      "bytes": 2167,
+      "lines": 63,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/client_integrity.go",
+      "group": "internal/wire",
+      "bytes": 1600,
+      "lines": 46,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/codec.go",
+      "group": "internal/wire",
+      "bytes": 30873,
+      "lines": 860,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/crypt.go",
+      "group": "internal/wire",
+      "bytes": 4516,
+      "lines": 97,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/gamble_test.go",
+      "group": "internal/wire",
+      "bytes": 1147,
+      "lines": 33,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/login_packets_test.go",
+      "group": "internal/wire",
+      "bytes": 705,
+      "lines": 28,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/opcodes.go",
+      "group": "internal/wire",
+      "bytes": 9575,
+      "lines": 135,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/packet_security_test.go",
+      "group": "internal/wire",
+      "bytes": 1052,
+      "lines": 37,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/packet.go",
+      "group": "internal/wire",
+      "bytes": 1896,
+      "lines": 67,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/party_packets_test.go",
+      "group": "internal/wire",
+      "bytes": 1155,
+      "lines": 32,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 4
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/premium_firework_test.go",
+      "group": "internal/wire",
+      "bytes": 694,
+      "lines": 23,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 3
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/quiz_test.go",
+      "group": "internal/wire",
+      "bytes": 1430,
+      "lines": 44,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 6
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/quiz.go",
+      "group": "internal/wire",
+      "bytes": 1486,
+      "lines": 55,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/score_test.go",
+      "group": "internal/wire",
+      "bytes": 1798,
+      "lines": 66,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 2
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/score.go",
+      "group": "internal/wire",
+      "bytes": 1354,
+      "lines": 64,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/send_item_contract_test.go",
+      "group": "internal/wire",
+      "bytes": 1776,
+      "lines": 58,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/session_packets_test.go",
+      "group": "internal/wire",
+      "bytes": 22169,
+      "lines": 556,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 70
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/skill_hits_wide_test.go",
+      "group": "internal/wire",
+      "bytes": 4963,
+      "lines": 140,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 32
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/skill_hits_wide.go",
+      "group": "internal/wire",
+      "bytes": 2653,
+      "lines": 70,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/source_client_test.go",
+      "group": "internal/wire",
+      "bytes": 7119,
+      "lines": 171,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 23
+      }
+    },
+    {
+      "path": "wydgo748/internal/wire/source_client.go",
+      "group": "internal/wire",
+      "bytes": 11262,
+      "lines": 306,
+      "test": false,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {}
+    },
+    {
+      "path": "wydgo748/internal/wire/war_info_test.go",
+      "group": "internal/wire",
+      "bytes": 895,
+      "lines": 34,
+      "test": true,
+      "coverage": "read and pattern-screened; not a per-line manual approval",
+      "markers": {
+        "hard_exit": 5
+      }
+    }
+  ]
+}

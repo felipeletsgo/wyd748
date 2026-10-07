@@ -13,7 +13,7 @@
 13 mesh\\elfbow.msa
 14 mesh\\argosaxe.msa
 15 mesh\\ring03.msa
-16 mesh\\scroll04.msa 
+16 mesh\\scroll04.msa
 17 mesh\\gemsta.msa
 18 mesh\\crown.msa
 19 Effect\\spec01.msa
@@ -1008,6 +1008,26 @@
 1414 mesh\\ch020462.msa
 1415 mesh\\ch020562.msa
 1416 mesh\\ch020662.msa
+
+1417 mesh\\ch010346.msa
+1418 mesh\\ch010446.msa
+1419 mesh\\ch010546.msa
+1420 mesh\\ch010646.msa
+
+1421 mesh\\ch010366.msa
+1422 mesh\\ch010466.msa
+1423 mesh\\ch010566.msa
+1424 mesh\\ch010666.msa
+
+1425 mesh\\ch020346.msa
+1426 mesh\\ch020446.msa
+1427 mesh\\ch020546.msa
+1428 mesh\\ch020646.msa
+
+1429 mesh\\ch020366.msa
+1430 mesh\\ch020466.msa
+1431 mesh\\ch020566.msa
+1432 mesh\\ch020666.msa
 1500 mesh\\kwal01.msa
 1501 mesh\\kwal02.msa
 1502 mesh\\kwal03.msa
@@ -1280,7 +1300,7 @@
 1768 mesh\\ahs027.msa
 1769 mesh\\ahs028.msa
 1770 mesh\\aef041.msa
-1771 mesh\\aef042.msa	
+1771 mesh\\aef042.msa
 1772 mesh\\aef043.msa
 1773 mesh\\aef044.msa
 1774 mesh\\aef045.msa
@@ -1546,6 +1566,9 @@
 2033 mesh\\cbt052.msa
 2034 mesh\\cbt053.msa
 2035 mesh\\telept.msa
+
+
+
 2711 mesh\\lotto.msa
 2712 mesh\\sausage.msa
 2713 mesh\\roast.msa
@@ -1618,6 +1641,32 @@
 2782 mesh\\colo01.msa
 2783 mesh\\colore.msa
 2784 mesh\\gbox01.msa
+
+2785 mesh\\ch010243.msa
+2786 mesh\\ch010343.msa
+2787 mesh\\ch010443.msa
+2788 mesh\\ch010543.msa
+2789 mesh\\ch010643.msa
+2790 mesh\\ch010263.msa
+2791 mesh\\ch010363.msa
+2792 mesh\\ch010463.msa
+2793 mesh\\ch010563.msa
+2794 mesh\\ch010663.msa
+2795 mesh\\ch010243.msa
+2796 mesh\\ch010343.msa
+2797 mesh\\ch010443.msa
+2798 mesh\\ch010543.msa
+2799 mesh\\ch010663.msa
+2800 mesh\\ch010263.msa
+2801 mesh\\ch010363.msa
+2802 mesh\\ch010463.msa
+2803 mesh\\ch010563.msa
+2804 mesh\\ch010663.msa
+
+
+
+
+
 2805 mesh\\axe16.msa
 2806 mesh\\baxe10.msa
 2807 mesh\\bsword10.msa
@@ -1693,7 +1742,7 @@
 2877 mesh\\ag010105.msa
 2878 mesh\\or.msa
 2879 mesh\\orscr.msa
-2880 mesh\\mant.msa 
+2880 mesh\\mant.msa
 2881 mesh\\nightmare.msa
 2882 mesh\\circlet.msa
 2883 mesh\\valkyrie.msa
@@ -1701,3 +1750,250 @@
 2885 mesh\\skeltonmt.msa
 2886 mesh\\pppotion.msa
 2887 mesh\\shout.msa
+2888 mesh\\ksob18.msa
+2889 mesh\\aabarrack.msa
+2890 mesh\\aawandone.msa
+2891 mesh\\aawandtwo.msa
+2892 mesh\\aawbow.msa
+2893 mesh\\aawclaw.msa
+2894 mesh\\aawhammerone.msa
+2895 mesh\\aawhammertwo.msa
+2896 mesh\\aawshield.msa
+2897 mesh\\aawspear.msa
+2898 mesh\\aawswordone.msa
+2899 mesh\\aawswordtwo.msa
+2900 mesh\\aawthrow.msa
+2901 mesh\\aamythril.msa
+2902 mesh\\jewel01.msa
+2903 mesh\\jewelpower01.msa
+2904 mesh\\mega001.msa
+2905 mesh\\black01.msa
+2906 mesh\\swordnew1.msa
+2907 mesh\\Bownew1.msa
+2908 mesh\\Staffnew1.msa
+2909 mesh\\Spearnew1.msa
+2910 mesh\\CharmStone.msa
+2911 mesh\\CharmPowder.msa
+2912 mesh\\unithrow01.msa
+2913 mesh\\unisword01.msa
+2914 mesh\\nuispear01.msa
+2915 mesh\\unizenrod01.msa
+2916 mesh\\uniclaw01.msa
+2917 mesh\\unibow01.msa
+2918 mesh\\uniaxe01.msa
+2919 mesh\\unrunerod01.msa
+2920 mesh\\unihammer01.msa
+2921 mesh\\unicross01.msa
+2922 mesh\\unishield01.msa
+2923 mesh\\unibeaker01.msa
+2924 mesh\\bahawaxe01.msa
+2925 mesh\\bahawbow01.msa
+2926 mesh\\bahawclaw01.msa
+2927 mesh\\bahawspear01.msa
+2928 mesh\\bahawshard01.msa
+2929 mesh\\bahawrod01.msa
+2930 mesh\\bahawstaff01.msa
+2931 mesh\\bahawhammer01.msa
+2932 mesh\\bahawtwohand01.msa
+2933 mesh\\bahawthrow01.msa
+2934 mesh\\bahawshield01.msa
+2935 mesh\\bahawshield02.msa
+2936 mesh\\bstaff01.msa
+
+2937 mesh\\aandaxe01.msa
+2938 mesh\\aandbow01.msa
+2939 mesh\\aandclaw01.msa
+2940 mesh\\aandspear01.msa
+2941 mesh\\aandsword01.msa
+2942 mesh\\aandthrow01.msa
+2943 mesh\\aandwand01.msa
+2944 mesh\\aandbwand01.msa
+2945 mesh\\aandbsword01.msa
+2946 mesh\\aandbaxe01.msa
+2947 mesh\\aandshield01.msa
+
+
+2948 mesh\\aandaxe02.msa
+2949 mesh\\aandbow02.msa
+2950 mesh\\aandclaw02.msa
+2951 mesh\\aandspear02.msa
+2952 mesh\\aandsword02.msa
+2953 mesh\\aandthrow02.msa
+2954 mesh\\aandwand02.msa
+2955 mesh\\aandbwand02.msa
+2956 mesh\\aandbsword02.msa
+2957 mesh\\aandbaxe02.msa
+2958 mesh\\aandshield02.msa
+
+2959 mesh\\aandaxe03.msa
+2960 mesh\\aandbow03.msa
+2961 mesh\\aandclaw03.msa
+2962 mesh\\aandspear03.msa
+2963 mesh\\aandsword03.msa
+2964 mesh\\aandthrow03.msa
+2965 mesh\\aandwand03.msa
+2966 mesh\\aandbwand03.msa
+2967 mesh\\aandbsword03.msa
+2968 mesh\\aandbaxe03.msa
+2969 mesh\\aandshield03.msa
+
+2970 mesh\\aandaxe04.msa
+2971 mesh\\aandbow04.msa
+2972 mesh\\aandclaw04.msa
+2973 mesh\\aandspear04.msa
+2974 mesh\\aandsword04.msa
+2975 mesh\\aandthrow04.msa
+2976 mesh\\aandwand04.msa
+2977 mesh\\aandbwand04.msa
+2978 mesh\\aandbsword04.msa
+2979 mesh\\aandbaxe04.msa
+2980 mesh\\aandshield04.msa
+
+
+2981 mesh\\aandbow05.msa
+2982 mesh\\aandbaxe05.msa
+
+
+2983 mesh\\aandshield06.msa
+2984 mesh\\aandaxe06.msa
+2985 mesh\\aandbow06.msa
+2986 mesh\\aandclaw06.msa
+2987 mesh\\aandspear06.msa
+2988 mesh\\aandsword06.msa
+2989 mesh\\aandthrow06.msa
+2990 mesh\\aandwand06.msa
+2991 mesh\\aandbwand06.msa
+2992 mesh\\aandbsword06.msa
+2993 mesh\\aandbaxe06.msa
+
+
+2994 mesh\\aandshield07.msa
+2995 mesh\\aandaxe07.msa
+2996 mesh\\aandbow07.msa
+2997 mesh\\aandclaw07.msa
+2998 mesh\\aandspear07.msa
+2999 mesh\\aandsword07.msa
+3000 mesh\\aandthrow07.msa
+3001 mesh\\aandwand07.msa
+3002 mesh\\aandbwand07.msa
+3003 mesh\\aandbsword07.msa
+3004 mesh\\aandbaxe07.msa
+
+
+
+3005 mesh\\aandshield08.msa
+3006 mesh\\aandaxe08.msa
+3007 mesh\\aandbow08.msa
+3008 mesh\\aandclaw08.msa
+3009 mesh\\aandspear08.msa
+3010 mesh\\aandsword08.msa
+3011 mesh\\aandthrow08.msa
+3012 mesh\\aandwand08.msa
+3013 mesh\\aandbwand08.msa
+3014 mesh\\aandbsword08.msa
+3015 mesh\\aandbaxe08.msa
+
+
+
+
+
+3016 mesh\\aandshield09.msa
+3017 mesh\\aandaxe09.msa
+3018 mesh\\aandbow09.msa
+3019 mesh\\aandclaw09.msa
+3020 mesh\\aandspear09.msa
+3021 mesh\\aandsword09.msa
+3022 mesh\\aandthrow09.msa
+3023 mesh\\aandwand09.msa
+3024 mesh\\aandbwand09.msa
+3025 mesh\\aandbsword09.msa
+
+
+
+
+
+
+
+3026 mesh\\dwal63.msa
+3027 mesh\\dwal64.msa
+3028 mesh\\dwal65.msa
+3029 mesh\\dwal66.msa
+3030 mesh\\dwal67.msa
+3031 mesh\\dwal68.msa
+3032 mesh\\dwal69.msa
+3033 mesh\\dwal70.msa
+3034 mesh\\dwal71.msa
+3035 mesh\\dwal72.msa
+3036 mesh\\dwal73.msa
+3037 mesh\\dwal74.msa
+3038 mesh\\dwal75.msa
+3039 mesh\\dwal76.msa
+3040 mesh\\dwal77.msa
+3041 mesh\\dwal78.msa
+3042 mesh\\dwal79.msa
+3043 mesh\\dwal80.msa
+3044 mesh\\dwal81.msa
+3045 mesh\\dwal82.msa
+3046 mesh\\dwal83.msa
+3047 mesh\\dwal84.msa
+3048 mesh\\dwal85.msa
+3049 mesh\\dwal86.msa
+3050 mesh\\dwal87.msa
+3051 mesh\\dwal88.msa
+3052 mesh\\dwal89.msa
+3053 mesh\\dwal90.msa
+3054 mesh\\dwal91.msa
+3055 mesh\\dwal92.msa
+3056 mesh\\dwal93.msa
+3057 mesh\\dwal94.msa
+3058 mesh\\dwal95.msa
+3059 mesh\\dwal96.msa
+
+3060 mesh\\aandaxe10.msa
+3061 mesh\\aandbow10.msa
+3062 mesh\\aandbwand10.msa
+
+
+3063 mesh\\aandshield11.msa
+3064 mesh\\aandaxe11.msa
+3065 mesh\\aandbow11.msa
+3066 mesh\\aandclaw11.msa
+3067 mesh\\aandspear11.msa
+3068 mesh\\aandsword11.msa
+3069 mesh\\aandthrow11.msa
+3070 mesh\\aandwand11.msa
+3071 mesh\\aandbwand11.msa
+3072 mesh\\aandbsword11.msa
+3073 mesh\\aandbaxe11.msa
+
+3074 mesh\\aandbaxe09.msa
+
+
+3075 mesh\\aandshield12.msa
+3076 mesh\\aandaxe12.msa
+3077 mesh\\aandbow12.msa
+3078 mesh\\aandclaw12.msa
+3079 mesh\\aandspear12.msa
+3080 mesh\\aandsword12.msa
+3081 mesh\\aandthrow12.msa
+3082 mesh\\aandwand12.msa
+3083 mesh\\aandbwand12.msa
+3084 mesh\\aandbsword12.msa
+3085 mesh\\aandbaxe12.msa
+
+
+
+3086 mesh\\mt010126.msa
+
+
+3087 mesh\\aandshield13.msa
+3088 mesh\\aandaxe13.msa
+3089 mesh\\aandbow13.msa
+3090 mesh\\aandclaw13.msa
+3091 mesh\\aandspear13.msa
+3092 mesh\\aandsword13.msa
+3093 mesh\\aandthrow13.msa
+3094 mesh\\aandwand13.msa
+3095 mesh\\aandbwand13.msa
+3096 mesh\\aandbsword13.msa
+3097 mesh\\aandbaxe13.msa

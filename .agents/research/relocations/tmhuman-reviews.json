@@ -1,0 +1,129 @@
+{
+  "methods": {
+    "void TMHuman::LabelPosition()": {
+      "before": "bb152b2cd14ece1c54f865c4135045ca52a29549145fab26e08b27241c161b97",
+      "after": "5266886d3a159f54b6c817f18d05393283975c543e68d53dc781f96681135c31"
+    },
+    "void TMHuman::LabelPosition2()": {
+      "before": "476db2d95f8cc3a071e691db4f06591b4205d7e2b8977397172a9bd90ace11f0",
+      "after": "ebb3344e623d07d6eece443b22271e180e0012192a9282f894064154bde79f22"
+    },
+    "int TMHuman::IsGoMore()": {
+      "before": "f21116ea642bb3793d91cd49f73b3902de81f2ca7ed8d6b77205f593aaa2cf91",
+      "after": null
+    },
+    "int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)": {
+      "before": "27e2d1538b89437f3826b5ad8c415725c796fab314e942fff111dbfa6c3edd81",
+      "after": "3b90ff406b6d75b63b82a191ceaf1aee2ae43b78a257271ddd47a2fe4f8759f0"
+    },
+    "int TMHuman::OnPacketMessageChat_Index(MSG_STANDARD* pStd)": {
+      "before": "2362f5c11fda1c488fd1b20862d6faf2a0ec7ee7f0d7e3b67662dfec47cada4b",
+      "after": null
+    },
+    "int TMHuman::OnPacketMessageChat_Param(MSG_STANDARD* pStd)": {
+      "before": "49c94b351213bcaae6b4d7af828c7bee46fc71000b439a785394b196a781141f",
+      "after": null
+    },
+    "int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)": {
+      "before": "7dfd13c057e82e4292addac6046ec4d8742cb0d8abfdb998759f7f7857ae21b7",
+      "after": "6c8b2c0fe8b768a93c81cf3013401ffd88a3a7eacb2b4941ef5d61034cb49e13"
+    },
+    "int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)": {
+      "before": "f8b827bd62eda3c624c0a182454ffe66c8dafa6fa0da4b5452e535ff552ef151",
+      "after": "296fdaf0794dcd0c6ffa40c5d4e661ddf1817fce640deec52fe84cfda0687b2f"
+    },
+    "int TMHuman::StrByteCheck(const char* szString)": {
+      "before": "1d312713909e1462f8e8bd7d53d36aa53ae3c3f062366a1caee78fb5a08103a8",
+      "after": null
+    },
+    "int TMHuman::StraightRouteTable(int nSX, int nSY, int nTargetX, int nTargetY, TMVector2* pRouteTable, int* pMaxRouteIndex, int distance, char* pHeight, int MH)": {
+      "before": "223a2e4eb0e5eb428ad0258caf77c4eb1cc5d973f0f78044e01102fe68545dc5",
+      "after": null
+    },
+    "void TMHuman::CreateControl()": {
+      "before": "3be61d08129b51274ca811460857c333197dbf6df860b6b172bd1997a682ef2f",
+      "after": null
+    },
+    "void TMHuman::DestroyControl()": {
+      "before": "8ead0023a1cdaa485fc96c330c333ccd0519b7c86bc23cfad2cb6cc38fbc7500",
+      "after": null
+    },
+    "void TMHuman::MoveGet(TMItem* pTarget)": {
+      "before": "256860a96fee9debcb0848638d23b49d4a08270e562f02fcdd391d52a8c41c5c",
+      "after": "c30bac1e73823dd6948f612db1819e8f9ebdae8e2cfb2b4616c163fef6b978ef"
+    },
+    "void TMHuman::OnlyMove(int nX, int nY, int nLocal)": {
+      "before": "b80a6d1595c65342620f821d94953a249a1a42fcb2f73fa4ffe145dedd77adf5",
+      "after": null
+    },
+    "void TMHuman::Punched(int nDamage, TMHuman* pFrom)": {
+      "before": "c05657b04e5f3d516ad473af6f64574624287c9c745014973256f613dca4091a",
+      "after": null
+    },
+    "void TMHuman::Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex)": {
+      "before": "d99b2ce5f72d08aa30cc7c54b9b2bac1d039913e51923bd9812c3cc214c289f5",
+      "after": "0acf33fbb8ac1a7091fe25f3a06f5a585bc582ee25624c48d271fc35fa64b7a3"
+    },
+    "void TMHuman::RenderEffect_LegendBerielKeeper(unsigned int dwServerTime)": {
+      "before": "11ce9033069c85a2d23f4da98739121fa6c6e04c51f5db123c27f666c250094c",
+      "after": "5f30df4da0967bebc9f13c61f3e01f23c8275ee5a6945a079bc00d5756d795bf"
+    },
+    "void TMHuman::SetGuildBattleHPBar(int nHP)": {
+      "before": "614815bad4326fbf7a86f4be3e9ff60acd9c04917580a46981dc0f9700b9c58e",
+      "after": null
+    },
+    "void TMHuman::SetGuildBattleHPColor()": {
+      "before": "6d70d6ae84795ebc9119e3e25ff84d15284a4295dcd12e5096f1bd196ddeb907",
+      "after": null
+    },
+    "void TMHuman::SetGuildBattleLifeCount()": {
+      "before": "aa0c23902208895df2b213e0b2bb52eaa36d79d1cbdb2c71e4f28e038ddaabd4",
+      "after": null
+    },
+    "void TMHuman::SetGuildBattleMPBar(int nMP)": {
+      "before": "da6b6ba83b6623057d3fc796c3a7c0329bc6433783fb74ef8288671482953232",
+      "after": null
+    },
+    "void TMHuman::SetPacketEquipItem(unsigned short* sEquip)": {
+      "before": "c55e5fdf919a91f3b83b1df114625cfa616a54fe555ee28ab3da6c98933757d6",
+      "after": "62ab3da39df2241e973ea2a96182a9156e3c46125a5b6cfd50d81d57b19e151b"
+    },
+    "void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)": {
+      "before": "c650917df01cfbb25eaee52f72bd10aa623fc70df29a6e8d365f32a1ede83cb1",
+      "after": "c40d13bbaa8d76dbf82a3eb510ec5122e1d6dba75267b437c88255951477b7d0"
+    },
+    "void TMHuman::Stand()": {
+      "before": "a97bc46f52cdd5a32353a944d1476d9b946c972fbcb789f59361a3e897dc14d9",
+      "after": null
+    },
+    "void TMHuman::UpdateScore(int nGuildLevel)": {
+      "before": "30a36dfce720641b062e042f9f1ee23f0f8cb794ee2c547b78ac56fb91ecc6d7",
+      "after": "8451361bd220bc8c3387d9680a6b09cd82f51c3294cf548b7351ba8e06356436"
+    }
+  },
+  "header": {
+    "removed": [
+      "    int OnPacketMessageChat_Index(MSG_STANDARD* pStd);",
+      "    int OnPacketMessageChat_Param(MSG_STANDARD* pStd);",
+      "    void Punched(int nDamage, TMHuman* pFrom);",
+      "    void Stand();",
+      "    void OnlyMove(int nX, int nY, int nLocal);",
+      "    int IsGoMore();",
+      "    int StraightRouteTable(int nSX, int nSY, int nTargetX, int nTargetY, TMVector2* pRouteTable, int* pMaxRouteIndex, int distance, char* pHeight, int MH);",
+      "    void SetGuildBattleHPColor();",
+      "    void SetGuildBattleHPBar(int nHP);",
+      "    void SetGuildBattleMPBar(int nMP);",
+      "    void SetGuildBattleLifeCount();",
+      "    void CreateControl();",
+      "    void DestroyControl();",
+      "    int StrByteCheck(const char* szString);",
+      "bool _locationCheck(float posx, float posy, int mapX, int mapY);"
+    ],
+    "added": [],
+    "removed_declarations": []
+  },
+  "static_data": {
+    "before": "14b270687d4d59bf3f140bc6f6a593e639840e32abd6a1636f59da161b7a62d3",
+    "after": "2ed941151743916eba65dc76ab522a1220ed7a09f050c47695566394d650d22b"
+  }
+}

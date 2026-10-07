@@ -1,0 +1,636 @@
+{
+  "methods": {
+    "ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_MOB*& pMobData, int& extractedResult)": {
+      "before": "ddd6c0848058aa26310eafa97306a3b9de57535a02ab54a7ed92dcca9aed7f9d",
+      "after": "8275c601be03fa217025c483e7f471c815a0223dce67e9b89bb5f2c9c5ebd2bf"
+    },
+    "ExtractedFlow TMFieldScene::OnSpecialMastery1Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+      "before": "476b953687f142de9292cf9d213ce503682c5a2148794b6d0126deae84ae5b09",
+      "after": "302ed92d98fe14f1a26da4f384edbb1c3683e677095df2270ebe3884b4344895"
+    },
+    "ExtractedFlow TMFieldScene::OnSpecialMastery2Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+      "before": "79ed1cf1512ca3e5edc15ce66e5519a62e005811aba5c9abd5a99024ebbd6f5d",
+      "after": "fe035ac0f23ae47f31503fe1c84464f706b6428255bee6ebba88698254db45a8"
+    },
+    "ExtractedFlow TMFieldScene::OnSpecialMastery3Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+      "before": "3d39b705dc8d46427d9e79869eb316412cf710217b00510285d4942b44edd6e1",
+      "after": "34f24a317b5719d051d2bd2bbb57f0737b44e79b1c8e31d4ce209eeba1ed91a8"
+    },
+    "ExtractedFlow TMFieldScene::OnSpecialMastery4Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+      "before": "c38469baa19f6c1842ac5bc5a0ec5c2b32d9ab3fab29ee62696cc3db507ba50d",
+      "after": "d9a0823ad4145646af60abac01a166104996c7ebb7e081ceec38517e704dd331"
+    },
+    "ExtractedFlow TMFieldScene::OnPartyListSelect(int& cktrans, unsigned int& dwServerTime, unsigned int& idwEvent, int& extractedResult)": {
+      "before": "f87d7dc80c6c48333057a424955183b4ac034a4be18d29fda8356ea6dafb4ebc",
+      "after": "e564f7576aedcf8e37c7b49e6645983ad8b62c0d124bf8e6f8ab24ce3a9239d3"
+    },
+    "int TMFieldScene::OnPacketMessageChat(MSG_MessageChat* pStd)": {
+      "before": "3d47ffc011517f70fd1cfd93fd4a95012d00de3e075d55bb4b31271db4fae3ed",
+      "after": "edcb37e2e3d383a2050fa13cbe36eb582e46b38da0d7239c4ee3d5d6e9135f17"
+    },
+    "int TMFieldScene::OnPacketMessageChat_Index(MSG_MessageChat* pStd)": {
+      "before": "9d298641255c75894d530d674d4fdb8ea28c5005ddadf06791025bdda2594802",
+      "after": "e53e7d8ae1004f27e23683b3fbf063ad4472af366d402b94c3d328ae8c0e5233"
+    },
+    "ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex, unsigned int& dwServerTime, int& nCannonIndex, int& nSpecForce, STRUCT_MOB*& pMobData, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult)": {
+      "before": "43beb398f54d4f79bd5a36d7b2a4ea2c87fcd4c20b4c13a2f42feef63c5f3070",
+      "after": "3f6edf514619579b27ac1753177efa39642c66b66d87ff15dccec91b3820196c"
+    },
+    "int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)": {
+      "before": "9d3e939cf6c6cc29557cac7150f97551f70ffdd9a33d4070ccfe4abe49859d76",
+      "after": "502ea74483e50e6e7bb79da51f045e4ed4da39e6fb2037660cf6cf52d27d375f"
+    },
+    "ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned int& dwServerTime, int& nSpecForce, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult)": {
+      "before": "7d6ac6c6fc66d80190aa4017c307f8b7fbf2b76434403601154186db8f5189b6",
+      "after": "f0630fff61747643535d284504f871d6bb5f486ff8ef943901c6ba871c5e2862"
+    },
+    "ExtractedFlow TMFieldScene::OnChatListLightButton(int& extractedResult)": {
+      "before": "15deca30bfe6bc8436fb02457872bd251dcd23ad19cd4926bb2de1e950c08c43",
+      "after": null
+    },
+    "ExtractedFlow TMFieldScene::OnChatSelectButton(unsigned int& idwControlID, int& extractedResult)": {
+      "before": "2eddaf57386457628f510263180187c538c16e1a3f62f05b8862df9cbb76286f",
+      "after": null
+    },
+    "ExtractedFlow TMFieldScene::OnCompatFieldControl(unsigned int& dwServerTime, unsigned int& idwControlID, int& extractedResult)": {
+      "before": "be602783b9de266cf1ddec3643456fad744fe15d7f654efcc346d87ce3b727f6",
+      "after": "84aa6919e8dc6c6ff534a072a0af91bbf9fbda6a96443794fdeb205a3c7a2f9b"
+    },
+    "ExtractedFlow TMFieldScene::OnMoneyButton(int& extractedResult)": {
+      "before": "ce9d2a58b715b28c88d3c22825abe300670537169b26408486d48c5ec37f14c9",
+      "after": "1036f56d3834f4bacb9995665addc3ad7a3930d31122bdaa3c54434bcecc749a"
+    },
+    "ExtractedFlow TMFieldScene::OnSystemCharacterButton(int& extractedResult)": {
+      "before": "00e5a22bd0ea469eac507f5b19bfba18bc57446fb22d01c9b2ed32f949ac1265",
+      "after": null
+    },
+    "ExtractedFlow TMFieldScene::OnSystemServerButton(int& extractedResult)": {
+      "before": "75a7ca67af79809589d536152fb837be7ed476a58084d0f483d240e7771b41aa",
+      "after": null
+    },
+    "ExtractedFlow TMFieldScene::UpdateAffectIcons(unsigned int& dwServerTime, int& i)": {
+      "before": "557c3c2f4931d0ac335268afb7c1d4701507b1516f8adc126045975572a52745",
+      "after": null
+    },
+    "TMFieldScene::TMFieldScene() : TMScene()": {
+      "before": "c5b5f608b8e2a77d6f25dba404aeec571e9579460722a229e0c80b8afbaae605",
+      "after": "fe6f22546116d566ce989475e6b3486707c53b03a52ed24af6a624829d11e072"
+    },
+    "TMFieldScene::~TMFieldScene()": {
+      "before": "a78ffbc1fbb7930f5e30d7d57cf0e0c12dad85b6d31560926fe6f8b5010bb0b2",
+      "after": "c869af1886af2177d928772f23ef670b6ad247e0dedfbf729160fd8cc6041e1c"
+    },
+    "bool TMFieldScene::SendCapsuleItem()": {
+      "before": "40cac2a249f38fd39ed0fa4b5cec2d3a8c53830bfe0d9ae1027757a1b2500253",
+      "after": "b4239905911ceeaec10973180da97236a69a06e015930a10922c6f84e34e9466"
+    },
+    "char TMFieldScene::UseQuickSloat(char key)": {
+      "before": "7d2a9296d50b5065d7cd81da0d13d0fbf8a027038d7fb1dac0dbde8bb2316deb",
+      "after": null
+    },
+    "int TMFieldScene::Affect_Main(unsigned int dwServerTime)": {
+      "before": "6dc157a2d3e9d31b91215500a21a629b375db906a73d7cd48d46ff91f5ee4f1c",
+      "after": "17ade0261be7035a82379d55eac51842da1ee385edc1cf8daa08b4ff8d158674"
+    },
+    "int TMFieldScene::AirMove_ShowUI(bool bShow)": {
+      "before": "80ab3d49ca64c8f0f6d12d672352720d52088e08eeca2ad660ea6be7dc163d4d",
+      "after": "94d2eb5c2d39179b3482e5e87971180b049fc348b446b31d762921f9c631b6b5"
+    },
+    "int TMFieldScene::FindProcess(unsigned int processID)": {
+      "before": "e8fbb12cce725d7520bd119ce3b5ab57f4bfc20af98759db40f81a931c7a19e1",
+      "after": null
+    },
+    "int TMFieldScene::FrameMove(unsigned int dwServerTime)": {
+      "before": "d236eebeff3fab6b2d93a6cef9794060e6330d94480574b5c76851c0ec8e3811",
+      "after": "71d01996fa494ed0f7b7e1171f3dc48f8475b2e989a0f9316f1827ee37772a8a"
+    },
+    "int TMFieldScene::GetSkillDelay(int skillIndex) const": {
+      "before": "629967c7858713e2f3b53601878f46bb7732ed7ac8a78d43c894e468aad0f10b",
+      "after": "b5ff1d0f589a67cf437bd532f0009da4bda1bb5adbd9b7d28251797c470adbc5"
+    },
+    "int TMFieldScene::InitializeCompatFieldScene()": {
+      "before": "e2b596db184f7caeb1a220afe2e40b471e6eee1b9c75f787dc6966ec0c80c156",
+      "after": "489db9227b5a72011f1dc47aacda6bc3aa2150c7ea3f37d1134e87a6cf722919"
+    },
+    "int TMFieldScene::InitializeScene()": {
+      "before": "ab0d0f3d88f2a3a9079f248cc1d44c33e428ecaaf59ed0f14e0fdc93abc7f4de",
+      "after": "dc0a75815166dcf1de837fa41612df314866b4b19a34a8804c0c818b09ef44f4"
+    },
+    "int TMFieldScene::MobMove(D3DXVECTOR3 vec, unsigned int dwServerTime)": {
+      "before": "3678efd3b2a56cd52064c0df68e88f3bb1e6e947c32138246230b02275ba846e",
+      "after": null
+    },
+    "int TMFieldScene::MobMove2(TMVector2 vec, unsigned int dwServerTime)": {
+      "before": "7cf144fec6a8c9ac9d89e62ce111f386d0a1738e58a04aa1a3c3f071f3895f51",
+      "after": null
+    },
+    "int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime)": {
+      "before": "cc8f3f37a147c04441557fc5a4541d0ee667506c8b97c71d8ecf28498eee5deb",
+      "after": "c68200b90e0f1ae7ac343772086c204ed1f2b95328a9b36d4c6f07b946d13a26"
+    },
+    "int TMFieldScene::MouseLButtonDown(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime)": {
+      "before": "43b1a9dd11a9b4ca198833ab6e05d70ef41c2e538368101f0c12549626a36298",
+      "after": null
+    },
+    "int TMFieldScene::OnAccel(int nMsg)": {
+      "before": "1f74b8cbffd01cb13314fee5f499b92709ad586e43eb43795bbce7ebae8b8533",
+      "after": "ea9704830fa1b6c53c3068518f7a37d46963d9f32ce752cb58d633b40009769c"
+    },
+    "int TMFieldScene::OnCharEvent(char iCharCode, int lParam)": {
+      "before": "4b6b18645dea58c8403219c8acdeda913fe334850e18f107d70bbed9fa2744f6",
+      "after": "84ef246473ccf9f59770756836932bb770bab3682934297230261bdb5bb7405e"
+    },
+    "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)": {
+      "before": "0b7683780f34de5b86d9d4ce6e1d42dcf18290b7e938b0b32ca215d93d4097ed",
+      "after": "2379a64d110cb148ec6797aface432070cf366986c04a756db6805da7dbc8b6a"
+    },
+    "int TMFieldScene::OnKeyDebug(char iCharCode, int lParam)": {
+      "before": "bac758e71db38c1a29cce61f96d0a393392c204658e582907a8dd72d15f50b2d",
+      "after": null
+    },
+    "int TMFieldScene::OnKeyPlus(char iCharCode, int lParam)": {
+      "before": "97e6190e16a57aa8aa87abb4cdac498b0c2f37b142e8cc515e6bafe5991dad16",
+      "after": "334bc94f5dcf568420e53a0484ddfac4339dbd291164df39521047de494c173f"
+    },
+    "int TMFieldScene::OnKeyQuestLog(char iCharCode, int lParam)": {
+      "before": "bb8988895b5f0ff730f3f93e16075a01428e469be741f7929ffc2fd057679fa6",
+      "after": "c06f6950c9be1d34e049eadfb228385c4148ab59471e5c12ef9b7b4783ccae46"
+    },
+    "int TMFieldScene::OnKeyReturn(char iCharCode, int lParam)": {
+      "before": "1181aa2d435cfbb11ab009be817fb7dcf1db2f8c78c50428ecaf10b3912cdb5d",
+      "after": "5881bb33c02877411e64a28bfd96d997e06b8e4defa197db0a2573d398c9354c"
+    },
+    "int TMFieldScene::OnKeyReverse(char iCharCode, int lParam)": {
+      "before": "cafb3ce5435a339c70b3c840c484e225feb5170d82a57bad9fb1721f50abee4a",
+      "after": null
+    },
+    "int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)": {
+      "before": "5500d05a3273f2b48e1fab297cf224fd7accb934ffc37f8b6b87446ee0ce7ebc",
+      "after": "8ea25050c7a5391585a9b399a532b0b7b491d8c083a8a48fd72bfa0eff9dc114"
+    },
+    "int TMFieldScene::OnKeySkillPage(char iCharCode, int lParam)": {
+      "before": "88228aaabb0533c40888f04233699b110bec83368fcb7656603a630864624710",
+      "after": "58831bea166c5e098638a05f63e21eeda9dcf080bc756bb0641481b668e88325"
+    },
+    "int TMFieldScene::OnKeyVisibleCharInfo(char iCharCode, int lParam)": {
+      "before": "d7246cb37f934bd89956402e8ef4f5070806779f75d178415ed44db7700db6ac",
+      "after": "036034da6d71b96e594e1fb8f02e3b5d2027ae1ee3f6965b7856639b1d73f4c1"
+    },
+    "int TMFieldScene::OnKeyVisibleInven(char iCharCode, int lParam)": {
+      "before": "846fcddffcc9625dd94d56dd6794d9594227337925311686f994740d5d8dbdcb",
+      "after": "9b80683ddf3baeaddb611b5bd7c29b39fbe240925e1197be24b1820ccd73f9b0"
+    },
+    "int TMFieldScene::OnKeyVisibleSkill(char iCharCode, int lParam)": {
+      "before": "01e72859294eeec8fbe9da381bbaba2abf77ed3a34042c26a397e596c4df7b4b",
+      "after": "7068977cd068f1432a54c8564308d30e9cf734cb4971740da1786890ef9616be"
+    },
+    "int TMFieldScene::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)": {
+      "before": "6289cf2865dbd532781db76744b973937b83b72c2ccdb0b49054168f7ce10e4c",
+      "after": "cfc0c38eed610edcd461f0854a9feb6bf88057fa2fcf05df3d380060599d5c12"
+    },
+    "int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent, unsigned int dwServerTime)": {
+      "before": "334614e1688f54d6210829691639e4fc167c87388a905abf1659de8f1ae7290e",
+      "after": "4f6cda719545ab24c456593b1eaedae64c7d4b3c90c343fd4a9ef375e1513df2"
+    },
+    "int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)": {
+      "before": "22e0603b6fc2cbfc080c5a8c30f9de0291ab098518be16a558aa2b9791489d0c",
+      "after": "159440e3f0c5ee5c0251ffd982ab0973fbb1ec0d3bda63dc3f3a6c866b89d8e3"
+    },
+    "int TMFieldScene::OnPacketAutoKick(MSG_STANDARD* pStd)": {
+      "before": "c061a6512731de85b90c6d98e0c1703c57eaf2d4ba66bf0bdca46721e3786cc5",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)": {
+      "before": "d71cb2a3ba8917d36625e4fd54d3a7b6d3b3f4a41717a589e36d077b5d92bdb7",
+      "after": "4fa8c07a2dd5772cb7163bf53444960760b06a934d46f63ba32c908c7205d9f0"
+    },
+    "int TMFieldScene::OnPacketCNFCharacterLogin(MSG_CNFCharacterLogin* pStd)": {
+      "before": "b4283698fd952f11979472eb552473cb0d6b8b7a52dc9a85528c4379cb382fb5",
+      "after": "3913582f9594f53f4f18e4c9e9e5e89d50c03c1df2c1715d386b28224116103b"
+    },
+    "int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)": {
+      "before": "c3ae290274969772c84e6c4c55cd548038a0470c16b51ef8777a84df491ee1bd",
+      "after": "69c8668b4f87187253e990dcfff27a3f1fc26f56a81610bb9437aa82d288fb1a"
+    },
+    "int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)": {
+      "before": "975db029421ea1a06a7c38ab85d611d79e7df9633b7f99991fccdffae2013f5b",
+      "after": "c5b170a08c66566061931010b568984324e4b915e468159ce858ad897f2d7c49"
+    },
+    "int TMFieldScene::OnPacketCombineComplete(MSG_STANDARD* pStd)": {
+      "before": "07b53c7f3a208fa43308c7594b5d433fd22596ce07bcebabb59eb80238232126",
+      "after": "c5fe25c64d97471e3cd55e292519bcf738318ba39c9c29f7834da3017a2ace08"
+    },
+    "int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)": {
+      "before": "e722e5b5a7cd83236531fda203db15ea9d1aa41988d7511ddc28db01e420cee3",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)": {
+      "before": "65aa411ee321cec95d81224457f5f9b17b0561c6909d9eb552b3e013ea0f2d17",
+      "after": "6acb05f7f9b7475efdd496a226f7b0fc48b0486a9151d46a4e1949f5db160612"
+    },
+    "int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)": {
+      "before": "c4b50da3b904607d2ebb97bf9c016834bacd33e75791b5196413cc0c8d9e9742",
+      "after": "9a3dd6a950cf9f8c40d74e400aa5004b3015511cceee7f4b552df6c4b8ba1948"
+    },
+    "int TMFieldScene::OnPacketMessageChat_Param(MSG_STANDARD* pStd)": {
+      "before": "121b2f183bf8145aac1875646058ad540a28ca00c5aec5dbab37cf4473eea313",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketNewCashRev(PacketRevDonate* P)": {
+      "before": "2995d76de2ee2b049e3b26fd2f2235227eb91f9810f2f35a72cf194a885aa9e6",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketNewCashRev2(PacketRevDonate2* pStd)": {
+      "before": "0471539b7142a02be796521b90626b68631e2d0e4faebde5668302c501d77ae7",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketNuke(MSG_STANDARD* pStd)": {
+      "before": "26f518361fbd8e8e9a1d661a056faf453cb07fd27377609a5fbe7fffec796484",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)": {
+      "before": "ebfb7cee97301184249e3c5330684d0ea71f03fcc2726e1d7a0360baae1e14a6",
+      "after": "250e4daf63a3b85d89e89a695fecbd4fcb2c67a493edf0aab5cb6f7562ecbcb2"
+    },
+    "int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)": {
+      "before": "bb5bffd253a58261cc56b43a44c69e3c62e3a29f18ff0b8a9d4a62d13ecacdce",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketRandomQuiz(MSG_RandomQuiz* pStd)": {
+      "before": "4c5eb3120d18870d7531771767fbbf4eb9a4a640f822d0ace057d487eee33297",
+      "after": null
+    },
+    "int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)": {
+      "before": "b48826c7760e890a880b384e53db064f9085002e5aac65327f2c0163cc9c75f4",
+      "after": "3a8c727761dc3e55943853e484fa240432030920d25f0247f141a400310c0071"
+    },
+    "int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)": {
+      "before": "9846c2232a88771dd0875059db249f56a44ba32d63f4c19b8fc11cf4f4619970",
+      "after": "9a8b932245cd488198846adbc7442c5b66b10abc837819ceb3c40b89e72b46de"
+    },
+    "int TMFieldScene::OpenNativeServerPanel()": {
+      "before": null,
+      "after": "1ef93218ed4a3a2af5c8ea055357c05ca7ea97062b6985079de11f5f48834651"
+    },
+    "int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)": {
+      "before": "82cdadb03e0424c527dee76d19b5e492dbb81aaa595bc97fbb75a0e440220aec",
+      "after": "70c386f8514103338054c3dce27744c89bb5498a0c6392aa1ae42ee10c731837"
+    },
+    "int TMFieldScene::StrByteCheck(char* szString)": {
+      "before": "396cb2a78eeee4dd2afb61fc417ce05c1aeaa2b18ac246887d8265180a564e40",
+      "after": null
+    },
+    "int TMFieldScene::TimeDelay(unsigned int dwServerTime)": {
+      "before": "6e1ce937debd1f8dcf4b190d1804e0280b08b1092e966c2c4e6eb5e34af0b956",
+      "after": "9166d1ea538dad26a1492de3de3414bf19d74339aa39352360d194e7f7502513"
+    },
+    "int TMFieldScene::ToggleNativeCCMode(int mode)": {
+      "before": "94253a8ccef7045372913366144db4539dfa922681aa32982175baa020772359",
+      "after": "31259ef76263f8b7c84e2a754a320e661d95de599a92d5792a4d74742c296e2f"
+    },
+    "int TMFieldScene::TryRemoveNativeMixItem(SGridControl* mixGrid)": {
+      "before": "b32fa0cfaa29933498b26ad5ab346f2207c47a18b5dea06e53941a5c8397f1f6",
+      "after": "33a1f00a08cac432d90a7ee7065c156adb8c97eb24e2c05941988e15ef5c6981"
+    },
+    "int TMFieldScene::TryStageNativeMixItem(SGridControl* sourceGrid, SGridControlItem* sourceItem, SGridControl* preferredTarget)": {
+      "before": "070b70c9c8ae564b7462a98c90dc30de5a1739bd2806863b4cca18815869a02a",
+      "after": "148ed286d13c21b83c1f17ff1deaa848bae2eda50634cfd823791a723a9102a2"
+    },
+    "void TMFieldScene::ApplyCompactScreenLayout(SPanel*& pPanel1, SPanel*& pTradePanel, SPanel*& pTradePanel1, SControl*& pMyCheckButton, SControl*& pOpCheckButton, SGridControl* (&pTradeOpGrids)[15], SGridControl* (&pTradeMyGrids)[15], SPanel*& pShopPanel1, SPanel*& pCargoPanel1, SPanel*& pSkillPanel1, SPanel*& pSkillMPanel1, SText*& pSkillBonus)": {
+      "before": "32fb211df972fb437d41cbd93f324bb247e3f1a619a20fb98f76ca9a37835a3f",
+      "after": null
+    },
+    "void TMFieldScene::Bag_View()": {
+      "before": "eabc61eb17b61eee15702266c4cdf993d4594005d217d6779a054d89469d51e2",
+      "after": "4f09c099c7cdb7d242981f620f6a33e66603637617b5e5b92fccf89b23053575"
+    },
+    "void TMFieldScene::BindChatAndHudControls()": {
+      "before": "374b46e2c391878d03f6d11f17be40a8136a8c0883adb123401012f0c4d84e6d",
+      "after": null
+    },
+    "void TMFieldScene::BuyItemNewStore(int idwControlID)": {
+      "before": "40b8ef3333e0a12d9e2865368e5e26bb35174967028e4e22df94f72bd8b3b91d",
+      "after": null
+    },
+    "void TMFieldScene::ClearCombine()": {
+      "before": "143e64a1a42e7d3b0d9866b416bd95cc3fbca5a5522fe1635c37c04eee3a1076",
+      "after": null
+    },
+    "void TMFieldScene::ClearCombine2()": {
+      "before": "27780d57522a17b8cce1c66eca76f408ac7b890f3f55b22e7cdf0a88416cb24b",
+      "after": null
+    },
+    "void TMFieldScene::ClearCombine3()": {
+      "before": "f1160711ab84ae5908aaa3b8ee4e55c31b85bbc957c766034e47ef11c5b0f75e",
+      "after": null
+    },
+    "void TMFieldScene::ClearCombine4()": {
+      "before": "15cece3f91a2bb43a2ec29bfd7364abe63467c64a024679433d662c5db8e0e95",
+      "after": null
+    },
+    "void TMFieldScene::ClearCombine5()": {
+      "before": "65aa29f6c26f67276598aa594d70cbefce585e3ce21e0e97092273f3abd5ff9b",
+      "after": null
+    },
+    "void TMFieldScene::ClearCombine6()": {
+      "before": "d19a57019a4af7860b8bb5a9189ca8002b3613e7f510125affe1a9a1ea87a4c0",
+      "after": null
+    },
+    "void TMFieldScene::ClearInventorySelectedItem()": {
+      "before": "875328ea0748b1a3664bde2e2d65f63696e4c683d5a652da1840d6102459dcf0",
+      "after": null
+    },
+    "void TMFieldScene::ClearMissionPannel()": {
+      "before": "3e840b9a4f86fc92f211b9eedee4fb1caf3eaf708a45bcd2620535cc6f0a2319",
+      "after": null
+    },
+    "void TMFieldScene::ClearMixPannel()": {
+      "before": "dc3c2454e629158a32c2f68d1316a915eaea8855fd8eebcf6dd1b96ff0ba3862",
+      "after": null
+    },
+    "void TMFieldScene::DrawCustomFireWork(int nIndex)": {
+      "before": "2cfe55fb1d7f3f869ec35fa2e6dbb497d09aefd64d5ecca4e2df83a67e57d01d",
+      "after": null
+    },
+    "void TMFieldScene::DropListUpdate()": {
+      "before": "9665dbc65009c7ced7bb3bc1ad3ed627a4a0fb6187cad82c9f41ef07a44944cb",
+      "after": null
+    },
+    "void TMFieldScene::FindAuto()": {
+      "before": "4d7a5166cac9bbc3480b5980178f371f9f2d775416a87e229af6594384e5fe4c",
+      "after": null
+    },
+    "void TMFieldScene::FrameMove_KhepraDieEffect(unsigned int dwServerTime)": {
+      "before": "237426ecc02226b4908c6fe83e0fa6932ab4465f113ba7dcdd4c4d02771aaa44",
+      "after": null
+    },
+    "void TMFieldScene::GameAuto()": {
+      "before": "d5ae68ebd7b269f803e41e283f00eae09c6ed4748b2301fea49c9825e9f38afa",
+      "after": "d9474e62468735dea11802b184cb5d5fd604ce3a21d2f7a6d399cda98f2b04e6"
+    },
+    "void TMFieldScene::InitBoard()": {
+      "before": "5521737ce0661cf0b5e6cd4a4438ad616165752ad63c7ddf7e4f71f5c4d407ca",
+      "after": null
+    },
+    "void TMFieldScene::InitializeCompatCCControls()": {
+      "before": "883ca083e584980ab85aab0c02cb41b38086ccdda455cf7524688989ff241a35",
+      "after": "f15c3a200458b6efc6c02e2915e8a687bdd8a1be9ea3431808b88c420ef37b53"
+    },
+    "void TMFieldScene::LoadOwnedItemGrids(STRUCT_MOB*& pMobData)": {
+      "before": "7cd03ef872a1c6a0d23fba65fa275a3ee759159801638e45d291e17e0698436e",
+      "after": null
+    },
+    "void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)": {
+      "before": "f6779eec629b39088ca67061e41d2dccc61490f4ca66d8361cf6835c80304232",
+      "after": "193c517b1a52362c041f5e0259e27dfe78807adab64c78befb56d389bd1bf62b"
+    },
+    "void TMFieldScene::OnESC()": {
+      "before": "48a2d8b71592414cc6f7cf97cae09ce7b6f5d479a5521fe4d2abcf405fb312c9",
+      "after": "21fd9de68ff6ab9ded09b2e107bf5cab83cf9e5693f7cd4f503beab366718978"
+    },
+    "void TMFieldScene::PositionCompatFeaturePanels()": {
+      "before": "9f215088e596f873d4f1d3683924d4245e6101157da9657c570bf82b722c515a",
+      "after": "eb81c0dfea549ccd4acd0eb8ecac9c62d858b2c7328710cb83893af655253296"
+    },
+    "void TMFieldScene::PositionCompatGamblePanel()": {
+      "before": "a20669a1689167cf67cbe1ca5b038524b8ac6a2959105fd8d3a8d071294935d7",
+      "after": "c358f32cf9ad097175ef5011290db35a427404d767c453d1aa12b6933da64eeb"
+    },
+    "void TMFieldScene::PositionCompatNativeMixPanels()": {
+      "before": "8be83e54fd2cb995f15d6c38d1a7f0e297b65df6ea3170f695644c05f0d493e1",
+      "after": "a6bfbfb9418f6a40bd942832b168546666c3dc65eca94533a18f6c8eb3838db3"
+    },
+    "void TMFieldScene::PositionCompatPartyPanel()": {
+      "before": "28fc31530d559b8b91a492418c8107512ab714fd7c7c36c3b626ac92dc2a9df7",
+      "after": "65f640a1a6ec410e9c5931bb84775dfde6eb0d20c589aea72c0ab02153072aac"
+    },
+    "void TMFieldScene::PositionCompatShopPanels()": {
+      "before": "04c218d06f9f0de567cd10867ff7180986131d48d44f73a9c1d792deed62333c",
+      "after": "980569caa7c503ea40396adc76076bc13437907701a82ee22f162cd528426246"
+    },
+    "void TMFieldScene::PositionCompatTradePanels()": {
+      "before": "7c2b79b87fad784c3587f6c8a3253784b501916e60b616709c318c7a04781243",
+      "after": "a55f6d952abb7f9030956f977cc1b32c5573447692ab993e6a8a383cd7ec6769"
+    },
+    "void TMFieldScene::SendReqBuy(unsigned int dwControlID)": {
+      "before": "73a06a65b5e5c875ebbafa4eb4ed1402404cabcf8f18136c63e937e22ccb35f3",
+      "after": "731c3366628f54a5ced7f1d2200d265fa4196cef29ccc1e5ef1f2f07eb4444f6"
+    },
+    "void TMFieldScene::SetAutoOption(int nIndex, char* szString)": {
+      "before": "2614a97958643ae6aab81a64e9d776d1d987f9ea326fa306ee25f0f16edff411",
+      "after": null
+    },
+    "void TMFieldScene::SetAutoSkillNum(int nCount)": {
+      "before": "dd6131f6af0ddfdc76b4c35849ac7fde208753645a3c22439ecd2c557f97247f",
+      "after": "baff82dff76d6f23c3c6340e33e717d96131c4c89c9a94fa3c1b96549a798946"
+    },
+    "void TMFieldScene::SetButtonTextXY(SButton* pButton)": {
+      "before": "8af6662f8a6e61c93f83ddd8ce26bee200031a544a2f70fd3feeb9ba9465752c",
+      "after": null
+    },
+    "void TMFieldScene::SetGuildChat(char cOn)": {
+      "before": "24c1d25819288c59e03885b741780a783f9bd1bc2ba651df5324b6d1253ddc0a",
+      "after": "74d2b93cd0391d809871d946bf9ac64ea5245a51e98df938b3501aca494a6952"
+    },
+    "void TMFieldScene::SetInVisibleInputCoin()": {
+      "before": "132f936a17714b929729afcc9009ed757d8ca435013cc19d4559b29bffc12262",
+      "after": "cadc793fe760386ebbd68f531711567ea933bdb8bb260dbc7ee778c0a2b9d688"
+    },
+    "void TMFieldScene::SetPartyChat(char cOn)": {
+      "before": "eb2a6d8de7be8d965dab5382fdac25c2de8186e688652d0876f48269039ca605",
+      "after": "bf8d49c6744ab877ca3de9be1f02b236259f3baad9cc704e02b07d84cbf0c2a3"
+    },
+    "void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)": {
+      "before": "a061c577af925f8025791c48681c03087e8e16f1bbcfa864a251acc612cd07ff",
+      "after": "c43017e51ee968387a8f4f1a71d3af410d3e363694a447bdf6802b812d3dfef2"
+    },
+    "void TMFieldScene::SetVisibleCargo(int bShow)": {
+      "before": "7898c7cac4ef1736e921be05d6fea56b8fe1a12106001e2bc2999897b45d8e37",
+      "after": "4d87bc2e3006f4506a24ff0d479ade0615a1495b13f3779eceabaef685c398bf"
+    },
+    "void TMFieldScene::SetVisibleCargo1(int bShow)": {
+      "before": "7afeb4810f8ae2d7d318ab9499f74e4c43d740f62d6a3da67bc59bcbc118bb85",
+      "after": null
+    },
+    "void TMFieldScene::SetVisibleCharInfo()": {
+      "before": "bfa36ecf3396e333556b1d6a091287632df3bcc9e97319a5f94c0b0a610e2094",
+      "after": "1a6ee5859da930529fb37f772b4effc8453572a23a5913925200a4384745c84b"
+    },
+    "void TMFieldScene::SetVisibleInventory()": {
+      "before": "b73320730affec2d7262f7976f9ad72b35d420cb2cf897a7bb4bdeed316e013c",
+      "after": "052158dfe926255865cfab61967ba3ebc6a74003ba57c732049436e403fda7f9"
+    },
+    "void TMFieldScene::SetVisibleKhepraPortal(bool bVisible)": {
+      "before": "72436af851cf27339348cf4127cedac8f2a14fab0832f2846e6f9534c84aeaf8",
+      "after": null
+    },
+    "void TMFieldScene::SetVisibleMiniMap()": {
+      "before": "4bb9a2347c54511587df6cd02dc878b6c962beaf82656d55bdaa3f60e22d97a0",
+      "after": "e54d396a8c63906afb7d0f7ccf54d72527f5835359fc0dc682888fd714454903"
+    },
+    "void TMFieldScene::SetVisibleMissionPanel(int bShow)": {
+      "before": "e08d71e93fff2478a4985adbfa7a420b225bc6a47d41f0689d0484195dc49754",
+      "after": null
+    },
+    "void TMFieldScene::SetVisibleMixPanel(int bShow)": {
+      "before": "4f42b87e5a92cba63e9b3eafec0c7d8663c42c5f41faca708ec07fa4e529da88",
+      "after": null
+    },
+    "void TMFieldScene::SetVisibleRefuseServerWar()": {
+      "before": "78687320ee8c75054ba329e5faefe37efa5db7c98c12ec63cae69252e062d5e5",
+      "after": "2b1156cbb893d81ed86f16d0c63e3ae0bcc6e33d1745a28d0612570e05523b5b"
+    },
+    "void TMFieldScene::SetVisibleServerWar()": {
+      "before": "18bfa2cdd1f016f4b9699af225444542a8a533d5e83d125e3ccf732c1f7f72ea",
+      "after": "93f3c3f99dec5f503d25d77e62adcb33e30ae7af9a563088e831b8f4a93de7bd"
+    },
+    "void TMFieldScene::SetVisibleShop(int bShow)": {
+      "before": "10e0013ef5699907887bf32f03603e8b9255ce46474c9baa9d31777dfa4caf1e",
+      "after": "0a0bc74cf8f30b505d05beb20df215b1b8f171a4811a26d3a60602e1fcaf07c9"
+    },
+    "void TMFieldScene::SetVisibleSkill()": {
+      "before": "c3b2924eb12f6df331582a2963d4d5002b3ff2b435211930fed909b63d24b2e7",
+      "after": "7bca1ecd983ace8084ce737af65c104ea989f36dd2e8122d29d9b38f7e4f50f2"
+    },
+    "void TMFieldScene::SetVisibleTrade(int bShow)": {
+      "before": "60ecf50f0ba51ba62222c60c518578aa25ea5fff084f787c5bfb591a5c6b6f43",
+      "after": "9b5eef1f7f9404b6aa2c8673f9be5d16b7bdeaf027c34503c050f33d78cb6bfd"
+    },
+    "void TMFieldScene::SetWeather(int nWeather)": {
+      "before": "70443866aa469649aa23817daf2ab1ad67070fae3f9f824d269fc77ab6879ea1",
+      "after": "92b5e6ef7340c139db1deffedcc685ed0097c458e3fe30e0c85add74248bf196"
+    },
+    "void TMFieldScene::SetWhisper(char cOn)": {
+      "before": "a9dfc17790a5322ff1308a6eaf3c2fafb0ffdcc6169131ff92410ad6987ffb5c",
+      "after": "4808947c433b8821ab2fcc84127caf51ec3cc5e85eea72535c84d4e9d9c86197"
+    },
+    "void TMFieldScene::UpdateCompatLearnedSkillUI()": {
+      "before": "9c409e7256c92b83b0c1650ed271e39f2af66c7afb275531446fd3b4b1838938",
+      "after": "6fceb07d2b8f0e0d01eb83aa80723195774567457f14f0e706a26c0863b5c0fc"
+    },
+    "void TMFieldScene::UpdateGridDropList(int page)": {
+      "before": "a6b801404948eb4def283c5b2338b866e8660a13cb261f305dc434469b151b34",
+      "after": null
+    },
+    "void TMFieldScene::UpdateLastMoveStop(unsigned int& dwServerTime)": {
+      "before": "62ed49bf1c05876bc0c391903dc4784e22827b0fc7cd482cfd00f494ee99fc6c",
+      "after": null
+    },
+    "void TMFieldScene::UpdateMiniMapFrame()": {
+      "before": "fca1833e7180124cb2360f266aac77f671ab9d1f5ed0446558fa0ccd42f7b907",
+      "after": null
+    },
+    "void TMFieldScene::UpdateNewStore(int idwControlID)": {
+      "before": "2e1a037db33a0558a2c18ee36279ebde69091512ad75b692b3ab11d96b692bf9",
+      "after": null
+    },
+    "void TMFieldScene::UpdateQuestTime()": {
+      "before": "e4d6f9233fbcba6a2d49f351d9abfe7c8a5286e7ae30d8f3b4bae025faf32673",
+      "after": null
+    },
+    "void TMFieldScene::UpdateScoreUI(unsigned int unFlag)": {
+      "before": "e27f757e24f1efa8ff3cffaecde05fce57cacbfdb01a593dd48b5e4bc9281bc2",
+      "after": "0b03faaf8b05fbad159d3a1ecdda03e84a218755b8dd3c378e3fd1995c1db0b6"
+    },
+    "void TMFieldScene::UpdateWeatherEffects(unsigned int& dwServerTime, CSoundManager*& pSoundManager)": {
+      "before": "d7a731096b4d5bdbf11633ea2ff9b19064426cd4b8e5736b26fe48860ae7bc8d",
+      "after": null
+    },
+    "void TMFieldScene::UpdateZoneMusicAndPanels(bool& bInTown, unsigned int& dwServerTime)": {
+      "before": "30832cce51948811a72f5cc82f54940eb5d2c281c02439e441d47e949c133118",
+      "after": null
+    },
+    "void TMFieldScene::VisibleInputCharName(SGridControlItem* pItem, int nCellX, int nCellY)": {
+      "before": "e479d80842234ba5ffc64695a9ec068873936de917bec3adaefedc86ca268975",
+      "after": "f46b28942307f5d4a1b1047b13568778b58e0121c7ded72f4d7470b3e8cb333c"
+    },
+    "void TMFieldScene::VisibleInputTradeName()": {
+      "before": "21141c6fe668ce3979ad7dac9eb274da5cc37c30479e2c2fbcfdc813ad7f2ac8",
+      "after": "7585edf08edf121fa25595c48e3647cbdba656cbe2f62280e49bcb14a283f9e5"
+    }
+  },
+  "header": {
+    "removed": [
+      "#include \"MrItemMix.h\"",
+      "#include \"Mission.h\"",
+      "class SButtonBox;",
+      "\tint MouseLButtonDown(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime);",
+      "\tint MobMove(D3DXVECTOR3 vec, unsigned int dwServerTime);",
+      "\tint MobMove2(TMVector2 vec, unsigned int dwServerTime);",
+      "\tvoid FrameMove_KhepraDieEffect(unsigned int dwServerTime);",
+      "\tvoid SetVisibleCargo1(int bShow);",
+      "\tvoid ClearCombine();",
+      "\tvoid ClearCombine2();",
+      "\tvoid ClearCombine3();",
+      "\tvoid ClearCombine4();",
+      "\tvoid ClearCombine5();",
+      "\tvoid ClearCombine6();",
+      "\tvoid FindAuto();",
+      "\tint FindProcess(unsigned int processID);",
+      "\tvoid SetAutoOption(int nIndex, char* szString);",
+      "\tvoid SetVisibleKhepraPortal(bool bVisible);",
+      "\tvoid InitBoard();",
+      "\tchar UseQuickSloat(char key);",
+      "\tvoid DrawCustomFireWork(int nIndex);",
+      "\tvoid UpdateQuestTime();",
+      "\tvoid SetButtonTextXY(SButton* pButton);",
+      "\tint OnKeyDebug(char iCharCode, int lParam);",
+      "\tint OnKeyReverse(char iCharCode, int lParam);",
+      "\tint OnPacketMessageChat_Param(MSG_STANDARD* pStd);",
+      "\tint OnPacketCreateMob(MSG_STANDARD* pStd);",
+      "\tint OnPacketRMBShopList(MSG_RMBShopList* pMsg);",
+      "\tint OnPacketNuke(MSG_STANDARD* pStd);",
+      "\tint OnPacketRandomQuiz(MSG_RandomQuiz* pStd);",
+      "\tint OnPacketAutoKick(MSG_STANDARD* pStd);",
+      "\tvoid DropListUpdate();",
+      "\tvoid UpdateGridDropList(int page);",
+      "\tint OnPacketNewCashRev(PacketRevDonate* P);",
+      "\tint OnPacketNewCashRev2(PacketRevDonate2* pStd);",
+      "\tvoid  UpdateNewStore(int idwControlID);",
+      "\tvoid BuyItemNewStore(int idwControlID);",
+      "\tvoid ClearInventorySelectedItem();",
+      "\tint StrByteCheck(char* szString);",
+      "\tvoid SetVisibleMixPanel(int bShow);",
+      "\tvoid ClearMixPannel();",
+      "\tvoid SetVisibleMissionPanel(int bShow);",
+      "\tvoid ClearMissionPannel();",
+      "\tbool m_bCompatFieldScene;",
+      "\tSProgressBar* m_pExpProgress[10];",
+      "\tCItemMix m_ItemMixClass;",
+      "\tCMission m_MissionClass;",
+      "\tSButtonBox* m_pButtonBox;",
+      "\tSGridControl* m_pQuick_Sloat[5];",
+      "\tSButton* m_pQuick_SloatQ[16];"
+    ],
+    "added": [
+      "#include \"../../game/entities/BerielAuraPolicy.h\"",
+      "\tint OpenNativeServerPanel();",
+      "\t// Server weather and the BerialGuard darkness override (BerielAuraPolicy.h).",
+      "\tberiel_aura::WeatherOverride m_berielAura;"
+    ],
+    "removed_declarations": [
+      "void UpdateMiniMapFrame();",
+      "void UpdateZoneMusicAndPanels(bool& bInTown, unsigned int& dwServerTime);",
+      "ExtractedFlow UpdateAffectIcons(unsigned int& dwServerTime, int& i);",
+      "void UpdateLastMoveStop(unsigned int& dwServerTime);",
+      "void UpdateWeatherEffects(unsigned int& dwServerTime, CSoundManager*& pSoundManager);",
+      "void BindChatAndHudControls();",
+      "void ApplyCompactScreenLayout(SPanel*& pPanel1, SPanel*& pTradePanel, SPanel*& pTradePanel1, SControl*& pMyCheckButton, SControl*& pOpCheckButton, SGridControl* (&pTradeOpGrids)[15], SGridControl* (&pTradeMyGrids)[15], SPanel*& pShopPanel1, SPanel*& pCargoPanel1, SPanel*& pSkillPanel1, SPanel*& pSkillMPanel1, SText*& pSkillBonus);",
+      "void LoadOwnedItemGrids(STRUCT_MOB*& pMobData);",
+      "ExtractedFlow OnChatListLightButton(int& extractedResult);",
+      "ExtractedFlow OnChatSelectButton(unsigned int& idwControlID, int& extractedResult);",
+      "ExtractedFlow OnSystemServerButton(int& extractedResult);",
+      "ExtractedFlow OnSystemCharacterButton(int& extractedResult);"
+    ]
+  },
+  "static_data": {
+    "before": "23b8c8dc1b00f4176e637df427f5180d622a8476585ebb882409fd759b7c9d0b",
+    "after": "3fb615c26a429ef6eec1674b55702e28fac16d7db9f11456340fee033ba16413"
+  },
+  "helpers": {
+    "WYD748_IsUnsupportedCompatEquipSlot": {
+      "before": "63f5218fa61a1e9521aaae37019fd8e9ebffafc284bfe27ba8997751fb7b22d8",
+      "after": "c621f44adc7dfd5975be279865b6f92a109bcbebc38452e045619fcf0750906c"
+    }
+  }
+}

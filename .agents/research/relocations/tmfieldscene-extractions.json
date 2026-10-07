@@ -1,0 +1,241 @@
+{
+ "methods": {
+  "int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)": {
+   "before": "a61b63b9a17ced56e53510a1285e62d9bd983ad20a7b5d87816adc0142704e93",
+   "after": "22e0603b6fc2cbfc080c5a8c30f9de0291ab098518be16a558aa2b9791489d0c"
+  },
+  "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)": {
+   "before": "0e40bcc8dbf0b8e135e8148a24c72c5441a3db01100288df6d642c52e1076de7",
+   "after": "0b7683780f34de5b86d9d4ce6e1d42dcf18290b7e938b0b32ca215d93d4097ed"
+  },
+  "int TMFieldScene::InitializeScene()": {
+   "before": "a62ed2b571762c4ce5181d5eaec0b297118c518648b6350d52d96cbeb745c971",
+   "after": "ab0d0f3d88f2a3a9079f248cc1d44c33e428ecaaf59ed0f14e0fdc93abc7f4de"
+  },
+  "int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)": {
+   "before": "0cede2a318432fdb41ff4877664ccd0e6a20982cb736187e50c2c296a6756282",
+   "after": "82cdadb03e0424c527dee76d19b5e492dbb81aaa595bc97fbb75a0e440220aec"
+  },
+  "int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)": {
+   "before": "cb52fbbc6943b811817a37a5b8a97b73ebb01d112377a3f5cd8f528981fac237",
+   "after": "9d3e939cf6c6cc29557cac7150f97551f70ffdd9a33d4070ccfe4abe49859d76"
+  },
+  "int TMFieldScene::FrameMove(unsigned int dwServerTime)": {
+   "before": "6aa339868fb78ce26991825cfd0e934453b0a5b67523f13f1fffadf91050e8ba",
+   "after": "d236eebeff3fab6b2d93a6cef9794060e6330d94480574b5c76851c0ec8e3811"
+  }
+ },
+ "helpers": {
+  "ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, TMHuman*& pTarget, float& fHeight, int& extractedResult)": {
+   "digest": "2a042e20e3d75dd52a9436fd1c23fe66f1c23ac38a7ec96228ee0c2fc0946817",
+   "owner": "CombatPackets"
+  },
+  "ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, TMVector2& vecAttackerPos, int& nClass, unsigned int& dwDelay, int& extractedResult)": {
+   "digest": "cff34b4748217473fe2586f5430031a2e471c7f5533d487e29050ec666b5acaa",
+   "owner": "CombatPackets"
+  },
+  "ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, bool& bomb, TMVector3& vecStart, TMVector3& vecTarget, unsigned int& dwDelay, int& extractedResult)": {
+   "digest": "6f3ac2b79ac61b4ae767a4c83c0bd014b050d1f8facca07422a5eef6856c9dc1",
+   "owner": "CombatPackets"
+  },
+  "ExtractedFlow TMFieldScene::OnCompatFieldControl(unsigned int& dwServerTime, unsigned int& idwControlID, int& extractedResult)": {
+   "digest": "be602783b9de266cf1ddec3643456fad744fe15d7f654efcc346d87ce3b727f6",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnHellStoreSelect(unsigned int& idwControlID, int& extractedResult)": {
+   "digest": "24b06e3da458f27d7bd3592bb22b58dca25bb7863f419d30e1a40e28e8419f5a",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnGambleButton(unsigned int& idwControlID, int& extractedResult)": {
+   "digest": "66711039ed5a508c93ea5f345e72dd73f7b6796869b1a5bd3251738b5b050842",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_MOB*& pMobData, int& extractedResult)": {
+   "digest": "ddd6c0848058aa26310eafa97306a3b9de57535a02ab54a7ed92dcca9aed7f9d",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnMoneyButton(int& extractedResult)": {
+   "digest": "ce9d2a58b715b28c88d3c22825abe300670537169b26408486d48c5ec37f14c9",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnChatListLightButton(int& extractedResult)": {
+   "digest": "15deca30bfe6bc8436fb02457872bd251dcd23ad19cd4926bb2de1e950c08c43",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnChatSelectButton(unsigned int& idwControlID, int& extractedResult)": {
+   "digest": "2eddaf57386457628f510263180187c538c16e1a3f62f05b8862df9cbb76286f",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnSystemServerButton(int& extractedResult)": {
+   "digest": "75a7ca67af79809589d536152fb837be7ed476a58084d0f483d240e7771b41aa",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnSystemCharacterButton(int& extractedResult)": {
+   "digest": "00e5a22bd0ea469eac507f5b19bfba18bc57446fb22d01c9b2ed32f949ac1265",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPgtPartyButton(int& extractedResult)": {
+   "digest": "ca376f20c1e9516e052c878d60d56d32e121bc083b5e221448c2ccac3277a4c4",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPgtTradeButton(int& extractedResult)": {
+   "digest": "953467abff0af7d32a818b93c46cdbb561aee3bdb6d0b30522956946ce3d3425",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPgtGuildButton(int& extractedResult)": {
+   "digest": "343730e21fe69c7e8cfcb807c19e14916543874c83f6d119556661deaafd88b5",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPgtGuildCommonButton(int& extractedResult)": {
+   "digest": "8dbef600f367f7811be4d45038955d420b427d72922961ae4665f6a6052210d6",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPgtGuildChiefButton(int& extractedResult)": {
+   "digest": "2a85bbe6d5511b94a3d0b471ad0b07d78aab69df0664dc5c1774a2a769098519",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPgtChallengeButton(unsigned int& idwControlID, int& extractedResult)": {
+   "digest": "2b3e12b018f3257ee48b91c42134df407d8b3e4d1991a6011085271e81b254cb",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnSpecialMastery1Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+   "digest": "476b953687f142de9292cf9d213ce503682c5a2148794b6d0126deae84ae5b09",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnSpecialMastery2Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+   "digest": "79ed1cf1512ca3e5edc15ce66e5519a62e005811aba5c9abd5a99024ebbd6f5d",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnSpecialMastery3Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+   "digest": "3d39b705dc8d46427d9e79869eb316412cf710217b00510285d4942b44edd6e1",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnSpecialMastery4Button(STRUCT_MOB*& pMobData, int& extractedResult)": {
+   "digest": "c38469baa19f6c1842ac5bc5a0ec5c2b32d9ab3fab29ee62696cc3db507ba50d",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPartyListSelect(int& cktrans, unsigned int& dwServerTime, unsigned int& idwEvent, int& extractedResult)": {
+   "digest": "f87d7dc80c6c48333057a424955183b4ac034a4be18d29fda8356ea6dafb4ebc",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnTradeMyCheck(int& extractedResult)": {
+   "digest": "e9df646bd1bd3d3db26a1ec7aed0d629d42be78ce597afcb14b87e93b3db81dd",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnAutoTradeRun(int& extractedResult)": {
+   "digest": "b7fdf146a4cce34cd06c63a1c20215d3d01e47aa8c124b6ea8c7d6237fd2158d",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::OnPortalButton(int& extractedResult)": {
+   "digest": "d1d469e1ffd1d7cf2a52d4da47b4fd3f4625643def7f35ef69d28e558d650503",
+   "owner": ""
+  },
+  "void TMFieldScene::BindChatAndHudControls()": {
+   "digest": "374b46e2c391878d03f6d11f17be40a8136a8c0883adb123401012f0c4d84e6d",
+   "owner": ""
+  },
+  "void TMFieldScene::ApplyCompactScreenLayout(SPanel*& pPanel1, SPanel*& pTradePanel, SPanel*& pTradePanel1, SControl*& pMyCheckButton, SControl*& pOpCheckButton, SGridControl* (&pTradeOpGrids)[15], SGridControl* (&pTradeMyGrids)[15], SPanel*& pShopPanel1, SPanel*& pCargoPanel1, SPanel*& pSkillPanel1, SPanel*& pSkillMPanel1, SText*& pSkillBonus)": {
+   "digest": "32fb211df972fb437d41cbd93f324bb247e3f1a619a20fb98f76ca9a37835a3f",
+   "owner": ""
+  },
+  "void TMFieldScene::LoadOwnedItemGrids(STRUCT_MOB*& pMobData)": {
+   "digest": "7cd03ef872a1c6a0d23fba65fa275a3ee759159801638e45d291e17e0698436e",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex, unsigned int& dwServerTime, int& nCannonIndex, int& nSpecForce, STRUCT_MOB*& pMobData, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult)": {
+   "digest": "43beb398f54d4f79bd5a36d7b2a4ea2c87fcd4c20b4c13a2f42feef63c5f3070",
+   "owner": "Skills"
+  },
+  "ExtractedFlow TMFieldScene::MoveIntoSkillRange(int& bMoving, char& cSkillIndex, unsigned int& dwServerTime, int& nDX, int& nDY, int& nDistance, int& nMobAttackRange, int& nSpecForce, int& nTX, int& nTY, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult)": {
+   "digest": "7c635bb5efd88f253bf1050e975e149cfb315ecd547fad3dc13e725950ac5d35",
+   "owner": "Skills"
+  },
+  "void TMFieldScene::AddPartySkillTargets(int& nDX, int& nDY, int& nTargetIndex, TMHuman*& pOver, TMHuman*& pTarget, MSG_Attack& stAttack)": {
+   "digest": "65392b79ac1baece4c2c249bdd2dc3a5b5008aa84c8040fcecdb2d29d7749acf",
+   "owner": "Skills"
+  },
+  "ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned int& dwServerTime, int& nSpecForce, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult)": {
+   "digest": "7d6ac6c6fc66d80190aa4017c307f8b7fbf2b76434403601154186db8f5189b6",
+   "owner": "Skills"
+  },
+  "ExtractedFlow TMFieldScene::ApplyAutoSkillPkRules(char& cSkillIndex, TMHuman*& pOver, int& extractedResult)": {
+   "digest": "8035bd25f7e213f536b294bba8694cd0bfd4a80d4adde8acf03753ba945f35bd",
+   "owner": "Skills"
+  },
+  "void TMFieldScene::AddAutoPartySkillTargets(int& nDX, int& nDY, int& nTargetIndex, TMHuman*& pOver, TMHuman*& pTarget, MSG_Attack& stAttack)": {
+   "digest": "7cb1d6dba48e62729683d03337060f9b64789e667bcac4e47371aec4ec74f160",
+   "owner": "Skills"
+  },
+  "void TMFieldScene::UpdateMiniMapFrame()": {
+   "digest": "fca1833e7180124cb2360f266aac77f671ab9d1f5ed0446558fa0ccd42f7b907",
+   "owner": ""
+  },
+  "void TMFieldScene::UpdateZoneMusicAndPanels(bool& bInTown, unsigned int& dwServerTime)": {
+   "digest": "30832cce51948811a72f5cc82f54940eb5d2c281c02439e441d47e949c133118",
+   "owner": ""
+  },
+  "ExtractedFlow TMFieldScene::UpdateAffectIcons(unsigned int& dwServerTime, int& i)": {
+   "digest": "557c3c2f4931d0ac335268afb7c1d4701507b1516f8adc126045975572a52745",
+   "owner": ""
+  },
+  "void TMFieldScene::UpdateLastMoveStop(unsigned int& dwServerTime)": {
+   "digest": "62ed49bf1c05876bc0c391903dc4784e22827b0fc7cd482cfd00f494ee99fc6c",
+   "owner": ""
+  },
+  "void TMFieldScene::UpdateWeatherEffects(unsigned int& dwServerTime, CSoundManager*& pSoundManager)": {
+   "digest": "d7a731096b4d5bdbf11633ea2ff9b19064426cd4b8e5736b26fe48860ae7bc8d",
+   "owner": ""
+  }
+ },
+ "declarations": [
+  "#include \"ExtractedFlow.h\"",
+  "class CSoundManager;",
+  "// Helpers extracted from TMFieldScene::FrameMove.",
+  "void UpdateMiniMapFrame();",
+  "void UpdateZoneMusicAndPanels(bool& bInTown, unsigned int& dwServerTime);",
+  "ExtractedFlow UpdateAffectIcons(unsigned int& dwServerTime, int& i);",
+  "void UpdateLastMoveStop(unsigned int& dwServerTime);",
+  "void UpdateWeatherEffects(unsigned int& dwServerTime, CSoundManager*& pSoundManager);",
+  "// Helpers extracted from TMFieldScene::AutoSkillUse.",
+  "ExtractedFlow SendAreaAutoSkillRequest(char& cSkillIndex, unsigned int& dwServerTime, int& nSpecForce, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult);",
+  "ExtractedFlow ApplyAutoSkillPkRules(char& cSkillIndex, TMHuman*& pOver, int& extractedResult);",
+  "void AddAutoPartySkillTargets(int& nDX, int& nDY, int& nTargetIndex, TMHuman*& pOver, TMHuman*& pTarget, MSG_Attack& stAttack);",
+  "// Helpers extracted from TMFieldScene::SkillUse.",
+  "ExtractedFlow SendAreaSkillRequest(int& bMoving, char& cSkillIndex, unsigned int& dwServerTime, int& nCannonIndex, int& nSpecForce, STRUCT_MOB*& pMobData, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult);",
+  "ExtractedFlow MoveIntoSkillRange(int& bMoving, char& cSkillIndex, unsigned int& dwServerTime, int& nDX, int& nDY, int& nDistance, int& nMobAttackRange, int& nSpecForce, int& nTX, int& nTY, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult);",
+  "void AddPartySkillTargets(int& nDX, int& nDY, int& nTargetIndex, TMHuman*& pOver, TMHuman*& pTarget, MSG_Attack& stAttack);",
+  "// Helpers extracted from TMFieldScene::InitializeScene.",
+  "void BindChatAndHudControls();",
+  "void ApplyCompactScreenLayout(SPanel*& pPanel1, SPanel*& pTradePanel, SPanel*& pTradePanel1, SControl*& pMyCheckButton, SControl*& pOpCheckButton, SGridControl* (&pTradeOpGrids)[15], SGridControl* (&pTradeMyGrids)[15], SPanel*& pShopPanel1, SPanel*& pCargoPanel1, SPanel*& pSkillPanel1, SPanel*& pSkillMPanel1, SText*& pSkillBonus);",
+  "void LoadOwnedItemGrids(STRUCT_MOB*& pMobData);",
+  "// Helpers extracted from TMFieldScene::OnControlEvent.",
+  "ExtractedFlow OnCompatFieldControl(unsigned int& dwServerTime, unsigned int& idwControlID, int& extractedResult);",
+  "ExtractedFlow OnHellStoreSelect(unsigned int& idwControlID, int& extractedResult);",
+  "ExtractedFlow OnGambleButton(unsigned int& idwControlID, int& extractedResult);",
+  "ExtractedFlow OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_MOB*& pMobData, int& extractedResult);",
+  "ExtractedFlow OnMoneyButton(int& extractedResult);",
+  "ExtractedFlow OnChatListLightButton(int& extractedResult);",
+  "ExtractedFlow OnChatSelectButton(unsigned int& idwControlID, int& extractedResult);",
+  "ExtractedFlow OnSystemServerButton(int& extractedResult);",
+  "ExtractedFlow OnSystemCharacterButton(int& extractedResult);",
+  "ExtractedFlow OnPgtPartyButton(int& extractedResult);",
+  "ExtractedFlow OnPgtTradeButton(int& extractedResult);",
+  "ExtractedFlow OnPgtGuildButton(int& extractedResult);",
+  "ExtractedFlow OnPgtGuildCommonButton(int& extractedResult);",
+  "ExtractedFlow OnPgtGuildChiefButton(int& extractedResult);",
+  "ExtractedFlow OnPgtChallengeButton(unsigned int& idwControlID, int& extractedResult);",
+  "ExtractedFlow OnSpecialMastery1Button(STRUCT_MOB*& pMobData, int& extractedResult);",
+  "ExtractedFlow OnSpecialMastery2Button(STRUCT_MOB*& pMobData, int& extractedResult);",
+  "ExtractedFlow OnSpecialMastery3Button(STRUCT_MOB*& pMobData, int& extractedResult);",
+  "ExtractedFlow OnSpecialMastery4Button(STRUCT_MOB*& pMobData, int& extractedResult);",
+  "ExtractedFlow OnPartyListSelect(int& cktrans, unsigned int& dwServerTime, unsigned int& idwEvent, int& extractedResult);",
+  "ExtractedFlow OnTradeMyCheck(int& extractedResult);",
+  "ExtractedFlow OnAutoTradeRun(int& extractedResult);",
+  "ExtractedFlow OnPortalButton(int& extractedResult);",
+  "// Helpers extracted from TMFieldScene::OnPacketAttack.",
+  "ExtractedFlow ApplyTargetedAttackHits(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, TMVector2& vecAttackerPos, int& nClass, unsigned int& dwDelay, int& extractedResult);",
+  "ExtractedFlow ApplyGroundAttackHits(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, bool& bomb, TMVector3& vecStart, TMVector3& vecTarget, unsigned int& dwDelay, int& extractedResult);",
+  "// Helpers extracted from TMFieldScene::OnPacketAttack.",
+  "ExtractedFlow DispatchAttackSkillVisuals(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, TMHuman*& pTarget, float& fHeight, int& extractedResult);"
+ ]
+}

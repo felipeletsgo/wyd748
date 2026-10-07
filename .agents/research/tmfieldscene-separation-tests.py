@@ -92,8 +92,46 @@ class CompleteTreeTests(unittest.TestCase):
 
     def test_complete_reviewed_tree(self):
         entries = self.verify_tree()
-        self.assertEqual(len(entries), 293)
+        # 293 baseline definitions plus every pinned Stage 3 helper, adjusted by
+        # the reviewed definitions added or removed after the relocation.
+        reviews = relocation.load_reviews()['methods'].values()
+        added = sum(1 for change in reviews if change['before'] is None)
+        removed = sum(1 for change in reviews if change['after'] is None)
+        self.assertEqual(len(entries), 293 + len(relocation.load_extractions()['helpers']) + added - removed)
         self.assertEqual(len({entry['file'] for entry in entries}), 18)
+
+    def test_rejects_unpinned_header_line(self):
+        header = relocation.ROOT / relocation.HEADER
+        changed = self.sources[header].replace('private:\n', 'private:\n\tvoid UnpinnedHelper();\n', 1)
+        with self.assertRaisesRegex(ValueError, 'declaration/layout changed'):
+            self.verify_tree({header: changed})
+
+    def test_rejects_changed_extracted_helper(self):
+        pins = relocation.load_extractions()['helpers']
+        if not pins:
+            self.skipTest('no pinned helper')
+        name = relocation.re.search(r'TMFieldScene::(\w+)\(', next(iter(pins))).group(1)
+        path = next(p for p, text in self.sources.items() if f'TMFieldScene::{name}(' in text and p.suffix == '.cpp')
+        text = self.sources[path]
+        start = text.index(f'TMFieldScene::{name}(')
+        body = text.index('{', start) + 1
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            self.verify_tree({path: text[:body] + '\n\tm_bAirMove = 0;' + text[body:]})
+
+    def test_rejects_change_to_reviewed_method(self):
+        # A reviewed body is pinned: editing it again needs a new review.
+        path = relocation.SCENES / 'TMFieldScene.cpp'
+        text = self.sources[path]
+        start = text.index('int TMFieldScene::InitializeScene()')
+        body = text.index('{', start) + 1
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            self.verify_tree({path: text[:body] + '\n\tm_bAirMove = 0;' + text[body:]})
+
+    def test_rejects_restored_removed_method(self):
+        # A reviewed removal is pinned: the definition cannot come back unreviewed.
+        path = relocation.SCENES / 'TMFieldScene.cpp'
+        with self.assertRaisesRegex(ValueError, 'extra'):
+            self.verify_tree({path: self.sources[path] + '\nvoid TMFieldScene::FindAuto()\n{\n}\n'})
 
     def test_strict_mode_rejects_policy_change(self):
         with self.assertRaisesRegex(ValueError, 'changed'):
@@ -101,9 +139,9 @@ class CompleteTreeTests(unittest.TestCase):
 
     def test_skill_requests_preserve_send_prediction_and_timing_order(self):
         source = self.sources[relocation.SCENES / 'TMFieldSceneSkills.cpp']
-        bodies = {method['name']: method['text'] for method in relocation.methods(source)}
         for name in ('SkillUse', 'AutoSkillUse'):
-            body = bodies[name]
+            # Read the request through its Stage 3 helpers, in original order.
+            body = relocation.with_helpers(source, name)
             with self.subTest(method=name):
                 self.assertEqual(body.count('skill_attack::Area<MSG_Attack>'), 1)
                 self.assertEqual(body.count('skill_attack::Direct<MSG_Attack>'), 1)

@@ -10,25 +10,25 @@ import (
 	"wydgo/internal/wire"
 )
 
-// ascension.go -- a cadeia Mortal -> Arch. A implementacao foi importada
-// historicamente de uma source hoje excluida; essa procedencia nao comprova
-// paridade nativa 7.48. Contratos atuais devem ser conferidos com os testes.
+// ascension.go implements the Mortal -> Arch chain. It was historically
+// imported from a source that no longer exists; that provenance does not prove
+// native 7.48 parity. Check current contracts against the tests.
 //
-// Sao tres etapas encadeadas, cada uma num NPC diferente:
+// There are three chained steps, each at a different NPC:
 //
-//  1. Sefirot   (mestre de skill da classe): 8 pedras Sephira + 30M de gold.
-//  2. Pedra Eterna (Black_Oracle): Unicon + Phoenix adjacentes + 10 safiras.
-//  3. Arch      (rei): Mortal 370+, com a Pedra no slot 10 e o Sefirot no 11.
+//  1. Sefirot       (class skill master): 8 Sephira stones + 30M gold.
+//  2. Eternal Stone (Black_Oracle): adjacent Unicon + Phoenix + 10 sapphires.
+//  3. Arch          (king): Mortal 370+, Stone in slot 10 and Sefirot in 11.
 //
-// O Arch nasce como personagem NOVO no primeiro slot livre; o Mortal continua
-// existindo e jogavel, exatamente como no nativo.
+// The Arch is born as a NEW character in the first free slot; the Mortal still
+// exists and remains playable, exactly as natively.
 
 const (
-	// Itens da cadeia, todos conferidos em data/itemlist.csv.
+	// Chain items, all checked against data/itemlist.csv.
 	unicornSpiritItem = 1740 // Unicon's_Spirit
 	phoenixSpiritItem = 1741 // Phoenix's_Spirit
-	eternalStoneItem  = 1742 // Eternal_Stone (a "Pedra da Imortalidade")
-	// sefirotFirstItem+classe: 1760 TK, 1761 FM, 1762 BM, 1763 HT.
+	eternalStoneItem  = 1742 // Eternal_Stone (the "Immortality Stone")
+	// sefirotFirstItem+class: 1760 TK, 1761 FM, 1762 BM, 1763 HT.
 	sefirotFirstItem = 1760
 	// sephiraFirstStone..+7: Kocuna, Veean, Keced, Gebra, Tipalet, Nechark,
 	// Yesord, Marcute.
@@ -38,43 +38,43 @@ const (
 	sefirotGoldCost       = 30_000_000
 	eternalStoneSapphires = 10
 
-	// archMinLevel e o nivel INTERNO exigido pelo rei. A fonte WYD 7.48 usa 380,
-	// mas os tutoriais da comunidade divergem (355, 370, 300) porque cada
-	// servidor calibra o proprio portao; 370 e a regra escolhida para o nosso
-	// -- e casa com "when a mortal reaches level 370-400 it can be reborn".
+	// archMinLevel is the INTERNAL level the king requires. The WYD 7.48 source
+	// uses 380, but community guides differ (355, 370, 300) because each server
+	// calibrates its own gate; 370 is this server's rule and matches "when a
+	// mortal reaches level 370-400 it can be reborn".
 	archMinLevel = 370
 
-	// Slots de equipamento usados pelo rei na ascensao.
+	// Equipment slots the king uses for ascension.
 	eternalStoneSlot = 10
 	sefirotSlot      = 11
 
-	// archFaceOffset porta `Equip[0] = MortalFace + 5 + cls`. Com os rostos do
-	// nosso catalogo (TK 1, FM 11, BM 21, HT 31) resulta em 6, 17, 28 e 39 --
-	// todos existentes e da classe certa.
+	// archFaceOffset ports `Equip[0] = MortalFace + 5 + cls`. With this
+	// catalog's faces (TK 1, FM 11, BM 21, HT 31) it yields 6, 17, 28 and 39,
+	// all existing and of the right class.
 	archFaceOffset = 5
 
-	// archEvolution e o valor gravado em Char.Evolution. Qualquer valor nao
-	// vazio ja exclui o personagem das regras MortalOnly (quest e volatile).
+	// archEvolution is the value stored in Char.Evolution. Any non-empty value
+	// already excludes the character from MortalOnly rules (quests, volatiles).
 	archEvolution = "arch"
 )
 
-// sefirotClassForNPC resolve a classe pelo NOME do MESTRE DE SKILL.
+// sefirotClassForNPC resolves the class from the SKILL MASTER's NAME.
 //
-// O compositor do Sefirot e o mestre de skill da classe -- nao um NPC dedicado.
-// Confirmado in-game (o client abre a janela de confirmacao no Foema_Ancian) e
-// na fonte goldvivi ("Skills Teacher (Armia town) - creates Sephiroth").
+// The Sefirot compositor is the class skill master, not a dedicated NPC.
+// Confirmed in game (the client opens the confirmation window at Foema_Ancian)
+// and in the goldvivi source ("Skills Teacher (Armia town) - creates Sephiroth").
 //
-// A classe de cada mestre foi identificada pela FAIXA DE SKILLS que ele vende
-// (indice 5000 + skill), que e criterio objetivo:
+// Each master's class was identified by the SKILL RANGE it sells (index
+// 5000 + skill), an objective criterion:
 //
 //	Knight_Leader  5000..5023 -> skills 0..23   -> TK
 //	Foema_Ancian   5024..5047 -> skills 24..47  -> FM
 //	Archi_Master   5048..5071 -> skills 48..71  -> BM
 //	ForeLearner    5072..5095 -> skills 72..95  -> HT
 //
-// O nativo distingue pelo campo Exp do mob (994..997); os nossos JSONs nao
-// preservam esse discriminador, entao o nome e a fonte confiavel -- mesmo
-// criterio ja usado pelos reis em kingdom.go.
+// Natively the mob Exp field (994..997) distinguishes them; these JSON files
+// do not keep that discriminator, so the name is the reliable source, the same
+// criterion the kings use in kingdom.go.
 func sefirotClassForNPC(def *model.NPCDef) (int, bool) {
 	if def == nil {
 		return 0, false
@@ -92,9 +92,9 @@ func sefirotClassForNPC(def *model.NPCDef) (int, bool) {
 	return 0, false
 }
 
-// hasSephiraStones informa se as oito pedras estao no inventario. Serve de
-// GATE do clique: sem elas, o clique no mestre e um pedido de loja de skill
-// comum e nao pode virar tentativa de composicao.
+// hasSephiraStones reports whether all eight stones are in the inventory. It
+// GATES the click: without them, clicking the master is an ordinary skill-shop
+// request and must not become a composition attempt.
 func hasSephiraStones(ch *model.Char) bool {
 	return findSephiraStones(ch) != nil
 }
@@ -103,9 +103,9 @@ func isBlackOracle(def *model.NPCDef) bool {
 	return def != nil && strings.EqualFold(generName(def.Name), "Black Oracle")
 }
 
-// handleAscensionNPC trata o Black_Oracle (Pedra Eterna). O Sefirot NAO passa
-// por aqui: o compositor dele e um mestre de skill, cujo clique precisa ser
-// interceptado ANTES da abertura da loja -- ver onNPCClick.
+// handleAscensionNPC handles Black_Oracle (Eternal Stone). The Sefirot does
+// NOT pass here: its compositor is a skill master whose click must be
+// intercepted BEFORE the shop opens; see onNPCClick.
 func (w *World) handleAscensionNPC(s *net.Session, p *Player, m *Mob) bool {
 	if p == nil || p.Char == nil || m == nil || m.Def == nil {
 		return false
@@ -117,8 +117,8 @@ func (w *World) handleAscensionNPC(s *net.Session, p *Player, m *Mob) bool {
 	return false
 }
 
-// findSephiraStones devolve os slots das 8 pedras (uma de cada indice), ou nil
-// se faltar alguma. Uma pedra por tipo, como no laco nativo.
+// findSephiraStones returns the slots of the 8 stones (one of each index), or
+// nil when any is missing. One stone per type, as in the native loop.
 func findSephiraStones(ch *model.Char) []int {
 	slots := make([]int, 0, sephiraStoneCount)
 	for offset := 0; offset < sephiraStoneCount; offset++ {
@@ -138,8 +138,8 @@ func findSephiraStones(ch *model.Char) []int {
 	return slots
 }
 
-// craftSefirot porta o COMP_SEPHI: oito pedras Sephira e 30 milhoes de gold
-// viram o Sefirot da classe do NPC.
+// craftSefirot ports COMP_SEPHI: eight Sephira stones and 30 million gold
+// become the Sefirot of the NPC's class.
 func (w *World) craftSefirot(s *net.Session, p *Player, class int) {
 	stones := findSephiraStones(p.Char)
 	if stones == nil {
@@ -151,43 +151,40 @@ func (w *World) craftSefirot(s *net.Session, p *Player, class int) {
 		return
 	}
 	sefirot := model.Item{Index: uint16(sefirotFirstItem + class)}
-	// Confere espaco ANTES de consumir: as pedras liberam slots, entao a sobra
-	// e garantida, mas a checagem mantem a ordem "valida tudo, so entao muta".
+	// Check room BEFORE consuming: the stones free slots, so room is assured,
+	// but the check keeps the "validate everything, then mutate" order.
 	if freeInventorySlots(p.Char) == 0 && len(stones) == 0 {
 		s.Send(wire.MessagePanel("Inventory is full."))
 		return
 	}
 
-	snapshot := cloneCharacterState(p.Char)
+	images := criticalPreimages(p)
 	for _, slot := range stones {
 		p.Char.Inv[slot] = model.Item{}
 	}
 	p.Char.Gold -= sefirotGoldCost
 	target := addToInv(p.Char, sefirot)
 	if target < 0 {
-		*p.Char = snapshot
+		w.restoreCriticalPreimages(images)
 		s.Send(wire.MessagePanel("Inventory is full."))
 		return
 	}
-	if err := w.saveAccount(p.Account); err != nil {
-		*p.Char = snapshot
-		log.Printf("[#%d] ERRO ao salvar Sefirot: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
-		w.resendInventory(p)
-		return
-	}
-	for _, slot := range stones {
-		s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-	}
-	s.Send(wire.SendItem(p.ID, placeInv, byte(target), p.Char.Inv[target]))
-	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	s.Send(wire.MessagePanel("The Sefirot has been created."))
-	log.Printf("[#%d] SEFIROT criado classe=%d item=%d", s.ID, class, sefirot.Index)
+	w.commitPlayerMutation(p, images, "Sefirot", "Save failed. Nothing was consumed.", false, func() {
+		if !s.IsClosed() {
+			for _, slot := range stones {
+				s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
+			}
+			s.Send(wire.SendItem(p.ID, placeInv, byte(target), p.Char.Inv[target]))
+			s.Send(wire.UpdateEtc(p.ID, *p.Char))
+			s.Send(wire.MessagePanel("The Sefirot has been created."))
+		}
+		log.Printf("[#%d] Sefirot created class=%d item=%d", s.ID, class, sefirot.Index)
+	})
 }
 
-// findAdjacentSpirits acha Unicon (1740) seguido de Phoenix (1741) no slot
-// IMEDIATAMENTE posterior. A adjacencia e exigencia do nativo, nao detalhe de
-// implementacao: e assim que o jogador "monta" o par no inventario.
+// findAdjacentSpirits finds Unicon (1740) followed by Phoenix (1741) in the
+// IMMEDIATELY following slot. Adjacency is a native requirement, not an
+// implementation detail: it is how the player assembles the pair.
 func findAdjacentSpirits(ch *model.Char) (int, bool) {
 	for slot := 0; slot+1 < model.PlayerCarrySlots; slot++ {
 		if ch.Inv[slot].Index == unicornSpiritItem && ch.Inv[slot+1].Index == phoenixSpiritItem {
@@ -197,8 +194,8 @@ func findAdjacentSpirits(ch *model.Char) (int, bool) {
 	return 0, false
 }
 
-// craftEternalStone porta o BLACKORACLE: os dois espiritos adjacentes mais dez
-// safiras viram a Pedra Eterna.
+// craftEternalStone ports BLACKORACLE: the two adjacent spirits plus ten
+// sapphires become the Eternal Stone.
 func (w *World) craftEternalStone(s *net.Session, p *Player) {
 	slot, ok := findAdjacentSpirits(p.Char)
 	if !ok {
@@ -210,9 +207,9 @@ func (w *World) craftEternalStone(s *net.Session, p *Player) {
 		return
 	}
 
-	snapshot := cloneCharacterState(p.Char)
+	images := criticalPreimages(p)
 	if !consumeSapphires(p.Char, eternalStoneSapphires) {
-		*p.Char = snapshot
+		w.restoreCriticalPreimages(images)
 		s.Send(wire.MessagePanel("The Sapphires could not be consumed."))
 		return
 	}
@@ -220,25 +217,22 @@ func (w *World) craftEternalStone(s *net.Session, p *Player) {
 	p.Char.Inv[slot+1] = model.Item{}
 	target := addToInv(p.Char, model.Item{Index: eternalStoneItem})
 	if target < 0 {
-		*p.Char = snapshot
+		w.restoreCriticalPreimages(images)
 		s.Send(wire.MessagePanel("Inventory is full."))
 		return
 	}
-	if err := w.saveAccount(p.Account); err != nil {
-		*p.Char = snapshot
-		log.Printf("[#%d] ERRO ao salvar Pedra Eterna: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
-		w.resendInventory(p)
-		return
-	}
-	w.resendInventory(p)
-	s.Send(wire.MessagePanel("The Eternal Stone has been forged."))
-	log.Printf("[#%d] PEDRA ETERNA criada slot=%d", s.ID, target)
+	w.commitPlayerMutation(p, images, "Eternal Stone", "Save failed. Nothing was consumed.", false, func() {
+		if !s.IsClosed() {
+			w.resendInventory(p)
+			s.Send(wire.MessagePanel("The Eternal Stone has been forged."))
+		}
+		log.Printf("[#%d] Eternal Stone forged slot=%d", s.ID, target)
+	})
 }
 
-// resendInventory reenvia o inventario inteiro. Usado pelas composicoes que
-// mexem em varios slots de uma vez (safiras avulsas + pacotes), onde enumerar
-// os slots alterados sairia mais caro e mais fragil que um refresh.
+// resendInventory resends the whole inventory. Compositions that touch many
+// slots at once (loose sapphires and packs) use it, where listing every
+// changed slot would cost more and be more fragile than a refresh.
 func (w *World) resendInventory(p *Player) {
 	if p == nil || p.Char == nil || p.Session == nil {
 		return
@@ -247,7 +241,7 @@ func (w *World) resendInventory(p *Player) {
 	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 }
 
-// archClassFromSefirot devolve a classe do Arch a partir do Sefirot equipado.
+// archClassFromSefirot returns the Arch class from the equipped Sefirot.
 func archClassFromSefirot(item model.Item) (int, bool) {
 	class := int(item.Index) - sefirotFirstItem
 	if class < 0 || class > 3 {
@@ -256,8 +250,8 @@ func archClassFromSefirot(item model.Item) (int, bool) {
 	return class, true
 }
 
-// freeCharacterSlot devolve o primeiro slot vazio da conta, como o laco do
-// DBSrv nativo. -1 quando nao ha espaco.
+// freeCharacterSlot returns the account's first empty slot, like the native
+// DBSrv loop, or -1 when there is no room.
 func freeCharacterSlot(account *model.Account) int {
 	for slot := 0; slot < maxCharactersPerAccount; slot++ {
 		if slot >= len(account.Chars) || account.Chars[slot].Name == "" {
@@ -267,15 +261,15 @@ func freeCharacterSlot(account *model.Account) int {
 	return -1
 }
 
-// growCharacterSlots cresce Account.Chars ate conter o slot pedido e RE-APONTA
-// p.Char.
+// growCharacterSlots grows Account.Chars to contain the requested slot and
+// REPOINTS p.Char.
 //
-// O append pode REALOCAR o array. Como p.Char e `&p.Account.Chars[CharSlot]`
-// (handlers.go), o ponteiro ficaria orfao no array antigo: toda escrita
-// posterior -- consumo de item, rollback, e dali em diante a sessao inteira --
-// iria para memoria que ninguem persiste, enquanto saveAccount grava o array
-// novo. Na ascensao isso deixava a Pedra e o Sefirot INTACTOS no disco, ou
-// seja, ascensao repetivel.
+// append may REALLOCATE the array. Since p.Char is `&p.Account.Chars[CharSlot]`
+// (handlers.go), the pointer would be orphaned in the old array: every later
+// write (item consumption, rollback and then the whole session) would go to
+// memory nobody persists while saveAccount writes the new array. During
+// ascension that left the Stone and Sefirot INTACT on disk, making ascension
+// repeatable.
 func (w *World) growCharacterSlots(p *Player, slot int) {
 	if p == nil || p.Account == nil {
 		return
@@ -283,24 +277,24 @@ func (w *World) growCharacterSlots(p *Player, slot int) {
 	for len(p.Account.Chars) <= slot {
 		p.Account.Chars = append(p.Account.Chars, model.Char{})
 	}
-	// Re-aponta mesmo quando nao houve realocacao: e barato e nao depende de
-	// adivinhar se o append cresceu o array.
+	// Repoint even without reallocation: it is cheap and does not depend on
+	// guessing whether append grew the array.
 	if p.CharSlot >= 0 && p.CharSlot < len(p.Account.Chars) {
 		p.Char = &p.Account.Chars[p.CharSlot]
 	}
 }
 
-// createArch porta a criacao do Arch no rei. Devolve true quando o NPC foi
-// tratado por este caminho -- inclusive nas recusas, para o rei nao seguir e
-// tentar entregar uma capa de reino no mesmo clique.
+// createArch ports Arch creation at the king. It returns true when this path
+// handled the NPC, including rejections, so the king does not continue and
+// try to grant a kingdom cape on the same click.
 //
-// O Mortal PERMANECE na conta: o Arch e um personagem NOVO, com o mesmo nome,
-// no primeiro slot livre. E o comportamento nativo.
+// The Mortal STAYS on the account: the Arch is a NEW character with the same
+// name in the first free slot. That is the native behavior.
 func (w *World) createArch(s *net.Session, p *Player) bool {
 	stone := p.Char.Equip[eternalStoneSlot]
 	sefirot := p.Char.Equip[sefirotSlot]
-	// Sem os dois itens equipados o jogador nao esta pedindo ascensao: deixa o
-	// clique seguir para a logica de reino.
+	// Without both items equipped the player is not asking for ascension: let
+	// the click continue to the kingdom logic.
 	if stone.Index != eternalStoneItem {
 		return false
 	}
@@ -323,41 +317,63 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 		return true
 	}
 
-	// O Arch herda o NOME do Mortal (fiel ao nativo), entao NAO passa pela
-	// checagem de unicidade: o nome ja pertence a esta conta.
+	// The Arch inherits the Mortal's NAME (as natively), so it SKIPS the
+	// uniqueness check: the name already belongs to this account.
 	arch, built := w.newCharacterFromTemplate(p.Char.Name, class)
 	if !built {
-		log.Printf("[#%d] layout ausente para classe %d na ascensao", s.ID, class)
+		log.Printf("[#%d] missing class layout %d for ascension", s.ID, class)
 		s.Send(wire.MessagePanel("The Arch could not be created."))
 		return true
 	}
 	arch.Evolution = archEvolution
-	// Guarda a origem por identidade estavel. O slot pode ser apagado/reutilizado
-	// e nunca pode fazer um Arch passar a herdar nivel de outro personagem.
+	// Record the origin by stable identity. The slot may be deleted or reused
+	// and must never make an Arch inherit another character's level.
 	arch.ArchMortalUID = p.Char.UID
 	arch.ArchMortalLevel = p.Char.Score.Level
-	// Rosto do Arch = rosto do Mortal + 5 + classe (CFileDB.cpp:1993).
+	// Arch face = Mortal face + 5 + class (CFileDB.cpp:1993).
 	arch.Equip[0].Index = p.Char.Equip[0].Index + archFaceOffset + uint16(class)
 
+	if w.criticalWrites != nil {
+		// Grow empty slots before the pre-image: growCharacterSlots repoints
+		// p.Char, and the proposal must match the pre-image length.
+		w.growCharacterSlots(p, slot)
+		images := criticalPreimages(p)
+		p.Account.Chars[slot] = arch
+		p.Char.Equip[eternalStoneSlot] = model.Item{}
+		p.Char.Equip[sefirotSlot] = model.Item{}
+		w.commitPlayerMutation(p, images, "Arch ascension", "Save failed. The ascension was not completed.", false, func() {
+			if !s.IsClosed() {
+				s.Send(wire.SendItem(p.ID, placeEquip, eternalStoneSlot, p.Char.Equip[eternalStoneSlot]))
+				s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
+				s.Send(wire.MessagePanel("Your Arch has been created. It awaits at character selection."))
+			}
+			announcement := fmt.Sprintf("The character %s has become a God!", arch.Name)
+			w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
+			log.Printf("[#%d] Arch created name=%q class=%d slot=%d face=%d (mortal level=%d)",
+				s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Score.Level)
+			w.returnToCharacterSelectionAfterCommittedChange(p, "Arch creation")
+		})
+		return true
+	}
 	previousChars := append([]model.Char(nil), p.Account.Chars...)
 	previousEquip := p.Char.Equip
-	// Cresce a fatia ANTES de qualquer escrita por p.Char: growCharacterSlots
-	// re-aponta o ponteiro, que o append poderia deixar orfao.
+	// Grow the slice BEFORE any write through p.Char: growCharacterSlots
+	// repoints the pointer that append could orphan.
 	w.growCharacterSlots(p, slot)
 	p.Account.Chars[slot] = arch
-	// A Pedra e o Sefirot sao consumidos pela ascensao.
+	// Ascension consumes the Stone and the Sefirot.
 	p.Char.Equip[eternalStoneSlot] = model.Item{}
 	p.Char.Equip[sefirotSlot] = model.Item{}
 
 	if err := w.saveAccount(p.Account); err != nil {
-		// Trocar a fatia tambem invalida p.Char: re-aponta ANTES de restaurar o
-		// equipamento, senao o rollback grava no array descartado.
+		// Replacing the slice also invalidates p.Char: repoint BEFORE restoring
+		// equipment, or the rollback writes to the discarded array.
 		p.Account.Chars = previousChars
 		if p.CharSlot >= 0 && p.CharSlot < len(p.Account.Chars) {
 			p.Char = &p.Account.Chars[p.CharSlot]
 		}
 		p.Char.Equip = previousEquip
-		log.Printf("[#%d] ERRO ao salvar ascensao de %q: %v", s.ID, p.Char.Name, err)
+		log.Printf("[#%d] ERROR saving ascension of %q: %v", s.ID, p.Char.Name, err)
 		s.Send(wire.MessagePanel("Save failed. The ascension was not completed."))
 		return true
 	}
@@ -365,29 +381,29 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 	s.Send(wire.SendItem(p.ID, placeEquip, eternalStoneSlot, p.Char.Equip[eternalStoneSlot]))
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
 	s.Send(wire.MessagePanel("Your Arch has been created. It awaits at character selection."))
-	// Anuncio ao mundo, DEPOIS do save: ascensao que falhou nao vira noticia.
-	// Mesmo canal e cor do /spk ([SERVER], cor 7). "God" e o termo em ingles
-	// para o Arch -- e como o client global e as fontes o chamam.
+	// World announcement AFTER the save: a failed ascension is never announced.
+	// Same channel and color as /spk ([SERVER], color 7). "God" is the English
+	// term for the Arch used by the global client and sources.
 	announcement := fmt.Sprintf("The character %s has become a God!", arch.Name)
 	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
-	log.Printf("[#%d] ARCH criado nome=%q classe=%d slot=%d rosto=%d (mortal nivel=%d)",
+	log.Printf("[#%d] Arch created name=%q class=%d slot=%d face=%d (mortal level=%d)",
 		s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Score.Level)
-	w.returnToCharacterSelectionAfterCommittedChange(p, "criacao de Arch")
+	w.returnToCharacterSelectionAfterCommittedChange(p, "Arch creation")
 	return true
 }
 
-// isArch informa se o personagem ja ascendeu.
+// isArch reports whether the character already ascended.
 func isArch(ch *model.Char) bool {
 	return ch != nil && strings.EqualFold(ch.Evolution, archEvolution)
 }
 
-// refreshArchMortalLevel atualiza, no login, o nivel do Mortal de origem de cada
-// Arch da conta.
+// refreshArchMortalLevel updates, at login, the origin Mortal level of each
+// Arch on the account.
 //
-// O nativo recalcula esse valor a cada entrada (ProcessDBMessage.cpp:1002), e e
-// isso que faz o Arch continuar ganhando pontos conforme o Mortal sobe de nivel
-// depois da ascensao. Mortal apagado mantem o ultimo valor conhecido, em vez de
-// zerar pontos ja distribuidos.
+// Natively this value is recalculated on every entry (ProcessDBMessage.cpp:1002),
+// which lets the Arch keep gaining points as the Mortal levels after
+// ascension. A deleted Mortal keeps the last known value instead of resetting
+// points already distributed.
 func refreshArchMortalLevel(account *model.Account) bool {
 	if account == nil {
 		return false

@@ -112,8 +112,8 @@ func capsuleInfoFor(capsule *model.CelestialCapsule) wire.CapsuleInfoData {
 	info.Mastery[0] = clampCapsuleStat(e.Mastery[0])
 	info.Mastery[1] = clampCapsuleStat(e.Mastery[1])
 	info.Skill = capsuleSkillSummary(ch.Class, ch.LearnedSkill)
-	// O client 7.48 interpreta Quest como quatro nibbles cumulativos. A ficha
-	// Celestial completa a cadeia Arch ao possuir os quatro cristais.
+	// The 7.48 client reads Quest as four cumulative nibbles. A Celestial
+	// character completes the Arch chain by owning all four crystals.
 	if ch.ArchCrystals >= 4 {
 		info.Quest = 0x1000
 	}
@@ -132,7 +132,7 @@ func capsuleDisplayClass(ch *model.Char) uint16 {
 	if strings.EqualFold(strings.TrimSpace(ch.Evolution), "subcelestial") {
 		celestialClass, subClass = ch.AlternateCelestial.Class, ch.Class
 	}
-	// A UI decodifica C*10+(S+6) como "SubCelestial [Celestial]".
+	// The UI decodes C*10+(S+6) as "SubCelestial [Celestial]".
 	return uint16(celestialClass)*10 + uint16(subClass) + 6
 
 }
@@ -162,9 +162,9 @@ func clampCapsuleStat(value uint32) uint16 {
 	return uint16(value)
 }
 
-// useCelestialCapsule implementa o trecho de _MSG_UseItem.cpp que o WYD 7.48
-// reserva ao Spirit's Seal vazio. O personagem sai do mundo apenas depois da
-// transacao confirmar: em falha, item, ficha e charstate permanecem intactos.
+// useCelestialCapsule implements the _MSG_UseItem.cpp branch WYD 7.48 reserves
+// for an empty Spirit's Seal. The character leaves the world only after the
+// transaction commits: on failure, item, character and charstate stay intact.
 func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item, slot byte) {
 	resend := func() {
 		if p != nil && p.ID != 0 && item != nil {
@@ -210,6 +210,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 		return
 	}
 
+	images := criticalPreimages(p)
 	oldChar := cloneCharacterState(p.Char)
 	oldChars := append([]model.Char(nil), p.Account.Chars...)
 	oldCargo := p.Account.Cargo
@@ -235,28 +236,48 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 		return
 	}
 	p.Account.Chars[charSlot] = model.Char{}
+	publishSeal := func() {
+		if w.charNames != nil && !accountUsesName(p.Account, oldName) {
+			delete(w.charNames, strings.ToLower(oldName))
+		}
+		// The persisted slot is empty; teardown still needs the old character
+		// to close shop, trade, party and summons with the right identity.
+		p.Char = &oldChar
+		w.removePlayerFromWorld(p, "Celestial sealing")
+		if !s.IsClosed() {
+			s.Send(selectionUpdatePacket(s, wire.OpCNFDeleteCharacter, uint16(s.ID), p))
+			s.Send(characterListPacket(s, p))
+			s.Send(wire.MessagePanel("Celestial character sealed successfully."))
+		}
+		log.Printf("[#%d] Celestial %q sealed id=%d cargo=%d", s.ID, oldName, id, cargoSlot)
+	}
+	if w.criticalWrites != nil {
+		// The cleared slot and the deleted sidecar commit together.
+		err := w.queueCriticalLiveMutation("Celestial sealing", images, publishSeal, criticalLiveMutationOptions{
+			character: &criticalCharacterState{uid: oldChar.UID},
+			reject: func() {
+				if !s.IsClosed() {
+					resend()
+					s.Send(wire.MessagePanel("The character could not be sealed."))
+				}
+			},
+		})
+		if err != nil {
+			log.Printf("[#%d] Celestial sealing admission rejected: %v", s.ID, err)
+			resend()
+		}
+		return
+	}
 	if err := w.saveAccountAndCharStateForUID(p.Account, oldChar.UID, nil); err != nil {
 		p.Account.Chars = oldChars
 		p.Account.Cargo = oldCargo
 		p.Account.CelestialCapsules = oldCapsules
 		p.Char = &p.Account.Chars[charSlot]
-		log.Printf("[#%d] encapsulamento Celestial cancelado: %v", s.ID, err)
+		log.Printf("[#%d] Celestial sealing canceled: %v", s.ID, err)
 		resend()
 		return
 	}
-	if w.charNames != nil && !accountUsesName(p.Account, oldName) {
-		delete(w.charNames, strings.ToLower(oldName))
-	}
-	name := oldName
-	// O slot persistido ja esta vazio, mas o teardown ainda precisa da ficha
-	// antiga para fechar loja, trade, party e summons com a identidade correta.
-	p.Char = &oldChar
-	w.removePlayerFromWorld(p, "encapsulamento Celestial")
-	// Capsule transitions rebuild selection using the login-negotiated ABI.
-	s.Send(selectionUpdatePacket(s, wire.OpCNFDeleteCharacter, uint16(s.ID), p))
-	s.Send(characterListPacket(s, p))
-	s.Send(wire.MessagePanel("Celestial character sealed successfully."))
-	log.Printf("[#%d] Celestial %q encapsulado id=%d cargo=%d", s.ID, name, id, cargoSlot)
+	publishSeal()
 }
 
 type putoutSealRequest struct {
@@ -284,9 +305,9 @@ func parsePutoutSealRequest(pkt []byte) (putoutSealRequest, bool) {
 	return req, true
 }
 
-// onCapsuleInfo responde ao hover do item 3443. O ID vem dos dois bytes de
-// EF_VALUE; nunca aceitamos um índice alegado pelo cliente sem conferir o
-// item e o snapshot persistidos na conta.
+// onCapsuleInfo answers the hover of item 3443. The ID comes from the two
+// EF_VALUE bytes; a client-claimed index is never accepted without checking the
+// item and the snapshot persisted on the account.
 func (w *World) onCapsuleInfo(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || !p.InWorld || len(pkt) != 16 {
@@ -300,20 +321,20 @@ func (w *World) onCapsuleInfo(s *net.Session, pkt []byte) {
 	s.Send(wire.CNFCapsuleInfo(uint16(s.ID), id, capsuleInfoFor(capsule)))
 }
 
-// onPutoutSeal porta _MSG_PutoutSeal. A ficha extraida nasce em um slot livre
-// da conta, preserva rosto/capa e progressao Celestial, mas perde equipamento,
-// carry, gold e guild como no DBSrv nativo.
+// onPutoutSeal ports _MSG_PutoutSeal. The extracted character is created in a
+// free account slot and keeps face/cape and Celestial progression, but loses
+// equipment, carry, gold and guild as in the native DBSrv.
 func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || p.Char == nil || !p.InWorld ||
 		playerCurHP(p.Char) == 0 {
 		return
 	}
-	// O DBSrv encerra qualquer negociação antes de manipular o selo. Além de
-	// reproduzir o fluxo nativo, isso impede que o mesmo item fique reservado
-	// simultaneamente numa janela de trade e na extração.
+	// DBSrv closes any trade before touching the seal. Besides reproducing the
+	// native flow, this prevents the same item from being reserved by a trade
+	// window and the extraction at the same time.
 	if p.Trade != nil {
-		w.cancelTrade(p, "extracao Celestial")
+		w.cancelTrade(p, "Celestial extraction")
 		return
 	}
 	req, ok := parsePutoutSealRequest(pkt)
@@ -388,6 +409,58 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 	setPlayerCurHP(&created, playerMaxHP(&created))
 	setPlayerCurMP(&created, playerMaxMP(&created))
 
+	if w.criticalWrites != nil {
+		// Grow empty slots before the pre-image so it matches the proposal;
+		// growth can move the backing array, so repoint Player.Char first.
+		for len(p.Account.Chars) <= newSlot {
+			p.Account.Chars = append(p.Account.Chars, model.Char{})
+		}
+		p.Char = &p.Account.Chars[p.CharSlot]
+		source = playerSlotOf(p, byte(req.sourceType), byte(req.sourcePos))
+		if source == nil || source.Index != model.CelestialSealItem {
+			return
+		}
+		images := criticalPreimages(p)
+		activeUID := p.Char.UID
+		activeState := buildCharState(p, w.now())
+		p.Account.Chars[newSlot] = created
+		*source = model.Item{}
+		p.Account.CelestialCapsules = append(p.Account.CelestialCapsules[:capsuleIndex],
+			p.Account.CelestialCapsules[capsuleIndex+1:]...)
+		nameKey := strings.ToLower(req.name)
+		if w.charNames != nil {
+			// Hold the name while the extraction is pending.
+			w.charNames[nameKey] = struct{}{}
+		}
+		releaseName := func() {
+			if w.charNames != nil && !accountUsesName(p.Account, req.name) {
+				delete(w.charNames, nameKey)
+			}
+		}
+		err := w.queueCriticalLiveMutation("Celestial extraction", images, func() {
+			w.removePlayerFromWorld(p, "Celestial extraction")
+			if !s.IsClosed() {
+				s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
+				s.Send(characterListPacket(s, p))
+				s.Send(wire.MessagePanel("Celestial character extracted successfully."))
+			}
+			log.Printf("[#%d] Celestial capsule id=%d extracted as %q slot=%d", s.ID, id, req.name, newSlot)
+		}, criticalLiveMutationOptions{
+			character: &criticalCharacterState{uid: activeUID, state: activeState},
+			reject: func() {
+				releaseName()
+				if !s.IsClosed() {
+					s.Send(wire.MessagePanel("The character could not be extracted."))
+				}
+			},
+		})
+		if err != nil {
+			releaseName()
+			log.Printf("[#%d] Celestial extraction admission rejected: %v", s.ID, err)
+			s.Send(wire.MessagePanel("The character could not be extracted."))
+		}
+		return
+	}
 	oldChars := append([]model.Char(nil), p.Account.Chars...)
 	oldCargo := p.Account.Cargo
 	oldCapsules := append([]model.CelestialCapsule(nil), p.Account.CelestialCapsules...)
@@ -399,8 +472,8 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 		}
 	}
 	p.Account.Chars[newSlot] = created
-	// append pode mover o backing array; Player.Char sempre deve voltar a
-	// apontar para a ficha autoritativa dentro de Account.Chars.
+	// append may move the backing array; Player.Char must always point back to
+	// the authoritative character inside Account.Chars.
 	p.Char = &p.Account.Chars[p.CharSlot]
 	// Appending a character can reallocate the slice; resolve the source again
 	// instead of writing through a stale pointer into the old backing array.
@@ -426,10 +499,10 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 	if w.charNames != nil {
 		w.charNames[strings.ToLower(req.name)] = struct{}{}
 	}
-	w.removePlayerFromWorld(p, "extracao Celestial")
+	w.removePlayerFromWorld(p, "Celestial extraction")
 	// Extraction follows the same source/stock selection boundary as creation.
 	s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
 	s.Send(characterListPacket(s, p))
 	s.Send(wire.MessagePanel("Celestial character extracted successfully."))
-	log.Printf("[#%d] Celestial capsule id=%d extraida como %q slot=%d", s.ID, id, req.name, newSlot)
+	log.Printf("[#%d] Celestial capsule id=%d extracted as %q slot=%d", s.ID, id, req.name, newSlot)
 }

@@ -51,7 +51,6 @@ int RunFieldSceneChatContractTests(int& checks)
         "void TMFieldScene::SetKingDomChat(char cOn)",
         "int TMFieldScene::OnPacketMessageChat(MSG_MessageChat* pStd)",
         "int TMFieldScene::OnPacketMessageChat_Index(MSG_MessageChat* pStd)",
-        "int TMFieldScene::OnPacketMessageChat_Param(MSG_STANDARD* pStd)",
         "int TMFieldScene::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)",
         "void TMFieldScene::SysMsgChat(char* str)",
         "void TMFieldScene::InsertInChatList(SListBox* pChatList, STRUCT_MOB *pMobData, SEditableText* pEditChat, unsigned int dwColor, int colorId, unsigned int startId)",
@@ -62,8 +61,9 @@ int RunFieldSceneChatContractTests(int& checks)
     }
     for (int channel = 0; channel < 3; ++channel) {
         const auto body = source_contract::Method(chat, signatures[channel]);
-        check(body.find("m_bCompatFieldScene ? cOn != 0 : cOn == 0") != std::string::npos,
-            "native and imported channel selections retain their polarity");
+        check(body.find("_C->m_bSelected = cOn != 0;") != std::string::npos &&
+            body.find("cOn == 0") == std::string::npos,
+            "the native 7.48 channel selection keeps its polarity");
     }
     const auto party = source_contract::Method(chat, signatures[4]);
     check(party.find("if (!pStd || !m_pChatList || !m_pPartyList || m_pPartyList->m_nNumItem <= 0)") <
@@ -71,23 +71,27 @@ int RunFieldSceneChatContractTests(int& checks)
     const auto indexed = source_contract::Method(chat, signatures[5]);
     check(indexed.find("if (!pStd || !m_pChatList || !m_pPartyList)") <
         indexed.find("pStd->String[0]"), "indexed chat guards partial scene initialization");
-    const auto parameterized = source_contract::Method(chat, signatures[6]);
-    check(parameterized == std::string(signatures[6]) + "\n{\n\treturn 0;\n}",
-        "parameterized chat remains the existing no-op");
-    const auto whisper = source_contract::Method(chat, signatures[7]);
+    // 0x106 is shown by TMScene::OnPacketEvent before the field dispatch; the
+    // field scene's empty handler was removed with the other stubs.
+    check(source_contract::Method(chat, "int TMFieldScene::OnPacketMessageChat_Param(MSG_STANDARD* pStd)").empty(),
+        "the empty parameterized-chat handler is gone");
+    const auto scene = ReadFieldUnit("TMScene.cpp");
+    check(scene.find("pStd->Type == MSG_MessageParameterized_Opcode") != std::string::npos,
+        "TMScene keeps showing parameterized messages");
+    const auto whisper = source_contract::Method(chat, signatures[6]);
     check(whisper.find("if (!m_pPartyList)\n\t\t\treturn 1;") <
         whisper.find("m_pPartyList->m_nNumItem"), "party whisper keeps its consumed early return");
     const auto dispatch = source_contract::Method(core,
         "int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)");
     for (const auto handler : {"OnPacketMessageChat(", "OnPacketMessageChat_Index(",
-        "OnPacketMessageChat_Param(", "OnPacketMessageWhisper("})
+        "OnPacketMessageWhisper("})
         check(dispatch.find(handler) != std::string::npos, "chat routing remains in the single dispatcher");
-    const auto controls = source_contract::Method(core,
-        "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)");
-    const auto previousDomain = controls.find("if (idwControlID == B_CHAT_SELECT)");
-    const auto chatDomain = controls.find("field_chat::Handle(m_bCompatFieldScene, idwControlID,");
+    const auto controls = source_contract::WithHelpers(core,
+        "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)", "TMFieldScene");
+    const auto previousDomain = controls.find("if (idwControlID == B_CCMODE_DLG_MODE)");
+    const auto chatDomain = controls.find("field_chat::Handle(idwControlID,");
     const auto consumption = controls.find("if (chatOutcome != field_chat::Outcome::Unhandled)", chatDomain);
-    const auto nextDomain = controls.find("if (idwControlID >= B_CHAT_SELECT_NOMAL", consumption);
+    const auto nextDomain = controls.find("if (idwControlID == P_CCMODE_DLG_PONT)", consumption);
     check(previousDomain != std::string::npos && chatDomain != std::string::npos &&
         consumption != std::string::npos && nextDomain != std::string::npos &&
         previousDomain < chatDomain && chatDomain < consumption && consumption < nextDomain &&

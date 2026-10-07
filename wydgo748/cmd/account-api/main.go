@@ -20,7 +20,7 @@ import (
 )
 
 func main() {
-	addr := flag.String("addr", "127.0.0.1:8080", "endereco HTTP; publique via proxy HTTPS")
+	addr := flag.String("addr", "127.0.0.1:8080", "HTTP address; publish it through an HTTPS proxy")
 	databaseURLEnv := flag.String("database-url-env", "WYD_DATABASE_URL",
 		"environment variable containing the PostgreSQL URL")
 	maxConns := flag.Int("database-max-conns", 4, "maximum PostgreSQL connections")
@@ -38,7 +38,7 @@ func main() {
 		URL: databaseURL, MaxConns: int32(*maxConns),
 	})
 	if err != nil {
-		log.Fatalf("account-api: abrir PostgreSQL: %v", err)
+		log.Fatalf("account-api: open PostgreSQL: %v", err)
 	}
 	defer st.Close()
 	trustedProxies := make([]netip.Prefix, 0)

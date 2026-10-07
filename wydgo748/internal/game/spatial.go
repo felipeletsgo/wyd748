@@ -14,6 +14,9 @@ func (w *World) registerMobSpatial(m *Mob) {
 	if m == nil {
 		return
 	}
+	if current := w.mobsByID[m.ID]; w.criticalGuildMobReserved(current) {
+		return
+	}
 	if w.mobsByID == nil {
 		w.mobsByID = make(map[uint16]*Mob)
 	}
@@ -49,7 +52,7 @@ func (w *World) registerMobSpatial(m *Mob) {
 }
 
 func (w *World) unregisterMobSpatial(m *Mob) {
-	if m == nil {
+	if m == nil || w.criticalGuildMobReserved(m) {
 		return
 	}
 	if key, ok := w.mobCell[m.ID]; ok {
@@ -147,8 +150,8 @@ func (w *World) hasNearbyPlayerInGameplaySpace(x, y uint16, radius int, space st
 	return false
 }
 
-// nearbyWorldPlayers atende visibilidade/transporte e, ao contrario da busca
-// de alvo da IA, inclui jogadores mortos ou ocultos que ainda estao no mundo.
+// nearbyWorldPlayers serves visibility and transport and, unlike AI target
+// search, includes dead or hidden players still in the world.
 func (w *World) nearbyWorldPlayers(x, y uint16, radius int) []*Player {
 	cx, cy := int(x)/spatialCellSize, int(y)/spatialCellSize
 	cr := radius/spatialCellSize + 1
@@ -169,6 +172,9 @@ func (w *World) nearbyWorldPlayers(x, y uint16, radius int) []*Player {
 }
 
 func (w *World) recomputeMobActive(m *Mob) {
+	if w.criticalGuildMobReserved(m) {
+		return
+	}
 	if m == nil || m.Dead || m.Def == nil || !m.Def.IsMonster() || m.SummonerID != 0 {
 		if m != nil {
 			m.Awake = false
@@ -179,8 +185,8 @@ func (w *World) recomputeMobActive(m *Mob) {
 	}
 	awake := false
 	if m.InstanceID != "" {
-		// Conteudo de instancia nunca adquire jogadores externos. O teste usa
-		// MemberIDs e a area da sala, nao apenas proximidade espacial.
+		// Instance content never acquires outside players. Check membership
+		// and the room area, not just spatial proximity.
 		awake = w.instanceMobHasNearbyMember(m, mobActivationRange)
 	} else {
 		awake = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
@@ -241,8 +247,8 @@ func (w *World) recomputeMobActivationScratch(affected map[uint16]*Mob) {
 	for _, m := range affected {
 		w.recomputeMobActive(m)
 	}
-	// O World e single-writer. Limpar aqui preserva a capacidade do map para a
-	// proxima troca de celula sem manter referencias aos mobs entre comandos.
+	// World is the single writer. Clearing retains capacity for the next cell
+	// transition without keeping mob references between commands.
 	clear(affected)
 }
 
@@ -263,8 +269,8 @@ func (w *World) updatePlayerSpatial(p *Player) {
 		return
 	}
 
-	// Uma troca de celula precisa recalcular a uniao dos bairros antigo e novo.
-	// O map vive no World para evitar duas []Mob e um map temporario por cruzamento.
+	// A cell transition recalculates the union of old and new neighborhoods.
+	// Keep scratch storage on World to avoid temporary slices/maps per crossing.
 	affected := w.resetMobActivationScratch()
 	if existed {
 		w.collectMobsNearCell(oldKey, mobActivationRange, affected)
@@ -305,6 +311,9 @@ func (w *World) registerGroundItem(item *GroundItem) {
 	if item == nil {
 		return
 	}
+	if current := w.groundItems[item.ID]; current != nil && current != item && current.criticalReserved() {
+		return
+	}
 	if w.groundItems == nil {
 		w.groundItems = make(map[uint16]*GroundItem)
 	}
@@ -331,7 +340,7 @@ func (w *World) registerGroundItem(item *GroundItem) {
 }
 
 func (w *World) unregisterGroundItem(item *GroundItem) {
-	if item == nil {
+	if item == nil || item.criticalReserved() {
 		return
 	}
 	if current := w.groundItems[item.ID]; current != nil && current != item {

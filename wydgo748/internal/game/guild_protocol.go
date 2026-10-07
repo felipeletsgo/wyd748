@@ -18,18 +18,20 @@ const (
 	guildMaxMembers     = 64_000
 )
 
-// onInviteGuild porta MSG_STANDARDPARM2/0x3D5 do client 7.48. A inclusao e
-// direta, como no TMSrv: nao existe uma segunda confirmacao no protocolo. O
-// comando textual /convidar continua usando convite pendente por compatibilidade
-// com a UI antiga; este caminho e o botao nativo da janela de jogadores.
+// onInviteGuild handles MSG_STANDARDPARM2/0x3D5 from client 7.48. Recruitment
+// is direct: this protocol has no second confirmation. The text invitation
+// command retains pending invitations; this path handles the native UI button.
 func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || p.Char == nil || p.Account == nil || len(pkt) != 20 {
 		return
 	}
+	if w.criticalGuildMutationReserved(p) {
+		return
+	}
 	header := wire.ParseHeader(pkt)
 	if header.ID != p.ID {
-		w.recordSecurityViolation(s, wire.OpInviteGuild, "ID do recrutador diverge da sessao")
+		w.recordSecurityViolation(s, wire.OpInviteGuild, "recruiter ID does not match session")
 		return
 	}
 	now := w.now()
@@ -40,11 +42,14 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	targetIDRaw := binary.LittleEndian.Uint32(pkt[12:16])
 	inviteTypeRaw := binary.LittleEndian.Uint32(pkt[16:20])
 	if targetIDRaw == 0 || targetIDRaw > uint32(^uint16(0)) || inviteTypeRaw > 3 {
-		w.recordSecurityViolation(s, wire.OpInviteGuild, "alvo/tipo de recrutamento invalido")
+		w.recordSecurityViolation(s, wire.OpInviteGuild, "invalid recruitment target or type")
+		return
+	}
+	target := w.playerByID(uint16(targetIDRaw))
+	if w.criticalGuildMutationReserved(target) {
 		return
 	}
 	p.NextGuildInvite = now.Add(guildInviteCooldown)
-	target := w.playerByID(uint16(targetIDRaw))
 	if target == nil || !target.InWorld || target.Char == nil || target.Account == nil ||
 		!w.playersShareGameplaySpace(p, target) {
 		s.Send(wire.MessagePanel("That player is not online."))
@@ -88,6 +93,13 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d gold to recruit.", cost)))
 		return
 	}
+	if w.criticalWrites != nil {
+		if err := w.queueGuildJoin(p, target, guild, cost, inviteTypeRaw, false); err != nil {
+			s.Send(wire.MessagePanel("Guild persistence is unavailable. Try again later."))
+			log.Printf("[#%d] ERROR 0x3D5 admission: %v", s.ID, err)
+		}
+		return
+	}
 
 	guildSnapshot := w.snapshotGuilds()
 	actorChar, targetChar := cloneCharacterState(p.Char), cloneCharacterState(target.Char)
@@ -105,13 +117,12 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 		*p.Char, *target.Char = actorChar, targetChar
 		p.Char.Gold = oldGold
 		s.Send(wire.MessagePanel("Save failed. The recruitment was not applied."))
-		log.Printf("[#%d] ERRO 0x3D5 recrutando %q: %v", s.ID, target.Char.Name, err)
+		log.Printf("[#%d] ERROR 0x3D5 recruiting %q: %v", s.ID, target.Char.Name, err)
 		return
 	}
 
-	// GuildID faz parte da identidade materializada do jogador. Reenvie o
-	// CreateMob somente nesta mudança de identidade; movimento continua usando
-	// Action, sem recriar o avatar a cada tick.
+	// GuildID is part of the published player identity. Refresh it only for
+	// this identity change; movement keeps using Action without recreating it.
 	w.syncPlayerChaos(target)
 	target.Session.Send(playerScorePacket(target))
 	target.Session.Send(wire.UpdateEtc(target.ID, *target.Char))
@@ -119,5 +130,5 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	s.Send(wire.MessagePanel(fmt.Sprintf("%s joined the guild.", target.Char.Name)))
 	w.announceToGuild(guild.ID, fmt.Sprintf("%s joined the guild.", target.Char.Name), target)
-	log.Printf("[#%d] 0x3D5 guild=%d recrutou %q tipo=%d custo=%d", s.ID, guild.ID, target.Char.Name, inviteTypeRaw, cost)
+	log.Printf("[#%d] 0x3D5 guild=%d recruited %q type=%d cost=%d", s.ID, guild.ID, target.Char.Name, inviteTypeRaw, cost)
 }

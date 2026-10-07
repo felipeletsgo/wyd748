@@ -25,13 +25,10 @@ public:
 
 	void SetIMENative();
 	void SetIMEAlphaNumeric();
-	void SetIMEOpenStatus(int bOpen);
 
 	int IsIMEOpenStatus();
 	void SetVisibleCandidateList(int lParam, int bVisible);
 
-	void Lock();
-	void Unlock();
 
 	int ReadInputEventData();
 	int CameraEventData();
@@ -40,12 +37,9 @@ public:
 	void OnKeyUp(unsigned int iKeyCode);
 	void OnChar(char iCharCode, int lParam);
 	void OnIME(char iCharCode, int lParam);
-	void OnIME2();
 
-	void UpdateCompositionPos();
 
 	void OnLMousePressed();
-	void OnLMouseReleased();
 	void OnRMousePressed();
 	void OnRMouseReleased();
 	void OnMouseEvent(unsigned int nFlags, unsigned int wParam, int ix, int iy);

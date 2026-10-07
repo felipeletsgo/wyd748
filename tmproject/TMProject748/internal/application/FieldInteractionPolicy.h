@@ -55,11 +55,11 @@ constexpr bool ClearAutoTradeOffer(Item (&items)[Count], Position (&positions)[C
     return true;
 }
 
-constexpr int AutoTradeSlotIndex(bool nativeHUD, unsigned int controlID)
+// The 7.48 auto-trade window has twelve listing grids (653..664).
+constexpr int AutoTradeSlotIndex(unsigned int controlID)
 {
-    const unsigned int count = nativeHUD ? 12u : 10u;
     return controlID >= AutoTradeFirstListingControl &&
-        controlID - AutoTradeFirstListingControl < count
+        controlID - AutoTradeFirstListingControl < 12u
         ? static_cast<int>(controlID - AutoTradeFirstListingControl) : -1;
 }
 
@@ -70,23 +70,7 @@ constexpr bool ShouldCancelAutoTradePurchase(unsigned int message,
 {
     return message == AutoTradePurchaseMessage &&
         (invalidatedSlot == -1 || (invalidatedSlot >= 0 && invalidatedSlot < 12 &&
-            AutoTradeSlotIndex(true, controlID) == invalidatedSlot));
-}
-
-// The native HUD has no 7.69 quick-slot widgets. Its Q/W/E/R/T handlers
-// must receive the key even when the corresponding modern widget is absent.
-constexpr int QuickSlotIndex(bool nativeHUD, char key)
-{
-    if (nativeHUD) return -1;
-    switch (key)
-    {
-    case 'Q': case 'q': return 0;
-    case 'W': case 'w': return 1;
-    case 'E': case 'e': return 2;
-    case 'R': case 'r': return 3;
-    case 'T': case 't': return 4;
-    default: return -1;
-    }
+            AutoTradeSlotIndex(controlID) == invalidatedSlot));
 }
 
 // 0x3AE also acknowledges recall, logout and server selection. An ack alone

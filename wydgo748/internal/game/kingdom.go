@@ -13,19 +13,19 @@ import (
 )
 
 const (
-	kingdomJoinMinLevel = uint32(219) // nivel 220 exibido no client
-	kingdomKnightLevel  = uint32(255) // nivel 256 exibido no client/WYD 7.48
+	kingdomJoinMinLevel = uint32(219) // displayed level 220
+	kingdomKnightLevel  = uint32(255) // displayed level 256 in WYD 7.48
 	kingdomLeaveCost    = uint32(16)
 	kingdomWarpCooldown = 5 * time.Second
 )
 
 var (
-	errKingdomAlready       = errors.New("personagem ja possui a capa adequada")
-	errKingdomWrongRealm    = errors.New("personagem pertence ao reino oposto")
-	errKingdomNeedLevel220  = errors.New("personagem abaixo do nivel 220")
-	errKingdomNeedLevel256  = errors.New("personagem abaixo do nivel 256")
-	errKingdomInvalidCape   = errors.New("capa nao participa da progressao de reino")
-	errKingdomNeedCelestial = errors.New("capa Master exige personagem Celestial")
+	errKingdomAlready       = errors.New("character already has the proper cape")
+	errKingdomWrongRealm    = errors.New("character belongs to the opposite kingdom")
+	errKingdomNeedLevel220  = errors.New("character is below level 220")
+	errKingdomNeedLevel256  = errors.New("character is below level 256")
+	errKingdomInvalidCape   = errors.New("cape does not support kingdom progression")
+	errKingdomNeedCelestial = errors.New("Master cape requires a Celestial character")
 )
 
 type kingdomCapeChange struct {
@@ -77,10 +77,9 @@ func kingdomUsesEmblem(ch *model.Char) bool {
 	return ch != nil && !isCelestial(ch) && ch.Equip[13].Index == model.KingdomEmblem
 }
 
-// kingdomCapeForJoin porta a progressao do case KING do WYD 7.48 sem duplicar o
-// reino no personagem. O primeiro clique cria/converte a capa 220; a capa
-// basica 545/546 pode voltar ao mesmo rei no nivel 256 para virar 543/544.
-// Elite/Hero preservam seu tier neutro e Celestial sempre recebe Master.
+// kingdomCapeForJoin keeps kingdom authority in the cape. The first click
+// creates/converts the level 220 cape; basic 545/546 upgrades to 543/544 at 256.
+// Elite/Hero retain their neutral tier, while Celestial always receives Master.
 func kingdomCapeForJoin(ch *model.Char, kingdom byte) (kingdomCapeChange, error) {
 	if kingdom != model.KingdomHekalotia && kingdom != model.KingdomAkelonia {
 		return kingdomCapeChange{}, errKingdomInvalidCape
@@ -99,8 +98,8 @@ func kingdomCapeForJoin(ch *model.Char, kingdom byte) (kingdomCapeChange, error)
 		if currentIndex == cape {
 			return kingdomCapeChange{}, errKingdomAlready
 		}
-		// A criacao do Celestial converte qualquer capa do seu reino para Master;
-		// o rei tambem repara personagens antigos que ainda carreguem tier menor.
+		// Celestial creation converts kingdom capes to Master; the king also
+		// repairs older characters that still carry a lower tier.
 		return kingdomCapeChange{Index: cape, Tier: model.CapeTierMaster, Preserve: currentIndex == 3199}, nil
 	}
 	if ch.Score.Level < kingdomJoinMinLevel {
@@ -143,15 +142,14 @@ func sapphireCount(ch *model.Char) uint32 {
 	total := countInventoryItem(ch, model.SapphireItem)
 	for i := 0; i < model.PlayerCarrySlots; i++ {
 		if ch.Inv[i].Index == model.SapphirePack {
-			total += 10 // o 4131 vale dez por SLOT, nao por EF_AMOUNT interno
+			total += 10 // 4131 contributes ten per slot, not per internal EF_AMOUNT
 		}
 	}
 	return total
 }
 
-// consumeSapphires usa primeiro safiras avulsas e depois pacotes de dez. Como
-// o pacote nativo e indivisivel, a ultima unidade pode pagar o restante menor
-// que dez, exatamente como o loop do case KING/KINGDOM do WYD 7.48.
+// consumeSapphires spends loose units before indivisible packs of ten. The last
+// pack may cover a remainder below ten, matching the native KING/KINGDOM loop.
 func consumeSapphires(ch *model.Char, amount uint32) bool {
 	if sapphireCount(ch) < amount {
 		return false
@@ -178,8 +176,8 @@ func consumeSapphires(ch *model.Char, amount uint32) bool {
 	return packs == 0
 }
 
-// handleKingdomNPC trata os reis e os dois brokers. O booleano indica que o
-// NPC pertence a este subsistema, mesmo quando a operacao foi recusada.
+// handleKingdomNPC handles kings and brokers. True means this subsystem owns
+// the NPC interaction, including rejected operations.
 func (w *World) handleKingdomNPC(s *net.Session, p *Player, m *Mob) bool {
 	if p == nil || p.Char == nil || m == nil || m.Def == nil {
 		return false
@@ -199,6 +197,9 @@ func (w *World) handleKingdomNPC(s *net.Session, p *Player, m *Mob) bool {
 }
 
 func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
+	if w.criticalGuildMutationReserved(p) {
+		return
+	}
 	if playerCurHP(p.Char) == 0 {
 		s.Send(wire.MessagePanel("Dead characters cannot choose a kingdom."))
 		return
@@ -233,6 +234,18 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d Sapphires.", cost)))
 		return
 	}
+	if w.criticalWrites != nil {
+		if err := w.queueKingdomCape(p, kingdom, change, cost, useEmblem, func() {
+			if current == kingdom {
+				s.Send(wire.MessagePanel("Your " + model.KingdomName(kingdom) + " cape was promoted."))
+			} else {
+				s.Send(wire.MessagePanel("You now belong to " + model.KingdomName(kingdom) + "."))
+			}
+		}); err != nil {
+			s.Send(wire.MessagePanel("Save failed. The kingdom was not changed."))
+		}
+		return
+	}
 
 	snapshot := cloneCharacterState(p.Char)
 	if useEmblem {
@@ -245,8 +258,7 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 	if change.Preserve {
 		p.Char.Equip[model.CapeSlot].Index = change.Index
 	} else {
-		// Trocar/promover a capa e uma transformacao do mesmo item. Efeitos
-		// podem ser reiniciados pela regra, mas a identidade nao pode mudar.
+		// Cape conversion preserves identity even when rules reset effects.
 		p.Char.Equip[model.CapeSlot] = model.Item{
 			Index: change.Index,
 			UID:   p.Char.Equip[model.CapeSlot].UID,
@@ -255,7 +267,7 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 	w.recalcPlayer(p.Char)
 	if err := w.commitKingdomChange(p, snapshot, kingdom); err != nil {
 		s.Send(wire.MessagePanel("Save failed. The kingdom was not changed."))
-		log.Printf("[#%d] REINO join save: %v", s.ID, err)
+		log.Printf("[#%d] KINGDOM join save: %v", s.ID, err)
 		return
 	}
 	w.syncKingdomChange(p)
@@ -264,15 +276,18 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 	} else {
 		s.Send(wire.MessagePanel("You now belong to " + model.KingdomName(kingdom) + "."))
 	}
-	payment := fmt.Sprintf("%d safiras", cost)
+	payment := fmt.Sprintf("%d Sapphires", cost)
 	if useEmblem {
-		payment = "emblema 4081"
+		payment = "emblem 4081"
 	}
-	log.Printf("[#%d] REINO %q capa=%d tier=%d reino=%s pagamento=%s", s.ID, p.Char.Name,
+	log.Printf("[#%d] KINGDOM %q cape=%d tier=%d kingdom=%s payment=%s", s.ID, p.Char.Name,
 		change.Index, change.Tier, model.KingdomName(kingdom), payment)
 }
 
 func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
+	if w.criticalGuildMutationReserved(p) {
+		return
+	}
 	if playerCurHP(p.Char) == 0 {
 		s.Send(wire.MessagePanel("Dead characters cannot leave a kingdom."))
 		return
@@ -282,7 +297,7 @@ func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 		s.Send(wire.MessagePanel("You do not belong to a kingdom."))
 		return
 	}
-	// O broker nativo nao permite retirar a capa no domingo.
+	// The native broker does not remove kingdom membership on Sunday.
 	if now.Weekday() == time.Sunday {
 		s.Send(wire.MessagePanel("You cannot leave the kingdom on Sunday."))
 		return
@@ -296,6 +311,13 @@ func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d Sapphires.", kingdomLeaveCost)))
 		return
 	}
+	if w.criticalWrites != nil {
+		if err := w.queueKingdomCape(p, model.KingdomNeutral, kingdomCapeChange{Index: neutral, Preserve: true},
+			kingdomLeaveCost, false, func() { s.Send(wire.MessagePanel("You left " + model.KingdomName(kingdom) + ".")) }); err != nil {
+			s.Send(wire.MessagePanel("Save failed. You are still in the kingdom."))
+		}
+		return
+	}
 
 	snapshot := cloneCharacterState(p.Char)
 	if !consumeSapphires(p.Char, kingdomLeaveCost) {
@@ -307,18 +329,17 @@ func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 	w.recalcPlayer(p.Char)
 	if err := w.commitKingdomChange(p, snapshot, model.KingdomNeutral); err != nil {
 		s.Send(wire.MessagePanel("Save failed. You are still in the kingdom."))
-		log.Printf("[#%d] REINO leave save: %v", s.ID, err)
+		log.Printf("[#%d] KINGDOM leave save: %v", s.ID, err)
 		return
 	}
 	w.syncKingdomChange(p)
 	s.Send(wire.MessagePanel("You left " + model.KingdomName(kingdom) + "."))
-	log.Printf("[#%d] REINO %q deixou %s por %d Safiras", s.ID, p.Char.Name,
+	log.Printf("[#%d] KINGDOM %q left %s for %d Sapphires", s.ID, p.Char.Name,
 		model.KingdomName(kingdom), kingdomLeaveCost)
 }
 
-// setLeaderGuildKingdom replica a atualizacao de GuildInfo.Clan feita pelo
-// case KING nativo. Membros comuns alteram somente sua capa; o lider carrega a
-// guild para o novo reino na mesma transacao de persistencia.
+// setLeaderGuildKingdom updates GuildInfo.Clan for a leader in the same
+// transaction. Ordinary members change only their cape.
 func (w *World) setLeaderGuildKingdom(ch *model.Char, kingdom byte) bool {
 	guild, member := w.guildOf(ch)
 	if guild == nil || member == nil || member.Rank != model.GuildRankLeader {
@@ -328,11 +349,8 @@ func (w *World) setLeaderGuildKingdom(ch *model.Char, kingdom byte) bool {
 	return true
 }
 
-// commitKingdomChange persiste a troca de capa/reino ja aplicada em p.Char. Se o
-// jogador for lider, a guild acompanha o novo reino na MESMA transacao
-// (saveGuildState); senao grava apenas a conta. Em falha, restaura char e guilds
-// ao snapshot e devolve o erro para o chamador mensagear no seu contexto (join
-// mantem o reino anterior; leave mantem o jogador no reino).
+// commitKingdomChange is the legacy synchronous cape transaction. Leaders save
+// the guild atomically with the account; rejection restores both snapshots.
 func (w *World) commitKingdomChange(p *Player, snapshot model.Char, kingdom byte) error {
 	var guildSnapshot []model.Guild
 	if w.guilds != nil {
@@ -364,6 +382,9 @@ func (w *World) syncKingdomChange(p *Player) {
 }
 
 func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
 	if playerCurHP(p.Char) == 0 {
 		s.Send(wire.MessagePanel("Dead characters cannot use this teleport."))
 		return
@@ -395,11 +416,14 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 			x, y = 1702, 1726
 		}
 	}
-	w.cancelTrade(p, "teleporte de reino")
-	if !w.teleportPlayer(p, x, y) {
+	if w.criticalWrites == nil {
+		w.cancelTrade(p, "kingdom teleport")
+	}
+	if !w.requestPlayerTeleport(p, x, y, func() {
+		p.NextKingdomTeleport = w.now().Add(kingdomWarpCooldown)
+		log.Printf("[#%d] KINGDOM command %q -> (%d,%d)", s.ID, p.Char.Name, p.X, p.Y)
+	}, nil) {
 		s.Send(wire.MessagePanel("The kingdom teleport could not be completed."))
 		return
 	}
-	p.NextKingdomTeleport = now.Add(kingdomWarpCooldown)
-	log.Printf("[#%d] REINO comando %q -> (%d,%d)", s.ID, p.Char.Name, p.X, p.Y)
 }

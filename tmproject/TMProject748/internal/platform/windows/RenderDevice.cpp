@@ -5,6 +5,7 @@
 #include "RenderDevice.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
+#include "PerfTrace.h"
 #include "TMSky.h"
 #include "TMFieldScene.h"
 #include "TMCamera.h"
@@ -21,6 +22,8 @@ int RenderDevice::m_nFontTextureSize = 512;
 int RenderDevice::m_nFontTextureSizeY = 64;
 float RenderDevice::m_fWidthRatio = 1.0f;
 float RenderDevice::m_fHeightRatio = 1.0f;
+float RenderDevice::m_fUIScaleX = 1.0f;
+float RenderDevice::m_fUIScaleY = 1.0f;
 float RenderDevice::m_fFOVY = 0.25f;
 int RenderDevice::m_bCameraRot = 1;
 int RenderDevice::m_bDungeon = 0;
@@ -61,7 +64,6 @@ RenderDevice::RenderDevice(DWORD dwScreenWidth, DWORD dwScreenHeight, DWORD dwBi
 
 	m_bSavage = 0;
 
-	RenderDevice::m_nLargeFontSize = (int)((float)RenderDevice::m_nLargeFontSize * RenderDevice::m_fWidthRatio);
 
 	memset(m_dwRenderStateList, -1, sizeof(m_dwRenderStateList));
 	memset(&m_hbmBitmap, 0, sizeof(m_hbmBitmap));
@@ -436,6 +438,7 @@ int RenderDevice::Unlock(int bEnd)
 
 	if (bEnd == 1)
 	{
+		perf_trace::ScopedPhase phase(perf_trace::Phase::Present);
 		if (m_pd3dDevice->Present(nullptr, nullptr, nullptr, nullptr) == D3DERR_DEVICELOST)
 			m_bDeviceLost = 1;
 	}
@@ -555,7 +558,8 @@ HRESULT RenderDevice::RestoreDeviceObjects()
 		m_hDC = CreateCompatibleDC(0);
 		m_hbmBitmap = CreateDIBSection(m_hDC, &m_bmi, 0, (void**)&m_pBitmapBits, 0,	0);
 
-		sprintf_s(g_szFontName, "NanumGothic");
+		// FUN_0042ced1 (UI mode 2): Tahoma unless Font.txt names another face.
+		sprintf_s(g_szFontName, "Tahoma");
 		FILE* fpFont = nullptr;
 		fopen_s(&fpFont, FontConfig_Path, "rt");
 

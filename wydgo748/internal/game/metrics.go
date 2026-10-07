@@ -8,32 +8,38 @@ import (
 	"wydgo/internal/wire"
 )
 
-// metrics.go -- instrumentacao do game loop via expvar (stdlib). Nao usamos
-// Prometheus de proposito: o modulo nao tem NENHUMA dependencia externa e isso
-// e um ativo do projeto. Os contadores ficam publicados em /debug/vars, que o
-// cmd/server sobe apenas em 127.0.0.1.
+// metrics.go -- game-loop instrumentation through expvar (stdlib). Prometheus
+// is deliberately not used: the module has NO external dependency, which is a
+// project asset. The counters are published at /debug/vars, which cmd/server
+// only serves on 127.0.0.1.
 //
-// Custo: os contadores sao atomicos e escritos uma vez por comando/tick. Nada
-// aqui varre jogadores nem mobs -- os gauges sao atualizados pelo proprio tick,
-// que ja tem os tamanhos em maos.
+// Cost: the counters are atomic and written once per command/tick. Nothing
+// here scans players or mobs -- the gauges are updated by the tick itself,
+// which already has the sizes at hand.
 //
-// Cardinalidade: o rotulo de comando e o opcode em hexadecimal, um conjunto
-// fechado e pequeno. NUNCA indexar por sessao, jogador ou mob.
+// Cardinality: the command label is the opcode in hexadecimal, a small closed
+// set. NEVER index by session, player or mob.
 
 var (
-	// metricLoopLagMicros e o atraso do ultimo tick: quanto o intervalo real
-	// passou dos 500 ms nominais. Cresce quando o loop esta congestionado --
-	// e o sinal mais direto de que o servidor nao esta acompanhando.
+	// metricLoopLagMicros is the delay of the last tick: how much the real
+	// interval exceeded the nominal 500 ms. It grows when the loop is congested
+	// -- the most direct sign that the server is not keeping up.
 	metricLoopLagMicros = expvar.NewInt("world_loop_lag_micros")
-	// metricLoopLagMaxMicros retem o pior atraso observado desde o boot.
+	// metricLoopLagMaxMicros keeps the worst delay observed since boot.
 	metricLoopLagMaxMicros = expvar.NewInt("world_loop_lag_max_micros")
-	// metricTickDurationMicros e quanto o ultimo tick levou para executar.
+	// metricTickDurationMicros is how long the last tick took to run.
 	metricTickDurationMicros = expvar.NewInt("world_tick_duration_micros")
-	// metricCommandQueueDepth e o tamanho da fila de entrada no ultimo tick.
+	// metricCommandQueueDepth is the size of the input queue at the last tick.
 	metricCommandQueueDepth = expvar.NewInt("world_command_queue_depth")
+	// Packets retained behind their own player persistence reservations.
+	metricCriticalDeferredCommands = expvar.NewInt("world_critical_deferred_commands")
+	// Legacy inline writes refused because the coordinator owns persistence.
+	metricSyncPersistenceRejected = expvar.NewInt("world_sync_persistence_rejected")
+	// Account-only operations isolated after an unknown or unverifiable outcome.
+	metricCriticalQuarantined = expvar.NewInt("world_critical_quarantined")
 	metricCommandsTotal     = expvar.NewInt("world_commands_total")
-	// metricCommandDurationMicros acumula o tempo gasto por opcode. Dividido
-	// por world_commands_by_type da a media por comando.
+	// metricCommandDurationMicros accumulates the time spent per opcode.
+	// Divided by world_commands_by_type it gives the mean per command.
 	metricCommandDurationMicros  = expvar.NewMap("world_command_duration_micros")
 	metricCommandsByType         = expvar.NewMap("world_commands_by_type")
 	metricCommandQueueAgeMicros  = expvar.NewInt("world_command_queue_age_micros")
@@ -52,20 +58,25 @@ var (
 	metricPhysicalAttackRejected = expvar.NewInt("world_physical_attack_rejected_total")
 	metricSkillPacketRejected    = expvar.NewInt("world_skill_packet_rejected_total")
 	metricSkillPacketAccepted    = expvar.NewInt("world_skill_packet_accepted_total")
-	// metricPanicsTotal conta panics contidos por safeHandle. Qualquer valor
-	// diferente de zero merece investigacao: significa que UM comando deixou
-	// estado potencialmente parcial.
+	// metricPanicsTotal counts panics contained by safeHandle. Any value other
+	// than zero deserves investigation: it means ONE command left potentially
+	// partial state.
 	metricPanicsTotal = expvar.NewInt("world_panics_total")
 )
 
-// lastTickAt guarda o instante do tick anterior para calcular o lag. E atomico
-// porque expvar publica funcoes que podem ser lidas por outra goroutine (o
-// handler HTTP), embora a escrita venha sempre do game loop.
+// lastTickAt keeps the time of the previous tick to compute the lag. It is
+// atomic because expvar publishes functions that another goroutine (the HTTP
+// handler) can read, although the write always comes from the game loop.
 var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpConnectAccount:          "0x20D",
 	wire.OpCreateCharacter:         "0x20F",
 	wire.OpDeleteCharacter:         "0x211",
 	wire.OpCharacterTransfer:       "0xFAA",
+	wire.OpDeclareServerWar:        "0xED7",
+	wire.OpRefuseServerWar:         "0xED8",
+	wire.OpBuyLotteryTicket:        "0x3B8",
+	wire.OpHellStoreBuy:            "0x2BD",
+	wire.OpStoreGoldRequest:        "0x3D1",
 	wire.OpCharacterLogin:          "0x213",
 	wire.OpCharacterLogout:         "0x215",
 	wire.OpClientIntegrityResponse: "0x2C2",
@@ -174,18 +185,18 @@ func durationBucketLabel(duration time.Duration) string {
 
 var lastTickAt atomic.Int64
 
-// observeTick registra a duracao do tick e o atraso em relacao ao intervalo
-// nominal. Chamado pelo proprio tick, com o instante de inicio.
+// observeTick records the tick duration and the delay against the nominal
+// interval. Called by the tick itself, with its start time.
 func observeTick(start time.Time, duration time.Duration) {
 	metricTickDurationMicros.Set(duration.Microseconds())
 	observeBucket(metricTickDurationBuckets, duration)
 
 	previous := lastTickAt.Swap(start.UnixNano())
 	if previous == 0 {
-		return // primeiro tick: nao existe intervalo anterior para comparar
+		return // first tick: there is no previous interval to compare
 	}
-	// Lag = o quanto o intervalo real excedeu os 500 ms nominais. Negativo
-	// (tick adiantado) vira zero: so o atraso interessa.
+	// Lag = how much the real interval exceeded the nominal 500 ms. A negative
+	// value (early tick) becomes zero: only the delay matters.
 	lag := start.Sub(time.Unix(0, previous)) - worldTickInterval
 	if lag < 0 {
 		lag = 0
@@ -197,7 +208,7 @@ func observeTick(start time.Time, duration time.Duration) {
 	}
 }
 
-// observeCommand registra a duracao de UM comando, rotulado pelo opcode.
+// observeCommand records the duration of ONE command, labeled by opcode.
 func observeCommand(label string, duration time.Duration) {
 	metricCommandsTotal.Add(1)
 	metricCommandsByType.Add(label, 1)
@@ -213,8 +224,8 @@ func observeCommandQueueAge(age time.Duration) {
 	observeBucket(metricCommandAgeBuckets, age)
 }
 
-// observeBucket publica distribuicoes fixas. O operador consegue derivar p50,
-// p95 e p99 no intervalo de coleta sem criar uma serie por jogador/opcode.
+// observeBucket publishes fixed distributions. The operator can derive p50,
+// p95 and p99 over the collection interval without a series per player/opcode.
 func observeBucket(m *expvar.Map, duration time.Duration) {
 	m.Add(durationBucketLabel(duration), 1)
 }
@@ -227,7 +238,7 @@ func observeCommandBatch(size int, budgetExceeded bool) {
 	}
 }
 
-// observeWorldGauges publica os tamanhos que o tick ja conhece.
+// observeWorldGauges publishes the sizes the tick already knows.
 func observeWorldGauges(players, activeMobs int) {
 	metricActivePlayers.Set(int64(players))
 	metricActiveMobs.Set(int64(activeMobs))

@@ -100,85 +100,29 @@ void TMFieldScene::SetVisibleShop(int bShow)
 	SGridControl::m_sLastMouseOverIndex = -1;
 	// The 7.48 shop and inventory are one-page legacy panels.  Keep the modern
 	// grid state but avoid four-page inventory and optional store dereferences.
-	if (m_bCompatFieldScene)
-	{
-		if (bShow)
-		{
-			// Native FUN_004481C5 closes AutoTrade before showing the paired Shop
-			// and Inventory roots. AutoTrade is allowed to keep its own 280/530 layout.
-			if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
-				SetVisibleAutoTrade(0, 0);
-			PositionCompatShopPanels();
-		}
-		if (m_pGridInv)
-			m_pGridInv->m_eGridType = bShow ? TMEGRIDTYPE::GRID_SELL : TMEGRIDTYPE::GRID_DEFAULT;
-		if (m_pShopPanel)
-			m_pShopPanel->SetVisible(bShow);
-		if (m_pInvenPanel)
-			m_pInvenPanel->SetVisible(bShow);
-		if (bShow && m_pCPanel)
-			m_pCPanel->SetVisible(0);
-		if (!bShow)
-		{
-			g_pObjectManager->m_RMBShopOpen = 0;
-			m_bEventCouponOpen = 0;
-		}
-		GetSoundAndPlay(51, 0, 0);
-		return;
-	}
-
 	if (bShow)
 	{
-		g_pCursor->DetachItem();
-
-		m_pCPanel->SetVisible(0);
-		m_pCargoPanel->SetVisible(0);
-
+		// Native FUN_004481C5 closes AutoTrade before showing the paired Shop
+		// and Inventory roots. AutoTrade is allowed to keep its own 280/530 layout.
 		if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
 			SetVisibleAutoTrade(0, 0);
-
-		if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
-			SetVisibleTrade(0);
-
-		SetInventoryGridType(TMEGRIDTYPE::GRID_SELL);
-
-		SetEquipGridState(0);
-
-		m_pSkillPanel->SetVisible(0);
+		PositionCompatShopPanels();
 	}
-	else
+	if (m_pGridInv)
+		m_pGridInv->m_eGridType = bShow ? TMEGRIDTYPE::GRID_SELL : TMEGRIDTYPE::GRID_DEFAULT;
+	if (m_pShopPanel)
+		m_pShopPanel->SetVisible(bShow);
+	if (m_pInvenPanel)
+		m_pInvenPanel->SetVisible(bShow);
+	if (bShow && m_pCPanel)
+		m_pCPanel->SetVisible(0);
+	if (!bShow)
 	{
-		SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
-
-		SetEquipGridState(1);
-
 		g_pObjectManager->m_RMBShopOpen = 0;
 		m_bEventCouponOpen = 0;
 	}
-
-	m_pShopPanel->SetVisible(bShow);
-	m_pShopPanel->SetPos(RenderDevice::m_fWidthRatio * 425.0f, RenderDevice::m_fHeightRatio * 35.0f);//alterado
-
-	if (g_pApp->m_dwScreenWidth <= 1024)
-	{
-		m_pShopPanel->SetVisible(bShow);
-		m_pShopPanel->SetPos(RenderDevice::m_fWidthRatio * 372.0f, RenderDevice::m_fHeightRatio * 35.0f);//alterado
-	}
-
-	if (bShow)
-		m_pInvenPanel->SetPos(RenderDevice::m_fWidthRatio * 650.0f, RenderDevice::m_fHeightRatio * 35.0f);
-
-	m_pInvenPanel->SetVisible(bShow);
-
-	UpdateScoreUI(0);
-
-	if (g_pSoundManager)
-	{
-		auto pSoundData = g_pSoundManager->GetSoundData(51);
-
-		if (pSoundData)
-			pSoundData->Play(0, 0);
-	}
+	GetSoundAndPlay(51, 0, 0);
+	return;
 }
 
 void TMFieldScene::SetVisibleHellGateStore(int bShow)
@@ -272,9 +216,7 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			// Native WYD 7.48 FUN_004875c0 lays merchant entries out in three
 			// bands (rows 0, 3 and 6) across nine columns.  Keep TMProject's
 			// newer 5x8 layout only for its own UI resource.
-			const bool added = m_bCompatFieldScene
-				? m_pGridShop->AddItem(pItem, i % 9, (i / 9) * 3) == 1
-				: m_pGridShop->AddItem(pItem, i % 5, i / 5) == 1;
+			const bool added = m_pGridShop->AddItem(pItem, i % 9, (i / 9) * 3) == 1;
 			if (!added)
 			{
 				SAFE_DELETE(pItem);
@@ -384,163 +326,6 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 	return 1;
 }
 
-int TMFieldScene::OnPacketRMBShopList(MSG_RMBShopList* pMsg)
-{
-	if (pMsg->ShopType == 1)
-	{
-		if (!m_pGridShop)
-		{
-			WYD748_DiagnosticsLog("rmb merchant grid missing for ShopList\r\n");
-			return 0;
-		}
-
-		if (m_bEventCouponClick == 1)
-		{
-			m_bEventCouponClick = 0;
-			m_bEventCouponOpen = 1;
-		}
-
-		auto pGrid = m_pGridShop;
-		pGrid->Empty();
-
-		// A native 7.48 merchant packet owns 27 entries.  The 39-entry RMB
-		// extension is valid only with TMProject's newer UI and would address
-		// rows that do not exist in FieldScene2.bin.
-		const int shopEntryCount = m_bCompatFieldScene ? 27 : 39;
-		for (int i = 0; i < shopEntryCount; ++i)
-		{
-			auto pItemList = new STRUCT_ITEM;
-			memcpy(pItemList, &pMsg->List[i], sizeof(STRUCT_ITEM));
-
-			if (pMsg->List[i].sIndex <= 0)
-			{
-				delete pItemList;
-				continue;
-			}
-
-			auto pItem = new SGridControlItem(0, pItemList, 0.0f, 0.0f);
-			if (!pItem)
-			{
-				delete pItemList;
-				continue;
-			}
-
-			// The compatibility UI keeps the native 7.48 nine-column merchant
-			// mapping even if a newer server sends the RMB-shop packet family.
-			const bool added = m_bCompatFieldScene
-				? pGrid->AddItem(pItem, i % 9, (i / 9) * 3) == 1
-				: pGrid->AddItem(pItem, i % 5, i / 5) == 1;
-			if (!added)
-			{
-				SAFE_DELETE(pItem);
-				continue;
-			}
-			int nAmount = BASE_GetItemAmount(pItemList);
-			if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
-				nAmount = 0;
-			if (nAmount > 0)
-			{
-				sprintf(pItem->m_GCText.strString, "%2d", nAmount);
-				pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-			}
-		}
-
-		g_pObjectManager->m_nTax = pMsg->Tax;
-		SetVisibleShop(1);
-	}
-	else if (pMsg->ShopType == 3)
-	{
-		// RMB and ordinary shop-list packets converge on the same stock 7.48
-		// Skill Apprentice controls.  Validate the complete native control set in
-		// both handlers so an alternate packet family cannot reintroduce the null
-		// dereference fixed in OnPacketShopList.
-		if (!m_pGridSkillMaster || !m_pSkillMPanel ||
-			!m_pSkillMSec1 || !m_pSkillMSec2 || !m_pSkillMSec3)
-		{
-			WYD748_DiagnosticsLog(
-				"rmb skill-master controls missing grid=%p panel=%p sections=%p/%p/%p\r\n",
-				m_pGridSkillMaster, m_pSkillMPanel,
-				m_pSkillMSec1, m_pSkillMSec2, m_pSkillMSec3);
-			return 0;
-		}
-
-		if (pMsg->List[0].sIndex < 5000)
-		{
-			// The first skill determines the three section captions in the native
-			// packet.  A missing/out-of-range row is malformed and must not index the
-			// message table or construct catalog-backed grid objects.
-			WYD748_DiagnosticsLog(
-				"rmb skill-master malformed first item=%d\r\n",
-				pMsg->List[0].sIndex);
-			return 0;
-		}
-
-		switch ((pMsg->List[0].sIndex - 5000) / 24)
-		{
-		case 0:
-			m_pSkillMSec1->SetText(g_pMessageStringTable[107], 0);
-			m_pSkillMSec2->SetText(g_pMessageStringTable[108], 0);
-			m_pSkillMSec3->SetText(g_pMessageStringTable[109], 0);
-			break;
-		case 1:
-			m_pSkillMSec1->SetText(g_pMessageStringTable[110], 0);
-			m_pSkillMSec2->SetText(g_pMessageStringTable[111], 0);
-			m_pSkillMSec3->SetText(g_pMessageStringTable[112], 0);
-			break;
-		case 2:
-			m_pSkillMSec1->SetText(g_pMessageStringTable[113], 0);
-			m_pSkillMSec2->SetText(g_pMessageStringTable[114], 0);
-			m_pSkillMSec3->SetText(g_pMessageStringTable[115], 0);
-			break;
-		case 3:
-			m_pSkillMSec1->SetText(g_pMessageStringTable[133], 0);
-			m_pSkillMSec2->SetText(g_pMessageStringTable[134], 0);
-			m_pSkillMSec3->SetText(g_pMessageStringTable[135], 0);
-			break;
-		}
-
-		for (int j = 0; j + 2 < 27; ++j)
-		{
-			if (pMsg->List[j].sIndex == 5027)
-			{
-				// The stock three-way reorder consumes j+1 and j+2.  Keep its
-				// fixed 27-entry packet boundary explicit for malformed list tails.
-				std::swap(pMsg->List[j], pMsg->List[j + 1]);
-				std::swap(pMsg->List[j + 1], pMsg->List[j + 2]);
-				break;
-			}
-		}
-
-		auto pGridSkillMaster = m_pGridSkillMaster;
-		pGridSkillMaster->Empty();
-		for (int k = 0; k < 27; ++k)
-		{
-			auto pNewItem = new STRUCT_ITEM;
-			memcpy(pNewItem, &pMsg->List[k], sizeof(STRUCT_ITEM));
-
-			if (pMsg->List[k].sIndex <= 0)
-			{
-				delete pNewItem;
-				continue;
-			}
-
-			auto pItem = new SGridControlItem(0, pNewItem, 0.0f, 0.0f);
-			if (!pItem)
-			{
-				delete pNewItem;
-				continue;
-			}
-			if (!pGridSkillMaster->AddItem(pItem, k % 9 % 4, k / 9 + (k - k / 9) / 4))
-				SAFE_DELETE(pItem);
-		}
-
-		if (!m_pSkillMPanel->IsVisible())
-			SetVisibleSkillMaster();
-	}
-
-	return 1;
-}
-
 int TMFieldScene::OnPacketBuy(MSG_STANDARD* pStd)
 {
 	// Native 7.48 FUN_00487b92 confirms a purchase with the same 0x379 packet:
@@ -600,7 +385,7 @@ int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)
 		pSell->MyType < 0 || pSell->MyType > 1 || pSell->MyPos < 0 ||
 		(pSell->MyType == 0 && pSell->MyPos >= MAX_EQUIPITEM) ||
 		(pSell->MyType == 1 && pSell->MyPos >= MAX_CARRY) ||
-		WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene,
+		WYD748_IsUnsupportedCompatEquipSlot(
 		pSell->MyType == 0 ? pSell->MyPos : -1))
 		return 1;
 
@@ -702,314 +487,6 @@ int TMFieldScene::OnPacketItemPrice(MSG_STANDARDPARM2* pStd)
 	return 1;
 }
 
-void TMFieldScene::BuyItemNewStore(int idwControlID)
-{
-	struct
-	{
-		MSG_STANDARD	Header;
-		char			Cmd[16];
-		char			Msg[100];
-	}Packet;
-	memset(&Packet, 0x0, sizeof(Packet));
-
-	Packet.Header.Size = sizeof(Packet);
-	Packet.Header.Type = 0x334;
-	Packet.Header.ID = g_pObjectManager->m_dwCharID;
-
-	strcpy(Packet.Cmd, "xLojaDonateX");
-	strcpy(Packet.Msg, strfmt("%d %d %d",
-		ControlLojaDonateInfor.Type,
-		ControlLojaDonateInfor.Page,
-		ControlLojaDonateInfor.Slot
-	));
-
-	SendOneMessage((char*)&Packet, sizeof(Packet));
-}
-
-void TMFieldScene::UpdateNewStore(int idwControlID)
-{
-
-	auto GuiAlvo = (SPanel*)m_pControlContainer->FindControl(3000011); // donation store entry point
-
-	if (GuiAlvo == NULL || !GuiAlvo->m_bVisible)
-		return;
-
-	if (idwControlID == 3000060)
-		GuiAlvo->m_bVisible = false;
-
-#pragma region Type_Produt_Change
-	if (idwControlID >= 3000064 && idwControlID <= 3000067)
-	{
-		ControlLojaDonateInfor.Type = idwControlID - 3000064;
-		ControlLojaDonateInfor.Page = 0;
-
-		for (int i = 0; i < 12; i++)
-		{
-			auto GuildSlotEmpty = (SGridControl*)m_pControlContainer->FindControl(3000012 + (i * 4));
-
-			GuildSlotEmpty->Empty();
-
-			auto LabelPrice = (SText*)m_pControlContainer->FindControl(3000013 + (i * 4));
-			auto LabelEstoque = (SText*)m_pControlContainer->FindControl(3000014 + (i * 4));
-			char str[80];
-
-			sprintf(str, "");
-			LabelPrice->SetText(str, 0);
-			LabelEstoque->SetText(str, 0);
-		}
-
-		for (auto& i : ControlLojaDonate)
-		{
-			try
-			{
-				if (i.type != ControlLojaDonateInfor.Type || i.page != ControlLojaDonateInfor.Page)
-					continue;
-
-				if (i.item.sIndex == NULL)
-					continue;
-
-					int SlotGui = i.slot -1;
-
-					auto GuiItem = (SGridControl*)m_pControlContainer->FindControl(3000012 + (SlotGui * 4));
-					auto LabelPrice = (SText*)m_pControlContainer->FindControl(3000013 + (SlotGui * 4));
-					auto LabelEstoque = (SText*)m_pControlContainer->FindControl(3000014 + (SlotGui * 4));
-
-					auto pREQItem = new STRUCT_ITEM;
-					memset(pREQItem, 0, sizeof(STRUCT_ITEM));
-					pREQItem->sIndex = i.item.sIndex;
-
-					auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-					GuiItem->AddItem(pItem, 0, 0);
-
-					if (g_pApp->m_dwScreenWidth == 1280)
-					{pItem->m_nHeight = 35;pItem->m_nWidth = 35;}
-					if (g_pApp->m_dwScreenWidth == 1024)
-					{pItem->m_nHeight = 38; pItem->m_nWidth = 28;}
-					if (g_pApp->m_dwScreenWidth == 800)
-					{pItem->m_nHeight = 30; pItem->m_nWidth = 22;}
-					if (g_pApp->m_dwScreenWidth == 640)
-					{pItem->m_nHeight = 23; pItem->m_nWidth = 16;}
-					if (g_pApp->m_dwScreenHeight == 800)
-					{pItem->m_nHeight = 41; pItem->m_nWidth = 35;}
-
-					char str[80];
-					char str1[80]{};
-
-					sprintf(str, "$: %d", i.price);
-					LabelPrice->SetText(str, 0);
-
-					sprintf(str1, "Quantity: %d", i.stuck);
-					LabelEstoque->SetText(str1, 0);
-			}
-			catch (...)
-			{
-
-			}
-		}
-
-	}
-#pragma endregion
-#pragma region Page_Produt_Change
-	if (idwControlID >= 3000061 && idwControlID <= 3000063)
-	{
-		ControlLojaDonateInfor.Page = idwControlID - 3000061;
-
-		for (int i = 0; i < 12; i++)
-		{
-			auto GuildSlotEmpty = (SGridControl*)m_pControlContainer->FindControl(3000012 + (i * 4));
-
-			GuildSlotEmpty->Empty();
-
-			auto LabelPrice = (SText*)m_pControlContainer->FindControl(3000013 + (i * 4));
-			auto LabelEstoque = (SText*)m_pControlContainer->FindControl(3000014 + (i * 4));
-			char str[80];
-
-			sprintf(str, "");
-			LabelPrice->SetText(str, 0);
-			LabelEstoque->SetText(str, 0);
-		}
-
-		for (auto& i : ControlLojaDonate)
-		{
-			try
-			{
-				if (i.type != ControlLojaDonateInfor.Type || i.page != ControlLojaDonateInfor.Page)
-					continue;
-
-				if (i.item.sIndex == NULL)
-					continue;
-
-				int SlotGui = i.slot -1;
-
-				auto GuiItem = (SGridControl*)m_pControlContainer->FindControl(3000012 + (SlotGui * 4));
-				auto LabelPrice = (SText*)m_pControlContainer->FindControl(3000013 + (SlotGui * 4));
-				auto LabelEstoque = (SText*)m_pControlContainer->FindControl(3000014 + (SlotGui * 4));
-
-				auto pREQItem = new STRUCT_ITEM;
-				memset(pREQItem, 0, sizeof(STRUCT_ITEM));
-				pREQItem->sIndex = i.item.sIndex;
-
-				auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-				GuiItem->AddItem(pItem, 0, 0);
-
-				if (g_pApp->m_dwScreenWidth == 1280)
-				{
-					pItem->m_nHeight = 35; pItem->m_nWidth = 35;
-				}
-				if (g_pApp->m_dwScreenWidth == 1024)
-				{
-					pItem->m_nHeight = 38; pItem->m_nWidth = 28;
-				}
-				if (g_pApp->m_dwScreenWidth == 800)
-				{
-					pItem->m_nHeight = 30; pItem->m_nWidth = 22;
-				}
-				if (g_pApp->m_dwScreenWidth == 640)
-				{
-					pItem->m_nHeight = 23; pItem->m_nWidth = 16;
-				}
-				if (g_pApp->m_dwScreenHeight == 800)
-				{
-					pItem->m_nHeight = 41; pItem->m_nWidth = 35;
-				}
-
-				char str[80];
-				char str1[80]{};
-
-				sprintf(str, "$: %d", i.price);
-				LabelPrice->SetText(str, 0);
-
-				sprintf(str, "Quantity: %d", i.stuck);
-				LabelEstoque->SetText(str, 0);
-
-			}
-			catch (...)
-			{
-
-			}
-		}
-	}
-#pragma endregion
-
-#pragma region Button_Buy
-	int Buttons[] =
-	{
-		3000015,
-		3000019,
-		3000023,
-		3000027,
-		3000031,
-		3000035,
-		3000039,
-		3000043,
-		3000047,
-		3000051,
-		3000055,
-		3000059
-	};
-
-	for (const int buttonControlId : Buttons)
-	{
-		/* Handle */
-		if (buttonControlId == idwControlID)
-		{
-			int ButtonIndex = ((idwControlID - 3000015) / 4) + 1;
-			int GridIndex = idwControlID - 3;
-			auto GridSlot = (SGridControl*)m_pControlContainer->FindControl(GridIndex);
-			if (!GridSlot)
-				break;
-
-			auto Item = GridSlot->GetItem(0, 0);
-			if (Item && Item->m_pItem && Item->m_pItem->sIndex > 0 &&
-				Item->m_pItem->sIndex < MAX_ITEMLIST)
-			{
-				auto panelbuy = (SGridControl*)m_pControlContainer->FindControl(3000080);
-				auto labelbuyitem = (SText*)m_pControlContainer->FindControl(3000083);
-				if (!panelbuy || !labelbuyitem)
-					break;
-
-				ControlLojaDonateInfor.Slot = ButtonIndex;
-				char msg[102] = { 0, };
-				panelbuy->m_bVisible = true;
-
-				sprintf_s(msg, 102, "Buy item %s", g_pItemList[Item->m_pItem->sIndex].Name);
-				labelbuyitem->SetText(msg, 0);
-
-			}
-			break;
-		}
-	}
-
-	return;
-}
-
-int TMFieldScene::OnPacketNewCashRev(PacketRevDonate* P)
-{
-	for (auto& i : ControlLojaDonate)
-	{
-		if (i.type != P->type)
-			continue;
-
-		if (i.page != P->page)
-			continue;
-
-		if (i.slot != P->slot)
-			continue;
-
-		i.stuck = P->stuck;
-		i.price = P->price;
-		memcpy_s(&i.item, sizeof(STRUCT_ITEM), &P->item, sizeof(STRUCT_ITEM));
-		break;
-	}
-
-	if (ControlLojaDonateInfor.Type == P->type)
-		if (ControlLojaDonateInfor.Page == P->page)
-
-		{
-			int SlotGui = P->slot -1;
-			auto GuiItem = (SGridControl*)m_pControlContainer->FindControl(3000012 + (SlotGui * 4));
-			auto LabelPrice = (SText*)m_pControlContainer->FindControl(3000013 + (SlotGui * 4));
-			auto LabelEstoque = (SText*)m_pControlContainer->FindControl(3000014 + (SlotGui * 4));
-			auto pREQItem = new STRUCT_ITEM;
-			memset(pREQItem, 0, sizeof(STRUCT_ITEM));
-			pREQItem->sIndex = P->item.sIndex;
-
-			auto pItem = new SGridControlItem(0, pREQItem, 0.0f, 0.0f);
-			GuiItem->AddItem(pItem, 0, 0);
-			if (g_pApp->m_dwScreenWidth == 1280)
-			{
-				pItem->m_nHeight = 35; pItem->m_nWidth = 35;
-			}
-			if (g_pApp->m_dwScreenWidth == 1024)
-			{
-				pItem->m_nHeight = 38; pItem->m_nWidth = 28;
-			}
-			if (g_pApp->m_dwScreenWidth == 800)
-			{
-				pItem->m_nHeight = 30; pItem->m_nWidth = 22;
-			}
-			if (g_pApp->m_dwScreenWidth == 640)
-			{
-				pItem->m_nHeight = 23; pItem->m_nWidth = 16;
-			}
-			if (g_pApp->m_dwScreenHeight == 800)
-			{
-				pItem->m_nHeight = 41; pItem->m_nWidth = 35;
-			}
-			char str[80];
-			char str1[80]{};
-
-			sprintf(str, "$: %d", P->price);
-			LabelPrice->SetText(str, 0);
-
-			sprintf(str, "Quantity: %d", P->stuck);
-			LabelEstoque->SetText(str, 0);
-
-		}
-
-	return 1;
-}
-
 int TMFieldScene::OnPacketNewBuyCash(MSG_STANDARD* pStd)
 {
 	struct
@@ -1032,27 +509,6 @@ int TMFieldScene::OnPacketNewBuyCash(MSG_STANDARD* pStd)
 	));
 
 	SendOneMessage((char*)&Packet, sizeof(Packet));
-	return 1;
-}
-
-int TMFieldScene::OnPacketNewCashRev2(PacketRevDonate2* pStd)
-{
-	ControlLojaDonate.clear();
-
-	for (int i = 0; i < pStd->quantidade; i++)
-	{
-		auto Temp = LojaDonate(
-			pStd->Produts[i].type,
-			pStd->Produts[i].page,
-			pStd->Produts[i].item,
-			pStd->Produts[i].price,
-			pStd->Produts[i].stuck,
-			pStd->Produts[i].slot
-		);
-
-		ControlLojaDonate.push_back(Temp);
-	}
-
 	return 1;
 }
 

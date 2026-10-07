@@ -82,15 +82,22 @@ int RunTerrainTileMapReaderTests(int& checks)
         fopen_s(&file, path.string().c_str(), "rb") == 0 && file;
     if (opened) {
         char mapName[128]{};
-        unsigned char tiles[4096][12]{};
+        static FileTileInfo tiles[4096]{};
         int posX = -1;
         int posY = -1;
         check(ReadTerrainTileMapRecord(file, mapName, posX, posY, tiles) &&
             std::strcmp(mapName, "Field") == 0 && posX == 16 && posY == 16,
-            "native Field1616.trn loads without changing its 7.48 layout");
+            "Field1616.trn loads with the KR tile layout");
+        bool indicesFit = true;
+        for (const auto& tile : tiles) {
+            if (tile.wTileIndex + TerrainFrontTextureBase >= TerrainBackTextureBase ||
+                tile.wBackTileIndex + TerrainBackTextureBase >= 2048)
+                indicesFit = false;
+        }
+        check(indicesFit, "KR tile indices stay inside the front and mask texture ranges");
         std::fclose(file);
     } else {
-        check(false, "native Field1616.trn asset is available");
+        check(false, "Field1616.trn asset is available");
     }
     return failures;
 }

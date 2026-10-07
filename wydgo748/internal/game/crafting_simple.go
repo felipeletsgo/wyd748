@@ -13,16 +13,16 @@ import (
 
 const aylinGoldCost = 50_000_000
 
-// agathaBaseChance porta g_pAgathaBase (Basedef.cpp:156 na fonte WYD 7.48, default
-// 20, configuravel em arquivo texto no WYD 7.48 -- aqui fixo, como os demais
-// custos de craft do arquivo). A chance real e base + grade*5 + bonus de
-// nivel (GetMatchCombineAgatha, GetFunc.cpp:564-628), tipicamente 30-50%,
-// nunca garantida.
+// agathaBaseChance ports g_pAgathaBase (Basedef.cpp:156 in the WYD 7.48 source,
+// default 20, configurable there through a text file). It is fixed here, like
+// the other crafting costs in this file. The chance is base + grade*5 + level
+// bonus (GetMatchCombineAgatha, GetFunc.cpp:564-628), typically 30-50%, not
+// guaranteed success.
 const agathaBaseChance = 20
 
-// blockedCombineItem e Atila's_Crown. O nativo recusa a composicao se ele
-// ocupar qualquer um dos 8 slots (GetFunc.cpp:55-59 e os equivalentes nas
-// linhas 218, 263, 337, 400, 461, 505, 634, 669 e 740).
+// blockedCombineItem is Atila's_Crown. Native composition rejects it in any
+// of the eight slots (GetFunc.cpp:55-59 and equivalent checks at lines 218,
+// 263, 337, 400, 461, 505, 634, 669 and 740).
 const blockedCombineItem = 747
 
 func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, combineRequest, bool) {
@@ -109,9 +109,9 @@ func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.It
 		if rollback != nil {
 			rollback()
 		}
-		// Composicoes que alteram equipamento recalculam o runtime antes de
-		// persistir. Restaurar apenas o array deixava os stats autoritativos
-		// apontando para o item que falhou no banco.
+		// Equipment compositions recalculate runtime stats before persistence.
+		// Restoring only the array left authoritative stats derived from the
+		// item whose database write failed.
 		if len(equipSlots) != 0 && p.Char.Score != nil {
 			w.recalcPlayer(p.Char)
 		}
@@ -134,8 +134,8 @@ func (w *World) commitCombineWithSave(p *Player, oldInv [model.MaxCarry]model.It
 	}
 	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	if len(equipSlots) != 0 {
-		// Equipamento muda score e precisa ser publicado incrementalmente; o
-		// personagem ja visivel nunca deve ser recriado com CreateMob.
+		// Equipment changes score and must be published incrementally; never
+		// recreate an already visible character with CreateMob.
 		w.syncPlayerScoreAndVitals(p)
 	}
 	w.sendCombineResultMessage(p, result, resultMessage)
@@ -153,28 +153,27 @@ func consumeCombineItems(ch *model.Char, req combineRequest, from, to int, chang
 	}
 }
 
-// compositorMaterials e o numero EXATO de materiais aceitos: nem 3, nem 5.
+// compositorMaterials is the exact material count: neither three nor five.
 const compositorMaterials = 4
 
-// compositorChance soma a base configurada ao bonus de cada material. Cada um
-// dos quatro materiais precisa ser equipavel, do set D (item level 4) ou E (5),
-// e refinado dentro de +7..+9 -- o bonus vem do refino.
+// compositorChance adds each material's bonus to the configured base. Each of
+// the four materials must be equippable, from set D (item level 4) or E (5),
+// and refined to +7..+9; refinement determines the bonus.
 //
-// O Grade do item NAO entra na conta. O WYD 7.48 tem duas rotinas concorrentes: a
-// tabela por (nivel, grade, refino) de GetMatchCombine, que e o que o binario
-// executa, e g_pAnctChance[3] indexado por refino (Basedef.cpp:158), lido do
-// CompRate.txt. A segunda e a que vale aqui -- no WYD 7.48 ela esta morta duas
-// vezes (nenhuma funcao consulta o array, e o parser so faz _strupr na primeira
-// coluna, entao "Item_+7" nunca casa com "ITEM_+7"). Os valores sao os do
-// servidor, em data/server.txt, nao os do array de la.
+// Item Grade is not included. WYD 7.48 has two competing routines: the
+// (level, grade, refinement) table in GetMatchCombine used by the binary, and
+// the refinement-indexed g_pAnctChance[3] (Basedef.cpp:158), read from
+// CompRate.txt. This server uses the second policy. In the legacy source it is
+// unused twice over: no function reads the array, and the parser applies
+// _strupr only to the first column, so "Item_+7" never matches "ITEM_+7".
+// Values here come from this server's data/server.txt, not that legacy array.
 //
-// Devolve a chance, a quebra por material para o log e se a composicao vale.
+// Return the chance, per-material log breakdown and recipe validity.
 func (w *World) compositorChance(req combineRequest) (int, string, bool) {
 	chance := int(w.gameplay.CompositorBaseChance)
 	detail := make([]string, 0, compositorMaterials)
-	// A janela 7.48 possui quatro materiais reais nos slots 2..5. Aceitar
-	// quatro itens espalhados por 2..7 permitia forjar uma disposicao que o
-	// client legitimo nunca produz.
+	// The 7.48 window has four material slots at 2..5. Accepting four items
+	// scattered across 2..7 allowed layouts the legitimate client never sends.
 	for i := 2; i < 2+compositorMaterials; i++ {
 		item := req.Items[i]
 		if item.Index == 0 {
@@ -199,35 +198,46 @@ func (w *World) compositorChance(req combineRequest) (int, string, bool) {
 	return chance, strings.Join(detail, " "), true
 }
 
-func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
-	p, req, ok := w.beginCombine(s, pkt, "Compositor")
-	if !ok {
-		return
-	}
+func (w *World) compositorRecipe(req combineRequest) (model.Item, int, string, bool) {
 	target, jewel := req.Items[0], req.Items[1]
 	targetDef, targetOK := w.items[target.Index]
 	if !targetOK || targetDef.Unique < 41 || targetDef.Unique > 49 || targetDef.Extra <= 0 ||
 		itemAbility(target, targetDef, "EF_MOBTYPE") == 3 || itemAbility(target, targetDef, "EF_ITEMLEVEL") <= 3 ||
 		jewel.Index < 2441 || jewel.Index > 2444 || itemStackAmount(jewel) > 1 {
-		w.sendCombineResult(p, 0)
-		return
+		return model.Item{}, 0, "", false
 	}
 	chance, breakdown, chanceOK := w.compositorChance(req)
 	if !chanceOK {
-		w.sendCombineResult(p, 0)
-		return
+		return model.Item{}, 0, "", false
 	}
 	resultIndex := uint16(targetDef.Extra + int(jewel.Index-2441))
 	if _, resultExists := w.items[resultIndex]; !resultExists {
-		w.sendCombineResult(p, 0)
-		return
+		return model.Item{}, 0, "", false
 	}
-	// O compositor transforma a arma-base: os efeitos adicionais pertencem ao
-	// item do jogador e precisam sobreviver Ã troca do Ã­ndice.
+	// Transform the base weapon while retaining the player's additional effects.
 	resultItem := target
 	resultItem.Index = resultIndex
 	if !setItemSanc(&resultItem, 7) {
+		return model.Item{}, 0, "", false
+	}
+	return resultItem, chance, breakdown, true
+}
+
+func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
+	if w.criticalTradeReserved(w.players[s]) {
+		return
+	}
+	p, req, ok := w.beginCombine(s, pkt, "Compositor")
+	if !ok {
+		return
+	}
+	resultItem, chance, breakdown, valid := w.compositorRecipe(req)
+	if !valid {
 		w.sendCombineResult(p, 0)
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitInventoryComposition(p, req, resultItem, w.rollPercent(chance), "Compositor")
 		return
 	}
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
@@ -245,16 +255,12 @@ func (w *World) onCombineCompositor(s *net.Session, pkt []byte) {
 		code = 1
 	}
 	if w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll) {
-		log.Printf("[#%d] CRAFT Compositor sucesso=%t roll=%d/%d (base %d + %s)",
+		log.Printf("[#%d] CRAFT Compositor success=%t roll=%d/%d (base %d + %s)",
 			s.ID, success, roll.Roll, roll.Chance, w.gameplay.CompositorBaseChance, breakdown)
 	}
 }
 
-func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
-	p, req, ok := w.beginCombine(s, pkt, "Agatha")
-	if !ok {
-		return
-	}
+func (w *World) agathaRecipe(req combineRequest) (model.Item, int, bool) {
 	a, donor := req.Items[0], req.Items[1]
 	defA, okA := w.items[a.Index]
 	defB, okB := w.items[donor.Index]
@@ -263,28 +269,24 @@ func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
 	if !okA || !okB || itemAbility(a, defA, "EF_MOBTYPE") != 1 ||
 		itemAbility(donor, defB, "EF_ITEMTYPE") != 0 || defA.Pos != defB.Pos || !validPos ||
 		itemSanc(a) < 9 || itemSanc(donor) < 9 || donorLevel < 4 {
-		w.sendCombineResult(p, 0)
-		return
+		return model.Item{}, 0, false
 	}
 	for i := 2; i <= 5; i++ {
 		if req.Items[i].Index != 3140 || itemStackAmount(req.Items[i]) > 1 {
-			w.sendCombineResult(p, 0)
-			return
+			return model.Item{}, 0, false
 		}
 	}
 	if req.Items[6].Index != 0 || req.Items[7].Index != 0 {
-		w.sendCombineResult(p, 0)
-		return
+		return model.Item{}, 0, false
 	}
 	result := a
 	result.Eff = donor.Eff
 	if !setItemSanc(&result, 7) {
-		w.sendCombineResult(p, 0)
-		return
+		return model.Item{}, 0, false
 	}
-	// GetMatchCombineAgatha (GetFunc.cpp:620-627): grade do item DOADOR, com o
-	// caso especial nivel 5 + grade 1 -> grade 3; bonus +6 no nivel 5, senao +1.
-	// Sem clamp -- a fonte compara "combine" cru contra o roll 0..99.
+	// GetMatchCombineAgatha (GetFunc.cpp:620-627) uses the donor's grade, with
+	// level 5 + grade 1 treated as grade 3; bonus +6 at level 5, otherwise +1.
+	// Return the raw chance; the legacy source compares it against a 0..99 roll.
 	grade := defB.Grade
 	if donorLevel == 5 && grade == 1 {
 		grade = 3
@@ -294,6 +296,26 @@ func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
 		bonus = 6
 	}
 	chance := agathaBaseChance + grade*5 + bonus
+	return result, chance, true
+}
+
+func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
+	if w.criticalTradeReserved(w.players[s]) {
+		return
+	}
+	p, req, ok := w.beginCombine(s, pkt, "Agatha")
+	if !ok {
+		return
+	}
+	result, chance, valid := w.agathaRecipe(req)
+	if !valid {
+		w.sendCombineResult(p, 0)
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitInventoryComposition(p, req, result, w.rollPercent(chance), "Agatha")
+		return
+	}
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	changed := make(map[int]struct{}, combineSlots)
 	consumeCombineItems(p.Char, req, 2, 5, changed)
@@ -315,11 +337,7 @@ func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
 	w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll)
 }
 
-func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
-	p, req, ok := w.beginCombine(s, pkt, "Aylin")
-	if !ok {
-		return
-	}
+func (w *World) aylinRecipe(req combineRequest) (model.Item, int, bool) {
 	a, b := req.Items[0], req.Items[1]
 	defA, okA := w.items[a.Index]
 	defB, okB := w.items[b.Index]
@@ -327,26 +345,43 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 		defA.Pos == 32 || defA.Pos == 64 || defA.Pos == 128 || defA.Pos == 192
 	if !okA || !okB || a.Index != b.Index || defA.Grade != defB.Grade || !validPos ||
 		itemSanc(a) != 9 || itemSanc(b) != 9 || req.Items[2].Index != 1774 || itemStackAmount(req.Items[2]) > 1 ||
-		p.Char.Gold < aylinGoldCost || req.Items[7].Index != 0 {
-		w.sendCombineResult(p, 0)
-		return
+		req.Items[7].Index != 0 {
+		return model.Item{}, 0, false
 	}
 	for i := 3; i <= 6; i++ {
 		if req.Items[i].Index < 2441 || req.Items[i].Index > 2444 || itemStackAmount(req.Items[i]) > 1 {
-			w.sendCombineResult(p, 0)
-			return
+			return model.Item{}, 0, false
 		}
 	}
 	result := a
 	if !setItemSancRaw(&result, byte(230+req.Items[3].Index-2441)) {
+		return model.Item{}, 0, false
+	}
+	return result, 40, true
+}
+
+func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
+	if w.criticalTradeReserved(w.players[s]) {
+		return
+	}
+	p, req, ok := w.beginCombine(s, pkt, "Aylin")
+	if !ok {
+		return
+	}
+	result, chance, valid := w.aylinRecipe(req)
+	if !valid || p.Char.Gold < aylinGoldCost {
 		w.sendCombineResult(p, 0)
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitInventoryComposition(p, req, result, w.rollPercent(chance), "Aylin")
 		return
 	}
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	changed := make(map[int]struct{}, combineSlots)
 	consumeCombineItems(p.Char, req, 2, 6, changed)
-	// Politica do servidor: percentuais usam 1..100 e sucesso em roll <= chance.
-	// Aylin portanto possui exatamente 40% de chance, sem o 41o valor do legado.
+	// Server policy uses rolls 1..100 and succeeds when roll <= chance.
+	// Aylin therefore has exactly 40%, without the legacy 41st successful value.
 	roll := w.rollPercent(40)
 	success := roll.Success
 	if success {
@@ -363,15 +398,25 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 	w.commitCombineRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, roll)
 }
 
+func (w *World) admitInventoryComposition(p *Player, req combineRequest, result model.Item, roll percentRoll, artisan string) {
+	if err := w.queueInventoryComposition(p, req, result, roll, artisan); err != nil {
+		log.Printf("[#%d] %s composition admission rejected: %v", p.Session.ID, artisan, err)
+		p.Session.Send(wire.MessagePanel("Composition is unavailable. Please try again later."))
+	}
+}
+
 func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
+	if w.criticalTradeReserved(w.players[s]) {
+		return
+	}
 	p, req, ok := w.beginCombine(s, pkt, "Lindy")
 	if !ok {
 		return
 	}
-	// O contrato implementado usa dois pacotes 3448 com EF_AMOUNT=10.
-	// Nao aceitar pilhas de 413 como variante: a receita deve permanecer
-	// coordenada com o client. A origem historica em outra versao nao e
-	// evidencia de paridade nativa 7.48.
+	// The implemented contract uses two item-3448 packages with EF_AMOUNT=10.
+	// Do not accept item-413 stacks as a variant: keep the recipe coordinated
+	// with the client. Historical origin in another version is not native
+	// 7.48 parity evidence.
 	if !lindyMaterialStack(req.Items[0]) || !lindyMaterialStack(req.Items[1]) ||
 		req.Items[2].Index != 4127 {
 		w.sendCombineResult(p, 0)
@@ -385,16 +430,16 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 			return
 		}
 	}
-	// A receita existe exclusivamente para um Arch parado em uma das duas
-	// travas. O handler WYD 7.48 retorna antes de consumir para qualquer outra
-	// evolucao, nivel ou trava ja liberada.
+	// Only an Arch at one of the two locked levels can use this recipe. The
+	// WYD 7.48 handler returns before consumption for any other evolution,
+	// level or already unlocked limit.
 	trava, destrava := lindyLevelUnlock(p.Char)
 	if !destrava {
 		w.sendCombineResult(p, 0)
 		return
 	}
-	// _MSG_CombineItemLindy: o destrave 355 não consulta nem consome Fame. A
-	// cobrança existe exclusivamente no 370 e custa exatamente um ponto.
+	// _MSG_CombineItemLindy: unlocking 355 neither checks nor consumes Fame.
+	// Only unlocking 370 costs Fame, exactly one point.
 	const lindyLevel370FameCost = uint32(1)
 	if trava == archLockLevel370 && counterBalance(p, fameCounter) < lindyLevel370FameCost {
 		s.Send(wire.MessagePanel("You need 1 fame point."))
@@ -404,9 +449,9 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 
 	var cape model.Item
 	if trava == archLockLevel355 {
-		// _MSG_CombineItemLindy escolhe a capa Elite pelo Clan atual: 3191
-		// Hekalotia, 3192 Akelonia e 3193 neutra. O reino continua derivado da
-		// capa antiga ate este ponto, portanto capture-o antes de substituir.
+		// _MSG_CombineItemLindy selects the Elite cape by current Clan: 3191
+		// Hekalotia, 3192 Akelonia, 3193 neutral. Kingdom still comes from the
+		// old cape here, so capture it before replacement.
 		capeIndex := lindyCapeIndex(p.Char)
 		cape = model.Item{Index: capeIndex, UID: p.Char.Equip[15].UID, Eff: [6]byte{54, 16}}
 		var err error
@@ -421,14 +466,22 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		}
 	}
 
+	if w.criticalWrites != nil {
+		if err := w.queueLindyCraft(p, req, cape); err != nil {
+			log.Printf("[#%d] Lindy composition admission rejected: %v", s.ID, err)
+			s.Send(wire.MessagePanel("Composition is unavailable. Please try again later."))
+		}
+		return
+	}
+
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	oldFame := copyCounters(p)
 	old355, old370 := p.Char.ArchLevel355, p.Char.ArchLevel370
 	changedInv := make(map[int]struct{}, 7)
 	changedEquip := make(map[int]struct{}, 1)
 	consumeCombineItems(p.Char, req, 0, 6, changedInv)
-	// A capa Elite nasce somente no destrave 355. No 370 o nativo altera a
-	// flag/fama e mantem a capa ja equipada intacta.
+	// Only unlocking 355 creates the Elite cape. At 370, native behavior
+	// changes the flag/Fame while leaving the equipped cape intact.
 	if trava == archLockLevel355 {
 		p.Char.Equip[15] = cape
 		changedEquip[15] = struct{}{}
@@ -444,8 +497,8 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	if len(changedEquip) != 0 {
 		w.recalcPlayer(p.Char)
 	}
-	// O 355 altera somente conta/inventário/equipamento. O 370 também debita o
-	// sidecar de Fame e por isso usa a transação conjunta no PostgreSQL.
+	// Unlocking 355 changes only account/inventory/equipment. Unlocking 370
+	// also debits the Fame sidecar and needs the joint PostgreSQL transaction.
 	persisted := false
 	if trava == archLockLevel370 {
 		persisted = w.commitCombineWithPlayerState(
@@ -455,23 +508,23 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 			p, oldInv, oldEquip, oldGold, changedInv, changedEquip, 1)
 	}
 	if !persisted {
-		// commitCombine ja restaurou inventario/equip; o resto e nosso.
+		// commitCombine restored inventory/equipment; restore the other fields.
 		p.SpecialCoins = oldFame
 		p.Char.ArchLevel355, p.Char.ArchLevel370 = old355, old370
 		w.recalcPlayer(p.Char)
 		return
 	}
 	s.Send(wire.MessagePanel("Your level limit has been lifted."))
-	log.Printf("[#%d] ARCH destravou o nivel %d (fama=%d)", s.ID, trava+1, counterBalance(p, fameCounter))
+	log.Printf("[#%d] ARCH unlocked level %d (fame=%d)", s.ID, trava+1, counterBalance(p, fameCounter))
 }
 
 func lindyMaterialStack(item model.Item) bool {
 	return item.Index == 3448 && itemStackAmount(item) == 10
 }
 
-// lindyLevelUnlock diz qual trava este personagem esta destravando, se alguma.
-// So vale para Arch parado EXATAMENTE numa das travas e ainda nao liberada --
-// gastar a receita fora disso nao pode marcar nada.
+// lindyLevelUnlock returns the character's locked limit, if any. Only an Arch
+// exactly at a still-locked limit qualifies; consuming the recipe elsewhere
+// must not set an unlock flag.
 func lindyLevelUnlock(ch *model.Char) (uint32, bool) {
 	if ch == nil || ch.Score == nil || !isArch(ch) {
 		return 0, false

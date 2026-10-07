@@ -140,7 +140,8 @@ int TMFieldScene::OnPacketCNFCharacterLogin(MSG_CNFCharacterLogin* pStd)
 			g_pObjectManager->m_cShortSkill[i] += 24 * g_pObjectManager->m_stMobData.Class;
 	}
 
-	g_nWeather = pStd->Weather;
+	m_berielAura.SetServer(pStd->Weather);
+	g_nWeather = m_berielAura.Effective();
 
 	// The original 7.48 FieldScene2 resource has no modern HP/MP controls.
 	// The compatibility scene materializes the player without those optional
@@ -156,11 +157,6 @@ int TMFieldScene::OnPacketCNFCharacterLogin(MSG_CNFCharacterLogin* pStd)
 
 	g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_FIELD2_STATE);
 	return 1;
-}
-
-int TMFieldScene::OnPacketAutoKick(MSG_STANDARD* pStd)
-{
-	return 0;
 }
 
 int TMFieldScene::OnPacketDelayQuit(MSG_SysQuit* pStd)

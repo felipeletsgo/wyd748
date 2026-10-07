@@ -320,11 +320,6 @@ void TMFieldScene::UseFireWork()
 		memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 }
 
-void TMFieldScene::DrawCustomFireWork(int nIndex)
-{
-	// This func is funny haha xD
-}
-
 void TMFieldScene::TotoSelect()
 {
 	if (!m_pTotoPanel || !m_pTotoNumber_Edit || !m_pTotoScoreA_Edit ||
@@ -408,21 +403,6 @@ void TMFieldScene::SetQuestStatus(bool bStart)
 
 	if (m_pQuestRemainTime)
 		m_pQuestRemainTime->SetVisible(bStart);
-}
-
-void TMFieldScene::UpdateQuestTime()
-{
-	if (m_dwQuestStartTime && m_pQuestRemainTime)
-	{
-		int nLeftSecond = 900 - (timeGetTime() - m_dwQuestStartTime) / 1000;
-
-		char strText[128]{};
-		sprintf(strText, "[%02d:%02d]", nLeftSecond / 60, nLeftSecond % 60);
-
-		m_pQuestRemainTime->SetText(strText, 0);
-		if (!m_pQuestRemainTime->IsVisible())
-			m_pQuestRemainTime->SetVisible(1);
-	}
 }
 
 int TMFieldScene::OnPacketLongMessagePanel(MSG_LongMessagePanel* pMsg)
@@ -659,14 +639,14 @@ void TMFieldScene::InitializeQuizEventControls()
 	if (!m_pControlContainer || !g_pDevice || m_pQuizBG) return;
 	// Keep the 7.48 runtime control IDs (896..900), but render the extension with
 	// the native NewUI message-box atlas used by SMessageBox (sets 164/165).
-	// Coordinates below are logical 800x600 values; SControl scales them once.
+	// Coordinates below are pixels: UI mode 2 does not scale controls.
 	m_pQuizBG = new SPanel(164, 0.0f, 0.0f, 360.0f, 82.0f,
 		0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
 	m_pQuizBG->SetControlID(896);
 	m_pQuizBG->m_bSelectEnable = 0;
 	m_pControlContainer->AddItem(m_pQuizBG);
 
-	const float topMargin = 16.0f * RenderDevice::m_fHeightRatio;
+	const float topMargin = 16.0f * RenderDevice::m_fUIScaleY;
 	m_pQuizBG->SetPos(
 		(static_cast<float>(g_pDevice->m_dwScreenWidth) - m_pQuizBG->m_nWidth) * 0.5f,
 		topMargin);
@@ -717,32 +697,6 @@ int TMFieldScene::OnPacketQuizEvent(MSG_STANDARD* packet)
 		}
 	}
 	m_pQuizBG->SetVisible(m_quizEvent.Active ? 1 : 0);
-	return 1;
-}
-
-int TMFieldScene::OnPacketRandomQuiz(MSG_RandomQuiz* pStd)
-{
-	// Unversioned legacy challenges must not replace an active secure round.
-	if (m_bCompatFieldScene || m_quizEvent.Active || !pStd || pStd->Header.Size != sizeof(MSG_RandomQuiz)) return 0;
-	pStd->Question[127] = 0;
-	pStd->Answer[0][31] = 0;
-	pStd->Answer[1][31] = 0;
-	pStd->Answer[2][31] = 0;
-	pStd->Answer[3][31] = 0;
-
-	if (m_pQuizQuestion)
-		m_pQuizQuestion->SetText(pStd->Question, 0);
-	if (m_pQuizButton[0])
-		m_pQuizButton[0]->SetText(pStd->Answer[0]);
-	if (m_pQuizButton[1])
-		m_pQuizButton[1]->SetText(pStd->Answer[1]);
-	if (m_pQuizButton[2])
-		m_pQuizButton[2]->SetText(pStd->Answer[2]);
-	if (m_pQuizButton[3])
-		m_pQuizButton[3]->SetText(pStd->Answer[3]);
-	if (m_pQuizBG)
-		m_pQuizBG->SetVisible(1);
-
 	return 1;
 }
 

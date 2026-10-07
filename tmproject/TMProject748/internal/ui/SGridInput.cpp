@@ -2,6 +2,7 @@
 // SGridControl split by responsibility; see SGrid.cpp for the grid model.
 #include "SGrid.h"
 #include "GridInsertion.h"
+#include "GridItemPresentation.h"
 #include "../application/NativeVolatileRoutes.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
@@ -326,24 +327,6 @@ ExtractedFlow SGridControl::OnLeftButtonUp(int& bPtInRect, int& nCellVHeight, in
 			int nRet = TradeItem(nCellX, nCellY);
 			if (nRet != 2)
 				{ extractedResult = nRet; return ExtractedFlow::Return; }
-
-			if (m_eGridType == TMEGRIDTYPE::GRID_ITEMMIXRESULT && m_pLastMouseOverItem &&
-				SGridControl::m_pLastMouseOverItem->m_pItem	&&
-				SGridControl::m_pLastMouseOverItem->m_pItem->sIndex > 0	&&
-				SGridControl::m_pLastMouseOverItem->m_pItem->sIndex < 11500)
-			{
-				pFScene->m_ItemMixClass.Set_NeedItemList(SGridControl::m_pLastMouseOverItem->m_pItem->sIndex);
-				pFScene->m_ItemMixClass.CheckInv(pFScene->m_pGridInvList);
-			}
-
-			if (m_eGridType == TMEGRIDTYPE::GRID_MISSION_RESULT && SGridControl::m_pLastMouseOverItem &&
-				SGridControl::m_pLastMouseOverItem->m_pItem &&
-				SGridControl::m_pLastMouseOverItem->m_pItem->sIndex > 0	&&
-				SGridControl::m_pLastMouseOverItem->m_pItem->sIndex < 11600)
-			{
-				pFScene->m_MissionClass.Set_NeedItemList(SGridControl::m_pLastMouseOverItem->m_pItem->sIndex);
-				pFScene->m_MissionClass.CheckInv(pFScene->m_pGridInvList);
-			}
 			g_pCursor->m_pAttachedItem = nullptr;
 		}
 	}
@@ -417,7 +400,7 @@ ExtractedFlow SGridControl::OnShiftLeftButtonDown(int& bPtInRect, int& nCellX, i
 
 	pFScene->m_nCoinMsgType = 12;
 	pFScene->m_nLastAutoTradePos = -1;
-	pText->SetText(g_pMessageStringTable[408], 0);
+	pText->SetText(const_cast<char*>(grid_item_presentation::SplitCaption(g_pMessageStringTable[408])), 0);
 
 	pFScene->m_pControlContainer->SetFocusedControl(pEdit);
 
@@ -540,7 +523,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 					(cSkillIndex - 24 * g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
 			if (BASE_GetManaSpent(cSkillIndex, g_pObjectManager->m_stMobData.CurrentScore.SaveMana, nSpecial) <=
-				g_pObjectManager->m_stMobData.CurrentScore.CurMP)
+				static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
 			{
 				MSG_Attack stAttack{};
 
@@ -1072,8 +1055,7 @@ char SGridControl::automove(int nCellX, int nCellY)
 
 int SGridControl::Check_ItemRightClick(int nType, int nItemSIndex)
 {
-	if (g_pCurrentScene && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD &&
-		static_cast<TMFieldScene*>(g_pCurrentScene)->m_bCompatFieldScene)
+	if (g_pCurrentScene && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 	{
 		const auto route = native_volatile::Resolve(nType, nItemSIndex);
 		if (route != native_volatile::Route::Unknown)

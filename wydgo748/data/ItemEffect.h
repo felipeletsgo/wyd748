@@ -1,108 +1,108 @@
-//#define EF_NONE     			  0	// * EFFECT Type�� 0 �̸� ����Ʈ�� ����.  ITEM���� Score[0]�� ���� ���Ҽ� ����.
-// Score ����
-#define EF_LEVEL     			  1	// ���� * Score[1] - Score[15] Bonus Score���� �״�� ���� ������.
-#define EF_DAMAGE                 2 // ����
-#define EF_AC       			  3	// ���
-#define EF_HP        			  4	// ����  HP,MP,���ݼӵ�,�̵��ӵ�,���� MAX���
-#define EF_MP       			  5	// ����
-#define EF_EXP      			  6	// ����
-#define EF_STR      		      7	// ��
-#define EF_INT      		      8	// ����
-#define EF_DEX       		      9	// ��ø
-#define EF_CON      		     10	// ü��
-#define EF_SPECIAL1    		     11	// ����
-#define EF_SPECIAL2    			 12	// Ư1
-#define EF_SPECIAL3    			 13	// Ư2
-#define EF_SPECIAL4    			 14	// Ư3
-// Score ��.
+//#define EF_NONE     			  0	// * EFFECT type 0 means no effect. An ITEM cannot add the value of Score[0].
+// Score start
+#define EF_LEVEL     			  1	// Level * Score[1] - Score[15]: the bonus score value is added as is.
+#define EF_DAMAGE                 2	// Damage bonus
+#define EF_AC       			  3	// Defense
+#define EF_HP        			  4	// HP bonus; HP, MP, attack speed, move speed, the various MAX values
+#define EF_MP       			  5	// MP bonus
+#define EF_EXP      			  6	// Experience
+#define EF_STR      		      7	// Strength
+#define EF_INT      		      8	// Intelligence
+#define EF_DEX       		      9	// Dexterity
+#define EF_CON      		     10	// Constitution
+#define EF_SPECIAL1    		     11	// Weapon mastery
+#define EF_SPECIAL2    			 12	// Special 1
+#define EF_SPECIAL3    			 13	// Special 2
+#define EF_SPECIAL4    			 14	// Special 3
+// Score end.
 #define EF_SCORE14     			 15	//
 #define EF_SCORE15     			 16	//
 ////////////////      REQUIREMENT        //////////////////////////////////////////
-#define EF_POS                   17  // ��ġ ������ �ִ� ��� bit��         - ����Ʈ NOWHERE (0��Ʈ �� EQUIP 0)
-#define EF_CLASS                 18  // ���� ������ �ִ� (����)Ŭ���� bit�� - ����Ʈ YES
-#define EF_R1SIDC                19  // �Ѽ� 1�ڵ� �Ǵ� ������ ������ �ִ� STR INT DEC CON         - ����Ʈ 0
-#define EF_R2SIDC                20  // �μ� 2�ڵ�          �� ������ �ִ� STR INT DEC CON         - ����Ʈ �Ұ�
+#define EF_POS                   17	// Position: bit mask of the slots the item can be worn in - default NOWHERE (bit 0 is EQUIP 0)
+#define EF_CLASS                 18	// Class: bit mask of the (gender) classes that can wear it - default YES
+#define EF_R1SIDC                19	// One hand: STR INT DEX CON needed to wear a one-handed weapon or armor - default 0
+#define EF_R2SIDC                20	// Two hands: STR INT DEX CON needed to wear a two-handed weapon - default not allowed
 ////////////////   BONUS  ////////////////////////////////
-#define EF_WTYPE         	     21	 // ���� ����з� (�ִϸ��̼�)
-//  1:�Ұ�(Ŭ��)
-//  2:�߰�(���̽�)
-//  3:���
+#define EF_WTYPE         	     21	// Weapon type: weapon class (animation)
+//  1:small sword (club)
+//  2:medium sword (mace)
+//  3:large sword
 
-// 11:�ҵ���
-// 12:�ߵ���
-// 13:�뵵��
+// 11:small axe
+// 12:medium axe
+// 13:large axe
 
-// 21:��â
-// 22:��â
-// 23:��â
+// 21:small spear
+// 22:medium spear
+// 23:large spear
 
-// 31:��������
-// 32:��������
-// 33:��������
+// 31:small staff
+// 32:medium staff
+// 33:large staff
 
-// 41:��Ŭ��
+// 41:small claw
 
-// 51:�ҹ���
+// 51:small shield
 
-// 61:��Ŭ��
-// 62:��Ŭ��
-// 63:��Ŭ��
+// 61:small club
+// 62:medium club
+// 63:large club
 
-// 101:Ȱ
-// 102:��Ʈ
-// 103:�丶ȣũ
-// 104:����
+// 101:bow
+// 102:dart
+// 103:tomahawk
+// 104:javelin
 ////////////////////////////////////////////////////////////////////////////
-#define EF_REQ_STR               22  // ����
-#define EF_REQ_INT               23  // ����
-#define EF_REQ_DEX               24  // ����
-#define EF_REQ_CON               25  // ����
+#define EF_REQ_STR               22	// Required STR
+#define EF_REQ_INT               23	// Required INT
+#define EF_REQ_DEX               24	// Required DEX
+#define EF_REQ_CON               25	// Required CON
 /////////////////////////////////////////////////////////////////////////
-// * �� �䱸ġ�̳�, �������� �⺻ SIDC�� �߰��Ǵ� ���̴�.
+// * Main requirement values; for an item they are added to the base SIDC.
 /////////////////////////////////////////////////////////////////////////
 
 
-#define EF_ATTSPEED  	       	 26	 // ���� ���ݼӵ�
-#define EF_RANGE                 27  // ���� �����Ÿ�. ��ü�� �ִ밪�� �����.
-////#define EF_PRICE				 28	 // ����
-#define EF_RUNSPEED              29  // ���� �޸���ӵ�.
-#define EF_SPELL    	    	 30	 // ���� Item�� �԰ų� �Ծ����� �ɸ��� ����
-#define EF_DURATION              31  // ���� Item �Ķ��Ÿ1 - ������ ȿ���� �߻��ϴ� �ð�, �Դ¾������� �׻�
-#define EF_PARM2     			 32	 // �Ķ� Item �Ķ��Ÿ2
-#define EF_GRID                  33  // ũ�� Carry�� �����ϴ� �����۱׸���
-#define EF_GROUND                34  // ��ĭ ������� ���� �����ϴ� ũ��
-#define EF_CLAN                  35  // ����
-#define EF_HWORDCOIN             36  // �뵷
-#define EF_LWORDCOIN             37  // �ҵ�
-#define EF_VOLATILE              38  // �Ҹ� ������ �ٷ� ������� ������.  0:�Ϲ��屸  1:�������  2:������   3:���� 4:��1  5:��2  6:��3
-//                               6:����+15   7:����+1
-#define EF_KEYID                 39  // Ű��
-#define EF_PARRY                 40  // ȸ�� ȸ���� ������
-#define EF_HITRATE               41  // ���� ���߷� ������
-#define EF_CRITICAL              42  // ũ�� ũ��Ƽ��
-#define EF_SANC                  43  // ���� Sanctuary �ַ� ������ ����Ʈ�� ����Ǹ�
-#define EF_SAVEMANA              44  // ���� 1 -> 99%
-#define EF_HPADD                 45  // �ǻ� 1 -> 101%   MAX_MP
-#define EF_MPADD                 46  // ���� 1 -> 101%   MAX_MP
-#define EF_REGENHP               47  // ��ȸ
-#define EF_REGENMP               48  // ��ȸ
-#define EF_RESIST1               49  // ����
-#define EF_RESIST2               50  // ����
-#define EF_RESIST3               51  // ����
-#define EF_RESIST4               52  // ����
-#define EF_ACADD                 53  // ����
-#define EF_RESISTALL             54  // ����
-#define EF_BONUS                 55  // ����
+#define EF_ATTSPEED  	       	 26	// Attack speed
+#define EF_RANGE                 27	// Range: attack range. The highest value of all items applies.
+////#define EF_PRICE				 28	// Price
+#define EF_RUNSPEED              29	// Run speed.
+#define EF_SPELL    	    	 30	// Spell cast when the item is eaten or worn
+#define EF_DURATION              31	// Duration: item parameter 1 - time the effect lasts when eaten; worn items always apply
+#define EF_PARM2     			 32	// Item parameter 2
+#define EF_GRID                  33	// Size: item grid occupied in Carry
+#define EF_GROUND                34	// Ground cells: size occupied on the ground by castle gates and the like
+#define EF_CLAN                  35	// Race
+#define EF_HWORDCOIN             36	// Gold (high word)
+#define EF_LWORDCOIN             37	// Gold (low word)
+#define EF_VOLATILE              38	// Consumable: item that disappears when used.  0:regular gear  1:potions  2:money   3:key 4:blessing 1  5:blessing 2  6:blessing 3
+//                               6:spell+15   7:level+1
+#define EF_KEYID                 39	// Key number
+#define EF_PARRY                 40	// Evasion: evasion rate bonus
+#define EF_HITRATE               41	// Accuracy: hit rate bonus
+#define EF_CRITICAL              42	// Critical
+#define EF_SANC                  43	// Refinement (Sanctuary), mostly stored with the bonus points
+#define EF_SAVEMANA              44	// Mana saving 1 -> 99%
+#define EF_HPADD                 45	// HP increase 1 -> 101%   MAX_MP
+#define EF_MPADD                 46	// MP increase 1 -> 101%   MAX_MP
+#define EF_REGENHP               47	// HP regeneration
+#define EF_REGENMP               48	// MP regeneration
+#define EF_RESIST1               49	// Fire resistance
+#define EF_RESIST2               50	// Ice resistance
+#define EF_RESIST3               51	// Holy resistance
+#define EF_RESIST4               52	// Lightning resistance
+#define EF_ACADD                 53	// Defense increase
+#define EF_RESISTALL             54	// All resistances
+#define EF_BONUS                 55	// Bonus
 #define EF_HWORDGUILD            56  // Ataque PvP
 #define EF_LWORDGUILD            57  // Defesa PvP
-#define EF_QUEST                 58  // �ӹ� �ݵ�� 1���� ����, ��κ� Volatile�� �԰� ���õ� �� ��.
-#define EF_UNIQUE                59  // ����
-#define EF_MAGIC                 60  // ���� 1 -> 1% ����
-#define EF_AMOUNT                61  // ����
-#define EF_HWORDINDEX            62  // ��ȣ
-#define EF_LWORDINDEX            63  // ��ȣ
-#define EF_INIT1                 64  // �ʱ�
-#define EF_INIT2                 65  // �ʱ�
+#define EF_QUEST                 58	// Quest: must start at 1; usually set together with Volatile.
+#define EF_UNIQUE                59	// Unique
+#define EF_MAGIC                 60	// Magic attack 1 -> 1% amplification
+#define EF_AMOUNT                61	// Amount
+#define EF_HWORDINDEX            62	// Number
+#define EF_LWORDINDEX            63	// Number
+#define EF_INIT1                 64	// Initial
+#define EF_INIT2                 65	// Initial
 #define EF_INIT3                 66
 #define EF_DAMAGEADD             67
 #define EF_MAGICADD              68
@@ -120,11 +120,11 @@
 #define EF_INCUBATE				 78
 
 
-#define EF_MOUNTLIFE			 79  // �� �� ����
-#define EF_MOUNTHP				 80  // �� �� ��
-#define EF_MOUNTSANC			 81  // �� ���嵵
-#define EF_MOUNTFEED			 82  // �� ��θ� ����
-#define EF_MOUNTKILL			 83  // ���� ���� ���� ����?
+#define EF_MOUNTLIFE			 79	// Mount total life
+#define EF_MOUNTHP				 80	// Mount current HP
+#define EF_MOUNTSANC			 81	// Mount growth
+#define EF_MOUNTFEED			 82	// Mount fullness
+#define EF_MOUNTKILL			 83	// Number of monsters killed by the mount?
 
 #define EF_INCUDELAY             84
 #define EF_SUBGUILD				 85
@@ -149,4 +149,4 @@
 #define EF_ITEMTYPE				 113
 
 #define EF_NOSANC				 126
-#define EF_NOTRADE				 127
+#define EF_NOTRADE				 111

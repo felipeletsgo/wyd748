@@ -53,6 +53,11 @@
     <ClCompile Include="FieldChatControlTests.cpp" />
     <ClCompile Include="FieldChatSubmitPolicyTests.cpp" />
     <ClCompile Include="FieldCoinInputPolicyTests.cpp" />
+    <ClCompile Include="MusicListLineTests.cpp" />
+    <ClCompile Include="AuditSafetyTests.cpp" />
+    <ClCompile Include="HellStoreClickContractTests.cpp" />
+    <ClCompile Include="UiModeContractTests.cpp" />
+    <ClCompile Include="FieldViewContractTests.cpp" />
     <ClCompile Include="AttackVisualDamageTests.cpp" />
     <ClCompile Include="AttackAttackerStateTests.cpp" />
     <ClCompile Include="AttackTargetStateTests.cpp" />
@@ -62,6 +67,14 @@
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <ClCompile Include="ResourceBarProjectionTests.cpp" />
+    <ClCompile Include="NativeScoreHudTests.cpp" />
+    <ClCompile Include="PerfTraceTests.cpp" />
+    <ClCompile Include="ClientSettingsTests.cpp" />
+    <ClCompile Include="WeatherPacketTests.cpp" />
+    <ClCompile Include="LightingProfileTests.cpp" />
+    <ClCompile Include="GroundNeighborPolicyTests.cpp" />
+    <ClCompile Include="FieldCachePolicyTests.cpp" />
+    <ClCompile Include="RuntimeAssetLimitsTests.cpp" />
     <ClCompile Include="ObservedAffectProjectionTests.cpp" />
     <ClCompile Include="CCModePolicyTests.cpp" />
     <ClCompile Include="EffectVertexColorTests.cpp" />

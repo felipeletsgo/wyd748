@@ -26,6 +26,12 @@ type instanceRuntimeTransactionStore interface {
 }
 
 func (w *World) instanceStateSnapshot() *model.InstanceStateSnapshot {
+	return w.instanceStateSnapshotAt(w.now())
+}
+
+// Retained operation checks use the admission time, so the passage of a hard
+// deadline alone cannot masquerade as an actor mutation while a write is held.
+func (w *World) instanceStateSnapshotAt(now time.Time) *model.InstanceStateSnapshot {
 	snapshot := &model.InstanceStateSnapshot{
 		Version:            model.InstanceStateVersion,
 		NightmarePartyRuns: make(map[string]int, len(w.nightmarePartyRuns)),
@@ -37,7 +43,6 @@ func (w *World) instanceStateSnapshot() *model.InstanceStateSnapshot {
 			snapshot.NightmarePartyRuns[key] = count
 		}
 	}
-	now := w.now()
 	for runtimeID, inst := range w.itemInstances {
 		if inst == nil || !resumableInstance(inst) {
 			continue
@@ -231,12 +236,18 @@ func (w *World) attachRestoredInstanceMember(p *Player) {
 			delete(w.pendingInstanceLeaders, runtimeID)
 		}
 		w.markInstanceStateDirty()
-		log.Printf("personagem %q reconectado na instancia %q", p.Char.Name, runtimeID)
+		log.Printf("character %q reconnected to instance %q", p.Char.Name, runtimeID)
 		return
 	}
 }
 
 func (w *World) persistInstanceState() error {
+	if w.criticalInstanceReserved() {
+		return errCriticalPersistenceBusy
+	}
+	if err := w.syncPersistenceAllowed("instance state"); err != nil {
+		return err
+	}
 	store, ok := w.store.(instanceRuntimeStore)
 	if !ok {
 		return nil
@@ -245,29 +256,20 @@ func (w *World) persistInstanceState() error {
 }
 
 func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
+	if w.criticalInstanceReserved() {
+		return errCriticalPersistenceBusy
+	}
+	if err := w.syncPersistenceAllowed("accounts and instance state"); err != nil {
+		return err
+	}
 	snapshot := w.instanceStateSnapshot()
 	// A transaction-capable store still cannot make an unreachable private
 	// Water room safe: the snapshot intentionally omits rooms that have no
 	// stable CharacterUID. Refuse the account mutation instead of consuming a
 	// ticket whose room would disappear after a restart.
 	if len(accounts) > 0 {
-		for runtimeID, inst := range w.itemInstances {
-			if !resumableInstance(inst) {
-				continue
-			}
-			uids, _ := w.instanceCharacterUIDs(runtimeID, inst)
-			if len(uids) == 0 {
-				// A completed predecessor can be kept in RAM during exit grace
-				// solely for cleanup. Once its members are detached it has no
-				// durable owner and is intentionally omitted from the snapshot.
-				if len(inst.MemberIDs) == 0 && len(inst.MemberCharacterUIDs) == 0 &&
-					strings.TrimSpace(inst.LeaderCharacterUID) == "" &&
-					len(w.pendingInstanceMembers[runtimeID]) == 0 &&
-					strings.TrimSpace(w.pendingInstanceLeaders[runtimeID]) == "" {
-					continue
-				}
-				return fmt.Errorf("resumable instance %q has no stable character UID", runtimeID)
-			}
+		if err := w.validateInstanceStateOwnership(); err != nil {
+			return err
 		}
 	}
 	store, ok := w.store.(instanceRuntimeTransactionStore)
@@ -282,10 +284,7 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 	// state without implementing the transaction interface.
 	if len(accounts) > 0 {
 		for _, inst := range w.itemInstances {
-			if inst == nil {
-				continue
-			}
-			if resumableInstance(inst) {
+			if inst != nil && resumableInstance(inst) {
 				return fmt.Errorf("store does not support atomic account/instance persistence")
 			}
 		}
@@ -294,6 +293,28 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 		return err
 	}
 	return w.persistInstanceState()
+}
+
+func (w *World) validateInstanceStateOwnership() error {
+	for runtimeID, inst := range w.itemInstances {
+		if !resumableInstance(inst) {
+			continue
+		}
+		uids, _ := w.instanceCharacterUIDs(runtimeID, inst)
+		if len(uids) == 0 {
+			// A completed predecessor can be kept in RAM during exit grace
+			// solely for cleanup. Once its members are detached it has no
+			// durable owner and is intentionally omitted from the snapshot.
+			if len(inst.MemberIDs) == 0 && len(inst.MemberCharacterUIDs) == 0 &&
+				strings.TrimSpace(inst.LeaderCharacterUID) == "" &&
+				len(w.pendingInstanceMembers[runtimeID]) == 0 &&
+				strings.TrimSpace(w.pendingInstanceLeaders[runtimeID]) == "" {
+				continue
+			}
+			return fmt.Errorf("resumable instance %q has no stable character UID", runtimeID)
+		}
+	}
+	return nil
 }
 
 func (w *World) restoreInstanceState() error {
@@ -397,7 +418,7 @@ func (w *World) restoreInstanceState() error {
 		if !saved.CombatDeadline.IsZero() {
 			setInstanceCombatDeadline(inst, saved.CombatDeadline)
 		}
-		log.Printf("INSTANCIA %q restaurada apos reinicio", saved.RuntimeID)
+		log.Printf("INSTANCE %q restored after restart", saved.RuntimeID)
 	}
 	w.rebuildPlayerInstanceIndex()
 	return nil
@@ -432,10 +453,9 @@ func (w *World) restoreHellGateRuntime(inst *ItemInstance,
 		if !ok || len(cfg.Quadrants) != 4 {
 			return false
 		}
-		// A restauração pode falhar depois de materializar um ou mais
-		// quadrantes (por exemplo, falta de IDs ou template inválido). Nunca
-		// deixe essa população parcialmente criada no mapa quando o agregado
-		// for descartado pelo chamador.
+		// Restoration can fail after materializing one or more quadrants (for
+		// example, exhausted IDs or an invalid template). Never leave that
+		// partial population on the map when the caller discards the aggregate.
 		fail := func() bool {
 			w.removeHellGateMobs(inst)
 			return false
@@ -489,10 +509,9 @@ func (w *World) restoreHellGateRuntime(inst *ItemInstance,
 }
 
 func (w *World) instanceConfigByID(configID, runtimeID string) (model.VolatileInstance, bool) {
-	// ConfigID e a identidade persistida. Procure-a em uma passagem separada:
-	// varios ingressos podem compartilhar o mesmo runtime (SharedGroup), e o
-	// range aleatorio dos maps fazia a restauracao escolher outro alias antes
-	// de chegar ao template exato.
+	// ConfigID is the persisted identity. Search it in a separate pass: several
+	// tickets can share a runtime (SharedGroup), and randomized map iteration
+	// previously selected another alias before reaching the exact template.
 	for _, instance := range w.volatiles.Instances {
 		if instance.ID == configID {
 			return cfgCopy(instance), true
@@ -538,6 +557,7 @@ func (w *World) instanceConfigByID(configID, runtimeID string) (model.VolatileIn
 func (w *World) markInstanceStateDirty() {
 	if w != nil {
 		w.instanceStateDirty = true
+		w.criticalInstanceGeneration = &criticalInstanceGeneration{}
 	}
 }
 
@@ -545,8 +565,15 @@ func (w *World) flushInstanceStateIfDirty() {
 	if w == nil || !w.instanceStateDirty {
 		return
 	}
+	if w.criticalWrites != nil {
+		if !w.shuttingDown {
+			w.queueInstanceState()
+		}
+		// Only persistShutdownState may perform a terminal inline snapshot.
+		return
+	}
 	if err := w.persistInstanceState(); err != nil {
-		log.Printf("estado de instancias: %v", err)
+		log.Printf("instance state: %v", err)
 		return
 	}
 	w.instanceStateDirty = false

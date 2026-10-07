@@ -1,5 +1,7 @@
 #pragma once
 
+#include "RuntimeAssetLimits.h"
+
 class TMMesh;
 
 struct stCommonMeshList
@@ -32,7 +34,6 @@ struct stBoneAni
 	unsigned int numBoneBytes;
 };
 
-constexpr auto MAX_COMMON_MESH = 3048;
 constexpr auto MAX_SKIN_MESH_LIST = 1024;
 constexpr auto MAX_BONE_ANIMATION_LIST = 100;
 
@@ -40,9 +41,6 @@ constexpr auto MAX_ANI_CLASS = 6;
 constexpr auto MAX_ANI_TYPE = 60;
 constexpr auto MAX_ANI_MOTION = 56;
 
-constexpr auto MAX_OBJECT_MASK = 2048;
-constexpr auto MAX_MASK_X = 16;
-constexpr auto MAX_MASK_Y = 16;
 
 constexpr auto MAX_VALID_ANI_LIST = 100;
 

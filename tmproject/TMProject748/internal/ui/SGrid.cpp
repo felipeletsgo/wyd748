@@ -309,14 +309,14 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 			pGridCurrent->m_GCEnable.nPosX = ivParentPos.x + m_nPosX + (float)((float)pGridCurrent->m_nCellIndexX * BASE_ScreenResize(m_GCGrid->nWidth));
 			pGridCurrent->m_GCEnable.nPosY = ivParentPos.y + m_nPosY + (float)((float)pGridCurrent->m_nCellIndexY * BASE_ScreenResize(m_GCGrid->nHeight));
 			pGridCurrent->m_GCEnable.nWidth = (float)((float)(24 * pGridCurrent->m_nCellWidth)
-				* RenderDevice::m_fWidthRatio)
+				* RenderDevice::m_fUIScaleX)
 				* (float)(1.0f - pGridCurrent->m_fTimer);
 
 			if (pGridCurrent->m_GCEnable.nWidth > 0.0099999998f && pGridCurrent->m_GCEnable.nWidth < 2.0f)
 				pGridCurrent->m_GCEnable.nWidth = 2.0f;
 
 			pGridCurrent->m_GCEnable.nHeight = (float)(24 * pGridCurrent->m_nCellHeight)
-				* RenderDevice::m_fHeightRatio;
+				* RenderDevice::m_fUIScaleY;
 
 			pGridCurrent->m_GCEnable.nLayer = inParentLayer;
 			pGridCurrent->m_GCEnable.dwColor = 0xAA000000;
@@ -496,32 +496,10 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 	ipNewItem->SetGridControl(this);
 	ipNewItem->m_nCellIndexX = inCellIndexX;
 	ipNewItem->m_nCellIndexY = inCellIndexY;
-	ipNewItem->m_nWidth = 23.0f * RenderDevice::m_fWidthRatio;
-	ipNewItem->m_nHeight = 24.0f * RenderDevice::m_fHeightRatio;
+	ipNewItem->m_nWidth = 23.0f * RenderDevice::m_fUIScaleX;
+	ipNewItem->m_nHeight = 24.0f * RenderDevice::m_fUIScaleY;
 	ipNewItem->m_GCObj.m_fWidth = ipNewItem->m_nWidth;
 	ipNewItem->m_GCObj.m_fHeight = ipNewItem->m_nHeight;
-	m_pItemList[m_nNumItem++] = ipNewItem;
-
-	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
-	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
-
-	return 1;
-	});
-}
-
-int SGridControl::SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)
-{
-	return grid_insertion::Execute(m_pItemList, m_nNumItem, ipNewItem, [&]()
-	{
-
-	// Validate before mutation; preserve legacy clipping and overlap behavior.
-	if (!grid_occupancy::FillClipped(m_pbFilled, m_nColumnGridCount, m_nRowGridCount,
-		inCellIndexX, inCellIndexY, ipNewItem->m_nCellWidth, ipNewItem->m_nCellHeight, 1))
-		return 0;
-
-	ipNewItem->SetGridControl(this);
-	ipNewItem->m_nCellIndexX = inCellIndexX;
-	ipNewItem->m_nCellIndexY = inCellIndexY;
 	m_pItemList[m_nNumItem++] = ipNewItem;
 
 	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
@@ -754,18 +732,6 @@ SGridControlItem* SGridControl::PickupAtItem(int inCellIndexX, int inCellIndexY)
 	return pItem;
 }
 
-SGridControlItem* SGridControl::PickupItem(SGridControlItem* ipItem)
-{
-	for (int i = 0; i < this->m_nNumItem; ++i)
-	{
-		auto pItem = m_pItemList[i];
-		if (pItem == ipItem)
-			return PickupItem(pItem->m_nCellIndexX, pItem->m_nCellIndexY);
-	}
-
-	return nullptr;
-}
-
 SGridControlItem* SGridControl::SelectItem(int inCellIndexX, int inCellIndexY)
 {
 	SGridControlItem* pItemReturn = nullptr;
@@ -875,11 +841,6 @@ SGridControlItem* SGridControl::GetAtItem(int inCellIndexX, int inCellIndexY)
 	}
 
 	return pItemReturn;
-}
-
-SGridControlItem* SGridControl::GetItem(int nCount)
-{
-	return m_pItemList[nCount];
 }
 
 void SGridControl::Empty()

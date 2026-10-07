@@ -1,0 +1,1551 @@
+path	family	format	native	client	runtime	reference_kr	server	gaps
+%s%02d%02d.msh	(root)	yes	FUN_004bead1	TMSkinMesh.cpp	1566	326		
+%s%02d%02d.wyt	(root)	yes	FUN_004bead1	TMSkinMesh.cpp	168	76		
+%s%04d.ani	(root)	yes	FUN_004b00e4	MeshManager.cpp	801	5		
+%s.bin	(root)	yes	FUN_0049e1e3	TMScene.cpp	77	14		
+%s.bon	(root)	yes	FUN_004b00e4	MeshManager.cpp	82	1		
+anisound4.txt	(root)		FUN_004b2340	ObjectManager.cpp	1			
+attributemap.dat	(root)		FUN_00557943	Basedef.cpp	0	0		M
+blockip.txt	(root)		FUN_005586b5	-	0	0		NM
+cdata.bin	(root)		FUN_00532390	TMGround.cpp	1			
+config.bin	(root)		-	TMPaths.h	0	1		TM
+config.txt	(root)		FUN_0055bc0a	NewApp.cpp	1			
+curse.bin	(root)		FUN_004b229e	-	1			N
+effect/%s.wys	effect	yes	-	TMPaths.h	413	130		T
+effect/%s.wyt	effect	yes	FUN_004bc7c7	-	0	0		NM
+effect/effecttexturelist.bin	effect		-	TMPaths.h	1			T
+effect/effecttexturelist.txt	effect		FUN_004b8c72	-	as .bin			N
+env/attributemap.dat	env		FUN_00557943	Basedef.cpp	1			
+env/character.dat	env		FUN_0049f0e7 FUN_004a8f14	TMSelectCharScene.cpp TMSelectServerScene.cpp	1			
+env/character.trn	env		FUN_0049f0e7 FUN_004a8f14	TMSelectCharScene.cpp TMSelectServerScene.cpp	1			
+env/envtexturelist3.bin	env		-	TMPaths.h	1			T
+env/envtexturelist3.txt	env		FUN_004b9ce5	-	as .bin			N
+env/field%02d%02d.dat	env	yes	FUN_00435b13 FUN_00499f0e FUN_0049add2	TMFieldSceneUI.cpp TMSceneGround.cpp	96	23		
+env/field%02d%02d.trn	env	yes	FUN_00435b13 FUN_00499f0e FUN_0049add2	TMFieldSceneUI.cpp TMSceneGround.cpp	96	27		
+env/field0813.dat	env		FUN_004a8f14	-	1			N
+env/field0813.trn	env		FUN_004a8f14	-	1			N
+env/field1616.dat	env		-	TMSelectServerScene.cpp	1			T
+env/field1616.trn	env		-	TMSelectServerScene.cpp	1			T
+env/field1817.dat	env		FUN_00432181	-	1			N
+env/field1817.trn	env		FUN_00432181	-	1			N
+env/field2723.dat	env		FUN_004a8f14	-	1			N
+env/field2723.trn	env		FUN_004a8f14	-	1			N
+env/field2922.dat	env		FUN_004a8f14	TMSelectServerScene.cpp	1			
+env/field2922.trn	env		FUN_004a8f14	TMSelectServerScene.cpp	1			
+env/heightmap.dat	env		-	Basedef.cpp	1			T
+env/object/mask.txt	env		005c4974	-	0	0		NM
+extraitem.bin	(root)		FUN_0054fa27 FUN_005547e4	-	1			N
+extraitem.csv	(root)		FUN_0055474f	-	0	0		NM
+font.txt	(root)		FUN_0042ced1	TMPaths.h	0	0		M
+gameroomip.txt	(root)		FUN_005584df	-	0	0		NM
+guilds.txt	(root)		FUN_00433d61 FUN_00557593	-	0	0	wydgo748/data/Guilds.txt	NMS
+inititem.bin	(root)		005c4960 FUN_00556cc7	-	1			N
+inititem.csv	(root)		FUN_00556fa8	-	0	0		NM
+itemhelp.dat	(root)		FUN_0055bc0a	TMPaths.h	1			
+itemlist.bin	(root)		FUN_0054f7b6 FUN_0054fa27	Basedef.cpp	1		wydgo748/data/itemlist.csv	S
+itemlist.csv	(root)		FUN_0055474f	-	0	0	wydgo748/data/itemlist.csv	NMS
+itemname.bin	(root)		FUN_004b1d64	TMPaths.h	1		wydgo748/data/Itemname.csv	S
+itemprice.bin	(root)		FUN_0054b14a	TMPaths.h	0	1		M
+lang.txt	(root)		-	Basedef.cpp	0	0		TM
+mesh/%s.wys	mesh	yes	-	TMPaths.h	1960	468		T
+mesh/%s.wyt	mesh	yes	FUN_004bc7c7	-	0	1		NM
+mesh/blackpolice.wys	mesh		013c2a40 013c2a48 013c2a50 013c2a58 013c2a60 013c2a68	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/bluerudol.wyt	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/bm010102.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/boneani4.txt	mesh		FUN_004b00e4	TMPaths.h	1			
+mesh/ch010101.wys	mesh		FUN_0055b59d	-	1			N
+mesh/ch010101.wyt	mesh		FUN_0055b59d	-	0	0		NM
+mesh/ch0101100.msh	mesh		013c2b34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101100.wys	mesh		013c2b30 013c2b38 013c2b40 013c2b48 013c2b50 013c2b58	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101101.msh	mesh		013c2b64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101101.wys	mesh		013c2b60 013c2b68 013c2b70 013c2b78 013c2b80 013c2b88	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101102.msh	mesh		013c2bf4 013c2c24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101102.wys	mesh		013c2bf0 013c2bf8 013c2c00 013c2c08 013c2c10 013c2c18 013c2c20 013c2c28 013c2c30 013c2c38 013c2c40 013c2c48	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101103.msh	mesh		013c2b94 013c2bc4 013c3cd4 013c3d04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101103.wys	mesh		013c2b90 013c2b98 013c2ba0 013c2ba8 013c2bb0 013c2bb8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101104.msh	mesh		013c2c54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101104.wys	mesh		013c2c50 013c2c58 013c2c60 013c2c68 013c2c70 013c2c78	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101105.msh	mesh		-	FallbackCostumeTable.h	1			T
+mesh/ch0101105.wys	mesh		013c2cb8 013c2cc0 013c2cc8 013c2cd0 013c2cd8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101106.msh	mesh		013c2c84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101106.wys	mesh		013c2c80 013c2c88 013c2c90 013c2c98 013c2ca0 013c2ca8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101107.msh	mesh		013c2ce4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101107.wys	mesh		013c2ce0 013c2ce8 013c2cf0 013c2cf8 013c2d00 013c2d08	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101108.msh	mesh		013c2d14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101108.wys	mesh		013c2d10 013c2d18 013c2d20 013c2d28 013c2d30 013c2d38	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101109.msh	mesh		013c2d44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101109.wys	mesh		013c2d40 013c2d48 013c2d50 013c2d58 013c2d60 013c2d68	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101110.msh	mesh		013c2d74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101110.wys	mesh		013c2d70 013c2d78 013c2d80 013c2d88 013c2d90 013c2d98	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101111.msh	mesh		013c2da4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101111.wys	mesh		013c2da0 013c2da8 013c2db0 013c2db8 013c2dc0 013c2dc8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101112.msh	mesh		013c2dd4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101112.wys	mesh		013c2dd0 013c2dd8 013c2de0 013c2de8 013c2df0 013c2df8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101113.msh	mesh		013c2e04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101113.wys	mesh		013c2e00 013c2e08 013c2e10 013c2e18 013c2e20 013c2e28	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101114.msh	mesh		-	FallbackCostumeTable.h	1			T
+mesh/ch0101114.wys	mesh		013c2e38 013c2e40 013c2e48 013c2e50 013c2e58	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101115.msh	mesh		013c2e94	CostumeTable.generated.h FallbackCostumeTable.h TMSkinMeshCostumes.cpp	1			
+mesh/ch0101115.wys	mesh		013c2e90 013c2e98 013c2ea0 013c2ea8 013c2eb0 013c2eb8	CostumeTable.generated.h FallbackCostumeTable.h TMSkinMeshCostumes.cpp	1			
+mesh/ch0101116.msh	mesh		013c3b24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101116.wys	mesh		013c3b20 013c3b28 013c3b30 013c3b38 013c3b40 013c3b48	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101117.msh	mesh		013c3ca4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101117.wys	mesh		013c3ca0 013c3ca8 013c3cb0 013c3cb8 013c3cc0 013c3cc8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101118.msh	mesh		013c3d34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101118.wys	mesh		013c3d30 013c3d38 013c3d40 013c3d48 013c3d50 013c3d58	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101119.msh	mesh		013c3d64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101119.wys	mesh		013c3d60 013c3d68 013c3d70 013c3d78 013c3d80 013c3d88	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101120.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101120.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101121.msh	mesh		013c3df4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101121.wys	mesh		013c3df0 013c3df8 013c3e00 013c3e08 013c3e10 013c3e18	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101122.msh	mesh		013c3e24 013c3e54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101122.wys	mesh		013c3e20 013c3e28 013c3e30 013c3e38 013c3e40 013c3e48	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101123.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101123.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101124.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101124.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101125.msh	mesh		-	CostumeTable.generated.h FallbackCostumeTable.h	1			T
+mesh/ch0101125.wys	mesh		013c3ef0 013c3ef8 013c3f00 013c3f08	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101126.msh	mesh		013c3f14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101126.wys	mesh		013c3f10 013c3f18 013c3f20 013c3f28 013c3f30 013c3f38	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101127.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101127.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101128.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101128.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101129.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101129.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101130.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101130.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101131.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101131.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101132.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101132.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101133.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101133.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101138.msh	mesh		013c4244	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101138.wys	mesh		013c4240 013c4248 013c4250 013c4258 013c4260 013c4268	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101139.msh	mesh		013c42a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101139.wys	mesh		013c42a0 013c42a8 013c42b0 013c42b8 013c42c0 013c42c8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101140.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101140.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101141.msh	mesh		013c44b4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101141.wys	mesh		013c44b0 013c44b8 013c44c0 013c44c8 013c44d0 013c44d8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101151.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101151.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101152.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101152.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101154.msh	mesh		013c44e4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101154.wys	mesh		013c44e0 013c44e8 013c44f0 013c44f8 013c4500 013c4508	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101155.msh	mesh		013c4514	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101155.wys	mesh		013c4510 013c4518 013c4520 013c4528 013c4530 013c4538	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101156.msh	mesh		013c4544	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101156.wys	mesh		013c4540 013c4548 013c4550 013c4558 013c4560 013c4568	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101157.msh	mesh		013c4574	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101157.wys	mesh		013c4570 013c4578 013c4580 013c4588 013c4590 013c4598	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101158.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101158.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101159.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101159.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101160.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101160.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101161.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101161.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101162.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101162.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101163.msh	mesh		013c4694	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101163.wys	mesh		013c4690 013c4698 013c46a0 013c46a8 013c46b0 013c46b8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101164.msh	mesh		013c46c4 013c4d84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101164.wys	mesh		013c46c0 013c46c8 013c46d0 013c46d8 013c46e0 013c46e8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101165.msh	mesh		013c46f4	CostumeTable.generated.h	1			
+mesh/ch0101165.wys	mesh		013c46f0 013c46f8 013c4700 013c4708 013c4710 013c4718	CostumeTable.generated.h	1			
+mesh/ch0101166.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101166.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101167.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101167.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101168.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101168.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101169.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101169.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101170.msh	mesh		013c4814	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101170.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101171.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101171.wys	mesh		013c4810 013c4818 013c4820 013c4828 013c4830 013c4838	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101172.msh	mesh		013c4874	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101172.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101173.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101173.wys	mesh		013c4870 013c4878 013c4880 013c4888 013c4890 013c4898	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101174.msh	mesh		013c48a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101174.wys	mesh		013c48a0 013c48a8 013c48b0 013c48b8 013c48c0 013c48c8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101175.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101175.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101176.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101176.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101177.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101177.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101178.msh	mesh		013c4964	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101178.wys	mesh		013c4960 013c4968 013c4970 013c4978 013c4980 013c4988	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101179.msh	mesh		013c4994	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101179.wys	mesh		013c4990 013c4998 013c49a0 013c49a8 013c49b0 013c49b8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101180.msh	mesh		013c49c4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101180.wys	mesh		013c49c0 013c49c8 013c49d0 013c49d8 013c49e0 013c49e8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101181.msh	mesh		013c49f4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101181.wys	mesh		013c49f0 013c49f8 013c4a00 013c4a08 013c4a10 013c4a18	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101182.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101182.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101183.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101183.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101184.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101184.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101185.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101185.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101186.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101186.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101187.msh	mesh		013c4b14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101187.wys	mesh		013c4b10 013c4b18 013c4b20 013c4b28 013c4b30 013c4b38	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101188.msh	mesh		013c4b44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101188.wys	mesh		013c4b40 013c4b48 013c4b50 013c4b58 013c4b60 013c4b68	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101190.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101190.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101191.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101191.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101193.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101193.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101194.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101194.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101195.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101195.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101196.msh	mesh		013c4cc4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101196.wys	mesh		013c4cc0 013c4cc8 013c4cd0 013c4cd8 013c4ce0 013c4ce8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101197.msh	mesh		013c4cf4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101197.wys	mesh		013c4cf0 013c4cf8 013c4d00 013c4d08 013c4d10 013c4d18	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101198.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101198.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101199.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101199.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0101200.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101200.wys	mesh		013c4d80 013c4d88 013c4d90 013c4d98 013c4da0 013c4da8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101201.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101201.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101202.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101202.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101203.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101203.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101204.msh	mesh		013c4e44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101204.wys	mesh		013c4e40 013c4e48 013c4e50 013c4e58 013c4e60 013c4e68	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101205.msh	mesh		013c4e74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101205.wys	mesh		013c4e70 013c4e78 013c4e80 013c4e88 013c4e90 013c4e98	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101206.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101206.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101207.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101207.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101208.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101208.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101209.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101209.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101210.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101210.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101211.msh	mesh		013c4f94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101211.wys	mesh		013c4f90 013c4f98 013c4fa0 013c4fa8 013c4fb0 013c4fb8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101212.msh	mesh		013c4fc4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101212.wys	mesh		013c4fc0 013c4fc8 013c4fd0 013c4fd8 013c4fe0 013c4fe8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101213.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101213.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101214.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101214.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101215.msh	mesh		013c5054	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101215.wys	mesh		013c5050 013c5058 013c5060 013c5068 013c5070 013c5078	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101216.msh	mesh		013c5084	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101216.wys	mesh		013c5080 013c5088 013c5090 013c5098 013c50a0 013c50a8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0101217.msh	mesh		013c50b4	CostumeTable.generated.h	1			
+mesh/ch0101217.wys	mesh		013c50b0 013c50b8 013c50c0 013c50c8 013c50d0 013c50d8	CostumeTable.generated.h	1			
+mesh/ch0101218.msh	mesh		013c50e4	CostumeTable.generated.h	1			
+mesh/ch0101218.wys	mesh		013c50e0 013c50e8 013c50f0 013c50f8 013c5100 013c5108	CostumeTable.generated.h	1			
+mesh/ch0101219.msh	mesh		013c5114	CostumeTable.generated.h	1			
+mesh/ch0101219.wys	mesh		013c5110 013c5118 013c5120 013c5128 013c5130 013c5138	CostumeTable.generated.h	1			
+mesh/ch0101220.msh	mesh		013c5144	CostumeTable.generated.h	1			
+mesh/ch0101220.wys	mesh		013c5140 013c5148 013c5150 013c5158 013c5160 013c5168	CostumeTable.generated.h	1			
+mesh/ch0101221.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101221.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101222.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101222.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101223.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101223.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101224.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101224.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101225.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101225.wys	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0101227.msh	mesh		013c5294	CostumeTable.generated.h	1			
+mesh/ch0101227.wys	mesh		013c5290 013c5298 013c52a0 013c52a8 013c52b0 013c52b8	CostumeTable.generated.h	1			
+mesh/ch0101228.msh	mesh		013c52c4	CostumeTable.generated.h	1			
+mesh/ch0101228.wys	mesh		013c52c0 013c52c8 013c52d0 013c52d8 013c52e0 013c52e8	CostumeTable.generated.h	1			
+mesh/ch0101230.msh	mesh		013c5324	CostumeTable.generated.h	1			
+mesh/ch0101230.wys	mesh		013c5320 013c5328 013c5330 013c5338 013c5340 013c5348	CostumeTable.generated.h	1			
+mesh/ch0101233.msh	mesh		013c53b4	CostumeTable.generated.h	1			
+mesh/ch0101233.wys	mesh		013c53b0 013c53b8 013c53c0 013c53c8 013c53d0 013c53d8	CostumeTable.generated.h	1			
+mesh/ch0101235.msh	mesh		013c5414	CostumeTable.generated.h	1			
+mesh/ch0101235.wys	mesh		013c5410 013c5418 013c5420 013c5428 013c5430 013c5438	CostumeTable.generated.h	1			
+mesh/ch0101236.msh	mesh		013c5444	CostumeTable.generated.h	1			
+mesh/ch0101236.wys	mesh		013c5440 013c5448 013c5450 013c5458 013c5460 013c5468	CostumeTable.generated.h	1			
+mesh/ch0101241.msh	mesh		013c5534	CostumeTable.generated.h	1			
+mesh/ch0101241.wys	mesh		013c5530 013c5538 013c5540 013c5548 013c5550 013c5558	CostumeTable.generated.h	1			
+mesh/ch0101242.msh	mesh		013c5564	CostumeTable.generated.h	1			
+mesh/ch0101242.wys	mesh		013c5560 013c5568 013c5570 013c5578 013c5580 013c5588	CostumeTable.generated.h	1			
+mesh/ch0101243.msh	mesh		013c5594	CostumeTable.generated.h	1			
+mesh/ch0101243.wys	mesh		013c5590 013c5598 013c55a0 013c55a8 013c55b0 013c55b8	CostumeTable.generated.h	1			
+mesh/ch0101244.msh	mesh		013c55c4	CostumeTable.generated.h	1			
+mesh/ch0101244.wys	mesh		013c55c0 013c55c8 013c55d0 013c55d8 013c55e0 013c55e8	CostumeTable.generated.h	1			
+mesh/ch0101245.msh	mesh		013c55f4	CostumeTable.generated.h	1			
+mesh/ch0101245.wys	mesh		013c55f0 013c55f8 013c5600 013c5608 013c5610 013c5618	CostumeTable.generated.h	1			
+mesh/ch0101246.msh	mesh		013c5624	CostumeTable.generated.h	1			
+mesh/ch0101246.wys	mesh		013c5620 013c5628 013c5630 013c5638 013c5640 013c5648	CostumeTable.generated.h	1			
+mesh/ch0101247.msh	mesh		013c5654	CostumeTable.generated.h	1			
+mesh/ch0101247.wys	mesh		013c5650 013c5658 013c5660 013c5668 013c5670 013c5678	CostumeTable.generated.h	1			
+mesh/ch0101248.msh	mesh		013c5684	CostumeTable.generated.h	1			
+mesh/ch0101248.wys	mesh		013c5680 013c5688 013c5690 013c5698 013c56a0 013c56a8	CostumeTable.generated.h	1			
+mesh/ch0101249.msh	mesh		013c56b4	CostumeTable.generated.h	1			
+mesh/ch0101249.wys	mesh		013c56b0 013c56b8 013c56c0 013c56c8 013c56d0 013c56d8	CostumeTable.generated.h	1			
+mesh/ch0101250.msh	mesh		013c56e4	CostumeTable.generated.h	1			
+mesh/ch0101250.wys	mesh		013c56e0 013c56e8 013c56f0 013c56f8 013c5700 013c5708	CostumeTable.generated.h	1			
+mesh/ch0101251.msh	mesh		013c5714	CostumeTable.generated.h	1			
+mesh/ch0101251.wys	mesh		013c5710 013c5718 013c5720 013c5728 013c5730 013c5738	CostumeTable.generated.h	1			
+mesh/ch0101253.msh	mesh		013c5774	CostumeTable.generated.h	1			
+mesh/ch0101253.wys	mesh		013c5770 013c5778 013c5780 013c5788 013c5790 013c5798	CostumeTable.generated.h	1			
+mesh/ch0101254.msh	mesh		013c57a4	CostumeTable.generated.h	1			
+mesh/ch0101254.wys	mesh		013c57a0 013c57a8 013c57b0 013c57b8 013c57c0 013c57c8	CostumeTable.generated.h	1			
+mesh/ch0101255.msh	mesh		013c57d4	CostumeTable.generated.h	1			
+mesh/ch0101255.wys	mesh		013c57d0 013c57d8 013c57e0 013c57e8 013c57f0 013c57f8	CostumeTable.generated.h	1			
+mesh/ch0101256.msh	mesh		013c5804	CostumeTable.generated.h	1			
+mesh/ch0101256.wys	mesh		013c5800 013c5808 013c5810 013c5818 013c5820 013c5828	CostumeTable.generated.h	1			
+mesh/ch0101260.msh	mesh		013c58c4	CostumeTable.generated.h	1			
+mesh/ch0101260.wys	mesh		013c58c0 013c58c8 013c58d0 013c58d8 013c58e0 013c58e8	CostumeTable.generated.h	1			
+mesh/ch0101261.msh	mesh		013c58f4	CostumeTable.generated.h	1			
+mesh/ch0101261.wys	mesh		013c58f0 013c58f8 013c5900 013c5908 013c5910 013c5918	CostumeTable.generated.h	1			
+mesh/ch0101265.msh	mesh		013c59b4	CostumeTable.generated.h	1			
+mesh/ch0101265.wys	mesh		013c59b0 013c59b8 013c59c0 013c59c8 013c59d0 013c59d8	CostumeTable.generated.h	1			
+mesh/ch0101282.msh	mesh		013c5ce4	CostumeTable.generated.h	1			
+mesh/ch0101282.wys	mesh		013c5ce0 013c5ce8 013c5cf0 013c5cf8 013c5d00 013c5d08	CostumeTable.generated.h	1			
+mesh/ch0101284.msh	mesh		013c5d44	CostumeTable.generated.h	1			
+mesh/ch0101284.wys	mesh		013c5d40 013c5d48 013c5d50 013c5d58 013c5d60 013c5d68	CostumeTable.generated.h	1			
+mesh/ch0101285.msh	mesh		013c5d74	CostumeTable.generated.h	1			
+mesh/ch0101285.wys	mesh		013c5d70 013c5d78 013c5d80 013c5d88 013c5d90 013c5d98	CostumeTable.generated.h	1			
+mesh/ch0101286.msh	mesh		013c5da4	CostumeTable.generated.h	1			
+mesh/ch0101286.wys	mesh		013c5da0 013c5da8 013c5db0 013c5db8 013c5dc0 013c5dc8	CostumeTable.generated.h	1			
+mesh/ch0101287.msh	mesh		013c5dd4	CostumeTable.generated.h	1			
+mesh/ch0101287.wys	mesh		013c5dd0 013c5dd8 013c5de0 013c5de8 013c5df0 013c5df8	CostumeTable.generated.h	1			
+mesh/ch0101297.msh	mesh		013c5fb4	CostumeTable.generated.h	1			
+mesh/ch0101297.wys	mesh		013c5fb0 013c5fb8 013c5fc0 013c5fc8 013c5fd0 013c5fd8	CostumeTable.generated.h	1			
+mesh/ch0101298.msh	mesh		013c5fe4	CostumeTable.generated.h	1			
+mesh/ch0101298.wys	mesh		013c5fe0 013c5fe8 013c5ff0 013c5ff8 013c6000 013c6008	CostumeTable.generated.h	1			
+mesh/ch0101299.msh	mesh		013c6014	CostumeTable.generated.h	1			
+mesh/ch0101299.wys	mesh		013c6010 013c6018 013c6020 013c6028 013c6030 013c6038	CostumeTable.generated.h	1			
+mesh/ch010130.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch0101300.msh	mesh		013c6044	CostumeTable.generated.h	1			
+mesh/ch0101300.wys	mesh		013c6040 013c6048 013c6050 013c6058 013c6060 013c6068	CostumeTable.generated.h	1			
+mesh/ch0101301.msh	mesh		013c6074	CostumeTable.generated.h	1			
+mesh/ch0101301.wys	mesh		013c6070 013c6078 013c6080 013c6088 013c6090 013c6098	CostumeTable.generated.h	1			
+mesh/ch0101302.msh	mesh		013c60a4	CostumeTable.generated.h	1			
+mesh/ch0101302.wys	mesh		013c60a0 013c60a8 013c60b0 013c60b8 013c60c0 013c60c8	CostumeTable.generated.h	1			
+mesh/ch010137.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch010138.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch010189.msh	mesh		013c2aa4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010195.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch010195.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch010199.msh	mesh		013c2b04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010199.wys	mesh		013c2b00 013c2b08 013c2b10 013c2b18 013c2b20 013c2b28	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102100.msh	mesh		013c2b3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102101.msh	mesh		013c2b6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102102.msh	mesh		013c2bfc 013c2c2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102103.msh	mesh		013c2b9c 013c2bcc 013c3cdc 013c3d0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102103.wys	mesh		013c2bc0 013c2bc8 013c2bd0 013c2bd8 013c2be0 013c2be8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102104.msh	mesh		013c2c5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102105.msh	mesh		013c2cbc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102106.msh	mesh		013c2c8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102107.msh	mesh		013c2cec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102108.msh	mesh		013c2d1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102109.msh	mesh		013c2d4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102110.msh	mesh		013c2d7c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102111.msh	mesh		013c2dac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102112.msh	mesh		013c2ddc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102113.msh	mesh		013c2e0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102114.msh	mesh		013c2e3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102115.msh	mesh		013c2e9c	CostumeTable.generated.h FallbackCostumeTable.h TMSkinMeshCostumes.cpp	1			
+mesh/ch0102116.msh	mesh		013c3b2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102117.msh	mesh		013c3cac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102118.msh	mesh		013c3d3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102119.msh	mesh		013c3d6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102120.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102121.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102122.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102122.wys	mesh		013c3e50 013c3e58 013c3e60 013c3e68 013c3e70 013c3e78	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102123.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102124.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102125.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102126.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102127.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102128.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102129.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102130.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102131.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102132.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102133.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102134.msh	mesh		013c409c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102134.wys	mesh		013c4098	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102135.msh	mesh		013c40cc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102135.wys	mesh		013c40c8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102136.msh	mesh		013c415c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102136.wys	mesh		013c4158	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102137.msh	mesh		013c418c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102137.wys	mesh		013c4188	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102138.msh	mesh		013c424c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102139.msh	mesh		013c42ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010214.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch0102140.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102141.msh	mesh		013c44bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102151.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102152.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102154.msh	mesh		013c44ec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102155.msh	mesh		013c451c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102156.msh	mesh		013c454c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102157.msh	mesh		013c457c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102158.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102159.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102160.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102161.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102162.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102163.msh	mesh		013c469c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102164.msh	mesh		013c46cc 013c4d8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102165.msh	mesh		013c46fc	CostumeTable.generated.h	1			
+mesh/ch0102166.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102167.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102168.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102169.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102170.msh	mesh		013c481c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102171.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102172.msh	mesh		013c487c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102173.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102174.msh	mesh		013c48ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102175.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102176.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102177.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102178.msh	mesh		013c496c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102179.msh	mesh		013c499c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010218.msh	mesh		FUN_004bead1	TMSkinMesh.cpp	1			
+mesh/ch0102180.msh	mesh		013c49cc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102181.msh	mesh		013c49fc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102182.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102183.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102184.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102185.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102186.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102187.msh	mesh		013c4b1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102188.msh	mesh		013c4b4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010219.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch0102190.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102191.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102193.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102194.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102195.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0102196.msh	mesh		013c4ccc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102197.msh	mesh		013c4cfc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102198.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102199.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102200.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102201.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102202.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102203.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102204.msh	mesh		013c4e4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102205.msh	mesh		013c4e7c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102206.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102207.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102208.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102209.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102210.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102211.msh	mesh		013c4f9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102212.msh	mesh		013c4fcc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102213.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102214.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102215.msh	mesh		013c505c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102216.msh	mesh		013c508c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0102217.msh	mesh		013c50bc	CostumeTable.generated.h	1			
+mesh/ch0102218.msh	mesh		013c50ec	CostumeTable.generated.h	1			
+mesh/ch0102219.msh	mesh		013c511c	CostumeTable.generated.h	1			
+mesh/ch0102220.msh	mesh		013c514c	CostumeTable.generated.h	1			
+mesh/ch0102221.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102222.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102223.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102224.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102225.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0102227.msh	mesh		013c529c	CostumeTable.generated.h	1			
+mesh/ch0102228.msh	mesh		013c52cc	CostumeTable.generated.h	1			
+mesh/ch0102230.msh	mesh		013c532c	CostumeTable.generated.h	1			
+mesh/ch0102233.msh	mesh		013c53bc	CostumeTable.generated.h	1			
+mesh/ch0102235.msh	mesh		013c541c	CostumeTable.generated.h	1			
+mesh/ch0102236.msh	mesh		013c544c	CostumeTable.generated.h	1			
+mesh/ch0102241.msh	mesh		013c553c	CostumeTable.generated.h	1			
+mesh/ch0102242.msh	mesh		013c556c	CostumeTable.generated.h	1			
+mesh/ch0102243.msh	mesh		013c559c	CostumeTable.generated.h	1			
+mesh/ch0102244.msh	mesh		013c55cc	CostumeTable.generated.h	1			
+mesh/ch0102245.msh	mesh		013c55fc	CostumeTable.generated.h	1			
+mesh/ch0102246.msh	mesh		013c562c	CostumeTable.generated.h	1			
+mesh/ch0102247.msh	mesh		013c565c	CostumeTable.generated.h	1			
+mesh/ch0102248.msh	mesh		013c568c	CostumeTable.generated.h	1			
+mesh/ch0102249.msh	mesh		013c56bc	CostumeTable.generated.h	1			
+mesh/ch0102250.msh	mesh		013c56ec	CostumeTable.generated.h	1			
+mesh/ch0102251.msh	mesh		013c571c	CostumeTable.generated.h	1			
+mesh/ch0102253.msh	mesh		013c577c	CostumeTable.generated.h	1			
+mesh/ch0102254.msh	mesh		013c57ac	CostumeTable.generated.h	1			
+mesh/ch0102255.msh	mesh		013c57dc	CostumeTable.generated.h	1			
+mesh/ch0102256.msh	mesh		013c580c	CostumeTable.generated.h	1			
+mesh/ch0102260.msh	mesh		013c58cc	CostumeTable.generated.h	1			
+mesh/ch0102261.msh	mesh		013c58fc	CostumeTable.generated.h	1			
+mesh/ch0102265.msh	mesh		013c59bc	CostumeTable.generated.h	1			
+mesh/ch0102271.msh	mesh		013c5adc	CostumeTable.generated.h	1			
+mesh/ch0102271.wys	mesh		013c5ad8	CostumeTable.generated.h	1			
+mesh/ch0102272.msh	mesh		013c5b0c	CostumeTable.generated.h	1			
+mesh/ch0102272.wys	mesh		013c5b08	CostumeTable.generated.h	1			
+mesh/ch0102273.msh	mesh		013c5b3c	CostumeTable.generated.h	1			
+mesh/ch0102273.wys	mesh		013c5b38	CostumeTable.generated.h	1			
+mesh/ch0102274.msh	mesh		013c5b6c	CostumeTable.generated.h	1			
+mesh/ch0102274.wys	mesh		013c5b68	CostumeTable.generated.h	1			
+mesh/ch0102282.msh	mesh		013c5cec	CostumeTable.generated.h	1			
+mesh/ch0102284.msh	mesh		013c5d4c	CostumeTable.generated.h	1			
+mesh/ch0102285.msh	mesh		013c5d7c	CostumeTable.generated.h	1			
+mesh/ch0102286.msh	mesh		013c5dac	CostumeTable.generated.h	1			
+mesh/ch0102287.msh	mesh		013c5ddc	CostumeTable.generated.h	1			
+mesh/ch0102297.msh	mesh		013c5fbc	CostumeTable.generated.h	1			
+mesh/ch0102298.msh	mesh		013c5fec	CostumeTable.generated.h	1			
+mesh/ch0102299.msh	mesh		013c601c	CostumeTable.generated.h	1			
+mesh/ch0102300.msh	mesh		013c604c	CostumeTable.generated.h	1			
+mesh/ch0102301.msh	mesh		013c607c	CostumeTable.generated.h	1			
+mesh/ch0102302.msh	mesh		013c60ac	CostumeTable.generated.h	1			
+mesh/ch010289.msh	mesh		013c2aac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010295.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch010299.msh	mesh		013c2b0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103100.msh	mesh		013c2b44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103101.msh	mesh		013c2b74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103102.msh	mesh		013c2c04 013c2c34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103103.msh	mesh		013c2ba4 013c2bd4 013c3ce4 013c3d14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103103.wys	mesh		013c3cd0 013c3cd8 013c3ce0 013c3ce8 013c3cf0 013c3cf8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103104.msh	mesh		013c2c64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103105.msh	mesh		013c2cc4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103106.msh	mesh		013c2c94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103107.msh	mesh		013c2cf4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103108.msh	mesh		013c2d24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103109.msh	mesh		013c2d54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103110.msh	mesh		013c2d84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103111.msh	mesh		013c2db4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103112.msh	mesh		013c2de4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103113.msh	mesh		013c2e14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103114.msh	mesh		013c2e44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103115.msh	mesh		013c2ea4	CostumeTable.generated.h FallbackCostumeTable.h TMSkinMeshCostumes.cpp	1			
+mesh/ch0103116.msh	mesh		013c3b34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103117.msh	mesh		013c3cb4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103118.msh	mesh		013c3d44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103119.msh	mesh		013c3d74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103120.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103121.msh	mesh		013c3dfc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103122.msh	mesh		013c3e2c 013c3e5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103123.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103124.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103125.msh	mesh		013c3ef4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103126.msh	mesh		013c3f24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103127.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103128.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103129.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103130.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103131.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103132.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103133.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103134.msh	mesh		013c40a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103134.wys	mesh		013c40a0	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103135.msh	mesh		013c40d4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103135.wys	mesh		013c40d0	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103136.msh	mesh		013c4164	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103136.wys	mesh		013c4160	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103137.msh	mesh		013c4194	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103137.wys	mesh		013c4190	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103138.msh	mesh		013c4254	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103139.msh	mesh		013c42b4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103140.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103141.msh	mesh		013c44c4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103151.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103152.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103154.msh	mesh		013c44f4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103155.msh	mesh		013c4524	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103156.msh	mesh		013c4554	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103157.msh	mesh		013c4584	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103158.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103159.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103160.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103161.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103162.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103163.msh	mesh		013c46a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103164.msh	mesh		013c46d4 013c4d94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103165.msh	mesh		013c4704	CostumeTable.generated.h	1			
+mesh/ch0103166.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103167.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103168.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103169.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103170.msh	mesh		013c4824	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103171.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103172.msh	mesh		013c4884	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103173.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103174.msh	mesh		013c48b4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103175.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103176.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103177.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103178.msh	mesh		013c4974	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103179.msh	mesh		013c49a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103180.msh	mesh		013c49d4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103181.msh	mesh		013c4a04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103182.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103183.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103184.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103185.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103186.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103187.msh	mesh		013c4b24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103188.msh	mesh		013c4b54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103190.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103191.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103193.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103194.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103195.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0103196.msh	mesh		013c4cd4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103197.msh	mesh		013c4d04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103198.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103199.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103200.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103201.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103202.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103203.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103204.msh	mesh		013c4e54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103205.msh	mesh		013c4e84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103206.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103207.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103208.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103209.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103210.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103211.msh	mesh		013c4fa4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103212.msh	mesh		013c4fd4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103213.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103214.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103215.msh	mesh		013c5064	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103216.msh	mesh		013c5094	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0103217.msh	mesh		013c50c4	CostumeTable.generated.h	1			
+mesh/ch0103218.msh	mesh		013c50f4	CostumeTable.generated.h	1			
+mesh/ch0103219.msh	mesh		013c5124	CostumeTable.generated.h	1			
+mesh/ch0103220.msh	mesh		013c5154	CostumeTable.generated.h	1			
+mesh/ch0103221.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103222.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103223.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103224.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103225.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0103227.msh	mesh		013c52a4	CostumeTable.generated.h	1			
+mesh/ch0103228.msh	mesh		013c52d4	CostumeTable.generated.h	1			
+mesh/ch0103230.msh	mesh		013c5334	CostumeTable.generated.h	1			
+mesh/ch0103233.msh	mesh		013c53c4	CostumeTable.generated.h	1			
+mesh/ch0103235.msh	mesh		013c5424	CostumeTable.generated.h	1			
+mesh/ch0103236.msh	mesh		013c5454	CostumeTable.generated.h	1			
+mesh/ch0103241.msh	mesh		013c5544	CostumeTable.generated.h	1			
+mesh/ch0103242.msh	mesh		013c5574	CostumeTable.generated.h	1			
+mesh/ch0103243.msh	mesh		013c55a4	CostumeTable.generated.h	1			
+mesh/ch0103244.msh	mesh		013c55d4	CostumeTable.generated.h	1			
+mesh/ch0103245.msh	mesh		013c5604	CostumeTable.generated.h	1			
+mesh/ch0103246.msh	mesh		013c5634	CostumeTable.generated.h	1			
+mesh/ch0103247.msh	mesh		013c5664	CostumeTable.generated.h	1			
+mesh/ch0103248.msh	mesh		013c5694	CostumeTable.generated.h	1			
+mesh/ch0103249.msh	mesh		013c56c4	CostumeTable.generated.h	1			
+mesh/ch0103250.msh	mesh		013c56f4	CostumeTable.generated.h	1			
+mesh/ch0103251.msh	mesh		013c5724	CostumeTable.generated.h	1			
+mesh/ch0103253.msh	mesh		013c5784	CostumeTable.generated.h	1			
+mesh/ch0103254.msh	mesh		013c57b4	CostumeTable.generated.h	1			
+mesh/ch0103255.msh	mesh		013c57e4	CostumeTable.generated.h	1			
+mesh/ch0103256.msh	mesh		013c5814	CostumeTable.generated.h	1			
+mesh/ch0103260.msh	mesh		013c58d4	CostumeTable.generated.h	1			
+mesh/ch0103261.msh	mesh		013c5904	CostumeTable.generated.h	1			
+mesh/ch0103265.msh	mesh		013c59c4	CostumeTable.generated.h	1			
+mesh/ch0103271.msh	mesh		013c5ae4	CostumeTable.generated.h	1			
+mesh/ch0103271.wys	mesh		013c5ae0	CostumeTable.generated.h	1			
+mesh/ch0103272.msh	mesh		013c5b14	CostumeTable.generated.h	1			
+mesh/ch0103272.wys	mesh		013c5b10	CostumeTable.generated.h	1			
+mesh/ch0103273.msh	mesh		013c5b44	CostumeTable.generated.h	1			
+mesh/ch0103273.wys	mesh		013c5b40	CostumeTable.generated.h	1			
+mesh/ch0103274.msh	mesh		013c5b74	CostumeTable.generated.h	1			
+mesh/ch0103274.wys	mesh		013c5b70	CostumeTable.generated.h	1			
+mesh/ch0103282.msh	mesh		013c5cf4	CostumeTable.generated.h	1			
+mesh/ch0103284.msh	mesh		013c5d54	CostumeTable.generated.h	1			
+mesh/ch0103285.msh	mesh		013c5d84	CostumeTable.generated.h	1			
+mesh/ch0103286.msh	mesh		013c5db4	CostumeTable.generated.h	1			
+mesh/ch0103287.msh	mesh		013c5de4	CostumeTable.generated.h	1			
+mesh/ch0103297.msh	mesh		013c5fc4	CostumeTable.generated.h	1			
+mesh/ch0103298.msh	mesh		013c5ff4	CostumeTable.generated.h	1			
+mesh/ch0103299.msh	mesh		013c6024	CostumeTable.generated.h	1			
+mesh/ch0103300.msh	mesh		013c6054	CostumeTable.generated.h	1			
+mesh/ch0103301.msh	mesh		013c6084	CostumeTable.generated.h	1			
+mesh/ch0103302.msh	mesh		013c60b4	CostumeTable.generated.h	1			
+mesh/ch010389.msh	mesh		013c2ab4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010395.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch010399.msh	mesh		013c2b14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104100.msh	mesh		013c2b4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104101.msh	mesh		013c2b7c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104102.msh	mesh		013c2c0c 013c2c3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104103.msh	mesh		013c2bac 013c2bdc 013c3cec 013c3d1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104103.wys	mesh		013c3d00 013c3d08 013c3d10 013c3d18 013c3d20 013c3d28	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104104.msh	mesh		013c2c6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104105.msh	mesh		013c2ccc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104106.msh	mesh		013c2c9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104107.msh	mesh		013c2cfc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104108.msh	mesh		013c2d2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104109.msh	mesh		013c2d5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104110.msh	mesh		013c2d8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104111.msh	mesh		013c2dbc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104112.msh	mesh		013c2dec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104113.msh	mesh		013c2e1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104114.msh	mesh		013c2e4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104115.msh	mesh		013c2eac	CostumeTable.generated.h FallbackCostumeTable.h TMSkinMeshCostumes.cpp	1			
+mesh/ch0104116.msh	mesh		013c3b3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104117.msh	mesh		013c3cbc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104118.msh	mesh		013c3d4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104119.msh	mesh		013c3d7c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104120.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104121.msh	mesh		013c3e04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104122.msh	mesh		013c3e34 013c3e64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104123.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104124.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104125.msh	mesh		013c3efc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104126.msh	mesh		013c3f2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104127.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104128.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104129.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104130.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104131.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104132.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104133.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104134.msh	mesh		013c40ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104134.wys	mesh		013c40a8	CostumeTable.generated.h	1			
+mesh/ch0104135.msh	mesh		013c40dc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104135.wys	mesh		013c40d8	CostumeTable.generated.h	1			
+mesh/ch0104136.msh	mesh		013c416c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104136.wys	mesh		013c4168	CostumeTable.generated.h	1			
+mesh/ch0104137.msh	mesh		013c419c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104137.wys	mesh		013c4198	CostumeTable.generated.h	1			
+mesh/ch0104138.msh	mesh		013c425c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104139.msh	mesh		013c42bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104140.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104141.msh	mesh		013c44cc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104151.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104152.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104154.msh	mesh		013c44fc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104155.msh	mesh		013c452c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104156.msh	mesh		013c455c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104157.msh	mesh		013c458c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104158.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104159.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104160.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104161.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104162.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104163.msh	mesh		013c46ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104164.msh	mesh		013c46dc 013c4d9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104165.msh	mesh		013c470c	CostumeTable.generated.h	1			
+mesh/ch0104166.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104167.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104168.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104169.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104170.msh	mesh		013c482c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104171.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104172.msh	mesh		013c488c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104173.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104174.msh	mesh		013c48bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104175.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104176.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104177.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104178.msh	mesh		013c497c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104179.msh	mesh		013c49ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104180.msh	mesh		013c49dc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104181.msh	mesh		013c4a0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104182.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104183.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104184.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104185.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104186.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104187.msh	mesh		013c4b2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104188.msh	mesh		013c4b5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104190.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104191.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104193.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104194.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104195.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0104196.msh	mesh		013c4cdc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104197.msh	mesh		013c4d0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104198.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104199.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104200.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104201.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104202.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104203.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104204.msh	mesh		013c4e5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104205.msh	mesh		013c4e8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104206.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104207.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104208.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104209.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104210.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104211.msh	mesh		013c4fac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104212.msh	mesh		013c4fdc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104213.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104214.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104215.msh	mesh		013c506c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104216.msh	mesh		013c509c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0104217.msh	mesh		013c50cc	CostumeTable.generated.h	1			
+mesh/ch0104218.msh	mesh		013c50fc	CostumeTable.generated.h	1			
+mesh/ch0104219.msh	mesh		013c512c	CostumeTable.generated.h	1			
+mesh/ch0104220.msh	mesh		013c515c	CostumeTable.generated.h	1			
+mesh/ch0104221.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104222.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104223.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104224.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104225.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0104227.msh	mesh		013c52ac	CostumeTable.generated.h	1			
+mesh/ch0104228.msh	mesh		013c52dc	CostumeTable.generated.h	1			
+mesh/ch0104230.msh	mesh		013c533c	CostumeTable.generated.h	1			
+mesh/ch0104233.msh	mesh		013c53cc	CostumeTable.generated.h	1			
+mesh/ch0104235.msh	mesh		013c542c	CostumeTable.generated.h	1			
+mesh/ch0104236.msh	mesh		013c545c	CostumeTable.generated.h	1			
+mesh/ch0104241.msh	mesh		013c554c	CostumeTable.generated.h	1			
+mesh/ch0104242.msh	mesh		013c557c	CostumeTable.generated.h	1			
+mesh/ch0104243.msh	mesh		013c55ac	CostumeTable.generated.h	1			
+mesh/ch0104244.msh	mesh		013c55dc	CostumeTable.generated.h	1			
+mesh/ch0104245.msh	mesh		013c560c	CostumeTable.generated.h	1			
+mesh/ch0104246.msh	mesh		013c563c	CostumeTable.generated.h	1			
+mesh/ch0104247.msh	mesh		013c566c	CostumeTable.generated.h	1			
+mesh/ch0104248.msh	mesh		013c569c	CostumeTable.generated.h	1			
+mesh/ch0104249.msh	mesh		013c56cc	CostumeTable.generated.h	1			
+mesh/ch0104250.msh	mesh		013c56fc	CostumeTable.generated.h	1			
+mesh/ch0104251.msh	mesh		013c572c	CostumeTable.generated.h	1			
+mesh/ch0104253.msh	mesh		013c578c	CostumeTable.generated.h	1			
+mesh/ch0104254.msh	mesh		013c57bc	CostumeTable.generated.h	1			
+mesh/ch0104255.msh	mesh		013c57ec	CostumeTable.generated.h	1			
+mesh/ch0104256.msh	mesh		013c581c	CostumeTable.generated.h	1			
+mesh/ch0104260.msh	mesh		013c58dc	CostumeTable.generated.h	1			
+mesh/ch0104261.msh	mesh		013c590c	CostumeTable.generated.h	1			
+mesh/ch0104265.msh	mesh		013c59cc	CostumeTable.generated.h	1			
+mesh/ch0104271.msh	mesh		013c5aec	CostumeTable.generated.h	1			
+mesh/ch0104271.wys	mesh		013c5ae8	CostumeTable.generated.h	1			
+mesh/ch0104272.msh	mesh		013c5b1c	CostumeTable.generated.h	1			
+mesh/ch0104272.wys	mesh		013c5b18	CostumeTable.generated.h	1			
+mesh/ch0104273.msh	mesh		013c5b4c	CostumeTable.generated.h	1			
+mesh/ch0104273.wys	mesh		013c5b48	CostumeTable.generated.h	1			
+mesh/ch0104274.msh	mesh		013c5b7c	CostumeTable.generated.h	1			
+mesh/ch0104274.wys	mesh		013c5b78	CostumeTable.generated.h	1			
+mesh/ch0104282.msh	mesh		013c5cfc	CostumeTable.generated.h	1			
+mesh/ch0104284.msh	mesh		013c5d5c	CostumeTable.generated.h	1			
+mesh/ch0104285.msh	mesh		013c5d8c	CostumeTable.generated.h	1			
+mesh/ch0104286.msh	mesh		013c5dbc	CostumeTable.generated.h	1			
+mesh/ch0104287.msh	mesh		013c5dec	CostumeTable.generated.h	1			
+mesh/ch0104297.msh	mesh		013c5fcc	CostumeTable.generated.h	1			
+mesh/ch0104298.msh	mesh		013c5ffc	CostumeTable.generated.h	1			
+mesh/ch0104299.msh	mesh		013c602c	CostumeTable.generated.h	1			
+mesh/ch010430.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch0104300.msh	mesh		013c605c	CostumeTable.generated.h	1			
+mesh/ch0104301.msh	mesh		013c608c	CostumeTable.generated.h	1			
+mesh/ch0104302.msh	mesh		013c60bc	CostumeTable.generated.h	1			
+mesh/ch010489.msh	mesh		013c2abc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010495.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch010499.msh	mesh		013c2b1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105100.msh	mesh		013c2b54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105101.msh	mesh		013c2b84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105102.msh	mesh		013c2c14 013c2c44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105103.msh	mesh		013c2bb4 013c2be4 013c3cf4 013c3d24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105104.msh	mesh		013c2c74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105105.msh	mesh		013c2cd4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105106.msh	mesh		013c2ca4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105107.msh	mesh		013c2d04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105108.msh	mesh		013c2d34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105109.msh	mesh		013c2d64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105110.msh	mesh		013c2d94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105111.msh	mesh		013c2dc4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105112.msh	mesh		013c2df4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105113.msh	mesh		013c2e24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105114.msh	mesh		013c2e54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105115.msh	mesh		013c2eb4	CostumeTable.generated.h FallbackCostumeTable.h TMSkinMeshCostumes.cpp	1			
+mesh/ch0105116.msh	mesh		013c3b44	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105117.msh	mesh		013c3cc4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105118.msh	mesh		013c3d54	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105119.msh	mesh		013c3d84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105120.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105121.msh	mesh		013c3e0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105122.msh	mesh		013c3e3c 013c3e6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105123.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105124.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105125.msh	mesh		013c3f04	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105126.msh	mesh		013c3f34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105127.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105128.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105129.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105130.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105131.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105132.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105133.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105134.msh	mesh		013c40b4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105134.wys	mesh		013c40b0	CostumeTable.generated.h	1			
+mesh/ch0105135.msh	mesh		013c40e4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105135.wys	mesh		013c40e0	CostumeTable.generated.h	1			
+mesh/ch0105136.msh	mesh		013c4174	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105136.wys	mesh		013c4170	CostumeTable.generated.h	1			
+mesh/ch0105137.msh	mesh		013c41a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105137.wys	mesh		013c41a0	CostumeTable.generated.h	1			
+mesh/ch0105138.msh	mesh		013c4264	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105139.msh	mesh		013c42c4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105140.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105141.msh	mesh		013c44d4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105151.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105152.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105154.msh	mesh		013c4504	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105155.msh	mesh		013c4534	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105156.msh	mesh		013c4564	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105157.msh	mesh		013c4594	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105158.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105159.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105160.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105161.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105162.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105163.msh	mesh		013c46b4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105164.msh	mesh		013c46e4 013c4da4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105165.msh	mesh		013c4714	CostumeTable.generated.h	1			
+mesh/ch0105166.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105167.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105168.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105169.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105170.msh	mesh		013c4834	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105171.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105172.msh	mesh		013c4894	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105173.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105174.msh	mesh		013c48c4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105175.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105176.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105177.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105178.msh	mesh		013c4984	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105179.msh	mesh		013c49b4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105180.msh	mesh		013c49e4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105181.msh	mesh		013c4a14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105182.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105183.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105184.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105185.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105186.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105187.msh	mesh		013c4b34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105188.msh	mesh		013c4b64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105190.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105191.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105193.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105194.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105195.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0105196.msh	mesh		013c4ce4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105197.msh	mesh		013c4d14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105198.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105199.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105200.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105201.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105202.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105203.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105204.msh	mesh		013c4e64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105205.msh	mesh		013c4e94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105206.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105207.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105208.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105209.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105210.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105211.msh	mesh		013c4fb4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105212.msh	mesh		013c4fe4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105213.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105214.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105215.msh	mesh		013c5074	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105216.msh	mesh		013c50a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0105217.msh	mesh		013c50d4	CostumeTable.generated.h	1			
+mesh/ch0105218.msh	mesh		013c5104	CostumeTable.generated.h	1			
+mesh/ch0105219.msh	mesh		013c5134	CostumeTable.generated.h	1			
+mesh/ch0105220.msh	mesh		013c5164	CostumeTable.generated.h	1			
+mesh/ch0105221.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105222.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105223.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105224.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105225.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0105227.msh	mesh		013c52b4	CostumeTable.generated.h	1			
+mesh/ch0105228.msh	mesh		013c52e4	CostumeTable.generated.h	1			
+mesh/ch0105230.msh	mesh		013c5344	CostumeTable.generated.h	1			
+mesh/ch0105233.msh	mesh		013c53d4	CostumeTable.generated.h	1			
+mesh/ch0105235.msh	mesh		013c5434	CostumeTable.generated.h	1			
+mesh/ch0105236.msh	mesh		013c5464	CostumeTable.generated.h	1			
+mesh/ch0105241.msh	mesh		013c5554	CostumeTable.generated.h	1			
+mesh/ch0105242.msh	mesh		013c5584	CostumeTable.generated.h	1			
+mesh/ch0105243.msh	mesh		013c55b4	CostumeTable.generated.h	1			
+mesh/ch0105244.msh	mesh		013c55e4	CostumeTable.generated.h	1			
+mesh/ch0105245.msh	mesh		013c5614	CostumeTable.generated.h	1			
+mesh/ch0105246.msh	mesh		013c5644	CostumeTable.generated.h	1			
+mesh/ch0105247.msh	mesh		013c5674	CostumeTable.generated.h	1			
+mesh/ch0105248.msh	mesh		013c56a4	CostumeTable.generated.h	1			
+mesh/ch0105249.msh	mesh		013c56d4	CostumeTable.generated.h	1			
+mesh/ch0105250.msh	mesh		013c5704	CostumeTable.generated.h	1			
+mesh/ch0105251.msh	mesh		013c5734	CostumeTable.generated.h	1			
+mesh/ch0105253.msh	mesh		013c5794	CostumeTable.generated.h	1			
+mesh/ch0105254.msh	mesh		013c57c4	CostumeTable.generated.h	1			
+mesh/ch0105255.msh	mesh		013c57f4	CostumeTable.generated.h	1			
+mesh/ch0105256.msh	mesh		013c5824	CostumeTable.generated.h	1			
+mesh/ch0105260.msh	mesh		013c58e4	CostumeTable.generated.h	1			
+mesh/ch0105261.msh	mesh		013c5914	CostumeTable.generated.h	1			
+mesh/ch0105265.msh	mesh		013c59d4	CostumeTable.generated.h	1			
+mesh/ch0105271.msh	mesh		013c5af4	CostumeTable.generated.h	1			
+mesh/ch0105271.wys	mesh		013c5af0	CostumeTable.generated.h	1			
+mesh/ch0105272.msh	mesh		013c5b24	CostumeTable.generated.h	1			
+mesh/ch0105272.wys	mesh		013c5b20	CostumeTable.generated.h	1			
+mesh/ch0105273.msh	mesh		013c5b54	CostumeTable.generated.h	1			
+mesh/ch0105273.wys	mesh		013c5b50	CostumeTable.generated.h	1			
+mesh/ch0105274.msh	mesh		013c5b84	CostumeTable.generated.h	1			
+mesh/ch0105274.wys	mesh		013c5b80	CostumeTable.generated.h	1			
+mesh/ch0105282.msh	mesh		013c5d04	CostumeTable.generated.h	1			
+mesh/ch0105284.msh	mesh		013c5d64	CostumeTable.generated.h	1			
+mesh/ch0105285.msh	mesh		013c5d94	CostumeTable.generated.h	1			
+mesh/ch0105286.msh	mesh		013c5dc4	CostumeTable.generated.h	1			
+mesh/ch0105287.msh	mesh		013c5df4	CostumeTable.generated.h	1			
+mesh/ch0105297.msh	mesh		013c5fd4	CostumeTable.generated.h	1			
+mesh/ch0105298.msh	mesh		013c6004	CostumeTable.generated.h	1			
+mesh/ch0105299.msh	mesh		013c6034	CostumeTable.generated.h	1			
+mesh/ch010530.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch0105300.msh	mesh		013c6064	CostumeTable.generated.h	1			
+mesh/ch0105301.msh	mesh		013c6094	CostumeTable.generated.h	1			
+mesh/ch0105302.msh	mesh		013c60c4	CostumeTable.generated.h	1			
+mesh/ch010589.msh	mesh		013c2ac4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010595.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch010599.msh	mesh		013c2b24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106100.msh	mesh		013c2b5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106101.msh	mesh		013c2b8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106102.msh	mesh		013c2c1c 013c2c4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106103.msh	mesh		013c2bbc 013c2bec 013c3cfc 013c3d2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106104.msh	mesh		013c2c7c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106105.msh	mesh		013c2cdc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106106.msh	mesh		013c2cac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106107.msh	mesh		013c2d0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106108.msh	mesh		013c2d3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106109.msh	mesh		013c2d6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106110.msh	mesh		013c2d9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106111.msh	mesh		013c2dcc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106112.msh	mesh		013c2dfc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106113.msh	mesh		013c2e2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106114.msh	mesh		013c2e5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106115.msh	mesh		013c2ebc	CostumeTable.generated.h FallbackCostumeTable.h TMSkinMeshCostumes.cpp	1			
+mesh/ch0106116.msh	mesh		013c3b4c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106117.msh	mesh		013c3ccc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106118.msh	mesh		013c3d5c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106119.msh	mesh		013c3d8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106120.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106121.msh	mesh		013c3e14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106122.msh	mesh		013c3e44 013c3e74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106123.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106124.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106125.msh	mesh		013c3f0c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106126.msh	mesh		013c3f3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106127.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106128.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106129.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106130.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106131.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106132.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106133.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106134.msh	mesh		013c40bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106134.wys	mesh		013c40b8	CostumeTable.generated.h	1			
+mesh/ch0106135.msh	mesh		013c40ec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106135.wys	mesh		013c40e8	CostumeTable.generated.h	1			
+mesh/ch0106136.msh	mesh		013c417c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106136.wys	mesh		013c4178	CostumeTable.generated.h	1			
+mesh/ch0106137.msh	mesh		013c41ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106137.wys	mesh		013c41a8	CostumeTable.generated.h	1			
+mesh/ch0106138.msh	mesh		013c426c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106139.msh	mesh		013c42cc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106140.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106141.msh	mesh		013c44dc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106151.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106152.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106154.msh	mesh		013c450c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106155.msh	mesh		013c453c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106156.msh	mesh		013c456c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106157.msh	mesh		013c459c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106158.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106159.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106160.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106161.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106162.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106163.msh	mesh		013c46bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106164.msh	mesh		013c46ec 013c4dac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106165.msh	mesh		013c471c	CostumeTable.generated.h	1			
+mesh/ch0106166.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106167.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106168.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106169.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106170.msh	mesh		013c483c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106171.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106172.msh	mesh		013c489c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106173.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106174.msh	mesh		013c48cc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106175.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106176.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0106177.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106178.msh	mesh		013c498c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106179.msh	mesh		013c49bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106180.msh	mesh		013c49ec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106181.msh	mesh		013c4a1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106182.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106183.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106184.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106185.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106186.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106187.msh	mesh		013c4b3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106188.msh	mesh		013c4b6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106190.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106191.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106193.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106194.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106195.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106196.msh	mesh		013c4cec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106197.msh	mesh		013c4d1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106198.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106199.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106200.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106201.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106202.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106203.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106204.msh	mesh		013c4e6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106205.msh	mesh		013c4e9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106206.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106207.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106208.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106209.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106210.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106211.msh	mesh		013c4fbc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106212.msh	mesh		013c4fec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106213.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106214.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106215.msh	mesh		013c507c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106216.msh	mesh		013c50ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0106217.msh	mesh		013c50dc	CostumeTable.generated.h	1			
+mesh/ch0106218.msh	mesh		013c510c	CostumeTable.generated.h	1			
+mesh/ch0106219.msh	mesh		013c513c	CostumeTable.generated.h	1			
+mesh/ch0106220.msh	mesh		013c516c	CostumeTable.generated.h	1			
+mesh/ch0106221.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106222.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106223.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106224.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106225.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0106227.msh	mesh		013c52bc	CostumeTable.generated.h	1			
+mesh/ch0106228.msh	mesh		013c52ec	CostumeTable.generated.h	1			
+mesh/ch0106230.msh	mesh		013c534c	CostumeTable.generated.h	1			
+mesh/ch0106233.msh	mesh		013c53dc	CostumeTable.generated.h	1			
+mesh/ch0106235.msh	mesh		013c543c	CostumeTable.generated.h	1			
+mesh/ch0106236.msh	mesh		013c546c	CostumeTable.generated.h	1			
+mesh/ch0106241.msh	mesh		013c555c	CostumeTable.generated.h	1			
+mesh/ch0106242.msh	mesh		013c558c	CostumeTable.generated.h	1			
+mesh/ch0106243.msh	mesh		013c55bc	CostumeTable.generated.h	1			
+mesh/ch0106244.msh	mesh		013c55ec	CostumeTable.generated.h	1			
+mesh/ch0106245.msh	mesh		013c561c	CostumeTable.generated.h	1			
+mesh/ch0106246.msh	mesh		013c564c	CostumeTable.generated.h	1			
+mesh/ch0106247.msh	mesh		013c567c	CostumeTable.generated.h	1			
+mesh/ch0106248.msh	mesh		013c56ac	CostumeTable.generated.h	1			
+mesh/ch0106249.msh	mesh		013c56dc	CostumeTable.generated.h	1			
+mesh/ch0106250.msh	mesh		013c570c	CostumeTable.generated.h	1			
+mesh/ch0106251.msh	mesh		013c573c	CostumeTable.generated.h	1			
+mesh/ch0106253.msh	mesh		013c579c	CostumeTable.generated.h	1			
+mesh/ch0106254.msh	mesh		013c57cc	CostumeTable.generated.h	1			
+mesh/ch0106255.msh	mesh		013c57fc	CostumeTable.generated.h	1			
+mesh/ch0106256.msh	mesh		013c582c	CostumeTable.generated.h	1			
+mesh/ch0106260.msh	mesh		013c58ec	CostumeTable.generated.h	1			
+mesh/ch0106261.msh	mesh		013c591c	CostumeTable.generated.h	1			
+mesh/ch0106265.msh	mesh		013c59dc	CostumeTable.generated.h	1			
+mesh/ch0106271.msh	mesh		013c5afc	CostumeTable.generated.h	1			
+mesh/ch0106271.wys	mesh		013c5af8	CostumeTable.generated.h	1			
+mesh/ch0106272.msh	mesh		013c5b2c	CostumeTable.generated.h	1			
+mesh/ch0106272.wys	mesh		013c5b28	CostumeTable.generated.h	1			
+mesh/ch0106273.msh	mesh		013c5b5c	CostumeTable.generated.h	1			
+mesh/ch0106273.wys	mesh		013c5b58	CostumeTable.generated.h	1			
+mesh/ch0106274.msh	mesh		013c5b8c	CostumeTable.generated.h	1			
+mesh/ch0106274.wys	mesh		013c5b88	CostumeTable.generated.h	1			
+mesh/ch0106282.msh	mesh		013c5d0c	CostumeTable.generated.h	1			
+mesh/ch0106284.msh	mesh		013c5d6c	CostumeTable.generated.h	1			
+mesh/ch0106285.msh	mesh		013c5d9c	CostumeTable.generated.h	1			
+mesh/ch0106286.msh	mesh		013c5dcc	CostumeTable.generated.h	1			
+mesh/ch0106287.msh	mesh		013c5dfc	CostumeTable.generated.h	1			
+mesh/ch0106297.msh	mesh		013c5fdc	CostumeTable.generated.h	1			
+mesh/ch0106298.msh	mesh		013c600c	CostumeTable.generated.h	1			
+mesh/ch0106299.msh	mesh		013c603c	CostumeTable.generated.h	1			
+mesh/ch0106300.msh	mesh		013c606c	CostumeTable.generated.h	1			
+mesh/ch0106301.msh	mesh		013c609c	CostumeTable.generated.h	1			
+mesh/ch0106302.msh	mesh		013c60cc	CostumeTable.generated.h	1			
+mesh/ch010689.msh	mesh		013c2acc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch010695.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch010699.msh	mesh		013c2b2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201100.msh	mesh		013c3af4 013c3b54 013c3b84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201100.wys	mesh		013c3af0 013c3af8 013c3b00 013c3b08 013c3b10 013c3b18	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201101.msh	mesh		013c3bb4 013c3be4 013c3c14	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201101.wys	mesh		013c3bb0 013c3bb8 013c3bc0 013c3bc8 013c3bd0 013c3bd8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201102.msh	mesh		013c3c44 013c3c74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201102.wys	mesh		013c3c40 013c3c48 013c3c50 013c3c58 013c3c60 013c3c68	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201103.msh	mesh		013c3d94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201103.wys	mesh		013c3d90 013c3d98 013c3da0 013c3da8 013c3db0 013c3db8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201108.msh	mesh		013c4214	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201108.wys	mesh		013c4210 013c4218 013c4220 013c4228 013c4230 013c4238	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201109.msh	mesh		013c4274	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201109.wys	mesh		013c4270 013c4278 013c4280 013c4288 013c4290 013c4298	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201110.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0201110.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0201111.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0201111.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0201112.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0201112.wys	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0201113.msh	mesh		013c4364	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201113.wys	mesh		013c4360 013c4368 013c4370 013c4378 013c4380 013c4388	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201114.msh	mesh		013c4394	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201114.wys	mesh		013c4390 013c4398 013c43a0 013c43a8 013c43b0 013c43b8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201115.msh	mesh		013c43c4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201115.wys	mesh		013c43c0 013c43c8 013c43d0 013c43d8 013c43e0 013c43e8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201116.msh	mesh		013c43f4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0201116.wys	mesh		013c43f0 013c43f8 013c4400 013c4408 013c4410 013c4418	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020117.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020117.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp TMSkinMeshCostumes.cpp	0	0		M
+mesh/ch020161.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020161.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020189.msh	mesh		013c2ad4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020190.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020194.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020195.msh	mesh		013c2a44 013c2a74 013c2e64	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020196.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020197.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020197.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch0202100.msh	mesh		013c3afc 013c3b5c 013c3b8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202100.wys	mesh		013c3b50 013c3b58 013c3b60 013c3b68 013c3b70 013c3b78	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202101.msh	mesh		013c3bbc 013c3bec 013c3c1c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202101.wys	mesh		013c3be0 013c3be8 013c3bf0 013c3bf8 013c3c00 013c3c08	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202102.msh	mesh		013c3c4c 013c3c7c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202102.wys	mesh		013c3c70 013c3c78 013c3c80 013c3c88 013c3c90 013c3c98	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202103.msh	mesh		013c3d9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202104.msh	mesh		013c40fc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202104.wys	mesh		013c40f8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202105.msh	mesh		013c412c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202105.wys	mesh		013c4128	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202106.msh	mesh		013c41bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202106.wys	mesh		013c41b8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202107.msh	mesh		013c41ec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202107.wys	mesh		013c41e8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202108.msh	mesh		013c421c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202109.msh	mesh		013c427c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202110.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0202111.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0202112.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0202113.msh	mesh		013c436c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202114.msh	mesh		013c439c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202115.msh	mesh		013c43cc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0202116.msh	mesh		013c43fc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020217.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020261.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020261.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020289.msh	mesh		013c2adc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020290.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020294.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020295.msh	mesh		013c2a4c 013c2a7c 013c2e6c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020296.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020297.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020297.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch0203100.msh	mesh		013c3b04 013c3b64 013c3b94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203100.wys	mesh		013c3b80 013c3b88 013c3b90 013c3b98 013c3ba0 013c3ba8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203101.msh	mesh		013c3bc4 013c3bf4 013c3c24	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203101.wys	mesh		013c3c10 013c3c18 013c3c20 013c3c28 013c3c30 013c3c38	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203102.msh	mesh		013c3c54 013c3c84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203103.msh	mesh		013c3da4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203104.msh	mesh		013c4104	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203104.wys	mesh		013c4100	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203105.msh	mesh		013c4134	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203105.wys	mesh		013c4130	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203106.msh	mesh		013c41c4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203106.wys	mesh		013c41c0	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203107.msh	mesh		013c41f4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203107.wys	mesh		013c41f0	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203108.msh	mesh		013c4224	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203109.msh	mesh		013c4284	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203110.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0203111.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0203112.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0203113.msh	mesh		013c4374	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203114.msh	mesh		013c43a4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203115.msh	mesh		013c43d4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0203116.msh	mesh		013c4404	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020314.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch020315.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/ch020317.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020317.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020357.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020357.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020389.msh	mesh		013c2ae4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020390.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020394.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020395.msh	mesh		013c2a54 013c2a84 013c2e74	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020396.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020397.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020397.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch0204100.msh	mesh		013c3b0c 013c3b6c 013c3b9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204101.msh	mesh		013c3bcc 013c3bfc 013c3c2c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204102.msh	mesh		013c3c5c 013c3c8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204103.msh	mesh		013c3dac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204104.msh	mesh		013c410c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204104.wys	mesh		013c4108	CostumeTable.generated.h	1			
+mesh/ch0204105.msh	mesh		013c413c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204105.wys	mesh		013c4138	CostumeTable.generated.h	1			
+mesh/ch0204106.msh	mesh		013c41cc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204106.wys	mesh		013c41c8	CostumeTable.generated.h	1			
+mesh/ch0204107.msh	mesh		013c41fc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204107.wys	mesh		013c41f8	CostumeTable.generated.h	1			
+mesh/ch0204108.msh	mesh		013c422c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204109.msh	mesh		013c428c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204110.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0204111.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0204112.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0204113.msh	mesh		013c437c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204114.msh	mesh		013c43ac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204115.msh	mesh		013c43dc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0204116.msh	mesh		013c440c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020417.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020417.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020457.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020457.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020489.msh	mesh		013c2aec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020490.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020494.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020495.msh	mesh		013c2a5c 013c2a8c 013c2e7c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020496.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020497.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020497.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch0205100.msh	mesh		013c3b14 013c3b74 013c3ba4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205101.msh	mesh		013c3bd4 013c3c04 013c3c34	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205102.msh	mesh		013c3c64 013c3c94	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205103.msh	mesh		013c3db4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205104.msh	mesh		013c4114	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205104.wys	mesh		013c4110	CostumeTable.generated.h	1			
+mesh/ch0205105.msh	mesh		013c4144	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205105.wys	mesh		013c4140	CostumeTable.generated.h	1			
+mesh/ch0205106.msh	mesh		013c41d4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205106.wys	mesh		013c41d0	CostumeTable.generated.h	1			
+mesh/ch0205107.msh	mesh		013c4204	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205107.wys	mesh		013c4200	CostumeTable.generated.h	1			
+mesh/ch0205108.msh	mesh		013c4234	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205109.msh	mesh		013c4294	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205110.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0205111.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0205112.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch0205113.msh	mesh		013c4384	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205114.msh	mesh		013c43b4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205115.msh	mesh		013c43e4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0205116.msh	mesh		013c4414	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020517.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020517.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020557.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020557.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020589.msh	mesh		013c2af4	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020590.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020594.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020595.msh	mesh		013c2a64 013c2a94 013c2e84	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020596.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020597.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020597.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch0206100.msh	mesh		013c3b1c 013c3b7c 013c3bac	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206101.msh	mesh		013c3bdc 013c3c0c 013c3c3c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206102.msh	mesh		013c3c6c 013c3c9c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206103.msh	mesh		013c3dbc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206104.msh	mesh		013c411c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206104.wys	mesh		013c4118	CostumeTable.generated.h	1			
+mesh/ch0206105.msh	mesh		013c414c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206105.wys	mesh		013c4148	CostumeTable.generated.h	1			
+mesh/ch0206106.msh	mesh		013c41dc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206106.wys	mesh		013c41d8	CostumeTable.generated.h	1			
+mesh/ch0206107.msh	mesh		013c420c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206107.wys	mesh		013c4208	CostumeTable.generated.h	1			
+mesh/ch0206108.msh	mesh		013c423c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206109.msh	mesh		013c429c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206110.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0206111.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0206112.msh	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/ch0206113.msh	mesh		013c438c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206114.msh	mesh		013c43bc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206115.msh	mesh		013c43ec	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch0206116.msh	mesh		013c441c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020617.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020617.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020657.msh	mesh		-	TMSkinMeshCostumes.cpp	1			T
+mesh/ch020657.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/ch020689.msh	mesh		013c2afc	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020690.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020694.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020695.msh	mesh		013c2a6c 013c2a9c 013c2e8c	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ch020696.msh	mesh		-	FallbackCostumeTable.h	0	1		TM
+mesh/ch020697.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/ch020697.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/deathcos.wys	mesh		013c2ad0 013c2ad8 013c2ae0 013c2ae8 013c2af0 013c2af8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/deathcos2.wys	mesh		013c2aa0 013c2aa8 013c2ab0 013c2ab8 013c2ac0 013c2ac8	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/ed.dat	mesh		FUN_0055baa8	TMPaths.h	0	0		M
+mesh/greenpolice.wys	mesh		013c2e60 013c2e68 013c2e70 013c2e78 013c2e80 013c2e88	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/lb010101.wyt	mesh		-	TMSkinMesh.cpp	0	0		TM
+mesh/lb010201.wyt	mesh		-	TMSkinMesh.cpp	0	0		TM
+mesh/lb010301.wyt	mesh		-	TMSkinMesh.cpp	0	0		TM
+mesh/lk010101.wyt	mesh		-	TMSkinMesh.cpp	0	0		TM
+mesh/lk010201.wyt	mesh		-	TMSkinMesh.cpp	0	0		TM
+mesh/lk010301.wyt	mesh		-	TMSkinMesh.cpp	0	0		TM
+mesh/meshlist.txt	mesh		FUN_004afbc6	TMPaths.h	1			
+mesh/meshtexturelist.bin	mesh		-	TMPaths.h	1			T
+mesh/meshtexturelist.txt	mesh		FUN_004b93c4	-	1			N
+mesh/mi010105.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/mt0101170.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101171.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101172.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101173.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101174.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101175.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101176.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101177.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101178.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101179.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101180.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101181.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101182.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101183.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101184.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101185.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101186.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101187.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101188.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101189.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101190.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101191.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101192.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101193.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101194.wyt	mesh		FUN_004bead1	-	0	0		NM
+mesh/mt0101195.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101196.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101197.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101198.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101199.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt0101200.wyt	mesh		FUN_004bead1	TMSkinMeshCostumes.cpp	0	0		M
+mesh/mt010124.msh	mesh		FUN_004bead1	TMSkinMesh.cpp	1			
+mesh/mt010124.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/mt010131.msh	mesh		FUN_004bead1	TMSkinMesh.cpp	1			
+mesh/mt010132.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/mt010133.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/mt010134.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/mt010135.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/mt010136.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/mt010137.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/newmt.msh	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/newmtb000.wys	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/newmtr000.wys	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/newmtw000.wys	mesh		-	TMSkinMeshCostumes.cpp	0	1		TM
+mesh/purplerudol.wyt	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/redsanta.wyt	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh/spidercos.wyt	mesh		-	TMSkinMeshCostumes.cpp	0	0		TM
+mesh/stone01.wys	mesh		-	TMSkillFreezeBlade.cpp	1			T
+mesh/tn.dat	mesh		FUN_0055baa8	TMPaths.h	0	0		M
+mesh/tr130101.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/tr180101.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/tr180102.wyt	mesh		FUN_004bead1	TMSkinMesh.cpp	0	0		M
+mesh/validindex.bin	mesh		FUN_004b00e4	TMPaths.h	1			
+mesh/whitepolice.wys	mesh		013c2a70 013c2a78 013c2a80 013c2a88 013c2a90 013c2a98	CostumeTable.generated.h FallbackCostumeTable.h	1			
+mesh/whitesanta.wyt	mesh		-	FallbackCostumeTable.h	0	0		TM
+mesh_meshlist.txt	(root)		005c4968	-	0	0		NM
+meshtexturelist.txt	(root)		FUN_0055b59d	-	0	0		NM
+minimap.dat	(root)		FUN_00433bae	TMFieldSceneWorld.cpp	1			
+mixhelp.dat	(root)		-	TMPaths.h	0	0		TM
+music.txt	(root)		FUN_0055baa8	TMPaths.h	1			
+music/castlewar.mp3	music		?	DirShow.cpp	1			
+music/dungeon01.mp3	music		?	DirShow.cpp	1			
+music/dungeon02.mp3	music		?	DirShow.cpp	1			
+music/field01.mp3	music		?	DirShow.cpp	1			
+music/field02.mp3	music		?	DirShow.cpp	1			
+music/field03.mp3	music		?	DirShow.cpp	1			
+music/kepra.mp3	music		?	DirShow.cpp	1			
+music/khepraboss.mp3	music		?	DirShow.cpp	1			
+music/kingdom.mp3	music		?	DirShow.cpp	1			
+music/login.mp3	music		FUN_00428ba0 FUN_00428c6e FUN_0055baa8	DirShow.cpp	1			
+music/town01.mp3	music		?	DirShow.cpp	1			
+music/town02.mp3	music		?	DirShow.cpp	1			
+music/town03.mp3	music		?	DirShow.cpp	1			
+notice.txt	(root)		FUN_00435b13	TMFieldScene.cpp	0	0		M
+object.bin	(root)		FUN_004afca2	TMPaths.h	1			
+readme.txt	(root)		-	DXUtil.cpp	0	0		TM
+screenshot/capture%04d.bmp	screenshot	yes	FUN_00427aa8	-	0	8		NM
+screenshot/capture%04d.jpg	screenshot	yes	FUN_00427aa8	D3DDevice.cpp	84	0		
+serverlist.bin	(root)		FUN_0055784d	Basedef.cpp TMPaths.h	1			
+serverlist.local.bin	(root)		-	Basedef.cpp	0	0		TM
+shader%d.bin	(root)	yes	FUN_0042d173	-	8	0		N
+shader/pseffect%d.bin	shader	yes	-	TMPaths.h	6	0		T
+shader/skinmesh%d.bin	shader	yes	-	TMPaths.h	8	0		T
+shader/vseffect%d.bin	shader	yes	-	TMPaths.h	4	0		T
+skilldata.bin	(root)		FUN_0054f692 FUN_0054f946	TMPaths.h	1		wydgo748/data/SkillData.csv	S
+skilldata.csv	(root)		FUN_005571bd	-	1		wydgo748/data/SkillData.csv	NS
+sn.bin	(root)		FUN_0055cf8f	TMPaths.h	1			
+sound.txt	(root)		FUN_0042978d	-	1			N
+sound/soundlist.txt	sound		FUN_0042978d	TMPaths.h	1			
+ui/cc759.wyt	ui		-	TextureManager.cpp	1			T
+ui/chardescbeast.txt	ui		FUN_004a4582	TMSelectCharSceneInput.cpp	1			
+ui/chardescfoema.txt	ui		FUN_004a4582	TMSelectCharSceneInput.cpp	1			
+ui/chardeschunter.txt	ui		FUN_004a4582	TMSelectCharSceneInput.cpp	1			
+ui/chardesctrans.txt	ui		FUN_004a4582	TMSelectCharSceneInput.cpp	1			
+ui/command.txt	ui		FUN_00441823	TMFieldSceneUI.cpp	1			
+ui/demo.bin	ui		FUN_004ab9f7	-	1			N
+ui/demo2.bin	ui		FUN_004ab9f7	-	1			N
+ui/demo3.bin	ui		FUN_004ab9f7	-	1			N
+ui/demo4.bin	ui		FUN_004ab9f7	-	1			N
+ui/descskillm.txt	ui		FUN_00435b13	-	1			N
+ui/effectstring.txt	ui		FUN_0055b299	TMPaths.h	1			
+ui/effectsubstring.txt	ui		-	TMPaths.h	0	0		TM
+ui/enddemo.bin	ui		FUN_00432d52	-	1			N
+ui/ending.bin	ui		FUN_00431faf	-	1			N
+ui/etc.txt	ui		FUN_00441823	TMFieldSceneUI.cpp	1			
+ui/fieldscene.txt	ui		FUN_00435b13	-	as .bin			N
+ui/fieldscene2.txt	ui		FUN_00435b13	TMFieldScene.cpp	as .bin			
+ui/guildstring.txt	ui		FUN_0055b299	TMPaths.h	0	0		M
+ui/hellgate/icon.wyt	ui		005c4978	-	0	0		NM
+ui/hellstoredesc.txt	ui		FUN_0044a3a9 FUN_004662c5	TMFieldScene.cpp TMFieldSceneMerchant.cpp	1			
+ui/interface.txt	ui		FUN_00441823	TMFieldSceneUI.cpp	1			
+ui/interface1.txt	ui		FUN_00441823	TMFieldSceneUI.cpp	1			
+ui/interface2.txt	ui		FUN_00441823	TMFieldSceneUI.cpp	1			
+ui/interface3.txt	ui		FUN_00441823	TMFieldSceneUI.cpp	1			
+ui/m%02d%02d.wyt	ui	yes	FUN_00534968	TMGround.cpp	93	16		
+ui/minimap.wyt	ui		FUN_00421b8f	TMPaths.h	1			
+ui/mix3desc.txt	ui		FUN_00435b13	-	1			N
+ui/mix4desc.txt	ui		FUN_00435b13	-	1			N
+ui/mix6desc.txt	ui		FUN_00435b13	-	1			N
+ui/potalpos.txt	ui		FUN_0044a9e9	TMFieldSceneWorld.cpp	1			
+ui/questcontents.txt	ui		FUN_004662c5	TMFieldScene.cpp	1			
+ui/questcontents2.txt	ui		FUN_004662c5	TMFieldScene.cpp	1			
+ui/questcontents3.txt	ui		FUN_004662c5	TMFieldScene.cpp	1			
+ui/questcontents4.txt	ui		FUN_004662c5	TMFieldScene.cpp	0	0		M
+ui/questmessage.txt	ui		FUN_00441823 FUN_0052b97d	TMFieldSceneUI.cpp TMHumanPackets.cpp	0	0		M
+ui/questsubjects.txt	ui		FUN_00441823 FUN_004662c5 FUN_0047fcd7	TMFieldSceneMovement.cpp TMFieldSceneUI.cpp	1			
+ui/questsubjects2.txt	ui		FUN_00441823 FUN_004662c5 FUN_0047fcd7	TMFieldSceneMovement.cpp TMFieldSceneUI.cpp	1			
+ui/questsubjects3.txt	ui		FUN_00441823 FUN_004662c5 FUN_0047fcd7	TMFieldSceneMovement.cpp TMFieldSceneUI.cpp	1			
+ui/questsubjects4.txt	ui		FUN_00441823 FUN_004662c5 FUN_0047fcd7	TMFieldSceneMovement.cpp TMFieldSceneUI.cpp	0	0		M
+ui/rc.bin	ui		FUN_004b222b	ObjectManager.cpp	1			
+ui/selchar.txt	ui		FUN_0049f0e7	TMSelectCharScene.cpp	1			
+ui/selcharscene.txt	ui		FUN_0049f0e7	-	as .bin			N
+ui/selcharscene2.txt	ui		FUN_0049f0e7	TMSelectCharScene.cpp	as .bin			
+ui/selserverscene.txt	ui		FUN_004a8f14	-	as .bin			N
+ui/selserverscene2.txt	ui		FUN_004a8f14	TMPaths.h TMSelectServerScene.cpp	as .bin			
+ui/strdef.bin	ui		FUN_0054f4d6 FUN_0054f5b5	TMPaths.h	1			
+ui/timetable.bin	ui		FUN_0043381a	-	1			N
+ui/totogame.csv	ui		FUN_00418828 FUN_00435b13 FUN_00472651	-	1			N
+ui/uistring.txt	ui		FUN_0055b42f	TMPaths.h	1			
+ui/uitexturelist.bin	ui		-	TextureManager.cpp	1			T
+ui/uitexturelist.txt	ui		FUN_004b827f	-	as .bin			N
+ui/uitexturelistn.bin	ui		-	TMPaths.h	0	1		TM
+ui/uitexturesetlist.txt	ui		FUN_004b8928	TMPaths.h	1			
+ui_fieldscene2.bin	(root)		005c498c	-	0	0		NM
+ui_hellstoredesc.txt	(root)		005c4970	-	0	0		NM
+ui_selcharscene.bin	(root)		005c4984	-	0	0		NM
+ui_selcharscene2.bin	(root)		005c4988	-	0	0		NM
+ui_strdef.bin	(root)		005c4980	-	0	0		NM
+ui_uitexturesetlist.txt	(root)		005c496c	-	0	0		NM
+validindex.bin	(root)		005c497c	-	0	0		NM

@@ -69,7 +69,9 @@ func (w *World) globalDropSnapshot() control.GlobalDropStatus {
 		}
 		w.globalDropEpoch = hex.EncodeToString(b[:])
 	}
-	w.tickGlobalDrop(w.now())
+	if !w.shuttingDown {
+		w.tickGlobalDrop(w.now())
+	}
 	s := control.GlobalDropStatus{}
 	if w.globalDrop != nil {
 		s = w.globalDrop.status

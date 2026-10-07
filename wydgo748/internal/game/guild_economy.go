@@ -109,6 +109,9 @@ func (w *World) guildEconomyCommit(p *Player, change func() error) error {
 	if w == nil || w.guilds == nil || p == nil || p.Account == nil || p.Char == nil || change == nil {
 		return fmt.Errorf("guild economy transaction unavailable")
 	}
+	if w.criticalGuildReserved() {
+		return errCriticalPersistenceBusy
+	}
 	accountBefore := accountStateSnapshot(p.Account)
 	guildsBefore := w.snapshotGuilds()
 	warsBefore := w.guilds.Wars.Clone()
@@ -137,6 +140,9 @@ func (w *World) creditCityTreasury(city int, amount uint64) error {
 	}
 	if w == nil || w.guilds == nil || city < 0 || city >= len(cityWarZones) {
 		return fmt.Errorf("invalid city treasury")
+	}
+	if w.criticalGuildReserved() {
+		return errCriticalPersistenceBusy
 	}
 	t := &w.guilds.Wars.Cities.Territories[city]
 	if t.Owner == 0 || w.guilds.FindByID(t.Owner) == nil {
@@ -254,6 +260,9 @@ func (w *World) withdrawCityTreasury(p *Player, city int) error {
 	if t.Treasury == 0 {
 		return fmt.Errorf("city treasury is empty")
 	}
+	if w.criticalWrites != nil {
+		return w.queueCityTreasury(p, city)
+	}
 	if t.Treasury < cityWarChequeValue {
 		if uint64(p.Char.Gold) > uint64(maxCharacterGold)-t.Treasury {
 			return fmt.Errorf("not enough room for the treasury gold")
@@ -311,6 +320,6 @@ func (w *World) withdrawCityTreasury(p *Player, city int) error {
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		p.Session.Send(wire.MessagePanel(fmt.Sprintf("Collected %d billion-gold cheque(s) from the city treasury.", len(items))))
 	}
-	log.Printf("[#%d] coletou %d cheque(s) da cidade %s; restante=%d", sessionID, len(items), cityWarZones[city].name, t.Treasury)
+	log.Printf("[#%d] collected %d cheque(s) from city %s; remaining=%d", sessionID, len(items), cityWarZones[city].name, t.Treasury)
 	return nil
 }

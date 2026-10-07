@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "GroundNeighborPolicy.h"
 #include "SControlContainer.h"
 #include "SGrid.h"
 #include "UIBinary.h"
@@ -221,7 +222,7 @@ TMScene::TMScene() : TreeNode(0)
 
 	AddChild(m_pHumanContainer);
 
-	m_pTextBillMsg = new SText(-2, "ºô", 0xFFFFFFFF, 120.0f, 70.0f, 540.0f, 20.0f, 1, 0xAAFF0000, 1, 1);
+	m_pTextBillMsg = new SText(-2, "\302\272\303\264", 0xFFFFFFFF, 120.0f, 70.0f, 540.0f, 20.0f, 1, 0xAAFF0000, 1, 1); // Bytes of the imported 7.69 source; the native 7.48 text is unverified.
 	m_pTextBillMsg->m_bSelectEnable = 0;
 	m_pTextBillMsg->SetVisible(0);
 
@@ -234,14 +235,14 @@ TMScene::TMScene() : TreeNode(0)
 	m_pMessageBox = new SMessageBox(
 		"Message Box",
 		0,
-		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 256.0f) / 2.0f,
-		(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fHeightRatio) - 152.0f) / 2.0f);
+		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 256.0f) / 2.0f,
+		(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 152.0f) / 2.0f);
 
 	m_pMessageBox2 = new SMessageBox(
 		"Message Box",
 		4,
-		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 256.0f) / 2.0f,
-		(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fHeightRatio) - 152.0f) / 2.0f);
+		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 256.0f) / 2.0f,
+		(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 152.0f) / 2.0f);
 
 	for (int nImeCounta = 0; nImeCounta < 10; ++nImeCounta)
 	{
@@ -249,8 +250,8 @@ TMScene::TMScene() : TreeNode(0)
 			-2,
 			"",
 			0xFFFFFFFF,
-			((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fWidthRatio) - 180.0f,
-			(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fHeightRatio) - 161.0f) + (float)(16 * nImeCounta),
+			((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 180.0f,
+			(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 161.0f) + (float)(16 * nImeCounta),
 			179.0f,
 			16.0f,
 			1,
@@ -264,7 +265,7 @@ TMScene::TMScene() : TreeNode(0)
 		"",
 		0xFFFFFFFF,
 		0.0f,
-		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fHeightRatio) - 36.0f,
+		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 36.0f,
 		200.0f,
 		16.0f,
 		1,
@@ -277,7 +278,7 @@ TMScene::TMScene() : TreeNode(0)
 		"",
 		0xFFFFFFFF,
 		0.0f,
-		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fHeightRatio) - 36.0f,
+		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 36.0f,
 		200.0f,
 		16.0f,
 		1,
@@ -290,7 +291,7 @@ TMScene::TMScene() : TreeNode(0)
 		"",
 		0xFFFFFF00,
 		0.0f,
-		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fHeightRatio) - 36.0f,
+		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 36.0f,
 		200.0f,
 		16.0f,
 		0,
@@ -303,7 +304,7 @@ TMScene::TMScene() : TreeNode(0)
 		"",
 		0xFFFFFF00,
 		0.0f,
-		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fHeightRatio) - 36.0f,
+		((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 36.0f,
 		200.0f,
 		16.0f,
 		0,
@@ -397,6 +398,7 @@ TMScene::TMScene() : TreeNode(0)
 
 TMScene::~TMScene()
 {
+	ClearFieldCache();
 	g_pTimerManager->m_dwDelayTime = 20000;
 
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
@@ -834,86 +836,52 @@ void TMScene::ShowSmsMessage(MSG_MessagePanel*& pMsgPanel)
 // Extracted from TMScene::OnMessagePanelPacket; behavior is unchanged.
 void TMScene::AppendMessagePanelToChat(MSG_MessagePanel*& pMsgPanel)
 {
-	SListBox* pChatList = m_pControlContainer
-		? static_cast<SListBox*>(m_pControlContainer->FindControl(65667))
-		: nullptr;
+	// The later client also copied every panel message into its chat list
+	// (65667), which FieldScene2 does not have: that copy only leaked one
+	// list item per message. The channel toggles carried by short messages stay.
+	if (strlen(pMsgPanel->String) > 50 || g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD)
+		return;
 
-	int len = strlen(pMsgPanel->String);
-	int size = 50;
-	if (len > size)
+	TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	if (!strcmp(pMsgPanel->String, "Whisper : Off"))
 	{
-		char szMsg2[128]{};
-		char szMsg3[128]{};
-
-		if (IsClearString(pMsgPanel->String, size - 1))
-		{
-			strncpy(szMsg3, pMsgPanel->String, size);
-			sprintf_s(szMsg2, "%s", &pMsgPanel->String[size]);
-		}
-		else
-		{
-			strncpy(szMsg3, pMsgPanel->String, size - 1);
-			sprintf_s(szMsg2, "%s", &pMsgPanel->String[size - 1]);
-		}
-
-		SListBoxItem* ipNewItem = new SListBoxItem(szMsg3, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
-		if (ipNewItem && pChatList)
-			pChatList->AddItem(ipNewItem);
-
-		SListBoxItem* ipNewItem2 = new SListBoxItem(szMsg2, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0, 0, 0x77777777, 1u, 0);
-		if (ipNewItem2 && pChatList)
-			pChatList->AddItem(ipNewItem2);
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[447]);
+		pFScene->SetWhisper(0);
 	}
-	else
+	if (!strcmp(pMsgPanel->String, "Whisper : On"))
 	{
-		if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-		{
-			TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-			if (!strcmp(pMsgPanel->String, "Whisper : Off"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[447]);
-				pFScene->SetWhisper(0);
-			}
-			if (!strcmp(pMsgPanel->String, "Whisper : On"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[446]);
-				pFScene->SetWhisper(1);
-			}
-			if (!strcmp(pMsgPanel->String, "Citizen Chatting : Off"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[447]);
-				pFScene->SetPartyChat(0);
-			}
-			if (!strcmp(pMsgPanel->String, "Citizen Chatting : On"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[446]);
-				pFScene->SetPartyChat(1);
-			}
-			if (!strcmp(pMsgPanel->String, "Guild Chatting : Off"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[447]);
-				pFScene->SetGuildChat(0);
-			}
-			if (!strcmp(pMsgPanel->String, "Guild Chatting : On"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[446]);
-				pFScene->SetGuildChat(1);
-			}
-			if (!strcmp(pMsgPanel->String, "Kingdom Chatting : On"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[446]);
-				pFScene->SetKingDomChat(1);
-			}
-			if (!strcmp(pMsgPanel->String, "Kingdom Chatting : Off"))
-			{
-				sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[447]);
-				pFScene->SetKingDomChat(0);
-			}
-		}
-
-		SListBoxItem* ipNewItem = new SListBoxItem(pMsgPanel->String, 0xFFCCAAFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
-		if (ipNewItem && pChatList)
-			pChatList->AddItem(ipNewItem);
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[446]);
+		pFScene->SetWhisper(1);
+	}
+	if (!strcmp(pMsgPanel->String, "Citizen Chatting : Off"))
+	{
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[447]);
+		pFScene->SetPartyChat(0);
+	}
+	if (!strcmp(pMsgPanel->String, "Citizen Chatting : On"))
+	{
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[446]);
+		pFScene->SetPartyChat(1);
+	}
+	if (!strcmp(pMsgPanel->String, "Guild Chatting : Off"))
+	{
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[447]);
+		pFScene->SetGuildChat(0);
+	}
+	if (!strcmp(pMsgPanel->String, "Guild Chatting : On"))
+	{
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[446]);
+		pFScene->SetGuildChat(1);
+	}
+	if (!strcmp(pMsgPanel->String, "Kingdom Chatting : On"))
+	{
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[446]);
+		pFScene->SetKingDomChat(1);
+	}
+	if (!strcmp(pMsgPanel->String, "Kingdom Chatting : Off"))
+	{
+		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[447]);
+		pFScene->SetKingDomChat(0);
 	}
 }
 
@@ -1071,10 +1039,18 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 		if (m_pGround->m_vecOffsetIndex.x == 17 && m_pGround->m_vecOffsetIndex.y == 10)
 			nShold = 20;
 
+		// Neighbor requests are collected first and attached after the
+		// switches (ground_neighbor policy prevents corner reload loops).
+		TMGround* const groundAtStart = m_pGround;
+		ground_neighbor::Need needX;
+		ground_neighbor::Need needY;
+		EDirection dirX = EDirection::EDIR_LEFT;
+		EDirection dirY = EDirection::EDIR_UP;
+
 		if (dX >= 0.0f && (float)nShold > dX)
 		{
-			if (!m_pGround->m_pLeftGround)
-				GroundNewAttach(EDirection::EDIR_LEFT);
+			needX = { dX, m_pGround->m_pLeftGround != nullptr };
+			dirX = EDirection::EDIR_LEFT;
 		}
 		else if (dX < 0.0f && dX > (float)-nShold)
 		{
@@ -1089,8 +1065,8 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 		}
 		else if (dX > (float)(128 - nShold) && dX < 128.0f)
 		{
-			if (!m_pGround->m_pRightGround)
-				GroundNewAttach(EDirection::EDIR_RIGHT);
+			needX = { 128.0f - dX, m_pGround->m_pRightGround != nullptr };
+			dirX = EDirection::EDIR_RIGHT;
 		}
 		else if (dX >= 128.0f && (float)(nShold + 128) > dX && m_pGround->m_pRightGround)
 		{
@@ -1103,8 +1079,8 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 
 		if (dY >= 0.0f && (float)nShold > dY)
 		{
-			if (!m_pGround->m_pUpGround)
-				GroundNewAttach(EDirection::EDIR_UP);
+			needY = { dY, m_pGround->m_pUpGround != nullptr };
+			dirY = EDirection::EDIR_UP;
 		}
 		else if (dY < 0.0f && dY > (float)-nShold)
 		{
@@ -1119,8 +1095,8 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 		}
 		else if (dY > (float)(128 - nShold) && (float)128 > dY)
 		{
-			if (!m_pGround->m_pDownGround)
-				GroundNewAttach(EDirection::EDIR_DOWN);
+			needY = { 128.0f - dY, m_pGround->m_pDownGround != nullptr };
+			dirY = EDirection::EDIR_DOWN;
 		}
 		else if (dY >= (float)128 && (float)(nShold + 128) > dY && m_pGround->m_pDownGround)
 		{
@@ -1129,6 +1105,19 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 			m_nCurrentGroundIndex = (m_nCurrentGroundIndex + 1) % 2;
 
 			m_pGround->SetMiniMapData();
+		}
+
+		// After a switch the distances refer to the previous field; the next
+		// frame measures again.
+		if (m_pGround == groundAtStart)
+		{
+			if (ground_neighbor::ShouldAttach(needX, needY) && GroundNewAttach(dirX))
+			{
+				needX.attached = true;
+				needY.attached = false;
+			}
+			if (ground_neighbor::ShouldAttach(needY, needX))
+				GroundNewAttach(dirY);
 		}
 	}
 
@@ -1295,13 +1284,4 @@ void TMScene::LogMsgCriticalError(int Type, int ID, int nMesh, int X, int Y)
 		reinterpret_cast<char*>(&stLog),
 		sizeof(stLog)
 	});
-}
-
-void TMScene::DeleteOwnerAllContainer()
-{
-	m_pEffectContainer->DeleteOwner(nullptr);
-	m_pShadeContainer->DeleteOwner(nullptr);
-	m_pHumanContainer->DeleteOwner(nullptr);
-	m_pItemContainer->DeleteOwner(nullptr);
-	m_pExtraContainer->DeleteOwner(nullptr);
 }

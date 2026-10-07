@@ -83,7 +83,7 @@ func (w *World) spawnConfiguredBosses() error {
 // bossDefFrom creates the boss NPCDef: a copy of the base NPC (assets) with
 // the .lua attributes on top.
 func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
-	def := *base // copia rasa: Equip e array, ExpReward/Gold sao escalares
+	def := *base // shallow copy: Equip is an array, ExpReward/Gold are scalars
 	if config.Name != "" {
 		def.Name = config.Name
 	}

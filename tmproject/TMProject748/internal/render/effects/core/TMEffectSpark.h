@@ -7,23 +7,21 @@ class TMShade;
 class TMObject;
 class TMEffectBillBoard3;
 
-// Conjunto de até cinco faíscas que liga uma origem a um alvo/posição. A classe
-// anima efeitos locais e não transmite nem confirma ações de combate.
+// Set of up to five sparks linking a source to a target/position. The class
+// animates local effects and neither sends nor confirms combat actions.
 class TMEffectSpark : public TMEffect
 {
 public:
-    // pTarget é observado, sem transferência de ownership. Cores, largura,
-    // quantidade e progresso inicial são copiados para a instância.
+    // pTarget is observed, without ownership transfer. Colors, width,
+    // count and initial progress are copied into the instance.
     TMEffectSpark(TMVector3 vecStart, TMObject* pTarget, TMVector3 vecEnd, unsigned int dwColor, unsigned int dwColor2, unsigned int dwLifeTime, float fWidth, int nSparkCount, float fProgress);
     ~TMEffectSpark();
     
     int FrameMove(unsigned int dwServerTime) override;
-    // Atualiza a duração e retorna o status definido pela implementação.
-    int SetLifeTime(unsigned int dwLifeTime);
 
 public:
-    // Entradas dos arrays são opcionais; a quantidade válida é limitada por
-    // m_nSparkCount e pela capacidade fixa de cinco elementos.
+    // Array entries are optional; the valid count is limited by
+    // m_nSparkCount and by the fixed capacity of five elements.
     float m_fWidth;
     float m_fRange;
     TMEffectBillBoard3* m_pSpark[5];

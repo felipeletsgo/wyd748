@@ -4,6 +4,7 @@
 #include "TMLog.h"
 #include "WYD748Assets.h"
 #include "../../application/CCModePolicy.h"
+#include "../../application/WrappedTexture.h"
 
 int TextureManager::DYNAMIC_TEXTURE_WIDTH = 256;
 int TextureManager::DYNAMIC_TEXTURE_HEIGHT = 256;
@@ -245,15 +246,19 @@ int TextureManager::LoadUITexture(int nIndex, int nSrcIndex)
 	if (nSrcIndex < 0)
 		nSrcIndex = nIndex;
 
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_UI_TEXTURE) ||
+		!wrapped_texture::ValidIndex(nSrcIndex, MAX_UI_TEXTURE))
+		return 0;
+
 	if (m_ppUITexture[nIndex] != nullptr)
 		return 0;
 
 	int bDDsType = 0;
 	for (int i = 0; i < 255; ++i)
 	{
-		if (m_stUITextureList[nIndex].szFileName[i] == '.')
+		if (m_stUITextureList[nSrcIndex].szFileName[i] == '.')
 		{
-			if (!strcmp(&m_stUITextureList[nIndex].szFileName[i], TextureList_FileFormat))
+			if (!strcmp(&m_stUITextureList[nSrcIndex].szFileName[i], TextureList_FileFormat))
 			{
 				bDDsType = 1;
 				break;
@@ -265,22 +270,18 @@ int TextureManager::LoadUITexture(int nIndex, int nSrcIndex)
 	if (handle == -1)
 		return 0;
 
-	char szHeader[5]{};
-	int nLength = _filelength(handle);
+	int nLength = 0;
 	D3DFORMAT texFormat = g_pDevice->m_eFormat;
 	int PlusLength = 18;
 	unsigned int ColorKey = 0xFF000000;
 
-	char* pBuffer = nullptr;
+	char* pBuffer = wrapped_texture::Read(handle, bDDsType != 0, m_szTGAHeader, nLength);
+	if (!pBuffer)
+		return 0;
 
 	if (bDDsType == 0)
 	{
-		nLength = nLength - 4;
-		pBuffer = new char[nLength + PlusLength];
-		_read(handle, szHeader, 4);
-		_read(handle, pBuffer, nLength);
-		memcpy(&pBuffer[nLength], m_szTGAHeader, 18);
-		_close(handle);
+
 
 		if (m_stUITextureList[nIndex].cAlpha == 'A')
 		{
@@ -299,22 +300,7 @@ int TextureManager::LoadUITexture(int nIndex, int nSrcIndex)
 	}
 	else
 	{
-		nLength = nLength - 1;
 		PlusLength = 0;
-		pBuffer = new char[nLength];
-
-		char szDDSHeader[5]{};
-		_read(handle, szHeader, 1);
-		_read(handle, pBuffer, nLength);
-		memcpy(pBuffer, m_szDDSHeader, 3);
-
-		if (pBuffer[84] == '2')
-			sprintf(szDDSHeader, "DXT1");
-		else
-			sprintf(szDDSHeader, "DXT3");
-
-		memcpy(&pBuffer[84], szDDSHeader, 4);
-		_close(handle);
 
 		if (g_pDevice->m_bDXT1 == 1 && g_pDevice->m_bDXT3 == 1 && D3DDevice::m_bDxt == 1)
 		{
@@ -339,7 +325,7 @@ int TextureManager::LoadUITexture(int nIndex, int nSrcIndex)
 				return 1;
 			}
 
-			SAFE_DELETE(m_ppUITexture[nIndex]);
+			SAFE_RELEASE(m_ppUITexture[nIndex]);
 			delete[] pBuffer;
 			return 0;
 		}
@@ -379,7 +365,7 @@ int TextureManager::LoadUITexture(int nIndex, int nSrcIndex)
 					return 1;
 				}
 
-				SAFE_DELETE(m_ppUITexture[nIndex]);
+				SAFE_RELEASE(m_ppUITexture[nIndex]);
 				delete[] pBuffer;
 				return 0;
 			}
@@ -417,7 +403,7 @@ int TextureManager::LoadUITexture(int nIndex, int nSrcIndex)
 
 IDirect3DTexture9* TextureManager::GetUITexture(int nIndex, DWORD showTime)
 {
-	if (nIndex < 0 || nIndex > MAX_UI_TEXTURE)
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_UI_TEXTURE))
 		return nullptr;
 
 	if (m_ppUITexture[nIndex] != nullptr || LoadUITexture(nIndex, -1))
@@ -515,7 +501,7 @@ void TextureManager::ReleaseUITextureSetList()
 
 ControlTextureSet* TextureManager::GetUITextureSet(int nIndex)
 {
-	if (nIndex < 0 || nIndex > MAX_UI_TEXTURE_SET_LIST)
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_UI_TEXTURE_SET_LIST))
 		return nullptr;
 
 	return &m_UITextureSetList[nIndex];
@@ -558,6 +544,9 @@ int TextureManager::InitEffectTextureList()
 
 int TextureManager::LoadEffectTexture(int nIndex)
 {
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_EFFECT_TEXTURE))
+		return 0;
+
 	if (m_ppEffectTexture[nIndex] != nullptr)
 		return 0;
 
@@ -580,19 +569,15 @@ int TextureManager::LoadEffectTexture(int nIndex)
 	if (handle == -1)
 		return 0;
 
-	char szHeader[5]{};
-	int nLength = _filelength(handle);
+	int nLength = 0;
 	D3DFORMAT texFormat = g_pDevice->m_eFormat;
 
-	char* pBuffer = nullptr;
+	char* pBuffer = wrapped_texture::Read(handle, bDDsType != 0, m_szTGAHeader, nLength);
+	if (!pBuffer)
+		return 0;
 	if (bDDsType == 0)
 	{
-		nLength -= 4;
-		pBuffer = new char[nLength + PlusLength];
-		_read(handle, szHeader, 4);
-		_read(handle, pBuffer, nLength);
-		memcpy(&pBuffer[nLength], m_szTGAHeader, sizeof(m_szTGAHeader));
-		_close(handle);
+
 		if (m_stEffectTextureList[nIndex].cAlpha == 'A')
 		{
 			if (g_pDevice->m_bVoodoo != 1 && g_pDevice->m_dwBitCount != 16)
@@ -610,21 +595,7 @@ int TextureManager::LoadEffectTexture(int nIndex)
 	}
 	else
 	{
-		nLength -= 1;
 		PlusLength = 0;
-		pBuffer = new char[nLength];
-		_read(handle, szHeader, 1);
-		_read(handle, pBuffer, nLength);
-		memcpy(pBuffer, m_szDDSHeader, 3);
-
-		char szDDSHeader[5]{};
-		if (pBuffer[84] == '2')
-			sprintf(szDDSHeader, "DXT1");
-		else
-			sprintf(szDDSHeader, "DXT3");
-
-		memcpy(&pBuffer[84], szDDSHeader, 4);
-		_close(handle);
 
 		if (g_pDevice->m_bDXT1 == 1 && g_pDevice->m_bDXT3 == 1 && D3DDevice::m_bDxt == 1)
 		{
@@ -715,7 +686,7 @@ int TextureManager::LoadEffectTexture(int nIndex)
 
 IDirect3DTexture9* TextureManager::GetEffectTexture(int nIndex, DWORD showTime)
 {
-	if (nIndex < 0 || nIndex > MAX_EFFECT_TEXTURE)
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_EFFECT_TEXTURE))
 		return nullptr;
 
 	if (m_ppEffectTexture[nIndex] != nullptr || LoadEffectTexture(nIndex))
@@ -765,6 +736,9 @@ int TextureManager::InitModelTextureList()
 
 int TextureManager::LoadModelTexture(int nIndex)
 {
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_MODEL_TEXTURE))
+		return 0;
+
 	if (m_ppModelTexture[nIndex] != nullptr)
 		return 0;
 
@@ -785,23 +759,18 @@ int TextureManager::LoadModelTexture(int nIndex)
 	if (handle == -1)
 		return 0;
 
-	int nLength = _filelength(handle);
+	int nLength = 0;
 	D3DFORMAT texFormat = g_pDevice->m_eFormat;
 	int PlusLength = 18;
 	int ColorKey = 0xFF000000;
 
-	char* pBuffer;
-	char szHeader[5]{};
-	char szDDSHeader[5]{};
+	char* pBuffer = wrapped_texture::Read(handle, bDDsType != 0, m_szTGAHeader, nLength);
+	if (!pBuffer)
+		return 0;
 
 	if (bDDsType == 0)
 	{
-		nLength = nLength - 4;
-		pBuffer = new char[nLength + PlusLength];
-		_read(handle, szHeader, 4);
-		_read(handle, pBuffer, nLength);
-		memcpy(&pBuffer[nLength], m_szTGAHeader, sizeof(m_szTGAHeader));
-		_close(handle);
+
 
 		if (m_stModelTextureList[nIndex].cAlpha == 'A')
 		{
@@ -820,19 +789,7 @@ int TextureManager::LoadModelTexture(int nIndex)
 	}
 	else
 	{
-		nLength = nLength - 1;
 		PlusLength = 0;
-		pBuffer = new char[nLength];
-		_read(handle, szHeader, 1);
-		_read(handle, pBuffer, nLength);
-		memcpy(pBuffer, m_szDDSHeader, 3);
-		if (pBuffer[84] == '2')
-			sprintf(szDDSHeader, "DXT1");
-		else
-			sprintf(szDDSHeader, "DXT3");
-
-		memcpy(&pBuffer[84], szDDSHeader, 4u);
-		_close(handle);
 		if (g_pDevice->m_bDXT1 != 1 || g_pDevice->m_bDXT3 != 1 || D3DDevice::m_bDxt != 1)
 		{
 			ColorKey = 0;
@@ -936,45 +893,9 @@ int TextureManager::LoadModelTexture(int nIndex)
 	return 1;
 }
 
-int TextureManager::IsValidModelTexture(int nIndex)
-{
-	if (nIndex < 0 || nIndex > MAX_MODEL_TEXTURE)
-		return 0;
-
-	return m_ppModelTexture[nIndex] != nullptr;
-}
-
 IDirect3DTexture9* TextureManager::GetModelTexture(int nIndex, DWORD showTime)
 {
-	if (nIndex < 0 || nIndex > MAX_MODEL_TEXTURE)
-		return nullptr;
-
-	if (m_ppModelTexture[nIndex] != nullptr || LoadModelTexture(nIndex))
-	{
-		m_stModelTextureList[nIndex].dwLastUsedTime = timeGetTime();
-		m_stModelTextureList[nIndex].dwShowTime = showTime;
-		return m_ppModelTexture[nIndex];
-	}
-
-	return nullptr;
-}
-
-IDirect3DTexture9* TextureManager::GetModelTexture(char* szTextureName, DWORD showTime)
-{
-	int nIndex = 0;
-	bool bFind = false;
-
-	for (int i = 0; i < MAX_MODEL_TEXTURE; ++i)
-	{
-		if (!strcmp(szTextureName, m_stModelTextureList[i].szFileName))
-		{
-			nIndex = i;
-			bFind = true;
-			break;
-		}
-	}
-
-	if (nIndex < 0 || nIndex > MAX_MODEL_TEXTURE || !bFind)
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_MODEL_TEXTURE))
 		return nullptr;
 
 	if (m_ppModelTexture[nIndex] != nullptr || LoadModelTexture(nIndex))
@@ -1006,11 +927,6 @@ int TextureManager::GetModelTextureIndex(char* szTextureName)
 	return -1;
 }
 
-int TextureManager::IsModelTextureAlpha(int nIndex)
-{
-	return m_stModelTextureList[nIndex].cAlpha == 'A' || m_stModelTextureList[nIndex].cAlpha == 'a';
-}
-
 int TextureManager::InitEnvTextureList()
 {
 	// Environment textures also require field translation, not a raw fread.
@@ -1028,6 +944,9 @@ int TextureManager::InitEnvTextureList()
 
 int TextureManager::LoadEnvTexture(int nIndex)
 {
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_ENV_TEXTURE))
+		return 0;
+
 	if (m_ppEnvTexture[nIndex] != nullptr)
 		return 0;
 
@@ -1048,22 +967,18 @@ int TextureManager::LoadEnvTexture(int nIndex)
 	if (handle == -1)
 		return 0;
 
-	int nLength = _filelength(handle);
+	int nLength = 0;
 	D3DFORMAT texFormat = g_pDevice->m_eFormat;
 	int PlusLength = 18;
 	int ColorKey = 0xFF000000;
 
-	char* pBuffer;
-	char szHeader[5]{};
+	char* pBuffer = wrapped_texture::Read(handle, bDDsType != 0, m_szTGAHeader, nLength);
+	if (!pBuffer)
+		return 0;
 
 	if (bDDsType == 0)
 	{
-		nLength = nLength - 4;
-		pBuffer = new char[nLength + PlusLength];
-		_read(handle, szHeader, 4u);
-		_read(handle, pBuffer, nLength);
-		memcpy(&pBuffer[nLength], m_szTGAHeader, 18);
-		_close(handle);
+
 		if (m_stEnvTextureList[nIndex].cAlpha == 'A')
 		{
 			if (g_pDevice->m_bVoodoo != 1 && g_pDevice->m_dwBitCount != 16)
@@ -1081,22 +996,7 @@ int TextureManager::LoadEnvTexture(int nIndex)
 	}
 	else
 	{
-		nLength = nLength - 1;
 		PlusLength = 0;
-		pBuffer = new char[nLength];
-
-		char szDDSHeader[5]{};
-		_read(handle, szHeader, 1);
-		_read(handle, pBuffer, nLength);
-		memcpy(pBuffer, m_szDDSHeader, 3);
-
-		if (pBuffer[84] == '2')
-			sprintf(szDDSHeader, "DXT1");
-		else
-			sprintf(szDDSHeader, "DXT3");
-
-		memcpy(&pBuffer[84], szDDSHeader, 4);
-		_close(handle);
 		if (g_pDevice->m_bDXT1 != 1 || g_pDevice->m_bDXT3 != 1 || D3DDevice::m_bDxt != 1)
 		{
 			ColorKey = 0;
@@ -1186,7 +1086,7 @@ int TextureManager::LoadEnvTexture(int nIndex)
 
 IDirect3DTexture9* TextureManager::GetEnvTexture(int nIndex, DWORD showTime)
 {
-	if (nIndex < 0 || nIndex > MAX_ENV_TEXTURE)
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_ENV_TEXTURE))
 		return nullptr;
 
 	if (m_ppEnvTexture[nIndex] != nullptr || LoadEnvTexture(nIndex))
@@ -1197,22 +1097,6 @@ IDirect3DTexture9* TextureManager::GetEnvTexture(int nIndex, DWORD showTime)
 	}
 
 	return nullptr;
-}
-
-int TextureManager::InitDynamicTextureList()
-{
-	for (int nIndex = 0; nIndex < MAX_DYNAMIC_TEXTURE; ++nIndex)
-		m_ppDynamicTexture[nIndex] = nullptr;
-
-	return 1;
-}
-
-int TextureManager::IsValidDynamicTexture(int nIndex)
-{
-	if (nIndex < 0 || nIndex > MAX_DYNAMIC_TEXTURE)
-		return 0;
-
-	return m_ppDynamicTexture[nIndex] != nullptr;
 }
 
 int TextureManager::GenerateTexture(int nDestUIIndex, int nSrcUIIndex, int nDestX, int nDestY, int nSrcX, int nSrcY, int nWidth, int nHeight)
@@ -1412,24 +1296,9 @@ int TextureManager::GenerateTexture(int nDestUIIndex, int nSrcUIIndex, int nDest
 	return 1;
 }
 
-IDirect3DTexture9* TextureManager::GetDynamicTexture(int nIndex)
-{
-	if (nIndex < 0 || nIndex > MAX_DYNAMIC_TEXTURE)
-		return nullptr;
-
-	if (m_ppDynamicTexture[nIndex] != nullptr)
-	{
-		m_dwDynamicLastUsedTime[nIndex] = timeGetTime();
-
-		return m_ppDynamicTexture[nIndex];
-	}
-
-	return nullptr;
-}
-
 int TextureManager::LoadGuildTexture(int nIndex, char* szMarkBuffer)
 {
-	if (nIndex < 0 || nIndex > MAX_GUILD_MARK)
+	if (!wrapped_texture::ValidIndex(nIndex, MAX_GUILD_MARK))
 		return 0;
 
 	if (!szMarkBuffer || m_stGuildMark[nIndex].pTexture)

@@ -333,17 +333,6 @@ float TMGround::GetHeight(TMVector2 vecPosition)
     return (fHeight * 0.1f) / 4.0f;
 }
 
-int TMGround::GetMask(TMVector2 vecPosition)
-{
-    int nMaskX = (int)(vecPosition.x - m_vecOffset.x);
-    int nMaskY = (int)(vecPosition.y - m_vecOffset.y);
-
-    if (nMaskX >= 0 && nMaskY >= 0 && nMaskX < 128 && nMaskY < 128)
-        return m_pMaskData[nMaskY][nMaskX];
-
-    return -10000;
-}
-
 D3DCOLORVALUE TMGround::GetColor(TMVector2 vecPosition)
 {
     int nX = static_cast<int>((vecPosition.x - m_vecOffset.x) / 2);
@@ -401,7 +390,7 @@ int TMGround::GetTileType(TMVector2 vecPosition)
     if (m_pVAttrData[nY][nX] == 1)
         return 1;
 
-    int nIndex = m_TileMapData[nX / 2 + (nY / 2 << 6)].byTileIndex + 10;
+    int nIndex = m_TileMapData[nX / 2 + (nY / 2 << 6)].wTileIndex + TerrainFrontTextureBase;
 
     if (nIndex >= 14 && nIndex <= 17 && nIndex >= 38 && nIndex <= 77 && nIndex >= 86 && nIndex <= 101 && nIndex >= 130 && nIndex <= 149)
         return 0;

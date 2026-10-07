@@ -1,6 +1,9 @@
 #pragma once
 #include <cctype>
+#include <algorithm>
 #include <string>
+#include <utility>
+#include <vector>
 
 namespace source_contract {
 // Keep offsets while masking non-code braces in comments and literals.
@@ -67,5 +70,61 @@ inline std::string Method(const std::string& source, const std::string& signatur
         result = source.substr(start, end - start);
     }
     return result;
+}
+
+// A method body in which every call to another `owner` member defined in
+// `source` is followed by that member's body (recursively, up to `depth`).
+// Statements moved into private helpers therefore keep their original order
+// for ordering contracts, without depending on where the helpers are placed.
+inline std::string WithHelpers(const std::string& source, const std::string& signature,
+    const std::string& owner, int depth = 3)
+{
+    const auto body = Method(source, signature);
+    if (body.empty() || depth == 0) return body;
+    const auto code = MaskCpp(source);
+    const auto isName = [](char c) { return std::isalnum(static_cast<unsigned char>(c)) || c == '_'; };
+    struct Helper { std::string name, signature; };
+    std::vector<Helper> helpers;
+    const auto qualifier = owner + "::";
+    for (std::size_t at = 0; (at = code.find(qualifier, at)) != std::string::npos; at += qualifier.size()) {
+        const auto line = code.rfind('\n', at);
+        const auto first = line == std::string::npos ? 0 : line + 1;
+        if (first == at || std::isspace(static_cast<unsigned char>(code[first]))) continue;   // not a definition
+        auto nameEnd = at + qualifier.size();
+        while (nameEnd < code.size() && isName(code[nameEnd])) ++nameEnd;
+        if (nameEnd == code.size() || code[nameEnd] != '(') continue;
+        int parens = 0;
+        auto close = nameEnd;
+        for (; close < code.size(); ++close) {
+            if (code[close] == '(') ++parens;
+            if (code[close] == ')' && --parens == 0) break;
+        }
+        if (close == code.size()) continue;
+        const auto helperSignature = source.substr(first, close + 1 - first);
+        if (helperSignature != signature && !Method(source, helperSignature).empty())
+            helpers.push_back({ source.substr(at + qualifier.size(), nameEnd - at - qualifier.size()), helperSignature });
+    }
+    const auto bodyCode = MaskCpp(body);
+    std::vector<std::pair<std::size_t, const Helper*>> calls;
+    for (const auto& helper : helpers) {
+        const auto call = helper.name + "(";
+        for (std::size_t at = 0; (at = bodyCode.find(call, at)) != std::string::npos; at += call.size()) {
+            if (at > 0 && (isName(bodyCode[at - 1]) || bodyCode[at - 1] == ':' || bodyCode[at - 1] == '.' || bodyCode[at - 1] == '>'))
+                continue;
+            calls.emplace_back(at, &helper);
+        }
+    }
+    std::sort(calls.begin(), calls.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    std::string result;
+    std::size_t copied = 0;
+    for (const auto& [at, helper] : calls) {
+        if (at < copied) continue;
+        auto lineEnd = body.find('\n', at);
+        if (lineEnd == std::string::npos) lineEnd = body.size();
+        result += body.substr(copied, lineEnd - copied);
+        result += "\n" + WithHelpers(source, helper->signature, owner, depth - 1);
+        copied = lineEnd;
+    }
+    return result + body.substr(copied);
 }
 }

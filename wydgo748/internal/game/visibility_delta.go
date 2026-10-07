@@ -137,7 +137,7 @@ func (w *World) applyGhostShopVisibilityRegions(p *Player, regions [4]visibility
 						w.showGhostShop(p, shop)
 						continue
 					}
-					if !inView(p.X, p.Y, shop.X, shop.Y) {
+					if !inView(p.X, p.Y, shop.X, shop.Y) || !w.ghostShopVisibleToPlayer(p, shop) {
 						w.hideGhostShop(p, shop)
 					}
 				}

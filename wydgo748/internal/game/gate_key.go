@@ -89,6 +89,14 @@ func (w *World) openGateWithKey(s *net.Session, p *Player, gate *GroundItem, slo
 		return false
 	}
 	item := &p.Char.Inv[slot]
+	if w.criticalWrites != nil {
+		if err := w.queueGateKey(p, gate, slot, consume, code); err != nil {
+			resyncUsedItem(s, p, slot)
+			s.Send(groundItemUpdatePacket(gate))
+			return false
+		}
+		return true // Admission only; this caller has no success-dependent effects.
+	}
 	keyDef, keyOK := w.items[item.Index]
 	gateDef, gateOK := w.items[gate.Item.Index]
 	keyID := staticEffect(keyDef, "EF_KEYID")
@@ -140,7 +148,7 @@ func (w *World) gateKeySlot(p *Player, keyID int) int {
 // visibility, gate state, EF_KEYID, and possession of the matching key.
 func (w *World) onUpdateGroundItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 20 || playerCurHP(p.Char) == 0 {
+	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 20 || playerCurHP(p.Char) == 0 || w.criticalTradeReserved(p) {
 		return
 	}
 	itemIDRaw := binary.LittleEndian.Uint32(pkt[12:16])

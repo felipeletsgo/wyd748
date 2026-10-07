@@ -140,6 +140,23 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 	return b
 }
 
+// enterWorldWeatherOffset is MSG_CNFCharacterLogin.Weather, between ClientID
+// (1242) and ShortSkill (1246).
+const enterWorldWeatherOffset = 1244
+
+// PutEnterWorldWeather writes the current world weather into an EnterWorld
+// packet; the client applies it before the first 0x18B update.
+func PutEnterWorldWeather(b []byte, weather uint16) {
+	if len(b) >= enterWorldWeatherOffset+2 {
+		putU16(b, enterWorldWeatherOffset, weather)
+	}
+}
+
+// Weather builds the 0x18B world weather update.
+func Weather(id uint16, weather uint32) []byte {
+	return StandardParm(OpWeather, id, weather)
+}
+
 // UpdateScore maps the authoritative runtime score to the coordinated
 // 232-byte TMProject748 client structure. Fields absent from that structure continue
 // to be synchronized by dedicated packets/extensions rather than trusted back.

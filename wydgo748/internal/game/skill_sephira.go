@@ -7,14 +7,14 @@ import (
 	"wydgo/internal/wire"
 )
 
-// A Vinha nativa nasce como BaseSummon RouteType 3, WaitSec 40. O processor de
-// paz decrementa seis por visita e a remove apos cerca de sete ciclos; no timer
-// de 500 ms sharded por seis isso equivale a aproximadamente 21 segundos.
+// The native thorn wall starts as BaseSummon RouteType 3, WaitSec 40. The peace
+// processor decrements six per visit and removes it after about seven cycles;
+// the 500 ms timer sharded six ways yields approximately 21 seconds.
 const thornWallLifetime = 21 * time.Second
 
 func (w *World) groundCannonAt(x, y uint16) *GroundItem {
 	for _, g := range w.nearbyGroundItems(x, y, 0) {
-		if g != nil && g.Item.Index == 746 && g.ID >= 15001 && g.ID <= 15100 && g.X == x && g.Y == y {
+		if g != nil && !g.criticalReserved() && g.Item.Index == 746 && g.ID >= 15001 && g.ID <= 15100 && g.X == x && g.Y == y {
 			return g
 		}
 	}

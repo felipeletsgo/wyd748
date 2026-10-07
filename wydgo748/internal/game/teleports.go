@@ -10,9 +10,9 @@ import (
 	"wydgo/internal/wire"
 )
 
-// O client 7.48 envia 0x290 quando pisa numa celula Teleport (0x10) do
-// AttributeMap. Cada celula representa um bloco 4x4 do mundo; teleports.ini
-// guarda uma coordenada dentro desse bloco, nao um ponto de ativacao isolado.
+// The 7.48 client sends 0x290 when it steps on a Teleport cell (0x10) of the
+// AttributeMap. Each cell stands for a 4x4 block of the world; teleports.ini
+// keeps a coordinate inside that block, not an isolated activation point.
 const portalAttributeBlockSize = 4
 
 func samePortalAttributeBlock(x, y, sourceX, sourceY uint16) bool {
@@ -29,9 +29,9 @@ func teleportAt(teleports []model.Teleport, x, y uint16) (model.Teleport, bool) 
 	return model.Teleport{}, false
 }
 
-// teleportPlayer e o caminho unico para teleportes server-side. Persiste antes
-// de confirmar, recalcula visibilidade nas duas regioes e manda a coordenada
-// final ao proprio client e aos observadores que continuaram no mesmo raio.
+// teleportPlayer is the single path for server-side teleports. It persists
+// before confirming, recomputes visibility in both regions and sends the final
+// coordinate to the client itself and to the observers still in range.
 func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 	x, y, ok := w.resolvePlayerTeleportDestination(p, x, y)
 	if !ok {
@@ -43,7 +43,7 @@ func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 	if err := w.savePlayerLocation(p); err != nil {
 		p.X, p.Y = oldX, oldY
 		p.Char.X, p.Char.Y = oldX, oldY
-		log.Printf("[#%d] salvar teleporte: %v", p.Session.ID, err)
+		log.Printf("[#%d] save teleport: %v", p.Session.ID, err)
 		return false
 	}
 	clearAirMove(p)
@@ -77,27 +77,49 @@ func (w *World) publishPlayerTeleport(p *Player) {
 	})
 }
 
-// onReqTeleport trata o MSG_ReqTeleport nativo 0x290. O pacote nao informa o
-// destino: a posicao atual seleciona uma entrada autoritativa de teleports.ini.
+// onReqTeleport handles the native MSG_ReqTeleport 0x290. The packet carries no
+// destination: the current position selects an authoritative teleports.ini entry.
 func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 16 {
+	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 16 || w.criticalTradeReserved(p) {
 		return
 	}
 	portal, ok := teleportAt(w.teleports, p.X, p.Y)
 	if !ok {
 		s.Send(wire.MessagePanel("Teleport unavailable from this position."))
-		log.Printf("[#%d] teleporte sem rota @(%d,%d)", s.ID, p.X, p.Y)
+		log.Printf("[#%d] teleport without a route @(%d,%d)", s.ID, p.X, p.Y)
+		return
+	}
+	if isKefraGate(portal) && !w.kefraDefeated() {
+		s.Send(wire.MessagePanel(kefraGateClosed))
 		return
 	}
 	if p.Char.Gold < portal.Price {
 		s.Send(wire.MessagePanel("Not enough gold for the teleport."))
 		return
 	}
+	if w.criticalWrites != nil {
+		if p.Account == nil {
+			return
+		}
+		proposed := accountStateSnapshot(p.Account)
+		proposed.Chars[p.CharSlot].Gold -= portal.Price
+		oldX, oldY := p.X, p.Y
+		if err := w.queuePlayerTeleport(p, proposed, portal.DestX, portal.DestY, "paid portal", func() {
+			s.Send(wire.UpdateEtc(p.ID, *p.Char))
+			if portal.Name != "" {
+				s.Send(wire.MessagePanel(portal.Name))
+			}
+			log.Printf("[#%d] TELEPORT %q @(%d,%d)->(%d,%d) gold=-%d", s.ID, portal.Name, oldX, oldY, p.X, p.Y, portal.Price)
+		}, nil, nil); err != nil {
+			s.Send(wire.MessagePanel("The teleport could not be completed."))
+		}
+		return
+	}
 	oldGold := p.Char.Gold
 	p.Char.Gold -= portal.Price
 	oldX, oldY := p.X, p.Y
-	w.cancelTrade(p, "teleporte")
+	w.cancelTrade(p, "teleport")
 	if !w.teleportPlayer(p, portal.DestX, portal.DestY) {
 		p.Char.Gold = oldGold
 		s.Send(wire.MessagePanel("The teleport could not be completed."))
@@ -107,13 +129,13 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 	if portal.Name != "" {
 		s.Send(wire.MessagePanel(portal.Name))
 	}
-	log.Printf("[#%d] TELEPORTE %q @(%d,%d)->(%d,%d) gold=-%d",
+	log.Printf("[#%d] TELEPORT %q @(%d,%d)->(%d,%d) gold=-%d",
 		s.ID, portal.Name, oldX, oldY, p.X, p.Y, portal.Price)
 }
 
-// onPKMode preserva o estado solicitado pelo 0x399. O servidor continua
-// autoritativo: somente 0/1 e aceito. O client 7.48 nao despacha um retorno
-// PKInfo 0x166; a confirmacao observavel usa apenas MessagePanel 0x101.
+// onPKMode keeps the state requested by 0x399. The server stays
+// authoritative: only 0/1 is accepted. The 7.48 client does not dispatch a
+// PKInfo 0x166 reply; the observable confirmation uses MessagePanel 0x101 only.
 func (w *World) onPKMode(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || len(pkt) != 16 {
@@ -121,13 +143,13 @@ func (w *World) onPKMode(s *net.Session, pkt []byte) {
 	}
 	value := binary.LittleEndian.Uint32(pkt[12:16])
 	if value > 1 {
-		w.recordSecurityViolation(s, wire.OpPKMode, "estado PK fora do contrato 0/1")
+		w.recordSecurityViolation(s, wire.OpPKMode, "PK state outside the 0/1 contract")
 		return
 	}
 	enabled := value == 1
 	p.PKMode = enabled
 	if enabled {
-		w.cancelTrade(p, "modo PK ativado")
+		w.cancelTrade(p, "PK mode enabled")
 	}
 	message := "PK mode disabled."
 	if enabled {
@@ -227,9 +249,10 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 		fail("The city-war target changed. Speak to the collector again.")
 		return
 	}
-	if err := w.registerCityWar(p, city); err != nil {
+	if err := w.registerCityWar(p, city, func() {
+		s.Send(wire.MessagePanel("Application saved. Fee: 100 guild fame. The highest fame bid challenges the city."))
+	}); err != nil {
 		fail(err.Error())
 		return
 	}
-	s.Send(wire.MessagePanel("Application saved. Fee: 100 guild fame. The highest fame bid challenges the city."))
 }

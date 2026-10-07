@@ -61,19 +61,19 @@ func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
 		if p.Char.Inv[0] != (model.Item{}) || a == nil ||
 			a.SourceItemUID != uid || a.SourceItemIndex != 4140 ||
 			a.ExpiresAt.Unix() != now.Add(2*time.Hour).Unix() {
-			t.Fatalf("bau EXP incompleto: item=%+v affect=%+v", p.Char.Inv[0], a)
+			t.Fatalf("incomplete EXP box effect: item=%+v affect=%+v", p.Char.Inv[0], a)
 		}
 		if st.atomicSaves != 1 || st.state == nil || len(st.state.Affects) != 1 ||
 			st.state.Affects[0].SourceItemUID != uid ||
 			st.state.Affects[0].ExpiresUnix != now.Add(2*time.Hour).Unix() ||
 			st.accountSnapshot.Chars[0].Inv[0] != (model.Item{}) {
-			t.Fatalf("snapshot atomico do bau EXP incorreto: saves=%d state=%+v account=%+v",
+			t.Fatalf("incorrect atomic EXP box snapshot: saves=%d state=%+v account=%+v",
 				st.atomicSaves, st.state, st.accountSnapshot)
 		}
-		// Persistir o affect nao basta: prove que o pipeline autoritativo de EXP
-		// reconhece o mesmo prazo absoluto enquanto ele esta ativo.
+		// Persisting the affect is not enough: verify that authoritative EXP
+		// rewards recognize the same absolute deadline while it is active.
 		if got := expWithDoubleBuffAt(p.Char, 100, now); got != 200 {
-			t.Fatalf("bau EXP persistiu sem dobrar recompensa: got=%d want=200", got)
+			t.Fatalf("EXP box persisted without doubling the reward: got=%d want=200", got)
 		}
 	})
 
@@ -96,21 +96,21 @@ func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
 		if itemStackAmount(p.Char.Inv[0]) != 4 || p.Char.Inv[0].UID != uid ||
 			a == nil || a.SourceItemUID != uid || a.SourceItemIndex != 498 ||
 			a.ExpiresAt.Unix() != now.Add(4*time.Hour).Unix() {
-			t.Fatalf("pilha Meat/affect incorretos: item=%+v affect=%+v", p.Char.Inv[0], a)
+			t.Fatalf("incorrect Meat stack/affect: item=%+v affect=%+v", p.Char.Inv[0], a)
 		}
 		if st.atomicSaves != 1 || st.accountSnapshot.Chars[0].Inv[0].UID != uid ||
 			itemStackAmount(st.accountSnapshot.Chars[0].Inv[0]) != 4 ||
 			st.state.Affects[0].SourceItemUID != uid {
-			t.Fatalf("snapshot atomico da pilha incorreto: state=%+v account=%+v",
+			t.Fatalf("incorrect atomic stack snapshot: state=%+v account=%+v",
 				st.state, st.accountSnapshot)
 		}
-		// Courage e consultado no golpe PvE, fora do RuntimeScore; teste os dois
-		// caminhos para evitar um buff salvo que nao produz efeito no combate.
+		// PvE damage reads Courage outside RuntimeScore; test both damage paths
+		// to prevent a persisted buff that has no combat effect.
 		if got := applyCouragePvEDamageAt(p.Char, 100, false, now); got != 1100 {
-			t.Fatalf("Meat nao aplicou Courage fisico: got=%d want=1100", got)
+			t.Fatalf("Meat did not apply physical Courage: got=%d want=1100", got)
 		}
 		if got := applyCouragePvEDamageAt(p.Char, 100, true, now); got != 2100 {
-			t.Fatalf("Meat nao aplicou Courage magico: got=%d want=2100", got)
+			t.Fatalf("Meat did not apply magical Courage: got=%d want=2100", got)
 		}
 	})
 
@@ -140,20 +140,20 @@ func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
 		for _, typ := range []byte{11, 9, 15, 2} {
 			a := activePlayerAffectAt(p.Char, typ, now)
 			if a == nil || a.SourceItemUID != uid || a.SourceItemIndex != 4145 {
-				t.Fatalf("affect %d sem origem do doce: %+v", typ, a)
+				t.Fatalf("affect %d has no candy source: %+v", typ, a)
 			}
 		}
 		if itemStackAmount(p.Char.Inv[0]) != 9 || len(st.state.Affects) != 4 {
-			t.Fatalf("doce nao confirmou pacote atomico: item=%+v state=%+v", p.Char.Inv[0], st.state)
+			t.Fatalf("candy did not commit the atomic batch: item=%+v state=%+v", p.Char.Inv[0], st.state)
 		}
 		for _, persisted := range st.state.Affects {
 			if persisted.SourceItemUID != uid || persisted.SourceItemIndex != 4145 {
-				t.Fatalf("affect persistido sem origem comum: %+v", persisted)
+				t.Fatalf("persisted affect has no common source: %+v", persisted)
 			}
 		}
-		// O pacote do Doce do Amor precisa materializar todos os quatro efeitos
-		// no score runtime. Recalcule um clone sem affects para isolar o bonus do
-		// item da recalculacao normal de atributos/equipamentos do personagem.
+		// Love Candy must materialize all four effects in the runtime score.
+		// Recalculate a clone without affects to isolate the item bonus from
+		// normal character attribute/equipment recalculation.
 		withoutCandy := cloneCharacterState(p.Char)
 		withoutCandy.Affects = [16]model.Affect{}
 		withoutCandy.RuntimeScore = nil
@@ -161,17 +161,17 @@ func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
 		base := effectiveScore(&withoutCandy)
 		got := effectiveScore(p.Char)
 		if got.Defense != base.Defense+121 || got.Attack != base.Attack+255 {
-			t.Fatalf("doce nao alterou defesa/ataque: base=%+v got=%+v", base, got)
+			t.Fatalf("candy did not change defense/attack: base=%+v got=%+v", base, got)
 		}
 		for branch := range got.Mastery {
 			if got.Mastery[branch] != base.Mastery[branch]+39 {
-				t.Fatalf("doce nao alterou mastery[%d]: base=%d got=%d",
+				t.Fatalf("candy did not change mastery[%d]: base=%d got=%d",
 					branch, base.Mastery[branch], got.Mastery[branch])
 			}
 		}
 		wantRun := uint32(minInt(15, int(base.AttackRun&0x0F)+1))
 		if got.AttackRun&0x0F != wantRun || got.AttackRun&0xF0 != base.AttackRun&0xF0 {
-			t.Fatalf("doce nao alterou movimento corretamente: base=%#x got=%#x wantRun=%d",
+			t.Fatalf("candy did not change movement correctly: base=%#x got=%#x wantRun=%d",
 				base.AttackRun, got.AttackRun, wantRun)
 		}
 	})
@@ -193,7 +193,7 @@ func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
 
 		if p.Char.Inv[0].Index != 4140 || p.Char.Inv[0].UID != uid ||
 			activePlayerAffectAt(p.Char, 39, now) != nil {
-			t.Fatalf("rollback PostgreSQL deixou estado parcial: item=%+v affects=%+v",
+			t.Fatalf("PostgreSQL rollback left partial state: item=%+v affects=%+v",
 				p.Char.Inv[0], p.Char.Affects)
 		}
 	})
@@ -229,11 +229,11 @@ func TestLaktoreriumPowderConsumesOnlyCommittedValidAttempts(t *testing.T) {
 
 		if p.Char.Inv[0] != (model.Item{}) || itemSanc(p.Char.Equip[4]) != 1 ||
 			p.Char.Equip[4].UID != "22222222222242228222222222200200" || st.saves != 1 {
-			t.Fatalf("refino confirmado nao consumiu uma unidade: po=%+v alvo=%+v saves=%d",
+			t.Fatalf("committed refinement did not consume one unit: powder=%+v target=%+v saves=%d",
 				p.Char.Inv[0], p.Char.Equip[4], st.saves)
 		}
-		if got := logs.String(); !strings.Contains(got, "consumiu=true restante=0") {
-			t.Fatalf("auditoria do ultimo po nao registrou pilha vazia: %q", got)
+		if got := logs.String(); !strings.Contains(got, "consumed=true remaining=0") {
+			t.Fatalf("last-powder audit did not record an empty stack: %q", got)
 		}
 	})
 
@@ -241,10 +241,10 @@ func TestLaktoreriumPowderConsumesOnlyCommittedValidAttempts(t *testing.T) {
 		const uid = "11111111111141118111111111104141"
 		powder := model.Item{Index: 4141, UID: uid, Eff: [6]byte{effectAmount, 2}}
 		w, p, st, pkt := newWorld(4141, powder)
-		// +0 tem chance autoritativa de 100%; partimos de +1 para que a rolagem
-		// 100 falhe contra 95 sem tornar o teste dependente de aleatoriedade.
+		// +0 has an authoritative 100% chance; start at +1 so that roll
+		// 100 fails against 95 without depending on randomness.
 		if !setItemSanc(&p.Char.Equip[4], 1) {
-			t.Fatal("fixture sem slot para EF_SANC")
+			t.Fatal("fixture has no EF_SANC slot")
 		}
 		w.rng = fixedRNG{value: 99}
 
@@ -252,7 +252,7 @@ func TestLaktoreriumPowderConsumesOnlyCommittedValidAttempts(t *testing.T) {
 
 		if p.Char.Inv[0].Index != 4141 || p.Char.Inv[0].UID != uid ||
 			itemStackAmount(p.Char.Inv[0]) != 1 || itemSanc(p.Char.Equip[4]) != 1 || st.saves != 1 {
-			t.Fatalf("falha valida nao consumiu exatamente uma unidade: po=%+v alvo=%+v saves=%d",
+			t.Fatalf("valid failure did not consume exactly one unit: powder=%+v target=%+v saves=%d",
 				p.Char.Inv[0], p.Char.Equip[4], st.saves)
 		}
 	})
@@ -268,7 +268,7 @@ func TestLaktoreriumPowderConsumesOnlyCommittedValidAttempts(t *testing.T) {
 			}},
 			{name: "plus nine", prepare: func(p *Player, _ []byte) {
 				if !setItemSanc(&p.Char.Equip[4], 9) {
-					t.Fatal("fixture sem slot para EF_SANC")
+					t.Fatal("fixture has no EF_SANC slot")
 				}
 			}},
 		} {
@@ -280,7 +280,7 @@ func TestLaktoreriumPowderConsumesOnlyCommittedValidAttempts(t *testing.T) {
 				w.onUseItem(p.Session, pkt)
 
 				if p.Char.Inv[0] != powder || st.saves != 0 {
-					t.Fatalf("tentativa invalida consumiu/salvou o po: po=%+v saves=%d",
+					t.Fatalf("invalid attempt consumed/saved the powder: powder=%+v saves=%d",
 						p.Char.Inv[0], st.saves)
 				}
 			})
@@ -298,7 +298,7 @@ func TestLaktoreriumPowderConsumesOnlyCommittedValidAttempts(t *testing.T) {
 		w.onUseItem(p.Session, pkt)
 
 		if p.Char.Inv[0] != powder || p.Char.Equip[4] != beforeTarget || st.saves != 1 {
-			t.Fatalf("rollback do refino perdeu identidade/estado: po=%+v alvo=%+v saves=%d",
+			t.Fatalf("refinement rollback lost identity/state: powder=%+v target=%+v saves=%d",
 				p.Char.Inv[0], p.Char.Equip[4], st.saves)
 		}
 	})
@@ -319,7 +319,7 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		w, p, _ := useItemWorld(model.VolatileRule{Action: "restore", Consume: true, HP: 100})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 {
-			t.Fatal("pocao foi consumida com HP cheio")
+			t.Fatal("potion was consumed at full HP")
 		}
 	})
 
@@ -330,11 +330,11 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		beforePackets := p.Session.QueuedPacketsForTest()
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if playerCurHP(p.Char) != 500 || p.Char.Inv[0].Index != 100 || !p.LastPotion.IsZero() {
-			t.Fatalf("rollback da pocao incompleto: hp=%d item=%d last=%v",
+			t.Fatalf("incomplete potion rollback: hp=%d item=%d last=%v",
 				playerCurHP(p.Char), p.Char.Inv[0].Index, p.LastPotion)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-			t.Fatalf("rollback da pocao nao republicou o slot: %d -> %d", beforePackets, got)
+			t.Fatalf("potion rollback did not republish the slot: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -354,10 +354,10 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		beforePackets := p.Session.QueuedPacketsForTest()
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Gold != 100 || p.Char.Inv[0].Index != 100 {
-			t.Fatalf("rollback gold alterou estado: gold=%d item=%d", p.Char.Gold, p.Char.Inv[0].Index)
+			t.Fatalf("gold rollback changed state: gold=%d item=%d", p.Char.Gold, p.Char.Inv[0].Index)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-			t.Fatalf("rollback gold nao republicou o slot: %d -> %d", beforePackets, got)
+			t.Fatalf("gold rollback did not republish the slot: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -366,7 +366,7 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		p.Char.Gold = maxCharacterGold - 100
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Gold != maxCharacterGold-100 || p.Char.Inv[0].Index != 100 || st.saves != 0 {
-			t.Fatal("barra acima do teto alterou estado")
+			t.Fatal("gold bar above the cap changed state")
 		}
 	})
 
@@ -403,11 +403,11 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		beforePackets := p.Session.QueuedPacketsForTest()
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.SavedX != 2000 || p.Char.SavedY != 2001 || p.Char.Inv[0].Index != 100 {
-			t.Fatalf("rollback save_position alterou estado: saved=(%d,%d) item=%d",
+			t.Fatalf("save_position rollback changed state: saved=(%d,%d) item=%d",
 				p.Char.SavedX, p.Char.SavedY, p.Char.Inv[0].Index)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-			t.Fatalf("rollback save_position nao republicou o slot: %d -> %d", beforePackets, got)
+			t.Fatalf("save_position rollback did not republish the slot: %d -> %d", beforePackets, got)
 		}
 	})
 }
@@ -436,14 +436,14 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 
 		if p.Char.Inv[0] != beforeItem || p.Char.Affects[0] != beforeAffect || st.saves != 0 {
-			t.Fatalf("recusa alterou estado: item=%+v affect=%+v saves=%d",
+			t.Fatalf("rejection changed state: item=%+v affect=%+v saves=%d",
 				p.Char.Inv[0], p.Char.Affects[0], st.saves)
 		}
 		if got := p.Session.QueuedPacketsForTest() - queued; got != 2 {
-			t.Fatalf("recusa deveria enviar slot + aviso, enviou %d pacote(s)", got)
+			t.Fatalf("rejection should send slot + warning, sent %d packet(s)", got)
 		}
 		if buffAlreadyActiveMessage != "This item cannot be used because the buff is already active." {
-			t.Fatalf("mensagem em ingles alterada: %q", buffAlreadyActiveMessage)
+			t.Fatalf("English message changed: %q", buffAlreadyActiveMessage)
 		}
 	})
 
@@ -453,7 +453,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 0 {
-			t.Fatal("item reservado para NPC/comando foi consumido")
+			t.Fatal("item reserved for NPC/command use was consumed")
 		}
 	})
 
@@ -467,7 +467,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || counterBalance(p, "kefra_ticket") != 100 ||
 			st.atomicSaves != 1 || st.state.SpecialCoins["kefra_ticket"] != 100 {
-			t.Fatalf("contador: item=%d saldo=%d saves=%d state=%+v",
+			t.Fatalf("counter: item=%d balance=%d saves=%d state=%+v",
 				p.Char.Inv[0].Index, counterBalance(p, "kefra_ticket"),
 				st.atomicSaves, st.state)
 		}
@@ -481,12 +481,12 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		st.err = errors.New("database unavailable")
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[1]) != 0 {
-			t.Fatal("refine_set sem persistencia alterou item")
+			t.Fatal("refine_set changed the item without persistence")
 		}
 		st.err = nil
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[1]) != 6 {
-			t.Fatalf("refine_set: po=%d sanc=%d",
+			t.Fatalf("refine_set: powder=%d sanc=%d",
 				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]))
 		}
 	})
@@ -502,14 +502,14 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[1]) != 6 ||
 			!questCompleted(p.Char, -194) || st.saves != 1 {
-			t.Fatalf("molar nao concluiu: item=%d sanc=%d quest=%v saves=%d",
+			t.Fatalf("molar did not complete: item=%d sanc=%d quest=%v saves=%d",
 				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]), questCompleted(p.Char, -194), st.saves)
 		}
 
 		p.Char.Inv[0] = model.Item{Index: 100}
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[1]) != 6 || st.saves != 1 {
-			t.Fatalf("molar duplicado consumiu ou alterou estado: item=%d sanc=%d saves=%d",
+			t.Fatalf("duplicate molar consumed or changed state: item=%d sanc=%d saves=%d",
 				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]), st.saves)
 		}
 	})
@@ -534,7 +534,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 				w.onUseItem(p.Session, useItemPacket(0, 0))
 				if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[1]) != 0 ||
 					questCompleted(p.Char, -194) || st.saves != 0 {
-					t.Fatalf("molar aceito fora da regra: evol=%q level=%d item=%d sanc=%d quest=%v saves=%d",
+					t.Fatalf("molar accepted outside its rule: evol=%q level=%d item=%d sanc=%d quest=%v saves=%d",
 						p.Char.Evolution, tc.level, p.Char.Inv[0].Index, itemSanc(p.Char.Equip[1]),
 						questCompleted(p.Char, -194), st.saves)
 				}
@@ -552,12 +552,12 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		st.err = errors.New("database unavailable")
 		w.onUseItem(p.Session, pkt)
 		if p.Char.Inv[0].Index != 100 || itemSanc(p.Char.Equip[4]) != 0 {
-			t.Fatal("refino sem persistencia alterou equipamento/po")
+			t.Fatal("refinement changed equipment/powder without persistence")
 		}
 		st.err = nil
 		w.onUseItem(p.Session, pkt)
 		if p.Char.Inv[0].Index != 0 || itemSanc(p.Char.Equip[4]) != 1 {
-			t.Fatalf("refino +0: po=%d sanc=%d",
+			t.Fatalf("refinement +0: powder=%d sanc=%d",
 				p.Char.Inv[0].Index, itemSanc(p.Char.Equip[4]))
 		}
 	})
@@ -577,7 +577,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w.onUseItem(p.Session, pkt)
 		if p.Char.Inv[0].Index != 0 ||
 			p.Char.Equip[mountSlot].Index != eggID+model.MountTypeCount || st.saves != 1 {
-			t.Fatalf("incubacao: po=%d ovo=%+v saves=%d",
+			t.Fatalf("incubation: powder=%d egg=%+v saves=%d",
 				p.Char.Inv[0].Index, p.Char.Equip[mountSlot], st.saves)
 		}
 	})
@@ -642,7 +642,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		p.Char.Equip[mountSlot] = mount
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 0 {
-			t.Fatalf("recovery no maximo consumiu/salvou: item=%d saves=%d", p.Char.Inv[0].Index, st.saves)
+			t.Fatalf("recovery at the cap consumed/saved: item=%d saves=%d", p.Char.Inv[0].Index, st.saves)
 		}
 	})
 
@@ -671,17 +671,17 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 				p.Char.Equip[mountSlot] = mount
 				w.onUseItem(p.Session, useItemPacket(0, 0))
 				if got := p.Char.Equip[mountSlot].MountLevel(); got != tc.want {
-					t.Fatalf("level=%d, quer %d", got, tc.want)
+					t.Fatalf("level=%d, want %d", got, tc.want)
 				}
 				if got := p.Char.Inv[0].Index == 0; got != tc.consumed {
-					t.Fatalf("consumido=%v, quer %v", got, tc.consumed)
+					t.Fatalf("consumed=%v, want %v", got, tc.consumed)
 				}
 				wantSaves := 0
 				if tc.consumed {
 					wantSaves = 1
 				}
 				if st.saves != wantSaves {
-					t.Fatalf("saves=%d, quer %d", st.saves, wantSaves)
+					t.Fatalf("saves=%d, want %d", st.saves, wantSaves)
 				}
 			})
 		}
@@ -706,7 +706,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		p.Char.Exp = mortalNextLevel[maxMortalLevel]
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 0 {
-			t.Fatal("fairy dust consumiu no level maximo")
+			t.Fatal("fairy dust consumed at maximum level")
 		}
 	})
 
@@ -719,7 +719,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		p.Char.Exp = mortalNextLevel[10]
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Score.Level != 10 || p.Char.Inv[0].Index != 100 || st.saves != 0 {
-			t.Fatal("Poeira de Fada foi aceita por Arch")
+			t.Fatal("Fairy Dust was accepted for an Arch")
 		}
 	})
 
@@ -760,13 +760,13 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		st.err = errors.New("database unavailable")
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || activePlayerAffect(p.Char, 35) != nil {
-			t.Fatal("falha de save deixou consumo/affect parcial")
+			t.Fatal("save failure left partial consumption/affect state")
 		}
 		st.err = nil
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || activePlayerAffect(p.Char, 35) == nil ||
 			st.saves != 2 {
-			t.Fatal("buff valido nao foi persistido com o consumo")
+			t.Fatal("valid buff was not persisted with consumption")
 		}
 	})
 
@@ -781,7 +781,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if st.atomicSaves != 1 || p.Char.Inv[0].Index != 100 ||
 			activePlayerAffect(p.Char, 35) != nil {
-			t.Fatalf("rollback atomico: saves=%d item=%d affect=%+v",
+			t.Fatalf("atomic rollback: saves=%d item=%d affect=%+v",
 				st.atomicSaves, p.Char.Inv[0].Index, activePlayerAffect(p.Char, 35))
 		}
 
@@ -790,7 +790,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		if st.atomicSaves != 2 || st.lastUID != p.Char.UID ||
 			p.Char.Inv[0].Index != 0 || activePlayerAffect(p.Char, 35) == nil ||
 			st.state == nil || len(st.state.Affects) != 1 {
-			t.Fatalf("commit atomico incompleto: saves=%d uid=%q item=%d state=%+v",
+			t.Fatalf("incomplete atomic commit: saves=%d uid=%q item=%d state=%+v",
 				st.atomicSaves, st.lastUID, p.Char.Inv[0].Index, st.state)
 		}
 	})
@@ -817,7 +817,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		p.Char.Inv[0] = model.Item{Index: 100}
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 1 {
-			t.Fatal("compound foi reutilizado")
+			t.Fatal("compound was reused")
 		}
 	})
 
@@ -828,12 +828,12 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 0 {
-			t.Fatal("Mortal usou passe Arch")
+			t.Fatal("Mortal used an Arch pass")
 		}
 		p.Char.Evolution = "arch"
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || p.X != 2200 || p.Y != 2201 || st.saves != 1 {
-			t.Fatalf("passe Arch: item=%d pos=(%d,%d) saves=%d",
+			t.Fatalf("Arch pass: item=%d pos=(%d,%d) saves=%d",
 				p.Char.Inv[0].Index, p.X, p.Y, st.saves)
 		}
 	})
@@ -845,7 +845,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		})
 		p.Char.Equip[13] = model.Item{Index: 769}
 		if !setItemSanc(&p.Char.Equip[13], 5) {
-			t.Fatal("fixture sem slot de sanc")
+			t.Fatal("fixture has no sanc slot")
 		}
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if itemSanc(p.Char.Equip[13]) != 6 || p.Char.Inv[0].Index != 0 || st.saves != 1 {
@@ -855,7 +855,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		p.Char.Inv[0] = model.Item{Index: 100}
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 1 {
-			t.Fatal("fairy water ultrapassou +6")
+			t.Fatal("fairy water exceeded +6")
 		}
 	})
 
@@ -876,7 +876,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		p.Char.Inv[0] = model.Item{Index: 100}
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.NightmareTickets != 13 || p.Char.Inv[0].Index != 100 || st.saves != 1 {
-			t.Fatal("nightmare ignorou cooldown")
+			t.Fatal("nightmare ignored cooldown")
 		}
 
 		clock.Advance(12 * time.Hour)
@@ -884,7 +884,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.NightmareTickets != 13 || p.Char.Inv[0].Index != 100 ||
 			p.Char.LastNightmareUnix != 2_000_000_000 {
-			t.Fatal("nightmare nao restaurou estado apos falha")
+			t.Fatal("nightmare did not restore state after failure")
 		}
 	})
 
@@ -894,7 +894,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || !hasActiveAffect(p.Char, 4) {
-			t.Fatal("buff nao foi aplicado/consumido")
+			t.Fatal("buff was not applied/consumed")
 		}
 	})
 
@@ -914,11 +914,11 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		beforePackets := p.Session.QueuedPacketsForTest()
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.MagicalPillUsed || p.Char.SkillPointBonus != 0 || p.Char.Inv[0].Index != 100 {
-			t.Fatalf("rollback pill alterou estado: used=%v bonus=%d item=%d",
+			t.Fatalf("pill rollback changed state: used=%v bonus=%d item=%d",
 				p.Char.MagicalPillUsed, p.Char.SkillPointBonus, p.Char.Inv[0].Index)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-			t.Fatalf("rollback pill nao republicou o slot: %d -> %d", beforePackets, got)
+			t.Fatalf("pill rollback did not republish the slot: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -928,7 +928,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.LearnedSkill&(1<<25) == 0 || p.Char.Inv[0].Index != 0 || st.saves != 1 {
-			t.Fatal("livro especial nao foi aprendido")
+			t.Fatal("special skill book was not learned")
 		}
 	})
 
@@ -940,11 +940,11 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		beforePackets := p.Session.QueuedPacketsForTest()
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.LearnedSkill&(1<<25) != 0 || p.Char.Inv[0].Index != 100 {
-			t.Fatalf("rollback skill alterou estado: learned=%08X item=%d",
+			t.Fatalf("skill rollback changed state: learned=%08X item=%d",
 				p.Char.LearnedSkill, p.Char.Inv[0].Index)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-			t.Fatalf("rollback skill nao republicou o slot: %d -> %d", beforePackets, got)
+			t.Fatalf("skill rollback did not republish the slot: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -954,13 +954,13 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || !hasActiveAffect(p.Char, affectFaceTransform) {
-			t.Fatal("transformacao de rosto nao aplicada")
+			t.Fatal("face transformation was not applied")
 		}
 		p.Char.Inv[0] = model.Item{Index: 100}
 		w.volatiles.Items[100] = model.VolatileRule{Action: "face_restore", Consume: true}
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 || hasActiveAffect(p.Char, affectFaceTransform) {
-			t.Fatal("restauracao de rosto nao aplicada")
+			t.Fatal("face restoration was not applied")
 		}
 	})
 
@@ -968,7 +968,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		w, p, _ := useItemWorld(model.VolatileRule{Action: "disabled", Consume: true})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 0 {
-			t.Fatal("volatile disabled nao consumiu item")
+			t.Fatal("disabled volatile did not consume the item")
 		}
 	})
 }
@@ -1000,13 +1000,13 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 1))
 
 		if p.Char.Inv[0].Index != 100 || p.Char.Inv[1] != beforeTarget {
-			t.Fatalf("rollback tint alterou estado: source=%d target=% X",
+			t.Fatalf("tint rollback changed state: source=%d target=% X",
 				p.Char.Inv[0].Index, p.Char.Inv[1].Eff)
 		}
-		// MSG_UseItem e otimista nas duas pontas do arraste; o rollback deve
-		// devolver exatamente os dois slots autoritativos ao client.
+		// MSG_UseItem is optimistic at both drag endpoints; rollback must
+		// return exactly both authoritative slots to the client.
 		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+2 {
-			t.Fatalf("rollback tint nao republicou origem e alvo: %d -> %d", beforePackets, got)
+			t.Fatalf("tint rollback did not republish source and target: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -1020,11 +1020,11 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 		w.onUseItem(p.Session, useItemPacket(0, 1))
 
 		if p.Char.Inv[0].Index != 100 || p.Char.Inv[1] != beforeTarget {
-			t.Fatalf("rollback untint alterou estado: source=%d target=% X",
+			t.Fatalf("untint rollback changed state: source=%d target=% X",
 				p.Char.Inv[0].Index, p.Char.Inv[1].Eff)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got != beforePackets+2 {
-			t.Fatalf("rollback untint nao republicou origem e alvo: %d -> %d", beforePackets, got)
+			t.Fatalf("untint rollback did not republish source and target: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -1047,8 +1047,8 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 			DynamicEffectNames: map[byte]string{43: "EF_SANC"},
 		}
 		p.Char.Inv[0] = model.Item{Index: 4016}
-		// Os adds antigos devem ser substituidos, mantendo a tintura +5. O
-		// protocolo nativo aceita Repliction somente no equipamento vestido.
+		// Replace the old bonuses while retaining the +5 dye. The native
+		// protocol accepts Repliction only on worn equipment.
 		p.Char.Equip[4] = model.Item{Index: 200, Eff: [6]byte{60, 9, 120, 5, 71, 70}}
 		pkt := useItemPacket(0, 4)
 		binary.LittleEndian.PutUint32(pkt[20:24], placeEquip)
@@ -1058,8 +1058,8 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 			t.Fatalf("repliction: source=%d target=% X saves=%d", p.Char.Inv[0].Index, p.Char.Equip[4].Eff, st.saves)
 		}
 
-		// Persistencia falhando restaura tanto o consumivel quanto todos os
-		// efeitos antigos do alvo.
+		// Persistence failure restores both the consumable and all previous
+		// effects on the target.
 		p.Char.Inv[0] = model.Item{Index: 4016}
 		before := model.Item{Index: 200, Eff: [6]byte{43, 4, 60, 8, 71, 50}}
 		p.Char.Equip[4] = before
@@ -1071,7 +1071,7 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 				p.Char.Inv[0].Index, p.Char.Equip[4].Eff, st.saves)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got < beforePackets+4 {
-			t.Fatalf("rollback repliction nao republicou slots e equipamento: %d -> %d", beforePackets, got)
+			t.Fatalf("repliction rollback did not republish slots and equipment: %d -> %d", beforePackets, got)
 		}
 	})
 
@@ -1079,7 +1079,7 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "generic"})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || st.saves != 0 || p.Session.QueuedPacketsForTest() != 1 {
-			t.Fatal("generic deveria apenas reenviar o slot")
+			t.Fatal("generic should only resend the slot")
 		}
 	})
 
@@ -1087,7 +1087,7 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 		w, p, _ := useItemWorld(model.VolatileRule{Action: "future_action"})
 		w.onUseItem(p.Session, useItemPacket(0, 0))
 		if p.Char.Inv[0].Index != 100 || p.Session.QueuedPacketsForTest() != 1 {
-			t.Fatal("acao desconhecida deveria preservar e reenviar o item")
+			t.Fatal("unknown action should preserve and resend the item")
 		}
 	})
 }
@@ -1097,17 +1097,17 @@ func TestOnUseItemRejectsInvalidStateAndCooldown(t *testing.T) {
 	setPlayerCurHP(p.Char, 500)
 	w.onUseItem(p.Session, make([]byte, 10))
 	if p.Char.Inv[0].Index != 100 {
-		t.Fatal("pacote invalido consumiu item")
+		t.Fatal("invalid packet consumed the item")
 	}
 
 	p.LastPotion = time.Now()
 	beforePackets := p.Session.QueuedPacketsForTest()
 	w.onUseItem(p.Session, useItemPacket(0, 0))
 	if p.Char.Inv[0].Index != 100 || playerCurHP(p.Char) != 500 {
-		t.Fatal("cooldown de pocao nao preservou estado")
+		t.Fatal("potion cooldown did not preserve state")
 	}
 	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-		t.Fatalf("cooldown nao ressincronizou consumo otimista: %d -> %d", beforePackets, got)
+		t.Fatalf("cooldown did not resynchronize optimistic consumption: %d -> %d", beforePackets, got)
 	}
 
 	delete(w.items, 100)
@@ -1115,10 +1115,10 @@ func TestOnUseItemRejectsInvalidStateAndCooldown(t *testing.T) {
 	beforePackets = p.Session.QueuedPacketsForTest()
 	w.onUseItem(p.Session, useItemPacket(0, 0))
 	if p.Char.Inv[0].Index != 100 {
-		t.Fatal("item fora do catalogo foi consumido")
+		t.Fatal("item outside the catalog was consumed")
 	}
 	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-		t.Fatalf("item fora do catalogo nao foi ressincronizado: %d -> %d", beforePackets, got)
+		t.Fatalf("item outside the catalog was not resynchronized: %d -> %d", beforePackets, got)
 	}
 }
 
@@ -1130,15 +1130,15 @@ func TestRefineTargetResolvers(t *testing.T) {
 
 	equipReq := useItemRequest{dstType: placeEquip, dstPos: 6}
 	if item, typ, pos := w.destRefineTarget(p, equipReq); item != &p.Char.Equip[6] || typ != placeEquip || pos != 6 {
-		t.Fatal("destRefineTarget nao resolveu equipamento")
+		t.Fatal("destRefineTarget did not resolve equipment")
 	}
 	if item, _, _ := w.destRefineTarget(p, useItemRequest{dstType: placeInv, dstPos: 2}); item != nil {
-		t.Fatal("destRefineTarget aceitou inventario")
+		t.Fatal("destRefineTarget accepted inventory")
 	}
 	if item, typ, pos := w.destItemTarget(p, useItemRequest{dstType: placeInv, dstPos: 2}); item != &p.Char.Inv[2] || typ != placeInv || pos != 2 {
-		t.Fatal("destItemTarget nao resolveu inventario")
+		t.Fatal("destItemTarget did not resolve inventory")
 	}
 	if item, _, _ := w.destItemTarget(p, useItemRequest{dstType: placeStorage, dstPos: 0}); item != nil {
-		t.Fatal("destItemTarget aceitou cargo")
+		t.Fatal("destItemTarget accepted cargo")
 	}
 }

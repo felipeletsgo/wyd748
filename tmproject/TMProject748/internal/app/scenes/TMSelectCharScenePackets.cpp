@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "WeatherPacket.h"
 // TMSelectCharScene split by responsibility; scene setup and character list stay in TMSelectCharScene.cpp.
 #include "TMSelectCharScene.h"
 #include "TMCamera.h"
@@ -68,7 +69,7 @@ void TMSelectCharScene::HandleCharacterLogin(char* buf)
 				24 * g_pObjectManager->m_stMobData.Class;
 	}
 
-	g_nWeather = login->Weather;
+	g_nWeather = IsWeatherValue(login->Weather) ? login->Weather : kWeatherClear;
 	g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_FIELD_STATE);
 }
 

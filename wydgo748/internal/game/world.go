@@ -4,6 +4,7 @@
 package game
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"runtime/debug"
@@ -30,6 +31,9 @@ type command struct {
 	pkt             []byte
 	login           *loginResult
 	queuedAt        time.Time
+	// replayDeferred marks an inbound packet that already passed validation and
+	// waited behind its player's persistence reservation.
+	replayDeferred bool
 	// A shutdown request runs on the World goroutine like any other command.
 	// This lets the final drain observe consistent state without racing a handler.
 	shutdown chan error
@@ -70,6 +74,12 @@ func pinAccountEntryPositions(account *model.Account) {
 // leaving the live session intact. Reentry city comes from the hometown bits
 // persisted in Score.Merchant.
 func (w *World) saveAccount(account *model.Account) error {
+	if w.criticalAccountStateReserved(account) {
+		return errCriticalPersistenceBusy
+	}
+	if err := w.syncPersistenceAllowed("account"); err != nil {
+		return err
+	}
 	return w.store.SaveAccount(accountPersistenceSnapshot(account))
 }
 
@@ -79,9 +89,15 @@ type asyncSaveStore interface {
 	SaveAccountAsync(acc *model.Account) error
 }
 
-// saveAccountAsync writes outside the game loop when supported. Only autosave
-// uses it; anti-duplication saves remain synchronous via saveAccount.
+// saveAccountAsync is the legacy nil-owner autosave adapter. Staged autosave
+// submits through queueAccountAutoSave instead of this fallback.
 func (w *World) saveAccountAsync(account *model.Account) error {
+	if w.criticalAccountStateReserved(account) {
+		return errCriticalPersistenceBusy
+	}
+	if err := w.syncPersistenceAllowed("legacy account autosave"); err != nil {
+		return err
+	}
 	snapshot := accountPersistenceSnapshot(account)
 	if as, ok := w.store.(asyncSaveStore); ok {
 		return as.SaveAccountAsync(snapshot)
@@ -97,17 +113,25 @@ type Player struct {
 	CharSlot int
 	ID       uint16
 	InWorld  bool
-	// PersistencePoisoned is set only after a handler panic. We cannot know
-	// which aggregates it changed; saving on disconnect/autosave could persist
-	// partial state and duplicate items. The world enters maintenance mode and
-	// discards RAM state, preserving the last commit.
+	// PersistencePoisoned excludes uncertain or partially mutated RAM from
+	// disconnect/autosave persistence after a handler or transaction failure.
 	PersistencePoisoned bool
-	X, Y                uint16 // current position tracked from movement packets 0x366
-	AirMoveActive       bool
-	AirMoveRoute        int
-	AirMoveStartedAt    time.Time
-	AirMoveSourceX      uint16
-	AirMoveSourceY      uint16
+	// goldenShieldPaid marks a cast resumed after its gold charge committed.
+	goldenShieldPaid bool
+	// Actor-only token invalidated by character reset, even when the same
+	// Player, character slot and numeric ID are reused.
+	criticalLifecycle *criticalPlayerLifecycle
+	X, Y              uint16 // current position tracked from movement packets 0x366
+	// QuestZoneEntry is the native QuestFlag: the quest zone this player was
+	// teleported into by its NPC. Runtime only; cleared by the zone reset.
+	QuestZoneEntry string
+	// SentWeather is the weather this client last received (0x114 or 0x18B).
+	SentWeather      int
+	AirMoveActive    bool
+	AirMoveRoute     int
+	AirMoveStartedAt time.Time
+	AirMoveSourceX   uint16
+	AirMoveSourceY   uint16
 	// NPC whose shop is open. The 7.48 buy packet has TargetID=0, so the
 	// server uses this authoritative ID rather than trusting the packet.
 	ShopNPC  uint16
@@ -227,6 +251,11 @@ type Mob struct {
 	ExpiresAt        time.Time
 	Awake            bool
 	InstanceID       string
+
+	// generator is the NPCGener entry that spawned this mob. NPCGener.txt reuses
+	// some indexes (3856 is both Kefra and a Grim_Lock group), so the index
+	// alone cannot identify the counter to lower when the mob dies.
+	generator *generState
 }
 
 const (
@@ -263,6 +292,16 @@ type GroundItem struct {
 	// State is 0 for closed or 1 for open. Only doors use it. The native server
 	// changes it with MSG_UpdateItem rather than recreating the object.
 	State byte
+	// Actor-owned claim retained through persistence completion delivery.
+	criticalPickup uint64
+	// Pending source removals reserve an ID but must not expose ground loot.
+	criticalDrop uint64
+	// A closed permanent gate has one pending key consumption at a time.
+	criticalGate bool
+}
+
+func (g *GroundItem) criticalReserved() bool {
+	return g != nil && (g.criticalPickup != 0 || g.criticalDrop != 0 || g.criticalGate)
 }
 
 // TMSrv calls this counter "MinuteGenerate", but TIMER_MIN runs every 12000 ms.
@@ -387,6 +426,29 @@ type World struct {
 	quizReceipts       map[string]quizReceipt
 	controlPending     atomic.Bool
 	commands           chan command
+	// Dormant S2 owner: enabled only after reservation/lifecycle integration.
+	criticalWrites *criticalPersistenceOwner
+	// Planned contract summons own their entity IDs without becoming visible.
+	criticalSummonIDs map[uint16]*Mob
+	// Destination tiles remain unavailable until a teleport settles.
+	criticalTeleportTiles map[criticalTeleportTile]*Player
+	// At most one retained disconnect per live Player; no packet queue is kept.
+	criticalDisconnects map[*net.Session]*criticalDisconnect
+	// criticalDeferred preserves per-session packet order while a player's
+	// account or character write is reserved. Packets are never discarded.
+	criticalDeferred      map[*net.Session][]command
+	criticalDeferredCount int
+	// terminalPersistence permits inline writes only for the final shutdown
+	// snapshot; syncPersistenceRejected logs each unmigrated operation once.
+	terminalPersistence     bool
+	syncPersistenceRejected map[string]bool
+	// criticalAccountContainment isolates failed account-only writes; the
+	// quarantine holds their fences until the database outcome has settled.
+	criticalAccountContainment bool
+	criticalQuarantine         map[uint64]time.Time
+	// criticalPersistenceWorkers > 0 enables the coordinator in NewWorld.
+	criticalPersistenceWorkers  int
+	criticalPersistenceCapacity int
 	// pendingCommands retains the remainder of a batch when the tick deadline
 	// arrives. World remains the sole writer of this queue.
 	pendingCommands          []command
@@ -486,7 +548,13 @@ type World struct {
 	// not tick count, to preserve ten real minutes even after delayed ticks.
 	questZones         []model.QuestZone
 	nextQuestZoneReset time.Time
-	uxmal              *model.VolatileInstance
+	nextQuestZoneGuard time.Time
+	// weather is the world weather sent in 0x114 and 0x18B (weather.go).
+	weather           int
+	nextWeatherChange time.Time
+	nextWeatherSync   time.Time
+	weatherRNG        RNG
+	uxmal             *model.VolatileInstance
 	// channel is the native ServerIndex+1. Citizenship is per channel; another
 	// channel's citizens receive no bonus here. A single instance uses channel 1.
 	channel byte
@@ -498,12 +566,14 @@ type World struct {
 	// real sources; tests inject controlled versions for deadlines and draws.
 	clock Clock
 	rng   RNG
-	// shuttingDown is true after graceful shutdown (shutdown.go): state is
-	// already persisted, so new input is rejected.
+	// shuttingDown blocks mutations during final draining and after maintenance.
 	shuttingDown bool
 	// shutdownErr preserves the first drain result. Repeated requests cannot
 	// turn a real persistence failure into apparent success.
-	shutdownErr error
+	shutdownErr      error
+	shutdownStarted  bool
+	shutdownFinished bool
+	shutdownWaiters  []chan error
 	// bosses holds extra boss behavior indexed by mob ID (boss.go). Every boss
 	// also exists in mobs/mobsByID and participates in normal grid, visibility,
 	// and combat handling. An empty map costs nothing for non-boss paths.
@@ -529,6 +599,10 @@ type World struct {
 	gambleJackpot      uint32
 	gamblePool         uint64
 	instanceStateDirty bool
+	// Dirty generations are actor-only tokens, never persisted or sent. An older
+	// instance completion must not erase a mutation made after its snapshot.
+	criticalInstanceGeneration   *criticalInstanceGeneration
+	criticalInstanceAdmissionErr error
 }
 
 // firstMobID starts the mob range; lower IDs belong to players.
@@ -564,6 +638,9 @@ func (w *World) allocMobID() uint16 {
 			continue
 		}
 		if _, used := w.mobsByID[id]; used {
+			continue
+		}
+		if _, reserved := w.criticalSummonIDs[id]; reserved {
 			continue
 		}
 		if _, used := w.groundItems[id]; !used {
@@ -625,6 +702,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		lastProtocolNotice:     make(map[uint16]time.Time),
 		clock:                  realClock{},
 		rng:                    realRNG{},
+		weatherRNG:             realRNG{},
 		itemInstances:          make(map[string]*ItemInstance),
 		playerInstance:         make(map[uint16]string),
 		pendingInstanceMembers: make(map[string]map[string]struct{}),
@@ -760,6 +838,11 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	if err := w.restoreInstanceState(); err != nil {
 		return nil, fmt.Errorf("restore instance state: %w", err)
 	}
+	// Start the coordinator last: startup restoration above may still write
+	// inline, while every later command and tick write must not block World.
+	if err := w.startCriticalPersistence(); err != nil {
+		return nil, err
+	}
 	return w, nil
 }
 
@@ -800,6 +883,9 @@ func (w *World) scheduleGenerator(g *generState, now time.Time) {
 // spawnGroup ports GenerateMob: a leader and MinGroup..MaxGroup followers,
 // capped by MaxNumMob. StartRange scatters them around Start.
 func (w *World) spawnGroup(g *generState) {
+	if w.generatorBlockedByKefra(g) {
+		return
+	}
 	remaining := g.def.MaxNumMob - g.current
 	if remaining <= 0 {
 		return
@@ -843,7 +929,7 @@ func (w *World) spawnGroup(g *generState) {
 			break
 		}
 		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
-			GenerIndex: g.def.Index, Segments: segments, RouteType: g.def.RouteType,
+			GenerIndex: g.def.Index, generator: g, Segments: segments, RouteType: g.def.RouteType,
 			WaitUntil: w.now().Add(time.Duration(g.def.Segments[0].Wait) * time.Second)}
 		if i == 0 {
 			leaderID = m.ID
@@ -930,6 +1016,9 @@ func (w *World) positionOccupiedInGameplaySpace(x, y uint16, space string,
 	}
 	space = strings.TrimSpace(space)
 	key := spatialKey(x, y)
+	if reserved := w.criticalTeleportTiles[criticalTeleportTile{key, space}]; reserved != nil && reserved != exceptPlayer {
+		return true
+	}
 	for _, m := range w.mobCells[key] {
 		if m == exceptMob || m.Dead {
 			continue
@@ -1203,6 +1292,9 @@ func (w *World) findFreeMobPosition(instanceID string, x, y uint16, radius uint1
 // sent. Retaining it would increase linear scans and leave old groups present
 // after many respawns.
 func (w *World) removeMobInstance(dead *Mob) {
+	if w.criticalGuildMobReserved(dead) {
+		return
+	}
 	if dead == nil {
 		return
 	}
@@ -1350,17 +1442,37 @@ const (
 func (w *World) Run() {
 	ticker := time.NewTicker(worldTickInterval)
 	defer ticker.Stop()
+	w.run(ticker.C, nil)
+}
+
+// run owns the same actor loop as Run. Explicit ticks and a stop signal allow
+// deterministic integration tests without leaving a World goroutine behind.
+// Run never supplies a stop signal: production shutdown still drains accepted
+// persistence through shutdown commands, not by cancelling this loop.
+func (w *World) run(ticks <-chan time.Time, stop <-chan struct{}) {
 	for {
+		select {
+		case <-stop:
+			return
+		default:
+		}
+		w.processCriticalCompletions(criticalCompletionBatchLimit)
+		w.resumeCriticalDeferredCommands(criticalDeferredReplayLimit)
 		cmd, ok := w.popPendingCommand()
 		if !ok {
 			select {
+			case <-stop:
+				return
+			case result := <-w.criticalCompletionChannel():
+				w.applyCriticalCompletion(result)
+				continue
 			case cmd = <-w.commands:
-			case <-ticker.C:
+			case <-ticks:
 				w.tick()
 				continue
 			}
 		}
-		w.processCommandBatch(cmd, ticker.C)
+		w.processCommandBatch(cmd, ticks)
 	}
 }
 
@@ -1514,9 +1626,12 @@ func (w *World) releaseCommandBatchScratch(batch []command, order []*net.Session
 // order. One connection cannot monopolize World with movements, and a tick
 // can interrupt the batch without losing remaining commands.
 func (w *World) processCommandBatch(first command, ticks <-chan time.Time) {
+	deadline := time.Now().Add(worldCommandBudget)
+	w.processCriticalCompletions(criticalCompletionBatchLimit)
+	w.resumeCriticalDisconnects(criticalCompletionBatchLimit)
+	w.resumeCriticalDeferredCommands(criticalDeferredReplayLimit)
 	batch := w.commandBatchScratch[:0]
 	batch = append(batch, first)
-	deadline := time.Now().Add(worldCommandBudget)
 	for len(batch) < worldCommandBatchLimit && time.Now().Before(deadline) {
 		// Deferred commands predate those still in the channel. Drain them first;
 		// otherwise sustained load advances the old backlog only one command per
@@ -1547,6 +1662,7 @@ execute:
 	for {
 		progress := false
 		for _, session := range order {
+			w.processCriticalCompletions(1)
 			select {
 			case <-ticks:
 				w.requeuePreparedCommandBatch(batch, order)
@@ -1701,12 +1817,19 @@ func (w *World) tick() {
 		observeWorldGauges(len(w.players), len(w.activeMobs))
 		metricCommandQueueDepth.Set(int64(w.commandQueueDepth()))
 	}()
+	w.processCriticalCompletions(criticalCompletionBatchLimit)
+	// Completion delivery remains active while draining, but no tick may mutate
+	// state or enqueue an autosave after shutdown/maintenance has started.
+	if w.shuttingDown {
+		return
+	}
 	w.mobTickCounter++
 	// Server position follows the visual route, but only due steps become
 	// authoritative for AI and interactions.
 	w.advanceAllPlayerMovement(now)
 	w.tickGlobalDrop(now)
 	w.tickGuildWars(now)
+	w.tickKefra(now)
 	// The grid limits this list to mobs near players. An active mob senses a
 	// target every second. Pursuit and patrol start new legs every two seconds
 	// to avoid chaining animations at maximum speed; execution stays at 500 ms
@@ -1733,10 +1856,17 @@ func (w *World) tick() {
 	w.tickChaosRecovery(now)
 	w.tickPlayerMounts(now)
 	w.tickGroundItems(now)
-	w.tickItemInstances(now)
+	if !w.criticalInstanceReserved() {
+		w.tickItemInstances(now)
+	}
 	w.tickTrades(now)
 	w.tickClientIntegrity(now)
 	w.tickQuiz(now)
+	w.tickWeather(now)
+	if !now.Before(w.nextQuestZoneGuard) {
+		w.tickQuestZoneGuard(now)
+		w.nextQuestZoneGuard = now.Add(questZoneGuardInterval)
+	}
 	if !now.Before(w.nextQuestZoneReset) {
 		w.tickQuestZoneReset(now)
 		w.nextQuestZoneReset = now.Add(questZoneResetInterval)
@@ -1772,6 +1902,8 @@ func (w *World) tickQuestZoneReset(now time.Time) {
 				break
 			}
 		}
+		// Native ClearAreaQuest cycle: every entry expires with the reset.
+		p.QuestZoneEntry = ""
 	}
 }
 
@@ -1795,6 +1927,9 @@ func accountAutoSaveBucket(name string) uint8 {
 }
 
 func (w *World) autoSaveAccounts(now time.Time) {
+	if w.shuttingDown {
+		return
+	}
 	bucket := w.autoSaveBucket
 	w.autoSaveBucket++
 	if w.autoSaveBucket >= uint8(accountAutoSaveBuckets) {
@@ -1807,12 +1942,20 @@ func (w *World) autoSaveAccounts(now time.Time) {
 	active := w.autoSaveScratch[:0]
 	for _, p := range w.players {
 		if !p.InWorld || p.Account == nil || p.Char == nil || p.PersistencePoisoned ||
+			w.criticalPlayerReserved(p) ||
 			accountAutoSaveBucket(p.Account.Name) != bucket {
 			continue
 		}
+		if w.criticalWrites != nil {
+			if err := w.queueAccountAutoSave(p, now); err != nil &&
+				!errors.Is(err, errCriticalPersistenceFull) && !errors.Is(err, errCriticalPersistenceBusy) {
+				log.Printf("[#%d] ERROR submitting autosave for account %q: %v", p.Session.ID, p.Account.Name, err)
+			}
+			continue
+		}
 		active = append(active, p)
-		// Periodic autosave is not a confirmation gate. It uses the asynchronous
-		// path to move fsync off the game loop; anti-duplication saves stay sync.
+		// Legacy nil-owner autosave uses the adapter's asynchronous path or
+		// synchronous fallback until production S2 activation is safe.
 		if err := w.saveAccountAsync(p.Account); err != nil {
 			log.Printf("[#%d] ERROR autosaving account %q: %v", p.Session.ID, p.Account.Name, err)
 		}
@@ -1881,11 +2024,18 @@ func (w *World) handle(cmd command) {
 	// panic. A round-robin batch may contain more commands after Shutdown;
 	// without this barrier they would run after the final commit and vanish.
 	if w.shuttingDown {
-		if cmd.pkt == nil && cmd.s != nil {
-			w.onDisconnect(cmd.s)
-		} else if cmd.s != nil {
+		if cmd.s != nil {
 			cmd.s.Close()
+			if cmd.pkt == nil && cmd.login == nil && !w.shutdownStarted {
+				w.onDisconnect(cmd.s)
+			} else if cmd.login != nil {
+				delete(w.authPending, cmd.s)
+			}
 		}
+		// During/following an explicit shutdown, keep live aggregates for final
+		// persistence. Disconnect cleanup could overwrite a pending commit or
+		// perform a redundant save after the final snapshot. The process exits
+		// with these already-closed transports; there is no reconnect admission.
 		return
 	}
 	if cmd.login != nil {
@@ -1896,8 +2046,21 @@ func (w *World) handle(cmd command) {
 		w.onDisconnect(cmd.s)
 		return
 	}
-	if !w.validateInboundCommand(cmd.s, cmd.pkt) {
+	// Deferred disconnects retain Player for owner completion, not for queued
+	// packets that arrived before transport closure.
+	if cmd.s != nil && cmd.s.IsClosed() {
 		return
+	}
+	if !cmd.replayDeferred {
+		if !w.validateInboundCommand(cmd.s, cmd.pkt) {
+			return
+		}
+		// Do not advance movement or dispatch another intention into a reserved
+		// participant. Defer it in arrival order until World acknowledges the
+		// write; a later packet waits behind earlier deferred packets.
+		if w.deferCriticalCommand(cmd) {
+			return
+		}
 	}
 	if p := w.players[cmd.s]; p != nil && p.InWorld && p.Char != nil {
 		w.advancePlayerMovement(p, w.now())
@@ -1937,6 +2100,14 @@ func (w *World) handle(cmd command) {
 		w.onDeleteCharacter(cmd.s, cmd.pkt)
 	case wire.OpCharacterTransfer:
 		w.onCharacterTransferUnavailable(cmd.s, cmd.pkt)
+	case wire.OpDeclareServerWar, wire.OpRefuseServerWar:
+		w.onServerWarLetterUnavailable(cmd.s, cmd.pkt)
+	case wire.OpBuyLotteryTicket:
+		w.onLotteryTicketUnavailable(cmd.s, cmd.pkt)
+	case wire.OpHellStoreBuy:
+		w.onHellStoreBuy(cmd.s, cmd.pkt)
+	case wire.OpStoreGoldRequest:
+		w.onStoreGoldRequestUnavailable(cmd.s, cmd.pkt)
 	case wire.OpSwapItem:
 		w.onSwapItem(cmd.s, cmd.pkt)
 	case wire.OpDeposit:
@@ -2161,6 +2332,9 @@ func (w *World) allocGroundItemID(itemIndex uint16) (uint16, bool) {
 			if _, used := w.groundItems[id]; used {
 				continue
 			}
+			if w.criticalSummonIDs[id] != nil {
+				continue
+			}
 			if _, used := w.mobsByID[id]; !used {
 				return id, true
 			}
@@ -2184,6 +2358,9 @@ func (w *World) allocGroundItemID(itemIndex uint16) (uint16, bool) {
 			continue
 		}
 		if _, used := w.groundItems[id]; used {
+			continue
+		}
+		if w.criticalSummonIDs[id] != nil {
 			continue
 		}
 		if _, used := w.mobsByID[id]; !used {

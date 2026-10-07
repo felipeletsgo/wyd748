@@ -3,28 +3,26 @@
 constexpr int MAX_STRLENGTH = 120;
 constexpr int MAX_STRRENDER = 256;
 
-// Renderizador de texto legado que mantém sua própria cópia da string e a
-// textura rasterizada. Os limites fixos fazem parte do contrato atual.
+// Legacy text renderer that keeps its own copy of the string and the
+// rasterized texture. The fixed limits are part of the current contract.
 class TMFont2
 {
 public:
     TMFont2();
     virtual ~TMFont2();
     
-    // Copia szString para o buffer interno, aplica a cor e opcionalmente trata
-    // o caractere zero. O chamador conserva ownership da string.
+    // Copies szString into the internal buffer, applies the color and optionally
+    // handles the zero character. The caller keeps ownership of the string.
     int SetText(const char* szString, unsigned int dwColor, int bCheckZero);
-    // Retorna ponteiro mutável para o buffer interno; válido somente enquanto
-    // esta instância existir e não receber outro texto.
+    // Returns a mutable pointer to the internal buffer; valid only while this
+    // instance exists and receives no other text.
     char* GetText();
-    // Renderiza na posição e modo informados; não transfere recursos.
+    // Renders at the given position and mode; transfers no resources.
     int Render(int nPosX, int nPosY, int nRenderType);
-    // Analisa os bytes da string para respeitar caracteres multibyte legados.
-    int StrByteCheck(char* szString);
 
 public:
-    // m_pTexture é recurso da instância e pode ser nulo antes de SetText ou
-    // após falha de criação. m_pBuffer é scratch compartilhado entre fontes.
+    // m_pTexture belongs to the instance and may be null before SetText or
+    // after a creation failure. m_pBuffer is scratch shared between fonts.
     unsigned int m_dwShadeColor;
     unsigned int m_dwColor;
     int m_bMultiLine;

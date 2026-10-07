@@ -173,7 +173,7 @@ func applyEtherealFlamesPlayer(target, caster *model.Char, intn func(int) int) {
 }
 
 func (w *World) breakHideOnAttack(p *Player) {
-	if p == nil || p.Char == nil || !removePlayerAffectTypes(p.Char, 28) {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) || !removePlayerAffectTypes(p.Char, 28) {
 		return
 	}
 	w.recalcPlayer(p.Char)
@@ -182,6 +182,15 @@ func (w *World) breakHideOnAttack(p *Player) {
 }
 
 func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill model.SkillDef, mastery int, motion byte) {
+	if caster == nil || caster.Char == nil || len(targets) == 0 || w.criticalPlayerReserved(caster) {
+		return
+	}
+	// Preflight every target before caster costs, movement or any target effect.
+	for _, target := range targets {
+		if target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
+			return
+		}
+	}
 	now := w.now()
 	baseDamage := w.baseSkillDamage(caster.Char, skill)
 	if skill.Index == 30 {
@@ -212,9 +221,9 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		}
 		target.LastAttackerID = caster.ID
 		if directDamage {
-			w.cancelTrade(target, "personagem foi atacado")
+			w.cancelTrade(target, "character was attacked")
 		}
-		blocked := hasActiveAffectAt(target.Char, 19, now) // Imunidade bloqueia affects agressivos.
+		blocked := hasActiveAffectAt(target.Char, 19, now) // Immunity blocks hostile affects.
 		if directDamage {
 			damageValue := skillPvPFinalDamageWithRNG(baseDamage, playerDefense(target.Char),
 				skillDamageMastery(caster.Char), w.intn)
@@ -223,7 +232,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
 			perHit = absorbFlatDamage(perHit, w.playerFlatDamageAbsorb(target.Char))
 			for hit := 0; hit < hitCount && playerCurHP(target.Char) > 0; hit++ {
-				// Montaria adulta viva absorve 25% de cada golpe no proprio HP.
+				// A living adult mount absorbs 25% of each hit into its own HP.
 				riderHit := uint32(w.absorbMountDamage(target, int(perHit)))
 				riderHit = absorbManaControlDamageAt(target.Char, riderHit, now)
 				applied := riderHit
@@ -233,13 +242,13 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 				setPlayerCurHP(target.Char, playerCurHP(target.Char)-applied)
 				wideHits = append(wideHits, wideHit{target: target, damage: riderHit})
 			}
-			// O pacote compacto so inicia o efeito; o 0x39D estendido abaixo
-			// carrega o dano calculado, inclusive overkill acima do HP restante.
+			// The compact packet starts the effect; the extended 0x39D below
+			// carries calculated damage, including overkill beyond remaining HP.
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
 			if playerCurHP(target.Char) == 0 {
 				w.mountRiderDied(target)
 				target.DeadAt = now
-				w.receiveDeathLetter(target, caster.Char.Name, "jogador")
+				w.receiveDeathLetter(target, caster.Char.Name, "player")
 				killedPlayers = append(killedPlayers, target)
 			}
 		} else {
@@ -251,10 +260,10 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		if !blocked && skill.TickType > 0 {
 			setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime, now)
 		}
-		if skill.Index == 49 { // Chamas Etereas: W2PP alterna entre mana burn e dispel.
+		if skill.Index == 49 { // Ethereal Flames: W2PP alternates mana burn and dispel.
 			applyEtherealFlamesPlayer(target.Char, caster.Char, w.intn)
 		}
-		if skill.Index == 6 { // Furia Divina puxa o jogador.
+		if skill.Index == 6 { // Divine Fury pulls the player.
 			target.X, target.Y = w.findFreeGameplayPosition(caster, target, caster.X, caster.Y, 2)
 			target.Char.X, target.Char.Y = target.X, target.Y
 			w.refreshPlayerVisibility(target)
@@ -275,9 +284,9 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 				hit.damage, playerMaxHP(hit.target.Char), caster.Char.Exp, playerCombatMP(caster.Char), int16(skill.Index), motion, skillVisualLevel(mastery)))
 		})
 	}
-	// O ataque precisa chegar antes de SetHpMp/CNFMobKill. Se HP=0 for
-	// publicado primeiro, o 7.48 considera o alvo morto e descarta o numero
-	// flutuante, sobretudo no overkill.
+	// Attack packets precede SetHpMp/CNFMobKill. Publishing HP=0 first makes
+	// 7.48 treat the target as dead and discard the floating damage number,
+	// particularly for overkill.
 	for _, target := range targets {
 		dead := playerCurHP(target.Char) == 0
 		w.recalcPlayer(target.Char)
@@ -295,12 +304,12 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			w.publishPlayerDeath(target, caster.ID)
 		}
 	}
-	log.Printf("[#%d] executou PvP skill=%d %q alvos=%d", caster.Session.ID, skill.Index, skill.Name, len(targets))
+	log.Printf("[#%d] executed PvP skill=%d %q targets=%d", caster.Session.ID, skill.Index, skill.Name, len(targets))
 }
 
-// skillPvPFinalDamageWithRNG segue o bloco PvP do W2PP: skills ofensivas usam
-// o dobro do AC do jogador alvo. A excecao ofensiva 79 do W2PP nao pertence
-// ao catalogo 7.48, onde esse ID aplica um buff.
+// skillPvPFinalDamageWithRNG follows W2PP's PvP block: offensive skills use
+// twice the target's AC. W2PP's offensive exception 79 is not part of the
+// 7.48 catalog, where this ID applies a buff.
 func skillPvPFinalDamageWithRNG(baseDamage, defense, mastery int, intn func(int) int) int {
 	defense *= 2
 	return skillFinalDamageWithRNG(baseDamage, defense, mastery, intn)

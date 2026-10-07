@@ -10,37 +10,37 @@ import (
 	"wydgo/internal/wire"
 )
 
-// cargoMerchantType e o nibble baixo de Merchant dos NPCs de armazem.
+// cargoMerchantType is the low Merchant nibble of warehouse NPCs.
 const cargoMerchantType = 2
 
-// NOTA DE DESENHO -- por que nao existe um "PendingQuest" server-side aqui.
+// DESIGN NOTE: why there is no server-side "PendingQuest" here.
 //
-// O plano original exigia um estado pendente entre oferta e confirmacao, para
-// que um ClickOk=1 solto nao concedesse recompensa. A captura do client 7.48
-// mostrou que esse desenho e impossivel: quando o NPC tem o gatilho de
-// confirmacao (tipo 11 + rosto 58, ou tipos 10/13/14/15), o primeiro clique
-// NAO gera pacote -- o client apenas abre a janela local. So o "Sim" envia, ja
-// com ClickOk=1. Nao existe pacote de oferta para criar o estado pendente.
+// The original plan required a pending state between offer and confirmation so
+// a stray ClickOk=1 could not grant a reward. A 7.48 client capture showed that
+// design is impossible: when the NPC has the confirmation trigger (type 11 +
+// face 58, or types 10/13/14/15), the first click sends NO packet; the client
+// only opens its local window. Only "Yes" sends, already with ClickOk=1. No
+// offer packet exists to create a pending state.
 //
-// Portanto o servidor recebe exatamente UM pacote por interacao, e a defesa
-// real e a validacao server-side em executeQuest: requisitos, flag de
-// concluida, alcance e visibilidade. O pacote do client so carrega o id do NPC;
-// custo, item e recompensa vem sempre do quests.json.
+// The server therefore receives exactly ONE packet per interaction, and the
+// real defense is server-side validation in executeQuest: requirements, the
+// completed flag, range and visibility. The client packet carries only the NPC
+// ID; cost, items and rewards always come from quests.json.
 
-// Tipos de NPC que ja possuem handler proprio. Uma quest configurada em cima de
-// um deles nunca dispararia, porque o roteamento testa os tipos conhecidos
-// antes -- por isso o boot recusa essa configuracao em vez de ignora-la.
+// NPC kinds that already have their own handler. A quest configured on one of
+// them would never fire because routing tests known kinds first, so startup
+// rejects that configuration instead of ignoring it.
 const (
-	npcKindShop               = "loja/mestre"
+	npcKindShop               = "shop/master"
 	npcKindCargo              = "cargo"
 	npcKindCraft              = "compositor"
-	npcKindAbilityResetMaster = "mestre de atributos"
-	npcKindAirMove            = "transporte aereo"
+	npcKindAbilityResetMaster = "ability reset master"
+	npcKindAirMove            = "air transport"
 )
 
-// reservedNPCKind devolve o handler dedicado do NPC, se houver. Centraliza o
-// vocabulario de tipos para que o roteamento e a validacao de boot nao possam
-// divergir.
+// reservedNPCKind returns the NPC's dedicated handler, if any. It keeps the
+// kind vocabulary in one place so routing and startup validation cannot
+// diverge.
 func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	if def == nil || def.Score == nil {
 		return "", false
@@ -66,8 +66,8 @@ func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	return "", false
 }
 
-// indexQuests casa cada quest com o NPC correspondente e recusa configuracoes
-// que nunca funcionariam. Roda no boot: erro aqui derruba o servidor.
+// indexQuests matches each quest with its NPC and rejects configurations that
+// could never work. It runs at startup: an error here stops the server.
 func indexQuests(file model.QuestFile, npcs []model.NPCDef) (map[string]*model.QuestDef, error) {
 	byName := make(map[string]*model.NPCDef, len(npcs)*2)
 	for i := range npcs {
@@ -80,12 +80,12 @@ func indexQuests(file model.QuestFile, npcs []model.NPCDef) (map[string]*model.Q
 		key := model.NormalizeQuestNPC(quest.NPC)
 		def, exists := byName[key]
 		if !exists {
-			return nil, fmt.Errorf("quest %d referencia o npc %q, que nao existe em data/npcs",
+			return nil, fmt.Errorf("quest %d references NPC %q, which does not exist in data/npcs",
 				quest.ID, quest.NPC)
 		}
 		if kind, reserved := reservedNPCKind(def); reserved {
 			return nil, fmt.Errorf(
-				"quest %d configurada no npc %q, que ja e %s: o clique nunca chegaria na quest",
+				"quest %d is configured on NPC %q, which is already a %s: the click would never reach the quest",
 				quest.ID, quest.NPC, kind)
 		}
 		out[key] = quest
@@ -93,8 +93,8 @@ func indexQuests(file model.QuestFile, npcs []model.NPCDef) (map[string]*model.Q
 	return out, nil
 }
 
-// questForNPC devolve a quest configurada para o NPC, se houver. A allowlist e
-// o proprio quests.json: NPC ausente dali nunca vira quest.
+// questForNPC returns the quest configured for the NPC, if any. The allowlist
+// is quests.json itself: an NPC absent from it never becomes a quest.
 func (w *World) questForNPC(def *model.NPCDef) *model.QuestDef {
 	if def == nil || len(w.questsByNPC) == 0 {
 		return nil
@@ -105,31 +105,30 @@ func (w *World) questForNPC(def *model.NPCDef) *model.QuestDef {
 	return w.questsByNPC[model.NormalizeQuestNPC(generName(def.Name))]
 }
 
-// onQuestInteraction trata o clique num NPC de quest.
+// onQuestInteraction handles a click on a quest NPC.
 //
-// A CONFIRMACAO E CLIENT-SIDE, nao server-side. O client 7.48 decide sozinho se
-// abre a janela de "tem certeza?", olhando o tipo do NPC e o mesh de rosto
-// (TMFieldScene: tipo 11 + rosto 58, alem dos tipos 10/13/14/15). Consequencia
-// medida em captura:
+// CONFIRMATION IS CLIENT-SIDE, not server-side. The 7.48 client alone decides
+// whether to open the "are you sure?" window from the NPC type and face mesh
+// (TMFieldScene: type 11 + face 58, plus types 10/13/14/15). Captured result:
 //
-//   - NPC sem esse gatilho (ex.: Kibita, rosto 16): o clique manda ClickOk=0.
-//   - NPC com o gatilho (ex.: Coveiro, rosto 58): o primeiro clique NAO manda
-//     pacote nenhum -- so abre a janela. O "Sim" manda ClickOk=1.
+//   - NPC without that trigger (e.g. Kibita, face 16): the click sends ClickOk=0.
+//   - NPC with the trigger (e.g. Gravedigger, face 58): the first click sends
+//     no packet and only opens the window. "Yes" sends ClickOk=1.
 //
-// Nos dois casos o servidor recebe UM unico pacote por interacao. Por isso nao
-// da para exigir um pacote de "oferta" antes de conceder: as quests com
-// confirmacao nativa nunca mandariam esse pacote e jamais poderiam concluir.
-// A defesa real e a validacao server-side (requisitos, alcance, visibilidade e
-// flag de concluida), que roda integralmente em executeQuest.
+// Either way the server receives ONE packet per interaction, so it cannot
+// require an "offer" packet before granting: natively confirmed quests would
+// never send it and could never complete. The real defense is server-side
+// validation (requirements, range, visibility and completed flag), which runs
+// entirely in executeQuest.
 func (w *World) onQuestInteraction(s *net.Session, p *Player, m *Mob, quest *model.QuestDef, clickOk int32) {
 	if clickOk == 1 {
-		log.Printf("[#%d] QUEST %d confirmada na janela nativa do client", s.ID, quest.ID)
+		log.Printf("[#%d] QUEST %d confirmed in the native client window", s.ID, quest.ID)
 	}
 	w.executeQuest(s, p, m, quest)
 }
 
-// questBlockedMessage devolve o motivo da recusa, preferindo o texto do autor
-// da quest quando ele definiu um.
+// questBlockedMessage returns the rejection reason, preferring the quest
+// author's text when one is defined.
 func questBlockedMessage(quest *model.QuestDef, reason string) string {
 	if quest.Messages.Denied != "" {
 		return quest.Messages.Denied
@@ -137,8 +136,8 @@ func questBlockedMessage(quest *model.QuestDef, reason string) string {
 	return reason
 }
 
-// questRequirementsMet valida level, gold, itens e quest anterior. Devolve o
-// motivo da recusa para o painel.
+// questRequirementsMet validates level, gold, items and the prior quest. It
+// returns the rejection reason for the message panel.
 func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, bool) {
 	ch := p.Char
 	level := uint32(0)
@@ -161,8 +160,8 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 	if req.Gold != 0 && ch.Gold < req.Gold {
 		return "Not enough gold.", false
 	}
-	// O Kibita nativo exige Citizen == 0: nao da para comprar cidadania duas
-	// vezes, nem trocar a de outro canal pela deste.
+	// Native Kibita requires Citizen == 0: citizenship cannot be bought twice,
+	// nor swapped from another channel to this one.
 	if quest.Rewards.Citizenship && ch.Citizenship != 0 {
 		return "You already have citizenship.", false
 	}
@@ -171,8 +170,8 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 			return "You do not have the required items.", false
 		}
 	}
-	// O consumo tambem precisa estar disponivel: exigir na oferta evita
-	// prometer uma recompensa que a confirmacao nao conseguiria pagar.
+	// Consumption must be available too: requiring it at the offer avoids
+	// promising a reward the confirmation could not pay for.
 	for _, item := range quest.Consumes {
 		if countInventoryItem(ch, item.Index) < item.Quantity() {
 			return "You do not have the required items.", false
@@ -182,8 +181,8 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 		return counterDeniedMessage(name), false
 	}
 	if name, ok := hasCounters(p, quest.ConsumeCounters); !ok {
-		// Saldo zerado ainda passa se a recarga do NPC puder cobri-lo -- e o
-		// caso do Sobrevivente, que troca o selo por 100 entradas na hora.
+		// A zero balance still passes when the NPC recharge can cover it; the
+		// Survivor exchanges the seal for 100 entries on the spot.
 		if !rechargeCovers(p, ch, quest, name) {
 			return counterDeniedMessage(name), false
 		}
@@ -194,8 +193,8 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 	return "", true
 }
 
-// countInventoryItem soma as unidades de um item nos slots visiveis, honrando
-// as pilhas de EF_AMOUNT.
+// countInventoryItem sums an item's units in visible slots, honoring
+// EF_AMOUNT stacks.
 func countInventoryItem(ch *model.Char, index uint16) uint32 {
 	if ch == nil || index == 0 {
 		return 0
@@ -210,7 +209,7 @@ func countInventoryItem(ch *model.Char, index uint16) uint32 {
 	return total
 }
 
-// itemStackAmount devolve o tamanho da pilha (EF_AMOUNT) ou 1.
+// itemStackAmount returns the stack size (EF_AMOUNT) or 1.
 func itemStackAmount(item model.Item) uint32 {
 	for i := 0; i < 3; i++ {
 		if item.Eff[i*2] == effectAmount {
@@ -233,50 +232,50 @@ func freeInventorySlots(ch *model.Char) int {
 	return free
 }
 
-// executeQuest executa a quest de ponta a ponta. Revalida tudo (o estado pode
-// ter mudado desde que o jogador abriu a janela), consome, concede e persiste;
-// se a gravacao falhar, reverte por completo.
+// executeQuest runs the quest end to end. It revalidates everything (state may
+// have changed since the player opened the window), consumes, grants and
+// persists; a failed save reverts everything.
 
-// speakQuestNPC faz o NPC dizer uma das falas configuradas, em voz alta. Sai
-// como 0x333 com o ID do NPC, entao o client mostra como fala DELE, e quem
-// estiver por perto tambem le -- e o mesmo efeito do SendSay nativo, que
-// tambem usa GridMulticast.
+// speakQuestNPC makes the NPC say one configured line aloud. It is sent as
+// 0x333 with the NPC ID, so the client shows it as the NPC's speech and nearby
+// players read it too, matching native SendSay, which also uses GridMulticast.
 //
-// A escolha usa w.intn, o RNG injetavel, para o teste poder fixar a linha.
+// The choice uses w.intn, the injectable RNG, so tests can fix the line.
 func (w *World) speakQuestNPC(p *Player, m *Mob, quest *model.QuestDef) {
 	if m == nil || len(quest.Dialogue) == 0 {
 		return
 	}
-	linha := quest.Dialogue[w.intn(len(quest.Dialogue))]
-	for _, ouvinte := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
-		ouvinte.Session.Send(wire.MessageChat(m.ID, linha))
+	line := quest.Dialogue[w.intn(len(quest.Dialogue))]
+	for _, listener := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
+		listener.Session.Send(wire.MessageChat(m.ID, line))
 	}
 	_ = p
 }
 
 func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.QuestDef) {
-	// O NPC fala ANTES de qualquer checagem: ele reage a presenca do jogador,
-	// nao ao resultado. Recusa tambem merece fala.
+	// The NPC speaks BEFORE any check: it reacts to the player's presence, not
+	// to the outcome. A rejection deserves a line too.
 	w.speakQuestNPC(p, m, quest)
 
-	// Toda recusa e logada com o motivo. Sem isso o log mostra a confirmacao
-	// chegando e depois silencio, e nao da para distinguir "ja concluida" de
-	// uma falha de verdade -- exatamente o que confundiu no primeiro teste.
+	// Every rejection is logged with its reason. Otherwise the log shows the
+	// confirmation arriving and then silence, and "already completed" cannot be
+	// told apart from a real failure.
 	if !quest.Repeatable && questCompleted(p.Char, quest.ID) {
 		s.Send(wire.MessagePanel("You have already completed this quest."))
-		log.Printf("[#%d] QUEST %d recusada: ja concluida", s.ID, quest.ID)
+		log.Printf("[#%d] QUEST %d rejected: already completed", s.ID, quest.ID)
 		return
 	}
-	// Toda a defesa esta aqui: o pacote do client nunca carrega custo, item ou
-	// recompensa -- so o id do NPC. Alcance e visibilidade ja foram validados
-	// em resolveNPCInteraction antes de chegar neste ponto.
+	// The whole defense is here: the client packet never carries cost, items or
+	// rewards, only the NPC ID. Range and visibility were already validated in
+	// resolveNPCInteraction before this point.
 	if reason, ok := w.questRequirementsMet(p, quest); !ok {
 		s.Send(wire.MessagePanel(questBlockedMessage(quest, reason)))
-		log.Printf("[#%d] QUEST %d recusada: %s", s.ID, quest.ID, reason)
+		log.Printf("[#%d] QUEST %d rejected: %s", s.ID, quest.ID, reason)
 		return
 	}
 
-	// Snapshot para rollback: a persistencia vem antes da confirmacao ao client.
+	// Rollback snapshot: persistence precedes the client confirmation.
+	images := criticalPreimages(p)
 	previousChar := cloneCharacterState(p.Char)
 	previousX, previousY := p.X, p.Y
 	previousCounters := copyCounters(p)
@@ -291,7 +290,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		teleportX, teleportY, ok = w.resolvePlayerTeleportDestination(p, target.X, target.Y)
 		if !ok {
 			s.Send(wire.MessagePanel("The quest destination is unavailable."))
-			log.Printf("[#%d] QUEST %d recusada: destino de teleporte indisponivel", s.ID, quest.ID)
+			log.Printf("[#%d] QUEST %d rejected: teleport destination unavailable", s.ID, quest.ID)
 			return
 		}
 	}
@@ -300,18 +299,18 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		if !consumeInventoryItem(p.Char, item.Index, item.Quantity()) {
 			rollback()
 			s.Send(wire.MessagePanel("You do not have the required items."))
-			log.Printf("[#%d] QUEST %d recusada: consumo do item %d x%d falhou",
+			log.Printf("[#%d] QUEST %d rejected: consuming item %d x%d failed",
 				s.ID, quest.ID, item.Index, item.Quantity())
 			return
 		}
 	}
-	// A recarga roda ANTES do gasto, como no nativo: sem saldo, o NPC troca o
-	// item por entradas e so entao cobra a visita.
+	// The recharge runs BEFORE spending, as natively: without a balance the NPC
+	// exchanges the item for entries and only then charges the visit.
 	applyQuestRecharge(p, quest)
 	if !spendCounters(p, quest.ConsumeCounters) {
 		rollback()
 		s.Send(wire.MessagePanel("You do not have enough entries."))
-		log.Printf("[#%d] QUEST %d recusada: saldo de contador insuficiente", s.ID, quest.ID)
+		log.Printf("[#%d] QUEST %d rejected: insufficient counter balance", s.ID, quest.ID)
 		return
 	}
 	grantCounters(p, quest.Rewards.Counters)
@@ -322,7 +321,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		if !grantInventoryItem(p.Char, item) {
 			rollback()
 			s.Send(wire.MessagePanel("Your inventory is full."))
-			log.Printf("[#%d] QUEST %d recusada: sem espaco para o item %d",
+			log.Printf("[#%d] QUEST %d rejected: no room for item %d",
 				s.ID, quest.ID, item.Index)
 			return
 		}
@@ -331,13 +330,13 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		if !refineQuestReward(p.Char, r) {
 			rollback()
 			s.Send(wire.MessagePanel("You have nothing equipped to improve."))
-			log.Printf("[#%d] QUEST %d recusada: nada para refinar no slot %d",
+			log.Printf("[#%d] QUEST %d rejected: nothing to refine in slot %d",
 				s.ID, quest.ID, r.Slot)
 			return
 		}
 	}
 	if quest.Rewards.Gold != 0 {
-		// Mesmo teto das barras de gold: recompensa nao pode estourar o limite.
+		// Same cap as gold bars: a reward cannot exceed the limit.
 		if p.Char.Gold > maxCharacterGold-quest.Rewards.Gold {
 			p.Char.Gold = maxCharacterGold
 		} else {
@@ -345,58 +344,96 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		}
 	}
 	cytheraChanged := false
+	leveledUp := false
 	if quest.Rewards.Exp != 0 {
-		// O bau de experiencia (affect 39) tambem dobra a EXP de quest.
+		// The experience chest (affect 39) also doubles quest EXP.
 		levels, _ := grantExp(p.Char, expWithDoubleBuffAt(p.Char, quest.Rewards.Exp, w.now()))
+		leveledUp = levels > 0
 		cytheraChanged = levels > 0 && updateCelestialCythera(p.Char)
 	}
 	if quest.Rewards.Citizenship {
-		// A cidadania guarda o NUMERO DO CANAL, como no nativo.
+		// Citizenship stores the CHANNEL NUMBER, as natively.
 		p.Char.Citizenship = w.channel
-		// O lider carrega a guild junto: no Kibita nativo, se quem compra e o
-		// mestre, a guild inteira vira cidada.
+		// The leader brings the guild along: at native Kibita, when the buyer is
+		// the guild master, the whole guild becomes citizen.
 		if guild, member := w.guildOf(p.Char); guild != nil &&
 			member.Rank == model.GuildRankLeader {
-			log.Printf("[#%d] CIDADANIA guild %d (%q) tornou-se cidada do canal %d",
+			log.Printf("[#%d] CITIZENSHIP guild %d (%q) became citizen of channel %d",
 				s.ID, guild.ID, guild.Name, w.channel)
 		}
 	}
 	if !quest.Repeatable {
 		markQuestCompleted(p.Char, quest.ID)
 	}
-	if teleportX != 0 && teleportY != 0 {
-		p.X, p.Y = teleportX, teleportY
+	teleporting := teleportX != 0 && teleportY != 0
+	if teleporting {
 		p.Char.X, p.Char.Y = teleportX, teleportY
-		stagePlayerHomeCity(p)
+		// Stage the hometown from the destination without moving the live
+		// runtime position: under the coordinator the move waits for commit.
+		stagePlayerHomeCity(&Player{Char: p.Char, X: teleportX, Y: teleportY})
 	}
-
-	// PostgreSQL confirma conta + charstate em uma unica transacao. Isso inclui
-	// itens, gold, EXP, quest concluida e contadores especiais no mesmo commit.
-	if err := w.saveAccountAndCharStateResult(p); err != nil {
-		rollback()
-		s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
-		log.Printf("[#%d] ERRO quest %d: %v", s.ID, quest.ID, err)
+	publish := func() {
+		w.recalcPlayer(p.Char)
+		if teleporting {
+			// The position participated in the quest commit. Only the
+			// region change remains to publish; no second save can fail.
+			x, y := teleportX, teleportY
+			if rx, ry, ok := w.resolvePlayerTeleportDestination(p, x, y); ok {
+				x, y = rx, ry
+			}
+			p.X, p.Y = x, y
+			p.Char.X, p.Char.Y = x, y
+			// The NPC entry is the only legitimate way into a quest zone.
+			w.grantQuestZoneEntry(p, x, y)
+		}
+		if !s.IsClosed() {
+			s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
+			s.Send(wire.UpdateEtc(p.ID, *p.Char))
+			s.Send(playerScorePacket(p))
+			if cytheraChanged {
+				s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
+			}
+		}
+		if cytheraChanged {
+			w.refreshAppearance(p)
+		}
+		if leveledUp {
+			w.syncPlayerChaos(p)
+		}
+		if teleporting {
+			w.publishPlayerTeleport(p)
+		}
+		if !s.IsClosed() {
+			s.Send(wire.MessagePanel(quest.Messages.Success))
+		}
+		log.Printf("[#%d] QUEST %d completed by %q", s.ID, quest.ID, p.Char.Name)
+	}
+	if w.criticalWrites != nil {
+		failed := func() {
+			if !s.IsClosed() {
+				s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
+			}
+		}
+		if err := w.queueCriticalLiveMutation("quest", images, publish,
+			criticalLiveMutationOptions{sidecar: true, reject: failed}); err != nil {
+			log.Printf("[#%d] quest %d admission rejected: %v", s.ID, quest.ID, err)
+			failed()
+		}
 		return
 	}
 
-	w.recalcPlayer(p.Char)
-	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
-	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	s.Send(playerScorePacket(p))
-	if cytheraChanged {
-		s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
-		w.refreshAppearance(p)
+	// PostgreSQL commits account and charstate in one transaction, including
+	// items, gold, EXP, the completed quest and special counters.
+	if err := w.saveAccountAndCharStateResult(p); err != nil {
+		rollback()
+		s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
+		log.Printf("[#%d] ERROR quest %d: %v", s.ID, quest.ID, err)
+		return
 	}
-	if quest.Rewards.Teleport != nil {
-		// A posicao participou do mesmo commit da quest. Aqui resta apenas
-		// publicar a mudanca de regiao; nao existe segundo save que possa falhar.
-		w.publishPlayerTeleport(p)
-	}
-	s.Send(wire.MessagePanel(quest.Messages.Success))
-	log.Printf("[#%d] QUEST %d concluida por %q", s.ID, quest.ID, p.Char.Name)
+	publish()
 }
 
-// consumeInventoryItem retira `amount` unidades, respeitando pilhas.
+// consumeInventoryItem removes `amount` units, honoring stacks.
 func consumeInventoryItem(ch *model.Char, index uint16, amount uint32) bool {
 	if countInventoryItem(ch, index) < amount {
 		return false
@@ -430,14 +467,14 @@ func setItemStackAmount(item *model.Item, amount uint32) {
 	}
 }
 
-// grantInventoryItem poe o item no primeiro slot livre visivel.
-// refineQuestReward refina o equipamento VESTIDO, como fazem os guardas do
-// Training Camp no nativo (_MSG_Quest.cpp: o Treinador 2 grava EF_SANC 7 na
-// arma, o Treinador 3 grava 6 em todas as pecas).
+// grantInventoryItem places the item in the first free visible slot.
+// refineQuestReward refines EQUIPPED gear, like the native Training Camp
+// guards (_MSG_Quest.cpp: Trainer 2 writes EF_SANC 7 on the weapon, Trainer 3
+// writes 6 on every piece).
 //
-// Slot negativo refina tudo. Devolve false quando nada foi refinado -- premiar
-// alguem que esta sem equipamento gastaria a chave sem entregar nada, e a
-// quest e de uma vez so.
+// A negative slot refines everything. It returns false when nothing was
+// refined: rewarding someone without equipment would spend the one-time quest
+// without delivering anything.
 func refineQuestReward(ch *model.Char, r *model.QuestRefine) bool {
 	if ch == nil || r == nil {
 		return false
@@ -483,9 +520,9 @@ func grantInventoryItem(ch *model.Char, reward model.QuestItem) bool {
 	return false
 }
 
-// questCompleted consulta a lista de quests concluidas do personagem.
-// counterDeniedMessage traduz o contador em falta para o jogador. Nome interno
-// (kefra_ticket) nao vai para a tela.
+// questCompleted checks the character's completed quest list.
+// counterDeniedMessage explains a missing counter to the player. Internal
+// names (kefra_ticket) never reach the screen.
 func counterDeniedMessage(name string) string {
 	if texto, ok := counterLabels[name]; ok {
 		return texto
@@ -493,8 +530,8 @@ func counterDeniedMessage(name string) string {
 	return "You do not meet the requirements yet."
 }
 
-// counterLabels e o texto de cada contador conhecido. Contador novo sem
-// entrada aqui cai na mensagem generica em vez de vazar o nome interno.
+// counterLabels holds the text of each known counter. A new counter without
+// an entry falls back to the generic message instead of leaking its name.
 var counterLabels = map[string]string{
 	kefraTicketCounter: "You have no entries left.",
 }

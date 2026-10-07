@@ -41,8 +41,8 @@ func (w *World) ensureGroundExpiryIndex() {
 	if w.groundExpiryByID != nil {
 		return
 	}
-	// Compatibilidade para restores/test fixtures construidos antes do registry.
-	// O World normal inicializa o mapa e nunca executa este scan em tick.
+	// Compatibility for restores/test fixtures predating the registry.
+	// Normal World initialization avoids this scan on ticks.
 	w.groundExpiryByID = make(map[uint16]time.Time)
 	for _, item := range w.groundItems {
 		w.scheduleGroundItemExpiry(item)
@@ -54,6 +54,7 @@ func (w *World) expireGroundItems(now time.Time) {
 		return
 	}
 	w.ensureGroundExpiryIndex()
+	var held []groundItemExpiry
 	for len(w.groundExpiry) > 0 && !w.groundExpiry[0].expire.After(now) {
 		due := heap.Pop(&w.groundExpiry).(groundItemExpiry)
 		scheduled, active := w.groundExpiryByID[due.id]
@@ -65,7 +66,15 @@ func (w *World) expireGroundItems(now time.Time) {
 			delete(w.groundExpiryByID, due.id)
 			continue
 		}
+		if item.criticalReserved() {
+			held = append(held, due)
+			continue
+		}
 		w.publishItemRemove(item)
 		w.unregisterGroundItem(item)
+	}
+	// Reinsert only after the due sweep: no busy loop or head-of-line blocking.
+	for _, due := range held {
+		heap.Push(&w.groundExpiry, due)
 	}
 }

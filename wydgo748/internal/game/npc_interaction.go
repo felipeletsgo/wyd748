@@ -5,39 +5,30 @@ import (
 	"fmt"
 )
 
-// npcInteractionRange e o alcance maximo (Chebyshev) para interagir com um NPC.
-//
-// O valor vem de CAPTURA, nao de analogia: o client 7.48 envia o clique a pelo
-// menos 6 tiles (visto em log recusando 5 e 6 e aceitando 1..4). Um raio de 4
-// -- que era o palpite inicial, copiado do pickupRange -- recusava clique
-// legitimo e o jogador via "nada acontece". 8 acomoda o observado com folga e
-// continua MUITO abaixo da area de interesse (+-32), que era o buraco real:
-// antes desta funcao nenhuma interacao validava distancia, nem a loja, entao
-// dava para abrir loja de qualquer canto da tela.
+// npcInteractionRange is the maximum Chebyshev interaction distance.
+// Captured 7.48 clicks reached at least six tiles; eight accommodates those
+// clicks while remaining well below the 32-tile visibility half-window.
+// The former four-tile estimate rejected legitimate interactions.
 const npcInteractionRange = 8
 
 var (
-	errNPCNotFound   = errors.New("npc inexistente")
-	errNPCNotVisible = errors.New("npc fora da visao")
-	errNPCTooFar     = errors.New("npc fora de alcance")
+	errNPCNotFound   = errors.New("NPC not found")
+	errNPCNotVisible = errors.New("NPC not visible")
+	errNPCTooFar     = errors.New("NPC out of range")
 )
 
-// resolveNPCInteraction e o ponto UNICO de validacao de um clique em NPC,
-// usado por loja, mestre, cargo e quest. Valida os tres requisitos na ordem
-// mais barata primeiro: existencia, visibilidade e distancia.
-//
-// Visibilidade importa alem da distancia: o cliente so pode agir sobre uma
-// entidade que o servidor materializou para ele. Sem isso um cliente adulterado
-// interagiria com NPC que nunca entrou na area de interesse.
+// resolveNPCInteraction validates existence, current gameplay-space visibility,
+// prior materialization and distance for shops, masters, storage and quests.
+// Coordinates alone cannot authorize interaction with another runtime.
 func (w *World) resolveNPCInteraction(p *Player, npcID uint16) (*Mob, error) {
 	if p == nil || p.Char == nil {
 		return nil, errNPCNotFound
 	}
 	m := w.mobByID(npcID)
-	if m == nil || m.Def == nil {
+	if m == nil || m.Def == nil || m.Dead {
 		return nil, errNPCNotFound
 	}
-	if !p.hasVisible(m.ID) {
+	if !p.hasVisible(m.ID) || !w.mobVisibleToPlayer(p, m) {
 		return nil, errNPCNotVisible
 	}
 	if distance := chebyshev(p.X, p.Y, m.X, m.Y); distance > npcInteractionRange {
@@ -46,7 +37,7 @@ func (w *World) resolveNPCInteraction(p *Player, npcID uint16) (*Mob, error) {
 	return m, nil
 }
 
-// npcInteractionMessage traduz a recusa em texto para o painel do cliente.
+// npcInteractionMessage maps a rejection to the client message panel.
 func npcInteractionMessage(err error) string {
 	switch {
 	case errors.Is(err, errNPCTooFar):

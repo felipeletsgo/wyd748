@@ -17,7 +17,7 @@ public:
 
 	bool WSAInitialize();
 	unsigned int ConnectServer(char* HostAddr, int Port, int ip, int WSA);
-	// Starts a fresh connected stream; a blocked handshake remains queued.
+	// Starts a fresh stream; connecting and blocked sends remain queued.
 	bool SendHandshake();
 	int Receive();
 	enum class EventResult { Ignored, ReadReady, Disconnected };
@@ -45,6 +45,7 @@ public:
 	int nProcPosition;
 	int nSentPosition;
 	int Init;
+	bool Connecting;
 
 	char SendQueue[MAX_KEYWORD_QUEUE];
 	char RecvQueue[MAX_KEYWORD_QUEUE];

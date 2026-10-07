@@ -11,26 +11,25 @@ import (
 // plans (multi-target skills/DoT), persist all affected accounts once, and only
 // then emit death/reward packets.
 type killRewardPlan struct {
-	killer                      *Player
-	mob                         *Mob
-	calculatedDamage            uint32
-	appliedDamage               uint32
-	shares                      []partyExpShare
-	accounts                    []*model.Account
-	snapshots                   []killPlayerSnapshot
-	progressByPlayer            map[*Player]clientExperienceState
-	leveledUp                   map[*Player]bool
-	holdPenaltyChanged          map[*Player]bool
-	cytheraChanged              map[*Player]bool
-	mountUpdates                []mountHuntUpdate
-	drops                       []plannedDrop
-	gold                        uint32
-	killerLevels                int
-	killerReward                uint32
-	bossState                   *bossSpawnState
-	generatorSlot               int
-	generatorCounterShouldLower bool
-	mobHPBeforeDeath            uint32
+	killer             *Player
+	mob                *Mob
+	calculatedDamage   uint32
+	appliedDamage      uint32
+	shares             []partyExpShare
+	accounts           []*model.Account
+	snapshots          []killPlayerSnapshot
+	progressByPlayer   map[*Player]clientExperienceState
+	leveledUp          map[*Player]bool
+	holdPenaltyChanged map[*Player]bool
+	cytheraChanged     map[*Player]bool
+	mountUpdates       []mountHuntUpdate
+	drops              []plannedDrop
+	gold               uint32
+	killerLevels       int
+	killerReward       uint32
+	bossState          *bossSpawnState
+	generator          *generState
+	mobHPBeforeDeath   uint32
 }
 
 type clientExperienceState struct {
@@ -52,11 +51,18 @@ func (w *World) killMobState(p *Player, m *Mob, calculatedDamage, appliedDamage 
 	if plan == nil {
 		return
 	}
-	w.commitKillRewardBatch(p, []*killRewardPlan{plan}, plan.accounts, "morte de mob")
+	w.commitKillRewardBatch(p, []*killRewardPlan{plan}, plan.accounts, "mob death")
 }
 
 func (w *World) killMobWithoutPlayer(m *Mob) {
-	if m == nil || m.Dead {
+	if m == nil || m.Dead || w.criticalGuildMobReserved(m) {
+		return
+	}
+	if w.criticalWrites != nil && isKefraBoss(m) && !w.kefraDefeated() {
+		if err := w.queueKefraDeathWithoutPlayer(m); err != nil && !w.criticalGuildReserved() {
+			m.HP = max(1, m.HP)
+			log.Printf("Kefra death admission: %v", err)
+		}
 		return
 	}
 	m.Dead = true
@@ -65,13 +71,12 @@ func (w *World) killMobWithoutPlayer(m *Mob) {
 	w.finishBossMobKilled(m, false)
 	w.UnregisterBoss(m.ID)
 	w.onItemInstanceMobKilled(m, w.now())
-	if m.InstanceID == "" && m.GenerIndex >= 0 {
-		if slot, ok := w.generatorByIndex[m.GenerIndex]; ok && slot >= 0 &&
-			slot < len(w.generators) && w.generators[slot].current > 0 {
-			w.generators[slot].current--
-		}
+	w.onKefraKilled(nil, m)
+	if g := w.mobGenerator(m); g != nil && g.current > 0 {
+		g.current--
 	}
 	w.removeMobInstance(m)
+	w.respawnKefraGuard(m)
 }
 
 func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage uint32) *killRewardPlan {
@@ -90,7 +95,7 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 		progressByPlayer:   make(map[*Player]clientExperienceState, len(shares)),
 		leveledUp:          make(map[*Player]bool, len(shares)),
 		holdPenaltyChanged: make(map[*Player]bool, len(shares)),
-		cytheraChanged:     make(map[*Player]bool, len(shares)), generatorSlot: -1,
+		cytheraChanged:     make(map[*Player]bool, len(shares)),
 	}
 	plan.mobHPBeforeDeath = m.HP
 	if plan.mobHPBeforeDeath == 0 {
@@ -156,14 +161,28 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	if plan.bossState != nil {
 		plan.drops = append(plan.drops, w.planBossDrops(p, m, plan.bossState)...)
 	}
-	if m.InstanceID == "" && m.GenerIndex >= 0 {
-		if slot, ok := w.generatorByIndex[m.GenerIndex]; ok &&
-			slot >= 0 && slot < len(w.generators) && w.generators[slot].current > 0 {
-			plan.generatorSlot = slot
-			plan.generatorCounterShouldLower = true
-		}
+	if g := w.mobGenerator(m); g != nil && g.current > 0 {
+		plan.generator = g
 	}
 	return plan
+}
+
+// mobGenerator returns the generator entry of a world mob. Mobs spawned by
+// spawnGroup carry it; the index lookup remains only for mobs built without it.
+func (w *World) mobGenerator(m *Mob) *generState {
+	if m == nil || m.InstanceID != "" {
+		return nil
+	}
+	if m.generator != nil {
+		return m.generator
+	}
+	if m.GenerIndex < 0 {
+		return nil
+	}
+	if slot, ok := w.generatorByIndex[m.GenerIndex]; ok && slot >= 0 && slot < len(w.generators) {
+		return &w.generators[slot]
+	}
+	return nil
 }
 
 func playersFromShares(shares []partyExpShare) []*Player {
@@ -215,7 +234,23 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 		return true
 	}
 	accounts = killPlanAccounts(plans, accounts)
-	if err := w.saveAccountsAtomic(accounts...); err != nil {
+	if w.criticalWrites != nil {
+		return w.queueCriticalKillRewards(p, plans, accounts, operation)
+	}
+	// A Kefra kill commits his defeat and the guild fame in the same
+	// transaction as the kill rewards: either all of it is durable or the kill
+	// rolls back and Kefra comes back to life.
+	kefraPlan, kefraGuild, undoKefra := w.stageKefraKill(plans)
+	var err error
+	if undoKefra != nil {
+		err = w.saveGuildState(accounts...)
+	} else {
+		err = w.saveAccountsAtomic(accounts...)
+	}
+	if err != nil {
+		if undoKefra != nil {
+			undoKefra()
+		}
 		for i := len(plans) - 1; i >= 0; i-- {
 			if plans[i] != nil {
 				for _, drop := range plans[i].drops {
@@ -236,7 +271,7 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 					m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 			})
 		}
-		log.Printf("persistir %s: %v", operation, err)
+		log.Printf("persist %s: %v", operation, err)
 		w.poisonAccountsAfterPersistenceFailure(accounts, operation, err)
 		return false
 	}
@@ -246,12 +281,16 @@ func (w *World) commitKillRewardBatch(p *Player, plans []*killRewardPlan,
 		// target made a 13-target AoE fan out dozens of redundant packets to
 		// every member of a four-player party.
 		w.finalizeKillRewardWithState(plan, true, len(plans) == 1)
+		w.respawnKefraGuard(plan.mob)
+	}
+	if kefraPlan != nil {
+		w.announceKefraDefeat(kefraPlan.killer, kefraGuild)
 	}
 	if len(plans) > 1 {
 		w.publishKillBatchPlayerState(plans)
 	}
 	if len(plans) > 1 && p != nil && p.Session != nil {
-		w.gameplayLogf("batch", "[#%d] lote multi-alvo salvo (%d mortes, %d conta(s))",
+		w.gameplayLogf("batch", "[#%d] multi-target batch saved (%d deaths, %d account(s))",
 			p.Session.ID, len(plans), len(accounts))
 	}
 	return true
@@ -307,6 +346,9 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 			if plan.leveledUp[receiver] || plan.holdPenaltyChanged[receiver] {
 				receiver.Session.Send(playerScorePacket(receiver))
 			}
+			if plan.leveledUp[receiver] {
+				w.syncPlayerChaos(receiver)
+			}
 			if plan.cytheraChanged[receiver] {
 				receiver.Session.Send(wire.SendItem(receiver.ID, placeEquip, 1, receiver.Char.Equip[1]))
 				w.refreshAppearance(receiver)
@@ -318,13 +360,12 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 		}
 		w.publishPlannedDrops(plan.drops)
 		if plan.gold > 0 && p != nil && p.Session != nil {
-			w.gameplayLogf("gold", "[#%d] DROP gold +%d (total=%d) de %q",
+			w.gameplayLogf("gold", "[#%d] DROP gold +%d (total=%d) from %q",
 				p.Session.ID, plan.gold, p.Char.Gold, m.Def.Name)
 		}
 	}
-	if plan.generatorCounterShouldLower && plan.generatorSlot >= 0 &&
-		plan.generatorSlot < len(w.generators) && w.generators[plan.generatorSlot].current > 0 {
-		w.generators[plan.generatorSlot].current--
+	if plan.generator != nil && plan.generator.current > 0 {
+		plan.generator.current--
 	}
 	w.notifyBossAddDied(m.ID)
 	w.finishBossMobKilled(m, rewardCommitted)
@@ -336,7 +377,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 		if !rewardCommitted {
 			reward, levels = 0, 0
 		}
-		w.gameplayLogf("kill", "[#%d] MATOU mob id=%d %q (dmg_calculado=%d aplicado=%d hp_alvo=%d exp=+%d/%d membros level=%d +%d)",
+		w.gameplayLogf("kill", "[#%d] KILLED mob id=%d %q (calculated_damage=%d applied=%d target_hp=%d exp=+%d/%d members level=%d +%d)",
 			p.Session.ID, m.ID, m.Def.Name, plan.calculatedDamage, plan.appliedDamage,
 			m.Def.Score.MaxHP, reward, len(plan.shares), playerLevel(p.Char), levels)
 	}
@@ -351,6 +392,7 @@ func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
 	type state struct {
 		player       *Player
 		scoreChanged bool
+		leveledUp    bool
 		cythera      bool
 	}
 	states := make(map[*Player]*state)
@@ -371,6 +413,7 @@ func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
 			current.scoreChanged = current.scoreChanged ||
 				plan.leveledUp[receiver] || plan.holdPenaltyChanged[receiver]
 			current.cythera = current.cythera || plan.cytheraChanged[receiver]
+			current.leveledUp = current.leveledUp || plan.leveledUp[receiver]
 		}
 	}
 	for _, current := range states {
@@ -378,6 +421,9 @@ func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
 		receiver.Session.Send(wire.UpdateEtc(receiver.ID, *receiver.Char))
 		if current.scoreChanged {
 			receiver.Session.Send(playerScorePacket(receiver))
+		}
+		if current.leveledUp {
+			w.syncPlayerChaos(receiver)
 		}
 		if current.cythera {
 			receiver.Session.Send(wire.SendItem(receiver.ID, placeEquip, 1, receiver.Char.Equip[1]))

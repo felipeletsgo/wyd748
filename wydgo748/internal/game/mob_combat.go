@@ -8,9 +8,9 @@ import (
 	"wydgo/internal/wire"
 )
 
-// O TMSrv usa GetEnemyFromView enquanto o mob esta em MOB_PEACE. A aquisicao
-// nativa normal ocorre numa janela 9x9 (raio Chebyshev 4); a ativacao em raio
-// 16 apenas acorda a IA, sem conceder aggro ou alcance adicional.
+// TMSrv uses GetEnemyFromView while a mob is in MOB_PEACE. Normal acquisition
+// uses a 9x9 window (Chebyshev radius 4); activation at radius 16 only wakes
+// the AI and grants neither aggro nor additional attack range.
 const (
 	mobAggroRange      = 4
 	mobAttackRange     = 1
@@ -20,20 +20,22 @@ const (
 	mobAttackInterval  = 1500 * time.Millisecond
 )
 
-// tickMobCombat porta o fluxo StandingByProcessor -> SetBattle ->
-// BattleProcessor do WYD 7.48. Como activeMobs ja contem somente monstros acordados
-// por proximidade, aquisicao e perseguicao rodam a cada 1 segundo.
-// O World roda em uma unica goroutine, portanto alvo, HP e posicao mudam juntos.
+// tickMobCombat follows StandingByProcessor -> SetBattle -> BattleProcessor.
+// activeMobs contains proximity-awakened monsters; acquisition and pursuit run
+// every second. World owns target, HP and position together on one goroutine.
 func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovement bool) {
 	for _, m := range w.activeMobs {
+		if w.criticalGuildMobReserved(m) {
+			continue
+		}
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
 		}
 		if m.Dead || !m.Def.IsMonster() || m.SummonerID != 0 || m.GuildWarTower {
 			continue
 		}
-		// Movimento, morte e desconexao atualizam o grid por evento. Esta checagem
-		// tambem recolhe mobs cujo ultimo jogador proximo morreu sem se mover.
+		// Movement, death and disconnect update the grid by event. Also retire
+		// mobs whose last nearby player died without moving.
 		nearbyTarget := false
 		if m.InstanceID != "" {
 			nearbyTarget = w.instanceMobHasNearbyMember(m, mobActivationRange)
@@ -47,9 +49,8 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 			continue
 		}
 		if m.InstanceID != "" && !w.instanceMobInsideArea(m) {
-			// Referencias antigas ou uma falha de movimento nao podem liberar o
-			// mob para o mapa. Recolha-o para o centro da sala antes de procurar
-			// um alvo novamente.
+			// Stale references or failed movement must not release an instance mob
+			// into the public map. Return to the room center before retargeting.
 			m.TargetID = 0
 			if allowMovement {
 				stage, ok := instanceStageForMob(w.instanceForMob(m))
@@ -73,6 +74,11 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		} else {
 			target = w.playerByID(m.TargetID)
 		}
+		// Keep the retained target while its write is unsettled; do not turn
+		// a persistence pause into target loss or a chase/deadline mutation.
+		if w.criticalPlayerReserved(target) {
+			continue
+		}
 		allowedTarget := w.mobCanTargetPlayer(m, target)
 		if !allowedTarget || chebyshev(m.X, m.Y, target.X, target.Y) > mobRetentionRange {
 			m.TargetID = 0
@@ -82,6 +88,9 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 				target = w.nearestLivingPlayerInGameplaySpace(m.X, m.Y, mobAggroRange, "")
 			}
 			if target == nil {
+				continue
+			}
+			if w.criticalPlayerReserved(target) {
 				continue
 			}
 			m.TargetID = target.ID
@@ -94,11 +103,14 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 	}
 }
 
-// tickActiveMobActions nao decide alvos nem calcula rotas. Ele apenas cumpre
-// deadlines de ataque dos mobs acordados. A percepcao roda a cada 1 s, mas o
-// intervalo configurado de 1,5 s continua sendo a autoridade sobre o DPS.
+// tickActiveMobActions executes attack deadlines without choosing targets or
+// routes. Perception runs every second, but the configured 1.5-second attack
+// interval remains authoritative for DPS.
 func (w *World) tickActiveMobActions(now time.Time) {
 	for _, m := range w.activeMobs {
+		if w.criticalGuildMobReserved(m) {
+			continue
+		}
 		if m == nil || m.Dead || m.Def == nil || !m.Def.IsMonster() || m.SummonerID != 0 {
 			if m != nil {
 				m.Awake = false
@@ -209,6 +221,9 @@ func (w *World) chasePlayer(m *Mob, target *Player, now time.Time) {
 }
 
 func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
+	if target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
+		return
+	}
 	hit := mobPhysicalHitPlayerAt(m, target.Char, w.intn, now)
 	if !hit.Hit {
 		w.sendToMobView(m, func() []byte {
@@ -218,28 +233,31 @@ func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
 		return
 	}
 	damage := hit.Damage
-	// FlagLocal=0 faz o 7.48 aplicar o dano e exibir o numero flutuante. Dano
-	// zero conserva a animacao de ataque e representa MISS no cliente.
+	// FlagLocal=0 applies damage and displays the floating number in 7.48.
+	// Zero damage retains the attack animation and represents MISS.
 	w.applyMobDamageToPlayer(m, target, damage, now, func(applied uint32) []byte {
 		return wire.AttackHitWide(m.ID, target.ID, m.X, m.Y, target.X, target.Y,
 			applied, playerMaxHP(target.Char), 0, m.Def.Score.MaxMP)
 	})
 }
 
-// applyMobDamageToPlayer aplica um dano JA CALCULADO e cuida do resto: absorcao
-// da montaria, pacote de animacao, morte e sincronizacao. E compartilhado pelo
-// golpe comum e pela magia de boss, que so diferem no calculo e no pacote.
+// applyMobDamageToPlayer applies precomputed damage, mount absorption,
+// animation, death and synchronization. Ordinary hits and boss spells share
+// this boundary, differing only in damage calculation and packet construction.
 func (w *World) applyMobDamageToPlayer(m *Mob, target *Player, damage uint32,
 	now time.Time, build func(applied uint32) []byte) {
+	if target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
+		return
+	}
 	target.LastAttackerID = m.ID
 	damage = absorbFlatDamage(damage, w.playerFlatDamageAbsorb(target.Char))
-	// Montaria adulta viva absorve 25% do dano no proprio HP.
+	// A living adult mount absorbs 25% of damage into its own HP.
 	damage = uint32(w.absorbMountDamage(target, int(damage)))
 	damage = absorbManaControlDamageAt(target.Char, damage, now)
 	currentHP := playerCurHP(target.Char)
 	lethal := damage >= currentHP
 	if lethal {
-		w.cancelTrade(target, "personagem morreu")
+		w.cancelTrade(target, "character died")
 		w.receiveDeathLetter(target, m.Def.Name, "mob")
 		w.mountRiderDied(target)
 		setPlayerCurHP(target.Char, 0)
@@ -250,15 +268,15 @@ func (w *World) applyMobDamageToPlayer(m *Mob, target *Player, damage uint32,
 	}
 
 	w.sendToMobView(m, func() []byte { return build(damage) })
-	// AttackHit anima/aplica o dano; SetHpMp logo depois confirma o HP
-	// autoritativo para o alvo e para todos os observadores.
+	// AttackHit animates/applies damage; the following SetHpMp confirms
+	// authoritative HP to the target and all observers.
 	w.syncPlayerVitals(target)
 	w.updatePartyMember(target)
 	if lethal {
-		// SetHpMp apenas atualiza a barra. O handler 7.48 de CNFMobKill zera o HP
-		// do humano e chama TMHuman::Die(), produzindo a pose/tela de morte sem
-		// remover o personagem da cena. Esta e a ordem nativa de MobKilled.
+		// SetHpMp only updates the bar. The 7.48 CNFMobKill handler zeros human
+		// HP and calls TMHuman::Die(), showing the death pose/screen without
+		// removing the character from the scene. Preserve MobKilled ordering.
 		w.publishPlayerDeath(target, m.ID)
-		log.Printf("[#%d] morreu para mob id=%d %q (dmg=%d)", target.Session.ID, m.ID, m.Def.Name, damage)
+		log.Printf("[#%d] died to mob id=%d %q (dmg=%d)", target.Session.ID, m.ID, m.Def.Name, damage)
 	}
 }

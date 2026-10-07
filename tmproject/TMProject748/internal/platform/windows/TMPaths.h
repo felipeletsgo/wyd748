@@ -10,7 +10,6 @@ constexpr const char* ChangeUpdate_Path = "Change.exe";
 constexpr const char* ServerName_Path = "sn.bin";
 constexpr const char* ServerList_Path = "serverlist.bin";
 constexpr const char* ConfigFile_Path = "Config.bin";
-constexpr const char* VideoClipFile_Path = "WYD.avi";
 constexpr const char* ItemHelp_Path = "itemhelp.dat";
 constexpr const char* MusicConfig_Path = "Music.txt";
 constexpr const char* MixHelp_Path = "Mixhelp.dat";
@@ -27,9 +26,6 @@ constexpr const char* ShaderSkinMesh_Path = "Shader\\skinmesh%d.bin";
 constexpr const char* ShaderVertexShader_Path = "Shader\\vseffect%d.bin";
 constexpr const char* ShaderPixelShader_Path = "Shader\\pseffect%d.bin";
 
-constexpr const char* RenderStateLog_Path = "RenderStateLog.txt";
-constexpr const char* SamplerStateLog_Path = "SamplerStateLog.txt";
-constexpr const char* TextureStateLog_Path = "TextureStageStateLog.txt";
 
 //UI Related
 constexpr const char* TextureListNList_Path = "UI\\UITextureListN.bin";

@@ -29,6 +29,20 @@ int RunCCModePolicyTests(int& checks)
     check(!cc_mode::ShouldFeed(1, 0, 10, 50), "unknown max does not trigger HP feeding");
     check(cc_mode::ShouldFeed(1, 0, 1, 50), "hunger works independently of max HP");
     check(!cc_mode::BelowThreshold(INT_MAX, INT_MAX, 90), "threshold arithmetic does not overflow");
+    check(cc_mode::ShouldReportInsufficientMana(false, true, 10, 10),
+        "manual casts keep the native per-attempt warning");
+    check(cc_mode::ShouldReportInsufficientMana(true, false, 10, 0),
+        "first automatic warning is shown");
+    check(!cc_mode::ShouldReportInsufficientMana(true, true, 2999, 0),
+        "automatic warnings are throttled inside the interval");
+    check(cc_mode::ShouldReportInsufficientMana(true, true, 3000, 0),
+        "automatic warning repeats at the interval boundary");
+    check(cc_mode::ShouldReportInsufficientMana(true, true, 1000, 0xFFFFF000u),
+        "warning interval survives server tick wraparound");
+    check(!cc_mode::ShouldReportInsufficientMana(true, true, 500, 0xFFFFFF00u),
+        "wrapped interval still throttles");
+    check(cc_mode::HasMana(10, 10) && !cc_mode::HasMana(11, 10) && cc_mode::HasMana(0, 0),
+        "mana gate matches the cast path comparison");
     check(cc_mode::Fixed == 2 && cc_mode::Cyclic == 1 && cc_mode::Free == 0,
         "movement labels match existing GameAuto branches");
     check(skill_cooldown::DelaySeconds(4, true, 9, true) == 4,

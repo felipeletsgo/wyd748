@@ -1,17 +1,63 @@
 {
- "revision": "71c4b313",
- "groups": [
-  {
-   "baseline": [
-    "tmproject/TMProject748/internal/core/Basedef.h"
-   ],
-   "current": [
-    "tmproject/TMProject748/internal/core/Basedef.h",
-    "tmproject/TMProject748/internal/core/BasedefLimits.h",
-    "tmproject/TMProject748/internal/core/BasedefStructs.h",
-    "tmproject/TMProject748/internal/core/BasedefPackets.h",
-    "tmproject/TMProject748/internal/core/BasedefTables.h"
-   ]
+  "revision": "71c4b313",
+  "groups": [
+    {
+      "baseline": [
+        "tmproject/TMProject748/internal/core/Basedef.h"
+      ],
+      "current": [
+        "tmproject/TMProject748/internal/core/Basedef.h",
+        "tmproject/TMProject748/internal/core/BasedefLimits.h",
+        "tmproject/TMProject748/internal/core/BasedefStructs.h",
+        "tmproject/TMProject748/internal/core/BasedefPackets.h",
+        "tmproject/TMProject748/internal/core/BasedefTables.h"
+      ]
+    }
+  ],
+  "reviewed": {
+    "void BASE_InitialItemRePrice ( ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "38f37b7401cf960bea405673d076e79519ac92cb94e0db2f049e987ffedd525c",
+      "after": null
+    },
+    "int BASE_GetSum2 ( char * p , int size ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "c47b7643bdb96839f3ebe88a46c98133d02fca1e20789e79295f1fdd5459e46c",
+      "after": null
+    },
+    "char BASE_GetAttribute ( int x , int y ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "8e392605d48b3caf9976c8f8ac9953defa0474146f6a587affd9e236364769e3",
+      "after": null
+    },
+    "int BASE_ReadTOTOList ( char * szFileName ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "da2c7a26e5d2244a5396451ee222d6128633619ed3bd2de4e4b84da91e6668f5",
+      "after": null
+    },
+    "int BASE_IsInLowZone ( int nX , int nY ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "20f900668fd3add0dc3d8be43d6b957956a8f3bbc652f20970ed04b47b2c2fb8",
+      "after": null
+    },
+    "int BASE_CanCarry ( STRUCT_ITEM * Carry , int pos ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "eb34e2b2bf5e4d3bad2281a9c2f24998129ba76123bf548eb9f9a406b00d5977",
+      "after": null
+    },
+    "int BASE_CanTrade ( STRUCT_ITEM * Dest , STRUCT_ITEM * Carry , char * MyTrade , STRUCT_ITEM * OpponentTrade ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "685805f6a56adb4626df84288346c2a8b426f0c1d837e61abdd7f50c3dff93df",
+      "after": null
+    },
+    "void BASE_ClearItem ( STRUCT_ITEM * item ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "a2d5012220e2f09bbda415b065c175ff7f7f9fac8eae7d902e659128b358e82a",
+      "after": null
+    },
+    "void BASE_SortTradeItem ( STRUCT_ITEM * Item , int Type ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "1474fd55cf46eefd009559a36a4b4ac1ba730cae3e57158a39cbaf5994ea519c",
+      "after": null
+    },
+    "int BASE_CanCargo ( STRUCT_ITEM * item , STRUCT_ITEM * cargo , int DestX , int DestY ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "489966393bb7506f1829d681b891f56ff63205903c063e65320a5a16617332e9",
+      "after": null
+    },
+    "int BASE_GetSkillDamage ( int dam , int ac , int combat ): unreachable at link time (dead-code-map.md), removed (declaration)": {
+      "before": "0ee4aba2ac4788d1b11bdf15d36b116b8b9295781bd7f077bcfc1ea83ce969b9",
+      "after": null
+    }
   }
- ]
 }

@@ -1,0 +1,66 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.h",
+ "class": "TMFieldScene",
+ "method": "int TMFieldScene::FrameMove(unsigned int dwServerTime)",
+ "extractions": [
+  {
+   "helper": "UpdateMiniMapFrame",
+   "after": "if (m_pMiniMapPanel)",
+   "params": []
+  },
+  {
+   "helper": "UpdateZoneMusicAndPanels",
+   "after": "if (!g_bCastleWar2)",
+   "params": [
+    [
+     "bool&",
+     "bInTown"
+    ],
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ]
+   ]
+  },
+  {
+   "helper": "UpdateAffectIcons",
+   "after": "for (int i = 0; i < 32; ++i)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "int&",
+     "i"
+    ]
+   ]
+  },
+  {
+   "helper": "UpdateLastMoveStop",
+   "after": "if (!m_pMyHuman->m_cLastMoveStop)",
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ]
+   ]
+  },
+  {
+   "helper": "UpdateWeatherEffects",
+   "after": "if (!g_nWeather && (!m_pGround->m_bDungeon || m_pGround->m_bDungeon == 3 || m_pGround->m_bDungeon == 4))",
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "CSoundManager*&",
+     "pSoundManager"
+    ]
+   ]
+  }
+ ]
+}

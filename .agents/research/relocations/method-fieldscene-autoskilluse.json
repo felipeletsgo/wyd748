@@ -1,0 +1,81 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMFieldSceneSkills.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.h",
+ "class": "TMFieldScene",
+ "method": "int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)",
+ "extractions": [
+  {
+   "helper": "SendAreaAutoSkillRequest",
+   "after": "if (skill_request::UsesAreaRequest(TarType))",
+   "flow": true,
+   "params": [
+    [
+     "char&",
+     "cSkillIndex"
+    ],
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "int&",
+     "nSpecForce"
+    ],
+    [
+     "TMHuman*&",
+     "pOver"
+    ],
+    [
+     "D3DXVECTOR3&",
+     "vec"
+    ]
+   ]
+  },
+  {
+   "helper": "ApplyAutoSkillPkRules",
+   "after": "if (!TMFieldScene::m_bPK)",
+   "flow": true,
+   "params": [
+    [
+     "char&",
+     "cSkillIndex"
+    ],
+    [
+     "TMHuman*&",
+     "pOver"
+    ]
+   ],
+   "nth": 1
+  },
+  {
+   "helper": "AddAutoPartySkillTargets",
+   "after": "if (cSkillIndex == 16 || cSkillIndex == 12 || cSkillIndex == 28)",
+   "params": [
+    [
+     "int&",
+     "nDX"
+    ],
+    [
+     "int&",
+     "nDY"
+    ],
+    [
+     "int&",
+     "nTargetIndex"
+    ],
+    [
+     "TMHuman*&",
+     "pOver"
+    ],
+    [
+     "TMHuman*&",
+     "pTarget"
+    ],
+    [
+     "MSG_Attack&",
+     "stAttack"
+    ]
+   ]
+  }
+ ]
+}

@@ -1,0 +1,23 @@
+{
+ "source": "tmproject/TMProject748/internal/game/entities/TMHuman.cpp",
+ "header": "tmproject/TMProject748/internal/game/entities/TMHuman.h",
+ "class": "TMHuman",
+ "method": "int TMHuman::InitObject()",
+ "extractions": [
+  {
+   "helper": "InitSkinLookInfo",
+   "after": "if (!nCos &&",
+   "params": []
+  },
+  {
+   "helper": "InitEyeFireEffects",
+   "after": "if (m_nClass == 36 || m_nClass == 37)",
+   "params": []
+  },
+  {
+   "helper": "InitShadeEffects",
+   "after": "if (!g_bHideEffect && !g_pDevice->m_bSavage && !g_pDevice->m_bIntel)",
+   "params": []
+  }
+ ]
+}

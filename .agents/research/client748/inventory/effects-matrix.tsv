@@ -1,0 +1,103 @@
+dispatch	skill	native_sizes	client_classes	gap
+attack	0	0x90x1	TMSkillHeavensDust(144)	
+attack	1	0x90x1	TMSkillHolyTouch(144)	
+attack	2			
+attack	3		TMSkillHolyTouch(144)	TMProject only
+attack	4			
+attack	5	0x94x1	TMEffectStart(148)	
+attack	6	0xdcx1	TMEffectSpark(220)	
+attack	7	0x94x1	TMArrow(148)	
+attack	13	0x90x1		missing in TMProject
+attack	23	0x94x1	TMSkillJudgement(148)	
+attack	26	0x90x1	TMSkillFlash(144)	
+attack	29			
+attack	30	0x94x1	TMSkillJudgement(148)	
+attack	32	0x180x1	TMEffectBillBoard(388)	
+attack	33	0x90x1 0xdcx1	TMEffectSpark(220) TMSkillThunderBolt(144)	
+attack	34	0x180x1	TMEffectBillBoard(388)	
+attack	35	0xc0x1	TMSkillMeteorStorm(200)	
+attack	36	0xc0x1 0x180x1	TMEffectBillBoard(388) TMSkillMeteorStorm(200)	
+attack	39	0xc0x2	TMSkillMeteorStorm(200) TMSkillMeteorStorm(200) TMSkillMeteorStorm(200) TMSkillMeteorStorm(200)	different allocations
+attack	41			
+attack	45	0x90x1	TMEffectParticle(144)	
+attack	52	0x90x1 0xa8x1 0xb0x1	TMSkillSlowSlash(172) TMEffectLevelUp(144) TMSkillFreezeBlade(176)	different allocations
+attack	55	0x94x2	TMSkillJudgement(148) TMEffectStart(148)	
+attack	76			
+attack	77			
+attack	79			TMProject only
+attack	86		TMArrow(148) TMArrow(148) TMArrow(148) TMArrow(148)	TMProject only
+attack	87	0x180x1	TMEffectBillBoard(388)	
+attack	94	0x94x4		missing in TMProject
+attack	95			missing in TMProject
+attack	97	0xc0x1	TMSkillMeteorStorm(200)	
+attack	98			
+attack	99	0xc0x1 0xccx1 0x22cx1	TMEffectSkinMesh(448) TMEffectMesh(204) TMShade(192)	different allocations
+attack	100			
+attack	104			
+attack	105			
+attack	106			
+attack	107	0xdcx1	TMEffectSpark(220)	
+attack	108		TMSkillMagicArrow(192)	different allocations
+attack	109	0xdcx1	TMEffectSpark(220)	
+attack	110	0xc0x2 0x180x1	TMSkillMeteorStorm(200) TMSkillMeteorStorm(200) TMEffectBillBoard(388)	
+attack	111	0xb0x2 0xc0x1	TMShade(192) TMSkillFreezeBlade(176) TMSkillFreezeBlade(176)	
+attack	113		TMShade(192) TMSkillFreezeBlade(176) TMSkillPoison(144)	TMProject only
+attack	114		TMSkillJudgement(148) TMSkillFreezeBlade(176) TMArrow(148)	TMProject only
+attack	115		TMSkillMeteorStorm(200) TMEffectBillBoard(388)	TMProject only
+attack	116		TMSkillMeteorStorm(200) TMEffectBillBoard(388)	TMProject only
+attack	151			
+event	2	0xa8x1	TMSkillSlowSlash(172)	
+event	3			
+event	8			
+event	9	0x90x1	TMSkillSpeedUp(144)	
+event	10			
+event	11	0x180x2	TMEffectBillBoard(388) TMEffectBillBoard(388)	
+event	12	0xc8x1	TMSkillDoubleSwing(200)	
+event	13		TMEffectMesh(204)	TMProject only
+event	15	0xccx1	TMEffectMesh(204)	
+event	16	0xc8x1	TMSkillDoubleSwing(200)	
+event	17			
+event	18			
+event	19	0xb0x1	TMSkillFreezeBlade(176)	
+event	20	0x22cx1	TMEffectSkinMesh(448)	
+event	21	0x90x1	TMSkillPoison(144)	
+event	22	0x90x1	TMSkillBash(144)	
+event	23	0xb0x1	TMSkillFreezeBlade(176)	
+event	24	0xc0x1	TMSkillMagicArrow(192)	
+event	25	0x90x1	TMSkillCure(144)	
+event	27	0x90x1	TMSkillHeal(144)	
+event	28	0xc8x1	TMSkillDoubleSwing(200)	
+event	29	0x90x1	TMSkillHeal(144)	
+event	31	0x90x2 0x22cx1	TMSkillHaste(144) TMSkillHaste(144) TMEffectSkinMesh(448)	
+event	32	0xa0x1	TMSkillFire(160)	
+event	34	0xb0x1	TMSkillIceSpear(176)	
+event	37	0x180x2	TMEffectBillBoard(388) TMEffectBillBoard(388)	
+event	38	0xc0x1	TMSkillMagicArrow(192) TMSkillDoubleSwing(200)	different allocations
+event	40	0x90x1	TMSkillPoison(144)	
+event	41	0x90x1	TMSkillHaste(144)	
+event	42	0xacx1	TMSkillTownPortal(172)	
+event	43	0x90x1	TMSkillHaste(144)	
+event	44	0x180x2	TMEffectBillBoard(388) TMEffectBillBoard(388)	
+event	46	0x90x4 0xc0x1	TMEffectParticle(144) TMEffectParticle(144) TMEffectParticle(144) TMEffectParticle(144) TMShade(192)	
+event	48	0x22cx1	TMSkillJudgement(148) TMEffectSkinMesh(448)	different allocations
+event	49	0x22cx1	TMSkillJudgement(148) TMEffectSkinMesh(448)	different allocations
+event	50	0x22cx1	TMEffectSkinMesh(448)	
+event	51	0xa8x1	TMSkillSlowSlash(172)	
+event	53	0x180x1	TMEffectBillBoard(388)	
+event	54	0x90x1	TMSkillHaste(144)	
+event	72	0xc0x1 0x180x1	TMShade(192) TMEffectBillBoard(388)	
+event	74	0x180x1	TMEffectBillBoard(388)	
+event	76	0xccx1	TMEffectMesh(204)	
+event	77	0x180x2	TMEffectBillBoard(388) TMEffectBillBoard(388)	
+event	79	0x180x1	TMEffectBillBoard(388)	
+event	80	0xc0x1 0x180x1	TMShade(192) TMEffectBillBoard(388)	
+event	86	0x90x1	TMEffectLevelUp(144)	
+event	87	0x9cx1	TMSkillSpChange(156)	
+event	88	0x22cx1	TMEffectSkinMesh(448)	
+event	89	0x22cx1	TMEffectSkinMesh(448)	
+event	90	0x90x1	TMSkillHaste(144)	
+event	91			
+event	95	0x94x1 0x180x1	TMEffectBillBoard(388) TMArrow(148)	
+event	102			missing in TMProject
+event	104	0x94x2	TMArrow(148) TMArrow(148)	
+event	105	0x94x2 0xc8x1	TMArrow(148) TMSkillDoubleSwing(200) TMArrow(148)	

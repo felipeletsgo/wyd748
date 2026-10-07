@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "WeatherPacket.h"
 // SGridControl split by responsibility; see SGrid.cpp for the grid model.
 #include "SGrid.h"
 #include "GridInsertion.h"
@@ -83,9 +84,9 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 		nPosX = vecCursorPos.x - (float)(pDescPanel->m_nWidth / 2.0f);
 
 	if ((float)((g_pDevice->m_dwScreenHeight >> 1) - 30) <= vecCursorPos.y)
-		nPosY = (float)(vecCursorPos.y - pDescPanel->m_nHeight) - (float)(10.0f * RenderDevice::m_fHeightRatio);
+		nPosY = (float)(vecCursorPos.y - pDescPanel->m_nHeight) - (float)(10.0f * RenderDevice::m_fUIScaleY);
 	else
-		nPosY = (float)(30.0f * RenderDevice::m_fHeightRatio) + vecCursorPos.y;
+		nPosY = (float)(30.0f * RenderDevice::m_fUIScaleY) + vecCursorPos.y;
 
 	pDescPanel->SetRealPos(nPosX, nPosY);
 	pDescPanel->SetVisible(1);
@@ -120,38 +121,6 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 					pFScene->m_pParamText[i + 2]->SetTextColor(g_pItemMixHelp[pItem->m_pItem->sIndex].Color[i]);
 					pFScene->m_pParamText[i + 2]->SetText(g_pItemMixHelp[pItem->m_pItem->sIndex].Help[i], 0);
 				}
-			}
-		}
-
-		SGridControl::m_pLastMouseOverItem = pItem;
-		SGridControl::m_sLastMouseOverIndex = pItem->m_pItem->sIndex;
-		return 1;
-	}
-	else if (pItem->m_pItem->sIndex >= 11500 && pItem->m_pItem->sIndex < 11600)
-	{
-		auto pDescNameText = pFScene->m_pDescNameText;
-		int itemId = pItem->m_pItem->sIndex - 11500;
-
-		pDescNameText->SetText(pFScene->m_MissionClass.m_stMissionHelp[itemId].Name, 0);
-
-		if (itemId >= 50)
-			pDescNameText->SetText(g_pMessageStringTable[434], 0);
-
-		pDescNameText->SetTextColor(0x0FFAAAAFF);
-		pFScene->m_pParamText[0]->SetText((char*)"                                 ", 0);
-		pFScene->m_pParamText[1]->SetText((char*)"                                 ", 0);
-
-		if (pFScene->m_MissionClass.m_stMissionHelp[itemId].Color[0])
-		{
-			for (int k = 0; k < 9; ++k)
-			{
-				if (strcmp(pFScene->m_MissionClass.m_stMissionHelp[itemId].Help[k], ""))
-				{
-					pFScene->m_pParamText[k]->SetTextColor(pFScene->m_MissionClass.m_stMissionHelp[itemId].Color[k]);
-					pFScene->m_pParamText[k]->SetText(pFScene->m_MissionClass.m_stMissionHelp[itemId].Help[k], 0);
-				}
-				else
-					pFScene->m_pParamText[k]->SetText((char*)"                            ", 0);
 			}
 		}
 
@@ -1109,15 +1078,12 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 		++nLineId;
 	}
 
-	auto weather = g_nWeather;
+	// Same weather rule as the cast path and WYD-Go; heavy snow counts as snow.
+	auto weather = g_nWeather == kWeatherHeavySnow ? kWeatherSnow : g_nWeather;
 	if (g_pCurrentScene->m_pMyHuman)
 	{
 		auto vecPos = g_pCurrentScene->m_pMyHuman->m_vecPosition;
-		if ((int)vecPos.x >> 7 > 26 && (int)vecPos.x >> 7 < 31 &&
-			(int)vecPos.y >> 7 > 20 && (int)vecPos.y >> 7 < 25)
-		{
-			weather = 2;
-		}
+		weather = SkillDamageWeather(g_nWeather, (int)vecPos.x >> 7, (int)vecPos.y >> 7);
 	}
 
 	int faceId = g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex;
@@ -1239,7 +1205,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 		}
 		else if (l == 1 && m_eGridType == TMEGRIDTYPE::GRID_SKILLM)
 		{
-			if (g_pObjectManager->m_stMobData.CurrentScore.Level >= req)
+			if (static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.Level) >= req)
 				dwColor = 0xFFFFFFFF;
 			else
 				dwColor = 0xFFFF0000;

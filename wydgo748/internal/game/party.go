@@ -35,6 +35,25 @@ func (p *Party) indexOf(member *Player) int {
 	return -1
 }
 
+// Party changes must also respect a reserved target: the requester may be an
+// unrelated player who is not covered by the command dispatcher's own fence.
+func (w *World) criticalPartyReserved(p *Player) bool {
+	if p == nil {
+		return false
+	}
+	if w.criticalPlayerReserved(p) {
+		return true
+	}
+	if p.Party != nil {
+		for _, member := range p.Party.Members {
+			if w.criticalPlayerReserved(member) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 	inviter := w.players[s]
 	if inviter == nil || !inviter.InWorld || inviter.Char == nil {
@@ -46,6 +65,9 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 		return
 	}
 	target := w.playerByID(targetID)
+	if w.criticalPartyReserved(inviter) || w.criticalPartyReserved(target) {
+		return
+	}
 	if target == nil || target == inviter || !target.InWorld || target.Char == nil ||
 		!w.playersShareGameplaySpace(inviter, target) ||
 		!inView(inviter.X, inviter.Y, target.X, target.Y) {
@@ -98,6 +120,9 @@ func (w *World) onPartyAccept(s *net.Session, pkt []byte) {
 	}
 	leaderID := binary.LittleEndian.Uint16(pkt[12:14])
 	leader := w.playerByID(leaderID)
+	if w.criticalPartyReserved(member) || w.criticalPartyReserved(leader) {
+		return
+	}
 	name := cstr(pkt[14:30])
 	if leader == nil || leader.Char == nil || member.InviteFrom != leaderID ||
 		w.now().After(member.InviteUntil) || !strings.EqualFold(name, leader.Char.Name) ||
@@ -147,6 +172,9 @@ func (w *World) onPartyRemove(s *net.Session, pkt []byte) {
 		if target == nil || target.Party != requester.Party {
 			return
 		}
+	}
+	if w.criticalPartyReserved(requester) || w.criticalPartyReserved(target) {
+		return
 	}
 	w.removePartyPlayer(target)
 }

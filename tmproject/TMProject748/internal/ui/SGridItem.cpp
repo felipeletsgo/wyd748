@@ -2,6 +2,7 @@
 // SGridControl split by responsibility; see SGrid.cpp for the grid model.
 #include "SGrid.h"
 #include "GridInsertion.h"
+#include "GridItemPresentation.h"
 #include "../application/NativeVolatileRoutes.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
@@ -72,14 +73,12 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 		if (itemDef.nIndexMesh < 0 && g_UIVer == 2)
 			itemBoxSize = pItem->sIndex >= 5000 && pItem->sIndex <= 5102 ? 23.0f : 32.0f;
 
-		// The native sizes above are logical 800x600 coordinates. FieldScene2.bin
-		// scales its grids with the viewport, so materialize the item box in the
-		// same physical coordinate space or icons remain 23/24/32 pixels inside
-		// enlarged slots at higher resolutions.
+		// UI mode 2 keeps grids at resource pixel size, so the item box uses the
+		// same 2D UI scale as its parent grid.
 		m_nWidth = itemBoxSize * static_cast<float>(m_nCellWidth)
-			* RenderDevice::m_fWidthRatio;
+			* RenderDevice::m_fUIScaleX;
 		m_nHeight = itemBoxSize * static_cast<float>(m_nCellHeight)
-			* RenderDevice::m_fHeightRatio;
+			* RenderDevice::m_fUIScaleY;
 		m_GCObj.m_fWidth = m_nWidth;
 		m_GCObj.m_fHeight = m_nHeight;
 
@@ -87,12 +86,10 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 		if (pItem->sIndex >= 2330 && pItem->sIndex < 2390)
 			nAmount = 0;
 
-		m_GCObj.pFont = &m_Font;
-
 		if (nAmount > 0)
 		{
-			sprintf(m_GCObj.strString, "%2d", nAmount);
-			m_GCObj.pFont->SetText(m_GCObj.strString, m_GCObj.dwColor, 0);
+			sprintf(m_GCText.strString, "%2d", nAmount);
+			m_GCText.pFont->SetText(m_GCText.strString, m_GCText.dwColor, 0);
 		}
 
 		m_GCObj.sLegend = g_pItemList[pItem->sIndex].nGrade;
@@ -100,11 +97,11 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 
 		if (sMultiTexture > 0 && BASE_GetItemAbility(pItem, 17) > 0)
 		{
-			sprintf(m_GCObj.strString, "+%d", sMultiTexture);
+			sprintf(m_GCText.strString, "+%d", sMultiTexture);
 			if (sMultiTexture < 1 || sMultiTexture > 9)
-				m_GCObj.pFont->SetText(m_GCObj.strString, 0xFFFFFF55, 0);
+				m_GCText.pFont->SetText(m_GCText.strString, 0xFFFFFF55, 0);
 			else
-				m_GCObj.pFont->SetText(m_GCObj.strString, 0xFFFFFFFF, 0);
+				m_GCText.pFont->SetText(m_GCText.strString, 0xFFFFFFFF, 0);
 		}
 		if (sMultiTexture > 12)
 			sMultiTexture = 12;
@@ -168,6 +165,12 @@ SGridControlItem::~SGridControlItem()
 	// belongs to this grid object and must be released even for an invalid index.
 	auto pControlContainer =
 		g_pCurrentScene != nullptr ? g_pCurrentScene->m_pControlContainer : nullptr;
+	// Text can belong to sprites too, and clearing its caption does not detach it.
+	if (pControlContainer && m_GCText.nLayer >= 0)
+	{
+		RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCText, m_GCText.nLayer);
+		m_GCText.nLayer = -1;
+	}
 	if (m_pItem && WYD748_IsValidItemIndex(m_pItem->sIndex))
 	{
 		if (g_pItemList[m_pItem->sIndex].nIndexMesh < 0)
@@ -178,14 +181,6 @@ SGridControlItem::~SGridControlItem()
 				// The base S3DObj destructor runs next; mark this native 7.48 node as
 				// detached so it cannot attempt a second removal from the draw list.
 				m_GCObj.nLayer = -1;
-			}
-		}
-		else if (pControlContainer)
-		{
-			if (m_GCText.nLayer >= 0)
-			{
-				if (strlen(m_GCText.strString))
-					RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCText, m_GCText.nLayer);
 			}
 		}
 		if (pControlContainer && m_GCEnable.nLayer >= 0)
@@ -217,13 +212,6 @@ SGridControl* SGridControlItem::GetGridControl()
 void SGridControlItem::SetGridControl(SGridControl* pGridControl)
 {
 	m_pGridControl = pGridControl;
-	// Every shortcut insertion (server refresh, drag and rollback) passes here.
-	// Keep the colored skill atlas consistent with selection, which uses 199/200,
-	// even when CLASSIC selects atlas 1 in the generic item constructor.
-	if (pGridControl && pGridControl->m_eGridType == TMEGRIDTYPE::GRID_SKILLB &&
-		m_GCObj.eRenderType == RENDERCTRLTYPE::RENDER_IMAGE_STRETCH &&
-		m_GCObj.nTextureSetIndex == 1)
-		m_GCObj.nTextureSetIndex = 199;
 }
 
 STRUCT_ITEM* SGridControlItem::GetItem()
@@ -246,6 +234,10 @@ void SGridControlItem::FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, in
 		m_GCObj.nHeight = m_nHeight;
 		m_GCObj.nLayer = inParentLayer;
 		AddRenderControlItem(pDrawList, &m_GCObj, inParentLayer);
+		grid_item_presentation::QueueLabel(m_GCText,
+			ivItemPos.x + m_nPosX + m_nWidth * 0.5f,
+			ivItemPos.y + m_nPosY + m_nHeight * 0.5f, inParentLayer,
+			[&](GeomControl* node, int layer) { AddRenderControlItem(pDrawList, node, layer); });
 	}
 }
 
@@ -266,6 +258,9 @@ void SGridControlItem::FrameMoveAtCenter748(stGeomList* pDrawList, TMVector2 ivI
 	m_GCObj.nHeight = m_nHeight;
 	m_GCObj.nLayer = inParentLayer;
 	AddRenderControlItem(pDrawList, &m_GCObj, inParentLayer);
+	grid_item_presentation::QueueLabel(m_GCText,
+		ivItemCenter.x + m_nPosX, ivItemCenter.y + m_nPosY, inParentLayer,
+		[&](GeomControl* node, int layer) { AddRenderControlItem(pDrawList, node, layer); });
 }
 
 int SGridControlItem::PtInItem(int inPosX, int inPosY)

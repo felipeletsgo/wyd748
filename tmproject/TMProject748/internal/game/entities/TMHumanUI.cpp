@@ -556,23 +556,23 @@ void TMHuman::LabelPosition()
                 }
                 else
                 {
-                    if (!m_ucChaosLevel)
+                    if (m_dwID < 1000 && !m_ucChaosLevel)
                     {
                         float fProgress = (float)(g_pTimerManager->GetServerTime() % 2000);
                         fProgress = sinf((float)(fProgress * D3DXToRadian(180)) / 2000.0f);
                         m_pNameLabel->SetTextColor(((unsigned int)(float)(fProgress * 255.0f) << 16) | 0xFF000000);
                     }
 
-                    short sLevel = pFScene->m_pMyHuman->m_stScore.Level;
+                    long long sLevel = pFScene->m_pMyHuman->m_stScore.Level;
                     if (pFScene->m_pMyHuman->Is2stClass() == 2)
                         sLevel += 400;
 
-                    if (sLevel - 40 >= m_stScore.Level &&
+                    if (sLevel - 40 >= static_cast<long long>(m_stScore.Level) &&
                         m_sHeadIndex > 40 && m_stScore.Level < 350 && m_sHeadIndex > 40)
                     {
                         m_pTitleProgressBar->m_GCProgress.dwColor = 0xFF737373;
                     }
-                    if (sLevel - 40 < m_stScore.Level &&
+                    if (sLevel - 40 < static_cast<long long>(m_stScore.Level) &&
                         m_sHeadIndex > 40 || m_stScore.Level >= 350 && m_sHeadIndex > 40)
                     {
                         m_pTitleProgressBar->m_GCProgress.dwColor = 0xFFFF0000;
@@ -642,7 +642,7 @@ void TMHuman::LabelPosition()
                     }
 
                     vPosInY = (int)((float)vPosInY + (RenderDevice::m_fHeightRatio * 13.0f));
-                    float fWidthRatio = RenderDevice::m_fWidthRatio;
+                    float fWidthRatio = RenderDevice::m_fUIScaleX; // FUN_00504a80 mode 2: 1.0
                     if (m_cMount)
                         vPosInY = vPosInY + (int)((RenderDevice::m_fHeightRatio * 2.0f) * 4.0f);
                     else
@@ -710,18 +710,18 @@ void TMHuman::LabelPosition()
                     else
                         m_pChatMsg->SetRealPos((float)vPosInX - (float)(m_pChatMsg->m_nWidth / 2.0f), (float)vPosInY - 75.0f);
 
-                    // Native FUN_00504a80 anchors the title 13 scaled pixels below
+                    // Native FUN_00504a80 (UI mode 2) anchors the title 13 pixels below
                     // NewUI_AutoTrade_BG (140/150 centering widths respectively).
                     m_pAutoTradeDesc->SetRealPos((float)vPosInX - ((140.0f * fWidthRatio) / 2.0f), (float)vPosInY);
                     m_pAutoTradePanel->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f),
-                        (float)vPosInY - (float)(13.0f * RenderDevice::m_fHeightRatio));
+                        (float)vPosInY - (float)(13.0f * RenderDevice::m_fUIScaleY));
 
                     float nPosY = (float)vPosInY;
                     if (m_cMount && !m_pAutoTradeDesc->IsVisible())
                         nPosY = nPosY - 20.0f;
 
-                    fWidthRatio = RenderDevice::m_fWidthRatio;
-                    m_pNameLabel->SetRealPos((float)vPosInX - (((float)(6 * (nLen2 + 2)) * RenderDevice::m_fWidthRatio) / 2.0f),
+                    fWidthRatio = RenderDevice::m_fUIScaleX;
+                    m_pNameLabel->SetRealPos((float)vPosInX - (((float)(6 * (nLen2 + 2)) * RenderDevice::m_fUIScaleX) / 2.0f),
                         nPosY);
 
                     if (m_stGuildMark.pGuildMark)
@@ -1058,23 +1058,23 @@ void TMHuman::LabelPosition2()
                 }
                 else
                 {
-                    if (!m_ucChaosLevel)
+                    if (m_dwID < 1000 && !m_ucChaosLevel)
                     {
                         float fProgress = (float)(g_pTimerManager->GetServerTime() % 2000);
                         fProgress = sinf((float)(fProgress * D3DXToRadian(180)) / 2000.0f);
                         m_pNameLabel->SetTextColor(((unsigned int)(float)(fProgress * 255.0f) << 16) | 0xFF000000);
                     }
 
-                    short sLevel = pFScene->m_pMyHuman->m_stScore.Level;
+                    long long sLevel = pFScene->m_pMyHuman->m_stScore.Level;
                     if (pFScene->m_pMyHuman->Is2stClass() == 2)
                         sLevel += 400;
 
-                    if (sLevel - 40 >= m_stScore.Level &&
+                    if (sLevel - 40 >= static_cast<long long>(m_stScore.Level) &&
                         m_sHeadIndex > 40 && m_stScore.Level < 350 && m_sHeadIndex > 40)
                     {
                         m_pTitleProgressBar->m_GCProgress.dwColor = 0xFF737373;
                     }
-                    if (sLevel - 40 < m_stScore.Level &&
+                    if (sLevel - 40 < static_cast<long long>(m_stScore.Level) &&
                         m_sHeadIndex > 40 || m_stScore.Level >= 350 && m_sHeadIndex > 40)
                     {
                         m_pTitleProgressBar->m_GCProgress.dwColor = 0xFFFF0000;
@@ -1143,7 +1143,7 @@ void TMHuman::LabelPosition2()
                     }
 
                     vPosInY = (int)((float)vPosInY + (RenderDevice::m_fHeightRatio * 13.0f));
-                    float fWidthRatio = RenderDevice::m_fWidthRatio;
+                    float fWidthRatio = RenderDevice::m_fUIScaleX; // FUN_00504a80 mode 2: 1.0
                     if (m_cMount)
                         vPosInY = vPosInY + (int)((RenderDevice::m_fHeightRatio * 2.0f) * 4.0f);
                     else
@@ -1213,14 +1213,14 @@ void TMHuman::LabelPosition2()
                     // FUN_00504a80's separate title/background screen anchors.
                     m_pAutoTradeDesc->SetRealPos((float)vPosInX - ((140.0f * fWidthRatio) / 2.0f), (float)vPosInY);
                     m_pAutoTradePanel->SetRealPos((float)vPosInX - ((150.0f * fWidthRatio) / 2.0f),
-                        (float)vPosInY - (float)(13.0f * RenderDevice::m_fHeightRatio));
+                        (float)vPosInY - (float)(13.0f * RenderDevice::m_fUIScaleY));
 
                     float nPosY = (float)vPosInY;
                     if (m_cMount && !m_pAutoTradeDesc->IsVisible())
                         nPosY = nPosY - 20.0f;
 
-                    fWidthRatio = RenderDevice::m_fWidthRatio;
-                    m_pNameLabel->SetRealPos((float)vPosInX - (((float)(6 * (nLen2 + 2)) * RenderDevice::m_fWidthRatio) / 2.0f),
+                    fWidthRatio = RenderDevice::m_fUIScaleX;
+                    m_pNameLabel->SetRealPos((float)vPosInX - (((float)(6 * (nLen2 + 2)) * RenderDevice::m_fUIScaleX) / 2.0f),
                         nPosY);
 
                     if (m_stGuildMark.pGuildMark)
@@ -1379,8 +1379,8 @@ void TMHuman::SetChatMessage(const char* szString)
 
         m_pChatMsg->SetText(temp, 0);
 
-        float width = (float)GetChatLen(temp, &nHeight) * RenderDevice::m_fWidthRatio;
-        m_pChatMsg->SetSize(width, (float)nHeight * RenderDevice::m_fHeightRatio);
+        float width = (float)GetChatLen(temp, &nHeight) * RenderDevice::m_fUIScaleX;
+        m_pChatMsg->SetSize(width, (float)nHeight * RenderDevice::m_fUIScaleY);
     }
 }
 
@@ -1459,121 +1459,6 @@ void TMHuman::UpdateGuildName()
 
         }
     }
-}
-
-void TMHuman::SetGuildBattleHPColor()
-{
-    // It's an empty function... yeah!
-}
-
-void TMHuman::SetGuildBattleHPBar(int nHP)
-{
-    // It's an empty function... yeah!
-}
-
-void TMHuman::SetGuildBattleMPBar(int nMP)
-{
-    // It's an empty function... yeah!
-}
-
-void TMHuman::SetGuildBattleLifeCount()
-{
-    // It's an empty function... yeah!
-}
-
-void TMHuman::CreateControl()
-{
-    DestroyControl();
-
-    m_pNameLabel = new SText(-1, "MoName", 0xFFFFFFAA, 0.0f, 650.0f, 128.0f, 16.0f, 0, 0x55AA0000u, 1u, 0);
-    m_pKillLabel = new SText(-1, "", 0xFF1E821E, 0.0f, 650.0f, 128.0, 16.0f, 0, 0x55AA0000u, 1u, 0);
-    m_pAutoTradeDesc = new SText(-1, "", 0xFFFFFFFF, 0.0f, 650.0f, 143.0f, 50.0f, 0, 0xFFFFFFFF, 1u, 0);
-    // Recreated controls must preserve the native 7.48 shop sign asset and dimensions used by the primary constructor.
-    m_pAutoTradePanel = new SPanel(446, -10.0f, 635.0f, 143.0f, 50.0f, 0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-    m_pAutoTradePanel->m_bSelectEnable = 0;
-
-    m_pChatMsg = new SText(-2, "", 0xFFFFFFFF, 0.0, 650.0, (float)256, 64.0, 1, 0x77000000u, 1u, 0);
-    m_pChatMsg->m_Font.m_bMultiLine = 1;
-
-    m_stGuildMark.pGuildMark = nullptr;
-
-    m_stGuildMark.pGuildMark = new SPanel(-2, 0.0, 0.0, 12.0, 16.0, 0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-    m_pProgressBar = new SProgressBar(-2, 30, 30, 0.0f, 0.0f, 60.0f, 7.0f, 0xFFFF0000, 0xFF333333, 1u);
-    m_pProgressBar1 = new SProgressBar(-2, 30, 30, 0.0f, 0.0f, 60.0f, 7.0f, 0xFFFF0000, 0xFF333333, 1u);
-    m_pMountHPBar = new SProgressBar(-2, 30, 30, 0.0f, 0.0f, 60.0f, 7.0f, 0xFFFFAA00, 0xFF333333, 1u);
-
-    m_pChatMsg->SetVisible(0);
-    m_pNameLabel->m_GCBorder.nTextureSetIndex = -2;
-    m_pNameLabel->SetVisible(0);
-    m_pKillLabel->SetVisible(0);
-
-    if (m_stGuildMark.pGuildMark)
-        m_stGuildMark.pGuildMark->SetVisible(0);
-
-    m_pAutoTradeDesc->SetVisible(0);
-
-    m_pNickNameLabel = new SText(-1, "", 0xFFFFFFAA, 0.0f, 650.0f, 128.0f, 16.0f, 0, 0x55AA0000u, 1u, 0);
-    m_pNickNameLabel->m_GCBorder.nTextureSetIndex = -2;
-    m_pNickNameLabel->SetVisible(0);
-    m_pAutoTradePanel->SetVisible(0);
-    m_pMountHPBar->SetVisible(0);
-
-    if (g_pCurrentScene)
-    {
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pNameLabel);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pKillLabel);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_stGuildMark.pGuildMark);
-		// Recreated controls must keep FUN_004f7ea6's title-before-panel insertion
-		// because reverse traversal renders the title above the dark background.
-		g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradeDesc);
-		g_pCurrentScene->m_pControlContainer->AddItem(m_pAutoTradePanel);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pNickNameLabel);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pChatMsg);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pProgressBar);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pProgressBar1);
-        g_pCurrentScene->m_pControlContainer->AddItem(m_pMountHPBar);
-    }
-}
-
-void TMHuman::DestroyControl()
-{
-    SAFE_DELETE(m_pChatMsg);
-    SAFE_DELETE(m_pNameLabel);
-    SAFE_DELETE(m_pKillLabel);
-    SAFE_DELETE(m_stGuildMark.pGuildMark);
-    SAFE_DELETE(m_pAutoTradeDesc);
-    SAFE_DELETE(m_pAutoTradePanel);
-    SAFE_DELETE(m_pNickNameLabel);
-    SAFE_DELETE(m_pProgressBar);
-    SAFE_DELETE(m_pProgressBar1);
-    SAFE_DELETE(m_pMountHPBar);
-    SAFE_DELETE(m_pInMiniMap);
-    SAFE_DELETE(m_pSkinMesh);
-    SAFE_DELETE(m_pMantua);
-    SAFE_DELETE(m_pMount);
-    SAFE_DELETE(m_pMount);
-}
-
-int TMHuman::StrByteCheck(const char* szString)
-{
-    int value = 0;
-    bool byteCheck = false;
-
-    int len = strlen(szString);
-    for (int i = 0;i < len ; ++i)
-    {
-        if (szString[i] >= 'A' && szString[i] <= 'z')
-            ++value;
-        else if (byteCheck)
-        {
-            ++value;
-            byteCheck = false;
-        }
-        else
-            byteCheck = true;
-    }
-
-    return value;
 }
 
 bool TMHuman::_locationCheck(TMVector2 vec2, int mapX, int mapY)

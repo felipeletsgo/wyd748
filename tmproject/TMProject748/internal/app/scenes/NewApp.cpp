@@ -1,14 +1,14 @@
 #include "pch.h"
+#include "LightingProfile.h"
 #include "EventTranslator.h"
 #include "RenderDevice.h"
 #include "dsutil.h"
 #include "DirShow.h"
-#include "TMVideoWnd.h"
-#include "JBlur.h"
 #include "TimerManager.h"
 #include "ObjectManager.h"
 #include "CPSock.h"
 #include "../../application/ports/PacketDispatch.h"
+#include "../../application/MusicListLine.h"
 #include "NewApp.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
@@ -21,6 +21,8 @@
 #include "SControlContainer.h"
 #include "WYD748Assets.h"
 #include "ClientDiagnostics.h"
+#include "PerfTrace.h"
+#include "ClientSettings.h"
 
 const char ClassName[4] = "WYD";
 
@@ -32,13 +34,11 @@ NewApp::NewApp()
 	m_dwScreenHeight = 600;
 	m_pRenderDevice = 0;
 	m_pSoundManager = 0;
-	m_pAviPlayer = 0;
 	m_pBGMManager = 0;
 	m_pEventTranslator = 0;
 	m_pTimerManager = 0;
 	m_pObjectManager = 0;
 	m_pSocketManager = 0;
-	m_pBlur = 0;
 	g_pApp = this;
 	ShellExecute(0, "open", ChangeUpdate_Path, 0, 0, 1);
 	BASE_InitModuleDir();
@@ -130,7 +130,6 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	int nResIndex = 2;
 	int nBright = 50;
 	int nCursor = 0;
-	int nClassic = 0;
 	int nMipMap = 30;
 	int nCameraRotate = 0;
 	int nDXT = 0;
@@ -199,17 +198,20 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 		m_bwFullScreen = nWindow == 0;
 	}
 
-	g_UIVer = Config.Config[9];
-	if (nClassic == 1 || nResIndex == 1 || nResIndex == 6)
-		g_UIVer = 1;
+	// Native FUN_0055bc0a reads [CLASSIC] (and selects mode 1 for it or for
+	// RES 1/6), but then writes mode 2 unconditionally after closing
+	// config.txt (0x0055c136): the 7.48 client always runs the modern UI.
+	// Honoring CLASSIC=1 here mixed classic atlases (skill shop) with modern
+	// ones (learned skills, skill bar).
+	g_UIVer = 2;
 
 	nCameraRotate = Config.Config[10] > 0;
 	nDXT = Config.Config[11] > 0;
 	g_nKeyType = Config.Config[12];
 	nCameraView = Config.Config[13];
 	m_nCameraView = Config.Config[13];
-	// Do not overwrite CAMERA/CLASSIC after loading: those forced TMProject
-	// values made the 7.48 UI render and hit-test with different coordinates.
+	// Do not overwrite CAMERA after loading: the forced TMProject value made
+	// the 7.48 UI render and hit-test with different coordinates.
 	D3DDevice::m_bDxt = nDXT == 0;
 	RenderDevice::m_bCameraRot = nCameraRotate;
 	D3DDevice::m_nMipMap = nMipMap;
@@ -247,27 +249,9 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 		m_dwColorBit = stResList[1].dwBit;
 	}
 
-	int _nFontSize = 13;
-	switch (m_dwScreenWidth)
-	{
-	case 640:
-		_nFontSize = 11;
-		break;
-	case 800:
-		_nFontSize = 14;
-		break;
-	case 1024:
-		_nFontSize = 14;
-		break;
-	case 1280:
-		_nFontSize = 14;
-		break;
-	default:
-		_nFontSize = 18;
-		break;
-	}
-
-	RenderDevice::m_nFontSize = _nFontSize;
+	// FUN_0042ced1 (UI mode 2) uses a fixed 13-pixel font at every
+	// resolution; the UI is not scaled, so the text is not either.
+	RenderDevice::m_nFontSize = 13;
 	RenderDevice::m_nFontTextureSize = 512;
 
 	if (m_hWnd == nullptr)
@@ -336,16 +320,6 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	ReadUIString();
 	BASE_ReadItemPrice();
 
-	m_pAviPlayer = new TMVideoWnd(m_bwFullScreen);
-
-	if (m_pAviPlayer != nullptr)
-	{
-		if (!m_pAviPlayer->OpenClip(VideoClipFile_Path))
-		{
-			SAFE_DELETE(m_pAviPlayer);
-		}
-	}
-
 	memset(g_pItemHelp, 0, sizeof(g_pItemHelp));
 	char szItemHelpFile[128];
 	sprintf(szItemHelpFile, ItemHelp_Path);
@@ -396,12 +370,9 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 
 	fclose(fp);
 
-	if (m_pAviPlayer)
-		return 1;
-	else
-		return InitDevice();
-
-	return 0;
+	// The 7.48 client has no intro video (no .avi path in WYD.exe), so the
+	// device is created right after the data files.
+	return InitDevice();
  }
 
 HRESULT NewApp::InitDevice()
@@ -507,9 +478,7 @@ HRESULT NewApp::InitDevice()
 
 	D3DDevice::m_nMipMap = nMipMap;
 
-	m_pBlur = new JBlur();
-
-	return m_pBlur->InitObject() != 0;
+	return 1;
 }
 
 void NewApp::InitMusicList()
@@ -520,24 +489,13 @@ void NewApp::InitMusicList()
 	if (fp == nullptr)
 		return;
 
-	char szTemp1[256];
-	for (int i = 0; i < 15 && fgets(szTemp1, 256, fp); ++i)
+	// A line without a path keeps the default entry from DirShow.cpp.
+	char szLine[256];
+	for (int i = 0; i < 15 && fgets(szLine, sizeof(szLine), fp); ++i)
 	{
-		char szTemp2[256];
-
-		strcpy(szTemp2, &szTemp1[17]);
-		int nLen = strlen(szTemp2);
-
-		if (szTemp1[nLen + 255] == '\n' || szTemp1[nLen + 255] == '\r')
-		{
-			szTemp2[nLen - 1] = 0;
-		}
-		if (szTemp1[nLen + 254] == '\n' || szTemp1[nLen + 254] == '\r')
-		{		
-			szTemp2[nLen - 2] = 0;
-		}
-
-		sprintf(DS_SOUND_MANAGER::m_szMusicPath[i], szTemp2);
+		char szPath[256];
+		if (music_list::ParseLine(szLine, szPath, sizeof(szPath)))
+			strcpy_s(DS_SOUND_MANAGER::m_szMusicPath[i], szPath);
 	}
 
 	fclose(fp);
@@ -559,12 +517,10 @@ HRESULT NewApp::Finalize()
 	
 	SAFE_DELETE(g_pObjectManager);
 	SAFE_DELETE(m_pTimerManager);
-	SAFE_DELETE(m_pBlur);
 	SAFE_DELETE(m_pRenderDevice);
 	SAFE_DELETE(m_pSoundManager);
 	SAFE_DELETE(m_pSocketManager);
 	SAFE_DELETE(m_pBGMManager);
-	SAFE_DELETE(m_pAviPlayer);
 	SAFE_DELETE(m_pEventTranslator);
 
 	g_pSocketManager = nullptr;
@@ -573,9 +529,37 @@ HRESULT NewApp::Finalize()
 	return 1;
 }
 
+namespace {
+double FrameClockMs()
+{
+	static LARGE_INTEGER frequency{};
+	if (!frequency.QuadPart)
+		QueryPerformanceFrequency(&frequency);
+	LARGE_INTEGER counter{};
+	QueryPerformanceCounter(&counter);
+	return static_cast<double>(counter.QuadPart) * 1000.0 / static_cast<double>(frequency.QuadPart);
+}
+}
+
+bool NewApp::IsIdleWindow() const
+{
+	// Unfocused and minimized windows share the light profile. The game is
+	// played with several visible clients, so focus decides the profile.
+	if (!m_hWnd || IsIconic(m_hWnd))
+		return true;
+	const HWND foreground = GetForegroundWindow();
+	return !foreground || GetAncestor(foreground, GA_ROOT) != m_hWnd;
+}
+
 DWORD NewApp::Run()
 {
 	HACCEL hAccel = LoadAccelerators(0, MAKEINTRESOURCE(IDC_TMPROJECT));
+
+	// A 1 ms timer period keeps the frame caps accurate.
+	const bool usesFrameCap = g_ClientSettings.idleFps > 0 || g_ClientSettings.focusedFps > 0;
+	if (usesFrameCap)
+		timeBeginPeriod(1);
+	double lastFrameStartMs = -1.0;
 
 	MSG msg = {};
 	PeekMessage(&msg, 0, 0, 0, 0);
@@ -605,12 +589,28 @@ DWORD NewApp::Run()
 		{
 			if (m_bActive == 1)
 			{
+				const bool idle = IsIdleWindow();
+				const int frameCap = idle ? g_ClientSettings.idleFps : g_ClientSettings.focusedFps;
+				const double frameStartMs = FrameClockMs();
+				const double waitMs = FrameWaitMs(frameStartMs, lastFrameStartMs, frameCap);
+				if (waitMs >= 1.0)
+				{
+					// Input, network and focus messages end the wait at once.
+					MsgWaitForMultipleObjects(0, nullptr, FALSE, static_cast<DWORD>(waitMs), QS_ALLINPUT);
+					continue;
+				}
+				lastFrameStartMs = frameStartMs;
+				g_bIdleRenderProfile = idle;
+
 				unsigned int dwServerTime = m_pTimerManager->GetServerTime();
 
 				m_pEventTranslator->ReadInputEventData();
 				m_pEventTranslator->CameraEventData();
 
-				m_pObjectManager->FrameMove(dwServerTime);
+				{
+					perf_trace::ScopedPhase phase(perf_trace::Phase::FrameMove);
+					m_pObjectManager->FrameMove(dwServerTime);
+				}
 
 				if (g_dwStartPlayTime != 0 && g_dwPausedTime == 0)
 				{
@@ -636,12 +636,11 @@ DWORD NewApp::Run()
 						g_pCurrentScene->m_pMyHuman->m_cHide = 0;
 					}
 				}
-				if (m_pAviPlayer == nullptr || m_pAviPlayer != nullptr && m_pAviPlayer->m_psCurrent != PLAYSTATE::Running)
 				{
+					perf_trace::ScopedPhase phase(perf_trace::Phase::Render);
 					RenderScene();
 				}
-				if ((m_pAviPlayer == nullptr || m_pAviPlayer != nullptr && m_pAviPlayer->m_psCurrent != PLAYSTATE::Running) &&
-					m_pRenderDevice->m_pMeshManager == nullptr)
+				if (m_pRenderDevice->m_pMeshManager == nullptr)
 				{
 					if (!m_pRenderDevice->InitMeshManager())
 					{
@@ -649,20 +648,76 @@ DWORD NewApp::Run()
 						PostMessageA(m_hWnd, WM_CLOSE, 0, 0);
 					}
 
-					SAFE_DELETE(m_pAviPlayer);
-
 					m_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTSERVER_STATE);
 				}
 				if (m_pObjectManager->m_bCleanUp)
+				{
+					perf_trace::ScopedPhase phase(perf_trace::Phase::CleanUp);
 					m_pObjectManager->CleanUp();
+				}
+				if (perf_trace::EndFrame())
+					WritePerfSample();
 			}
 		}		
 	}
 
 	if (hAccel)
 		DestroyAcceleratorTable(hAccel);
+	if (usesFrameCap)
+		timeEndPeriod(1);
 
 	return msg.wParam;
+}
+
+namespace {
+void CountPerfTree(TreeNode* root, std::uint32_t& live, std::uint32_t& deleted)
+{
+	TreeNode* node = root;
+	while (node)
+	{
+		if (node->m_cDeleted)
+			++deleted;
+		else
+			++live;
+		if (node->m_pDown)
+		{
+			node = node->m_pDown;
+			continue;
+		}
+		while (node && node != root && !node->m_pNextLink)
+			node = node->m_pTop;
+		if (!node || node == root)
+			break;
+		node = node->m_pNextLink;
+	}
+}
+
+std::uint32_t CountPerfLive(TreeNode* root)
+{
+	std::uint32_t live = 0;
+	std::uint32_t deleted = 0;
+	if (root)
+		CountPerfTree(root, live, deleted);
+	return live;
+}
+}
+
+void NewApp::WritePerfSample()
+{
+	perf_trace::Snapshot snapshot;
+	if (TMScene* scene = g_pCurrentScene)
+	{
+		snapshot.sceneType = static_cast<int>(scene->m_eSceneType);
+		CountPerfTree(scene, snapshot.nodes, snapshot.deletedNodes);
+		snapshot.effectNodes = CountPerfLive(scene->m_pEffectContainer);
+		snapshot.humanNodes = CountPerfLive(scene->m_pHumanContainer);
+		snapshot.itemNodes = CountPerfLive(scene->m_pItemContainer);
+		snapshot.groundObjectNodes = CountPerfLive(scene->m_pGroundObjectContainer);
+	}
+	// The runtime may move the device to another vtable; patch it as well.
+	perf_trace::InstallDeviceHooks(m_pRenderDevice ? m_pRenderDevice->m_pd3dDevice : nullptr);
+	perf_trace::FillProcess(snapshot, m_hWnd);
+	perf_trace::WriteSample(snapshot);
 }
 
 HRESULT NewApp::RenderScene()
@@ -762,6 +817,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	else
 		sprintf(g_szOS, "NT");
 
+	g_ClientSettings = LoadClientSettings(ClientSettings_Path);
+	g_LightingProfile = LoadLightingProfile(LightingProfile_Path);
 	NewApp* newApp = new NewApp();
 
 	int nFull = 1;
@@ -801,13 +858,4 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	}
 
 	return 0;
-}
-
-void CreateConsole()
-{
-	AllocConsole();
-
-	// Output fix 
-	freopen_s((FILE**)stdout, "CONOUT$", "w", stdout);
-	freopen_s((FILE**)stdin, "CONIN$", "r", stdin);
 }

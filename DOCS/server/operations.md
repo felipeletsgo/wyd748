@@ -104,10 +104,18 @@ The server has these systems. The server has authority on each system.
   evasion. Defender DEX builds up to 80% evasion at 4,000 points and directly
   lowers the attacker's accuracy, which never falls below 20%; Concentration
   adds 15 accuracy percentage points and raises that floor to 35%. Physical actions use
-  a fixed 400 ms interval, while Attack Speed above 100% becomes Double Hit chance and
+  a fixed 900 ms interval, while Attack Speed above 100% becomes Double Hit chance and
   reaches 100% Double Hit at 200%. A PvP kill never transfers experience or
   gold from either player. Use `/parry <player>` to inspect the authoritative
   accuracy/evasion matchup against an online character.
+- **Weather** — The world starts clear and changes every 10 to 25 minutes
+  (clear 60%, rain 25%, snow 10%, heavy snow 5%; `internal/game/weather.go`).
+  The weather goes to clients in `0x114` and `0x18B`; players still committing
+  a save or teleport receive it on the next one-second sync. Skill damage
+  applies the native `BASE_GetSkillDamage` modifiers at the caster's position:
+  rain lowers fire skills by 10% and raises thunder skills by 30%, snow raises
+  ice skills by 20%. Heavy snow counts as snow, and fields 27–30 × 21–24 always
+  count as snow.
 - **Progression** — The server uses the native Mortal experience table. You can
   configure the experience floor and rate. The server does the level-up. It
   controls the statistic, mastery, and skill-point budgets. It applies the
@@ -150,8 +158,12 @@ The server has these systems. The server has authority on each system.
   refined +7 to +9. Its success chance comes from `data/server.txt`: a base
   value plus a bonus for each material, selected by the refine level.
 - **Quests** — The server reads the quest requirements and gives atomic rewards
-  from data files. The quest areas are repeatable. The server does a 10-minute
-  area reset and gives the native quest reward boxes. The full retail quest
+  from data files. The quest areas are repeatable. Only the entry NPC grants a
+  stay: every second the server returns to town anyone inside an area without
+  that entry or outside its level range, so wall jumps, warps and characters
+  past the cap (above displayed level 116 at the Gravedigger) cannot stay. The
+  server also does a 10-minute area reset that clears every entry, and gives
+  the native quest reward boxes. The full retail quest
   catalog is not complete.
 - **Volatiles** — You can configure potions, gold, teleports, refining and
   tinting, mount items, timed affects, the Magical Pill, the Hunting Scrolls,
@@ -194,6 +206,30 @@ The server has these systems. The server has authority on each system.
   entrance ticket and the fame points. They live in a per-character sidecar
   file, not in the account. A quest can require, spend, or grant them. A
   counter does not pass from one character to another one in the same account.
+- **Kefra and the passage to Uxmal** — Killing the Kefra boss (outside an
+  instance) marks him defeated, gives 100 fame to the killer's guild, and
+  announces it to every player. While he stays defeated, the Hall of Kefra
+  portal (2366, 3925) leads to the Uxmal city (3250, 1703); before that it
+  answers "Kefra still guards the passage." His NPCGener entry does not
+  respawn him until the weekly reset, every Tuesday at 12:00 in the war
+  timezone, also applied after a restart that missed it. The defeat
+  (`wars.kefra`, with the winning guild and time) and the fame are saved in
+  the same transaction as the kill rewards. If that save fails, the whole kill
+  rolls back: Kefra stays alive with his HP restored, no fame is given and
+  nothing is announced, exactly the state a restart would load; the next kill
+  that saves credits the guild once. A death without a killer counts only
+  once its guild-state save succeeds. His four guards — two Lich Crunt and two
+  Lich Vatama (names from the 7.48 `UI/PotalPos.txt`) at (2372, 3924),
+  (2378, 3928), (2372, 3940) and (2378, 3936) — live only while he lives: a
+  killed guard returns at once,
+  all of them leave the world without loot when Kefra dies, and they return
+  with him at the reset. No source records their stats; their templates copy
+  `Lich_Dragon2` (level 385). Ported from W2PP `MobKilled.cpp`, `GetFunc.cpp`
+  and `ProcessSecMinTimer.cpp`; the W2PP item distribution and the global half
+  experience while Kefra lives are not ported. Code: `internal/game/kefra.go`.
+- **NPCGener counters** — A mob keeps a reference to the generator entry that
+  spawned it. `NPCGener.txt` reuses ten indexes (3856 is both Kefra and a
+  Grim_Lock group), so a death lowered the counter of the wrong entry before.
 - **Mounts** — An equipped egg advances with Ori/Lac and a server-side 6–8 hour
   online incubation timer; unequipping or disconnecting pauses it. A hatchling
   grows into an adult and follows its owner outside the party. A mounted

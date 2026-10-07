@@ -63,25 +63,26 @@ func skillMasterPacketTestWorld(t *testing.T) (*World, *Player, *craftStore, *Mo
 	}
 	w.registerMobSpatial(master)
 	p.ShopNPC = master.ID
+	p.show(master.ID)
 	return w, p, st, master
 }
 
 func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
-	t.Run("persiste e publica os tres estados", func(t *testing.T) {
+	t.Run("persists and publishes all three states", func(t *testing.T) {
 		w, p, st, master := skillMasterPacketTestWorld(t)
 		packetsBefore := p.Session.QueuedPacketsForTest()
 
 		w.onApplyBonus(p.Session, skillMasterApplyBonusPacket(5000, master.ID))
 
 		if p.Char.LearnedSkill&1 == 0 || st.saves != 1 {
-			t.Fatalf("skill nao foi aprendida/persistida: mask=%X saves=%d", p.Char.LearnedSkill, st.saves)
+			t.Fatalf("skill was not learned/persisted: mask=%X saves=%d", p.Char.LearnedSkill, st.saves)
 		}
 		if got := p.Session.QueuedPacketsForTest(); got != packetsBefore+3 {
-			t.Fatalf("sucesso publicou %d pacotes adicionais, quer 3", got-packetsBefore)
+			t.Fatalf("success published %d additional packets, want 3", got-packetsBefore)
 		}
 	})
 
-	t.Run("rejeita target diferente da loja aberta", func(t *testing.T) {
+	t.Run("rejects a target other than the open shop", func(t *testing.T) {
 		w, p, st, master := skillMasterPacketTestWorld(t)
 		learnedBefore := p.Char.LearnedSkill
 		packetsBefore := p.Session.QueuedPacketsForTest()
@@ -90,14 +91,14 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 
 		if p.Char.LearnedSkill != learnedBefore || st.saves != 0 ||
 			p.Session.QueuedPacketsForTest() != packetsBefore+1 {
-			t.Fatal("target incorreto alterou, persistiu ou deixou de publicar uma unica mensagem")
+			t.Fatal("incorrect target mutated or persisted state, or did not publish exactly one message")
 		}
 		if got := dequeueSkillMessage(t, p); got != "Invalid skill master." {
-			t.Fatalf("mensagem=%q", got)
+			t.Fatalf("message=%q", got)
 		}
 	})
 
-	t.Run("informa que a skill ja foi aprendida", func(t *testing.T) {
+	t.Run("reports an already learned skill", func(t *testing.T) {
 		w, p, st, master := skillMasterPacketTestWorld(t)
 		p.Char.LearnedSkill = 1
 		packetsBefore := p.Session.QueuedPacketsForTest()
@@ -106,10 +107,10 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 
 		if p.Char.LearnedSkill != 1 || st.saves != 0 ||
 			p.Session.QueuedPacketsForTest() != packetsBefore+1 {
-			t.Fatal("skill ja aprendida alterou estado, persistiu ou deixou de publicar uma unica mensagem")
+			t.Fatal("already learned skill mutated or persisted state, or did not publish exactly one message")
 		}
 		if got := dequeueSkillMessage(t, p); got != "This skill has already been learned." {
-			t.Fatalf("mensagem=%q", got)
+			t.Fatalf("message=%q", got)
 		}
 	})
 
@@ -118,8 +119,8 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 		item    uint16
 		message string
 	}{
-		{name: "item fora da faixa", item: 5096, message: "This skill is not available from this master."},
-		{name: "item nao vendido", item: 5001, message: "This skill is not available from this master."},
+		{name: "item outside range", item: 5096, message: "This skill is not available from this master."},
+		{name: "item not sold", item: 5001, message: "This skill is not available from this master."},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			w, p, st, master := skillMasterPacketTestWorld(t)
@@ -132,15 +133,15 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 
 			if p.Char.LearnedSkill != 0 || st.saves != 0 ||
 				p.Session.QueuedPacketsForTest() != packetsBefore+1 {
-				t.Fatal("item invalido alterou, persistiu ou deixou de publicar uma unica mensagem")
+				t.Fatal("invalid item mutated or persisted state, or did not publish exactly one message")
 			}
 			if got := dequeueSkillMessage(t, p); got != test.message {
-				t.Fatalf("mensagem=%q, quer %q", got, test.message)
+				t.Fatalf("message=%q, want %q", got, test.message)
 			}
 		})
 	}
 
-	t.Run("rollback em falha de persistencia", func(t *testing.T) {
+	t.Run("rollback on persistence failure", func(t *testing.T) {
 		w, p, st, master := skillMasterPacketTestWorld(t)
 		p.Char.LearnedSkill = 1 << 3
 		learnedBefore := p.Char.LearnedSkill
@@ -150,16 +151,16 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 		w.onApplyBonus(p.Session, skillMasterApplyBonusPacket(5000, master.ID))
 
 		if st.saves != 1 {
-			t.Fatalf("falha de persistencia tentou %d saves, quer 1", st.saves)
+			t.Fatalf("persistence failure attempted %d saves, want 1", st.saves)
 		}
 		if p.Char.LearnedSkill != learnedBefore {
-			t.Fatalf("rollback nao preservou LearnedSkill: %X -> %X", learnedBefore, p.Char.LearnedSkill)
+			t.Fatalf("rollback did not preserve LearnedSkill: %X -> %X", learnedBefore, p.Char.LearnedSkill)
 		}
 		if p.Session.QueuedPacketsForTest() != packetsBefore+1 {
-			t.Fatal("falha de persistencia publicou estado ou deixou de publicar uma unica mensagem")
+			t.Fatal("persistence failure published state or did not publish exactly one message")
 		}
 		if got := dequeueSkillMessage(t, p); got != "The skill could not be saved. Please try again." {
-			t.Fatalf("mensagem=%q", got)
+			t.Fatalf("message=%q", got)
 		}
 	})
 
@@ -169,7 +170,7 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 		message string
 	}{
 		{
-			name: "informa pontos de skill insuficientes",
+			name: "reports insufficient skill points",
 			setup: func(w *World, _ *Player) {
 				skill := w.skills[0]
 				skill.SkillPoint = 100000
@@ -178,7 +179,7 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 			message: "Insufficient Skill Points to learn this skill.",
 		},
 		{
-			name: "informa level insuficiente",
+			name: "reports insufficient level",
 			setup: func(w *World, _ *Player) {
 				item := w.items[5000]
 				item.ReqLevel = 399
@@ -196,10 +197,10 @@ func TestApplyBonusSkillMasterPacketContract(t *testing.T) {
 
 			if p.Char.LearnedSkill != 0 || st.saves != 0 ||
 				p.Session.QueuedPacketsForTest() != packetsBefore+1 {
-				t.Fatal("rejeicao alterou estado ou deixou de publicar uma unica mensagem")
+				t.Fatal("rejection mutated state or did not publish exactly one message")
 			}
 			if got := dequeueSkillMessage(t, p); got != test.message {
-				t.Fatalf("mensagem=%q, quer %q", got, test.message)
+				t.Fatalf("message=%q, want %q", got, test.message)
 			}
 		})
 	}
@@ -229,16 +230,17 @@ func TestLearnSkillAtMasterPersistsAndRollsBack(t *testing.T) {
 	}
 	w.registerMobSpatial(master)
 	p.ShopNPC = master.ID
+	p.show(master.ID)
 
 	w.onLearnSkill(p.Session, p, 5000)
 	if p.Char.LearnedSkill&1 == 0 || st.saves != 1 {
-		t.Fatalf("skill nao foi aprendida/persistida: mask=%X saves=%d", p.Char.LearnedSkill, st.saves)
+		t.Fatalf("skill was not learned/persisted: mask=%X saves=%d", p.Char.LearnedSkill, st.saves)
 	}
 
 	st.err = errors.New("save failed")
 	w.onLearnSkillAtMaster(p.Session, p, 5001, master.ID)
 	if p.Char.LearnedSkill&(1<<1) != 0 {
-		t.Fatal("falha de persistencia deixou a segunda skill aprendida")
+		t.Fatal("persistence failure left the second skill learned")
 	}
 }
 
@@ -279,23 +281,24 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 			}
 			w.registerMobSpatial(master)
 			p.ShopNPC = master.ID
+			p.show(master.ID)
 
 			w.onLearnSkillAtMaster(p.Session, p, 5000, master.ID)
 			got := p.Char.LearnedSkill&1 != 0
 			if got != test.learned {
-				t.Fatalf("aprendida=%t, quer %t", got, test.learned)
+				t.Fatalf("learned=%t, want %t", got, test.learned)
 			}
 			wantSaves := 0
 			if test.learned {
 				wantSaves = 1
 			}
 			if st.saves != wantSaves {
-				t.Fatalf("saves=%d, quer %d", st.saves, wantSaves)
+				t.Fatalf("saves=%d, want %d", st.saves, wantSaves)
 			}
 		})
 	}
 
-	t.Run("mastery continua obrigatoria", func(t *testing.T) {
+	t.Run("mastery remains required", func(t *testing.T) {
 		w, p, st := handlerTestWorld(t)
 		p.Char.Class = 0
 		p.Char.Evolution = archEvolution
@@ -316,10 +319,11 @@ func TestAdvancedEvolutionsIgnoreOnlySkillLevelRequirement(t *testing.T) {
 		}
 		w.registerMobSpatial(master)
 		p.ShopNPC = master.ID
+		p.show(master.ID)
 
 		w.onLearnSkillAtMaster(p.Session, p, 5000, master.ID)
 		if p.Char.LearnedSkill&1 != 0 || st.saves != 0 {
-			t.Fatal("bypass de level ignorou indevidamente o requisito de mastery")
+			t.Fatal("level bypass incorrectly ignored the mastery requirement")
 		}
 	})
 }
@@ -355,17 +359,17 @@ func TestSkillAttackPvEAppliesDamageManaAndDebuff(t *testing.T) {
 
 	w.onSkillAttack(p, skillCastRequest{Skill: 24, Motion: 5, TargetID: mob.ID})
 	if mob.HP >= 100_000 || mob.TargetID != p.ID || p.CombatTargetID != mob.ID {
-		t.Fatalf("ataque PvE nao alterou combate: hp=%d mobTarget=%d playerTarget=%d",
+		t.Fatalf("PvE attack did not update combat: hp=%d mobTarget=%d playerTarget=%d",
 			mob.HP, mob.TargetID, p.CombatTargetID)
 	}
 	if playerCurMP(p.Char) >= oldMP {
-		t.Fatalf("skill nao consumiu mana: %d -> %d", oldMP, playerCurMP(p.Char))
+		t.Fatalf("skill did not consume mana: %d -> %d", oldMP, playerCurMP(p.Char))
 	}
 	if activeMobAffect(mob, 3) == nil {
-		t.Fatal("debuff da skill nao foi aplicado ao mob")
+		t.Fatal("skill debuff was not applied to the mob")
 	}
 	if p.SkillReady[24].Before(time.Now()) {
-		t.Fatal("cooldown nao foi registrado")
+		t.Fatal("cooldown was not recorded")
 	}
 }
 
@@ -388,12 +392,12 @@ func TestSkillAttackSupportHealsAndRejectsCooldown(t *testing.T) {
 	w.onSkillAttack(p, skillCastRequest{Skill: 27})
 	hpAfterFirst, mpAfterFirst := playerCurHP(p.Char), playerCurMP(p.Char)
 	if hpAfterFirst <= 100 || mpAfterFirst >= 500 {
-		t.Fatalf("cura nao aplicou HP/MP: hp=%d mp=%d", hpAfterFirst, mpAfterFirst)
+		t.Fatalf("healing did not apply HP/MP: hp=%d mp=%d", hpAfterFirst, mpAfterFirst)
 	}
 
 	w.onSkillAttack(p, skillCastRequest{Skill: 27})
 	if playerCurHP(p.Char) != hpAfterFirst || playerCurMP(p.Char) != mpAfterFirst {
-		t.Fatal("recast durante cooldown alterou recursos")
+		t.Fatal("recast during cooldown changed resources")
 	}
 }
 
@@ -560,7 +564,7 @@ func TestSupportBuffManualRecastIsNotBlockedByAutomaticWindow(t *testing.T) {
 	}
 	w.skills = map[int]model.SkillDef{5: skill}
 
-	// O recast manual deve funcionar mesmo muito antes da janela automatica.
+	// Manual recast must work even well before the automatic window.
 	p.Char.Affects[0] = model.Affect{
 		Type: 17, Value: 75, Level: 40,
 		ExpiresAt: time.Now().Add(2 * time.Minute),
@@ -572,7 +576,7 @@ func TestSupportBuffManualRecastIsNotBlockedByAutomaticWindow(t *testing.T) {
 		t.Fatal("recast manual acima de 30 segundos foi ignorado")
 	}
 	if playerCurMP(p.Char) >= oldMP {
-		t.Fatal("recast manual nao consumiu mana")
+		t.Fatal("manual recast did not consume mana")
 	}
 
 }
@@ -607,7 +611,7 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 	w.onSkillAttack(caster, skillCastRequest{Skill: 0, TargetID: target.ID, Motion: 5})
 	if playerCurHP(target.Char) != hpBefore || playerCurMP(caster.Char) != mpBefore ||
 		!hasActiveAffect(caster.Char, 28) || !caster.SkillReady[0].IsZero() {
-		t.Fatalf("skill PvP com modo desligado alterou estado: hp=%d/%d mp=%d/%d hide=%t cooldown=%v",
+		t.Fatalf("PvP skill with mode disabled mutated state: hp=%d/%d mp=%d/%d hide=%t cooldown=%v",
 			playerCurHP(target.Char), hpBefore, playerCurMP(caster.Char), mpBefore,
 			hasActiveAffect(caster.Char, 28), caster.SkillReady[0])
 	}
@@ -615,7 +619,7 @@ func TestSkillAttackPvPBreaksHideAndPreservesOverkillState(t *testing.T) {
 	caster.PKMode = true
 	w.onSkillAttack(caster, skillCastRequest{Skill: 0, TargetID: target.ID, Motion: 5})
 	if hasActiveAffect(caster.Char, 28) {
-		t.Fatal("atacar nao removeu Hide in Shadows")
+		t.Fatal("attacking did not remove Hide in Shadows")
 	}
 	if playerCurHP(target.Char) != 0 || target.DeadAt.IsZero() || target.LastAttackerID != caster.ID {
 		t.Fatalf("morte PvP incompleta: hp=%d dead=%v attacker=%d",
@@ -632,23 +636,23 @@ func TestBMSummonCastUsesW2PPFamilyAndLimitRules(t *testing.T) {
 	applyScore(p.Char)
 
 	if !w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
-		t.Fatal("Condor nao foi invocado")
+		t.Fatal("Condor was not summoned")
 	}
 	if want := summonCount(1, 255); len(w.summons) != want {
-		t.Fatalf("quantidade de Condor=%d, quer %d", len(w.summons), want)
+		t.Fatalf("Condor count=%d, want %d", len(w.summons), want)
 	}
 	for _, summon := range w.summons {
 		if summon.SummonerID != p.ID || summon.SummonKind != summonKindBM ||
 			summon.Def.Equip.Rosto.Index != summonTemplates[0].face {
-			t.Fatalf("Condor invalido: %+v", summon)
+			t.Fatalf("invalid Condor: %+v", summon)
 		}
 	}
 
 	if w.castSummon(p, model.SkillDef{Index: 56, InstanceValue: 1}, 255) {
-		t.Fatal("recaste no limite de Condor deveria falhar")
+		t.Fatal("recast at the Condor limit should fail")
 	}
 	if w.castSummon(p, model.SkillDef{Index: 57, InstanceValue: 2}, 30) {
-		t.Fatal("Javali deveria ser rejeitado enquanto houver Condor no grupo")
+		t.Fatal("Boar should be rejected while a Condor remains in the group")
 	}
 	liveCondor := 0
 	for _, summon := range w.summons {
@@ -660,7 +664,7 @@ func TestBMSummonCastUsesW2PPFamilyAndLimitRules(t *testing.T) {
 		}
 	}
 	if want := summonCount(1, 255); liveCondor != want {
-		t.Fatalf("Condors vivos=%d, quer %d", liveCondor, want)
+		t.Fatalf("live Condors=%d, want %d", liveCondor, want)
 	}
 }
 
@@ -678,17 +682,17 @@ func TestBMSummonFailedRecastRestoresMana(t *testing.T) {
 
 	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
 	if len(w.summons) != 1 {
-		t.Fatalf("primeiro cast criou %d Condors, quer 1", len(w.summons))
+		t.Fatalf("first cast created %d Condors, want 1", len(w.summons))
 	}
 	mpAfterFirst := playerCurMP(p.Char)
 	if mpAfterFirst >= 2_000 {
-		t.Fatalf("primeiro cast nao consumiu MP: %d", mpAfterFirst)
+		t.Fatalf("first cast did not consume MP: %d", mpAfterFirst)
 	}
 
 	p.SkillReady[56] = time.Time{}
 	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
 	if got := playerCurMP(p.Char); got != mpAfterFirst {
-		t.Fatalf("recaste falho nao restaurou MP: got=%d want=%d", got, mpAfterFirst)
+		t.Fatalf("failed recast did not restore MP: got=%d want=%d", got, mpAfterFirst)
 	}
 }
 
@@ -697,7 +701,7 @@ func TestBMSummonPartialAllocationStillConsumesMana(t *testing.T) {
 	p.Char.Class = 2
 	p.Char.LearnedSkill = 1 << 8
 	p.Char.Score.MaxMP, p.Char.Score.CurMP = 2_000, 2_000
-	p.Char.Score.Mastery[2] = 60 // dois Condors, mas somente um ID livre
+	p.Char.Score.Mastery[2] = 60 // two Condors, but only one free ID
 	applyScore(p.Char)
 	w.skills = map[int]model.SkillDef{56: {Index: 56, InstanceType: 11,
 		InstanceValue: 1, ManaSpent: 100, MaxTarget: 1, Delay: 1}}
@@ -706,7 +710,7 @@ func TestBMSummonPartialAllocationStillConsumesMana(t *testing.T) {
 	}
 	w.onSkillAttack(p, skillCastRequest{Skill: 56, Motion: 5})
 	if len(w.summons) != 1 || playerCurMP(p.Char) >= 2_000 {
-		t.Fatalf("evocacao parcial gratuita: summons=%d mp=%d", len(w.summons), playerCurMP(p.Char))
+		t.Fatalf("partial summon was free: summons=%d mp=%d", len(w.summons), playerCurMP(p.Char))
 	}
 }
 
@@ -724,7 +728,7 @@ func TestContractSummonReplacesPreviousAndFollowsOwnerTarget(t *testing.T) {
 	template.Name, template.Face = "Archer", 301
 	mustCommitContractSummon(t, w, owner, template)
 	if !first.Dead {
-		t.Fatal("summon de contrato anterior permaneceu vivo")
+		t.Fatal("previous contract summon remained alive")
 	}
 	live := 0
 	for _, summon := range w.summons {
@@ -733,7 +737,7 @@ func TestContractSummonReplacesPreviousAndFollowsOwnerTarget(t *testing.T) {
 		}
 	}
 	if live != 1 {
-		t.Fatalf("limite de um contrato ativo falhou: %d", live)
+		t.Fatalf("single active contract limit failed: %d", live)
 	}
 }
 
@@ -745,7 +749,7 @@ func TestContractSummonPreflightFailureDoesNotConsumeItem(t *testing.T) {
 	w.onUseItem(p.Session, useItemPacket(0, 0))
 
 	if p.Char.Inv[0].Index != 100 || st.saves != 0 || len(w.summons) != 0 {
-		t.Fatalf("preflight invalido alterou estado: item=%d saves=%d summons=%d",
+		t.Fatalf("invalid preflight mutated state: item=%d saves=%d summons=%d",
 			p.Char.Inv[0].Index, st.saves, len(w.summons))
 	}
 }
@@ -769,11 +773,11 @@ func TestContractSummonPersistenceFailureKeepsItemAndPreviousSummon(t *testing.T
 
 	if p.Char.Inv[0].Index != 100 || previous == nil || previous.Dead ||
 		w.mobsByID[previous.ID] != previous || len(w.summons) != 1 {
-		t.Fatalf("falha de save substituiu summon/item: item=%d old=%+v summons=%d",
+		t.Fatalf("save failure replaced summon/item: item=%d old=%+v summons=%d",
 			p.Char.Inv[0].Index, previous, len(w.summons))
 	}
 	if got := p.Session.QueuedPacketsForTest(); got != beforePackets+1 {
-		t.Fatalf("rollback do contrato nao republicou o slot: %d -> %d", beforePackets, got)
+		t.Fatalf("contract rollback did not republish the slot: %d -> %d", beforePackets, got)
 	}
 }
 
@@ -784,7 +788,7 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		p.Char.Class = 3
 		p.Char.LearnedSkill = 1 << 13 // global 85, local 13
 		p.Char.Gold = 1_000
-		p.Char.Score.Level = 49 // nivel exibido 50; custo nativo 490 na escala interna
+		p.Char.Score.Level = 49 // displayed level 50; native cost 490 on the internal scale
 		p.Char.Score.CurMP = 1_000
 		p.Char.Score.MaxMP = 1_000
 		applyScore(p.Char)
@@ -799,7 +803,7 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		w, p, st := newPlayer(t)
 		w.onSkillAttack(p, skillCastRequest{Skill: 85, TargetID: p.ID, Motion: 5})
 		if st.saves != 1 || p.Char.Gold != 510 {
-			t.Fatalf("custo do Escudo Dourado incorreto: saves=%d gold=%d", st.saves, p.Char.Gold)
+			t.Fatalf("incorrect Golden Shield cost: saves=%d gold=%d", st.saves, p.Char.Gold)
 		}
 	})
 
@@ -811,7 +815,7 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		w.onSkillAttack(p, skillCastRequest{Skill: 85, TargetID: p.ID, Motion: 5})
 		if p.Char.Gold != 1_000 || playerCurMP(p.Char) != beforeMP ||
 			p.Session.QueuedPacketsForTest() != beforePackets {
-			t.Fatalf("falha de save publicou/cobrou skill: gold=%d mp=%d packets=%d",
+			t.Fatalf("save failure published/charged the skill: gold=%d mp=%d packets=%d",
 				p.Char.Gold, playerCurMP(p.Char), p.Session.QueuedPacketsForTest())
 		}
 	})
@@ -821,7 +825,7 @@ func mustCommitContractSummon(t *testing.T, w *World, owner *Player, template *m
 	t.Helper()
 	plan, ok := w.planContractSummon(owner, template)
 	if !ok {
-		t.Fatal("contrato valido nao criou plano de summon")
+		t.Fatal("valid contract did not create a summon plan")
 	}
 	w.commitContractSummon(plan)
 }

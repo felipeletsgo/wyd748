@@ -1007,6 +1007,55 @@ tile and object masks still provide rendering geometry; dynamic collision
 changes are separate. The shared height payload SHA-256 is
 `B83A9DE78A32A79FC2647699EB44BE1561BED62FBC48EAA7165BA26C1297C640`.
 
+**WYD KR maps (2026-10-06).** The client `Env/AttributeMap.dat` payload, its
+`HeightMap.dat` and the server `data/maps` copies are now the WYD KR maps,
+byte for byte (product decision: the 7.48 version is modernized with the KR
+world data). Same formats and bit meanings (`0x01` town, `0x02` blocked,
+`0x08` house, `0x10` portal, `0x40` PK). Relative to 7.48 the KR attribute map
+adds 28 portal cells (Noatum `(1052,1708)` <-> Karden Outpost `(3648,3108)`,
+Kingdom War Field `(1056,1724)`), removes the PK bit from the dungeon fields
+and adjusts town areas; the KR height map differs mostly in fields without
+7.48 terrain, plus small changes in Fields 2611 and 1830 (Kefra hall walls).
+Of 8,258 server points checked, only NPCGener `(1988,1754)` changed, from
+blocked to walkable. The client trailer is `BASE_GetSum` of the payload
+(`0x027B1D17`). Attribute payload SHA-256 `B527E85E712DE4FDDF0CE9C833CC089B5E032E15055797C9456D87FAEB54264F`, height
+`032E5A1F6433F4DDC9559E6565C139782423A6A67A2875BD82E7D8FC5BD00740`. The
+hashes quoted above are the earlier 7.48 identities.
+
+**WYD KR terrain (2026-10-06, `MODERNIZACAO_COMPATIVEL`, client only).** The
+whole client `Env` folder (except the attribute/height maps above) now comes
+from WYD KR: 123 `Field*.trn`, 119 `Field*.dat`, `Character.trn`,
+`EnvTextureList3.bin` and the tile textures; `Mesh/MeshList.txt`,
+`Mesh/MeshTextureList.bin`, `object.bin` and the 614 meshes/textures they
+reference but the 7.48 runtime lacked were added. No wire or server data
+changes. Format deltas handled in source:
+
+- KR `.trn` tiles keep 12 bytes but store `u16` texture indices:
+  `[0]` height, `[1]` tile coord, `[2]` mask coord, `[3]` reserved,
+  `[4-5]` tile index, `[6-7]` mask index, `[8-11]` color (7.48: byte indices
+  at `[1]`/`[3]`). `FileTileInfo` lives in `TerrainTileMapReader.h`.
+- `EnvTextureList3.bin` is a 2048-entry modern list: front tiles at
+  `index + 10` (10..283), mask tiles at `index + 1024` (7.48: `+ 256`); the
+  fixed mask textures move from 344/`nIndex + 286` to `1024 + 88` and
+  `nIndex + 1024 + 30` (same `MTile` files). `MAX_ENV_TEXTURE` is 2048.
+- `MeshTextureList.bin` has 3048 entries (`MAX_MODEL_TEXTURE` 3048).
+- `MeshList.txt` uses indices up to 3097; `MAX_COMMON_MESH` is 3200. With the
+  previous 3048 the loader rejected the whole list and the client stopped at
+  startup ("Initialize Mesh Manager Failed"). The limits now live in
+  `RuntimeAssetLimits.h`, and `RuntimeAssetLimitsTests` checks the shipped
+  files against them.
+- `object.bin` has 4096 masks with the same encryption and checksum
+  (`MAX_OBJECT_MASK` 4096); the first 2048 decoded masks match 7.48 except one.
+
+KR files not loaded by the source (`Field0815/0816/0915/0916.trn` with empty
+names and `.map` files) were copied as is. Still missing in both 7.48 and KR:
+81 MeshList entries (for example `abox01/02.msa`, referenced by KR fields)
+and 162 mesh textures; their objects are skipped as before. SHA-256:
+`EnvTextureList3.bin` `8EDD784FA526FD23CA3952C11D3C0AE026808140140E4C5FBE7575A7B669C5B2`,
+`object.bin` `2086031704EDCD84D7A714A5E3A413E0EC0D9E9757BBF8400C8E017CC6AD32C0`,
+`MeshTextureList.bin` `B553CE580BF73EC5A4D00BDD1D87C6EE71554AA3158A83BDA72DC55CA055FD64`,
+`MeshList.txt` `137B706F371444B3D885B1320F00D4571B150D61AB79EC6D51B86B3DA6CC5BCF`.
+
 Run `pwsh -NoProfile -File tools/client-assets/Sync-TerrainMaps.ps1` to check
 both asset identities; use `-Apply` only to regenerate the derived copies.
 `Compare-TerrainCollision.ps1 -RequireParity` compares the route maps and

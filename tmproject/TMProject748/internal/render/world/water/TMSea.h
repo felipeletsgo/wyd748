@@ -12,7 +12,6 @@ public:
     int Render() override;
     int InitObject() override;
     void InitPosition(float fX, float fY, float fZ) override;
-    D3DXVECTOR3* GetPickPos(D3DXVECTOR3* result);
     float GetHeight(float fX, float fY);
     int FrameMove(unsigned int dwServerTime) override;
     int IsVisible() override;

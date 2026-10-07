@@ -2,25 +2,21 @@
 
 #include "TMGlobal.h"
 
-// Abre/recria o arquivo de log e inicializa o handle global g_hLogFile.
-// szLogFile deve apontar para uma string terminada em zero. Retorna 1 em caso
-// de abertura bem-sucedida e 0 em caso de falha.
+// Opens/recreates the log file and initializes the global handle g_hLogFile.
+// szLogFile must point to a zero-terminated string. Returns 1 when the file
+// opens and 0 on failure.
 char LOG_INITIALIZELOG(const char* szLogFile);
 
-// Registra uma mensagem formatada com data e hora locais.
+// Logs a formatted message with the local date and time.
 void LOG_WRITELOG(const char* lpszFormat, ...);
 
-// Registra um codigo de erro em formato hexadecimal.
-void LOG_WRITELOG(unsigned int dwError);
 
-// Registra o indice interno e o codigo devolvido pelo sistema operacional.
-void LOG_WRITESYSERROR(unsigned int dwErrorIndex, unsigned int dwErrorCode);
 
-// Registra apenas o indice interno de erro.
+// Logs only the internal error index.
 void LOG_WRITEERROR(unsigned int dwErrorIndex);
 
-// Escreve texto formatado sem adicionar timestamp; exige log inicializado.
+// Writes formatted text without a timestamp; requires an initialized log.
 void LOG_WRITELOGSTRING(const char* lpszFormat, ...);
 
-// Confirma dados pendentes e encerra o handle global do arquivo de log.
+// Flushes pending data and closes the global log file handle.
 void LOG_FINALIZELOG();

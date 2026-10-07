@@ -471,115 +471,6 @@ int BASE_GetItemAmount(STRUCT_ITEM* item)
     return BASE_GetEffectValue(item, EF_AMOUNT);
 }
 
-int BASE_CanCarry(STRUCT_ITEM* Carry, int pos)
-{
-    if (pos < 30)
-        return 1;
-    if (pos / 15 == 2 && Carry[60].sIndex != 3467)
-        return 0;
-    if (pos / 15 != 3 || Carry[61].sIndex == 3467)
-        return 1;
-
-    return 0;
-}
-
-int BASE_CanTrade(STRUCT_ITEM* Dest, STRUCT_ITEM* Carry, char* MyTrade, STRUCT_ITEM* OpponentTrade)
-{
-    STRUCT_ITEM OpponentTemp[MAX_TRADE]{};
-
-    memcpy(Dest, Carry, sizeof(STRUCT_ITEM) * MAX_CARRY);
-
-    for (int i = 0; i < MAX_TRADE; ++i)
-    {
-        int pos = (unsigned char)MyTrade[i];
-        if (pos != -1)
-            BASE_ClearItem(&Dest[pos]);
-    }
-
-    BASE_SortTradeItem(OpponentTemp, EF_GRID);
-
-    for (int i = 0; i < MAX_TRADE; i++)
-    {
-        if (!OpponentTemp[i].sIndex)
-            continue;
-
-        int j = 0;
-        for (j = 0; j < MAX_VISIBLE_CARRY; j++)
-        {
-            if (!Dest[j].sIndex && BASE_CanCarry(Dest, j))
-            {
-                Dest[j] = OpponentTemp[i];
-                break;
-            }
-        }
-        if (j == MAX_VISIBLE_CARRY)
-            return 0;
-    }
-
-    return 1;
-}
-
-void BASE_ClearItem(STRUCT_ITEM* item)
-{
-    memset(item, 0, sizeof(item));
-}
-
-void BASE_SortTradeItem(STRUCT_ITEM* Item, int Type)
-{
-    int Buffer[15]{};
-    for (int i = 0; i < MAX_TRADE; ++i)
-    {
-        if (Item[i].sIndex)
-            Buffer[i] = BASE_GetItemAbility(&Item[i], Type);
-        else
-            Buffer[i] = -1;
-    }
-
-    STRUCT_ITEM ItemTemp[MAX_TRADE]{};
-
-    for (int i = 0; i < MAX_TRADE; ++i)
-    {
-        int MaxBufferIndex = 0;
-        int MaxBuffer = -1;
-        for (int j = 0; j < MAX_TRADE; ++j)
-        {
-            if (Buffer[j] > MaxBuffer)
-            {
-                MaxBufferIndex = j;
-                MaxBuffer = Buffer[j];
-            }
-        }
-
-        if (MaxBuffer == -1)
-            break;
-
-        Buffer[MaxBufferIndex] = -1;
-
-        ItemTemp[i] = Item[MaxBufferIndex];
-    }
-
-    memcpy(Item, ItemTemp, sizeof(ItemTemp));
-}
-
-int BASE_CanCargo(STRUCT_ITEM* item, STRUCT_ITEM* cargo, int DestX, int DestY)
-{
-    if (!item || !item->sIndex || !cargo)
-        return 0;
-
-    // The source-built 7.48 client and the authoritative Go server store every item
-    // in exactly one cargo entry.  Checking the destination entry directly
-    // avoids the old malformed 2x4 mask indexing and keeps drag feedback equal
-    // to the packet slot that the server validates.
-    if (DestX < 0 || DestX >= 9 || DestY < 0 || DestY >= 14)
-        return 0;
-
-    const int destination = DestX + 9 * DestY;
-    if (destination < 0 || destination >= MAX_CARGO)
-        return 0;
-
-    return cargo[destination].sIndex == 0;
-}
-
 int BASE_CanEquip(STRUCT_ITEM* item, STRUCT_SCORE* score, int Pos, int Class, STRUCT_ITEM* pBaseEquip, int OriginalFace, bool hasSoulLimitSkill)
 {
     int idx = item->sIndex;
@@ -708,15 +599,15 @@ int BASE_CanEquip(STRUCT_ITEM* item, STRUCT_SCORE* score, int Pos, int Class, ST
 
     if (trans < 5)
     {
-        if (lvl > score->Level)
+        if (lvl > static_cast<long long>(score->Level))
             return FALSE;
-        if (str > score->Str)
+        if (str > static_cast<long long>(score->Str))
             return FALSE;
-        if (spt > score->Int)
+        if (spt > static_cast<long long>(score->Int))
             return FALSE;
-        if (agi > score->Dex)
+        if (agi > static_cast<long long>(score->Dex))
             return FALSE;
-        if (con > score->Con)
+        if (con > static_cast<long long>(score->Con))
             return FALSE;
     }
 
@@ -845,15 +736,15 @@ int BASE_CanEquip_RecvRes(STRUCT_REQ* req, STRUCT_ITEM* item, STRUCT_SCORE* scor
         con = rate * con / 100;
     }
 
-    if (score->Level >= lvl)
+    if (static_cast<long long>(score->Level) >= lvl)
         req->Level = 1;
-    if (score->Str >= str)
+    if (static_cast<long long>(score->Str) >= str)
         req->Str = 1;
-    if (score->Int >= spt)
+    if (static_cast<long long>(score->Int) >= spt)
         req->Int = 1;
-    if (score->Dex >= agi)
+    if (static_cast<long long>(score->Dex) >= agi)
         req->Dex = 1;
-    if (score->Con >= con)
+    if (static_cast<long long>(score->Con) >= con)
         req->Con = 1;
 
     return 1;

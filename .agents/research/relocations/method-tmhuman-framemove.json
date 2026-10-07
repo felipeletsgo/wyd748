@@ -1,0 +1,69 @@
+{
+ "source": "tmproject/TMProject748/internal/game/entities/TMHuman.cpp",
+ "header": "tmproject/TMProject748/internal/game/entities/TMHuman.h",
+ "class": "TMHuman",
+ "method": "int TMHuman::FrameMove(unsigned int dwServerTime)",
+ "extractions": [
+  {
+   "helper": "UpdateEarthQuake",
+   "after": "if (m_dwEarthQuakeTime && dwServerTime - m_dwEarthQuakeTime > 0x3E8)",
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "TMScene*&",
+     "pScene"
+    ]
+   ]
+  },
+  {
+   "helper": "UpdateMoveTargetsOnArrival",
+   "after": "if (vecNow.x == vecNext.x && vecNow.y == vecNext.y)",
+   "flow": true,
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "int&",
+     "nRouteIndex"
+    ],
+    [
+     "TMScene*&",
+     "pScene"
+    ]
+   ]
+  },
+  {
+   "helper": "UpdateShadeVisibility",
+   "after": "if (m_nClass != 45 && !m_cHide)",
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "int&",
+     "nWalkSndIndex"
+    ]
+   ]
+  },
+  {
+   "helper": "FrameMoveSkinMesh",
+   "after": "if (m_pSkinMesh)",
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "int&",
+     "nWalkSndIndex"
+    ]
+   ]
+  }
+ ]
+}

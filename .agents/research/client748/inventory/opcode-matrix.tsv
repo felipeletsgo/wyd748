@@ -1,0 +1,214 @@
+opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_functions	native_send_functions	client_recv	client_send	client_gate_size	client_send_size	server_recv	server_size	server_send	gaps
+0x101	MSG_MessagePanel_Opcode, OpMessagePanel	108	1	0		FUN_0049889a		True	False	108		False		True	
+0x102	MSG_LegacySceneMessage102_Opcode	116	1	0		FUN_0049889a		True	False	116		False		False	
+0x103	-	20	0	0				False	False			False		False	
+0x104	MSG_LegacySceneMessage104_Opcode	152	1	0		FUN_0049889a		True	False	152		False		False	
+0x105	MSG_MessageIndexed_Opcode, OpMessageIndexed		0	0				True	False			False		True	BU
+0x106	MSG_MessageParameterized_Opcode, OpMessageParameterized		0	0				True	False			False		True	BU
+0x10A	MSG_CNFAccountLogin_Opcode, OpCharList		0	0				True	False			False		True	BU
+0x10E	-	1824	2	0		FUN_00492e7d FUN_004ae3d6		False	False			False		False	C
+0x110	MSG_CNFNewCharacter_Opcode, OpCNFNewCharacter	756	1	0		FUN_004a626e		True	False			False		False	U
+0x112	MSG_CNFDeleteCharacter_Opcode, OpCNFDeleteCharacter	756	1	0		FUN_004a626e		True	False			False		False	U
+0x114	MSG_CNFCharacterLogin_Opcode, OpEnterWorld	1244	2	0		FUN_00492e7d FUN_004a626e		True	False			False		True	U
+0x116	MSG_CNFCharacterLogout_Opcode, OpCNFCharacterLogout	12	1	0		FUN_00492e7d		True	False	12		False		True	
+0x117	-	12	0	0				False	False			False		False	
+0x119	-	12	1	0		FUN_004a626e		True	False			False		False	U
+0x11A	MSG_CNFNewCharacterFail_Opcode, OpNewCharacterFail	12	1	0		FUN_004a626e		True	False			False		True	U
+0x11B	-	12	1	0		FUN_004a626e		True	False			False		False	U
+0x11C	MSG_AlreadyPlaying_Opcode, OpAlreadyPlaying	12	1	0		FUN_004ae3d6		True	False			False		True	U
+0x11D	-	12	1	0		FUN_004ae3d6		True	False			False		False	U
+0x165	MSG_RemoveMob_Opcode, OpRemoveMob	16	1	0		FUN_0052eaa9		True	False			False		True	U
+0x16F	MSG_RemoveItem_Opcode, OpRemoveItem	16	1	0		FUN_00492e7d		True	False			False		True	U
+0x171	MSG_CNFGetItem_Opcode, OpCNFGetItem	28	1	0		FUN_00492e7d		True	False			False		True	U
+0x175	MSG_CNFDropItem_Opcode, OpCNFDropItem	28	1	0		FUN_00492e7d		True	False			False		True	U
+0x17C	MSG_ShopList_Opcode, OpShopList	236	1	0		FUN_00492e7d		True	False			False		True	U
+0x181	MSG_SetHpMp_Opcode, OpSetHpMp	20	1	0		FUN_0052eaa9		True	False			False		True	U
+0x182	MSG_SendItem_Opcode, OpSendItem	24	2	0		FUN_004b263e FUN_0052eaa9		True	False			False		True	U
+0x185	MSG_UpdateCarry_Opcode, OpUpdateCarry	528	1	0		FUN_0052eaa9		True	False			False		True	U
+0x18A	-	16	1	0		FUN_0052eaa9		True	False			False		False	U
+0x18B	-	16	1	0		FUN_00492e7d		True	False			False		False	U
+0x18D	MSG_ReqChallenge_Opcode, OpReqChallenge	12	1	0		FUN_00492e7d		True	False	12		False		True	
+0x193	-	16	1	0		FUN_0052eaa9		True	False			False		False	U
+0x194	MSG_BillingNotice_Opcode	16	1	0		FUN_0049889a		True	False	16		False		False	
+0x196	MSG_CloseShop_Opcode		1	0		FUN_00492e7d		True	False			False		False	U
+0x19C	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x1BF	MSG_ResultGamble_Opcode, OpResultGamble	36	1	0		FUN_00492e7d		True	False	36		False		True	
+0x1C1	MSG_REQArray_Opcode, OpClientIntegrityChallenge	24	1	0		FUN_00492e7d		True	False	24		False		True	
+0x1C2	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x1C5	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x1C6	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x1CF	-		0	0				True	False			False		False	BU
+0x1D0	-		0	0				True	False			False		False	BU
+0x1D6	MSG_InitGuldName_Opcode		1	0		FUN_004a626e		True	False			False		False	U
+0x20A	-	224	0	0				False	False			False		False	
+0x20D	MSG_AccountLogin_Opcode, OpConnectAccount	116	0	2	116		FUN_00484d44 FUN_004ac985	False	True		116	True	116	False	
+0x20F	MSG_NewCharacter_Opcode, OpCreateCharacter	36	0	1	36		FUN_004a32dd	False	True		36	True	36	False	
+0x211	MSG_DeleteCharacter_Opcode, OpDeleteCharacter	44	0	1	44		FUN_004a32dd	False	True		44	True	44	False	
+0x213	MSG_CharacterLogin_Opcode, OpCharacterLogin	36	0	1	36		FUN_004a32dd	False	True		36	True	36	False	
+0x215	MSG_CharacterLogout_Opcode, OpCharacterLogout		0	2	12		FUN_00476006 FUN_0047e9b6	False	True		12	True	12	False	
+0x26E	MSG_CreateItem_Opcode, OpCreateItem	32	1	0		FUN_00492e7d		True	False			False		True	U
+0x270	MSG_GetItem_Opcode, OpGetItem	28	0	1	28		FUN_0051a56c	False	True		28	True	28	False	
+0x272	MSG_DropItem_Opcode, OpDropItem	32	0	1	32		FUN_0046247e	False	True		32	True	32	False	
+0x277	MSG_ApplyBonus_Opcode, OpApplyBonus	20	0	2	20		FUN_004640e5 FUN_004662c5	False	True		20	True	20	False	
+0x27B	MSG_REQShopList_Opcode, OpReqShopList	16	0	1	16		FUN_0045ee28	False	True		16	True	16	False	
+0x289	MSG_Recall_Opcode, OpRestart	12	0	2	12		FUN_00476006 FUN_004776c3	False	True		12	True	12	False	
+0x28B	MSG_UseNPC_Opcode, OpUseNPC	20	0	2	20		FUN_0045ee28 FUN_004640e5	False	True		20	True	20	False	
+0x28C	MSG_GuildDeprivate_Opcode, OpGuildDeprivate	16	0	1	16		FUN_004640e5	False	True		16	True	16	False	
+0x28E	OpChallenge	16	0	1	16		FUN_0045ee28	False	True			True	16	False	
+0x28F	MSG_ChallengeConfirm_Opcode, OpChallengeConfirm	20	0	1	20		FUN_004662c5	False	True		20	True	20	False	
+0x290	MSG_ReqTeleport_Opcode, OpReqTeleport	16	0	1	16		FUN_004640e5	False	True		16	True	16	False	
+0x291	MSG_ChangeCity_Opcode, OpChangeCity	16	0	1	16		FUN_004776c3	False	False			True	16	False	C
+0x292	-	16	1	0		FUN_00492e7d		True	False			False		False	U
+0x295	-	128	0	0				False	False			False		False	
+0x2BC	MSG_MessageLog_Opcode, OpClientUnknown2BC	108	0	1	108		FUN_0049ed58	False	True		108	True	108	False	
+0x2BD	OpHellStoreBuy	24	0	1	24		FUN_004640e5	False	True			True	24	False	
+0x2BE	MSG_DoJackpotBet_Opcode, OpDoJackpotBet	20	0	1	20		FUN_004662c5	False	True		20	True	20	False	
+0x2C2	MSG_CNFArray_Opcode, OpClientIntegrityResponse	24	0	1	24		FUN_004927dd	False	True		24	True		False	U
+0x2C3	MSG_CombineItemLindy_Opcode, OpCombineLindy	84	0	0	84		FUN_00435b13 FUN_00448fde FUN_00463aa8	False	True			True	84	False	
+0x2C4	MSG_CombineItemLindyAlt_Opcode	84	0	0			FUN_00463aa8	False	False			False		False	AC
+0x2C7	-	16	0	1	16		FUN_004662c5	False	False			False		False	AC
+0x2C8	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x2CB	OpMoveStop		0	0			FUN_0046087b	False	True			True	36	False	
+0x2CD	MSG_RequestCapsuleInfo_Opcode, OpCapsuleInfo		0	1	16		FUN_00418828	False	True		16	True	16	False	
+0x2D2	MSG_CombineItemOdin_Opcode, OpCombineOdin		0	0			FUN_00463aa8	False	True			True	84	False	
+0x2D3	MSG_CombineItemEhre_Opcode, OpCombineEhre		0	0			FUN_00464004	False	True			True	84	False	
+0x2D4	OpCombineExtracao		0	0				False	True			True	20	False	B
+0x2E1	OpCombineAlquimia		0	0				False	False			True	84	False	B
+0x2E4	MSG_DeleteItem_Opcode, OpDeleteItem		0	0				False	True		20	True	20	False	B
+0x2E5	MSG_SplitItem_Opcode, OpSplitItem		0	0				False	True		24	True	24	False	B
+0x301	-		0	0				True	False			False		False	BU
+0x333	MSG_MessageChat_Opcode, OpMessageChat	108	2	1	108	FUN_00492e7d FUN_0052eaa9	FUN_004662c5	True	True	108	108	True	108	True	
+0x334	MSG_MessageWhisper_Opcode, OpMessageWhisper	128	2	6	128	FUN_00492e7d FUN_0052eaa9	FUN_00418828 FUN_00435b13 FUN_00454763 FUN_004662c5	True	True	128	128	True	128	True	
+0x336	MSG_UpdateScore_Opcode, OpUpdateScore	92	1	0		FUN_0052eaa9		True	False			True		True	U
+0x337	MSG_UpdateEtc_Opcode, OpUpdateEtc	36	1	0		FUN_0052eaa9		True	False	36		False		True	
+0x338	MSG_CNFMobKill_Opcode, OpCNFMobKill	24	1	0		FUN_00492e7d		True	False	24		False		True	
+0x339	MSG_UpdateCargoGold_Opcode, OpUpdateCargoGold		1	0		FUN_00492e7d		True	False			False		True	U
+0x363	MSG_CreateMobTrade_Opcode, OpCreateMobTrade		2	0		FUN_004829f2 FUN_00492e7d		True	False			False		True	U
+0x364	MSG_CreateMob_Opcode, OpCreateMob	176	1	0		FUN_00492e7d		True	False			False		True	U
+0x366	MSG_Action_Opcode, OpAction	52	2	1	52	FUN_00492e7d FUN_0052eaa9	FUN_00524bbb	True	True		52	True	52	True	U
+0x367	MSG_Action_Stop_Opcode, OpActionStop	52	2	0		FUN_00492e7d FUN_0052eaa9		True	True		52	True	52	False	U
+0x368	MSG_Action2_Opcode, OpIllusion		2	1	52	FUN_005284a0 FUN_0052eaa9	FUN_004595ec	True	True		52	True	52	True	U
+0x369	MSG_REQMobByID_Opcode, OpREQMobByID	16	0	2	16		FUN_00482903 FUN_00489a3e	False	True		16	True	16	False	
+0x36A	MSG_Motion_Opcode, OpMotion	20	1	2	20	FUN_0052eaa9	FUN_00455950 FUN_004625da	True	True	20	20	True	20	True	
+0x36B	MSG_UpdateEquip_Opcode, OpUpdateEquip	60	1	0		FUN_0052eaa9		True	False			False		True	U
+0x36C	MSG_Attack_Multi_Opcode, OpAttackMulti	96	1	1	96	FUN_00492e7d	FUN_004662c5	True	True		96	True	96	False	U
+0x373	MSG_UseItem_Opcode, OpUseItem	36	0	9	36		FUN_00416196 FUN_0041ef0f FUN_0044effc FUN_0044f46b	False	True		36	True	36	False	
+0x374	MSG_UpdateItem_Opcode, OpUpdateItem	20	1	1	20	FUN_00492e7d	FUN_00455ea7	True	True		20	True	20	True	U
+0x376	MSG_SwapItem_Opcode, OpSwapItem	20	1	3	20	FUN_00492e7d	FUN_0040ede0 FUN_00416e8a FUN_004209fc	True	True		20	True	20	True	U
+0x378	MSG_SetShortSkill_Opcode, OpSetShortSkill	32	1	4	32	FUN_00492e7d	FUN_004107c1 FUN_00416196 FUN_0044e494 FUN_0052d93d	True	True		32	True	32	True	U
+0x379	MSG_Buy_Opcode, OpBuyItem	24	1	1	24	FUN_00492e7d	FUN_00410a91	True	True		24	True	24	True	U
+0x37A	MSG_Sell_Opcode, OpSellItem	20	1	2	20	FUN_00492e7d	FUN_00416196 FUN_004640e5	True	True	20	20	True	20	False	
+0x37D	MSG_AddParty_Opcode, OpPartyAdd	40	1	0		FUN_00492e7d		True	False	40		False		True	
+0x37E	MSG_RemoveParty_Opcode, OpPartyRemove	16	1	2	16	FUN_00492e7d	FUN_004640e5 FUN_004662c5	True	True	16		True	16	True	
+0x37F	MSG_REQParty_Opcode, OpPartyRequest	44	1	1	44	FUN_00492e7d	FUN_004662c5	True	True	44	44	True	44	True	
+0x380	-	16	0	0				False	False			False		False	
+0x383	MSG_Trade_Opcode, OpTrade	156	1	1	156	FUN_0052eaa9	FUN_004110f5 FUN_0044b890 FUN_004640e5 FUN_004662c5	True	True		156	True	156	True	U
+0x384	MSG_CloseTrade_Opcode, OpCloseTrade	12	1	2	12	FUN_0052eaa9	FUN_0044ae38 FUN_0044b890	True	True		12	True	12	True	U
+0x386	MSG_CNFTradeCheck_Opcode, OpCNFTradeCheck	12	1	0		FUN_0052eaa9		True	False			False		True	U
+0x387	MSG_Withdraw_Opcode, OpWithdraw	16	1	1	16	FUN_00492e7d	FUN_004662c5	True	True		16	True	16	False	U
+0x388	MSG_Deposit_Opcode, OpDeposit	16	1	1	16	FUN_00492e7d	FUN_004662c5	True	True		16	True	16	False	U
+0x397	MSG_AutoTrade_Opcode, OpAutoTrade		1	0		FUN_00492e7d	FUN_004662c5	True	True			True	196	True	U
+0x398	MSG_ReqBuy_Opcode, OpReqBuyAutoTrade		0	1	36		FUN_0044ef69	False	True		36	True	36	False	
+0x399	MSG_SetPKMode_Opcode, OpPKMode		0	1	16		FUN_0044ecae	False	True		16	True	16	False	
+0x39A	OpReqTradeList		0	1	16		FUN_0045ee28	False	True			True	16	False	
+0x39B	MSG_ItemSold_Opcode, OpItemSold		1	0		FUN_00492e7d		True	False			False		True	U
+0x39D	MSG_Attack_One_Opcode, OpAttackOne		2	3	96	FUN_00489a3e FUN_00492e7d	FUN_004640e5 FUN_0051a939 FUN_0052ee94	True	True		48	True	48	False	U
+0x39E	MSG_Attack_Two_Opcode, OpAttackTwo		2	2	96	FUN_00489a3e FUN_00492e7d	FUN_0051a939 FUN_0052ee94	True	True		96	True	52	False	U
+0x39F	MSG_PlayerChallenge_Opcode, OpPlayerChallenge		1	2	20	FUN_0052eaa9	FUN_004640e5 FUN_004662c5	True	True		20	True	20	True	U
+0x3A0	MSG_Ping_Opcode, OpPing		0	2	12		FUN_0047e9b6 FUN_004a2aef	False	True		12	True	12	False	
+0x3A1	MSG_InstanceTime_Opcode, OpInstanceTime		1	0		FUN_00492e7d		True	False			False		True	U
+0x3A2	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3A3	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3A4	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3A5	-		1	0		FUN_00492e7d		False	False			False		False	C
+0x3A6	MSG_CombineItem_Opcode, OpCombineCompositor		0	0	84		FUN_00435b13 FUN_004487e2	False	True			True	84	False	
+0x3A7	MSG_CombineComplete_Opcode, OpCombineComplete		1	0		FUN_00492e7d		True	False			False		True	U
+0x3A8	MSG_WarInfo_Opcode, OpWarInfo		1	0		FUN_00492e7d		True	False			False		True	U
+0x3AB	MSG_CNFParty2_Opcode, OpPartyAccept		0	1	32		FUN_004662c5	False	True		32	True	32	False	
+0x3AC	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3AD	-		1	0		FUN_0052eaa9		True	False			False		False	U
+0x3AE	MSG_DelayStart_Opcode, MSG_SysQuit_Opcode, OpSysQuit		0	4	16		FUN_0041ef0f FUN_00454763 FUN_004640e5 FUN_0055dab8	True	True	16	16	True	16	True	
+0x3AF	-		1	0		FUN_0052eaa9		True	False			False		False	U
+0x3B0	MSG_InstanceMobs_Opcode, OpInstanceMobs		1	0		FUN_00492e7d		True	False			False		True	U
+0x3B2	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3B3	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3B4	-		1	0		FUN_004a626e		True	False			False		False	U
+0x3B5	MSG_CombineItemAylin_Opcode, OpCombineAylin		0	0	84		FUN_00435b13 FUN_004489c5	False	True			True	84	False	
+0x3B8	OpBuyLotteryTicket		0	0	32		FUN_00410a91	False	False			True	32	False	C
+0x3B9	MSG_UpdateAffect_Opcode, OpUpdateAffect		1	0		FUN_0052eaa9		True	False			False		True	U
+0x3BA	MSG_CombineItemAgatha_Opcode, OpCombineAgatha		0	0	84		FUN_00435b13 FUN_00448c38	False	True			True	84	False	
+0x3BB	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3C0	MSG_CombineItemTiny_Opcode, OpCombineTiny	84	0	0	84		FUN_00435b13 FUN_00448e0b FUN_004491b1	False	True			True	84	False	
+0x3C9	MSG_UseItem2_Opcode, OpUsePremiumFirework	52	0	1	52		FUN_00470e36	False	True		52	True	52	False	
+0x3CA	MSG_PremiumFirework_Opcode, OpPremiumFirework	36	1	0		FUN_0052eaa9		True	False	36		False		True	
+0x3CC	OpPutoutSeal		0	0	52		FUN_004658a7	False	True			True	52	False	
+0x3CE	MSG_BuyToto_Opcode, OpBuyToto		0	0	36		FUN_00410a91	True	True			True	36	False	U
+0x3CF	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3D0	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3D1	OpStoreGoldRequest		0	1	16		FUN_004662c5	False	True			True	16	False	
+0x3D5	MSG_InviteGuild_Opcode, OpInviteGuild		0	1	20		FUN_004662c5	False	True		20	True	20	False	
+0x401	-	108	0	0				False	False			False		False	
+0x402	-	116	0	0				False	False			False		False	
+0x403	-	152	0	0				False	False			False		False	
+0x404	-	12	0	0				False	False			False		False	
+0x40A	-	32	0	0				False	False			False		False	
+0x40B	-	12	0	0				False	False			False		False	
+0x416	-	1824	0	0				False	False			False		False	
+0x417	-	1244	0	0				False	False			False		False	
+0x418	-	756	0	0				False	False			False		False	
+0x419	-	756	0	0				False	False			False		False	
+0x41A	-	12	0	0				False	False			False		False	
+0x41B	-	12	0	0				False	False			False		False	
+0x41C	-	12	0	0				False	False			False		False	
+0x41D	-	12	0	0				False	False			False		False	
+0x41E	-	12	0	0				False	False			False		False	
+0x41F	-	12	0	0				False	False			False		False	
+0x420	-	12	0	0				False	False			False		False	
+0x421	-	12	0	0				False	False			False		False	
+0x422	-	12	0	0				False	False			False		False	
+0x423	-	24	0	0				False	False			False		False	
+0x424	-	12	0	0				False	False			False		False	
+0x425	-	12	0	0				False	False			False		False	
+0x457	-		0	0				True	False			False		False	BU
+0x52A	MSG_CNFRemoveServer_Opcode		1	0		FUN_00492e7d		True	False	80		False		False	
+0x755	-		0	0				True	False			False		False	BU
+0x7A9	-		1	0		FUN_004a626e		True	False			False		False	U
+0x7B1	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x7BE	-	180	1	0		FUN_0049889a		True	False			False		False	U
+0x7DB	MSG_ChinaPlaytime_Opcode		0	0				True	False			False		False	BU
+0x801	-	224	0	0				False	False			False		False	
+0x802	-	36	0	0				False	False			False		False	
+0x803	-	116	0	0				False	False			False		False	
+0x804	-	36	0	0				False	False			False		False	
+0x805	-	12	0	0				False	False			False		False	
+0x806	-	2280	0	0				False	False			False		False	
+0x807	-	2284	0	0				False	False			False		False	
+0x809	-	44	0	0				False	False			False		False	
+0xAD9	MSG_AirMove_Start_Opcode, OpAirMove		0	2	20		FUN_0047f7da FUN_0047fa1d	False	True		20	True	20	False	
+0xADA	-		0	0				True	False			False		False	BU
+0xBBF	-	180	1	0		FUN_0049889a		False	False			False		False	C
+0xBFF	MSG_Encode_Opcode		0	0				True	False			False		False	BU
+0xD1D	MSG_MessageShout_Opcode		1	0		FUN_0049889a		True	False			False		False	U
+0xDC3	MSG_CapsuleInfo_Opcode, OpCNFCapsuleInfo		1	0		FUN_00492e7d		True	False			False		True	U
+0xE0E	MSG_GuildWar_Opcode, OpGuildWar	20	0	1	20		FUN_004640e5	False	True		20	True	20	False	
+0xE12	MSG_GuildAlly_Opcode, OpGuildAlly		0	1	20		FUN_004640e5	False	True		20	True	20	False	
+0xED7	MSG_UseDeclarationOfWar_Opcode, OpDeclareServerWar		0	1	16		FUN_004662c5	False	True		16	True	16	False	
+0xED8	MSG_UseRefuseServerWar_Opcode, OpRefuseServerWar		0	1	16		FUN_004662c5	False	True		16	True	16	False	
+0xFAA	MSG_ReqTransper_Opcode, OpCharacterTransfer	52	1	1	52	FUN_004a626e	FUN_004a32dd	True	True	52	52	True	52	True	
+0xFBC	-	180	1	0		FUN_0049889a		True	False			False		False	U
+0x1001	-	48	0	0				False	False			False		False	
+0x1004	-	12	0	0				False	False			False		False	
+0x1005	-	6132	0	0				False	False			False		False	
+0x13BD	-	180	1	0		FUN_0049889a		True	False			False		False	U
+0x2002	-	48	0	0				False	False			False		False	
+0x2003	-	44	0	0				False	False			False		False	
+0x2006	-	6132	0	0				False	False			False		False	
+0x2132	-		0	0				True	False			False		False	BU
+0x3007	-	28	0	0				False	False			False		False	
+0x3008	-	28	0	0				False	False			False		False	
+0x300A	-	16	0	0				False	False			False		False	
+0x3409	-	132	0	0				False	False			False		False	
+0x3C0F	-	1876	0	0				False	False			False		False	
+0x5000	-		0	0				True	False			False		False	BU
+0x7F10	ChallengeOpcode, OpQuizChallenge		0	0				True	False	148		False		True	B
+0x7F11	AnswerOpcode, OpQuizAnswer		0	0				False	True			True	36	False	B

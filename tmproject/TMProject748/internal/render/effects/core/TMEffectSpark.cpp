@@ -145,15 +145,3 @@ int TMEffectSpark::FrameMove(unsigned int dwServerTime)
 	}
 	return 1;
 }
-
-int TMEffectSpark::SetLifeTime(unsigned int dwLifeTime)
-{
-	m_dwLifeTime = dwLifeTime;
-
-	for (int i = 0; i < m_nSparkCount; ++i)
-	{
-		if (m_pSpark[i])
-			m_pSpark[i]->m_dwCreateTime = dwLifeTime;
-	}
-	return 1;
-}

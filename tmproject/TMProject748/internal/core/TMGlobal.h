@@ -68,7 +68,6 @@ extern char g_szServerName[10][10][9];
 
 extern char g_UIString[500][64];
 
-extern int g_bActiveWB;
 extern int g_bHideEffect;
 extern int g_bHideSkillBuffEffect;
 extern int g_bHideSkillBuffEffect2;
@@ -214,7 +213,8 @@ const static stTeleportPos g_TeleportTable[] =
   { 2116, 2100, 700, g_pMessageStringTable[209] },
   { 2480, 1716, 700, g_pMessageStringTable[209] },
   { 2456, 2016, 700, g_pMessageStringTable[209] },
-  { 3648, 3108, 0, g_pMessageStringTable[209] },
+  // Karden Outpost -> Noatum, priced like the KR client and the server route.
+  { 3648, 3108, 700, g_pMessageStringTable[209] },
   { 1044, 1724, 0, g_pMessageStringTable[125] },
   { 1044, 1716, 0, g_pMessageStringTable[126] },
   { 1044, 1708, 0, g_pMessageStringTable[173] },
@@ -246,17 +246,20 @@ const static stTeleportPos g_TeleportTable[] =
   { 2452, 1988, 0, g_pMessageStringTable[211] },
   { 3648, 3140, 700, g_pMessageStringTable[211] },
   { 2480, 1648, 700, g_pMessageStringTable[301] },
-  { 1052, 1708, 0, g_pMessageStringTable[321] },
-  { 1056, 1724, 0, g_pMessageStringTable[485] },
-  { 2364, 4072, 0, g_pMessageStringTable[210] },//entrada kefra dentro/fora
-  { 1312, 1900, 0, g_pMessageStringTable[1370] },//entrada kefra fora/dentro ok
-  { 2360, 3892, 0, g_pMessageStringTable[1370] },//entrada boss kefra
-  { 2364, 3892, 0, g_pMessageStringTable[1370] },//entrada boss kefra
-  { 2368, 3892, 0, g_pMessageStringTable[1370] },//entrada boss kefra
-  { 188, 556, 0, g_pMessageStringTable[1370] },//batalha
-  { 145, 556, 0, g_pMessageStringTable[1370] },//batalha
-  { 145, 616, 0, g_pMessageStringTable[1370] },//batalha
-  { 188, 616, 0, g_pMessageStringTable[1370] }//batalha
+  // Noatum -> Karden Outpost (Nippleheim region). The KR client charges 700;
+  // its portal bit comes from the merged KR AttributeMap.
+  { 1052, 1708, 700, g_pMessageStringTable[321] },
+  // KR "Kingdom War Field"; the 7.48 strdef row 485 is empty.
+  { 1056, 1724, 0, const_cast<char*>("Kingdom War Field") },
+  { 2364, 4072, 0, g_pMessageStringTable[210] },// Kefra entrance, inside to outside
+  { 1312, 1900, 0, g_pMessageStringTable[1370] },// Kefra entrance, outside to inside
+  { 2360, 3892, 0, g_pMessageStringTable[1370] },// Kefra boss entrance
+  { 2364, 3892, 0, g_pMessageStringTable[1370] },// Kefra boss entrance
+  { 2368, 3892, 0, g_pMessageStringTable[1370] },// Kefra boss entrance
+  { 188, 556, 0, g_pMessageStringTable[1370] },// battle
+  { 145, 556, 0, g_pMessageStringTable[1370] },// battle
+  { 145, 616, 0, g_pMessageStringTable[1370] },// battle
+  { 188, 616, 0, g_pMessageStringTable[1370] }// battle
 };
 
 static unsigned int g_dwFoodColor[7] =

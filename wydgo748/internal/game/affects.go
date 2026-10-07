@@ -13,8 +13,8 @@ func canReplaceAffect(current model.Affect, value, level int, expires time.Time,
 	if current.Type == 0 || !current.ExpiresAt.After(now) {
 		return true
 	}
-	// SetAffect nativo preserva tanto a potencia quanto o tempo restante. Um
-	// recast mais fraco ou mais curto nao pode reduzir um buff/debuff existente.
+	// Native SetAffect preserves both potency and remaining duration. A weaker
+	// or shorter recast cannot reduce an existing buff/debuff.
 	if level < current.Level || level == current.Level && value < current.Value {
 		return false
 	}
@@ -54,10 +54,10 @@ func setAffectAt(ch *model.Char, affectType byte, value, level, durationUnits in
 	return true
 }
 
-// setFaceAffect grava a transformacao de rosto (volatiles 70-77) DIRETO, sempre
-// substituindo a atual. Nao usa canReplaceAffect: aquela compara potencia
-// (Value), o que aqui e um mesh -- trocar de Gremlin(202) para Troll(212) e
-// valido nas duas direcoes. Value carrega o mesh; bodyMesh o aplica.
+// setFaceAffectAt directly replaces the face transformation (volatiles 70-77).
+// It does not use canReplaceAffect, which compares potency: here Value is a
+// mesh, and switching between Gremlin(202) and Troll(212) is valid in either
+// direction. Value carries the mesh; bodyMesh applies it.
 func setFaceAffectAt(ch *model.Char, mesh, durationUnits int, now time.Time) bool {
 	if ch == nil || mesh <= 0 {
 		return false
@@ -79,12 +79,12 @@ func setFaceAffectAt(ch *model.Char, mesh, durationUnits int, now time.Time) boo
 	if slot < 0 {
 		return false
 	}
-	ch.Affects[slot] = model.Affect{Type: affectFaceTransform, ClientType: affectFaceTransform,
+	ch.Affects[slot] = model.Affect{Type: affectFaceTransform, ClientType: affectFaceTransformClientType,
 		Value: mesh, ExpiresAt: expires, NextTick: now.Add(8 * time.Second)}
 	return true
 }
 
-// removeFaceAffect tira a transformacao de rosto; devolve se havia alguma ativa.
+// removeFaceAffect removes the face transformation and reports whether one existed.
 func removeFaceAffect(ch *model.Char) bool {
 	if ch == nil {
 		return false
@@ -99,8 +99,8 @@ func removeFaceAffect(ch *model.Char) bool {
 	return removed
 }
 
-// activePlayerAffect devolve o affect ativo do tipo pedido, ou nil. Espelha o
-// activeMobAffect usado pelos mobs.
+// activePlayerAffect returns the active affect of the requested type, or nil.
+// It mirrors activeMobAffect for mobs.
 func activePlayerAffect(ch *model.Char, affectType byte) *model.Affect {
 	return activePlayerAffectAt(ch, affectType, time.Now())
 }
@@ -135,10 +135,10 @@ func absorbManaControlDamageAt(ch *model.Char, damage uint32, now time.Time) uin
 	return damage - absorbed
 }
 
-// accumulateAffect SOMA tempo a um affect existente (ou cria um novo), com teto.
-// Porta o padrao do frango assado e do bau de EXP do WYD 7.48, que fazem
-// Affect.Time += X ate um limite e recusam "usar mais" quando ja no teto. addUnits
-// e maxUnits sao blocos de 8 s. Retorna false (sem consumir) quando ja saturado.
+// accumulateAffect adds time to an existing affect (or creates one), with a cap.
+// It follows the WYD 7.48 roast chicken and EXP chest pattern: Affect.Time += X
+// up to a limit, rejecting further use at the cap. addUnits and maxUnits are
+// eight-second units. It returns false without consumption when already capped.
 func accumulateAffect(ch *model.Char, affectType byte, value, level, addUnits, maxUnits int) bool {
 	return accumulateAffectAt(ch, affectType, value, level, addUnits, maxUnits, time.Now())
 }
@@ -157,7 +157,7 @@ func accumulateAffectAt(ch *model.Char, affectType byte, value, level, addUnits,
 		if a.Type == affectType && a.ExpiresAt.After(now) {
 			remaining := int((a.ExpiresAt.Sub(now) + unit - 1) / unit)
 			if remaining >= maxUnits {
-				return false // ja no teto: "nao pode usar/comer mais"
+				return false // Already capped: further use/consumption is rejected.
 			}
 			total := minInt(remaining+addUnits, maxUnits)
 			a.Value, a.Level = value, level
@@ -188,11 +188,10 @@ const (
 	volatileBuffAlreadyActive
 )
 
-// applyVolatileBuff aplica o pacote inteiro ou nada. Chocolate/Candy ocupam
-// quatro slots simultaneos; aceitar apenas parte deles deixaria um estado que
-// nunca existiu no handler nativo. O resultado distingue uma recusa causada por
-// affect ativo de erro de configuracao/falta de slot, permitindo feedback fiel
-// sem consumir o item.
+// applyVolatileBuff applies the entire bundle or nothing. Chocolate/Candy use
+// four simultaneous slots; partial acceptance would create a state absent from
+// the native handler. The result distinguishes an active-affect rejection from
+// configuration/missing-slot errors, allowing feedback without item consumption.
 func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule, source model.Item) volatileBuffResult {
 	if ch == nil {
 		return volatileBuffRejected
@@ -234,9 +233,9 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule, sourc
 			}
 			return volatileBuffRejected
 		}
-		// O affect ativo guarda a instancia que efetivamente pagou por esta
-		// aplicacao. Em buffs acumulativos, a origem passa a ser a ultima unidade
-		// que estendeu o prazo absoluto.
+		// The active affect records the item instance consumed for this application.
+		// For accumulating buffs, the source becomes the last unit that extended
+		// the absolute deadline.
 		active := activePlayerAffectAt(ch, byte(affectType), now)
 		if active == nil {
 			*ch = snapshot
@@ -273,7 +272,7 @@ func supportSkillTargetLimit(ch *model.Char, skill model.SkillDef) int {
 }
 
 func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.SkillDef) []*Player {
-	if p == nil || p.Char == nil {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
 		return nil
 	}
 	revive := skill.Index == 31 || skill.Index == 99
@@ -281,7 +280,7 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 	// out-of-range or cross-runtime target into a self cast.
 	if req.TargetID != 0 && req.TargetID != p.ID {
 		target := w.playerByID(req.TargetID)
-		if target == nil || !target.InWorld || target.Char == nil ||
+		if target == nil || !target.InWorld || target.Char == nil || w.criticalPlayerReserved(target) ||
 			(!revive && playerCurHP(target.Char) == 0) ||
 			!w.playersShareGameplaySpace(p, target) ||
 			(!sameSupportGroup(p, target) && skill.Index != 47) ||
@@ -300,6 +299,11 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 				(revive || playerCurHP(member.Char) > 0) &&
 				w.playersShareGameplaySpace(p, member) &&
 				chebyshev(p.X, p.Y, member.X, member.Y) <= maxInt(6, skill.Range) {
+				// Reject the whole selected cast before charging its caster. Skipping
+				// a reserved member would silently apply a partial party operation.
+				if w.criticalPlayerReserved(member) {
+					return nil
+				}
 				result = append(result, member)
 			}
 		}
@@ -328,8 +332,8 @@ func cleansePlayer(ch *model.Char, cureSoul bool) bool {
 			ch.Affects[i] = model.Affect{}
 			changed = true
 		case 32:
-			// W2PP InstanceType 8: a oitava skill de magia branca do
-			// caster permite remover este affect; o aprendizado do alvo nao.
+			// W2PP InstanceType 8: the caster's eighth white-magic skill permits
+			// removing this affect; the target's learned skills do not.
 			if cureSoul {
 				ch.Affects[i] = model.Affect{}
 				changed = true
@@ -339,8 +343,8 @@ func cleansePlayer(ch *model.Char, cureSoul bool) bool {
 	return changed
 }
 
-// applySupportSkill porta o caminho nao-agressivo de _MSG_Attack do WYD 7.48.
-// O client escolhe/mostra o alvo, mas o servidor valida grupo, alcance e valores.
+// supportSkillResult describes a change from the non-aggressive _MSG_Attack path.
+// The client selects/displays targets; the server validates group, range and values.
 type supportSkillResult struct {
 	player  *Player
 	hpDelta uint32
@@ -352,8 +356,8 @@ func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
 	if skillIndex == 27 {
 		heal = mastery*2 + instanceValue
 	}
-	// Personagens deste emulador ainda sao Mortais. O WYD 7.48 aplica 140%
-	// e limita Cura/Recuperar a 548 HP nessa classe de personagem.
+	// This formula retains the Mortal heal rule: WYD 7.48 applies 140% and
+	// caps Heal/Recover at 548 HP for that evolution.
 	return minInt(548, heal*14/10)
 }
 
@@ -365,7 +369,7 @@ func soulLimitDelayMultiplier(ch *model.Char) int {
 	case "": // Mortal
 		return 200
 	case archEvolution:
-		// No W2PP o Delay base permanece 100 para Arch.
+		// W2PP keeps the base Delay at 100 for Arch.
 		return 100
 	default:
 		level := int(playerLevel(ch))
@@ -407,6 +411,16 @@ func (w *World) applySupportSkill(p *Player, req skillCastRequest, skill model.S
 }
 
 func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill model.SkillDef, mastery int) []supportSkillResult {
+	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
+		return nil
+	}
+	// Direct callers also need an all-participant preflight: revival can spend
+	// caster mana and teleport/buffs mutate targets before a later target is seen.
+	for _, target := range targets {
+		if target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
+			return nil
+		}
+	}
 	now := w.now()
 	changed := make([]supportSkillResult, 0, len(targets))
 	for _, target := range targets {
@@ -417,13 +431,13 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 		oldHP := playerCurHP(target.Char)
 		applied := false
 		switch skill.Index {
-		case 25: // Desintoxicar
+		case 25: // Detoxify
 			applied = cleansePlayer(target.Char, p.Char.LearnedSkill&(1<<7) != 0)
-		case 27, 29: // Cura / Recuperar
+		case 27, 29: // Heal / Recover
 			heal := foemaHealAmount(skill.Index, mastery, skill.InstanceValue)
 			restorePlayerHP(target.Char, uint32(heal))
 			applied = true
-		case 31: // Renascimento Foema.
+		case 31: // Foema Rebirth.
 			setPlayerCurMP(p.Char, 0)
 			if playerCurHP(target.Char) == 0 && w.intn(2) == 0 {
 				setPlayerCurHP(target.Char, playerMaxHP(target.Char))
@@ -431,7 +445,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				target.DeadAt = time.Time{}
 				applied = true
 			}
-		case 99: // Ressurreicao Sephira: somente autocast do morto (WYD 7.48).
+		case 99: // Sephira Resurrection: dead caster's self-cast only (WYD 7.48).
 			if target == p && playerCurHP(target.Char) == 0 {
 				chance := clampInt((int(playerLevel(target.Char))+1)/5, 0, 100)
 				if w.intn(100) < chance {
@@ -446,7 +460,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 					applied = true
 				}
 			}
-		case 42: // Teleporte: traz o membro selecionado para junto do caster.
+		case 42: // Teleport brings the selected member next to the caster.
 			if target != p {
 				target.X, target.Y = w.findFreeGameplayPosition(p, target, p.X, p.Y, 4)
 				target.Char.X, target.Char.Y = target.X, target.Y
@@ -456,7 +470,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				})
 			}
 			applied = true
-		case 47: // Cancelamento remove Imunidade (Affect 19).
+		case 47: // Cancellation removes Immunity (Affect 19).
 			for i := range target.Char.Affects {
 				if target.Char.Affects[i].Type == 19 {
 					target.Char.Affects[i] = model.Affect{}
@@ -473,9 +487,9 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				if skill.Index == 102 {
 					duration = soulLimitAffectTime(skill, p.Char)
 				}
-				// SkillData.csv preserva o identificador cru 50 da Armadura Critica,
-				// mas a regra autoritativa usa affect 31 e o executavel 7.48 exige o
-				// visual 24. Normalize antes de persistir para não perder os stats.
+				// SkillData.csv preserves Critical Armor's raw identifier 50, but
+				// the authoritative rule uses affect 31 and the 7.48 executable
+				// requires visual 24. Normalize before persistence to retain stats.
 				if skill.Index == 15 {
 					affectType = 31
 				}
@@ -484,7 +498,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				} else {
 					applied = setAffectAt(target.Char, affectType, value, mastery, duration, now)
 				}
-				if applied && skill.Index == 15 { // Critical Armor TK usa o visual 24 no 7.48.
+				if applied && skill.Index == 15 { // TK Critical Armor uses visual 24 in 7.48.
 					for i := range target.Char.Affects {
 						if target.Char.Affects[i].Type == affectType {
 							target.Char.Affects[i].ClientType = 24
@@ -494,7 +508,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				}
 			}
 		}
-		if skill.Index == 3 { // Samaritano: transfere o aggro do protegido ao caster.
+		if skill.Index == 3 { // Samaritan transfers the protected target's aggro to the caster.
 			for _, m := range w.activeMobs {
 				if m != nil && !m.Dead && m.TargetID == target.ID && w.playerCanInteractWithMob(p, m) {
 					m.TargetID = p.ID
@@ -505,14 +519,14 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 		if !applied {
 			continue
 		}
-		// Cura e Recuperar alteram somente o HP corrente. Recalcular todo o score
-		// aqui fazia um simples heal reaplicar/migrar stats e pontos do personagem.
+		// Heal and Recover change only current HP. Recalculating the entire score
+		// here made a simple heal reapply/migrate character stats and points.
 		if skill.Index != 27 && skill.Index != 29 {
 			w.recalcPlayer(target.Char)
 		}
-		if skill.Index == 75 { // Invisibilidade remove o jogador da lista de aggro.
-			// Somente mobs acordados podem possuir alvo. Evite um scan global de
-			// milhares de NPCs para uma skill disparada pelo jogador.
+		if skill.Index == 75 { // Invisibility removes the player from mob aggro lists.
+			// Only awake mobs can have targets. Avoid a global scan of thousands
+			// of NPCs for a player-triggered skill.
 			for _, m := range w.activeMobs {
 				if m.TargetID == target.ID {
 					m.TargetID = 0
@@ -531,7 +545,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 		})
 	}
 	if len(changed) > 0 {
-		log.Printf("[#%d] suporte %q afetou=%d mastery=%d", p.Session.ID, skill.Name, len(changed), mastery)
+		log.Printf("[#%d] support %q affected=%d mastery=%d", p.Session.ID, skill.Name, len(changed), mastery)
 	}
 	return changed
 }
@@ -710,8 +724,8 @@ func (w *World) publishMobAffects(m *Mob) {
 	})
 }
 
-// applyAffectStats recalcula sempre a partir do score limpo; renovar/remover um
-// buff nunca acumula bonus permanentemente.
+// applyAffectStats always recalculates from the clean score; renewing/removing
+// a buff never permanently accumulates bonuses.
 func (w *World) applyAffectStats(ch *model.Char) {
 	if ch == nil {
 		return
@@ -720,9 +734,9 @@ func (w *World) applyAffectStats(ch *model.Char) {
 	w.applyExtendedAffectStats(ch)
 }
 
-// applyExtendedAffectStats aplica os buffs sobre uma copia runtime do sidecar.
-// A base persistida nunca e modificada, portanto renovar/recalcular um buff nao
-// acumula bonus. Os calculos usam int64 para nao estourar antes do clamp.
+// applyExtendedAffectStats applies buffs to a runtime copy of the sidecar.
+// The persisted base is never modified, so renewing/recalculating a buff cannot
+// accumulate bonuses. Calculations use int64 to avoid overflow before clamping.
 func (w *World) applyExtendedAffectStats(ch *model.Char) {
 	if ch == nil || ch.Score == nil {
 		return
@@ -758,21 +772,21 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			continue
 		}
 		switch a.Type {
-		case 1: // Lentidao
+		case 1: // Slow
 			run := maxInt(1, int(e.AttackRun&0x0F)-a.Value)
 			e.AttackRun = e.AttackRun&0xF0 | uint32(run)
-		case 2: // Velocidade
+		case 2: // Speed
 			run := minInt(15, int(e.AttackRun&0x0F)+a.Value)
 			e.AttackRun = e.AttackRun&0xF0 | uint32(run)
-		case 3: // Perseguicao
+		case 3: // Pursuit
 			e.ResistFire = uint32(maxInt(0, int(e.ResistFire)-a.Value))
 			e.ResistIce = uint32(maxInt(0, int(e.ResistIce)-a.Value))
 			e.ResistHoly = uint32(maxInt(0, int(e.ResistHoly)-a.Value))
 			e.ResistThunder = uint32(maxInt(0, int(e.ResistThunder)-a.Value))
-		case 4: // Buff de dano (Kappa/Competente/Mental, comidas, Coragem...).
-			// O WYD 7.48 (Basedef.cpp:3900) da um bonus fixo; o felipe optou por
-			// ESCALAR por tier. Value = % de bonus aplicado a ataque fisico e
-			// magico, configurado por item/codigo em volatiles.json.
+		case 4: // Damage buffs (Kappa/Competent/Mental, food, Courage...).
+			// WYD 7.48 (Basedef.cpp:3900) uses a fixed bonus; this project's rule
+			// scales by tier. Value is the percentage bonus to physical and magic
+			// attack, configured per item/code in volatiles.json.
 			e.Attack = mul(e.Attack, 100+a.Value)
 			e.MagicAttack = mul(e.MagicAttack, 100+a.Value)
 		case 5:
@@ -793,17 +807,17 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		case 13:
 			e.Attack = mul(e.Attack, 100+a.Level/10+a.Value)
 			e.Defense = mul(e.Defense, 90)
-		case 14: // Possuido
+		case 14: // Possessed
 			value := a.Level*3/4 + a.Value
 			e.Con = add(e.Con, int64(value))
 			e.MaxHP = add(e.MaxHP, int64(value)*8)
-		case 15: // Toque de Athena
+		case 15: // Athena's Touch
 			value := uint32(maxInt(0, a.Level/10+a.Value))
 			for j := range e.Mastery {
-				// Mesmo teto das especializacoes no recalc e no W2PP Type 15.
+				// Same mastery cap as recalculation and W2PP Type 15.
 				e.Mastery[j] = uint32(minInt(320, int(e.Mastery[j])+int(value)))
 			}
-		case 16: // Transformacoes BM; pTransBonus do WYD 7.48
+		case 16: // BM transformations; WYD 7.48 pTransBonus.
 			type transformBonus struct {
 				minDamage, maxDamage, minDefense, maxDefense int
 				minHP, maxHP, run, attackSpeed               int
@@ -869,10 +883,10 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resist, 0, 100))
 		case 26:
 			e.Evasion = add(e.Evasion, int64(a.Level+a.Value*10))
-		case 29: // Limite da Alma Celestial/SubCelestial.
-			// O WYD 7.48 calcula os percentuais sobre o bStatus cru, nao sobre
-			// equipamentos nem sobre o resultado de outro buff. SoulInfo e
-			// compartilhado pelas duas formas; o affect em si e por forma.
+		case 29: // Celestial/SubCelestial Soul Limit.
+			// WYD 7.48 calculates percentages from raw bStatus, not equipment or
+			// another buff's result. SoulInfo is shared between both forms;
+			// the affect itself belongs to each form.
 			bonuses := [...][4]int{
 				{120, 0, 0, 0}, {0, 120, 0, 0},
 				{0, 0, 120, 0}, {0, 0, 0, 120},
@@ -896,11 +910,11 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 				e.MaxMP = add(e.MaxMP, intAdd*2)
 			}
 		case affectCourage:
-			// Courage nao modifica score. O bonus fixo pertence ao resultado de
-			// cada hit PvE e e aplicado em combat.go/skills.go.
+			// Courage does not modify score. Its fixed bonus belongs to each
+			// PvE hit's result and is applied in combat.go/skills.go.
 		case 31:
 			e.Defense = add(e.Defense, int64(a.Level/2+a.Value))
-		case 35: // Bigger/Health Potion: bonus nativo de 10% no HP maximo.
+		case 35: // Bigger/Health Potion: native 10% bonus to maximum HP.
 			bonus := a.Value
 			if bonus <= 0 {
 				bonus = 10
@@ -929,6 +943,9 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 	accountsToSave := make(map[*model.Account]struct{})
 	killPlans := make([]*killRewardPlan, 0)
 	for _, m := range w.activeMobs {
+		if w.criticalGuildMobReserved(m) {
+			continue
+		}
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
 		}
@@ -939,6 +956,11 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 		for i := range m.Affects {
 			a := &m.Affects[i]
 			if a.Type == 0 {
+				continue
+			}
+			// Check the retained identity before source validity: a disconnected
+			// reserved owner is intentionally still indexed until acknowledgement.
+			if w.criticalPlayerReserved(w.affectOwnerPlayer(a)) {
 				continue
 			}
 			playerOwner, _, sourceOK := w.resolveMobAffectSource(m, a)
@@ -955,8 +977,11 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			if now.Before(a.NextTick) {
 				continue
 			}
+			if a.Type == 20 && playerOwner != nil && w.criticalKillParticipantsReserved(playerOwner) {
+				continue
+			}
 			a.NextTick = now.Add(8 * time.Second)
-			if a.Type != 20 { // veneno/sangramento
+			if a.Type != 20 { // Poison/bleeding.
 				continue
 			}
 			damage := uint32(clampInt(a.Level/2+a.Value, 1, int(m.HP)))
@@ -991,16 +1016,20 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 		for account := range accountsToSave {
 			accounts = append(accounts, account)
 		}
-		w.commitKillRewardBatch(nil, killPlans, accounts, "mortes por affect")
+		w.commitKillRewardBatch(nil, killPlans, accounts, "affect kills")
 	}
 }
 
 func (w *World) tickPlayerAffects(now time.Time) {
 	for _, p := range w.players {
-		if !p.InWorld || p.Char == nil {
+		if p == nil || !p.InWorld || p.Char == nil || w.criticalPlayerReserved(p) {
 			continue
 		}
 		expired, hpChanged := false, false
+		// Area damage can kill and submit a reward write that reserves p.
+		// Run it after every other mutation of p in this tick, with its
+		// deadline already advanced, so the persisted proposal is final.
+		var areaDue []int
 		for i := range p.Char.Affects {
 			a := &p.Char.Affects[i]
 			// All player-owned hostile affects share the same runtime boundary,
@@ -1008,6 +1037,9 @@ func (w *World) tickPlayerAffects(now time.Time) {
 			// a recycled ClientID cannot keep a stale debuff alive.
 			if affectHasPlayerOwner(a) {
 				owner := w.affectOwnerPlayer(a)
+				if w.criticalPlayerReserved(owner) {
+					continue
+				}
 				if owner == nil || !w.playersShareGameplaySpace(owner, p) {
 					*a = model.Affect{}
 					expired = true
@@ -1029,12 +1061,10 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				hpChanged = oldHP != playerCurHP(p.Char)
 			}
 			if (a.Type == 22 || a.Type == 23) && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
-				skillIndex := 37
-				if a.Type == 23 {
-					skillIndex = 54
+				if w.criticalKillParticipantsReserved(p) {
+					continue
 				}
-				w.tickAreaDamageAffect(p, a, skillIndex)
-				a.NextTick = now.Add(8 * time.Second)
+				areaDue = append(areaDue, i)
 			}
 			if a.Type == 20 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
 				// A DoT may outlive a teleport or an instance transition. Never
@@ -1070,16 +1100,28 @@ func (w *World) tickPlayerAffects(now time.Time) {
 			w.publishPlayerAffects(p)
 			w.syncPlayerVitals(p)
 			w.sendToPlayerView(p, func() []byte { return playerAppearancePacket(p) })
-			// Remover o affect em memoria e esperar o proximo autosave permitiria
-			// que um relog rapido o ressuscitasse. Grave imediatamente o charstate
-			// expirado fora do game-loop.
+			// Removing the in-memory affect and waiting for autosave would allow
+			// a quick relog to resurrect it. Queue the expired character sidecar
+			// immediately for persistence outside the game loop.
 			w.saveCharStateAsync(p)
+		}
+		for _, i := range areaDue {
+			if w.criticalPlayerReserved(p) {
+				break // a previous area kill reserved p; retry on a later tick
+			}
+			a := &p.Char.Affects[i]
+			skillIndex := 37
+			if a.Type == 23 {
+				skillIndex = 54
+			}
+			a.NextTick = now.Add(8 * time.Second)
+			w.tickAreaDamageAffect(p, a, skillIndex)
 		}
 	}
 }
 
 func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex int) {
-	if p == nil || p.Char == nil || affect == nil {
+	if p == nil || p.Char == nil || affect == nil || w.criticalKillParticipantsReserved(p) {
 		return
 	}
 	targets := make([]*Mob, 0, 6)
@@ -1130,13 +1172,13 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 			})
 		}
 	}
-	w.commitKillRewardBatch(p, killPlans, batchAccounts, "mortes por affect de area")
+	w.commitKillRewardBatch(p, killPlans, batchAccounts, "area-affect kills")
 }
 
 func tickAreaVisual(skillIndex int) (int, byte) {
 	if skillIndex == 37 {
-		// A Lightning Storm 7.59 e um tick que reproduz visualmente Thunderbolt
-		// (skill 33), exatamente como o ProcessAffect Type 22 do WYD 7.48.
+		// Historical 7.59 Lightning Storm visually reproduces Thunderbolt
+		// (skill 33), matching WYD 7.48 ProcessAffect Type 22.
 		return 33, 254
 	}
 	return skillIndex, 254

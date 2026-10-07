@@ -1,0 +1,22 @@
+# Open-field lighting. Lines are Key=R G B; '#' starts a comment.
+# Missing keys keep these defaults, which match the classic client look.
+# Sky states: Day, Rain (also snow), Sunset, Night.
+
+# Directional sun light per sky state, 0.0 to 2.0 per channel.
+SunDay=0.70 0.70 0.70
+SunRain=0.30 0.30 0.30
+SunSunset=0.50 0.40 0.20
+SunNight=0.26 0.34 0.34
+
+# Fill light from the opposite side, 0.0 to 2.0 per channel.
+FillLight=0.40 0.40 0.40
+
+# World ambient light, 0 to 255 per channel. Lower values give the sun and
+# fill lights more contrast; 255 255 255 lights every surface fully.
+Ambient=255 255 255
+
+# Sky and fog color per sky state, 0 to 255 per channel.
+SkyDay=28 120 189
+SkyRain=51 54 42
+SkySunset=98 47 4
+SkyNight=19 46 51

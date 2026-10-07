@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "LightingProfile.h"
 #include "TMMesh.h"
 #include "TMSky.h"
 #include "TMGlobal.h"
@@ -57,18 +58,13 @@ TMSky::TMSky()
         m_fAngle = D3DXToRadian(90);
     }
 
-    m_dwR[0] = 28;
-    m_dwG[0] = 120;
-    m_dwB[0] = 189;
-    m_dwR[1] = 51;
-    m_dwG[1] = 54;
-    m_dwB[1] = 42;
-    m_dwR[2] = 98;
-    m_dwG[2] = 47;
-    m_dwB[2] = 4;
-    m_dwR[3] = 19;
-    m_dwG[3] = 46;
-    m_dwB[3] = 51;
+    // Sky and fog colors per sky state come from Env/Lighting.txt.
+    for (int state = 0; state < 4; ++state)
+    {
+        m_dwR[state] = g_LightingProfile.sky[state][0];
+        m_dwG[state] = g_LightingProfile.sky[state][1];
+        m_dwB[state] = g_LightingProfile.sky[state][2];
+    }
 
     unsigned int dwColortemp[5]{ 0xFFFFFFFF, 0xFF8888AA, 0xFFFF9955, 0xFFFFFFAA, 0xFFAAFFAA };
     for (int i = 0; i < 20; ++i)
@@ -371,9 +367,10 @@ int TMSky::FrameMove(unsigned int dwServerTime)
     }
     else
     {
-        g_pDevice->m_colorBackLight.r = 0.4f;
-        g_pDevice->m_colorBackLight.g = 0.4f;
-        g_pDevice->m_colorBackLight.b = 0.4f;
+        // Open-field fill light (Env/Lighting.txt).
+        g_pDevice->m_colorBackLight.r = g_LightingProfile.fill.r;
+        g_pDevice->m_colorBackLight.g = g_LightingProfile.fill.g;
+        g_pDevice->m_colorBackLight.b = g_LightingProfile.fill.b;
         if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELECT_SERVER)
         {
             g_pDevice->m_fFogStart = TMSky::FogList[9][0];
@@ -448,7 +445,7 @@ int TMSky::FrameMove(unsigned int dwServerTime)
             if (dwElapsed >= m_dwChangeTime)
             {
                 SetWeatherState(m_nState % 10);
-                g_pDevice->m_colorLight = m_LightVal[m_nState % 10];
+                g_pDevice->m_colorLight = SunLight(m_nState % 10);
             }
             else
             {
@@ -494,7 +491,7 @@ int TMSky::FrameMove(unsigned int dwServerTime)
         else
         {
             SetWeatherState(m_nState % 10);
-            g_pDevice->m_colorLight = m_LightVal[m_nState % 10];
+            g_pDevice->m_colorLight = SunLight(m_nState % 10);
         }
     }
 
@@ -589,6 +586,15 @@ int TMSky::FrameMove(unsigned int dwServerTime)
 void TMSky::RestoreDeviceObjects()
 {
     ;
+}
+
+D3DCOLORVALUE TMSky::SunLight(int state)
+{
+    // The color comes from Env/Lighting.txt; the alpha keeps m_LightVal.
+    if (state < 0 || state >= 4)
+        state = 0;
+    const LightingColor& sun = g_LightingProfile.sun[state];
+    return { sun.r, sun.g, sun.b, m_LightVal[state].a };
 }
 
 void TMSky::SetWeatherState(int nState)

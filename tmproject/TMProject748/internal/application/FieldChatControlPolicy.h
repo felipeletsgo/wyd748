@@ -15,9 +15,9 @@ struct Decision
 
 // Both hit targets refer to the primary filter state. Imported HUD controls
 // stay with the existing dispatcher; an unavailable native filter is consumed.
-constexpr Channel Route(bool nativeHUD, unsigned int controlID)
+constexpr Channel Route(unsigned int controlID)
 {
-    if (!nativeHUD || controlID < TMB_CHAT_GENERAL || controlID > TMB_CHAT_GUILD_T)
+    if (controlID < TMB_CHAT_GENERAL || controlID > TMB_CHAT_GUILD_T)
         return Channel::None;
     switch (controlID)
     {

@@ -1,0 +1,35 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMFieldSceneCombatPackets.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.h",
+ "class": "TMFieldScene",
+ "method": "int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)",
+ "extractions": [
+  {
+   "helper": "DispatchAttackSkillVisuals",
+   "after": "if (attack_attacker::ShouldDispatchVisuals(pAttacker == m_pMyHuman,",
+   "params": [
+    [
+     "MSG_Attack*&",
+     "pAttack"
+    ],
+    [
+     "const int&",
+     "targetCount"
+    ],
+    [
+     "TMHuman*&",
+     "pAttacker"
+    ],
+    [
+     "TMHuman*&",
+     "pTarget"
+    ],
+    [
+     "float&",
+     "fHeight"
+    ]
+   ],
+   "flow": true
+  }
+ ]
+}

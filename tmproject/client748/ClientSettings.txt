@@ -1,0 +1,17 @@
+# WYD client options (kept outside config.txt, which follows the 7.48 launcher).
+# Lines are Key=Value; '#' starts a comment. Missing keys use the defaults below.
+
+# Frame cap while the window has focus. 0 = monitor refresh (VSync).
+FocusedFps=0
+
+# Light profile for unfocused or minimized windows (several clients side by side).
+# Frame cap; 0 disables the light profile.
+IdleFps=15
+# 1 = do not draw butterflies, fish and rain/snow particles while idle.
+IdleHideAmbient=1
+
+# Anisotropic filtering for world textures: 0 (off), 2, 4, 8 or 16.
+Anisotropy=4
+
+# Visited fields kept in memory to avoid rebuilding them; 0 disables.
+FieldCache=4

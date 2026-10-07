@@ -28,7 +28,7 @@ int g_nUseBlur;
 int g_nAntialias;
 int g_bDebugMsg = 1;
 int g_nReflection;
-char g_szFontName[128] = { "NanumGothic" };
+char g_szFontName[128] = { "Tahoma" };
 int g_nFontBold = 500;
 int g_nLangIndex = 0;
 float g_ClipNear = 0.69f;
@@ -40,7 +40,6 @@ char g_szServerName[10][10][9];
 
 char g_UIString[500][64];
 
-int g_bActiveWB;
 int g_bHideEffect;
 int g_bHideSkillBuffEffect;
 int g_bHideSkillBuffEffect2;

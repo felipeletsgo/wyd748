@@ -92,12 +92,6 @@ int TMHuman::OnPacketEvent(unsigned int dwCode, char* buf)
     case 0x333:
         return OnPacketMessageChat((MSG_STANDARD*)buf);
         break;
-    case 0x105:
-        return OnPacketMessageChat_Index((MSG_STANDARD*)buf);
-        break;
-    case 0x106:
-        return OnPacketMessageChat_Param((MSG_STANDARD*)buf);
-        break;
     case 0x334:
         return OnPacketMessageWhisper(reinterpret_cast<MSG_MessageWhisper*>(buf));
         break;
@@ -1539,12 +1533,9 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         m_stScore.CurMP = m_stScore.MaxMP;
 
     resource_ui::Project(m_pProgressBar, m_stScore.CurHP, m_stScore.MaxHP);
-    SetGuildBattleHPBar(m_stScore.CurHP);
 
     resource_ui::Project(m_pProgressBar1, m_stScore.CurMP, m_stScore.MaxMP);
-    SetGuildBattleMPBar(m_stScore.CurMP);
 
-    SetGuildBattleLifeCount();
 
     const bool isLocalHuman = pFScene->m_pMyHuman == this;
     if (isLocalHuman)
@@ -1567,11 +1558,8 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         // snapshot rather than keeping the progress bars' previous scale.
         pFScene->m_nReqHP = maxHp;
         pFScene->m_nReqMP = maxMp;
-        if (pFScene->m_bCompatFieldScene)
-            resource_ui::ProjectNativeHpVisual(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
-        else
-            resource_ui::Project(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
-        if (pFScene->m_bCompatFieldScene && pFScene->m_pControlContainer)
+        resource_ui::ProjectNativeHpVisual(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
+        if (pFScene->m_pControlContainer)
             resource_ui::ProjectNativeHpVisual(
                 static_cast<SProgressBar*>(pFScene->m_pControlContainer->FindControl(TMP_HP_PROGRESS_TR)),
                 m_stScore.CurHP, m_stScore.MaxHP);
@@ -1591,7 +1579,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         if (pFScene->m_pMaxHPText)
         {
             char szHP[32]{};
-            sprintf(szHP, resource_ui::MaximumTextFormat(pFScene->m_bCompatFieldScene), m_stScore.MaxHP);
+            sprintf(szHP, "%u", m_stScore.MaxHP);
             if (pFScene->m_pMaxHPText)
                 pFScene->m_pMaxHPText->SetText(szHP, 0);
         }
@@ -1605,7 +1593,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         if (pFScene->m_pMaxMPText)
         {
             char szMP[32]{};
-            sprintf(szMP, resource_ui::MaximumTextFormat(pFScene->m_bCompatFieldScene), m_stScore.MaxMP);
+            sprintf(szMP, "%u", m_stScore.MaxMP);
             if (pFScene->m_pMaxMPText)
                 pFScene->m_pMaxMPText->SetText(szMP, 0);
         }
@@ -1647,8 +1635,6 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
 
     m_stScore.CurHP = pSetHpDam->Hp;
     m_pProgressBar->SetCurrentProgress(pSetHpDam->Hp);
-    SetGuildBattleHPBar(m_stScore.CurHP);
-    SetGuildBattleLifeCount();
 
     TMFont3* pFont = nullptr;
     unsigned int dwColor = 0xFFFFFF00;
@@ -1718,14 +1704,19 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
     if (g_pCurrentScene->m_pMyHuman == this)
     {
         memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &m_stScore, sizeof(m_stScore));
-        auto pCurrentHPText = (SText*)pScene->m_pControlContainer->FindControl(65614);
-        auto pHPBar = (SProgressBar*)pScene->m_pControlContainer->FindControl(65621);
-        pHPBar->SetCurrentProgress(m_stScore.CurHP);
-        if (pCurrentHPText)
+        // Same native HUD targets as OnPacketSetHpMp; the 7.69 HP bar/text
+        // (65621/65614) do not exist in FieldScene2 and dereferenced null.
+        auto pFScene = static_cast<TMFieldScene*>(pScene);
+        resource_ui::ProjectNativeHpVisual(pFScene->m_pHPBar, m_stScore.CurHP, m_stScore.MaxHP);
+        if (pFScene->m_pControlContainer)
+            resource_ui::ProjectNativeHpVisual(
+                static_cast<SProgressBar*>(pFScene->m_pControlContainer->FindControl(TMP_HP_PROGRESS_TR)),
+                m_stScore.CurHP, m_stScore.MaxHP);
+        if (pFScene->m_pCurrentHPText)
         {
             char szHP[32]{};
             sprintf(szHP, "%d", m_stScore.CurHP);
-            pCurrentHPText->SetText(szHP, 0);
+            pFScene->m_pCurrentHPText->SetText(szHP, 0);
         }
     }
 
@@ -1808,16 +1799,6 @@ int TMHuman::OnPacketMessageChat(MSG_STANDARD* pStd)
         SetChatMessage(&pMsgChat->String[nIndex]);
 
     return 1;
-}
-
-int TMHuman::OnPacketMessageChat_Index(MSG_STANDARD* pStd)
-{
-	return 0;
-}
-
-int TMHuman::OnPacketMessageChat_Param(MSG_STANDARD* pStd)
-{
-	return 0;
 }
 
 int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)

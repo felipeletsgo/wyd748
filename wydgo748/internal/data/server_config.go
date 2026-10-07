@@ -12,19 +12,23 @@ import (
 	"wydgo/internal/model"
 )
 
-// ServerConfig concentra configuracao operacional e parametros globais de
-// balanceamento. Dados especificos continuam em NPCGener, SkillData, NPCs etc.
+// ServerConfig holds operational configuration and global balance parameters.
+// Specific data stays in NPCGener, SkillData, NPC files and similar sources.
 type ServerConfig struct {
-	ListenAddress                string
-	AdminAccessPIN               string
-	WebAdminEnabled              bool
-	WebAdminAddress              string
-	WebAdminStaffPath            string
-	WebAdminStaticPath           string
-	DatabaseDriver               string
-	DatabaseURL                  string
-	DatabaseURLEnv               string
-	DatabaseMaxConns             uint32
+	ListenAddress      string
+	AdminAccessPIN     string
+	WebAdminEnabled    bool
+	WebAdminAddress    string
+	WebAdminStaffPath  string
+	WebAdminStaticPath string
+	DatabaseDriver     string
+	DatabaseURL        string
+	DatabaseURLEnv     string
+	DatabaseMaxConns   uint32
+	// CriticalPersistenceWorkers/Capacity size the nonblocking coordinator
+	// that persists every gameplay write off the World goroutine (PostgreSQL).
+	CriticalPersistenceWorkers   uint32
+	CriticalPersistenceCapacity  uint32
 	SessionQueueCapacity         uint32
 	WorldCommandQueueCapacity    uint32
 	AuthHashConcurrency          uint32
@@ -69,17 +73,17 @@ type ServerConfig struct {
 	NetworkAdmissionPath         string
 	ClientIntegrityPath          string
 	NPCGenerLog                  string
-	// GameplayLog controla diagnosticos quentes (skills, ataques, mortes e
-	// drops): quiet, summary ou verbose. Summary evita I/O por evento no World.
+	// GameplayLog controls hot-path diagnostics (skills, attacks, deaths and
+	// drops): quiet, summary or verbose. Summary avoids per-event I/O on World.
 	GameplayLog string
-	// DebugAddress e o endereco do servidor de diagnostico (expvar em
-	// /debug/vars e pprof em /debug/pprof). Vazio = desligado, que e o padrao.
-	// O host DEVE ser loopback: esses endpoints expoem estado interno e perfil
-	// do processo. Para acessar de fora, use tunel SSH.
+	// DebugAddress is the diagnostics server address (expvar at /debug/vars
+	// and pprof at /debug/pprof). Empty disables it, which is the default.
+	// The host MUST be loopback: these endpoints expose internal state and
+	// process profiling. Use an SSH tunnel for remote access.
 	DebugAddress string
-	// LoadtestSpawn/LoadtestAccountPrefix ficam desabilitados por padrao. Em
-	// staging permitem materializar bots diretamente no mapa de teste, sem
-	// alterar a coordenada de nascimento dos jogadores reais.
+	// LoadtestSpawn/LoadtestAccountPrefix are disabled by default. In staging
+	// they place bots directly on the test map without changing the spawn
+	// coordinate of real players.
 	LoadtestSpawn         model.CharacterSpawn
 	LoadtestAccountPrefix string
 	Gameplay              model.GameplayConfig
@@ -95,6 +99,8 @@ func DefaultServerConfig() ServerConfig {
 		DatabaseDriver:               "postgres",
 		DatabaseURLEnv:               "WYD_DATABASE_URL",
 		DatabaseMaxConns:             8,
+		CriticalPersistenceWorkers:   4,
+		CriticalPersistenceCapacity:  1024,
 		SessionQueueCapacity:         256,
 		WorldCommandQueueCapacity:    1024,
 		AuthHashConcurrency:          4,
@@ -140,7 +146,7 @@ func DefaultServerConfig() ServerConfig {
 		ClientIntegrityPath:          "data/client_integrity.json",
 		NPCGenerLog:                  "summary",
 		GameplayLog:                  "summary",
-		DebugAddress:                 "", // diagnostico desligado por padrao
+		DebugAddress:                 "", // diagnostics disabled by default
 		LoadtestAccountPrefix:        "",
 		Gameplay:                     model.DefaultGameplayConfig(),
 		GuildWars:                    model.DefaultGuildWarConfig(),
@@ -151,7 +157,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	cfg := DefaultServerConfig()
 	file, err := os.Open(path)
 	if err != nil {
-		return ServerConfig{}, fmt.Errorf("abrir configuracao %q: %w", path, err)
+		return ServerConfig{}, fmt.Errorf("open configuration %q: %w", path, err)
 	}
 	defer file.Close()
 
@@ -159,7 +165,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		return func(value string) error {
 			parsed, err := strconv.ParseUint(value, 10, 32)
 			if err != nil {
-				return fmt.Errorf("esperado inteiro sem sinal: %w", err)
+				return fmt.Errorf("expected an unsigned integer: %w", err)
 			}
 			*target = uint32(parsed)
 			return nil
@@ -169,15 +175,15 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		return func(value string) error {
 			parts := strings.Split(value, ",")
 			if len(parts) != 2 {
-				return fmt.Errorf("esperado x,y")
+				return fmt.Errorf("expected x,y")
 			}
 			x, err := strconv.ParseUint(strings.TrimSpace(parts[0]), 10, 16)
 			if err != nil {
-				return fmt.Errorf("x invalido: %w", err)
+				return fmt.Errorf("invalid x: %w", err)
 			}
 			y, err := strconv.ParseUint(strings.TrimSpace(parts[1]), 10, 16)
 			if err != nil {
-				return fmt.Errorf("y invalido: %w", err)
+				return fmt.Errorf("invalid y: %w", err)
 			}
 			target.X, target.Y = uint16(x), uint16(y)
 			return nil
@@ -204,6 +210,8 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"database_url":                     func(v string) error { cfg.DatabaseURL = v; return nil },
 		"database_url_env":                 func(v string) error { cfg.DatabaseURLEnv = v; return nil },
 		"database_max_conns":               setUint32(&cfg.DatabaseMaxConns),
+		"critical_persistence_workers":     setUint32(&cfg.CriticalPersistenceWorkers),
+		"critical_persistence_capacity":    setUint32(&cfg.CriticalPersistenceCapacity),
 		"session_queue_capacity":           setUint32(&cfg.SessionQueueCapacity),
 		"world_command_queue_capacity":     setUint32(&cfg.WorldCommandQueueCapacity),
 		"auth_hash_concurrency":            setUint32(&cfg.AuthHashConcurrency),
@@ -274,23 +282,23 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		}
 		key, value, ok := strings.Cut(line, "=")
 		if !ok {
-			return ServerConfig{}, fmt.Errorf("%s:%d: esperado chave=valor", path, lineNumber)
+			return ServerConfig{}, fmt.Errorf("%s:%d: expected key=value", path, lineNumber)
 		}
 		key = strings.ToLower(strings.TrimSpace(key))
 		value = strings.Trim(strings.TrimSpace(value), "\"")
 		if value == "" {
-			return ServerConfig{}, fmt.Errorf("%s:%d: valor vazio para %q", path, lineNumber, key)
+			return ServerConfig{}, fmt.Errorf("%s:%d: empty value for %q", path, lineNumber, key)
 		}
 		set, known := setters[key]
 		if !known {
-			return ServerConfig{}, fmt.Errorf("%s:%d: chave desconhecida %q", path, lineNumber, key)
+			return ServerConfig{}, fmt.Errorf("%s:%d: unknown key %q", path, lineNumber, key)
 		}
 		if err := set(value); err != nil {
 			return ServerConfig{}, fmt.Errorf("%s:%d: %s: %w", path, lineNumber, key, err)
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		return ServerConfig{}, fmt.Errorf("ler configuracao %q: %w", path, err)
+		return ServerConfig{}, fmt.Errorf("read configuration %q: %w", path, err)
 	}
 	if err := validateListenAddress(cfg.ListenAddress); err != nil {
 		return ServerConfig{}, fmt.Errorf("%s: listen_address: %w", path, err)
@@ -298,79 +306,86 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	switch cfg.NPCGenerLog {
 	case "quiet", "summary", "verbose":
 	default:
-		return ServerConfig{}, fmt.Errorf("%s: npcgener_log invalido %q (use quiet, summary ou verbose)",
+		return ServerConfig{}, fmt.Errorf("%s: invalid npcgener_log %q (use quiet, summary or verbose)",
 			path, cfg.NPCGenerLog)
 	}
 	switch cfg.GameplayLog {
 	case "quiet", "summary", "verbose":
 	default:
-		return ServerConfig{}, fmt.Errorf("%s: gameplay_log invalido %q (use quiet, summary ou verbose)",
+		return ServerConfig{}, fmt.Errorf("%s: invalid gameplay_log %q (use quiet, summary or verbose)",
 			path, cfg.GameplayLog)
 	}
 	switch cfg.DatabaseDriver {
 	case "postgres", "json":
 	default:
-		return ServerConfig{}, fmt.Errorf("%s: database_driver invalido %q (use postgres ou json)",
+		return ServerConfig{}, fmt.Errorf("%s: invalid database_driver %q (use postgres or json)",
 			path, cfg.DatabaseDriver)
 	}
 	if cfg.DatabaseDriver == "postgres" {
 		if cfg.DatabaseURL == "" && cfg.DatabaseURLEnv == "" {
-			return ServerConfig{}, fmt.Errorf("%s: PostgreSQL exige database_url ou database_url_env", path)
+			return ServerConfig{}, fmt.Errorf("%s: PostgreSQL requires database_url or database_url_env", path)
 		}
 		if cfg.DatabaseMaxConns == 0 || cfg.DatabaseMaxConns > 64 {
-			return ServerConfig{}, fmt.Errorf("%s: database_max_conns deve ficar entre 1 e 64", path)
+			return ServerConfig{}, fmt.Errorf("%s: database_max_conns must be between 1 and 64", path)
+		}
+		// Leave one pool connection for logins and the legacy async queue.
+		if cfg.CriticalPersistenceWorkers == 0 || cfg.CriticalPersistenceWorkers >= cfg.DatabaseMaxConns {
+			return ServerConfig{}, fmt.Errorf("%s: critical_persistence_workers must be between 1 and database_max_conns-1", path)
+		}
+		if cfg.CriticalPersistenceCapacity < cfg.CriticalPersistenceWorkers || cfg.CriticalPersistenceCapacity > 65536 {
+			return ServerConfig{}, fmt.Errorf("%s: critical_persistence_capacity must be between critical_persistence_workers and 65536", path)
 		}
 	}
 	if cfg.SessionQueueCapacity == 0 || cfg.SessionQueueCapacity > 8192 {
-		return ServerConfig{}, fmt.Errorf("%s: session_queue_capacity deve ficar entre 1 e 8192", path)
+		return ServerConfig{}, fmt.Errorf("%s: session_queue_capacity must be between 1 and 8192", path)
 	}
 	if cfg.WorldCommandQueueCapacity < 64 || cfg.WorldCommandQueueCapacity > 65536 {
-		return ServerConfig{}, fmt.Errorf("%s: world_command_queue_capacity deve ficar entre 64 e 65536", path)
+		return ServerConfig{}, fmt.Errorf("%s: world_command_queue_capacity must be between 64 and 65536", path)
 	}
 	if cfg.AuthHashConcurrency == 0 || cfg.AuthHashConcurrency > 64 {
-		return ServerConfig{}, fmt.Errorf("%s: auth_hash_concurrency deve ficar entre 1 e 64", path)
+		return ServerConfig{}, fmt.Errorf("%s: auth_hash_concurrency must be between 1 and 64", path)
 	}
 	if cfg.MaxConnections == 0 || cfg.MaxConnections > 10000 {
-		return ServerConfig{}, fmt.Errorf("%s: max_connections deve ficar entre 1 e 10000", path)
+		return ServerConfig{}, fmt.Errorf("%s: max_connections must be between 1 and 10000", path)
 	}
 	if cfg.MaxConnectionsPerIP == 0 || cfg.MaxConnectionsPerIP > cfg.MaxConnections {
-		return ServerConfig{}, fmt.Errorf("%s: max_connections_per_ip deve ficar entre 1 e max_connections", path)
+		return ServerConfig{}, fmt.Errorf("%s: max_connections_per_ip must be between 1 and max_connections", path)
 	}
 	if cfg.MaxAuthenticatedClientsPerIP == 0 || cfg.MaxAuthenticatedClientsPerIP > cfg.MaxConnectionsPerIP {
-		return ServerConfig{}, fmt.Errorf("%s: max_authenticated_clients_per_ip deve ficar entre 1 e max_connections_per_ip", path)
+		return ServerConfig{}, fmt.Errorf("%s: max_authenticated_clients_per_ip must be between 1 and max_connections_per_ip", path)
 	}
 	if cfg.HandshakeTimeoutSecs == 0 || cfg.HandshakeTimeoutSecs > 60 {
-		return ServerConfig{}, fmt.Errorf("%s: handshake_timeout_seconds deve ficar entre 1 e 60", path)
+		return ServerConfig{}, fmt.Errorf("%s: handshake_timeout_seconds must be between 1 and 60", path)
 	}
-	// O client 7.48 pode espaciar o heartbeat em aproximadamente 250 s. Um
-	// valor menor que 300 desconectaria clientes nativos ociosos e portanto nao
-	// e uma configuracao operacional segura para esta ABI.
+	// The 7.48 client may space heartbeats about 250 s apart. A value below
+	// 300 would disconnect idle native clients, so it is not a safe operational
+	// setting for this ABI.
 	if cfg.SessionIdleTimeoutSecs < 300 || cfg.SessionIdleTimeoutSecs > 3600 {
-		return ServerConfig{}, fmt.Errorf("%s: session_idle_timeout_seconds deve ficar entre 300 e 3600", path)
+		return ServerConfig{}, fmt.Errorf("%s: session_idle_timeout_seconds must be between 300 and 3600", path)
 	}
 	if cfg.FrameReadTimeoutSecs == 0 || cfg.FrameReadTimeoutSecs > 60 {
-		return ServerConfig{}, fmt.Errorf("%s: frame_read_timeout_seconds deve ficar entre 1 e 60", path)
+		return ServerConfig{}, fmt.Errorf("%s: frame_read_timeout_seconds must be between 1 and 60", path)
 	}
 	if cfg.InboundPacketsPerSec < 16 || cfg.InboundPacketsPerSec > 4096 {
-		return ServerConfig{}, fmt.Errorf("%s: inbound_packets_per_second deve ficar entre 16 e 4096", path)
+		return ServerConfig{}, fmt.Errorf("%s: inbound_packets_per_second must be between 16 and 4096", path)
 	}
 	if cfg.InboundBytesPerSec < 16*1024 || cfg.InboundBytesPerSec > 16*1024*1024 {
-		return ServerConfig{}, fmt.Errorf("%s: inbound_bytes_per_second deve ficar entre 16384 e 16777216", path)
+		return ServerConfig{}, fmt.Errorf("%s: inbound_bytes_per_second must be between 16384 and 16777216", path)
 	}
 	if cfg.AuthAttemptsPerMinIP == 0 || cfg.AuthAttemptsPerMinIP > 1000 ||
 		cfg.AuthAttemptsPerMinAccount == 0 || cfg.AuthAttemptsPerMinAccount > 1000 {
-		return ServerConfig{}, fmt.Errorf("%s: limites de autenticacao devem ficar entre 1 e 1000", path)
+		return ServerConfig{}, fmt.Errorf("%s: authentication limits must be between 1 and 1000", path)
 	}
 	if cfg.ChatLocalPer10Secs == 0 || cfg.ChatLocalPer10Secs > 100 ||
 		cfg.ChatWhisperPer10Secs == 0 || cfg.ChatWhisperPer10Secs > 100 ||
 		cfg.ChatGlobalPer10Secs == 0 || cfg.ChatGlobalPer10Secs > 100 {
-		return ServerConfig{}, fmt.Errorf("%s: limites de chat devem ficar entre 1 e 100", path)
+		return ServerConfig{}, fmt.Errorf("%s: chat limits must be between 1 and 100", path)
 	}
 	if cfg.CriticalPersistenceTimeoutMS < 100 || cfg.CriticalPersistenceTimeoutMS > 10000 {
-		return ServerConfig{}, fmt.Errorf("%s: critical_persistence_timeout_ms deve ficar entre 100 e 10000", path)
+		return ServerConfig{}, fmt.Errorf("%s: critical_persistence_timeout_ms must be between 100 and 10000", path)
 	}
 	if cfg.ChannelID == 0 || cfg.ChannelID > 255 {
-		return ServerConfig{}, fmt.Errorf("%s: channel_id deve ficar entre 1 e 255", path)
+		return ServerConfig{}, fmt.Errorf("%s: channel_id must be between 1 and 255", path)
 	}
 	if cfg.DebugAddress != "" {
 		if err := ValidateDebugAddress(cfg.DebugAddress); err != nil {
@@ -379,14 +394,14 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	}
 	if cfg.LoadtestAccountPrefix != "" {
 		if cfg.LoadtestSpawn.X == 0 || cfg.LoadtestSpawn.Y == 0 {
-			return ServerConfig{}, fmt.Errorf("%s: loadtest_account_prefix exige loadtest_spawn", path)
+			return ServerConfig{}, fmt.Errorf("%s: loadtest_account_prefix requires loadtest_spawn", path)
 		}
 		if !strings.HasPrefix(cfg.LoadtestAccountPrefix, "bot") || len(cfg.LoadtestAccountPrefix) > 8 {
-			return ServerConfig{}, fmt.Errorf("%s: loadtest_account_prefix invalido", path)
+			return ServerConfig{}, fmt.Errorf("%s: invalid loadtest_account_prefix", path)
 		}
 		for _, ch := range cfg.LoadtestAccountPrefix {
 			if ch < 'a' || ch > 'z' {
-				return ServerConfig{}, fmt.Errorf("%s: loadtest_account_prefix deve conter somente letras minusculas", path)
+				return ServerConfig{}, fmt.Errorf("%s: loadtest_account_prefix must contain only lowercase letters", path)
 			}
 		}
 	}
@@ -411,14 +426,14 @@ func ValidateAdminAccessPIN(pin string) error {
 	return nil
 }
 
-// ValidateDebugAddress exige loopback. /debug/vars e /debug/pprof expoem estado
-// interno e permitem disparar profiling; expor isso na internet e um risco de
-// vazamento e de DoS. Preferimos derrubar o boot a subir o diagnostico aberto:
-// uma configuracao errada aqui e silenciosa e perigosa demais para tolerar.
+// ValidateDebugAddress requires loopback. /debug/vars and /debug/pprof expose
+// internal state and trigger profiling; exposing them to the internet risks
+// leaks and DoS. Startup fails rather than opening diagnostics: a wrong
+// setting here is silent and too dangerous to tolerate.
 //
-// E exportada porque a flag de linha de comando sobrescreve o arquivo e precisa
-// passar pela MESMA checagem -- senao `-debug_address 0.0.0.0:6060` furaria a
-// validacao do boot.
+// It is exported because the command-line flag overrides the file and must
+// pass the SAME check; otherwise `-debug_address 0.0.0.0:6060` would bypass
+// startup validation.
 func ValidateDebugAddress(address string) error {
 	host, portText, err := stdnet.SplitHostPort(address)
 	if err != nil {
@@ -426,20 +441,20 @@ func ValidateDebugAddress(address string) error {
 	}
 	port, err := strconv.Atoi(portText)
 	if err != nil || port < 1 || port > 65535 {
-		return fmt.Errorf("porta invalida %q", portText)
+		return fmt.Errorf("invalid port %q", portText)
 	}
 	if host == "" {
-		return fmt.Errorf("host vazio expoe o diagnostico em todas as interfaces; use 127.0.0.1")
+		return fmt.Errorf("an empty host exposes diagnostics on every interface; use 127.0.0.1")
 	}
 	if strings.EqualFold(host, "localhost") {
 		return nil
 	}
 	ip := stdnet.ParseIP(host)
 	if ip == nil {
-		return fmt.Errorf("host %q nao e um IP de loopback; use 127.0.0.1", host)
+		return fmt.Errorf("host %q is not a loopback IP; use 127.0.0.1", host)
 	}
 	if !ip.IsLoopback() {
-		return fmt.Errorf("host %q nao e loopback; o diagnostico so pode escutar em 127.0.0.1 (use tunel SSH)", host)
+		return fmt.Errorf("host %q is not loopback; diagnostics may only listen on 127.0.0.1 (use an SSH tunnel)", host)
 	}
 	return nil
 }
@@ -451,7 +466,7 @@ func validateListenAddress(address string) error {
 	}
 	port, err := strconv.Atoi(portText)
 	if err != nil || port < 1 || port > 65535 {
-		return fmt.Errorf("porta invalida %q", portText)
+		return fmt.Errorf("invalid port %q", portText)
 	}
 	return nil
 }

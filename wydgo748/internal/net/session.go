@@ -1,6 +1,6 @@
-// Package net e a camada de I/O de socket: 1 conexao TCP = 1 Session, com
-// handshake InitCode, loop de leitura e fila de saida nao-bloqueante. Nao conhece
-// o game -- recebe/entrega bytes crus e delega o resto via callback.
+// Package net handles socket I/O: one TCP connection per Session, with an
+// InitCode handshake, a read loop and a non-blocking outbound queue.
+// It delegates raw packets through a callback without knowing gameplay rules.
 package net
 
 import (
@@ -18,13 +18,14 @@ import (
 )
 
 const (
-	// Limite operacional, nao de gameplay. Um client 7.48 normal fica muito
-	// abaixo disso; a folga absorve rajadas de movimento e carregamento.
+	// Operational limits, not gameplay rules. The margin accommodates
+	// movement and loading bursts from a normal 7.48 client.
 	maxInboundPacketsPerSecond = 256
 	maxInboundBytesPerSecond   = 512 * 1024
 	defaultHandshakeTimeout    = 5 * time.Second
 	defaultSessionIdleTimeout  = 10 * time.Minute
 	defaultFrameReadTimeout    = 10 * time.Second
+	defaultFrameWriteTimeout   = 10 * time.Second
 )
 
 var (
@@ -32,13 +33,13 @@ var (
 	sendKey     atomic.Uint32
 )
 
-// tick simula o GetTickCount do servidor (base 60000 pra nunca ser ~0); o client
-// usa o tick real do header em decisoes de animacao/morte.
+// tick emulates server GetTickCount with a nonzero base. The client uses
+// header ticks for animation and death decisions.
 func tick() uint32 {
 	return uint32(time.Since(serverStart)/time.Millisecond) + 60000
 }
 
-// Session representa 1 conexao TCP com um client.
+// Session represents one TCP client connection.
 type Session struct {
 	ID                      int64
 	conn                    stdnet.Conn
@@ -49,12 +50,13 @@ type Session struct {
 	handshakeTimeout        time.Duration
 	idleTimeout             time.Duration
 	frameReadTimeout        time.Duration
+	frameWriteTimeout       time.Duration
 	maxInboundPacketsPerSec int
 	maxInboundBytesPerSec   int
 }
 
-// IsClosed informa se Serve concluiu o ciclo de I/O. Sessões de teste sem
-// canal de vida são consideradas ativas até serem substituídas pelo teste.
+// IsClosed reports whether the I/O lifetime has ended. Test sessions without
+// a lifetime channel remain active until the test replaces them.
 func (s *Session) IsClosed() bool {
 	if s == nil || s.done == nil {
 		return false
@@ -74,18 +76,20 @@ func (s *Session) closeDone() {
 	s.doneOnce.Do(func() { close(s.done) })
 }
 
-// Send finaliza o pacote (Tick@8 + Size@0 + cifra) e o enfileira SEM bloquear.
-// Se a fila de saida estourar (client lento), desconecta em vez de travar o loop.
-// Seguro chamar de qualquer goroutine; na pratica so o game loop chama.
+// Send finalizes Tick@8, Size@0 and encryption, then queues without blocking.
+// Queue overflow disconnects a slow client without blocking the world loop.
+// It is safe to call from any goroutine; gameplay normally owns the caller.
 func (s *Session) Send(pkt []byte) {
 	if s == nil || len(pkt) < wire.HeaderSize || len(pkt) > wire.MaxPacketSize || s.out == nil {
-		// Builders sao internos, mas uma regressao neles nao pode virar um panic
-		// dentro da goroutine unica do World. Falhe fechado nesta sessao; o log
-		// do handler/metricas continua apontando o pacote que originou o envio.
+		// A builder regression must not panic in the World goroutine.
+		// Fail closed; handler diagnostics identify the originating packet.
 		if s != nil {
-			log.Printf("[#%d] pacote de saida invalido: %d bytes", s.ID, len(pkt))
+			log.Printf("[#%d] invalid outbound packet: %d bytes", s.ID, len(pkt))
 			s.Close()
 		}
+		return
+	}
+	if s.IsClosed() {
 		return
 	}
 	binary.LittleEndian.PutUint32(pkt[8:12], tick())
@@ -93,32 +97,26 @@ func (s *Session) Send(pkt []byte) {
 	select {
 	case s.out <- pkt:
 	default:
-		if s.conn != nil {
-			_ = s.conn.Close()
-		}
+		s.Close()
 	}
 }
 
-// NewTestSession devolve uma Session utilizavel em testes de outros pacotes
-// (ex.: internal/game): Send() enfileira normalmente ate a capacidade do
-// buffer sem tocar numa conexao real. `conn` fica nil de proposito -- so e
-// usada se o buffer estourar, o que os testes evitam dimensionando bufSize.
+// NewTestSession queues packets for other packages without a real connection.
+// Tests choose bufSize to accommodate their expected outbound packets.
 func NewTestSession(id int64, bufSize int) *Session {
 	return &Session{ID: id, out: make(chan []byte, bufSize), done: make(chan struct{})}
 }
 
-// NewTestSessionWithRemoteIP cria uma sessao de teste com a origem que o
-// listener de producao registraria. Isso permite testar limites por IP sem
-// expor uma conexao falsa nem confiar em campos de packet.
+// NewTestSessionWithRemoteIP supplies the origin recorded by the listener,
+// allowing IP-limit tests without trusting packet fields.
 func NewTestSessionWithRemoteIP(id int64, bufSize int, remoteIP string) *Session {
 	return &Session{
 		ID: id, remoteIP: remoteIP, out: make(chan []byte, bufSize), done: make(chan struct{}),
 	}
 }
 
-// QueuedPacketsForTest informa quantos pacotes NewTestSession recebeu. O
-// conteudo permanece cifrado na fila; testes de game usam apenas a contagem
-// para detectar envios extras que alteram estado visual, como CreateMob.
+// QueuedPacketsForTest counts encrypted packets still in the test queue.
+// Gameplay tests use it to detect extra visual updates such as CreateMob.
 func (s *Session) QueuedPacketsForTest() int {
 	if s == nil || s.out == nil {
 		return 0
@@ -141,7 +139,7 @@ func (s *Session) DequeuePacketForTest() ([]byte, bool) {
 	}
 }
 
-// RemoteAddr expoe o endereco remoto (log).
+// RemoteAddr returns the remote address for diagnostics.
 func (s *Session) RemoteAddr() string {
 	if s == nil || s.conn == nil || s.conn.RemoteAddr() == nil {
 		return ""
@@ -149,9 +147,8 @@ func (s *Session) RemoteAddr() string {
 	return s.conn.RemoteAddr().String()
 }
 
-// RemoteIP devolve somente o IP remoto, sem porta. Limites de conexao e
-// autenticacao nunca devem usar a string host:port, pois a porta muda em toda
-// tentativa e tornaria o limitador ineficaz.
+// RemoteIP returns the address without its port. Connection and authentication
+// limits must not use a changing source port as part of the identity.
 func (s *Session) RemoteIP() string {
 	if s == nil {
 		return ""
@@ -167,8 +164,8 @@ func (s *Session) RemoteIP() string {
 	return host
 }
 
-// Close encerra a conexao. Usado pelo game depois de enviar uma rejeicao de
-// autenticacao; o pequeno atraso fica no chamador para a fila conseguir sair.
+// Close ends the connection and its lifetime. Callers that want to drain an
+// authentication rejection before closing are responsible for that delay.
 func (s *Session) Close() {
 	if s.conn != nil {
 		_ = s.conn.Close()
@@ -176,13 +173,24 @@ func (s *Session) Close() {
 	s.closeDone()
 }
 
-// writeLoop drena a fila de saida pro socket. Sai quando o socket falha ou quando
-// Serve fecha `done` (evita vazar goroutine numa fila vazia sem fechar `out`).
+// writeLoop drains outbound packets. Every exit closes the connection so a
+// failed or stalled writer also releases the reader and gameplay reservation.
 func (s *Session) writeLoop() {
+	defer s.Close()
+	timeout := s.frameWriteTimeout
+	if timeout <= 0 {
+		timeout = defaultFrameWriteTimeout
+	}
 	for {
 		select {
-		case pkt := <-s.out:
-			if _, err := s.conn.Write(pkt); err != nil {
+		case pkt, ok := <-s.out:
+			if !ok || s.IsClosed() {
+				return
+			}
+			if err := s.conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
+				return
+			}
+			if n, err := s.conn.Write(pkt); err != nil || n != len(pkt) {
 				return
 			}
 		case <-s.done:
@@ -191,14 +199,13 @@ func (s *Session) writeLoop() {
 	}
 }
 
-// Serve faz o handshake InitCode e roda o loop de leitura, chamando handler pra
-// cada pacote decifrado. handler(s, nil) sinaliza desconexao ao fim.
+// Serve performs InitCode and dispatches decrypted packets to handler.
+// handler(s, nil) signals disconnection when the read lifetime ends.
 func (s *Session) Serve(handler func(*Session, []byte)) {
 	defer s.conn.Close()
 	defer handler(s, nil)
-	// Sinaliza o fim antes de entregar o comando ao World. Se a fila estiver
-	// cheia, uma nova tentativa de login ainda consegue detectar que esta
-	// reserva pertence a um socket morto.
+	// End the lifetime before notifying World so a retry can recognize a dead
+	// socket reservation even when the world command queue is full.
 	defer s.closeDone()
 
 	r := bufio.NewReader(s.conn)
@@ -207,21 +214,21 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 		handshakeTimeout = defaultHandshakeTimeout
 	}
 	if err := s.conn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
-		log.Printf("[#%d] configurar prazo do InitCode: %v", s.ID, err)
+		log.Printf("[#%d] set InitCode deadline: %v", s.ID, err)
 		return
 	}
 
-	// handshake: 4 bytes de InitCode antes de qualquer pacote.
+	// The handshake has four InitCode bytes before any packet.
 	var ic [4]byte
 	if _, err := io.ReadFull(r, ic[:]); err != nil {
-		log.Printf("[#%d] sem InitCode: %v", s.ID, err)
+		log.Printf("[#%d] missing InitCode: %v", s.ID, err)
 		return
 	}
 	if got := binary.LittleEndian.Uint32(ic[:]); got != uint32(wire.InitCode) {
-		log.Printf("[#%d] InitCode invalido: 0x%X", s.ID, got)
+		log.Printf("[#%d] invalid InitCode: 0x%X", s.ID, got)
 		return
 	}
-	log.Printf("[#%d] conectado: %s (InitCode OK)", s.ID, s.RemoteAddr())
+	log.Printf("[#%d] connected: %s (InitCode OK)", s.ID, s.RemoteAddr())
 
 	go s.writeLoop()
 
@@ -240,9 +247,9 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 	windowStarted := time.Now()
 	packetCount, byteCount := 0, 0
 	for {
-		// O primeiro deadline aceita o heartbeat espaçado do client 7.48.
+		// The first deadline accommodates the 7.48 client's sparse heartbeat.
 		if err := s.conn.SetReadDeadline(time.Now().Add(idleTimeout)); err != nil {
-			log.Printf("[#%d] configurar prazo de leitura: %v", s.ID, err)
+			log.Printf("[#%d] set read deadline: %v", s.ID, err)
 			return
 		}
 		var sizeBytes [2]byte
@@ -250,7 +257,7 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 			if !errors.Is(err, io.EOF) {
 				log.Printf("[#%d] read: %v", s.ID, err)
 			}
-			log.Printf("[#%d] desconectado", s.ID)
+			log.Printf("[#%d] disconnected", s.ID)
 			return
 		}
 		size := int(binary.LittleEndian.Uint16(sizeBytes[:]))
@@ -263,10 +270,9 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 			frameTimeout = defaultFrameReadTimeout
 		}
 		if err := s.conn.SetReadDeadline(time.Now().Add(frameTimeout)); err != nil {
-			// O peer pode fechar logo depois de entregar o frame inteiro (comum em
-			// net.Pipe e shutdown). Ainda tente drenar os bytes ja recebidos; o
-			// ReadFull seguinte encerra normalmente se o corpo estiver incompleto.
-			log.Printf("[#%d] configurar prazo do frame: %v", s.ID, err)
+			// A peer may close after sending a complete frame (net.Pipe or
+			// shutdown). Drain buffered bytes; ReadFull rejects an incomplete body.
+			log.Printf("[#%d] set frame deadline: %v", s.ID, err)
 		}
 		buf := make([]byte, size)
 		copy(buf[:2], sizeBytes[:])
@@ -275,12 +281,12 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 			if !errors.Is(err, io.EOF) {
 				log.Printf("[#%d] read: %v", s.ID, err)
 			}
-			log.Printf("[#%d] desconectado", s.ID)
+			log.Printf("[#%d] disconnected", s.ID)
 			return
 		}
 		checksumOK := wire.Decrypt(buf)
 		if !checksumOK {
-			log.Printf("[#%d] checksum invalido; conexao encerrada", s.ID)
+			log.Printf("[#%d] invalid checksum; connection closed", s.ID)
 			return
 		}
 		now := time.Now()
@@ -290,7 +296,7 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 		packetCount++
 		byteCount += len(buf)
 		if packetCount > packetLimit || byteCount > byteLimit {
-			log.Printf("[#%d] flood de entrada: pacotes=%d bytes=%d/s", s.ID, packetCount, byteCount)
+			log.Printf("[#%d] inbound flood: packets=%d bytes=%d/s", s.ID, packetCount, byteCount)
 			return
 		}
 		handler(s, buf)

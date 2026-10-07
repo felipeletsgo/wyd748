@@ -1,0 +1,79 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.h",
+ "class": "TMFieldScene",
+ "method": "int TMFieldScene::InitializeScene()",
+ "extractions": [
+  {
+   "helper": "BindChatAndHudControls",
+   "from": "m_pChatList = (SListBox*)m_pControlContainer->FindControl(65667);",
+   "until": "m_pCargoCoin = (SText*)m_pControlContainer->FindControl(65689);",
+   "params": []
+  },
+  {
+   "helper": "ApplyCompactScreenLayout",
+   "after": "if (g_pApp->m_dwScreenWidth <= 1024)",
+   "params": [
+    [
+     "SPanel*&",
+     "pPanel1"
+    ],
+    [
+     "SPanel*&",
+     "pTradePanel"
+    ],
+    [
+     "SPanel*&",
+     "pTradePanel1"
+    ],
+    [
+     "SControl*&",
+     "pMyCheckButton"
+    ],
+    [
+     "SControl*&",
+     "pOpCheckButton"
+    ],
+    [
+     "SGridControl* (&)[15]",
+     "pTradeOpGrids"
+    ],
+    [
+     "SGridControl* (&)[15]",
+     "pTradeMyGrids"
+    ],
+    [
+     "SPanel*&",
+     "pShopPanel1"
+    ],
+    [
+     "SPanel*&",
+     "pCargoPanel1"
+    ],
+    [
+     "SPanel*&",
+     "pSkillPanel1"
+    ],
+    [
+     "SPanel*&",
+     "pSkillMPanel1"
+    ],
+    [
+     "SText*&",
+     "pSkillBonus"
+    ]
+   ]
+  },
+  {
+   "helper": "LoadOwnedItemGrids",
+   "from": "for (int nCarryIndex = 0; nCarryIndex < 64; ++nCarryIndex)",
+   "until": "m_pMyHuman->m_stScore = pMobData->CurrentScore;",
+   "params": [
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ]
+   ]
+  }
+ ]
+}

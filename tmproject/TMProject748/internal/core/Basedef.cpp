@@ -216,14 +216,6 @@ int BASE_ReadSkillBin()
 /** Overrides local prices at g_pItemList indexes 412, 413, 419, and 420.
  * Run after table loading so the overrides remain. Does not persist values
  * or change server authority over transactions. */
-void BASE_InitialItemRePrice()
-{
-    g_pItemList[412].nPrice = 4000000;
-    g_pItemList[413].nPrice = 8000000;
-    g_pItemList[419].nPrice = 400000;
-    g_pItemList[420].nPrice = 800000;
-}
-
 /** Computes the legacy sum over p[0..size), alternating by index modulo 7.
  * p is borrowed and read-only, and must cover size bytes when size > 0.
  * Returns 0 for size <= 0. Preserves char/int arithmetic; this is not a secure hash. */
@@ -256,33 +248,6 @@ int BASE_GetSum(char* p, int size)
 /** Legacy-sum variant with a modulo-9 cycle; returns 0 for size <= 0.
  * p is read-only and must cover size bytes when size > 0.
  * Does not replace BASE_GetSum: its factors and complementary division differ. */
-int BASE_GetSum2(char* p, int size)
-{
-    int sum = 0;
-
-    for (int i = 0; i < size; ++i)
-    {
-        int mod = i % 9;
-        if (mod == 0)
-            sum += 2 * p[i];
-        if (mod == 1)
-            sum += p[i] ^ 0xFF;
-        if (mod == 2)
-            sum += p[i] / 3;
-        if (mod == 3)
-            sum += 2 * p[i];
-        if (mod == 4)
-            sum -= p[i] ^ 0x5A;
-        // Complementary division also applies to cases 0..4 and 6..8.
-        if (mod == 5)
-            sum -= p[i];
-        else
-            sum += p[i] / 5;
-    }
-
-    return sum;
-}
-
 /** Delegates loading Strdef_Path into the global message table.
  * Supplies row count and capacity and forwards the loader result without a
  * dialog or a second interpretation of the file. */
@@ -389,7 +354,7 @@ int BASE_InitializeServerList()
 	if (!loaded)
 		return 0;
 
-	char szList[65] = { "¤¡¤¤¤§¤©¤±¤²¤µ¤·¤¸¤º¤»¤¼¤½¤¾¤¿¤Á¤Ã¤Å¤Ç¤Ë¤Ì¤Ð¤Ñ¤Ó¤¿¤Ä¤Ó¤Ç¤Ì°¡³ª´Ù"};
+	char szList[65] = { "\244\241\244\244\244\247\244\251\244\261\244\262\244\265\244\267\244\270\244\272\244\273\244\274\244\275\244\276\244\277\244\301\244\303\244\305\244\307\244\313\244\314\244\320\244\321\244\323\244\277\244\304\244\323\244\307\244\314\260\241\263\252\264\331"}; // CP949 Hangul consonants and syllables, escaped so the bytes do not depend on the build code page.
 	for (int k = 0; k < MAX_SERVERGROUP; k++)
 		for (int j = 0; j < MAX_SERVERNUMBER; j++)
 			for (int i = 0; i < 64; i++)
@@ -416,67 +381,5 @@ int BASE_GetLanguage()
     }
     // The 7.48 client has no Lang.txt; language zero is its implicit default.
     g_nLangIndex = 0;
-    return 1;
-}
-
-int BASE_ReadTOTOList(char* szFileName)
-{
-    if (szFileName == nullptr)
-        return 0;
-
-    FILE* file = nullptr;
-    fopen_s(&file, szFileName, "rt");
-    if (file == nullptr)
-        return 0;
-
-    memset(g_pTOTOList, 0, sizeof(g_pTOTOList));
-    g_nTOTOListCount = 0;
-
-    char line[1024]{};
-    if (fgets(line, sizeof(line), file) == nullptr)
-    {
-        fclose(file);
-        return 0;
-    }
-
-    int declaredCount = 0;
-    if (sscanf_s(line, "%d", &declaredCount) != 1 || declaredCount < 0 || declaredCount > 80)
-    {
-        fclose(file);
-        return 0;
-    }
-
-    g_nTOTOListCount = declaredCount;
-    for (int row = 0; row < declaredCount && fgets(line, sizeof(line), file) != nullptr; ++row)
-    {
-        for (char* cursor = line; *cursor != '\0'; ++cursor)
-        {
-            if (*cursor == ',')
-                *cursor = ' ';
-        }
-
-        int index = -1;
-        STRUCT_TOTOLIST entry{};
-        const int parsedFields = sscanf_s(
-            line,
-            "%d %31s %31s %31s",
-            &index,
-            entry.szTime, static_cast<unsigned int>(_countof(entry.szTime)),
-            entry.szTeamA, static_cast<unsigned int>(_countof(entry.szTeamA)),
-            entry.szTeamB, static_cast<unsigned int>(_countof(entry.szTeamB)));
-        if (parsedFields != 4)
-            continue;
-
-        BASE_UnderBarToSpace(entry.szTime);
-        BASE_UnderBarToSpace(entry.szTeamA);
-        BASE_UnderBarToSpace(entry.szTeamB);
-
-        // The native table names matches 1..80. Keep the public number while
-        // storing it in the complete zero-based array used by the source UI.
-        if (index >= 1 && index <= 80)
-            g_pTOTOList[index - 1] = entry;
-    }
-
-    fclose(file);
     return 1;
 }

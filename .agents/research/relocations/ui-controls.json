@@ -1,44 +1,167 @@
 {
- "revision": "71c4b313",
- "groups": [
-  {
-   "baseline": [
-    "tmproject/TMProject748/internal/ui/SControl.h",
-    "tmproject/TMProject748/internal/ui/SControl.cpp"
-   ],
-   "current": [
-    "tmproject/TMProject748/internal/ui/controls/S3DObj.cpp",
-    "tmproject/TMProject748/internal/ui/controls/S3DObj.h",
-    "tmproject/TMProject748/internal/ui/controls/SButton.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SButton.h",
-    "tmproject/TMProject748/internal/ui/controls/SButtonBox.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SButtonBox.h",
-    "tmproject/TMProject748/internal/ui/controls/SCheckBox.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SCheckBox.h",
-    "tmproject/TMProject748/internal/ui/controls/SControlBase.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SControlBase.h",
-    "tmproject/TMProject748/internal/ui/controls/SCursor.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SCursor.h",
-    "tmproject/TMProject748/internal/ui/controls/SEditableText.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SEditableText.h",
-    "tmproject/TMProject748/internal/ui/controls/SListBox.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SListBox.h",
-    "tmproject/TMProject748/internal/ui/controls/SMessageBox.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SMessageBox.h",
-    "tmproject/TMProject748/internal/ui/controls/SMessagePanel.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SMessagePanel.h",
-    "tmproject/TMProject748/internal/ui/controls/SPanel.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SPanel.h",
-    "tmproject/TMProject748/internal/ui/controls/SProgressBar.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SProgressBar.h",
-    "tmproject/TMProject748/internal/ui/controls/SReelPanel.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SReelPanel.h",
-    "tmproject/TMProject748/internal/ui/controls/SScrollBar.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SScrollBar.h",
-    "tmproject/TMProject748/internal/ui/controls/SText.cpp",
-    "tmproject/TMProject748/internal/ui/controls/SText.h",
-    "tmproject/TMProject748/internal/ui/SControl.h"
-   ]
+  "revision": "71c4b313",
+  "groups": [
+    {
+      "baseline": [
+        "tmproject/TMProject748/internal/ui/SControl.h",
+        "tmproject/TMProject748/internal/ui/SControl.cpp"
+      ],
+      "current": [
+        "tmproject/TMProject748/internal/ui/controls/S3DObj.cpp",
+        "tmproject/TMProject748/internal/ui/controls/S3DObj.h",
+        "tmproject/TMProject748/internal/ui/controls/SButton.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SButton.h",
+        "tmproject/TMProject748/internal/ui/controls/SButtonBox.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SButtonBox.h",
+        "tmproject/TMProject748/internal/ui/controls/SCheckBox.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SCheckBox.h",
+        "tmproject/TMProject748/internal/ui/controls/SControlBase.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SControlBase.h",
+        "tmproject/TMProject748/internal/ui/controls/SCursor.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SCursor.h",
+        "tmproject/TMProject748/internal/ui/controls/SEditableText.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SEditableText.h",
+        "tmproject/TMProject748/internal/ui/controls/SListBox.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SListBox.h",
+        "tmproject/TMProject748/internal/ui/controls/SMessageBox.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SMessageBox.h",
+        "tmproject/TMProject748/internal/ui/controls/SMessagePanel.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SMessagePanel.h",
+        "tmproject/TMProject748/internal/ui/controls/SPanel.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SPanel.h",
+        "tmproject/TMProject748/internal/ui/controls/SProgressBar.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SProgressBar.h",
+        "tmproject/TMProject748/internal/ui/controls/SReelPanel.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SReelPanel.h",
+        "tmproject/TMProject748/internal/ui/controls/SScrollBar.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SScrollBar.h",
+        "tmproject/TMProject748/internal/ui/controls/SText.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SText.h",
+        "tmproject/TMProject748/internal/ui/SControl.h"
+      ],
+      "removed_files": [
+        "tmproject/TMProject748/internal/ui/controls/SButtonBox.cpp",
+        "tmproject/TMProject748/internal/ui/controls/SButtonBox.h"
+      ]
+    }
+  ],
+  "reviewed": {
+    "SEditableText::Update: literal escapes (literal-escape.py --against HEAD: identical objects)": {
+      "method": "void SEditableText :: Update ( )",
+      "before": "f2d7a0f039525404b3d0a4901e0504b44cab16e2f80e20321e35e12282deb9e2",
+      "after": "68c95160354e36276b0cb582dcbce8a7c75500d2b6f703230b3afbeda3bcf279"
+    },
+    "class SControl : public TreeNode: declarations of linker-dead members removed": {
+      "before": "f5c6cffc30a4b7a9474ea30e9f415e4cdf221022cc19a0f8c59954a33f9fdf04",
+      "after": "1de2db22ee3725d45a790cdf2997657794d04189e502814f84d4fa3727b3f1ec"
+    },
+    "class SButtonBox : public SControl: class never constructed, removed": {
+      "before": "0a571f633183d0d3546d461f93e5ca86d29c818e8ab8d4ec9a180dc1d7b1182d",
+      "after": null
+    },
+    "class SCheckBox : public SPanel: declarations of linker-dead members removed": {
+      "before": "d25bc5ff98e4015382758880d8855a9fa1c1576b0f15cdc47e412ade040336a7",
+      "after": "3092cabbea8e063d933c4bb089b4a7e8cc3b5924c41be31f26aa55cc293bf44d"
+    },
+    "class SScrollBar : public SControl , public IEventListener: declarations of linker-dead members removed": {
+      "before": "198f865d031f725af18c47c55abab43e748438095eede8455508c26dc993b485",
+      "after": "a9677a52c7ac036af32583e2b21e923aa6a11299d83277aee4ce501f878e6672"
+    },
+    "class SListBoxBoardItem : public SListBoxItem: class never constructed, removed": {
+      "before": "c265427e5917a34d8b8265ff72508f2d2a9431ab851875196e36c8956532edff",
+      "after": null
+    },
+    "class SListBox : public SPanel , public IEventListener: declarations of linker-dead members removed": {
+      "before": "9d7667b5edfd5433ae41c099294f1c3750388c8705acf3c64a6ae133f66cd613",
+      "after": "31011914a78440539e686a6e6393c5f3a5103639584abcf77859339a9d6c85c4"
+    },
+    "void SControl :: SetAutoSize ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "80422a58c372bfeb103d3ff0467ddd5ba5773224bc30ee029bfdbd161be3f510",
+      "after": null
+    },
+    "void SControl :: SetCenterSize ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "d1847124d67eacd7c0fa89a4489bd7410e4eced965229405a6adb5739f5d3409",
+      "after": null
+    },
+    "void SControl :: SetStickTop ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "4a70c6424b387c4accc9537909ca737d478cd01ed04507432f6a495e2ca78fc4",
+      "after": null
+    },
+    "SButtonBox :: SButtonBox ( float inPosX , float inPosY , float inWidth , float inHeight , int nStartCount , int nEndCount , int nCurrnetPage , int nPrevPage , int nNextPage , int nStartPage , int nEndPage ) : SControl ( inPosX , inPosY , in: unreachable at link time (dead-code-map.md), removed": {
+      "before": "e15820246bed8de2af346726ab3807aef4e9d3a54eec1c02988fb07cfe35d997",
+      "after": null
+    },
+    "SButtonBox :: ~ SButtonBox ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "9693be7d0b0e63e74be4484f45e66cd527255eca0b33903d5b0852f56f305a2a",
+      "after": null
+    },
+    "void SButtonBox :: SetEventListener ( IEventListener * ipEventListener ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "d3082abcdee1b4b377af5f565590612cf4b75ee2930af700af9691d04a0cd11d",
+      "after": null
+    },
+    "void SButtonBox :: SetButtonBox ( int nStartCount , int nEndCount , int nCurrnetPage , int nPrevPage , int nNextPage , int nStartPage , int nEndPage ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "e61d97f9d44e399d38e6f6ab4919391b77bee6bb02ba577d34b00ed4c45d166b",
+      "after": null
+    },
+    "void SCheckBox :: SetValue ( int ibValue ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "6bf7b089f59bffb6fb6eb359bad93493779f30d4ec674ebad93e2e60067e20a6",
+      "after": null
+    },
+    "int SCheckBox :: GetValue ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "c182eb0ab88be2704c6323eb2921485fb3b0cfae74047845e6c94a78591ddfd6",
+      "after": null
+    },
+    "void SScrollBar :: upbarSetPos ( float x , float y ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "8b7c036e38f4fc879a964b723dbab57e2ffafd21128821bfcb7b9736b222dc22",
+      "after": null
+    },
+    "void SScrollBar :: downbarSetPos ( float x , float y ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "dcb92378033756ab2569ab54618df028e6eee7844963abc0fded699532ae860c",
+      "after": null
+    },
+    "void SScrollBar :: upbarSetsize ( float x , float y ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "d87f94d865cecadd3bab38b66adccf98a4fca2ee3146434a12c7bc9a2f57c7d0",
+      "after": null
+    },
+    "void SScrollBar :: downbarSetsize ( float x , float y ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "f203e5dfc3a52a2c10a3decbd76be9e490d3f4e10c67c264bda2924ab7e20116",
+      "after": null
+    },
+    "void SScrollBar :: upbarSetvisible ( bool bSet ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "8e13fcb8e3870fb332fb7693f82cb18dbc77d858c70723cf5cdd0b9dcf09eb0d",
+      "after": null
+    },
+    "void SScrollBar :: downbarSetvisible ( bool bSet ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "66a9e3687751d51e9a3f7772f18fad4c5fc470608756e75b32c6eb8adbe7fc3d",
+      "after": null
+    },
+    "void SScrollBar :: scrollbarSetvisible ( bool bSet ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "2fded011075abd5d9a1a274b3d63b48a3f71c515d18f34be758677c90a181567",
+      "after": null
+    },
+    "void SScrollBar :: scrollbarbackSetvisible ( bool bSet ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "ebeb1a438bfb566af0df14f5082f4f68913830323fa41569c300460cb9c95448",
+      "after": null
+    },
+    "SListBoxBoardItem :: SListBoxBoardItem ( char * szIndex , char * szVIndex , char * szTitle , char * szWriter , char * szCount , char * szDate , unsigned int dwColor , int bTitile ) : SListBoxItem ( szVIndex , 0xFFFFFFFF , 0 . 0f , 0 . 0f , : unreachable at link time (dead-code-map.md), removed": {
+      "before": "750a426c36712f795ed224573e49688f16cc4bf09064a2efaac83e1c95aafc39",
+      "after": null
+    },
+    "SListBoxBoardItem :: ~ SListBoxBoardItem ( ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "5d8cac88879baaa7ff1768d758d4a0163c4b4e5b842724f07629086e748e5167",
+      "after": null
+    },
+    "void SListBoxBoardItem :: FrameMove2 ( stGeomList * pDrawList , TMVector2 ivItemPos , int inParentLayer , int nFlag ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "519d7e2a0981cffa8e044f65e165bd34917df8f39cf486c6f717f164758233d9",
+      "after": null
+    },
+    "void SListBoxBoardItem :: SetPos ( float nPosX , float nPosY ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "e300a32b889672806a5719a3857799ab2b42f43d86c9ef916b83a6e14ee83bab",
+      "after": null
+    },
+    "void SListBox :: SetPickSize ( float nWidth , float nHeight ): unreachable at link time (dead-code-map.md), removed": {
+      "before": "e40ad6ee2304bd1423785fb4faad5c7c57ef321abf978a88048f863205561428",
+      "after": null
+    }
   }
- ]
 }

@@ -274,30 +274,9 @@ int BASE_GetVillage(int x, int y)
     return MAX_GUILDZONE;
 }
 
-char BASE_GetAttribute(int x, int y)
-{
-    if (x >= 0 && x <= 4096 && y >= 0 && x <= 4096)
-        return g_pAttribute[y / 4 & 1023][x / 4 & 1023];
-
-    return 0;
-}
-
 char BASE_GetAttr(int nX, int nY)
 {
     return g_pAttribute[nY / 4 % 1024][nX / 4 % 1024];
-}
-
-int BASE_IsInLowZone(int nX, int nY)
-{
-    int nX4 = nX / 4;
-    int nY4 = nY / 4;
-    if (nY / 4 < 1024 && nX4 < 1024 && nY4 >= 0 && nX4 >= 0)
-        return g_pAttribute[nY4][nX4] < 0;
-
-    LOG_WRITELOG("\nWrong Position [X:%d Y:%d]\n");
-    MessageBox(g_pApp->m_hWnd, "Wrong Character Information.", "Error", MB_SYSTEMMODAL);
-    PostMessage(g_pApp->m_hWnd, 16, 0, 0);
-    return 0;
 }
 
 void BASE_GetHitPosition(int sx, int sy, int* tx, int* ty, char* pHeight, int MH)

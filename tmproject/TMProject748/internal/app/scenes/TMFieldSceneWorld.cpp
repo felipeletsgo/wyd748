@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "WeatherPacket.h"
 #include "TMFieldScene.h"
 #include "FieldSceneWorldSupport.h"
 #include "SGrid.h"
@@ -156,250 +157,88 @@ void TMFieldScene::SetVisibleMiniMap()
 
 	SGridControl::m_sLastMouseOverIndex = -1;
 
-	if (m_bCompatFieldScene)
+	// Follow the native layout matching the loaded graph, not the INI flag.
+	SPanel* pMiniMapBorder = static_cast<SPanel*>(m_pControlContainer->FindControl(290));
+	const bool wasVisible = m_pMiniMapPanel->m_bVisible != 0;
+	const bool ui2 = m_pMiniMapZoomIn != nullptr;
+	const auto layout = mini_map_layout::Next(wasVisible, TMGround::m_fMiniMapScale, ui2,
+		static_cast<float>(g_pDevice->m_dwScreenWidth), static_cast<float>(g_pDevice->m_dwScreenHeight));
+	for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
 	{
-		// Follow the native layout matching the loaded graph, not the INI flag.
-		SPanel* pMiniMapBorder = static_cast<SPanel*>(m_pControlContainer->FindControl(290));
-		const bool wasVisible = m_pMiniMapPanel->m_bVisible != 0;
-		const bool ui2 = m_pMiniMapZoomIn != nullptr;
-		const auto layout = mini_map_layout::Next(wasVisible, TMGround::m_fMiniMapScale, ui2,
-			static_cast<float>(g_pDevice->m_dwScreenWidth), static_cast<float>(g_pDevice->m_dwScreenHeight));
-		for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
-		{
-			if (m_pInMiniMapPosPanel[markerIndex])
-				m_pInMiniMapPosPanel[markerIndex]->SetVisible(0);
-			if (m_pInMiniMapPosText[markerIndex])
-				m_pInMiniMapPosText[markerIndex]->SetVisible(0);
-		}
-
-		TMGround::m_fMiniMapScale = layout.scale;
-		m_pMiniMapPanel->SetPos(layout.x, layout.y);
-		m_pMiniMapPanel->SetSize(layout.size, layout.size);
-		m_pMiniMapPanel->SetVisible(layout.visible);
-		if (pMiniMapBorder)
-		{
-			pMiniMapBorder->SetPos(ui2 ? 0.0f : -4.0f, ui2 ? 0.0f : -4.0f);
-			pMiniMapBorder->SetSize(layout.size + (ui2 ? 0.0f : 8.0f), layout.size + (ui2 ? 0.0f : 8.0f));
-			pMiniMapBorder->SetVisible(layout.visible && (!ui2 || !layout.expanded));
-		}
-		// UI2 has eight separate frame pieces, not a scalable root border.
-		const float edge = 8.0f;
-		const float last = layout.size - edge;
-		const float middle = layout.size - 2.0f * edge;
-		const float frame[8][4] = {
-			{0, 0, edge, edge}, {edge, 0, middle, edge}, {last, 0, edge, edge},
-			{0, edge, edge, middle}, {last, edge, edge, middle},
-			{0, last, edge, edge}, {edge, last, middle, edge}, {last, last, edge, edge}};
-		for (int i = 0; i < 8; ++i)
-		{
-			if (auto part = m_pControlContainer->FindControl(5705 + i))
-			{
-				part->SetPos(frame[i][0], frame[i][1]);
-				part->SetSize(frame[i][2], frame[i][3]);
-				part->SetVisible(layout.visible && layout.expanded);
-			}
-		}
-		if (auto bottom = m_pControlContainer->FindControl(5713))
-		{
-			bottom->SetPos(0, layout.size);
-			bottom->SetSize(layout.size, 16.0f);
-			bottom->SetVisible(layout.visible && !layout.expanded);
-		}
-		// Do not show the resource's placeholder server label in the compact HUD.
-		if (m_pMiniMapServerPanel)
-			m_pMiniMapServerPanel->SetVisible(0);
-		// The compact header is a separate child and must not cover the expanded map.
-		if (auto header = m_pControlContainer->FindControl(12841u))
-			header->SetVisible(layout.visible && !layout.expanded);
-		if (m_pMiniMapZoomIn)
-		{
-			m_pMiniMapZoomIn->SetPos(layout.size - 19.0f, -18.0f);
-			m_pMiniMapZoomIn->SetSize(13.0f, 13.0f);
-			m_pMiniMapZoomIn->SetVisible(layout.visible && !layout.expanded);
-		}
-		if (m_pMiniMapZoomOut)
-		{
-			m_pMiniMapZoomOut->SetPos(layout.size - 40.0f, 0);
-			m_pMiniMapZoomOut->SetSize(40.0f, 38.0f);
-			m_pMiniMapZoomOut->SetVisible(layout.visible && layout.expanded);
-		}
-		if (m_pMiniMapDir)
-			m_pMiniMapDir->SetPos(layout.size * 0.5f - m_pMiniMapDir->m_nWidth * 0.5f,
-				layout.size * 0.5f - m_pMiniMapDir->m_nHeight * 0.5f);
-		if (m_pPositionText)
-		{
-			m_pPositionText->SetPos(0, layout.size + 2.0f);
-			m_pPositionText->SetSize(layout.size, 20.0f);
-			m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
-		}
-
-		const bool isVisible = m_pMiniMapPanel->m_bVisible != 0;
-		if (isVisible && m_pGround)
-			m_pGround->RestoreDeviceObjects();
-		if (auto pMiniMapButton = static_cast<SButton*>(m_pControlContainer->FindControl(296)))
-			pMiniMapButton->SetSelected(isVisible ? 1 : 0);
-		if (m_pPositionText)
-			m_pPositionText->SetVisible(isVisible ? 1 : 0);
-		if (g_pSoundManager)
-		{
-			if (auto pSoundData = g_pSoundManager->GetSoundData(51))
-				pSoundData->Play(0, 0);
-		}
-		return;
+		if (m_pInMiniMapPosPanel[markerIndex])
+			m_pInMiniMapPosPanel[markerIndex]->SetVisible(0);
+		if (m_pInMiniMapPosText[markerIndex])
+			m_pInMiniMapPosText[markerIndex]->SetVisible(0);
 	}
 
-	int bVisible = m_pMiniMapPanel->m_bVisible;
-
-	if (bVisible)
+	TMGround::m_fMiniMapScale = layout.scale;
+	m_pMiniMapPanel->SetPos(layout.x, layout.y);
+	m_pMiniMapPanel->SetSize(layout.size, layout.size);
+	m_pMiniMapPanel->SetVisible(layout.visible);
+	if (pMiniMapBorder)
 	{
-		for (int j = 0; j < 256; ++j)
+		pMiniMapBorder->SetPos(ui2 ? 0.0f : -4.0f, ui2 ? 0.0f : -4.0f);
+		pMiniMapBorder->SetSize(layout.size + (ui2 ? 0.0f : 8.0f), layout.size + (ui2 ? 0.0f : 8.0f));
+		pMiniMapBorder->SetVisible(layout.visible && (!ui2 || !layout.expanded));
+	}
+	// UI2 has eight separate frame pieces, not a scalable root border.
+	const float edge = 8.0f;
+	const float last = layout.size - edge;
+	const float middle = layout.size - 2.0f * edge;
+	const float frame[8][4] = {
+		{0, 0, edge, edge}, {edge, 0, middle, edge}, {last, 0, edge, edge},
+		{0, edge, edge, middle}, {last, edge, edge, middle},
+		{0, last, edge, edge}, {edge, last, middle, edge}, {last, last, edge, edge}};
+	for (int i = 0; i < 8; ++i)
+	{
+		if (auto part = m_pControlContainer->FindControl(5705 + i))
 		{
-			m_pInMiniMapPosPanel[j]->SetVisible(0);
-			m_pInMiniMapPosText[j]->SetVisible(0);
+			part->SetPos(frame[i][0], frame[i][1]);
+			part->SetSize(frame[i][2], frame[i][3]);
+			part->SetVisible(layout.visible && layout.expanded);
 		}
 	}
-	else
+	// Do not show the resource's placeholder server label in the compact HUD.
+	if (m_pMiniMapServerPanel)
+		m_pMiniMapServerPanel->SetVisible(0);
+	// The compact header is a separate child and must not cover the expanded map.
+	if (auto header = m_pControlContainer->FindControl(12841u))
+		header->SetVisible(layout.visible && !layout.expanded);
+	if (m_pMiniMapZoomIn)
 	{
-		for (int i = 0; i < 256; ++i)
-		{
-			m_pInMiniMapPosPanel[i]->SetVisible(0);
-			m_pInMiniMapPosText[i]->SetVisible(0);
-		}
+		m_pMiniMapZoomIn->SetPos(layout.size - 19.0f, -18.0f);
+		m_pMiniMapZoomIn->SetSize(13.0f, 13.0f);
+		m_pMiniMapZoomIn->SetVisible(layout.visible && !layout.expanded);
+	}
+	if (m_pMiniMapZoomOut)
+	{
+		m_pMiniMapZoomOut->SetPos(layout.size - 40.0f, 0);
+		m_pMiniMapZoomOut->SetSize(40.0f, 38.0f);
+		m_pMiniMapZoomOut->SetVisible(layout.visible && layout.expanded);
+	}
+	if (m_pMiniMapDir)
+		m_pMiniMapDir->SetPos(layout.size * 0.5f - m_pMiniMapDir->m_nWidth * 0.5f,
+			layout.size * 0.5f - m_pMiniMapDir->m_nHeight * 0.5f);
+	if (m_pPositionText)
+	{
+		m_pPositionText->SetPos(0, layout.size + 2.0f);
+		m_pPositionText->SetSize(layout.size, 20.0f);
+		m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
 	}
 
-	if (bVisible == 1)
-	{
-		auto pBGPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12841u));
-
-		if (pBGPanel)
-			pBGPanel->SetVisible(0);
-
-		if (m_pMiniMapServerPanel)
-			m_pMiniMapServerPanel->SetVisible(0);
-
-		if (m_pMiniMapZoomOut)
-			m_pMiniMapZoomOut->SetVisible(1);
-
-		if (m_pMiniMapZoomIn)
-			m_pMiniMapZoomIn->SetVisible(0);
-
-		if (TMGround::m_fMiniMapScale >= 1.0f)
-		{
-			if (m_pMiniMapPanel)
-			{
-				m_pMiniMapPanel->SetPos((float)g_pDevice->m_dwScreenWidth - m_pMiniMapPanel->m_nWidth, 0);
-				m_pMiniMapPanel->SetVisible(0);
-			}
-		}
-		else
-		{
-			TMGround::m_fMiniMapScale = 1.5f;
-
-			float fHeight = BASE_ScreenResize(400.0f);
-
-			if (m_pMiniMapPanel)
-			{
-				m_pMiniMapPanel->SetSize(fHeight, fHeight);
-
-				m_pMiniMapPanel->SetPos(
-					((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pMiniMapPanel->m_nWidth * 0.5f),
-					(((float)g_pDevice->m_dwScreenHeight * 0.5f) - (m_pMiniMapPanel->m_nHeight * 0.5f)) - 15.0f);
-			}
-
-			if (m_pMiniMapDir)
-				m_pMiniMapDir->SetPos(fHeight * 0.5f, fHeight * 0.5f);
-
-			if (m_pPositionText)
-				m_pPositionText->SetPos(10.0f, 0);
-
-			if (m_pMiniMapZoomIn)
-				m_pMiniMapZoomIn->SetPos(fHeight - 134.0f, fHeight + 5.0f);
-
-			if (m_pMiniMapZoomOut)
-				m_pMiniMapZoomOut->SetPos(fHeight - 40.0f, 0);
-
-			if (m_pMiniMapServerPanel)
-				m_pMiniMapServerPanel->SetPos(fHeight - 274.0f, fHeight);
-
-			if (m_pMiniMapZoomIn)
-				m_pMiniMapZoomIn->m_bSelected = 1;
-
-			if (m_pMiniMapZoomOut)
-				m_pMiniMapZoomOut->m_bSelected = 0;
-		}
-	}
-	else
-	{
-		TMGround::m_fMiniMapScale = 0.60000002f;
-
-		auto pBGPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12841u));
-
-		if (pBGPanel)
-			pBGPanel->SetVisible(1);
-
-		if (m_pMiniMapZoomOut)
-			m_pMiniMapZoomOut->SetVisible(0);
-
-		if (m_pMiniMapZoomIn)
-		{
-			m_pMiniMapZoomIn->SetVisible(1);
-
-			m_pMiniMapZoomIn->SetPos(BASE_ScreenResize(118.0f), -BASE_ScreenResize(18.0f));
-		}
-
-		if (m_pMiniMapPanel)
-		{
-			m_pMiniMapPanel->SetSize(BASE_ScreenResize(137.0f), BASE_ScreenResize(137.0f));
-
-			m_pMiniMapPanel->SetPos(((float)g_pDevice->m_dwScreenWidth - m_pMiniMapPanel->m_nWidth) - 2.0f, 33.0f);
-		}
-
-		m_pMiniMapServerPanel->SetVisible(1);
-
-		if (m_pMiniMapServerPanel)
-		{
-			m_pMiniMapServerPanel->SetPos(0, BASE_ScreenResize(130.0f));
-		}
-
-		if (m_pMiniMapPanel)
-			m_pMiniMapPanel->SetVisible(bVisible == 0);
-
-		if (m_pMiniMapDir)
-		{
-			m_pMiniMapDir->SetPos(BASE_ScreenResize(68.0f), BASE_ScreenResize(68.0f));
-		}
-
-		if (m_pPositionText)
-		{
-			m_pPositionText->SetPos(BASE_ScreenResize(13.0f), BASE_ScreenResize(120.0f));
-		}
-
-		if (m_pMiniMapZoomIn && m_pMiniMapZoomOut)
-		{
-			m_pMiniMapZoomOut->SetPos(BASE_ScreenResize(119.0f), BASE_ScreenResize(142.0f));
-			m_pMiniMapZoomOut->m_bSelected = 1;
-		}
-	}
-
-	bVisible = m_pMiniMapPanel->m_bVisible;
-
-	if (bVisible == 1 && m_pGround)
+	const bool isVisible = m_pMiniMapPanel->m_bVisible != 0;
+	if (isVisible && m_pGround)
 		m_pGround->RestoreDeviceObjects();
-
-	auto pBtnMinimap = static_cast<SButton*>(m_pControlContainer->FindControl(296u));
-
-	if (pBtnMinimap)
-		pBtnMinimap->SetSelected(m_pMiniMapPanel->m_bVisible);
-
-	m_pPositionText->SetVisible(bVisible);
-
+	if (auto pMiniMapButton = static_cast<SButton*>(m_pControlContainer->FindControl(296)))
+		pMiniMapButton->SetSelected(isVisible ? 1 : 0);
+	if (m_pPositionText)
+		m_pPositionText->SetVisible(isVisible ? 1 : 0);
 	if (g_pSoundManager)
 	{
-		auto pSoundData = g_pSoundManager->GetSoundData(51);
-
-		if (pSoundData)
+		if (auto pSoundData = g_pSoundManager->GetSoundData(51))
 			pSoundData->Play(0, 0);
 	}
+	return;
 }
 
 void TMFieldScene::SetCameraView()
@@ -507,7 +346,9 @@ void TMFieldScene::SetVisibleNameLabel()
 
 void TMFieldScene::SetWeather(int nWeather)
 {
-	g_nWeather = nWeather;
+	// Record the server weather even while a BerialGuard aura overrides it.
+	m_berielAura.SetServer(nWeather);
+	g_nWeather = m_berielAura.Effective();
 
 	if (((int)m_pMyHuman->m_vecPosition.x >> 7 == 29 ||
 		(int)m_pMyHuman->m_vecPosition.x >> 7 == 30) &&
@@ -556,25 +397,6 @@ void TMFieldScene::SetWeather(int nWeather)
 	}
 }
 
-void TMFieldScene::SetVisibleKhepraPortal(bool bVisible)
-{
-	if (m_pKhepraPortal && m_pKhepraPortalEff1 && m_pKhepraPortalEff2)
-	{
-		if (bVisible == 1)
-		{
-			m_pKhepraPortal->m_fHeight = -8.3000002f;
-			m_pKhepraPortalEff1->m_vecPosition.y = -4.73f;
-			m_pKhepraPortalEff2->m_vecPosition.y = -7.8000002f;
-		}
-		else
-		{
-			m_pKhepraPortal->m_fHeight = -20.0f;
-			m_pKhepraPortalEff1->m_vecPosition.y = -20.0f;
-			m_pKhepraPortalEff2->m_vecPosition.y = -20.0f;
-		}
-	}
-}
-
 int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 {
 	// The compact 7.48 field path materializes only renderable entities.  The
@@ -585,15 +407,18 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 		return 1;
 
 	auto pCreateMob = reinterpret_cast<MSG_CreateMob*>(pStd);
-	if (pCreateMob->MobID == g_pObjectManager->m_dwCharID)
+	auto pExisting = pCreateMob->MobID == g_pObjectManager->m_dwCharID
+		? m_pMyHuman : g_pObjectManager->GetHumanByID(pCreateMob->MobID);
+	if (pExisting)
 	{
-		// The authoritative self was built from the 0x114 MOB before this packet;
-		// creating a second TMHuman would duplicate labels and skin resources.
+		// A CP refresh must not respawn the entity or interrupt movement.
+		if (pCreateMob->MobID < 1000)
+			pExisting->m_ucChaosLevel = static_cast<unsigned char>(pCreateMob->MobName[12]);
+		pExisting->UpdateNameColor748();
 		return 1;
 	}
-
-	if (g_pObjectManager->GetHumanByID(pCreateMob->MobID))
-		return 1;
+	if (pCreateMob->MobID == g_pObjectManager->m_dwCharID)
+		return 1; // Login owns the authoritative self's lifetime.
 
 	auto pHuman = new TMHuman(this);
 	if (!pHuman)
@@ -604,10 +429,12 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	pHuman->m_citizen = pCreateMob->Server;
 	pHuman->m_nCurrentKill = 0;
 	pHuman->m_nTotalKill = 0;
-	pHuman->m_ucChaosLevel = 75;
+	pHuman->m_ucChaosLevel = pCreateMob->MobID < 1000
+		? static_cast<unsigned char>(pCreateMob->MobName[12]) : 75;
 	pCreateMob->MobName[15] = 0;
 	pCreateMob->Nick[25] = 0;
-	sprintf_s(pHuman->m_szName, "%s", pCreateMob->MobName);
+	// Byte 12 carries player CP, not a name character. NPC names retain 15 bytes.
+	strncpy_s(pHuman->m_szName, pCreateMob->MobName, pCreateMob->MobID < 1000 ? 12 : 15);
 	sprintf_s(pHuman->m_szNickName, "%s", pCreateMob->Nick);
 
 	// Equipment and affects are copied before InitObject because the skin
@@ -672,699 +499,11 @@ int TMFieldScene::OnPacketSoundEffect(MSG_STANDARDPARM* pStd)
 	return 1;
 }
 
-int TMFieldScene::OnPacketCreateMob(MSG_STANDARD* pStd)
-{
-	if (m_pHumanContainer == nullptr)
-		return 1;
-
-	auto pCreateMob = (MSG_CreateMob*)pStd;
-	auto pCreateMobTrade = (MSG_CreateMobTrade*)pStd;
-
-	auto pNode = (TMHuman*)g_pObjectManager->GetHumanByID(pCreateMob->MobID);
-
-	std::string qwe{ pCreateMob->MobName };
-
-	STRUCT_AFFECT tempAffect[32]{};
-
-	TMHuman* pHuman = nullptr;
-	if (pCreateMob->MobID == m_pMyHuman->m_dwID)
-	{
-		for (int l = 0; l < 32; ++l)
-			memcpy(&tempAffect[l], &m_pMyHuman->m_stAffect[l], sizeof(STRUCT_AFFECT));
-
-		g_nTempArray[2] = (int)&m_pMyHuman->m_vecPosition;
-		g_nTempArray2[2] = (int)&m_pMyHuman->m_vecPosition;
-		if (!m_stMoveStop.NextX)
-		{
-			m_stMoveStop.NextX = pCreateMob->PosX;
-			m_stMoveStop.NextY = pCreateMob->PosY;
-		}
-	}
-	if (pStd->Type == MSG_CreateMobTrade_Opcode && pCreateMobTrade->Desc[0])
-	{
-		int len = strlen(pCreateMobTrade->Desc);
-		if (len > 0)
-		{
-			for (int i = 1; i < MAX_EQUIPITEM; ++i)
-			{
-				pCreateMob->Equip[i] &= 0xFFF;
-				pCreateMob->Equip2[i] = 0;
-			}
-
-			for (int i = 1; i < 32; ++i)
-				pCreateMob->Affect[i] = 0;
-
-			pCreateMob->Equip[0] = 230;
-			pCreateMob->Equip[6] = 0;
-			pCreateMob->Equip[7] = 0;
-			pCreateMob->Equip[14] = 0;
-			pCreateMob->Score.Con = 15000;
-		}
-	}
-	if (!pNode)
-	{
-		pHuman = new TMHuman(this);
-		if (pHuman == nullptr)
-			return 1;
-
-		pHuman->m_dwID = pCreateMob->MobID;
-		pHuman->m_usGuild = pCreateMob->Guild;
-
-		if (pCreateMob->MobID > 0 && pCreateMob->MobID < 1000)
-		{
-			char cCurrent = pCreateMob->MobName[13];
-			short* sTotal = (short*)&pCreateMob->MobName[14];
-			pHuman->m_nCurrentKill = (unsigned char)cCurrent;
-			pHuman->m_nTotalKill = *sTotal;
-			pHuman->m_ucChaosLevel = pCreateMob->MobName[12];
-			pCreateMob->MobName[12] = 0;
-			pCreateMob->MobName[15] = 0;
-			pCreateMob->Nick[25] = 0;
-			sprintf(pHuman->m_szName, "%s", pCreateMob->MobName);
-			sprintf(pHuman->m_szNickName, "%s", pCreateMob->Nick);
-			pHuman->m_citizen = pCreateMob->Server;
-		}
-		else
-		{
-			pHuman->m_nCurrentKill = 0;
-			pHuman->m_nTotalKill = 0;
-			pHuman->m_ucChaosLevel = 75;
-			pCreateMob->MobName[15] = 0;
-			pCreateMob->Nick[25] = 0;
-			sprintf(pHuman->m_szName, "%s", pCreateMob->MobName);
-			sprintf(pHuman->m_szNickName, "%s", pCreateMob->Nick);
-			pHuman->m_citizen = 0;
-		}
-
-		memcpy(pHuman->m_usAffect, pCreateMob->Affect, sizeof(pHuman->m_usAffect));
-
-		pHuman->SetPacketEquipItem(pCreateMob->Equip);
-
-		// CreateMob carries imported KR mounts in the full slot-14 word. Keep the
-		// legacy Equip2 selector only when that full ID was not handled.
-		if (!pHuman->SetImportedMountCostume(pCreateMob->Equip[14])
-			&& (pCreateMob->Equip[14] & 0xFFF) && pCreateMob->Equip2[14] &&
-			((pCreateMob->Equip2[14] & 0xFFF)< 3980 || (pCreateMob->Equip2[14] & 0xFFF) >= 3999))
-		{
-			pHuman->SetMountCostume((unsigned char)pCreateMob->Equip2[14]);
-		}
-
-		pHuman->SetColorItem(pCreateMob->Equip2);
-		pHuman->m_fMaxSpeed = 2.0f;
-
-		memcpy(&pHuman->m_stScore, &pCreateMob->Score, sizeof(pHuman->m_stScore));
-
-		float fCon = (float)pHuman->m_stScore.Con;
-		pHuman->SetCharHeight(fCon);
-		if (pCreateMob->Equip[0] < 40)
-			pHuman->m_fScale = pHuman->m_fScale * 0.89999998f;
-
-		pHuman->SetRace(pCreateMob->Equip[0] & 0xFFF);
-
-		STRUCT_ITEM tepFace{};
-		memcpy(&tepFace, &pCreateMob->Equip[0], sizeof(tepFace));
-		tepFace.sIndex = pCreateMob->Equip[0];
-
-		STRUCT_ITEM itemL{};
-		itemL.sIndex = pCreateMob->Equip[6] & 0xFFF;
-		int nWeaponTypeL = BASE_GetItemAbility(&itemL, 21);
-
-		if (nWeaponTypeL == 41)
-		{
-			pHuman->m_stLookInfo.RightMesh = pHuman->m_stLookInfo.LeftMesh;
-			pHuman->m_stLookInfo.RightSkin = pHuman->m_stLookInfo.LeftSkin;
-			pHuman->m_stSancInfo.Sanc6 = pHuman->m_stSancInfo.Sanc7;
-			pHuman->m_stSancInfo.Legend6 = pHuman->m_stSancInfo.Legend7;
-		}
-
-		pHuman->InitObject();
-
-		if (pHuman == m_pMyHuman)
-		{
-			for (int k = 0; k < 32; ++k)
-				memcpy(&m_pMyHuman->m_stAffect[k], &tempAffect[k], sizeof(STRUCT_AFFECT));
-		}
-
-		pHuman->CheckAffect();
-		pHuman->CheckWeapon(pCreateMob->Equip[6] & 0xFFF, pCreateMob->Equip[7] & 0xFFF);
-
-		pHuman->m_sGuildLevel = (unsigned char)pCreateMob->GuildLevel;
-		unsigned short usGuild = pCreateMob->Guild;
-
-		if (usGuild)
-		{
-			int nSubGuild = BASE_GetSubGuild(pHuman->m_sGuildLevel);
-			pHuman->m_stGuildMark.nGuild = usGuild & 0xFFF;
-			pHuman->m_stGuildMark.nSubGuild = nSubGuild;
-			pHuman->m_stGuildMark.nGuildChannel = ((signed int)usGuild >> 12) & 0xF;
-
-			switch (pHuman->m_sGuildLevel)
-			{
-			case 0:
-				pHuman->m_stGuildMark.sGuildIndex = 508;
-				break;
-			case 1:
-				pHuman->m_stGuildMark.sGuildIndex = 535;
-				break;
-			case 2:
-				pHuman->m_stGuildMark.sGuildIndex = 508;
-				break;
-			case 3:
-				pHuman->m_stGuildMark.sGuildIndex = 526;
-				break;
-			case 4:
-				pHuman->m_stGuildMark.sGuildIndex = 527;
-				break;
-			case 5:
-				pHuman->m_stGuildMark.sGuildIndex = 528;
-				break;
-			case 6:
-				pHuman->m_stGuildMark.sGuildIndex = 529;
-				break;
-			case 7:
-				pHuman->m_stGuildMark.sGuildIndex = 530;
-				break;
-			case 8:
-				pHuman->m_stGuildMark.sGuildIndex = 531;
-				break;
-			case 9:
-				pHuman->m_stGuildMark.sGuildIndex = 509;
-				break;
-			}
-
-			if (pStd->Type != MSG_CreateMobTrade_Opcode && !pHuman->m_pAutoTradeDesc->IsVisible())
-				Guildmark_Create(&pHuman->m_stGuildMark);
-		}
-
-		float fAngle = 0.0f;
-		unsigned char nDir = ((unsigned char)pHuman->m_stScore.Merchant >> 4);
-		if (nDir == 6)
-			fAngle = D3DXToRadian(180);
-		if (nDir == 9)
-			fAngle = D3DXToRadian(135);
-		if (nDir == 8)
-			fAngle = D3DXToRadian(90);
-		if (nDir == 7)
-			fAngle = D3DXToRadian(45);
-		if (nDir == 4)
-			fAngle = D3DXToRadian(0);
-		if (nDir == 1)
-			fAngle = D3DXToRadian(315);
-		if (nDir == 2)
-			fAngle = D3DXToRadian(270);
-		if (nDir == 3)
-			fAngle = D3DXToRadian(225);
-
-		pHuman->InitAngle(0.0f, fAngle, 0.0f);
-
-		TMVector2 vecPosition{ (float)pCreateMob->PosX + 0.5f, (float)pCreateMob->PosY + 0.5f };
-
-		pHuman->InitPosition(vecPosition.x, GroundGetMask(vecPosition) * 0.1f, vecPosition.y);
-
-		pHuman->m_cHide = (pHuman->m_dwID >= 0 && pHuman->m_dwID < 1000) && pHuman->m_stScore.Merchant & 1;
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && (pHuman->IsMerchant() || (pHuman->m_stScore.Merchant & 0xF) == 15))
-			pHuman->m_pNameLabel->SetTextColor(0xFFAAFFAA);
-
-		int nItemCode = pCreateMob->Equip[13] & 0xFFF;
-		int nHP = 0;
-		if (nItemCode == 786 || nItemCode == 1936 || nItemCode == 1937)
-		{
-			int nHp = 0;
-			int nSanc = (int)pCreateMob->Equip[13] >> 12;
-			if (nSanc < 2)
-				nSanc = 2;
-			if (nItemCode == 1936)
-			{
-				nSanc *= 10;
-			}
-			else if (nItemCode == 1937)
-			{
-				nSanc *= 1000;
-			}
-
-			// The canonical Score renamed the ambiguous Hp member to CurHP.
-			int tmp = pCreateMob->Score.CurHP * nSanc;
-			if (tmp > 2000000000)
-				tmp = 2000000000;
-
-			pHuman->m_BigHp = tmp;
-			tmp = pCreateMob->Score.MaxHP * nSanc;
-			if (tmp > 2000000000)
-				tmp = 2000000000;
-			pHuman->m_MaxBigHp = tmp;
-			pHuman->m_usHP = pHuman->m_MaxBigHp;
-		}
-
-		if (pHuman->m_nClass == 56 && !pHuman->m_stLookInfo.FaceMesh)
-			m_dwKhepraID = pHuman->m_dwID;
-
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) &&
-			(int)vecPosition.x >> 7 >= 28 && (int)vecPosition.x >> 7 <= 30 &&
-			(int)vecPosition.y >> 7 >= 27 && (int)vecPosition.y >> 7 <= 28)
-		{
-			pHuman->SetInMiniMap(0xAAFF0000);
-		}
-
-		m_pHumanContainer->AddChild(pHuman);
-	}
-	else if (pNode->m_nWillDie)
-	{
-		unsigned int dwOldMoveTime = pNode->m_dwOldMovePacketTime;
-		pNode->m_nWillDie = -1;
-		pNode->m_dwDeadTime = 0;
-
-		pHuman = pNode;
-		pHuman->Init();
-
-		pHuman->m_dwID = pCreateMob->MobID;
-		pHuman->m_usGuild = pCreateMob->Guild;
-
-		if (pCreateMob->MobID > 0 && pCreateMob->MobID < 1000)
-		{
-			char cCurrent = pCreateMob->MobName[13];
-			short* sTotal = (short*)&pCreateMob->MobName[14];
-			pHuman->m_nCurrentKill = (unsigned char)cCurrent;
-			pHuman->m_nTotalKill = *sTotal;
-			pHuman->m_ucChaosLevel = pCreateMob->MobName[12];
-			pCreateMob->MobName[12] = 0;
-			pCreateMob->MobName[15] = 0;
-			pCreateMob->MobName[14] = 0;
-			sprintf(pHuman->m_szName, "%s", pCreateMob->MobName);
-		}
-		else
-		{
-			pHuman->m_nCurrentKill = 0;
-			pHuman->m_nTotalKill = 0;
-			pHuman->m_ucChaosLevel = 75;
-			pCreateMob->MobName[15] = 0;
-			sprintf(pHuman->m_szName, "%s", pCreateMob->MobName);
-
-			int nItemCode = pCreateMob->Equip[13] & 0xFFF;
-			int nHP = 0;
-			if (nItemCode == 786 || nItemCode == 1936 || nItemCode == 1937)
-			{
-				int nHp = 0;
-				int nSanc = (int)pCreateMob->Equip[13] >> 12;
-				if (nSanc < 2)
-					nSanc = 2;
-				if (nItemCode == 1936)
-				{
-					nSanc *= 10;
-				}
-				else if (nItemCode == 1937)
-				{
-					nSanc *= 1000;
-				}
-
-				// Big-HP display scales the canonical current HP value.
-				int tmp = pCreateMob->Score.CurHP * nSanc;
-				if (tmp > 2000000000)
-					tmp = 2000000000;
-
-				pHuman->m_BigHp = tmp;
-				tmp = pCreateMob->Score.MaxHP * nSanc;
-				if (tmp > 2000000000)
-					tmp = 2000000000;
-				pHuman->m_MaxBigHp = tmp;
-				pHuman->m_usHP = pHuman->m_MaxBigHp;
-			}
-		}
-
-		pCreateMob->Nick[25] = 0;
-
-		sprintf(pHuman->m_szNickName, "%s", pCreateMob->Nick);
-		memcpy(pHuman->m_usAffect, pCreateMob->Affect, sizeof(pHuman->m_usAffect));
-
-		pHuman->SetPacketEquipItem(pCreateMob->Equip);
-
-		// This second native spawn path must obey the same full-ID precedence or
-		// nearby entities regress to the truncated costume byte after creation.
-		if (!pHuman->SetImportedMountCostume(pCreateMob->Equip[14])
-			&& (pCreateMob->Equip[14] & 0xFFF) && pCreateMob->Equip2[14] &&
-			((pCreateMob->Equip2[14] & 0xFFF) < 3980 || (pCreateMob->Equip2[14] & 0xFFF) >= 3999))
-		{
-			pHuman->SetMountCostume((unsigned char)pCreateMob->Equip2[14]);
-		}
-
-		pHuman->SetColorItem(pCreateMob->Equip2);
-		pHuman->m_fMaxSpeed = 2.0f;
-
-		memcpy(&pHuman->m_stScore, &pCreateMob->Score, sizeof(pHuman->m_stScore));
-
-		float fCon = (float)pHuman->m_stScore.Con;
-		pHuman->SetCharHeight(fCon);
-
-		int SkinMeshType = pHuman->m_nSkinMeshType;
-		bool bWasMobTrade = false;
-		if (pHuman->m_nClass == 29)
-			bWasMobTrade = true;
-
-		pHuman->SetRace(pCreateMob->Equip[0] & 0xFFF);
-
-		if (pStd->Type != MSG_CreateMobTrade_Opcode && !bWasMobTrade)
-			pHuman->m_nSkinMeshType = SkinMeshType;
-
-		STRUCT_ITEM itemL{};
-		itemL.sIndex = pCreateMob->Equip[6] & 0xFFF;
-		int nWeaponTypeL = BASE_GetItemAbility(&itemL, 21);
-
-		if (nWeaponTypeL == 41)
-		{
-			pHuman->m_stLookInfo.RightMesh = pHuman->m_stLookInfo.LeftMesh;
-			pHuman->m_stLookInfo.RightSkin = pHuman->m_stLookInfo.LeftSkin;
-			pHuman->m_stSancInfo.Sanc6 = pHuman->m_stSancInfo.Sanc7;
-			pHuman->m_stSancInfo.Legend6 = pHuman->m_stSancInfo.Legend7;
-		}
-		if (pHuman == m_pMyHuman)
-		{
-			for (int k = 0; k < 32; ++k)
-				memcpy(&m_pMyHuman->m_stAffect[k], &tempAffect[k], sizeof(STRUCT_AFFECT));
-		}
-
-		pHuman->CheckAffect();
-		pHuman->CheckWeapon(pCreateMob->Equip[6] & 0xFFF, pCreateMob->Equip[7] & 0xFFF);
-		pHuman->InitObject();
-
-		float fAngle = 0.0f;
-		unsigned char nDir = ((unsigned char)pHuman->m_stScore.Merchant >> 4);
-		if (nDir == 6)
-			fAngle = D3DXToRadian(180);
-		if (nDir == 9)
-			fAngle = D3DXToRadian(135);
-		if (nDir == 8)
-			fAngle = D3DXToRadian(90);
-		if (nDir == 7)
-			fAngle = D3DXToRadian(45);
-		if (nDir == 4)
-			fAngle = D3DXToRadian(0);
-		if (nDir == 1)
-			fAngle = D3DXToRadian(315);
-		if (nDir == 2)
-			fAngle = D3DXToRadian(270);
-		if (nDir == 3)
-			fAngle = D3DXToRadian(225);
-
-		pHuman->InitAngle(0.0f, fAngle, 0.0f);
-
-		TMVector2 vecPosition{ (float)pCreateMob->PosX + 0.5f, (float)pCreateMob->PosY + 0.5f };
-
-		pHuman->InitPosition(vecPosition.x, GroundGetMask(vecPosition) * 0.1f, vecPosition.y);
-
-		pHuman->m_sGuildLevel = (unsigned char)pCreateMob->GuildLevel;
-		unsigned short usGuild = pCreateMob->Guild;
-
-		if (usGuild)
-		{
-			int nSubGuild = BASE_GetSubGuild(pHuman->m_sGuildLevel);
-			pHuman->m_stGuildMark.nGuild = usGuild & 0xFFF;
-			pHuman->m_stGuildMark.nSubGuild = nSubGuild;
-			pHuman->m_stGuildMark.nGuildChannel = ((signed int)usGuild >> 12) & 0xF;
-
-			switch (pHuman->m_sGuildLevel)
-			{
-			case 0:
-				pHuman->m_stGuildMark.sGuildIndex = 508;
-				break;
-			case 1:
-				pHuman->m_stGuildMark.sGuildIndex = 535;
-				break;
-			case 2:
-				pHuman->m_stGuildMark.sGuildIndex = 508;
-				break;
-			case 3:
-				pHuman->m_stGuildMark.sGuildIndex = 526;
-				break;
-			case 4:
-				pHuman->m_stGuildMark.sGuildIndex = 527;
-				break;
-			case 5:
-				pHuman->m_stGuildMark.sGuildIndex = 528;
-				break;
-			case 6:
-				pHuman->m_stGuildMark.sGuildIndex = 529;
-				break;
-			case 7:
-				pHuman->m_stGuildMark.sGuildIndex = 530;
-				break;
-			case 8:
-				pHuman->m_stGuildMark.sGuildIndex = 531;
-				break;
-			case 9:
-				pHuman->m_stGuildMark.sGuildIndex = 509;
-				break;
-			}
-
-			if (pStd->Type != MSG_CreateMobTrade_Opcode && !pHuman->m_pAutoTradeDesc->IsVisible())
-				Guildmark_Create(&pHuman->m_stGuildMark);
-		}
-
-		pHuman->m_cHide = (pHuman->m_dwID >= 0 && pHuman->m_dwID < 1000) && pHuman->m_stScore.Merchant & 1;
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && (pHuman->m_stScore.Merchant & 0xF) >= 1 && (pHuman->m_stScore.Merchant & 0xF) <= 15)
-			pHuman->m_pNameLabel->SetTextColor(0xFFAAFFAA);
-
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && pHuman->m_sHeadIndex == 54)
-			pHuman->m_pNameLabel->SetTextColor(0xFFAAFFAA);
-
-		if (pHuman == m_pMyHuman)
-			UpdateScoreUI(0);
-
-		pNode->m_dwOldMovePacketTime = dwOldMoveTime;
-	}
-	else
-	{
-		pNode->m_nWillDie = -1;
-		pNode->m_dwDeadTime = 0;
-
-		int nItemCode = pCreateMob->Equip[13] & 0xFFF;
-		int nHP = 0;
-		if (nItemCode == 786 || nItemCode == 1936 || nItemCode == 1937)
-		{
-			int nHp = 0;
-			int nSanc = (int)pCreateMob->Equip[13] >> 12;
-			if (nSanc < 2)
-				nSanc = 2;
-			if (nItemCode == 1936)
-			{
-				nSanc *= 10;
-			}
-			else if (nItemCode == 1937)
-			{
-				nSanc *= 1000;
-			}
-
-			// Big-HP display scales the canonical current HP value.
-			int tmp = pCreateMob->Score.CurHP * nSanc;
-			if (tmp > 2000000000)
-				tmp = 2000000000;
-
-			pNode->m_BigHp = tmp;
-			tmp = pCreateMob->Score.MaxHP * nSanc;
-			if (tmp > 2000000000)
-				tmp = 2000000000;
-			pNode->m_MaxBigHp = tmp;
-			pNode->m_usHP = pNode->m_MaxBigHp;
-			pNode->UpdateScore(0);
-		}
-	}
-	if (pHuman)
-	{
-		pHuman->m_pNameLabel->m_GCBorder.dwColor = 0x55AA0000;
-		if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000) && !pHuman->m_stScore.Defense)
-		{
-			pHuman->m_pNameLabel->m_GCBorder.dwColor = 0x5500AA00;
-			pHuman->m_pNameLabel->m_cBorder = 1;
-			pHuman->m_cSummons = 1;
-		}
-		if (pStd->Type == MSG_CreateMobTrade_Opcode)
-		{
-			pCreateMobTrade->Desc[22] = 0;
-			pCreateMobTrade->Desc[21] = 0;
-
-			sprintf(pHuman->m_TradeDesc, pCreateMobTrade->Desc);
-			pHuman->m_pAutoTradeDesc->SetText(pHuman->m_TradeDesc, 0);
-		}
-		else
-		{
-			memset(pHuman->m_TradeDesc, 0, sizeof(pHuman->m_TradeDesc));
-			pHuman->m_pAutoTradeDesc->SetText((char*)"", 0);
-
-			auto pPanel = m_pAutoTrade;
-			if (pPanel && pPanel->IsVisible() == 1 && pHuman->m_dwID == m_stAutoTrade.TargetID)
-			{
-				SetVisibleAutoTrade(0, 0);
-			}
-		}
-	}
-
-	if (pHuman && !pHuman->m_cHide)
-	{
-		if (!pHuman->m_cHide && ((pCreateMob->CreateType & 0x7FFF) == 2 || (pCreateMob->CreateType & 0x7FFF) == 3))
-		{
-			TMVector3 vecEffectPos = TMVector3((float)pCreateMob->PosX + 0.5f,
-				GroundGetMask(pHuman->m_vecPosition) * 0.1f + 0.05000000f,
-				(float)pCreateMob->PosY + 0.5f);
-
-			if (!pHuman->m_nSkinMeshType || pHuman->m_nSkinMeshType == 1)
-			{
-				auto pEffect = new TMEffectStart(vecEffectPos, 0, nullptr);
-
-				if (pEffect && m_pEffectContainer)
-					m_pEffectContainer->AddChild(pEffect);
-			}
-			else if ((pCreateMob->CreateType & 0x7FFF) != 3 && pHuman->m_nSkinMeshType != 35 && pHuman->m_nSkinMeshType != 36)
-			{
-				auto pChild = new TMEffectStart(vecEffectPos, 1, nullptr);
-
-				if (pChild && m_pEffectContainer)
-					m_pEffectContainer->AddChild(pChild);
-
-				auto pSoundManager = g_pSoundManager;
-				if (pSoundManager && m_pMyHuman == pHuman)
-				{
-					auto pSoundData = pSoundManager->GetSoundData(151);
-					pSoundData->Play();
-				}
-			}
-			if ((pCreateMob->CreateType & 0x7FFF) == 3)
-			{
-				if (pHuman->m_nClass == 62 && pHuman->m_stLookInfo.FaceMesh == 2)
-				{
-					TMVector2 effectPos{ (float)pCreateMob->PosX + 0.5f, (float)pCreateMob->PosY + 0.5f };
-					pHuman->InitPosition(effectPos.x,
-						(GroundGetMask(effectPos) * 0.1f) - 2.0f,
-						effectPos.y);
-
-					TMVector3 vecPos = TMVector3(effectPos.x, (GroundGetMask(effectPos) * 0.1f) + 0.2f, effectPos.y);
-					auto pJudgement = new TMSkillJudgement(vecPos, 4, 0.1f);
-
-					if (pJudgement && m_pEffectContainer)
-						m_pEffectContainer->AddChild(pJudgement);
-				}
-				else
-				{
-					int nType = 1;
-					if ((pHuman->m_dwID < 0 || pHuman->m_dwID > 1000))
-						nType = 3;
-
-					auto pPortal = new TMSkillTownPortal(vecEffectPos, nType);
-
-					if (pPortal && m_pEffectContainer)
-						m_pEffectContainer->AddChild(pPortal);
-				}
-			}
-			pHuman->SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP, 0);
-
-			if (pHuman->m_nSkinMeshType == 35 || pHuman->m_nSkinMeshType == 36)
-			{
-				auto pSoundManager = g_pSoundManager;
-				if (pSoundManager && m_pMyHuman == pHuman)
-				{
-					auto pSoundData = pSoundManager->GetSoundData(303);
-					pSoundData->Play();
-				}
-
-				if (!g_bHideEffect)
-				{
-					for (int m = -3; m < 3; ++m)
-					{
-						auto pBillEffect = new TMEffectBillBoard(193, 4000, 1.0f, 1.0f, 1.0f, 0.001f, 1, 80);
-
-						if (pBillEffect)
-						{
-							pBillEffect->m_bStickGround = m % 2;
-							pBillEffect->m_vecPosition = TMVector3(((float)m * 0.5f) + pHuman->m_vecPosition.x,
-								pHuman->m_fHeight,
-								((float)m * 0.5f) + pHuman->m_vecPosition.y);
-
-							m_pEffectContainer->AddChild(pBillEffect);
-						}
-
-						auto pBillEffect2 = new TMEffectBillBoard(193, 4000, 1.0f, 1.0f, 1.0f, 0.001f, 1, 80);
-						if (pBillEffect2)
-						{
-							pBillEffect2->m_bStickGround = m % 2;
-							pBillEffect2->m_vecPosition = TMVector3(pHuman->m_vecPosition.x - ((float)m * 0.5f),
-								pHuman->m_fHeight,
-								pHuman->m_vecPosition.y - ((float)m * 0.5f));
-
-							m_pEffectContainer->AddChild(pBillEffect2);
-						}
-					}
-				}
-			}
-			else
-			{
-				auto pLevelUp = new TMEffectLevelUp(vecEffectPos, 0);
-
-				if (pLevelUp)
-					m_pEffectContainer->AddChild(pLevelUp);
-			}
-		}
-		if (!pHuman->m_nSkinMeshType || pHuman->m_nSkinMeshType == 1)
-		{
-			if ((pCreateMob->CreateType & 0xF0) == 16)
-				pHuman->SetAnimation(ECHAR_MOTION::ECMOTION_PUNISHING, 1);
-			else if ((pCreateMob->CreateType & 0xF0) == 32)
-				pHuman->SetAnimation(ECHAR_MOTION::ECMOTION_SEATING, 1);
-		}
-	}
-	if (pHuman == m_pMyHuman)
-	{
-		m_vecMyNext.x = (int)m_pMyHuman->m_vecPosition.x;
-		m_vecMyNext.y = (int)m_pMyHuman->m_vecPosition.y;
-		Bag_View();
-	}
-
-	auto pPartyList = m_pPartyList;
-	if (pPartyList)
-	{
-		for (int n = 0; n < pPartyList->m_nNumItem; ++n)
-		{
-			auto pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[n];
-			if (pPartyItem->m_dwCharID == pCreateMob->MobID)
-			{
-				auto pPartyHuman = (TMHuman*)g_pObjectManager->GetHumanByID(pPartyItem->m_dwCharID);
-				if (pPartyHuman && pPartyItem->m_nState != 1)
-				{
-					pPartyHuman->m_bParty = 1;
-					pPartyHuman->SetInMiniMap(0xAAFFFF00);
-				}
-				if (pPartyItem->m_nState == 4)
-				{
-					pPartyItem->m_nState = 2;
-					pPartyItem->m_GCText.dwColor = 0x0FFAAAAFF;
-					pPartyItem->m_GCText.pFont->SetText(pPartyItem->m_GCText.strString,
-						pPartyItem->m_GCText.dwColor,
-						0);
-				}
-				else if (pPartyItem->m_nState == 3)
-				{
-					pPartyItem->m_nState = 0;
-					pPartyItem->m_GCText.dwColor = 0x0FFFFFFFF;
-					pPartyItem->m_GCText.pFont->SetText(pPartyItem->m_GCText.strString,
-						pPartyItem->m_GCText.dwColor,
-						0);
-				}
-				break;
-			}
-		}
-	}
-
-	if (pHuman &&
-		(_locationCheck((float)pCreateMob->PosX, (float)pCreateMob->PosY, 8, 15) || _locationCheck((float)pCreateMob->PosX, (float)pCreateMob->PosY, 8, 16)	||
-		 _locationCheck((float)pCreateMob->PosX, (float)pCreateMob->PosY, 9, 15) || _locationCheck((float)pCreateMob->PosX, (float)pCreateMob->PosY, 9, 16)))
-	{
-		if (pHuman->m_cMantua == 1)
-			pHuman->SetInMiniMap(0xAA0000FF);
-		if (pHuman->m_cMantua == 2)
-			pHuman->SetInMiniMap(0xAAFF0000);
-	}
-
-	return 1;
-}
-
 int TMFieldScene::OnPacketWeather(MSG_STANDARDPARM* pStd)
 {
+	// The dispatcher validated the 16-byte frame; ignore unknown values.
+	if (!pStd || !IsWeatherValue(pStd->Parm))
+		return 1;
 	SetWeather(pStd->Parm);
 	return 1;
 }

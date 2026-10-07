@@ -14,7 +14,8 @@
  * Requires a valid device; does not use height, allocate, or change state. */
 float BASE_ScreenResize(float size)
 {
-	return (float)g_pDevice->m_dwScreenWidth * (size / WYD748_UI_BASE_WIDTH);
+	// 7.59 helper kept for 2D UI geometry; UI mode 2 draws it in pixels.
+	return size * RenderDevice::m_fUIScaleX;
 }
 
 int BASE_GetHttpRequest(char* httpname, char* Request, int MaxBuffer)

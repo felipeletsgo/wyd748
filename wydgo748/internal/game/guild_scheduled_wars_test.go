@@ -86,6 +86,8 @@ func TestScheduledCitySummonLimitAndErionMortalRule(t *testing.T) {
 		w.indexPlayerCharacter(p)
 		w.updatePlayerSpatial(p)
 	}
+	// The scheduler opens the war before summoning; enrollment requires it.
+	w.cityWarRunning = true
 	w.summonCityFighters()
 	count := 0
 	for _, f := range w.cityFighters {

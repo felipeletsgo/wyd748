@@ -17,17 +17,6 @@ SCheckBox::~SCheckBox()
 {
 }
 
-void SCheckBox::SetValue(int ibValue)
-{
-	m_bValue = ibValue;
-	Update();
-}
-
-int SCheckBox::GetValue()
-{
-	return m_bValue;
-}
-
 int SCheckBox::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)
 {
 	if (!m_bSelectEnable)

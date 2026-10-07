@@ -56,16 +56,6 @@ void LOG_WRITELOG(const char* lpszFormat, ...)
 		szBuffer);
 }
 
-void LOG_WRITELOG(unsigned int dwError)
-{
-	LOG_WRITELOG("Error Raised... Code is 0x%x. \r\n", dwError);
-}
-
-void LOG_WRITESYSERROR(unsigned int dwErrorIndex, unsigned int dwErrorCode)
-{
-	LOG_WRITELOG("System error : 0x%x (0x%x)\r\n", dwErrorIndex, dwErrorCode);
-}
-
 void LOG_WRITEERROR(unsigned int dwErrorIndex)
 {
 	LOG_WRITELOG("Error : 0x%x\r\n", dwErrorIndex);

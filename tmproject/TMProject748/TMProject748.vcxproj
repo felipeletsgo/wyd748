@@ -149,6 +149,29 @@
     <ClInclude Include="internal\wire\ShopListContract.h" />
     <ClInclude Include="internal\wire\ItemSoldContract.h" />
     <ClInclude Include="internal\wire\PlayerChallengeContract.h" />
+    <ClInclude Include="internal\application\CCModePolicy.h" />
+    <ClInclude Include="internal\application\DamageNumberPolicy.h" />
+    <ClInclude Include="internal\application\FieldInteractionPolicy.h" />
+    <ClInclude Include="internal\application\NativeVolatileRoutes.h" />
+    <ClInclude Include="internal\application\ShadeGrid.h" />
+    <ClInclude Include="internal\application\SkillCooldownPolicy.h" />
+    <ClInclude Include="internal\application\WrappedTexture.h" />
+    <ClInclude Include="internal\core\NativeItemVolatile.h" />
+    <ClInclude Include="internal\core\NativeSalePrice.h" />
+    <ClInclude Include="internal\core\ServerChannelLabel.h" />
+    <ClInclude Include="internal\core\ServerListAsset.h" />
+    <ClInclude Include="internal\core\ServerStatus.h" />
+    <ClInclude Include="internal\platform\windows\AdapterIdentity.h" />
+    <ClInclude Include="internal\render\mesh\DyePixelShader.h" />
+    <ClInclude Include="internal\render\mesh\DyeTextureStages.h" />
+    <ClInclude Include="internal\render\mesh\EffectVertexColor.h" />
+    <ClInclude Include="internal\render\world\objects\ObjectFileRecordLayout.h" />
+    <ClInclude Include="internal\render\world\terrain\TerrainTileMapReader.h" />
+    <ClInclude Include="internal\ui\MiniMapLayout.h" />
+    <ClInclude Include="internal\ui\NativeSaleQuote.h" />
+    <ClInclude Include="internal\wire\LegacySalePacket.h" />
+    <ClInclude Include="internal\wire\QuizEventPacket.h" />
+    <ClInclude Include="internal\wire\ServerWarLetterContract.h" />
     <ClInclude Include="internal\wire\CombineCompleteContract.h" />
     <ClInclude Include="internal\wire\TradeSessionContract.h" />
     <ClInclude Include="internal\wire\TradeCheckConfirmationContract.h" />
@@ -164,6 +187,7 @@
     <ClInclude Include="internal\game\entities\BaseCostumeLook.h" />
     <ClInclude Include="internal\game\entities\HumanCostumeRefinement.h" />
     <ClInclude Include="internal\game\entities\SkinMotionPolicy.h" />
+    <ClInclude Include="internal\game\entities\BerielAuraPolicy.h" />
     <ClInclude Include="internal\game\entities\DeathMotionPolicy.h" />
     <ClInclude Include="internal\wire\InventoryTransactionContract.h" />
     <ClInclude Include="internal\wire\CargoGoldTransferContract.h" />
@@ -207,12 +231,20 @@
     <ClInclude Include="internal\wire\ChatMessagePacket.h" />
     <ClInclude Include="internal\wire\LegacySceneMessagePacket.h" />
     <ClInclude Include="internal\ui\GridInsertion.h" />
+    <ClInclude Include="internal\ui\GridItemPresentation.h" />
     <ClInclude Include="internal\ui\SellConfirmationText.h" />
     <ClInclude Include="internal\application\ApplyCargoSlot.h" />
     <ClInclude Include="internal\platform\windows\SocketTransport.h" />
     <ClInclude Include="internal\core\BasedefGlobals.h" />
     <ClInclude Include="internal\core\UiLayout.h" />
     <ClInclude Include="internal\platform\diagnostics\ClientDiagnostics.h" />
+    <ClInclude Include="internal\platform\diagnostics\PerfTrace.h" />
+    <ClInclude Include="internal\render\resources\RuntimeAssetLimits.h" />
+    <ClInclude Include="internal\core\ClientSettings.h" />
+    <ClInclude Include="internal\wire\WeatherPacket.h" />
+    <ClInclude Include="internal\render\world\sky\LightingProfile.h" />
+    <ClInclude Include="internal\app\scenes\FieldCachePolicy.h" />
+    <ClInclude Include="internal\app\scenes\GroundNeighborPolicy.h" />
     <ClInclude Include="internal\core\WYD748Assets.h" />
     <ClInclude Include="internal\game\input\BlockKeyBoard.h" />
     <ClInclude Include="internal\render\animation\skeleton\CFrame.h" />
@@ -231,15 +263,12 @@
     <ClInclude Include="internal\render\mesh\GeomObject.h" />
     <ClInclude Include="internal\ui\HudController.h" />
     <ClInclude Include="internal\ui\ItemEffect.h" />
-    <ClInclude Include="internal\render\effects\core\JBlur.h" />
     <ClInclude Include="features\macro\MacroFactory.h" />
     <ClInclude Include="internal\core\MacroLevel.h" />
     <ClInclude Include="features\macro\MacroMsg.h" />
     <ClInclude Include="internal\wire\crypto\md5.h" />
     <ClInclude Include="internal\wire\crypto\MD5Checksum.h" />
     <ClInclude Include="internal\render\mesh\MeshManager.h" />
-    <ClInclude Include="internal\core\Mission.h" />
-    <ClInclude Include="internal\core\MrItemMix.h" />
     <ClInclude Include="internal\app\scenes\NewApp.h" />
     <ClInclude Include="internal\app\compat\NewClientB.h" />
     <ClInclude Include="internal\core\ObjectManager.h" />
@@ -256,7 +285,6 @@
     <ClInclude Include="internal\ui\controls\SText.h" />
     <ClInclude Include="internal\ui\controls\SEditableText.h" />
     <ClInclude Include="internal\ui\controls\SButton.h" />
-    <ClInclude Include="internal\ui\controls\SButtonBox.h" />
     <ClInclude Include="internal\ui\controls\SCheckBox.h" />
     <ClInclude Include="internal\ui\controls\SProgressBar.h" />
     <ClInclude Include="internal\ui\controls\SScrollBar.h" />
@@ -274,6 +302,8 @@
     <ClInclude Include="internal\render\resources\TextureManager.h" />
     <ClInclude Include="internal\render\mesh\CostumeSelection.h" />
     <ClInclude Include="internal\ui\ResourceBarProjection.h" />
+    <ClInclude Include="internal\ui\NativeScoreHud.h" />
+    <ClInclude Include="internal\ui\NameColorPolicy748.h" />
     <ClInclude Include="internal\ui\ObservedAffectProjection.h" />
     <ClInclude Include="internal\render\mesh\CostumeTable.generated.h" />
     <ClInclude Include="internal\platform\windows\TimerManager.h" />
@@ -289,11 +319,9 @@
     <ClInclude Include="internal\render\effects\core\TMEffectBillBoard.h" />
     <ClInclude Include="internal\render\effects\core\TMEffectBillBoard2.h" />
     <ClInclude Include="internal\render\effects\core\TMEffectBillBoard3.h" />
-    <ClInclude Include="internal\render\effects\core\TMEffectBillBoard4.h" />
     <ClInclude Include="internal\render\effects\core\TMEffectCharge.h" />
     <ClInclude Include="internal\render\effects\environment\TMEffectDust.h" />
     <ClInclude Include="internal\render\effects\core\TMEffectFirework.h" />
-    <ClInclude Include="internal\render\effects\pending\TMEffectGold.h" />
     <ClInclude Include="internal\render\effects\status\TMEffectLevelUp.h" />
     <ClInclude Include="internal\render\effects\core\TMEffectMesh.h" />
     <ClInclude Include="internal\render\effects\core\TMEffectMeshRotate.h" />
@@ -310,6 +338,10 @@
     <ClInclude Include="internal\application\FieldChatControlPolicy.h" />
     <ClInclude Include="internal\application\FieldChatSubmitPolicy.h" />
     <ClInclude Include="internal\application\FieldCoinInputPolicy.h" />
+    <ClInclude Include="internal\application\MusicListLine.h" />
+    <ClInclude Include="internal\application\AssetLoadValidation.h" />
+    <ClInclude Include="internal\application\OwnedSoundBuffers.h" />
+    <ClInclude Include="internal\application\IndexedPartyMessage.h" />
     <ClInclude Include="internal\application\SkillRequestPolicy.h" />
     <ClInclude Include="internal\application\AttackAttackerState.h" />
     <ClInclude Include="internal\application\AttackTargetState.h" />
@@ -317,7 +349,6 @@
     <ClInclude Include="internal\ui\FieldChatControl.h" />
     <ClInclude Include="internal\render\effects\skills\TMFireEffect.h" />
     <ClInclude Include="internal\game\entities\TMFish.h" />
-    <ClInclude Include="internal\game\entities\TMFlail.h" />
     <ClInclude Include="internal\render\world\water\TMFloat.h" />
     <ClInclude Include="internal\platform\windows\TMFont2.h" />
     <ClInclude Include="internal\platform\windows\TMFont3.h" />
@@ -356,13 +387,11 @@
     <ClInclude Include="internal\render\effects\skills\TMSkillHolyTouch.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillIceSpear.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillJudgement.h" />
-    <ClInclude Include="internal\render\effects\skills\TMSkillLusterFurnish.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillMagicArrow.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillMagicShield.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillMeteorStorm.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillPoison.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillSlowSlash.h" />
-    <ClInclude Include="internal\render\effects\skills\TMSkillSnow.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillSpChange.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillSpeedUp.h" />
     <ClInclude Include="internal\render\effects\skills\TMSkillThunderBolt.h" />
@@ -374,12 +403,12 @@
     <ClInclude Include="internal\render\world\sky\TMSun.h" />
     <ClInclude Include="internal\render\world\vegetation\TMTree.h" />
     <ClInclude Include="internal\platform\windows\TMUtil.h" />
-    <ClInclude Include="internal\platform\windows\media\TMVideoWnd.h" />
     <ClInclude Include="internal\core\TreeNode.h" />
     <ClInclude Include="internal\ui\UIBinary.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="internal\platform\diagnostics\ClientDiagnostics.cpp" />
+    <ClCompile Include="internal\platform\diagnostics\PerfTrace.cpp" />
     <ClCompile Include="internal\core\WYD748Assets.cpp" />
     <ClCompile Include="internal\core\WYD748Compat.cpp" />
     <ClCompile Include="internal\core\Basedef.cpp" />
@@ -405,13 +434,10 @@
     </ClCompile>
     <ClCompile Include="internal\core\EventTranslator.cpp" />
     <ClCompile Include="internal\render\mesh\GeomObject.cpp" />
-    <ClCompile Include="internal\render\effects\core\JBlur.cpp" />
     <ClCompile Include="features\macro\MacroFactory.cpp" />
     <ClCompile Include="internal\core\MacroLevel.cpp" />
     <ClCompile Include="features\macro\MacroMsg.cpp" />
     <ClCompile Include="internal\render\mesh\MeshManager.cpp" />
-    <ClCompile Include="internal\core\Mission.cpp" />
-    <ClCompile Include="internal\core\MrItemMix.cpp" />
     <ClCompile Include="internal\app\scenes\NewApp.cpp" />
     <ClCompile Include="internal\app\scenes\NewAppWindow.cpp" />
     <ClCompile Include="internal\app\scenes\NewAppServices.cpp" />
@@ -424,7 +450,6 @@
     <ClCompile Include="internal\platform\windows\RenderDeviceState.cpp" />
     <ClCompile Include="internal\platform\windows\RenderDeviceShaders.cpp" />
     <ClCompile Include="internal\platform\windows\RenderDevicePrimitives.cpp" />
-    <ClCompile Include="internal\platform\windows\RenderDeviceDiagnostics.cpp" />
     <ClCompile Include="internal\ui\SControlContainer.cpp" />
     <ClCompile Include="internal\ui\controls\SControlBase.cpp" />
     <ClCompile Include="internal\ui\controls\SPanel.cpp" />
@@ -433,7 +458,6 @@
     <ClCompile Include="internal\ui\controls\SText.cpp" />
     <ClCompile Include="internal\ui\controls\SEditableText.cpp" />
     <ClCompile Include="internal\ui\controls\SButton.cpp" />
-    <ClCompile Include="internal\ui\controls\SButtonBox.cpp" />
     <ClCompile Include="internal\ui\controls\SCheckBox.cpp" />
     <ClCompile Include="internal\ui\controls\SProgressBar.cpp" />
     <ClCompile Include="internal\ui\controls\SScrollBar.cpp" />
@@ -460,11 +484,9 @@
     <ClCompile Include="internal\render\effects\core\TMEffectBillBoard.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectBillBoard2.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectBillBoard3.cpp" />
-    <ClCompile Include="internal\render\effects\core\TMEffectBillBoard4.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectCharge.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectDust.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectFirework.cpp" />
-    <ClCompile Include="internal\render\effects\pending\TMEffectGold.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectLevelUp.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectMesh.cpp" />
     <ClCompile Include="internal\render\effects\core\TMEffectMeshRotate.cpp" />
@@ -494,7 +516,6 @@
     <ClCompile Include="internal\app\scenes\TMFieldSceneChat.cpp" />
     <ClCompile Include="internal\render\effects\core\TMFireEffect.cpp" />
     <ClCompile Include="internal\game\entities\TMFish.cpp" />
-    <ClCompile Include="internal\game\entities\TMFlail.cpp" />
     <ClCompile Include="internal\render\world\objects\TMFloat.cpp" />
     <ClCompile Include="internal\platform\windows\TMFont2.cpp" />
     <ClCompile Include="internal\platform\windows\TMFont3.cpp" />
@@ -548,13 +569,11 @@
     <ClCompile Include="internal\render\effects\skills\TMSkillHolyTouch.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillIceSpear.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillJudgement.cpp" />
-    <ClCompile Include="internal\render\effects\skills\TMSkillLusterFurnish.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillMagicArrow.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillMagicShield.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillMeteorStorm.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillPoison.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillSlowSlash.cpp" />
-    <ClCompile Include="internal\render\effects\skills\TMSkillSnow.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillSpChange.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillSpeedUp.cpp" />
     <ClCompile Include="internal\render\effects\skills\TMSkillThunderBolt.cpp" />
@@ -566,7 +585,6 @@
     <ClCompile Include="internal\render\world\sky\TMSun.cpp" />
     <ClCompile Include="internal\render\world\sky\TMTree.cpp" />
     <ClCompile Include="internal\platform\windows\TMUtil.cpp" />
-    <ClCompile Include="internal\platform\windows\media\TMVideoWnd.cpp" />
     <ClCompile Include="internal\core\TreeNode.cpp" />
   </ItemGroup>
   <ItemGroup>

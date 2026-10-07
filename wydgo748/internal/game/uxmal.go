@@ -11,9 +11,9 @@ import (
 	"wydgo/internal/wire"
 )
 
-// uxmalScheduleAllowed reproduz as tres janelas de quatro minutos do TMSrv:
-// 16-19, 36-39 e 56-59. A validacao continua baseada no relogio do World para
-// manter os testes deterministas e nao aceita minuto enviado pelo client.
+// uxmalScheduleAllowed reproduces TMSrv's three four-minute windows: 16-19,
+// 36-39 and 56-59. Validation uses the World clock so tests stay deterministic
+// and never accepts a minute sent by the client.
 func uxmalScheduleAllowed(cfg *model.VolatileInstance, now time.Time) bool {
 	if cfg == nil || len(cfg.Schedule) == 0 {
 		return true
@@ -37,78 +37,78 @@ func uxmalInsideEntry(cfg *model.VolatileInstance, x, y uint16) bool {
 func (w *World) validateUxmalConfig() error {
 	cfg := w.uxmal
 	if cfg == nil || cfg.Uxmal == nil {
-		return fmt.Errorf("template ausente")
+		return fmt.Errorf("missing template")
 	}
 	if !strings.EqualFold(strings.TrimSpace(cfg.StateMachine), "uxmal") {
-		return fmt.Errorf("stateMachine deve ser uxmal")
+		return fmt.Errorf("stateMachine must be uxmal")
 	}
 	if strings.TrimSpace(cfg.Uxmal.NPC) == "" {
-		return fmt.Errorf("npc de entrada ausente")
+		return fmt.Errorf("missing entry NPC")
 	}
 	entryNPC := w.npcDefByName(cfg.Uxmal.NPC)
 	if entryNPC == nil || entryNPC.IsMonster() || entryNPC.Score == nil {
-		return fmt.Errorf("npc de entrada invalido %q", cfg.Uxmal.NPC)
+		return fmt.Errorf("invalid entry NPC %q", cfg.Uxmal.NPC)
 	}
 	if cfg.Uxmal.TicketItem == 0 {
-		return fmt.Errorf("ticket ausente")
+		return fmt.Errorf("missing ticket")
 	}
 	if _, ok := w.items[cfg.Uxmal.TicketItem]; !ok {
-		return fmt.Errorf("ticket %d nao existe no catalogo", cfg.Uxmal.TicketItem)
+		return fmt.Errorf("ticket %d does not exist in the catalog", cfg.Uxmal.TicketItem)
 	}
 	if len(cfg.Uxmal.EntryAreas) == 0 {
-		return fmt.Errorf("area de entrada ausente")
+		return fmt.Errorf("missing entry area")
 	}
 	for i, area := range cfg.Uxmal.EntryAreas {
 		if area.MinX == 0 || area.MinY == 0 || area.MaxX < area.MinX || area.MaxY < area.MinY {
-			return fmt.Errorf("area de entrada %d invalida", i)
+			return fmt.Errorf("invalid entry area %d", i)
 		}
 	}
 	if len(cfg.Stages) != 7 || len(cfg.Uxmal.RoomPositions) != 7 ||
 		len(cfg.Uxmal.MaxParties) != 7 || len(cfg.Uxmal.Runes) != 7 ||
 		len(cfg.Uxmal.TicketNextSanc) != 7 {
-		return fmt.Errorf("sao necessarias sete salas")
+		return fmt.Errorf("seven rooms are required")
 	}
 	for room, stage := range cfg.Stages {
 		if stage.AreaRadius <= 0 || stage.SpawnX == 0 || stage.SpawnY == 0 || len(stage.Spawns) == 0 {
-			return fmt.Errorf("sala %d incompleta", room)
+			return fmt.Errorf("room %d is incomplete", room)
 		}
 		if !w.terrain.Walkable(stage.SpawnX, stage.SpawnY) {
-			return fmt.Errorf("sala %d possui spawn bloqueado", room)
+			return fmt.Errorf("room %d has a blocked spawn", room)
 		}
 		if len(cfg.Uxmal.RoomPositions[room]) != 3 || cfg.Uxmal.MaxParties[room] < 1 || cfg.Uxmal.MaxParties[room] > 3 {
-			return fmt.Errorf("sala %d sem tres vagas/maxParties invalido", room)
+			return fmt.Errorf("room %d lacks three slots or has invalid maxParties", room)
 		}
 		for _, spawn := range stage.Spawns {
 			def := w.npcDefByName(spawn.NPC)
 			if spawn.Count <= 0 || def == nil || !def.IsMonster() || def.Score == nil {
-				return fmt.Errorf("sala %d usa template hostil ausente %q", room, spawn.NPC)
+				return fmt.Errorf("room %d uses missing hostile template %q", room, spawn.NPC)
 			}
 		}
 		for slot, pos := range cfg.Uxmal.RoomPositions[room] {
 			if pos.X == 0 || pos.Y == 0 || (slot == 2 && cfg.Uxmal.MaxParties[room] < 3) {
-				// A terceira coordenada da sala +0 fica preenchida para manter o
-				// formato, mas a capacidade continua sendo duas parties.
+				// The third coordinate of room +0 stays filled to keep the
+				// format, but its capacity remains two parties.
 				if slot < cfg.Uxmal.MaxParties[room] {
-					return fmt.Errorf("sala %d vaga %d invalida", room, slot)
+					return fmt.Errorf("room %d slot %d is invalid", room, slot)
 				}
 			}
 			if slot < cfg.Uxmal.MaxParties[room] && !w.terrain.Walkable(pos.X, pos.Y) {
-				return fmt.Errorf("sala %d vaga %d usa terreno bloqueado", room, slot)
+				return fmt.Errorf("room %d slot %d uses blocked terrain", room, slot)
 			}
 		}
 		if len(cfg.Uxmal.Runes[room]) == 0 {
-			return fmt.Errorf("sala %d sem runas", room)
+			return fmt.Errorf("room %d has no runes", room)
 		}
 		for _, runeItem := range cfg.Uxmal.Runes[room] {
 			if runeItem == 0 {
-				return fmt.Errorf("sala %d possui runa vazia", room)
+				return fmt.Errorf("room %d has an empty rune", room)
 			}
 			if _, ok := w.items[runeItem]; !ok {
-				return fmt.Errorf("sala %d usa runa inexistente %d", room, runeItem)
+				return fmt.Errorf("room %d uses nonexistent rune %d", room, runeItem)
 			}
 		}
 		if next := cfg.Uxmal.TicketNextSanc[room]; next < 0 || next > 6 {
-			return fmt.Errorf("sala %d possui sancao de pista invalida %d", room, next)
+			return fmt.Errorf("room %d has invalid track refinement %d", room, next)
 		}
 	}
 	return nil
@@ -119,8 +119,8 @@ func (w *World) isUxmalNPC(m *Mob) bool {
 		strings.EqualFold(m.Def.Name, w.uxmal.Uxmal.NPC)
 }
 
-// handleUxmalNPC fica antes da allowlist de quests comuns. O clique no Uxmal
-// consome uma Pista de Runas server-side e nunca abre a loja/quest generica.
+// handleUxmalNPC runs before the ordinary quest allowlist. Clicking Uxmal
+// consumes a Rune Track server-side and never opens the generic shop/quest.
 func (w *World) handleUxmalNPC(s *net.Session, p *Player, m *Mob) bool {
 	if !w.isUxmalNPC(m) {
 		return false
@@ -269,29 +269,37 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 	}
 	consumeOne(&p.Char.Inv[ticketSlot])
 	w.itemInstances[inst.RuntimeID] = inst
-	// A abertura usa o mesmo caminho transacional das demais instâncias:
-	// primeiro reserva a onda, depois move a party e só então publica os mobs.
-	// Assim o spawn não colide com jogadores ainda na entrada e uma falha de
-	// persistência desfaz simultaneamente posição, item e estado da instância.
-	if spawned, _ := w.spawnItemInstanceStage(inst, 0, now, true, false); !spawned {
+	// Opening uses the same transactional path as other instances: reserve the
+	// wave, move the party, and only then publish the mobs. The spawn cannot
+	// collide with players still at the entrance, and a persistence failure
+	// reverts position, item and instance state together.
+	failed := func() {
 		delete(w.itemInstances, inst.RuntimeID)
 		p.Char.Inv[ticketSlot] = oldTicket
-		s.Send(wire.SendItem(p.ID, placeInv, byte(ticketSlot), oldTicket))
-		s.Send(wire.MessagePanel("The Rune Track room cannot be opened right now."))
-		return
-	}
-	for mobID := range inst.MobIDs {
-		if mob := w.mobsByID[mobID]; mob != nil {
-			w.publishMobSpawn(mob)
+		if !s.IsClosed() {
+			s.Send(wire.SendItem(p.ID, placeInv, byte(ticketSlot), oldTicket))
+			s.Send(wire.MessagePanel("The Rune Track room cannot be opened right now."))
 		}
 	}
-	for _, member := range members {
-		w.refreshPlayerVisibility(member)
-		w.sendToPlayerView(member, func() []byte { return wire.ActionStop(member.ID, member.X, member.Y) })
+	opened := func() {
+		for mobID := range inst.MobIDs {
+			if mob := w.mobsByID[mobID]; mob != nil {
+				w.publishMobSpawn(mob)
+			}
+		}
+		for _, member := range members {
+			w.refreshPlayerVisibility(member)
+			w.sendToPlayerView(member, func() []byte { return wire.ActionStop(member.ID, member.X, member.Y) })
+		}
+		if !s.IsClosed() {
+			s.Send(wire.SendItem(p.ID, placeInv, byte(ticketSlot), p.Char.Inv[ticketSlot]))
+		}
+		w.sendItemInstanceStageStatus(inst)
+		log.Printf("[#%d] UXMAL room=%d slot=%d leader=%s members=%d", s.ID, room, partySlot, p.Char.Name, len(members))
 	}
-	s.Send(wire.SendItem(p.ID, placeInv, byte(ticketSlot), p.Char.Inv[ticketSlot]))
-	w.sendItemInstanceStageStatus(inst)
-	log.Printf("[#%d] UXMAL sala=%d vaga=%d lider=%s membros=%d", s.ID, room, partySlot, p.Char.Name, len(members))
+	if spawned, _ := w.spawnItemInstanceStageThen(inst, 0, now, true, false, opened, failed); !spawned {
+		failed()
+	}
 }
 
 func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
@@ -307,9 +315,11 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 		char   model.Char
 	}
 	snapshots := make([]snapshot, 0, len(inst.MemberIDs))
+	oldInstance := *inst
 	accounts := make([]*model.Account, 0, len(inst.MemberIDs))
 	seen := make(map[*model.Account]struct{})
 	rollback := func() {
+		*inst = oldInstance
 		for _, old := range snapshots {
 			*old.player.Char = old.char
 		}
@@ -389,6 +399,7 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 	rollbackGround := func() {
 		for _, item := range createdGround {
 			if item != nil {
+				item.criticalDrop = 0
 				w.unregisterGroundItem(item)
 			}
 		}
@@ -402,25 +413,51 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 			return false
 		}
 		createdGround = append(createdGround, item)
-	}
-	if err := w.saveAccountsAndInstanceState(accounts...); err != nil {
-		rollbackGround()
-		rollback()
-		return false
-	}
-	for _, item := range createdGround {
-		w.publishItemSpawn(item)
-	}
-	for _, id := range inst.MemberIDs {
-		if member := w.playersByID[id]; member != nil && member.InWorld {
-			member.Session.Send(wire.UpdateEtc(member.ID, *member.Char))
-			member.Session.Send(wire.MessagePanel("Rune Track completed: rune received."))
+		if w.criticalWrites != nil {
+			// Reserve the unpublished allocation before actor visibility can
+			// discover it. No client may pick it up before commit confirmation.
+			item.criticalDrop = 1
 		}
 	}
+	groundContexts := make([]GroundItem, len(createdGround))
+	for i, item := range createdGround {
+		groundContexts[i] = *item
+	}
+	checkGround := func() error {
+		for i, item := range createdGround {
+			if w.groundItems[item.ID] != item || *item != groundContexts[i] {
+				return errCriticalPersistenceIdentity
+			}
+		}
+		return nil
+	}
+	// Stage the runtime completion marker with the detached grant. Uxmal is
+	// process-local, so this does not make it a restart-resumable event.
 	inst.RewardGranted = true
 	inst.ExitAt = now.Add(10 * time.Second)
 	inst.ExitDeadline = inst.ExitAt
-	return true
+	// Unpublished ground rewards stay registered but invisible while pending.
+	admitted := w.commitInstanceMutation("Uxmal reward", accounts, rollback, func() {
+		for _, item := range createdGround {
+			item.criticalDrop = 0
+			w.publishItemSpawn(item)
+		}
+		for _, id := range inst.MemberIDs {
+			if member := w.playersByID[id]; member != nil && member.InWorld && !member.Session.IsClosed() {
+				member.Session.Send(wire.UpdateEtc(member.ID, *member.Char))
+				member.Session.Send(wire.MessagePanel("Rune Track completed: rune received."))
+			}
+		}
+	}, func() {
+		// Same follow-up as an inline save failure: keep the room open.
+		rollbackGround()
+		inst.Remaining = 1
+		log.Printf("UXMAL room=%d: reward pending after persistence rejection", inst.UxmalRoom)
+	}, checkGround)
+	if !admitted {
+		rollbackGround()
+	}
+	return admitted
 }
 
 func (w *World) onUxmalMobKilled(m *Mob, now time.Time) {
@@ -439,11 +476,11 @@ func (w *World) onUxmalMobKilled(m *Mob, now time.Time) {
 	}
 	if inst.Remaining == 0 {
 		if !w.grantUxmalRewards(inst, now) {
-			// Nao marque a execucao como concluida se a persistencia falhar. O
-			// tick de cleanup continua com o prazo original e o admin pode
-			// reprocessar a recompensa sem duplicar o item.
+			// Do not mark the run complete when persistence fails. The cleanup
+			// tick keeps the original deadline and staff can reprocess the
+			// reward without duplicating the item.
 			inst.Remaining = 1
-			log.Printf("UXMAL sala=%d: recompensa pendente por falha de persistencia", inst.UxmalRoom)
+			log.Printf("UXMAL room=%d: reward pending after a persistence failure", inst.UxmalRoom)
 		}
 	}
 }

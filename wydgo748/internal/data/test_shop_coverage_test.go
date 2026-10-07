@@ -62,14 +62,14 @@ func requireShopItems(t *testing.T, shops map[string]map[uint16]struct{}, name s
 	t.Helper()
 	stock, ok := shops[name]
 	if !ok {
-		t.Fatalf("loja %s ausente", name)
+		t.Fatalf("shop %s missing", name)
 	}
 	if len(stock) > 27 {
-		t.Fatalf("%s possui %d itens; o client 7.48 exibe no maximo 27", name, len(stock))
+		t.Fatalf("%s has %d items; the 7.48 client shows at most 27", name, len(stock))
 	}
 	for _, item := range want {
 		if _, ok := stock[item]; !ok {
-			t.Errorf("%s nao vende o item %d", name, item)
+			t.Errorf("%s does not sell item %d", name, item)
 		}
 	}
 }
@@ -95,11 +95,11 @@ func TestOneShotConsumablesDoNotLeaveTestShopsAsArtificialStacks(t *testing.T) {
 				continue
 			}
 			items[item.Index] = true
-			// Estes consumiveis representam uma tentativa por UID; EF_AMOUNT aqui faria
-			// uma compra parecer nao consumida e esconderia a remocao da ultima unidade.
+			// These consumables stand for one attempt per UID; EF_AMOUNT here would
+			// make a purchase look unconsumed and hide the removal of the last unit.
 			for slot := 0; slot < 3; slot++ {
 				if item.Eff[slot*2] == effectAmount {
-					t.Errorf("%s item %d possui EF_AMOUNT artificial=%d", npc.Name, item.Index, item.Eff[slot*2+1])
+					t.Errorf("%s item %d has an artificial EF_AMOUNT=%d", npc.Name, item.Index, item.Eff[slot*2+1])
 				}
 			}
 		}
@@ -107,7 +107,7 @@ func TestOneShotConsumablesDoNotLeaveTestShopsAsArtificialStacks(t *testing.T) {
 	for shop, items := range want {
 		for item, found := range items {
 			if !found {
-				t.Errorf("%s nao vende o consumivel unitario %d", shop, item)
+				t.Errorf("%s does not sell the single consumable %d", shop, item)
 			}
 		}
 	}
@@ -122,12 +122,12 @@ func TestCadaItemVolatileTemLojaDeTeste(t *testing.T) {
 	})
 	for item := range volatileItems {
 		if _, ok := covered[item]; !ok {
-			t.Errorf("volatile item %d ausente da matriz de lojas de teste", item)
+			t.Errorf("volatile item %d missing from the test-shop matrix", item)
 		}
 	}
 	for name, stock := range shops {
 		if strings.HasPrefix(name, "ShopVolTest") && len(stock) > 27 {
-			t.Errorf("%s possui %d itens; o client 7.48 exibe no maximo 27", name, len(stock))
+			t.Errorf("%s has %d items; the 7.48 client shows at most 27", name, len(stock))
 		}
 	}
 }
@@ -138,7 +138,7 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 	for _, ranges := range [][2]uint16{{2300, 2328}, {2330, 2358}, {2360, 2388}} {
 		for item := ranges[0]; item <= ranges[1]; item++ {
 			if _, ok := mounts[item]; !ok {
-				t.Errorf("estagio de montaria %d ausente das lojas ShopMt", item)
+				t.Errorf("mount stage %d missing from the ShopMt shops", item)
 			}
 		}
 	}
@@ -148,32 +148,32 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 	timeShop := itemsInShops(shops, func(name string) bool { return name == "ShopMtTime" })
 	for _, item := range timed {
 		if _, ok := timeShop[item]; !ok {
-			t.Errorf("item temporizado de montaria %d ausente de ShopMtTime", item)
+			t.Errorf("timed mount item %d missing from ShopMtTime", item)
 		}
 	}
 
 	costumes := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopCostum") })
 	if len(costumes) != 135 {
-		t.Errorf("lojas ShopCostume possuem %d trajes distintos; esperado 135", len(costumes))
+		t.Errorf("ShopCostume shops have %d distinct costumes; want 135", len(costumes))
 	}
 	for name, stock := range shops {
 		if strings.HasPrefix(name, "ShopCostum") && len(stock) > 27 {
-			t.Errorf("%s possui %d trajes; limite do client e 27", name, len(stock))
+			t.Errorf("%s has %d costumes; the client limit is 27", name, len(stock))
 		}
 	}
 	krMounts := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
 	if len(krMounts) != 59 {
-		t.Errorf("lojas ShopKRMt possuem %d montarias distintas; esperado 59", len(krMounts))
+		t.Errorf("ShopKRMt shops have %d distinct mounts; want 59", len(krMounts))
 	}
 	for name, stock := range shops {
 		if strings.HasPrefix(name, "ShopKRMt") && len(stock) > 27 {
-			t.Errorf("%s possui %d montarias; limite do client e 27", name, len(stock))
+			t.Errorf("%s has %d mounts; the client limit is 27", name, len(stock))
 		}
 	}
 	firal := itemsInShops(shops, func(name string) bool { return name == "ShopFiral" })
 	for item := uint16(3397); item <= 3416; item++ {
 		if _, ok := firal[item]; !ok {
-			t.Errorf("item de aparencia/tintura %d ausente de ShopFiral", item)
+			t.Errorf("appearance/dye item %d missing from ShopFiral", item)
 		}
 	}
 }
@@ -194,7 +194,7 @@ func TestMontariasKRUsamContratoPremium748(t *testing.T) {
 		BaseItem uint16      `json:"baseItem"`
 		Items    []mountItem `json:"items"`
 	}
-	// O manifesto pertence ao runtime do client, irmao do modulo Go.
+	// The manifest belongs to the client runtime, a sibling of the Go module.
 	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tmproject", "client748", "Mounts-KR.json"))
 	if err != nil {
 		t.Fatal(err)
@@ -203,7 +203,7 @@ func TestMontariasKRUsamContratoPremium748(t *testing.T) {
 		t.Fatal(err)
 	}
 	if manifest.BaseItem != 342 || len(manifest.Items) != 62 {
-		t.Fatalf("manifesto KR inesperado: base=%d itens=%d", manifest.BaseItem, len(manifest.Items))
+		t.Fatalf("unexpected KR manifest: base=%d items=%d", manifest.BaseItem, len(manifest.Items))
 	}
 	shire := catalog.Items[manifest.BaseItem]
 	shops, _ := loadTestShopFixture(t)
@@ -213,42 +213,42 @@ func TestMontariasKRUsamContratoPremium748(t *testing.T) {
 	for _, item := range manifest.Items {
 		if item.Available != nil && !*item.Available {
 			if _, ok := unavailable[item.Item]; !ok {
-				t.Errorf("montaria KR %d foi marcada indisponivel sem evidencia catalogada", item.Item)
+				t.Errorf("KR mount %d was marked unavailable without cataloged evidence", item.Item)
 			}
 			if _, ok := catalog.Items[item.Item]; ok {
 				t.Errorf("montaria KR incompleta %d continua materializada no catalogo autoritativo", item.Item)
 			}
 			if _, ok := stock[item.Item]; ok {
-				t.Errorf("montaria KR incompleta %d foi exposta nas lojas", item.Item)
+				t.Errorf("incomplete KR mount %d was offered in the shops", item.Item)
 			}
 			continue
 		}
 		available++
 		def, ok := catalog.Items[item.Item]
 		if !ok {
-			t.Errorf("montaria KR %d ausente do catalogo", item.Item)
+			t.Errorf("KR mount %d missing from the catalog", item.Item)
 			continue
 		}
 		if def.Name != item.Name || def.Mesh != shire.Mesh || def.Pos != shire.Pos ||
 			def.Price != shire.Price || def.Grade != shire.Grade {
-			t.Errorf("montaria KR %d divergiu da base Shire: %+v", item.Item, def)
+			t.Errorf("KR mount %d differs from the Shire base: %+v", item.Item, def)
 		}
 		effects := make(map[string]int, len(def.StaticEffects))
 		for _, effect := range def.StaticEffects {
 			effects[effect.Name] = effect.Value
 		}
 		if effects["EF_CLASS"] != 43 || effects["EF_RANGE"] != 2 ||
-			effects["111"] != 1 || effects["EF_WDAY"] != 30 ||
+			effects["EF_NOTRADE"] != 1 || effects["EF_WDAY"] != 30 ||
 			effects["EF_RUNSPEED"] != 6 || effects["EF_DAMAGE"] != 520 ||
 			effects["EF_MAGIC"] != 65 {
-			t.Errorf("montaria KR %d divergiu do contrato premium: %+v", item.Item, effects)
+			t.Errorf("KR mount %d differs from the premium contract: %+v", item.Item, effects)
 		}
 		if _, ok := stock[item.Item]; !ok {
-			t.Errorf("montaria KR %d ausente das lojas", item.Item)
+			t.Errorf("KR mount %d missing from the shops", item.Item)
 		}
 	}
 	if available != 59 {
-		t.Fatalf("manifesto possui %d montarias KR completas; esperado 59", available)
+		t.Fatalf("the manifest has %d complete KR mounts; want 59", available)
 	}
 }
 
@@ -281,34 +281,34 @@ func TestTrajesKRCompletosMantemContrato748(t *testing.T) {
 	for _, item := range manifest.Items {
 		if !item.Available {
 			if _, ok := stock[item.Item]; ok {
-				t.Errorf("traje KR %d sem assets completos foi exposto na loja", item.Item)
+				t.Errorf("KR costume %d without complete assets was offered in the shop", item.Item)
 			}
 			continue
 		}
 		available++
 		if _, ok := stock[item.Item]; !ok {
-			t.Errorf("traje KR completo %d ausente das lojas", item.Item)
+			t.Errorf("complete KR costume %d missing from the shops", item.Item)
 		}
 		def, ok := catalog.Items[item.Item]
 		if !ok {
-			t.Errorf("traje KR %d ausente do catalogo", item.Item)
+			t.Errorf("KR costume %d missing from the catalog", item.Item)
 			continue
 		}
 		if def.Name != item.Name || def.Mesh != 36 || def.Pos != 8192 {
-			t.Errorf("metadados do traje %d divergiram: %+v", item.Item, def)
+			t.Errorf("metadata of costume %d differ: %+v", item.Item, def)
 		}
 		effects := make(map[string]int, len(def.StaticEffects))
 		for _, effect := range def.StaticEffects {
 			effects[effect.Name] = effect.Value
 		}
 		if effects["EF_CLASS"] != item.ClassMask || effects["EF_AC"] != 80 ||
-			effects["EF_SAVEMANA"] != 10 || effects["111"] != 1 ||
+			effects["EF_SAVEMANA"] != 10 || effects["EF_NOTRADE"] != 1 ||
 			effects["EF_WDAY"] != 30 {
-			t.Errorf("efeitos do traje %d divergiram: %+v", item.Item, effects)
+			t.Errorf("effects of costume %d differ: %+v", item.Item, effects)
 		}
 	}
 	if available != 135 {
-		t.Fatalf("manifesto possui %d trajes completos; esperado 135", available)
+		t.Fatalf("the manifest has %d complete costumes; want 135", available)
 	}
 }
 
@@ -345,7 +345,7 @@ func TestTodasAsArmasDEDoCatalogoTemLojaDeTeste(t *testing.T) {
 	for name, stock := range shops {
 		if (strings.HasPrefix(name, "ShopWeaponsD") || strings.HasPrefix(name, "ShopWeaponsE") ||
 			name == "ShopWpnD2" || name == "ShopWpnE2") && len(stock) > 27 {
-			t.Fatalf("%s possui %d itens; o client 7.48 exibe no maximo 27", name, len(stock))
+			t.Fatalf("%s has %d items; the 7.48 client shows at most 27", name, len(stock))
 		}
 	}
 	for index, def := range catalog.Items {
@@ -365,11 +365,11 @@ func TestTodasAsArmasDEDoCatalogoTemLojaDeTeste(t *testing.T) {
 		switch itemLevel {
 		case 4:
 			if _, ok := dStock[index]; !ok {
-				t.Errorf("arma D %d (%s) ausente das lojas ShopWeaponsD*", index, def.Name)
+				t.Errorf("weapon D %d (%s) missing from the ShopWeaponsD* shops", index, def.Name)
 			}
 		case 5:
 			if _, ok := eStock[index]; !ok {
-				t.Errorf("arma E %d (%s) ausente das lojas ShopWeaponsE*", index, def.Name)
+				t.Errorf("weapon E %d (%s) missing from the ShopWeaponsE* shops", index, def.Name)
 			}
 		}
 	}
@@ -405,13 +405,13 @@ func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
 		}
 		point := gen.Segments[0]
 		if point.X < 2090 || point.X > 2130 || point.Y < 2090 || point.Y > 2120 {
-			t.Errorf("%s esta fora do bloco de Armia: (%d,%d)", gen.Leader, point.X, point.Y)
+			t.Errorf("%s is outside the Armia block: (%d,%d)", gen.Leader, point.X, point.Y)
 		}
 		seen[gen.Leader] = true
 	}
 	for _, name := range want {
 		if !seen[name] {
-			t.Errorf("loja de teste %s nao possui gerador carregavel", name)
+			t.Errorf("test shop %s has no loadable generator", name)
 		}
 	}
 }

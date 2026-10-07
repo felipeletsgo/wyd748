@@ -67,16 +67,14 @@ void TMFieldScene::InitializeCompatCCControls()
 	m_pCC_Btn->SetEventListener(m_pControlContainer);
 	m_pControlContainer->AddItem(m_pCC_Btn);
 
-	// The native EXP segments are children of the bottom HUD, so their stored
-	// positions are relative to that hierarchy. Resolve their rendered bounds
-	// and anchor C.C. immediately above the actual EXP strip instead of using a
-	// resolution-dependent screen-height offset.
-	for (int index = 0; index < 10; ++index)
-	{
-		if (!m_pExpProgress[index])
-			m_pExpProgress[index] = static_cast<SProgressBar*>(
-				m_pControlContainer->FindControl(P_EXP_PROGRESS1 + index));
-	}
+	// The native EXP bar (TMP_EXP_PROGRESS, one progress control in
+	// FieldScene2) is a child of the bottom HUD, so its stored position is
+	// relative to that hierarchy. Resolve its rendered bounds and anchor C.C.
+	// immediately above it instead of using a resolution-dependent offset; the
+	// later client's ten EXP segments (65655..) do not exist in 7.48.
+	SProgressBar* const expBars[] = {
+		static_cast<SProgressBar*>(m_pControlContainer->FindControl(TMP_EXP_PROGRESS))
+	};
 
 	auto getRootPos = [this](SControl* control)
 	{
@@ -98,7 +96,7 @@ void TMFieldScene::InitializeCompatCCControls()
 	float expLeft = 0.0f;
 	float expRight = 0.0f;
 	float expTop = 0.0f;
-	for (auto progress : m_pExpProgress)
+	for (auto progress : expBars)
 	{
 		if (!progress)
 			continue;
@@ -122,7 +120,7 @@ void TMFieldScene::InitializeCompatCCControls()
 
 	if (hasExpBounds)
 	{
-		const float gap = 3.0f * RenderDevice::m_fHeightRatio;
+		const float gap = 3.0f * RenderDevice::m_fUIScaleY;
 		m_pCC_Btn->SetPos(
 			((expLeft + expRight) - m_pCC_Btn->m_nWidth) * 0.5f,
 			expTop - m_pCC_Btn->m_nHeight - gap);
@@ -131,34 +129,10 @@ void TMFieldScene::InitializeCompatCCControls()
 	{
 		// Defensive fallback for malformed/custom resources lacking EXP controls.
 		m_pCC_Btn->SetPos((g_pDevice->m_dwScreenWidth - m_pCC_Btn->m_nWidth) * 0.5f,
-			g_pDevice->m_dwScreenHeight - 96.0f * RenderDevice::m_fHeightRatio);
+			g_pDevice->m_dwScreenHeight - 96.0f * RenderDevice::m_fUIScaleY);
 	}
 	m_pccmode->SetVisible(0);
 	NewCCMode(false, true);
-}
-
-void TMFieldScene::FindAuto()
-{
-	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
-
-	if (dwServerTime - LastSendTime > 250000)
-	{
-		MSG_STANDARD stStandard{};
-		stStandard.ID = g_pObjectManager->m_dwCharID;
-		stStandard.Type = MSG_Ping_Opcode;
-		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stStandard)->Type, reinterpret_cast<char*>(&stStandard), sizeof(stStandard)});
-	}
-
-	// TODO: china stuffs here, not needed for now
-}
-
-int TMFieldScene::FindProcess(unsigned int processID)
-{
-	return 0;
-}
-
-void TMFieldScene::SetAutoOption(int nIndex, char* szString)
-{
 }
 
 void TMFieldScene::SetAutoSkillNum(int nCount)
@@ -170,7 +144,7 @@ void TMFieldScene::SetAutoSkillNum(int nCount)
 
 	m_nAutoSkillNum = nCount;
 
-	if (m_bCompatFieldScene && m_pAutoSkillPanel && m_pGridSkillBelt2 &&
+	if (m_pAutoSkillPanel && m_pGridSkillBelt2 &&
 		m_pGridSkillBelt2->m_nColumnGridCount > 0)
 	{
 		const float slotWidth = m_pGridSkillBelt2->m_nWidth /
@@ -181,7 +155,7 @@ void TMFieldScene::SetAutoSkillNum(int nCount)
 		// not that placeholder width (which extends beyond the C.C button).
 		const float rightEdge = m_pGridSkillBelt2->m_nPosX + m_pGridSkillBelt2->m_nWidth;
 		m_pAutoSkillPanel->SetPos(rightEdge - width, m_pAutoSkillPanel->m_nPosY);
-		m_pAutoSkillPanel->SetSize(width, 4.0f * RenderDevice::m_fHeightRatio);
+		m_pAutoSkillPanel->SetSize(width, 4.0f * RenderDevice::m_fUIScaleY);
 	}
 
 	if (m_pAutoSkillPanel)
@@ -330,10 +304,7 @@ void TMFieldScene::GameAuto()
 
 	if (!(dwServerTime % 3))
 	{
-		if (m_bCompatFieldScene && cc_mode::ShouldFeed(nMountHP, nMountMaxHp, nMountFeed, g_GameAuto_mountValue) && FeedMount())
-			return;
-
-		if (!m_bCompatFieldScene && nMountHP > 0 && nMountHP < CheckMountHp && FeedMount())
+		if (cc_mode::ShouldFeed(nMountHP, nMountMaxHp, nMountFeed, g_GameAuto_mountValue) && FeedMount())
 			return;
 
 		if (CharHp < CharMaxHp && UseHPotion())
@@ -342,8 +313,6 @@ void TMFieldScene::GameAuto()
 		if (m_AutoHpMp != 3 && CharMp < CharMaxMp && UseMPotion())
 			return;
 
-		if (!m_bCompatFieldScene && nMountFeed > 0 && nMountFeed < 6 && FeedMount())
-			return;
 	}
 
 	if ((int)m_pMyHuman->m_eMotion > 1)
@@ -396,7 +365,10 @@ void TMFieldScene::GameAuto()
 					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Mastery[3];
 				}
 
-				if (DelayTime + m_dwSkillLastTime[idxSkill] <= dwServerTime)
+				// A buff without mana cannot be cast; skip it silently instead of
+				// re-entering SkillUse (and its warning) on every frame.
+				if (DelayTime + m_dwSkillLastTime[idxSkill] <= dwServerTime &&
+					cc_mode::HasMana(SkillManaCost(static_cast<unsigned char>(idxSkill)), CharMp))
 				{
 					const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 					g_pObjectManager->m_cSelectShortSkill = i;
@@ -409,7 +381,8 @@ void TMFieldScene::GameAuto()
 			continue;
 		}
 		if ((idxSkill == 56 || idxSkill == 57 || idxSkill == 58 || idxSkill == 59 || idxSkill == 60 || idxSkill == 61 || idxSkill == 62 || idxSkill == 63) &&
-			m_dwSkillLastTime[idxSkill] + 80000 <= dwServerTime)
+			m_dwSkillLastTime[idxSkill] + 80000 <= dwServerTime &&
+			cc_mode::HasMana(SkillManaCost(static_cast<unsigned char>(idxSkill)), CharMp))
 		{
 			const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 			g_pObjectManager->m_cSelectShortSkill = i;
@@ -567,6 +540,25 @@ void TMFieldScene::GameAuto()
 		if (m_pMyHuman->m_bSkillBlack == 1)
 			return;
 
+		// Gate the whole magic scan once per frame with the target-independent
+		// checks of AutoSkillUse. With an unusable skill, without mana, or while
+		// the attack interval or the skill's cooldown runs, no candidate can be
+		// attacked: keep the current target and do not scan every mob.
+		char cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
+		if ((unsigned char)cSkillIndex > 104)
+			cSkillIndex += 95;
+		const unsigned char attackSkill = static_cast<unsigned char>(cSkillIndex);
+		if (!IsValidClassSkill(attackSkill))
+			return;
+		if (!cc_mode::HasMana(SkillManaCost(attackSkill), CharMp))
+		{
+			ReportInsufficientMana(dwServerTime);
+			m_pAutoTarget = nullptr;
+			return;
+		}
+		if (dwServerTime < m_dwOldAttackTime + 1000 || IsSkillCoolingDown(attackSkill, dwServerTime))
+			return;
+
 		if (!m_pAutoTarget)
 		{
 			m_pAutoTarget = nullptr;
@@ -632,7 +624,7 @@ int TMFieldScene::ToggleNativeCCMode(int mode)
 		return 0;
 
 	g_GameAuto = g_GameAuto == mode ? 0 : mode;
-	NewCCMode(true, m_bCompatFieldScene && g_GameAuto != 0);
+	NewCCMode(true, g_GameAuto != 0);
 	return 1;
 }
 
@@ -651,12 +643,7 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 		g_GameAuto_hpValue = 90;
 	g_GameAuto_hpValue -= g_GameAuto_hpValue % 10;
 
-	if (m_bCompatFieldScene)
-		g_GameAuto_mountValue = cc_mode::NormalizeThreshold(g_GameAuto_mountValue);
-	else if (g_GameAuto_mountValue < 30)
-		g_GameAuto_mountValue = 30;
-	else if (g_GameAuto_mountValue > 90)
-		g_GameAuto_mountValue = 90;
+	g_GameAuto_mountValue = cc_mode::NormalizeThreshold(g_GameAuto_mountValue);
 	g_GameAuto_mountValue -= g_GameAuto_mountValue % 10;
 
 	if (bResetCombat)
@@ -692,7 +679,7 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 	if (m_pNativeCCMagicBtn)
 		m_pNativeCCMagicBtn->SetSelected(g_GameAuto == 2);
 
-	if (m_bCompatFieldScene && m_pccmode)
+	if (m_pccmode)
 	{
 		const char* modes[] = {"Off", "Physical", "Magic", "Support"};
 		const char* positions[] = {"Free", "Cycle", "Fixed"};
@@ -715,10 +702,8 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 		return;
 	}
 
-	SButton* pLegacyMode = !m_bCompatFieldScene && m_pControlContainer
-		? static_cast<SButton*>(m_pControlContainer->FindControl(B_CCATTACK))
-		: nullptr;
-	if (!m_bCompatFieldScene || m_pMGameAutoBtn)
+	SButton* pLegacyMode = nullptr;
+	if (m_pMGameAutoBtn)
 	{
 		int modeTexture = 458;
 		char* pModeText = g_UIString[229];
@@ -756,10 +741,8 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 		m_pSGameAutoBtn->SetVisible(g_GameAuto != 0);
 	}
 
-	SButton* pLegacyMove = !m_bCompatFieldScene && m_pControlContainer
-		? static_cast<SButton*>(m_pControlContainer->FindControl(B_CCMOVE))
-		: nullptr;
-	if (!m_bCompatFieldScene || m_pSetType)
+	SButton* pLegacyMove = nullptr;
+	if (m_pSetType)
 	{
 		int positionTexture = 465;
 		char* pPositionText = g_UIString[232];

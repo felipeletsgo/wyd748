@@ -418,6 +418,7 @@ int main()
         receiver = INVALID_SOCKET;
     }
     for (const auto notification : {WSAMAKESELECTREPLY(FD_CLOSE, 0),
+        WSAMAKESELECTREPLY(FD_CONNECT, WSAECONNREFUSED),
         WSAMAKESELECTREPLY(FD_READ, WSAECONNRESET), WSAMAKESELECTREPLY(FD_WRITE, WSAENETDOWN),
         WSAMAKESELECTREPLY(FD_WRITE, 0)}) {
         CPSock socket;
@@ -441,9 +442,75 @@ int main()
             "registration failure fixture cannot block in accept");
         check(socket.ConnectServer(loopback, ntohs(address.sin_port), 0, WM_USER + 100) == 0 &&
             socket.Sock == 0, "failed event registration is rejected by ConnectServer");
-        SOCKET peer = acceptPeer();
-        check(peer != INVALID_SOCKET, "ConnectServer registration failure reached the loopback listener");
+        SOCKET peer = accept(listener, nullptr, nullptr);
+        check(peer == INVALID_SOCKET, "failed event registration does not start a connection");
         if (peer != INVALID_SOCKET) closesocket(peer);
+    }
+    if (ready) {
+        // A message-only window receives real Winsock completion events without
+        // launching the client or displaying a window.
+        constexpr UINT networkMessage = WM_USER + 101;
+        hWndMain = CreateWindowExA(0, "STATIC", "Socket regression", 0,
+            0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleA(nullptr), nullptr);
+        check(hWndMain != nullptr, "async connect fixture creates a message-only window");
+        if (hWndMain) {
+            CPSock socket;
+            char loopback[] = "127.0.0.1";
+            const DWORD started = GetTickCount();
+            const auto connected = socket.ConnectServer(loopback,
+                ntohs(address.sin_port), 0, networkMessage);
+            check(connected != 0 && GetTickCount() - started < 1000,
+                "ConnectServer returns without waiting for TCP completion");
+            const bool pending = socket.Connecting;
+            socket.SendQueue[0] = 0x12;
+            socket.SendQueue[1] = 0x34;
+            CurrentTime = 0;
+            auto request = plain;
+            check(connected && socket.AddMessage(reinterpret_cast<char*>(request.data()),
+                static_cast<int>(request.size())) == 1,
+                "login packet may be queued before connection completion");
+            if (pending) {
+                check(socket.nSendPosition == 4 + request.size() && socket.nSentPosition == 0,
+                    "connecting stream retains handshake and login without sending");
+            }
+            SOCKET peer = connected ? acceptPeer() : INVALID_SOCKET;
+            check(peer != INVALID_SOCKET, "async connection reaches loopback listener");
+            while (connected && GetTickCount() - started < 2000 &&
+                (socket.Connecting || socket.nSendPosition != 0)) {
+                MSG message{};
+                while (PeekMessageA(&message, hWndMain, networkMessage, networkMessage, PM_REMOVE))
+                    socket.HandleNetworkEvent(message.wParam, message.lParam);
+                Sleep(1);
+            }
+            check(connected && !socket.Connecting && socket.Sock && socket.nSendPosition == 0,
+                "real FD_CONNECT completion flushes the queued stream");
+            if (peer != INVALID_SOCKET) {
+                DWORD timeout = 2000;
+                setsockopt(peer, SOL_SOCKET, SO_RCVTIMEO,
+                    reinterpret_cast<const char*>(&timeout), sizeof(timeout));
+                std::array<unsigned char, 32> received{};
+                int count = 0;
+                while (count < static_cast<int>(received.size())) {
+                    const int bytes = recv(peer, reinterpret_cast<char*>(received.data() + count),
+                        static_cast<int>(received.size()) - count, 0);
+                    if (bytes <= 0) break;
+                    count += bytes;
+                }
+                const unsigned int code = INIT_CODE;
+                check(count == received.size() &&
+                    std::memcmp(received.data(), &code, sizeof(code)) == 0 &&
+                    std::memcmp(received.data() + sizeof(code), request.data(), 4) == 0,
+                    "async wire starts with one InitCode followed by the encoded frame header");
+                closesocket(peer);
+            }
+            socket.CloseSocket();
+            check(!socket.Connecting && socket.nSendPosition == 0 &&
+                socket.HandleNetworkEvent(connected, WSAMAKESELECTREPLY(FD_CONNECT, 0)) ==
+                    CPSock::EventResult::Ignored,
+                "closed connection discards pending state and late completion events");
+            DestroyWindow(hWndMain);
+            hWndMain = nullptr;
+        }
     }
     if (ready) {
         // The handshake is raw, followed by an ordinary encrypted frame on

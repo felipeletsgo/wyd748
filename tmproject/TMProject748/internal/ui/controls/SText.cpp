@@ -297,8 +297,8 @@ void SText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParen
 		AddRenderControlItem(pDrawList, &m_GCBorder, inParentLayer);
 	}
 
-	float fWidthRatio = RenderDevice::m_fWidthRatio;
-	float fHeightRatio = RenderDevice::m_fHeightRatio;
+	float fWidthRatio = RenderDevice::m_fUIScaleX;
+	float fHeightRatio = RenderDevice::m_fUIScaleY;
 
 	if (m_dwAlignType == 0)
 	{
@@ -357,7 +357,7 @@ void SText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParen
 	else if (m_dwAlignType == 3)
 	{
 		m_GCText.nPosX = (float)(ivParentPos.x + m_nPosX)
-			+ (float)(2.0f * RenderDevice::m_fWidthRatio);
+			+ (float)(2.0f * RenderDevice::m_fUIScaleX);
 
 		if (m_cComma == 2)
 		{
@@ -369,7 +369,7 @@ void SText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParen
 	else if (m_dwAlignType == 4)
 	{
 		m_GCText.nPosX = (float)((float)(ivParentPos.x + m_nPosX)
-			+ (float)(8.0f * RenderDevice::m_fWidthRatio))
+			+ (float)(8.0f * RenderDevice::m_fUIScaleX))
 			+ (float)104;
 		if (m_cComma == 2)
 		{

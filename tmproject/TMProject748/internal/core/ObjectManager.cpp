@@ -96,13 +96,13 @@ void ObjectManager::Finalize()
 
 void ObjectManager::OnPacketView(const PacketView& packet)
 {
-	// Valida os contratos de frame migrados enquanto o comprimento ainda existe.
-	// Mantem o percurso legado, inclusive consumo antecipado de MSG_SendItem.
-	// Eventos locais sem frame continuam entrando diretamente por OnPacketEvent.
+	// Validate migrated frame contracts while the frame length is still available.
+	// Keep the legacy path, including early consumption of MSG_SendItem.
+	// Local events without frames still enter directly through OnPacketEvent.
 	received_packet::Dispatch(packet, [this](const PacketView& frame)
 	{
-		// ReadPacketView empresta o buffer gravavel de CPSock. Nao copiar:
-		// normalizacoes dos handlers precisam atingir esse mesmo armazenamento.
+		// ReadPacketView borrows CPSock's writable buffer. Do not copy it:
+		// handler normalization must update that same storage.
 		OnPacketEvent(frame.opcode, const_cast<char*>(frame.data));
 	});
 }
@@ -114,8 +114,8 @@ bool ObjectManager::HandleSelectCharacterItem(char* buf)
 		buf == nullptr)
 		return false;
 
-	// O buffer ja foi enquadrado pelo CPSock. A ordem historica e preservada:
-	// MSG_SendItem e consumido aqui e nao percorre os filhos da cena.
+	// CPSock already framed the buffer. Preserve the historical dispatch order:
+	// consume MSG_SendItem here without dispatching to the scene's children.
 	MSG_SendItem* message = reinterpret_cast<MSG_SendItem*>(buf);
 	if (message->Header.Type != MSG_SendItem_Opcode)
 		return false;
@@ -123,8 +123,8 @@ bool ObjectManager::HandleSelectCharacterItem(char* buf)
 	if (message->DestType == 2)
 		ApplyCargoSlot(m_stItemCargo, message->DestPos, message->Item);
 
-	// Inclusive destino invalido permanece consumido: nao repassar este pacote
-	// aos filhos da selecao nem permitir uma segunda tentativa de atualizacao.
+	// Consume even invalid destinations: do not forward this packet to the
+	// selection's children or permit a second update attempt.
 	return true;
 }
 
@@ -788,6 +788,10 @@ void ObjectManager::SetCurrentState(TM_GAME_STATE ieNewState)
 
 		if (!pScene->InitializeScene())
 		{
+			// The previous scene is already scheduled for deletion. Do not
+			// publish a failed scene to the deferred window-close handler.
+			if (g_pCurrentScene == pScene)
+				g_pCurrentScene = nullptr;
 			SAFE_DELETE(pScene);
 			MessageBox(g_pApp->m_hWnd, "Initialize Scene Fail.", "Error", MB_SYSTEMMODAL);
 			PostMessage(g_pApp->m_hWnd, 16, 0, 0);

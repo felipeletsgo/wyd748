@@ -13,17 +13,20 @@ const (
 )
 
 func (w *World) canInitiatePvP(attacker, target *Player) bool {
+	if w.criticalPlayerReserved(attacker) || w.criticalPlayerReserved(target) {
+		return false
+	}
 	if allowed, handled := w.guildWarPvP(attacker, target); handled {
 		return allowed
 	}
-	// Excecoes futuras (Kingdom, Castle ou Guild War) devem ser autorizadas
-	// explicitamente aqui, sem enfraquecer o PK Mode do combate comum.
+	// Future Kingdom, Castle or Guild War exceptions must be authorized here
+	// explicitly without weakening PK Mode for ordinary combat.
 	return attacker != nil && target != nil && attacker.PKMode
 }
 
-// applyCouragePvEDamage aplica o bonus fixo do affect Courage somente sobre um
-// hit valido contra monstro. Ele nao altera Score nem participa de PvP:
-// o bonus existe apenas no resultado autoritativo de cada golpe PvE.
+// applyCouragePvEDamage adds Courage's fixed bonus only to a valid monster hit.
+// It does not modify Score or affect PvP; the bonus belongs to each resolved
+// authoritative PvE hit.
 func applyCouragePvEDamage(ch *model.Char, damage int, magical bool) int {
 	return applyCouragePvEDamageAt(ch, damage, magical, time.Now())
 }
@@ -42,13 +45,14 @@ func applyCouragePvEDamageAt(ch *model.Char, damage int, magical bool, now time.
 	return damage + bonus
 }
 
-// combat.go -- calculo de dano PORTADO do WYD 7.48 (SOURCE SERVER/Code/Basedef.cpp), a
-// fonte com a formula correta. Regra: dano FISICO cresce com FORCA e DESTREZA; dano
-// MAGICO cresce com INTELIGENCIA. So portamos algoritmos (nunca offsets/structs).
+// Damage algorithms originate from WYD 7.48 SOURCE SERVER/Code/Basedef.cpp.
+// Physical damage scales with strength/dexterity; magical damage scales with
+// intelligence. Algorithms, not offsets or structures, were ported; historical
+// origin alone does not establish native runtime parity.
 
-// hitDamage = dano final de UM golpe. Portado EXATO de BASE_GetDamage
-// (Basedef.cpp:1553): tdam = dam - ac/2; variancia pelo combat skill; suavizacao do
-// low-end; minimo 1. dam=ataque do atacante, ac=defesa do alvo, combat=nivel de skill.
+// hitDamage resolves one hit using BASE_GetDamage (Basedef.cpp:1553):
+// tdam = dam - ac/2, combat-skill variance, low-end smoothing, and a minimum of 1.
+// dam is attack, ac is target defense, and combat is the combat skill level.
 func hitDamageWithRNG(dam, ac, combat int, intn func(int) int) int {
 	tdam := dam - ac/2
 	c := combat / 2
@@ -56,7 +60,7 @@ func hitDamageWithRNG(dam, ac, combat int, intn func(int) int) int {
 		c = 7
 	}
 	delta := 12 - c
-	rnd := intn(delta) + c + 99 // 99..110 (variancia)
+	rnd := intn(delta) + c + 99 // 99..110 variance
 	tdam = rnd * tdam / 100
 	switch {
 	case tdam < -50:
@@ -145,7 +149,7 @@ func (r physicalHitResult) visualFlags() byte {
 
 const huntressAirBladeBit uint32 = 0x200000
 
-// applyHuntressAirBlade ports the Huntress Lâmina Aérea passive from the
+// applyHuntressAirBlade ports the Huntress Air Blade passive from the
 // physical MSG_AttackTwo path. The native order is important: the passive
 // bonus is added before Double Hit, so a double action repeats the bonus too.
 func applyHuntressAirBlade(hit physicalHitResult, ch *model.Char, targetDefense int,
@@ -261,8 +265,8 @@ func (w *World) playerHitsMob(atk *Player, m *Mob) uint32 {
 	return playerHitsMobAt(atk, m, w.intn, w.now())
 }
 
-// playerHitsPlayer usa a mesma progressao server-side de acerto/critico do PvE,
-// trocando apenas defesa/evasao pelo score autoritativo do personagem alvo.
+// playerHitsPlayer uses PvE's server-owned hit/critical progression with the
+// target character's authoritative defense and evasion.
 func playerHitsPlayerWithRNG(atk, target *Player, intn func(int) int) uint32 {
 	return playerPhysicalHitPlayerWithRNG(atk, target, intn).Damage
 }
@@ -313,7 +317,7 @@ func (w *World) playerHitsPlayer(atk, target *Player) uint32 {
 	return playerHitsPlayerWithRNG(atk, target, w.intn)
 }
 
-// mobHitsPlayer = dano de um mob atacando um player (pro combate mob->player futuro).
+// mobHitsPlayer resolves physical mob-to-player damage.
 func mobHitsPlayerWithRNG(m *Mob, def *model.Char, intn func(int) int) uint32 {
 	return mobHitsPlayerAt(m, def, intn, time.Now())
 }

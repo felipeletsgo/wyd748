@@ -1,8 +1,6 @@
 #include "pch.h"
 // NewApp split by responsibility; application lifecycle stays in NewApp.cpp.
 #include "DirShow.h"
-#include "TMVideoWnd.h"
-#include "JBlur.h"
 #include "ObjectManager.h"
 #include "../../application/ports/PacketDispatch.h"
 #include "NewApp.h"
@@ -17,37 +15,6 @@
 #include "SControlContainer.h"
 #include "WYD748Assets.h"
 #include "ClientDiagnostics.h"
-
-void NewApp::SwitchWebBrowserState(int nEmptyCargo)
-{
-}
-
-void NewApp::SwitchWebBoard()
-{
-}
-
-DWORD NewApp::GetHttpRequest(char* httpname, char* Request, int MaxBuffer)
-{
-	HINTERNET m_Session = InternetOpen("MS", 0, 0, 0, 0);
-	HINTERNET hHttpFile = InternetOpenUrl(m_Session, httpname, 0, 0, 0x4000000, 0);
-
-	if (hHttpFile)
-	{
-		DWORD dwBytesRead = 0;
-		InternetReadFile(hHttpFile, Request, MaxBuffer, &dwBytesRead);
-		InternetCloseHandle(hHttpFile);
-		Request[dwBytesRead] = 0;
-		InternetCloseHandle(m_Session);
-		return 1;
-	}
-	else
-	{
-		GetLastError();
-		InternetCloseHandle(m_Session);
-	}
-
-	return 0;
-}
 
 void NewApp::MixHelp()
 {
@@ -98,18 +65,4 @@ void NewApp::MixHelp()
 	}
 
 	fclose(fp);
-}
-
-int NewApp::BASE_Initialize_NewServerList()
-{
-	return 1;
-}
-
-void NewApp::InitServerNameMR()
-{
-}
-
-char NewApp::base_chinaTid(char* TID, char* Id)
-{
-	return 0;
 }

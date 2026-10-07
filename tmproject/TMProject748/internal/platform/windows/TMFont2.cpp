@@ -361,30 +361,3 @@ int TMFont2::Render(int nPosX, int nPosY, int nRenderType)
 
 	return TRUE;
 }
-
-int TMFont2::StrByteCheck(char* szString)
-{
-	int value = 0;
-	bool byteCheck = false;
-	for (size_t i = 0; ; ++i)
-	{
-		if (i >= strlen(szString))
-			break;
-
-		if (szString[i] >= 'A' && szString[i] <= 'z')
-		{
-			++value;
-		}
-		else if (byteCheck == 1)
-		{
-			++value;
-			byteCheck = 0;
-		}
-		else
-		{
-			byteCheck = 1;
-		}
-	}
-
-	return value;
-}

@@ -10,19 +10,19 @@ import (
 )
 
 const (
-	// Merchant 58 e convertido pelo score legado no tipo 10 que faz o client
-	// 7.48 abrir a confirmacao nativa. Ao aceitar, ele envia 0x28B/ClickOk=1.
+	// The legacy score converts Merchant 58 into type 10, which makes the 7.48
+	// client open its native confirmation. Accepting sends 0x28B/ClickOk=1.
 	mountMasterMerchant = 58
 	mountMasterReviveHP = 20
-	npcKindMountMaster  = "mestre de montaria"
+	npcKindMountMaster  = "mount master"
 )
 
 func isMountMasterNPC(def *model.NPCDef) bool {
 	return def != nil && def.Score != nil && def.Score.Merchant == mountMasterMerchant
 }
 
-// speakMountMaster reproduz SendSay: a fala sai do ID do NPC e e recebida por
-// todos os jogadores proximos, sem transformar texto do client em autoridade.
+// speakMountMaster reproduces SendSay: the line comes from the NPC ID and
+// reaches every nearby player, without trusting client text as authority.
 func (w *World) speakMountMaster(m *Mob, message string) {
 	if m == nil || message == "" {
 		return
@@ -34,9 +34,9 @@ func (w *World) speakMountMaster(m *Mob, message string) {
 	}
 }
 
-// handleMountMasterNPC porta o ramo MOUNT_MASTER de _MSG_Quest.cpp. O client
-// apenas pede a operacao; montaria, HP, preco, gold e resultado sao sempre
-// resolvidos do estado autoritativo do World.
+// handleMountMasterNPC ports the MOUNT_MASTER branch of _MSG_Quest.cpp. The
+// client only requests the operation; mount, HP, price, gold and outcome are
+// always resolved from authoritative World state.
 func (w *World) handleMountMasterNPC(s *net.Session, p *Player, m *Mob, clickOk int32) bool {
 	if m == nil || !isMountMasterNPC(m.Def) {
 		return false
@@ -52,7 +52,7 @@ func (w *World) handleMountMasterNPC(s *net.Session, p *Player, m *Mob, clickOk 
 	}
 	def, exists := w.items[mount.Index]
 	if !exists {
-		log.Printf("[#%d] Mount_Master recusado: montaria %d ausente do catalogo", s.ID, mount.Index)
+		log.Printf("[#%d] Mount_Master rejected: mount %d is missing from the catalog", s.ID, mount.Index)
 		s.Send(wire.MessagePanel("This mount is not registered by the server."))
 		return true
 	}
@@ -70,7 +70,7 @@ func (w *World) handleMountMasterNPC(s *net.Session, p *Player, m *Mob, clickOk 
 		return true
 	}
 
-	snapshot := cloneCharacterState(p.Char)
+	images := criticalPreimages(p)
 	p.Char.Gold -= price
 	longevity := mount.MountLongev() - w.intn(3)
 	if longevity > 0 {
@@ -81,23 +81,19 @@ func (w *World) handleMountMasterNPC(s *net.Session, p *Player, m *Mob, clickOk 
 		*mount = model.Item{}
 	}
 	w.recalcPlayer(p.Char)
-	if err := w.saveAccount(p.Account); err != nil {
-		*p.Char = snapshot
-		w.recalcPlayer(p.Char)
-		log.Printf("[#%d] salvar revival no Mount_Master: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. The mount was not changed."))
-		return true
-	}
-
-	s.Send(wire.SendItem(p.ID, placeEquip, mountSlot, p.Char.Equip[mountSlot]))
-	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	s.Send(playerScorePacket(p))
-	w.refreshAppearance(p)
-	w.syncCriaPet(p)
-	if p.Char.Equip[mountSlot].Index == 0 {
-		w.speakMountMaster(m, "The treatment failed and the mount was lost.")
-	} else {
-		w.speakMountMaster(m, "Mount revived.")
-	}
+	w.commitPlayerMutation(p, images, "Mount_Master revival", "Save failed. The mount was not changed.", false, func() {
+		if !s.IsClosed() {
+			s.Send(wire.SendItem(p.ID, placeEquip, mountSlot, p.Char.Equip[mountSlot]))
+			s.Send(wire.UpdateEtc(p.ID, *p.Char))
+			s.Send(playerScorePacket(p))
+		}
+		w.refreshAppearance(p)
+		w.syncCriaPet(p)
+		if p.Char.Equip[mountSlot].Index == 0 {
+			w.speakMountMaster(m, "The treatment failed and the mount was lost.")
+		} else {
+			w.speakMountMaster(m, "Mount revived.")
+		}
+	})
 	return true
 }

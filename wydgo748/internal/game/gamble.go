@@ -113,6 +113,10 @@ func (w *World) noPrizeGambleStops() [3]byte {
 }
 
 func (w *World) rollGamble(kind uint32, bet uint32) gambleOutcome {
+	return w.rollGambleWithJackpot(kind, bet, w.gambleJackpot)
+}
+
+func (w *World) rollGambleWithJackpot(kind uint32, bet, jackpot uint32) gambleOutcome {
 	noPrizeChance := 50
 	if kind >= 1 {
 		noPrizeChance = 60
@@ -126,7 +130,7 @@ func (w *World) rollGamble(kind uint32, bet uint32) gambleOutcome {
 	result := gambleResults(stops)
 	prize := gamblePrize(bet, result)
 	if result[1] == 14 {
-		prize += uint64(w.gambleJackpot)
+		prize += uint64(jackpot)
 	}
 	// Prize is int32 in the 7.48 contract. Saturate before persistence to avoid
 	// paying an amount that the client would display as negative.
@@ -185,6 +189,9 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 20 {
 		return
 	}
+	if w.criticalTradeReserved(p) || w.criticalInstanceReserved() {
+		return
+	}
 	kind := binary.LittleEndian.Uint32(pkt[12:16])
 	bet := binary.LittleEndian.Uint32(pkt[16:20])
 	if (kind != 1 && kind != 2) || bet < gambleMinBet || bet > gambleMaxBet || bet%gambleMinBet != 0 {
@@ -193,6 +200,13 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	}
 	if p.Char.Gold < bet {
 		s.Send(wire.MessagePanel("You do not have enough gold."))
+		return
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueGamble(p, kind, bet); err != nil {
+			log.Printf("[#%d] Gamble admission rejected: %v", s.ID, err)
+			s.Send(wire.MessagePanel("Gamble is temporarily unavailable."))
+		}
 		return
 	}
 	if _, ok := w.store.(instanceRuntimeTransactionStore); !ok {

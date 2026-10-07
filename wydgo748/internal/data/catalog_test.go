@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"wydgo/internal/model"
 )
 
 func TestItemEffectFileIsAuthoritative(t *testing.T) {
@@ -17,10 +19,10 @@ func TestItemEffectFileIsAuthoritative(t *testing.T) {
 		t.Fatal(err)
 	}
 	if effects[200] != "EF_DAMAGE" {
-		t.Fatalf("ItemEffect nao foi respeitado: %#v", effects)
+		t.Fatalf("ItemEffect was not honored: %#v", effects)
 	}
 	if _, legacy := effects[2]; legacy {
-		t.Fatal("loader reintroduziu silenciosamente o ID legado de EF_DAMAGE")
+		t.Fatal("the loader silently reintroduced the legacy EF_DAMAGE ID")
 	}
 }
 
@@ -30,11 +32,11 @@ func TestLoadConverted748Catalog(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(catalog.Items) < 2800 || len(catalog.Skills) != 104 {
-		t.Fatalf("catalogo incompleto: itens=%d skills=%d", len(catalog.Items), len(catalog.Skills))
+		t.Fatalf("incomplete catalog: items=%d skills=%d", len(catalog.Items), len(catalog.Skills))
 	}
 	helmet, ok := catalog.Items[1103]
 	if !ok || helmet.Name != "Leather_Helmet(Arcane)" || helmet.Price != 1650 || helmet.Pos != 2 {
-		t.Fatalf("item 1103 invalido: %+v", helmet)
+		t.Fatalf("invalid item 1103: %+v", helmet)
 	}
 	foundAC := false
 	for _, effect := range helmet.StaticEffects {
@@ -43,7 +45,7 @@ func TestLoadConverted748Catalog(t *testing.T) {
 		}
 	}
 	if !foundAC {
-		t.Fatalf("EF_AC do item 1103 nao carregado: %+v", helmet.StaticEffects)
+		t.Fatalf("EF_AC of item 1103 not loaded: %+v", helmet.StaticEffects)
 	}
 	fairyDays := map[uint16]int{
 		3900: 3, 3901: 3, 3902: 3,
@@ -55,7 +57,7 @@ func TestLoadConverted748Catalog(t *testing.T) {
 	for index, wantDays := range fairyDays {
 		def, ok := catalog.Items[index]
 		if !ok {
-			t.Fatalf("fada %d ausente do catalogo", index)
+			t.Fatalf("fairy %d missing from the catalog", index)
 		}
 		effects := make(map[string]int, len(def.StaticEffects))
 		for _, effect := range def.StaticEffects {
@@ -65,12 +67,12 @@ func TestLoadConverted748Catalog(t *testing.T) {
 		hour, hourOK := effects["EF_HOUR"]
 		minute, minuteOK := effects["EF_MIN"]
 		if !dayOK || !hourOK || !minuteOK || day != wantDays || hour != 0 || minute != 0 {
-			t.Fatalf("timer da fada %d invalido: effects=%v want=%dd 0h 0m", index, effects, wantDays)
+			t.Fatalf("invalid timer of fairy %d: effects=%v want=%dd 0h 0m", index, effects, wantDays)
 		}
 	}
 	skill, ok := catalog.Skills[0]
 	if !ok || skill.Name == "" || skill.SkillPoint != 24 || skill.ManaSpent != 15 {
-		t.Fatalf("skill 0 invalida: %+v", skill)
+		t.Fatalf("invalid skill 0: %+v", skill)
 	}
 }
 
@@ -89,11 +91,11 @@ func TestSkillsComeFromAuthoritativeSkillData(t *testing.T) {
 	for index, expected := range want {
 		skill := catalog.Skills[index]
 		if skill.AffectType != expected[0] || skill.AffectValue != expected[1] || skill.AffectTime != expected[2] {
-			t.Fatalf("skill %d divergiu do SkillData WYD 7.48: %+v", index, skill)
+			t.Fatalf("skill %d differs from the WYD 7.48 SkillData: %+v", index, skill)
 		}
 	}
 	if aura := catalog.Skills[5]; aura.TickType != 17 || aura.TickValue != 75 {
-		t.Fatalf("Aura da Vida sem regen 7.59: %+v", aura)
+		t.Fatalf("skill 5 without the 7.59 regeneration: %+v", aura)
 	}
 }
 
@@ -110,11 +112,11 @@ func TestNative748SpecialSkillIndices(t *testing.T) {
 	}
 	for index, name := range want {
 		if skill, ok := catalog.Skills[index]; !ok || !strings.EqualFold(skill.Name, name) {
-			t.Fatalf("skill %d=%+v, quer %q", index, skill, name)
+			t.Fatalf("skill %d=%+v, want %q", index, skill, name)
 		}
 	}
 	if skill := catalog.Skills[83]; skill.Passive != 1 {
-		t.Fatalf("skill 83 perdeu o Passive ao remover a coluna Unknown: %+v", skill)
+		t.Fatalf("skill 83 lost Passive when the Unknown column was removed: %+v", skill)
 	}
 }
 
@@ -125,13 +127,13 @@ func TestCatalogRejectsDuplicateAndOutOfRangeIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := loadItemList(itemPath); err == nil {
-		t.Fatal("itemlist com ID duplicado foi aceito")
+		t.Fatal("an itemlist with a duplicate ID was accepted")
 	}
 	if err := os.WriteFile(itemPath, []byte(strings.Replace(itemLine, "1,Item", "6500,Item", 1)), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := loadItemList(itemPath); err == nil {
-		t.Fatal("item fora de ItemListSize foi aceito")
+		t.Fatal("an item outside ItemListSize was accepted")
 	}
 
 	firstSkill, err := os.ReadFile("../../data/SkillData.csv")
@@ -144,7 +146,7 @@ func TestCatalogRejectsDuplicateAndOutOfRangeIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := loadSkills(skillPath); err == nil {
-		t.Fatal("SkillData com ID duplicado foi aceito")
+		t.Fatal("SkillData with a duplicate ID was accepted")
 	}
 	parts := strings.Split(strings.TrimSpace(line), ",")
 	parts[0] = "104"
@@ -152,7 +154,7 @@ func TestCatalogRejectsDuplicateAndOutOfRangeIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := loadSkills(skillPath); err == nil {
-		t.Fatal("SkillData com ID fora da tabela 7.48 foi aceito")
+		t.Fatal("SkillData with an ID outside the 7.48 table was accepted")
 	}
 	parts = strings.Split(strings.TrimSpace(line), ",")
 	parts[13] = "256.0.0.0.0.0.0.0"
@@ -160,6 +162,23 @@ func TestCatalogRejectsDuplicateAndOutOfRangeIDs(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := loadSkills(skillPath); err == nil {
-		t.Fatal("SkillData com byte de animacao invalido foi aceito")
+		t.Fatal("SkillData with an invalid animation byte was accepted")
+	}
+}
+
+func TestNumericStaticEffectsTakeTheHeaderName(t *testing.T) {
+	items := map[uint16]model.ItemDef{
+		1: {Index: 1, StaticEffects: []model.StaticEffect{{Name: "111", Value: 1}, {Name: "200", Value: 7}}},
+	}
+	effects := map[byte]string{111: "EF_NOTRADE"}
+	if err := validateStaticEffects(items, effects); err != nil {
+		t.Fatal(err)
+	}
+	got := items[1].StaticEffects
+	if got[0].Name != "EF_NOTRADE" || got[0].Value != 1 {
+		t.Fatalf("named numeric effect = %+v; want EF_NOTRADE/1", got[0])
+	}
+	if got[1].Name != "200" || got[1].Value != 7 {
+		t.Fatalf("unnamed numeric effect = %+v; want 200/7 preserved", got[1])
 	}
 }

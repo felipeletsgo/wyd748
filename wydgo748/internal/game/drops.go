@@ -18,14 +18,11 @@ type plannedDrop struct {
 	sourceSlot   int
 }
 
-// drops.go -- drop de loot na morte do mob, PORTADO do MobKilled.cpp do WYD 7.48
-// ("Drop comum" + "Drop Gold"). Mecanica nativa: a chance depende do SLOT em que o
-// item esta no carry do monstro (tabela w.dropRates, ajustada por banda de level).
-// Diferenca pedida pelo felipe: o item dropado vai DIRETO pro inventario do killer;
-// o chao (spawnDrop) e so fallback de inventario cheio.
+// Mob-kill loot uses the historical MobKilled.cpp slot-based drop rates.
+// The killer receives items directly; ground drops are the full-inventory fallback.
 
-// dropRateForSlot aplica os ajustes nativos de banda de level sobre a taxa base do
-// slot (MobKilled.cpp:2359+). Retorna a taxa final e se o drop e garantido.
+// dropRateForSlot applies the historical level-band adjustments to the base
+// slot rate (MobKilled.cpp:2359+) and reports whether the drop is guaranteed.
 func (w *World) dropRateForSlot(slot int, mobLevel int) (rate int, guaranteed bool) {
 	rate = w.dropRates[slot]
 	if slot < 60 {
@@ -61,7 +58,7 @@ func (w *World) dropRateForSlot(slot int, mobLevel int) (rate int, guaranteed bo
 			rate = 50 * rate / 100
 		}
 	}
-	// Slots especiais do nativo: 8-10 forcam taxa 4; 11 e drop GARANTIDO.
+	// Special slots: 8-10 force rate 4; slot 11 guarantees the drop.
 	if slot >= 8 && slot <= 10 {
 		rate = 4
 	}
@@ -74,10 +71,7 @@ func (w *World) dropRateForSlot(slot int, mobLevel int) (rate int, guaranteed bo
 	return rate, false
 }
 
-// rollMobDrops rola cada slot ocupado do carry do monstro. Item que dropa vai
-// direto pro inventario do killer (SendItem confirma); inventario cheio cai no chao.
-// dropBonusFor soma os bonus percentuais de drop do jogador. Hoje so a
-// cidadania contribui; itens/eventos entram aqui quando existirem.
+// dropBonusFor combines citizenship and equipped gem drop bonuses.
 func (w *World) dropBonusFor(p *Player) int {
 	if p == nil || p.Char == nil {
 		return 0
@@ -86,11 +80,8 @@ func (w *World) dropBonusFor(p *Player) int {
 		w.equipmentGemBonuses(p.Char).dropPercent
 }
 
-// applyDropBonus converte um bonus percentual numa taxa "1 em N".
-//
-// A taxa nativa e invertida: o drop acontece quando rand()%rate == 0, entao
-// rate MENOR = mais comum. Um bonus de +10% precisa portanto DIVIDIR a taxa por
-// 1.10 -- somar ao rate deixaria o drop mais raro, o contrario do pretendido.
+// applyDropBonus converts a percentage bonus to a one-in-N rate.
+// Lower rates mean more frequent drops; +10% divides the rate by 1.10.
 func applyDropBonus(rate, bonusPercent int) int {
 	if rate <= 1 || bonusPercent <= 0 {
 		return rate
@@ -125,7 +116,7 @@ func (w *World) planMobDrops(p *Player, m *Mob) []plannedDrop {
 		rate, guaranteed := w.dropRateForSlot(i, lvl)
 		rate = applyDropBonus(rate, w.dropBonusFor(p))
 		if !guaranteed && rate > 0 && w.intn(rate) != 0 {
-			continue // nativo: rand()%rate == 0 dropa
+			continue // Drop when rand()%rate == 0.
 		}
 		if slot := addToInv(p.Char, item); slot >= 0 {
 			planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
@@ -159,14 +150,13 @@ func (w *World) publishPlannedDrops(drops []plannedDrop) {
 		}
 		created := w.createGroundDropForInstance(drop.x, drop.y, drop.item, true, drop.instanceID)
 		w.settleGlobalDrop(drop.globalDrop, created != nil)
-		w.gameplayLogf("drop", "[#%d] DROP slot=%d item=%d -> CHAO (inventario cheio)",
+		w.gameplayLogf("drop", "[#%d] DROP slot=%d item=%d -> GROUND (inventory full)",
 			drop.player.Session.ID, drop.sourceSlot, drop.item.Index)
 	}
 }
 
-// rollMobGold porta o "Drop Gold" do MobKilled: chance por banda de level, valor
-// pela formula nativa (cap 2000), creditado DIRETO no gold do killer (o UpdateEtc
-// que o killMobState manda depois atualiza o display).
+// rollMobGold uses the historical level-band chance and capped gold formula.
+// Gold is credited directly; killMobState's UpdateEtc updates the display.
 func (w *World) rollMobGold(p *Player, m *Mob) uint32 {
 	coin := int(m.Def.Gold)
 	if coin <= 0 {
@@ -190,7 +180,7 @@ func (w *World) rollMobGold(p *Player, m *Mob) uint32 {
 	if amount > 2000 {
 		amount = 2000
 	}
-	const goldCap = 2_000_000_000 // teto nativo de gold do char
+	const goldCap = 2_000_000_000 // Historical character gold cap.
 	if p.Char.Gold > goldCap-uint32(amount) {
 		p.Char.Gold = goldCap
 	} else {

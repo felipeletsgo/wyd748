@@ -135,6 +135,61 @@ a partial translation as completion.
   `radius`, `postos` -> `placed`, plus `ocupada`/`chave`). No packet, persisted
   value, or configuration key changed, and the full Go suite and vet pass.
 
+- The staged critical-persistence lifecycle binding, deferred-disconnect guards,
+  packet/movement reservation diagnostics and their regression tests are in
+  English. This does not translate the remaining gameplay consumers or close
+  the global language migration.
+- The character-sidecar model (`internal/model/charstate.go`) now uses English
+  documentation for persistence, buffs, counters and economic provenance.
+  Persisted field names, identifiers and `CharStateVersion` are unchanged.
+  Model and game package tests pass; this is a bounded documentation migration,
+  not completion of the server or global English migration.
+- The combat reservation batch translates all remaining prose in
+  `internal/game/combat.go`, `mob_combat.go` and `skill_pvp.go`, including logs
+  and trade-cancellation diagnostics. The skill death-notification kind is now
+  `"player"`: its consumer only formats the English whisper, with no persisted
+  value or dispatch key. A regression test decrypts packets from the actual
+  lethal skill path and verifies the resulting English notification. Packet
+  IDs, sizes, fields and formulas are unchanged; the notification text changes
+  intentionally. The CP/timed-item guards and their new tests are in English.
+  Untouched combat callers and other output remain migration debt; this batch
+  does not complete the global language migration.
+
+- The bounded support/effects reservation follow-up translates all authored
+  prose in `internal/game/affects.go`, `skills.go` and `regen.go`. This includes
+  comments, support/skill diagnostics and the kill-batch operation descriptions
+  used for persistence-error diagnostics. Established function identifiers,
+  affect/skill IDs, packet layouts and numeric formulas are preserved. The new
+  `critical_persistence_effects_test.go` is in English. This affected-file review
+  is not a global audit: remaining player-facing, administrative, resource and
+  documentation text still blocks completion of the English migration.
+
+- The bounded summon reservation follow-up translates all prose in
+  `internal/game/skill_summons.go`, including creation logs, trade-cancellation
+  diagnostics and death-notification kind. Template display names are now
+  Boar, Bear, Tiger, Gorilla and Black Dragon; existing face IDs, template
+  ordering, numeric formulas and the display suffix `^` are unchanged. These
+  names are generated NPC display text, not persisted keys or dispatch values;
+  repository consumer checks found no name-based references to these templates.
+  The death kind only formats an English whisper. Regression tests materialize
+  every template with its existing face and decrypt actual lethal summon-PvP
+  packets to check the English notification. External contract-summon data names
+  are not rewritten by this batch. New fence comments and summon tests are in
+  English; the global migration remains incomplete.
+
+- The bounded reward/mount and staged CP/egg-timer follow-up uses English
+  diagnostics, comments, tests and documentation. All remaining prose in
+  `internal/game/mount.go` is translated, including feed/revival messages and
+  the generated follower name `Hatchling^`. This is display text, not a
+  persisted key: consumer checks found no name-based dispatch. Face IDs
+  315..344, item/effect IDs, equipment slot 14, numeric formulas, established
+  identifiers and the `^` suffix are preserved. Regression tests check the
+  follower face/name and the English feed/revival results returned by the
+  mount-feed helper. They do not decode the outgoing feed packets. The remaining
+  Portuguese attack log in `handlers.go` is translated. The new producer,
+  reservation and actual-World-loop tests are in English; this does not close
+  the global language migration or establish a global release gate.
+
 ## Remaining work
 
 1. Audit client-visible strings, resource text, and error paths in

@@ -1,0 +1,90 @@
+{
+ "methods": {
+  "int TMHuman::InitObject()": {
+   "before": "79338895f46410b772bb6f3e7d9904b9a9383858d5494f503a0af0545a471f4d",
+   "after": "0b9431d520a6dda26388111064f33ea3e29a45e847768874725f6f6942c13ecf"
+  },
+  "int TMHuman::FrameMove(unsigned int dwServerTime)": {
+   "before": "e2cb089c7fd4ed33a78bd265e77b708f88366fb016a6ded504d11d4eba71c07f",
+   "after": "28f5f99c1a14a1f3d13a3ce03545ccf1a36a751d2b3aedfbff508a5c34ba1d75"
+  },
+  "void TMHuman::AnimationFrame(int nWalkSndIndex)": {
+   "before": "88dda2e514c6dc968595eb96d574feddd39897dd948b7301082c2b9dfbb77f31",
+   "after": "ac535d802c406211150cf730f989c8d9f572a6e84739ec9343308e9c08678e71"
+  },
+  "void TMHuman::FrameMoveEffect(unsigned int dwServerTime)": {
+   "before": "d0549c158bf61501863745a8c191e39791850081a656548ed1743c0ffd95065d",
+   "after": "c7c51c1e344434eb0e58d1991d6353ce82ae61746e8684381c4ca9b851fb5b3e"
+  }
+ },
+ "helpers": {
+  "void TMHuman::InitSkinLookInfo()": {
+   "digest": "59529025dae13d45abf0dd0cf3a69eed02eb250a4b1fcd0aed853599e9799a57",
+   "owner": ""
+  },
+  "void TMHuman::InitEyeFireEffects()": {
+   "digest": "ab43d9f79b7fe022f7e7bfbd9f61d96b05870c844df1d94df744937a23a0678d",
+   "owner": ""
+  },
+  "void TMHuman::InitShadeEffects()": {
+   "digest": "74dd1e258b0c26b293cfacdc213b93c83527738bbfde21295c8fa4829cf30f3e",
+   "owner": ""
+  },
+  "void TMHuman::UpdateEarthQuake(unsigned int& dwServerTime, TMScene*& pScene)": {
+   "digest": "7df0a44ec7f7c6c2dae0683d2c020e8f55704d395b53760f3043c79e5f55da79",
+   "owner": ""
+  },
+  "ExtractedFlow TMHuman::UpdateMoveTargetsOnArrival(unsigned int& dwServerTime, int& nRouteIndex, TMScene*& pScene, int& extractedResult)": {
+   "digest": "cb8130faae50a1926609e0d69b4409a89856d9ec7069d6665682d5bcc35ff975",
+   "owner": ""
+  },
+  "void TMHuman::UpdateShadeVisibility(unsigned int& dwServerTime, int& nWalkSndIndex)": {
+   "digest": "67b4fd6b59109c7c4fd4fbb717c7a513ed0708e17b39560fc10ee593c2bb3ce2",
+   "owner": ""
+  },
+  "void TMHuman::FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex)": {
+   "digest": "7407125ef75ff2c0969ba7d981555c6849e3ceaaa6dacbef2a33ea8109b403f8",
+   "owner": ""
+  },
+  "ExtractedFlow TMHuman::PlayWalkFrame(int& nWalkSndIndex)": {
+   "digest": "482c15a109fc5b73b3f1ff4cec076c5d3a0703e785f767402b0f3d11612c9f7f",
+   "owner": "Animation"
+  },
+  "void TMHuman::PlayNonAttackFrame()": {
+   "digest": "f9e3641ce547852389d3b5b03b83d96cc293a50c08016cbf940a1a4fdf222bfa",
+   "owner": "Animation"
+  },
+  "void TMHuman::PlayAttackFrame()": {
+   "digest": "842c03e0e00c2f8d0b56a4a5341e789b56e33b560cc33eeca07bd24f683d7ba6",
+   "owner": "Animation"
+  },
+  "ExtractedFlow TMHuman::UpdateHiddenEffects()": {
+   "digest": "8329f3ef45144633a2807f563c2da218855a86e946036d4aa908a9f9e6228bd7",
+   "owner": "Effects"
+  },
+  "void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)": {
+   "digest": "cb825429eb39a774ab70b366c62b6ff4093abcb2a1eba7649f5db06a55271e73",
+   "owner": "Effects"
+  }
+ },
+ "declarations": [
+  "#include \"ExtractedFlow.h\"",
+  "class TMFieldScene;",
+  "// Helpers extracted from TMHuman::FrameMoveEffect.",
+  "ExtractedFlow UpdateHiddenEffects();",
+  "void PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene);",
+  "// Helpers extracted from TMHuman::AnimationFrame.",
+  "ExtractedFlow PlayWalkFrame(int& nWalkSndIndex);",
+  "void PlayNonAttackFrame();",
+  "void PlayAttackFrame();",
+  "// Helpers extracted from TMHuman::FrameMove.",
+  "void UpdateEarthQuake(unsigned int& dwServerTime, TMScene*& pScene);",
+  "ExtractedFlow UpdateMoveTargetsOnArrival(unsigned int& dwServerTime, int& nRouteIndex, TMScene*& pScene, int& extractedResult);",
+  "void UpdateShadeVisibility(unsigned int& dwServerTime, int& nWalkSndIndex);",
+  "void FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex);",
+  "// Helpers extracted from TMHuman::InitObject.",
+  "void InitSkinLookInfo();",
+  "void InitEyeFireEffects();",
+  "void InitShadeEffects();"
+ ]
+}

@@ -775,7 +775,6 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
         m_stColorInfo.Sanc5 = BASE_GetItemColorEffect(&pMobData->Equip[5]);
         m_stColorInfo.Sanc7 = BASE_GetItemColorEffect(&pMobData->Equip[6]);
         m_stColorInfo.Sanc6 = BASE_GetItemColorEffect(&pMobData->Equip[7]);
-		SetGuildBattleLifeCount();
 		m_cDamageRate = 1;
 		// Familiar-only damage metadata from TMProject 7.59 cannot be read from
 		// slot 13 because that byte range carries a 7.48 costume item.
@@ -1245,7 +1244,6 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
 
 		m_sFamCount = 0;
 
-		SetGuildBattleLifeCount();
 		m_cDamageRate = 1;
 		// Familiar damage-rate metadata is deliberately absent from the 7.48
 		// equipment ABI; slot 11 keeps its independent native effect below.

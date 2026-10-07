@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "WeatherPacket.h"
 #include "TMFieldScene.h"
 #include "ItemEffect.h"
 #include "SGrid.h"
@@ -375,8 +376,6 @@ int TMFieldScene::OnAccel(int nMsg)
 			return OnKeySkillPage(122, 0);
 		case 40102:
 			return OnKeyQuestLog(120, 0);
-		case 40027:
-			return OnKeyReverse(91, 0);
 		case 40028:
 			return OnKeyAutoRun(93, 0);
 		case 40029:
@@ -469,7 +468,19 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 	if (pOver->m_dwID >= 1000 && pOver->m_sHeadIndex == 51 &&
 		((int)m_pMyHuman->m_vecPosition.x >> 7 == 13 || (int)m_pMyHuman->m_vecPosition.x >> 7 == 14) &&
 		(int)m_pMyHuman->m_vecPosition.y >> 7 == 28)
+	{
+		// FUN_0045ee28: the Hell Gate store NPC toggles the store and becomes
+		// the TargetID of the 0x2BD purchase.
+		if (m_pHellgateStore)
+		{
+			m_dwHellStoreID = pOver->m_dwID;
+			SetVisibleHellGateStore(m_pHellgateStore->IsVisible() == 0);
+			if (m_pGridHellStore)
+				m_pGridHellStore->m_dwMerchantID = pOver->m_dwID;
+			m_dwNPCClickTime = dwServerTime;
+		}
 		return 1;
+	}
 
 	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 1)
 	{
@@ -556,16 +567,6 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 		m_pGround->m_vecOffsetIndex.y != 16)
 	{
 
-		if (pOver->m_dwID >= 1000 &&
-			pOver->m_sHeadIndex == 67 &&
-			m_pGround->m_vecOffsetIndex.x == 16 &&
-			m_pGround->m_vecOffsetIndex.y == 16)
-		{
-			m_MissionClass.ResultItemListSet();
-			SetVisibleMissionPanel(m_MissionClass.m_pMissionPanel->m_bVisible == 0);
-			return 1;
-		}
-
 		if (MouseClick_MixNPC(pOver))
 			return 1;
 
@@ -644,219 +645,95 @@ void TMFieldScene::MouseMove(int nX, int nY)
 	}
 }
 
-int TMFieldScene::MouseLButtonDown(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime)
-{
-	// This function is just that
-	return 1;
-}
-
 void TMFieldScene::OnESC()
 {
-	if (m_bCompatFieldScene && m_pccmode && m_pccmode->IsVisible())
+	if (m_pccmode && m_pccmode->IsVisible())
 	{
 		m_pccmode->SetVisible(0);
 		if (m_pCC_Btn)
 			m_pCC_Btn->SetSelected(0);
 		return;
 	}
-	if (m_bCompatFieldScene)
+	if (m_pControlContainer && m_pControlContainer->m_pFocusControl)
 	{
-		if (m_pControlContainer && m_pControlContainer->m_pFocusControl)
-		{
-			// The 7.48 resource has no 7.59 IME controls, so release focus locally
-			// before applying FUN_0044df53's one-visible-window ESC cascade.
-			m_pControlContainer->m_pFocusControl->SetFocused(0);
-			m_pControlContainer->m_pFocusControl = nullptr;
-		}
-
-		if (m_pAutoTrade && m_pAutoTrade->IsVisible())
-			SetVisibleAutoTrade(0, 0);
-		else if (m_pQuestPanel && m_pQuestPanel->IsVisible())
-		{
-			// FUN_0044df53 closes the native quest panel before the inventory and
-			// releases button 315, preserving the one-window-per-ESC cascade.
-			SetQuestPanelVisible(false);
-		}
-		else if (m_pItemMixPanel && m_pItemMixPanel->IsVisible())
-			SetVisibleMixItem(0);
-		else if (m_pItemMixPanel2 && m_pItemMixPanel2->IsVisible())
-			SetVisibleMixItem2(0);
-		else if (m_pItemMixPanel3 && m_pItemMixPanel3->IsVisible())
-			SetVisibleMixItem3(0);
-		else if (m_pItemMixPanel4 && m_pItemMixPanel4->IsVisible())
-			SetVisibleMixItemTiini(0);
-		else if (m_pItemMixPanel5 && m_pItemMixPanel5->IsVisible())
-			SetVisibleMixItem5(0);
-		else if (m_pItemMixPanel6 && m_pItemMixPanel6->IsVisible())
-			SetVisibleMixItem6(0);
-		else if (m_pInvenPanel && m_pInvenPanel->IsVisible())
-			OnControlEvent(368, 0);
-		else if (m_pCPanel && m_pCPanel->IsVisible())
-			OnControlEvent(TMB_CHAR_CLOSE, 0);
-		else if ((m_pSkillPanel && m_pSkillPanel->IsVisible()) ||
-			(m_pSkillMPanel && m_pSkillMPanel->IsVisible()))
-			OnControlEvent(TMB_SKILL_CLOSE, 0);
-		else if (m_pTradePanel && m_pTradePanel->IsVisible())
-			SetVisibleTrade(0);
-		else if (m_pPartyPanel && m_pPartyPanel->IsVisible())
-		{
-			// Party panel 1857 is the native 7.48 window. Use the same transition
-			// as click/keyboard so the inverse selected state of button 5742 cannot
-			// become stale, without touching the absent 7.59 Party list.
-			SetVisibleParty();
-		}
-		else if (m_pShopPanel && m_pShopPanel->IsVisible())
-			SetVisibleShop(0);
-		else if (m_pCargoPanel && m_pCargoPanel->IsVisible())
-			SetVisibleCargo(0);
-		else if (m_pGambleStore && m_pGambleStore->IsVisible())
-			SetVisibleGamble(0, 0);
-		else if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible())
-		{
-			m_pInputGoldPanel->SetVisible(0);
-			if (m_pInputBG2)
-				m_pInputBG2->SetVisible(0);
-		}
-		else if (m_pMsgPanel && m_pMsgPanel->IsVisible())
-			m_pMsgPanel->SetVisible(0);
-		else if (m_pHelpPanel && m_pHelpPanel->IsVisible())
-		{
-			m_pHelpPanel->SetVisible(0);
-			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_HELP)))
-				button->SetSelected(0);
-		}
-		else if (m_pServerPanel && m_pServerPanel->IsVisible())
-			m_pServerPanel->SetVisible(0);
-		else if (m_pPotalPanel && m_pPotalPanel->IsVisible())
-			m_pPotalPanel->SetVisible(0);
-		else if (m_pMessageBox && m_pMessageBox->IsVisible())
-			m_pMessageBox->SetVisible(0);
-		else if (m_pSystemPanel)
-		{
-			// With no modal window open, native ESC toggles the system panel and
-			// mirrors that state on the bottom-bar system button.
-			const int visible = m_pSystemPanel->IsVisible() == 0;
-			m_pSystemPanel->SetVisible(visible);
-			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
-				button->SetSelected(visible);
-		}
-		return;
+		// The 7.48 resource has no 7.59 IME controls, so release focus locally
+		// before applying FUN_0044df53's one-visible-window ESC cascade.
+		m_pControlContainer->m_pFocusControl->SetFocused(0);
+		m_pControlContainer->m_pFocusControl = nullptr;
 	}
 
-	if (g_bActiveWB == 1)
-	{
-		g_pApp->SwitchWebBrowserState(0);
-	}
-	else if (m_pAutoTrade && m_pAutoTrade->IsVisible() == 1)
-	{
+	if (m_pAutoTrade && m_pAutoTrade->IsVisible())
 		SetVisibleAutoTrade(0, 0);
-	}
-	else if (m_pPGTPanel && m_pPGTPanel->IsVisible() == 1)
+	else if (m_pQuestPanel && m_pQuestPanel->IsVisible())
 	{
-		m_pPGTPanel->SetVisible(0);
-	}
-	else if (m_pQuestPanel && m_pQuestPanel->IsVisible() == 1)
-	{
+		// FUN_0044df53 closes the native quest panel before the inventory and
+		// releases button 315, preserving the one-window-per-ESC cascade.
 		SetQuestPanelVisible(false);
 	}
-	else if (m_pFireWorkPanel && m_pFireWorkPanel->IsVisible() == 1)
-	{
-		m_pFireWorkPanel->SetVisible(0);
-	}
-	else if (m_pTotoPanel && m_pTotoPanel->IsVisible() == 1)
-	{
-		TotoClose();
-	}
-	else if (m_pInvenPanel && m_pInvenPanel->IsVisible() == 1)
-	{
-		OnControlEvent(65562u, 0);
-	}
-	else if (m_pSkillPanel && m_pSkillPanel->IsVisible() == 1)
-	{
-		OnControlEvent(65568u, 0);
-	}
-	else if (m_pDonateStore && m_pDonateStore->IsVisible() == 1)// Esc closes the donation store
-	{
-
-		m_pDonateStore->SetVisible(0);
-	}
-	else if (m_pDropListPanel && m_pDropListPanel->IsVisible() == 1)// Esc handles the drop list
-	{
-		m_pDropPanel[49]->SetVisible(0);//
-	}
-	else if (m_pCPanel && m_pCPanel->IsVisible() == 1)
-	{
-		OnControlEvent(65696u, 0);
-		//OnControlEvent(65769u, 0);
-	}
-	else if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
-	{
+	else if (m_pItemMixPanel && m_pItemMixPanel->IsVisible())
+		SetVisibleMixItem(0);
+	else if (m_pItemMixPanel2 && m_pItemMixPanel2->IsVisible())
+		SetVisibleMixItem2(0);
+	else if (m_pItemMixPanel3 && m_pItemMixPanel3->IsVisible())
+		SetVisibleMixItem3(0);
+	else if (m_pItemMixPanel4 && m_pItemMixPanel4->IsVisible())
+		SetVisibleMixItemTiini(0);
+	else if (m_pItemMixPanel5 && m_pItemMixPanel5->IsVisible())
+		SetVisibleMixItem5(0);
+	else if (m_pItemMixPanel6 && m_pItemMixPanel6->IsVisible())
+		SetVisibleMixItem6(0);
+	else if (m_pInvenPanel && m_pInvenPanel->IsVisible())
+		OnControlEvent(368, 0);
+	else if (m_pCPanel && m_pCPanel->IsVisible())
+		OnControlEvent(TMB_CHAR_CLOSE, 0);
+	else if ((m_pSkillPanel && m_pSkillPanel->IsVisible()) ||
+		(m_pSkillMPanel && m_pSkillMPanel->IsVisible()))
+		OnControlEvent(TMB_SKILL_CLOSE, 0);
+	else if (m_pTradePanel && m_pTradePanel->IsVisible())
 		SetVisibleTrade(0);
-	}
-	else if (m_pPartyPanel && m_pPartyPanel->IsVisible() == 1)
+	else if (m_pPartyPanel && m_pPartyPanel->IsVisible())
 	{
+		// Party panel 1857 is the native 7.48 window. Use the same transition
+		// as click/keyboard so the inverse selected state of button 5742 cannot
+		// become stale, without touching the absent 7.59 Party list.
 		SetVisibleParty();
 	}
-	else if (m_pShopPanel && m_pShopPanel->IsVisible() == 1)
-	{
+	else if (m_pShopPanel && m_pShopPanel->IsVisible())
 		SetVisibleShop(0);
-	}
-	else if (m_pCargoPanel && m_pCargoPanel->IsVisible() == 1)
-	{
+	else if (m_pCargoPanel && m_pCargoPanel->IsVisible())
 		SetVisibleCargo(0);
-	}
-	else if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)
-	{
+	else if (m_pGambleStore && m_pGambleStore->IsVisible())
 		SetVisibleGamble(0, 0);
-	}
-	else if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible() == 1)
+	else if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible())
 	{
 		m_pInputGoldPanel->SetVisible(0);
+		if (m_pInputBG2)
+			m_pInputBG2->SetVisible(0);
 	}
-	else if (m_pMsgPanel && m_pMsgPanel->IsVisible() == 1)//esc
-	{
+	else if (m_pMsgPanel && m_pMsgPanel->IsVisible())
 		m_pMsgPanel->SetVisible(0);
-		m_pControlContainer->SetFocusedControl(0);
-	}
-	else if (m_pHelpPanel && m_pHelpPanel->IsVisible() == 1)
+	else if (m_pHelpPanel && m_pHelpPanel->IsVisible())
 	{
 		m_pHelpPanel->SetVisible(0);
-		m_pHelpBtn->SetSelected(0);
-
-		if (g_pSoundManager)
-		{
-			auto pSoundData = g_pSoundManager->GetSoundData(51);
-
-			if (pSoundData)
-				pSoundData->Play(0, 0);
-		}
+		if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_HELP)))
+			button->SetSelected(0);
 	}
-	else if (m_pServerPanel && m_pServerPanel->IsVisible() == 1)
-	{
+	else if (m_pServerPanel && m_pServerPanel->IsVisible())
 		m_pServerPanel->SetVisible(0);
-	}
-	else if (m_pPotalPanel && m_pPotalPanel->IsVisible() == 1)
-	{
+	else if (m_pPotalPanel && m_pPotalPanel->IsVisible())
 		m_pPotalPanel->SetVisible(0);
-	}
-	else if (m_pMessageBox && m_pMessageBox->IsVisible() == 1)
-	{
+	else if (m_pMessageBox && m_pMessageBox->IsVisible())
 		m_pMessageBox->SetVisible(0);
-	}
-	else if (!m_pSystemPanel->IsVisible())
+	else if (m_pSystemPanel)
 	{
-		m_pSystemPanel->SetVisible(1);
+		// With no modal window open, native ESC toggles the system panel and
+		// mirrors that state on the bottom-bar system button.
+		const int visible = m_pSystemPanel->IsVisible() == 0;
+		m_pSystemPanel->SetVisible(visible);
+		if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
+			button->SetSelected(visible);
 	}
-	else if (m_pSystemPanel->IsVisible() == 1)
-	{
-		m_pSystemPanel->SetVisible(0);
-	}
-}
-
-int TMFieldScene::OnKeyDebug(char iCharCode, int lParam)
-{
-	// Just that
-	return 0;
+	return;
 }
 
 int TMFieldScene::OnKeySkill(char iCharCode, int lParam)
@@ -870,8 +747,8 @@ int TMFieldScene::OnKeySkill(char iCharCode, int lParam)
 		return 0;
 
 	int nBase = 0;
-	float fWRatio = RenderDevice::m_fWidthRatio;
-	float fHRatio = RenderDevice::m_fHeightRatio;
+	float fWRatio = RenderDevice::m_fUIScaleX;
+	float fHRatio = RenderDevice::m_fUIScaleY;
 	if (m_pGridSkillBelt3 && m_pGridSkillBelt3->IsVisible() == 1)
 		nBase = 10;
 
@@ -977,54 +854,19 @@ int TMFieldScene::OnKeyPlus(char iCharCode, int lParam)
 		return 0;
 
 	auto pChatList = m_pChatList;
-	if (m_bCompatFieldScene)
-	{
-		// WYD.exe 7.48 FUN_00452271 resizes only legacy list 5377. Its
-		// scrollbar/backdrop are not the 656xx controls imported from 7.59,
-		// so touching those newer pointers makes the native '+' shortcut unsafe.
-		pChatList->SetSize(300.0f, static_cast<float>(140 * m_nChatListSize + 112));
-		pChatList->m_nVisibleCount = 10 * m_nChatListSize + 8;
-		if (auto pChatPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_CHAT_PANEL)))
-			pChatList->SetPos(pChatList->m_nPosX, pChatPanel->m_nPosY - pChatList->m_nHeight - 4.0f);
-		if (m_nChatListSize == 3)
-			pChatList->SetVisible(0);
-		else if (!pChatList->m_bVisible)
-			pChatList->SetVisible(1);
-
-		GetSoundAndPlay(51, 0, 0);
-		return 1;
-	}
-
-	pChatList->SetSize(pChatList->m_nWidth, (float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio);
-	pChatList->m_pScrollBar->SetSize(pChatList->m_pScrollBar->m_nWidth, (float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio);
-	pChatList->m_pScrollBar->m_pBackground1->SetSize(pChatList->m_pScrollBar->m_nWidth = 14.0f, (float)(140 * m_nChatListSize + 60) * RenderDevice::m_fHeightRatio);
-
-	m_pChatBack->SetSize(BASE_ScreenResize(10.0) + pChatList->m_nWidth, pChatList->m_nHeight);
-
-	pChatList->m_pScrollBar->SetMaxValue(1000);
-	auto pChatPanel = (SPanel*)m_pControlContainer->FindControl(65672u);
-
-	if (pChatPanel)
-	{
-		m_pChatList->SetPos(m_pChatList->m_nPosX, (float)(pChatPanel->m_nPosY - pChatList->m_nHeight) - 4.0f);
-		m_pChatBack->SetPos(m_pChatList->m_nPosX, (float)(pChatPanel->m_nPosY - pChatList->m_nHeight) - 4.0f);
-	}
-
-	if (m_nChatListSize == 3)
-		m_pChatBack->SetVisible(0);
-	else
-		m_pChatBack->SetVisible(1);
-
-	pChatList->m_nVisibleCount = 10 * m_nChatListSize + 5;
-	pChatList->m_pScrollBar->Down();
-
+	// WYD.exe 7.48 FUN_00452271 resizes only legacy list 5377. Its
+	// scrollbar/backdrop are not the 656xx controls imported from 7.59,
+	// so touching those newer pointers makes the native '+' shortcut unsafe.
+	pChatList->SetSize(300.0f, static_cast<float>(140 * m_nChatListSize + 112));
+	pChatList->m_nVisibleCount = 10 * m_nChatListSize + 8;
+	if (auto pChatPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_CHAT_PANEL)))
+		pChatList->SetPos(pChatList->m_nPosX, pChatPanel->m_nPosY - pChatList->m_nHeight - 4.0f);
 	if (m_nChatListSize == 3)
 		pChatList->SetVisible(0);
 	else if (!pChatList->m_bVisible)
 		pChatList->SetVisible(1);
 
 	GetSoundAndPlay(51, 0, 0);
-
 	return 1;
 }
 
@@ -1196,20 +1038,10 @@ int TMFieldScene::OnKeySkillPage(char iCharCode, int lParam)
 	if (iCharCode != 'z' && iCharCode != 'Z')
 		return 0;
 
-	if (m_bCompatFieldScene)
-	{
-		// WYD.exe 7.48 FUN_00452691 dispatches the resource-owned buttons
-		// 587/588. The 6564x controls belong to the imported 7.59 layout.
-		if (m_pGridSkillBelt2)
-			OnControlEvent(m_pGridSkillBelt2->m_bVisible ? TMB_SHORTSKILL_TGL2 : TMB_SHORTSKILL_TGL1, 0);
-		return 1;
-	}
-
-	if (m_pGridSkillBelt2->m_bVisible)
-		OnControlEvent(65647, 0);
-	else
-		OnControlEvent(65646u, 0);
-
+	// WYD.exe 7.48 FUN_00452691 dispatches the resource-owned buttons
+	// 587/588. The 6564x controls belong to the imported 7.59 layout.
+	if (m_pGridSkillBelt2)
+		OnControlEvent(m_pGridSkillBelt2->m_bVisible ? TMB_SHORTSKILL_TGL2 : TMB_SHORTSKILL_TGL1, 0);
 	return 1;
 }
 
@@ -1218,22 +1050,10 @@ int TMFieldScene::OnKeyQuestLog(char iCharCode, int lParam)
 	if (iCharCode != 'x' && iCharCode != 'X')
 		return 0;
 
-	if (m_bCompatFieldScene)
-	{
-		// FUN_004526ee routes X through classic quest button 315; 65793 is a
-		// newer resource ID and can neither open nor close the 7.48 window.
-		OnControlEvent(TMB_QUESTLOG, 0);
-		return 1;
-	}
-
-	OnControlEvent(65793, 0);
+	// FUN_004526ee routes X through classic quest button 315; 65793 is a
+	// newer resource ID and can neither open nor close the 7.48 window.
+	OnControlEvent(TMB_QUESTLOG, 0);
 	return 1;
-}
-
-int TMFieldScene::OnKeyReverse(char iCharCode, int lParam)
-{
-	// Just that
-	return 0;
 }
 
 int TMFieldScene::OnKeyAutoRun(char iCharCode, int lParam)
@@ -1363,6 +1183,23 @@ int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 		}
 	}
 
+	// FUN_004528c5 writes the selected skill damage into the compact HUD cell
+	// and into Character text 0x450 (TMT_CI_ATRT) with the same text and color.
+	auto pCharSkillDam = m_pControlContainer
+		? static_cast<SText*>(m_pControlContainer->FindControl(TMT_CI_ATRT))
+		: nullptr;
+	auto setSkillDamage = [this, pCharSkillDam](const char* text, unsigned int color)
+	{
+		for (SText* target : {m_pSkillDam, pCharSkillDam})
+		{
+			if (!target)
+				continue;
+			target->SetText((char*)text, 0);
+			if (color)
+				target->SetTextColor(color);
+		}
+	};
+
 	int cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
 	if (cSkillIndex >= 105)
 		cSkillIndex += 95;
@@ -1372,46 +1209,20 @@ int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 
 		int nIdx = g_pObjectManager->m_stMobData.Equip[6].sIndex;
 		auto pMobData = &g_pObjectManager->m_stMobData;
-		int nWeather = g_nWeather;
-		if (g_nWeather == 3)
-			nWeather = 2;
-
-		if ((int)m_pMyHuman->m_vecPosition.x >> 7 > 26 && (int)m_pMyHuman->m_vecPosition.x >> 7 < 31 &&
-			(int)m_pMyHuman->m_vecPosition.y >> 7 > 20 && (int)m_pMyHuman->m_vecPosition.y >> 7 < 25)
-		{
-			nWeather = 2;
-		}
+		const int nWeather = SkillDamageWeather(g_nWeather,
+			(int)m_pMyHuman->m_vecPosition.x >> 7, (int)m_pMyHuman->m_vecPosition.y >> 7);
 
 		int nSkillDam = BASE_GetSkillDamage(cSkillIndex, pMobData, nWeather, GetWeaponDamage(),
 			g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex);
 		char szStr[128]{};
-		if (nSkillDam < 0)
-		{
-			sprintf(szStr, "%d", -nSkillDam);
-			// Native FUN_004528c5 writes the compact HUD damage member; 65735 is
-			// a 7.59 Character control and is absent from FieldScene2.bin 7.48.
-			if (m_pSkillDam)
-			{
-				m_pSkillDam->SetText(szStr, 0);
-				m_pSkillDam->SetTextColor(0xFFAAFFAA);
-			}
-		}
-		else
-		{
-			sprintf(szStr, "%d", nSkillDam);
-			if (m_pSkillDam)
-			{
-				m_pSkillDam->SetText(szStr, 0);
-				m_pSkillDam->SetTextColor(0xFFBBBBFF);
-			}
-		}
+		// Healing is shown as its absolute value in green, damage in blue; 65735
+		// is a 7.59 Character control absent from FieldScene2.bin 7.48.
+		sprintf(szStr, "%d", nSkillDam < 0 ? -nSkillDam : nSkillDam);
+		setSkillDamage(szStr, nSkillDam < 0 ? 0xFFAAFFAA : 0xFFBBBBFF);
 	}
 	else
 	{
-		char szStr[128]{};
-		sprintf(szStr, "%d", 0);
-		if (m_pSkillDam)
-			m_pSkillDam->SetText(szStr, 0);
+		setSkillDamage("0", 0);
 	}
 
 	return 1;
@@ -1430,7 +1241,7 @@ int TMFieldScene::OnKeyVisibleSkill(char iCharCode, int lParam)
 		SetVisibleSkill();
 		// Native 7.48 shortcut S drives bottom button 295.  The imported alias
 		// 65792 belongs to the newer resource and does not exist in FieldScene2.
-		const unsigned int buttonID = m_bCompatFieldScene ? TMB_SKILL : 65792u;
+		const unsigned int buttonID = TMB_SKILL;
 		if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(buttonID)))
 			button->SetSelected(m_pSkillPanel && m_pSkillPanel->IsVisible());
 	}
@@ -1460,7 +1271,7 @@ int TMFieldScene::OnKeyVisibleInven(char iCharCode, int lParam)
 	auto pPanel = m_pInvenPanel;
 	// Native 7.48 inventory shortcut I/G selects button 294, not the 7.59
 	// compatibility alias 65791.
-	const unsigned int buttonID = m_bCompatFieldScene ? TMB_EQUIP : 65791u;
+	const unsigned int buttonID = TMB_EQUIP;
 	auto pBtnEquip = static_cast<SButton*>(m_pControlContainer->FindControl(buttonID));
 
 	if (pBtnEquip && pPanel)
@@ -1484,7 +1295,7 @@ int TMFieldScene::OnKeyVisibleCharInfo(char iCharCode, int lParam)
 
 	auto pPanel = m_pCPanel;
 	// Native 7.48 shortcut C selects button 293; 65790 is a newer resource ID.
-	const unsigned int buttonID = m_bCompatFieldScene ? TMB_CHAR : 65790u;
+	const unsigned int buttonID = TMB_CHAR;
 	auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(buttonID));
 	if (pBtnChar && pPanel)
 		pBtnChar->SetSelected(pPanel->m_bVisible);
@@ -1512,98 +1323,26 @@ int TMFieldScene::OnKeyVisibleParty(char iCharCode, int lParam)
 
 int TMFieldScene::OnKeyReturn(char iCharCode, int lParam)
 {
-	if (m_bCompatFieldScene)
+	// Native FUN_00453b65 only toggles edit 5123 (and panel 5739 when
+	// g_UIVer == 2).  The 901xx chat selector is a later-client control set
+	// and must never be reached by the 7.48 resource path.
+	if (iCharCode != 13 || !m_pEditChat)
+		return 0;
+
+	if (m_pEditChat->IsFocused())
 	{
-		// Native FUN_00453b65 only toggles edit 5123 (and panel 5739 when
-		// g_UIVer == 2).  The 901xx chat selector is a later-client control set
-		// and must never be reached by the 7.48 resource path.
-		if (iCharCode != 13 || !m_pEditChat)
-			return 0;
-
-		if (m_pEditChat->IsFocused())
-		{
-			m_pEditChat->SetVisible(0);
-			if (g_UIVer == 2 && m_pEditChatPanel)
-				m_pEditChatPanel->SetVisible(0);
-			m_pControlContainer->SetFocusedControl(0);
-		}
-		else
-		{
-			m_pEditChat->SetVisible(1);
-			if (g_UIVer == 2 && m_pEditChatPanel)
-				m_pEditChatPanel->SetVisible(1);
-			m_pControlContainer->SetFocusedControl(m_pEditChat);
-		}
-		return 1;
-	}
-
-	if (!m_pEditChatPanel)
-		return 0;
-	if (!m_pEditChat)
-		return 0;
-	if (iCharCode != 13)
-		return 0;
-
-	auto pEdit = m_pEditChat;
-	if (pEdit->IsFocused())
-	{
-		m_pEditChatPanel->SetVisible(0);
-		m_pChatPanel->SetVisible(1);
+		m_pEditChat->SetVisible(0);
+		if (g_UIVer == 2 && m_pEditChatPanel)
+			m_pEditChatPanel->SetVisible(0);
 		m_pControlContainer->SetFocusedControl(0);
-		return 1;
 	}
-
-	m_pEditChatPanel->SetVisible(1);
-	m_pChatPanel->SetVisible(0);
-	m_pControlContainer->SetFocusedControl(pEdit);
-	auto Button = (SButton*)m_pControlContainer->FindControl(90130u);
-	auto Button1 = (SButton*)m_pControlContainer->FindControl(90114u);
-	auto Button2 = (SButton*)m_pControlContainer->FindControl(90129u);
-	auto Button3 = (SButton*)m_pControlContainer->FindControl(90131u);
-	auto Button4 = (SButton*)m_pControlContainer->FindControl(90132u);
-	auto Button5 = (SButton*)m_pControlContainer->FindControl(90133u);
-	auto Button6 = (SButton*)m_pControlContainer->FindControl(90134u);
-	auto Button7 = (SButton*)m_pControlContainer->FindControl(90135u);
-	auto Button8 = (SButton*)m_pControlContainer->FindControl(90136u);
-
-	if (!strcmp(Button1->m_GCPanel.strString, Button2->m_GCPanel.strString))
+	else
 	{
-		pEdit->SetText((char*)"");
+		m_pEditChat->SetVisible(1);
+		if (g_UIVer == 2 && m_pEditChatPanel)
+			m_pEditChatPanel->SetVisible(1);
+		m_pControlContainer->SetFocusedControl(m_pEditChat);
 	}
-	else if (!strcmp(Button1->m_GCPanel.strString, Button3->m_GCPanel.strString))
-	{
-		pEdit->SetText((char*)"=");
-	}
-	else if (!strcmp(Button1->m_GCPanel.strString, Button4->m_GCPanel.strString))
-	{
-		pEdit->SetText((char*)"-");
-	}
-	else if (!strcmp(Button1->m_GCPanel.strString, Button5->m_GCPanel.strString))
-	{
-		pEdit->SetText((char*)"--");
-	}
-	else if (!strcmp(Button1->m_GCPanel.strString, Button6->m_GCPanel.strString))
-	{
-		pEdit->SetText((char*)"@@");
-	}
-	else if (!strcmp(Button1->m_GCPanel.strString, Button7->m_GCPanel.strString))
-	{
-		pEdit->SetText((char*)"@");
-	}
-	else if (!strcmp(Button1->m_GCPanel.strString, Button8->m_GCPanel.strString))
-	{
-		char temp[32]{};
-		sprintf(temp, "/%s ", g_pMessageStringTable[389]);
-
-		pEdit->SetText(temp);
-	}
-	else if (!strcmp(Button1->m_GCPanel.strString, Button->m_GCPanel.strString))
-	{
-		char temp[32]{};
-		sprintf(temp, "/%s ", m_cWhisperName);
-		pEdit->SetText(temp);
-	}
-
 	return 1;
 }
 

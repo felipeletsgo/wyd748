@@ -28,5 +28,7 @@ public:
     unsigned int m_dwB[4];
 
     static D3DCOLORVALUE m_LightVal[4];
+    // Sun color of a sky state from Env/Lighting.txt with the m_LightVal alpha.
+    static D3DCOLORVALUE SunLight(int state);
     static float FogList[16][2];
 };

@@ -40,8 +40,8 @@ func inNativeCity(x, y uint16) bool {
 }
 
 func celestialArchTier(level uint32) byte {
-	// Faixas oficiais WYD KR, convertidas do nivel exibido para o nivel
-	// interno do protocolo: 356-370, 371-380, 381-398, 399 e 400.
+	// WYD KR level bands converted from displayed to internal protocol levels:
+	// 356-370, 371-380, 381-398, 399, and 400.
 	switch {
 	case level >= 399:
 		return 5
@@ -78,7 +78,7 @@ func newCelestialScore(class byte, previous *model.Score) *model.Score {
 	natural := baseClassStats[class]
 	score := &model.Score{
 		Version: model.ScoreVersion,
-		// Ramo normal (isHardCore=0) da Pedra Ideal no WYD 7.48.
+		// Normal Ideal Stone branch (isHardCore=0) in WYD 7.48.
 		Attack: 488, Defense: 954,
 		MaxHP: uint32(baseClassHPMP[class][0]),
 		MaxMP: uint32(baseClassHPMP[class][1]),
@@ -97,10 +97,9 @@ func newCelestialScore(class byte, previous *model.Score) *model.Score {
 	return score
 }
 
-// markCelestialFace projeta no item de rosto os dois bytes que o client 7.48
-// usa para distinguir Mortal/Arch/Celestial/Sub. Evolution continua sendo a
-// fonte server-side, mas omitir EFV2 faria a UI interpretar um Celestial como
-// a evolução anterior mesmo com os cálculos corretos no servidor.
+// markCelestialFace projects the two face-item bytes used by the 7.48 client
+// to distinguish Mortal/Arch/Celestial/Sub. Evolution remains authoritative;
+// omitting EFV2 would display the previous evolution despite correct server stats.
 func markCelestialFace(face *model.Item, evolution string) {
 	if face == nil {
 		return
@@ -177,10 +176,10 @@ func (w *World) syncCelestialPlayer(p *Player) {
 	w.updatePartyMember(p)
 }
 
-// craftIdealStoneAtKing porta o primeiro ramo de KingDom do WYD 7.48.
-// A Pedra Ideal nao nasce no Odin: o rei consome as quatro Pedras Secretas do
-// inventario, a Imortalidade/Eternal equipada e o Sephirot equipado. Arch usa
-// a primeira Ideal para virar Celestial; Celestial usa outra para criar a Sub.
+// craftIdealStoneAtKing implements the first WYD 7.48 KingDom branch.
+// The king, not Odin, consumes four inventory Secret Stones, equipped Eternal,
+// and equipped Sephirot. Arch uses an Ideal to ascend; Celestial uses another
+// to create its alternate SubCelestial form.
 func (w *World) craftIdealStoneAtKing(s *net.Session, p *Player) bool {
 	if p == nil || p.Char == nil ||
 		!advancedEvolution(p.Char, archEvolution, "celestial", "subcelestial") ||
@@ -194,6 +193,10 @@ func (w *World) craftIdealStoneAtKing(s *net.Session, p *Player) bool {
 		if !celestialInventoryHasItem(p.Char, stone) {
 			return false
 		}
+	}
+	if w.criticalWrites != nil {
+		w.admitIdealStoneCraft(p)
+		return true
 	}
 
 	snapshot := cloneCharacterState(p.Char)
@@ -220,7 +223,7 @@ func (w *World) craftIdealStoneAtKing(s *net.Session, p *Player) bool {
 	}
 	if err := w.saveAccount(p.Account); err != nil {
 		*p.Char = snapshot
-		log.Printf("[#%d] salvar composicao da Pedra Ideal: %v", s.ID, err)
+		log.Printf("[#%d] save Ideal Stone composition: %v", s.ID, err)
 		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
 		return true
 	}
@@ -228,11 +231,18 @@ func (w *World) craftIdealStoneAtKing(s *net.Session, p *Player) bool {
 	s.Send(wire.SendItem(p.ID, placeEquip, 10, p.Char.Equip[10]))
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
 	s.Send(wire.MessagePanel("The Ideal Stone was created successfully."))
-	log.Printf("[#%d] PEDRA IDEAL criada inv[%d]", s.ID, target)
+	log.Printf("[#%d] Ideal Stone created inv[%d]", s.ID, target)
 	return true
 }
 
 func (w *World) useCelestialIdeal(s *net.Session, p *Player, item *model.Item, slot byte) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitCelestialConsumable(p, slot, "celestial_ideal")
+		return
+	}
 	if p == nil || p.Char == nil || item == nil || item.Index != idealStoneItem {
 		return
 	}
@@ -254,6 +264,13 @@ func (w *World) useCelestialIdeal(s *net.Session, p *Player, item *model.Item, s
 }
 
 func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slot byte) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitCelestialConsumable(p, slot, "celestial_ideal")
+		return
+	}
 	ch := p.Char
 	if ch.Score == nil || ch.Score.Level < 355 {
 		s.Send(wire.MessagePanel("The Arch must be level 356 or higher."))
@@ -297,9 +314,8 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	kingdom := model.KingdomFromCape(snapshot.Equip[model.CapeSlot].Index)
 	cape, _ := model.KingdomCapeAtTier(model.CapeTierMaster, kingdom)
 	if snapshot.Equip[model.CapeSlot].UID != "" {
-		// O nativo zera a capa anterior antes de entregar a Master. A identidade
-		// econômica server-side permanece, mas refino/tintura/effects da capa
-		// Arch não atravessam a ascensão.
+		// Native code clears the previous cape before granting Master. Preserve
+		// server economic identity, but do not carry Arch refinement or effects.
 		ch.Equip[model.CapeSlot] = model.Item{
 			Index: cape,
 			UID:   snapshot.Equip[model.CapeSlot].UID,
@@ -318,18 +334,25 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	setPlayerCurMP(ch, playerMaxMP(ch))
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch = snapshot
-		log.Printf("[#%d] salvar criacao Celestial: %v", s.ID, err)
+		log.Printf("[#%d] save Celestial creation: %v", s.ID, err)
 		s.Send(wire.MessagePanel("Save failed. The Ideal Stone was not consumed."))
 		return
 	}
 	s.Send(wire.MessagePanel("Your character is now Celestial. Re-enter it from character selection."))
 	announcement := fmt.Sprintf("The character %s has become Celestial!", ch.Name)
 	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
-	log.Printf("[#%d] CELESTIAL criado tierArch=%d cythera=%d", s.ID, tier, cytheraIndex)
-	w.returnToCharacterSelectionAfterCommittedChange(p, "criacao de Celestial")
+	log.Printf("[#%d] Celestial created archTier=%d cythera=%d", s.ID, tier, cytheraIndex)
+	w.returnToCharacterSelectionAfterCommittedChange(p, "Celestial creation")
 }
 
 func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, slot byte) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitCelestialConsumable(p, slot, "celestial_ideal")
+		return
+	}
 	ch := p.Char
 	if ch.AlternateCelestial != nil {
 		s.Send(wire.MessagePanel("The SubCelestial has already been created."))
@@ -389,12 +412,12 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		s.Send(wire.MessagePanel("100 Fame is required to create a SubCelestial."))
 		return
 	}
-	syncProgression(ch) // passa a incluir 6 x nivel da forma alterna
+	syncProgression(ch) // Includes six points per alternate-form level.
 	w.recalcPlayer(ch)
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch = snapshot
 		p.SpecialCoins = oldCounters
-		log.Printf("[#%d] salvar criacao SubCelestial: %v", s.ID, err)
+		log.Printf("[#%d] save SubCelestial creation: %v", s.ID, err)
 		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
 		return
 	}
@@ -403,10 +426,17 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, ch.Equip[sefirotSlot]))
 	w.syncCelestialPlayer(p)
 	s.Send(wire.MessagePanel("Your SubCelestial has been created. Use the Mysterious Stone to switch."))
-	log.Printf("[#%d] SUBCELESTIAL criado classe=%d", s.ID, subClass)
+	log.Printf("[#%d] SubCelestial created class=%d", s.ID, subClass)
 }
 
 func (w *World) useMysteriousStone(s *net.Session, p *Player, item *model.Item, slot byte) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitCelestialConsumable(p, slot, "celestial_switch")
+		return
+	}
 	if p == nil || p.Char == nil || item == nil || item.Index != mysteriousStoneItem {
 		return
 	}
@@ -435,7 +465,7 @@ func (w *World) useMysteriousStone(s *net.Session, p *Player, item *model.Item, 
 	}
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch = snapshot
-		log.Printf("[#%d] salvar troca Celestial: %v", s.ID, err)
+		log.Printf("[#%d] save Celestial switch: %v", s.ID, err)
 		s.Send(wire.MessagePanel("Save failed. The form was not changed."))
 		return
 	}
@@ -443,10 +473,17 @@ func (w *World) useMysteriousStone(s *net.Session, p *Player, item *model.Item, 
 	s.Send(wire.SendItem(p.ID, placeEquip, 0, ch.Equip[0]))
 	w.syncCelestialPlayer(p)
 	s.Send(wire.MessagePanel("Celestial form changed."))
-	log.Printf("[#%d] forma ativa=%s classe=%d level=%d", s.ID, ch.Evolution, ch.Class, ch.Score.Level)
+	log.Printf("[#%d] active form=%s class=%d level=%d", s.ID, ch.Evolution, ch.Class, ch.Score.Level)
 }
 
 func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot byte) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitCelestialConsumable(p, slot, "celestial_fury")
+		return
+	}
 	if p == nil || p.Char == nil || item == nil {
 		return
 	}
@@ -552,10 +589,9 @@ func updateCelestialCythera(ch *model.Char) bool {
 			break
 		}
 	}
-	// PutAddOnItem da 7.54 apaga todos os pares antigos. Se havia refino,
-	// preserva somente seu valor bruto e o normaliza para EF_SANC=43; tintura
-	// e demais efeitos não sobrevivem. Uma Cythera sem refino não ganha +3
-	// artificialmente.
+	// 7.54 PutAddOnItem clears old pairs. Preserve only the raw refinement
+	// value, normalized to EF_SANC=43; discard tint and other effects.
+	// An unrefined Cythera does not receive an artificial +3.
 	if sancValue == 0 {
 		item.Eff = [6]byte{3, ac, 4, hp}
 	} else {

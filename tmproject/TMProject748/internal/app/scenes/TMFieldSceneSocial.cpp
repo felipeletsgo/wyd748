@@ -87,8 +87,8 @@ void TMFieldScene::SetVisibleServerWar()
 	if (!m_pControlContainer || !m_pInputGoldPanel)
 		return;
 
-	const unsigned int textControlID = m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD;
-	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
+	const unsigned int textControlID = TMT_INPUT_GOLD;
+	const unsigned int editControlID = TME_INPUT_GOLD;
 	auto pText = static_cast<SText*>(m_pControlContainer->FindControl(textControlID));
 	auto pEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(editControlID));
 	if (!pText || !pEdit)
@@ -106,8 +106,8 @@ void TMFieldScene::SetVisibleRefuseServerWar()
 	if (!m_pControlContainer || !m_pInputGoldPanel)
 		return;
 
-	const unsigned int textControlID = m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD;
-	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
+	const unsigned int textControlID = TMT_INPUT_GOLD;
+	const unsigned int editControlID = TME_INPUT_GOLD;
 	auto pText = static_cast<SText*>(m_pControlContainer->FindControl(textControlID));
 	auto pEdit = static_cast<SEditableText*>(m_pControlContainer->FindControl(editControlID));
 	if (!pText || !pEdit)
@@ -189,19 +189,6 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 		if (pChatList)
 			pChatList->AddItem(new SListBoxItem(szMsg, 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
-		if (!m_bCompatFieldScene)
-		{
-			if (m_pPartyAutoButton)
-				m_pPartyAutoButton->SetVisible(0);
-			if (m_pPartyAutoText)
-				m_pPartyAutoText->SetVisible(0);
-
-			auto partyback = m_pControlContainer
-				? static_cast<SPanel*>(m_pControlContainer->FindControl(7602196))
-				: nullptr;
-			if (partyback)
-				partyback->SetVisible(0);
-		}
 	}
 	else
 	{

@@ -433,9 +433,7 @@ void TMHuman::MoveGet(TMItem* pTarget)
     stGetItem.DestType = 1;
     // Native FieldScene2 sends the destination in the single 9-column Carry
     // address space; TMProject's five-column value belongs to its paged UI.
-    stGetItem.DestPos = pScene->m_bCompatFieldScene
-        ? vecGrid.x + 9 * vecGrid.y
-        : vecGrid.x + 5 * vecGrid.y;
+    stGetItem.DestPos = vecGrid.x + 9 * vecGrid.y;
     stGetItem.GridX = (int)pTarget->m_vecPosition.x;
     stGetItem.GridY = (int)pTarget->m_vecPosition.y;
     SendPacket({reinterpret_cast<MSG_STANDARD*>(&stGetItem)->Type, reinterpret_cast<char*>(&stGetItem), sizeof(stGetItem)});
@@ -642,7 +640,9 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex)
             if (pFScene->m_pMaxHPText)
             {
                 char szHP[32]{};
-                sprintf(szHP, "/ %d", m_stScore.MaxHP);
+                // 7.48 writes the bare maximum (FUN_004fff0b "%d"); the "/ " prefix
+                // is the later 7.59 layout and overlapped the orb label.
+                sprintf(szHP, "%u", m_stScore.MaxHP);
                 pFScene->m_pMaxHPText->SetText(szHP, 0);
             }
             if (pFScene->m_pCurrentMPText)
@@ -654,7 +654,7 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex)
             if (pFScene->m_pMaxMPText)
             {
                 char szMP[32]{};
-                sprintf(szMP, "/ %d", m_stScore.MaxMP);
+                sprintf(szMP, "%u", m_stScore.MaxMP);
                 pFScene->m_pMaxMPText->SetText(szMP, 0);
             }
             if (pFScene->m_pCurrentMHPText && m_pMountHPBar)
@@ -702,146 +702,10 @@ void TMHuman::Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex)
         m_pProgressBar1->SetCurrentProgress(m_BigMp);
     else
         m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
-    SetGuildBattleHPBar(m_stScore.CurMP);
-    SetGuildBattleHPBar(m_stScore.CurHP);
-    SetGuildBattleLifeCount();
 
     auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (pFScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
     {
-        if (pFScene->m_pInfoText)
-            pFScene->m_pInfoText->SetText(m_szName, 1);
-    }
-}
-
-void TMHuman::Punched(int nDamage, TMHuman* pFrom)
-{
-    if (m_dwDelayDel || !pFrom)
-        return;
-
-    float fDam = 0.0f;
-    if (m_stScore.CurHP <= 0)
-        fDam = (float)nDamage;
-    else
-        fDam = (float)nDamage / (float)m_stScore.CurHP;
-
-    int nBlood = GetBloodColor();
-    if ((fDam > 0.2f || !(rand() % 10) && (int)fDam > 0) && m_stScore.CurHP > 0)
-    {
-        if (g_pCurrentScene->m_pMyHuman == this)
-        {
-            unsigned int dwTime = g_pTimerManager->GetServerTime();
-            if (((int)m_eMotion < 4 || (int)m_eMotion > 9 || !(rand() % 5)) && dwTime - m_dwStartAnimationTime > 600)
-            {
-                SetAnimation(ECHAR_MOTION::ECMOTION_STRIKE, 0);
-            }
-        }
-        else
-        {
-            SetAnimation(ECHAR_MOTION::ECMOTION_STRIKE, 0);
-        }
-    }
-    if (fDam > 0.1f)
-    {
-        float fSize = (float)(TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) + 0.0099999998f;
-
-        auto pDamageEffect = new TMEffectBillBoard(nBlood,
-            600,
-            0.1f * fSize,
-            0.1f * fSize,
-            0.1f * fSize,
-            0.0049999999f,
-            1,
-            80);
-
-        pDamageEffect->m_vecPosition = TMVector3(m_vecPosition.x, m_fHeight + 1.0f, m_vecPosition.y);
-
-        if (g_pDevice->m_bSavage == 1 || g_pDevice->m_bIntel == 1)
-            pDamageEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-        if (nBlood == 56)
-            pDamageEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-
-        g_pCurrentScene->AddChild(pDamageEffect);
-    }
-
-    if (m_stScore.CurHP < 0)
-        m_stScore.CurHP = 0;
-    if (g_pCurrentScene->m_pMyHuman == this)
-    {
-        auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-        if (pFScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
-        {
-            if (pFScene->m_pMainCharName)
-                pFScene->m_pMainCharName->SetText(m_szName, 0);
-            if (pFScene->m_pCurrentHPText)
-            {
-                char szHP[32]{};
-                sprintf(szHP, "%d", m_stScore.CurHP);
-                pFScene->m_pCurrentHPText->SetText(szHP, 0);
-            }
-            if (pFScene->m_pMaxHPText)
-            {
-                char szHP[32]{};
-                sprintf(szHP, "/ %d", m_stScore.MaxHP);
-                pFScene->m_pMaxHPText->SetText(szHP, 0);
-            }
-            if (pFScene->m_pCurrentMPText)
-            {
-                char szMP[32]{};
-                sprintf(szMP, "%d", m_stScore.CurMP);
-                pFScene->m_pCurrentMPText->SetText(szMP, 0);
-            }
-            if (pFScene->m_pMaxMPText)
-            {
-                char szMP[32]{};
-                sprintf(szMP, "/ %d", m_stScore.MaxMP);
-                pFScene->m_pMaxMPText->SetText(szMP, 0);
-            }
-            if (pFScene->m_pCurrentMHPText && m_pMountHPBar)
-            {
-                int nHP = m_pMountHPBar->GetCurrentProgress();
-                if (!m_cMount)
-                    nHP = 0;
-
-                char szMHP[32]{};
-                sprintf(szMHP, "%d", nHP);
-                pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
-            }
-            if (pFScene->m_pMaxMHPText && m_pMountHPBar)
-            {
-                int nMaxHP = m_pMountHPBar->GetMaxProgress();
-                if (!m_cMount)
-                    nMaxHP = 0;
-
-                char szMHP[32]{};
-                sprintf(szMHP, "%d", nMaxHP);
-                pFScene->m_pMaxMHPText->SetText(szMHP, 0);
-            }
-            if (pFScene->m_pHPBar)
-                pFScene->m_pHPBar->SetMaxProgress(m_stScore.MaxHP);
-            if (pFScene->m_pMPBar)
-            {
-                pFScene->m_pMPBar->SetMaxProgress(m_stScore.MaxMP);
-                pFScene->m_pMPBar->SetCurrentProgress(m_stScore.CurMP);
-            }
-            if (m_pMountHPBar && pFScene->m_pMHPBar && pFScene->m_pMHPBarT)
-            {
-                pFScene->m_pMHPBar->SetMaxProgress(m_pMountHPBar->GetMaxProgress());
-                pFScene->m_pMHPBar->SetCurrentProgress(m_pMountHPBar->GetCurrentProgress());
-            }
-        }
-        return;
-    }
-
-    auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-    if (pFScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
-    {
-        m_pProgressBar->SetCurrentProgress(m_stScore.CurHP);
-        m_pProgressBar1->SetCurrentProgress(m_stScore.CurMP);
-        SetGuildBattleHPBar(m_stScore.CurHP);
-        SetGuildBattleHPBar(m_stScore.CurMP);
-        SetGuildBattleLifeCount();
-
         if (pFScene->m_pInfoText)
             pFScene->m_pInfoText->SetText(m_szName, 1);
     }
@@ -999,25 +863,6 @@ void TMHuman::Die()
 
     if (m_nClass == 56 && !m_stLookInfo.FaceMesh)
         StartKhepraDieEffect();
-}
-
-void TMHuman::Stand()
-{
-    if (m_dwDelayDel)
-        return;
-
-    char szBuffer[48]{};
-    int nStartRouteIndex = m_nLastRouteIndex + 1;
-    if (m_fProgressRate > 0.5f)
-        nStartRouteIndex = m_nLastRouteIndex + 2;
-
-    int nX = (int)m_vecRouteBuffer[nStartRouteIndex].x;
-    int nY = (int)m_vecRouteBuffer[nStartRouteIndex].y;
-    for (int i = nStartRouteIndex; i < 48; ++i)
-    {
-        m_vecRouteBuffer[i].x = (float)nX;
-        m_vecRouteBuffer[i].y = (float)nY;
-    }
 }
 
 void TMHuman::PlayAttackSound(ECHAR_MOTION eMotion, int nLR)

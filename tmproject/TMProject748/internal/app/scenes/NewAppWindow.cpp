@@ -3,8 +3,6 @@
 #include "EventTranslator.h"
 #include "RenderDevice.h"
 #include "DirShow.h"
-#include "TMVideoWnd.h"
-#include "JBlur.h"
 #include "ObjectManager.h"
 #include "CPSock.h"
 #include "../../application/ports/PacketDispatch.h"
@@ -163,7 +161,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	{
 		if (wParam == 999)
 		{
-			// SwitchWebBrowserState
+			// Web-browser command of the later client; the 7.48 window ignores it.
 			break;
 		}
 
@@ -216,31 +214,10 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	case WM_RBUTTONDOWN:
 	case WM_RBUTTONDBLCLK:
 	{
-		if (m_pAviPlayer != nullptr && m_pAviPlayer->m_psCurrent == PLAYSTATE::Running)
-		{
-			m_pAviPlayer->CloseClip();
-			SAFE_DELETE(m_pAviPlayer);
-			InitDevice();
-		}
-
 		// TMProject previously forwarded only button-up messages. The 7.48 UI
 		// requires the matching down event to arm SButton/SListBox before release.
 		if (m_pEventTranslator != nullptr)
 			m_pEventTranslator->OnMouseEvent(uMsg, wParam, LOWORD(lParam), HIWORD(lParam));
-	}
-	break;
-	case WM_USER + 13:
-	{
-		if (m_pAviPlayer == nullptr)
-			break;
-
-		if (m_pAviPlayer->HandleGraphEvent() == 1)
-		{
-			SAFE_DELETE(m_pAviPlayer);
-			InitDevice();
-		}
-		if (!m_bwFullScreen && m_pAviPlayer != nullptr)
-			m_pAviPlayer->MoveVideoWindow();
 	}
 	break;
 	case WM_IME_NOTIFY:
@@ -252,7 +229,6 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 		{
 		case IMN_OPENCANDIDATE:
 		case IMN_CHANGECANDIDATE:
-			m_pEventTranslator->OnIME2();
 			m_pEventTranslator->SetVisibleCandidateList(static_cast<int>(lParam), 1);
 			break;
 		case IMN_CLOSECANDIDATE:
@@ -284,18 +260,11 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	case WM_DESTROY:
 	case 4:
 		break;
-	case WM_MOVE:
-	case WM_SIZE:
-	{
-		if (m_pAviPlayer != nullptr)
-			m_pAviPlayer->MoveVideoWindow();
-	}
-	break;
 	case WM_ACTIVATE:
 	{
 		if (g_pCurrentScene != nullptr && g_pCurrentScene->m_pTextIMEDesc != nullptr)
 		{
-			if (strcmp(g_pCurrentScene->m_pTextIMEDesc->GetText(), "Î"))
+			if (strcmp(g_pCurrentScene->m_pTextIMEDesc->GetText(), "\303\216")) // Bytes of the imported 7.69 source; the native 7.48 text is unverified.
 				SendMessageA(hWnd, 0x281, 0, -1073741809);
 			else
 				SendMessageA(hWnd, 0x281, 0, -1);
@@ -329,12 +298,6 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 	break;
 	default:
 		break;
-	}
-
-	if (m_pAviPlayer != nullptr)
-	{
-		if (m_pAviPlayer->m_pVW != nullptr)
-			m_pAviPlayer->m_pVW->NotifyOwnerMessage((OAHWND)hWnd, uMsg, wParam, lParam);
 	}
 
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
@@ -388,7 +351,7 @@ void NewApp::OnInputLanguageChange(HWND& hWnd)
 
 			if (pCurrentScene->m_pTextIMEDesc != nullptr)
 			{
-				if (!strcmp(pCurrentScene->m_pTextIMEDesc->GetText(), "Î"))
+				if (!strcmp(pCurrentScene->m_pTextIMEDesc->GetText(), "\303\216")) // Bytes of the imported 7.69 source; the native 7.48 text is unverified.
 					SendMessage(hWnd, 0x281, 0, -1073741809);
 				else
 					SendMessage(hWnd, 0x281u, 0, -1);
@@ -401,13 +364,6 @@ void NewApp::OnInputLanguageChange(HWND& hWnd)
 // Extracted from NewApp::MsgProc; behavior is unchanged.
 ExtractedFlow NewApp::OnKeyDownMessage(DWORD& wParam)
 {
-	if (m_pAviPlayer != nullptr && m_pAviPlayer->m_psCurrent == PLAYSTATE::Running)
-	{
-		m_pAviPlayer->CloseClip();
-		SAFE_DELETE(m_pAviPlayer);
-		InitDevice();
-	}
-
 	if (m_pEventTranslator == nullptr)
 		return ExtractedFlow::Break;
 

@@ -149,13 +149,6 @@ void EventTranslator::SetIMEAlphaNumeric()
     }
 }
 
-void EventTranslator::SetIMEOpenStatus(int bOpen)
-{
-    HIMC hIMC = ImmGetContext(m_hWnd);
-    ImmSetOpenStatus(hIMC, bOpen);
-    ImmReleaseContext(m_hWnd, hIMC);
-}
-
 int EventTranslator::IsIMEOpenStatus()
 {
     HIMC hIMC = ImmGetContext(this->m_hWnd);
@@ -280,24 +273,6 @@ void EventTranslator::SetVisibleCandidateList(int lParam, int bVisible)
     pCandidateText->SetVisible(1);
 }
 
-void EventTranslator::Lock()
-{
-    if (!m_bLock)
-    {
-        m_pMouseDevice->Acquire();
-        m_bLock = 1;
-    }
-}
-
-void EventTranslator::Unlock()
-{
-    if (m_bLock)
-    {
-        m_pMouseDevice->Unacquire();
-        m_bLock = 0;
-    }
-}
-
 int EventTranslator::ReadInputEventData()
 {
     if (m_pMouseDevice == nullptr)
@@ -335,8 +310,6 @@ int EventTranslator::ReadInputEventData()
 
     if (button[0])
         OnLMousePressed();
-    if (!button[0] && lastButtonState[0])
-        OnLMouseReleased();
     if (button[1])
         OnRMousePressed();
     if (!button[1] && lastButtonState[1])
@@ -345,11 +318,6 @@ int EventTranslator::ReadInputEventData()
     {
         wheel = 3 * dy;
         viewchange = 3 * dy;
-    }
-    if (g_bActiveWB)
-    {
-        wheel = 0;
-        viewchange = 0;
     }
 
     memcpy(lastButtonState, button, sizeof(button));
@@ -420,12 +388,16 @@ int EventTranslator::CameraEventData()
             if (pCamera->m_nQuaterView == 0 || pCamera->m_nQuaterView == 1)
             {
                 // WYD.exe 7.48 FUN_004aec3d selects the wheel direction from
-                // viewchange when [CAMERAVIEW] is 0 and from wheel when it is 1;
-                // the distance delta itself always remains the configured wheel.
+                // viewchange when [CAMERAVIEW] is 0 and from wheel when it is 1,
+                // but always adds the rotation-inverted wheel as the distance.
+                // With [CAMERAROTATE] 1 and [CAMERAVIEW] 0 the two signs differ:
+                // zooming in moved the camera out, it was clamped at the maximum
+                // distance and the wheel never zoomed again. The distance now
+                // follows the selected direction (same steps, same limits).
                 const int zoomDirection = g_pApp->m_nCameraView == 0 ? viewchange : wheel;
                 if (pCamera->m_fSightLength > fClose && zoomDirection < 0)
                 {
-                    pCamera->m_fSightLength = (float)((float)wheel / 240.0f) + pCamera->m_fSightLength;
+                    pCamera->m_fSightLength = (float)((float)zoomDirection / 240.0f) + pCamera->m_fSightLength;
                     pCamera->m_fWantLength = pCamera->m_fSightLength;
                 }
                 if (fClose > pCamera->m_fSightLength)
@@ -435,7 +407,7 @@ int EventTranslator::CameraEventData()
                 }
                 if (zoomDirection > 0 && pCamera->m_fMaxCamLen > pCamera->m_fSightLength)
                 {
-                    pCamera->m_fSightLength = (float)((float)wheel / 240.0f) + pCamera->m_fSightLength;
+                    pCamera->m_fSightLength = (float)((float)zoomDirection / 240.0f) + pCamera->m_fSightLength;
                     pCamera->m_fWantLength = pCamera->m_fSightLength;
                 }
                 if (pCamera->m_fSightLength > pCamera->m_fMaxCamLen)
@@ -542,16 +514,6 @@ void EventTranslator::OnIME(char iCharCode, int lParam)
         g_pObjectManager->OnIMEEvent(m_szResultStr);
 }
 
-void EventTranslator::OnIME2()
-{
-    // Native WYD 7.48 FUN_004AF5EB is intentionally empty.
-}
-
-void EventTranslator::UpdateCompositionPos()
-{
-    // Native WYD 7.48 FUN_004AF545 is intentionally empty.
-}
-
 void EventTranslator::OnLMousePressed()
 {
     if (g_pCursor != nullptr)
@@ -566,11 +528,6 @@ void EventTranslator::OnLMousePressed()
                 static_cast<int>(g_pCursor->m_nPosY));
         }      
     }
-}
-
-void EventTranslator::OnLMouseReleased()
-{
-    // Native WYD 7.48 FUN_004AF910 intentionally performs no release dispatch.
 }
 
 void EventTranslator::OnRMousePressed()

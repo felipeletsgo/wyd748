@@ -14,8 +14,8 @@ const (
 	combinePacketSize = 84
 	combineSlots      = 8
 	tinyGoldCost      = 100_000_000
-	// RELEASE SERVER/Common/Settings/CompRate.txt do WYD 7.48 usa 100. O default
-	// compilado era 20, mas sempre era sobrescrito pelo arquivo no boot.
+	// Historical WYD 7.48 RELEASE SERVER/Common/Settings/CompRate.txt uses 100.
+	// Its compiled default was 20, overridden by the file at startup.
 	tinyBaseChance = 100
 )
 
@@ -24,13 +24,13 @@ type combineRequest struct {
 	Pos   [combineSlots]int8
 }
 
-// parseCombineRequest valida o snapshot enviado pelo client contra o inventario
-// autoritativo. O pacote nunca escolhe o item que sera consumido: ele apenas
-// referencia uma posicao cujo STRUCT_ITEM de oito bytes precisa ser identico.
+// parseCombineRequest validates the client snapshot against live inventory.
+// A packet references a slot with matching eight-byte STRUCT_ITEM contents;
+// it cannot select a different authoritative item to consume.
 func parseCombineRequest(pkt []byte, ch *model.Char) (combineRequest, error) {
 	var req combineRequest
 	if len(pkt) != combinePacketSize || ch == nil {
-		return req, fmt.Errorf("pacote de composicao com %d bytes", len(pkt))
+		return req, fmt.Errorf("composition packet has %d bytes", len(pkt))
 	}
 	used := make(map[int]struct{}, combineSlots)
 	for i := 0; i < combineSlots; i++ {
@@ -41,17 +41,17 @@ func parseCombineRequest(pkt []byte, ch *model.Char) (combineRequest, error) {
 		}
 		pos := int(req.Pos[i])
 		if pos < 0 || pos >= model.PlayerCarrySlots {
-			return combineRequest{}, fmt.Errorf("ingrediente %d aponta slot %d", i, pos)
+			return combineRequest{}, fmt.Errorf("ingredient %d references slot %d", i, pos)
 		}
 		if _, duplicate := used[pos]; duplicate {
-			return combineRequest{}, fmt.Errorf("slot %d repetido", pos)
+			return combineRequest{}, fmt.Errorf("duplicate slot %d", pos)
 		}
 		used[pos] = struct{}{}
 		if !ch.Inv[pos].WireEqual(packetItem) {
-			return combineRequest{}, fmt.Errorf("ingrediente %d diverge do inventario", i)
+			return combineRequest{}, fmt.Errorf("ingredient %d differs from inventory", i)
 		}
-		// O pacote prova somente os oito bytes nativos. A receita e o snapshot
-		// guardam a instancia autoritativa, incluindo UID.
+		// The packet proves only the native eight bytes. Retain the complete
+		// authoritative instance, including its UID, in the recipe snapshot.
 		req.Items[i] = ch.Inv[pos]
 	}
 	return req, nil
@@ -59,12 +59,11 @@ func parseCombineRequest(pkt []byte, ch *model.Char) (combineRequest, error) {
 
 func (w *World) combineNPC(p *Player, expectedName string) (*Mob, error) {
 	if p == nil || p.Char == nil {
-		return nil, fmt.Errorf("jogador sem contexto de composicao")
+		return nil, fmt.Errorf("player has no composition context")
 	}
-	// Algumas janelas do 7.48 sao abertas inteiramente no client e, nesse fluxo,
-	// nenhum 0x28B e enviado. CraftNPC pode portanto estar vazio ou ainda apontar
-	// para o artesao anterior. Reaproveitamos o contexto somente se ele continuar
-	// valido; caso contrario resolvemos o artesao esperado no grid local.
+	// Some 7.48 windows open locally without 0x28B. CraftNPC may be empty or
+	// refer to the previous artisan. Reuse only a valid context; otherwise
+	// resolve the expected visible artisan in the local grid.
 	if p.CraftNPC != 0 {
 		if m, err := w.resolveNPCInteraction(p, p.CraftNPC); err == nil && craftingNPCMatches(m, expectedName) {
 			return m, nil
@@ -83,7 +82,7 @@ func (w *World) combineNPC(p *Player, expectedName string) (*Mob, error) {
 		}
 	}
 	if selected == nil {
-		return nil, fmt.Errorf("compositor %s nao esta visivel ou ao alcance", expectedName)
+		return nil, fmt.Errorf("artisan %s is not visible or within range", expectedName)
 	}
 	p.CraftNPC = selected.ID
 	return selected, nil
@@ -112,7 +111,7 @@ func tinyBlockedWeapon(index uint16) bool {
 func (w *World) tinyRecipe(req combineRequest) (model.Item, int, error) {
 	for _, item := range req.Items {
 		if item.Index == 747 {
-			return model.Item{}, 0, fmt.Errorf("item 747 nao participa desta composicao")
+			return model.Item{}, 0, fmt.Errorf("item 747 cannot participate in this composition")
 		}
 	}
 	a, b, catalyst := req.Items[0], req.Items[1], req.Items[2]
@@ -120,32 +119,32 @@ func (w *World) tinyRecipe(req combineRequest) (model.Item, int, error) {
 	defB, okB := w.items[b.Index]
 	defC, okC := w.items[catalyst.Index]
 	if a.Index == 0 || b.Index == 0 || catalyst.Index == 0 || !okA || !okB || !okC {
-		return model.Item{}, 0, fmt.Errorf("tres ingredientes principais sao obrigatorios")
+		return model.Item{}, 0, fmt.Errorf("three primary ingredients are required")
 	}
 	if itemAbility(a, defA, "EF_MOBTYPE") != 1 || defA.Grade < 5 || defA.Grade > 8 {
-		return model.Item{}, 0, fmt.Errorf("item principal nao e arma Arch grade 5..8")
+		return model.Item{}, 0, fmt.Errorf("main item is not a grade 5..8 Arch weapon")
 	}
 	if tinyBlockedWeapon(b.Index) || defB.Grade < 5 || defB.Grade > 8 {
-		return model.Item{}, 0, fmt.Errorf("arma doadora invalida")
+		return model.Item{}, 0, fmt.Errorf("invalid donor weapon")
 	}
-	// O nativo rejeita BASE_GetItemSanc > 237: no encoding 230+ isso comeca
-	// em +12. A doadora pode estar em 0..+11, mas nunca +12..+15.
+	// BASE_GetItemSanc > 237 is rejected in the native encoding: 230+ starts
+	// this exclusion at +12. A donor may be 0..+11, but not +12..+15.
 	if itemSanc(b) >= 12 {
-		return model.Item{}, 0, fmt.Errorf("arma doadora acima de +11")
+		return model.Item{}, 0, fmt.Errorf("donor weapon exceeds +11")
 	}
 	if itemAbility(catalyst, defC, "EF_ITEMTYPE") == 1 {
-		return model.Item{}, 0, fmt.Errorf("catalisador de tipo proibido")
+		return model.Item{}, 0, fmt.Errorf("prohibited catalyst type")
 	}
 	if defA.Pos != defB.Pos || defA.Pos != 64 && defA.Pos != 192 {
-		return model.Item{}, 0, fmt.Errorf("armas precisam ocupar a mesma mao")
+		return model.Item{}, 0, fmt.Errorf("weapons must occupy the same hand")
 	}
 	if itemSanc(a) < 9 || itemSanc(catalyst) < 9 {
-		return model.Item{}, 0, fmt.Errorf("item principal e catalisador exigem refino +9")
+		return model.Item{}, 0, fmt.Errorf("main item and catalyst require +9 refinement")
 	}
 	result := a
 	result.Eff = b.Eff
 	if !setItemSanc(&result, 7) {
-		return model.Item{}, 0, fmt.Errorf("efeitos da arma doadora nao comportam refino")
+		return model.Item{}, 0, fmt.Errorf("donor weapon effects cannot hold refinement")
 	}
 	chance := tinyBaseChance + 5*itemAbility(b, defB, "EF_ITEMLEVEL")
 	return result, clampInt(chance, 0, 100), nil
@@ -157,10 +156,9 @@ func (w *World) sendCombineResult(p *Player, result uint32) {
 
 func (w *World) sendCombineResultMessage(p *Player, result uint32, message string) {
 	if p != nil && p.Session != nil {
-		// Fluxo nativo WYD 7.48: a mensagem textual e enviada antes do
-		// MSG_CombineComplete (0x3A7). O sinal sozinho atualiza/fecha a janela.
-		// Quando existe roll percentual, a mensagem precisa usar exatamente a
-		// decisao persistida, nunca uma segunda rolagem para exibicao.
+		// Send text before MSG_CombineComplete (0x3A7), which updates/closes
+		// the native window. Display the persisted percentage decision;
+		// never roll again merely to produce a message.
 		if message == "" {
 			message = combineResultMessage(result)
 		}
@@ -185,6 +183,9 @@ func combineResultMessage(result uint32) string {
 }
 
 func (w *World) onCombineTiny(s *net.Session, pkt []byte) {
+	if w.criticalTradeReserved(w.players[s]) {
+		return
+	}
 	p, req, ok := w.beginCombine(s, pkt, "Tiny")
 	if !ok {
 		return
@@ -195,7 +196,16 @@ func (w *World) onCombineTiny(s *net.Session, pkt []byte) {
 		return
 	}
 
-	w.cancelTrade(p, "composicao Tiny")
+	if w.criticalWrites != nil {
+		roll := w.rollPercent(chance)
+		if err := w.queueTinyCraft(p, req, resultItem, roll); err != nil {
+			log.Printf("[#%d] Tiny composition admission rejected: %v", s.ID, err)
+			s.Send(wire.MessagePanel("Composition is unavailable. Please try again later."))
+		}
+		return // Rejected admission must never fall through to an inline save.
+	}
+
+	w.cancelTrade(p, "Tiny composition")
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	roll := w.rollPercent(chance)
 	success := roll.Success
@@ -221,12 +231,11 @@ func logCraftResult(s *net.Session, roll percentRoll, gold uint32) {
 	if s == nil {
 		return
 	}
-	status := "falha"
+	status := "failure"
 	if roll.Success {
-		status = "sucesso"
+		status = "success"
 	}
-	// Sem despejar os STRUCT_ITEM no log: a linha operacional fica curta para
-	// auditoria e nao polui a saida com bytes de efeitos.
+	// Keep operational records concise; do not dump STRUCT_ITEM effect bytes.
 	log.Printf("[#%d] CRAFT Tiny %s roll=%d/%d gold=%d",
 		s.ID, status, roll.Roll, roll.Chance, gold)
 }

@@ -25,12 +25,6 @@ public:
 	int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
 	int FrameMove(unsigned int dwServerTime) override;
 
-	// Presentation-specific operations. These intentional stubs must not gain
-	// behavior without an asset, camera, and teardown contract.
-	void ResetDemoPlayer();
-	void ReadTimeTable();
-	void CamAction();
-	void ReadStrings();
 
 public:
 	// State expected by the later implementation. Pointer ownership is not

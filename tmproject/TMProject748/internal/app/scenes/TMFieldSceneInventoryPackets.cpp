@@ -12,11 +12,11 @@
 #include "FieldSceneInventorySupport.h"
 #include "../../application/FieldInteractionPolicy.h"
 
-	bool WYD748_IsUnsupportedCompatEquipSlot(bool compat, int slot)
+	bool WYD748_IsUnsupportedCompatEquipSlot(int slot)
 	{
 		// Keep the fixed Equip wire array intact; these positions simply have no
 		// 7.48 visual/equip target in the active emulator UI.
-		return compat && (slot == 9 || slot == 16 || slot == 17);
+		return slot == 9 || slot == 16 || slot == 17;
 	}
 
 int TMFieldScene::OnPacketUpdateCargoCoin(MSG_STANDARDPARM* pStd)
@@ -32,7 +32,7 @@ int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)
 		return 0;
 	if (pMsg->SourType == 0 &&
 		(pMsg->SourPos < 0 || pMsg->SourPos >= MAX_EQUIPITEM ||
-			WYD748_IsUnsupportedCompatEquipSlot(m_bCompatFieldScene, pMsg->SourPos)))
+			WYD748_IsUnsupportedCompatEquipSlot(pMsg->SourPos)))
 		return 0;
 	if (pMsg->SourType == 1 && !IsDropCarrySlot(pMsg->SourPos))
 		return 0;

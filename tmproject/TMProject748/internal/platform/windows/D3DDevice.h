@@ -37,11 +37,8 @@ public:
 	char FindBestFullscreenMode(bool bRequireHAL, bool bRequireREF);
 	HRESULT ChooseInitialD3DSettings();
 	HRESULT Initialize3DEnvironment();
-	HRESULT HandlePossibleSizeChange();
 	HRESULT Reset3DEnvironment();
 	HRESULT ToggleFullscreen();
-	HRESULT ForceWindowed();
-	HRESULT UserSelectNewDevice();
 	void Cleanup3DEnvironment();
 
 	virtual HRESULT AdjustWindowForChange();

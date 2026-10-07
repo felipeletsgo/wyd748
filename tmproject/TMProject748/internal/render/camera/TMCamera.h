@@ -21,7 +21,6 @@ public:
 
 	void EarthQuake(int nLevel);
 
-	float GetHorizonAngle();
 
 	virtual void SetFocusedObject(TMObject* pObject);
 

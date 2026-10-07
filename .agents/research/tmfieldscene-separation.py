@@ -12,6 +12,10 @@ import re
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
+import importlib.util as _mc_ilu
+_mc_spec = _mc_ilu.spec_from_file_location('method_counts', Path(__file__).with_name('method_counts.py'))
+method_counts = _mc_ilu.module_from_spec(_mc_spec)
+_mc_spec.loader.exec_module(method_counts)
 
 ROOT = Path(__file__).resolve().parents[2]
 SCENES = ROOT / 'tmproject/TMProject748/internal/app/scenes'
@@ -33,16 +37,20 @@ REVIEWED_METHODS = {
     'int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)': (
         '8e95108a23f3c67ec66820f4001be4ee3f00a6330ce3d605115f3036c64cba9d',
         'a61b63b9a17ced56e53510a1285e62d9bd983ad20a7b5d87816adc0142704e93'),
+    # Hell Gate store click restored from FUN_0045ee28 (0x2BD target).
+    'int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime)': (
+        '1028b98649b029b4f11225bb64acb64c8f7c42527240333d049b86afedaee60f',
+        'cc8f3f37a147c04441557fc5a4541d0ee667506c8b97c71d8ecf28498eee5deb'),
 }
 POLICIES = {
-    'internal/application/FieldChatControlPolicy.h': 'd0f7cc6d45f4fd84901ceeb31402f8263c3d152bd8cddb67805b3f3f083279c1',
-    'internal/ui/FieldChatControl.h': '28c9cf9c1995b1e2be0fd9d3c864d540e714a02109a56b3a676a5a2907c5064d',
+    'internal/application/FieldChatControlPolicy.h': 'efba5d5b52a2a89eeec0687cc95cf4009a50ea25b0ed61f6b639dcc6894cba09',
+    'internal/ui/FieldChatControl.h': '97ea8e85dc6fc72ad36f0a15d9218c7812a0352647785f2018b6a1160c2a8841',
     'internal/application/SkillRequestPolicy.h': '18b58c7be20336bf5f2d1ecdeaa6843ae667aee323aef5d2c597bfa333915ba8',
     'internal/wire/SkillAttackRequest.h': '43b9dd2cc5d1f2ef8e8af94b86aa23341af78c3bc2b9bdf47eaefe7c01cedb07',
     'internal/wire/AttackVisualDamage.h': '251333095d26e0b71b05c752aefbf5afc39567e30ba6781d075280389485844f',
     'internal/application/AttackAttackerState.h': '906651063bd612ed34e856ee0c4f0851d2d9a81c0c9fc4bb565d87842fdbb9cf',
     'internal/application/AttackTargetState.h': 'c3909e55c16af8c741b6335f9cf568a425b819f26b731a055d087a89ee6f702e',
-    'internal/application/FieldChatSubmitPolicy.h': 'f731cac995656b2a5385b8601777a954d264eb4a5d91a2e725f630b6d5432fd4',
+    'internal/application/FieldChatSubmitPolicy.h': '311b672b16012858e5f989a3a65e3fe62ddc721cfdafac965d0fd3b2e2650faf',
     'internal/application/FieldCoinInputPolicy.h': '114d8c4af4f91076e2370be22fb9be256e7913da073b7989dbbdacb74e4fbb7e',
 }
 REVIEWED_HELPERS = {
@@ -51,7 +59,7 @@ REVIEWED_HELPERS = {
         '8ff70c6e798a2b66b3967e3142fa1b1dcba45663737afd8a775ab28e490bd162'),
 }
 SUPPORT_HEADERS = {
-    'FieldSceneInventorySupport.h': 'cec90a0caf5025ec9a39f20180ce32b49ca6a4e9c7089441a844ddab9baafe52',
+    'FieldSceneInventorySupport.h': '8e3d1fbb6833f02fc9d0fd4c49062157ce1207b741d53ac32379822b4b0399b6',
     'FieldSceneTradeSupport.h': '963c67c75a0b287ee43c3a8480985dbb5942bd9a5b341a57b3befb76a39704b1',
     'FieldSceneWorldSupport.h': 'd91283bd09b05759ec280e60c4c8221c56a7993cab009f43f79d640414bc3106',
 }
@@ -63,7 +71,7 @@ GROUPS = {
     'Merchant': 'CheckMerchant SetVisibleShop SetVisibleHellGateStore BuyItemNewStore UpdateNewStore OnPacketShopList OnPacketRMBShopList OnPacketBuy OnPacketSell OnPacketCloseShop OnPacketNewCashRev OnPacketNewBuyCash OnPacketNewCashRev2 OnPacketItemPrice MouseClick_PremiumNPC',
     'Trade': 'SetVisibleTrade SetVisibleAutoTrade SendReqBuy VisibleInputTradeName OnPacketItemSold OnPacketAutoTrade',
     'Mix': 'GetNativeMixPanel GetNativeMixGrid GetNativeMixPacket GetNativeMixSlotCount ResetNativeMixPacket ClearNativeMix DoNativeMix SetVisibleNativeMix TryStageNativeMixItem TryRemoveNativeMixItem ClearCombine ClearCombine2 ClearCombine3 ClearCombine4 ClearCombine5 ClearCombine6 DoCombine DoCombine2 DoCombine3 DoCombine4 DoCombine5 DoCombine6 SetVisibleMixItem SetVisibleMixItem2 SetVisibleMixItem3 SetVisibleMixItemTiini SetVisibleMixItem5 SetVisibleMixItem6 OnPacketCombineComplete SetVisibleMixPanel ClearMixPannel SetVisibleMissionPanel ClearMissionPannel MouseClick_MixNPC',
-    'UI': 'UpdateCompatScoreUI UpdateCompatLearnedSkillUI InitializeRuntimeCounterTexts InitializeCompatFieldScene PositionCompatFeaturePanels PositionCompatNativeMixPanels PositionCompatShopPanels PositionCompatTradePanels PositionCompatGamblePanel PositionCompatPartyPanel PositionCompatQuestPanel SelectQuestTab SelectHelpTab SetQuestPanelVisible SetVisibleCharInfo UpdateScoreUI InitBoard LoadMsgText SetButtonTextXY VisibleInputPass UpdateCompatObservedAffects Affect_Main GetLascDescParamId StrByteCheck',
+    'UI': 'OpenNativeServerPanel UpdateCompatScoreUI UpdateCompatLearnedSkillUI InitializeRuntimeCounterTexts InitializeCompatFieldScene PositionCompatFeaturePanels PositionCompatNativeMixPanels PositionCompatShopPanels PositionCompatTradePanels PositionCompatGamblePanel PositionCompatPartyPanel PositionCompatQuestPanel SelectQuestTab SelectHelpTab SetQuestPanelVisible SetVisibleCharInfo UpdateScoreUI InitBoard LoadMsgText SetButtonTextXY VisibleInputPass UpdateCompatObservedAffects Affect_Main GetLascDescParamId StrByteCheck',
     'Input': 'OnMouseEventCompat OnKeyDownEvent OnAccel MouseClick_NPC MouseMove MouseLButtonDown OnESC OnKeyDebug OnKeySkill OnKeyDash OnKeyPlus OnKeyPK OnKeyName OnKeyAutoTarget OnKeyAuto OnKeyHelp OnKeyRun OnKeyFeedMount OnKeyHPotion OnKeyMPotion OnKeyPPotion OnKeySkillPage OnKeyQuestLog OnKeyReverse OnKeyAutoRun OnKeyGuildOnOff OnKeyShortSkill OnKeyVisibleSkill OnKeyCamView OnKeyVisibleInven OnKeyVisibleCharInfo OnKeyVisibleMinimap OnKeyVisibleParty OnKeyReturn OnKeyNumPad OnKeyTotoTab OnKeyTotoEnter',
     'Skills': 'InitializeCompatSkillBelts GetSkillDelay IsSkillCoolingDown UpdateSkillCooldownUI SkillUse AutoSkillUse SetVisibleSkillMaster SetVisibleSkill UpdateSkillBelt IncSkillSel SetShortSkill SetSkillColor SetMyHumanMagic MouseClick_SkillMasterNPC OnPacketSetShortSkill',
     'Combat': 'MobAttack GetWeaponDamage SetPK SetPosPKRun FrameMove_KhepraDieEffect SetMyHumanExp',
@@ -76,6 +84,30 @@ GROUPS = {
     'SessionPackets': 'OnPacketCNFCharacterLogout OnPacketCNFRemoveServer OnPacketCNFAccountLogin OnPacketCNFCharacterLogin OnPacketAutoKick OnPacketDelayQuit',
 }
 OWNERS = {name: group for group, names in GROUPS.items() for name in names.split()}
+# Reviewed method extractions (Stage 3): written by --pin from extract-method.py specs.
+EXTRACTIONS = ROOT / '.agents/research/relocations/tmfieldscene-extractions.json'
+
+
+def load_extractions():
+    if not EXTRACTIONS.is_file():
+        return {'methods': {}, 'helpers': {}, 'declarations': []}
+    return json.loads(EXTRACTIONS.read_text(encoding='utf-8'))
+
+
+# Reviewed changes after the relocation (UI batches): written by --review and
+# applied after the extractions. Each method records the digest it replaces
+# (null when new) and its reviewed digest (null when removed).
+REVIEWS = ROOT / '.agents/research/relocations/tmfieldscene-reviews.json'
+
+
+def load_reviews():
+    if not REVIEWS.is_file():
+        return {'methods': {}, 'header': {'removed': [], 'added': [], 'removed_declarations': []}}
+    return json.loads(REVIEWS.read_text(encoding='utf-8'))
+
+
+for _signature, _pin in load_extractions()['helpers'].items():
+    OWNERS[re.search(r'TMFieldScene::(~?\w+)\(', _signature).group(1)] = _pin['owner']
 AUXILIARY = {
     'ObservedAffectPanel': 'UI',
     'WYD748_ResetTradeOffer': 'Trade',
@@ -182,6 +214,7 @@ def verify(original, complete=False, with_policies=False):
     expected = {m['signature']: digest(m['text']) for m in definitions}
     if len(expected) != len(definitions):
         raise ValueError('Duplicate baseline definition')
+    baseline_digests = dict(expected)
     actual, entries = {}, []
     for path in sorted(SCENES.glob('TMFieldScene*.cpp')):
         for method in methods(read(path)):
@@ -191,12 +224,33 @@ def verify(original, complete=False, with_policies=False):
             actual[signature] = digest(method['text'])
             entries.append(dict(signature=signature, name=method['name'], file=path.name,
                 owner=OWNERS.get(method['name'], 'UNRESOLVED'), lines=method['text'].count('\n') + 1))
+    extractions = load_extractions()
     if with_policies:
         # Pin both sides of every reviewed transformation. No body is excluded.
         for signature, (before, after) in REVIEWED_METHODS.items():
-            if expected.get(signature) != before or actual.get(signature) != after:
+            if expected.get(signature) != before:
                 raise ValueError('Unreviewed dispatcher/request transformation: ' + signature)
             expected[signature] = after
+        # Stage 3 extractions chain after the reviews above; the final comparison
+        # still requires every body, helper included, to match its pin exactly.
+        for signature, pin in extractions['methods'].items():
+            if expected.get(signature) != pin['before']:
+                raise ValueError('Unreviewed method extraction: ' + signature)
+            expected[signature] = pin['after']
+        for signature, pin in extractions['helpers'].items():
+            if signature in expected:
+                raise ValueError('Extracted helper shadows a baseline definition: ' + signature)
+            expected[signature] = pin['digest']
+        for signature, change in load_reviews()['methods'].items():
+            if expected.get(signature) != change['before']:
+                raise ValueError('Unreviewed change chain: ' + signature)
+            if change['after'] is None:
+                expected.pop(signature)
+            else:
+                expected[signature] = change['after']
+        for signature in REVIEWED_METHODS:
+            if actual.get(signature) != expected.get(signature):
+                raise ValueError('Unreviewed dispatcher/request transformation: ' + signature)
         for relative, fingerprint in POLICIES.items():
             if digest(read(ROOT / 'tmproject/TMProject748' / relative)) != fingerprint:
                 raise ValueError('Unreviewed policy: ' + relative)
@@ -205,9 +259,40 @@ def verify(original, complete=False, with_policies=False):
             extra=sorted(actual.keys() - expected.keys()),
             changed=sorted(s for s in expected.keys() & actual.keys() if expected[s] != actual[s])), indent=2))
     original_header = subprocess.check_output(['git', 'show', f'{REVISION}:{HEADER}'], cwd=ROOT).decode('utf-8-sig').replace('\r\n', '\n')
-    if original_header != read(ROOT / HEADER):
+    current_header = read(ROOT / HEADER)
+    if with_policies:
+        # Only the pinned private helper declarations and the reviewed header
+        # changes may differ from the baseline header.
+        reviewed_header = load_reviews()['header']
+        removed_declarations = list(reviewed_header['removed_declarations'])
+        lines = current_header.split('\n')
+        for declaration in extractions['declarations']:
+            matches = [i for i, line in enumerate(lines) if line.strip() == declaration]
+            if not matches:
+                if declaration in removed_declarations:
+                    removed_declarations.remove(declaration)
+                    continue
+                raise ValueError('Pinned helper declaration missing: ' + declaration)
+            del lines[matches[0]]
+        if removed_declarations:
+            raise ValueError('Reviewed declaration removal is not a pinned helper: ' + removed_declarations[0])
+        for line in reviewed_header['added']:
+            if line not in lines:
+                raise ValueError('Reviewed header line missing: ' + line)
+            lines.remove(line)
+        current_header = '\n'.join(lines)
+        original_lines = original_header.split('\n')
+        for line in reviewed_header['removed']:
+            if line not in original_lines:
+                raise ValueError('Reviewed header removal is not in the baseline: ' + line)
+            original_lines.remove(line)
+        original_header = '\n'.join(original_lines)
+    if original_header != current_header:
         raise ValueError('Scene declaration/layout changed')
-    if digest(outside_definitions(original)) != digest(outside_definitions(read(SCENES / 'TMFieldScene.cpp'))):
+    static_before = digest(outside_definitions(original))
+    static_after = digest(outside_definitions(read(SCENES / 'TMFieldScene.cpp')))
+    reviewed_static = load_reviews().get('static_data') if with_policies else None
+    if static_before != static_after and reviewed_static != {'before': static_before, 'after': static_after}:
         raise ValueError('Core static data changed without explicit review')
     expected_helpers = {d['name']: digest(d['text'].replace('invalidatedSlot = -1', 'invalidatedSlot'))
                         for d in auxiliary(original)}
@@ -226,6 +311,10 @@ def verify(original, complete=False, with_policies=False):
             if expected_helpers.get(name) != before or actual_helpers.get(name) != after:
                 raise ValueError('Unreviewed auxiliary definition: ' + name)
             expected_helpers[name] = after
+        for name, change in load_reviews().get('helpers', {}).items():
+            if expected_helpers.get(name) != change['before']:
+                raise ValueError('Unreviewed auxiliary change chain: ' + name)
+            expected_helpers[name] = change['after']
     if expected_helpers != actual_helpers or len(expected_helpers) != len(AUXILIARY):
         raise ValueError('Missing, extra or changed auxiliary definition')
     project = ROOT / 'tmproject/TMProject748/TMProject748.vcxproj'
@@ -261,12 +350,75 @@ def verify(original, complete=False, with_policies=False):
             if entry['file'] != f"TMFieldScene{entry['owner']}.cpp":
                 raise ValueError('Wrong owner: ' + entry['signature'])
     print(f'PASS: {len(actual)} complete definitions; header, static data and helpers preserved')
-    print(f'PASS: {len(actual) - len(REVIEWED_METHODS)} bodies unchanged and {len(REVIEWED_METHODS)} pinned policy/request extractions' if with_policies
-          else 'PASS: all member bodies, signatures and literals preserved')
     if with_policies:
-        print(f'PASS: {len(AUXILIARY) - len(REVIEWED_HELPERS)} helpers unchanged and {len(REVIEWED_HELPERS)} pinned visual projection extraction')
+        pinned = set(REVIEWED_METHODS) | set(extractions['methods']) | set(extractions['helpers'])
+        counts = method_counts.categories(baseline_digests, actual, pinned, load_reviews()['methods'])
+        if counts['unexplained']:
+            raise ValueError('Changed bodies without a pin or review: ' + ', '.join(counts['unexplained']))
+        print('PASS: ' + method_counts.summary(counts))
+        reviewed_helpers = set(load_reviews().get('helpers', {})) - set(REVIEWED_HELPERS)
+        print(f'PASS: {len(AUXILIARY)} helpers: {len(REVIEWED_HELPERS)} pinned extraction, '
+              f'{len(reviewed_helpers)} reviewed changes, '
+              f'{len(AUXILIARY) - len(REVIEWED_HELPERS) - len(reviewed_helpers)} identical')
+    else:
+        print('PASS: all member bodies, signatures and literals preserved')
     print('PASS: unique ownership, PCH and independent build/filter registration')
     return entries
+
+
+def review(original):
+    """Record the current differences from the pinned chain for review."""
+    expected = {m['signature']: digest(m['text']) for m in methods(original)}
+    for signature, (before, after) in REVIEWED_METHODS.items():
+        expected[signature] = after
+    extractions = load_extractions()
+    for signature, pin in extractions['methods'].items():
+        expected[signature] = pin['after']
+    for signature, pin in extractions['helpers'].items():
+        expected[signature] = pin['digest']
+    actual = {}
+    for path in sorted(SCENES.glob('TMFieldScene*.cpp')):
+        for method in methods(read(path)):
+            actual[method['signature']] = digest(method['text'])
+    changes = {s: {'before': expected.get(s), 'after': actual.get(s)}
+               for s in sorted(expected.keys() | actual.keys()) if expected.get(s) != actual.get(s)}
+    original_lines = subprocess.check_output(['git', 'show', f'{REVISION}:{HEADER}'], cwd=ROOT).decode(
+        'utf-8-sig').replace('\r\n', '\n').split('\n')
+    lines = read(ROOT / HEADER).split('\n')
+    removed_declarations = []
+    for declaration in extractions['declarations']:
+        matches = [i for i, line in enumerate(lines) if line.strip() == declaration]
+        if matches:
+            del lines[matches[0]]
+        else:
+            removed_declarations.append(declaration)
+    removed, added = [], []
+    for tag, a1, a2, b1, b2 in difflib.SequenceMatcher(None, original_lines, lines, autojunk=False).get_opcodes():
+        if tag in ('delete', 'replace'):
+            removed.extend(original_lines[a1:a2])
+        if tag in ('insert', 'replace'):
+            added.extend(lines[b1:b2])
+    record = {'methods': changes, 'header': {
+        'removed': removed, 'added': added, 'removed_declarations': removed_declarations}}
+    static_before = digest(outside_definitions(original))
+    static_after = digest(outside_definitions(read(SCENES / 'TMFieldScene.cpp')))
+    if static_before != static_after:
+        record['static_data'] = {'before': static_before, 'after': static_after}
+    # Namespace-level helpers keep their names and owners; only bodies change.
+    helper_digest = lambda d: digest(d['text'].replace('invalidatedSlot = -1', 'invalidatedSlot'))
+    expected_helpers = {d['name']: helper_digest(d) for d in auxiliary(original)}
+    for name, (before, after) in REVIEWED_HELPERS.items():
+        expected_helpers[name] = after
+    actual_helpers = {h['name']: helper_digest(h) for path in SCENES.glob('TMFieldScene*.cpp')
+                      for h in auxiliary(read(path))}
+    helpers = {n: {'before': expected_helpers.get(n), 'after': actual_helpers.get(n)}
+               for n in sorted(expected_helpers.keys() | actual_helpers.keys())
+               if expected_helpers.get(n) != actual_helpers.get(n)}
+    if helpers:
+        record['helpers'] = helpers
+    REVIEWS.write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
+    print(f'Recorded {len(changes)} method changes, {len(removed)} removed and {len(added)} added header '
+          f'lines, {len(removed_declarations)} removed helper declarations in {REVIEWS.relative_to(ROOT)}')
 
 
 def includes(group, body='', original=''):
@@ -466,6 +618,74 @@ def test_patch(groups, original):
     print('*** End Patch')
 
 
+def with_helpers(source, name, depth=3):
+    """A method body with each pinned Stage 3 helper body placed after its call,
+    so ordering checks read the statements in their original order."""
+    bodies = {m['name']: m['text'] for m in methods(source)}
+    helpers = {re.search(r'TMFieldScene::(\w+)\(', s).group(1) for s in load_extractions()['helpers']}
+
+    def expand(method, remaining):
+        lines = []
+        for line in bodies[method].split('\n'):
+            lines.append(line)
+            if remaining:
+                for helper in sorted(helpers & bodies.keys()):
+                    if helper != method and re.search(r'(?<![\w:.>])' + helper + r'\(', line):
+                        lines.append(expand(helper, remaining - 1))
+        return '\n'.join(lines)
+    return expand(name, depth)
+
+
+def pin(spec_path, original):
+    """Record a verified extract-method.py extraction of a TMFieldScene method."""
+    spec = json.loads(Path(spec_path).read_text(encoding='utf-8'))
+    pins = load_extractions()
+    method_signature = re.sub(r'\s+', ' ', spec['method'].strip())
+    current = {}
+    for path in sorted(SCENES.glob('TMFieldScene*.cpp')):
+        for method in methods(read(path)):
+            current[method['signature']] = (digest(method['text']), path.name)
+    if method_signature not in current:
+        raise SystemExit('Method not found: ' + method_signature)
+    after, owner_file = current[method_signature]
+    owner = owner_file[len('TMFieldScene'):-len('.cpp')]
+    if method_signature in pins['helpers']:
+        pins['helpers'][method_signature]['digest'] = after      # a helper decomposed again
+    else:
+        reviewed = {sig: pair[1] for sig, pair in REVIEWED_METHODS.items()}
+        baseline_digests = {m['signature']: digest(m['text']) for m in methods(original)}
+        before = (pins['methods'].get(method_signature, {}).get('before')
+                  or reviewed.get(method_signature) or baseline_digests[method_signature])
+        pins['methods'][method_signature] = {'before': before, 'after': after}
+    # Pin every header line the extraction added (declarations, their comment and
+    # the ExtractedFlow include); the baseline lines themselves may not change.
+    header = read(ROOT / HEADER)
+    original_header = subprocess.check_output(['git', 'show', f'{REVISION}:{HEADER}'], cwd=ROOT).decode('utf-8-sig').replace('\r\n', '\n')
+    added = []
+    matcher = difflib.SequenceMatcher(a=original_header.split('\n'), b=header.split('\n'), autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag in ('replace', 'delete'):
+            raise SystemExit('The header changed baseline lines; only insertions can be pinned')
+        if tag == 'insert':
+            added += [l.strip() for l in header.split('\n')[j1:j2]]
+    if any(not line for line in added):
+        raise SystemExit('Blank lines were added to the header; remove them before pinning')
+    pins['declarations'] = added
+    for extraction in spec['extractions']:
+        signatures = [s for s in current if re.search(r'TMFieldScene::' + extraction['helper'] + r'\(', s)]
+        if len(signatures) != 1:
+            raise SystemExit(f"Expected one helper {extraction['helper']}, found {len(signatures)}")
+        helper_digest, helper_file = current[signatures[0]]
+        if helper_file != owner_file:
+            raise SystemExit(f"Helper {extraction['helper']} is not beside its method")
+        pins['helpers'][signatures[0]] = {'digest': helper_digest, 'owner': owner}
+        declarations = [l.strip() for l in header.split('\n') if re.search(r'\b' + extraction['helper'] + r'\(', l)]
+        if len(declarations) != 1 or declarations[0] not in added:
+            raise SystemExit(f"Expected one added declaration of {extraction['helper']}")
+    EXTRACTIONS.write_text(json.dumps(pins, indent=1) + '\n', encoding='utf-8')
+    print(f"pinned {method_signature} and {len(spec['extractions'])} helper(s) in {EXTRACTIONS.name}")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--move', nargs='+', choices=[g for g in GROUPS if g])
@@ -473,8 +693,16 @@ def main():
     parser.add_argument('--complete', action='store_true')
     parser.add_argument('--with-policies', action='store_true', help='Accept only the pinned chat dispatcher/policy extraction')
     parser.add_argument('--test-patch', nargs='+', choices=[g for g in GROUPS if g])
+    parser.add_argument('--pin', metavar='SPEC', help='Pin a verified extract-method.py extraction')
+    parser.add_argument('--review', action='store_true', help='Record the current reviewed changes')
     args = parser.parse_args()
     original = baseline()
+    if args.review:
+        review(original)
+        return
+    if args.pin:
+        pin(args.pin, original)
+        return
     if args.test_patch:
         test_patch(args.test_patch, original)
         return

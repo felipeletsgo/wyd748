@@ -1,0 +1,133 @@
+{
+ "source": "tmproject/TMProject748/internal/app/scenes/TMFieldSceneSkills.cpp",
+ "header": "tmproject/TMProject748/internal/app/scenes/TMFieldScene.h",
+ "class": "TMFieldScene",
+ "method": "int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget)",
+ "extractions": [
+  {
+   "helper": "SendAreaSkillRequest",
+   "after": "if (dwServerTime > m_dwOldAttackTime + 1000 &&",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "bMoving"
+    ],
+    [
+     "char&",
+     "cSkillIndex"
+    ],
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "int&",
+     "nCannonIndex"
+    ],
+    [
+     "int&",
+     "nSpecForce"
+    ],
+    [
+     "STRUCT_MOB*&",
+     "pMobData"
+    ],
+    [
+     "TMHuman*&",
+     "pOver"
+    ],
+    [
+     "D3DXVECTOR3&",
+     "vec"
+    ]
+   ]
+  },
+  {
+   "helper": "MoveIntoSkillRange",
+   "after": "if (nDistance > nMobAttackRange || nDX != nTX || nDY != nTY)",
+   "flow": true,
+   "params": [
+    [
+     "int&",
+     "bMoving"
+    ],
+    [
+     "char&",
+     "cSkillIndex"
+    ],
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "int&",
+     "nDX"
+    ],
+    [
+     "int&",
+     "nDY"
+    ],
+    [
+     "int&",
+     "nDistance"
+    ],
+    [
+     "int&",
+     "nMobAttackRange"
+    ],
+    [
+     "int&",
+     "nSpecForce"
+    ],
+    [
+     "int&",
+     "nTX"
+    ],
+    [
+     "int&",
+     "nTY"
+    ],
+    [
+     "TMHuman*&",
+     "pOver"
+    ],
+    [
+     "D3DXVECTOR3&",
+     "vec"
+    ]
+   ],
+   "nth": 1
+  },
+  {
+   "helper": "AddPartySkillTargets",
+   "after": "if (cSkillIndex == 16 || cSkillIndex == 12 || cSkillIndex == 28)",
+   "params": [
+    [
+     "int&",
+     "nDX"
+    ],
+    [
+     "int&",
+     "nDY"
+    ],
+    [
+     "int&",
+     "nTargetIndex"
+    ],
+    [
+     "TMHuman*&",
+     "pOver"
+    ],
+    [
+     "TMHuman*&",
+     "pTarget"
+    ],
+    [
+     "MSG_Attack&",
+     "stAttack"
+    ]
+   ]
+  }
+ ]
+}

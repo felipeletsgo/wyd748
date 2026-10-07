@@ -2,34 +2,31 @@
 
 #include "singleton.h"
 
-// Fachada de entrada da macro de agua. Traduz eventos recebidos da cena em
-// chamadas para o controlador correto e conserva o ultimo nivel reconhecido.
+// Entry facade of the water macro. Translates events received from the scene
+// into calls to the right controller and keeps the last recognized level.
 class MacroMsg : public Singleton<MacroMsg>
 {
 protected:
 	friend class Singleton<MacroMsg>;
 
-	// Singleton controla a instancia. A classe nao e copiavel para que o nivel
-	// reconhecido tenha uma unica fonte dentro do client.
+	// Singleton controls the instance. The class is not copyable so that the
+	// recognized level has a single source in the client.
 	MacroMsg() {}
 	virtual ~MacroMsg() {}
 	MacroMsg(const MacroMsg&) = delete;
 	MacroMsg& operator=(const MacroMsg&) = delete;
 
 public:
-	// posX/posY sao coordenadas do mundo e Param e o ID do item. Os argumentos
-	// sao valores simples e nao transferem ownership.
+	// posX/posY are world coordinates and Param is the item ID. The arguments
+	// are plain values and transfer no ownership.
 	void onEvent(const int posX, const int posY, const int Param);
 
-	// Declaracao legada ainda sem implementacao. Nao deve ser chamada ate que
-	// seu contrato e lifecycle sejam documentados.
+	// Legacy declaration still without an implementation. Do not call it until
+	// its contract and lifecycle are documented.
 	void onPutItem(const int posX, const int posY, const int Level);
 
-	// Atualiza WaterLevel pelo ID inicial da familia de pergaminhos. Um ID
-	// desconhecido restaura o estado invalido (-1).
-	void onItemUsed(const int WaterScrollId);
 
-	// -1 significa que nenhuma familia valida foi reconhecida. A instancia
-	// Singleton e proprietaria deste estado.
+	// -1 means that no valid family was recognized. The Singleton instance
+	// owns this state.
 	int WaterLevel = -1;
 };

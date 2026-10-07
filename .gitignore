@@ -2,6 +2,7 @@
 /references/
 
 # Build outputs; tracked product assets are not disposable.
+/build/
 /tmproject/build/
 /tmproject/TMProject748/build/
 /wydgo748/bin/

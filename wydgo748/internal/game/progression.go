@@ -2,9 +2,9 @@ package game
 
 import "wydgo/internal/model"
 
-// g_pNextLevel completa do Basedef.cpp/WYD 7.48. Os valores sao EXP acumulada:
-// level N ocupa [table[N], table[N+1]). Sao 401 marcos, do level 0 ao 400.
-// Arch/Celestial usam g_pNextLevel_2 e entram como uma progressao separada.
+// Complete Basedef.cpp/WYD 7.48 g_pNextLevel cumulative EXP table.
+// Level N occupies [table[N], table[N+1]); 401 milestones cover 0..400.
+// Arch/Celestial have separate progression policies.
 var mortalNextLevel = [...]uint32{
 	0, 500, 1124, 1826, 2610, 3480, 4440, 5494, 6646, 7900,
 	9260, 10893, 12817, 15050, 17610, 20515, 23783, 27432, 31480, 35945,
@@ -49,9 +49,8 @@ var mortalNextLevel = [...]uint32{
 	4100000000,
 }
 
-// O protocolo armazena level em base zero: 0 aparece como nivel 1 no client e
-// 399 aparece como nivel 400. O marco [400] e o teto de EXP do nivel 400, nao
-// um nivel interno adicional.
+// The wire level is zero-based: 0 displays as level 1 and 399 as level 400.
+// Milestone [400] is the level-400 EXP cap, not another internal level.
 const maxMortalLevel uint32 = 399
 
 const maxCelestialLevel uint32 = 199
@@ -93,17 +92,16 @@ func syncProgression(ch *model.Char) {
 	syncSkillPoints(ch)
 }
 
-// Travas de nivel do Arch, em nivel INTERNO. O nativo compara `>= 354` no
-// ganho de EXP (GetFunc.cpp:1565) e `== 354` no level-up (CMob.cpp:2079).
-// Exibidos, sao os niveis 355 e 370.
+// Arch locks use internal levels. Historical GetFunc.cpp:1565 compares >= 354
+// for EXP gain and CMob.cpp:2079 compares == 354 for level-up.
+// The displayed levels are 355 and 370.
 const (
 	archLockLevel355 = uint32(354)
 	archLockLevel370 = uint32(369)
 )
 
-// archExperienceLocked diz se o Arch bateu numa trava ainda nao destravada na
-// Lindy. Enquanto travado ele NAO recebe EXP -- nao e um teto que ignora o
-// excedente, o ganho e barrado por inteiro.
+// archExperienceLocked checks locks not yet released by Lindy.
+// Locked characters receive no EXP; the entire grant is rejected.
 func archExperienceLocked(ch *model.Char) bool {
 	if ch == nil || ch.Score == nil || !isArch(ch) {
 		return false
@@ -115,9 +113,8 @@ func archExperienceLocked(ch *model.Char) bool {
 	return level >= archLockLevel355 && !ch.ArchLevel355
 }
 
-// As travas 40/90 fazem parte do contrato de progressao validado no runtime 7.48.
-// O ganho de EXP deve respeita-las para que composicoes/destraves tenham efeito
-// real. A Sub nao possui essas duas travas.
+// The 40/90 locks belong to the validated 7.48 progression contract.
+// EXP grants must honor unlocks; Sub characters do not have these two locks.
 func celestialExperienceLocked(ch *model.Char) bool {
 	if ch == nil || ch.Score == nil || !advancedEvolution(ch, "celestial") {
 		return false
@@ -140,9 +137,8 @@ func canReceiveMortalExperience(ch *model.Char) bool {
 		ch.Exp < table[len(table)-1]
 }
 
-// progressionExperienceCap impede que uma recompensa grande atravesse uma
-// trava em um unico grant. Consultar a flag apenas antes do ganho permite, por
-// exemplo, saltar do Celestial 39 direto para 91 com uma caixa de EXP.
+// progressionExperienceCap prevents a large reward from crossing a lock.
+// Checking only before the grant would let a chest skip Celestial 39 to 91.
 func progressionExperienceCap(ch *model.Char) uint32 {
 	table := progressionTable(ch)
 	cap := table[len(table)-1]
@@ -165,15 +161,13 @@ func progressionExperienceCap(ch *model.Char) uint32 {
 	return cap
 }
 
-// Esta e a linha Arch da tabela expbase do WYD 7.48. O divisor e armazenado em
-// centesimos: 200 concede 50%, 12000 concede 1/120. Ela cobre
-// as faixas exibidas 256-280, 281-300, 301-320, 321-340, 341-350, 351-360,
-// 361-370, 371-380, 381-390, 391-395, 396-398 e 399-400.
+// Arch's 7.48 expbase divisors use hundredths: 200 grants 50%, 12000 grants
+// 1/120. Displayed bands: 256-280, 281-300, 301-320, 321-340, 341-350,
+// 351-360, 361-370, 371-380, 381-390, 391-395, 396-398 and 399-400.
 var native748ArchEXPDivisors = [...]uint32{200, 400, 800, 1200, 1600, 2000, 2400, 2800, 7600, 9000, 10000, 12000}
 
-// native748HighLevelEXPDivisor seleciona a coluna de expbase validada no 7.48.
-// GetExpApply. level e o nivel exibido (o WYD 7.48 incrementa o nivel interno antes
-// destas comparacoes).
+// native748HighLevelEXPDivisor selects the validated 7.48 GetExpApply column.
+// level is displayed: 7.48 increments the internal level before comparison.
 func native748HighLevelEXPDivisor(level uint32, divisors [12]uint32) uint32 {
 	switch {
 	case level > 398:
@@ -256,15 +250,14 @@ func native748CelestialEXPDivisor(level uint32) uint32 {
 	}
 }
 
-// combatExperienceByEvolution porta as curvas Arch/Celestial de GetExpApply do
-// WYD 7.48. A reducao vale somente para EXP de combate; Mortal e recompensas fixas
-// de quest/item continuam integrais. O calculo usa uint64 para nao estourar
-// reward*100.
+// combatExperienceByEvolution applies the 7.48 Arch/Celestial GetExpApply curves
+// only to combat EXP. Mortal and fixed quest/item rewards remain unscaled.
+// uint64 arithmetic prevents reward*100 overflow.
 func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
 	if ch == nil || ch.Score == nil || reward == 0 {
 		return reward
 	}
-	level := ch.Score.Level + 1 // nivel exibido usado pelo WYD 7.48
+	level := ch.Score.Level + 1 // Displayed level used by WYD 7.48.
 	divisor := uint32(100)
 	switch {
 	case isCelestialEvolution(ch):
@@ -279,9 +272,8 @@ func combatExperienceByEvolution(ch *model.Char, reward uint32) uint32 {
 	return uint32(uint64(reward) * 100 / uint64(divisor))
 }
 
-// currentExperienceInterval devolve o tamanho do nivel interno atual. As
-// tabelas guardam EXP acumulada, portanto o intervalo e a diferenca entre os
-// dois marcos adjacentes, inclusive no ultimo nivel valido.
+// currentExperienceInterval returns the current internal level's EXP span.
+// Cumulative tables use adjacent milestones, including the last valid level.
 func currentExperienceInterval(ch *model.Char) uint32 {
 	if ch == nil || ch.Score == nil {
 		return 0
@@ -343,8 +335,7 @@ func saturatingAddU32(left, right uint32) uint32 {
 	return result
 }
 
-// addHeldExperienceDeathDebt acrescenta a penalidade sem permitir que Hold
-// ultrapasse 10% do intervalo do nivel atual.
+// addHeldExperienceDeathDebt caps Hold at 10% of the current level's EXP span.
 func addHeldExperienceDeathDebt(ch *model.Char) {
 	if ch == nil {
 		return
@@ -353,8 +344,7 @@ func addHeldExperienceDeathDebt(ch *model.Char) {
 	ch.Hold = minU32(limit, saturatingAddU32(ch.Hold, heldExperienceDeathDebt(ch)))
 }
 
-// heldExperiencePenaltyActive representa o limiar nativo que reduz apenas o
-// MaxHP efetivo quando a divida alcanca 80% do limite do nivel.
+// heldExperiencePenaltyActive reduces effective MaxHP at 80% of the debt cap.
 func heldExperiencePenaltyActive(ch *model.Char) bool {
 	if ch == nil {
 		return false
@@ -363,8 +353,7 @@ func heldExperiencePenaltyActive(ch *model.Char) bool {
 	return limit > 0 && uint64(ch.Hold)*5 >= uint64(limit)*4
 }
 
-// grantCombatExp paga Hold primeiro. Recompensas de quest/item continuam
-// chamando grantExp diretamente e, portanto, nunca amortizam esta divida.
+// grantCombatExp repays Hold first. Direct quest/item grants do not repay debt.
 func grantCombatExp(ch *model.Char, reward uint32) (int, uint32) {
 	if ch == nil || reward == 0 {
 		return 0, 0
@@ -378,8 +367,9 @@ func grantCombatExp(ch *model.Char, reward uint32) (int, uint32) {
 	return grantExp(ch, reward)
 }
 
-// grantExp adiciona EXP ate o ultimo marco da evolucao e processa level-ups. Os
-// retornos informam niveis ganhos e a EXP realmente aplicada.
+// grantExp adds EXP up to the evolution cap and awards five CP per actual
+// level-up, capped at +75. Both changes belong to the same durable reward.
+// Results report gained levels and applied EXP.
 func grantExp(ch *model.Char, reward uint32) (int, uint32) {
 	ensureScore(ch)
 	table := progressionTable(ch)
@@ -401,6 +391,7 @@ func grantExp(ch *model.Char, reward uint32) (int, uint32) {
 			break
 		}
 		ch.Score.Level++
+		ch.CP = model.ClampCP(int(ch.CP) + 5)
 		gained++
 	}
 	syncProgression(ch)

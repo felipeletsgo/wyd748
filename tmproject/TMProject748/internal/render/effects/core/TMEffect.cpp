@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TMEffect.h"
+#include "PerfTrace.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 
@@ -10,11 +11,13 @@ TMEffect::TMEffect() : TreeNode(0),
 	m_efAlphaType = EEFFECT_ALPHATYPE::EF_DEFAULT;
 	m_bVisible = 1;
 	m_bShow = 1;
+	perf_trace::OnEffectCreated();
 	m_fRadius = 1.0f;
 }
 
 TMEffect::~TMEffect()
 {
+	perf_trace::OnEffectDestroyed();
 }
 
 int TMEffect::Render()

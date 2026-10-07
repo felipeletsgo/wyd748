@@ -1,0 +1,28 @@
+{
+ "source": "tmproject/TMProject748/internal/game/entities/TMHumanEffects.cpp",
+ "header": "tmproject/TMProject748/internal/game/entities/TMHuman.h",
+ "class": "TMHuman",
+ "method": "void TMHuman::FrameMoveEffect(unsigned int dwServerTime)",
+ "extractions": [
+  {
+   "helper": "UpdateHiddenEffects",
+   "after": "if (m_cHide || m_cShadow == 1)",
+   "flow": true,
+   "params": []
+  },
+  {
+   "helper": "PlayEffectEvent",
+   "after": "if (m_stEffectEvent.dwTime && dwServerTime > m_stEffectEvent.dwTime)",
+   "params": [
+    [
+     "unsigned int&",
+     "dwServerTime"
+    ],
+    [
+     "TMFieldScene*&",
+     "pScene"
+    ]
+   ]
+  }
+ ]
+}

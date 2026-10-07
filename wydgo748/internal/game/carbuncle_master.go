@@ -71,24 +71,20 @@ func (w *World) handleCarbMasterNPC(s *net.Session, p *Player, m *Mob) bool {
 		return true
 	}
 
-	snapshot := cloneCharacterState(p.Char)
+	images := criticalPreimages(p)
 	if !w.applyCarbMasterBuffs(p.Char) {
 		s.Send(wire.MessagePanel("The beginner blessing could not be applied."))
 		return true
 	}
 	w.recalcPlayer(p.Char)
-	if err := w.saveAccountAndCharStateResult(p); err != nil {
-		*p.Char = snapshot
-		w.recalcPlayer(p.Char)
-		log.Printf("[#%d] salvar buffs de %q: %v", s.ID, m.Def.Name, err)
-		s.Send(wire.MessagePanel("Save failed. The blessing was not applied."))
-		return true
-	}
-
-	w.publishPlayerAffects(p)
-	w.syncPlayerVitals(p)
-	w.updatePartyMember(p)
-	s.Send(wire.MessagePanel("The beginner blessing has been applied."))
-	log.Printf("[#%d] %s aplicou buffs de iniciante em %q", s.ID, m.Def.Name, p.Char.Name)
+	w.commitPlayerMutation(p, images, "beginner blessing", "Save failed. The blessing was not applied.", true, func() {
+		w.publishPlayerAffects(p)
+		w.syncPlayerVitals(p)
+		w.updatePartyMember(p)
+		if !s.IsClosed() {
+			s.Send(wire.MessagePanel("The beginner blessing has been applied."))
+		}
+		log.Printf("[#%d] %s applied beginner buffs to %q", s.ID, m.Def.Name, p.Char.Name)
+	})
 	return true
 }

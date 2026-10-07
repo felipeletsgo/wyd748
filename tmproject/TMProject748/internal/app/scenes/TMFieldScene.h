@@ -1,11 +1,12 @@
 #pragma once
+#include "ExtractedFlow.h"
 
 #include "Basedef.h"
 #include "TMScene.h"
 #include "../../wire/QuizEventPacket.h"
+#include "../../game/entities/BerielAuraPolicy.h"
+#include "../../ui/NativeScoreHud.h"
 #include "TMHuman.h"
-#include "MrItemMix.h"
-#include "Mission.h"
 #include "Structures.h"
 // Native WYD 7.48 FUN_00435b13 binds twelve FieldScene2 tooltip rows (0..11).
 // Later TMProject controls 800/801 are outside this single-version client ABI.
@@ -15,7 +16,6 @@ class SGridControlItem;
 // here, which avoids pulling the full control implementation into every scene user.
 enum class TMEGRIDTYPE;
 class SButton;
-class SButtonBox;
 class SPanel;
 class SProgressBar;
 class SGridControl;
@@ -24,6 +24,7 @@ class SReelPanel;
 class TMEffectMesh;
 class TMEffectBillBoard;
 class TMEffectBillBoard2;
+class CSoundManager;
 class TMRain;
 class TMSnow;
 
@@ -46,31 +47,24 @@ public:
 	void MouseMove(int nX, int nY);
 	int SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget);
 	int AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime, int bMoving, TMHuman* pTarget);
+	// Mana cost of one skill for the current character (0 for another class).
+	long long SkillManaCost(unsigned char cSkillIndex);
+	// Shows the native "not enough MP" line; throttled while CC is active.
+	void ReportInsufficientMana(unsigned int dwServerTime);
 	int GetSkillDelay(int skillIndex) const;
 	bool IsSkillCoolingDown(int skillIndex, unsigned int now) const;
 	void UpdateSkillCooldownUI(unsigned int now);
 	int MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime);
 	int CheckMerchant(TMHuman* pOver);
-	int MouseLButtonDown(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime);
 	int MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime);
-	int MobMove(D3DXVECTOR3 vec, unsigned int dwServerTime);
-	int MobMove2(TMVector2 vec, unsigned int dwServerTime);
 	void DropItem(unsigned int dwServerTime);
 	int TimeDelay(unsigned int dwServerTime);
 	int GetItem(TMItem* pItem);
-	void FrameMove_KhepraDieEffect(unsigned int dwServerTime);
 	void SetVisibleInventory();
 	void SetVisibleCharInfo();
 	void SetVisibleShop(int bShow);
 	void SetVisibleCargo(int bShow);
-	void SetVisibleCargo1(int bShow);
 	void SetVisibleTrade(int bShow);
-	void ClearCombine();
-	void ClearCombine2();
-	void ClearCombine3();
-	void ClearCombine4();
-	void ClearCombine5();
-	void ClearCombine6();
 	void DoCombine();
 	void DoCombine2();
 	void DoCombine3();
@@ -104,9 +98,6 @@ public:
 	void SetShortSkill(int nIndex, SGridControlItem* pGridItem);
 	void SetSkillColor(TMHuman* pAttacker, char cSkillIndex);
 	void OnESC();
-	void FindAuto();
-	int FindProcess(unsigned int processID);
-	void SetAutoOption(int nIndex, char* szString);
 	void SetAutoSkillNum(int nCount);
 	void SetCameraView();
 	void InitCameraView();
@@ -124,8 +115,6 @@ public:
 	int GetWeaponDamage();
 	void SetMyHumanMagic();
 	void SetWeather(int nWeather);
-	void SetVisibleKhepraPortal(bool bVisible);
-	void InitBoard();
 	int LoadMsgText(SListBox* pListBox, char* szFileName);
 	void SetPosPKRun();
 	char UseHPotion();
@@ -135,14 +124,12 @@ public:
 	char FeedMount();
 	void SetRunMode();
 	void UseTicket(int nCellX, int nCellY);
-	char UseQuickSloat(char key);
 	void InitializeFireWorkControls();
 	void InitializeQuizEventControls();
 	int OnPacketQuizEvent(MSG_STANDARD* packet);
 	void UpdateFireWorkButton(int nIndex);
 	void ClearFireWork();
 	void UseFireWork();
-	void DrawCustomFireWork(int nIndex);
 	void TotoSelect();
 	void TotoBuy();
 	void TotoClose();
@@ -154,10 +141,7 @@ public:
 	void UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, int nCellX, int nCellY);
 	bool SendCapsuleItem();
 	void SetQuestStatus(bool bStart);
-	void UpdateQuestTime();
-	void SetButtonTextXY(SButton* pButton);
 	int OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent, unsigned int dwServerTime);
-	int OnKeyDebug(char iCharCode, int lParam);
 	int OnKeySkill(char iCharCode, int lParam);
 	int OnKeyDash(char iCharCode, int lParam);
 	int OnKeyPlus(char iCharCode, int lParam);
@@ -173,7 +157,6 @@ public:
 	int OnKeyPPotion(char iCharCode, int lParam);
 	int OnKeySkillPage(char iCharCode, int lParam);
 	int OnKeyQuestLog(char iCharCode, int lParam);
-	int OnKeyReverse(char iCharCode, int lParam);
 	int OnKeyAutoRun(char iCharCode, int lParam);
 	int OnKeyGuildOnOff(char iCharCode, int lParam);
 	int OnKeyShortSkill(char iCharCode, int lParam);
@@ -189,14 +172,12 @@ public:
 	int OnKeyTotoEnter(char iCharCode, int lParam);
 	int OnPacketMessageChat(MSG_MessageChat* pStd);
 	int OnPacketMessageChat_Index(MSG_MessageChat* pStd);
-	int OnPacketMessageChat_Param(MSG_STANDARD* pStd);
 	int OnPacketMessageWhisper(MSG_MessageWhisper* pMsg);
 	int OnPacketLongMessagePanel(MSG_LongMessagePanel* pMsg);
 	int OnPacketReqSummon(MSG_ReqSummon* pStd);
 	int OnPacketCancelSummon(MSG_STANDARD* pStd);
 	int OnPacketAction(MSG_STANDARD* pStd);
 	int OnPacketSoundEffect(MSG_STANDARDPARM* pStd);
-	int OnPacketCreateMob(MSG_STANDARD* pStd);
 	// The 7.48 FieldScene resource has a smaller control set than the source
 	// tree's newer field scene.  This path keeps world/character creation
 	// independent from optional HUD controls until those controls are mapped.
@@ -218,7 +199,6 @@ public:
 	int OnPacketAutoTrade(MSG_STANDARD* pStd);
 	int OnPacketSwapItem(MSG_STANDARD* pStd);
 	int OnPacketShopList(MSG_STANDARD* pStd);
-	int OnPacketRMBShopList(MSG_RMBShopList* pMsg);
 	int OnPacketBuy(MSG_STANDARD* pStd);
 	int OnPacketSell(MSG_STANDARD* pStd);
 	int OnPacketCNFMobKill(MSG_CNFMobKill* pStd);
@@ -243,9 +223,6 @@ public:
 	int OnPacketRESULTGAMBLE(MSG_ResultGamble* pStd);
 	int OnPacketREQArray(MSG_STANDARD* pStd);
 	int OnPacketAttack(MSG_STANDARD* pStd);
-	int OnPacketNuke(MSG_STANDARD* pStd);
-	int OnPacketRandomQuiz(MSG_RandomQuiz* pStd);
-	int OnPacketAutoKick(MSG_STANDARD* pStd);
 	int OnPacketItemPrice(MSG_STANDARDPARM2* pStd);
 	int OnPacketCapsuleInfo(MSG_CAPSULEINFO* pStd);
 	int OnPacketRunQuest12Start(MSG_STANDARDPARM* pStd);
@@ -267,36 +244,60 @@ public:
 	void AirMove_End(AirMoveEndReason reason = AirMoveEndReason::Arrived);
 	int AirMove_ShowUI(bool bShow);
 
-	void DropListUpdate();
-	void UpdateGridDropList(int page);
 	int OnPacketInforPlay(MSG_SendInfoPlay* pStd);
 	int OnPacketBattle(MSG_TowerWar* pStd);
 	int OnPacketMacroWater(stWaterScrollMacro* pStd);
 	int OnPacketSendExpMsg(MSG_Exp_MsgPanel* pStd);
-	int OnPacketNewCashRev(PacketRevDonate* P);
-	int OnPacketNewCashRev2(PacketRevDonate2* pStd);
-	void  UpdateNewStore(int idwControlID);
-	void BuyItemNewStore(int idwControlID);
 
 	
 	int OnPacketNewBuyCash(MSG_STANDARD* pStd);
 
 
-	void ClearInventorySelectedItem();
 
 	int Affect_Main(unsigned int dwServerTime);
 	void UpdateCompatObservedAffects();
-	int StrByteCheck(char* szString);
 	unsigned int GetLascDescParamId();
-	void SetVisibleMixPanel(int bShow);
-	void ClearMixPannel();
-	void SetVisibleMissionPanel(int bShow);
-	void ClearMissionPannel();
 
 	void GameAuto();
 	bool OfferRespawnPrompt(bool playerAction);
 
 private:
+	// Helpers extracted from TMFieldScene::FrameMove.
+	// Helpers extracted from TMFieldScene::AutoSkillUse.
+	ExtractedFlow SendAreaAutoSkillRequest(char& cSkillIndex, unsigned int& dwServerTime, int& nSpecForce, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult);
+	ExtractedFlow ApplyAutoSkillPkRules(char& cSkillIndex, TMHuman*& pOver, int& extractedResult);
+	void AddAutoPartySkillTargets(int& nDX, int& nDY, int& nTargetIndex, TMHuman*& pOver, TMHuman*& pTarget, MSG_Attack& stAttack);
+	// Helpers extracted from TMFieldScene::SkillUse.
+	ExtractedFlow SendAreaSkillRequest(int& bMoving, char& cSkillIndex, unsigned int& dwServerTime, int& nCannonIndex, int& nSpecForce, STRUCT_MOB*& pMobData, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult);
+	ExtractedFlow MoveIntoSkillRange(int& bMoving, char& cSkillIndex, unsigned int& dwServerTime, int& nDX, int& nDY, int& nDistance, int& nMobAttackRange, int& nSpecForce, int& nTX, int& nTY, TMHuman*& pOver, D3DXVECTOR3& vec, int& extractedResult);
+	void AddPartySkillTargets(int& nDX, int& nDY, int& nTargetIndex, TMHuman*& pOver, TMHuman*& pTarget, MSG_Attack& stAttack);
+	// Helpers extracted from TMFieldScene::InitializeScene.
+	// Helpers extracted from TMFieldScene::OnControlEvent.
+	ExtractedFlow OnCompatFieldControl(unsigned int& dwServerTime, unsigned int& idwControlID, int& extractedResult);
+	ExtractedFlow OnHellStoreSelect(unsigned int& idwControlID, int& extractedResult);
+	ExtractedFlow OnGambleButton(unsigned int& idwControlID, int& extractedResult);
+	ExtractedFlow OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_MOB*& pMobData, int& extractedResult);
+	ExtractedFlow OnMoneyButton(int& extractedResult);
+	ExtractedFlow OnPgtPartyButton(int& extractedResult);
+	ExtractedFlow OnPgtTradeButton(int& extractedResult);
+	ExtractedFlow OnPgtGuildButton(int& extractedResult);
+	ExtractedFlow OnPgtGuildCommonButton(int& extractedResult);
+	int OpenNativeServerPanel();
+	ExtractedFlow OnPgtGuildChiefButton(int& extractedResult);
+	ExtractedFlow OnPgtChallengeButton(unsigned int& idwControlID, int& extractedResult);
+	ExtractedFlow OnSpecialMastery1Button(STRUCT_MOB*& pMobData, int& extractedResult);
+	ExtractedFlow OnSpecialMastery2Button(STRUCT_MOB*& pMobData, int& extractedResult);
+	ExtractedFlow OnSpecialMastery3Button(STRUCT_MOB*& pMobData, int& extractedResult);
+	ExtractedFlow OnSpecialMastery4Button(STRUCT_MOB*& pMobData, int& extractedResult);
+	ExtractedFlow OnPartyListSelect(int& cktrans, unsigned int& dwServerTime, unsigned int& idwEvent, int& extractedResult);
+	ExtractedFlow OnTradeMyCheck(int& extractedResult);
+	ExtractedFlow OnAutoTradeRun(int& extractedResult);
+	ExtractedFlow OnPortalButton(int& extractedResult);
+	// Helpers extracted from TMFieldScene::OnPacketAttack.
+	ExtractedFlow ApplyTargetedAttackHits(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, TMVector2& vecAttackerPos, int& nClass, unsigned int& dwDelay, int& extractedResult);
+	ExtractedFlow ApplyGroundAttackHits(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, bool& bomb, TMVector3& vecStart, TMVector3& vecTarget, unsigned int& dwDelay, int& extractedResult);
+	// Helpers extracted from TMFieldScene::OnPacketAttack.
+	ExtractedFlow DispatchAttackSkillVisuals(MSG_Attack*& pAttack, const int& targetCount, TMHuman*& pAttacker, TMHuman*& pTarget, float& fHeight, int& extractedResult);
 	// Builds the world and binds the native 7.48 FieldScene2 resource without
 	// fabricating serialized control IDs; required runtime controls are explicit.
 	int InitializeCompatFieldScene();
@@ -308,6 +309,7 @@ private:
 	// newer source uses different control IDs, so this adapter must stay on the
 	// resource boundary instead of changing the packet or STRUCT_MOB ABI.
 	void UpdateCompatScoreUI();
+	void UpdateScoreButtonRepeat(unsigned int dwServerTime);
 	// Projects LearnedSkill[0] into the 24 native 7.48 skill-panel grids.
 	// These controls are resource-owned; only their SGridControlItem children
 	// are created and removed here.
@@ -325,6 +327,9 @@ private:
 	// Reapplies the native FUN_00435b13 runtime composition for the three player
 	// feature panels, whose FieldScene2 roots all serialize at the same position.
 	void PositionCompatFeaturePanels();
+	// FUN_00435b13 (UI mode 2) initial placement of the remaining modal and
+	// feature roots that FieldScene2.bin serializes at 800x600 coordinates.
+	void PositionCompatNativeRoots();
 	// Reapplies the native centered ItemMix + right-hand Inventory composition
 	// after another feature has moved the shared Inventory root.
 	void PositionCompatNativeMixPanels();
@@ -419,7 +424,6 @@ public:
 	unsigned int m_dwFieldTime;
 	// True when the deployed 7.48 FieldScene2 resource does not expose the
 	// newer HUD IDs expected by the imported source implementation.
-	bool m_bCompatFieldScene;
 	int m_nMySanc;
 	int m_bMountDead;
 	unsigned short m_nReqHP;
@@ -487,9 +491,13 @@ public:
 	short m_sDay;
 	unsigned int m_dwLastGuildNameCheckTime;
 	unsigned int m_dwOldAttackTime;
+	unsigned int m_dwLastManaWarning = 0;
+	bool m_bManaWarned = false;
 	unsigned int m_dwChatTime;
 	unsigned int m_dwWeatherTime;
 	unsigned int m_dwKeyTime;
+	// FUN_004776c3 hold-to-repeat state for the eight Character '+' buttons.
+	native_score_hud::ButtonRepeat m_scoreButtonRepeat;
 	unsigned int m_dwPGTTime;
 	unsigned int m_dwGetItemTime;
 	unsigned int m_dwUseItemTime;
@@ -590,7 +598,6 @@ public:
 	SText* m_pCIFakeExp;
 	SPanel* m_pExpLamp[3];
 	SPanel* m_pMessagePanels;
-	SProgressBar* m_pExpProgress[10];
 	SGridControl* m_pSkillSecGrid[24];
 	SGridControl* m_pSkillSecGrid2[12];
 	SPanel* m_pSLPanel1;
@@ -668,8 +675,6 @@ public:
 	SPanel* m_pInvenPanel;
 	SPanel* m_pAutoTrade;
 	SGridControl* m_pGridAutoTrade[12];
-	CItemMix m_ItemMixClass;
-	CMission m_MissionClass;
 	SPanel* m_pItemMixPanel;
 	SGridControl* m_pGridItemMix[8];
 	SPanel* m_pItemMixPanel2;
@@ -755,7 +760,6 @@ public:
 	SEditableText* m_pGMsgEditRelpy;
 	SEditableText* m_pGMsgEditTitle;
 	SText* m_pGMsgTitile;
-	SButtonBox* m_pButtonBox;
 	int m_nGMsgContentIndex;
 	int m_nBoardNumber;
 	unsigned short m_usBoardGuild;
@@ -980,12 +984,12 @@ public:
 	int m_bSkillBeltSwitch;
 	bool m_bTempCastlewar;
 	int m_bShowBoss;
+	// Server weather and the BerialGuard darkness override (BerielAuraPolicy.h).
+	beriel_aura::WeatherOverride m_berielAura;
 	SButton* m_pDailyQuestButton;
 	SPanel* m_pGambleStore1;
 	char m_stPass[16];
 	SGridControl* m_pitemPassGrid;
-	SGridControl* m_pQuick_Sloat[5];
-	SButton* m_pQuick_SloatQ[16];
 	unsigned short m_sShopTarget;
 
 	//Arena Real

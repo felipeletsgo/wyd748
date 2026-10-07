@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "RenderDevice.h"
+#include "ClientSettings.h"
 // TMScene split by responsibility; the scene lifecycle and dispatch stay in TMScene.cpp.
 #include "SControlContainer.h"
 #include "SGrid.h"
@@ -103,9 +105,12 @@ int TMScene::GroundNewAttach(EDirection eDir)
 			memcpy(heightMapData[i], m_HeightMapData[i], 128);
 	}
 
-	auto pGround = new TMGround();
+	TMGround* cachedGround = nullptr;
+	TMObjectContainer* cachedObjects = nullptr;
+	const bool fromCache = TakeCachedField(x, y, cachedGround, cachedObjects);
+	auto pGround = fromCache ? cachedGround : new TMGround();
 
-	if (!pGround->LoadTileMap(fileNameTrn))
+	if (!fromCache && !pGround->LoadTileMap(fileNameTrn))
 	{
 		LOG_WRITELOG("TerrainFile Not Found or Invalid : %s\r\n", fileNameTrn);
 		if (!m_bCriticalError)
@@ -120,31 +125,15 @@ int TMScene::GroundNewAttach(EDirection eDir)
 		if (!m_bCriticalError)
 			LogMsgCriticalError(10, 0, 0, 0, 0);
 		m_bCriticalError = 1;
+		SAFE_DELETE(cachedObjects);
 		delete pGround;
 		return 0;
 	}
 
-	if (m_pObjectContainerList[gId])
-	{
-		delete m_pObjectContainerList[gId];
-
-		m_pObjectContainerList[gId] = nullptr;
-	}
-
-	if (m_pGroundList[gId])
-	{
-		if (m_pGround->m_pLeftGround == m_pGroundList[gId])
-			m_pGround->m_pLeftGround = nullptr;
-		if (m_pGround->m_pRightGround == m_pGroundList[gId])
-			m_pGround->m_pRightGround = nullptr;
-		if (m_pGround->m_pUpGround == m_pGroundList[gId])
-			m_pGround->m_pUpGround = nullptr;
-		if (m_pGround->m_pDownGround == m_pGroundList[gId])
-			m_pGround->m_pDownGround = nullptr;
-		delete m_pGroundList[gId];
-
-		m_pGroundList[gId] = nullptr;
-	}
+	// The replaced neighbor goes to the field cache (or is deleted).
+	ReleaseFieldSlot(gId);
+	if (fromCache)
+		RenderDevice::m_bDungeon = pGround->m_bDungeon; // LoadTileMap side effect
 
 	m_pGroundList[gId] = pGround;
 
@@ -170,6 +159,7 @@ int TMScene::GroundNewAttach(EDirection eDir)
 	if (!m_pGroundList[m_nCurrentGroundIndex] ||
 		!m_pGroundList[m_nCurrentGroundIndex]->Attach(m_pGroundList[gId]))
 	{
+		SAFE_DELETE(cachedObjects); // objects go before their ground
 		SAFE_DELETE(m_pGroundList[gId]);
 		LOG_WRITELOG("TerrainFile Attach Failed : %s\r\n", fileNameTrn);
 		if (!m_bCriticalError)
@@ -178,9 +168,9 @@ int TMScene::GroundNewAttach(EDirection eDir)
 		return 0;
 	}
 
-	m_pObjectContainerList[gId] = new TMObjectContainer(m_pGroundList[gId]);
+	m_pObjectContainerList[gId] = fromCache ? cachedObjects : new TMObjectContainer(m_pGroundList[gId]);
 
-	if (!m_pObjectContainerList[gId]->Load(fileNameDat))
+	if (!fromCache && !m_pObjectContainerList[gId]->Load(fileNameDat))
 	{
 		SAFE_DELETE(m_pObjectContainerList[gId]);
 		if (m_pGround->m_pLeftGround == m_pGroundList[gId])
@@ -769,9 +759,12 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 		sprintf(szMapPath, "env\\Field%02d%02d.trn", nZoneX, nZoneY);
 		sprintf(szDataPath, "env\\Field%02d%02d.dat", nZoneX, nZoneY);
 
-		TMGround* pGround = new TMGround();
+		TMGround* cachedGround = nullptr;
+		TMObjectContainer* cachedObjects = nullptr;
+		const bool fromCache = TakeCachedField(nZoneX, nZoneY, cachedGround, cachedObjects);
+		TMGround* pGround = fromCache ? cachedGround : new TMGround();
 
-		if (!pGround->LoadTileMap(szMapPath))
+		if (!fromCache && !pGround->LoadTileMap(szMapPath))
 		{
 			if (!m_bCriticalError)
 				LogMsgCriticalError(10, 0, 0, 0, 0);
@@ -786,6 +779,7 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 			if (!m_bCriticalError)
 				LogMsgCriticalError(10, 0, 0, 0, 0);
 			m_bCriticalError = 1;
+			SAFE_DELETE(cachedObjects);
 			delete pGround;
 			return;
 		}
@@ -794,10 +788,9 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 		m_pGround = pGround;
 
 		for (int i = 0; i < 2; ++i)
-		{
-			SAFE_DELETE(m_pObjectContainerList[i]);
-			SAFE_DELETE(m_pGroundList[i]);
-		}
+			ReleaseFieldSlot(i);
+		if (fromCache)
+			RenderDevice::m_bDungeon = pGround->m_bDungeon; // LoadTileMap side effect
 
 		g_HeightPosX = nZoneX << 7;
 		g_HeightPosY = nZoneY << 7;
@@ -805,9 +798,9 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 		m_nCurrentGroundIndex = 0;
 		m_pGroundList[0] = m_pGround;
 
-		m_pObjectContainerList[0] = new TMObjectContainer(m_pGround);
+		m_pObjectContainerList[0] = fromCache ? cachedObjects : new TMObjectContainer(m_pGround);
 
-		if (!m_pObjectContainerList[0]->Load(szDataPath))
+		if (!fromCache && !m_pObjectContainerList[0]->Load(szDataPath))
 		{
 			LOG_WRITELOG("DataFile Not Found : %s\r\n", szDataPath);
 			if (!m_bCriticalError)
@@ -897,4 +890,81 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 void TMScene::SaveHeightMap(char* szFileName)
 {
 	;
+}
+
+void TMScene::ReleaseFieldSlot(int slot)
+{
+	TMGround* ground = m_pGroundList[slot];
+	TMObjectContainer* objects = m_pObjectContainerList[slot];
+	m_pGroundList[slot] = nullptr;
+	m_pObjectContainerList[slot] = nullptr;
+
+	for (TMGround* other : m_pGroundList)
+	{
+		if (!other || !ground)
+			continue;
+		if (other->m_pLeftGround == ground)
+			other->m_pLeftGround = nullptr;
+		if (other->m_pRightGround == ground)
+			other->m_pRightGround = nullptr;
+		if (other->m_pUpGround == ground)
+			other->m_pUpGround = nullptr;
+		if (other->m_pDownGround == ground)
+			other->m_pDownGround = nullptr;
+	}
+	if (m_pGround == ground)
+		m_pGround = nullptr;
+
+	int capacity = g_ClientSettings.fieldCache;
+	if (capacity > field_cache::kMaxEntries)
+		capacity = field_cache::kMaxEntries;
+	if (!ground || !objects || capacity <= 0)
+	{
+		SAFE_DELETE(objects);
+		SAFE_DELETE(ground);
+		return;
+	}
+
+	// Detached nodes are neither updated nor rendered while cached.
+	objects->Unlink();
+	ground->Unlink();
+	ground->m_pLeftGround = nullptr;
+	ground->m_pRightGround = nullptr;
+	ground->m_pUpGround = nullptr;
+	ground->m_pDownGround = nullptr;
+
+	const int index = field_cache::ChooseSlot(m_fieldCache, capacity);
+	auto& entry = m_fieldCache[index];
+	if (entry.Used())
+	{
+		SAFE_DELETE(entry.objects);
+		SAFE_DELETE(entry.ground);
+	}
+	entry.x = ground->m_vecOffsetIndex.x;
+	entry.y = ground->m_vecOffsetIndex.y;
+	entry.ground = ground;
+	entry.objects = objects;
+	entry.lastUse = ++m_fieldCacheClock;
+}
+
+bool TMScene::TakeCachedField(int x, int y, TMGround*& ground, TMObjectContainer*& objects)
+{
+	const int index = field_cache::Find(m_fieldCache, field_cache::kMaxEntries, x, y);
+	if (index < 0)
+		return false;
+	auto& entry = m_fieldCache[index];
+	ground = entry.ground;
+	objects = entry.objects;
+	entry = {};
+	return true;
+}
+
+void TMScene::ClearFieldCache()
+{
+	for (auto& entry : m_fieldCache)
+	{
+		SAFE_DELETE(entry.objects);
+		SAFE_DELETE(entry.ground);
+		entry = {};
+	}
 }

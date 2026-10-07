@@ -29,8 +29,6 @@
 #include "TMFieldScene.h"
 #include "SControlContainer.h"
 #include "SGrid.h"
-#include "Mission.h"
-#include "MrItemMix.h"
 #include "TMGround.h"
 #include "TMHuman.h"
 

@@ -5,12 +5,17 @@ only a bulk mechanical rewrite of complete definitions and project entries.
 Run from the repository root. Generated reports belong in ignored build output.
 """
 import argparse
+import difflib
 import hashlib
 import json
 import re
 import subprocess
 import xml.etree.ElementTree as ET
 from pathlib import Path
+import importlib.util as _mc_ilu
+_mc_spec = _mc_ilu.spec_from_file_location('method_counts', Path(__file__).with_name('method_counts.py'))
+method_counts = _mc_ilu.module_from_spec(_mc_spec)
+_mc_spec.loader.exec_module(method_counts)
 
 ROOT = Path(__file__).resolve().parents[2]
 ENTITIES = ROOT / 'tmproject/TMProject748/internal/game/entities'
@@ -28,6 +33,31 @@ GROUPS = {
     '': 'TMHuman ~TMHuman InitObject Init FrameMove RestoreDeviceObjects InvalidateDeviceObjects DelayDelete IsMerchant UpdateScore CheckAffect Is2stClass IAmkhepra',
 }
 OWNERS = {name: group for group, names in GROUPS.items() for name in names.split()}
+HEADER = 'tmproject/TMProject748/internal/game/entities/TMHuman.h'
+# Reviewed method extractions (Stage 3): written by --pin from extract-method.py specs.
+EXTRACTIONS = ROOT / '.agents/research/relocations/tmhuman-extractions.json'
+
+
+def load_extractions():
+    if not EXTRACTIONS.is_file():
+        return {'methods': {}, 'helpers': {}, 'declarations': []}
+    return json.loads(EXTRACTIONS.read_text(encoding='utf-8'))
+
+
+# Reviewed changes after the relocation (UI batches): written by --review and
+# applied after the extractions. Each method records the digest it replaces
+# (null when new) and its reviewed digest (null when removed).
+REVIEWS = ROOT / '.agents/research/relocations/tmhuman-reviews.json'
+
+
+def load_reviews():
+    if not REVIEWS.is_file():
+        return {'methods': {}, 'header': {'removed': [], 'added': [], 'removed_declarations': []}}
+    return json.loads(REVIEWS.read_text(encoding='utf-8'))
+
+
+for _signature, _pin in load_extractions()['helpers'].items():
+    OWNERS[re.search(r'TMHuman::(~?\w+)\(', _signature).group(1)] = _pin['owner']
 LITERAL = r'R"(?P<tag>[^ ()\\\t\r\n]{0,16})\([\s\S]*?\)(?P=tag)"|"(?:\\[\s\S]|[^"\\])*"|\'(?:\\[\s\S]|[^\'\\])*\''
 # Explicit, reviewed second-phase edit, never a blanket exclusion from comparison.
 POLICY_SIGNATURE = 'int TMHuman::SetHumanCostume()'
@@ -42,7 +72,7 @@ def masked(source):
 
 def methods(source):
     code = masked(source)
-    pattern = r'^(?:(?:int|void|bool|float)[ \t]+)?TMHuman::(~?\w+)\([^;{}]*\)\s*\{'
+    pattern = r'^(?:(?:int|void|bool|float|ExtractedFlow)[ \t]+)?TMHuman::(~?\w+)\([^;{}]*\)\s*\{'
     result = []
     for match in re.finditer(pattern, code, re.M):
         opening = match.end() - 1
@@ -123,6 +153,7 @@ def includes(body, baseline):
 
 def verify(baseline, complete=False, with_policies=False):
     expected = {m['signature']: digest(m['text']) for m in methods(baseline)}
+    baseline_digests = dict(expected)
     if len(expected) != len(methods(baseline)):
         raise ValueError('Duplicate baseline signature')
     actual = {}
@@ -136,22 +167,66 @@ def verify(baseline, complete=False, with_policies=False):
             entries.append(dict(signature=signature, owner=owner(method), file=path.name,
                                 lines=method['text'].count('\n') + 1,
                                 sha256=actual[signature]))
+    extractions = load_extractions()
     if with_policies:
         policy = read(ENTITIES / 'HumanCostumeRefinement.h')
-        if (expected.get(POLICY_SIGNATURE) != POLICY_BASELINE or
-                actual.get(POLICY_SIGNATURE) != POLICY_METHOD or digest(policy) != POLICY_HEADER):
+        if expected.get(POLICY_SIGNATURE) != POLICY_BASELINE or digest(policy) != POLICY_HEADER:
             raise ValueError('Unreviewed costume-policy edit')
         expected[POLICY_SIGNATURE] = POLICY_METHOD
+        # Stage 3 extractions chain after the review above; the final comparison
+        # still requires every body, helper included, to match its pin exactly.
+        for signature, pin in extractions['methods'].items():
+            if expected.get(signature) != pin['before']:
+                raise ValueError('Unreviewed method extraction: ' + signature)
+            expected[signature] = pin['after']
+        for signature, pin in extractions['helpers'].items():
+            if signature in expected:
+                raise ValueError('Extracted helper shadows a baseline definition: ' + signature)
+            expected[signature] = pin['digest']
+        for signature, change in load_reviews()['methods'].items():
+            if expected.get(signature) != change['before']:
+                raise ValueError('Unreviewed change chain: ' + signature)
+            if change['after'] is None:
+                expected.pop(signature)
+            else:
+                expected[signature] = change['after']
+        if actual.get(POLICY_SIGNATURE) != expected.get(POLICY_SIGNATURE):
+            raise ValueError('Unreviewed costume-policy edit')
     if expected != actual:
         raise ValueError(json.dumps(dict(missing=sorted(expected.keys() - actual.keys()),
             extra=sorted(actual.keys() - expected.keys()),
             changed=[s for s in expected.keys() & actual.keys() if expected[s] != actual[s]]), indent=2))
-    header = 'tmproject/TMProject748/internal/game/entities/TMHuman.h'
-    original_header = subprocess.check_output(['git', 'show', f'{REVISION}:{header}'], cwd=ROOT).decode('utf-8-sig').replace('\r\n', '\n')
-    if original_header != read(ROOT / header):
+    original_header = subprocess.check_output(['git', 'show', f'{REVISION}:{HEADER}'], cwd=ROOT).decode('utf-8-sig').replace('\r\n', '\n')
+    current_header = read(ROOT / HEADER)
+    if with_policies:
+        # Only the pinned private helper declarations may be added to the header.
+        lines = current_header.split('\n')
+        for declaration in extractions['declarations']:
+            matches = [i for i, line in enumerate(lines) if line.strip() == declaration]
+            if not matches:
+                raise ValueError('Pinned helper declaration missing: ' + declaration)
+            del lines[matches[0]]
+        # Reviewed header edits (lines removed from the baseline or added to the
+        # current declaration) are recorded by --review with the method changes.
+        reviewed_header = load_reviews()['header']
+        for line in reviewed_header['added']:
+            if line not in lines:
+                raise ValueError('Reviewed header line missing: ' + line)
+            lines.remove(line)
+        current_header = '\n'.join(lines)
+        original_lines = original_header.split('\n')
+        for line in reviewed_header['removed']:
+            if line not in original_lines:
+                raise ValueError('Reviewed header removal is not in the baseline: ' + line)
+            original_lines.remove(line)
+        original_header = '\n'.join(original_lines)
+    if original_header != current_header:
         raise ValueError('TMHuman class declaration changed')
     if complete:
-        if digest(outside_methods(baseline)) != digest(outside_methods(read(ENTITIES / 'TMHuman.cpp'))):
+        static_before = digest(outside_methods(baseline))
+        static_after = digest(outside_methods(read(ENTITIES / 'TMHuman.cpp')))
+        reviewed_static = load_reviews().get('static_data') if with_policies else None
+        if static_before != static_after and reviewed_static != {'before': static_before, 'after': static_after}:
             raise ValueError('Core static data or namespace-scope code changed')
         project = ROOT / 'tmproject/TMProject748/TMProject748.vcxproj'
         registrations = []
@@ -171,8 +246,13 @@ def verify(baseline, complete=False, with_policies=False):
             if entry['file'] != f"TMHuman{entry['owner']}.cpp":
                 raise ValueError('Wrong method owner: ' + entry['signature'])
         print('PASS: complete ownership, static data, PCH and independent build/filter registration')
-    suffix = '; 127 unchanged bodies and one pinned, tested policy extraction' if with_policies else ''
-    print(f'PASS: {len(actual)} definitions, overloads and TMHuman.h preserved{suffix}')
+    print(f'PASS: {len(actual)} definitions, overloads and TMHuman.h preserved')
+    if with_policies:
+        pinned = {POLICY_SIGNATURE} | set(extractions['methods']) | set(extractions['helpers'])
+        counts = method_counts.categories(baseline_digests, actual, pinned, load_reviews()['methods'])
+        if counts['unexplained']:
+            raise ValueError('Changed bodies without a pin or review: ' + ', '.join(counts['unexplained']))
+        print('PASS: ' + method_counts.summary(counts))
     return entries
 
 def move(groups, baseline):
@@ -212,6 +292,96 @@ def move(groups, baseline):
             source = source[:end] + addition + source[end:]
             path.write_text(source, encoding='utf-8', newline='\n')
 
+def pin(spec_path, baseline):
+    """Record a verified extract-method.py extraction of a TMHuman method."""
+    spec = json.loads(Path(spec_path).read_text(encoding='utf-8'))
+    pins = load_extractions()
+    method_signature = re.sub(r'\s+', ' ', spec['method'].strip())
+    current = {}
+    for path in sorted(ENTITIES.glob('TMHuman*.cpp')):
+        for method in methods(read(path)):
+            current[method['signature']] = (digest(method['text']), path.name)
+    if method_signature not in current:
+        raise SystemExit('Method not found: ' + method_signature)
+    after, owner_file = current[method_signature]
+    group = owner_file[len('TMHuman'):-len('.cpp')]
+    if method_signature in pins['helpers']:
+        pins['helpers'][method_signature]['digest'] = after      # a helper decomposed again
+    else:
+        reviewed = {POLICY_SIGNATURE: POLICY_METHOD}
+        baseline_digests = {m['signature']: digest(m['text']) for m in methods(baseline)}
+        before = (pins['methods'].get(method_signature, {}).get('before')
+                  or reviewed.get(method_signature) or baseline_digests[method_signature])
+        pins['methods'][method_signature] = {'before': before, 'after': after}
+    header = read(ROOT / HEADER)
+    original_header = subprocess.check_output(['git', 'show', f'{REVISION}:{HEADER}'], cwd=ROOT).decode('utf-8-sig').replace('\r\n', '\n')
+    added = []
+    matcher = difflib.SequenceMatcher(a=original_header.split('\n'), b=header.split('\n'), autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag in ('replace', 'delete'):
+            raise SystemExit('The header changed baseline lines; only insertions can be pinned')
+        if tag == 'insert':
+            added += [line.strip() for line in header.split('\n')[j1:j2]]
+    if any(not line for line in added):
+        raise SystemExit('Blank lines were added to the header; remove them before pinning')
+    pins['declarations'] = added
+    for extraction in spec['extractions']:
+        signatures = [s for s in current if re.search(r'TMHuman::' + extraction['helper'] + r'\(', s)]
+        if len(signatures) != 1:
+            raise SystemExit(f"Expected one helper {extraction['helper']}, found {len(signatures)}")
+        helper_digest, helper_file = current[signatures[0]]
+        if helper_file != owner_file:
+            raise SystemExit(f"Helper {extraction['helper']} is not beside its method")
+        pins['helpers'][signatures[0]] = {'digest': helper_digest, 'owner': group}
+        declarations = [l.strip() for l in header.split('\n') if re.search(r'\b' + extraction['helper'] + r'\(', l)]
+        if len(declarations) != 1 or declarations[0] not in added:
+            raise SystemExit(f"Expected one added declaration of {extraction['helper']}")
+    EXTRACTIONS.write_text(json.dumps(pins, indent=1) + '\n', encoding='utf-8')
+    print(f"pinned {method_signature} and {len(spec['extractions'])} helper(s) in {EXTRACTIONS.name}")
+
+
+def review(baseline):
+    """Record the current method differences from the pinned chain for review.
+
+    Header lines removed from or added to the baseline (beyond the pinned
+    helper declarations) are recorded too, for --with-policies to accept.
+    """
+    expected = {m['signature']: digest(m['text']) for m in methods(baseline)}
+    expected[POLICY_SIGNATURE] = POLICY_METHOD
+    extractions = load_extractions()
+    for signature, pin in extractions['methods'].items():
+        expected[signature] = pin['after']
+    for signature, pin in extractions['helpers'].items():
+        expected[signature] = pin['digest']
+    actual = {}
+    for path in sorted(ENTITIES.glob('TMHuman*.cpp')):
+        for method in methods(read(path)):
+            actual[method['signature']] = digest(method['text'])
+    changes = {s: {'before': expected.get(s), 'after': actual.get(s)}
+               for s in sorted(expected.keys() | actual.keys()) if expected.get(s) != actual.get(s)}
+    original_lines = subprocess.check_output(['git', 'show', f'{REVISION}:{HEADER}'], cwd=ROOT).decode(
+        'utf-8-sig').replace('\r\n', '\n').split('\n')
+    lines = read(ROOT / HEADER).split('\n')
+    for declaration in extractions['declarations']:
+        matches = [i for i, line in enumerate(lines) if line.strip() == declaration]
+        if matches:
+            del lines[matches[0]]
+    removed, added = [], []
+    for tag, a1, a2, b1, b2 in difflib.SequenceMatcher(None, original_lines, lines, autojunk=False).get_opcodes():
+        if tag in ('delete', 'replace'):
+            removed.extend(original_lines[a1:a2])
+        if tag in ('insert', 'replace'):
+            added.extend(lines[b1:b2])
+    record = {'methods': changes, 'header': {'removed': removed, 'added': added, 'removed_declarations': []}}
+    static_before = digest(outside_methods(baseline))
+    static_after = digest(outside_methods(read(ENTITIES / 'TMHuman.cpp')))
+    if static_before != static_after:
+        record['static_data'] = {'before': static_before, 'after': static_after}
+    REVIEWS.write_text(json.dumps(record, indent=2) + '\n', encoding='utf-8')
+    print(f'Recorded {len(changes)} method changes, {len(removed)} removed and {len(added)} added header '
+          f'lines in {REVIEWS.relative_to(ROOT)}')
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--move', nargs='+', choices=[g for g in GROUPS if g] + ['Packets'])
@@ -219,10 +389,18 @@ def main():
     parser.add_argument('--complete', action='store_true', help='Require final ownership and registration')
     parser.add_argument('--refresh-includes', action='store_true', help='Mechanically prune/infer unit dependencies')
     parser.add_argument('--with-policies', action='store_true', help='Verify the exact reviewed second-phase extraction')
+    parser.add_argument('--pin', metavar='SPEC', help='Pin a verified extract-method.py extraction')
+    parser.add_argument('--review', action='store_true', help='Record the current reviewed method changes')
     args = parser.parse_args()
     if args.with_policies and (args.move or args.refresh_includes):
         parser.error('Policy verification is read-only; do not combine with relocation')
     baseline = subprocess.check_output(['git', 'show', f'{REVISION}:{BASE}'], cwd=ROOT).decode('utf-8-sig').replace('\r\n', '\n')
+    if args.review:
+        review(baseline)
+        return
+    if args.pin:
+        pin(args.pin, baseline)
+        return
     verify(baseline, with_policies=args.with_policies)
     if args.move:
         move(args.move, baseline)

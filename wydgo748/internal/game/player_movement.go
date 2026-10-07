@@ -101,7 +101,7 @@ func (w *World) beginPlayerMovement(p *Player, fromX, fromY, targetX, targetY ui
 // never decides how many steps have elapsed.
 func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 	if p == nil || !p.MovePublished || len(p.MoveAuthorityRoute) == 0 ||
-		p.MoveAuthorityStepInterval <= 0 {
+		p.MoveAuthorityStepInterval <= 0 || w.criticalPlayerReserved(p) {
 		return
 	}
 	if p.Char == nil || playerCurHP(p.Char) == 0 {

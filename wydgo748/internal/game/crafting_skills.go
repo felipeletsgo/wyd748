@@ -14,18 +14,21 @@ const (
 	effectItemLevel  = 87 // ItemEffect.h: EF_ITEMLEVEL
 )
 
-// beginSkillCraft aplica a mesma janela anti-spam dos compositores, mas sem
-// exigir NPC: Extração e Alquimia são abertas pelas próprias skills.
+// Skill crafting uses the artisan cooldown without requiring an NPC.
+// Opening a local skill window does not prove that the skill was learned.
+func skillCraftAllowed(p *Player, skillIndex int) bool {
+	if p == nil || !p.InWorld || p.Char == nil || p.Account == nil || p.Char.Score == nil {
+		return false
+	}
+	local := skillIndex - int(p.Char.Class)*24
+	return p.Char.Class == 3 && local >= 0 && local < 24 &&
+		p.Char.LearnedSkill&(uint32(1)<<local) != 0 && playerCurHP(p.Char) != 0 &&
+		!p.PersistencePoisoned && p.GhostShop == nil
+}
+
 func (w *World) beginSkillCraft(s *net.Session, skillIndex int) (*Player, bool) {
 	p := w.players[s]
-	if p == nil || !p.InWorld || p.Char == nil || p.Account == nil || p.Char.Score == nil {
-		return nil, false
-	}
-	// A janela abre localmente; receber o opcode nao prova aprendizado.
-	local := skillIndex - int(p.Char.Class)*24
-	if p.Char.Class != 3 || local < 0 || local >= 24 ||
-		p.Char.LearnedSkill&(uint32(1)<<local) == 0 || playerCurHP(p.Char) == 0 ||
-		p.PersistencePoisoned || p.GhostShop != nil {
+	if !skillCraftAllowed(p, skillIndex) || w.criticalTradeReserved(p) {
 		return p, false
 	}
 	now := w.now()
@@ -50,32 +53,28 @@ func (w *World) beginSkillCombine(s *net.Session, pkt []byte) (*Player, combineR
 	return p, req, true
 }
 
-// rollPercentStrict preserva a comparação usada por Extração no W2PP:
-// o dado visível é 1..100 e só há sucesso quando roll < chance.
+// Extraction keeps its strict comparison: the visible roll is 1..100,
+// and success requires roll < chance.
 func (w *World) rollPercentStrict(chance int) percentRoll {
 	chance = clampInt(chance, 0, 100)
 	roll := w.intn(100) + 1
 	return percentRoll{Roll: roll, Chance: chance, Success: roll < chance}
 }
 
-func (w *World) onCombineExtracao(s *net.Session, pkt []byte) {
-	p, ok := w.beginSkillCraft(s, 83)
-	if !ok || len(pkt) != 20 || p.Char.Score == nil {
-		return
-	}
-	pos := int(binary.LittleEndian.Uint32(pkt[16:20]))
+// extractionRecipe prepares the result without consuming live ingredients.
+func (w *World) extractionRecipe(p *Player, pos int) (model.Item, int, int, bool) {
 	if pos < 0 || pos >= model.PlayerCarrySlots {
-		return
+		return model.Item{}, 0, -1, false
 	}
 	target := p.Char.Inv[pos]
 	def, exists := w.items[target.Index]
 	if target.Index == 0 || !exists || itemAbility(target, def, "EF_ITEMLEVEL") >= 5 ||
 		itemAbility(target, def, "EF_MOBTYPE") != 0 {
-		return
+		return model.Item{}, 0, -1, false
 	}
 	resultIndex, validPos := map[int]uint16{2: 3021, 4: 3022, 8: 3023, 16: 3024, 32: 3025}[def.Pos]
 	if !validPos {
-		return
+		return model.Item{}, 0, -1, false
 	}
 
 	catalystPos := -1
@@ -86,30 +85,47 @@ func (w *World) onCombineExtracao(s *net.Session, pkt []byte) {
 		}
 	}
 	if catalystPos < 0 {
+		return model.Item{}, 0, -1, false
+	}
+	result := target
+	result.Index = resultIndex
+	result.Eff[0], result.Eff[1] = effectItemLevel, byte(clampInt(itemAbility(target, def, "EF_ITEMLEVEL"), 0, 255))
+	staticDamage := staticAbility(def, "EF_DAMAGE")
+	for slot := 1; slot < 3; slot++ {
+		effectPos := slot * 2
+		if def.DynamicEffectNames[result.Eff[effectPos]] == "EF_DAMAGE" {
+			result.Eff[effectPos+1] = byte(clampInt(int(result.Eff[effectPos+1])+staticDamage, 0, 255))
+		}
+	}
+	return result, (int(playerMastery(p.Char, 2)) - 20) / 5, catalystPos, true
+}
+
+func (w *World) onCombineExtracao(s *net.Session, pkt []byte) {
+	p, ok := w.beginSkillCraft(s, 83)
+	if !ok || len(pkt) != 20 {
+		return
+	}
+	pos := int(binary.LittleEndian.Uint32(pkt[16:20]))
+	result, chance, catalystPos, valid := w.extractionRecipe(p, pos)
+	if !valid {
+		return
+	}
+	if w.criticalWrites != nil {
+		req := combineRequest{}
+		req.Pos[0], req.Pos[1] = int8(pos), int8(catalystPos)
+		req.Items[0], req.Items[1] = p.Char.Inv[pos], p.Char.Inv[catalystPos]
+		w.admitInventoryComposition(p, req, result, w.rollPercentStrict(chance), "Extracao")
 		return
 	}
 
 	w.cancelTrade(p, "skill Extracao")
 	oldInv := p.Char.Inv
-	// O W2PP usa BASE_ClearItem, portanto o slot 1774 inteiro é consumido,
-	// mesmo se uma instância tiver sido indevidamente empilhada.
+	// Consume the entire catalyst slot, including an incorrectly stacked instance.
 	p.Char.Inv[catalystPos] = model.Item{}
 	changed := map[int]struct{}{catalystPos: {}, pos: {}}
 
-	chance := (int(playerMastery(p.Char, 2)) - 20) / 5
 	roll := w.rollPercentStrict(chance)
 	if roll.Success {
-		result := target
-		itemLevel := itemAbility(target, def, "EF_ITEMLEVEL")
-		result.Index = resultIndex
-		result.Eff[0], result.Eff[1] = effectItemLevel, byte(clampInt(itemLevel, 0, 255))
-		staticDamage := staticAbility(def, "EF_DAMAGE")
-		for slot := 1; slot < 3; slot++ {
-			effectPos := slot * 2
-			if def.DynamicEffectNames[result.Eff[effectPos]] == "EF_DAMAGE" {
-				result.Eff[effectPos+1] = byte(clampInt(int(result.Eff[effectPos+1])+staticDamage, 0, 255))
-			}
-		}
 		p.Char.Inv[pos] = result
 	} else {
 		p.Char.Inv[pos] = model.Item{}
@@ -135,8 +151,8 @@ func alquimiaRecipe(req combineRequest) (int, bool) {
 		if item.Index == blockedCombineItem {
 			return 0, false
 		}
-		// EF_AMOUNT pode ocupar qualquer um dos tres pares da instancia.
-		// Nao consumir um pack inteiro como se fosse um ingrediente avulso.
+		// EF_AMOUNT may occupy any effect pair. Reject stacks so a whole pack
+		// cannot be consumed as a single ingredient.
 		for effect := 0; effect < len(item.Eff); effect += 2 {
 			if item.Eff[effect] == effectAmount && item.Eff[effect+1] > 1 {
 				return 0, false
@@ -170,14 +186,30 @@ func alquimiaRecipe(req combineRequest) (int, bool) {
 	}
 }
 
+func alchemyResult(p *Player, req combineRequest) (model.Item, int, bool) {
+	combine, valid := alquimiaRecipe(req)
+	if !valid {
+		return model.Item{}, 0, false
+	}
+	result := model.Item{Index: uint16(3200 + combine), UID: req.Items[0].UID}
+	if p.Char.SecondaryLearnedSkill&0x10 != 0 {
+		result.Eff[0], result.Eff[1] = effectAmount, 5
+	}
+	return result, (int(playerMastery(p.Char, 2)) - 20) / 5, true
+}
+
 func (w *World) onCombineAlquimia(s *net.Session, pkt []byte) {
 	p, req, ok := w.beginSkillCombine(s, pkt)
 	if !ok {
 		return
 	}
-	combine, valid := alquimiaRecipe(req)
+	result, chance, valid := alchemyResult(p, req)
 	if !valid || p.Char.Class != 3 || p.Char.Score == nil {
 		w.sendCombineResult(p, 0)
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitInventoryComposition(p, req, result, w.rollPercent(chance), "Alquimia")
 		return
 	}
 
@@ -185,7 +217,6 @@ func (w *World) onCombineAlquimia(s *net.Session, pkt []byte) {
 	oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
 	changed := make(map[int]struct{}, combineSlots)
 	firstPos := int(req.Pos[0])
-	firstUID := req.Items[0].UID
 	for i, item := range req.Items {
 		if item.Index == 0 {
 			continue
@@ -195,13 +226,9 @@ func (w *World) onCombineAlquimia(s *net.Session, pkt []byte) {
 		changed[pos] = struct{}{}
 	}
 
-	roll := w.rollPercent((int(playerMastery(p.Char, 2)) - 20) / 5)
+	roll := w.rollPercent(chance)
 	code := uint32(2)
 	if roll.Success {
-		result := model.Item{Index: uint16(3200 + combine), UID: firstUID}
-		if p.Char.SecondaryLearnedSkill&0x10 != 0 {
-			result.Eff[0], result.Eff[1] = effectAmount, 5
-		}
 		p.Char.Inv[firstPos] = result
 		changed[firstPos] = struct{}{}
 		code = 1

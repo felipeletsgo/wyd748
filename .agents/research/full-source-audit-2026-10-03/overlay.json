@@ -1,0 +1,6 @@
+{
+  "Replace": {
+    "C:/Users/xereca/Documents/PROJETOS/wyd-go/wydgo748/internal/game/audit_evidence_test.go": "C:/Users/xereca/Documents/PROJETOS/wyd-go/.agents/research/full-source-audit-2026-10-03/game_evidence_test.go",
+    "C:/Users/xereca/Documents/PROJETOS/wyd-go/wydgo748/internal/net/audit_evidence_test.go": "C:/Users/xereca/Documents/PROJETOS/wyd-go/.agents/research/full-source-audit-2026-10-03/net_evidence_test.go"
+  }
+}

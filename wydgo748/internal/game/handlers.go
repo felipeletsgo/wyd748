@@ -14,38 +14,37 @@ import (
 	"wydgo/internal/wire"
 )
 
-// tipos de "lugar" do SwapItem (decompilado 7.54).
+// SwapItem storage-location types (7.54 decompilation reference).
 const (
 	placeEquip   = 0
 	placeInv     = 1
 	placeStorage = 2
 )
 
-// shopMerchant = valor do nibble baixo de Merchant que o client 7.48 reconhece
-// como loja de gold (m_stScore.Reserved & 0xF == 3 no click handler do client).
+// shopMerchant is the low Merchant nibble recognized as a gold shop by the
+// 7.48 client (m_stScore.Reserved & 0xF == 3 in the click handler).
 const shopMerchant = 3
 const skillMasterMerchant = 19
 const nativeShopMerchant = 1
 const craftingMerchant = 8
 
-// clientShopSlots e o limite REAL de exibicao da loja no client 7.48: o
-// OnPacketShopList percorre `for (i = 0; i < 27; ++i)` e monta a grade com
-// (i%5, i/5). Item alem da 27a posicao do pacote simplesmente nunca e desenhado.
+// clientShopSlots is the 7.48 shop display limit: OnPacketShopList iterates
+// `for (i = 0; i < 27; ++i)` and builds the grid at (i%5, i/5).
+// Packet entries beyond the first 27 are never drawn.
 const clientShopSlots = 27
 
-// shopDisplayList devolve a lista de venda como o client vai enxerga-la.
+// shopDisplayList returns the sale list as displayed by the client.
 //
-// Os NPCs convertidos do WYD 7.48 espalham o estoque pelas 64 posicoes do
-// Inventory original, com buracos: o Aki, por exemplo, tem itens em 1..7, em
-// 27..31 e em 33..35. Como o client so le as 27 primeiras entradas, tudo que
-// estiver depois some da loja. Compactar resolve, preservando a ordem.
+// Converted WYD 7.48 NPCs spread stock across the original 64-slot Inventory
+// with gaps: Aki has items in 1..7, 27..31, and 33..35. The client reads only
+// the first 27 entries. Compact the list while preserving order so later
+// entries remain visible.
 //
-// A loja de SKILL e a excecao: ali os vazios em 8, 17 e 26 sao separadores dos
-// tres ramos e precisam ser mantidos, senao a grade do mestre embaralha.
+// Skill shops are the exception: empty entries 8, 17, and 26 separate the
+// three branches and must be retained to preserve the master's grid.
 //
-// ESTA FUNCAO E A FONTE UNICA: o mesmo resultado alimenta o pacote 0x17C e a
-// resolucao do slot na compra (0x379). Compactar so na exibicao faria o client
-// comprar o item errado.
+// This is the single source for both 0x17C and purchase-slot resolution
+// (0x379). Compacting only the display would purchase the wrong item.
 func shopDisplayList(vende []model.Item, shopType uint32) []model.Item {
 	if shopType == wire.ShopSkill {
 		return vende
@@ -63,34 +62,32 @@ func shopDisplayList(vende []model.Item, shopType uint32) []model.Item {
 	return out
 }
 
-// shopSlotFromClient converte a posicao que o client manda no 0x379 para o
-// indice da lista que enviamos no 0x17C.
+// shopSlotFromClient maps the position sent in 0x379 to the list index sent
+// in 0x17C.
 //
-// O client NAO envia o indice da grade: ele remapeia antes (SGrid.cpp,
+// The client remaps the grid index before sending (SGrid.cpp,
 // SGridControl::BuyItem):
 //
-//	SourPos = cellX + 5*cellY          // = i, o indice da lista exibida
+//	SourPos = cellX + 5*cellY          // = i, the displayed list index
 //	SourPos = SourPos % 9 + 27 * (SourPos / 9)
 //
-// Isso revela o layout nativo da loja: BLOCOS DE 9 espacados de 27 (0..8,
-// 27..35, 54..62) -- a mesma estrutura dos 27 slots do mestre de skill, e
-// exatamente onde os NPCs do WYD 7.48 guardam o estoque. Os indices 0..8
-// mapeiam para si mesmos, o que fazia as primeiras compras funcionarem e
-// mascarava o problema.
+// The native layout has nine-entry blocks spaced by 27 (0..8, 27..35,
+// 54..62), matching the skill master's 27 slots and WYD 7.48 NPC stock.
+// Indices 0..8 map to themselves, so early successful purchases hid the bug.
 //
-// A inversa: bloco = S/27, posicao = S%27 (precisa ser < 9), indice = pos + 9*bloco.
+// Inverse: block = S/27, position = S%27 (must be < 9), index = position + 9*block.
 func shopSlotFromClient(sourPos uint16) (int, bool) {
 	block := int(sourPos) / 27
 	pos := int(sourPos) % 27
 	if pos >= 9 {
-		// Regiao morta entre os blocos: nao corresponde a nenhuma celula.
+		// The gap between blocks does not correspond to a grid cell.
 		return 0, false
 	}
 	return pos + 9*block, true
 }
 
-// countShopItems conta apenas as posicoes ocupadas: a lista crua do WYD 7.48
-// tem buracos, entao len() nao diz quantos itens a loja realmente oferece.
+// countShopItems counts occupied entries; the raw WYD 7.48 list has gaps,
+// so len() does not measure the number of items actually offered.
 func countShopItems(vende []model.Item) int {
 	count := 0
 	for _, item := range vende {
@@ -111,13 +108,13 @@ func shopTypeForMerchant(merchant uint32) (uint32, bool) {
 	return 0, false
 }
 
-// onLogin: 0x20D. Carrega a conta do store e manda a char-list.
+// onLogin: 0x20D. Load the account from storage and send character selection.
 func (w *World) onLogin(s *net.Session, pkt []byte) {
 	if len(pkt) < 44 || w.authPending[s] || w.players[s] != nil {
 		return
 	}
-	// Desligando: o snapshot final ja foi gravado, entao aceitar a entrada agora
-	// criaria estado que ninguem persistiria.
+	// After the final shutdown snapshot, admitting a login would create state
+	// that cannot be persisted.
 	if w.shuttingDown {
 		s.Send(wire.MessagePanel("Server going into maintenance. Try again shortly."))
 		return
@@ -129,18 +126,18 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	// serialization; account/password and all gameplay values are still
 	// validated from the canonical server-side sources.
 	if reason, rejected := w.networkRejected(s); rejected {
-		log.Printf("[#%d] LOGIN recusado antes do auth ip=%q: politica de rede (%s)",
+		log.Printf("[#%d] LOGIN rejected before authentication ip=%q: network policy (%s)",
 			s.ID, s.RemoteIP(), reason)
 		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if !w.allowLoginAttempt(s.RemoteIP(), accountName, w.now()) {
-		log.Printf("[#%d] LOGIN limitado conta=%q ip=%q", s.ID, accountName, s.RemoteIP())
+		log.Printf("[#%d] LOGIN rate limited account=%q ip=%q", s.ID, accountName, s.RemoteIP())
 		s.Send(wire.MessagePanel("Too many login attempts. Try again later."))
 		return
 	}
-	log.Printf("[#%d] LOGIN conta=%q cliver=%d password_len=%d", s.ID, accountName, cliver, len(password))
+	log.Printf("[#%d] LOGIN account=%q cliver=%d password_len=%d", s.ID, accountName, cliver, len(password))
 	select {
 	case w.authSlots <- struct{}{}:
 	default:
@@ -167,9 +164,9 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	}
 	if result.err != nil {
 		if errors.Is(result.err, account.ErrInvalidCredentials) {
-			log.Printf("[#%d] LOGIN recusado conta=%q", s.ID, result.accountName)
+			log.Printf("[#%d] LOGIN rejected account=%q", s.ID, result.accountName)
 		} else {
-			log.Printf("[#%d] LOGIN erro conta=%q: %v", s.ID, result.accountName, result.err)
+			log.Printf("[#%d] LOGIN error account=%q: %v", s.ID, result.accountName, result.err)
 		}
 		s.Send(wire.MessagePanel("Wrong account or password."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
@@ -177,37 +174,36 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	}
 	acc := result.account
 	if reason, rejected := w.networkRejected(s); rejected {
-		log.Printf("[#%d] LOGIN recusado conta=%q ip=%q: politica de rede (%s)",
+		log.Printf("[#%d] LOGIN rejected account=%q ip=%q: network policy (%s)",
 			s.ID, acc.Name, s.RemoteIP(), reason)
 		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if !w.claimAccountSession(s, acc.Name) {
-		log.Printf("[#%d] LOGIN recusado conta=%q: conta ja conectada", s.ID, acc.Name)
+		log.Printf("[#%d] LOGIN rejected account=%q: account already connected", s.ID, acc.Name)
 		s.Send(wire.AlreadyPlaying())
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if !w.claimAuthenticatedClientSlot(s) {
 		w.releaseAccountSession(s, acc)
-		log.Printf("[#%d] LOGIN recusado conta=%q ip=%q: limite de %d clients autenticados",
+		log.Printf("[#%d] LOGIN rejected account=%q ip=%q: limit of %d authenticated clients",
 			s.ID, acc.Name, s.RemoteIP(), w.authenticatedClientLimitFor(s))
 		s.Send(wire.MessagePanel("Only " + strconv.Itoa(w.authenticatedClientLimitFor(s)) +
 			" game clients are allowed from the same network."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
-	// ANTI-DUPE: recarrega a conta do DISCO agora que a sessao ja esta reservada.
-	// O snapshot que a goroutine de auth leu antes do PBKDF2 pode estar velho -- se
-	// a sessao viva mexeu no inventario/gold e salvou (ou desconectou) durante a
-	// verificacao de senha, admitir o snapshot restauraria o estado pre-troca e
-	// duplicaria itens/gold. A senha ja foi conferida contra o mesmo hash; aqui so
-	// interessa o estado de jogo, que passa a vir do arquivo mais recente.
+	// Reload storage after reserving the session. The auth goroutine's snapshot
+	// predates PBKDF2 and may be stale if the previous owner changed inventory
+	// or gold and saved/disconnected during verification. Admitting that copy
+	// could restore pre-trade state and duplicate items or gold. Authentication
+	// already checked the hash; gameplay comes from the latest stored snapshot.
 	if fresh, err := w.store.LoadAccount(acc.Name); err != nil {
 		w.releaseAccountSession(s, acc)
 		w.releaseAuthenticatedClientSlot(s)
-		log.Printf("[#%d] LOGIN erro ao recarregar conta %q: %v", s.ID, acc.Name, err)
+		log.Printf("[#%d] LOGIN failed to reload account %q: %v", s.ID, acc.Name, err)
 		s.Send(wire.MessagePanel("Error loading the account. Try again."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
@@ -215,9 +211,8 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		acc = fresh
 	}
 	pinAccountEntryPositions(acc)
-	// O bonus de status do Arch acompanha o nivel ATUAL do Mortal de origem;
-	// atualizar aqui, antes do syncProgression abaixo, faz o saldo de pontos ja
-	// nascer certo nesta sessao.
+	// Arch stat bonuses follow the source Mortal's current level. Refresh them
+	// before syncProgression so this session starts with the correct budget.
 	refreshArchMortalLevel(acc)
 	accountRepaired := false
 	for i := range acc.Chars {
@@ -227,26 +222,28 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		syncProgression(&acc.Chars[i])
 		w.recalcPlayer(&acc.Chars[i])
 		filterShortSkills(&acc.Chars[i])
-		// GuildID/GuildRank sao copias desnormalizadas: a guild pode ter sido
-		// dissolvida ou o rank mudado enquanto este personagem estava offline.
+		// GuildID/GuildRank are denormalized copies: the guild may have dissolved
+		// or the rank changed while this character was offline.
 		if w.repairGuildState(&acc.Chars[i]) {
 			accountRepaired = true
 		}
 	}
-	if accountRepaired {
-		// Persistir o reparo agora evita reencenar a mesma correcao a cada login.
+	if accountRepaired && w.criticalWrites == nil {
+		// Persist the repair now rather than repeating it on every login. With
+		// the coordinator, the idempotent repair rides the next account write.
 		if err := w.saveAccount(acc); err != nil {
-			log.Printf("[#%d] salvar reparo de guild da conta %q: %v", s.ID, acc.Name, err)
+			log.Printf("[#%d] save account guild repair %q: %v", s.ID, acc.Name, err)
 		}
 	}
 	p := &Player{Session: s, Account: acc, CharSlot: -1}
 	w.players[s] = p
 	s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
-	log.Printf("[#%d] char-list enviada (%d personagem(ns))", s.ID, characterCount(acc.Chars))
+	log.Printf("[#%d] character list sent (%d characters)", s.ID, characterCount(acc.Chars))
 }
 
 const maxCharactersPerAccount = 4
 
+// Preserve historical denylist tokens; translation would change accepted names.
 var reservedCharacterNames = map[string]struct{}{
 	"ADMIN": {}, "CARALHO": {}, "PINTO": {}, "PORRA": {}, "BUCETA": {},
 	"CUZAO": {}, "GRITAR": {}, "CRIAR": {}, "SAIR": {}, "DONATE": {},
@@ -293,7 +290,7 @@ func (w *World) newCharacterFromTemplate(name string, class int) (model.Char, bo
 	created := template.NewCharacter(name, w.charSpawn)
 	uid, err := model.NewCharacterUID()
 	if err != nil {
-		log.Printf("gerar UID do personagem %q: %v", name, err)
+		log.Printf("generate character UID %q: %v", name, err)
 		return model.Char{}, false
 	}
 	created.UID = uid
@@ -304,8 +301,8 @@ func (w *World) newCharacterFromTemplate(name string, class int) (model.Char, bo
 	return created, true
 }
 
-// onCreateCharacter trata o MSG_NewCharacter 0x20F integralmente no servidor:
-// valida, instancia o template da classe, persiste e atualiza a selecao.
+// onCreateCharacter handles MSG_NewCharacter 0x20F authoritatively: validate,
+// instantiate the class template, persist, and update character selection.
 func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || p.InWorld || len(pkt) < 36 {
@@ -317,7 +314,7 @@ func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 	class := int(int32(binary.LittleEndian.Uint32(pkt[32:36])))
 	if slot < 0 || slot >= maxCharactersPerAccount || class < 0 || class >= 4 ||
 		!validCharacterName(name) || characterCount(p.Account.Chars) >= maxCharactersPerAccount {
-		log.Printf("[#%d] criacao recusada slot=%d nome=%q classe=%d", s.ID, slot, name, class)
+		log.Printf("[#%d] creation rejected slot=%d name=%q class=%d", s.ID, slot, name, class)
 		s.Send(wire.NewCharacterFail())
 		return
 	}
@@ -328,15 +325,52 @@ func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 	exists, err := w.characterNameTaken(name)
 	if err != nil || exists {
 		if err != nil {
-			log.Printf("[#%d] verificar nome %q: %v", s.ID, name, err)
+			log.Printf("[#%d] check name %q: %v", s.ID, name, err)
 		}
 		s.Send(wire.NewCharacterFail())
 		return
 	}
 	created, ok := w.newCharacterFromTemplate(name, class)
 	if !ok {
-		log.Printf("[#%d] layout ausente para classe %d", s.ID, class)
+		log.Printf("[#%d] missing class layout %d", s.ID, class)
 		s.Send(wire.NewCharacterFail())
+		return
+	}
+	if w.criticalWrites != nil {
+		// Character selection holds no Char pointer; growing empty slots first
+		// keeps the pre-image and proposal the same length.
+		for len(p.Account.Chars) <= slot {
+			p.Account.Chars = append(p.Account.Chars, model.Char{})
+		}
+		images := criticalPreimages(p)
+		p.Account.Chars[slot] = created
+		nameKey := strings.ToLower(name)
+		if w.charNames != nil {
+			// Reserve the name while the write is pending; another account
+			// cannot claim it before the outcome is known.
+			w.charNames[nameKey] = struct{}{}
+		}
+		err := w.queueCriticalLiveMutation("character creation", images, func() {
+			if !s.IsClosed() {
+				s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
+			}
+			log.Printf("[#%d] character created: %q slot=%d class=%d spawn=(%d,%d)",
+				s.ID, name, slot, class, created.X, created.Y)
+		}, criticalLiveMutationOptions{reject: func() {
+			if w.charNames != nil && !accountUsesName(p.Account, name) {
+				delete(w.charNames, nameKey)
+			}
+			if !s.IsClosed() {
+				s.Send(wire.NewCharacterFail())
+			}
+		}})
+		if err != nil {
+			if w.charNames != nil && !accountUsesName(p.Account, name) {
+				delete(w.charNames, nameKey)
+			}
+			log.Printf("[#%d] new character %q admission rejected: %v", s.ID, name, err)
+			s.Send(wire.NewCharacterFail())
+		}
 		return
 	}
 	previousChars := append([]model.Char(nil), p.Account.Chars...)
@@ -346,7 +380,7 @@ func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 	p.Account.Chars[slot] = created
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Account.Chars = previousChars
-		log.Printf("[#%d] salvar personagem novo %q: %v", s.ID, name, err)
+		log.Printf("[#%d] save new character %q: %v", s.ID, name, err)
 		s.Send(wire.NewCharacterFail())
 		return
 	}
@@ -356,7 +390,7 @@ func (w *World) onCreateCharacter(s *net.Session, pkt []byte) {
 	// Character creation must return the selection aggregate in the ABI chosen
 	// by this session's login packet; stock and source structs are not isomorphic.
 	s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
-	log.Printf("[#%d] personagem criado: %q slot=%d classe=%d nascimento=(%d,%d)",
+	log.Printf("[#%d] character created: %q slot=%d class=%d spawn=(%d,%d)",
 		s.ID, name, slot, class, created.X, created.Y)
 }
 
@@ -368,9 +402,26 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] enter-world missing player or character", s.ID)
 		return
 	}
+	if p.InWorld {
+		return // A repeated entry must not reset an authoritative live character.
+	}
+	if w.shuttingDown || s.IsClosed() || p.PersistencePoisoned || w.criticalPlayerReserved(p) {
+		return
+	}
 	slot := int(int32(binary.LittleEndian.Uint32(pkt[12:16])))
 	if slot < 0 || slot >= len(p.Account.Chars) || slot >= maxCharactersPerAccount || p.Account.Chars[slot].Name == "" {
 		log.Printf("[#%d] enter-world invalid character slot %d", s.ID, slot)
+		return
+	}
+	if owner := w.playerByCharacterUID(p.Account.Chars[slot].UID); owner != nil && owner != p {
+		s.Send(wire.MessagePanel("This character is already connected. Try again after it disconnects."))
+		return
+	}
+	if w.criticalWrites != nil {
+		if err := w.prepareCriticalCharacterEntry(p, slot); err != nil {
+			log.Printf("[#%d] failed to prepare character entry: %v", s.ID, err)
+			s.Send(wire.MessagePanel("The character could not be prepared. Try again."))
+		}
 		return
 	}
 	p.CharSlot = slot
@@ -405,6 +456,21 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("Timed equipment could not be validated. Try again."))
 		return
 	}
+	w.publishCharacterEntry(p, slot)
+}
+
+// publishCharacterEntry runs on World after preparation has committed. Position
+// and client IDs are allocated at publication, not before an asynchronous save:
+// unrelated players may have entered or moved while that save was pending.
+func (w *World) publishCharacterEntry(p *Player, slot int) {
+	s, ch := p.Session, p.Char
+	_, entryX, entryY := playerHomeCitySpawn(ch)
+	entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 8, p)
+	if isLoadtestAccountName(p.Account.Name, w.loadtestAccountPrefix) {
+		entryX, entryY = w.loadtestSpawn.X, w.loadtestSpawn.Y
+		entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 32, p)
+	}
+	ch.X, ch.Y = entryX, entryY
 	w.recalcPlayer(ch)
 	// A character who logs out dead retains CurHP=0. Entering with zero HP
 	// locks the client in the death pose, unable even to request /restart.
@@ -447,7 +513,10 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	// from SkillPts; do not restore the entire budget on each relog.
 	clientChar := *ch
 	clientChar.Equip = clientEquipProjection(ch)
-	s.Send(wire.EnterWorld(p.ID, uint16(slot), clientChar))
+	enter := wire.EnterWorld(p.ID, uint16(slot), clientChar)
+	wire.PutEnterWorldWeather(enter, uint16(w.weather))
+	p.SentWeather = w.weather
+	s.Send(enter)
 	// 2) Self-CreateMob (spawn=2), observed in-game. Without it, a second login
 	// in the same client process retains stale HP/MP. ActionStop follows it.
 	s.Send(wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
@@ -471,9 +540,8 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	log.Printf("[#%d] initial visibility: %d entities", s.ID, len(p.Visible))
 }
 
-// isLoadtestAccountName restringe o nascimento alternativo ao conjunto que o
-// provisionador realmente cria. Um nome arbitrario que apenas comece por
-// "bot" nao deve ser movido para Noatum por acidente.
+// isLoadtestAccountName restricts alternate spawning to the provisioned set.
+// An arbitrary account starting with "bot" must not be moved accidentally.
 func isLoadtestAccountName(name, prefix string) bool {
 	prefix = strings.ToLower(strings.TrimSpace(prefix))
 	name = strings.ToLower(strings.TrimSpace(name))
@@ -493,7 +561,7 @@ func isLoadtestAccountName(name, prefix string) bool {
 	return err == nil && n >= 1 && n <= 990
 }
 
-// onApplyBonus trata MSG_ApplyBonus 0x277: BonusType int16@12, Detail int16@14.
+// onApplyBonus handles MSG_ApplyBonus 0x277: BonusType int16@12, Detail int16@14.
 func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || len(pkt) != applyBonusPacketSize || playerCurHP(p.Char) == 0 {
@@ -501,23 +569,23 @@ func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 	}
 	bonusType := int(int16(binary.LittleEndian.Uint16(pkt[12:14])))
 	detail := int(int16(binary.LittleEndian.Uint16(pkt[14:16])))
-	// No 7.48 a compra no mestre de habilidades nao e MSG_BuyItem: o client
-	// envia MSG_ApplyBonus tipo 2 com o item de skill em Detail e o mestre em
-	// TargetID. Tratar como bonus comum descartava toda tentativa de aprender.
+	// A 7.48 skill-master purchase uses MSG_ApplyBonus type 2, not MSG_BuyItem:
+	// Detail contains the skill item and TargetID the master. Treating this as
+	// a regular bonus discarded every learning attempt.
 	if bonusType == 2 {
 		itemIndex := int(binary.LittleEndian.Uint16(pkt[14:16]))
 		masterID := binary.LittleEndian.Uint16(pkt[16:18])
 		w.onLearnSkillAtMaster(s, p, itemIndex, masterID)
 		return
 	}
-	// Mesmo cuidado do killMobState: o recalc cru do applyBonus clampa o CurHP
-	// buffado; captura antes e restaura depois do recalcPlayer.
+	// As in killMobState, raw applyBonus recalculation clamps buffed CurHP.
+	// Capture it before recalculation and restore it after recalcPlayer.
 	oldHP, oldMP := playerCurHP(p.Char), playerCurMP(p.Char)
 	if !applyBonus(p.Char, bonusType, detail) {
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		return
 	}
-	w.recalcPlayer(p.Char) // reaplica equip+affects (applyBonus recalcula cru)
+	w.recalcPlayer(p.Char) // Reapply equipment and affects after raw applyBonus.
 	if oldHP > 0 {
 		setPlayerCurHP(p.Char, minU32(oldHP, playerMaxHP(p.Char)))
 	}
@@ -536,18 +604,22 @@ func (w *World) onApplyBonus(s *net.Session, pkt []byte) {
 		effectiveScore(p.Char).Mastery)
 }
 
-// onSwapItem: 0x376. Move/equipa item de forma AUTORITATIVA -- troca no estado do
-// servidor e confirma sucesso ecoando o 0x376 que encerra o drag nativo.
+// onSwapItem: 0x376. Move/equip in authoritative server state, then echo the
+// successful 0x376 to finish the native drag lifecycle.
 func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || p.Account == nil || len(pkt) != 20 {
+	if p == nil || p.Char == nil || p.Account == nil || len(pkt) != 20 ||
+		w.shuttingDown || p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) {
+		return
+	}
+	if p.Trade != nil && w.criticalPlayerReserved(w.playerByID(p.Trade.OpponentID)) {
 		return
 	}
 	st, sp, dt, dp := pkt[12], pkt[13], pkt[14], pkt[15]
 	src := playerSlotOf(p, st, sp)
 	dst := playerSlotOf(p, dt, dp)
 	if src == nil || dst == nil {
-		log.Printf("[#%d] SWAP invalido %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
+		log.Printf("[#%d] invalid SWAP %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
 		return
 	}
 	if (st == placeStorage && p.ghostShopLocksCargoSlot(int(sp))) ||
@@ -569,12 +641,38 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 		return
 	}
-	w.cancelTrade(p, "inventario alterado")
+	if w.tryStackMerge(p, st, sp, dt, dp, binary.LittleEndian.Uint16(pkt[16:18])) {
+		return
+	}
+	w.cancelTrade(p, "inventory changed")
+	if w.criticalWrites != nil && (st == placeStorage || dt == placeStorage) {
+		targetID := binary.LittleEndian.Uint16(pkt[16:18])
+		if err := w.queueCargoItemSwap(p, st, sp, dt, dp, targetID); err != nil {
+			s.Send(wire.SendItem(p.ID, st, sp, *src))
+			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
+			s.Send(wire.MessagePanel("The item move could not be submitted. Please try again."))
+			log.Printf("[#%d] submit Cargo item move: %v", s.ID, err)
+		}
+		return
+	}
+	if w.criticalWrites != nil && (st == placeEquip || dt == placeEquip) {
+		targetID := binary.LittleEndian.Uint16(pkt[16:18])
+		if err := w.queueEquipmentSwap(p, st, sp, dt, dp, targetID); err != nil {
+			s.Send(wire.SendItem(p.ID, st, sp, *src))
+			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
+			if errors.Is(err, errTimedItemExpired) {
+				s.Send(wire.MessagePanel("This timed item has expired."))
+			} else if !errors.Is(err, errEquipmentSwapEligibility) {
+				s.Send(wire.MessagePanel("The item move could not be submitted. Please try again."))
+			}
+			log.Printf("[#%d] submit equipment move: %v", s.ID, err)
+		}
+		return
+	}
 	oldSrc, oldDst := *src, *dst
 	*src, *dst = *dst, *src
-	// O client nunca decide se um item pode ocupar um slot de equipamento. Faz
-	// a troca provisoria, valida todos os slots de equip afetados e reverte se
-	// classe, requisitos ou nPos nao forem satisfeitos.
+	// The client cannot decide equipment eligibility. Stage the swap, validate
+	// every affected slot, and roll back if class, requirements, or nPos fail.
 	valid := true
 	if st == placeEquip {
 		valid = w.canEquip(p.Char, *src, sp)
@@ -586,7 +684,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		*src, *dst = oldSrc, oldDst
 		s.Send(wire.SendItem(p.ID, st, sp, *src))
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
-		log.Printf("[#%d] SWAP equip rejeitado %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
+		log.Printf("[#%d] SWAP equipment rejected %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
 		return
 	}
 	// A first equip starts the server-owned deadline. The activation and the
@@ -625,15 +723,15 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			return
 		}
 	}
-	// FUN_00486808 e o source OnPacketSwapItem consomem uma unica confirmacao
-	// 0x376. Dois 0x182 atualizam celulas, mas nao concluem o estado do cursor.
+	// FUN_00486808 and source OnPacketSwapItem consume a single 0x376 result.
+	// Two 0x182 snapshots update cells but do not finish cursor state.
 	targetID := binary.LittleEndian.Uint16(pkt[16:18])
 	s.Send(wire.SwapItem(p.ID, st, sp, dt, dp, targetID))
 	if st == placeEquip || dt == placeEquip {
 		if (st == placeEquip && sp == mountSlot) || (dt == placeEquip && dp == mountSlot) {
 			w.resetEggIncubationClock(p)
 		}
-		// Montaria recem-equipada com estado zerado nasce viva (HP/comida/longev).
+		// A newly equipped zero-state mount starts alive (HP/food/longevity).
 		if mount, _ := equippedMount(p.Char); mount != nil {
 			w.initFreshMount(mount)
 		}
@@ -641,8 +739,8 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		s.Send(playerScorePacket(p))
 		s.Send(wire.UpdateEtc(p.ID, *p.Char))
 		w.syncPlayerVitalsToObservers(p)
-		w.syncCriaPet(p) // cria equipada nasce como pet; desequipada some
-		// O 0x36B incremental atualiza dono e observadores sem carregar posicao.
+		w.syncCriaPet(p) // Equipped offspring spawns a pet; unequipping removes it.
+		// Incremental 0x36B updates owner and observers without position data.
 		w.refreshAppearance(p)
 	}
 	log.Printf("[#%d] SWAP ok %d/%d <-> %d/%d", s.ID, st, sp, dt, dp)
@@ -718,6 +816,7 @@ func cargoNPCMatches(m *Mob) bool {
 func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld ||
+		w.shuttingDown || p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) ||
 		playerCurHP(p.Char) == 0 || len(pkt) != 16 || !w.nearCargoNPC(p) {
 		return
 	}
@@ -730,13 +829,23 @@ func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
 			s.Send(wire.MessagePanel("That amount could not be deposited."))
 			return
 		}
-		p.Char.Gold -= amount
-		p.Account.CargoGold += amount
 	} else {
 		if p.Account.CargoGold < amount || p.Char.Gold > maxCharacterGold-amount {
 			s.Send(wire.MessagePanel("That amount could not be withdrawn."))
 			return
 		}
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueCargoGoldTransfer(p, deposit, amount); err != nil {
+			log.Printf("[#%d] submit cargo transfer: %v", s.ID, err)
+			s.Send(wire.MessagePanel("The transfer could not be submitted. Please try again."))
+		}
+		return
+	}
+	if deposit {
+		p.Char.Gold -= amount
+		p.Account.CargoGold += amount
+	} else {
 		p.Account.CargoGold -= amount
 		p.Char.Gold += amount
 	}
@@ -748,29 +857,21 @@ func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
 			p.Account.CargoGold += amount
 			p.Char.Gold -= amount
 		}
-		log.Printf("[#%d] salvar transferencia do Cargo: %v", s.ID, err)
+		log.Printf("[#%d] save Cargo transfer: %v", s.ID, err)
 		s.Send(wire.MessagePanel("Save failed. The transfer was not applied."))
 		return
 	}
-	op := uint16(wire.OpWithdraw)
-	if deposit {
-		op = wire.OpDeposit
-	}
-	s.Send(wire.CargoGoldTransfer(op, wire.SceneField, amount))
-	s.Send(wire.UpdateCargoGold(wire.SceneField, p.Account.CargoGold))
-	s.Send(wire.UpdateEtc(p.ID, *p.Char))
+	publishCargoGoldTransfer(p, deposit, amount)
 }
 
-// onUseNPC: 0x28B. Cliente clicou num NPC. Se for mercador, abre a loja mandando
-// a lista (0x17C). NPC comum (Merchant==0) por ora nao faz nada.
-// clickOkAbsent marca que o pacote 0x28B chegou curto demais para conter o campo
-// ClickOk. Serve so para o log de instrumentacao nao mentir dizendo "0".
+// onUseNPC: 0x28B. A merchant click sends the shop list (0x17C).
+// clickOkAbsent distinguishes a short packet without ClickOk from a real zero
+// in instrumentation logs. Ordinary NPCs require a configured interaction.
 const clickOkAbsent = -1
 
-// parseUseNPCRequest le o 0x28B, que e o mesmo pacote do _MSG_Quest nativo
-// (139|FLAG_CLIENT2GAME). O npcID@12 ja era usado; o ClickOk@16 e o "confirm" do
-// fluxo de quest. O campo so e lido quando o pacote realmente o traz (20 bytes),
-// para nao regredir a abertura de loja, que hoje funciona com o layout curto.
+// parseUseNPCRequest reads 0x28B, the native _MSG_Quest packet
+// (139|FLAG_CLIENT2GAME). npcID is at 12; ClickOk at 16 confirms a quest.
+// Read ClickOk only in a full 20-byte packet, preserving short shop requests.
 func parseUseNPCRequest(pkt []byte) (npcID uint16, clickOk int32, ok bool) {
 	if len(pkt) < 14 {
 		return 0, clickOkAbsent, false
@@ -790,47 +891,40 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	}
 	npcID, clickOk, ok := parseUseNPCRequest(pkt)
 	if !ok {
-		log.Printf("[#%d] 0x28B curto demais (%d bytes)", s.ID, len(pkt))
+		log.Printf("[#%d] 0x28B too short (%d bytes)", s.ID, len(pkt))
 		return
 	}
-	w.cancelTrade(p, "interacao com NPC")
-	// Ponto unico de validacao: existencia, visibilidade e alcance. Vale para
-	// loja e quest -- antes disso nem a loja checava distancia.
-	// Este handler atende DOIS opcodes com layouts diferentes, confirmado em
-	// captura: 0x27B REQShopList tem 16 bytes (so TargetID@12) e 0x28B
-	// UseNPC/Quest tem 20 (ClickOk@16). Logar o opcode real evita a confusao
-	// de atribuir um tamanho ao pacote errado.
+	w.cancelTrade(p, "NPC interaction")
+	// Validate existence, visibility, and range for both shops and quests.
+	// Captures show two layouts: 0x27B REQShopList has 16 bytes (TargetID@12),
+	// while 0x28B UseNPC/Quest has 20 (ClickOk@16). Log the actual opcode to
+	// avoid attributing a size to the wrong packet.
 	opcode := int(wire.ParseHeader(pkt).Type)
 	m, err := w.resolveNPCInteraction(p, npcID)
 	if err != nil {
-		log.Printf("[#%d] 0x%X recusado id=%d clickOk=%d: %v", s.ID, opcode, npcID, clickOk, err)
+		log.Printf("[#%d] 0x%X rejected id=%d clickOk=%d: %v", s.ID, opcode, npcID, clickOk, err)
 		s.Send(wire.MessagePanel(npcInteractionMessage(err)))
 		return
 	}
 	log.Printf("[#%d] 0x%X npc=%q id=%d clickOk=%d dist=%d size=%d",
 		s.ID, opcode, m.Def.Name, m.ID, clickOk, chebyshev(p.X, p.Y, m.X, m.Y), len(pkt))
-	// Toda interacao abre exatamente um contexto autoritativo. Cargo nao pode
-	// reutilizar um banqueiro antigo depois que o jogador clicou em outro NPC.
+	// Each interaction opens exactly one authoritative context. Cargo must not
+	// reuse a stale banker after the player clicks another NPC.
 	p.ShopNPC, p.ShopTax, p.CraftNPC, p.CargoNPC = 0, 0, 0, 0
 	clearCityWarContext(p)
 
-	// Roteamento por ALLOWLIST, nesta ordem:
-	//   1. tipos com handler proprio (loja, mestre, cargo);
-	//   2. NPC explicitamente configurado em quests.json;
-	//   3. qualquer outro -> resposta neutra.
-	// "O resto vira quest" seria perigoso: capturaria crafting, ferreiro,
-	// mestre de montaria e os tipos ainda nao classificados.
+	// Allowlist routing: specialized handlers (shop/master/cargo), explicitly
+	// configured quests.json NPCs, then a neutral response. Treating every
+	// remaining NPC as a quest would capture crafting, blacksmiths, mount
+	// masters, and unclassified types.
 	//
-	// 0x13 tambem possui low nibble 3. O mestre precisa ser testado antes da
-	// loja generica, senao o client abre a janela normal e arrasta a skill para
-	// o inventario em vez de aprende-la.
-	// Composicao do Sefirot: o compositor E o mestre de skill da classe, entao
-	// precisa ser testado ANTES da loja -- senao o clique sempre abre a janela
-	// de skills e a composicao nunca acontece.
+	// 0x13 also has low nibble 3. Test the skill master before generic shops,
+	// or the client drags the skill into inventory instead of learning it.
+	// The Sefirot composer is also the class skill master; test composition
+	// before shops or every click opens skills instead of composition.
 	//
-	// Dois gates para nao sequestrar o clique de quem so quer comprar skill:
-	// ClickOk=1 (o client so envia depois do "Sim" na janela de confirmacao) e
-	// posse das oito pedras. Sem qualquer um deles, segue para a loja.
+	// Require both ClickOk=1 (sent after confirmation) and all eight stones
+	// to avoid intercepting ordinary skill purchases. Otherwise open the shop.
 	if class, isMaster := sefirotClassForNPC(m.Def); isMaster && clickOk == 1 && hasSephiraStones(p.Char) {
 		w.craftSefirot(s, p, class)
 		return
@@ -853,11 +947,11 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 			owner = w.guilds.Wars.Cities.Territories[city].Owner
 		}
 		setCityWarContext(p, m.ID, city, owner, w.now())
-		log.Printf("[#%d] coletor de imposto aberto: %q cidade=%s", s.ID, m.Def.Name, cityWarZones[city].name)
+		log.Printf("[#%d] tax collector opened: %q city=%s", s.ID, m.Def.Name, cityWarZones[city].name)
 		return
 	}
 	if shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant); isShop {
-		p.ShopNPC = m.ID // lembra a loja aberta pro buy (server-authoritative)
+		p.ShopNPC = m.ID // Bind the authoritative merchant for purchases.
 		display := shopDisplayList(m.Def.Vende, shopType)
 		// TMProject renders 27 shop entries; stock 7.48 keeps its 64-entry ABI.
 		_, tax, taxed := w.cityShopTax(m)
@@ -866,30 +960,29 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		}
 		s.Send(wire.ShopList(display, p.ShopTax, shopType))
 		if dropped := countShopItems(m.Def.Vende) - countShopItems(display); dropped > 0 {
-			log.Printf("[#%d] loja %q: %d item(ns) alem do limite de %d do client",
+			log.Printf("[#%d] shop %q: %d items beyond the client limit of %d",
 				s.ID, m.Def.Name, dropped, clientShopSlots)
 		}
-		log.Printf("[#%d] loja aberta: %q (%d itens exibidos)", s.ID, m.Def.Name, countShopItems(display))
+		log.Printf("[#%d] shop opened: %q (%d displayed items)", s.ID, m.Def.Name, countShopItems(display))
 		return
 	}
 	if m.Def.Score.Merchant&0x0F == craftingMerchant {
-		// A janela e escolhida localmente pelo client a partir do rosto/posicao do
-		// NPC. Guardamos apenas o contexto autoritativo para validar o opcode de
-		// composicao que chegar depois.
+		// The client selects the window from the NPC's face/position. Retain
+		// authoritative context for the subsequent composition request.
 		p.CraftNPC = m.ID
-		log.Printf("[#%d] compositor aberto: %q", s.ID, m.Def.Name)
+		log.Printf("[#%d] composer opened: %q", s.ID, m.Def.Name)
 		return
 	}
 	if m.Def.Score.Merchant&0x0F == cargoMerchantType {
 		p.CargoNPC = m.ID
-		log.Printf("[#%d] cargo aberto: %q", s.ID, m.Def.Name)
+		log.Printf("[#%d] Cargo opened: %q", s.ID, m.Def.Name)
 		return
 	}
 	if w.handleAscensionNPC(s, p, m) {
 		return
 	}
-	// A ascensao vem ANTES do reino: com a Pedra e o Sefirot equipados o clique
-	// no rei e pedido de Arch, nao de capa.
+	// Ascension precedes kingdom selection: with the Stone and Sefirot
+	// equipped, clicking the king requests Arch ascension rather than a cape.
 	if kingdomForNPC(m.Def) != model.KingdomNeutral && w.createArch(s, p) {
 		return
 	}
@@ -901,61 +994,63 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		return
 	}
 	if kind, reserved := reservedNPCKind(m.Def); reserved {
-		// Tipo conhecido cuja janela o proprio client abre (cargo): nada a
-		// fazer aqui, e sem mensagem para nao poluir a tela.
-		log.Printf("[#%d] click em %q (%s, sem acao server-side)", s.ID, m.Def.Name, kind)
+		// Known locally opened window (cargo): no additional action or message.
+		log.Printf("[#%d] click on %q (%s, no server-side action)", s.ID, m.Def.Name, kind)
 		return
 	}
-	log.Printf("[#%d] click em %q sem interacao configurada", s.ID, m.Def.Name)
+	log.Printf("[#%d] click on %q without configured interaction", s.ID, m.Def.Name)
 	s.Send(wire.MessagePanel("This character has nothing for you right now."))
 }
 
-// onBuyItem: 0x379. Cliente comprou o item Vende[sellSlot] do mercador. Cobra o
-// preco (do itemlist), adiciona no Carry e confirma com o mesmo 0x379 nativo.
+// onBuyItem: 0x379. Charge the catalog price for Vende[sellSlot], add the item
+// to Carry, and confirm with the native 0x379 response.
 func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	// len(pkt) >= 16: le sellSlot@14 abaixo. Sem esta checagem um 0x379 curto
-	// (forjado) causaria panic ao fatiar pkt[14:16].
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 24 {
+	// Require 16 bytes before reading sellSlot@14; a forged short 0x379 would
+	// otherwise panic when slicing pkt[14:16].
+	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || w.shuttingDown ||
+		p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) || playerCurHP(p.Char) == 0 || len(pkt) != 24 {
 		return
 	}
-	w.cancelTrade(p, "compra em loja")
-	// A grade 7.48 envia o MerchantID exibido.
+	if p.Trade != nil && w.criticalPlayerReserved(w.playerByID(p.Trade.OpponentID)) {
+		return
+	}
+	w.cancelTrade(p, "shop purchase")
+	// The 7.48 grid sends the displayed MerchantID.
 	targetID := binary.LittleEndian.Uint16(pkt[12:14])
 	sellSlot := binary.LittleEndian.Uint16(pkt[14:16]) // TargetCarryPos@14
 	if p.ShopNPC == 0 {
-		log.Printf("[#%d] buy sem loja aberta", s.ID)
+		log.Printf("[#%d] purchase without an open shop", s.ID)
 		s.Send(wire.MessagePanel("Open a merchant before buying an item."))
 		return
 	}
 	if targetID != p.ShopNPC {
-		// Nao confiar no alvo fornecido pelo client: alem de seguranca, devolver
-		// um painel encerra visualmente o clique em vez de falhar em silencio.
-		log.Printf("[#%d] buy para merchant divergente packet=%d aberto=%d", s.ID, targetID, p.ShopNPC)
+		// Do not trust the client target. Return a panel to finish the click
+		// visually instead of failing silently.
+		log.Printf("[#%d] purchase merchant mismatch packet=%d open=%d", s.ID, targetID, p.ShopNPC)
 		s.Send(wire.MessagePanel("That merchant is no longer available."))
 		return
 	}
 	m, interactionErr := w.resolveNPCInteraction(p, p.ShopNPC)
 	if interactionErr != nil {
-		log.Printf("[#%d] compra invalida loja=%d slot=%d", s.ID, p.ShopNPC, sellSlot)
+		log.Printf("[#%d] invalid purchase shop=%d slot=%d", s.ID, p.ShopNPC, sellSlot)
 		p.ShopNPC = 0
 		// The 7.48 UI has no local fallback for a stale merchant interaction.
 		s.Send(wire.MessagePanel("The merchant is no longer available."))
 		return
 	}
-	// O slot vem da grade que o CLIENT desenhou, entao precisa ser resolvido
-	// contra a MESMA lista enviada no 0x17C -- que e compactada para caber nas
-	// 27 posicoes exibiveis. Indexar o Vende cru aqui compraria outro item.
+	// Resolve the client's grid slot against the same compacted 27-entry
+	// list sent in 0x17C. Indexing raw Vende would purchase a different item.
 	shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant)
 	if !isShop {
-		log.Printf("[#%d] compra em npc que nao e loja: %q", s.ID, m.Def.Name)
+		log.Printf("[#%d] purchase from a non-shop NPC: %q", s.ID, m.Def.Name)
 		s.Send(wire.MessagePanel("That character is not a merchant."))
 		return
 	}
 	display := shopDisplayList(m.Def.Vende, shopType)
 	index, ok := shopSlotFromClient(sellSlot)
 	if !ok || index >= len(display) {
-		log.Printf("[#%d] compra invalida loja=%d slot=%d -> indice=%d (lista tem %d)",
+		log.Printf("[#%d] invalid purchase shop=%d slot=%d -> index=%d (list has %d)",
 			s.ID, p.ShopNPC, sellSlot, index, len(display))
 		s.Send(wire.MessagePanel("That shop item is no longer available."))
 		return
@@ -966,63 +1061,78 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("That shop item is no longer available."))
 		return
 	}
-	// A compra no mestre e uma requisicao de aprendizado. O item 5000..5095
-	// nunca existe fisicamente no inventario; onLearnSkill valida classe,
-	// requisitos, pontos, gold e persiste a conta.
+	// A skill-master purchase is a learning request. Items 5000..5095 never
+	// enter inventory; onLearnSkill validates class, requirements, points,
+	// and gold, then persists the account.
 	if m.Def.Score.Merchant == skillMasterMerchant {
 		w.onLearnSkill(s, p, int(it.Index))
 		return
 	}
 	def, exists := w.items[it.Index]
 	if !exists {
-		log.Printf("[#%d] compra rejeitada: item %d ausente do catalogo server-side", s.ID, it.Index)
+		log.Printf("[#%d] purchase rejected: item %d absent from the server catalog", s.ID, it.Index)
 		s.Send(wire.MessagePanel("That item is unavailable on this server."))
 		return
 	}
 	basePrice := uint64(def.Price)
 	totalPrice, treasury, city, _ := w.cityPriceForNPC(m, basePrice)
 	if totalPrice > uint64(maxCharacterGold) || uint64(p.Char.Gold) < totalPrice {
-		log.Printf("[#%d] gold insuficiente: item %d custa %d (base=%d), tem %d", s.ID, it.Index, totalPrice, basePrice, p.Char.Gold)
-		// O client 7.48 nao sintetiza esse erro: ele exibe o painel 0x101
-		// enviado pelo servidor, portanto toda rejeicao esperada precisa responder.
+		log.Printf("[#%d] insufficient gold: item %d costs %d (base=%d), available=%d", s.ID, it.Index, totalPrice, basePrice, p.Char.Gold)
+		// The 7.48 client displays the server's 0x101 panel rather than
+		// synthesizing this error. Every expected rejection needs a response.
 		s.Send(wire.MessagePanel("You do not have enough gold."))
+		return
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueShopPurchase(p, it, totalPrice, treasury, city, targetID, sellSlot); err != nil {
+			log.Printf("[#%d] submit merchant purchase item=%d: %v", s.ID, it.Index, err)
+			if errors.Is(err, errShopInventoryFull) {
+				s.Send(wire.MessagePanel("Your inventory is full."))
+			} else {
+				s.Send(wire.MessagePanel("The purchase could not be submitted. Please try again."))
+			}
+		}
 		return
 	}
 	dst, err := w.commitShopPurchase(p, it, totalPrice, city, treasury)
 	if err != nil {
 		if errors.Is(err, errShopInventoryFull) {
-			log.Printf("[#%d] inventario cheio, compra abortada", s.ID)
+			log.Printf("[#%d] inventory full, purchase aborted", s.ID)
 			s.Send(wire.MessagePanel("Your inventory is full."))
 			return
 		}
-		log.Printf("[#%d] ERRO ao salvar compra item=%d: %v", s.ID, it.Index, err)
-		// Depois do rollback o client precisa receber um resultado terminal; sem
-		// este painel a interface 7.48 aparenta ter ignorado o botao de compra.
+		log.Printf("[#%d] ERROR saving purchase item=%d: %v", s.ID, it.Index, err)
+		// After rollback, send a terminal result so the 7.48 UI does not appear
+		// to have ignored the purchase button.
 		s.Send(wire.MessagePanel("The purchase could not be completed."))
 		return
 	}
 	if dst < 0 {
-		log.Printf("[#%d] inventario cheio, compra abortada", s.ID)
-		// Mantem a compra server-authoritative e informa o motivo sem alterar gold.
+		log.Printf("[#%d] inventory full, purchase aborted", s.ID)
+		// Explain the rejection without changing authoritative gold.
 		s.Send(wire.MessagePanel("Your inventory is full."))
 		return
 	}
-	// FUN_00487b92 copia o item da grade de loja para MyCarryPos e atualiza Coin
-	// diretamente desta confirmacao. SendItem+UpdateEtc nao materializa a compra
-	// no lifecycle nativo da janela de merchant.
+	// FUN_00487b92 copies the shop item to MyCarryPos and updates Coin from
+	// this response. SendItem+UpdateEtc alone does not complete the native
+	// merchant purchase lifecycle.
 	s.Send(wire.BuyItem(p.ID, p.ShopNPC, sellSlot, uint16(dst), p.Char.Gold))
-	log.Printf("[#%d] comprou item %d por %d gold (base=%d) -> inv[%d] (gold restante=%d)", s.ID, it.Index, totalPrice, basePrice, dst, p.Char.Gold)
+	log.Printf("[#%d] bought item %d for %d gold (base=%d) -> inv[%d] (remaining gold=%d)", s.ID, it.Index, totalPrice, basePrice, dst, p.Char.Gold)
 }
 
-// onBuyToto: 0x3CE. O wire e o fluxo da janela pertencem ao client 7.48; a
-// identidade do bilhete e a transacao gold+inventario sao extensoes
-// server-authoritative. Coin@20 nunca e confiavel: o preco vem do ItemList.
+// onBuyToto: 0x3CE. The wire/window flow belongs to 7.48; ticket identity and
+// the gold/inventory transaction are authoritative extensions. Never trust
+// Coin@20: the price comes from ItemList.
 func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 36 {
+	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || w.shuttingDown ||
+		p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) || playerCurHP(p.Char) == 0 || len(pkt) != 36 {
 		return
 	}
-	w.cancelTrade(p, "compra de bilhete TOTO")
+	if p.Trade != nil && w.criticalPlayerReserved(w.playerByID(p.Trade.OpponentID)) {
+		return
+	}
+	w.cancelTrade(p, "TOTO ticket purchase")
 
 	targetID := binary.LittleEndian.Uint16(pkt[12:14])
 	shopSlot := int16(binary.LittleEndian.Uint16(pkt[14:16]))
@@ -1085,42 +1195,53 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 		Eff:   [6]byte{64, byte(match), 65, byte(scoreA), 66, byte(scoreB)},
 	})
 	if err != nil {
-		log.Printf("[#%d] ERRO ao materializar bilhete TOTO: %v", s.ID, err)
+		log.Printf("[#%d] ERROR materializing TOTO ticket: %v", s.ID, err)
 		s.Send(wire.MessagePanel("The TOTO ticket could not be created."))
 		return
 	}
+	if w.criticalWrites != nil {
+		if err := w.queueTicketPurchase(p, ticket, int(dst), totalPrice, treasury, city); err != nil {
+			log.Printf("[#%d] submit TOTO purchase match=%d: %v", s.ID, match, err)
+			s.Send(wire.MessagePanel("The TOTO purchase could not be submitted. Please try again."))
+		}
+		return
+	}
 	if err := w.commitTicketPurchase(p, ticket, int(dst), totalPrice, city, treasury); err != nil {
-		log.Printf("[#%d] ERRO ao salvar bilhete TOTO partida=%d: %v", s.ID, match, err)
+		log.Printf("[#%d] ERROR saving TOTO ticket match=%d: %v", s.ID, match, err)
 		s.Send(wire.MessagePanel("The TOTO purchase could not be completed."))
 		return
 	}
 
-	// O 0x3CE nao possui confirmacao S->C. Publicamos somente os dois snapshots
-	// nativos necessarios para materializar o bilhete e o novo saldo.
+	// 0x3CE has no server response. Publish only the two native snapshots
+	// needed to materialize the ticket and updated balance.
 	s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	log.Printf("[#%d] comprou TOTO partida=%d placar=%d-%d por %d gold (base=%d) -> inv[%d]",
+	log.Printf("[#%d] bought TOTO match=%d score=%d-%d for %d gold (base=%d) -> inv[%d]",
 		s.ID, match, scoreA, scoreB, totalPrice, basePrice, dst)
 }
 
-// onSellItem: 0x37A. Vende um item do inventario pro mercador aberto por
-// 25% do preco de compra. Server-authoritative: o TargetID deve corresponder
-// ao mercador aberto, mas a loja e o preco sao resolvidos por p.ShopNPC.
+// onSellItem: 0x37A. Sell an inventory item to the open merchant at 25% of
+// purchase price. TargetID must match, but p.ShopNPC resolves the
+// authoritative shop and price.
 func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	// len(pkt) >= 17: le MyType@14 e MyPos@16. Sem isto um 0x37A curto forjado
-	// causaria panic no acesso a pkt[16].
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 20 {
+	// Require 17 bytes for MyType@14 and MyPos@16. Otherwise a forged short
+	// 0x37A would panic at pkt[16].
+	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || w.shuttingDown ||
+		p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) || playerCurHP(p.Char) == 0 || len(pkt) != 20 {
 		return
 	}
-	w.cancelTrade(p, "venda em loja")
+	if p.Trade != nil && w.criticalPlayerReserved(w.playerByID(p.Trade.OpponentID)) {
+		return
+	}
+	w.cancelTrade(p, "shop sale")
 	targetID := binary.LittleEndian.Uint16(pkt[12:14])
 	if p.ShopNPC == 0 {
-		log.Printf("[#%d] venda sem loja aberta", s.ID)
+		log.Printf("[#%d] sale without an open shop", s.ID)
 		return
 	}
 	if targetID != p.ShopNPC {
-		log.Printf("[#%d] venda para merchant divergente packet=%d aberto=%d", s.ID, targetID, p.ShopNPC)
+		log.Printf("[#%d] sale merchant mismatch packet=%d open=%d", s.ID, targetID, p.ShopNPC)
 		s.Send(wire.MessagePanel("That merchant is no longer available."))
 		return
 	}
@@ -1135,15 +1256,15 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	}
 	myType := pkt[14] // MyType@14 (0=equip,1=inv)
 	myPos := pkt[16]  // MyPos@16
-	// A UI normal vende a partir do Carry. Aceitar Equip permitia forjar o
-	// MyType e vender rosto/capa/montaria ou outros slots estruturais.
+	// Normal UI sells from Carry. Accepting Equip would allow forged MyType
+	// to sell faces, capes, mounts, or other structural slots.
 	if myType != placeInv {
-		log.Printf("[#%d] venda rejeitada fora do inventario type=%d pos=%d", s.ID, myType, myPos)
+		log.Printf("[#%d] sale rejected outside inventory type=%d pos=%d", s.ID, myType, myPos)
 		return
 	}
 	src := slotOf(p.Char, myType, myPos)
 	if src == nil || src.Index == 0 {
-		log.Printf("[#%d] venda invalida type=%d pos=%d", s.ID, myType, myPos)
+		log.Printf("[#%d] invalid sale type=%d pos=%d", s.ID, myType, myPos)
 		return
 	}
 	if _, filled := model.CelestialSealID(*src); filled {
@@ -1155,7 +1276,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	def, exists := w.items[sold]
 	basePrice := uint64(0)
 	if exists {
-		basePrice = uint64(def.Price) / 4 // padrao WYD: vende por 25% do preco de compra
+		basePrice = uint64(def.Price) / 4 // WYD sale price is 25% of purchase price.
 	}
 	basePrice = passiveMerchantSalePrice(p.Char, sold, basePrice)
 	city, taxRate, taxed := w.cityShopTax(m)
@@ -1166,31 +1287,40 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		netPrice -= tax
 		treasury = tax / 4
 	}
-	// Teto de gold: a venda credita gold e nao pode ultrapassar 2 bilhoes, como
-	// toda entrada de gold no servidor. Sem isto era o unico credito sem teto.
+	// Sale credits must respect the two-billion gold cap like every other
+	// server-side gold source.
 	if uint64(p.Char.Gold) > uint64(maxCharacterGold) || netPrice > uint64(maxCharacterGold)-uint64(p.Char.Gold) {
 		s.Send(wire.MessagePanel("You cannot carry any more gold."))
-		s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // item intacto
+		s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // Item unchanged.
+		return
+	}
+	if w.criticalWrites != nil {
+		if err := w.queueShopSale(p, int(myPos), netPrice, treasury, city); err != nil {
+			log.Printf("[#%d] submit merchant sale item=%d: %v", s.ID, sold, err)
+			// The item is unchanged on admission rejection, not optimistically sold.
+			s.Send(wire.MessagePanel("The sale could not be submitted. Please try again."))
+			s.Send(wire.SendItem(p.ID, myType, myPos, *src))
+		}
 		return
 	}
 	if err := w.commitShopSale(p, src, netPrice, city, treasury); err != nil {
-		log.Printf("[#%d] ERRO ao salvar venda item=%d: %v", s.ID, sold, err)
+		log.Printf("[#%d] ERROR saving sale item=%d: %v", s.ID, sold, err)
 		return
 	}
-	s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // slot agora vazio
-	s.Send(wire.UpdateEtc(p.ID, *p.Char))            // atualiza gold
-	log.Printf("[#%d] vendeu item %d por %d gold (base=%d; city=%d; gold=%d)", s.ID, sold, netPrice, basePrice, city, p.Char.Gold)
+	s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // Slot now empty.
+	s.Send(wire.UpdateEtc(p.ID, *p.Char))            // Update gold.
+	log.Printf("[#%d] sold item %d for %d gold (base=%d; city=%d; gold=%d)", s.ID, sold, netPrice, basePrice, city, p.Char.Gold)
 }
 
-// onMove: 0x366. PosX/Y@12 e Route[24] descrevem uma intencao de caminhada;
-// TargetX/Y@24 e o destino visual. O pacote e replicado para a interpolacao do
-// client, mas player_movement.go so promove os passos vencidos a autoridade.
+// onMove: 0x366. PosX/Y@12 and Route[24] describe movement intent;
+// TargetX/Y@24 is the visual destination. Replicate for client interpolation,
+// but player_movement.go promotes only elapsed steps to authoritative state.
 func (w *World) onMove(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || p.Char == nil || playerCurHP(p.Char) == 0 || len(pkt) < 52 {
 		return
 	}
-	w.cancelTrade(p, "jogador se movimentou")
+	w.cancelTrade(p, "player moved")
 	if binary.LittleEndian.Uint32(pkt[20:24]) == 6 {
 		w.onIllusionMove(p, pkt)
 		return
@@ -1216,9 +1346,9 @@ func (w *World) onMove(s *net.Session, pkt []byte) {
 	}
 	publishX, publishY, publishRoute := startX, startY, wireRoute
 	if catchupSteps > 0 && len(authorityRoute) <= maxMovementRouteBytes {
-		// O observador ainda conhece a última posição autoritativa. Quando a
-		// ponte cabe no wire, publique-a inteira para não encaixar o avatar no
-		// PosX/Y visual adiantado do remetente.
+		// Observers know the last authoritative position. Publish the entire
+		// bridge when it fits the wire rather than snapping the avatar to the
+		// sender's visually advanced PosX/Y.
 		publishX, publishY = p.X, p.Y
 		publishRoute = authorityRoute
 	}
@@ -1272,12 +1402,12 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 		return wire.IllusionMove(p.ID, fromX, fromY, targetX, targetY, speed)
 	})
 	w.syncPlayerVitals(p)
-	log.Printf("[#%d] usou Illusion @(%d,%d)->(%d,%d) mp=-%d", p.Session.ID,
+	log.Printf("[#%d] used Illusion @(%d,%d)->(%d,%d) mp=-%d", p.Session.ID,
 		fromX, fromY, targetX, targetY, mana)
 }
 
-// onActionStop trata MSG_Stop (0x367, 52B). No 7.48, PosX/Y@12 e
-// TargetX/Y@24 descrevem um pequeno plano final; Route[24] vem zerada.
+// onActionStop handles MSG_Stop (0x367, 52B). PosX/Y@12 and
+// TargetX/Y@24 describe a short final plan; Route[24] is zeroed.
 func (w *World) onActionStop(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 52 {
@@ -1285,7 +1415,7 @@ func (w *World) onActionStop(s *net.Session, pkt []byte) {
 	}
 	targetX, targetY, route, ok := w.validatedActionStopRoute(p, pkt)
 	if !ok {
-		w.recordSecurityViolation(s, wire.OpActionStop, "Stop tentou reposicionar o personagem")
+		w.recordSecurityViolation(s, wire.OpActionStop, "Stop attempted to reposition the character")
 		return
 	}
 	if len(route) == 0 {
@@ -1293,13 +1423,13 @@ func (w *World) onActionStop(s *net.Session, pkt []byte) {
 		w.refreshPlayerVisibility(p)
 		return
 	}
-	// O próprio client já anima sua parada localmente. Para os observadores,
-	// publique a rota reconstruída a partir da posição autoritativa atual.
+	// The owner already animates its stop locally. For observers,
+	// publish the reconstructed route from the authoritative position.
 	w.beginPlayerMovement(p, p.X, p.Y, targetX, targetY, route, route, 0, w.now())
 }
 
-// onMoveStop: MSG_MOVESTOP 0x2CB (36B). CurrentX/Y ficam em @20/@24; o client
-// envia este pacote ao interromper uma caminhada para atacar.
+// onMoveStop: MSG_MOVESTOP 0x2CB (36B). CurrentX/Y are at @20/@24.
+// The client sends it when interrupting walking to attack.
 func (w *World) onMoveStop(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || !p.InWorld || p.Char == nil || len(pkt) != 36 {
@@ -1309,7 +1439,7 @@ func (w *World) onMoveStop(s *net.Session, pkt []byte) {
 	y := binary.LittleEndian.Uint32(pkt[24:28])
 	if x == 0 || y == 0 || x > 65535 || y > 65535 ||
 		!w.validReportedStop(p, uint16(x), uint16(y)) {
-		w.recordSecurityViolation(s, wire.OpMoveStop, "MoveStop tentou reposicionar o personagem")
+		w.recordSecurityViolation(s, wire.OpMoveStop, "MoveStop attempted to reposition the character")
 		return
 	}
 	w.publishPlayerStop(p)
@@ -1407,6 +1537,31 @@ func (w *World) bindPlayerHomeCity(p *Player) {
 	if !ok || playerHomeCity(p.Char) == city {
 		return
 	}
+	if w.criticalWrites != nil {
+		if w.criticalTradeReserved(p) {
+			return
+		}
+		proposed := accountStateSnapshot(p.Account)
+		ch := &proposed.Chars[p.CharSlot]
+		oldX, oldY := p.X, p.Y
+		stagePlayerHomeCity(&Player{Char: ch, X: oldX, Y: oldY})
+		err := w.queueCriticalAccountWrite(p, proposed, criticalWrite{}, "hometown binding",
+			"Your return city could not be saved.", func() {
+				p.Char.Score.Merchant = ch.Score.Merchant
+				if p.Char.RuntimeScore != nil && ch.RuntimeScore != nil {
+					p.Char.RuntimeScore.Merchant = ch.RuntimeScore.Merchant
+				}
+			}, nil, false, criticalAccountMutationHooks{check: func() error {
+				if p.X != oldX || p.Y != oldY {
+					return errCriticalPersistenceIdentity
+				}
+				return nil
+			}})
+		if err != nil {
+			log.Printf("[#%d] hometown binding admission rejected: %v", p.Session.ID, err)
+		}
+		return
+	}
 	if err := w.savePlayerLocation(p); err != nil {
 		log.Printf("[#%d] ChangeCity failed to persist %s[%d]: %v",
 			p.Session.ID, cityWarZones[city].name, city, err)
@@ -1422,6 +1577,9 @@ func (w *World) bindPlayerHomeCity(p *Player) {
 func (w *World) recallPlayer(p *Player, reason string) bool {
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld {
 		return false
+	}
+	if w.criticalWrites != nil {
+		return w.queueCriticalRecall(p, reason)
 	}
 	// Restart or recall also exits the instance. Without detaching the member,
 	// later cleanup could teleport them to the old room or block re-entry.
@@ -1490,12 +1648,12 @@ func (w *World) onSetShortSkill(s *net.Session, pkt []byte) {
 	copy(p.Char.ShortSkill[:], pkt[12:32])
 	filterShortSkills(p.Char)
 	s.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
-	log.Printf("[#%d] barra de skills atualizada: %v", s.ID, p.Char.ShortSkill)
+	log.Printf("[#%d] skill bar updated: %v", s.ID, p.Char.ShortSkill)
 }
 
-// filterShortSkills separa a mascara autoritativa de skills aprendidas dos
-// atalhos visuais. O client pode mandar indices globais (classe*24 + skill) ou
-// locais; qualquer atalho sem bit correspondente em LearnedSkill e removido.
+// filterShortSkills separates the learned-skill mask from visual shortcuts.
+// Clients may send global (class*24 + skill) or local indices;
+// remove shortcuts without a corresponding LearnedSkill bit.
 func filterShortSkills(ch *model.Char) {
 	for i, value := range ch.ShortSkill {
 		if value == 0xFF {
@@ -1515,9 +1673,9 @@ func filterShortSkills(ch *model.Char) {
 	}
 }
 
-// ChangeCity informa o village em @12, mas o TMSrv legado nao confia nesse
-// valor: deriva a cidade da posicao atual e grava o hometown em Merchant[7:6].
-// Isso impede que um pacote forjado escolha remotamente outra cidade.
+// ChangeCity reports village@12, but legacy TMSrv derives the city
+// from the authoritative position and stores hometown in Merchant[7:6].
+// A forged packet cannot remotely select another city.
 func (w *World) onChangeCity(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || p.Char.Score == nil || p.Account == nil || !p.InWorld || len(pkt) != 16 {
@@ -1526,7 +1684,7 @@ func (w *World) onChangeCity(s *net.Session, pkt []byte) {
 	reportedVillage := binary.LittleEndian.Uint32(pkt[12:16])
 	city, ok := bindableCityAt(p.X, p.Y)
 	if !ok {
-		log.Printf("[#%d] ChangeCity ignorado fora de cidade @(%d,%d) village=%d",
+		log.Printf("[#%d] ChangeCity ignored outside a city @(%d,%d) village=%d",
 			s.ID, p.X, p.Y, reportedVillage)
 		return
 	}
@@ -1536,7 +1694,7 @@ func (w *World) onChangeCity(s *net.Session, pkt []byte) {
 		return
 	}
 	if reportedVillage != uint32(city) {
-		log.Printf("[#%d] ChangeCity village reportado=%d divergente; usando posicao autoritativa %s[%d] @(%d,%d)",
+		log.Printf("[#%d] ChangeCity village mismatch reported=%d; using authoritative position %s[%d] @(%d,%d)",
 			s.ID, reportedVillage, cityWarZones[city].name, city, p.X, p.Y)
 		return
 	}
@@ -1544,33 +1702,46 @@ func (w *World) onChangeCity(s *net.Session, pkt []byte) {
 		s.ID, cityWarZones[city].name, city, p.X, p.Y)
 }
 
-// onSysQuit trata o 0x3AE. ATENCAO: no client 7.48 esse opcode e SOBRECARREGADO
-// -- e MSG_DelayStart E MSG_SysQuit (Basedef.h). O client manda em TELEPORTE e
-// MORTE (DelayStart de carregar a cena), nao so ao sair. Por isso NAO tratamos
-// como saida: nao fechamos loja fantasma nem cancelamos trade (a loja so fecha
-// ao abrir outra ou desconectar; o quit real e o socket caindo -> onDisconnect).
-// So sincronizamos/gravamos a posicao e devolvemos o ack.
+// onSysQuit handles overloaded 0x3AE: MSG_DelayStart and MSG_SysQuit.
+// The 7.48 client sends it on teleport and death (scene loading),
+// not just logout. Do not close ghost shops or cancel trades here.
+// Shops close on replacement or disconnect; the actual logout is
+// transport closure, processed by onDisconnect.
+// Synchronize/persist position and return the acknowledgment.
 func (w *World) onSysQuit(s *net.Session) {
 	p := w.players[s]
 	if p == nil || p.Char == nil {
 		return
 	}
+	if w.criticalWrites != nil {
+		images := criticalPreimages(p)
+		p.Char.X, p.Char.Y = p.X, p.Y
+		err := w.queueCriticalLiveMutation("DelayStart", images, func() {
+			if !s.IsClosed() {
+				s.Send(wire.SysQuit(p.ID))
+			}
+		}, criticalLiveMutationOptions{})
+		if err != nil {
+			log.Printf("[#%d] DelayStart(0x3AE) admission rejected: %v", s.ID, err)
+		}
+		return
+	}
 	p.Char.X, p.Char.Y = p.X, p.Y
 	if err := w.saveAccount(p.Account); err != nil {
-		log.Printf("[#%d] erro ao salvar no DelayStart(0x3AE): %v", s.ID, err)
+		log.Printf("[#%d] error saving during DelayStart(0x3AE): %v", s.ID, err)
 		return
 	}
 	s.Send(wire.SysQuit(p.ID))
-	log.Printf("[#%d] DelayStart(0x3AE) ack (teleporte/morte/saida)", s.ID)
+	log.Printf("[#%d] DelayStart(0x3AE) ack (teleport/death/exit)", s.ID)
 }
 
-// attackRange = alcance de melee em tiles (distancia de Chebyshev).
+// attackRange is melee reach in tiles (Chebyshev distance).
 const attackRange = 3
 
-// physicalAttackRange porta o alcance de ataque normal do _MSG_Attack: armas
-// de alcance usam exclusivamente o EF_RANGE da arma principal (slot 6), com
-// os dois tiles de base e a margem nativa de tres. Um arco EF_RANGE=5 atinge
-// ate 10 tiles; ataque sem arma de alcance permanece melee (3).
+// physicalAttackRange ports normal _MSG_Attack reach. Ranged weapons
+// use main-hand (slot 6) EF_RANGE, two base tiles and
+// the native three-tile margin. EF_RANGE=5 bows reach ten tiles;
+// attacks without a ranged weapon remain melee (three tiles).
 func (w *World) physicalAttackRange(ch *model.Char) int {
 	extra := 0
 	if specialSkillLearned(ch, 101) {
@@ -1591,12 +1762,12 @@ func (w *World) physicalAttackRange(ch *model.Char) int {
 	return minInt(23, 2+weaponRange+3+extra)
 }
 
-// isLearnedClassSkill separa uma execucao real de skill de um ataque normal.
-// No wire do 7.48 o campo SkillId e sempre transmitido. Ataques de arco podem
-// deixa-lo com um valor nao-negativo embora nao representem uma skill; enviar
-// todo valor >= 0 para onSkillAttack faria o golpe ser descartado como "skill
-// nao aprendida". A unica forma de um pacote entrar no caminho de skills e o
-// indice pertencer a classe do personagem e estar aprendido no servidor.
+// isLearnedClassSkill distinguishes actual skills from normal attacks.
+// The 7.48 wire always sends SkillId. Bow attacks can leave it
+// nonnegative without representing a skill. Routing every such value
+// to onSkillAttack would reject normal hits as unlearned skills.
+// Only a learned index belonging to this character's class
+// may enter the skill path.
 func isLearnedClassSkill(ch *model.Char, skillIndex int) bool {
 	if ch == nil || skillIndex < 0 {
 		return false
@@ -1627,9 +1798,10 @@ func spectralPacket(ch *model.Char, packet []byte) []byte {
 	return packet
 }
 
-// Physical actions are capped at 2.5/s. Attack Speed above 100% increases the
-// Double Hit chance instead of allowing packet frequency to grow without bound.
-const physicalAttackInterval = 400 * time.Millisecond
+// One physical hit per 900 ms for every character. Attack Speed never shortens
+// the interval: above 100% it raises the Double Hit chance, reaching a double
+// hit on every swing at 200%.
+const physicalAttackInterval = 900 * time.Millisecond
 
 func attackIntervalFor(_ *model.Char) time.Duration { return physicalAttackInterval }
 
@@ -1644,14 +1816,14 @@ func validateClientAttackClock(p *Player, pkt []byte, now time.Time) (clientAtta
 		return clientAttackClock{}, false
 	}
 	tick := binary.LittleEndian.Uint32(pkt[8:12])
-	// SKIPCHECKTICK pertence exclusivamente a ataques gerados pelo servidor.
+	// SKIPCHECKTICK is reserved for server-generated attacks.
 	if tick == 0 || tick == 0x0E0A1ACA {
 		return clientAttackClock{}, false
 	}
 	interval := attackIntervalFor(p.Char)
 	if p.LastAttackTick != 0 {
-		// Subtracao unsigned preserva o wrap natural de GetTickCount, mas um tick
-		// simplesmente retrocedendo nao pode virar um delta gigantesco valido.
+		// Unsigned subtraction preserves GetTickCount wrap, but a genuinely
+		// backward tick must not become a huge valid delta.
 		if tick < p.LastAttackTick && p.LastAttackTick-tick < 0x80000000 {
 			return clientAttackClock{}, false
 		}
@@ -1713,24 +1885,30 @@ func acceptClientSkill(p *Player, pkt []byte, skillIndex int, now time.Time) boo
 	return true
 }
 
-// onAttack: 0x39D/0x367/0x39E. O pacote fornece apenas a intenção de alvo por
-// TargetID. O servidor resolve esse ID e revalida existência, gameplay space,
-// distância, terreno/linha de visão e demais requisitos antes de aplicar o dano.
-// Dano vem de combat.go; em HP 0 o mob morre e agenda respawn.
+// onAttack: 0x39D/0x367/0x39E. The packet nominates TargetID only.
+// The server resolves existence, gameplay space, distance, terrain,
+// line of sight, and other requirements before applying damage.
+// combat.go computes damage; zero HP kills the mob and schedules respawn.
 func (w *World) onAttack(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld {
+	if p == nil || p.Char == nil || !p.InWorld || w.criticalPlayerReserved(p) {
 		return
 	}
 	req := parseAttackSkill(pkt)
+	// Reserve the entire reward set before consuming attack/skill clocks or
+	// mutating either hit of Iron Spear. A later save guard is too late.
+	if (w.mobByID(req.TargetID) != nil || w.mobByID(req.SecondaryTargetID) != nil) &&
+		w.criticalKillParticipantsReserved(p) {
+		return
+	}
 	if playerCurHP(p.Char) == 0 && !(req.Skill == 99 && specialSkillLearned(p.Char, 99)) {
 		return
 	}
 	now := w.now()
-	// SkillId@24 so identifica uma skill se ela foi realmente aprendida pela
-	// classe. O cliente 7.48 tambem preenche esse campo em variantes do ataque
-	// fisico de alcance; nesses casos o golpe precisa continuar aqui, nao virar
-	// uma tentativa silenciosamente rejeitada de usar skill.
+	// SkillId@24 denotes a skill only if learned by this class.
+	// The 7.48 client also fills it for ranged physical attack variants;
+	// those hits must remain here instead of silently becoming
+	// rejected attempts to use a skill.
 	if isLearnedClassSkill(p.Char, req.Skill) {
 		// Skills have their own native SkillData.Delay.  Do not apply the
 		// physical swing limiter here: auto-attacks and spells are independent
@@ -1749,8 +1927,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		metricPhysicalAttackRejected.Add(1)
 		return
 	}
-	// O alvo vem em @44 no layout compacto 7.48. Dano, posicao do atacante e
-	// demais valores enviados pelo client nunca sao aceitos como autoridade.
+	// TargetID is at @44 in compact 7.48. Client-supplied damage,
+	// attacker position, and other values are not authoritative.
 	attackTwo := len(pkt) == 52 && wire.ParseHeader(pkt).Type == wire.OpAttackTwo
 	airBladeEligible := attackTwo
 	ironSpearEligible := attackTwo && p.Char.Class == 3 && p.Char.LearnedSkill&0x40 != 0
@@ -1770,9 +1948,9 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			return
 		}
 		commitClientAttackClock(p, attackClock, now)
-		w.cancelTrade(p, "jogador atacou")
+		w.cancelTrade(p, "player attacked")
 		w.breakHideOnAttack(p)
-		w.cancelTrade(target, "personagem foi atacado")
+		w.cancelTrade(target, "character was attacked")
 		p.CombatTargetID = target.ID
 		target.LastAttackerID = p.ID
 
@@ -1795,24 +1973,24 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 					playerCombatMP(p.Char), 0, true))
 			})
 			w.finalizeIronSpearSecondary(p, secondary)
-			log.Printf("[#%d] errou ataque PvP em %q", s.ID, target.Char.Name)
+			log.Printf("[#%d] missed PvP attack against %q", s.ID, target.Char.Name)
 			return
 		}
 		hit = applyHuntressAirBlade(hit, p.Char, playerDefense(target.Char), airBladeEligible, w.intn)
 		calculated := hit.Damage
 		calculated = addFlatDamage(calculated, w.equipmentGemBonuses(p.Char).forceDamage)
 		calculated = absorbFlatDamage(calculated, w.playerFlatDamageAbsorb(target.Char))
-		// Montaria adulta viva do alvo absorve 25% do dano no proprio HP.
+		// A living adult mount absorbs 25% of damage into its own HP.
 		calculated = uint32(w.absorbMountDamage(target, int(calculated)))
 		calculated = absorbManaControlDamageAt(target.Char, calculated, now)
 		applied := minU32(calculated, playerCurHP(target.Char))
 		setPlayerCurHP(target.Char, playerCurHP(target.Char)-applied)
 		lethal := playerCurHP(target.Char) == 0
 		if lethal {
-			w.cancelTrade(target, "personagem morreu")
+			w.cancelTrade(target, "character died")
 			w.mountRiderDied(target)
 			target.DeadAt = now
-			w.receiveDeathLetter(target, p.Char.Name, "jogador")
+			w.receiveDeathLetter(target, p.Char.Name, "player")
 			w.applyPvPKills(p, target)
 		}
 		secondary := ironSpearSecondaryResult{}
@@ -1821,8 +1999,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 				hit.Double, hit.Critical, now)
 		}
 
-		// O numero flutuante recebe o dano calculado integral, inclusive
-		// overkill. A vida autoritativa continua reduzida somente pelo HP real.
+		// Floating numbers show full calculated damage, including overkill;
+		// authoritative health decreases only by actual available HP.
 		w.sendToPlayerView(target, func() []byte {
 			if secondary.ok {
 				return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, target.X, target.Y,
@@ -1843,7 +2021,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		if lethal {
 			w.publishPlayerDeath(target, p.ID)
 		}
-		log.Printf("[#%d] ataque PvP em %q dmg_calculado=%d aplicado=%d hp=%d",
+		log.Printf("[#%d] PvP attack against %q calculated_damage=%d applied=%d hp=%d",
 			s.ID, target.Char.Name, calculated, applied, playerCurHP(target.Char))
 		return
 	}
@@ -1856,11 +2034,11 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		return
 	}
 	commitClientAttackClock(p, attackClock, now)
-	w.cancelTrade(p, "jogador atacou")
+	w.cancelTrade(p, "player attacked")
 	w.breakHideOnAttack(p)
 	p.CombatTargetID = m.ID
-	// Assim como SetBattle no TMSrv, ser atacado coloca o mob imediatamente em
-	// combate mesmo antes de sua proxima varredura de inimigos visiveis.
+	// Like TMSrv SetBattle, being attacked immediately puts a mob
+	// into combat, before its next scan for visible enemies.
 	m.TargetID = p.ID
 	hit := playerPhysicalHitMobAt(p, m, w.intn, now)
 	if !hit.Hit {
@@ -1880,7 +2058,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 				0, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
 		})
 		w.finalizeIronSpearSecondary(p, secondary)
-		log.Printf("[#%d] errou ataque no mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
+		log.Printf("[#%d] missed attack on mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
 			playerVersusMobAccuracy(p.Char, m.Def))
 		return
 	}
@@ -1888,8 +2066,8 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	dmg := hit.Damage
 	dmg = uint32(applyCouragePvEDamageAt(p.Char, int(dmg), false, now))
 	dmg = addFlatDamage(dmg, w.equipmentGemBonuses(p.Char).forceDamage)
-	// Escudo de boss absorve ANTES de aplicar, para que o numero flutuante do
-	// client mostre o dano real (zero quando imune).
+	// Boss shields absorb before applying damage so floating numbers
+	// show actual damage (zero while immune).
 	dmg = w.bossMitigateDamage(m, dmg)
 	oldHP := m.HP
 	if dmg >= m.HP {
@@ -1897,15 +2075,15 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	} else {
 		m.HP -= dmg
 	}
-	// Gancho do subsistema de boss: para mob comum e so uma consulta de mapa.
+	// Boss subsystem hook: ordinary mobs incur only a map lookup.
 	w.notifyMobDamaged(m, oldHP, p.ID, dmg)
 	secondary := ironSpearSecondaryResult{}
 	if ironSpearEligible && hit.Flank == 0 {
 		secondary = w.applyHuntressIronSpearSecondary(p, req, m.ID, m.X, m.Y,
 			hit.Double, hit.Critical, now)
 	}
-	// O 0x181 atualiza a barra, mas somente o resultado 0x39D produz animacao e
-	// o numero flutuante do dano no client 7.48.
+	// 0x181 updates the bar; only 0x39D triggers animation and
+	// floating damage numbers in the 7.48 client.
 	// Instance mobs share the map coordinates with the public world, but their
 	// hit animation and damage must remain private to the current stage members.
 	// Sending this through broadcast leaked combat packets to outsiders (and
@@ -1928,14 +2106,14 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	if m.HP == 0 {
 		w.killMobState(p, m, dmg, minU32(dmg, oldHP))
 	} else {
-		// golpe nao-fatal: so baixa a barra de HP.
+		// Nonfatal hit: update only the HP bar.
 		w.sendToMobViewProtocol(m, func(observer *Player) []byte {
 			// Source observers own a uint32 resource handler; stock observers
 			// keep the proportional WORD projection used by the original 7.48.
 			return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP,
 				m.Def.Score.MaxMP, m.Def.Score.MaxMP)
 		})
-		w.gameplayLogf("attack", "[#%d] atacou mob id=%d %q dmg=%d hp=%d/%d",
+		w.gameplayLogf("attack", "[#%d] attacked mob id=%d %q dmg=%d hp=%d/%d",
 			s.ID, m.ID, m.Def.Name, dmg, m.HP, m.Def.Score.MaxHP)
 	}
 }
@@ -1965,18 +2143,19 @@ func ironSpearBehindTile(attackerX, attackerY, primaryX, primaryY, x, y uint16) 
 	return int(x) == int(primaryX)+dx && int(y) == int(primaryY)+dy
 }
 
-// applyHuntressIronSpearSecondary implements Lança de Ferro (skill 78). The
+// applyHuntressIronSpearSecondary implements Iron Spear (skill 78). The
 // client only nominates the entity occupying the tile immediately behind the
 // primary target; the server revalidates that geometry and recalculates damage.
 func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastRequest,
 	primaryID, primaryX, primaryY uint16, double, critical bool, now time.Time) ironSpearSecondaryResult {
 	id := req.SecondaryTargetID
-	if attacker == nil || attacker.Char == nil || id == 0 || id == attacker.ID || id == primaryID {
+	if attacker == nil || attacker.Char == nil || w.criticalPlayerReserved(attacker) ||
+		id == 0 || id == attacker.ID || id == primaryID {
 		return ironSpearSecondaryResult{}
 	}
 
 	if m := w.mobByID(id); m != nil {
-		if m.Dead || m.HP == 0 || !w.playerCanInteractWithMob(attacker, m) ||
+		if w.criticalKillParticipantsReserved(attacker) || m.Dead || m.HP == 0 || !w.playerCanInteractWithMob(attacker, m) ||
 			!ironSpearBehindTile(attacker.X, attacker.Y, primaryX, primaryY, m.X, m.Y) ||
 			!w.combatLineOfSight(attacker.X, attacker.Y, m.X, m.Y) {
 			return ironSpearSecondaryResult{}
@@ -2012,7 +2191,7 @@ func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastR
 		return ironSpearSecondaryResult{}
 	}
 	target.LastAttackerID = attacker.ID
-	w.cancelTrade(target, "personagem foi atacado")
+	w.cancelTrade(target, "character was attacked")
 	hit := playerPhysicalFollowupHitPlayerWithRNG(attacker, target, double, critical, w.intn)
 	result := ironSpearSecondaryResult{
 		target: wire.SkillTarget{ID: target.ID, MaxHP: playerMaxHP(target.Char)}, player: target, ok: true,
@@ -2054,17 +2233,17 @@ func (w *World) finalizeIronSpearSecondary(attacker *Player, result ironSpearSec
 	w.syncPlayerVitals(result.player)
 	w.updatePartyMember(result.player)
 	if result.lethal {
-		w.cancelTrade(result.player, "personagem morreu")
+		w.cancelTrade(result.player, "character died")
 		w.mountRiderDied(result.player)
 		result.player.DeadAt = w.now()
-		w.receiveDeathLetter(result.player, attacker.Char.Name, "jogador")
+		w.receiveDeathLetter(result.player, attacker.Char.Name, "player")
 		w.applyPvPKills(attacker, result.player)
 		w.publishPlayerDeath(result.player, attacker.ID)
 	}
 }
 
-// killMobState processa a morte de um monstro, xp, respawn e pacotes de morte.
-// chebyshev = max(|dx|,|dy|), a metrica de distancia do WYD.
+// killMobState handles monster death, XP, respawn, and death packets.
+// chebyshev = max(|dx|,|dy|), WYD's distance metric.
 func chebyshev(ax, ay, bx, by uint16) int {
 	dx, dy := absDiff(ax, bx), absDiff(ay, by)
 	if dy > dx {
@@ -2080,7 +2259,7 @@ func absDiff(a, b uint16) int {
 	return int(b - a)
 }
 
-// pickupRange = alcance (Chebyshev) pra pegar item do chao.
+// pickupRange is ground-item pickup reach (Chebyshev distance).
 const pickupRange = 4
 
 type dropItemRequest struct {
@@ -2094,8 +2273,8 @@ func parseDropItemRequest(pkt []byte) (dropItemRequest, bool) {
 	}
 	srcType := binary.LittleEndian.Uint32(pkt[12:16])
 	srcPos := binary.LittleEndian.Uint32(pkt[16:20])
-	// O 0x175 nativo remove tanto Carry (1) quanto Cargo (2). Equipamento (0)
-	// continua proibido; cada origem tem seu limite de slots autoritativo.
+	// Native 0x175 removes Carry (1) and Cargo (2). Equip (0) remains
+	// prohibited; each source has its own authoritative slot limit.
 	validInventory := srcType == placeInv && srcPos < model.PlayerCarrySlots
 	validCargo := srcType == placeStorage && srcPos < model.PlayerCargoSlots
 	if !validInventory && !validCargo {
@@ -2124,19 +2303,19 @@ func parseGetItemRequest(pkt []byte) (getItemRequest, bool) {
 }
 
 // onDropItem: 0x272 MSG_DropItem (SourType i32@12, SourPos i32@16, Rotate@20,
-// GridXY@24/26). Jogar item no chao: remove do slot (0x182 confirma o vazio) e
-// materializa um GroundItem na posicao do player, com os EFEITOS preservados.
+// GridXY@24/26). Remove the source (0x182 confirms emptiness) and
+// create a GroundItem at the player's position, preserving effects.
 func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	// Carry and Cargo are persisted through the owning account.  A session that
 	// has not completed account binding must never publish a non-durable drop.
-	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || playerCurHP(p.Char) == 0 || w.criticalTradeReserved(p) {
 		return
 	}
-	w.cancelTrade(p, "item jogado no chao")
+	w.cancelTrade(p, "item dropped on the ground")
 	req, ok := parseDropItemRequest(pkt)
 	if !ok {
-		log.Printf("[#%d] pacote de drop invalido", s.ID)
+		log.Printf("[#%d] invalid drop packet", s.ID)
 		return
 	}
 	if req.srcType == placeStorage {
@@ -2153,7 +2332,7 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	// only knows Character storage and made every valid type-2 drop impossible.
 	src := playerSlotOf(p, req.srcType, req.srcPos)
 	if src == nil || src.Index == 0 {
-		log.Printf("[#%d] drop invalido type=%d pos=%d", s.ID, req.srcType, req.srcPos)
+		log.Printf("[#%d] invalid drop type=%d pos=%d", s.ID, req.srcType, req.srcPos)
 		s.Send(wire.MessagePanel("That item can no longer be dropped."))
 		return
 	}
@@ -2162,89 +2341,108 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("A filled Spirit's Seal cannot be dropped."))
 		return
 	}
-	// Reserva no mundo sem publicar. O item somente aparece aos clientes depois
-	// que a remocao autoritativa do inventario estiver persistida.
+	// Reserve without publishing. Clients see the item only after
+	// authoritative inventory removal has been persisted.
 	g := w.createGroundDropForInstance(p.X, p.Y, item, false, w.gameplaySpaceForPlayer(p))
 	if g == nil {
 		s.Send(wire.MessagePanel("There is no room to drop that item here."))
 		return
 	}
+	if w.criticalWrites != nil {
+		if err := w.queueGroundDrop(p, g, req, item); err != nil {
+			w.unregisterGroundItem(g)
+			log.Printf("[#%d] item drop admission rejected: %v", s.ID, err)
+		}
+		return
+	}
 	*src = model.Item{}
-	// Fecha a janela cross-player do autosave: outro jogador pode coletar e
-	// persistir o item antes de a conta do dono salvar a remocao.
+	// Close the cross-player autosave window: another player must not
+	// collect and persist the item before its owner's removal is saved.
 	if err := w.saveAccount(p.Account); err != nil {
 		*src = item
 		w.unregisterGroundItem(g)
-		log.Printf("[#%d] drop cancelado por falha ao salvar: %v", s.ID, err)
+		log.Printf("[#%d] drop canceled after save failure: %v", s.ID, err)
 		s.Send(wire.MessagePanel("Save failed. The item was not dropped."))
 		return
 	}
 	w.publishItemSpawn(g)
-	// 0x175 faz o client destacar o item do cursor e limpar o slot. O 0x182
-	// confirma o mesmo estado autoritativo, como nas demais mutacoes de Carry.
+	// 0x175 detaches the cursor item and clears the slot. 0x182 confirms
+	// the same authoritative state as other Carry mutations.
 	s.Send(wire.CNFDropItem(uint32(req.srcType), uint32(req.srcPos), req.rotate, g.X, g.Y))
 	s.Send(wire.SendItem(p.ID, req.srcType, req.srcPos, *src))
-	log.Printf("[#%d] jogou item %d no chao @(%d,%d)", s.ID, item.Index, g.X, g.Y)
+	log.Printf("[#%d] dropped item %d on the ground @(%d,%d)", s.ID, item.Index, g.X, g.Y)
 }
 
 // onGetItem: 0x270 MSG_GetItem (DestType i32@12, DestPos i32@16, ItemID u16@20,
-// GridXY@22/24). Pegar item do chao: valida alcance, tenta o slot de destino que o
-// client pediu (se livre), senao o primeiro livre; confirma com 0x182 e remove o
-// GroundItem pra todos que o viam.
+// GridXY@22/24). Validate reach and try the requested free slot;
+// otherwise use the first free slot. Confirm with 0x182 and remove
+// the GroundItem for every observer who could see it.
 func (w *World) onGetItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
+	if p == nil || p.Account == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || w.criticalTradeReserved(p) {
 		return
 	}
-	w.cancelTrade(p, "item coletado")
+	w.cancelTrade(p, "item picked up")
 	req, ok := parseGetItemRequest(pkt)
 	if !ok {
-		log.Printf("[#%d] pacote de coleta invalido", s.ID)
+		log.Printf("[#%d] invalid pickup packet", s.ID)
 		return
 	}
 	g := w.groundItems[req.itemID]
-	if g == nil {
-		return // ja pego por outro / expirou
+	if g == nil || g.criticalReserved() {
+		return // already picked up by another player / expired
 	}
 	if !w.groundItemVisibleToPlayer(p, g) {
-		log.Printf("[#%d] tentou recolher item %d de outra instancia", s.ID, req.itemID)
+		log.Printf("[#%d] attempted to pick up item %d from another instance", s.ID, req.itemID)
 		return
 	}
-	// Objeto de mundo e mobilia do mapa, nao loot: sem esta guarda o jogador
-	// caminha ate um portao de castelo e o poe no inventario.
+	// Permanent world objects are map furniture, not loot. Without
+	// this guard a player could put a castle gate into inventory.
 	if g.Permanent {
-		log.Printf("[#%d] tentou recolher o objeto de mundo %d (item %d)",
+		log.Printf("[#%d] attempted to pick up world object %d (item %d)",
 			s.ID, g.ID, g.Item.Index)
 		return
 	}
 	if chebyshev(p.X, p.Y, g.X, g.Y) > pickupRange {
-		log.Printf("[#%d] pegar item %d fora de alcance", s.ID, req.itemID)
+		log.Printf("[#%d] pickup item %d out of range", s.ID, req.itemID)
 		return
 	}
 	if def, exists := w.items[g.Item.Index]; exists {
 		if rule, code, registered := w.volatiles.Rule(g.Item.Index); registered && rule.Action == "ground_gold" {
 			value := volatileGoldValue(rule, g.Item, def)
 			if value == 0 || p.Char.Gold > maxCharacterGold || value > maxCharacterGold-p.Char.Gold {
-				log.Printf("[#%d] moeda item=%d volatile=%d rejeitada: valor=%d gold=%d",
+				log.Printf("[#%d] currency item=%d volatile=%d rejected: value=%d gold=%d",
 					s.ID, g.Item.Index, code, value, p.Char.Gold)
 				return
 			}
 			oldGold := p.Char.Gold
+			if w.criticalWrites != nil {
+				if err := w.queueGroundPickup(p, g, int(req.destPos), value); err != nil {
+					log.Printf("[#%d] currency pickup admission rejected: %v", s.ID, err)
+				}
+				return
+			}
 			p.Char.Gold += value
 			if err := w.saveAccount(p.Account); err != nil {
 				p.Char.Gold = oldGold
-				log.Printf("[#%d] coleta de moeda cancelada por falha ao salvar: %v", s.ID, err)
+				log.Printf("[#%d] currency pickup canceled after save failure: %v", s.ID, err)
 				return
 			}
 			w.publishItemRemove(g)
 			w.unregisterGroundItem(g)
 			s.Send(wire.UpdateEtc(p.ID, *p.Char))
-			log.Printf("[#%d] coletou moeda item=%d gold=+%d total=%d", s.ID, g.Item.Index, value, p.Char.Gold)
+			log.Printf("[#%d] picked up currency item=%d gold=+%d total=%d", s.ID, g.Item.Index, value, p.Char.Gold)
 			return
 		}
 	}
+	if w.criticalWrites != nil {
+		if err := w.queueGroundPickup(p, g, int(req.destPos), 0); err != nil {
+			log.Printf("[#%d] item pickup admission rejected: %v", s.ID, err)
+		}
+		return
+	}
 	slot := -1
-	if req.destType == placeInv { // honra o slot pedido pelo client, se livre
+	if req.destType == placeInv { // honor the client's requested slot if free
 		if dst := slotOf(p.Char, placeInv, req.destPos); dst != nil && dst.Index == 0 {
 			*dst = g.Item
 			slot = int(req.destPos)
@@ -2254,93 +2452,107 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 		slot = addToInv(p.Char, g.Item)
 	}
 	if slot < 0 {
-		log.Printf("[#%d] pegar item %d: inventario cheio", s.ID, req.itemID)
+		log.Printf("[#%d] pickup item %d: inventory full", s.ID, req.itemID)
 		return
 	}
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Char.Inv[slot] = model.Item{}
-		log.Printf("[#%d] coleta cancelada por falha ao salvar: %v", s.ID, err)
+		log.Printf("[#%d] pickup canceled after save failure: %v", s.ID, err)
 		return
 	}
 	w.publishItemRemove(g)
 	w.unregisterGroundItem(g)
-	// 0x171 e a confirmacao nativa da coleta; 0x182 fixa o slot autoritativo.
+	// 0x171 acknowledges pickup; 0x182 fixes the authoritative slot.
 	s.Send(wire.CNFGetItem(uint32(placeInv), uint32(slot)))
 	s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-	log.Printf("[#%d] pegou item %d do chao -> inv[%d]", s.ID, g.Item.Index, slot)
+	log.Printf("[#%d] picked up item %d from the ground -> inv[%d]", s.ID, g.Item.Index, slot)
 }
 
-// onDisconnect: salva a conta e remove o player do mundo. So o loop mexe no mapa
-// (zero mutex). O save e sincrono aqui -- OK porque desconexao e raro e o arquivo
-// e pequeno; se virar multiplayer, mover pra fora do loop.
+// onDisconnect persists and removes players on the World loop.
+// With the staged owner, final account/sidecar persistence retains identity
+// until actor acknowledgement, followed by serialized instance persistence.
+// The default production path remains synchronous until S2 activation gates.
 func (w *World) onDisconnect(s *net.Session) {
 	delete(w.authPending, s)
 	delete(w.security, s)
 	w.releaseAuthenticatedClientSlot(s)
+	if w.deferCriticalDisconnect(s) {
+		w.resumeCriticalDisconnects(criticalCompletionBatchLimit)
+		return
+	}
 	if p, ok := w.players[s]; ok {
-		// Conta e charstate formam um unico aggregate no PostgreSQL. No
-		// disconnect fisico nao ha resposta a segurar, mas uma falha precisa
-		// envenenar a RAM para impedir um save posterior incompleto.
+		// Account and character state form one PostgreSQL aggregate.
+		// After physical disconnect there is no reply to defer, but failure
+		// must poison RAM to prevent saving a later incomplete snapshot.
 		if p.InWorld && p.Account != nil && p.Char != nil && !p.PersistencePoisoned {
 			if err := w.saveAccountAndCharStateResult(p); err != nil {
 				p.PersistencePoisoned = true
-				log.Printf("[#%d] ERRO ao salvar estado completo de %q: %v", s.ID, p.Account.Name, err)
+				log.Printf("[#%d] ERROR saving full state for %q: %v", s.ID, p.Account.Name, err)
 			}
 		} else if p.Account != nil && !p.PersistencePoisoned {
 			if err := w.saveAccount(p.Account); err != nil {
 				p.PersistencePoisoned = true
-				log.Printf("[#%d] ERRO ao salvar conta %q: %v", s.ID, p.Account.Name, err)
+				log.Printf("[#%d] ERROR saving account %q: %v", s.ID, p.Account.Name, err)
 			}
 		}
-		w.detachPlayerFromItemInstances(p.ID, w.now())
-		// Persist the UID-based Water membership immediately. Waiting for the
-		// next autosave would make a clean disconnect look like a lost room after
-		// a process restart.
-		w.flushInstanceStateIfDirty()
-		w.unregisterPlayerSpatial(p)
-		w.closeGhostShop(p, "desconexao")
-		w.cancelTrade(p, "desconexao")
-		// Remove primeiro o grupo e a entidade visivel. O client nao pode manter
-		// personagem/party fantasma depois que o socket caiu.
-		w.removePartyPlayer(p)
-		// Evocacoes pertencem ao dono: despawnam na desconexao, senao ficariam
-		// orfas e seguiriam o proximo player a reusar este ID.
-		w.removePlayerSummons(p.ID)
-		for _, other := range w.players {
-			if other != p && other.InWorld && other.hasVisible(p.ID) {
-				other.Session.Send(wire.RemoveMob(p.ID, 0))
-				other.hide(p.ID)
-			}
-		}
-		w.releaseAccountSession(s, p.Account)
-		w.unindexPlayerCharacter(p)
-		delete(w.playersByID, p.ID)
-		delete(w.players, s)
+		w.finishDisconnect(s, p)
 	}
-	log.Printf("[#%d] player removido", s.ID)
+}
+
+// The legacy path persists instance membership inline. The staged lifecycle
+// performs these steps separately and calls finishDisconnectAfterInstances only
+// after its detached instance snapshot has been acknowledged on World.
+func (w *World) finishDisconnect(s *net.Session, p *Player) {
+	w.detachPlayerFromItemInstances(p.ID, w.now())
+	// Persist the UID-based Water membership immediately. Waiting for the
+	// next autosave would make a clean disconnect look like a lost room after
+	// a process restart.
+	w.flushInstanceStateIfDirty()
+	w.finishDisconnectAfterInstances(s, p)
+}
+
+func (w *World) finishDisconnectAfterInstances(s *net.Session, p *Player) {
+	w.unregisterPlayerSpatial(p)
+	w.closeGhostShop(p, "disconnect")
+	w.cancelTrade(p, "disconnect")
+	// Remove party membership and visibility first so clients cannot
+	// retain ghost characters or party members after socket closure.
+	w.removePartyPlayer(p)
+	// Despawn owner summons on disconnect; orphans must not follow
+	// the next player to reuse this ID.
+	w.removePlayerSummons(p.ID)
+	for _, other := range w.players {
+		if other != p && other.InWorld && other.hasVisible(p.ID) {
+			other.Session.Send(wire.RemoveMob(p.ID, 0))
+			other.hide(p.ID)
+		}
+	}
+	w.releaseAccountSession(s, p.Account)
+	w.unindexPlayerCharacter(p)
+	delete(w.playersByID, p.ID)
+	delete(w.players, s)
+	log.Printf("[#%d] player removed", s.ID)
 }
 
 func accountSessionKey(name string) string {
 	return strings.ToLower(strings.TrimSpace(name))
 }
 
-// claimAccountSession roda apenas no loop do World, portanto a verificacao e a
-// reserva sao atomicas sem mutex. So e chamada depois da senha correta para nao
-// permitir enumerar externamente quais contas estao online.
+// claimAccountSession runs only on the World loop. Authenticate first to avoid
+// exposing account presence. Ownership ends after persistence and cleanup, not
+// when the transport closes: a queued disconnect still owns live mutable state.
 func (w *World) claimAccountSession(s *net.Session, name string) bool {
+	// Authentication may have read an old snapshot before a critical commit.
+	// Do not reach the gameplay reload until World has applied its completion.
+	if w.criticalAccountReserved(name) {
+		return false
+	}
 	if w.accountSessions == nil {
 		w.accountSessions = make(map[string]*net.Session)
 	}
 	key := accountSessionKey(name)
 	if active := w.accountSessions[key]; active != nil && active != s {
-		// Em carga alta, o socket pode terminar antes de o comando nil de
-		// desconexão chegar ao loop do World. Não mantenha a conta presa até o
-		// backlog ser drenado: a reserva do socket morto já não protege ninguém.
-		if active.IsClosed() {
-			delete(w.accountSessions, key)
-		} else {
-			return false
-		}
+		return false
 	}
 	w.accountSessions[key] = s
 	return true
@@ -2356,8 +2568,8 @@ func (w *World) releaseAccountSession(s *net.Session, acc *model.Account) {
 	}
 }
 
-// characterNameTaken checa a unicidade do nome pelo indice em memoria quando ele
-// existe (O(1), sem tocar o disco). Sem o indice, cai no scan do store legado.
+// characterNameTaken uses the in-memory index if available (O(1),
+// no disk access); otherwise fall back to the legacy store scan.
 func (w *World) characterNameTaken(name string) (bool, error) {
 	if w.charNames != nil {
 		_, taken := w.charNames[strings.ToLower(name)]
@@ -2366,7 +2578,7 @@ func (w *World) characterNameTaken(name string) (bool, error) {
 	return w.store.CharacterNameExists(name)
 }
 
-// mobByID acha o mob (NPC/monstro) vivo pelo ClientId; nil se nao existir.
+// mobByID finds a living NPC/monster by ClientId; nil if absent.
 func (w *World) mobByID(id uint16) *Mob {
 	m := w.mobsByID[id]
 	if m == nil || m.Dead {
@@ -2375,8 +2587,8 @@ func (w *World) mobByID(id uint16) *Mob {
 	return m
 }
 
-// addToInv poe o item no primeiro slot VISIVEL do inventario. O array/wire tem
-// 64 entradas, mas o indice 63 nao possui celula na UI do client 7.48.
+// addToInv uses the first visible slot. The wire array has 64 entries,
+// but index 63 has no cell in the 7.48 client UI.
 func addToInv(ch *model.Char, it model.Item) int {
 	it, err := materializeItem(it)
 	if err != nil {
@@ -2391,7 +2603,7 @@ func addToInv(ch *model.Char, it model.Item) int {
 	return -1
 }
 
-// slotOf resolve (type,pos) -> ponteiro pro item no char; nil se invalido.
+// slotOf resolves (type,pos) to an item pointer; nil if invalid.
 func slotOf(ch *model.Char, typ, pos byte) *model.Item {
 	switch typ {
 	case placeEquip:
@@ -2406,10 +2618,10 @@ func slotOf(ch *model.Char, typ, pos byte) *model.Item {
 	return nil
 }
 
-// clientEquipSlotSupported mantém a projeção de equipamento do peer WYD-Go
-// 7.48. O array Equip continua com 16 posições para preservar o wire e dados
-// históricos, mas o slot 9 (Necklace) e os NewSlot/Belt posteriores não são
-// destinos equipáveis no client ativo.
+// clientEquipSlotSupported maintains the WYD-Go 7.48 projection.
+// Equip retains 16 positions for historical data and wire compatibility.
+// Necklace (slot 9) and later NewSlot/Belt entries are not equippable
+// destinations in the active client.
 func clientEquipSlotSupported(pos byte) bool {
 	return pos < model.MaxEquipSlots && pos != 9
 }
@@ -2428,9 +2640,9 @@ func clientEquipProjection(ch *model.Char) [model.MaxEquipSlots]model.Item {
 	return equip
 }
 
-// migrateUnsupportedEquipment torna saves antigos utilizáveis sem apagar
-// itens. O slot Necklace é movido primeiro para o Carry visível e depois para
-// o Cargo visível; a gravação falha com rollback completo.
+// migrateUnsupportedEquipment makes old saves usable without deletion.
+// Move Necklace to visible Carry, then visible Cargo;
+// persistence failure rolls back the entire migration.
 func (w *World) migrateUnsupportedEquipment(p *Player) {
 	if p == nil || p.Char == nil || p.Account == nil || p.Char.Equip[9].Index == 0 {
 		return
@@ -2440,38 +2652,42 @@ func (w *World) migrateUnsupportedEquipment(p *Player) {
 		sessionID = p.Session.ID
 	}
 	item := p.Char.Equip[9]
+	snapshot := snapshotTimedAccountItems(p.Account)
+	if !planUnsupportedEquipment(p) {
+		log.Printf("[#%d] incompatible equipment %d retained in Equip[9]: Carry and Cargo full",
+			sessionID, item.Index)
+		return
+	}
+	if err := w.saveAccount(p.Account); err != nil {
+		restoreTimedAccountItems(p.Account, snapshot)
+		log.Printf("[#%d] failed to migrate incompatible equipment %d: %v", sessionID, item.Index, err)
+		return
+	}
+	log.Printf("[#%d] incompatible equipment %d migrated from Equip[9] into storage", sessionID, item.Index)
+}
+
+// planUnsupportedEquipment changes only the supplied account. A staged entry
+// uses a detached account and persists this move with timed-item preparation.
+func planUnsupportedEquipment(p *Player) bool {
+	if p == nil || p.Char == nil || p.Account == nil || p.Char.Equip[9].Index == 0 {
+		return false
+	}
+	item := p.Char.Equip[9]
 	for slot := 0; slot < model.PlayerCarrySlots; slot++ {
 		if p.Char.Inv[slot].Index != 0 {
 			continue
 		}
 		p.Char.Equip[9], p.Char.Inv[slot] = model.Item{}, item
-		if err := w.saveAccount(p.Account); err != nil {
-			p.Char.Equip[9], p.Char.Inv[slot] = item, model.Item{}
-			log.Printf("[#%d] falha ao migrar equipamento incompatível %d para Carry[%d]: %v",
-				sessionID, item.Index, slot, err)
-			return
-		}
-		log.Printf("[#%d] equipamento incompatível %d migrado de Equip[9] para Carry[%d]",
-			sessionID, item.Index, slot)
-		return
+		return true
 	}
 	for slot := 0; slot < model.PlayerCargoSlots; slot++ {
 		if p.Account.Cargo[slot].Index != 0 {
 			continue
 		}
 		p.Char.Equip[9], p.Account.Cargo[slot] = model.Item{}, item
-		if err := w.saveAccount(p.Account); err != nil {
-			p.Char.Equip[9], p.Account.Cargo[slot] = item, model.Item{}
-			log.Printf("[#%d] falha ao migrar equipamento incompatível %d para Cargo[%d]: %v",
-				sessionID, item.Index, slot, err)
-			return
-		}
-		log.Printf("[#%d] equipamento incompatível %d migrado de Equip[9] para Cargo[%d]",
-			sessionID, item.Index, slot)
-		return
+		return true
 	}
-	log.Printf("[#%d] equipamento incompatível %d retido em Equip[9]: Carry e Cargo cheios",
-		sessionID, item.Index)
+	return false
 }
 
 func playerSlotOf(p *Player, typ, pos byte) *model.Item {
@@ -2487,16 +2703,22 @@ func playerSlotOf(p *Player, typ, pos byte) *model.Item {
 	return slotOf(p.Char, typ, pos)
 }
 
-// affectFaceTransform e o affect COSMETICO da transformacao de rosto (volatiles
-// 70-77). Value = mesh do monstro; sem efeito de combate (diferente do affect 16
-// da transformacao BM). face_restore (89) remove.
+// affectFaceTransform is cosmetic face transformation (volatiles 70-77).
+// Value is the monster mesh; unlike BM affect 16, there is no combat effect.
+// face_restore (89) removes it.
 const affectFaceTransform = 40
 
-// bodyMesh extrai os 16 indices visuais dos slots de equip (ItemEff do CreateMob).
-// bodyAncient devolve o AnctCode (cor/refino antigo) de cada slot de equip, para
-// o campo anct@130 do CreateMob. Sem ele a cor da tintura nao viaja para o mundo
-// (o mesh so leva o refino). Montaria nao entra (seus bytes de estado nao sao
-// codigo de sanc).
+// affectFaceTransformClientType is the visual slot sent for the face
+// transformation. The client reads affect word 40 as a stun (it sets
+// m_cCantMove, m_cCantAttk and the skill block), which froze a transformed
+// player; slot 16 is the native Transformation icon and sets no state flag.
+const affectFaceTransformClientType = 16
+
+// bodyMesh extracts 16 visual equipment indices (CreateMob ItemEff).
+// bodyAncient returns each slot's AnctCode (ancient color/refinement)
+// for CreateMob anct@130; without it dye color cannot reach the world.
+// The mesh carries only refinement. Mount state bytes are excluded:
+// they are not refinement codes.
 func bodyAncient(ch *model.Char) []byte {
 	if ch == nil {
 		return nil
@@ -2527,7 +2749,7 @@ func bodyMeshAt(ch *model.Char, now time.Time) []uint16 {
 	faces := [...]uint16{22, 23, 24, 25, 32}
 	for i := range ch.Affects {
 		a := &ch.Affects[i]
-		// Transformacao de rosto de monstro (cosmetica): o mesh vem no Value.
+		// Cosmetic monster-face transformation takes its mesh from Value.
 		if a.Type == affectFaceTransform && a.ExpiresAt.After(now) && a.Value > 0 {
 			m[0] = uint16(a.Value)
 			break
@@ -2540,7 +2762,7 @@ func bodyMeshAt(ch *model.Char, now time.Time) []uint16 {
 	return m
 }
 
-// cstr le uma C-string (ate o primeiro NUL) de um slice.
+// cstr reads a byte-slice C-string through the first NUL.
 func cstr(b []byte) string {
 	for i := range b {
 		if b[i] == 0 {

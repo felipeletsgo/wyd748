@@ -126,12 +126,12 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 	{
 		// Restore trade highlighting across the native 9x7 Carry grid instead of
 		// walking the four page controls that do not exist in FieldScene2.
-		const int carryPages = m_bCompatFieldScene ? 1 : 4;
-		const int carryRows = m_bCompatFieldScene ? 7 : 3;
-		const int carryColumns = m_bCompatFieldScene ? 9 : 5;
+		const int carryPages = 1;
+		const int carryRows = 7;
+		const int carryColumns = 9;
 		for (int i = 0; i < carryPages; ++i)
 		{
-			SGridControl* pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
+			SGridControl* pGridInv = m_pGridInv;
 			if (!pGridInv)
 				continue;
 
@@ -251,6 +251,13 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 
 void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 {
+	auto placeAutoTradeCentred = [this]()
+	{
+		if (m_pAutoTrade && g_pDevice)
+			m_pAutoTrade->SetPos(
+				g_pDevice->m_dwScreenWidth * 0.5f - m_pAutoTrade->m_nWidth * 0.5f,
+				g_pDevice->m_dwScreenHeight * 0.5f - m_pAutoTrade->m_nHeight * 0.5f);
+	};
 	if (!bShow)
 		WYD748_CancelAutoTradePurchase(m_pMessageBox);
 
@@ -259,346 +266,201 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 	if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible() == 1)
 		SetInVisibleInputCoin();
 
-	if (m_bCompatFieldScene)
-	{
-		// Native WYD 7.48 FUN_0044ae38 owns panel 646, twelve grids 653..664,
-		// price labels 800..811 and a single inventory/cargo surface.  The imported
-		// 7.59 implementation below assumes different panels and page arrays, which
-		// is why clicking control 313 previously dereferenced a null panel at +0x28.
-		if (!m_pControlContainer || !m_pAutoTrade)
-			return;
-
-		auto pBtnCloseAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_CLOSE));
-		// FieldScene2.bin owns the native bottom-bar IDs; using the 7.59 aliases
-		// left their selected state detached from the visible 7.48 buttons.
-		auto pBtnAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_AUTOTRADEBTN));
-		auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAR));
-		auto pBtnInv = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_EQUIP));
-		auto pBtnSkill = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SKILL));
-		auto pRunAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_RUN));
-		auto pMyCargoCoin = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATRADE_COIN));
-		auto pMyCargoCoinB = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_COIN));
-
-		if (pBtnCloseAutoTrade)
-			pBtnCloseAutoTrade->SetVisible(0);
-
-		const bool bSendQuit = m_pAutoTrade->IsVisible() == 1 && !bShow
-			&& (!m_pInvenPanel || !m_pInvenPanel->IsVisible());
-		if (pBtnAutoTrade)
-			pBtnAutoTrade->SetSelected(bShow);
-		m_pAutoTrade->SetVisible(bShow);
-
-		auto setPanelVisible = [](SPanel* panel, int visible)
-		{
-			if (panel)
-				panel->SetVisible(visible);
-		};
-		auto setEquipGridState748 = [this](bool enabled)
-		{
-			// FUN_00447f6f exposes fourteen normal equipment cells and keeps Mantua
-			// non-tradeable in both states; the two 7.59 extension slots do not exist.
-			SGridControl* equipment[] = {
-				m_pGridHelm, m_pGridCoat, m_pGridPants, m_pGridGloves,
-				m_pGridBoots, m_pGridRight, m_pGridLeft, m_pGridGuild,
-				m_pGridEvent, m_pGridRing, m_pGridNecklace, m_pGridOrb,
-				m_pGridCabuncle, m_pGridDRing
-			};
-			for (auto grid : equipment)
-			{
-				if (grid)
-					grid->m_eGridType = enabled
-						? TMEGRIDTYPE::GRID_DEFAULT
-						: TMEGRIDTYPE::GRID_TRADENONE;
-			}
-			if (m_pGridMantua)
-				m_pGridMantua->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
-		};
-
-		if (bShow == 1)
-		{
-			if (g_pCursor)
-				g_pCursor->DetachItem();
-			setPanelVisible(m_pSystemPanel, 0);
-			setPanelVisible(m_pCPanel, 0);
-			setPanelVisible(m_pSkillPanel, 0);
-			setPanelVisible(m_pSkillMPanel, 0);
-			setPanelVisible(m_pShopPanel, 0);
-
-			// FUN_0044ae38 closes normal trade before exposing auto-trade. Keep that
-			// transition on the same cleanup path used by every other trade close so
-			// grids, equipment, offer items, buttons and gold are reset together.
-			if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
-				SetVisibleTrade(0);
-
-			if (pBtnInv)
-				pBtnInv->SetSelected(0);
-			if (pBtnChar)
-				pBtnChar->SetSelected(0);
-			if (pBtnSkill)
-				pBtnSkill->SetSelected(0);
-
-			if (bCargo == 1)
-			{
-				// Native FUN_0044ae38 places the sale chooser at x=530 while
-				// AutoTrade remains at its x=280 anchor.  Keeping both positions
-				// explicit prevents the topmost AutoTrade panel from swallowing
-				// Cargo clicks and makes the two 7.48 windows truly side by side.
-				m_pAutoTrade->SetPos(RenderDevice::m_fWidthRatio * 280.0f,
-					RenderDevice::m_fHeightRatio * 35.0f);
-				if (m_pCargoPanel)
-					m_pCargoPanel->SetPos(RenderDevice::m_fWidthRatio * 530.0f,
-						RenderDevice::m_fHeightRatio * 35.0f);
-				setPanelVisible(m_pCargoPanel, 1);
-				setPanelVisible(m_pInvenPanel, 0);
-				if (pRunAutoTrade)
-					pRunAutoTrade->SetVisible(1);
-				if (pMyCargoCoin)
-					pMyCargoCoin->SetVisible(1);
-				if (pMyCargoCoinB)
-					pMyCargoCoinB->SetVisible(1);
-				for (int slot = 0; slot < 12; ++slot)
-				{
-					if (m_pGridAutoTrade[slot])
-						m_pGridAutoTrade[slot]->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-				}
-			}
-			else
-			{
-				// The classic branch of native FUN_0044ae38 only exposes Carry here;
-				// it does not rewrite root 257. Preserve the responsive position built
-				// by FUN_00435b13 so later Inventory toggles cannot inherit an
-				// AutoTrade-only coordinate.
-				m_pAutoTrade->SetPos(RenderDevice::m_fWidthRatio * 280.0f,
-					RenderDevice::m_fHeightRatio * 35.0f);
-				setPanelVisible(m_pCargoPanel, 0);
-				setPanelVisible(m_pInvenPanel, 1);
-				if (pRunAutoTrade)
-					pRunAutoTrade->SetVisible(0);
-				if (pMyCargoCoin)
-					pMyCargoCoin->SetVisible(0);
-				if (pMyCargoCoinB)
-					pMyCargoCoinB->SetVisible(0);
-				for (int slot = 0; slot < 12; ++slot)
-				{
-					if (m_pGridAutoTrade[slot])
-						m_pGridAutoTrade[slot]->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY2;
-				}
-				if (m_pGridInv)
-					m_pGridInv->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
-				setEquipGridState748(false);
-			}
-			if (m_pCargoGrid)
-				m_pCargoGrid->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
-		}
-		else
-		{
-			if (m_pMyHuman)
-			{
-				m_pMyHuman->m_TradeDesc[0] = 0;
-				if (m_pMyHuman->m_pAutoTradeDesc)
-					m_pMyHuman->m_pAutoTradeDesc->SetText(m_pMyHuman->m_TradeDesc, 0);
-				m_stAutoTrade.Header.ID = m_pMyHuman->m_dwID;
-			}
-			m_stAutoTrade.TargetID = 0;
-
-			if (m_pInvenPanel && m_pInvenPanel->IsVisible() == 1)
-			{
-				if (m_pGridInv)
-					m_pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-				setEquipGridState748(true);
-			}
-
-			for (int slot = 0; slot < 12; ++slot)
-			{
-				// Native labels 800..811 are price state, not decoration; clearing them
-				// with their comma mode prevents values leaking into the next trade.
-				auto pPrice = static_cast<SText*>(m_pControlContainer->FindControl(800 + slot));
-				if (pPrice)
-				{
-					pPrice->m_cComma = 1;
-					pPrice->SetText((char*)"", 0);
-					pPrice->SetVisible(0);
-				}
-
-				auto pGrid = m_pGridAutoTrade[slot];
-				if (!pGrid)
-					continue;
-				auto pItem = pGrid->PickupAtItem(0, 0);
-				int cargoX = 0;
-				int cargoY = 0;
-				GetCargoCellForSlot(m_stAutoTrade.CarryPos[slot], cargoX, cargoY);
-				auto pCargoGrid = GetCargoGridForSlot(m_stAutoTrade.CarryPos[slot]);
-				auto pSrcItem = pCargoGrid ? pCargoGrid->GetAtItem(cargoX, cargoY) : nullptr;
-				if (pSrcItem)
-					pSrcItem->m_GCObj.dwColor = 0xFFFFFFFF;
-				WYD748_ReleaseAutoTradeItem(pItem);
-			}
-
-			setPanelVisible(m_pInvenPanel, 0);
-			setPanelVisible(m_pCargoPanel, 0);
-			if (g_pDevice)
-				g_pDevice->m_nWidthShift = 0;
-			if (m_pCargoGrid)
-				m_pCargoGrid->m_eGridType = TMEGRIDTYPE::GRID_CARGO;
-			memset(&m_stAutoTrade, 0, sizeof(m_stAutoTrade));
-
-			if (bSendQuit && m_pMyHuman)
-			{
-				MSG_STANDARD quitAutoTrade{};
-				quitAutoTrade.Type = 0x384;
-				quitAutoTrade.ID = m_pMyHuman->m_dwID;
-				SendOneMessage(reinterpret_cast<char*>(&quitAutoTrade), sizeof(quitAutoTrade));
-			}
-		}
+	// Native WYD 7.48 FUN_0044ae38 owns panel 646, twelve grids 653..664,
+	// price labels 800..811 and a single inventory/cargo surface.
+	if (!m_pControlContainer || !m_pAutoTrade)
 		return;
-	}
 
-	if (m_pAutoTrade)
+	auto pBtnCloseAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_CLOSE));
+	// FieldScene2.bin owns the native bottom-bar IDs; using the 7.59 aliases
+	// left their selected state detached from the visible 7.48 buttons.
+	auto pBtnAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_AUTOTRADEBTN));
+	auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_CHAR));
+	auto pBtnInv = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_EQUIP));
+	auto pBtnSkill = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SKILL));
+	auto pRunAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_RUN));
+	auto pMyCargoCoin = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATRADE_COIN));
+	auto pMyCargoCoinB = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_COIN));
+
+	if (pBtnCloseAutoTrade)
+		pBtnCloseAutoTrade->SetVisible(0);
+
+	const bool bSendQuit = m_pAutoTrade->IsVisible() == 1 && !bShow
+		&& (!m_pInvenPanel || !m_pInvenPanel->IsVisible());
+	if (pBtnAutoTrade)
+		pBtnAutoTrade->SetSelected(bShow);
+	m_pAutoTrade->SetVisible(bShow);
+
+	auto setPanelVisible = [](SPanel* panel, int visible)
 	{
-		auto pBtnCloseAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_CLOSE));
-		auto pBtnAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(B_AUTOTRADEBTN));
-		auto pBtnChar = static_cast<SButton*>(m_pControlContainer->FindControl(B_CHAR));
-		auto pBtnInv = static_cast<SButton*>(m_pControlContainer->FindControl(B_EQUIP));
-		auto pMyCargoCoin = static_cast<SText*>(m_pControlContainer->FindControl(TMT_ATRADE_COIN));
-		auto pMyCargoCoinB = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_COIN));
-
-		if (pBtnCloseAutoTrade)
-			pBtnCloseAutoTrade->SetVisible(0);
-
-		bool bSendQuit = false;
-
-		if (pBtnAutoTrade)
-			pBtnAutoTrade->SetSelected(bShow);
-
-		if (m_pAutoTrade)
+		if (panel)
+			panel->SetVisible(visible);
+	};
+	auto setEquipGridState748 = [this](bool enabled)
+	{
+		// FUN_00447f6f exposes fourteen normal equipment cells and keeps Mantua
+		// non-tradeable in both states; the two 7.59 extension slots do not exist.
+		SGridControl* equipment[] = {
+			m_pGridHelm, m_pGridCoat, m_pGridPants, m_pGridGloves,
+			m_pGridBoots, m_pGridRight, m_pGridLeft, m_pGridGuild,
+			m_pGridEvent, m_pGridRing, m_pGridNecklace, m_pGridOrb,
+			m_pGridCabuncle, m_pGridDRing
+		};
+		for (auto grid : equipment)
 		{
-			if (m_pAutoTrade->IsVisible() == 1 && !bShow && !m_pInvenPanel->IsVisible())
-				bSendQuit = true;
-
-			m_pAutoTrade->SetVisible(bShow);
-			m_pAutoTrade->SetPos(RenderDevice::m_fWidthRatio * 254.0f, RenderDevice::m_fHeightRatio * 35.0f);
+			if (grid)
+				grid->m_eGridType = enabled
+					? TMEGRIDTYPE::GRID_DEFAULT
+					: TMEGRIDTYPE::GRID_TRADENONE;
 		}
-		if (bShow == 1)
-		{
+		if (m_pGridMantua)
+			m_pGridMantua->m_eGridType = TMEGRIDTYPE::GRID_TRADENONE;
+	};
+
+	if (bShow == 1)
+	{
+		if (g_pCursor)
 			g_pCursor->DetachItem();
-			m_pSystemPanel->SetVisible(0);
-			m_pCPanel->SetVisible(0);
-			m_pSkillPanel->SetVisible(0);
-			m_pSkillMPanel->SetVisible(0);
-			pBtnInv->SetSelected(0);
-			pBtnChar->SetSelected(0);
+		setPanelVisible(m_pSystemPanel, 0);
+		setPanelVisible(m_pCPanel, 0);
+		setPanelVisible(m_pSkillPanel, 0);
+		setPanelVisible(m_pSkillMPanel, 0);
+		setPanelVisible(m_pShopPanel, 0);
+
+		// FUN_0044ae38 closes normal trade before exposing auto-trade. Keep that
+		// transition on the same cleanup path used by every other trade close so
+		// grids, equipment, offer items, buttons and gold are reset together.
+		if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)
 			SetVisibleTrade(0);
 
-			auto pRunAutoTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_ATRADE_RUN));
+		if (pBtnInv)
+			pBtnInv->SetSelected(0);
+		if (pBtnChar)
+			pBtnChar->SetSelected(0);
+		if (pBtnSkill)
+			pBtnSkill->SetSelected(0);
 
-			if (bCargo == 1)
+		if (bCargo == 1)
+		{
+			// FUN_0044ae38 (UI mode 2): AutoTrade is centred and Cargo opens
+			// ten pixels to the right of it, vertically centred.
+			placeAutoTradeCentred();
+			if (m_pCargoPanel && g_pDevice)
+				m_pCargoPanel->SetPos(
+					m_pAutoTrade->m_nWidth * 0.5f + g_pDevice->m_dwScreenWidth * 0.5f + 10.0f,
+					g_pDevice->m_dwScreenHeight * 0.5f - m_pCargoPanel->m_nHeight * 0.5f);
+			setPanelVisible(m_pCargoPanel, 1);
+			setPanelVisible(m_pInvenPanel, 0);
+			if (pRunAutoTrade)
+				pRunAutoTrade->SetVisible(1);
+			if (pMyCargoCoin)
+				pMyCargoCoin->SetVisible(1);
+			if (pMyCargoCoinB)
+				pMyCargoCoinB->SetVisible(1);
+			for (int slot = 0; slot < 12; ++slot)
 			{
-				m_pCargoPanel->SetPos(RenderDevice::m_fWidthRatio * 650.0f, RenderDevice::m_fHeightRatio * 35.0f);
-				m_pCargoPanel1->SetPos(RenderDevice::m_fWidthRatio * 650.0f, RenderDevice::m_fHeightRatio * 35.0f);
-				m_pCargoPanel->SetVisible(1);
-				m_pCargoPanel1->SetVisible(1);
-				m_pInvenPanel->SetVisible(0);
-				m_pShopPanel->SetVisible(0);
-
-				if (pRunAutoTrade)
-					pRunAutoTrade->SetVisible(1);
-
-				if (pMyCargoCoin)
-					pMyCargoCoin->SetVisible(1);
-
-				if (pMyCargoCoinB)
-					pMyCargoCoinB->SetVisible(1);
-
-				for (int i = 0; i < 10; ++i)
-				{
-					if (m_pGridAutoTrade[i])
-						m_pGridAutoTrade[i]->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
-				}
+				if (m_pGridAutoTrade[slot])
+					m_pGridAutoTrade[slot]->m_eGridType = TMEGRIDTYPE::GRID_TRADEOP;
 			}
-			else
-			{
-				m_pCargoPanel->SetVisible(0);
-				m_pCargoPanel1->SetVisible(0);
-
-				if (pMyCargoCoin)
-					pMyCargoCoin->SetVisible(0);
-
-				if (pMyCargoCoinB)
-					pMyCargoCoinB->SetVisible(0);
-
-				m_pInvenPanel->SetVisible(1);
-
-				if (pRunAutoTrade)
-					pRunAutoTrade->SetVisible(0);
-
-				for (int j = 0; j < 11; ++j)
-				{
-					if (m_pGridAutoTrade[j])
-						m_pGridAutoTrade[j]->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY2;
-				}
-				SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV2);
-				SetEquipGridState(0);
-			}
-			m_pCargoGridList[0]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
-			m_pCargoGridList[1]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
-			m_pCargoGridList[2]->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
 		}
 		else
 		{
-			sprintf(m_pMyHuman->m_TradeDesc, "");
-			m_pMyHuman->m_pAutoTradeDesc->SetText(m_pMyHuman->m_TradeDesc, 0);
-
-			if (m_pInvenPanel->IsVisible() == 1)
+			// The classic branch of native FUN_0044ae38 only exposes Carry here;
+			// it does not rewrite root 257. Preserve the responsive position built
+			// by FUN_00435b13 so later Inventory toggles cannot inherit an
+			// AutoTrade-only coordinate.
+			placeAutoTradeCentred();
+			setPanelVisible(m_pCargoPanel, 0);
+			setPanelVisible(m_pInvenPanel, 1);
+			if (pRunAutoTrade)
+				pRunAutoTrade->SetVisible(0);
+			if (pMyCargoCoin)
+				pMyCargoCoin->SetVisible(0);
+			if (pMyCargoCoinB)
+				pMyCargoCoinB->SetVisible(0);
+			for (int slot = 0; slot < 12; ++slot)
 			{
-				SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
-				SetEquipGridState(1);
+				if (m_pGridAutoTrade[slot])
+					m_pGridAutoTrade[slot]->m_eGridType = TMEGRIDTYPE::GRID_TRADEMY2;
+			}
+			if (m_pGridInv)
+				m_pGridInv->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
+			setEquipGridState748(false);
+		}
+		if (m_pCargoGrid)
+			m_pCargoGrid->m_eGridType = TMEGRIDTYPE::GRID_TRADEINV2;
+	}
+	else
+	{
+		if (m_pMyHuman)
+		{
+			m_pMyHuman->m_TradeDesc[0] = 0;
+			if (m_pMyHuman->m_pAutoTradeDesc)
+				m_pMyHuman->m_pAutoTradeDesc->SetText(m_pMyHuman->m_TradeDesc, 0);
+			m_stAutoTrade.Header.ID = m_pMyHuman->m_dwID;
+		}
+		m_stAutoTrade.TargetID = 0;
+
+		if (m_pInvenPanel && m_pInvenPanel->IsVisible() == 1)
+		{
+			if (m_pGridInv)
+				m_pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+			setEquipGridState748(true);
+		}
+
+		for (int slot = 0; slot < 12; ++slot)
+		{
+			// Native labels 800..811 are price state, not decoration; clearing them
+			// with their comma mode prevents values leaking into the next trade.
+			auto pPrice = static_cast<SText*>(m_pControlContainer->FindControl(800 + slot));
+			if (pPrice)
+			{
+				pPrice->m_cComma = 1;
+				pPrice->SetText((char*)"", 0);
+				pPrice->SetVisible(0);
 			}
 
-			for (int k = 0; k < 10; ++k)
-			{
-				m_stAutoTrade.Header.ID = m_pMyHuman->m_dwID;
-				m_stAutoTrade.TargetID = 0;
+			auto pGrid = m_pGridAutoTrade[slot];
+			if (!pGrid)
+				continue;
+			auto pItem = pGrid->PickupAtItem(0, 0);
+			int cargoX = 0;
+			int cargoY = 0;
+			GetCargoCellForSlot(m_stAutoTrade.CarryPos[slot], cargoX, cargoY);
+			auto pCargoGrid = GetCargoGridForSlot(m_stAutoTrade.CarryPos[slot]);
+			auto pSrcItem = pCargoGrid ? pCargoGrid->GetAtItem(cargoX, cargoY) : nullptr;
+			if (pSrcItem)
+				pSrcItem->m_GCObj.dwColor = 0xFFFFFFFF;
+			WYD748_ReleaseAutoTradeItem(pItem);
+		}
 
-				SGridControlItem* pItem = m_pGridAutoTrade[k]->PickupAtItem(0, 0);
-
-				// Auto-trade cleanup must address the native 7.48 cargo cell, not
-				// the 7.59 40-slot page that happened to occupy the same pointer.
-				int cargoX = 0;
-				int cargoY = 0;
-				GetCargoCellForSlot(m_stAutoTrade.CarryPos[k], cargoX, cargoY);
-				auto pCargoGrid = GetCargoGridForSlot(m_stAutoTrade.CarryPos[k]);
-				SGridControlItem* pSrcItem = pCargoGrid ? pCargoGrid->GetAtItem(cargoX, cargoY) : nullptr;
-
-				if (pSrcItem)
-					pSrcItem->m_GCObj.dwColor = 0xFFFFFFFF;
-
-				WYD748_ReleaseAutoTradeItem(pItem);
-			}
-			m_pInvenPanel->SetVisible(0);
-			m_pCargoPanel->SetVisible(0);
-			m_pCargoPanel1->SetVisible(0);
+		setPanelVisible(m_pInvenPanel, 0);
+		setPanelVisible(m_pCargoPanel, 0);
+		// FUN_0044ae38 (UI mode 2) returns Cargo to the viewport centre on close.
+		if (m_pCargoPanel && g_pDevice)
+			m_pCargoPanel->SetPos(
+				g_pDevice->m_dwScreenWidth * 0.5f - m_pCargoPanel->m_nWidth * 0.5f,
+				g_pDevice->m_dwScreenHeight * 0.5f - m_pCargoPanel->m_nHeight * 0.5f);
+		if (g_pDevice)
 			g_pDevice->m_nWidthShift = 0;
-			m_pCargoGridList[0]->m_eGridType = TMEGRIDTYPE::GRID_CARGO;
-			m_pCargoGridList[1]->m_eGridType = TMEGRIDTYPE::GRID_CARGO;
-			m_pCargoGridList[2]->m_eGridType = TMEGRIDTYPE::GRID_CARGO;
+		if (m_pCargoGrid)
+			m_pCargoGrid->m_eGridType = TMEGRIDTYPE::GRID_CARGO;
+		memset(&m_stAutoTrade, 0, sizeof(m_stAutoTrade));
 
-			memset(&m_stAutoTrade, 0, sizeof(m_stAutoTrade));
-
-			if (bSendQuit)
-			{
-				MSG_STANDARD stStandard{};
-
-				stStandard.Type = 0x384;
-				stStandard.ID = m_pMyHuman->m_dwID;
-				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stStandard)->Type, reinterpret_cast<char*>(&stStandard), sizeof(stStandard)});
-			}
+		if (bSendQuit && m_pMyHuman)
+		{
+			MSG_STANDARD quitAutoTrade{};
+			quitAutoTrade.Type = 0x384;
+			quitAutoTrade.ID = m_pMyHuman->m_dwID;
+			SendOneMessage(reinterpret_cast<char*>(&quitAutoTrade), sizeof(quitAutoTrade));
 		}
 	}
+	return;
 }
 
 void TMFieldScene::SendReqBuy(unsigned int dwControlID)
 {
-	const int slot = field_interaction::AutoTradeSlotIndex(m_bCompatFieldScene != 0, dwControlID);
+	const int slot = field_interaction::AutoTradeSlotIndex(dwControlID);
 	if (slot < 0 || !m_pMyHuman || !m_pAutoTrade || !m_pAutoTrade->IsVisible() ||
 		!m_stAutoTrade.TargetID)
 		return;
@@ -627,8 +489,8 @@ void TMFieldScene::VisibleInputTradeName()
 
 	// Ghidra FUN_004656af uses caption/edit 630/627 and background 574 in
 	// FieldScene2.bin. Keep newer IDs only for the non-7.48 resource path.
-	const unsigned int textControlID = m_bCompatFieldScene ? TMT_INPUT_GOLD : T_INPUT_GOLD;
-	const unsigned int editControlID = m_bCompatFieldScene ? TME_INPUT_GOLD : E_INPUT_GOLD;
+	const unsigned int textControlID = TMT_INPUT_GOLD;
+	const unsigned int editControlID = TME_INPUT_GOLD;
 	auto pInputGoldPanel = (SControl*)m_pInputGoldPanel;
 	auto pText = (SText*)m_pControlContainer->FindControl(textControlID);
 	auto pEdit = (SEditableText*)m_pControlContainer->FindControl(editControlID);
@@ -655,7 +517,7 @@ int TMFieldScene::OnPacketItemSold(MSG_STANDARDPARM2* pStd)
 		return 1;
 
 	auto pPanel = this->m_pAutoTrade;
-	const int autoTradeSlotCount = m_bCompatFieldScene ? 12 : 10;
+	const int autoTradeSlotCount = 12;
 	// Parm2 originates at the server boundary.  Validate it against the active
 	// packet/UI ABI before indexing the grid array so a stale or malformed sale
 	// acknowledgement cannot turn into an out-of-bounds client write.
@@ -717,7 +579,7 @@ int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)
 
 	// MSG_AutoTrade in the 7.48 wire contract has twelve slots; retain ten only
 	// for the imported 7.59 resource whose UI genuinely exposes that boundary.
-	const int autoTradeSlotCount = m_bCompatFieldScene ? 12 : 10;
+	const int autoTradeSlotCount = 12;
 	for (int i = 0; i < autoTradeSlotCount; ++i)
 	{
 		// FieldScene2.bin reserves controls 800..811 for the native price row

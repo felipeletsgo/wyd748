@@ -37,8 +37,8 @@ SMessageBox::SMessageBox(const char* istrMessage, char ibyMessageBoxType, float 
 
 	const float centeredWidth = useWYD748NewUI ? 232.0f : 256.0f;
 	const float centeredHeight = 128.0f;
-	SetCenterPos(m_dwControlID, inX, inY, centeredWidth * RenderDevice::m_fWidthRatio,
-		centeredHeight * RenderDevice::m_fHeightRatio);
+	SetCenterPos(m_dwControlID, inX, inY, centeredWidth * RenderDevice::m_fUIScaleX,
+		centeredHeight * RenderDevice::m_fUIScaleY);
 
 	if (useWYD748NewUI)
 	{

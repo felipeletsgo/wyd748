@@ -20,11 +20,14 @@ documentation, research evidence, and continuity records.
 | Build and validate the server and client | [Build and integration](build-and-integration.md) |
 | Understand the attribute contract | [Score](SCORE.md) |
 | Check server state | [Server operations](server/operations.md) and code/tests in `wydgo748/` |
+| Track nonblocking critical persistence | [Critical persistence plan](server/critical-persistence-plan.md) |
 | Check open 7.48 adaptation work | [Client port](client/port-748.md), [opcode catalog](wire-opcode-catalog.md), and the flow records in `.agents/research/client748/` |
 | Adapt the 7.48 client | [Client port](client/port-748.md) |
 | Plan the TMHuman source separation | [TMHuman separation plan](client/tmhuman-separation-plan.md) |
 | Plan the TMFieldScene refactoring | [TMFieldScene refactoring plan](client/tmfieldscene-refactoring-plan.md) |
 | Find where client code lives after the source split | [TMProject source organization plan](client/tmproject-source-organization-plan.md) |
+| Review the Claude refactoring batch and proposed corrections | [Refactoring batch audit — 2026-10-03](client/refactoring-batch-audit-2026-10-03.md) |
+| Review the client and Go server source audit | [Full-source audit — 2026-10-03](client/full-source-audit-2026-10-03.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Work with Codex or Claude Code | [Agent environments](agent-environments.md) |

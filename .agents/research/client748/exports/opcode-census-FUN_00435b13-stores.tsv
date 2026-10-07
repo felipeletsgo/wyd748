@@ -1,0 +1,10 @@
+record	entry	name	from	to	type	symbol	value
+program					sha256		8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
+program					image_base		00400000
+instruction	00435b13	FUN_00435b13	00437411	0043741a	FALL_THROUGH	FUN_00435b13	bytes=66C780000D0000A603;mnemonic=MOV;instruction=MOV word ptr [EAX + 0xd00],0x3a6;inputs=EAX,0xd00,0x3a6;results=;flows=;fallthrough=0043741a
+instruction	00435b13	FUN_00435b13	0043743a	00437443	FALL_THROUGH	FUN_00435b13	bytes=66C781540D0000B503;mnemonic=MOV;instruction=MOV word ptr [ECX + 0xd54],0x3b5;inputs=ECX,0xd54,0x3b5;results=;flows=;fallthrough=00437443
+instruction	00435b13	FUN_00435b13	00437462	0043746b	FALL_THROUGH	FUN_00435b13	bytes=66C782A80D0000BA03;mnemonic=MOV;instruction=MOV word ptr [EDX + 0xda8],0x3ba;inputs=EDX,0xda8,0x3ba;results=;flows=;fallthrough=0043746b
+instruction	00435b13	FUN_00435b13	00437489	00437492	FALL_THROUGH	FUN_00435b13	bytes=66C780FC0D0000C003;mnemonic=MOV;instruction=MOV word ptr [EAX + 0xdfc],0x3c0;inputs=EAX,0x3c0,0xdfc;results=;flows=;fallthrough=00437492
+instruction	00435b13	FUN_00435b13	004374b2	004374bb	FALL_THROUGH	FUN_00435b13	bytes=66C781500E0000C302;mnemonic=MOV;instruction=MOV word ptr [ECX + 0xe50],0x2c3;inputs=0xe50,0x2c3,ECX;results=;flows=;fallthrough=004374bb
+instruction	00435b13	FUN_00435b13	004374da	004374e3	FALL_THROUGH	FUN_00435b13	bytes=66C782A40E0000C302;mnemonic=MOV;instruction=MOV word ptr [EDX + 0xea4],0x2c3;inputs=0x2c3,0xea4,EDX;results=;flows=;fallthrough=004374e3
+instruction	00435b13	FUN_00435b13	004409f0	004409f9	FALL_THROUGH	FUN_00435b13	bytes=66C78508FBFFFF3403;mnemonic=MOV;instruction=MOV word ptr [EBP + 0xfffffb08],0x334;inputs=EBP,0x334,0xfffffb08;results=;flows=;fallthrough=004409f9

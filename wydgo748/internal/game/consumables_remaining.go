@@ -22,6 +22,13 @@ func (w *World) useNoDirectItem(s *net.Session, p *Player, item *model.Item, slo
 
 func (w *World) useLootBox(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitItemReward(p, slot, rule)
+		return
+	}
 	if len(rule.RewardItems) == 0 {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -62,6 +69,13 @@ func (w *World) useLootBox(s *net.Session, p *Player, item *model.Item, slot byt
 
 func (w *World) useMountRevive(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitItemReward(p, slot, rule)
+		return
+	}
 	mount, mountPos := equippedMount(p.Char)
 	if mount == nil || mount.MountHP() > 0 || mount.MountLongev() <= 0 {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -116,6 +130,13 @@ func (w *World) useMountRevive(s *net.Session, p *Player, item *model.Item, slot
 
 func (w *World) useTimedAccess(s *net.Session, p *Player, item *model.Item, slot byte,
 	rule model.VolatileRule) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitSidecarConsumable(p, slot, rule)
+		return
+	}
 	now := w.now()
 	key := accessCounterPrefix + rule.AccessKey
 	current := counterBalance(p, key)

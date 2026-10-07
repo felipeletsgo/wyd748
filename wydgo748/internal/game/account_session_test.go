@@ -12,13 +12,13 @@ func TestAccountSessionIsExclusiveCaseInsensitive(t *testing.T) {
 	first := &netpkg.Session{ID: 1}
 	second := &netpkg.Session{ID: 2}
 	if !w.claimAccountSession(first, "Felipe") {
-		t.Fatal("primeira sessao deveria reservar a conta")
+		t.Fatal("the first session should reserve the account")
 	}
 	if w.claimAccountSession(second, "felipe") {
-		t.Fatal("segunda sessao reservou a mesma conta com outra capitalizacao")
+		t.Fatal("a second session reserved the same account with different capitalization")
 	}
 	if !w.claimAccountSession(first, "FELIPE") {
-		t.Fatal("a sessao proprietaria perdeu a propria reserva")
+		t.Fatal("the owner lost its reservation")
 	}
 }
 
@@ -30,23 +30,23 @@ func TestAccountSessionReleaseOnlyByOwner(t *testing.T) {
 	w.claimAccountSession(owner, acc.Name)
 	w.releaseAccountSession(other, acc)
 	if w.claimAccountSession(other, acc.Name) {
-		t.Fatal("sessao alheia liberou a conta do proprietario")
+		t.Fatal("another session released the owner's account")
 	}
 	w.releaseAccountSession(owner, acc)
 	if !w.claimAccountSession(other, acc.Name) {
-		t.Fatal("conta permaneceu presa depois da desconexao do proprietario")
+		t.Fatal("the account remained reserved after owner cleanup")
 	}
 }
 
-func TestAccountSessionReclaimsClosedSocketBeforeDisconnectCommand(t *testing.T) {
+func TestAccountSessionRetainsClosedSocketUntilDisconnectCommand(t *testing.T) {
 	w := &World{}
 	owner := netpkg.NewTestSession(1, 1)
 	other := netpkg.NewTestSession(2, 1)
 	if !w.claimAccountSession(owner, "Felipe") {
-		t.Fatal("sessao inicial nao reservou a conta")
+		t.Fatal("the initial session did not reserve the account")
 	}
-	owner.Close() // simula socket encerrado antes do comando nil chegar ao World
-	if !w.claimAccountSession(other, "felipe") {
-		t.Fatal("reserva de socket morto bloqueou o novo login")
+	owner.Close() // The transport can close before World processes its disconnect.
+	if w.claimAccountSession(other, "felipe") {
+		t.Fatal("relogin reclaimed an account before its owner finished cleanup")
 	}
 }

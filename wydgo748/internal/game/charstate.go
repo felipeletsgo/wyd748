@@ -1,15 +1,15 @@
 package game
 
 import (
+	"errors"
 	"log"
 	"time"
 
 	"wydgo/internal/model"
 )
 
-// charStateStore e a persistencia opcional do estado de sessao (buffs, moedas).
-// Segue o padrao do guildStore: o game conhece so a interface minima e faz
-// assercao, sem obrigar todo Store a implementa-la.
+// charStateStore optionally persists session buffs and currencies. Like
+// guildStore, gameplay uses a minimal interface rather than a concrete adapter.
 type charStateStore interface {
 	LoadCharState(characterUID string) (*model.CharState, error)
 	SaveCharState(characterUID string, state *model.CharState) error
@@ -20,8 +20,14 @@ type playerStateStore interface {
 		characterUID string, state *model.CharState) error
 }
 
-// buildCharState coleta os affects AINDA ativos (tempo absoluto) e as moedas do
-// jogador para persistir. Affects expirados sao descartados aqui.
+// A trade peer may be reserved by a sidecar-changing operation. Its unchanged
+// snapshot and the owner's account/sidecar must use one durable transaction.
+type playerStateBatchStore interface {
+	SavePlayerStateBatch(guilds *model.GuildRegistry, characterUID string,
+		state *model.CharState, accounts ...*model.Account) error
+}
+
+// buildCharState snapshots unexpired affects and nonzero player currencies.
 func buildCharState(p *Player, now time.Time) *model.CharState {
 	state := &model.CharState{Version: model.CharStateVersion}
 	if p.Char != nil {
@@ -32,7 +38,7 @@ func buildCharState(p *Player, now time.Time) *model.CharState {
 			state.Affects = append(state.Affects, model.PersistedAffect{
 				Type: a.Type, ClientType: a.ClientType, Value: a.Value, Level: a.Level,
 				OwnerID: a.OwnerID, OwnerCharacterUID: a.OwnerCharacterUID,
-				// O sidecar liga a expiracao absoluta ao UID da unidade consumida.
+				// The sidecar links absolute expiry to the consumed item's UID.
 				SourceItemUID: a.SourceItemUID, SourceItemIndex: a.SourceItemIndex,
 				ExpiresUnix: a.ExpiresAt.Unix(),
 			})
@@ -50,8 +56,7 @@ func buildCharState(p *Player, now time.Time) *model.CharState {
 	return state
 }
 
-// applyCharState recompoe no personagem os affects que ainda nao expiraram e
-// restaura as moedas. O tempo restante e recalculado da expiracao absoluta.
+// applyCharState restores currencies and unexpired affects from absolute expiry.
 func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time) {
 	if p == nil || p.Char == nil || state == nil {
 		return
@@ -75,9 +80,8 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 		if slot >= len(p.Char.Affects) {
 			break
 		}
-		// Sidecars gravados antes da projecao 7.48 podem conter o tipo cru 50 da
-		// Armadura Critica. Converta a semantica e o visual juntos no relogin para
-		// que o buff volte a afetar score e apareca no slot nativo 24.
+		// Older sidecars may contain raw Critical Armor type 50. Restore its
+		// semantics and visual together: score type 31 and native visual slot 24.
 		if pa.Type == 50 {
 			pa.Type = 31
 			if pa.ClientType == 0 || pa.ClientType == 50 {
@@ -88,20 +92,25 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 		if clientType == 0 {
 			clientType = pa.Type
 		}
+		// Older saves published the face transformation in the client's stun
+		// slot 40; restore it in the Transformation slot so a relogin does not
+		// freeze the character.
+		if pa.Type == affectFaceTransform {
+			clientType = affectFaceTransformClientType
+		}
 		p.Char.Affects[slot] = model.Affect{
 			Type: pa.Type, ClientType: clientType, Value: pa.Value, Level: pa.Level,
 			OwnerID: pa.OwnerID, OwnerCharacterUID: pa.OwnerCharacterUID,
-			// Relog restaura a mesma origem economica; sidecars antigos continuam
-			// validos porque os campos opcionais chegam vazios.
+			// Reconnect preserves the economic origin; optional empty fields
+			// keep older sidecars compatible.
 			SourceItemUID: pa.SourceItemUID, SourceItemIndex: pa.SourceItemIndex,
 			ExpiresAt: time.Unix(pa.ExpiresUnix, 0),
 			NextTick:  now.Add(8 * time.Second),
 		}
 		slot++
 	}
-	// SUBSTITUI, nunca mescla: o Player e reusado no vaivem da selecao, entao
-	// mesclar deixaria as moedas do personagem anterior no atual -- e o autosave
-	// as gravaria no charstate dele, duplicando-as.
+	// Replace, never merge: selection reuses Player. Merging could duplicate
+	// the previous character's currencies into the next character's autosave.
 	p.SpecialCoins = nil
 	if len(state.SpecialCoins) > 0 {
 		p.SpecialCoins = make(map[string]uint32, len(state.SpecialCoins))
@@ -111,11 +120,13 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 	}
 }
 
-// loadCharStateInto restaura buffs e moedas ao entrar no mundo. Chamado ANTES de
-// publicar score/affects para que os buffs restaurados ja apareçam no client.
+// loadCharStateInto restores buffs and currencies before publishing world entry.
 func (w *World) loadCharStateInto(p *Player) error {
 	if p == nil || p.Char == nil {
 		return nil
+	}
+	if w.criticalPlayerReserved(p) {
+		return errCriticalPersistenceBusy
 	}
 	var state *model.CharState
 	if stateStore, ok := w.store.(charStateStore); ok {
@@ -125,9 +136,8 @@ func (w *World) loadCharStateInto(p *Player) error {
 		}
 		state = loaded
 	}
-	// Limpe somente DEPOIS de uma leitura bem-sucedida. Limpar antes e seguir
-	// com erro permitia entrar sem buffs/contadores autoritativos e o autosave
-	// consolidava essa perda no banco.
+	// Clear only after a successful read. Otherwise autosave could persist
+	// the loss of authoritative buffs and counters after a failed load.
 	p.Char.Affects = [16]model.Affect{}
 	p.SpecialCoins = nil
 	if state != nil {
@@ -136,19 +146,23 @@ func (w *World) loadCharStateInto(p *Player) error {
 	return nil
 }
 
-// saveCharState persiste buffs e moedas do jogador de forma SINCRONA. Chamado no
-// logout e no disconnect (estado que precisa estar em disco antes de largar o
-// player). Estado vazio remove o arquivo.
+// saveCharState synchronously persists buffs and currencies on logout or
+// disconnection, before releasing Player. Empty state removes its sidecar.
 func (w *World) saveCharState(p *Player) {
 	if err := w.saveCharStateResult(p); err != nil {
-		log.Printf("[#%d] ERRO ao salvar charstate de %q: %v", p.Session.ID, p.Char.Name, err)
+		log.Printf("[#%d] save charstate %q failed: %v", p.Session.ID, p.Char.Name, err)
 	}
 }
 
-// saveCharStateResult e a versao isolada que DEVOLVE o erro. Operacoes que
-// alteram conta e charstate juntas devem usar saveAccountAndCharStateResult,
-// que aproveita a transacao unica oferecida pelo PostgreSQL.
+// saveCharStateResult returns a standalone write error. Operations changing
+// account and charstate together must use the atomic aggregate helper instead.
 func (w *World) saveCharStateResult(p *Player) error {
+	if w.criticalPlayerReserved(p) {
+		return errCriticalPersistenceBusy
+	}
+	if err := w.syncPersistenceAllowed("character state"); err != nil {
+		return err
+	}
 	store, ok := w.store.(charStateStore)
 	if !ok || p == nil || p.Char == nil {
 		return nil
@@ -156,8 +170,8 @@ func (w *World) saveCharStateResult(p *Player) error {
 	return store.SaveCharState(p.Char.UID, buildCharState(p, w.now()))
 }
 
-// saveAccountAndCharStateResult usa uma unica transacao quando o store suporta.
-// O fallback preserva a ordem segura do adaptador JSON de desenvolvimento.
+// saveAccountAndCharStateResult requires an atomic transaction when both
+// account and character sidecar persistence are supported.
 func (w *World) saveAccountAndCharStateResult(p *Player) error {
 	if p == nil || p.Account == nil || p.Char == nil {
 		return nil
@@ -166,41 +180,47 @@ func (w *World) saveAccountAndCharStateResult(p *Player) error {
 	return w.saveAccountAndCharStateForUID(p.Account, p.Char.UID, state)
 }
 
-// saveAccountAndCharStateForUID é a variante usada quando uma operação troca
-// ou remove a ficha apontada por Player.Char (por exemplo, encapsulamento e
-// extração Celestial). O UID fica explícito mesmo que o slot já tenha sido
-// zerado; PostgreSQL consegue excluir o charstate na mesma transação.
+// saveAccountAndCharStateForUID keeps identity explicit when an operation
+// replaces or removes Player.Char, such as Celestial sealing or extraction.
+// PostgreSQL can delete the sidecar in the same transaction as the cleared slot.
 func (w *World) saveAccountAndCharStateForUID(account *model.Account, uid string, state *model.CharState) error {
 	if account == nil {
 		return nil
+	}
+	if w.criticalAccountStateReserved(account) || w.criticalCharacterReserved(uid) {
+		return errCriticalPersistenceBusy
+	}
+	if err := w.syncPersistenceAllowed("account and character state"); err != nil {
+		return err
 	}
 	snapshot := accountPersistenceSnapshot(account)
 	if transactional, ok := w.store.(playerStateStore); ok {
 		return transactional.SavePlayerState(nil, snapshot, uid, state)
 	}
-	if stateStore, ok := w.store.(charStateStore); ok && uid != "" {
-		if err := stateStore.SaveCharState(uid, state); err != nil {
-			return err
-		}
+	if _, ok := w.store.(charStateStore); ok && uid != "" {
+		// Separate writes cannot be made atomic by ordering or compensating:
+		// a crash can occur between them. Reject before writing either state.
+		return errors.New("store does not support atomic account and character state persistence")
 	}
 	return w.store.SaveAccount(snapshot)
 }
 
-// asyncCharStateStore expoe o save async do charstate (autosave).
+// asyncCharStateStore exposes asynchronous character-state autosave.
 type asyncCharStateStore interface {
 	SaveCharStateAsync(characterUID string, state *model.CharState) error
 }
 
-// saveCharStateAsync persiste buffs/moedas FORA do game-loop (autosave). Store
-// sem suporte cai no sincrono.
+// saveCharStateAsync writes outside the game loop when supported, otherwise
+// it uses the synchronous standalone save.
 func (w *World) saveCharStateAsync(p *Player) {
-	if p == nil || p.Char == nil {
+	if p == nil || p.Char == nil || p.PersistencePoisoned || w.criticalPlayerReserved(p) ||
+		w.syncPersistenceAllowed("legacy character state autosave") != nil {
 		return
 	}
 	state := buildCharState(p, w.now())
 	if as, ok := w.store.(asyncCharStateStore); ok {
 		if err := as.SaveCharStateAsync(p.Char.UID, state); err != nil {
-			log.Printf("[#%d] ERRO no autosave de charstate %q: %v", p.Session.ID, p.Char.Name, err)
+			log.Printf("[#%d] autosave charstate %q failed: %v", p.Session.ID, p.Char.Name, err)
 		}
 		return
 	}

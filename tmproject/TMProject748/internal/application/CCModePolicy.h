@@ -30,4 +30,22 @@ namespace cc_mode
         return percent > 0 && hp > 0 &&
             (BelowThreshold(hp, maximum, percent) || (hunger > 0 && hunger < 6));
     }
+
+    // Automatic casting repeats every frame. Without a mana gate it rebuilt a
+    // chat line and replayed the error sound per frame (and per candidate mob
+    // for area skills), which collapsed the frame rate.
+    constexpr unsigned int ManaWarningIntervalMs = 3000;
+
+    // Manual casts keep the native per-attempt warning; CC reports at most
+    // once per interval. Unsigned subtraction handles server tick wraparound.
+    constexpr bool ShouldReportInsufficientMana(bool automatic, bool reported,
+        unsigned int now, unsigned int last)
+    {
+        return !automatic || !reported || now - last >= ManaWarningIntervalMs;
+    }
+
+    constexpr bool HasMana(long long cost, long long current)
+    {
+        return cost <= current;
+    }
 }

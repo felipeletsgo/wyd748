@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "ClientSettings.h"
 #include "TMFish.h"
 #include "TMGlobal.h"
 #include "TMSkinMesh.h"
@@ -51,6 +52,10 @@ int TMFish::InitObject()
 
 int TMFish::Render()
 {
+	// Light profile: ambient decoration is not drawn while the window is idle.
+	if (IdleHidesAmbient())
+		return 0;
+
 	if (g_bHideBackground == 1)
 		return 0;
 

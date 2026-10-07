@@ -17,8 +17,6 @@ public:
     SCheckBox(unsigned int inTextureSetIndex, float inX, float inY, float inWidth, float inHeight, unsigned int dwColor);
     ~SCheckBox();
 
-    void SetValue(int ibValue);
-    int GetValue();
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
     void Update() override;
 

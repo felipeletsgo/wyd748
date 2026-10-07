@@ -1,10 +1,10 @@
 #pragma once
 
+#include "RuntimeAssetLimits.h"
+
 constexpr auto MAX_UI_TEXTURE_SET_LIST = 600;
 constexpr auto MAX_UI_TEXTURE = 512;
 constexpr auto MAX_EFFECT_TEXTURE = 512;
-constexpr auto MAX_MODEL_TEXTURE = 3000;
-constexpr auto MAX_ENV_TEXTURE = 512;
 constexpr auto MAX_DYNAMIC_TEXTURE = 72;
 
 constexpr auto MAX_GUILD_MARK = 64;
@@ -75,21 +75,15 @@ public:
 
 	int InitModelTextureList();
 	int LoadModelTexture(int nIndex);
-	int IsValidModelTexture(int nIndex);
 	IDirect3DTexture9* GetModelTexture(int nIndex, DWORD showTime);
-	IDirect3DTexture9* GetModelTexture(char* szTextureName, DWORD showTime);
 	int GetModelTextureIndex(char* szTextureName);
-	int IsModelTextureAlpha(int nIndex);
 
 	int InitEnvTextureList();
 	int LoadEnvTexture(int nIndex);
 	IDirect3DTexture9* GetEnvTexture(int nIndex, DWORD showTime);
 
-	int InitDynamicTextureList();
-	int IsValidDynamicTexture(int nIndex);
 	int GenerateTexture(int nDestUIIndex, int nSrcUIIndex,
 		int nDestX, int nDestY, int nSrcX, int nSrcY, int nWidth, int nHeight);
-	IDirect3DTexture9* GetDynamicTexture(int nIndex);
 
 	int LoadGuildTexture(int nIndex, char* szMarkBuffer);
 	void Initialize_GuildMarkList();
@@ -111,11 +105,11 @@ public:
 	stTextureListInfo m_stUITextureList[512];
 	stTextureListInfo m_stEffectTextureList[512];
 	stTextureListInfo m_stModelTextureList[MAX_MODEL_TEXTURE];
-	stTextureListInfo m_stEnvTextureList[512];
+	stTextureListInfo m_stEnvTextureList[MAX_ENV_TEXTURE];
 	IDirect3DTexture9* m_ppUITexture[512];
 	IDirect3DTexture9* m_ppEffectTexture[512];
 	IDirect3DTexture9* m_ppModelTexture[MAX_MODEL_TEXTURE];
-	IDirect3DTexture9* m_ppEnvTexture[512];
+	IDirect3DTexture9* m_ppEnvTexture[MAX_ENV_TEXTURE];
 	IDirect3DTexture9* m_ppDynamicTexture[72];
 	unsigned int m_dwDynamicLastUsedTime[72];
 	IDirect3DTexture9* m_pAccumTexture;

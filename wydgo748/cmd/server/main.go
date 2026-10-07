@@ -305,6 +305,14 @@ func main() {
 		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
 		game.WithLoadtestSpawn(cfg.LoadtestSpawn, cfg.LoadtestAccountPrefix),
 	}
+	if postgresStore != nil {
+		// Production persistence never blocks the World goroutine: gameplay
+		// writes run on a bounded worker pool, and an unknown account-only
+		// outcome isolates its participants instead of stopping the world.
+		worldOptions = append(worldOptions,
+			game.WithCriticalPersistence(int(cfg.CriticalPersistenceWorkers), int(cfg.CriticalPersistenceCapacity)),
+			game.WithCriticalAccountContainment())
+	}
 	if uxmal, ok := volatiles.Instances["uxmal"]; ok && uxmal.Uxmal != nil {
 		worldOptions = append(worldOptions, game.WithUxmal(uxmal))
 		log.Printf("Uxmal loaded: %d rooms, ticket=%d", len(uxmal.Stages), uxmal.Uxmal.TicketItem)

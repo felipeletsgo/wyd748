@@ -2,9 +2,10 @@
 
 Status: Stage 1 source separation complete. Stage 2 batches 9-13 (chat filters,
 skill requests, attack visual damage, attacker and target state, chat submission
-and coin input) implemented and automatically validated. Header-changing
-decomposition and built-client acceptance remain pending.
-Snapshot: 2026-10-02, HEAD `71c4b313` plus the working tree; the relocation
+and coin input) implemented and automatically validated. Stage 3 method
+decomposition of the six largest methods is implemented and automatically
+validated; built-client acceptance of Stage 3 is pending.
+Snapshot: 2026-10-02, HEAD `34b7dcae` plus the working tree; the relocation
 gate still compares against the fixed baseline `77e8dcc7f1af929be1c6418d08b97c7dd8412713`.
 This record describes source changes, not a deployed candidate, runtime
 acceptance or global release approval.
@@ -373,7 +374,59 @@ Runtime acceptance for these batches still requires chat submission, whisper,
 relocation and guild commands; every coin/price/server-war prompt; and attack,
 healing, death and big-pool targets in the built client.
 
-## Remaining work and the next decision
+## Stage 3: method decomposition (header review decided)
+
+The header review that closed Stage 2 was decided on 2026-10-02: private,
+non-virtual helper declarations may be added to `TMFieldScene.h`. They do not
+change the object layout or the virtual table. Each added header line, each
+extracted helper and each before/after method digest is pinned in
+`.agents/research/relocations/tmfieldscene-extractions.json` by
+`tmfieldscene-separation.py --pin <spec>`. `--with-policies` accepts only those
+pins and requires the header to equal the baseline once the pinned lines are
+removed. Extractions use `extract-method.py` (re-inlining verification and
+`ExtractedFlow` for early returns). Specs:
+`.agents/research/relocations/method-fieldscene-*.json`.
+
+| Method | Lines before -> after | Helpers |
+| --- | --- | --- |
+| `OnPacketAttack` | 2,319 -> 162 | `DispatchAttackSkillVisuals`, `ApplyTargetedAttackHits`, `ApplyGroundAttackHits` |
+| `OnControlEvent` | 3,554 -> 1,931 | 23 per-control handlers (`OnCompatFieldControl`, `OnChatEditSubmit`, `OnPgt*Button`, `OnSpecialMastery1..4Button`, `OnPartyListSelect`, `OnPortalButton`, ...) |
+| `InitializeScene` | 2,280 -> 1,362 | `BindChatAndHudControls`, `ApplyCompactScreenLayout`, `LoadOwnedItemGrids` |
+| `SkillUse` | 1,495 -> 450 | `SendAreaSkillRequest`, `MoveIntoSkillRange`, `AddPartySkillTargets` |
+| `AutoSkillUse` | 1,034 -> 323 | `SendAreaAutoSkillRequest`, `ApplyAutoSkillPkRules`, `AddAutoPartySkillTargets` |
+| `FrameMove` | 1,409 -> 662 | `UpdateMiniMapFrame`, `UpdateZoneMusicAndPanels`, `UpdateAffectIcons`, `UpdateLastMoveStop`, `UpdateWeatherEffects` |
+
+Contract tests read these methods with `source_contract::WithHelpers`, which
+places each helper body after its call. Their order-based assertions are
+therefore unchanged.
+
+Not extracted yet, with the reason:
+
+1. `OnControlEvent`'s `B_IG_OK` handler (441 lines) contains a lambda and early
+   returns; flow mode rejects lambdas. Its inner blocks can be extracted.
+2. `FrameMove`'s compatibility block captures the local lambda
+   `recallDeadPlayer`, whose type cannot be named as a parameter.
+3. The `InitializeScene` panel-binding stretch declares locals used later in
+   the method, so it is not a self-contained range.
+4. `DispatchAttackSkillVisuals` (about 1,100 lines) and `SendAreaSkillRequest`
+   (about 900 lines) are per-skill `if`/`else if` chains; their larger
+   branches can be extracted next with the same tooling.
+
+Built-client acceptance for these helpers is pending.
+
+## Reviewed changes after the relocation
+
+Behavior changes made after the relocation (the UI removal batches of the
+[UI compatibility matrix](ui-compatibility-matrix.md)) are recorded with
+`tmfieldscene-separation.py --review` in
+`.agents/research/relocations/tmfieldscene-reviews.json`: for every changed,
+added or removed definition, the digest it replaces and its reviewed digest,
+plus the header lines removed or added. `--with-policies` applies these after
+the Stage 3 extractions, so the gate still fails on any unrecorded edit and on
+any later edit to a reviewed body. `tmhuman-separation.py --review` does the
+same for `TMHuman` (method bodies only; its header must not change).
+
+## Remaining work after Stage 2 (historical)
 
 Stage 2 is complete per extracted domain. The domains above are closed at
 `AUTOMATED TESTED`. The following remain, in recommended order:
@@ -391,8 +444,7 @@ entities and effect containers. Splitting them requires private member helpers
 (or narrowly owned components) declared in `TMFieldScene.h`. Adding non-virtual
 member declarations does not change the object layout, but the relocation gate
 pins the header byte-for-byte and the Stage 2 rules require a separate review
-for declaration changes. That review is the next explicit decision; do not
-bypass the header pin to continue.
+for declaration changes. That review was decided for Stage 3 (above).
 
 ## Helper ownership and caller inventory
 
@@ -429,9 +481,12 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File tmproject/Build-Client.ps1 -Config
 git diff --check
 ```
 
-Latest results (2026-10-02, after batch 13): relocation gate PASS (293
-definitions; 289 unchanged bodies, 4 pinned bodies, 10 unchanged helpers and
-1 pinned helper); its 18 regression tests PASS; Release `-NoDeploy` build PASS
+Results on 2026-10-02, after batch 13: relocation gate PASS (293
+definitions; the "289 unchanged bodies" then printed subtracted only the
+reviewed-method set and overstated preservation, see the audit's A06; the
+gate now derives its counts, e.g. on 2026-10-03: 293 baseline / 289 current,
+191 identical normalized bodies, 1 pinned extraction, 67 reviewed changes, 30
+added, 34 removed); its 18 regression tests PASS; Release `-NoDeploy` build PASS
 with ArchitectureTests 974,712 checks and SocketReceiveTests 221 checks; Debug
 Win32 compile/link PASS; repository layout PASS (162 documents);
 `git diff --check` PASS. The installed `project.exe` was not modified.

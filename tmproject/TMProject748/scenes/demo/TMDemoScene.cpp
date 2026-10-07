@@ -48,23 +48,3 @@ int TMDemoScene::FrameMove(unsigned int dwServerTime)
 	// Without an adapted timeline, the scene does not advance state.
 	return 0;
 }
-
-void TMDemoScene::ResetDemoPlayer()
-{
-	// Pending: demo actor lifecycle.
-}
-
-void TMDemoScene::ReadTimeTable()
-{
-	// Pending: time-table format and source.
-}
-
-void TMDemoScene::CamAction()
-{
-	// Pending: camera contract and observable transitions.
-}
-
-void TMDemoScene::ReadStrings()
-{
-	// Pending: presentation string resource, encoding, and bounds.
-}

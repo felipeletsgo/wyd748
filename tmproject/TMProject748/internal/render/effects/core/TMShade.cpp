@@ -3,35 +3,30 @@
 #include "TMShade.h"
 #include "TMGlobal.h"
 #include "TMGround.h"
+#include "../../../application/ShadeGrid.h"
+#include <memory>
 
 TMShade::TMShade(int nGridNum, int nTextureIndex, float fScale)
 	: TMEffect()
 {
-    if (nGridNum < 2)
-        nGridNum = 2;
+    nGridNum = shade_grid::BoundedSize(nGridNum);
 
     m_nFade = 0;
     m_fAngle = 0.0f;
     m_nGridNum = nGridNum;
-    m_nVertexNum = (m_nGridNum + 1) * (m_nGridNum + 1);
-    m_nIndexNum = 6 * m_nGridNum * m_nGridNum;
-    m_wpIndex = 0;
-    m_wpIndex = new unsigned short[sizeof(unsigned short) * m_nIndexNum];
-    m_pVertex = 0;
-    m_pVertex = new RDLVERTEX[sizeof(RDLVERTEX) * m_nVertexNum];
+    m_nVertexNum = shade_grid::VertexCount(m_nGridNum);
+    m_nIndexNum = shade_grid::IndexCount(m_nGridNum);
+    // Keep both allocations owned until construction can transfer them. If
+    // the second allocation throws, the first must not leak.
+    std::unique_ptr<unsigned short[]> indices(new unsigned short[m_nIndexNum]{});
+    std::unique_ptr<RDLVERTEX[]> vertices(new RDLVERTEX[m_nVertexNum]);
+    m_wpIndex = indices.release();
+    m_pVertex = vertices.release();
     m_efAlphaType = EEFFECT_ALPHATYPE::EF_DEFAULT;
     m_bFI = 1;
     m_bShow = 1;
     m_fScale = fScale;
     m_nTextureIndex = nTextureIndex;
-
-    if (!m_wpIndex || !m_pVertex)
-    {
-        if (m_wpIndex)
-            delete[] m_wpIndex;
-        if (m_pVertex)
-            delete[] m_pVertex;
-    }
 
     if (m_wpIndex)
         memset(m_wpIndex, 0, sizeof(unsigned short) * m_nIndexNum);
@@ -98,8 +93,8 @@ int TMShade::SetPosition(TMVector2 vecPosition)
     if (vecPosition.y > 0.0f && (vecPosition.y - ((float)(nY + 1) * 2.0f)) > (((float)(nY + 2) * 2.0f) - vecPosition.y))
         ++nY;
 
-    auto pGround = g_pCurrentScene->m_pGround;
-    if (g_pCurrentScene && pGround)
+    auto pGround = g_pCurrentScene ? g_pCurrentScene->m_pGround : nullptr;
+    if (pGround)
     {
         auto pTileMapData = pGround->m_TileMapData;
 

@@ -2,7 +2,10 @@
 
 Sources: `internal/core/Basedef.h` and the dedicated `internal/wire/` headers
 re-exported through the facade. This catalog is an inventory, not
-authorization to change the protocol.
+authorization to change the protocol. The generated three-way comparison of
+the native client, the TMProject client and the Go server, with the open gaps
+and their recommended decisions, is the
+[opcode compatibility matrix](protocol/opcode-compatibility-matrix.md).
 
 ## Identified families
 
@@ -160,9 +163,12 @@ persistence remain server-authoritative.
 `0xED7/0xED8` use `ServerWarLetterContract.h`: 16-byte client-to-server
 intentions with the integer target channel in `Parm/+12`. In the native
 client, items 4030/4031 first open the modal in modes 9/10; the packet is
-sent only after confirmation. WYD-Go has no handler or authoritative
-cross-instance coordination yet, so the client restores the contract
-without claiming server support for inter-channel war.
+sent only after confirmation. WYD-Go recognizes both requests in the world
+phase (`internal/game/server_war_letters.go`): it checks the session ID, a
+positive channel, and that the matching letter is in the inventory, then
+replies that server war is unavailable. The letter is not consumed. There is
+no authoritative cross-instance coordination, so inter-channel war itself is
+not supported.
 
 `0x28F` uses `ChallengeConfirmPacket.h`: a 20-byte client-to-server
 confirmation with `Parm1` at `+12` and `Parm2` at `+16`. Native confirmation
@@ -182,7 +188,17 @@ ID and sends the request; the server decides persistence before emitting
 `0x114` (CharacterLogin confirmation, 2,104 bytes) uses
 `CharacterLoginConfirmContract.h`. The gate validates only the envelope;
 selection still interprets Pos/MOB/Slot/ClientID/Weather/ShortSkill and
-sidecars before rebuilding FieldScene.
+sidecars before rebuilding FieldScene. WYD-Go writes the current world weather
+at `+1244` (`PutEnterWorldWeather`); the client accepts 0–3 and treats other
+values as clear.
+
+`0x18B` (world weather, 16 bytes, `MSG_STANDARDPARM`, native receiver
+`FUN_00492e7d`) uses `WeatherPacket.h`; `ReceivedPacketDispatch` validates the
+size and `OnPacketWeather` ignores values outside 0 clear, 1 rain, 2 snow and
+3 heavy snow. WYD-Go sends it when the scheduled weather changes and to every
+player whose client still shows another value (`weather.go`). Skill damage
+uses `SkillDamageWeather` on the client and `skillWeatherAt` on the server:
+heavy snow counts as snow and fields 27–30 × 21–24 always count as snow.
 
 Integrity probe `0x1C1`/`0x2C2` uses `ClientIntegrityArrayContract.h`:
 24 bytes, Category at `+12`, ByteOffset at `+16`, and Value at `+20`.
@@ -356,8 +372,8 @@ item, position, and cooldown.
   client mode. No matching server recipe or completion contract was established;
   do not expose it as a supported combine flow.
 - The `0xED7/0xED8` war-letter client requests retain the native envelope
-  described above, but the Go server has no handler or cross-instance war
-  coordination. A client sender is not an end-to-end feature.
+  described above. Like `0xFAA`, the server validates them and answers only
+  that the feature is unavailable; there is no cross-instance war.
 - The `0xFAA` transfer request receives only an unavailable response. It is
   not a transfer implementation.
 - The inherited `0x37A` sale receive callback has a

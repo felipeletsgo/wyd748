@@ -53,11 +53,11 @@ func TestHuntressAirBladeRequiresAttackTwoAndLearnedPassive(t *testing.T) {
 	hit := physicalHitResult{Damage: 1000, Hit: true}
 	procRNG := func(int) int { return 0 }
 	if got := applyHuntressAirBlade(hit, ch, 0, true, procRNG); got.Flank != 0 || got.Damage != hit.Damage {
-		t.Fatalf("unlearned Lâmina Aérea changed hit: %+v", got)
+		t.Fatalf("unlearned Air Blade changed hit: %+v", got)
 	}
 	ch.LearnedSkill = huntressAirBladeBit
 	if got := applyHuntressAirBlade(hit, ch, 0, false, procRNG); got.Flank != 0 || got.Damage != hit.Damage {
-		t.Fatalf("non-0x39E physical hit triggered Lâmina Aérea: %+v", got)
+		t.Fatalf("non-0x39E physical hit triggered Air Blade: %+v", got)
 	}
 	noProc := applyHuntressAirBlade(hit, ch, 0, true, func(int) int { return 1 })
 	if noProc.Flank != 0 || noProc.Damage != hit.Damage {
@@ -74,11 +74,11 @@ func TestHuntressAirBladeAddsBonusBeforeDoubleHit(t *testing.T) {
 	rng := func(int) int { return 0 }
 	single := applyHuntressAirBlade(physicalHitResult{Damage: 1000, Hit: true}, ch, 0, true, rng)
 	if single.Flank != 742 || single.Damage != 1742 || single.visualFlags()&4 == 0 {
-		t.Fatalf("single Lâmina Aérea=%+v want flank=742 damage=1742 bit4", single)
+		t.Fatalf("single Air Blade=%+v want flank=742 damage=1742 bit4", single)
 	}
 	double := applyHuntressAirBlade(physicalHitResult{Damage: 1000, Hit: true, Double: true}, ch, 0, true, rng)
 	if double.Flank != 742 || double.Damage != 2484 {
-		t.Fatalf("double Lâmina Aérea=%+v want (basePreDouble+742)*2=2484", double)
+		t.Fatalf("double Air Blade=%+v want (basePreDouble+742)*2=2484", double)
 	}
 }
 
@@ -108,27 +108,30 @@ func TestAcceptClientAttackRejectsInternalAndFastTicks(t *testing.T) {
 	now := time.Now()
 	binary.LittleEndian.PutUint32(pkt[8:12], 0x0E0A1ACA)
 	if acceptClientAttack(p, pkt, now) {
-		t.Fatal("SKIPCHECKTICK externo foi aceito")
+		t.Fatal("external SKIPCHECKTICK was accepted")
 	}
 	binary.LittleEndian.PutUint32(pkt[8:12], 1000)
 	if !acceptClientAttack(p, pkt, now) {
-		t.Fatal("primeiro ataque valido foi rejeitado")
+		t.Fatal("first valid attack was rejected")
 	}
 	if acceptClientAttack(p, pkt, now.Add(time.Second)) {
-		t.Fatal("replay do mesmo ClientTick foi aceito")
+		t.Fatal("replay of the same ClientTick was accepted")
 	}
-	// Physical cadence is fixed at 400 ms; Attack Speed feeds Double Hit.
-	binary.LittleEndian.PutUint32(pkt[8:12], 1399)
+	// Physical cadence is fixed at 900 ms; Attack Speed feeds Double Hit.
+	binary.LittleEndian.PutUint32(pkt[8:12], 1899)
 	if acceptClientAttack(p, pkt, now.Add(time.Second)) {
-		t.Fatal("tick abaixo do intervalo fixo de 400ms foi aceito")
+		t.Fatal("tick below the fixed 900ms interval was accepted")
 	}
-	binary.LittleEndian.PutUint32(pkt[8:12], 1400)
+	binary.LittleEndian.PutUint32(pkt[8:12], 1900)
+	if acceptClientAttack(p, pkt, now.Add(899*time.Millisecond)) {
+		t.Fatal("server time below the fixed 900ms interval was accepted")
+	}
 	if !acceptClientAttack(p, pkt, now.Add(time.Second)) {
-		t.Fatal("ataque no intervalo de 400ms foi rejeitado")
+		t.Fatal("attack at the 900ms interval was rejected")
 	}
 	binary.LittleEndian.PutUint32(pkt[8:12], 1300)
-	if acceptClientAttack(p, pkt, now.Add(2*time.Second)) {
-		t.Fatal("tick retrocedendo foi aceito")
+	if acceptClientAttack(p, pkt, now.Add(3*time.Second)) {
+		t.Fatal("rewinding tick was accepted")
 	}
 }
 
@@ -139,14 +142,14 @@ func TestAcceptClientSkillIsIndependentFromPhysicalAttackCadence(t *testing.T) {
 	binary.LittleEndian.PutUint32(attackPkt[8:12], 1000)
 	p := &Player{}
 	if !acceptClientAttack(p, attackPkt, now) {
-		t.Fatal("ataque fisico inicial deveria ser aceito")
+		t.Fatal("initial physical attack should be accepted")
 	}
 	// A spell arriving immediately after the swing is a separate action. The
 	// old shared gate discarded it and produced one missing hit in short macro
 	// rotations.
 	binary.LittleEndian.PutUint32(skillPkt[8:12], 1200)
 	if !acceptClientSkill(p, skillPkt, 33, now.Add(10*time.Millisecond)) {
-		t.Fatal("skill valida foi bloqueada pelo ultimo ataque fisico")
+		t.Fatal("valid skill was blocked by the last physical attack")
 	}
 }
 
@@ -156,18 +159,18 @@ func TestAcceptClientSkillRejectsReplayAndOnlyBusyLoops(t *testing.T) {
 	now := time.Unix(20, 0)
 	binary.LittleEndian.PutUint32(pkt[8:12], 2000)
 	if !acceptClientSkill(p, pkt, 33, now) {
-		t.Fatal("primeiro cast deveria ser aceito")
+		t.Fatal("first cast should be accepted")
 	}
 	if acceptClientSkill(p, pkt, 33, now.Add(time.Second)) {
-		t.Fatal("replay do mesmo tick foi aceito")
+		t.Fatal("replay of the same tick was accepted")
 	}
 	binary.LittleEndian.PutUint32(pkt[8:12], 2100)
 	if acceptClientSkill(p, pkt, 34, now.Add(50*time.Millisecond)) {
-		t.Fatal("busy-loop de skills foi aceito")
+		t.Fatal("skill busy loop was accepted")
 	}
 	binary.LittleEndian.PutUint32(pkt[8:12], 2200)
 	if !acceptClientSkill(p, pkt, 34, now.Add(skillPacketInterval)) {
-		t.Fatal("cast apos o piso de flood deveria ser aceito")
+		t.Fatal("cast after the flood floor should be accepted")
 	}
 }
 
@@ -176,8 +179,8 @@ func TestPhysicalAttackIntervalIsFixedAndSpeedFeedsDoubleChance(t *testing.T) {
 	fast := &model.Char{Score: testScore(model.Score{AttackRun: 0xF0})} // speed 15
 	slowInterval := attackIntervalFor(slow)
 	fastInterval := attackIntervalFor(fast)
-	if slowInterval != 400*time.Millisecond || fastInterval != slowInterval {
-		t.Fatalf("physical intervals=%v/%v want fixed 400ms", slowInterval, fastInterval)
+	if slowInterval != 900*time.Millisecond || fastInterval != slowInterval {
+		t.Fatalf("physical intervals=%v/%v want fixed 900ms", slowInterval, fastInterval)
 	}
 	if got := doubleHitChance(slow); got != 0 {
 		t.Fatalf("slow double chance=%d want=0", got)
@@ -222,20 +225,20 @@ func TestCourageAppliesFixedPvEBonusWithoutChangingScore(t *testing.T) {
 	}
 
 	if got := applyCouragePvEDamage(ch, 300, false); got != 1_300 {
-		t.Fatalf("Courage fisico=%d, quer 1300", got)
+		t.Fatalf("physical Courage=%d, want 1300", got)
 	}
 	if got := applyCouragePvEDamage(ch, 300, true); got != 2_300 {
-		t.Fatalf("Courage magico=%d, quer 2300", got)
+		t.Fatalf("magic Courage=%d, want 2300", got)
 	}
 	if got := applyCouragePvEDamage(ch, 0, true); got != 0 {
-		t.Fatalf("Courage transformou erro em hit: %d", got)
+		t.Fatalf("Courage turned a miss into a hit: %d", got)
 	}
 
 	w := &World{}
 	w.applyExtendedAffectStats(ch)
 	if ch.RuntimeScore.Attack != 500 || ch.RuntimeScore.MagicAttack != 700 ||
 		ch.RuntimeScore.Accuracy != 25 {
-		t.Fatalf("Courage alterou score: %+v", *ch.RuntimeScore)
+		t.Fatalf("Courage changed the score: %+v", *ch.RuntimeScore)
 	}
 }
 
@@ -243,12 +246,12 @@ func TestCourageExpiredDoesNotApplyAndDamageIsClamped(t *testing.T) {
 	ch := &model.Char{Score: testScore(model.Score{})}
 	ch.Affects[0] = model.Affect{Type: affectCourage, ExpiresAt: time.Now().Add(-time.Second)}
 	if got := applyCouragePvEDamage(ch, 300, true); got != 300 {
-		t.Fatalf("Courage expirado aplicou bonus: %d", got)
+		t.Fatalf("expired Courage applied its bonus: %d", got)
 	}
 
 	ch.Affects[0].ExpiresAt = time.Now().Add(time.Hour)
 	if got := applyCouragePvEDamage(ch, int(maxScoreValue)-500, true); got != int(maxScoreValue) {
-		t.Fatalf("Courage ultrapassou clamp wide: %d", got)
+		t.Fatalf("Courage exceeded the wide clamp: %d", got)
 	}
 }
 
@@ -265,10 +268,10 @@ func TestCourageIsNotAppliedByPvPDamagePipeline(t *testing.T) {
 		RuntimeScore: testScore(model.Score{Defense: 100, Dex: 1}),
 	}}
 
-	// playerHitsPlayer e o pipeline PvP. Courage nao aparece nele.
+	// playerHitsPlayer is the PvP pipeline. Courage does not appear in it.
 	for i := 0; i < 32; i++ {
 		if damage := playerHitsPlayer(attacker, target); damage >= 2_000 {
-			t.Fatalf("Courage vazou para PvP: dano=%d", damage)
+			t.Fatalf("Courage leaked into PvP: damage=%d", damage)
 		}
 	}
 }

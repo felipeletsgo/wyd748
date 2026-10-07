@@ -12,7 +12,6 @@ public:
 	int InitObject() override;
 	int Render() override;
 	int FrameMove(unsigned int dwServerTime) override;
-	void MoveTo(TMVector2 vecPos);
 	void InitPosition(float fX, float fY, float fZ) override;
 	void InitAngle(float fYaw, float fPitch, float fRoll) override;
 	void RestoreDeviceObjects() override;

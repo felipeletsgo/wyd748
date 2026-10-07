@@ -73,6 +73,7 @@ namespace
 CPSock::CPSock()
 {
 	Sock = NULL;
+	Connecting = false;
 	Init = 0;
 	pSendBuffer = (char*)malloc(SEND_BUFFER_SIZE);
 	pRecvBuffer = (char*)malloc(RECV_BUFFER_SIZE);
@@ -145,31 +146,27 @@ unsigned int CPSock::ConnectServer(char* HostAddr, int Port, int ip, int WSA)
 			local_sin.sin_port = htons(ConnectPort + 5000),
 			bind(tSock, (const struct sockaddr*)&local_sin, 16) != -1))
 	{
-		if (tSock == -1)
+		// Register first: WSAAsyncSelect makes connect nonblocking. The UI
+		// can queue handshake/login bytes while waiting for FD_CONNECT.
+		if (WSAAsyncSelect(tSock, hWndMain, WSA, FD_CONNECT | FD_READ | FD_WRITE | FD_CLOSE) != 0)
 		{
+			closesocket(tSock);
 			return 0;
 		}
-		else if (connect(tSock, (const struct sockaddr*)&InAddr, 16) >= 0)
+		Sock = tSock;
+		Connecting = true;
+		if (connect(tSock, (const struct sockaddr*)&InAddr, sizeof(InAddr)) == 0)
+			Connecting = false;
+		else
 		{
-			if (WSAAsyncSelect(tSock, hWndMain, WSA, FD_READ | FD_WRITE | FD_CLOSE) == 0)
+			const int error = WSAGetLastError();
+			if (error != WSAEWOULDBLOCK && error != WSAEINPROGRESS)
 			{
-				Sock = tSock;
-				return SendHandshake() ? tSock : 0;
-			}
-			else
-			{
-				closesocket(tSock);
-				Sock = 0;
+				CloseSocket();
 				return 0;
 			}
 		}
-		else
-		{
-			WSAGetLastError();
-			closesocket(tSock);
-			Sock = 0;
-			return 0;
-		}
+		return SendHandshake() ? tSock : 0;
 	}
 	else
 	{
@@ -354,6 +351,7 @@ int CPSock::CloseSocket()
 	RecvCount = 0;
 	ErrCount = 0;
 	Init = 0;
+	Connecting = false;
 	if (Sock)
 		closesocket(Sock);
 	Sock = 0;
@@ -473,6 +471,8 @@ bool CPSock::SendMessageA()
 
 	if (!send_buffer::Compact(pSendBuffer, SEND_BUFFER_SIZE, nSendPosition, nSentPosition))
 		return false;
+	if (Connecting)
+		return true;
 
 	// Keep sending positive short writes until drained or blocked. Winsock
 	// rearms FD_WRITE after WSAEWOULDBLOCK, not after every partial write.
@@ -499,7 +499,13 @@ CPSock::EventResult CPSock::HandleNetworkEvent(WPARAM socket, LPARAM notificatio
 	const int event = WSAGETSELECTEVENT(notification);
 	if (WSAGETSELECTERROR(notification) == 0 && event != FD_CLOSE)
 	{
-		if (event == FD_READ)
+		if (event == FD_CONNECT)
+		{
+			Connecting = false;
+			if (SendMessageA())
+				return EventResult::Ignored;
+		}
+		else if (event == FD_READ)
 		{
 			if (Receive())
 				return EventResult::ReadReady;

@@ -1263,17 +1263,6 @@ void TMSelectServerScene::ResetDemoPlayer()
 	}
 }
 
-void TMSelectServerScene::AniDemoPlayer()
-{
-	for (int nPerson = 0; nPerson < 50; ++nPerson)
-	{
-		if (m_pCheckHumanList[nPerson])
-		{
-			m_pCheckHumanList[nPerson]->SetAnimation((ECHAR_MOTION)m_stDemoHuman[nPerson].nHumanAni, 0);
-		}
-	}
-}
-
 void TMSelectServerScene::CamAction()
 {
 	m_dwStartCamTime = g_pTimerManager->GetServerTime();
@@ -1417,10 +1406,6 @@ void TMSelectServerScene::SetAlphaLogin(unsigned int dwStartTime, unsigned int d
 
 		m_pLoginPanel->m_GCPanel.dwColor = ((int)(fAlpha * 255.0f) << 24) | 0x0FFFFFF;
 	}
-}
-
-void TMSelectServerScene::SetAlphaVirtualkey(unsigned int dwStartTime, unsigned int dwServerTime, unsigned int dwTerm, int bFade)
-{
 }
 
 void TMSelectServerScene::InitializeUI()

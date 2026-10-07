@@ -2,7 +2,7 @@
 
 Status: mechanical separation and the first specialized policy completed;
 static and automated acceptance passed, visual runtime acceptance pending.
-Snapshot: 2026-10-01, HEAD `77e8dcc7f1af929be1c6418d08b97c7dd8412713`.
+Snapshot: 2026-10-02, HEAD `34b7dcae` plus working tree (third phase); the relocation baseline remains `77e8dcc7f1af929be1c6418d08b97c7dd8412713`.
 This record describes the current working-tree implementation, not a commit,
 deployed candidate, global release approval, or `CLIENT_TESTED` result.
 
@@ -11,9 +11,12 @@ deployed candidate, global release approval, or `CLIENT_TESTED` result.
 All 128 definitions now have exactly one owner across the ten units below.
 `TMHuman.cpp` decreased from approximately 18,661 to 3,391 lines; total class
 storage and ownership remain unchanged. All complete bodies were mechanically
-preserved before specialization. The final gate compares 127 unchanged bodies
-and pins the exact reviewed `SetHumanCostume` policy extraction separately.
-`TMHuman.h` remains unchanged, including fields, declarations and overloads.
+preserved before specialization. The gate derives its counts from the baseline
+and current definitions (`method_counts.py`, audit A06). On 2026-10-03 it
+reports 128 baseline / 131 current definitions: 109 identical normalized
+bodies, 5 pinned extractions, 5 reviewed changes, 12 added and 9 removed. Later
+`TMHuman.h` edits (removed dead declarations) are accepted only as recorded,
+reviewed header lines; a normalized-body match is not a runtime assertion.
 
 The movement pilot was completed, UI was separated, and `SetMotion` now belongs
 to animation. Combat, appearance, mounts, rendering, effects and packets were
@@ -301,6 +304,26 @@ logout/reconnect and device-resource restoration. Other candidate policy
 extractions are future separately scoped work, not prerequisites to this
 bounded first specialization. No performance/token-savings measurement or
 global language-migration/release completion is claimed.
+
+## Third phase: method decomposition
+
+Private helper declarations may be added to `TMHuman.h` (decided 2026-10-02;
+no layout or virtual-table change). `tmhuman-separation.py --pin <spec>` records
+each added header line, helper digest and before/after method digest in
+`.agents/research/relocations/tmhuman-extractions.json`. `--with-policies`
+accepts only those pins. Specs: `.agents/research/relocations/method-tmhuman-*.json`.
+
+| Method | Lines before -> after | Helpers |
+| --- | --- | --- |
+| `FrameMoveEffect` | 1,883 -> 864 | `UpdateHiddenEffects`, `PlayEffectEvent` |
+| `InitObject` | 1,039 -> 756 | `InitSkinLookInfo`, `InitEyeFireEffects`, `InitShadeEffects` |
+| `FrameMove` | 947 -> 505 | `UpdateEarthQuake`, `UpdateMoveTargetsOnArrival`, `UpdateShadeVisibility`, `FrameMoveSkinMesh` |
+| `AnimationFrame` | 814 -> 31 | `PlayWalkFrame`, `PlayNonAttackFrame`, `PlayAttackFrame` |
+
+`SetHumanCostume` and `SetMountCostume` are single costume/mount selection
+chains. Moving them into a helper would only rename the problem; they are
+candidates for verified tables, like `TMSkinMesh::SetCostume`. Built-client
+acceptance of this phase is pending.
 
 ## Complete relocation manifest
 

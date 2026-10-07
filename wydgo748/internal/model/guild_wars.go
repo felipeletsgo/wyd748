@@ -40,6 +40,16 @@ func (c GuildWarConfig) Validate() error {
 type GuildWarState struct {
 	Tower  TowerWarState `json:"tower"`
 	Cities CityWarState  `json:"cities"`
+	Kefra  KefraState    `json:"kefra"`
+}
+
+// KefraState ports W2PP KefraLive: Kefra lives while Defeated is false. Once
+// killed it records the killer's guild (zero without one) and stays defeated
+// until the weekly reset; the passage to Uxmal opens only meanwhile.
+type KefraState struct {
+	Defeated   bool      `json:"defeated,omitempty"`
+	Guild      uint16    `json:"guild,omitempty"`
+	DefeatedAt time.Time `json:"defeatedAt,omitempty"`
 }
 
 type TowerWarState struct {
@@ -149,6 +159,9 @@ func (s GuildWarState) Validate(r *GuildRegistry) error {
 			return fmt.Errorf("invalid city entry")
 		}
 		seen[e.Guild] = true
+	}
+	if k := s.Kefra; !exists(k.Guild) || k.Defeated == k.DefeatedAt.IsZero() || !k.Defeated && k.Guild != 0 {
+		return fmt.Errorf("invalid Kefra state")
 	}
 	return nil
 }

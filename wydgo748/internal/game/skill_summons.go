@@ -21,12 +21,12 @@ type summonTemplate struct {
 
 var summonTemplates = [...]summonTemplate{
 	{"Condor", 206, 7, 15, 70, 60, 40, 150, 50, 75, 100, 400},
-	{"Javali", 225, 6, 20, 70, 100, 40, 125, 50, 150, 125, 400},
+	{"Boar", 225, 6, 20, 70, 100, 40, 125, 50, 150, 125, 400},
 	{"Wolf", 226, 6, 40, 80, 7000, 40, 200, 50, 125, 125, 400},
-	{"Urso", 227, 5, 60, 100, 7000, 40, 200, 50, 200, 150, 400},
-	{"Tigre", 244, 5, 30, 150, 100, 40, 250, 50, 175, 150, 400},
-	{"Gorila", 245, 4, 45, 100, 200, 40, 225, 50, 250, 175, 400},
-	{"Dragao Negro", 307, 3, 80, 100, 350, 50, 250, 50, 250, 174, 400},
+	{"Bear", 227, 5, 60, 100, 7000, 40, 200, 50, 200, 150, 400},
+	{"Tiger", 244, 5, 30, 150, 100, 40, 250, 50, 175, 150, 400},
+	{"Gorilla", 245, 4, 45, 100, 200, 40, 225, 50, 250, 175, 400},
+	{"Black Dragon", 307, 3, 80, 100, 350, 50, 250, 50, 250, 174, 400},
 	{"Succubus", 396, 2, 30, 250, 200, 70, 250, 60, 200, 180, 250},
 }
 
@@ -46,11 +46,9 @@ func summonCount(instanceValue, mastery int) int {
 	}
 }
 
-// removePlayerSummons despawna TODAS as evocacoes de um dono. Obrigatorio quando
-// o dono deixa o mundo (logout/desconexao): sem isto as evocacoes ficavam vivas e
-// orfas e, como o ID de player e REUSADO (menor slot livre), passavam a seguir o
-// proximo jogador que entrasse com o mesmo ID. Evocacao pertence exclusivamente a
-// quem a invocou.
+// removePlayerSummons despawns every summon belonging to a departing owner.
+// Runtime player IDs are reused, so leaving orphaned summons would transfer
+// control to the next player admitted with that ID.
 func (w *World) removePlayerSummons(ownerID uint16) {
 	if ownerID == 0 {
 		return
@@ -106,11 +104,10 @@ type contractSummonPlan struct {
 	summon   *Mob
 }
 
-// planContractSummon valida e materializa a substituicao sem alterar o World.
-// A operacao de item pode entao persistir o consumo sabendo que nao existe mais
-// nenhum ponto de falha na criacao da entidade.
+// planContractSummon validates and prepares replacement without changing World.
+// Item consumption can then be persisted with entity creation already prepared.
 func (w *World) planContractSummon(owner *Player, t *model.VolatileSummon) (*contractSummonPlan, bool) {
-	if owner == nil || t == nil || t.Face == 0 || t.HP == 0 {
+	if owner == nil || owner.Char == nil || w.criticalPlayerReserved(owner) || t == nil || t.Face == 0 || t.HP == 0 {
 		return nil, false
 	}
 	x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
@@ -163,17 +160,17 @@ func (w *World) commitContractSummon(plan *contractSummonPlan) {
 
 func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) bool {
 	idx := skill.InstanceValue - 1
-	if owner == nil || idx < 0 || idx >= len(summonTemplates) {
+	if owner == nil || owner.Char == nil || w.criticalPlayerReserved(owner) || idx < 0 || idx >= len(summonTemplates) {
 		return false
 	}
-	// GenerateSummon valida a existencia de um slot de mob antes de qualquer
-	// outra regra, inclusive quando Num == 0.
+	// GenerateSummon checks for a free mob slot before other gameplay rules,
+	// including when Num == 0.
 	if w.allocMobID() == 0 {
 		return false
 	}
 	template := summonTemplates[idx]
 	space := w.playerRuntimeInstanceID(owner.ID)
-	// Jogadores da party nao ocupam vagas de evocacao no contrato Go.
+	// Party players do not occupy summon slots in the Go contract.
 	wanted := minInt(summonCount(skill.InstanceValue, mastery), maxPartyMembers-1)
 	current := 0
 	for _, m := range w.summons {
@@ -184,8 +181,8 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 			continue
 		}
 		if m.Def.Equip.Rosto.Index != template.face {
-			// Preserva a rejeicao de outra familia do W2PP, mas o contrato Go
-			// mantem evocacoes fora da party e pertencentes somente ao dono.
+			// Preserve W2PP's rejection of another family. The Go contract
+			// keeps summons outside the party and owned only by the caster.
 			return false
 		}
 		w.rebindSummonGameplaySpace(m, space)
@@ -197,8 +194,8 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 			return false
 		}
 	}
-	// GenerateSummon retorna sucesso quando Num == 0 e nao encontrou conflito.
-	// Isso preserva o consumo de MP da source mesmo sem materializar criatura.
+	// GenerateSummon succeeds when Num == 0 and no conflict was found.
+	// Preserve the source MP cost even when no creature materializes.
 	if wanted == 0 {
 		return true
 	}
@@ -227,9 +224,9 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		def.Score.CurHP, def.Score.CurMP = def.Score.MaxHP, def.Score.MaxMP
 		mobID := w.allocMobID()
 		if mobID == 0 {
-			log.Printf("[#%d] invocacao %q interrompida: faixa de IDs de mob esgotada", owner.Session.ID, template.name)
-			// Uma criacao parcial ja produziu entidades autoritativas. Nao
-			// devolver MP e permitir evocacoes gratuitas por falha posterior.
+			log.Printf("[#%d] summon %q interrupted: mob ID range exhausted", owner.Session.ID, template.name)
+			// Partial creation already produced authoritative entities. Do
+			// not refund MP and allow free summons after a subsequent failure.
 			return spawned > 0
 		}
 		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
@@ -240,21 +237,22 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		current++
 		spawned++
 	}
-	log.Printf("[#%d] invocou %q quantidade=%d/%d", owner.Session.ID, template.name, current, wanted)
+	log.Printf("[#%d] summoned %q count=%d/%d", owner.Session.ID, template.name, current, wanted)
 	return true
 }
 
 type summonCombatTarget struct {
-	id   uint16
-	x, y uint16
-	mob  *Mob
-	user *Player
+	id     uint16
+	x, y   uint16
+	mob    *Mob
+	user   *Player
+	paused bool
 }
 
 const summonCommandRange = 30
 
 func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
-	if owner == nil || id == 0 || id == owner.ID {
+	if owner == nil || owner.Char == nil || w.criticalPlayerReserved(owner) || id == 0 || id == owner.ID {
 		return summonCombatTarget{}
 	}
 	if id >= 1000 {
@@ -276,11 +274,29 @@ func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 }
 
 func (w *World) ownerSummonTarget(owner *Player) summonCombatTarget {
+	if owner == nil || w.criticalPlayerReserved(owner) {
+		return summonCombatTarget{paused: true}
+	}
+	if w.criticalPlayerReserved(w.playerByID(owner.CombatTargetID)) {
+		return summonCombatTarget{paused: true}
+	}
 	if target := w.summonTarget(owner, owner.CombatTargetID); target.id != 0 {
+		if target.mob != nil && w.criticalKillParticipantsReserved(owner) {
+			return summonCombatTarget{paused: true}
+		}
 		return target
 	}
+	// A held target is not an invalid command. Preflight the fallback before
+	// clearing either command, so a paused tick makes no owner-state changes.
+	if w.criticalPlayerReserved(w.playerByID(owner.LastAttackerID)) {
+		return summonCombatTarget{paused: true}
+	}
+	target := w.summonTarget(owner, owner.LastAttackerID)
+	if target.mob != nil && w.criticalKillParticipantsReserved(owner) {
+		return summonCombatTarget{paused: true}
+	}
 	owner.CombatTargetID = 0
-	if target := w.summonTarget(owner, owner.LastAttackerID); target.id != 0 {
+	if target.id != 0 {
 		return target
 	}
 	owner.LastAttackerID = 0
@@ -300,25 +316,32 @@ func (w *World) tickSummonCombat(now time.Time) {
 			continue
 		}
 		owner := w.playerByID(summon.SummonerID)
-		if owner == nil || !owner.InWorld {
+		if owner == nil || owner.Char == nil || !owner.InWorld || w.criticalPlayerReserved(owner) {
 			continue
+		}
+		passive := summon.SummonKind == summonKindThornWall || summon.SummonKind == summonKindMount ||
+			summon.Def != nil && isCriaPetFace(summon.Def.Equip.Rosto.Index)
+		var target summonCombatTarget
+		if !passive {
+			target = w.ownerSummonTarget(owner)
+			if target.paused {
+				continue
+			}
 		}
 		w.rebindSummonGameplaySpace(summon, w.playerRuntimeInstanceID(owner.ID))
 		if summon.SummonKind == summonKindThornWall {
 			continue
 		}
-		// Pet-cria da montaria: passivo, apenas acompanha o dono, nunca ataca.
+		// Baby mount pets are passive: follow the owner and never attack.
 		if summon.SummonKind == summonKindMount || summon.Def != nil && isCriaPetFace(summon.Def.Equip.Rosto.Index) {
 			if chebyshev(summon.X, summon.Y, owner.X, owner.Y) > 3 {
 				w.moveSummonToward(summon, owner.X, owner.Y, 3, now)
 			}
 			continue
 		}
-		target := w.ownerSummonTarget(owner)
 		if target.id == 0 {
 			summon.TargetID = 0
-			// Sem ordem de combate, a evocacao apenas acompanha o BM e nao
-			// inicia aggro por conta propria.
+			// Without a combat command, follow the BM without initiating aggro.
 			if chebyshev(summon.X, summon.Y, owner.X, owner.Y) > 3 {
 				w.moveSummonToward(summon, owner.X, owner.Y, 3, now)
 			}
@@ -384,10 +407,10 @@ func (w *World) tickSummonCombat(now time.Time) {
 		damage := hit.Damage
 		damage = uint32(w.absorbMountDamage(target.user, int(damage)))
 		damage = absorbManaControlDamageAt(target.user.Char, damage, now)
-		w.cancelTrade(target.user, "personagem foi atacado")
+		w.cancelTrade(target.user, "character was attacked")
 		currentHP := playerCurHP(target.user.Char)
 		if damage >= currentHP {
-			w.receiveDeathLetter(target.user, owner.Char.Name, "jogador")
+			w.receiveDeathLetter(target.user, owner.Char.Name, "player")
 			w.mountRiderDied(target.user)
 			setPlayerCurHP(target.user.Char, 0)
 			target.user.DeadAt = now

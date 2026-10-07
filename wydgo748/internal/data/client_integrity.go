@@ -23,7 +23,7 @@ func LoadClientIntegrity(path string) (model.ClientIntegrityFile, error) {
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
 		if err == nil {
-			err = fmt.Errorf("conteudo JSON adicional")
+			err = fmt.Errorf("additional JSON content")
 		}
 		return file, fmt.Errorf("data: parse %s: %w", path, err)
 	}

@@ -42,6 +42,9 @@ func WithGuildWars(config model.GuildWarConfig) WorldOption {
 }
 
 func (w *World) warCommit(change func() error) error {
+	if w.criticalGuildReserved() {
+		return errCriticalPersistenceBusy
+	}
 	guilds, wars := w.snapshotGuilds(), w.guilds.Wars.Clone()
 	if err := change(); err != nil {
 		w.restoreGuilds(guilds)
@@ -63,7 +66,7 @@ func (w *World) warNotice(message string) {
 	for _, part := range splitWarNotice(message) {
 		// Keep every result in chat as well, even when another game notice
 		// replaces the panel or a burst fills its bounded presentation queue.
-		w.broadcast(func() []byte { return wire.MessageWhisper(0, "[GUERRA]", part, 7) })
+		w.broadcast(func() []byte { return wire.MessageWhisper(0, "[WAR]", part, 7) })
 		if len(w.warNotices) < 64 {
 			w.warNotices = append(w.warNotices, part)
 		}
@@ -101,7 +104,7 @@ func (w *World) warGuildName(id uint16) string {
 	if g := w.guilds.FindByID(id); g != nil {
 		return g.Name
 	}
-	return "nenhuma"
+	return "none"
 }
 
 // Persist before publication: a restart does not replay old countdowns. Only
@@ -114,6 +117,20 @@ func (w *World) warCountdown(now, deadline time.Time, mask *uint16, bit uint16, 
 	if minutes > 1 && remaining <= time.Minute {
 		return nil
 	}
+	if w.criticalWrites != nil {
+		tower := mask == &w.guilds.Wars.Tower.Notices
+		if !tower && mask != &w.guilds.Wars.Cities.Notices {
+			return errCriticalPersistenceIdentity
+		}
+		return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
+			if tower {
+				guilds.Wars.Tower.Notices |= bit
+			} else {
+				guilds.Wars.Cities.Notices |= bit
+			}
+			return nil
+		}, func() { w.warNotice(message) })
+	}
 	if err := w.warCommit(func() error { *mask |= bit; return nil }); err != nil {
 		return err
 	}
@@ -122,7 +139,7 @@ func (w *World) warCountdown(now, deadline time.Time, mask *uint16, bit uint16, 
 }
 
 func (w *World) tickGuildWars(now time.Time) {
-	if !w.warConfig.Enabled || w.guilds == nil || now.Before(w.warNextTick) {
+	if !w.warConfig.Enabled || w.guilds == nil || w.criticalGuildReserved() || now.Before(w.warNextTick) {
 		return
 	}
 	w.warNextTick = now.Add(time.Second)
@@ -144,6 +161,9 @@ func (w *World) tickGuildWars(now time.Time) {
 				log.Printf("recover city war: %v", err)
 				return
 			}
+			if w.criticalGuildReserved() {
+				return
+			}
 		}
 		w.warInitialized = true
 	}
@@ -151,13 +171,22 @@ func (w *World) tickGuildWars(now time.Time) {
 	if err := w.tickTowerWar(local); err != nil {
 		log.Printf("tower war: %v", err)
 	}
+	if w.criticalGuildReserved() {
+		return
+	}
 	if err := w.tickCityWar(local); err != nil {
 		log.Printf("city war: %v", err)
+	}
+	if w.criticalGuildReserved() {
+		return
 	}
 	w.cleanCityArena()
 }
 
 func (w *World) tickTowerWar(now time.Time) error {
+	if w.criticalWrites != nil {
+		return w.tickCriticalTowerWar(now)
+	}
 	s := &w.guilds.Wars.Tower
 	if s.Day != "" && !s.Finished && !now.Before(s.EndsAt) {
 		owner := s.Owner
@@ -175,9 +204,9 @@ func (w *World) tickTowerWar(now time.Time) error {
 		w.removeWarTower()
 		w.ejectTowerArena()
 		if owner != 0 {
-			w.warNotice(fmt.Sprintf("Guerra de torre encerrada! Vencedora: %s. Recompensa: 100 de fama de guilda.", w.warGuildName(owner)))
+			w.warNotice(fmt.Sprintf("Tower war over! Winner: %s. Reward: 100 guild fame.", w.warGuildName(owner)))
 		} else {
-			w.warNotice("Guerra de torre encerrada sem vencedora. Nenhuma recompensa concedida.")
+			w.warNotice("Tower war over without a winner. No reward granted.")
 		}
 	}
 	day := now.Format("2006-01-02")
@@ -199,10 +228,10 @@ func (w *World) tickTowerWar(now time.Time) error {
 			minutes int
 			text    string
 		}{
-			{battle, 1, 5, "Guerra de torre comeca em ate 5 minutos! Entrada por /tower em Erion."},
-			{battle, 2, 1, "Guerra de torre comeca em 1 minuto!"},
-			{s.EndsAt, 4, 5, "Guerra de torre termina em 5 minutos! A ultima guilda dona recebe 100 de fama."},
-			{s.EndsAt, 8, 1, "Guerra de torre termina em 1 minuto!"},
+			{battle, 1, 5, "Tower war starts within 5 minutes! Enter with /tower in Erion."},
+			{battle, 2, 1, "Tower war starts in 1 minute!"},
+			{s.EndsAt, 4, 5, "Tower war ends in 5 minutes! The last owning guild receives 100 fame."},
+			{s.EndsAt, 8, 1, "Tower war ends in 1 minute!"},
 		} {
 			if err := w.warCountdown(now, warning.end, &s.Notices, warning.bit, warning.minutes, warning.text); err != nil {
 				return err
@@ -220,7 +249,7 @@ func (w *World) tickTowerWar(now time.Time) error {
 			return err
 		}
 		w.ejectTowerArena()
-		w.warNotice("Guerra de torre iniciada! Use /tower em Erion. Duracao: 30 minutos.")
+		w.warNotice("Tower war started! Use /tower in Erion. Duration: 30 minutes.")
 	}
 	return nil
 }
@@ -292,6 +321,9 @@ func (w *World) towerTargetAllowed(p *Player, m *Mob) bool {
 }
 
 func (w *World) captureWarTower(p *Player, m *Mob, applied uint32) {
+	if w.criticalGuildMobReserved(m) {
+		return
+	}
 	if !w.towerTargetAllowed(p, m) {
 		m.HP = minU32(m.Def.Score.MaxHP, max(1, applied))
 		w.sendToMobViewProtocol(m, func(_ *Player) []byte { return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP, 0, 0) })
@@ -299,6 +331,14 @@ func (w *World) captureWarTower(p *Player, m *Mob, applied uint32) {
 	}
 	g, _ := w.guildOf(p.Char)
 	owner := g.ID
+	if w.criticalWrites != nil {
+		if err := w.queueTowerCapture(p, m, applied); err != nil {
+			m.HP = minU32(m.Def.Score.MaxHP, max(1, applied))
+			log.Printf("tower capture admission: %v", err)
+			w.sendToMobViewProtocol(m, func(_ *Player) []byte { return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP, 0, 0) })
+		}
+		return
+	}
 	err := w.warCommit(func() error { w.guilds.Wars.Tower.Owner = owner; return nil })
 	if err != nil {
 		m.HP = minU32(m.Def.Score.MaxHP, max(1, applied))
@@ -307,7 +347,7 @@ func (w *World) captureWarTower(p *Player, m *Mob, applied uint32) {
 		m.HP = m.Def.Score.MaxHP
 		m.Affects = [16]model.Affect{}
 		m.TargetID = 0
-		w.warNotice(fmt.Sprintf("%s da guilda %s derrubou a torre! Nova defensora: %s.", p.Char.Name, g.Name, g.Name))
+		w.warNotice(fmt.Sprintf("%s of guild %s brought the tower down! New defender: %s.", p.Char.Name, g.Name, g.Name))
 		w.ejectTowerArena()
 	}
 	w.sendToMobViewProtocol(m, func(_ *Player) []byte { return wire.MobHpMp(m.ID, m.HP, m.Def.Score.MaxHP, 0, 0) })
@@ -316,12 +356,15 @@ func (w *World) captureWarTower(p *Player, m *Mob, applied uint32) {
 func (w *World) ejectTowerArena() {
 	for _, p := range w.players {
 		if p.InWorld && p.Char != nil && towerWarArena.contains(p.X, p.Y) {
-			w.teleportPlayer(p, 2453, 2000)
+			w.requestPlayerTeleport(p, 2453, 2000, nil, nil)
 		}
 	}
 }
 
 func (w *World) cancelCityWar() error {
+	if w.criticalWrites != nil {
+		return w.queueCityWarCancel()
+	}
 	err := w.warCommit(func() error {
 		c := &w.guilds.Wars.Cities
 		for _, e := range c.Entries {
@@ -344,12 +387,15 @@ func (w *World) cancelCityWar() error {
 		}
 		w.cityFighters = nil
 		w.cityWarScores = [4]map[uint16]uint64{}
-		w.warNotice("Guerra de cidades cancelada por interrupcao. Inscricoes devolvidas: 100 de fama por guilda; donos preservados.")
+		w.warNotice("City war cancelled by an interruption. Applications refunded: 100 fame per guild; owners kept.")
 	}
 	return err
 }
 
 func (w *World) tickCityWar(now time.Time) error {
+	if w.criticalWrites != nil {
+		return w.tickCriticalCityWar(now)
+	}
 	c := &w.guilds.Wars.Cities
 	if c.Day != "" && c.Phase != "finished" && !now.Before(c.StartsAt.Add(21*time.Minute)) {
 		if !w.cityWarRunning {
@@ -374,7 +420,7 @@ func (w *World) tickCityWar(now time.Time) error {
 				return nil
 			})
 			if err == nil {
-				w.warNotice("Inscricoes para a guerra de cidades abertas ate meia-noite! /citywar 1..4. Custo: 100 de fama.")
+				w.warNotice("City war applications open until midnight! /citywar 1..4. Fee: 100 fame.")
 			}
 			return err
 		}
@@ -388,7 +434,7 @@ func (w *World) tickCityWar(now time.Time) error {
 		if err := w.warCommit(func() error { c.Phase = "waiting"; return nil }); err != nil {
 			return err
 		}
-		w.warNotice("Inscricoes da guerra de cidades encerradas. Consulte donos e desafiantes com /citywar.")
+		w.warNotice("City war applications closed. Check owners and challengers with /citywar.")
 	}
 	for _, warning := range []struct {
 		end     time.Time
@@ -396,11 +442,11 @@ func (w *World) tickCityWar(now time.Time) error {
 		minutes int
 		text    string
 	}{
-		{c.StartsAt, 1, 5, "Guerra de cidades comeca em 5 minutos! Reunam-se na cidade disputada; convocacao 3 minutos apos o inicio."},
-		{c.StartsAt, 2, 1, "Guerra de cidades comeca em 1 minuto! Limite: 26 por guilda. Erion: somente mortais."},
-		{c.StartsAt.Add(6 * time.Minute), 8, 1, "Combate das guerras de cidades sera liberado em 1 minuto!"},
-		{c.StartsAt.Add(21 * time.Minute), 16, 5, "Guerras de cidades terminam em 5 minutos! Vencem as forcas sobreviventes."},
-		{c.StartsAt.Add(21 * time.Minute), 32, 1, "Guerras de cidades terminam em 1 minuto!"},
+		{c.StartsAt, 1, 5, "City war starts in 5 minutes! Gather in the contested city; summons 3 minutes after the start."},
+		{c.StartsAt, 2, 1, "City war starts in 1 minute! Limit: 26 per guild. Erion: mortals only."},
+		{c.StartsAt.Add(6 * time.Minute), 8, 1, "City war combat opens in 1 minute!"},
+		{c.StartsAt.Add(21 * time.Minute), 16, 5, "City wars end in 5 minutes! The surviving forces win."},
+		{c.StartsAt.Add(21 * time.Minute), 32, 1, "City wars end in 1 minute!"},
 	} {
 		if err := w.warCountdown(now, warning.end, &c.Notices, warning.bit, warning.minutes, warning.text); err != nil {
 			return err
@@ -410,7 +456,7 @@ func (w *World) tickCityWar(now time.Time) error {
 		if err := w.warCommit(func() error { c.Notices |= 4; return nil }); err != nil {
 			return err
 		}
-		w.warNotice("Guerra de cidades iniciada! Convocacao em +3 minutos; combate em +6; resultado em +21.")
+		w.warNotice("City war started! Summons at +3 minutes; combat at +6; result at +21.")
 	}
 	if c.Phase == "waiting" && !now.Before(c.StartsAt.Add(3*time.Minute)) {
 		// Do not summon late arrivals into a shortened battle after downtime.
@@ -422,13 +468,13 @@ func (w *World) tickCityWar(now time.Time) error {
 		}
 		w.cityWarRunning = true
 		w.summonCityFighters()
-		w.warNotice("Guildas convocadas! Preparacao de 3 minutos; combate ainda bloqueado.")
+		w.warNotice("Guilds summoned! 3 minutes of preparation; combat still locked.")
 	}
 	if c.Phase == "preparing" && !now.Before(c.StartsAt.Add(6*time.Minute)) {
 		if err := w.warCommit(func() error { c.Phase = "battle"; return nil }); err != nil {
 			return err
 		}
-		w.warNotice("Combate liberado nas quatro cidades! Duracao: 15 minutos; empate favorece a defensora.")
+		w.warNotice("Combat open in the four cities! Duration: 15 minutes; a tie favors the defender.")
 		for p, f := range w.cityFighters {
 			t := c.Territories[f.city]
 			enemy := t.Challenger
@@ -458,6 +504,7 @@ func (w *World) summonCityFighters() {
 			continue
 		}
 		counts := map[uint16]int{}
+		day := w.guilds.Wars.Cities.Day
 		for _, p := range players {
 			g, _ := w.guildOf(p.Char)
 			if g == nil || g.ID != t.Owner && g.ID != t.Challenger || counts[g.ID] >= 26 || !z.city.contains(p.X, p.Y) ||
@@ -468,9 +515,19 @@ func (w *World) summonCityFighters() {
 			if g.ID == t.Challenger {
 				x, y = z.attackX, z.attackY
 			}
-			w.cancelTrade(p, "city war")
-			if w.teleportPlayer(p, x, y) {
-				w.cityFighters[p] = cityFighter{city: city, guild: g.ID}
+			if w.criticalWrites == nil {
+				w.cancelTrade(p, "city war")
+			}
+			fighter := cityFighter{city: city, guild: g.ID}
+			if w.requestPlayerTeleport(p, x, y, func() {
+				// A calendar transition may end the war while SQL is in flight.
+				// The next arena cleanup ejects late arrivals, never enrolls them.
+				if w.guilds != nil && w.cityWarRunning && w.guilds.Wars.Cities.Day == day &&
+					w.guilds.Wars.Cities.Territories[city].Owner == t.Owner &&
+					w.guilds.Wars.Cities.Territories[city].Challenger == t.Challenger && w.cityFighterValid(p, fighter) {
+					w.cityFighters[p] = fighter
+				}
+			}, nil) {
 				counts[g.ID]++
 			}
 		}
@@ -490,6 +547,9 @@ func (w *World) cityFighterValid(p *Player, f cityFighter) bool {
 }
 
 func (w *World) finishCityWar() error {
+	if w.criticalGuildReserved() {
+		return errCriticalPersistenceBusy
+	}
 	if w.guilds.Wars.Cities.Phase == "finished" {
 		return nil
 	}
@@ -510,8 +570,8 @@ func (w *World) finishCityWar() error {
 	}
 	scores := w.cityWarScores
 	previous := w.guilds.Wars.Cities.Territories
-	if err := w.warCommit(func() error {
-		c := &w.guilds.Wars.Cities
+	change := func(guilds *model.GuildRegistry) error {
+		c := &guilds.Wars.Cities
 		for i := range c.Territories {
 			t := &c.Territories[i]
 			if t.Challenger != 0 && scores[i][t.Challenger] > scores[i][t.Owner] {
@@ -523,32 +583,42 @@ func (w *World) finishCityWar() error {
 		}
 		c.Phase, c.Entries = "finished", nil
 		return nil
-	}); err != nil {
+	}
+	publish := func() {
+		w.cityWarRunning = false
+		for p := range w.cityFighters {
+			p.Session.Send(wire.WarInfo())
+		}
+		w.cityFighters = nil
+		w.cityWarScores = [4]map[uint16]uint64{}
+		for i, z := range cityWarZones {
+			t := w.guilds.Wars.Cities.Territories[i]
+			w.warNotice(fmt.Sprintf("%s: winner %s. Points defense %d x attack %d. Ownership saved; defenses: %d.", z.name, w.warGuildName(t.Owner), scores[i][previous[i].Owner], scores[i][previous[i].Challenger], t.Victories))
+		}
+		w.cleanCityArena()
+	}
+	if w.criticalWrites != nil {
+		return w.queueScheduledGuildChange(change, publish)
+	}
+	if err := w.warCommit(func() error { return change(w.guilds) }); err != nil {
 		return err
 	}
-	w.cityWarRunning = false
-	for p := range w.cityFighters {
-		p.Session.Send(wire.WarInfo())
-	}
-	w.cityFighters = nil
-	w.cityWarScores = [4]map[uint16]uint64{}
-	for i, z := range cityWarZones {
-		t := w.guilds.Wars.Cities.Territories[i]
-		w.warNotice(fmt.Sprintf("%s: vencedora %s. Pontos defesa %d x ataque %d. Dominio salvo; defesas: %d.", z.name, w.warGuildName(t.Owner), scores[i][previous[i].Owner], scores[i][previous[i].Challenger], t.Victories))
-	}
-	w.cleanCityArena()
+	publish()
 	return nil
 }
 
 func (w *World) cleanCityArena() {
 	for p, f := range w.cityFighters {
+		if w.criticalPlayerReserved(p) {
+			continue
+		}
 		if !w.cityFighterValid(p, f) {
 			p.Session.Send(wire.WarInfo())
 			delete(w.cityFighters, p)
 		}
 	}
 	for _, p := range w.players {
-		if p == nil || !p.InWorld || p.Char == nil {
+		if p == nil || !p.InWorld || p.Char == nil || w.criticalPlayerReserved(p) {
 			continue
 		}
 		for i, z := range cityWarZones {
@@ -557,7 +627,7 @@ func (w *World) cleanCityArena() {
 			}
 			f, ok := w.cityFighters[p]
 			if !w.cityWarRunning || !ok || f.city != i {
-				w.teleportPlayer(p, z.exitX, z.exitY)
+				w.requestPlayerTeleport(p, z.exitX, z.exitY, nil, nil)
 			}
 		}
 	}
@@ -586,7 +656,7 @@ func (w *World) guildWarPvP(a, b *Player) (allowed, handled bool) {
 	return false, false
 }
 
-func (w *World) registerCityWar(p *Player, city int) error {
+func (w *World) registerCityWar(p *Player, city int, publications ...func()) error {
 	if !w.warConfig.Enabled || w.guilds == nil || !validPlayerMobParticipant(p) || city < 0 || city >= len(cityWarZones) {
 		return fmt.Errorf("invalid city challenge")
 	}
@@ -603,7 +673,26 @@ func (w *World) registerCityWar(p *Player, city int) error {
 	if p.Char.Citizenship != w.channel || !cityWarZones[city].city.contains(p.X, p.Y) || w.gameplaySpaceForPlayer(p) != "" {
 		return fmt.Errorf("leader must be a citizen of this channel and inside the challenged city")
 	}
-	return w.warCommit(func() error { return w.guilds.Wars.Cities.Register(g, city) })
+	publish := func() {
+		for _, publication := range publications {
+			if publication != nil {
+				publication()
+			}
+		}
+	}
+	if w.criticalWrites != nil {
+		proposed := w.criticalGuildSnapshot()
+		if err := proposed.Wars.Cities.Register(proposed.FindByID(g.ID), city); err != nil {
+			return err
+		}
+		return w.queueGuildAccountChange(p, []*Player{p}, proposed, nil,
+			"The city-war application could not be saved.", nil, publish)
+	}
+	if err := w.warCommit(func() error { return w.guilds.Wars.Cities.Register(g, city) }); err != nil {
+		return err
+	}
+	publish()
+	return nil
 }
 
 func (w *World) guildWarCommand(p *Player, command, arg string) {
@@ -612,7 +701,7 @@ func (w *World) guildWarCommand(p *Player, command, arg string) {
 	}
 	send := func(s string) {
 		for _, part := range splitWarNotice(s) {
-			p.Session.Send(wire.MessageWhisper(0, "[GUERRA]", part, 7))
+			p.Session.Send(wire.MessageWhisper(0, "[WAR]", part, 7))
 		}
 	}
 	if w.guilds == nil {
@@ -633,7 +722,7 @@ func (w *World) guildWarCommand(p *Player, command, arg string) {
 			send("Tower entry requires a guild, a living character in Erion and an active tower war.")
 			return
 		}
-		if !w.teleportPlayer(p, 2450, 1855) {
+		if !w.requestPlayerTeleport(p, 2450, 1855, nil, nil) {
 			send("Tower entry failed.")
 		}
 	case "citywar":
@@ -643,11 +732,12 @@ func (w *World) guildWarCommand(p *Player, command, arg string) {
 				send("Use /citywar 1..4 (Armia, Azran, Erion, Nippleheim). Fee: 100 guild fame.")
 				return
 			}
-			if err := w.registerCityWar(p, city-1); err != nil {
+			if err := w.registerCityWar(p, city-1, func() {
+				send("Application saved. Fee: 100 guild fame. The highest fame bid challenges the city.")
+			}); err != nil {
 				send(err.Error())
 				return
 			}
-			send("Application saved. Fee: 100 guild fame. The highest fame bid challenges the city.")
 			return
 		}
 		for i, z := range cityWarZones {
@@ -706,4 +796,8 @@ func (w *World) pruneGuildWarReferences() {
 		}
 	}
 	c.Entries = entries
+	// A deleted guild keeps Kefra defeated; only the credited guild is cleared.
+	if w.guilds.FindByID(w.guilds.Wars.Kefra.Guild) == nil {
+		w.guilds.Wars.Kefra.Guild = 0
+	}
 }

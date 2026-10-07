@@ -95,22 +95,6 @@ int TMShip::FrameMove(unsigned int dwServerTime)
     return 1;
 }
 
-void TMShip::MoveTo(TMVector2 vecPos)
-{
-    m_vecMoveToPos = vecPos;
-
-    TMVector2 dPosition = m_vecMoveToPos - m_vecPosition;
-
-    m_fMoveToAngle = atan2f(dPosition.x, dPosition.y);
-
-    float fAngleDiff = m_fMoveToAngle - m_fAngle;
-
-    if (fAngleDiff > 3.1400001f)
-         m_fAngle += 6.2800002f;
-    else if (fAngleDiff < -3.1400001f)
-        m_fMoveToAngle += 6.2800002f;
-}
-
 void TMShip::InitPosition(float fX, float fY, float fZ)
 {
     TMObject::SetPosition(fX, fY, fZ);

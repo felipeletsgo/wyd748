@@ -58,49 +58,6 @@ int SListBoxItem::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	return 0;
 }
 
-SListBoxBoardItem::SListBoxBoardItem(char* szIndex, char* szVIndex, char* szTitle, char* szWriter, char* szCount, char* szDate, unsigned int dwColor, int bTitile)
-	: SListBoxItem(szVIndex, 0xFFFFFFFF, 0.0f, 0.0f, 500.0f, 12.0f, 0, 0x77777777, 1, 0)
-{
-	unsigned int dwFontColor = 0xFFFFFFFF;
-
-	if (strcmp(szVIndex, g_pMessageStringTable[176]) && (*szVIndex < '0' || *szVIndex > '9'))
-		dwFontColor = 0xFFAAFFAA;
-
-	m_pTitleText = new SText(-2, szTitle, dwFontColor, 44.0f, 0.0f, 260.0f, 16.0f, 1, dwColor, 1, bTitile == 1 ? 1 : 0);
-	m_pWriterText = new SText(-2, szWriter, dwFontColor, 305.0f, 0.0f, 79.0f, 16.0f, 1, dwColor, 1, 1);
-	m_pCountText = new SText(-2, szCount, dwFontColor, 385.0f, 0.0f, 34.0f, 16.0f, 1, dwColor, 1, 1);
-	m_pDateText = new SText(-2, szDate, dwFontColor, 420.0f, 0.0f, 80.0f, 16.0f, 1, dwColor, 1, 1);
-
-	sprintf(m_szIndex, "%s", szIndex);
-}
-
-SListBoxBoardItem::~SListBoxBoardItem()
-{
-	SAFE_DELETE(m_pTitleText);
-	SAFE_DELETE(m_pDateText);
-	SAFE_DELETE(m_pWriterText);
-	SAFE_DELETE(m_pCountText);
-}
-
-void SListBoxBoardItem::FrameMove2(stGeomList* pDrawList, TMVector2 ivItemPos, int inParentLayer, int nFlag)
-{
-	m_pTitleText->FrameMove2(pDrawList, ivItemPos, inParentLayer, nFlag);
-	m_pWriterText->FrameMove2(pDrawList, ivItemPos, inParentLayer, nFlag);
-	m_pCountText->FrameMove2(pDrawList, ivItemPos, inParentLayer, nFlag);
-	m_pDateText->FrameMove2(pDrawList, ivItemPos, inParentLayer, nFlag);
-
-	SListBoxItem::FrameMove2(pDrawList, ivItemPos, inParentLayer, nFlag);
-}
-
-void SListBoxBoardItem::SetPos(float nPosX, float nPosY)
-{
-	SControl::SetPos(nPosX, nPosY);
-	m_pTitleText->SetPos(nPosX + 44.0f, nPosY);
-	m_pWriterText->SetPos(nPosX + 305.0f, nPosY);
-	m_pCountText->SetPos(nPosX + 385.0f, nPosY);
-	m_pDateText->SetPos(nPosX + 420.0f, nPosY);
-}
-
 SListBoxPartyItem::SListBoxPartyItem(char* iStrText, unsigned int idwFontColor, float inX, float inY, float inWidth, float inHeight, unsigned int dwCharID, int nClass, int nLevel, int nHp, int nMaxHp)
 	: SListBoxItem(iStrText,
 		idwFontColor,
@@ -429,15 +386,6 @@ void SListBox::SetSize(float nWidth, float nHeight)
 
 	if (m_pScrollBar != nullptr)
 		m_pScrollBar->SetSize(m_nWidth, nHeight - 1.0f);
-}
-
-void SListBox::SetPickSize(float nWidth, float nHeight)
-{
-	float fWidthRatio = g_UIVer == 2 ? 1.0f : RenderDevice::m_fWidthRatio;
-	float fHeightRatio = g_UIVer == 2 ? 1.0f : RenderDevice::m_fHeightRatio;
-
-	m_fPickWidth = nWidth * fWidthRatio;
-	m_fPickHeight = nHeight * fHeightRatio;
 }
 
 void SListBox::SetEditable()

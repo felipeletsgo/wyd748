@@ -93,27 +93,6 @@ int BASE_GetManaSpent(int SkillNumber, int SaveMana, int Special)
     return g_pSpell[SkillNumber].ManaSpent * (Special / 2 + 100) / 100 * (100 - SaveMana) / 100;
 }
 
-int BASE_GetSkillDamage(int dam, int ac, int combat)
-{
-    int tdam{};
-
-    if (combat > 15)
-        combat = 15;
-
-    tdam = (rand() % (21 - combat) + combat + 90) * (dam - ac / 2) / 100;
-    if (tdam < -50)
-        tdam = 0;
-    else if (tdam >= -50 && tdam < 0)
-        tdam = (tdam + 50) / 10;
-    else if (tdam >= 0 && tdam <= 45)
-        tdam = 5 * tdam / 4 + 5;
-
-    if (tdam <= 0)
-        tdam = 1;
-
-    return tdam;
-}
-
 // Skills, combat, and derived-attribute calculations.
 int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weapondamage, int OriginalFace)
 {

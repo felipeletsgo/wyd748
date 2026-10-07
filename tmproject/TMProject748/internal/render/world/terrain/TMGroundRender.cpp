@@ -201,7 +201,7 @@ int TMGround::Render()
 
                 char bCoordIndex = m_TileMapData[nX + (nY << 6)].byTileCoord;
                 char bCoordBackIndex = m_TileMapData[nX + (nY << 6)].byBackTileCoord;
-                int nTexIndex = (unsigned char)m_TileMapData[nX + (nY << 6)].byTileIndex + 10;
+                int nTexIndex = m_TileMapData[nX + (nY << 6)].wTileIndex + TerrainFrontTextureBase;
 
                 if (g_pDevice->m_bVoodoo == 1)
                 {
@@ -210,7 +210,7 @@ int TMGround::Render()
                 		continue;
                 }
 
-                int nIndex = m_TileMapData[nX + (nY << 6)].byTileIndex + 10;
+                int nIndex = m_TileMapData[nX + (nY << 6)].wTileIndex + TerrainFrontTextureBase;
                 for (int k = 0; k < 4; k++)
                 {
                 	const ExtractedFlow extractedFlow = SetTileTextureCoordinates(bCoordBackIndex, bCoordIndex, fX, fY, k, nIndex, nTexIndex, nX, nY);
@@ -238,7 +238,7 @@ int TMGround::Render()
                 g_pDevice->SetTexture(0, g_pTextureManager->GetEnvTexture(nTexIndex, 5000));
 
                 if (!m_bDungeon || m_bDungeon == 3 || m_bDungeon == 4)
-                    g_pDevice->SetTexture(1, g_pTextureManager->GetEnvTexture(((unsigned char)m_TileMapData[nX + (nY << 6)].byBackTileIndex + 256), 5000));
+                    g_pDevice->SetTexture(1, g_pTextureManager->GetEnvTexture(m_TileMapData[nX + (nY << 6)].wBackTileIndex + TerrainBackTextureBase, 5000));
 
                 g_pDevice->m_pd3dDevice->SetFVF(594);
 
@@ -515,7 +515,7 @@ ExtractedFlow TMGround::SetTileTextureCoordinates(char& bCoordBackIndex, char& b
 
                             g_pDevice->SetTextureStageState(1, D3DTSS_COLOROP, 5);
 
-                            g_pDevice->SetTexture(1, g_pTextureManager->GetEnvTexture(344, 5000));
+                            g_pDevice->SetTexture(1, g_pTextureManager->GetEnvTexture(TerrainBackTextureBase + 88, 5000));
 
                             float fAngle = (float)(m_dwServertime % 10000) / 10000.0f;
 
@@ -527,7 +527,7 @@ ExtractedFlow TMGround::SetTileTextureCoordinates(char& bCoordBackIndex, char& b
                         else if (nIndex >= 62 && nIndex <= 65)
                         {
                             g_pDevice->SetTextureStageState(1, D3DTSS_COLOROP, 5);
-                            g_pDevice->SetTexture(1, g_pTextureManager->GetEnvTexture(nIndex + 286, 5000));
+                            g_pDevice->SetTexture(1, g_pTextureManager->GetEnvTexture(nIndex + TerrainBackTextureBase + 30, 5000));
 
                             m_vertex[k].tu2 = m_vertex[k].tu1;
                             m_vertex[k].tv2 = m_vertex[k].tv1;

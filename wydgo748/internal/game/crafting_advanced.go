@@ -76,13 +76,21 @@ func (w *World) putCraftResult(p *Player, preferred int, item model.Item, change
 }
 
 func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
+	if w.criticalTradeReserved(w.players[s]) {
+		return
+	}
 	p, req, ok := w.beginCombine(s, pkt, "Ehre")
 	if !ok {
 		return
 	}
 
-	// Pedra Misteriosa: duas runas quaisquer + pacote de 10 Poeiras de Lac.
-	// O resultado nativo e uma pilha de 10 pedras no slot do pacote.
+	if w.criticalWrites != nil {
+		w.admitAdvancedComposition(p, req, "Ehre")
+		return
+	}
+
+	// Mysterious Stone: any two runes plus a package of ten Lac powders.
+	// The result is a stack of ten stones in the powder package slot.
 	isRune := func(index uint16) bool { return index >= 5110 && index <= 5133 }
 	if isRune(req.Items[0].Index) && isRune(req.Items[1].Index) &&
 		req.Items[2].Index == 413 && itemStackAmount(req.Items[2]) >= 10 &&
@@ -117,7 +125,7 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 		return
 	}
 
-	// Refinação Abençoada purificada, conforme WYD 7.48.
+	// Purified Blessed Refinement follows the existing WYD 7.48 recipe.
 	if req.Items[0].Index == 697 && req.Items[1].Index == 697 && req.Items[2].Index == 3338 &&
 		req.Items[3].Index == 0 && req.Items[4].Index == 0 && req.Items[5].Index == 0 &&
 		req.Items[6].Index == 0 && req.Items[7].Index == 0 && itemSanc(req.Items[2]) < 9 &&
@@ -222,10 +230,9 @@ func sevenOdinRunes(req combineRequest) bool {
 	return true
 }
 
-// combineSecretStoneOdin aplica a regra retail: qualquer tentativa valida com
-// sete runas custa 2M e consome as sete runas. Uma sequencia exata usa 95%;
-// uma mistura sem receita de Pedra Secreta usa 5% e, no sucesso, sorteia um
-// dos quatro elementos porque a combinacao nao identifica um elemento unico.
+// Every valid seven-rune attempt costs 2M and consumes all seven runes.
+// An exact sequence uses 95%; an unmatched mixture uses 5% and chooses one
+// of four elements on success because the recipe has no unique element.
 func (w *World) combineSecretStoneOdin(p *Player, req combineRequest, output uint16, chance int) {
 	if p == nil || p.Char == nil || p.Char.Gold < odinSecretStoneGoldCost {
 		w.sendCombineResult(p, 0)
@@ -257,8 +264,15 @@ func (w *World) combineSecretStoneOdin(p *Player, req combineRequest, output uin
 }
 
 func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
+	if w.criticalTradeReserved(w.players[s]) {
+		return
+	}
 	p, req, ok := w.beginCombine(s, pkt, "Odin")
 	if !ok {
+		return
+	}
+	if w.criticalWrites != nil {
+		w.admitAdvancedComposition(p, req, "Odin")
 		return
 	}
 	for _, recipe := range secretStoneRecipes {
@@ -272,9 +286,8 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 		w.deterministicOdin(p, req, 3020)
 		return
 	}
-	// A sequencia da Fury e uma receita propria e precisa ser testada antes do
-	// fallback de sete runas. Qualquer outra mistura de runas tenta uma Pedra
-	// Secreta aleatoria com 5% de chance.
+	// Fury is a separate recipe and precedes the seven-rune fallback.
+	// Every other rune mixture attempts a random Secret Stone at 5%.
 	if sevenOdinRunes(req) {
 		w.combineSecretStoneOdin(p, req, 0, odinSecretStoneRandomChance)
 		return
@@ -332,8 +345,8 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 				validCatalysts = false
 				break
 			}
-			// Slot vazio e permitido, mas nao e catalisador e portanto nao
-			// concede os +2 pontos base da Refinacao AbenÃ§oada.
+			// An empty slot is allowed but is not a catalyst, so it does not
+			// contribute the two base Blessed Refinement chance points.
 			if req.Items[i].Index == 3338 {
 				chance += itemSanc(req.Items[i]) + 2
 			}

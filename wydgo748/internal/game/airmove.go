@@ -9,8 +9,8 @@ import (
 	"wydgo/internal/wire"
 )
 
-// g_pAirMoveRoute[5] do client nativo 7.48. Somente os pontos terminais
-// pertencem ao contrato autoritativo; o percurso intermediario e visual.
+// Native 7.48 g_pAirMoveRoute[5]. Only endpoints belong to the authoritative
+// contract; the intermediate route is visual.
 var airMoveDestinations = [...]struct{ x, y uint16 }{
 	{2112, 2051},
 	{2372, 2099},
@@ -22,8 +22,8 @@ var airMoveDestinations = [...]struct{ x, y uint16 }{
 const (
 	airMoveSourceChunk = 16
 	airMovePacketSize  = 20
-	// Dois estados de 2800 ms cercam o voo nativo. Deixamos 200 ms de
-	// tolerancia para a diferenca de latencia entre os dois pacotes.
+	// Two 2800 ms states surround native flight, allowing 200 ms of packet
+	// latency tolerance.
 	airMoveMinimumDuration = 5400 * time.Millisecond
 )
 
@@ -48,36 +48,35 @@ func clearAirMove(p *Player) {
 	p.AirMoveSourceX, p.AirMoveSourceY = 0, 0
 }
 
-// onAirMove recebe somente a rota e o modo. Nao ha NPC ID nem destino no
-// pacote: a abertura da UI depende de um NPC visivel com Head=63/Merchant=7
-// no chunk 16, e o destino e sempre derivado da tabela nativa acima.
+// onAirMove receives only route and mode, not an NPC ID or destination. The UI
+// requires a visible Head=63/Merchant=7 NPC in chunk 16; the table owns endpoints.
 func (w *World) onAirMove(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || len(pkt) != airMovePacketSize {
+	if p == nil || p.Char == nil || !p.InWorld || len(pkt) != airMovePacketSize || w.criticalTradeReserved(p) {
 		return
 	}
 	route := binary.LittleEndian.Uint32(pkt[12:16])
 	mode := binary.LittleEndian.Uint32(pkt[16:20])
 	if playerCurHP(p.Char) == 0 {
 		clearAirMove(p)
-		// O fim tardio apos morte nao e um replay malicioso; o servidor
-		// ja cancelou a viagem e nao deve conceder o destino.
+		// A late finish after death is not malicious replay. The canceled trip
+		// must not grant its destination.
 		if mode == 2 {
 			return
 		}
-		w.recordSecurityViolation(s, wire.OpAirMove, "inicio durante morte")
+		w.recordSecurityViolation(s, wire.OpAirMove, "flight started while dead")
 		return
 	}
 	if binary.LittleEndian.Uint16(pkt[6:8]) != p.ID || route >= uint32(len(airMoveDestinations)) ||
 		(mode != 1 && mode != 2) {
-		w.recordSecurityViolation(s, wire.OpAirMove, "ID, rota, modo ou estado invalido")
+		w.recordSecurityViolation(s, wire.OpAirMove, "invalid ID, route, mode or state")
 		return
 	}
 
 	if mode == 1 {
 		if p.AirMoveActive || int(p.X)/128 != airMoveSourceChunk ||
 			int(p.Y)/128 != airMoveSourceChunk || !w.hasVisibleAirMoveNPC(p) {
-			w.recordSecurityViolation(s, wire.OpAirMove, "inicio fora da UI nativa")
+			w.recordSecurityViolation(s, wire.OpAirMove, "flight started outside native UI context")
 			return
 		}
 		w.cancelTrade(p, "AirMove")
@@ -90,19 +89,19 @@ func (w *World) onAirMove(s *net.Session, pkt []byte) {
 	}
 
 	if !p.AirMoveActive || p.AirMoveRoute != int(route) {
-		w.recordSecurityViolation(s, wire.OpAirMove, "fim sem inicio correspondente")
+		w.recordSecurityViolation(s, wire.OpAirMove, "flight finished without a matching start")
 		return
 	}
 	startedAt := p.AirMoveStartedAt
 	sourceX, sourceY := p.AirMoveSourceX, p.AirMoveSourceY
 	clearAirMove(p)
 	if p.X != sourceX || p.Y != sourceY || w.now().Sub(startedAt) < airMoveMinimumDuration {
-		w.recordSecurityViolation(s, wire.OpAirMove, "fim antecipado ou origem alterada")
+		w.recordSecurityViolation(s, wire.OpAirMove, "early flight finish or changed origin")
 		w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
 		return
 	}
 	dest := airMoveDestinations[route]
-	if !w.teleportPlayer(p, dest.x, dest.y) {
+	if !w.requestPlayerTeleport(p, dest.x, dest.y, nil, nil) {
 		s.Send(wire.MessagePanel("The flight could not be completed."))
 		w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
 	}

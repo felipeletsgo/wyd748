@@ -8,8 +8,8 @@ import (
 	"wydgo/internal/net"
 )
 
-// itemInstanceRewardReceipt existe somente entre as duas fronteiras
-// duraveis do encadeamento Water. O UID nunca vai ao wire.
+// The reward receipt exists only between the two durable Water chain
+// boundaries. The item UID is never sent on the wire.
 type itemInstanceRewardReceipt struct {
 	Slot      byte
 	ItemIndex uint16
@@ -21,11 +21,9 @@ func (r itemInstanceRewardReceipt) valid() bool {
 		int(r.Slot) < model.PlayerCarrySlots
 }
 
-// useWaterScroll e a unica entrada de dominio para pergaminhos Water.
-// O clique do client e o auto-avanco da Silver Angel convergem aqui;
-// apenas o primeiro nasce de um pacote 0x373. expectedUID vazio e uso
-// manual, enquanto o caminho automatico exige a instancia exata recem
-// concedida pelo servidor.
+// Manual clicks and Silver Angel auto-advance share this Water entry point.
+// Only manual use originates from 0x373. Auto-advance requires the exact UID
+// of the newly granted item; an empty expectedUID denotes manual use.
 func (w *World) useWaterScroll(s *net.Session, p *Player, item *model.Item,
 	slot byte, rule model.VolatileRule, req useItemRequest, expectedUID string) bool {
 	if w == nil || s == nil || p == nil || p.Char == nil || item == nil ||
@@ -36,15 +34,17 @@ func (w *World) useWaterScroll(s *net.Session, p *Player, item *model.Item,
 	if expectedUID != "" && item.UID != expectedUID {
 		return false
 	}
+	if w.criticalWrites != nil {
+		return w.admitCriticalInstanceTicket(p, slot, rule, expectedUID)
+	}
 	before := w.itemInstanceForPlayer(p.ID)
 	w.useInstanceTicket(s, p, item, slot, rule, req)
 	after := w.itemInstanceForPlayer(p.ID)
 	return after != nil && after != before
 }
 
-// tryWaterAutoAdvance roda uma unica vez, imediatamente depois que o
-// grant do proximo scroll foi persistido. Nao varre inventario, nao
-// cria pacote sintetico e nao tenta novamente em ticker.
+// Auto-advance runs once after the next scroll grant is durably committed.
+// It never scans inventory, fabricates a packet or retries from a ticker.
 func (w *World) tryWaterAutoAdvance(inst *ItemInstance,
 	receipt itemInstanceRewardReceipt, now time.Time) {
 	if w == nil || inst == nil || !receipt.valid() ||
@@ -69,9 +69,11 @@ func (w *World) tryWaterAutoAdvance(inst *ItemInstance,
 		rule.Instance == nil || !isDurablePrivateWaterConfig(*rule.Instance) {
 		return
 	}
-	// Mesma fronteira comportamental do clique manual. O request aqui e
-	// apenas um valor de dominio; nenhum frame 0x373 e fabricado.
-	w.cancelTrade(leader, "Water auto-advance")
+	// This is a domain request, not a fabricated 0x373 frame. The critical
+	// path retains the trade until settlement rather than closing it early.
+	if w.criticalWrites == nil {
+		w.cancelTrade(leader, "Water auto-advance")
+	}
 	req := useItemRequest{srcType: placeInv, srcPos: uint32(receipt.Slot)}
 	w.useWaterScroll(leader.Session, leader, item, receipt.Slot, rule, req, receipt.ItemUID)
 }

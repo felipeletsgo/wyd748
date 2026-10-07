@@ -24,13 +24,11 @@ public:
 	int FrameMove(unsigned int dwServerTime) override;
 
 	void ResetDemoPlayer();
-	void AniDemoPlayer();
 	void CamAction();
 	void MoveHuman(int nIndex);
 	void RemoveHuman();
 	void SetAlphaServer(unsigned int dwStartTime, unsigned int dwServerTime, unsigned int dwTerm, int bFade);
 	void SetAlphaLogin(unsigned int dwStartTime, unsigned int dwServerTime, unsigned int dwTerm, int bFade);
-	void SetAlphaVirtualkey(unsigned int dwStartTime, unsigned int dwServerTime, unsigned int dwTerm, int bFade);
 	void InitializeUI();
 
 private:

@@ -82,6 +82,7 @@ func resetCharacterRuntime(p *Player) {
 	if p == nil {
 		return
 	}
+	p.criticalLifecycle = nil
 	p.Char = nil
 	p.CharSlot = -1
 	p.ID = 0
@@ -91,6 +92,8 @@ func resetCharacterRuntime(p *Player) {
 	p.AirMoveStartedAt = time.Time{}
 	p.AirMoveSourceX, p.AirMoveSourceY = 0, 0
 	p.Visible = nil
+	// The next EnterWorld sends the current weather again.
+	p.SentWeather = 0
 
 	// Open NPC/window context.
 	p.ShopNPC = 0
@@ -164,6 +167,26 @@ func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 		return
 	}
 	charID, name := p.ID, p.Char.Name
+	if w.criticalWrites != nil {
+		// The account and character state commit before the session leaves
+		// the world; packets arriving meanwhile wait behind the reservation.
+		err := w.queueCriticalLiveMutation("character logout", criticalPreimages(p), func() {
+			if w.players[s] != p || !p.InWorld {
+				return
+			}
+			w.removePlayerFromWorld(p, "return to character selection")
+			w.flushInstanceStateIfDirty()
+			if !s.IsClosed() {
+				s.Send(wire.CNFCharacterLogout(charID))
+			}
+			log.Printf("[#%d] CHARACTER-LOGOUT %q -> selection", s.ID, name)
+		}, criticalLiveMutationOptions{sidecar: true})
+		if err != nil {
+			log.Printf("[#%d] character logout admission rejected for %q: %v", s.ID, name, err)
+			s.Send(wire.MessagePanel("The character could not be saved. Try again."))
+		}
+		return
+	}
 	// Publish confirmation 0x116 only after account and charstate commit
 	// together. Continuing after a failed save would lose buffs/counters on
 	// relog and falsely tell the client that the transition completed.
@@ -217,6 +240,33 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 		return
 	}
 	previous := p.Account.Chars[slot]
+	if w.criticalWrites != nil {
+		images := criticalPreimages(p)
+		p.Account.Chars[slot] = model.Char{}
+		options := criticalLiveMutationOptions{reject: func() {
+			if !s.IsClosed() {
+				s.Send(wire.MessagePanel("The deletion could not be saved."))
+			}
+		}}
+		if previous.UID != "" {
+			// Delete the sidecar in the same transaction as the cleared slot.
+			options.character = &criticalCharacterState{uid: previous.UID}
+		}
+		err := w.queueCriticalLiveMutation("character deletion", images, func() {
+			if w.charNames != nil && !accountUsesName(p.Account, previous.Name) {
+				delete(w.charNames, strings.ToLower(previous.Name))
+			}
+			if !s.IsClosed() {
+				s.Send(selectionUpdatePacket(s, wire.OpCNFDeleteCharacter, uint16(s.ID), p))
+			}
+			log.Printf("[#%d] character deleted: %q slot=%d", s.ID, name, slot)
+		}, options)
+		if err != nil {
+			log.Printf("[#%d] character deletion %q admission rejected: %v", s.ID, name, err)
+			s.Send(wire.MessagePanel("The deletion could not be saved."))
+		}
+		return
+	}
 	p.Account.Chars[slot] = model.Char{}
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Account.Chars[slot] = previous

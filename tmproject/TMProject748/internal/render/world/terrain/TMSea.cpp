@@ -266,11 +266,6 @@ void TMSea::InitPosition(float fX, float fY, float fZ)
     m_rectRange.bottom = (int)(m_vecPosition.y + (float)m_nGridNumY);
 }
 
-D3DXVECTOR3* TMSea::GetPickPos(D3DXVECTOR3* result)
-{
-	return nullptr;
-}
-
 float TMSea::GetHeight(float fX, float fY)
 {
     float fHeight = -100.0f;

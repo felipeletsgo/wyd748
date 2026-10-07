@@ -69,17 +69,14 @@ public:
     // receptacle and is clipped. Overlap stays allowed, with no implicit CanItAdd.
     int AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     int AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
-    int SetItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY);
     IVector2 AddItemInEmpty(SGridControlItem* ipNewItem);
     IVector2 CanAddItemInEmpty(int nWidth, int nHeight);
     int CanChangeItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY, int bOnlyCheck);
     SGridControlItem* PickupItem(int inCellIndexX, int inCellIndexY);
     SGridControlItem* PickupAtItem(int inCellIndexX, int inCellIndexY);
-    SGridControlItem* PickupItem(SGridControlItem* ipItem);
     SGridControlItem* SelectItem(int inCellIndexX, int inCellIndexY);
     SGridControlItem* GetItem(int inCellIndexX, int inCellIndexY);
     SGridControlItem* GetAtItem(int inCellIndexX, int inCellIndexY);
-    SGridControlItem* GetItem(int nCount);
     int OnKeyDownEvent(unsigned int iKeyCode);
     void Empty();
     short CheckType(TMEITEMTYPE eType, TMEGRIDTYPE eGridType);

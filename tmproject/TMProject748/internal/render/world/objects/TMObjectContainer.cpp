@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TMObjectContainer.h"
+#include "PerfTrace.h"
 #include "TMGround.h"
 #include "TMGlobal.h"
 #include "TMObject.h"
@@ -57,6 +58,7 @@ TMObjectContainer::~TMObjectContainer()
 
 int TMObjectContainer::Load(const char* szFileName)
 {
+	perf_trace::ScopedLoad perfLoad(perf_trace::LoadKind::Objects, szFileName);
 	TMVector2 vecPosition;
 	float m_fOffsetX = 0.0f;
 	float m_fOffsetY = 0.0f;
@@ -954,39 +956,6 @@ int TMObjectContainer::Load(const char* szFileName)
 		AddChildWithKey(m_pObjectList[m_nObjectIndex], Key);
 	}
 
-	return 1;
-}
-
-int TMObjectContainer::Save(const char* szFileName)
-{
-	for (int i = 0; i < m_nObjectIndex; ++i)
-	{
-		int nMaxIndex = i;
-		TMObject* pMax = m_pObjectList[i];
-
-		for (int j = i + 1; j < m_nObjectIndex; ++j)
-		{
-			if (pMax && m_pObjectList[j] && pMax->m_vecPosition.y > m_pObjectList[j]->m_vecPosition.y)
-			{
-				pMax = m_pObjectList[j];
-				nMaxIndex = j;
-			}
-		}
-
-		m_pObjectList[nMaxIndex] = m_pObjectList[i];
-		m_pObjectList[i] = pMax;
-	}
-
-	FILE* fp = nullptr;
-	fopen_s(&fp, szFileName, "wb");
-
-	if (fp == nullptr)
-		return 0;
-
-	for (int nIndex = 0; nIndex < m_nObjectIndex; ++nIndex)
-		m_pObjectList[nIndex]->Save(fp);
-
-	fclose(fp);
 	return 1;
 }
 

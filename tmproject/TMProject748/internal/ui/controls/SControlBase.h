@@ -90,11 +90,8 @@ public:
 
     void SetRealPos(float nPosX, float nPosY);
     void SetRealSize(float nWidth, float nHeight);
-    void SetAutoSize();
-    void SetCenterSize();
     void SetStickLeft();
     void SetStickRight();
-    void SetStickTop();
     void SetStickBottom();
     int PtInControl(int inPosX, int inPosY);
 

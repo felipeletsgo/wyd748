@@ -40,9 +40,28 @@ func TestGuildWarFameAndCompletionPersistTogether(t *testing.T) {
 	}
 }
 
-// newTestStore monta um store com dir de contas e guilds.json irmao, que e o
-// layout real (guilds.json NAO pode viver dentro do dir de contas, senao
-// AccountNameExists/CharacterNameExists tentam parsea-lo como conta).
+func TestKefraDefeatPersistsWithGuildFame(t *testing.T) {
+	s, _, _ := newTestStore(t)
+	r := sampleGuild()
+	r.Guilds[0].Fame = 100
+	r.Wars.Kefra = model.KefraState{Defeated: true, Guild: r.Guilds[0].ID,
+		DefeatedAt: time.Date(2026, 9, 14, 21, 0, 0, 0, time.UTC)}
+	if err := s.SaveGameState(r); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.LoadGuilds()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Guilds[0].Fame != 100 || got.Wars.Kefra.Guild != r.Wars.Kefra.Guild ||
+		!got.Wars.Kefra.Defeated || !got.Wars.Kefra.DefeatedAt.Equal(r.Wars.Kefra.DefeatedAt) {
+		t.Fatalf("Kefra defeat lost on reload: %+v", got.Wars.Kefra)
+	}
+}
+
+// newTestStore builds a store with an accounts dir and a sibling guilds.json,
+// the real layout (guilds.json must NOT live inside the accounts dir, or
+// AccountNameExists/CharacterNameExists try to parse it as an account).
 func newTestStore(t *testing.T) (*JSONStore, string, string) {
 	t.Helper()
 	root := t.TempDir()
@@ -61,52 +80,52 @@ func sampleGuild() *model.GuildRegistry {
 			ID:   1,
 			Name: "Alfa",
 			Members: []model.GuildMember{
-				{Character: "Felipe", Account: "conta1", Rank: model.GuildRankLeader},
+				{Character: "Felipe", Account: "account1", Rank: model.GuildRankLeader},
 			},
 		}},
 	}
 }
 
-func TestDefaultGuildsPathFicaForaDoDirDeContas(t *testing.T) {
+func TestDefaultGuildsPathStaysOutsideAccountsDirectory(t *testing.T) {
 	got := defaultGuildsPath(filepath.Join("data", "accounts"))
 	want := filepath.Join("data", "guilds.json")
 	if got != want {
-		t.Fatalf("guilds.json deveria ficar ao lado do dir de contas: got=%q want=%q", got, want)
+		t.Fatalf("guilds.json should sit next to the accounts dir: got=%q want=%q", got, want)
 	}
 }
 
-func TestSaveGameStatePersisteGuildEContaJuntas(t *testing.T) {
+func TestSaveGameStatePersistsGuildAndAccountTogether(t *testing.T) {
 	s, accounts, guildsPath := newTestStore(t)
-	acc := &model.Account{Name: "conta1", PasswordHash: "hash"}
+	acc := &model.Account{Name: "account1", PasswordHash: "hash"}
 
 	if err := s.SaveGameState(sampleGuild(), acc); err != nil {
 		t.Fatalf("SaveGameState: %v", err)
 	}
-	if _, err := os.Stat(filepath.Join(accounts, "conta1.json")); err != nil {
-		t.Fatalf("conta nao persistida: %v", err)
+	if _, err := os.Stat(filepath.Join(accounts, "account1.json")); err != nil {
+		t.Fatalf("account not persisted: %v", err)
 	}
 	if _, err := os.Stat(guildsPath); err != nil {
-		t.Fatalf("guilds.json nao persistido: %v", err)
+		t.Fatalf("guilds.json not persisted: %v", err)
 	}
-	// O guilds.json nao pode ter caido dentro do dir de contas.
+	// guilds.json must not have landed inside the accounts dir.
 	if _, err := os.Stat(filepath.Join(accounts, "guilds.json")); !os.IsNotExist(err) {
-		t.Fatal("guilds.json vazou para dentro do diretorio de contas")
+		t.Fatal("guilds.json leaked into the accounts directory")
 	}
 	registry, err := s.LoadGuilds()
 	if err != nil {
 		t.Fatalf("LoadGuilds: %v", err)
 	}
 	if len(registry.Guilds) != 1 || registry.Guilds[0].Name != "Alfa" {
-		t.Fatalf("registro relido incorreto: %+v", registry)
+		t.Fatalf("wrong reloaded registry: %+v", registry)
 	}
 }
 
-func TestSaveGameStateFalhaNoGuildsTxtNaoInvalidaCommit(t *testing.T) {
+func TestSaveGameStateGuildExportFailureDoesNotInvalidateCommit(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	guildsPath := filepath.Join(root, "guilds.json")
-	blocker := filepath.Join(root, "nao-e-diretorio")
-	if err := os.WriteFile(blocker, []byte("bloqueio"), 0o644); err != nil {
+	blocker := filepath.Join(root, "not-a-directory")
+	if err := os.WriteFile(blocker, []byte("blocker"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	s := NewJSONStore(
@@ -114,35 +133,35 @@ func TestSaveGameStateFalhaNoGuildsTxtNaoInvalidaCommit(t *testing.T) {
 		WithGuildsPath(guildsPath),
 		WithGuildsTxtPath(filepath.Join(blocker, "Guilds.txt")),
 	)
-	acc := &model.Account{Name: "conta1", PasswordHash: "hash"}
+	acc := &model.Account{Name: "account1", PasswordHash: "hash"}
 
 	if err := s.SaveGameState(sampleGuild(), acc); err != nil {
-		t.Fatalf("falha de artefato derivado nao pode negar commit autoritativo: %v", err)
+		t.Fatalf("a derived-artifact failure must not deny an authoritative commit: %v", err)
 	}
-	if _, err := s.LoadAccount("conta1"); err != nil {
-		t.Fatalf("conta comprometida nao foi persistida: %v", err)
+	if _, err := s.LoadAccount("account1"); err != nil {
+		t.Fatalf("the committed account was not persisted: %v", err)
 	}
 	registry, err := s.LoadGuilds()
 	if err != nil {
-		t.Fatalf("guild comprometida nao foi persistida: %v", err)
+		t.Fatalf("the committed guild was not persisted: %v", err)
 	}
 	if len(registry.Guilds) != 1 || registry.Guilds[0].Name != "Alfa" {
-		t.Fatalf("registro autoritativo incorreto apos falha do Guilds.txt: %+v", registry)
+		t.Fatalf("wrong authoritative registry after the Guilds.txt failure: %+v", registry)
 	}
 }
 
-func TestLoadGuildsSemArquivoDevolveRegistroVazio(t *testing.T) {
+func TestLoadGuildsWithoutFileReturnsEmptyRegistry(t *testing.T) {
 	s, _, _ := newTestStore(t)
 	registry, err := s.LoadGuilds()
 	if err != nil {
-		t.Fatalf("servidor novo nao pode falhar por falta de guilds.json: %v", err)
+		t.Fatalf("a new server must not fail for lack of guilds.json: %v", err)
 	}
 	if registry.Version != model.GuildRegistryVersion || len(registry.Guilds) != 0 {
-		t.Fatalf("esperava registro vazio na versao corrente: %+v", registry)
+		t.Fatalf("expected an empty registry at the current version: %+v", registry)
 	}
 }
 
-// writeJournal monta um journal a mao para simular queda do processo.
+// writeJournal builds a journal by hand to simulate a process crash.
 func writeJournal(t *testing.T, accounts string, manifest *txnManifest, files map[string][]byte, commit bool) string {
 	t.Helper()
 	txnDir, err := os.MkdirTemp(accounts, ".account-txn-")
@@ -171,7 +190,7 @@ func writeJournal(t *testing.T, accounts string, manifest *txnManifest, files ma
 	return txnDir
 }
 
-func TestRecuperacaoAplicaJournalComCommit(t *testing.T) {
+func TestRecoveryAppliesCommittedJournal(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
@@ -179,32 +198,32 @@ func TestRecuperacaoAplicaJournalComCommit(t *testing.T) {
 	}
 	guildsPath := filepath.Join(root, "guilds.json")
 
-	accBytes, _ := json.Marshal(&model.Account{Name: "conta1", PasswordHash: "hash"})
+	accBytes, _ := json.Marshal(&model.Account{Name: "account1", PasswordHash: "hash"})
 	guildBytes, _ := json.Marshal(sampleGuild())
 	writeJournal(t, accounts, &txnManifest{
 		Version: txnManifestVer,
 		Entries: []txnEntry{
-			{File: "conta1.json", Kind: txnKindAccount, Name: "conta1"},
+			{File: "account1.json", Kind: txnKindAccount, Name: "account1"},
 			{File: "guilds.registry.json", Kind: txnKindGuilds},
 		},
 	}, map[string][]byte{
-		"conta1.json":          accBytes,
+		"account1.json":        accBytes,
 		"guilds.registry.json": guildBytes,
 	}, true)
 
 	s := NewJSONStore(accounts, WithGuildsPath(guildsPath))
 	if s.initErr != nil {
-		t.Fatalf("recuperacao falhou: %v", s.initErr)
+		t.Fatalf("recovery failed: %v", s.initErr)
 	}
-	if _, err := os.Stat(filepath.Join(accounts, "conta1.json")); err != nil {
-		t.Fatalf("conta nao recuperada: %v", err)
+	if _, err := os.Stat(filepath.Join(accounts, "account1.json")); err != nil {
+		t.Fatalf("account not recovered: %v", err)
 	}
 	if _, err := os.Stat(guildsPath); err != nil {
-		t.Fatalf("guilds.json nao recuperado: %v", err)
+		t.Fatalf("guilds.json not recovered: %v", err)
 	}
 }
 
-func TestRecuperacaoDescartaJournalSemCommit(t *testing.T) {
+func TestRecoveryDiscardsUncommittedJournal(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
@@ -212,44 +231,44 @@ func TestRecuperacaoDescartaJournalSemCommit(t *testing.T) {
 	}
 	guildsPath := filepath.Join(root, "guilds.json")
 
-	accBytes, _ := json.Marshal(&model.Account{Name: "conta1", PasswordHash: "hash"})
+	accBytes, _ := json.Marshal(&model.Account{Name: "account1", PasswordHash: "hash"})
 	txnDir := writeJournal(t, accounts, &txnManifest{
 		Version: txnManifestVer,
-		Entries: []txnEntry{{File: "conta1.json", Kind: txnKindAccount, Name: "conta1"}},
-	}, map[string][]byte{"conta1.json": accBytes}, false)
+		Entries: []txnEntry{{File: "account1.json", Kind: txnKindAccount, Name: "account1"}},
+	}, map[string][]byte{"account1.json": accBytes}, false)
 
 	s := NewJSONStore(accounts, WithGuildsPath(guildsPath))
 	if s.initErr != nil {
-		t.Fatalf("journal sem COMMIT deve ser descartado sem erro: %v", s.initErr)
+		t.Fatalf("a journal without COMMIT must be discarded without an error: %v", s.initErr)
 	}
-	if _, err := os.Stat(filepath.Join(accounts, "conta1.json")); !os.IsNotExist(err) {
-		t.Fatal("journal sem COMMIT nao pode ser aplicado")
+	if _, err := os.Stat(filepath.Join(accounts, "account1.json")); !os.IsNotExist(err) {
+		t.Fatal("a journal without COMMIT must not be applied")
 	}
 	if _, err := os.Stat(txnDir); !os.IsNotExist(err) {
-		t.Fatal("journal sem COMMIT deveria ter sido removido")
+		t.Fatal("a journal without COMMIT should have been removed")
 	}
 }
 
-// Journal gravado antes do manifesto existir precisa continuar recuperavel.
-func TestRecuperacaoDeJournalLegadoSemManifesto(t *testing.T) {
+// A journal written before the manifest existed must stay recoverable.
+func TestRecoveryHandlesLegacyJournalWithoutManifest(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	accBytes, _ := json.Marshal(&model.Account{Name: "conta1", PasswordHash: "hash"})
-	writeJournal(t, accounts, nil, map[string][]byte{"conta1.json": accBytes}, true)
+	accBytes, _ := json.Marshal(&model.Account{Name: "account1", PasswordHash: "hash"})
+	writeJournal(t, accounts, nil, map[string][]byte{"account1.json": accBytes}, true)
 
 	s := NewJSONStore(accounts, WithGuildsPath(filepath.Join(root, "guilds.json")))
 	if s.initErr != nil {
-		t.Fatalf("journal legado deve ser recuperado: %v", s.initErr)
+		t.Fatalf("a legacy journal must be recovered: %v", s.initErr)
 	}
-	if _, err := os.Stat(filepath.Join(accounts, "conta1.json")); err != nil {
-		t.Fatalf("conta do journal legado nao recuperada: %v", err)
+	if _, err := os.Stat(filepath.Join(accounts, "account1.json")); err != nil {
+		t.Fatalf("account of the legacy journal not recovered: %v", err)
 	}
 }
 
-func TestRecuperacaoRecusaTipoDesconhecido(t *testing.T) {
+func TestRecoveryRejectsUnknownDestinationType(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
@@ -257,24 +276,24 @@ func TestRecuperacaoRecusaTipoDesconhecido(t *testing.T) {
 	}
 	writeJournal(t, accounts, &txnManifest{
 		Version: txnManifestVer,
-		Entries: []txnEntry{{File: "x.json", Kind: "coisa-nova", Name: "x"}},
+		Entries: []txnEntry{{File: "x.json", Kind: "unknown-kind", Name: "x"}},
 	}, map[string][]byte{"x.json": []byte("{}")}, true)
 
 	s := NewJSONStore(accounts, WithGuildsPath(filepath.Join(root, "guilds.json")))
 	if s.initErr == nil {
-		t.Fatal("tipo de destino desconhecido deveria falhar explicitamente")
+		t.Fatal("an unknown destination type should fail explicitly")
 	}
 }
 
-// O destino sai do TIPO, mas o nome ainda e usado para compor o caminho da
-// conta: um nome com travessia precisa ser recusado antes de qualquer escrita.
-func TestRecuperacaoRecusaCaminhoForaDaRaiz(t *testing.T) {
+// The destination comes from the TYPE, but the name still builds the account
+// path: a name with a traversal must be refused before any write.
+func TestRecoveryRejectsPathsOutsideRoot(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	for _, name := range []string{"../fora", "sub/conta", ".."} {
+	for _, name := range []string{"../outside", "sub/account", ".."} {
 		writeJournal(t, accounts, &txnManifest{
 			Version: txnManifestVer,
 			Entries: []txnEntry{{File: "x.json", Kind: txnKindAccount, Name: name}},
@@ -282,12 +301,12 @@ func TestRecuperacaoRecusaCaminhoForaDaRaiz(t *testing.T) {
 
 		s := NewJSONStore(accounts, WithGuildsPath(filepath.Join(root, "guilds.json")))
 		if s.initErr == nil {
-			t.Fatalf("nome de conta %q deveria ser recusado", name)
+			t.Fatalf("account name %q should be refused", name)
 		}
-		if _, err := os.Stat(filepath.Join(root, "fora.json")); !os.IsNotExist(err) {
-			t.Fatalf("escreveu fora da raiz com nome %q", name)
+		if _, err := os.Stat(filepath.Join(root, "outside.json")); !os.IsNotExist(err) {
+			t.Fatalf("wrote outside the root with name %q", name)
 		}
-		// limpa o journal invalido para o proximo caso
+		// clears the invalid journal for the next case
 		entries, _ := os.ReadDir(accounts)
 		for _, e := range entries {
 			if e.IsDir() {
@@ -297,36 +316,36 @@ func TestRecuperacaoRecusaCaminhoForaDaRaiz(t *testing.T) {
 	}
 }
 
-// Uma entrada invalida no meio do manifesto nao pode deixar as anteriores
-// aplicadas: a resolucao acontece toda antes da primeira escrita.
-func TestManifestoInvalidoNaoAplicaNadaParcialmente(t *testing.T) {
+// An invalid entry in the middle of the manifest must not leave the earlier
+// ones applied: resolution happens entirely before the first write.
+func TestInvalidManifestDoesNotApplyPartialChanges(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	accBytes, _ := json.Marshal(&model.Account{Name: "conta1", PasswordHash: "hash"})
+	accBytes, _ := json.Marshal(&model.Account{Name: "account1", PasswordHash: "hash"})
 	writeJournal(t, accounts, &txnManifest{
 		Version: txnManifestVer,
 		Entries: []txnEntry{
-			{File: "conta1.json", Kind: txnKindAccount, Name: "conta1"},
-			{File: "y.json", Kind: "invalido", Name: "y"},
+			{File: "account1.json", Kind: txnKindAccount, Name: "account1"},
+			{File: "y.json", Kind: "invalid", Name: "y"},
 		},
-	}, map[string][]byte{"conta1.json": accBytes, "y.json": []byte("{}")}, true)
+	}, map[string][]byte{"account1.json": accBytes, "y.json": []byte("{}")}, true)
 
 	s := NewJSONStore(accounts, WithGuildsPath(filepath.Join(root, "guilds.json")))
 	if s.initErr == nil {
-		t.Fatal("manifesto com entrada invalida deveria falhar")
+		t.Fatal("a manifest with an invalid entry should fail")
 	}
-	if _, err := os.Stat(filepath.Join(accounts, "conta1.json")); !os.IsNotExist(err) {
-		t.Fatal("nenhuma entrada podia ter sido aplicada")
+	if _, err := os.Stat(filepath.Join(accounts, "account1.json")); !os.IsNotExist(err) {
+		t.Fatal("no entry could have been applied")
 	}
 }
 
-// O client 7.48 le "./Guilds.txt" localmente (o WYD.exe abre em "rb" e parseia
-// com %d %d %d %s). Sem esse arquivo nenhum nome de guild aparece, entao a
-// exportacao precisa sair junto de cada mudanca no registro.
-func TestSaveGameStateExportaGuildsTxtNoFormatoNativo(t *testing.T) {
+// The 7.48 client reads "./Guilds.txt" locally (WYD.exe opens it "rb" and
+// parses %d %d %d %s). Without that file no guild name shows, so the export
+// must go out with every registry change.
+func TestSaveGameStateExportsGuildsTxtInNativeFormat(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
@@ -342,17 +361,17 @@ func TestSaveGameStateExportaGuildsTxtNoFormatoNativo(t *testing.T) {
 	}
 	data, err := os.ReadFile(txtPath)
 	if err != nil {
-		t.Fatalf("Guilds.txt nao exportado: %v", err)
+		t.Fatalf("Guilds.txt not exported: %v", err)
 	}
-	// grupo=0 canal=0 indice=1 nome=Alfa
+	// group=0 channel=0 index=1 name=Alfa
 	if got := strings.TrimSpace(string(data)); got != "0 0 1 Alfa" {
-		t.Fatalf("formato nativo incorreto: %q", got)
+		t.Fatalf("wrong native format: %q", got)
 	}
 }
 
-// A exportacao e reescrita completa, nao append: dissolver guild precisa sumir
-// do arquivo, senao o client continua exibindo nome de guild que nao existe.
-func TestExportGuildsTxtReescreveOArquivoInteiro(t *testing.T) {
+// The export is a full rewrite, not an append: a dissolved guild must leave
+// the file, or the client keeps showing the name of a guild that no longer exists.
+func TestExportGuildsTxtRewritesEntireFile(t *testing.T) {
 	root := t.TempDir()
 	accounts := filepath.Join(root, "accounts")
 	if err := os.MkdirAll(accounts, 0o755); err != nil {
@@ -363,37 +382,37 @@ func TestExportGuildsTxtReescreveOArquivoInteiro(t *testing.T) {
 		WithGuildsPath(filepath.Join(root, "guilds.json")),
 		WithGuildsTxtPath(txtPath))
 
-	duas := &model.GuildRegistry{Version: model.GuildRegistryVersion, Guilds: []model.Guild{
+	twoGuilds := &model.GuildRegistry{Version: model.GuildRegistryVersion, Guilds: []model.Guild{
 		{ID: 1, Name: "Alfa", Members: []model.GuildMember{
 			{Character: "A", Account: "c1", Rank: model.GuildRankLeader}}},
 		{ID: 2, Name: "Beta", Members: []model.GuildMember{
 			{Character: "B", Account: "c2", Rank: model.GuildRankLeader}}},
 	}}
-	if err := s.SaveGameState(duas); err != nil {
+	if err := s.SaveGameState(twoGuilds); err != nil {
 		t.Fatal(err)
 	}
-	// dissolve a Beta
-	duas.Guilds = duas.Guilds[:1]
-	if err := s.SaveGameState(duas); err != nil {
+	// dissolves Beta
+	twoGuilds.Guilds = twoGuilds.Guilds[:1]
+	if err := s.SaveGameState(twoGuilds); err != nil {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(txtPath)
 	if strings.Contains(string(data), "Beta") {
-		t.Fatalf("guild dissolvida continuou no Guilds.txt: %q", string(data))
+		t.Fatalf("a dissolved guild stayed in Guilds.txt: %q", string(data))
 	}
 }
 
-// Exportacao desligada nao pode quebrar a persistencia autoritativa.
-func TestSaveGameStateFuncionaSemExportacao(t *testing.T) {
-	s, _, _ := newTestStore(t) // sem WithGuildsTxtPath
+// A disabled export must not break authoritative persistence.
+func TestSaveGameStateWorksWithoutExport(t *testing.T) {
+	s, _, _ := newTestStore(t) // without WithGuildsTxtPath
 	if err := s.SaveGameState(sampleGuild()); err != nil {
-		t.Fatalf("exportacao desligada nao deveria afetar o save: %v", err)
+		t.Fatalf("a disabled export should not affect the save: %v", err)
 	}
 }
 
-func TestSaveGameStateRecusaRegistroInvalido(t *testing.T) {
+func TestSaveGameStateRejectsInvalidRegistry(t *testing.T) {
 	s, _, _ := newTestStore(t)
-	// duas guilds com o mesmo nome variando so a caixa
+	// two guilds with the same name differing only in case
 	registry := &model.GuildRegistry{
 		Version: model.GuildRegistryVersion,
 		Guilds: []model.Guild{
@@ -404,6 +423,6 @@ func TestSaveGameStateRecusaRegistroInvalido(t *testing.T) {
 		},
 	}
 	if err := s.SaveGameState(registry); err == nil {
-		t.Fatal("nome duplicado ignorando caixa deveria ser recusado")
+		t.Fatal("a duplicate name ignoring case should be refused")
 	}
 }

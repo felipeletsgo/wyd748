@@ -134,6 +134,12 @@ class ExtractMethodTests(unittest.TestCase):
         self.assertEqual(extract.signature_parameters('int A::F(int a, char (&b)[8], const X* c = nullptr)'),
                          {'a', 'b', 'c'})
 
+    def test_brace_initializer_items_are_not_declarations(self):
+        declared = extract.all_declared(extract.tokens('{ const Names names { table[1], table[2] }; int a = 1, b = 2; }'))
+        self.assertIn('names', declared)
+        self.assertIn('b', declared)
+        self.assertNotIn('table', declared)
+
     def test_nth_anchor_selects_one_match(self):
         extract.run(self.spec([{'helper': 'Clear', 'after': 'else', 'nth': 0, 'params': []}]), False)
         with self.assertRaisesRegex(ValueError, 'only 1 matches'):
@@ -183,6 +189,14 @@ class ExtractMethodTests(unittest.TestCase):
             extract.run(self.spec([{'helper': 'Step', 'from': 'int step = 2;', 'until': 'total += step;',
                                     'params': []}]), False)
 
+    def test_range_loop_variable_does_not_leak(self):
+        source = SOURCE.replace('\tchar text[8]{};\n',
+                                '\tchar text[8]{};\n\tfor (int i = 0; i < 2; ++i)\n\t\tm_count += i;\n'
+                                '\tm_count += 1;\n\tfor (int i = 0; i < 3; ++i)\n\t\ttotal += i;\n')
+        (self.dir / 'Owner.cpp').write_text(source, encoding='utf-8', newline='\n')
+        extract.run(self.spec([{'helper': 'Count', 'from': 'for (int i = 0; i < 2; ++i)', 'until': 'm_count += 1;',
+                                'params': []}]), False)
+
     def test_range_rejects_partial_statement(self):
         with self.assertRaisesRegex(ValueError, 'complete statements'):
             extract.run(self.spec([{'helper': 'Half', 'from': 'if (value > 3)', 'until': 'm_count = total;',
@@ -211,6 +225,21 @@ class ExtractMethodTests(unittest.TestCase):
         self.assertIn('\tm_count = total;\n\treturn ExtractedFlow::Next;\n}', written)
         self.assertIn('ExtractedFlow HandleOne(int& other, int& total, int& extractedResult);', header)
         self.assertIn('#include "ExtractedFlow.h"', header)
+
+    def test_second_flow_extraction_in_same_method(self):
+        self.write_loop()
+        extract.run(self.flow_spec({'helper': 'HandleOne', 'after': 'case 1:', 'flow': True,
+                                    'params': [['int&', 'other'], ['int&', 'total']]}), True)
+        # A later flow extraction of another block in the same method is accepted...
+        source = (self.dir / 'Owner.cpp').read_text(encoding='utf-8').replace(
+            '\t\tdefault:\n\t\t\tbreak;', '\t\tdefault:\n\t\t{\n\t\t\tif (other)\n\t\t\t\treturn 2;\n\t\t\tm_count = 1;\n\t\t}\n\t\tbreak;')
+        (self.dir / 'Owner.cpp').write_text(source, encoding='utf-8', newline='\n')
+        extract.run(self.flow_spec({'helper': 'HandleDefault', 'after': 'default:', 'flow': True,
+                                    'params': [['int&', 'other']]}), False)
+        # ...but not one whose block contains an earlier call site.
+        with self.assertRaisesRegex(ValueError, 'block already uses'):
+            extract.run(self.flow_spec({'helper': 'Outer', 'after': 'for (int i = 0; i < value; ++i)', 'flow': True,
+                                        'params': [['int&', 'other'], ['int&', 'total'], ['int&', 'value']]}), False)
 
     def test_flow_inverse_rejects_converted_inner_break(self):
         produced = extract.flow_inverse(extract.tokens('for (;;) { return ExtractedFlow::Break; } return ExtractedFlow::Next;'))

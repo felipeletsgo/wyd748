@@ -26,6 +26,9 @@ func (w *World) hostileMob(m *Mob) bool {
 // monster is targetable only by a member of that exact runtime. NPCs and
 // player summons are intentionally excluded from this predicate.
 func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
+	if w.criticalGuildMobReserved(m) {
+		return false
+	}
 	if !w.towerTargetAllowed(p, m) {
 		return false
 	}
@@ -59,7 +62,7 @@ func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 // visible/targetable in one path while still attacking across a runtime wall
 // in another path.
 func (w *World) mobCanTargetPlayer(m *Mob, p *Player) bool {
-	return w.playerCanInteractWithMob(p, m) &&
+	return !w.criticalPlayerReserved(p) && w.playerCanInteractWithMob(p, m) &&
 		(p.Char == nil || !hasActiveAffectAt(p.Char, 28, w.now()))
 }
 

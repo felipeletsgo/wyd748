@@ -412,11 +412,6 @@ void TMCamera::EarthQuake(int nLevel)
     m_dwSetTime = g_pTimerManager->GetServerTime();
 }
 
-float TMCamera::GetHorizonAngle()
-{
-    return m_fHorizonAngle;
-}
-
 void TMCamera::SetFocusedObject(TMObject* pObject)
 {
     m_pFocusedObject = pObject;

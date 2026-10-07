@@ -6,7 +6,6 @@
 #include "TMUtil.h"
 #include "TMItem.h"
 #include "WYD748Assets.h"
-#include "Mission.h"
 #include "TMGround.h"
 #include "TMHuman.h"
 
@@ -304,7 +303,7 @@ void TMFieldScene::SetVisibleNativeMix(int mixIndex, int bShow)
 int TMFieldScene::TryStageNativeMixItem(SGridControl* sourceGrid,
 	SGridControlItem* sourceItem, SGridControl* preferredTarget)
 {
-	if (!m_bCompatFieldScene || !sourceGrid || !sourceItem || !sourceItem->m_pItem)
+	if (!sourceGrid || !sourceItem || !sourceItem->m_pItem)
 		return -1;
 
 	int activeMix = 0;
@@ -375,7 +374,7 @@ int TMFieldScene::TryStageNativeMixItem(SGridControl* sourceGrid,
 
 int TMFieldScene::TryRemoveNativeMixItem(SGridControl* mixGrid)
 {
-	if (!m_bCompatFieldScene || !mixGrid)
+	if (!mixGrid)
 		return -1;
 
 	for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
@@ -415,36 +414,6 @@ int TMFieldScene::TryRemoveNativeMixItem(SGridControl* mixGrid)
 	}
 
 	return -1;
-}
-
-void TMFieldScene::ClearCombine()
-{
-	ClearNativeMix(1);
-}
-
-void TMFieldScene::ClearCombine2()
-{
-	ClearNativeMix(2);
-}
-
-void TMFieldScene::ClearCombine3()
-{
-	ClearNativeMix(3);
-}
-
-void TMFieldScene::ClearCombine4()
-{
-	ClearNativeMix(4);
-}
-
-void TMFieldScene::ClearCombine5()
-{
-	ClearNativeMix(5);
-}
-
-void TMFieldScene::ClearCombine6()
-{
-	ClearNativeMix(6);
 }
 
 void TMFieldScene::DoCombine()
@@ -509,195 +478,18 @@ void TMFieldScene::SetVisibleMixItem6(int bShow)
 
 int TMFieldScene::OnPacketCombineComplete(MSG_STANDARD* pStd)
 {
-	if (m_bCompatFieldScene)
+	// The acknowledgement belongs to whichever one of the six stock artisan
+	// windows is active; never close the unrelated generic 7.59 mix panel.
+	for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
 	{
-		// The acknowledgement belongs to whichever one of the six stock artisan
-		// windows is active; never close the unrelated generic 7.59 mix panel.
-		for (int mixIndex = 1; mixIndex <= 6; ++mixIndex)
+		auto panel = GetNativeMixPanel(mixIndex);
+		if (panel && panel->IsVisible())
 		{
-			auto panel = GetNativeMixPanel(mixIndex);
-			if (panel && panel->IsVisible())
-			{
-				SetVisibleNativeMix(mixIndex, 0);
-				break;
-			}
+			SetVisibleNativeMix(mixIndex, 0);
+			break;
 		}
-	}
-	else
-	{
-		SetVisibleMixItem(0);
-		SetVisibleMixItemTiini(0);
-		SetVisibleMixPanel(0);
 	}
 	return 1;
-}
-
-void TMFieldScene::SetVisibleMixPanel(int bShow)
-{
-	SGridControl::m_sLastMouseOverIndex = -1;
-	if (m_pInputGoldPanel->IsVisible() == 1)
-		SetInVisibleInputCoin();
-	if (bShow == 1 && m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
-		SetVisibleSkill();
-	if (bShow == 1 && m_pCPanel && m_pCPanel->m_bVisible == 1)
-		SetVisibleCharInfo();
-	if (bShow == 1 && m_pCargoPanel && m_pCargoPanel->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pCargoPanel1 && m_pCargoPanel1->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pAutoTrade && m_pAutoTrade->m_bVisible == 1)
-		SetVisibleAutoTrade(0, 0);
-
-	if (bShow == 1)
-	{
-		if (m_pInvenPanel)
-		{
-			if (!m_pInvenPanel->m_bVisible)
-				SetVisibleInventory();
-		}
-
-		m_ItemMixClass.m_pMixPanel->SetVisible(1);
-		m_pInvenPanel->SetPos(RenderDevice::m_fWidthRatio * 650.0f,
-			RenderDevice::m_fHeightRatio * 35.0f);
-
-		g_pDevice->m_nWidthShift = 0;
-		g_pCursor->DetachItem();
-		SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV8);
-		SetEquipGridState(0);
-	}
-	else
-	{
-		if (m_pInvenPanel && m_pInvenPanel->m_bVisible == 1)
-			SetVisibleInventory();
-
-		g_pDevice->m_nWidthShift = 0;
-		m_ItemMixClass.m_pMixPanel->SetVisible(0);
-		ClearMixPannel();
-	}
-}
-
-void TMFieldScene::ClearMixPannel()
-{
-	// Clear mix highlighting across the native 9x7 Carry grid or the newer
-	// paged topology, whichever the loaded UI resource actually supplies.
-	const int carryPages = m_bCompatFieldScene ? 1 : 4;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
-	{
-		auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		if (!pGridInv)
-			continue;
-		for (int nY = 0; nY < carryRows; ++nY)
-		{
-			for (int nX = 0; nX < carryColumns; ++nX)
-			{
-				auto pItem = pGridInv->GetItem(nX, nY);
-				if (pItem)
-				{
-					if (pItem->m_GCObj.dwColor == 0xFFFF0000)
-						pItem->m_GCObj.dwColor = 0xFFFFFFFF;
-				}
-			}
-		}
-	}
-
-	m_ItemMixClass.ClearGridList();
-	m_ItemMixClass.m_stCombineItem.Header.ID = m_pMyHuman->m_dwID;
-	m_ItemMixClass.m_stCombineItem.Header.Type = MSG_CombineItemTiny_Opcode;
-
-	// FieldScene2.bin binds only the native 7.48 Carry grid; newer resources
-	// can bind four pages, so reset every control that actually exists.
-	for (auto pGridInv : m_pGridInvList)
-	{
-		if (pGridInv)
-			pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	}
-	SetEquipGridState(1);
-}
-
-void TMFieldScene::SetVisibleMissionPanel(int bShow)
-{
-	SGridControl::m_sLastMouseOverIndex = -1;
-	if (m_pInputGoldPanel->IsVisible() == 1)
-		SetInVisibleInputCoin();
-	if (bShow == 1 && m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
-		SetVisibleSkill();
-	if (bShow == 1 && m_pCPanel && m_pCPanel->m_bVisible == 1)
-		SetVisibleCharInfo();
-	if (bShow == 1 && m_pCargoPanel && m_pCargoPanel->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pCargoPanel1 && m_pCargoPanel1->m_bVisible == 1)
-		SetVisibleCargo(1);
-	if (bShow == 1 && m_pAutoTrade && m_pAutoTrade->m_bVisible == 1)
-		SetVisibleAutoTrade(0, 0);
-
-	if (bShow == 1)
-	{
-		if (m_pInvenPanel)
-		{
-			if (!m_pInvenPanel->m_bVisible)
-				SetVisibleInventory();
-		}
-
-		m_MissionClass.m_pMissionPanel->SetVisible(1);
-		m_pInvenPanel->SetPos(RenderDevice::m_fWidthRatio * 650.0f,
-			RenderDevice::m_fHeightRatio * 35.0f);
-
-		g_pDevice->m_nWidthShift = 0;
-		g_pCursor->DetachItem();
-		SetInventoryGridType(TMEGRIDTYPE::GRID_TRADEINV3);
-		SetEquipGridState(0);
-	}
-	else
-	{
-		if (m_pInvenPanel && m_pInvenPanel->m_bVisible == 1)
-			SetVisibleInventory();
-
-		g_pDevice->m_nWidthShift = 0;
-		m_MissionClass.m_pMissionPanel->SetVisible(0);
-		ClearMissionPannel();
-	}
-}
-
-void TMFieldScene::ClearMissionPannel()
-{
-	// Mission cleanup follows the same native single-grid Carry contract.
-	const int carryPages = m_bCompatFieldScene ? 1 : 4;
-	const int carryRows = m_bCompatFieldScene ? 7 : 3;
-	const int carryColumns = m_bCompatFieldScene ? 9 : 5;
-	for (int i = 0; i < carryPages; ++i)
-	{
-		auto pGridInv = m_bCompatFieldScene ? m_pGridInv : m_pGridInvList[i];
-		if (!pGridInv)
-			continue;
-		for (int nY = 0; nY < carryRows; ++nY)
-		{
-			for (int nX = 0; nX < carryColumns; ++nX)
-			{
-				auto pItem = pGridInv->GetItem(nX, nY);
-				if (pItem)
-				{
-					if (pItem->m_GCObj.dwColor == 0xFFFF0000)
-						pItem->m_GCObj.dwColor = 0xFFFFFFFF;
-				}
-			}
-		}
-	}
-
-	m_MissionClass.ClearGridList();
-	m_MissionClass.m_stCombineItem.Header.ID = m_pMyHuman->m_dwID;
-	// Mission is not part of the native 7.48 combine ABI. Keep it unavailable
-	// until a distinct, coordinated client/server contract is implemented.
-	m_MissionClass.m_stCombineItem.Header.Type = 0;
-	// Mission cleanup must not manufacture the three 7.59 Carry pages that
-	// do not exist in the stock 7.48 control tree.
-	for (auto pGridInv : m_pGridInvList)
-	{
-		if (pGridInv)
-			pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
-	}
-	SetEquipGridState(1);
 }
 
 int TMFieldScene::MouseClick_MixNPC(TMHuman* pOver)

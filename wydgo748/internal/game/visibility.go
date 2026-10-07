@@ -139,7 +139,7 @@ func (w *World) playersVisibleTogether(a, b *Player) bool {
 }
 
 func (w *World) groundItemVisibleToPlayer(p *Player, g *GroundItem) bool {
-	if p == nil || g == nil {
+	if p == nil || g == nil || g.criticalDrop != 0 {
 		return false
 	}
 	if g.Permanent {
@@ -160,7 +160,7 @@ func (w *World) hideMob(p *Player, m *Mob, removeType uint32) {
 }
 
 func (w *World) showGhostShop(p *Player, shop *GhostShop) {
-	if p == nil || !p.InWorld || shop == nil || p.hasVisible(shop.ID) {
+	if p == nil || !p.InWorld || !w.ghostShopVisibleToPlayer(p, shop) || p.hasVisible(shop.ID) {
 		return
 	}
 	p.Session.Send(wire.CreateMobTrade(shop.ID, shop.Name, shop.X, shop.Y,
@@ -309,6 +309,9 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 	nearShops := w.nearbyGhostShops(p.X, p.Y, viewHalfX)
 	nearShopIDs := make(map[uint16]struct{}, len(nearShops))
 	for _, shop := range nearShops {
+		if !w.ghostShopVisibleToPlayer(p, shop) {
+			continue
+		}
 		nearShopIDs[shop.ID] = struct{}{}
 		if !p.hasVisible(shop.ID) {
 			w.showGhostShop(p, shop)
@@ -391,7 +394,7 @@ func (w *World) publishGhostShopItemSold(shop *GhostShop, pos uint32) {
 		return
 	}
 	for _, p := range w.nearbyWorldPlayers(shop.X, shop.Y, viewHalfX) {
-		if p.hasVisible(shop.ID) {
+		if p.hasVisible(shop.ID) && w.ghostShopVisibleToPlayer(p, shop) {
 			// The auto-shop window was opened for the clone's virtual ID.
 			p.Session.Send(wire.ItemSold(shop.ID, pos))
 		}
@@ -765,6 +768,9 @@ func (w *World) syncPlayerChaos(subject *Player) {
 }
 
 func (w *World) publishItemSpawn(g *GroundItem) {
+	if g == nil || g.criticalDrop != 0 {
+		return
+	}
 	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
 		if w.groundItemVisibleToPlayer(p, g) && !p.hasVisible(g.ID) {
 			p.Session.Send(w.groundItemCreatePacket(g))
@@ -774,7 +780,7 @@ func (w *World) publishItemSpawn(g *GroundItem) {
 }
 
 func (w *World) publishItemRemove(g *GroundItem) {
-	if g == nil {
+	if g == nil || g.criticalReserved() {
 		return
 	}
 	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {

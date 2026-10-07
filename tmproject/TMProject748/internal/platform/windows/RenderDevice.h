@@ -23,7 +23,6 @@ public:
 	virtual int Lock(int bClear);
 	virtual int Unlock(int bEnd);
 
-	void SetLight();
 	void SetWindowedFullScreen();
 	void RestoreWindowMode();
 	int ChangeDisplay(DWORD x, DWORD y, DWORD bpp, DWORD ref);
@@ -58,24 +57,11 @@ public:
 	void RenderRectNoTex(float iX, float iY, float iCX, float iCY, DWORD dwColor, int bTrans);
 	void RenderRectTex(float iStartX, float iStartY, float iCX, float iCY, float iDestX, float iDestY,
 		float DestCX, float DestCY, IDirect3DTexture9* pTexture, DWORD dwColor, int bTrans, float fAngle, float fScale);
-	void RenderRectTex2C(float iStartX, float iStartY, float iCX, float iCY, float iStartX2, float iStartY2,
-		float iCX2, float iCY2, float iDestX, float iDestY, float DestCX, float DestCY, IDirect3DTexture9* pTexture,
-		IDirect3DTexture9* pTexture2, DWORD dwColor, int bTrans, float fAngle, float fScale);
-	void RenderRectTex2(float iStartX, float iStartY, float iCX, float iCY, float iDestX, float iDestY,
-		float DestCX, float DestCY, IDirect3DTexture9* pTexture,
-		IDirect3DTexture9* pTexture2, DWORD dwColor, int bTrans, float fAngle, float fScale);
-	void RenderRectTex2M(float iStartX, float iStartY, float iCX, float iCY, float iDestX, float iDestY,
-		float DestCX, float DestCY, IDirect3DTexture9* pTexture,
-		IDirect3DTexture9* pTexture2, DWORD dwColor, int bTrans, float fAngle, float fScale);
 	void RenderRectTexDamage(float iStartX, float iStartY, float iCX, float iCY, float iDestX, float iDestY,
 		float DestCX, float DestCY, IDirect3DTexture9* pTexture,
 		DWORD dwColor, int bTrans, float fAngle, float fScale);
-	void RenderRectProgress2(float iX, float iY, float iCX, float iCY, float fProgress, DWORD dwColor);
 	void RenderRectRot(float iStartX, float iStartY, float iCX, float iCY, float iDestX, float iDestY, float nCenX, float nCenY,
 		float fAngle, IDirect3DTexture9* pTexture, float fScaleX, float fScaleY);
-	void LogRenderState();
-	void LogSamplerState();
-	void LogTextureStageState();
 
 	void RenderGeomRectImage(GeomControl* ipControl);
 	void RenderGeomControl(GeomControl* ipControl);
@@ -159,6 +145,12 @@ public:
 	static int m_nFontTextureSizeY;
 	static float m_fWidthRatio;
 	static float m_fHeightRatio;
+	// 2D UI scale. The 7.48 client runs UI mode 2 (FUN_0055bc0a), where every
+	// control keeps its resource pixel size (FUN_0040104c multiplies by 1.0)
+	// and only anchored roots follow the viewport. m_fWidthRatio/HeightRatio
+	// remain W/800 and H/600 for the places the native client still scales.
+	static float m_fUIScaleX;
+	static float m_fUIScaleY;
 	static float m_fFOVY;
 	static int m_bDungeon;
 
@@ -169,8 +161,6 @@ public:
 private:
 	// Helpers extracted from RenderDevice::RenderGeomRectImage.
 	ExtractedFlow RenderTexturedGeomRect(GeomControl*& ipControl);
-	// Helpers extracted from RenderDevice::RenderRectProgress2.
-	void RenderProgressFill(float& iX, float& iY, float& iCX, float& iCY, float& fProgress, DWORD& dwColor);
 	// Helpers extracted from RenderDevice::RenderGeomRectImage.
 	void RenderGuildMarkImage(GeomControl*& ipControl);
 };

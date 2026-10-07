@@ -23,11 +23,11 @@ func mobMoveDelay(attackRun byte) time.Duration {
 	return mobBaseStepInterval / time.Duration(mobMovementSpeed(attackRun))
 }
 
-// moveMobToward envia um trecho completo, como GetTargetPos/BASE_GetRoute:
-// distancia maxima = 2*Speed. Um unico Action mantem o ciclo de caminhada do
-// client ativo ate o fim, em vez de reinicia-lo em toda coordenada.
+// moveMobToward sends a complete segment, as GetTargetPos/BASE_GetRoute does.
+// The maximum distance is 2*Speed. One Action keeps the client walking through
+// the segment instead of restarting its animation at every coordinate.
 func (w *World) moveMobToward(m *Mob, targetX, targetY uint16, stopDistance int, now time.Time) int {
-	if m == nil || m.Def == nil || m.Def.Score == nil {
+	if m == nil || m.Def == nil || m.Def.Score == nil || w.criticalGuildMobReserved(m) {
 		return 0
 	}
 	attackRun := effectiveMobAttackRunAt(m, now)
@@ -63,10 +63,13 @@ func (w *World) moveMobToward(m *Mob, targetX, targetY uint16, stopDistance int,
 	return steps
 }
 
-// tickMobRoutes implementa a patrulha basica do NPCGener. RouteType 2 percorre
-// os segmentos validos em ida e volta, como CMob::SetSegment no WYD 7.48.
+// tickMobRoutes implements basic NPCGener patrol. RouteType 2 follows valid
+// segments back and forth, as CMob::SetSegment does in WYD 7.48.
 func (w *World) tickMobRoutes(now time.Time, shard, shardCount int) {
 	for _, m := range w.activeMobs {
+		if w.criticalGuildMobReserved(m) {
+			continue
+		}
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
 		}

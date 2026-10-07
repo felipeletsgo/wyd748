@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 163.
+Markdown documents: 183.
 
 | Document | Type |
 | --- | --- |
@@ -63,6 +63,7 @@ Markdown documents: 163.
 | [.agents/research/client748/flows/ui/carry-snapshot-contract.md](<../.agents/research/client748/flows/ui/carry-snapshot-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/cc-auto-combat-state-sync.md](<../.agents/research/client748/flows/ui/cc-auto-combat-state-sync.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/character-stat-fields-update.md](<../.agents/research/client748/flows/ui/character-stat-fields-update.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/chat-channel-filter-toggle.md](<../.agents/research/client748/flows/ui/chat-channel-filter-toggle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/combine-complete-contract.md](<../.agents/research/client748/flows/ui/combine-complete-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/control-focus-ime-lifecycle.md](<../.agents/research/client748/flows/ui/control-focus-ime-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/drop-confirmation-contract.md](<../.agents/research/client748/flows/ui/drop-confirmation-contract.md>) | Research evidence |
@@ -70,9 +71,11 @@ Markdown documents: 163.
 | [.agents/research/client748/flows/ui/equipped-item-matched-consumable-shortcut.md](<../.agents/research/client748/flows/ui/equipped-item-matched-consumable-shortcut.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/feature-panel-layout.md](<../.agents/research/client748/flows/ui/feature-panel-layout.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/field-hud-death-prompt-regressions.md](<../.agents/research/client748/flows/ui/field-hud-death-prompt-regressions.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md](<../.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/gamble-jackpot.md](<../.agents/research/client748/flows/ui/gamble-jackpot.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/gamble-result-contract.md](<../.agents/research/client748/flows/ui/gamble-result-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/grid-item-mesh-scale.md](<../.agents/research/client748/flows/ui/grid-item-mesh-scale.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/grid-item-quantity-and-cp-names.md](<../.agents/research/client748/flows/ui/grid-item-quantity-and-cp-names.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/ground-item-create-contract.md](<../.agents/research/client748/flows/ui/ground-item-create-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/ground-item-state-contract.md](<../.agents/research/client748/flows/ui/ground-item-state-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/indexed-parameterized-message-extension.md](<../.agents/research/client748/flows/ui/indexed-parameterized-message-extension.md>) | Research evidence |
@@ -93,6 +96,8 @@ Markdown documents: 163.
 | [.agents/research/client748/flows/ui/premium-npc-click-dormant.md](<../.agents/research/client748/flows/ui/premium-npc-click-dormant.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md](<../.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/quiz-choice-event.md](<../.agents/research/client748/flows/ui/quiz-choice-event.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/score-button-hold-repeat.md](<../.agents/research/client748/flows/ui/score-button-hold-repeat.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/score-hud-shortcut-counters-exp.md](<../.agents/research/client748/flows/ui/score-hud-shortcut-counters-exp.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/screenshot-capture.md](<../.agents/research/client748/flows/ui/screenshot-capture.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/select-character-delete-password.md](<../.agents/research/client748/flows/ui/select-character-delete-password.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/select-character-exp-threshold.md](<../.agents/research/client748/flows/ui/select-character-exp-threshold.md>) | Research evidence |
@@ -118,6 +123,7 @@ Markdown documents: 163.
 | [.agents/research/client748/inventory/scene-transition-evidence-log.md](<../.agents/research/client748/inventory/scene-transition-evidence-log.md>) | Research evidence |
 | [.agents/research/client748/inventory/set-my-human-magic-noop.md](<../.agents/research/client748/inventory/set-my-human-magic-noop.md>) | Research evidence |
 | [.agents/research/client748/README.md](<../.agents/research/client748/README.md>) | Research evidence |
+| [.agents/research/source-audit-2026-10-03.md](<../.agents/research/source-audit-2026-10-03.md>) | Research evidence |
 | [.agents/skills/repo-architecture/SKILL.md](<../.agents/skills/repo-architecture/SKILL.md>) | Active skill |
 | [.agents/skills/wyd-client748-assets/SKILL.md](<../.agents/skills/wyd-client748-assets/SKILL.md>) | Active skill |
 | [.agents/skills/wyd-client748-catalog/references/catalog-strategy.md](<../.agents/skills/wyd-client748-catalog/references/catalog-strategy.md>) | Operational reference |
@@ -145,10 +151,19 @@ Markdown documents: 163.
 | [DOCS/architecture-map.md](<architecture-map.md>) | Product documentation |
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Product documentation |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Product documentation |
+| [DOCS/client/classic-ui-assets.md](<client/classic-ui-assets.md>) | Product documentation |
+| [DOCS/client/dead-code-map.md](<client/dead-code-map.md>) | Product documentation |
+| [DOCS/client/effects-compatibility-matrix.md](<client/effects-compatibility-matrix.md>) | Product documentation |
+| [DOCS/client/full-source-audit-2026-10-03.md](<client/full-source-audit-2026-10-03.md>) | Product documentation |
+| [DOCS/client/inventory-stack-and-cp-contract.md](<client/inventory-stack-and-cp-contract.md>) | Product documentation |
+| [DOCS/client/performance-and-visuals-plan.md](<client/performance-and-visuals-plan.md>) | Product documentation |
 | [DOCS/client/port-748.md](<client/port-748.md>) | Product documentation |
+| [DOCS/client/refactoring-batch-audit-2026-10-03.md](<client/refactoring-batch-audit-2026-10-03.md>) | Product documentation |
+| [DOCS/client/resource-compatibility-matrix.md](<client/resource-compatibility-matrix.md>) | Product documentation |
 | [DOCS/client/tmfieldscene-refactoring-plan.md](<client/tmfieldscene-refactoring-plan.md>) | Product documentation |
 | [DOCS/client/tmhuman-separation-plan.md](<client/tmhuman-separation-plan.md>) | Product documentation |
 | [DOCS/client/tmproject-source-organization-plan.md](<client/tmproject-source-organization-plan.md>) | Product documentation |
+| [DOCS/client/ui-compatibility-matrix.md](<client/ui-compatibility-matrix.md>) | Product documentation |
 | [DOCS/client/ui-windows.md](<client/ui-windows.md>) | Product documentation |
 | [DOCS/documentation-map.md](<documentation-map.md>) | Product documentation |
 | [DOCS/features-macro.md](<features-macro.md>) | Product documentation |
@@ -160,12 +175,17 @@ Markdown documents: 163.
 | [DOCS/guild-wars.md](<guild-wars.md>) | Product documentation |
 | [DOCS/language-migration.md](<language-migration.md>) | Product documentation |
 | [DOCS/login-dispatch.md](<login-dispatch.md>) | Product documentation |
+| [DOCS/protocol/data-consistency.md](<protocol/data-consistency.md>) | Product documentation |
+| [DOCS/protocol/hell-gate-store.md](<protocol/hell-gate-store.md>) | Product documentation |
+| [DOCS/protocol/opcode-compatibility-matrix.md](<protocol/opcode-compatibility-matrix.md>) | Product documentation |
 | [DOCS/protocol/packet-fixtures.md](<protocol/packet-fixtures.md>) | Product documentation |
 | [DOCS/README.md](<README.md>) | Product documentation |
 | [DOCS/reference-upstream.md](<reference-upstream.md>) | Product documentation |
 | [DOCS/SCORE.md](<SCORE.md>) | Product documentation |
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Product documentation |
+| [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
 | [DOCS/server/operations.md](<server/operations.md>) | Product documentation |
+| [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |
 | [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Product documentation |
 | [DOCS/windows-development-environment.md](<windows-development-environment.md>) | Product documentation |
@@ -199,11 +219,15 @@ Markdown documents: 163.
 - [.agents/research/client748/exports/missing-native-addresses.tsv](<../.agents/research/client748/exports/missing-native-addresses.tsv>)
 - [.agents/research/client748/exports/motion-emote-flow.tsv](<../.agents/research/client748/exports/motion-emote-flow.tsv>)
 - [.agents/research/client748/exports/native-mix-inventory-layout-flow.tsv](<../.agents/research/client748/exports/native-mix-inventory-layout-flow.tsv>)
+- [.agents/research/client748/exports/native-path-strings.tsv](<../.agents/research/client748/exports/native-path-strings.tsv>)
 - [.agents/research/client748/exports/object-manager-init-flow.tsv](<../.agents/research/client748/exports/object-manager-init-flow.tsv>)
 - [.agents/research/client748/exports/object-manager-scene-lifecycle.tsv](<../.agents/research/client748/exports/object-manager-scene-lifecycle.tsv>)
 - [.agents/research/client748/exports/object-manager-vtable.tsv](<../.agents/research/client748/exports/object-manager-vtable.tsv>)
 - [.agents/research/client748/exports/object-manager-vtables.tsv](<../.agents/research/client748/exports/object-manager-vtables.tsv>)
 - [.agents/research/client748/exports/objectmanager-slots-14-20-traversals-focused.tsv](<../.agents/research/client748/exports/objectmanager-slots-14-20-traversals-focused.tsv>)
+- [.agents/research/client748/exports/opcode-census-FUN_00435b13-stores.tsv](<../.agents/research/client748/exports/opcode-census-FUN_00435b13-stores.tsv>)
+- [.agents/research/client748/exports/opcode-census-native.tsv](<../.agents/research/client748/exports/opcode-census-native.tsv>)
+- [.agents/research/client748/exports/opcode-scan-type-field.tsv](<../.agents/research/client748/exports/opcode-scan-type-field.tsv>)
 - [.agents/research/client748/exports/packet-size-gate-bodyrefs.tsv](<../.agents/research/client748/exports/packet-size-gate-bodyrefs.tsv>)
 - [.agents/research/client748/exports/packet-size-gate-flow.tsv](<../.agents/research/client748/exports/packet-size-gate-flow.tsv>)
 - [.agents/research/client748/exports/packet-size-gate-pointer-search.tsv](<../.agents/research/client748/exports/packet-size-gate-pointer-search.tsv>)
@@ -235,8 +259,14 @@ Markdown documents: 163.
 - [.agents/research/client748/exports/ui-focus-ime.tsv](<../.agents/research/client748/exports/ui-focus-ime.tsv>)
 - [.agents/research/client748/exports/unresolved-reference-resolution.tsv](<../.agents/research/client748/exports/unresolved-reference-resolution.tsv>)
 - [.agents/research/client748/exports/use-npc-flow.tsv](<../.agents/research/client748/exports/use-npc-flow.tsv>)
+- [.agents/research/client748/inventory/dead-code.tsv](<../.agents/research/client748/inventory/dead-code.tsv>)
+- [.agents/research/client748/inventory/effects-matrix.tsv](<../.agents/research/client748/inventory/effects-matrix.tsv>)
 - [.agents/research/client748/inventory/functions.tsv](<../.agents/research/client748/inventory/functions.tsv>)
 - [.agents/research/client748/inventory/ghidra-functions.tsv](<../.agents/research/client748/inventory/ghidra-functions.tsv>)
+- [.agents/research/client748/inventory/item-data-differences.tsv](<../.agents/research/client748/inventory/item-data-differences.tsv>)
+- [.agents/research/client748/inventory/opcode-matrix.tsv](<../.agents/research/client748/inventory/opcode-matrix.tsv>)
 - [.agents/research/client748/inventory/research-queue.tsv](<../.agents/research/client748/inventory/research-queue.tsv>)
+- [.agents/research/client748/inventory/resource-matrix.tsv](<../.agents/research/client748/inventory/resource-matrix.tsv>)
 - [.agents/research/client748/inventory/source-files.tsv](<../.agents/research/client748/inventory/source-files.tsv>)
 - [.agents/research/client748/inventory/source-symbols.tsv](<../.agents/research/client748/inventory/source-symbols.tsv>)
+- [.agents/research/client748/inventory/ui-matrix.tsv](<../.agents/research/client748/inventory/ui-matrix.tsv>)

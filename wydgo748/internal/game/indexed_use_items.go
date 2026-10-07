@@ -33,11 +33,13 @@ func blockedGemTarget(index uint16) bool {
 	return index >= 3500 && index <= 3507 || index >= 631 && index <= 633
 }
 
-// useEquipmentGem porta o bloco Gemas do UseItem 7.54. Diamond/Emerald/Coral/
-// Garnet sao variantes 0..3 do valor especial de refino +10..+15. Armaduras
-// preservam o Index; armas mudam para o item contiguo da mesma familia.
+// Diamond/Emerald/Coral/Garnet select variants 0..3 of the special +10..+15
+// refinement value. Armor retains its index; weapons select an adjacent variant.
 func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 	sourceSlot byte, rule model.VolatileRule, req useItemRequest) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
 	resend := func(message string) {
 		s.Send(wire.SendItem(p.ID, placeInv, sourceSlot, *source))
 		if message != "" {
@@ -61,9 +63,8 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 	}
 	raw, hasSanc := sancRaw(*target)
 	specialRefine := hasSanc && raw >= 230 && raw <= 253
-	// O WYD 7.48 permite a familia de armas Ancient (Grade 5..8) mesmo abaixo
-	// de +10: nesse caso somente o Index da variante muda e o refino comum e
-	// preservado. Armaduras exigem o intervalo especial +10..+15.
+	// Ancient weapons (grades 5..8) also accept gems below +10, preserving
+	// ordinary refinement. Armor requires the special +10..+15 interval.
 	if armor && !specialRefine {
 		resend("Armor must be refined to +10 or higher.")
 		return
@@ -88,9 +89,30 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 		newIndex = uint16(candidate)
 	}
 
+	if w.criticalWrites != nil {
+		proposedTarget := *target
+		proposedTarget.Index = newIndex
+		if specialRefine && !setItemSancRaw(&proposedTarget, byte(230+((int(raw)-230)/4)*4+rule.Variant)) {
+			resend("The equipment has no refinement effect.")
+			return
+		}
+		if err := w.queueCriticalIndexedUse(p, sourceSlot, placeEquip, req.dstPos, proposedTarget, func() {
+			s.Send(wire.SendItem(p.ID, placeInv, sourceSlot, p.Char.Inv[sourceSlot]))
+			s.Send(wire.SendItem(p.ID, placeEquip, byte(req.dstPos), p.Char.Equip[req.dstPos]))
+			s.Send(playerScorePacket(p))
+			w.syncPlayerVitalsToObservers(p)
+			w.refreshAppearance(p)
+			w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 3) })
+			s.Send(wire.MessagePanel("Gem applied successfully."))
+		}); err != nil {
+			resend("Item use is unavailable. Please try again later.")
+			log.Printf("[#%d] equipment gem admission: %v", s.ID, err)
+		}
+		return
+	}
 	snapshot := cloneCharacterState(p.Char)
 	oldSource, oldTarget := *source, *target
-	target.Index = newIndex // UID e os adicionais pertencem a mesma instancia.
+	target.Index = newIndex // UID and additional effects belong to the same instance.
 	newRaw := raw
 	if specialRefine {
 		newRaw = byte(230 + ((int(raw)-230)/4)*4 + rule.Variant)
@@ -101,13 +123,12 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 		}
 	}
 	consumeOne(source)
-	// A conta persistida precisa conter o score derivado do novo equipamento;
-	// recalcular depois do commit criaria uma janela de estado dividido.
+	// Persist the score derived from the new equipment in the same transaction.
 	w.recalcPlayer(p.Char)
 	if err := w.saveAccount(p.Account); err != nil {
 		*p.Char = snapshot
 		resend("")
-		log.Printf("[#%d] ERRO ao salvar gema item=%d: %v", s.ID, oldSource.Index, err)
+		log.Printf("[#%d] save equipment gem item=%d: %v", s.ID, oldSource.Index, err)
 		return
 	}
 
@@ -118,7 +139,7 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 	w.refreshAppearance(p)
 	w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 3) })
 	s.Send(wire.MessagePanel("Gem applied successfully."))
-	log.Printf("[#%d] gema item=%d aplicada alvo=%d->%d refino_raw=%d", s.ID,
+	log.Printf("[#%d] gem item=%d applied target=%d->%d refinement_raw=%d", s.ID,
 		oldSource.Index, oldTarget.Index, target.Index, newRaw)
 }
 
@@ -138,11 +159,13 @@ func oreAcceptsUnique(variant, unique int) bool {
 	}
 }
 
-// useOreUpgrade porta a familia 575..578. Adamantita e a variante 3 e usa o
-// Extra do itemlist para chegar ao equipamento Lendario. Falha tambem consome
-// o minerio; alvo invalido nao consome nada.
+// The 575..578 ore family uses catalog Extra to select Legendary equipment.
+// A failed roll also consumes the ore; an invalid target consumes nothing.
 func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 	sourceSlot byte, rule model.VolatileRule, req useItemRequest) {
+	if w.criticalTradeReserved(p) {
+		return
+	}
 	resend := func(target *model.Item, targetType, targetPos uint32, message string) {
 		s.Send(wire.SendItem(p.ID, placeInv, sourceSlot, *source))
 		if target != nil {
@@ -164,9 +187,8 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 		return
 	}
 	result, exists := w.items[uint16(def.Extra)]
-	// Extra nao e um bonus numerico: ele aponta para OUTRO item do catalogo,
-	// a variante Legend/Le da mesma familia. Trave a relacao para um itemlist
-	// adulterado nao transformar uma armadura em outro equipamento arbitrario.
+	// Extra identifies a Legendary variant, not a numeric bonus. Validate the
+	// relationship so a tampered catalog cannot select unrelated equipment.
 	if !exists || result.Pos != def.Pos || result.Grade != 4 || result.Unique != def.Unique {
 		resend(target, targetType, targetPos, "The Legendary result is missing from the server catalog.")
 		return
@@ -176,9 +198,36 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 	oldSource, oldTarget := *source, *target
 	roll := w.rollPercent(rule.SuccessPercent)
 	success := roll.Success
+	if w.criticalWrites != nil {
+		proposedTarget := oldTarget
+		if success {
+			proposedTarget.Index = uint16(def.Extra)
+		}
+		if err := w.queueCriticalIndexedUse(p, sourceSlot, targetType, targetPos, proposedTarget, func() {
+			resend(target, targetType, targetPos, "")
+			if success {
+				if targetType == placeEquip {
+					s.Send(playerScorePacket(p))
+					w.syncPlayerVitalsToObservers(p)
+					w.refreshAppearance(p)
+				}
+				w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 3) })
+			} else {
+				w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 0) })
+			}
+			s.Send(wire.MessagePanel(roll.message()))
+			if success {
+				s.Send(wire.MessagePanel("The equipment became Legendary!"))
+			}
+		}); err != nil {
+			resend(target, targetType, targetPos, "Item use is unavailable. Please try again later.")
+			log.Printf("[#%d] ore upgrade admission: %v", s.ID, err)
+		}
+		return
+	}
 	consumeOne(source)
 	if success {
-		target.Index = uint16(def.Extra) // preserva UID, refino e adicionais.
+		target.Index = uint16(def.Extra) // Preserve UID, refinement and additional effects.
 	}
 	if targetType == placeEquip {
 		w.recalcPlayer(p.Char)
@@ -186,7 +235,7 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 	if err := w.saveAccount(p.Account); err != nil {
 		*p.Char = snapshot
 		resend(target, targetType, targetPos, "")
-		log.Printf("[#%d] ERRO ao salvar Adamantita item=%d: %v", s.ID, oldSource.Index, err)
+		log.Printf("[#%d] save Adamantite item=%d: %v", s.ID, oldSource.Index, err)
 		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
 		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "adamantite upgrade", err)
 		return
@@ -207,6 +256,6 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 	if success {
 		s.Send(wire.MessagePanel("The equipment became Legendary!"))
 	}
-	log.Printf("[#%d] Adamantita alvo=%d resultado=%d sucesso=%v roll=%d/%d",
+	log.Printf("[#%d] Adamantite target=%d result=%d success=%v roll=%d/%d",
 		s.ID, oldTarget.Index, target.Index, success, roll.Roll, roll.Chance)
 }

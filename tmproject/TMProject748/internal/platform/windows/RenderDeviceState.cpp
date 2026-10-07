@@ -1,21 +1,11 @@
 #include "pch.h"
+#include "LightingProfile.h"
+#include "ClientSettings.h"
 // RenderDevice split by responsibility; device lifecycle stays in RenderDevice.cpp.
 #include "RenderDevice.h"
 #include "TMGlobal.h"
 #include "TMFieldScene.h"
 #include "TMCamera.h"
-
-void RenderDevice::SetLight()
-{
-	for (int i = 0; i < 2; i++)
-	{
-		if(FAILED(m_pd3dDevice->SetLight(i, &m_light[i])))
-			return;
-
-		if (FAILED(m_pd3dDevice->LightEnable(i, 1)))
-			return;
-	}
-}
 
 void RenderDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
@@ -228,7 +218,7 @@ int RenderDevice::SetRenderStateBlock(int nIndex)
 		SetRenderState(D3DRS_ALPHABLENDENABLE, 1);
 		SetRenderState(D3DRS_ALPHATESTENABLE, 1);
 		SetRenderState(D3DRS_ALPHAFUNC, 7);
-		SetRenderState(D3DRS_AMBIENT, 0x33FFFFFFu);
+		SetRenderState(D3DRS_AMBIENT, g_LightingProfile.AmbientColor());
 		SetRenderState(D3DRS_ZENABLE, 1);
 		SetRenderState(D3DRS_ZFUNC, 4);
 		SetRenderState(D3DRS_ZWRITEENABLE, 1);
@@ -262,7 +252,16 @@ int RenderDevice::SetRenderStateBlock(int nIndex)
 		SetTextureStageState(0, D3DTSS_ALPHAOP, 2u);
 		SetTextureStageState(0, D3DTSS_ALPHAARG1, 2u);
 		SetTextureStageState(0, D3DTSS_ALPHAARG2, 1u);
-		SetSamplerState(0, D3DSAMP_MINFILTER, 2u);
+		// World textures use anisotropic filtering when ClientSettings enables it.
+		const int anisotropy = EffectiveAnisotropy(g_ClientSettings.anisotropy,
+			m_d3dCaps.MaxAnisotropy, (m_d3dCaps.TextureFilterCaps & D3DPTFILTERCAPS_MINFANISOTROPIC) != 0);
+		const DWORD worldMinFilter = anisotropy ? D3DTEXF_ANISOTROPIC : D3DTEXF_LINEAR;
+		if (anisotropy)
+		{
+			SetSamplerState(0, D3DSAMP_MAXANISOTROPY, static_cast<DWORD>(anisotropy));
+			SetSamplerState(1u, D3DSAMP_MAXANISOTROPY, static_cast<DWORD>(anisotropy));
+		}
+		SetSamplerState(0, D3DSAMP_MINFILTER, worldMinFilter);
 		SetSamplerState(0, D3DSAMP_MAGFILTER, 2u);
 		SetSamplerState(0, D3DSAMP_MIPFILTER, 2u);
 		SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
@@ -272,7 +271,7 @@ int RenderDevice::SetRenderStateBlock(int nIndex)
 		SetTextureStageState(1u, D3DTSS_ALPHAOP, 2u);
 		SetTextureStageState(1u, D3DTSS_ALPHAARG1, 2u);
 		SetTextureStageState(1u, D3DTSS_ALPHAARG2, 1u);
-		SetSamplerState(1u, D3DSAMP_MINFILTER, 2u);
+		SetSamplerState(1u, D3DSAMP_MINFILTER, worldMinFilter);
 		SetSamplerState(1u, D3DSAMP_MAGFILTER, 2u);
 		SetSamplerState(1u, D3DSAMP_MIPFILTER, 0);
 		SetTextureStageState(1u, D3DTSS_TEXCOORDINDEX, 1u);

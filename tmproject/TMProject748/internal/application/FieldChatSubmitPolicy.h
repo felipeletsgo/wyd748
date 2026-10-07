@@ -9,6 +9,10 @@
 // the original strcmp/strncmp chains; it is not server-side command validation.
 namespace chat_submit
 {
+inline bool FitsWhisperName(const char* name)
+{
+    return name && name[0] && std::strlen(name) < 16;
+}
 constexpr unsigned int kFloodWindow = 4000;
 
 // Rotates the four-submission history before the check, as the scene did.
