@@ -2198,7 +2198,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 		if w.groundItems == nil {
 			w.groundItems = make(map[uint16]*GroundItem)
 		}
-		ground := w.createGroundDropForInstance(leader.X, leader.Y, reward, true, inst.RuntimeID)
+		ground := w.createGroundDropCell(leader.X, leader.Y, reward, true, inst.RuntimeID, ownerOf(leader))
 		if ground == nil {
 			return itemInstanceRewardReceipt{}, false
 		}

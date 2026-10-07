@@ -33,6 +33,19 @@ type criticalWrite struct {
 	character *criticalCharacterState
 	instances *model.InstanceStateSnapshot
 	guilds    *model.GuildRegistry
+	// donate marks a premium balance write: one account, the credits it
+	// applies and its ledger rows, committed in the same transaction.
+	donate *criticalDonateWrite
+}
+
+type criticalDonateWrite struct {
+	credits []int64
+	ledger  []store.DonateLedgerEntry
+}
+
+// criticalDonateStore is the certified premium balance adapter (PostgreSQL).
+type criticalDonateStore interface {
+	SaveDonateAccount(*model.Account, []int64, []store.DonateLedgerEntry) error
 }
 
 type criticalCharacterState struct {
@@ -132,6 +145,14 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 	if (len(write.accounts) == 0 && write.instances == nil && write.guilds == nil) || len(write.accounts) > criticalPersistenceMaxAccounts {
 		return 0, errors.New("critical persistence: invalid participant count")
 	}
+	if write.donate != nil {
+		if len(write.accounts) != 1 || write.character != nil || write.instances != nil || write.guilds != nil {
+			return 0, errors.New("critical persistence: a donate write has exactly one account")
+		}
+		if _, ok := q.store.(criticalDonateStore); !ok {
+			return 0, errCriticalPersistenceUnsupported
+		}
+	}
 	combined := write.guilds != nil || write.instances != nil && write.character != nil
 	if write.guilds != nil && q.guilds != 0 {
 		return 0, errCriticalPersistenceBusy
@@ -229,6 +250,11 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 	sort.Strings(characterKeys)
 	// Cloning happens on the actor before publishing the job to any worker.
 	snapshot := criticalWrite{accounts: accountPersistenceSnapshots(write.accounts...)}
+	if write.donate != nil {
+		snapshot.donate = &criticalDonateWrite{
+			credits: slices.Clone(write.donate.credits), ledger: slices.Clone(write.donate.ledger),
+		}
+	}
 	if write.guilds != nil {
 		registry := *write.guilds
 		registry.Guilds = slices.Clone(registry.Guilds)
@@ -341,7 +367,10 @@ func (q *criticalPersistence) execute(job criticalPersistenceJob) (result critic
 		}
 	}()
 	write := job.write
-	if write.guilds != nil || write.instances != nil && write.character != nil {
+	if write.donate != nil {
+		result.err = q.store.(criticalDonateStore).SaveDonateAccount(write.accounts[0],
+			write.donate.credits, write.donate.ledger)
+	} else if write.guilds != nil || write.instances != nil && write.character != nil {
 		var uid string
 		var state *model.CharState
 		if write.character != nil {

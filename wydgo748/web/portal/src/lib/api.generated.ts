@@ -163,6 +163,142 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/premium-shop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the premium shop catalog (economy.premium.catalog capability) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Catalog stored in PostgreSQL; available is false when the server has no premium backend */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PremiumCatalog"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        /** Replace the premium shop catalog; refused when expectedCatalogVersion is outdated */
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PremiumCatalogCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt (code ok means saved; stale_catalog returns the current catalog) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PremiumCatalogResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/accounts/{account}/donate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account: string;
+            };
+            cookie?: never;
+        };
+        /** Read an account donate balance, pending credits and latest ledger rows (economy.donate.credit capability) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Persisted donate state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DonateAccount"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Credit donate to an account; requestId makes retries idempotent; applied by the game server once */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["DonateCreditCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt (code ok means the credit is stored) */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["DonateCreditResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/events/quiz": {
         parameters: {
             query?: never;
@@ -728,6 +864,79 @@ export interface components {
             code: "ok" | "invalid_command" | "capability_required" | "server_maintenance" | "stale_event" | "operation_conflict" | "operation_capacity" | "event_active" | "event_inactive" | "unknown_item" | "event_id_unavailable";
             replayed: boolean;
             status: components["schemas"]["GlobalDropStatus"];
+        };
+        PremiumCatalogItem: {
+            slot: number;
+            itemId: number;
+            effects: number[];
+            price: number;
+            itemName?: string;
+        };
+        PremiumCatalog: {
+            /** @constant */
+            version: 1;
+            available: boolean;
+            catalogVersion: number;
+            items: components["schemas"]["PremiumCatalogItem"][];
+            updatedBy: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PremiumCatalogCommand: {
+            /** @constant */
+            version: 1;
+            expectedCatalogVersion: number;
+            reason: string;
+            items: components["schemas"]["PremiumCatalogItem"][];
+        };
+        PremiumCatalogResult: {
+            /** @enum {string} */
+            code: "ok" | "stale_catalog" | "unknown_item" | "invalid_command" | "capability_required" | "unavailable";
+            catalog: components["schemas"]["PremiumCatalog"];
+        };
+        DonateCreditCommand: {
+            /** @constant */
+            version: 1;
+            requestId: string;
+            account: string;
+            amount: number;
+            reason: string;
+        };
+        DonateCreditResult: {
+            /** @enum {string} */
+            code: "ok" | "unknown_account" | "request_conflict" | "invalid_command" | "capability_required" | "unavailable";
+            creditId: number;
+            replayed: boolean;
+        };
+        DonatePending: {
+            id: number;
+            amount: number;
+            reason: string;
+            /** @enum {string} */
+            source: "staff" | "web";
+            actor: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DonateLedgerEntry: {
+            id: number;
+            delta: number;
+            balanceAfter: number;
+            /** @enum {string} */
+            kind: "credit" | "purchase" | "coin_use";
+            itemId: number;
+            itemName?: string;
+            character: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        DonateAccount: {
+            /** @constant */
+            version: 1;
+            account: string;
+            balance: number;
+            pending: components["schemas"]["DonatePending"][];
+            ledger: components["schemas"]["DonateLedgerEntry"][];
         };
         /** @description Start requires itemId > 0, quantity 1..60 and duration 60..86400 in whole minutes. First round is immediate, then every minute; answers expire after 10 seconds. Stop requires an event ID and zero settings. Retry uncertain outcomes with the identical body; bounded process-local receipts, epoch and event ID prevent replay and stale writes. */
         QuizCommand: {

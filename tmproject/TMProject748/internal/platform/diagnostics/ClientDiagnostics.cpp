@@ -284,6 +284,54 @@ namespace
     }
 }
 
+void WYD748_LayoutProbe(SControlContainer* container, unsigned int screenWidth,
+    unsigned int screenHeight, float uiScale)
+{
+    static int enabled = -1;
+    if (enabled < 0)
+    {
+        char value[8]{};
+        const DWORD length = GetEnvironmentVariableA("WYD748_LAYOUT_PROBE", value,
+            static_cast<DWORD>(sizeof(value)));
+        enabled = length > 0 && length < sizeof(value) && value[0] != '0' ? 1 : 0;
+    }
+    if (!enabled || !container || !container->m_pControlRoot)
+        return;
+
+    // Signature of the visible top-level windows and their rectangles.
+    std::string signature;
+    char entry[96]{};
+    for (TreeNode* node = container->m_pControlRoot->m_pDown; node; node = node->m_pNextLink)
+    {
+        auto window = dynamic_cast<SControl*>(node);
+        if (!window || !window->m_bVisible)
+            continue;
+        sprintf_s(entry, "%u:%.0f,%.0f,%.0f,%.0f;", window->GetControlID(), window->m_nPosX,
+            window->m_nPosY, window->m_nWidth, window->m_nHeight);
+        signature += entry;
+    }
+    static std::string last;
+    static SControlContainer* lastContainer = nullptr;
+    if (signature == last && container == lastContainer)
+        return;
+    last = signature;
+    lastContainer = container;
+
+    WYD748_DiagnosticsLog("LAYOUT screen=%ux%u scale=%.2f\r\n", screenWidth, screenHeight, uiScale);
+    for (TreeNode* node = container->m_pControlRoot->m_pDown; node; node = node->m_pNextLink)
+    {
+        auto window = dynamic_cast<SControl*>(node);
+        if (!window || !window->m_bVisible)
+            continue;
+        const float centreX = window->m_nPosX + window->m_nWidth * 0.5f - screenWidth * 0.5f;
+        const float centreY = window->m_nPosY + window->m_nHeight * 0.5f - screenHeight * 0.5f;
+        WYD748_DiagnosticsLog(
+            "LAYOUT window id=%u type=%s x=%.1f y=%.1f w=%.1f h=%.1f centre_offset=%.1f,%.1f\r\n",
+            window->GetControlID(), ControlTypeName(window->m_eCtrlType), window->m_nPosX,
+            window->m_nPosY, window->m_nWidth, window->m_nHeight, centreX, centreY);
+    }
+}
+
 void WYD748_InstallDiagnostics()
 {
     // The filter is intentionally installed once by NewApp after logging has

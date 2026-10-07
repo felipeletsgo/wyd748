@@ -83,5 +83,40 @@ int RunUiModeContractTests(int& checks)
     check(ui.find("FindControl(TML_MOVE_SELECT_SERVER)") != std::string::npos &&
         ui.find("m_pServerList->SetEventListener(m_pControlContainer);") != std::string::npos,
         "the native channel list 0x3001 is bound and routed to the field scene");
+
+    // Shutdown released the bone animation buffers twice (NewApp::Finalize and
+    // ~MeshManager), crashing on exit from the field.
+    const auto finalize = source_contract::Method(app, "HRESULT NewApp::Finalize()");
+    const auto meshManager = ReadAppSource("internal/render/mesh/MeshManager.cpp");
+    const auto release = source_contract::Method(meshManager, "void MeshManager::ReleaseBoneAnimations()");
+    check(finalize.find("free(MeshManager::m_BoneAnimationList") == std::string::npos &&
+        finalize.find("MeshManager::ReleaseBoneAnimations();") != std::string::npos &&
+        release.find("animation = {};") != std::string::npos,
+        "bone animation buffers have one idempotent release");
+
+    // FUN_004f59b4 tints ground items with meshes 737..739 by dwColor[mesh - 737];
+    // the 7.69 offset 2980 indexed far outside the three colors.
+    const auto item = ReadAppSource("internal/game/entities/TMItem.cpp");
+    const auto itemRender = source_contract::Method(item, "int TMItem::Render()");
+    check(itemRender.find("if (nMeshIndex < 737 || nMeshIndex > 739)") != std::string::npos &&
+        itemRender.find("pVertex[i].diffuse = dwColor[nMeshIndex - 737];") != std::string::npos &&
+        itemRender.find("nMeshIndex - 2980") == std::string::npos,
+        "tinted item meshes index the native color table");
+
+    // FUN_0051a939: an enemy-guild summon is protected outside the castle while
+    // no war runs, and a same-cape target always; 7.69 inverted the guild test.
+    const auto combat = ReadAppSource("internal/game/entities/TMHumanCombat.cpp");
+    const auto moveAttack = source_contract::Method(combat, "void TMHuman::MoveAttack(TMHuman* pTarget)");
+    check(moveAttack.find("pTarget->m_cSummons == 1 && g_pObjectManager->m_usWarGuild != pTarget->m_usGuild && pTarget->m_usGuild)") != std::string::npos &&
+        moveAttack.find("(!g_bCastleWar && outsideCastle) || (m_cMantua > 0 && pTarget->m_cMantua == m_cMantua)") != std::string::npos,
+        "move-attack protects enemy-guild summons like the native filter");
+
+    // FUN_00503a8c chooses the cape placement by skin class (25/26/33/40), so
+    // the Titan cape has no lift and the Eden face uses the Beast Master table.
+    const auto humanRender = ReadAppSource("internal/game/entities/TMHumanRender.cpp");
+    check(humanRender.find("m_sHeadIndex == 2") == std::string::npos &&
+        humanRender.find("m_pMantua->Render(0.07f, 1.2f, -0.12f);") != std::string::npos &&
+        humanRender.find("m_pMantua->Render(0.01f, 1.0f, 0.0f);") != std::string::npos,
+        "cape placement follows the native skin class");
     return failures;
 }

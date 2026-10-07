@@ -512,7 +512,8 @@ ExtractedFlow TMSelectServerScene::OnServerGroupList(unsigned int& idwEvent, con
 	m_pMessagePanel->SetMessage(g_pMessageStringTable[23], 0);
 	m_pMessagePanel->SetVisible(1, 0);
 
-	m_pMessagePanel->m_nPosX = BASE_ScreenResize(210.0f);//alterado//alterado 2.0
+	// The panel keeps its native centred position (FUN_00493e70 + FUN_0040116e);
+	// a former fixed X of 210 pushed it toward the right edge.
 
 	if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
 	{

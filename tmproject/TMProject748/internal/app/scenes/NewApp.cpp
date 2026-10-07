@@ -249,10 +249,15 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 		m_dwColorBit = stResList[1].dwBit;
 	}
 
-	// FUN_0042ced1 (UI mode 2) uses a fixed 13-pixel font at every
-	// resolution; the UI is not scaled, so the text is not either.
-	RenderDevice::m_nFontSize = 13;
-	RenderDevice::m_nFontTextureSize = 512;
+	// FUN_0042ced1 (UI mode 2) lays the UI out at 800x600 pixel sizes with a
+	// 13-pixel font. ClientSettings UIScale enlarges that layout uniformly for
+	// larger resolutions; the font follows so text keeps its proportions.
+	const float uiScale = ResolveUIScale(g_ClientSettings.uiScale, m_dwScreenWidth, m_dwScreenHeight);
+	RenderDevice::m_fUIScaleX = uiScale;
+	RenderDevice::m_fUIScaleY = uiScale;
+	RenderDevice::m_nFontSize = ScaledFontSize(uiScale);
+	RenderDevice::m_nFontTextureSize = FontTextureSizeFor(RenderDevice::m_nFontSize);
+	RenderDevice::m_nFontTextureSizeY = RenderDevice::m_nFontTextureSize / 8;
 
 	if (m_hWnd == nullptr)
 	{
@@ -506,14 +511,10 @@ void NewApp::InitMusicList()
 
 HRESULT NewApp::Finalize()
 {
-	for (int nCount = 0; nCount < 100; ++nCount)
-	{
-		// These arrays are populated lazily by the renderer; free(nullptr) is
-		// valid, so this remains safe when compatibility startup stops early.
-		free(MeshManager::m_BoneAnimationList[nCount].pBone);
-		free(MeshManager::m_BoneAnimationList[nCount].matAnimation);
-		free(MeshManager::m_BoneAnimationList[nCount].matQuaternion);
-	}
+	// The mesh manager destructor releases the same buffers. Freeing them here
+	// without clearing the pointers made that second release a double free
+	// (crash on exit from the field); the shared release clears them.
+	MeshManager::ReleaseBoneAnimations();
 	
 	SAFE_DELETE(g_pObjectManager);
 	SAFE_DELETE(m_pTimerManager);
@@ -657,6 +658,9 @@ DWORD NewApp::Run()
 				}
 				if (perf_trace::EndFrame())
 					WritePerfSample();
+				if (TMScene* layoutScene = m_pObjectManager->GetCurrentScene())
+					WYD748_LayoutProbe(layoutScene->m_pControlContainer, m_dwScreenWidth,
+						m_dwScreenHeight, RenderDevice::m_fUIScaleX);
 			}
 		}		
 	}

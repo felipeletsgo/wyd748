@@ -10,8 +10,18 @@ IdleFps=15
 # 1 = do not draw butterflies, fish and rain/snow particles while idle.
 IdleHideAmbient=1
 
+# Interface size. Auto enlarges the 800x600 layout uniformly for larger
+# resolutions (the smaller of width/800 and height/600); or a fixed value
+# such as 1.0, 1.25, 1.5 or 2.0.
+UIScale=Auto
+
 # Anisotropic filtering for world textures: 0 (off), 2, 4, 8 or 16.
 Anisotropy=4
+
+# Rain and snow area: half size in world units around the character
+# (6 = classic 7.48 area, 12 = default, up to 20). The particle count grows
+# with the area so the density stays the same.
+WeatherArea=12
 
 # Visited fields kept in memory to avoid rebuilding them; 0 disables.
 FieldCache=4

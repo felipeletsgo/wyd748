@@ -360,7 +360,7 @@ void TMFieldScene::SetVisibleCargo(int bShow)
 		// FUN_004484f3 (UI mode 2) moves only Inventory to its native spot
 		// right of the viewport centre; Cargo keeps its current position.
 		m_pInvenPanel->SetPos(
-			m_pInvenPanel->m_nWidth * 0.5f + g_pDevice->m_dwScreenWidth * 0.5f + 10.0f,
+			m_pInvenPanel->m_nWidth * 0.5f + g_pDevice->m_dwScreenWidth * 0.5f + RenderDevice::UiPx(10.0f),
 			g_pDevice->m_dwScreenHeight * 0.5f - m_pInvenPanel->m_nHeight * 0.5f);
 	}
 	if (m_pCargoPanel)

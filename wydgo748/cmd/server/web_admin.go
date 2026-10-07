@@ -105,6 +105,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	bosses, _ := source.(control.BossesSource)
 	kick, _ := source.(control.KickSource)
 	teleport, _ := source.(control.TeleportSource)
+	premium, _ := source.(control.PremiumSource)
 	handler, err := webadmin.New(webadmin.Config{
 		Origin: origin, DevHTTP: true, AdminAccessPIN: cfg.AdminAccessPIN,
 		Staff: staff, Accounts: db, Registration: registration, Control: localAdminControl{source: source, started: time.Now()},
@@ -114,6 +115,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 		Bosses:     bosses,
 		Kick:       kick,
 		Teleport:   teleport,
+		Premium:    premium,
 		Audit:      slog.New(slog.NewJSONHandler(os.Stderr, nil)),
 	})
 	if err != nil {

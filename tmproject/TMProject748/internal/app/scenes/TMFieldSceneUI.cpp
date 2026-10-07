@@ -567,8 +567,8 @@ void TMFieldScene::InitializeRuntimeCounterTexts()
 	{
 		m_pRankTimeText->m_Font.m_fSize = 2.0f;
 		m_pRankTimeText->SetVisible(0);
-		m_pRankTimeText->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - 50.0f,
-			(3.0f * RenderDevice::m_fHeightRatio) + 55.0f);
+		m_pRankTimeText->SetPos(((float)g_pDevice->m_dwScreenWidth * 0.5f) - RenderDevice::UiPx(50.0f),
+			RenderDevice::UiPx(3.0f + 55.0f));
 		m_pControlContainer->AddItem(m_pRankTimeText);
 	}
 	m_bRankTimeOn = 0;
@@ -587,14 +587,14 @@ void TMFieldScene::InitializeRuntimeCounterTexts()
 	{
 		m_pRemainText->m_Font.m_fSize = 2.0f;
 		m_pRemainText->SetVisible(0);
-		m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 200.0f,
-			30.0f * RenderDevice::m_fHeightRatio);
+		m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - RenderDevice::UiPx(200.0f),
+			RenderDevice::UiPx(30.0f));
 		m_pControlContainer->AddItem(m_pRemainText);
 	}
 
 	m_pQuestRemainTime = new SText(-2, "", 0xDDFFFF33,
 		((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 140.0f,
-		5.0f * RenderDevice::m_fHeightRatio, 100.0f, 16.0f,
+		5.0f, 100.0f, 16.0f,
 		0, 0x77777777, 1, 0);
 	if (m_pQuestRemainTime)
 	{
@@ -602,11 +602,11 @@ void TMFieldScene::InitializeRuntimeCounterTexts()
 		m_pQuestRemainTime->SetVisible(1);
 		// FUN_00435b13 (UI mode 2): top-right corner, W-140 from 800 pixels up.
 		if (g_pDevice->m_dwScreenWidth < 800)
-			m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth + 35.0f,
-				5.0f * RenderDevice::m_fHeightRatio);
+			m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth + RenderDevice::UiPx(35.0f),
+				RenderDevice::UiPx(5.0f));
 		else
-			m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth - 140.0f,
-				5.0f * RenderDevice::m_fHeightRatio);
+			m_pQuestRemainTime->SetPos((float)g_pDevice->m_dwScreenWidth - RenderDevice::UiPx(140.0f),
+				RenderDevice::UiPx(5.0f));
 		m_pControlContainer->AddItem(m_pQuestRemainTime);
 	}
 }
@@ -854,7 +854,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pServerPanel->AddChild(new SPanel(-394, middleWidth + 23.0f, 0.0f, 40.0f, 45.0f,
 				0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH));
 			m_pServerPanel->SetPos(
-				static_cast<float>(g_pDevice->m_dwScreenWidth >> 1) - static_cast<float>(g_nChannelWidth + 15) / 2.0f,
+				static_cast<float>(g_pDevice->m_dwScreenWidth >> 1) - RenderDevice::UiPx(static_cast<float>(g_nChannelWidth + 15)) / 2.0f,
 				static_cast<float>(g_pDevice->m_dwScreenHeight >> 1) - m_pServerPanel->m_nHeight / 2.0f);
 			m_pServerPanel->AddChild(new SPanel(-396, -1.0f, 45.0f, static_cast<float>(g_nChannelWidth),
 				128.0f + 63.0f, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH));
@@ -1023,16 +1023,19 @@ int TMFieldScene::InitializeCompatFieldScene()
 		// right, left, top) and FUN_004013f3 (centre the 800x600 layout).
 		const float viewportW = static_cast<float>(g_pDevice->m_dwScreenWidth);
 		const float viewportH = static_cast<float>(g_pDevice->m_dwScreenHeight);
-		auto scaleResourcePos = [viewportW, viewportH](SControl* control)
+		// The 800x600 layout in screen pixels (ClientSettings UIScale).
+		const float layoutW = RenderDevice::UiPx(WYD748_UI_BASE_WIDTH);
+		const float layoutH = RenderDevice::UiPx(WYD748_UI_BASE_HEIGHT);
+		auto scaleResourcePos = [viewportW, viewportH, layoutW, layoutH](SControl* control)
 		{
-			control->m_nPosX = control->m_nPosX / WYD748_UI_BASE_WIDTH * viewportW;
-			control->m_nPosY = control->m_nPosY / WYD748_UI_BASE_HEIGHT * viewportH;
+			control->m_nPosX = control->m_nPosX / layoutW * viewportW;
+			control->m_nPosY = control->m_nPosY / layoutH * viewportH;
 		};
 		if (pNativeMainInfo)
 		{
 			scaleResourcePos(pNativeMainInfo);
 			pNativeMainInfo->SetStickBottom();
-			pNativeMainInfo->m_nPosX = viewportW * 0.5f - pNativeMainInfo->m_nWidth * 0.5f + 4.0f;
+			pNativeMainInfo->m_nPosX = viewportW * 0.5f - pNativeMainInfo->m_nWidth * 0.5f + RenderDevice::UiPx(4.0f);
 		}
 		SControl* pNativeChatStrip = m_pControlContainer->FindControl(12624);
 		if (pNativeChatStrip && pNativeMainInfo)
@@ -1041,11 +1044,24 @@ int TMFieldScene::InitializeCompatFieldScene()
 			pNativeChatStrip->SetStickBottom();
 			pNativeChatStrip->m_nPosX = pNativeMainInfo->m_nPosX - pNativeChatStrip->m_nWidth;
 			if (SControl* pChatList = m_pControlContainer->FindControl(5377))
-				pChatList->m_nPosY = pNativeChatStrip->m_nPosY - pChatList->m_nHeight - 6.0f;
+				pChatList->m_nPosY = pNativeChatStrip->m_nPosY - pChatList->m_nHeight - RenderDevice::UiPx(6.0f);
 		}
+		// FUN_00435b13 also moves the hint text (SButton::m_pAltText, native
+		// +0x1f0) of the HUD buttons relative to their button.
+		auto buttonHint = [](SControl* control) -> SText*
+		{
+			if (!control || control->m_eCtrlType != CONTROL_TYPE::CTRL_TYPE_BUTTON)
+				return nullptr;
+			return static_cast<SButton*>(control)->m_pAltText;
+		};
 		if (SControl* pBottomCenter = m_pControlContainer->FindControl(5722))
+		{
 			pBottomCenter->SetPos(viewportW * 0.5f - pBottomCenter->m_nWidth * 0.5f,
 				viewportH - pBottomCenter->m_nHeight);
+			if (SText* hint = buttonHint(pBottomCenter); hint && pNativeMainInfo)
+				hint->SetPos(pNativeMainInfo->m_nWidth * 0.5f - RenderDevice::UiPx(58.0f),
+					hint->m_nPosY - RenderDevice::UiPx(15.0f));
+		}
 		if (SControl* pStatusOrb = m_pControlContainer->FindControl(5723))
 		{
 			scaleResourcePos(pStatusOrb);
@@ -1053,16 +1069,44 @@ int TMFieldScene::InitializeCompatFieldScene()
 			pStatusOrb->m_nPosY = 0.0f;
 		}
 		if (SControl* pBottomLeft = m_pControlContainer->FindControl(5732))
+		{
 			pBottomLeft->SetPos(0.0f, viewportH - pBottomLeft->m_nHeight);
+			SControl* pOrb = m_pControlContainer->FindControl(5723);
+			if (SText* hint = buttonHint(pBottomLeft); hint && pOrb)
+				hint->SetPos(hint->m_nPosX + RenderDevice::UiPx(5.0f),
+					pOrb->m_nHeight * 0.5f - RenderDevice::UiPx(5.0f));
+		}
 		SControl* pBottomRight = m_pControlContainer->FindControl(5733);
 		if (pBottomRight && pNativeMainInfo)
 			pBottomRight->SetPos(viewportW - pBottomRight->m_nWidth,
-				viewportH - pNativeMainInfo->m_nHeight - 30.0f);
+				viewportH - pNativeMainInfo->m_nHeight - RenderDevice::UiPx(30.0f));
 		if (SControl* pBottomRightTab = m_pControlContainer->FindControl(5735))
 			if (pBottomRight)
-				pBottomRightTab->SetPos(viewportW - 10.0f, pBottomRight->m_nPosY);
+			{
+				pBottomRightTab->SetPos(viewportW - RenderDevice::UiPx(10.0f), pBottomRight->m_nPosY);
+				if (SText* hint = buttonHint(pBottomRightTab))
+					hint->SetPos(hint->m_nPosX - RenderDevice::UiPx(40.0f),
+						pBottomRight->m_nHeight * 0.5f - RenderDevice::UiPx(5.0f));
+			}
 		if (pNativeChatBar && pNativeChatStrip)
 			pNativeChatBar->SetPos(pNativeChatStrip->m_nPosX, pNativeChatStrip->m_nPosY);
+		// The input-language marker (native scene +0x60) sits inside the chat bar.
+		if (pNativeChatBar && m_pAlphaNative)
+			m_pAlphaNative->SetPos(pNativeChatBar->m_nPosX + RenderDevice::UiPx(3.0f),
+				pNativeChatBar->m_nPosY + RenderDevice::UiPx(5.0f));
+		// HP/MP bars 1169/1170, their overlays 1158/1159 and the mount HP bars
+		// 12804/12805 grow by 6 pixels and move up by 3 in UI mode 2.
+		for (unsigned int barID : { 1169u, 1170u, 1158u, 1159u, 12804u, 12805u })
+		{
+			if (SControl* bar = m_pControlContainer->FindControl(barID))
+			{
+				bar->SetSize(bar->m_nWidth, bar->m_nHeight + RenderDevice::UiPx(6.0f));
+				bar->SetPos(bar->m_nPosX, bar->m_nPosY - RenderDevice::UiPx(3.0f));
+			}
+		}
+		// The event chat list 6135 opens at (300, 300).
+		if (SControl* pChatEvent = m_pControlContainer->FindControl(TMT_CHAT_EVENT))
+			pChatEvent->SetPos(RenderDevice::UiPx(300.0f), RenderDevice::UiPx(300.0f));
 		if (pNativeMainMenuButton)
 		{
 			scaleResourcePos(pNativeMainMenuButton);
@@ -1074,15 +1118,16 @@ int TMFieldScene::InitializeCompatFieldScene()
 			scaleResourcePos(pNativeMainMenuPanel);
 			pNativeMainMenuPanel->SetStickRight();
 			pNativeMainMenuPanel->m_nPosY = pNativeMainMenuButton->m_nPosY - pNativeMainMenuPanel->m_nHeight;
-			pNativeMainMenuPanel->m_nPosX -= 2.0f;
+			pNativeMainMenuPanel->m_nPosX -= RenderDevice::UiPx(2.0f);
 			pNativeMainMenuPanel->SetVisible(0);
 		}
 		if (pNativeShortSkillBar && pNativeMainInfo)
 		{
-			pNativeShortSkillBar->m_nPosX += (viewportW - WYD748_UI_BASE_WIDTH) * 0.5f;
-			pNativeShortSkillBar->m_nPosY += (viewportH - WYD748_UI_BASE_HEIGHT) * 0.5f;
+			pNativeShortSkillBar->m_nPosX += (viewportW - layoutW) * 0.5f;
+			pNativeShortSkillBar->m_nPosY += (viewportH - layoutH) * 0.5f;
 			pNativeShortSkillBar->SetStickBottom();
 			pNativeShortSkillBar->m_nPosX = pNativeMainInfo->m_nPosX + pNativeMainInfo->m_nWidth;
+			CreateCompatStatusTexts(pNativeShortSkillBar);
 		}
 		// Bind the native 7.48 feature-panel IDs as real scene members.  Keyboard
 		// dispatch runs before the requested panel is opened, so leaving the newer
@@ -1461,7 +1506,7 @@ void TMFieldScene::PositionCompatFeaturePanels()
 	if (m_pCPanel)
 	{
 		m_pCPanel->SetPos(
-			viewportCenterX - m_pCPanel->m_nWidth * 1.5f - 10.0f,
+			viewportCenterX - m_pCPanel->m_nWidth * 1.5f - RenderDevice::UiPx(10.0f),
 			viewportCenterY - m_pCPanel->m_nHeight * 0.5f);
 	}
 	if (m_pSkillPanel)
@@ -1473,7 +1518,7 @@ void TMFieldScene::PositionCompatFeaturePanels()
 	if (m_pInvenPanel)
 	{
 		m_pInvenPanel->SetPos(
-			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + RenderDevice::UiPx(10.0f),
 			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
 	}
 	PositionCompatShopPanels();
@@ -1505,15 +1550,15 @@ void TMFieldScene::PositionCompatNativeRoots()
 	}
 	// 2048 centres its width plus a 40-pixel margin.
 	if (SControl* control = m_pControlContainer->FindControl(2048))
-		control->SetPos(viewportW * 0.5f - (control->m_nWidth + 40.0f) * 0.5f,
+		control->SetPos(viewportW * 0.5f - (control->m_nWidth + RenderDevice::UiPx(40.0f)) * 0.5f,
 			viewportH * 0.5f - control->m_nHeight * 0.5f);
 	// 880 sits 200 pixels above the viewport centre.
 	if (SControl* control = m_pControlContainer->FindControl(880))
-		control->SetPos(viewportW * 0.5f - control->m_nWidth * 0.5f, viewportH * 0.5f - 200.0f);
+		control->SetPos(viewportW * 0.5f - control->m_nWidth * 0.5f, viewportH * 0.5f - RenderDevice::UiPx(200.0f));
 	// Cargo 1825 sits immediately left of Inventory 257's native position.
 	if (m_pCargoPanel && m_pInvenPanel)
 		m_pCargoPanel->SetPos(
-			viewportW * 0.5f + m_pInvenPanel->m_nWidth * 0.5f + 10.0f - m_pCargoPanel->m_nWidth,
+			viewportW * 0.5f + m_pInvenPanel->m_nWidth * 0.5f + RenderDevice::UiPx(10.0f) - m_pCargoPanel->m_nWidth,
 			viewportH * 0.5f - m_pCargoPanel->m_nHeight * 0.5f);
 }
 
@@ -1541,7 +1586,7 @@ void TMFieldScene::PositionCompatNativeMixPanels()
 	if (m_pInvenPanel)
 	{
 		m_pInvenPanel->SetPos(
-			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + RenderDevice::UiPx(10.0f),
 			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
 	}
 }
@@ -1565,7 +1610,7 @@ void TMFieldScene::PositionCompatShopPanels()
 	if (m_pInvenPanel)
 	{
 		m_pInvenPanel->SetPos(
-			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + RenderDevice::UiPx(10.0f),
 			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
 	}
 }
@@ -1589,7 +1634,7 @@ void TMFieldScene::PositionCompatTradePanels()
 	if (m_pInvenPanel)
 	{
 		m_pInvenPanel->SetPos(
-			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + 10.0f,
+			viewportCenterX + m_pInvenPanel->m_nWidth * 0.5f + RenderDevice::UiPx(10.0f),
 			viewportCenterY - m_pInvenPanel->m_nHeight * 0.5f);
 	}
 }
@@ -1618,10 +1663,15 @@ void TMFieldScene::PositionCompatPartyPanel()
 	// toggle 5742 at the same lower-left anchor. FieldScene2.bin alone does
 	// not account for the active viewport height.
 	const float partyY = static_cast<float>(g_pDevice->m_dwScreenHeight)
-		- m_pPartyPanel->m_nHeight - 165.0f;
+		- m_pPartyPanel->m_nHeight - RenderDevice::UiPx(165.0f);
 	m_pPartyPanel->SetPos(0.0f, partyY);
 	if (m_pPartyBtn)
+	{
 		m_pPartyBtn->SetPos(0.0f, partyY);
+		if (m_pPartyBtn->m_pAltText)
+			m_pPartyBtn->m_pAltText->SetPos(m_pPartyBtn->m_pAltText->m_nPosX + RenderDevice::UiPx(5.0f),
+				m_pPartyPanel->m_nHeight * 0.5f - RenderDevice::UiPx(13.0f));
+	}
 }
 
 void TMFieldScene::PositionCompatQuestPanel()
@@ -2212,4 +2262,55 @@ int TMFieldScene::OpenNativeServerPanel()
 	m_pServerList->SetVisible(1);
 	m_pServerPanel->SetVisible(1);
 	return 1;
+}
+
+void TMFieldScene::CreateCompatStatusTexts(SControl* pShortSkillBar)
+{
+	if (!m_pControlContainer || !pShortSkillBar || m_pStatusPKText)
+		return;
+
+	// FUN_00435b13 (UI mode 2) creates three bordered labels from strdef
+	// 157/232/172 (" %s"), 18 pixels high, and places them in a row starting
+	// 61 pixels right of and 20 pixels above the short skill bar (root 5745).
+	auto makeLabel = [this](int messageIndex, unsigned int textColor, unsigned int borderColor,
+		float width)
+	{
+		char szLabel[128]{};
+		sprintf_s(szLabel, " %s", g_pMessageStringTable[messageIndex]);
+		auto label = new SText(-2, szLabel, textColor, 0.0f, 0.0f, width, 18.0f, 1, borderColor, 1, 0);
+		label->SetVisible(0);
+		m_pControlContainer->AddItem(label);
+		return label;
+	};
+	m_pStatusPKText = makeLabel(157, 0xFFFFFFBB, 0x88770000, 60.0f);
+	m_pStatusAutoRunText = makeLabel(232, 0xFFFFFFFF, 0x88000077, 80.0f);
+	m_pStatusRunText = makeLabel(172, 0xFFFFFFFF, 0x88007700, 60.0f);
+
+	m_pStatusPKText->SetPos(pShortSkillBar->m_nPosX + RenderDevice::UiPx(61.0f),
+		pShortSkillBar->m_nPosY - RenderDevice::UiPx(20.0f));
+	m_pStatusAutoRunText->SetPos(m_pStatusPKText->m_nPosX + m_pStatusPKText->m_nWidth,
+		m_pStatusPKText->m_nPosY);
+	m_pStatusRunText->SetPos(m_pStatusAutoRunText->m_nPosX + m_pStatusAutoRunText->m_nWidth,
+		m_pStatusPKText->m_nPosY);
+
+	// The affect description 12834 closes FUN_00435b13: right edge minus 40,
+	// 20 pixels above the auto-run label.
+	if (m_pAffectDesc)
+	{
+		m_pAffectDesc->SetStickRight();
+		m_pAffectDesc->m_nPosX -= RenderDevice::UiPx(40.0f);
+		m_pAffectDesc->m_nPosY = m_pStatusAutoRunText->m_nPosY - RenderDevice::UiPx(20.0f);
+	}
+}
+
+void TMFieldScene::UpdateCompatStatusTexts()
+{
+	// FUN_0044ecae (PK), FUN_00452737/FUN_00499f0e (auto run) and the score
+	// update FUN_004431e4 (run mode while mounted) drive the same labels.
+	if (m_pStatusPKText)
+		m_pStatusPKText->SetVisible(TMFieldScene::m_bPK != 0);
+	if (m_pStatusAutoRunText)
+		m_pStatusAutoRunText->SetVisible(m_bAutoRun != 0);
+	if (m_pStatusRunText)
+		m_pStatusRunText->SetVisible(g_bRunning == 1 && m_pMyHuman && m_pMyHuman->m_cMount == 1);
 }

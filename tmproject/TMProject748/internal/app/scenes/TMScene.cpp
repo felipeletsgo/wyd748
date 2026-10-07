@@ -354,7 +354,7 @@ TMScene::TMScene() : TreeNode(0)
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextCompose));
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextReadCompose));
 
-	float fHeight = (float)g_pDevice->m_dwScreenHeight - 20.0f;
+	float fHeight = ((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 20.0f;
 
 	m_pAlphaNative = new SText(-2, "Ch", 0xFFFFFFDD, 0.0f, fHeight, 28.0f, 16.0f, 1, 0xAA000077, 1, 0);
 	m_pAlphaNative->SetVisible(0);

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TMHuman.h"
+#include "MantuaLength.h"
 #include "TMGlobal.h"
 #include "SControl.h"
 #include "TMScene.h"
@@ -333,44 +334,43 @@ int TMHuman::Render()
                 break;
             }
 
-            if (m_sHeadIndex == 22 || m_sHeadIndex == 23)
+            // Native FUN_00503a8c picks the cape placement by skin class, not
+            // by face item: Troll 25, Wolf/Bear 26, Astaroth 33 and Titan 40 use
+            // fixed offsets; the base skins (and Dark Elf 38) use the table.
+            if (nClass == 5)
+            {
+                m_pMantua->m_BaseMatrix = m_pSkinMesh->m_OutMatrix;
+                m_pMantua->Render(0.07f, 1.2f, -0.12f);
+            }
+            else if (nClass == 6)
             {
                 m_pMantua->m_BaseMatrix = m_pSkinMesh->m_OutMatrix;
                 m_pMantua->Render(0.07f, 1.2f, -0.2f);
             }
-            else if (m_sHeadIndex == 24)
+            else if (nClass == 7)
             {
                 m_pMantua->m_BaseMatrix = m_pSkinMesh->m_OutMatrix;
                 m_pMantua->Render(0.0f, 1.2f, 0.0f);
             }
-            else if (m_sHeadIndex == 25)
+            else if (nClass == 8)
             {
                 m_pMantua->m_BaseMatrix = m_pSkinMesh->m_OutMatrix;
-                m_pMantua->Render(0.01f, 1.0f, 0.05f);
+                m_pMantua->Render(0.01f, 1.0f, 0.0f);
             }
-            else if (m_sHeadIndex == 26)
-            {
-                m_pMantua->m_BaseMatrix = m_pSkinMesh->m_OutMatrix;
-                m_pMantua->Render(0.07f, 1.2f, 0.05f);
-            }
-
             else
             {
                 if (m_nSkinMeshType == 1)
                     fScale = 0.9f;
 
-                int nMesh = m_stLookInfo.CoatMesh;
-                float fLen = 0.0f;
-                if (nMesh < 40)
-                    fLen = fMantuaList[nClass][nMesh];
-                else
-                    fLen = fMantuaList[nClass][nMesh - 40]; // TODO: confirm this later
+                // Native FUN_00503a8c: coat meshes 40+ use the second half of
+                // the length table, and capes 3197..3199 use 0.12 / 0.04.
+                float fLen = MantuaLength(nClass, m_stLookInfo.CoatMesh);
 
                 float fLenUp = 0.0;
                 if (m_sMantuaIndex >= 3197 && m_sMantuaIndex <= 3199)
                 {
-                    fLen = 0.11f;
-                    fLenUp = 0.05f;
+                    fLen = 0.12f;
+                    fLenUp = 0.04f;
                 }
                 if (m_sMantuaIndex == 573 || m_sMantuaIndex == 1767 || m_sMantuaIndex == 1770)
                 {

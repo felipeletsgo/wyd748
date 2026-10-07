@@ -4089,6 +4089,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case quiz_event::ChallengeOpcode:
 		return OnPacketQuizEvent(pStd);
 		break;
+	case premium_shop::StateOpcode:
+		return OnPacketPremiumShopState(pStd);
 	case 0x1C2:
 		return OnPacketItemPrice(reinterpret_cast<MSG_STANDARDPARM2*>(pStd));
 		break;
@@ -4224,6 +4226,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// even though InitializeCompatFieldScene created the native 7.48 icons.
 	Affect_Main(dwServerTime);
 	UpdateScoreButtonRepeat(dwServerTime);
+	UpdateCompatStatusTexts();
 	if (UpdateTeleportPrompt() == 1)
 		return 1;
 	// The 7.48 HUD has its own lifecycle, but CC still needs the existing

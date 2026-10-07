@@ -347,7 +347,7 @@ void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)
 			placeAutoTradeCentred();
 			if (m_pCargoPanel && g_pDevice)
 				m_pCargoPanel->SetPos(
-					m_pAutoTrade->m_nWidth * 0.5f + g_pDevice->m_dwScreenWidth * 0.5f + 10.0f,
+					m_pAutoTrade->m_nWidth * 0.5f + g_pDevice->m_dwScreenWidth * 0.5f + RenderDevice::UiPx(10.0f),
 					g_pDevice->m_dwScreenHeight * 0.5f - m_pCargoPanel->m_nHeight * 0.5f);
 			setPanelVisible(m_pCargoPanel, 1);
 			setPanelVisible(m_pInvenPanel, 0);

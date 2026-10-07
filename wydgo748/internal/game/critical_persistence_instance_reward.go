@@ -93,22 +93,23 @@ func (w *World) queueCriticalInstanceReward(inst *ItemInstance, now time.Time) e
 		account.Chars[leader.CharSlot].Inv[slot] = reward
 		receipt = itemInstanceRewardReceipt{Slot: byte(slot), ItemIndex: reward.Index, ItemUID: reward.UID}
 	} else {
-		// Reuse the native scattered-drop policy without publishing or
-		// borrowing createGroundDropForInstance's live installation path.
+		// Reuse the ground placement rules without publishing or borrowing
+		// createGroundDropCell's live installation path.
 		x, y := leader.X, leader.Y
 		if reward.Index != 746 {
-			nx := uint16(clampInt(int(x)+w.intn(3)-1, 1, model.TerrainWidth-1))
-			ny := uint16(clampInt(int(y)+w.intn(3)-1, 1, model.TerrainHeight-1))
-			if w.terrain.Walkable(nx, ny) {
-				x, y = nx, ny
+			var free bool
+			if x, y, free = w.emptyGroundCell(x, y, id); !free {
+				return errors.New("critical instance reward: no free ground cell")
 			}
 		}
 		groundID, ok := w.allocGroundItemID(reward.Index)
 		if !ok {
 			return errors.New("critical instance reward: no free ground-item ID")
 		}
+		owner := ownerOf(leader)
 		ground = &GroundItem{ID: groundID, Item: reward, X: x, Y: y,
-			Expire: now.Add(2 * time.Minute), InstanceID: id, criticalDrop: 1}
+			Expire: now.Add(groundItemLifetime), InstanceID: id, criticalDrop: 1,
+			OwnerUID: owner.uid, ProtectedUntil: now.Add(groundItemProtection), ownerParty: owner.party}
 		// Registration is solely an invisible reservation. Gameplay, expiry
 		// and spatial replacement already honor criticalReserved().
 		w.registerGroundItem(ground)

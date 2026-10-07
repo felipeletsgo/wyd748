@@ -293,16 +293,16 @@ only where no working superior equivalent exists.
 | 0x2BD | sent by `FUN_004640e5`, 24 bytes (gate 24) | A | Traced 2026-10-03: Hell Gate store purchase. Clicking an NPC with head 51 (`ID >= 1000`) at `x/128` 13-14, `y/128` 28 (inside Hell Gate) opens the store with that NPC as `TargetID` (`FUN_0045ee28` → `FUN_0044a3a9`). Options 6193-6196 → message box → `FUN_004640e5` finds free grid space (2x4, 2x3, 1x1, 2x4) and sends `TargetID@12` (u16), option@14 (1 weapon, 2 armor, 3 amulet, 4 random), carry slot@16 (`x + 9y`). `UI/hellStoredesc.txt` gives the rules: random item from the category (weapons tier 9-10 without ancients, armor tier 7-8, amulets tier 1-3), random options, no refinement, unlimited purchases, prices 9M/6M/5M/7M gold. Implemented 2026-10-03 on both sides (owner decision): the TMProject click opens the store again, and the server has the `Hell_Store` NPC and the handler. Rules and validation: [hell-gate-store.md](hell-gate-store.md) |
 | 0x2C7 | sent by `FUN_004662c5`, 16 bytes (gate 16) | A, C → closed | Superseded 2026-10-03: native quiz answer (controls 0x381-0x384, `Parm` = choice 0-3), sent only after the native 0x1C6 question. The coordinated extension 0x7F10/0x7F11 (token, server-checked answer) replaces it on both sides and is superior; the server never sends 0x1C6, so the native client never reaches 0x2C7 |
 | 0x2C4 | gate 84, prebuilt by `FUN_00463aa8` (alternate Lindy mix) | A, C | Already recorded as dormant; implement end to end or document as unsupported |
-| 0x10E | gate 1,824; received by `FUN_00492e7d`, `FUN_004ae3d6` | C | Not needed if 0x10A (32-bit Score, superior) is kept; confirm 0x10E is only the native character list, then close |
-| 0x3A5 | received by `FUN_00492e7d` | C | Trace the native consumer, then port it |
+| 0x10E | gate 1,824; received by `FUN_00492e7d`, `FUN_004ae3d6` | C → closed | Closed 2026-10-07: `FUN_004851bc` only copies the account block (0x2E8 bytes from @12 and 0x400 bytes from @0x2F4), the DWORD @0x6F4 and 16 bytes @0x708 into the account globals; no other side effect. It is the native character-list/login confirmation that the coordinated 0x10A (32-bit Score) replaces on both sides |
+| 0x3A5 | received by `FUN_00492e7d` | C → closed | Traced 2026-10-07: `FUN_00489470` stores @16 and @12 and calls `FUN_004729d4(1,0)`, which builds a `%s.asp?id=%s&pw=%s&server=%d` URL from the account name and password, downloads the page and shows the premium web shop panel. Not ported: it depends on the legacy web platform and puts the password in a URL. Replaced 2026-10-07 by the coordinated premium shop 0x7F20/0x7F21 ([premium-shop.md](premium-shop.md)) |
 | 0x3B8 | prebuilt by `FUN_00410a91`, 32-byte buffer: the shop purchase 0x379 is copied and retyped for items 0xC80-0xCE3, then sent later | A, C | Traced 2026-10-03: WYD Lottery. Buying items 3200-3299 (`WYD_Lottery`) does not send 0x379; it opens a panel with six number fields. Control 0x838 checks that none is empty, writes the six numbers as bytes at @24-@29 and sends the 0x3B8 buffer; 0x839 cancels (`FUN_004662c5`). The call pushes 0x20 and the native send routine writes the length into `Size`, so the request is 32 bytes. Closed on the server 2026-10-03 (owner decision): `lottery_ticket.go` accepts the 32-byte request in the world phase, checks the session ID, and replies that the lottery is unavailable; no gold or item moves. No server shop sells items 3200-3299. The TMProject has no lottery panel (C), which is acceptable while the feature is unavailable |
-| 0xBBF | gate 180; received by `FUN_0049889a` | C | Encoded-packet family; port together with the stubs below |
+| 0xBBF | gate 180; received by `FUN_0049889a` | C → closed | Traced 2026-10-07: anti-tamper family. `FUN_0049889a` rewrites 0xBBF into 0xFBC, 0x13BD or 0x7BE from DWORDs @0xAC/@0xB0, and each variant only loads a check value into `DAT_005ccf88` from packet words or static tables. No game state changes; not needed with an authoritative server |
 
 Encoded-packet stubs received but not implemented in the TMProject: `0x7BE`,
 `0xFBC`, `0x13BD` (gate 180 each, native consumer `FUN_0049889a`), plus
-`0xBBF` above. The server never sends them; with an authoritative server they
-are not needed unless a native flow depends on them. Close after confirming
-that no server feature needs them.
+`0xBBF` above. Closed 2026-10-07: the native consumer only computes the
+anti-tamper check value `DAT_005ccf88`; no native flow depends on them and the
+server never sends them.
 
 ### D: size mismatches
 
@@ -320,6 +320,7 @@ and the server sizes. The matrix now compares receive contracts only.
 | 0x105 / 0x106 | server sends, client receives (indexed messages) | Keep: superior to fixed text (indexed and parameterized); document and test both sides |
 | 0x10A | server sends the character list (2,360 bytes, 32-bit Score), client receives | Keep: wider Score than native 0x10E; document as a coordinated extension |
 | 0x7F10 / 0x7F11 | quiz challenge/answer extension, both sides | Keep as a documented coordinated extension (already versioned) |
+| 0x7F20 / 0x7F21 | premium shop state (132 bytes, S->C) and purchase (28 bytes, C->S); 0x17C with ShopType 4 | Coordinated extension v1, 2026-10-07: [premium-shop.md](premium-shop.md) |
 | 0x2E4 / 0x2E5 | client sends delete/split item, server handles | Keep: working features on both sides; document and test |
 | 0x2D4 / 0x2E1 | server handles extraction / alchemy; client sends 0x2D4 | Keep if the skills work end to end; add the client sender for 0x2E1 or retire it from the server |
 | 0x3D1 | client sends, no server handler | Native, not B (2026-10-03): `FUN_004662c5` sends it from gold prompt mode 7 with `PUSH 0x10` (the census missed the call because it has no visible arguments), `Parm@12` = amount. Mode 7 opens for an NPC with merchant type 9 and head 51 (`FUN_0045ee28`), text strdef row 136 "Enter the amount of gold to store." The TMProject matches. No WYD-Go NPC has merchant type 9 and no source records the server rule, so `store_gold_request.go` recognizes the request and replies that the service is unavailable |

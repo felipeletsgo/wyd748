@@ -81,6 +81,12 @@ caret-prefixed summon/NPC names. No NPC CP is persisted or awarded.
 
 ## Validation and remaining gates
 
+### Initial correction batch (historical checkpoint)
+
+The table below records the first inventory/CP validation, before the later S2
+corrections. Its failing game gate and fixture skips are historical, not the
+current acceptance result.
+
 | Gate | Result |
 | --- | --- |
 | New Go CP/stack tests | Pass: 4,681 CP/level combinations, all 65,025 positive byte-quantity pairs, compatibility/admission cases, 24 merge settlement cases, and CP commit/reject/unknown publication |
@@ -93,15 +99,26 @@ caret-prefixed summon/NPC names. No NPC CP is persisted or awarded.
 The earlier full Go/race batch included an isolated PostgreSQL 18 fixture and
 passed its store integration tests. That validates existing adapters, not a new
 database fault-injection test of the merge's uncertain outcome. Held-worker
-tests cover the new merge/CP lifecycle. The five red S2 cases and pending
-fault-injection/real-client gates are detailed in
+tests cover the new merge/CP lifecycle. The five formerly red S2 cases and the
+separate fault-injection/real-client gates are detailed in
 [the S2 closure audit](../server/s2-closure-audit-2026-10-07.md).
 
-Subsequent validation: the S2 closure cases were corrected, and the final full
-Go suite passed with race detection and the isolated PostgreSQL fixture enabled.
-The user reported apparently correct in-game behavior on 2026-10-07. This general
-user report is recorded separately from agent-observed client execution and does
-not establish exhaustive drag/split, palette or catalog-entry acceptance.
+### Current acceptance checkpoint — 2026-10-07
+
+The corrected source/tests were published in
+[`83a94da7`](https://github.com/felipeletsgo/wyd748/commit/83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a).
+
+| Gate | Latest evidence |
+| --- | --- |
+| S2 lifecycle and full Go suite | All 15 tested packages pass with `-race -count=1 -timeout=300s ./...` and the isolated S2 PostgreSQL fixture enabled; the five original closure failures are corrected |
+| C++ policies and candidate build | Initial passing checks/build above remain applicable; no later C++ change in the S2-only correction invalidated them. Not rerun as client execution |
+| Other conditional fixtures | Separate read-only web-admin PostgreSQL test and optional local JSON account schema test skipped; not passing leaf gates |
+| Real gameplay | User reported apparently correct behavior on October 7; no agent-observed rendering or exhaustive owner/observer, drag/split, palette and relogin matrix |
+| Unknown-outcome recovery | Containment is implemented; durable operation reconciliation, restart-safe fencing and verified unlock remain open in the [S2 recovery queue](../server/critical-persistence-plan.md#current-gaps-and-acceptance-criteria) |
+
+The general user report does not promote individual catalog entries to
+`CLIENT_TESTED`. Existing native records, policy tests, successful builds and
+runtime observations remain distinct evidence categories.
 
 ## Changed files
 

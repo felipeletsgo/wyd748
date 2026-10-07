@@ -115,7 +115,7 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 			}
 
 			int nSX = (int)(((float)pUISet->pTextureCoord[m_stNum[0].nTexIndex].nWidth
-				* RenderDevice::m_fWidthRatio)
+				* RenderDevice::m_fUIScaleX)
 				* m_fScale);
 
 			for (int i = 1; i < m_nStrLen; i++)
@@ -146,14 +146,14 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 						break;
 					default:
 						m_stNum[i].nTexIndex = -1;
-						nSX += (int)(5.0f * RenderDevice::m_fWidthRatio);
+						nSX += (int)(5.0f * RenderDevice::m_fUIScaleX);
 						continue;
 					}
 				}
 
 				m_stNum[i].nTexIndex = cValue;
 				nSX += (int)(((float)pUISet->pTextureCoord[m_stNum[i].nTexIndex].nWidth
-					* RenderDevice::m_fWidthRatio)
+					* RenderDevice::m_fUIScaleX)
 					* m_fScale);
 			}
 		}
@@ -185,14 +185,14 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 						break;
 					default:
 						m_stNum[i].nTexIndex = -1;
-						nSX += (int)(5.0f * RenderDevice::m_fWidthRatio);
+						nSX += (int)(5.0f * RenderDevice::m_fUIScaleX);
 						continue;
 					}
 				}
 
 				m_stNum[i].nTexIndex = cValue;
 				nSX += (int)(((float)pUISet->pTextureCoord[m_stNum[i].nTexIndex].nWidth
-					* RenderDevice::m_fWidthRatio)
+					* RenderDevice::m_fUIScaleX)
 					* m_fScale);
 			}
 		}
@@ -268,7 +268,7 @@ int TMFont3::Render()
 								fStartY,
 								fWidth,
 								fHeight,
-								fX - (float)(3.0f * RenderDevice::m_fHeightRatio),
+								fX - (float)(3.0f * RenderDevice::m_fUIScaleY),
 								fY,
 								fWidth,
 								fHeight,
@@ -276,7 +276,7 @@ int TMFont3::Render()
 								0xFFFFFF | dwColorValue,
 								1,
 								0.0f,
-								RenderDevice::m_fWidthRatio * m_fCurrScale);
+								RenderDevice::m_fUIScaleX * m_fCurrScale);
 						else
 							g_pDevice->RenderRectTexDamage(
 								fStartX,
@@ -291,7 +291,7 @@ int TMFont3::Render()
 								0xFFFFFF | dwColorValue,
 								1,
 								0.0f,
-								RenderDevice::m_fWidthRatio * m_fCurrScale);
+								RenderDevice::m_fUIScaleX * m_fCurrScale);
 					}
 				}
 			}
@@ -362,7 +362,7 @@ int TMFont3::FrameMove(unsigned int dwServerTime)
 		m_vecPosition.y = (signed int)(float)((float)m_vecStartPosition.y
 			- (float)((float)((float)((float)m_nSpeed * fProgress)
 				* 120.0)
-				* RenderDevice::m_fHeightRatio));
+				* RenderDevice::m_fUIScaleY));
 	}
 	else
 	{
@@ -370,29 +370,29 @@ int TMFont3::FrameMove(unsigned int dwServerTime)
 			m_vecPosition.y = (int)((float)m_vecStartPosition.y
 				- ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 2 || m_sDir == 6 || m_sDir == 8)
 			m_vecPosition.y = (int)((float)m_vecStartPosition.y
 				+ ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 3 || m_sDir == 5 || m_sDir == 8)
 			m_vecPosition.x = (int)((float)m_vecStartPosition.x
 				- ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 4 || m_sDir == 6 || m_sDir == 7)
 			m_vecPosition.x = (int)((float)m_vecStartPosition.x
 				+ ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 9)
 		{
 			m_vecPosition.x = m_vecStartPosition.x - 50;
 			m_vecPosition.y = (int)((float)m_vecStartPosition.y
 				- ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		}
 	}
 

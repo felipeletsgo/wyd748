@@ -128,6 +128,14 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 	slot := byte(req.srcPos)
 	item := &p.Char.Inv[slot]
+	if rule, _, registered := w.volatiles.Rule(item.Index); registered && isDonateCoinRule(rule) {
+		if _, exists := w.items[item.Index]; exists {
+			w.admitDonateCoin(p, slot, rule)
+		} else {
+			resyncUsedItem(s, p, slot)
+		}
+		return
+	}
 	// Migrated native consumables reserve both trade participants and cancel
 	// only after durable acknowledgement. All other paths retain legacy ordering.
 	if w.criticalWrites != nil {

@@ -39,16 +39,19 @@ SButton::SButton(int inTextureSetIndex, float inX, float inY, float inWidth, flo
 				m_GCPanel.pFont->SetText(m_GCPanel.strString, 0xFFFFFFFF, 0);
 		}
 
-		m_pAltText = new SText(-1, istrText, 0xFFFFFFFF, inWidth - 10.0f, 0.0f, (float)strlen(istrText) * 8.0f, (float)RenderDevice::m_nFontSize,
+		// The SText constructor applies the UI scale; pass the 800x600 font height.
+		const float layoutFontSize = (float)RenderDevice::m_nFontSize / RenderDevice::m_fUIScaleY;
+		m_pAltText = new SText(-1, istrText, 0xFFFFFFFF, inWidth - 10.0f, 0.0f, (float)strlen(istrText) * 8.0f, layoutFontSize,
 			0, 0xFF333333, 1u, 0);
 		m_pAltText->SetVisible(0);
 		m_pAltText->SetAlwaysOnTop(1);
 
 		if (inTextureSetIndex == -1 || inTextureSetIndex == -2)
 		{
+			// Font-size compensation measured at the 800x600 layout, then scaled.
 			m_nPosX = m_nPosX
-				- (float)((float)(RenderDevice::m_nFontSize - 12) * (float)((float)strlen(istrText) * 0.3f));
-			m_nPosY = m_nPosY - (float)((float)(RenderDevice::m_nFontSize - 12) * 0.6f);
+				- RenderDevice::UiPx((layoutFontSize - 12.0f) * ((float)strlen(istrText) * 0.3f));
+			m_nPosY = m_nPosY - RenderDevice::UiPx((layoutFontSize - 12.0f) * 0.6f);
 		}
 	}
 

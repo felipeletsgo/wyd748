@@ -641,26 +641,26 @@ void TMHuman::LabelPosition()
                         }
                     }
 
-                    vPosInY = (int)((float)vPosInY + (RenderDevice::m_fHeightRatio * 13.0f));
+                    vPosInY = (int)((float)vPosInY + (RenderDevice::m_fUIScaleY * 13.0f));
                     float fWidthRatio = RenderDevice::m_fUIScaleX; // FUN_00504a80 mode 2: 1.0
                     if (m_cMount)
-                        vPosInY = vPosInY + (int)((RenderDevice::m_fHeightRatio * 2.0f) * 4.0f);
+                        vPosInY = vPosInY + (int)((RenderDevice::m_fUIScaleY * 2.0f) * 4.0f);
                     else
-                        vPosInY = vPosInY - (int)((RenderDevice::m_fHeightRatio * 2.0f) * 16.0f);
+                        vPosInY = vPosInY - (int)((RenderDevice::m_fUIScaleY * 2.0f) * 16.0f);
 
-                    if (1.0 == RenderDevice::m_fHeightRatio)
+                    if (1.0 == RenderDevice::m_fUIScaleY)
                     {
                         if (m_cMount)
-                            vPosInY -= (int)(RenderDevice::m_fHeightRatio * 8.0f);
+                            vPosInY -= (int)(RenderDevice::m_fUIScaleY * 8.0f);
                         else
-                            vPosInY += (int)(RenderDevice::m_fHeightRatio * 10.0f);
+                            vPosInY += (int)(RenderDevice::m_fUIScaleY * 10.0f);
                     }
-                    else if (RenderDevice::m_fHeightRatio >= 1.7)
+                    else if (RenderDevice::m_fUIScaleY >= 1.7)
                     {
                         if (m_cMount)
-                            vPosInY += (int)(RenderDevice::m_fHeightRatio * 15.0f);
+                            vPosInY += (int)(RenderDevice::m_fUIScaleY * 15.0f);
                         else
-                            vPosInY -= (int)(RenderDevice::m_fHeightRatio * 6.0f);
+                            vPosInY -= (int)(RenderDevice::m_fUIScaleY * 6.0f);
                     }
                     if (m_nClass == 56 && !m_stLookInfo.FaceMesh)
                     {
@@ -1142,26 +1142,26 @@ void TMHuman::LabelPosition2()
                         }
                     }
 
-                    vPosInY = (int)((float)vPosInY + (RenderDevice::m_fHeightRatio * 13.0f));
+                    vPosInY = (int)((float)vPosInY + (RenderDevice::m_fUIScaleY * 13.0f));
                     float fWidthRatio = RenderDevice::m_fUIScaleX; // FUN_00504a80 mode 2: 1.0
                     if (m_cMount)
-                        vPosInY = vPosInY + (int)((RenderDevice::m_fHeightRatio * 2.0f) * 4.0f);
+                        vPosInY = vPosInY + (int)((RenderDevice::m_fUIScaleY * 2.0f) * 4.0f);
                     else
-                        vPosInY = vPosInY - (int)((RenderDevice::m_fHeightRatio * 2.0f) * 16.0f);
+                        vPosInY = vPosInY - (int)((RenderDevice::m_fUIScaleY * 2.0f) * 16.0f);
 
-                    if (1.0 == RenderDevice::m_fHeightRatio)
+                    if (1.0 == RenderDevice::m_fUIScaleY)
                     {
                         if (m_cMount)
-                            vPosInY -= (int)(RenderDevice::m_fHeightRatio * 8.0f);
+                            vPosInY -= (int)(RenderDevice::m_fUIScaleY * 8.0f);
                         else
-                            vPosInY += (int)(RenderDevice::m_fHeightRatio * 10.0f);
+                            vPosInY += (int)(RenderDevice::m_fUIScaleY * 10.0f);
                     }
-                    else if (RenderDevice::m_fHeightRatio >= 1.7)
+                    else if (RenderDevice::m_fUIScaleY >= 1.7)
                     {
                         if (m_cMount)
-                            vPosInY += (int)(RenderDevice::m_fHeightRatio * 15.0f);
+                            vPosInY += (int)(RenderDevice::m_fUIScaleY * 15.0f);
                         else
-                            vPosInY -= (int)(RenderDevice::m_fHeightRatio * 6.0f);
+                            vPosInY -= (int)(RenderDevice::m_fUIScaleY * 6.0f);
                     }
                     if (m_nClass == 56 && !m_stLookInfo.FaceMesh)
                     {

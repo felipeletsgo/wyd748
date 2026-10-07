@@ -171,6 +171,7 @@
     <ClInclude Include="internal\ui\NativeSaleQuote.h" />
     <ClInclude Include="internal\wire\LegacySalePacket.h" />
     <ClInclude Include="internal\wire\QuizEventPacket.h" />
+    <ClInclude Include="internal\wire\PremiumShopPacket.h" />
     <ClInclude Include="internal\wire\ServerWarLetterContract.h" />
     <ClInclude Include="internal\wire\CombineCompleteContract.h" />
     <ClInclude Include="internal\wire\TradeSessionContract.h" />
@@ -243,6 +244,8 @@
     <ClInclude Include="internal\core\ClientSettings.h" />
     <ClInclude Include="internal\wire\WeatherPacket.h" />
     <ClInclude Include="internal\render\world\sky\LightingProfile.h" />
+    <ClInclude Include="internal\game\entities\MantuaLength.h" />
+    <ClInclude Include="internal\render\effects\weather\WeatherParticles.h" />
     <ClInclude Include="internal\app\scenes\FieldCachePolicy.h" />
     <ClInclude Include="internal\app\scenes\GroundNeighborPolicy.h" />
     <ClInclude Include="internal\core\WYD748Assets.h" />

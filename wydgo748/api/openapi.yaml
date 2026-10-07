@@ -77,6 +77,64 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/GlobalDropResult' }
         default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/premium-shop:
+    get:
+      summary: Read the premium shop catalog (economy.premium.catalog capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Catalog stored in PostgreSQL; available is false when the server has no premium backend
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PremiumCatalog' }
+        default: { $ref: '#/components/responses/Error' }
+    put:
+      summary: Replace the premium shop catalog; refused when expectedCatalogVersion is outdated
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PremiumCatalogCommand' }
+      responses:
+        '200':
+          description: Domain receipt (code ok means saved; stale_catalog returns the current catalog)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PremiumCatalogResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/accounts/{account}/donate:
+    parameters:
+      - { name: account, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9]{1,12}$' } }
+    get:
+      summary: Read an account donate balance, pending credits and latest ledger rows (economy.donate.credit capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Persisted donate state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DonateAccount' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Credit donate to an account; requestId makes retries idempotent; applied by the game server once
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DonateCreditCommand' }
+      responses:
+        '200':
+          description: Domain receipt (code ok means the credit is stored)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DonateCreditResult' }
+        default: { $ref: '#/components/responses/Error' }
   /api/v1/staff/events/quiz:
     get:
       summary: Inspect process-local quiz event (game.event.quiz capability)
@@ -425,6 +483,89 @@ components:
         code: { type: string, enum: [ok, invalid_command, capability_required, server_maintenance, stale_event, operation_conflict, operation_capacity, event_active, event_inactive, unknown_item, event_id_unavailable] }
         replayed: { type: boolean }
         status: { $ref: '#/components/schemas/GlobalDropStatus' }
+    PremiumCatalogItem:
+      type: object
+      additionalProperties: false
+      required: [slot, itemId, effects, price]
+      properties:
+        slot: { type: integer, minimum: 0, maximum: 26 }
+        itemId: { type: integer, minimum: 1, maximum: 6499 }
+        effects: { type: array, items: { type: integer, minimum: 0, maximum: 255 }, minItems: 6, maxItems: 6 }
+        price: { type: integer, minimum: 1, maximum: 2000000000 }
+        itemName: { type: string }
+    PremiumCatalog:
+      type: object
+      required: [version, available, catalogVersion, items, updatedBy, updatedAt]
+      properties:
+        version: { type: integer, const: 1 }
+        available: { type: boolean }
+        catalogVersion: { type: integer }
+        items: { type: array, items: { $ref: '#/components/schemas/PremiumCatalogItem' } }
+        updatedBy: { type: string }
+        updatedAt: { type: string, format: date-time }
+    PremiumCatalogCommand:
+      type: object
+      additionalProperties: false
+      required: [version, expectedCatalogVersion, reason, items]
+      properties:
+        version: { type: integer, const: 1 }
+        expectedCatalogVersion: { type: integer, minimum: 0 }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+        items: { type: array, maxItems: 27, items: { $ref: '#/components/schemas/PremiumCatalogItem' } }
+    PremiumCatalogResult:
+      type: object
+      required: [code, catalog]
+      properties:
+        code: { type: string, enum: [ok, stale_catalog, unknown_item, invalid_command, capability_required, unavailable] }
+        catalog: { $ref: '#/components/schemas/PremiumCatalog' }
+    DonateCreditCommand:
+      type: object
+      additionalProperties: false
+      required: [version, requestId, account, amount, reason]
+      properties:
+        version: { type: integer, const: 1 }
+        requestId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        account: { type: string, pattern: '^[a-z0-9]{1,12}$' }
+        amount: { type: integer, minimum: 1, maximum: 2000000000 }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    DonateCreditResult:
+      type: object
+      required: [code, creditId, replayed]
+      properties:
+        code: { type: string, enum: [ok, unknown_account, request_conflict, invalid_command, capability_required, unavailable] }
+        creditId: { type: integer }
+        replayed: { type: boolean }
+    DonatePending:
+      type: object
+      required: [id, amount, reason, source, actor, createdAt]
+      properties:
+        id: { type: integer }
+        amount: { type: integer }
+        reason: { type: string }
+        source: { type: string, enum: [staff, web] }
+        actor: { type: string }
+        createdAt: { type: string, format: date-time }
+    DonateLedgerEntry:
+      type: object
+      required: [id, delta, balanceAfter, kind, itemId, character, createdAt]
+      properties:
+        id: { type: integer }
+        delta: { type: integer }
+        balanceAfter: { type: integer }
+        kind: { type: string, enum: [credit, purchase, coin_use] }
+        itemId: { type: integer }
+        itemName: { type: string }
+        character: { type: string }
+        createdAt: { type: string, format: date-time }
+    DonateAccount:
+      type: object
+      required: [version, account, balance, pending, ledger]
+      properties:
+        version: { type: integer, const: 1 }
+        account: { type: string }
+        balance: { type: integer }
+        pending: { type: array, items: { $ref: '#/components/schemas/DonatePending' } }
+        ledger: { type: array, items: { $ref: '#/components/schemas/DonateLedgerEntry' } }
     QuizCommand:
       type: object
       additionalProperties: false

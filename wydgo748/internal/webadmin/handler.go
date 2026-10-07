@@ -45,6 +45,7 @@ type Config struct {
 	Bosses         control.BossesSource
 	Kick           control.KickSource
 	Teleport       control.TeleportSource
+	Premium        control.PremiumSource
 	Persistent     PersistentReader
 	Ready          func(context.Context) error
 	Audit          *slog.Logger
@@ -127,6 +128,10 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/kick", h.kick)
 	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/teleport", h.teleport)
 	h.mux.HandleFunc("GET /api/v1/staff/players/{uid}/persistent", h.persistentPlayer)
+	h.mux.HandleFunc("GET /api/v1/staff/premium-shop", h.premiumShop)
+	h.mux.HandleFunc("PUT /api/v1/staff/premium-shop", h.premiumShop)
+	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/donate", h.donateAccount)
+	h.mux.HandleFunc("POST /api/v1/staff/accounts/{account}/donate", h.donateAccount)
 	h.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"status": "ok"}) })
 	h.mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)

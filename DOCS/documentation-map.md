@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 183.
+Markdown documents: 186.
 
 | Document | Type |
 | --- | --- |
@@ -18,6 +18,7 @@ Markdown documents: 183.
 | [.agents/handoffs/tmproject-architecture.md](<../.agents/handoffs/tmproject-architecture.md>) | Historical continuity |
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/skill-visual-dispatch.md](<../.agents/research/client748/flows/combat/skill-visual-dispatch.md>) | Research evidence |
+| [.agents/research/client748/flows/gameplay/source-todo-native-review.md](<../.agents/research/client748/flows/gameplay/source-todo-native-review.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md](<../.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md](<../.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md](<../.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md>) | Research evidence |
@@ -179,11 +180,13 @@ Markdown documents: 183.
 | [DOCS/protocol/hell-gate-store.md](<protocol/hell-gate-store.md>) | Product documentation |
 | [DOCS/protocol/opcode-compatibility-matrix.md](<protocol/opcode-compatibility-matrix.md>) | Product documentation |
 | [DOCS/protocol/packet-fixtures.md](<protocol/packet-fixtures.md>) | Product documentation |
+| [DOCS/protocol/premium-shop.md](<protocol/premium-shop.md>) | Product documentation |
 | [DOCS/README.md](<README.md>) | Product documentation |
 | [DOCS/reference-upstream.md](<reference-upstream.md>) | Product documentation |
 | [DOCS/SCORE.md](<SCORE.md>) | Product documentation |
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Product documentation |
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
+| [DOCS/server/ground-items.md](<server/ground-items.md>) | Product documentation |
 | [DOCS/server/operations.md](<server/operations.md>) | Product documentation |
 | [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |

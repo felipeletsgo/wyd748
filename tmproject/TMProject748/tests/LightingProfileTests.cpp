@@ -46,6 +46,10 @@ int RunLightingProfileTests(int& checks)
     check(defaults.sky[0][0] == 28 && defaults.sky[0][1] == 120 && defaults.sky[0][2] == 189 &&
         defaults.sun[3].g == 0.34f, "default sky and sun keep the previous TMSky values");
 
+    check(SkyStateIndex(67) == 0 && SkyStateIndex(70) == 3, "sky textures 67..70 map to states 0..3");
+    check(SkyStateIndex(0) == 0 && SkyStateIndex(66) == 0 && SkyStateIndex(71) == 0 && SkyStateIndex(331) == 0,
+        "other sky mesh textures stay inside the state tables");
+
     LightingProfile p;
     check(ParseLightingLine("Ambient=128 120 110\n", p) && p.AmbientColor() == 0x3380786Eu,
         "ambient bytes are read");

@@ -37,7 +37,7 @@ var (
 	metricSyncPersistenceRejected = expvar.NewInt("world_sync_persistence_rejected")
 	// Account-only operations isolated after an unknown or unverifiable outcome.
 	metricCriticalQuarantined = expvar.NewInt("world_critical_quarantined")
-	metricCommandsTotal     = expvar.NewInt("world_commands_total")
+	metricCommandsTotal       = expvar.NewInt("world_commands_total")
 	// metricCommandDurationMicros accumulates the time spent per opcode.
 	// Divided by world_commands_by_type it gives the mean per command.
 	metricCommandDurationMicros  = expvar.NewMap("world_command_duration_micros")
@@ -81,6 +81,7 @@ var inboundCommandMetricLabels = map[uint16]string{
 	wire.OpCharacterLogout:         "0x215",
 	wire.OpClientIntegrityResponse: "0x2C2",
 	wire.OpQuizAnswer:              "0x7F11",
+	wire.OpPremiumBuy:              "0x7F21",
 	wire.OpSwapItem:                "0x376",
 	wire.OpDeposit:                 "0x388",
 	wire.OpWithdraw:                "0x387",

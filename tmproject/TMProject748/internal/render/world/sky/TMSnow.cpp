@@ -30,10 +30,13 @@ TMSnow::TMSnow(float fScale) :
     m_vertex[2].diffuse = 0xAAAAAAAA;
     m_vertex[3].diffuse = 0xAAAAAAAA;
 
-    for (int i = 0; i < 200; ++i)
+    m_fHalfSize = weather_area::HalfSize(g_ClientSettings.weatherArea);
+    m_nFlakes = weather_area::ParticleCount(weather_area::kNativeSnowFlakes, m_fHalfSize,
+        weather_area::kMaxSnowFlakes);
+    for (int i = 0; i < m_nFlakes; ++i)
     {
-        m_vecSnowPosition[i].x = 6.0f - ((float)(rand() % 24) / 2.0f);
-        m_vecSnowPosition[i].z = 6.0f - ((float)(rand() % 24) / 2.0f);
+        m_vecSnowPosition[i].x = weather_area::RandomOffset(m_fHalfSize, rand());
+        m_vecSnowPosition[i].z = weather_area::RandomOffset(m_fHalfSize, rand());
         m_vecSnowPosition[i].y = (float)(rand() % 10);
         m_fSpeed[i] = (float)(rand() % 3) * 0.039999999f;
         if (m_fSpeed[i] == 0.0f)
@@ -119,14 +122,12 @@ int TMSnow::Render()
     else if (pObj)
         fCamHeight = pObj->m_fHeight;
 
-    for (int i = 0; i < 200; ++i)
+    // All visible flakes go out in one triangle list in world space.
+    int quads = 0;
+    for (int i = 0; i < m_nFlakes; ++i)
     {
-        int nX4 = (int)m_vecSnowPosition[i].x / 4;
-        int nY4 = (int)m_vecSnowPosition[i].z / 4;
-        if (nX4 >= 1024 || nX4 < 0)
-            nX4 = 0;
-        if (nY4 >= 1024 || nY4 < 0)
-            nY4 = 0;
+        int nX4 = weather_area::AttributeCell(m_vecSnowPosition[i].x);
+        int nY4 = weather_area::AttributeCell(m_vecSnowPosition[i].z);
 
         int bValue = g_pAttribute[nY4][nX4];
         if (!(bValue & 8))
@@ -142,13 +143,17 @@ int TMSnow::Render()
             m_vertex[2].diffuse = m_vertex[3].diffuse;
             m_vertex[1].diffuse = m_vertex[2].diffuse;
 
-            float fAngle = -g_pObjectManager->m_pCamera->m_fVerticalAngle;
-            D3DXMATRIX matTrans{};
-            D3DXMatrixTranslation(&matTrans, m_vecSnowPosition[i].x, m_vecSnowPosition[i].y, m_vecSnowPosition[i].z);
-            g_pDevice->m_pd3dDevice->SetTransform(D3DTS_WORLD, &matTrans);
-            g_pDevice->m_pd3dDevice->SetFVF(322);
-            g_pDevice->m_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2, m_vertex, 24);
+            weather_area::AppendQuad(m_batch, quads++, m_vertex,
+                m_vecSnowPosition[i].x, m_vecSnowPosition[i].y, m_vecSnowPosition[i].z);
         }
+    }
+    if (quads > 0)
+    {
+        D3DXMATRIX matIdentity{};
+        D3DXMatrixIdentity(&matIdentity);
+        g_pDevice->m_pd3dDevice->SetTransform(D3DTS_WORLD, &matIdentity);
+        g_pDevice->m_pd3dDevice->SetFVF(322);
+        g_pDevice->m_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, quads * 2, m_batch, 24);
     }
 
     g_pDevice->SetRenderState(D3DRS_LIGHTING, 1u);
@@ -191,9 +196,9 @@ int TMSnow::FrameMove(unsigned int dwServerTime)
     else if (pObj)
         fCamHeight = pObj->m_fHeight;
 
-    for (int i = 0; i < 200; ++i)
+    for (int i = 0; i < m_nFlakes; ++i)
     {
-        float fSin = sinf(((((float)i * 2.0f) / 200.0f) * D3DXToRadian(180)) * 2.0f);
+        float fSin = sinf(((((float)i * 2.0f) / (float)m_nFlakes) * D3DXToRadian(180)) * 2.0f);
         if (m_vecSnowPosition[i].y > fCamHeight)
         {
             m_vecSnowPosition[i].y = m_vecSnowPosition[i].y - (m_fSpeed[i] * fElapsedTime);
@@ -201,17 +206,19 @@ int TMSnow::FrameMove(unsigned int dwServerTime)
         }
         else if (pObj)
         {
+            // The native respawn "4 - (rand() % 32) / 3" covers -6.33..4;
+            // spread the flakes evenly over the configured area instead.
             m_vecSnowPosition[i].y = (pObj->m_fHeight + 7.0f) + ((float)(rand() % 10) * 0.5f);
-            m_vecSnowPosition[i].x = (4.0f - ((float)(rand() % 32) / 3.0f)) + vecCam.x;
-            m_vecSnowPosition[i].z = (4.0f - ((float)(rand() % 32) / 3.0f)) + vecCam.y;
+            m_vecSnowPosition[i].x = weather_area::RandomOffset(m_fHalfSize, rand()) + vecCam.x;
+            m_vecSnowPosition[i].z = weather_area::RandomOffset(m_fHalfSize, rand()) + vecCam.y;
         }
         else if (g_pCurrentScene)
         {
             if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_SELECT_SERVER)
             {
                 m_vecSnowPosition[i].y = (fCamHeight + 7.0f) + ((float)(rand() % 10) * 0.5f);
-                m_vecSnowPosition[i].x = (4.0f - ((float)(rand() % 32) / 3.0f)) + vecCam.x;
-                m_vecSnowPosition[i].z = (4.0f - ((float)(rand() % 32) / 3.0f)) + vecCam.y;
+                m_vecSnowPosition[i].x = weather_area::RandomOffset(m_fHalfSize, rand()) + vecCam.x;
+                m_vecSnowPosition[i].z = weather_area::RandomOffset(m_fHalfSize, rand()) + vecCam.y;
             }
         }
     }

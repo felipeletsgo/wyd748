@@ -25,6 +25,7 @@ type command struct {
 	bosses          *bossesRequest
 	globalDrop      *globalDropRequest
 	quiz            *quizRequest
+	premium         *premiumEvent
 	control         *controlRequest
 	accountPresence *accountPresenceRequest
 	s               *net.Session
@@ -138,6 +139,10 @@ type Player struct {
 	ShopTax  uint32
 	CraftNPC uint16
 	CargoNPC uint16
+	// PremiumNPC is the premium shop opened by this player and PremiumVersion
+	// the catalog version it showed (premium_shop.go).
+	PremiumNPC     uint16
+	PremiumVersion uint32
 	// Ephemeral tax/war collector context. Confirmation 0x28F may reuse only
 	// the NPC the player actually opened, for a few seconds.
 	CityWarNPC          uint16
@@ -292,6 +297,11 @@ type GroundItem struct {
 	// State is 0 for closed or 1 for open. Only doors use it. The native server
 	// changes it with MSG_UpdateItem rather than recreating the object.
 	State byte
+	// OwnerUID and ownerParty may pick the item up until ProtectedUntil;
+	// afterwards it is public (ground_rules.go). Empty OwnerUID is public.
+	OwnerUID       string
+	ProtectedUntil time.Time
+	ownerParty     *Party
 	// Actor-owned claim retained through persistence completion delivery.
 	criticalPickup uint64
 	// Pending source removals reserve an ID but must not expose ground loot.
@@ -554,7 +564,13 @@ type World struct {
 	nextWeatherChange time.Time
 	nextWeatherSync   time.Time
 	weatherRNG        RNG
-	uxmal             *model.VolatileInstance
+	// Premium shop state (premium_shop.go): the staff catalog, the background
+	// poll of catalog/credits, and credits whose write is still in flight.
+	premiumCatalog  store.PremiumCatalog
+	premiumNextPoll time.Time
+	premiumPolling  atomic.Bool
+	premiumInFlight map[int64]bool
+	uxmal           *model.VolatileInstance
 	// channel is the native ServerIndex+1. Citizenship is per channel; another
 	// channel's citizens receive no bonus here. A single instance uses channel 1.
 	channel byte
@@ -1712,6 +1728,9 @@ func commandLabel(cmd command) string {
 	if cmd.quiz != nil {
 		return "control.quiz"
 	}
+	if cmd.premium != nil {
+		return "premium.poll"
+	}
 	if cmd.globalDrop != nil {
 		return "control.global-drop"
 	}
@@ -1863,6 +1882,7 @@ func (w *World) tick() {
 	w.tickClientIntegrity(now)
 	w.tickQuiz(now)
 	w.tickWeather(now)
+	w.tickPremium(now)
 	if !now.Before(w.nextQuestZoneGuard) {
 		w.tickQuestZoneGuard(now)
 		w.nextQuestZoneGuard = now.Add(questZoneGuardInterval)
@@ -2004,6 +2024,10 @@ func (w *World) handle(cmd command) {
 		w.handleQuiz(cmd.quiz)
 		return
 	}
+	if cmd.premium != nil {
+		w.handlePremiumEvent(cmd.premium)
+		return
+	}
 	if cmd.globalDrop != nil {
 		w.handleGlobalDrop(cmd.globalDrop)
 		return
@@ -2126,6 +2150,8 @@ func (w *World) handle(cmd command) {
 		w.onUseNPC(cmd.s, cmd.pkt)
 	case wire.OpBuyItem:
 		w.onBuyItem(cmd.s, cmd.pkt)
+	case wire.OpPremiumBuy:
+		w.onPremiumBuy(cmd.s, cmd.pkt)
 	case wire.OpBuyToto:
 		w.onBuyToto(cmd.s, cmd.pkt)
 	case wire.OpDoJackpotBet:
@@ -2242,6 +2268,14 @@ func (w *World) createGroundDrop(x, y uint16, item model.Item, publish bool) *Gr
 
 func (w *World) createGroundDropForInstance(x, y uint16, item model.Item,
 	publish bool, instanceID string) *GroundItem {
+	return w.createGroundDropCell(x, y, item, publish, instanceID, groundOwner{})
+}
+
+// createGroundDropCell places a ground item on its origin cell or, when an
+// item already occupies it, on the first free cell around it (legacy
+// GetEmptyItemGrid). A non-empty owner protects it for groundItemProtection.
+func (w *World) createGroundDropCell(x, y uint16, item model.Item,
+	publish bool, instanceID string, owner groundOwner) *GroundItem {
 	itemIndex := item.Index
 	item, err := materializeItem(item)
 	if err != nil {
@@ -2249,17 +2283,14 @@ func (w *World) createGroundDropForInstance(x, y uint16, item model.Item,
 		return nil
 	}
 	// The client searches for Cannon (746) exactly under the player and only
-	// at IDs 15001..15100. Other drops are scattered around their origin.
+	// at IDs 15001..15100.
 	dropX, dropY := x, y
 	if item.Index != 746 {
-		// Calculate as int: uint16(0)-1 wraps to 65535 and places an unreachable
-		// item at the opposite map edge. Valid client tiles are 1..4095; retain
-		// the authoritative origin if a scattered point lands on blocked terrain.
-		nx := clampInt(int(x)+w.intn(3)-1, 1, model.TerrainWidth-1)
-		ny := clampInt(int(y)+w.intn(3)-1, 1, model.TerrainHeight-1)
-		candidateX, candidateY := uint16(nx), uint16(ny)
-		if w.terrain.Walkable(candidateX, candidateY) {
-			dropX, dropY = candidateX, candidateY
+		var free bool
+		dropX, dropY, free = w.emptyGroundCell(x, y, instanceID)
+		if !free {
+			log.Printf("no free ground cell around (%d,%d) for item %d", x, y, item.Index)
+			return nil
 		}
 	}
 
@@ -2282,8 +2313,12 @@ func (w *World) createGroundDropForInstance(x, y uint16, item model.Item,
 		Item:       item,
 		X:          dropX,
 		Y:          dropY,
-		Expire:     w.now().Add(2 * time.Minute),
+		Expire:     w.now().Add(groundItemLifetime),
 		InstanceID: instanceID,
+	}
+	if owner.uid != "" {
+		gItem.OwnerUID, gItem.ownerParty = owner.uid, owner.party
+		gItem.ProtectedUntil = w.now().Add(groundItemProtection)
 	}
 	w.registerGroundItem(gItem)
 

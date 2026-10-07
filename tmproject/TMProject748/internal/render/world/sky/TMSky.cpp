@@ -467,25 +467,29 @@ int TMSky::FrameMove(unsigned int dwServerTime)
                 else if (m_nState > 10 && (m_nTextureIndex == 68 || m_nTextureIndex == 69) && g_pCurrentScene->m_pSun != nullptr)
                     g_pCurrentScene->m_pSun->m_fDefSize = 1.0f - fProgress;
                 
-                // TODO: this code maybe crash. The -264 maybe is - 67.
-                unsigned int dwR = static_cast<unsigned int>((unsigned char)((float)m_dwR[pMesh->m_nTextureIndex[0] - 67] * (float)(1.0f - fProgress)) +
-                    (float)((float)m_dwR[m_nTextureIndex - 67] * fProgress));
-                unsigned int dwG = static_cast<unsigned int>((unsigned char)((float)m_dwG[pMesh->m_nTextureIndex[0] - 67] * (float)(1.0f - fProgress)) +
-                    (float)((float)m_dwG[m_nTextureIndex - 67] * fProgress));
-                unsigned int dwB = static_cast<unsigned int>((unsigned char)((float)m_dwB[pMesh->m_nTextureIndex[0] - 67] * (float)(1.0f - fProgress)) +
-                    (float)((float)m_dwB[m_nTextureIndex - 67] * fProgress));
+                // Native FUN_005484d1 blends the previous sky texture (mesh) into
+                // the next one, both indexed by texture - 67 (0x43). A mesh reloaded
+                // by the cache returns its file texture, so the index is clamped to
+                // the four sky states instead of reading past the tables.
+                const int from = SkyStateIndex(pMesh->m_nTextureIndex[0]);
+                const int to = SkyStateIndex(m_nTextureIndex);
+                const float fKeep = 1.0f - fProgress;
+                unsigned int dwR = static_cast<unsigned int>((unsigned char)((float)m_dwR[from] * fKeep) +
+                    (float)((float)m_dwR[to] * fProgress));
+                unsigned int dwG = static_cast<unsigned int>((unsigned char)((float)m_dwG[from] * fKeep) +
+                    (float)((float)m_dwG[to] * fProgress));
+                unsigned int dwB = static_cast<unsigned int>((unsigned char)((float)m_dwB[from] * fKeep) +
+                    (float)((float)m_dwB[to] * fProgress));
 
                 g_pDevice->m_dwClearColor = dwB | (dwG << 8) | (dwR << 16);
 
-                g_pDevice->m_colorLight.r = (float)((float)(1.0 - fProgress)
-                    * TMSky::m_LightVal[pMesh->m_nTextureIndex[0] - 67].r)
-                    + (float)(TMSky::m_LightVal[m_nTextureIndex - 67].r * fProgress);
-                g_pDevice->m_colorLight.g = (float)((float)(1.0 - fProgress)
-                    * TMSky::m_LightVal[pMesh->m_nTextureIndex[0] - 67].g)
-                    + (float)(TMSky::m_LightVal[m_nTextureIndex - 67].g * fProgress);
-                g_pDevice->m_colorLight.b = (float)((float)(1.0 - fProgress)
-                    * TMSky::m_LightVal[pMesh->m_nTextureIndex[0] - 67].b)
-                    + (float)(TMSky::m_LightVal[m_nTextureIndex - 67].b * fProgress);
+                // Blend the same Env/Lighting.txt colors the settled state uses,
+                // so the light does not jump when the transition ends.
+                const D3DCOLORVALUE lightFrom = SunLight(from);
+                const D3DCOLORVALUE lightTo = SunLight(to);
+                g_pDevice->m_colorLight.r = fKeep * lightFrom.r + lightTo.r * fProgress;
+                g_pDevice->m_colorLight.g = fKeep * lightFrom.g + lightTo.g * fProgress;
+                g_pDevice->m_colorLight.b = fKeep * lightFrom.b + lightTo.b * fProgress;
             }
         }
         else
@@ -606,9 +610,10 @@ void TMSky::SetWeatherState(int nState)
         {
             //This code is extrem confuse, the compiler did some optimization that make the code weird
             pMesh->m_nTextureIndex[0] = nState + 67;
-            unsigned int dwR = static_cast<unsigned char>(m_dwR[pMesh->m_nTextureIndex[0] - 67]);
-            unsigned int dwG = static_cast<unsigned char>(m_dwG[pMesh->m_nTextureIndex[0] - 67]);
-            unsigned int dwB = static_cast<unsigned char>(m_dwB[pMesh->m_nTextureIndex[0] - 67]);
+            const int state = SkyStateIndex(pMesh->m_nTextureIndex[0]);
+            unsigned int dwR = static_cast<unsigned char>(m_dwR[state]);
+            unsigned int dwG = static_cast<unsigned char>(m_dwG[state]);
+            unsigned int dwB = static_cast<unsigned char>(m_dwB[state]);
             g_pDevice->m_dwClearColor = dwB | (dwG << 8) | (dwR << 16);
         }
         else if (nState / 10 == 1)

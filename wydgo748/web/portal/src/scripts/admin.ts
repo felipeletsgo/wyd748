@@ -2,6 +2,7 @@ import type { components } from '../lib/api.generated';
 import { setupGlobalDrop } from './global-drop';
 import { setupQuiz } from './quiz';
 import { setupBosses } from './bosses';
+import { setupPremiumShop } from './premium-shop';
 import { setupPlayerModeration } from './player-moderation';
 import { setupPlayerTeleport } from './player-teleport';
 
@@ -61,6 +62,9 @@ const messages: Record<string, string> = {
   invalid_host: 'The panel address does not match the service’s configured origin.',
   invalid_origin: 'The panel origin does not match the service configuration.',
   events_unavailable: 'Events require an updated panel integrated with tm.exe. The separate Web API remains read-only.',
+  premium_unavailable: 'The premium shop requires the panel integrated with tm.exe and PostgreSQL.',
+  unknown_account: 'Account not found.',
+  invalid_account: 'Invalid account name.',
 };
 function explain(error: unknown) {
   return error instanceof APIError ? (messages[error.code] ?? 'The service could not complete this request. Please try again.') : 'Could not connect to the panel. Check your connection and try again.';
@@ -79,6 +83,7 @@ async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> 
 const globalDropPanel = setupGlobalDrop(api, explain);
 const quizPanel = setupQuiz(api, explain);
 const bossesPanel = setupBosses(api, explain);
+const premiumPanel = setupPremiumShop(api, explain);
 const moderationPanel = setupPlayerModeration(api, explain);
 const teleportPanel = setupPlayerTeleport(api, explain);
 function showSession() {
@@ -95,6 +100,7 @@ function resetSnapshot() {
   globalDropPanel.reset();
   quizPanel.reset();
   bossesPanel.reset();
+  premiumPanel.reset();
   moderationPanel.reset();
   teleportPanel.reset();
   snapshot = undefined; offset = 0; search = '';
@@ -114,7 +120,7 @@ async function init() {
   try {
     session = await api<Session>('/auth/session');
     showSession(); text('login-message','');
-    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); }
+    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void premiumPanel.refresh(); }
   } catch (error) {
     session = undefined; showSession(); text('login-message',explain(error));
   } finally {
@@ -360,7 +366,7 @@ el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
     if (!session) session = await api<Session>('/auth/session');
     session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value});
     resetSnapshot(); showSession(); el<HTMLButtonElement>('refresh').focus();
-    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh();
+    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void premiumPanel.refresh();
   } catch (error) {
     text('login-message',explain(error)); if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
   } finally {
@@ -375,7 +381,7 @@ el('logout').addEventListener('click',async () => {
     else {text('snapshot-state','Could not end the session');text('snapshot-detail',explain(error));el('snapshot-banner').classList.add('error');}
   } finally {button.disabled = false;}
 });
-el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); });
+el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void premiumPanel.refresh(); });
 el<HTMLFormElement>('search-form').addEventListener('submit',event => {event.preventDefault();void query(0,el<HTMLInputElement>('search').value.trim());});
 el('previous').addEventListener('click',() => void query(Math.max(0,offset-50)));
 el('next').addEventListener('click',() => void query(offset+50));

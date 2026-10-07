@@ -18,6 +18,37 @@ drop-list packet paths. This is not evidence that an already installed
 separates retired paths from incomplete server integrations; in particular,
 war letters, alternate mix, and account transfer are not supported end to end.
 
+## Recent integrated contracts and validation limits
+
+The October 7 source/tests and documentation are published in
+[`83a94da7`](https://github.com/felipeletsgo/wyd748/commit/83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a).
+Use the following current records instead of treating older audit failures or
+uncommitted-batch descriptions as the live implementation queue:
+
+- [Inventory stacks and CP contract v1](inventory-stack-and-cp-contract.md):
+  effect 61 quantity rendering, split-caption fallback, authoritative merging,
+  CP rewards/refresh and the deliberate white-NPC name policy. Native palette
+  evidence and product-policy changes are distinguished in that contract.
+- [S2 closure audit](../server/s2-closure-audit-2026-10-07.md): shared-object
+  settlement, indefinite account containment and detached instance visibility
+  corrections passed the integrated Go race/PostgreSQL batch; verified recovery
+  after unknown outcomes is still open.
+- [Performance and visuals plan](performance-and-visuals-plan.md): implemented
+  weather/cache/light-profile work retains its recorded measurements and its
+  separate field-crossing, weather/damage, tuning and accumulation gates.
+- Shutdown double free (2026-10-07): leaving the game from the field crashed in
+  `RtlFreeHeap` because `NewApp::Finalize` freed the bone animation buffers and
+  `~MeshManager` freed them again. Both now call the idempotent
+  `MeshManager::ReleaseBoneAnimations`, which clears the pointers; the minidump
+  was symbolized against the build PDB and `UiModeContractTests` guards the
+  single release. Exit from the field is pending a user client test.
+
+The user reported apparently correct gameplay on October 7. This is not a new
+agent-executed test, an exhaustive acceptance matrix, or a reason to promote
+unexercised catalog entries to `CLIENT_TESTED`. The sections below retain the
+limits of each proven flow; unresolved sale policy, legacy opcode and asset
+evidence must not be closed merely because the general session looked correct.
+
 ## 7.48 asset profile
 
 The buildable client can read `tmproject/client748/` directly through

@@ -120,6 +120,7 @@ void TMFieldScene::SetVisibleShop(int bShow)
 	{
 		g_pObjectManager->m_RMBShopOpen = 0;
 		m_bEventCouponOpen = 0;
+		m_premiumShop.Close();
 	}
 	GetSoundAndPlay(51, 0, 0);
 	return;
@@ -178,7 +179,9 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 {
 	auto pShopList = reinterpret_cast<MSG_ShopList*>(pStd);
 
-	if (pShopList->ShopType == 1)
+	// ShopType 4 is the coordinated premium shop: the same native window,
+	// priced in donate by the following 0x7F20.
+	if (pShopList->ShopType == 1 || pShopList->ShopType == static_cast<int>(premium_shop::ShopType))
 	{
 		// A resource failure can leave the merchant grid unbound when the
 		// packet arrives. Do not change coupon or shop state in that case.
@@ -236,6 +239,8 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 
 		g_pObjectManager->m_nTax = pShopList->Tax;
 		SetVisibleShop(1);
+		m_premiumShop.OnShopList(static_cast<unsigned int>(pShopList->ShopType),
+			static_cast<unsigned short>(m_pGridShop->m_dwMerchantID));
 	}
 	else if (pShopList->ShopType == 3)
 	{
@@ -514,7 +519,34 @@ int TMFieldScene::OnPacketNewBuyCash(MSG_STANDARD* pStd)
 
 void TMFieldScene::MouseClick_PremiumNPC(TMHuman* pOver)
 {
-	// Preserved later extension point. Native 7.48 only classifies head 57 as a
-	// merchant; no Premium request contract has been recovered or implemented.
-	(void)pOver;
+	// Native 7.48 classifies face 57 as a merchant; the premium shop extension
+	// opens it with the native shop request (DOCS/protocol/premium-shop.md).
+	if (!pOver || !m_pMyHuman || !m_pGridShop || !m_pShopPanel || m_pShopPanel->IsVisible())
+		return;
+	m_nIsMP = 0;
+	MSG_REQShopList stReqShopList{};
+	stReqShopList.Header.Type = MSG_REQShopList_Opcode;
+	stReqShopList.Header.ID = m_pMyHuman->m_dwID;
+	stReqShopList.TargetID = pOver->m_dwID;
+	m_pGridShop->m_dwMerchantID = pOver->m_dwID;
+	SendPacket({stReqShopList.Header.Type, reinterpret_cast<char*>(&stReqShopList), sizeof(stReqShopList)});
+	m_dwNPCClickTime = g_pTimerManager->GetServerTime();
+	m_sShopTarget = pOver->m_dwID;
+}
+
+int TMFieldScene::OnPacketPremiumShopState(MSG_STANDARD* packet)
+{
+	premium_shop::State state{};
+	if (!packet || !g_pObjectManager || packet->ID != g_pObjectManager->m_dwCharID ||
+		!premium_shop::Parse(packet, packet->Size, state))
+		return 0;
+	m_premiumShop.Apply(state);
+	if (m_pMessagePanel)
+	{
+		char message[96]{};
+		sprintf_s(message, "Donate balance: %u", state.Balance);
+		m_pMessagePanel->SetMessage(message, 3000);
+		m_pMessagePanel->SetVisible(1, 1);
+	}
+	return 1;
 }

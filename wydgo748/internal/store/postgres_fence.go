@@ -16,8 +16,8 @@ type postgresFenceEntry struct {
 	refs int
 }
 
-// postgresFenceSet serializa somente agregados que compartilham a mesma
-// identidade e descarta a entrada quando o ultimo usuario libera a fence.
+// postgresFenceSet serializes only aggregates that share the same identity and
+// drops the entry when the last user releases the fence.
 type postgresFenceSet struct {
 	mu      sync.Mutex
 	entries map[string]*postgresFenceEntry
@@ -79,11 +79,11 @@ func (s *PostgresStore) beginPostgresWrite() (func(), error) {
 	s.mu.RLock()
 	if s.closed {
 		s.mu.RUnlock()
-		return nil, errors.New("store: PostgreSQL fechado")
+		return nil, errors.New("store: PostgreSQL closed")
 	}
 	if s.readOnly {
 		s.mu.RUnlock()
-		return nil, errors.New("store: PostgreSQL somente leitura")
+		return nil, errors.New("store: PostgreSQL is read-only")
 	}
 	return s.mu.RUnlock, nil
 }
@@ -147,7 +147,7 @@ func postgresStateFenceKey(uid string) (string, error) {
 		return "", fmt.Errorf("store: charstate: %w", err)
 	}
 	if normalized == "" {
-		return "", errors.New("store: charstate sem UID de personagem")
+		return "", errors.New("store: charstate without a character UID")
 	}
 	return normalized, nil
 }

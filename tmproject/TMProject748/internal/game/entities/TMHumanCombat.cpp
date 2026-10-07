@@ -52,11 +52,13 @@ void TMHuman::MoveAttack(TMHuman* pTarget)
     if (pScene->m_dwLastTeleport != 0 || pScene->m_dwLastTown != 0 || pScene->m_dwLastLogout != 0 || g_dwStartQuitGameTime != 0)
         return;
 
-    if (!TMFieldScene::m_bPK && pTarget->m_cSummons == 1 && g_pObjectManager->m_usWarGuild == pTarget->m_usGuild && pTarget->m_usGuild && g_bCastleWar)
+    // Native FUN_0051a939: a summoned target of another guild is protected
+    // outside the castle area while no castle war runs, and a target with the
+    // same cape (mantua) is always protected.
+    if (!TMFieldScene::m_bPK && pTarget->m_cSummons == 1 && g_pObjectManager->m_usWarGuild != pTarget->m_usGuild && pTarget->m_usGuild)
     {
-        // TODO: check this later
-        int isInPos = (int)m_vecPosition.x >> 7 <= 16 || (int)m_vecPosition.x >> 7 >= 20 || (int)m_vecPosition.y >> 7 <= 29;
-        if (isInPos || (m_cMantua > 0 && pTarget->m_cMantua == m_cMantua))
+        const bool outsideCastle = (int)m_vecPosition.x >> 7 <= 16 || (int)m_vecPosition.x >> 7 >= 20 || (int)m_vecPosition.y >> 7 <= 29;
+        if ((!g_bCastleWar && outsideCastle) || (m_cMantua > 0 && pTarget->m_cMantua == m_cMantua))
             return;
     }
 

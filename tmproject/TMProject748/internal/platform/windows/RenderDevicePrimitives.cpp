@@ -1194,7 +1194,7 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 				// FUN_0042E8A1: classic UI keeps scale 1, UI mode 2 compensates
 				// only by the width ratio. The imported 7.59 resize and 0.9 factors
 				// enlarged legacy 3D item meshes and moved them outside their cells.
-				float fScale = g_UIVer == 2 ? 1.0f / RenderDevice::m_fWidthRatio : 1.0f;
+				float fScale = g_UIVer == 2 ? RenderDevice::m_fUIScaleX / RenderDevice::m_fWidthRatio : 1.0f;
 				if (ipControl->dwBGColor == -1)
 					fScale = fScale * 0.80000001f;
 
@@ -1240,7 +1240,7 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 				g_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
 				SetRenderState(D3DRS_FOGENABLE, 0);
 
-				float fScale = 1.0f / RenderDevice::m_fWidthRatio;
+				float fScale = RenderDevice::m_fUIScaleX / RenderDevice::m_fWidthRatio;
 				TMMesh* pMesh = g_pMeshManager->GetCommonMesh(ipControl->n3DObjIndex, 1, 3_min);
 
 				if (pMesh)

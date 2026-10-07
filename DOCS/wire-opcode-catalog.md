@@ -34,8 +34,10 @@ Unregistered opcodes retain the previous fallback. The transfer evidence
 record distinguishes native claims from local hardening. WYD-Go accepts
 `0xFAA` only during selection, at exactly 52 bytes, and replies with
 `Result=4` (the client's generic error) without changing the account or
-slot. This ends the client's wait but does not implement transfer to the
-Integrated server.
+slot, followed by a `0x101` notice ("Character transfer is not available on
+this server.") because `Result=4` alone shows "Unknown error.". This ends the
+client's wait but does not implement transfer to the Integrated server (owner
+decision 2026-10-07: keep it unavailable).
 
 Other contracts at this entry point include `0x182` (SendItem, 24 bytes),
 `0x101` (MessagePanel, 108 bytes), `0x102/0x104` (opaque messages, 116/152

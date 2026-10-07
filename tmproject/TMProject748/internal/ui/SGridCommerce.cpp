@@ -50,6 +50,15 @@ void SGridControl::BuyItem(int nCellX, int nCellY)
 
 			if (vecGrid.x > -1 && vecGrid.y > -1)
 			{
+				// The premium shop is priced in donate and bought with 0x7F21.
+				if (pScene->m_premiumShop.Open)
+				{
+					premium_shop::Buy premiumBuy{};
+					if (pScene->m_premiumShop.MakeBuy(static_cast<unsigned short>(stBuy.Header.ID),
+						SourPos, stBuy.MyCarryPos, premiumBuy))
+						SendOneMessage(reinterpret_cast<char*>(&premiumBuy), sizeof(premiumBuy));
+					return;
+				}
 				if (pItem->m_pItem->sIndex == 4147)
 				{
 					memset(&pScene->m_stToto, 0, sizeof(pScene->m_stToto));

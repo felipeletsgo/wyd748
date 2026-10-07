@@ -911,6 +911,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	// Each interaction opens exactly one authoritative context. Cargo must not
 	// reuse a stale banker after the player clicks another NPC.
 	p.ShopNPC, p.ShopTax, p.CraftNPC, p.CargoNPC = 0, 0, 0, 0
+	p.PremiumNPC, p.PremiumVersion = 0, 0
 	clearCityWarContext(p)
 
 	// Allowlist routing: specialized handlers (shop/master/cargo), explicitly
@@ -939,6 +940,10 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		return
 	}
 	if w.handleCarbMasterNPC(s, p, m) {
+		return
+	}
+	if isPremiumMerchant(m.Def) {
+		w.openPremiumShop(s, p, m)
 		return
 	}
 	if city, isCollector := cityCollectorCity(m); isCollector {
@@ -2265,7 +2270,14 @@ const pickupRange = 4
 type dropItemRequest struct {
 	srcType, srcPos byte
 	rotate          uint32
+	// gridX/gridY are the client's own cell (native FUN_0046247E converts the
+	// character position into GridX@24 and GridY@26).
+	gridX, gridY uint16
 }
+
+// dropCellTolerance bounds how far the client cell may be from the server
+// position, which trails the visual route by up to a few steps.
+const dropCellTolerance = 2
 
 func parseDropItemRequest(pkt []byte) (dropItemRequest, bool) {
 	if len(pkt) != 32 {
@@ -2281,7 +2293,8 @@ func parseDropItemRequest(pkt []byte) (dropItemRequest, bool) {
 		return dropItemRequest{}, false
 	}
 	return dropItemRequest{srcType: byte(srcType), srcPos: byte(srcPos),
-		rotate: binary.LittleEndian.Uint32(pkt[20:24])}, true
+		rotate: binary.LittleEndian.Uint32(pkt[20:24]),
+		gridX:  binary.LittleEndian.Uint16(pkt[24:26]), gridY: binary.LittleEndian.Uint16(pkt[26:28])}, true
 }
 
 type getItemRequest struct {
@@ -2342,8 +2355,10 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 		return
 	}
 	// Reserve without publishing. Clients see the item only after
-	// authoritative inventory removal has been persisted.
-	g := w.createGroundDropForInstance(p.X, p.Y, item, false, w.gameplaySpaceForPlayer(p))
+	// authoritative inventory removal has been persisted. Like native 7.48 the
+	// item lands on the character's own cell, never on a random neighbor.
+	dropX, dropY := w.playerDropCell(p, req)
+	g := w.createGroundDropCell(dropX, dropY, item, false, w.gameplaySpaceForPlayer(p), ownerOf(p))
 	if g == nil {
 		s.Send(wire.MessagePanel("There is no room to drop that item here."))
 		return
@@ -2371,6 +2386,17 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	s.Send(wire.CNFDropItem(uint32(req.srcType), uint32(req.srcPos), req.rotate, g.X, g.Y))
 	s.Send(wire.SendItem(p.ID, req.srcType, req.srcPos, *src))
 	log.Printf("[#%d] dropped item %d on the ground @(%d,%d)", s.ID, item.Index, g.X, g.Y)
+}
+
+// playerDropCell returns the cell the client reported under the character when
+// it is walkable and within dropCellTolerance of the server position; otherwise
+// the server position.
+func (w *World) playerDropCell(p *Player, req dropItemRequest) (uint16, uint16) {
+	if req.gridX == 0 || req.gridY == 0 || chebyshev(p.X, p.Y, req.gridX, req.gridY) > dropCellTolerance ||
+		!w.terrain.Walkable(req.gridX, req.gridY) {
+		return p.X, p.Y
+	}
+	return req.gridX, req.gridY
 }
 
 // onGetItem: 0x270 MSG_GetItem (DestType i32@12, DestPos i32@16, ItemID u16@20,
@@ -2405,6 +2431,10 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 	}
 	if chebyshev(p.X, p.Y, g.X, g.Y) > pickupRange {
 		log.Printf("[#%d] pickup item %d out of range", s.ID, req.itemID)
+		return
+	}
+	if !groundItemClaimable(p, g, w.now()) {
+		s.Send(wire.MessagePanel(groundProtectedMessage))
 		return
 	}
 	if def, exists := w.items[g.Item.Index]; exists {
