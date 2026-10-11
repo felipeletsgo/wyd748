@@ -26,6 +26,10 @@ public:
     virtual void SetText(char* istrText, int bCheckZero);
     virtual void SetTextColor(unsigned int dwFontColor);
     virtual char* GetText();
+    // Empty captions are valid; nonempty captions require a successful upload.
+    bool IsCaptionReady() const {
+        return m_GCText.strString[0] == '\0' || m_Font.m_pTexture != nullptr;
+    }
     virtual void SetType(unsigned int dwType);
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;

@@ -22,3 +22,9 @@ void WYD748_DiagnosticsPacket(const char* direction, unsigned int opcode, std::s
 // imported source's semantic controls. The container is a valid non-owning
 // reference; reason is only copied into the log.
 void WYD748_DumpControlTree(SControlContainer* container, const char* reason);
+
+// Layout probe for UI checks: when WYD748_LAYOUT_PROBE is enabled, logs the
+// rectangle of every visible top-level window whenever that set changes,
+// with the screen size and UI scale. Call once per frame; otherwise a no-op.
+void WYD748_LayoutProbe(SControlContainer* container, unsigned int screenWidth,
+    unsigned int screenHeight, float uiScale);

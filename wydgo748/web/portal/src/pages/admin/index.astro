@@ -5,6 +5,7 @@ import '../../styles/admin.css';
 import GlobalDrop from '../../components/GlobalDrop.astro';
 import Quiz from '../../components/Quiz.astro';
 import Bosses from '../../components/Bosses.astro';
+import PremiumShop from '../../components/PremiumShop.astro';
 import AccountCreate from '../../components/AccountCreate.astro';
 import AccountDirectory from '../../components/AccountDirectory.astro';
 ---
@@ -32,6 +33,7 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
           <a class="nav-link" href="#events"><span aria-hidden="true">✦</span> Events</a>
           <a class="nav-link" href="#quiz"><span aria-hidden="true">?</span> Math quiz</a>
           <a class="nav-link" href="#bosses"><span aria-hidden="true">♜</span> Bosses</a>
+          <a class="nav-link" href="#premium"><span aria-hidden="true">◆</span> Premium shop</a>
           <a class="nav-link" href="#security"><span aria-hidden="true">◇</span> Session security</a>
         </nav>
         <div class="sidebar-foot"><span class="readonly-dot"></span> PERMISSION-BASED ACCESS<p>Inspect the world.<br />Manage events and accounts.</p><span class="build-label">CONTROL PANEL · v0.4</span></div>
@@ -56,6 +58,7 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
             <GlobalDrop />
             <Quiz />
             <Bosses />
+            <PremiumShop />
             <section id="overview" aria-labelledby="overview-title">
               <div class="page-heading"><div><span class="eyebrow">OPERATIONS CENTER</span><h1 id="overview-title">Overview<span class="title-dot">.</span></h1><p class="muted">A view of the world when you need it.</p></div><button id="refresh" class="button primary"><span aria-hidden="true">↻</span> Refresh data</button></div>
               <div id="snapshot-banner" class="snapshot-banner" role="status" aria-live="polite"><span class="snapshot-icon" aria-hidden="true">◷</span><div><strong id="snapshot-state">Waiting for a query</strong><span id="snapshot-detail">Use Refresh data. There is no automatic refresh.</span></div><span id="snapshot-time" class="mono">—</span></div>

@@ -383,7 +383,7 @@ int TMGround::FrameMove(unsigned int dwServerTime)
             int nPosY = static_cast<int>((pFocusedObject->m_vecPosition.y - m_vecOffset.y) + 256.0f) / (512 / TextureManager::DYNAMIC_TEXTURE_WIDTH);
 
             auto pUISet = g_pTextureManager->GetUITextureSet(11);
-            if (pUISet)
+            if (UITextureCoordAt(pUISet, 0))
             {
                 pUISet->pTextureCoord->nStartX = nPosX - static_cast<int>(((static_cast<float>(TextureManager::DYNAMIC_TEXTURE_WIDTH) / 8.0f) * m_fMiniMapScale));
                 pUISet->pTextureCoord->nStartY = static_cast<int>(((static_cast<float>(TextureManager::DYNAMIC_TEXTURE_HEIGHT - nPosY)) - ((static_cast<float>(TextureManager::DYNAMIC_TEXTURE_HEIGHT) / 8.0f) * TMGround::m_fMiniMapScale)));

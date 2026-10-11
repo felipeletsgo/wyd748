@@ -394,7 +394,7 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 							char szStr[128]{};
 							sprintf(szStr, "miss");
 
-							auto pFont = new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fHeightRatio * 80.0f), 0xFFFFFFFF, 2.0f, dwDelay, 1, 1500, 0, 4);
+							auto pFont = new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFFFFFF, 2.0f, dwDelay, 1, 1500, 0, 4);
 							m_pExtraContainer->AddChild(pFont);
 						}
 					}
@@ -456,7 +456,7 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 
 						if (bDrawFront)
 						{
-							auto pFont = new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fHeightRatio * 80.0f), 0xFF5555FF, 2.0f, dwDelay, 1, 1500, 0, 2);
+							auto pFont = new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFF5555FF, 2.0f, dwDelay, 1, 1500, 0, 2);
 							m_pExtraContainer->AddChild(pFont);
 						}
 					}
@@ -577,9 +577,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 												if (bInScreen)
 												{
 													pFont = new TMFont3(szStr, nTX + 20 - 10 * bViewHalf,
-														(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fHeightRatio)) -
-															((float)(20 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+														(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fUIScaleY)) -
+															((float)(20 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 														dwColor,
 														fSize,
 														dwDelay,
@@ -594,9 +594,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 												if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 												{
 													pFont = new TMFont3(szStr, nTX + 20 - 10 * bViewHalf,
-														(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fHeightRatio)) -
-															((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+														(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fUIScaleY)) -
+															((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 														dwColor,
 														fSize,
 														dwDelay,
@@ -608,9 +608,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 												else
 												{
 													pFont = new TMFont3(szStr, nTX + 20 - 10 * bViewHalf,
-														(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fHeightRatio)) -
-															((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+														(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fUIScaleY)) -
+															((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 														dwColor,
 														fSize,
 														dwDelay,
@@ -630,9 +630,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 												{
 
 													pFont = new TMFont3(szStr, nTX + 20 - 10 * bViewHalf,
-														(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-														(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) -
-															((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+														(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+														(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) -
+															((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 														dwColor,
 														fSize,
 														dwDelay,
@@ -646,9 +646,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 												{
 
 													pFont = new TMFont3(szStr, nTX + 20 - 10 * bViewHalf,
-														(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-														(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) -
-															((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+														(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+														(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) -
+															((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 														dwColor,
 														fSize,
 														dwDelay,
@@ -672,9 +672,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 												if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 												{
 													//pFont = new TMFont3(szStr, nTX,
-													//	(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-													//	(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fHeightRatio)) -
-													//		((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+													//	(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+													//	(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fUIScaleY)) -
+													//		((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 													//	dwColor,
 													//	fSize,
 													//	dwDelay,
@@ -684,9 +684,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 													//	5); //Physical critical hit
 
 													pFont = new TMFont3(szStr, nTX,
-														(int)(RenderDevice::m_fHeightRatio * 120.0f) +
-														(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) -
-															((float)(-60 * bViewHalf) * RenderDevice::m_fHeightRatio)) ,
+														(int)(RenderDevice::m_fUIScaleY * 120.0f) +
+														(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) -
+															((float)(-60 * bViewHalf) * RenderDevice::m_fUIScaleY)) ,
 														dwColor,
 														fSize,
 														dwDelay,
@@ -699,9 +699,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 												else
 												{
 													pFont = new TMFont3(szStr, nTX,
-														(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fHeightRatio)) -
-															((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+														(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+														(int)(((float)nTY - (float)(20.0f * RenderDevice::m_fUIScaleY)) -
+															((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 														dwColor,
 														fSize,
 														dwDelay,
@@ -717,9 +717,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 											if (bInScreen)
 											{
 												pFont = new TMFont3(szStr, nTX,
-													(int)(RenderDevice::m_fHeightRatio * 40.0f) +
-													(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) -
-														((float)(20 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+													(int)(RenderDevice::m_fUIScaleY * 40.0f) +
+													(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) -
+														((float)(20 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 													dwColor,
 													fSize,
 													dwDelay,
@@ -734,9 +734,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 											if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 											{
 												pFont = new TMFont3(szStr, nTX,
-													(int)(RenderDevice::m_fHeightRatio * 40.0f) +
-													(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) -
-														((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+													(int)(RenderDevice::m_fUIScaleY * 40.0f) +
+													(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) -
+														((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 													dwColor,
 													fSize,
 													dwDelay,
@@ -749,9 +749,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 											{
 
 												pFont = new TMFont3(szStr, nTX,
-													(int)(RenderDevice::m_fHeightRatio * 40.0f) +
-													(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) -
-														((float)(-50 * bViewHalf) * RenderDevice::m_fHeightRatio)),
+													(int)(RenderDevice::m_fUIScaleY * 40.0f) +
+													(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) -
+														((float)(-50 * bViewHalf) * RenderDevice::m_fUIScaleY)),
 													dwColor,
 													fSize,
 													dwDelay,
@@ -926,7 +926,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 						{
 							char szStr[128]{};
 							sprintf(szStr, "miss");
-							auto pFont = new TMFont3(szStr, pX, pY + (int)(RenderDevice::m_fHeightRatio * 80.0f), 0xFFFFFFFF, 2.0f, dwDelay, 1, 1500, 0, 4);
+							auto pFont = new TMFont3(szStr, pX, pY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFFFFFF, 2.0f, dwDelay, 1, 1500, 0, 4);
 							m_pExtraContainer->AddChild(pFont);
 						}
 					}
@@ -979,7 +979,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 
 						if (bDrawFront)
 						{
-							auto pFont = new TMFont3(szStr, nStartX, nStartY + (int)(RenderDevice::m_fHeightRatio * 80.0f), 0xFF5555FF, 2.0f, dwDelay, 1, 1500, 0, 2);
+							auto pFont = new TMFont3(szStr, nStartX, nStartY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFF5555FF, 2.0f, dwDelay, 1, 1500, 0, 2);
 							m_pExtraContainer->AddChild(pFont);
 						}
 					}
@@ -1076,8 +1076,8 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 											if (bInScreen)
 											{
 												pFont = new TMFont3(szStr, nTX - 10 * i,
-													(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fHeightRatio),
+													(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fUIScaleY),
 													dwColor,
 													fSize,
 													dwDelay,
@@ -1092,8 +1092,8 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 											if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 											{
 												pFont = new TMFont3(szStr, nTX - 10 * i,
-													(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fHeightRatio),
+													(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fUIScaleY),
 													dwColor,
 													fSize,
 													dwDelay,
@@ -1105,8 +1105,8 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 											else
 											{
 												pFont = new TMFont3(szStr, nTX - 10 * i,
-													(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fHeightRatio),
+													(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fUIScaleY),
 													dwColor,
 													fSize,
 													dwDelay,
@@ -1122,9 +1122,9 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 										if (pAttack->SkillIndex < 0 || pAttack->SkillIndex > 150) // physical attack
 										{
 											pFont = new TMFont3(szStr, nTX - 10 * i,
-												(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-												(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) - ((float)(40 * i) * RenderDevice::m_fHeightRatio) +
-													(float)(RenderDevice::m_fHeightRatio * 80.0f)),
+												(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+												(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) - ((float)(40 * i) * RenderDevice::m_fUIScaleY) +
+													(float)(RenderDevice::m_fUIScaleY * 80.0f)),
 												dwColor,
 												fSize,
 												dwDelay,
@@ -1136,9 +1136,9 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 										else
 										{
 											pFont = new TMFont3(szStr, nTX - 10 * i,
-												(int)(RenderDevice::m_fHeightRatio * 80.0f) +
-												(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fHeightRatio)) - ((float)(40 * i) * RenderDevice::m_fHeightRatio) +
-													(float)(RenderDevice::m_fHeightRatio * 80.0f)),
+												(int)(RenderDevice::m_fUIScaleY * 80.0f) +
+												(int)(((float)nTY - (float)(10.0f * RenderDevice::m_fUIScaleY)) - ((float)(40 * i) * RenderDevice::m_fUIScaleY) +
+													(float)(RenderDevice::m_fUIScaleY * 80.0f)),
 												dwColor,
 												fSize,
 												dwDelay,

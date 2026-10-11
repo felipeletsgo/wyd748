@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "LightingProfile.h"
 #include "ClientSettings.h"
+#include "RenderStateCache.h"
 // RenderDevice split by responsibility; device lifecycle stays in RenderDevice.cpp.
 #include "RenderDevice.h"
 #include "TMGlobal.h"
@@ -9,47 +10,22 @@
 
 void RenderDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)
 {
-	if ((int)State >= 0 && (int)State < 256 && m_dwRenderStateList[State] != Value)
-	{
-		m_dwRenderStateList[State] = Value;
-		m_pd3dDevice->SetRenderState(State, Value);
-	}
+	render_state_cache::SetRender(m_pd3dDevice, m_dwRenderStateList, State, Value);
 }
 
 void RenderDevice::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE type, DWORD Value)
 {
-	if (dwStage >= 8)
-		return;
-
-	if (type >= 0 && type < 29 && m_dwTextureStageStateList[dwStage][type] != Value)
-	{
-		m_dwTextureStageStateList[dwStage][type] = Value;
-		m_pd3dDevice->SetTextureStageState(dwStage, type, Value);
-	}
+	render_state_cache::SetStage(m_pd3dDevice, m_dwTextureStageStateList, dwStage, type, Value);
 }
 
 void RenderDevice::SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTexture)
 {
-	if (Stage >= 8)
-		return;
-
-	if (m_pTexture[Stage] != pTexture)
-	{
-		m_pTexture[Stage] = pTexture;
-		m_pd3dDevice->SetTexture(Stage, pTexture);
-	}
+	render_state_cache::SetTexture(m_pd3dDevice, m_pTexture, Stage, pTexture);
 }
 
 void RenderDevice::SetSamplerState(DWORD dwStage, D3DSAMPLERSTATETYPE State, DWORD Value)
 {
-	if (dwStage >= 8)
-		return;
-
-	if (State >= 0 && State < 14 && m_dwSamplerStateList[dwStage][State] != Value)
-	{
-		m_dwSamplerStateList[dwStage][State] = Value;
-		m_pd3dDevice->SetSamplerState(dwStage, State, Value);
-	}
+	render_state_cache::SetSampler(m_pd3dDevice, m_dwSamplerStateList, dwStage, State, Value);
 }
 
 void RenderDevice::SetGamma()
@@ -86,30 +62,8 @@ void RenderDevice::SetGamma()
 int RenderDevice::InitializeRenderingState()
 {
 	D3DXMatrixIdentity(&m_matWorld);
-	m_pd3dDevice->SetTransform(D3DTS_WORLD, &m_matWorld);
-
-	memset(m_dwRenderStateList, 0, sizeof(m_dwRenderStateList));
-
-	for (int nState = 0; nState < 256; ++nState)
-	{
-		m_dwRenderStateList[nState] = -1;
-	}
-
-	for (int nStage = 0; nStage < 8; ++nStage)
-	{
-		for (int i = 0; i < 14; ++i)
-		{
-			m_dwSamplerStateList[nStage][i] = -1;
-		}
-	}
-
-	for (int nStage = 0; nStage < 8; ++nStage)
-	{
-		for (int j = 0; j < 29; ++j)
-			m_dwTextureStageStateList[nStage][j] = -1;
-	}
-
-	return 1;
+	return SUCCEEDED(render_state_cache::Initialize(m_pd3dDevice, m_matWorld,
+		m_dwRenderStateList, m_dwTextureStageStateList, m_dwSamplerStateList));
 }
 
 int RenderDevice::SetRenderStateBlock(int nIndex)

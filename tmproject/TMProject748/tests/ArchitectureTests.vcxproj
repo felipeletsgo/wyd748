@@ -72,13 +72,25 @@
     <ClCompile Include="ClientSettingsTests.cpp" />
     <ClCompile Include="WeatherPacketTests.cpp" />
     <ClCompile Include="LightingProfileTests.cpp" />
+    <ClCompile Include="MantuaLengthTests.cpp" />
+    <ClCompile Include="PremiumShopPacketTests.cpp" />
     <ClCompile Include="GroundNeighborPolicyTests.cpp" />
     <ClCompile Include="FieldCachePolicyTests.cpp" />
+    <ClCompile Include="WeatherParticlesTests.cpp" />
     <ClCompile Include="RuntimeAssetLimitsTests.cpp" />
     <ClCompile Include="ObservedAffectProjectionTests.cpp" />
     <ClCompile Include="CCModePolicyTests.cpp" />
     <ClCompile Include="EffectVertexColorTests.cpp" />
     <ClCompile Include="SceneDisconnectContractTests.cpp" />
+    <ClCompile Include="UIBinaryTests.cpp" />
+    <ClCompile Include="FontTextureUploadTests.cpp" />
+    <ClCompile Include="FontGdiResourcesTests.cpp" />
+    <ClCompile Include="RenderStateCacheTests.cpp" />
+    <ClCompile Include="DeviceRestoreTests.cpp" />
+    <ClCompile Include="DeviceBackBufferTests.cpp" />
+    <ClCompile Include="DeviceFrameTests.cpp" />
+    <ClCompile Include="ShaderResourcesTests.cpp" />
+    <ClCompile Include="UITextureSetListTests.cpp" />
     <ClCompile Include="LoginCredentialContractTests.cpp" />
     <ClCompile Include="ServerNameAssetTests.cpp">
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>

@@ -21,6 +21,9 @@ documentation, research evidence, and continuity records.
 | Understand the attribute contract | [Score](SCORE.md) |
 | Check server state | [Server operations](server/operations.md) and code/tests in `wydgo748/` |
 | Track nonblocking critical persistence | [Critical persistence plan](server/critical-persistence-plan.md) |
+| Check current S2 recovery gaps and their acceptance criteria | [Current recovery queue](server/critical-persistence-plan.md#current-gaps-and-acceptance-criteria) and [October 7 closure audit](server/s2-closure-audit-2026-10-07.md) |
+| Handle persistence containment without unsafe replay/unlock | [Critical persistence operation](server/operations.md#critical-persistence-operation) |
+| Check stack quantities, Shift-split, merging and CP/name policy | [Inventory stacks and CP contract v1](client/inventory-stack-and-cp-contract.md) |
 | Check open 7.48 adaptation work | [Client port](client/port-748.md), [opcode catalog](wire-opcode-catalog.md), and the flow records in `.agents/research/client748/` |
 | Adapt the 7.48 client | [Client port](client/port-748.md) |
 | Plan the TMHuman source separation | [TMHuman separation plan](client/tmhuman-separation-plan.md) |

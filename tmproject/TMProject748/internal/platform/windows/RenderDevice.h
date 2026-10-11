@@ -151,6 +151,8 @@ public:
 	// remain W/800 and H/600 for the places the native client still scales.
 	static float m_fUIScaleX;
 	static float m_fUIScaleY;
+	// Converts a 7.48 layout length (800x600 pixels) to screen pixels.
+	static float UiPx(float value) { return value * m_fUIScaleX; }
 	static float m_fFOVY;
 	static int m_bDungeon;
 

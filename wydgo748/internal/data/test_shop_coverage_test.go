@@ -113,7 +113,7 @@ func TestOneShotConsumablesDoNotLeaveTestShopsAsArtificialStacks(t *testing.T) {
 	}
 }
 
-func TestCadaItemVolatileTemLojaDeTeste(t *testing.T) {
+func TestEveryVolatileItemHasTestShop(t *testing.T) {
 	shops, volatileItems := loadTestShopFixture(t)
 	covered := itemsInShops(shops, func(name string) bool {
 		return strings.HasPrefix(name, "ShopVol") || name == "ShopFairy" ||
@@ -121,6 +121,10 @@ func TestCadaItemVolatileTemLojaDeTeste(t *testing.T) {
 			name == "ShopPhaseD" || name == "ShopWater" || name == "ShopArch"
 	})
 	for item := range volatileItems {
+		// Wyden coins hold donate and are sold only by the premium shop.
+		if item == 3393 || item == 3394 || item == 3395 || item == 3396 || item == 3441 {
+			continue
+		}
 		if _, ok := covered[item]; !ok {
 			t.Errorf("volatile item %d missing from the test-shop matrix", item)
 		}
@@ -132,7 +136,7 @@ func TestCadaItemVolatileTemLojaDeTeste(t *testing.T) {
 	}
 }
 
-func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
+func TestMountsCostumesAndTimedFunctionsHaveTestShop(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
 	mounts := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopMt") })
 	for _, ranges := range [][2]uint16{{2300, 2328}, {2330, 2358}, {2360, 2388}} {
@@ -178,7 +182,7 @@ func TestMontariasTrajesEFuncoesTemporizadasTemLojaDeTeste(t *testing.T) {
 	}
 }
 
-func TestMontariasKRUsamContratoPremium748(t *testing.T) {
+func TestKRMountsUsePremium748Contract(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
 		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
@@ -252,7 +256,7 @@ func TestMontariasKRUsamContratoPremium748(t *testing.T) {
 	}
 }
 
-func TestTrajesKRCompletosMantemContrato748(t *testing.T) {
+func TestCompleteKRCostumesKeep748Contract(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
 		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
@@ -312,7 +316,7 @@ func TestTrajesKRCompletosMantemContrato748(t *testing.T) {
 	}
 }
 
-func TestSetsDEDeTodasAsClassesTemLojaDeTeste(t *testing.T) {
+func TestDESetsOfEveryClassHaveTestShop(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
 	requireShopItems(t, shops, "ShopSetD", []uint16{
 		1206, 1209, 1212, 1215, 1218, // TK - Golden Embersed
@@ -328,7 +332,7 @@ func TestSetsDEDeTodasAsClassesTemLojaDeTeste(t *testing.T) {
 	})
 }
 
-func TestTodasAsArmasDEDoCatalogoTemLojaDeTeste(t *testing.T) {
+func TestEveryCatalogDEWeaponHasTestShop(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
@@ -375,12 +379,12 @@ func TestTodasAsArmasDEDoCatalogoTemLojaDeTeste(t *testing.T) {
 	}
 }
 
-func TestEscudosDETemLojaDeTeste(t *testing.T) {
+func TestDEShieldsHaveTestShop(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
 	requireShopItems(t, shops, "ShopShldDE", []uint16{1709, 1710, 1711, 1712})
 }
 
-func TestNovasLojasDeTesteEstaoNoBlocoDeArmia(t *testing.T) {
+func TestNewTestShopsAreInTheArmiaBlock(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	gens, err := LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
 	if err != nil {

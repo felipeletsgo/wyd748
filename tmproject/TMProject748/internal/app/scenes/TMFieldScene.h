@@ -4,6 +4,7 @@
 #include "Basedef.h"
 #include "TMScene.h"
 #include "../../wire/QuizEventPacket.h"
+#include "../../wire/PremiumShopPacket.h"
 #include "../../game/entities/BerielAuraPolicy.h"
 #include "../../ui/NativeScoreHud.h"
 #include "TMHuman.h"
@@ -127,6 +128,7 @@ public:
 	void InitializeFireWorkControls();
 	void InitializeQuizEventControls();
 	int OnPacketQuizEvent(MSG_STANDARD* packet);
+	int OnPacketPremiumShopState(MSG_STANDARD* packet);
 	void UpdateFireWorkButton(int nIndex);
 	void ClearFireWork();
 	void UseFireWork();
@@ -310,6 +312,9 @@ private:
 	// resource boundary instead of changing the packet or STRUCT_MOB ABI.
 	void UpdateCompatScoreUI();
 	void UpdateScoreButtonRepeat(unsigned int dwServerTime);
+	// FUN_00435b13 status labels above the skill bar (PK, auto run, run).
+	void CreateCompatStatusTexts(SControl* pShortSkillBar);
+	void UpdateCompatStatusTexts();
 	// Projects LearnedSkill[0] into the 24 native 7.48 skill-panel grids.
 	// These controls are resource-owned; only their SGridControlItem children
 	// are created and removed here.
@@ -498,6 +503,9 @@ public:
 	unsigned int m_dwKeyTime;
 	// FUN_004776c3 hold-to-repeat state for the eight Character '+' buttons.
 	native_score_hud::ButtonRepeat m_scoreButtonRepeat;
+	SText* m_pStatusPKText = nullptr;
+	SText* m_pStatusAutoRunText = nullptr;
+	SText* m_pStatusRunText = nullptr;
 	unsigned int m_dwPGTTime;
 	unsigned int m_dwGetItemTime;
 	unsigned int m_dwUseItemTime;
@@ -793,6 +801,8 @@ public:
 	unsigned int m_dwQuizStart;
 	SPanel* m_pQuizBG;
 	quiz_event::State m_quizEvent{};
+	// Premium shop opened by a ShopType 4 list (DOCS/protocol/premium-shop.md).
+	premium_shop::ClientState m_premiumShop{};
 	SText* m_pQuizQuestion;
 	SButton* m_pQuizButton[4];
 	SPanel* m_pRPSGamePanel;

@@ -73,8 +73,8 @@ CREATE TABLE IF NOT EXISTS instance_state (
 INSERT INTO schema_migrations(version) VALUES (1)
 ON CONFLICT (version) DO NOTHING;
 
--- v2: identidade estavel por personagem. UIDs deterministas sao usados somente
--- na migracao inicial; novos personagens recebem UUIDv4 do servidor Go.
+-- v2: stable identity per character. Deterministic UIDs are used only by the
+-- initial migration; new characters get a UUIDv4 from the Go server.
 INSERT INTO characters(character_uid,account_key,slot,name_key,evolution)
 SELECT
     md5(a.name_key || ':' || (entry.ordinality-1)::text || ':' ||
@@ -91,8 +91,8 @@ WHERE entry.value IS NOT NULL
   AND coalesce(entry.value->>'name','') <> ''
 ON CONFLICT (account_key,slot) DO NOTHING;
 
--- Injeta os UIDs no payload autoritativo e converte o antigo vinculo de Arch
--- por slot para UID. A operacao e idempotente.
+-- Injects the UIDs into the authoritative payload and converts the old
+-- slot-based Arch link to a UID. The operation is idempotent.
 UPDATE accounts a
 SET payload = jsonb_set(a.payload, '{chars}', rebuilt.chars)
 FROM (
@@ -132,8 +132,8 @@ FROM (
 ) rebuilt
 WHERE rebuilt.name_key=a.name_key;
 
--- A tabela v1 era keyed pelo nickname. Migra o estado para o primeiro
--- personagem correspondente e remove a estrutura ambigua.
+-- The v1 table was keyed by nickname. Moves the state to the first matching
+-- character and removes the ambiguous structure.
 DO $migration$
 BEGIN
     IF EXISTS (
@@ -226,4 +226,49 @@ END
 $migration$;
 
 INSERT INTO schema_migrations(version) VALUES (4)
+ON CONFLICT (version) DO NOTHING;
+
+-- v5: premium shop (DOCS/protocol/premium-shop.md). The donate balance lives in
+-- the account payload; these tables hold the staff catalog, the credit inbox
+-- written by the staff panel or the web platform, and the balance ledger.
+CREATE TABLE IF NOT EXISTS premium_shop (
+    singleton   boolean PRIMARY KEY DEFAULT true CHECK (singleton),
+    version     bigint NOT NULL CHECK (version > 0),
+    entries     jsonb NOT NULL,
+    updated_by  text NOT NULL DEFAULT '',
+    updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS donate_credits (
+    id          bigserial PRIMARY KEY,
+    account_key text NOT NULL REFERENCES accounts(name_key) ON DELETE CASCADE,
+    amount      integer NOT NULL CHECK (amount > 0),
+    reason      text NOT NULL CHECK (reason <> ''),
+    source      text NOT NULL CHECK (source IN ('staff', 'web')),
+    actor       text NOT NULL DEFAULT '',
+    request_id  text UNIQUE,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+    applied_at  timestamptz
+);
+
+CREATE INDEX IF NOT EXISTS donate_credits_pending_idx
+    ON donate_credits(account_key) WHERE applied_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS donate_ledger (
+    id            bigserial PRIMARY KEY,
+    account_key   text NOT NULL REFERENCES accounts(name_key) ON DELETE CASCADE,
+    delta         bigint NOT NULL CHECK (delta <> 0),
+    balance_after bigint NOT NULL CHECK (balance_after >= 0),
+    kind          text NOT NULL CHECK (kind IN ('credit', 'purchase', 'coin_use')),
+    item_index    integer NOT NULL DEFAULT 0,
+    item_uid      text NOT NULL DEFAULT '',
+    credit_id     bigint REFERENCES donate_credits(id),
+    character     text NOT NULL DEFAULT '',
+    created_at    timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS donate_ledger_account_idx
+    ON donate_ledger(account_key, id DESC);
+
+INSERT INTO schema_migrations(version) VALUES (5)
 ON CONFLICT (version) DO NOTHING;

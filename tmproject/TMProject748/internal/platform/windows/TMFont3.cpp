@@ -29,24 +29,24 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 
 	switch (m_nType)
 	{
-	case 1: //exp
+	case 1: // experience
 		m_fScale = 0.60000002f;
 		break;
-	case 2: //cura
+	case 2: // healing
 		break;
-	case 3: //atk vfisico
+	case 3: // physical attack
 		break;
-	case 4: //veneno
+	case 4: // poison
 		break;
-	case 5: //critico
+	case 5: // critical hit
 		m_fScale = 1.1f;
 		break;
-	case 6: //critico max
+	case 6: // maximum critical hit
 		m_fScale = 0.80000001f;
 		break;
-	case 7: // atk mg
+	case 7: // magic attack
 		break;
-	case 8: //critico mg
+	case 8: // magic critical hit
 		m_fScale = 1.1f;
 		break;
 	}
@@ -114,9 +114,8 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 				m_stNum[0].nTexIndex = 15;
 			}
 
-			int nSX = (int)(((float)pUISet->pTextureCoord[m_stNum[0].nTexIndex].nWidth
-				* RenderDevice::m_fWidthRatio)
-				* m_fScale);
+			int nSX = UITextureGlyphAdvance(pUISet, m_stNum[0].nTexIndex,
+				RenderDevice::m_fUIScaleX, m_fScale);
 
 			for (int i = 1; i < m_nStrLen; i++)
 			{
@@ -146,15 +145,14 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 						break;
 					default:
 						m_stNum[i].nTexIndex = -1;
-						nSX += (int)(5.0f * RenderDevice::m_fWidthRatio);
+						nSX += (int)(5.0f * RenderDevice::m_fUIScaleX);
 						continue;
 					}
 				}
 
 				m_stNum[i].nTexIndex = cValue;
-				nSX += (int)(((float)pUISet->pTextureCoord[m_stNum[i].nTexIndex].nWidth
-					* RenderDevice::m_fWidthRatio)
-					* m_fScale);
+				nSX += UITextureGlyphAdvance(pUISet, m_stNum[i].nTexIndex,
+					RenderDevice::m_fUIScaleX, m_fScale);
 			}
 		}
 		else
@@ -185,15 +183,14 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 						break;
 					default:
 						m_stNum[i].nTexIndex = -1;
-						nSX += (int)(5.0f * RenderDevice::m_fWidthRatio);
+						nSX += (int)(5.0f * RenderDevice::m_fUIScaleX);
 						continue;
 					}
 				}
 
 				m_stNum[i].nTexIndex = cValue;
-				nSX += (int)(((float)pUISet->pTextureCoord[m_stNum[i].nTexIndex].nWidth
-					* RenderDevice::m_fWidthRatio)
-					* m_fScale);
+				nSX += UITextureGlyphAdvance(pUISet, m_stNum[i].nTexIndex,
+					RenderDevice::m_fUIScaleX, m_fScale);
 			}
 		}
 	}
@@ -229,7 +226,8 @@ int TMFont3::Render()
 
 			for (int i = 0; i < m_nStrLen; ++i)
 			{
-				if (m_stNum[i].nTexIndex != -1)
+				// Digit glyphs index the set; an absent or short set skips the glyph.
+				if (UITextureCoordAt(pUISet, m_stNum[i].nTexIndex))
 				{
 					auto pTexture = g_pTextureManager->GetUITexture(pUISet->pTextureCoord[m_stNum[i].nTexIndex].nTextureIndex, 2000);
 
@@ -268,7 +266,7 @@ int TMFont3::Render()
 								fStartY,
 								fWidth,
 								fHeight,
-								fX - (float)(3.0f * RenderDevice::m_fHeightRatio),
+								fX - (float)(3.0f * RenderDevice::m_fUIScaleY),
 								fY,
 								fWidth,
 								fHeight,
@@ -276,7 +274,7 @@ int TMFont3::Render()
 								0xFFFFFF | dwColorValue,
 								1,
 								0.0f,
-								RenderDevice::m_fWidthRatio * m_fCurrScale);
+								RenderDevice::m_fUIScaleX * m_fCurrScale);
 						else
 							g_pDevice->RenderRectTexDamage(
 								fStartX,
@@ -291,7 +289,7 @@ int TMFont3::Render()
 								0xFFFFFF | dwColorValue,
 								1,
 								0.0f,
-								RenderDevice::m_fWidthRatio * m_fCurrScale);
+								RenderDevice::m_fUIScaleX * m_fCurrScale);
 					}
 				}
 			}
@@ -362,7 +360,7 @@ int TMFont3::FrameMove(unsigned int dwServerTime)
 		m_vecPosition.y = (signed int)(float)((float)m_vecStartPosition.y
 			- (float)((float)((float)((float)m_nSpeed * fProgress)
 				* 120.0)
-				* RenderDevice::m_fHeightRatio));
+				* RenderDevice::m_fUIScaleY));
 	}
 	else
 	{
@@ -370,29 +368,29 @@ int TMFont3::FrameMove(unsigned int dwServerTime)
 			m_vecPosition.y = (int)((float)m_vecStartPosition.y
 				- ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 2 || m_sDir == 6 || m_sDir == 8)
 			m_vecPosition.y = (int)((float)m_vecStartPosition.y
 				+ ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 3 || m_sDir == 5 || m_sDir == 8)
 			m_vecPosition.x = (int)((float)m_vecStartPosition.x
 				- ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 4 || m_sDir == 6 || m_sDir == 7)
 			m_vecPosition.x = (int)((float)m_vecStartPosition.x
 				+ ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		if (m_sDir == 9)
 		{
 			m_vecPosition.x = m_vecStartPosition.x - 50;
 			m_vecPosition.y = (int)((float)m_vecStartPosition.y
 				- ((((float)m_nSpeed * fProgress)
 					* 100.0f)
-					* RenderDevice::m_fHeightRatio));
+					* RenderDevice::m_fUIScaleY));
 		}
 	}
 

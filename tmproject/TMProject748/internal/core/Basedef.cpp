@@ -329,9 +329,9 @@ void ReadItemName()
         sizeof(g_pItemList[0].Name));
 }
 
-void ReadUIString()
+bool ReadUIString()
 {
-	WYD748_LoadUIStrings(UIString_Path, &g_UIString[0][0],
+	return WYD748_LoadUIStrings(UIString_Path, &g_UIString[0][0],
 		_countof(g_UIString), sizeof(g_UIString[0]));
 }
 

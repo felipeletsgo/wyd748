@@ -2,27 +2,31 @@
 
 #include "TMEffect.h"
 #include "Structures.h"
+#include "WeatherParticles.h"
 
-// Controla a precipitacao visual de neve ao redor da camera ou personagem.
-// A instancia possui 200 flocos e seus buffers; nenhum deles e compartilhado
-// ou transferido para outro componente.
+// Snowfall around the camera or the player. The flakes, their speeds and the
+// draw batch live inside the object; the count follows ClientSettings
+// WeatherArea.
 class TMSnow : public TMEffect
 {
 public:
-    // fScale determina o tamanho visual dos flocos.
+    // fScale sets the visual size of the flakes.
     TMSnow(float fScale);
     ~TMSnow();
 
-    // Desenha os flocos visiveis e administra o audio ambiente associado.
+    // Draws the visible flakes in one batched call and drives the ambient sound.
     int Render() override;
 
-    // Atualiza e recicla flocos com base no tempo e na camera corrente.
+    // Moves and recycles the flakes with the time and the current camera.
     int FrameMove(unsigned int dwServerTime) override;
 
 public:
-    unsigned int m_dwOldServerTime;    // Ultimo instante processado.
-    float m_fSpeed[200];               // Velocidade individual dos flocos.
-    TMVector3 m_vecSnowPosition[200];  // Posicao corrente dos flocos.
-    RDLVERTEX m_vertex[4];             // Quad reutilizado no desenho.
-    float m_fScale;                    // Escala efetiva do efeito.
+    unsigned int m_dwOldServerTime;    // Last processed time.
+    int m_nFlakes;                     // Active flakes (native 200).
+    float m_fHalfSize;                 // Half size of the area around the player.
+    float m_fSpeed[weather_area::kMaxSnowFlakes];              // Fall speed per flake.
+    TMVector3 m_vecSnowPosition[weather_area::kMaxSnowFlakes]; // World position.
+    RDLVERTEX m_vertex[4];             // Billboard quad of one flake.
+    RDLVERTEX m_batch[weather_area::kMaxSnowFlakes * 6];       // Triangle list sent per frame.
+    float m_fScale;                    // Effective flake scale.
 };

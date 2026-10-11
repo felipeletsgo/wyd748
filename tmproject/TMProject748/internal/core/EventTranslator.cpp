@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "EventTranslator.h"
+#include "CameraInput.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include "TMFieldScene.h"
@@ -275,21 +276,11 @@ void EventTranslator::SetVisibleCandidateList(int lParam, int bVisible)
 
 int EventTranslator::ReadInputEventData()
 {
-    if (m_pMouseDevice == nullptr)
-        return 1;
-
-    DIMOUSESTATE2 dims2;
-    memset(&dims2, 0, sizeof(dims2));
-
-    if (FAILED(m_pMouseDevice->GetDeviceState(20, &dims2)))
-    {
-        for (int hr = m_pMouseDevice->Acquire(); hr == 0x8007001E; hr = m_pMouseDevice->Acquire())
-        {
-            ;
-        }
-
-        return 1;
-    }
+    dx = dy = wheel = viewchange = 0;
+    DIMOUSESTATE2 dims2{};
+    m_hasMouseSample = PollCameraMouse(m_pMouseDevice, dims2);
+    if (!m_hasMouseSample)
+        return 0;
 
     if (RenderDevice::m_bCameraRot)
     {
@@ -326,6 +317,13 @@ int EventTranslator::ReadInputEventData()
 
 int EventTranslator::CameraEventData()
 {
+    // Native FUN_004aec3d only reaches the camera after a successful input read.
+    // TMProject splits those phases, so consume each valid sample at most once.
+    if (!m_hasMouseSample)
+        return 0;
+    m_hasMouseSample = false;
+    if (!g_pObjectManager || !g_pObjectManager->m_pCamera || !g_pCurrentScene)
+        return 0;
     TMCamera* pCamera = g_pObjectManager->m_pCamera;
 
     float fClose = pCamera->m_fMinClose;
@@ -394,25 +392,11 @@ int EventTranslator::CameraEventData()
                 // zooming in moved the camera out, it was clamped at the maximum
                 // distance and the wheel never zoomed again. The distance now
                 // follows the selected direction (same steps, same limits).
-                const int zoomDirection = g_pApp->m_nCameraView == 0 ? viewchange : wheel;
-                if (pCamera->m_fSightLength > fClose && zoomDirection < 0)
+                const float zoomDistance = CameraZoomDistance(pCamera->m_fSightLength,
+                    fClose, pCamera->m_fMaxCamLen, g_pApp->m_nCameraView, wheel, viewchange);
+                if (zoomDistance != pCamera->m_fSightLength)
                 {
-                    pCamera->m_fSightLength = (float)((float)zoomDirection / 240.0f) + pCamera->m_fSightLength;
-                    pCamera->m_fWantLength = pCamera->m_fSightLength;
-                }
-                if (fClose > pCamera->m_fSightLength)
-                {
-                    pCamera->m_fSightLength = fClose;
-                    pCamera->m_fWantLength = pCamera->m_fSightLength;
-                }
-                if (zoomDirection > 0 && pCamera->m_fMaxCamLen > pCamera->m_fSightLength)
-                {
-                    pCamera->m_fSightLength = (float)((float)zoomDirection / 240.0f) + pCamera->m_fSightLength;
-                    pCamera->m_fWantLength = pCamera->m_fSightLength;
-                }
-                if (pCamera->m_fSightLength > pCamera->m_fMaxCamLen)
-                {
-                    pCamera->m_fSightLength = pCamera->m_fMaxCamLen;
+                    pCamera->m_fSightLength = zoomDistance;
                     pCamera->m_fWantLength = pCamera->m_fSightLength;
                 }
             }

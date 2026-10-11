@@ -7,7 +7,9 @@
       "game.event.quiz",
       "game.boss.summon",
       "moderation.player.kick",
-      "moderation.player.teleport"
+      "moderation.player.teleport",
+      "economy.premium.catalog",
+      "economy.donate.credit"
     ]
   }
 }

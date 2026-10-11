@@ -18,6 +18,786 @@ drop-list packet paths. This is not evidence that an already installed
 separates retired paths from incomplete server integrations; in particular,
 war letters, alternate mix, and account transfer are not supported end to end.
 
+## Recent integrated contracts and validation limits
+
+The October 7 source/tests and documentation are published in
+[`83a94da7`](https://github.com/felipeletsgo/wyd748/commit/83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a).
+Use the following current records instead of treating older audit failures or
+uncommitted-batch descriptions as the live implementation queue:
+
+- [Inventory stacks and CP contract v1](inventory-stack-and-cp-contract.md):
+  effect 61 quantity rendering, split-caption fallback, authoritative merging,
+  CP rewards/refresh and the deliberate white-NPC name policy. Native palette
+  evidence and product-policy changes are distinguished in that contract.
+- [S2 closure audit](../server/s2-closure-audit-2026-10-07.md): shared-object
+  settlement, indefinite account containment and detached instance visibility
+  corrections passed the integrated Go race/PostgreSQL batch; verified recovery
+  after unknown outcomes is still open.
+- [Performance and visuals plan](performance-and-visuals-plan.md): implemented
+  weather/cache/light-profile work retains its recorded measurements and its
+  separate field-crossing, weather/damage, tuning and accumulation gates.
+- Shutdown double free (2026-10-07): leaving the game from the field crashed in
+  `RtlFreeHeap` because `NewApp::Finalize` freed the bone animation buffers and
+  `~MeshManager` freed them again. Both now call the idempotent
+  `MeshManager::ReleaseBoneAnimations`, which clears the pointers; the minidump
+  was symbolized against the build PDB and `UiModeContractTests` guards the
+  single release. Exit from the field is pending a user client test.
+
+The user reported apparently correct gameplay on October 7. This is not a new
+agent-executed test, an exhaustive acceptance matrix, or a reason to promote
+unexercised catalog entries to `CLIENT_TESTED`. The sections below retain the
+limits of each proven flow; unresolved sale policy, legacy opcode and asset
+evidence must not be closed merely because the general session looked correct.
+
+## Input and layout review, 2026-10-10
+
+This batch reviews the current dirty tree, not only the last published commit.
+The native Character bindings, uniform UI scaling, minimap transformations and
+selected-direction zoom correction were already present; they are not new work
+from this review. Automated checks do not establish that every native control
+is populated, clickable or visually aligned in the installed executable.
+
+Corrections in this batch (`MODERNIZACAO_COMPATIVEL`, no wire/asset change):
+
+- `EventTranslator` initializes mouse/button/control-modifier state and clears
+  movement deltas before polling. A failed DirectInput read discards the sample,
+  tries reacquisition once per frame and cannot repeat the preceding wheel or
+  rotation movement. Camera processing consumes a successful sample only once
+  and checks the scene/camera lifetime before dereferencing. This restores the
+  successful-read gate in the existing native `FUN_004aec3d` evidence while
+  avoiding an unbounded acquisition loop.
+- `CameraZoomDistance` isolates the existing direction correction for behavior
+  tests: both camera settings, both rotation settings, near/far limits, large
+  scroll deltas and stationary input. Failed polling and recovery exercise the
+  production polling helper with a fake device, not a connected physical mouse.
+- The Party button hint is positioned from its width instead of accumulating
+  an X offset every time `PositionCompatPartyPanel` runs. The first placement
+  remains unchanged. Tests cover repeated placement at five UI scales.
+- `ClientSettings` accepts complete Auto/numeric values with whitespace or
+  trailing comments, rejecting suffix junk, overflow and non-finite scales.
+  A rejected line preserves the preceding valid value. This is the modern
+  options parser; native `config.txt` and RC binary formats are unchanged.
+
+Validation: `ArchitectureTests` passed 1,152,749 checks and static assertions;
+`SocketReceiveTests` passed 231 checks. The Release client build passed via
+`pwsh -NoProfile -ExecutionPolicy Bypass -File tmproject/Build-Client.ps1 -NoDeploy`.
+Asset/shader gates also passed. The socket test build still reports the existing
+`inet_addr` and `WSAAsyncSelect` deprecation warnings. Status is `STATICALLY
+VERIFIED` and `AUTOMATED TESTED`, not `CLIENT-TESTED`. Only the build artifact
+was produced; the installed `client748/project.exe` was not replaced.
+
+Changed files: new `internal/core/CameraInput.h`; existing
+`internal/core/{EventTranslator.cpp,EventTranslator.h,ClientSettings.h,UiLayout.h}`,
+`internal/app/scenes/TMFieldSceneUI.cpp`, `TMProject748.vcxproj` and
+`tests/{ClientSettingsTests.cpp,UiModeContractTests.cpp,FieldViewContractTests.cpp}`
+under `tmproject/TMProject748/`, plus this document and the UI evidence record.
+No files were removed. Repository layout/local links and research schema passed;
+`git diff --check` found no whitespace errors. Pre-existing edits were preserved.
+
+Remaining acceptance/research boundaries:
+
+- Execute scroll in both directions, near/far limits, Alt+Tab recovery and
+  middle-button rotation in the built client. Verify the deliberate existing
+  direction correction with `CAMERAVIEW`/`CAMERAROTATE` combinations.
+- Reopen Party repeatedly and hover its hint at 800x600, 1024x768 and a
+  widescreen resolution; inspect Character fields, Inventory, modal placement
+  and hitboxes at automatic and fixed scales. Prior captures do not validate
+  this batch.
+- RC structural preflight, unsafe geometry, texture-set references and
+  control-tree allocation-failure rollback are covered by the follow-ups
+  below. Indexed-caption bounds, startup failures and the three shipped Scene2
+  caption tables are also covered. The font-upload continuation covers texture
+  failures and RC button/text caption rejection. The GDI follow-up covers
+  transactional font creation, partial cleanup and repeated restore/release.
+  The device-restore follow-up covers failed state submissions, cache retries,
+  texture-binding invalidation and required restore-result propagation.
+  Actual Direct3D reset, other graphics-resource failures, visual geometry acceptance and captions
+  outside these resources remain pending.
+  The IME candidate layout has been adapted;
+  its remaining runtime gates are recorded in the
+  [UI evidence record](../../.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md).
+- War letters, alternate mix and account transfer retain their existing
+  incomplete-integration status. This batch does not implement those flows or
+  claim exhaustive native-client parity.
+
+### IME candidate layout follow-up, 2026-10-10
+
+Native `FUN_00493e70` creates one candidate row at `(28, H - 20)`, sized
+`300x16`, widened to 350 below a physical viewport width of 800. The source
+already formatted candidates into one line, but still constructed the later
+client's ten narrow rows on the right. `TMScene` now creates only the first
+row, starts it hidden and registers it with the existing control container.
+The spare pointers remain null and their consumers already check for null.
+
+`ImeCandidateLayout` preserves the native mode-2 geometry at scale 1
+(`PARIDADE_NATIVA`) and applies the existing uniform-scale product policy at
+other scales (`MODERNIZACAO_COMPATIVEL`). Native PE constants and constructor
+arguments are recorded in the UI evidence linked above; the prior X = 30
+documentation was corrected to the proven value 28.
+
+`UiModeContractTests` adds 164 checks for geometry, viewport thresholds,
+scaling and production bindings. `ArchitectureTests` passed 1,153,253 checks
+and static assertions. Live CJK IME rendering, paging, focus and composition
+remain pending; these checks do not establish `CLIENT_TESTED`. No assets,
+wire contracts or server behavior were changed. The changed source files are
+`internal/core/UiLayout.h`, `internal/app/scenes/TMScene.cpp` and
+`tests/UiModeContractTests.cpp`; no files were removed.
+
+### RC parser follow-up, 2026-10-10
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Record sizes, control IDs, native
+resource bytes and packet contracts are unchanged. This batch does not add a
+new native widget or claim that all native functions are implemented.
+
+- `ResolveRCBinaryPath` replaces unchecked suffix arithmetic. Null, short,
+  extensionless and oversized paths fail without writing outside the buffer.
+  Directory underscores no longer remove characters from the scene name. The
+  existing optional three-character filename suffix remains supported.
+- `ValidateRCStream` checks every tag and payload before `ReadRCBin` constructs
+  any controls. It rejects empty/truncated resources, unknown record types,
+  absent or forward parents, invalid indexed captions, unterminated inline
+  captions and editable-text limits outside the actual 256-byte destination.
+  The input is held read-only with write sharing denied during validation and
+  construction. Failure logs the file, byte offset, control and reason.
+- Existing parents and compatibility aliases remain accepted. Duplicate raw
+  IDs are deliberately retained: the shipped FieldScene2 and SelCharScene2
+  files contain duplicates, and exact-ID-first lookup is existing behavior.
+  A missing parent no longer silently creates an unattached control from a
+  malformed resource. This batch supplied preflight protection; the later
+  construction continuation adds allocation-failure rollback. Rendering-resource
+  failure handling remains outside both batches.
+
+Validation: `ArchitectureTests` passed **1,153,089 checks**, including 340 new
+checks since the input/layout batch, all nine supported RC record types in
+both caption layouts, rejection cases, stream-position restoration, aliases,
+duplicates and the actual FieldScene2/SelCharScene2/SelServerScene2 files.
+Source-binding checks require preflight before control dispatch. One test-only
+unsafe-copy warning was fixed before the passing run. The incremental Release
+solution build passed without new warnings; the earlier socket and asset gates
+remain applicable because their code and inputs were unchanged.
+
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, and
+MSBuild `tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release
+/p:Platform=x86`. No deployment or client execution was performed. Status:
+`STATICALLY VERIFIED`, `AUTOMATED TESTED`, and `BUILD_VERIFIED`; not
+`CLIENT-TESTED`.
+
+Changed files in this follow-up: `internal/ui/UIBinary.h`,
+`internal/app/scenes/TMSceneResources.cpp`, new `tests/UIBinaryTests.cpp`,
+`tests/{ArchitectureTests.vcxproj,PacketViewTests.cpp,SceneDisconnectContractTests.cpp}`
+under `tmproject/TMProject748/`, and this document. No files were removed.
+
+### RC geometry preflight continuation, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The RC record ABI, identifiers,
+resource bytes and supported control types are unchanged. No native function
+or packet contract is added by this internal loader hardening.
+
+`ValidateRCStream` now rejects negative width/height for all nine record
+types before widget construction. Grids additionally require positive cell
+counts and extents, a signed-int-safe rows-by-columns product, and array byte
+sizes representable by the target's `size_t`. The live loader supplies
+`sizeof(GeomControl)` rather than assuming a renderer structure size; both
+the render-cell array and the integer occupancy array are checked. Lists
+require nonnegative capacity, a positive visible-row count and nonzero
+height, preventing the actual divisors in their rendering and hit testing
+from becoming zero. Existing list capacity clamping remains unchanged.
+
+Coordinates are not restricted to the viewport, passive zero-sized controls
+remain legal, and an empty list can retain its visible-row layout. These are
+not arbitrary geometry normalization rules or evidence of visual parity.
+The existing whole-file preflight still restores the stream position and
+rejects malformed input before creating any controls.
+
+Tests exercise both indexed and inline-caption layouts, all nine record
+types, negative sizes, zero divisors, signed multiplication overflow,
+allocation byte-size boundaries, offscreen placement and retained list
+clamping. The newly rejected geometry cases failed against the preceding
+implementation. The shipped FieldScene2, SelCharScene2 and SelServerScene2
+fixtures still pass. A production binding check requires the renderer cell
+size to be supplied before control dispatch.
+
+Changed files: `internal/ui/UIBinary.h`,
+`internal/app/scenes/TMSceneResources.cpp`, `tests/UIBinaryTests.cpp` and
+`tests/SceneDisconnectContractTests.cpp` under `tmproject/TMProject748/`,
+plus this document. No files were removed. Existing dirty-tree work remains
+preserved. Validation commands are MSBuild
+`tests/ArchitectureTests.vcxproj /t:Build /p:Configuration=Release
+/p:Platform=Win32`, `ArchitectureTests.exe`, and MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`.
+
+The focused suite passed 1,153,490 checks and static assertions, including 196
+new checks in this batch. Repository layout/local links passed with 186
+documents indexed; the scoped whitespace and English-text checks passed.
+The incremental Release build passed without new warnings. Only the build artifact was updated;
+there was no deployment or client execution. Status is `STATICALLY VERIFIED`,
+`AUTOMATED TESTED` and `BUILD_VERIFIED`, not `CLIENT-TESTED`. Geometry checks
+do not guarantee available heap memory; the following continuation covers
+control-tree rollback when construction fails. Live visual acceptance remains
+pending.
+
+### RC construction rollback continuation, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. RC bytes, IDs, caption layouts,
+widget order and packet contracts are unchanged. This is internal loader
+recovery, not a new native feature or a claim of exhaustive client parity.
+
+`ReadRCBin` now owns its file handle for the entire preflight/construction
+scope. Before creating controls, `RCControlTransaction` snapshots the child
+heads of the existing tree. RC loading only prepends children and never
+removes or reparents existing nodes: on an early return or allocation exception,
+the checkpoint deletes newly attached subtrees while retaining old controls,
+sibling order and backlinks. Rollback allocates no memory. Only successful
+completion commits the new controls; failure to allocate the checkpoint itself
+leaves the tree untouched.
+
+All nine RC helpers retain a local control owner until parent attachment
+succeeds. Grid occupancy/render arrays, button font/tooltip and the container's
+cursor/root retain local ownership across successive allocations. Scrollbar
+panels become owned tree children immediately, in the original insertion order.
+Panel/progress-bar destruction also tolerates a null current scene during
+unwinding. The shared font-buffer loader owns its asset handle through allocation
+and complete reads (see the font-upload continuation). Existing successfully allocated font-cache data remains
+shared; the transaction covers control-tree construction, not all scene state.
+
+Tests add 106 checks using the production transaction template with an intrusive
+tree fixture: empty/populated roots, nested parents, each construction-failure
+boundary, checkpoint-allocation failures, successful commits and a failed later
+load preserving an earlier commit. Live source-binding checks require the
+checkpoint, commit, file owner, all nine helper owners and constructor cleanup
+paths. These are simulated allocation/read-failure boundaries and source
+bindings, not fault injection into actual DirectX widget constructors.
+
+The focused suite passed **1,153,596 checks** and static assertions. The
+incremental Release solution build passed without new warnings. Repository
+layout/local links passed with 186 documents indexed; scoped whitespace and
+English-text checks passed. Commands:
+MSBuild `tests/ArchitectureTests.vcxproj /t:Build /p:Configuration=Release
+/p:Platform=Win32`, `ArchitectureTests.exe`, and MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`.
+Only the ignored build artifact was updated; the installed `project.exe` was
+not overwritten and the client was not launched. Status: `STATICALLY VERIFIED`,
+`AUTOMATED TESTED`, `BUILD_VERIFIED`; not `CLIENT-TESTED`. Existing renderer/font
+paths that signal failure through return values or HRESULTs do not become
+transactional through exception handling. The font-upload continuation below
+covers font texture return/HRESULT failures; other graphics-resource failures
+and live visual acceptance remain pending.
+
+Changed files under `tmproject/TMProject748/`: new
+`internal/ui/RCControlTransaction.h`, `internal/app/scenes/TMSceneResources.cpp`,
+`internal/ui/{SGrid.cpp,SControlContainer.cpp}`,
+`internal/ui/controls/{SButton.cpp,SScrollBar.cpp,SPanel.cpp,SProgressBar.cpp}`,
+`internal/platform/windows/TMFont2.cpp`,
+`tests/{UIBinaryTests.cpp,SceneDisconnectContractTests.cpp}`, plus this document.
+No files were removed; other dirty-tree work was preserved.
+
+### Indexed-caption loading continuation, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Resource bytes, string IDs, inline
+caption layouts and wire contracts are unchanged. No new captions were invented
+for controls whose text is intentionally empty or supplied dynamically.
+
+Two loader gaps were corrected:
+
+- `ReadUIString` now propagates the transactional table loader's result.
+  Startup reports a missing/invalid `UIString.txt` and stops before device/scene
+  construction instead of continuing with an empty table.
+- RC preflight and caption copying now use the actual 500-row `g_UIString`
+  array. The unrelated `MAX_STRING` message-table limit is 2000 and previously
+  admitted out-of-bounds caption reads. The production copy helper rejects
+  negative/out-of-range indexes, missing nonzero rows and unterminated rows
+  without modifying the destination. Index zero retains its intentional blank
+  caption; bounded truncation remains supported. A construction-time rejection
+  uses the existing RC transaction to unwind newly attached controls.
+
+The current `FieldScene2`, `SelCharScene2` and `SelServerScene2` contain 709,
+85 and 22 complete records, respectively. Every button/text index resolves in
+the shipped UI table; there are no missing nonzero caption rows in these three
+resources. A durable test loads the real table and walks all three binary files
+through the production caption-copy helper. This does not prove later-version
+widgets, inline captions, dynamic labels, rendering or visual placement.
+
+The focused suite adds 505 checks and passes **1,154,101 checks**, including
+static assertions. It covers the actual table boundary (including indexes 500
+and 1999), blank/dynamic rows, absent/unterminated captions, short destinations,
+missing/empty table files, unchanged destination state after rejection, all
+shipped Scene2 references and source bindings for startup failure propagation.
+Startup bindings are not execution of the GUI failure path.
+
+Validation commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+and `tools/repository/Test-RepositoryLayout.ps1`. The incremental Release build
+passed without new warnings; layout/local links passed with 186 documents
+indexed. Scoped English-text and whitespace checks passed. Status:
+`STATICALLY VERIFIED`, `AUTOMATED TESTED`, `BUILD_VERIFIED`; not `CLIENT-TESTED`.
+
+Changed files under `tmproject/TMProject748/`:
+`internal/ui/UIBinary.h`, `internal/core/{Basedef.cpp,Basedef.h}`,
+`internal/app/scenes/{NewApp.cpp,TMSceneResources.cpp}` and
+`tests/{UIBinaryTests.cpp,SceneDisconnectContractTests.cpp}`, plus this document.
+No files or assets were removed. Installed `client748/project.exe` was not
+overwritten and the client was not launched. Visual acceptance remains pending.
+
+### Font texture failure continuation, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. String IDs, wrapping limits, RC
+layouts, texture format and packet contracts are unchanged. No native asset
+or historical executable was modified. This is failure handling, not evidence
+of visual parity or a fix for every missing in-game label.
+
+`TMFont2::SetText` now rejects missing device/GDI resources and invalid mask
+extents before rasterization. It checks GDI results, uses a valid black brush,
+and supplies the explicit length of the non-terminated space buffer instead of
+reading beyond it with `strlen`. Both texture-creation paths check their
+HRESULT and release partial/failed textures. The production `UploadMask` helper
+checks level format/extent, lock status, bits, positive pitch, row capacity and
+pitched extent overflow before writing. A successful lock is unlocked exactly
+once, including malformed results; a failed lock is never written or unlocked.
+Unlock failure propagates and discards the texture. `Render` stops after a failed
+retry instead of drawing an absent or incomplete texture.
+
+The shared font seed loader owns its file handle throughout allocation and
+reading. Missing, prefix-only and incomplete reads do not publish cache bytes
+or length. The existing four-byte prefix skip, binary payload and 18-byte TGA
+trailer area are preserved; previously uninitialized trailer padding is zeroed.
+This loader does not validate TGA encoding: that remains the D3DX loader's role.
+
+RC button/text construction checks nonempty caption texture readiness before
+attachment, including button alternate text. Failure returns while the local
+widget owner and existing RC tree checkpoint can unwind new controls. Empty
+captions remain valid. Nonvirtual readiness methods add no instance fields or
+virtual-table entries. Deferred editable-text rendering and other widget
+graphics-resource failure paths are not covered by these two RC checks.
+
+The focused suite passes **1,154,550 checks** and static assertions, adding 449
+checks. It exercises the production upload helper with a simulated texture API:
+all 256 alpha inputs, padded rows and guards, null/invalid/overflowing extents,
+description failures, incompatible format/dimensions, failed and malformed
+locks, unlock rejection, retry and partial-row uploads. Seed tests cover missing
+and truncated files, retained prior state, binary payload/trailer preservation
+and byte-identical loading of the real runtime `UI/minimap.wyt`. Source bindings
+check production calls and RC rejection placement. These are not actual GDI or
+Direct3D driver fault injection, nor execution of a widget failure in the GUI.
+
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+and `tools/repository/Test-RepositoryLayout.ps1`. The incremental Release build
+passed without new warnings. Status: `STATICALLY VERIFIED`, `AUTOMATED TESTED`,
+`BUILD_VERIFIED`; not `CLIENT-TESTED`. No installation or client launch occurred.
+GDI creation/cleanup coverage was subsequently added by the follow-up below.
+Actual Direct3D reset, other widget/resource failures and live visual acceptance
+remain pending.
+
+Changed files under `tmproject/TMProject748/`: new
+`internal/platform/windows/FontTextureUpload.h` and
+`tests/FontTextureUploadTests.cpp`; updated
+`internal/platform/windows/{TMFont2.cpp,TMFont2.h}`,
+`internal/ui/controls/{SText.h,SButton.h}`, `internal/app/scenes/TMSceneResources.cpp`,
+`tests/{SceneDisconnectContractTests.cpp,PacketViewTests.cpp,ArchitectureTests.vcxproj}`
+and `TMProject748.vcxproj`, plus this document. No files were removed; other
+dirty-tree work was preserved.
+
+### Font GDI lifecycle follow-up, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The top-down square 32-bit DIB,
+font height/weight/face, `CreateFontA` flags, white text and black background
+are preserved. No wire, instance layout, native asset or historical binary
+was changed; existing successful-path evidence was reused.
+
+Font resources are now created locally and published only after the DC,
+bitmap/storage, font, both selections and both colors succeed. Failure rolls
+back partial ownership; cleanup deletes the DC before its selected objects.
+Every invalidation clears the pixel view and DIB metadata. If cleanup itself
+fails, unreleased handles remain owned for a later retry, without being treated
+as a usable font cache. Failed old cleanup prevents replacement allocations.
+Finalization also cleans partial initialization state when the base restored
+flag was never set, and guards gamma operations against a missing device,
+application, window or window DC.
+
+`RestoreDeviceObjects` now returns the actual failed sprite HRESULT instead of
+`S_OK`, rejects a missing device and propagates `GetDeviceCaps` failure. GDI
+creation failure returns `E_FAIL`, allowing the existing base restore/reset
+caller to invalidate partial device objects. The font configuration reader
+bounds the 128-byte face and rejects numeric overflow while retaining the
+legacy first-token face and nonpositive-weight fallback. Missing files keep
+the existing default-face/current-weight behavior.
+
+The focused suite passes **1,154,804 checks** and static assertions, adding 254
+checks. Failure-injection tests exercise each creation/selection/color boundary,
+bitmap-without-storage, invalid extents, complete/partial caches, cleanup order,
+repeated invalidation, retry and failures during cleanup/rollback. Configuration
+tests cover empty/truncated input, first-token faces, oversized faces, malformed
+weights, overflow and fallback. Sixteen real Win32 GDI create/release cycles
+verify bitmap storage, selected objects, colors and top-down row order using
+an off-screen pixel write. `GetObject` reports a normalized height on this
+machine; the row-order assertion uses actual GDI coordinates rather than
+assuming that the returned header retains a negative height.
+
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+and `tools/repository/Test-RepositoryLayout.ps1`. The incremental Release build
+passed without new warnings. Status: `STATICALLY VERIFIED`, `AUTOMATED TESTED`,
+`BUILD_VERIFIED`; not `CLIENT-TESTED`. No installation, window or game launch
+occurred. Real GDI resource tests are not Direct3D driver fault injection or a
+device-loss/reset run. The ignored font-reset, world-transform and
+vertex-shader initialization results are covered by the device-restore
+follow-up below. Other widget/resource failures remain separate follow-ups.
+Live UI acceptance remains pending under
+the existing restriction on visual client testing.
+
+Changed files under `tmproject/TMProject748/`: new
+`internal/platform/windows/FontGdiResources.h` and
+`tests/FontGdiResourcesTests.cpp`; updated
+`internal/platform/windows/RenderDevice.cpp`,
+`tests/{PacketViewTests.cpp,ArchitectureTests.vcxproj}` and `TMProject748.vcxproj`,
+plus this document. No files were removed; existing dirty-tree work was preserved.
+
+### Direct3D restore and state-cache follow-up, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Successful state values, shader
+formats/declarations, initialization order, public signatures, instance layout,
+wire contracts and assets are unchanged. This internal failure-handling batch
+reuses the existing rendering boundary; it makes no new native-parity claim.
+
+The four `RenderDevice` cached setters previously published their requested
+value before checking the Direct3D result. A rejected change could then be
+skipped on retry. `RenderStateCache.h` publishes only accepted submissions,
+preserves the last known value after rejection, and checks device/table bounds.
+The existing all-bits numeric sentinel can also be a real parameter value;
+such values are always submitted instead of being mistaken for a cache hit.
+The helper accepts the existing unsigned 32-bit arrays without changing their
+types or dimensions.
+
+Non-owning texture bindings are forgotten before resource invalidation.
+Restoration explicitly unbinds the eight cache-supported stages and publishes
+each null binding only after acceptance; the previous unchecked loop also
+attempted unsupported stages 8 and 9. Failed/unvisited slots remain unknown,
+so even a null-binding retry reaches the device. The unknown pointer token is
+comparison-only and cannot be submitted through the helper. No texture
+ownership is introduced.
+
+`DeviceRestore.h` checks normal/large font reset, world-state initialization
+and vertex-shader initialization in their original order. Font HRESULTs are
+preserved; the legacy integer initialization failures return `E_FAIL`.
+`InitializeRenderingState` now reports failed world-transform submission.
+The existing base initialization/reset caller invalidates partial objects
+after a failed restore instead of setting its restored flag. Invalidation also
+releases all four effect vertex declarations alongside their shaders, matching
+their existing finalization ownership and avoiding loss of those references
+when shaders are recreated.
+
+The focused suite passes **1,156,871 checks** and static assertions, adding
+2,067 checks. Production-helper tests cover all 256 render, 8x29 texture-stage
+and 8x14 sampler cache entries, rejection/retry/cache hits, preserved accepted
+values, sentinel collisions, invalid indices, missing devices, every failed
+unbind slot, partial binding state, repeated unbind and pre-reset-pointer
+rebinding. Table-boundary tests use a fake device, not a claim that every enum
+or parameter is accepted by a real driver. Restore tests cover optional fonts,
+every required-stage failure, exact HRESULTs, ordering, short-circuiting and
+successful retry. Source checks bind those helpers and declaration cleanup to
+the production methods. No actual Direct3D reset or driver fault injection was
+performed.
+
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+`tools/repository/Test-RepositoryLayout.ps1` and scoped `git diff --check`.
+The incremental Release build passed without new warnings. Status:
+`STATICALLY VERIFIED`, `AUTOMATED TESTED`, `BUILD_VERIFIED`; not
+`CLIENT-TESTED`. No installation, window or game launch occurred.
+
+The shader file/buffer allocation, short-read and partial-batch cleanup gaps
+were addressed by the follow-up below. Remaining work: base-device back-buffer acquisition checks; other unchecked
+viewport/render-block/font-loss calls; actual device-loss/reset and UI visual
+acceptance when the existing testing restriction is lifted. Checking the
+shader initializer's return does not prove that its internal error paths are
+complete. Public void setters still do not propagate errors to draw callers.
+
+Changed files under `tmproject/TMProject748/`: new
+`internal/platform/windows/{RenderStateCache.h,DeviceRestore.h}` and
+`tests/{RenderStateCacheTests.cpp,DeviceRestoreTests.cpp}`; updated
+`internal/platform/windows/{RenderDevice.cpp,RenderDeviceState.cpp}`,
+`tests/{SceneDisconnectContractTests.cpp,PacketViewTests.cpp,ArchitectureTests.vcxproj}`
+and `TMProject748.vcxproj`, plus this document. No files were removed; existing
+dirty-tree work was preserved.
+
+### Shader reading and resource publication follow-up, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The eight skin, four effect vertex
+and six pixel shader paths, bytecode, declarations, projection register and
+unsupported-pixel fallback remain unchanged. Public signatures, instance
+layout, assets and wire contracts are unchanged. This internal ownership and
+failure-handling work reuses the established rendering boundary; it does not
+claim newly researched native parity.
+
+`ShaderResources.h` reads shader files through a checked production helper.
+It rejects failed, too short, unaligned or oversized 64-bit lengths before
+allocation, checks allocation results and buffer outputs, handles segmented
+reads, rejects premature EOF/read errors and unexpected trailing bytes, and
+checks file closure. A stage/version-prefix and final END envelope check
+precedes creation. Local ownership releases the code buffer and closes the
+file on failure, including a non-null allocation output returned with a failed
+HRESULT. These are file/envelope checks, not a full instruction/operand parser:
+Direct3D creation retains semantic validation. Arbitrary malformed bytecode
+inside an otherwise valid envelope is not proven safe by this batch.
+
+`RenderDeviceShaders.cpp` checks device presence and capability-query results.
+Readiness now requires every shader and declaration, not only slot zero.
+Missing entries rebuild their whole family into locally owned arrays, keeping
+previous resources intact on failure. Vertex initialization publishes both
+skin and effect families only after required reads, declarations, shaders and
+projection-constant submission succeed; pixel initialization similarly
+publishes only a complete six-shader family. Publication releases replaced
+resources, and failure releases all pending outputs. Mode flags are updated
+only after successful vertex initialization. The unsupported-pixel path still
+disables PS 1.1 and keeps its existing 64-pixel shadow fallback.
+
+The focused suite passes **1,157,409 checks** and static assertions, adding
+538 checks. New tests exercise the production read/ownership helper with
+missing files, invalid lengths, allocation failure and invalid outputs,
+segmented reads, truncated/growing files, read/close failure, wrong stage/END,
+byte preservation and cleanup. All 18 required runtime shader fixtures are
+accepted byte for byte; missing fixtures fail rather than skip. Batch tests
+enumerate every readiness combination for the existing 8/4/6-slot families,
+pending-resource failure at each position, preserved previous resources,
+retry, replacement, repeated publication and final release. Source checks
+bind these helpers and publication ordering to the actual initializer methods.
+The failure seams use fake IO/COM-style objects, not a real graphics driver.
+
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+`tools/repository/Test-RepositoryLayout.ps1` and scoped `git diff --check`.
+The incremental Release build passed without warnings. Status:
+`STATICALLY VERIFIED`, `AUTOMATED TESTED`, `BUILD_VERIFIED`; not
+`CLIENT-TESTED`. No installation, window or game launch occurred.
+
+Base-device back-buffer acquisition is addressed by the follow-up below.
+Remaining work: other unchecked viewport/render-block/font-loss calls;
+bytecode instruction-boundary hardening
+if arbitrary shader-file corruption must be supported; actual shader startup,
+device-loss/reset and UI visual acceptance after the existing testing
+restriction is lifted. These checks do not close the overall compatibility
+or native-function implementation effort.
+
+Changed files under `tmproject/TMProject748/`: new
+`internal/platform/windows/ShaderResources.h` and `tests/ShaderResourcesTests.cpp`;
+updated `internal/platform/windows/RenderDeviceShaders.cpp`,
+`tests/{SceneDisconnectContractTests.cpp,PacketViewTests.cpp,ArchitectureTests.vcxproj}`
+and `TMProject748.vcxproj`, plus this document. No files were removed; existing
+dirty-tree work was preserved.
+
+### Base-device back-buffer and recreation follow-up, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Checked API results and temporary
+COM ownership preserve the existing rendering boundary, public signatures,
+instance layout, assets and wire contracts. The existing
+[screenshot evidence](../../.agents/research/client748/flows/ui/screenshot-capture.md)
+is reused: Print Screen, `ScreenShot\\Capture%04d.jpg`, JPG encoding, collision
+search and the requirement for an existing directory are unchanged. No new
+native parity claim or catalog promotion is made.
+
+`DeviceBackBuffer.h` initializes acquisition outputs, rejects a missing device
+or a successful result without a surface, propagates failing HRESULTs and
+releases every non-null surface output, including an output returned with a
+failed HRESULT. Descriptions are queried into a local value and published
+only on success, preserving the last valid descriptor after a partial write
+or failure. Capture never invokes the encoder after failed acquisition and
+releases the reference after either encoder success or failure.
+
+`D3DDevice.cpp` uses these helpers for initialization, reset and capture.
+Initialization also checks device presence and capability-query failure before
+initializing scene resources. Reset cannot reach restoration or publish
+restored readiness after a failed back-buffer query. Capture retains the
+existing failure log. Both initialization fallback and adapter/type recreation
+retain the Direct3D factory across full cleanup; previously cleanup released
+the factory before `Initialize3DEnvironment()` reused it. Final teardown still
+releases the retained reference. Failed device creation with a non-null output
+also enters cleanup rather than leaking that output.
+
+Validation: **1,157,976 checks PASS**, static assertions PASS, adding 567
+checks. Fake surface/device tests cover successful and failed acquisition,
+null outputs, partial descriptor writes, exact error propagation, preservation
+and replacement of the cached descriptor, retry, missing devices, encoder
+failure, scope release and refusal to overwrite an already owned reference.
+Fake factory tests cover repeated retry cleanup, reference balance and final
+release. Source checks bind acquisition ordering, initialization/reset failure
+gates, capture format/logging and both factory-retention callers to production.
+These tests do not execute the real device initialization/reset/window flow or
+a graphics driver.
+
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+`tools/repository/Test-RepositoryLayout.ps1` and scoped `git diff --check`.
+The incremental Release build passed without warnings. Status:
+`STATICALLY VERIFIED`, `AUTOMATED TESTED`, `BUILD_VERIFIED`; not
+`CLIENT-TESTED`. No installation, window or game launch occurred.
+
+Remaining work: ignored invalidation/font-loss HRESULTs and other unchecked
+viewport/render-block calls; instruction-boundary validation inside shader
+envelopes if arbitrary corruption must be supported; real driver startup,
+fallback/reset and screenshot acceptance after the existing visual-testing
+restriction is lifted. The legacy screenshot search at its numbering limit
+is not changed or newly certified by this batch. This does not close the
+overall compatibility or native-function implementation effort.
+
+Changed files under `tmproject/TMProject748/`: new
+`internal/platform/windows/DeviceBackBuffer.h` and `tests/DeviceBackBufferTests.cpp`;
+updated `internal/platform/windows/D3DDevice.cpp`,
+`tests/{SceneDisconnectContractTests.cpp,PacketViewTests.cpp,ArchitectureTests.vcxproj}`
+and `TMProject748.vcxproj`, plus this document. No files were removed; existing
+dirty-tree work was preserved.
+
+### Frame failure and recovery follow-up, 2026-10-11
+
+Classification: `MODERNIZACAO_COMPATIVEL`. This batch changes internal failure
+handling, not gameplay, packet layouts, assets, public signatures, instance
+layout or the successful character-preview/control rendering order. No new
+native parity claim or catalog promotion is made.
+
+`DeviceFrame.h` gives `RenderDevice::Lock` and `Unlock` strict 0/1 results.
+Previously an unexpected cooperative-level or failed-reset HRESULT could be
+returned as a nonzero integer and mistaken for successful scene entry. Clear,
+BeginScene, EndScene and Present failures now stop their dependent operations;
+both device-lost and not-reset results schedule recovery. A recovery attempt
+never opens a scene. Failed preparation/reset remains retryable, and a device
+that becomes cooperative while resources remain unrestored retries reset
+instead of drawing with incomplete resources. Windowed reset preparation
+checks factory/adapter presence and queries the display mode into a temporary
+value, preserving the prior settings/format on query failure.
+
+`NewApp::RenderScene` checks required dependencies and uses a local scene owner
+for every Lock/Unlock segment. Failed scene entry prevents world/control draw;
+reported view/state-block failures abort the frame; a failed segment exit
+prevents later segments/presentation. An early return closes only a scene that
+was opened successfully and does not present it. The redundant application
+cooperative-level check is removed so recovery belongs to the device helper.
+The preview's existing placement between segments is preserved, not newly
+certified by these tests. Public void viewport/state-cache setters still do
+not propagate every underlying API error; those remain separate work.
+
+Validation: **1,158,370 checks PASS**, static assertions PASS, adding 394
+checks. Fake devices cover combinations of cooperative level, resource
+readiness, reset preparation/reset failure, clear/begin/end/present results,
+missing devices, failed-reset retry after cooperation returns, next-frame
+resumption, exact scene ownership, early returns, and single presentation
+across multiple segments. Source checks bind the helpers, display-mode
+publication and application failure gates to production callers. These are
+isolated and source-contract checks, not execution of the application loop or
+a real graphics driver.
+
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+`tools/repository/Test-RepositoryLayout.ps1` and scoped whitespace checks.
+The test build initially rejected a shadowed local test variable under `/WX`;
+renaming that variable resolved it. The final test and incremental Release
+builds passed without warnings. Status: `STATICALLY VERIFIED`,
+`AUTOMATED TESTED`, `BUILD_VERIFIED`; not `CLIENT-TESTED`. No installation,
+window or game launch occurred.
+
+Changed files under `tmproject/TMProject748/`: new
+`internal/platform/windows/DeviceFrame.h` and `tests/DeviceFrameTests.cpp`;
+updated `internal/platform/windows/RenderDevice.cpp`,
+`internal/app/scenes/NewApp.cpp`,
+`tests/{SceneDisconnectContractTests.cpp,PacketViewTests.cpp,ArchitectureTests.vcxproj}`
+and `TMProject748.vcxproj`, plus this document. No files were removed; existing
+dirty-tree work was preserved. Remaining gates include invalidation/font-loss
+failure handling, viewport/state-block API propagation, preview segmentation
+and real-driver recovery acceptance once visual testing is permitted. This
+batch does not close the overall development/parsing/native-function effort.
+
+### UI texture-set follow-up, 2026-10-10
+
+Classification: `MODERNIZACAO_COMPATIVEL`. `UI\UITextureSetList.txt` keeps its
+format and content; no asset, RC resource or wire contract changed.
+
+- `TextureManager::InitUITextureSetList` previously used one `fscanf` loop:
+  an index at or above 600 was skipped without consuming its rows (the next
+  header read then desynchronized), negative indices wrote before the table,
+  and a block shorter than its `ItemCount` left the remaining entries
+  uninitialized. It now reads the whole file and installs the result of
+  `ui_texture_set::Parse` (`internal/render/resources/UITextureSetList.h`).
+  Invalid blocks are skipped together with their rows, short blocks keep only
+  the rows they have, extra rows are dropped, a repeated index replaces the
+  earlier block without leaking it, and anomalies are logged once. The
+  set 526 icon-grid override is unchanged.
+- Every consumer now resolves a state through `UITextureCoordAt`, which rejects
+  absent sets, null rows, negative states and `index == nCount`; the renderer
+  previously accepted `index == nCount` and read one entry past the set. Covered
+  consumers: both `RenderGeomRectImage` paths, `SProgressBar`, the `TMGround`
+  minimap (set 11) and the `TMFont3` digit glyphs.
+- The shipped list has 446 sets in 0..456, no duplicates and texture slots
+  0..261. Set 198 (`chat_sel2`) declares 5 rows and contains 4; it now has
+  `nCount` 4, so a fifth state draws nothing instead of uninitialized
+  coordinates.
+
+Validation: `UITextureSetListTests` adds 13 checks covering CRLF/LF parsing,
+skipped, short, long and malformed blocks, duplicates, the coordinate guard,
+the shipped list and every texture-set reference in FieldScene2,
+SelCharScene2 and SelServerScene2 (all resolve). `Build-Client.ps1 -NoDeploy`
+passed: `ArchitectureTests` 1,153,266 checks and static assertions,
+`SocketReceiveTests` 231 checks. No deployment or client execution was
+performed. Status: `STATICALLY VERIFIED`, `AUTOMATED TESTED`; not
+`CLIENT-TESTED`.
+
+Changed files: new `internal/render/resources/UITextureSetList.h` and
+`tests/UITextureSetListTests.cpp`;
+`internal/render/resources/{TextureManager.h,TextureManager.cpp}`,
+`internal/platform/windows/{RenderDevicePrimitives.cpp,TMFont3.cpp}`,
+`internal/ui/controls/SProgressBar.cpp`,
+`internal/render/world/terrain/TMGround.cpp`,
+`TMProject748.vcxproj` and `tests/{ArchitectureTests.vcxproj,PacketViewTests.cpp}`
+under `tmproject/TMProject748/`, and this document. No files were removed.
+
+### UI texture-set review and continuation, 2026-10-11
+
+The continuation in Claude added the line-based texture-set parser and guards
+in the renderer, progress bar, minimap and damage-number drawing described
+above. This review preserves that work and closes two remaining boundaries
+(`MODERNIZACAO_COMPATIVEL`, no native resource or wire changes):
+
+- `TMFont3` still read glyph widths directly in three constructor paths before
+  the guarded draw method ran. Missing rows could therefore fail while laying
+  out plain, experience or critical damage text. All three paths now use
+  `UITextureGlyphAdvance`, which resolves the guarded coordinate and reserves
+  the existing unsupported-character gap when a glyph is absent. Valid glyphs
+  retain their prior scaling multiplication and integer rounding order. Drawing
+  continues to skip absent glyphs.
+- Header conversion did not check `strtol` overflow on Win32, rejected the
+  valid lower signed integer boundary, and accepted suffixes hidden after a
+  NUL byte. Coordinate conversion also accepted a NUL-hidden eighth field.
+  Conversion now checks `ERANGE`, the full string extent and signed limits;
+  rejected headers leave their output unchanged. Block-level index/count
+  validation remains responsible for rejecting negative or oversized values.
+
+Four regression cases failed before these corrections and passed afterwards.
+`UITextureSetListTests` adds 28 checks for these cases, valid glyph scaling and
+missing/short/null sets. `ArchitectureTests` passed 1,153,294 checks and static
+assertions, including the existing shipped UI and Scene2 fixtures. Live damage
+text, CJK IME interaction and the broader input/layout acceptance scenarios
+remain pending; automated tests do not establish `CLIENT_TESTED`.
+
+The incremental Release solution build also passed with no new warnings.
+Commands: MSBuild `tests/ArchitectureTests.vcxproj /t:Build
+/p:Configuration=Release /p:Platform=Win32`, `ArchitectureTests.exe`, MSBuild
+`tmproject/WYDESTINY.sln /t:Build /p:Configuration=Release /p:Platform=x86`,
+`tools/repository/Test-RepositoryLayout.ps1` and scoped `git diff --check`.
+Layout/local links passed for 186 indexed documents and the whitespace check
+passed. The generated artifact is `tmproject/build/TMProject748/Release/WYD.exe`;
+no deployment or game execution was performed.
+
+Changed files in this review: `internal/render/resources/UITextureSetList.h`,
+`internal/platform/windows/TMFont3.cpp`, `tests/UITextureSetListTests.cpp` and
+this document. No files were removed. The earlier Claude socket/asset test
+results are retained as prior evidence; their inputs were not changed by this
+review. The installed `client748/project.exe` remains the October 7 candidate.
+
 ## 7.48 asset profile
 
 The buildable client can read `tmproject/client748/` directly through

@@ -145,6 +145,29 @@ cleared by `DisconnectEffectFromMob` (no effect deletes itself when its owner
 disappears); `ObjectManager::CleanUp` restarting at the parent after every
 deletion (quadratic in large wars). Fix the source, never by clearing lists.
 
+### 7. Interface scale, native anchors and weather area - implemented 2026-10-07
+
+- `UIScale=Auto` scales the whole 7.48 layout uniformly with the resolution
+  (see `field-ui-scale-and-anchors.md`); the message box and message panel
+  keep the native geometry from `FUN_00493e70`. A non-native fixed X of 210
+  that pushed the message panel to the right on the server screen was
+  removed.
+- Every anchor of the field initializer `FUN_00435b13` is ported, including
+  the PK / Auto Running / Run Mode labels, the affect description, the
+  HP/MP bar adjustment, the HUD button hints and the input marker. Floating
+  combat text, labels, counters, 3D meshes in controls and the minimap now
+  follow the interface scale.
+- Tools: `tools/client-assets/Capture-ClientScreens.ps1` captures the client
+  at chosen resolutions with simulated clicks; `WYD748_LAYOUT_PROBE=1` logs
+  the visible window rectangles.
+- Rain and snow: the classic effects kept 50 drops and 200 flakes in a 12x12
+  area around the player, leaving the screen sides dry. `WeatherArea=12`
+  (half size; 6 = classic) widens the area and scales the count to keep the
+  density (200 drops, 800 flakes per layer); splashes keep the classic area.
+  All particles of an effect now go out in one `DrawPrimitiveUP` instead of
+  one call per particle (`WeatherParticles.h`), and attribute lookups stay
+  inside the map.
+
 ## Validation states
 
 - AUTOMATED TESTED: `ClientSettingsTests`, `PerfTraceTests`,
@@ -154,5 +177,8 @@ deletion (quadratic in large wars). Fix the source, never by clearing lists.
   and vet.
 - CLIENT-TESTED: light profile with five clients and the server-selection
   scene (anisotropy and the cache code path at startup).
+- CLIENT-TESTED 2026-10-07 (local server, test account): login, character
+  creation and selection, field HUD, status labels, message box and panel,
+  minimap at 800x600 and 1024x768 with `UIScale=Auto`.
 - Pending real play: field crossings and corners (cache and corner policy),
   weather changes and damage in game, lighting tuning, accumulation (item 6).

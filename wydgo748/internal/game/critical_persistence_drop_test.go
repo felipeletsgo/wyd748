@@ -138,6 +138,13 @@ func TestCriticalGroundDropDetachedCommitAndHiddenReservation(t *testing.T) {
 				if p.Session.QueuedPacketsForTest() != 0 || observer.Session.QueuedPacketsForTest() != 0 {
 					t.Fatal("drop confirmation was duplicated")
 				}
+				// Another player is refused while the dropper's protection lasts.
+				w.onGetItem(observer.Session, criticalPickupRequest(g.ID, 7))
+				if len(backend.entered) != 0 || g.criticalPickup != 0 {
+					t.Fatal("a protected drop was admitted for another player")
+				}
+				assertCriticalPickupPacket(t, observer, wire.MessagePanel(groundProtectedMessage))
+				w.clock.(*fakeClock).Advance(groundItemProtection)
 				w.onGetItem(observer.Session, criticalPickupRequest(g.ID, 7))
 				pickup := awaitCriticalWrite(t, backend.entered)
 				if pickup.accounts[0].Chars[0].Inv[7] != item || observer.Char.Inv[7].Index != 0 {
@@ -578,5 +585,42 @@ func TestCriticalGroundDropPreservesOriginalExpiryAfterCommit(t *testing.T) {
 	w.expireGroundItems(deadline.Add(time.Second))
 	if w.groundItems[g.ID] != nil {
 		t.Fatal("commit left an expired drop permanently reserved")
+	}
+}
+
+// Native FUN_0046247E sends the character's own cell at GridX@24/GridY@26; the
+// item lands exactly there, never on a random neighbor.
+func TestPlayerDropLandsOnTheReportedCharacterCell(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		dx, dy int
+		wantDX int
+		wantDY int
+	}{
+		{"own cell", 0, 0, 0, 0},
+		{"server position trails the client", 1, -1, 1, -1},
+		{"too far falls back to the server position", dropCellTolerance + 1, 0, 0, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			w, p, _, _, _, _ := criticalDropFixture(t, placeInv, 0)
+			packet := criticalDropRequest(placeInv, 0)
+			binary.LittleEndian.PutUint16(packet[24:26], uint16(int(p.X)+tc.dx))
+			binary.LittleEndian.PutUint16(packet[26:28], uint16(int(p.Y)+tc.dy))
+			for range 8 {
+				g := w.createGroundDropCell(p.X, p.Y, model.Item{Index: p.Char.Inv[0].Index}, false, "", groundOwner{})
+				if g == nil || g.X != p.X || g.Y != p.Y {
+					t.Fatal("an unscattered drop must keep its exact cell")
+				}
+				w.unregisterGroundItem(g)
+			}
+			req, ok := parseDropItemRequest(packet)
+			if !ok {
+				t.Fatal("drop request did not parse")
+			}
+			x, y := w.playerDropCell(p, req)
+			if int(x) != int(p.X)+tc.wantDX || int(y) != int(p.Y)+tc.wantDY {
+				t.Fatalf("drop cell (%d,%d), want (%d,%d)", x, y, int(p.X)+tc.wantDX, int(p.Y)+tc.wantDY)
+			}
+		})
 	}
 }

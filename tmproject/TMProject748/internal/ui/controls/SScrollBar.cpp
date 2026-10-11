@@ -14,6 +14,14 @@ SScrollBar::SScrollBar(int inCurrent, int inMax, float inX, float inY, float inW
 	m_nBtnSize = 17.0f;
 	m_eCtrlType = CONTROL_TYPE::CTRL_TYPE_SCROLLBAR;
 
+	// Attach each allocation immediately so base-class unwinding owns it if
+	// a later panel allocation fails. Preserve the original sibling order.
+	const auto attachPanel = [this](SPanel* panel, unsigned int id) noexcept {
+		panel->SetControlID(id);
+		AddChild(panel);
+		return panel;
+	};
+
 	if (m_dwStyle == 0)
 	{
 		m_nBarSize = inWidth;
@@ -21,44 +29,24 @@ SScrollBar::SScrollBar(int inCurrent, int inMax, float inX, float inY, float inW
 
 		if (bChat)
 			nStartXPos = -5;
-		m_pBar = new SPanel(176, (float)nStartXPos + 1.0f, 0.0f, 12.0f - 2.0f, 17.0f, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-		m_pUpPanel = new SPanel(174, (float)nStartXPos, 0.0f, 13.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-		m_pDownPanel = new SPanel(175, (float)nStartXPos, 0.0f, 13.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+		m_pBar = attachPanel(new SPanel(176, (float)nStartXPos + 1.0f, 0.0f, 12.0f - 2.0f, 17.0f, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 2);
+		m_pUpPanel = attachPanel(new SPanel(174, (float)nStartXPos, 0.0f, 13.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 0);
+		m_pDownPanel = attachPanel(new SPanel(175, (float)nStartXPos, 0.0f, 13.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 1);
 		m_nScrollLength = (int)(float)(m_nHeight - (m_nBtnSize * 0.0));
-		m_pBackground1 = new SPanel(510, (float)nStartXPos, 0.0f, 10.0f, inHeight, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+		m_pBackground1 = attachPanel(new SPanel(510, (float)nStartXPos, 0.0f, 10.0f, inHeight, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 3);
 		m_pBackground1->GetGeomControl()->eRenderType = RENDERCTRLTYPE::RENDER_IMAGE_STRETCH;
 	}
 	else
 	{
-		m_pBar = new SPanel(-2, 0.0f, 0.0f, m_nBarSize, m_nBarSize, 0, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-		m_pUpPanel = new SPanel(-2, 0.0, 0.0, m_nBtnSize, m_nHeight, 0x44444444, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-		m_pDownPanel = new SPanel(-2, m_nWidth - m_nBtnSize, 0.0f, m_nBtnSize, m_nHeight, 0x44444444, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+		m_pBar = attachPanel(new SPanel(-2, 0.0f, 0.0f, m_nBarSize, m_nBarSize, 0, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 2);
+		m_pUpPanel = attachPanel(new SPanel(-2, 0.0, 0.0, m_nBtnSize, m_nHeight, 0x44444444, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 0);
+		m_pDownPanel = attachPanel(new SPanel(-2, m_nWidth - m_nBtnSize, 0.0f, m_nBtnSize, m_nHeight, 0x44444444, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 1);
 		m_nScrollLength = (int)(m_nWidth - (m_nBtnSize * 1.0f));
 
-		m_pBackground1 = new SPanel(-2, 0.0f, 0.0f, m_nWidth, inHeight, 0x77777777, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
+		m_pBackground1 = attachPanel(new SPanel(-2, 0.0f, 0.0f, m_nWidth, inHeight, 0x77777777, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 3);
 
 		if(m_pBackground1 != nullptr)
 			m_pBackground1->GetGeomControl()->nTextureIndex = 0;
-	}
-	if (m_pBar != nullptr)
-	{
-		m_pBar->SetControlID(2);
-		AddChild(m_pBar);
-	}
-	if (m_pUpPanel != nullptr)
-	{
-		m_pUpPanel->SetControlID(0);
-		AddChild(m_pUpPanel);
-	}
-	if (m_pDownPanel != nullptr)
-	{
-		m_pDownPanel->SetControlID(1);
-		AddChild(m_pDownPanel);
-	}
-	if (m_pBackground1 != nullptr)
-	{
-		m_pBackground1->SetControlID(3);
-		AddChild(m_pBackground1);
 	}
 
 	Update();

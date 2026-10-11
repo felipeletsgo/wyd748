@@ -94,6 +94,7 @@ func resetCharacterRuntime(p *Player) {
 	p.Visible = nil
 	// The next EnterWorld sends the current weather again.
 	p.SentWeather = 0
+	p.PremiumNPC, p.PremiumVersion = 0, 0
 
 	// Open NPC/window context.
 	p.ShopNPC = 0
@@ -206,6 +207,8 @@ func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 // onCharacterTransferUnavailable ends the 7.48 client's wait without changing
 // the account, names, or slots. This World has no coordinator/persistence for
 // the "Integrated server" destination; claiming local success would lose data.
+// Result=4 only shows "Unknown error.", so a message panel follows it to tell
+// the player the service is unavailable (the panel shows the last message).
 func (w *World) onCharacterTransferUnavailable(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Account == nil || p.InWorld || len(pkt) != 52 ||
@@ -217,7 +220,10 @@ func (w *World) onCharacterTransferUnavailable(s *net.Session, pkt []byte) {
 		return
 	}
 	s.Send(wire.CharacterTransferUnavailable(slot))
+	s.Send(wire.MessagePanel(characterTransferUnavailableMessage))
 }
+
+const characterTransferUnavailableMessage = "Character transfer is not available on this server."
 
 // onDeleteCharacter revalidates the password because 0x211 is destructive.
 // The client sends Slot@12, MobName@16, and Password@32 (44 bytes).

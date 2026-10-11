@@ -4,7 +4,7 @@ title: Ground-item creation contract
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-25
+updated: 2026-10-07
 ---
 
 # Ground-item creation contract
@@ -103,6 +103,7 @@ drop publication.
 | ItemList | Direct lookup | Could index beyond 6,500 | Index validated | `MODERNIZACAO_COMPATIVEL` |
 | Existing ID with changed kind | Native assumes valid object lifecycle | Cast could write beyond allocated renderer | Reject mismatch before derived cast | `MODERNIZACAO_COMPATIVEL` |
 | Objects/effects | Native branches | Existing implementation | Preserved for valid frames | No change |
+| Player drop cell | `FUN_0046247E` sends the character cell at `GridX@24/GridY@26`; `FUN_004856C3` renders at cell + 0.5 | Server ignored the cell and scattered the drop to a random neighbor | Server uses the reported cell when walkable and within 2 cells of its position (2026-10-07) | `PARIDADE_NATIVA` |
 
 ## Decisions
 

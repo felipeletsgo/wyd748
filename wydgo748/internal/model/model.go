@@ -1,5 +1,5 @@
-// Package model define os tipos de dominio persistidos/estaticos do WYD-Go.
-// Sao valores puros (sem dependencias externas) usados por wire, store, data e game.
+// Package model defines the persisted and static domain types of WYD-Go.
+// They are plain values (no external dependencies) used by wire, store, data and game.
 package model
 
 import (
@@ -18,9 +18,9 @@ const (
 	CharacterUIDHexLength = 32
 	MinCP                 = -75
 	MaxCP                 = 75
-	// ChaosFormatVersion marca o modelo assinado adotado pelo emulador. O
-	// formato anterior persistia CP=75 como "neutro"; a primeira leitura sem
-	// esta marca migra esse valor para CP 0 e grava a marca no próximo save.
+	// ChaosFormatVersion marks the signed model adopted by the emulator. The
+	// previous format stored CP=75 as "neutral"; the first read without this
+	// mark migrates that value to CP 0 and writes the mark on the next save.
 	ChaosFormatVersion uint8 = 1
 )
 
@@ -36,11 +36,11 @@ func ClampCP(value int) int16 {
 
 func clampCP(value int16) int16 { return ClampCP(int(value)) }
 
-// Item contem o STRUCT_ITEM nativo (Index+Eff = 8 bytes), a identidade da
-// instancia e seu eventual prazo absoluto. UID e datas existem somente no
-// servidor e nunca sao serializados no wire: lojas/NPCs/templates usam UID
-// vazio como blueprint; itens materializados carregam a mesma identidade e o
-// mesmo prazo ao passar por inventario, Cargo, trade e relogin.
+// Item holds the native STRUCT_ITEM (Index+Eff = 8 bytes), the instance
+// identity and its optional absolute expiry. UID and dates exist only on the
+// server and are never serialized on the wire: shops/NPCs/templates use an
+// empty UID as a blueprint; materialized items keep the same identity and
+// expiry through inventory, Cargo, trade and relogin.
 type Item struct {
 	Index         uint16  `json:"index"`
 	UID           string  `json:"uid,omitempty"`
@@ -49,8 +49,8 @@ type Item struct {
 	ExpiresUnix   int64   `json:"expiresUnix,omitempty"`
 }
 
-// MarshalJSON omite o campo "eff" quando esta todo zerado -- "omitempty" NAO
-// funciona em array em Go, entao um item comum sai enxuto como `{"index":N}`.
+// MarshalJSON omits "eff" when it is all zero -- "omitempty" does NOT work on
+// Go arrays, so a plain item is written compactly as `{"index":N}`.
 func (it Item) MarshalJSON() ([]byte, error) {
 	if it.Eff == [6]byte{} {
 		return json.Marshal(struct {
@@ -64,60 +64,60 @@ func (it Item) MarshalJSON() ([]byte, error) {
 	return json.Marshal(alias(it))
 }
 
-// WireEqual compara somente os oito bytes que o client conhece. Snapshots
-// recebidos do 7.48 nunca carregam UID; depois de validar esses bytes, o servidor
-// deve manter a copia autoritativa que ja possui a identidade.
+// WireEqual compares only the eight bytes the client knows. Snapshots received
+// from 7.48 never carry a UID; after validating those bytes the server must keep
+// the authoritative copy that already has the identity.
 func (it Item) WireEqual(other Item) bool {
 	return it.Index == other.Index && it.Eff == other.Eff
 }
 
-// NewItemUID gera 128 bits aleatorios em hexadecimal. Nao depende de contador
-// persistente e continua globalmente unico entre Windows, VPS e restauracoes de
-// backup. O store ainda verifica colisao/duplicidade antes de persistir.
+// NewItemUID generates 128 random bits in hexadecimal. It needs no persistent
+// counter and stays globally unique across Windows, VPS and backup restores.
+// The store still checks for collisions/duplicates before persisting.
 func NewItemUID() (string, error) {
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {
-		return "", fmt.Errorf("gerar UID de item: %w", err)
+		return "", fmt.Errorf("generate item UID: %w", err)
 	}
-	// Variante/versao de UUID v4; armazenamos sem hifens para ocupar menos JSON.
+	// UUID v4 variant/version; stored without hyphens to keep the JSON short.
 	raw[6] = raw[6]&0x0f | 0x40
 	raw[8] = raw[8]&0x3f | 0x80
 	return hex.EncodeToString(raw[:]), nil
 }
 
-// NormalizeItemUID valida e canonicaliza um UID persistido.
+// NormalizeItemUID validates and canonicalizes a persisted UID.
 func NormalizeItemUID(uid string) (string, error) {
 	if uid == "" {
 		return "", nil
 	}
 	uid = strings.ToLower(uid)
 	if len(uid) != ItemUIDHexLength {
-		return "", fmt.Errorf("UID %q possui %d caracteres; esperado %d",
+		return "", fmt.Errorf("UID %q has %d characters; expected %d",
 			uid, len(uid), ItemUIDHexLength)
 	}
 	raw, err := hex.DecodeString(uid)
 	if err != nil || len(raw) != 16 {
-		return "", fmt.Errorf("UID %q invalido", uid)
+		return "", fmt.Errorf("invalid UID %q", uid)
 	}
 	return uid, nil
 }
 
-// NewCharacterUID cria a identidade persistente server-side de um personagem.
-// Nome e slot pertencem ao protocolo/UI e podem se repetir ou mudar; UID nunca
-// vai ao wire e continua identificando Mortal, Arch e charstate sem ambiguidade.
+// NewCharacterUID creates the persistent server-side identity of a character.
+// Name and slot belong to the protocol/UI and may repeat or change; the UID
+// never reaches the wire and identifies Mortal, Arch and charstate unambiguously.
 func NewCharacterUID() (string, error) {
 	return newPersistentUID()
 }
 
-// NormalizeCharacterUID valida a representacao hexadecimal persistida.
+// NormalizeCharacterUID validates the persisted hexadecimal representation.
 func NormalizeCharacterUID(uid string) (string, error) {
-	return normalizePersistentUID(uid, CharacterUIDHexLength, "UID de personagem")
+	return normalizePersistentUID(uid, CharacterUIDHexLength, "character UID")
 }
 
 func newPersistentUID() (string, error) {
 	var raw [16]byte
 	if _, err := rand.Read(raw[:]); err != nil {
-		return "", fmt.Errorf("gerar UID: %w", err)
+		return "", fmt.Errorf("generate UID: %w", err)
 	}
 	raw[6] = raw[6]&0x0f | 0x40
 	raw[8] = raw[8]&0x3f | 0x80
@@ -130,12 +130,12 @@ func normalizePersistentUID(uid string, length int, label string) (string, error
 	}
 	uid = strings.ToLower(uid)
 	if len(uid) != length {
-		return "", fmt.Errorf("%s %q possui %d caracteres; esperado %d",
+		return "", fmt.Errorf("%s %q has %d characters; expected %d",
 			label, uid, len(uid), length)
 	}
 	raw, err := hex.DecodeString(uid)
 	if err != nil || len(raw) != 16 {
-		return "", fmt.Errorf("%s %q invalido", label, uid)
+		return "", fmt.Errorf("invalid %s %q", label, uid)
 	}
 	return uid, nil
 }
@@ -143,14 +143,16 @@ func normalizePersistentUID(uid string, length int, label string) (string, error
 const (
 	ScoreVersion  uint32 = 2
 	MaxScoreValue uint32 = 2_000_000_000
+	// MaxDonateBalance caps Account.Donate (premium shop balance).
+	MaxDonateBalance uint32 = 2_000_000_000
 )
 
-// Score e a unica representacao de atributos de personagens e mobs e o
-// contrato binario compartilhado com o TMProject748 client. Todos os
-// campos sao uint32; nao existe score legado, sidecar ou projecao paralela.
+// Score is the only attribute representation of characters and mobs and the
+// binary contract shared with the TMProject748 client. Every field is uint32;
+// there is no legacy score, sidecar or parallel projection.
 //
-// Os calculos intermediarios do game usam int64 e os resultados persistidos
-// ficam limitados a 2.000.000.000, evitando overflow nos campos signed do client.
+// Intermediate game calculations use int64 and persisted results are capped
+// at 2,000,000,000, avoiding overflow in the client's signed fields.
 type Score struct {
 	Version       uint32    `json:"version"`
 	Level         uint32    `json:"level"`
@@ -186,14 +188,14 @@ type Score struct {
 	Merchant      uint32    `json:"merchant,omitempty"`
 }
 
-// Validate garante que todo estado persistido usa exatamente o contrato atual
-// e que nenhum valor ultrapassa os inteiros signed usados nos calculos.
+// Validate ensures persisted state uses exactly the current contract and that
+// no value exceeds the signed integers used in calculations.
 func (e *Score) Validate() error {
 	if e == nil {
-		return fmt.Errorf("score ausente")
+		return fmt.Errorf("missing score")
 	}
 	if e.Version != ScoreVersion {
-		return fmt.Errorf("score v%d; esperado v%d", e.Version, ScoreVersion)
+		return fmt.Errorf("score v%d; expected v%d", e.Version, ScoreVersion)
 	}
 	fields := []struct {
 		name  string
@@ -213,13 +215,13 @@ func (e *Score) Validate() error {
 	}
 	for _, field := range fields {
 		if field.value > MaxScoreValue {
-			return fmt.Errorf("score.%s=%d excede %d",
+			return fmt.Errorf("score.%s=%d exceeds %d",
 				field.name, field.value, MaxScoreValue)
 		}
 	}
 	for i, value := range e.Mastery {
 		if value > MaxScoreValue {
-			return fmt.Errorf("score.mastery[%d]=%d excede %d",
+			return fmt.Errorf("score.mastery[%d]=%d exceeds %d",
 				i, value, MaxScoreValue)
 		}
 	}
@@ -242,27 +244,27 @@ func (e *Score) ValidatePlayerState() error {
 		{"resistHoly", e.ResistHoly}, {"resistThunder", e.ResistThunder},
 	} {
 		if resistance.value > 100 {
-			return fmt.Errorf("score.%s=%d excede 100", resistance.name, resistance.value)
+			return fmt.Errorf("score.%s=%d exceeds 100", resistance.name, resistance.value)
 		}
 	}
 	if e.SaveMana > 99 {
-		return fmt.Errorf("score.saveMana=%d excede 99", e.SaveMana)
+		return fmt.Errorf("score.saveMana=%d exceeds 99", e.SaveMana)
 	}
 	if e.RegenHP > 255 || e.RegenMP > 255 {
-		return fmt.Errorf("score regen fora de 0..255: hp=%d mp=%d", e.RegenHP, e.RegenMP)
+		return fmt.Errorf("score regen outside 0..255: hp=%d mp=%d", e.RegenHP, e.RegenMP)
 	}
 	if e.CurHP > e.MaxHP {
-		return fmt.Errorf("score.curHP=%d excede maxHP=%d", e.CurHP, e.MaxHP)
+		return fmt.Errorf("score.curHP=%d exceeds maxHP=%d", e.CurHP, e.MaxHP)
 	}
 	if e.CurMP > e.MaxMP {
-		return fmt.Errorf("score.curMP=%d excede maxMP=%d", e.CurMP, e.MaxMP)
+		return fmt.Errorf("score.curMP=%d exceeds maxMP=%d", e.CurMP, e.MaxMP)
 	}
 	return nil
 }
 
-// ElementalResists segue a ordem funcional da 7.59: Resist[0..3] =
-// Fogo, Gelo, Sagrado e Trovao. Fica fora do STRUCT_SCORE 7.48 e pertence ao
-// estado autoritativo do servidor.
+// ElementalResists follows the 7.59 functional order: Resist[0..3] = Fire,
+// Ice, Holy and Thunder. It lives outside the 7.48 STRUCT_SCORE and belongs to
+// the server's authoritative state.
 type ElementalResists struct {
 	Fire    uint32 `json:"fire"`
 	Ice     uint32 `json:"ice"`
@@ -270,11 +272,11 @@ type ElementalResists struct {
 	Thunder uint32 `json:"thunder"`
 }
 
-// Affect e o estado temporario autoritativo de buff/debuff. O client recebe
-// apenas Type e o tempo restante; Value/Level alimentam as formulas server-side.
+// Affect is the authoritative temporary buff/debuff state. The client receives
+// only Type and the remaining time; Value/Level feed the server-side formulas.
 type Affect struct {
 	Type       byte   `json:"type,omitempty"`
-	ClientType byte   `json:"clientType,omitempty"` // slot visual do client quando difere da semantica server-side
+	ClientType byte   `json:"clientType,omitempty"` // client visual slot when it differs from the server-side meaning
 	Value      int    `json:"value,omitempty"`
 	Level      int    `json:"level,omitempty"`
 	OwnerID    uint16 `json:"ownerId,omitempty"`
@@ -282,19 +284,18 @@ type Affect struct {
 	// hostile affects. OwnerID is a process-local wire/session id and is kept
 	// only for compatibility with active legacy sessions.
 	OwnerCharacterUID string `json:"ownerCharacterUid,omitempty"`
-	// SourceItem identifica a instancia economica que criou ou estendeu o buff;
-	// o indice facilita auditoria humana sem substituir o UID autoritativo.
+	// SourceItem identifies the economic instance that created or extended the
+	// buff; the index helps human audits without replacing the authoritative UID.
 	SourceItemUID   string    `json:"sourceItemUid,omitempty"`
 	SourceItemIndex uint16    `json:"sourceItemIndex,omitempty"`
 	ExpiresAt       time.Time `json:"expiresAt,omitempty"`
 	NextTick        time.Time `json:"nextTick,omitempty"`
 }
 
-// CelestialForm guarda exclusivamente a forma INATIVA do par
-// Celestial/SubCelestial. Equipamentos (exceto o rosto), inventario, gold,
-// capa/reino, fama e quests continuam no Char e sao compartilhados. Classe,
-// rosto, EXP, atributos, aprendizagens, skills, barra e affects pertencem a
-// cada forma, como Persos[0..1] da 7.54.
+// CelestialForm holds only the INACTIVE form of the Celestial/SubCelestial
+// pair. Equipment (except the face), inventory, gold, cape/kingdom, fame and
+// quests stay in Char and are shared. Class, face, EXP, attributes, learned
+// skills, skill bar and affects belong to each form, like 7.54 Persos[0..1].
 type CelestialForm struct {
 	Evolution             string     `json:"evolution"`
 	Class                 byte       `json:"class"`
@@ -313,126 +314,127 @@ func (f *CelestialForm) Validate() error {
 	}
 	evolution := strings.ToLower(strings.TrimSpace(f.Evolution))
 	if evolution != "celestial" && evolution != "subcelestial" {
-		return fmt.Errorf("forma celestial possui evolucao invalida %q", f.Evolution)
+		return fmt.Errorf("celestial form has invalid evolution %q", f.Evolution)
 	}
 	if f.Class > 3 {
-		return fmt.Errorf("forma celestial possui classe invalida %d", f.Class)
+		return fmt.Errorf("celestial form has invalid class %d", f.Class)
 	}
 	if f.Face.Index == 0 {
-		return fmt.Errorf("forma celestial sem rosto")
+		return fmt.Errorf("celestial form without a face")
 	}
 	if err := f.Score.ValidatePlayerState(); err != nil {
-		return fmt.Errorf("forma celestial: %w", err)
+		return fmt.Errorf("celestial form: %w", err)
 	}
 	if f.Score.Level > 199 {
-		return fmt.Errorf("forma celestial possui level interno %d; maximo 199",
+		return fmt.Errorf("celestial form has internal level %d; maximum 199",
 			f.Score.Level)
 	}
 	return nil
 }
 
-// Char = personagem persistido (1 slot da conta).
+// Char is a persisted character (one account slot).
 type Char struct {
 	UID   string `json:"uid"`
 	Name  string `json:"name"`
 	Class byte   `json:"class"`
 	X     uint16 `json:"x"`
 	Y     uint16 `json:"y"`
-	// Score e persistido diretamente e compartilhado com o TMProject748 client.
+	// Score is persisted directly and shared with the TMProject748 client.
 	Score *Score `json:"score"`
-	// RuntimeScore contem a copia efetiva depois de buffs/debuffs. Score
-	// permanece a base persistida; essa copia nao define outro formato de score; separar os dois impede que cada recálculo
-	// acumule Possuido/transformacoes e grave o bonus temporario no JSON.
+	// RuntimeScore holds the effective copy after buffs/debuffs. Score stays
+	// the persisted base; this copy defines no other score format. Keeping them
+	// apart stops each recalculation from stacking Possessed/transformations and
+	// writing the temporary bonus to the JSON.
 	RuntimeScore *Score   `json:"-"`
-	Equip        [16]Item `json:"equip"` // slots de equipamento
-	Inv          [64]Item `json:"inv"`   // wire/persistencia tem 64; UI usa 0..62
-	// CP e o Chaos/PK Point exibido, assinado e autoritativo (-75..+75).
-	// CP 0 e o estado neutro de um personagem novo; o byte legado de CreateMob
-	// usa CP+75 somente na borda do protocolo.
+	Equip        [16]Item `json:"equip"` // equipment slots
+	Inv          [64]Item `json:"inv"`   // wire/persistence has 64; the UI uses 0..62
+	// CP is the displayed, signed and authoritative Chaos/PK Point (-75..+75).
+	// CP 0 is the neutral state of a new character; the legacy CreateMob byte
+	// uses CP+75 only at the protocol boundary.
 	CP           int16  `json:"cp"`
 	ChaosVersion uint8  `json:"chaosVersion,omitempty"`
 	Gold         uint32 `json:"gold"`
 	Exp          uint32 `json:"exp"`
-	// Hold e a divida persistente de EXP criada por morte PvP. EXP recebida em
-	// combate paga esta divida antes de voltar a aumentar Exp.
+	// Hold is the persistent EXP debt created by a PvP death. EXP earned in
+	// combat pays this debt before Exp grows again.
 	Hold            uint32 `json:"hold"`
-	NextExp         uint32 `json:"-"` // derivado da tabela pelo level
+	NextExp         uint32 `json:"-"` // derived from the table by level
 	LearnedSkill    uint32 `json:"learnedSkill"`
 	MagicalPillUsed bool   `json:"magicalPillUsed,omitempty"`
 	SkillPointBonus uint32 `json:"skillPointBonus,omitempty"`
-	// Progressao avancada usada pelas composicoes Ehre/Odin. Evolution vazio e
-	// tratado como "mortal"; valores futuros: arch, celestial e subcelestial.
+	// Advanced progression used by the Ehre/Odin compositions. An empty
+	// Evolution means "mortal"; other values: arch, celestial and subcelestial.
 	Evolution string `json:"evolution,omitempty"`
-	// ArchMortalUID identifica o Mortal que originou este Arch e
-	// ArchMortalLevel guarda o nivel DELE. So tem sentido quando Evolution e
-	// "arch"; nos demais personagens ficam vazios/zerados e sao ignorados.
+	// ArchMortalUID identifies the Mortal that originated this Arch and
+	// ArchMortalLevel caches THAT character's level. They only matter when
+	// Evolution is "arch"; for other characters they stay empty and are ignored.
 	//
-	// O bonus de status do Arch cresce com o nivel do Mortal, e o nativo o
-	// recalcula a cada login a partir do personagem de origem -- ou seja, subir o
-	// Mortal DEPOIS da ascensao continua fortalecendo o Arch. O vinculo usa UID,
-	// nunca slot: excluir/reordenar personagens nao pode apontar o Arch para
-	// outra ficha. O nivel fica em cache porque o calculo recebe apenas o Char.
-	// ArchCrystals conta os cristais elementais ja consumidos, de 0 a 4. Eles
-	// sao feitos EM ORDEM (Elime, Sylphid, Salion, Nohas) e cada um cobra 100
-	// milhoes de EXP. Cada um concede 100 pontos ao futuro Celestial; a criacao
-	// em si nao exige que os quatro tenham sido concluídos.
+	// The Arch status bonus grows with the Mortal's level, and native code
+	// recalculates it on every login from the source character -- so leveling
+	// the Mortal AFTER the ascension still strengthens the Arch. The link uses
+	// the UID, never the slot: deleting or reordering characters must not point
+	// the Arch at another character. The level is cached because the calculation
+	// only receives the Char.
+	// ArchCrystals counts the elemental crystals already consumed, 0 to 4. They
+	// are made IN ORDER (Elime, Sylphid, Salion, Nohas) and each costs 100
+	// million EXP. Each grants 100 points to the future Celestial; creating it
+	// does not require all four.
 	//
-	// O nativo guarda isso em QuestInfo.Arch.Cristal -- o campo esta no bloco
-	// do ARCH, e e como Arch que a quest e feita.
+	// Native code keeps this in QuestInfo.Arch.Cristal -- the field lives in the
+	// ARCH block, and the quest is done as an Arch.
 	ArchCrystals byte `json:"archCrystals,omitempty"`
-	// ArchLevel355 e ArchLevel370 sao as travas de nivel do Arch. Enquanto
-	// falsas, o personagem PARA de receber EXP ao chegar no nivel interno 354
-	// e 369 -- destravar e um craft na Lindy. Sao QuestInfo.Arch.Level355 e
-	// .Level370 no nativo.
+	// ArchLevel355 and ArchLevel370 are the Arch level locks. While false, the
+	// character STOPS earning EXP at internal level 354 and 369 -- unlocking is a
+	// craft at Lindy. Native names: QuestInfo.Arch.Level355 and .Level370.
 	ArchLevel355    bool   `json:"archLevel355,omitempty"`
 	ArchLevel370    bool   `json:"archLevel370,omitempty"`
 	ArchMortalUID   string `json:"archMortalUid,omitempty"`
 	ArchMortalLevel uint32 `json:"archMortalLevel,omitempty"`
-	// A fama NAO mora aqui: ela e um contador por personagem em
-	// CharState.SpecialCoins["fame"], gravado pela identidade UID do personagem.
-	// Ver internal/game/counters.go.
-	SoulInfo                 uint8 `json:"soulInfo,omitempty"` // 1..10; zero = nenhum
+	// Fame does NOT live here: it is a per-character counter in
+	// CharState.SpecialCoins["fame"], saved under the character UID.
+	// See internal/game/counters.go.
+	SoulInfo                 uint8 `json:"soulInfo,omitempty"` // 1..10; zero = none
 	CelestialLevel40Unlocked bool  `json:"celestialLevel40Unlocked,omitempty"`
 	CelestialLevel90Unlocked bool  `json:"celestialLevel90Unlocked,omitempty"`
-	// CelestialArchTier registra em qual faixa o Arch virou Celestial:
-	// 1=356..369, 2=370..379, 3=380..398, 4=399, 5=400 exibidos.
-	// CelestialCytheraTier (0..4) impede repetir os adicionais de 121/151/181/199.
+	// CelestialArchTier records the band in which the Arch became Celestial:
+	// 1=356..369, 2=370..379, 3=380..398, 4=399, 5=400 displayed.
+	// CelestialCytheraTier (0..4) prevents repeating the 121/151/181/199 bonuses.
 	CelestialArchTier    byte `json:"celestialArchTier,omitempty"`
 	CelestialCytheraTier byte `json:"celestialCytheraTier,omitempty"`
 	CelestialArcana      bool `json:"celestialArcana,omitempty"`
-	// AlternateCelestial e a forma que nao esta materializada no Char. O ativo
-	// permanece nos campos normais para todo combate/protocolo continuar usando
-	// uma unica fonte autoritativa.
+	// AlternateCelestial is the form not materialized in Char. The active one
+	// stays in the normal fields so all combat/protocol code keeps a single
+	// authoritative source.
 	AlternateCelestial *CelestialForm `json:"alternateCelestial,omitempty"`
-	// Habilidades da evolucao; separadas dos 24 bits Mortais como no WYD 7.48.
+	// Evolution skills, kept apart from the 24 Mortal bits as in WYD 7.48.
 	SecondaryLearnedSkill uint32     `json:"secondaryLearnedSkill,omitempty"`
 	ShortSkill            [20]byte   `json:"shortSkill,omitempty"`
 	Affects               [16]Affect `json:"affects,omitempty"`
-	// GuildID/GuildRank sao copias DESNORMALIZADAS do registro canonico em
-	// guilds.json, mantidas aqui so para o wire e consulta rapida. O login
-	// repara divergencias contra o registro; a guild e sempre a fonte da
-	// verdade. Ausentes no JSON antigo carregam como zero = sem guild.
+	// GuildID/GuildRank are DENORMALIZED copies of the canonical record in
+	// guilds.json, kept only for the wire and quick lookups. Login repairs
+	// differences against the record; the guild is always the source of truth.
+	// Missing in old JSON they load as zero = no guild.
 	GuildID   uint16 `json:"guildId,omitempty"`
 	GuildRank byte   `json:"guildRank,omitempty"`
-	// QuestsDone guarda os IDs de quest ja concluidas. Lista em vez de mascara
-	// de bits: mascara limitaria o projeto a 64 quests e amarraria o id ao bit.
+	// QuestsDone keeps the IDs of completed quests. A list instead of a bit mask:
+	// a mask would limit the project to 64 quests and tie the ID to the bit.
 	QuestsDone []int32 `json:"questsDone,omitempty"`
-	// Citizenship e o CANAL do qual o personagem e cidadao (0 = nenhum). No
-	// nativo o valor e ServerIndex+1, ou seja, "Cidadania 1" = canal 1. Ele
-	// so rende bonus no proprio canal -- ver CitizenDropBonus.
+	// Citizenship is the CHANNEL the character is a citizen of (0 = none). In
+	// native code the value is ServerIndex+1, so "Citizenship 1" = channel 1. It
+	// only gives a bonus on that channel -- see CitizenDropBonus.
 	Citizenship byte `json:"citizenship,omitempty"`
-	// SavedX/SavedY sao a coordenada gravada pela Gema Estelar (volatile 12) e
-	// usada pelo Warp (volatile 13). Persistem na ficha; 0/0 = nenhuma salva.
+	// SavedX/SavedY are the coordinate saved by the Star Gem (volatile 12) and
+	// used by Warp (volatile 13). Persisted per character; 0/0 = none saved.
 	SavedX uint16 `json:"savedX,omitempty"`
 	SavedY uint16 `json:"savedY,omitempty"`
-	// Escritura do Pesadelo (volatile 212): cada uso credita 13 entradas e
-	// inicia cooldown de 12 horas. Fica na ficha para item+saldo+cooldown serem
-	// confirmados no mesmo SaveAccount.
+	// Nightmare Scroll (volatile 212): each use credits 13 entries and starts a
+	// 12-hour cooldown. Kept on the character so item, balance and cooldown are
+	// committed in the same SaveAccount.
 	NightmareTickets  uint32 `json:"nightmareTickets,omitempty"`
 	LastNightmareUnix int64  `json:"lastNightmareUnix,omitempty"`
 }
 
-// charEquip = os 16 slots de equip do char como OBJETO NOMEADO, mantendo a riqueza do tipo Item.
+// charEquip is the character's 16 equipment slots as a NAMED OBJECT, keeping the full Item type.
 type charEquip struct {
 	Rosto      Item `json:"rosto"`      // 0
 	Elmo       Item `json:"elmo"`       // 1
@@ -482,13 +484,13 @@ func toCharEquip(inv [16]Item) charEquip {
 	}
 }
 
-// MarshalJSON grava o equip como OBJETO nomeado e o inventario com TODOS os 64
-// slots (sem cortar) -- salvar e carregar viram simetricos e todo slot fica visivel.
-// O alias embutido evita duplicar os campos escalares (o equip/inv de fora, na
-// profundidade 0, vencem os do alias, profundidade 1, por terem a mesma tag json).
-// IsEmpty diz se o slot de personagem esta realmente vazio. Substitui a
-// comparacao direta com Char{}, impossivel desde que QuestsDone virou slice
-// (struct com slice nao e comparavel em Go).
+// MarshalJSON writes the equipment as a NAMED object and the inventory with ALL
+// 64 slots (untrimmed) -- save and load are symmetric and every slot is visible.
+// The embedded alias avoids duplicating scalar fields (the outer equip/inv at
+// depth 0 win over the alias ones at depth 1 because they share the json tag).
+// IsEmpty reports whether a character slot is really empty. It replaces a direct
+// comparison with Char{}, impossible since QuestsDone became a slice (a struct
+// with a slice is not comparable in Go).
 func (c *Char) IsEmpty() bool {
 	if c == nil {
 		return true
@@ -503,9 +505,9 @@ func (c *Char) IsEmpty() bool {
 	return clone.equalsZero()
 }
 
-// equalsZero compara todos os demais campos persistidos por valor. Ao adicionar
-// estado ao Char, este predicado e seus testes precisam ser atualizados: um slot
-// sem nome nunca pode ser serializado como null enquanto ainda contem dominio.
+// equalsZero compares every other persisted field by value. When state is added
+// to Char, this predicate and its tests must be updated: a nameless slot must
+// never be serialized as null while it still holds domain state.
 func (c Char) equalsZero() bool {
 	return c.UID == "" && c.Name == "" && c.Class == 0 && c.X == 0 && c.Y == 0 &&
 		c.Score == nil && c.RuntimeScore == nil &&
@@ -530,13 +532,13 @@ func (c Char) MarshalJSON() ([]byte, error) {
 		return []byte("null"), nil
 	}
 	if c.Name == "" {
-		return nil, fmt.Errorf("slot de personagem sem nome contem estado")
+		return nil, fmt.Errorf("nameless character slot holds state")
 	}
 	type alias Char
 	encoded := alias(c)
-	// Todo personagem persistido pelo formato atual leva a marca, inclusive
-	// quando algum teste/ferramenta construiu Char{CP:75} diretamente. Sem ela
-	// a próxima leitura teria de interpretar +75 como o antigo neutro.
+	// Every character persisted in the current format carries the mark, even
+	// when a test/tool built Char{CP:75} directly. Without it the next read
+	// would have to interpret +75 as the old neutral value.
 	if encoded.ChaosVersion == 0 {
 		encoded.ChaosVersion = ChaosFormatVersion
 	}
@@ -548,12 +550,12 @@ func (c Char) MarshalJSON() ([]byte, error) {
 	}{
 		alias: encoded,
 		Equip: toCharEquip(c.Equip),
-		Inv:   c.Inv[:], // todos os 64 slots
+		Inv:   c.Inv[:], // all 64 slots
 	})
 }
 
-// UnmarshalJSON le exclusivamente o formato autoritativo atual: score
-// v2, equipamento nomeado e inventario posicional completo.
+// UnmarshalJSON reads only the current authoritative format: score v2, named
+// equipment and the complete positional inventory.
 func (c *Char) UnmarshalJSON(b []byte) error {
 	if bytes.Equal(bytes.TrimSpace(b), []byte("null")) {
 		*c = Char{}
@@ -578,17 +580,17 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return fmt.Errorf("personagem %q possui JSON adicional", aux.Name)
+		return fmt.Errorf("character %q has trailing JSON", aux.Name)
 	}
 	*c = Char(aux.alias)
 	if aux.LegacyChaos != nil {
 		if _, hasCP := fields["cp"]; hasCP {
-			return fmt.Errorf("personagem %q possui cp e chaos simultaneamente", c.Name)
+			return fmt.Errorf("character %q has both cp and chaos", c.Name)
 		}
-		// Migracao unica do formato anterior. O campo legado era o byte bruto
-		// nativo (1..150), em que 75 e o personagem neutro. O zero usado pelos
-		// JSONs antigos significava "sem estado" e tambem deve virar neutro,
-		// nunca CP +75. A borda do protocolo converte CP assinado para CP+75.
+		// One-time migration of the previous format. The legacy field was the raw
+		// native byte (1..150), where 75 is a neutral character. The zero used by
+		// old JSON meant "no state" and must also become neutral, never CP +75.
+		// The protocol boundary converts the signed CP to CP+75.
 		if *aux.LegacyChaos == 0 {
 			c.CP = 0
 		} else {
@@ -596,51 +598,50 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 		}
 	}
 	if c.ChaosVersion == 0 {
-		// Antes da separação CP/Hold, o template e alguns saves escreviam
-		// `cp:75` para representar um personagem neutro. Não há marcador para
-		// distinguir esses saves antigos de um +75 recém-obtido; a migração
-		// única prioriza preservar o estado neutro e marca o formato novo. A
-		// remissão usada depois desta versão permanece +75 porque já carrega a
-		// marca.
+		// Before the CP/Hold split, the template and some saves wrote `cp:75` for
+		// a neutral character. Nothing distinguishes those old saves from a newly
+		// earned +75; the one-time migration keeps the neutral state and marks the
+		// new format. A remission used after this version stays +75 because it
+		// already carries the mark.
 		if _, hasCP := fields["cp"]; hasCP && aux.LegacyChaos == nil && c.CP == MaxCP {
 			c.CP = 0
 		}
 		c.ChaosVersion = ChaosFormatVersion
 	}
 	if c.ChaosVersion != 0 && c.ChaosVersion != ChaosFormatVersion {
-		return fmt.Errorf("personagem %q possui versao de chaos invalida: %d", c.Name, c.ChaosVersion)
+		return fmt.Errorf("character %q has an invalid chaos version: %d", c.Name, c.ChaosVersion)
 	}
 	if c.CP < MinCP || c.CP > MaxCP {
-		return fmt.Errorf("personagem %q possui cp fora de -75..75: %d", c.Name, c.CP)
+		return fmt.Errorf("character %q has cp outside -75..75: %d", c.Name, c.CP)
 	}
 	if err := c.Score.ValidatePlayerState(); err != nil {
-		return fmt.Errorf("personagem %q: %w", c.Name, err)
+		return fmt.Errorf("character %q: %w", c.Name, err)
 	}
 	if err := c.AlternateCelestial.Validate(); err != nil {
-		return fmt.Errorf("personagem %q: %w", c.Name, err)
+		return fmt.Errorf("character %q: %w", c.Name, err)
 	}
 	if c.ArchCrystals > 4 || c.SoulInfo > 10 ||
 		c.CelestialArchTier > 5 || c.CelestialCytheraTier > 4 {
-		return fmt.Errorf("personagem %q possui progresso Arch/Celestial invalido", c.Name)
+		return fmt.Errorf("character %q has invalid Arch/Celestial progress", c.Name)
 	}
 	activeEvolution := strings.ToLower(strings.TrimSpace(c.Evolution))
 	if (activeEvolution == "celestial" || activeEvolution == "subcelestial") &&
 		c.Score.Level > 199 {
-		return fmt.Errorf("personagem %q possui level Celestial interno %d; maximo 199",
+		return fmt.Errorf("character %q has internal Celestial level %d; maximum 199",
 			c.Name, c.Score.Level)
 	}
 	if c.AlternateCelestial != nil {
 		active := activeEvolution
 		alternate := strings.ToLower(strings.TrimSpace(c.AlternateCelestial.Evolution))
 		if active != "celestial" && active != "subcelestial" {
-			return fmt.Errorf("personagem %q possui forma alterna sem forma celestial ativa", c.Name)
+			return fmt.Errorf("character %q has an alternate form without an active celestial form", c.Name)
 		}
 		if active == alternate {
-			return fmt.Errorf("personagem %q possui duas formas %q", c.Name, active)
+			return fmt.Errorf("character %q has two %q forms", c.Name, active)
 		}
 	}
 	if len(aux.Inv) != len(c.Inv) {
-		return fmt.Errorf("personagem %q possui %d slots de inventario; esperado %d",
+		return fmt.Errorf("character %q has %d inventory slots; expected %d",
 			c.Name, len(aux.Inv), len(c.Inv))
 	}
 	c.Equip = aux.Equip.array()
@@ -650,22 +651,25 @@ func (c *Char) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// Account = conta persistida: login + senha + ate 4 chars.
+// Account is a persisted account: login, password and up to 4 characters.
 type Account struct {
 	Name         string    `json:"name"`
 	PasswordHash string    `json:"passwordHash"`
 	Chars        []Char    `json:"chars"`
-	Cargo        [128]Item `json:"cargo"`               // bau compartilhado pelos quatro personagens
-	CargoGold    uint32    `json:"cargoGold,omitempty"` // gold guardado/vendas da Loja Fantasma
-	// CelestialCapsules sao selos persistentes que guardam uma ficha Celestial
-	// retirada do mundo. O item 3443 no Carry/Cargo referencia ID; o snapshot completo
-	// fica aqui para que Postgres/JSON confirmem item, personagem e estado em uma
-	// unica gravacao, sem depender de arquivos numerados fora da transacao.
+	Cargo        [128]Item `json:"cargo"`               // storage shared by the four characters
+	CargoGold    uint32    `json:"cargoGold,omitempty"` // stored gold / Phantom Shop sales
+	// CelestialCapsules are persistent seals holding a Celestial character taken
+	// out of the world. Item 3443 in Carry/Cargo references the ID; the complete
+	// snapshot lives here so Postgres/JSON commit item, character and state in a
+	// single write, without numbered files outside the transaction.
 	CelestialCapsules []CelestialCapsule `json:"celestialCapsules,omitempty"`
+	// Donate is the account-wide premium balance (DOCS/protocol/premium-shop.md).
+	// It is saved with the account, so a purchase and its item commit together.
+	Donate uint32 `json:"donate,omitempty"`
 }
 
-// UnmarshalJSON exige o cargo estrutural completo. Os oito slots sem UI
-// continuam no arquivo para preservar a ABI, mas Account.Validate exige zeros.
+// UnmarshalJSON requires the complete structural cargo. The eight slots without
+// UI stay in the file to preserve the ABI, but Account.Validate requires zeros.
 func (a *Account) UnmarshalJSON(b []byte) error {
 	type alias Account
 	aux := struct {
@@ -680,10 +684,10 @@ func (a *Account) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return fmt.Errorf("conta %q possui JSON adicional", aux.Name)
+		return fmt.Errorf("account %q has trailing JSON", aux.Name)
 	}
 	if len(aux.Cargo) != MaxCargo {
-		return fmt.Errorf("conta %q possui %d slots de cargo; esperado %d",
+		return fmt.Errorf("account %q has %d cargo slots; expected %d",
 			aux.Name, len(aux.Cargo), MaxCargo)
 	}
 	*a = Account(aux.alias)
@@ -693,31 +697,34 @@ func (a *Account) UnmarshalJSON(b []byte) error {
 
 func (a *Account) Validate() error {
 	if a == nil {
-		return fmt.Errorf("conta ausente")
+		return fmt.Errorf("missing account")
 	}
 	if a.Name == "" {
-		return fmt.Errorf("conta sem nome")
+		return fmt.Errorf("account without a name")
 	}
 	if a.PasswordHash == "" {
-		return fmt.Errorf("conta %q sem passwordHash", a.Name)
+		return fmt.Errorf("account %q without passwordHash", a.Name)
+	}
+	if a.Donate > MaxDonateBalance {
+		return fmt.Errorf("account %q donate balance %d exceeds %d", a.Name, a.Donate, MaxDonateBalance)
 	}
 	if len(a.Chars) > 4 {
-		return fmt.Errorf("conta %q possui %d personagens; maximo 4", a.Name, len(a.Chars))
+		return fmt.Errorf("account %q has %d characters; maximum 4", a.Name, len(a.Chars))
 	}
 	activeUIDs := make(map[string]struct{}, len(a.Chars))
 	validateItemTime := func(item Item, location string) error {
 		if item.ActivatedUnix < 0 || item.ExpiresUnix < 0 ||
 			(item.ActivatedUnix == 0) != (item.ExpiresUnix == 0) ||
 			item.ExpiresUnix != 0 && item.ExpiresUnix < item.ActivatedUnix {
-			return fmt.Errorf("conta %q possui prazo de item invalido em %s", a.Name, location)
+			return fmt.Errorf("account %q has an invalid item expiry at %s", a.Name, location)
 		}
 		if item.Index == 0 && (item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0) {
-			return fmt.Errorf("conta %q possui item vazio com identidade/prazo em %s", a.Name, location)
+			return fmt.Errorf("account %q has an empty item with identity/expiry at %s", a.Name, location)
 		}
 		if item.ActivatedUnix != 0 {
 			uid, err := NormalizeItemUID(item.UID)
 			if err != nil || uid == "" || uid != item.UID {
-				return fmt.Errorf("conta %q possui item temporizado sem UID canonico em %s", a.Name, location)
+				return fmt.Errorf("account %q has a timed item without a canonical UID at %s", a.Name, location)
 			}
 		}
 		return nil
@@ -726,52 +733,52 @@ func (a *Account) Validate() error {
 		character := &a.Chars[i]
 		if character.Name == "" {
 			if !character.IsEmpty() {
-				return fmt.Errorf("conta %q personagem[%d] vazio contem estado", a.Name, i)
+				return fmt.Errorf("account %q empty character[%d] holds state", a.Name, i)
 			}
 			continue
 		}
 		if err := character.Score.ValidatePlayerState(); err != nil {
-			return fmt.Errorf("conta %q personagem[%d] %q: %w",
+			return fmt.Errorf("account %q character[%d] %q: %w",
 				a.Name, i, character.Name, err)
 		}
 		if err := character.AlternateCelestial.Validate(); err != nil {
-			return fmt.Errorf("conta %q personagem[%d] %q: %w",
+			return fmt.Errorf("account %q character[%d] %q: %w",
 				a.Name, i, character.Name, err)
 		}
 		normalized, err := NormalizeCharacterUID(character.UID)
 		if err != nil {
-			return fmt.Errorf("conta %q personagem[%d] %q: %w",
+			return fmt.Errorf("account %q character[%d] %q: %w",
 				a.Name, i, character.Name, err)
 		}
 		if normalized == "" {
-			return fmt.Errorf("conta %q personagem[%d] %q sem UID",
+			return fmt.Errorf("account %q character[%d] %q without a UID",
 				a.Name, i, character.Name)
 		}
 		if normalized != character.UID {
-			return fmt.Errorf("conta %q personagem[%d] %q possui UID nao canonico",
+			return fmt.Errorf("account %q character[%d] %q has a non-canonical UID",
 				a.Name, i, character.Name)
 		}
 		if _, duplicate := activeUIDs[character.UID]; duplicate {
-			return fmt.Errorf("conta %q possui UID de personagem duplicado %q", a.Name, character.UID)
+			return fmt.Errorf("account %q has a duplicate character UID %q", a.Name, character.UID)
 		}
 		activeUIDs[character.UID] = struct{}{}
 		if character.ArchMortalUID != "" {
 			if _, err := NormalizeCharacterUID(character.ArchMortalUID); err != nil {
-				return fmt.Errorf("conta %q personagem[%d] %q: %w",
+				return fmt.Errorf("account %q character[%d] %q: %w",
 					a.Name, i, character.Name, err)
 			}
 		}
 		if character.Inv[PlayerCarrySlots].Index != 0 {
-			return fmt.Errorf("conta %q personagem[%d] %q ocupa slot de inventario reservado %d",
+			return fmt.Errorf("account %q character[%d] %q uses reserved inventory slot %d",
 				a.Name, i, character.Name, PlayerCarrySlots)
 		}
 		for slot := range character.Equip {
-			if err := validateItemTime(character.Equip[slot], fmt.Sprintf("personagem[%d].equip[%d]", i, slot)); err != nil {
+			if err := validateItemTime(character.Equip[slot], fmt.Sprintf("character[%d].equip[%d]", i, slot)); err != nil {
 				return err
 			}
 		}
 		for slot := range character.Inv {
-			if err := validateItemTime(character.Inv[slot], fmt.Sprintf("personagem[%d].inv[%d]", i, slot)); err != nil {
+			if err := validateItemTime(character.Inv[slot], fmt.Sprintf("character[%d].inv[%d]", i, slot)); err != nil {
 				return err
 			}
 		}
@@ -783,38 +790,38 @@ func (a *Account) Validate() error {
 	}
 	for i := PlayerCargoSlots; i < MaxCargo; i++ {
 		if a.Cargo[i].Index != 0 {
-			return fmt.Errorf("conta %q ocupa slot de cargo reservado %d", a.Name, i)
+			return fmt.Errorf("account %q uses reserved cargo slot %d", a.Name, i)
 		}
 	}
 	if len(a.CelestialCapsules) > 65535 {
-		return fmt.Errorf("conta %q possui capsulas Celestial demais", a.Name)
+		return fmt.Errorf("account %q has too many Celestial capsules", a.Name)
 	}
 	ids := make(map[uint16]struct{}, len(a.CelestialCapsules))
 	itemUIDs := make(map[string]struct{}, len(a.CelestialCapsules))
 	sourceUIDs := make(map[string]struct{}, len(a.CelestialCapsules))
 	for i, capsule := range a.CelestialCapsules {
 		if err := capsule.Validate(); err != nil {
-			return fmt.Errorf("conta %q capsula[%d]: %w", a.Name, i, err)
+			return fmt.Errorf("account %q capsule[%d]: %w", a.Name, i, err)
 		}
 		if _, exists := ids[capsule.ID]; exists {
-			return fmt.Errorf("conta %q possui ID de capsula duplicado %d", a.Name, capsule.ID)
+			return fmt.Errorf("account %q has a duplicate capsule ID %d", a.Name, capsule.ID)
 		}
 		if _, exists := itemUIDs[capsule.ItemUID]; exists {
-			return fmt.Errorf("conta %q possui item de capsula duplicado %q", a.Name, capsule.ItemUID)
+			return fmt.Errorf("account %q has a duplicate capsule item %q", a.Name, capsule.ItemUID)
 		}
 		if _, exists := sourceUIDs[capsule.SourceUID]; exists {
-			return fmt.Errorf("conta %q possui personagem de capsula duplicado %q", a.Name, capsule.SourceUID)
+			return fmt.Errorf("account %q has a duplicate capsule character %q", a.Name, capsule.SourceUID)
 		}
 		if _, exists := activeUIDs[capsule.SourceUID]; exists {
-			return fmt.Errorf("conta %q possui personagem ativo e capsula para o mesmo UID %q", a.Name, capsule.SourceUID)
+			return fmt.Errorf("account %q has an active character and a capsule for the same UID %q", a.Name, capsule.SourceUID)
 		}
 		ids[capsule.ID] = struct{}{}
 		itemUIDs[capsule.ItemUID] = struct{}{}
 		sourceUIDs[capsule.SourceUID] = struct{}{}
 	}
-	// Snapshot e item formam um único agregado. O selo pode circular entre o
-	// Carry visível e o Cargo da mesma conta, mas deve existir exatamente uma vez.
-	// A validação reversa também recusa selo preenchido sem snapshot.
+	// Snapshot and item form a single aggregate. The seal may move between the
+	// visible Carry and the same account's Cargo, but must exist exactly once.
+	// The reverse check also refuses a filled seal without a snapshot.
 	sealCounts := make(map[string]int, len(a.CelestialCapsules))
 	validateSeal := func(item Item, location string) error {
 		id, filled := CelestialSealID(item)
@@ -829,15 +836,15 @@ func (a *Account) Validate() error {
 			}
 		}
 		if capsuleIndex < 0 {
-			return fmt.Errorf("conta %q possui selo preenchido sem snapshot em %s", a.Name, location)
+			return fmt.Errorf("account %q has a filled seal without a snapshot at %s", a.Name, location)
 		}
 		capsule := a.CelestialCapsules[capsuleIndex]
 		if item.UID == "" || item.UID != capsule.ItemUID {
-			return fmt.Errorf("conta %q capsula %d aponta para item inconsistente em %s", a.Name, id, location)
+			return fmt.Errorf("account %q capsule %d points to an inconsistent item at %s", a.Name, id, location)
 		}
 		sealCounts[item.UID]++
 		if sealCounts[item.UID] > 1 {
-			return fmt.Errorf("conta %q possui selo duplicado da capsula %d", a.Name, id)
+			return fmt.Errorf("account %q has a duplicate seal for capsule %d", a.Name, id)
 		}
 		return nil
 	}
@@ -852,36 +859,36 @@ func (a *Account) Validate() error {
 		}
 		for slot := 0; slot < PlayerCarrySlots; slot++ {
 			if err := validateSeal(a.Chars[charIndex].Inv[slot],
-				fmt.Sprintf("personagem[%d].inv[%d]", charIndex, slot)); err != nil {
+				fmt.Sprintf("character[%d].inv[%d]", charIndex, slot)); err != nil {
 				return err
 			}
 		}
 		for slot := range a.Chars[charIndex].Equip {
 			if _, filled := CelestialSealID(a.Chars[charIndex].Equip[slot]); filled {
-				return fmt.Errorf("conta %q possui selo preenchido em equipamento[%d]", a.Name, slot)
+				return fmt.Errorf("account %q has a filled seal in equipment[%d]", a.Name, slot)
 			}
 		}
 	}
 	for _, capsule := range a.CelestialCapsules {
 		if sealCounts[capsule.ItemUID] != 1 {
-			return fmt.Errorf("conta %q capsula %d sem selo no Carry/Cargo", a.Name, capsule.ID)
+			return fmt.Errorf("account %q capsule %d has no seal in Carry/Cargo", a.Name, capsule.ID)
 		}
 	}
 	return nil
 }
 
-// Equip preserva os STRUCT_ITEM completos dos 16 slots do mob. Os efeitos sao
-// necessarios para o codigo visual de refino/cor/montaria. Na ABI 7.54,
-// montaria e slot 14 e capa e slot 15.
+// Equip keeps the complete STRUCT_ITEM of the mob's 16 slots. The effects are
+// needed for the refine/color/mount visual code. In the 7.54 ABI the mount is
+// slot 14 and the cape slot 15.
 type Equip struct {
-	Rosto      Item `json:"rosto"`      // 0  rosto/corpo base
-	Elmo       Item `json:"elmo"`       // 1  capacete
-	Armadura   Item `json:"armadura"`   // 2  torso
+	Rosto      Item `json:"rosto"`      // 0  face / base body
+	Elmo       Item `json:"elmo"`       // 1  helmet
+	Armadura   Item `json:"armadura"`   // 2  armor
 	Calca      Item `json:"calca"`      // 3
 	Luva       Item `json:"luva"`       // 4
 	Bota       Item `json:"bota"`       // 5
-	Arma       Item `json:"arma"`       // 6  mao direita
-	Escudo     Item `json:"escudo"`     // 7  mao esquerda / 2a arma
+	Arma       Item `json:"arma"`       // 6  right hand
+	Escudo     Item `json:"escudo"`     // 7  left hand / second weapon
 	Acessorio1 Item `json:"acessorio1"` // 8
 	Acessorio2 Item `json:"acessorio2"` // 9
 	Acessorio3 Item `json:"acessorio3"` // 10
@@ -901,15 +908,15 @@ func (e Equip) Items() [16]Item {
 	}
 }
 
-// VisualItemCode porta GetItemIDEF do PacketProtocolV754.
+// VisualItemCode ports GetItemIDEF from PacketProtocolV754.
 func VisualItemCode(item Item, mount bool) uint16 {
 	if item.Index == 0 {
 		return 0
 	}
 	if mount {
-		// A montaria ferida continua equipada e persistida, mas o SendEquip
-		// nativo a projeta como slot vazio. Sem esta regra, o dono e jogadores
-		// que entram depois na visão ainda a desenham viva com HP zero.
+		// A wounded mount stays equipped and persisted, but native SendEquip
+		// projects it as an empty slot. Without this rule the owner and players
+		// entering view later still draw it alive with zero HP.
 		if item.MountHP() <= 0 || item.Index >= 2360 && item.Index < 2390 && item.Eff[1] > 127 {
 			return 0
 		}
@@ -950,7 +957,7 @@ func VisualItemCode(item Item, mount bool) uint16 {
 	return uint16(uint32(item.Index) + uint32(value)*0x1000)
 }
 
-// AncientCode porta GetAnctCode do PacketProtocolV754.
+// AncientCode ports GetAnctCode from PacketProtocolV754.
 func AncientCode(item Item) byte {
 	value := 0
 	for i := 0; i < 3; i++ {
@@ -998,72 +1005,73 @@ func (e Equip) AncientCodes() [16]byte {
 	return out
 }
 
-// Tipos de NPC (campo Tipo). Define o papel do mob no SERVIDOR (o Merchant define
-// a UI do lado do CLIENT). So "monstro" e atacavel/hostil no combate.
+// NPC kinds (Tipo field; persisted values stay in Portuguese for data
+// compatibility). They define the mob's role on the SERVER (Merchant defines the
+// CLIENT UI). Only "monstro" (monster) is attackable/hostile in combat.
 const (
-	TipoNPC     = "npc"     // padrao: parado, nao atacavel (mercador, quest, guarda)
-	TipoMonstro = "monstro" // hostil: pode ser atacado, morre, renasce
+	TipoNPC     = "npc"     // default: stationary, not attackable (merchant, quest, guard)
+	TipoMonstro = "monstro" // hostile: can be attacked, dies, respawns
 )
 
-// NPCDef = definicao estatica de um NPC (carregada de JSON legivel).
+// NPCDef is the static definition of an NPC (loaded from readable JSON).
 type NPCDef struct {
 	Name      string `json:"name"`
-	Tipo      string `json:"tipo,omitempty"` // "monstro" ou "npc" (default npc)
-	Equip     Equip  `json:"equip"`          // aparencia (16 slots nomeados)
+	Tipo      string `json:"tipo,omitempty"` // "monstro" or "npc" (default npc)
+	Equip     Equip  `json:"equip"`          // appearance (16 named slots)
 	ClassInfo byte   `json:"classInfo,omitempty"`
 	ExpReward uint32 `json:"expReward"`
-	// Score e a unica fonte de atributos do NPC. Assim como nos personagens,
-	// STRUCT_SCORE WORD e somente uma projecao criada na borda do protocolo.
+	// Score is the NPC's only attribute source. As for characters, the WORD
+	// STRUCT_SCORE is only a projection created at the protocol boundary.
 	Score *Score `json:"score"`
-	// Carry = o inventario de DROP do monstro (mecanica nativa do WYD): a POSICAO
-	// no array e o slot (0..63) e define a chance via a tabela de drop rates
-	// (data/droprate.json, portada do g_pDropRate[64] do WYD 7.48). Na morte, cada slot
-	// ocupado rola rand()%rate==0; o item dropado vai DIRETO pro inventario do killer.
+	// Carry is the monster's DROP inventory (native WYD mechanic): the POSITION
+	// in the array is the slot (0..63) and sets the chance through the drop rate
+	// table (data/droprate.json, ported from WYD 7.48 g_pDropRate[64]). On death
+	// each occupied slot rolls rand()%rate==0; the drop goes STRAIGHT to the killer's inventory.
 	Carry []Item `json:"carry,omitempty"`
-	// Gold = o "Coin" do mob nativo; na morte rola o drop de gold (formula do
-	// MobKilled) direto pro gold do killer.
+	// Gold is the native mob "Coin"; on death it rolls the gold drop (MobKilled
+	// formula) straight into the killer's gold.
 	Gold uint32 `json:"gold,omitempty"`
-	// Direction preserva somente o nibble alto de Status.Merchant. No wire, o
-	// client recebe Direction | (Score.Merchant & 0x0F). O valor completo de
-	// Merchant continua em Score para a logica server-side (19, 43 etc.).
+	// Direction keeps only the high nibble of Status.Merchant. On the wire the
+	// client receives Direction | (Score.Merchant & 0x0F). The full Merchant
+	// value stays in Score for server-side logic (19, 43 etc.).
 	Direction    byte    `json:"direction,omitempty"`
 	LearnedSkill uint32  `json:"learnedSkill,omitempty"`
 	SkillBar     [4]byte `json:"skillBar,omitempty"`
-	// Vende = itens a venda de um NPC de comercio (o Inventory[] do mob; o client
-	// compra mandando o sellSlot). So mercadores usam.
+	// Vende lists the goods of a trading NPC (the mob's Inventory[]; the client
+	// buys by sending the sellSlot). Only merchants use it.
 	Vende []Item `json:"vende,omitempty"`
 }
 
-// MaxCarry e o tamanho ESTRUTURAL do Carry no wire/JSON e do carry dos mobs.
-// O client 7.48 transmite 64 STRUCT_ITEM, mas o indice 63 nao possui celula na
-// UI do inventario do jogador. Nunca reduzir o array: isso quebraria o ABI.
+// MaxCarry is the STRUCTURAL Carry size on the wire/JSON and of mob carries.
+// The 7.48 client sends 64 STRUCT_ITEM, but index 63 has no cell in the
+// player's inventory UI. Never shrink the array: that would break the ABI.
 const MaxCarry = 64
 
-// PlayerCarrySlots e a capacidade realmente acessivel na UI: indices 0..62.
+// PlayerCarrySlots is the capacity actually reachable in the UI: indices 0..62.
 const PlayerCarrySlots = MaxCarry - 1
 
-// ItemListSize e a quantidade estrutural de entradas do ItemList 7.48/7.54.
-// Indices validos vao de 0 a 6499; valores maiores em arquivos de NPC sao
-// memoria residual/corrupcao e nunca podem chegar ao client.
+// ItemListSize is the structural entry count of the 7.48/7.54 ItemList. Valid
+// indices are 0 to 6499; larger values in NPC files are residual memory or
+// corruption and must never reach the client.
 const ItemListSize = 6500
 
-// SkillListSize e a tabela estrutural do SkillData 7.48: 96 skills das quatro
-// classes e os indices especiais 96..103. O wire e LearnedSkill nao possuem
-// representacao valida fora dessa faixa.
+// SkillListSize is the structural 7.48 SkillData table: 96 skills of the four
+// classes and special indices 96..103. The wire and LearnedSkill have no valid
+// representation outside that range.
 const SkillListSize = 104
 
-// MaxCargo e o tamanho estrutural transmitido no char-list 7.48. O cliente
-// possui tres paginas de 40 celulas; os oito slots finais existem no protocolo,
-// mas nao possuem UI e nunca podem receber movimentacoes do jogador.
+// MaxCargo is the structural size sent in the 7.48 character list. The client
+// has three pages of 40 cells; the last eight slots exist in the protocol but
+// have no UI and must never receive player moves.
 const MaxCargo = 128
 const PlayerCargoSlots = 120
 
-// MaxGenerSegments e o numero de pontos de rota do NPCGener original:
-// Start, Segment1, Segment2, Segment3 e Dest.
+// MaxGenerSegments is the number of route points of the original NPCGener:
+// Start, Segment1, Segment2, Segment3 and Dest.
 const MaxGenerSegments = 5
 
-// GenerSegment representa um ponto da rota de um gerador. Action fica preservado
-// para a futura IA executar os scripts do arquivo padrao.
+// GenerSegment is one route point of a generator. Action is preserved so the
+// AI can run the standard file's scripts.
 type GenerSegment struct {
 	X, Y   uint16
 	Range  uint16
@@ -1071,8 +1079,8 @@ type GenerSegment struct {
 	Action string
 }
 
-// NPCGener e uma entrada do NPCGener.txt padrao do WYD. NPCDef continua sendo o
-// template de atributos/aparencia; esta struct define geracao, grupo e rota.
+// NPCGener is one entry of the standard WYD NPCGener.txt. NPCDef stays the
+// attribute/appearance template; this struct defines spawning, group and route.
 type NPCGener struct {
 	Index          int
 	Enabled        bool
@@ -1087,9 +1095,8 @@ type NPCGener struct {
 	Segments       [MaxGenerSegments]GenerSegment
 }
 
-// Teleport representa uma entrada server-side de data/teleports.ini.
-// O portal e acionado pelo 0x290 quando o jogador esta no quadrado 4x4 cuja
-// origem e SourceX/SourceY.
+// Teleport is one server-side entry of data/teleports.ini. The portal fires on
+// 0x290 when the player stands in the 4x4 square whose origin is SourceX/SourceY.
 type Teleport struct {
 	SourceX, SourceY uint16
 	DestX, DestY     uint16
@@ -1097,20 +1104,20 @@ type Teleport struct {
 	Name             string
 }
 
-// IsMonster diz se o mob e hostil/atacavel (tipo "monstro"). Merchant diferente
-// de zero sempre identifica uma funcao de NPC no protocolo; essa segunda trava
-// impede um template convertido incorretamente de transformar loja/artesao em mob.
+// IsMonster reports whether the mob is hostile/attackable (tipo "monstro"). A
+// nonzero Merchant always identifies an NPC role in the protocol; this second
+// lock stops a badly converted template from turning a shop/crafter into a mob.
 func (n *NPCDef) IsMonster() bool {
 	return n != nil && n.Tipo == TipoMonstro && (n.Score == nil || n.Score.Merchant == 0)
 }
 
-// Mesh devolve os 16 slots de aparencia (ItemEff@34 do CreateMob) como slice.
+// Mesh returns the 16 appearance slots (CreateMob ItemEff@34) as a slice.
 func (n *NPCDef) Mesh() []uint16 {
 	s := n.Equip.Slots()
 	return s[:]
 }
 
-// MakeScore clona os atributos autoritativos e injeta os recursos atuais.
+// MakeScore clones the authoritative attributes and injects current resources.
 func (n *NPCDef) MakeScore(currentHP uint32) *Score {
 	if n == nil || n.Score == nil {
 		return &Score{Version: ScoreVersion}

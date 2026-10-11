@@ -406,7 +406,7 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 		createdGround = nil
 	}
 	for _, drop := range ground {
-		item := w.createGroundDropForInstance(drop.p.X, drop.p.Y, drop.item, false, inst.RuntimeID)
+		item := w.createGroundDropCell(drop.p.X, drop.p.Y, drop.item, false, inst.RuntimeID, ownerOf(drop.p))
 		if item == nil {
 			rollbackGround()
 			rollback()

@@ -82,7 +82,7 @@ void BASE_RemoveEffect(STRUCT_ITEM* item, int effect);
 
 /* Read Functions */
 void ReadItemName();
-void ReadUIString();
+bool ReadUIString();
 char ReadNameFiltraDataBase();
 char ReadChatFiltraDataBase();
 

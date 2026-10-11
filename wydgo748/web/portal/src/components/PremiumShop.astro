@@ -1,0 +1,32 @@
+<section id="premium" class="panel premium-panel" aria-labelledby="premium-title">
+  <div class="panel-heading"><div><span class="eyebrow">ECONOMY</span><h2 id="premium-title">Premium shop and donate</h2></div><button id="premium-refresh" class="button subtle" type="button">Refresh catalog</button></div>
+  <div class="event-body">
+    <p class="muted">The premium NPC (face 57) sells these items for donate in the native shop window. Players receive donate from staff credits and from Wyden coins. Bought items are ordinary, tradeable items.</p>
+    <p id="premium-state" class="muted">Waiting for a query.</p>
+    <div class="table-scroll"><table><thead><tr><th>CELL (0–26)</th><th>ITEM ID</th><th>NAME</th><th>EFFECTS (6 bytes)</th><th>PRICE (DONATE)</th><th></th></tr></thead><tbody id="premium-rows"><tr><td colspan="6" class="empty">No catalog loaded.</td></tr></tbody></table></div>
+    <form id="premium-form">
+      <div class="event-actions"><button id="premium-add" class="button subtle" type="button" disabled>Add item</button></div>
+      <label for="premium-reason">Reason for the change</label><input id="premium-reason" minlength="3" maxlength="200" required placeholder="E.g. weekly catalog update" />
+      <div class="event-actions"><button id="premium-save" class="button primary" type="submit" disabled>Save catalog</button></div>
+    </form>
+    <p id="premium-message" class="form-message" role="status" aria-live="polite"></p>
+  </div>
+  <div class="event-body">
+    <h3>Donate balance</h3>
+    <form id="donate-lookup" class="search-form"><label class="sr-only" for="donate-account">Account</label><input id="donate-account" maxlength="12" pattern="[a-z0-9]{1,12}" required placeholder="Account (lowercase)" /><button class="button subtle" type="submit">Look up</button></form>
+    <dl class="event-status"><div><dt>Account</dt><dd id="donate-name">—</dd></div><div><dt>Balance</dt><dd id="donate-balance">—</dd></div><div><dt>Pending credits</dt><dd id="donate-pending">—</dd></div></dl>
+    <div class="table-scroll"><table><thead><tr><th>WHEN</th><th>KIND</th><th>CHANGE</th><th>BALANCE</th><th>ITEM / CHARACTER</th></tr></thead><tbody id="donate-ledger"><tr><td colspan="5" class="empty">No account selected.</td></tr></tbody></table></div>
+    <form id="donate-form">
+      <fieldset id="donate-fields" disabled>
+        <legend>Credit donate</legend>
+        <div class="event-fields">
+          <label>Amount<input id="donate-amount" type="number" min="1" max="2000000000" step="1" required placeholder="E.g. 1000" /></label>
+        </div>
+        <label for="donate-reason">Reason / receipt</label><input id="donate-reason" minlength="3" maxlength="200" required placeholder="E.g. donation receipt 1234" />
+        <div class="event-actions"><button id="donate-submit" class="button primary" type="submit">Credit account</button><button id="donate-retry" class="button subtle" type="button" hidden>Check result / retry request</button></div>
+      </fieldset>
+    </form>
+    <p id="donate-message" class="form-message" role="status" aria-live="polite"></p>
+    <p class="muted">A credit is applied once by the game server, immediately when the player is online or at the next entry into the world.</p>
+  </div>
+</section>

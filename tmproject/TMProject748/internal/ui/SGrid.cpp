@@ -11,6 +11,7 @@
 #include "SellConfirmationText.h"
 #include "NativeSaleQuote.h"
 #include "SGridSupport.h"
+#include <memory>
 
 
 static_assert(EF_VOLATILE == native_sale_quote::VolatileEffect,
@@ -206,8 +207,11 @@ SGridControl::SGridControl(unsigned int inTextureSetIndex, int inRowGridCount, i
 	m_vecPickupedPos = IVector2(0, 0);
 	m_vecPickupedSize = IVector2(0, 0);
 
-	m_pbFilled = new int[m_nColumnGridCount * m_nRowGridCount];
-	m_GCGrid = new GeomControl[inColumnGridCount * inRowGridCount];
+	// Retain both array owners until allocation and initialization succeed.
+	std::unique_ptr<int[]> filled(new int[m_nColumnGridCount * m_nRowGridCount]);
+	std::unique_ptr<GeomControl[]> cells(new GeomControl[inColumnGridCount * inRowGridCount]);
+	m_pbFilled = filled.get();
+	m_GCGrid = cells.get();
 
 	if (m_GCGrid)
 	{
@@ -226,6 +230,8 @@ SGridControl::SGridControl(unsigned int inTextureSetIndex, int inRowGridCount, i
 	memset(m_pItemList, 0, sizeof(m_pItemList));
 	m_nTradeMoney = 0;
 	m_dwLastSortTime = 0;
+	filled.release();
+	cells.release();
 }
 
 SGridControl::~SGridControl()

@@ -8,9 +8,9 @@
 #include <climits>
 static_assert(sizeof(D3DXMATRIX) == 64, "Animation extents require 64-byte matrices");
 
-namespace
-{
-void ClearBoneAnimations()
+// Frees every bone animation buffer once and clears the pointers, so calling
+// it again (application shutdown after the mesh manager) is a no-op.
+void MeshManager::ReleaseBoneAnimations()
 {
 	for (auto& animation : MeshManager::m_BoneAnimationList)
 	{
@@ -22,7 +22,6 @@ void ClearBoneAnimations()
 	memset(MeshManager::m_sAnimationArray, 0, sizeof(MeshManager::m_sAnimationArray));
 	memset(g_nMaxSizeOffset, 0, sizeof(g_nMaxSizeOffset));
 	MeshManager::m_nFullCount = 0;
-}
 }
 
 int g_nMaxSizeOffset[MAX_BONE_ANIMATION_LIST];
@@ -59,7 +58,7 @@ MeshManager::MeshManager()
 MeshManager::~MeshManager()
 {
 	ReleaseMesh();
-	ClearBoneAnimations();
+	ReleaseBoneAnimations();
 	g_pMeshManager = nullptr;
 }
 
@@ -99,7 +98,7 @@ int MeshManager::InitMeshManager()
 
 int MeshManager::InitBoneAnimation()
 {
-	ClearBoneAnimations();
+	ReleaseBoneAnimations();
 
 	char szFileName[128]{};
 	strcpy_s(szFileName, BoneAni4_Path);
@@ -109,7 +108,7 @@ int MeshManager::InitBoneAnimation()
 
 	if (fpList == nullptr)
 		return 0;
-	const auto fail = [&]() { fclose(fpList); ClearBoneAnimations(); return 0; };
+	const auto fail = [&]() { fclose(fpList); ReleaseBoneAnimations(); return 0; };
 
 	FILE* fpValidAni = nullptr;
 	fopen_s(&fpValidAni, ValidIndex_Path, "rb");

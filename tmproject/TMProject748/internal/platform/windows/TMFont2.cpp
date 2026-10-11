@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "TMFont2.h"
 #include "TMGlobal.h"
+#include "FontTextureUpload.h"
+#include <climits>
 
 char* TMFont2::m_pBuffer{};
 unsigned int TMFont2::m_nLength = 0;
@@ -27,11 +29,12 @@ TMFont2::~TMFont2()
 
 int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 {
-	m_nLineNumber = 0;
-	int nStrLength = strlen(szString);
-
-	if (nStrLength < 0 || nStrLength >= MAX_STRLENGTH)
+	if (!szString)
 		return 0;
+	const auto nStrLength = strnlen_s(szString, MAX_STRLENGTH);
+	if (nStrLength >= MAX_STRLENGTH)
+		return 0;
+	m_nLineNumber = 0;
 
 	if (RenderDevice::m_nBright > 58)
 	{
@@ -54,7 +57,8 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 
 	m_dwColor = dwColor;
 
-	sprintf(m_szString, "%s", szString);
+	// Render may retry with this instance's own buffer after a device failure.
+	memmove(m_szString, szString, nStrLength + 1);
 	m_szString[83] = 0;
 	m_szString[82] = 0;
 
@@ -115,27 +119,43 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 		m_nLineNumber = 1;
 	}
 
-	if (g_pDevice->m_hbmBitmap != nullptr)
+	const auto failTexture = [this]() {
+		SAFE_RELEASE(m_pTexture);
+		return FALSE;
+	};
+	if (!g_pDevice || !g_pDevice->m_pd3dDevice || !g_pDevice->m_hbmBitmap ||
+		!g_pDevice->m_hDC || !g_pDevice->m_pBitmapBits || RenderDevice::m_nFontSize <= 0 ||
+		RenderDevice::m_nFontSize >= INT_MAX / m_nLineNumber - 1)
+		return failTexture();
+	const int maskRows = m_nLineNumber * (RenderDevice::m_nFontSize + 1);
+	if (!font_texture::ValidMaskDimensions(RenderDevice::m_nFontTextureSize,
+		RenderDevice::m_nFontTextureSize, maskRows) ||
+		maskRows > RenderDevice::m_nFontTextureSize / 8)
+		return failTexture();
 	{
 		memset(m_szStringSize, 0, sizeof(m_szStringSize));
 		RECT rect;
 		rect.left = 0;
 		rect.top = 0;
 		rect.right = RenderDevice::m_nFontTextureSize;
-		rect.bottom = RenderDevice::m_nFontSize * m_nLineNumber;
+		rect.bottom = maskRows;
 
-		FillRect(g_pDevice->m_hDC, &rect, 0);
+		if (!FillRect(g_pDevice->m_hDC, &rect, static_cast<HBRUSH>(GetStockObject(BLACK_BRUSH))))
+			return failTexture();
 		for (int nLine = 0; nLine < m_nLineNumber; ++nLine)
 		{
 			char szTemp[45]{};
 			memset(szTemp, ' ', sizeof(szTemp));
 
-			TextOut(g_pDevice->m_hDC, 0, nLine * (RenderDevice::m_nFontSize + 1), szTemp, strlen(szTemp));
+			// This buffer contains only spaces and has no terminator yet.
+			if (!TextOut(g_pDevice->m_hDC, 0, nLine * (RenderDevice::m_nFontSize + 1), szTemp, sizeof(szTemp)))
+				return failTexture();
 
 			sprintf(szTemp, "%s ", m_szStringArray[nLine]);
 
-			if(strlen(szTemp))
-				TextOut(g_pDevice->m_hDC, 0, nLine * (RenderDevice::m_nFontSize + 1), szTemp, strlen(szTemp));
+			if (strlen(szTemp) && !TextOut(g_pDevice->m_hDC, 0,
+				nLine * (RenderDevice::m_nFontSize + 1), szTemp, static_cast<int>(strlen(szTemp))))
+				return failTexture();
 
 			if (bCheckZero)
 			{
@@ -159,16 +179,20 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 
 				if (bFind)
 				{
-					SetBkMode(g_pDevice->m_hDC, 1);
-					TextOut(g_pDevice->m_hDC, 0, nLine * (RenderDevice::m_nFontSize + 1),
-						szTemp2, strlen(szTemp2));
-					SetBkMode(g_pDevice->m_hDC, 2);
+					if (!SetBkMode(g_pDevice->m_hDC, TRANSPARENT))
+						return failTexture();
+					const BOOL drawn = TextOut(g_pDevice->m_hDC, 0,
+						nLine * (RenderDevice::m_nFontSize + 1), szTemp2, static_cast<int>(strlen(szTemp2)));
+					const int restored = SetBkMode(g_pDevice->m_hDC, OPAQUE);
+					if (!drawn || !restored)
+						return failTexture();
 				}
 			}
 
-			SIZE size;
-			GetTextExtentPoint32(g_pDevice->m_hDC, m_szStringArray[nLine],
-				strlen(m_szStringArray[nLine]), &size);
+			SIZE size{};
+			if (!GetTextExtentPoint32(g_pDevice->m_hDC, m_szStringArray[nLine],
+				static_cast<int>(strlen(m_szStringArray[nLine])), &size))
+				return failTexture();
 
 			m_szStringSize[nLine] = static_cast<short>(size.cx);
 		}
@@ -176,9 +200,10 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 
 	if (m_pTexture == nullptr)
 	{
+		HRESULT created = E_FAIL;
 		if (g_pDevice->m_bSavage == 1)
 		{
-			D3DXCreateTexture(g_pDevice->m_pd3dDevice,
+			created = D3DXCreateTexture(g_pDevice->m_pd3dDevice,
 				RenderDevice::m_nFontTextureSize,
 				RenderDevice::m_nFontTextureSize / 8,
 				1,
@@ -191,29 +216,15 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 		{
 			if (TMFont2::m_pBuffer == nullptr)
 			{
-				int handle = _open(MiniMap_Path, _O_BINARY);
-
-				if (handle == -1)
-					return FALSE;
-
-				char szHeader[5] = { 0, };
-
-				_read(handle, szHeader, 4);
-				TMFont2::m_nLength = _filelength(handle) - 4;
-				TMFont2::m_pBuffer = new char[m_nLength + 18];
-
-				if (TMFont2::m_pBuffer == nullptr)
-				{
-					_close(handle);
-					return FALSE;
-				}
-
-				_read(handle, TMFont2::m_pBuffer, TMFont2::m_nLength);
-				_close(handle);
-				strcpy((char*)&TMFont2::m_pBuffer[TMFont2::m_nLength], "TRUEVISION-XFILE");
+				std::unique_ptr<char[]> seed;
+				unsigned int payloadLength = 0;
+				if (!font_texture::LoadSeed(MiniMap_Path, seed, payloadLength))
+					return failTexture();
+				TMFont2::m_pBuffer = seed.release();
+				TMFont2::m_nLength = payloadLength;
 			}
 
-			HRESULT rst = D3DXCreateTextureFromFileInMemoryEx(
+			created = D3DXCreateTextureFromFileInMemoryEx(
 				g_pDevice->m_pd3dDevice,
 				TMFont2::m_pBuffer,
 				TMFont2::m_nLength + 18,
@@ -230,43 +241,14 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 				NULL,
 				&m_pTexture
 				);
-
-			if (FAILED(rst))
-			{
-				m_pTexture = nullptr;
-				return FALSE;
-			}
 		}
+		if (FAILED(created) || !m_pTexture)
+			return failTexture();
 	}
 
-	if (m_pTexture == nullptr)
-		return 0;
-
-	D3DLOCKED_RECT d3dlr;
-	m_pTexture->LockRect(0, &d3dlr, nullptr, 0);
-
-	char* pDstRow = (char*)d3dlr.pBits;
-	unsigned short* pDst16;
-
-	for (int nY = 0; nY < m_nLineNumber * (RenderDevice::m_nFontSize + 1); ++nY)
-	{
-		pDst16 = (unsigned short*)pDstRow;
-		for (int nX = 0; nX < RenderDevice::m_nFontTextureSize; ++nX)
-		{
-			char bAlpha = (g_pDevice->m_pBitmapBits[nX + nY * RenderDevice::m_nFontTextureSize] & 0xFF) >> 4;
-
-			if (bAlpha <= 0)
-				*pDst16 = 0;
-			else
-				*pDst16 = ((unsigned char)bAlpha << 12) | 0xFFF;
-
-			++pDst16;
-		}
-
-		pDstRow += d3dlr.Pitch;
-	}
-
-	m_pTexture->UnlockRect(0);
+	if (!font_texture::UploadMask(m_pTexture, g_pDevice->m_pBitmapBits,
+		RenderDevice::m_nFontTextureSize, RenderDevice::m_nFontTextureSize, maskRows))
+		return failTexture();
 	return TRUE;
 }
 
@@ -283,8 +265,9 @@ int TMFont2::Render(int nPosX, int nPosY, int nRenderType)
 		nPosY = m_nPosY;
 
 	nPosY = nPosY + 1;
-	if (m_pTexture == nullptr)
-		SetText(m_szString, m_dwColor, 0);
+	if (!g_pDevice || !g_pDevice->m_pd3dDevice ||
+		(m_pTexture == nullptr && !SetText(m_szString, m_dwColor, 0)))
+		return 0;
 
 	int strLen = strlen(m_szString);
 

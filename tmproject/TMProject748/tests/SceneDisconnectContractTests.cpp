@@ -1608,6 +1608,92 @@ int RunSceneDisconnectContractTests(int& checks)
     check(sceneLoader.find("ReadRCControlType(fpBinary, rawControlType)") != std::string::npos &&
         sceneLoader.find("readResult != RCControlTypeReadResult::Record") != std::string::npos,
         "scene loader rejects partial control-type records");
+    const auto preflight = sceneLoader.find("if (!ValidateRCStream(fpBinary");
+    const auto dispatchRC = sceneLoader.find("ReadRCControlType(fpBinary, rawControlType)");
+    check(preflight != std::string::npos && dispatchRC != std::string::npos && preflight < dispatchRC &&
+        sceneLoader.find("_fsopen(szBinFileName, \"rb\", _SH_DENYWR)") < preflight &&
+        sceneLoader.find("sizeof(SEditableText::m_strText)", preflight) < dispatchRC &&
+        sceneLoader.find("validationError, sizeof(GeomControl)", preflight) < dispatchRC &&
+        sceneLoader.find("fileOwner(fpBinary, &std::fclose)") < preflight &&
+        sceneLoader.find("return 0;", preflight) < dispatchRC,
+        "RC preflight rejects malformed resources before any control is created");
+    const auto transactionRC = sceneLoader.find("RCControlTransaction<TreeNode> transaction(", preflight);
+    const auto commitRC = sceneLoader.find("transaction.Commit();", dispatchRC);
+    check(transactionRC < dispatchRC && commitRC != std::string::npos &&
+        sceneLoader.find("catch (const std::bad_alloc&)", commitRC) != std::string::npos &&
+        sceneLoader.find("return 0;", commitRC) != std::string::npos,
+        "RC construction rolls back unsuccessful loads and converts heap exhaustion to failure");
+    for (const char* method : {"Panel", "Grid", "3DObj", "Button", "Text",
+        "EditableText", "ProgressBar", "CheckBox", "ListBox"}) {
+        const auto begin = sceneLoader.find(std::string("ExtractedFlow TMScene::ReadRC") + method + "(");
+        const auto end = sceneLoader.find("return ExtractedFlow::Next;", begin);
+        const auto owner = sceneLoader.find("controlOwner(new ", begin);
+        const auto attach = sceneLoader.find("if (!AttachRCControl(", begin);
+        const auto release = sceneLoader.find("controlOwner.release();", begin);
+        check(begin != std::string::npos && owner < attach && attach < release && release < end &&
+            sceneLoader.find("return ExtractedFlow::Return;", attach) < release,
+            "every RC widget remains locally owned until its parent accepts it");
+        check(sceneLoader.find("fclose(fpBinary);", begin) > end,
+            "RC record readers leave file closure to the single load owner");
+    }
+    const auto rcAttachment = sceneLoader.find("bool AttachRCControl(");
+    check(sceneLoader.find("container->FindControl(parentID)", rcAttachment) != std::string::npos &&
+        sceneLoader.find("if (!parent)", rcAttachment) < sceneLoader.find("parent->AddChild(control);", rcAttachment),
+        "RC attachment rejects a missing parent instead of leaking an unattached widget");
+    const auto rcGridSource = LoadSource("TMProject748/internal/ui/SGrid.cpp");
+    check(rcGridSource.find("std::unique_ptr<int[]> filled(") != std::string::npos &&
+        rcGridSource.find("std::unique_ptr<GeomControl[]> cells(") != std::string::npos &&
+        rcGridSource.find("filled.release();") > rcGridSource.find("memset(m_pbFilled"),
+        "grid construction retains both allocation owners through initialization");
+    const auto rcButtonSource = LoadSource("TMProject748/internal/ui/controls/SButton.cpp");
+    check(rcButtonSource.find("std::unique_ptr<TMFont2> fontOwner;") != std::string::npos &&
+        rcButtonSource.find("std::unique_ptr<SText> altTextOwner;") != std::string::npos &&
+        rcButtonSource.find("fontOwner.release();") > rcButtonSource.find("altTextOwner.reset(new SText("),
+        "button construction retains font ownership until alternate text is initialized");
+    const auto rcScrollSource = LoadSource("TMProject748/internal/ui/controls/SScrollBar.cpp");
+    check(rcScrollSource.find("const auto attachPanel = [this]") != std::string::npos &&
+        rcScrollSource.find("AddChild(panel);") != std::string::npos &&
+        rcScrollSource.find("m_pBar = new SPanel(") == std::string::npos &&
+        rcScrollSource.find("m_pUpPanel = new SPanel(") == std::string::npos &&
+        rcScrollSource.find("m_pDownPanel = new SPanel(") == std::string::npos &&
+        rcScrollSource.find("m_pBackground1 = new SPanel(") == std::string::npos,
+        "scrollbar construction attaches each allocation before allocating the next panel");
+    const auto rcContainerSource = LoadSource("TMProject748/internal/ui/SControlContainer.cpp");
+    check(rcContainerSource.find("std::unique_ptr<SCursor> cursor(") != std::string::npos &&
+        rcContainerSource.find("std::unique_ptr<SControl> root(") < rcContainerSource.find("m_pCursor = cursor.release();"),
+        "control container construction owns the cursor when root allocation fails");
+    for (const char* path : {"TMProject748/internal/ui/controls/SPanel.cpp",
+        "TMProject748/internal/ui/controls/SProgressBar.cpp"}) {
+        const auto widget = LoadSource(path);
+        check(widget.find("g_pCurrentScene != nullptr ? g_pCurrentScene->m_pControlContainer : nullptr") != std::string::npos,
+            "unwinding an RC widget without a current scene is safe");
+    }
+    const auto rcFontSource = LoadSource("TMProject748/internal/platform/windows/TMFont2.cpp");
+    const auto seedSource = LoadSource("TMProject748/internal/platform/windows/FontTextureUpload.h");
+    check(seedSource.find("owner(file, &std::fclose)") < seedSource.find("new char[") &&
+        seedSource.find("std::fread(bytes.get(), 1, length, file) != length") <
+            seedSource.find("destination = std::move(bytes);"),
+        "font seed file is owned through allocation and publishes only a complete read");
+    check(rcFontSource.find("font_texture::LoadSeed(MiniMap_Path, seed, payloadLength)") <
+        rcFontSource.find("TMFont2::m_pBuffer = seed.release();") &&
+        rcFontSource.find("if (FAILED(created) || !m_pTexture)") != std::string::npos &&
+        rcFontSource.find("font_texture::UploadMask(m_pTexture, g_pDevice->m_pBitmapBits,") != std::string::npos &&
+        rcFontSource.find("m_pTexture == nullptr && !SetText(m_szString, m_dwColor, 0)") != std::string::npos,
+        "font creation and rendering propagate seed, creation and upload failure");
+    for (const char* widget : {"pButton", "pText"}) {
+        const auto ready = sceneLoader.find(std::string("if (!") + widget + "->IsCaptionReady())");
+        check(ready != std::string::npos && ready <
+            sceneLoader.find(std::string("AttachRCControl(m_pControlContainer, ") + widget),
+            "RC caption failure returns while the new widget is still locally owned");
+    }
+    const auto rcTextHeader = LoadSource("TMProject748/internal/ui/controls/SText.h");
+    const auto rcButtonHeader = LoadSource("TMProject748/internal/ui/controls/SButton.h");
+    check(rcTextHeader.find("m_GCText.strString[0] == '\\0' || m_Font.m_pTexture != nullptr") != std::string::npos &&
+        rcButtonHeader.find("m_pAltText->IsCaptionReady()") != std::string::npos,
+        "caption readiness preserves empty text and checks button alternate text");
+    check(sceneLoader.find("ResolveRCBinaryPath(szFileName, szBinFileName, sizeof(szBinFileName))") != std::string::npos &&
+        sceneLoader.find("nLength - 7") == std::string::npos,
+        "scene resource names use bounded extension resolution");
     auto testTypeRead = [&](const void* bytes, std::size_t size,
         RCControlTypeReadResult expected, const char* name) {
         std::FILE* stream = nullptr;
@@ -2186,9 +2272,14 @@ int RunSceneDisconnectContractTests(int& checks)
                 "overlong UI label is rejected without partial publication");
             rejected("1\tConnect\n2\t\n",
                 "missing UI label is rejected without partial publication");
+            rejected(" \t\n\r\n",
+                "empty UI table is rejected without partial publication");
             std::error_code error;
             std::filesystem::remove(fixturePath, error);
             check(!error, "temporary UI string fixture is removed");
+            labels[1][0] = 'X';
+            check(!WYD748_LoadUIStrings(fixtureName.c_str(), &labels[0][0], 500, 64) &&
+                labels[1][0] == 'X', "missing UI table preserves existing labels");
         }
         check(!WYD748_LoadUIStrings(nullptr, &labels[0][0], 500, 64) &&
             !WYD748_LoadUIStrings(assetPath.c_str(), nullptr, 500, 64) &&
@@ -2274,10 +2365,25 @@ int RunSceneDisconnectContractTests(int& checks)
         closeOnError < notifyOnError && notifyOnError < dispatchCheck,
         "protocol errors close the socket and notify the scene before dispatch");
     check(startupSource.find("ReadItemName();") != std::string::npos &&
-        startupSource.find("ReadUIString();") != std::string::npos &&
+        startupSource.find("if (!ReadUIString())") != std::string::npos &&
         startupSource.find("ReadItemicon(") == std::string::npos &&
         basedefSource.find("g_itemicon") == std::string::npos,
         "7.48 startup keeps required item labels without the unused item-icon table");
+    const auto captionGuard = startupSource.find("if (!ReadUIString())");
+    const auto captionError = startupSource.find("Client UI string initialization failed", captionGuard);
+    const auto captionExit = startupSource.find("return 0;", captionError);
+    const auto priceLoad = startupSource.find("BASE_ReadItemPrice();", captionGuard);
+    check(captionGuard != std::string::npos && captionError != std::string::npos &&
+        captionExit != std::string::npos && priceLoad != std::string::npos &&
+        captionGuard < captionError && captionError < captionExit && captionExit < priceLoad &&
+        basedefSource.find("bool ReadUIString()") != std::string::npos &&
+        basedefSource.find("return WYD748_LoadUIStrings(UIString_Path") != std::string::npos,
+        "startup stops before scene construction when the UI string table fails");
+    check(sceneLoader.find("CopyRCIndexedCaption(g_UIString, stringIndex") != std::string::npos &&
+        sceneLoader.find("static_cast<int>(_countof(g_UIString))") != std::string::npos &&
+        sceneLoader.find("legacyInlineCaptions, MAX_STRING") == std::string::npos &&
+        sceneLoader.find("stringIndex >= MAX_STRING") == std::string::npos,
+        "RC preflight and caption copying use the actual UI table bounds");
 
     const auto readAsset = [](const char* path) {
         const auto found = FindSource(path);
@@ -2302,6 +2408,155 @@ int RunSceneDisconnectContractTests(int& checks)
         "client startup requires the shared height map before route masks are projected");
 
     const auto ccModeScene = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneAutomation.cpp");
+    const auto renderer = LoadSource("TMProject748/internal/platform/windows/RenderDevice.cpp");
+    const auto renderingState = LoadSource("TMProject748/internal/platform/windows/RenderDeviceState.cpp");
+    const auto restore = source_contract::Method(renderer, "HRESULT RenderDevice::RestoreDeviceObjects()");
+    const auto invalidate = source_contract::Method(renderer, "HRESULT RenderDevice::InvalidateDeviceObjects()");
+    check(!restore.empty() && !invalidate.empty(), "device lifecycle production methods located");
+    const auto unbind = restore.find("hr = render_state_cache::UnbindTextures(m_pd3dDevice, m_pTexture);");
+    const auto unbindGuard = restore.find("if (FAILED(hr))\n\t\treturn hr;", unbind);
+    const auto sprite = restore.find("D3DXCreateSprite");
+    const auto completeRestore = restore.find("hr = device_restore::Complete(m_pDXFont, m_pDXFontLarge,");
+    const auto completeGuard = restore.find("if (FAILED(hr))\n\t\treturn hr;", completeRestore);
+    const auto completedResources = restore.find("TextureManager::DYNAMIC_TEXTURE_WIDTH = 512;");
+    check(unbind != std::string::npos && unbindGuard != std::string::npos && sprite != std::string::npos &&
+        unbind < unbindGuard && unbindGuard < sprite && completeRestore != std::string::npos &&
+        completeGuard != std::string::npos && completedResources != std::string::npos &&
+        completeRestore < completeGuard && completeGuard < completedResources &&
+        restore.find("[this] { return InitializeRenderingState(); }") != std::string::npos &&
+        restore.find("[this] { return InitVertexShader(); }") != std::string::npos,
+        "production restore gates texture unbinding, fonts, world state and shaders");
+    const auto forget = invalidate.find("render_state_cache::ForgetTextures(m_pTexture);");
+    const auto releaseTextures = invalidate.find("m_pTextureManager->ReleaseTexture();");
+    check(forget != std::string::npos && releaseTextures != std::string::npos && forget < releaseTextures &&
+        invalidate.find("SAFE_RELEASE(m_pVSEffect[i]);\n\t\tSAFE_RELEASE(m_pVDEffect[i]);") != std::string::npos,
+        "invalidation forgets non-owning bindings before texture release and releases effect declarations");
+    for (const auto& binding : std::initializer_list<std::pair<const char*, const char*>>{
+        {"void RenderDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)", "render_state_cache::SetRender("},
+        {"void RenderDevice::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE type, DWORD Value)", "render_state_cache::SetStage("},
+        {"void RenderDevice::SetSamplerState(DWORD dwStage, D3DSAMPLERSTATETYPE State, DWORD Value)", "render_state_cache::SetSampler("},
+        {"void RenderDevice::SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTexture)", "render_state_cache::SetTexture("}}) {
+        const auto body = source_contract::Method(renderingState, binding.first);
+        check(body.find(binding.second) != std::string::npos && body.find("m_pd3dDevice->") == std::string::npos,
+            "production setters use failure-aware cache helpers");
+    }
+    const auto initializeState = source_contract::Method(renderingState, "int RenderDevice::InitializeRenderingState()");
+    check(initializeState.find("return SUCCEEDED(render_state_cache::Initialize(") != std::string::npos &&
+        initializeState.find("D3DXMatrixIdentity(&m_matWorld);") != std::string::npos,
+        "production world initialization returns the checked transform result");
+    {
+        const auto shaders = LoadSource("TMProject748/internal/platform/windows/RenderDeviceShaders.cpp");
+        const auto vertices = source_contract::Method(shaders, "int RenderDevice::InitVertexShader()");
+        const auto pixels = source_contract::Method(shaders, "int RenderDevice::InitPixelShader()");
+        for (const auto& body : {vertices, pixels}) {
+            check(body.find("if (!m_pd3dDevice || FAILED(m_pd3dDevice->GetDeviceCaps(&d3dCaps)))") != std::string::npos &&
+                body.find("shader_resources::Owned<ID3DXBuffer> code;") != std::string::npos &&
+                body.find("FAILED(ReadShader(") != std::string::npos && body.find("_read(") == std::string::npos &&
+                body.find("pCode") == std::string::npos,
+                "production shader initialization checks device/caps and owns checked file buffers");
+        }
+        check(shaders.find("shader_resources::Read(io, path, stage,") != std::string::npos &&
+            shaders.find("_O_RDONLY | _O_BINARY") != std::string::npos &&
+            shaders.find("_filelengthi64(handle)") != std::string::npos,
+            "production shader file IO uses checked read helper and 64-bit lengths");
+        const auto effectCreation = vertices.find("effects.Output(j)");
+        check(effectCreation != std::string::npos && vertices.find("skin.Publish(m_pVertexShader)") > effectCreation &&
+            vertices.find("skinDeclarations.Publish(m_pVertexDeclaration)") > effectCreation &&
+            vertices.find("effects.Publish(m_pVSEffect)") > effectCreation &&
+            vertices.find("effectDeclarations.Publish(m_pVDEffect)") > effectCreation &&
+            vertices.find("FAILED(m_pd3dDevice->SetVertexShaderConstantF(2,") != std::string::npos &&
+            vertices.find("&m_pVertexShader[") == std::string::npos &&
+            vertices.find("&m_pVertexDeclaration[") == std::string::npos &&
+            vertices.find("&m_pVSEffect[") == std::string::npos &&
+            vertices.find("&m_pVDEffect[") == std::string::npos,
+            "vertex shaders/declarations publish only after both batches and projection setup succeed");
+        check(vertices.find("8>::Complete(m_pVertexShader)") != std::string::npos &&
+            vertices.find("8>::Complete(m_pVertexDeclaration)") != std::string::npos &&
+            vertices.find("4>::Complete(m_pVSEffect)") != std::string::npos &&
+            vertices.find("4>::Complete(m_pVDEffect)") != std::string::npos &&
+            pixels.find("6>::Complete(m_pPSEffect)") != std::string::npos &&
+            pixels.find("if (!pixels.Complete()) return 0;") != std::string::npos &&
+            pixels.find("pixels.Publish(m_pPSEffect)") != std::string::npos &&
+            pixels.find("&m_pPSEffect[") == std::string::npos,
+            "production readiness covers every shader/declaration and pixel creation is transactional");
+        check(vertices.find("ShaderSkinMesh_Path, i + 1") != std::string::npos &&
+            vertices.find("VertexDecl[i % 4]") != std::string::npos &&
+            vertices.find("ShaderVertexShader_Path, j + 1") != std::string::npos &&
+            vertices.find("VertexDeclEff[j]") != std::string::npos &&
+            pixels.find("ShaderPixelShader_Path, i + 1") != std::string::npos &&
+            pixels.find("m_bSupportPS11 = 0;") != std::string::npos &&
+            pixels.find("m_nShadowTextureSize = 64;") != std::string::npos,
+            "existing shader paths, declaration mapping and unsupported-pixel fallback preserved");
+    }
+    {
+        const auto baseDevice = LoadSource("TMProject748/internal/platform/windows/D3DDevice.cpp");
+        const auto initialize = source_contract::Method(baseDevice, "HRESULT D3DDevice::Initialize3DEnvironment()");
+        const auto reset = source_contract::Method(baseDevice, "HRESULT D3DDevice::Reset3DEnvironment()");
+        const auto capture = source_contract::Method(baseDevice, "void D3DDevice::CaptureScreen()");
+        const auto toggle = source_contract::Method(baseDevice, "HRESULT D3DDevice::ToggleFullscreen()");
+        const std::string checkedDescription = "hr = device_back_buffer::Describe(m_pd3dDevice, m_d3dsdBackBuffer);\n\t\t\tif (FAILED(hr)) return hr;";
+        check(initialize.find(checkedDescription) != std::string::npos &&
+            initialize.find("device_back_buffer::Describe(") < initialize.find("hr = InitDeviceObjects();") &&
+            initialize.find("if (!m_pD3D) return E_POINTER;") != std::string::npos &&
+            initialize.find("if (!m_pd3dDevice) return E_FAIL;") != std::string::npos &&
+            initialize.find("GetDeviceCaps(&pendingCaps);\n\t\t\tif (FAILED(hr)) return hr;") != std::string::npos,
+            "initialization rejects missing device, failed caps and failed back-buffer before object initialization");
+        check(reset.find("if (!m_pd3dDevice) return E_POINTER;") != std::string::npos &&
+            reset.find("hr = device_back_buffer::Describe(m_pd3dDevice, m_d3dsdBackBuffer);\n\tif (FAILED(hr)) return hr;") != std::string::npos &&
+            reset.find("->Reset(") < reset.find("device_back_buffer::Describe(") &&
+            reset.find("device_back_buffer::Describe(") < reset.find("hr = RestoreDeviceObjects();") &&
+            reset.find("m_bDeviceObjectsRestored = true;") > reset.find("hr = RestoreDeviceObjects();"),
+            "reset checks description before restore and only then publishes readiness");
+        check(baseDevice.find("->GetBackBuffer(") == std::string::npos && capture.find("device_back_buffer::Capture(") != std::string::npos &&
+            capture.find("if (FAILED(result))") != std::string::npos && capture.find("LOG_WRITELOG(") != std::string::npos &&
+            capture.find("ScreenShot\\\\Capture%04d.jpg") != std::string::npos &&
+            capture.find("D3DXIMAGE_FILEFORMAT::D3DXIFF_JPG, surface, 0, 0") != std::string::npos,
+            "all base-device back-buffers are checked and capture keeps numbered JPG and failure logging");
+        const std::string retainFactory = "device_back_buffer::CleanupForRetry(m_pD3D, [this] { Cleanup3DEnvironment(); });";
+        check(initialize.find(retainFactory) != std::string::npos && toggle.find(retainFactory) != std::string::npos &&
+            initialize.find(retainFactory) < initialize.find("// If that failed, fall back"),
+            "initialization fallback and adapter recreation retain the Direct3D factory");
+    }
+    {
+        const auto begin = source_contract::Method(renderer, "int RenderDevice::Lock(int bClear)");
+        const auto end = source_contract::Method(renderer, "int RenderDevice::Unlock(int bEnd)");
+        const auto deviceFrameSource = LoadSource("TMProject748/internal/app/scenes/NewApp.cpp");
+        const auto frame = source_contract::Method(deviceFrameSource, "HRESULT NewApp::RenderScene()");
+        check(begin.find("device_frame::Begin(m_pd3dDevice, m_bDeviceLost, m_bDeviceObjectsRestored,") != std::string::npos &&
+            begin.find("[this] { return Reset3DEnvironment(); }") != std::string::npos &&
+            begin.find("if (!bClear) return S_OK;") != std::string::npos &&
+            begin.find("D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, m_dwActualClearColor, 1.0f, 0") != std::string::npos &&
+            begin.find("}) ? 1 : 0;") != std::string::npos,
+            "production begin uses recovery/readiness helper and preserves clear semantics");
+        check(begin.find("if (!m_pD3D || !adapter) return E_POINTER;") != std::string::npos &&
+            begin.find("GetAdapterDisplayMode(adapter->AdapterOrdinal, &pendingMode);") != std::string::npos &&
+            begin.find("if (FAILED(result)) return result;") < begin.find("Windowed_DisplayMode = pendingMode;") &&
+            begin.find("Windowed_DisplayMode = pendingMode;") < begin.find("BackBufferFormat = pendingMode.Format;"),
+            "failed display query cannot replace the reset format");
+        check(end.find("device_frame::End(m_pd3dDevice, m_bDeviceLost,") != std::string::npos &&
+            end.find("if (!m_pd3dDevice) return 0;") != std::string::npos &&
+            end.find("if (bEnd != 1) return S_OK;") != std::string::npos &&
+            end.find("return m_pd3dDevice->Present(nullptr, nullptr, nullptr, nullptr);") != std::string::npos &&
+            end.find("}) ? 1 : 0;") != std::string::npos,
+            "production end propagates checked present and supports non-presenting segments");
+        check(frame.find("device_frame::Scene<RenderDevice> frame(*m_pRenderDevice);") != std::string::npos &&
+            frame.find("if (!frame.Begin(1)) return S_FALSE;") < frame.find("m_pObjectManager->RenderObject();") &&
+            frame.find("!m_pRenderDevice->SetViewVector(") != std::string::npos &&
+            frame.find("!m_pRenderDevice->SetRenderStateBlock(1)") != std::string::npos &&
+            frame.find("!m_pRenderDevice->m_pd3dDevice") != std::string::npos &&
+            frame.find("TestCooperativeLevel()") == std::string::npos,
+            "application rejects missing dependencies and stops before world draw on failed begin or setup");
+        const auto controls = frame.find("m_pObjectManager->RenderControl();");
+        const auto uiBegin = frame.rfind("if (!frame.Begin(0)) return S_FALSE;", controls);
+        const auto uiState = frame.find("if (!m_pRenderDevice->SetRenderStateBlock(3)) return S_FALSE;", uiBegin);
+        const auto present = frame.find("if (!frame.End(1)) return S_FALSE;", controls);
+        check(uiBegin != std::string::npos && uiState != std::string::npos && controls != std::string::npos &&
+            present != std::string::npos && uiBegin < uiState && uiState < controls && controls < present &&
+            frame.find("m_pRenderDevice->Lock(") == std::string::npos &&
+            frame.find("m_pRenderDevice->Unlock(") == std::string::npos &&
+            frame.find("if (!frame.End(0)) return S_FALSE;") < frame.find("m_pObjectManager->RenderTargetObject("),
+            "application routes all scene segments through ownership and checked UI/presentation gates");
+    }
     check(ccModeScene.find("{\"Off\", \"Physical\", \"Magic\", \"Support\"}") != std::string::npos &&
         ccModeScene.find("{\"Free\", \"Cycle\", \"Fixed\"}") != std::string::npos,
         "7.48 compact combat controls use English labels");

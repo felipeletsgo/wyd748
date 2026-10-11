@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "D3DDevice.h"
+#include "DeviceBackBuffer.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "PerfTrace.h"
@@ -532,6 +533,7 @@ HRESULT D3DDevice::ChooseInitialD3DSettings()
 HRESULT D3DDevice::Initialize3DEnvironment()
 {
 	HRESULT hr;
+	if (!m_pD3D) return E_POINTER;
 
 	OSVERSIONINFOEX osvi = { 0 };
 	osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
@@ -601,109 +603,117 @@ HRESULT D3DDevice::Initialize3DEnvironment()
 
 	if (SUCCEEDED(hr))
 	{
-		perf_trace::InstallDeviceHooks(m_pd3dDevice);
-
-		// When moving from fullscreen to windowed mode, it is important to
-		// adjust the window size after recreating the device rather than
-		// beforehand to ensure that you get the window size you want.  For
-		// example, when switching from 640x480 fullscreen to windowed with
-		// a 1000x600 window on a 1024x768 desktop, it is impossible to set
-		// the window size to 1000x600 until after the display mode has
-		// changed to 1024x768, because windows cannot be larger than the
-		// desktop.
-		if (m_bWindowed)
+		hr = [&]() -> HRESULT
 		{
-			SetWindowPos(m_hWnd, HWND_NOTOPMOST,
-				m_rcWindowBounds.left, m_rcWindowBounds.top,
-				(m_rcWindowBounds.right - m_rcWindowBounds.left),
-				(m_rcWindowBounds.bottom - m_rcWindowBounds.top),
-				SWP_SHOWWINDOW);
-		}
+			if (!m_pd3dDevice) return E_FAIL;
+			perf_trace::InstallDeviceHooks(m_pd3dDevice);
 
-		// Store device Caps
-		m_pd3dDevice->GetDeviceCaps(&m_d3dCaps);
-		m_dwCreateFlags = behaviorFlags;
+			// When moving from fullscreen to windowed mode, it is important to
+			// adjust the window size after recreating the device rather than
+			// beforehand to ensure that you get the window size you want.  For
+			// example, when switching from 640x480 fullscreen to windowed with
+			// a 1000x600 window on a 1024x768 desktop, it is impossible to set
+			// the window size to 1000x600 until after the display mode has
+			// changed to 1024x768, because windows cannot be larger than the
+			// desktop.
+			if (m_bWindowed)
+			{
+				SetWindowPos(m_hWnd, HWND_NOTOPMOST,
+					m_rcWindowBounds.left, m_rcWindowBounds.top,
+					(m_rcWindowBounds.right - m_rcWindowBounds.left),
+					(m_rcWindowBounds.bottom - m_rcWindowBounds.top),
+					SWP_SHOWWINDOW);
+			}
 
-		// Store device description
-		if (pDeviceInfo->DevType == D3DDEVTYPE_REF)
-			lstrcpy(m_strDeviceStats, TEXT("REF"));
-		else if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
-			lstrcpy(m_strDeviceStats, TEXT("HAL"));
-		else if (pDeviceInfo->DevType == D3DDEVTYPE_SW)
-			lstrcpy(m_strDeviceStats, TEXT("SW"));
+			// Store device Caps
+			D3DCAPS9 pendingCaps{};
+			hr = m_pd3dDevice->GetDeviceCaps(&pendingCaps);
+			if (FAILED(hr)) return hr;
+			m_d3dCaps = pendingCaps;
+			m_dwCreateFlags = behaviorFlags;
 
-		if (behaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING &&
-			behaviorFlags & D3DCREATE_PUREDEVICE)
-		{
+			// Store device description
+			if (pDeviceInfo->DevType == D3DDEVTYPE_REF)
+				lstrcpy(m_strDeviceStats, TEXT("REF"));
+			else if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
+				lstrcpy(m_strDeviceStats, TEXT("HAL"));
+			else if (pDeviceInfo->DevType == D3DDEVTYPE_SW)
+				lstrcpy(m_strDeviceStats, TEXT("SW"));
+
+			if (behaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING &&
+				behaviorFlags & D3DCREATE_PUREDEVICE)
+			{
+				if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
+					lstrcat(m_strDeviceStats, TEXT(" (pure hw vp)"));
+				else
+					lstrcat(m_strDeviceStats, TEXT(" (simulated pure hw vp)"));
+			}
+			else if (behaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)
+			{
+				if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
+					lstrcat(m_strDeviceStats, TEXT(" (hw vp)"));
+				else
+					lstrcat(m_strDeviceStats, TEXT(" (simulated hw vp)"));
+			}
+			else if (behaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING)
+			{
+				if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
+					lstrcat(m_strDeviceStats, TEXT(" (mixed vp)"));
+				else
+					lstrcat(m_strDeviceStats, TEXT(" (simulated mixed vp)"));
+			}
+			else if (behaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING)
+			{
+				lstrcat(m_strDeviceStats, TEXT(" (sw vp)"));
+			}
+
 			if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
-				lstrcat(m_strDeviceStats, TEXT(" (pure hw vp)"));
-			else
-				lstrcat(m_strDeviceStats, TEXT(" (simulated pure hw vp)"));
-		}
-		else if (behaviorFlags & D3DCREATE_HARDWARE_VERTEXPROCESSING)
-		{
-			if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
-				lstrcat(m_strDeviceStats, TEXT(" (hw vp)"));
-			else
-				lstrcat(m_strDeviceStats, TEXT(" (simulated hw vp)"));
-		}
-		else if (behaviorFlags & D3DCREATE_MIXED_VERTEXPROCESSING)
-		{
-			if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
-				lstrcat(m_strDeviceStats, TEXT(" (mixed vp)"));
-			else
-				lstrcat(m_strDeviceStats, TEXT(" (simulated mixed vp)"));
-		}
-		else if (behaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING)
-		{
-			lstrcat(m_strDeviceStats, TEXT(" (sw vp)"));
-		}
+			{
+				// Be sure not to overflow m_strDeviceStats when appending the adapter
+				// description, since it can be long.  Note that the adapter description
+				// is initially CHAR and must be converted to TCHAR.
+				lstrcat(m_strDeviceStats, TEXT(": "));
+				const int cchDesc = sizeof(pAdapterInfo->AdapterIdentifier.Description);
+				TCHAR szDescription[cchDesc];
+				DXUtil_ConvertAnsiStringToGenericCch(szDescription,
+					pAdapterInfo->AdapterIdentifier.Description, cchDesc);
+				int maxAppend = sizeof(m_strDeviceStats) / sizeof(TCHAR) -
+					lstrlen(m_strDeviceStats) - 1;
+				_tcsncat(m_strDeviceStats, szDescription, maxAppend);
+			}
 
-		if (pDeviceInfo->DevType == D3DDEVTYPE_HAL)
-		{
-			// Be sure not to overflow m_strDeviceStats when appending the adapter 
-			// description, since it can be long.  Note that the adapter description
-			// is initially CHAR and must be converted to TCHAR.
-			lstrcat(m_strDeviceStats, TEXT(": "));
-			const int cchDesc = sizeof(pAdapterInfo->AdapterIdentifier.Description);
-			TCHAR szDescription[cchDesc];
-			DXUtil_ConvertAnsiStringToGenericCch(szDescription,
-				pAdapterInfo->AdapterIdentifier.Description, cchDesc);
-			int maxAppend = sizeof(m_strDeviceStats) / sizeof(TCHAR) -
-				lstrlen(m_strDeviceStats) - 1;
-			_tcsncat(m_strDeviceStats, szDescription, maxAppend);
-		}
+			// Store render target surface desc
+			hr = device_back_buffer::Describe(m_pd3dDevice, m_d3dsdBackBuffer);
+			if (FAILED(hr)) return hr;
 
-		// Store render target surface desc
-		LPDIRECT3DSURFACE9 pBackBuffer = NULL;
-		m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-		pBackBuffer->GetDesc(&m_d3dsdBackBuffer);
-		pBackBuffer->Release();
-
-		// Initialize the app's device-dependent objects
-		hr = InitDeviceObjects();
-		if (FAILED(hr))
-		{
-			DeleteDeviceObjects();
-		}
-		else
-		{
-			m_bDeviceObjectsInited = true;
-			hr = RestoreDeviceObjects();
+			// Initialize the app's device-dependent objects
+			hr = InitDeviceObjects();
 			if (FAILED(hr))
 			{
-				InvalidateDeviceObjects();
+				DeleteDeviceObjects();
 			}
 			else
 			{
-				m_bDeviceObjectsRestored = true;
-				return S_OK;
+				m_bDeviceObjectsInited = true;
+				hr = RestoreDeviceObjects();
+				if (FAILED(hr))
+				{
+					InvalidateDeviceObjects();
+				}
+				else
+				{
+					m_bDeviceObjectsRestored = true;
+					return S_OK;
+				}
 			}
-		}
 
-		// Cleanup before we try again
-		Cleanup3DEnvironment();
+			return hr;
+		}();
+		if (SUCCEEDED(hr)) return S_OK;
 	}
+	// Also release a non-null output returned with a failed CreateDevice result.
+	if (m_pd3dDevice)
+		device_back_buffer::CleanupForRetry(m_pD3D, [this] { Cleanup3DEnvironment(); });
 
 	// If that failed, fall back to the reference rasterizer
 	if (hr != D3DAPPERR_MEDIANOTFOUND &&
@@ -733,6 +743,7 @@ HRESULT D3DDevice::Initialize3DEnvironment()
 HRESULT D3DDevice::Reset3DEnvironment()
 {
 	HRESULT hr;
+	if (!m_pd3dDevice) return E_POINTER;
 
 	// Release all vidmem objects
 	if (m_bDeviceObjectsRestored)
@@ -745,10 +756,8 @@ HRESULT D3DDevice::Reset3DEnvironment()
 		return hr;
 
 	// Store render target surface desc
-	LPDIRECT3DSURFACE9 pBackBuffer;
-	m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-	pBackBuffer->GetDesc(&m_d3dsdBackBuffer);
-	pBackBuffer->Release();
+	hr = device_back_buffer::Describe(m_pd3dDevice, m_d3dsdBackBuffer);
+	if (FAILED(hr)) return hr;
 
 	// Initialize the app's device-dependent objects
 	hr = RestoreDeviceObjects();
@@ -789,7 +798,7 @@ HRESULT D3DDevice::ToggleFullscreen()
 	}
 	else
 	{
-		Cleanup3DEnvironment();
+		device_back_buffer::CleanupForRetry(m_pD3D, [this] { Cleanup3DEnvironment(); });
 		hr = Initialize3DEnvironment();
 	}
 	if (FAILED(hr))
@@ -940,8 +949,6 @@ HRESULT D3DDevice::FinalCleanup()
 
 void D3DDevice::CaptureScreen()
 {
-	IDirect3DSurface9* pBackBuffer;
-
 	int handle = -1;
 	int nCount = 0;
 	TCHAR szFileName[128];
@@ -958,12 +965,12 @@ void D3DDevice::CaptureScreen()
 		sprintf((char*)szFileName, "ScreenShot\\Capture%04d.jpg", ++nCount);
 	} while (nCount <= 9999);
 
-	m_pd3dDevice->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE::D3DBACKBUFFER_TYPE_MONO, &pBackBuffer);
-
 	// The 7.48 contract exposes only the numbered JPG; D3DX can produce it
 	// directly without the native client's temporary BMP conversion step.
-	if (D3DXSaveSurfaceToFile(szFileName, D3DXIMAGE_FILEFORMAT::D3DXIFF_JPG, pBackBuffer, 0, 0) < 0)
+	const HRESULT result = device_back_buffer::Capture(m_pd3dDevice,
+		[&](IDirect3DSurface9* surface) {
+			return D3DXSaveSurfaceToFile(szFileName, D3DXIMAGE_FILEFORMAT::D3DXIFF_JPG, surface, 0, 0);
+		});
+	if (FAILED(result))
 		LOG_WRITELOG("Can't capture screen\r\n");
-
-	pBackBuffer->Release();
 }

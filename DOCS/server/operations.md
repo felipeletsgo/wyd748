@@ -519,11 +519,82 @@ For recovery or automation, you can also use one of two standalone tools:
   `/healthz` reports process health and `/readyz` verifies the database. Publish
   this API only through an HTTPS reverse proxy that replaces forwarded headers.
 
+## Critical persistence operation
+
+PostgreSQL startup enables the S2 coordinator and account-local containment in
+`cmd/server`. `NewWorld` refuses activation if any required certified atomic
+adapter is missing. The explicit JSON development adapter does not enable this
+production path. There is no configuration switch to fall back to inline
+gameplay saves after a PostgreSQL coordinator failure.
+
+These values in `data/server.txt` are read at startup; restart normally to apply
+changes, not as a way to clear an uncertain transaction:
+
+| Key | Default | Constraint and meaning |
+| --- | --- | --- |
+| `database_max_conns` | 8 | Pool limit, validated in `1..64`; the worker constraint below requires at least two connections for the activated configuration |
+| `critical_persistence_workers` | 4 | `1..database_max_conns-1`; leaves pool capacity for other database consumers |
+| `critical_persistence_capacity` | 1024 | `workers..65536`; includes queued, running and completed-but-unacknowledged operations, plus retained unknown outcomes |
+| `critical_persistence_timeout_ms` | 500 | `100..10000`; passed as `PostgresConfig.OperationTimeout`, including store reads that use this context. It is not an account-unlock timer or proof of rollback |
+
+Reserved sessions retain validated packets in arrival order, at most 512 per
+session. Another packet at that limit closes the transport rather than growing
+the backlog. Replay follows successful settlement on World; closed sessions do
+not replay. Queue saturation rejects admission without an inline fallback.
+Increasing capacity or timeout does not resolve an already uncertain outcome.
+
+### Recognize containment
+
+The startup log reports `critical persistence: ... worker(s), capacity ...,
+account containment=true`. Through the private diagnostic endpoint
+`/debug/vars` (when `debug_address` is configured on loopback), inspect:
+
+| Signal | Interpretation |
+| --- | --- |
+| `world_critical_deferred_commands` | Current packet backlog across reserved sessions; not the number of database writes |
+| `world_sync_persistence_rejected` | Cumulative refused legacy inline saves; investigate unexpected growth on migrated flows |
+| `world_critical_quarantined` | Cumulative account-only operations isolated since startup, not a current account-count gauge |
+| `CRITICAL: persistence completion ... verified reconciliation required` | Participants are poisoned/disconnected; account and UID fences, pending disconnect state and capacity remain held indefinitely |
+| `CRITICAL: persistence completion ... entering maintenance` | Shared guild/instance/ground/mob ownership, or a post-acknowledgement failure, requires World-wide containment; gameplay/write admission stops and sessions close |
+
+An adapter-certified rejection can settle only through its identity-checked
+failure continuation; it is not a committed success. A timeout, ordinary error
+or continuation mismatch does not itself certify rejection. Account-only
+containment lets unrelated accounts continue, but enough retained operations
+can exhaust capacity. Shared containment must not be bypassed to keep playing.
+
+### Handle an uncertain outcome
+
+Preserve the completion ID, error, timestamp, build identity and affected-account
+context from private logs; keep credentials and account data out of public
+reports. Do not replay the economic intention, force a RAM snapshot, clear
+reservations, or unlock an account after a fixed delay. If containment is global,
+keep gameplay unavailable while investigating. Avoid restart/readmission of
+affected accounts as a recovery shortcut: fences are process-local, and no
+restart-safe quarantine, durable operation ledger or supported unlock command
+exists yet. A reload or elapsed time does not prove that a late COMMIT stopped.
+
+Recovery requires establishing the durable outcome and checking affected
+identities/shared ownership before resuming writes. This is a requirement for
+the future recovery workflow, not an executable recovery recipe. The
+[current gaps and acceptance criteria](critical-persistence-plan.md#current-gaps-and-acceptance-criteria)
+track that work; the [October 7 audit](s2-closure-audit-2026-10-07.md)
+records automated coverage and its limitations.
+
 ## Stop, backup, and restore
 
-Press Ctrl+C on Windows or send SIGTERM on Linux. The server stops accepting new
-work, flushes pending account transactions, stops the integrated HTTP panel,
-and then exits. A forced process kill does not provide that guarantee.
+Press Ctrl+C on Windows or send SIGTERM on Linux. The signal handler stops the
+integrated HTTP panel, then asks World to stop gameplay/write admission and
+settle accepted continuations before terminal snapshots and the store flush.
+`cmd/server` allows 20 seconds and exits with status 0 only when shutdown reports
+success; timeout or incomplete persistence exits with status 1. A forced process
+kill does not provide the normal drain guarantee.
+
+Under containment, poisoned/pending state must not overwrite an uncertain
+durable result. Shutdown reports incomplete persistence rather than certifying
+that state as saved; successful shutdown and restart-safe unknown-outcome
+recovery are different gates. Keep the failure logs and follow the containment
+instructions above before readmission or restart.
 
 Create backups with PostgreSQL tools, not by copying live database files. For
 example:

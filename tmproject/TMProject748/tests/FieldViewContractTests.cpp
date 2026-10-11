@@ -1,4 +1,5 @@
 #include "SourceMethod.h"
+#include "../internal/core/CameraInput.h"
 #include "../internal/game/entities/BerielAuraPolicy.h"
 
 #include <algorithm>
@@ -48,8 +49,10 @@ int RunFieldViewContractTests(int& checks)
     const auto input = ReadClientSource("internal/core/EventTranslator.cpp");
     const auto camera = source_contract::Method(input, "int EventTranslator::CameraEventData()");
     check(!camera.empty(), "camera input method is available");
-    check(camera.find("(float)zoomDirection / 240.0f") != std::string::npos &&
-        camera.find("(float)wheel / 240.0f") == std::string::npos,
+    check(camera.find("CameraZoomDistance(pCamera->m_fSightLength,") != std::string::npos &&
+        camera.find("g_pApp->m_nCameraView, wheel, viewchange)") != std::string::npos &&
+        CameraZoomDistance(10.0f, 1.2f, 10.0f, 0, 120, -120) == 9.5f &&
+        CameraZoomDistance(5.0f, 1.2f, 10.0f, 1, 120, -120) == 5.5f,
         "zoom distance follows the selected wheel direction");
 
     check(beriel_aura::InRange(0.0f, 0.0f) && beriel_aura::InRange(8.0f, 0.0f) &&

@@ -2,18 +2,68 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <cstring>
+#include <algorithm>
+#include <vector>
+#include <climits>
+#include <limits>
 
 enum class RCControlTypeReadResult { Record, End, Invalid };
+
+// Use the actual caption table dimensions, not the independent message-table
+// limit. Index zero is an intentional blank/dynamic caption in Scene2 resources.
+template<std::size_t Count, std::size_t Width>
+inline bool CopyRCIndexedCaption(const char (&table)[Count][Width], int index,
+    char* output, std::size_t capacity)
+{
+    if (!output || capacity == 0 || index < 0 ||
+        static_cast<std::size_t>(index) >= Count)
+        return false;
+    const char* row = table[index];
+    const auto* end = static_cast<const char*>(std::memchr(row, '\0', Width));
+    if (!end || (index != 0 && end == row))
+        return false;
+    const auto length = (std::min)(static_cast<std::size_t>(end - row), capacity - 1);
+    std::memmove(output, row, length);
+    output[length] = '\0';
+    return true;
+}
 
 // A clean EOF is valid only between complete four-byte control-type tags.
 inline RCControlTypeReadResult ReadRCControlType(std::FILE* stream, int& type)
 {
     static_assert(sizeof(type) == 4, "RC control type ABI changed");
+    if (!stream)
+        return RCControlTypeReadResult::Invalid;
     const std::size_t bytesRead = std::fread(&type, 1, sizeof(type), stream);
     if (bytesRead == sizeof(type))
         return RCControlTypeReadResult::Record;
     return bytesRead == 0 && std::feof(stream)
         ? RCControlTypeReadResult::End : RCControlTypeReadResult::Invalid;
+}
+
+// Resolve the resource extension without modifying directory names. Preserve
+// the old optional three-character suffix (for example Scene_en.txt).
+inline bool ResolveRCBinaryPath(const char* source, char* output, std::size_t capacity)
+{
+    if (!source || !output || capacity == 0)
+        return false;
+    const char* base = source;
+    for (const char* cursor = source; *cursor; ++cursor)
+        if (*cursor == '/' || *cursor == '\\')
+            base = cursor + 1;
+    const char* extension = std::strrchr(base, '.');
+    if (!extension || extension == base || !extension[1])
+        return false;
+    const char* stemEnd = extension;
+    if (extension - base > 3 && extension[-3] == '_')
+        stemEnd -= 3;
+    const auto stemLength = static_cast<std::size_t>(stemEnd - source);
+    if (stemLength > capacity || capacity - stemLength < sizeof(".bin"))
+        return false;
+    std::memmove(output, source, stemLength);
+    std::memcpy(output + stemLength, ".bin", sizeof(".bin"));
+    return true;
 }
 
 struct BinCheckBox
@@ -311,3 +361,151 @@ static_assert(offsetof(BinProgress, nHeight) == 32, "progress-bar height offset 
 static_assert(offsetof(BinProgress, nProgressColor) == 36, "progress-bar progress-color offset changed");
 static_assert(offsetof(BinProgress, nColor) == 40, "progress-bar color offset changed");
 static_assert(offsetof(BinProgress, nStyle) == 44, "progress-bar style offset changed");
+
+inline std::size_t RCRecordSize(int type, bool inlineCaptions)
+{
+    switch (type)
+    {
+    case 1: return sizeof(BinPanel);
+    case 2: return inlineCaptions ? sizeof(LegacyBinButton) : sizeof(BinButton);
+    case 3: return sizeof(BinCheckBox);
+    case 6: return sizeof(BinListBox);
+    case 10: return sizeof(BinProgress);
+    case 12: return inlineCaptions ? sizeof(LegacyBinText) : sizeof(BinText);
+    case 13: return sizeof(BinEdit);
+    case 15: return sizeof(Bin3DObj);
+    case 16: return sizeof(BinGrid);
+    default: return 0;
+    }
+}
+
+struct RCValidationError
+{
+    const char* reason = "invalid stream";
+    long offset = 0;
+    int controlID = 0;
+};
+
+// Preflight the entire file before creating controls. Duplicate IDs are legal
+// in shipped Scene2 files; retain their first-match lookup behavior. Parents
+// must already exist, just as in the live sequential loader. Always restore
+// the file position so successful validation does not consume the resource.
+template<typename ExistingParent, typename TranslateID>
+bool ValidateRCStream(std::FILE* stream, bool inlineCaptions, int stringCount,
+    std::size_t editCapacity, ExistingParent existingParent, TranslateID translateID,
+    RCValidationError& error, std::size_t gridCellBytes)
+{
+    error = {};
+    std::fpos_t initialPosition{};
+    if (!stream || std::fgetpos(stream, &initialPosition) != 0)
+        return false;
+    const bool valid = [&]() {
+        std::vector<unsigned int> available;
+        bool sawRecord = false;
+        while (true)
+        {
+            error.offset = std::ftell(stream);
+            error.controlID = 0;
+            int type = 0;
+            const auto tag = ReadRCControlType(stream, type);
+            if (tag == RCControlTypeReadResult::End)
+            {
+                error.reason = sawRecord ? nullptr : "empty resource";
+                return sawRecord;
+            }
+            error.reason = "incomplete control type";
+            if (tag != RCControlTypeReadResult::Record)
+                return false;
+            const auto size = RCRecordSize(type, inlineCaptions);
+            error.reason = "unsupported control type";
+            if (!size)
+                return false;
+            unsigned char record[sizeof(BinEdit)]{};
+            error.reason = "incomplete control record";
+            if (size > sizeof(record) || std::fread(record, 1, size, stream) != size)
+                return false;
+            const auto readInt = [&](std::size_t offset) {
+                int value = 0;
+                std::memcpy(&value, record + offset, sizeof(value));
+                return value;
+            };
+            error.controlID = readInt(0);
+            // Coordinates may intentionally place a widget outside the viewport.
+            // Zero-sized passive controls also occur as placeholders. Only
+            // reject extents/counts that cannot be safely consumed by widgets.
+            const auto widthOffset = type == 6 ? offsetof(BinListBox, nWidth)
+                : type == 10 ? offsetof(BinProgress, nWidth) : offsetof(BinPanel, nWidth);
+            const int width = readInt(widthOffset);
+            const int height = readInt(widthOffset + sizeof(int));
+            error.reason = "negative control size";
+            if (width < 0 || height < 0)
+                return false;
+            if (type == 16)
+            {
+                const int rows = readInt(offsetof(BinGrid, nRowCount));
+                const int columns = readInt(offsetof(BinGrid, nColumnCount));
+                error.reason = "invalid grid cell counts";
+                if (rows <= 0 || columns <= 0 || columns > INT_MAX / rows)
+                    return false;
+                error.reason = "grid allocation size overflow";
+                const auto cells = static_cast<std::size_t>(rows * columns);
+                const auto maximumBytes = (std::numeric_limits<std::size_t>::max)();
+                if (!gridCellBytes || cells > maximumBytes / gridCellBytes ||
+                    cells > maximumBytes / sizeof(int))
+                    return false;
+                error.reason = "zero grid extent";
+                if (!width || !height)
+                    return false;
+            }
+            if (type == 6)
+            {
+                error.reason = "invalid list row counts";
+                if (readInt(offsetof(BinListBox, nMaxCount)) < 0 ||
+                    readInt(offsetof(BinListBox, nVisibleCount)) <= 0)
+                    return false;
+                error.reason = "zero list height";
+                if (!height)
+                    return false;
+            }
+            const auto parent = static_cast<unsigned int>(readInt(sizeof(int)));
+            error.reason = "parent not found before child";
+            if (parent && !existingParent(parent) &&
+                std::find(available.begin(), available.end(), parent) == available.end() &&
+                std::none_of(available.begin(), available.end(), [&](unsigned int id) {
+                    return translateID(id) == parent;
+                }))
+                return false;
+            if ((type == 2 || type == 12) && !inlineCaptions)
+            {
+                const int index = readInt(type == 2
+                    ? offsetof(BinButton, nStringIndex) : offsetof(BinText, nStringIndex));
+                error.reason = "UI string index out of range";
+                if (index < 0 || index >= stringCount)
+                    return false;
+            }
+            std::size_t captionOffset = 0;
+            if (type == 13)
+            {
+                captionOffset = offsetof(BinEdit, szString);
+                const int maximum = readInt(offsetof(BinEdit, nMaxStringLength));
+                error.reason = "editable text limit out of range";
+                if (maximum < 0 || static_cast<std::size_t>(maximum) >= editCapacity)
+                    return false;
+            }
+            else if (inlineCaptions && (type == 2 || type == 12))
+                captionOffset = type == 2 ? offsetof(LegacyBinButton, szString)
+                    : offsetof(LegacyBinText, szString);
+            error.reason = "unterminated inline caption";
+            if (captionOffset && !std::memchr(record + captionOffset, '\0', 128))
+                return false;
+            available.push_back(static_cast<unsigned int>(error.controlID));
+            sawRecord = true;
+        }
+    }();
+    if (std::fsetpos(stream, &initialPosition) != 0)
+    {
+        error.reason = "cannot restore resource position";
+        return false;
+    }
+    return valid;
+}

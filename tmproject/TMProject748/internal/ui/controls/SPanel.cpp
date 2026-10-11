@@ -17,7 +17,8 @@ SPanel::SPanel(int inTextureSetIndex, float inX, float inY, float inWidth, float
 
 SPanel::~SPanel()
 {
-	SControlContainer* pControlContainer = g_pCurrentScene->m_pControlContainer;
+	SControlContainer* pControlContainer =
+		g_pCurrentScene != nullptr ? g_pCurrentScene->m_pControlContainer : nullptr;
 
 	if (pControlContainer != nullptr && pControlContainer->m_pPickedControl == this)
 		pControlContainer->m_pPickedControl = nullptr;

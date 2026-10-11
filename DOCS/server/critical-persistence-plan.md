@@ -1,14 +1,53 @@
 # Nonblocking critical persistence
 
-Status: implemented and enabled for PostgreSQL in production (`cmd/server`
-passes `WithCriticalPersistence` and `WithCriticalAccountContainment`).
-Gameplay commands and ticks no longer write inline on the World goroutine;
-see [Activation](#activation-2026-10-06). S2 is closed (2026-10-06): race,
-PostgreSQL and client-runtime gates passed. Tracks S2 in the
+Status as of 2026-10-07: the producer migration is implemented, enabled for
+PostgreSQL, and published in
+[`83a94da7`](https://github.com/felipeletsgo/wyd748/commit/83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a).
+`cmd/server` passes `WithCriticalPersistence` and
+`WithCriticalAccountContainment`. Gameplay commands and ticks no longer write
+inline on the World goroutine; see [Activation](#activation-2026-10-06).
+The October 7 corrections passed the full Go race suite with the isolated
+PostgreSQL fixture. Migration and containment are delivered; verified recovery
+of unknown outcomes remains open. The October 6 closure claim does not certify
+those recovery requirements. Tracks S2 in the
 [source audit](../../.agents/research/source-audit-2026-10-03.md).
 Classification: `MODERNIZACAO_COMPATIVEL`; preserve existing packet formats,
 authoritative validation, durable transactions and save-before-confirm ordering.
 No new native research is required for this internal scheduling boundary.
+
+## Current gaps and acceptance criteria
+
+This is the current recovery queue, not a request to repeat completed producer
+migrations. Detailed regression evidence is in the
+[October 7 audit](s2-closure-audit-2026-10-07.md#follow-up-correction-account-timing-and-instance-readers).
+Operational containment and configuration are documented in
+[server operations](operations.md#critical-persistence-operation).
+
+| Gap | Current behavior | Required evidence before closure |
+| --- | --- | --- |
+| Durable operation identity and outcome reconciliation | Completion IDs and fences are process-local; an uncertain write is not replayed or released | A durable identity/outcome protocol that distinguishes committed, proven rejected and unresolved work; prove repeated reconciliation cannot duplicate rewards or overwrite a later commit |
+| Restart-safe containment | Unknown account outcomes retain fences indefinitely in the running process; shared outcomes stop the World. No persisted quarantine/recovery protocol exists | Crash/restart tests with unresolved and late commits, including account, UID and shared-object ownership; prevent new mutations until reconciliation is proven |
+| Verified account unlock and bounded recovery | There is no supported unlock command or timer. Unknown operations retain queue capacity and can eventually exhaust admission | An identity-checked, auditable recovery/unlock workflow, tested for concurrent login, repetition and saturation; never reclaim capacity merely because time passed |
+| Real transport failure acceptance | The late-commit regression uses an injected adapter outcome followed by a real PostgreSQL write | Reproducible database connection-loss/COMMIT fault injection and crash recovery, checking durable state, publication, fences and terminal-save suppression |
+
+Separate validation debt: `TestStartWebAdminPostgres` and optional local JSON
+account fixtures skipped in the final batch; they do not invalidate executed S2
+PostgreSQL cases or count as passed tests. See the fixture instructions in
+[build and integration](../build-and-integration.md#database-and-race-test-gates).
+The user's October 7 gameplay report is not an exhaustive per-flow client gate.
+Uxmal runtime/floor state is process-local; restart-resumable Uxmal is not
+delivered by this migration. Synchronous login/world-entry reads are a separate
+latency workstream, not an unfinished critical-save producer.
+
+## Reading the migration history
+
+The integration notes and staged batches below record how the migration was
+built. Statements that `NewWorld` is disabled, that an injected owner is required,
+or that race tooling is unavailable describe those earlier stages, not the
+published implementation. The activation section supersedes producer/staging
+status; October 7 corrections supersede timed quarantine release and provisional
+instance visibility. Historical passing gates retain their original coverage
+and do not close the current recovery queue above.
 
 ## Required end state
 
@@ -1304,7 +1343,10 @@ and enabled it; it supersedes the outstanding list below, kept for history.
 - **Activation.** `NewWorld` starts the coordinator last and fails closed when
   the store lacks any certified adapter. Configuration:
   `critical_persistence_workers` (default 4, below `database_max_conns`) and
-  `critical_persistence_capacity` (default 1024).
+  `critical_persistence_capacity` (default 1024). The PostgreSQL operation
+  budget is `critical_persistence_timeout_ms` (default 500); timeout is not
+  proof of rollback or a quarantine release deadline. See
+  [the operating limits](operations.md#critical-persistence-operation).
 
 Validation (`AUTOMATED TESTED` unless noted):
 
@@ -1321,7 +1363,7 @@ Validation (`AUTOMATED TESTED` unless noted):
   writer that does not first branch to the coordinator; the remaining reports
   were verified false positives (guards via `continue` or caller branches).
 
-Closure gates (all passed):
+### Activation gates (passed on 2026-10-06; not verified recovery)
 
 Independent follow-up on 2026-10-07 found shared-object failure paths in ground
 pickup/drop and kill reward containment. The subsequent S2 correction added
@@ -1357,7 +1399,11 @@ Out of S2 scope (follow-up, not a closure gate): synchronous database reads
 still run on World at login and world entry (`LoadAccount`, `LoadCharState`,
 character-name checks). S2 covers saves only.
 
-### Outstanding requirements (superseded by Activation above)
+### Historical migration requirements (producer status superseded)
+
+This list records the pre-activation migration queue. Its producer and
+constructor work is delivered; the requirement for unknown-outcome
+reconciliation in item 4 remains open in the current recovery queue above.
 
 1. Migrate the other critical economy producers into detached operation plans,
    including rejection, repetition and save-before-confirm tests. A wrapper that

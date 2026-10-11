@@ -535,7 +535,13 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	// fixed 1% tax group, MP, and Gold plus the current kingdom tax.  Removing
 	// later donate/coupon/repurchase branches keeps the displayed amount equal
 	// to the value used by native BuyItem and by the 7.48 server protocol.
-	if (itemIndex == 4010 || itemIndex == 4011 ||
+	if (pFScene->m_premiumShop.Open)
+	{
+		// Premium shop cells are priced in donate by 0x7F20, not by ItemList.
+		const int slot = pItem->m_nCellIndexX + 9 * pItem->m_nCellIndexY;
+		sprintf(szText, "Price: %u donate", pFScene->m_premiumShop.PriceAt(slot));
+	}
+	else if (itemIndex == 4010 || itemIndex == 4011 ||
 		(itemIndex >= 4026 && itemIndex <= 4029))
 	{
 		sprintf(szText, g_pMessageStringTable[57], nItemPrice + nItemPrice / 100);

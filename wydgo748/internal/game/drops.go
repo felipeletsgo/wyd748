@@ -148,7 +148,7 @@ func (w *World) publishPlannedDrops(drops []plannedDrop) {
 				drop.inventoryPos, drop.source)
 			continue
 		}
-		created := w.createGroundDropForInstance(drop.x, drop.y, drop.item, true, drop.instanceID)
+		created := w.createGroundDropCell(drop.x, drop.y, drop.item, true, drop.instanceID, ownerOf(drop.player))
 		w.settleGlobalDrop(drop.globalDrop, created != nil)
 		w.gameplayLogf("drop", "[#%d] DROP slot=%d item=%d -> GROUND (inventory full)",
 			drop.player.Session.ID, drop.sourceSlot, drop.item.Index)

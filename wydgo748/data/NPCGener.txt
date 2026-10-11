@@ -113843,3 +113843,23 @@
 	DestY:		3936
 	DestRange:	0
 	DestWait:	10
+
+// Premium_Nell - premium shop (face 57, DOCS/protocol/premium-shop.md).
+// The catalog comes from the staff panel; prices are in donate.
+#	[5156]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		Premium_Nell
+	Follower:	Premium_Nell
+	RouteType:	0
+	Formation:	0
+	StartX:		2101
+	StartY:		2100
+	StartRange:	0
+	StartWait:	0
+	DestX:		2101
+	DestY:		2100
+	DestRange:	0
+	DestWait:	0

@@ -40,13 +40,13 @@ SProgressBar::SProgressBar(int inTextureSetIndex, int inCurrent, int inMax, floa
 	if (nTextureSetIndex < -2)
 		nTextureSetIndex = -m_GCProgress.nTextureSetIndex;
 
-	auto pUISet = g_pTextureManager->GetUITextureSet(nTextureSetIndex);
-	if (pUISet != nullptr)
+	if (const auto* pCoord = UITextureCoordAt(g_pTextureManager->GetUITextureSet(nTextureSetIndex),
+		m_GCProgress.nTextureIndex))
 	{
-		m_InitHeight = (float)pUISet->pTextureCoord[m_GCProgress.nTextureIndex].nHeight;
-		m_InitStartY = (float)pUISet->pTextureCoord[m_GCProgress.nTextureIndex].nStartY;
-		m_InitWidth = (float)pUISet->pTextureCoord[m_GCProgress.nTextureIndex].nWidth;
-		m_InitStartX = (float)pUISet->pTextureCoord[m_GCProgress.nTextureIndex].nStartX;
+		m_InitHeight = (float)pCoord->nHeight;
+		m_InitStartY = (float)pCoord->nStartY;
+		m_InitWidth = (float)pCoord->nWidth;
+		m_InitStartX = (float)pCoord->nStartX;
 	}
 
 	Update();
@@ -56,7 +56,8 @@ SProgressBar::~SProgressBar()
 {
 	ResetBar();
 
-	SControlContainer* pControlContainer = g_pCurrentScene->m_pControlContainer;
+	SControlContainer* pControlContainer =
+		g_pCurrentScene != nullptr ? g_pCurrentScene->m_pControlContainer : nullptr;
 
 	if (pControlContainer != nullptr && m_GCProgress.nLayer >= 0)
 		RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCProgress, m_GCProgress.nLayer);

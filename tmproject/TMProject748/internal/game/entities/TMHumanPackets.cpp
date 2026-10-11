@@ -1653,7 +1653,7 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
 
                 pFont = new TMFont3(szVal,
                     nTX,
-                    nTY + (int)(RenderDevice::m_fHeightRatio * 80.0f),
+                    nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f),
                     dwColor,
                     2.0,
                     500,
@@ -1666,7 +1666,7 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
             {
                 pFont = new TMFont3(szVal,
                     nTX,
-                    nTY + (int)(RenderDevice::m_fHeightRatio * 80.0f),
+                    nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f),
                     dwColor,
                     2.0,
                     500,
@@ -1684,7 +1684,7 @@ int TMHuman::OnPacketSetHpDam(MSG_STANDARD* pStd)
                 sprintf(szVal, "+ %d", pSetHpDam->Dam);
                 pFont = new TMFont3(szVal,
                     nTX,
-                    nTY + (int)(RenderDevice::m_fHeightRatio * 80.0f),
+                    nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f),
                     dwColor,
                     2.0f,
                     500,

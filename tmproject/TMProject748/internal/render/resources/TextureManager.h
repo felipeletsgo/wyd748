@@ -1,6 +1,7 @@
 #pragma once
 
 #include "RuntimeAssetLimits.h"
+#include "UITextureSetList.h"
 
 constexpr auto MAX_UI_TEXTURE_SET_LIST = 600;
 constexpr auto MAX_UI_TEXTURE = 512;
@@ -17,23 +18,6 @@ struct stGuildMark
 	IDirect3DTexture9* pTexture;
 	int nGuild;
 	unsigned int dwLastRenderTime;
-};
-
-struct ControlTextureCoord
-{
-	int nTextureIndex;
-	int nStartX;
-	int nStartY;
-	int nWidth;
-	int nHeight;
-	int nDestX;
-	int nDestY;
-};
-
-struct ControlTextureSet
-{
-	int nCount;
-	ControlTextureCoord* pTextureCoord;
 };
 
 struct stTextureListInfo

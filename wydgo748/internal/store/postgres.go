@@ -29,7 +29,7 @@ import (
 var postgresSchema string
 
 const postgresWriteQueueSize = 2048
-const postgresSchemaVersion = 4
+const postgresSchemaVersion = 5
 const postgresOperationTimeout = 10 * time.Second
 const postgresStartupTimeout = 30 * time.Second
 const postgresAutosaveBatchSize = 64
@@ -50,13 +50,13 @@ var (
 	postgresMetricMaxMu          sync.Mutex
 )
 
-// Valor privado deste projeto. O lock de sessao impede server e account-api de
-// tentarem aplicar DDL simultaneamente no primeiro boot.
+// Private value of this project. The session lock stops the server and the
+// account API from applying DDL at the same time on first boot.
 const postgresSchemaAdvisoryLock int64 = 0x575944474F
 
-// PostgresConfig configura apenas persistencia. A URL deve vir de variavel de
-// ambiente em producao para a senha nao parar no repositorio nem na linha de
-// comando do processo.
+// PostgresConfig configures persistence only. In production the URL must come
+// from an environment variable so the password stays out of the repository and
+// the process command line.
 type PostgresConfig struct {
 	URL              string
 	MaxConns         int32
@@ -83,8 +83,8 @@ type postgresCharacter struct {
 	mortalUID *pgtype.UUID
 }
 
-// accountSnapshot e imutavel depois de criado. Isso permite ao autosave sair
-// do game-loop sem observar ponteiros que continuam sendo alterados pelo World.
+// accountSnapshot is immutable once created. This lets autosave leave the game
+// loop without observing pointers the World keeps changing.
 type accountSnapshot struct {
 	key        string
 	display    string
@@ -100,12 +100,12 @@ type postgresCharStateSnapshot struct {
 
 type postgresWriteJob struct {
 	label string
-	// seq preserva a ordem logica entre a fila FIFO e o overflow coalescido.
-	// Sem essa geracao, um snapshot antigo que caiu no overflow pode ser
-	// drenado depois de um snapshot novo ou de uma barreira critica.
+	// seq keeps the logical order between the FIFO queue and the coalesced
+	// overflow. Without this generation an old snapshot that fell into the
+	// overflow could drain after a newer snapshot or a critical barrier.
 	seq uint64
-	// account identifica autosave de conta e permite ao worker consolidar
-	// varios snapshots em uma unica transacao. run fica para charstate/outros.
+	// account marks an account autosave and lets the worker merge several
+	// snapshots into one transaction. run is for charstate and other jobs.
 	account   *accountSnapshot
 	charState *postgresCharStateSnapshot
 	run       func() error
@@ -113,9 +113,9 @@ type postgresWriteJob struct {
 	retry     uint8
 }
 
-// PostgresStore e a persistencia autoritativa de producao. A ficha fica em
-// JSONB, mas nomes e instancias de item tambem sao gravados em tabelas com
-// constraints. O JSONB nunca e confirmado sem os indices anti-dupe.
+// PostgresStore is the authoritative production persistence. The account lives
+// in JSONB, but names and item instances are also written to constrained
+// tables. The JSONB is never committed without the anti-dupe indexes.
 type PostgresStore struct {
 	pool             *pgxpool.Pool
 	guildsTxtPath    string
@@ -194,11 +194,11 @@ type AccountDirectoryPageSnapshot struct {
 	NextCursor string
 }
 
-// Ping expoe somente a verificacao leve necessaria ao readiness HTTP. O caller
-// controla integralmente deadline/cancelamento pelo context recebido.
+// Ping exposes only the light check needed by HTTP readiness. The caller fully
+// controls deadline/cancellation through the given context.
 func (s *PostgresStore) Ping(ctx context.Context) error {
 	if s == nil || s.pool == nil {
-		return fmt.Errorf("postgres store fechado")
+		return fmt.Errorf("postgres store closed")
 	}
 	return s.pool.Ping(ctx)
 }
@@ -219,9 +219,9 @@ func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, 
 	return s, nil
 }
 
-// NewPostgresReadOnlyStore abre somente o caminho de leitura usado para
-// importar uma conta modelo de outra base. Nao aplica migrations, nao inicia
-// worker de persistencia e nao pode bloquear/alterar a base de origem.
+// NewPostgresReadOnlyStore opens only the read path used to import a template
+// account from another database. It applies no migrations, starts no
+// persistence worker and cannot lock or change the source database.
 func NewPostgresReadOnlyStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, error) {
 	pool, err := openPostgresPool(ctx, cfg)
 	if err != nil {
@@ -289,11 +289,11 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		_, _ = conn.Exec(context.Background(),
 			`SELECT pg_advisory_unlock($1)`, postgresSchemaAdvisoryLock)
 	}()
-	// O schema embutido inclui a migração inicial dos payloads JSON. Depois de
-	// concluída, executá-la novamente em cada boot apenas revarre todas as
-	// contas e pode atrasar o servidor por dezenas de segundos em uma base de
-	// carga. Consulte a versão sob o mesmo advisory lock e só execute o DDL
-	// completo quando a tabela ainda não existir ou estiver desatualizada.
+	// The embedded schema includes the initial migration of the JSON payloads.
+	// Once done, running it again on every boot only rescans every account and
+	// can delay the server by tens of seconds on a load-test database. Check the
+	// version under the same advisory lock and run the full DDL only when the
+	// table is missing or outdated.
 	var currentVersion int
 	if err := conn.QueryRow(ctx,
 		`SELECT COALESCE(MAX(version),0) FROM schema_migrations`).Scan(&currentVersion); err == nil &&
@@ -308,7 +308,7 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 		return err
 	}
 	if version != postgresSchemaVersion {
-		return fmt.Errorf("schema v%d; binario exige v%d", version, postgresSchemaVersion)
+		return fmt.Errorf("schema v%d; this binary requires v%d", version, postgresSchemaVersion)
 	}
 	return nil
 }
@@ -319,9 +319,9 @@ func (s *PostgresStore) persistLoop() {
 		var job postgresWriteJob
 		var ok bool
 		if pending != nil {
-			// O batch pode ter retirado uma barreira da fila enquanto ainda
-			// havia snapshots mais antigos no overflow. Drene somente os jobs
-			// anteriores antes de confirmar a barreira/pending.
+			// The batch may have taken a barrier from the queue while older
+			// snapshots were still in the overflow. Drain only the earlier jobs
+			// before confirming the barrier/pending job.
 			if overflow, exists := s.takeOverflowBefore(pending.seq); exists {
 				job, ok = overflow, true
 			} else {
@@ -353,8 +353,8 @@ func (s *PostgresStore) persistLoop() {
 						collecting = false
 						break
 					}
-					// Se o banco ficou atrasado e ha dois autosaves da mesma
-					// conta, somente o snapshot mais novo precisa ser escrito.
+					// If the database fell behind and there are two autosaves
+					// of the same account, only the newest snapshot is written.
 					if current, exists := latest[next.account.key]; !exists || next.seq > current.seq {
 						latest[next.account.key] = next
 					}
@@ -387,7 +387,7 @@ func (s *PostgresStore) persistLoop() {
 			unlockFences()
 			if err != nil {
 				metricPostgresFailures.Add(1)
-				log.Printf("store PostgreSQL: lote de autosave (%d conta(s)): %v",
+				log.Printf("store PostgreSQL: autosave batch (%d account(s)): %v",
 					len(snapshots), err)
 			}
 			continue
@@ -442,7 +442,7 @@ func (s *PostgresStore) persistLoop() {
 			unlockFences()
 			if err != nil {
 				metricPostgresFailures.Add(1)
-				log.Printf("store PostgreSQL: lote de charstate (%d personagem(ns)): %v",
+				log.Printf("store PostgreSQL: charstate batch (%d character(s)): %v",
 					len(snapshots), err)
 			}
 			continue
@@ -462,7 +462,7 @@ func (s *PostgresStore) persistLoop() {
 
 func (s *PostgresStore) enqueue(job postgresWriteJob) error {
 	if s.closed {
-		return errors.New("store: PostgreSQL fechado")
+		return errors.New("store: PostgreSQL closed")
 	}
 	job = s.stampWriteJob(job)
 	select {
@@ -471,8 +471,8 @@ func (s *PostgresStore) enqueue(job postgresWriteJob) error {
 		return nil
 	default:
 	}
-	// A fila cheia nunca bloqueia o World. Mantemos somente o snapshot mais
-	// novo de cada conta/personagem; tarefas derivadas coalescem pelo label.
+	// A full queue never blocks the World. Only the newest snapshot of each
+	// account/character is kept; derived tasks coalesce by label.
 	s.overflowMu.Lock()
 	switch {
 	case job.account != nil:
@@ -491,7 +491,7 @@ func (s *PostgresStore) enqueue(job postgresWriteJob) error {
 		s.overflowRuns[job.label] = job
 	default:
 		s.overflowMu.Unlock()
-		return errors.New("store: fila cheia para barreira de persistencia")
+		return errors.New("store: queue full for a persistence barrier")
 	}
 	s.overflowMu.Unlock()
 	s.updateAsyncMetrics()
@@ -545,9 +545,9 @@ func (s *PostgresStore) takeOverflow() (postgresWriteJob, bool) {
 	return s.takeOverflowBefore(0)
 }
 
-// takeOverflowBefore remove o job coalescido mais antigo anterior ao cutoff.
-// cutoff zero significa qualquer geracao. Escolher a menor seq torna a ordem
-// deterministica mesmo que os maps de overflow sejam percorridos aleatoriamente.
+// takeOverflowBefore removes the oldest coalesced job before the cutoff. A zero
+// cutoff means any generation. Picking the smallest seq keeps the order
+// deterministic even though the overflow maps are iterated randomly.
 func (s *PostgresStore) takeOverflowBefore(cutoff uint64) (postgresWriteJob, bool) {
 	s.overflowMu.Lock()
 	defer s.overflowMu.Unlock()
@@ -626,10 +626,10 @@ func (s *PostgresStore) scheduleGuildExport(guilds *model.GuildRegistry) {
 	payload := append([]byte(nil), guilds.GuildsTxt(0, 0)...)
 	generation := s.guildExportGen.Add(1)
 	_ = s.enqueue(postgresWriteJob{
-		label: "exportar Guilds.txt",
+		label: "export Guilds.txt",
 		run: func() error {
 			if s.guildExportGen.Load() != generation {
-				return nil // um estado mais novo ja substituiu este artefato.
+				return nil // a newer state already replaced this artifact.
 			}
 			if err := writeFileAtomic(path, payload); err != nil {
 				return fmt.Errorf("store: exportar Guilds.txt: %w", err)
@@ -639,8 +639,8 @@ func (s *PostgresStore) scheduleGuildExport(guilds *model.GuildRegistry) {
 	})
 }
 
-// PostgresAsyncStats expoe backpressure sem cardinalidade por jogador. Pending
-// mede apenas o overflow coalescido; len(writeQueue) continua sendo a fila FIFO.
+// PostgresAsyncStats exposes backpressure without per-player cardinality.
+// Pending measures only the coalesced overflow; len(writeQueue) is the FIFO queue.
 func (s *PostgresStore) PostgresAsyncStats() (queued, pending int, coalesced uint64) {
 	s.overflowMu.Lock()
 	pending = len(s.overflowAcc) + len(s.overflowState) + len(s.overflowRuns)
@@ -685,7 +685,7 @@ func (s *PostgresStore) Close() {
 
 func snapshotAccount(acc *model.Account) (*accountSnapshot, error) {
 	if acc == nil {
-		return nil, errors.New("store: conta ausente")
+		return nil, errors.New("store: missing account")
 	}
 	seenCharacters := make(map[string]int, len(acc.Chars))
 	for i := range acc.Chars {
@@ -695,7 +695,7 @@ func snapshotAccount(acc *model.Account) (*accountSnapshot, error) {
 		}
 		uid, err := model.NormalizeCharacterUID(character.UID)
 		if err != nil {
-			return nil, fmt.Errorf("store: conta %q personagem[%d]: %w", acc.Name, i, err)
+			return nil, fmt.Errorf("store: account %q character[%d]: %w", acc.Name, i, err)
 		}
 		if uid == "" {
 			uid, err = model.NewCharacterUID()
@@ -704,14 +704,14 @@ func snapshotAccount(acc *model.Account) (*accountSnapshot, error) {
 			}
 		}
 		if previous, exists := seenCharacters[uid]; exists {
-			return nil, fmt.Errorf("store: UID de personagem %s repetido nos slots %d e %d",
+			return nil, fmt.Errorf("store: character UID %s repeated in slots %d and %d",
 				uid, previous, i)
 		}
 		character.UID = uid
 		seenCharacters[uid] = i
 	}
 	if err := acc.Validate(); err != nil {
-		return nil, fmt.Errorf("store: conta %q invalida: %w", acc.Name, err)
+		return nil, fmt.Errorf("store: invalid account %q: %w", acc.Name, err)
 	}
 	snapshot := &accountSnapshot{
 		key:     strings.ToLower(acc.Name),
@@ -722,13 +722,13 @@ func snapshotAccount(acc *model.Account) (*accountSnapshot, error) {
 		item := ref.item
 		if item.Index == 0 {
 			if item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0 {
-				return nil, fmt.Errorf("store: conta %q %s vazio possui identidade/prazo", acc.Name, ref.location)
+				return nil, fmt.Errorf("store: account %q empty %s has identity/expiry", acc.Name, ref.location)
 			}
 			continue
 		}
 		uid, err := model.NormalizeItemUID(item.UID)
 		if err != nil {
-			return nil, fmt.Errorf("store: conta %q %s: %w", acc.Name, ref.location, err)
+			return nil, fmt.Errorf("store: account %q %s: %w", acc.Name, ref.location, err)
 		}
 		if uid == "" {
 			uid, err = model.NewItemUID()
@@ -738,12 +738,12 @@ func snapshotAccount(acc *model.Account) (*accountSnapshot, error) {
 		}
 		item.UID = uid
 		if previous, duplicate := seenUID[uid]; duplicate {
-			return nil, fmt.Errorf("store: UID duplicado %s em %s e %s", uid, previous, ref.location)
+			return nil, fmt.Errorf("store: duplicate UID %s at %s and %s", uid, previous, ref.location)
 		}
 		seenUID[uid] = ref.location
 		rawUID, err := hex.DecodeString(uid)
 		if err != nil {
-			return nil, err // NormalizeItemUID ja torna este caminho defensivo.
+			return nil, err // NormalizeItemUID already makes this path defensive.
 		}
 		var databaseUID [16]byte
 		copy(databaseUID[:], rawUID)
@@ -811,12 +811,12 @@ func snapshotAccounts(accounts ...*model.Account) ([]*accountSnapshot, error) {
 			return nil, err
 		}
 		if _, duplicate := seenAccounts[snapshot.key]; duplicate {
-			return nil, fmt.Errorf("store: conta %q duplicada na transacao", snapshot.display)
+			return nil, fmt.Errorf("store: account %q repeated in the transaction", snapshot.display)
 		}
 		seenAccounts[snapshot.key] = struct{}{}
 		for _, item := range snapshot.items {
 			if previous, duplicate := seenUID[item.uid]; duplicate {
-				return nil, fmt.Errorf("store: UID duplicado %s em %s e %s/%s",
+				return nil, fmt.Errorf("store: duplicate UID %s at %s and %s/%s",
 					item.uid, previous, snapshot.key, item.location)
 			}
 			seenUID[item.uid] = snapshot.key + "/" + item.location
@@ -876,9 +876,9 @@ func observePostgresFenceWait(wait time.Duration) {
 func (s *PostgresStore) withSerializableTx(run func(context.Context, pgx.Tx) error) error {
 	started := time.Now()
 	defer observePostgresTransaction(started)
-	// Um unico deadline cobre begin, callback, commit e todos os retries. Antes,
-	// cada tentativa recebia mais dez segundos e uma operacao critica podia
-	// congelar a goroutine unica do World por dezenas de segundos.
+	// One deadline covers begin, callback, commit and every retry. Previously
+	// each attempt got ten more seconds and a critical operation could freeze
+	// the single World goroutine for tens of seconds.
 	ctx, cancel := s.postgresContext()
 	defer cancel()
 	var last error
@@ -908,10 +908,10 @@ func (s *PostgresStore) withSerializableTx(run func(context.Context, pgx.Tx) err
 				default:
 				}
 			}
-			return fmt.Errorf("store: deadline total da transacao PostgreSQL: %w", ctx.Err())
+			return fmt.Errorf("store: PostgreSQL transaction total deadline: %w", ctx.Err())
 		}
 	}
-	return fmt.Errorf("store: transacao PostgreSQL concorrente excedeu retries: %w", last)
+	return fmt.Errorf("store: concurrent PostgreSQL transaction exceeded retries: %w", last)
 }
 
 func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accountSnapshot, createOnly bool) error {
@@ -936,9 +936,9 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 			return err
 		}
 	}
-	// Reconciliacao de personagens primeiro. Remover UIDs ausentes aciona o
-	// ON DELETE CASCADE do charstate; os restantes sao atualizados por UID sem
-	// depender do nickname ou da posicao atual na tela de selecao.
+	// Reconcile characters first. Removing missing UIDs fires the charstate
+	// ON DELETE CASCADE; the rest are updated by UID without depending on the
+	// nickname or the current position on the selection screen.
 	for _, snapshot := range snapshots {
 		desiredUIDs := make([]pgtype.UUID, 0, len(snapshot.characters))
 		for _, character := range snapshot.characters {
@@ -980,7 +980,7 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 					return err
 				}
 				if owner != snapshot.key {
-					return fmt.Errorf("store: UID de personagem %s pertence a outra conta",
+					return fmt.Errorf("store: character UID %s belongs to another account",
 						character.uid)
 				}
 			}
@@ -1001,8 +1001,8 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 		}
 	}
 
-	// Nomes sao reservas globais por conta, nao identidades de personagem:
-	// Mortal e Arch homonimos compartilham uma unica reserva.
+	// Names are global reservations per account, not character identities: a
+	// Mortal and an Arch with the same name share one reservation.
 	for _, snapshot := range snapshots {
 		names := make([]string, 0, len(snapshot.characters))
 		seen := make(map[string]struct{}, len(snapshot.characters))
@@ -1037,16 +1037,16 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 					return err
 				}
 				if owner != snapshot.key {
-					return fmt.Errorf("store: personagem %q ja pertence a outra conta", name)
+					return fmt.Errorf("store: character %q already belongs to another account", name)
 				}
 			}
 		}
 	}
 
-	// Ledger incremental de itens. Primeiro remove todas as linhas que deixaram
-	// de ser identicas; so depois insere/atualiza as alteradas. Essa ordem
-	// permite mover um UID entre contas/slots na mesma transacao sem colidir
-	// com a constraint global nem regravar os milhares de itens inalterados.
+	// Incremental item ledger. First remove every row that is no longer
+	// identical; only then insert/update the changed ones. This order lets a
+	// UID move between accounts/slots in the same transaction without hitting
+	// the global constraint or rewriting thousands of unchanged items.
 	type storedItem struct {
 		uid, account, location string
 		index                  uint16
@@ -1133,12 +1133,12 @@ func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accoun
 			want.item.activatedUnix, want.item.expiresUnix)
 		if err != nil {
 			if isUniqueViolation(err) {
-				return fmt.Errorf("store: UID de item duplicado %s: %w", uid, err)
+				return fmt.Errorf("store: duplicate item UID %s: %w", uid, err)
 			}
 			return err
 		}
 		if tag.RowsAffected() != 1 {
-			return fmt.Errorf("store: UID de item duplicado %s pertence a outra conta", uid)
+			return fmt.Errorf("store: duplicate item UID %s belongs to another account", uid)
 		}
 	}
 	return nil
@@ -1158,17 +1158,17 @@ func (s *PostgresStore) LoadAccount(name string) (*model.Account, error) {
 	err := s.pool.QueryRow(ctx,
 		`SELECT payload FROM accounts WHERE name_key=$1`, strings.ToLower(name)).Scan(&payload)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, fmt.Errorf("%w: conta %q", os.ErrNotExist, name)
+		return nil, fmt.Errorf("%w: account %q", os.ErrNotExist, name)
 	}
 	if err != nil {
 		return nil, err
 	}
 	var acc model.Account
 	if err := decodeAccountJSON(payload, &acc); err != nil {
-		return nil, fmt.Errorf("store: conta %q corrompida: %w", name, err)
+		return nil, fmt.Errorf("store: corrupted account %q: %w", name, err)
 	}
 	if err := acc.Validate(); err != nil {
-		return nil, fmt.Errorf("store: conta %q invalida: %w", name, err)
+		return nil, fmt.Errorf("store: invalid account %q: %w", name, err)
 	}
 	return &acc, nil
 }
@@ -1257,18 +1257,18 @@ ORDER BY page.name_key, c.slot`
 // the web process, so account credentials and item payloads are not decoded.
 func (s *PostgresStore) ReadPersistentPlayer(ctx context.Context, accountName, uid string) (PersistentPlayerSnapshot, error) {
 	if ctx == nil {
-		return PersistentPlayerSnapshot{}, errors.New("store: contexto ausente")
+		return PersistentPlayerSnapshot{}, errors.New("store: missing context")
 	}
 	accountName = strings.TrimSpace(accountName)
 	if accountName == "" || len(accountName) > 12 {
-		return PersistentPlayerSnapshot{}, errors.New("store: conta invalida")
+		return PersistentPlayerSnapshot{}, errors.New("store: invalid account")
 	}
 	normalizedUID, err := model.NormalizeCharacterUID(uid)
 	if err != nil || normalizedUID == "" {
-		return PersistentPlayerSnapshot{}, errors.New("store: UID de personagem invalido")
+		return PersistentPlayerSnapshot{}, errors.New("store: invalid character UID")
 	}
 	if s == nil || s.pool == nil {
-		return PersistentPlayerSnapshot{}, errors.New("store: PostgreSQL fechado")
+		return PersistentPlayerSnapshot{}, errors.New("store: PostgreSQL closed")
 	}
 	timeout := s.operationTimeout
 	if timeout <= 0 {
@@ -1286,7 +1286,7 @@ func (s *PostgresStore) ReadPersistentPlayer(ctx context.Context, accountName, u
 		&out.MasteryPoints, &out.SkillPoints, &out.X, &out.Y, &out.Gold, &out.Exp,
 		&out.Hold, &out.CP)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return PersistentPlayerSnapshot{}, fmt.Errorf("%w: personagem %q da conta %q", os.ErrNotExist, normalizedUID, accountName)
+		return PersistentPlayerSnapshot{}, fmt.Errorf("%w: character %q of account %q", os.ErrNotExist, normalizedUID, accountName)
 	}
 	if err != nil {
 		return PersistentPlayerSnapshot{}, err
@@ -1304,10 +1304,10 @@ func (s *PostgresStore) ReadAccountDirectory(ctx context.Context, search, cursor
 	search = strings.ToLower(strings.TrimSpace(search))
 	cursor = strings.ToLower(strings.TrimSpace(cursor))
 	if !validDirectoryKey(search, true) || !validDirectoryKey(cursor, true) || limit < 1 || limit > 50 {
-		return AccountDirectoryPageSnapshot{}, errors.New("store: consulta de contas invalida")
+		return AccountDirectoryPageSnapshot{}, errors.New("store: invalid account query")
 	}
 	if s == nil || s.pool == nil {
-		return AccountDirectoryPageSnapshot{}, errors.New("store: PostgreSQL fechado")
+		return AccountDirectoryPageSnapshot{}, errors.New("store: PostgreSQL closed")
 	}
 	timeout := s.operationTimeout
 	if timeout <= 0 {
@@ -1346,7 +1346,7 @@ func (s *PostgresStore) ReadAccountDirectory(ctx context.Context, search, cursor
 			continue
 		}
 		if classValue < 0 || classValue > 255 || levelValue < 0 || levelValue > int64(^uint32(0)) {
-			return AccountDirectoryPageSnapshot{}, errors.New("store: resumo de personagem fora do intervalo")
+			return AccountDirectoryPageSnapshot{}, errors.New("store: character summary out of range")
 		}
 		page.Accounts[index].Characters = append(page.Accounts[index].Characters, AccountDirectoryCharacterSnapshot{
 			UID: uid, Slot: int(slot.Int16), Name: characterName, Class: byte(classValue),
@@ -1388,7 +1388,7 @@ func (s *PostgresStore) saveSnapshots(snapshots []*accountSnapshot) error {
 
 func (s *PostgresStore) SaveAccount(acc *model.Account) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	seq := s.writeSeq.Add(1)
 	release, err := s.beginPostgresWrite()
@@ -1408,7 +1408,7 @@ func (s *PostgresStore) SaveAccount(acc *model.Account) error {
 
 func (s *PostgresStore) SaveAccountAsync(acc *model.Account) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	seq := s.writeSeq.Add(1)
 	release, err := s.beginPostgresWrite()
@@ -1423,7 +1423,7 @@ func (s *PostgresStore) SaveAccountAsync(acc *model.Account) error {
 		return err
 	}
 	return s.enqueue(postgresWriteJob{
-		label:   "autosave da conta " + snapshot.display,
+		label:   "account autosave " + snapshot.display,
 		seq:     seq,
 		account: snapshot,
 	})
@@ -1435,7 +1435,7 @@ func (s *PostgresStore) SaveAccounts(accounts ...*model.Account) error {
 
 func (s *PostgresStore) CreateAccount(acc *model.Account) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	seq := s.writeSeq.Add(1)
 	release, err := s.beginPostgresWrite()
@@ -1552,13 +1552,13 @@ func (s *PostgresStore) LoadInstanceState() (*model.InstanceStateSnapshot, error
 
 func (s *PostgresStore) SaveInstanceState(state *model.InstanceStateSnapshot) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	if state == nil {
 		state = &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}
 	}
 	if state.Version != model.InstanceStateVersion {
-		return fmt.Errorf("store: estado de instancias versao %d; esperado %d",
+		return fmt.Errorf("store: instance state version %d; expected %d",
 			state.Version, model.InstanceStateVersion)
 	}
 	b, err := json.Marshal(state)
@@ -1593,7 +1593,7 @@ func (s *PostgresStore) SaveGameStateWithInstanceState(guilds *model.GuildRegist
 func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStateSnapshot,
 	guilds *model.GuildRegistry, accounts ...*model.Account) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	seq := s.writeSeq.Add(1)
 	release, err := s.beginPostgresWrite()
@@ -1605,7 +1605,7 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 		return nil
 	}
 	if state != nil && state.Version != model.InstanceStateVersion {
-		return fmt.Errorf("store: estado de instancias versao %d; esperado %d",
+		return fmt.Errorf("store: instance state version %d; expected %d",
 			state.Version, model.InstanceStateVersion)
 	}
 	var guildPayload []byte
@@ -1662,21 +1662,21 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 		return err
 	}
 	if guilds != nil && s.guildsTxtPath != "" {
-		// Guilds.txt e artefato derivado: o commit PostgreSQL acima ja e a
-		// verdade. Falha de exportacao entra em retry e jamais volta ao handler
-		// como se a transacao autoritativa tivesse falhado.
+		// Guilds.txt is a derived artifact: the PostgreSQL commit above is the
+		// truth. An export failure is retried and never reaches the handler as
+		// if the authoritative transaction had failed.
 		s.scheduleGuildExport(guilds)
 	}
 	return nil
 }
 
-// SavePlayerState confirma conta, charstate e opcionalmente guild no mesmo
-// commit serializavel. E a fronteira usada por crafts/quests que gastam itens e
-// contadores por personagem: nao existe janela em que apenas metade sobreviva.
+// SavePlayerState commits the account, charstate and optionally the guilds in
+// the same serializable commit. Crafts/quests that spend items and
+// per-character counters use it: there is no window where only half survives.
 func (s *PostgresStore) SavePlayerState(guilds *model.GuildRegistry, account *model.Account,
 	characterUID string, state *model.CharState) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	seq := s.writeSeq.Add(1)
 	stateKey, err := postgresStateFenceKey(characterUID)
@@ -1813,7 +1813,7 @@ func (s *PostgresStore) saveCharStateSnapshots(snapshots []*postgresCharStateSna
 
 func (s *PostgresStore) SaveCharState(uid string, state *model.CharState) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	seq := s.writeSeq.Add(1)
 	stateKey, err := postgresStateFenceKey(uid)
@@ -1837,7 +1837,7 @@ func (s *PostgresStore) SaveCharState(uid string, state *model.CharState) error 
 
 func (s *PostgresStore) SaveCharStateAsync(uid string, state *model.CharState) error {
 	if s.readOnly {
-		return errors.New("store: PostgreSQL somente leitura")
+		return errors.New("store: PostgreSQL is read-only")
 	}
 	seq := s.writeSeq.Add(1)
 	stateKey, err := postgresStateFenceKey(uid)
@@ -1856,7 +1856,7 @@ func (s *PostgresStore) SaveCharStateAsync(uid string, state *model.CharState) e
 		return err
 	}
 	return s.enqueue(postgresWriteJob{
-		label:     "autosave do charstate " + stateKey,
+		label:     "charstate autosave " + stateKey,
 		seq:       seq,
 		charState: &postgresCharStateSnapshot{uid: stateKey, payload: payload},
 	})

@@ -312,7 +312,7 @@ TMHuman::TMHuman(TMScene* pParentScene)
         m_pProgressBar1->SetVisible(0);
         m_pMountHPBar->SetVisible(0);
 
-        float nYp = 30.0f * RenderDevice::m_fHeightRatio;
+        float nYp = 30.0f * RenderDevice::m_fUIScaleY;
         m_pTitleProgressBar = new SProgressBar(-1, 20, 0, 0.0f, nYp, 250.0f, 16.0f, 0xFF800000, 0x40333333u, 1);
         m_pTitleProgressBar->m_nPosX = observed_affect_ui::CenteredBarX(
             static_cast<float>(g_pDevice->m_dwScreenWidth), m_pTitleProgressBar->m_nWidth);
@@ -1518,7 +1518,8 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
             float fY2 = (((((0.70710701f * fX) + (0.70710701f * fY)) * 2.0f) + temp)
                 + TMGround::m_fMiniMapScale * 120.0f);
 
-            m_pInMiniMap->SetPos(fX2, fY2);
+            // Marker offsets are minimap layout pixels; scale them with the map.
+            m_pInMiniMap->SetPos(fX2 * RenderDevice::m_fUIScaleX, fY2 * RenderDevice::m_fUIScaleY);
         }
     }
 

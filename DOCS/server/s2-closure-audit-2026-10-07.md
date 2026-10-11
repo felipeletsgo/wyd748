@@ -13,14 +13,17 @@ unknown outcome remains a separate outstanding requirement.
 The successful activation and client-session evidence recorded on October 6
 remains historical evidence for the flows it actually exercised.
 
-This is a bounded audit of the current working tree on `main`, based on
-`34b7dcae`, not a certification of every change in the large uncommitted batch.
+The initial audit examined the working tree on `main`, based on `34b7dcae`,
+not every change in the large batch. The corrected source, tests and records
+were subsequently published in
+[`83a94da7`](https://github.com/felipeletsgo/wyd748/commit/83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a).
 Existing changes were preserved. The initial audit added tests and documentation
 only. A subsequent user-authorized inventory/CP correction batch is documented
 in [its versioned contract](../client/inventory-stack-and-cp-contract.md); it
 does not correct S2. Later S2-only corrections address the three findings and
-the two follow-up risks below. Nothing was deployed, committed, or launched as a product; PostgreSQL
-validation used an isolated fixture. Existing wire and persisted representations
+the two follow-up risks below. The audit/correction runs did not deploy or
+launch a product; publication happened later as recorded at the end of this
+document. PostgreSQL validation used an isolated fixture. Existing wire and persisted representations
 are retained. Classification: `MODERNIZACAO_COMPATIVEL`.
 
 Reviewed areas: activation and certified adapters, completion ownership,
@@ -341,3 +344,12 @@ Publication excludes the local PostgreSQL/build directory, the generated client
 executable and local client configuration changes. Source, tests, product
 assets, documentation and research records are included. The root `build/`
 directory is ignored without deleting its contents.
+
+The publication is commit `83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a`; the
+GitHub `main` SHA matched local `HEAD` after the push. Exclusion means that the
+local executable/configuration changes were not staged, not that previously
+tracked runtime files were removed from Git. Publication does not promote
+recovery or per-flow client validation. The
+[current recovery queue](critical-persistence-plan.md#current-gaps-and-acceptance-criteria)
+and [containment instructions](operations.md#critical-persistence-operation)
+are the active follow-up references.

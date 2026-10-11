@@ -47,17 +47,18 @@ public:
 private:	
 	IDirectInput8* m_pDI;
 	IDirectInputDevice8* m_pMouseDevice;
+	bool m_hasMouseSample = false;
 
 public:
-	int dx;
-	int dy;
-	int wheel;
-	int viewchange;
-	int button[3];
-	int lastButtonState[3];
+	int dx = 0;
+	int dy = 0;
+	int wheel = 0;
+	int viewchange = 0;
+	int button[3]{};
+	int lastButtonState[3]{};
 	int m_bKey[256];
 	int m_bAlt;
-	int m_bCtrl;
+	int m_bCtrl = 0;
 	int m_bRBtn;
 	int m_bShift;
 	HWND m_hWnd;

@@ -6,9 +6,9 @@ import (
 	"wydgo/internal/model"
 )
 
-// CharacterTransferUnavailable responde ao 0xFAA nativo sem confirmar uma
-// transferencia que este World nao consegue persistir. Result=4 cai no ramo
-// de erro generico da cena 7.48 e libera sua operacao pendente.
+// CharacterTransferUnavailable answers the native 0xFAA without confirming a
+// transfer this World cannot persist. Result=4 takes the 7.48 scene's generic
+// error branch and releases its pending operation.
 func CharacterTransferUnavailable(slot int32) []byte {
 	b := Build(OpCharacterTransfer, 0, 52)
 	putU32(b, 12, 4)
@@ -247,8 +247,8 @@ func MobHpMp(id uint16, currentHP, maxHP, currentMP, maxMP uint32) []byte {
 func HpMp(id uint16, score *model.Score) []byte { return SetHpMp(id, score) }
 
 func UpdateAffects(id uint16, ch model.Char) []byte {
-	// O handler 7.48 prova Header(12) + 16 registros de oito bytes. Level/Value
-	// seguem a STRUCT_AFFECT coordenada com este source client.
+	// The 7.48 handler proves Header(12) + 16 eight-byte records. Level/Value
+	// follow the STRUCT_AFFECT coordinated with this source client.
 	b := Build(OpUpdateAffect, id, 140)
 	putSourceAffects(b, 12, ch.Affects[:], time.Now())
 	return b

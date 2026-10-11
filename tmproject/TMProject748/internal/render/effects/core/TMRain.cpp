@@ -29,10 +29,13 @@ TMRain::TMRain() :
     m_vertex[2].diffuse = 0x33333333;
     m_vertex[3].diffuse = 0x33333333;
 
-    for (int i = 0; i < 50; ++i)
+    m_fHalfSize = weather_area::HalfSize(g_ClientSettings.weatherArea);
+    m_nDrops = weather_area::ParticleCount(weather_area::kNativeRainDrops, m_fHalfSize,
+        weather_area::kMaxRainDrops);
+    for (int i = 0; i < m_nDrops; ++i)
     {
-        m_vecRainPosition[i].x = 6.0f - ((float)(rand() % 24) / 2.0f);
-        m_vecRainPosition[i].z = 6.0f - ((float)(rand() % 24) / 2.0f);
+        m_vecRainPosition[i].x = weather_area::RandomOffset(m_fHalfSize, rand());
+        m_vecRainPosition[i].z = weather_area::RandomOffset(m_fHalfSize, rand());
         m_vecRainPosition[i].y = (float)(rand() % 10);
         m_fSpeed[i] = (float)(rand() % 3) * 0.079999998f;
         if (m_fSpeed[i] == 0.0)
@@ -108,23 +111,22 @@ int TMRain::Render()
     m_vertex[3].position.z = (float)(vecNegXAxis.z + vecNegYAxis.z) * fSize;
 
     g_pDevice->SetTexture(0, g_pTextureManager->GetEffectTexture(9, 5000));
-    for (int i = 0; i < 50; ++i)
+    // All drops outside houses go out in one triangle list in world space.
+    int quads = 0;
+    for (int i = 0; i < m_nDrops; ++i)
     {
-        int nX4 = (int)(m_vecRainPosition[i].x + vecCam.x) / 4;
-        int nY4 = (int)(m_vecRainPosition[i].z + vecCam.y) / 4;
-        if (nX4 >= 1024 || nX4 < 0)
-            nX4 = 0;
-        if (nY4 >= 1024 || nY4 < 0)
-            nY4 = 0;
-
-        int bValue = g_pAttribute[nY4][nX4];
+        const float x = m_vecRainPosition[i].x + vecCam.x;
+        const float z = m_vecRainPosition[i].z + vecCam.y;
+        int bValue = g_pAttribute[weather_area::AttributeCell(z)][weather_area::AttributeCell(x)];
         if (!(bValue & 8))
-        {
-            D3DXMatrixTranslation(&m_matEffect, m_vecRainPosition[i].x + vecCam.x, m_vecRainPosition[i].y, m_vecRainPosition[i].z + vecCam.y);
-            g_pDevice->m_pd3dDevice->SetTransform(D3DTS_WORLD, &m_matEffect);
-            g_pDevice->m_pd3dDevice->SetFVF(322);
-            g_pDevice->m_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLEFAN, 2u, m_vertex, 24u);
-        }
+            weather_area::AppendQuad(m_batch, quads++, m_vertex, x, m_vecRainPosition[i].y, z);
+    }
+    if (quads > 0)
+    {
+        D3DXMatrixIdentity(&m_matEffect);
+        g_pDevice->m_pd3dDevice->SetTransform(D3DTS_WORLD, &m_matEffect);
+        g_pDevice->m_pd3dDevice->SetFVF(322);
+        g_pDevice->m_pd3dDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, quads * 2, m_batch, 24u);
     }
 
     g_pDevice->SetRenderState(D3DRS_CULLMODE, 3u);
@@ -162,7 +164,7 @@ int TMRain::FrameMove(unsigned int dwServerTime)
     if (pObj)
         fCamHeight = pObj->m_fHeight;
 
-    for (int i = 0; i < 50; ++i)
+    for (int i = 0; i < m_nDrops; ++i)
     {
         if (m_vecRainPosition[i].y > fCamHeight)
         {
@@ -170,10 +172,11 @@ int TMRain::FrameMove(unsigned int dwServerTime)
             continue;
         }
 
-        if (!(rand() % 5))
+        if (!(rand() % 5) &&
+            weather_area::InSplashArea(m_vecRainPosition[i].x, m_vecRainPosition[i].z))
         {
-            int nX4 = (int)(m_vecRainPosition[i].x + vecCam.x) / 4;
-            int nY4 = (int)(m_vecRainPosition[i].z + vecCam.y) / 4;
+            int nX4 = weather_area::AttributeCell(m_vecRainPosition[i].x + vecCam.x);
+            int nY4 = weather_area::AttributeCell(m_vecRainPosition[i].z + vecCam.y);
             int bValue = g_pAttribute[nY4][nX4];
             if (!(bValue & 8))
             {
@@ -197,8 +200,8 @@ int TMRain::FrameMove(unsigned int dwServerTime)
         }
         if (pObj)
             m_vecRainPosition[i].y = pObj->m_fHeight + 10.0f;
-        m_vecRainPosition[i].x = 6.0f - ((float)(rand() % 24) / 2.0f);
-        m_vecRainPosition[i].z = 6.0f - ((float)(rand() % 24) / 2.0f);
+        m_vecRainPosition[i].x = weather_area::RandomOffset(m_fHalfSize, rand());
+        m_vecRainPosition[i].z = weather_area::RandomOffset(m_fHalfSize, rand());
     }
     m_dwOldServerTime = dwServerTime;
     return 1;

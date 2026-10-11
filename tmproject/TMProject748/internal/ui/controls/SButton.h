@@ -19,6 +19,11 @@ public:
         unsigned int idwColor, int bSound, char* istrText);
     ~SButton();
     virtual void SetText(char* istrText);
+    bool IsCaptionReady() const {
+        return (m_GCPanel.strString[0] == '\0' ||
+            (m_GCPanel.pFont && m_GCPanel.pFont->m_pTexture)) &&
+            (!m_pAltText || m_pAltText->IsCaptionReady());
+    }
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
     virtual void SetSelected(int bSelected);
     void FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag) override;

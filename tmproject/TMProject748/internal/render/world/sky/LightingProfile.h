@@ -34,6 +34,15 @@ struct LightingProfile
     }
 };
 
+// Sky state 0..3 of a sky texture (67..70, native index texture - 0x43 in
+// FUN_005484d1). Any other texture, such as a mesh reloaded from its file,
+// maps to day instead of reading past the per-state tables.
+inline int SkyStateIndex(int textureIndex)
+{
+    const int state = textureIndex - 67;
+    return state < 0 || state >= 4 ? 0 : state;
+}
+
 constexpr const char* LightingProfile_Path = "Env\\Lighting.txt";
 
 inline bool ParseLightingFloats(const char* text, LightingColor& color)

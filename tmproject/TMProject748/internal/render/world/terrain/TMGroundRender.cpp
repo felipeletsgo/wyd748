@@ -298,7 +298,10 @@ int TMGround::Render()
 // Extracted from TMGround::Render; behavior is unchanged.
 ExtractedFlow TMGround::BuildVoodooTileVertices(char& bCoordIndex, unsigned int (&dwColor)[4], int& nTexIndex, int& nTickX, int& nTickY, int& nX, int& nY)
 {
-                    // TODO: THIS CODE NEED TO BE REVIEW =)
+                    // Legacy 3dfx Voodoo path: RenderDevice only ever sets
+                    // m_bVoodoo = 0, so this never runs on supported hardware.
+                    // Edge tiles (63) read neighbor colors past the row; fix the
+                    // indexing before enabling the path again.
                     for (int nVertexIndex = 0; nVertexIndex < 4; ++nVertexIndex)
                     {
                         m_vertexVoodoo[nVertexIndex].tu = TMGround::TileCoordList[(unsigned char)bCoordIndex][nVertexIndex][0];

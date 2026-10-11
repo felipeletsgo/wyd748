@@ -185,7 +185,7 @@ int TMSelectCharScene::InitializeScene()
 		if (m_pInputPWPanel)
 		{
 			m_pInputPWPanel->SetPos(
-				(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pInputPWPanel->m_nWidth * 0.5f)) - 10.0f,
+				(((float)g_pDevice->m_dwScreenWidth * 0.5f) - (m_pInputPWPanel->m_nWidth * 0.5f)) - RenderDevice::UiPx(10.0f),
 				((float)g_pDevice->m_dwScreenHeight * 0.5f) - (m_pInputPWPanel->m_nHeight * 0.5f));
 		}
 
@@ -502,11 +502,11 @@ void TMSelectCharScene::VisibleSelectCreate(int bSelect)
 		{
 			// FUN_004a250f (UI mode 2) anchors the three panels at x=30 and
 			// 90/65/40 pixels above the bottom edge.
-			const float left = 30.0f;
+			const float left = RenderDevice::UiPx(30.0f);
 			const float viewportH = static_cast<float>(g_pDevice->m_dwScreenHeight);
-			const float createY = viewportH - 90.0f;
-			const float deleteY = viewportH - 65.0f;
-			const float returnY = viewportH - 40.0f;
+			const float createY = viewportH - RenderDevice::UiPx(90.0f);
+			const float deleteY = viewportH - RenderDevice::UiPx(65.0f);
+			const float returnY = viewportH - RenderDevice::UiPx(40.0f);
 
 			if (m_pNewCharPanel)
 				m_pNewCharPanel->SetPos(left, createY);

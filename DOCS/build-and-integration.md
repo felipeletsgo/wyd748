@@ -40,8 +40,37 @@ repository root makes relative `data/...` paths point to the wrong location.
 See [server operations](server/operations.md) for database, configuration,
 accounts, ports, shutdown, and backups.
 
-PostgreSQL tests use `WYD_TEST_POSTGRES_URL`; without it, conditional tests do
-not prove database integration.
+### Database and race-test gates
+
+Use a disposable local PostgreSQL database for integration tests, never the
+operational database. `WYD_TEST_POSTGRES_URL` enables the store/S2 fixture tests;
+they can create schema and write test data. A green package with skipped tests
+does not prove those paths. Keep fixture URLs in the current shell, not in
+versioned files, and record leaf skips as well as package results.
+
+For an integration batch with supported CGO/C compiler tooling, run from the
+repository root after setting `WYD_TEST_POSTGRES_URL` to the isolated fixture:
+
+```powershell
+$env:CGO_ENABLED = '1'
+Push-Location wydgo748
+go test -race -count=1 -timeout=300s ./...
+go vet ./...
+Pop-Location
+```
+
+| Conditional gate | Prerequisite |
+| --- | --- |
+| Store/S2 PostgreSQL tests | `WYD_TEST_POSTGRES_URL` points to a disposable writable database |
+| `TestStartWebAdminPostgres` in `cmd/server` | Separate `WYD_WEB_TEST_DATABASE_URL`; an initialized compatible database accessible through the read-only pool. This test does not migrate or seed it |
+| `TestProjectAccountsUseCurrentSchema` in `internal/store` | Optional local `wydgo748/data/accounts/*.json` fixtures; absent/empty local accounts produce a skip. Do not publish private account snapshots to satisfy it |
+
+The October 7 [S2 audit](server/s2-closure-audit-2026-10-07.md)
+records a passing full race suite with its S2 PostgreSQL fixtures enabled, but
+the two other conditional gates above skipped. That result is reusable for
+unchanged code/inputs; documentation-only corrections need links/layout and
+whitespace validation, not another product build or full suite. Actual
+transport-loss/restart recovery remains distinct from injected worker outcomes.
 
 ## CI and runtime
 

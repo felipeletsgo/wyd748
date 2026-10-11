@@ -192,6 +192,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 	switch opcode {
 	case wire.OpQuizAnswer:
 		return wire.QuizAnswerSize, true
+	case wire.OpPremiumBuy:
+		return wire.PremiumBuySize, true
 	case wire.OpConnectAccount:
 		return 116, true
 	case wire.OpCreateCharacter:

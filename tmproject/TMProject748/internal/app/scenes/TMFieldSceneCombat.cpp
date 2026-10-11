@@ -494,7 +494,7 @@ void TMFieldScene::SetMyHumanExp(long long unExp, int nFakeExp)
 		char szStr[128]{};
 		sprintf(szStr, "Exp +%d", static_cast<unsigned int>(nExp));
 
-		m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fHeightRatio * 80.0f), 0xFFFF8866, 0.5f, 0, 1, 1200, 0, 1));
+		m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFF8866, 0.5f, 0, 1, 1200, 0, 1));
 
 		sprintf(szStr, g_pMessageStringTable[148], nExp);
 		if (!m_bShowExp)
@@ -508,7 +508,7 @@ void TMFieldScene::SetMyHumanExp(long long unExp, int nFakeExp)
 		char szStr[128]{};
 		sprintf(szStr, "Cp -%d", nFExp);
 
-		m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fHeightRatio * 80.0f), 0xFFFF8866, 1.0f, 0, 1, 1500, 0, 1));
+		m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFF8866, 1.0f, 0, 1, 1500, 0, 1));
 
 		sprintf(szStr, g_pMessageStringTable[305], nFExp);
 		if (!m_bShowExp)

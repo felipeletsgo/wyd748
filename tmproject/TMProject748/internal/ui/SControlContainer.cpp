@@ -5,6 +5,7 @@
 #include "TMGlobal.h"
 #include "WYD748Assets.h"
 #include "ClientDiagnostics.h"
+#include <memory>
 
 SControlContainer::SControlContainer(TMScene* pScene) 
 	: TreeNode(0)
@@ -13,14 +14,16 @@ SControlContainer::SControlContainer(TMScene* pScene)
 	m_pFocusControl = nullptr;
 	m_pPickedControl = nullptr;
 
-	m_pCursor = new SCursor(0, g_pDevice->m_dwScreenWidth / 2.0f, g_pDevice->m_dwScreenHeight / 2.0f, 32.0f, 32.0f);
-	m_pControlRoot = new SControl(0.0f, 0.0f, 0.0f, 0.0f);
+	std::unique_ptr<SCursor> cursor(new SCursor(0, g_pDevice->m_dwScreenWidth / 2.0f, g_pDevice->m_dwScreenHeight / 2.0f, 32.0f, 32.0f));
+	std::unique_ptr<SControl> root(new SControl(0.0f, 0.0f, 0.0f, 0.0f));
 
 	m_bCleanUp = 0;
 	m_bInvisibleUI = 0;
 
 	memset(m_pDrawControl, 0, sizeof m_pDrawControl);
 	memset(m_pModalControl, 0, sizeof m_pModalControl);
+	m_pCursor = cursor.release();
+	m_pControlRoot = root.release();
 }
 
 SControlContainer::~SControlContainer()

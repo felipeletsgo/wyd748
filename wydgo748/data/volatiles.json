@@ -852,25 +852,25 @@
       "action": "grant_counter",
       "consume": true,
       "counters": {
-        "honor": 50
+        "donate": 200
       },
-      "description": "Coin Wyden: +50 honor, as in WYD 7.48."
+      "description": "Coin_Wyden(200b/c): credits 200 donate to the account balance (premium shop)."
     },
     "3394": {
       "action": "grant_counter",
       "consume": true,
       "counters": {
-        "donate": 100
+        "donate": 1000
       },
-      "description": "Gold Wyden: +100 donate."
+      "description": "Gold_Wyden(1000b/c): credits 1000 donate to the account balance (premium shop)."
     },
     "3395": {
       "action": "grant_counter",
       "consume": true,
       "counters": {
-        "donate": 1000
+        "donate": 3000
       },
-      "description": "Gold Wyden: +1000 donate."
+      "description": "Gold_Wyden(3000b/c): credits 3000 donate to the account balance (premium shop)."
     },
     "3396": {
       "action": "grant_counter",
@@ -878,7 +878,7 @@
       "counters": {
         "donate": 5000
       },
-      "description": "Gold Wyden: +5000 donate."
+      "description": "Gold_Wyden(5000b/c): credits 5000 donate to the account balance (premium shop)."
     },
     "3407": {
       "action": "tint",
@@ -1247,7 +1247,7 @@
       "counters": {
         "donate": 10000
       },
-      "description": "Gold Wyden: +10000 donate."
+      "description": "Gold_Wyden(10000b/c): credits 10000 donate to the account balance (premium shop)."
     },
     "3442": {
       "action": "firework",

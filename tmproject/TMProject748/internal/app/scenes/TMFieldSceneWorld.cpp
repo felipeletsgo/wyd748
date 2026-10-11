@@ -161,8 +161,14 @@ void TMFieldScene::SetVisibleMiniMap()
 	SPanel* pMiniMapBorder = static_cast<SPanel*>(m_pControlContainer->FindControl(290));
 	const bool wasVisible = m_pMiniMapPanel->m_bVisible != 0;
 	const bool ui2 = m_pMiniMapZoomIn != nullptr;
+	// The native layout is computed in 800x600 layout pixels and then scaled
+	// by ClientSettings UIScale, so the map grows with the rest of the HUD.
+	const float uiScale = RenderDevice::m_fUIScaleX;
 	const auto layout = mini_map_layout::Next(wasVisible, TMGround::m_fMiniMapScale, ui2,
-		static_cast<float>(g_pDevice->m_dwScreenWidth), static_cast<float>(g_pDevice->m_dwScreenHeight));
+		static_cast<float>(g_pDevice->m_dwScreenWidth) / uiScale,
+		static_cast<float>(g_pDevice->m_dwScreenHeight) / uiScale);
+	const float mapSize = layout.size * uiScale;
+	auto px = [uiScale](float value) { return value * uiScale; };
 	for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
 	{
 		if (m_pInMiniMapPosPanel[markerIndex])
@@ -172,19 +178,19 @@ void TMFieldScene::SetVisibleMiniMap()
 	}
 
 	TMGround::m_fMiniMapScale = layout.scale;
-	m_pMiniMapPanel->SetPos(layout.x, layout.y);
-	m_pMiniMapPanel->SetSize(layout.size, layout.size);
+	m_pMiniMapPanel->SetPos(px(layout.x), px(layout.y));
+	m_pMiniMapPanel->SetSize(mapSize, mapSize);
 	m_pMiniMapPanel->SetVisible(layout.visible);
 	if (pMiniMapBorder)
 	{
-		pMiniMapBorder->SetPos(ui2 ? 0.0f : -4.0f, ui2 ? 0.0f : -4.0f);
-		pMiniMapBorder->SetSize(layout.size + (ui2 ? 0.0f : 8.0f), layout.size + (ui2 ? 0.0f : 8.0f));
+		pMiniMapBorder->SetPos(px(ui2 ? 0.0f : -4.0f), px(ui2 ? 0.0f : -4.0f));
+		pMiniMapBorder->SetSize(mapSize + px(ui2 ? 0.0f : 8.0f), mapSize + px(ui2 ? 0.0f : 8.0f));
 		pMiniMapBorder->SetVisible(layout.visible && (!ui2 || !layout.expanded));
 	}
 	// UI2 has eight separate frame pieces, not a scalable root border.
-	const float edge = 8.0f;
-	const float last = layout.size - edge;
-	const float middle = layout.size - 2.0f * edge;
+	const float edge = px(8.0f);
+	const float last = mapSize - edge;
+	const float middle = mapSize - 2.0f * edge;
 	const float frame[8][4] = {
 		{0, 0, edge, edge}, {edge, 0, middle, edge}, {last, 0, edge, edge},
 		{0, edge, edge, middle}, {last, edge, edge, middle},
@@ -206,23 +212,23 @@ void TMFieldScene::SetVisibleMiniMap()
 		header->SetVisible(layout.visible && !layout.expanded);
 	if (m_pMiniMapZoomIn)
 	{
-		m_pMiniMapZoomIn->SetPos(layout.size - 19.0f, -18.0f);
-		m_pMiniMapZoomIn->SetSize(13.0f, 13.0f);
+		m_pMiniMapZoomIn->SetPos(mapSize - px(19.0f), px(-18.0f));
+		m_pMiniMapZoomIn->SetSize(px(13.0f), px(13.0f));
 		m_pMiniMapZoomIn->SetVisible(layout.visible && !layout.expanded);
 	}
 	if (m_pMiniMapZoomOut)
 	{
-		m_pMiniMapZoomOut->SetPos(layout.size - 40.0f, 0);
-		m_pMiniMapZoomOut->SetSize(40.0f, 38.0f);
+		m_pMiniMapZoomOut->SetPos(mapSize - px(40.0f), 0);
+		m_pMiniMapZoomOut->SetSize(px(40.0f), px(38.0f));
 		m_pMiniMapZoomOut->SetVisible(layout.visible && layout.expanded);
 	}
 	if (m_pMiniMapDir)
-		m_pMiniMapDir->SetPos(layout.size * 0.5f - m_pMiniMapDir->m_nWidth * 0.5f,
-			layout.size * 0.5f - m_pMiniMapDir->m_nHeight * 0.5f);
+		m_pMiniMapDir->SetPos(mapSize * 0.5f - m_pMiniMapDir->m_nWidth * 0.5f,
+			mapSize * 0.5f - m_pMiniMapDir->m_nHeight * 0.5f);
 	if (m_pPositionText)
 	{
-		m_pPositionText->SetPos(0, layout.size + 2.0f);
-		m_pPositionText->SetSize(layout.size, 20.0f);
+		m_pPositionText->SetPos(0, mapSize + px(2.0f));
+		m_pPositionText->SetSize(mapSize, px(20.0f));
 		m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
 	}
 

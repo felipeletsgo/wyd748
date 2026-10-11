@@ -210,10 +210,10 @@ void SControl::SetCenterPos(unsigned int dwControlID, float inPosX, float inPosY
 	{
 		if (dwControlID == dwCenterUI[i])
 		{
-			// The constructor has already converted the RC width into the active
-			// 7.48 resolution.  Center the scaled control, not the raw RC width,
-			// otherwise non-800px windows drift horizontally and miss their hitbox.
-			m_nPosX = ((float)g_pDevice->m_dwScreenWidth * 0.5f) - m_nWidth * 0.5f;
+			// FUN_0040116e centres by the width passed in (a layout value), not by
+			// the control's own width: the 7.48 message box keeps a 256-pixel root
+			// but centres its 232-pixel frame.
+			m_nPosX = ((float)g_pDevice->m_dwScreenWidth * 0.5f) - RenderDevice::UiPx(inWidth) * 0.5f;
 		}
 	}
 }

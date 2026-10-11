@@ -501,8 +501,8 @@ int TMFieldScene::OnPacketRemainCount(MSG_STANDARDPARM* pStd)
 	if (m_pRemainText)
 	{
 		if (g_pDevice)
-			m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 200.0f,
-				30.0f * RenderDevice::m_fHeightRatio);
+			m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - RenderDevice::UiPx(200.0f),
+				30.0f * RenderDevice::m_fUIScaleY);
 		m_pRemainText->SetText(szText, 0);
 		m_pRemainText->SetVisible(1);
 	}
@@ -555,8 +555,8 @@ int TMFieldScene::OnPacketRemainNPCCount(MSG_STANDARDPARM* pStd)
 	if (m_pRemainText)
 	{
 		if (g_pDevice)
-			m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 200.0f,
-				30.0f * RenderDevice::m_fHeightRatio);
+			m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - RenderDevice::UiPx(200.0f),
+				30.0f * RenderDevice::m_fUIScaleY);
 		m_pRemainText->SetText(szText, 0);
 		m_pRemainText->SetVisible(1);
 	}
@@ -745,8 +745,8 @@ int TMFieldScene::OnPacketRunQuest12Start(MSG_STANDARDPARM* pStd)
 		sprintf(szText, "0 / %d", m_nQuest12MaxMobs);
 		if (m_pRemainText)
 		{
-			m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 130.0f,
-				30.0f * RenderDevice::m_fHeightRatio);
+			m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - RenderDevice::UiPx(130.0f),
+				30.0f * RenderDevice::m_fUIScaleY);
 			m_pRemainText->SetText(szText, 0);
 			m_pRemainText->SetVisible(1);
 		}
@@ -766,8 +766,8 @@ int TMFieldScene::OnPacketRunQuest12Count(MSG_STANDARDPARM2* pStd)
 
 	if (m_pRemainText)
 	{
-		m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - 130.0f,
-			30.0f * RenderDevice::m_fHeightRatio);
+		m_pRemainText->SetPos((float)g_pDevice->m_dwScreenWidth - RenderDevice::UiPx(130.0f),
+			30.0f * RenderDevice::m_fUIScaleY);
 		m_pRemainText->SetText(szText, 0);
 	}
 	return 1;

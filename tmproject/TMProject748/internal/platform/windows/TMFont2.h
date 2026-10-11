@@ -13,6 +13,8 @@ public:
     
     // Copies szString into the internal buffer, applies the color and optionally
     // handles the zero character. The caller keeps ownership of the string.
+    // Returns zero on invalid input or resource failure. Resource failure releases
+    // the texture; Render may retry but never draws a failed upload.
     int SetText(const char* szString, unsigned int dwColor, int bCheckZero);
     // Returns a mutable pointer to the internal buffer; valid only while this
     // instance exists and receives no other text.

@@ -67,6 +67,8 @@ public:
 	stCommonMeshList m_stSkinMeshList[MAX_SKIN_MESH_LIST];
 
 	static stBoneAni m_BoneAnimationList[MAX_BONE_ANIMATION_LIST];
+	// Idempotent release of m_BoneAnimationList (pointers are cleared).
+	static void ReleaseBoneAnimations();
 	static short m_sAnimationArray[MAX_ANI_CLASS][MAX_ANI_TYPE][MAX_ANI_MOTION];
 	static char m_aObjectMask[MAX_OBJECT_MASK][MAX_MASK_X][MAX_MASK_Y];
 	static int m_nFullCount;

@@ -7,6 +7,26 @@
 #include "TMFieldScene.h"
 #include "TMCamera.h"
 #include "TMMesh.h"
+#include "ShaderResources.h"
+
+namespace {
+struct ShaderFileIO {
+    int Open(const char* path) { return _open(path, _O_RDONLY | _O_BINARY); }
+    __int64 Length(int handle) { return _filelengthi64(handle); }
+    int Read(int handle, void* destination, unsigned int size) { return _read(handle, destination, size); }
+    int Close(int handle) { return _close(handle); }
+};
+
+HRESULT ReadShader(const char* path, DWORD stage, ID3DXBuffer** output)
+{
+    ShaderFileIO io;
+    const HRESULT result = shader_resources::Read(io, path, stage,
+        [](UINT size, ID3DXBuffer** buffer) { return D3DXCreateBuffer(size, buffer); }, output);
+    if (FAILED(result))
+        LOG_WRITELOG("Shader read failed: %s (0x%08lX)\r\n", path, static_cast<unsigned long>(result));
+    return result;
+}
+}
 
 int RenderDevice::InitVertexShader()
 {
@@ -57,54 +77,35 @@ int RenderDevice::InitVertexShader()
 	VertexDecl[2] = VertexDecl3;
 	VertexDecl[3] = VertexDecl4;
 
-	m_bUseSW = 16;
 	D3DCAPS9 d3dCaps{};
-	m_pd3dDevice->GetDeviceCaps(&d3dCaps);
+	if (!m_pd3dDevice || FAILED(m_pd3dDevice->GetDeviceCaps(&d3dCaps)))
+		return 0;
+	const bool hardware = d3dCaps.VertexShaderVersion >= 0xFFFE0101;
+	const bool rebuildSkin = !shader_resources::Batch<IDirect3DVertexShader9, 8>::Complete(m_pVertexShader) ||
+		!shader_resources::Batch<IDirect3DVertexDeclaration9, 8>::Complete(m_pVertexDeclaration);
+	shader_resources::Batch<IDirect3DVertexShader9, 8> skin;
+	shader_resources::Batch<IDirect3DVertexDeclaration9, 8> skinDeclarations;
 
-	if (d3dCaps.VertexShaderVersion >= 0xFFFE0101)
-	{
-		m_bUseSW = 0;
-		m_dwBufferUsage = 8;
-		if (m_pVertexShader[0] == nullptr)
-			LOG_WRITELOG("VertexShader HW Accel Enabled\r\n");
-	}
-	else if (m_pVertexShader[0] == nullptr)
-	{
-		LOG_WRITELOG("VertexShader SW Mode \r\n");
-	}
-
-	if (m_pVertexShader[0] == nullptr)
+	if (rebuildSkin)
 	{
 		for (int i = 0; i < 8; ++i)
 		{
-			LPD3DXBUFFER pCode = nullptr;
+			shader_resources::Owned<ID3DXBuffer> code;
 			char szBinFile[128];
 			sprintf_s(szBinFile, ShaderSkinMesh_Path, i + 1);
-
-			int handle = _open(szBinFile, _O_BINARY);
-			if (handle == -1)
-			{
-				LOG_WRITELOG("Read VertexShader %d Error.. \r\n", i + 1);
+			if (FAILED(ReadShader(szBinFile, 0xFFFE0000UL, &code.value)))
 				return 0;
-			}
-
-			int nLength = _filelength(handle);
-			D3DXCreateBuffer(nLength, &pCode);
-			_read(handle, pCode->GetBufferPointer(), pCode->GetBufferSize());
-			_close(handle);
-
-			if (FAILED(m_pd3dDevice->CreateVertexDeclaration(VertexDecl[i % 4], &m_pVertexDeclaration[i])))
+			if (FAILED(m_pd3dDevice->CreateVertexDeclaration(VertexDecl[i % 4], skinDeclarations.Output(i))))
 				return 0;
-
-			if (FAILED(m_pd3dDevice->CreateVertexShader((const DWORD*)pCode->GetBufferPointer(), &m_pVertexShader[i])))
+			if (FAILED(m_pd3dDevice->CreateVertexShader(
+				static_cast<const DWORD*>(code.value->GetBufferPointer()), skin.Output(i))))
 				return 0;
-
-			pCode->Release();
 		}
 
 		D3DXMATRIX mat;
 		D3DXMatrixTranspose(&mat, &m_matProj);
-		m_pd3dDevice->SetVertexShaderConstantF(2, (const float*)&mat, 4);
+		if (FAILED(m_pd3dDevice->SetVertexShaderConstantF(2, (const float*)&mat, 4)))
+			return 0;
 	}
 
 	// { Stream, Offset, Type, Method, Usage, UsageIndex }
@@ -301,70 +302,65 @@ int RenderDevice::InitVertexShader()
 	VertexDeclEff[17] = DeclChannel2Alpha;
 	VertexDeclEff[18] = DeclRefectWater;
 
-	if (m_pVSEffect[0] == nullptr)
+	const bool rebuildEffects = !shader_resources::Batch<IDirect3DVertexShader9, 4>::Complete(m_pVSEffect) ||
+		!shader_resources::Batch<IDirect3DVertexDeclaration9, 4>::Complete(m_pVDEffect);
+	shader_resources::Batch<IDirect3DVertexShader9, 4> effects;
+	shader_resources::Batch<IDirect3DVertexDeclaration9, 4> effectDeclarations;
+	if (rebuildEffects)
 	{
 		for (int j = 0; j < 4; ++j)
 		{
-			LPD3DXBUFFER pCode = nullptr;
+			shader_resources::Owned<ID3DXBuffer> code;
 			char szFileName[128];
 			sprintf_s(szFileName, ShaderVertexShader_Path, j + 1);
-
-			int fh = _open(szFileName, _O_BINARY);
-			if (fh == -1)
-			{
-				LOG_WRITELOG("Read VertexShader %d Error.. \r\n", j + 1);
+			if (FAILED(ReadShader(szFileName, 0xFFFE0000UL, &code.value)))
 				return 0;
-			}
-
-			int nLength = _filelength(fh);
-			D3DXCreateBuffer(nLength, &pCode);
-			_read(fh, pCode->GetBufferPointer(), pCode->GetBufferSize());
-			_close(fh);
-
-			if (FAILED(m_pd3dDevice->CreateVertexDeclaration(VertexDeclEff[j], &m_pVDEffect[j])))
+			if (FAILED(m_pd3dDevice->CreateVertexDeclaration(VertexDeclEff[j], effectDeclarations.Output(j))))
 				return 0;
-
-			if (FAILED(m_pd3dDevice->CreateVertexShader((const DWORD*)pCode->GetBufferPointer(), &m_pVSEffect[j])))
+			if (FAILED(m_pd3dDevice->CreateVertexShader(
+				static_cast<const DWORD*>(code.value->GetBufferPointer()), effects.Output(j))))
 				return 0;
-
-			pCode->Release();
 		}
 	}
-
+	if (rebuildSkin && (!skin.Complete() || !skinDeclarations.Complete())) return 0;
+	if (rebuildEffects && (!effects.Complete() || !effectDeclarations.Complete())) return 0;
+	if (rebuildSkin) {
+		skin.Publish(m_pVertexShader);
+		skinDeclarations.Publish(m_pVertexDeclaration);
+		LOG_WRITELOG(hardware ? "VertexShader HW Accel Enabled\r\n" : "VertexShader SW Mode\r\n");
+	}
+	if (rebuildEffects) {
+		effects.Publish(m_pVSEffect);
+		effectDeclarations.Publish(m_pVDEffect);
+	}
+	m_bUseSW = hardware ? 0 : 16;
+	if (hardware) m_dwBufferUsage = 8;
 	return 1;
 }
 
 int RenderDevice::InitPixelShader()
 {
 	D3DCAPS9 d3dCaps{};
-	m_pd3dDevice->GetDeviceCaps(&d3dCaps);
+	if (!m_pd3dDevice || FAILED(m_pd3dDevice->GetDeviceCaps(&d3dCaps)))
+		return 0;
 	if (d3dCaps.PixelShaderVersion >= 0xFFFF0101)
 	{
-		if (m_pPSEffect[0] == nullptr)
+		if (!shader_resources::Batch<IDirect3DPixelShader9, 6>::Complete(m_pPSEffect))
 		{
+			shader_resources::Batch<IDirect3DPixelShader9, 6> pixels;
 			for (int i = 0; i < 6; ++i)
 			{
-				LPD3DXBUFFER pCode = nullptr;
+				shader_resources::Owned<ID3DXBuffer> code;
 				char szBinFile[128];
 				sprintf_s(szBinFile, ShaderPixelShader_Path, i + 1);
-
-				int handle = _open(szBinFile, _O_BINARY);
-				if (handle == -1)
-				{
-					LOG_WRITELOG("Read PixelShader %d Error.. \r\n", i + 1);
+				if (FAILED(ReadShader(szBinFile, 0xFFFF0000UL, &code.value)))
 					return 0;
-				}
-
-				int nLength = _filelength(handle);
-				D3DXCreateBuffer(nLength, &pCode);
-				_read(handle, pCode->GetBufferPointer(), pCode->GetBufferSize());
-				_close(handle);
-
-				if (FAILED(m_pd3dDevice->CreatePixelShader((const DWORD*)pCode->GetBufferPointer(), &m_pPSEffect[i])))
+				if (FAILED(m_pd3dDevice->CreatePixelShader(
+					static_cast<const DWORD*>(code.value->GetBufferPointer()), pixels.Output(i))))
 					return 0;
-
-				pCode->Release();
 			}
+			if (!pixels.Complete()) return 0;
+			pixels.Publish(m_pPSEffect);
 		}
 
 		return 1;

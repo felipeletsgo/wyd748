@@ -813,9 +813,10 @@ int TMItem::Render()
         pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
 
         int nCount = vDesc.Size / sizeof(RDLVERTEX);
-        // TODO: review this loops, very strange
+        // Native FUN_004f59b4 tints every vertex of meshes 737..739 with
+        // dwColor[mesh - 737]; the 7.69 offset 2980 read outside the table.
         for (int i = 0; i < nCount; ++i)
-            pVertex[i].diffuse = dwColor[nMeshIndex - 2980];
+            pVertex[i].diffuse = dwColor[nMeshIndex - 737];
 
         pMesh->m_pVB->Unlock();
         pMesh->m_nTextureIndex[0] = 204;

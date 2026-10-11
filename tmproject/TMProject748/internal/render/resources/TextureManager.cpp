@@ -418,58 +418,45 @@ IDirect3DTexture9* TextureManager::GetUITexture(int nIndex, DWORD showTime)
 
 int TextureManager::InitUITextureSetList()
 {
-	FILE* fp = fopen(TextureSetList_Path, "rt");
+	FILE* fp = fopen(TextureSetList_Path, "rb");
 
 	if (!fp)
 		return 0;
 
-	char szSetName[128];
-	int nSetIndex;
-	int nItemCount;
+	std::string text;
+	char buffer[4096];
+	for (size_t read; (read = fread(buffer, 1, sizeof(buffer), fp)) > 0;)
+		text.append(buffer, read);
+	fclose(fp);
 
-	while (fscanf(fp, "%s\r\nSetIndex: %d\r\nItemCount: %d\r\n", szSetName,
-		&nSetIndex, &nItemCount) != -1)
+	// Parse the whole file first: a malformed block can no longer desynchronize
+	// the reader, write outside the table or leave rows uninitialized.
+	ui_texture_set::Report report{};
+	auto records = ui_texture_set::Parse(text, MAX_UI_TEXTURE_SET_LIST, report);
+	if (report.skipped || report.truncated || report.duplicates)
+		LOG_WRITELOG("UI TextureSetList: %d set(s), %d skipped, %d short, %d duplicate\r\n",
+			report.sets, report.skipped, report.truncated, report.duplicates);
+
+	for (auto& record : records)
 	{
-		if (nSetIndex >= MAX_UI_TEXTURE_SET_LIST)
+		auto& set = m_UITextureSetList[record.setIndex];
+		delete[] set.pTextureCoord; // a later duplicate replaces the earlier block
+		set.nCount = static_cast<int>(record.coords.size());
+		set.pTextureCoord = set.nCount ? new ControlTextureCoord[set.nCount] : nullptr;
+		for (int nCount = 0; nCount < set.nCount; ++nCount)
 		{
-			LOG_WRITELOG("Cannot read [%s] in UI TextureSetList\r\n", szSetName);
-			continue;
-		}
-
-		m_UITextureSetList[nSetIndex].nCount = nItemCount;
-		m_UITextureSetList[nSetIndex].pTextureCoord = new ControlTextureCoord[nItemCount];
-		int CurIcon = 0;
-		for (int nCount = 0; nCount < nItemCount; ++nCount)
-		{
-			fscanf(fp, "%d,%d,%d,%d,%d,%d,%d\r\n",
-				&m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nTextureIndex,
-				&m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nStartX,
-				&m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nStartY,
-				&m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nWidth,
-				&m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nHeight,
-				&m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nDestX,
-				&m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nDestY);
-
-
-			if (nSetIndex == 526)
+			set.pTextureCoord[nCount] = record.coords[nCount];
+			// Set 526 is a 10x10 grid of 100-pixel icons regardless of its rows.
+			if (record.setIndex == 526)
 			{
-				if (CurIcon > (100 - 1))
-					CurIcon = 0;
-
-				m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nStartX = 100 * (CurIcon % 100 % 10);
-				m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nStartY = 100 * (CurIcon % 100 / 10);
-				m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nWidth = 100;
-				m_UITextureSetList[nSetIndex].pTextureCoord[nCount].nHeight = 100;
-				CurIcon++;
+				const int icon = nCount % 100;
+				set.pTextureCoord[nCount].nStartX = 100 * (icon % 10);
+				set.pTextureCoord[nCount].nStartY = 100 * (icon / 10);
+				set.pTextureCoord[nCount].nWidth = 100;
+				set.pTextureCoord[nCount].nHeight = 100;
 			}
 		}
-
-
-
-
 	}
-
-	fclose(fp);
 	// 7.59 UITextureSetList: 455/456/458..465 and 525, atlas NUI/main.wyt.
 	// Reserve new sets so the native 318/319 buttons retain their original art.
 	const int ccX[] = {212, 92, 62, 122, 122, 152, 32, 2, 242, 110};

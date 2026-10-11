@@ -3,6 +3,9 @@
 #include "SControlContainer.h"
 #include "SGrid.h"
 #include "UIBinary.h"
+#include "RCControlTransaction.h"
+#include <memory>
+#include <new>
 #include "TMGround.h"
 #include "TMSky.h"
 #include "TMSun.h"
@@ -18,41 +21,54 @@
 #include "TMSnow.h"
 #include "TMRain.h"
 #include "WYD748Assets.h"
+#include <share.h>
 
 namespace
 {
+	bool AttachRCControl(SControlContainer* container, SControl* control, int parentID)
+	{
+		SControl* parent = parentID ? container->FindControl(parentID) : container->m_pControlRoot;
+		if (!parent)
+		{
+			LOG_WRITELOG("Missing RC parent [%d] for control [%u]\r\n",
+				parentID, control->GetControlID());
+			return false;
+		}
+		parent->AddChild(control);
+		return true;
+	}
+
 	bool CopyUIString(int stringIndex, char* output, size_t outputCapacity,
 		int controlID, const char* resourceName)
 	{
-		if (!output || outputCapacity == 0 || stringIndex < 0 || stringIndex >= MAX_STRING)
+		if (!CopyRCIndexedCaption(g_UIString, stringIndex, output, outputCapacity))
 		{
-			LOG_WRITELOG("Invalid UI string index [%d] for control [%d] in [%s]\r\n",
+			LOG_WRITELOG("Invalid or missing UI caption [%d] for control [%d] in [%s]\r\n",
 				stringIndex, controlID, resourceName ? resourceName : "<unknown>");
 			return false;
 		}
 
-		strncpy_s(output, outputCapacity, g_UIString[stringIndex], _TRUNCATE);
 		return true;
 	}
 }
 
-int TMScene::LoadRC(const char* szFileName)
+int TMScene::LoadRC(const char* szFileName) try
 {
+	char szBinFileName[128]{};
+	if (!ResolveRCBinaryPath(szFileName, szBinFileName, sizeof(szBinFileName)))
+	{
+		LOG_WRITELOG("Invalid RC resource path\r\n");
+		return 0;
+	}
 	if (!m_pControlContainer)
 		m_pControlContainer = new SControlContainer(this);
 
-	char szBinFileName[128]{};
-
-	sprintf_s(szBinFileName, "%s", szFileName);
-
-	int nLength = strlen(szBinFileName);
-
-	if (strchr(szBinFileName, '_'))
-		sprintf_s(&szBinFileName[nLength - 7], sizeof(szBinFileName) - nLength - 7, ".bin");
-	else
-		sprintf_s(&szBinFileName[nLength - 3], sizeof(szBinFileName) - nLength - 3, "bin");
-
 	return ReadRCBin(szBinFileName);
+}
+catch (const std::bad_alloc&)
+{
+	LOG_WRITELOG("Cannot allocate RC control container\r\n");
+	return 0;
 }
 
 int TMScene::ParseRC(FILE* fp, FILE* fpBinary, char* szControlType)
@@ -60,20 +76,37 @@ int TMScene::ParseRC(FILE* fp, FILE* fpBinary, char* szControlType)
 	return 0;
 }
 
-int TMScene::ReadRCBin(char* szBinFileName)
+int TMScene::ReadRCBin(char* szBinFileName) try
 {
+	if (!szBinFileName || !m_pControlContainer)
+		return 0;
 	FILE* fpBinary = nullptr;
 
-	fopen_s(&fpBinary, szBinFileName, "rb");
+	// Keep validation and construction on stable bytes until this handle closes.
+	fpBinary = _fsopen(szBinFileName, "rb", _SH_DENYWR);
 
 	if (!fpBinary)
 		return 0;
+
+	const std::unique_ptr<FILE, decltype(&std::fclose)> fileOwner(fpBinary, &std::fclose);
 
 	// Some older 7.48-compatible RC files store button/text captions inline.
 	// Detect that ABI once per file while the primary Scene2 UI keeps the compact
 	// indexed-string parser used by the live 7.48 selection screen.
 	const bool legacyInlineCaptions = WYD748_IsLegacyRCFile(szBinFileName);
+	RCValidationError validationError{};
+	if (!ValidateRCStream(fpBinary, legacyInlineCaptions, static_cast<int>(_countof(g_UIString)),
+		sizeof(SEditableText::m_strText),
+		[this](unsigned int id) { return m_pControlContainer->FindControl(id) != nullptr; },
+		WYD748_TranslateControlID, validationError, sizeof(GeomControl)))
+	{
+		LOG_WRITELOG("Invalid RC resource [%s] at byte [%ld], control [%d]: %s\r\n",
+			szBinFileName, validationError.offset, validationError.controlID, validationError.reason);
 
+		return 0;
+	}
+
+	RCControlTransaction<TreeNode> transaction(m_pControlContainer->m_pControlRoot);
 	int rawControlType = 0;
 	while (true)
 	{
@@ -83,7 +116,7 @@ int TMScene::ReadRCBin(char* szBinFileName)
 		if (readResult != RCControlTypeReadResult::Record)
 		{
 			LOG_WRITELOG("Incomplete RC control type in [%s]\r\n", szBinFileName);
-			fclose(fpBinary);
+
 			return 0;
 		}
 		const auto nControlType = static_cast<CONTROL_TYPE>(rawControlType);
@@ -163,16 +196,21 @@ int TMScene::ReadRCBin(char* szBinFileName)
 		break;
 		default:
 			LOG_WRITELOG("Not Support Control Type [%d]\r\n", nControlType);
-			fclose(fpBinary);
+
 			return 0;
 		}
 	}
 
-	fclose(fpBinary);
+	transaction.Commit();
 	return 1;
 }
+catch (const std::bad_alloc&)
+{
+	LOG_WRITELOG("RC construction ran out of memory in [%s]\r\n", szBinFileName);
+	return 0;
+}
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCPanel(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult)
 {
 	BinPanel binPanelData;
@@ -180,18 +218,19 @@ ExtractedFlow TMScene::ReadRCPanel(FILE*& fpBinary, const CONTROL_TYPE& nControl
 	if (!fread(&binPanelData, sizeof(binPanelData), 1, fpBinary))
 	{
 		LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-		fclose(fpBinary);
+
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
-	auto pPanel = new SPanel(
+	std::unique_ptr<SPanel> controlOwner(new SPanel(
 		binPanelData.nTextureSetIndex,
 		(float)binPanelData.nStartX,
 		(float)binPanelData.nStartY,
 		(float)binPanelData.nWidth,
 		(float)binPanelData.nHeight,
 		binPanelData.nColor,
-		static_cast<RENDERCTRLTYPE>(binPanelData.nFillType));
+		static_cast<RENDERCTRLTYPE>(binPanelData.nFillType)));
+	auto pPanel = controlOwner.get();
 
 	if (!pPanel)
 	{
@@ -206,23 +245,15 @@ ExtractedFlow TMScene::ReadRCPanel(FILE*& fpBinary, const CONTROL_TYPE& nControl
 		(float)binPanelData.nWidth,
 		(float)binPanelData.nHeight);
 
-	if (binPanelData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binPanelData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pPanel));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pPanel));
-	}
+	if (!AttachRCControl(m_pControlContainer, pPanel, binPanelData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 
 	pPanel->m_bPickable = binPanelData.nPickable;
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCGrid(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult)
 {
 	BinGrid binGridData;
@@ -230,11 +261,11 @@ ExtractedFlow TMScene::ReadRCGrid(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 	if (!fread(&binGridData, sizeof(binGridData), 1, fpBinary))
 	{
 		LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-		fclose(fpBinary);
+
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
-	auto pGrid = new SGridControl(
+	std::unique_ptr<SGridControl> controlOwner(new SGridControl(
 		binGridData.nTextureSetIndex,
 		binGridData.nRowCount,
 		binGridData.nColumnCount,
@@ -242,7 +273,8 @@ ExtractedFlow TMScene::ReadRCGrid(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 		(float)binGridData.nStartY,
 		(float)binGridData.nWidth,
 		(float)binGridData.nHeight,
-		static_cast<TMEITEMTYPE>(binGridData.nType));
+		static_cast<TMEITEMTYPE>(binGridData.nType)));
+	auto pGrid = controlOwner.get();
 
 	if (!pGrid)
 	{
@@ -263,21 +295,13 @@ ExtractedFlow TMScene::ReadRCGrid(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 	else
 		pGrid->SetEventListener(nullptr);
 
-	if (binGridData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binGridData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pGrid));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pGrid));
-	}
+	if (!AttachRCControl(m_pControlContainer, pGrid, binGridData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRC3DObj(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult)
 {
 	Bin3DObj bin3DObjData;
@@ -285,15 +309,16 @@ ExtractedFlow TMScene::ReadRC3DObj(FILE*& fpBinary, const CONTROL_TYPE& nControl
 	if (!fread(&bin3DObjData, sizeof(bin3DObjData), 1, fpBinary))
 	{
 		LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-		fclose(fpBinary);
+
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
-	auto p3DObj = new S3DObj(bin3DObjData.n3DObjIndex,
+	std::unique_ptr<S3DObj> controlOwner(new S3DObj(bin3DObjData.n3DObjIndex,
 		(float)bin3DObjData.nStartX,
 		(float)bin3DObjData.nStartY,
 		(float)bin3DObjData.nWidth,
-		(float)bin3DObjData.nHeight);
+		(float)bin3DObjData.nHeight));
+	auto p3DObj = controlOwner.get();
 
 	if (!p3DObj)
 	{
@@ -308,21 +333,13 @@ ExtractedFlow TMScene::ReadRC3DObj(FILE*& fpBinary, const CONTROL_TYPE& nControl
 		(float)bin3DObjData.nWidth,
 		(float)bin3DObjData.nHeight);
 
-	if (bin3DObjData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(bin3DObjData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(p3DObj));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(p3DObj));
-	}
+	if (!AttachRCControl(m_pControlContainer, p3DObj, bin3DObjData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, const bool& legacyInlineCaptions, int& extractedResult)
 {
 	BinButton binButtonData{};
@@ -335,7 +352,7 @@ ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nContro
 		if (!fread(&legacy, sizeof(legacy), 1, fpBinary))
 		{
 			LOG_WRITELOG("Can't Read Legacy Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-			fclose(fpBinary);
+
 			{ extractedResult = 0; return ExtractedFlow::Return; }
 		}
 		binButtonData.nID = legacy.nID;
@@ -354,18 +371,18 @@ ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nContro
 		if (!fread(&binButtonData, sizeof(binButtonData), 1, fpBinary))
 		{
 			LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-			fclose(fpBinary);
+
 			{ extractedResult = 0; return ExtractedFlow::Return; }
 		}
 		if (!CopyUIString(binButtonData.nStringIndex, strbuf, sizeof(strbuf),
 			binButtonData.nID, szBinFileName))
 		{
-			fclose(fpBinary);
+
 			{ extractedResult = 0; return ExtractedFlow::Return; }
 		}
 	}
 
-	auto pButton = new SButton(
+	std::unique_ptr<SButton> controlOwner(new SButton(
 		binButtonData.nTextureSetIndex,
 		(float)binButtonData.nStartX,
 		(float)binButtonData.nStartY,
@@ -373,7 +390,8 @@ ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nContro
 		(float)binButtonData.nHeight,
 		binButtonData.nColor,
 		binButtonData.nSound,
-		strbuf);
+		strbuf));
+	auto pButton = controlOwner.get();
 
 	if (!pButton)
 	{
@@ -381,6 +399,11 @@ ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nContro
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
+	if (!pButton->IsCaptionReady())
+	{
+		LOG_WRITELOG("Cannot rasterize RC button caption [%d] in [%s]\r\n", binButtonData.nID, szBinFileName);
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	}
 	pButton->SetControlID(binButtonData.nID);
 
 	pButton->SetCenterPos(binButtonData.nID,
@@ -389,17 +412,9 @@ ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nContro
 		(float)binButtonData.nWidth,
 		(float)binButtonData.nHeight);
 
-	if (binButtonData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binButtonData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pButton));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pButton));
-	}
+	if (!AttachRCControl(m_pControlContainer, pButton, binButtonData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 
 	if (m_pControlContainer)
 		pButton->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
@@ -408,7 +423,7 @@ ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nContro
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, const bool& legacyInlineCaptions, int& extractedResult)
 {
 	BinText binTextData{};
@@ -421,7 +436,7 @@ ExtractedFlow TMScene::ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 		if (!fread(&legacy, sizeof(legacy), 1, fpBinary))
 		{
 			LOG_WRITELOG("Can't Read Legacy Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-			fclose(fpBinary);
+
 			{ extractedResult = 0; return ExtractedFlow::Return; }
 		}
 		binTextData.nID = legacy.nID;
@@ -443,18 +458,18 @@ ExtractedFlow TMScene::ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 		if (!fread(&binTextData, sizeof(binTextData), 1, fpBinary))
 		{
 			LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-			fclose(fpBinary);
+
 			{ extractedResult = 0; return ExtractedFlow::Return; }
 		}
 		if (!CopyUIString(binTextData.nStringIndex, strbuf, sizeof(strbuf),
 			binTextData.nID, szBinFileName))
 		{
-			fclose(fpBinary);
+
 			{ extractedResult = 0; return ExtractedFlow::Return; }
 		}
 	}
 
-	auto pText = new SText(
+	std::unique_ptr<SText> controlOwner(new SText(
 		binTextData.nTextureSetIndex,
 		strbuf,
 		binTextData.nFontColor,
@@ -465,7 +480,8 @@ ExtractedFlow TMScene::ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 		binTextData.nBorder,
 		binTextData.nBorderColor,
 		binTextData.nTextType,
-		binTextData.nAlignType);
+		binTextData.nAlignType));
+	auto pText = controlOwner.get();
 
 	if (!pText)
 	{
@@ -473,6 +489,11 @@ ExtractedFlow TMScene::ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
+	if (!pText->IsCaptionReady())
+	{
+		LOG_WRITELOG("Cannot rasterize RC text caption [%d] in [%s]\r\n", binTextData.nID, szBinFileName);
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	}
 	pText->SetControlID(binTextData.nID);
 
 	pText->SetCenterPos(binTextData.nID,
@@ -481,21 +502,13 @@ ExtractedFlow TMScene::ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 		(float)binTextData.nWidth,
 		(float)binTextData.nHeight);
 
-	if (binTextData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binTextData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pText));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pText));
-	}
+	if (!AttachRCControl(m_pControlContainer, pText, binTextData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCEditableText(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult)
 {
 	BinEdit binEditData;
@@ -503,11 +516,11 @@ ExtractedFlow TMScene::ReadRCEditableText(FILE*& fpBinary, const CONTROL_TYPE& n
 	if (!fread(&binEditData, sizeof(binEditData), 1, fpBinary))
 	{
 		LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-		fclose(fpBinary);
+
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
-	auto pEdit = new SEditableText(
+	std::unique_ptr<SEditableText> controlOwner(new SEditableText(
 		binEditData.nTextureSetIndex,
 		binEditData.szString,
 		binEditData.nMaxStringLength,
@@ -520,7 +533,8 @@ ExtractedFlow TMScene::ReadRCEditableText(FILE*& fpBinary, const CONTROL_TYPE& n
 		binEditData.nBorder,
 		binEditData.nBorderColor,
 		binEditData.nTextType,
-		binEditData.nAlignType);
+		binEditData.nAlignType));
+	auto pEdit = controlOwner.get();
 
 	if (!pEdit)
 	{
@@ -536,17 +550,9 @@ ExtractedFlow TMScene::ReadRCEditableText(FILE*& fpBinary, const CONTROL_TYPE& n
 		(float)binEditData.nWidth,
 		(float)binEditData.nHeight);
 
-	if (binEditData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binEditData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pEdit));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pEdit));
-	}
+	if (!AttachRCControl(m_pControlContainer, pEdit, binEditData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 
 	if (m_pControlContainer)
 		pEdit->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
@@ -555,7 +561,7 @@ ExtractedFlow TMScene::ReadRCEditableText(FILE*& fpBinary, const CONTROL_TYPE& n
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCProgressBar(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult)
 {
 	BinProgress binProgressData;
@@ -563,11 +569,11 @@ ExtractedFlow TMScene::ReadRCProgressBar(FILE*& fpBinary, const CONTROL_TYPE& nC
 	if (!fread(&binProgressData, sizeof(binProgressData), 1, fpBinary))
 	{
 		LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-		fclose(fpBinary);
+
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
-	auto pProgress = new SProgressBar(
+	std::unique_ptr<SProgressBar> controlOwner(new SProgressBar(
 		binProgressData.nTextureSetIndex,
 		binProgressData.nCurrent,
 		binProgressData.nMaxValue,
@@ -577,7 +583,8 @@ ExtractedFlow TMScene::ReadRCProgressBar(FILE*& fpBinary, const CONTROL_TYPE& nC
 		(float)binProgressData.nHeight,
 		binProgressData.nProgressColor,
 		binProgressData.nColor,
-		binProgressData.nStyle);
+		binProgressData.nStyle));
+	auto pProgress = controlOwner.get();
 
 	if (!pProgress)
 	{
@@ -593,17 +600,9 @@ ExtractedFlow TMScene::ReadRCProgressBar(FILE*& fpBinary, const CONTROL_TYPE& nC
 		(float)binProgressData.nWidth,
 		(float)binProgressData.nHeight);
 
-	if (binProgressData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binProgressData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pProgress));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pProgress));
-	}
+	if (!AttachRCControl(m_pControlContainer, pProgress, binProgressData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 
 	if (m_pControlContainer)
 		pProgress->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
@@ -612,7 +611,7 @@ ExtractedFlow TMScene::ReadRCProgressBar(FILE*& fpBinary, const CONTROL_TYPE& nC
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCCheckBox(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult)
 {
 	BinCheckBox binCheckBoxData;
@@ -620,17 +619,18 @@ ExtractedFlow TMScene::ReadRCCheckBox(FILE*& fpBinary, const CONTROL_TYPE& nCont
 	if (!fread(&binCheckBoxData, sizeof(binCheckBoxData), 1, fpBinary))
 	{
 		LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-		fclose(fpBinary);
+
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
-	auto pCheckBox = new SCheckBox(
+	std::unique_ptr<SCheckBox> controlOwner(new SCheckBox(
 		binCheckBoxData.nTextureSetIndex,
 		(float)binCheckBoxData.nStartX,
 		(float)binCheckBoxData.nStartY,
 		(float)binCheckBoxData.nWidth,
 		(float)binCheckBoxData.nHeight,
-		binCheckBoxData.nColor);
+		binCheckBoxData.nColor));
+	auto pCheckBox = controlOwner.get();
 
 	if (!pCheckBox)
 	{
@@ -646,17 +646,9 @@ ExtractedFlow TMScene::ReadRCCheckBox(FILE*& fpBinary, const CONTROL_TYPE& nCont
 		(float)binCheckBoxData.nWidth,
 		(float)binCheckBoxData.nHeight);
 
-	if (binCheckBoxData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binCheckBoxData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pCheckBox));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pCheckBox));
-	}
+	if (!AttachRCControl(m_pControlContainer, pCheckBox, binCheckBoxData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 
 	if (m_pControlContainer)
 		pCheckBox->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));
@@ -665,7 +657,7 @@ ExtractedFlow TMScene::ReadRCCheckBox(FILE*& fpBinary, const CONTROL_TYPE& nCont
 	return ExtractedFlow::Next;
 }
 
-// Extracted from TMScene::ReadRCBin; behavior is unchanged.
+// The local owner releases the control only after successful tree attachment.
 ExtractedFlow TMScene::ReadRCListBox(FILE*& fpBinary, const CONTROL_TYPE& nControlType, char*& szBinFileName, int& extractedResult)
 {
 	BinListBox binListBoxData;
@@ -673,11 +665,11 @@ ExtractedFlow TMScene::ReadRCListBox(FILE*& fpBinary, const CONTROL_TYPE& nContr
 	if (!fread(&binListBoxData, sizeof(binListBoxData), 1, fpBinary))
 	{
 		LOG_WRITELOG("Can't Read Resource Data[%d] in [%s]\r\n", nControlType, szBinFileName);
-		fclose(fpBinary);
+
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 
-	auto pListBox = new SListBox(
+	std::unique_ptr<SListBox> controlOwner(new SListBox(
 		binListBoxData.nTextureSetIndex,
 		binListBoxData.nMaxCount,
 		binListBoxData.nVisibleCount,
@@ -689,7 +681,8 @@ ExtractedFlow TMScene::ReadRCListBox(FILE*& fpBinary, const CONTROL_TYPE& nContr
 		static_cast<RENDERCTRLTYPE>(binListBoxData.nFillType),
 		binListBoxData.nSelect,
 		binListBoxData.nScroll,
-		0);
+		0));
+	auto pListBox = controlOwner.get();
 
 	if (!pListBox)
 	{
@@ -705,17 +698,9 @@ ExtractedFlow TMScene::ReadRCListBox(FILE*& fpBinary, const CONTROL_TYPE& nContr
 		(float)binListBoxData.nWidth,
 		(float)binListBoxData.nHeight);
 
-	if (binListBoxData.nParentID)
-	{
-		auto pParent = m_pControlContainer->FindControl(binListBoxData.nParentID);
-
-		if (pParent)
-			pParent->AddChild(static_cast<TreeNode*>(pListBox));
-	}
-	else
-	{
-		m_pControlContainer->AddItem(static_cast<SControl*>(pListBox));
-	}
+	if (!AttachRCControl(m_pControlContainer, pListBox, binListBoxData.nParentID))
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	controlOwner.release();
 
 	if (m_pControlContainer)
 		pListBox->SetEventListener(static_cast<IEventListener*>(m_pControlContainer));

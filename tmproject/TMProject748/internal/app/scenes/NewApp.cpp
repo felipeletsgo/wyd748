@@ -23,6 +23,7 @@
 #include "ClientDiagnostics.h"
 #include "PerfTrace.h"
 #include "ClientSettings.h"
+#include "DeviceFrame.h"
 
 const char ClassName[4] = "WYD";
 
@@ -249,10 +250,15 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 		m_dwColorBit = stResList[1].dwBit;
 	}
 
-	// FUN_0042ced1 (UI mode 2) uses a fixed 13-pixel font at every
-	// resolution; the UI is not scaled, so the text is not either.
-	RenderDevice::m_nFontSize = 13;
-	RenderDevice::m_nFontTextureSize = 512;
+	// FUN_0042ced1 (UI mode 2) lays the UI out at 800x600 pixel sizes with a
+	// 13-pixel font. ClientSettings UIScale enlarges that layout uniformly for
+	// larger resolutions; the font follows so text keeps its proportions.
+	const float uiScale = ResolveUIScale(g_ClientSettings.uiScale, m_dwScreenWidth, m_dwScreenHeight);
+	RenderDevice::m_fUIScaleX = uiScale;
+	RenderDevice::m_fUIScaleY = uiScale;
+	RenderDevice::m_nFontSize = ScaledFontSize(uiScale);
+	RenderDevice::m_nFontTextureSize = FontTextureSizeFor(RenderDevice::m_nFontSize);
+	RenderDevice::m_nFontTextureSizeY = RenderDevice::m_nFontTextureSize / 8;
 
 	if (m_hWnd == nullptr)
 	{
@@ -317,7 +323,13 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	}
 
 	ReadItemName();
-	ReadUIString();
+	if (!ReadUIString())
+	{
+		MessageBoxA(m_hWnd, "The client UI string table is missing or invalid.", "Error", MB_OK);
+		LOG_WRITELOG("Client UI string initialization failed [%s]\r\n", UIString_Path);
+		LOG_FINALIZELOG();
+		return 0;
+	}
 	BASE_ReadItemPrice();
 
 	memset(g_pItemHelp, 0, sizeof(g_pItemHelp));
@@ -506,14 +518,10 @@ void NewApp::InitMusicList()
 
 HRESULT NewApp::Finalize()
 {
-	for (int nCount = 0; nCount < 100; ++nCount)
-	{
-		// These arrays are populated lazily by the renderer; free(nullptr) is
-		// valid, so this remains safe when compatibility startup stops early.
-		free(MeshManager::m_BoneAnimationList[nCount].pBone);
-		free(MeshManager::m_BoneAnimationList[nCount].matAnimation);
-		free(MeshManager::m_BoneAnimationList[nCount].matQuaternion);
-	}
+	// The mesh manager destructor releases the same buffers. Freeing them here
+	// without clearing the pointers made that second release a double free
+	// (crash on exit from the field); the shared release clears them.
+	MeshManager::ReleaseBoneAnimations();
 	
 	SAFE_DELETE(g_pObjectManager);
 	SAFE_DELETE(m_pTimerManager);
@@ -657,6 +665,9 @@ DWORD NewApp::Run()
 				}
 				if (perf_trace::EndFrame())
 					WritePerfSample();
+				if (TMScene* layoutScene = m_pObjectManager->GetCurrentScene())
+					WYD748_LayoutProbe(layoutScene->m_pControlContainer, m_dwScreenWidth,
+						m_dwScreenHeight, RenderDevice::m_fUIScaleX);
 			}
 		}		
 	}
@@ -722,19 +733,20 @@ void NewApp::WritePerfSample()
 
 HRESULT NewApp::RenderScene()
 {
-	HRESULT hr = m_pRenderDevice->m_pd3dDevice->TestCooperativeLevel();
-	if (FAILED(hr) && hr == D3DERR_DEVICELOST)
-		return 1;
+	if (!m_pRenderDevice || !m_pRenderDevice->m_pd3dDevice ||
+		!m_pObjectManager || !m_pObjectManager->m_pCamera)
+		return S_FALSE;
+	device_frame::Scene<RenderDevice> frame(*m_pRenderDevice);
 
 	m_pRenderDevice->SetViewPort(0, 0, m_dwScreenWidth, m_dwScreenHeight);
 
-	m_pRenderDevice->Lock(1);
+	if (!frame.Begin(1)) return S_FALSE;
 
 	TMCamera* pCamera = m_pObjectManager->m_pCamera;
 	TMVector3 vecLookAt = pCamera->GetCameraLookatPos();
 
-	m_pRenderDevice->SetViewVector(pCamera->m_cameraPos, vecLookAt);
-	m_pRenderDevice->SetRenderStateBlock(1);
+	if (!m_pRenderDevice->SetViewVector(pCamera->m_cameraPos, vecLookAt) ||
+		!m_pRenderDevice->SetRenderStateBlock(1)) return S_FALSE;
 	m_pObjectManager->RenderObject();
 
 	TMScene* pCurrentScene = m_pObjectManager->GetCurrentScene();
@@ -751,7 +763,7 @@ HRESULT NewApp::RenderScene()
 			pCreateWindow->m_nPosY + kPreviewHeight * RenderDevice::m_fHeightRatio +
 				kPreviewBottomMargin < static_cast<float>(m_dwScreenHeight))
 		{
-			m_pRenderDevice->Unlock(0);
+			if (!frame.End(0)) return S_FALSE;
 			m_pRenderDevice->SetViewPort(
 				static_cast<int>(pCreateWindow->m_nPosX) + 2,
 				static_cast<int>(pCreateWindow->m_nPosY) + 2,
@@ -759,18 +771,18 @@ HRESULT NewApp::RenderScene()
 				static_cast<int>(kPreviewHeight * RenderDevice::m_fHeightRatio));
 			m_pObjectManager->RenderTargetObject(
 				static_cast<TMSelectCharScene*>(pCurrentScene)->m_fFocusHeight);
-			m_pRenderDevice->Lock(0);
+			if (!frame.Begin(0)) return S_FALSE;
 		}
 	}
 
 	// The native 7.48 client renders controls in a fresh full-screen scene after
 	// the optional character-preview viewport.
-	m_pRenderDevice->Unlock(0);
+	if (!frame.End(0)) return S_FALSE;
 	m_pRenderDevice->SetViewPort(0, 0, m_dwScreenWidth, m_dwScreenHeight);
-	m_pRenderDevice->Lock(0);
-	m_pRenderDevice->SetRenderStateBlock(3);
+	if (!frame.Begin(0)) return S_FALSE;
+	if (!m_pRenderDevice->SetRenderStateBlock(3)) return S_FALSE;
 	m_pObjectManager->RenderControl();
-	m_pRenderDevice->Unlock(1);
+	if (!frame.End(1)) return S_FALSE;
 
 	if (g_pTextureManager)
 		g_pTextureManager->ReleaseNotUsingTexture();
@@ -831,7 +843,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	if (lpCmdLine != nullptr && wcscmp(lpCmdLine, L"/w") == 0)
 		nFull = 0;
 
-	// ?:????????????? KKKKKKKKKKKKKKKKKKKKKKKK
+	// Retired launcher command-line gate; unused by the active client.
 	//if (j___stricmp(lpCmdLine, "China No.1 It is TM Launcher"))
 		//return 0;
 

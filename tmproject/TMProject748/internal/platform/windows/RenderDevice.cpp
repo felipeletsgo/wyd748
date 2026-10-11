@@ -3,6 +3,10 @@
 #include "MeshManager.h"
 #include "TMFont2.h"
 #include "RenderDevice.h"
+#include "FontGdiResources.h"
+#include "RenderStateCache.h"
+#include "DeviceRestore.h"
+#include "DeviceFrame.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "PerfTrace.h"
@@ -286,7 +290,8 @@ void RenderDevice::Finalize()
 	RenderDevice::m_nBright = 50;
 
 	D3DGAMMARAMP gamma{};
-	m_pd3dDevice->GetGammaRamp(0, &gamma);
+	if (m_pd3dDevice != nullptr)
+		m_pd3dDevice->GetGammaRamp(0, &gamma);
 
 	for (int i = 0; i < 256; i++)
 	{
@@ -299,13 +304,17 @@ void RenderDevice::Finalize()
 		gamma.blue[i] = nVal;
 	}
 
-	m_pd3dDevice->SetGammaRamp(0, 0, &gamma);
+	if (m_pd3dDevice != nullptr)
+		m_pd3dDevice->SetGammaRamp(0, 0, &gamma);
 
-	if (m_d3dpp.Windowed)
+	if (m_pd3dDevice != nullptr && m_d3dpp.Windowed && g_pApp != nullptr && g_pApp->m_hWnd != nullptr)
 	{
 		HDC hdc = GetDC(g_pApp->m_hWnd);
-		SetDeviceGammaRamp(hdc, &gamma);
-		ReleaseDC(g_pApp->m_hWnd, hdc);
+		if (hdc != nullptr)
+		{
+			SetDeviceGammaRamp(hdc, &gamma);
+			ReleaseDC(g_pApp->m_hWnd, hdc);
+		}
 	}
 
 	SAFE_DELETE(m_pTextureManager);
@@ -334,6 +343,10 @@ void RenderDevice::Finalize()
 	SAFE_DELETE_ARRAY(TMFont2::m_pBuffer);
 
 	Cleanup3DEnvironment();
+	// Initialization can fail before the base restored flag is set.
+	font_gdi::NativeApi fontApi;
+	if (!font_gdi::Release(fontApi, m_hDC, m_hbmBitmap, m_hFont, m_pBitmapBits, m_bmi))
+		LOG_WRITELOG("Font GDI cleanup failed\r\n");
 }
 
 void RenderDevice::SetViewPort(int nStartX, int nStartY, int nWidth, int nHeight)
@@ -355,56 +368,42 @@ void RenderDevice::SetViewPort(int nStartX, int nStartY, int nWidth, int nHeight
 
 int RenderDevice::Lock(int bClear)
 {
-	if (m_bDeviceLost)
-	{
-		HRESULT hr = m_pd3dDevice->TestCooperativeLevel();
-		if (FAILED(hr))
-		{
-			if (hr == D3DERR_DEVICELOST)
-				return 0;
-			if (hr != D3DERR_DEVICENOTRESET)
-				return hr;
-			
-			if (m_bWindowed)
+	return device_frame::Begin(m_pd3dDevice, m_bDeviceLost, m_bDeviceObjectsRestored,
+		[this]() -> HRESULT {
+			if (!m_bWindowed) return S_OK;
+			D3DAdapterInfo* adapter = m_d3dSettings.PAdapterInfo();
+			if (!m_pD3D || !adapter) return E_POINTER;
+			D3DDISPLAYMODE pendingMode{};
+			const HRESULT result = m_pD3D->GetAdapterDisplayMode(adapter->AdapterOrdinal, &pendingMode);
+			if (FAILED(result)) return result;
+			m_d3dSettings.Windowed_DisplayMode = pendingMode;
+			m_d3dpp.BackBufferFormat = pendingMode.Format;
+			return S_OK;
+		},
+		[this] { return Reset3DEnvironment(); },
+		[this, bClear]() -> HRESULT {
+			if (!bClear) return S_OK;
+			if (g_pCurrentScene != nullptr && g_pCurrentScene->m_pSky != nullptr)
 			{
-				D3DAdapterInfo* pAdapterInfo = m_d3dSettings.PAdapterInfo();
-				m_pD3D->GetAdapterDisplayMode(pAdapterInfo->AdapterOrdinal, &m_d3dSettings.Windowed_DisplayMode);
-				m_d3dpp.BackBufferFormat = m_d3dSettings.Windowed_DisplayMode.Format;
+				if (RenderDevice::m_bDungeon != 0 && RenderDevice::m_bDungeon != 3 && RenderDevice::m_bDungeon != 4)
+					m_dwActualClearColor = 0;
+				else if (g_pCurrentScene->m_pSky->m_nState == 0)
+					m_dwActualClearColor = 0xFF335599;
+				else if (g_pCurrentScene->m_pSky->m_nState == 1)
+					m_dwActualClearColor = 0xFF333333;
+				else if (g_pCurrentScene->m_pSky->m_nState == 2)
+					m_dwActualClearColor = 0xFF441100;
+				else if (g_pCurrentScene->m_pSky->m_nState == 3)
+					m_dwActualClearColor = 0xFF222222;
 			}
 
-			return Reset3DEnvironment();
-		}
-
-		m_bDeviceLost = 0;
-	}
-
-	if (bClear)
-	{
-		if (g_pCurrentScene != nullptr && g_pCurrentScene->m_pSky != nullptr)
-		{
-			if (RenderDevice::m_bDungeon != 0 && RenderDevice::m_bDungeon != 3 && RenderDevice::m_bDungeon != 4)
-				m_dwActualClearColor = 0;
-			else if (g_pCurrentScene->m_pSky->m_nState == 0)
-				m_dwActualClearColor = 0xFF335599;
-			else if (g_pCurrentScene->m_pSky->m_nState == 1)
-				m_dwActualClearColor = 0xFF333333;
-			else if (g_pCurrentScene->m_pSky->m_nState == 2)
-				m_dwActualClearColor = 0xFF441100;
-			else if (g_pCurrentScene->m_pSky->m_nState == 3)
-				m_dwActualClearColor = 0xFF222222;
-		}
-
-		if (FAILED(m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, m_dwActualClearColor, 1.0f, 0)))
-			return 0;
-	}
-
-	HRESULT result = m_pd3dDevice->BeginScene();
-
-	return result == D3DERR_INVALIDCALL ? 0 : result >= 0;
+			return m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, m_dwActualClearColor, 1.0f, 0);
+		}) ? 1 : 0;
 }
 
 int RenderDevice::Unlock(int bEnd)
 {
+	if (!m_pd3dDevice) return 0;
 	if (bEnd == 1 && m_pFont != nullptr)
 	{
 		float fTime = timeGetTime() * 0.001f;
@@ -433,17 +432,11 @@ int RenderDevice::Unlock(int bEnd)
 		}
 	}
 
-	if (FAILED(m_pd3dDevice->EndScene()))
-		return 0;
-
-	if (bEnd == 1)
-	{
+	return device_frame::End(m_pd3dDevice, m_bDeviceLost, [this, bEnd]() -> HRESULT {
+		if (bEnd != 1) return S_OK;
 		perf_trace::ScopedPhase phase(perf_trace::Phase::Present);
-		if (m_pd3dDevice->Present(nullptr, nullptr, nullptr, nullptr) == D3DERR_DEVICELOST)
-			m_bDeviceLost = 1;
-	}
-
-	return 1;
+		return m_pd3dDevice->Present(nullptr, nullptr, nullptr, nullptr);
+	}) ? 1 : 0;
 }
 
 void RenderDevice::SetWindowedFullScreen()
@@ -511,8 +504,12 @@ HRESULT RenderDevice::ConfirmDevice(D3DCAPS9* pCaps, DWORD dwBehavior, D3DFORMAT
 
 HRESULT RenderDevice::RestoreDeviceObjects()
 {
+	if (m_pd3dDevice == nullptr)
+		return E_POINTER;
 	D3DCAPS9 d3dCaps{};
-	m_pd3dDevice->GetDeviceCaps(&d3dCaps);
+	HRESULT hr = m_pd3dDevice->GetDeviceCaps(&d3dCaps);
+	if (FAILED(hr))
+		return hr;
 	if (d3dCaps.PixelShaderVersion >= 0xFFFF0101)
 	{
 		m_bSupportPS11 = 1;
@@ -534,30 +531,22 @@ HRESULT RenderDevice::RestoreDeviceObjects()
 
 	SetViewPort(0, 0, m_dwScreenWidth, m_dwScreenHeight);
 
-	for (int i = 0; i < 10; ++i)
-		m_pd3dDevice->SetTexture(i, nullptr);
+	hr = render_state_cache::UnbindTextures(m_pd3dDevice, m_pTexture);
+	if (FAILED(hr))
+		return hr;
 
 	if (m_pSprite == nullptr)
 	{
-		if (FAILED(D3DXCreateSprite(m_pd3dDevice, &m_pSprite)))
-			return 0;
+		hr = D3DXCreateSprite(m_pd3dDevice, &m_pSprite);
+		if (FAILED(hr))
+			return hr;
 	}
 
-	if (g_pApp->m_pObjectManager != nullptr)
+	if (g_pApp != nullptr && g_pApp->m_pObjectManager != nullptr)
 		g_pApp->m_pObjectManager->RestoreDeviceObjects();
 
-	if (m_hbmBitmap == nullptr)
+	if (m_hDC == nullptr || m_hbmBitmap == nullptr || m_hFont == nullptr || m_pBitmapBits == nullptr)
 	{
-		memset(&m_bmi, 0, sizeof(m_bmi));
-		m_bmi.bmiHeader.biSize = 40;
-		m_bmi.bmiHeader.biWidth = RenderDevice::m_nFontTextureSize;
-		m_bmi.bmiHeader.biHeight = -RenderDevice::m_nFontTextureSize;
-		m_bmi.bmiHeader.biPlanes = 1;
-		m_bmi.bmiHeader.biCompression = 0;
-		m_bmi.bmiHeader.biBitCount = 32;
-		m_hDC = CreateCompatibleDC(0);
-		m_hbmBitmap = CreateDIBSection(m_hDC, &m_bmi, 0, (void**)&m_pBitmapBits, 0,	0);
-
 		// FUN_0042ced1 (UI mode 2): Tahoma unless Font.txt names another face.
 		sprintf_s(g_szFontName, "Tahoma");
 		FILE* fpFont = nullptr;
@@ -565,26 +554,20 @@ HRESULT RenderDevice::RestoreDeviceObjects()
 
 		if (fpFont != nullptr)
 		{
-			char szTemp[256]{};
-			fgets(szTemp, 256, fpFont);
-			sscanf(szTemp, "%s", g_szFontName);
-			fgets(szTemp, 256, fpFont);
-			sscanf(szTemp, "%d", &g_nFontBold);
-
-			if (g_nFontBold <= 0)
-				g_nFontBold = 500;
-
+			font_gdi::ReadConfig(fpFont, g_szFontName, g_nFontBold);
 			fclose(fpFont);
 		}
 
-		m_hFont = CreateFont(RenderDevice::m_nFontSize, 0, 0, 0, g_nFontBold, 0, 0, 0, 1, 4, 0, 4, 2, g_szFontName);
-		SelectObject(m_hDC, m_hbmBitmap);
-		SelectObject(m_hDC, m_hFont);
-		SetTextColor(m_hDC, (COLORREF)0xFFFFFF);
-		SetBkColor(m_hDC, 0);
+	}
+	font_gdi::NativeApi fontApi;
+	if (!font_gdi::Ensure(fontApi, m_nFontTextureSize, m_nFontSize, g_nFontBold, g_szFontName,
+		m_hDC, m_hbmBitmap, m_hFont, m_pBitmapBits, m_bmi))
+	{
+		LOG_WRITELOG("Font GDI restoration failed\r\n");
+		return E_FAIL;
 	}
 
-	HRESULT hr = m_pd3dDevice->GetRenderTarget(0, &m_pOldRenderTarget);
+	hr = m_pd3dDevice->GetRenderTarget(0, &m_pOldRenderTarget);
 	if (FAILED(hr))
 		return hr;
 
@@ -592,13 +575,11 @@ HRESULT RenderDevice::RestoreDeviceObjects()
 	if (FAILED(hr))
 		return hr;
 
-	if (m_pDXFont != nullptr)
-		m_pDXFont->OnResetDevice();
-	if (m_pDXFontLarge != nullptr)
-		m_pDXFontLarge->OnResetDevice();
-
-	InitializeRenderingState();
-	InitVertexShader();
+	hr = device_restore::Complete(m_pDXFont, m_pDXFontLarge,
+		[this] { return InitializeRenderingState(); },
+		[this] { return InitVertexShader(); });
+	if (FAILED(hr))
+		return hr;
 	// Not used
 	//InitPixelShader();
 
@@ -613,6 +594,7 @@ HRESULT RenderDevice::RestoreDeviceObjects()
 
 HRESULT RenderDevice::InvalidateDeviceObjects()
 {
+	render_state_cache::ForgetTextures(m_pTexture);
 	m_dyePixelShader.Reset();
 	if (m_pTextureManager != nullptr)
 		m_pTextureManager->ReleaseTexture();
@@ -629,21 +611,17 @@ HRESULT RenderDevice::InvalidateDeviceObjects()
 	for (int i = 0; i < 4; ++i)
 	{
 		SAFE_RELEASE(m_pVSEffect[i]);
+		SAFE_RELEASE(m_pVDEffect[i]);
 	}
 	for (int ia = 0; ia < 6; ++ia)
 	{
 		SAFE_RELEASE(m_pPSEffect[ia]);
 	}
 
-	if (m_hbmBitmap != nullptr)
-	{
-		DeleteObject(m_hbmBitmap);
-		DeleteDC(m_hDC);
-		DeleteObject(m_hFont);
-		m_hbmBitmap = nullptr;
-		m_hDC = nullptr;
-		m_hFont = nullptr;
-	}
+	font_gdi::NativeApi fontApi;
+	const bool fontReleased = font_gdi::Release(fontApi, m_hDC, m_hbmBitmap, m_hFont, m_pBitmapBits, m_bmi);
+	if (!fontReleased)
+		LOG_WRITELOG("Font GDI cleanup failed\r\n");
 	
 	SAFE_RELEASE(m_pOldRenderTarget);
 	SAFE_RELEASE(m_pOldDepthStencil);
@@ -655,7 +633,7 @@ HRESULT RenderDevice::InvalidateDeviceObjects()
 	
 	SAFE_RELEASE(m_pSprite);
 
-	return 0;
+	return fontReleased ? S_OK : E_FAIL;
 }
 
 int RenderDevice::InitMeshManager()

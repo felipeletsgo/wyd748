@@ -19,6 +19,7 @@
 #include "TMSnow.h"
 #include "TMRain.h"
 #include "WYD748Assets.h"
+#include "UiLayout.h"
 
 
 namespace
@@ -244,21 +245,13 @@ TMScene::TMScene() : TreeNode(0)
 		(((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 256.0f) / 2.0f,
 		(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 152.0f) / 2.0f);
 
-	for (int nImeCounta = 0; nImeCounta < 10; ++nImeCounta)
-	{
-		m_pTextCandidate[nImeCounta] = new SText(
-			-2,
-			"",
-			0xFFFFFFFF,
-			((float)g_pDevice->m_dwScreenWidth / RenderDevice::m_fUIScaleX) - 180.0f,
-			(((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 161.0f) + (float)(16 * nImeCounta),
-			179.0f,
-			16.0f,
-			1,
-			0x9955AA55,
-			1,
-			0);
-	}
+	// Native candidates share one bottom row, not the later client's right column.
+	const auto candidateRect = ImeCandidateLayout(
+		static_cast<float>(g_pDevice->m_dwScreenWidth),
+		static_cast<float>(g_pDevice->m_dwScreenHeight), RenderDevice::m_fUIScaleY);
+	m_pTextCandidate[0] = new SText(-2, "", 0xFFFFFFFF,
+		candidateRect.x, candidateRect.y, candidateRect.width, candidateRect.height,
+		1, 0x9955AA55, 1, 0);
 
 	m_pTextCompose = new SText(
 		-2,
@@ -342,19 +335,15 @@ TMScene::TMScene() : TreeNode(0)
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pMessageBox2));
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextBillMsg));
 
-	for (int nImeCountb = 0; nImeCountb < 10; ++nImeCountb)
-	{
-		m_pTextCandidate[nImeCountb]->SetVisible(0);
-
-		m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextCandidate[nImeCountb]));
-	}
+	m_pTextCandidate[0]->SetVisible(0);
+	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextCandidate[0]));
 
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextComposeB));
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextReadComposeB));
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextCompose));
 	m_pControlContainer->AddItem(static_cast<SControl*>(m_pTextReadCompose));
 
-	float fHeight = (float)g_pDevice->m_dwScreenHeight - 20.0f;
+	float fHeight = ((float)g_pDevice->m_dwScreenHeight / RenderDevice::m_fUIScaleY) - 20.0f;
 
 	m_pAlphaNative = new SText(-2, "Ch", 0xFFFFFFDD, 0.0f, fHeight, 28.0f, 16.0f, 1, 0xAA000077, 1, 0);
 	m_pAlphaNative->SetVisible(0);
