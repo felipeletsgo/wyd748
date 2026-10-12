@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/NativeCostumeSlot.h"
 #include "WeatherPacket.h"
 #include "TMFieldScene.h"
 #include "ItemEffect.h"
@@ -816,11 +817,17 @@ int TMFieldScene::OnKeySkill(char iCharCode, int lParam)
 	if (m_pGridSkillBelt && PointInRect((int)g_pCursor->m_nPosX, (int)g_pCursor->m_nPosY, m_pGridSkillBelt->m_GCPanel.nPosX, m_pGridSkillBelt->m_GCPanel.nPosY,
 		m_pGridSkillBelt->m_GCPanel.nWidth * fWRatio, m_pGridSkillBelt->m_GCPanel.nHeight * fHRatio) == 1)
 	{
-		auto pItem = m_pGridSkillBelt->GetAtItem((int)((8 * (int)(g_pCursor->m_nPosX - m_pGridSkillBelt->m_GCPanel.nPosX)) / (m_pGridSkillBelt->m_GCPanel.nWidth * fWRatio)),
-			(int)((int)(g_pCursor->m_nPosY - m_pGridSkillBelt->m_GCPanel.nPosY)	/ (m_pGridSkillBelt->m_GCPanel.nHeight * fHRatio)));
+		// FUN_004509fa resolves the hovered special-skill cell from the grid's
+		// own layout (4x2 in UI mode 2) and binds it to the pressed key, like the
+		// class skill grids above.
+		const int columns = (std::max)(1, m_pGridSkillBelt->m_nColumnGridCount);
+		const int rows = (std::max)(1, m_pGridSkillBelt->m_nRowGridCount);
+		auto pItem = m_pGridSkillBelt->GetAtItem(
+			(int)((columns * (int)(g_pCursor->m_nPosX - m_pGridSkillBelt->m_GCPanel.nPosX)) / (m_pGridSkillBelt->m_GCPanel.nWidth * fWRatio)),
+			(int)((rows * (int)(g_pCursor->m_nPosY - m_pGridSkillBelt->m_GCPanel.nPosY)) / (m_pGridSkillBelt->m_GCPanel.nHeight * fHRatio)));
 
 		if (pItem)
-			SetShortSkill(nBase, pItem);
+			SetShortSkill(CodeIndex + nBase, pItem);
 	}
 
 	return 1;
@@ -908,8 +915,12 @@ int TMFieldScene::OnKeyAuto(char iCharCode, int lParam)
 	if (!m_pGridInv || !m_pMyHuman || !g_pObjectManager || !g_pTimerManager || !g_pEventTranslator)
 		return 1;
 
-	auto* pEquippedItem = &g_pObjectManager->m_stMobData.Equip[12];
+	auto* pEquippedItem = &g_pObjectManager->m_stMobData.Equip[costume_slot::CostumeSlot];
 	if (!pEquippedItem->sIndex)
+		return 1;
+	// Slot 12 now also holds costumes; only a native medal enables this action.
+	if (pEquippedItem->sIndex > 0 && pEquippedItem->sIndex < MAX_ITEMLIST &&
+		costume_slot::IsCostume(g_pItemList[pEquippedItem->sIndex].nIndexMesh, g_pItemList[pEquippedItem->sIndex].nPos))
 		return 1;
 
 	SGridControlItem* pItem = nullptr;

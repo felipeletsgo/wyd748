@@ -1,6 +1,9 @@
 #include "SourceMethod.h"
 #include "../internal/core/CameraInput.h"
 #include "../internal/core/UiLayout.h"
+#include "../internal/application/NativeSpecialSkills.h"
+#include "../internal/application/NativeCostumeSlot.h"
+#include "../internal/application/InstanceTimerProjection.h"
 
 #include <algorithm>
 #include <cmath>
@@ -238,5 +241,132 @@ int RunUiModeContractTests(int& checks)
         humanRender.find("m_pMantua->Render(0.07f, 1.2f, -0.12f);") != std::string::npos &&
         humanRender.find("m_pMantua->Render(0.01f, 1.0f, 0.0f);") != std::string::npos,
         "cape placement follows the native skin class");
+
+    // FUN_004431e4 (UI mode 2): special bits 24..31 become items 5096..5103 in
+    // the 4x2 grid 571. Dropping this loop made Sephira books learn invisibly.
+    for (int i = 0; i < native_special_skill::SlotCount; ++i)
+    {
+        const auto cell = native_special_skill::SlotCell(i);
+        check(native_special_skill::Bit(i) == (1u << (24 + i)) &&
+            native_special_skill::ItemIndex(i) == 5096 + i &&
+            cell.x == i % 4 && cell.y == i / 4,
+            "special skill slots follow the native modern-UI projection");
+    }
+    check(native_special_skill::ItemIndex(1) == 5000 + 97 && native_special_skill::Bit(1) == 0x02000000u &&
+        native_special_skill::ItemIndex(5) == 5000 + 101 && native_special_skill::Bit(5) == 0x20000000u,
+        "Conjure Cannon and Spectral Force map to the server's learned bits 25 and 29");
+    const auto fieldUi = ReadAppSource("internal/app/scenes/TMFieldSceneUI.cpp");
+    const auto learnedUi = source_contract::Method(fieldUi, "void TMFieldScene::UpdateCompatLearnedSkillUI()");
+    check(learnedUi.find("native_special_skill::SlotCount") != std::string::npos &&
+        learnedUi.find("m_pGridSkillBelt->AddItem(pControlItem, cell.x, cell.y)") != std::string::npos &&
+        learnedUi.find("m_pGridSkillBelt->PickupItem(cell.x, cell.y)") != std::string::npos,
+        "the learned-skill projection fills and clears the special skill grid");
+    // FUN_00435b13 types only belts 573/586 as grid 5; grid 571 is a skill list
+    // whose items are picked up and dropped on a belt like class skills.
+    const auto skillsSource = ReadAppSource("internal/app/scenes/TMFieldSceneSkills.cpp");
+    const auto beltInit = source_contract::Method(skillsSource, "void TMFieldScene::InitializeCompatSkillBelts()");
+    check(beltInit.find("m_pGridSkillBelt->m_eGridType") == std::string::npos &&
+        beltInit.find("m_pGridSkillBelt2->m_eGridType = TMEGRIDTYPE::GRID_SKILLB;") != std::string::npos &&
+        beltInit.find("m_pGridSkillBelt3->m_eGridType = TMEGRIDTYPE::GRID_SKILLB;") != std::string::npos,
+        "the special skill list is not a shortcut belt");
+    const auto shortcutKeys = ReadAppSource("internal/app/scenes/TMFieldSceneInput.cpp");
+    check(shortcutKeys.find("SetShortSkill(CodeIndex + nBase, pItem);") != std::string::npos &&
+        shortcutKeys.find("m_pGridSkillBelt->m_nColumnGridCount") != std::string::npos &&
+        shortcutKeys.find("SetShortSkill(nBase, pItem);") == std::string::npos,
+        "hovering a special skill binds it to the pressed key through the grid layout");
+
+    // FUN_00486808/FUN_004a626e: Equip[13] feeds the familiar field. Zeroing it
+    // as a costume-only slot hid equipped Imp, Naiads and Angel familiars.
+    const auto effects = ReadAppSource("internal/game/entities/TMHumanEffects.cpp");
+    const auto setFamiliar = source_contract::Method(effects, "void TMHuman::SetFamiliarItem(short itemIndex)");
+    check(setFamiliar.find("if (m_sFamiliar != itemIndex && m_pFamiliar)") != std::string::npos &&
+        setFamiliar.find("m_pFamiliar = nullptr;") != std::string::npos &&
+        setFamiliar.find("m_sFamiliar = itemIndex;") != std::string::npos,
+        "a changed familiar disposes the previous pet before the new item is published");
+    const auto frameEffect = source_contract::Method(effects, "void TMHuman::FrameMoveEffect(unsigned int dwServerTime)");
+    check(frameEffect.find("g_pObjectManager->DeleteObject(m_pFamiliar);\n        m_pFamiliar = nullptr;") != std::string::npos,
+        "a shadowed human keeps no pointer to its released familiar");
+    const auto appearance = ReadAppSource("internal/game/entities/TMHumanAppearance.cpp");
+    const auto inventoryPackets = ReadAppSource("internal/app/scenes/TMFieldSceneInventoryPackets.cpp");
+    const auto selectChar = ReadAppSource("internal/app/scenes/TMSelectCharScene.cpp");
+    check(appearance.find("SetFamiliarItem(pMobData->Equip[costume_slot::FamiliarSlot].sIndex);") != std::string::npos &&
+        appearance.find("SetFamiliarItem(static_cast<short>(sEquip[costume_slot::FamiliarSlot]));") != std::string::npos &&
+        inventoryPackets.find("m_pMyHuman->SetFamiliarItem(pMobData->Equip[costume_slot::FamiliarSlot].sIndex);") != std::string::npos &&
+        selectChar.find("m_pHuman[i]->SetFamiliarItem(pSelChar->Equip[i][costume_slot::FamiliarSlot].sIndex);") != std::string::npos,
+        "self, other players and character selection project slot 13 as the familiar");
+
+    // WYD-Go costume-slot extension (server model/costume_slot.go): mesh-36
+    // slot-13 costumes equip in slot 12, so a costume and a familiar coexist.
+    static_assert(costume_slot::CostumeSlot == 12 && costume_slot::FamiliarSlot == 13 &&
+        costume_slot::CostumeSlotMask == 4096 && costume_slot::NativeCostumeSlotMask == 8192);
+    check(costume_slot::RemapPosition(36, 8192) == 4096 && costume_slot::RemapPosition(36, 4096) == 4096 &&
+        costume_slot::RemapPosition(46, 8192) == 8192 && costume_slot::RemapPosition(2773, 8192) == 8192 &&
+        costume_slot::RemapPosition(36, 4) == 4 && costume_slot::RemapPosition(10, 4096) == 4096,
+        "only native slot-13 costumes move to the costume slot");
+    check(costume_slot::IsCostume(36, 4096) && costume_slot::IsCostume(36, 8192) &&
+        !costume_slot::IsCostume(10, 4096) && !costume_slot::IsCostume(36, 4),
+        "a guild medal in slot 12 is not a costume");
+    const auto assets = ReadAppSource("internal/core/WYD748Assets.cpp");
+    check(assets.find("destination.nPos = costume_slot::RemapPosition(source.IndexMesh, source.Position);") != std::string::npos,
+        "ItemList.bin positions follow the server costume-slot catalog");
+    check(appearance.find("m_sCostume = pMobData->Equip[costume_slot::CostumeSlot].sIndex;") != std::string::npos &&
+        appearance.find("const int nCostumeIndex = sEquip[costume_slot::CostumeSlot];") != std::string::npos &&
+        inventoryPackets.find("m_pMyHuman->m_sCostume = pMobData->Equip[costume_slot::CostumeSlot].sIndex;") != std::string::npos &&
+        selectChar.find("m_pHuman[i]->m_sCostume = pSelChar->Equip[i][costume_slot::CostumeSlot].sIndex;") != std::string::npos,
+        "self, other players and character selection draw the costume from slot 12");
+    const auto fieldInput = ReadAppSource("internal/app/scenes/TMFieldSceneInput.cpp");
+    const auto autoKey = source_contract::Method(fieldInput, "int TMFieldScene::OnKeyAuto(char iCharCode, int lParam)");
+    check(autoKey.find("costume_slot::IsCostume(") != std::string::npos,
+        "the medal-gated F action ignores a costume in slot 12");
+
+    // FUN_004662c5: the Inventory X (0x170) runs the FUN_00447691 cascade, so a
+    // Cargo opened with the Inventory closes with it.
+    const auto fieldScene = ReadAppSource("internal/app/scenes/TMFieldScene.cpp");
+    const auto closeStart = fieldScene.find("case 368: // native inventory/shop close button");
+    const auto closeEnd = fieldScene.find("case 533:", closeStart);
+    const auto closeBody = closeStart != std::string::npos && closeEnd != std::string::npos
+        ? fieldScene.substr(closeStart, closeEnd - closeStart) : std::string{};
+    check(closeBody.find("if (m_pInvenPanel && m_pInvenPanel->IsVisible())\n\t\t\tSetVisibleInventory();") != std::string::npos &&
+        closeBody.find("m_pInvenPanel->SetVisible(0)") == std::string::npos,
+        "the Inventory X closes Cargo and the other peers through the native cascade");
+    // Server ExpiryDisplayEffects projects the costume expiry date; every
+    // costume, including imported KR rows above 4420, must show it.
+    const auto tooltip = ReadAppSource("internal/ui/SGridTooltip.cpp");
+    check(tooltip.find("costume_slot::IsCostume(g_pItemList[pItem->m_pItem->sIndex].nIndexMesh,") != std::string::npos,
+        "the costume tooltip shows the projected expiry for every costume");
+    const auto timedTooltip = source_contract::Method(tooltip,
+        "void SGridControl::DescribeTimedItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, int& nLineId, char (&szDesc)[128])");
+    check(timedTooltip.find("sprintf(szDesc, \"%s %s %s\", formattedDate, formattedHour, formattedMin);") != std::string::npos &&
+        timedTooltip.find("g_pMessageStringTable[298]") == std::string::npos,
+        "the familiar tooltip shows only the remaining day/hour/minute");
+    // 0x3A1 starts the green countdown for instances and quest zones; the
+    // field FrameMove must refresh it every frame.
+    check(instance_timer::Remaining(600, 1000, 1000) == 600 &&
+        instance_timer::Remaining(600, 1000, 1999) == 600 &&
+        instance_timer::Remaining(600, 1000, 2000) == 599 &&
+        instance_timer::Remaining(600, 1000, 600000) == 1 &&
+        instance_timer::Remaining(600, 1000, 601000) == 0 &&
+        instance_timer::Remaining(600, 1000, 602000) == 0,
+        "the countdown expires at the server duration without rounding early");
+    check(instance_timer::Remaining(0, 0, 0) == 0 &&
+        instance_timer::Remaining(-1, 0, 0) == 0 &&
+        instance_timer::Remaining(600, 0xFFFFFF00u, 0x000002E8u) == 599 &&
+        instance_timer::Remaining(60, 5000, 5000) == 60,
+        "stop, invalid duration, tick wrap and a replaced countdown are safe");
+    const auto events = ReadAppSource("internal/app/scenes/TMFieldSceneEvents.cpp");
+    const auto timerHud = source_contract::Method(events, "void TMFieldScene::UpdateInstanceTimerHud(unsigned int dwServerTime)");
+    check(timerHud.find("instance_timer::Remaining(m_nLastTime, m_dwStartRankTime, dwServerTime)") != std::string::npos &&
+        timerHud.find("sprintf_s(szTime, \"%02d : %02d\", remaining / 60, remaining % 60);") != std::string::npos &&
+        timerHud.find("m_pRankTimeText->SetVisible(0);") != std::string::npos &&
+        fieldScene.find("UpdateInstanceTimerHud(dwServerTime);") != std::string::npos,
+        "the field scene draws and expires the instance/quest countdown");
+    const auto inventory = ReadAppSource("internal/app/scenes/TMFieldSceneInventory.cpp");
+    const auto cascade = source_contract::Method(inventory, "void TMFieldScene::SetVisibleInventory()");
+    check(cascade.find("m_pCargoPanel, m_pShopPanel, m_pHellgateStore, m_pInputGoldPanel") != std::string::npos,
+        "the inventory cascade still closes Cargo");
+    check(appearance.find("m_sFamiliar = 0;") == std::string::npos &&
+        inventoryPackets.find("m_sFamiliar = 0;") == std::string::npos &&
+        selectChar.find("m_sFamiliar = 0;") == std::string::npos,
+        "no equipment projection discards the slot-13 familiar");
     return failures;
 }

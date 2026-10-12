@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	stdnet "net"
+	"net/netip"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +23,14 @@ type ServerConfig struct {
 	WebAdminAddress    string
 	WebAdminStaffPath  string
 	WebAdminStaticPath string
+	// WebAdminOrigin publishes the integrated panel behind a reverse proxy at
+	// an exact HTTPS origin; empty keeps the local http://<address> origin.
+	WebAdminOrigin string
+	// WebAdminTrustedProxies lists proxy CIDRs allowed to supply X-Forwarded-For.
+	WebAdminTrustedProxies string
+	// AdminAccessPINEnv names an environment variable holding the PIN, so a
+	// published deployment keeps the secret out of the versioned server.txt.
+	AdminAccessPINEnv string
 	DatabaseDriver     string
 	DatabaseURL        string
 	DatabaseURLEnv     string
@@ -194,6 +204,21 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"web_admin_address": func(v string) error { cfg.WebAdminAddress = v; return nil },
 		"web_admin_staff":   func(v string) error { cfg.WebAdminStaffPath = v; return nil },
 		"web_admin_static":  func(v string) error { cfg.WebAdminStaticPath = v; return nil },
+		"web_admin_origin": func(v string) error {
+			if err := ValidateWebAdminOrigin(v); err != nil {
+				return err
+			}
+			cfg.WebAdminOrigin = v
+			return nil
+		},
+		"web_admin_trusted_proxies": func(v string) error {
+			if _, err := ParseTrustedProxies(v); err != nil {
+				return err
+			}
+			cfg.WebAdminTrustedProxies = v
+			return nil
+		},
+		"admin_access_pin_env": func(v string) error { cfg.AdminAccessPINEnv = v; return nil },
 		"admin_access_pin": func(v string) error {
 			if err := ValidateAdminAccessPIN(v); err != nil {
 				return err
@@ -414,13 +439,43 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	return cfg, nil
 }
 
+// ValidateWebAdminOrigin accepts only an exact HTTPS origin without path,
+// query, fragment or credentials, such as https://example.com.
+func ValidateWebAdminOrigin(origin string) error {
+	u, err := url.Parse(origin)
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil ||
+		(u.Path != "" && u.Path != "/") || u.RawQuery != "" || u.Fragment != "" || strings.HasSuffix(origin, "/") {
+		return errors.New("expected an exact https:// origin without a trailing slash")
+	}
+	return nil
+}
+
+// ParseTrustedProxies parses a comma-separated CIDR list; empty means none.
+func ParseTrustedProxies(raw string) ([]netip.Prefix, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	parts := strings.Split(raw, ",")
+	prefixes := make([]netip.Prefix, 0, len(parts))
+	for _, part := range parts {
+		value := strings.TrimSpace(part)
+		prefix, err := netip.ParsePrefix(value)
+		if err != nil {
+			return nil, fmt.Errorf("invalid trusted proxy CIDR %q: %w", value, err)
+		}
+		prefixes = append(prefixes, prefix.Masked())
+	}
+	return prefixes, nil
+}
+
 func ValidateAdminAccessPIN(pin string) error {
-	if len(pin) < 6 || len(pin) > 12 {
-		return errors.New("esperado PIN numerico com 6 a 12 digitos")
+	if len(pin) != 6 {
+		return errors.New("expected a numeric PIN with exactly 6 digits")
 	}
 	for i := 0; i < len(pin); i++ {
 		if pin[i] < '0' || pin[i] > '9' {
-			return errors.New("esperado PIN numerico com 6 a 12 digitos")
+			return errors.New("expected a numeric PIN with exactly 6 digits")
 		}
 	}
 	return nil

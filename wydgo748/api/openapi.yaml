@@ -217,7 +217,7 @@ paths:
               properties:
                 username: { type: string, minLength: 1, maxLength: 12 }
                 password: { type: string, minLength: 1, maxLength: 10, writeOnly: true }
-                adminPin: { type: string, pattern: '^[0-9]{6,12}$', writeOnly: true }
+                adminPin: { type: string, minLength: 6, maxLength: 6, pattern: '^[0-9]{6}$', writeOnly: true }
       responses:
         '200':
           description: Authenticated session
@@ -356,7 +356,7 @@ components:
         username: { type: string, minLength: 4, maxLength: 12, pattern: '^[a-zA-Z0-9]+$' }
         password: { type: string, minLength: 4, maxLength: 10, pattern: '^\S+$', writeOnly: true }
         passwordConfirmation: { type: string, minLength: 4, maxLength: 10, pattern: '^\S+$', writeOnly: true }
-        adminPin: { type: string, pattern: '^[0-9]{6,12}$', writeOnly: true }
+        adminPin: { type: string, minLength: 6, maxLength: 6, pattern: '^[0-9]{6}$', writeOnly: true }
     AccountCreateResponse:
       type: object
       required: [version, status, username]

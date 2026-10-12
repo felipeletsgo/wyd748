@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/NativeCostumeSlot.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "HumanCostumeRefinement.h"
@@ -753,12 +754,11 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
         else
             m_cMantua = 0;
 
-		// The rebuilt client speaks the 7.48 equipment ABI: costume is slot 13,
-		// mount is 14 and cape is 15.  The imported 7.59 familiar/costume mapping
-		// must not reinterpret the 7.48 costume as a pet.
-		m_sFamiliar = 0;
+		// Slot 13 holds the familiar (native 7.48); the WYD-Go costume-slot
+		// extension moves costumes to slot 12. 14 is the mount and 15 the cape.
+		SetFamiliarItem(pMobData->Equip[costume_slot::FamiliarSlot].sIndex);
 		m_sFamCount = 0;
-		m_sCostume = pMobData->Equip[13].sIndex;
+		m_sCostume = pMobData->Equip[costume_slot::CostumeSlot].sIndex;
         m_stSancInfo.Sanc0 = BASE_GetItemSanc(pMobData->Equip);
         m_stSancInfo.Sanc1 = BASE_GetItemSanc(&pMobData->Equip[1]);
         m_stSancInfo.Sanc2 = BASE_GetItemSanc(&pMobData->Equip[2]);
@@ -1223,13 +1223,13 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
             m_cMantua = 0;
         }
 
-		// The compact 7.48 CreateMob projection uses slot 13 for costume, 14 for
-		// mount and 15 for cape.  Do not reinterpret a costume as the 7.59 familiar.
-		// Unlike the refined armor slots, the 7.48 costume value is a full item ID;
-		// preserving all 16 bits is required by imported costumes above index 4095.
-		const int nCostumeIndex = sEquip[13];
+		// The compact 7.48 CreateMob projection uses slot 12 for the costume
+		// (WYD-Go costume-slot extension), 13 for the familiar, 14 for mount and
+		// 15 for cape. Unlike the refined armor slots, the costume value is a full
+		// item ID; imported costumes exceed index 4095.
+		const int nCostumeIndex = sEquip[costume_slot::CostumeSlot];
 		m_sCostume = nCostumeIndex;
-		m_sFamiliar = 0;
+		SetFamiliarItem(static_cast<short>(sEquip[costume_slot::FamiliarSlot]));
         m_stSancInfo.Sanc0 = (int)sEquip[0] >> 12;
         m_stSancInfo.Sanc1 = (int)sEquip[1] >> 12;
         m_stSancInfo.Sanc2 = (int)sEquip[2] >> 12;

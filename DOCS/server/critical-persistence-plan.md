@@ -27,8 +27,38 @@ Operational containment and configuration are documented in
 | --- | --- | --- |
 | Durable operation identity and outcome reconciliation | Completion IDs and fences are process-local; an uncertain write is not replayed or released | A durable identity/outcome protocol that distinguishes committed, proven rejected and unresolved work; prove repeated reconciliation cannot duplicate rewards or overwrite a later commit |
 | Restart-safe containment | Unknown account outcomes retain fences indefinitely in the running process; shared outcomes stop the World. No persisted quarantine/recovery protocol exists | Crash/restart tests with unresolved and late commits, including account, UID and shared-object ownership; prevent new mutations until reconciliation is proven |
-| Verified account unlock and bounded recovery | There is no supported unlock command or timer. Unknown operations retain queue capacity and can eventually exhaust admission | An identity-checked, auditable recovery/unlock workflow, tested for concurrent login, repetition and saturation; never reclaim capacity merely because time passed |
+| Verified account unlock and bounded recovery | A confirmed commit whose account-local continuation fails is recovered automatically ([October 12](#committed-continuation-recovery-2026-10-12)). Truly unknown outcomes still have no supported unlock command or timer, retain queue capacity and can eventually exhaust admission | An identity-checked, auditable recovery/unlock workflow, tested for concurrent login, repetition and saturation; never reclaim capacity merely because time passed |
 | Real transport failure acceptance | The late-commit regression uses an injected adapter outcome followed by a real PostgreSQL write | Reproducible database connection-loss/COMMIT fault injection and crash recovery, checking durable state, publication, fences and terminal-save suppression |
+
+### Committed continuation recovery (2026-10-12)
+
+Incident: after a client disconnect the character stayed online and the
+account could not log in again until the server restarted. Cause: when the
+adapter confirmed the transaction but the account-local continuation failed
+(stale binding, panic, partial apply, closed transport), the World treated
+the confirmed commit as an unknown outcome and fenced the account forever.
+
+`recoverCommittedAccountFailure` (`critical_persistence_containment.go`)
+now separates that case. It runs in the same actor delivery, before another
+command can claim the account, and only when the adapter reported success,
+the operation is account-only (no shared World, instance or guild owner), and
+every participant still matches its recorded session, account, lifecycle and
+character binding. It acknowledges the queue entry, poisons and disconnects
+the participants without replaying the callback or saving a stale final
+snapshot, and releases their admission slots. Login then reloads durable
+state. Ownership is still retained until serialized instance detachment and
+trade cleanup are acknowledged. Adapter errors, shared outcomes and replaced
+ownership keep the existing containment.
+
+Evidence: `critical_persistence_recovery_test.go` (disconnected, open, panic,
+partial-apply and selection continuations; retained instance ownership;
+changed session/account/lifecycle/character/disconnect ownership is never
+evicted) and `critical_persistence_recovery_postgres_test.go` (final save and
+fresh relogin against real PostgreSQL). The full Go race suite with the
+PostgreSQL fixture and `go vet ./...` passed. Deployed as release
+`20261012T013651Z` ([public launch](public-launch.md#account-recovery-release--october-12-2026)).
+Not covered: durable reconciliation of truly unknown outcomes across restarts
+(rows above).
 
 Separate validation debt: `TestStartWebAdminPostgres` and optional local JSON
 account fixtures skipped in the final batch; they do not invalidate executed S2

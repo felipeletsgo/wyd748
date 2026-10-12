@@ -104,7 +104,7 @@ func New(cfg Config) (*Handler, error) {
 		return nil, errors.New("accounts, control, persistent reader, staff and audit required")
 	}
 	if !validAdminPIN(cfg.AdminAccessPIN) {
-		return nil, errors.New("admin access PIN must contain 6..12 digits")
+		return nil, errors.New("admin access PIN must contain exactly 6 digits")
 	}
 	if _, err := cfg.Staff(); err != nil {
 		return nil, err
@@ -146,7 +146,7 @@ func New(cfg Config) (*Handler, error) {
 }
 
 func validAdminPIN(pin string) bool {
-	if len(pin) < 6 || len(pin) > 12 {
+	if len(pin) != 6 {
 		return false
 	}
 	for i := 0; i < len(pin); i++ {

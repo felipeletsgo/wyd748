@@ -181,14 +181,14 @@ Pop-Location
 ```
 
 To build and install a candidate in the local runtime (overwrites
-`tmproject/client748/project.exe`; only when the task includes that validation,
+`tmproject/client748/WYD.exe`; only when the task includes that validation,
 not for documentation checks):
 
 ```powershell
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tmproject\Build-Client.ps1
 ```
 
-The script must produce/verify `tmproject/client748/project.exe` without
+The script must produce/verify `tmproject/client748/WYD.exe` without
 altering historical evidence. Report `STATICALLY VERIFIED`, `AUTOMATED TESTED`,
 and `CLIENT-TESTED` separately; a build alone never promotes a state.
 

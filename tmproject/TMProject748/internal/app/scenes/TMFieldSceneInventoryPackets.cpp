@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/NativeCostumeSlot.h"
 #include "TMFieldScene.h"
 #include "TMEffectSkinMesh.h"
 #include "TMGate.h"
@@ -113,7 +114,7 @@ int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)
 	if (!m_pMyHuman)
 		return 1;
 
-	m_pMyHuman->m_sFamiliar = g_pObjectManager->m_stMobData.Equip[13].sIndex;
+	m_pMyHuman->SetFamiliarItem(g_pObjectManager->m_stMobData.Equip[costume_slot::FamiliarSlot].sIndex);
 	GetSoundAndPlay(45, 0, 0);
 
 	UpdateScoreUI(0);
@@ -492,16 +493,10 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		static_cast<unsigned char>(pSwapItem->DestPos), destinationModel);
 
 	auto pMobData = &g_pObjectManager->m_stMobData;
-	// WYD 7.48 has no familiar in equipment slot 13: it is the costume slot.
-	// Dispose any stale 7.59 familiar and let UpdateMyHuman rebuild the costume.
-	if (m_pMyHuman->m_pFamiliar)
-	{
-		g_pObjectManager->DeleteObject(m_pMyHuman->m_pFamiliar);
-		m_pMyHuman->m_pFamiliar = 0;
-	}
-
-	m_pMyHuman->m_sFamiliar = 0;
-	m_pMyHuman->m_sCostume = pMobData->Equip[13].sIndex;
+	// Native FUN_00486808 republishes Equip[13] as the familiar after a swap and
+	// disposes a changed pet; costumes live in slot 12 (costume-slot extension).
+	m_pMyHuman->SetFamiliarItem(pMobData->Equip[costume_slot::FamiliarSlot].sIndex);
+	m_pMyHuman->m_sCostume = pMobData->Equip[costume_slot::CostumeSlot].sIndex;
 	if (!pMobData->Guild)
 		g_pObjectManager->m_usWarGuild = -1;
 	// Mount removal is slot 14 in the 7.48 ABI; slot 15 is the cape.

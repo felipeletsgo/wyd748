@@ -72,8 +72,9 @@ void TMFieldScene::InitializeCompatSkillBelts()
 	// instances keeps keyboard Z and mouse clicks on the same 7.48 state path.
 	m_pShortSkillTglBtn1 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SHORTSKILL_TGL1));
 	m_pShortSkillTglBtn2 = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SHORTSKILL_TGL2));
-	if (m_pGridSkillBelt)
-		m_pGridSkillBelt->m_eGridType = TMEGRIDTYPE::GRID_SKILLB;
+	// FUN_00435b13 assigns grid type 5 only to the shortcut belts 573/586. Grid
+	// 571 lists learned special skills: as a belt, a click selected a shortcut
+	// slot instead of picking the skill up, so Sephira skills could not be placed.
 	if (m_pGridSkillBelt2)
 		m_pGridSkillBelt2->m_eGridType = TMEGRIDTYPE::GRID_SKILLB;
 	if (m_pGridSkillBelt3)

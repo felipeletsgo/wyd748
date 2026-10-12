@@ -52,7 +52,7 @@ equivalent; its local configuration stays untracked.
   `skill-creator` skill and the layout validator.
 - Research scripts named without a path in the research references live in
   `.agents/skills/wyd-client748-research/scripts/`.
-- `tmproject/Build-Client.ps1` installs `tmproject/client748/project.exe`
+- `tmproject/Build-Client.ps1` installs `tmproject/client748/WYD.exe`
   by default. Pass `-NoDeploy` unless the task includes replacing the runtime.
   `CLIENT-TESTED` always requires running the built client.
 

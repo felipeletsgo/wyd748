@@ -213,8 +213,20 @@ type asyncCharStateStore interface {
 // saveCharStateAsync writes outside the game loop when supported, otherwise
 // it uses the synchronous standalone save.
 func (w *World) saveCharStateAsync(p *Player) {
-	if p == nil || p.Char == nil || p.PersistencePoisoned || w.criticalPlayerReserved(p) ||
-		w.syncPersistenceAllowed("legacy character state autosave") != nil {
+	if p == nil || p.Char == nil || p.PersistencePoisoned {
+		return
+	}
+	// Under the critical coordinator the sidecar is written atomically with the
+	// account snapshot; a standalone write could race a newer committed state.
+	// A busy or full queue is fine: the next autosave carries the same state.
+	if w.criticalWrites != nil {
+		if err := w.queueAccountAutoSave(p, w.now()); err != nil && !errors.Is(err, errCriticalPersistenceBusy) &&
+			!errors.Is(err, errCriticalPersistenceFull) && !errors.Is(err, errCriticalPersistenceIdentity) {
+			log.Printf("[#%d] queue character state save for %q failed: %v", p.Session.ID, p.Char.Name, err)
+		}
+		return
+	}
+	if w.criticalPlayerReserved(p) || w.syncPersistenceAllowed("legacy character state autosave") != nil {
 		return
 	}
 	state := buildCharState(p, w.now())

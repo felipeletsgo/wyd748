@@ -109,5 +109,13 @@ int RunLoginCredentialContractTests(int& checks)
     check(fieldSource.find("ReadFirstAdapterIdentity(stAccountLogin.AdapterName)") !=
         std::string::npos, "migration login uses bounded adapter identity");
 
+    // Password fields render an ASCII asterisk per character. Byte 0xA2, left
+    // from an imported bullet literal, drew a stray glyph in the 7.48 font.
+    const std::string editSource = source_contract::Method(LoadSource(
+        "TMProject748/internal/ui/controls/SEditableText.cpp"), "void SEditableText::Update()");
+    check(editSource.find("m_GCText.strString[nIndex] = '*';") != std::string::npos &&
+        editSource.find("\\242") == std::string::npos,
+        "password fields mask each character with an asterisk");
+
     return failures;
 }

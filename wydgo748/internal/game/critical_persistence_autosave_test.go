@@ -121,6 +121,31 @@ func TestCriticalAutosaveDetachedAtomicSnapshotAndFreshNextSave(t *testing.T) {
 	}
 }
 
+// An expired affect persists the character sidecar at once. Under the
+// coordinator it must use the atomic account snapshot, never the rejected
+// standalone write, and must not write inline.
+func TestCriticalCharStateSaveUsesAtomicAccountSnapshot(t *testing.T) {
+	w, p, fallback, backend, queue, release := criticalAutosaveFixture(t, 0)
+	now := w.now()
+	state := buildCharState(p, now)
+	w.saveCharStateAsync(p)
+	write := awaitCriticalWrite(t, backend.entered)
+	if write.character == nil || write.character.uid != p.Char.UID || !reflect.DeepEqual(write.character.state, state) ||
+		len(write.accounts) != 1 || fallback.saves != 0 || fallback.batchSaves != 0 || w.syncPersistenceRejected["legacy character state autosave"] {
+		t.Fatal("character state save bypassed the atomic critical snapshot")
+	}
+	w.saveCharStateAsync(p) // busy: the pending write already carries the state
+	if len(queue.pending) != 1 || len(backend.entered) != 0 {
+		t.Fatal("a held character state save queued a duplicate write")
+	}
+	release()
+	awaitReadyCriticalResults(t, queue, 1)
+	w.processCriticalCompletions(1)
+	if w.criticalPlayerReserved(p) || len(queue.pending) != 0 {
+		t.Fatal("character state save leaked ownership")
+	}
+}
+
 func TestCriticalAutosaveRejectsUnsupportedSidecarsBeforeAnyWrite(t *testing.T) {
 	for _, async := range []bool{false, true} {
 		t.Run(fmt.Sprintf("async-%t", async), func(t *testing.T) {

@@ -730,6 +730,24 @@ int RunSceneDisconnectContractTests(int& checks)
     std::uint32_t fullTurnBits = 0;
     std::memcpy(&fullTurnBits, &human_angle::kFullTurn, sizeof(fullTurnBits));
     check(fullTurnBits == 0x40c90fdbu, "mesh pitch uses the native binary32 full-turn constant");
+    for (const int meshType : {-1, 0, 1, 2, 44}) {
+        for (const int weaponType : {-1, 0, 1, 11, 41, 100, 101, 102}) {
+            for (const bool hasOwner : {false, true}) {
+                check(human_angle::MirrorBodyZ(static_cast<short>(meshType), weaponType, hasOwner) ==
+                    (hasOwner && meshType == 1 && weaponType != 101),
+                    "female body reflection excludes bows without changing other meshes or weapons");
+            }
+        }
+    }
+    const auto skinRender = source_contract::Method(
+        LoadSource("TMProject748/internal/render/mesh/TMSkinMesh.cpp"),
+        "int TMSkinMesh::Render(float fLen, float fScale, float fLen2)");
+    const auto mirrorPolicy = skinRender.find("human_angle::MirrorBodyZ(m_nMeshType,");
+    const auto mirrorMatrix = skinRender.find("matFlip._33 = -1.0f;");
+    check(mirrorPolicy != std::string::npos && mirrorMatrix != std::string::npos &&
+        mirrorPolicy < mirrorMatrix &&
+        skinRender.find("m_pOwner ? m_pOwner->m_nWeaponTypeL : 0, m_pOwner != nullptr)") != std::string::npos,
+        "production body rendering gates Z reflection on the owner's current weapon ability");
     for (const int weaponType : {-1, 0, 100, 101, 102, (std::numeric_limits<int>::max)()}) {
         for (const float pitch : {-7.0f, -3.1415927410125732f, 0.0f, 3.1415927410125732f, 7.0f}) {
             for (const bool mounted : {false, true}) {
@@ -1124,7 +1142,7 @@ int RunSceneDisconnectContractTests(int& checks)
         "int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)");
     const auto dropRelease = dropHandler.find("SAFE_DELETE(pGridItem);");
     const auto dropHumanGuard = dropHandler.find("if (!m_pMyHuman)\n\t\treturn 1;");
-    const auto dropFamiliar = dropHandler.find("m_pMyHuman->m_sFamiliar =");
+    const auto dropFamiliar = dropHandler.find("m_pMyHuman->SetFamiliarItem(");
     check(!dropHandler.empty() && dropRelease != std::string::npos &&
         dropHumanGuard != std::string::npos && dropFamiliar != std::string::npos &&
         dropHandler.find("memset(&g_pObjectManager->m_stMobData.Equip[pMsg->SourPos]") < dropRelease &&
@@ -2516,6 +2534,28 @@ int RunSceneDisconnectContractTests(int& checks)
         check(initialize.find(retainFactory) != std::string::npos && toggle.find(retainFactory) != std::string::npos &&
             initialize.find(retainFactory) < initialize.find("// If that failed, fall back"),
             "initialization fallback and adapter recreation retain the Direct3D factory");
+    }
+    {
+        // The window caption is the player-facing product name. Several game
+        // windows may run at once; the server limits authenticated clients per IP.
+        const auto paths = LoadSource("TMProject748/internal/platform/windows/TMPaths.h");
+        const auto app = LoadSource("TMProject748/internal/app/scenes/NewApp.cpp");
+        check(paths.find("GameWindow_Title = \"WYD 7.48\";") != std::string::npos,
+            "the game window is titled WYD 7.48");
+        check(!app.empty() && app.find("FindWindowA(") == std::string::npos,
+            "the client has no single-instance gate");
+
+        // Crash 2026-10-11 (TMSea.cpp:323): a failed vertex-buffer Lock during
+        // a device reset left pVertex null and the wave update wrote through it.
+        const auto sea = LoadSource("TMProject748/internal/render/world/terrain/TMSea.cpp");
+        const auto seaFrame = source_contract::Method(sea, "int TMSea::FrameMove(unsigned int dwServerTime)");
+        check(seaFrame.find("FAILED(m_pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0)) || !pVertex)") != std::string::npos &&
+            seaFrame.find("FAILED(") < seaFrame.find("pVertex[nX + nY"),
+            "sea wave update skips the frame when the vertex buffer cannot be locked");
+        const auto seaCreate = sea.substr(0, sea.find("int TMSea::FrameMove("));
+        check(seaCreate.find("FAILED(m_pMesh->m_pVB->Lock(") != std::string::npos &&
+            seaCreate.find("FAILED(m_pMesh->m_pIB->Lock(") != std::string::npos,
+            "sea mesh creation rejects failed buffer locks");
     }
     {
         const auto begin = source_contract::Method(renderer, "int RenderDevice::Lock(int bClear)");

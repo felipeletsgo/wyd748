@@ -7,14 +7,16 @@ tree, it is being adapted as a single-version Win32/DirectX 9 implementation
 for the proven WYD-Go 7.48 protocol, ABI, UI, and assets. Do not retain an
 executable path for the upstream version.
 
-The installed candidate is `tmproject/client748/project.exe`. With
+The installed candidate is `tmproject/client748/WYD.exe`, the executable the
+launcher starts. Until October 11, 2026 it was installed as `project.exe` to
+avoid replacing an older `WYD.exe`; earlier records use that name. With
 `Build-Client.ps1 -NoDeploy`, only the artifact in `tmproject/build/` is
 updated; the installed executable remains unchanged. Historical executables
 and patchers are not fallbacks, products, or validation gates.
 
 The source no longer exposes the later repurchase, numeric AccountLock, or
 drop-list packet paths. This is not evidence that an already installed
-`project.exe` contains those source changes. The [opcode catalog](../wire-opcode-catalog.md#retired-and-incomplete-legacy-paths)
+`WYD.exe` contains those source changes. The [opcode catalog](../wire-opcode-catalog.md#retired-and-incomplete-legacy-paths)
 separates retired paths from incomplete server integrations; in particular,
 war letters, alternate mix, and account transfer are not supported end to end.
 
@@ -855,9 +857,8 @@ otherwise it reads the versioned `serverlist.bin`. A malformed or unreadable
 local table is rejected rather than falling back to a different server. Do
 not package the local table for global players: loopback would address each
 player's own PC.
-The override applies to a newly built `project.exe` or the build artifact when
-started with `client748` as its working directory; the older, untracked
-`client748/WYD.exe` does not use it.
+The override applies to the installed `WYD.exe` or the build artifact when
+started with `client748` as its working directory.
 
 A missing literal source reference alone does not prove that a 7.48 asset is
 missing. In particular, `TMSkinMesh::SetCostume` still contains later-source
@@ -911,6 +912,81 @@ validated as `PARIDADE_NATIVA`. Evidence for this work:
   run in this batch.
 - Additional guides: not applicable; no new contract was introduced.
 
+### Slot 13 familiars and special skills (2026-10-12)
+
+Two regressions from the 7.69 `UpdateScoreUI` replacement were restored from
+native evidence (`PARIDADE_NATIVA`, decompiled 7.48 functions already in the
+local corpus; no new Ghidra run):
+
+- Familiars: native `FUN_00486808` (equipment swap), `FUN_004a626e`
+  (character selection) and `FUN_00485d43` copy `Equip[13]` into the human's
+  familiar field, and `FUN_00506f9d` builds Imp (753), Naiads (769),
+  Grewpain (1726) and the Angels (3900..3908). The client had zeroed the
+  familiar in every projection on the assumption that slot 13 was only a
+  costume, so equipped familiars never appeared. `TMHuman::SetFamiliarItem`
+  now publishes slot 13 as the familiar for the local player, other players
+  and character selection, and disposes a changed pet. Costumes moved to slot
+  12 (see the costume-slot extension below). A shadowed player's released
+  familiar pointer is also cleared.
+- Special skills: `FUN_004431e4` projects `LearnedSkill` bits 24..31 into the
+  4x2 skill-panel grid 571 as items 5096..5103 (UI mode 2). The compat
+  projection covered only bits 0..23, so Sephira books (Conjure Cannon, Thorn
+  Wall, Resurrect, Cancellation, Spectral Force) were learned and saved by the
+  server but never appeared in the client. `UpdateCompatLearnedSkillUI` now
+  fills those slots (`NativeSpecialSkills.h`) and also clears a slot whose bit
+  was removed.
+
+- Inventory X: native `FUN_004662c5` routes control `0x170` to the
+  `FUN_00447691` cascade. The client only hid the Inventory panel, so a Cargo
+  opened with it stayed open; `case 368` now runs `SetVisibleInventory`.
+
+Validation: `UiModeContractTests.cpp` and the drop-handler contract in
+`SceneDisconnectContractTests.cpp`; `Build-Client.ps1 -NoDeploy` passed.
+Pending: `CLIENT-TESTED` for all three (equip/unequip a familiar, learn and
+drag a special skill, close Cargo through the Inventory X).
+
+### WYD-Go extensions: costume slot, expiry display, timed horses (2026-10-12)
+
+Classification: `EXTENSAO_COORDENADA`. Contracts live in
+`wydgo748/internal/model/costume_slot.go` and `timed_display.go`, and in
+`tmproject/TMProject748/internal/application/NativeCostumeSlot.h`.
+
+- Costume slot. Native 7.48 equips costumes and familiars in slot 13 and the
+  guild medal in slot 12. Medals are server-side state here, so costumes move
+  to slot 12 and a costume and a familiar can be worn together. A costume is
+  an item-list row with mesh 36 and position 8192 (the 135 costumes, the same
+  set as `Costumes-KR.json` plus the base sets); the server catalog loader and
+  the client `ItemList.bin` loader both remap its position to 4096. Character
+  entry moves a costume persisted in slot 13 to an empty slot 12 with its UID
+  and deadline, in the same write as timed-item activation; an occupied slot
+  12 leaves it in place. Costume lifetimes now run in slot 12. The client draws
+  the costume from slot 12 for the local player, CreateMob and character
+  selection, and the medal-gated F action ignores a costume in slot 12.
+- Expiry display. `ExpiresUnix` stays server-only. `wire.PutItem` projects it
+  into empty effect pairs of the wire copy, the fields the native tooltip
+  (`FUN_00418828`) reads: Angels 3900..3979 get day/hour/minute
+  (EF_WDAY/EF_HOUR/EF_MIN); other timed items get day/year-2000/month
+  (EF_WDAY/EF_YEAR/EF_WMONTH). Times use the server process time zone (`TZ`
+  in the unit). Occupied pairs are never overwritten and nothing is persisted.
+  `Item.WireEqual` accepts the echoed projection in trade, shops and crafting,
+  so a forged byte still fails. The client tooltip shows the date for every
+  costume, including imported KR rows above 4420.
+- Timed horses 3980..3989. Their item-list rows (client and server) carry no
+  lifetime or stats; the client drew stats from `g_pMountBonus2`, while the
+  server granted nothing: no speed (Run Mode had no effect), no bonus and no
+  expiry. `data/mounts.json` now has a `premium` table mirroring those rows
+  (attack, magic %, evasion, resistance, final speed 6) plus the lifetime
+  encoded in each name. Activation, expiry and score use it.
+
+Validation: Go `model`, `data` and `game` tests for remapping, migration,
+coexistence with a familiar, deadline preservation, projection, echoed and
+forged wire items, the premium table and its rejections, and horse
+speed/bonus/expiry; full `go vet ./...` and `go test -race ./...` passed.
+Client contracts in `UiModeContractTests.cpp`; `Build-Client.ps1 -NoDeploy`
+passed. Pending: `CLIENT-TESTED` (equip a costume in slot 12 next to an Angel,
+tooltip dates, Run Mode on a Shire Horse) and deployment of server + client
+together, since an old client cannot equip costumes in slot 12.
+
 `tools/client-assets/Export-CostumeTable.ps1` emits the C++ table for review;
 `-Check` compares the compiled header with the manifest and checks referenced
 files. This gate runs once per `Build-Client.ps1` invocation, before tests or
@@ -933,7 +1009,7 @@ exhaustive coverage of that matrix.
 3. Score fields received from the client never drive gameplay.
 4. Additional attributes are part of score directly; no sidecar is active.
 5. Migrate each packet with size and offset tests on both sides.
-6. `tmproject/client748/project.exe` is the only executable candidate; the
+6. `tmproject/client748/WYD.exe` is the only executable candidate; the
    historical 7.48 binary is a read-only Ghidra reference.
 
 ### Rule for comparing versions
@@ -1892,6 +1968,54 @@ The current size is protected by `static_assert` in
 tests in `wydgo748/internal/wire/score.go` and `score_test.go`. Changes must
 also cover every packet embedding the score.
 
+## Quest countdown and fairy duration audit (2026-10-12)
+
+Classification: `EXTENSAO_COORDENADA` for public quest-zone countdowns;
+`MODERNIZACAO_COMPATIVEL` for the remaining-time projection and timer lifecycle.
+The existing 16-byte `0x3A1` envelope carries a positive duration at offset 12
+with signal ID `0x7530`; zero hides the counter. Native dispatch evidence is
+recorded in `.agents/research/client748/flows/ui/instance-runtime-counter-controls.md`.
+Native HUD construction and teardown remain untraced, so this is not a claim
+of complete native visual parity.
+
+Quest admission sends the rounded-up seconds until the existing global
+ten-minute reset, not a new personal ten-minute allowance. Leaving the public
+zone or its reset sends zero once. Private instance membership owns the same
+HUD and is excluded from public quest admission, guards and reset recalls.
+Retiring a previous quest flag must not erase an instance countdown.
+Character logout clears the flag before another character reuses the session.
+The client updates the counter every frame, clamps expired durations to zero,
+handles unsigned tick wrap, and hides it when the scene lifecycle ends.
+
+Fairies use remaining days, hours and minutes rather than an absolute expiry
+date or an extra unrelated hour suffix. Expiry effects are a wire-copy
+projection; authoritative item identity, expiry metadata and stack quantities
+remain unchanged. Item echoes tolerate only those presentation differences.
+
+Audit corrections include instance/quest HUD ownership, character-state reset,
+and serialized append-only launcher publication. New tests cover admission,
+exit, reset, instance overlap, closed sessions, deadline rounding, timer expiry
+and wrap, and immutable item projection. Client Release `-NoDeploy` passed
+1,158,490 architecture checks, 231 socket checks and 56 source-launcher checks.
+The final asset gate passed 1,159,824 architecture checks. Four new sound-table
+entries referenced absent files (`menu04-B.wav`, `fireball.wav`, `firearrow.wav`
+and `weath03.wav`); they were removed rather than replaced with unrelated audio.
+All 333 remaining entries reference existing runtime files. The legacy repeated
+ID 220 is preserved; dependency validation does not redefine loader ordering.
+No audio listening or native audio-equivalence claim is made.
+The source launcher is not the deployed legacy launcher and is not included in
+the live patch. Executed-client visual validation remains pending.
+
+The full Go race run passed every package except one game test that exposed
+the missing character-reset flag. A JSON game rerun isolated that single
+failure; all other game tests, including PostgreSQL committed-disconnect
+recovery, passed without race reports. After fixing the reset, focused race
+tests for character reset, quest timers and wire projection passed, and
+`go vet ./...` passed. This is reused integration evidence plus a verified
+repair, not a claim that the entire suite was rerun after the repair. Portal
+tests (four), type checking and production build passed; admin-PIN tests
+(four) passed. Player settings were excluded from the commit and patch.
+
 ## Adaptation sequence
 
 1. Confirm the native flow and the historical reference SHA in Ghidra 7.48.
@@ -1900,7 +2024,7 @@ also cover every packet embedding the score.
    path only when evidence and a replacement contract exist.
 4. Protect wire/ABI with `static_assert` and byte-for-byte tests.
 5. Validate assets and compile. If installation is part of the gate, confirm
-   the SHA-256 of `tmproject/client748/project.exe`. With `-NoDeploy`, record
+   the SHA-256 of `tmproject/client748/WYD.exe`. With `-NoDeploy`, record
    only the artifact in `tmproject/build/` and the pending installation.
 6. Test owner, observer, failure, and relogin before promoting behavior.
 

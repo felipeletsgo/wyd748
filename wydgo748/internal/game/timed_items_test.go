@@ -68,6 +68,82 @@ func TestPremiumFirstEquipPersistsDeadlineBeforeConfirm(t *testing.T) {
 	}
 }
 
+func costumeSlotTestWorld(t *testing.T) (*World, *Player, *craftStore, *net.Session) {
+	t.Helper()
+	w, p, st, session := newTimedSwapWorld(t, nil)
+	def := premiumTestDef(4300, model.CostumeSlot)
+	def.Mesh = model.CostumeMesh
+	w.items[4300] = def
+	w.items[3900] = model.ItemDef{Index: 3900, Mesh: 2773, Pos: model.NativeCostumeSlotMask,
+		StaticEffects: []model.StaticEffect{{Name: "EF_WDAY", Value: 3}}}
+	return w, p, st, session
+}
+
+// Costume-slot extension: costumes equip and time out in slot 12, beside a
+// familiar in slot 13; slot 13 no longer accepts them.
+func TestCostumeSlotEquipsBesideFamiliar(t *testing.T) {
+	w, p, st, session := costumeSlotTestWorld(t)
+	p.Char.Inv[1] = model.Item{Index: 3900, UID: "44444444444444448444444444444444"}
+	w.onSwapItem(session, timedSwapPacket(placeInv, 0, placeEquip, fairySlot))
+	if p.Char.Equip[fairySlot].Index != 0 || p.Char.Inv[0].Index != 4300 {
+		t.Fatalf("slot 13 accepted a costume: equip=%+v", p.Char.Equip[fairySlot])
+	}
+	w.onSwapItem(session, timedSwapPacket(placeInv, 0, placeEquip, model.CostumeSlot))
+	w.onSwapItem(session, timedSwapPacket(placeInv, 1, placeEquip, fairySlot))
+	costume, familiar := p.Char.Equip[model.CostumeSlot], p.Char.Equip[fairySlot]
+	if costume.Index != 4300 || costume.ExpiresUnix != w.now().Add(30*24*time.Hour).Unix() ||
+		familiar.Index != 3900 || familiar.ExpiresUnix != w.now().Add(3*24*time.Hour).Unix() || st.saves != 2 {
+		t.Fatalf("costume=%+v familiar=%+v saves=%d", costume, familiar, st.saves)
+	}
+}
+
+func TestEnterMigratesLegacyCostumeSlotAndKeepsDeadline(t *testing.T) {
+	w, p, st, _ := costumeSlotTestWorld(t)
+	now := w.now()
+	legacy := model.Item{Index: 4300, UID: "33333333333343338333333333333333",
+		ActivatedUnix: now.Add(-time.Hour).Unix(), ExpiresUnix: now.Add(time.Hour).Unix()}
+	p.Char.Inv[0], p.Char.Equip[fairySlot] = model.Item{}, legacy
+	if err := w.prepareTimedEquipmentForEnter(p, now); err != nil {
+		t.Fatal(err)
+	}
+	if p.Char.Equip[model.CostumeSlot] != legacy || p.Char.Equip[fairySlot].Index != 0 || st.saves != 1 {
+		t.Fatalf("costume=%+v slot13=%+v saves=%d", p.Char.Equip[model.CostumeSlot], p.Char.Equip[fairySlot], st.saves)
+	}
+	if err := w.prepareTimedEquipmentForEnter(p, now); err != nil || st.saves != 1 {
+		t.Fatalf("migration repeated: err=%v saves=%d", err, st.saves)
+	}
+}
+
+// Timed horses carry no stats or lifetime in the item list; the mount catalog
+// supplies the client g_pMountBonus2 values, final speed 6 and the deadline.
+func TestPremiumHorseUsesCatalogSpeedBonusAndLifetime(t *testing.T) {
+	w, p, st, session := newTimedSwapWorld(t, nil)
+	w.items[3980] = model.ItemDef{Index: 3980, Pos: 1 << mountSlot,
+		StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 255}, {Name: premiumTimedMarker, Value: 1}}}
+	w.mounts = model.MountCatalog{Premium: map[uint16]model.PremiumMountStats{
+		3980: {Attack: 35, MagicPercent: 7, Evasion: 3, Resist: 4, Speed: 6, DurationDays: 3}}}
+	p.Char.Inv[0] = model.Item{Index: 3980, UID: "55555555555555558555555555555555"}
+	w.recalcPlayer(p.Char)
+	before := *p.Char.RuntimeScore
+
+	w.onSwapItem(session, timedSwapPacket(placeInv, 0, placeEquip, mountSlot))
+	horse := p.Char.Equip[mountSlot]
+	if horse.Index != 3980 || horse.ExpiresUnix != w.now().Add(3*24*time.Hour).Unix() || st.saves != 1 {
+		t.Fatalf("horse not activated with its catalog lifetime: %+v saves=%d", horse, st.saves)
+	}
+	after := p.Char.RuntimeScore
+	if after.AttackRun&0x0F != 6 || after.Attack != before.Attack+35 ||
+		after.Evasion != before.Evasion+3 || after.ResistFire != before.ResistFire+4 {
+		t.Fatalf("horse bonus not applied: before=%+v after=%+v", before, *after)
+	}
+
+	w.clock.(*fakeClock).Advance(3*24*time.Hour + time.Second)
+	w.recalcPlayer(p.Char)
+	if p.Char.RuntimeScore.Attack != before.Attack {
+		t.Fatal("expired horse kept its bonus")
+	}
+}
+
 func TestPremiumFirstEquipSaveFailureRollsBackItemAndDeadline(t *testing.T) {
 	w, p, st, session := newTimedSwapWorld(t, errors.New("db unavailable"))
 	before := p.Char.Inv[0]

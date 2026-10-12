@@ -112,6 +112,7 @@ public:
     void HideLabel();
     void RenderEffect();
     void FrameMoveEffect(unsigned int dwServerTime);
+    void SetFamiliarItem(short itemIndex);
     void FrameMoveEffect_AvatarTrans();
     void FrameMoveEffect_AvatarFoema();
     void FrameMoveEffect_AvatarBMaster();

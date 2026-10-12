@@ -29,7 +29,7 @@ func (w *World) queueInstanceState() {
 	for _, retained := range w.criticalDisconnects {
 		if retained.saved && retained.instancesDetached && !retained.instancesSaved && retained.admissionErr == nil {
 			binding := bindCriticalPlayer(retained.player)
-			if !binding.current(w) {
+			if !binding.currentIdentity(w, retained.committedRecovery) {
 				w.criticalInstanceAdmissionErr = errCriticalPersistenceIdentity
 				log.Printf("instance persistence admission failed; retaining identity: %v", w.criticalInstanceAdmissionErr)
 				return
@@ -47,7 +47,8 @@ func (w *World) queueInstanceState() {
 			}
 			// Check every retained identity before changing any waiter or dirty flag.
 			for _, waiting := range waiters {
-				if w.criticalDisconnects[waiting.binding.session] != waiting.retained || !waiting.binding.current(w) {
+				if w.criticalDisconnects[waiting.binding.session] != waiting.retained ||
+					!waiting.binding.currentIdentity(w, waiting.retained.committedRecovery) {
 					return errCriticalPersistenceIdentity
 				}
 			}

@@ -56,7 +56,7 @@ try {
         $hwnd = [IntPtr]::Zero
         for ($t = 0; $t -lt 900 -and $hwnd -eq [IntPtr]::Zero; $t++) {
             Start-Sleep -Milliseconds 100
-            $hwnd = [WydCapture]::FindWindow([NullString]::Value, 'WYDESTINY MMORPG')
+            $hwnd = [WydCapture]::FindWindow([NullString]::Value, 'WYD 7.48')
             if ($process.HasExited) { throw "client exited (code $($process.ExitCode))" }
         }
         if ($hwnd -eq [IntPtr]::Zero) { throw 'client window not found' }

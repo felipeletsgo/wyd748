@@ -1,0 +1,11 @@
+[Unit]
+Description=WYD isolated database backup
+After=postgresql@18-main.service
+Requires=postgresql@18-main.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wyd-backup
+UMask=0077
+Nice=10
+IOSchedulingClass=idle

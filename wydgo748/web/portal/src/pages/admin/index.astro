@@ -2,6 +2,7 @@
 import PlayerModeration from '../../components/PlayerModeration.astro';
 import PlayerTeleport from '../../components/PlayerTeleport.astro';
 import '../../styles/admin.css';
+import '../../styles/wyd-theme.css';
 import GlobalDrop from '../../components/GlobalDrop.astro';
 import Quiz from '../../components/Quiz.astro';
 import Bosses from '../../components/Bosses.astro';
@@ -15,17 +16,16 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, nofollow" />
-    <meta name="theme-color" content="#111716" />
+    <meta name="theme-color" content="#101211" />
     <title>WYD · Administration panel</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   </head>
-  <body>
+  <body class="admin">
     <a class="skip" href="#main">Skip to content</a>
     <div class="shell">
       <aside class="sidebar" aria-label="Administration navigation">
-        <a class="brand" href="/admin/" aria-label="WYD administration"><span class="brand-mark">W</span><span>WYD<span class="brand-sub">ADMINISTRATION / 7.48</span></span></a>
-        <span class="nav-label">CONTROL CENTER</span>
-        <nav>
+        <a class="brand" href="/" aria-label="WYD home"><img src="/ui/logo.png" alt="WYD" width="505" height="164" /><span class="brand-sub">ADMINISTRATION / 7.48</span></a>
+        <nav id="staff-navigation" hidden>
           <a class="nav-link active" href="#overview"><span aria-hidden="true">◈</span> Overview</a>
           <a class="nav-link" href="#players"><span aria-hidden="true">♙</span> Online players</a>
           <a class="nav-link" href="#account-directory"><span aria-hidden="true">≡</span> Accounts</a>
@@ -36,29 +36,25 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
           <a class="nav-link" href="#premium"><span aria-hidden="true">◆</span> Premium shop</a>
           <a class="nav-link" href="#security"><span aria-hidden="true">◇</span> Session security</a>
         </nav>
-        <div class="sidebar-foot"><span class="readonly-dot"></span> PERMISSION-BASED ACCESS<p>Inspect the world.<br />Manage events and accounts.</p><span class="build-label">CONTROL PANEL · v0.4</span></div>
+        <div class="sidebar-foot"><a href="/player/">Player account ↗</a><p>Permission-based access</p></div>
       </aside>
       <div class="workspace">
         <header class="topbar"><span>OPERATIONS <span class="separator">/</span> <strong>Administration panel</strong></span><span class="access-badge" id="access-badge">Restricted access</span></header>
         <main id="main">
           <noscript><p class="notice">Enable JavaScript to sign in and query the server. This static page contains no administrative data.</p></noscript>
           <section id="login" class="login-grid" aria-labelledby="login-title">
-            <div class="login-intro"><span class="eyebrow">WYD / OPERATIONS</span><h1 id="login-title">Your world,<br /><em>under supervision.</em></h1><p>Monitor the server, find players, and configure world events.</p><div class="intro-rule"></div><span class="section-number">01 — STAFF ACCESS</span><p class="small">Use an authorized account, its game password, and the administrative PIN configured on the server. Queries and commands are identified in the audit log.</p></div>
+            <div class="login-intro"><span class="eyebrow">WYD 7.48</span><h1 id="login-title">Staff access</h1><p>Manage players, accounts and world events.</p></div>
             <form id="login-form" class="login-card">
-              <span class="eyebrow">RESTRICTED AREA</span><h2>Sign in to the panel</h2><p class="muted">Identify yourself to start a secure session.</p>
+              <h2>Sign in</h2><p class="muted">Authorized staff only.</p>
               <label for="username">Game account</label><input id="username" name="username" autocomplete="username" maxlength="12" pattern="[a-zA-Z0-9]{1,12}" required placeholder="Your authorized account" />
               <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="10" required placeholder="Account password" />
-              <label for="adminPin">Administrative PIN <span>6–12 digits</span></label><input id="adminPin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6,12}" minlength="6" maxlength="12" required placeholder="000000" />
+              <label for="adminPin">Administrative PIN <span>6 digits</span></label><input id="adminPin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="000000" />
               <p id="login-message" class="form-message" role="status" aria-live="polite">Preparing access…</p>
               <button id="login-submit" class="button primary" disabled>Sign in <span aria-hidden="true">↗</span></button>
-              <p class="login-foot">No staff access? Ask an administrator for authorization. Regular player accounts can be created below.</p>
+              <p class="login-foot">Here to play? <a href="/register/">Create a player account</a>.</p>
             </form>
           </section>
           <div id="dashboard" hidden>
-            <GlobalDrop />
-            <Quiz />
-            <Bosses />
-            <PremiumShop />
             <section id="overview" aria-labelledby="overview-title">
               <div class="page-heading"><div><span class="eyebrow">OPERATIONS CENTER</span><h1 id="overview-title">Overview<span class="title-dot">.</span></h1><p class="muted">A view of the world when you need it.</p></div><button id="refresh" class="button primary"><span aria-hidden="true">↻</span> Refresh data</button></div>
               <div id="snapshot-banner" class="snapshot-banner" role="status" aria-live="polite"><span class="snapshot-icon" aria-hidden="true">◷</span><div><strong id="snapshot-state">Waiting for a query</strong><span id="snapshot-detail">Use Refresh data. There is no automatic refresh.</span></div><span id="snapshot-time" class="mono">—</span></div>
@@ -96,9 +92,13 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
             </section>
             <PlayerModeration />
             <PlayerTeleport />
+            <AccountCreate />
+            <GlobalDrop />
+            <Quiz />
+            <Bosses />
+            <PremiumShop />
             <footer class="page-footer"><span>WYD · ADMINISTRATION</span><span>Data obtained through the server's authoritative queue.</span></footer>
           </div>
-          <AccountCreate />
         </main>
       </div>
     </div>

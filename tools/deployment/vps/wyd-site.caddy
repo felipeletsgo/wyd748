@@ -1,0 +1,64 @@
+# Client patches for WYDLauncher.exe (7.4x). The launcher speaks plain HTTP
+# on port 80 and cannot follow the HTTPS redirect, so /patch/ is served on both
+# schemes. guilds.txt is the game server's Guilds.txt export, which the 7.48
+# client needs to show guild names.
+(wyd_patch) {
+    handle /patch/guilds.txt {
+        root * /var/lib/wyd-go-public
+        rewrite * /Guilds.txt
+        header Cache-Control "no-cache"
+        file_server
+    }
+    handle /patch/* {
+        root * /srv/wyd-go/patch
+        uri strip_prefix /patch
+        header Cache-Control "no-cache"
+        file_server
+    }
+}
+
+http://wyd.forjago.com {
+    import wyd_patch
+    handle {
+        redir https://{host}{uri} 308
+    }
+}
+
+wyd.forjago.com {
+    root * /srv/wyd-go/current/web
+    encode zstd gzip
+    header {
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+        X-Content-Type-Options nosniff
+        Referrer-Policy no-referrer
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Strict-Transport-Security "max-age=31536000"
+        -Server
+    }
+    @private path /debug /debug/*
+    handle @private {
+        respond 404
+    }
+    # Staff panel: the game's loopback listener authenticates every request
+    # (account password + PIN, CSRF, staff.json capabilities, audit).
+    @staff path /admin /admin/* /api/v1/*
+    handle @staff {
+        reverse_proxy 127.0.0.1:8082 {
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+    import wyd_patch
+    @player path /api/player/* /healthz /readyz
+    handle @player {
+        reverse_proxy 127.0.0.1:8083 {
+            header_up X-Forwarded-For {remote_host}
+        }
+    }
+    handle {
+        @assets path /_astro/*
+        header @assets Cache-Control "public, max-age=31536000, immutable"
+        @pages not path /_astro/*
+        header @pages Cache-Control "no-cache"
+        file_server
+    }
+}

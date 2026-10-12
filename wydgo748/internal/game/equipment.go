@@ -41,15 +41,15 @@ func staticAbility(def model.ItemDef, effect string) int {
 	return value
 }
 
-// celestialRate porta g_pCelestialRate (Basedef.cpp:135): chance de sucesso do
-// refino por NIVEL DE SANC ATUAL. Refinar de +0 e certo (100); a chance cai a
-// cada nivel. Ori (teto +6) usa indices 0..5; Lac (teto +9) usa 0..8.
+// celestialRate ports g_pCelestialRate (Basedef.cpp:135): refinement success
+// chance by CURRENT SANC LEVEL. Refining from +0 always succeeds (100); the
+// chance drops at each level. Ori (cap +6) uses indices 0..5; Lac (cap +9) 0..8.
 var celestialRate = [15]int{100, 95, 90, 85, 80, 75, 70, 65, 60, 50, 40, 15, 15, 15, 15}
 
-// setItemSanc porta BASE_SetItemSanc (Basedef.cpp:2608) para nossa instancia:
-// grava o nivel de refino no par EF_SANC (43) existente, ou o cria num slot
-// livre. success=0 no refino normal, entao sc = nivel para 0..9; niveis 10..15
-// usam o encoding 230+. Retorna false quando nao ha slot EF_SANC nem livre.
+// setItemSanc ports BASE_SetItemSanc (Basedef.cpp:2608) to our instance: it
+// writes the refinement level into the existing EF_SANC (43) pair, or creates
+// it in a free pair. success=0 for normal refinement, so sc = level for 0..9;
+// levels 10..15 use the 230+ encoding. Returns false with no EF_SANC or free pair.
 func setItemSanc(item *model.Item, level int) bool {
 	if item == nil || level < 0 || level > 15 {
 		return false
@@ -110,12 +110,12 @@ func itemSanc(item model.Item) int {
 	return 0
 }
 
-// tintItem aplica uma cor (tintura) ao slot de sanc do item: troca o CODIGO do
-// par EF_SANC (43) ou de uma cor anterior (116-125) para `color`, preservando o
-// VALOR (o nivel de refino nao muda; itemSanc ja le 116-125). E o inverso do
-// pRemoveTintura do WYD 7.48, que converte 116-125 de volta para 43. Retorna
-// false quando o item nao tem slot de sanc (nao esta refinado): so ha o que
-// pintar num item com brilho de refino.
+// tintItem applies a color (dye) to the item's sanc pair: it changes the CODE
+// of the EF_SANC (43) pair or of a previous color (116-125) to `color`, keeping
+// the VALUE (the refinement level is unchanged; itemSanc already reads 116-125).
+// It is the inverse of WYD 7.48 pRemoveTintura, which turns 116-125 back into
+// 43. Returns false when the item has no sanc pair (it is not refined): only an
+// item with a refinement glow can be dyed.
 func tintItem(item *model.Item, color int) bool {
 	if item == nil || color < 116 || color > 125 {
 		return false
@@ -129,9 +129,9 @@ func tintItem(item *model.Item, color int) bool {
 	return false
 }
 
-// untintItem porta o pRemoveTintura do WYD 7.48: converte o codigo de cor
-// (116-125) do slot de sanc de volta para EF_SANC (43), removendo a tintura sem
-// tocar no nivel de refino. Retorna false quando o item nao esta pintado.
+// untintItem ports WYD 7.48 pRemoveTintura: it turns the color code (116-125)
+// of the sanc pair back into EF_SANC (43), removing the dye without touching
+// the refinement level. Returns false when the item is not dyed.
 func untintItem(item *model.Item) bool {
 	if item == nil {
 		return false
@@ -145,8 +145,8 @@ func untintItem(item *model.Item) bool {
 	return false
 }
 
-// itemAbility porta BASE_GetItemAbility: soma efeitos estaticos do itemlist e
-// os tres efeitos do STRUCT_ITEM persistido, aplicando a refinacao.
+// itemAbility ports BASE_GetItemAbility: it sums the item-list static effects
+// and the three persisted STRUCT_ITEM effects, applying refinement.
 func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 	value := 0
 	for _, e := range def.StaticEffects {
@@ -208,8 +208,8 @@ func (w *World) equipmentDamage(ch *model.Char) int {
 		if ldef.Unique == rdef.Unique {
 			multi = 50
 		}
-		// BASE_GetMobAbility: Pericia do Cacador (HT bit 10) e Mestre das
-		// Armas (TK bit 9) usam 100% do dano da arma secundaria.
+		// BASE_GetMobAbility: Hunter's Expertise (HT bit 10) and Weapon Master
+		// (TK bit 9) use 100% of the secondary weapon damage.
 		if ch.Class == 0 && ch.LearnedSkill&(1<<9) != 0 {
 			multi = 100
 		} else if ch.Class == 3 && ch.LearnedSkill&(1<<10) != 0 {
@@ -263,9 +263,9 @@ func extendedValue(v int64) uint32 {
 	return uint32(v)
 }
 
-// recalcExtendedPlayer e o unico calculo autoritativo de personagem. Ele
-// começa sempre na base persistida, reaplica equipamento/refinação e somente
-// depois aplica passivas e affects na copia runtime.
+// recalcExtendedPlayer is the only authoritative character calculation. It
+// always starts from the persisted base, reapplies equipment/refinement and
+// only then applies passives and affects to the runtime copy.
 func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	ensureScore(ch)
 	base := ch.Score
@@ -326,7 +326,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	level := int64(base.Level)
 	combatLevel := level
 	if isCelestialEvolution(ch) {
-		// No score nativo Celestial/Sub conta como nivel atual + MAX_LEVEL.
+		// In the native score Celestial/Sub counts as current level + MAX_LEVEL.
 		combatLevel += int64(maxMortalLevel)
 	}
 	physical := int64(base.Attack) + int64(w.equipmentDamage(ch)) +
@@ -362,17 +362,17 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	maxHP = maxHP * (100 + total("EF_HPADD") + total("EF_HPADD2")) / 100
 	maxMP = maxMP * (100 + total("EF_MPADD") + total("EF_MPADD2")) / 100
 
-	// BASE_GetSkillDamage 7.59: Foema/BM usam INT/3 + INT/30; o
-	// ramo magico do TK usa INT/4 + INT/40 e dano da arma. EF_MAGIC e
-	// EF_MAGICADD viram amplificacao /4 e o resultado recebe o fator 5/4.
+	// BASE_GetSkillDamage 7.59: Foema/BM use INT/3 + INT/30; the TK magic
+	// branch uses INT/4 + INT/40 plus weapon damage. EF_MAGIC and EF_MAGICADD
+	// become a /4 amplification and the result receives the 5/4 factor.
 	magicAmp := int64(base.MagicAmp) + (total("EF_MAGIC")+total("EF_MAGICADD")+1)/4
 	magicCore := int64(base.MagicAttack) + special[1] + level/2
 	switch ch.Class {
 	case 1, 2:
 		magicCore += intel/3 + intel/30
 	case 0:
-		// Este campo resume o ataque dos ramos magicos do TK. Trans usa
-		// exclusivamente o PhysicalAttack calculado acima.
+		// This field summarizes the attack of the TK magic branches. Trans uses
+		// only the PhysicalAttack computed above.
 		magicMastery := special[1]
 		if special[3] > magicMastery {
 			magicMastery = special[3]
@@ -406,8 +406,8 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.Evasion = extendedValue(int64(base.Evasion) + int64(runtime.Parry))
 	runtime.Critical = extendedValue(int64(base.Critical) +
 		(total("EF_CRITICAL")+total("EF_CRITICAL2"))/4)
-	// BASE_GetMobAbility/BASE_GetMaxAbility usam o maior EF_RANGE equipado;
-	// somar adornos e todas as pecas inflava artificialmente o alcance.
+	// BASE_GetMobAbility/BASE_GetMaxAbility use the largest equipped EF_RANGE;
+	// summing accessories and every piece artificially inflated the range.
 	rangeValue := int(base.Range)
 	for slot, item := range ch.Equip {
 		if !clientEquipSlotSupported(byte(slot)) || slot == mountSlot {
@@ -428,9 +428,9 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.ResistHoly = uint32(clampInt(int(base.ResistHoly)+int(total("EF_RESIST3"))+resAll, 0, 100))
 	runtime.ResistThunder = uint32(clampInt(int(base.ResistThunder)+int(total("EF_RESIST4"))+resAll, 0, 100))
 
-	// Bonus da montaria equipada (slot 14): dano fisico/magico, evasao,
-	// resistencia e piso de velocidade -- portado da tabela do Montarias.cpp via
-	// data/mounts.json. mRun entra no calculo de runSpeed abaixo.
+	// Equipped mount bonus (slot 14): physical/magic damage, evasion,
+	// resistance and a speed floor, ported from the Montarias.cpp table via
+	// data/mounts.json. mRun feeds the runSpeed calculation below.
 	mAtk, mMag, mEva, mRes, mRun := w.mountBonus(ch)
 	if mAtk != 0 {
 		runtime.Attack = extendedValue(int64(runtime.Attack) + int64(mAtk))
@@ -458,14 +458,23 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		runtime.MagicAttack = extendedValue(int64(runtime.MagicAttack) *
 			int64(100+premium.magicPercent) / 100)
 	}
+	if premium.evasion != 0 {
+		runtime.Evasion = extendedValue(int64(runtime.Evasion) + int64(premium.evasion))
+	}
+	if premium.resist != 0 {
+		runtime.ResistFire = uint32(clampInt(int(runtime.ResistFire)+premium.resist, 0, 100))
+		runtime.ResistIce = uint32(clampInt(int(runtime.ResistIce)+premium.resist, 0, 100))
+		runtime.ResistHoly = uint32(clampInt(int(runtime.ResistHoly)+premium.resist, 0, 100))
+		runtime.ResistThunder = uint32(clampInt(int(runtime.ResistThunder)+premium.resist, 0, 100))
+	}
 
 	runtime.StatusPts = base.StatusPts
 	runtime.MasterPts = base.MasterPts
 	runtime.SkillPts = base.SkillPts
 
-	// Passivas e affects ainda vao alterar os tetos abaixo. Mantenha por ora o
-	// recurso anterior limitado ao score intermediario; a restauracao de
-	// "estava cheio" so pode acontecer depois do ultimo modificador de MaxHP/MP.
+	// Passives and affects still change the caps below. For now keep the
+	// previous resource limited to the intermediate score; restoring "was full"
+	// can only happen after the last MaxHP/MP modifier.
 	runtime.CurHP = minU32(oldHP, runtime.MaxHP)
 	runtime.CurMP = minU32(oldMP, runtime.MaxMP)
 	ch.RuntimeScore = &runtime
@@ -473,7 +482,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	attackSpeed := minInt(15, int(base.AttackRun>>4)+int(total("EF_ATTSPEED")))
 	runSpeed := minInt(15, int(base.AttackRun&0x0F)+int(total("EF_RUNSPEED")))
 	if mRun > runSpeed {
-		// A montaria impoe um piso de velocidade (cavalgar e mais rapido).
+		// The mount imposes a speed floor (riding is faster).
 		runSpeed = minInt(15, mRun)
 	}
 	if premium.runSpeed != 0 {
@@ -488,10 +497,10 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		ch.RuntimeScore.MaxHP /= 2
 	}
 
-	// Homem Urso e as demais transformacoes BM mudam MaxHP dentro dos affects.
-	// Restaurar o HP cheio antes desse ponto usava o teto sem transformacao
-	// (por exemplo 1833) e o deixava visivel por baixo do teto final (3207) a
-	// cada buff subsequente. Preserve o estado vivo contra o teto FINAL.
+	// Bear Man and the other BM transformations change MaxHP inside affects.
+	// Restoring full HP before this point used the untransformed cap (for
+	// example 1833) and left it visible below the final cap (3207) on every
+	// later buff. Preserve the live state against the FINAL cap.
 	if wasFullHP {
 		ch.RuntimeScore.CurHP = ch.RuntimeScore.MaxHP
 	} else {
@@ -502,8 +511,8 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	} else {
 		ch.RuntimeScore.CurMP = minU32(oldMP, ch.RuntimeScore.MaxMP)
 	}
-	// O base e o score SEM equipamento e SEM affect: seu proprio MaxHP e o unico
-	// teto valido para persistencia. O runtime conserva os recursos efetivos.
+	// The base is the score WITHOUT equipment and WITHOUT affects: its own MaxHP
+	// is the only valid cap for persistence. The runtime keeps effective resources.
 	base.CurHP = minU32(ch.RuntimeScore.CurHP, base.MaxHP)
 	base.CurMP = minU32(ch.RuntimeScore.CurMP, base.MaxMP)
 	normalizeRuntimeScore(ch)
@@ -539,9 +548,9 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 			return false
 		}
 	}
-	// BASE_CanEquip (WYD 7.48) zera Level/STR/INT/DEX/CON para evolucoes
-	// superiores. No Arch a classe do Sephiroth continua governando skills,
-	// mas nao os requisitos de equipamento; armas tambem ignoram a classe.
+	// BASE_CanEquip (WYD 7.48) zeroes Level/STR/INT/DEX/CON for higher
+	// evolutions. For Arch the Sephiroth class still governs skills but not
+	// equipment requirements; weapons also ignore the class.
 	if advanced {
 		return true
 	}
@@ -554,12 +563,12 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 		playerInt(ch) >= intReq && playerDex(ch) >= dexReq && playerCon(ch) >= conReq
 }
 
-// equipmentBodyClass devolve a classe visual que governa armaduras.
+// equipmentBodyClass returns the visual class that governs armor.
 //
-// O Arch guarda em Equip[0] o rosto calculado por `MortalFace + 5 + Sephiroth`.
-// O algarismo das dezenas permanece sendo a classe do corpo Mortal (TK/FM/BM/HT)
-// e reproduz o `extra->MortalFace / 10` usado por BASE_CanEquip no WYD 7.48.
-// Char.Class, por outro lado, e a classe do Sephiroth e governa as habilidades.
+// Arch stores in Equip[0] the face computed as `MortalFace + 5 + Sephiroth`.
+// The tens digit remains the Mortal body class (TK/FM/BM/HT) and reproduces
+// the `extra->MortalFace / 10` used by BASE_CanEquip in WYD 7.48. Char.Class,
+// on the other hand, is the Sephiroth class and governs skills.
 func equipmentBodyClass(ch *model.Char) (byte, bool) {
 	if ch == nil {
 		return 0, false

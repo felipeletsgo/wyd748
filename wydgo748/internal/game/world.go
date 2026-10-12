@@ -126,6 +126,8 @@ type Player struct {
 	// QuestZoneEntry is the native QuestFlag: the quest zone this player was
 	// teleported into by its NPC. Runtime only; cleared by the zone reset.
 	QuestZoneEntry string
+	// QuestZoneTimer records that this client shows the quest-zone countdown.
+	QuestZoneTimer bool
 	// SentWeather is the weather this client last received (0x114 or 0x18B).
 	SentWeather      int
 	AirMoveActive    bool
@@ -1913,7 +1915,12 @@ func (w *World) tickQuestZoneReset(now time.Time) {
 		return
 	}
 	for _, p := range w.players {
-		if !p.InWorld || p.Char == nil {
+		if p == nil || !p.InWorld || p.Char == nil {
+			continue
+		}
+		if w.gameplaySpaceForPlayer(p) != "" {
+			p.QuestZoneEntry = ""
+			w.hideQuestZoneTimer(p)
 			continue
 		}
 		for i := range w.questZones {
@@ -1924,6 +1931,7 @@ func (w *World) tickQuestZoneReset(now time.Time) {
 		}
 		// Native ClearAreaQuest cycle: every entry expires with the reset.
 		p.QuestZoneEntry = ""
+		w.hideQuestZoneTimer(p)
 	}
 }
 

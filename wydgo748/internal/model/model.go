@@ -68,7 +68,26 @@ func (it Item) MarshalJSON() ([]byte, error) {
 // from 7.48 never carry a UID; after validating those bytes the server must keep
 // the authoritative copy that already has the identity.
 func (it Item) WireEqual(other Item) bool {
-	return it.Index == other.Index && it.Eff == other.Eff
+	// A client echoes the bytes it received, which may include the presentation
+	// expiry of a timed item (ExpiryDisplayEffects). That projection changes over
+	// time, so an empty pair on the timed side matches any projected expiry
+	// field in the echo; every other byte must still be identical.
+	if it.Index != other.Index {
+		return false
+	}
+	for pair := 0; pair < 3; pair++ {
+		a := [2]byte{it.Eff[pair*2], it.Eff[pair*2+1]}
+		b := [2]byte{other.Eff[pair*2], other.Eff[pair*2+1]}
+		if a == b {
+			continue
+		}
+		if a[0] == 0 && it.ExpiresUnix > 0 && isExpiryDisplayEffect(b[0]) ||
+			b[0] == 0 && other.ExpiresUnix > 0 && isExpiryDisplayEffect(a[0]) {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 // NewItemUID generates 128 random bits in hexadecimal. It needs no persistent

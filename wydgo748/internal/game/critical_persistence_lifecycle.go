@@ -146,6 +146,7 @@ func (w *World) submitCriticalWriteWithRejection(write criticalWrite, participan
 	for _, binding := range bindings {
 		binding.player.criticalLifecycle = binding.lifecycle
 	}
+	w.criticalWrites.continuations[id].bindings = bindings
 	return id, nil
 }
 
@@ -163,10 +164,17 @@ func bindCriticalPlayer(player *Player) criticalPlayerBinding {
 }
 
 func (binding criticalPlayerBinding) current(w *World) bool {
+	return binding.currentIdentity(w, false)
+}
+
+// Only confirmed-commit disconnect cleanup may validate poisoned RAM. It must
+// still retain every session, account, character and index identity; this does
+// not authorize a new account write or gameplay continuation.
+func (binding criticalPlayerBinding) currentIdentity(w *World, allowPoisoned bool) bool {
 	p := binding.player
 	if w.players[binding.session] != p || p.Session != binding.session ||
 		p.Account != binding.account || accountSessionKey(p.Account.Name) != binding.accountKey ||
-		w.accountSessions[binding.accountKey] != binding.session || p.PersistencePoisoned ||
+		w.accountSessions[binding.accountKey] != binding.session || p.PersistencePoisoned && !allowPoisoned ||
 		p.Char != binding.character || p.CharSlot != binding.slot || p.ID != binding.id ||
 		p.InWorld != binding.inWorld || p.criticalLifecycle != binding.lifecycle {
 		return false
@@ -182,6 +190,7 @@ func (binding criticalPlayerBinding) current(w *World) bool {
 type criticalDisconnect struct {
 	player            *Player
 	saved             bool
+	committedRecovery bool
 	instancesDetached bool
 	instancesSaved    bool
 	admissionErr      error

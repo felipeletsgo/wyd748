@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 186.
+Markdown documents: 188.
 
 | Document | Type |
 | --- | --- |
@@ -157,6 +157,7 @@ Markdown documents: 186.
 | [DOCS/client/effects-compatibility-matrix.md](<client/effects-compatibility-matrix.md>) | Product documentation |
 | [DOCS/client/full-source-audit-2026-10-03.md](<client/full-source-audit-2026-10-03.md>) | Product documentation |
 | [DOCS/client/inventory-stack-and-cp-contract.md](<client/inventory-stack-and-cp-contract.md>) | Product documentation |
+| [DOCS/client/launcher.md](<client/launcher.md>) | Product documentation |
 | [DOCS/client/performance-and-visuals-plan.md](<client/performance-and-visuals-plan.md>) | Product documentation |
 | [DOCS/client/port-748.md](<client/port-748.md>) | Product documentation |
 | [DOCS/client/refactoring-batch-audit-2026-10-03.md](<client/refactoring-batch-audit-2026-10-03.md>) | Product documentation |
@@ -188,6 +189,7 @@ Markdown documents: 186.
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
 | [DOCS/server/ground-items.md](<server/ground-items.md>) | Product documentation |
 | [DOCS/server/operations.md](<server/operations.md>) | Product documentation |
+| [DOCS/server/public-launch.md](<server/public-launch.md>) | Product documentation |
 | [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |
 | [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Product documentation |

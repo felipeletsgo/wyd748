@@ -81,6 +81,7 @@ public:
 	void SetVisibleHellGateStore(int bShow);
 	void SetVisibleGamble(int bShow, char cType);
 	void UpdateGambleRequestTimeout();
+	void UpdateInstanceTimerHud(unsigned int dwServerTime);
 	void SetVisiblePotal(int bShow, int nPos);
 	void SetVisibleMiniMap();
 	void SetVisibleParty();

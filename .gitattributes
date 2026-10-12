@@ -7,3 +7,7 @@ wydgo748/**/*.go linguist-language=Go linguist-detectable=true linguist-vendored
 
 # The bundled Microsoft DirectX SDK is a dependency, not first-party client code.
 tmproject/TMProject748/Dependencies/Directx/** linguist-vendored=true
+
+# VPS scripts, units, Caddy and server configuration must keep Unix line
+# endings when checked out on Windows.
+tools/deployment/vps/** text eol=lf

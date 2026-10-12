@@ -66,6 +66,8 @@ func (w *World) mountBonus(ch *model.Char) (attack, magic, evasion, resist, runS
 type premiumMountStats struct {
 	attack       int
 	magicPercent int
+	evasion      int
+	resist       int
 	runSpeed     int
 }
 
@@ -75,9 +77,15 @@ func (w *World) premiumMountBonus(ch *model.Char, now time.Time) premiumMountSta
 	}
 	item := ch.Equip[mountSlot]
 	def, ok := w.items[item.Index]
-	if !ok || timedItemDuration(def, item.Index, mountSlot) <= 0 ||
+	if !ok || w.timedItemDuration(item, mountSlot) <= 0 ||
 		item.ExpiresUnix != 0 && item.ExpiresUnix <= now.Unix() {
 		return premiumMountStats{}
+	}
+	// Timed horses 3980..3989 carry no stats in the item list; the catalog
+	// mirrors the client g_pMountBonus2 table so score and tooltip agree.
+	if stats, ok := w.mounts.PremiumStats(item.Index); ok {
+		return premiumMountStats{attack: stats.Attack, magicPercent: stats.MagicPercent,
+			evasion: stats.Evasion, resist: stats.Resist, runSpeed: stats.Speed}
 	}
 	return premiumMountStats{
 		attack:       staticAbility(def, "EF_DAMAGE"),

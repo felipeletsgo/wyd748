@@ -1,0 +1,107 @@
+/* WYD 7.48 NewUI theme. Frames are 9-slices of the client's own textures,
+   exported by tools/client-assets/export_portal_ui.py:
+   panel.png (ServerList2.wyt), button/field/title.png (loginbox2.wyt). */
+:root {
+  --bg: #0b0b0a;
+  --text: #ecebe6;
+  --muted: #a8a69d;
+  --error: #ff9a8a;
+  color-scheme: dark;
+  font: 13px/1.5 Tahoma, Verdana, "Segoe UI", sans-serif;
+  color: var(--text);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(ellipse at 50% 0%, #2a2925 0%, var(--bg) 60%) fixed, var(--bg);
+  text-shadow: 1px 1px 0 #000;
+}
+a { color: inherit; }
+img { max-width: 100%; height: auto; }
+[hidden] { display: none !important; }
+
+.site-header { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 28px 16px 8px; }
+.logo img { width: min(360px, 80vw); display: block; }
+nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+main { width: min(640px, 100% - 32px); margin: 16px auto 32px; flex: 1; }
+.site-footer { text-align: center; color: var(--muted); font-size: 11px; padding: 0 16px 20px; }
+
+/* Stone window with ornamented corners. */
+.panel {
+  border-style: solid;
+  border-width: 30px 30px 14px;
+  border-image: url('/ui/panel.png') 30 30 14 fill / 30px 30px 14px stretch;
+  padding: 0 4px 10px;
+  margin-bottom: 18px;
+}
+/* Title plate with the NewUI scrolls at both ends. */
+.title {
+  display: block;
+  margin: -16px -16px 14px;
+  padding: 3px 26px;
+  border-style: solid;
+  border-width: 0 24px;
+  border-image: url('/ui/title.png') 0 24 fill / 0 24px stretch;
+  font-weight: bold;
+  text-align: center;
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.button {
+  display: inline-block;
+  min-width: 96px;
+  padding: 2px 10px;
+  border-style: solid;
+  border-width: 4px;
+  border-image: url('/ui/button.png') 4 fill / 4px stretch;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  text-shadow: 1px 1px 0 #000;
+}
+.button:hover, .button[aria-current="page"] { filter: brightness(1.25); }
+.button:active { filter: brightness(.85); }
+.button:disabled { filter: grayscale(1) brightness(.6); cursor: default; }
+a:focus-visible, .button:focus-visible, input:focus-visible { outline: 1px solid #fff; outline-offset: 2px; }
+
+.form { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; align-items: center; }
+.form label { color: var(--text); }
+.form input {
+  width: 100%;
+  padding: 1px 6px;
+  border-style: solid;
+  border-width: 3px;
+  border-image: url('/ui/field.png') 3 fill / 3px stretch;
+  background: none;
+  color: var(--text);
+  font: inherit;
+}
+.form .actions { grid-column: 1 / -1; display: flex; justify-content: center; gap: 10px; margin-top: 4px; }
+.links { text-align: center; margin: 10px 0 0; color: var(--muted); }
+.links a { color: var(--text); }
+
+.status { min-height: 1.5em; margin: 10px 0 0; text-align: center; color: var(--muted); }
+.status:empty { display: none; }
+.status[data-error="true"] { color: var(--error); }
+.center { text-align: center; }
+.steps { margin: 12px 0 0; padding-left: 20px; color: var(--muted); text-align: left; }
+
+table { width: 100%; border-collapse: collapse; }
+th { color: var(--muted); font-weight: normal; text-align: left; }
+th, td { padding: 4px 6px; border-bottom: 1px solid #ffffff14; }
+tbody tr:last-child td { border-bottom: 0; }
+.empty-row { text-align: center; color: var(--muted); }
+.table-wrap { overflow-x: auto; }
+.row { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+@media (max-width: 480px) {
+  .form { grid-template-columns: 1fr; }
+  .panel { border-width: 30px 18px 12px; border-image-width: 30px 18px 12px; }
+}

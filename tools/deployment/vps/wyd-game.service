@@ -1,0 +1,36 @@
+[Unit]
+Description=WYD authoritative native game server
+After=network.target postgresql@18-main.service
+Requires=postgresql@18-main.service
+
+[Service]
+Type=simple
+User=wyd-game
+Group=wyd-game
+WorkingDirectory=/srv/wyd-go/current/game
+EnvironmentFile=/etc/wyd-go/game.env
+ExecStart=/srv/wyd-go/current/game/wyd-server -config /etc/wyd-go/server.txt
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/wyd-go /var/lib/wyd-go-public
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+MemoryMax=1200M
+CPUQuota=150%
+TasksMax=128
+LimitNOFILE=2048
+
+[Install]
+WantedBy=multi-user.target

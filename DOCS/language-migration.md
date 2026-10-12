@@ -25,8 +25,10 @@ a partial translation as completion.
   server endpoint diagnostic. The compact panel retains its existing control
   IDs, textures, and state mapping; in-client visual validation remains pending.
 - The runtime `tmproject/client748/sn.bin` group labels: `Channel` and
-  `Featured` replace the Portuguese and Korean labels while retaining all
-  eleven fixed-width slots, group orders, and the 143-byte file layout.
+  `Featured` replaced the Portuguese and Korean labels while retaining all
+  eleven fixed-width slots, group orders, and the 143-byte file layout. Since
+  October 11, 2026 the table holds one public group, `WYD-Go`, and the hidden
+  `Featured` admit group.
 - Character-selection preview loading now validates the original four-row
   `selchar.txt` resource before item lookups; its new diagnostic and adjacent
   source comments are in English. Visual client validation remains pending.

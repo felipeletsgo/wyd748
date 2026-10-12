@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/NativeCostumeSlot.h"
 #include "TMSelectCharScene.h"
 #include "TMCamera.h"
 #include "TMGlobal.h"
@@ -699,11 +700,10 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 		m_pHuman[i]->m_stLookInfo.LeftSkin = g_pItemList[itemListIndices[6]].nIndexTexture;
 		m_pHuman[i]->m_stLookInfo.RightMesh = g_pItemList[itemListIndices[7]].nIndexMesh;
 		m_pHuman[i]->m_stLookInfo.RightSkin = g_pItemList[itemListIndices[7]].nIndexTexture;
-		// WYD 7.48 assigns slot 13 to the costume.  TMProject 7.59 used slot 12
-		// plus a familiar in 13; preserving that newer mapping makes a 7.48
-		// costume disappear and can construct an unrelated familiar instead.
-		m_pHuman[i]->m_sFamiliar = 0;
-		m_pHuman[i]->m_sCostume = pSelChar->Equip[i][13].sIndex;
+		// Native FUN_004a626e projects slot 13 into the familiar field; the WYD-Go
+		// costume-slot extension keeps costumes in slot 12.
+		m_pHuman[i]->SetFamiliarItem(pSelChar->Equip[i][costume_slot::FamiliarSlot].sIndex);
+		m_pHuman[i]->m_sCostume = pSelChar->Equip[i][costume_slot::CostumeSlot].sIndex;
 		// Record the authoritative equipment-to-mesh projection for the rebuilt
 		// client; this makes any remaining 7.48 ItemList mismatch observable.
 		WYD748_DiagnosticsLog(

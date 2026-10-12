@@ -14,4 +14,11 @@ constexpr float MeshPitch(int leftWeaponType, float pitch, bool mounted)
     return mounted ? -pitch + kFullTurn : -pitch;
 }
 
+// Native skin Render (0x004be3cb) excludes weapon 101 from the female Z reflection.
+// Its pitch is already preserved by MeshPitch; reflecting it again reverses heading.
+constexpr bool MirrorBodyZ(short meshType, int leftWeaponType, bool hasOwner)
+{
+    return hasOwner && meshType == 1 && leftWeaponType != 101;
+}
+
 } // namespace human_angle

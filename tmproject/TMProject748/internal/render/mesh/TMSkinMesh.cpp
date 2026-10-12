@@ -7,6 +7,7 @@
 #include "TMGlobal.h"
 #include "TMEffectBillBoard.h"
 #include "TMHuman.h"
+#include "HumanAnglePolicy.h"
 #include "CMesh.h"
 #include "TMLog.h"
 
@@ -669,19 +670,13 @@ int TMSkinMesh::Render(float fLen, float fScale, float fLen2)
 		}
 
 		D3DXMatrixScaling(&matScale, m_vScale.x, m_vScale.y, m_vScale.z);
-		if (m_pOwner != nullptr)
+		if (human_angle::MirrorBodyZ(m_nMeshType,
+			m_pOwner ? m_pOwner->m_nWeaponTypeL : 0, m_pOwner != nullptr))
 		{
-			if (m_nMeshType == 1)
-			{
-				TMHuman* pHuman = m_pOwner;
-				if (pHuman != nullptr)
-				{
-					D3DXMATRIX matFlip;
-					D3DXMatrixIdentity(&matFlip);
-					matFlip._33 = -1.0f;
-					D3DXMatrixMultiply(&matScale, &matScale, &matFlip);
-				}
-			}
+			D3DXMATRIX matFlip;
+			D3DXMatrixIdentity(&matFlip);
+			matFlip._33 = -1.0f;
+			D3DXMatrixMultiply(&matScale, &matScale, &matFlip);
 		}
 		D3DXMatrixMultiply(&matTemp, &matTemp, &matScale);
 		D3DXMatrixMultiply(&m_pRoot->m_matRot, &matTemp, &m_pRoot->m_matRot);

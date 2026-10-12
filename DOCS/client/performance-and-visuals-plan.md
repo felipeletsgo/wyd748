@@ -31,7 +31,7 @@ state, working set and process CPU (percent of one core). Each `.trn` and
 
 ```powershell
 $env:WYD_PERF_LOG = "C:\temp\wyd-perf-{pid}.csv"
-Start-Process .\project.exe -WorkingDirectory .\tmproject\client748
+Start-Process .\WYD.exe -WorkingDirectory .\tmproject\client748
 ```
 
 ## Baseline (2026-10-06)

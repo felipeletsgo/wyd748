@@ -1417,6 +1417,15 @@
     <ClInclude Include="internal\application\FieldInteractionPolicy.h">
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>
+    <ClInclude Include="internal\application\NativeCostumeSlot.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\InstanceTimerProjection.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\application\NativeSpecialSkills.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
     <ClInclude Include="internal\application\NativeVolatileRoutes.h">
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>

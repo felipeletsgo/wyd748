@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"wydgo/internal/model"
 )
 
 func loadTestShopFixture(t *testing.T) (map[string]map[uint16]struct{}, map[uint16]struct{}) {
@@ -220,7 +222,7 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 				t.Errorf("KR mount %d was marked unavailable without cataloged evidence", item.Item)
 			}
 			if _, ok := catalog.Items[item.Item]; ok {
-				t.Errorf("montaria KR incompleta %d continua materializada no catalogo autoritativo", item.Item)
+				t.Errorf("incomplete KR mount %d is still materialized in the authoritative catalog", item.Item)
 			}
 			if _, ok := stock[item.Item]; ok {
 				t.Errorf("incomplete KR mount %d was offered in the shops", item.Item)
@@ -298,7 +300,8 @@ func TestCompleteKRCostumesKeep748Contract(t *testing.T) {
 			t.Errorf("KR costume %d missing from the catalog", item.Item)
 			continue
 		}
-		if def.Name != item.Name || def.Mesh != 36 || def.Pos != 8192 {
+		// The catalog loader moves native slot-13 costumes to the costume slot.
+		if def.Name != item.Name || def.Mesh != 36 || def.Pos != model.CostumeSlotMask {
 			t.Errorf("metadata of costume %d differ: %+v", item.Item, def)
 		}
 		effects := make(map[string]int, len(def.StaticEffects))

@@ -18,9 +18,10 @@ var errTimedItemExpired = errors.New("timed item expired")
 
 // timedItemDuration returns the data-driven lifetime for an equipped item.
 // Fairies use their native WDAY/HOUR/MIN duration. Premium costumes and mounts
-// are explicitly marked by effect 111 and use the same catalog fields.
+// are explicitly marked by effect 111 and use the same catalog fields; costumes
+// live in model.CostumeSlot under the WYD-Go costume-slot extension.
 func timedItemDuration(def model.ItemDef, index uint16, slot byte) time.Duration {
-	if slot != fairySlot && slot != mountSlot {
+	if slot != fairySlot && slot != mountSlot && slot != model.CostumeSlot {
 		return 0
 	}
 	if isFairyIndex(index) {
@@ -47,7 +48,17 @@ func (w *World) timedItemDuration(item model.Item, slot byte) time.Duration {
 	if !ok {
 		return 0
 	}
-	return timedItemDuration(def, item.Index, slot)
+	if duration := timedItemDuration(def, item.Index, slot); duration > 0 {
+		return duration
+	}
+	// Timed horses 3980..3989 encode their lifetime only in the name; the
+	// mount catalog carries it for marked (EF_NOTRADE) rows.
+	if slot == mountSlot && staticAbility(def, premiumTimedMarker) == 1 {
+		if stats, ok := w.mounts.PremiumStats(item.Index); ok {
+			return time.Duration(stats.DurationDays) * 24 * time.Hour
+		}
+	}
+	return 0
 }
 
 // activateTimedItem binds the first-equip timestamp to the server-side item
@@ -183,7 +194,12 @@ func (w *World) prepareTimedEquipmentForEnter(p *Player, now time.Time) error {
 // exposes the proposal until its durable write is acknowledged.
 func (w *World) planTimedEquipmentForEnter(p *Player, now time.Time) (bool, error) {
 	changed := len(expireTimedAccountItems(p.Account, now)) != 0
-	for _, slot := range []byte{fairySlot, mountSlot} {
+	// Costumes equipped in slot 13 by older builds move to the costume slot
+	// before activation, persisted with the same entry write.
+	if model.MigrateCostumeSlot(p.Char, w.items) {
+		changed = true
+	}
+	for _, slot := range []byte{model.CostumeSlot, fairySlot, mountSlot} {
 		item := &p.Char.Equip[slot]
 		if w.timedItemDuration(*item, slot) <= 0 {
 			continue

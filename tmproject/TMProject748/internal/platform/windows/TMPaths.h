@@ -1,7 +1,7 @@
 #pragma once
 
 /* Title and Main defines*/
-constexpr const char* GameWindow_Title = "WYDESTINY MMORPG";
+constexpr const char* GameWindow_Title = "WYD 7.48";
 
 /* File related defines */
 constexpr const char* LogFile_Path = "clientlogs.log";

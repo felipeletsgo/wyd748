@@ -94,9 +94,11 @@ Windows SDK. DirectX dependencies are in the client tree.
 pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release
 ```
 
-The script builds and runs architecture tests, builds the solution, and copies
+The script builds and runs the architecture, socket and launcher tests, builds
+the solution (client and [launcher](client/launcher.md)), and copies
 `tmproject/build/TMProject748/Release/WYD.exe` to
-`tmproject/client748/project.exe`, verifying SHA-256. It neither starts nor
+`tmproject/client748/WYD.exe`, the executable players run through the
+launcher, verifying SHA-256. It neither starts nor
 stops the game. The installed executable is a product, not the native
 reference.
 

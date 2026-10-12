@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <windows.h>
 
@@ -80,5 +81,39 @@ int RunRuntimeAssetLimitsTests(int& checks)
     const auto envSize = FileSize(envTextures);
     check(envSize > 0 && envSize % 528 == 0 && envSize / 528 <= MAX_ENV_TEXTURE,
         "EnvTextureList3.bin fits MAX_ENV_TEXTURE");
+
+    const auto soundList = FindRuntimeFile("sound/soundlist.txt");
+    check(!soundList.empty(), "sound/soundlist.txt is available");
+    if (!soundList.empty()) {
+        const auto runtime = soundList.parent_path().parent_path();
+        std::ifstream input(soundList);
+        std::string line;
+        int entries = 0;
+        while (std::getline(input, line)) {
+            if (line.find_first_not_of(" \t\r") == std::string::npos)
+                continue;
+            std::istringstream fields(line);
+            int identifier = -1, channel = -1;
+            std::string relativePath, extra;
+            const bool parsed = static_cast<bool>(fields >> identifier >> relativePath >> channel);
+            check(parsed && !(fields >> extra), "sound entry has exactly three fields");
+            if (!parsed)
+                continue;
+            // Preserve the shipped table's repeated ID 220; this gate checks
+            // dependencies, not a reinterpretation of legacy loader ordering.
+            check(identifier >= 0, "sound identifiers are nonnegative");
+            for (char& character : relativePath)
+                if (character == '\\')
+                    character = '/';
+            const auto relative = std::filesystem::path(relativePath).lexically_normal();
+            const bool insideSound = !relative.is_absolute() &&
+                relative.begin() != relative.end() && *relative.begin() == "sound";
+            check(insideSound, "sound dependencies stay inside the runtime sound directory");
+            check(insideSound && std::filesystem::is_regular_file(runtime / relative),
+                relativePath.c_str());
+            ++entries;
+        }
+        check(entries > 0 && input.eof(), "the complete shipped sound table was checked");
+    }
     return failures;
 }

@@ -15,6 +15,7 @@
 #include "TMHuman.h"
 #include "TMObjectContainer.h"
 #include "TMSkinMesh.h"
+#include "../../application/InstanceTimerProjection.h"
 
 namespace
 {
@@ -478,6 +479,27 @@ int TMFieldScene::OnPacketStartTime(MSG_STANDARDPARM* pStd)
 	m_dwStartRankTime = g_pTimerManager->GetServerTime();
 	m_bRankTimeOn = 1;
 	return 1;
+}
+
+// 0x3A1 is the authoritative instance and quest-zone timer. The compact
+// FrameMove dropped this HUD refresh, so the countdown never appeared; once
+// the server sends a timer it stays visible until it expires or a zero packet
+// clears it.
+void TMFieldScene::UpdateInstanceTimerHud(unsigned int dwServerTime)
+{
+	if (!m_pRankTimeText || !m_bRankTimeOn)
+		return;
+	const int remaining = instance_timer::Remaining(m_nLastTime, m_dwStartRankTime, dwServerTime);
+	if (remaining <= 0)
+	{
+		m_bRankTimeOn = 0;
+		m_pRankTimeText->SetVisible(0);
+		return;
+	}
+	char szTime[32]{};
+	sprintf_s(szTime, "%02d : %02d", remaining / 60, remaining % 60);
+	m_pRankTimeText->SetText(szTime, 0);
+	m_pRankTimeText->SetVisible(1);
 }
 
 int TMFieldScene::OnPacketRemainCount(MSG_STANDARDPARM* pStd)

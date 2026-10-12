@@ -1,0 +1,15 @@
+{
+  "flptr": {
+    "capabilities": [
+      "server.status",
+      "moderation.player.search",
+      "moderation.player.kick",
+      "moderation.player.teleport",
+      "game.event.global-drop",
+      "game.event.quiz",
+      "game.boss.summon",
+      "economy.premium.catalog",
+      "economy.donate.credit"
+    ]
+  }
+}

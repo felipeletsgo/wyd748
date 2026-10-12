@@ -1,0 +1,106 @@
+/* Shared modern presentation of the 7.48 stone-and-metal palette. */
+:root {
+  color-scheme: dark;
+  font: 14px/1.6 "Segoe UI", Tahoma, sans-serif;
+  font-synthesis: none;
+  --bg: #101211;
+  --surface: #1b1e1c;
+  --raised: #242824;
+  --text: #eeeae0;
+  --muted: #b0b2a8;
+  --line: #393e36;
+  --accent: #d4bd83;
+  --error: #ffaaa0;
+  --ink: var(--text);
+  --dark: #161916;
+  color: var(--text);
+  background: var(--bg);
+}
+body { background: radial-gradient(ellipse at 50% 0, #282c26, var(--bg) 65%) fixed; text-shadow: none; }
+:is(a, button, input, select, textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.button {
+  min-height: 42px; padding: 8px 18px;
+  border: 4px solid var(--line); border-image: url('/ui/button.png') 4 fill / 4px stretch;
+  border-radius: 4px; background: var(--raised); color: var(--text);
+  font-size: 13px; font-weight: 600; text-shadow: none;
+}
+.button:hover:not(:disabled), .button[aria-current="page"] { background: var(--raised); filter: brightness(1.2); color: #fff3cc; }
+.button:active:not(:disabled) { filter: brightness(.9); }
+input, select, textarea, .form input {
+  width: 100%; min-width: 0; min-height: 42px; padding: 9px 12px;
+  border: 1px solid #50564a; border-image: none; border-radius: 4px; background: #131613; color: var(--text);
+}
+input::placeholder { color: #969c90; }
+.panel, .login-card, .metric { background: var(--surface); border-color: var(--line); box-shadow: 0 8px 28px #0002; }
+.skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip:focus { position: fixed; z-index: 10; top: 10px; left: 10px; padding: 12px; background: var(--raised); color: var(--text); }
+
+/* Public pages retain the original frame, with quieter typography and spacing. */
+.site-header { gap: 24px; padding: 40px 16px 12px; }
+.logo img { width: min(240px, 65vw); height: auto; }
+nav { gap: 8px; }
+main { margin-top: 24px; }
+.site-footer { font-size: 12px; padding-bottom: 24px; }
+body:not(.admin) .panel { border-width: 18px; border-image-width: 18px; padding: 12px 18px 20px; }
+.title { border: 0; border-image: none; border-bottom: 1px solid var(--line); margin: 0 0 22px; padding: 0 0 14px; font-size: 20px; font-weight: 600; line-height: 1.4; }
+.form { gap: 16px; }
+.form .actions { margin-top: 8px; }
+.links { margin-top: 20px; }
+.links a { color: var(--accent); }
+.status { margin-top: 16px; font-size: 13px; }
+.steps { margin-top: 24px; }
+.steps li + li { margin-top: 10px; }
+body:not(.admin) :is(th, td) { padding: 10px 8px; border-color: var(--line); white-space: nowrap; }
+.row { gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+
+/* Staff layout keeps the existing controls and permissions, without a second theme. */
+.admin { font-size: 14px; line-height: 1.55; }
+.admin .sidebar { background: #141714; border-right: 1px solid var(--line); overflow-y: auto; }
+.admin .brand { flex-direction: column; gap: 8px; margin-bottom: 32px; letter-spacing: 0; }
+.admin .brand img { width: 170px; height: auto; }
+.admin .brand-sub { color: var(--muted); font-size: 10px; }
+.admin .nav-link { color: var(--muted); font-size: 13px; }
+.admin .nav-link:hover, .admin .nav-link.active { background: var(--raised); border: 1px solid var(--line); color: var(--accent); }
+.admin .sidebar-foot { font-size: 12px; color: var(--muted); letter-spacing: 0; }
+.admin .sidebar-foot p { color: var(--muted); margin: 8px 0 0; font-size: 11px; }
+.admin .topbar { min-height: 64px; background: #161916; color: var(--muted); }
+.admin .topbar strong, .admin .access-badge { color: var(--text); border-color: var(--line); }
+.admin main { padding-top: 32px; }
+.admin section[id] { scroll-margin-top: 20px; }
+.admin .login-grid { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 400px; margin: 24px auto; min-height: 0; }
+.admin .login-intro { text-align: center; }
+.admin .login-intro h1 { font: 600 30px/1.2 "Segoe UI", Tahoma, sans-serif; letter-spacing: -.5px; margin: 8px 0; }
+.admin .login-intro > p { display: block; font-size: 13px; color: var(--muted); }
+.admin .login-card { padding: 28px; border-top: 2px solid #82734f; }
+.admin .login-card h2 { font-size: 22px; }
+.admin .login-card label, .admin .account-create-form label { color: var(--text); font-size: 12px; }
+.admin label > span, .admin .login-foot { color: var(--muted); font-size: 11px; }
+.admin .login-foot a { color: var(--accent); text-decoration: underline; }
+.admin .form-message { color: var(--accent); font-size: 12px; min-height: 24px; overflow-wrap: anywhere; }
+.admin .eyebrow, .admin .tag, .admin .title-dot { color: var(--accent); }
+.admin .snapshot-banner, .admin .security-panel, .admin .player-inspector, .admin .persistent-state, .admin .account-character, .admin th { background: var(--raised); border-color: var(--line); }
+.admin .snapshot-banner.error, .admin .notice { background: #30221f; border-color: #8e5149; color: var(--error); }
+.admin .snapshot-banner.error strong, .admin .snapshot-banner.error .snapshot-icon { color: var(--error); }
+.admin :is(.snapshot-banner div > span, .snapshot-banner > .mono, .metric > div, .metric > p, .world-details dt, .security-panel > p, .session-row, .session-row small, .count, .table-footer, .page-footer, .inspector-account, .inspector-source-heading, .inspector-grid dt, .player-inspector footer, .event-status dt, .event-body legend, .bosses-toolbar label, .account-create-copy p, .account-create-copy li, .account-directory-status, .account-characters-empty, th, td small, td.empty) { color: var(--muted); }
+.admin :is(td, td:first-child, .world-details dd, .inspector-heading h3, .inspector-grid dd, .account-character strong) { color: var(--text); }
+.admin :is(th, td, .world-details > div, .session-row, .inspector-heading, .inspector-grid dl, .persistent-state, .inspector-note, .event-status, .event-body fieldset, .account-character, .count) { border-color: var(--line); }
+.admin tbody tr:hover { background: #2b3029; }
+.admin .session-row .button { background: var(--raised); border-color: var(--line); }
+.admin .presence-badge.online { color: #b6d79b; background: #253020; border-color: #587045; }
+.admin .presence-badge.offline { color: var(--muted); background: var(--surface); }
+.admin .presence-badge.unknown { color: var(--accent); background: #302b20; border-color: #766544; }
+@media (max-width: 700px) {
+  .admin .brand { margin: 0; gap: 4px; }
+  .admin .brand img { width: 130px; }
+  .admin .login-grid { margin: 8px auto; }
+  .admin .login-card { padding: 22px; }
+  .admin .panel-heading { flex-wrap: wrap; gap: 10px; }
+}
+@media (max-width: 480px) {
+  .site-header { padding-top: 24px; gap: 18px; }
+  nav { gap: 6px; }
+  nav .button { min-width: 0; padding-inline: 12px; }
+  body:not(.admin) .panel { border-width: 12px; border-image-width: 12px; padding: 14px 10px; }
+  .form { gap: 8px; }
+  .form input { margin-bottom: 8px; }
+}

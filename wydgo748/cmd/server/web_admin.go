@@ -62,8 +62,16 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	if err := control.LoopbackAddress(cfg.WebAdminAddress); err != nil {
 		return nil, fmt.Errorf("web_admin_address: %w", err)
 	}
-	if err := data.ValidateAdminAccessPIN(cfg.AdminAccessPIN); err != nil {
+	pin := cfg.AdminAccessPIN
+	if cfg.AdminAccessPINEnv != "" {
+		pin = os.Getenv(cfg.AdminAccessPINEnv)
+	}
+	if err := data.ValidateAdminAccessPIN(pin); err != nil {
 		return nil, fmt.Errorf("admin_access_pin: %w", err)
+	}
+	trustedProxies, err := data.ParseTrustedProxies(cfg.WebAdminTrustedProxies)
+	if err != nil {
+		return nil, fmt.Errorf("web_admin_trusted_proxies: %w", err)
 	}
 	if cfg.DatabaseDriver != "postgres" {
 		return nil, errors.New("integrated admin panel requires database_driver=postgres")
@@ -99,7 +107,12 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 			db.Close()
 		}
 	}()
-	origin := "http://" + cfg.WebAdminAddress
+	// A published panel keeps its loopback listener behind the HTTPS proxy;
+	// the browser origin, Secure cookies and client IPs follow the proxy.
+	origin, devHTTP := "http://"+cfg.WebAdminAddress, true
+	if cfg.WebAdminOrigin != "" {
+		origin, devHTTP = cfg.WebAdminOrigin, false
+	}
 	events, _ := source.(control.GlobalDropSource)
 	quiz, _ := source.(control.QuizSource)
 	bosses, _ := source.(control.BossesSource)
@@ -107,7 +120,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	teleport, _ := source.(control.TeleportSource)
 	premium, _ := source.(control.PremiumSource)
 	handler, err := webadmin.New(webadmin.Config{
-		Origin: origin, DevHTTP: true, AdminAccessPIN: cfg.AdminAccessPIN,
+		Origin: origin, DevHTTP: devHTTP, AdminAccessPIN: pin, TrustedProxies: trustedProxies,
 		Staff: staff, Accounts: db, Registration: registration, Control: localAdminControl{source: source, started: time.Now()},
 		Persistent: webadmin.NewAccountPersistentReader(db), Ready: db.Ping,
 		GlobalDrop: events,
@@ -127,7 +140,8 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	}
 	stop := serveWebAdmin(listener, site, db.Close)
 	started = true
-	log.Printf("Admin panel: %s/admin/ (local; account password + PIN; permissions defined in staff.json)", origin)
+	log.Printf("Admin panel: %s/admin/ (listener %s; account password + PIN; permissions from %s)",
+		origin, cfg.WebAdminAddress, cfg.WebAdminStaffPath)
 	return stop, nil
 }
 

@@ -90,6 +90,7 @@ function showSession() {
   const authenticated = session?.authenticated ?? false;
   el('login').hidden = authenticated;
   el('dashboard').hidden = !authenticated;
+  el('staff-navigation').hidden = !authenticated;
   text('access-badge', authenticated ? `Staff / ${session!.account}` : 'Restricted access');
   if (authenticated) {
     text('session-account', session!.account);

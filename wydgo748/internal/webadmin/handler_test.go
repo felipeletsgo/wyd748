@@ -427,12 +427,12 @@ func TestAuthRejectionsAndExpiry(t *testing.T) {
 	}
 }
 func TestAdminPINAndStaffValidation(t *testing.T) {
-	for _, pin := range []string{"", "12345", "1234567890123", "12a456"} {
+	for _, pin := range []string{"", "12345", "1234567", "00123456", "123456789012", "1234567890123", "12a456", "１２３４５６"} {
 		if validAdminPIN(pin) {
 			t.Fatalf("invalid PIN accepted: %q", pin)
 		}
 	}
-	if !validAdminPIN("001234") || !validAdminPIN("123456789012") {
+	if !validAdminPIN("001234") || !validAdminPIN("000000") || !validAdminPIN("999999") {
 		t.Fatal("valid numeric PIN rejected")
 	}
 	path := filepath.Join(t.TempDir(), "staff.json")

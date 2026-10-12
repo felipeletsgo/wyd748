@@ -2288,10 +2288,13 @@ ExtractedFlow TMFieldScene::OnCompatFieldControl(unsigned int& dwServerTime, uns
 		}
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	case 368: // native inventory/shop close button
-		if (m_pShopPanel && m_pShopPanel->IsVisible())
+		// FUN_004662c5 sends 0x170 to FUN_00447691, the shared closing cascade:
+		// closing Inventory also closes Cargo, Shop and the other peers. Hiding
+		// only the Inventory panel left Cargo open after its X.
+		if (m_pInvenPanel && m_pInvenPanel->IsVisible())
+			SetVisibleInventory();
+		else if (m_pShopPanel && m_pShopPanel->IsVisible())
 			SetVisibleShop(0);
-		else if (m_pInvenPanel)
-			m_pInvenPanel->SetVisible(0);
 		if (m_pDescPanel)
 			m_pDescPanel->SetVisible(0);
 		// Button 294 is the native 7.48 equipment toggle.  Synchronizing it
@@ -4194,6 +4197,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	}
 	TMScene::FrameMove(dwServerTime);
 	UpdateGambleRequestTimeout();
+	UpdateInstanceTimerHud(dwServerTime);
 	// Native field lifecycle advances the five-second quit/logout/server-change
 	// countdown immediately after the base scene.  Keep that proven slice even
 	// while unsafe 7.59-only HUD ticks remain excluded from the compact path.

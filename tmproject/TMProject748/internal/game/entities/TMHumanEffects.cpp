@@ -278,14 +278,32 @@ void TMHuman::RenderEffect()
     }
 }
 
+// Native 7.48 projects Equip[13] into the familiar field (FUN_00486808,
+// FUN_004a626e). Imported costumes share that slot; FrameMoveEffect builds a
+// pet only for Imp, Naiads, Grewpain and the Angel items, so both coexist.
+// A changed item disposes the current pet so the matching model is rebuilt.
+void TMHuman::SetFamiliarItem(short itemIndex)
+{
+    if (m_sFamiliar != itemIndex && m_pFamiliar)
+    {
+        g_pObjectManager->DeleteObject(m_pFamiliar);
+        m_pFamiliar = nullptr;
+    }
+    m_sFamiliar = itemIndex;
+}
+
 void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
 {
     if (this->m_dwDelayDel)
         return;
 
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-    if (m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this)
+    // DeleteObject only queues the node; keep no pointer to a released familiar.
+    if (m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this && m_pFamiliar)
+    {
         g_pObjectManager->DeleteObject(m_pFamiliar);
+        m_pFamiliar = nullptr;
+    }
 
     if (m_cHide || m_cShadow == 1)
     {

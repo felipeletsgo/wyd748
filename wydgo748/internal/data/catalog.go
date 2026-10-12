@@ -223,6 +223,7 @@ func loadItemList(path string) (map[uint16]model.ItemDef, error) {
 			}
 			def.StaticEffects = append(def.StaticEffects, model.StaticEffect{Name: name, Value: value})
 		}
+		model.RemapCostumeSlot(&def)
 		items[def.Index] = def
 		return nil
 	})

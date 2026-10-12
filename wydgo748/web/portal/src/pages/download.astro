@@ -1,0 +1,20 @@
+---
+import Public from '../layouts/Public.astro';
+
+// Full client package (hosted outside the VPS to avoid its outbound traffic).
+// Leave empty while no validated package is published.
+const clientUrl = 'https://drive.google.com/file/d/1Kvjl4pOY7FYUsmFsEvbQhivAwhqJRXEj/view?usp=drive_link';
+---
+<Public title="Download">
+  <section class="panel center">
+    <span class="title">Client</span>
+    {clientUrl
+      ? <p><a class="button" href={clientUrl} rel="noopener noreferrer">Download client</a></p>
+      : <p class="status" role="status">The client is not available yet.</p>}
+    <ol class="steps">
+      <li>Extract the client into a folder you can write to.</li>
+      <li>Run <strong>WYDLauncher.exe</strong>. It installs updates before <strong>Start</strong>.</li>
+      <li>Use <strong>Settings</strong> in the launcher for resolution and window mode.</li>
+    </ol>
+  </section>
+</Public>

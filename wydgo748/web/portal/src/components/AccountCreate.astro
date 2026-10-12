@@ -1,7 +1,7 @@
 <section id="accounts" class="panel account-create" aria-labelledby="account-create-title">
   <div class="account-create-copy">
     <span class="eyebrow">PLAYER ACCOUNTS</span>
-    <h2 id="account-create-title">Create an account compatible with the 7.48 client</h2>
+    <h2 id="account-create-title">Create account</h2>
     <p>Registration stores only the account and a password hash. Characters are created later in the game.</p>
     <ul>
       <li>Account: 4–12 letters or digits</li>
@@ -22,8 +22,8 @@
         <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Repeat the password" />
       </div>
     </div>
-    <label for="new-account-pin">Administrative PIN <span>6–12 digits</span></label>
-    <input id="new-account-pin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6,12}" minlength="6" maxlength="12" required placeholder="000000" />
+    <label for="new-account-pin">Administrative PIN <span>6 digits</span></label>
+    <input id="new-account-pin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="000000" />
     <p id="account-create-message" class="form-message" role="status" aria-live="polite">The account can sign in to the game once created.</p>
     <button id="account-create-submit" class="button primary" disabled>Create account <span aria-hidden="true">↗</span></button>
   </form>

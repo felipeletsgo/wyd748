@@ -106,14 +106,17 @@ int RunServerNameAssetTests(int& checks)
     const auto path = asset.string();
     check(WYD748_LoadServerNameList(path.c_str(), names, 11, orders, 11),
         "localized 7.48 sn.bin loads");
-    check(std::strcmp(names[0], "__VPS") == 0 && orders[0] == 1,
-        "first group keeps VPS name and order");
-    check(std::strcmp(names[1], "Channel") == 0 && orders[1] == 2,
-        "second group has the English Channel name and unchanged order");
-    check(std::strcmp(names[2], "Featured") == 0 && orders[2] == 0,
-        "third group has the English Featured name and unchanged order");
-    check(orders[7] == 3 && names[7][0] == '\0',
-        "unnamed ordered group is preserved");
+    // One public group plus the hidden featured (admit) group. The selector
+    // treats the highest order as the admit group and adds placeholder rows
+    // for channel numbers below it, so no other order may exceed 2.
+    check(std::strcmp(names[0], "WYD-Go") == 0 && orders[0] == 1,
+        "the public group is WYD-Go in the first slot");
+    check(std::strcmp(names[1], "Featured") == 0 && orders[1] == 2,
+        "the featured admit group follows the public group");
+    bool onlyTwoGroups = true;
+    for (int index = 2; index < 11; ++index)
+        onlyTwoGroups = onlyTwoGroups && orders[index] == 0 && names[index][0] == '\0';
+    check(onlyTwoGroups, "no other group is named or ordered");
     check(!WYD748_LoadServerNameList(nullptr, names, 11, orders, 11),
         "null path is rejected");
     check(!WYD748_LoadServerNameList(path.c_str(), names, 10, orders, 11),
@@ -144,7 +147,7 @@ int RunServerNameAssetTests(int& checks)
         check(writeFixture(bytes), "invalid-order fixture can be written");
         check(!WYD748_LoadServerNameList(fixturePath.c_str(), names, 11, orders, 11),
             "out-of-range group order is rejected");
-        check(std::strcmp(names[0], "__VPS") == 0 && orders[0] == 1,
+        check(std::strcmp(names[0], "WYD-Go") == 0 && orders[0] == 1,
             "rejected order does not alter previously loaded state");
         std::error_code error;
         std::filesystem::remove(fixture, error);

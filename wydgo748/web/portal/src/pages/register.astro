@@ -1,0 +1,16 @@
+---
+import Public from '../layouts/Public.astro';
+---
+<Public title="New Account">
+  <section class="panel">
+    <span class="title">New Account</span>
+    <form id="registration-form" class="form">
+      <label for="reg-username">Account</label><input id="reg-username" name="username" autocomplete="username" required minlength="4" maxlength="12" pattern="[A-Za-z0-9]{4,12}" spellcheck="false" title="4 to 12 letters or digits" />
+      <label for="reg-password">Password</label><input id="reg-password" name="password" type="password" autocomplete="new-password" required minlength="4" maxlength="10" pattern="[!-~]{4,10}" title="4 to 10 characters, no spaces" />
+      <label for="reg-confirm">Confirm</label><input id="reg-confirm" name="passwordConfirmation" type="password" autocomplete="new-password" required minlength="4" maxlength="10" />
+      <div class="actions"><button class="button" type="submit" disabled>Create</button></div>
+    </form>
+    <p class="status" id="registration-status" role="status" aria-live="polite"></p>
+    <p class="links"><a href="/player/">Login</a></p>
+  </section>
+</Public>

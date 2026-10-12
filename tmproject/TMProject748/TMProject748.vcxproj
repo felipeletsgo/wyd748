@@ -153,6 +153,9 @@
     <ClInclude Include="internal\application\DamageNumberPolicy.h" />
     <ClInclude Include="internal\application\FieldInteractionPolicy.h" />
     <ClInclude Include="internal\application\NativeVolatileRoutes.h" />
+    <ClInclude Include="internal\application\NativeSpecialSkills.h" />
+    <ClInclude Include="internal\application\NativeCostumeSlot.h" />
+    <ClInclude Include="internal\application\InstanceTimerProjection.h" />
     <ClInclude Include="internal\application\ShadeGrid.h" />
     <ClInclude Include="internal\application\SkillCooldownPolicy.h" />
     <ClInclude Include="internal\application\WrappedTexture.h" />

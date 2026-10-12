@@ -4,6 +4,7 @@
 #include "SGrid.h"
 #include "GridInsertion.h"
 #include "../application/NativeVolatileRoutes.h"
+#include "../application/NativeCostumeSlot.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMMesh.h"
@@ -1284,9 +1285,9 @@ void SGridControl::DescribeTimedItem(SGridControlItem*& pItem, TMFieldScene*& pF
 		sprintf(formattedMin, "");
 
 
-	char timeTypeStr[128]{};
-	sprintf(timeTypeStr, g_pMessageStringTable[298], 0);
-	sprintf(szDesc, "%s %s %s %s", formattedDate, formattedHour, formattedMin ,timeTypeStr);
+	// FUN_00418828 formats only day/hour/minute for familiars (remaining time
+	// projected by the server); the "0 hour" suffix belongs to the date branch.
+	sprintf(szDesc, "%s %s %s", formattedDate, formattedHour, formattedMin);
 
 	pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
 	pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFAA);
@@ -1347,8 +1348,12 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 		pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFAA);
 		++nLineId;
 	}
+	// Imported KR costumes beyond 4420 share the costume expiry projection.
 	else if (pItem->m_pItem->sIndex >= 4150 && pItem->m_pItem->sIndex <= 4189
-		|| pItem->m_pItem->sIndex >= 4300 && pItem->m_pItem->sIndex <= 4420)
+		|| pItem->m_pItem->sIndex >= 4300 && pItem->m_pItem->sIndex <= 4420
+		|| pItem->m_pItem->sIndex > 0 && pItem->m_pItem->sIndex < MAX_ITEMLIST &&
+			costume_slot::IsCostume(g_pItemList[pItem->m_pItem->sIndex].nIndexMesh,
+				g_pItemList[pItem->m_pItem->sIndex].nPos))
 	{
 		auto itemEffect = pItem->m_pItem->stEffect;
 

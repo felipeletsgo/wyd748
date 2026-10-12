@@ -324,6 +324,7 @@
 360 sound\\monster\\queendam.wav 1
 361 sound\\monster\\queendie.wav 1
 362 sound\\monster\\queenidle.wav 1
+363 sound\\monster\\mguardatt.wav 1
 364 sound\\monster\\mguarddam.wav 1
 365 sound\\monster\\mguarddie.wav 1
 366 sound\\monster\\mguardidle.wav 1

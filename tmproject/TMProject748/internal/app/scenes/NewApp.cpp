@@ -816,12 +816,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	// Install before any bootstrap work and install again after device/UI setup:
 	// third-party initialization may replace the process-wide top-level filter.
 	WYD748_InstallDiagnostics();
-#if !defined(_DEBUG)
-	// The native 7.48 gate identifies the existing top-level window by title.
-	// ClassName is only the registered Win32 class and is not the window title.
-	if (FindWindowA(nullptr, GameWindow_Title))
-		return 0;
-#endif
+	// The native 7.48 single-window gate (FindWindow by title) is removed:
+	// several windows may run at once, and the server enforces the limit of
+	// authenticated clients per IP (max_authenticated_clients_per_ip).
 
 	char* szArgument = GetCommandLine();
 	if (CheckOS())

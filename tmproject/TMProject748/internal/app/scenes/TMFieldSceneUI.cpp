@@ -14,6 +14,7 @@
 #include "../../ui/ObservedAffectProjection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/NativeScoreHud.h"
+#include "../../application/NativeSpecialSkills.h"
 #include "TMLog.h"
 #include "ClientDiagnostics.h"
 #include "TMGround.h"
@@ -552,6 +553,41 @@ void TMFieldScene::UpdateCompatLearnedSkillUI()
 			"compat learned skill mask=0x%08X bit=%d control=%u item=%d result=%d,%d\r\n",
 			learnedMask, i, controlID, itemIndex, inserted.x, inserted.y);
 		if (inserted.x < 0)
+			SAFE_DELETE(pControlItem);
+	}
+
+	// FUN_004431e4 also projects the special bits 24..31 into grid 571; without
+	// this a learned Sephira book never yields a skill that can be dragged or cast.
+	// Unlike the native loop, a slot whose bit was removed is cleared.
+	if (!m_pGridSkillBelt)
+		return;
+	for (int i = 0; i < native_special_skill::SlotCount; ++i)
+	{
+		const auto cell = native_special_skill::SlotCell(i);
+		const short itemIndex = native_special_skill::ItemIndex(i);
+		const bool learned = (learnedMask & native_special_skill::Bit(i)) != 0;
+		auto pCurrent = m_pGridSkillBelt->GetItem(cell.x, cell.y);
+		if (learned && pCurrent && pCurrent->GetItem() && pCurrent->GetItem()->sIndex == itemIndex)
+			continue;
+		if (pCurrent)
+		{
+			auto pOld = m_pGridSkillBelt->PickupItem(cell.x, cell.y);
+			if (g_pCursor && g_pCursor->m_pAttachedItem == pOld)
+				g_pCursor->m_pAttachedItem = nullptr;
+			SAFE_DELETE(pOld);
+		}
+		if (!learned)
+			continue;
+
+		auto pStructItem = new STRUCT_ITEM;
+		memset(pStructItem, 0, sizeof(STRUCT_ITEM));
+		pStructItem->sIndex = itemIndex;
+		auto pControlItem = new SGridControlItem(nullptr, pStructItem, 0.0f, 0.0f);
+		const int added = m_pGridSkillBelt->AddItem(pControlItem, cell.x, cell.y);
+		WYD748_DiagnosticsLog(
+			"compat special skill mask=0x%08X slot=%d item=%d cell=%d,%d result=%d\r\n",
+			learnedMask, i, itemIndex, cell.x, cell.y, added);
+		if (!added)
 			SAFE_DELETE(pControlItem);
 	}
 }

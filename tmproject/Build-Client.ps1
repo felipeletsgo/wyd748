@@ -11,7 +11,7 @@ Recompiles all objects instead of using an incremental build.
 .PARAMETER MSBuildPath
 Optional path to MSBuild.exe; defaults to the Visual Studio installation.
 .PARAMETER NoDeploy
-Builds and validates without copying the artifact to client748/project.exe. Used by CI.
+Builds and validates without copying the client to client748/WYD.exe. Used by CI.
 #>
 [CmdletBinding()]
 param(
@@ -27,7 +27,7 @@ Set-StrictMode -Version Latest
 
 # Resolve all paths from this script, regardless of the shell's working directory.
 $solution = Join-Path $PSScriptRoot 'WYDESTINY.sln'
-$candidate = Join-Path $PSScriptRoot 'client748\project.exe'
+$candidate = Join-Path $PSScriptRoot 'client748\WYD.exe'
 $targetName = if ($Configuration -eq 'Release') { 'WYD.exe' } else { 'WYDestiny.exe' }
 $artifact = Join-Path $PSScriptRoot "build\TMProject748\$Configuration\$targetName"
 
@@ -68,6 +68,16 @@ $socketTestExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\Sock
 if (-not (Test-Path -LiteralPath $socketTestExecutable -PathType Leaf)) { throw 'Socket receive test executable is missing.' }
 & $socketTestExecutable
 if ($LASTEXITCODE -ne 0) { throw 'Socket receive tests failed; candidate not updated.' }
+
+# Validate the source launcher's manifest, path and cache rules without replacing
+# the separately distributed launcher, which uses a different production feed.
+$launcherTestProject = Join-Path $PSScriptRoot 'WYDLauncher\tests\LauncherTests.vcxproj'
+& $MSBuildPath $launcherTestProject "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=Win32' /m /nologo /v:minimal
+if ($LASTEXITCODE -ne 0) { throw 'Launcher tests failed to build; candidate not updated.' }
+$launcherTestExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\LauncherTests.exe"
+if (-not (Test-Path -LiteralPath $launcherTestExecutable -PathType Leaf)) { throw 'Launcher test executable is missing.' }
+& $launcherTestExecutable
+if ($LASTEXITCODE -ne 0) { throw 'Launcher tests failed; candidate not updated.' }
 
 & $MSBuildPath $solution "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=x86' /m /nologo /v:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE; candidate not updated." }

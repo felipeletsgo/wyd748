@@ -17,6 +17,8 @@ documentation, research evidence, and continuity records.
 | Set up Windows development | [Windows environment](windows-development-environment.md) |
 | Start the server for the first time | [Root README](../README.md#quick-start-on-windows) |
 | Operate the database, accounts, panel, network, and backups | [Server operations](server/operations.md) |
+| Publish the public player portal and isolate its VPS services | [Public portal and native VPS deployment](server/public-launch.md) |
+| Publish client updates through the launcher | [WYD launcher and client patches](client/launcher.md) |
 | Build and validate the server and client | [Build and integration](build-and-integration.md) |
 | Understand the attribute contract | [Score](SCORE.md) |
 | Check server state | [Server operations](server/operations.md) and code/tests in `wydgo748/` |

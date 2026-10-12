@@ -4,6 +4,7 @@
 
 #include "TextureManager.h"
 #include "Basedef.h"
+#include "../application/NativeCostumeSlot.h"
 
 #include <algorithm>
 #include <array>
@@ -257,7 +258,8 @@ namespace
         memcpy(destination.stEffect, source.Effects, sizeof(source.Effects));
         destination.nPrice = source.Price;
         destination.nUnique = source.Unique;
-        destination.nPos = source.Position;
+        // WYD-Go costume-slot extension: costumes equip in slot 12, not 13.
+        destination.nPos = costume_slot::RemapPosition(source.IndexMesh, source.Position);
         destination.nExtra = source.Extra;
         destination.nGrade = source.Grade;
     }
@@ -779,14 +781,21 @@ bool WYD748_LoadClientConfig(
     }
     fclose(file);
 
-    for (const bool present : seen)
-        valid = valid && present;
+    // The native 7.47/7.48 launcher (WYDLauncher.exe, FUN_00402160) rewrites
+    // config.txt with every key except CAMERAVIEW. A missing CAMERAVIEW keeps
+    // the caller's default; any other missing key still rejects the file.
+    constexpr std::size_t optionalKey = _countof(keys) - 1;
+    for (std::size_t index = 0; index < _countof(keys); ++index)
+        valid = valid && (seen[index] || index == optionalKey);
     if (!valid)
         return false;
 
     *version = static_cast<short>(parsedValues[0]);
-    for (std::size_t index = 0; index < valueCount; ++index)
-        values[index] = static_cast<short>(parsedValues[index + 1]);
+    for (std::size_t index = 0; index < valueCount && index + 1 < _countof(keys); ++index)
+    {
+        if (seen[index + 1])
+            values[index] = static_cast<short>(parsedValues[index + 1]);
+    }
     return true;
 }
 

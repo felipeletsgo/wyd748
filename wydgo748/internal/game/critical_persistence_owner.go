@@ -21,11 +21,14 @@ type criticalContinuation struct {
 	// Shared gameplay ownership is independent of the durable aggregate type.
 	// Ground objects and pending mob deaths cannot be discarded per account.
 	sharedWorld bool
-	apply       func(criticalPersistenceResult) error
-	afterAck    func(criticalPersistenceResult) error
-	reject      func(criticalPersistenceResult) error
-	delivered   bool
-	err         error
+	// Retain admission ownership independently of callbacks, which are dropped
+	// after failure. Recovery must never evict a replacement session/account.
+	bindings  []criticalPlayerBinding
+	apply     func(criticalPersistenceResult) error
+	afterAck  func(criticalPersistenceResult) error
+	reject    func(criticalPersistenceResult) error
+	delivered bool
+	err       error
 }
 
 func newCriticalPersistenceOwner(queue *criticalPersistence) *criticalPersistenceOwner {
@@ -147,7 +150,10 @@ func (w *World) processCriticalCompletions(limit int) {
 }
 
 func (w *World) applyCriticalCompletion(result criticalPersistenceResult) {
-	if err := w.criticalWrites.complete(result); err != nil && !w.containCriticalFailureLocally(result.id, err) {
+	continuation := w.criticalWrites.continuations[result.id]
+	firstDelivery := continuation != nil && !continuation.delivered
+	if err := w.criticalWrites.complete(result); err != nil &&
+		!(firstDelivery && w.recoverCommittedAccountFailure(result, err)) && !w.containCriticalFailureLocally(result.id, err) {
 		// Without account containment, or for shared aggregates and
 		// post-acknowledgement failures, fail the entire World closed. Unknown
 		// durable outcomes must not feed autosaves or accept further gameplay
