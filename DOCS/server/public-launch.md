@@ -347,3 +347,53 @@ exercise were not performed; neither is implied by the passing checks.
   200, and the live `wyd-server` hash matches the local build. The host time
   zone is UTC, so tooltip expiry times are shown in UTC.
 - Client patch 10002 was published right after ([launcher](../client/launcher.md#published-patch-10002-2026-10-12)).
+
+## Coordinated feature audit and quest timer release — October 12, 2026
+
+- Source commit: `ce411059ae7b312031c3e83201f9a3c5431eb86d` on `main`.
+  The accumulated changes were reviewed across critical-persistence recovery,
+  costume/familiar slots, timed items and horses, special skills, client
+  lifecycle/UI, player-portal authorization, native-launcher packaging and
+  deployment. The audit repaired public/private countdown ownership, the
+  character-reset flag and four absent sound dependencies; publication now
+  serializes writers and requires an append-only feed.
+- Release: `/srv/wyd-go/releases/20261012T041400Z`, built from
+  `wyd-deploy-20261012-quest-timer-audit`. Archive SHA-256:
+  `ffe9498f32ae62927d4a472eab37c392a503f0efc0fe93463db622b28564aa9b`.
+  Live game SHA-256:
+  `c5b3688be3ca0fcc344fbf143475a3d376804a686d34934fefa947002ca045af`.
+  Live player API SHA-256:
+  `e5af6ca57afbd8e4200980bfa99c6d6b0cab8399b33bb30e18273ddf48cf78c3`.
+  Both live hashes match the packaged Linux builds.
+- Backup completed before installation. The staged player database integration
+  test passed on PostgreSQL 18 with the production role separation in a
+  dedicated temporary database. A fresh backup restored successfully into a
+  second temporary database. Neither test wrote live accounts; both temporary
+  databases were removed and their absence was checked afterward.
+- All staged shell scripts passed `bash -n`. Unknown updater options and an
+  invalid publisher staging path were rejected before installation. The
+  update preserved the existing six-digit staff PIN and player credentials.
+- There were zero established game connections at restart. Game and player API
+  restarted; game, player API and Caddy are active, and port 8281 listens.
+  Home, registration, player panel, ranking, downloads, staff entry and
+  readiness returned HTTP 200. The game warning journal was empty after
+  restart. Caddy reported existing redundant-forwarded-header/HTTP-listener
+  warnings, but configuration validation succeeded.
+- Automated client/server evidence and the repaired full-race-run failure are
+  recorded in the [port audit](../client/port-748.md#quest-countdown-and-fairy-duration-audit-2026-10-12).
+  This is not executed-client visual validation or a global security/release
+  certification. The legacy launcher's unsigned plain-HTTP feed remains a
+  known limitation, not corrected by append-only publication.
+- Patch 10003 was published after the server update; see the
+  [launcher publication](../client/launcher.md#published-patch-10003-2026-10-12).
+  The obsolete tracked `project.exe` was removed from Git; generated client
+  executables are ignored. Player settings remain uncommitted locally.
+
+Commands: `go test -race -count=1 -timeout=300s ./...`, the isolated JSON game
+rerun and focused game/wire race gates, `go vet ./...`, portal generation,
+tests/check/build, PIN tests, `Build-Client.ps1 -NoDeploy`, the final
+ArchitectureTests build/run, `Build-VpsRelease.ps1`, staged database/restore
+tests, `update-release.sh`, `Build-ClientPatch.ps1`,
+`Publish-ClientPatch.ps1`, public HTTP/hash checks and repository layout/diff
+validation. Manual launcher extraction, fairy duration and quest/instance
+countdown checks remain pending; no automated gate is labeled `CLIENT_TESTED`.

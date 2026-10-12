@@ -150,3 +150,38 @@ It requires server release `20261012T024132Z`, deployed first.
 
 The earlier source launcher in `tmproject/WYDLauncher/` (content-addressed
 HTTPS updates) is superseded by this adaptation.
+
+## Published patch 10003 (2026-10-12)
+
+The production feed now appends `10003 patch-10003.zip`. Server release
+`20261012T041400Z` was installed first. The patch includes the audited client
+executable with the remaining-time fairy tooltip and restored countdown HUD.
+
+All 20 tracked runtime assets changed from `aa4d0855` to `ce411059` were
+included, together with the ignored, validated `WYD.exe` build: 13 music files,
+server/group lists, launcher resources/configuration, the corrected sound
+table and its new `mguardatt.wav` dependency. Matching the local full bundle
+does not prove that older player installations contain these assets; the
+incremental patch therefore delivers them too. All 21 entries match the
+audited source/build bytes. No settings or launcher executable are included.
+
+- ZIP size: 26,989,810 bytes.
+- ZIP SHA-256: `D54C7A40486FBB0F3A7E76D6518FDC45E462CCD1C10E02F60950E946F9CC825E`.
+- `WYD.exe` SHA-256: `2A4869B828AD2BAC25657E7A160C574121D761C9380E8BE0333C8134C95519F1`.
+- `sound/soundlist.txt` SHA-256: `274AB767F2E978F34E0E50306D7B232379740015DD1A7B0DA4912D3951D4E795`.
+- The public HTTP manifest returned 200 without redirect and contained 10003.
+  A fresh public download matched the complete ZIP hash and all 21 entries;
+  the executable, table and new sound dependency were separately hashed.
+- Publication uses a serialized, append-only manifest update after ZIP
+  validation/installation. The previous manifest remains recoverable. This
+  prevents concurrent publishers from losing an entry; it does not add TLS,
+  signatures or authenticity to the legacy transport.
+- Validation: `AUTOMATED TESTED`; built artifact and public publication
+  verified. Local runtime installation was deliberately not performed.
+  Launcher extraction and gameplay remain pending human validation, not
+  `CLIENT_TESTED`.
+
+Close the game and run `WYDLauncher.exe` to receive 10003. The launcher cannot
+remove the obsolete `project.exe` from older installations; launch through
+`WYDLauncher.exe`/`WYD.exe`, not that stale executable. The full client remains
+hosted outside the VPS; this feed serves incremental updates only.
