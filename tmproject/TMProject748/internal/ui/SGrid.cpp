@@ -371,19 +371,10 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 		if (!m_pItemList[0])
 			return;
 
-		// GRID_TRADEMY2 is the buyer's display slot: FieldScene2 already supplies
-		// its native receptacle, so the seller-side dark selection mask must not
-		// cover the item artwork in the customer window.
-		if (m_eGridType == TMEGRIDTYPE::GRID_TRADEOP || m_eGridType == TMEGRIDTYPE::GRID_TRADEMY)
-		{
-			m_pItemList[0]->m_GCEnable.nPosX = ivParentPos.x + m_nPosX;
-			m_pItemList[0]->m_GCEnable.nPosY = ivParentPos.y + m_nPosY;
-			m_pItemList[0]->m_GCEnable.nWidth = m_nWidth - 4.0f;
-			m_pItemList[0]->m_GCEnable.nHeight = m_nHeight - 3.0f;
-			m_pItemList[0]->m_GCEnable.nLayer = inParentLayer;
-			m_pItemList[0]->m_GCEnable.dwColor = 0x0FF000000;
-			AddRenderControlItem(pDrawList, &m_pItemList[0]->m_GCEnable, inParentLayer);
-		}
+		// FieldScene2.bin already supplies the native receptacle of every trade
+		// slot (GRID_TRADEOP, GRID_TRADEMY and GRID_TRADEMY2). The opaque black
+		// backdrop inherited from the 7.69 source replaced that background with
+		// a black square as soon as an item entered the slot, so none is drawn.
 		// Trade/mix receptacles follow the same native centre contract as equipment;
 		// item-local offsets remain available for the few stock mix arrangements.
 		TMVector2 vecCenter = TMVector2((ivParentPos.x + m_nPosX) + (m_nWidth * 0.5f),

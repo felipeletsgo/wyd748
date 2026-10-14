@@ -115,6 +115,7 @@ Markdown documents: 188.
 | [.agents/research/client748/flows/ui/toto-list-loader.md](<../.agents/research/client748/flows/ui/toto-list-loader.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/toto-selection-close.md](<../.agents/research/client748/flows/ui/toto-selection-close.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/trade-inventory-layout.md](<../.agents/research/client748/flows/ui/trade-inventory-layout.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/trade-slot-receptacle.md](<../.agents/research/client748/flows/ui/trade-slot-receptacle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/update-equip-visual-contract.md](<../.agents/research/client748/flows/ui/update-equip-visual-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/volatile-item-use-routing.md](<../.agents/research/client748/flows/ui/volatile-item-use-routing.md>) | Research evidence |
 | [.agents/research/client748/inventory/costume-native-contract.md](<../.agents/research/client748/inventory/costume-native-contract.md>) | Research evidence |

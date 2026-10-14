@@ -1663,6 +1663,13 @@ int RunSceneDisconnectContractTests(int& checks)
         rcGridSource.find("std::unique_ptr<GeomControl[]> cells(") != std::string::npos &&
         rcGridSource.find("filled.release();") > rcGridSource.find("memset(m_pbFilled"),
         "grid construction retains both allocation owners through initialization");
+    const auto gridFrame = source_contract::MaskCpp(source_contract::Method(rcGridSource,
+        "void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)"));
+    const auto centeredBranch = gridFrame.find("if (isCenteredSingleCellGrid)");
+    const auto centeredDraw = gridFrame.find("FrameMoveAtCenter748(", centeredBranch);
+    check(centeredBranch != std::string::npos && centeredDraw != std::string::npos &&
+        gridFrame.substr(centeredBranch, centeredDraw - centeredBranch).find("m_GCEnable") == std::string::npos,
+        "occupied trade slots keep the FieldScene2 receptacle instead of an opaque black backdrop");
     const auto rcButtonSource = LoadSource("TMProject748/internal/ui/controls/SButton.cpp");
     check(rcButtonSource.find("std::unique_ptr<TMFont2> fontOwner;") != std::string::npos &&
         rcButtonSource.find("std::unique_ptr<SText> altTextOwner;") != std::string::npos &&
