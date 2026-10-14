@@ -129,6 +129,17 @@ func tintItem(item *model.Item, color int) bool {
 	return false
 }
 
+// tintSetOnlyMessage rejects dye dropped on anything but an armor set piece.
+const tintSetOnlyMessage = "Dye can only be used on armor set pieces."
+
+// isArmorSetPiece reports whether def is one of the five armor set pieces
+// (helmet, chest, pants, gloves, boots): its Pos is exactly one of the slot
+// masks 2, 4, 8, 16 or 32. Dye (tint) only paints these pieces; weapons,
+// shields, capes, mounts and accessories are rejected.
+func isArmorSetPiece(def model.ItemDef) bool {
+	return def.Pos >= 2 && def.Pos <= 32 && def.Pos&(def.Pos-1) == 0
+}
+
 // untintItem ports WYD 7.48 pRemoveTintura: it turns the color code (116-125)
 // of the sanc pair back into EF_SANC (43), removing the dye without touching
 // the refinement level. Returns false when the item is not dyed.

@@ -654,10 +654,11 @@ int SGridControl::MouseOverWithoutHandCursor(const ECursorStyle& eCursorStyle, i
 			else if (nSrcVolatile == 186 && !nDstVolatile && !nCheckType && pItem)
 			{
 				m_dwEnableColor = 0x33FF0000;
+				// Dye only paints the armor set; the server rejects shields,
+				// weapons, capes and accessories (wydgo748 isArmorSetPiece).
 				if (m_eItemType == TMEITEMTYPE::ITEMTYPE_HELM || m_eItemType == TMEITEMTYPE::ITEMTYPE_COAT ||
 					m_eItemType == TMEITEMTYPE::ITEMTYPE_PANTS || m_eItemType == TMEITEMTYPE::ITEMTYPE_GLOVES ||
-					m_eItemType == TMEITEMTYPE::ITEMTYPE_BOOTS || m_eItemType == TMEITEMTYPE::ITEMTYPE_RIGHT &&
-					BASE_GetItemAbility(pItem->m_pItem, 21) <= 0)
+					m_eItemType == TMEITEMTYPE::ITEMTYPE_BOOTS)
 				{
 					m_dwEnableColor = 0x3300FF00;
 				}
