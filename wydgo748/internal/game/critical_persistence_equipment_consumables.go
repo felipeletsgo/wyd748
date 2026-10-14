@@ -79,6 +79,9 @@ func (w *World) queueEquipmentConsumable(p *Player, slot byte, req useItemReques
 		}
 		switch rule.Action {
 		case "tint":
+			if def, ok := w.items[target.Index]; !ok || !isArmorSetPiece(def) {
+				return reject(tintSetOnlyMessage)
+			}
 			if !tintItem(target, rule.Color) {
 				return reject("Dye a refined item (one with a + glow).")
 			}

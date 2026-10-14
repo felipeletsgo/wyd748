@@ -759,6 +759,11 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.MessagePanel("Drag the dye onto an item."))
 			return
 		}
+		if def, ok := w.items[dest.Index]; !ok || !isArmorSetPiece(def) {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			s.Send(wire.MessagePanel(tintSetOnlyMessage))
+			return
+		}
 		oldDest, oldItem := *dest, *item
 		if !tintItem(dest, rule.Color) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))

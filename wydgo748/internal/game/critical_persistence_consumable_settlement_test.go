@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"maps"
 	"reflect"
 	"testing"
@@ -223,5 +224,33 @@ func TestCriticalConsumableSettlementMatrix(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// Dye only paints the five armor set pieces; any other target is rejected
+// before a critical write is proposed, so the dye and the target stay intact.
+func TestCriticalTintRejectsTargetsOutsideArmorSet(t *testing.T) {
+	for _, pos := range []int{4, 64, 128, 192, 1 << 15} {
+		t.Run(fmt.Sprint(pos), func(t *testing.T) {
+			w, p, _, _, _, _, _ := criticalTreasuryFixture(t, 100)
+			w.warConfig.Enabled = false
+			rule, packet := configureCriticalConsumableSettlement(w, p, "tint")
+			def := w.items[1000]
+			def.Pos = pos
+			w.items[1000] = def
+			req, ok := parseUseItemRequest(packet)
+			if !ok {
+				t.Fatal("tint packet did not parse")
+			}
+			err := w.queueEquipmentConsumable(p, 0, req, rule)
+			var rejection *nativeConsumableRejection
+			rejected := errors.As(err, &rejection) && rejection.message == tintSetOnlyMessage
+			if pos == 4 && (err != nil || rejected) {
+				t.Fatalf("armor piece tint was rejected: %v", err)
+			}
+			if pos != 4 && !rejected {
+				t.Fatalf("non-set tint was admitted: %v", err)
+			}
+		})
 	}
 }

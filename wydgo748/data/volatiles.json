@@ -544,7 +544,7 @@
       "action": "tint",
       "consume": true,
       "color": 116,
-      "description": "Dye (Enamel): paints the target item (equipment or inventory). Blue fallback; real color per item in items[]. Remover_Enamel uses untint."
+      "description": "Dye (Enamel): paints only armor set pieces (helmet, chest, pants, gloves, boots), equipped or in inventory. Blue fallback; real color per item in items[]. Remover_Enamel uses untint."
     },
     "187": {
       "action": "arch_crystal",

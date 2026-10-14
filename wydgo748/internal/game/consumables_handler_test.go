@@ -990,6 +990,32 @@ func TestOnUseItemTintUntintReplictionAndFallback(t *testing.T) {
 		}
 	})
 
+	t.Run("tint rejects targets outside the armor set", func(t *testing.T) {
+		// Weapon, shield, two-handed weapon, cape and an unknown item.
+		for _, pos := range []int{64, 128, 192, 1 << 15, -1} {
+			w, p, st := useItemWorld(model.VolatileRule{Action: "tint", Consume: true, Color: 120})
+			target := model.Item{Index: 300, Eff: [6]byte{43, 9}}
+			if pos >= 0 {
+				w.items[300] = model.ItemDef{Index: 300, Pos: pos}
+			}
+			p.Char.Inv[1] = target
+			w.onUseItem(p.Session, useItemPacket(0, 1))
+			if p.Char.Inv[1] != target || p.Char.Inv[0].Index != 100 || st.saves != 0 {
+				t.Fatalf("pos %d: source=%d target=% X saves=%d", pos, p.Char.Inv[0].Index, p.Char.Inv[1].Eff, st.saves)
+			}
+		}
+	})
+
+	t.Run("untint still cleans a dyed cape", func(t *testing.T) {
+		w, p, st := useItemWorld(model.VolatileRule{Action: "untint", Consume: true})
+		w.items[300] = model.ItemDef{Index: 300, Pos: 1 << 15}
+		p.Char.Inv[1] = model.Item{Index: 300, Eff: [6]byte{120, 9}}
+		w.onUseItem(p.Session, useItemPacket(0, 1))
+		if p.Char.Inv[1].Eff[0] != 43 || p.Char.Inv[0].Index != 0 || st.saves != 1 {
+			t.Fatalf("untint cape: source=%d target=% X saves=%d", p.Char.Inv[0].Index, p.Char.Inv[1].Eff, st.saves)
+		}
+	})
+
 	t.Run("tint rollback resyncs source and target", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{Action: "tint", Consume: true, Color: 120})
 		beforeTarget := model.Item{Index: 200, Eff: [6]byte{43, 9}}
