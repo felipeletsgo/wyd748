@@ -114,15 +114,21 @@ var hitRateProgression = func() [1024]int {
 
 func attackSpeedPercent(ch *model.Char) int {
 	if ch == nil {
-		return 50
+		return 100
 	}
-	// WYD 7.48 encodes attack speed as the high AttackRun nibble. Five represents
-	// 100%; every following point adds 10%, reaching 200% at the native cap 15.
-	return clampInt((int(effectiveScore(ch).AttackRun>>4)+5)*10, 50, 200)
+	// The high nibble stores ten-point bonuses above the implicit 100% base.
+	// The character panel also includes the unquantized remainder of DEX/items.
+	return 100 + int(effectiveScore(ch).AttackRun>>4&0x0F)*10
+}
+
+func packedAttackSpeed(bonusPercent int) uint32 {
+	return uint32(clampInt(bonusPercent, 0, 150)/10) << 4
 }
 
 func doubleHitChance(ch *model.Char) int {
-	return clampInt(attackSpeedPercent(ch)-100, 0, 100)
+	// Native BASE_GetDoubleCritical uses (highNibble - 5) * 100 per mille.
+	// Thus 110% has no double hit; 160% starts the first 10% chance band.
+	return clampInt(attackSpeedPercent(ch)-150, 0, 100)
 }
 
 type physicalHitResult struct {
@@ -192,7 +198,7 @@ func applyHuntressAirBlade(hit physicalHitResult, ch *model.Char, targetDefense 
 
 // rollPhysicalHitFlags ports WYD 7.48 BASE_GetDoubleCritical. Double Hit follows
 // the server-owned 1,024-step progression derived from the high AttackRun
-// nibble; Critical is an independent 0..254 roll. Both bits may be set by the
+// nibble; Critical is an independent per-mille roll. Both bits may be set by the
 // same action, and the client-supplied Progress field is never authoritative.
 func rollPhysicalHitFlags(ch *model.Char, progress *uint16, intn func(int) int) (double, critical bool) {
 	if ch == nil || progress == nil || intn == nil {
@@ -202,7 +208,9 @@ func rollPhysicalHitFlags(ch *model.Char, progress *uint16, intn func(int) int) 
 	*progress = (*progress + 1) & 0x3FF
 	doubleThreshold := clampInt(doubleHitChance(ch)*10, 0, 1000)
 	double = hitRateProgression[index] < doubleThreshold
-	critical = intn(255) < clampInt(int(effectiveScore(ch).Critical), 0, 255)
+	// Critical is in tenths of a percent, exactly what the item tooltip and
+	// the Character panel display; 1000 is a guaranteed critical.
+	critical = intn(1000) < clampInt(int(effectiveScore(ch).Critical), 0, maxCriticalPerMille)
 	return double, critical
 }
 

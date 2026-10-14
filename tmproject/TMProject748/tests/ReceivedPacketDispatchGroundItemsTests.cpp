@@ -1,4 +1,5 @@
 #include "ReceivedPacketDispatchTestSupport.h"
+#include "../internal/core/GroundItemCollision.h"
 
 // ReceivedPacketDispatch tests: GroundItems. Split from ReceivedPacketDispatchTests.cpp.
 int RunReceivedPacketDispatchGroundItemsTests(int& checks)
@@ -12,8 +13,43 @@ int RunReceivedPacketDispatchGroundItemsTests(int& checks)
         }
     };
 
+    // Native mask 9, rotation 1: the open Kefra gate at (2351, 3867).
+    int gateMask[6][6]{};
+    constexpr unsigned long long gateBits = 0x004104104ULL;
+    for (int cell = 0; cell < 36; ++cell)
+        gateMask[cell / 6][cell % 6] = (gateBits >> cell) & 1;
+    std::array<char, 16 * 16> baseHeights;
+    baseHeights.fill(static_cast<char>(-83));
+    constexpr int passage = (3868 - 3860) * 16 + 2351 - 2344;
+    baseHeights[passage - 16] = static_cast<char>(-82);
+    baseHeights[passage + 1] = 127; // Adjacent terrain wall is not part of the gate.
+    auto heights = baseHeights;
+    const auto applyGate = [&](int height, const char* base) {
+        return ground_item_collision::ApplyMask(gateMask, 2351, 3867, heights.data(),
+            base, 2344, 3860, 16, 16, height);
+    };
+    check(applyGate(16, baseHeights.data()) == 1 && heights[passage] == 16,
+        "closed Kefra gate retains its blocking height");
+    check(applyGate(0, baseHeights.data()) == 1 && heights == baseHeights,
+        "opening restores each negative terrain sample without removing adjacent walls");
+    check(applyGate(0, baseHeights.data()) == 1 && heights == baseHeights,
+        "an already-open gate does not create a sea-level step on creation or window refresh");
+    check(applyGate(126, baseHeights.data()) == 1 && heights[passage] == 126,
+        "unauthenticated fixtures retain their explicit temporary barrier");
+    check(applyGate(0, baseHeights.data()) == 1 && heights == baseHeights,
+        "server authentication restores terrain after the temporary barrier");
+    check(applyGate(0, nullptr) == 1 && heights[passage] == 0,
+        "callers without a base window retain the legacy absolute-height contract");
+    heights = baseHeights;
+    check(ground_item_collision::ApplyMask(gateMask, 2000, 3000, heights.data(),
+        baseHeights.data(), 2344, 3860, 16, 16, 16) == 1 && heights == baseHeights,
+        "out-of-window fixtures cannot write outside the local terrain");
+    check(ground_item_collision::ApplyMask(gateMask, 2351, 3867, nullptr,
+        baseHeights.data(), 2344, 3860, 16, 16, 0) == 0,
+        "a missing terrain buffer rejects the mask");
+
     auto sendItem = LoadHexFixture("testdata/protocol/send_item_0x182_24.hex");
-    check(sendItem.size() == 24, "fixture SendItem compartilhado possui 24 bytes");
+    check(sendItem.size() == 24, "shared SendItem fixture has 24 bytes");
     if (sendItem.size() != 24)
         return failures;
     sendItem.push_back(0); // sentinel to test an oversized frame without reading outside the buffer.

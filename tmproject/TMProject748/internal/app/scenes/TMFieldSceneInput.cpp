@@ -454,6 +454,10 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 	if (dwServerTime - m_dwNPCClickTime < 1000)
 		return 1;
 
+	WYD748_DiagnosticsLog("npc click id=%u head=%d merchant=0x%02X trade=%d pos=%d,%d\r\n",
+		pOver->m_dwID, pOver->m_sHeadIndex, static_cast<unsigned int>(pOver->m_stScore.Merchant & 0xFF),
+		pOver->m_TradeDesc[0] != 0, static_cast<int>(pOver->m_vecPosition.x), static_cast<int>(pOver->m_vecPosition.y));
+
 	if (pOver->m_TradeDesc[0])
 	{
 		MSG_STANDARDPARM stQuest{};
@@ -663,6 +667,35 @@ void TMFieldScene::OnESC()
 		m_pControlContainer->m_pFocusControl = nullptr;
 	}
 
+	if (m_pPGTPanel && m_pPGTPanel->IsVisible())
+	{
+		m_pPGTOver = nullptr;
+		m_pPGTPanel->SetVisible(0);
+		return;
+	}
+	if (m_pControlContainer)
+	{
+		if (auto menu = m_pControlContainer->FindControl(292); menu && menu->IsVisible())
+		{
+			menu->SetVisible(0);
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(5744)))
+				button->SetSelected(0);
+			return;
+		}
+	}
+	if (m_pSystemPanel && m_pSystemPanel->IsVisible())
+	{
+		m_pSystemPanel->SetVisible(0);
+		if (m_pControlContainer)
+			if (auto button = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_SYSTEM)))
+				button->SetSelected(0);
+		return;
+	}
+	if (m_pHelpMemo && m_pHelpMemo->IsVisible())
+	{
+		m_pHelpMemo->SetVisible(0);
+		return;
+	}
 	if (m_pAutoTrade && m_pAutoTrade->IsVisible())
 		SetVisibleAutoTrade(0, 0);
 	else if (m_pQuestPanel && m_pQuestPanel->IsVisible())

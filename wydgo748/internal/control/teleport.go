@@ -48,3 +48,7 @@ type TeleportResult struct {
 type TeleportSource interface {
 	TeleportCommand(context.Context, string, TeleportCommand, func() bool) (TeleportResult, error)
 }
+
+// GotoCapability authorizes the in-game /goto X Y staff command. It is read
+// from the same staff file as the panel capabilities, by game account name.
+const GotoCapability = "game.command.goto"

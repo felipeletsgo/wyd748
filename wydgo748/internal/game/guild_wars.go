@@ -25,12 +25,16 @@ type cityWarZone struct {
 }
 
 var cityWarZones = [...]cityWarZone{
-	{"Armia", warRect{2052, 2052, 2171, 2163}, warRect{197, 213, 238, 230}, 2086, 2093, 205, 220, 228, 220},
+	{"Armia", warRect{2052, 2052, 2171, 2163}, warRect{197, 213, 238, 230}, 2091, 2100, 205, 220, 228, 220},
 	{"Azran", warRect{2432, 1672, 2675, 1767}, warRect{197, 149, 238, 166}, 2494, 1707, 205, 157, 228, 157},
 	{"Erion", warRect{2448, 1966, 2476, 2024}, warRect{141, 213, 182, 230}, 2453, 2000, 146, 220, 173, 220},
 	{"Nippleheim", warRect{3605, 3090, 3690, 3260}, warRect{141, 149, 182, 166}, 3652, 3122, 146, 157, 173, 157},
 }
 var towerWarArena = warRect{2445, 1850, 2546, 1920}
+
+// DestinyServer NPCGener.txt: EndlessTower and Torre_de_Thor share this
+// arena anchor. W2PP uses a generator, not the arena midpoint.
+const towerWarSpawnX, towerWarSpawnY uint16 = 2507, 1873
 
 type cityFighter struct {
 	city  int
@@ -287,7 +291,7 @@ func (w *World) spawnWarTower() error {
 	copyDef, score := *def, *def.Score
 	copyDef.Score, copyDef.Tipo, copyDef.Carry, copyDef.Gold, copyDef.ExpReward = &score, "monstro", nil, 0, 0
 	score.Merchant, score.AttackRun, score.Attack, score.Critical = 0, 0, 0, 0
-	x, y := w.findFreePosition(2495, 1885, 3)
+	x, y := w.findFreePosition(towerWarSpawnX, towerWarSpawnY, 3)
 	if !w.terrain.Walkable(x, y) {
 		return fmt.Errorf("tower spawn blocked")
 	}

@@ -62,10 +62,12 @@ inline void FormatExpRange(char* text, size_t size, long long exp, long long nex
     std::snprintf(text, size, "%lld / %lld", exp, nextLevelExp);
 }
 
-// Critical byte << 1 is the chance per mille; printed as "%d.%d%%".
+// WYD-Go keeps Critical in tenths of a percent, the same unit as the item
+// EF_CRITICAL tooltip, so a "9.6%" item adds 9.6% here. The 7.48 byte << 1
+// scale capped the panel at 51%; the server caps the chance at 100.0%.
 inline void FormatCritical(char* text, size_t size, unsigned int critical)
 {
-    const unsigned int perMille = (critical & 0xFF) << 1;
+    const unsigned int perMille = critical > 1000 ? 1000 : critical;
     std::snprintf(text, size, "%u.%u%%", perMille / 10, perMille % 10);
 }
 

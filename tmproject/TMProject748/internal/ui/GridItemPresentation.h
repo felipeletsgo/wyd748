@@ -1,6 +1,18 @@
 #pragma once
 
+#include <cmath>
+
 namespace grid_item_presentation {
+// FUN_0040E6AA/FUN_0040E817 apply the same fit at insertion, including
+// equipment receptacles. Slot geometry changes centering, not mesh scale.
+inline float MeshScale(float maxZ, int cellHeight)
+{
+    if (!std::isfinite(maxZ) || maxZ <= 0.0f || cellHeight <= 0)
+        return 1.0f;
+    const float target = static_cast<float>(cellHeight) * 0.3f;
+    return maxZ > target ? target / maxZ : 1.0f;
+}
+
 inline const char* SplitCaption(const char* resource)
 {
     if (resource) {

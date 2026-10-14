@@ -51,13 +51,16 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\tmproject\Build-Client.ps1 -NoDe
 ```
 
 Without `-NoDeploy`, the script installs the candidate as
-`tmproject/client748/project.exe`; use that mode only when the task includes
+`tmproject/client748/WYD.exe`; use that mode only when the task includes
 replacing the runtime. Builds and automated tests do not amount to visual
 client validation (`CLIENT-TESTED`).
 
 Run the server with `wydgo748/` as its working directory. To connect the
-client, generate `tmproject/client748/serverlist.bin` with the external
-server-list editor and the server's reachable address. Run the client from
+client locally, run `tools/client-assets/New-LocalServerList.ps1` from the
+repository root. It writes the ignored `serverlist.local.bin` loopback override
+without modifying the shipped public `serverlist.bin`. Move the override out
+of the runtime before connecting to the VPS; launcher patches do not remove
+local overrides. Run `WYD.exe` or `WYDLauncher.exe` from
 `tmproject/client748/`, because it resolves assets relative to the runtime
 directory. The connection contract and operating steps are in
 [Build and integration](build-and-integration.md) and

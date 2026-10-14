@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"wydgo/internal/account"
+	"wydgo/internal/authlimit"
 )
 
 type Character struct {
@@ -32,40 +33,60 @@ type Profile struct {
 	Username   string      `json:"username"`
 	Donate     uint32      `json:"donate"`
 	Characters []Character `json:"characters"`
+	CreatedAt  time.Time   `json:"createdAt"`
+	AsOf       time.Time   `json:"asOf"`
 }
 type Backend interface {
 	account.AuthStore
 	account.RegistrationStore
 	Profile(context.Context, string) (Profile, error)
+	CharacterDetail(context.Context, string, int) (CharacterDetail, error)
+	Inventory(context.Context, string, int) (StorageSnapshot, error)
+	Cargo(context.Context, string) (StorageSnapshot, error)
 	Ranking(context.Context) ([]Character, error)
+	PublicGuilds(context.Context) (PublicGuildSnapshot, error)
 	Ping(context.Context) error
 }
 type Config struct {
-	Origin             string
-	DevHTTP            bool
-	TrustLoopbackProxy bool
-	Backend            Backend
+	Origin                string
+	DevHTTP               bool
+	TrustLoopbackProxy    bool
+	Backend               Backend
+	RegistrationVerifier  RegistrationVerifier
+	LoginVerifier         RegistrationVerifier
+	AuthenticationLimiter authlimit.Limiter
+	ItemNames             map[uint16]string
 }
 type session struct {
 	Account, CSRF, Peer string
 	Expires, Idle       time.Time
+	ID                  string
+	Created             time.Time
 }
 type rate struct {
 	Start time.Time
 	Count int
 }
 type Handler struct {
-	cfg          Config
-	host, cookie string
-	mux          *http.ServeMux
-	mu           sync.Mutex
-	sessions     map[[32]byte]session
-	rates        map[string]rate
-	slots        chan struct{}
-	now          func() time.Time
-	rankMu       sync.Mutex
-	rank         []Character
-	rankAt       time.Time
+	cfg               Config
+	host, cookie      string
+	mux               *http.ServeMux
+	mu                sync.Mutex
+	sessions          map[[32]byte]session
+	rates             map[string]rate
+	nextRateSweep     time.Time
+	slots             chan struct{}
+	registrationSlots chan struct{}
+	registrationLimit registrationLimiter
+	now               func() time.Time
+	rankMu            sync.Mutex
+	rank              []Character
+	rankAt            time.Time
+	guildMu           sync.Mutex
+	guildSnapshot     PublicGuildSnapshot
+	guildAt           time.Time
+	guildError        error
+	guildFlight       chan struct{}
 }
 
 func New(cfg Config) (*Handler, error) {
@@ -81,16 +102,23 @@ func New(cfg Config) (*Handler, error) {
 	} else if u.Scheme != "https" {
 		return nil, errors.New("portal: HTTPS origin is required")
 	}
-	h := &Handler{cfg: cfg, host: u.Host, cookie: "__Host-wyd_player", mux: http.NewServeMux(), sessions: make(map[[32]byte]session), rates: make(map[string]rate), slots: make(chan struct{}, 2), now: time.Now}
+	h := &Handler{cfg: cfg, host: u.Host, cookie: "__Host-wyd_player", mux: http.NewServeMux(), sessions: make(map[[32]byte]session), rates: make(map[string]rate), slots: make(chan struct{}, 2), registrationSlots: make(chan struct{}, 1), now: time.Now}
 	if cfg.DevHTTP {
 		h.cookie = "wyd_player_local"
 	}
 	h.mux.HandleFunc("GET /api/player/v1/session", h.getSession)
 	h.mux.HandleFunc("POST /api/player/v1/login", h.login)
 	h.mux.HandleFunc("POST /api/player/v1/logout", h.logout)
+	h.mux.HandleFunc("GET /api/player/v1/sessions", h.listSessions)
+	h.mux.HandleFunc("POST /api/player/v1/sessions/revoke", h.revokeSession)
+	h.mux.HandleFunc("POST /api/player/v1/sessions/revoke-all", h.revokeAllSessions)
 	h.mux.HandleFunc("POST /api/player/v1/accounts", h.register)
 	h.mux.HandleFunc("GET /api/player/v1/profile", h.profile)
+	h.mux.HandleFunc("GET /api/player/v1/characters/{slot}", h.characterDetail)
+	h.mux.HandleFunc("GET /api/player/v1/characters/{slot}/inventory", h.inventory)
+	h.mux.HandleFunc("GET /api/player/v1/cargo", h.cargo)
 	h.mux.HandleFunc("GET /api/player/v1/ranking", h.ranking)
+	h.mux.HandleFunc("GET /api/player/v1/guilds/{name}", h.guildProfile)
 	h.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		reply(w, 200, map[string]any{"version": 1, "status": "ok"})
 	})
@@ -114,7 +142,13 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		failure(w, 403, "Invalid host")
 		return
 	}
-	if !h.allow("read:"+h.peer(r), 120) || !h.allow("read:global", 1200) {
+	// Local readiness must remain available when public request quotas are full.
+	// Proxied requests carry X-Forwarded-For and never receive this exemption.
+	if localHealthProbe(r) {
+		h.mux.ServeHTTP(w, r)
+		return
+	}
+	if !h.allow("read:"+limitNetwork(h.peer(r)), 120) || !h.allow("read:global", 1200) {
 		failure(w, 429, "Please wait before trying again")
 		return
 	}
@@ -153,14 +187,20 @@ func (h *Handler) allow(key string, limit int) bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	now := h.now()
-	for k, v := range h.rates {
-		if now.Sub(v.Start) >= time.Minute {
-			delete(h.rates, k)
+	if !now.Before(h.nextRateSweep) {
+		for k, v := range h.rates {
+			if now.Sub(v.Start) >= time.Minute {
+				delete(h.rates, k)
+			}
 		}
+		h.nextRateSweep = now.Add(time.Minute)
 	}
 	v, exists := h.rates[key]
+	if exists && now.Sub(v.Start) >= time.Minute {
+		v, exists = rate{}, false
+	}
 	if !exists {
-		if len(h.rates) >= 4096 {
+		if _, present := h.rates[key]; !present && len(h.rates) >= 4096 {
 			return false
 		}
 		v.Start = now
@@ -209,7 +249,7 @@ func (h *Handler) issue(w http.ResponseWriter, r *http.Request, name string) (se
 		}
 		if s.Account == "" {
 			anonymous++
-			if s.Peer == peer {
+			if limitNetwork(s.Peer) == limitNetwork(peer) {
 				peerAnonymous++
 			}
 		}
@@ -224,7 +264,7 @@ func (h *Handler) issue(w http.ResponseWriter, r *http.Request, name string) (se
 	if name == "" {
 		lifetime = 20 * time.Minute
 	}
-	s := session{Account: name, CSRF: csrf, Peer: peer, Expires: now.Add(lifetime), Idle: now}
+	s := session{Account: name, CSRF: csrf, Peer: peer, Expires: now.Add(lifetime), Idle: now, Created: now, ID: token()}
 	h.sessions[sha256.Sum256([]byte(value))] = s
 	http.SetCookie(w, &http.Cookie{Name: h.cookie, Value: value, Path: "/", Secure: !h.cfg.DevHTTP, HttpOnly: true, SameSite: http.SameSiteStrictMode, MaxAge: int(lifetime.Seconds())})
 	return s, true
@@ -235,7 +275,7 @@ func sessionReply(w http.ResponseWriter, s session) {
 func (h *Handler) getSession(w http.ResponseWriter, r *http.Request) {
 	s, _, ok := h.current(r)
 	if !ok {
-		if !h.allow("session:"+h.peer(r), 10) {
+		if !h.allow("session:"+limitNetwork(h.peer(r)), 10) {
 			failure(w, 429, "Please wait before trying again")
 			return
 		}
@@ -255,7 +295,10 @@ type credentials struct {
 }
 
 func decode(w http.ResponseWriter, r *http.Request, value any) bool {
-	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+	return decodeLimited(w, r, value, 1024)
+}
+func decodeLimited(w http.ResponseWriter, r *http.Request, value any, limit int64) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
 	if d.Decode(value) != nil || d.Decode(&struct{}{}) != io.EOF {
@@ -269,7 +312,7 @@ func (h *Handler) work(w http.ResponseWriter, r *http.Request, username, action 
 		failure(w, 422, "Username is too long")
 		return false
 	}
-	if !h.allow(action+":"+h.peer(r), 8) || !h.allow(action+":account:"+strings.ToLower(username), 8) || !h.allow("hash:global", 60) {
+	if !h.allow(action+":"+limitNetwork(h.peer(r)), 8) || !h.allow(action+":account:"+strings.ToLower(username), 8) || !h.allow("hash:global", 60) {
 		failure(w, 429, "Please wait before trying again")
 		return false
 	}
@@ -282,11 +325,18 @@ func (h *Handler) work(w http.ResponseWriter, r *http.Request, username, action 
 	}
 }
 func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
-	var c credentials
-	if !decode(w, r, &c) || !h.work(w, r, c.Username, "login") {
+	var c struct {
+		Username       string `json:"username"`
+		Password       string `json:"password"`
+		TurnstileToken string `json:"turnstileToken"`
+	}
+	if !decodeLimited(w, r, &c, 4096) || !h.work(w, r, c.Username, "login") {
 		return
 	}
 	defer func() { <-h.slots }()
+	if !h.durableLimit(w, r, "player_login", c.Username) || !h.verifyHuman(w, r, h.cfg.LoginVerifier, c.TurnstileToken) {
+		return
+	}
 	a, err := account.Authenticate(h.cfg.Backend, c.Username, c.Password)
 	if errors.Is(err, account.ErrInvalidCredentials) {
 		failure(w, 401, "Invalid username or password")
@@ -312,11 +362,59 @@ func (h *Handler) logout(w http.ResponseWriter, r *http.Request) {
 	reply(w, 200, map[string]any{"version": 1, "status": "signed-out"})
 }
 func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
-	var c credentials
-	if !decode(w, r, &c) || !h.work(w, r, c.Username, "register") {
+	// Charge attempts before parsing, hashing or accessing the database. Rotating
+	// usernames, sessions or IPv6 addresses within a /64 cannot reset the quota.
+	if wait := h.registrationLimit.admit(limitNetwork(h.peer(r)), h.now()); wait > 0 {
+		w.Header().Set("Retry-After", retrySeconds(wait))
+		failure(w, 429, "Too many registration attempts. Please wait before trying again.")
 		return
 	}
-	defer func() { <-h.slots }()
+	var c struct {
+		credentials
+		TurnstileToken string `json:"turnstileToken"`
+	}
+	if !decodeLimited(w, r, &c, 4096) {
+		return
+	}
+	if !h.durableLimit(w, r, "registration", c.Username) {
+		return
+	}
+	// At most one registration may occupy the two shared password-work slots;
+	// registration never consumes the login endpoint's global hash quota.
+	select {
+	case h.registrationSlots <- struct{}{}:
+		defer func() { <-h.registrationSlots }()
+	default:
+		failure(w, 503, "Registration busy; please try again later")
+		return
+	}
+	if h.cfg.RegistrationVerifier == nil {
+		failure(w, 503, "Human verification unavailable; please try again later")
+		return
+	}
+	if !validTurnstileToken(c.TurnstileToken) {
+		failure(w, 403, "Complete human verification before creating an account")
+		return
+	}
+	if err := h.cfg.RegistrationVerifier.Verify(r.Context(), c.TurnstileToken, h.peer(r)); err != nil {
+		if errors.Is(err, errVerificationRejected) {
+			failure(w, 403, "Human verification expired or failed; please try again")
+		} else {
+			failure(w, 503, "Human verification unavailable; please try again later")
+		}
+		return
+	}
+	select {
+	case h.slots <- struct{}{}:
+		defer func() { <-h.slots }()
+	default:
+		failure(w, 503, "Service busy; please try again")
+		return
+	}
+	if len(c.Password) < 8 {
+		failure(w, 422, "New passwords must contain 8 to 10 characters")
+		return
+	}
 	a, err := account.Create(h.cfg.Backend, c.Username, c.Password, c.PasswordConfirmation)
 	var validation *account.ValidationError
 	switch {
@@ -329,6 +427,44 @@ func (h *Handler) register(w http.ResponseWriter, r *http.Request) {
 	default:
 		reply(w, 201, map[string]any{"version": 1, "status": "created", "username": a.Name})
 	}
+}
+
+func (h *Handler) durableLimit(w http.ResponseWriter, r *http.Request, scope, username string) bool {
+	if h.cfg.AuthenticationLimiter == nil {
+		failure(w, 503, "Authentication protection unavailable")
+		return false
+	}
+	wait, err := h.cfg.AuthenticationLimiter.Admit(r.Context(), authlimit.Policy(scope, h.peer(r), username))
+	if err != nil {
+		failure(w, 503, "Authentication protection unavailable")
+		return false
+	}
+	if wait > 0 {
+		w.Header().Set("Retry-After", retrySeconds(wait))
+		failure(w, 429, "Please wait before trying again")
+		return false
+	}
+	return true
+}
+
+func (h *Handler) verifyHuman(w http.ResponseWriter, r *http.Request, verifier RegistrationVerifier, token string) bool {
+	if verifier == nil {
+		failure(w, 503, "Human verification unavailable; please try again later")
+		return false
+	}
+	if !validTurnstileToken(token) {
+		failure(w, 403, "Complete human verification before signing in")
+		return false
+	}
+	if err := verifier.Verify(r.Context(), token, h.peer(r)); err != nil {
+		if errors.Is(err, errVerificationRejected) {
+			failure(w, 403, "Human verification expired or failed; please try again")
+		} else {
+			failure(w, 503, "Human verification unavailable; please try again later")
+		}
+		return false
+	}
+	return true
 }
 func (h *Handler) profile(w http.ResponseWriter, r *http.Request) {
 	s, _, ok := h.current(r)
@@ -363,5 +499,8 @@ func reply(w http.ResponseWriter, status int, value any) {
 	_ = json.NewEncoder(w).Encode(value)
 }
 func failure(w http.ResponseWriter, status int, message string) {
+	if status == http.StatusTooManyRequests && w.Header().Get("Retry-After") == "" {
+		w.Header().Set("Retry-After", "60")
+	}
 	reply(w, status, map[string]any{"version": 1, "error": message})
 }

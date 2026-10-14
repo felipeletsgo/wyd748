@@ -39,14 +39,14 @@ func TestInventorySwapAndShortSkillHandlers(t *testing.T) {
 	swap[12], swap[13], swap[14], swap[15] = placeInv, 0, placeInv, 1
 	w.onSwapItem(p.Session, swap)
 	if p.Char.Inv[0].Index != 200 || p.Char.Inv[1].Index != 100 {
-		t.Fatalf("swap nao aplicado: inv[0]=%d inv[1]=%d", p.Char.Inv[0].Index, p.Char.Inv[1].Index)
+		t.Fatalf("swap not applied: inv[0]=%d inv[1]=%d", p.Char.Inv[0].Index, p.Char.Inv[1].Index)
 	}
 
 	before := p.Char.Inv
 	swap[13] = model.PlayerCarrySlots
 	w.onSwapItem(p.Session, swap)
 	if p.Char.Inv != before {
-		t.Fatal("swap com slot invisivel alterou o inventario")
+		t.Fatal("swap with an invisible slot changed inventory")
 	}
 
 	p.Char.Class = 0
@@ -58,13 +58,13 @@ func TestInventorySwapAndShortSkillHandlers(t *testing.T) {
 	short[12], short[13] = 2, 3
 	w.onSetShortSkill(p.Session, short)
 	if p.Char.ShortSkill[0] != 2 || p.Char.ShortSkill[1] != 0xFF {
-		t.Fatalf("filtro de atalhos incorreto: %v", p.Char.ShortSkill[:2])
+		t.Fatalf("incorrect shortcut filter: %v", p.Char.ShortSkill[:2])
 	}
 }
 
-func TestSwapRejectsUnsupportedNecklaceEquipSlot(t *testing.T) {
+func TestSwapRejectsItemWithWrongNecklacePosition(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
-	w.items[640] = model.ItemDef{Index: 640, Pos: 1 << 9}
+	w.items[640] = model.ItemDef{Index: 640, Pos: 1 << 8}
 	p.Char.Inv[0] = model.Item{Index: 640}
 	p.Char.Equip[9] = model.Item{Index: 200}
 	beforeInv, beforeNecklace := p.Char.Inv[0], p.Char.Equip[9]
@@ -73,11 +73,11 @@ func TestSwapRejectsUnsupportedNecklaceEquipSlot(t *testing.T) {
 	swap[12], swap[13], swap[14], swap[15] = placeInv, 0, placeEquip, 9
 	w.onSwapItem(p.Session, swap)
 	if p.Char.Inv[0] != beforeInv || p.Char.Equip[9] != beforeNecklace {
-		t.Fatalf("slot Necklace incompatível alterou estado: inv=%+v equip9=%+v",
+		t.Fatalf("wrong necklace position mask changed state: inv=%+v equip9=%+v",
 			p.Char.Inv[0], p.Char.Equip[9])
 	}
-	if p.Session.QueuedPacketsForTest() != 0 {
-		t.Fatalf("swap para slot ausente respondeu com %d packets", p.Session.QueuedPacketsForTest())
+	if p.Session.QueuedPacketsForTest() != 2 {
+		t.Fatalf("rejected swap should restore both cells, packets=%d", p.Session.QueuedPacketsForTest())
 	}
 }
 
@@ -98,7 +98,7 @@ func TestShopOpenBuyAndSellLifecycle(t *testing.T) {
 
 	w.onUseNPC(p.Session, useNPCPacket(shop.ID))
 	if p.ShopNPC != shop.ID {
-		t.Fatalf("loja aberta nao ficou autoritativa: %d", p.ShopNPC)
+		t.Fatalf("opened shop was not authoritative: %d", p.ShopNPC)
 	}
 
 	buy := make([]byte, 24)
@@ -107,30 +107,30 @@ func TestShopOpenBuyAndSellLifecycle(t *testing.T) {
 	binary.LittleEndian.PutUint16(buy[14:16], 0)
 	w.onBuyItem(p.Session, buy)
 	if p.Char.Inv[0].Index != 400 || p.Char.Gold != 4000 || st.saves != 1 {
-		t.Fatalf("compra incorreta: item=%d gold=%d saves=%d", p.Char.Inv[0].Index, p.Char.Gold, st.saves)
+		t.Fatalf("incorrect purchase: item=%d gold=%d saves=%d", p.Char.Inv[0].Index, p.Char.Gold, st.saves)
 	}
 
 	sell := make([]byte, 20)
 	sell[14], sell[16] = placeInv, 0
-	// A venda nao pode usar uma loja diferente daquela aberta, mesmo com o
-	// item e o slot validos. O rejeite preserva item, gold e persistencia.
+	// A sale cannot use a shop other than the opened one, even with a valid
+	// item and slot. Rejection preserves the item, gold and persistence.
 	binary.LittleEndian.PutUint16(sell[12:14], shop.ID+1)
 	w.onSellItem(p.Session, sell)
 	if p.Char.Inv[0].Index != 400 || p.Char.Gold != 4000 || st.saves != 1 {
-		t.Fatalf("venda em mercador divergente alterou estado: item=%d gold=%d saves=%d",
+		t.Fatalf("sale to a different merchant changed state: item=%d gold=%d saves=%d",
 			p.Char.Inv[0].Index, p.Char.Gold, st.saves)
 	}
 	binary.LittleEndian.PutUint16(sell[12:14], shop.ID)
 	packetsBeforeSale := p.Session.QueuedPacketsForTest()
 	w.onSellItem(p.Session, sell)
 	if p.Char.Inv[0].Index != 0 || p.Char.Gold != 4250 || st.saves != 2 {
-		t.Fatalf("venda incorreta: item=%d gold=%d saves=%d", p.Char.Inv[0].Index, p.Char.Gold, st.saves)
+		t.Fatalf("incorrect sale: item=%d gold=%d saves=%d", p.Char.Inv[0].Index, p.Char.Gold, st.saves)
 	}
-	// A venda normal atualiza apenas o slot vendido e o gold. A lista 0x3E8 de
-	// recompra so pode ser enviada quando o jogador pedir explicitamente essa UI;
-	// caso contrario ela substitui a grade configurada do mercador no client 7.48.
+	// A normal sale updates only the sold slot and gold. The 0x3E8 buyback
+	// list is sent only when the player explicitly requests that UI;
+	// otherwise it replaces the merchant grid in the 7.48 client.
 	if got := p.Session.QueuedPacketsForTest(); got != packetsBeforeSale+2 {
-		t.Fatalf("venda normal enfileirou %d packets novos, esperado 2 sem lista de recompra", got-packetsBeforeSale)
+		t.Fatalf("normal sale queued %d new packets, want 2 without a buyback list", got-packetsBeforeSale)
 	}
 }
 
@@ -155,19 +155,19 @@ func TestShopAndCargoRejectInvalidOperations(t *testing.T) {
 
 	p.ShopNPC = shop.ID
 	p.Char.Gold = 999
-	// O 0x379 nativo tem 24 bytes; um buffer de 16 bytes exercitava apenas a
-	// rejeicao de packet malformado e nunca alcançava a regra de gold.
+	// Native 0x379 has 24 bytes; a 16-byte buffer exercised only malformed
+	// packet rejection and never reached the gold rule.
 	buy := make([]byte, 24)
 	// Exercise the expected insufficient-gold path with a valid merchant ID.
 	binary.LittleEndian.PutUint16(buy[12:14], shop.ID)
 	w.onBuyItem(p.Session, buy)
 	if p.Char.Inv[0].Index != 0 || st.saves != 0 {
-		t.Fatal("compra sem gold foi aplicada")
+		t.Fatal("purchase without gold was applied")
 	}
-	// Rejeicoes normais de compra precisam gerar o painel 0x101 consumido pelo
-	// client 7.48, em vez de terminar silenciosamente no servidor.
+	// Ordinary purchase rejections must produce the 0x101 panel consumed by
+	// the 7.48 client instead of ending silently on the server.
 	if got := p.Session.QueuedPacketsForTest(); got != 1 {
-		t.Fatalf("compra sem gold enfileirou %d packets, esperado painel de erro", got)
+		t.Fatalf("purchase without gold queued %d packets, want an error panel", got)
 	}
 
 	transfer := make([]byte, 16)
@@ -175,17 +175,17 @@ func TestShopAndCargoRejectInvalidOperations(t *testing.T) {
 	p.Char.Gold = 1000
 	w.onCargoGold(p.Session, transfer, true)
 	if p.Char.Gold != 500 || p.Account.CargoGold != 500 {
-		t.Fatalf("deposito incorreto: char=%d cargo=%d", p.Char.Gold, p.Account.CargoGold)
+		t.Fatalf("incorrect deposit: char=%d cargo=%d", p.Char.Gold, p.Account.CargoGold)
 	}
 	w.onCargoGold(p.Session, transfer, false)
 	if p.Char.Gold != 1000 || p.Account.CargoGold != 0 {
-		t.Fatalf("saque incorreto: char=%d cargo=%d", p.Char.Gold, p.Account.CargoGold)
+		t.Fatalf("incorrect withdrawal: char=%d cargo=%d", p.Char.Gold, p.Account.CargoGold)
 	}
 
 	binary.LittleEndian.PutUint32(transfer[12:16], 1001)
 	w.onCargoGold(p.Session, transfer, true)
 	if p.Char.Gold != 1000 || p.Account.CargoGold != 0 {
-		t.Fatal("deposito sem saldo alterou o estado")
+		t.Fatal("deposit without funds changed state")
 	}
 }
 
@@ -200,7 +200,7 @@ func TestDropAndPickupLifecycle(t *testing.T) {
 	binary.LittleEndian.PutUint32(drop[20:24], 3)
 	w.onDropItem(p.Session, drop)
 	if p.Char.Inv[4].Index != 0 || len(w.groundItems) != 1 {
-		t.Fatalf("drop nao materializado: inv=%d ground=%d", p.Char.Inv[4].Index, len(w.groundItems))
+		t.Fatalf("drop not materialized: inv=%d ground=%d", p.Char.Inv[4].Index, len(w.groundItems))
 	}
 
 	var ground *GroundItem
@@ -213,7 +213,7 @@ func TestDropAndPickupLifecycle(t *testing.T) {
 	binary.LittleEndian.PutUint16(get[20:22], ground.ID)
 	w.onGetItem(p.Session, get)
 	if len(w.groundItems) != 0 || p.Char.Inv[7].Index != 412 || p.Char.Inv[7].Eff[5] != 6 {
-		t.Fatalf("coleta perdeu estado: ground=%d item=%+v", len(w.groundItems), p.Char.Inv[7])
+		t.Fatalf("pickup lost state: ground=%d item=%+v", len(w.groundItems), p.Char.Inv[7])
 	}
 }
 
@@ -226,7 +226,7 @@ func TestDropAndPickupValidation(t *testing.T) {
 	binary.LittleEndian.PutUint32(invalidDrop[12:16], placeEquip)
 	w.onDropItem(p.Session, invalidDrop)
 	if p.Char.Inv[0].Index != 413 || len(w.groundItems) != 0 {
-		t.Fatal("drop de origem invalida alterou o estado")
+		t.Fatal("drop from an invalid source changed state")
 	}
 
 	w.groundItems[10001] = &GroundItem{ID: 10001, Item: model.Item{Index: 413}, X: 2200, Y: 2200}
@@ -235,7 +235,7 @@ func TestDropAndPickupValidation(t *testing.T) {
 	binary.LittleEndian.PutUint16(get[20:22], 10001)
 	w.onGetItem(p.Session, get)
 	if _, ok := w.groundItems[10001]; !ok {
-		t.Fatal("item fora de alcance foi coletado")
+		t.Fatal("out-of-range item was picked up")
 	}
 }
 
@@ -249,12 +249,12 @@ func TestMovementStopAndChangeCityHandlers(t *testing.T) {
 	binary.LittleEndian.PutUint16(move[26:28], 2106)
 	w.onMove(p.Session, move)
 	if p.X != 2100 || p.Y != 2100 || !p.MovePublished {
-		t.Fatalf("destino futuro aplicado imediatamente: player=(%d,%d)", p.X, p.Y)
+		t.Fatalf("future destination applied immediately: player=(%d,%d)", p.X, p.Y)
 	}
-	clock.Advance(1500 * time.Millisecond) // seis passos a RunSpeed 4.
+	clock.Advance(1500 * time.Millisecond) // six steps at RunSpeed 4.
 	w.advancePlayerMovement(p, clock.Now())
 	if p.X != 2105 || p.Y != 2106 || p.Char.X != 2105 || p.Char.Y != 2106 {
-		t.Fatalf("movimento nao chegou: player=(%d,%d) char=(%d,%d)", p.X, p.Y, p.Char.X, p.Char.Y)
+		t.Fatalf("movement did not arrive: player=(%d,%d) char=(%d,%d)", p.X, p.Y, p.Char.X, p.Char.Y)
 	}
 
 	stop := make([]byte, 52)
@@ -262,7 +262,7 @@ func TestMovementStopAndChangeCityHandlers(t *testing.T) {
 	binary.LittleEndian.PutUint16(stop[14:16], p.Y)
 	w.onActionStop(p.Session, stop)
 	if p.X != 2105 || p.Y != 2106 || p.MovePublished {
-		t.Fatalf("action stop incorreto: (%d,%d) published=%v", p.X, p.Y, p.MovePublished)
+		t.Fatalf("incorrect action stop: (%d,%d) published=%v", p.X, p.Y, p.MovePublished)
 	}
 
 	moveStop := make([]byte, 36)
@@ -270,11 +270,11 @@ func TestMovementStopAndChangeCityHandlers(t *testing.T) {
 	binary.LittleEndian.PutUint32(moveStop[24:28], uint32(p.Y))
 	w.onMoveStop(p.Session, moveStop)
 	if p.X != 2105 || p.Y != 2106 || p.MovePublished {
-		t.Fatalf("move stop incorreto: (%d,%d) published=%v", p.X, p.Y, p.MovePublished)
+		t.Fatalf("incorrect move stop: (%d,%d) published=%v", p.X, p.Y, p.MovePublished)
 	}
 
-	// O pacote tenta declarar Armia, mas o servidor deve vincular Azran pela
-	// posicao autoritativa e preservar os seis bits baixos de Merchant.
+	// The packet claims Armia, but the server must bind Azran from the
+	// authoritative position and preserve the low six Merchant bits.
 	p.X, p.Y = cityWarZones[1].exitX, cityWarZones[1].exitY
 	p.Char.X, p.Char.Y = p.X, p.Y
 	p.Char.Score.Merchant = 0xC5
@@ -284,10 +284,10 @@ func TestMovementStopAndChangeCityHandlers(t *testing.T) {
 	binary.LittleEndian.PutUint32(changeCity[12:16], 0)
 	w.onChangeCity(p.Session, changeCity)
 	if got := p.Char.Score.Merchant; got != 0x45 {
-		t.Fatalf("ChangeCity nao vinculou Azran pelos bits de Merchant: %#x", got)
+		t.Fatalf("ChangeCity did not bind Azran through Merchant bits: %#x", got)
 	}
 	if p.Char.RuntimeScore.Merchant != 0x45 || st.saves != 1 {
-		t.Fatalf("ChangeCity nao sincronizou/persistiu hometown: runtime=%#x saves=%d",
+		t.Fatalf("ChangeCity did not synchronize/persist hometown: runtime=%#x saves=%d",
 			p.Char.RuntimeScore.Merchant, st.saves)
 	}
 }
@@ -306,7 +306,7 @@ func TestChangeCityRollsBackMerchantWhenSaveFails(t *testing.T) {
 	w.onChangeCity(p.Session, pkt)
 
 	if p.Char.Score.Merchant != 0x07 || p.Char.RuntimeScore.Merchant != 0x07 || st.saves != 1 {
-		t.Fatalf("falha de save nao restaurou hometown: base=%#x runtime=%#x saves=%d",
+		t.Fatalf("save failure did not restore hometown: base=%#x runtime=%#x saves=%d",
 			p.Char.Score.Merchant, p.Char.RuntimeScore.Merchant, st.saves)
 	}
 }
@@ -320,19 +320,19 @@ func TestClearInventoryRollbackAndDisconnect(t *testing.T) {
 	st.err = errors.New("save falhou")
 	w.executeClearInventory(p.Session, p)
 	if p.Char.Inv[0].Index != 100 || p.Char.Inv[63].Index != 300 {
-		t.Fatal("falha de save nao restaurou o inventario")
+		t.Fatal("save failure did not restore inventory")
 	}
 
 	st.err = nil
 	w.executeClearInventory(p.Session, p)
 	for i, item := range p.Char.Inv {
 		if item.Index != 0 {
-			t.Fatalf("slot %d sobreviveu ao /limparinv: %d", i, item.Index)
+			t.Fatalf("slot %d survived /limparinv: %d", i, item.Index)
 		}
 	}
 
 	w.onDisconnect(p.Session)
 	if w.players[p.Session] != nil || w.playersByID[p.ID] != nil {
-		t.Fatal("desconexao deixou o jogador registrado no mundo")
+		t.Fatal("disconnect left the player registered in the world")
 	}
 }

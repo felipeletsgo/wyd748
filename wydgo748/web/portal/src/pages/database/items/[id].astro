@@ -1,0 +1,17 @@
+---
+import Public from '../../../layouts/Public.astro';
+import { catalog, skillURL, questURL } from '../../../lib/catalog';
+import type { CatalogItem } from '../../../lib/catalog';
+export function getStaticPaths() { return catalog.items.map(item => ({ params: { id: String(item.id) }, props: { item } })); }
+interface Props { item: CatalogItem }
+const { item } = Astro.props;
+const skill = item.bookSkillId !== undefined ? catalog.skills.find(skill => skill.id === item.bookSkillId) : undefined;
+const quests = catalog.quests.filter(q => [...q.requiredItems, ...q.consumedItems, ...q.rewardItems].some(ref => ref.id === item.id) || q.recharge?.itemId === item.id);
+---
+<Public title={item.name} description={`${item.name} — WYD 7.48 item ${item.id}.`}>
+  <section class="page-title"><a class="muted" href="/database/items/">Items</a><h1>{item.name}</h1><p class="muted">ID {item.id}</p></section>
+  <section class="panel"><dl class="catalog-values"><div><dt>Base value</dt><dd>{item.baseValue.toLocaleString('en-US')}</dd></div>{skill && <div><dt>Skill</dt><dd><a href={skillURL(skill.id)}>{skill.name}</a></dd></div>}</dl>
+    <details class="disclosure"><summary>Static effects <span class="muted">({item.effects.length})</span></summary>{item.effects.length ? <div class="table-wrap"><table><thead><tr><th>Effect</th><th>Value</th></tr></thead><tbody>{item.effects.map(effect => <tr><td>{effect.code}</td><td>{effect.value}</td></tr>)}</tbody></table></div> : <p class="muted">No static effects.</p>}</details>
+    {quests.length > 0 && <details class="disclosure"><summary>Related quests</summary><ul>{quests.map(q => <li><a href={questURL(q.id)}>{q.name}</a></li>)}</ul></details>}
+  </section><p class="muted">Instance bonuses and shop prices may differ.</p>
+</Public>

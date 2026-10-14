@@ -116,7 +116,17 @@ constexpr Rule kRules[97] = {
     {31, 31, 2, 2, 2, 2},
 };
 
-// Returns the rule for a cell, or nullptr when the cell keeps its flags.
+// Regions added by the WYD KR terrain have no row above. Each side attaches (1)
+// when the neighbouring region ships a field and keeps the edge wall (0)
+// otherwise; leaving the previous ground's flags made every border of a new
+// region an invisible 15-tile wall.
+constexpr Rule FromNeighbours(int x, int y, bool left, bool right, bool up, bool down)
+{
+    return {x, y, static_cast<char>(left ? 1 : 0), static_cast<char>(right ? 1 : 0),
+        static_cast<char>(up ? 1 : 0), static_cast<char>(down ? 1 : 0)};
+}
+
+// Returns the rule for a cell, or nullptr when the cell is not in the table.
 constexpr const Rule* Find(int x, int y)
 {
     for (const Rule& rule : kRules)

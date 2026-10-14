@@ -10,12 +10,16 @@ class TMRain : public TMEffect
 public:
 	TMRain();
 	~TMRain();
+	void SetActive(bool active);
 
 	// Draws the current drops in one batched call; returns the TMEffect code.
 	int Render() override;
 
 	// Moves and recycles the drops with the server time.
 	int FrameMove(unsigned int dwServerTime) override;
+
+private:
+	void StopAmbientSound();
 
 public:
 	unsigned int m_dwOldServerTime;   // Time of the previous update.

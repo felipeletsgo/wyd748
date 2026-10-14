@@ -28,8 +28,14 @@ import (
 //go:embed postgres_schema.sql
 var postgresSchema string
 
+//go:embed postgres_progression.sql
+var postgresProgressionSchema string
+
+//go:embed postgres_guild_public.sql
+var postgresGuildPublicSchema string
+
 const postgresWriteQueueSize = 2048
-const postgresSchemaVersion = 5
+const postgresSchemaVersion = 8
 const postgresOperationTimeout = 10 * time.Second
 const postgresStartupTimeout = 30 * time.Second
 const postgresAutosaveBatchSize = 64
@@ -212,7 +218,7 @@ func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, 
 	defer cancelStartup()
 	if err := applyPostgresSchema(startupContext, pool); err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("store: aplicar schema PostgreSQL: %w", err)
+		return nil, fmt.Errorf("store: apply PostgreSQL schema: %w", err)
 	}
 	s := newPostgresStore(pool, cfg)
 	go s.persistLoop()
@@ -232,7 +238,7 @@ func NewPostgresReadOnlyStore(ctx context.Context, cfg PostgresConfig) (*Postgre
 
 func openPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, error) {
 	if strings.TrimSpace(cfg.URL) == "" {
-		return nil, errors.New("store: database URL ausente")
+		return nil, errors.New("store: database URL is missing")
 	}
 	poolConfig, err := pgxpool.ParseConfig(cfg.URL)
 	if err != nil {
@@ -248,11 +254,11 @@ func openPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, e
 	defer cancelStartup()
 	pool, err := pgxpool.NewWithConfig(startupContext, poolConfig)
 	if err != nil {
-		return nil, fmt.Errorf("store: criar pool PostgreSQL: %w", err)
+		return nil, fmt.Errorf("store: create PostgreSQL pool: %w", err)
 	}
 	if err := pool.Ping(startupContext); err != nil {
 		pool.Close()
-		return nil, fmt.Errorf("store: conectar PostgreSQL: %w", err)
+		return nil, fmt.Errorf("store: connect to PostgreSQL: %w", err)
 	}
 	return pool, nil
 }
@@ -296,11 +302,27 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	// table is missing or outdated.
 	var currentVersion int
 	if err := conn.QueryRow(ctx,
-		`SELECT COALESCE(MAX(version),0) FROM schema_migrations`).Scan(&currentVersion); err == nil &&
-		currentVersion == postgresSchemaVersion {
-		return nil
+		`SELECT COALESCE(MAX(version),0) FROM schema_migrations`).Scan(&currentVersion); err == nil {
+		if currentVersion == postgresSchemaVersion {
+			return nil
+		}
+		if currentVersion > postgresSchemaVersion {
+			return fmt.Errorf("schema v%d; this binary requires v%d", currentVersion, postgresSchemaVersion)
+		}
 	}
-	if _, err := conn.Exec(ctx, postgresSchema); err != nil {
+	// Upgrading v6+ adds only read views and their markers. Do not replay the
+	// historical account migration or rewrite any live character snapshot.
+	if currentVersion < 6 {
+		if _, err := conn.Exec(ctx, postgresSchema); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 7 {
+		if _, err := conn.Exec(ctx, postgresProgressionSchema); err != nil {
+			return err
+		}
+	}
+	if _, err := conn.Exec(ctx, postgresGuildPublicSchema); err != nil {
 		return err
 	}
 	var version int
@@ -788,7 +810,7 @@ func postgresUUID(uid string) (pgtype.UUID, error) {
 	normalized, err := model.NormalizeCharacterUID(uid)
 	if err != nil || normalized == "" {
 		if err == nil {
-			err = errors.New("UID vazio")
+			err = errors.New("UID is empty")
 		}
 		return pgtype.UUID{}, err
 	}
@@ -1299,7 +1321,7 @@ func (s *PostgresStore) ReadPersistentPlayer(ctx context.Context, accountName, u
 // materializes the account JSON, password hash, inventory or cargo in Go.
 func (s *PostgresStore) ReadAccountDirectory(ctx context.Context, search, cursor string, limit int) (AccountDirectoryPageSnapshot, error) {
 	if ctx == nil {
-		return AccountDirectoryPageSnapshot{}, errors.New("store: contexto ausente")
+		return AccountDirectoryPageSnapshot{}, errors.New("store: context is missing")
 	}
 	search = strings.ToLower(strings.TrimSpace(search))
 	cursor = strings.ToLower(strings.TrimSpace(cursor))
@@ -1514,10 +1536,10 @@ func (s *PostgresStore) LoadGuilds() (*model.GuildRegistry, error) {
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&registry); err != nil {
-		return nil, fmt.Errorf("store: guild state corrompido: %w", err)
+		return nil, fmt.Errorf("store: corrupt guild state: %w", err)
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return nil, errors.New("store: guild state possui JSON adicional")
+		return nil, errors.New("store: guild state contains trailing JSON")
 	}
 	if err := registry.Validate(); err != nil {
 		return nil, err
@@ -1541,10 +1563,10 @@ func (s *PostgresStore) LoadInstanceState() (*model.InstanceStateSnapshot, error
 	decoder := json.NewDecoder(bytes.NewReader(payload))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&state); err != nil {
-		return nil, fmt.Errorf("store: instance state corrompido: %w", err)
+		return nil, fmt.Errorf("store: corrupt instance state: %w", err)
 	}
 	if state.Version != model.InstanceStateVersion {
-		return nil, fmt.Errorf("store: instance state versao %d; esperado %d",
+		return nil, fmt.Errorf("store: instance state version %d; expected %d",
 			state.Version, model.InstanceStateVersion)
 	}
 	return &state, nil
@@ -1611,7 +1633,7 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 	var guildPayload []byte
 	if guilds != nil {
 		if err := guilds.Validate(); err != nil {
-			return fmt.Errorf("store: guilds invalidas: %w", err)
+			return fmt.Errorf("store: invalid guilds: %w", err)
 		}
 		guildPayload, err = json.Marshal(guilds)
 		if err != nil {
@@ -1707,7 +1729,7 @@ func (s *PostgresStore) SavePlayerState(guilds *model.GuildRegistry, account *mo
 	var guildPayload []byte
 	if guilds != nil {
 		if err := guilds.Validate(); err != nil {
-			return fmt.Errorf("store: guilds invalidas: %w", err)
+			return fmt.Errorf("store: invalid guilds: %w", err)
 		}
 		guildPayload, err = json.Marshal(guilds)
 		if err != nil {
@@ -1885,10 +1907,10 @@ func (s *PostgresStore) LoadCharState(uid string) (*model.CharState, error) {
 		return nil, err
 	}
 	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return nil, errors.New("store: charstate possui JSON adicional")
+		return nil, errors.New("store: charstate contains trailing JSON")
 	}
 	if state.Version != model.CharStateVersion {
-		return nil, fmt.Errorf("store: charstate %q versao %d; esperado %d",
+		return nil, fmt.Errorf("store: charstate %q version %d; expected %d",
 			uid, state.Version, model.CharStateVersion)
 	}
 	return &state, nil

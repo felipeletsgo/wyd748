@@ -85,7 +85,8 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 			if m.InstanceID != "" {
 				target = w.nearestInstanceMember(m)
 			} else {
-				target = w.nearestLivingPlayerInGameplaySpace(m.X, m.Y, mobAggroRange, "")
+				target = w.nearestPlayerMatching(m.X, m.Y, mobAggroRange, "",
+					func(p *Player) bool { return w.mobCanTargetPlayer(m, p) && !sameKingdomGuard(m, p) })
 			}
 			if target == nil {
 				continue
@@ -184,6 +185,13 @@ func (w *World) nearestLivingPlayer(x, y uint16, maxDistance int) *Player {
 // valid target, exact gameplay space, Chebyshev radius, then deterministic
 // distance/Player.ID ordering.
 func (w *World) nearestLivingPlayerInGameplaySpace(x, y uint16, maxDistance int, space string) *Player {
+	return w.nearestPlayerMatching(x, y, maxDistance, space, nil)
+}
+
+// nearestPlayerMatching is nearestLivingPlayerInGameplaySpace restricted to
+// players accepted by accept (nil accepts all), so a mob skips players it may
+// not target, such as members of its own kingdom, instead of locking onto them.
+func (w *World) nearestPlayerMatching(x, y uint16, maxDistance int, space string, accept func(*Player) bool) *Player {
 	if maxDistance < 0 {
 		return nil
 	}
@@ -199,7 +207,7 @@ func (w *World) nearestLivingPlayerInGameplaySpace(x, y uint16, maxDistance int,
 				continue
 			}
 			for _, p := range w.playerCells[uint32(xx)<<16|uint32(yy)] {
-				if !validMobTargetAt(p, now) || w.gameplaySpaceForPlayer(p) != space {
+				if !validMobTargetAt(p, now) || w.gameplaySpaceForPlayer(p) != space || accept != nil && !accept(p) {
 					continue
 				}
 				distance := chebyshev(x, y, p.X, p.Y)

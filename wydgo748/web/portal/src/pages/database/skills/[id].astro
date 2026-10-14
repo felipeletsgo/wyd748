@@ -1,0 +1,13 @@
+---
+import Public from '../../../layouts/Public.astro';
+import { catalog, classLabel, itemURL } from '../../../lib/catalog';
+import type { CatalogSkill } from '../../../lib/catalog';
+export function getStaticPaths() { return catalog.skills.map(skill => ({ params: { id: String(skill.id) }, props: { skill } })); }
+interface Props { skill: CatalogSkill }
+const { skill } = Astro.props;
+---
+<Public title={skill.name} description={`${skill.name} — WYD 7.48 skill ${skill.id}.`}>
+  <section class="page-title"><a class="muted" href="/database/skills/">Skills</a><h1>{skill.name}</h1><p class="muted">ID {skill.id} · {classLabel(skill.class)}</p></section>
+  <section class="panel"><dl class="catalog-values"><div><dt>Skill points</dt><dd>{skill.skillPoints}</dd></div><div><dt>Base mana</dt><dd>{skill.baseMana}</dd></div><div><dt>Base cooldown</dt><dd>{skill.baseCooldown}s</dd></div><div><dt>Book</dt><dd><a href={itemURL(skill.bookItemId)}>{skill.name}</a></dd></div></dl></section>
+  <p class="muted">Base table values. Skill-specific rules may override them.</p>
+</Public>

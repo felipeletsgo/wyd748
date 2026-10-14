@@ -80,10 +80,12 @@ versioned documentation and exports.
 | Grid-item visual bounds and scale | `TRACED` | [flows/ui/grid-item-mesh-scale.md](flows/ui/grid-item-mesh-scale.md) |
 | Shop and Inventory side-by-side layout | `TRACED` | [flows/ui/shop-inventory-layout.md](flows/ui/shop-inventory-layout.md) |
 | Trade and Inventory side-by-side layout | `TRACED` | [flows/ui/trade-inventory-layout.md](flows/ui/trade-inventory-layout.md) |
+| Occupied player-trade slot background | `UNMAPPED` | [flows/ui/trade-slot-receptacle.md](flows/ui/trade-slot-receptacle.md) |
 | Trade offer/closure consumers and emitters `0x383/0x384` | `TRACED` | [flows/transport/trade-session-envelope.md](flows/transport/trade-session-envelope.md) |
 | First trade-check visual acknowledgement `0x386` | `CONTRACT` | [flows/transport/trade-check-confirmation-contract.md](flows/transport/trade-check-confirmation-contract.md) |
 | Shared AutoTrade, Cargo, and Inventory positioning | `TRACED` | [flows/ui/auto-trade-inventory-layout.md](flows/ui/auto-trade-inventory-layout.md) |
 | Six ItemMix panels with Inventory | `TRACED` | [flows/ui/native-mix-inventory-layout.md](flows/ui/native-mix-inventory-layout.md) |
+| Aylin previews and gem refinement glow | `CONTRACT` | [flows/ui/aylin-refinement-presentation.md](flows/ui/aylin-refinement-presentation.md) |
 | Bottom-right system-menu initial position and toggle | `TRACED` | [flows/ui/system-menu-initial-layout.md](flows/ui/system-menu-initial-layout.md) |
 | Party-panel layout and lifecycle | `CONTRACT` | [flows/ui/party-panel-layout-lifecycle.md](flows/ui/party-panel-layout-lifecycle.md) |
 | Motion/emote send and application `0x36A` | `CONTRACT` | [flows/transport/motion-emote-roundtrip.md](flows/transport/motion-emote-roundtrip.md) |

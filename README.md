@@ -4,6 +4,9 @@ WYD-Go 7.48 monorepo: an authoritative Go server and a C++ client adapted for
 the 7.48 runtime. Some flows still require in-game validation; a successful
 build is not equivalent to testing them in the client.
 
+Start with the [current state and continuation queue](DOCS/current-state.md)
+to distinguish the working tree, installed client, and live VPS release.
+
 | Location | Contents |
 | --- | --- |
 | `wydgo748/` | Go server, configuration, and authoritative data |
@@ -99,12 +102,14 @@ Push-Location .\wydgo748
 
 ### 4. Create an account
 
-In the integrated panel, open `http://127.0.0.1:8082/admin/#accounts` and
-enter the username, password, and `admin_access_pin`. Registration creates a
-regular account without administrative permissions.
+In the integrated panel, sign in with an authorized staff account and the
+six-digit `admin_access_pin`, then open `http://127.0.0.1:8082/admin/#accounts`.
+Creating accounts requires the corresponding staff capability and a valid
+authenticated session; the PIN alone does not authorize anonymous creation.
+Registration creates a regular account without administrative permissions.
 
-Alternatively, run the local utility in another PowerShell session from the
-repository root:
+To bootstrap the first account, or register locally without the panel, run the
+local utility in another PowerShell session from the repository root:
 
 ```powershell
 $env:WYD_DATABASE_URL = 'postgres://wydgo:wydgo-local@127.0.0.1:5432/wydgo?sslmode=disable'
@@ -129,10 +134,18 @@ To rebuild and install the client into the local runtime:
 pwsh -NoProfile -File .\tmproject\Build-Client.ps1 -Configuration Release
 ```
 
-The script installs the result as `tmproject/client748/project.exe`. Generate
-the endpoint configuration with the external `serverlist editor.exe` and save
-its output as `tmproject/client748/serverlist.bin`; do not edit that binary as
-text. You do not need to preserve an old copy. See the
+The script installs the result as `tmproject/client748/WYD.exe`. For local
+development, create an ignored loopback override without changing the shipped
+public server list:
+
+```powershell
+pwsh -NoProfile -File .\tools\client-assets\New-LocalServerList.ps1
+```
+
+The client prefers `serverlist.local.bin` when present. Move that override out
+of the runtime before connecting to the VPS; launcher updates do not remove
+it. Use `tools/client-assets/Set-ServerListEndpoints.ps1` for reviewed endpoint
+changes, and never edit a server-list binary as text. See the
 [Windows setup guide](DOCS/windows-development-environment.md) for the full
 procedure.
 
@@ -156,6 +169,9 @@ are documented in [Build and integration](DOCS/build-and-integration.md).
 ## Documentation
 
 - [Task-based index](DOCS/README.md)
+- [Current state](DOCS/current-state.md)
+- [Website feature status](DOCS/server/website-feature-status.md)
+- [Hidden Valley ticket access](DOCS/server/hidden-valley-access.md)
 - [Windows environment](DOCS/windows-development-environment.md)
 - [Complete documentation map](DOCS/documentation-map.md)
 - [Server operations](DOCS/server/operations.md)

@@ -1,0 +1,11 @@
+---
+import Public from '../layouts/Public.astro';
+import { changelog } from '../data/public-content';
+---
+<Public title="Changelog" description="Server, client and website changes, with dated release notes.">
+  <section class="panel"><h1 class="title">Changelog</h1>
+    <p>Recorded changes, not a claim that every in-game flow has completed testing.</p>
+    {changelog.map(entry => <article class="content-entry"><p class="eyebrow"><time datetime={entry.date}>{entry.date}</time> · {entry.category}</p><h2>{entry.title}</h2><ul>{entry.entries.map(text => <li>{text}</li>)}</ul></article>)}
+    <p class="links"><a href="/download/">Client download and patch receipt</a></p>
+  </section>
+</Public>

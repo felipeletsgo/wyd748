@@ -7,6 +7,7 @@
 #include "NativeItemVolatile.h"
 #include "WYD748Assets.h"
 #include "ServerListAsset.h"
+#include "../application/NativeCostumeSlot.h"
 #include <WinInet.h>
 
 int BASE_DefineSkinMeshType(int nClass)
@@ -420,6 +421,9 @@ unsigned int BASE_GetOptionColor(int nPos, unsigned int dwParam, int nValue)
 
 int BASE_GetMeshIndex(short sIndex)
 {
+    if (costume_slot::IsCostume(g_pItemList[sIndex].nIndexMesh, g_pItemList[sIndex].nPos))
+        return costume_slot::IconMesh;
+
     STRUCT_ITEM item{};
     item.sIndex = sIndex;
     int nPos = BASE_GetItemAbility(&item, 17);

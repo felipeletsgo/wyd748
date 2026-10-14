@@ -903,7 +903,7 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
             // The selection cache is auxiliary: a character sentinel must not
             // prevent the authoritative equipment update in the world.
             const int characterSlot = g_pObjectManager->m_cCharacterSlot;
-            if (pSendItem->DestPos && characterSlot >= 0 && characterSlot < 4)
+            if (characterSlot >= 0 && characterSlot < 4)
                 memcpy(&g_pObjectManager->m_stSelCharData.Equip[characterSlot][pSendItem->DestPos], &pSendItem->Item, sizeof(STRUCT_ITEM));
 
             SGridControl* pGridEquip[MAX_EQUIPITEM]{};

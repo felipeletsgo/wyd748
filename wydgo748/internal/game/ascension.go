@@ -25,11 +25,11 @@ import (
 
 const (
 	// Chain items, all checked against data/itemlist.csv.
-	unicornSpiritItem = 1740 // Unicon's_Spirit
-	phoenixSpiritItem = 1741 // Phoenix's_Spirit
-	eternalStoneItem  = 1742 // Eternal_Stone (the "Immortality Stone")
+	unicornSpiritItem = 1740                       // Unicon's_Spirit
+	phoenixSpiritItem = 1741                       // Phoenix's_Spirit
+	eternalStoneItem  = model.ArchEternalStoneItem // Eternal_Stone (the "Immortality Stone")
 	// sefirotFirstItem+class: 1760 TK, 1761 FM, 1762 BM, 1763 HT.
-	sefirotFirstItem = 1760
+	sefirotFirstItem = model.ArchFirstSefirotItem
 	// sephiraFirstStone..+7: Kocuna, Veean, Keced, Gebra, Tipalet, Nechark,
 	// Yesord, Marcute.
 	sephiraFirstStone = 1744
@@ -42,11 +42,11 @@ const (
 	// uses 380, but community guides differ (355, 370, 300) because each server
 	// calibrates its own gate; 370 is this server's rule and matches "when a
 	// mortal reaches level 370-400 it can be reborn".
-	archMinLevel = 370
+	archMinLevel = model.ArchMinimumLevel
 
 	// Equipment slots the king uses for ascension.
-	eternalStoneSlot = 10
-	sefirotSlot      = 11
+	eternalStoneSlot = model.ArchEternalStoneSlot
+	sefirotSlot      = model.ArchSefirotSlot
 
 	// archFaceOffset ports `Equip[0] = MortalFace + 5 + cls`. With this
 	// catalog's faces (TK 1, FM 11, BM 21, HT 31) it yields 6, 17, 28 and 39,
@@ -243,17 +243,13 @@ func (w *World) resendInventory(p *Player) {
 
 // archClassFromSefirot returns the Arch class from the equipped Sefirot.
 func archClassFromSefirot(item model.Item) (int, bool) {
-	class := int(item.Index) - sefirotFirstItem
-	if class < 0 || class > 3 {
-		return 0, false
-	}
-	return class, true
+	return model.ArchClassFromSefirot(item.Index)
 }
 
 // freeCharacterSlot returns the account's first empty slot, like the native
 // DBSrv loop, or -1 when there is no room.
 func freeCharacterSlot(account *model.Account) int {
-	for slot := 0; slot < maxCharactersPerAccount; slot++ {
+	for slot := 0; slot < model.ArchCharacterSlots; slot++ {
 		if slot >= len(account.Chars) || account.Chars[slot].Name == "" {
 			return slot
 		}
@@ -303,16 +299,21 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 		return false
 	}
 
-	if strings.TrimSpace(p.Char.Evolution) != "" {
+	level := uint32(0)
+	if p.Char.Score != nil {
+		level = p.Char.Score.Level
+	}
+	slot := freeCharacterSlot(p.Account)
+	requirements := model.EvaluateArchRequirements(p.Char.Evolution, level, stone.Index, sefirot.Index, slot >= 0)
+	if !requirements.Mortal {
 		s.Send(wire.MessagePanel("Only a Mortal can ascend."))
 		return true
 	}
-	if p.Char.Score == nil || p.Char.Score.Level < archMinLevel {
+	if !requirements.Level {
 		s.Send(wire.MessagePanel("You must be level 371 to ascend."))
 		return true
 	}
-	slot := freeCharacterSlot(p.Account)
-	if slot < 0 {
+	if !requirements.FreeSlot {
 		s.Send(wire.MessagePanel("There is no room for a new character on this account."))
 		return true
 	}
@@ -326,12 +327,18 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 		return true
 	}
 	arch.Evolution = archEvolution
+	// Armia is the default birth city: an Arch starts bound to Armia, never
+	// to a city left in the template's hometown bits.
+	if arch.Score != nil {
+		arch.Score.Merchant &^= playerHomeCityMask
+	}
 	// Record the origin by stable identity. The slot may be deleted or reused
 	// and must never make an Arch inherit another character's level.
 	arch.ArchMortalUID = p.Char.UID
 	arch.ArchMortalLevel = p.Char.Score.Level
 	// Arch face = Mortal face + 5 + class (CFileDB.cpp:1993).
 	arch.Equip[0].Index = p.Char.Equip[0].Index + archFaceOffset + uint16(class)
+	stripArchStartingItems(&arch.Equip, &arch.Inv)
 
 	if w.criticalWrites != nil {
 		// Grow empty slots before the pre-image: growCharacterSlots repoints
@@ -348,7 +355,7 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 				s.Send(wire.MessagePanel("Your Arch has been created. It awaits at character selection."))
 			}
 			announcement := fmt.Sprintf("The character %s has become a God!", arch.Name)
-			w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
+			w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
 			log.Printf("[#%d] Arch created name=%q class=%d slot=%d face=%d (mortal level=%d)",
 				s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Score.Level)
 			w.returnToCharacterSelectionAfterCommittedChange(p, "Arch creation")
@@ -382,14 +389,26 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
 	s.Send(wire.MessagePanel("Your Arch has been created. It awaits at character selection."))
 	// World announcement AFTER the save: a failed ascension is never announced.
-	// Same channel and color as /spk ([SERVER], color 7). "God" is the English
-	// term for the Arch used by the global client and sources.
+	// Server announcements use the top notice, separate from paid green chat.
+	// "God" is the English term for the Arch used by the global client and sources.
 	announcement := fmt.Sprintf("The character %s has become a God!", arch.Name)
-	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
+	w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
 	log.Printf("[#%d] Arch created name=%q class=%d slot=%d face=%d (mortal level=%d)",
 		s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Score.Level)
 	w.returnToCharacterSelectionAfterCommittedChange(p, "Arch creation")
 	return true
+}
+
+// stripArchStartingItems mirrors DBSrv _MSG_DBCreateArchCharacter: the Arch
+// starts from its class base set but naked. Every equipment slot except the
+// face (0) and the inventory except its last four slots are cleared.
+func stripArchStartingItems(equip *[16]model.Item, inv *[64]model.Item) {
+	for i := 1; i < len(equip); i++ {
+		equip[i] = model.Item{}
+	}
+	for i := 0; i < len(inv)-4; i++ {
+		inv[i] = model.Item{}
+	}
 }
 
 // isArch reports whether the character already ascended.

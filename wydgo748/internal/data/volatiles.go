@@ -458,6 +458,10 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 			(rule.RefineMax <= 0 || rule.RefineMax > 15) {
 			return rule, fmt.Errorf("data: %s %s exige refineMax entre 1 e 15", where, rule.Action)
 		}
+		if rule.RefineTenChance < 0 || rule.RefineTenChance > 100 ||
+			rule.RefineTenChance != 0 && rule.Action != "refine" {
+			return rule, fmt.Errorf("data: %s refineTenChance must be 0..100 on a refine rule", where)
+		}
 		if rule.OnceQuestID != 0 && rule.Action != "refine_set" {
 			return rule, fmt.Errorf("data: %s onceQuestId so pode ser usado por refine_set", where)
 		}

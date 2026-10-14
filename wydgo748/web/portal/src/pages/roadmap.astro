@@ -1,0 +1,10 @@
+---
+import Public from '../layouts/Public.astro';
+import { roadmap } from '../data/public-content';
+---
+<Public title="Roadmap" description="Available, testing and planned features. No speculative release dates.">
+  <section class="panel"><h1 class="title">Roadmap</h1>
+    <p>Current website scope and future work. Planned features are not enabled and have no promised release date.</p>
+    {roadmap.map(item => <article class="content-entry"><span class="badge" data-state={item.state}>{item.state}</span><h2>{item.title}</h2><p>{item.detail}</p></article>)}
+  </section>
+</Public>

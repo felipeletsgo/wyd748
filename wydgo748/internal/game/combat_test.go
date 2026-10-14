@@ -34,17 +34,53 @@ func TestPhysicalFlagsUseNative748DoubleProgressionAndIndependentCritical(t *tes
 	progress := uint16(0)
 	double, critical := rollPhysicalHitFlags(ch, &progress, func(int) int { return 254 })
 	if !double || !critical {
-		t.Fatalf("flags at 200%%/255 double=%v critical=%v want both", double, critical)
+		t.Fatalf("flags at 250%%/255 double=%v critical=%v want both", double, critical)
 	}
 	if progress != 1 {
 		t.Fatalf("progress=%d want=1", progress)
 	}
 
-	ch.Score.AttackRun = 0x50 // 100% Attack Speed: no Double Hit chance.
+	ch.Score.AttackRun = 0x50 // 150% Attack Speed: no Double Hit chance.
 	ch.Score.Critical = 0
 	double, critical = rollPhysicalHitFlags(ch, &progress, func(int) int { return 0 })
 	if double || critical {
-		t.Fatalf("flags at 100%%/0 double=%v critical=%v want neither", double, critical)
+		t.Fatalf("flags at 150%%/0 double=%v critical=%v want neither", double, critical)
+	}
+}
+
+func TestCriticalChanceMatchesCharacterPanelScale(t *testing.T) {
+	// Critical 96 is 9.6%, the value the item tooltip and panel display.
+	ch := &model.Char{Score: testScore(model.Score{AttackRun: 0x50, Critical: 96})}
+	for _, tc := range []struct {
+		roll int
+		want bool
+	}{{0, true}, {95, true}, {96, false}, {999, false}} {
+		progress := uint16(0)
+		if _, critical := rollPhysicalHitFlags(ch, &progress, func(n int) int {
+			if n != 1000 {
+				t.Fatalf("critical roll range=%d, want 1000", n)
+			}
+			return tc.roll
+		}); critical != tc.want {
+			t.Fatalf("roll %d/1000 at 9.6%%: critical=%v want %v", tc.roll, critical, tc.want)
+		}
+	}
+}
+
+func TestCriticalReachesOneHundredPercent(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{
+		100: {Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_CRITICAL", Value: 600}}},
+	}}
+	ch := &model.Char{Class: 0, Score: testScore(model.Score{Str: 8, Int: 4, Dex: 7, Con: 6})}
+	ch.Equip[1] = model.Item{Index: 100}
+	ch.Equip[2] = model.Item{Index: 100}
+	w.recalcPlayer(ch)
+	if got := effectiveScore(ch).Critical; got != 1000 {
+		t.Fatalf("critical=%d, want capped at 1000 (100%%)", got)
+	}
+	progress := uint16(0)
+	if _, critical := rollPhysicalHitFlags(ch, &progress, func(int) int { return 999 }); !critical {
+		t.Fatal("100% critical missed the highest roll")
 	}
 }
 
@@ -84,7 +120,7 @@ func TestHuntressAirBladeAddsBonusBeforeDoubleHit(t *testing.T) {
 
 func TestDoubleHitCountsFullServerProgression(t *testing.T) {
 	// The native table reserves cursor zero as 512, so its nominal 50% band
-	// contains 499 doubles in one complete 1,024-action cycle. At 200% every
+	// contains 499 doubles in one complete 1,024-action cycle. At 250% every
 	// table value (maximum 999) is below the 1,000 threshold.
 	for speedNibble, want := range map[byte]int{0x50: 0, 0xA0: 499, 0xF0: 1024} {
 		ch := &model.Char{Score: testScore(model.Score{AttackRun: uint32(speedNibble)})}
@@ -186,7 +222,7 @@ func TestPhysicalAttackIntervalIsFixedAndSpeedFeedsDoubleChance(t *testing.T) {
 		t.Fatalf("slow double chance=%d want=0", got)
 	}
 	if got := doubleHitChance(fast); got != 100 {
-		t.Fatalf("200%% attack speed double chance=%d want=100", got)
+		t.Fatalf("250%% attack speed double chance=%d want=100", got)
 	}
 }
 

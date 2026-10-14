@@ -14,21 +14,29 @@ import (
 	"time"
 
 	"wydgo/internal/account"
+	"wydgo/internal/authlimit"
 	"wydgo/internal/model"
 	"wydgo/internal/store"
 )
 
 type memoryBackend struct {
-	mu           sync.Mutex
-	accounts     map[string]*model.Account
-	profileName  string
-	rankingCalls int
-	fail         bool
+	mu                  sync.Mutex
+	accounts            map[string]*model.Account
+	charStates          map[string]*model.CharState
+	profileName         string
+	rankingCalls        int
+	guildSnapshot       PublicGuildSnapshot
+	guildCalls          int
+	guildWait           <-chan struct{}
+	registrationChecks  int
+	authenticationReads int
+	fail                bool
 }
 
 func (b *memoryBackend) LoadAccount(name string) (*model.Account, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.authenticationReads++
 	if b.fail {
 		return nil, errors.New("private database details")
 	}
@@ -41,6 +49,7 @@ func (b *memoryBackend) LoadAccount(name string) (*model.Account, error) {
 func (b *memoryBackend) AccountNameExists(name string) (bool, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	b.registrationChecks++
 	_, ok := b.accounts[strings.ToLower(name)]
 	return ok, nil
 }
@@ -83,7 +92,8 @@ func (b *memoryBackend) Ping(context.Context) error {
 func testHandler(t *testing.T) (*Handler, *memoryBackend) {
 	t.Helper()
 	b := &memoryBackend{accounts: make(map[string]*model.Account)}
-	h, err := New(Config{Origin: "https://wyd.example.com", Backend: b})
+	verification := verifierFunc(func(context.Context, string, string) error { return nil })
+	h, err := New(Config{Origin: "https://wyd.example.com", Backend: b, RegistrationVerifier: verification, LoginVerifier: verification, AuthenticationLimiter: limiterFunc(func(context.Context, []authlimit.Limit) (time.Duration, error) { return 0, nil })})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -162,7 +172,7 @@ func TestOriginAndPostBoundaries(t *testing.T) {
 func TestRegistrationLoginOwnershipRotationAndLogout(t *testing.T) {
 	h, b := testHandler(t)
 	c, csrf := bootstrap(t, h)
-	body := `{"username":"Player1","password":"secret123","passwordConfirmation":"secret123"}`
+	body := `{"username":"Player1","password":"secret123","passwordConfirmation":"secret123","turnstileToken":"test-token"}`
 	if w := request(h, "POST", "/api/player/v1/accounts", body, c, csrf); w.Code != 201 {
 		t.Fatal(w.Code, w.Body.String())
 	}
@@ -179,7 +189,7 @@ func TestRegistrationLoginOwnershipRotationAndLogout(t *testing.T) {
 	if w := request(h, "GET", "/api/player/v1/profile", "", c, ""); w.Code != 401 {
 		t.Fatal("anonymous profile", w.Code)
 	}
-	w := request(h, "POST", "/api/player/v1/login", `{"username":"Player1","password":"secret123"}`, c, csrf)
+	w := request(h, "POST", "/api/player/v1/login", `{"username":"Player1","password":"secret123","turnstileToken":"test-token"}`, c, csrf)
 	if w.Code != 200 {
 		t.Fatal(w.Code, w.Body.String())
 	}

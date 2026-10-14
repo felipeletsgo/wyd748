@@ -131,7 +131,8 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		}
 		nextX := uint16(int(p.X) + direction[0])
 		nextY := uint16(int(p.Y) + direction[1])
-		if !w.guildWarStepAllowed(p, nextX, nextY) {
+		if !w.guildWarStepAllowed(p, nextX, nextY) ||
+			!hiddenValleyDestinationAllowed(p, nextX, nextY, now) {
 			w.publishPlayerStop(p)
 			return
 		}

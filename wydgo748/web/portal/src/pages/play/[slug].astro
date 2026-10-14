@@ -1,0 +1,14 @@
+---
+import Public from '../../layouts/Public.astro';
+import { playPages } from '../../data/public-content';
+export function getStaticPaths() { return playPages.map(page => ({ params: { slug: page.slug }, props: { page } })); }
+const { page } = Astro.props;
+---
+<Public title={page.title} description={page.summary}>
+  <article class="panel prose">
+    <p class="breadcrumb"><a href="/play/">Play</a> / {page.title}</p>
+    <h1 class="title">{page.title}</h1><p class="lead">{page.summary}</p>
+    {page.sections.map(section => <section><h2>{section.title}</h2>{section.paragraphs.map(text => <p>{text}</p>)}</section>)}
+    <p class="links"><a href="/download/">Download</a> · <a href="/player/">Your account</a> · <a href="/roadmap/">Roadmap</a></p>
+  </article>
+</Public>

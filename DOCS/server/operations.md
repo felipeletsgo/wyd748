@@ -4,6 +4,11 @@ Server commands in this guide run from `wydgo748/` unless stated otherwise.
 Client build commands run from the repository root. System descriptions are
 maintained implementation notes, not proof of end-to-end client validation.
 
+For the dated live release, schema, client patch and outstanding gates, consult
+[current state](../current-state.md). Historical deployment entries are retained
+in [public launch](public-launch.md); they are not interchangeable with the
+current working tree.
+
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 ![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)
 
@@ -139,7 +144,8 @@ The server has these systems. The server has authority on each system.
   flow. The client still downloads `b010000<guild-id>.bmp` from its hardcoded
   mark host, so a public mark requires that asset or an equivalent URL behavior
   implemented in the 7.48 client source.
-  Guild war remains future work.
+  Guild-war scheduling and rewards are implemented; remaining acceptance
+  criteria are tracked in [Guild wars](../guild-wars.md).
 - **Kingdoms** — A player selects Akelonia or Hekalotia at the kings. The server
   applies the Sapphire cost. The player leaves through the broker. The server
   does the realm teleports, the guild affiliation, and the Basic, Knight, Elite,
@@ -202,10 +208,28 @@ The server has these systems. The server has authority on each system.
   3443 Spirit's Seal flow is implemented atomically with 0x2CD/0x3CC query and
   extraction. Item 3455 remains no-direct-use because WYD 7.48 does not accept it
   in PutoutSeal.
-- **Character counters** — A character has named counters, such as the Kefra
-  entrance ticket and the fame points. They live in a per-character sidecar
-  file, not in the account. A quest can require, spend, or grant them. A
-  counter does not pass from one character to another one in the same account.
+- **Character counters** — A character has named counters, such as Kefra
+  entries and fame points. They live in `character_states`, keyed by character
+  UID, not account name. A quest can require, spend, or grant them. A counter
+  does not pass to another character on the same account.
+- **Survivor and Kefra hall admission** — Survivor already exchanges a Locked
+  Seal (4127) when `kefra_ticket` is exhausted. The project allowance is now
+  **50 entries per seal**, explicitly requested by the owner; this is not an
+  imported native or modern-retail allowance. The NPC's existing teleport
+  spends the first entry, leaving 49. The separate ground portal around
+  `(2366,3893)` now checks the same counter across its entire 4x4 activation
+  block and spends one entry per successful passage, in addition to its
+  existing 700-gold fee. Zero entries are rejected even with a spare seal in
+  inventory: the player must exchange it with Survivor. Already credited
+  balances are not reduced by this configuration change. Admission commits
+  gold and character counters in one transaction before moving or confirming;
+  failed destination validation or persistence spends nothing. Repeated
+  packets cannot charge another entry after arrival or while a critical write
+  awaits acknowledgement. The account's existing hometown/login projection
+  remains unchanged. Code: `internal/game/kefra_access.go`; focused tests cover
+  50 visits, the rejected 51st, recharging, relogin, character isolation,
+  blocked destinations, save failure and critical commit/rejection/unknown
+  outcomes. This is a local source/test change, not a deployment receipt.
 - **Kefra and the passage to Uxmal** — Killing the Kefra boss (outside an
   instance) marks him defeated, gives 100 fame to the killer's guild, and
   announces it to every player. While he stays defeated, the Hall of Kefra
@@ -226,7 +250,31 @@ The server has these systems. The server has authority on each system.
   with him at the reset. No source records their stats; their templates copy
   `Lich_Dragon2` (level 385). Ported from W2PP `MobKilled.cpp`, `GetFunc.cpp`
   and `ProcessSecMinTimer.cpp`; the W2PP item distribution and the global half
-  experience while Kefra lives are not ported. Code: `internal/game/kefra.go`.
+  experience while Kefra lives are not ported. The owner-defined rule grants
+  **+100% combat EXP to every player while Kefra is defeated**, regardless of
+  guild, party or map. It doubles each receiver's reward after evolution,
+  party, equipment and experience-box calculations, with uint32 saturation;
+  quest rewards are unchanged. It uses the same durable defeat flag as the
+  portal, survives restart and ends only after the weekly reset commits.
+  Failed or pending death saves do not activate it; failed reset saves keep it
+  active. The Kefra kill's own reward is calculated before activating the bonus.
+  Code: `internal/game/kefra.go` and `internal/game/experience.go`.
+  **Temporary QA profile (2026-10-14):** `data/npcs/Kefra.json` sets both
+  `score.maxHP` and `score.curHP` to **1**. Restore **both to 28000** after
+  testing, then reload the server through the normal deployment/restart flow.
+  Defense, skills, rewards and the weekly schedule are unchanged, so an evaded
+  attack still does not kill him. Existing serialized JSON keys and the
+  `monstro` type value are retained as loader-contract identifiers, not new
+  player-facing text. This setting does not clear an already persisted defeat
+  or force another spawn. Release `20261014T184657Z` deployed the QA profile
+  and EXP bonus; PostgreSQL retained the existing defeat from `18:30:36 UTC`,
+  guild 1, across its `18:47:00 UTC` restart. Actual in-game EXP and next-spawn
+  HP acceptance remain pending; see the [deployment receipt](public-launch.md#kefra-passage-and-exp-follow-up--2026-10-14).
+  The coordinated [portal visibility v1 contract](../protocol/kefra-portal.md)
+  also hides the hall mirror and its two effects while Kefra lives. It sends
+  the durable flag at character entry and after acknowledged defeat/reset;
+  failed saves publish no proposed state. Both the updated server and client
+  are required; this presentation repair changes none of the rules above.
 - **NPCGener counters** — A mob keeps a reference to the generator entry that
   spawned it. `NPCGener.txt` reuses ten indexes (3856 is both Kefra and a
   Grim_Lock group), so a death lowered the counter of the wrong entry before.
@@ -345,7 +393,7 @@ CREATE DATABASE wydgo OWNER wydgo;
 ```
 
 Keep PostgreSQL on the local interface. Do not publish port 5432. The game
-server installs and validates schema v4 at boot. The Windows setup is documented
+server installs and validates schema v8 at boot. The Windows setup is documented
 in the [repository README](../../README.md#1-prerequisites).
 
 ## Start the server
@@ -519,6 +567,20 @@ For recovery or automation, you can also use one of two standalone tools:
   `/healthz` reports process health and `/readyz` verifies the database. Publish
   this API only through an HTTPS reverse proxy that replaces forwarded headers.
 
+## Staff in-game commands
+
+`/goto X Y` (also `/goto X,Y`) teleports a staff character to the nearest free
+walkable tile within 16 cells of world coordinate `X,Y` (1..4095, the
+4096-pixel map image uses the same numbers). It is granted per game account by
+the `game.command.goto` capability in the staff file (`web_admin_staff`,
+`/etc/wyd-go/staff.json` on the VPS, `tools/deployment/vps/staff.json` in the
+release), which the server re-reads on each use. For any other account
+`/goto` keeps its normal whisper meaning. The command uses the authoritative
+teleport and persistence path, refuses dead, trading or saving characters,
+instances and city wars, keeps Hidden Valley access rules, and logs
+`STAFF goto` with the account, origin and destination. Server-only: no client
+or wire change.
+
 ## Critical persistence operation
 
 PostgreSQL startup enables the S2 coordinator and account-local containment in
@@ -626,7 +688,7 @@ From the repository root, build the source with:
 pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release
 ```
 
-Every successful build automatically installs `tmproject/client748/project.exe`, verifies
+Unless `-NoDeploy` is specified, a successful build installs `tmproject/client748/WYD.exe`, verifies
 that its hash matches the transient build output, and prints the installed hash.
 An installation or hash failure fails the build workflow.
 
@@ -752,6 +814,24 @@ them.
 
 `go run ./cmd/network-admission` compiles reviewed text/JSON CIDR feeds into
 `network_admission.json` without adding network access to the login path.
+
+Authenticated game sessions have no application-level inactivity timeout.
+The legacy `session_idle_timeout_seconds` setting bounds only the absolute
+post-InitCode, pre-authentication lifetime; packets cannot extend that deadline.
+Only successful account admission clears it, including when the reader is
+already waiting. Incomplete frames remain bounded from their first byte, and
+authentication cannot clear that frame deadline. TCP keepalive and socket
+errors still detect disconnected peers; flood, handshake, connection and
+outbound queue limits remain active.
+
+On the shared VPS, SSH bans must not block game or website ports. Run
+`sudo bash tools/deployment/vps/harden-ssh-jail.sh` with the adjacent
+`zz-wyd-sshd.local` file installed. The script verifies that the UFW `OpenSSH`
+profile permits only TCP 22, validates Fail2ban, and reloads only its SSH jail.
+Existing SSH authentication policy and retry/ban limits remain unchanged.
+For the provider firewall, retain TCP 22, 80, 443 and 8281 plus ICMP for
+IPv4/IPv6; no outbound restriction is needed for this inbound protection.
+PostgreSQL, staff/player APIs and Caddy administration stay loopback-only.
 
 ## Roadmap
 

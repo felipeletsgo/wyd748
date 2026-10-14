@@ -132,6 +132,12 @@ func TestCSVFixturesUpdateServerTerrainLikeClient(t *testing.T) {
 		}
 	}
 	base := model.TerrainMap{Height: make([]byte, model.TerrainCells), Attribute: make([]byte, model.AttributeCells)}
+	// Kefra's open Gate of Time must not stamp sea level over its -83 floor.
+	for y := 3864; y <= 3871; y++ {
+		for x := 2349; x <= 2353; x++ {
+			base.Height[y*model.TerrainWidth+x] = 173 // Signed terrain height -83.
+		}
+	}
 	w := &World{items: catalog.Items, terrain: base, initItems: objects,
 		groundItems: make(map[uint16]*GroundItem), nextItemID: 10000}
 	if err := w.spawnInitItems(); err != nil {
@@ -139,6 +145,19 @@ func TestCSVFixturesUpdateServerTerrainLikeClient(t *testing.T) {
 	}
 	if len(w.groundItems) != 96 {
 		t.Fatalf("spawned %d permanent objects; want 96", len(w.groundItems))
+	}
+	foundKefraGate := false
+	for _, item := range w.groundItems {
+		if item.Item.Index == 4101 && item.X == 2351 && item.Y == 3867 {
+			foundKefraGate = true
+			if item.State != gateOpen || item.Rotate != 1 {
+				t.Fatalf("Kefra gate state=%d rotation=%d; want open, rotation 1", item.State, item.Rotate)
+			}
+		}
+	}
+	if !foundKefraGate || !w.terrain.RouteHeightCompatible(2350, 3868, 2351, 3868) ||
+		w.terrain.Height[3868*model.TerrainWidth+2351] != 173 {
+		t.Fatal("open Kefra fixture blocks the reported negative-height passage")
 	}
 	machines := 0
 	for _, object := range objects {
@@ -164,13 +183,15 @@ func TestCSVFixturesUpdateServerTerrainLikeClient(t *testing.T) {
 	var gate *GroundItem
 	for _, item := range w.groundItems {
 		mask := staticEffect(catalog.Items[item.Item.Index], "EF_GROUND")
-		if mask > 0 && mask < len(groundMaskBits) && groundMaskBits[mask][item.Rotate] != 0 {
+		// Only key-locked fixtures start closed; picking an open one from the
+		// unordered map made this test depend on iteration order.
+		if item.State == gateClosed && mask > 0 && mask < len(groundMaskBits) && groundMaskBits[mask][item.Rotate] != 0 {
 			gate = item
 			break
 		}
 	}
 	if gate == nil {
-		t.Fatal("CSV contains no masked ground object")
+		t.Fatal("CSV contains no closed masked ground object")
 	}
 	mask := staticEffect(catalog.Items[gate.Item.Index], "EF_GROUND")
 	for cell := 0; cell < 36; cell++ {

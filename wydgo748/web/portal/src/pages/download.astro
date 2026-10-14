@@ -1,13 +1,12 @@
 ---
 import Public from '../layouts/Public.astro';
-
-// Full client package (hosted outside the VPS to avoid its outbound traffic).
-// Leave empty while no validated package is published.
-const clientUrl = 'https://drive.google.com/file/d/1Kvjl4pOY7FYUsmFsEvbQhivAwhqJRXEj/view?usp=drive_link';
+import { clientRelease } from '../data/public-content';
+const clientUrl = clientRelease.fullClient.url;
 ---
 <Public title="Download">
   <section class="panel center">
-    <span class="title">Client</span>
+    <h1 class="title">Download</h1>
+    <p>Full client · WYD {clientRelease.clientVersion} · Windows</p>
     {clientUrl
       ? <p><a class="button" href={clientUrl} rel="noopener noreferrer">Download client</a></p>
       : <p class="status" role="status">The client is not available yet.</p>}
@@ -16,5 +15,17 @@ const clientUrl = 'https://drive.google.com/file/d/1Kvjl4pOY7FYUsmFsEvbQhivAwhqJ
       <li>Run <strong>WYDLauncher.exe</strong>. It installs updates before <strong>Start</strong>.</li>
       <li>Use <strong>Settings</strong> in the launcher for resolution and window mode.</li>
     </ol>
+    <p class="links"><a href="/play/getting-started/">Installation guide</a> · <a href="/play/faq/">Help</a></p>
+    <details class="disclosure prose">
+    <summary>Patch {clientRelease.patchVersion} · Details</summary>
+    <dl class="details"><dt>Version</dt><dd>{clientRelease.patchVersion}</dd><dt>Published</dt><dd><time datetime={clientRelease.publishedAt}>{clientRelease.publishedAt}</time></dd><dt>ZIP size</dt><dd>{clientRelease.patch.sizeBytes.toLocaleString('en-US')} bytes</dd><dt>ZIP SHA-256</dt><dd class="hash">{clientRelease.patch.sha256}</dd></dl>
+    <p>Incremental update only. Use the launcher to install all required patches.</p>
+    <p><a href={clientRelease.patch.url}>Download patch ZIP</a> · <a href="/client-manifest.json">Versioned download receipt (JSON)</a></p>
+    <p class="muted">This checksum covers the patch ZIP. Full-client size and checksum are not yet available.</p>
+    </details>
+    <details class="disclosure prose"><summary>Repair an installation</summary>
+      <p>Close the game. Extract the full client into a new writable folder, then run its launcher. Keep all asset folders together.</p>
+      <p>Do not edit the version counter, mix client files or disable antivirus protection.</p>
+    </details>
   </section>
 </Public>

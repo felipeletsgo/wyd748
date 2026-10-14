@@ -18,6 +18,7 @@ import (
 
 	"wydgo/internal/control"
 	"wydgo/internal/data"
+	"wydgo/internal/playerportal"
 	"wydgo/internal/store"
 	"wydgo/internal/webadmin"
 )
@@ -89,7 +90,14 @@ func run() error {
 		auditWriter = io.MultiWriter(os.Stderr, auditFile)
 	}
 	audit := slog.New(slog.NewJSONHandler(auditWriter, nil))
-	handler, err := webadmin.New(webadmin.Config{Origin: *origin, DevHTTP: *dev, AdminAccessPIN: serverConfig.AdminAccessPIN, Staff: staff, Accounts: db, Control: client, Persistent: webadmin.NewAccountPersistentReader(db), Ready: db.Ping, Audit: audit, TrustedProxies: trustedProxies})
+	var verification *playerportal.Turnstile
+	if !*dev {
+		verification, err = playerportal.NewTurnstileAction(os.Getenv("WYD_TURNSTILE_SECRET"), *origin, "staff_login")
+		if err != nil {
+			return err
+		}
+	}
+	handler, err := webadmin.New(webadmin.Config{Origin: *origin, DevHTTP: *dev, AdminAccessPIN: serverConfig.AdminAccessPIN, Staff: staff, Accounts: db, Control: client, Persistent: webadmin.NewAccountPersistentReader(db), Ready: db.Ping, Audit: audit, TrustedProxies: trustedProxies, RequireLoginProtection: !*dev, LoginVerifier: verification, AuthenticationLimiter: db.AuthenticationLimiter()})
 	if err != nil {
 		return err
 	}

@@ -12,15 +12,15 @@ func TestItemAbilityUsesStaticDynamicAndRefine(t *testing.T) {
 		DynamicEffectNames: map[byte]string{2: "EF_DAMAGE", 43: "EF_SANC"}}
 	item := model.Item{Index: 100, Eff: [6]byte{2, 5, 43, 9}}
 	if got := itemAbility(item, def, "EF_DAMAGE"); got != 28 { // (10+5)*1.9
-		t.Fatalf("damage refinado=%d, esperado 28", got)
+		t.Fatalf("refined damage=%d, want 28", got)
 	}
 }
 
 func TestItemAbilityUsesHighSanctificationTable(t *testing.T) {
 	def := model.ItemDef{Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 100}}}
-	item := model.Item{Index: 100, Eff: [6]byte{116, 250}} // codificacao +15
+	item := model.Item{Index: 100, Eff: [6]byte{116, 250}} // +15 encoding
 	if got := itemAbility(item, def, "EF_DAMAGE"); got != 370 {
-		t.Fatalf("damage +15=%d, esperado 370", got)
+		t.Fatalf("damage +15=%d, want 370", got)
 	}
 }
 
@@ -28,7 +28,7 @@ func TestItemMetadataIsNeverRefined(t *testing.T) {
 	def := model.ItemDef{Index: 100, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 2}}}
 	item := model.Item{Index: 100, Eff: [6]byte{116, 250}}
 	if got := itemAbility(item, def, "EF_VOLATILE"); got != 2 {
-		t.Fatalf("volatile foi refinado para %d", got)
+		t.Fatalf("volatile metadata was refined to %d", got)
 	}
 }
 
@@ -40,15 +40,15 @@ func TestDualWieldPassivesUseFullSecondaryWeapon(t *testing.T) {
 	ch := &model.Char{Class: 0, LearnedSkill: 1 << 9}
 	ch.Equip[6], ch.Equip[7] = model.Item{Index: 100}, model.Item{Index: 101}
 	if got := w.equipmentDamage(ch); got != 180 {
-		t.Fatalf("dual wield TK=%d, esperado 180", got)
+		t.Fatalf("dual wield TK=%d, want 180", got)
 	}
 	ch.Class, ch.LearnedSkill = 3, 1<<10
 	if got := w.equipmentDamage(ch); got != 180 {
-		t.Fatalf("dual wield HT=%d, esperado 180", got)
+		t.Fatalf("dual wield HT=%d, want 180", got)
 	}
 	ch.LearnedSkill = 1 << 11
 	if got := w.equipmentDamage(ch); got != 140 {
-		t.Fatalf("bit 11 da HT ativou Pericia indevidamente: %d", got)
+		t.Fatalf("HT bit 11 incorrectly activated mastery: %d", got)
 	}
 }
 
@@ -60,25 +60,27 @@ func TestHuntressPassivesUseCorrectSkillBits(t *testing.T) {
 	ch.RuntimeScore = testScore(*ch.Score)
 	ch.LearnedSkill = 1 << (90 - 72)
 	w.applyPassiveSkills(ch)
-	if got := effectiveScore(ch).Critical; got != 14 { // 2 + (99+1)/10 + 150/75
-		t.Fatalf("Visao de Cacadora critical=%d, esperado 14", got)
+	// Critical is in tenths of a percent; the passive keeps its 0.2% points:
+	// 2 + 2*((99+1)/10 + 150/75) = 26 (2.6%).
+	if got := effectiveScore(ch).Critical; got != 26 {
+		t.Fatalf("Hunter's Vision critical=%d, want 26", got)
 	}
 	if got := effectiveScore(ch).Attack; got != 100 {
-		t.Fatalf("Pericia de Cacador alterou attack diretamente: %d", got)
+		t.Fatalf("Hunter Mastery changed attack directly: %d", got)
 	}
 
 	ch.RuntimeScore = testScore(*ch.Score)
 	ch.LearnedSkill = 1 << (91 - 72)
 	w.applyPassiveSkills(ch)
 	if got := effectiveScore(ch).Critical; got != 2 {
-		t.Fatalf("Olhos de Aguia recebeu bonus de Visao indevidamente: %d", got)
+		t.Fatalf("Eagle Eyes incorrectly received the Vision bonus: %d", got)
 	}
 
 	ch.RuntimeScore = testScore(*ch.Score)
 	ch.LearnedSkill = 1 << (92 - 72)
 	w.applyPassiveSkills(ch)
 	if got := effectiveScore(ch).Range; got != 2 {
-		t.Fatalf("Toxina de Serpente range=%d, esperado 2", got)
+		t.Fatalf("Serpent Toxin range=%d, want 2", got)
 	}
 }
 
@@ -93,14 +95,14 @@ func TestBeastMasterShieldPassiveUsesShieldAC(t *testing.T) {
 	ch.Equip[7] = model.Item{Index: 100}
 	w.applyPassiveSkills(ch)
 	if got := effectiveScore(ch).Defense; got != 210 {
-		t.Fatalf("Escudo do Tormento defense=%d, esperado 210", got)
+		t.Fatalf("Torment Shield defense=%d, want 210", got)
 	}
 
 	ch.RuntimeScore = testScore(*ch.Score)
 	ch.Equip[7] = model.Item{Index: 101}
 	w.applyPassiveSkills(ch)
 	if got := effectiveScore(ch).Defense; got != 200 {
-		t.Fatalf("Escudo do Tormento ativou sem escudo: %d", got)
+		t.Fatalf("Torment Shield activated without a shield: %d", got)
 	}
 }
 
@@ -111,8 +113,10 @@ func TestEquipmentCriticalUsesCurrentScoreScale(t *testing.T) {
 	ch := &model.Char{Class: 0, Score: testScore(model.Score{Str: 8, Int: 4, Dex: 7, Con: 6})}
 	ch.Equip[1] = model.Item{Index: 100}
 	w.recalcPlayer(ch)
-	if got := effectiveScore(ch).Critical; got != 10 {
-		t.Fatalf("critical=%d, esperado 10", got)
+	// EF_CRITICAL 40 is shown as 4.0% on the item; Critical uses the same
+	// tenths-of-a-percent unit, so the character gains exactly 4.0%.
+	if got := effectiveScore(ch).Critical; got != 40 {
+		t.Fatalf("critical=%d, want 40 (4.0%%)", got)
 	}
 }
 
@@ -123,19 +127,19 @@ func TestCanEquipIsServerAuthoritative(t *testing.T) {
 	ch := &model.Char{Class: 0, Score: testScore(model.Score{Level: 10, Str: 20})}
 	item := model.Item{Index: 100}
 	if !w.canEquip(ch, item, 6) {
-		t.Fatal("item valido foi rejeitado")
+		t.Fatal("valid item was rejected")
 	}
 	if w.canEquip(ch, item, 7) {
-		t.Fatal("cliente conseguiu equipar em slot nao autorizado")
+		t.Fatal("client equipped an item in an unauthorized slot")
 	}
 	necklace := model.Item{Index: 640}
 	w.items[640] = model.ItemDef{Index: 640, Pos: 1 << 9}
-	if w.canEquip(ch, necklace, 9) {
-		t.Fatal("slot Necklace ausente na UI 7.48 foi aceito")
+	if !w.canEquip(ch, necklace, 9) {
+		t.Fatal("native necklace slot rejected a valid necklace")
 	}
 	ch.Class = 1
 	if w.canEquip(ch, item, 6) {
-		t.Fatal("cliente conseguiu ignorar restricao de classe")
+		t.Fatal("client bypassed the class restriction")
 	}
 }
 
@@ -161,7 +165,7 @@ func TestAdvancedEvolutionEquipUsesMortalBodyAndIgnoresRequirements(t *testing.T
 	}}
 	for _, evolution := range []string{archEvolution, "celestial", "subcelestial"} {
 		t.Run(evolution, func(t *testing.T) {
-			// Corpo TK (rosto 9 => 9/10 = 0), classe de skills HT.
+			// TK body (face 9 => 9/10 = 0), HT skill class.
 			ch := &model.Char{
 				Class: 3, Evolution: evolution,
 				Score: testScore(model.Score{
@@ -171,16 +175,16 @@ func TestAdvancedEvolutionEquipUsesMortalBodyAndIgnoresRequirements(t *testing.T
 			ch.Equip[0] = model.Item{Index: 9}
 
 			if !w.canEquip(ch, model.Item{Index: tkArmor}, 2) {
-				t.Fatal("evolucao avancada TK deveria equipar armadura de TK sem requisitos")
+				t.Fatal("advanced TK should equip TK armor without stat requirements")
 			}
 			if w.canEquip(ch, model.Item{Index: htArmor}, 2) {
-				t.Fatal("classe de skills HT nao pode transformar o corpo TK em armadura HT")
+				t.Fatal("HT skill class cannot make a TK body wear HT armor")
 			}
 			if !w.canEquip(ch, model.Item{Index: fmWeapon}, 6) {
-				t.Fatal("evolucao avancada deveria equipar arma de qualquer classe sem requisitos")
+				t.Fatal("advanced evolution should equip any class weapon without stat requirements")
 			}
 			if w.canEquip(ch, model.Item{Index: fmWeapon}, 7) {
-				t.Fatal("isencao de requisitos nao pode ignorar o slot permitido pelo item")
+				t.Fatal("requirement exemption must not bypass the item's position mask")
 			}
 		})
 	}
@@ -196,11 +200,11 @@ func TestMortalStillChecksClassAndRequirements(t *testing.T) {
 
 	lowTK := &model.Char{Class: 0, Score: testScore(model.Score{Level: 1, Str: 1})}
 	if w.canEquip(lowTK, item, 6) {
-		t.Fatal("Mortal nao pode receber a isencao de requisitos do Arch")
+		t.Fatal("Mortal must not receive the Arch requirement exemption")
 	}
 	strongHT := &model.Char{Class: 3, Score: testScore(model.Score{Level: 100, Str: 100})}
 	if w.canEquip(strongHT, item, 6) {
-		t.Fatal("Mortal nao pode usar arma de outra classe")
+		t.Fatal("Mortal must not use another class's weapon")
 	}
 }
 
@@ -212,37 +216,37 @@ func TestPhysicalAttackRangeUsesOnlyMainWeaponRange(t *testing.T) {
 	ch.Equip[6] = model.Item{Index: 816}
 	ch.Equip[9] = model.Item{Index: 900}
 	if got := w.physicalAttackRange(ch); got != 10 {
-		t.Fatalf("alcance do arco=%d, quer 10", got)
+		t.Fatalf("bow range=%d, want 10", got)
 	}
 	ch.Equip[6] = model.Item{}
 	if got := w.physicalAttackRange(ch); got != attackRange {
-		t.Fatalf("ataque sem arma de alcance=%d, quer %d", got, attackRange)
+		t.Fatalf("attack without a ranged weapon=%d, want %d", got, attackRange)
 	}
 
-	// Forca Espectral (101 / LearnedSkill bit 29) soma um tile ao alcance
-	// calculado, inclusive no ataque melee sem EF_RANGE.
+	// Spectral Force (101 / LearnedSkill bit 29) adds one tile to the
+	// calculated range, including melee attacks without EF_RANGE.
 	ch.LearnedSkill = 1 << 29
 	if got := w.physicalAttackRange(ch); got != attackRange+1 {
-		t.Fatalf("melee com Forca Espectral=%d, quer %d", got, attackRange+1)
+		t.Fatalf("melee with Spectral Force=%d, want %d", got, attackRange+1)
 	}
 	ch.Equip[6] = model.Item{Index: 816}
 	if got := w.physicalAttackRange(ch); got != 11 {
-		t.Fatalf("arco com Forca Espectral=%d, quer 11", got)
+		t.Fatalf("bow with Spectral Force=%d, want 11", got)
 	}
 }
 
 func TestAttackSkillClassificationKeepsRangedNormalAttackPhysical(t *testing.T) {
-	ch := &model.Char{Class: 3} // Huntress: indices globais 72..95.
+	ch := &model.Char{Class: 3} // Huntress: global indices 72..95.
 	if isLearnedClassSkill(ch, 0) {
-		t.Fatal("campo residual de skill em ataque de arco nao pode virar skill")
+		t.Fatal("residual skill field in a bow attack must not become a skill")
 	}
 
 	ch.LearnedSkill = 1 << 2
 	if !isLearnedClassSkill(ch, 74) {
-		t.Fatal("skill aprendida da propria classe deve seguir para onSkillAttack")
+		t.Fatal("learned skill from the character's class should reach onSkillAttack")
 	}
 	if isLearnedClassSkill(ch, 50) {
-		t.Fatal("skill de outra classe nao pode ser executada")
+		t.Fatal("another class's skill must not execute")
 	}
 }
 
@@ -257,7 +261,7 @@ func TestSkillPointsUseServerSkillDataCost(t *testing.T) {
 	})}
 	w.recalcPlayer(ch)
 	if ch.Score.SkillPts != 6 { // level*3 (30) - SkillData[0].SkillPoint (24)
-		t.Fatalf("skill points=%d, esperado 6", ch.Score.SkillPts)
+		t.Fatalf("skill points=%d, want 6", ch.Score.SkillPts)
 	}
 }
 
@@ -283,7 +287,7 @@ func TestParseAttackSkillCompactAndMulti(t *testing.T) {
 func TestSkillManaCostUsesMasteryAndSaveMana(t *testing.T) {
 	skill := model.SkillDef{ManaSpent: 100}
 	if got := skillManaCost(skill, 40, 25); got != 90 { // 100*120%*75%
-		t.Fatalf("mana=%d, esperado 90", got)
+		t.Fatalf("mana=%d, want 90", got)
 	}
 }
 
@@ -312,20 +316,20 @@ func TestRecalcPlayerCombinesBaseAndEquipmentResistances(t *testing.T) {
 	ch.Equip[1] = model.Item{Index: 100}
 	w.recalcPlayer(ch)
 	if got := effectiveScore(ch).ResistFire; got != 35 {
-		t.Fatalf("fogo=%d, quer 35", got)
+		t.Fatalf("fire=%d, want 35", got)
 	}
 	if got := effectiveScore(ch).ResistIce; got != 46 {
-		t.Fatalf("gelo=%d, quer 46", got)
+		t.Fatalf("ice=%d, want 46", got)
 	}
 	if got := effectiveScore(ch).ResistHoly; got != 57 {
-		t.Fatalf("sagrado=%d, quer 57", got)
+		t.Fatalf("holy=%d, want 57", got)
 	}
 	if got := effectiveScore(ch).ResistThunder; got != 100 {
-		t.Fatalf("trovao=%d, quer limite 100", got)
+		t.Fatalf("thunder=%d, want cap 100", got)
 	}
 }
 
-func TestRecalcPlayerIgnoresUnsupportedEquipmentSlot(t *testing.T) {
+func TestRecalcPlayerIncludesNativeNecklaceSlot(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		1: {
 			Index: 1,
@@ -345,12 +349,12 @@ func TestRecalcPlayerIgnoresUnsupportedEquipmentSlot(t *testing.T) {
 	ch.Equip[0] = model.Item{Index: 1}
 	ch.Equip[9] = model.Item{Index: 100, Eff: [6]byte{47, 3, 48, 4}}
 	w.recalcPlayer(ch)
-	if effectiveScore(ch).RegenHP != 2 || effectiveScore(ch).RegenMP != 2 {
-		t.Fatalf("slot sem UI alterou regen HP/MP=%d/%d, quer 2/2",
+	if effectiveScore(ch).RegenHP != 5 || effectiveScore(ch).RegenMP != 6 {
+		t.Fatalf("necklace regen HP/MP=%d/%d, want 5/6",
 			effectiveScore(ch).RegenHP, effectiveScore(ch).RegenMP)
 	}
-	if bodyMesh(ch)[9] != 0 || bodyAncient(ch)[9] != 0 || clientEquipProjection(ch)[9].Index != 0 {
-		t.Fatal("slot sem UI vazou para a projeção visual do client")
+	if bodyMesh(ch)[9] == 0 || clientEquipProjection(ch)[9] != ch.Equip[9] {
+		t.Fatal("native necklace was omitted from the client projection")
 	}
 }
 
@@ -370,7 +374,7 @@ func TestRecalcPlayerRemovesEquipmentBonuses(t *testing.T) {
 	ch.Equip[2] = model.Item{}
 	w.recalcPlayer(ch)
 	if playerDefense(ch) >= equippedDefense || playerStr(ch) >= equippedStr {
-		t.Fatalf("bonus permaneceu: equipado def/str=%d/%d removido=%d/%d",
+		t.Fatalf("bonus remained: equipped def/str=%d/%d removed=%d/%d",
 			equippedDefense, equippedStr, playerDefense(ch), playerStr(ch))
 	}
 }
@@ -399,9 +403,9 @@ func TestExtendedMagicRecalcUsesRefinedMagicAmplification(t *testing.T) {
 	plus15, amp15 := playerMagicAttack(ch), effectiveScore(ch).MagicAmp
 
 	if amp11 != 55 || amp15 != 92 {
-		t.Fatalf("amplificacao refinada incorreta: +11=%d +15=%d", amp11, amp15)
+		t.Fatalf("incorrect refined amplification: +11=%d +15=%d", amp11, amp15)
 	}
 	if plus11 != 1_247 || plus15 != 1_825 || plus15 <= plus11 {
-		t.Fatalf("MATK nao escalou com refinacao: +11=%d +15=%d", plus11, plus15)
+		t.Fatalf("MATK did not scale with refinement: +11=%d +15=%d", plus11, plus15)
 	}
 }

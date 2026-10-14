@@ -48,8 +48,9 @@ Economic results do not depend on this queue.
 - `/tower` admits a living guild member in Erion's public space during
   combat. Entry is at `(2450,1855)`.
 - The arena spans `(2445,1850)..(2546,1920)`, with the dedicated tower near
-  `(2495,1885)`. These positions were checked against the installed terrain;
-  they are not claimed as exact native-binary positions.
+  `(2507,1873)`, the Tower of Thor anchor in the user-supplied DestinyServer
+  TMSRV/run generator reference. The correction stays within the installed
+  arena; this historical data is not claimed as native-binary parity.
 - The installed `Torre` template supplies its appearance, HP, and defense.
   The tower has no merchant behavior, AI, experience, drops, or quest progress.
   Reference generator 1075 is not reused because it names a different monster
@@ -64,6 +65,15 @@ Economic results do not depend on this queue.
 - Restart recovery restores the owner and deadline. It recreates a still-active
   tower at full HP or completes a pending expired-round reward without
   duplication.
+
+Ordinary generator loading and respawning exclude Tower of Thor generators
+inside Noatum `(1036,1672)..(1144,1764)`. W2PP creates those towers explicitly
+during the Sunday castle battle; event-owned does not mean permanent. The
+guard remains active on Sunday because the full Noatum battle controller is
+not implemented here. It does not suppress merchants or the Erion tower.
+Generator identity and region are checked instead of assuming historical
+generator indices are portable. Focused tests exercise installed fixtures,
+Sunday suppression, unrelated generators and the corrected Erion anchor.
 
 ## City registration and combat
 

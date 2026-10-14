@@ -272,3 +272,12 @@ CREATE INDEX IF NOT EXISTS donate_ledger_account_idx
 
 INSERT INTO schema_migrations(version) VALUES (5)
 ON CONFLICT (version) DO NOTHING;
+
+-- Security-only counters. No passwords, tokens, raw addresses or account names.
+CREATE TABLE IF NOT EXISTS web_auth_limits (
+ key text PRIMARY KEY CHECK (length(key) BETWEEN 1 AND 160),
+ attempts integer NOT NULL CHECK (attempts > 0),
+ expires_at timestamptz NOT NULL
+);
+CREATE INDEX IF NOT EXISTS web_auth_limits_expiry_idx ON web_auth_limits(expires_at);
+INSERT INTO schema_migrations(version) VALUES (6) ON CONFLICT (version) DO NOTHING;

@@ -55,19 +55,15 @@ func setItemSanc(item *model.Item, level int) bool {
 		return false
 	}
 	sc := level
-	switch level {
-	case 10:
-		sc = 230
-	case 11:
-		sc = 234
-	case 12:
-		sc = 238
-	case 13:
-		sc = 242
-	case 14:
-		sc = 246
-	case 15:
-		sc = 250
+	if level >= 10 {
+		// +10..+15 are 230 + 4*(level-10) + gem variant. Keep the variant the
+		// Aylin composition chose (Diamond, Emerald, Coral, Garnet) when the
+		// item already carries one, so a later refinement keeps its effect.
+		variant := 0
+		if raw, exists := sancRaw(*item); exists && raw >= 230 && raw <= 253 {
+			variant = (int(raw) - 230) % 4
+		}
+		sc = 230 + (level-10)*4 + variant
 	}
 	for i := 0; i < 3; i++ {
 		if e := item.Eff[i*2]; e == 43 || (e >= 116 && e <= 125) {
@@ -83,6 +79,13 @@ func setItemSanc(item *model.Item, level int) bool {
 		}
 	}
 	return false
+}
+
+// refinementLocked reports items that never accept refinement: costumes
+// (costume slot or the native slot-13 costume rows) and fairies (familiar
+// slot 13). Fairy Water keeps its own fixed-target rule for Naiad/Grewpain.
+func refinementLocked(def model.ItemDef) bool {
+	return model.IsCostumeDef(def) || def.Pos&(1<<model.FamiliarSlot) != 0
 }
 
 func itemSanc(item model.Item) int {
@@ -127,6 +130,17 @@ func tintItem(item *model.Item, color int) bool {
 		}
 	}
 	return false
+}
+
+// tintSetOnlyMessage rejects dye dropped on anything but an armor set piece.
+const tintSetOnlyMessage = "Dye can only be used on armor set pieces."
+
+// isArmorSetPiece reports whether def is one of the five armor set pieces
+// (helmet, chest, pants, gloves, boots): its Pos is exactly one of the slot
+// masks 2, 4, 8, 16 or 32. Dye (tint) only paints these pieces; weapons,
+// shields, capes, mounts and accessories are rejected.
+func isArmorSetPiece(def model.ItemDef) bool {
+	return def.Pos >= 2 && def.Pos <= 32 && def.Pos&(def.Pos-1) == 0
 }
 
 // untintItem ports WYD 7.48 pRemoveTintura: it turns the color code (116-125)
@@ -365,7 +379,10 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	// BASE_GetSkillDamage 7.59: Foema/BM use INT/3 + INT/30; the TK magic
 	// branch uses INT/4 + INT/40 plus weapon damage. EF_MAGIC and EF_MAGICADD
 	// become a /4 amplification and the result receives the 5/4 factor.
-	magicAmp := int64(base.MagicAmp) + (total("EF_MAGIC")+total("EF_MAGICADD")+1)/4
+	// Adult mount magic is EF_MAGIC, not flat spell damage. Include it before
+	// the shared /4 conversion so both the score and spells use the same bonus.
+	mAtk, mMag, mEva, mRes, mRun := w.mountBonus(ch)
+	magicAmp := int64(base.MagicAmp) + (total("EF_MAGIC")+total("EF_MAGICADD")+int64(mMag)+1)/4
 	magicCore := int64(base.MagicAttack) + special[1] + level/2
 	switch ch.Class {
 	case 1, 2:
@@ -404,8 +421,12 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.Accuracy = extendedValue(int64(base.Accuracy) + total("EF_HITRATE"))
 	runtime.Parry = extendedValue(int64(base.Parry) + total("EF_PARRY"))
 	runtime.Evasion = extendedValue(int64(base.Evasion) + int64(runtime.Parry))
-	runtime.Critical = extendedValue(int64(base.Critical) +
-		(total("EF_CRITICAL")+total("EF_CRITICAL2"))/4)
+	// Critical is in tenths of a percent, the unit the item tooltip shows
+	// (EF_CRITICAL 96 = 9.6%). Items add their value unchanged; the Character
+	// panel and the roll in rollPhysicalHitFlags read the same unit, capped
+	// at 1000 (100%).
+	runtime.Critical = uint32(clampInt(int(base.Critical)+
+		int(total("EF_CRITICAL")+total("EF_CRITICAL2")), 0, maxCriticalPerMille))
 	// BASE_GetMobAbility/BASE_GetMaxAbility use the largest equipped EF_RANGE;
 	// summing accessories and every piece artificially inflated the range.
 	rangeValue := int(base.Range)
@@ -428,15 +449,10 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.ResistHoly = uint32(clampInt(int(base.ResistHoly)+int(total("EF_RESIST3"))+resAll, 0, 100))
 	runtime.ResistThunder = uint32(clampInt(int(base.ResistThunder)+int(total("EF_RESIST4"))+resAll, 0, 100))
 
-	// Equipped mount bonus (slot 14): physical/magic damage, evasion,
-	// resistance and a speed floor, ported from the Montarias.cpp table via
-	// data/mounts.json. mRun feeds the runSpeed calculation below.
-	mAtk, mMag, mEva, mRes, mRun := w.mountBonus(ch)
+	// Remaining adult mount bonuses: flat physical damage, evasion,
+	// resistance and a speed floor. Magic already feeds the amplification above.
 	if mAtk != 0 {
 		runtime.Attack = extendedValue(int64(runtime.Attack) + int64(mAtk))
-	}
-	if mMag != 0 {
-		runtime.MagicAttack = extendedValue(int64(runtime.MagicAttack) + int64(mMag))
 	}
 	if mEva != 0 {
 		runtime.Evasion = extendedValue(int64(runtime.Evasion) + int64(mEva))
@@ -479,7 +495,6 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	runtime.CurMP = minU32(oldMP, runtime.MaxMP)
 	ch.RuntimeScore = &runtime
 
-	attackSpeed := minInt(15, int(base.AttackRun>>4)+int(total("EF_ATTSPEED")))
 	runSpeed := minInt(15, int(base.AttackRun&0x0F)+int(total("EF_RUNSPEED")))
 	if mRun > runSpeed {
 		// The mount imposes a speed floor (riding is faster).
@@ -490,9 +505,14 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		// additive item bonus. The authoritative 7.48 movement ceiling is 6.
 		runSpeed = clampInt(premium.runSpeed, 1, 6)
 	}
-	ch.RuntimeScore.AttackRun = uint32(attackSpeed<<4 | runSpeed)
+	// Template AttackRun high bits are not an extra attack-speed bonus. The
+	// client panel derives speed from effective DEX, item percentage points and
+	// active affects, above an implicit 100% base. Quantize only the final sum.
+	ch.RuntimeScore.AttackRun = uint32(runSpeed)
 	w.applyPassiveSkills(ch)
-	w.applyAffectStats(ch)
+	affectAttackSpeed := w.applyAffectStats(ch)
+	attackSpeedPoints := int(ch.RuntimeScore.Dex/5) + int(total("EF_ATTSPEED")) + affectAttackSpeed
+	ch.RuntimeScore.AttackRun = packedAttackSpeed(attackSpeedPoints) | ch.RuntimeScore.AttackRun&0x0F
 	if heldExperiencePenaltyActive(ch) {
 		ch.RuntimeScore.MaxHP /= 2
 	}

@@ -4,12 +4,13 @@
 
 class SControlContainer;
 
-// Installs optional diagnostics for the 7.48 client adaptation. The handler
-// writes a compact report and minidump without changing normal gameplay or
-// requiring an attached debugger.
+// Prepares a dedicated minidump worker and reserves main-thread exception stack.
+// The fault filter hands off the original thread/context without doing file I/O
+// on an exhausted stack. Startup failures are explicitly logged.
 void WYD748_InstallDiagnostics();
 
-// Appends a timestamped line to client-debug.log. This log is separate from
+// Appends UTC time, process/thread IDs and elapsed milliseconds to client-debug.log.
+// This log is separate from
 // TMLog because the exception handler may run while TMLog is being torn down.
 // The format follows printf; arguments are not retained.
 void WYD748_DiagnosticsLog(const char* format, ...);

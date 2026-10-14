@@ -51,6 +51,58 @@ unexercised catalog entries to `CLIENT_TESTED`. The sections below retain the
 limits of each proven flow; unresolved sale policy, legacy opcode and asset
 evidence must not be closed merely because the general session looked correct.
 
+## Crash capture and investigation, 2026-10-14
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Diagnostics only; no packet,
+asset, skill rule or visual contract changes.
+
+The October 13 Mana Control incident recorded `0xC00000FD` (stack overflow)
+and an empty dump. Windows subsequently recorded an access violation inside
+`dbgcore.dll` during capture. This proves that capture failed, not which
+gameplay function caused the original overflow. The original empty dump and
+logs must remain evidence; the skill crash is not considered resolved.
+
+`internal/platform/diagnostics/CrashCapture.h` now prepares a dedicated worker
+and loads system DbgHelp at startup. The main thread reserves 64 KiB for
+exception handling. The filter copies the original exception/context into
+preallocated storage and signals the worker, with a ten-second wait limit.
+It does not load DLLs, format text or write files on the exhausted stack.
+Other overflow-prone application threads must reserve their own exception
+stack at thread entry. The test covers both main-thread and secondary-thread
+overflow; it does not establish that every application thread is instrumented.
+
+Captures use UTC time, milliseconds, PID and the faulting thread ID in their
+names. They are created exclusively as `.dmp.partial`, checked for nonempty
+output and flushed before being renamed to `.dmp`. Failures retain partial
+evidence and report Windows error codes; they never report an empty file as
+a successful dump. The mechanism is best effort: process-wide corruption,
+external termination, unavailable storage or a stuck dump worker can still
+prevent a complete capture. It is not a recovery mechanism.
+
+`client-debug.log`, beside the executable, prefixes records with UTC time,
+PID, thread ID and elapsed milliseconds. Startup records identify the loaded
+executable, module base and compilation time. Crash records add the exception
+code/address, module base/RVA, faulting/capture thread IDs and dump result/path.
+Access violations record the attempted operation/address. Skill-grid self-buff
+use records send and local-prediction begin/end stages, using numeric skill,
+control and opcode IDs only. `WYD748_TRACE_PACKETS` remains opt-in metadata
+tracing; no packet payloads, passwords or chat are added by these hooks.
+
+For investigation, collect the dump, log and the exact executable/PDB pair
+from that build before rebuilding. Minidumps can contain private process
+memory even though the diagnostic hooks do not log credentials: do not post
+them publicly. A different build's PDB cannot reliably symbolize the crash.
+
+Validation: the integrated Release build passes the architecture, socket,
+launcher and new crash-capture gates. `CrashCaptureTests` checks actual dumps
+from isolated console subprocesses for stack overflow and access violation,
+including the original exception/thread/context, module and thread streams,
+separate capture thread, and bounded termination. Missing output directories
+and a simulated disk-full writer are rejected without a published dump.
+The game is never launched by this gate. This is `AUTOMATED TESTED` and build
+evidence, not `CLIENT_TESTED`; an in-game Mana Control reproduction with the
+instrumented executable remains pending.
+
 ## Input and layout review, 2026-10-10
 
 This batch reviews the current dirty tree, not only the last published commit.
@@ -986,6 +1038,117 @@ Client contracts in `UiModeContractTests.cpp`; `Build-Client.ps1 -NoDeploy`
 passed. Pending: `CLIENT-TESTED` (equip a costume in slot 12 next to an Angel,
 tooltip dates, Run Mode on a Shire Horse) and deployment of server + client
 together, since an old client cannot equip costumes in slot 12.
+
+### Terrain borders and map objects (2026-10-14)
+
+`MODERNIZACAO_COMPATIVEL`, client only.
+
+- Region attachment. `TMGroundAttachTable.h` is the 7.69 `SetAttatchEnable`
+  branch chain; 26 of the 123 shipped KR fields are absent from it, among them
+  (4,24) and (5,24). Unmatched regions kept stale or zero flags, so
+  `TMGround` walled every border with a 15-tile mask (players stopped at
+  x 655). Regions outside the table now attach each side whose neighbour ships
+  `Env/FieldXXYY.trn` and keep the native edge wall otherwise
+  (`ground_attach::FromNeighbours`). Two table regions close a side toward a KR
+  region, but neither border has a walkable tile.
+- Map objects after teleport. `MSG_CreateItem` can arrive before the warp that
+  loads its region. `OnPacketCreateItem` then took the height from the old
+  window's clamped edge (or failed for gates), leaving gates, towers and
+  obelisks buried, and the gate mask was written outside the window and lost on
+  rebuild. `TMScene::RefreshGroundObjects` runs after both height-window
+  rebuilds: it re-seats every object inside the new window with the
+  `OnPacketCreateItem` height rules and re-stamps gate collision from the
+  height last received (`TMGate::m_nMaskHeight`).
+- Server fixture state (wydgo748). TMSrv creates every map fixture open and
+  locks only keyed gates with `EF_KEYID` 1..14 (W2PP reference, matching the
+  user-reported live behaviour). `spawnInitItems` previously stamped every
+  fixture closed, including the Noatum castle gate (800, key 16) at
+  (1075,1711), so the server rejected movement through an open passage and
+  disconnected the player after 12 route violations. Open fixtures now leave
+  the base terrain untouched. This server has no Noatum castle war, so the
+  castle gates stay open.
+
+Validation: `GroundAttachTableTests` and `UiModeContractTests` checks,
+`init_items_748_test.go` initial states, full Go suite and vet,
+`Build-Client.ps1 -NoDeploy` (1,200,855 checks). Pending: `CLIENT-TESTED`.
+
+### UI2 vertical scrollbar (2026-10-13)
+
+`PARIDADE_NATIVA` from the exported native constructor `FUN_0040586f`. In UI
+mode 2 a vertical `SScrollBar` (the left chat-list bar uses x offset -5)
+attaches up 423 (10x17, `0xAAAA00FF`), down 424 at `height - 17 + 7`, thumb
+425 (8x17 at x+1) and track 426 (10 x height), in that order. The source used
+the 7.69 sets 174..176 and 510; 510 is absent from the 7.48
+`UITextureSetList.txt`, so the chat list showed a stray block without a track.
+Classic mode and horizontal bars keep their previous path. Pending:
+`CLIENT-TESTED` for the chat list and other scrolling lists.
+
+Texture-set audit (same date). `UI/UITextureSetList.txt` is unchanged since
+import, defines 446 sets (0..456) and is a superset of the OnGame list (only
+65 and 200 differ). Every set referenced by an RC file exists. Definition
+findings, none on an active path: 11 is the dynamic 384-pixel minimap; 65
+reads 64x128 DXT `.wys` textures; 30, 142, 169, 174 and 177 overrun their
+256-pixel atlas by one texel; 388/389 reach y=294 on a 256-pixel atlas but
+are referenced by no RC, source or exported native call; 427 (chat filter
+indicators) has zero-size rects, which the stretch renderer draws as one
+texel colour, so it is native data, not a defect. Source literals absent from
+7.48 are reserved or unreachable: 550..559 are registered in
+`TextureManager::InitUITextureSetList` for C.C., 527/528/548/549 belong to the
+guarded Japanese bag pages, 553 to the disabled age-rating panel, 510 only to
+the classic scrollbar branch and -489 to grid cells that are never drawn
+(`m_bDrawGrid` is always 0). Sets used with a 7.69 meaning were only the
+scrollbar's 174..176/510, now replaced; 199/200, 375, 350..356, 423..426, 446
+and the message-box sets match native constructor calls or their 7.48 names.
+
+### Minimap orientation (2026-10-13)
+
+`PARIDADE_NATIVA`. The native minimap control stores -45 degrees, matching the
+45-degree default camera; the direction arrow (`m_fAngle - 3*pi/4`) and the
+`TMHuman` party markers (0.7071 rotation) assume that frame. Commit `0d1f1fb0`
+set the panel to 0 degrees because rotating the quad turned the square crop
+into a diamond outside the border, which left the map rotated against the 3D
+view and the markers. A terrain/minimap overlay of region 17,28 confirmed the
+`UI/m*.wyt` tiles and the crop are correct (the player stood in a doorway), so
+only the presentation angle was wrong. The panel now stays axis-aligned and
+`RenderDevice` rotates the sampled texture by -45 degrees for that registered
+control only. Pending: `CLIENT-TESTED`, including the expanded map near tile
+edges, where the rotated corners may sample past the composed 3x3 tiles.
+
+### Imported costume and mount presentation (2026-10-13)
+
+Grid and ground icons resolve `BASE_GetMeshIndex` through `mesh/MeshList.txt`.
+
+- Costumes. Mesh 36 is the costume identity in the slot contract, but it
+  resolves to `sword16.msa`, so every costume looked like a sword.
+  `BASE_GetMeshIndex` now presents any `costume_slot::IsCostume` row with
+  `costume_slot::IconMesh` (2885, `skeltonmt.msa`), the mesh WYD KR's
+  `ItemList.bin` assigns to its costumes. Item data and the mesh-36 contract are
+  unchanged (`MODERNIZACAO_COMPATIVEL`, client only).
+- KR mounts. The 59 materialized `Mounts-KR.json` rows were cloned from the
+  Shire_Horse face row and kept its bush mesh (7, `bnsh05.msa`) and model class
+  43. Class 43 omits the BeastMaster bit, so the server rejected those mounts
+  for BeastMasters and the tooltip printed a partial class list. Both
+  `wydgo748/data/itemlist.csv` and `tmproject/client748/ItemList.bin` now use the
+  timed-horse icon (2821, `ches15.msa`) and `EF_CLASS 255`, matching WYD KR and
+  the native mounts. Mount visuals still come from the imported item table.
+- Tooltip. A KR mount row keeps `EF_RUNSPEED 6` as the server's final mounted
+  speed. The generic tooltip clamped it into "Moving Speed Increase : 2"; the
+  run-speed line is now omitted for every mount-slot item.
+- LavaGolem (4084) and LavaGrub (4085) were invisible: their KR face rows
+  select `mo010104.msh` and `gb010102.msh`, which exist in neither the shipped
+  client nor the local WYD KR/OnGame references. LavaGolem's KR row already
+  resolved to the Water_Golem (Aquagolem) texture `mo010104.wys`; at the user's
+  request it now uses the complete Water_Golem look (mesh 1, texture 2) in both
+  catalogs. LavaGrub likewise uses the only shipped grub look, Purple_Worm
+  (mesh 0, texture 0), at the user's request.
+
+Validation: `ServerNameAssetTests.cpp` checks the 59 mount rows, both icon
+meshes in `MeshList.txt` and the shipped files; `UiModeContractTests.cpp`
+checks the icon and tooltip paths; Go `internal/data` pins the catalog rows and
+the client/server mesh match. `Build-Client.ps1 -NoDeploy` and
+`go test ./...` passed. Pending: `CLIENT-TESTED` for both icons, the mount
+tooltip and a BeastMaster equipping a KR mount, plus a launcher patch carrying
+`WYD.exe` and `ItemList.bin` together with the server catalog.
 
 `tools/client-assets/Export-CostumeTable.ps1` emits the C++ table for review;
 `-Check` compares the compiled header with the manifest and checks referenced
@@ -2015,6 +2178,139 @@ tests for character reset, quest timers and wire projection passed, and
 repair, not a claim that the entire suite was rerun after the repair. Portal
 tests (four), type checking and production build passed; admin-PIN tests
 (four) passed. Player settings were excluded from the commit and patch.
+
+## Mount rider offsets (2026-10-14)
+
+Riders sank into several imported KR mounts (for example KR Iceland Wolf 6011)
+because `TMHuman::Render` used 7.69 offsets that know none of the KR mount
+types. `MountRiderOffset.h` now reproduces both native binaries:
+
+- Native 7.48 `WYD.exe` `0x504040..0x5042bd`: rules for mount types 20, 25,
+  28, 29 and the class-40 rider; everything else uses the default
+  `(-0.37s, 1/s, 0.2s)`.
+- KR `WYD.exe` `0x5588cc..0x558db0` (x87 constants stored as doubles): extra
+  meshes for 20/29 and types 31, 34, 35, 38, 41, 48..53 and 59. The sequence
+  was emulated over 580,800 input combinations; the port matches all of them.
+
+Native mount items (`m_bImportedMountVisual == false`) keep the 7.48 rules for
+types 20/25/28/29; imported KR visuals and costume mounts use the KR rules.
+The removed 7.69 adjustments had also shifted native type 20/29 riders.
+Classification: `PARIDADE_NATIVA` for native mounts, KR-binary evidence for
+imported ones. `MountRiderOffsetTests.cpp` checks 33 emulator vectors, the
+native cases and the render wiring. Visual confirmation in game is pending.
+
+## KR costume mount import, second batch (2026-10-14)
+
+An audit of the KR `ItemList.bin` (164-byte rows, XOR `0x5A`) found 46 KR
+costume mounts (4236..4299) missing from the import table. Their visuals come
+from KR `MountDataV.bin` (28-byte rows: type, mesh0..2, skin0..2, sanc0..2,
+float scale), selected by the KR item's field at offset 64. 39 have every
+mesh and texture in the shipped client and their textures are already
+registered in `MeshTextureList.bin`; they were imported with their KR indices:
+4236..4240, 4242, 4243, 4250, 4251 and 4270..4299. Seven lack meshes in both
+the client and the KR reference and stay out: 4244..4249 and 4252.
+
+- Server: `itemlist.csv`/`Itemname.csv` rows clone the KR mount premium
+  contract (icon 2821, `EF_CLASS 255`); shops ShopKRMt02/03 were filled to 27
+  and the new ShopKRMt04 (generator 5226, Armia 2116,2104) sells the rest.
+- Client: `ItemList.bin` rows, `Mounts-KR.json` (with `visualSource`) and the
+  `kImportedMounts` table. Tests: 98 KR mounts in the catalog, shops and
+  `ItemList.bin`, and a visual row for every new item.
+
+A final review compared every visual row with `MountDataV.bin`. The KR timed
+and premium mounts (6000..6014, sources 2962..2964 and 3975..3999) also select
+their visual through field 64, and their rows had been shifted: for example
+Dragon_Red drew a tiger and Iceland Wolf used the tiger skeleton instead of
+the wolf (`wf01`, type 28). Those rows and 4233/4234 (Barbarian Horse/Boar)
+now use the KR data; every model, texture and texture registration exists.
+6003 (Immortal Courser) was wrongly marked as missing assets and is now
+available, for 99 KR mounts in total. Remaining known gaps: 4220 (Carnival
+Mount) points to `hs010120.msh`, absent from both the client and the KR
+reference, so it renders without a body; 4225 keeps the KR executable's 0.9
+scale against the data's 1.0. Bone lists for every mount type match KR.
+
+## Costume audit and refinement lock (2026-10-14)
+
+- Refinement: costumes (`model.IsCostumeDef`) and every familiar-slot item
+  (`Pos` bit 13: fairies, Firals, Angels) reject Ori/Lac refinement and Odin
+  refinement in both the direct and the critical-persistence paths; the
+  powder is kept. Fairy Water keeps its native fixed-target rule (+6 on
+  Naiads/Grewpain). Tests: `refine_locked_test.go`.
+- Missing textures: eleven imported renderers (4470, 4472..4475, 4485..4490)
+  use `ch0101282..302.wys`, which the shipped `MeshTextureList.bin` never
+  registered, so they drew untextured. `CostumeTable.generated.h` now exports
+  the 176 manifest textures and `InitModelTextureList` appends any missing
+  row (`model_texture_748::RegisterTextures`, all-or-nothing, existing IDs
+  preserved). No asset was patched.
+- Eight costumes were marked unavailable only because their `.wyt` texture
+  name has no file, but the model table resolves `.wyt` to the registered
+  `.wys` (`SameName`). 4157..4162 use the native 7.48 `SetHumanCostume` types
+  6..11; KR 4187/4188 were added as types 10/8. `costume748::Select` now
+  delegates types 1..11 to the native renderer. They are in the catalog,
+  `ItemList.bin` and the new ShopCostum06 (generator 5227, Armia 2117,2104):
+  143 costumes in total.
+- Still unavailable: 21st Hero's Costume (4418, type 231 has no renderer) and
+  the KR rows whose meshes exist in neither client.
+
+## Minimap header and BM transformations (2026-10-14)
+
+- Minimap header: the empty band above the compact UI2 map is the native
+  header (control 6136). WYD.exe binds 6136/6137 at `0x43fa91` and writes
+  `"%s-%d"` (server group name, channel) into 6137 at `0x47a336`;
+  `FUN_0044ca65` shows it at (0, -19) in the compact map and hides it when
+  expanded. The port had hidden it as a placeholder; it now shows the label.
+  The compact coordinates follow the native `"X: %4d  Y: %4d"` at (13, 120)
+  inside the map; the expanded map keeps its row below (`PARIDADE_NATIVA` for
+  the compact layout).
+- Wolf/Bear animations: both forms use skin type 3 (`wb01`). MeshManager never
+  fills `m_sAnimationArray[3]`, so the unmounted `SetAnimation` branch turned
+  every motion into frame 0: the form slid and never attacked. That branch now
+  reads the AniSound4 file indices directly, as the mounted branch already did.
+- Transformation glow: the server now refines the transformed face as W2PP
+  `GetCurrentScore` Type 16 does: `((Nature + level*2)/3 - BaseSanc)/12`,
+  clamped 0..9, with BaseSanc 15/60/115/155/155 and +399 levels above Arch.
+  This follows the W2PP reference, not recorded native-server evidence.
+
+## Armia birth point and Arch hometown (2026-10-14)
+
+- Armia birth point: the Armia city exit (login, recall and death respawn for
+  Armia-bound characters, and the city-war exit) is now 2091,2100. Each
+  login/recall/respawn picks a random walkable tile within ±5 on both axes
+  (`World.homeCitySpawn`, private random source so gameplay rolls are not
+  consumed). Mortals below level 35 still use the W2PP beginner field.
+- Arch in the ice city: `character_templates.json` stored `merchant: 192`,
+  hometown bits 3 = Nippleheim. Beginners hid it, but an Arch (never a
+  beginner) inherited it and was born in Nippleheim. The template now stores
+  0 (Armia) and `createArch` clears the hometown bits. Characters created
+  earlier keep bits 3 until they bind a city with ChangeCity.
+
+## Kingdom guard aggro (2026-10-14)
+
+Kingdom guards (Aberes, K's GuardChief, Magician, Pikeman, Virago, Wizard,
+Field Combatant and their `_` variants) wear Hekalotia 734/736 or Akelonia
+735/737 capes. Like W2PP `GetEnemyFromView` (`g_pClanTable`), a guard no
+longer picks a player of its own kingdom (cape via `KingdomFromCape`) as a new
+target; it still targets the other kingdom and neutral players, and still
+retaliates when attacked. Server only; test `kingdom_guard_test.go`.
+
+## Transformation kept after face updates (2026-10-14)
+
+Kibita citizenship and kingdom changes send `SendItem` for equipment slot 0
+with the real face (citizenship metadata lives there). The client rebuilds the
+owner's body from that face, so an active BM transformation vanished while
+its affect icon remained. The server now re-sends the owner's visual
+equipment (`restoreTransformationView`, only while affect 16 is active).
+Test: `TestCitizenshipKeepsActiveTransformationVisible`.
+
+## FPS and ping under the minimap (2026-10-14)
+
+A WYD-Go HUD addition (`MODERNIZACAO_COMPATIVEL`, no wire change), hidden by
+default and toggled by the local `/fps` chat command (never sent to the
+server): a text row under the minimap coordinates shows `FPS: n  Ping: n ms`, refreshed every
+500 ms. FPS is `RenderDevice::m_fFPS`; ping is the game socket's smoothed TCP
+round-trip time from Windows `SIO_TCP_INFO` (`CPSock::RoundTripMs`, links
+`Ws2_32.lib`), shown as `--` when unavailable. The row sits under the map
+when the UI2 compact coordinates are inside it, otherwise under their row.
 
 ## Adaptation sequence
 

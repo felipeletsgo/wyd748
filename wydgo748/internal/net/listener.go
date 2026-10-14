@@ -22,7 +22,7 @@ type ListenerConfig struct {
 	MaxConnections       int
 	MaxConnectionsPerIP  int
 	HandshakeTimeout     time.Duration
-	SessionIdleTimeout   time.Duration
+	SessionIdleTimeout   time.Duration // Legacy name: absolute pre-auth limit only.
 	FrameReadTimeout     time.Duration
 	InboundPacketsPerSec int
 	InboundBytesPerSec   int

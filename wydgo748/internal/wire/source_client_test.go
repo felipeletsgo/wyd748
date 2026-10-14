@@ -81,7 +81,7 @@ func TestCanonicalMobPacketsUseScore140(t *testing.T) {
 	anct := make([]byte, 18)
 	mesh[0], mesh[17], anct[0], anct[17] = 22, 39, 3, 7
 	create := CreateMobWithGuildRank(1001, "Observer", 100, 101, mesh, anct,
-		score, nil, 2, 0x1234, model.GuildRankLeader, 55)
+		score, nil, 2, 0x1234, model.GuildRankLeader, 55, 3)
 	if len(create) != 328 || ParseHeader(create).Type != OpCreateMob || ParseHeader(create).ID != SceneField ||
 		binary.LittleEndian.Uint16(create[12:14]) != 100 ||
 		binary.LittleEndian.Uint16(create[14:16]) != 101 ||
@@ -94,7 +94,7 @@ func TestCanonicalMobPacketsUseScore140(t *testing.T) {
 		create[136] != model.GuildRankLeader ||
 		binary.LittleEndian.Uint32(create[148:152]) != 777 ||
 		binary.LittleEndian.Uint16(create[280:282]) != 2 ||
-		create[282] != 3 || create[299] != 7 {
+		create[282] != 3 || create[299] != 7 || create[326] != 3 || create[327] != 0 {
 		t.Fatalf("CreateMob ABI: len=%d", len(create))
 	}
 	refresh := MobScore(1001, score, nil)

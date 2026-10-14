@@ -24,8 +24,10 @@ func TestClient748InitItemsSpawnWithReservedCannonIDs(t *testing.T) {
 	if len(objects) != 96 {
 		t.Fatalf("loaded %d objects; want 96", len(objects))
 	}
-	w, err := worldComObjetos(objects...)
-	if err != nil {
+	// Production assigns the catalog before spawning fixtures; their initial
+	// state depends on EF_KEYID.
+	w := &World{groundItems: map[uint16]*GroundItem{}, items: catalog.Items, nextItemID: 10000, initItems: objects}
+	if err := w.spawnInitItems(); err != nil {
 		t.Fatal(err)
 	}
 	if len(w.groundItems) != len(objects) {
@@ -54,13 +56,15 @@ func TestClient748InitItemsSpawnWithReservedCannonIDs(t *testing.T) {
 		def := catalog.Items[item.Item.Index]
 		if staticEffect(def, "EF_GROUND") > 0 {
 			groundMasks++
-			wantState := clientGateClosed
-			if staticEffect(def, "EF_KEYID") > 0 {
-				wantState = clientGateLocked
+			// TMSrv creates every fixture open and locks only keyed gates with
+			// EF_KEYID 1..14; the Noatum castle gates (15/16) stay open.
+			wantState, wantHeight := clientGateOpen, byte(0)
+			if key := staticEffect(def, "EF_KEYID"); key > 0 && key < 15 {
+				wantState, wantHeight = clientGateLocked, clientGateHeight
 			}
-			if pkt[27] != wantState || pkt[28] != clientGateHeight {
-				t.Fatalf("ground object %d has state/height %d/%d; want %d/%d",
-					id, pkt[27], pkt[28], wantState, clientGateHeight)
+			if pkt[27] != wantState || pkt[28] != wantHeight {
+				t.Fatalf("ground object %d (item %d) has state/height %d/%d; want %d/%d",
+					id, item.Item.Index, pkt[27], pkt[28], wantState, wantHeight)
 			}
 		} else if pkt[27] != 0 || pkt[28] != 0 {
 			t.Fatalf("non-ground object %d has state/height %d/%d; want 0/0", id, pkt[27], pkt[28])
@@ -68,6 +72,15 @@ func TestClient748InitItemsSpawnWithReservedCannonIDs(t *testing.T) {
 	}
 	if cannons != 25 {
 		t.Fatalf("spawned %d cannons; want 25", cannons)
+	}
+	noatumGateOpen := false
+	for _, item := range w.groundItems {
+		if item.Item.Index == 800 && item.X == 1075 && item.Y == 1711 {
+			noatumGateOpen = item.State == gateOpen
+		}
+	}
+	if !noatumGateOpen {
+		t.Fatal("the Noatum castle gate must start open")
 	}
 	if groundMasks == 0 {
 		t.Fatal("no ground-mask objects found in the 96-object catalog")

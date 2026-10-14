@@ -12,6 +12,11 @@ inline constexpr int FamiliarSlot = 13;
 inline constexpr int CostumeMesh = 36;
 inline constexpr int CostumeSlotMask = 1 << CostumeSlot;
 inline constexpr int NativeCostumeSlotMask = 1 << FamiliarSlot;
+// Grid and ground presentation only; mesh 36 stays the costume identity.
+// MeshList.txt resolves 36 to sword16.msa, so every costume looked like a
+// sword. WYD KR presents its costumes with skeltonmt.msa (2885), which this
+// client already ships unused.
+inline constexpr int IconMesh = 2885;
 
 constexpr bool IsCostume(int mesh, int position)
 {

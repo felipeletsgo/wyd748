@@ -9,7 +9,8 @@
       "moderation.player.kick",
       "moderation.player.teleport",
       "economy.premium.catalog",
-      "economy.donate.credit"
+      "economy.donate.credit",
+      "game.command.goto"
     ]
   }
 }

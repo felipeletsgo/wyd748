@@ -93,6 +93,9 @@ public:
     void Warp();
     void Warp2(int nZoneX, int nZoneY);
     void SaveHeightMap(char* szFileName);
+    // After a height-window rebuild, re-stamps known gates onto
+    // m_HeightMapData and re-seats ground objects inside the new window.
+    void RefreshGroundObjects();
     void CameraAction();
     void ReadCameraPos(const char* szFileName);
     int LoadMsgText(SListBox* pListBox, const char* szFileName);

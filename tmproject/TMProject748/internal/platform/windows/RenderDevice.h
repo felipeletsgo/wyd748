@@ -64,6 +64,7 @@ public:
 		float fAngle, IDirect3DTexture9* pTexture, float fScaleX, float fScaleY);
 
 	void RenderGeomRectImage(GeomControl* ipControl);
+	void RenderGeomRectImageCore(GeomControl* ipControl);
 	void RenderGeomControl(GeomControl* ipControl);
 	void RenderGeomControlBG(GeomControl* ipControl, DWORD dwColor, int nTextureIndex);
 
@@ -151,6 +152,12 @@ public:
 	// remain W/800 and H/600 for the places the native client still scales.
 	static float m_fUIScaleX;
 	static float m_fUIScaleY;
+	// Texture-space rotation for one registered control (the field minimap):
+	// the quad stays axis-aligned inside its frame while the sampled image
+	// rotates, so the rotated map never escapes the native border.
+	static const GeomControl* m_pTextureRotationControl;
+	static float m_fTextureRotation;
+	float m_fActiveTextureRotation = 0.0f;
 	// Converts a 7.48 layout length (800x600 pixels) to screen pixels.
 	static float UiPx(float value) { return value * m_fUIScaleX; }
 	static float m_fFOVY;

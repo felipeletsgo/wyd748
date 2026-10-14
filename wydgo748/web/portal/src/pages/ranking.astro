@@ -2,9 +2,20 @@
 import Public from '../layouts/Public.astro';
 ---
 <Public title="Ranking">
-  <section class="panel">
-    <span class="title">Ranking</span>
+  <section class="panel" id="ranking-panel">
+    <h1 class="title">Ranking</h1>
+    <fieldset class="ranking-filters" disabled><legend class="sr-only">Filter the top 100</legend>
+      <label class="ranking-search">Character<input id="ranking-search" type="search" maxlength="24" placeholder="Search top 100" autocomplete="off" /></label>
+      <label>Class<select id="ranking-class"><option value="">All classes</option><option value="0">TransKnight</option><option value="1">Foema</option><option value="2">BeastMaster</option><option value="3">Hunter</option></select></label>
+      <label>Evolution<select id="ranking-evolution"><option value="">All evolutions</option><option value="mortal">Mortal</option><option value="arch">Arch</option><option value="celestial">Celestial</option><option value="subcelestial">Subcelestial</option></select></label>
+      <button class="button" type="button" id="ranking-reset">Clear</button>
+    </fieldset>
+    <p class="muted">Global top 100 · Saved data · 30s cache</p>
     <div class="table-wrap"><table><thead><tr><th>#</th><th>Character</th><th>Class</th><th>Level</th><th>Evolution</th></tr></thead><tbody id="ranking-characters"></tbody></table></div>
+    <div class="pagination" aria-label="Ranking pages"><button class="button" type="button" id="ranking-previous" disabled>Previous</button><span id="ranking-page" role="status" aria-live="polite"></span><button class="button" type="button" id="ranking-next" disabled>Next</button></div>
+    <button class="button" type="button" id="ranking-refresh">Refresh</button>
     <p class="status" id="ranking-status" role="status" aria-live="polite"></p>
+    <noscript>Enable JavaScript to load the ranking.</noscript>
   </section>
+  <script>import { mountRanking } from '../lib/ranking'; const root = document.getElementById('ranking-panel'); if (root) mountRanking(root);</script>
 </Public>

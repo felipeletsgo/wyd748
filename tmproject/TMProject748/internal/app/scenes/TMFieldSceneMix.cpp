@@ -8,6 +8,9 @@
 #include "WYD748Assets.h"
 #include "TMGround.h"
 #include "TMHuman.h"
+#include "ClientDiagnostics.h"
+#include "ItemEffect.h"
+#include "../../ui/NativeAylinPreview.h"
 
 SPanel* TMFieldScene::GetNativeMixPanel(int mixIndex) const
 {
@@ -130,9 +133,44 @@ void TMFieldScene::ClearNativeMix(int mixIndex)
 	}
 
 	ResetNativeMixPacket(mixIndex);
+	if (mixIndex == 2)
+		RefreshNativeMixPreview();
 
 	SetInventoryGridType(TMEGRIDTYPE::GRID_DEFAULT);
 	SetEquipGridState(1);
+}
+
+void TMFieldScene::RefreshNativeMixPreview()
+{
+	for (auto grid : m_pGridMixResult)
+	{
+		if (!grid)
+			continue;
+		auto preview = grid->PickupItem(0, 0);
+		if (g_pCursor && g_pCursor->m_pAttachedItem == preview)
+			g_pCursor->m_pAttachedItem = nullptr;
+		SAFE_DELETE(preview);
+	}
+
+	auto panel = GetNativeMixPanel(2);
+	auto packet = GetNativeMixPacket(2);
+	if (!panel || !panel->IsVisible() || !packet)
+		return;
+	static_assert(native_aylin::RefinementEffect == EF_SANC);
+	std::array<STRUCT_ITEM, 4> results{};
+	if (!native_aylin::Build(packet->Item[0], packet->Item[1],
+		packet->Item[3].sIndex, BASE_GetItemSanc(&packet->Item[0]), results))
+		return;
+
+	for (int slot = 0; slot < 4; ++slot)
+	{
+		if (!m_pGridMixResult[slot])
+			continue;
+		auto itemCopy = new STRUCT_ITEM(results[slot]);
+		auto preview = new SGridControlItem(nullptr, itemCopy, 0.0f, 0.0f);
+		if (m_pGridMixResult[slot]->AddItem(preview, 0, 0) != 1)
+			SAFE_DELETE(preview);
+	}
 }
 
 void TMFieldScene::DoNativeMix(int mixIndex)
@@ -369,6 +407,8 @@ int TMFieldScene::TryStageNativeMixItem(SGridControl* sourceGrid,
 	packet->CarryPos[targetSlot] = static_cast<char>(carrySlot);
 	sourceItem->m_GCObj.dwColor = 0xFFFF0000;
 	if (g_pCursor) g_pCursor->DetachItem();
+	if (activeMix == 2)
+		RefreshNativeMixPreview();
 	return 1;
 }
 
@@ -409,6 +449,8 @@ int TMFieldScene::TryRemoveNativeMixItem(SGridControl* mixGrid)
 			if (g_pCursor && g_pCursor->m_pAttachedItem == stagedItem)
 				g_pCursor->m_pAttachedItem = nullptr;
 			SAFE_DELETE(stagedItem);
+			if (mixIndex == 2)
+				RefreshNativeMixPreview();
 			return 1;
 		}
 	}
@@ -499,6 +541,12 @@ int TMFieldScene::MouseClick_MixNPC(TMHuman* pOver)
 
 	const int chunkX = static_cast<int>(m_pGround->m_vecOffsetIndex.x);
 	const int chunkY = static_cast<int>(m_pGround->m_vecOffsetIndex.y);
+	// One line per NPC click: the artisan route depends on head, Merchant,
+	// ground chunk and the six FieldScene2 panels all matching at once.
+	WYD748_DiagnosticsLog("mix npc click id=%u head=%d merchant=0x%02X chunk=%d,%d panels=%p/%p/%p/%p/%p/%p\r\n",
+		pOver->m_dwID, pOver->m_sHeadIndex, static_cast<unsigned int>(pOver->m_stScore.Merchant & 0xFF),
+		chunkX, chunkY, m_pItemMixPanel, m_pItemMixPanel2, m_pItemMixPanel3,
+		m_pItemMixPanel4, m_pItemMixPanel5, m_pItemMixPanel6);
 	auto toggleMix = [this](int mixIndex)
 	{
 		auto panel = GetNativeMixPanel(mixIndex);
@@ -508,7 +556,8 @@ int TMFieldScene::MouseClick_MixNPC(TMHuman* pOver)
 		return true;
 	};
 
-	// FUN_0047e4d6 checks these routes in this exact order. Head alone is not
+	// FUN_0045ee28 (native NPC click router) checks these routes in this exact
+	// order, reading the chunk from m_pGround->m_vecOffsetIndex. Head alone is not
 	// sufficient because 7.48 deliberately reuses Lindy/Odin and Tiny/Ehre skins.
 	if (pOver->m_sHeadIndex == 67 && chunkX == 13 && chunkY == 13)
 	{

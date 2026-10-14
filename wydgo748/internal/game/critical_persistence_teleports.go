@@ -3,16 +3,26 @@ package game
 import (
 	"errors"
 	"log"
+	"maps"
 	"time"
 
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
 )
 
+// criticalTeleportTile reserves one exact map tile in a gameplay space. It must
+// not use spatialKey: a 16x16 spatial cell would let one reservation block the
+// whole cell, and callers decode tile as exact coordinates.
 type criticalTeleportTile struct {
-	cell  uint32
+	tile  uint32
 	space string
 }
+
+func criticalTile(x, y uint16, space string) criticalTeleportTile {
+	return criticalTeleportTile{uint32(x)<<16 | uint32(y), space}
+}
+
+func (t criticalTeleportTile) xy() (uint16, uint16) { return uint16(t.tile >> 16), uint16(t.tile) }
 
 // Gold, consumption and hometown binding are one detached account proposal.
 // Neither the source position nor destination ownership changes before commit.
@@ -23,6 +33,27 @@ func (w *World) queuePlayerTeleport(p *Player, proposed *model.Account, x, y uin
 
 func (w *World) queuePlayerTeleportState(p *Player, proposed *model.Account, x, y uint16,
 	operation string, publish func(), afterAck func(), reject func(), revive bool) error {
+	return w.queuePlayerTeleportSnapshot(p, proposed, x, y, operation, publish, afterAck, reject, revive, nil)
+}
+
+// Counter-backed admission commits the balance and position together. A store
+// that cannot persist character state must not silently grant a free entry.
+func (w *World) queuePlayerTeleportWithCounters(p *Player, proposed *model.Account, counters map[string]uint32,
+	x, y uint16, operation string, publish func()) error {
+	if p == nil || p.Char == nil || p.Char.UID == "" || w.criticalWrites == nil {
+		return errCriticalPersistenceIdentity
+	}
+	if !w.criticalStoreHasSidecars() {
+		return errCriticalPersistenceUnsupported
+	}
+	state := buildCharState(p, w.now())
+	state.SpecialCoins = maps.Clone(counters)
+	return w.queuePlayerTeleportSnapshot(p, proposed, x, y, operation, publish, nil, nil, false,
+		&criticalCharacterState{uid: p.Char.UID, state: state})
+}
+
+func (w *World) queuePlayerTeleportSnapshot(p *Player, proposed *model.Account, x, y uint16,
+	operation string, publish func(), afterAck func(), reject func(), revive bool, character *criticalCharacterState) error {
 	if p == nil || p.Char == nil || p.Account == nil || proposed == nil ||
 		!bindCriticalPlayer(p).current(w) || w.criticalWrites == nil {
 		return errCriticalPersistenceIdentity
@@ -44,7 +75,7 @@ func (w *World) queuePlayerTeleportState(p *Player, proposed *model.Account, x, 
 	oldX, oldY, oldSpace := p.X, p.Y, w.playerRuntimeInstanceID(p.ID)
 	// Public teleports also commit definitive departure from any retained room.
 	// Entry or movement within a private room requires a separate proposal.
-	tile, admitted := criticalTeleportTile{spatialKey(x, y), ""}, false
+	tile, admitted := criticalTile(x, y, ""), false
 	deadAt := p.DeadAt
 	var corpseObservers []*Player
 	if revive {
@@ -89,10 +120,13 @@ func (w *World) queuePlayerTeleportState(p *Player, proposed *model.Account, x, 
 			}
 		},
 	}
-	returnErr := w.queueCriticalAccountWrite(p, proposed, criticalWrite{instances: departure.snapshot()}, operation,
+	returnErr := w.queueCriticalAccountWrite(p, proposed, criticalWrite{instances: departure.snapshot(), character: character}, operation,
 		"The teleport could not be completed.", func() {
 			departure.install(w)
 			p.Char.Gold, p.Char.Inv = ch.Gold, ch.Inv
+			if character != nil {
+				p.SpecialCoins = maps.Clone(character.state.SpecialCoins)
+			}
 			if revive {
 				setPlayerCurHP(p.Char, playerCurHP(ch))
 				p.DeadAt = time.Time{}

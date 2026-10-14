@@ -1,10 +1,20 @@
 ---
 import Public from '../layouts/Public.astro';
+import { news, clientRelease } from '../data/public-content';
 ---
 <Public title="Home">
   <section class="panel center">
-    <span class="title">WYD 7.48</span>
-    <p>Create an account, download the client and play.</p>
+    <h1 class="title">WYD 7.48</h1>
+    <p>A familiar world, a rebuilt server. Join the testing journey.</p>
     <p><a class="button" href="/register/">New Account</a> <a class="button" href="/download/">Download</a></p>
+  </section>
+  <section class="panel"><h2 class="title">Start here</h2>
+    <div class="card-grid"><a class="content-card" href="/play/getting-started/"><h3>Getting started</h3><p>Install, update and create your first character.</p></a><a class="content-card" href="/play/classes/"><h3>Choose a class</h3><p>Meet the four starting classes.</p></a></div>
+    <p>Client {clientRelease.clientVersion} · Latest published patch {clientRelease.patchVersion}</p>
+    <p class="links"><a href="/ranking/">Character ranking</a> · <a href="/play/server/">Server information</a></p>
+  </section>
+  <section class="panel"><h2 class="title">Latest news</h2>
+    {news.slice(0, 3).map(post => <article class="content-entry"><p class="eyebrow"><time datetime={post.date}>{post.date}</time> · {post.category}</p><h3><a href={`/news/${post.slug}/`}>{post.title}</a></h3><p>{post.summary}</p></article>)}
+    <p class="links"><a href="/news/">All news</a></p>
   </section>
 </Public>

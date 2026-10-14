@@ -116,6 +116,20 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
                         return;
                     }
                 }
+                // The wolf/bear skeleton (wb01, BM Wolf and Bear forms) never fills
+                // m_sAnimationArray[3]; its AniSound4 rows already hold file
+                // indices, exactly as the mounted branch above reads them.
+                // Through the empty array every motion resolved to frame 0, so
+                // the form slid without walking or attacking.
+                else if (m_nSkinMeshType == 3)
+                {
+                    if (!m_pSkinMesh->SetAnimation(g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion])
+                        && !g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion])
+                    {
+                        m_eMotion = eMotion;
+                        return;
+                    }
+                }
                 else if (!m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion]])
                     && !g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion])
                 {

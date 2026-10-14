@@ -240,7 +240,13 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
 		}
 	case chatChannelCitizenship:
-		if !w.allowChat(p, chatChannelCitizenship, w.now()) || p.Char.Citizenship == 0 {
+		// '@@' reaches every online character holding the sender's citizenship.
+		// Tell a sender without citizenship instead of dropping the line.
+		if p.Char.Citizenship == 0 {
+			s.Send(wire.MessagePanel("You need citizenship to use @@ chat."))
+			return
+		}
+		if !w.allowChat(p, chatChannelCitizenship, w.now()) {
 			return
 		}
 		for _, observer := range w.players {
@@ -250,17 +256,14 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 			}
 			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
 		}
-	case chatChannelKingdom:
-		if !w.allowChat(p, chatChannelKingdom, w.now()) {
-			return
-		}
-		kingdom := characterKingdom(p.Char)
-		if kingdom == model.KingdomNeutral {
+	case chatChannelServer:
+		// '@' reaches everyone on this channel. One World is one channel, so
+		// the audience is every character in the world.
+		if !w.allowChat(p, chatChannelServer, w.now()) {
 			return
 		}
 		for _, observer := range w.players {
-			if observer == p || !observer.InWorld || observer.Session == nil ||
-				observer.Char == nil || characterKingdom(observer.Char) != kingdom {
+			if observer == p || !observer.InWorld || observer.Session == nil {
 				continue
 			}
 			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
@@ -280,7 +283,7 @@ const (
 	chatChannelParty       = "party"
 	chatChannelGlobal      = "global"
 	chatChannelCitizenship = "citizenship"
-	chatChannelKingdom     = "kingdom"
+	chatChannelServer      = "channel"
 	chatChannelGuild       = "guild"
 	chatChannelWhisper     = "whisper"
 )
@@ -299,7 +302,7 @@ func chatChannelOf(message string) string {
 	case strings.HasPrefix(message, "@@"):
 		return chatChannelCitizenship
 	case strings.HasPrefix(message, "@"):
-		return chatChannelKingdom
+		return chatChannelServer
 	case strings.HasPrefix(message, "-"):
 		return chatChannelGuild
 	default:
@@ -342,7 +345,11 @@ var chatCommandAliases = map[string]string{
 }
 
 func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string) bool {
-	command, known := chatCommandAliases[strings.ToLower(strings.TrimSpace(name))]
+	key := strings.ToLower(strings.TrimSpace(name))
+	if key == "goto" {
+		return w.staffGoto(s, p, arg)
+	}
+	command, known := chatCommandAliases[key]
 	if !known {
 		return false
 	}
@@ -619,7 +626,7 @@ func (w *World) executeShout(s *net.Session, p *Player, message string) {
 		if !s.IsClosed() {
 			s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
 		}
-		w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", message, 7) })
+		w.broadcast(func() []byte { return wire.PlayerShout(p.Char.Name, message) })
 		log.Printf("[#%d] /spk %q", s.ID, message)
 	}
 	if w.criticalWrites != nil {

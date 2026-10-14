@@ -66,6 +66,24 @@ func (w *World) mobCanTargetPlayer(m *Mob, p *Player) bool {
 		(p.Char == nil || !hasActiveAffectAt(p.Char, 28, w.now()))
 }
 
+// mobKingdom derives a mob's kingdom from its cape, as players' kingdom is
+// (W2PP Clan 7 Hekalotia / 8 Akelonia). Neutral mobs have no kingdom.
+func mobKingdom(m *Mob) byte {
+	if m == nil || m.Def == nil {
+		return model.KingdomNeutral
+	}
+	return model.KingdomFromCape(m.Def.Equip.Capa.Index)
+}
+
+// sameKingdomGuard reports a kingdom guard facing a player of its own kingdom.
+// Like W2PP GetEnemyFromView (g_pClanTable), it only blocks aggro: a blue
+// (Hekalotia) guard never picks a blue-cape player as a new target, nor a red
+// (Akelonia) guard a red one. A guard that is attacked still retaliates.
+func sameKingdomGuard(m *Mob, p *Player) bool {
+	kingdom := mobKingdom(m)
+	return kingdom != model.KingdomNeutral && p != nil && p.Char != nil && characterKingdom(p.Char) == kingdom
+}
+
 func validPlayerMobParticipant(p *Player) bool {
 	return p != nil && p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0
 }

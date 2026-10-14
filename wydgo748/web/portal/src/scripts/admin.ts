@@ -1,4 +1,5 @@
 import type { components } from '../lib/api.generated';
+import { RegistrationChallenge } from '../lib/registration-challenge';
 import { setupGlobalDrop } from './global-drop';
 import { setupQuiz } from './quiz';
 import { setupBosses } from './bosses';
@@ -21,6 +22,12 @@ const el = <T extends HTMLElement = HTMLElement>(id: string) => {
 const text = (id: string, value: string | number) => { el(id).textContent = String(value); };
 const date = (value: string) => new Date(value).toLocaleString('en-US', { dateStyle: 'short', timeStyle: 'medium' });
 let session: Session | undefined;
+let loginSubmitting = false;
+const loginChallenge = new RegistrationChallenge(el('staff-challenge'), error => {
+  updateLogin();
+  if (error) text('login-message', error);
+});
+function updateLogin() { el<HTMLButtonElement>('login-submit').disabled = !session || !loginChallenge.token || loginSubmitting; }
 let snapshot: Overview | undefined;
 let busy = false;
 let offset = 0;
@@ -39,6 +46,8 @@ class APIError extends Error {
 const messages: Record<string, string> = {
   invalid_credentials: 'Invalid account, password, or admin PIN, or access is not authorized.',
   invalid_admin_pin: 'Invalid admin PIN.',
+  human_verification_required: 'Complete human verification before signing in.',
+  human_verification_failed: 'Human verification failed or expired. Please verify again.',
   username_unavailable: 'This account name is already in use.',
   validation_error: 'Check the account name, password, and confirmation against the 7.48 client rules.',
   registration_unavailable: 'Account creation is available only in the panel integrated with tm.exe.',
@@ -49,7 +58,7 @@ const messages: Record<string, string> = {
   staff_revoked: 'This account’s authorization has changed. Sign in again or contact an administrator.',
   capability_required: 'Your account does not have permission to perform this action.',
   moderation_unavailable: 'Moderation requires an updated panel integrated with tm.exe. The separate Web API remains read-only.',
-  rate_limited: 'Too many attempts. Please wait one minute and try again.',
+  rate_limited: 'Too many attempts. Please wait before trying again.',
   control_busy: 'The server is processing another request. Please wait and try again.',
   invalid_query: 'Invalid search. Check the text and limits entered.',
   invalid_target: 'The selected player does not have a valid persistent identity.',
@@ -88,6 +97,7 @@ const moderationPanel = setupPlayerModeration(api, explain);
 const teleportPanel = setupPlayerTeleport(api, explain);
 function showSession() {
   const authenticated = session?.authenticated ?? false;
+  el<HTMLButtonElement>('account-create-submit').disabled = !authenticated;
   el('login').hidden = authenticated;
   el('dashboard').hidden = !authenticated;
   el('staff-navigation').hidden = !authenticated;
@@ -125,8 +135,8 @@ async function init() {
   } catch (error) {
     session = undefined; showSession(); text('login-message',explain(error));
   } finally {
-    el<HTMLButtonElement>('login-submit').disabled = false;
-    el<HTMLButtonElement>('account-create-submit').disabled = false;
+    updateLogin();
+    el<HTMLButtonElement>('account-create-submit').disabled = !session?.authenticated;
   }
 }
 function emptyRows(message: string) {
@@ -323,6 +333,7 @@ async function query(nextOffset = 0, nextSearch = search) {
 el<HTMLFormElement>('account-create-form').addEventListener('submit', async event => {
   event.preventDefault();
   const button = el<HTMLButtonElement>('account-create-submit');
+  if (button.disabled || !session?.authenticated) return;
   const username = el<HTMLInputElement>('new-account-username');
   const password = el<HTMLInputElement>('new-account-password');
   const confirmation = el<HTMLInputElement>('new-account-confirmation');
@@ -354,24 +365,26 @@ el<HTMLFormElement>('account-create-form').addEventListener('submit', async even
     password.value = '';
     confirmation.value = '';
     pin.value = '';
-    button.disabled = false;
+    button.disabled = !session?.authenticated;
   }
 });
 el<HTMLInputElement>('new-account-confirmation').addEventListener('input',event => {
   (event.currentTarget as HTMLInputElement).setCustomValidity('');
 });
 el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
-  event.preventDefault(); const button = el<HTMLButtonElement>('login-submit'); button.disabled = true;
+  event.preventDefault(); const button = el<HTMLButtonElement>('login-submit');
+  if (button.disabled || !loginChallenge.token || loginSubmitting) return;
+  loginSubmitting = true; updateLogin();
   text('login-message','Checking credentials…');
   try {
     if (!session) session = await api<Session>('/auth/session');
-    session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value});
+    session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value,turnstileToken:loginChallenge.token});
     resetSnapshot(); showSession(); el<HTMLButtonElement>('refresh').focus();
     void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void premiumPanel.refresh();
   } catch (error) {
     text('login-message',explain(error)); if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
   } finally {
-    el<HTMLInputElement>('password').value = ''; el<HTMLInputElement>('adminPin').value = ''; button.disabled = false;
+    el<HTMLInputElement>('password').value = ''; el<HTMLInputElement>('adminPin').value = ''; loginSubmitting = false; loginChallenge.reset(); updateLogin();
   }
 });
 el('logout').addEventListener('click',async () => {
@@ -405,3 +418,4 @@ document.querySelectorAll<HTMLAnchorElement>('.nav-link').forEach(link => link.a
   document.querySelectorAll('.nav-link').forEach(item => item.classList.remove('active'));link.classList.add('active');
 }));
 void init();
+void loginChallenge.start().catch(error => text('login-message', error instanceof Error ? error.message : 'Human verification unavailable.'));

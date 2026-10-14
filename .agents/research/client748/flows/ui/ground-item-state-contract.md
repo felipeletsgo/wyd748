@@ -4,7 +4,7 @@ title: Ground-item state and removal contract
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-25
+updated: 2026-10-14
 ---
 
 # Ground-item state and removal contract
@@ -90,8 +90,11 @@ owners. Go `wire.UpdateItem` writes the two-byte state without contaminating
 the height/reserved bytes; `groundItemUpdatePacket` then sets the closed
 height explicitly. `RemoveItem` sends the required 16 bytes. The client
 `BASE_UpdateItem2` checks both mask and rotation against the actual table
-dimensions and rejects a null HeightMap before indexing; valid inputs retain
-the native lookup and write behavior. `OnPacketUpdateItem` checks that the
+dimensions and rejects a null HeightMap before indexing. Nonzero heights and
+callers without an immutable base map retain the native absolute write. The
+three permanent ground-object paths pass `m_GateMapData`: an open height of
+zero restores each masked cell from that base instead of stamping sea level.
+`OnPacketUpdateItem` checks that the
 resolved object is a `TMGate` before reading gate-specific fields.
 
 The server loads permanent object positions/rotations from the 96-row CSV.
@@ -111,6 +114,7 @@ current mask geometry without hard-coding the CSV's object locations twice.
 | `0x374` names a non-gate ID | Native assumes a valid object lifecycle | Client rejects before derived access | `MODERNIZACAO_COMPATIVEL` |
 | Ground-mask geometry | Native table at `0x005BED50` matches all 1,440 source values | Go bitsets match source and native table hash is pinned | `PARIDADE_NATIVA` |
 | Server dynamic terrain overlay | Native client writes height into masked cells | Server follows the same mask geometry | `MODERNIZACAO_COMPATIVEL` |
+| Open permanent gate on nonzero terrain | Native primitive stamps an absolute height | Client restores the immutable base cell for height zero, matching the server overlay | `MODERNIZACAO_COMPATIVEL` |
 
 ## Decisions
 
@@ -124,6 +128,9 @@ current mask geometry without hard-coding the CSV's object locations twice.
   persistence-ordered.
 - Use the 96-row CSV for object identity/location/rotation; do not infer
   additional objects from the 7.69 source.
+- Restore the original floor at an open permanent gate; do not rewrite the
+  heightmap or attribute assets to compensate for a client overlay bug.
+  Preserve the legacy absolute-height path for temporary gate callers.
 
 ## Gaps
 
@@ -155,3 +162,25 @@ current mask geometry without hard-coding the CSV's object locations twice.
   SHA-256 is
   `87288FED114739B291F9C437BFB9113836E9907EA1DE540CF5E7F27C2B8B6695`.
   The non-gate rejection has compile/source coverage only; no client run.
+
+### Kefra doorway regression — 2026-10-14
+
+The reported step from `(2350,3868)` to `(2351,3868)` intersects the open
+`Gate_Of_Time` fixture at `(2351,3867)`, rotation 1, key 19, ground mask 9.
+The client and server copies of both maps are identical: HeightMap SHA-256
+`032E5A1F6433F4DDC9559E6565C139782423A6A67A2875BD82E7D8FC5BD00740`,
+AttributeMap SHA-256
+`733B4BB54177C36CC24D6EAAFBFA017572922AC1234BBDB12103834AC51D9F91`.
+The nearby floor is signed height -83 with walkable attribute `0x44`. Stamping
+an open gate's height zero created an 83-unit artificial step; the server
+already preserved the -83 floor.
+
+`GroundItemCollision.h::ApplyMask` now restores the immutable floor for the
+open path. Creation, state update and region refresh all supply that base;
+nonzero closed/temporary heights keep their previous semantics. Executable
+C++ tests cover this exact mask and negative floor, slopes, unmasked walls,
+closed/open/repeated transitions, bounds and the legacy no-base path. The Go
+CSV regression proves the doorway remains walkable with the open fixture.
+See the [local candidate receipt](../../../../../DOCS/current-state.md#local-combat-cape-and-kefra-candidate--2026-10-14)
+for the integrated build and test results. No asset was changed and no
+real-client movement was performed; this is not `CLIENT_TESTED`.

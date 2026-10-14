@@ -90,6 +90,13 @@ patch-<version>.zip` to the live list; `vps/publish-patch.sh` tests the ZIP,
 installs it, keeps the previous list as `.update.htm.previous` and replaces
 `update.htm` last. A launcher change requires a new full client.
 
+Every published patch or player-visible server release also updates the
+website in `wydgo748/web/portal/src/data/public-content.ts`: the
+`clientRelease` receipt, a `changelog` entry and a player-facing `news` post
+(newest first). `tests/public-content.test.mjs` fails when News does not
+mention the latest published patch. Build the portal, run its tests and
+deploy it with the release.
+
 ## Validation state
 
 - Patcher: every original string, code byte and dialog verified against the
@@ -185,3 +192,402 @@ Close the game and run `WYDLauncher.exe` to receive 10003. The launcher cannot
 remove the obsolete `project.exe` from older installations; launch through
 `WYDLauncher.exe`/`WYD.exe`, not that stale executable. The full client remains
 hosted outside the VPS; this feed serves incremental updates only.
+
+## Published patch 10004 (2026-10-12)
+
+The production feed appends `10004 patch-10004.zip`, containing only the
+validated `WYD.exe` with the [weather lifecycle correction](performance-and-visuals-plan.md).
+Rain and snow activation is mutually exclusive; clear weather disables the
+particles, regional transitions preserve the last server weather, and the
+heavy snow layer no longer controls the base layer's sound.
+
+The executable was built from `2f2381f9` plus the uncommitted weather changes.
+This receipt identifies the delivered artifact, not a committed source release.
+No settings, launcher executable or assets are replaced by this patch. It
+requires no game-server restart and was not installed into the local runtime.
+
+- ZIP size: 811,389 bytes.
+- ZIP SHA-256: `4BB3836863247FB000ACE88A6735CF1F46067E94B1393F7CDD7ABC4F0FC59374`.
+- `WYD.exe` size: 1,847,296 bytes.
+- `WYD.exe` SHA-256: `0BAE2073F9D5CA6220C0642ABC89A9D06E7784E516E1F0D4A0E32125DD79E0F0`.
+- The public HTTP feed and archive returned 200 without redirects. A fresh
+  download matched the ZIP hash and contained exactly one root `WYD.exe`
+  whose size and hash matched the validated build.
+- Validation: `AUTOMATED TESTED`; the Release build passed 1,200,822
+  architecture checks, 231 socket checks and 56 launcher checks. Public
+  publication/download are verified. Actual launcher extraction and weather
+  behavior in game remain pending human validation, not `CLIENT_TESTED`.
+
+Close the game and open `WYDLauncher.exe` to receive the update. A successful
+update advances `[VERSION]` in `config.txt` to `10004`; do not change it manually
+to bypass downloading. Existing earlier patches remain available in the feed.
+The legacy HTTP transport limitations documented above remain unchanged.
+
+## Published patch 10005 (2026-10-13)
+
+The append-only production feed now ends with `10005 patch-10005.zip`.
+The package contains exactly one root `WYD.exe`, using the previously validated
+Release candidate for persistent buff visual corrections. Skill Amp's ground
+aura uses the recorded native scale `1.5` and ground offset `0.4`; other proven
+buff parameters, particle timing, weapon emissions and Slow Slash tint are
+corrected. No gameplay, wire, assets, player settings or launcher changes are
+included. The source is `2f2381f9` plus the uncommitted client changes, not a
+new committed source release.
+
+- ZIP size: 811,565 bytes.
+- ZIP SHA-256: `222FF65C13BFD9DF1F5A9556A060DD1BE7FF59688DCE6CBF5F892601ABC7A89A`.
+- `WYD.exe` size: 1,848,320 bytes.
+- `WYD.exe` SHA-256: `55C4A3D2E19404CC4E2ED9F529E7407CF8209B00EE7BD08FB4F44569BCEAF977`.
+- Existing build evidence: 1,200,844 architecture checks, 231 socket checks,
+  56 launcher checks and costume/skin-shader checks passed. The unchanged
+  candidate was hash-verified rather than rebuilt for publication.
+- Publication used an explicit single-file ZIP and
+  `Publish-ClientPatch.ps1 -Version 10005`; prior patches remain available.
+- Fresh public HTTP feed and HTTPS ZIP downloads returned 200. The downloaded
+  archive contained only `WYD.exe`; both ZIP and executable hashes matched.
+- Website source receipt and regression assertions now describe 10005.
+  `npm run build` and the two `public-content.test.mjs` tests passed. Only
+  `index.html`, `download/index.html`, `changelog/index.html` and
+  `client-manifest.json` were replaced in the existing static website;
+  all referenced shared asset filenames already existed on the VPS.
+- Public home, download, changelog and JSON receipt returned 200 with version
+  10005. Rollback pages are retained at
+  `/srv/wyd-go/backups/site-patch-10005-20261013/previous-pages.tar.gz`.
+- Game PID `1175700` and start time `2026-10-13 18:10:20 UTC` were unchanged
+  across publication. No game/API restart or local runtime installation was
+  performed. SSH upload encountered a transient timeout; publication resumed
+  only after a TCP probe confirmed port 22 was reachable again.
+
+Validation: `STATICALLY VERIFIED`, `AUTOMATED TESTED`, build and public
+download/deployment verified. Actual launcher extraction and in-game comparison
+remain pending, not `CLIENT_TESTED`. Full buff composites and runtime emission
+performance are not certified by this patch.
+
+Close the game and open `WYDLauncher.exe` to receive 10005. Do not manually
+advance `[VERSION]` in `config.txt`, because that would skip the download.
+
+## Published patch 10006 (2026-10-13)
+
+The production feed ends with `10006 patch-10006.zip`, containing the Release
+`WYD.exe` and `ItemList.bin` for the
+[imported costume and mount presentation](port-748.md#imported-costume-and-mount-presentation-2026-10-13):
+costume and KR mount icons, the KR mount class mask, the mount speed tooltip
+and the LavaGolem/LavaGrub replacement looks. The matching server catalog was
+deployed in release `20261013T202540Z`. The source is `2f2381f9` plus
+uncommitted changes.
+
+- ZIP: 859,565 bytes, SHA-256 `F486634EBDFD70D30C8C0B21C6B6DD13D8F097F4685BC44BF0CC5D65A84DB797`.
+- `WYD.exe`: 1,848,320 bytes, SHA-256 `6739E415AFB3B5AAF5D7F9813F02253DEDD6C2545F1BF7E3626548234F9245D3`.
+- `ItemList.bin`: 910,004 bytes, SHA-256 `905138CD5E1634F35798E8DE0E27CD655EAAA45B3CF5013257CDB128E6E54620`.
+- Evidence: 1,200,850 architecture checks, 231 socket checks and 56 launcher
+  checks passed; the public HTTP feed returned 200 and a fresh download matched
+  the ZIP hash. Launcher extraction and the in-game result are pending, not
+  `CLIENT_TESTED`.
+
+## Published patch 10007 (2026-10-13)
+
+The feed ends with `10007 patch-10007.zip`, containing one root `WYD.exe` with
+the native -45 degree minimap orientation and the native UI2 scrollbar sets
+423..426 ([port record](port-748.md#ui2-vertical-scrollbar-2026-10-13)). The
+source is `2f2381f9` plus uncommitted changes.
+
+- ZIP: 811,864 bytes, SHA-256 `D8E8F2612DAD0BFC7E8BC3478C512732484DEF551644D4C8A6A70F668C5193F4`.
+- `WYD.exe`: 1,848,832 bytes, SHA-256 `DF8B961699234153D01A91A153152ACE696F2A1102134CCBD129A9C7C1ECB10C`.
+- Evidence: 1,200,852 architecture checks, 231 socket checks and 56 launcher
+  checks passed; the public feed returned 200 and a fresh download matched the
+  ZIP hash. Launcher extraction and the in-game result are pending.
+
+## Published patch 10008 (2026-10-14)
+
+The feed ends with `10008 patch-10008.zip`, containing only
+`Env/AttributeMap.dat`. It reopens the city-war arena's central corridor: the
+KR/OnGame attribute map marked cells x 136..243, y 188..191 with the
+cannot-go bit `0x02`, an invisible wall the native 7.48 map did not have.
+Only that bit was cleared in those 27 cells, in both the client map and
+`wydgo748/data/maps/AttributeMap.dat`; the arena's outer walls and the 4-byte
+client trailer are unchanged, and the two map bodies remain identical.
+
+- ZIP: 10,960 bytes, SHA-256 `328EA9AEC023D334E6A015F5139DB337B7F5844F25C75492CFFF938CC426572D`.
+- `Env/AttributeMap.dat`: 1,048,580 bytes, SHA-256 `8A5CC851360D0A1F8209CB13CD0E6A5B092B54E0982FADCC8406DAB8E83F152F`.
+- Evidence: Go `TestCityWarArenaCentralCorridorIsOpen`, the full Go suite and
+  the client asset tests (client/server attribute equality) passed; the public
+  feed returned 200 and a fresh download matched the ZIP hash. In-game walking
+  across y 191/192 is pending.
+
+## Published patches 10009 and 10010 (2026-10-14)
+
+Both contain one root `WYD.exe` ([port record](port-748.md#terrain-borders-and-map-objects-2026-10-14)).
+
+| Patch | ZIP bytes | ZIP SHA-256 | `WYD.exe` SHA-256 |
+| --- | --- | --- | --- |
+| 10009 | 811,991 | `7735DF38349C4FCDF38C07BAC97F9CDE4251E74DD852079CCF67AF02EC329C81` | `255B3036AC12DB2E35CCFB35D8C1DC676F3AC7F97220F94E45D8F4B803B4F3C5` |
+| 10010 | 812,476 | `5B4926D6B579962E4F50F4E5A3F7EC46C2E308F9CAD8C68D81B21E2A86572699` | `090FB07A19D43963C10BD938D5975C100BE44E6D5E84DB314688BC719EF78010` |
+
+10009 derives terrain attachment for the 26 KR-only regions; 10010 re-seats map
+objects and gate collision after a height-window rebuild. Both were verified
+by public download; in-game confirmation is pending.
+
+## Published patch 10011 (2026-10-14)
+
+The feed ends with `10011 patch-10011.zip`. The archive contains only root
+`WYD.exe`, built from the current source for citizenship cape emblems and
+selection/world metadata refresh. The matching server/site release is
+`20261014T011828Z`; the website receipt advertises the same version.
+
+- ZIP: 812,786 bytes, SHA-256 `47544012DAD39F08BAB466A458157F36309FEC8282A62290B148A41007AE7688`.
+- `WYD.exe`: 1,849,856 bytes, SHA-256 `FDE1DF8F88CE7D1C7099BE044235F24E6C2C846F40143BD27CDF1AF2B6DC6D10`.
+- Reused unchanged build evidence: 1,200,858 architecture checks, 231 socket
+  checks, 56 launcher checks, costumes and shaders passed.
+- `Publish-ClientPatch.ps1` appended exactly one entry; previous patches were
+  preserved. Fresh HTTP feed/HTTPS ZIP and website receipt returned 200, and
+  the downloaded ZIP and enclosed executable hashes matched.
+
+No player settings or local runtime executable were overwritten. Close the game
+and open the launcher to apply the patch; do not edit the version manually.
+Actual launcher extraction, Arch creation, citizenship purchase, owner/observer
+cape visuals and selection/relogin remain pending, not `CLIENT_TESTED`.
+
+## Published patch 10012 (2026-10-13, America/Sao_Paulo)
+
+The feed now ends with `10012 patch-10012.zip`, containing only root `WYD.exe`.
+It publishes the [cape and character presentation repairs](../../.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md):
+native mantle texture registration, kingdom icon normalization, guild-directory
+names and class-aware skill requirements. Persistent random symbols are already
+served by release `20261014T020943Z-cape-emblems`; real citizenship is unchanged.
+
+- ZIP: 818,787 bytes, SHA-256 `E5E051264833A2AB232770B6178EE23BD2F5E453177653EB4D711CA157D2C3B9`.
+- `WYD.exe`: 1,860,608 bytes, SHA-256 `F358A2711A2AF7C54EB044F06DFF5B9DDDF457ED14F3F4303D4D4D1B87152319`.
+- Unchanged candidate/build evidence reused: 1,205,501 architecture checks,
+  231 socket checks, 56 launcher checks, costumes and shaders passed.
+- `Publish-ClientPatch.ps1 -Version 10012` installed the ZIP before replacing
+  the feed, retaining earlier patches and `.update.htm.previous`.
+- Fresh public download contained only `WYD.exe` and matched both hashes.
+  Legacy plain-HTTP feed, ZIP and guild endpoints returned 200 without redirects.
+- Website build and two public-content tests passed. Only home, download,
+  changelog and JSON receipt were updated; deployed shared assets were verified.
+  Previous pages: `/srv/wyd-go/backups/site-patch-10012-20261014T021647Z/previous-pages.tar.gz`.
+- Public pages and receipt advertise 10012. Game PID `1262340` and API PID
+  `1262342`, both started at 02:09:44 UTC, remained unchanged; readiness passed.
+
+No game/API restart, local runtime overwrite, Git commit or push was performed.
+Publication/download are verified; launcher extraction and actual cape, kingdom,
+guild and Foema tooltip visuals remain pending, not `CLIENT_TESTED`. Close the
+game and open `WYDLauncher.exe`; do not manually advance `config.txt` version.
+
+## Published patch 10013 (2026-10-14)
+
+The feed now ends with `10013 patch-10013.zip`, containing only root `WYD.exe`.
+It shows Critical in tenths of a percent up to 100.0% (the
+[critical scale extension](../../.agents/research/client748/flows/ui/score-hud-shortcut-counters-exp.md))
+and carries the stack-overflow-safe crash capture with module offsets.
+It must stay paired with server release `20261014T040646Z`.
+
+- ZIP: 820,714 bytes, SHA-256 `686C033A260EAFE13C946F3BE378C8576BBAD1A5A8C48C057D077892E095693C`.
+- `WYD.exe`: 1,863,168 bytes, SHA-256 `D8E8403CA724520A8C73FB53235DBB41FF357AE961C1C7452FA57D2FB800F19B`.
+- Release build: 1,205,502 architecture, 231 socket, 83 crash-capture and
+  56 launcher checks passed.
+- Fresh public download contained only `WYD.exe` and matched both hashes.
+
+Not `CLIENT_TESTED`: the Character panel value and launcher extraction remain
+manual checks.
+
+## Published patch 10014 (2026-10-14)
+
+The feed now ends with `10014 patch-10014.zip`, containing only root `WYD.exe`.
+Enlarging the chat with `+` now resizes the UI2 scroll bar: the down arrow
+follows the new bottom and track set 426 stretches to the full height.
+
+- ZIP: 820,823 bytes, SHA-256 `25DE3C3C75C0E7274463F07F3BFC2FF7F638A9F75F051F2CB8204CC67FA6E68F`.
+- `WYD.exe`: 1,863,680 bytes, SHA-256 `96B3EAB114C00AA1A9B2B3D0A737B0E883B325BF47ECA74F160A78D97C49A630`.
+- Release build: 1,205,503 architecture, 231 socket, 83 crash-capture and
+  56 launcher checks passed. Fresh public download matched both hashes.
+- Site receipt advertises 10014 through release `20261014T041157Z` (server
+  binaries unchanged; services restarted with zero game connections).
+
+Not `CLIENT_TESTED`: the enlarged chat scroll bar remains a manual check.
+
+## Published patch 10015 (2026-10-14)
+
+The feed ends with `10015 patch-10015.zip`: `WYD.exe` (KR/7.48 rider offsets,
+new mount visual rows) and `ItemList.bin` (40 new KR mount rows). Paired with
+server release `20261014T045628Z` (catalog, ShopKRMt02..04 and website News).
+
+- ZIP: 869,881 bytes, SHA-256 `72CF50DAB1EA3E282AB305643B804E477E7CED1BA4CCEB7CD7078DD3E0301705`.
+- `WYD.exe`: 1,865,216 bytes, SHA-256 `B5A197CA363ABFEE902C31D4D8A8E4608641350A32A3038C7CF963B177C51C22`.
+- `ItemList.bin`: 910,004 bytes, SHA-256 `C8DFE313EA11561A61F211CEE07E36942A9737A62B4413434AF047E9F3E3AB29`.
+- Release build: 1,205,544 architecture, 231 socket, 83 crash-capture and
+  56 launcher checks passed. Fresh public download matched all three hashes.
+
+Not `CLIENT_TESTED`: rider height and the new mount models remain manual checks.
+
+## Published patch 10016 (2026-10-14)
+
+The feed ends with `10016 patch-10016.zip`: `WYD.exe` (costume texture
+registration, native costume delegation, KR sets 4187/4188) and `ItemList.bin`
+(eight costume rows). Paired with server release `20261014T083646Z`
+(refinement lock, catalog, ShopCostum06 and website News).
+
+- ZIP: 870,547 bytes, SHA-256 `07E79E677FCD4C9DE3DEB2CEE8B1CBC0AB7AAB1325B06DF475B3C2A2C6D9D733`.
+- `WYD.exe`: 1,867,776 bytes, SHA-256 `F088B4486F5B838A86259F0112255F42E39B6726D3ECB2F53E9C207EA311C358`.
+- `ItemList.bin`: SHA-256 `7494F56ECAC6CB17066D6A3B28F3F75B44E8D6A443B6DF7380F6B615984CB3C1`.
+- Release build: 1,208,413 architecture, 231 socket, 83 crash-capture and
+  56 launcher checks passed; costume table check 143/129/176. Fresh public
+  download matched all three hashes.
+
+Not `CLIENT_TESTED`: costume textures and the new sets remain manual checks.
+
+## Published patch 10017 (2026-10-14)
+
+The feed ends with `10017 patch-10017.zip`, containing only `WYD.exe`:
+minimap header label and native compact coordinates, and Wolf/Bear form
+animations. Paired with server release `20261014T160122Z`.
+
+- ZIP: 822,162 bytes, SHA-256 `8EB7AF54943E7581A8310861B2DDAB49E1BBC8F4DFF1DEAFE97EA68444BDA576`.
+- `WYD.exe`: 1,867,776 bytes, SHA-256 `7B002D014C54F0EA42195162503CC174C03A3D9A24478531ACCABA0F9A42C395`.
+- Release build: 1,208,415 architecture, 231 socket, 83 crash-capture and
+  56 launcher checks passed. Fresh public download matched both hashes.
+
+Not `CLIENT_TESTED`: minimap header and transformation animations remain
+manual checks.
+
+## Published patch 10018 (2026-10-14)
+
+The feed ends with `10018 patch-10018.zip`, containing only `WYD.exe`: the
+local `/fps` toggle for FPS and TCP round-trip time under the minimap.
+
+- ZIP: 822,869 bytes, SHA-256 `BA739C5E981B8AC4353A89E9FCB766F203087DDA00672A1D26A1418A0DA71B67`.
+- `WYD.exe`: 1,869,824 bytes, SHA-256 `329D725EF4FBF435A3C3ECD3410CE3D04EA124F2FFF76DD906B386F3AB70C43C`.
+- Release build: 1,208,416 architecture, 231 socket, 83 crash-capture and
+  56 launcher checks passed. Fresh public download matched both hashes.
+
+Not `CLIENT_TESTED`.
+
+## Published patch 10019 (2026-10-14)
+
+The feed ends with `10019 patch-10019.zip`, containing only `WYD.exe`: cape
+refinement glow, open Kefra gate floor restoration and the v1 boss-state mirror
+contract. It is paired with server release `20261014T181536Z`; use the launcher
+before validating the coordinated mirror behavior.
+
+- ZIP: 823,540 bytes, SHA-256 `C290EAA6B6311D8240B0C5B396C3F488F5109324A06D90938FC94463EABC56CA`.
+- `WYD.exe`: 1,870,848 bytes, SHA-256 `3BDD1F7E340AB7AD541485C526CF0AF10635179BC856A5F8349106E88AC3B706`.
+- Fresh public download matched both hashes and the website manifest; News,
+  changelog and home page returned 200. All previous feed entries were retained.
+- The unchanged client candidate reused its Release validation: 1,208,581
+  architecture, 231 socket, 83 crash-capture and 56 launcher checks, costume
+  gates 143/129/176 and four shader variants. The shared-fixture follow-up
+  passed 1,208,582 architecture checks.
+
+This is an explicit-byte distribution from the uncommitted working tree at
+`2f2381f9a8e77f23eb07bb10b326df76568d3bdb`, not a committed source release.
+The Git-diff patch builder cannot include this uncommitted candidate; packaging
+used the exact validated executable without committing generated binaries or
+other people's changes. No local runtime executable was overwritten.
+Not `CLIENT_TESTED`: cape brightness, doorway movement and boss alive/dead/reset
+visual acceptance remain pending. Publication does not certify the global
+English migration or overall release readiness.
+
+## Published patch 10020 (2026-10-14)
+
+The feed now ends with `10020 patch-10020.zip`, containing only `WYD.exe`.
+It registers the missing Uxmal prompt-table block `(2364,3924)` for the hall
+mirror, retaining the existing 700 gold fee and server-side defeat check.
+There is no wire or asset change. Server release `20261014T184657Z` separately
+deploys the requested temporary 1 HP profile and global +100% combat EXP while
+Kefra remains defeated; it does not clear the already persisted kill.
+
+- ZIP: 823,488 bytes, SHA-256 `AEF03DE00BA5E05127CEF380BD562E7CAD1D0CE4BB3E5E4D0EC0715ABE372784`.
+- `WYD.exe`: 1,870,848 bytes, SHA-256 `E291656AF11620EA1535C25F9381D19EF53A220E74ECDBB4B99650C1613428E6`.
+- A fresh HTTPS download matched both hashes and contained exactly `WYD.exe`.
+  The legacy plain-HTTP feed and ZIP also returned 200 without redirects;
+  the 823,488-byte HTTP download matched the same ZIP hash.
+  The feed retained all earlier entries; the manifest, News, home, download
+  and changelog returned 200 with the new receipt. Portal build/check and all
+  60 tests passed.
+- The unchanged candidate reuses the successful incremental Release gates:
+  1,208,652 architecture, 231 socket, 83 crash-capture, 56 launcher checks,
+  costume checks and four shader variants. The table regression reproduced
+  the missing-row failure before the repair and passed afterward.
+
+As with 10019, packaging distributes the exact validated bytes from the
+uncommitted working tree at HEAD `2f2381f9a8e77f23eb07bb10b326df76568d3bdb`.
+The Git-revision patch builder cannot represent the ignored candidate, so this
+is not a committed source release. No generated binary was committed and the
+local runtime executable was not replaced. Actual passage use on 10020 remains
+pending; this is not `CLIENT_TESTED` or global release-readiness certification.
+
+## Published patch 10021 (2026-10-14)
+
+The feed now ends with `10021 patch-10021.zip`, containing only `WYD.exe`.
+It keeps an item over the FieldScene2 receptacle in occupied player-trade
+slots instead of an opaque black backdrop, and adds two diagnostics lines
+(`npc click` and `mix npc click`) that record head, Merchant, ground chunk and
+the six artisan panel pointers. After updating to 10021 the user reported
+that the craft NPC windows open again.
+
+- ZIP: 823,460 bytes, SHA-256 `CA90400CF7506C4DC3FDCEF39742E8944A5FC122220296D386683F5BFF2CE201`.
+- `WYD.exe`: SHA-256 `9C1F5EFAE99DA4026315937FDD87F47D0139452005D7CD9AE3856CA9E56C2FE9`.
+- A fresh plain-HTTP download matched both hashes and contained exactly
+  `WYD.exe`; the feed retained every earlier entry.
+- Incremental Release build only; the architecture test executables were not
+  rerun for this patch. Portal build and all 60 tests passed.
+
+The server part was initially staged as release `wyd-deploy-20261014-test-shops-10021`
+(SHA-256 `7185f7d5dfa4c91eaac27891ab84383c4836979a1e5e0d40513107f0c8f2669c`)
+and deferred while players were connected. It restricts dye to armor
+set pieces, routes `@` chat to the whole channel and reports `@@` without
+citizenship, adds the `ShopArchSet`, `ShopArchWpn` and `ShopAmulet` test
+NPCs, and sells 120-unit Ori/Lac stacks in `ShopTest2`. Not `CLIENT_TESTED`.
+These changes and the later Lac follow-up are now deployed in server release
+`20261014T223717Z` (see the publication below).
+
+## Published patches 10022 and 10023 (2026-10-14)
+
+Patch 10022 was already public when the owner requested publication of the
+remaining work. Its ZIP is 824,071 bytes, SHA-256
+`F81305DF34C715A2330BBFC60CA4CCDE643256F7CECC9C01E6B3A574D96549AD`;
+its executable SHA-256 is
+`B70A299EE966FB77B068B2E9843D01E2D65795407FEECFA2D1B43A932BED4E29`.
+It was not overwritten or republished.
+
+The feed now ends at `10023 patch-10023.zip`, containing exactly `WYD.exe`:
+the native Aylin preview combinations/refinement setter and temporary preview
+clearing; Diamond +10 UI, native Garnet glow, and refined imported weapon
+variants 2889–2901. Fixed-glow models 2906–2909 remain unchanged. The reported
+item-drop crash repair is explicitly excluded.
+
+- ZIP: 824,039 bytes, SHA-256 `E7053B354487ABA9DE959D73BAC21AEDC8196EA31A8D532950D7174B89167340`.
+- Executable SHA-256: `18B87EE8B32F6333BD0838C46E0BED85F0FD2B172A7C2AF61804EED054ECC418`.
+- Fresh plain-HTTP download matched both hashes and the manifest. All feed
+  entries 10000–10023 were retained; public News and readiness returned 200.
+- Unchanged candidate validation was reused: 1,208,967 architecture checks,
+  231 socket, 83 crash-capture, 56 launcher checks and incremental Release.
+  Portal build and all 60 tests passed for the updated publication metadata.
+
+The exact validated executable was packaged from the uncommitted tree at
+`2f2381f9a8e77f23eb07bb10b326df76568d3bdb`, not from committed Git revisions.
+No source commit, local runtime replacement or game launch occurred. The
+installed local executable remains 10021 until the owner uses the launcher.
+This shipment is not `CLIENT_TESTED` or certification of global release readiness.
+
+## Published patch 10024 (2026-10-14)
+
+The owner authorized the pending batch and player disconnections. Patch 10024
+contains only `WYD.exe`: native mount-level glow, player trumpet chat separate
+from server top notices, party Leave/Escape controls, Mystic Amulet equipment
+and shared item-icon fitting. Server release `20261014T234237Z` supplies mount
+magic amplification, normal Lac +10 earrings, tower guards/position and 49
+mortal D/E test weapons with +28 magic or +63 physical damage.
+
+ZIP: 824,185 bytes, SHA-256
+`24F3AFBEA36E1E8754D6520E69EE8B1468B007B9DFFF095ECD882C1D981D2E09`.
+Executable SHA-256:
+`DD357D0EACD58882FAF872FCE645BDF9A93B196C6853DAD8D1521DF1A15E76F6`.
+The validated uncommitted build was packaged directly, not through the
+Git-revision patch builder. No source commit or local runtime replacement
+occurred. Unchanged client checks were reused. The site was rebuilt and all
+60 tests passed. Public plain-HTTP ZIP and embedded executable hashes, manifest,
+News and append-only feed through 10024 were verified. A transient SSH timeout
+was recovered by resuming the existing remote staging; earlier patches remain
+unchanged. No game was launched; in-game confirmation remains pending. The
+item-drop stack overflow is not fixed by this patch.

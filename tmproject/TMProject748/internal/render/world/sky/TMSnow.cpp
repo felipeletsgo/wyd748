@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ClientSettings.h"
 #include "TMSnow.h"
+#include "WeatherPresentation.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include "TMUtil.h"
@@ -12,6 +13,7 @@ TMSnow::TMSnow(float fScale) :
 {
     m_fScale = fScale * 0.05f;
     m_dwOldServerTime = 0;
+    m_bShow = m_bVisible = 0;
     m_vertex[0].position = { -0.05f * fScale, -0.05f * fScale, 0.0f };
     m_vertex[1].position = { 0.05f * fScale, -0.05f * fScale, 0.0f };
     m_vertex[2].position = { 0.05f * fScale, 0.05f * fScale, 0.0f };
@@ -46,35 +48,37 @@ TMSnow::TMSnow(float fScale) :
 
 TMSnow::~TMSnow()
 {
+    StopAmbientSound();
+}
+
+void TMSnow::StopAmbientSound()
+{
+    // Heavy snow adds geometry, not a second owner of the same looping sound.
+    if (weather_presentation::OwnsSnowSound(m_fScale) && g_pSoundManager)
+    {
+        auto sound = g_pSoundManager->GetSoundData(113);
+        if (sound && sound->IsSoundPlaying())
+            sound->Stop();
+    }
+}
+
+void TMSnow::SetActive(bool active)
+{
+    weather_presentation::SetActive(*this, active);
+    if (!active)
+        StopAmbientSound();
 }
 
 int TMSnow::Render()
 {
-    // Light profile: ambient decoration is not drawn while the window is idle.
-    if (IdleHidesAmbient())
-        return 0;
-
-    if (g_bHideEffect == 1)
-        return 1;
-    if (m_fScale <= 0.07f)
+    if (!m_bShow || !m_bVisible || IdleHidesAmbient() || g_bHideBackground == 1 || g_bHideEffect == 1)
     {
-        if (!m_bVisible)
-            return 1;
-    }
-
-    if (!m_bVisible)
-    {
-        if (g_pSoundManager && g_pSoundManager->GetSoundData(113))
-        {
-            auto pSoundData = g_pSoundManager->GetSoundData(113);
-            if (pSoundData->IsSoundPlaying())
-                pSoundData->Stop();
-        }
-
+        StopAmbientSound();
         return 1;
     }
 
-    GetSoundAndPlayIfNot(113, 0, 0);
+    if (weather_presentation::OwnsSnowSound(m_fScale))
+        GetSoundAndPlayIfNot(113, 0, 0);
 
     g_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
     g_pDevice->SetRenderState(D3DRS_FOGENABLE, 0);
@@ -167,10 +171,13 @@ int TMSnow::Render()
 
 int TMSnow::FrameMove(unsigned int dwServerTime)
 {
-    if (!this->m_bVisible)
+    if (!m_bShow || !m_bVisible)
+    {
+        m_dwOldServerTime = 0;
         return 1;
+    }
 
-    float fElapsedTime = (float)((int)dwServerTime - m_dwOldServerTime) * 0.02f;
+    float fElapsedTime = static_cast<float>(weather_presentation::Elapsed(dwServerTime, m_dwOldServerTime)) * 0.02f;
 
     TMVector2 vecCam{};
     auto pObj = g_pObjectManager->m_pCamera->GetFocusedObject();

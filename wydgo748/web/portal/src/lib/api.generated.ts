@@ -4,6 +4,303 @@
  */
 
 export interface paths {
+    "/api/player/v1/characters/{slot}/inventory": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read this account's saved inventory, never live game state
+         * @description Only nonempty playable slots 0-62, from one SQL snapshot. Reserved cells and internal item identities are excluded. Quantity uses instance effect 61, except mount HP; the browser must not recompute it. No movement, trade or item mutation is available.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slot: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No-store versioned saved inventory with characterSlot and capacity 63; no gold field */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerStorageResponse"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/cargo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read saved Cargo belonging to the signed-in website account
+         * @description Only nonempty visible slots 0-119 and stored gold. Owner comes exclusively from the authenticated session. No account selector or economy mutation is available.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No-store versioned Cargo with gold and capacity 120; no characterSlot field */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerStorageResponse"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/characters/{slot}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read equipment and saved character details belonging to this website session
+         * @description Read-only allowlist from one persisted account snapshot. No internal identities, inventory, cargo or derived combat score. Slot is not a durable identity and selects only the current account's character. Account query parameters never select an owner.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slot: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No-store persisted snapshot */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerCharacterResponse"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read the signed-in account's saved projection, never another account */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No-store response; fields and timestamps come from one persisted snapshot, not the live World */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerProfileResponse"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List unexpired website sessions belonging to the signed-in account
+         * @description No IP addresses, device fingerprints, bearer cookies or CSRF tokens are returned. Game and staff sessions are excluded. A player API restart clears all sessions.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No-store snapshot; current session first, then newest first. This request refreshes only the current session's idle timeout. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerSessions"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke one website session of the signed-in account
+         * @description Rechecks account ownership under the session lock. Missing and cross-account IDs both return 404; repeated revocation does not affect another session. Revoking the current session expires its cookie.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        id: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Session revoked; signedOut means the current session was also revoked */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerSessionRevocation"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/sessions/revoke-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke all existing website sessions of the signed-in account, including the caller
+         * @description Atomic under the process session lock; expires the current cookie. A subsequent successful password login can create a new session. This is not a password change, game disconnect or staff logout.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description All existing website sessions revoked; signedOut is true */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerSessionRevocation"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/players/{uid}/teleport": {
         parameters: {
             query?: never;
@@ -492,6 +789,8 @@ export interface paths {
                         username: string;
                         password: string;
                         adminPin: string;
+                        /** @description Single-use Turnstile token bound to the staff_login action. */
+                        turnstileToken: string;
                     };
                 };
             };
@@ -567,7 +866,7 @@ export interface paths {
         put?: never;
         /**
          * Create a client-compatible player account; requires the configured administrative PIN
-         * @description Available from the panel embedded in tm.exe. It creates no staff authorization and no character.
+         * @description Published panels require an authenticated staff session. PIN-only bootstrap is limited to explicit local HTTP development. New passwords require 8 to 10 characters. Creation grants no staff authorization and creates no character.
          */
         post: {
             parameters: {
@@ -733,10 +1032,234 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/player/v1/guilds/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the saved public guild profile
+         * @description Anonymous, no-store. Names are case-insensitive. One bounded canonical registry projection is cached for at most one minute and coalesced across visitors. Accounts, join dates, private war state and internal IDs are not returned. No live World queries or guild mutations.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Saved canonical guild with public members and roles */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @constant */
+                            version: 1;
+                            guild: components["schemas"]["PublicGuildProfile"];
+                            /**
+                             * Format: date-time
+                             * @description Saved guild_state.updated_at
+                             */
+                            asOf: string;
+                            /** @constant */
+                            source: "persisted snapshot";
+                        };
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PublicGuildProfile: {
+            name: string;
+            /** @enum {integer} */
+            kingdom: 0 | 7 | 8;
+            /** @description Guild Fame */
+            fame: number;
+            /**
+             * Format: date-time
+             * @description Saved creation time; zero time means unknown and is not shown
+             */
+            createdAt: string;
+            /** @description Allied guild name */
+            ally: string | null;
+            /** @description Declared war target */
+            warTarget: string | null;
+            members: {
+                name: string;
+                /**
+                 * @description Member 0
+                 * @enum {integer}
+                 */
+                rank: 0 | 6 | 7 | 8 | 9;
+            }[];
+        };
+        PlayerProfileResponse: {
+            /** @constant */
+            version: 1;
+            profile: {
+                username: string;
+                /** @description Saved Cash balance; no payment or credit operation is exposed */
+                donate: number;
+                /** Format: date-time */
+                createdAt: string;
+                /**
+                 * Format: date-time
+                 * @description Persisted accounts.updated_at from the same SQL statement
+                 */
+                asOf: string;
+                characters: {
+                    slot: number;
+                    name: string;
+                    class: number;
+                    /** @description Native zero-based level; presentation adds one */
+                    level: number;
+                    evolution: string;
+                }[];
+            };
+        };
+        PlayerStorageResponse: {
+            /** @constant */
+            version: 1;
+            /** @constant */
+            source: "persisted snapshot";
+            storage: {
+                /** Format: date-time */
+                asOf: string;
+                /** @enum {integer} */
+                capacity: 63 | 120;
+                /** @description Inventory only */
+                characterSlot?: number;
+                /** @description Cargo only */
+                gold?: number;
+                items: {
+                    /** @description Zero-based; inventory maximum is 62 */
+                    slot: number;
+                    itemId: number;
+                    /** @description Authoritative catalogue name or empty for unknown items */
+                    name: string;
+                    /** @description Server-resolved quantity */
+                    quantity: number;
+                    effects: number[];
+                }[];
+            };
+        };
+        PlayerCharacterResponse: {
+            /** @constant */
+            version: 1;
+            /** @constant */
+            source: "persisted snapshot";
+            character: {
+                slot: number;
+                name: string;
+                class: number;
+                /** @description Native zero-based level; presentation adds one */
+                level: number;
+                evolution: string;
+                /** Format: date-time */
+                asOf: string;
+                exp: number;
+                gold: number;
+                cp: number;
+                /** @description Saved character Fame from the owner-bound progression view; not CP or an account balance. Absent in older replies. */
+                fame?: number;
+                ascension: components["schemas"]["PlayerArchAscension"];
+                celestialAscension: components["schemas"]["PlayerCelestialAscension"];
+                subCelestialAscension: components["schemas"]["PlayerSubCelestialAscension"];
+                equipment: {
+                    slot: number;
+                    itemId: number;
+                    /** @description Authoritative item name or empty for an unknown item */
+                    name: string;
+                    effects: number[];
+                }[];
+            };
+        };
+        /** @description Saved Arch gates shared with the king interaction; not a guarantee that a live operation will succeed. Only Mortal characters are applicable. */
+        PlayerArchAscension: {
+            applicable: boolean;
+            requirementsMet: boolean;
+            /** @description Displayed level */
+            requiredLevel: number;
+            checks: {
+                /** @enum {string} */
+                id: "mortal" | "level" | "eternalStone" | "sefirot" | "freeSlot";
+                met: boolean;
+            }[];
+        };
+        /** @description Saved Arch-to-Celestial gates shared with the Ideal Stone operation. Origin level is its saved cache. Runtime transformation, trade and persistence remain game validations, not website authorization. */
+        PlayerCelestialAscension: {
+            applicable: boolean;
+            requirementsMet: boolean;
+            /** @description Displayed Arch level */
+            requiredLevel: number;
+            /** @description Displayed source Mortal level */
+            requiredMortalLevel: number;
+            checks: {
+                /** @enum {string} */
+                id: "arch" | "level" | "mortalLevel" | "idealStone";
+                met: boolean;
+            }[];
+        };
+        /** @description Saved Celestial-to-SubCelestial requirements. Fame is character-specific; face validity and reward space after consuming an Ideal Stone are included. No alternate form, raw counter, UID or inventory is exposed. Live reservations, item materialization and persistence remain game validations. */
+        PlayerSubCelestialAscension: {
+            applicable: boolean;
+            requirementsMet: boolean;
+            /** @description Displayed Celestial level */
+            requiredLevel: number;
+            requiredFame: number;
+            checks: {
+                /** @enum {string} */
+                id: "celestial" | "level" | "fame" | "sefirot" | "idealStone" | "noAlternate" | "face" | "rewardSpace";
+                met: boolean;
+            }[];
+        };
+        PlayerSessions: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            sessions: {
+                /** @description Random display identifier independent of cookie and CSRF token */
+                id: string;
+                current: boolean;
+                /** Format: date-time */
+                createdAt: string;
+                /** Format: date-time */
+                lastSeenAt: string;
+                /**
+                 * Format: date-time
+                 * @description Earlier of absolute expiry and current inactivity deadline
+                 */
+                expiresAt: string;
+            }[];
+        };
+        PlayerSessionRevocation: {
+            /** @constant */
+            version: 1;
+            /** @constant */
+            status: "revoked";
+            signedOut: boolean;
+        };
         AccountCreateRequest: {
             username: string;
             password: string;
@@ -1135,6 +1658,19 @@ export interface components {
         };
     };
     responses: {
+        /** @description Invalid request (400), sign-in required (401), Origin/CSRF rejection (403), missing session (404), unsupported media type (415), rate limit (429), or unavailable dependency (503). No-store; 429 includes Retry-After. */
+        PlayerError: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": {
+                    /** @constant */
+                    version: 1;
+                    error: string;
+                };
+            };
+        };
         /** @description Rejected request (400/401/403/415), rate limit (429 with Retry-After), or unavailable dependency (503) */
         Error: {
             headers: {

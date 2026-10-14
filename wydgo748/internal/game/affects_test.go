@@ -146,7 +146,7 @@ func TestBMTransformationUsesNative748Interpolation(t *testing.T) {
 	if e.Attack != 180 || e.Defense != 105 || e.MaxHP != 1050 {
 		t.Fatalf("transformacao lobo incorreta: %+v", e)
 	}
-	if e.Critical != 11 || bodyMesh(ch)[0] != 22 {
+	if e.Critical != 22 || bodyMesh(ch)[0] != 22 { // 2.2%
 		t.Fatalf("bonus/visual da transformacao incorreto: extended=%+v mesh=%v", e, bodyMesh(ch)[0])
 	}
 }

@@ -182,7 +182,7 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 	}
 	if name, ok := hasCounters(p, quest.ConsumeCounters); !ok {
 		// A zero balance still passes when the NPC recharge can cover it; the
-		// Survivor exchanges the seal for 100 entries on the spot.
+		// Survivor exchanges the seal for the configured entry allowance.
 		if !rechargeCovers(p, ch, quest, name) {
 			return counterDeniedMessage(name), false
 		}
@@ -304,7 +304,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 			return
 		}
 	}
-	// The recharge runs BEFORE spending, as natively: without a balance the NPC
+	// The recharge runs BEFORE spending: without a balance the NPC
 	// exchanges the item for entries and only then charges the visit.
 	applyQuestRecharge(p, quest)
 	if !spendCounters(p, quest.ConsumeCounters) {
@@ -354,13 +354,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	if quest.Rewards.Citizenship {
 		// Citizenship stores the CHANNEL NUMBER, as natively.
 		p.Char.Citizenship = w.channel
-		// The leader brings the guild along: at native Kibita, when the buyer is
-		// the guild master, the whole guild becomes citizen.
-		if guild, member := w.guildOf(p.Char); guild != nil &&
-			member.Rank == model.GuildRankLeader {
-			log.Printf("[#%d] CITIZENSHIP guild %d (%q) became citizen of channel %d",
-				s.ID, guild.ID, guild.Name, w.channel)
-		}
+		// This transaction changes only the buyer, not the guild's members.
 	}
 	if !quest.Repeatable {
 		markQuestCompleted(p.Char, quest.ID)
@@ -393,11 +387,17 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 			if cytheraChanged {
 				s.Send(wire.SendItem(p.ID, placeEquip, 1, p.Char.Equip[1]))
 			}
+			if quest.Rewards.Citizenship {
+				s.Send(wire.SendItem(p.ID, placeEquip, 0, wire.CharacterFaceItem(*p.Char)))
+			}
+		}
+		if quest.Rewards.Citizenship && !s.IsClosed() {
+			w.restoreTransformationView(p)
 		}
 		if cytheraChanged {
 			w.refreshAppearance(p)
 		}
-		if leveledUp {
+		if leveledUp || quest.Rewards.Citizenship {
 			w.syncPlayerChaos(p)
 		}
 		if teleporting {

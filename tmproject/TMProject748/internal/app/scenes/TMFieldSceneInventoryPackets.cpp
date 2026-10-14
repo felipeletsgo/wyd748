@@ -17,7 +17,7 @@
 	{
 		// Keep the fixed Equip wire array intact; these positions simply have no
 		// 7.48 visual/equip target in the active emulator UI.
-		return slot == 9 || slot == 16 || slot == 17;
+		return slot == 16 || slot == 17;
 	}
 
 int TMFieldScene::OnPacketUpdateCargoCoin(MSG_STANDARDPARM* pStd)
@@ -211,8 +211,9 @@ int TMFieldScene::OnPacketUpdateItem(MSG_UpdateItem* pMsg)
 
 		pItem->m_sAuth = 1;
 		BASE_UpdateItem2(nMaskIndex, nState, pMsg->State, (int)pItem->m_vecPosition.x, (int)pItem->m_vecPosition.y,	(char*)m_HeightMapData,
-			(int)(pItem->m_fAngle / D3DXToRadian(90)), pMsg->Height);
+			(int)(pItem->m_fAngle / D3DXToRadian(90)), pMsg->Height, (const char*)m_GateMapData);
 
+		pItem->m_nMaskHeight = static_cast<unsigned char>(pMsg->Height);
 		pItem->SetState((EGATE_STATE)(pMsg->State + static_cast<int>(EGATE_STATE::EGATE_LOCKED)));
 	}
 

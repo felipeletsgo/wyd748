@@ -286,6 +286,114 @@ int RunUiModeContractTests(int& checks)
     const auto frameEffect = source_contract::Method(effects, "void TMHuman::FrameMoveEffect(unsigned int dwServerTime)");
     check(frameEffect.find("g_pObjectManager->DeleteObject(m_pFamiliar);\n        m_pFamiliar = nullptr;") != std::string::npos,
         "a shadowed human keeps no pointer to its released familiar");
+    // Native FUN_00506f9d: persistent buff parameters are independent of
+    // character scale. These source contracts do not prove pixel parity.
+    const auto buffCode = [](const std::string& body) {
+        auto code = source_contract::MaskCpp(body);
+        code.erase(std::remove_if(code.begin(), code.end(), [](unsigned char c) {
+            return std::isspace(c) != 0;
+        }), code.end());
+        return code;
+    };
+    const auto skillAmpContract = [&](const std::string& body) {
+        const auto code = buffCode(body);
+        return code.find("kSkillAmpGroundOffset=0.4f;") != std::string::npos &&
+            code.find("newTMEffectBillBoard2(93,0,1.5f,1.5f,1.5f,0.0f,5000)") != std::string::npos &&
+            code.find("m_pSkillAmp->m_nFade=3;") != std::string::npos &&
+            code.find("m_pSkillAmp->SetColor(0x88888800);") != std::string::npos;
+    };
+    check(skillAmpContract(frameEffect), "Skill Amp preserves the native plane scale, height, fade and color");
+    auto reducedAura = frameEffect;
+    const auto nativeAura = reducedAura.find("93, 0, 1.5f, 1.5f, 1.5f");
+    if (nativeAura != std::string::npos)
+        reducedAura.replace(nativeAura, std::string("93, 0, 1.5f, 1.5f, 1.5f").size(), "93, 0, 0.5f, 0.5f, 0.5f");
+    check(nativeAura != std::string::npos && !skillAmpContract(reducedAura),
+        "the Skill Amp contract rejects the one-third-size regression");
+    const auto amp = buffCode(source_contract::Method(frameEffect, "if (m_cSKillAmp == 1)"));
+    const auto firstHeight = amp.find("m_fHeight+kSkillAmpGroundOffset");
+    check(firstHeight != std::string::npos &&
+        amp.find("m_fHeight+kSkillAmpGroundOffset", firstHeight + 1) != std::string::npos &&
+        amp.find("m_vecSkinPos") == std::string::npos,
+        "Skill Amp creation and subsequent frames both follow terrain, including mounts");
+    const auto ampRelease = buffCode(source_contract::Method(frameEffect, "else if (m_pSkillAmp)"));
+    check(ampRelease.find("DeleteObject(m_pSkillAmp)") < ampRelease.find("m_pSkillAmp=nullptr;"),
+        "removing Skill Amp releases its persistent plane before clearing the pointer");
+    const auto hidden = buffCode(source_contract::Method(effects, "ExtractedFlow TMHuman::UpdateHiddenEffects()"));
+    check(hidden.find("m_pSkillAmp->m_bShow=0;") != std::string::npos,
+        "hidden humans do not leak the restored Skill Amp aura");
+    const auto code = buffCode(frameEffect);
+    check(code.find("floatfScale=1.0f;") != std::string::npos &&
+        code.find("fScale=1.3f;") != std::string::npos,
+        "Lighten retains native foot and mounted scales");
+    check(code.find("dwServerTime%1000)/1000.0f") != std::string::npos &&
+        code.find("dwServerTime-m_dwElimental>500") != std::string::npos,
+        "Immunity rotation and Elemental emission use native periods");
+    const auto mana = buffCode(source_contract::Method(frameEffect,
+        "if (!g_bHideSkillBuffEffect && m_cManaControl == 1)"));
+    check(mana.find("newTMEffectBillBoard(56,1500,") != std::string::npos &&
+        mana.find("newTMEffectBillBoard(0,1500,") != std::string::npos &&
+        mana.find("AddChild(mpBill);") != std::string::npos &&
+        mana.find("AddChild(mpBill2);") != std::string::npos &&
+        mana.find("if(mpBill)") != std::string::npos && mana.find("if(mpBill2)") != std::string::npos,
+        "visible Mana Control emits both owned finite-lived particles with allocation guards");
+    check(mana.find("m_fParticleV=-1.2f;") != std::string::npos &&
+        mana.find("m_fParticleV=1.5f;") != std::string::npos &&
+        mana.find("*0.07f+m_vecPosition.y") != std::string::npos &&
+        mana.find("*0.1f+m_vecPosition.y") != std::string::npos,
+        "Mana Control retains native particle directions and spread");
+    for (const char axis : {'x', 'y', 'z'})
+        check(code.find(std::string("m_pProtector->m_pSkinMesh->m_vScale.") + axis + "=0.5f;") != std::string::npos,
+            "Protector retains native scale on each axis");
+    const auto critical = buffCode(source_contract::Method(frameEffect,
+        "if (!g_bHideSkillBuffEffect && m_cCriticalArmor == 1)"));
+    check(critical.find("m_fScaleH=0.7f;") != std::string::npos &&
+        critical.find("m_fScaleV=0.7f;") != std::string::npos &&
+        critical.find("m_vecSkinPos.y)-0.3f") != std::string::npos &&
+        critical.find("m_fHeight)+0.3f") != std::string::npos &&
+        critical.find("m_fHeight),m_vecPosition.y") != std::string::npos,
+        "Critical Armor preserves native nonzero scales and creation/follow heights");
+    check(code.find("m_pSoul[i]->m_fScale=0.4f;") != std::string::npos &&
+        code.find("/2.0f+m_vecSkinPos.y") != std::string::npos &&
+        code.find("/2.0f+m_fHeight") != std::string::npos,
+        "Soul preserves native mesh scale and initial half-height anchors");
+    check(code.find("newTMEffectBillBoard2(94,0,1.5f,1.5f,1.5f,0.0,3000)") != std::string::npos &&
+        code.find("newTMEffectBillBoard2(94,0,1.2f,1.2f,1.2f,0.0f,5000)") != std::string::npos,
+        "the neighboring Aurora and Shadow planes keep their native scales and cycles");
+    const auto slowSlash = buffCode(source_contract::Method(humanRender, "else if(m_cSlowSlash == 1)"));
+    check(slowSlash.find("color.r=fR/2.0f;") != std::string::npos &&
+        slowSlash.find("m_materials.Specular=color;") < slowSlash.find("color.r=fR;") &&
+        slowSlash.find("color.r=fR;") < slowSlash.find("m_materials.Diffuse=color;"),
+        "Slow Slash retains half-strength emission and full-strength diffuse red");
+    const auto swings = ReadAppSource("internal/render/effects/core/TMEffectSWSwing.cpp");
+    const auto magic = buffCode(source_contract::Method(swings,
+        "if (m_cMagicWeapon == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 50)"));
+    check(magic.find("j<3;") != std::string::npos && magic.find("rand()%5") != std::string::npos &&
+        magic.find("newTMEffectBillBoard(56,500,") != std::string::npos &&
+        magic.find("newTMEffectBillBoard(60,500,") != std::string::npos,
+        "Magic Weapon emits three native pairs with bounded randomness and finite lifetimes");
+    check(magic.find("0.2f-(float)j*0.01f,0.2f-(float)j*0.01f,0.2f-(float)j*0.01f,0.002f,1,80") != std::string::npos &&
+        magic.find("fRand*0.01f+0.2f,fRand*0.01f+0.2f,fRand*0.01f+0.2f,0.0005f,1,80") != std::string::npos,
+        "both Magic Weapon particle families retain native dimensions and velocities");
+    check(magic.find("SetColor(dwColor[j]);") != std::string::npos &&
+        magic.find("dwColor[0]=0xFF550088;") != std::string::npos &&
+        magic.find("dwColor[1]=0xFF555500;") != std::string::npos &&
+        magic.find("dwColor[2]=0xFF005500;") != std::string::npos &&
+        magic.find("SetColor(0xFF333355);") != std::string::npos &&
+        magic.find("m_fAxisAngle=(float)(3.1415927f*fRand)/3.0f;") != std::string::npos,
+        "Magic Weapon retains its native colored cores and secondary rotation");
+    check(magic.find("if(pChild)") != std::string::npos && magic.find("if(pChild2)") != std::string::npos &&
+        magic.find("AddChild(pChild);") != std::string::npos && magic.find("AddChild(pChild2);") != std::string::npos &&
+        magic.find("vecStartOut.y+0.2f") != std::string::npos && magic.find("m_dwOldTime=dwServerTime;") != std::string::npos,
+        "weapon emissions keep allocation guards, scene ownership, height and clock advancement");
+    const auto armor = buffCode(source_contract::Method(swings,
+        "if (m_cArmorClass == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 100)"));
+    check(armor.find("(float)(fRand*0.01f)+0.1f,(float)(fRand*0.01f)+0.1f,(float)(fRand*0.01f)+0.1f") != std::string::npos &&
+        armor.find("0.009f") == std::string::npos,
+        "Armor Class secondary particles retain native spread");
+    const auto enchant = buffCode(source_contract::Method(swings, "if (m_bEnchant)"));
+    check(enchant.find("0.0001f,1,80") != std::string::npos &&
+        enchant.find("newTMEffectBillBoard(56,0,1.0f,1.0f,1.0f,0.0f,1,80)") != std::string::npos,
+        "Enchant retains native particle velocity and persistent plane size");
     const auto appearance = ReadAppSource("internal/game/entities/TMHumanAppearance.cpp");
     const auto inventoryPackets = ReadAppSource("internal/app/scenes/TMFieldSceneInventoryPackets.cpp");
     const auto selectChar = ReadAppSource("internal/app/scenes/TMSelectCharScene.cpp");
@@ -334,6 +442,63 @@ int RunUiModeContractTests(int& checks)
     const auto tooltip = ReadAppSource("internal/ui/SGridTooltip.cpp");
     check(tooltip.find("costume_slot::IsCostume(g_pItemList[pItem->m_pItem->sIndex].nIndexMesh,") != std::string::npos,
         "the costume tooltip shows the projected expiry for every costume");
+    // Mounted speed is fixed; EF_RUNSPEED on a mount row is the server's final
+    // speed, never a "Moving Speed Increase" bonus line.
+    check(tooltip.find("if (dwEFParam[l] == EF_RUNSPEED && (g_pItemList[pItem->m_pItem->sIndex].nPos & 0x4000))\n\t\t\tcontinue;") != std::string::npos,
+        "the mount tooltip omits the run-speed bonus line");
+    // The native minimap control stores -45 degrees to match the default
+    // camera, the arrow and TMHuman markers. The renderer rotates the texture
+    // inside the axis-aligned panel instead of turning the crop into a diamond.
+    const auto minimapUi = ReadAppSource("internal/app/scenes/TMFieldSceneUI.cpp");
+    const auto primitives = ReadAppSource("internal/platform/windows/RenderDevicePrimitives.cpp");
+    check(minimapUi.find("RenderDevice::m_pTextureRotationControl = m_pMiniMapPanel->GetGeomControl();\n\t\t\tRenderDevice::m_fTextureRotation = -0.78539819f;") != std::string::npos &&
+        minimapUi.find("m_pMiniMapPanel->GetGeomControl()->fAngle = 0.0f;") != std::string::npos &&
+        primitives.find("ipControl == m_pTextureRotationControl") != std::string::npos &&
+        primitives.find("const float fSin = sinf(-m_fActiveTextureRotation);") != std::string::npos,
+        "the minimap texture uses the native -45 degree orientation inside its frame");
+    // WYD.exe 0x47a336/FUN_0044ca65: the UI2 header above the compact map
+    // shows "<server group>-<channel>" and is hidden while expanded.
+    const auto minimapWorld = ReadAppSource("internal/app/scenes/TMFieldSceneWorld.cpp");
+    const auto minimapFrame = ReadAppSource("internal/app/scenes/TMFieldScene.cpp");
+    check(minimapWorld.find("m_pMiniMapServerPanel->SetPos(0, px(-19.0f));") != std::string::npos &&
+        minimapWorld.find("m_pMiniMapServerPanel->SetVisible(ui2 && layout.visible && !layout.expanded);") != std::string::npos &&
+        minimapFrame.find("sprintf_s(server, \"%s-%d\", g_szServerNameList[group], g_pObjectManager->m_nServerIndex);") != std::string::npos,
+        "the compact minimap header shows the native server and channel label");
+    // FPS/ping row under the minimap coordinates; ping is the socket's TCP RTT.
+    const auto socketSource = ReadAppSource("internal/platform/windows/CPSock.cpp");
+    check(minimapFrame.find("sprintf_s(stats, \"FPS: %d  Ping: %d ms\"") != std::string::npos &&
+        minimapWorld.find("m_pNetStatsText->SetPos(0, mapSize + px(coordinatesInside ? 2.0f : 20.0f));") != std::string::npos &&
+        socketSource.find("SIO_TCP_INFO") != std::string::npos &&
+        minimapFrame.find("if (!_stricmp(str1, \"fps\"))") != std::string::npos &&
+        minimapWorld.find("m_pNetStatsText->SetVisible(layout.visible && m_bShowNetStats);") != std::string::npos,
+        "the local /fps command toggles FPS and TCP round-trip time below the minimap coordinates");
+    // MeshManager never fills m_sAnimationArray[3]; the BM Wolf/Bear forms
+    // must read AniSound4 file indices directly or every motion is frame 0.
+    const auto humanAnimation = ReadAppSource("internal/game/entities/TMHumanAnimation.cpp");
+    const auto riderMeshAnimations = ReadAppSource("internal/render/mesh/MeshManager.cpp");
+    check(humanAnimation.find("else if (m_nSkinMeshType == 3)\n                {\n                    if (!m_pSkinMesh->SetAnimation(g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion])") != std::string::npos &&
+        riderMeshAnimations.find("MeshManager::m_sAnimationArray[3][") == std::string::npos,
+        "the wolf/bear transformation animates from its own animation table");
+    // A gate received before its region's warp must survive the height-window
+    // rebuild; otherwise the client walks through a gate the server enforces.
+    const auto sceneGround = ReadAppSource("internal/app/scenes/TMSceneGround.cpp");
+    const auto worldScene = ReadAppSource("internal/app/scenes/TMFieldSceneWorld.cpp");
+    const auto inventoryScene = ReadAppSource("internal/app/scenes/TMFieldSceneInventoryPackets.cpp");
+    std::size_t reapplied = 0;
+    for (auto at = sceneGround.find("memcpy(m_GateMapData"); at != std::string::npos; at = sceneGround.find("memcpy(m_GateMapData", at + 1))
+        if (sceneGround.find("RefreshGroundObjects();", at) < sceneGround.find("SaveHeightMap(", at))
+            ++reapplied;
+    check(reapplied == 2 &&
+        worldScene.find("pItem->m_nMaskHeight = static_cast<unsigned char>(pMsg->Height);") != std::string::npos &&
+        inventoryScene.find("pItem->m_nMaskHeight = static_cast<unsigned char>(pMsg->Height);") != std::string::npos,
+        "both height rebuilds re-seat ground objects and re-stamp known gates");
+    // Mesh 36 remains the costume identity but resolves to sword16.msa; grid
+    // and ground items present costumes with the KR costume mesh instead.
+    static_assert(costume_slot::IconMesh == 2885 && costume_slot::IconMesh != costume_slot::CostumeMesh);
+    const auto meshIndex = source_contract::Method(ReadAppSource("internal/core/BasedefAppearance.cpp"),
+        "int BASE_GetMeshIndex(short sIndex)");
+    check(meshIndex.find("if (costume_slot::IsCostume(g_pItemList[sIndex].nIndexMesh, g_pItemList[sIndex].nPos))\n        return costume_slot::IconMesh;") != std::string::npos,
+        "costume grid and ground icons use the costume mesh, not the sword");
     const auto timedTooltip = source_contract::Method(tooltip,
         "void SGridControl::DescribeTimedItem(SGridControlItem*& pItem, TMFieldScene*& pFScene, int& nLineId, char (&szDesc)[128])");
     check(timedTooltip.find("sprintf(szDesc, \"%s %s %s\", formattedDate, formattedHour, formattedMin);") != std::string::npos &&

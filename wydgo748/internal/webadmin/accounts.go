@@ -7,9 +7,12 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"wydgo/internal/account"
+	"wydgo/internal/authlimit"
 )
 
 type createAccountResponse struct {
@@ -22,6 +25,13 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 	_, current, ok := h.csrf(w, r)
 	if !ok {
 		return
+	}
+	protected := h.cfg.RequireLoginProtection || !h.cfg.DevHTTP
+	if protected {
+		// A PIN-only route must not bypass the public registration challenge.
+		if _, ok := h.authorized(w, r); !ok {
+			return
+		}
 	}
 	if h.cfg.Registration == nil {
 		writeError(w, http.StatusServiceUnavailable, "registration_unavailable")
@@ -65,6 +75,22 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "rate_limited")
 		return
 	}
+	if protected {
+		if h.cfg.AuthenticationLimiter == nil {
+			writeError(w, 503, "authentication_unavailable")
+			return
+		}
+		wait, err := h.cfg.AuthenticationLimiter.Admit(r.Context(), authlimit.Policy("registration", h.peer(r), nameKey))
+		if err != nil {
+			writeError(w, 503, "authentication_unavailable")
+			return
+		}
+		if wait > 0 {
+			w.Header().Set("Retry-After", strconv.Itoa(int(wait/time.Second)+1))
+			writeError(w, 429, "rate_limited")
+			return
+		}
+	}
 	if subtle.ConstantTimeCompare([]byte(h.cfg.AdminAccessPIN), []byte(body.AdminPIN)) != 1 {
 		h.audit(r, "account.create", current.Actor, "rejected")
 		writeError(w, http.StatusUnauthorized, "invalid_admin_pin")
@@ -75,6 +101,10 @@ func (h *Handler) createAccount(w http.ResponseWriter, r *http.Request) {
 		defer func() { <-h.hashSlots }()
 	default:
 		writeError(w, http.StatusServiceUnavailable, "registration_busy")
+		return
+	}
+	if len(body.Password) < 8 {
+		writeJSON(w, 422, map[string]string{"error": "validation_error", "field": "password", "message": "New passwords must contain 8 to 10 characters"})
 		return
 	}
 	created, err := account.Create(h.cfg.Registration, body.Username, body.Password, body.PasswordConfirmation)

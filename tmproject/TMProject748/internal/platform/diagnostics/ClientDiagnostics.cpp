@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ClientDiagnostics.h"
+#include "CrashCapture.h"
 #include "SControlContainer.h"
 #include "SControl.h"
 
@@ -14,6 +15,7 @@ namespace
 {
     constexpr char kDiagnosticsFile[] = "client-debug.log";
     constexpr char kPacketTraceEnvironment[] = "WYD748_TRACE_PACKETS";
+    const ULONGLONG kDiagnosticsStart = GetTickCount64();
 
     bool IsPacketTraceEnabled()
     {
@@ -140,77 +142,16 @@ namespace
         if (file == INVALID_HANDLE_VALUE)
             return;
 
+        SYSTEMTIME now{};
+        GetSystemTime(&now);
+        char record[2048]{};
+        _snprintf_s(record, sizeof(record), _TRUNCATE,
+            "[%04u-%02u-%02uT%02u:%02u:%02u.%03uZ pid=%lu tid=%lu elapsed_ms=%llu] %s",
+            now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond,
+            now.wMilliseconds, GetCurrentProcessId(), GetCurrentThreadId(), GetTickCount64() - kDiagnosticsStart, text);
         DWORD written = 0;
-        WriteFile(file, text, static_cast<DWORD>(strlen(text)), &written, nullptr);
+        WriteFile(file, record, static_cast<DWORD>(strlen(record)), &written, nullptr);
         CloseHandle(file);
-    }
-
-    LONG WINAPI ClientUnhandledException(EXCEPTION_POINTERS* exceptionPointers)
-    {
-        char line[512]{};
-        const DWORD code = exceptionPointers && exceptionPointers->ExceptionRecord
-            ? exceptionPointers->ExceptionRecord->ExceptionCode
-            : 0;
-        const ULONG_PTR address = exceptionPointers && exceptionPointers->ExceptionRecord
-            ? reinterpret_cast<ULONG_PTR>(exceptionPointers->ExceptionRecord->ExceptionAddress)
-            : 0;
-        sprintf_s(line, "Unhandled exception code=0x%08lX address=0x%p pid=%lu\r\n",
-            code, reinterpret_cast<void*>(address), GetCurrentProcessId());
-        AppendLine(line);
-
-        // Resolve DbgHelp dynamically so the client remains launchable on a
-        // clean 7.48 machine even when the SDK import library is unavailable.
-        HMODULE dbghelp = LoadLibraryA("Dbghelp.dll");
-        if (dbghelp)
-        {
-            using MiniDumpWriteDumpProc = BOOL(WINAPI*)(
-                HANDLE, DWORD, HANDLE, MINIDUMP_TYPE,
-                const MINIDUMP_EXCEPTION_INFORMATION*,
-                const MINIDUMP_USER_STREAM_INFORMATION*,
-                const MINIDUMP_CALLBACK_INFORMATION*);
-            auto writeDump = reinterpret_cast<MiniDumpWriteDumpProc>(
-                GetProcAddress(dbghelp, "MiniDumpWriteDump"));
-            if (writeDump)
-            {
-                SYSTEMTIME now{};
-                GetLocalTime(&now);
-                char dumpName[MAX_PATH]{};
-				char dumpFileName[64]{};
-                sprintf_s(dumpFileName, "client-crash-%04u%02u%02u-%02u%02u%02u.dmp",
-                    now.wYear, now.wMonth, now.wDay, now.wHour, now.wMinute, now.wSecond);
-				BuildModuleSiblingPath(dumpFileName, dumpName);
-                HANDLE dump = CreateFileA(dumpName, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
-                    FILE_ATTRIBUTE_NORMAL, nullptr);
-                if (dump != INVALID_HANDLE_VALUE)
-                {
-                    MINIDUMP_EXCEPTION_INFORMATION info{};
-                    info.ThreadId = GetCurrentThreadId();
-                    info.ExceptionPointers = exceptionPointers;
-                    info.ClientPointers = FALSE;
-					const BOOL written = writeDump(GetCurrentProcess(), GetCurrentProcessId(), dump,
-                        static_cast<MINIDUMP_TYPE>(MiniDumpNormal | MiniDumpWithDataSegs),
-                        exceptionPointers ? &info : nullptr, nullptr, nullptr);
-					const DWORD dumpError = written ? ERROR_SUCCESS : GetLastError();
-                    CloseHandle(dump);
-					sprintf_s(line, "minidump written=%d error=%lu path=%s\r\n",
-						written, dumpError, dumpName);
-					AppendLine(line);
-                }
-				else
-				{
-					sprintf_s(line, "minidump create failed error=%lu path=%s\r\n",
-						GetLastError(), dumpName);
-					AppendLine(line);
-				}
-            }
-			else
-				AppendLine("minidump unavailable: MiniDumpWriteDump not found\r\n");
-            FreeLibrary(dbghelp);
-        }
-		else
-			AppendLine("minidump unavailable: Dbghelp.dll could not be loaded\r\n");
-
-        return EXCEPTION_EXECUTE_HANDLER;
     }
 
     void DumpNode(TreeNode* node, int depth, std::unordered_set<TreeNode*>& seen)
@@ -334,11 +275,17 @@ void WYD748_LayoutProbe(SControlContainer* container, unsigned int screenWidth,
 
 void WYD748_InstallDiagnostics()
 {
-    // The filter is intentionally installed once by NewApp after logging has
-    // started, so every compatibility crash produces evidence next to the
-    // deployed executable rather than only a generic Windows event entry.
-    SetUnhandledExceptionFilter(ClientUnhandledException);
-    WYD748_DiagnosticsLog("diagnostics installed pid=%lu\r\n", GetCurrentProcessId());
+    char executable[MAX_PATH]{};
+    GetModuleFileNameA(nullptr, executable, MAX_PATH);
+    char directory[MAX_PATH]{};
+    strcpy_s(directory, executable);
+    char* slash = strrchr(directory, '\\');
+    if (slash) *slash = '\0';
+    else strcpy_s(directory, ".");
+    const bool installed = wyd_crash::Install(directory, AppendLine);
+    WYD748_DiagnosticsLog("SESSION diagnostics=%s exe=%s module_base=%p build=%s %s\r\n",
+        installed ? "ready" : "unavailable", executable,
+        static_cast<void*>(GetModuleHandleW(nullptr)), __DATE__, __TIME__);
 }
 
 void WYD748_DiagnosticsLog(const char* format, ...)
@@ -349,7 +296,7 @@ void WYD748_DiagnosticsLog(const char* format, ...)
     char line[1024]{};
     va_list args;
     va_start(args, format);
-    vsprintf_s(line, format, args);
+    _vsnprintf_s(line, sizeof(line), _TRUNCATE, format, args);
     va_end(args);
     AppendLine(line);
 }

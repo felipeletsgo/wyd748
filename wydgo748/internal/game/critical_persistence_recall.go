@@ -22,7 +22,7 @@ func (w *World) queueCriticalRecall(p *Player, reason string) bool {
 		}
 		setPlayerCurHP(ch, hp)
 	}
-	city, x, y := playerHomeCitySpawn(ch)
+	city, x, y := w.homeCitySpawn(ch)
 	x, y = w.findFreePlayerPosition(x, y, 8, p)
 	err := w.queuePlayerTeleportState(p, proposed, x, y, "recall "+reason, func() {
 		p.Session.Send(playerScorePacket(p))

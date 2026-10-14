@@ -1,5 +1,10 @@
 # Nonblocking critical persistence
 
+This plan tracks persistence design and recovery acceptance, not deployment
+identity. The [current-state record](../current-state.md) separates the live
+VPS release from later local changes. S2 is enabled in production; old staging-only
+notes must not be used as current activation status.
+
 Status as of 2026-10-07: the producer migration is implemented, enabled for
 PostgreSQL, and published in
 [`83a94da7`](https://github.com/felipeletsgo/wyd748/commit/83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a).

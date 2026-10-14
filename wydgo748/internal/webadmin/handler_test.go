@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"wydgo/internal/account"
+	"wydgo/internal/authlimit"
 	"wydgo/internal/control"
 	"wydgo/internal/model"
 )
@@ -121,7 +122,10 @@ func newTestHandler(t *testing.T) (*Handler, map[string]Staff, *testControl, *by
 		}}},
 	}
 	logs := &bytes.Buffer{}
-	h, err := New(Config{Origin: "https://admin.test", AdminAccessPIN: testAdminPIN, Accounts: testAccounts{hash}, Registration: newTestRegistration(), Staff: func() (map[string]Staff, error) { return entries, nil }, Control: c, Persistent: p, Audit: slog.New(slog.NewJSONHandler(logs, nil))})
+	h, err := New(Config{Origin: "https://admin.test", AdminAccessPIN: testAdminPIN, Accounts: testAccounts{hash}, Registration: newTestRegistration(), Staff: func() (map[string]Staff, error) { return entries, nil }, Control: c, Persistent: p, Audit: slog.New(slog.NewJSONHandler(logs, nil)),
+		AuthenticationLimiter: securityLimiter(func(context.Context, []authlimit.Limit) (time.Duration, error) { return 0, nil }),
+		LoginVerifier:         securityVerifier(func(context.Context, string, string) error { return nil }),
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,7 +332,7 @@ func loginTest(t *testing.T, h *Handler) (*http.Cookie, testSession, *http.Cooki
 	w := request(h, "GET", "/api/v1/auth/session", "", nil, "")
 	s := readTestSession(t, w)
 	old := w.Result().Cookies()[0]
-	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass10","adminPin":"`+testAdminPIN+`"}`, old, s.CSRF)
+	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass10","adminPin":"`+testAdminPIN+`","turnstileToken":"test-token"}`, old, s.CSRF)
 	s = readTestSession(t, w)
 	return w.Result().Cookies()[0], s, old
 }
@@ -372,7 +376,7 @@ func TestLogoutAndReloginWithAdminPIN(t *testing.T) {
 	}
 	w = request(h, "GET", "/api/v1/auth/session", "", nil, "")
 	anon := readTestSession(t, w)
-	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass10","adminPin":"`+testAdminPIN+`"}`, w.Result().Cookies()[0], anon.CSRF)
+	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"TestPass10","adminPin":"`+testAdminPIN+`","turnstileToken":"test-token"}`, w.Result().Cookies()[0], anon.CSRF)
 	if w.Code != 200 {
 		t.Fatalf("re-login with configured PIN failed: %d %s", w.Code, w.Body.String())
 	}
@@ -391,22 +395,22 @@ func TestAuthRejectionsAndExpiry(t *testing.T) {
 	w := request(h, "GET", "/api/v1/auth/session", "", nil, "")
 	s := readTestSession(t, w)
 	cookie := w.Result().Cookies()[0]
-	for _, body := range []string{`{"extra":true}`, `{} {}`, strings.Repeat(" ", 1025) + `{}`} {
+	for _, body := range []string{`{"extra":true}`, `{} {}`, strings.Repeat(" ", 4097) + `{}`} {
 		w = request(h, "POST", "/api/v1/auth/login", body, cookie, s.CSRF)
 		if w.Code != 400 {
 			t.Fatalf("malformed accepted: %d", w.Code)
 		}
 	}
-	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"wrong","adminPin":"001234"}`, cookie, s.CSRF)
+	w = request(h, "POST", "/api/v1/auth/login", `{"username":"operator","password":"wrong","adminPin":"001234","turnstileToken":"test-token"}`, cookie, s.CSRF)
 	if w.Code != 401 {
 		t.Fatal("password rejection")
 	}
 	for _, body := range []string{
-		`{"username":"operator","password":"12345678901","adminPin":"001234"}`,
-		`{"username":"operator","password":"TestPass10","adminPin":"999999"}`,
-		`{"username":"operator","password":"TestPass10","adminPin":"12345"}`,
-		`{"username":"operator","password":"TestPass10","adminPin":"12a456"}`,
-		`{"username":"player","password":"TestPass10","adminPin":"001234"}`,
+		`{"username":"operator","password":"12345678901","adminPin":"001234","turnstileToken":"test-token"}`,
+		`{"username":"operator","password":"TestPass10","adminPin":"999999","turnstileToken":"test-token"}`,
+		`{"username":"operator","password":"TestPass10","adminPin":"12345","turnstileToken":"test-token"}`,
+		`{"username":"operator","password":"TestPass10","adminPin":"12a456","turnstileToken":"test-token"}`,
+		`{"username":"player","password":"TestPass10","adminPin":"001234","turnstileToken":"test-token"}`,
 	} {
 		w = request(h, "POST", "/api/v1/auth/login", body, cookie, s.CSRF)
 		if w.Code != 401 || !strings.Contains(w.Body.String(), "invalid_credentials") {

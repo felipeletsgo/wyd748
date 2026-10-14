@@ -11,6 +11,7 @@
 #include "SellConfirmationText.h"
 #include "NativeSaleQuote.h"
 #include "SGridSupport.h"
+#include "GridItemPresentation.h"
 #include <memory>
 
 
@@ -108,25 +109,16 @@ float WYD748_GetGridMeshScale(const SGridControlItem* item)
 	// Native FUN_0040e817 compares only MaxZ against 0.3 mesh units for each
 	// occupied cell row.  It shrinks meshes that exceed that vertical budget
 	// and never enlarges a mesh beyond its authored 1.0 scale.
-	constexpr float NativeCellHeight = 0.3f;
-	if (!std::isfinite(mesh->m_fMaxZ) || mesh->m_fMaxZ <= 0.0f
-		|| item->m_nCellHeight <= 0)
-		return 1.0f;
-
-	const float targetHeight = static_cast<float>(item->m_nCellHeight) * NativeCellHeight;
-	return mesh->m_fMaxZ > targetHeight ? targetHeight / mesh->m_fMaxZ : 1.0f;
+	return grid_item_presentation::MeshScale(mesh->m_fMaxZ, item->m_nCellHeight);
 }
 
-void WYD748_ApplyGridMeshScale(SGridControlItem* item, const bool fitSingleCell)
+void WYD748_ApplyGridMeshScale(SGridControlItem* item)
 {
 	if (!item)
 		return;
 
-	// Equipment panels are irregular body slots and retain their stock 1.0
-	// presentation.  Every cell-based grid and the cursor use the same fit.
-	item->m_GCObj.fScale = fitSingleCell
-		? WYD748_GetGridMeshScale(item)
-		: 1.0f;
+	// Equipment, inventory, mix slots and cursor share the native mesh fit.
+	item->m_GCObj.fScale = WYD748_GetGridMeshScale(item);
 }
 
 SGridControlItem* SGridControl::m_pLastMouseOverItem;
@@ -371,19 +363,10 @@ void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int 
 		if (!m_pItemList[0])
 			return;
 
-		// GRID_TRADEMY2 is the buyer's display slot: FieldScene2 already supplies
-		// its native receptacle, so the seller-side dark selection mask must not
-		// cover the item artwork in the customer window.
-		if (m_eGridType == TMEGRIDTYPE::GRID_TRADEOP || m_eGridType == TMEGRIDTYPE::GRID_TRADEMY)
-		{
-			m_pItemList[0]->m_GCEnable.nPosX = ivParentPos.x + m_nPosX;
-			m_pItemList[0]->m_GCEnable.nPosY = ivParentPos.y + m_nPosY;
-			m_pItemList[0]->m_GCEnable.nWidth = m_nWidth - 4.0f;
-			m_pItemList[0]->m_GCEnable.nHeight = m_nHeight - 3.0f;
-			m_pItemList[0]->m_GCEnable.nLayer = inParentLayer;
-			m_pItemList[0]->m_GCEnable.dwColor = 0x0FF000000;
-			AddRenderControlItem(pDrawList, &m_pItemList[0]->m_GCEnable, inParentLayer);
-		}
+		// FieldScene2.bin already supplies the native receptacle of every trade
+		// slot (GRID_TRADEOP, GRID_TRADEMY and GRID_TRADEMY2). The opaque black
+		// backdrop inherited from the 7.69 source replaced that background with
+		// a black square as soon as an item entered the slot, so none is drawn.
 		// Trade/mix receptacles follow the same native centre contract as equipment;
 		// item-local offsets remain available for the few stock mix arrangements.
 		TMVector2 vecCenter = TMVector2((ivParentPos.x + m_nPosX) + (m_nWidth * 0.5f),
@@ -482,8 +465,7 @@ int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inC
 	ipNewItem->m_nCellIndexY = inCellIndexY;
 	m_pItemList[m_nNumItem++] = ipNewItem;
 
-	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
-	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
+	WYD748_ApplyGridMeshScale(ipNewItem);
 
 	return 1;
 	});
@@ -508,8 +490,7 @@ int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, in
 	ipNewItem->m_GCObj.m_fHeight = ipNewItem->m_nHeight;
 	m_pItemList[m_nNumItem++] = ipNewItem;
 
-	const bool isEquipmentGrid = m_eItemType != TMEITEMTYPE::ITEMTYPE_NONE;
-	WYD748_ApplyGridMeshScale(ipNewItem, !isEquipmentGrid);
+	WYD748_ApplyGridMeshScale(ipNewItem);
 
 	return 1;
 	});
@@ -698,7 +679,7 @@ SGridControlItem* SGridControl::PickupItem(int inCellIndexX, int inCellIndexY)
 	// A dragged item always uses the cell-safe presentation, including when it
 	// originated in an irregular equipment panel. AddItem restores scale 1.0
 	// if the item is placed back into equipment.
-	WYD748_ApplyGridMeshScale(pItem, true);
+	WYD748_ApplyGridMeshScale(pItem);
 	return pItem;
 }
 
@@ -734,7 +715,7 @@ SGridControlItem* SGridControl::PickupAtItem(int inCellIndexX, int inCellIndexY)
 
 	// PickupAtItem feeds the same cursor path as PickupItem and must not preserve
 	// equipment scale while the mesh is hovering over the inventory grid.
-	WYD748_ApplyGridMeshScale(pItem, true);
+	WYD748_ApplyGridMeshScale(pItem);
 	return pItem;
 }
 

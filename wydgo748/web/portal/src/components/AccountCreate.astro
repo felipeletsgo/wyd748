@@ -5,8 +5,8 @@
     <p>Registration stores only the account and a password hash. Characters are created later in the game.</p>
     <ul>
       <li>Account: 4–12 letters or digits</li>
-      <li>Password: 4–10 characters, no spaces</li>
-      <li>The administrative PIN authorizes each registration</li>
+      <li>Password: 8–10 printable ASCII characters, no spaces</li>
+      <li>Published registration requires a staff session and the administrative PIN</li>
     </ul>
   </div>
   <form id="account-create-form" class="account-create-form">
@@ -15,11 +15,11 @@
     <div class="account-create-passwords">
       <div>
         <label for="new-account-password">Password</label>
-        <input id="new-account-password" name="password" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Game password" />
+        <input id="new-account-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="10" pattern="[!-~]{8,10}" required placeholder="Game password" />
       </div>
       <div>
         <label for="new-account-confirmation">Confirm password</label>
-        <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="4" maxlength="10" pattern="[^\s]{4,10}" required placeholder="Repeat the password" />
+        <input id="new-account-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="8" maxlength="10" pattern="[!-~]{8,10}" required placeholder="Repeat the password" />
       </div>
     </div>
     <label for="new-account-pin">Administrative PIN <span>6 digits</span></label>

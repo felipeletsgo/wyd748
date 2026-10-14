@@ -372,7 +372,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         {
             float fRand = (float)(rand() % 5);
 
-            float fScale = 0.6f;
+            float fScale = 1.0f;
             if (m_cMount == 1)
                 fScale = 1.3f;
 
@@ -459,7 +459,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         {
             if (m_pImmunity[i])
             {
-                float fAngle = ((((float)(i % 5) * 1.0f) / 5.0f) + ((float)(dwServerTime % 5000) / 5000.0f)) * D3DXToRadian(360);
+                float fAngle = ((((float)(i % 5) * 1.0f) / 5.0f) + ((float)(dwServerTime % 1000) / 1000.0f)) * D3DXToRadian(360);
                 if (!(i % 2))
                     m_pImmunity[i]->m_fAngle = fAngle;
                 if (i % 3 == 1)
@@ -509,7 +509,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         }
     }
 
-    if (!g_bHideSkillBuffEffect2 && m_cElimental == 1 && dwServerTime - m_dwElimental > 250)
+    if (!g_bHideSkillBuffEffect2 && m_cElimental == 1 && dwServerTime - m_dwElimental > 500)
     {
         TMVector3 vec{ m_vecPosition.x, m_fHeight, m_vecPosition.y };
 
@@ -592,10 +592,9 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         m_dwDodgeTime = dwServerTime;
     }
 
-    // FUN_00506f9d identifies affect 15 as the texture-93 Skill Amp plane.
-    // Keep that plane just above the terrain so it follows the feet without
-    // z-fighting; a character-height offset incorrectly draws it on the head.
-    constexpr float kSkillAmpGroundOffset = 0.05f;
+    // FUN_00506f9d: affect 15 uses a 1.5-unit texture-93 plane, positioned
+    // 0.4 units above terrain (native float at 0x005A4154), not at head height.
+    constexpr float kSkillAmpGroundOffset = 0.4f;
     if (m_cSKillAmp == 1)
     {
         if (m_pSkillAmp)
@@ -606,7 +605,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         }
         else
         {
-            m_pSkillAmp = new TMEffectBillBoard2(93, 0, 0.5f, 0.5f, 0.5f, 0.0f, 5000);
+            m_pSkillAmp = new TMEffectBillBoard2(93, 0, 1.5f, 1.5f, 1.5f, 0.0f, 5000);
 
             if (m_pSkillAmp)
             {
@@ -756,46 +755,44 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
 
     if (!g_bHideSkillBuffEffect && m_cManaControl == 1)
     {
-        //int nRand = rand() % 5;
-        //auto mpBill = new TMEffectBillBoard(56,
-        //    1500,
-        //    (float)((float)nRand * 0.02f) + 0.02f,
-        //    (float)((float)nRand * 0.05f) + 0.02f,
-        //    (float)((float)nRand * 0.02f) + 0.02f,
-        //    0.0f,
-        //    1,
-        //    80);
+        // FUN_00506f9d emits two finite-lived particles per visible frame.
+        const int nRand = rand() % 5;
+        auto mpBill = new TMEffectBillBoard(56, 1500,
+            (float)nRand * 0.02f + 0.02f,
+            (float)nRand * 0.05f + 0.02f,
+            (float)nRand * 0.02f + 0.02f, 0.0f, 1, 80);
+        if (mpBill)
+        {
+            const float fY = TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale
+                + m_fHeight - (float)nRand * 0.05f;
+            const float fZ = (float)(rand() % 10 - 5) * 0.07f + m_vecPosition.y;
+            mpBill->m_vecPosition = { (float)(rand() % 10 - 5) * 0.07f + m_vecPosition.x, fY, fZ };
+            mpBill->m_vecStartPos = mpBill->m_vecPosition;
+            mpBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+            mpBill->m_bStickGround = 0;
+            mpBill->m_nParticleType = nRand % 3;
+            mpBill->m_fParticleV = -1.2f;
+            mpBill->m_fParticleH = 0.1f;
+            mpBill->SetColor(0xFFFF3300);
+            g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
+        }
 
-        //float fY = ((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale)
-        //    + m_fHeight)
-        //    - ((float)nRand * 0.05f);
-        //float fZ = ((float)(rand() % 10 - 5) * 0.07f) + m_vecPosition.y;
-        //mpBill->m_vecPosition = { ((float)(rand() % 10 - 5) * 0.07f) + m_vecPosition.x, fY, fZ };
-        //mpBill->m_vecStartPos = mpBill->m_vecPosition;
-        //mpBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-        //mpBill->m_bStickGround = 0;
-        //mpBill->m_nParticleType = nRand % 3;
-        //mpBill->m_fParticleV = -1.2f;
-        //mpBill->m_fParticleH = 0.1f;
-        //mpBill->SetColor(0xFFFF3300);
-        //g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
-
-        //auto mpBill2 = new TMEffectBillBoard(0,
-        //    1500,
-        //    ((float)nRand * 0.1f) + 0.1f,
-        //    ((float)nRand * 0.05f) + 0.80000001f,
-        //    ((float)nRand * 0.1f) + 0.1f,
-        //    0.000099999997f,
-        //    1,
-        //    80);
-        //mpBill2->m_vecPosition = { ((float)(rand() % 10 - 5) * 0.01f) + m_vecPosition.x, m_fHeight, ((float)(rand() % 10 - 5) * 0.01f) + m_vecPosition.y };
-        //mpBill2->m_vecStartPos = mpBill2->m_vecPosition;
-        //mpBill2->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-        //mpBill2->m_bStickGround = 0;
-        //mpBill2->m_nParticleType = 1;
-        //mpBill2->m_fParticleV = 1.5f;
-        //mpBill2->SetColor(0xFFFF0000);
-        //g_pCurrentScene->m_pEffectContainer->AddChild(mpBill2);
+        auto mpBill2 = new TMEffectBillBoard(0, 1500,
+            (float)nRand * 0.1f + 0.1f,
+            (float)nRand * 0.05f + 0.8f,
+            (float)nRand * 0.1f + 0.1f, 0.0001f, 1, 80);
+        if (mpBill2)
+        {
+            const float fZ = (float)(rand() % 10 - 5) * 0.1f + m_vecPosition.y;
+            mpBill2->m_vecPosition = { (float)(rand() % 10 - 5) * 0.1f + m_vecPosition.x, m_fHeight, fZ };
+            mpBill2->m_vecStartPos = mpBill2->m_vecPosition;
+            mpBill2->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+            mpBill2->m_bStickGround = 0;
+            mpBill2->m_nParticleType = 1;
+            mpBill2->m_fParticleV = 1.5f;
+            mpBill2->SetColor(0xFFFF0000);
+            g_pCurrentScene->m_pEffectContainer->AddChild(mpBill2);
+        }
     }
 
     if (!g_bHideSkillBuffEffect2 && m_cProtector == 1 && !m_pProtector)
@@ -808,9 +805,9 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         m_pProtector->m_stLookInfo.Skin0 = 0;
         m_pProtector->InitObject(0);
         m_pProtector->m_dwLifeTime = 0;
-        m_pProtector->m_pSkinMesh->m_vScale.x = 0.3f;
-        m_pProtector->m_pSkinMesh->m_vScale.y = 0.3f;
-        m_pProtector->m_pSkinMesh->m_vScale.z = 0.3f;
+        m_pProtector->m_pSkinMesh->m_vScale.x = 0.5f;
+        m_pProtector->m_pSkinMesh->m_vScale.y = 0.5f;
+        m_pProtector->m_pSkinMesh->m_vScale.z = 0.5f;
         m_pProtector->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
         m_pProtector->m_StartColor.r = 1.0f;
         m_pProtector->m_StartColor.g = 1.0f;
@@ -840,18 +837,18 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                         m_vecSkinPos.x,
                         ((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale)
                             + m_vecSkinPos.y)
-                        + 1.7f,
+                        - 0.3f,
                         m_vecSkinPos.z };
                 else
                     m_pCriticalArmor->m_vecPosition = {
                         m_vecPosition.x,
                         ((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale)
                             + m_fHeight)
-                        + 1.3f,
+                        + 0.3f,
                         m_vecPosition.y };
 
-                m_pCriticalArmor->m_fScaleH = 0.0f;
-                m_pCriticalArmor->m_fScaleV = 0.5f;
+                m_pCriticalArmor->m_fScaleH = 0.7f;
+                m_pCriticalArmor->m_fScaleV = 0.7f;
                 m_pCriticalArmor->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
                 m_pCriticalArmor->m_cShine = 1;
                 g_pCurrentScene->m_pEffectContainer->AddChild(m_pCriticalArmor);
@@ -864,14 +861,13 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                     m_vecSkinPos.x,
                     ((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale)
                         + m_vecSkinPos.y)
-                    + 0.7f,
+                    - 0.3f,
                     m_vecSkinPos.z };
             else
                 m_pCriticalArmor->m_vecPosition = {
                     m_vecPosition.x,
                     ((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale)
-                        + m_fHeight)
-                    + 0.3f,
+                        + m_fHeight),
                     m_vecPosition.y };
             m_pCriticalArmor->m_fAngle = m_fAngle;
         }
@@ -891,14 +887,14 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
                 m_pSoul[i] = new TMEffectMeshRotate({ m_vecPosition.x, (float)(m_fHeight + 0.80000001f) + (float)((float)i * 0.2f), m_vecPosition.y }, 1, this, 1, 0);
 
                 if (m_cMount == 1)
-                    m_pSoul[i]->m_vecPosition = { m_vecSkinPos.x, ((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) + m_vecSkinPos.y) - 0.30000001f, m_vecSkinPos.z };
+                    m_pSoul[i]->m_vecPosition = { m_vecSkinPos.x, ((TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) / 2.0f + m_vecSkinPos.y) - 0.30000001f, m_vecSkinPos.z };
                 else
-                    m_pSoul[i]->m_vecPosition = { m_vecPosition.x, (TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) + m_fHeight, m_vecPosition.y };
+                    m_pSoul[i]->m_vecPosition = { m_vecPosition.x, (TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) / 2.0f + m_fHeight, m_vecPosition.y };
 
                 m_pSoul[i]->m_dwStartTime = (unsigned int)((float)dwServerTime - (((float)i * 2000.0f) / 2.0f));
                 m_pSoul[i]->m_nMeshIndex = 2839;
                 m_pSoul[i]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                m_pSoul[i]->m_fScale = 1.4f;
+                m_pSoul[i]->m_fScale = 0.4f;
                 m_pSoul[i]->SetColor(0xFF999999);
                 g_pCurrentScene->m_pEffectContainer->AddChild(m_pSoul[i]);
             }

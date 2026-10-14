@@ -82,7 +82,7 @@ func TestCriticalGuildCreateDetachedCommit(t *testing.T) {
 			assertCriticalPickupPacket(t, p, wire.MessagePanel("Guild \"Created\" created."))
 			assertCriticalPickupPacket(t, p, wire.CreateMobWithGuildRank(p.ID, p.Char.Name, p.X, p.Y,
 				bodyMesh(p.Char), bodyAncient(p.Char), wireScoreState(p.Char), p.Char.Affects[:],
-				2, p.Char.GuildID, p.Char.GuildRank, p.Char.CP))
+				2, p.Char.GuildID, p.Char.GuildRank, p.Char.CP, p.Char.Citizenship))
 			assertCriticalPickupPacket(t, p, playerScorePacket(p))
 			assertCriticalPickupPacket(t, p, wire.UpdateEtc(p.ID, *p.Char))
 		})

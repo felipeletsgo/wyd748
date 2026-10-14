@@ -18,7 +18,7 @@ func kefraTestWorld(t *testing.T) (*World, *guildFlowStore, *Player, *Player, *f
 			Score: &model.Score{MaxHP: 28000, Level: 390}}}
 	w.registerMobSpatial(kefra)
 	w.teleports = []model.Teleport{{SourceX: 2366, SourceY: 3925, DestX: 3250, DestY: 1703,
-		Price: 700, Name: "Hall Kefra para Cidade Kefra"}}
+		Price: 700, Name: "Kefra Hall to Kefra City"}}
 	return w, st, alpha, beta, clock, kefra
 }
 

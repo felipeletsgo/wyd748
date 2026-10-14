@@ -24,7 +24,7 @@ go test -count=1 ./...
 go vet ./...
 go build -o bin/tm.exe ./cmd/server
 go build -o bin/account-create.exe ./cmd/account-create
-go build -o bin/account-api.exe ./cmd/account-api
+go build -o bin/player-api.exe ./cmd/player-api
 Pop-Location
 ```
 
@@ -32,13 +32,18 @@ Pop-Location
 | --- | --- |
 | `wydgo748/bin/tm.exe` | game server with integrated staff panel |
 | `wydgo748/bin/account-create.exe` | interactive local account registration |
-| `wydgo748/bin/account-api.exe` | separate registration API; expose only through an HTTPS proxy |
+| `wydgo748/bin/player-api.exe` | public account, player, ranking and guild API; keep the listener private behind HTTPS |
 | `wydgo748/web/portal/dist/` | built assets for the integrated panel |
 
 Start `tm.exe` with `wydgo748/` as the current directory; starting it from the
 repository root makes relative `data/...` paths point to the wrong location.
 See [server operations](server/operations.md) for database, configuration,
 accounts, ports, shutdown, and backups.
+
+The deployed player API is separate from the game process and normally listens
+on loopback port `8083`. `cmd/account-api` remains a legacy registration utility,
+not the current public deployment entry point. The staff listener on `8082`
+must also remain private. See [current deployment state](current-state.md).
 
 ### Database and race-test gates
 
@@ -62,6 +67,7 @@ Pop-Location
 | Conditional gate | Prerequisite |
 | --- | --- |
 | Store/S2 PostgreSQL tests | `WYD_TEST_POSTGRES_URL` points to a disposable writable database |
+| Player API PostgreSQL tests | `WYD_TEST_PLAYER_OWNER_URL`, `WYD_TEST_PLAYER_DATABASE_URL` and `WYD_TEST_PLAYER_PRIVILEGES` identify an isolated fixture and its role grants |
 | `TestStartWebAdminPostgres` in `cmd/server` | Separate `WYD_WEB_TEST_DATABASE_URL`; an initialized compatible database accessible through the read-only pool. This test does not migrate or seed it |
 | `TestProjectAccountsUseCurrentSchema` in `internal/store` | Optional local `wydgo748/data/accounts/*.json` fixtures; absent/empty local accounts produce a skip. Do not publish private account snapshots to satisfy it |
 

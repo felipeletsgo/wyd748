@@ -39,7 +39,7 @@ passwords and chat are never written by this diagnostic.
 | 1905 | Skill list | Learned-skill window. |
 | 2048 | Lottery | Lottery purchase window. |
 | 5749 | Party/member status | Inactive member rows labelled `NONE`. |
-| 6110 | Combine | Advanced composition variant. |
+| 6110 | Aylin Combine | Advanced composition with four result-preview grids (6129-6132). |
 | 6145 | Combine | Advanced composition variant. |
 | 6185 | Special store | Event/special item purchase panel. |
 | 6400 | Jackpot | Jackpot/gamble controls. |
@@ -65,6 +65,24 @@ the compatibility bootstrap:
 | 292 | Character, inventory, skill, quest and system shortcut buttons. |
 | 5377 | Chat message list. |
 | 5739 / 6134 / 6135 / 12624 | Chat input, backing controls and channel tabs. |
+
+## Aylin preview and refinement presentation
+
+The four result grids contain independent, presentation-only copies of the
+staged items' possible additional-effect combinations. They refresh when
+ingredients change and clear on removal, closing, or snapshot reset. The first
+gem in slot 3 selects the refinement variant; previews do not determine the
+server's composition result or mutate inventory.
+
+UI and world rendering share the native gem texture selection, including the
+existing imported weapon path. Diamond, Emerald, Coral, and Garnet correspond
+to drop, piercing, EXP, and absorption. No server encoding or recipe changed.
+The special fixed glow for mesh IDs 2906-2909 remains unchanged.
+
+The native evidence, tests, candidate identity, and pending in-game scenarios
+are recorded in [Aylin refinement presentation](../../.agents/research/client748/flows/ui/aylin-refinement-presentation.md).
+Automated checks and an incremental Release build passed on 2026-10-14; this
+batch was not installed locally, published, or tested in the running client.
 
 ## Verification rule
 

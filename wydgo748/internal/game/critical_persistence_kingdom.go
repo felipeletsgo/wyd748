@@ -27,6 +27,7 @@ func (w *World) queueKingdomCape(p *Player, kingdom byte, change kingdomCapeChan
 	} else {
 		ch.Equip[model.CapeSlot] = model.Item{Index: change.Index, UID: ch.Equip[model.CapeSlot].UID}
 	}
+	w.ensureCapeEmblem(ch)
 	w.recalcPlayer(ch)
 	registry := w.guilds
 	write := criticalWrite{}

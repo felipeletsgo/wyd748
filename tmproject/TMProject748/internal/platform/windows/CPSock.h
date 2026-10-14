@@ -36,6 +36,9 @@ public:
 	int SendPacket(const MutablePacketView& packet);
 	int AddMessage2(char* pMsg, int Size);
 	void RefreshRecvBuffer();
+	// Smoothed TCP round-trip time reported by Windows (SIO_TCP_INFO), in
+	// milliseconds, or -1 when unavailable. No packet is sent.
+	int RoundTripMs() const;
 
 	unsigned int Sock;
 	char* pSendBuffer;

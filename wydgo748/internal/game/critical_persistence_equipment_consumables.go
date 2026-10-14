@@ -79,6 +79,9 @@ func (w *World) queueEquipmentConsumable(p *Player, slot byte, req useItemReques
 		}
 		switch rule.Action {
 		case "tint":
+			if def, ok := w.items[target.Index]; !ok || !isArmorSetPiece(def) {
+				return reject(tintSetOnlyMessage)
+			}
 			if !tintItem(target, rule.Color) {
 				return reject("Dye a refined item (one with a + glow).")
 			}
@@ -100,17 +103,16 @@ func (w *World) queueEquipmentConsumable(p *Player, slot byte, req useItemReques
 			message = "The item gained a new bonus!"
 		case "refine":
 			def, exists := w.items[target.Index]
-			if !exists || def.Pos == 0 || itemAbility(*target, def, "EF_VOLATILE") != 0 || itemAbility(*target, def, "EF_NOSANC") != 0 {
+			if !exists || def.Pos == 0 || refinementLocked(def) || itemAbility(*target, def, "EF_VOLATILE") != 0 || itemAbility(*target, def, "EF_NOSANC") != 0 {
 				return reject("That item cannot be refined.")
 			}
-			level, limit := itemSanc(*target), rule.RefineMax
-			if limit <= 0 || limit > 15 {
-				limit = 15
-			}
-			if level >= limit {
+			level := itemSanc(*target)
+			_, powderCode, _ := w.volatiles.Rule(ch.Inv[slot].Index)
+			chance, allowed := equipmentPowderChance(*target, def, targetType, targetPos, powderCode, rule)
+			if !allowed {
 				return reject("That item cannot be refined any further.")
 			}
-			roll := w.rollPercent(refineChance(level))
+			roll := w.rollPercent(chance)
 			if roll.Success && !setItemSanc(target, level+1) {
 				return reject("That item cannot be refined.")
 			}

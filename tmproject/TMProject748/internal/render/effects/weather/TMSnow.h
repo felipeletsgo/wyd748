@@ -13,12 +13,16 @@ public:
     // fScale sets the visual size of the flakes.
     TMSnow(float fScale);
     ~TMSnow();
+    void SetActive(bool active);
 
     // Draws the visible flakes in one batched call and drives the ambient sound.
     int Render() override;
 
     // Moves and recycles the flakes with the time and the current camera.
     int FrameMove(unsigned int dwServerTime) override;
+
+private:
+    void StopAmbientSound();
 
 public:
     unsigned int m_dwOldServerTime;    // Last processed time.

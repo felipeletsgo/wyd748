@@ -9,7 +9,8 @@
       "game.event.quiz",
       "game.boss.summon",
       "economy.premium.catalog",
-      "economy.donate.credit"
+      "economy.donate.credit",
+      "game.command.goto"
     ]
   }
 }

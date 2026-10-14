@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ClientSettings.h"
 #include "TMRain.h"
+#include "WeatherPresentation.h"
 #include "TMGlobal.h"
 #include "TMUtil.h"
 #include "TMCamera.h"
@@ -12,6 +13,7 @@ TMRain::TMRain() :
 	m_vecRainPosition{}
 {
     m_dwOldServerTime = 0;
+    m_bShow = m_bVisible = 0;
     m_vertex[0].position = { -0.008f, -0.2f, 0.0f };
     m_vertex[1].position = { 0.008f, -0.2f, 0.0f };
     m_vertex[2].position = { 0.008f, 0.2f, 0.0f };
@@ -45,27 +47,32 @@ TMRain::TMRain() :
 
 TMRain::~TMRain()
 {
+    StopAmbientSound();
+}
+
+void TMRain::StopAmbientSound()
+{
+    if (g_pSoundManager)
+    {
+        auto sound = g_pSoundManager->GetSoundData(101);
+        if (sound && sound->IsSoundPlaying())
+            sound->Stop();
+    }
+}
+
+void TMRain::SetActive(bool active)
+{
+    weather_presentation::SetActive(*this, active);
+    if (!active)
+        StopAmbientSound();
 }
 
 int TMRain::Render()
 {
-    // Light profile: ambient decoration is not drawn while the window is idle.
-    if (IdleHidesAmbient())
-        return 0;
-
-    if (g_bHideBackground == 1)
-        return 0;
-    if (g_bHideEffect == 1)
-        return 1;
-    if (!m_bVisible)
+    // Stop audio before visual/idle early returns, including hidden weather.
+    if (!m_bShow || !m_bVisible || IdleHidesAmbient() || g_bHideBackground == 1 || g_bHideEffect == 1)
     {
-        if (g_pSoundManager && g_pSoundManager->GetSoundData(101))
-        {
-            auto pSoundData = g_pSoundManager->GetSoundData(101);
-            if (pSoundData->IsSoundPlaying())
-                pSoundData->Stop();
-        }
-
+        StopAmbientSound();
         return 1;
     }
 
@@ -141,10 +148,13 @@ int TMRain::Render()
 
 int TMRain::FrameMove(unsigned int dwServerTime)
 {
-    if (!m_bVisible)
+    if (!m_bShow || !m_bVisible)
+    {
+        m_dwOldServerTime = 0;
         return 1;
+    }
 
-    float fElapsedTime = (float)((int)(dwServerTime - m_dwOldServerTime)) * 0.1f;
+    float fElapsedTime = static_cast<float>(weather_presentation::Elapsed(dwServerTime, m_dwOldServerTime)) * 0.1f;
     
     TMVector2 vecCam{};
     auto pObj = g_pObjectManager->m_pCamera->GetFocusedObject();

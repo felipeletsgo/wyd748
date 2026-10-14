@@ -1,0 +1,9 @@
+---
+import Public from '../../layouts/Public.astro';
+import { catalog } from '../../lib/catalog';
+---
+<Public title="Database" description="Items, skills and quests from the current WYD 7.48 server tables.">
+  <section class="page-title"><p class="eyebrow">WYD 7.48</p><h1>Database</h1></section>
+  <div class="card-grid"><a class="content-card" href="/database/items/"><h2>Items</h2><p>{catalog.items.length} entries</p></a><a class="content-card" href="/database/skills/"><h2>Skills</h2><p>{catalog.skills.length} entries</p></a><a class="content-card" href="/database/quests/"><h2>Quests</h2><p>{catalog.quests.length} entries</p></a></div>
+  <p class="muted">Server tables, not live item rolls.</p>
+</Public>

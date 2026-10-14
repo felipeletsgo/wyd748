@@ -3,6 +3,8 @@
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "WYD748Assets.h"
+#include "ModelTextureDirectory.h"
+#include "../mesh/CostumeTable.generated.h"
 #include "../../application/CCModePolicy.h"
 #include "../../application/WrappedTexture.h"
 
@@ -718,6 +720,19 @@ int TextureManager::InitModelTextureList()
 		LOG_WRITELOG("Cannot init model texture list \n");
 		return 0;
 	}
+	if (!model_texture_748::RegisterCitizenMantles(m_stModelTextureList,
+		_countof(m_stModelTextureList), [](const char* path) { return _access(path, 0) == 0; }))
+	{
+		LOG_WRITELOG("Cannot register citizenship cape textures: missing asset or table capacity\n");
+		return 0;
+	}
+	if (!model_texture_748::RegisterTextures(m_stModelTextureList, _countof(m_stModelTextureList),
+		costume748::Textures, _countof(costume748::Textures),
+		[](const char* path) { return _access(path, 0) == 0; }))
+	{
+		LOG_WRITELOG("Cannot register costume textures: missing asset or table capacity\n");
+		return 0;
+	}
 	return 1;
 }
 
@@ -897,21 +912,7 @@ IDirect3DTexture9* TextureManager::GetModelTexture(int nIndex, DWORD showTime)
 
 int TextureManager::GetModelTextureIndex(char* szTextureName)
 {
-	if (szTextureName == nullptr)
-		return -1;
-
-	int nStrLen = strlen(szTextureName);
-	for (int i = 0; i < MAX_MODEL_TEXTURE; i++)
-	{
-		int nStrLen2 = strlen(m_stModelTextureList[i].szFileName);
-		sprintf((char*)&szTextureName[nStrLen - 3],
-			(char*)&m_stModelTextureList[i].szFileName[nStrLen2 - 3]);
-
-		if (!strcmp(szTextureName, m_stModelTextureList[i].szFileName))
-			return i;
-	}
-
-	return -1;
+	return model_texture_748::Find(szTextureName, m_stModelTextureList, MAX_MODEL_TEXTURE);
 }
 
 int TextureManager::InitEnvTextureList()

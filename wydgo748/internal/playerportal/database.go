@@ -76,31 +76,34 @@ func (d *Database) CreateAccount(a *model.Account) error {
 	return err
 }
 func (d *Database) Profile(ctx context.Context, name string) (Profile, error) {
-	// LoadAccount is already deadline-bounded by the store. Its full payload
-	// stays inside this adapter; only this explicit display projection escapes.
-	if err := ctx.Err(); err != nil {
-		return Profile{}, err
-	}
-	a, err := d.reader.LoadAccount(name)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	// One statement keeps timestamps and fields from the same persisted snapshot.
+	// Credentials, cargo, inventory and internal character/item IDs never leave SQL.
+	var p Profile
+	var characters []byte
+	err := d.pool.QueryRow(ctx, profileSQL, strings.ToLower(name)).Scan(
+		&p.Username, &p.Donate, &p.CreatedAt, &p.AsOf, &characters)
 	if err != nil {
 		return Profile{}, err
 	}
-	p := Profile{Username: a.Name, Donate: a.Donate, Characters: make([]Character, 0, 4)}
-	for slot, c := range a.Chars {
-		if c.Name == "" || c.Score == nil {
-			continue
-		}
-		evolution := c.Evolution
-		if evolution == "" {
-			evolution = "mortal"
-		}
-		p.Characters = append(p.Characters, Character{Slot: slot, Name: c.Name, Class: c.Class, Level: c.Score.Level, Evolution: evolution})
+	if err := json.Unmarshal(characters, &p.Characters); err != nil {
+		return Profile{}, err
 	}
 	return p, nil
 }
 
+const profileSQL = `SELECT payload->>'name', COALESCE((payload->>'donate')::bigint,0), created_at, updated_at,
+COALESCE((SELECT jsonb_agg(jsonb_build_object(
+ 'slot', ordinal-1, 'name', c->>'name', 'class', COALESCE((c->>'class')::integer,0),
+ 'level', COALESCE((c->'score'->>'level')::bigint,0),
+ 'evolution', COALESCE(NULLIF(c->>'evolution',''),'mortal')) ORDER BY ordinal)
+ FROM jsonb_array_elements(COALESCE(NULLIF(payload->'chars','null'::jsonb),'[]'::jsonb)) WITH ORDINALITY AS chars(c, ordinal)
+ WHERE ordinal<=4 AND COALESCE(c->>'name','')<>'' AND jsonb_typeof(c->'score')='object'), '[]'::jsonb)
+FROM accounts WHERE name_key=$1`
+
 const rankingSQL = `SELECT c->>'name', COALESCE((c->>'class')::integer,0), COALESCE((c->'score'->>'level')::bigint,0), COALESCE(NULLIF(c->>'evolution',''),'mortal')
-FROM accounts a CROSS JOIN LATERAL jsonb_array_elements(a.payload->'chars') c
+FROM accounts a CROSS JOIN LATERAL jsonb_array_elements(COALESCE(NULLIF(a.payload->'chars','null'::jsonb),'[]'::jsonb)) c
 WHERE COALESCE(c->>'name','')<>'' AND jsonb_typeof(c->'score')='object'
 ORDER BY CASE c->>'evolution' WHEN 'subcelestial' THEN 3 WHEN 'celestial' THEN 2 WHEN 'arch' THEN 1 ELSE 0 END DESC,
 COALESCE((c->'score'->>'level')::bigint,0) DESC, COALESCE((c->>'exp')::bigint,0) DESC, lower(c->>'name') ASC, a.name_key ASC

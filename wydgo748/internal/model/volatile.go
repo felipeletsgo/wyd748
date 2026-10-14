@@ -68,6 +68,10 @@ type VolatileRule struct {
 	// RefineMax e o teto de refino da acao "refine": Ori=6, Lac=9. O servidor
 	// recusa refinar um item cujo sanc ja alcancou este teto.
 	RefineMax int `json:"refineMax,omitempty"`
+	// RefineTenChance is the percent chance of refining a +10 item to +11 with
+	// a "refine" powder; zero disables it. It never opens +9 -> +10, which only
+	// the Aylin composition produces, nor any level above +11.
+	RefineTenChance int `json:"refineTenChance,omitempty"`
 	// OnceQuestID identifica uma trava permanente server-side para acoes de
 	// quest de uso unico (por exemplo o Molar do Gargula). IDs negativos ficam
 	// reservados para flags internas e nao colidem com quests configuradas.

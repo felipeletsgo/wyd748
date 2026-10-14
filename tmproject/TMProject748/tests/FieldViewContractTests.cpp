@@ -115,5 +115,55 @@ int RunFieldViewContractTests(int& checks)
     check(setWeather.find("m_berielAura.SetServer(nWeather);") != std::string::npos &&
         session.find("m_berielAura.SetServer(pStd->Weather);") != std::string::npos,
         "every server weather update reaches the override");
+    const auto weatherEffects = source_contract::Method(world, "void TMFieldScene::UpdateWeatherEffects()");
+    check(setWeather.find("!IsWeatherValue(nWeather)") != std::string::npos &&
+        setWeather.find("UpdateWeatherEffects();") != std::string::npos &&
+        weatherEffects.find("weather_presentation::Resolve(m_berielAura.server,") != std::string::npos &&
+        weatherEffects.find("m_berielAura.Active()") != std::string::npos &&
+        weatherEffects.find("weather_presentation::Apply(weather, m_pRain, m_pSnow, m_pSnow2)") != std::string::npos,
+        "the live field consumes the tested weather policy without changing authoritative state");
+    const auto ui = ReadClientSource("internal/app/scenes/TMFieldSceneUI.cpp");
+    const auto initialize = source_contract::Method(ui, "int TMFieldScene::InitializeCompatFieldScene()");
+    const auto ground = ReadClientSource("internal/app/scenes/TMSceneGround.cpp");
+    check(initialize.find("UpdateWeatherEffects();") > initialize.find("m_pSnow2 = new TMSnow(2.0f);") &&
+        initialize.find("UpdateWeatherEffects();") != std::string::npos &&
+        frame.find("UpdateWeatherEffects();") < frame.find("TMScene::FrameMove(dwServerTime);") &&
+        ground.find("pFieldScene->UpdateWeatherEffects();") != std::string::npos &&
+        ground.find("SetWeather(g_nWeather)") == std::string::npos &&
+        ground.find("g_nWeather = 0;") == std::string::npos,
+        "bootstrap, live movement and terrain changes use the same selector without losing server weather");
+    for (const auto relative : {"internal/render/effects/core/TMRain.cpp", "internal/render/world/sky/TMSnow.cpp"}) {
+        const auto particles = ReadClientSource(relative);
+        check(particles.find("m_bShow = m_bVisible = 0;") != std::string::npos &&
+            particles.find("weather_presentation::SetActive(*this, active);") != std::string::npos &&
+            particles.find("if (!m_bShow || !m_bVisible || IdleHidesAmbient()") != std::string::npos &&
+            particles.find("weather_presentation::Elapsed(dwServerTime, m_dwOldServerTime)") != std::string::npos,
+            "live particles start disabled, stop hidden audio and consume the tested clock");
+    }
+    const auto snowSource = ReadClientSource("internal/render/world/sky/TMSnow.cpp");
+    const auto snowRender = source_contract::Method(snowSource, "int TMSnow::Render()");
+    const auto snowStop = source_contract::Method(snowSource, "void TMSnow::StopAmbientSound()");
+    check(snowRender.find("if (weather_presentation::OwnsSnowSound(m_fScale))\n        GetSoundAndPlayIfNot(113") != std::string::npos &&
+        snowStop.find("weather_presentation::OwnsSnowSound(m_fScale) && g_pSoundManager") != std::string::npos,
+        "the heavy snow layer cannot play or stop the base layer's sound");
+    const auto appearance = ReadClientSource("internal/game/entities/TMHumanAppearance.cpp");
+    const auto localEquip = source_contract::Method(appearance, "void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)");
+    const auto observerEquip = source_contract::Method(appearance, "void TMHuman::SetPacketEquipItem(unsigned short* sEquip)");
+    check(localEquip.find("SetCitizenMantle(m_wMantuaSkin)") != std::string::npos &&
+        observerEquip.find("SetCitizenMantle(m_wMantuaSkin)") != std::string::npos,
+        "both equipment paths apply the native citizenship cape mapping");
+    const auto selection = ReadClientSource("internal/app/scenes/TMSelectCharScene.cpp");
+    const auto citizenAssignment = selection.find("m_citizen = static_cast<unsigned char>(pSelChar->Equip[i][0].stEffect[2].cValue)");
+    check(citizenAssignment != std::string::npos && citizenAssignment < selection.find("m_pHuman[i]->SetCitizenMantle"),
+        "selection reads face citizenship before mapping the cape");
+    const auto refresh = source_contract::Method(world, "int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)");
+    const auto existingBegin = refresh.find("if (pExisting)");
+    const auto existingEnd = refresh.find("return 1;", existingBegin);
+    const auto existing = existingBegin == std::string::npos ? std::string{} :
+        refresh.substr(existingBegin, existingEnd - existingBegin);
+    check(existing.find("m_citizen = pCreateMob->Server") != std::string::npos &&
+        existing.find("SetPacketEquipItem(pCreateMob->Equip)") != std::string::npos &&
+        existing.find("InitObject") == std::string::npos && existing.find("InitPosition") == std::string::npos,
+        "live citizenship refresh keeps the existing entity and movement");
     return failures;
 }

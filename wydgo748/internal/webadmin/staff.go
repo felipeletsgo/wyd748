@@ -27,6 +27,17 @@ func (s Staff) permits(capability string) bool {
 	return false
 }
 
+// StaffPermits re-reads the staff file and reports whether the canonical
+// account holds the capability. A missing or invalid file grants nothing.
+func StaffPermits(path, account, capability string) bool {
+	entries, err := ReadStaff(path)
+	if err != nil {
+		return false
+	}
+	staff, ok := entries[account]
+	return ok && staff.permits(capability)
+}
+
 func (s Staff) fingerprint() [32]byte { b, _ := json.Marshal(s); return sha256.Sum256(b) }
 
 // ReadStaff is deliberately re-read for each request: revocation fails closed.
@@ -58,12 +69,12 @@ func ReadStaff(path string) (map[string]Staff, error) {
 		if name != strings.ToLower(name) || len(name) < 1 || len(name) > 12 || strings.IndexFunc(name, func(r rune) bool { return !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9') }) >= 0 {
 			return nil, errors.New("invalid canonical staff account")
 		}
-		if len(staff.Capabilities) == 0 || len(staff.Capabilities) > 9 {
+		if len(staff.Capabilities) == 0 || len(staff.Capabilities) > 16 {
 			return nil, errors.New("invalid capabilities")
 		}
 		for _, cap := range staff.Capabilities {
 			if cap != StatusCapability && cap != PlayersCapability && cap != control.GlobalDropCapability && cap != control.QuizCapability && cap != control.BossesCapability && cap != control.KickCapability && cap != control.TeleportCapability &&
-				cap != control.PremiumCatalogCapability && cap != control.DonateCreditCapability {
+				cap != control.PremiumCatalogCapability && cap != control.DonateCreditCapability && cap != control.GotoCapability {
 				return nil, errors.New("unsupported capability")
 			}
 		}

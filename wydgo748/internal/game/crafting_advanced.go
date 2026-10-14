@@ -338,7 +338,8 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 	}
 
 	if req.Items[0].Index == 4043 && req.Items[1].Index == 4043 && req.Items[2].Index != 0 &&
-		req.Items[7].Index == 0 && !odinTargetBlocked(req.Items[2].Index) {
+		req.Items[7].Index == 0 && !odinTargetBlocked(req.Items[2].Index) &&
+		!refinementLocked(w.items[req.Items[2].Index]) {
 		validCatalysts, chance := true, 0
 		for i := 3; i <= 6; i++ {
 			if req.Items[i].Index != 0 && req.Items[i].Index != 3338 {

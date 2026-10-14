@@ -264,6 +264,7 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 			UID:   p.Char.Equip[model.CapeSlot].UID,
 		}
 	}
+	w.ensureCapeEmblem(p.Char)
 	w.recalcPlayer(p.Char)
 	if err := w.commitKingdomChange(p, snapshot, kingdom); err != nil {
 		s.Send(wire.MessagePanel("Save failed. The kingdom was not changed."))
@@ -373,12 +374,14 @@ func (w *World) commitKingdomChange(p *Player, snapshot model.Char, kingdom byte
 
 func (w *World) syncKingdomChange(p *Player) {
 	p.Session.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
+	p.Session.Send(wire.SendItem(p.ID, placeEquip, 0, wire.CharacterFaceItem(*p.Char)))
 	p.Session.Send(wire.SendItem(p.ID, placeEquip, 13, p.Char.Equip[13]))
 	p.Session.Send(wire.SendItem(p.ID, placeEquip, model.CapeSlot, p.Char.Equip[model.CapeSlot]))
 	p.Session.Send(playerScorePacket(p))
 	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	w.syncPlayerVitals(p)
-	w.refreshAppearance(p)
+	w.syncPlayerChaos(p)
+	w.restoreTransformationView(p)
 }
 
 func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {

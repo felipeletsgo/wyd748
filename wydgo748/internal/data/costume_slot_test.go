@@ -6,7 +6,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// The costume-slot extension moves exactly the 135 mesh-36 costumes to slot 12;
+// The costume-slot extension moves exactly the 143 mesh-36 costumes to slot 12;
 // familiars, emblems and guild medals keep their native positions.
 func TestCatalogMovesCostumesToCostumeSlot(t *testing.T) {
 	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
@@ -25,8 +25,8 @@ func TestCatalogMovesCostumesToCostumeSlot(t *testing.T) {
 			}
 		}
 	}
-	if costumes != 135 {
-		t.Fatalf("costumes in slot 12 = %d, want 135", costumes)
+	if costumes != 143 {
+		t.Fatalf("costumes in slot 12 = %d, want 143", costumes)
 	}
 	for index, pos := range map[uint16]int{
 		4150: model.CostumeSlotMask, 4490: model.CostumeSlotMask,

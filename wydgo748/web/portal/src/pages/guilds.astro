@@ -1,0 +1,15 @@
+---
+import Public from '../layouts/Public.astro';
+---
+<Public title="Guilds" description="Guild names from the WYD 7.48 server's public client directory.">
+  <section class="panel" id="guilds-panel">
+    <h1 class="title">Guilds</h1>
+    <label>Guild<input id="guilds-search" type="search" maxlength="12" placeholder="Search guilds" autocomplete="off" disabled /></label>
+    <div class="table-wrap"><table><thead><tr><th>Guild</th></tr></thead><tbody id="guilds-list"></tbody></table></div>
+    <div class="pagination" aria-label="Guild directory pages"><button class="button" type="button" id="guilds-previous" disabled>Previous</button><span id="guilds-page" role="status" aria-live="polite"></span><button class="button" type="button" id="guilds-next" disabled>Next</button></div>
+    <button class="button" type="button" id="guilds-refresh">Refresh</button>
+    <p class="status" id="guilds-status" role="status" aria-live="polite"></p>
+    <noscript>Enable JavaScript to load the guild directory.</noscript>
+  </section>
+  <script>import { mountGuilds } from '../lib/guilds'; const root = document.getElementById('guilds-panel'); if (root) mountGuilds(root);</script>
+</Public>

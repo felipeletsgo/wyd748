@@ -1,0 +1,10 @@
+---
+import Public from '../../layouts/Public.astro';
+import { news } from '../../data/public-content';
+---
+<Public title="News" description="Project news and announcements for WYD 7.48.">
+  <section class="panel"><h1 class="title">News</h1>
+    {news.map(post => <article class="content-entry"><p class="eyebrow"><time datetime={post.date}>{post.date}</time> · {post.category}</p><h2><a href={`/news/${post.slug}/`}>{post.title}</a></h2><p>{post.summary}</p></article>)}
+    <p class="links"><a href="/changelog/">Technical changelog</a> · <a href="/roadmap/">Roadmap</a></p>
+  </section>
+</Public>

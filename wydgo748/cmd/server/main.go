@@ -25,6 +25,7 @@ import (
 	"wydgo/internal/game"
 	"wydgo/internal/net"
 	"wydgo/internal/store"
+	"wydgo/internal/webadmin"
 )
 
 // shutdownTimeout bounds final persistence. It allows hundreds of accounts to
@@ -304,6 +305,10 @@ func main() {
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
 		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
 		game.WithLoadtestSpawn(cfg.LoadtestSpawn, cfg.LoadtestAccountPrefix),
+		// In-game staff commands use the panel's staff file, re-read per use.
+		game.WithCommandAuthorizer(func(account, capability string) bool {
+			return webadmin.StaffPermits(cfg.WebAdminStaffPath, account, capability)
+		}),
 	}
 	if postgresStore != nil {
 		// Production persistence never blocks the World goroutine: gameplay

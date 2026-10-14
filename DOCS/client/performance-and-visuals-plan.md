@@ -138,6 +138,54 @@ linear filtering.
 - A BerielGuard aura still clears the weather on the client display only; the
   server keeps applying the world weather near it.
 
+#### Client weather lifecycle correction - 2026-10-12 (`MODERNIZACAO_COMPATIVEL`)
+
+The field initializer previously attached rain and both snow layers with their
+inherited visibility enabled. `SetWeather` handled only rain/snow/heavy snow,
+so clear weather left the previous particles enabled. This permits simultaneous
+rain and snow at bootstrap; it is a code-confirmed defect, not a visual test.
+
+- `WeatherPresentation.h` resolves one local state from the last server value,
+  player region, dungeon and aura. Bootstrap, packets, field ticks and terrain
+  warps consume the same selector. Rain excludes both snow layers; heavy snow
+  intentionally uses both snow layers. Clear disables all layers outside the
+  permanent snow region. Indoor suppression never overwrites server weather.
+- The native 7.48 roots are dispatch `FUN_00492e7d`, receiver `FUN_0048569a`,
+  selection `FUN_004819d5` and sky setter `FUN_00549bbf`, from the existing
+  Ghidra corpus (native SHA-256
+  `8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593`).
+  The regional exclusion (fields 29/30,22), snow region (27-30,21-24),
+  snow-to-rain conversion in dungeon states 3/4, and layered heavy snow are
+  preserved. The native selector also lacks a clear branch: explicitly
+  deactivating clear weather is a lifecycle correction, not a parity claim.
+- Rain owns sound 101; only the base snow layer owns sound 113. Deactivation,
+  visual/idle suppression and destruction stop the owned sound. The heavy
+  layer cannot stop or restart the base layer's loop.
+- Activation resets particle clocks; first updates have zero elapsed time,
+  unsigned timer wrap is supported, and pauses are bounded to 100 ms per tick.
+  Sky blends use the existing 10/11 transitions without restarting every tick
+  or replacing unrelated clear day/night states.
+- Packet sizes/opcodes, assets, density settings, the server scheduler and
+  authoritative damage modifiers are unchanged.
+
+AUTOMATED TESTED: `WeatherParticlesTests` covers all 16 state transitions,
+bootstrap, partial initialization, activation/repetition, clock wrap/pauses,
+sound ownership and regional/dungeon/aura combinations. `FieldViewContractTests`
+checks that actual scene and particle code consumes those policies. These are
+policy execution and source-wiring checks, not a rendered/audio integration test.
+CLIENT-TESTED remains pending for login during clear weather, rain-to-snow and
+clear transitions, snow-region crossings, dungeon/aura entry/exit, sound changes,
+idle recovery and logout. The candidate is built with `Build-Client.ps1 -NoDeploy`;
+the local runtime was not installed. The validated executable was subsequently
+published in [launcher patch 10004](launcher.md#published-patch-10004-2026-10-12),
+with public feed and download hashes verified. Launcher extraction and gameplay
+remain pending human validation.
+Validation receipt: the Release integrated build passed with 1,200,822
+architecture checks, 231 socket checks and 56 launcher checks. Existing Winsock
+C4996 deprecation warnings remain; there were no build errors. Repository layout,
+local documentation links and `git diff --check` passed. No Go gate was run:
+this batch changes only client presentation and documentation.
+
 ### 6. Accumulation check - pending field data
 
 With the counters, confirm or rule out: effects with lifetime 0 whose owner is

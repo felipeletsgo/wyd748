@@ -32,6 +32,7 @@
 #include "PremiumFireworkPacket.h"
 #include "GamblePacket.h"
 #include "MessagePanelPacket.h"
+#include "ShoutMessagePacket.h"
 #include "ServerMigrationPacket.h"
 #include "ChatMessagePacket.h"
 #include "WhisperMessagePacket.h"
@@ -53,6 +54,7 @@
 #include "LegacySceneMessagePacket.h"
 #include "GuildChallengePromptPacket.h"
 #include "WeatherPacket.h"
+#include "KefraPortalPacket.h"
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
@@ -72,6 +74,7 @@ namespace received_packet
         {
         case quiz_event::ChallengeOpcode: return sizeof(quiz_event::Challenge);
         case premium_shop::StateOpcode: return sizeof(premium_shop::State);
+        case kefra_portal::StateOpcode: return sizeof(kefra_portal::State);
         case MSG_ReqTransper_Opcode: return sizeof(MSG_ReqTransper);
         case MSG_SendItem_Opcode: return kSendItemPacketSize;
         case MSG_CNFGetItem_Opcode: return kPickupConfirmationPacketSize;
@@ -112,6 +115,7 @@ namespace received_packet
         case MSG_PremiumFirework_Opcode: return sizeof(MSG_PremiumFirework);
         case MSG_ResultGamble_Opcode: return sizeof(MSG_ResultGamble);
         case MSG_MessagePanel_Opcode: return sizeof(MSG_MessagePanel);
+        case MSG_MessageShout_Opcode: return sizeof(MSG_MessageShout);
         case MSG_LegacySceneMessage102_Opcode: return sizeof(MSG_LegacySceneMessage102);
         case MSG_LegacySceneMessage104_Opcode: return sizeof(MSG_LegacySceneMessage104);
         case MSG_MessageChat_Opcode: return sizeof(MSG_MessageChat);
@@ -144,6 +148,13 @@ namespace received_packet
         // inspection; never write or copy the handlers' payload.
         MSG_STANDARD header{};
         std::memcpy(&header, packet.data, sizeof(header));
+
+        if (header.Type == kefra_portal::StateOpcode || packet.opcode == kefra_portal::StateOpcode)
+        {
+            kefra_portal::State state{};
+            return packet.opcode == header.Type &&
+                kefra_portal::Parse(packet.data, packet.size, state);
+        }
 
         // Attacks have native prefixes and variable-size coordinated extensions.
         // Validate both discriminants and the actual length before any cast in

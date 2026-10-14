@@ -95,12 +95,22 @@ int TMGround::Attach(TMGround* pGround)
 
 void TMGround::SetAttatchEnable(int nX, int nY)
 {
-    // Cell flags are data in TMGroundAttachTable.h; unmatched cells keep theirs.
-    if (const auto* rule = ground_attach::Find(nX, nY))
+    // Cell flags are data in TMGroundAttachTable.h. Cells outside the table
+    // derive each side from the field files shipped for their neighbours.
+    const auto hasField = [](int x, int y)
     {
-        m_cLeftEnable = rule->left;
-        m_cRightEnable = rule->right;
-        m_cUpEnable = rule->up;
-        m_cDownEnable = rule->down;
-    }
+        if (x < 0 || y < 0 || x > 99 || y > 99)
+            return false;
+        char path[32]{};
+        sprintf_s(path, "Env\\Field%02d%02d.trn", x, y);
+        return GetFileAttributesA(path) != INVALID_FILE_ATTRIBUTES;
+    };
+    const auto* tableRule = ground_attach::Find(nX, nY);
+    const auto derived = ground_attach::FromNeighbours(nX, nY, hasField(nX - 1, nY),
+        hasField(nX + 1, nY), hasField(nX, nY - 1), hasField(nX, nY + 1));
+    const auto* rule = tableRule ? tableRule : &derived;
+    m_cLeftEnable = rule->left;
+    m_cRightEnable = rule->right;
+    m_cUpEnable = rule->up;
+    m_cDownEnable = rule->down;
 }

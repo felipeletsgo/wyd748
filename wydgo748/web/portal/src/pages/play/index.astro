@@ -1,0 +1,12 @@
+---
+import Public from '../../layouts/Public.astro';
+import { playPages } from '../../data/public-content';
+---
+<Public title="Play" description="Start playing WYD 7.48: installation, classes, server information and help.">
+  <section class="panel">
+    <h1 class="title">Start your journey</h1>
+    <p>Create your account, install the full client and let the launcher keep it updated.</p>
+    <p class="actions"><a class="button" href="/register/">Create account</a> <a class="button" href="/download/">Download</a></p>
+    <div class="card-grid">{playPages.map(page => <a class="content-card" href={`/play/${page.slug}/`}><h2>{page.title}</h2><p>{page.summary}</p></a>)}</div>
+  </section>
+</Public>

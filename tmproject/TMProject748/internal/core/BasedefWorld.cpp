@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 // BASE_* functions split by domain; declarations stay in Basedef.h, global tables and loaders in Basedef.cpp.
 #include "Basedef.h"
+#include "GroundItemCollision.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "ItemEffect.h"
@@ -512,26 +513,14 @@ void BASE_SetBit(char* byte, int pos)
     byte[pos / 8] |= 1 << pos % 8;
 }
 
-int BASE_UpdateItem2(int maskidx, int CurrentState, int NextState, int xx, int yy, char* pHeight, int rotate, int height)
+int BASE_UpdateItem2(int maskidx, int CurrentState, int NextState, int xx, int yy, char* pHeight, int rotate, int height,
+    const char* pBaseHeight)
 {
     constexpr int maskCount = static_cast<int>(sizeof(g_pGroundMask) / sizeof(g_pGroundMask[0]));
     constexpr int rotationCount = static_cast<int>(sizeof(g_pGroundMask[0]) / sizeof(g_pGroundMask[0][0]));
     if (maskidx < 0 || maskidx >= maskCount || rotate < 0 || rotate >= rotationCount || !pHeight)
         return 0;
 
-    for (int y = 0; y <= 5; ++y)
-    {
-        for (int x = 0; x <= 5; ++x)
-        {
-            int xp = xx + x - 2;
-            int  yp = yy + y - 2;
-            if (xp - g_HeightPosX < 1 || yp - g_HeightPosY < 1 || xp - g_HeightPosX > g_HeightWidth - 2 || yp - g_HeightPosY > g_HeightHeight - 2)
-                break;
-
-            if (g_pGroundMask[maskidx][rotate][y][x])
-                pHeight[xp + g_HeightWidth * (yp - g_HeightPosY) - g_HeightPosX] = height;
-        }
-    }
-
-    return 1;
+    return ground_item_collision::ApplyMask(g_pGroundMask[maskidx][rotate], xx, yy,
+        pHeight, pBaseHeight, g_HeightPosX, g_HeightPosY, g_HeightWidth, g_HeightHeight, height);
 }

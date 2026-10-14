@@ -235,6 +235,23 @@ void RenderDevice::RenderRectTex(float iStartX, float iStartY, float iCX, float 
 	m_CtrlVertex[3].tu = (float)(iStartX / fTexWidth) + (float)(0.5f / fTexWidth);
 	m_CtrlVertex[3].tv = fEndY - (float)(0.5f / fTexHeight);
 
+	if (m_fActiveTextureRotation != 0.0f)
+	{
+		// Showing content rotated by the angle samples the inverse rotation
+		// around the crop centre, in texel units so non-square textures hold.
+		const float fCenterU = (m_CtrlVertex[0].tu + m_CtrlVertex[2].tu) * 0.5f;
+		const float fCenterV = (m_CtrlVertex[0].tv + m_CtrlVertex[2].tv) * 0.5f;
+		const float fSin = sinf(-m_fActiveTextureRotation);
+		const float fCos = cosf(-m_fActiveTextureRotation);
+		for (int j = 0; j < 4; ++j)
+		{
+			const float fDU = (m_CtrlVertex[j].tu - fCenterU) * fTexWidth;
+			const float fDV = (m_CtrlVertex[j].tv - fCenterV) * fTexHeight;
+			m_CtrlVertex[j].tu = fCenterU + (fDU * fCos - fDV * fSin) / fTexWidth;
+			m_CtrlVertex[j].tv = fCenterV + (fDU * fSin + fDV * fCos) / fTexHeight;
+		}
+	}
+
 	for (int j = 0; j < 4; ++j)
 		m_CtrlVertex[j].diffuse = dwColor;
 
@@ -392,6 +409,15 @@ void RenderDevice::RenderRectRot(float iStartX, float iStartY, float iCX, float 
 }
 
 void RenderDevice::RenderGeomRectImage(GeomControl* ipControl)
+{
+	const float fPrevious = m_fActiveTextureRotation;
+	m_fActiveTextureRotation = ipControl != nullptr && ipControl == m_pTextureRotationControl
+		? m_fTextureRotation : 0.0f;
+	RenderGeomRectImageCore(ipControl);
+	m_fActiveTextureRotation = fPrevious;
+}
+
+void RenderDevice::RenderGeomRectImageCore(GeomControl* ipControl)
 {
 	if (ipControl->nTextureSetIndex >= 0)
 	{

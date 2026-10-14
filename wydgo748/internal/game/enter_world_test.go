@@ -11,7 +11,7 @@ import (
 	"wydgo/internal/wire"
 )
 
-// enterWorldPacket monta o 0x213 com o slot pedido.
+// enterWorldPacket builds 0x213 with the requested slot.
 func enterWorldPacket(slot int) []byte {
 	pkt := make([]byte, characterLoginPacketSize)
 	binary.LittleEndian.PutUint16(pkt[0:2], characterLoginPacketSize)
@@ -25,10 +25,10 @@ func TestEnterWorldFailsClosedWhenCharStateLoadFails(t *testing.T) {
 	w.store = &charStateMemoryStore{loadErr: errors.New("postgres unavailable")}
 	w.onEnterWorld(s, enterWorldPacket(0))
 	if p.InWorld || p.Char != nil || p.CharSlot != -1 || p.ID != 0 {
-		t.Fatalf("personagem entrou sem estado autoritativo: %+v", p)
+		t.Fatalf("character entered without authoritative state: %+v", p)
 	}
 	if s.QueuedPacketsForTest() != 1 {
-		t.Fatalf("falha deveria enviar somente o aviso, pacotes=%d", s.QueuedPacketsForTest())
+		t.Fatalf("failure should send only the notice, packets=%d", s.QueuedPacketsForTest())
 	}
 }
 
@@ -40,8 +40,8 @@ func newEnterWorldPlayer(t *testing.T, curHP, maxHP uint32) (*World, *Player, *n
 	w.gameplay = model.DefaultGameplayConfig()
 
 	session := net.NewTestSession(1, 256)
-	acc := &model.Account{Name: "conta", Chars: []model.Char{{
-		Name:  "Morto",
+	acc := &model.Account{Name: "EntryTestAccount", Chars: []model.Char{{
+		Name:  "EntryTestCharacter",
 		Class: 0,
 		Score: &model.Score{
 			Version: model.ScoreVersion,
@@ -54,9 +54,9 @@ func newEnterWorldPlayer(t *testing.T, curHP, maxHP uint32) (*World, *Player, *n
 	return w, p, session
 }
 
-// TestDeadCharacterEntersWithOneHP protege uma regressão que já apareceu
-// in-game: quem morre e sai tem CurHP=0 persistido, e entrar assim TRAVA o
-// jogador -- o client desenha a pose de morte e não responde a nada, nem ao
+// TestDeadCharacterEntersWithOneHP protects a previously observed
+// in-game regression: a dead character logs out with persisted CurHP=0;
+// entering with zero HP locks the death pose and blocks input, including
 // /restart.
 func TestDeadCharacterEntersWithOneHP(t *testing.T) {
 	w, p, s := newEnterWorldPlayer(t, 0, 1000)
@@ -64,25 +64,25 @@ func TestDeadCharacterEntersWithOneHP(t *testing.T) {
 	w.onEnterWorld(s, enterWorldPacket(0))
 
 	if !p.InWorld {
-		t.Fatal("o personagem deveria ter entrado no mundo")
+		t.Fatal("character should have entered the world")
 	}
 	if got := playerCurHP(p.Char); got != 1 {
-		t.Fatalf("HP na entrada=%d, quer 1", got)
+		t.Fatalf("entry HP=%d, want 1", got)
 	}
 	if !p.DeadAt.IsZero() {
-		t.Error("DeadAt deveria ser limpo ao reviver na entrada")
+		t.Error("DeadAt should be cleared when reviving on entry")
 	}
 }
 
-// TestLiveCharacterKeepsHPOnEnter garante que a correção não mexe em quem
-// entrou vivo.
+// TestLiveCharacterKeepsHPOnEnter ensures the fix does not change a
+// character entering alive.
 func TestLiveCharacterKeepsHPOnEnter(t *testing.T) {
 	w, p, s := newEnterWorldPlayer(t, 742, 1000)
 
 	w.onEnterWorld(s, enterWorldPacket(0))
 
 	if got := playerCurHP(p.Char); got != 742 {
-		t.Fatalf("HP na entrada=%d, quer preservar 742", got)
+		t.Fatalf("entry HP=%d, want to preserve 742", got)
 	}
 }
 
@@ -97,19 +97,21 @@ func TestEnterWorldUsesPersistedHomeCity(t *testing.T) {
 	}
 	if p.X != cityWarZones[2].exitX || p.Y != cityWarZones[2].exitY ||
 		p.Char.X != p.X || p.Char.Y != p.Y {
-		t.Fatalf("login ignorou hometown de Erion: player=(%d,%d) char=(%d,%d)",
+		t.Fatalf("login ignored Erion hometown: player=(%d,%d) char=(%d,%d)",
 			p.X, p.Y, p.Char.X, p.Char.Y)
 	}
 }
 
 func TestLegacyHomeCityBitsDefaultToArmia(t *testing.T) {
 	w, p, s := newEnterWorldPlayer(t, 742, 1000)
-	p.Account.Chars[0].Score.Merchant = 0x1F // somente os seis bits baixos.
+	p.Account.Chars[0].Score.Merchant = 0x1F // only the low six bits.
 
 	w.onEnterWorld(s, enterWorldPacket(0))
 
-	if p.X != cityWarZones[0].exitX || p.Y != cityWarZones[0].exitY {
-		t.Fatalf("personagem legado nao caiu em Armia: (%d,%d)", p.X, p.Y)
+	// Armia births spread ±5 tiles around 2091,2100 (plus free-tile search).
+	if absInt(int(p.X)-int(cityWarZones[0].exitX)) > armiaSpawnSpread+8 ||
+		absInt(int(p.Y)-int(cityWarZones[0].exitY)) > armiaSpawnSpread+8 || !cityWarZones[0].city.contains(p.X, p.Y) {
+		t.Fatalf("legacy character did not enter Armia: (%d,%d)", p.X, p.Y)
 	}
 }
 
@@ -119,12 +121,12 @@ func TestEnterWorldKeepsLearnedSkillCostsDeducted(t *testing.T) {
 		bonus uint32
 		want  uint32
 	}{
-		{name: "sem bonus permanente", want: 0},
-		{name: "preserva bonus da Magical Pill", bonus: 9, want: 9},
+		{name: "no permanent bonus", want: 0},
+		{name: "preserves Magical Pill bonus", bonus: 9, want: 9},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w, p, s := newEnterWorldPlayer(t, 742, 1000)
-			p.Account.Chars[0].Score.Level = 54 // 54 * 3 = 162 pontos.
+			p.Account.Chars[0].Score.Level = 54 // 54 * 3 = 162 points.
 			p.Account.Chars[0].LearnedSkill = 1<<0 | 1<<1 | 1<<2 | 1<<16
 			p.Account.Chars[0].SkillPointBonus = tc.bonus
 			w.skills = map[int]model.SkillDef{
@@ -137,10 +139,10 @@ func TestEnterWorldKeepsLearnedSkillCostsDeducted(t *testing.T) {
 			w.onEnterWorld(s, enterWorldPacket(0))
 
 			if got := p.Char.Score.SkillPts; got != tc.want {
-				t.Fatalf("pontos de skill na entrada=%d, quer %d", got, tc.want)
+				t.Fatalf("entry skill points=%d, want %d", got, tc.want)
 			}
 			if p.Char.RuntimeScore == nil || p.Char.RuntimeScore.SkillPts != tc.want {
-				t.Fatalf("pontos runtime na entrada=%v, quer %d", p.Char.RuntimeScore, tc.want)
+				t.Fatalf("entry runtime points=%v, want %d", p.Char.RuntimeScore, tc.want)
 			}
 		})
 	}
@@ -155,11 +157,11 @@ func TestEnterWorldMigratesUnsupportedEquipmentToCarry(t *testing.T) {
 	w.onEnterWorld(s, enterWorldPacket(0))
 
 	if !p.InWorld || p.Char.Equip[9].Index != 0 || p.Char.Inv[0] != legacy {
-		t.Fatalf("equip incompatível não migrou para Carry: equip9=%+v inv0=%+v",
+		t.Fatalf("misplaced equipment did not migrate to Carry: equip9=%+v inv0=%+v",
 			p.Char.Equip[9], p.Char.Inv[0])
 	}
 	if saves := w.store.(*craftStore).saves; saves != 1 {
-		t.Fatalf("migração persistiu %d vezes, quer 1", saves)
+		t.Fatalf("migration saved %d times, want 1", saves)
 	}
 }
 
@@ -172,11 +174,11 @@ func TestEnterWorldRollsBackUnsupportedEquipmentMigrationOnSaveFailure(t *testin
 	w.onEnterWorld(s, enterWorldPacket(0))
 
 	if !p.InWorld || p.Char.Equip[9] != legacy || p.Char.Inv[0].Index != 0 {
-		t.Fatalf("falha de save não restaurou equipamento: equip9=%+v inv0=%+v",
+		t.Fatalf("save failure did not restore equipment: equip9=%+v inv0=%+v",
 			p.Char.Equip[9], p.Char.Inv[0])
 	}
-	if bodyMesh(p.Char)[9] != 0 {
-		t.Fatal("item retido após rollback voltou à aparência do client")
+	if clientEquipProjection(p.Char)[9] != legacy {
+		t.Fatal("rollback lost the retained equipment in the client projection")
 	}
 }
 
@@ -191,7 +193,7 @@ func TestEnterWorldMigratesUnsupportedEquipmentToCargoWhenCarryIsFull(t *testing
 	w.onEnterWorld(s, enterWorldPacket(0))
 
 	if !p.InWorld || p.Char.Equip[9].Index != 0 || p.Account.Cargo[0] != legacy {
-		t.Fatalf("equip incompatível não migrou para Cargo: equip9=%+v cargo0=%+v",
+		t.Fatalf("misplaced equipment did not migrate to Cargo: equip9=%+v cargo0=%+v",
 			p.Char.Equip[9], p.Account.Cargo[0])
 	}
 }
@@ -234,28 +236,28 @@ func TestEnterWorldRejectsWhenAllPlayerIDsAreOccupied(t *testing.T) {
 	}
 	w.onEnterWorld(s, enterWorldPacket(0))
 	if p.InWorld || p.ID != 0 || w.playersByID[999] == nil {
-		t.Fatal("entrada deveria ser recusada sem sobrescrever o ultimo jogador")
+		t.Fatal("entry should be rejected without overwriting the last player")
 	}
 	if s.QueuedPacketsForTest() == 0 {
-		t.Fatal("recusa de mundo cheio deveria avisar o cliente")
+		t.Fatal("world-full rejection should notify the client")
 	}
 }
 
-// TestDeadCharacterRevivedBeforePackets: o revive precisa acontecer ANTES dos
-// pacotes de entrada, senão o client recebe HP 0 no EnterWorld/CreateMob e
-// desenha a pose de morte mesmo com o servidor já corrigido.
+// TestDeadCharacterRevivedBeforePackets: revive must happen before entry
+// packets; otherwise the client receives HP 0 in EnterWorld/CreateMob and
+// draws the death pose even after the server corrects its state.
 func TestDeadCharacterRevivedBeforePackets(t *testing.T) {
 	w, p, s := newEnterWorldPlayer(t, 0, 1000)
-	// DeadAt sujo de uma morte anterior na mesma sessão.
+	// Stale DeadAt from an earlier death in the same session.
 	p.DeadAt = time.Now()
 
 	w.onEnterWorld(s, enterWorldPacket(0))
 
 	if s.QueuedPacketsForTest() == 0 {
-		t.Fatal("a sequência de entrada deveria ter sido enviada")
+		t.Fatal("entry sequence should have been sent")
 	}
-	// O HP autoritativo já está corrigido no momento em que os pacotes saíram.
+	// Authoritative HP is already corrected when packets are sent.
 	if got := playerCurHP(p.Char); got != 1 {
-		t.Fatalf("HP=%d ao montar os pacotes, quer 1", got)
+		t.Fatalf("HP=%d when building packets, want 1", got)
 	}
 }

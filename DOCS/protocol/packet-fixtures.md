@@ -2,10 +2,15 @@
 
 The shared canonical corpus is in `../../testdata/protocol/`. It contains only
 plaintext frames whose origin and layout have been confirmed for the tested
-boundary. Consumers strip comments and whitespace before decoding the hex.
+boundary, or explicitly versioned coordinated extensions. Consumers strip
+comments and whitespace before decoding the hex.
 
 - `send_item_0x182_24.hex`: a 24-byte `MSG_SendItem` frame validated against
   the native 7.48 contract and consumed by Go and C++ tests to prevent drift.
+- `kefra_portal_0x7f30_alive.hex` and `kefra_portal_0x7f30_defeated.hex`:
+  16-byte [Kefra portal v1](kefra-portal.md) snapshots, consumed by both
+  implementations. These are coordinated-extension fixtures, not native
+  captures. They normalize the transport keyword, checksum and tick to zero.
 
 The movement-capture corpus, which still has a server-only consumer, remains
 in `wydgo748/internal/game/testdata/packets/` until that consumer migrates.

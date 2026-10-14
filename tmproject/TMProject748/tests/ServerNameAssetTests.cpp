@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <string>
 #include <vector>
 #include <windows.h>
 
@@ -234,6 +235,62 @@ int RunServerNameAssetTests(int& checks)
             "time gate matches the server object definition");
         check(items[746].nIndexMesh == 1607 && effectValue(items[746], 34) == 0,
             "cannon matches the server object definition");
+
+        // Imported KR mounts once cloned the Shire_Horse face row, inheriting
+        // its bush mesh (7) and model class 43, which hid them from the
+        // BeastMaster. They now use the timed-horse icon and every class.
+        int krMounts = 0;
+        bool krMountsPresentable = true;
+        for (std::size_t index = 4190; index < items.size(); ++index) {
+            if ((index > 4299 && index < 6000) || index > 6014 || items[index].nPos != 0x4000)
+                continue;
+            ++krMounts;
+            if (items[index].nIndexMesh != 2821 || effectValue(items[index], 18) != 255)
+                krMountsPresentable = false;
+        }
+        check(krMounts == 99 && krMountsPresentable,
+            "the 99 KR mounts use the horse icon and allow every class");
+
+        // Grid icons resolve through MeshList.txt; both replacement icons must
+        // name meshes the client ships.
+        const auto meshDirectory = asset.parent_path() / "mesh";
+        std::ifstream meshList(meshDirectory / "MeshList.txt");
+        std::string iconMount;
+        std::string iconCostume;
+        for (std::string line; std::getline(meshList, line);) {
+            int meshIndex = 0;
+            char meshPath[128]{};
+            if (sscanf_s(line.c_str(), "%d %127s", &meshIndex, meshPath,
+                    static_cast<unsigned>(sizeof(meshPath))) != 2)
+                continue;
+            if (meshIndex == 2821)
+                iconMount = meshPath;
+            else if (meshIndex == 2885)
+                iconCostume = meshPath;
+        }
+        // LavaGolem's KR look (mesh 3) needs mo010104.msh, which no available
+        // client ships; it already resolved to the Water_Golem texture
+        // mo010104.wys, so it uses the complete Water_Golem (Aquagolem) look.
+        check(items[4084].nIndexMesh == items[309].nIndexMesh &&
+            items[4084].nIndexTexture == items[309].nIndexTexture &&
+            items[309].nIndexMesh == 1 && items[309].nIndexTexture == 2 &&
+            std::filesystem::is_regular_file(meshDirectory / "mo010102.msh") &&
+            std::filesystem::is_regular_file(meshDirectory / "mo010202.msh") &&
+            std::filesystem::is_regular_file(meshDirectory / "mo010104.wys"),
+            "LavaGolem uses the shipped Water_Golem look");
+        // LavaGrub's KR mesh 1 needs gb010102.msh, also absent everywhere; it
+        // uses the only shipped grub look, Purple_Worm.
+        check(items[4085].nIndexMesh == items[355].nIndexMesh &&
+            items[4085].nIndexTexture == items[355].nIndexTexture &&
+            items[355].nIndexMesh == 0 && items[355].nIndexTexture == 0 &&
+            std::filesystem::is_regular_file(meshDirectory / "gb010101.msh") &&
+            std::filesystem::is_regular_file(meshDirectory / "gb010201.msh") &&
+            std::filesystem::is_regular_file(meshDirectory / "gb010101.wys"),
+            "LavaGrub uses the shipped Purple_Worm look");
+        check(iconMount == "mesh\\\\ches15.msa" && iconCostume == "mesh\\\\skeltonmt.msa" &&
+            std::filesystem::is_regular_file(meshDirectory / "ches15.msa") &&
+            std::filesystem::is_regular_file(meshDirectory / "skeltonmt.msa"),
+            "mount and costume icon meshes are listed and shipped");
 
         const auto initialObjects = asset.parent_path() / "InitItem.bin";
         check(std::filesystem::is_regular_file(initialObjects),

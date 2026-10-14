@@ -2,6 +2,7 @@
 import PlayerModeration from '../../components/PlayerModeration.astro';
 import PlayerTeleport from '../../components/PlayerTeleport.astro';
 import '../../styles/admin.css';
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAAAAFUuBWIVQX0iBfhZ';
 import '../../styles/wyd-theme.css';
 import GlobalDrop from '../../components/GlobalDrop.astro';
 import Quiz from '../../components/Quiz.astro';
@@ -49,6 +50,7 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
               <label for="username">Game account</label><input id="username" name="username" autocomplete="username" maxlength="12" pattern="[a-zA-Z0-9]{1,12}" required placeholder="Your authorized account" />
               <label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="10" required placeholder="Account password" />
               <label for="adminPin">Administrative PIN <span>6 digits</span></label><input id="adminPin" name="adminPin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{6}" minlength="6" maxlength="6" required placeholder="000000" />
+              <div id="staff-challenge" data-sitekey={turnstileSiteKey} data-action="staff_login"></div>
               <p id="login-message" class="form-message" role="status" aria-live="polite">Preparing access…</p>
               <button id="login-submit" class="button primary" disabled>Sign in <span aria-hidden="true">↗</span></button>
               <p class="login-foot">Here to play? <a href="/register/">Create a player account</a>.</p>

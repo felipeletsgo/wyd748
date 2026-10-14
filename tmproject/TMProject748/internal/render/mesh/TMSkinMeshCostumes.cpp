@@ -336,6 +336,7 @@ constexpr const char* kMantleExceptionTextures[] = {
 	"mesh\\mt0101191.wyt",
 	"mesh\\mt0101192.wyt",
 	"mesh\\mt0101193.wyt",
+	"mesh\\mt0101194.wyt",
 	"mesh\\mt0101195.wyt",
 	"mesh\\mt0101196.wyt",
 	"mesh\\mt0101197.wyt",

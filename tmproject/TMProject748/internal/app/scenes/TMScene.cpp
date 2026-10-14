@@ -879,11 +879,11 @@ void TMScene::AppendMessagePanelToChat(MSG_MessagePanel*& pMsgPanel)
 // Extracted from TMScene::OnPacketEvent; behavior is unchanged.
 ExtractedFlow TMScene::OnShoutMessage(MSG_STANDARD*& pStd, int& extractedResult)
 {
-	if (pStd->Size != sizeof(MSG_MessageWhisper))
+	if (pStd->Size != sizeof(MSG_MessageShout))
 		{ extractedResult = 1; return ExtractedFlow::Return; }
 
-	MSG_MessageWhisper* pShoutMessage = reinterpret_cast<MSG_MessageWhisper*>(pStd);
-	pShoutMessage->MobName[sizeof(pShoutMessage->MobName) - 1] = 0;
+	MSG_MessageShout* pShoutMessage = reinterpret_cast<MSG_MessageShout*>(pStd);
+	pShoutMessage->String[sizeof(pShoutMessage->String) - 2] = 0;
 	pShoutMessage->String[sizeof(pShoutMessage->String) - 1] = 0;
 
 	if (GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
@@ -893,13 +893,13 @@ ExtractedFlow TMScene::OnShoutMessage(MSG_STANDARD*& pStd, int& extractedResult)
 	if (!pFScene->m_pChatGeneral || !pFScene->m_pCHP || pFScene->m_pCHP->m_bSelectEnable)
 	{
 		int nIndex = 0;
-		unsigned int dwColor = 0xFF00CD00;
+		unsigned int dwColor = kNativeShoutARGB;
 
 		SListBox* pChatList = pFScene->m_pChatList;
 
-		int nLen = strlen(pShoutMessage->MobName);
+		int nLen = strlen(pShoutMessage->String);
 
-		SListBoxItem* ipNewItem = new SListBoxItem(pShoutMessage->MobName,
+		SListBoxItem* ipNewItem = new SListBoxItem(pShoutMessage->String,
 			dwColor,
 			0.0f,
 			0.0f,

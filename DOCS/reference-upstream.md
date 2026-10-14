@@ -23,4 +23,4 @@ submodule and must not receive its own `.git` directory.
 
 Historical executables and patchers do not participate in upstream sync,
 builds, or validation. Every active change belongs in this source or in assets
-consumed directly by `tmproject/client748/project.exe`.
+consumed directly by `tmproject/client748/WYD.exe`.

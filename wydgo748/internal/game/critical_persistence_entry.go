@@ -24,7 +24,10 @@ func (w *World) prepareCriticalCharacterEntry(p *Player, slot int) error {
 	if err := w.loadCharStateInto(planned); err != nil {
 		return err
 	}
-	changed := planUnsupportedEquipment(planned)
+	changed := w.planUnsupportedEquipment(planned)
+	if w.ensureCapeEmblem(planned.Char) {
+		changed = true
+	}
 	return w.continueCriticalCharacterEntry(p, planned, changed)
 }
 
@@ -69,6 +72,7 @@ func (w *World) continueCriticalCharacterEntry(p, planned *Player, changed bool)
 			for slot := range planned.Account.Chars {
 				p.Account.Chars[slot].Equip = planned.Account.Chars[slot].Equip
 				p.Account.Chars[slot].Inv = planned.Account.Chars[slot].Inv
+				p.Account.Chars[slot].CapeEmblem = planned.Account.Chars[slot].CapeEmblem
 			}
 			p.Account.Cargo = planned.Account.Cargo
 			return nil

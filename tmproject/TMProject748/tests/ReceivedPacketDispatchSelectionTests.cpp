@@ -82,6 +82,7 @@ int RunReceivedPacketDispatchSelectionTests(int& checks)
     struct ActiveServerEnvelope { unsigned int opcode; std::size_t size; };
     const ActiveServerEnvelope activeServerEnvelopes[] = {
         {MSG_MessagePanel_Opcode, 108},
+        {MSG_MessageShout_Opcode, 108},
         {MSG_MessageIndexed_Opcode, 108},
         {MSG_MessageParameterized_Opcode, 108},
         {MSG_REQArray_Opcode, 24},

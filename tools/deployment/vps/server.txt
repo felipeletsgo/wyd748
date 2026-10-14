@@ -21,6 +21,7 @@ max_connections=400
 max_connections_per_ip=4
 max_authenticated_clients_per_ip=4
 handshake_timeout_seconds=5
+# Legacy key: absolute pre-authentication limit, never an AFK player limit.
 session_idle_timeout_seconds=600
 frame_read_timeout_seconds=10
 inbound_packets_per_second=256

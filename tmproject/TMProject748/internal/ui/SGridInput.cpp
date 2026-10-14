@@ -543,6 +543,8 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 				stAttack.Dam[0].TargetID = pMyHuman->m_dwID;
 
 				int nSize = sizeof(MSG_Attack);
+				WYD748_DiagnosticsLog("SKILL source=grid stage=send skill=%d control=%u\r\n",
+					cSkillIndex, m_dwControlID);
 
 				if (g_pSpell[cSkillIndex].MaxTarget != 1)
 				{
@@ -565,7 +567,10 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 
 				stAttackLocal.Header.ID = m_dwID;
 				stAttackLocal.FlagLocal = 1;
+				WYD748_DiagnosticsLog("SKILL source=grid stage=prediction_begin skill=%d opcode=0x%04X\r\n",
+					cSkillIndex, stAttack.Header.Type);
 				pFScene->OnPacketEvent(stAttack.Header.Type, (char*)&stAttackLocal);
+				WYD748_DiagnosticsLog("SKILL source=grid stage=prediction_end skill=%d\r\n", cSkillIndex);
 				pFScene->m_dwOldAttackTime = dwServerTime;
 				pFScene->m_pTargetHuman = 0;
 				pFScene->m_dwSkillLastTime[cSkillIndex] = dwServerTime;

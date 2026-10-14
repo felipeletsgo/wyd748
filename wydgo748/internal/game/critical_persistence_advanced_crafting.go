@@ -154,7 +154,8 @@ func (w *World) prepareAdvancedCraft(p *Player, req combineRequest, artisan stri
 		return plan, nil
 	}
 	if req.Items[0].Index != 4043 || req.Items[1].Index != 4043 || req.Items[2].Index == 0 ||
-		req.Items[7].Index != 0 || odinTargetBlocked(req.Items[2].Index) {
+		req.Items[7].Index != 0 || odinTargetBlocked(req.Items[2].Index) ||
+		refinementLocked(w.items[req.Items[2].Index]) {
 		return nil, errAdvancedRecipe
 	}
 	level := itemSanc(req.Items[2])

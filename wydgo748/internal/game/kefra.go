@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 // Kefra lifecycle, ported from the W2PP TMSrv (MobKilled.cpp, GetFunc.cpp,
@@ -44,6 +45,20 @@ func isKefraBoss(m *Mob) bool {
 
 func (w *World) kefraDefeated() bool {
 	return w.guilds != nil && w.guilds.Wars.Kefra.Defeated
+}
+
+func (w *World) sendKefraPortalState(p *Player) {
+	if p != nil && p.InWorld && p.Session != nil && !p.Session.IsClosed() {
+		p.Session.Send(wire.KefraPortalState(w.kefraDefeated()))
+	}
+}
+
+// Publish the durable world state, including to players outside the hall. A
+// later map load must not infer a defeat from whether a boss is in view.
+func (w *World) broadcastKefraPortalState() {
+	for _, p := range w.players {
+		w.sendKefraPortalState(p)
+	}
 }
 
 func isKefraGate(portal model.Teleport) bool {
@@ -178,6 +193,7 @@ func (w *World) announceKefraDefeat(killer *Player, guild *model.Guild) {
 		message = fmt.Sprintf("Guild %s has defeated Kefra. The way to Uxmal is open.", guild.Name)
 	}
 	w.removeKefraGuards()
+	w.broadcastKefraPortalState()
 	w.warNotice(message)
 	w.flushWarNotices(w.now())
 	log.Printf("kefra: defeated by %q, guild=%d", playerName(killer), w.guilds.Wars.Kefra.Guild)
@@ -196,7 +212,10 @@ func (w *World) tickKefra(now time.Time) {
 		if err := w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
 			guilds.Wars.Kefra = model.KefraState{}
 			return nil
-		}, func() { log.Printf("kefra: weekly reset, the boss returns") }); err != nil {
+		}, func() {
+			w.broadcastKefraPortalState()
+			log.Printf("kefra: weekly reset, the boss returns")
+		}); err != nil {
 			log.Printf("kefra weekly reset admission: %v", err)
 		}
 		return
@@ -210,6 +229,7 @@ func (w *World) tickKefra(now time.Time) {
 		w.guilds.Wars.Kefra = previous
 		return
 	}
+	w.broadcastKefraPortalState()
 	log.Printf("kefra: weekly reset, the boss returns")
 }
 

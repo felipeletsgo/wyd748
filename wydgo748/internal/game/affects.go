@@ -725,26 +725,28 @@ func (w *World) publishMobAffects(m *Mob) {
 }
 
 // applyAffectStats always recalculates from the clean score; renewing/removing
-// a buff never permanently accumulates bonuses.
-func (w *World) applyAffectStats(ch *model.Char) {
+// a buff never permanently accumulates bonuses. It returns attack-speed bonus
+// percentage points so equipment recalculation can quantize the final sum once.
+func (w *World) applyAffectStats(ch *model.Char) int {
 	if ch == nil {
-		return
+		return 0
 	}
 	ensureScore(ch)
-	w.applyExtendedAffectStats(ch)
+	return w.applyExtendedAffectStats(ch)
 }
 
 // applyExtendedAffectStats applies buffs to a runtime copy of the sidecar.
 // The persisted base is never modified, so renewing/recalculating a buff cannot
 // accumulate bonuses. Calculations use int64 to avoid overflow before clamping.
-func (w *World) applyExtendedAffectStats(ch *model.Char) {
+func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 	if ch == nil || ch.Score == nil {
-		return
+		return 0
 	}
 	if ch.RuntimeScore == nil {
 		applyScore(ch)
 	}
 	e := ch.RuntimeScore
+	attackSpeedPoints := int(e.AttackRun>>4&0x0F) * 10
 	now := w.now()
 	mul := func(value uint32, percent int) uint32 {
 		if percent < 0 {
@@ -793,8 +795,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 			e.Dex = mul(e.Dex, 100-clampInt(a.Value, 0, 100))
 		case 7:
 			penalty := a.Level/10 + 20
-			attackSpeed := maxInt(0, int(e.AttackRun>>4)-penalty)
-			e.AttackRun = uint32(attackSpeed<<4) | e.AttackRun&0x0F
+			attackSpeedPoints -= penalty
 			e.Int = add(e.Int, int64(-penalty))
 		case 9:
 			e.Attack = add(e.Attack, int64((a.Level*5/20+a.Value)*3/2))
@@ -838,7 +839,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 				case 0:
 					if learnedLocal(ch, 65-48) {
 						damageAdd = 50
-						e.Critical = clampScoreValue(e.Critical + 11)
+						e.Critical = addCritical(e.Critical, 22) // 2.2%
 					}
 				case 1:
 					if learnedLocal(ch, 67-48) {
@@ -853,7 +854,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 					defenseAdd = 10
 				case 4:
 					damageAdd, hpAdd, resistAdd, attackSpeedAdd = 40, 17, 5, 17
-					e.Critical = clampScoreValue(e.Critical + 5)
+					e.Critical = addCritical(e.Critical, 10) // 1.0%
 				}
 				interpolate := func(minimum, maximum int) int {
 					return minimum + (maximum-minimum)*a.Level/200
@@ -866,8 +867,8 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 				e.ResistHoly = uint32(clampInt(int(e.ResistHoly)+resistAdd, 0, 100))
 				e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resistAdd, 0, 100))
 				run := minInt(15, int(e.AttackRun&0x0F)+b.run)
-				attackSpeed := minInt(15, int(e.AttackRun>>4)+(b.attackSpeed+attackSpeedAdd)/10)
-				e.AttackRun = uint32(attackSpeed<<4 | run)
+				attackSpeedPoints += b.attackSpeed + attackSpeedAdd
+				e.AttackRun = e.AttackRun&0xF0 | uint32(run)
 			}
 		case 21:
 			e.Defense = add(e.Defense, int64(-(a.Level/3 + 10)))
@@ -936,7 +937,9 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) {
 		e.CurMP = e.MaxMP
 		ch.Score.CurMP = e.CurMP
 	}
+	e.AttackRun = packedAttackSpeed(attackSpeedPoints) | e.AttackRun&0x0F
 	normalizeRuntimeScore(ch)
+	return attackSpeedPoints
 }
 
 func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {

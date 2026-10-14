@@ -54,11 +54,12 @@ func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 
 func (w *World) resolvePlayerTeleportDestination(p *Player, x, y uint16) (uint16, uint16, bool) {
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld ||
-		x == 0 || y == 0 || !w.terrain.Walkable(x, y) {
+		x == 0 || y == 0 || !w.terrain.Walkable(x, y) ||
+		!hiddenValleyDestinationAllowed(p, x, y, w.now()) {
 		return 0, 0, false
 	}
 	x, y = w.findFreePlayerPosition(x, y, 3, p)
-	return x, y, w.terrain.Walkable(x, y)
+	return x, y, w.terrain.Walkable(x, y) && hiddenValleyDestinationAllowed(p, x, y, w.now())
 }
 
 func (w *World) publishPlayerTeleport(p *Player) {
@@ -94,8 +95,20 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel(kefraGateClosed))
 		return
 	}
+	if isKefraHallEntrance(portal) && counterBalance(p, kefraTicketCounter) == 0 {
+		s.Send(wire.MessagePanel(kefraEntriesRequired))
+		return
+	}
+	if !hiddenValleyDestinationAllowed(p, portal.DestX, portal.DestY, w.now()) {
+		s.Send(wire.MessagePanel("Activate a Hidden Ruins map before entering Hidden Valley."))
+		return
+	}
 	if p.Char.Gold < portal.Price {
 		s.Send(wire.MessagePanel("Not enough gold for the teleport."))
+		return
+	}
+	if isKefraHallEntrance(portal) {
+		w.enterKefraHall(p, portal)
 		return
 	}
 	if w.criticalWrites != nil {

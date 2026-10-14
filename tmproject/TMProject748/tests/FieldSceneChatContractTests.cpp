@@ -1,4 +1,5 @@
 #include "SourceMethod.h"
+#include "../internal/wire/ShoutMessagePacket.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -79,6 +80,19 @@ int RunFieldSceneChatContractTests(int& checks)
     check(scene.find("pStd->Type == MSG_MessageParameterized_Opcode") != std::string::npos,
         "TMScene keeps showing parameterized messages");
     const auto whisper = source_contract::Method(chat, signatures[6]);
+    const auto shoutBody = source_contract::Method(scene,
+        "ExtractedFlow TMScene::OnShoutMessage(MSG_STANDARD*& pStd, int& extractedResult)");
+    check(MSG_MessageShout_Opcode == 0xD1D && sizeof(MSG_MessageShout) == 108 &&
+        kNativeShoutARGB == 0xFF00CD00, "native shout uses its own green chat envelope");
+    check(shoutBody.find("sizeof(MSG_MessageShout)") != std::string::npos &&
+        shoutBody.find("new SListBoxItem(pShoutMessage->String,") != std::string::npos &&
+        shoutBody.find("dwColor = kNativeShoutARGB") != std::string::npos &&
+        shoutBody.find("m_pMessagePanel") == std::string::npos,
+        "native shout displays the literal named body only in chat, never the top panel");
+    const auto noticeBody = source_contract::Method(scene,
+        "int TMScene::OnMessagePanelPacket(MSG_STANDARD*& pStd)");
+    check(noticeBody.find("m_pMessagePanel->SetVisible(1, 1)") != std::string::npos,
+        "server message panels retain the top notice route");
     check(whisper.find("if (!m_pPartyList)\n\t\t\treturn 1;") <
         whisper.find("m_pPartyList->m_nNumItem"), "party whisper keeps its consumed early return");
     const auto dispatch = source_contract::Method(core,
@@ -88,6 +102,25 @@ int RunFieldSceneChatContractTests(int& checks)
         check(dispatch.find(handler) != std::string::npos, "chat routing remains in the single dispatcher");
     const auto controls = source_contract::WithHelpers(core,
         "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)", "TMFieldScene");
+    const auto leaveStart = controls.find("if (idwControlID == 1864)");
+    const auto closeStart = controls.find("if (idwControlID == 1865)");
+    const auto leave = leaveStart < closeStart ? controls.substr(leaveStart, closeStart - leaveStart) : std::string{};
+    check(!leave.empty() && leave.find("MSG_RemoveParty message{}") != std::string::npos &&
+        leave.find("message.Header.Type = MSG_RemoveParty_Opcode") != std::string::npos &&
+        leave.find("message.Header.ID = m_pMyHuman->m_dwID") != std::string::npos &&
+        leave.find("message.Parm = 0") != std::string::npos && leave.find("SendPacket(") != std::string::npos,
+        "party Leave sends the native authoritative self-removal request");
+    const auto character = source_contract::Method(core, "int TMFieldScene::OnCharEvent(char iCharCode, int lParam)");
+    const auto escape = character.find("if (iCharCode == 27)");
+    const auto focused = character.find("TMScene::OnCharEvent(iCharCode, lParam)");
+    check(escape != std::string::npos && focused != std::string::npos && escape < focused &&
+        character.substr(escape, focused - escape).find("OnESC()") != std::string::npos,
+        "Escape closes menus before focused chat can consume it");
+    const auto input = ReadFieldUnit("TMFieldSceneInput.cpp");
+    const auto closeMenus = source_contract::Method(input, "void TMFieldScene::OnESC()");
+    for (const auto transition : {"m_pPGTOver = nullptr", "m_pPGTPanel->SetVisible(0)",
+        "FindControl(292)", "menu->SetVisible(0)", "m_pSystemPanel->SetVisible(0)"})
+        check(closeMenus.find(transition) != std::string::npos, "Escape clears transient menus and their target");
     const auto previousDomain = controls.find("if (idwControlID == B_CCMODE_DLG_MODE)");
     const auto chatDomain = controls.find("field_chat::Handle(idwControlID,");
     const auto consumption = controls.find("if (chatOutcome != field_chat::Outcome::Unhandled)", chatDomain);

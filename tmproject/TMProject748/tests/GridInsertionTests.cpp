@@ -7,6 +7,31 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <limits>
+#include "SourceMethod.h"
+#include <filesystem>
+#include <fstream>
+#include <iterator>
+#include <windows.h>
+#ifdef small
+#undef small
+#endif
+
+namespace {
+std::string ReadGridSource()
+{
+    wchar_t executable[MAX_PATH]{};
+    const auto length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
+    if (!length || length == MAX_PATH) return {};
+    auto directory = std::filesystem::path(executable).parent_path();
+    for (int depth = 0; depth < 8 && !directory.empty(); ++depth) {
+        std::ifstream input(directory / "tmproject/TMProject748/internal/ui/SGrid.cpp", std::ios::binary);
+        if (input) return {std::istreambuf_iterator<char>(input), {}};
+        directory = directory.parent_path();
+    }
+    return {};
+}
+}
 
 // The same SGrid boundary has an observable consumer: rejection must not
 // alter the list, occupancy, binding, or lifetime. DirectX rendering is not simulated.
@@ -17,7 +42,30 @@ int RunGridInsertionTests(int& checks)
         ++checks;
         if (!ok) { ++failures; std::fprintf(stderr, "FAIL: %s\n", name); }
     };
+    const auto source = ReadGridSource();
+    for (const char* signature : {
+        "int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)",
+        "int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)"}) {
+        const auto body = source_contract::Method(source, signature);
+        check(!body.empty() && body.find("WYD748_ApplyGridMeshScale(ipNewItem);") != std::string::npos &&
+            body.find("GRID_EQUIP") == std::string::npos && body.find("isEquipmentGrid") == std::string::npos,
+            "production insertion fits all item grids, including equipment");
+    }
     const char* emptyCaptions[] = {nullptr, "", " \t\r\n"};
+    for (int rows : {1, 2, 3}) {
+        const float target = rows * 0.3f;
+        check(grid_item_presentation::MeshScale(target * 2.0f, rows) == 0.5f,
+            "tall equipment and inventory meshes use the same native fit");
+        check(grid_item_presentation::MeshScale(target, rows) == 1.0f &&
+            grid_item_presentation::MeshScale(target * 0.5f, rows) == 1.0f,
+            "small meshes are never enlarged");
+    }
+    for (float invalid : {0.0f, -1.0f, std::numeric_limits<float>::infinity(),
+        std::numeric_limits<float>::quiet_NaN()})
+        check(grid_item_presentation::MeshScale(invalid, 1) == 1.0f,
+            "invalid mesh bounds retain safe scale");
+    check(grid_item_presentation::MeshScale(1.0f, 0) == 1.0f,
+        "invalid footprint retains safe scale");
     for (const char* caption : emptyCaptions)
         check(std::strcmp(grid_item_presentation::SplitCaption(caption),
             "Enter the quantity to split.") == 0, "missing split resource has an English caption");

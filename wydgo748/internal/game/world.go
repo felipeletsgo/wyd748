@@ -126,8 +126,11 @@ type Player struct {
 	// QuestZoneEntry is the native QuestFlag: the quest zone this player was
 	// teleported into by its NPC. Runtime only; cleared by the zone reset.
 	QuestZoneEntry string
-	// QuestZoneTimer records that this client shows the quest-zone countdown.
-	QuestZoneTimer bool
+	// QuestZoneTimer records that this client shows an area countdown (quest
+	// zone, clear area or Hidden Valley access); AreaTimerDeadline is the end
+	// it was sent for, so a changed deadline is resent once.
+	QuestZoneTimer    bool
+	AreaTimerDeadline time.Time
 	// SentWeather is the weather this client last received (0x114 or 0x18B).
 	SentWeather      int
 	AirMoveActive    bool
@@ -357,7 +360,7 @@ func WithQuests(file model.QuestFile) WorldOption {
 }
 
 func WithQuestZones(file model.QuestZoneFile) WorldOption {
-	return func(w *World) { w.questZones = file.Zones }
+	return func(w *World) { w.questZones, w.clearAreas = file.Zones, file.ClearAreas }
 }
 
 // WithUxmal supplies the authoritative Rune Track template. An NPC starts the
@@ -558,7 +561,13 @@ type World struct {
 	// questZones are rectangles that return every player inside to town each
 	// reset cycle (WYD 7.48 ClearArea). nextQuestZoneReset uses wall-clock time,
 	// not tick count, to preserve ten real minutes even after delayed ticks.
-	questZones         []model.QuestZone
+	questZones []model.QuestZone
+	// clearAreas are emptied by the same cycle without an NPC entry guard
+	// (native ClearArea, such as the Game Room territories).
+	clearAreas []model.QuestZone
+	// commandAuthorizer checks staff capabilities for in-game commands such
+	// as /goto (staff_goto.go); nil disables every privileged command.
+	commandAuthorizer  func(account, capability string) bool
 	nextQuestZoneReset time.Time
 	nextQuestZoneGuard time.Time
 	// weather is the world weather sent in 0x114 and 0x18B (weather.go).
@@ -893,6 +902,9 @@ func (w *World) allocPlayerID() (uint16, bool) {
 }
 
 func (w *World) scheduleGenerator(g *generState, now time.Time) {
+	if generatorReservedForGuildWar(g.def) {
+		return
+	}
 	if g.def.MinuteGenerate > 0 {
 		g.nextGenerate = now.Add(time.Duration(g.def.MinuteGenerate) * npcGenerMinute)
 	}
@@ -901,7 +913,7 @@ func (w *World) scheduleGenerator(g *generState, now time.Time) {
 // spawnGroup ports GenerateMob: a leader and MinGroup..MaxGroup followers,
 // capped by MaxNumMob. StartRange scatters them around Start.
 func (w *World) spawnGroup(g *generState) {
-	if w.generatorBlockedByKefra(g) {
+	if generatorReservedForGuildWar(g.def) || w.generatorBlockedByKefra(g) {
 		return
 	}
 	remaining := g.def.MaxNumMob - g.current
@@ -1034,7 +1046,7 @@ func (w *World) positionOccupiedInGameplaySpace(x, y uint16, space string,
 	}
 	space = strings.TrimSpace(space)
 	key := spatialKey(x, y)
-	if reserved := w.criticalTeleportTiles[criticalTeleportTile{key, space}]; reserved != nil && reserved != exceptPlayer {
+	if reserved := w.criticalTeleportTiles[criticalTile(x, y, space)]; reserved != nil && reserved != exceptPlayer {
 		return true
 	}
 	for _, m := range w.mobCells[key] {
@@ -1887,6 +1899,7 @@ func (w *World) tick() {
 	w.tickPremium(now)
 	if !now.Before(w.nextQuestZoneGuard) {
 		w.tickQuestZoneGuard(now)
+		w.tickHiddenValleyAccess(now)
 		w.nextQuestZoneGuard = now.Add(questZoneGuardInterval)
 	}
 	if !now.Before(w.nextQuestZoneReset) {
@@ -1911,7 +1924,7 @@ func (w *World) tick() {
 // players in quest zones to town. This is one global deadline, not a full
 // ten-minute interval granted separately to each player.
 func (w *World) tickQuestZoneReset(now time.Time) {
-	if len(w.questZones) == 0 {
+	if len(w.questZones) == 0 && len(w.clearAreas) == 0 {
 		return
 	}
 	for _, p := range w.players {
@@ -1923,11 +1936,10 @@ func (w *World) tickQuestZoneReset(now time.Time) {
 			w.hideQuestZoneTimer(p)
 			continue
 		}
-		for i := range w.questZones {
-			if w.questZones[i].Contains(p.X, p.Y) {
-				w.recallPlayer(p, "reset "+w.questZones[i].Name)
-				break
-			}
+		if zone := w.questZoneAt(p.X, p.Y); zone != nil {
+			w.recallPlayer(p, "reset "+zone.Name)
+		} else if area := w.clearAreaAt(p.X, p.Y); area != nil {
+			w.recallPlayer(p, "reset "+area.Name)
 		}
 		// Native ClearAreaQuest cycle: every entry expires with the reset.
 		p.QuestZoneEntry = ""
@@ -2359,14 +2371,35 @@ func (w *World) spawnInitItems() error {
 			Y:         obj.Y,
 			Rotate:    obj.Rotate,
 			Permanent: true,
+			State:     initialFixtureState(w.items[obj.Index]),
 		}
 		w.registerGroundItem(item)
-		w.applyGroundItemHeight(item)
+		// Open fixtures leave the base terrain untouched, as TMSrv CreateItem
+		// does; only a locked gate stamps its collision height.
+		if item.State == gateClosed {
+			w.applyGroundItemHeight(item)
+		}
 	}
 	if len(w.initItems) > 0 {
 		log.Printf("world objects: %d placed on the map", len(w.initItems))
 	}
 	return nil
+}
+
+// initialFixtureState follows TMSrv: every map fixture is created open and
+// only keyed gates with EF_KEYID 1..14 are locked at start. Castle gates
+// (15/16), towers, cannons, rune slates and machines stay open; the Noatum
+// castle gates close only during a castle war, which this server does not run.
+// Objects without EF_GROUND (cannons) keep state 0, which their CreateItem
+// already carried.
+func initialFixtureState(def model.ItemDef) byte {
+	if staticEffect(def, "EF_GROUND") <= 0 {
+		return 0
+	}
+	if key := staticEffect(def, "EF_KEYID"); key > 0 && key < 15 {
+		return gateClosed
+	}
+	return gateOpen
 }
 
 func (w *World) allocGroundItemID(itemIndex uint16) (uint16, bool) {

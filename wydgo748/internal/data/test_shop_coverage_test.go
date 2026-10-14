@@ -79,8 +79,7 @@ func requireShopItems(t *testing.T, shops map[string]map[uint16]struct{}, name s
 func TestOneShotConsumablesDoNotLeaveTestShopsAsArtificialStacks(t *testing.T) {
 	const effectAmount byte = 61
 	want := map[string]map[uint16]bool{
-		"ShopTest":  {412: false, 413: false, 4140: false},
-		"ShopTest2": {412: false, 413: false},
+		"ShopTest": {412: false, 413: false, 4140: false},
 	}
 
 	npcs, err := LoadNPCs(filepath.Join("..", "..", "data", "npcs"))
@@ -112,6 +111,29 @@ func TestOneShotConsumablesDoNotLeaveTestShopsAsArtificialStacks(t *testing.T) {
 				t.Errorf("%s does not sell the single consumable %d", shop, item)
 			}
 		}
+	}
+}
+
+// ShopTest2 deliberately sells Ori (412) and Lac (413) as 120-unit stacks for
+// refinement testing; consumeOne removes one unit per attempt.
+func TestShopTest2SellsRefinementPowderStacks(t *testing.T) {
+	npcs, err := LoadNPCs(filepath.Join("..", "..", "data", "npcs"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := map[uint16]bool{}
+	for _, npc := range npcs {
+		if npc.Name != "ShopTest2" {
+			continue
+		}
+		for _, item := range npc.Vende {
+			if item.Index == 412 || item.Index == 413 {
+				found[item.Index] = item.Eff[0] == 61 && item.Eff[1] == 120
+			}
+		}
+	}
+	if !found[412] || !found[413] {
+		t.Fatalf("ShopTest2 must sell Ori and Lac with EF_AMOUNT 120: %v", found)
 	}
 }
 
@@ -159,8 +181,8 @@ func TestMountsCostumesAndTimedFunctionsHaveTestShop(t *testing.T) {
 	}
 
 	costumes := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopCostum") })
-	if len(costumes) != 135 {
-		t.Errorf("ShopCostume shops have %d distinct costumes; want 135", len(costumes))
+	if len(costumes) != 143 {
+		t.Errorf("ShopCostume shops have %d distinct costumes; want 143", len(costumes))
 	}
 	for name, stock := range shops {
 		if strings.HasPrefix(name, "ShopCostum") && len(stock) > 27 {
@@ -168,8 +190,8 @@ func TestMountsCostumesAndTimedFunctionsHaveTestShop(t *testing.T) {
 		}
 	}
 	krMounts := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
-	if len(krMounts) != 59 {
-		t.Errorf("ShopKRMt shops have %d distinct mounts; want 59", len(krMounts))
+	if len(krMounts) != 99 {
+		t.Errorf("ShopKRMt shops have %d distinct mounts; want 99", len(krMounts))
 	}
 	for name, stock := range shops {
 		if strings.HasPrefix(name, "ShopKRMt") && len(stock) > 27 {
@@ -208,13 +230,17 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 	if err := json.Unmarshal(raw, &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.BaseItem != 342 || len(manifest.Items) != 62 {
+	if manifest.BaseItem != 342 || len(manifest.Items) != 101 {
 		t.Fatalf("unexpected KR manifest: base=%d items=%d", manifest.BaseItem, len(manifest.Items))
 	}
 	shire := catalog.Items[manifest.BaseItem]
+	const krMountIconMesh = 2821
+	if timed := catalog.Items[3980]; timed.Mesh != krMountIconMesh {
+		t.Fatalf("timed horse icon mesh = %d; want %d", timed.Mesh, krMountIconMesh)
+	}
 	shops, _ := loadTestShopFixture(t)
 	stock := itemsInShops(shops, func(name string) bool { return strings.HasPrefix(name, "ShopKRMt") })
-	unavailable := map[uint16]struct{}{4211: {}, 4235: {}, 6003: {}}
+	unavailable := map[uint16]struct{}{4211: {}, 4235: {}}
 	available := 0
 	for _, item := range manifest.Items {
 		if item.Available != nil && !*item.Available {
@@ -235,7 +261,9 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 			t.Errorf("KR mount %d missing from the catalog", item.Item)
 			continue
 		}
-		if def.Name != item.Name || def.Mesh != shire.Mesh || def.Pos != shire.Pos ||
+		// The Shire face row's bush mesh (7) and model class (43) are not item
+		// data: KR mounts use the timed-horse icon and allow every class.
+		if def.Name != item.Name || def.Mesh != krMountIconMesh || def.Pos != shire.Pos ||
 			def.Price != shire.Price || def.Grade != shire.Grade {
 			t.Errorf("KR mount %d differs from the Shire base: %+v", item.Item, def)
 		}
@@ -243,7 +271,7 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 		for _, effect := range def.StaticEffects {
 			effects[effect.Name] = effect.Value
 		}
-		if effects["EF_CLASS"] != 43 || effects["EF_RANGE"] != 2 ||
+		if effects["EF_CLASS"] != 255 || effects["EF_RANGE"] != 2 ||
 			effects["EF_NOTRADE"] != 1 || effects["EF_WDAY"] != 30 ||
 			effects["EF_RUNSPEED"] != 6 || effects["EF_DAMAGE"] != 520 ||
 			effects["EF_MAGIC"] != 65 {
@@ -253,8 +281,8 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 			t.Errorf("KR mount %d missing from the shops", item.Item)
 		}
 	}
-	if available != 59 {
-		t.Fatalf("the manifest has %d complete KR mounts; want 59", available)
+	if available != 99 {
+		t.Fatalf("the manifest has %d complete KR mounts; want 99", available)
 	}
 }
 
@@ -314,8 +342,8 @@ func TestCompleteKRCostumesKeep748Contract(t *testing.T) {
 			t.Errorf("effects of costume %d differ: %+v", item.Item, effects)
 		}
 	}
-	if available != 135 {
-		t.Fatalf("the manifest has %d complete costumes; want 135", available)
+	if available != 143 {
+		t.Fatalf("the manifest has %d complete costumes; want 143", available)
 	}
 }
 
@@ -401,8 +429,8 @@ func TestNewTestShopsAreInTheArmiaBlock(t *testing.T) {
 	want := []string{"ShopVolTest1", "ShopVolTest2", "ShopVolTest3", "ShopVolTest4",
 		"ShopVolTest5", "ShopVolTest6", "ShopVolTest7", "ShopMtEgg1", "ShopMtEgg2",
 		"ShopMtBaby1", "ShopMtBaby2", "ShopMtAdult1", "ShopMtAdult2", "ShopMtTime",
-		"ShopCostume", "ShopCostum02", "ShopCostum03", "ShopCostum04", "ShopCostum05",
-		"ShopKRMt01", "ShopKRMt02", "ShopKRMt03",
+		"ShopCostume", "ShopCostum02", "ShopCostum03", "ShopCostum04", "ShopCostum05", "ShopCostum06",
+		"ShopKRMt01", "ShopKRMt02", "ShopKRMt03", "ShopKRMt04",
 		"ShopFiral", "ShopSetD", "ShopSetE", "ShopWeaponsD", "ShopWeaponsE",
 		"ShopWpnD2", "ShopWpnE2", "ShopShldDE"}
 	seen := make(map[string]bool, len(want))

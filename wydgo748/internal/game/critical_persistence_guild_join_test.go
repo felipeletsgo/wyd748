@@ -140,7 +140,7 @@ func TestCriticalGuildJoinDetachedCommit(t *testing.T) {
 						t.Fatal("acknowledged join did not apply exactly the private payment/membership delta")
 					}
 					assertCriticalPickupPacket(t, f.target, wire.CreateMobWithGuildRank(f.target.ID, f.target.Char.Name, f.target.X, f.target.Y,
-						bodyMesh(f.target.Char), bodyAncient(f.target.Char), wireScoreState(f.target.Char), f.target.Char.Affects[:], 2, 1, model.GuildRankMember, f.target.Char.CP))
+						bodyMesh(f.target.Char), bodyAncient(f.target.Char), wireScoreState(f.target.Char), f.target.Char.Affects[:], 2, 1, model.GuildRankMember, f.target.Char.CP, f.target.Char.Citizenship))
 					assertCriticalPickupPacket(t, f.target, playerScorePacket(f.target))
 					assertCriticalPickupPacket(t, f.target, wire.UpdateEtc(f.target.ID, *f.target.Char))
 					assertCriticalPickupPacket(t, f.target, wire.MessagePanel("You joined the guild Treasury."))

@@ -14,6 +14,8 @@
 #include "../../ui/ObservedAffectProjection.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "../../ui/NativeScoreHud.h"
+#include "../../ui/GuildNameDirectory.h"
+#include "../../ui/CapePresentation748.h"
 #include "../../application/NativeSpecialSkills.h"
 #include "TMLog.h"
 #include "ClientDiagnostics.h"
@@ -328,13 +330,18 @@ void TMFieldScene::UpdateCompatScoreUI()
 		const int slot = g_pObjectManager->m_cCharacterSlot;
 		if (pMobData->Guild != 0 && slot >= 0 && slot < 4)
 		{
+			static guild_name_748::FileDirectory guildNames;
+			guildNames.Refresh("Guilds.txt");
+			const auto name = guildNames.Find(g_pObjectManager->m_nServerGroupIndex, pMobData->Guild);
+			strcpy_s(g_pObjectManager->m_strGuildName[slot], name.c_str());
 			char guildText[16]{};
-			sprintf_s(guildText, "%.11s", g_pObjectManager->m_strGuildName[slot]);
+			sprintf_s(guildText, "%.11s", name.c_str());
 			pGuild->SetText(guildText, 0);
 			pGuild->SetTextColor(0xFFAAAAAA);
 		}
 		else
 		{
+			if (slot >= 0 && slot < 4) g_pObjectManager->m_strGuildName[slot][0] = '\0';
 			pGuild->SetText(const_cast<char*>(""), 0);
 			pGuild->SetTextColor(0xFFFFFFFF);
 		}
@@ -425,25 +432,16 @@ void TMFieldScene::UpdateCompatScoreUI()
 	// Native control 1377 is the kingdom mantle emblem. Keep it hidden for a
 	// character without a valid mantle, but preserve the native helmet override
 	// and citizen-mantle normalization for characters that do belong to a realm.
+	const int kingdomEmblem = m_pMyHuman && m_pMyHuman->m_sMantuaIndex > 0
+		? cape_presentation_748::KingdomEmblem(m_pMyHuman->m_wMantuaSkin, m_pMyHuman->m_sHelmIndex)
+		: -1;
 	if (m_pKingDomFlag)
 	{
-		if (!m_pMyHuman || !m_pMyHuman->m_pMantua || m_pMyHuman->m_pMantua->m_Look.Skin0 == 19)
-			m_pKingDomFlag->SetVisible(0);
-		else
-		{
-			m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pMyHuman->m_pMantua->m_Look.Skin0;
-			if ((m_pMyHuman->m_sHelmIndex == 3503 || m_pMyHuman->m_sHelmIndex == 3504 ||
-				m_pMyHuman->m_sHelmIndex == 3505 || m_pMyHuman->m_sHelmIndex == 3506) &&
-				m_pMyHuman->m_pMantua->m_Look.Skin0 == 2)
-			{
-				m_pKingDomFlag->m_GCPanel.nTextureIndex = 33;
-			}
-
-			m_pKingDomFlag->m_GCPanel.nTextureIndex =
-				m_pMyHuman->UnSetCitizenMantle(m_pKingDomFlag->m_GCPanel.nTextureIndex);
-			m_pKingDomFlag->SetVisible(1);
-		}
+		if (kingdomEmblem >= 0) m_pKingDomFlag->m_GCPanel.nTextureIndex = kingdomEmblem;
+		m_pKingDomFlag->SetVisible(kingdomEmblem >= 0);
 	}
+	if (auto pNoKingdom = m_pControlContainer->FindControl(TMT_NOKINGDOM))
+		pNoKingdom->SetVisible(kingdomEmblem < 0);
 
 	// WYD.exe 7.48 FUN_004431e4 includes the native class bonuses and freeze
 	// penalty in this presentation value. The server still authorizes cadence;
@@ -1015,11 +1013,14 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pPositionText->SetVisible(0);
 		if (m_pMiniMapPanel)
 		{
-			// The native 7.48 control stores -45 degrees, but the current source
-			// renderer applies that angle directly to the stretched map texture.
-			// Keep the compat minimap axis-aligned; the direction arrow rotates
-			// independently in FrameMove.
+			// The native 7.48 control stores -45 degrees so the map matches the
+			// 45-degree default camera; the direction arrow (FrameMove) and the
+			// TMHuman markers already use that rotated frame. Rotating the quad
+			// would turn the square crop into a diamond outside the frame, so the
+			// panel stays axis-aligned and the renderer rotates its texture.
 			m_pMiniMapPanel->GetGeomControl()->fAngle = 0.0f;
+			RenderDevice::m_pTextureRotationControl = m_pMiniMapPanel->GetGeomControl();
+			RenderDevice::m_fTextureRotation = -0.78539819f;
 			m_pMiniMapPanel->m_bSelectEnable = 0;
 			m_pMiniMapPanel->m_GCPanel.dwColor = 0x80FFFFFF;
 			m_pMiniMapPanel->SetVisible(0);
@@ -1052,6 +1053,18 @@ int TMFieldScene::InitializeCompatFieldScene()
 					m_pInMiniMapPosText[markerIndex]->SetVisible(0);
 					m_pMiniMapPanel->AddChild(m_pInMiniMapPosText[markerIndex]);
 				}
+			}
+		}
+		if (m_pMiniMapPanel && !m_pNetStatsText)
+		{
+			// FPS and ping row under the minimap coordinates (WYD-Go HUD addition).
+			m_pNetStatsText = new SText(-2, "", 0xFFFFFFFFu, 0.0f, 0.0f, 137.0f, 16.0f,
+				0, 0x77777777u, 1u, SText::TEXT_ALIGN_CENTER);
+			if (m_pNetStatsText)
+			{
+				m_pNetStatsText->m_bSelectEnable = 0;
+				m_pNetStatsText->SetVisible(0);
+				m_pMiniMapPanel->AddChild(m_pNetStatsText);
 			}
 		}
 		// FUN_00435b13 (UI mode 2) anchors the bottom HUD in this order; the
@@ -1496,6 +1509,7 @@ int TMFieldScene::InitializeCompatFieldScene()
 	if (m_pRain && m_pEffectContainer) m_pEffectContainer->AddChild(m_pRain);
 	if (m_pSnow && m_pEffectContainer) m_pEffectContainer->AddChild(m_pSnow);
 	if (m_pSnow2 && m_pEffectContainer) m_pEffectContainer->AddChild(m_pSnow2);
+	UpdateWeatherEffects();
 
 	LOG_WRITELOG("Compat Field Scene: player %s at (%d,%d)\\r\\n", m_pMyHuman->m_szName,
 		pMobData->HomeTownX, pMobData->HomeTownY);

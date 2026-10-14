@@ -146,3 +146,18 @@ func TestStaffFileAcceptsPremiumCapabilities(t *testing.T) {
 		t.Fatalf("premium capabilities rejected: %v", err)
 	}
 }
+
+func TestStaffPermitsGotoCapability(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "staff.json")
+	raw := `{"owner":{"capabilities":["server.status","` + control.GotoCapability + `"]},"reader":{"capabilities":["server.status"]}}`
+	if err := os.WriteFile(path, []byte(raw), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if !StaffPermits(path, "owner", control.GotoCapability) {
+		t.Fatal("goto capability was not granted")
+	}
+	if StaffPermits(path, "reader", control.GotoCapability) || StaffPermits(path, "nobody", control.GotoCapability) ||
+		StaffPermits(filepath.Join(t.TempDir(), "missing.json"), "owner", control.GotoCapability) {
+		t.Fatal("goto granted without the capability or the staff file")
+	}
+}

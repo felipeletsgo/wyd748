@@ -24,7 +24,7 @@ body { background: radial-gradient(ellipse at 50% 0, #282c26, var(--bg) 65%) fix
   border-radius: 4px; background: var(--raised); color: var(--text);
   font-size: 13px; font-weight: 600; text-shadow: none;
 }
-.button:hover:not(:disabled), .button[aria-current="page"] { background: var(--raised); filter: brightness(1.2); color: #fff3cc; }
+.button:hover:not(:disabled), .button[aria-current="page"], .button[aria-current="location"] { background: var(--raised); filter: brightness(1.2); color: #fff3cc; }
 .button:active:not(:disabled) { filter: brightness(.9); }
 input, select, textarea, .form input {
   width: 100%; min-width: 0; min-height: 42px; padding: 9px 12px;

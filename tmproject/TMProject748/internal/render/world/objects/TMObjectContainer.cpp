@@ -24,10 +24,22 @@
 #include "TMBike.h"
 #include "TMLog.h"
 #include "ObjectFileRecordLayout.h"
+#include "KefraPortalVisual.h"
 
 #include <cstddef>
 #include <memory>
 #include <type_traits>
+
+namespace
+{
+	bool IsKefraPortalOpen()
+	{
+		return g_pCurrentScene && g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD &&
+			static_cast<TMFieldScene*>(g_pCurrentScene)->m_kefraPortal.IsOpen();
+	}
+	using KefraPortalObject = kefra_portal::VisualGate<TMObject, IsKefraPortalOpen>;
+	using KefraPortalEffect = kefra_portal::VisualGate<TMEffectBillBoard, IsKefraPortalOpen>;
+}
 
 TMObjectContainer::TMObjectContainer(TMGround* pGround)
 	: TreeNode(0)
@@ -630,7 +642,11 @@ int TMObjectContainer::Load(const char* szFileName)
 		}
 		else if (dwObjType == 2035)
 		{
-			TMEffectBillBoard* pEffect1 = new TMEffectBillBoard(423, 0, 1.7f, 3.5999999f, 1.7f, 0.0f, 1, 80);
+			const bool hallPortal = kefra_portal::IsHallPortal(dwObjType,
+				m_fOffsetX + vecPosition.x, m_fOffsetY + vecPosition.y);
+			TMEffectBillBoard* pEffect1 = hallPortal
+				? new KefraPortalEffect(423, 0, 1.7f, 3.5999999f, 1.7f, 0.0f, 1, 80)
+				: new TMEffectBillBoard(423, 0, 1.7f, 3.5999999f, 1.7f, 0.0f, 1, 80);
 
 			if (pEffect1)
 			{
@@ -643,7 +659,9 @@ int TMObjectContainer::Load(const char* szFileName)
 				m_pGroundEffectContainer->AddChildWithKey(pEffect1, Key);
 			}
 
-			TMEffectBillBoard* pEffect2 = new TMEffectBillBoard(424, 0, 1.0f, 1.0f, 1.0f, 0.0f, 1, 80);
+			TMEffectBillBoard* pEffect2 = hallPortal
+				? new KefraPortalEffect(424, 0, 1.0f, 1.0f, 1.0f, 0.0f, 1, 80)
+				: new TMEffectBillBoard(424, 0, 1.0f, 1.0f, 1.0f, 0.0f, 1, 80);
 			if (pEffect2)
 			{
 				pEffect2->m_nFade = 0;
@@ -656,13 +674,14 @@ int TMObjectContainer::Load(const char* szFileName)
 			}
 
 			TMFieldScene* pScene = (TMFieldScene*)g_pCurrentScene;
-			if ((float)(m_fOffsetX + vecPosition.x) == 2366.5f && (float)(m_fOffsetY + vecPosition.y) == 3926.5f && g_pCurrentScene != nullptr)
+			if (hallPortal && g_pCurrentScene && g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
 			{
 				pScene->m_pKhepraPortalEff1 = pEffect1;
 				pScene->m_pKhepraPortalEff2 = pEffect2;
 			}
 
-			m_pObjectList[m_nObjectIndex] = new TMObject();
+			m_pObjectList[m_nObjectIndex] = hallPortal
+				? static_cast<TMObject*>(new KefraPortalObject()) : new TMObject();
 		}
 		else if (dwObjType >= 511 && dwObjType < 519)
 		{
@@ -945,7 +964,8 @@ int TMObjectContainer::Load(const char* szFileName)
 			fHeight,
 			m_fOffsetY + vecPosition.y);
 
-		if (dwObjType == 2035 && (float)(m_fOffsetX + vecPosition.x) == 2366.5f && (float)(m_fOffsetY + vecPosition.y) == 3926.5f && g_pCurrentScene)
+		if (kefra_portal::IsHallPortal(dwObjType, m_fOffsetX + vecPosition.x, m_fOffsetY + vecPosition.y) &&
+			g_pCurrentScene && g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
 		{
 			TMFieldScene* pScene = (TMFieldScene*)g_pCurrentScene;
 			pScene->m_pKhepraPortal = m_pObjectList[m_nObjectIndex];

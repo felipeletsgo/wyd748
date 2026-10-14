@@ -69,6 +69,15 @@ if (-not (Test-Path -LiteralPath $socketTestExecutable -PathType Leaf)) { throw 
 & $socketTestExecutable
 if ($LASTEXITCODE -ne 0) { throw 'Socket receive tests failed; candidate not updated.' }
 
+# Crash only isolated console subprocesses; never launch the game for this gate.
+$crashTestProject = Join-Path $PSScriptRoot 'TMProject748\tests\CrashCaptureTests.vcxproj'
+& $MSBuildPath $crashTestProject "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=Win32' /m /nologo /v:minimal
+if ($LASTEXITCODE -ne 0) { throw 'Crash capture tests failed to build; candidate not updated.' }
+$crashTestExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\CrashCaptureTests.exe"
+if (-not (Test-Path -LiteralPath $crashTestExecutable -PathType Leaf)) { throw 'Crash capture test executable is missing.' }
+& $crashTestExecutable
+if ($LASTEXITCODE -ne 0) { throw 'Crash capture tests failed; candidate not updated.' }
+
 # Validate the source launcher's manifest, path and cache rules without replacing
 # the separately distributed launcher, which uses a different production feed.
 $launcherTestProject = Join-Path $PSScriptRoot 'WYDLauncher\tests\LauncherTests.vcxproj'

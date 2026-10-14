@@ -12,14 +12,14 @@ import (
 )
 
 const (
-	idealStoneItem       = uint16(5338)
+	idealStoneItem       = uint16(model.CelestialIdealStoneItem)
 	mysteriousStoneItem  = uint16(4148)
 	furyStoneItem        = uint16(3020)
 	arcanaCytheraItem    = uint16(3507)
 	celestialSoulBit     = uint32(1 << 30)
 	celestialFaceType    = byte(3)
 	subCelestialFaceType = byte(4)
-	subCelestialFameCost = uint32(100)
+	subCelestialFameCost = model.SubCelestialFameCost
 )
 
 var cityBounds = [...]struct{ minX, minY, maxX, maxY uint16 }{
@@ -51,7 +51,7 @@ func celestialArchTier(level uint32) byte {
 		return 3
 	case level >= 370:
 		return 2
-	case level >= 355:
+	case level >= model.CelestialMinimumArchLevel:
 		return 1
 	default:
 		return 0
@@ -272,12 +272,12 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 		return
 	}
 	ch := p.Char
-	if ch.Score == nil || ch.Score.Level < 355 {
+	if ch.Score == nil || ch.Score.Level < model.CelestialMinimumArchLevel {
 		s.Send(wire.MessagePanel("The Arch must be level 356 or higher."))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	if ch.ArchMortalLevel < maxMortalLevel {
+	if ch.ArchMortalLevel < model.CelestialMinimumMortalLevel {
 		s.Send(wire.MessagePanel("The respective Mortal must be level 400."))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -340,7 +340,7 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	}
 	s.Send(wire.MessagePanel("Your character is now Celestial. Re-enter it from character selection."))
 	announcement := fmt.Sprintf("The character %s has become Celestial!", ch.Name)
-	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
+	w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
 	log.Printf("[#%d] Celestial created archTier=%d cythera=%d", s.ID, tier, cytheraIndex)
 	w.returnToCharacterSelectionAfterCommittedChange(p, "Celestial creation")
 }
@@ -359,7 +359,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	if ch.Score == nil || ch.Score.Level < 120 {
+	if ch.Score == nil || ch.Score.Level < model.SubCelestialMinimumLevel {
 		s.Send(wire.MessagePanel("The Celestial must be level 121 or higher."))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return

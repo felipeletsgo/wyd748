@@ -78,7 +78,7 @@ func TestChatHandlersRouteLocalWhisperAndChannels(t *testing.T) {
 	}
 }
 
-func TestChatHandlersRouteCitizenshipAndKingdomChannels(t *testing.T) {
+func TestChatHandlersRouteCitizenshipAndChannelChat(t *testing.T) {
 	sender, _ := networkedTestPlayer(1, "Sender", 2100, 2100)
 	citizen, _ := networkedTestPlayer(2, "Citizen", 2101, 2100)
 	outsider, _ := networkedTestPlayer(3, "Outsider", 2102, 2100)
@@ -95,16 +95,26 @@ func TestChatHandlersRouteCitizenshipAndKingdomChannels(t *testing.T) {
 		t.Fatal("citizenship chat ignored the character's channel")
 	}
 
-	// Kingdom is derived from the cape in the same way as the live server.
+	// '@' is the channel chat: every character in this world receives it,
+	// regardless of citizenship or kingdom cape.
 	sender.Char.Equip[model.CapeSlot].Index = 545
-	citizen.Char.Equip[model.CapeSlot].Index = 545
 	outsider.Char.Equip[model.CapeSlot].Index = 548
 	beforeCitizen = citizen.Session.QueuedPacketsForTest()
 	beforeOutsider = outsider.Session.QueuedPacketsForTest()
-	w.onMessageWhisper(sender.Session, whisperPacket("", "@kingdom"))
+	w.onMessageWhisper(sender.Session, whisperPacket("", "@channel"))
 	if citizen.Session.QueuedPacketsForTest() != beforeCitizen+1 ||
-		outsider.Session.QueuedPacketsForTest() != beforeOutsider {
-		t.Fatal("kingdom chat ignored the character's kingdom")
+		outsider.Session.QueuedPacketsForTest() != beforeOutsider+1 {
+		t.Fatal("channel chat did not reach every character on the channel")
+	}
+
+	// A sender without citizenship is told why '@@' was not delivered.
+	sender.Char.Citizenship = 0
+	beforeSender := sender.Session.QueuedPacketsForTest()
+	beforeCitizen = citizen.Session.QueuedPacketsForTest()
+	w.onMessageWhisper(sender.Session, whisperPacket("", "@@nobody"))
+	if sender.Session.QueuedPacketsForTest() != beforeSender+1 ||
+		citizen.Session.QueuedPacketsForTest() != beforeCitizen {
+		t.Fatal("citizenship chat without citizenship was not reported to the sender")
 	}
 }
 

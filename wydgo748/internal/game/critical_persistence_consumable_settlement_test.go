@@ -3,6 +3,7 @@ package game
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"maps"
 	"reflect"
 	"testing"
@@ -14,7 +15,7 @@ import (
 var criticalConsumableSettlementActions = []string{
 	"firework", "chaos_remission", "magical_pill", "learn_special_skill", "restore", "gold", "save_position", "disabled",
 	"buff", "face_transform", "face_restore", "grant_counter", "grant_counter_once", "timed_access", "loot_box", "mount_revive",
-	"refine", "refine-failure", "refine_set", "tint", "untint", "repliction", "mount-longevity", "mount-longevity_restore",
+	"refine", "refine-failure", "refine-earring", "refine-earring-failure", "refine_set", "tint", "untint", "repliction", "mount-longevity", "mount-longevity_restore",
 	"mount-level_set", "mount-hatch", "incubation", "incubation-failure",
 	"teleport", "warp_saved", "hunting_teleport", "territory_pass",
 }
@@ -97,6 +98,16 @@ func configureCriticalConsumableSettlement(w *World, p *Player, operation string
 		}
 		binary.LittleEndian.PutUint32(packet[20:24], placeEquip)
 		binary.LittleEndian.PutUint32(packet[24:28], mountSlot)
+	case "refine-earring", "refine-earring-failure":
+		rule.Action, rule.RefineMax, rule.RefineTenChance = "refine", 9, 5
+		w.volatiles.ItemCodes[900] = 5
+		w.items[591] = model.ItemDef{Index: 591, Pos: 256}
+		p.Char.Equip[8] = model.Item{Index: 591, UID: "earring-target", Eff: [6]byte{43, 9}}
+		binary.LittleEndian.PutUint32(packet[20:24], placeEquip)
+		binary.LittleEndian.PutUint32(packet[24:28], 8)
+		if operation == "refine-earring-failure" {
+			w.rng = fixedRNG{value: 99}
+		}
 	case "refine", "refine-failure", "refine_set", "tint", "untint", "repliction":
 		p.Char.Equip[4] = model.Item{Index: 1000, UID: "equipment-target", Eff: [6]byte{43, 1}}
 		w.items[1000] = model.ItemDef{Index: 1000, Pos: 4,
@@ -150,6 +161,15 @@ func TestCriticalConsumableSettlementMatrix(t *testing.T) {
 				w.onUseItem(p.Session, packet)
 				proposal := awaitCriticalWrite(t, base.entered)
 				prepared := &proposal.accounts[0].Chars[p.CharSlot]
+				if operation == "refine-earring" || operation == "refine-earring-failure" {
+					want := 10
+					if operation == "refine-earring-failure" {
+						want = 9
+					}
+					if itemSanc(prepared.Equip[8]) != want || prepared.Equip[8].UID != "earring-target" {
+						t.Fatal("earring proposal lost its refinement result or identity")
+					}
+				}
 				if len(proposal.accounts) != 2 || !reflect.DeepEqual(proposal.accounts[1], accountPersistenceSnapshot(peerBefore)) ||
 					prepared.Inv[0].Index != 0 && operation != "loot_box" && operation != "grant_counter_once" {
 					t.Fatal("consumable proposal lost consumption or its reciprocal account")
@@ -223,5 +243,38 @@ func TestCriticalConsumableSettlementMatrix(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// Dye only paints the five armor set pieces; any other target is rejected
+// before a critical write is proposed, so the dye and the target stay intact.
+func TestCriticalTintRejectsTargetsOutsideArmorSet(t *testing.T) {
+	// Pos -1 removes the target definition (unknown item).
+	for _, pos := range []int{4, 64, 128, 192, 1 << 15, -1} {
+		t.Run(fmt.Sprint(pos), func(t *testing.T) {
+			w, p, _, _, _, _, _ := criticalTreasuryFixture(t, 100)
+			w.warConfig.Enabled = false
+			rule, packet := configureCriticalConsumableSettlement(w, p, "tint")
+			if pos < 0 {
+				delete(w.items, 1000)
+			} else {
+				def := w.items[1000]
+				def.Pos = pos
+				w.items[1000] = def
+			}
+			req, ok := parseUseItemRequest(packet)
+			if !ok {
+				t.Fatal("tint packet did not parse")
+			}
+			err := w.queueEquipmentConsumable(p, 0, req, rule)
+			var rejection *nativeConsumableRejection
+			rejected := errors.As(err, &rejection) && rejection.message == tintSetOnlyMessage
+			if pos == 4 && (err != nil || rejected) {
+				t.Fatalf("armor piece tint was rejected: %v", err)
+			}
+			if pos != 4 && !rejected {
+				t.Fatalf("non-set tint was admitted: %v", err)
+			}
+		})
 	}
 }

@@ -143,5 +143,18 @@ foreach ($file in $documents) {
         }
     }
 }
+# Generated output may live only in the sanctioned ignored locations below
+# (AGENTS.md "Cleanup"). Anything else ignored by Git is leftover build,
+# test or agent output and must be removed or moved under build/.
+$allowedIgnored = '^(?:references/|build/|tmproject/build/|\.codex/|\.venv/|\.claude/settings\.local\.json$' +
+    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|update\.dat|guilds\.txt|SkillData\.csv|screenshot/|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
+    '|wydgo748/data/(?:SkillData\.bin$|accounts/|charstate/)' +
+    '|wydgo748/web/portal/(?:node_modules/|dist/|\.astro/|src/data/catalog\.generated\.json$|\.env))'
+$ignored = @(& git -C $repoRoot ls-files --others --ignored --exclude-standard --directory)
+if ($LASTEXITCODE -ne 0) { $issues.Add('Cannot list ignored files with git.') }
+foreach ($path in $ignored) {
+    if ($path -notmatch $allowedIgnored) { $issues.Add("Generated artifact outside build/: $path") }
+}
+
 if ($issues.Count) { throw ($issues -join "`n") }
 Write-Output "Layout and local links OK; $($documents.Count) documents indexed."

@@ -41,10 +41,10 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 		}
 		switch strings.ToLower(strings.TrimSpace(ch.Evolution)) {
 		case archEvolution:
-			if ch.Score.Level < 355 {
+			if ch.Score.Level < model.CelestialMinimumArchLevel {
 				return reject("The Arch must be level 356 or higher.")
 			}
-			if ch.ArchMortalLevel < maxMortalLevel {
+			if ch.ArchMortalLevel < model.CelestialMinimumMortalLevel {
 				return reject("The respective Mortal must be level 400.")
 			}
 			tier := celestialArchTier(ch.Score.Level)
@@ -88,7 +88,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			if ch.AlternateCelestial != nil {
 				return reject("The SubCelestial has already been created.")
 			}
-			if ch.Score.Level < 120 {
+			if ch.Score.Level < model.SubCelestialMinimumLevel {
 				return reject("The Celestial must be level 121 or higher.")
 			}
 			if counterBalance(detached, fameCounter) < subCelestialFameCost {
@@ -207,7 +207,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 				p.Session.Send(wire.MessagePanel(message))
 			}
 			announcement := fmt.Sprintf("The character %s has become Celestial!", p.Char.Name)
-			w.broadcast(func() []byte { return wire.MessageWhisper(0, "[SERVER]", announcement, 7) })
+			w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
 			w.returnToCharacterSelectionAfterCommittedChange(p, "Celestial creation")
 		}
 	}

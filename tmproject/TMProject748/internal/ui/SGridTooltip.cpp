@@ -15,6 +15,7 @@
 #include "SellConfirmationText.h"
 #include "NativeSaleQuote.h"
 #include "SGridSupport.h"
+#include "SkillRequirementPresentation.h"
 
 
 void SGridControl::UpdateDescPanelHeight()
@@ -654,10 +655,11 @@ int SGridControl::MouseOverWithoutHandCursor(const ECursorStyle& eCursorStyle, i
 			else if (nSrcVolatile == 186 && !nDstVolatile && !nCheckType && pItem)
 			{
 				m_dwEnableColor = 0x33FF0000;
+				// Dye only paints the armor set; the server rejects shields,
+				// weapons, capes and accessories (wydgo748 isArmorSetPiece).
 				if (m_eItemType == TMEITEMTYPE::ITEMTYPE_HELM || m_eItemType == TMEITEMTYPE::ITEMTYPE_COAT ||
 					m_eItemType == TMEITEMTYPE::ITEMTYPE_PANTS || m_eItemType == TMEITEMTYPE::ITEMTYPE_GLOVES ||
-					m_eItemType == TMEITEMTYPE::ITEMTYPE_BOOTS || m_eItemType == TMEITEMTYPE::ITEMTYPE_RIGHT &&
-					BASE_GetItemAbility(pItem->m_pItem, 21) <= 0)
+					m_eItemType == TMEITEMTYPE::ITEMTYPE_BOOTS)
 				{
 					m_dwEnableColor = 0x3300FF00;
 				}
@@ -1067,9 +1069,10 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 	else
 	{
 		int manaSpent = 0;
-		if (SkillNumber < 96)
+		const int masteryIndex = skill_requirement_748::ManaMastery(SkillNumber, mob->Class);
+		if (masteryIndex >= 0)
 		{
-			int Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[(SkillNumber - 24 * mob->Class) / 8 + 1];
+			int Special = mob->CurrentScore.Mastery[masteryIndex];
 			manaSpent = BASE_GetManaSpent(SkillNumber, g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special);
 		}
 
@@ -1150,23 +1153,16 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 	for (int l = 3; l < 6; ++l)
 	{
 		int reqScore = BASE_GetItemAbility(pItem->m_pItem, dwEFParam[l]);
-		if (reqScore > 0)
+		const int masteryIndex = l - 2;
+		const int caption = skill_requirement_748::RequirementCaption(pItem->m_pItem->sIndex, masteryIndex);
+		if (reqScore > 0 && caption >= 0 && nLineId < 11)
 		{
-			if (reqScore <= *((unsigned short*)&g_pObjectManager->m_stMobData.CurrentScore.Dex + l))
+			if (skill_requirement_748::MeetsMastery(mob->CurrentScore, masteryIndex, reqScore))
 				dwColor = 0xFFFFFFFF;
 			else
 				dwColor = 0xFFFF0000;
 
-			int itemId = pItem->m_pItem->sIndex;
-			if (itemId >= 5400)
-				itemId = (itemId - 5400) / 4;
-			else if (itemId >= 5000)
-			{
-				itemId = (itemId - 5000) / 8;
-				itemId /= 2;
-			}
-
-			sprintf(szDesc, g_pMessageStringTable[53], requirements[itemId], reqScore);
+			sprintf(szDesc, g_pMessageStringTable[53], requirements[caption], reqScore);
 
 			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
 			pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
@@ -1225,7 +1221,9 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 		else if (l == 2 && m_eGridType == TMEGRIDTYPE::GRID_SKILLM && req)
 		{
 			dwColor = 0xFFFFFFFF;
-			int itemId = (pItem->m_pItem->sIndex - 5000) / 8;
+			const int itemId = skill_requirement_748::BookLineage(pItem->m_pItem->sIndex);
+			if (itemId < 0)
+				continue;
 			sprintf(szDesc, g_pMessageStringTable[55], requirements[itemId], req);
 
 			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
@@ -1415,6 +1413,12 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 
 	for (int l = 0; l < 49; ++l)
 	{
+		// Mounted speed is fixed by the mount, not a bonus. Imported KR mounts
+		// keep EF_RUNSPEED in their row as the server's final mounted speed, which
+		// this generic path would mislabel as a clamped "speed increase".
+		if (dwEFParam[l] == EF_RUNSPEED && (g_pItemList[pItem->m_pItem->sIndex].nPos & 0x4000))
+			continue;
+
 		int add = BASE_GetStaticItemAbility(pItem->m_pItem, dwEFParam[l]);
 		if (dwEFParam[l] == 80 && add <= 0 && pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex <= 2389)
 		{

@@ -16,6 +16,7 @@ import (
 	"wydgo/internal/account"
 	"wydgo/internal/control"
 	"wydgo/internal/data"
+	"wydgo/internal/playerportal"
 	"wydgo/internal/store"
 	"wydgo/internal/webadmin"
 )
@@ -113,6 +114,13 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	if cfg.WebAdminOrigin != "" {
 		origin, devHTTP = cfg.WebAdminOrigin, false
 	}
+	var verification *playerportal.Turnstile
+	if !devHTTP {
+		verification, err = playerportal.NewTurnstileAction(os.Getenv("WYD_TURNSTILE_SECRET"), origin, "staff_login")
+		if err != nil {
+			return nil, err
+		}
+	}
 	events, _ := source.(control.GlobalDropSource)
 	quiz, _ := source.(control.QuizSource)
 	bosses, _ := source.(control.BossesSource)
@@ -121,6 +129,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	premium, _ := source.(control.PremiumSource)
 	handler, err := webadmin.New(webadmin.Config{
 		Origin: origin, DevHTTP: devHTTP, AdminAccessPIN: pin, TrustedProxies: trustedProxies,
+		RequireLoginProtection: !devHTTP, LoginVerifier: verification, AuthenticationLimiter: db.AuthenticationLimiter(),
 		Staff: staff, Accounts: db, Registration: registration, Control: localAdminControl{source: source, started: time.Now()},
 		Persistent: webadmin.NewAccountPersistentReader(db), Ready: db.Ping,
 		GlobalDrop: events,

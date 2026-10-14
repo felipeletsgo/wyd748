@@ -43,6 +43,48 @@ func (w *World) grantQuestZoneEntry(p *Player, x, y uint16) {
 	}
 }
 
+// clearAreaAt returns the ClearArea rectangle containing the tile, if any.
+func (w *World) clearAreaAt(x, y uint16) *model.QuestZone {
+	for i := range w.clearAreas {
+		if w.clearAreas[i].Contains(x, y) {
+			return &w.clearAreas[i]
+		}
+	}
+	return nil
+}
+
+// areaTimerDeadline is when the public-map area holding the player ends its
+// stay: Hidden Valley access expiry, or the shared reset for a clear area and
+// for a quest zone entered through its NPC. Zero means no countdown.
+func (w *World) areaTimerDeadline(p *Player, now time.Time) time.Time {
+	if inHiddenValley(p.X, p.Y) && hiddenValleyAccessActive(p, now) {
+		return time.Unix(int64(p.SpecialCoins[hiddenValleyAccessCounter]), 0)
+	}
+	if w.clearAreaAt(p.X, p.Y) != nil || (p.QuestZoneEntry != "" && w.questZoneAt(p.X, p.Y) != nil) {
+		return w.nextQuestZoneReset
+	}
+	return time.Time{}
+}
+
+// syncAreaTimer shows, refreshes or clears the area countdown so every timed
+// stay on the public map displays its remaining time, whatever route entered.
+func (w *World) syncAreaTimer(p *Player, now time.Time) {
+	deadline := w.areaTimerDeadline(p, now)
+	if deadline.IsZero() || !deadline.After(now) {
+		w.hideQuestZoneTimer(p)
+		return
+	}
+	if p.QuestZoneTimer && p.AreaTimerDeadline.Equal(deadline) {
+		return
+	}
+	if p.Session == nil || p.Session.IsClosed() {
+		return
+	}
+	seconds := uint32((deadline.Sub(now) + time.Second - 1) / time.Second)
+	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, seconds))
+	p.QuestZoneTimer, p.AreaTimerDeadline = true, deadline
+}
+
 // Quest-zone countdown (EXTENSAO_COORDENADA). Native 7.48 shows no timer in
 // quest areas. The ClearAreaQuest cycle is one global deadline, so the client
 // receives the seconds left until the next reset through the InstanceTime
@@ -57,7 +99,7 @@ func (w *World) showQuestZoneTimer(p *Player) {
 	}
 	seconds := uint32((remaining + time.Second - 1) / time.Second)
 	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, seconds))
-	p.QuestZoneTimer = true
+	p.QuestZoneTimer, p.AreaTimerDeadline = true, w.nextQuestZoneReset
 }
 
 // hideQuestZoneTimer clears a countdown this server started for a quest zone.
@@ -66,7 +108,7 @@ func (w *World) hideQuestZoneTimer(p *Player) {
 	if p == nil || !p.QuestZoneTimer {
 		return
 	}
-	p.QuestZoneTimer = false
+	p.QuestZoneTimer, p.AreaTimerDeadline = false, time.Time{}
 	// An instance may already have replaced the shared HUD. Retire the quest
 	// ownership without sending zero over the instance's newer countdown.
 	if w.gameplaySpaceForPlayer(p) != "" {
@@ -110,9 +152,6 @@ func (w *World) questZoneViolation(p *Player, zone *model.QuestZone) string {
 // tickQuestZoneGuard returns to town every player inside a quest zone without
 // a valid stay.
 func (w *World) tickQuestZoneGuard(now time.Time) {
-	if len(w.questZones) == 0 {
-		return
-	}
 	for _, p := range w.players {
 		// A player whose teleport or save is still committing is re-checked
 		// on a later sweep instead of queueing a second recall.
@@ -124,9 +163,7 @@ func (w *World) tickQuestZoneGuard(now time.Time) {
 			w.hideQuestZoneTimer(p)
 			continue
 		}
-		if p.QuestZoneTimer && w.questZoneAt(p.X, p.Y) == nil {
-			w.hideQuestZoneTimer(p) // left the zone by any route
-		}
+		w.syncAreaTimer(p, now)
 		for i := range w.questZones {
 			zone := &w.questZones[i]
 			if !questZoneInterior(*zone, p.X, p.Y) {

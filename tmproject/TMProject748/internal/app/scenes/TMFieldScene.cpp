@@ -91,6 +91,9 @@ unsigned int TMFieldScene::m_dwCargoID = 0;
 TMFieldScene::TMFieldScene()
 	: TMScene()
 {
+	m_pRain = nullptr;
+	m_pSnow = nullptr;
+	m_pSnow2 = nullptr;
 	g_nTempArray[1] = (int)g_pObjectManager->m_stMobData.MobName;
 	g_nTempArray2[1] = (int)g_pObjectManager->m_stMobData.MobName;
 
@@ -290,6 +293,9 @@ TMFieldScene::TMFieldScene()
 	m_pChatListPanel = nullptr;
 	m_pChatType = nullptr;
 	m_pPositionText = nullptr;
+	m_pNetStatsText = nullptr;
+	m_bShowNetStats = false;
+	m_dwNetStatsTime = 0;
 	// WYD-Go 7.48 compatibility: the compact field UI does not instantiate the
 	// newer minimap controls, so keep every optional minimap pointer deterministic.
 	m_pMiniMapDir = nullptr;
@@ -588,6 +594,8 @@ TMFieldScene::TMFieldScene()
 
 TMFieldScene::~TMFieldScene()
 {
+	if (m_pMiniMapPanel && RenderDevice::m_pTextureRotationControl == m_pMiniMapPanel->GetGeomControl())
+		RenderDevice::m_pTextureRotationControl = nullptr;
 	g_nTempArray[1] = 0;
 	g_nTempArray[2] = 0;
 
@@ -640,6 +648,7 @@ TMFieldScene::~TMFieldScene()
 
 int TMFieldScene::InitializeScene()
 {
+	m_kefraPortal.Reset();
 	LOG_WRITELOG(">> Init Field Scene::Start\r\n");
 	if (!LoadRC("UI\\FieldScene2.txt"))
 	{
@@ -1747,6 +1756,25 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		SetVisibleParty();
 		return 0;
 	}
+	if (idwControlID == 1864)
+	{
+		// Native FUN_004662c5: Leave sends 0x37E with Parm=0. Keep the
+		// displayed membership until the authoritative removal arrives.
+		if (!m_pMyHuman)
+			return 1;
+		MSG_RemoveParty message{};
+		message.Header.Type = MSG_RemoveParty_Opcode;
+		message.Header.ID = m_pMyHuman->m_dwID;
+		message.Parm = 0;
+		SendPacket({message.Header.Type, reinterpret_cast<char*>(&message), sizeof(message)});
+		return 1;
+	}
+	if (idwControlID == 1865)
+	{
+		if (m_pPartyPanel && m_pPartyPanel->IsVisible())
+			SetVisibleParty();
+		return 1;
+	}
 	if (idwControlID == 6068)
 	{
 		if (m_nCurrInterfacePanelIndex > 0)
@@ -2679,6 +2707,22 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 				m_pEditChatPanel->SetVisible(0);
 				m_pChatPanel->SetVisible(0);
 			}
+			{ extractedResult = 1; return ExtractedFlow::Return; }
+		}
+
+		// /fps is local: it toggles the FPS/ping row under the minimap and is
+		// never sent to the server.
+		if (!_stricmp(str1, "fps"))
+		{
+			m_bShowNetStats = !m_bShowNetStats;
+			m_dwNetStatsTime = 0;
+			if (m_pNetStatsText)
+				m_pNetStatsText->SetVisible(m_bShowNetStats && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible());
+			if (m_pChatList)
+				m_pChatList->AddItem(new SListBoxItem(
+					m_bShowNetStats ? "FPS and ping shown under the minimap." : "FPS and ping hidden.",
+					0xFFAAFFAA, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1, 0));
+			pEditChat->SetText((char*)"");
 			{ extractedResult = 1; return ExtractedFlow::Return; }
 		}
 
@@ -3820,28 +3864,14 @@ int TMFieldScene::OnCharEvent(char iCharCode, int lParam)
 		return 1;
 	}
 
-	if (g_nKeyType == 1)
+	// ESC belongs to the scene's window lifecycle, even while chat has focus.
+	if (iCharCode == 27)
 	{
-		if (iCharCode == 27)
-		{
-			OnESC();
-			return 1;
-		}
-
-		if (TMScene::OnCharEvent(iCharCode, lParam) == 1)
-			return 1;
+		OnESC();
+		return 1;
 	}
-	else
-	{
-		if (TMScene::OnCharEvent(iCharCode, lParam) == 1)
-			return 1;
-
-		if (iCharCode == 27)
-		{
-			OnESC();
-			return 1;
-		}
-	}
+	if (TMScene::OnCharEvent(iCharCode, lParam) == 1)
+		return 1;
 
 	if (m_bCriticalError == 1)
 		return 1;
@@ -4003,6 +4033,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		return OnPacketUpdateCargoCoin(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
 	case MSG_Weather_Opcode:
 		return OnPacketWeather(reinterpret_cast<MSG_STANDARDPARM*>(pStd));
+	case kefra_portal::StateOpcode:
+		return OnPacketKefraPortalState(reinterpret_cast<const kefra_portal::State*>(pStd));
 	case MSG_CreateItem_Opcode:
 		return OnPacketCreateItem(reinterpret_cast<MSG_CreateItem*>(pStd));
 	case MSG_CNFDropItem_Opcode:
@@ -4183,14 +4215,37 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// Consume the last completed entity hover pass before the base scene
 	// clears m_pMouseOverHuman and submits controls for this frame.
 	UpdateCompatObservedAffects();
+	UpdateWeatherEffects();
 	if (m_pMyHuman && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible())
 	{
 		if (m_pPositionText)
 		{
 			char position[64]{};
-			sprintf_s(position, "X: %d Y: %d", static_cast<int>(m_pMyHuman->m_vecPosition.x),
+			sprintf_s(position, "X: %4d  Y: %4d", static_cast<int>(m_pMyHuman->m_vecPosition.x),
 				static_cast<int>(m_pMyHuman->m_vecPosition.y));
 			m_pPositionText->SetText(position, 0);
+		}
+		// WYD.exe 0x47a336 formats the UI2 minimap header as "%s-%d" from the
+		// server group name and the current channel.
+		if (m_pMiniMapServerText)
+		{
+			char server[32]{};
+			const int group = g_pObjectManager->m_nServerGroupIndex;
+			if (group >= 0 && group < static_cast<int>(_countof(g_szServerNameList)) && g_szServerNameList[group][0])
+				sprintf_s(server, "%s-%d", g_szServerNameList[group], g_pObjectManager->m_nServerIndex);
+			if (strcmp(server, m_pMiniMapServerText->GetText() ? m_pMiniMapServerText->GetText() : ""))
+				m_pMiniMapServerText->SetText(server, 0);
+		}
+		if (m_pNetStatsText && m_bShowNetStats && dwServerTime - m_dwNetStatsTime >= 500)
+		{
+			m_dwNetStatsTime = dwServerTime;
+			char stats[48]{};
+			const int ping = g_pSocketManager ? g_pSocketManager->RoundTripMs() : -1;
+			if (ping >= 0)
+				sprintf_s(stats, "FPS: %d  Ping: %d ms", static_cast<int>(g_pDevice->m_fFPS + 0.5f), ping);
+			else
+				sprintf_s(stats, "FPS: %d  Ping: --", static_cast<int>(g_pDevice->m_fFPS + 0.5f));
+			m_pNetStatsText->SetText(stats, 0);
 		}
 		if (m_pMiniMapDir)
 			m_pMiniMapDir->GetGeomControl()->fAngle = m_pMyHuman->m_fAngle - 2.3561945f;

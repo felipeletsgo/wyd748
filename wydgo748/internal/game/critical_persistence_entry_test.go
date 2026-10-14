@@ -47,10 +47,11 @@ func assertCriticalEntryPackets(t *testing.T, p *Player) {
 	projected.Equip = clientEquipProjection(ch)
 	want := [][]byte{
 		wire.EnterWorld(p.ID, uint16(p.CharSlot), projected),
-		wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch), bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP),
+		wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch), bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP, model.AppearanceCapeEmblem(*ch)),
 		wire.WarInfo(), playerScorePacket(p), playerAffectsPacket(p), wire.UpdateCarry(p.ID, ch.Inv[:], ch.Gold),
 		wire.UpdateEtc(p.ID, *ch), wire.SelfEquip(p.ID, projected.Equip[:]), wire.HpMp(p.ID, wireScoreState(ch)),
 		wire.ActionStop(p.ID, ch.X, ch.Y), wire.SetShortSkill(p.ID, ch.ShortSkill),
+		wire.KefraPortalState(false),
 	}
 	for sequence, expected := range want {
 		got, ok := p.Session.DequeuePacketForTest()
@@ -226,10 +227,15 @@ func TestCriticalEntryUnknownCommitOrChangedCharacterDoesNotPublish(t *testing.T
 }
 
 func TestCriticalEntryNoPreparationWriteAndStorageFallbacks(t *testing.T) {
-	for _, scenario := range []string{"unchanged", "existing-deadline", "carry-full", "carry-and-cargo-full"} {
+	for _, scenario := range []string{"unchanged", "existing-deadline", "native-necklace", "carry-full", "carry-and-cargo-full"} {
 		t.Run(scenario, func(t *testing.T) {
 			w, p, fallback, backend, queue, release := criticalEntryFixture(t)
 			ch := &p.Account.Chars[0]
+			if scenario == "native-necklace" {
+				w.items = necklaceCatalog(t)
+				ch.Score.Level = 92
+				ch.Equip[9] = model.Item{Index: 559, UID: "native-necklace", Eff: [6]byte{43, 9}}
+			}
 			if scenario == "existing-deadline" {
 				ch.Equip[fairySlot] = model.Item{Index: 4300, UID: "existing-fairy", ActivatedUnix: w.now().Add(-time.Hour).Unix(), ExpiresUnix: w.now().Add(time.Hour).Unix()}
 			}
@@ -262,8 +268,8 @@ func TestCriticalEntryNoPreparationWriteAndStorageFallbacks(t *testing.T) {
 			if !p.InWorld || fallback.loads != 1 || fallback.saves != 0 || fallback.syncSaves != 0 {
 				t.Fatal("prepared entry failed or fell back to an inline write")
 			}
-			if scenario == "carry-and-cargo-full" && clientEquipProjection(p.Char)[9].Index != 0 {
-				t.Fatal("unmigrated unsupported equipment reached client projection")
+			if (scenario == "native-necklace" || scenario == "carry-and-cargo-full") && clientEquipProjection(p.Char)[9] != before.Chars[0].Equip[9] {
+				t.Fatal("native slot projection lost the retained item")
 			}
 			assertCriticalEntryPackets(t, p)
 		})

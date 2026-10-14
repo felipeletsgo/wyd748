@@ -134,6 +134,33 @@ builds, static checks, and isolated tests do not substitute for it.
 - When moving documentation, fix links and update the central map. Do not
   duplicate a document.
 
+## Cleanup
+
+Agents must not leave build, test or investigation leftovers in the project.
+
+- Generated output goes only to ignored build roots: the root `build/` for
+  release/patch staging, audits, reports, logs, temporary database clusters
+  and one-off task output (use `build/<task>/`), and `tmproject/build/` for
+  client builds, tests, Ghidra tools and the native research corpus. Build the
+  client through `tmproject/Build-Client.ps1` or the solution, never into
+  `tmproject/TMProject748/build/`. Build Go binaries with `go build -o build/...`
+  (or into the system temporary directory), never inside `wydgo748/`.
+- Scratch scripts, dumps, screenshots and downloaded copies belong in the
+  agent's own temporary/scratch directory, never in the repository root,
+  `.tmp/`, a source tree or `.agents/`. Run Python with `-B` (or
+  `PYTHONDONTWRITEBYTECODE=1`) so no `__pycache__` is written.
+- Before closing a task, delete what the task created and no longer needs:
+  staging directories, verification downloads, stopped temporary clusters,
+  candidate executables and remote `/tmp` staging. Durable facts (hashes,
+  sizes, results) go into `DOCS/` or `.agents/`, not kept artifacts.
+- Never delete `references/`, `tmproject/build/tools/`,
+  `tmproject/build/native-research/`, the current incremental build outputs,
+  tracked files, local account/character state, or runtime settings. Resolve
+  exact paths first; do not use broad recursive deletion.
+- `tools/repository/Test-RepositoryLayout.ps1` fails on ignored files outside
+  the sanctioned locations. A new legitimate generated location must be added
+  to both `.gitignore` and that allowlist, not left as an exception.
+
 ## Skills by scope
 
 | Scope | Skill |

@@ -16,6 +16,14 @@ func CharacterTransferUnavailable(slot int32) []byte {
 	return b
 }
 
+// CharacterFaceItem projects the cosmetic cape variant into the native face
+// metadata without changing the persisted item or domain citizenship.
+func CharacterFaceItem(ch model.Char) model.Item {
+	face := ch.Equip[0]
+	face.Eff[5] = model.AppearanceCapeEmblem(ch)
+	return face
+}
+
 // putSelChar writes TMProject's 1272-byte STRUCT_SELCHAR. Its canonical 140-byte
 // Score is copied without narrowing; uint64 EXP remains a presentation field.
 func putSelChar(dst []byte, offset int, chars []model.Char) {
@@ -30,6 +38,9 @@ func putSelChar(dst []byte, offset int, chars []model.Char) {
 		score := EncodeClientScore(wireScore(ch))
 		copy(dst[offset+80+slot*ClientScoreSize:], score[:])
 		for equipSlot, item := range ch.Equip {
+			if equipSlot == 0 {
+				item = CharacterFaceItem(ch)
+			}
 			// TMProject keeps 18 source-side equipment entries. The server model
 			// has the canonical 16 slots, so the two trailing entries remain zero.
 			PutItem(dst, offset+640+(slot*18+equipSlot)*8, item)
@@ -119,6 +130,9 @@ func EnterWorld(id, slot uint16, ch model.Char) []byte {
 	copy(b[mob+44:mob+184], baseScore[:])
 	copy(b[mob+184:mob+324], runtimeScore[:])
 	for i, item := range ch.Equip {
+		if i == 0 {
+			item = CharacterFaceItem(ch)
+		}
 		PutItem(b, mob+324+i*8, item)
 	}
 	for i, item := range ch.Inv {
@@ -260,8 +274,13 @@ func CreateMobVisual(id uint16, name string, x, y uint16, mesh []uint16, anct []
 }
 
 func CreateMobWithGuildRank(id uint16, name string, x, y uint16, mesh []uint16, anct []byte,
-	score *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp int16) []byte {
-	return createMob(id, name, x, y, mesh, anct, score, affects, spawn, guild, guildRank, &cp)
+	score *model.Score, affects []model.Affect, spawn, guild uint16, guildRank byte, cp int16, capeEmblem byte) []byte {
+	b := createMob(id, name, x, y, mesh, anct, score, affects, spawn, guild, guildRank, &cp)
+	// MSG_CreateMob.Server@326 selects the existing 0..10 cape texture mapper
+	// (TMHuman::SetCitizenMantle, native FUN_00526cf4). The source server now
+	// sends cosmetic state here, not the channel used by chat, drops or wars.
+	b[326] = capeEmblem
+	return b
 }
 
 func CreateMobTrade(id uint16, name string, x, y uint16, mesh []uint16, score *model.Score, title string) []byte {

@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "../../application/NativeCostumeSlot.h"
+#include "../../ui/CapePresentation748.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "HumanCostumeRefinement.h"
@@ -746,13 +747,18 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
             m_sMantuaIndex = pMobData->Equip[15].sIndex;
             m_wMantuaSkin = g_pItemList[pMobData->Equip[15].sIndex].nIndexTexture;
             SetMantua(m_wMantuaSkin);
+            // FUN_00524ded maps the cape texture to its citizenship variant
+            // (server emblem on the back) right after reading it.
+            m_wMantuaSkin = static_cast<unsigned short>(SetCitizenMantle(m_wMantuaSkin));
             m_ucMantuaLegend = static_cast<char>(g_pItemList[m_sMantuaIndex].nGrade);
-            m_ucMantuaSanc = m_nTotalKill / 100;
-            if ((unsigned char)m_ucMantuaSanc > 9)
-                m_ucMantuaSanc = 9;
+            m_ucMantuaSanc = static_cast<char>(cape_presentation_748::Refinement(
+                BASE_GetItemSanc(&pMobData->Equip[15])));
         }
         else
+        {
             m_cMantua = 0;
+            m_ucMantuaSanc = 0;
+        }
 
 		// Slot 13 holds the familiar (native 7.48); the WYD-Go costume-slot
 		// extension moves costumes to slot 12. 14 is the mount and 15 the cape.
@@ -853,6 +859,7 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
                 m_stMountLook.Skin0 = g_pItemList[sIndex].nIndexTexture;
                 m_stMountLook.Skin1 = m_stMountLook.Skin0;
                 m_sMountIndex = sIndex - 315;
+                m_bImportedMountVisual = false;
                 if (_nEquipIdx == 3993)
                 {
                     m_stMountLook.Mesh2 = 0;
@@ -1213,14 +1220,15 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
             m_sMantuaIndex = sEquip[15] & 0xFFF;
             m_wMantuaSkin = g_pItemList[sEquip[15] & 0xFFF].nIndexTexture;
             SetMantua(m_wMantuaSkin);
+            // FUN_00526140 applies the same citizenship emblem mapping.
+            m_wMantuaSkin = static_cast<unsigned short>(SetCitizenMantle(m_wMantuaSkin));
             m_ucMantuaLegend = static_cast<char>(g_pItemList[sEquip[15] & 0xFFF].nGrade);
-            m_ucMantuaSanc = m_nTotalKill / 10;
-            if ((unsigned char)m_ucMantuaSanc > 12)
-                m_ucMantuaSanc = 12;
+            m_ucMantuaSanc = static_cast<char>(cape_presentation_748::PackedRefinement(sEquip[15]));
         }
         else
         {
             m_cMantua = 0;
+            m_ucMantuaSanc = 0;
         }
 
 		// The compact 7.48 CreateMob projection uses slot 12 for the costume
@@ -1310,6 +1318,7 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
 
             item.sIndex = sIndex;
             m_sMountIndex = sIndex - 315;
+            m_bImportedMountVisual = false;
 
             int nMountSanc = (int)sEquip[14] >> 12;
             int nClass = BASE_GetItemAbility(&item, 18);
@@ -1320,6 +1329,7 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
             m_stMountLook.Skin0 = g_pItemList[sIndex].nIndexTexture;
             m_stMountLook.Skin1 = m_stMountLook.Skin0;
             m_sMountIndex = sIndex - 315;
+            m_bImportedMountVisual = false;
             if (nMountIndex == 3993)
             {
                 m_stMountLook.Mesh2 = 0;
@@ -2186,6 +2196,18 @@ int TMHuman::SetHumanCostume()
                     break;
                 case 4183:
                     nCos = 33;
+                    m_nSkinMeshType = 1;
+                    m_nClass = 4;
+
+                    break;
+                case 4187: // KR PurpleRudolph_Set2 reuses the Purple Rudolph renderer.
+                    nCos = 10;
+                    m_nSkinMeshType = 1;
+                    m_nClass = 4;
+
+                    break;
+                case 4188: // KR RedSanta_Set2 reuses the Red Santa renderer.
+                    nCos = 8;
                     m_nSkinMeshType = 1;
                     m_nClass = 4;
 

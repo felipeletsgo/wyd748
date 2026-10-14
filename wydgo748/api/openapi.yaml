@@ -1,8 +1,112 @@
 openapi: 3.1.0
 info:
-  title: WYD administrative API (local-first)
-  version: 0.4.0
+  title: WYD website and administrative APIs
+  version: 0.12.0
 paths:
+  /api/player/v1/characters/{slot}/inventory:
+    get:
+      summary: Read this account's saved inventory, never live game state
+      description: Only nonempty playable slots 0-62, from one SQL snapshot. Reserved cells and internal item identities are excluded. Quantity uses instance effect 61, except mount HP; the browser must not recompute it. No movement, trade or item mutation is available.
+      security: [{ playerSession: [] }]
+      parameters:
+        - { name: slot, in: path, required: true, schema: { type: string, pattern: '^[0-3]$' } }
+      responses:
+        '200':
+          description: No-store versioned saved inventory with characterSlot and capacity 63; no gold field
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerStorageResponse' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/cargo:
+    get:
+      summary: Read saved Cargo belonging to the signed-in website account
+      description: Only nonempty visible slots 0-119 and stored gold. Owner comes exclusively from the authenticated session. No account selector or economy mutation is available.
+      security: [{ playerSession: [] }]
+      responses:
+        '200':
+          description: No-store versioned Cargo with gold and capacity 120; no characterSlot field
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerStorageResponse' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/characters/{slot}:
+    get:
+      summary: Read equipment and saved character details belonging to this website session
+      description: Read-only allowlist from one persisted account snapshot. No internal identities, inventory, cargo or derived combat score. Slot is not a durable identity and selects only the current account's character. Account query parameters never select an owner.
+      security: [{ playerSession: [] }]
+      parameters:
+        - { name: slot, in: path, required: true, schema: { type: string, pattern: '^[0-3]$' } }
+      responses:
+        '200':
+          description: No-store persisted snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerCharacterResponse' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/profile:
+    get:
+      summary: Read the signed-in account's saved projection, never another account
+      security: [{ playerSession: [] }]
+      responses:
+        '200':
+          description: No-store response; fields and timestamps come from one persisted snapshot, not the live World
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerProfileResponse' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/sessions:
+    get:
+      summary: List unexpired website sessions belonging to the signed-in account
+      description: No IP addresses, device fingerprints, bearer cookies or CSRF tokens are returned. Game and staff sessions are excluded. A player API restart clears all sessions.
+      security: [{ playerSession: [] }]
+      responses:
+        '200':
+          description: No-store snapshot; current session first, then newest first. This request refreshes only the current session's idle timeout.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerSessions' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/sessions/revoke:
+    post:
+      summary: Revoke one website session of the signed-in account
+      description: Rechecks account ownership under the session lock. Missing and cross-account IDs both return 404; repeated revocation does not affect another session. Revoking the current session expires its cookie.
+      security: [{ playerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/CSRF' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [id]
+              properties:
+                id: { type: string, pattern: '^[a-fA-F0-9]{64}$' }
+      responses:
+        '200':
+          description: Session revoked; signedOut means the current session was also revoked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerSessionRevocation' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/sessions/revoke-all:
+    post:
+      summary: Revoke all existing website sessions of the signed-in account, including the caller
+      description: Atomic under the process session lock; expires the current cookie. A subsequent successful password login can create a new session. This is not a password change, game disconnect or staff logout.
+      security: [{ playerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/CSRF' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '200':
+          description: All existing website sessions revoked; signedOut is true
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerSessionRevocation' }
+        default: { $ref: '#/components/responses/PlayerError' }
   /api/v1/staff/players/{uid}/teleport:
     post:
       summary: Teleport the selected live session to a public city (moderation.player.teleport); embedded World only
@@ -213,11 +317,12 @@ paths:
             schema:
               type: object
               additionalProperties: false
-              required: [username, password, adminPin]
+              required: [username, password, adminPin, turnstileToken]
               properties:
                 username: { type: string, minLength: 1, maxLength: 12 }
                 password: { type: string, minLength: 1, maxLength: 10, writeOnly: true }
                 adminPin: { type: string, minLength: 6, maxLength: 6, pattern: '^[0-9]{6}$', writeOnly: true }
+                turnstileToken: { type: string, minLength: 1, maxLength: 2048, writeOnly: true, description: Single-use Turnstile token bound to the staff_login action. }
       responses:
         '200':
           description: Authenticated session
@@ -243,7 +348,7 @@ paths:
   /api/v1/accounts:
     post:
       summary: Create a client-compatible player account; requires the configured administrative PIN
-      description: Available from the panel embedded in tm.exe. It creates no staff authorization and no character.
+      description: Published panels require an authenticated staff session. PIN-only bootstrap is limited to explicit local HTTP development. New passwords require 8 to 10 characters. Creation grants no staff authorization and creates no character.
       parameters:
         - $ref: '#/components/parameters/CSRF'
       requestBody:
@@ -323,8 +428,36 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PersistentPlayer' }
         default: { $ref: '#/components/responses/Error' }
+  /api/player/v1/guilds/{name}:
+    get:
+      summary: Read the saved public guild profile
+      description: Anonymous, no-store. Names are case-insensitive. One bounded canonical registry projection is cached for at most one minute and coalesced across visitors. Accounts, join dates, private war state and internal IDs are not returned. No live World queries or guild mutations.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          schema: { type: string, minLength: 1, maxLength: 12, pattern: '^[A-Za-z0-9](?:[A-Za-z0-9 ]{0,10}[A-Za-z0-9])?$' }
+      responses:
+        '200':
+          description: Saved canonical guild with public members and roles
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version, guild, asOf, source]
+                properties:
+                  version: { type: integer, const: 1 }
+                  guild: { $ref: '#/components/schemas/PublicGuildProfile' }
+                  asOf: { type: string, format: date-time, description: Saved guild_state.updated_at, not a live timestamp }
+                  source: { type: string, const: persisted snapshot }
+        default: { $ref: '#/components/responses/PlayerError' }
 components:
   securitySchemes:
+    playerSession:
+      type: apiKey
+      in: cookie
+      name: __Host-wyd_player
+      description: HttpOnly Secure SameSite=Strict; 8-hour absolute and 30-minute idle lifetime. Local development uses wyd_player_local without Secure. Mutations require the exact Origin, JSON and session CSRF token.
     staffSession:
       type: apiKey
       in: cookie
@@ -338,6 +471,16 @@ components:
       schema: { type: string }
       description: Token from session endpoint. POST also requires exact Origin and session cookie.
   responses:
+    PlayerError:
+      description: Invalid request (400), sign-in required (401), Origin/CSRF rejection (403), missing session (404), unsupported media type (415), rate limit (429), or unavailable dependency (503). No-store; 429 includes Retry-After.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [version, error]
+            properties:
+              version: { type: integer, const: 1 }
+              error: { type: string }
     Error:
       description: Rejected request (400/401/403/415), rate limit (429 with Retry-After), or unavailable dependency (503)
       content:
@@ -348,14 +491,220 @@ components:
             properties:
               error: { type: string }
   schemas:
+    PublicGuildProfile:
+      type: object
+      additionalProperties: false
+      required: [name, kingdom, fame, createdAt, members, ally, warTarget]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 12 }
+        kingdom: { type: integer, enum: [0, 7, 8] }
+        fame: { type: integer, minimum: 0, maximum: 4294967295, description: Guild Fame, distinct from character Fame and premium currency }
+        createdAt: { type: string, format: date-time, description: Saved creation time; zero time means unknown and is not shown }
+        ally: { type: [string, 'null'], description: Allied guild name, or null }
+        warTarget: { type: [string, 'null'], description: Declared war target, not a war history or active-war assertion }
+        members:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, rank]
+            properties:
+              name: { type: string, minLength: 1, maxLength: 16 }
+              rank: { type: integer, enum: [0, 6, 7, 8, 9], description: Member 0, officer slots 6-8, leader 9 }
+    PlayerProfileResponse:
+      type: object
+      required: [version, profile]
+      properties:
+        version: { type: integer, const: 1 }
+        profile:
+          type: object
+          required: [username, donate, createdAt, asOf, characters]
+          properties:
+            username: { type: string }
+            donate: { type: integer, description: Saved Cash balance; no payment or credit operation is exposed }
+            createdAt: { type: string, format: date-time }
+            asOf: { type: string, format: date-time, description: Persisted accounts.updated_at from the same SQL statement }
+            characters:
+              type: array
+              maxItems: 4
+              items:
+                type: object
+                required: [slot, name, class, level, evolution]
+                properties:
+                  slot: { type: integer, minimum: 0, maximum: 3 }
+                  name: { type: string }
+                  class: { type: integer, minimum: 0, maximum: 255 }
+                  level: { type: integer, minimum: 0, maximum: 4294967295, description: Native zero-based level; presentation adds one }
+                  evolution: { type: string }
+    PlayerStorageResponse:
+      type: object
+      additionalProperties: false
+      required: [version, storage, source]
+      properties:
+        version: { type: integer, const: 1 }
+        source: { type: string, const: persisted snapshot }
+        storage:
+          type: object
+          additionalProperties: false
+          required: [asOf, capacity, items]
+          properties:
+            asOf: { type: string, format: date-time }
+            capacity: { type: integer, enum: [63, 120] }
+            characterSlot: { type: integer, minimum: 0, maximum: 3, description: Inventory only }
+            gold: { type: integer, minimum: 0, maximum: 4294967295, description: Cargo only }
+            items:
+              type: array
+              maxItems: 120
+              items:
+                type: object
+                additionalProperties: false
+                required: [slot, itemId, name, effects, quantity]
+                properties:
+                  slot: { type: integer, minimum: 0, maximum: 119, description: Zero-based; inventory maximum is 62 }
+                  itemId: { type: integer, minimum: 1, maximum: 65535 }
+                  name: { type: string, description: Authoritative catalogue name or empty for unknown items }
+                  quantity: { type: integer, minimum: 1, maximum: 255, description: Server-resolved quantity, not mount HP }
+                  effects:
+                    type: array
+                    minItems: 6
+                    maxItems: 6
+                    items: { type: integer, minimum: 0, maximum: 255 }
+    PlayerCharacterResponse:
+      type: object
+      required: [version, character, source]
+      properties:
+        version: { type: integer, const: 1 }
+        source: { type: string, const: persisted snapshot }
+        character:
+          type: object
+          additionalProperties: false
+          required: [slot, name, class, level, evolution, asOf, exp, gold, cp, equipment, ascension, celestialAscension, subCelestialAscension]
+          properties:
+            slot: { type: integer, minimum: 0, maximum: 3 }
+            name: { type: string }
+            class: { type: integer, minimum: 0, maximum: 255 }
+            level: { type: integer, minimum: 0, maximum: 4294967295, description: Native zero-based level; presentation adds one }
+            evolution: { type: string }
+            asOf: { type: string, format: date-time }
+            exp: { type: integer, minimum: 0, maximum: 4294967295 }
+            gold: { type: integer, minimum: 0, maximum: 4294967295 }
+            cp: { type: integer, minimum: -75, maximum: 75 }
+            fame: { type: integer, minimum: 0, maximum: 4294967295, description: Saved character Fame from the owner-bound progression view; not CP or an account balance. Absent in older replies. }
+            ascension: { $ref: '#/components/schemas/PlayerArchAscension' }
+            celestialAscension: { $ref: '#/components/schemas/PlayerCelestialAscension' }
+            subCelestialAscension: { $ref: '#/components/schemas/PlayerSubCelestialAscension' }
+            equipment:
+              type: array
+              maxItems: 15
+              items:
+                type: object
+                additionalProperties: false
+                required: [slot, itemId, name, effects]
+                properties:
+                  slot: { type: integer, minimum: 1, maximum: 15 }
+                  itemId: { type: integer, minimum: 1, maximum: 65535 }
+                  name: { type: string, description: Authoritative item name or empty for an unknown item }
+                  effects:
+                    type: array
+                    minItems: 6
+                    maxItems: 6
+                    items: { type: integer, minimum: 0, maximum: 255 }
+    PlayerArchAscension:
+      type: object
+      additionalProperties: false
+      description: Saved Arch gates shared with the king interaction; not a guarantee that a live operation will succeed. Only Mortal characters are applicable.
+      required: [applicable, requirementsMet, requiredLevel, checks]
+      properties:
+        applicable: { type: boolean }
+        requirementsMet: { type: boolean }
+        requiredLevel: { type: integer, minimum: 1, maximum: 4294967296, description: Displayed level, not the internal zero-based score }
+        checks:
+          type: array
+          minItems: 5
+          maxItems: 5
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, met]
+            properties:
+              id: { type: string, enum: [mortal, level, eternalStone, sefirot, freeSlot] }
+              met: { type: boolean }
+    PlayerCelestialAscension:
+      type: object
+      additionalProperties: false
+      description: Saved Arch-to-Celestial gates shared with the Ideal Stone operation. Origin level is its saved cache. Runtime transformation, trade and persistence remain game validations, not website authorization.
+      required: [applicable, requirementsMet, requiredLevel, requiredMortalLevel, checks]
+      properties:
+        applicable: { type: boolean }
+        requirementsMet: { type: boolean }
+        requiredLevel: { type: integer, minimum: 1, maximum: 4294967296, description: Displayed Arch level }
+        requiredMortalLevel: { type: integer, minimum: 1, maximum: 4294967296, description: Displayed source Mortal level }
+        checks:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, met]
+            properties:
+              id: { type: string, enum: [arch, level, mortalLevel, idealStone] }
+              met: { type: boolean }
+    PlayerSubCelestialAscension:
+      type: object
+      additionalProperties: false
+      description: Saved Celestial-to-SubCelestial requirements. Fame is character-specific; face validity and reward space after consuming an Ideal Stone are included. No alternate form, raw counter, UID or inventory is exposed. Live reservations, item materialization and persistence remain game validations.
+      required: [applicable, requirementsMet, requiredLevel, requiredFame, checks]
+      properties:
+        applicable: { type: boolean }
+        requirementsMet: { type: boolean }
+        requiredLevel: { type: integer, minimum: 1, maximum: 4294967296, description: Displayed Celestial level }
+        requiredFame: { type: integer, minimum: 0, maximum: 4294967295 }
+        checks:
+          type: array
+          minItems: 8
+          maxItems: 8
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, met]
+            properties:
+              id: { type: string, enum: [celestial, level, fame, sefirot, idealStone, noAlternate, face, rewardSpace] }
+              met: { type: boolean }
+    PlayerSessions:
+      type: object
+      required: [version, asOf, sessions]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        sessions:
+          type: array
+          maxItems: 512
+          items:
+            type: object
+            required: [id, current, createdAt, lastSeenAt, expiresAt]
+            properties:
+              id: { type: string, pattern: '^[a-f0-9]{64}$', description: Random display identifier independent of cookie and CSRF token }
+              current: { type: boolean }
+              createdAt: { type: string, format: date-time }
+              lastSeenAt: { type: string, format: date-time }
+              expiresAt: { type: string, format: date-time, description: Earlier of absolute expiry and current inactivity deadline }
+    PlayerSessionRevocation:
+      type: object
+      required: [version, status, signedOut]
+      properties:
+        version: { type: integer, const: 1 }
+        status: { type: string, const: revoked }
+        signedOut: { type: boolean }
     AccountCreateRequest:
       type: object
       additionalProperties: false
       required: [username, password, passwordConfirmation, adminPin]
       properties:
         username: { type: string, minLength: 4, maxLength: 12, pattern: '^[a-zA-Z0-9]+$' }
-        password: { type: string, minLength: 4, maxLength: 10, pattern: '^\S+$', writeOnly: true }
-        passwordConfirmation: { type: string, minLength: 4, maxLength: 10, pattern: '^\S+$', writeOnly: true }
+        password: { type: string, minLength: 8, maxLength: 10, pattern: '^[!-~]+$', writeOnly: true }
+        passwordConfirmation: { type: string, minLength: 8, maxLength: 10, pattern: '^[!-~]+$', writeOnly: true }
         adminPin: { type: string, minLength: 6, maxLength: 6, pattern: '^[0-9]{6}$', writeOnly: true }
     AccountCreateResponse:
       type: object

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"wydgo/internal/model"
 	"wydgo/internal/wire"
 )
 
@@ -111,4 +112,54 @@ func TestQuestZoneTimerMissingDeadlineAndClosedSession(t *testing.T) {
 	}
 	w.showQuestZoneTimer(nil)
 	w.hideQuestZoneTimer(nil)
+}
+
+// Every timed public-map stay shows its remaining time: the Game Room clear
+// area counts down to the shared reset, which returns its occupants to town.
+func TestGameRoomClearAreaShowsResetCountdownAndRecalls(t *testing.T) {
+	w := newGuardTestWorld()
+	w.clearAreas = []model.QuestZone{{Name: "GameRoom", X1: 3570, Y1: 3446, X2: 3965, Y2: 3711}}
+	start := time.Date(2026, 10, 13, 20, 40, 0, 0, time.UTC)
+	clock := newFakeClock(start)
+	w.clock = clock
+	w.nextQuestZoneReset = start.Add(questZoneResetInterval)
+	clock.Advance(4 * time.Minute)
+	p := addZonePlayer(w, 1, 3639, 3639, 500)
+
+	w.tickQuestZoneGuard(w.now())
+	if values := questTimerPackets(t, p); len(values) != 1 || values[0] != 360 || !p.QuestZoneTimer {
+		t.Fatalf("Game Room countdown = %v; want one 360-second timer", values)
+	}
+	w.tickQuestZoneGuard(w.now())
+	if values := questTimerPackets(t, p); len(values) != 0 {
+		t.Fatalf("unchanged deadline was resent: %v", values)
+	}
+	w.tickQuestZoneReset(w.now())
+	if !nearRecall(p) {
+		t.Fatalf("reset left the player in the Game Room at (%d,%d)", p.X, p.Y)
+	}
+	if values := questTimerPackets(t, p); len(values) != 1 || values[0] != 0 || p.QuestZoneTimer {
+		t.Fatalf("reset must clear the countdown once: %v", values)
+	}
+}
+
+// Hidden Valley access is timed by its ticket: the countdown shows the access
+// left while inside and clears when the player leaves.
+func TestHiddenValleyShowsAccessCountdown(t *testing.T) {
+	w := newGuardTestWorld()
+	start := time.Date(2026, 10, 13, 20, 0, 0, 0, time.UTC)
+	w.clock = newFakeClock(start)
+	w.nextQuestZoneReset = start.Add(questZoneResetInterval)
+	p := addZonePlayer(w, 1, 2281, 3688, 500)
+	p.SpecialCoins = map[string]uint32{hiddenValleyAccessCounter: uint32(start.Add(90 * time.Minute).Unix())}
+
+	w.tickQuestZoneGuard(w.now())
+	if values := questTimerPackets(t, p); len(values) != 1 || values[0] != 5400 {
+		t.Fatalf("Hidden Valley countdown = %v; want 5400 seconds", values)
+	}
+	p.X, p.Y = 2100, 2100
+	w.tickQuestZoneGuard(w.now())
+	if values := questTimerPackets(t, p); len(values) != 1 || values[0] != 0 || p.QuestZoneTimer {
+		t.Fatalf("leaving Hidden Valley must clear the countdown once: %v", values)
+	}
 }

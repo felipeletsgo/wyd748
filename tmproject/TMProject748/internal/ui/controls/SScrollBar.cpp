@@ -22,7 +22,20 @@ SScrollBar::SScrollBar(int inCurrent, int inMax, float inX, float inY, float inW
 		return panel;
 	};
 
-	if (m_dwStyle == 0)
+	if (m_dwStyle == 0 && g_UIVer == 2)
+	{
+		// Native FUN_0040586f (UI mode 2) builds the vertical bar from the 7.48
+		// texture sets 423..426, attaching up, down, thumb and track in that
+		// order. The 7.69 sets 174..176/510 drew a stray block and no track.
+		m_nBarSize = inWidth;
+		const float x = bChat ? -5.0f : 0.0f;
+		m_pUpPanel = attachPanel(new SPanel(423, x, 0.0f, 10.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 0);
+		m_pDownPanel = attachPanel(new SPanel(424, x, m_nHeight - m_nBtnSize + 7.0f, 10.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 1);
+		m_nScrollLength = (int)m_nHeight;
+		m_pBar = attachPanel(new SPanel(425, x + 1.0f, 0.0f, 10.0f - 2.0f, m_nBtnSize, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 2);
+		m_pBackground1 = attachPanel(new SPanel(426, x, 0.0f, 10.0f, inHeight, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 3);
+	}
+	else if (m_dwStyle == 0)
 	{
 		m_nBarSize = inWidth;
 		float nStartXPos = 0;
@@ -81,7 +94,17 @@ int SScrollBar::GetMaxValue()
 void SScrollBar::SetSize(float nWidth, float nHeight)
 {
 	SControl::SetSize(nWidth, nHeight);
-	if (m_dwStyle == 0)
+	if (m_dwStyle == 0 && g_UIVer == 2)
+	{
+		// Keep the constructor's UI2 geometry (sets 423..426) when the chat
+		// list grows with '+': the down arrow follows the new bottom and the
+		// track stretches to the full height instead of keeping its old size.
+		m_pDownPanel->SetPos(m_pDownPanel->m_nPosX, m_nHeight - m_nBtnSize + 7.0f);
+		m_pBackground1->SetSize(m_pBackground1->m_nWidth, m_nHeight);
+		m_nScrollLength = (int)m_nHeight;
+		Update();
+	}
+	else if (m_dwStyle == 0)
 	{
 		m_pDownPanel->SetPos(m_pDownPanel->m_nPosX, (float)(m_nHeight - m_nBtnSize) / 1.0f);
 		m_nScrollLength = (int)(nHeight - (m_nBtnSize * 2.0f));

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"log"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"time"
@@ -237,6 +238,7 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	}
 	p := &Player{Session: s, Account: acc, CharSlot: -1}
 	w.players[s] = p
+	s.MarkAuthenticated()
 	s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
 	log.Printf("[#%d] character list sent (%d characters)", s.ID, characterCount(acc.Chars))
 }
@@ -427,7 +429,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 	p.CharSlot = slot
 	p.Char = &p.Account.Chars[slot]
 	ch := p.Char
-	_, entryX, entryY := playerHomeCitySpawn(ch)
+	_, entryX, entryY := w.homeCitySpawn(ch)
 	entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 8, p)
 	if isLoadtestAccountName(p.Account.Name, w.loadtestAccountPrefix) {
 		entryX, entryY = w.loadtestSpawn.X, w.loadtestSpawn.Y
@@ -456,6 +458,15 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("Timed equipment could not be validated. Try again."))
 		return
 	}
+	previousEmblem := ch.CapeEmblem
+	if w.ensureCapeEmblem(ch) {
+		if err := w.saveAccount(p.Account); err != nil {
+			ch.CapeEmblem = previousEmblem
+			p.CharSlot, p.Char = -1, nil
+			s.Send(wire.MessagePanel("The cape emblem could not be saved. Try again."))
+			return
+		}
+	}
 	w.publishCharacterEntry(p, slot)
 }
 
@@ -464,7 +475,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 // unrelated players may have entered or moved while that save was pending.
 func (w *World) publishCharacterEntry(p *Player, slot int) {
 	s, ch := p.Session, p.Char
-	_, entryX, entryY := playerHomeCitySpawn(ch)
+	_, entryX, entryY := w.homeCitySpawn(ch)
 	entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 8, p)
 	if isLoadtestAccountName(p.Account.Name, w.loadtestAccountPrefix) {
 		entryX, entryY = w.loadtestSpawn.X, w.loadtestSpawn.Y
@@ -520,7 +531,7 @@ func (w *World) publishCharacterEntry(p *Player, slot int) {
 	// 2) Self-CreateMob (spawn=2), observed in-game. Without it, a second login
 	// in the same client process retains stale HP/MP. ActionStop follows it.
 	s.Send(wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
-		bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP))
+		bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP, model.AppearanceCapeEmblem(*ch)))
 	// 3) Login sequence in WYD 7.48 order: 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366.
 	s.Send(wire.WarInfo())
 	s.Send(playerScorePacket(p))
@@ -533,6 +544,7 @@ func (w *World) publishCharacterEntry(p *Player, slot int) {
 	s.Send(wire.HpMp(p.ID, wireScoreState(ch)))
 	s.Send(wire.ActionStop(p.ID, ch.X, ch.Y))
 	s.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
+	w.sendKefraPortalState(p)
 
 	// 4) Publish nearby mobs, players, and items, then populate p.Visible.
 	w.refreshPlayerVisibility(p)
@@ -1484,6 +1496,25 @@ func playerHomeCitySpawn(ch *model.Char) (int, uint16, uint16) {
 	return city, zone.exitX, zone.exitY
 }
 
+// armiaSpawnSpread is the ±tile spread around the Armia birth point.
+const armiaSpawnSpread = 5
+
+// homeCitySpawn is playerHomeCitySpawn with the Armia birth spread: players
+// bound to Armia appear at a random walkable tile within ±5 of 2091,2100.
+func (w *World) homeCitySpawn(ch *model.Char) (int, uint16, uint16) {
+	city, x, y := playerHomeCitySpawn(ch)
+	if city != 0 || x != cityWarZones[0].exitX || y != cityWarZones[0].exitY {
+		return city, x, y
+	}
+	// A private source: the spread must not consume draws of the gameplay RNG.
+	nx := uint16(int(x) + rand.IntN(2*armiaSpawnSpread+1) - armiaSpawnSpread)
+	ny := uint16(int(y) + rand.IntN(2*armiaSpawnSpread+1) - armiaSpawnSpread)
+	if w.terrain.Walkable(nx, ny) {
+		return city, nx, ny
+	}
+	return city, x, y
+}
+
 // bindableCityAt follows BASE_GetVillage for the four cities available through
 // the 7.48 ChangeCity packet. Server position, not the reported Village, wins.
 func bindableCityAt(x, y uint16) (int, bool) {
@@ -1609,7 +1640,7 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 		setPlayerCurHP(p.Char, hp)
 		p.DeadAt = time.Time{}
 	}
-	city, spawnX, spawnY := playerHomeCitySpawn(p.Char)
+	city, spawnX, spawnY := w.homeCitySpawn(p.Char)
 	p.X, p.Y = w.findFreePlayerPosition(spawnX, spawnY, 8, p)
 	p.Char.X, p.Char.Y = p.X, p.Y
 	clearPublishedPlayerMove(p)
@@ -1803,9 +1834,9 @@ func spectralPacket(ch *model.Char, packet []byte) []byte {
 	return packet
 }
 
-// One physical hit per 900 ms for every character. Attack Speed never shortens
-// the interval: above 100% it raises the Double Hit chance, reaching a double
-// hit on every swing at 200%.
+// One physical attack action per 900 ms for every character. Attack Speed
+// never shortens this interval. A double hit is two hits within that action;
+// the native bonus-nibble thresholds are defined by doubleHitChance.
 const physicalAttackInterval = 900 * time.Millisecond
 
 func attackIntervalFor(_ *model.Char) time.Duration { return physicalAttackInterval }
@@ -1926,7 +1957,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		w.onSkillAttack(p, req)
 		return
 	}
-	// Normal attacks remain protected by the server-owned AttackRun cadence.
+	// Normal attacks remain protected by the fixed, server-owned cadence.
 	attackClock, clockOK := validateClientAttackClock(p, pkt, now)
 	if !clockOK {
 		metricPhysicalAttackRejected.Add(1)
@@ -2650,10 +2681,9 @@ func slotOf(ch *model.Char, typ, pos byte) *model.Item {
 
 // clientEquipSlotSupported maintains the WYD-Go 7.48 projection.
 // Equip retains 16 positions for historical data and wire compatibility.
-// Necklace (slot 9) and later NewSlot/Belt entries are not equippable
-// destinations in the active client.
+// Native necklace slot 9 is supported; later NewSlot/Belt entries are not.
 func clientEquipSlotSupported(pos byte) bool {
-	return pos < model.MaxEquipSlots && pos != 9
+	return pos < model.MaxEquipSlots
 }
 
 func clientEquipProjection(ch *model.Char) [model.MaxEquipSlots]model.Item {
@@ -2662,6 +2692,7 @@ func clientEquipProjection(ch *model.Char) [model.MaxEquipSlots]model.Item {
 		return equip
 	}
 	equip = ch.Equip
+	equip[0] = wire.CharacterFaceItem(*ch)
 	for slot := range equip {
 		if !clientEquipSlotSupported(byte(slot)) {
 			equip[slot] = model.Item{}
@@ -2671,7 +2702,7 @@ func clientEquipProjection(ch *model.Char) [model.MaxEquipSlots]model.Item {
 }
 
 // migrateUnsupportedEquipment makes old saves usable without deletion.
-// Move Necklace to visible Carry, then visible Cargo;
+// Move items incorrectly stored in Necklace to visible Carry, then Cargo;
 // persistence failure rolls back the entire migration.
 func (w *World) migrateUnsupportedEquipment(p *Player) {
 	if p == nil || p.Char == nil || p.Account == nil || p.Char.Equip[9].Index == 0 {
@@ -2682,8 +2713,11 @@ func (w *World) migrateUnsupportedEquipment(p *Player) {
 		sessionID = p.Session.ID
 	}
 	item := p.Char.Equip[9]
+	if def, ok := w.items[item.Index]; ok && def.Pos&(1<<9) != 0 {
+		return
+	}
 	snapshot := snapshotTimedAccountItems(p.Account)
-	if !planUnsupportedEquipment(p) {
+	if !w.planUnsupportedEquipment(p) {
 		log.Printf("[#%d] incompatible equipment %d retained in Equip[9]: Carry and Cargo full",
 			sessionID, item.Index)
 		return
@@ -2698,11 +2732,17 @@ func (w *World) migrateUnsupportedEquipment(p *Player) {
 
 // planUnsupportedEquipment changes only the supplied account. A staged entry
 // uses a detached account and persists this move with timed-item preparation.
-func planUnsupportedEquipment(p *Player) bool {
+func (w *World) planUnsupportedEquipment(p *Player) bool {
 	if p == nil || p.Char == nil || p.Account == nil || p.Char.Equip[9].Index == 0 {
 		return false
 	}
 	item := p.Char.Equip[9]
+	// Keep valid necklaces equipped. The old blanket slot migration made even
+	// native Mystic Amulets disappear from equipment on every login. Unknown
+	// or wrong-position legacy items still use the lossless storage migration.
+	if def, ok := w.items[item.Index]; ok && def.Pos&(1<<9) != 0 {
+		return false
+	}
 	for slot := 0; slot < model.PlayerCarrySlots; slot++ {
 		if p.Char.Inv[slot].Index != 0 {
 			continue
@@ -2759,7 +2799,40 @@ func bodyAncient(ch *model.Char) []byte {
 			a[i] = model.AncientCode(it)
 		}
 	}
+	faces := [...]uint16{22, 23, 24, 25, 32}
+	now := time.Now()
+	for i := range ch.Affects {
+		if af := &ch.Affects[i]; af.Type == 16 && af.ExpiresAt.After(now) && af.Value >= 1 && af.Value <= len(faces) {
+			a[0] = model.AncientCode(transformFace(ch, af.Value, faces[af.Value-1]))
+			break
+		}
+	}
 	return a
+}
+
+// transformBaseSanc is pTransBonus[].BaseSanc (W2PP Basedef.cpp): Wolf,
+// Bear, Astaroth, Titan and Eden.
+var transformBaseSanc = [...]int{15, 60, 115, 155, 155}
+
+// transformFace builds the transformed face the client draws. W2PP
+// GetCurrentScore Type 16 refines it from the fourth mastery (Nature) and the
+// level, so the beast glows brighter as Nature grows (0..+9).
+func transformFace(ch *model.Char, value int, face uint16) model.Item {
+	item := model.Item{Index: face}
+	if ch == nil || value < 1 || value > len(transformBaseSanc) {
+		return item
+	}
+	nature := minInt(320, int(playerMastery(ch, 3)))
+	level := int(playerLevel(ch))
+	if isCelestialEvolution(ch) {
+		level += 399 // W2PP MAX_LEVEL for every evolution above Arch.
+	}
+	sanc := ((nature+level*2)/3 - transformBaseSanc[value-1]) / 12
+	sanc = clampInt(sanc, 0, 9)
+	if sanc > 0 {
+		item.Eff[0], item.Eff[1] = 43, byte(sanc)
+	}
+	return item
 }
 
 func bodyMesh(ch *model.Char) []uint16 {
@@ -2785,7 +2858,7 @@ func bodyMeshAt(ch *model.Char, now time.Time) []uint16 {
 			break
 		}
 		if a.Type == 16 && a.ExpiresAt.After(now) && a.Value >= 1 && a.Value <= len(faces) {
-			m[0] = faces[a.Value-1]
+			m[0] = model.VisualItemCode(transformFace(ch, a.Value, faces[a.Value-1]), false)
 			break
 		}
 	}

@@ -49,6 +49,11 @@ rules live only in the root `AGENTS.md`.
   (`ItemEff[16]@12` + `AnctCode[16]@44`) for the owner and observers. The final
   16 bytes are essential for dye color. Recreating during movement causes a
   snap/teleport.
+- Dye (volatile 186, `tint`) is a project rule: it paints only the five armor
+  set pieces (item `Pos` 2, 4, 8, 16 or 32), validated server-side in both the
+  direct and critical-persistence paths. Weapons, shields, capes, mounts and
+  accessories are rejected; `untint` stays unrestricted so already-dyed items
+  can be cleaned.
 
 ## NPCs, shops, and crafting
 

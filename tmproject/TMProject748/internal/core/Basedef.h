@@ -65,7 +65,8 @@ int BASE_Get3DTo2DPos(float fX, float fY, float fZ, int* pX, int* pY);
 int BASE_GetDoubleCritical(STRUCT_MOB* mob, unsigned short* sProgress, unsigned short* cProgress, char* bDoubleCritical);
 void BASE_GetHitPosition2(int sx, int sy, int* tx, int* ty, char* pHeight, int MH);
 void BASE_SetBit(char* byte, int pos);
-int BASE_UpdateItem2(int maskidx, int CurrentState, int NextState, int xx, int yy, char* pHeight, int rotate, int height);
+int BASE_UpdateItem2(int maskidx, int CurrentState, int NextState, int xx, int yy, char* pHeight, int rotate, int height,
+    const char* pBaseHeight = nullptr);
 int BASE_GetMeshIndex(short sIndex);
 bool BASE_CanRefine(STRUCT_ITEM* item);
 

@@ -2,14 +2,14 @@ package model
 
 import "fmt"
 
-// QuestZoneFileVersion segue o mesmo contrato estrito dos demais arquivos de
-// dados: versao exata, sem campo desconhecido, sem conteudo extra.
+// QuestZoneFileVersion follows the strict contract of the other data files:
+// exact version, no unknown field, no trailing content.
 const QuestZoneFileVersion = 1
 
-// QuestZone e um retangulo do mundo (inclusive nas bordas) que sofre reset
-// periodico: todo jogador dentro dele e recolhido para a cidade a cada ciclo.
-// Porta o mecanismo ClearArea do WYD 7.48 (as areas de quest de nivel expulsam o
-// jogador apos ~10 minutos, revivendo-o se estiver morto).
+// QuestZone is a world rectangle (borders inclusive) emptied by the periodic
+// reset: every player inside is returned to town each cycle. It ports the
+// WYD 7.48 ClearArea mechanism (level quest areas expel the player after about
+// ten minutes, reviving a dead player).
 type QuestZone struct {
 	Name string `json:"name"`
 	X1   uint16 `json:"x1"`
@@ -18,48 +18,54 @@ type QuestZone struct {
 	Y2   uint16 `json:"y2"`
 }
 
-// Contains diz se a coordenada esta dentro do retangulo (inclusive as bordas,
-// como o `>=`/`<=` do nativo).
+// Contains reports whether the tile is inside the rectangle, borders included,
+// like the native `>=`/`<=` comparisons.
 func (z QuestZone) Contains(x, y uint16) bool {
 	return x >= z.X1 && x <= z.X2 && y >= z.Y1 && y <= z.Y2
 }
 
 func (z *QuestZone) Validate() error {
 	if z == nil {
-		return fmt.Errorf("zona de quest ausente")
+		return fmt.Errorf("missing quest zone")
 	}
 	if z.Name == "" {
-		return fmt.Errorf("zona de quest sem nome")
+		return fmt.Errorf("quest zone without a name")
 	}
 	if z.X2 < z.X1 || z.Y2 < z.Y1 {
-		return fmt.Errorf("zona %q com retangulo invertido (%d,%d)-(%d,%d)",
+		return fmt.Errorf("zone %q has an inverted rectangle (%d,%d)-(%d,%d)",
 			z.Name, z.X1, z.Y1, z.X2, z.Y2)
 	}
 	return nil
 }
 
-// QuestZoneFile e o conteudo de data/quest_zones.json.
+// QuestZoneFile is the content of data/quest_zones.json. Zones are quest areas
+// guarded by their NPC entry (ClearAreaQuest). ClearAreas are emptied by the
+// same reset cycle without an entry guard (native ClearArea, such as the Game
+// Room territories).
 type QuestZoneFile struct {
-	Version int         `json:"version"`
-	Zones   []QuestZone `json:"zones"`
+	Version    int         `json:"version"`
+	Zones      []QuestZone `json:"zones"`
+	ClearAreas []QuestZone `json:"clearAreas,omitempty"`
 }
 
 func (f *QuestZoneFile) Validate() error {
 	if f == nil {
-		return fmt.Errorf("arquivo de zonas ausente")
+		return fmt.Errorf("missing zone file")
 	}
 	if f.Version != QuestZoneFileVersion {
-		return fmt.Errorf("arquivo de zonas versao %d; esperado %d", f.Version, QuestZoneFileVersion)
+		return fmt.Errorf("zone file version %d; want %d", f.Version, QuestZoneFileVersion)
 	}
-	names := make(map[string]struct{}, len(f.Zones))
-	for i := range f.Zones {
-		if err := f.Zones[i].Validate(); err != nil {
-			return err
+	names := make(map[string]struct{}, len(f.Zones)+len(f.ClearAreas))
+	for _, zones := range [][]QuestZone{f.Zones, f.ClearAreas} {
+		for i := range zones {
+			if err := zones[i].Validate(); err != nil {
+				return err
+			}
+			if _, dup := names[zones[i].Name]; dup {
+				return fmt.Errorf("duplicate zone %q", zones[i].Name)
+			}
+			names[zones[i].Name] = struct{}{}
 		}
-		if _, dup := names[f.Zones[i].Name]; dup {
-			return fmt.Errorf("zona %q duplicada", f.Zones[i].Name)
-		}
-		names[f.Zones[i].Name] = struct{}{}
 	}
 	return nil
 }

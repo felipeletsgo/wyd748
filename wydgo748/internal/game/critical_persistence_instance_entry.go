@@ -209,7 +209,7 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 			ch.NightmareTickets--
 		}
 		changes[member] = account
-		tiles[criticalTeleportTile{spatialKey(ch.X, ch.Y), space}] = member
+		tiles[criticalTile(ch.X, ch.Y, space)] = member
 		for _, oldRoom := range plan.proposed.itemInstances {
 			if oldRoom != inst && itemInstanceHasMember(oldRoom, member.ID) {
 				plan.proposed.detachInstanceMembersAfterCommit(oldRoom, map[uint16]struct{}{member.ID: {}})
@@ -249,7 +249,7 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 	check := func() error {
 		for tile, owner := range tiles {
 			reserved := w.criticalTeleportTiles[tile]
-			x, y := uint16(tile.cell>>16), uint16(tile.cell)
+			x, y := tile.xy()
 			if (!admitted && reserved != nil) || (admitted && reserved != owner) ||
 				w.positionOccupiedInGameplaySpace(x, y, tile.space, nil, owner, ignored) {
 				return errCriticalPersistenceIdentity

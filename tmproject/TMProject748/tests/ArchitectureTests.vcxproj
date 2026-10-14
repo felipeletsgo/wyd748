@@ -49,6 +49,9 @@
     <ClCompile Include="GridInsertionTests.cpp" />
     <ClCompile Include="CostumeSelectionTests.cpp" />
     <ClCompile Include="HumanCostumeRefinementTests.cpp" />
+    <ClCompile Include="NativeRefinementPresentationTests.cpp">
+      <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
     <ClCompile Include="FieldSceneChatContractTests.cpp" />
     <ClCompile Include="FieldChatControlTests.cpp" />
     <ClCompile Include="FieldChatSubmitPolicyTests.cpp" />
@@ -68,12 +71,14 @@
     </ClCompile>
     <ClCompile Include="ResourceBarProjectionTests.cpp" />
     <ClCompile Include="NativeScoreHudTests.cpp" />
+    <ClCompile Include="MountRiderOffsetTests.cpp" />
     <ClCompile Include="PerfTraceTests.cpp" />
     <ClCompile Include="ClientSettingsTests.cpp" />
     <ClCompile Include="WeatherPacketTests.cpp" />
     <ClCompile Include="LightingProfileTests.cpp" />
     <ClCompile Include="MantuaLengthTests.cpp" />
     <ClCompile Include="PremiumShopPacketTests.cpp" />
+    <ClCompile Include="KefraPortalTests.cpp" />
     <ClCompile Include="GroundNeighborPolicyTests.cpp" />
     <ClCompile Include="FieldCachePolicyTests.cpp" />
     <ClCompile Include="WeatherParticlesTests.cpp" />

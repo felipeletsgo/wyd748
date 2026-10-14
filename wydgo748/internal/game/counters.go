@@ -8,32 +8,20 @@ import (
 	"wydgo/internal/wire"
 )
 
-// kefraTicketCounter e o saldo de entradas de Kefra -- o extra.KefraTicket do
-// nativo. O Sobrevivente cobra uma por visita; o item 4127 recarrega 100.
+// kefraTicketCounter holds the character's remaining Kefra hall entries.
+// Survivor exchanges item 4127 for the allowance configured in quests.json.
 const kefraTicketCounter = "kefra_ticket"
 
-// fameCounter e a fama do PERSONAGEM. Vive no charstate como os demais
-// contadores; no nativo e extra.Fame, e a fonte e o Warrior's_Seal (4146).
-//
-// ATENCAO A ORDEM: quem gasta fama junto com itens da conta (crafts do Odin e
-// da Lindy) precisa gravar o charstate ANTES do saveAccount, como faz o
-// executeQuest. Os dois arquivos nao compartilham transacao.
+// fameCounter holds character fame, granted by Warrior's Seal (4146).
+// Operations spending counters and account items must persist both aggregates
+// atomically, using the account/character-state transaction helpers.
 const fameCounter = "fame"
 
-// Contador nomeado por personagem -- o `KefraTicket` do nativo e o caso de uso
-// que motivou isto: um saldo de entradas que o Sobrevivente cobra por visita.
-//
-// NAO ha campo novo: `Player.SpecialCoins` (persistido em
-// character_states por Char.UID) ja e um `map[string]uint32` por personagem, ja e
-// zerado por resetCharacterRuntime e ja e SUBSTITUIDO, nunca mesclado, por
-// applyCharState. Criar um campo paralelo traria duas armadilhas:
-//
-//   - CharStateVersion e validado por igualdade exata (store/charstate.go),
-//     entao subir a versao invalidaria todo sidecar existente;
-//   - o store APAGA o arquivo quando Affects e SpecialCoins estao ambos vazios,
-//     entao um campo novo fora dessa condicao sumiria no primeiro autosave.
+// Named counters share Player.SpecialCoins, persisted by Char.UID. Loading a
+// character replaces this map rather than merging another character's balance.
+// Reuse this representation instead of introducing a parallel allowance field.
 
-// counterBalance devolve o saldo do contador. Mapa nil e saldo zero.
+// counterBalance returns zero for a nil player or counter map.
 func counterBalance(p *Player, name string) uint32 {
 	if p == nil || p.SpecialCoins == nil {
 		return 0
@@ -41,8 +29,8 @@ func counterBalance(p *Player, name string) uint32 {
 	return p.SpecialCoins[name]
 }
 
-// hasCounters diz se o personagem tem TODOS os saldos pedidos. Devolve tambem o
-// nome do primeiro contador em falta, para a mensagem de recusa ser especifica.
+// hasCounters requires every requested balance and reports a missing counter
+// so callers can present a specific rejection.
 func hasCounters(p *Player, required map[string]uint32) (string, bool) {
 	for name, amount := range required {
 		if counterBalance(p, name) < amount {
@@ -52,9 +40,8 @@ func hasCounters(p *Player, required map[string]uint32) (string, bool) {
 	return "", true
 }
 
-// spendCounters debita os saldos. Falha sem debitar NADA se algum nao cobrir --
-// debitar em ordem e desistir no meio deixaria o personagem pagando parte do
-// preco sem receber a recompensa.
+// spendCounters debits all balances or none. A partial charge must not survive
+// when another required counter is insufficient.
 func spendCounters(p *Player, cost map[string]uint32) bool {
 	if len(cost) == 0 {
 		return true
@@ -64,8 +51,7 @@ func spendCounters(p *Player, cost map[string]uint32) bool {
 	}
 	for name, amount := range cost {
 		p.SpecialCoins[name] -= amount
-		// Saldo zerado sai do mapa: o charstate omite zeros ao gravar, e manter
-		// a chave aqui faria o mapa em memoria divergir do que foi persistido.
+		// Character-state persistence omits zeros; keep the live map consistent.
 		if p.SpecialCoins[name] == 0 {
 			delete(p.SpecialCoins, name)
 		}
@@ -73,7 +59,7 @@ func spendCounters(p *Player, cost map[string]uint32) bool {
 	return true
 }
 
-// grantCounters credita saldos, saturando no teto em vez de dar a volta.
+// grantCounters credits balances, saturating at the maximum without wrapping.
 func grantCounters(p *Player, reward map[string]uint32) {
 	if p == nil || len(reward) == 0 {
 		return
@@ -82,18 +68,18 @@ func grantCounters(p *Player, reward map[string]uint32) {
 		p.SpecialCoins = make(map[string]uint32, len(reward))
 	}
 	for name, amount := range reward {
-		saldo := p.SpecialCoins[name]
-		if saldo > model.MaxQuestCounter-amount {
-			saldo = model.MaxQuestCounter
+		balance := p.SpecialCoins[name]
+		if balance > model.MaxQuestCounter-amount {
+			balance = model.MaxQuestCounter
 		} else {
-			saldo += amount
+			balance += amount
 		}
-		p.SpecialCoins[name] = saldo
+		p.SpecialCoins[name] = balance
 	}
 }
 
-// copyCounters tira um snapshot para o rollback. O mapa e por referencia, entao
-// guardar `p.SpecialCoins` direto nao restauraria nada.
+// copyCounters takes a detached snapshot for proposals and rollback. Retaining
+// the live map would alias subsequent mutations instead of preserving its state.
 func copyCounters(p *Player) map[string]uint32 {
 	if p == nil || p.SpecialCoins == nil {
 		return nil
@@ -105,42 +91,38 @@ func copyCounters(p *Player) map[string]uint32 {
 	return c
 }
 
-// useCounterGrant e a acao volatile "grant_counter": o item vira saldo. No
-// nativo e o 4127, que soma 100 entradas de Kefra.
-//
-// Mesmo persist-before-confirm do resto: o item so some depois que o sidecar
-// esta em disco, senao uma falha de gravacao consumiria o item sem creditar
-// nada.
+// useCounterGrant implements the volatile "grant_counter" action. The item and
+// balance are saved atomically before confirmation; a failed save restores both.
+// Survivor's Locked Seal exchange is a quest recharge, not this item-use action.
 func (w *World) useCounterGrant(s *net.Session, p *Player, item *model.Item, slot byte, rule model.VolatileRule, code int) {
 	if len(rule.Counters) == 0 {
-		log.Printf("[#%d] grant_counter sem contadores no item %d", s.ID, item.Index)
+		log.Printf("[#%d] grant_counter has no counters for item %d", s.ID, item.Index)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	anterior := *item
-	saldoAnterior := copyCounters(p)
+	before := *item
+	countersBefore := copyCounters(p)
 
 	grantCounters(p, rule.Counters)
 	if rule.Consume {
 		consumeOne(item)
 	}
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
-		*item = anterior
-		p.SpecialCoins = saldoAnterior
-		log.Printf("[#%d] ERRO ao salvar contador do item %d: %v", s.ID, anterior.Index, err)
+		*item = before
+		p.SpecialCoins = countersBefore
+		log.Printf("[#%d] save counter for item %d failed: %v", s.ID, before.Index, err)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	for nome, quantidade := range rule.Counters {
-		log.Printf("[#%d] contador %q +%d = %d (item %d volatile %d)",
-			s.ID, nome, quantidade, counterBalance(p, nome), anterior.Index, code)
+	for name, amount := range rule.Counters {
+		log.Printf("[#%d] counter %q +%d = %d (item %d volatile %d)",
+			s.ID, name, amount, counterBalance(p, name), before.Index, code)
 	}
 }
 
-// useCounterGrantOnce registra um desbloqueio permanente. Uma tentativa
-// repetida nunca consome o item, pois o estado autoritativo prevalece sobre o
-// pedido reenviado pelo client.
+// useCounterGrantOnce records a permanent unlock. Repeated requests do not
+// consume another item because authoritative state takes precedence over replay.
 func (w *World) useCounterGrantOnce(s *net.Session, p *Player, item *model.Item, slot byte, rule model.VolatileRule, code int) {
 	if len(rule.Counters) == 0 {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -191,12 +173,11 @@ func (w *World) useCounterGrantOnce(s *net.Session, p *Player, item *model.Item,
 	s.Send(wire.MessagePanel("Event access enabled."))
 }
 
-// rechargeCovers diz se a recarga do NPC consegue suprir o contador em falta.
-// Usada na OFERTA: sem isso, quem chega com saldo zero e o selo na mochila
-// seria recusado antes de o NPC ter chance de trocar.
-func rechargeCovers(p *Player, ch *model.Char, quest *model.QuestDef, faltando string) bool {
+// rechargeCovers lets an NPC offer the exchange when its recharge can cover a
+// missing counter. A zero balance must not reject a player who brought the seal.
+func rechargeCovers(p *Player, ch *model.Char, quest *model.QuestDef, missing string) bool {
 	r := quest.Recharge
-	if r == nil || r.Counter != faltando {
+	if r == nil || r.Counter != missing {
 		return false
 	}
 	if countInventoryItem(ch, r.Item) < 1 {
@@ -205,9 +186,8 @@ func rechargeCovers(p *Player, ch *model.Char, quest *model.QuestDef, faltando s
 	return counterBalance(p, r.Counter)+r.Amount >= quest.ConsumeCounters[r.Counter]
 }
 
-// applyQuestRecharge troca uma unidade do item por saldo, SOMENTE com o
-// contador zerado -- e a condicao do nativo (`if KefraTicket < 1`), e ela evita
-// que quem ainda tem entradas perca o selo sem precisar.
+// applyQuestRecharge exchanges one item only when its balance is exhausted.
+// Players with remaining entries keep their seal until another recharge is needed.
 func applyQuestRecharge(p *Player, quest *model.QuestDef) bool {
 	r := quest.Recharge
 	if r == nil || p == nil || p.Char == nil {

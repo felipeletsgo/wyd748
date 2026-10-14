@@ -16,12 +16,12 @@ IdleHideAmbient=1
 UIScale=Auto
 
 # Anisotropic filtering for world textures: 0 (off), 2, 4, 8 or 16.
-Anisotropy=4
+Anisotropy=8
 
 # Rain and snow area: half size in world units around the character
 # (6 = classic 7.48 area, 12 = default, up to 20). The particle count grows
 # with the area so the density stays the same.
-WeatherArea=12
+WeatherArea=16
 
 # Visited fields kept in memory to avoid rebuilding them; 0 disables.
 FieldCache=4

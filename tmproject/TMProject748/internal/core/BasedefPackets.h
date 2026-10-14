@@ -1,6 +1,7 @@
 #pragma once
 // Wire packets (MSG_*) and their layout checks. Split from Basedef.h in original order; include "Basedef.h" for the whole set.
 #include "BasedefStructs.h"
+#include "../wire/ShoutMessagePacket.h"
 
 struct MSG_Action
 {
@@ -236,7 +237,6 @@ static_assert(sizeof(MSG_UpdateAffect::Affect) ==
 constexpr auto MSG_AccountLogin_Opcode = 0x20D;
 
 
-constexpr auto MSG_MessageShout_Opcode = 0xD1D;
 
 
 constexpr auto MSG_Encode_Opcode = 0xBFF;

@@ -9,7 +9,8 @@ $headerPath = Join-Path $repo 'tmproject/TMProject748/internal/render/mesh/Costu
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $items = @($manifest.items | Where-Object available | Sort-Object item)
 $renderers = @($manifest.renderers | Sort-Object type)
-if ($items.Count -ne 135 -or $renderers.Count -ne 129) { throw 'Unexpected validated costume collection.' }
+if ($items.Count -ne 143 -or $renderers.Count -ne 129) { throw 'Unexpected validated costume collection.' }
+$textures = @($manifest.textures | Where-Object { $_.PSObject.Properties['available'] -eq $null -or $_.available } | Sort-Object name)
 if (@($items | ForEach-Object { $_.item } | Sort-Object -Unique).Count -ne $items.Count -or
     @($renderers.type | Sort-Object -Unique).Count -ne $renderers.Count) { throw 'Duplicate costume ID/type.' }
 
@@ -29,9 +30,11 @@ $lines.Add('namespace costume748 {')
 $lines.Add('struct Item { int index; int maleType; int femaleType; int skin; };')
 $lines.Add('struct Part { const char* texture; const char* mesh; };')
 $lines.Add('struct Renderer { int type; Part parts[6]; };')
+$lines.Add('struct Texture { const char* name; char alpha; };')
 $lines.Add('inline constexpr Item Items[] = {')
 foreach ($item in $items) {
-    $supportedTypes = @($renderers.type) + @(1, 2, 3, 4, 5)
+    # Types 1..11 are drawn by the native SetHumanCostume/SetCostume path.
+    $supportedTypes = @($renderers.type) + @(1..11)
     if ($item.maleType -notin $supportedTypes -or $item.femaleType -notin $supportedTypes -or
         $item.skin -notin @(-1, 0, 1)) { throw "Invalid selector: $($item.item)" }
     $lines.Add(('    {{ {0}, {1}, {2}, {3} }},' -f $item.item, $item.maleType, $item.femaleType, $item.skin))
@@ -49,12 +52,20 @@ foreach ($renderer in $renderers) {
     $lines.Add(('    {{ {0}, {{ {1} }} }},' -f $renderer.type, ($parts -join ', ')))
 }
 $lines.Add('};')
+# Renderer textures must be registered in the model texture table; the
+# runtime appends any that the shipped MeshTextureList.bin omits.
+$lines.Add('inline constexpr Texture Textures[] = {')
+foreach ($texture in $textures) {
+    if ($texture.alpha -notin @(65, 67, 78)) { throw "Invalid texture alpha: $($texture.name)" }
+    $lines.Add(('    {{ {0}, {1} }},' -f (ConvertTo-CppString $texture.name 64), $texture.alpha))
+}
+$lines.Add('};')
 $lines.Add('} // namespace costume748')
 $result = ($lines -join "`n") + "`n"
 if ($Check) {
     $actual = [IO.File]::ReadAllText($headerPath).Replace("`r`n", "`n")
     if ($actual -cne $result) { throw 'CostumeTable.generated.h is stale; regenerate through the reviewed source edit.' }
-    Write-Output 'Costume table: 135 items, 129 renderers, 774 parts and asset dependencies PASS.'
+    Write-Output "Costume table: $($items.Count) items, $($renderers.Count) renderers, $($textures.Count) textures and asset dependencies PASS."
 } else {
     # Output only: the caller reviews/applies the generated source; no runtime writes.
     [Console]::Out.Write($result)

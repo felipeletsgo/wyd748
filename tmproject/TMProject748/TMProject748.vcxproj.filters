@@ -552,6 +552,9 @@
     <ClInclude Include="internal\game\entities\TMHuman.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
+    <ClInclude Include="internal\game\entities\MountRiderOffset.h">
+      <Filter>Header Files\Engine</Filter>
+    </ClInclude>
     <ClInclude Include="internal\render\world\structures\TMHouse.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
@@ -1493,6 +1496,9 @@
       <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
     <ClInclude Include="internal\platform\diagnostics\ClientDiagnostics.h">
+      <Filter>Header Files\Internal\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="internal\platform\diagnostics\CrashCapture.h">
       <Filter>Header Files\Internal\Platform</Filter>
     </ClInclude>
     <ClInclude Include="internal\platform\diagnostics\PerfTrace.h">

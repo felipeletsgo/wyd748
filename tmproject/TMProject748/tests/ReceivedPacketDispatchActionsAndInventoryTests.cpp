@@ -197,8 +197,7 @@ int RunReceivedPacketDispatchActionsAndInventoryTests(int& checks)
     {
         check(IsSwapPlacePosition(kSwapPlaceEquip,
             static_cast<unsigned char>(position)) ==
-            (position < kSwapEquipSlotCount &&
-                position != kSwapUnsupportedNecklaceSlot),
+            (position < kSwapEquipSlotCount),
             "SwapItem validates the active peer's Equip domain");
         check(IsSwapPlacePosition(kSwapPlaceCarry,
             static_cast<unsigned char>(position)) ==

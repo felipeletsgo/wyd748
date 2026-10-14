@@ -4,6 +4,7 @@ import (
 	"strings"
 	"time"
 
+	"wydgo/internal/model"
 	"wydgo/internal/wire"
 )
 
@@ -186,7 +187,7 @@ func playerEnterViewPackets(subject *Player) [][]byte {
 	return [][]byte{
 		wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
 			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
-			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP),
+			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP, model.AppearanceCapeEmblem(*subject.Char)),
 		wire.HpMp(subject.ID, wireScoreState(subject.Char)),
 		wire.ActionStop(subject.ID, subject.X, subject.Y),
 	}
@@ -213,6 +214,16 @@ func (w *World) refreshAppearance(subject *Player) {
 	w.sendToPlayerView(subject, func() []byte {
 		return playerAppearancePacket(subject)
 	})
+}
+
+// restoreTransformationView re-sends the owner's visual equipment after a
+// slot-0 face update. That update rebuilds the client body from the real
+// face, which dropped an active BM transformation while its buff remained.
+func (w *World) restoreTransformationView(p *Player) {
+	if p == nil || p.Char == nil || p.Session == nil || !hasActiveAffectAt(p.Char, 16, w.now()) {
+		return
+	}
+	p.Session.Send(playerAppearancePacket(p))
 }
 
 func playerAppearancePacket(subject *Player) []byte {
@@ -763,7 +774,7 @@ func (w *World) syncPlayerChaos(subject *Player) {
 	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
 		return wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
 			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
-			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP)
+			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP, model.AppearanceCapeEmblem(*subject.Char))
 	})
 }
 

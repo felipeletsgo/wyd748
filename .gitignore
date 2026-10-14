@@ -31,6 +31,7 @@
 /wydgo748/web/portal/node_modules/
 /wydgo748/web/portal/dist/
 /wydgo748/web/portal/.astro/
+/wydgo748/web/portal/src/data/catalog.generated.json
 /wydgo748/web/portal/.env*
 /.codex/
 /.claude/settings.local.json

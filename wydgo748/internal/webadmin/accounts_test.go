@@ -53,7 +53,7 @@ func anonymousSession(t *testing.T, h *Handler) (*http.Cookie, testSession) {
 
 func TestCreateAccount(t *testing.T) {
 	h, _, _, logs := newTestHandler(t)
-	cookieBox, session := anonymousSession(t, h)
+	cookieBox, session, _ := loginTest(t, h)
 	body := `{"username":"NewPlayer","password":"SafePass9!","passwordConfirmation":"SafePass9!","adminPin":"001234"}`
 	w := request(h, "POST", "/api/v1/accounts", body, cookieBox, session.CSRF)
 	if w.Code != 201 {
@@ -85,7 +85,7 @@ func TestCreateAccount(t *testing.T) {
 
 func TestCreateAccountRejectsInvalidRequests(t *testing.T) {
 	h, _, _, _ := newTestHandler(t)
-	cookieBox, session := anonymousSession(t, h)
+	cookieBox, session, _ := loginTest(t, h)
 	tests := []struct {
 		name string
 		body string
@@ -119,7 +119,7 @@ func TestCreateAccountRejectsInvalidRequests(t *testing.T) {
 func TestCreateAccountReportsUnavailableWriter(t *testing.T) {
 	h, _, _, _ := newTestHandler(t)
 	h.cfg.Registration = nil
-	cookieBox, session := anonymousSession(t, h)
+	cookieBox, session, _ := loginTest(t, h)
 	w := request(h, "POST", "/api/v1/accounts", `{}`, cookieBox, session.CSRF)
 	if w.Code != 503 || !strings.Contains(w.Body.String(), "registration_unavailable") {
 		t.Fatalf("unavailable registration: %d %s", w.Code, w.Body.String())
@@ -128,7 +128,7 @@ func TestCreateAccountReportsUnavailableWriter(t *testing.T) {
 
 func TestCreateAccountRateLimitsRepeatedUsername(t *testing.T) {
 	h, _, _, _ := newTestHandler(t)
-	cookieBox, session := anonymousSession(t, h)
+	cookieBox, session, _ := loginTest(t, h)
 	body := `{"username":"player2","password":"SafePass9!","passwordConfirmation":"OtherPas9!","adminPin":"001234"}`
 	for attempt := 1; attempt <= 3; attempt++ {
 		w := request(h, "POST", "/api/v1/accounts", body, cookieBox, session.CSRF)

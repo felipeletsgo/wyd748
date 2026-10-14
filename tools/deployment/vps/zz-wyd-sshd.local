@@ -1,0 +1,4 @@
+# Keep SSH bans scoped to SSH. Never disconnect game or website users because
+# the same public IP failed SSH authentication.
+[sshd]
+banaction = ufw[application=OpenSSH]

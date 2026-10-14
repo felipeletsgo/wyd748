@@ -14,6 +14,8 @@
 #include "TMEffectSkinMesh.h"
 #include "ClientDiagnostics.h"
 #include "WYD748Assets.h"
+#include "../../ui/GuildNameDirectory.h"
+#include "../../ui/CapePresentation748.h"
 #include "../../platform/windows/SocketTransport.h"
 #include "../../application/RequestCharacterLogin.h"
 #include "../../wire/CharacterLoginSender.h"
@@ -790,18 +792,15 @@ int TMSelectCharScene::OnMouseEventWhileSelecting(TMHuman*& pOver)
 	sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Score[i].Mastery[3]);
 	pSp4->SetText(szValue, 0);
 
-	if (g_pObjectManager->m_stSelCharData.Equip[i][0].stEffect[1].cEffect == 28)
+	if (pGuild)
 	{
-		if (g_pObjectManager->m_stSelCharData.Equip[i][0].stEffect[1].cValue)
-		{
-			sprintf_s(szValue, "%d", g_pObjectManager->m_stSelCharData.Equip[i][0].stEffect[1].cValue);
-			pGuild->SetText(szValue, 0);
-		}
-		else
-		{
-			pGuild->SetText((char*)"", 0);
-			pGuild->SetTextColor(0xFFFFFFFF);
-		}
+		static guild_name_748::FileDirectory guildNames;
+		guildNames.Refresh("Guilds.txt");
+		const auto name = guildNames.Find(g_pObjectManager->m_nServerGroupIndex,
+			g_pObjectManager->m_stSelCharData.Guild[i]);
+		strcpy_s(g_pObjectManager->m_strGuildName[i], name.c_str());
+		pGuild->SetText(g_pObjectManager->m_strGuildName[i], 0);
+		pGuild->SetTextColor(name.empty() ? 0xFFFFFFFF : 0xFFAAAAAA);
 	}
 
 	char* szTownName[5]
@@ -867,29 +866,16 @@ int TMSelectCharScene::OnMouseEventWhileSelecting(TMHuman*& pOver)
 	auto pPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(1282u));
 	pPanel->SetVisible(1);
 
-	if (!m_pHuman[i]->m_pMantua)
+	const int kingdomEmblem = m_pHuman[i]->m_sMantuaIndex > 0
+		? cape_presentation_748::KingdomEmblem(m_pHuman[i]->m_wMantuaSkin, m_pHuman[i]->m_sHelmIndex)
+		: -1;
+	if (m_pKingDomFlag)
 	{
-		m_pKingDomFlag->SetVisible(0);
+		if (kingdomEmblem >= 0) m_pKingDomFlag->m_GCPanel.nTextureIndex = kingdomEmblem;
+		m_pKingDomFlag->SetVisible(kingdomEmblem >= 0);
 	}
-	else if (m_pHuman[i]->m_pMantua->m_Look.Skin0 == 19)
-	{
-		m_pKingDomFlag->SetVisible(0);
-	}
-	else
-	{
-		m_pKingDomFlag->m_GCPanel.nTextureIndex = m_pHuman[i]->m_pMantua->m_Look.Skin0;
-
-		if ((m_pHuman[i]->m_sHelmIndex == 3503 ||
-			m_pHuman[i]->m_sHelmIndex == 3504 ||
-			m_pHuman[i]->m_sHelmIndex == 3505 ||
-			m_pHuman[i]->m_sHelmIndex == 3506) &&
-			m_pHuman[i]->m_pMantua->m_Look.Skin0 == 2)
-		{
-			m_pKingDomFlag->m_GCPanel.nTextureIndex = 33;
-		}
-
-		m_pKingDomFlag->SetVisible(1);
-	}
+	if (auto pNoKingdom = m_pControlContainer->FindControl(TMT_NOKINGDOM))
+		pNoKingdom->SetVisible(kingdomEmblem < 0);
 
 	if (g_pSoundManager)
 	{

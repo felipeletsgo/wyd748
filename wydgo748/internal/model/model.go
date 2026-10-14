@@ -442,6 +442,10 @@ type Char struct {
 	// native code the value is ServerIndex+1, so "Citizenship 1" = channel 1. It
 	// only gives a bonus on that channel -- see CitizenDropBonus.
 	Citizenship byte `json:"citizenship,omitempty"`
+	// CapeEmblem is a cosmetic variant (1..10), independent of channel bonuses,
+	// chat and wars. Zero denotes a legacy character awaiting its first grant
+	// or the entry migration. Promotions and kingdom changes retain the symbol.
+	CapeEmblem byte `json:"capeEmblem,omitempty"`
 	// SavedX/SavedY are the coordinate saved by the Star Gem (volatile 12) and
 	// used by Warp (volatile 13). Persisted per character; 0/0 = none saved.
 	SavedX uint16 `json:"savedX,omitempty"`
@@ -541,7 +545,7 @@ func (c Char) equalsZero() bool {
 		c.CelestialCytheraTier == 0 && !c.CelestialArcana &&
 		c.AlternateCelestial == nil &&
 		c.ShortSkill == [20]byte{} && c.Affects == [16]Affect{} &&
-		c.GuildID == 0 && c.GuildRank == 0 && c.Citizenship == 0 &&
+		c.GuildID == 0 && c.GuildRank == 0 && c.Citizenship == 0 && c.CapeEmblem == 0 &&
 		c.SavedX == 0 && c.SavedY == 0 && c.NightmareTickets == 0 &&
 		c.LastNightmareUnix == 0
 }

@@ -56,6 +56,10 @@ printf 'WYD_DATABASE_URL=postgres://wyd_game:%s@127.0.0.1:5433/wydgo?sslmode=dis
 printf 'WYD_PLAYER_DATABASE_URL=postgres://wyd_player:%s@127.0.0.1:5433/wydgo?sslmode=disable\n' "$WYD_PLAYER_SECRET" > /etc/wyd-go/player.env
 unset WYD_GAME_SECRET WYD_PLAYER_SECRET
 chmod 600 /etc/wyd-go/*.env
+# Registration and published login fail closed until a real secret is installed.
+# Supply it through non-echoed stdin; never put it in arguments or staging files.
+python3 "$stage/config/set-turnstile-secret.py"
+install -m 700 "$stage/config/set-turnstile-secret.py" /usr/local/sbin/wyd-set-turnstile-secret
 # Public artifacts: the Guilds.txt export and the launcher patch tree. The
 # patch list grows with each release, so an existing update.htm is kept.
 install -d -o wyd-game -g wyd-game -m 755 /var/lib/wyd-go-public

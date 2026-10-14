@@ -1,98 +1,91 @@
 ---
 id: equipment-slot-compatibility
-title: Slots de equipamento aceitos pela projeção WYD-Go 7.48
+title: Equipment slots supported by the WYD-Go 7.48 projection
 subsystem: ui
-status: LOCATED
+status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-07
+updated: 2026-10-14
 ---
 
-## Pergunta
+# Equipment slots supported by the WYD-Go 7.48 projection
 
-Quais slots de equipamento devem existir no client que conversa com o
-WYD-Go 7.48, e como impedir que controles de versões posteriores reapareçam na
-UI? O array `Equip` e seu wire permanecem com o tamanho legado; o escopo desta
-ficha é a projeção visual e o despacho de posições sem controle materializado.
+## Question
 
-## Fronteira de evidência
+Which equipment positions must be exposed, particularly Mystic Amulet slot 9,
+without accidentally enabling later-client slots 16/17?
 
-- UTILIZADA: contrato explícito do emulador WYD-Go 7.48 informado nesta tarefa:
-  não há item/equipamento Necklace nem Belt/NewSlot, e não há slot visual para
-  equipá-los.
-- UTILIZADA: source atual `TMFieldScene::InitializeCompatInventory`,
-  `SetEquipGridState`, `OnPacketSwapItem`, `OnPacketSell` e
-  `TMHuman::OnPacketSendItem`.
-- CONTRADITÓRIA para esta projeção: descompilação nativa `FUN_00435B13` do
-  executável 7.48 (hash acima) materializa IDs `0x160..0x168`, e a source
-  histórica possui `ITEMTYPE_NECKLACE`; isso documenta o binário estudado, mas
-  não autoriza expor esses controles no contrato do emulador solicitado.
-- CONTRADITÓRIA como mecânica histórica, sem força para substituir o contrato
-  do emulador: guia KR scraped menciona Necklace em regras de selamento.
-- NÃO APLICÁVEIS: sources 7.54, fontes legadas externas; não foram consultadas.
+## Evidence boundary
 
-## Fluxo nativo 7.48
+- USED: native FUN_00435B13 binds equipment controls 0x160..0x168.
+- USED: current item definitions 559..562, slot mask 512, class/level rules,
+  TMFieldScene inventory bindings, transaction contracts and server handlers.
+- CONTRADICTORY: the earlier projection deliberately hid Necklace slot 9 and
+  migrated every saved item there. That policy prevents the supported amulets.
+- SECONDARY: historical ITEMTYPE_NECKLACE names corroborate the slot but do
+  not alone prove native item eligibility.
+- NOT APPLICABLE: modern Belt/NewSlot controls are not part of Equip[16].
 
-`FUN_00435B13` resolve a árvore de equipamento por controles do root 257 e
-atribui slots virtuais. A ficha não altera essa leitura histórica; registra a
-decisão de adaptar a projeção para um peer WYD-Go que deliberadamente não
-possui Necklace/Belt.
+## Native 7.48 flow
 
-## Estado e lifecycle
+### Callers
 
-No bootstrap compatível, os controles encontrados para Necklace (`354`) e
-NewSlot (`1048976`/`1048977`) são esvaziados, desabilitados e ocultados. Os
-membros da cena tornam-se nulos e não entram na lista de grids populados. A
-troca de cena/relogin recria a árvore e reaplica a mesma política; nenhum
-ponteiro desses controles atravessa o teardown.
+The native inventory binder FUN_00435B13 resolves equipment controls from
+root 257. Current scene initialization binds control 354 to equipment slot 9.
 
-No servidor, um item legado encontrado em `Equip[9]` durante enter-world é
-movido para o primeiro Carry visível livre ou, se necessário, para o Cargo
-visível. A conta é persistida antes da publicação dos packets; falha de save
-restaura origem e destino. Sem espaço, o item permanece armazenado, mas o slot
-é excluído de score, gemas e aparência até poder ser migrado em outro login.
+### Callees
 
-## Wire, ABI e recursos
+Existing grid population, SendItem, SwapItem and sell handlers use the shared
+equipment-position validation. No new inventory control or message is added.
 
-O array `Equip[16]`, structs e offsets de packets não foram redimensionados.
-Posições 9, 16 e 17 são mantidas apenas como valores de fronteira para não
-deslocar o wire; no modo compatível, `MSG_SwapItem` e `MSG_Sell` que tentem
-endereçá-las são rejeitados antes de acessar um grid nulo. `SendItem` conserva
-o cache recebido, mas não materializa visual para esses slots.
-`EnterWorld`, `SelfEquip`, `CreateMob` e atualizações de aparência projetam a
-posição 9 como vazia para o peer, ainda que um save antigo precise ser retido.
+## State and lifecycle
 
-## Mapeamento atual
+Bootstrap enables and populates control 354. Controls 1048976/1048977 for
+positions 16/17 stay empty, disabled and hidden. Scene teardown owns all grids;
+no receiver survives relogin.
 
-Slots visuais ativos no modo compatível: rosto implícito, Helm, Coat, Pants,
-Gloves, Boots, Left, Right, Ring, Orb, Cabuncle, Guild, Event, Mount/DRing e
-Mantua/Cape. Necklace (9) e NewSlot/Belt (16/17) não têm grid ativo. As grades
-de atalho de skills 571, 573 e 586 não são equipamento e permanecem ativas.
+On server entry, a slot-9 item whose Pos includes bit 9 remains equipped.
+An incompatible legacy item is migrated to visible Carry/Cargo using the
+existing persistence/rollback path. Full storage preserves the item rather
+than deleting it. Eligibility and score continue to require the correct Pos.
 
-## Matriz de delta
+## Wire, ABI, and resources
 
-| Claim | Source anterior | Source atual | Decisão |
-| --- | --- | --- | --- |
-| Necklace visual | bind/populate opcional | grid limpo, oculto e ponteiro nulo | não materializar |
-| Belt/NewSlot visual | ponteiros modernos podiam sobreviver | 1048976/1048977 desabilitados | não materializar |
-| Equip wire | array fixo de 16 | inalterado | preservar ABI |
-| pacote para slot ausente | dereferência podia ocorrer em swap/venda | rejeição precoce no modo compatível | proteger lifecycle |
-| save antigo em Equip[9] | item invisível podia conceder bônus | migra para Carry/Cargo ou fica inerte | preservar item sem benefício oculto |
+Equip[16], packet sizes and offsets are unchanged. Position 9 is a valid
+equipment destination; 16/17 remain rejected before grid dereference.
+Existing GateMapData compatibility handling is preserved.
 
-## Decisões
+## Current mapping
 
-Aplicar `MODERNIZACAO_COMPATIVEL` na projeção client/server: manter o wire
-legado intacto, mas fazer a UI WYD-Go 7.48 expor somente os slots que o
-emulador suporta. Não remover enums ou campos compartilhados, pois isso mudaria
-ABI e não é necessário para ocultar a feature.
+MODERNIZACAO_COMPATIVEL: restore the supported slot across client binding,
+transaction validation, server eligibility, entry migration, score and gems.
+This is not a claim that every amulet rule is independently native-validated.
 
-## Lacunas
+## Delta matrix
 
-Ainda falta confirmar no `project.exe` que os controles permanecem ocultos ao
-abrir Character, após resposta `SendItem`, troca de cena e relogin. O fluxo
-visual não é `CLIENT_TESTED`.
+| Claim | Previous projection | Current decision |
+| --- | --- | --- |
+| Slot 9 control 354 | Hidden/null | Bound, enabled and populated |
+| Mystic Amulet 559..562 | Cannot equip | Existing class/level/Pos validation |
+| Compatible saved slot-9 item | Always migrated | Kept equipped |
+| Incompatible saved item | Migrated or retained safely | Preserve migration and rollback |
+| Slots 16/17 | Unsupported | Still unsupported |
+| Equip ABI | Sixteen items | Unchanged |
 
-## Validação
+## Decisions
 
-Build Release e ArchitectureTests devem ser registrados no handoff do lote.
-Executar Character/equipamento em resolução de referência e verificar que não
-há hitbox, ícone ou destino de drag para Necklace/Belt.
+Expose the already supported amulet slot without resizing equipment or enabling
+modern controls. Preserve item identity and persistence rollback.
+
+## Gaps
+
+Equipment drag, score refresh, full-storage relogin and scene transitions still
+need actual client execution. Not CLIENT_TESTED.
+Published in server release `20261014T234237Z` and patch 10024; see
+[current state](../../../../../DOCS/current-state.md) for receipts and acceptance.
+
+## Validation
+
+Focused tests cover all four amulet classes, level requirements, UID retention,
+normal and critical entry, full storage, replay, score and gem eligibility.
+Full Go tests/vet and client architecture tests passed.
+Release/Win32 -NoDeploy build passed without replacing the installed runtime.

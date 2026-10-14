@@ -112927,7 +112927,25 @@
 	DestRange:	0
 	DestWait:	0
 
-// ShopKRMt01/02 - KR client mount looks ported as Shire.
+#	[5227]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopCostum06
+	Follower:	ShopCostum06
+	RouteType:	0
+	Formation:	0
+	StartX:		2117
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2117
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+// ShopKRMt01..04 - KR client mount looks ported as Shire.
 // ********************************************
 #	[5223]
 	MinuteGenerate:	-1
@@ -112979,6 +112997,24 @@
 	StartRange:	0
 	StartWait:	0
 	DestX:		2115
+	DestY:		2104
+	DestRange:	0
+	DestWait:	0
+
+#	[5226]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopKRMt04
+	Follower:	ShopKRMt04
+	RouteType:	0
+	Formation:	0
+	StartX:		2116
+	StartY:		2104
+	StartRange:	0
+	StartWait:	0
+	DestX:		2116
 	DestY:		2104
 	DestRange:	0
 	DestWait:	0
@@ -113861,5 +113897,65 @@
 	StartWait:	0
 	DestX:		2101
 	DestY:		2100
+	DestRange:	0
+	DestWait:	0
+
+// ShopArchSet - test NPC with the four Arch armor sets
+#	[5228]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopArchSet
+	Follower:	ShopArchSet
+	RouteType:	0
+	Formation:	0
+	StartX:		2099
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2099
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+
+// ShopArchWpn - test NPC with the Thron Arch weapons and the Hoplon shield
+#	[5229]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopArchWpn
+	Follower:	ShopArchWpn
+	RouteType:	0
+	Formation:	0
+	StartX:		2098
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2098
+	DestY:		2102
+	DestRange:	0
+	DestWait:	0
+
+
+// ShopAmulet - test NPC with the earrings, Mystic Amulets (+45 damage, +16 magic),
+// Spirit Stones and Ankhs
+#	[5230]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ShopAmulet
+	Follower:	ShopAmulet
+	RouteType:	0
+	Formation:	0
+	StartX:		2097
+	StartY:		2102
+	StartRange:	0
+	StartWait:	0
+	DestX:		2097
+	DestY:		2102
 	DestRange:	0
 	DestWait:	0

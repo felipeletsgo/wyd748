@@ -1,8 +1,12 @@
 -- Run as the database owner after the authoritative schema migration.
--- No game-state UPDATE, DELETE, DDL, or cross-table privileges are granted.
+-- No game-state UPDATE, DELETE, DDL, or unrelated table privileges are granted.
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 GRANT USAGE ON SCHEMA public TO wyd_player;
 GRANT SELECT, INSERT ON public.accounts TO wyd_player;
+-- Security counters are writable; gameplay accounts remain protected.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.web_auth_limits TO wyd_player;
+GRANT SELECT ON public.player_character_progression TO wyd_player;
+GRANT SELECT ON public.player_public_guilds TO wyd_player;
 
 CREATE OR REPLACE FUNCTION public.wyd_check_player_registration()
 RETURNS trigger LANGUAGE plpgsql SET search_path = pg_catalog AS $$

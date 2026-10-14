@@ -395,7 +395,8 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
 
         m_dwOldTime = dwServerTime;
     }
-    if (m_cMagicWeapon == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 150)//efeito da skill Arma magica
+    // Native FUN_004da607: three pairs of particles per emission.
+    if (m_cMagicWeapon == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 50)
     {
         unsigned int dwColor[3];
         dwColor[0] = 0xFF550088;
@@ -410,79 +411,42 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
             D3DXVECTOR3 vecWeapon{ 0.0, 0.0, m_fWeaponLength - (float)((float)(rand() % 10) * fUnit) };
             D3DXVec3Transform(&vecStartOut, &vecWeapon, &m_matEffect);
 
-            float fRand = (float)(rand() % 60);            
+            float fRand = (float)(rand() % 5);
             TMEffectBillBoard* pChild = new TMEffectBillBoard(56,
                 500,
-                (float)(fRand * 0.01f) + 0.2f,
-                (float)(fRand * 0.01f) + 0.2f,
-                (float)(fRand * 0.01f) + 0.2f,
-                0.0005f,
+                0.2f - (float)j * 0.01f,
+                0.2f - (float)j * 0.01f,
+                0.2f - (float)j * 0.01f,
+                0.002f,
                 1,
                 80);
 
-        /*    TMEffectBillBoard* pChild1 = new TMEffectBillBoard(57,
-                500,
-                (float)(fRand * 0.01f) + 0.1f,
-                (float)(fRand * 0.01f) + 0.1f,
-                (float)(fRand * 0.01f) + 0.1f,
-                0.0005f,
-                1,
-                70);
-
-            TMEffectBillBoard* pChild2 = new TMEffectBillBoard(58,
-                500,
-                (float)(fRand * 0.01f) + 0.1f,
-                (float)(fRand * 0.01f) + 0.1f,
-                (float)(fRand * 0.01f) + 0.1f,
-                0.0005f,
-                1,
-                60);
-
-            TMEffectBillBoard* pChild3 = new TMEffectBillBoard(59,
-                500,
-                (float)(fRand * 0.01f) + 0.6f,
-                (float)(fRand * 0.01f) + 0.6f,
-                (float)(fRand * 0.01f) + 0.6f,
-                0.0005f,
-                1,
-                50);*/
-
             if (pChild)
             {
-                pChild->SetColor(0xFF333355);
-                pChild->m_fAxisAngle = (float)(3.1415927f * fRand) /0.1f;
+                pChild->SetColor(dwColor[j]);
                 pChild->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
                 pChild->m_nFade = 1;
-                pChild->m_vecPosition = TMVector3(vecStartOut.x, vecStartOut.y, vecStartOut.z);
+                pChild->m_vecPosition = TMVector3(vecStartOut.x, vecStartOut.y + 0.2f, vecStartOut.z);
                 g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
             }
-     /*       if (pChild1)
-            {
-                pChild1->SetColor(0xFF550088);
-                pChild1->m_fAxisAngle = (float)(3.1415927f * fRand) / 0.1f;
-                pChild1->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                pChild1->m_nFade = 1;
-                pChild1->m_vecPosition = TMVector3(vecStartOut.x, vecStartOut.y, vecStartOut.z);
-                g_pCurrentScene->m_pEffectContainer->AddChild(pChild1);
-            }
+
+            TMEffectBillBoard* pChild2 = new TMEffectBillBoard(60,
+                500,
+                fRand * 0.01f + 0.2f,
+                fRand * 0.01f + 0.2f,
+                fRand * 0.01f + 0.2f,
+                0.0005f,
+                1,
+                80);
             if (pChild2)
             {
-                pChild2->SetColor(0xFF555500);
-                pChild2->m_fAxisAngle = (float)(3.1415927f * fRand) / 0.1f;
+                pChild2->SetColor(0xFF333355);
+                pChild2->m_fAxisAngle = (float)(3.1415927f * fRand) / 3.0f;
                 pChild2->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
                 pChild2->m_nFade = 1;
-                pChild2->m_vecPosition = TMVector3(vecStartOut.x, vecStartOut.y, vecStartOut.z);
+                pChild2->m_vecPosition = TMVector3(vecStartOut.x, vecStartOut.y + 0.2f, vecStartOut.z);
                 g_pCurrentScene->m_pEffectContainer->AddChild(pChild2);
             }
-            if (pChild3)
-            {
-                pChild3->SetColor(0xFF555500);
-                pChild3->m_fAxisAngle = (float)(3.1415927f * fRand) / 0.1f;
-                pChild3->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                pChild3->m_nFade = 1;
-                pChild3->m_vecPosition = TMVector3(vecStartOut.x, vecStartOut.y, vecStartOut.z);
-                g_pCurrentScene->m_pEffectContainer->AddChild(pChild3);
-            }*/
         }
         m_dwOldTime = dwServerTime;
     }
@@ -518,9 +482,9 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
 
             TMEffectBillBoard* pChild2 = new TMEffectBillBoard(101,
                 500,
-                (float)(fRand * 0.009f) + 0.1f,
-                (float)(fRand * 0.009f) + 0.1f,
-                (float)(fRand * 0.009f) + 0.1f,
+                (float)(fRand * 0.01f) + 0.1f,
+                (float)(fRand * 0.01f) + 0.1f,
+                (float)(fRand * 0.01f) + 0.1f,
                 0.0005f,
                 8,
                 80);
@@ -550,7 +514,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
                 (float)((float)nRand * 0.01f) + 0.02f,
                 (float)((float)nRand * 0.05f) + 0.02f,
                 (float)((float)nRand * 0.01f) + 0.02f,
-                0.00009f,
+                0.0001f,
                 1,
                 80);
 

@@ -722,6 +722,7 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 			m_pHuman[i]->m_stLookInfo.BootsMesh, m_pHuman[i]->m_stLookInfo.BootsSkin);
 		m_pHuman[i]->m_wMantuaSkin = g_pItemList[itemListIndices[15]].nIndexTexture;
 
+		m_pHuman[i]->m_citizen = static_cast<unsigned char>(pSelChar->Equip[i][0].stEffect[2].cValue);
 		m_pHuman[i]->m_wMantuaSkin = m_pHuman[i]->SetCitizenMantle(m_pHuman[i]->m_wMantuaSkin);
 
 		if (sIndex % 10 != 8 && sIndex != 21 && sIndex != 22 && sIndex != 23 && sIndex != 24 && sIndex != 25 && sIndex != 32)

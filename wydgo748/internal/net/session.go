@@ -47,12 +47,62 @@ type Session struct {
 	out                     chan []byte
 	done                    chan struct{}
 	doneOnce                sync.Once
+	readDeadlineMu          sync.Mutex
+	authenticated           bool
+	readingFrame            bool
+	preAuthDeadline         time.Time
 	handshakeTimeout        time.Duration
 	idleTimeout             time.Duration
 	frameReadTimeout        time.Duration
 	frameWriteTimeout       time.Duration
 	maxInboundPacketsPerSec int
 	maxInboundBytesPerSec   int
+}
+
+// MarkAuthenticated is called only after World admits a verified account.
+// A parked read must be released from the pre-auth deadline immediately, but
+// authentication must never clear the deadline of an incomplete frame.
+func (s *Session) MarkAuthenticated() {
+	s.readDeadlineMu.Lock()
+	defer s.readDeadlineMu.Unlock()
+	if s.IsClosed() {
+		return
+	}
+	s.authenticated = true
+	if s.conn != nil && !s.readingFrame {
+		if err := s.conn.SetReadDeadline(time.Time{}); err != nil {
+			log.Printf("[#%d] clear authenticated idle deadline: %v", s.ID, err)
+			s.Close()
+		}
+	}
+}
+
+// IsAuthenticated exposes admission state, not a client-supplied claim.
+func (s *Session) IsAuthenticated() bool {
+	s.readDeadlineMu.Lock()
+	defer s.readDeadlineMu.Unlock()
+	return s.authenticated
+}
+
+func (s *Session) setPacketReadDeadline(waitingForPacket bool) error {
+	s.readDeadlineMu.Lock()
+	defer s.readDeadlineMu.Unlock()
+	s.readingFrame = !waitingForPacket
+	deadline := s.preAuthDeadline
+	if s.authenticated {
+		deadline = time.Time{}
+	}
+	if !waitingForPacket {
+		timeout := s.frameReadTimeout
+		if timeout <= 0 {
+			timeout = defaultFrameReadTimeout
+		}
+		frameDeadline := time.Now().Add(timeout)
+		if deadline.IsZero() || frameDeadline.Before(deadline) {
+			deadline = frameDeadline
+		}
+	}
+	return s.conn.SetReadDeadline(deadline)
 }
 
 // IsClosed reports whether the I/O lifetime has ended. Test sessions without
@@ -236,6 +286,10 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 	if idleTimeout <= 0 {
 		idleTimeout = defaultSessionIdleTimeout
 	}
+	s.readDeadlineMu.Lock()
+	// Bound the entire unauthenticated lifetime, not each keepalive packet.
+	s.preAuthDeadline = time.Now().Add(idleTimeout)
+	s.readDeadlineMu.Unlock()
 	packetLimit := s.maxInboundPacketsPerSec
 	if packetLimit <= 0 {
 		packetLimit = maxInboundPacketsPerSecond
@@ -247,32 +301,33 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 	windowStarted := time.Now()
 	packetCount, byteCount := 0, 0
 	for {
-		// The first deadline accommodates the 7.48 client's sparse heartbeat.
-		if err := s.conn.SetReadDeadline(time.Now().Add(idleTimeout)); err != nil {
+		// Authenticated players may remain idle indefinitely. TCP keepalive and
+		// socket errors detect dead peers independently of gameplay activity.
+		if err := s.setPacketReadDeadline(true); err != nil {
 			log.Printf("[#%d] set read deadline: %v", s.ID, err)
 			return
 		}
 		var sizeBytes [2]byte
-		if _, err := io.ReadFull(r, sizeBytes[:]); err != nil {
+		if _, err := io.ReadFull(r, sizeBytes[:1]); err != nil {
 			if !errors.Is(err, io.EOF) {
 				log.Printf("[#%d] read: %v", s.ID, err)
 			}
 			log.Printf("[#%d] disconnected", s.ID)
 			return
 		}
+		// Start the frame timeout at its first byte, including a stalled Size
+		// header. Removing AFK eviction must not enable single-byte Slowloris.
+		if err := s.setPacketReadDeadline(false); err != nil {
+			log.Printf("[#%d] set frame deadline: %v", s.ID, err)
+		}
+		if _, err := io.ReadFull(r, sizeBytes[1:]); err != nil {
+			log.Printf("[#%d] incomplete frame header: %v", s.ID, err)
+			return
+		}
 		size := int(binary.LittleEndian.Uint16(sizeBytes[:]))
 		if size < wire.HeaderSize || size > wire.MaxPacketSize {
 			log.Printf("[#%d] read: %v", s.ID, wire.ErrBadSize)
 			return
-		}
-		frameTimeout := s.frameReadTimeout
-		if frameTimeout <= 0 {
-			frameTimeout = defaultFrameReadTimeout
-		}
-		if err := s.conn.SetReadDeadline(time.Now().Add(frameTimeout)); err != nil {
-			// A peer may close after sending a complete frame (net.Pipe or
-			// shutdown). Drain buffered bytes; ReadFull rejects an incomplete body.
-			log.Printf("[#%d] set frame deadline: %v", s.ID, err)
 		}
 		buf := make([]byte, size)
 		copy(buf[:2], sizeBytes[:])

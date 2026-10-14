@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "WeatherPacket.h"
+#include "WeatherPresentation.h"
 #include "TMFieldScene.h"
 #include "FieldSceneWorldSupport.h"
 #include "SGrid.h"
@@ -204,9 +205,14 @@ void TMFieldScene::SetVisibleMiniMap()
 			part->SetVisible(layout.visible && layout.expanded);
 		}
 	}
-	// Do not show the resource's placeholder server label in the compact HUD.
+	// Native UI2 (FUN_0044ca65) shows the header label above the compact map
+	// at (0, -19) and hides it when the map is expanded; FrameMove fills it
+	// with "<server group>-<channel>" like WYD.exe 0x47a336.
 	if (m_pMiniMapServerPanel)
-		m_pMiniMapServerPanel->SetVisible(0);
+	{
+		m_pMiniMapServerPanel->SetPos(0, px(-19.0f));
+		m_pMiniMapServerPanel->SetVisible(ui2 && layout.visible && !layout.expanded);
+	}
 	// The compact header is a separate child and must not cover the expanded map.
 	if (auto header = m_pControlContainer->FindControl(12841u))
 		header->SetVisible(layout.visible && !layout.expanded);
@@ -227,9 +233,24 @@ void TMFieldScene::SetVisibleMiniMap()
 			mapSize * 0.5f - m_pMiniMapDir->m_nHeight * 0.5f);
 	if (m_pPositionText)
 	{
-		m_pPositionText->SetPos(0, mapSize + px(2.0f));
+		// Native UI2 compact map (FUN_0044ca65) writes "X: %4d  Y: %4d" at
+		// (13, 120) inside the map; the expanded map keeps a row below it.
+		if (ui2 && !layout.expanded)
+			m_pPositionText->SetPos(px(13.0f), px(120.0f));
+		else
+			m_pPositionText->SetPos(0, mapSize + px(2.0f));
 		m_pPositionText->SetSize(mapSize, px(20.0f));
-		m_pPositionText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
+		m_pPositionText->m_dwAlignType = ui2 && !layout.expanded ? SText::TEXT_ALIGN_LEFT : SText::TEXT_ALIGN_CENTER;
+	}
+	if (m_pNetStatsText)
+	{
+		// Below the coordinates: under the map when they sit inside it (UI2
+		// compact), otherwise under their own row below the map.
+		const bool coordinatesInside = ui2 && !layout.expanded;
+		m_pNetStatsText->SetPos(0, mapSize + px(coordinatesInside ? 2.0f : 20.0f));
+		m_pNetStatsText->SetSize(mapSize, px(16.0f));
+		m_pNetStatsText->m_dwAlignType = SText::TEXT_ALIGN_CENTER;
+		m_pNetStatsText->SetVisible(layout.visible && m_bShowNetStats);
 	}
 
 	const bool isVisible = m_pMiniMapPanel->m_bVisible != 0;
@@ -352,54 +373,26 @@ void TMFieldScene::SetVisibleNameLabel()
 
 void TMFieldScene::SetWeather(int nWeather)
 {
+	if (!IsWeatherValue(nWeather))
+		return;
 	// Record the server weather even while a BerialGuard aura overrides it.
 	m_berielAura.SetServer(nWeather);
 	g_nWeather = m_berielAura.Effective();
+	UpdateWeatherEffects();
+}
 
-	if (((int)m_pMyHuman->m_vecPosition.x >> 7 == 29 ||
-		(int)m_pMyHuman->m_vecPosition.x >> 7 == 30) &&
-		(int)m_pMyHuman->m_vecPosition.y >> 7 == 22 == 1)
+void TMFieldScene::UpdateWeatherEffects()
+{
+	const int weather = m_pMyHuman ? weather_presentation::Resolve(m_berielAura.server,
+		static_cast<int>(m_pMyHuman->m_vecPosition.x) >> 7,
+		static_cast<int>(m_pMyHuman->m_vecPosition.y) >> 7,
+		RenderDevice::m_bDungeon, m_berielAura.Active()) : kWeatherClear;
+	weather_presentation::Apply(weather, m_pRain, m_pSnow, m_pSnow2);
+	if (m_pSky)
 	{
-		nWeather = 0;
-	}
-	else if ((nWeather == 2 || nWeather == 3) && (RenderDevice::m_bDungeon == 3 || RenderDevice::m_bDungeon == 4))
-	{
-		nWeather = 1;
-	}
-	else
-	{
-		if ((int)m_pMyHuman->m_vecPosition.x >> 7 > 26 &&
-			(int)m_pMyHuman->m_vecPosition.x >> 7 < 31 &&
-			(int)m_pMyHuman->m_vecPosition.y >> 7 > 20 &&
-			(int)m_pMyHuman->m_vecPosition.y >> 7 < 25)
-		{
-			if (nWeather == 1)
-				nWeather = 3;
-			else
-				nWeather = 2;
-		}
-	}
-
-	switch (nWeather)
-	{
-	case 1:
-		m_pRain->m_bVisible = 1;
-		m_pSnow->m_bVisible = 0;
-		m_pSnow2->m_bVisible = 0;
-		m_pSky->SetWeatherState(11);
-		break;
-	case 2:
-		m_pRain->m_bVisible = 0;
-		m_pSnow->m_bVisible = 1;
-		m_pSnow2->m_bVisible = 0;
-		m_pSky->SetWeatherState(11);
-		break;
-	case 3:
-		m_pRain->m_bVisible = 0;
-		m_pSnow->m_bVisible = 1;
-		m_pSnow2->m_bVisible = 1;
-		m_pSky->SetWeatherState(11);
-		break;
+		const int transition = weather_presentation::SkyTransition(weather, m_pSky->m_nState);
+		if (transition >= 0)
+			m_pSky->SetWeatherState(transition);
 	}
 }
 
@@ -417,7 +410,12 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 		? m_pMyHuman : g_pObjectManager->GetHumanByID(pCreateMob->MobID);
 	if (pExisting)
 	{
-		// A CP refresh must not respawn the entity or interrupt movement.
+		// A metadata refresh must not respawn the entity or interrupt movement.
+		if (pExisting->m_citizen != pCreateMob->Server)
+		{
+			pExisting->m_citizen = pCreateMob->Server;
+			pExisting->SetPacketEquipItem(pCreateMob->Equip);
+		}
 		if (pCreateMob->MobID < 1000)
 			pExisting->m_ucChaosLevel = static_cast<unsigned char>(pCreateMob->MobName[12]);
 		pExisting->UpdateNameColor748();
@@ -514,6 +512,11 @@ int TMFieldScene::OnPacketWeather(MSG_STANDARDPARM* pStd)
 	return 1;
 }
 
+int TMFieldScene::OnPacketKefraPortalState(const kefra_portal::State* packet)
+{
+	return m_kefraPortal.Apply(packet, sizeof(kefra_portal::State)) ? 1 : 0;
+}
+
 int TMFieldScene::OnPacketCreateItem(MSG_CreateItem* pMsg)
 {
 	if (!pMsg || !g_pObjectManager || !m_pGround || !m_pItemContainer ||
@@ -577,8 +580,9 @@ int TMFieldScene::OnPacketCreateItem(MSG_CreateItem* pMsg)
 
 		int nMaskIndex = BASE_GetItemAbility(&pMsg->Item, 34);
 		BASE_UpdateItem2(nMaskIndex, 1, (unsigned char)pMsg->State, pMsg->GridX, pMsg->GridY, (char*)m_HeightMapData,
-			(int)(pItem->m_fAngle / D3DXToRadian(90)), pMsg->Height);
+			(int)(pItem->m_fAngle / D3DXToRadian(90)), pMsg->Height, (const char*)m_GateMapData);
 
+		pItem->m_nMaskHeight = static_cast<unsigned char>(pMsg->Height);
 		pItem->SetState((EGATE_STATE)pMsg->State);
 		if (!pOldItem)
 			m_pItemContainer->AddChild(pItem);

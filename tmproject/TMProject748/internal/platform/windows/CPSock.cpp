@@ -6,6 +6,7 @@
 #include "PacketSendBoundary.h"
 #include <climits>
 #include <WinSock2.h>
+#include <mstcpip.h>
 #include "Basedef.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
@@ -572,4 +573,17 @@ void CPSock::RefreshRecvBuffer()
 		memmove(pRecvBuffer, &pRecvBuffer[nProcPosition], left);
 	nProcPosition = 0;
 	nRecvPosition = left;
+}
+
+int CPSock::RoundTripMs() const
+{
+	if (Sock == 0 || Sock == static_cast<unsigned int>(INVALID_SOCKET) || Connecting)
+		return -1;
+	DWORD version = 0;
+	TCP_INFO_v0 info{};
+	DWORD bytes = 0;
+	if (WSAIoctl(static_cast<SOCKET>(Sock), SIO_TCP_INFO, &version, sizeof(version),
+		&info, sizeof(info), &bytes, nullptr, nullptr) != 0 || bytes < sizeof(info))
+		return -1;
+	return static_cast<int>((info.RttUs + 500) / 1000);
 }

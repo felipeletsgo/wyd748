@@ -46,7 +46,7 @@ func (w *World) applyPassiveSkills(ch *model.Char) {
 	case 0: // TransKnight
 		if learnedLocal(ch, 15) { // Armadura Critica
 			e.Defense = extendedValue(int64(e.Defense)*110/100 + 50)
-			e.Critical = clampScoreValue(e.Critical + 24)
+			e.Critical = addCritical(e.Critical, 48) // 4.8%
 		}
 	case 2: // BeastMaster
 		if learnedLocal(ch, 67-48) { // Escudo do Tormento
@@ -58,7 +58,7 @@ func (w *World) applyPassiveSkills(ch *model.Char) {
 	case 3: // Huntress
 		if learnedLocal(ch, 90-72) { // Visao de Cacadora
 			critical := (int(playerMastery(ch, 3))+1)/10 + int(e.Dex)/75
-			e.Critical = clampScoreValue(e.Critical + uint32(maxInt(4, critical)))
+			e.Critical = addCritical(e.Critical, 2*maxInt(4, critical)) // 0.2% per point
 		}
 		if learnedLocal(ch, 92-72) { // Toxina de Serpente
 			e.Range = uint32(maxInt(2, int(e.Range)))

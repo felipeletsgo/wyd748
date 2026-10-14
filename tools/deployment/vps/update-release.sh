@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Installs a release built by Build-VpsRelease.ps1 over an existing deployment.
-# The database and /var/lib/wyd-go state are never touched. PIN migration
-# requires an explicit --migrate-admin-pin flag and has a root-only backup. A
+# Account data and /var/lib/wyd-go state are never reset. Schema migration
+# belongs to the authoritative writer; additions include security counters
+# and narrow, read-only character progression and public guild views.
+# PIN migration requires an explicit --migrate-admin-pin flag and a backup. A
 # service restarts only when its files or configuration changed. A failed
 # Caddy validation or readiness check restores the previous release.
 set -euo pipefail
@@ -18,9 +20,11 @@ stage=$(realpath -- "${1:?staging directory is required}")
 test -L /srv/wyd-go/current
 test -f /etc/wyd-go/game.env
 test -f /etc/wyd-go/player.env
+previous_schema=$(runuser -u postgres -- psql -X -p 5433 -d wydgo -Atc 'SELECT max(version) FROM schema_migrations')
 cd "$stage"
 sha256sum --check --strict release.sha256
 grep -q '^wyd.forjago.com {' config/wyd-site.caddy
+systemctl start wyd-backup.service
 
 previous=$(readlink -f /srv/wyd-go/current)
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
@@ -34,6 +38,8 @@ chmod 755 "$release/game/wyd-server" "$release/game/wyd-player-api"
 
 restart_game=false
 restart_player=false
+game_touched=false
+player_touched=false
 diff -rq --exclude=wyd-player-api "$previous/game" "$release/game" >/dev/null || restart_game=true
 cmp -s "$previous/game/wyd-player-api" "$release/game/wyd-player-api" || restart_player=true
 cmp -s /etc/wyd-go/server.txt config/server.txt || restart_game=true
@@ -46,6 +52,7 @@ done
 
 cp -p /etc/wyd-go/server.txt "/etc/wyd-go/server.txt.pre-$stamp"
 cp -p /etc/wyd-go/game.env "/etc/wyd-go/game.env.pre-$stamp"
+cp -p /etc/wyd-go/player.env "/etc/wyd-go/player.env.pre-$stamp"
 cp -p /etc/wyd-go/staff.json "/etc/wyd-go/staff.json.pre-$stamp"
 cp -p /etc/caddy/wyd-site.caddy "/etc/caddy/wyd-site.caddy.pre-$stamp"
 mkdir -p "/etc/systemd/system/.wyd-pre-$stamp"
@@ -58,15 +65,33 @@ switch_to() {
 rollback() {
     trap - ERR
     echo "Restoring release $previous" >&2
+    if [ "$game_touched" = true ]; then systemctl stop wyd-game || true; fi
+    if [ "$player_touched" = true ]; then systemctl stop wyd-player || true; fi
+    # Versions 6-8 add a counter table and read-only views, not account
+    # transformations. Keep these additions, but restore the expected marker
+    # before starting an older binary. Never rewind an unknown migration.
+    if [ "$game_touched" = true ] && { [ "$previous_schema" = 5 ] || [ "$previous_schema" = 6 ] || [ "$previous_schema" = 7 ]; }; then
+        runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c \
+            'DELETE FROM schema_migrations WHERE version=8 AND (SELECT max(version) FROM schema_migrations)=8' || true
+    fi
+    if [ "$game_touched" = true ] && { [ "$previous_schema" = 5 ] || [ "$previous_schema" = 6 ]; }; then
+        runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c \
+            'DELETE FROM schema_migrations WHERE version=7 AND (SELECT max(version) FROM schema_migrations)=7' || true
+        if [ "$previous_schema" = 5 ]; then
+            runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c \
+                'DELETE FROM schema_migrations WHERE version=6 AND (SELECT max(version) FROM schema_migrations)=6' || true
+        fi
+    fi
     switch_to "$previous"
     cp -p "/etc/wyd-go/server.txt.pre-$stamp" /etc/wyd-go/server.txt
     cp -p "/etc/wyd-go/game.env.pre-$stamp" /etc/wyd-go/game.env
+    cp -p "/etc/wyd-go/player.env.pre-$stamp" /etc/wyd-go/player.env
     cp -p "/etc/wyd-go/staff.json.pre-$stamp" /etc/wyd-go/staff.json
     cp -p "/etc/caddy/wyd-site.caddy.pre-$stamp" /etc/caddy/wyd-site.caddy
     cp -p "/etc/systemd/system/.wyd-pre-$stamp/"* /etc/systemd/system/
     systemctl daemon-reload
-    if [ "$restart_game" = true ]; then systemctl restart wyd-game || true; fi
-    if [ "$restart_player" = true ]; then systemctl restart wyd-player || true; fi
+    if [ "$game_touched" = true ]; then systemctl restart wyd-game || true; fi
+    if [ "$player_touched" = true ]; then systemctl restart wyd-player || true; fi
     systemctl reload caddy || true
 }
 trap 'rollback' ERR
@@ -87,6 +112,8 @@ install -m 640 -g wyd-game config/staff.json /etc/wyd-go/staff.json
 pin_options=()
 if [ "$migrate_pin" = true ]; then pin_options+=(--migrate); fi
 python3 config/admin-pin.py /etc/wyd-go/game.env "${pin_options[@]}"
+python3 config/set-turnstile-secret.py --from-player-env
+install -m 700 config/set-turnstile-secret.py /usr/local/sbin/wyd-set-turnstile-secret
 cmp -s "/etc/wyd-go/game.env.pre-$stamp" /etc/wyd-go/game.env || restart_game=true
 install -m 644 config/server.txt /etc/wyd-go/server.txt
 install -m 644 config/wyd-game.service config/wyd-player.service config/wyd-backup.service config/wyd-backup.timer /etc/systemd/system/
@@ -102,13 +129,38 @@ fi
 ufw allow 8281/tcp comment 'WYD game' >/dev/null
 
 switch_to "$release"
-if [ "$restart_game" = true ]; then systemctl restart wyd-game; fi
-if [ "$restart_player" = true ]; then systemctl restart wyd-player; fi
+# The operator must not disconnect active players to publish a web update.
+if [ "$restart_game" = true ]; then
+    if [ -n "$(ss -Htn state established '( sport = :8281 )')" ]; then
+        echo 'Active game connections prevent a safe restart' >&2
+        # No service was restarted; restore only configuration and the symlink.
+        restart_game=false
+        restart_player=false
+        rollback
+        exit 1
+    fi
+    player_touched=true
+    systemctl stop wyd-player
+    game_touched=true
+    systemctl restart wyd-game
+fi
+# The player role may write only security counters, never game account state.
+schema_ready=false
+for attempt in {1..15}; do
+    if runuser -u postgres -- psql -X -p 5433 -d wydgo -Atc "SELECT to_regclass('public.web_auth_limits') IS NOT NULL AND to_regclass('public.player_character_progression') IS NOT NULL AND to_regclass('public.player_public_guilds') IS NOT NULL" | grep -qx t; then schema_ready=true; break; fi
+    sleep 1
+done
+test "$schema_ready" = true
+runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c \
+    'GRANT SELECT, INSERT, UPDATE, DELETE ON public.web_auth_limits TO wyd_player; GRANT SELECT ON public.player_character_progression, public.player_public_guilds TO wyd_player'
+if [ "$restart_game" = true ]; then restart_player=true; fi
+if [ "$restart_player" = true ]; then player_touched=true; systemctl restart wyd-player; fi
 systemctl reload caddy
 
 ready=false
 for attempt in {1..15}; do
     if curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8083/readyz &&
+        curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8082/readyz &&
         systemctl is-active --quiet wyd-game &&
         ss -lnt '( sport = :8281 )' | grep -q LISTEN; then
         ready=true

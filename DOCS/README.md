@@ -14,6 +14,9 @@ documentation, research evidence, and continuity records.
 
 | Goal | Starting document |
 | --- | --- |
+| Resume work and distinguish local changes from the deployed release | [Current state](current-state.md) and [continuation record](../.agents/handoffs/project-continuation.md) |
+| Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
+| Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
 | Set up Windows development | [Windows environment](windows-development-environment.md) |
 | Start the server for the first time | [Root README](../README.md#quick-start-on-windows) |
 | Operate the database, accounts, panel, network, and backups | [Server operations](server/operations.md) |
@@ -34,6 +37,7 @@ documentation, research evidence, and continuity records.
 | Review the Claude refactoring batch and proposed corrections | [Refactoring batch audit — 2026-10-03](client/refactoring-batch-audit-2026-10-03.md) |
 | Review the client and Go server source audit | [Full-source audit — 2026-10-03](client/full-source-audit-2026-10-03.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
+| Keep the Kefra hall mirror hidden until a persisted boss defeat | [Kefra portal visibility v1](protocol/kefra-portal.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Work with Codex or Claude Code | [Agent environments](agent-environments.md) |
 | Track the English-only migration | [Language migration](language-migration.md) |
@@ -42,7 +46,8 @@ documentation, research evidence, and continuity records.
 The schedule, rewards, commands, and open guild-war work are documented in
 [Guild wars](guild-wars.md). The [WYD Web Platform](WYD-WEB-PLATAFORM.md)
 document is a dated product plan whose proposed features need rechecking
-against current code. Executable instructions for the integrated panel remain
+against current code. Its current implementation matrix is maintained in
+[Website feature status](server/website-feature-status.md). Executable instructions for the integrated panel remain
 in [Server operations](server/operations.md); the plan is not a competing
 tutorial or a current implementation checklist.
 

@@ -6,13 +6,12 @@ import (
 	"wydgo/internal/model"
 )
 
-// affectDoubleExp e o affect do bau de experiencia (Type 39 no WYD 7.48): enquanto
-// ativo, dobra a EXP recebida. Nao altera atributos, entao nao entra no
-// applyExtendedAffectStats; e consultado apenas no pipeline de EXP.
+// affectDoubleExp is the experience box affect (type 39 in WYD 7.48). It doubles
+// received EXP without changing stats, so only the EXP pipeline consumes it.
 const affectDoubleExp = 39
 
-// scaledMobExperience aplica o piso a recompensa-base e depois a taxa global.
-// A recompensa resultante ainda recebe o bonus de party em partyExpShares.
+// scaledMobExperience applies the reward floor before the global rate.
+// partyExpShares applies the party bonus to the resulting reward.
 func scaledMobExperience(base uint32, config model.GameplayConfig) uint32 {
 	if base < config.EXPMinimum {
 		base = config.EXPMinimum
@@ -24,9 +23,9 @@ func scaledMobExperience(base uint32, config model.GameplayConfig) uint32 {
 	return uint32(scaled)
 }
 
-// scaledQuestExperience aplica somente a taxa global. Recompensas de quest
-// nao recebem o piso dos mobs nem bonus de party; o buff individual de EXP e
-// aplicado separadamente por expWithDoubleBuff.
+// scaledQuestExperience applies only the global rate. Quest rewards do not
+// receive the mob floor, party bonus or Kefra combat bonus. expWithDoubleBuff
+// applies the character's individual EXP affect separately.
 func scaledQuestExperience(base uint32, config model.GameplayConfig) uint32 {
 	scaled := uint64(base) * uint64(config.EXPRatePercent) / 100
 	if scaled > uint64(^uint32(0)) {
@@ -35,11 +34,10 @@ func scaledQuestExperience(base uint32, config model.GameplayConfig) uint32 {
 	return uint32(scaled)
 }
 
-// expWithDoubleBuff dobra a recompensa quando o personagem informado tem o
-// bau de EXP ativo (affect 39). O chamador define a origem: recompensas
-// individuais usam o receptor; mortes de mobs usam o matador para que o mesmo
-// bonus seja compartilhado com todos os membros elegiveis da party.
-// O clamp evita overflow no teto de uint32.
+// expWithDoubleBuff doubles the reward while the supplied character has an
+// active experience box (affect 39). Individual rewards use the receiver;
+// mob kills use the killer so every eligible party member shares the bonus.
+// Saturation prevents uint32 overflow.
 func expWithDoubleBuff(ch *model.Char, reward uint32) uint32 {
 	return expWithDoubleBuffAt(ch, reward, time.Now())
 }
@@ -54,19 +52,24 @@ func expWithDoubleBuffAt(ch *model.Char, reward uint32, now time.Time) uint32 {
 	return reward * 2
 }
 
-// mobKillExperienceForReceiver aplica os bonus de itens do MATADOR a uma
-// parcela de EXP de combate e depois respeita as quedas da evolucao de quem a
-// recebe. Esse e o contrato nativo observado em MobKilled.cpp do WYD 7.48:
-// pMob[conn].ExpBonus e reutilizado dentro do loop de todos os membros.
-//
-// GetExpApply reduz primeiro a recompensa conforme evolucao/nivel do receptor;
-// Coral/fada do matador entram depois e o bau de EXP dobra o resultado final.
-// Assim cada membro conserva sua curva pessoal sem perder os bonus do abate.
+// mobKillExperienceForReceiver preserves each receiver's evolution/level curve
+// while applying the killer's item bonuses to every eligible party share.
+// MobKilled.cpp reuses pMob[conn].ExpBonus across the receiver loop: GetExpApply
+// reduces first, then Coral/fairy and the experience box amplify the reward.
+// The owner-defined Kefra bonus doubles the result while the durable world
+// defeat flag is set; it does not penalize EXP while Kefra is alive.
 func (w *World) mobKillExperienceForReceiver(killer, receiver *model.Char, reward uint32) uint32 {
 	if killer == nil || receiver == nil {
 		return 0
 	}
 	reward = combatExperienceByEvolution(receiver, reward)
 	reward = applyPercentReward(reward, w.equipmentGemBonuses(killer).expPercent)
-	return expWithDoubleBuffAt(killer, reward, w.now())
+	reward = expWithDoubleBuffAt(killer, reward, w.now())
+	if w.kefraDefeated() {
+		if reward > ^uint32(0)/2 {
+			return ^uint32(0)
+		}
+		reward *= 2
+	}
+	return reward
 }

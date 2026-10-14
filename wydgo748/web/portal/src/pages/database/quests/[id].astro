@@ -1,0 +1,36 @@
+---
+import Public from '../../../layouts/Public.astro';
+import { catalog, itemURL, questURL } from '../../../lib/catalog';
+import type { CatalogQuest } from '../../../lib/catalog';
+export function getStaticPaths() { return catalog.quests.map(quest => ({ params: { id: String(quest.id) }, props: { quest } })); }
+interface Props { quest: CatalogQuest }
+const { quest: q } = Astro.props;
+const itemName = (id: number) => catalog.items.find(item => item.id === id)!.name;
+const parent = catalog.quests.find(quest => quest.id === q.afterQuestId);
+const next = catalog.quests.filter(quest => quest.afterQuestId === q.id);
+const format = (n: number) => n.toLocaleString('en-US');
+const refinement = q.refinement?.slot === 6 ? 'Equipped weapon' : q.refinement && q.refinement.slot < 0 ? 'All equipped items' : `Equipment slot ${q.refinement?.slot}`;
+---
+<Public title={q.name} description={q.objective}>
+  <section class="page-title"><a class="muted" href="/database/quests/">Quests</a><h1>{q.name}</h1><p class="muted">ID {q.id} · NPC interaction</p></section>
+  <section class="panel"><p>{q.objective}</p><dl class="catalog-values">
+    <div><dt>Level</dt><dd>{q.minLevel}{q.maxLevel ? `–${q.maxLevel}` : '+'}</dd></div>
+    <div><dt>Evolution</dt><dd>{q.mortalOnly ? 'Mortal' : 'Any'}</dd></div>
+    <div><dt>Repeatable</dt><dd>{q.repeatable ? 'Yes' : 'No'}</dd></div>
+    {q.goldCost > 0 && <div><dt>Gold cost</dt><dd>{format(q.goldCost)}</dd></div>}
+    {parent && <div><dt>Previous quest</dt><dd><a href={questURL(parent.id)}>{parent.name}</a></dd></div>}
+    {q.requiredCounters.map(counter => <div><dt>{counter.name} required</dt><dd>{format(counter.quantity)}</dd></div>)}
+    {q.consumedCounters.map(counter => <div><dt>{counter.name} spent</dt><dd>{format(counter.quantity)}</dd></div>)}
+    {q.rewardGold > 0 && <div><dt>Gold reward</dt><dd>{format(q.rewardGold)}</dd></div>}
+    {q.baseRewardExp > 0 && <div><dt>Base EXP reward</dt><dd>{format(q.baseRewardExp)}</dd></div>}
+    {q.citizenship && <div><dt>Reward</dt><dd>Current-channel citizenship; requires no existing citizenship.</dd></div>}
+    {q.refinement && <div><dt>Refinement reward</dt><dd>{refinement} to +{q.refinement.level}</dd></div>}
+    {q.rewardCounters.map(counter => <div><dt>{counter.name} reward</dt><dd>{format(counter.quantity)}</dd></div>)}
+    {q.destination && <div><dt>Destination</dt><dd>{q.destination.x}, {q.destination.y}</dd></div>}
+  </dl>
+  {[['Required items', q.requiredItems], ['Consumed items', q.consumedItems], ['Reward items', q.rewardItems]].map(([title, items]) => Array.isArray(items) && items.length > 0 && <details class="disclosure"><summary>{title}</summary><ul>{items.map(item => <li><a href={itemURL(item.id)}>{itemName(item.id)}</a> × {format(item.quantity)}</li>)}</ul></details>)}
+  {q.recharge && <p>At zero balance, <a href={itemURL(q.recharge.itemId)}>{itemName(q.recharge.itemId)}</a> is consumed for {format(q.recharge.quantity)} {q.recharge.counter.toLowerCase()}, before charging this visit.</p>}
+  {q.destination?.globalReset && <p class="muted">This area resets globally. The in-game timer shows time until the next reset, not a personal duration.</p>}
+  {next.length > 0 && <details class="disclosure"><summary>Next quest</summary><ul>{next.map(quest => <li><a href={questURL(quest.id)}>{quest.name}</a></li>)}</ul></details>}
+  </section><p class="muted">Configuration snapshot. Rewards remain subject to server validation, inventory space and character limits.</p>
+</Public>

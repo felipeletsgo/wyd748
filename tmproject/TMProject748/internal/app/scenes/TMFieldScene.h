@@ -5,6 +5,7 @@
 #include "TMScene.h"
 #include "../../wire/QuizEventPacket.h"
 #include "../../wire/PremiumShopPacket.h"
+#include "../../wire/KefraPortalPacket.h"
 #include "../../game/entities/BerielAuraPolicy.h"
 #include "../../ui/NativeScoreHud.h"
 #include "TMHuman.h"
@@ -117,6 +118,7 @@ public:
 	int GetWeaponDamage();
 	void SetMyHumanMagic();
 	void SetWeather(int nWeather);
+	void UpdateWeatherEffects();
 	int LoadMsgText(SListBox* pListBox, char* szFileName);
 	void SetPosPKRun();
 	char UseHPotion();
@@ -194,6 +196,7 @@ public:
 	int OnPacketItemSold(MSG_STANDARDPARM2* pStd);
 	int OnPacketUpdateCargoCoin(MSG_STANDARDPARM* pStd);
 	int OnPacketWeather(MSG_STANDARDPARM* pStd);
+	int OnPacketKefraPortalState(const kefra_portal::State* packet);
 	int OnPacketCreateItem(MSG_CreateItem* pMsg);
 	int OnPacketCNFDropItem(MSG_CNFDropItem* pMsg);
 	int OnPacketCNFGetItem(MSG_CNFGetItem* pMsg);
@@ -400,6 +403,9 @@ private:
 	int GetNativeMixSlotCount(int mixIndex) const;
 	void ResetNativeMixPacket(int mixIndex);
 	void ClearNativeMix(int mixIndex);
+	// Aylin (mix 2) shows four possible results of the staged pair once a
+	// refinement gem is in slot 3, as native FUN_004110f5 does.
+	void RefreshNativeMixPreview();
 	void DoNativeMix(int mixIndex);
 	void SetVisibleNativeMix(int mixIndex, int bShow);
 	int MouseClick_MixNPC(TMHuman* pOver);
@@ -675,6 +681,11 @@ public:
 	SButton* m_pKingDomGuild_C;
 	SButton* m_pMiniBtn;
 	SText* m_pPositionText;
+	// FPS and TCP round-trip time shown under the minimap coordinates.
+	SText* m_pNetStatsText = nullptr;
+	// Toggled by the local /fps chat command; hidden by default.
+	bool m_bShowNetStats = false;
+	unsigned int m_dwNetStatsTime = 0;
 	SPanel* m_pFadePanel;
 	SPanel* m_pAutoSkillPanel;
 	SPanel* m_pAutoSkillPanelChild[10];
@@ -969,6 +980,7 @@ public:
 	stCam m_stCamPos[2];
 	unsigned int m_dwMoveCamTick;
 	TMObject* m_pKhepraPortal;
+	kefra_portal::ClientState m_kefraPortal{};
 	TMEffectBillBoard* m_pKhepraPortalEff1;
 	TMEffectBillBoard* m_pKhepraPortalEff2;
 	unsigned int m_dwKhepraDieTime;

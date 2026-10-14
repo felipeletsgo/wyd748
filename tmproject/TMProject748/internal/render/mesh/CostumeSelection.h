@@ -19,9 +19,9 @@ inline int Select(int index, int skeleton)
     if (!item) return 0;
     const int type = item->skin == -1 && (skeleton & 1)
         ? item->femaleType : item->maleType;
-    // The validated manifest delegates these five base costumes to the
-    // existing renderer; it deliberately supplies no replacement parts.
-    if (type >= 1 && type <= 5) return 0;
+    // Types 1..11 are the native 7.48 costume renderers (SetHumanCostume and
+    // TMSkinMesh::SetCostume); the manifest supplies no replacement parts.
+    if (type >= 1 && type <= 11) return 0;
     return ImportedTag | type;
 }
 

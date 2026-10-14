@@ -759,6 +759,11 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			s.Send(wire.MessagePanel("Drag the dye onto an item."))
 			return
 		}
+		if def, ok := w.items[dest.Index]; !ok || !isArmorSetPiece(def) {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			s.Send(wire.MessagePanel(tintSetOnlyMessage))
+			return
+		}
 		oldDest, oldItem := *dest, *item
 		if !tintItem(dest, rule.Color) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -963,6 +968,38 @@ func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID ui
 
 // refineChance returns the configured chance for the current level.
 // World.rollPercent uses a uniform 1..100 domain and success when roll <= chance.
+// refinePowderChance decides whether a "refine" powder may act on an item at
+// the given level. Below RefineMax it uses the native rate table. A +10 item
+// can additionally reach +11 at RefineTenChance. Ordinary +9 equipment still
+// requires Aylin; equipmentPowderChance handles the equipped-earring exception.
+func refinePowderChance(level int, rule model.VolatileRule) (int, bool) {
+	limit := rule.RefineMax
+	if limit <= 0 || limit > 15 {
+		limit = 15
+	}
+	if level < limit {
+		return refineChance(level), true
+	}
+	if level == 10 && rule.RefineTenChance > 0 {
+		return clampInt(rule.RefineTenChance, 0, 100), true
+	}
+	return 0, false
+}
+
+// The requested +9 earring exception is limited to Lac (volatile 5), slot 8
+// and the earring catalog mask. W2PP _MSG_UseItem accepts rand()%100 <= 15,
+// i.e. 16 outcomes. Keep this server's existing non-destructive failure policy;
+// do not import W2PP's destruction or its unrelated +11..+15 extension.
+func equipmentPowderChance(item model.Item, def model.ItemDef, destType, destPos uint32,
+	powderCode int, rule model.VolatileRule) (int, bool) {
+	level := itemSanc(item)
+	if level == 9 && powderCode == 5 && rule.RefineMax == 9 &&
+		destType == placeEquip && destPos == 8 && def.Pos == 1<<8 {
+		return 16, true
+	}
+	return refinePowderChance(level, rule)
+}
+
 func refineChance(sanc int) int {
 	if sanc < 0 || sanc >= len(celestialRate) {
 		return 0
@@ -1146,25 +1183,22 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	}
 	// Require EF_POS equipment without EF_VOLATILE or EF_NOSANC.
 	// itemAbility combines definition and instance effects.
-	if def.Pos == 0 || itemAbility(*dest, def, "EF_VOLATILE") != 0 ||
+	if def.Pos == 0 || refinementLocked(def) || itemAbility(*dest, def, "EF_VOLATILE") != 0 ||
 		itemAbility(*dest, def, "EF_NOSANC") != 0 {
 		resend()
 		s.Send(wire.MessagePanel("That item cannot be refined."))
 		return
 	}
 	sanc := itemSanc(*dest)
-	limit := rule.RefineMax
-	if limit <= 0 || limit > 15 {
-		limit = 15
-	}
-	if sanc >= limit {
+	chance, allowed := equipmentPowderChance(*dest, def, destType, destPos, code, rule)
+	if !allowed {
 		resend()
 		s.Send(wire.MessagePanel("That item cannot be refined any further."))
 		return
 	}
 
 	oldPowder, oldDest := *powder, *dest
-	roll := w.rollPercent(refineChance(sanc))
+	roll := w.rollPercent(chance)
 	success := roll.Success
 	if success {
 		if !setItemSanc(dest, sanc+1) {

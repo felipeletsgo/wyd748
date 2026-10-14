@@ -1,25 +1,25 @@
 ---
 import '../styles/public.css';
 import '../styles/wyd-theme.css';
-interface Props { title: string }
-const { title } = Astro.props;
-const links = [['/', 'Home'], ['/register/', 'New Account'], ['/player/', 'Account'], ['/ranking/', 'Ranking'], ['/download/', 'Download']];
+interface Props { title: string; description?: string }
+const { title, description = 'WYD 7.48 — accounts, guides, ranking, project news and client downloads.' } = Astro.props;
+const links = [['/', 'Home'], ['/news/', 'News'], ['/player/', 'Account'], ['/ranking/', 'Ranking'], ['/guilds/', 'Guilds'], ['/download/', 'Download']];
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="WYD 7.48 — account, ranking and client download." /><meta name="theme-color" content="#101211" />
+    <meta name="description" content={description} /><meta name="theme-color" content="#101211" />
     <title>{title} · WYD 7.48</title><link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <header class="site-header">
       <a href="/" class="logo" aria-label="WYD 7.48 home"><img src="/ui/logo.png" alt="WYD" width="505" height="164" /></a>
-      <nav aria-label="Main navigation">{links.map(([url, label]) => <a class="button" href={url} aria-current={Astro.url.pathname === url ? 'page' : undefined}>{label}</a>)}</nav>
+      <nav aria-label="Main navigation">{links.map(([url, label]) => <a class="button" href={url} aria-current={Astro.url.pathname === url ? 'page' : url !== '/' && Astro.url.pathname.startsWith(url) ? 'location' : undefined}>{label}</a>)}</nav>
     </header>
     <main id="main"><slot /></main>
-    <footer class="site-footer">WYD 7.48 · With Your Destiny</footer>
+    <footer class="site-footer"><nav aria-label="Project information"><a href="/play/rules/">Guidelines</a><a href="/play/faq/">Help</a><a href="/changelog/">Changelog</a><a href="/roadmap/">Roadmap</a></nav><p>WYD 7.48 · With Your Destiny</p></footer>
     <script>
       import '../lib/player-portal';
     </script>

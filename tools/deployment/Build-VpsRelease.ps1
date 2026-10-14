@@ -46,7 +46,8 @@ foreach ($entry in Get-ChildItem -LiteralPath $dist) {
 # authenticated /admin proxy), never from the public static root.
 if (!(Test-Path -LiteralPath "$dist/admin/index.html")) { throw 'Build the admin panel before packaging' }
 Copy-Item -LiteralPath $dist -Destination "$release/game/web" -Recurse
-Copy-Item -Path "$PSScriptRoot/vps/*" -Destination "$stage/config"
+# Files only: local caches such as __pycache__ must never reach the VPS.
+Get-ChildItem -LiteralPath "$PSScriptRoot/vps" -File | Copy-Item -Destination "$stage/config"
 tar -czf "$stage/release.tar.gz" -C $release game web
 if ($LASTEXITCODE -ne 0) { throw 'Release archive failed' }
 $hash = (Get-FileHash -LiteralPath "$stage/release.tar.gz" -Algorithm SHA256).Hash.ToLowerInvariant()

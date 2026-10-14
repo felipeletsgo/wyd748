@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TMHuman.h"
+#include "MountRiderOffset.h"
 #include "MantuaLength.h"
 #include "TMGlobal.h"
 #include "SControl.h"
@@ -162,116 +163,11 @@ int TMHuman::Render()
             m_pMount->Render(0.0f, 1.0f, 0.0f);
             m_pSkinMesh->m_BaseMatrix = m_pMount->m_OutMatrix;
 
-            TMVector3 vecPosScale = TMVector3(
-                -0.37f * m_fMountScale,
-                1.0f / m_fMountScale,
-                0.2f * m_fMountScale);
-
-            switch (m_nMountSkinMeshType)
-            {
-            case 25:
-                vecPosScale.x = -0.34999999f * m_fMountScale;
-                vecPosScale.y = 1.0f / m_fMountScale;
-                vecPosScale.z = -0.1f * m_fMountScale;
-                break;
-            case 28:
-                vecPosScale.x = -0.2f * m_fMountScale;
-                vecPosScale.y = 1.0f / m_fMountScale;
-                vecPosScale.z = 0.1f * m_fMountScale;
-                break;
-
-            case 29:
-                if (m_pMount->m_Look.Mesh0 != 1 && m_pMount->m_Look.Mesh0 != 4)
-                {
-                    vecPosScale.x = -0.37f * m_fMountScale;
-                    vecPosScale.y = 1.0f / m_fMountScale;
-                    vecPosScale.z = -0.60000002f * m_fMountScale;
-                }
-                else
-                {
-                    vecPosScale.x = -0.1f * m_fMountScale;
-                    vecPosScale.z = -0.60000002f * m_fMountScale;
-                }
-                break;
-
-            case 20:
-                if (m_pMount->m_Look.Mesh0 == 7)
-                {
-                    vecPosScale.x = 0.5f * m_fMountScale;
-                    vecPosScale.y = 1.0f / m_fMountScale;
-                    vecPosScale.z = -0.1f * m_fMountScale;
-                }
-                else
-                {
-                    vecPosScale.x = 0.25f * m_fMountScale;
-                    vecPosScale.y = 1.0f / m_fMountScale;
-                    vecPosScale.z = -0.1f * m_fMountScale;
-                }
-                break;
-            default:
-                break;
-            }
-
-            float fTemp = 0.0f;
-            if (m_nClass == 40)
-            {
-                if (m_nMountSkinMeshType == 20 && m_stMountLook.Mesh0 != 7)
-                {
-                    vecPosScale.y = m_fScale / 1.3f;
-                    vecPosScale.x = vecPosScale.x / 1.45f;
-                }
-                else if (m_nMountSkinMeshType == 20 && m_stMountLook.Mesh0 == 7)
-                {
-                    vecPosScale.y = m_fScale * 1.7f;
-                }
-                else
-                {
-                    vecPosScale.y = m_fScale;
-                    vecPosScale.x = vecPosScale.x + 0.050000001f;
-                }
-            }
-
-            if (m_nMountSkinMeshType == 29 && m_stMountLook.Mesh1 == 5)
-            {
-                vecPosScale.x = -0.2f;
-                vecPosScale.y = 1.0f / m_fMountScale;
-            }
-            else if (m_nMountSkinMeshType == 48)
-            {
-                vecPosScale.x = vecPosScale.x - 0.80000001f;
-                vecPosScale.z = vecPosScale.z + 0.2f;
-            }
-
-            else if (m_nMountSkinMeshType == 49 )
-            {
-                vecPosScale.x = vecPosScale.x - 0.2f;
-                vecPosScale.z = vecPosScale.z - 0.2f;
-            }
-            else if (m_nMountSkinMeshType == 51)
-            {
-                vecPosScale.x = vecPosScale.x + 0.2f;
-                vecPosScale.z = vecPosScale.z + 0.2f;
-            }
-            else if (m_nMountSkinMeshType == 59)//aranha
-            {
-                vecPosScale.x = vecPosScale.x + 0.9f;
-                vecPosScale.z = vecPosScale.z - 0.8f;
-            }
-            else if (m_nMountSkinMeshType == 50)// swing
-            {
-                vecPosScale.x = vecPosScale.x - 0.5f;
-                vecPosScale.z = vecPosScale.z - 0.3f;
-            }
-            else if (m_nMountSkinMeshType == 29)//tigre
-            {
-                vecPosScale.x = vecPosScale.x + 0.1f;
-                vecPosScale.z = vecPosScale.z + 0.0f;
-            }
-            else if (m_nMountSkinMeshType == 20)
-            {
-                vecPosScale.x = vecPosScale.x - 0.1f;
-                vecPosScale.z = vecPosScale.z - 0.5f;
-            }
+            // Native 7.48 and KR rider offsets; see MountRiderOffset.h.
+            const auto rider = mount_rider::Compute(m_nMountSkinMeshType,
+                m_pMount->m_Look.Mesh0, m_stMountLook.Mesh0, m_stMountLook.Mesh1,
+                m_nClass, m_fMountScale, m_fScale, !m_bImportedMountVisual);
+            TMVector3 vecPosScale = TMVector3(rider.x, rider.y, rider.z);
             m_pSkinMesh->Render(vecPosScale.x, vecPosScale.y, vecPosScale.z);
             D3DXVECTOR4 vecOut;
             D3DXVECTOR3 vecIn = D3DXVECTOR3(vecPosScale.z / m_fMountScale,
@@ -678,6 +574,8 @@ void TMHuman::SetColorMaterial()
 
                 m_pSkinMesh->m_materials.Emissive = color;
                 m_pSkinMesh->m_materials.Specular = color;
+                // FUN_005161af keeps diffuse red at the full pulse value.
+                color.r = fR;
                 m_pSkinMesh->m_materials.Diffuse = color;
 
                 if (m_cMount > 0 && m_pMount)

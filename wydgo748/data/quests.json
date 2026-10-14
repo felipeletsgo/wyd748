@@ -506,7 +506,7 @@
       "recharge": {
         "item": 4127,
         "counter": "kefra_ticket",
-        "amount": 100
+        "amount": 50
       },
       "consumeCounters": {
         "kefra_ticket": 1
@@ -524,7 +524,7 @@
       },
       "dialogue": [
         "I am the only one who came back from Kefra. That should tell you enough.",
-        "One seal buys a hundred trips. Most people do not need the second one.",
+        "One Locked Seal grants 50 entries. Each visit uses one entry.",
         "Step through when you are ready. I will not follow you in."
       ]
     }

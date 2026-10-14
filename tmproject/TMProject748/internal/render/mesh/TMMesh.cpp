@@ -5,6 +5,7 @@
 #include "TMObject.h"
 #include "TMLog.h"
 #include "DyePixelShader.h"
+#include "RefinementGlowTexture.h"
 #include <cfloat>
 
 TMMesh::TMMesh()
@@ -372,15 +373,9 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 		g_pDevice->SetTextureStageState(0, D3DTEXTURESTAGESTATETYPE::D3DTSS_COLOROP, 4);
 		g_pDevice->SetTextureStageState(1, D3DTEXTURESTAGESTATETYPE::D3DTSS_COLOROP, (g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400) ? 7 : 11);
 	}
-	else if (sLegend > 9 && sLegend <= 12)
+	else if (sLegend >= 9 && sLegend <= 12)
 	{
-		int texSum = 153;
-		if (sLegend == 10)
-			texSum = 166;
-		if (sLegend == 11)
-			texSum = 246;
-		if (sLegend == 12)
-			texSum = 440;
+		const int texSum = refinement_glow::TextureBase(sLegend);
 
 		g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(nMultiTex + texSum, 5000));
 

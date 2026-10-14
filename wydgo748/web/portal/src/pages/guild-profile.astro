@@ -1,0 +1,21 @@
+---
+import Public from '../layouts/Public.astro';
+---
+<Public title="Guild" description="Public guild profile and members.">
+  <section class="panel" id="guild-profile-panel">
+    <a href="/guilds/">Guilds</a>
+    <h1 class="title" id="guild-profile-name">Guild</h1>
+    <div id="guild-profile-details" hidden>
+      <dl class="catalog-values"><div><dt>Kingdom</dt><dd id="guild-profile-kingdom"></dd></div><div><dt>Fame</dt><dd id="guild-profile-fame"></dd></div></dl>
+      <p id="guild-profile-relations" hidden></p>
+      <h2>Members</h2>
+      <label>Character<input id="guild-profile-search" type="search" maxlength="16" placeholder="Search members" autocomplete="off" disabled /></label>
+      <div class="table-wrap"><table><thead><tr><th>Character</th><th>Role</th></tr></thead><tbody id="guild-profile-members"></tbody></table></div>
+      <div class="pagination" aria-label="Guild member pages"><button class="button" type="button" id="guild-profile-previous" disabled>Previous</button><span id="guild-profile-page" role="status" aria-live="polite"></span><button class="button" type="button" id="guild-profile-next" disabled>Next</button></div>
+    </div>
+    <button class="button" type="button" id="guild-profile-refresh">Refresh</button>
+    <p class="status" id="guild-profile-status" role="status" aria-live="polite"></p>
+    <noscript>Enable JavaScript to load the guild profile.</noscript>
+  </section>
+  <script>import { mountGuildProfile } from '../lib/guild-profile'; const root = document.getElementById('guild-profile-panel'); if (root) mountGuildProfile(root);</script>
+</Public>

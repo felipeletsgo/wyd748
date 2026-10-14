@@ -309,6 +309,12 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 			damage = (4*int(effectiveScore(ch).MagicAmp) + 100) * damage / 100
 		}
 		damage = 5 * damage / 4
+		if skillUsesMagic(ch, skill) {
+			// Timed mounts keep their exact percentage contract, also used by
+			// the displayed score. Adult mounts already contribute to MagicAmp.
+			premium := w.premiumMountBonus(ch, w.now())
+			damage = int(int64(damage) * int64(100+premium.magicPercent) / 100)
+		}
 	}
 	branch := local / 8
 	if int(ch.Class) < 4 && ch.LearnedSkill&(uint32(1)<<(branch*8+7)) != 0 {

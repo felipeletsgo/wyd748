@@ -748,5 +748,15 @@ int RunGroundAttachTableTests(int& checks)
             check(ground_attach::kRules[i].x != ground_attach::kRules[j].x ||
                 ground_attach::kRules[i].y != ground_attach::kRules[j].y,
                 "table cells are unique");
+
+    // WYD KR regions such as (4,24)/(5,24) are absent from the 7.69 table and
+    // derive each side from the neighbouring field files instead of keeping a
+    // stale or zero flag that walls off every border.
+    check(ground_attach::Find(5, 24) == nullptr && ground_attach::Find(4, 24) == nullptr,
+        "KR regions fall outside the legacy table");
+    constexpr auto derived = ground_attach::FromNeighbours(5, 24, true, false, true, false);
+    static_assert(derived.x == 5 && derived.y == 24);
+    check(derived.left == 1 && derived.right == 0 && derived.up == 1 && derived.down == 0,
+        "a neighbour with a field attaches and a missing one keeps the edge wall");
     return failures;
 }

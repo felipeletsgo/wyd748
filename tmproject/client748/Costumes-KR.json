@@ -93,15 +93,8 @@
                       "maleType":  7,
                       "femaleType":  7,
                       "skin":  1,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\ch020197.wyt",
-                                            "mesh\\ch020297.wyt",
-                                            "mesh\\ch020397.wyt",
-                                            "mesh\\ch020497.wyt",
-                                            "mesh\\ch020597.wyt",
-                                            "mesh\\ch020697.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4158,
@@ -110,10 +103,8 @@
                       "maleType":  6,
                       "femaleType":  6,
                       "skin":  0,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\ch010195.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4159,
@@ -122,10 +113,8 @@
                       "maleType":  8,
                       "femaleType":  8,
                       "skin":  1,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\RedSanta.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4160,
@@ -134,10 +123,8 @@
                       "maleType":  9,
                       "femaleType":  9,
                       "skin":  1,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\WhiteSanta.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4161,
@@ -146,10 +133,8 @@
                       "maleType":  10,
                       "femaleType":  10,
                       "skin":  1,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\PurpleRudol.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4162,
@@ -158,10 +143,8 @@
                       "maleType":  11,
                       "femaleType":  11,
                       "skin":  1,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\BlueRudol.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4163,
@@ -458,10 +441,8 @@
                       "maleType":  10,
                       "femaleType":  10,
                       "skin":  1,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\PurpleRudol.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4188,
@@ -470,10 +451,8 @@
                       "maleType":  8,
                       "femaleType":  8,
                       "skin":  1,
-                      "available":  false,
-                      "missingAssets":  [
-                                            "mesh\\RedSanta.wyt"
-                                        ]
+                      "available": true,
+                      "missingAssets": []
                   },
                   {
                       "item":  4189,

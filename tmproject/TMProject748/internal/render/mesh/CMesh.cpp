@@ -8,6 +8,8 @@
 #include "TMCamera.h"
 #include "CFrame.h"
 #include "DyeTextureStages.h"
+#include "RefinementGlowTexture.h"
+#include "NativeMountGlow.h"
 
 CMesh::CMesh(TMSkinMesh* pParentSkin)
 {
@@ -108,13 +110,7 @@ int CMesh::Render(int nBright)
         g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_FOGVERTEXMODE, D3DFOGMODE::D3DFOG_LINEAR);
         g_pDevice->SetTexture(0, g_pTextureManager->GetModelTexture(pMesh->m_nTextureIndex[0], 10000));
 
-        int nBaseIndex = 153;
-        if (m_sLegendType == 6)
-            nBaseIndex = 166;
-        if (m_sLegendType == 7)
-            nBaseIndex = 246;
-        if (m_sLegendType == 8)
-            nBaseIndex = 260;
+        int nBaseIndex = refinement_glow::TextureBase(m_sLegendType);
         if (nPartIndex >= 2906 && nPartIndex <= 2909)
             nBaseIndex = 260;
 
@@ -410,13 +406,7 @@ int CMesh::RenderMesh(char cAlpha)
         }
         else if (m_sLegendType >= 9 && m_sLegendType <= 12)
         {
-            int nBaseIndex = 153;
-            if (m_sLegendType == 10)
-                nBaseIndex = 166;
-            if (m_sLegendType == 11)
-                nBaseIndex = 246;
-            if (m_sLegendType == 12)
-                nBaseIndex = 440;
+            const int nBaseIndex = refinement_glow::TextureBase(m_sLegendType);
 
             if (m_sMultiType > 12)
                 m_sMultiType = 12;
@@ -456,7 +446,7 @@ int CMesh::RenderMesh(char cAlpha)
         {
             if (m_bMount)
             {
-                g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(m_sMultiType >= 13 ? 456 : m_sMultiType + 440, 10000));
+                g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(native_mount_glow::TextureIndex(m_sMultiType), 10000));
             }
             else
             {

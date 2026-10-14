@@ -377,9 +377,9 @@ int BASE_GetDoubleCritical(STRUCT_MOB* mob, unsigned short* sProgress, unsigned 
     int hitvalue[2] =
     {
         100 * (((int)(unsigned char)mob->CurrentScore.AttackRun >> 4) - 5),
-        // Critical is part of the shared canonical Score in the 7.48 source
-        // client; keeping a second byte in STRUCT_MOB caused ABI divergence.
-        4 * (unsigned char)mob->CurrentScore.Critical
+        // Critical is part of the shared canonical Score and is expressed in
+        // tenths of a percent (1000 = 100%), matching the server roll.
+        (int)(mob->CurrentScore.Critical > 1000 ? 1000 : mob->CurrentScore.Critical)
     };
 
     if (sProgress && cProgress && *cProgress != *sProgress)

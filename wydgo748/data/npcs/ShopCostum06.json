@@ -1,0 +1,15 @@
+{
+  "name": "ShopCostum06",
+  "equip": { "rosto": { "index": 59 } },
+  "score": { "version": 2, "level": 2, "maxHP": 9000, "curHP": 9000, "merchant": 1 },
+  "vende": [
+    { "index": 4157 },
+    { "index": 4158 },
+    { "index": 4159 },
+    { "index": 4160 },
+    { "index": 4161 },
+    { "index": 4162 },
+    { "index": 4187 },
+    { "index": 4188 }
+  ]
+}

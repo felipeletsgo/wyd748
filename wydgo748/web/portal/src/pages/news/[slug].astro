@@ -1,0 +1,13 @@
+---
+import Public from '../../layouts/Public.astro';
+import { news } from '../../data/public-content';
+export function getStaticPaths() { return news.map(post => ({ params: { slug: post.slug }, props: { post } })); }
+const { post } = Astro.props;
+---
+<Public title={post.title} description={post.summary}>
+  <article class="panel prose"><p class="breadcrumb"><a href="/news/">News</a> / {post.category}</p>
+    <h1 class="title">{post.title}</h1><p class="eyebrow"><time datetime={post.date}>{post.date}</time> · {post.category}</p>
+    <p class="lead">{post.summary}</p>{post.paragraphs.map(text => <p>{text}</p>)}
+    <p class="links"><a href="/changelog/">Changelog</a> · <a href="/download/">Download</a></p>
+  </article>
+</Public>

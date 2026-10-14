@@ -1,5 +1,6 @@
 ---
 import Public from '../layouts/Public.astro';
+const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAAAAFUuBWIVQX0iBfhZ';
 ---
 <Public title="Account">
   <section class="panel" id="login-panel">
@@ -7,6 +8,8 @@ import Public from '../layouts/Public.astro';
     <form id="login-form" class="form">
       <label for="login-username">Account</label><input id="login-username" name="username" autocomplete="username" required maxlength="12" pattern="[A-Za-z0-9]{1,12}" spellcheck="false" />
       <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required maxlength="10" />
+      <div id="login-challenge" data-sitekey={turnstileSiteKey} data-action="login"></div>
+      <noscript>JavaScript and human verification are required to sign in.</noscript>
       <div class="actions"><button type="submit" class="button" disabled>Login</button></div>
     </form>
     <p id="login-status" class="status" role="status" aria-live="polite"></p>
@@ -15,7 +18,49 @@ import Public from '../layouts/Public.astro';
   <section class="panel" id="profile-panel" hidden>
     <span class="title" id="profile-username">Account</span>
     <div class="row"><span id="profile-balance"></span><button type="button" class="button" id="logout-button">Logout</button></div>
+    <p id="profile-created" class="muted"></p>
+    <p id="profile-asof" class="muted"></p>
+    <p class="muted">Saved data, not live game state.</p>
     <div class="table-wrap"><table><thead><tr><th>Character</th><th>Class</th><th>Level</th><th>Evolution</th></tr></thead><tbody id="profile-characters"></tbody></table></div>
     <p class="status" id="profile-status" role="status" aria-live="polite"></p>
+    <section id="character-panel" class="character-detail" hidden aria-labelledby="character-title">
+      <div class="row"><h2 id="character-title">Character</h2><button type="button" class="button" id="character-refresh" disabled>Refresh</button></div>
+      <dl id="character-stats" class="catalog-values"></dl>
+      <h3>Equipment</h3>
+      <ul id="character-equipment" class="equipment-grid" aria-label="Saved equipment"></ul>
+      <p id="character-asof" class="muted"></p>
+      <p id="character-status" class="status" role="status" aria-live="polite"></p>
+      <details class="disclosure" id="arch-advisor" hidden><summary>Arch ascension</summary>
+        <dl id="arch-checks" class="catalog-values"></dl>
+        <p id="arch-status" class="status" role="status" aria-live="polite"></p>
+      </details>
+      <details class="disclosure" id="celestial-advisor" hidden><summary>Celestial ascension</summary>
+        <dl id="celestial-checks" class="catalog-values"></dl>
+        <p id="celestial-status" class="status" role="status" aria-live="polite"></p>
+      </details>
+      <details class="disclosure" id="subcelestial-advisor" hidden><summary>SubCelestial creation</summary>
+        <dl id="subcelestial-checks" class="catalog-values"></dl>
+        <p id="subcelestial-status" class="status" role="status" aria-live="polite"></p>
+      </details>
+      <details class="disclosure" id="inventory-view"><summary>Inventory</summary>
+        <div class="row"><span id="inventory-summary" class="muted"></span><button type="button" class="button" id="inventory-refresh" disabled>Refresh</button></div>
+        <ul id="inventory-items" class="equipment-grid" aria-label="Saved inventory"></ul>
+        <p id="inventory-asof" class="muted"></p><p id="inventory-status" class="status" role="status" aria-live="polite"></p>
+      </details>
+    </section>
+    <details class="disclosure" id="cargo-view"><summary>Cargo</summary>
+      <div class="row"><span id="cargo-summary" class="muted"></span><button type="button" class="button" id="cargo-refresh" disabled>Refresh</button></div>
+      <ul id="cargo-items" class="equipment-grid" aria-label="Saved Cargo"></ul>
+      <p id="cargo-asof" class="muted"></p><p id="cargo-status" class="status" role="status" aria-live="polite"></p>
+    </details>
+    <details class="disclosure"><summary>Website sessions</summary>
+    <p class="muted">Website access only. Your game and staff sessions stay connected.</p>
+    <div class="actions">
+      <button type="button" class="button" id="sessions-refresh">Refresh</button>
+      <button type="button" class="button" id="sessions-revoke-all">Logout all, including this session</button>
+    </div>
+    <ul class="session-list" id="account-sessions"></ul>
+    <p class="status" id="sessions-status" role="status" aria-live="polite"></p>
+    </details>
   </section>
 </Public>

@@ -134,7 +134,7 @@ N/A: the next binding and refresh repopulate every field.
 | 1108, 1040 | text | current defense | 1040 = base+abilities | port |
 | 1033 | text | base defense + abilities 3, 53 | current defense | port |
 | 1110 | text | attack speed `%d%%` | same | keep |
-| 1112 | text | critical byte << 1 as `%d.%d%%` | << 2 | port |
+| 1112 | text | critical byte << 1 as `%d.%d%%` | per-mille, cap 100% | extension |
 | 1120..1123 | text | resist holy/thunder/fire/ice | same | keep |
 | 1377, 266..268 | panel, text | kingdom mantle | mantle only | keep (desc texts absent from scope) |
 
@@ -150,8 +150,15 @@ N/A: the next binding and refresh repopulate every field.
 
 ### WYD-Go
 
-Not affected. Note: the server rolls a critical as `Critical / 255`, while
-native 7.48 used `2 * Critical / 1000`; the HUD now shows the native value.
+Native 7.48 shows the panel as `(Critical & 0xFF) * 2 / 10` percent (max 51%)
+and the item tooltip as `EF_CRITICAL / 10` percent. On 2026-10-14 the user
+required one scale with a 100% maximum: an item showing 9.6% must add 9.6%.
+`EXTENSAO_COORDENADA` (server and client, wire layout unchanged): Critical is
+now kept in tenths of a percent. The server adds item values unchanged, caps
+at 1000 and rolls `intn(1000) < Critical`; the client panel prints
+`Critical / 10` capped at 100.0%. Skill/buff bonuses authored in 0.2% points
+were doubled so their displayed percentages stay the same. Server and client
+must be deployed together: an old client would misread the new values.
 
 ## Delta matrix
 
@@ -174,7 +181,7 @@ follow the native lists even where the Q/W use path accepts 3477/3472.
 - Native `FUN_004fa8a1` refreshes `m_fMaxSpeed` inside the score refresh; the
   source shows the speed already computed by `TMHuman::SetSpeed`.
 - `DAT_005d042c` (no-guild text) is runtime data; an empty string is used.
-- Server critical chance differs from native (WYD-Go scope).
+- Server critical aggregation and roll use the panel scale (see WYD-Go).
 
 ## Validation
 

@@ -6,6 +6,14 @@ import (
 
 const maxScoreValue uint32 = model.MaxScoreValue
 
+// maxCriticalPerMille caps Critical, kept in tenths of a percent, at 100%.
+const maxCriticalPerMille = 1000
+
+// addCritical adds a Critical bonus in tenths of a percent, capped at 100%.
+func addCritical(current uint32, perMille int) uint32 {
+	return uint32(clampInt(int(current)+perMille, 0, maxCriticalPerMille))
+}
+
 func clampScoreValue(value uint32) uint32 {
 	if value > maxScoreValue {
 		return maxScoreValue
@@ -46,7 +54,7 @@ func clampRuntime(e *model.Score) {
 	e.Accuracy = clampScoreValue(e.Accuracy)
 	e.Evasion = clampScoreValue(e.Evasion)
 	e.Parry = clampScoreValue(e.Parry)
-	e.Critical = clampScoreValue(e.Critical)
+	e.Critical = minU32(clampScoreValue(e.Critical), maxCriticalPerMille)
 	e.Range = clampScoreValue(e.Range)
 	e.ResistFire = minU32(clampScoreValue(e.ResistFire), 100)
 	e.ResistIce = minU32(clampScoreValue(e.ResistIce), 100)

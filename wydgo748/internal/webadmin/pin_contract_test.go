@@ -12,7 +12,7 @@ func TestSixDigitPINLoginAndRegistrationRejections(t *testing.T) {
 		t.Run(pin, func(t *testing.T) {
 			h, _, _, logs := newTestHandler(t)
 			cookie, session := anonymousSession(t, h)
-			login, err := json.Marshal(map[string]string{"username": "operator", "password": "TestPass10", "adminPin": pin})
+			login, err := json.Marshal(map[string]string{"username": "operator", "password": "TestPass10", "adminPin": pin, "turnstileToken": "test-token"})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -20,6 +20,7 @@ func TestSixDigitPINLoginAndRegistrationRejections(t *testing.T) {
 			if w.Code != http.StatusUnauthorized {
 				t.Fatalf("invalid PIN login: %d", w.Code)
 			}
+			cookie, session, _ = loginTest(t, h)
 			create, err := json.Marshal(map[string]string{"username": "newplayer", "password": "SafePass9!", "passwordConfirmation": "SafePass9!", "adminPin": pin})
 			if err != nil {
 				t.Fatal(err)

@@ -22,7 +22,7 @@ func TestEquipmentGemBonusesFromSpecialRefinement(t *testing.T) {
 	got := w.equipmentGemBonuses(ch)
 	if got.dropPercent != 8 || got.expPercent != 2 || got.forceDamage != 80 ||
 		got.absorbDamage != 200 {
-		t.Fatalf("bonus das Gemas incorretos: %+v", got)
+		t.Fatalf("incorrect gem bonuses: %+v", got)
 	}
 }
 
@@ -42,18 +42,18 @@ func TestAncientGemBonusesBelowPlusTen(t *testing.T) {
 	got := w.equipmentGemBonuses(ch)
 	if got.dropPercent != 8 || got.expPercent != 2 || got.forceDamage != 20 ||
 		got.absorbDamage != 20 {
-		t.Fatalf("bonus Ancient incorretos: %+v", got)
+		t.Fatalf("incorrect Ancient bonuses: %+v", got)
 	}
 }
 
-func TestEquipmentGemBonusesIgnoreUnsupportedSlot(t *testing.T) {
+func TestEquipmentGemBonusesIncludeNativeNecklaceSlot(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		640: {Index: 640, Grade: 6},
 	}}
 	ch := &model.Char{}
 	ch.Equip[9] = model.Item{Index: 640, Eff: [6]byte{43, 234}}
-	if got := w.equipmentGemBonuses(ch); got != (equipmentGemBonus{}) {
-		t.Fatalf("slot sem UI concedeu bônus de gema: %+v", got)
+	if got := w.equipmentGemBonuses(ch); got != (equipmentGemBonus{dropPercent: 8, forceDamage: 20}) {
+		t.Fatalf("necklace gem bonus=%+v, want diamond drop bonus", got)
 	}
 }
 
@@ -68,34 +68,34 @@ func TestBeastMasterFlatDamageAbsorbMatchesW2PP(t *testing.T) {
 	ch.LearnedSkill = 1 << (65 - 48)
 	ch.Equip[7] = model.Item{Index: 100}
 	if got := w.playerFlatDamageAbsorb(ch); got != 10 {
-		t.Fatalf("Armadura Elemental com escudo=%d, esperado 10", got)
+		t.Fatalf("Elemental Armor with shield=%d, want 10", got)
 	}
 
 	ch.Equip[7] = model.Item{Index: 101}
 	if got := w.playerFlatDamageAbsorb(ch); got != 0 {
-		t.Fatalf("Armadura Elemental ativou sem escudo: %d", got)
+		t.Fatalf("Elemental Armor activated without a shield: %d", got)
 	}
 
 	ch.LearnedSkill = 1 << (71 - 48)
 	if got := w.playerFlatDamageAbsorb(ch); got != 10 {
-		t.Fatalf("Eden absorb=%d, esperado 10", got)
+		t.Fatalf("Eden absorb=%d, want 10", got)
 	}
 }
 
 func TestGemDamageAbsorptionAndRewardHelpers(t *testing.T) {
 	if got := addFlatDamage(100, 40); got != 140 {
-		t.Fatalf("perfuracao=%d", got)
+		t.Fatalf("piercing=%d", got)
 	}
 	if got := absorbFlatDamage(100, 40); got != 60 {
-		t.Fatalf("absorcao=%d", got)
+		t.Fatalf("absorption=%d", got)
 	}
 	if got := absorbFlatDamage(20, 40); got != 1 {
-		t.Fatalf("absorcao deveria conservar dano minimo, veio %d", got)
+		t.Fatalf("absorption should preserve minimum damage, got %d", got)
 	}
 	if got := applyPercentReward(10_000, 2); got != 10_200 {
 		t.Fatalf("EXP Coral=%d", got)
 	}
 	if got := applyPercentReward(^uint32(0), 8); got != ^uint32(0) {
-		t.Fatalf("clamp de recompensa=%d", got)
+		t.Fatalf("reward clamp=%d", got)
 	}
 }

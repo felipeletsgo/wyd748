@@ -13,7 +13,7 @@ import (
 
 func TestWarNoticesFitNativePanelAndDoNotOverwriteResults(t *testing.T) {
 	w, _, a, _, clock := scheduledWarWorld(t, "2026-09-13 20:21")
-	message := strings.Repeat("Guilda vencedora ", 12)
+	message := strings.Repeat("Victorious guild ", 12)
 	parts := splitWarNotice(message)
 	for _, part := range parts {
 		if len(part) > 95 {
@@ -110,7 +110,7 @@ func TestScheduledTowerRejectsOwnerlessAndOutOfArenaDots(t *testing.T) {
 	if _, _, ok := w.resolveMobAffectSource(m, &model.Affect{}); ok {
 		t.Fatal("ownerless tower damage")
 	}
-	a.X, a.Y = 2494, 1885
+	a.X, a.Y = towerWarSpawnX-1, towerWarSpawnY
 	affect := model.Affect{OwnerCharacterUID: a.Char.UID}
 	if _, _, ok := w.resolveMobAffectSource(m, &affect); !ok {
 		t.Fatal("valid guild dot rejected")
@@ -167,8 +167,8 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 	if m == nil || !w.guilds.Wars.Tower.Started {
 		t.Fatal("tower did not start")
 	}
-	a.X, a.Y = 2494, 1885
-	b.X, b.Y = 2493, 1885
+	a.X, a.Y = towerWarSpawnX-1, towerWarSpawnY
+	b.X, b.Y = towerWarSpawnX-2, towerWarSpawnY
 	if !w.towerTargetAllowed(a, m) {
 		t.Fatal("guild cannot attack")
 	}
@@ -177,11 +177,11 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 	if w.guilds.Wars.Tower.Owner != 1 || m.HP != 9000 || m.Dead || a.Char.Gold != 0 || w.guilds.FindByID(1).Fame != 0 {
 		t.Fatal("capture leaked ordinary kill rewards")
 	}
-	a.X, a.Y = 2494, 1885
+	a.X, a.Y = towerWarSpawnX-1, towerWarSpawnY
 	if w.towerTargetAllowed(a, m) {
 		t.Fatal("owner can attack own tower")
 	}
-	b.X, b.Y = 2493, 1885
+	b.X, b.Y = towerWarSpawnX-2, towerWarSpawnY
 	m.HP = 0
 	st.err = errors.New("disk unavailable")
 	w.killMobState(b, m, 9000, 9000)
@@ -293,7 +293,7 @@ func TestScheduledWarPositionsOnInstalledTerrain(t *testing.T) {
 			}
 		}
 	}
-	for _, p := range [][2]uint16{{2495, 1885}, {2450, 1855}} {
+	for _, p := range [][2]uint16{{towerWarSpawnX, towerWarSpawnY}, {2450, 1855}} {
 		if !terrain.Walkable(p[0], p[1]) {
 			t.Errorf("tower blocked at %v", p)
 		}

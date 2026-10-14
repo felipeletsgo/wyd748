@@ -34,7 +34,7 @@ func (w *World) planCriticalInstanceFirstWave(inst *ItemInstance, stage model.Vo
 						continue
 					}
 					x, y := uint16(nx), uint16(ny)
-					tile := criticalTeleportTile{spatialKey(x, y), space}
+					tile := criticalTile(x, y, space)
 					if tiles[tile] != nil || w.positionOccupiedInGameplaySpace(x, y, space, nil, nil, ignored) {
 						continue
 					}
@@ -81,7 +81,7 @@ func (w *World) planCriticalInstanceFirstWave(inst *ItemInstance, stage model.Vo
 			}
 			created = append(created, &Mob{ID: id, Def: def, X: x, Y: y,
 				HP: def.Score.MaxHP, GenerIndex: -1, InstanceID: runtimeID})
-			tiles[criticalTeleportTile{spatialKey(x, y), space}] = owner
+			tiles[criticalTile(x, y, space)] = owner
 		}
 	}
 	inst.CurrentStage, inst.Remaining = 0, len(created)

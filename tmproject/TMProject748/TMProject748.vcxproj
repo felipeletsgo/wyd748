@@ -80,7 +80,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Wininet.lib;wsock32.lib;dxguid.lib;dsound.lib;imm32.lib;dinput8.lib;winmm.lib;d3d9.lib;d3dx9.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Wininet.lib;wsock32.lib;Ws2_32.lib;dxguid.lib;dsound.lib;imm32.lib;dinput8.lib;winmm.lib;d3d9.lib;d3dx9.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -105,7 +105,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>Wininet.lib;wsock32.lib;dxguid.lib;dsound.lib;imm32.lib;dinput8.lib;winmm.lib;d3d9.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Wininet.lib;wsock32.lib;Ws2_32.lib;dxguid.lib;dsound.lib;imm32.lib;dinput8.lib;winmm.lib;d3d9.lib;d3dx9.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
     </Link>
   </ItemDefinitionGroup>
@@ -175,6 +175,8 @@
     <ClInclude Include="internal\wire\LegacySalePacket.h" />
     <ClInclude Include="internal\wire\QuizEventPacket.h" />
     <ClInclude Include="internal\wire\PremiumShopPacket.h" />
+    <ClInclude Include="internal\wire\KefraPortalPacket.h" />
+    <ClInclude Include="internal\render\world\objects\KefraPortalVisual.h" />
     <ClInclude Include="internal\wire\ServerWarLetterContract.h" />
     <ClInclude Include="internal\wire\CombineCompleteContract.h" />
     <ClInclude Include="internal\wire\TradeSessionContract.h" />
@@ -243,6 +245,7 @@
     <ClInclude Include="internal\core\UiLayout.h" />
     <ClInclude Include="internal\core\CameraInput.h" />
     <ClInclude Include="internal\platform\diagnostics\ClientDiagnostics.h" />
+    <ClInclude Include="internal\platform\diagnostics\CrashCapture.h" />
     <ClInclude Include="internal\platform\diagnostics\PerfTrace.h" />
     <ClInclude Include="internal\render\resources\RuntimeAssetLimits.h" />
     <ClInclude Include="internal\render\resources\UITextureSetList.h" />
@@ -373,6 +376,7 @@
     <ClInclude Include="internal\render\world\terrain\TMGroundAttachTable.h" />
     <ClInclude Include="internal\render\world\structures\TMHouse.h" />
     <ClInclude Include="internal\game\entities\TMHuman.h" />
+    <ClInclude Include="internal\game\entities\MountRiderOffset.h" />
     <ClInclude Include="internal\game\entities\TMItem.h" />
     <ClInclude Include="internal\render\world\vegetation\TMLeaf.h" />
     <ClInclude Include="internal\render\lighting\TMLight.h" />

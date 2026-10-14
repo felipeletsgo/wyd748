@@ -1663,6 +1663,37 @@ int RunSceneDisconnectContractTests(int& checks)
         rcGridSource.find("std::unique_ptr<GeomControl[]> cells(") != std::string::npos &&
         rcGridSource.find("filled.release();") > rcGridSource.find("memset(m_pbFilled"),
         "grid construction retains both allocation owners through initialization");
+    const auto gridFrame = source_contract::MaskCpp(source_contract::Method(rcGridSource,
+        "void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)"));
+    const auto centeredBranch = gridFrame.find("if (isCenteredSingleCellGrid)");
+    const auto centeredDraw = gridFrame.find("FrameMoveAtCenter748(", centeredBranch);
+    check(centeredBranch != std::string::npos && centeredDraw != std::string::npos &&
+        gridFrame.substr(centeredBranch, centeredDraw - centeredBranch).find("m_GCEnable") == std::string::npos,
+        "occupied trade slots keep the FieldScene2 receptacle instead of an opaque black backdrop");
+    // WYD.exe 7.48 FUN_004bbcb5/FUN_004c3eec: +10 glow Legend 9..12 uses
+    // 153/166/246/260; Garnet (absorb) must not use the newer 440 texture.
+    const auto meshSource = LoadSource("TMProject748/internal/render/mesh/TMMesh.cpp");
+    const auto cmeshSource = LoadSource("TMProject748/internal/render/mesh/CMesh.cpp");
+    check(meshSource.find("sLegend >= 9 && sLegend <= 12") != std::string::npos &&
+        meshSource.find("refinement_glow::TextureBase(sLegend)") != std::string::npos &&
+        meshSource.find("texSum = 440;") == std::string::npos &&
+        cmeshSource.find("nBaseIndex = 440;") == std::string::npos,
+        "+10 Diamond..Garnet glow uses the native 7.48 textures");
+    const auto importedWeapons = cmeshSource.find("if (nPartIndex >= 2889");
+    const auto importedTexture = cmeshSource.find("refinement_glow::TextureBase(m_sLegendType)", importedWeapons);
+    check(importedWeapons != std::string::npos && importedTexture != std::string::npos &&
+        importedTexture < cmeshSource.find("GetEffectTexture(nBaseIndex + m_sMultiType", importedWeapons),
+        "imported weapon meshes also select the refined gem texture");
+    // FUN_004110f5 fills Aylin's four result grids from the staged pair once
+    // a refinement gem occupies slot 3.
+    const auto mixSource = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneMix.cpp");
+    const auto preview = mixSource.find("void TMFieldScene::RefreshNativeMixPreview()");
+    check(preview != std::string::npos &&
+        mixSource.find("native_aylin::Build(packet->Item[0], packet->Item[1],", preview) != std::string::npos &&
+        mixSource.find("packet->Item[3].sIndex, BASE_GetItemSanc(&packet->Item[0]), results)", preview) != std::string::npos &&
+        mixSource.find("new STRUCT_ITEM(results[slot])", preview) != std::string::npos &&
+        mixSource.find("grid->PickupItem(0, 0)", preview) < mixSource.find("native_aylin::Build(", preview),
+        "Aylin installs the tested four-result builder after clearing stale clones");
     const auto rcButtonSource = LoadSource("TMProject748/internal/ui/controls/SButton.cpp");
     check(rcButtonSource.find("std::unique_ptr<TMFont2> fontOwner;") != std::string::npos &&
         rcButtonSource.find("std::unique_ptr<SText> altTextOwner;") != std::string::npos &&
@@ -1676,6 +1707,22 @@ int RunSceneDisconnectContractTests(int& checks)
         rcScrollSource.find("m_pDownPanel = new SPanel(") == std::string::npos &&
         rcScrollSource.find("m_pBackground1 = new SPanel(") == std::string::npos,
         "scrollbar construction attaches each allocation before allocating the next panel");
+    // FUN_0040586f, UI mode 2: up 423, down 424, thumb 425, track 426, added
+    // in that order; the 7.69 sets 174..176/510 are absent or wrong in 7.48.
+    const auto nativeUp = rcScrollSource.find("m_pUpPanel = attachPanel(new SPanel(423, x, 0.0f, 10.0f, m_nBtnSize, 0xAAAA00FF");
+    const auto nativeDown = rcScrollSource.find("m_pDownPanel = attachPanel(new SPanel(424, x, m_nHeight - m_nBtnSize + 7.0f, 10.0f");
+    const auto nativeThumb = rcScrollSource.find("m_pBar = attachPanel(new SPanel(425, x + 1.0f, 0.0f, 10.0f - 2.0f, m_nBtnSize, 0xFFFFFFFF");
+    const auto nativeTrack = rcScrollSource.find("m_pBackground1 = attachPanel(new SPanel(426, x, 0.0f, 10.0f, inHeight, 0xFFFFFFFF");
+    check(rcScrollSource.find("if (m_dwStyle == 0 && g_UIVer == 2)") != std::string::npos &&
+        nativeUp != std::string::npos && nativeUp < nativeDown && nativeDown < nativeThumb && nativeThumb < nativeTrack,
+        "UI2 vertical scrollbars use the native 7.48 texture sets and child order");
+    // Growing the chat with '+' must keep the UI2 geometry: the down arrow
+    // follows the bottom and track 426 stretches to the new height.
+    const auto resizeBody = rcScrollSource.substr(rcScrollSource.find("void SScrollBar::SetSize("));
+    check(resizeBody.find("if (m_dwStyle == 0 && g_UIVer == 2)") < resizeBody.find("else if (m_dwStyle == 0)") &&
+        resizeBody.find("m_pDownPanel->SetPos(m_pDownPanel->m_nPosX, m_nHeight - m_nBtnSize + 7.0f);") != std::string::npos &&
+        resizeBody.find("m_pBackground1->SetSize(m_pBackground1->m_nWidth, m_nHeight);") != std::string::npos,
+        "UI2 scrollbar resize stretches the track and moves the down arrow");
     const auto rcContainerSource = LoadSource("TMProject748/internal/ui/SControlContainer.cpp");
     check(rcContainerSource.find("std::unique_ptr<SCursor> cursor(") != std::string::npos &&
         rcContainerSource.find("std::unique_ptr<SControl> root(") < rcContainerSource.find("m_pCursor = cursor.release();"),

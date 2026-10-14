@@ -37,13 +37,13 @@ void TMFieldScene::InitializeCompatInventory()
 	m_pGridGuild = findGrid(TMG_GUILD_GRID);
 	m_pGridEvent = findGrid(TMG_EVENT_GRID);
 	m_pGridRing = findGrid(TMG_RING_GRID);
+	m_pGridNecklace = findGrid(TMG_NECKLACE_GRID);
 	m_pGridOrb = findGrid(TMG_ORB_GRID);
 	m_pGridCabuncle = findGrid(TMG_CABUNCLE_GRID);
 	m_pGridDRing = findGrid(TMG_DRING_GRID);
 	m_pGridMantua = findGrid(TMG_MANTUA_GRID);
-	// The emulator's 7.48 contract has no Necklace equipment or the NewSlot
-	// entries used by later versions. Clearing and hiding inherited controls
-	// prevents a modern item from surviving in shared root 257.
+	// Native FUN_00435b13 binds necklace control 354 and populates Equip[9].
+	// Only later-version NewSlot entries are absent from the 7.48 contract.
 	auto disableUnsupportedEquipGrid = [this](unsigned int controlID,
 		SGridControl*& member)
 	{
@@ -63,7 +63,6 @@ void TMFieldScene::InitializeCompatInventory()
 		}
 		member = nullptr;
 	};
-	disableUnsupportedEquipGrid(TMG_NECKLACE_GRID, m_pGridNecklace);
 	disableUnsupportedEquipGrid(1048976u, m_pGridNewSlot1);
 	disableUnsupportedEquipGrid(1048977u, m_pGridNewSlot2);
 	m_pGridShop = findGrid(TMG_SHOP_GRID);
@@ -141,7 +140,7 @@ void TMFieldScene::InitializeCompatInventory()
 	const EquipBinding equipment[] = {
 		{ m_pGridHelm, 1 }, { m_pGridCoat, 2 }, { m_pGridPants, 3 },
 		{ m_pGridGloves, 4 }, { m_pGridBoots, 5 }, { m_pGridLeft, 6 },
-		{ m_pGridRight, 7 }, { m_pGridRing, 8 },
+		{ m_pGridRight, 7 }, { m_pGridRing, 8 }, { m_pGridNecklace, 9 },
 		{ m_pGridOrb, 10 }, { m_pGridCabuncle, 11 }, { m_pGridGuild, 12 },
 		{ m_pGridEvent, 13 }, { m_pGridDRing, 14 }, { m_pGridMantua, 15 }
 	};

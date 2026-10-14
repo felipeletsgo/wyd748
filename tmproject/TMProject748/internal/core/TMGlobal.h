@@ -256,6 +256,8 @@ const static stTeleportPos g_TeleportTable[] =
   { 2360, 3892, 0, g_pMessageStringTable[1370] },// Kefra boss entrance
   { 2364, 3892, 0, g_pMessageStringTable[1370] },// Kefra boss entrance
   { 2368, 3892, 0, g_pMessageStringTable[1370] },// Kefra boss entrance
+  // Kefra hall mirror: four-unit block of the server route at (2366, 3925).
+  { 2364, 3924, 700, const_cast<char*>("Uxmal") },
   { 188, 556, 0, g_pMessageStringTable[1370] },// battle
   { 145, 556, 0, g_pMessageStringTable[1370] },// battle
   { 145, 616, 0, g_pMessageStringTable[1370] },// battle

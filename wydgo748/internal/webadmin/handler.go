@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"wydgo/internal/account"
+	"wydgo/internal/authlimit"
 	"wydgo/internal/control"
 )
 
@@ -33,23 +34,28 @@ type AccountPresenceControl interface {
 }
 
 type Config struct {
-	Origin         string
-	DevHTTP        bool
-	AdminAccessPIN string
-	Staff          func() (map[string]Staff, error)
-	Accounts       account.AuthStore
-	Registration   account.RegistrationStore
-	Control        Control
-	GlobalDrop     control.GlobalDropSource
-	Quiz           control.QuizSource
-	Bosses         control.BossesSource
-	Kick           control.KickSource
-	Teleport       control.TeleportSource
-	Premium        control.PremiumSource
-	Persistent     PersistentReader
-	Ready          func(context.Context) error
-	Audit          *slog.Logger
-	TrustedProxies []netip.Prefix
+	Origin                string
+	DevHTTP               bool
+	AdminAccessPIN        string
+	Staff                 func() (map[string]Staff, error)
+	Accounts              account.AuthStore
+	Registration          account.RegistrationStore
+	Control               Control
+	GlobalDrop            control.GlobalDropSource
+	Quiz                  control.QuizSource
+	Bosses                control.BossesSource
+	Kick                  control.KickSource
+	Teleport              control.TeleportSource
+	Premium               control.PremiumSource
+	Persistent            PersistentReader
+	Ready                 func(context.Context) error
+	Audit                 *slog.Logger
+	TrustedProxies        []netip.Prefix
+	AuthenticationLimiter authlimit.Limiter
+	LoginVerifier         interface {
+		Verify(context.Context, string, string) error
+	}
+	RequireLoginProtection bool
 }
 
 type session struct {
@@ -457,11 +463,12 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-		AdminPIN string `json:"adminPin"`
+		Username       string `json:"username"`
+		Password       string `json:"password"`
+		AdminPIN       string `json:"adminPin"`
+		TurnstileToken string `json:"turnstileToken"`
 	}
-	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
 	var extra any
@@ -489,6 +496,30 @@ func (h *Handler) login(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeError(w, 503, "auth_busy")
 		return
+	}
+	if h.cfg.RequireLoginProtection || !h.cfg.DevHTTP {
+		if h.cfg.AuthenticationLimiter == nil || h.cfg.LoginVerifier == nil {
+			writeError(w, 503, "authentication_unavailable")
+			return
+		}
+		wait, err := h.cfg.AuthenticationLimiter.Admit(r.Context(), authlimit.Policy("staff_login", h.peer(r), name))
+		if err != nil {
+			writeError(w, 503, "authentication_unavailable")
+			return
+		}
+		if wait > 0 {
+			w.Header().Set("Retry-After", strconv.Itoa(int(wait/time.Second)+1))
+			writeError(w, 429, "rate_limited")
+			return
+		}
+		if len(body.TurnstileToken) == 0 || len(body.TurnstileToken) > 2048 || strings.TrimSpace(body.TurnstileToken) != body.TurnstileToken {
+			writeError(w, 403, "human_verification_required")
+			return
+		}
+		if h.cfg.LoginVerifier.Verify(r.Context(), body.TurnstileToken, h.peer(r)) != nil {
+			writeError(w, 403, "human_verification_failed")
+			return
+		}
 	}
 	// Even a non-staff account runs the same password verification path.
 	acc, err := account.Authenticate(h.cfg.Accounts, body.Username, body.Password)

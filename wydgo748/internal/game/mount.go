@@ -44,7 +44,8 @@ func mountStageThreshold(sIndex uint16) int {
 
 // mountBonus returns the equipped adult mount's stat bonuses and speed floor.
 // BASE_GetItemAbility(EF_MOUNTLIFE) uses (level+20)*attack/100 and
-// (level+15)*magic/100, flat evasion/resistance and a speed floor. HP must be > 0.
+// (level+15)*magic/100 as EF_MAGIC amplification, flat evasion/resistance and
+// a speed floor. HP must be > 0; magic is not a flat damage addition.
 func (w *World) mountBonus(ch *model.Char) (attack, magic, evasion, resist, runSpeedFloor int) {
 	mount, _ := equippedMount(ch)
 	if mount == nil || !model.IsMountAdult(mount.Index) || mount.MountHP() <= 0 {

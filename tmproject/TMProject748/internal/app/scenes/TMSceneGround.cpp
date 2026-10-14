@@ -12,6 +12,7 @@
 #include "TMCamera.h"
 #include "TMObjectContainer.h"
 #include "TMItem.h"
+#include "TMGate.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "TMScene.h"
@@ -258,6 +259,7 @@ int TMScene::GroundNewAttach(EDirection eDir)
 	BASE_ApplyAttribute((char*)m_HeightMapData, 256);
 
 	memcpy(m_GateMapData, m_HeightMapData, sizeof(m_HeightMapData));
+	RefreshGroundObjects();
 
 	SaveHeightMap(fileNameTrn);
 
@@ -825,6 +827,7 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 		BASE_ApplyAttribute((char*)m_HeightMapData, 256);
 
 		memcpy(m_GateMapData, m_HeightMapData, sizeof(m_GateMapData));
+		RefreshGroundObjects();
 
 		SaveHeightMap(szMapPath);
 		m_nAdjustTime = 0;
@@ -850,13 +853,6 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 		}
 		if (RenderDevice::m_bDungeon && RenderDevice::m_bDungeon != 3 && RenderDevice::m_bDungeon != 4)
 		{
-			g_nWeather = 0;
-			if (pFieldScene->m_pRain)
-				pFieldScene->m_pRain->m_bVisible = 0;
-			if (pFieldScene->m_pSnow)
-				pFieldScene->m_pSnow->m_bVisible = 0;
-			if (pFieldScene->m_pSnow2)
-				pFieldScene->m_pSnow2->m_bVisible = 0;
 			pFieldScene->m_bQuater = 1;
 			pFieldScene->UpdateScoreUI(0);
 
@@ -867,15 +863,6 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 		}
 		else
 		{
-			if (RenderDevice::m_bDungeon == 3 || RenderDevice::m_bDungeon == 4)
-			{
-				if (pFieldScene->m_pSnow)
-					pFieldScene->m_pSnow->m_bVisible = 0;
-				if (pFieldScene->m_pSnow2)
-					pFieldScene->m_pSnow2->m_bVisible = 0;
-			}
-
-			pFieldScene->SetWeather(g_nWeather);
 			if (g_pObjectManager && g_pObjectManager->m_pCamera)
 				g_pObjectManager->m_pCamera->m_fHorizonAngle = 0.78539819f;
 
@@ -884,6 +871,51 @@ void TMScene::Warp2(int nZoneX, int nZoneY)
 			if (pFieldScene->m_pMiniMapPanel)
 				pFieldScene->m_pMiniMapPanel->m_GCPanel.dwColor = 0x80FFFFFF;
 		}
+		// A terrain override changes presentation, never the last server value.
+		pFieldScene->UpdateWeatherEffects();
+	}
+}
+
+void TMScene::RefreshGroundObjects()
+{
+	// Object packets can arrive before the warp that loads their region
+	// (teleport visibility precedes the ground swap). The gate mask was then
+	// written outside the old window and dropped by the rebuild, and every
+	// object took its height from the old window's clamped edge, leaving gates,
+	// towers and obelisks buried or invisible. Re-seat them once their region
+	// is part of the new window, using the same rules as OnPacketCreateItem.
+	if (!m_pItemContainer || !m_pGround)
+		return;
+	for (TreeNode* node = m_pItemContainer->m_pDown; node; node = node->m_pNextLink)
+	{
+		auto* item = dynamic_cast<TMItem*>(node);
+		if (!item)
+			continue;
+		const int x = (int)item->m_vecPosition.x;
+		const int y = (int)item->m_vecPosition.y;
+		if (x - g_HeightPosX < 0 || y - g_HeightPosY < 0 || x - g_HeightPosX >= 256 || y - g_HeightPosY >= 256)
+			continue;
+		const TMVector2 position(item->m_vecPosition.x, item->m_vecPosition.y);
+		if (auto* gate = dynamic_cast<TMGate*>(item))
+		{
+			float height = m_pGround->GetHeight(position);
+			if (height < -500.0f)
+			{
+				auto* other = m_pGroundList[(m_nCurrentGroundIndex + 1) % 2];
+				if (other)
+					height = other->GetHeight(position);
+			}
+			if (height >= -500.0f)
+				gate->InitPosition(position.x, height, position.y);
+			STRUCT_ITEM stItem{};
+			stItem.sIndex = gate->m_stItem.sIndex;
+			const int mask = BASE_GetItemAbility(&stItem, 34);
+			if (mask > 0 && gate->m_nMaskHeight >= 0)
+				BASE_UpdateItem2(mask, 0, 0, x, y, (char*)m_HeightMapData,
+					(int)(gate->m_fAngle / D3DXToRadian(90)), gate->m_nMaskHeight, (const char*)m_GateMapData);
+			continue;
+		}
+		item->InitPosition(position.x, GroundGetMask(position) * 0.1f + 0.1f, position.y);
 	}
 }
 

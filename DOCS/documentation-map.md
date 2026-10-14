@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 188.
+Markdown documents: 200.
 
 | Document | Type |
 | --- | --- |
@@ -13,11 +13,15 @@ Markdown documents: 188.
 | [.agents/handoffs/client748-research-program.md](<../.agents/handoffs/client748-research-program.md>) | Historical continuity |
 | [.agents/handoffs/consumables-buff-persistence.md](<../.agents/handoffs/consumables-buff-persistence.md>) | Historical continuity |
 | [.agents/handoffs/movement-route-reconciliation.md](<../.agents/handoffs/movement-route-reconciliation.md>) | Historical continuity |
+| [.agents/handoffs/project-continuation.md](<../.agents/handoffs/project-continuation.md>) | Historical continuity |
 | [.agents/handoffs/skills-buffs-passives.md](<../.agents/handoffs/skills-buffs-passives.md>) | Historical continuity |
 | [.agents/handoffs/TEMPLATE.md](<../.agents/handoffs/TEMPLATE.md>) | Historical continuity |
 | [.agents/handoffs/tmproject-architecture.md](<../.agents/handoffs/tmproject-architecture.md>) | Historical continuity |
+| [.agents/research/client748/flows/combat/persistent-buff-visuals.md](<../.agents/research/client748/flows/combat/persistent-buff-visuals.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/skill-visual-dispatch.md](<../.agents/research/client748/flows/combat/skill-visual-dispatch.md>) | Research evidence |
+| [.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md](<../.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md>) | Research evidence |
+| [.agents/research/client748/flows/gameplay/kefra-portal-visuals.md](<../.agents/research/client748/flows/gameplay/kefra-portal-visuals.md>) | Research evidence |
 | [.agents/research/client748/flows/gameplay/source-todo-native-review.md](<../.agents/research/client748/flows/gameplay/source-todo-native-review.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md](<../.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md](<../.agents/research/client748/flows/lifecycle/application-close-global-shutdown.md>) | Research evidence |
@@ -60,6 +64,7 @@ Markdown documents: 188.
 | [.agents/research/client748/flows/transport/war-info-contract.md](<../.agents/research/client748/flows/transport/war-info-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/world-state-parameter-contracts.md](<../.agents/research/client748/flows/transport/world-state-parameter-contracts.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/auto-trade-inventory-layout.md](<../.agents/research/client748/flows/ui/auto-trade-inventory-layout.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/aylin-refinement-presentation.md](<../.agents/research/client748/flows/ui/aylin-refinement-presentation.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/billing-notice.md](<../.agents/research/client748/flows/ui/billing-notice.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/carry-snapshot-contract.md](<../.agents/research/client748/flows/ui/carry-snapshot-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/cc-auto-combat-state-sync.md](<../.agents/research/client748/flows/ui/cc-auto-combat-state-sync.md>) | Research evidence |
@@ -87,11 +92,13 @@ Markdown documents: 188.
 | [.agents/research/client748/flows/ui/local-chat-message.md](<../.agents/research/client748/flows/ui/local-chat-message.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/message-panel-text.md](<../.agents/research/client748/flows/ui/message-panel-text.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/mission-panel-dormant.md](<../.agents/research/client748/flows/ui/mission-panel-dormant.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/mount-level-glow.md](<../.agents/research/client748/flows/ui/mount-level-glow.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/native-mix-inventory-layout.md](<../.agents/research/client748/flows/ui/native-mix-inventory-layout.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/party-panel-layout-lifecycle.md](<../.agents/research/client748/flows/ui/party-panel-layout-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/pickup-confirmation-contract.md](<../.agents/research/client748/flows/ui/pickup-confirmation-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/pk-mode-toggle-lifecycle.md](<../.agents/research/client748/flows/ui/pk-mode-toggle-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/player-interaction-menu-lifecycle.md](<../.agents/research/client748/flows/ui/player-interaction-menu-lifecycle.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/player-shout-top-notice.md](<../.agents/research/client748/flows/ui/player-shout-top-notice.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/premium-firework-display.md](<../.agents/research/client748/flows/ui/premium-firework-display.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/premium-firework-response-contract.md](<../.agents/research/client748/flows/ui/premium-firework-response-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/premium-npc-click-dormant.md](<../.agents/research/client748/flows/ui/premium-npc-click-dormant.md>) | Research evidence |
@@ -115,6 +122,7 @@ Markdown documents: 188.
 | [.agents/research/client748/flows/ui/toto-list-loader.md](<../.agents/research/client748/flows/ui/toto-list-loader.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/toto-selection-close.md](<../.agents/research/client748/flows/ui/toto-selection-close.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/trade-inventory-layout.md](<../.agents/research/client748/flows/ui/trade-inventory-layout.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/trade-slot-receptacle.md](<../.agents/research/client748/flows/ui/trade-slot-receptacle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/update-equip-visual-contract.md](<../.agents/research/client748/flows/ui/update-equip-visual-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/volatile-item-use-routing.md](<../.agents/research/client748/flows/ui/volatile-item-use-routing.md>) | Research evidence |
 | [.agents/research/client748/inventory/costume-native-contract.md](<../.agents/research/client748/inventory/costume-native-contract.md>) | Research evidence |
@@ -167,6 +175,7 @@ Markdown documents: 188.
 | [DOCS/client/tmproject-source-organization-plan.md](<client/tmproject-source-organization-plan.md>) | Product documentation |
 | [DOCS/client/ui-compatibility-matrix.md](<client/ui-compatibility-matrix.md>) | Product documentation |
 | [DOCS/client/ui-windows.md](<client/ui-windows.md>) | Product documentation |
+| [DOCS/current-state.md](<current-state.md>) | Product documentation |
 | [DOCS/documentation-map.md](<documentation-map.md>) | Product documentation |
 | [DOCS/features-macro.md](<features-macro.md>) | Product documentation |
 | [DOCS/GUIA/GUIAS_JOGABILIDADE.md](<GUIA/GUIAS_JOGABILIDADE.md>) | Product documentation |
@@ -179,6 +188,7 @@ Markdown documents: 188.
 | [DOCS/login-dispatch.md](<login-dispatch.md>) | Product documentation |
 | [DOCS/protocol/data-consistency.md](<protocol/data-consistency.md>) | Product documentation |
 | [DOCS/protocol/hell-gate-store.md](<protocol/hell-gate-store.md>) | Product documentation |
+| [DOCS/protocol/kefra-portal.md](<protocol/kefra-portal.md>) | Product documentation |
 | [DOCS/protocol/opcode-compatibility-matrix.md](<protocol/opcode-compatibility-matrix.md>) | Product documentation |
 | [DOCS/protocol/packet-fixtures.md](<protocol/packet-fixtures.md>) | Product documentation |
 | [DOCS/protocol/premium-shop.md](<protocol/premium-shop.md>) | Product documentation |
@@ -188,9 +198,11 @@ Markdown documents: 188.
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Product documentation |
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
 | [DOCS/server/ground-items.md](<server/ground-items.md>) | Product documentation |
+| [DOCS/server/hidden-valley-access.md](<server/hidden-valley-access.md>) | Product documentation |
 | [DOCS/server/operations.md](<server/operations.md>) | Product documentation |
 | [DOCS/server/public-launch.md](<server/public-launch.md>) | Product documentation |
 | [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
+| [DOCS/server/website-feature-status.md](<server/website-feature-status.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |
 | [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Product documentation |
 | [DOCS/windows-development-environment.md](<windows-development-environment.md>) | Product documentation |

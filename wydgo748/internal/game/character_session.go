@@ -139,7 +139,7 @@ func resetCharacterRuntime(p *Player) {
 	p.EggIncubationUID = ""
 	p.NextEggIncubationTick = time.Time{}
 	p.NextKingdomTeleport = time.Time{}
-	p.QuestZoneTimer = false
+	p.QuestZoneTimer, p.AreaTimerDeadline = false, time.Time{}
 
 	// Movement published to observers.
 	p.MovePublished = false

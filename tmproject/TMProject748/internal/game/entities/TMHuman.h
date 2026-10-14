@@ -209,6 +209,9 @@ public:
     void UpdateNameColor748();
     TMSkinMesh* m_pMount;
     short m_sMountIndex;
+    // True while the mount look comes from an imported KR visual or a
+    // costume mount; selects the KR rider offsets in MountRiderOffset.h.
+    bool m_bImportedMountVisual = false;
     LOOK_INFO m_stMountLook;
     SANC_INFO m_stMountSanc;
     SANC_INFO m_stOldMountSanc;

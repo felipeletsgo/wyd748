@@ -186,7 +186,7 @@ func (w *World) allowChat(p *Player, channel string, now time.Time) bool {
 	switch channel {
 	case "local":
 		limit = w.operational.ChatLocalPer10Seconds
-	case chatChannelGlobal:
+	case chatChannelGlobal, chatChannelServer:
 		limit = w.operational.ChatGlobalPer10Seconds
 	}
 	key := p.Account.Name + "\x00" + channel
