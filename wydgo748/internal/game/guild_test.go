@@ -234,3 +234,18 @@ func TestOnlineGuildMembersFiltraPorGuildEPresenca(t *testing.T) {
 		t.Fatal("guild 0 significa sem guild e nao pode devolver ninguem")
 	}
 }
+
+func TestGuildInviteRankFillsSubLeaderSlots(t *testing.T) {
+	guild := &model.Guild{Members: []model.GuildMember{{Character: "Leader", Rank: model.GuildRankLeader},
+		{Character: "Sub2", Rank: model.GuildRankSubFirst + 1}}}
+	for _, tc := range []struct {
+		inviteType uint32
+		rank       byte
+		ok         bool
+	}{{0, model.GuildRankMember, true}, {1, 6, true}, {2, 0, false}, {3, 8, true}, {4, 0, false}} {
+		rank, ok := guildInviteRank(guild, tc.inviteType)
+		if rank != tc.rank || ok != tc.ok {
+			t.Fatalf("type %d: rank=%d ok=%t", tc.inviteType, rank, ok)
+		}
+	}
+}

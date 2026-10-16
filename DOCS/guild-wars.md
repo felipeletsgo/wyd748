@@ -11,6 +11,32 @@ against the 7.48 client. The server remains authoritative.
 Status: statically verified and covered by automated tests; not
 `CLIENT_TESTED`. The real-client integration gate remains open.
 
+## Guild kingdom and cape membership
+
+The guild registry's kingdom is authoritative for its members. Recruitment
+requires the recruit's cape kingdom to match the guild, including neutral
+guilds. Ordinary members and subleaders cannot change kingdom through the
+kingdom NPCs, including conversion to a white cape at Kingdom Broker.
+
+A leader may change kingdom using the existing NPC payment rules. The guild
+kingdom and affected characters on connected in-world accounts are saved as
+one transaction before confirmation and appearance publication. This includes
+inactive characters on those accounts. Existing cape family, refinement,
+effects and UID are preserved; empty slots are not granted free capes.
+Offline and character-selection accounts reconcile their existing cape from
+the durable guild registry on character entry, before appearance publication.
+
+Rejected saves restore prior state without publishing the new colors.
+Critical persistence also fences repeated requests and includes reciprocal
+trade participants when required; an unknown result follows containment
+rather than reporting success or retrying the economic action.
+
+AUTOMATED TESTED: recruitment, ordinary-member/subleader rejection, leader
+realm changes, cape families/colors, connected-account propagation, entry
+repair, rejection/rollback, held writes, unknown outcomes and trade closure.
+The full Go suite, `go vet ./...` and focused guild-kingdom race tests passed
+on 2026-10-15. These changes are local only and not CLIENT-TESTED.
+
 ## Default schedule
 
 The configured timezone is explicitly `America/Sao_Paulo`, independent of

@@ -147,6 +147,17 @@ int RunUITextureSetListTests(int& checks)
     bool texturesValid = true;
     for (const auto& record : shipped) {
         defined.insert(record.setIndex);
+        if (record.setIndex >= 398 && record.setIndex <= 404) {
+            // The flyout buttons use states 0..4 (idle, hover, pressed,
+            // selected, disabled). A one-row set disappears on selection.
+            bool complete = record.coords.size() == 5;
+            for (const auto& coord : record.coords)
+                complete = complete && coord.nTextureIndex == 134 && coord.nStartX == 479 &&
+                    coord.nStartY == 4 + (record.setIndex - 398) * 30 &&
+                    coord.nWidth == 28 && coord.nHeight == 28 &&
+                    coord.nDestX == 0 && coord.nDestY == 0;
+            check(complete, "every flyout button state retains its original 7.48 icon");
+        }
         if (record.setIndex == 198 && record.coords.size() != 4)
             texturesValid = false;
         for (const auto& coord : record.coords)

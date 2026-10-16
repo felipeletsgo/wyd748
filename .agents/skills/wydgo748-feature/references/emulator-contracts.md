@@ -119,12 +119,14 @@ rules live only in the root `AGENTS.md`.
 - Purchases/sales revalidate NPC, merchant, visibility, and distance for every
   packet. Ordinary sales do not accept Equip/Face. Publish a drop only after
   persisting its removal from inventory.
-- A 3 s autosave reduces rollback; economy, crafting, and trade require
-  synchronous anti-duplication saves.
+- Autosave timing comes from current configuration/code; it is not the
+  durability boundary for economy, crafting, or trade. Follow the authoritative
+  persistence contract in `repository-contracts.md` and the active store adapter.
 - Trades between two accounts require atomic multi-account persistence;
   never silently degrade to two sequential saves.
-- Atomic save uses temporary file, sync, and rename. Multi-file transactions
-  use a typed journal.
+- PostgreSQL is authoritative; do not describe historical JSON file-save or
+  journal mechanics as the production transaction model. The explicit JSON
+  development adapter must still preserve its own atomicity/rollback contract.
 - Current position does not determine re-entry; characters spawn at the
   configured entry point.
 
@@ -134,15 +136,20 @@ Use the validation matrix in [AGENTS.md](../../../../AGENTS.md). To close an
 integrated server batch, run these commands from the repository root:
 
 ```powershell
+$serverCheckDirectory = Join-Path (Get-Location).Path 'build/server-check'
+New-Item -ItemType Directory -Force -Path $serverCheckDirectory | Out-Null
+$serverCheckBinary = Join-Path $serverCheckDirectory 'wyd-server.exe'
 Push-Location wydgo748
 go test ./...
 go vet ./...
-go build -o bin/tm-check.exe ./cmd/server
+go build -o $serverCheckBinary ./cmd/server
 Pop-Location
 git diff --check
 ```
 
-The Git-ignored `wydgo748/bin/` directory holds server builds.
+The output resolves under the root `build/server-check/`, not the module root.
+Check each command's exit status before proceeding. Run this integration gate
+once for the affected batch; reuse unchanged results under the root matrix.
 
 When an action appears to do nothing, record its opcode, size, and essential
 fields, reproduce once, and compare the current TMProject and server handlers.

@@ -88,6 +88,19 @@ func (w *World) onCombineEhre(s *net.Session, pkt []byte) {
 		w.admitAdvancedComposition(p, req, "Ehre")
 		return
 	}
+	if result, valid := ehreSpiritStone(req); valid {
+		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
+		changed := make(map[int]struct{}, 3)
+		roll := w.rollPercent(ehreSpiritStoneChance)
+		consumeCombineItems(p.Char, req, 0, 2, changed)
+		code := uint32(2)
+		if roll.Success {
+			p.Char.Inv[int(req.Pos[2])] = result
+			code = 1
+		}
+		w.commitCombineWithRollbackRoll(p, oldInv, oldEquip, oldGold, changed, nil, code, nil, roll)
+		return
+	}
 
 	// Mysterious Stone: any two runes plus a package of ten Lac powders.
 	// The result is a stack of ten stones in the powder package slot.

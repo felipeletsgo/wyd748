@@ -43,6 +43,17 @@ int RunGridInsertionTests(int& checks)
         if (!ok) { ++failures; std::fprintf(stderr, "FAIL: %s\n", name); }
     };
     const auto source = ReadGridSource();
+    check(grid_item_presentation::IconTexture(3191, 24) == 25,
+        "Elite Of Hekalotia uses the blue cape icon");
+    check(grid_item_presentation::IconTexture(3192, 25) == 26,
+        "Elite Of Akeronia uses the red cape icon");
+    check(grid_item_presentation::IconTexture(3193, 26) == 27,
+        "Elite Of Adventurer uses the white cape icon");
+    for (int index = 0; index < 6500; ++index) {
+        if (index >= 3191 && index <= 3193) continue;
+        check(grid_item_presentation::IconTexture(index, 17) == 17,
+            "all other item icons retain their catalog texture");
+    }
     for (const char* signature : {
         "int SGridControl::AddItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)",
         "int SGridControl::AddSkillItem(SGridControlItem* ipNewItem, int inCellIndexX, int inCellIndexY)"}) {

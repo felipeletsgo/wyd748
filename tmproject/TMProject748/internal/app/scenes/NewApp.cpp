@@ -24,6 +24,8 @@
 #include "PerfTrace.h"
 #include "ClientSettings.h"
 #include "DeviceFrame.h"
+#include "../../ui/ItemHelpText.h"
+#include <fstream>
 
 const char ClassName[4] = "WYD";
 
@@ -340,47 +342,23 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 
 	MixHelp();
 
-	fopen_s(&fp, szItemHelpFile, "rt");
-
-	if (fp == nullptr)
+	std::ifstream itemHelp(szItemHelpFile);
+	if (!itemHelp)
 	{
 		MessageBoxA(m_hWnd, "Can't open itemhelp.dat", "Error", 0);
 		return 0;
 	}
 
-	char szCol[8]{};
-	char szTemp[256]{};
-
-	int NumHelp = 0;
-	int ItemIndex = 0;
-	int Color = 0;
-
-	while (NumHelp < 6500)
+	item_help_748::Load(itemHelp, g_pItemHelp, _countof(g_pItemHelp));
+	itemHelp.close();
+	// Faithful English localization of the native 7.48 skill-help corpus.
+	// Keep this separate from historical item records and their ANSI encoding.
+	std::ifstream skillHelp("skillhelp.dat");
+	if (!skillHelp || item_help_748::Load(skillHelp, g_pItemHelp, _countof(g_pItemHelp)) != 102)
 	{
-		for (int j = 0; j < 10 && fgets(szTemp, 256, fp); ++j)
-		{
-			if (j == 0)
-			{
-				sscanf(szTemp, "%d", &ItemIndex);
-			}
-			else
-			{
-				memset(szCol, 0, 8);
-				strncpy(szCol, szTemp, 6);
-				sscanf(szCol, "%x", &Color);
-				char* szRet = strstr(szTemp, "\n");
-				if (szRet)
-					*szRet = 0;
-				if (szTemp[8] == '\t' || szTemp[8] == ' ')
-					sprintf(g_pItemHelp[ItemIndex].Help[j - 1], "%s", &szTemp[9]);
-
-				g_pItemHelp[ItemIndex].Color[j - 1] = static_cast<short>(Color);
-			}
-		}
-		++NumHelp;
+		MessageBoxA(m_hWnd, "Can't load the complete native skillhelp.dat", "Error", 0);
+		return 0;
 	}
-
-	fclose(fp);
 
 	// The 7.48 client has no intro video (no .avi path in WYD.exe), so the
 	// device is created right after the data files.

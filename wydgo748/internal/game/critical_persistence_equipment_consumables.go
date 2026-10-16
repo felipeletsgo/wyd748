@@ -112,11 +112,16 @@ func (w *World) queueEquipmentConsumable(p *Player, slot byte, req useItemReques
 			if !allowed {
 				return reject("That item cannot be refined any further.")
 			}
+			breaks := earringPowderRefine(*target, def, targetType, targetPos, powderCode, rule)
 			roll := w.rollPercent(chance)
 			if roll.Success && !setItemSanc(target, level+1) {
 				return reject("That item cannot be refined.")
 			}
 			message = roll.message()
+			if !roll.Success && breaks {
+				*target = model.Item{}
+				message = "The refinement failed and the earring broke."
+			}
 		}
 	}
 	if rule.Consume {

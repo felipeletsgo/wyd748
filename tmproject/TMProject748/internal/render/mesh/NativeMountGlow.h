@@ -8,4 +8,11 @@ constexpr int TextureIndex(int grade)
     constexpr int offsets[] = {10, 1, 2, 3, 4, 6, 7, 7, 8, 9, 10, 11, 12};
     return grade >= 0 && grade < 13 ? 233 + offsets[grade] : 121;
 }
+
+// Inventory FUN_004bbcb5 uses the same table on normal hardware. Only its
+// legacy GPU fallback uses the linear sequence, not the native streak order.
+constexpr int InventoryTextureIndex(int grade, bool legacyHardware)
+{
+    return legacyHardware ? 233 + grade : TextureIndex(grade);
+}
 }

@@ -157,3 +157,8 @@ tbody tr:last-child td { border-bottom: 0; }
 .equipment-slot .muted { font-size: 11px; }
 @media (max-width: 540px) { .equipment-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 540px) { .catalog-filters { flex-wrap: wrap; } .catalog-filters input { flex-basis: 100%; } .catalog-filters select { flex: 1; max-width: none; } }
+.guild-mark { image-rendering: pixelated; border: 1px solid var(--line, #ccc); background: #000; margin: 8px 0; }
+/* The help text spans the form grid; as a max-content cell it widened the label
+   column and pushed the file picker outside the panel. */
+.guild-mark-form .guild-mark-help { grid-column: 1 / -1; }
+.guild-mark-form input[type="file"] { width: 100%; min-width: 0; max-width: 100%; }

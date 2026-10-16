@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"sort"
 	"time"
@@ -536,6 +537,9 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if now.Before(p.SkillReady[skillIndex]) {
 		return
 	}
+	if !w.skillWeaponAllowed(p.Char, skillIndex) {
+		return
+	}
 	kind := local/8 + 1
 	if special {
 		kind = 4
@@ -578,12 +582,13 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if playerCurMP(p.Char) < uint32(mana) {
 		return
 	}
-	if skillIndex == 85 { // Golden Shield: historical _MSG_Attack.cpp charges 10 * Level.
-		cost := playerLevel(p.Char) * 10
+	if skillIndex == 85 { // Golden Shield: W2PP _MSG_Attack.cpp charges 100 gold per mastery point.
+		cost := uint32(100 * mastery)
 		if p.goldenShieldPaid {
 			// The committed charge belongs to exactly this resumed cast.
 			p.goldenShieldPaid = false
 		} else if p.Char.Gold < cost {
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Golden Shield requires %d gold.", cost)))
 			return
 		} else if w.criticalWrites != nil {
 			// Commit the native gold charge first, then resume this same cast
@@ -853,4 +858,16 @@ func uniqueKillAccounts(killer *Player, shares []partyExpShare) []*model.Account
 		accounts = append(accounts, account)
 	}
 	return accounts
+}
+
+// skillWeaponAllowed mirrors the WYD 7.48 client gate in SkillUse: Enchant
+// Ice (75) and Lightning Storm (79) need a bow (EF_WTYPE 101) in weapon slot
+// 6, so a claw cannot cast them through a modified client.
+func (w *World) skillWeaponAllowed(ch *model.Char, skillIndex int) bool {
+	if skillIndex != 75 && skillIndex != 79 {
+		return true
+	}
+	weapon := ch.Equip[6]
+	def, ok := w.items[weapon.Index]
+	return weapon.Index != 0 && ok && itemAbility(weapon, def, "EF_WTYPE") == 101
 }

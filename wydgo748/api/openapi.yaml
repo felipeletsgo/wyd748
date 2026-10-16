@@ -451,6 +451,58 @@ paths:
                   asOf: { type: string, format: date-time, description: Saved guild_state.updated_at, not a live timestamp }
                   source: { type: string, const: persisted snapshot }
         default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/guild:
+    get:
+      summary: Read the signed-in account's guild for management
+      description: Resolves the guild through the account's characters in the saved guild projection, preferring the leader character. Only the leader may change the guild mark.
+      security: [{ playerSession: [] }]
+      responses:
+        '200':
+          description: The account's guild, role and current guild mark
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerGuildManagement' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/guild/mark:
+    post:
+      summary: Upload the guild mark (guild leader only)
+      description: A ready-to-use 16x12, 24-bit BMP of 630 or 632 bytes is stored unchanged; a PNG, JPEG, GIF or uncompressed BMP up to 64 KB is converted to it. The 7.48 client downloads it from /patch/guildmark/b<group><channel><guild>.bmp.
+      security: [{ playerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/CSRF' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [image]
+              properties:
+                image: { type: string, description: Base64 image bytes }
+      responses:
+        '200':
+          description: Stored guild mark
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerGuildMarkResult' }
+        default: { $ref: '#/components/responses/PlayerError' }
+  /api/player/v1/guild/mark/delete:
+    post:
+      summary: Remove the guild mark (guild leader only)
+      security: [{ playerSession: [] }]
+      parameters: [{ $ref: '#/components/parameters/CSRF' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { type: object, additionalProperties: false }
+      responses:
+        '200':
+          description: Guild mark removed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerGuildMarkResult' }
+        default: { $ref: '#/components/responses/PlayerError' }
 components:
   securitySchemes:
     playerSession:
@@ -491,6 +543,50 @@ components:
             properties:
               error: { type: string }
   schemas:
+    PlayerGuildMark:
+      type: [object, 'null']
+      additionalProperties: false
+      required: [url, updatedAt]
+      properties:
+        url: { type: string, description: Public address of the stored guild mark }
+        updatedAt: { type: string, format: date-time }
+    PlayerGuildMarkResult:
+      type: object
+      additionalProperties: false
+      required: [version, mark]
+      properties:
+        version: { type: integer, const: 1 }
+        mark: { $ref: '#/components/schemas/PlayerGuildMark' }
+    PlayerGuildManagement:
+      type: object
+      additionalProperties: false
+      required: [version, guild, character, rank, leader, marksEnabled, mark, source]
+      properties:
+        version: { type: integer, const: 1 }
+        guild:
+          type: object
+          additionalProperties: false
+          required: [id, name, kingdom, fame, members]
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            kingdom: { type: integer, enum: [0, 7, 8] }
+            fame: { type: integer, minimum: 0 }
+            members:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [name, rank]
+                properties:
+                  name: { type: string }
+                  rank: { type: integer, enum: [0, 6, 7, 8, 9] }
+        character: { type: string, description: The account's character in this guild }
+        rank: { type: integer, enum: [0, 6, 7, 8, 9] }
+        leader: { type: boolean }
+        marksEnabled: { type: boolean }
+        mark: { $ref: '#/components/schemas/PlayerGuildMark' }
+        source: { type: string, const: persisted snapshot }
     PublicGuildProfile:
       type: object
       additionalProperties: false

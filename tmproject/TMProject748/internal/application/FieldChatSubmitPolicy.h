@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include "TabLabel.h"
 
 // Local chat-submission decisions from the native field-scene chat edit.
 // No transport, controls, entities or ownership: the scene keeps every side
@@ -143,7 +144,7 @@ inline Command ClassifyCommand(const char* name, const CommandNames& names)
     if (!std::strcmp(name, "srv")) return Command::ServerQuery;
     if (!std::strcmp(name, names.itemLock)) return Command::ItemLock;
     if (!std::strcmp(name, names.itemUnlock)) return Command::ItemUnlock;
-    if (!std::strcmp(name, "tab")) return Command::Nickname;
+    if (tab_label::IsCommand(name)) return Command::Nickname;
     return Command::Whisper;
 }
 

@@ -1,7 +1,9 @@
 #include "../internal/core/Basedef.h"
 #include "../internal/ui/NativeAylinPreview.h"
+#include "../internal/ui/NativeInventoryGlow.h"
 #include "../internal/render/mesh/RefinementGlowTexture.h"
 #include "../internal/render/mesh/NativeMountGlow.h"
+#include "../internal/game/entities/WeaponPoseRefresh.h"
 
 #include <cstdio>
 #include <cstring>
@@ -35,6 +37,43 @@ int RunNativeRefinementPresentationTests(int& checks)
         }
     };
     const auto first = Item(1000, 2, 30, 3);
+    using native_inventory_glow::Background;
+    using native_inventory_glow::PulsedColor;
+    check(Background(3140, 0, 0) == 0xFFFFFFFFu, "Glittering Stone native halo");
+    check(Background(4141, 0, 0) == 0xFF8800BBu &&
+        Background(4142, 0, 0) == 0xFF444488u, "native purple halo variants");
+    check(Background(1739, 0, 0) == 0xFFAA8888u &&
+        Background(4145, 0, 0) == 0xFFAA8888u &&
+        Background(1000, 206, 59) == 0xFFAA8888u, "native effect halo");
+    check(Background(1000, 206, 58) == 0 && Background(1000, 205, 59) == 0,
+        "halo type and first-effect gates");
+    constexpr unsigned int palette[] = {0xFF777777u, 0xFF666677u, 0xFF555599u,
+        0xFF995555u, 0xFF559955u, 0xFF999900u, 0xFF998866u, 0xFF775599u};
+    for (int item = 1; item < 6000; ++item)
+    {
+        unsigned int expected = 0;
+        if (item == 4141) expected = 0xFF8800BBu;
+        if (item == 4142) expected = 0xFF444488u;
+        if (item == 1739 || item == 4145) expected = 0xFFAA8888u;
+        if (item >= 1744 && item <= 1751) expected = palette[item - 1744];
+        if ((item >= 1760 && item <= 1763) || item == 4032 ||
+            (item >= 5334 && item <= 5338)) expected = 0xFFFFFFAAu;
+        if (item == 3140 || (item >= 3407 && item <= 3416)) expected = 0xFFFFFFFFu;
+        check(Background(item, 0, 0) == expected, "native halo catalog boundaries");
+    }
+    check(Background(1744, 206, 59) == palette[0] &&
+        Background(3140, 206, 59) == 0xFFFFFFFFu, "native halo precedence");
+    check(PulsedColor(0xFFFFFFFFu, 500) == 0xFF4C4C4Cu &&
+        PulsedColor(0xFFFFFFFFu, 1500) == 0xFFFFFFFFu,
+        "native sine pulse minimum and maximum");
+    for (unsigned int elapsed = 0; elapsed < 2000; ++elapsed)
+    {
+        const auto pulsed = PulsedColor(0x7F804020u, elapsed);
+        check((pulsed >> 24) == 0x7Fu, "pulse preserves alpha");
+        check(((pulsed >> 16) & 0xFFu) >= 38 && ((pulsed >> 16) & 0xFFu) <= 128,
+            "pulse remains positive and within native range");
+        check(pulsed == PulsedColor(0x7F804020u, elapsed + 2000), "pulse period");
+    }
     const auto second = Item(1001, 4, 40, 5);
     std::array<STRUCT_ITEM, 4> results{};
     check(native_aylin::Build(first, second, 2441, 9, results), "complete preview");
@@ -133,10 +172,57 @@ int RunNativeRefinementPresentationTests(int& checks)
     for (int grade = 0; grade <= 12; ++grade)
         check(native_mount_glow::TextureIndex(grade) == mountTextures[grade],
             "native mount refinement texture lookup");
+    for (int grade = 0; grade < 13; ++grade)
+    {
+        check(native_mount_glow::InventoryTextureIndex(grade, false) == mountTextures[grade],
+            "native inventory shares the grade streak table");
+        check(native_mount_glow::InventoryTextureIndex(grade, true) == 233 + grade,
+            "native inventory legacy hardware retains linear textures");
+    }
     check(native_mount_glow::TextureIndex(-1) == 121 &&
         native_mount_glow::TextureIndex(13) == 121 &&
         native_mount_glow::TextureIndex(15) == 121, "native mount overflow fallback");
     check(native_mount_glow::TextureIndex(7) != native_mount_glow::TextureIndex(12),
         "level 70 and level 120 cannot request the same texture");
+
+    struct PoseHuman
+    {
+        int m_nWeaponTypeIndex = 4;
+        void* m_pSkinMesh = this;
+        int m_eMotion = 2;
+        int m_nLoop = 1;
+        int boundWeaponType = 4;
+        int calls = 0;
+        int boundMotion = -1;
+        int boundLoop = -1;
+        void SetAnimation(int motion, int loop)
+        {
+            ++calls;
+            boundWeaponType = m_nWeaponTypeIndex;
+            boundMotion = motion;
+            boundLoop = loop;
+        }
+    };
+    // Cover both single-hand selector results and mounted dual-wield stance.
+    for (int dualType : {2, 4})
+        for (int remainingType : {0, 1, 5})
+        {
+            PoseHuman human;
+            human.m_nWeaponTypeIndex = dualType;
+            human.boundWeaponType = dualType;
+            weapon_pose::Select(human, remainingType);
+            check(human.m_nWeaponTypeIndex == remainingType &&
+                human.boundWeaponType == remainingType && human.calls == 1,
+                "dual-to-single weapon pose rebinds after the new stance is stored");
+            check(human.boundMotion == 2 && human.boundLoop == 1,
+                "weapon pose refresh preserves the current motion and loop");
+            weapon_pose::Select(human, remainingType);
+            check(human.calls == 1, "unchanged stance does not restart animation");
+        }
+    PoseHuman noSkin;
+    noSkin.m_pSkinMesh = nullptr;
+    weapon_pose::Select(noSkin, 1);
+    check(noSkin.m_nWeaponTypeIndex == 1 && noSkin.calls == 0,
+        "weapon selection before skin creation does not animate a missing mesh");
     return failures;
 }

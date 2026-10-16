@@ -132,7 +132,11 @@ type VolatileInstance struct {
 	AreaRadius int                     `json:"areaRadius"`
 	MaxPlayers int                     `json:"maxPlayers,omitempty"`
 	Spawns     []VolatileInstanceSpawn `json:"spawns"`
-	RewardItem uint16                  `json:"rewardItem,omitempty"`
+	// Generator names a generator file under the data directory (for example
+	// "NPCGener/NightmareN.txt"). The loader turns every block into a spawn at
+	// its native start point, so Spawns must stay empty when it is set.
+	Generator  string `json:"generator,omitempty"`
+	RewardItem uint16 `json:"rewardItem,omitempty"`
 	// ChainNextItem is the item accepted during exit grace to open the next
 	// independent instance. It is intentionally separate from RewardItem:
 	// the final Water boss accepts the Room 1 ticket but does not grant it.
@@ -289,6 +293,9 @@ type VolatileInstanceSpawn struct {
 	Count int    `json:"count"`
 	X     uint16 `json:"x,omitempty"`
 	Y     uint16 `json:"y,omitempty"`
+	// Range limits placement around X/Y (the generator StartRange). Zero keeps
+	// the stage area radius.
+	Range int `json:"range,omitempty"`
 }
 
 // VolatileInstanceStage permite que uma carta conduza o grupo por varias
@@ -308,6 +315,12 @@ type VolatileInstanceStage struct {
 	// quinta sala nem renovar o prazo de combate.
 	CompletionSpawns []VolatileInstanceSpawn `json:"completionSpawns,omitempty"`
 	Quiz             *VolatileInstanceQuiz   `json:"quiz,omitempty"`
+	// Generator, GeneratorIDs and CompletionGeneratorIDs select blocks (#[n])
+	// of a generator file under the data directory for this room's wave and
+	// completion boss. The loader fills Spawns/CompletionSpawns from them.
+	Generator              string `json:"generator,omitempty"`
+	GeneratorIDs           []int  `json:"generatorIds,omitempty"`
+	CompletionGeneratorIDs []int  `json:"completionGeneratorIds,omitempty"`
 }
 
 // VolatileHellGate descreve a maquina de estados do Porto Infernal. O grupo

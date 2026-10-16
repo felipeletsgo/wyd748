@@ -60,9 +60,9 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	}
 	if (!bClick && dwFlags == 512)
 	{
-		UpdateDescPanelHeight();
-
 		int nRet = MouseOver(nCellX, nCellY, bPtInRect);
+		if (nRet == 1 && bPtInRect)
+			UpdateDescPanelHeight();
 		if (nRet != 2)
 			return nRet;
 	}

@@ -13,8 +13,10 @@ func TestMortalBeginnerSpawnOnLoginAndRestart(t *testing.T) {
 		beginner  bool
 	}{
 		{name: "new mortal", level: 0, beginner: true},
-		{name: "mortal below limit", evolution: "mortal", level: 34, beginner: true},
-		{name: "mortal at limit", evolution: "mortal", level: 35},
+		// Score.Level is zero-based: displayed level 34 still spawns in the
+		// training field, displayed level 35 (Score.Level 34) does not.
+		{name: "mortal below limit", evolution: "mortal", level: 33, beginner: true},
+		{name: "mortal at limit", evolution: "mortal", level: 34},
 		{name: "arch below limit", evolution: "arch", level: 0},
 		{name: "celestial below limit", evolution: "celestial", level: 0},
 		{name: "subcelestial below limit", evolution: "subcelestial", level: 0},

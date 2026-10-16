@@ -317,16 +317,16 @@ func packetU16(value uint32) uint16 {
 	return uint16(value)
 }
 
-// The server keeps the canonical Critical Armor semantics in affect 31, while
-// the 7.48 client draws that skill in visual slot 24. Old states may still hold
-// the raw SkillData.csv type 50; project it as 24 so they stay visible until
-// they are normalized when the charstate loads.
+// Critical Armor keeps canonical affect 31 and its persisted discriminator 24.
+// Native 7.48 uses visual 36 for Critical Armor; visual 24 belongs to Samaritan.
+// Normalize only the wire projection, including raw legacy SkillData type 50.
+// Ordinary affect 31 remains Coin Armor and must not be remapped.
 func clientAffectType(affect model.Affect) byte {
+	if affect.Type == 50 || (affect.Type == 31 && affect.ClientType == 24) {
+		return 36
+	}
 	if affect.ClientType != 0 {
 		return affect.ClientType
-	}
-	if affect.Type == 50 {
-		return 24
 	}
 	return affect.Type
 }

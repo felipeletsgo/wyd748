@@ -1,6 +1,7 @@
 #include "../internal/ui/NativeScoreHud.h"
 #include "../internal/ui/NameColorPolicy748.h"
 #include "../internal/ui/SkillRequirementPresentation.h"
+#include "../internal/ui/ItemHelpText.h"
 #include "../internal/ui/GuildNameDirectory.h"
 #include "../internal/ui/CapePresentation748.h"
 #include <cstdio>
@@ -12,6 +13,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <memory>
 #include <windows.h>
 
 namespace {
@@ -91,6 +93,92 @@ int RunNativeScoreHudTests(int& checks)
         && tooltip.find("skill_requirement_748::ManaMastery") != std::string::npos
         && tooltip.find("unsigned short*") == std::string::npos,
         "production skill tooltip consumes the typed presentation helpers");
+
+    struct HelpText { int Color[9]{}; char Help[9][128]{}; };
+    HelpText help[2]{};
+    const auto helpRecord = [](const std::string& id, const std::string& first) {
+        return id + "\n" + first + "\nFFFFFFFF\nFFFFFFFF \nFFFFFFFF \nFFFFFFFF \n"
+            "FFFFFFFF \nCC9900FF Native skill description\nCC9900FF Second line\nFFFFFFFF\n";
+    };
+    std::istringstream helpInput(helpRecord("0", "FFFFFFFF Header")
+        + "\n" + helpRecord(" \t1 \t", "CC9900FF " + std::string(200, 'X')));
+    check(item_help_748::Load(helpInput, help, 2) == 2, "help reader accepts bare-color blank rows and separators");
+    check(static_cast<unsigned int>(help[0].Color[6]) == 0xFFCC9900u &&
+        static_cast<unsigned int>(help[0].Color[0]) == 0xFFFFFFFFu,
+        "help reader converts the RRGGBBAA prefix to opaque ARGB gold and white");
+    check(std::strcmp(help[0].Help[6], "Native skill description") == 0
+        && help[0].Help[1][0] == '\0' && help[0].Help[8][0] == '\0',
+        "help text preserves native row positions and empty rows");
+    check(std::strlen(help[1].Help[0]) == 127 && help[1].Help[0][127] == '\0',
+        "long help lines are bounded and terminated without shifting records");
+    std::istringstream invalidHelp(helpRecord("-1", "FFFFFFFF Rejected")
+        + helpRecord("2", "FFFFFFFF Rejected") + helpRecord("0", "GGFFFFFF Rejected")
+        + "1\nFFFFFFFF Partial\n");
+    check(item_help_748::Load(invalidHelp, help, 2) == 0
+        && std::strcmp(help[0].Help[0], "Header") == 0 && std::strlen(help[1].Help[0]) == 127,
+        "invalid IDs, malformed colors and incomplete records do not mutate the table");
+    auto runtimeHelp = std::make_unique<HelpText[]>(6500);
+    std::istringstream runtimeHelpInput(ReadNameColorSource("../client748/itemhelp.dat"));
+    check(item_help_748::Load(runtimeHelpInput, runtimeHelp.get(), 6500) > 300,
+        "production itemhelp asset loads complete records");
+    std::istringstream nativeSkillInput(ReadNameColorSource("../client748/skillhelp.dat"));
+    check(item_help_748::Load(nativeSkillInput, runtimeHelp.get(), 6500) == 102,
+        "all 102 available native skill descriptions load as a separate English corpus");
+    for (int book = 5000; book <= 5102; ++book) {
+        if (book == 5096) continue; // No prose in the inspected native asset.
+        bool hasText = false;
+        for (int row = 0; row < item_help_748::Rows; ++row)
+            hasText |= runtimeHelp[book].Help[row][0] != '\0';
+        check(hasText, "every available native description survives loading, including eighth skills");
+    }
+    check(std::strcmp(runtimeHelp[5007].Help[2], "Damage: 190 + (Faith/4) x 5 + INT/4.") == 0,
+        "Destiny retains native prose and its formula rather than metadata alone");
+    check(std::strcmp(runtimeHelp[5085].Help[0], "Opens your cargo storage so you can") == 0 &&
+        std::strcmp(runtimeHelp[5085].Help[1], "store items from anywhere.") == 0,
+        "Backpack retains the native cargo-storage description");
+    // TMFont2 splits any string longer than 42 characters into a second line
+    // inside the same row, which overlapped the next tooltip row.
+    for (int book = 5000; book <= 5102; ++book)
+        for (int row = 0; row < item_help_748::Rows; ++row)
+            check(std::strlen(runtimeHelp[book].Help[row]) <= 42,
+                "every skill description row fits one native 42-character text line");
+    const auto bottomRight = item_help_748::Position(1275, 940, 400, 450, 1280, 960, 1);
+    check(bottomRight.x == 880 && bottomRight.y == 480,
+        "belt tooltip uses its newly measured height above the cursor and stays on screen");
+    const auto topLeft = item_help_748::Position(2, 2, 400, 450, 1280, 960, 1);
+    check(topLeft.x == 0 && topLeft.y == 32, "left edge tooltip never leaves the viewport");
+    const auto oversized = item_help_748::Position(2, 2, 400, 450, 320, 200, 1);
+    check(oversized.x == 0 && oversized.y == 0, "oversized tooltip origin is bounded");
+    check(item_help_748::FirstTooltipRow + item_help_748::Rows == 11,
+        "nine native help rows fit below the reserved first two tooltip rows");
+    const auto mouseOver = source_contract::Method(ReadNameColorSource("internal/ui/SGridTooltip.cpp"),
+        "int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)");
+    check(mouseOver.find("int nId = item_help_748::FirstTooltipRow") != std::string::npos,
+        "production tooltip starts item help at native row two");
+    check(mouseOver.find("? pFScene->m_pSkillHelpText[m] : pFScene->m_pParamText[nId]") != std::string::npos,
+        "skill prose never shares rows with calculated skill requirements");
+    const auto descHeight = source_contract::Method(ReadNameColorSource("internal/ui/SGridTooltip.cpp"),
+        "void SGridControl::UpdateDescPanelHeight()");
+    check(descHeight.find("float lineStep = pFScene->m_vecDescParamPos[1].y - pFScene->m_vecDescParamPos[0].y;") != std::string::npos &&
+        descHeight.find("y += lineStep;") != std::string::npos &&
+        descHeight.find("text->m_Font.m_FontSize + 4.0f") == std::string::npos,
+        "skill tooltip rows use the native row pitch, not unrendered font metrics");
+    check(descHeight.find("text->SetPos(pFScene->m_vecDescParamPos[i].x + offset, y);") <
+            descHeight.find("text->SetPos(0, y);"),
+        "skill tooltip lists calculated data before the description prose");
+    const auto gridInput = source_contract::Method(ReadNameColorSource("internal/ui/SGridInput.cpp"),
+        "int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)");
+    check(gridInput.find("MouseOver(nCellX, nCellY, bPtInRect)") < gridInput.find("UpdateDescPanelHeight()"),
+        "current hover is populated before measuring and positioning the tooltip");
+    const auto sceneUi = ReadNameColorSource("internal/app/scenes/TMFieldSceneUI.cpp");
+    check(sceneUi.find("LoadMsgText(m_pSkillMDesc, (char*)\"UI\\\\descskillm.txt\")") != std::string::npos,
+        "skill apprenticeship list loads its existing native explanatory text");
+    const auto newApp = ReadNameColorSource("internal/app/scenes/NewApp.cpp");
+    check(newApp.find("item_help_748::Load(itemHelp, g_pItemHelp, _countof(g_pItemHelp))") != std::string::npos,
+        "production startup uses the tested bounded help reader");
+    check(newApp.find("std::ifstream skillHelp(\"skillhelp.dat\")") != std::string::npos
+        && newApp.find("item_help_748::Load(skillHelp, g_pItemHelp, _countof(g_pItemHelp)) != 102") != std::string::npos,
+        "production startup requires the complete native skill-help corpus");
 
     guild_name_748::Directory guildNames;
     std::istringstream guildFile("0 0 1 ADMIN\n0 1 1 OTHER_CHANNEL\n1 0 1 OTHER_GROUP\n"

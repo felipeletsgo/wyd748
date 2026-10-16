@@ -990,6 +990,15 @@ func instanceEntryAreaAt(cfg *model.VolatileInstance, x, y uint16) (model.Volati
 	return model.VolatileInstanceEntryArea{}, false
 }
 
+// Clear only after departure is committed, never while staging a proposal.
+func clearItemInstanceHUD(p *Player) {
+	if p == nil || p.Session == nil {
+		return
+	}
+	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, 0))
+	p.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, 0))
+}
+
 // detachPlayerFromItemInstances releases a departing player's slot. Entity IDs
 // change at login; retaining them would block Cube capacity and could strand
 // the reward with a disconnected leader.
@@ -1739,6 +1748,15 @@ func stageDuration(cfg model.VolatileInstance, stage model.VolatileInstanceStage
 	return cfg.DurationSeconds
 }
 
+// instanceSpawnRadius keeps a generator-backed group inside its native
+// StartRange around the generator start point; inline spawns use the room.
+func instanceSpawnRadius(spawn model.VolatileInstanceSpawn, stageRadius int) int {
+	if spawn.Range > 0 && spawn.X != 0 && spawn.Y != 0 {
+		return spawn.Range
+	}
+	return stageRadius
+}
+
 func stageMobCount(stage model.VolatileInstanceStage) int {
 	total := 0
 	for _, spawn := range stage.Spawns {
@@ -1945,7 +1963,7 @@ func (w *World) spawnItemInstanceStageThen(inst *ItemInstance, stageIndex int, n
 			if spawn.X != 0 && spawn.Y != 0 {
 				spawnX, spawnY = spawn.X, spawn.Y
 			}
-			x, y, ok := findFree(spawnX, spawnY, stage.AreaRadius)
+			x, y, ok := findFree(spawnX, spawnY, instanceSpawnRadius(spawn, stage.AreaRadius))
 			// No blocked-tile fallback: invalid terrain or overlapping mobs would
 			// make the wave impossible to target.
 			if !ok {
@@ -2061,8 +2079,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 	created := make([]*Mob, 0)
 	reserved := make(map[uint32]struct{})
 	instanceID := itemInstanceGameplaySpace(inst)
-	findFree := func(baseX, baseY uint16) (uint16, uint16, bool) {
-		radius := stage.AreaRadius
+	findFree := func(baseX, baseY uint16, radius int) (uint16, uint16, bool) {
 		if radius < 4 {
 			radius = 4
 		}
@@ -2096,7 +2113,7 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 			if spawn.X != 0 && spawn.Y != 0 {
 				baseX, baseY = spawn.X, spawn.Y
 			}
-			x, y, ok := findFree(baseX, baseY)
+			x, y, ok := findFree(baseX, baseY, instanceSpawnRadius(spawn, stage.AreaRadius))
 			if !ok {
 				rollback()
 				return false

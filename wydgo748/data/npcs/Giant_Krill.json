@@ -65,7 +65,7 @@
     "str": 4,
     "int": 100,
     "dex": 75,
-    "con": 1550,
+    "con": 1,
     "resistFire": 255,
     "resistIce": 255,
     "resistHoly": 255,

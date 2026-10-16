@@ -1,0 +1,143 @@
+// Pesadelo A (Nightmare Arcane)
+// Instance-only generators: the instance spawns each block at its start
+// point within StartRange. MinuteGenerate stays -1 (never in the open world).
+
+// Pesadelo A (Arcane)
+// ********************************************
+#	[2445]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Dark_Elf_Ab2
+	Follower:	Dark_Elf_Ab2
+	RouteType:	2
+	Formation:	0
+	StartX:		1192
+	StartY:		153
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1192
+	Segment1Y:	153
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1192
+	Segment2Y:	153
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1192
+	DestY:		153
+	DestRange:	2
+	DestWait:	8
+
+// Pesadelo A (Arcane)
+// ********************************************
+#	[2446]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Tauron_____
+	Follower:	Tauron_____
+	RouteType:	2
+	Formation:	0
+	StartX:		1217
+	StartY:		155
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1217
+	Segment1Y:	155
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1217
+	Segment2Y:	155
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1217
+	DestY:		155
+	DestRange:	2
+	DestWait:	8
+
+// Pesadelo A (Arcane)
+// ********************************************
+#	[2447]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Morlock_
+	Follower:	Morlock_
+	RouteType:	2
+	Formation:	0
+	StartX:		1185
+	StartY:		192
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1185
+	Segment1Y:	192
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1185
+	Segment2Y:	192
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1185
+	DestY:		192
+	DestRange:	2
+	DestWait:	8
+
+// Pesadelo A (Arcane)
+// ********************************************
+#	[2448]
+	MinuteGenerate:	-1
+	MaxNumMob:	20
+	MinGroup:	5
+	MaxGroup:	5
+	Leader:		Hell_Spider2
+	Follower:	Hell_Spider2
+	RouteType:	2
+	Formation:	0
+	StartX:		1223
+	StartY:		187
+	StartRange:	2
+	StartWait:	9
+	Segment1X:	1223
+	Segment1Y:	187
+	Segment1Range:	2
+	Segment1Wait:	7
+	Segment2X:	1223
+	Segment2Y:	187
+	Segment2Range:	2
+	Segment2Wait:	8
+	DestX:		1223
+	DestY:		187
+	DestRange:	2
+	DestWait:	8
+
+// Pesadelo A (Arcane) - BOSS
+// ********************************************
+#	[2449]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		Lugefer_
+	Follower:	Lugefer_
+	RouteType:	2
+	Formation:	0
+	StartX:		1208
+	StartY:		173
+	StartRange:	1
+	StartWait:	9
+	Segment1X:	1208
+	Segment1Y:	173
+	Segment1Range:	1
+	Segment1Wait:	7
+	Segment2X:	1208
+	Segment2Y:	173
+	Segment2Range:	1
+	Segment2Wait:	8
+	DestX:		1208
+	DestY:		173
+	DestRange:	1
+	DestWait:	8

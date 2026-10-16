@@ -63,6 +63,7 @@ install -m 700 "$stage/config/set-turnstile-secret.py" /usr/local/sbin/wyd-set-t
 # Public artifacts: the Guilds.txt export and the launcher patch tree. The
 # patch list grows with each release, so an existing update.htm is kept.
 install -d -o wyd-game -g wyd-game -m 755 /var/lib/wyd-go-public
+install -d -o wyd-player -g wyd-player -m 755 /var/lib/wyd-go-guildmark
 if [ ! -e /var/lib/wyd-go-public/Guilds.txt ]; then
     install -o wyd-game -g wyd-game -m 644 /dev/null /var/lib/wyd-go-public/Guilds.txt
 fi

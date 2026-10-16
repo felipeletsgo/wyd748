@@ -105,6 +105,9 @@ int RunSkillAttackRequestTests(int& checks)
             check(IsClientToServerAttackPacketSize(packet.Header.Type, expectedSize),
                 "normal skill envelopes remain accepted client-to-server prefixes");
     }
+    check(skill_request::IsSelfOnlySkill(3) && !skill_request::IsSelfOnlySkill(4) &&
+        !skill_request::IsSelfOnlySkill(31),
+        "Samaritan is cast only on the caster");
     for (int targetType = -256; targetType <= 256; ++targetType) {
         const bool expected = targetType == 0 || targetType == 3 ||
             targetType == 4 || targetType == 5 || targetType == 6;

@@ -11,7 +11,7 @@ int RunCostumeSelectionTests(int& checks)
         ++checks;
         if (!condition) { ++failures; std::printf("FAIL costume: %s\n", name); }
     };
-    check(std::size(Items) == 143 && std::size(Renderers) == 129, "validated collection size");
+    check(std::size(Items) == 143 && std::size(Renderers) == 135, "validated collection size");
     check(!FindItem(0) && !FindItem(-1) && !FindItem(65535), "empty/invalid slots remain empty");
     check(!FindItem(4349) && Select(4349, 0) == 0, "unavailable entry is not imported");
     check(Select(4307 & 0xFFF, 0) == 0, "low bits are not a full costume ID");
@@ -27,7 +27,7 @@ int RunCostumeSelectionTests(int& checks)
         for (int skeleton = 0; skeleton < 44; ++skeleton) {
             const int type = item.skin == -1 && (skeleton & 1) ? item.femaleType : item.maleType;
             const int selected = Select(item.index, skeleton);
-            if (type >= 1 && type <= 11) {
+            if (type >= 1 && type <= 5) {
                 check(selected == 0, "base costume delegates to the native renderer");
             } else {
                 const auto* renderer = FindRenderer(selected);
@@ -36,7 +36,16 @@ int RunCostumeSelectionTests(int& checks)
         }
         if (Select(item.index, 0)) ++tableItems;
     }
-    check(tableItems == 130, "130 table-selected items plus 13 native-renderer costumes");
+    check(tableItems == 138, "138 table-selected items plus 5 base-renderer costumes");
+    for (int index : {4157, 4158, 4159, 4160, 4161, 4162, 4187, 4188}) {
+        const auto* renderer = FindRenderer(Select(index, 0));
+        check(renderer != nullptr, "ShopCostum06 never enters the missing WYT path");
+        for (unsigned partIndex = 0; partIndex < 6; ++partIndex) {
+            const Part* selected = nullptr;
+            check(ResolvePart(renderer, partIndex, selected) == PartAction::Replace && selected &&
+                std::strstr(selected->texture, ".wys"), "every ShopCostum06 body part has a WYS texture");
+        }
+    }
     check(!FindRenderer(-1) && !FindRenderer(0) && !FindRenderer(100) &&
         !FindRenderer(ImportedTag) && !FindRenderer(ImportedTag * 2), "invalid/legacy selectors stay isolated");
     int preservedFaces = 0, replacements = 0;

@@ -35,6 +35,23 @@ inline int LastConfiguredServerGroup(const char (&serverList)[GroupCount][Channe
     return lastGroup;
 }
 
+// The login selector identifies the synthetic featured group by the highest
+// sn.bin order, not by the last populated status endpoint. That endpoint can
+// belong to an ordinary group when the featured group is hidden. Group zero
+// cannot aggregate any preceding groups.
+template <std::size_t OrderedCount>
+inline int AggregateServerGroupFromOrder(const int (&orderedGroups)[OrderedCount], int groupCount)
+{
+    int highestOrder = 0;
+    for (const int order : orderedGroups) {
+        if (order < 0 || order > groupCount)
+            return -1;
+        if (order > highestOrder)
+            highestOrder = order;
+    }
+    return highestOrder > 1 ? highestOrder - 1 : -1;
+}
+
 // The server selector inserts rows in descending sn.bin order, skipping entries
 // whose group has no status endpoint. Keep event rows tied to those exact slots.
 template <std::size_t OrderedCount, std::size_t GroupCount, std::size_t ChannelCount, std::size_t CellSize>

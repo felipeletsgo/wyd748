@@ -1,12 +1,16 @@
+// Pesadelo N (Nightmare Normal)
+// Instance-only generators: the instance spawns each block at its start
+// point within StartRange. MinuteGenerate stays -1 (never in the open world).
+
 // Pesadelo N (Erion)
 // ********************************************
-#	[3001]
+#	[2433]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Orc_NN
-	Follower:	Orc_NN
+	Leader:		Morlock__
+	Follower:	Morlock__
 	RouteType:	2
 	Formation:	0
 	StartX:		1305
@@ -28,13 +32,13 @@
 
 // Pesadelo N (Erion)
 // ********************************************
-#	[3002]
+#	[2434]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Orc_NN
-	Follower:	Orc_NN
+	Leader:		Dark_Kn1
+	Follower:	Dark_Kn1
 	RouteType:	2
 	Formation:	0
 	StartX:		1317
@@ -56,13 +60,13 @@
 
 // Pesadelo N (Erion)
 // ********************************************
-#	[3003]
+#	[2435]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Orc_NN
-	Follower:	Orc_NN
+	Leader:		Elf_ABJ2
+	Follower:	Elf_ABJ2
 	RouteType:	2
 	Formation:	0
 	StartX:		1301
@@ -84,13 +88,13 @@
 
 // Pesadelo N (Erion)
 // ********************************************
-#	[3004]
+#	[2436]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Orc_NN
-	Follower:	Orc_NN
+	Leader:		Aqua_Golem__
+	Follower:	Aqua_Golem__
 	RouteType:	2
 	Formation:	0
 	StartX:		1310
@@ -110,16 +114,15 @@
 	DestRange:	2
 	DestWait:	8
 
-
 // Pesadelo N (Erion)
 // ********************************************
-#	[3005]
+#	[2437]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Orc_NN
-	Follower:	Orc_NN
+	Leader:		Gargoyle3
+	Follower:	Gargoyle3
 	RouteType:	2
 	Formation:	0
 	StartX:		1309
@@ -139,16 +142,15 @@
 	DestRange:	2
 	DestWait:	8
 
-
 // Pesadelo N (Erion) - BOSS
 // ********************************************
-#	[3006]
+#	[2438]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Orc_NN
-	Follower:	Orc_NN
+	Leader:		Dark_Shadow_
+	Follower:	Dark_Shadow_
 	RouteType:	2
 	Formation:	0
 	StartX:		1309

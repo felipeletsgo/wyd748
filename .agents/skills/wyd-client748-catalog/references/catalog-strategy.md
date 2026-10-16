@@ -1,92 +1,83 @@
-# Estratégia de catálogo e cobertura 7.48
+# Native 7.48 catalog and coverage strategy
 
-## Objetivo
+## Purpose and artifacts
 
-Manter um censo completo das 4.146 funções nativas do client 7.48 e convertê-lo
-gradualmente em conhecimento funcional reproduzível. O censo mede existência e
-localização; a compreensão é medida por transições observáveis e evidência.
+Maintain a reproducible native census and turn it into functional knowledge
+by observable transition. The historical corpus contains 4,146 functions;
+that is a recorded corpus count, not an invariant of every binary or analysis.
+Existence and location do not prove understanding.
 
-## Artefatos
-
-| Artefato | Papel | Pode decidir comportamento? |
+| Artifact | Role | Behavioral authority? |
 | --- | --- | --- |
-| `inventory/functions.tsv` | índice de decompilação, source refs e relações preliminares | não |
-| `inventory/ghidra-functions.tsv` | catálogo estrutural exportado do Ghidra | não, sozinho |
-| `inventory/research-queue.tsv` | fila histórica e motivos já levantados | não, sem revalidação |
-| `flows/<subsystem>/<transition>.md` | evidência por transição | sim, no estado exigido |
-| `handoffs/client748-research-program.md` | estado operacional e próximo ponto de entrada | não |
+| `inventory/functions.tsv` | Decompilation index, source references, preliminary relations | No |
+| `inventory/ghidra-functions.tsv` | Exported Ghidra structural catalog | Not alone |
+| `inventory/research-queue.tsv` | Historical candidates and reasons | Only after evidence review |
+| `flows/<subsystem>/<transition>.md` | Transition evidence | Within its proven boundary and state |
+| `handoffs/client748-research-program.md` | Operational continuity and next entry | No |
 
-Antes de uma campanha nova, validar a identidade do binário e a correspondência
-das 4.146 entradas. Em continuação, reutilizar o resultado se caminho, tamanho,
-mtime e corpus registrado não mudaram. Se hash ou cardinalidade mudar,
-interromper a interpretação de endereços até regenerar o corpus.
+Before a new campaign, verify binary identity and catalog coverage. During
+continuation, reuse that result when recorded inputs and analysis are unchanged.
+A binary hash change invalidates old addresses until remapped; a cardinality
+change may instead reflect changed analysis. Resolve the cause and consistency
+before interpreting affected entries. Do not regenerate or rehash an unchanged
+immutable corpus merely to resume work.
 
-## Unidade de trabalho
+## Work unit
 
-Uma unidade contém uma entrada observável, uma função viva da source ou raiz
-nativa e somente o caminho que decide o delta:
+Trace only the path that decides the requested delta:
 
 ```text
-função/feature source ou evento/input/packet
-  -> candidatos e caller/callback
-  -> função nativa 7.48
-  -> callees e dados
-  -> estado/global/objeto mutado
-  -> saída, erro, fechamento e relogin
-  -> equivalente source/TMProject
-  -> decisão de adaptação e validação
+Live source function or observable event/input/packet
+  -> candidate and caller/callback
+  -> native 7.48 function
+  -> callees and data
+  -> mutated object/global/state
+  -> output, rejection, closure and applicable relogin
+  -> source/TMProject equivalent
+  -> adaptation decision and validation
 ```
 
-Funções auxiliares são agrupadas pela transição. Preferir busca source→native,
-seeds confirmados e propagação pelo callgraph. Não criar 4.146 fichas isoladas
-nem esperar o censo inteiro para adaptar um fluxo crítico já decidido.
+Group helpers by transition. Prefer source-to-native searches, confirmed seeds
+and call-graph propagation. Do not create one record per function or wait for
+the whole census before adapting a critical flow whose contract is proven.
 
-## Lanes e ranking
+## Ranking lanes
 
-O triador usa somente campos existentes em `functions.tsv` e gera uma ordem
-determinística. A pontuação é heurística e não é evidência:
+The triage script uses existing `functions.tsv` fields deterministically.
+Its score is a search heuristic, never evidence:
 
-- evidência já documentada: grande bônus para fechar primeiro a lacuna;
-- referência direta na source: bônus alto, pois há risco de divergência ativa;
-- muitos callers ou referências de entrada: bônus de raiz/dispatcher;
-- muitos callees: bônus menor para delimitar o componente;
-- ausência de caller direto com referências de dados/fluxo: lane de callback;
-- thunk: pequena penalidade para evitar gastar a primeira rodada em wrappers.
+- documented evidence: prioritize closing the remaining gap;
+- direct source reference: high priority for active divergence risk;
+- many callers or entry references: root/dispatcher priority;
+- many callees: smaller component-boundary bonus;
+- no direct caller but data/control references: callback lane;
+- thunk: small penalty to avoid starting with wrappers.
 
-O motivo e a próxima ação devem acompanhar cada linha. Empates são resolvidos
-pelo endereço hexadecimal, mantendo a fila reproduzível entre sessões.
+Keep the reason and next action with each row. Break ties by hexadecimal
+address so unchanged inputs produce the same queue.
 
-## Cobertura por fase
+## Coverage and closure
 
-1. **Censo** — todas as entradas presentes, únicas, com hash e schema válido.
-2. **Triagem** — lane, pontuação e raiz escolhida com motivo.
-3. **Rastreamento** — ficha `TRACED`: entrada, callers/callees, estado, efeitos,
-   erros e teardown/relogin aplicáveis comprovados no Ghidra.
-4. **Contrato** — ficha `CONTRACT` para ABI, packet, offsets, packing,
-   signedness, loaders ou recursos.
-5. **Adaptação** — para paridade, alterar somente o claim autorizado pela ficha;
-   para modernização ou extensão coordenada, preservar o claim nativo separado
-   e validar o contrato externo ou o novo contrato client/server.
-6. **Validação** — testes estáticos/automatizados e, quando alegado,
-   `CLIENT_TESTED` no `tmproject/client748/project.exe` com hash registrado.
+1. Census: entries present and unique, valid schema, recorded binary identity.
+2. Triage: lane, reason, score and selected root.
+3. `TRACED`: native entry, callers/callees, state, effects, errors and applicable
+   teardown/relogin are resolved in Ghidra.
+4. `CONTRACT`: wire, ABI, offsets, packing, signedness, loaders/resources and
+   decisions are testable.
+5. Adaptation: change only the proven parity claim. Keep internal modernization
+   or a coordinated extension distinct from native knowledge.
+6. Validation: focused static/automated checks and, only when actually executed,
+   `CLIENT_TESTED` with the built candidate's exact path, hash and scenario.
+   The normal installed executable is `tmproject/client748/WYD.exe`, not a
+   historical `project.exe` assumed to be current.
 
-Uma função pode continuar `LOCATED` mesmo estando presente no catálogo. Isso
-bloqueia claims dependentes de paridade, não uma extensão deliberadamente nova.
-Uma função sem caller pode ser válida, mas precisa de xref indireto, vtable,
-callback ou evidência de runtime antes de se tornar contrato nativo.
+A cataloged function may remain `LOCATED`. That blocks an unsupported parity
+claim, not a deliberately new extension. A function without a direct caller
+needs indirect xrefs, vtable/callback evidence or runtime proof before its
+role becomes a native contract.
 
-## Critério de encerramento da campanha
-
-Não basta contar linhas. O client pode avançar por fluxos críticos sem concluir
-o censo inteiro. A campanha só pode ser apresentada como cobertura nativa
-completa quando cada fluxo crítico tiver ficha e decisão; o restante deve estar
-explicitamente classificado como wrapper, runtime, helper, código não alcançado
-ou lacuna. Nenhuma categoria desconhecida pode ser escondida em “compreendida”.
-
-Em cada sessão, registrar apenas:
-
-- o que foi confirmado;
-- o que foi promovido de estado;
-- o que foi adaptado e validado;
-- o bloqueio exato;
-- o próximo entry point ou comando executável.
+Line counts do not prove full native coverage. Such a claim requires decisions
+and records for critical flows and explicit classification of remaining wrappers,
+runtime helpers, unreachable code and gaps. Never hide unknowns as understood.
+Record confirmed facts, status promotions, adaptation/validation, the exact
+blocker and the next concrete entry point; do not duplicate unchanged logs.

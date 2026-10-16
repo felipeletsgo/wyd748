@@ -14,6 +14,10 @@ existing records are migrated; do not use them in new or updated records.
 - `native_sha256`: analyzed `WYD.exe` hash or `UNRESOLVED`;
 - `updated`: ISO date `YYYY-MM-DD`.
 
+This record schema measures native knowledge; `IMPLEMENTED` is a delivery/catalog
+state, not an accepted research-record status. Record implementation and check
+results in the validation section without inventing a schema value.
+
 ## Required sections
 
 Every non-template record contains `Question`, `Evidence boundary`,
@@ -23,6 +27,10 @@ Every non-template record contains `Question`, `Evidence boundary`,
 At `TRACED`, resolve `Callers` and `Callees` in Ghidra. At `CONTRACT`, the
 ABI/resource and decision must be testable. At `CLIENT_TESTED`, record the
 scenario, executable artifact/hash, and observed result of the real client flow.
+Tie automated parity expectations to independent native evidence; a regression
+test asserting the current implementation is not proof of native behavior.
+Record affected asset identities and owner/observer or relogin coverage when
+they determine the result. User-reported proof closes only the reported scenario.
 
 Status measures knowledge of the native flow. A coordinated extension without
 a 7.48 equivalent must not invent a native function, caller, or promotion.

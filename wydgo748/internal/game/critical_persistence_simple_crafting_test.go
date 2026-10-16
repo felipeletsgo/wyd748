@@ -41,7 +41,7 @@ func configureCriticalSimpleCraft(w *World, p *Player, artisan string, success b
 		w.gameplay.CompositorBaseChance = 10
 		w.gameplay.CompositorRefineChance[2] = 8
 	case "Aylin":
-		indices = []uint16{700, 700, 1774, 2442, 2441, 2443, 2444}
+		indices = []uint16{700, 700, 1774, 2441, 2441, 2441, 2441}
 		p.Char.Gold = aylinGoldCost + 321
 	}
 	for i, index := range indices {
@@ -112,7 +112,7 @@ func criticalSimpleCraftExpected(before *model.Account, slot int, req combineReq
 			result.Eff = req.Items[1].Eff
 			result.Eff[1] = 7
 		case "Aylin":
-			result.Eff[1] = 231
+			result.Eff[1] = 230 // Grade 5 (Diamond Ancient) requires four 2441 gems.
 		}
 		ch.Inv[main], changed[main] = result, true
 		if artisan != "Compositor" {

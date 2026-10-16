@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,6 +19,7 @@ var criticalConsumableSettlementActions = []string{
 	"refine", "refine-failure", "refine-earring", "refine-earring-failure", "refine_set", "tint", "untint", "repliction", "mount-longevity", "mount-longevity_restore",
 	"mount-level_set", "mount-hatch", "incubation", "incubation-failure",
 	"teleport", "warp_saved", "hunting_teleport", "territory_pass",
+	"warrior-seal-white", "warrior-seal-blue", "warrior-seal-red",
 }
 
 // Exercise real MSG_UseItem dispatch rather than bypassing its registered-item
@@ -33,6 +35,17 @@ func configureCriticalConsumableSettlement(w *World, p *Player, operation string
 	rule := model.VolatileRule{Action: operation, Consume: true}
 	packet := useItemPacket(0, 0)
 	switch operation {
+	case "warrior-seal-white", "warrior-seal-blue", "warrior-seal-red":
+		rule.Action = "grant_counter"
+		rule.Counters = map[string]uint32{fameCounter: 10}
+		p.Char.Score.Level = 354
+		p.Char.Inv[0] = model.Item{Index: warriorSealItem, UID: "warrior-seal-source"}
+		cape := map[string]uint16{"warrior-seal-blue": 545, "warrior-seal-red": 544}[operation]
+		if cape != 0 {
+			p.Char.Equip[model.CapeSlot] = model.Item{Index: cape, UID: "kingdom-cape", Eff: [6]byte{43, 9}}
+		}
+		w.items[warriorSealItem] = model.ItemDef{Index: warriorSealItem}
+		w.volatiles.Items[warriorSealItem], w.volatiles.ItemCodes[warriorSealItem] = rule, 199
 	case "teleport", "warp_saved", "hunting_teleport", "territory_pass":
 		rule.X, rule.Y = cityWarZones[1].exitX, cityWarZones[1].exitY
 		rule.RequiredEvolution = "mortal"
@@ -161,12 +174,20 @@ func TestCriticalConsumableSettlementMatrix(t *testing.T) {
 				w.onUseItem(p.Session, packet)
 				proposal := awaitCriticalWrite(t, base.entered)
 				prepared := &proposal.accounts[0].Chars[p.CharSlot]
-				if operation == "refine-earring" || operation == "refine-earring-failure" {
-					want := 10
-					if operation == "refine-earring-failure" {
-						want = 9
+				if strings.HasPrefix(operation, "warrior-seal-") {
+					want := map[string]uint16{"warrior-seal-white": 3193, "warrior-seal-blue": 3191, "warrior-seal-red": 3192}[operation]
+					cape := prepared.Equip[model.CapeSlot]
+					if cape.Index != want || cape.UID == "" || cape.Eff != [6]byte{} ||
+						operation != "warrior-seal-white" && cape.UID != "kingdom-cape" {
+						t.Fatalf("Warrior's Seal proposal has the wrong cape or identity: %+v", cape)
 					}
-					if itemSanc(prepared.Equip[8]) != want || prepared.Equip[8].UID != "earring-target" {
+				}
+				if operation == "refine-earring" || operation == "refine-earring-failure" {
+					if operation == "refine-earring-failure" {
+						if prepared.Equip[8] != (model.Item{}) {
+							t.Fatal("failed earring refinement did not destroy the earring")
+						}
+					} else if itemSanc(prepared.Equip[8]) != 10 || prepared.Equip[8].UID != "earring-target" {
 						t.Fatal("earring proposal lost its refinement result or identity")
 					}
 				}

@@ -58,6 +58,26 @@ func celestialArchTier(level uint32) byte {
 	}
 }
 
+// grantLevel90Cythera places the second Cythera the Celestial receives when it
+// unlocks level 90. It matches the equipped Cythera, so the two can be
+// refined to +9 and composed to +10 at Aylin. It fails with a full inventory.
+func grantLevel90Cythera(ch *model.Char) bool {
+	index := ch.Equip[1].Index
+	if index < 3500 || index > 3502 {
+		index = celestialCytheraForTier(ch.CelestialArchTier)
+	}
+	slot := firstFreeVisibleInventorySlot(ch)
+	if index == 0 || slot < 0 {
+		return false
+	}
+	cythera, err := materializeItem(model.Item{Index: index})
+	if err != nil {
+		return false
+	}
+	ch.Inv[slot] = cythera
+	return true
+}
+
 func celestialCytheraForTier(tier byte) uint16 {
 	switch tier {
 	case 1, 2:
@@ -508,12 +528,18 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 		ch.CelestialLevel90Unlocked = true
 		spendCounters(p, map[string]uint32{fameCounter: 500})
 		consumeOne(item)
+		if !grantLevel90Cythera(ch) {
+			*ch, p.SpecialCoins = snapshot, oldCounters
+			s.Send(wire.MessagePanel("Free one inventory slot for the second Cythera."))
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
 		if err := w.saveAccountAndCharStateResult(p); err != nil {
 			*ch, p.SpecialCoins = snapshot, oldCounters
 			s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
 			return
 		}
-		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+		w.resendInventory(p)
 		s.Send(wire.MessagePanel("Celestial level 90 has been unlocked."))
 		return
 	}

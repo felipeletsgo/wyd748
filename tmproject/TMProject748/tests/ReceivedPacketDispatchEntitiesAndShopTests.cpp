@@ -1,4 +1,5 @@
 #include "ReceivedPacketDispatchTestSupport.h"
+#include "../internal/game/entities/EntityReentryPolicy.h"
 
 // ReceivedPacketDispatch tests: EntitiesAndShop. Split from ReceivedPacketDispatchTests.cpp.
 int RunReceivedPacketDispatchEntitiesAndShopTests(int& checks)
@@ -11,6 +12,20 @@ int RunReceivedPacketDispatchEntitiesAndShopTests(int& checks)
             std::fprintf(stderr, "FAIL: %s\n", name);
         }
     };
+
+    check(!entity_reentry::Replace(false, -1, 0, false),
+        "live duplicate CreateMob preserves movement");
+    for (int removedState : {0, 1, 2, 3, 4})
+    {
+        check(entity_reentry::Replace(false, removedState, 0, false),
+            "reentry replaces removed or dying actor before deferred deletion");
+        check(!entity_reentry::Replace(true, removedState, 123, true),
+            "CreateMob never replaces the local player");
+    }
+    check(entity_reentry::Replace(false, -1, 123, false),
+        "reentry replaces a delayed actor even with a reset removal state");
+    check(entity_reentry::Replace(false, -1, 0, true),
+        "reentry replaces a marked deleted actor");
 
     for (unsigned int opcode : {MSG_CreateMob_Opcode, MSG_CreateMobTrade_Opcode})
     {

@@ -64,6 +64,7 @@ public:
     ~TMHuman();
 
     int InitObject() final;
+    void SetTabLabel(const char* text, unsigned char color);
     int Render() final;
     int FrameMove(unsigned int dwServerTime) final;
     void InitPosition(float fX, float fY, float fZ) final;
@@ -203,6 +204,7 @@ public:
     int m_nWeaponTypeR;
     char m_szName[16];
     char m_szNickName[26];
+    unsigned char m_tabColor;
     short m_nCurrentKill;
     unsigned short m_nTotalKill;
     unsigned char m_ucChaosLevel;

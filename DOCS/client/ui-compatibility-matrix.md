@@ -433,6 +433,43 @@ with `SetControlID`) and 65861 (null-safe scan in `TradeItemOnItemMix`).
   server answers the resulting `srv` request with "Channel switching is
   unavailable on this server." until a channel coordinator exists.
 
+  Single-public-group correction (2026-10-16, `MODERNIZACAO_COMPATIVEL`):
+  the local `sn.bin` names public group 0 and hidden featured group 1, while
+  `serverlist.bin` configures a status URL and one channel only for group 0.
+  Inferring the aggregate from the last populated status URL mistook group 0
+  for the featured group, cleared its status URL, and skipped its channel as
+  a negative aggregate source. The field panel now derives aggregate identity
+  from the highest `sn.bin` order, consistently with the login selector;
+  group 0 is never synthetic. No endpoint, packet, or server behavior changes.
+  Helper regressions cover the hidden featured group, repeated opens of one
+  public channel, absent aggregate metadata, and malformed order bounds.
+  The existing native opener evidence is reused; this is not a new parity or
+  gameplay-validation claim. `CLIENT-TESTED` remains pending.
+
+  Validation for this correction: `pwsh -NoProfile -ExecutionPolicy Bypass
+  -File tmproject/Build-Client.ps1 -NoDeploy` passed with 1,229,517 architecture
+  checks, 231 socket checks, 83 crash-capture checks, and 56 launcher checks;
+  the Release x86 build completed without blocking errors or emitted warnings.
+  `Test-RepositoryLayout.ps1` passed (205 documents). The built candidate is
+  `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `D689BF77899F906629AE93F2C127EC72F3099DBE4A959B73F08B5F45693A05FF`.
+  After the user closed the client and authorized local installation, the
+  candidate was copied to `tmproject/client748/WYD.exe`; its installed SHA-256
+  was verified equal to the candidate above (1,881,088 bytes). The previous
+  runtime SHA-256 was
+  `2F75CA77281CCF21F899A6879DBB1A353C6FBE69A98A2F24C52D6E9309A51F1A`.
+  No client process was stopped or launched, and no remote patch was published.
+  Unchanged runtime dependencies: `sn.bin` SHA-256
+  `2CBB82ED4D49BDFCEF1AD1E56B040E7BF709F2B772E393059A6A7F173CA1C165`,
+  `serverlist.bin` SHA-256
+  `D214B0CF9DF4DC6C33FD7FBBB7ADA7BA10A58D1A2AEAA5C86350DEBE44B575D2`.
+  Cleanup limitation: the environment policy rejected removal of the synthetic
+  crash-test artifacts in
+  `tmproject/build/tests/Release/crash-capture-tests-2980-468225062/`.
+  No alternate cleanup method was attempted. Those test dumps/logs and the
+  task logs in `build/server-channel-selector/` remain in ignored build roots;
+  they are not runtime dependencies. Incremental build outputs are retained.
+
 The remaining N IDs (297, 309, 310, 1325, 1866) are looked up only by the
 classic UI paths, which the forced modern UI never runs. Validation: Release
 build, architecture (1,144,269 checks) and socket (221) tests, relocation

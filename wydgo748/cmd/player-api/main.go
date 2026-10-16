@@ -30,6 +30,7 @@ func run() error {
 	dev := flag.Bool("dev-http", false, "allow HTTP only on literal loopback for development")
 	proxy := flag.Bool("trust-loopback-proxy", false, "trust a single X-Forwarded-For address from loopback Caddy")
 	dataDir := flag.String("data-dir", "game/data", "Authoritative game tables directory")
+	guildMarkDir := flag.String("guildmark-dir", "", "directory for leader-uploaded guild marks (empty disables uploads)")
 	flag.Parse()
 	if err := control.LoopbackAddress(*addr); err != nil {
 		return err
@@ -63,7 +64,7 @@ func run() error {
 			itemNames[id] = item.Name
 		}
 	}
-	handler, err := playerportal.New(playerportal.Config{Origin: *origin, DevHTTP: *dev, TrustLoopbackProxy: *proxy, Backend: db, RegistrationVerifier: verification, LoginVerifier: loginVerification, AuthenticationLimiter: db.AuthenticationLimiter(), ItemNames: itemNames})
+	handler, err := playerportal.New(playerportal.Config{Origin: *origin, DevHTTP: *dev, TrustLoopbackProxy: *proxy, Backend: db, RegistrationVerifier: verification, LoginVerifier: loginVerification, AuthenticationLimiter: db.AuthenticationLimiter(), ItemNames: itemNames, GuildMarkDir: *guildMarkDir})
 	if err != nil {
 		return err
 	}

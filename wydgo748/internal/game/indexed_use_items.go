@@ -20,7 +20,8 @@ func sancRaw(item model.Item) (byte, bool) {
 
 func gemTargetKind(pos int) (armor, weapon bool) {
 	switch pos {
-	case 2, 4, 8, 16, 32, 128:
+	// Earrings (256) reach +10/+11 with Lac and take a gem like armor.
+	case 2, 4, 8, 16, 32, 128, 256:
 		return true, false
 	case 64, 192:
 		return false, true

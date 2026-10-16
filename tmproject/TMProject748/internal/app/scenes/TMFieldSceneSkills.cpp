@@ -310,6 +310,13 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 		pOver = m_pMyHuman;
 		pOver->m_bMouseOver = 1;
 	}
+	// WYD-Go: Samaritan is a self buff; it ignores the selected player or
+	// monster, as the server does.
+	if (skill_request::IsSelfOnlySkill(cSkillIndex))
+	{
+		pOver = m_pMyHuman;
+		pOver->m_bMouseOver = 1;
+	}
 	if (!pOver || pOver->m_bMouseOver != 1 && !pTarget || m_pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_WALK || m_pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_RUN)
 	{
 		m_pMouseOverHuman = 0;

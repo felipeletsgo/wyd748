@@ -624,3 +624,20 @@ func clampInt(v, min, max int) int {
 	}
 	return v
 }
+
+// promoteOffhandWeapon ports W2PP _MSG_TradingItem: when the main weapon slot
+// (6) is empty and slot 7 holds a weapon rather than a shield (EF_POS 128),
+// that weapon moves to slot 6. Without it a character that removed the main
+// weapon of a pair kept a lone off-hand weapon drawn through the body.
+func (w *World) promoteOffhandWeapon(ch *model.Char) bool {
+	if ch == nil || ch.Equip[6].Index != 0 || ch.Equip[7].Index == 0 {
+		return false
+	}
+	offhand := ch.Equip[7]
+	def, ok := w.items[offhand.Index]
+	if !ok || def.Pos == 128 || !w.canEquip(ch, offhand, 6) {
+		return false
+	}
+	ch.Equip[6], ch.Equip[7] = offhand, model.Item{}
+	return true
+}

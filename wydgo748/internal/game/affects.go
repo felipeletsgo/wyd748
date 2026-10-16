@@ -275,6 +275,13 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 	if p == nil || p.Char == nil || w.criticalPlayerReserved(p) {
 		return nil
 	}
+	// Samaritan is a self buff in WYD-Go: never another player or a monster.
+	if skill.Index == 3 {
+		if playerCurHP(p.Char) == 0 {
+			return nil
+		}
+		return []*Player{p}
+	}
 	revive := skill.Index == 31 || skill.Index == 99
 	// An explicit target is an intent, not a hint. Never silently turn a stale,
 	// out-of-range or cross-runtime target into a self cast.
@@ -361,34 +368,34 @@ func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
 	return minInt(548, heal*14/10)
 }
 
-func soulLimitDelayMultiplier(ch *model.Char) int {
-	if ch == nil {
-		return 100
-	}
-	switch strings.ToLower(strings.TrimSpace(ch.Evolution)) {
-	case "": // Mortal
-		return 200
-	case archEvolution:
-		// W2PP keeps the base Delay at 100 for Arch.
-		return 100
-	default:
-		level := int(playerLevel(ch))
-		if level < 39 {
-			return 200 - (39-level)*4
-		}
-		if level >= 199 {
-			return 400
-		}
-		return 200
-	}
+// Support buffs last from 5 minutes (mastery 0) to 10 minutes (mastery 320),
+// in units of 8 seconds. This WYD-Go rule replaces the W2PP
+// (AffectTime + 1) * (100 + mastery) / 100 formula, which left some buffs
+// above an hour and others at two minutes.
+const (
+	buffMinUnits = 38 // 304 s
+	buffMaxUnits = 75 // 600 s
+)
+
+func nativeSkillAffectUnits(skill model.SkillDef, mastery int) int {
+	// Mastery never exceeds 320 (point allocation, recalculation and buffs).
+	return buffMinUnits + (buffMaxUnits-buffMinUnits)*clampInt(mastery, 0, 320)/320
 }
 
-func soulLimitAffectTime(skill model.SkillDef, ch *model.Char) int {
-	duration := (skill.AffectTime + 1) * soulLimitDelayMultiplier(ch) / 100
-	if duration < 0 {
-		return 0
+// Soul Limit lasts longer than other buffs: 5 minutes for a new Celestial,
+// growing with the Celestial level to 15 minutes at level 199 (SubCelestial
+// included). Other evolutions keep the 5-minute minimum.
+const (
+	soulLimitMinUnits = 38  // 304 s
+	soulLimitMaxUnits = 113 // 904 s
+)
+
+func soulLimitAffectTime(_ model.SkillDef, ch *model.Char) int {
+	if ch == nil || !isCelestialEvolution(ch) {
+		return soulLimitMinUnits
 	}
-	return duration
+	level := clampInt(int(playerLevel(ch)), 0, int(maxCelestialLevel))
+	return soulLimitMinUnits + (soulLimitMaxUnits-soulLimitMinUnits)*level/int(maxCelestialLevel)
 }
 
 func setSoulLimitAffectAt(ch *model.Char, affectType byte, value, level, durationUnits int, now time.Time) bool {
@@ -483,7 +490,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 		default:
 			affectType, value, ok := skillAffect(skill)
 			if ok {
-				duration := skill.AffectTime
+				duration := nativeSkillAffectUnits(skill, mastery)
 				if skill.Index == 102 {
 					duration = soulLimitAffectTime(skill, p.Char)
 				}
@@ -505,14 +512,6 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 							break
 						}
 					}
-				}
-			}
-		}
-		if skill.Index == 3 { // Samaritan transfers the protected target's aggro to the caster.
-			for _, m := range w.activeMobs {
-				if m != nil && !m.Dead && m.TargetID == target.ID && w.playerCanInteractWithMob(p, m) {
-					m.TargetID = p.ID
-					applied = true
 				}
 			}
 		}
@@ -906,7 +905,24 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 				e.Int = add(e.Int, intAdd)
 				e.Dex = add(e.Dex, dexAdd)
 				e.Con = add(e.Con, conAdd)
-				e.Attack = add(e.Attack, strAdd/3)
+				// The extra points feed the same derived formulas as base
+				// attributes (recalcExtendedPlayer): STR/3 + DEX/4 physical
+				// attack, DEX/5 defense, the class INT share of magic attack
+				// (with the current amplification), 2 HP per CON and 2 MP per
+				// INT. Attack speed (DEX/5) and evasion read the final DEX.
+				physicalAdd := strAdd/3 + dexAdd/4
+				e.Attack = add(e.Attack, physicalAdd)
+				e.Defense = add(e.Defense, dexAdd/5)
+				var magicAdd int64
+				switch ch.Class {
+				case 1, 2:
+					magicAdd = intAdd/3 + intAdd/30
+				case 0:
+					magicAdd = intAdd/4 + intAdd/40
+				default:
+					magicAdd = physicalAdd
+				}
+				e.MagicAttack = add(e.MagicAttack, magicAdd*(100+4*int64(e.MagicAmp))/100*5/4)
 				e.MaxHP = add(e.MaxHP, conAdd*2)
 				e.MaxMP = add(e.MaxMP, intAdd*2)
 			}

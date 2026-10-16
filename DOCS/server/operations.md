@@ -9,6 +9,62 @@ For the dated live release, schema, client patch and outstanding gates, consult
 in [public launch](public-launch.md); they are not interchangeable with the
 current working tree.
 
+## Local instance and Ehre follow-up (2026-10-15)
+
+Classification: `MODERNIZACAO_COMPATIVEL`; existing recall, instance HUD and
+Ehre mix packet layouts are unchanged. These changes are not yet deployed.
+
+Private-instance recall clears InstanceTime and InstanceMobs with zero-valued
+16-byte messages after successful departure. Critical persistence publishes
+those messages only after commit; rejection or unknown outcome must not clear
+the active instance HUD. Ordinary public quest timers retain their own clear
+path, avoiding duplicate clear messages. Tests cover death recall, membership
+removal, empty-instance cleanup, commit, rejection and unknown outcomes.
+
+Ehre accepts item 633 (Spirit Stone F), refinement at least +9, with exactly
+two Ankhs (661 MP, 662 HP, 663 critical). Empty remaining request slots are
+required. Each Ankh adds MP/HP 2 or critical 10, subject to caps MP/HP 20 and
+critical 100. Unsupported mixed/third additional effects reject before any
+consumption. Success preserves identity/expiry and sets refinement to +7.
+Every accepted attempt has the user-selected 50% success probability and
+consumes the three ingredients on success or failure. Invalid input or rejected
+persistence does not consume them. Both persistence paths share the recipe;
+critical operations retain repetition protection and do not fall back inline.
+
+Reference: read-only W2PP `Code/TMSrv/GetFunc.cpp` (106..160),
+`_MSG_CombineItemEhre.cpp` (70..293) and `CReadFiles.cpp` (408..434). W2PP alone
+does not establish native 7.48 parity. The explicit 50% requirement supersedes
+the unavailable external rate configuration and its biased modulo roll.
+Tests cover all nine Ankh pairs, caps, rejected inputs, probability boundary,
+save rollback, replay and critical duplicate handling.
+
+Server visibility tests also cover five surviving instance monsters leaving
+and reentering view, unchanged visibility on small movement, and isolation
+from outsiders. They do not reproduce a server-side despawn. The corresponding
+client retired-actor replacement still needs actual game verification.
+
+AUTOMATED TESTED: full `go test -count=1 ./...` and `go vet ./...` passed.
+CLIENT-TESTED and VPS publication remain pending for this local batch.
+
+### Arch 355 cape report (2026-10-15, read-only investigation)
+
+The owner reported a red cape becoming blue at level-355 unlock. For InkWC,
+the VPS log records the unlock at `04:21:28 UTC`. The existing database backup
+`wydgo-20261015T041613Z.dump`, taken before that event, already stores cape
+544 (Akelonia/Shiner). Current account state stores Elite cape 3192 with the
+same item UID and emblem 7. The current promotion mapping preserves that
+kingdom; emblem 7 is appearance metadata, not kingdom authority. This narrows
+the discrepancy to earlier state or appearance, rather than proving a Lindy
+kingdom inversion. Do not swap the kingdom tables or repair an account from
+the screenshot alone. No account mutation or server deployment was performed.
+
+The owner subsequently confirmed that only the item icons were wrong, not
+the equipped world cape or kingdom. The client-only grid mapping now selects
+blue for Elite Of Hekalotia (3191), red for Elite Of Akeronia (3192), and white
+for Elite Of Adventurer (3193). No promotion table or persisted account was
+changed. This local correction still requires publication and visual acceptance;
+see the [current client status](../current-state.md).
+
 ![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)
 ![Go](https://img.shields.io/badge/Go-1.26+-00ADD8.svg)
 
@@ -800,6 +856,7 @@ them.
 | `character_templates.json` | start statistics and items for each class |
 | `volatiles.json` | server behavior for each consumable item-effect code |
 | `instances.json` | instance templates, rooms, waves, tickets, and state machines |
+| `NPCGener/*.txt` | instance-only generators: `CartaN/M/A.txt` (Magic Chamber rooms by `generatorIds`, boss by `completionGeneratorIds`) and `NightmareN/M/A.txt` (whole file per tier); each block spawns `MaxNumMob` at its start point within `StartRange` |
 | `repliction.json` | native paired bonus pools and A–E Repliction limits |
 | `mounts.json` | combat bonus for each mount type |
 | `quests.json` | quest definitions and prerequisites |

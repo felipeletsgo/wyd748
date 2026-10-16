@@ -508,9 +508,12 @@ func TestFuryUnlockAndArcanaComposition(t *testing.T) {
 		p.Char.Score.Level = 89
 		p.SpecialCoins = map[string]uint32{fameCounter: 500}
 		p.Char.Inv[0] = model.Item{Index: furyStoneItem}
+		p.Char.Equip[1] = model.Item{Index: 3501, Eff: [6]byte{43, 9}}
 		w.useFuryStone(p.Session, p, &p.Char.Inv[0], 0)
+		// The second Cythera matches the equipped one, unrefined, in the slot
+		// the Fury Stone left.
 		if !p.Char.CelestialLevel90Unlocked || counterBalance(p, fameCounter) != 0 ||
-			p.Char.Inv[0].Index != 0 || st.saves != 1 {
+			p.Char.Inv[0].Index != 3501 || itemSanc(p.Char.Inv[0]) != 0 || st.saves != 1 {
 			t.Fatalf("destrave 90 falhou: flag=%t fame=%d item=%d saves=%d",
 				p.Char.CelestialLevel90Unlocked, counterBalance(p, fameCounter),
 				p.Char.Inv[0].Index, st.saves)
@@ -545,6 +548,27 @@ func TestFuryUnlockAndArcanaComposition(t *testing.T) {
 			if p.Char.Inv[i].Index != 0 {
 				t.Fatalf("Pedra Secreta inv[%d] nao foi consumida", i)
 			}
+		}
+	})
+
+	t.Run("level 90 needs a slot for the second Cythera", func(t *testing.T) {
+		p, _ := networkedTestPlayer(1, "FuryFull", 2100, 2100)
+		w := worldWithNetworkedPlayers(p)
+		st := &craftStore{}
+		w.store = st
+		p.Char.Evolution = "celestial"
+		p.Char.CelestialLevel40Unlocked = true
+		p.Char.Score.Level = 89
+		p.SpecialCoins = map[string]uint32{fameCounter: 500}
+		p.Char.Equip[1] = model.Item{Index: 3500}
+		for i := 0; i < model.PlayerCarrySlots; i++ {
+			p.Char.Inv[i] = model.Item{Index: 413, Eff: [6]byte{61, 2}}
+		}
+		p.Char.Inv[0] = model.Item{Index: furyStoneItem, Eff: [6]byte{61, 2}}
+		w.useFuryStone(p.Session, p, &p.Char.Inv[0], 0)
+		if p.Char.CelestialLevel90Unlocked || counterBalance(p, fameCounter) != 500 ||
+			itemStackAmount(p.Char.Inv[0]) != 2 || st.saves != 0 {
+			t.Fatal("level 90 unlocked without room for the second Cythera")
 		}
 	})
 
@@ -629,5 +653,37 @@ func TestCelestialSoulUsesSharedConfiguration(t *testing.T) {
 	}
 	if !specialSkillLearned(&model.Char{LearnedSkill: celestialSoulBit}, 102) {
 		t.Fatal("bit 30 nao liberou a skill 102 Limite da Alma")
+	}
+}
+
+// The Soul Limit attribute bonus feeds the derived values like base points:
+// INT raises magic attack and MP, DEX raises physical attack and defense.
+func TestCelestialSoulFeedsDerivedStats(t *testing.T) {
+	w := &World{}
+	ch := celestialCharacter("celestial", 100)
+	ch.Class = 1
+	ch.SoulInfo = 2 // +120% INT
+	ch.Score.Int = 1000
+	ch.Affects[0] = model.Affect{Type: 29, ExpiresAt: time.Now().Add(time.Hour)}
+	applyScore(ch)
+	base := *ch.RuntimeScore
+	w.applyExtendedAffectStats(ch)
+	e := effectiveScore(ch)
+	wantMagic := base.MagicAttack + uint32((1200/3+1200/30)*(100+4*int64(base.MagicAmp))/100*5/4)
+	if e.Int != base.Int+1200 || e.MagicAttack != wantMagic || e.MaxMP != base.MaxMP+2400 {
+		t.Fatalf("INT soul: INT=%d magic=%d (want %d) MP=%d", e.Int, e.MagicAttack, wantMagic, e.MaxMP)
+	}
+
+	dexChar := celestialCharacter("celestial", 100)
+	dexChar.Class = 3
+	dexChar.SoulInfo = 3 // +120% DEX
+	dexChar.Score.Dex = 1000
+	dexChar.Affects[0] = model.Affect{Type: 29, ExpiresAt: time.Now().Add(time.Hour)}
+	applyScore(dexChar)
+	dexBase := *dexChar.RuntimeScore
+	w.applyExtendedAffectStats(dexChar)
+	d := effectiveScore(dexChar)
+	if d.Dex != dexBase.Dex+1200 || d.Attack != dexBase.Attack+300 || d.Defense != dexBase.Defense+240 {
+		t.Fatalf("DEX soul: DEX=%d ATK=%d DEF=%d", d.Dex, d.Attack, d.Defense)
 	}
 }

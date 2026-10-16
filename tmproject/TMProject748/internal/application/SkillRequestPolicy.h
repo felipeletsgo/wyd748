@@ -13,6 +13,13 @@ constexpr bool UsesAreaRequest(int targetType)
         targetType == 5 || targetType == 6;
 }
 
+// Samaritan (skill 3) is a self buff: the catalog marks it TargetType 1, but
+// WYD-Go always casts it on the caster, never on players or monsters.
+constexpr bool IsSelfOnlySkill(int skillIndex)
+{
+    return skillIndex == 3;
+}
+
 constexpr bool AimsAtPrimaryTarget(int skillIndex)
 {
     return skillIndex == 0 || skillIndex == 16 || skillIndex == 7 ||

@@ -101,7 +101,12 @@ func TestCriticalGuildJoinDetachedCommit(t *testing.T) {
 						want := accountStateSnapshot(actorBefore)
 						if proposed.Name == f.target.Account.Name {
 							want = accountStateSnapshot(targetBefore)
-							want.Chars[f.target.CharSlot].GuildID, want.Chars[f.target.CharSlot].GuildRank = 1, model.GuildRankMember
+							// InviteType 1..3 recruits directly into Sub1/Sub2/Sub3.
+							wantRank := byte(model.GuildRankMember)
+							if inviteType != 0 {
+								wantRank = byte(model.GuildRankSubFirst + inviteType - 1)
+							}
+							want.Chars[f.target.CharSlot].GuildID, want.Chars[f.target.CharSlot].GuildRank = 1, wantRank
 						} else {
 							want.Chars[f.actor.CharSlot].Gold -= f.cost()
 						}
@@ -130,7 +135,11 @@ func TestCriticalGuildJoinDetachedCommit(t *testing.T) {
 					}
 					f.w.processCriticalCompletions(1)
 					wantTarget := accountStateSnapshot(targetBefore)
-					wantTarget.Chars[f.target.CharSlot].GuildID, wantTarget.Chars[f.target.CharSlot].GuildRank = 1, model.GuildRankMember
+					joinedRank := byte(model.GuildRankMember)
+					if inviteType != 0 {
+						joinedRank = byte(model.GuildRankSubFirst + inviteType - 1)
+					}
+					wantTarget.Chars[f.target.CharSlot].GuildID, wantTarget.Chars[f.target.CharSlot].GuildRank = 1, joinedRank
 					wantActor := accountStateSnapshot(actorBefore)
 					wantActor.Chars[f.actor.CharSlot].Gold -= f.cost()
 					if f.w.shuttingDown || f.w.guilds != registry || !reflect.DeepEqual(f.w.criticalGuildSnapshot(), proposal.guilds) ||
@@ -140,7 +149,7 @@ func TestCriticalGuildJoinDetachedCommit(t *testing.T) {
 						t.Fatal("acknowledged join did not apply exactly the private payment/membership delta")
 					}
 					assertCriticalPickupPacket(t, f.target, wire.CreateMobWithGuildRank(f.target.ID, f.target.Char.Name, f.target.X, f.target.Y,
-						bodyMesh(f.target.Char), bodyAncient(f.target.Char), wireScoreState(f.target.Char), f.target.Char.Affects[:], 2, 1, model.GuildRankMember, f.target.Char.CP, f.target.Char.Citizenship))
+						bodyMesh(f.target.Char), bodyAncient(f.target.Char), wireScoreState(f.target.Char), f.target.Char.Affects[:], 2, 1, joinedRank, f.target.Char.CP, f.target.Char.Citizenship))
 					assertCriticalPickupPacket(t, f.target, playerScorePacket(f.target))
 					assertCriticalPickupPacket(t, f.target, wire.UpdateEtc(f.target.ID, *f.target.Char))
 					assertCriticalPickupPacket(t, f.target, wire.MessagePanel("You joined the guild Treasury."))

@@ -1,5 +1,507 @@
 # Current project state
 
+## Published follow-up — 2026-10-16, patch 10031 and server restart
+
+Published client patch 10031 and deployed server/site release
+`/srv/wyd-go/releases/20261016T032951Z` with the owner's permission to
+disconnect players. SSH succeeded with the existing `favela-admin` account
+and key; no password reset, key replacement or SSH-security change was needed.
+The earlier refusal cause remains unconfirmed.
+
+The paired update delivers the tab/SND and distinct buff-icon contracts below,
+plus pending authoritative guild-kingdom, Warrior's Seal and off-hand promotion
+changes. Previous client assets remain supplied by the cumulative launcher
+feed. Nightmare and Backpack gameplay are not completed by this deployment.
+
+- Patch: 832,800 bytes, SHA-256
+  `38D1B4C3B069A3F19F61E6280EF697FA53BE0E6631FA1617DAD59F1CDD1B03B2`.
+  Explicit two-file payload: `WYD.exe` and `skillhelp.dat`; no player settings
+  or launcher binaries. Executable: 1,881,088 bytes, SHA-256
+  `2F75CA77281CCF21F899A6879DBB1A353C6FBE69A98A2F24C52D6E9309A51F1A`.
+  Skill asset SHA-256:
+  `1BDD96ADC246CF2A71097301EA1C5152D24F5109A43A557A22B0C3335E3DDA24`.
+  Compared with 10030, 72 skill records have adjusted wrapping; all 102 retain
+  identical IDs and prose. All other 33 non-executable dependencies match 10030.
+- Linux release archive: 22,202,420 bytes, SHA-256
+  `2D1CDCD932E4B672A2173F0C9E4DF051D2F48CDE9FBD5F3D1755AAE369BAF07E`.
+  Game binary SHA-256:
+  `E8D03DB0DCA52D741309B43A791D2200981F9CA0B9FEC72FB3231B7D13C64F6D`;
+  player API:
+  `C5426522FA87CEB8C653A43F45B15A1690249EFDF84AAC4A72069F9B592D209A`.
+  Both running `/proc` executable hashes match these artifacts.
+- Game/API restarted at `2026-10-16 03:29:54 UTC`, PIDs 1748601/1748614;
+  Caddy restarted at 03:29:55, PID 1748674. Both readiness endpoints return
+  `ready`; all three services are active. The post-restart warning/error
+  journal query returned no entries. Caddy validation reported only existing
+  redundant forwarded-header and HTTP-listener warnings, not blocking errors.
+- Backup `wydgo-20261016T032951Z.dump` is present (99,941 bytes). Previous
+  release `20261015T215714Z`, patch 10030 and the exact prior feed remain for
+  rollback. The installer retained account/character state. One upload timed
+  out before transferring files; a verified retry completed before downtime.
+- Public HTTP/HTTPS feeds and ZIP downloads returned 200; ZIP and both entry
+  hashes match. The HTTPS manifest, home and News pages advertise 10031 and
+  return 200. The remote archive checksum and publication-prefix checks passed.
+- Reused the unchanged, previously validated Release/x86 candidate and full
+  Go/vet evidence below. Linux cross-build succeeded. Portal checks reported
+  zero errors/warnings; 60 tests passed before the receipt update, and both
+  affected public-content tests passed after rebuilding all 3,304 static pages.
+  STATICALLY VERIFIED and AUTOMATED TESTED; CLIENT-TESTED remains pending.
+
+Packaging uses the explicit artifact allowlist from the dirty working tree at
+HEAD `fa1c853fa9d279719acd4aa0c3518a550505134f`, not committed From/To
+revisions; `Build-ClientPatch.ps1` was not used. No source commit, push, index
+change, local runtime replacement or game launch occurred. This publication
+does not certify the unresolved global language migration or gameplay gaps.
+Remote patch/release staging was removed by the installers. Local cleanup was
+blocked by the execution policy: the release staging directory
+`build/deploy/wyd-deploy-20261016-patch10031` and the three patch/verification
+ZIPs for 10031 remain under `build/`; no alternate deletion was attempted.
+See the
+[patch receipt](client/launcher.md#published-patch-10031-2026-10-16).
+
+## Local follow-up — 2026-10-15, distinct Samaritan and Critical Armor icons
+
+Corrected the visual-ID collision: Samaritan now uses skill icon 3, Critical
+Armor uses skill icon 15, and Coin Armor remains unchanged. The shared client
+table serves the owner, target, party and C.C. buff recognition. Critical Armor
+now activates its persistent effect on native visual 36, not Samaritan's 24.
+The server retains canonical/persisted affect IDs, bonuses and durations and
+normalizes only outgoing snapshots, including legacy raw type 50.
+See [buff visual evidence](../.agents/research/client748/flows/combat/persistent-buff-visuals.md).
+
+STATICALLY VERIFIED and AUTOMATED TESTED: focused regressions, full Go suite
+and vet passed. Release/x86 build passed with 1,229,509 architecture checks,
+231 socket, 83 crash capture and 56 launcher checks. Existing C4996 Winsock
+warnings are nonblocking. The candidate is 1,881,088 bytes, SHA-256
+`2F75CA77281CCF21F899A6879DBB1A353C6FBE69A98A2F24C52D6E9309A51F1A`.
+Both client and server are required; local runtime installation, publication
+and gameplay confirmation remain pending at this entry. No game was launched.
+Existing tab/SND changes below remain included in this source candidate.
+
+Publication has not occurred. Initial SSH checks used incorrect accounts
+(`root` and `admin`), so their `Permission denied (publickey)` results do not
+establish that the deployment key is invalid. The exact PowerShell history
+identifies `favela-admin@46.224.58.209` as the deployment account. The server
+host key still matches known_hosts. Follow-up attempts with the correct account
+were closed before authentication (`banner exchange: Connection refused`);
+the cause is unconfirmed, including whether failed attempts triggered a
+temporary security block. No files were uploaded and no services were restarted.
+Recheck the correct account after the connection issue is resolved, without
+changing keys or server security settings. Repository layout and research-record
+validation also passed.
+Cleanup of the completed crash-test output directory
+`tmproject/build/tests/Release/crash-capture-tests-16312-462865625` was
+blocked by execution policy; the generated test artifacts remain there.
+
+## Local follow-up — 2026-10-15, tab messages and SND status
+
+Fixed slash-command dispatch: `/tab` and `/snd` no longer look up players named
+`tab` or `snd`. Native 7.48 chat entry was traced in Ghidra; W2PP supplies the
+secondary server reference. `/tab text` sets a label above the character;
+`/snd text` saves private presentation text returned by an empty-body
+`/PlayerName` lookup, not an automatic reply to ordinary whispers. A command
+without text clears its message. Labels reset on character logout/relogin.
+Mortal tab creation requires displayed level 70; advanced evolutions are exempt.
+
+Added coordinated tab-color v1: `/tab`, `/tab2`, `/tab3`, `/tab4`, `/tab5`,
+`/tab6`, `/tab7`, `/tab8`, `/tab9` select gray, red, green, blue, yellow, cyan,
+pink, orange and white respectively. Example: `/tab3 Selling equipment`.
+Repeat the text with another command to recolor it. The server owns text/color
+and publishes only to the owner and already-visible same-instance observers.
+Updates reuse the in-place metadata handler without respawn, movement/vitals
+packets or animation resets. Incoming copies and the outgoing temporary tab
+buffer are bounded to 25 text bytes plus NUL. SND reserves notice-prefix space,
+accepts 87 bytes and cannot invoke panel control syntax through user text.
+
+CreateMob keeps the existing coordinated 328-byte ABI: tab color uses former
+padding byte 327, leaving cape/server byte 326 unchanged. Unknown colors use
+the previous gray. Trade frames are excluded because 327 overlaps their title.
+This is a source-client extension, not a claim about native CreateMob layout.
+Both the client and server must be updated for the feature; this is not a
+client-only fix. See [chat evidence and contract](../.agents/research/client748/flows/ui/chat-tab-status.md).
+
+STATICALLY VERIFIED and AUTOMATED TESTED: focused Go command/wire tests,
+full `go test -count=1 ./...` and `go vet ./...` passed. Release/x86
+`Build-Client.ps1 -NoDeploy` passed: architecture 1,229,504 checks, socket 231,
+crash capture 83 and launcher 56. An initially missing include was corrected;
+the affected-target build also reported existing nonblocking C4996 warnings
+for deprecated Winsock APIs. No blocking errors remain.
+
+Candidate `tmproject/build/TMProject748/Release/WYD.exe`: 1,881,088 bytes,
+SHA-256 `7464C7B074398D466EEB462AE366A1EE89862CE6CC3211D758DD76E6FBF78162`.
+Installed runtime was not replaced. No public client patch, VPS deployment,
+server build installation or service restart was performed. CLIENT-TESTED
+remains pending; no game process was launched. This follow-up does not close
+unrelated pending fixes or existing language-migration debt.
+
+Research validation and layout/local links passed (203 indexed documents).
+Scoped whitespace and affected-file language checks passed. The whole-tree
+`git diff --check` still reports an unrelated existing blank line at EOF in
+`wydgo748/data/NPCGener.txt`; that user-owned change was preserved. Cleanup was
+rejected before execution: temporary exports/logs remain in
+`build/chat-labels-10031/`, as do test artifacts in
+`tmproject/build/tests/Release/crash-capture-tests-21772-460996531/` and
+`crash-capture-tests-17108-461060328/`. No broad deletion or retry was attempted;
+current incremental build output is retained.
+
+## Published follow-up — 2026-10-15, client-only patch 10030
+
+Published the validated client candidate and its runtime dependencies through
+the launcher, without deploying server binaries/data or restarting services.
+The 35-file payload contains `WYD.exe`, required `skillhelp.dat`, the sidebar
+button atlas definitions, both KR asset manifests and 30 restored costume
+meshes. Previously published costume dependencies are intentionally retained
+in this explicit allowlist. Player settings and launcher binaries are excluded.
+
+This publishes the native skill descriptions faithfully localized to English,
+isolated prose/requirements and bounded tooltip placement, the genuine
+face/class-change guard for transformation effects, the pending C.C. client
+logic and Character menu states. Server-side guild kingdom, Warrior's Seal
+and off-hand promotion changes remain outside this publication. Nightmare and
+Backpack gameplay were not implemented by this batch.
+
+- ZIP: 1,216,419 bytes; SHA-256
+  `F08898C442024C754C5CE0DE8D82EA374917711A1A331340549F471CCD4E3461`.
+- Executable: 1,880,576 bytes; SHA-256
+  `3F38F354E4108FDE1C24BE15E456DF2B77D9536429E16DC13C8CAF2B192A5429`.
+- Skill asset SHA-256:
+  `D614DA42CE36B2C2CA61DEC6BF4DF964D047C28A4A3B618D53695C26FC967629`.
+- Reused the unchanged Release/x86 candidate and passing gates recorded below;
+  no source changed after that build. All 35 ZIP entries matched their sources.
+  Fresh public HTTP and HTTPS feed/ZIP requests returned 200; all downloaded
+  entries and ZIP hashes matched. The remote ZIP hash matched as well.
+- The feed appends 10030. Its previous-feed rollback is byte-identical to the
+  retained prefix, and the 10029 ZIP hash is unchanged. Remote staging was
+  removed by the publisher. Local cleanup was rejected before execution:
+  `build/patch/patch-10030.zip`, `verify-10030-http.zip` and
+  `verify-10030-https.zip` remain in `build/patch/`. Current incremental build
+  output remains available.
+- Current remains `/srv/wyd-go/releases/20261015T215714Z`. Game PID 1694828
+  and player API PID 1694841 retain their `2026-10-15 21:57:17 UTC` start time;
+  readiness returned `ready`. No service restart/reload, player disconnection,
+  account mutation, website update or local runtime replacement occurred.
+
+Publication is verified; CLIENT-TESTED remains pending. Restart the client
+through `WYDLauncher.exe` to receive the patch. This scoped update does not
+close the existing language-migration debt or certify a global release.
+See the [launcher receipt](client/launcher.md#published-patch-10030-2026-10-15).
+Earlier local-only entries below describe the implementation history, not the
+current publication status of their client changes.
+
+## Local follow-up — 2026-10-15, unwanted appearance-refresh glow
+
+Restored the native face/class-change guard around the whole transformation
+effect block in `TMHuman::OnPacketUpdateEquip`. Previously only the first
+particle allocation was conditional; ordinary `0x36B` snapshots always played
+sound 158, a bright shade, transformation motion and a level-up effect. These
+effects now run only for genuine face/class changes. Equipment, color, mount,
+weapon, object and HUD updates remain outside the guard for both the owner
+and observed characters. No server or wire change was needed.
+
+Classification: `PARIDADE_NATIVA`, supported by `FUN_0052b116` and its jump
+past the effect block to `0x0052b46c`. See
+[equipment appearance evidence](../.agents/research/client748/flows/ui/update-equip-visual-contract.md).
+STATICALLY VERIFIED and AUTOMATED TESTED: Release/x86 build passed using
+`Build-Client.ps1 -NoDeploy`; architecture 1,228,406 checks, socket 231,
+crash capture 83 and launcher 56 passed. Thirteen new source-contract checks
+protect conditional effects and unconditional state application.
+
+The candidate at `tmproject/build/TMProject748/Release/WYD.exe` also contains
+the preceding skill description fix. The installed runtime was not replaced.
+No patch publication, VPS deployment or restart. CLIENT-TESTED remains pending
+for buff animation continuity and genuine transformations. Nightmare behavior
+has not been changed by this follow-up.
+
+## Local follow-up — 2026-10-15, skill description presentation
+
+The initial restoration was incomplete: existing English paraphrases omitted
+native formulas, and skill metadata still overwrote prose in shared rows.
+Imported all 102 available descriptions from the native OnGame 7.48 asset
+into `tmproject/client748/skillhelp.dat`, faithfully localized to English.
+The required overlay preserves native effects, conditions and formulas;
+`itemhelp.dat` and its historical ANSI encoding remain unchanged. Native IDs
+with trailing spaces now load correctly. Skill prose uses panel-owned local
+controls separate from the original twelve metadata rows. Apprentice,
+learned and belt tooltips are measured after population, compacted and bounded
+to the viewport; returning to an item restores its resource layout.
+
+Native content and apprenticeship list binding are `PARIDADE_NATIVA`; bounded
+decoding and isolated tooltip layout are `MODERNIZACAO_COMPATIVEL`. See
+[skill description evidence](../.agents/research/client748/flows/ui/skill-description-text.md).
+The inspected native corpus lacks prose for 5096, 5103, 5104 and 5400..5447;
+their existing calculated captions remain. No descriptions were invented.
+
+STATICALLY VERIFIED and AUTOMATED TESTED: Release/x86 build passed with
+`Build-Client.ps1 -NoDeploy`; architecture 1,228,509 checks, socket 231,
+crash capture 83 and launcher 56 passed. No blocking errors or warnings in
+this incremental build. CLIENT-TESTED remains pending. The candidate is
+`tmproject/build/TMProject748/Release/WYD.exe`; the installed runtime was not
+overwritten. The new executable must ship together with `skillhelp.dat`.
+No client patch, VPS deployment or restart was performed. Earlier investigation
+logs/export remain in `build/client-skill-descriptions/` after rejected cleanup;
+this follow-up created no scratch files in the repository.
+
+## Local follow-up — 2026-10-15, C.C. reference logic and guild kingdoms
+
+The owner's revised C.C. request retains the existing UI and uses the supplied
+TMProject rather than the KR client. Buff membership, inactive-belt ordering,
+mastery delay groups, summon ordering and independent hunger feeding follow
+that reference. Compatibility guards preserve the server's 5..10-minute buff
+duration, renew from elapsed affect time, and advance past failed casts without
+stalling. See [Combat Control](client/combat-control.md) for the pinned source,
+intentional timing adaptation and validation boundaries.
+
+Guild membership now requires matching kingdoms at recruitment. Members and
+subleaders cannot independently change kingdom; leader changes propagate to
+connected-account characters transactionally, with offline characters repaired
+from the guild registry on entry. See [guild kingdom and cape membership](guild-wars.md#guild-kingdom-and-cape-membership).
+
+Both changes are `MODERNIZACAO_COMPATIVEL`. The full Go suite, vet and focused
+guild-kingdom race tests passed. The Release/x86 client build and integrated
+architecture tests passed using `Build-Client.ps1 -NoDeploy`. STATICALLY
+VERIFIED and AUTOMATED TESTED; CLIENT-TESTED remains pending.
+
+No local runtime executable replacement, client patch publication, VPS
+deployment or restart was performed. Backpack behavior remains unimplemented
+by this follow-up; skill-window prose was addressed in the later entry above.
+The task-only cleanup command was rejected by execution policy. Reference
+downloads remain in the system temporary directory `wyd-kr-cc-20261015`, and
+four `cc-*` verification logs remain in the ignored root `build/` directory.
+The incremental client build and native research corpus were preserved.
+
+## Local follow-up — 2026-10-15, unfinished weapon, seal and menu fixes
+
+Completed the three changes left unfinished after patch 10029. These changes
+are local only; no patch publication, VPS deployment or restart was performed.
+Classification: `MODERNIZACAO_COMPATIVEL`; existing item IDs, equipment slots,
+packet layouts and resource IDs are unchanged.
+
+- Removing the main weapon promotes a remaining eligible off-hand weapon from
+  slot 7 to slot 6, preserving its UID and effects. Shields remain in slot 7.
+  Direct and critical-persistence paths save before confirming the move,
+  publish the normal swap followed by both hand snapshots, and refresh the
+  appearance. The existing client stance-rebind fix remains in place.
+  W2PP `_MSG_TradingItem.cpp:333–350` is a behavioral reference, not independent
+  proof of native 7.48 parity.
+- Warrior's Seal (4146, volatile 199) grants Mortals at displayed level 355+
+  the Elite cape: Hekalotia 3191 (blue), Akeronia 3192 (red), or Adventurer
+  3193 (white) without a kingdom/cape. Existing Elite and Hero capes are kept.
+  Fame and seal consumption retain their existing behavior; cape replacement
+  is included in the same account/character-state save and published only
+  after success. W2PP `_MSG_UseItem.cpp:3213–3255` supplies the reference rule.
+- Character button 293 in `UI/FieldScene2.bin` references texture set 398.
+  Its one-row atlas set disappeared when `SButton` selected state 3. Sets
+  398–403 now expose all five button states using their original atlas-134
+  rectangles, matching the existing System set 404. No texture, binary layout
+  or click binding was replaced. The previously traced menu lifecycle in
+  `.agents/research/client748/flows/ui/system-menu-initial-layout.md` remains
+  applicable; bounds checks in the renderer are preserved.
+
+AUTOMATED TESTED: focused weapon/seal tests cover ordinary and critical saves,
+commit, rejection, unknown outcomes, rollback, held-write repetition and exact
+equipment publication order. The consumable settlement matrix covers all
+three cape colors. ArchitectureTests passed 1,227,757 checks, including menu
+atlas states and the existing dual-to-single/mounted pose tests. Earlier in
+this review, `go test -count=1 ./internal/game ./internal/data
+./internal/playerportal` also passed before the test-only additions.
+
+STATICALLY VERIFIED and AUTOMATED TESTED; CLIENT-TESTED remains pending for
+InkWC's mounted Balmung/Neorion removal, Character selection/hover/close, and
+using the seal with each kingdom. The UI asset has no compilation dependency;
+no executable rebuild or runtime executable replacement was necessary.
+Repository layout/local links and scoped `git diff --check` passed. The
+repository-wide whitespace check still flags a pre-existing extra blank line
+at EOF in `wydgo748/data/NPCGener.txt`, outside this follow-up's changes.
+
+## Local follow-up — 2026-10-15, skill description tooltip layout (unpublished)
+
+Review of the separate-session `skillhelp.dat` work (102 English native skill
+descriptions shown in dedicated tooltip rows):
+
+- `TMFont2::SetText` splits any string over 42 characters into a second line
+  inside the same row; 48 rows exceeded that and overlapped. The corpus is
+  re-flowed to at most 40 characters per row (still nine rows per record).
+- Rows were stacked with `m_Font.m_FontSize`, which is zero before the first
+  render, so every line landed on the same band. They now use the resource's
+  native row pitch (`m_vecDescParamPos[1].y - [0].y`) and the native text x.
+  Order (owner request): name, calculated skill data, then the description,
+  centred across the tooltip like the name and data rows.
+- The help prefix is RRGGBBAA; reading it as ARGB drew the gold text purple.
+  `item_help_748::LegacyColor` converts it to opaque ARGB (`CC9900FF` →
+  `0xFFCC9900`), for item and skill help alike.
+
+`Build-Client.ps1` passed (1,229,438 architecture checks); candidate
+`WYD.exe` SHA-256
+`3FE98CCC25ADD72D223D4F7D75F014BB7E0260B729805C6F9CCBFA8CEDDEE03A` is installed
+in `tmproject/client748` when the running game closes, for the
+owner's visual check. CLIENT-TESTED and publication pending.
+
+## Local follow-up — 2026-10-15, off-hand weapon and Warrior's Seal (unpublished)
+
+- Removing the main weapon (slot 6) while slot 7 holds a weapon, not a shield,
+  moves that weapon to slot 6 (W2PP `_MSG_TradingItem`), on both persistence
+  paths. A lone off-hand weapon was drawn through the body for observers.
+- Warrior's Seal (4146): a Mortal at level 355+ without an Elite or Hero cape
+  receives the Elite cape of its kingdom (3191/3192), or the white Elite of
+  Adventurer (3193) without one (W2PP "Selo do Guerreiro"); the cape keeps its
+  UID but not refinement/effects. Fame +10 is unchanged.
+- The missing Character minibar icon is being handled in a separate session
+  (`UITextureSetList.txt`, `NewApp.cpp`, `TMFieldSceneUI.cpp`).
+
+AUTOMATED TESTED: `go vet ./...`, `go test -count=1 ./...` and
+`Build-Client.ps1 -NoDeploy` (1,228,509 architecture checks) passed on the
+working tree. CLIENT-TESTED and publication pending.
+
+## Published follow-up — 2026-10-15, player-reported batch (patch 10029)
+
+Fixes for the 15-item player report, published as patch 10029 with server
+release `20261015T215714Z` (players disconnected with the owner's approval).
+
+- Aylin follows W2PP `GetMatchCombineAilyn`: Ancient grades 5..8 need their own
+  gem (2441..2444), other items four equal gems; WYD-Go also requires Ancient
+  weapons. Rejections now explain the reason.
+- Celestial level-90 unlock grants the second Cythera (same index as the
+  equipped one, unrefined); a full inventory rejects the unlock. Existing
+  level-90 Celestials did not receive it retroactively.
+- Lac on the slot-8 earring: +9→+10 and +10→+11 at 16%, earring destroyed on
+  failure (W2PP). Gems 180..183 apply to +10/+11 earrings.
+- Golden Shield charges 100 gold per mastery point (W2PP), with a message
+  when gold is short.
+- Samaritan is a self buff on client and server (owner rule): selected players
+  and monsters are ignored. The C.C. rebuff loop moves on when a buff does not
+  cast instead of stalling.
+- Enchant Ice (75) and Lightning Storm (79) require a bow on the server too.
+- Guild InviteType 1..3 recruits directly into Sub1/Sub2/Sub3 (100M).
+- Summons follow their owner on teleport; idle summons stay within 2 tiles
+  and are placed beside the owner beyond 8 tiles. Combat is unrestricted.
+- 64 monster templates with Con above 1000 now use Con 1 (owner request);
+  this also fixes the near-invisible Nightmare M Grub swarms.
+- Female Skeleton Set (4154): six `ch02xx90.msh` meshes restored from the
+  read-only KR reference. KR Carnival Mount (4220): native mesh 19
+  (`hs010120/hs010220`) is absent from every reference; it now shows the base
+  hs01 horse with +13 glow.
+- Support buffs last 5 minutes at mastery 0 up to 10 minutes at mastery 320
+  (owner rule, replacing the W2PP AffectTime formula that gave 20–84 minute
+  and 32–128 second buffs). Soul Limit lasts 5 minutes for a new Celestial up
+  to 15 minutes at Celestial level 199 (owner rule; it lasted 8–32 s).
+  Its attribute bonus now feeds the same derived formulas as base points:
+  STR/3 + DEX/4 physical attack, DEX/5 defense, the class INT share of magic
+  attack, 2 HP per CON and 2 MP per INT; attack speed and evasion read the
+  final DEX (previously only STR attack, HP and MP were derived).
+- Open: the HT cargo-guard skill and Avenging Spirit (55) with claws need the
+  owner's clarification.
+
+AUTOMATED TESTED: `go vet ./...` and `go test -count=1 ./...` passed;
+`Build-Client.ps1 -NoDeploy` passed all gates. Candidate WYD.exe 1,876,480
+bytes, SHA-256 `21F67FBC625D6A52868D57ECAE35372AA97382E5D6209D9D428E43B15E51CFB6`.
+CLIENT-TESTED pending.
+
+## Local follow-up — 2026-10-15, elite cape icon colors
+
+The owner confirmed the Arch 355 report concerns only swapped item icons.
+The grid-only override now selects blue for Elite Of Hekalotia (3191), red
+for Elite Of Akeronia (3192), and white for Elite Of Adventurer (3193), using
+existing textures. Kingdom, world cape appearance, catalog, stats and accounts
+are unchanged. Classification: `MODERNIZACAO_COMPATIVEL`.
+
+`Build-Client.ps1 -NoDeploy` passed: ArchitectureTests 1,227,747 checks, socket
+231, crash capture 83, launcher 56, costume/shader gates and incremental
+Release/x86 build. Candidate `tmproject/build/TMProject748/Release/WYD.exe`:
+1,876,480 bytes, SHA-256
+`C8F2768D337EA2F99699A19F2D8702E7098A75CD0648DF457161A841EAE24362`.
+STATICALLY VERIFIED and AUTOMATED TESTED; CLIENT-TESTED and publication are
+pending. No runtime install, server restart, account change, commit or push.
+Patch 10028 below does not contain this later correction; patch 10029 does.
+See [cape evidence](../.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md#elite-cape-grid-icons--2026-10-15).
+Research validation, repository layout/local links and scoped whitespace review
+passed. The execution policy rejected cleanup of `build/cape-icon-inspection/`
+and isolated `crash-capture-tests-20544-441018312` output; no bypass was attempted.
+
+## Follow-up — 2026-10-15, native icon halo patch 10028 published
+
+Supersedes the icon investigation below, not the pending server changes.
+Patch 10028 contains only `WYD.exe`: the missing native per-item halo selection
+and corrected sine pulse, alpha retention and full-width halo UV. The 10027
+lighting fix alone did not resolve the owner's negative visual report.
+No mesh, server release, account, service or local runtime was changed by 10028.
+The static website receipt remains at 10027; the launcher feed ends at 10028.
+
+AUTOMATED TESTED: ArchitectureTests 1,221,246 checks; socket 231, crash capture
+83, launcher 56, shader/costume gates and incremental Release/x86 build passed.
+The ZIP is 826,278 bytes, SHA-256
+`D093974C2CE408AAD0E3737F27FEF48EB19025C5026DEB7FC3BE831A9F9A187E`.
+Executable: 1,876,480 bytes, SHA-256
+`75868D55FA061A5256F8A213785D2B6A81EF563BCDD26D161FE4D5BFB99CA2FD`.
+Fresh HTTP/HTTPS feeds returned 200 and contained 10028; both downloaded ZIPs
+and their sole embedded executable matched. No commit or push was performed.
+Game PID 1510633 and API PID 1510645 still started at 02:32:14 UTC, and current
+still resolves to release `20261015T023211Z` after publication.
+CLIENT-TESTED: pending; do not treat publication as visual acceptance.
+See [launcher receipt](client/launcher.md#published-patch-10028-2026-10-15).
+Research validation, repository layout/local links (200 documents), scoped
+diff whitespace checks and English review passed. Cleanup of generated patch
+ZIPs/downloads and temporary site staging was rejected by the execution policy;
+those artifacts remain, alongside isolated crash-test evidence. No bypass was
+attempted. Published ZIPs, native evidence and incremental outputs are retained.
+
+## Follow-up — 2026-10-15, client patch 10027 published
+
+This section supersedes the working-tree status below, not the historical VPS
+receipts. Entry HEAD was `fa1c853fa9d279719acd4aa0c3518a550505134f`, with
+existing staged and unstaged changes preserved. Client patch 10027 is published;
+the server changes below remain local. No commit, push, VPS restart, local
+runtime installation, or agent-initiated game execution was performed.
+
+Patch 10027 contains the executable and 24 restored costume meshes (25 files).
+Public HTTP/HTTPS downloads and every embedded file hash matched. The six
+public receipt pages were updated without replacing the server release.
+Game PID `1510633` and player API PID `1510645` retained their start time
+`2026-10-15 02:32:14 UTC`; current remains release `20261015T023211Z`.
+See [launcher receipts](client/launcher.md#published-patch-10027-2026-10-15).
+
+The owner subsequently tested patch 10027 and reported that inventory icons,
+including Glihtning Stone, still lack their expected brightness. This is
+negative visual acceptance: the lighting correction is shipped, but the
+reported icon defect is not resolved. Further render/texture investigation is
+required; passing source assertions and a build do not override that result.
+
+- Private-instance departure now clears both HUD values after committed recall;
+  persistence rejection and unknown outcomes retain the original state. Public
+  quest timers keep their separate lifecycle.
+- Ehre accepts Spirit Stone F and two Ankhs with the user-selected 50% chance
+  per attempt. Both persistence paths share the recipe and rollback behavior.
+- Client reentry replaces a previously retired remote actor on a new CreateMob,
+  rather than retaining its pending-deletion state. Server tests cover the last
+  five living instance monsters and visibility-boundary reentry. This addresses
+  a concrete lifecycle defect; it does not prove every reported disappearance
+  has the same cause.
+- Eight ShopCostum06 costumes now use explicit imported renderers, with 24
+  missing meshes restored from the read-only KR reference. Weapon stance changes
+  refresh the current animation when changing from two weapons to one.
+- Ordinary inventory refinement uses the native grade-to-texture lookup.
+  The broader dull-icon investigation found a separate native contract gap:
+  icons used world lighting instead of fixed inventory lighting. Native main
+  and fill lights, white ambient and transparency cutoffs are now restored,
+  including the path used by unrefined Glihtning Stone (3140). No replacement
+  assets or extra glow layers were added. In-game visual confirmation is pending.
+
+AUTOMATED TESTED: full `go test -count=1 ./...` and `go vet ./...` passed.
+Client ArchitectureTests passed 1,209,240 checks and the incremental Release/x86
+solution build passed. Earlier unchanged socket (231), crash capture (83),
+launcher (56), manifest and shader gates passed in the same batch. Candidate
+`tmproject/build/TMProject748/Release/WYD.exe` SHA-256:
+`F3E40F97FD9F3B47EFECE890CFB117E0486B93B76C5F99BB4E13134BE4DF8855`.
+CLIENT-TESTED: pending for every changed visual/gameplay flow.
+Research-record validation and repository layout/local links passed (200 indexed
+documents). Batch-authored text was reviewed in English. Whole-tree
+`git diff --check` still reports pre-existing trailing blank lines in
+`TMFieldScene.h` and `data/NPCGener.txt`; those unrelated edits were preserved.
+
+Implementation details: [client follow-up](client/port-748.md#local-instance-equipment-and-inventory-follow-up-2026-10-15)
+and [server follow-up](server/operations.md#local-instance-and-ehre-follow-up-2026-10-15).
+
+## Historical deployed snapshot
+
 Verified snapshot: 2026-10-14, after the 23:42 UTC restart and patch 10024 publication. This is the continuation entry point, not a
 promise of release readiness. Recheck live identity before a later deployment;
 do not replay old commands or assume the working tree is the installed release.

@@ -475,6 +475,9 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 // unrelated players may have entered or moved while that save was pending.
 func (w *World) publishCharacterEntry(p *Player, slot int) {
 	s, ch := p.Session, p.Char
+	// Selection may outlive an offline guild kingdom/rank change. Reconcile
+	// this derived projection again before any appearance reaches the client.
+	w.repairGuildState(ch)
 	_, entryX, entryY := w.homeCitySpawn(ch)
 	entryX, entryY = w.findFreePlayerPosition(entryX, entryY, 8, p)
 	if isLoadtestAccountName(p.Account.Name, w.loadtestAccountPrefix) {
@@ -530,8 +533,7 @@ func (w *World) publishCharacterEntry(p *Player, slot int) {
 	s.Send(enter)
 	// 2) Self-CreateMob (spawn=2), observed in-game. Without it, a second login
 	// in the same client process retains stale HP/MP. ActionStop follows it.
-	s.Send(wire.CreateMobWithGuildRank(p.ID, ch.Name, ch.X, ch.Y, bodyMesh(ch),
-		bodyAncient(ch), wireScoreState(ch), ch.Affects[:], 2, ch.GuildID, ch.GuildRank, ch.CP, model.AppearanceCapeEmblem(*ch)))
+	s.Send(playerCreatePacket(p))
 	// 3) Login sequence in WYD 7.48 order: 3A8 -> 336 -> 185 -> 337 -> 36B -> 181 -> 366.
 	s.Send(wire.WarInfo())
 	s.Send(playerScorePacket(p))
@@ -699,6 +701,13 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] SWAP equipment rejected %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
 		return
 	}
+	// A lone off-hand weapon becomes the main weapon (W2PP _MSG_TradingItem).
+	oldMain, oldOff := p.Char.Equip[6], p.Char.Equip[7]
+	promoted := (st == placeEquip || dt == placeEquip) && w.promoteOffhandWeapon(p.Char)
+	restore := func() {
+		p.Char.Equip[6], p.Char.Equip[7] = oldMain, oldOff
+		*src, *dst = oldSrc, oldDst
+	}
 	// A first equip starts the server-owned deadline. The activation and the
 	// slot move are committed together before either is confirmed to the client.
 	timedActivated := false
@@ -712,7 +721,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		}
 		activated, err := w.activateTimedItem(target.item, target.pos, activationNow)
 		if err != nil {
-			*src, *dst = oldSrc, oldDst
+			restore()
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 			if errors.Is(err, errTimedItemExpired) {
@@ -725,9 +734,9 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		}
 		timedActivated = timedActivated || activated
 	}
-	if st == placeStorage || dt == placeStorage || timedActivated {
+	if st == placeStorage || dt == placeStorage || timedActivated || promoted {
 		if err := w.saveAccount(p.Account); err != nil {
-			*src, *dst = oldSrc, oldDst
+			restore()
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 			s.Send(wire.MessagePanel("Save failed. The item move was cancelled."))
@@ -739,6 +748,10 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	// Two 0x182 snapshots update cells but do not finish cursor state.
 	targetID := binary.LittleEndian.Uint16(pkt[16:18])
 	s.Send(wire.SwapItem(p.ID, st, sp, dt, dp, targetID))
+	if promoted {
+		s.Send(wire.SendItem(p.ID, placeEquip, 6, p.Char.Equip[6]))
+		s.Send(wire.SendItem(p.ID, placeEquip, 7, p.Char.Equip[7]))
+	}
 	if st == placeEquip || dt == placeEquip {
 		if (st == placeEquip && sp == mountSlot) || (dt == placeEquip && dp == mountSlot) {
 			w.resetEggIncubationClock(p)
@@ -1488,8 +1501,7 @@ func playerHomeCitySpawn(ch *model.Char) (int, uint16, uint16) {
 	city := playerHomeCity(ch)
 	// W2PP uses FREEEXP=35 by default for mortal login and recall. The
 	// beginner field overrides the destination, not the bound city.
-	if ch != nil && ch.Score != nil && ch.Score.Level < mortalBeginnerLevelLimit &&
-		(ch.Evolution == "" || strings.EqualFold(ch.Evolution, "mortal")) {
+	if newbieZoneEligible(ch) {
 		return city, mortalBeginnerSpawnX, mortalBeginnerSpawnY
 	}
 	zone := cityWarZones[city]
@@ -1620,6 +1632,7 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 	// Restart or recall also exits the instance. Without detaching the member,
 	// later cleanup could teleport them to the old room or block re-entry.
 	now := w.now()
+	wasInInstance := w.playerRuntimeInstanceID(p.ID) != ""
 	// Recall/restart is a definitive exit from a private Water room. Unlike a
 	// socket logout, it must not leave a UID pending that would reattach the
 	// character to the old room on the next login.
@@ -1650,6 +1663,9 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 		log.Printf("[#%d] recall (%s): failed to save position: %v", p.ID, reason, err)
 	}
 	if p.Session != nil {
+		if wasInInstance {
+			clearItemInstanceHUD(p)
+		}
 		p.Session.Send(playerScorePacket(p))
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	}

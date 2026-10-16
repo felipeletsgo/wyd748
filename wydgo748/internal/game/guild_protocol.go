@@ -72,12 +72,17 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("Your guild has reached its member limit."))
 		return
 	}
+	rank, rankFree := guildInviteRank(guild, inviteTypeRaw)
+	if !rankFree {
+		s.Send(wire.MessagePanel(fmt.Sprintf("Sub-leader slot %d is already taken.", inviteTypeRaw)))
+		return
+	}
 	if existing, _ := w.guildOf(target.Char); existing != nil || target.Char.GuildID != 0 {
 		s.Send(wire.MessagePanel("That player already belongs to a guild."))
 		return
 	}
 	if characterKingdom(p.Char) != characterKingdom(target.Char) ||
-		(guild.Kingdom != model.KingdomNeutral && characterKingdom(target.Char) != guild.Kingdom) {
+		characterKingdom(target.Char) != guild.Kingdom {
 		s.Send(wire.MessagePanel("That player belongs to another kingdom."))
 		return
 	}
@@ -107,11 +112,11 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	guild.Members = append(guild.Members, model.GuildMember{
 		Character: target.Char.Name,
 		Account:   target.Account.Name,
-		Rank:      model.GuildRankMember,
+		Rank:      rank,
 		JoinedAt:  now.UTC(),
 	})
 	p.Char.Gold -= cost
-	target.Char.GuildID, target.Char.GuildRank = guild.ID, model.GuildRankMember
+	target.Char.GuildID, target.Char.GuildRank = guild.ID, rank
 	if err := w.saveGuildState(p.Account, target.Account); err != nil {
 		w.restoreGuilds(guildSnapshot)
 		*p.Char, *target.Char = actorChar, targetChar
@@ -131,4 +136,23 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	s.Send(wire.MessagePanel(fmt.Sprintf("%s joined the guild.", target.Char.Name)))
 	w.announceToGuild(guild.ID, fmt.Sprintf("%s joined the guild.", target.Char.Name), target)
 	log.Printf("[#%d] 0x3D5 guild=%d recruited %q type=%d cost=%d", s.ID, guild.ID, target.Char.Name, inviteTypeRaw, cost)
+}
+
+// guildInviteRank maps the 0x3D5 InviteType: 0 recruits a member, 1..3
+// recruit directly into the Sub1/Sub2/Sub3 slot (ranks 6..8) for the 100M
+// leader-only cost. A taken sub-leader slot rejects the recruitment.
+func guildInviteRank(guild *model.Guild, inviteType uint32) (byte, bool) {
+	if inviteType == 0 {
+		return model.GuildRankMember, true
+	}
+	if guild == nil || inviteType > model.MaxGuildSubLeaders {
+		return 0, false
+	}
+	rank := byte(model.GuildRankSubFirst + inviteType - 1)
+	for _, member := range guild.Members {
+		if member.Rank == rank {
+			return 0, false
+		}
+	}
+	return rank, true
 }

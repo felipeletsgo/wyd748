@@ -33,7 +33,7 @@ adaptation.
    exists for the new root:
 
    ```powershell
-   python .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
+   python -B .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
    ```
 
 3. Choose a small batch tied to an observable entry point; prioritize
@@ -46,7 +46,8 @@ adaptation.
 
 When the task requires TMProject748 source coverage, install pinned
 dependencies from `scripts/requirements-source-inventory.txt` in an isolated
-environment and run `scripts/source_inventory.py --repo <root> --write`.
+environment and run `python -B scripts/source_inventory.py --repo <root> --write`
+from this skill's directory (or use its repository-relative script path).
 Use `--check --fail-on-parse-errors` at the gate to detect stale inventories
 or remaining parser errors. Generated TSVs record file, project, line, and
 symbol facts only; do not store human compatibility decisions or promote

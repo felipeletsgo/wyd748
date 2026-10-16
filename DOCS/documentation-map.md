@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 200.
+Markdown documents: 205.
 
 | Document | Type |
 | --- | --- |
@@ -70,6 +70,7 @@ Markdown documents: 200.
 | [.agents/research/client748/flows/ui/cc-auto-combat-state-sync.md](<../.agents/research/client748/flows/ui/cc-auto-combat-state-sync.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/character-stat-fields-update.md](<../.agents/research/client748/flows/ui/character-stat-fields-update.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/chat-channel-filter-toggle.md](<../.agents/research/client748/flows/ui/chat-channel-filter-toggle.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/chat-tab-status.md](<../.agents/research/client748/flows/ui/chat-tab-status.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/combine-complete-contract.md](<../.agents/research/client748/flows/ui/combine-complete-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/control-focus-ime-lifecycle.md](<../.agents/research/client748/flows/ui/control-focus-ime-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/drop-confirmation-contract.md](<../.agents/research/client748/flows/ui/drop-confirmation-contract.md>) | Research evidence |
@@ -116,6 +117,7 @@ Markdown documents: 200.
 | [.agents/research/client748/flows/ui/shop-inventory-layout.md](<../.agents/research/client748/flows/ui/shop-inventory-layout.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/shop-list-contract.md](<../.agents/research/client748/flows/ui/shop-list-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/skill-belt-page-selection.md](<../.agents/research/client748/flows/ui/skill-belt-page-selection.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/skill-description-text.md](<../.agents/research/client748/flows/ui/skill-description-text.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/skill-master-purchase.md](<../.agents/research/client748/flows/ui/skill-master-purchase.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/special-potion-shortcut.md](<../.agents/research/client748/flows/ui/special-potion-shortcut.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/system-menu-initial-layout.md](<../.agents/research/client748/flows/ui/system-menu-initial-layout.md>) | Research evidence |
@@ -141,6 +143,7 @@ Markdown documents: 200.
 | [.agents/skills/wyd-client748-research/references/research-method.md](<../.agents/skills/wyd-client748-research/references/research-method.md>) | Operational reference |
 | [.agents/skills/wyd-client748-research/references/subsystem-map.md](<../.agents/skills/wyd-client748-research/references/subsystem-map.md>) | Operational reference |
 | [.agents/skills/wyd-client748-research/SKILL.md](<../.agents/skills/wyd-client748-research/SKILL.md>) | Active skill |
+| [.agents/skills/wyd-release/SKILL.md](<../.agents/skills/wyd-release/SKILL.md>) | Active skill |
 | [.agents/skills/wydgo748-feature/references/audit.md](<../.agents/skills/wydgo748-feature/references/audit.md>) | Operational reference |
 | [.agents/skills/wydgo748-feature/references/client-ui-748.md](<../.agents/skills/wydgo748-feature/references/client-ui-748.md>) | Operational reference |
 | [.agents/skills/wydgo748-feature/references/emulator-contracts.md](<../.agents/skills/wydgo748-feature/references/emulator-contracts.md>) | Operational reference |
@@ -152,6 +155,7 @@ Markdown documents: 200.
 | [.claude/skills/wyd-client748-assets/SKILL.md](<../.claude/skills/wyd-client748-assets/SKILL.md>) | Claude Code skill pointer |
 | [.claude/skills/wyd-client748-catalog/SKILL.md](<../.claude/skills/wyd-client748-catalog/SKILL.md>) | Claude Code skill pointer |
 | [.claude/skills/wyd-client748-research/SKILL.md](<../.claude/skills/wyd-client748-research/SKILL.md>) | Claude Code skill pointer |
+| [.claude/skills/wyd-release/SKILL.md](<../.claude/skills/wyd-release/SKILL.md>) | Claude Code skill pointer |
 | [.claude/skills/wydgo748-feature/SKILL.md](<../.claude/skills/wydgo748-feature/SKILL.md>) | Claude Code skill pointer |
 | [AGENTS.md](<../AGENTS.md>) | Single rules file |
 | [CLAUDE.md](<../CLAUDE.md>) | Claude Code import of AGENTS.md |
@@ -161,6 +165,7 @@ Markdown documents: 200.
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Product documentation |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Product documentation |
 | [DOCS/client/classic-ui-assets.md](<client/classic-ui-assets.md>) | Product documentation |
+| [DOCS/client/combat-control.md](<client/combat-control.md>) | Product documentation |
 | [DOCS/client/dead-code-map.md](<client/dead-code-map.md>) | Product documentation |
 | [DOCS/client/effects-compatibility-matrix.md](<client/effects-compatibility-matrix.md>) | Product documentation |
 | [DOCS/client/full-source-audit-2026-10-03.md](<client/full-source-audit-2026-10-03.md>) | Product documentation |

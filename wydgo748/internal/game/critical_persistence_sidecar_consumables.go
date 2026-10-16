@@ -79,6 +79,7 @@ func (w *World) queueSidecarConsumable(p *Player, slot byte, rule model.Volatile
 		}
 		detached.SpecialCoins[key] = uint32(accessExpiry.Unix())
 	}
+	eliteCape := rule.Action == "grant_counter" && ch.Inv[slot].Index == warriorSealItem && warriorSealCape(ch)
 	if rule.Consume {
 		consumeOne(&ch.Inv[slot])
 	}
@@ -109,6 +110,9 @@ func (w *World) queueSidecarConsumable(p *Player, slot byte, rule model.Volatile
 		"Item use could not be saved. Please try again later.", func() {
 			p.Char.Inv = ch.Inv
 			p.SpecialCoins = detached.SpecialCoins
+			if eliteCape {
+				p.Char.Equip[model.CapeSlot] = ch.Equip[model.CapeSlot]
+			}
 			if changesAffects {
 				p.Char.Affects = ch.Affects
 				w.recalcPlayer(p.Char)
@@ -131,6 +135,9 @@ func (w *World) queueSidecarConsumable(p *Player, slot byte, rule model.Volatile
 			}
 			if rule.Action == "grant_counter_once" {
 				p.Session.Send(wire.MessagePanel("Event access enabled."))
+			}
+			if eliteCape {
+				w.publishWarriorSealCape(p)
 			}
 			if rule.Action == "timed_access" {
 				p.Session.Send(wire.MessagePanel(fmt.Sprintf("Access enabled until %s.", accessExpiry.Local().Format("2006-01-02 15:04"))))

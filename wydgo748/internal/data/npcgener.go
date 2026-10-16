@@ -33,7 +33,7 @@ func LoadNPCGener(path string) ([]model.NPCGener, error) {
 		}
 		if strings.HasPrefix(line, "#") {
 			out = append(out, model.NPCGener{
-				Index: len(out), Enabled: !strings.HasPrefix(line, "#*"),
+				Index: len(out), Label: generatorLabel(line), Enabled: !strings.HasPrefix(line, "#*"),
 				MinuteGenerate: -1, MaxNumMob: 1,
 			})
 			cur = &out[len(out)-1]
@@ -167,4 +167,18 @@ func generSegmentIndex(key string) (int, bool) {
 	default:
 		return 0, false
 	}
+}
+
+// generatorLabel reads the number of a "#	[n]" header; zero when absent.
+func generatorLabel(line string) int {
+	open := strings.IndexByte(line, '[')
+	end := strings.IndexByte(line, ']')
+	if open < 0 || end <= open+1 {
+		return 0
+	}
+	n, err := strconv.Atoi(strings.TrimSpace(line[open+1 : end]))
+	if err != nil {
+		return 0
+	}
+	return n
 }

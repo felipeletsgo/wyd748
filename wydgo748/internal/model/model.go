@@ -1105,7 +1105,10 @@ type GenerSegment struct {
 // NPCGener is one entry of the standard WYD NPCGener.txt. NPCDef stays the
 // attribute/appearance template; this struct defines spawning, group and route.
 type NPCGener struct {
-	Index          int
+	Index int
+	// Label is the number of the "#[n]" header; instance configs select
+	// generator blocks by it.
+	Label          int
 	Enabled        bool
 	MinuteGenerate int
 	MaxNumMob      int

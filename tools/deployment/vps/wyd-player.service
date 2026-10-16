@@ -9,7 +9,7 @@ User=wyd-player
 Group=wyd-player
 WorkingDirectory=/srv/wyd-go/current
 EnvironmentFile=/etc/wyd-go/player.env
-ExecStart=/srv/wyd-go/current/game/wyd-player-api -origin https://wyd.forjago.com -trust-loopback-proxy
+ExecStart=/srv/wyd-go/current/game/wyd-player-api -origin https://wyd.forjago.com -trust-loopback-proxy -guildmark-dir /var/lib/wyd-go-guildmark
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=10
@@ -18,6 +18,8 @@ NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
 ProtectSystem=strict
+# Leader-uploaded guild marks, served by Caddy under /patch/guildmark/.
+ReadWritePaths=/var/lib/wyd-go-guildmark
 ProtectHome=true
 ProtectKernelTunables=true
 ProtectKernelModules=true

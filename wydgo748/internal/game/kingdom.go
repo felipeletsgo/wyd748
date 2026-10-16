@@ -205,9 +205,8 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 		return
 	}
 	current := characterKingdom(p.Char)
-	if guild, _ := w.guildOf(p.Char); guild != nil && guild.Kingdom != model.KingdomNeutral &&
-		guild.Kingdom != kingdom {
-		s.Send(wire.MessagePanel("Your guild belongs to another kingdom."))
+	if !w.guildKingdomChangeAllowed(p.Char, kingdom) {
+		s.Send(wire.MessagePanel("Only the guild leader can change the guild's kingdom."))
 		return
 	}
 	change, err := kingdomCapeForJoin(p.Char, kingdom)
@@ -294,6 +293,10 @@ func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 		return
 	}
 	kingdom := characterKingdom(p.Char)
+	if !w.guildKingdomChangeAllowed(p.Char, model.KingdomNeutral) {
+		s.Send(wire.MessagePanel("Only the guild leader can change the guild's kingdom."))
+		return
+	}
 	if kingdom == model.KingdomNeutral {
 		s.Send(wire.MessagePanel("You do not belong to a kingdom."))
 		return
@@ -340,7 +343,7 @@ func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 }
 
 // setLeaderGuildKingdom updates GuildInfo.Clan for a leader in the same
-// transaction. Ordinary members change only their cape.
+// transaction. Ordinary members cannot change kingdom independently.
 func (w *World) setLeaderGuildKingdom(ch *model.Char, kingdom byte) bool {
 	guild, member := w.guildOf(ch)
 	if guild == nil || member == nil || member.Rank != model.GuildRankLeader {
@@ -359,7 +362,19 @@ func (w *World) commitKingdomChange(p *Player, snapshot model.Char, kingdom byte
 	}
 	var err error
 	if w.setLeaderGuildKingdom(p.Char, kingdom) {
-		err = w.saveGuildState(p.Account)
+		guild, _ := w.guildOf(p.Char)
+		_, changes := w.guildKingdomAccounts(p, accountStateSnapshot(p.Account), guild.ID, kingdom)
+		accounts := make([]*model.Account, 0, len(changes))
+		for _, account := range changes {
+			accounts = append(accounts, account)
+		}
+		err = w.saveGuildState(accounts...)
+		if err == nil {
+			installKingdomAccounts(changes)
+			// The caller publishes the initiating character after success.
+			delete(changes, p)
+			w.publishGuildKingdomAccounts(changes)
+		}
 	} else {
 		err = w.saveAccount(p.Account)
 	}
@@ -429,4 +444,37 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 		s.Send(wire.MessagePanel("The kingdom teleport could not be completed."))
 		return
 	}
+}
+
+// warriorSealItem is Warrior's Seal (volatile 199).
+const warriorSealItem = 4146
+
+// warriorSealCape follows W2PP _MSG_UseItem for Warrior's Seal: a Mortal at
+// level 355 (internal 354) or above without an Elite or Hero cape receives the
+// Elite cape of its kingdom, or the white Elite of Adventurer without one.
+// The cape keeps its server identity but not refinement or effects, as the
+// reference implementation clears the slot first.
+func warriorSealCape(ch *model.Char) bool {
+	if ch == nil || ch.Score == nil || !matchesEvolution(ch, "mortal") || ch.Score.Level < 354 {
+		return false
+	}
+	current := ch.Equip[model.CapeSlot]
+	if tier, ok := model.KingdomCapeTierOf(current.Index); ok &&
+		(tier == model.CapeTierElite || tier == model.CapeTierHero) {
+		return false
+	}
+	cape, ok := model.KingdomCapeAtTier(model.CapeTierElite, model.KingdomFromCape(current.Index))
+	if !ok {
+		return false
+	}
+	if current.UID != "" {
+		ch.Equip[model.CapeSlot] = model.Item{Index: cape, UID: current.UID}
+		return true
+	}
+	item, err := materializeItem(model.Item{Index: cape})
+	if err != nil {
+		return false
+	}
+	ch.Equip[model.CapeSlot] = item
+	return true
 }

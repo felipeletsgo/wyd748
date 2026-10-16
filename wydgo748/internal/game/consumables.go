@@ -986,18 +986,24 @@ func refinePowderChance(level int, rule model.VolatileRule) (int, bool) {
 	return 0, false
 }
 
-// The requested +9 earring exception is limited to Lac (volatile 5), slot 8
-// and the earring catalog mask. W2PP _MSG_UseItem accepts rand()%100 <= 15,
-// i.e. 16 outcomes. Keep this server's existing non-destructive failure policy;
-// do not import W2PP's destruction or its unrelated +11..+15 extension.
+// earringPowderRefine reports the W2PP "Refinar brincos" branch: Lac
+// (volatile 5) on the earring equipped in slot 8, at +9 or +10. W2PP
+// _MSG_UseItem accepts rand()%100 <= 15 (16 outcomes) and destroys the earring
+// on failure (BASE_ClearItem). Its +12..+15 extension is not imported: the
+// server caps powder refinement at +11.
+func earringPowderRefine(item model.Item, def model.ItemDef, destType, destPos uint32,
+	powderCode int, rule model.VolatileRule) bool {
+	level := itemSanc(item)
+	return (level == 9 || level == 10) && powderCode == 5 && rule.RefineMax == 9 &&
+		destType == placeEquip && destPos == 8 && def.Pos == 1<<8
+}
+
 func equipmentPowderChance(item model.Item, def model.ItemDef, destType, destPos uint32,
 	powderCode int, rule model.VolatileRule) (int, bool) {
-	level := itemSanc(item)
-	if level == 9 && powderCode == 5 && rule.RefineMax == 9 &&
-		destType == placeEquip && destPos == 8 && def.Pos == 1<<8 {
+	if earringPowderRefine(item, def, destType, destPos, powderCode, rule) {
 		return 16, true
 	}
-	return refinePowderChance(level, rule)
+	return refinePowderChance(itemSanc(item), rule)
 }
 
 func refineChance(sanc int) int {
@@ -1198,6 +1204,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	}
 
 	oldPowder, oldDest := *powder, *dest
+	breaks := earringPowderRefine(*dest, def, destType, destPos, code, rule)
 	roll := w.rollPercent(chance)
 	success := roll.Success
 	if success {
@@ -1209,6 +1216,8 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 			s.Send(wire.MessagePanel("That item cannot be refined."))
 			return
 		}
+	} else if breaks {
+		*dest = model.Item{}
 	}
 	if rule.Consume {
 		consumeOne(powder)
@@ -1234,7 +1243,11 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 		// Incremental UpdateEquip carries the refinement glow/mesh.
 		w.refreshAppearance(p)
 	}
-	s.Send(wire.MessagePanel(roll.message()))
+	if !success && breaks {
+		s.Send(wire.MessagePanel("The refinement failed and the earring broke."))
+	} else {
+		s.Send(wire.MessagePanel(roll.message()))
+	}
 	result := "FAILED"
 	if success {
 		result = "OK"

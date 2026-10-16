@@ -29,7 +29,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 	detached := &Player{Char: ch, SpecialCoins: copyCounters(p)}
 	item := &ch.Inv[slot]
 	reject := func(message string) error { return &nativeConsumableRejection{message: message} }
-	message, selection := "", false
+	message, selection, grantCythera := "", false, false
 	oldX, oldY := p.X, p.Y
 	switch action {
 	case "celestial_ideal":
@@ -160,6 +160,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 				return reject("This unlock is only available at Celestial level 90.")
 			}
 			ch.CelestialLevel90Unlocked = true
+			grantCythera = true
 			message = "Celestial level 90 has been unlocked."
 		} else {
 			if ch.CelestialArcana || ch.Equip[1].Index != 3502 || itemSanc(ch.Equip[1]) < 11 {
@@ -182,6 +183,9 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			return reject("500 Fame is required.")
 		}
 		consumeOne(item)
+		if grantCythera && !grantLevel90Cythera(ch) {
+			return reject("Free one inventory slot for the second Cythera.")
+		}
 	}
 	write := criticalWrite{character: &criticalCharacterState{uid: ch.UID, state: buildCharState(detached, w.now())}}
 	hooks := criticalAccountMutationHooks{check: func() error {

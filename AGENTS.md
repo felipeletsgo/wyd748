@@ -99,6 +99,34 @@ builds, static checks, and isolated tests do not substitute for it.
 6. Do not delete or replace existing code/assets merely because native 7.48
    lacks them. First demonstrate incompatibility in wire, ABI, resource,
    lifecycle, or actual flow.
+7. A requested native behavior is not permission to invent missing recipes,
+   probabilities, timers, rewards, or descriptive text. Separate proven 7.48
+   behavior, secondary-source algorithms, and explicit project choices. Ask
+   only for a missing choice that changes the outcome; do not silently use a
+   later version's defaults.
+
+## Scope and delivery
+
+- Diagnose/review requests authorize inspection, not implementation or
+  deployment. A correction does not automatically authorize publication,
+  disconnection, restart, commit, push, or security changes. Follow the user's
+  explicit scope, including client-only and no-restart restrictions.
+- Separate source changes, built candidate, installed local runtime,
+  published patch, active VPS release, and actual gameplay evidence. Identify
+  the relevant executable path and SHA-256 plus resource/server dependencies;
+  a successful build does not prove the launcher or player used that build.
+- For a repeated report after a patch, check artifact/version and the original
+  reproduction before repeating the same fix. For replicated state or visuals,
+  cover owner and observers, initial creation and incremental update, removal,
+  scene change, and relogin where applicable.
+- Summarize delivery per issue as implemented, validated, published, or
+  pending. A successful deployment does not close unrelated gameplay gaps.
+  User-reported reproduction is evidence for that scenario, not blanket
+  `CLIENT_TESTED` coverage.
+- Use `wyd-release` for publication/restart and SSH deployment diagnosis.
+  Recover the established account/host/key from deployment configuration or
+  receipts before connecting. Do not guess accounts or replace credentials,
+  disable host verification, or change firewalls to work around a refusal.
 
 ## Avoid repeated work
 
@@ -121,6 +149,10 @@ builds, static checks, and isolated tests do not substitute for it.
   transient cause. New evidence is progress; duration alone is not a loop.
 - Update an existing record when a decision, validation result, or next step
   changes. Do not create a handoff per patch or copy logs into source.
+- Preserve full failure diagnostics in the sanctioned output location, but
+  return bounded excerpts with the exit status and causal error. A command
+  returning zero, an empty test selection, or a generated file's mere presence
+  is not proof that the requested operation succeeded.
 
 ## File organization
 
@@ -129,8 +161,8 @@ builds, static checks, and isolated tests do not substitute for it.
   them. Documentation belongs in `DOCS/`; agent evidence in `.agents/research/`
   or `.agents/handoffs/`.
 - Keep only two active source roots: `tmproject/` and `wydgo748/`.
-- Keep builds and local artifacts in ignored directories (`build/`, `bin/`,
-  `obj/`, or existing equivalents). Do not commit generated executables.
+- Keep builds and local artifacts in the sanctioned ignored build roots below,
+  not arbitrary `bin/` or `obj/` directories. Do not commit generated executables.
 - When moving documentation, fix links and update the central map. Do not
   duplicate a document.
 
@@ -143,8 +175,9 @@ Agents must not leave build, test or investigation leftovers in the project.
   and one-off task output (use `build/<task>/`), and `tmproject/build/` for
   client builds, tests, Ghidra tools and the native research corpus. Build the
   client through `tmproject/Build-Client.ps1` or the solution, never into
-  `tmproject/TMProject748/build/`. Build Go binaries with `go build -o build/...`
-  (or into the system temporary directory), never inside `wydgo748/`.
+  `tmproject/TMProject748/build/`. Build Go binaries into the root `build/`
+  using an absolute output path (or into the system temporary directory),
+  never into `wydgo748/build/` or `wydgo748/bin/`.
 - Scratch scripts, dumps, screenshots and downloaded copies belong in the
   agent's own temporary/scratch directory, never in the repository root,
   `.tmp/`, a source tree or `.agents/`. Run Python with `-B` (or
@@ -157,6 +190,9 @@ Agents must not leave build, test or investigation leftovers in the project.
   `tmproject/build/native-research/`, the current incremental build outputs,
   tracked files, local account/character state, or runtime settings. Resolve
   exact paths first; do not use broad recursive deletion.
+- If execution policy blocks cleanup, stop that deletion: do not retry through
+  another shell, API, renamed path, or script. Report the exact leftovers and
+  keep the successful delivery distinct from the cleanup limitation.
 - `tools/repository/Test-RepositoryLayout.ps1` fails on ignored files outside
   the sanctioned locations. A new legitimate generated location must be added
   to both `.gitignore` and that allowlist, not left as an exception.
@@ -170,6 +206,7 @@ Agents must not leave build, test or investigation leftovers in the project.
 | Legacy client contracts and behavior | `wyd-client748-research`; add `wydgo748-feature` for server/integrated contracts |
 | Native census and root selection | `wyd-client748-catalog` |
 | Runtime assets and resources | `wyd-client748-assets` |
+| Client patch/server publication, restart, deployment SSH diagnosis | `wyd-release` |
 
 Skills detail procedures; this file holds global rules. Canonical skills live
 in `.agents/skills/`; each `.claude/skills/<name>/SKILL.md` is a Claude Code
@@ -215,8 +252,11 @@ not for documentation checks):
 pwsh -NoProfile -ExecutionPolicy Bypass -File .\tmproject\Build-Client.ps1
 ```
 
-The script must produce/verify `tmproject/client748/WYD.exe` without
-altering historical evidence. Report `STATICALLY VERIFIED`, `AUTOMATED TESTED`,
+Use PowerShell 7. Pass `-NoDeploy` for build-only validation; do not overwrite
+the runtime or launch the game unless that step is in scope and permitted.
+With deployment enabled, the script must produce/verify
+`tmproject/client748/WYD.exe` without altering historical evidence. Report
+`STATICALLY VERIFIED`, `AUTOMATED TESTED`,
 and `CLIENT-TESTED` separately; a build alone never promotes a state.
 
 ## Git and delivery

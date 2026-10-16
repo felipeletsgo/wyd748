@@ -292,19 +292,12 @@ void TMFieldScene::GameAuto()
 
 	int nMountMaxHp = nMountMaxHPIndex >= 0 && nMountMaxHPIndex < _countof(g_nMountHPTable)
 		? g_nMountHPTable[nMountMaxHPIndex] : 0;
-	int CheckMountHp = 0;
-
-	if (g_GameAuto_mountValue)
-		CheckMountHp = g_GameAuto_mountValue * nMountMaxHp / 100;
-	else
-		CheckMountHp = 0;
-
 	CharMaxHp = g_GameAuto_hpValue * CharMaxHp / 100;
 	CharMaxMp = g_GameAuto_hpValue * CharMaxMp / 100;
 
 	if (!(dwServerTime % 3))
 	{
-		if (cc_mode::ShouldFeed(nMountHP, nMountMaxHp, nMountFeed, g_GameAuto_mountValue) && FeedMount())
+		if (cc_mode::BelowThreshold(nMountHP, nMountMaxHp, g_GameAuto_mountValue) && FeedMount())
 			return;
 
 		if (CharHp < CharMaxHp && UseHPotion())
@@ -313,6 +306,9 @@ void TMFieldScene::GameAuto()
 		if (m_AutoHpMp != 3 && CharMp < CharMaxMp && UseMPotion())
 			return;
 
+		// The reference treats hunger independently of the mount HP setting.
+		if (cc_mode::Hungry(nMountFeed) && FeedMount())
+			return;
 	}
 
 	if ((int)m_pMyHuman->m_eMotion > 1)
@@ -327,26 +323,23 @@ void TMFieldScene::GameAuto()
 		if (idxSkill == -1)
 			continue;
 
-		if (idxSkill == 3 || idxSkill == 5 || idxSkill == 53 || idxSkill == 54 || idxSkill == 9 || idxSkill == 11 || idxSkill == 37 ||
-			idxSkill == 41 || idxSkill == 43 || idxSkill == 44 || idxSkill == 45 || idxSkill == 46 || idxSkill == 64 || idxSkill == 66 ||
-			idxSkill == 68 || idxSkill == 70 || idxSkill == 71 || idxSkill == 87 || idxSkill == 75 || idxSkill == 76 || idxSkill == 77 ||
-			idxSkill == 81 || idxSkill == 85 || idxSkill == 89 || idxSkill == 92)
+		if (cc_mode::IsAutomaticBuff(idxSkill))
 		{
+			// Rebuff before the buff expires: the stored Time is not decremented
+			// locally, so derive what is left from the snapshot arrival time and
+			// recast inside the last RebuffLeadUnits instead of after expiry.
 			int useSkill = 1;
 			for (int j = 0; j < 32; ++j)
 			{
-				if ((unsigned char)m_pMyHuman->m_stAffect[j].Type <= 0)
+				const unsigned int type = static_cast<unsigned char>(m_pMyHuman->m_stAffect[j].Type);
+				if (!type || type >= _countof(g_AffectSkillType))
 					continue;
 
-				if (idxSkill == 64 || idxSkill == 66 || idxSkill == 68 || idxSkill == 70 || idxSkill == 71)
-				{
-					if (g_AffectSkillType[(unsigned char)m_pMyHuman->m_stAffect[j].Type] == 71 && m_pMyHuman->m_stAffect[j].Time > 3)
-					{
-						useSkill = 0;
-						break;
-					}
-				}
-				else if (g_AffectSkillType[(unsigned char)m_pMyHuman->m_stAffect[j].Type] == idxSkill && m_pMyHuman->m_stAffect[j].Time > 3)
+				const int remaining = cc_mode::RemainingAffectUnits(m_pMyHuman->m_stAffect[j].Time,
+					dwServerTime, m_dwStartAffectTime[j]);
+				const int affectSkill = g_AffectSkillType[type];
+				const bool sameBuff = affectSkill == cc_mode::BuffAffectSkill(idxSkill);
+				if (sameBuff && !cc_mode::BuffNeedsRefresh(remaining))
 				{
 					useSkill = 0;
 					break;
@@ -354,41 +347,40 @@ void TMFieldScene::GameAuto()
 			}
 			if (useSkill)
 			{
-				int DelayTime = 0;
-				if (idxSkill == 3 || idxSkill == 5 || idxSkill == 53 || idxSkill == 54 || idxSkill == 74 || idxSkill == 76 || idxSkill == 77)
-					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Mastery[1];
-				else if (idxSkill == 9 || idxSkill == 11 || idxSkill == 13 || idxSkill == 15 || idxSkill == 37 || idxSkill == 86 || idxSkill == 87)
-					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Mastery[2];
-				else if (idxSkill == 41 || idxSkill == 43 || idxSkill == 44 || idxSkill == 45 || idxSkill == 46 || idxSkill == 64 || idxSkill == 66 ||
-					idxSkill == 68 || idxSkill == 70 || idxSkill == 71 || idxSkill == 89 || idxSkill == 90)
-				{
-					DelayTime = 100 * g_pSpell[idxSkill].AffectTime * g_pObjectManager->m_stMobData.CurrentScore.Mastery[3];
-				}
-
-				// A buff without mana cannot be cast; skip it silently instead of
-				// re-entering SkillUse (and its warning) on every frame.
-				if (DelayTime + m_dwSkillLastTime[idxSkill] <= dwServerTime &&
+				const int masterySlot = cc_mode::BuffMasterySlot(idxSkill);
+				const int mastery = g_pObjectManager->m_stMobData.CurrentScore.Mastery[masterySlot];
+				const unsigned int delay = cc_mode::BuffDelayMs(idxSkill, g_pSpell[idxSkill].AffectTime, mastery);
+				if (cc_mode::BuffDelayDue(dwServerTime, m_dwSkillLastTime[idxSkill], delay) &&
+					!IsSkillCoolingDown(static_cast<unsigned char>(idxSkill), dwServerTime) &&
 					cc_mode::HasMana(SkillManaCost(static_cast<unsigned char>(idxSkill)), CharMp))
 				{
+					const unsigned int lastCast = m_dwSkillLastTime[idxSkill];
 					const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 					g_pObjectManager->m_cSelectShortSkill = i;
-					const int used = SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);
-					g_pObjectManager->m_cSelectShortSkill = selectedSkill;
-					if (used == 1)
+					SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);
+					// Keep the reference's suffix rotation after a successful cast.
+					// Without rotation (or on rejection), retain the chosen attack.
+					if (m_cAutoAttack != 1 || m_dwSkillLastTime[idxSkill] == lastCast)
+						g_pObjectManager->m_cSelectShortSkill = selectedSkill;
+					if (m_dwSkillLastTime[idxSkill] != lastCast)
 						return;
 				}
 			}
 			continue;
 		}
 		if ((idxSkill == 56 || idxSkill == 57 || idxSkill == 58 || idxSkill == 59 || idxSkill == 60 || idxSkill == 61 || idxSkill == 62 || idxSkill == 63) &&
-			m_dwSkillLastTime[idxSkill] + 80000 <= dwServerTime &&
+			cc_mode::BuffDelayDue(dwServerTime, m_dwSkillLastTime[idxSkill], 80000) &&
+			!IsSkillCoolingDown(static_cast<unsigned char>(idxSkill), dwServerTime) &&
 			cc_mode::HasMana(SkillManaCost(static_cast<unsigned char>(idxSkill)), CharMp))
 		{
+			const unsigned int lastCast = m_dwSkillLastTime[idxSkill];
 			const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 			g_pObjectManager->m_cSelectShortSkill = i;
 			SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);
-			g_pObjectManager->m_cSelectShortSkill = selectedSkill;
-			return;
+			if (m_cAutoAttack != 1 || m_dwSkillLastTime[idxSkill] == lastCast)
+				g_pObjectManager->m_cSelectShortSkill = selectedSkill;
+			if (m_dwSkillLastTime[idxSkill] != lastCast)
+				return;
 		}
 	}
 
@@ -544,7 +536,11 @@ void TMFieldScene::GameAuto()
 		// checks of AutoSkillUse. With an unusable skill, without mana, or while
 		// the attack interval or the skill's cooldown runs, no candidate can be
 		// attacked: keep the current target and do not scan every mob.
+		if (static_cast<unsigned char>(g_pObjectManager->m_cSelectShortSkill) >= 20)
+			return;
 		char cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
+		if (cSkillIndex == -1)
+			return;
 		if ((unsigned char)cSkillIndex > 104)
 			cSkillIndex += 95;
 		const unsigned char attackSkill = static_cast<unsigned char>(cSkillIndex);

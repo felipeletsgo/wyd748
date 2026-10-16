@@ -110,7 +110,7 @@ func (w *World) planContractSummon(owner *Player, t *model.VolatileSummon) (*con
 	if owner == nil || owner.Char == nil || w.criticalPlayerReserved(owner) || t == nil || t.Face == 0 || t.HP == 0 {
 		return nil, false
 	}
-	x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
+	x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, summonFollowDistance)
 	if !w.terrain.Walkable(x, y) {
 		return nil, false
 	}
@@ -187,7 +187,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		}
 		w.rebindSummonGameplaySpace(m, space)
 		oldX, oldY := m.X, m.Y
-		m.X, m.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
+		m.X, m.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, summonFollowDistance)
 		w.publishMobMove(m, oldX, oldY, uint32(m.Def.Score.AttackRun&0x0f))
 		current++
 		if current >= wanted {
@@ -201,7 +201,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 	}
 	spawned := 0
 	for current < wanted {
-		x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, 3)
+		x, y := w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, summonFollowDistance)
 		base := playerInt(owner.Char) + playerCon(owner.Char)
 		attack := template.baseAttack + base*template.minDamage/60 + mastery*template.maxDamage/60
 		defense := template.baseDefense + base*template.minDefense/100 + mastery*template.maxDefense/100
@@ -303,6 +303,56 @@ func (w *World) ownerSummonTarget(owner *Player) summonCombatTarget {
 	return summonCombatTarget{}
 }
 
+// Idle summons stay close to their owner: they walk back beyond
+// summonFollowDistance and, beyond summonLeashDistance (a fast mount, a
+// blocked path), they are placed next to the owner instead of wandering
+// through the city. Combat is not restricted.
+const (
+	summonFollowDistance = 2
+	summonLeashDistance  = 8
+)
+
+// relocateOwnerSummons places the owner's summons next to the owner after a
+// teleport. Walking back made them wander lost through the city.
+func (w *World) relocateOwnerSummons(owner *Player) {
+	if owner == nil || !owner.InWorld {
+		return
+	}
+	space := w.playerRuntimeInstanceID(owner.ID)
+	for _, summon := range w.summons {
+		if summon == nil || summon.Dead || summon.SummonerID != owner.ID ||
+			summon.SummonKind == summonKindThornWall {
+			continue
+		}
+		w.relocateSummon(owner, summon, space)
+	}
+}
+
+func (w *World) relocateSummon(owner *Player, summon *Mob, space string) {
+	w.rebindSummonGameplaySpace(summon, space)
+	oldX, oldY := summon.X, summon.Y
+	summon.X, summon.Y = w.findFreeGameplayPosition(owner, nil, owner.X, owner.Y, summonFollowDistance)
+	summon.TargetID = 0
+	speed := uint32(0)
+	if summon.Def != nil {
+		speed = uint32(summon.Def.Score.AttackRun & 0x0f)
+	}
+	w.publishMobMove(summon, oldX, oldY, speed)
+}
+
+// followSummonOwner keeps an idle summon close to its owner. It does not
+// apply in combat: a fighting summon chases its target freely.
+func (w *World) followSummonOwner(owner *Player, summon *Mob, now time.Time) {
+	distance := chebyshev(summon.X, summon.Y, owner.X, owner.Y)
+	if distance > summonLeashDistance {
+		w.relocateSummon(owner, summon, w.playerRuntimeInstanceID(owner.ID))
+		return
+	}
+	if distance > summonFollowDistance {
+		w.moveSummonToward(summon, owner.X, owner.Y, summonFollowDistance, now)
+	}
+}
+
 func (w *World) moveSummonToward(summon *Mob, x, y uint16, stopDistance int, now time.Time) {
 	if now.Before(summon.NextMove) {
 		return
@@ -334,17 +384,13 @@ func (w *World) tickSummonCombat(now time.Time) {
 		}
 		// Baby mount pets are passive: follow the owner and never attack.
 		if summon.SummonKind == summonKindMount || summon.Def != nil && isCriaPetFace(summon.Def.Equip.Rosto.Index) {
-			if chebyshev(summon.X, summon.Y, owner.X, owner.Y) > 3 {
-				w.moveSummonToward(summon, owner.X, owner.Y, 3, now)
-			}
+			w.followSummonOwner(owner, summon, now)
 			continue
 		}
 		if target.id == 0 {
 			summon.TargetID = 0
 			// Without a combat command, follow the BM without initiating aggro.
-			if chebyshev(summon.X, summon.Y, owner.X, owner.Y) > 3 {
-				w.moveSummonToward(summon, owner.X, owner.Y, 3, now)
-			}
+			w.followSummonOwner(owner, summon, now)
 			continue
 		}
 		summon.TargetID = target.id

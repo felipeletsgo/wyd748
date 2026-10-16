@@ -24,6 +24,10 @@ legacy projects may explain a datum's origin but do not establish parity.
 If the same behavior/data has independent, recorded validation in the 7.48
 runtime/client or a reproducible 7.48 contract test, reuse that evidence as
 `PARIDADE_NATIVA` without reopening research.
+The test must connect its expected result to independent 7.48 evidence;
+asserting the current implementation against itself is regression coverage,
+not proof of native origin. A requested W2PP or later TMProject algorithm is
+an implementation reference, not automatically the 7.48 contract.
 
 ## Classification and gates
 

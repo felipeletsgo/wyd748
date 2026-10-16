@@ -334,7 +334,7 @@ func parseSlashCommand(message string) (name, arg string, ok bool) {
 var chatCommandAliases = map[string]string{
 	"guildfame": "guildfame", "famaguild": "guildfame", "citywar": "citywar", "tower": "tower",
 	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
-	"srv": "srv",
+	"srv":   "srv",
 	"parry": "parry",
 	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv",
 	"spk": "spk", "kingdom": "kingdom", "reino": "kingdom", "king": "king", "rei": "king",
@@ -346,6 +346,14 @@ var chatCommandAliases = map[string]string{
 
 func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string) bool {
 	key := strings.ToLower(strings.TrimSpace(name))
+	if color, ok := tabCommandColor(key); ok {
+		w.setPlayerTab(s, p, arg, color)
+		return true
+	}
+	if key == "snd" {
+		w.setPlayerStatus(s, p, arg)
+		return true
+	}
 	if key == "goto" {
 		return w.staffGoto(s, p, arg)
 	}
@@ -445,7 +453,7 @@ func (w *World) sendParryMatchup(s *net.Session, p *Player, targetName string) {
 }
 
 // sendCharacterInfo answers "/nick" without a message with a character
-// summary in a single notice-panel packet.
+// summary and, when present, the player's SND status in notice-panel packets.
 //
 // Only CONNECTED players can be queried: there is no character-to-account
 // index, so offline lookup would require scanning every account JSON file.
@@ -464,6 +472,11 @@ func (w *World) sendCharacterInfo(s *net.Session, p *Player, target string) {
 	// it is a later 759 addition. Multiple lines also fail because each new
 	// notice replaces the previous one in the panel.
 	s.Send(wire.MessagePanel(w.characterInfoLine(ch)))
+	if found.StatusMessage != "" {
+		// Native SND is a status returned by an empty-body /player lookup,
+		// not an automatic reply to ordinary whispers. The final notice wins.
+		s.Send(wire.MessagePanel("Status: " + found.StatusMessage))
+	}
 	log.Printf("[#%d] INFO %q queried %q", s.ID, p.Char.Name, ch.Name)
 }
 

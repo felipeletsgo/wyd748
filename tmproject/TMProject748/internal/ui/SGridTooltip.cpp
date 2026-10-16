@@ -16,6 +16,7 @@
 #include "NativeSaleQuote.h"
 #include "SGridSupport.h"
 #include "SkillRequirementPresentation.h"
+#include "ItemHelpText.h"
 
 
 void SGridControl::UpdateDescPanelHeight()
@@ -31,8 +32,60 @@ void SGridControl::UpdateDescPanelHeight()
 	if (!lastParamText)
 		return;
 	float descPanelHeight = lastParamText->m_nPosY + lastParamText->m_Font.m_FontSize + 25.0f;
-
+	if (IsSkill(SGridControl::m_sLastMouseOverIndex) && pFScene->m_pDescNameText)
+	{
+		// Prose and computed requirements must never share a text control. Measure
+		// this hover before anchoring it, including the first hover from the belt.
+		float width = pFScene->m_fDescPanelWidth;
+		const auto measure = [&](SText* text) {
+			if (!text || !text->GetText()[0]) return;
+			SIZE extent{};
+			GetTextExtentPoint32(g_pDevice->m_hDC, text->GetText(),
+				static_cast<int>(strlen(text->GetText())), &extent);
+			const float required = static_cast<float>(extent.cx) + 24.0f * RenderDevice::m_fUIScaleX;
+			if (required > width) width = required;
+		};
+		measure(pFScene->m_pDescNameText);
+		for (auto text : pFScene->m_pParamText) measure(text);
+		for (auto text : pFScene->m_pSkillHelpText) measure(text);
+		// SText font metrics are not populated before the first render, so
+		// stack rows with the resource's native row pitch instead.
+		float lineStep = pFScene->m_vecDescParamPos[1].y - pFScene->m_vecDescParamPos[0].y;
+		if (lineStep < 8.0f * RenderDevice::m_fUIScaleY)
+			lineStep = static_cast<float>(RenderDevice::m_nFontSize) + 4.0f * RenderDevice::m_fUIScaleY;
+		if (width > g_pDevice->m_dwScreenWidth) width = static_cast<float>(g_pDevice->m_dwScreenWidth);
+		pFScene->m_pDescPanel->SetSize(width, descPanelHeight);
+		const float offset = (width - pFScene->m_fDescPanelWidth) / 2.0f;
+		pFScene->m_pDescNameText->SetPos(pFScene->m_vecDescNamePos.x + offset, pFScene->m_vecDescNamePos.y);
+		// Name, then the calculated skill data, then the description prose.
+		float y = pFScene->m_vecDescNamePos.y + lineStep + 6.0f * RenderDevice::m_fUIScaleY;
+		for (int i = 0; i < NUM_ITEM_DESC_PARAMS; ++i)
+		{
+			auto text = pFScene->m_pParamText[i];
+			if (!text) continue;
+			text->SetVisible(text->GetText()[0] != '\0');
+			if (!text->GetText()[0]) continue;
+			text->SetPos(pFScene->m_vecDescParamPos[i].x + offset, y);
+			y += lineStep;
+		}
+		y += 6.0f * RenderDevice::m_fUIScaleY;
+		for (auto text : pFScene->m_pSkillHelpText)
+		{
+			if (!text || !text->GetText()[0]) continue;
+			// Centred across the whole tooltip, like the name and data rows.
+			text->SetPos(0, y);
+			text->SetSize(width, text->m_nHeight);
+			y += lineStep;
+		}
+		descPanelHeight = y + 8.0f * RenderDevice::m_fUIScaleY;
+	}
 	pFScene->m_pDescPanel->SetHeight(descPanelHeight);
+	const auto cursor = g_pCursor->GetPos();
+	const auto origin = item_help_748::Position(cursor.x, cursor.y,
+		pFScene->m_pDescPanel->m_nWidth, descPanelHeight,
+		static_cast<float>(g_pDevice->m_dwScreenWidth), static_cast<float>(g_pDevice->m_dwScreenHeight),
+		RenderDevice::m_fUIScaleY);
+	pFScene->m_pDescPanel->SetRealPos(origin.x, origin.y);
 }
 
 int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
@@ -72,6 +125,22 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 
 	if (!pItem || !pDescPanel)
 		return 2;
+
+	if (!IsSkill(pItem->m_pItem->sIndex))
+	{
+		// Restore the resource layout when leaving a compact skill tooltip.
+		pDescPanel->SetSize(pFScene->m_fDescPanelWidth, pDescPanel->m_nHeight);
+		if (pFScene->m_pDescNameText)
+			pFScene->m_pDescNameText->SetPos(pFScene->m_vecDescNamePos.x, pFScene->m_vecDescNamePos.y);
+		for (int i = 0; i < NUM_ITEM_DESC_PARAMS; ++i)
+			if (auto text = pFScene->m_pParamText[i])
+			{
+				text->SetPos(pFScene->m_vecDescParamPos[i].x, pFScene->m_vecDescParamPos[i].y);
+				text->SetVisible(1);
+			}
+		for (auto text : pFScene->m_pSkillHelpText)
+			if (text) { text->SetVisible(0); text->SetText((char*)"", 0); }
+	}
 
 
 	float nPosX = 0.0f;
@@ -233,15 +302,25 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	if (pItem->m_pItem->sIndex >= 10000)
 		return 0;
 
-	if (g_pItemHelp[pItem->m_pItem->sIndex].Color[0])
+	for (auto text : pFScene->m_pSkillHelpText)
+		if (text) { text->SetVisible(0); text->SetText((char*)"", 0); }
+	if (pItem->m_pItem->sIndex >= 0 && pItem->m_pItem->sIndex < _countof(g_pItemHelp)
+		&& g_pItemHelp[pItem->m_pItem->sIndex].Color[0])
 	{
-		int nId = 0;
-		for (int m = 0; m < 9; ++m)
+		// FUN_00418828 places the nine help lines in native rows 2..10.
+		int nId = item_help_748::FirstTooltipRow;
+		for (int m = 0; m < item_help_748::Rows; ++m)
 		{
 			if (strcmp(g_pItemHelp[pItem->m_pItem->sIndex].Help[m], ""))
 			{
-				pFScene->m_pParamText[nId]->SetTextColor(g_pItemHelp[pItem->m_pItem->sIndex].Color[m]);
-				pFScene->m_pParamText[nId]->SetText(g_pItemHelp[pItem->m_pItem->sIndex].Help[m], 0);
+				auto text = IsSkill(pItem->m_pItem->sIndex)
+					? pFScene->m_pSkillHelpText[m] : pFScene->m_pParamText[nId];
+				if (text)
+				{
+					text->SetTextColor(g_pItemHelp[pItem->m_pItem->sIndex].Color[m]);
+					text->SetText(g_pItemHelp[pItem->m_pItem->sIndex].Help[m], 0);
+					text->SetVisible(1);
+				}
 
 			}
 			++nId;
@@ -645,7 +724,8 @@ int SGridControl::MouseOverWithoutHandCursor(const ECursorStyle& eCursorStyle, i
 
 				if (nSanc > 9 && (m_eItemType == TMEITEMTYPE::ITEMTYPE_HELM || m_eItemType == TMEITEMTYPE::ITEMTYPE_COAT ||
 					m_eItemType == TMEITEMTYPE::ITEMTYPE_PANTS || m_eItemType == TMEITEMTYPE::ITEMTYPE_GLOVES || m_eItemType == TMEITEMTYPE::ITEMTYPE_BOOTS ||
-					nUnique == 51) ||
+					// WYD-Go: a +10/+11 earring (Lac) also takes a gem.
+					m_eItemType == TMEITEMTYPE::ITEMTYPE_RING || nUnique == 51) ||
 					nGrade >= 5 && nGrade <= 8 && (m_eItemType == TMEITEMTYPE::ITEMTYPE_LEFT || m_eItemType == TMEITEMTYPE::ITEMTYPE_RIGHT &&
 						nUnique == 51))
 				{

@@ -788,7 +788,7 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		p.Char.Class = 3
 		p.Char.LearnedSkill = 1 << 13 // global 85, local 13
 		p.Char.Gold = 1_000
-		p.Char.Score.Level = 49 // displayed level 50; native cost 490 on the internal scale
+		p.Char.Score.Mastery[2] = 5 // W2PP cost: 100 gold per mastery point = 500
 		p.Char.Score.CurMP = 1_000
 		p.Char.Score.MaxMP = 1_000
 		applyScore(p.Char)
@@ -802,7 +802,7 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		w, p, st := newPlayer(t)
 		w.onSkillAttack(p, skillCastRequest{Skill: 85, TargetID: p.ID, Motion: 5})
-		if st.saves != 1 || p.Char.Gold != 510 {
+		if st.saves != 1 || p.Char.Gold != 500 {
 			t.Fatalf("incorrect Golden Shield cost: saves=%d gold=%d", st.saves, p.Char.Gold)
 		}
 	})

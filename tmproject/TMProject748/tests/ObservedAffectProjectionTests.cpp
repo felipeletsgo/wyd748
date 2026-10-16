@@ -1,4 +1,5 @@
 #include "../internal/ui/ObservedAffectProjection.h"
+#include "../internal/ui/AffectSkillIcons.h"
 #include <cstdio>
 
 namespace {
@@ -108,5 +109,21 @@ int RunObservedAffectProjectionTests(int& checks)
     check(project(words, 0) == 0, "invalid layout does not divide by zero");
     textures[1] = -1;
     check(project(words) == 0, "unmapped textures never select an unrelated icon");
+
+    panels[0] = &storage[0];
+    std::uint16_t buffs[32]{};
+    buffs[0] = 0x180a; // Samaritan, ten remaining wire units.
+    buffs[1] = 0x2405; // Critical Armor, five remaining wire units.
+    buffs[2] = 0x1f05; // Coin Armor must retain its unrelated icon.
+    check(observed_affect_ui::Project(panels, buffs, g_AffectSkillType, 41,
+        100, 60, 18, 32) == 3, "coexisting buffs use the production icon table");
+    check(storage[0].m_GCPanel.nTextureIndex == 3, "Samaritan uses skill 3 icon");
+    check(storage[1].m_GCPanel.nTextureIndex == 15, "Critical Armor uses skill 15 icon");
+    check(storage[2].m_GCPanel.nTextureIndex == 86, "Coin Armor icon is unchanged");
+    buffs[0] = 0;
+    check(observed_affect_ui::Project(panels, buffs, g_AffectSkillType, 41,
+        100, 60, 18, 32) == 2 && !storage[0].visible
+        && storage[1].m_GCPanel.nTextureIndex == 15,
+        "removing Samaritan retains the distinct Critical Armor icon");
     return failures;
 }

@@ -2,8 +2,8 @@
 
 #include <cstddef>
 
-// Extensao coordenada de materializacao usada pelo TMProject748 e WYD-Go. O
-// AutoTrade conserva o mesmo prefixo de entidade e acrescenta o titulo da loja.
+// Coordinated entity materialization used by TMProject748 and WYD-Go.
+// Auto Trade retains the entity prefix and appends the shop title.
 constexpr auto MSG_CreateMobTrade_Opcode = 0x363;
 constexpr auto MSG_CreateMob_Opcode = 0x364;
 constexpr std::size_t kCreateMobPacketSize = 328;
@@ -25,6 +25,7 @@ constexpr std::size_t kCreateMobAncientOffset = 282;
 constexpr std::size_t kCreateMobNickOffset = 300;
 constexpr std::size_t kCreateMobNickSize = 26;
 constexpr std::size_t kCreateMobServerOffset = 326;
+constexpr std::size_t kCreateMobTabColorOffset = 327;
 constexpr std::size_t kCreateMobTradeDescriptionOffset = 326;
 constexpr std::size_t kCreateMobTradeDescriptionSize = 24;
 constexpr std::size_t kCreateMobTradeServerOffset = 350;

@@ -53,6 +53,17 @@ the canonical file); the layout validator enforces this parity.
 
 When creating or revising skills, use the agent's `skill-creator` skill
 (Codex or Claude Code). Validate frontmatter and review triggering, evidence
-reuse, and blocking scenarios. Valid YAML alone does not prove that the workflow avoids loops. Do
-not invoke gameplay skills merely because documentation mentions a client or
-server.
+reuse, and blocking scenarios. Valid YAML alone does not prove useful behavior.
+For a rules/skills review, read all canonical entrypoints and their applicable
+references, check shims and discovery metadata, then correct contradictions at
+their owning source. A reference that prescribes obsolete paths or mandatory
+rework can undermine an otherwise correct entrypoint. Preserve proven IDs and
+historical evidence when translating or shortening it.
+
+Keep global constraints in `AGENTS.md`, reusable procedures in skills, and
+volatile release IDs, hashes, hosts and results in existing receipts. Do not
+turn a one-off failure into a universal ritual or edit globally installed
+skills as a side effect of reviewing this repository. Test nontrivial routing
+with realistic scenarios, including blocked prerequisites and no-write scope.
+Do not invoke gameplay skills merely because documentation mentions a client
+or server; instruction-only edits need no product build or production access.

@@ -82,7 +82,7 @@
     "str": 4,
     "int": 90,
     "dex": 100,
-    "con": 5000,
+    "con": 1,
     "critical": 255,
     "saveMana": 255,
     "mastery": [

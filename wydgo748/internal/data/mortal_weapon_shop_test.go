@@ -59,3 +59,24 @@ func TestMortalWeaponShopAdditionalEffects(t *testing.T) {
 		t.Fatalf("missing shops: %v", want)
 	}
 }
+
+// Every mortal D/E weapon and armor set test shop must be spawned by an enabled generator,
+// next to the other Armia test shops.
+func TestMortalWeaponShopsHaveGenerators(t *testing.T) {
+	geners, err := LoadNPCGener(filepath.Join("..", "..", "data", "NPCGener.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{"ShopWeaponsD": false, "ShopWpnD2": false, "ShopWeaponsE": false, "ShopWpnE2": false,
+		"ShopSetD": false, "ShopSetE": false}
+	for _, gener := range geners {
+		if _, tracked := want[gener.Leader]; tracked && gener.Enabled {
+			want[gener.Leader] = true
+		}
+	}
+	for name, found := range want {
+		if !found {
+			t.Errorf("%s has no enabled generator", name)
+		}
+	}
+}

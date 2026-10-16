@@ -114,6 +114,10 @@ type Player struct {
 	CharSlot int
 	ID       uint16
 	InWorld  bool
+	// Character-session labels; never persisted or shared by account slots.
+	TabText       string
+	TabColor      byte
+	StatusMessage string
 	// PersistencePoisoned excludes uncertain or partially mutated RAM from
 	// disconnect/autosave persistence after a handler or transaction failure.
 	PersistencePoisoned bool
@@ -1900,6 +1904,7 @@ func (w *World) tick() {
 	if !now.Before(w.nextQuestZoneGuard) {
 		w.tickQuestZoneGuard(now)
 		w.tickHiddenValleyAccess(now)
+		w.tickNewbieZone(now)
 		w.nextQuestZoneGuard = now.Add(questZoneGuardInterval)
 	}
 	if !now.Before(w.nextQuestZoneReset) {

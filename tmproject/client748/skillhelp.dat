@@ -1,0 +1,1020 @@
+5000
+CC9900FF Attacks enemies in a 3m x 3m area with
+CC9900FF holy energy.
+CC9900FF Damage: 5 + (Faith/4) x 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5001
+CC9900FF Slows the enemy's movement and attacks.
+CC9900FF Movement speed: -2.
+CC9900FF Attack speed reduction:
+CC9900FF PvP: 10% + (Faith/10)%.
+CC9900FF PvE: 20% + (Faith/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5002
+CC9900FF Reduces the elemental resistance of
+CC9900FF enemies in a 3m x 3m area around the
+CC9900FF target.
+CC9900FF Resistance reduction: PvP 25%; PvE 50%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5003
+CC9900FF When cast on a character attacked by a
+CC9900FF monster, makes that monster attack you
+CC9900FF instead.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5004
+CC9900FF Delivers a powerful attack to one
+CC9900FF target.
+CC9900FF Damage: 75 + (Faith/4) x 5.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5005
+CC9900FF Restores HP every 8 seconds for a
+CC9900FF limited time.
+CC9900FF HP recovery: 75 + Faith/2.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5006
+CC9900FF Pulls the target directly in front of
+CC9900FF you.
+CC9900FF Success rate:
+CC9900FF PvP: 50% + (Faith/10)%.
+CC9900FF PvE: 50% + (Faith/5)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5007
+CC9900FF Attacks enemies in a 3m x 3m area with
+CC9900FF holy spears.
+CC9900FF Damage: 190 + (Faith/4) x 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5008
+CC9900FF Delivers a powerful attack to one
+CC9900FF target.
+CC9900FF Damage: 15 + (Trans/4) x 5 + STR/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5009
+CC9900FF Temporarily increases attack speed.
+CC9900FF Attack speed: 110% + (Trans/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5010
+CC9900FF Delivers a powerful attack to one
+CC9900FF target.
+CC9900FF Damage: 40 + (Trans/4) x 5 + STR/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5011
+CC9900FF Temporarily sacrifices up to 10% of your
+CC9900FF HP to increase physical attack.
+CC9900FF Attack bonus: 7% + (Trans/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5012
+CC9900FF Pierces the target and enemies up to 1m
+CC9900FF behind it.
+CC9900FF Damage: 60 + (Trans/4) x 5 + STR/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5013
+CC9900FF Temporarily increases HP and
+CC9900FF Constitution.
+CC9900FF CON bonus: 10 + (Trans/4) x 3.
+CC9900FF HP bonus: 20 + Trans + [Level x (4/3)].
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5014
+CC9900FF Randomly increases minimum physical
+CC9900FF damage.
+CC9900FF Minimum damage bonus: (Trans/20)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5015
+CC9900FF Temporarily increases critical rate and
+CC9900FF defense.
+CC9900FF Critical rate bonus: 3% + (Trans/50)%.
+CC9900FF Defense bonus: 7% + (Trans/50)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5016
+CC9900FF Pierces the target and enemies up to 1m
+CC9900FF behind it.
+CC9900FF Damage: Attack + 13 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5017
+CC9900FF Attacks the target and enemies within 3m
+CC9900FF of you with fire. Damage falls 10% in
+CC9900FF rain.
+CC9900FF Damage: Attack + 25 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5018
+CC9900FF Delivers a powerful attack to one
+CC9900FF target.
+CC9900FF Damage: Attack + 35 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5019
+CC9900FF Attacks with ice and slows on success.
+CC9900FF Target attack speed: PvP -13%; PvE -20%.
+CC9900FF Damage: Attack + 50 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5020
+CC9900FF Attacks one target.
+CC9900FF Damage: Attack + 65 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+CC9900FF Additional damage: 2% of the target's
+CC9900FF HP.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5021
+CC9900FF Poisons the target.
+CC9900FF Damage: Attack + 80 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+CC9900FF Additional damage every 8 seconds:
+CC9900FF 10% of the target's HP.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5022
+CC9900FF Spends all MP on a fire attack.
+CC9900FF Damage falls 10% in rain.
+CC9900FF Damage: Attack + 90 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+CC9900FF Additional damage: MP spent + (INT/4) x
+CC9900FF 3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5023
+CC9900FF Attacks the target and enemies in a 3m x
+CC9900FF 3m area with ice. Target movement speed:
+CC9900FF -1.
+CC9900FF Damage: Attack + 210 + (Magic Sword/4) x
+CC9900FF 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5024
+CC9900FF Attacks one target at long range with
+CC9900FF holy energy.
+CC9900FF Damage: Attack + 15 + (White Magic/4) x
+CC9900FF 5 + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5025
+CC9900FF Removes poison and reduced elemental
+CC9900FF resistance.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5026
+CC9900FF Blinds all nearby enemies in a 3m x 3m
+CC9900FF area for 4 seconds.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5027
+CC9900FF Restores the target's HP, or your own HP
+CC9900FF if no target is selected.
+CC9900FF HP recovery: 100 + White Magic x 2.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5028
+CC9900FF Pierces the target and enemies up to 1m
+CC9900FF behind it.
+CC9900FF Damage: Attack + 155 + (White Magic/4) x
+CC9900FF 5 + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5029
+CC9900FF Restores your HP and your party's HP.
+CC9900FF HP recovery: 150 + (White Magic/2) x 3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5030
+CC9900FF Spends HP to attack nearby enemies in a
+CC9900FF 5m x 5m area with holy energy.
+CC9900FF Damage: Attack + 200 + (White Magic/4) x
+CC9900FF 5 + INT/3.
+CC9900FF Additional damage: HP spent + White
+CC9900FF Magic.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5031
+CC9900FF Spends all MP to resurrect a nearby
+CC9900FF party or guild member.
+CC9900FF Success rate:
+CC9900FF 56% + [(White Magic/15) x 2]%.
+CC9900FF HP and MP recovery match the success
+CC9900FF rate.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5032
+CC9900FF Attacks one target with fire.
+CC9900FF Damage falls 10% in rain.
+CC9900FF Damage: Attack + 20 + (Black Magic/4) x
+CC9900FF 5 + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5033
+CC9900FF Attacks one target with lightning.
+CC9900FF Damage increases 50% in rain.
+CC9900FF Damage: 65 + (Black Magic/4) x 5 +
+CC9900FF INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5034
+CC9900FF Attacks with ice and freezes on success.
+CC9900FF Target movement speed: -1.
+CC9900FF Target attack speed: -10% to -50%.
+CC9900FF Damage increases 20% in snow.
+CC9900FF Damage: Attack + 95 + (Black Magic/4) x
+CC9900FF 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5035
+CC9900FF Attacks enemies in a 5m x 5m area around
+CC9900FF the target with fire. Damage falls 10%
+CC9900FF in rain.
+CC9900FF Damage: Attack + 55 + (Black Magic/4) x
+CC9900FF 5 + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5036
+CC9900FF Attacks with ice and freezes on success.
+CC9900FF Target movement speed: -1.
+CC9900FF Target attack speed: -10% to -50%.
+CC9900FF Damage increases 20% in snow.
+CC9900FF Damage: Attack + 200 + (Black Magic/4) x
+CC9900FF 5 + INT/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5037
+CC9900FF Attacks nearby enemies every 8 seconds
+CC9900FF for a limited time.
+CC9900FF Damage increases 50% in rain.
+CC9900FF Damage: 65 + (Black Magic/4) x 5 +
+CC9900FF INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5038
+CC9900FF Attacks one target with fire.
+CC9900FF Damage falls 10% in rain.
+CC9900FF Damage: Attack + 350 + (Black Magic/4) x
+CC9900FF 5 + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5039
+CC9900FF Attacks enemies in a 7m x 7m area around
+CC9900FF the target with fire. Damage falls 10%
+CC9900FF in rain.
+CC9900FF Damage: Attack + 340 + (Black Magic/4) x
+CC9900FF 5 + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5040
+CC9900FF Poisons the target.
+CC9900FF Damage: Attack + 20 + (Special Magic/4)
+CC9900FF x 5 + INT/3.
+CC9900FF Additional damage over 8 seconds:
+CC9900FF 10% of the target's HP.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5041
+CC9900FF Increases movement speed and evasion.
+CC9900FF Movement speed bonus: +1.
+CC9900FF Evasion bonus: +5%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5042
+CC9900FF Teleports to, or summons, a party or
+CC9900FF guild member.
+CC9900FF Target level limit:
+CC9900FF Your level + 50 + Special Magic.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5043
+CC9900FF Temporarily increases your defense or
+CC9900FF the target's defense.
+CC9900FF Self bonus: 15 + Special Magic/3.
+CC9900FF Others' bonus: 15 + Special Magic/10.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5044
+CC9900FF Increases physical attack for you and
+CC9900FF party members in a 3m x 3m area.
+CC9900FF Self: Attack/4 + [15 + Special Magic/3]
+CC9900FF x 5.
+CC9900FF Others: Attack/20 + 15 + Special
+CC9900FF Magic/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5045
+CC9900FF Temporarily increases all masteries.
+CC9900FF Mastery bonus: 7 + Special Magic/10.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5046
+CC9900FF Temporarily converts MP into HP.
+CC9900FF HP bonus: MP/4 + Level + Special Magic.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5047
+CC9900FF Increases accuracy.
+CC9900FF Accuracy bonus: 4% + (Special
+CC9900FF Magic/50)%.
+CC9900FF Hit chance: target's total evasion minus
+CC9900FF your accuracy.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5048
+CC9900FF Attacks one target with fire.
+CC9900FF Damage falls 10% in rain.
+CC9900FF Damage: Attack + 25 + (Elemental/4) x 5
+CC9900FF + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5049
+CC9900FF Attempts to tame a monster and add it to
+CC9900FF your party. Having a higher level than
+CC9900FF the monster increases the success rate.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5050
+CC9900FF Attacks one target with magic.
+CC9900FF Damage: Attack + 115 + (Elemental/4) x 5
+CC9900FF + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5051
+CC9900FF Temporarily reduces enemy attack in a 3m
+CC9900FF x 3m area around the target.
+CC9900FF Damage reduction: 10 + Elemental/5.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5052
+CC9900FF Attacks one target with magic.
+CC9900FF Damage: Attack + 220 + (Elemental/4) x 5
+CC9900FF + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5053
+CC9900FF Temporarily increases your defense.
+CC9900FF Defense bonus: 10 + Elemental/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5054
+CC9900FF Attacks all enemies in a 3m x 3m area
+CC9900FF with magic every 8 seconds.
+CC9900FF Damage: Attack + 160 + (Elemental/4) x 5
+CC9900FF + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5055
+CC9900FF Attacks enemies in a 3m x 3m area around
+CC9900FF the target with powerful magic.
+CC9900FF Damage: Attack + 140 + (Elemental/4) x 5
+CC9900FF + INT/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5056
+CC9900FF Summons a Condor.
+CC9900FF Attack: 35 + INT + Summon x 3.
+CC9900FF Defense: 15 + INT/2 + (Summon/4) x 3.
+CC9900FF HP: 60 + INT + Summon x 4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5057
+CC9900FF Summons a Wild Boar.
+CC9900FF Attack: 35 + INT + (Summon/2) x 5.
+CC9900FF Defense: 20 + INT/2 + (Summon/2) x 3.
+CC9900FF HP: 100 + (INT/4) x 5 + Summon x 4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5058
+CC9900FF Summons a Wolf.
+CC9900FF Attack: 70 + INT + Summon x 4.
+CC9900FF Defense: 40 + INT/2 + (Summon/4) x 5.
+CC9900FF HP: 80 + (INT/4) x 5 + Summon x 4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5059
+CC9900FF Summons a Wild Bear.
+CC9900FF Attack: 70 + INT + (Summon/2) x 7.
+CC9900FF Defense: 60 + INT/2 + Summon x 2.
+CC9900FF HP: 150 + (INT/2) x 3 + Summon x 4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5060
+CC9900FF Summons a Great Tiger.
+CC9900FF Attack: 75 + INT + Summon x 5.
+CC9900FF Defense: 50 + INT/2 + (Summon/4) x 7.
+CC9900FF HP: 100 + (INT/2) x 3 + Summon x 4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5061
+CC9900FF Summons a Giant Gorilla.
+CC9900FF Attack: 50 + INT + Summon x 4.
+CC9900FF Defense: 40 + INT/2 + (Summon/2) x 5.
+CC9900FF HP: 200 + (INT/4) x 7 + Summon x 4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5062
+CC9900FF Summons a Black Dragon.
+CC9900FF Attack: 100 + INT + Summon x 5.
+CC9900FF Defense: 80 + INT/2 + (Summon/2) x 5.
+CC9900FF HP: 350 + (INT/4) x 7 + Summon x 4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5063
+CC9900FF Summons a Succubus.
+CC9900FF Attack: 350 + (INT/5) x 9 + (Summon/2) x
+CC9900FF 11.
+CC9900FF Defense: 650 + (INT/2) x 3 + Summon x 4.
+CC9900FF HP: 800 + INT x 4 + (Summon/2) x 11.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5064
+CC9900FF Transforms into a Werewolf.
+CC9900FF Attack: 110% + (Nature/10)%.
+CC9900FF Defense: 95% + (Nature/20)%.
+CC9900FF HP: 95% + (Nature/20)%.
+CC9900FF Movement speed: +1; attack speed: +10%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5065
+CC9900FF Improves the Werewolf transformation.
+CC9900FF Attack bonus: +10%.
+CC9900FF All elemental resistances: +15%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5066
+CC9900FF Transforms into a Bear Man.
+CC9900FF Attack: 95% + (Nature/20)%.
+CC9900FF Defense: 105% + (Nature/20)%.
+CC9900FF HP: 120% + (Nature/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5067
+CC9900FF Improves the Bear Man transformation.
+CC9900FF Attack bonus: +10%.
+CC9900FF All elemental resistances: +50%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5068
+CC9900FF Transforms into an Infernal Raven.
+CC9900FF Ranged attack: 110% + (Nature/20)%.
+CC9900FF Defense: 95% + (Nature/20)%.
+CC9900FF HP: 100% + (Nature/10)%.
+CC9900FF Movement speed: +1; attack speed: +20%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5069
+CC9900FF Improves the Infernal Raven
+CC9900FF transformation.
+CC9900FF Attack bonus: +10%.
+CC9900FF All elemental resistances: +15%.
+CC9900FF Attack speed bonus: +20%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5070
+CC9900FF Transforms into a Titan.
+CC9900FF Attack: 115% + (Nature/20)%.
+CC9900FF Defense: 115% + (Nature/20)%.
+CC9900FF HP: 105% + (Nature/20)%.
+CC9900FF Resistance: +50%; attack speed: +20%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5071
+CC9900FF Transforms into Eden.
+CC9900FF Attack: 115% + (Nature/20)%.
+CC9900FF Defense: 110% + (Nature/20)%.
+CC9900FF HP: 110% + (Nature/10)%.
+CC9900FF Movement: +2; resistance: +27%.
+CC9900FF Attack speed: +50%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5072
+CC9900FF Attacks one target.
+CC9900FF Damage: Attack + 15 + (Survival/4) x 5 +
+CC9900FF STR/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5073
+CC9900FF Creates a copy to confuse enemies and
+CC9900FF quickly moves you to the selected
+CC9900FF location.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5074
+CC9900FF Enchants your weapon with ice. Attacks
+CC9900FF may slow the enemy.
+CC9900FF Target movement speed: -1.
+CC9900FF Target attack speed: -10% to -50%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5075
+CC9900FF Hides in the shadows, evades attacks and
+CC9900FF restores HP.
+CC9900FF HP recovery: 110% + (Survival/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5076
+CC9900FF Temporarily creates an energy field that
+CC9900FF protects against freezing, poison,
+CC9900FF slowing and physical attacks.
+CC9900FF Evasion bonus: +5%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5077
+CC9900FF Temporarily trades defense for attack.
+CC9900FF Damage bonus: 10% + (Survival/10)%.
+CC9900FF Defense reduction: 10 + Survival/3.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5078
+CC9900FF Pierces the target and enemies directly
+CC9900FF behind it, up to 1m away.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5079
+CC9900FF Temporarily fires additional soul
+CC9900FF arrows.
+CC9900FF Maximum damage: Attack + 24 +
+CC9900FF Survival/5.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5080
+CC9900FF Attacks one target.
+CC9900FF Damage: Attack + 15 + (Trade/4) x 5 +
+CC9900FF STR/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5081
+CC9900FF Sells items to shops for at least 6%
+CC9900FF above the base price.
+CC9900FF Sale price: 106% + (Trade/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5082
+CC9900FF Increases damage with bows and claws.
+CC9900FF Damage bonus: 10 + Trade/5.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5083
+CC9900FF Buys shop items for at least 6% below
+CC9900FF the base price.
+CC9900FF Discount: 6% + (Trade/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5084
+CC9900FF Converts inventory items into gold at
+CC9900FF the normal shop sale price.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5085
+CC9900FF Opens your cargo storage so you can
+CC9900FF store items from anywhere.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5086
+CC9900FF Spends gold to increase defense.
+CC9900FF Defense bonus: Trade/10.
+CC9900FF Gold cost: Trade x 100.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5087
+CC9900FF Temporarily converts MP into HP.
+CC9900FF HP bonus: 250 + total MP/8 + (Level +
+CC9900FF Trade)/4.
+CC9900FF Arch: 250 + total MP/4 + (Level +
+CC9900FF Trade)/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5088
+CC9900FF Attacks one target.
+CC9900FF Damage: Attack + 12 + (Capture/4) x 5 +
+CC9900FF STR/4.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5089
+CC9900FF Temporarily increases evasion by 10%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5090
+CC9900FF Absorbs HP from a defeated monster.
+CC9900FF HP recovered: monster HP/50 + Capture.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5091
+CC9900FF Increases item drop rate.
+CC9900FF Drop bonus: 10% + (Capture/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5092
+CC9900FF Adds 1m of range to weapons with a 1m
+CC9900FF range.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5093
+CC9900FF May deliver an additional hit.
+CC9900FF Additional damage: (STR + Capture)/2.
+CC9900FF Chance: 10% + (Capture/10)%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5094
+CC9900FF Throws knives at several enemies in
+CC9900FF front of you. Range: 2m to 4m.
+CC9900FF Damage: Attack + 35 + (Capture/4) x 5 +
+CC9900FF STR.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5095
+CC9900FF Fires invisible arrows continuously.
+CC9900FF Number of hits: 3 + Capture/85.
+CC9900FF Damage per hit: 80% of physical attack.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5097
+CC9900FF Allows you to operate the Noatun Castle
+CC9900FF Guardian Cannon during the castle war
+CC9900FF only.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5098
+CC9900FF Summons thorn plants. They can be
+CC9900FF destroyed by attacks and disappear after
+CC9900FF a limited time.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5099
+CC9900FF Resurrects you at the location where you
+CC9900FF died.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5100
+CC9900FF Temporarily prevents other characters
+CC9900FF from recovering HP and MP.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5101
+CC9900FF Adds 1m to the range of all weapons and
+CC9900FF skills.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+5102
+CC9900FF Temporarily grants major stat bonuses
+CC9900FF according to the eighth skill learned.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF

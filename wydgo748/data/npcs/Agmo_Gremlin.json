@@ -74,7 +74,7 @@
     "str": 4,
     "int": 100,
     "dex": 100,
-    "con": 1350,
+    "con": 1,
     "critical": 255,
     "resistHoly": 226,
     "saveMana": 255,

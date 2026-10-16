@@ -235,6 +235,8 @@ public:
 	int OnPacketRunQuest12Count(MSG_STANDARDPARM2* pStd);
 	int OnPacketDelayQuit(MSG_SysQuit* pStd);
 	int Guildmark_Create(stGuildMarkInfo* pMark);
+	// Creates textures for guild marks downloaded off the render thread.
+	void PumpGuildMarkDownloads();
 	void Guildmark_MakeFileName(char* szStr, int nGuild, int nChief, int nChannel);
 	int Guildmark_Find_ArrayIndex(int nGuild);
 	int Guildmark_Find_EmptyArrayIndex();
@@ -571,6 +573,11 @@ public:
 	// Keeping the native bound in the type prevents later-client rows 12/13
 	// from being addressed anywhere in the recompilable 7.48 client.
 	SText* m_pParamText[NUM_ITEM_DESC_PARAMS];
+	// Local presentation children; native resource IDs and parameter capacity stay unchanged.
+	SText* m_pSkillHelpText[9]{};
+	TMVector2 m_vecDescParamPos[NUM_ITEM_DESC_PARAMS]{};
+	TMVector2 m_vecDescNamePos{};
+	float m_fDescPanelWidth{};
 	unsigned int m_dwRemainTime;
 	SButton* m_PkButton;
 	SText* m_pJPNBag_Day1;
@@ -1120,5 +1127,3 @@ const static STRUCT_AIRMOVELIST g_pAirMoveList[5] =
   { 2365, 2279 },
   { 1826, 1771 }
 };
-
-DWORD WINAPI Guildmark_Download(void* pArg);

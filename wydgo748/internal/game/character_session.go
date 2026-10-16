@@ -86,6 +86,7 @@ func resetCharacterRuntime(p *Player) {
 	p.Char = nil
 	p.CharSlot = -1
 	p.ID = 0
+	p.TabText, p.StatusMessage, p.TabColor = "", "", 0
 	p.X, p.Y = 0, 0
 	p.AirMoveActive = false
 	p.AirMoveRoute = 0

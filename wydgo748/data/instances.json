@@ -1957,11 +1957,11 @@
             "spawnY": 3676,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Dark_Elf_Ab2",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaA.txt",
+            "generatorIds": [
+              2476,
+              2477,
+              2478
             ]
           },
           {
@@ -1972,11 +1972,11 @@
             "spawnY": 3678,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Tauron_____",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaA.txt",
+            "generatorIds": [
+              2479,
+              2480,
+              2481
             ]
           },
           {
@@ -1987,11 +1987,11 @@
             "spawnY": 3622,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Morlock_",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaA.txt",
+            "generatorIds": [
+              2482,
+              2483,
+              2484
             ]
           },
           {
@@ -2002,17 +2002,13 @@
             "spawnY": 3621,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Hell_Spider2",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaA.txt",
+            "generatorIds": [
+              2485,
+              2486
             ],
-            "completionSpawns": [
-              {
-                "npc": "Lugefer_",
-                "count": 1
-              }
+            "completionGeneratorIds": [
+              2488
             ]
           }
         ]
@@ -2044,11 +2040,11 @@
             "spawnY": 3676,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Dark_Elf3",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaM.txt",
+            "generatorIds": [
+              2463,
+              2464,
+              2465
             ]
           },
           {
@@ -2059,11 +2055,11 @@
             "spawnY": 3678,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Taurus_King3",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaM.txt",
+            "generatorIds": [
+              2466,
+              2467,
+              2468
             ]
           },
           {
@@ -2074,11 +2070,11 @@
             "spawnY": 3622,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Hydra2",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaM.txt",
+            "generatorIds": [
+              2469,
+              2470,
+              2471
             ]
           },
           {
@@ -2089,17 +2085,13 @@
             "spawnY": 3621,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Cruel_Cyclp3",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaM.txt",
+            "generatorIds": [
+              2472,
+              2473
             ],
-            "completionSpawns": [
-              {
-                "npc": "Zakum_",
-                "count": 1
-              }
+            "completionGeneratorIds": [
+              2475
             ]
           }
         ]
@@ -2131,11 +2123,11 @@
             "spawnY": 3676,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Meio_Orc__",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaN.txt",
+            "generatorIds": [
+              2451,
+              2452,
+              2453
             ]
           },
           {
@@ -2146,11 +2138,10 @@
             "spawnY": 3678,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Skull2",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaN.txt",
+            "generatorIds": [
+              2454,
+              2455
             ]
           },
           {
@@ -2161,11 +2152,11 @@
             "spawnY": 3622,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Skull_Lancr2",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaN.txt",
+            "generatorIds": [
+              2456,
+              2457,
+              2458
             ]
           },
           {
@@ -2176,17 +2167,13 @@
             "spawnY": 3621,
             "areaRadius": 24,
             "durationSeconds": 180,
-            "spawns": [
-              {
-                "npc": "Minotauro_",
-                "count": 100
-              }
+            "generator": "NPCGener/CartaN.txt",
+            "generatorIds": [
+              2459,
+              2460
             ],
-            "completionSpawns": [
-              {
-                "npc": "Troll_Caos__",
-                "count": 1
-              }
+            "completionGeneratorIds": [
+              2462
             ]
           }
         ]
@@ -2747,32 +2734,7 @@
           "celestial",
           "subcelestial"
         ],
-        "spawns": [
-          {
-            "npc": "Morlock__",
-            "count": 20
-          },
-          {
-            "npc": "Dark_Kn1",
-            "count": 20
-          },
-          {
-            "npc": "Elf_ABJ2",
-            "count": 20
-          },
-          {
-            "npc": "Aqua_Golem__",
-            "count": 20
-          },
-          {
-            "npc": "Gargoyle3",
-            "count": 20
-          },
-          {
-            "npc": "Dark_Shadow_",
-            "count": 1
-          }
-        ]
+        "generator": "NPCGener/NightmareN.txt"
       },
       "description": "Nightmare Normal para o grupo."
     },
@@ -2825,32 +2787,7 @@
           "celestial",
           "subcelestial"
         ],
-        "spawns": [
-          {
-            "npc": "Tauron__",
-            "count": 10
-          },
-          {
-            "npc": "Hell_Spider3",
-            "count": 20
-          },
-          {
-            "npc": "GrubSwarm_",
-            "count": 30
-          },
-          {
-            "npc": "Wise_Gargo3",
-            "count": 20
-          },
-          {
-            "npc": "Xeno_Cropper_",
-            "count": 20
-          },
-          {
-            "npc": "Dark_Shadow__",
-            "count": 1
-          }
-        ]
+        "generator": "NPCGener/NightmareM.txt"
       },
       "description": "Nightmare Mystic para o grupo."
     },
@@ -2903,28 +2840,7 @@
           "celestial",
           "subcelestial"
         ],
-        "spawns": [
-          {
-            "npc": "Dark_Elf_Ab2",
-            "count": 20
-          },
-          {
-            "npc": "Tauron_____",
-            "count": 20
-          },
-          {
-            "npc": "Morlock_",
-            "count": 20
-          },
-          {
-            "npc": "Hell_Spider2",
-            "count": 20
-          },
-          {
-            "npc": "Lugefer_",
-            "count": 1
-          }
-        ]
+        "generator": "NPCGener/NightmareA.txt"
       },
       "description": "Nightmare Arcane para o grupo."
     },
@@ -2990,32 +2906,7 @@
           "celestial",
           "subcelestial"
         ],
-        "spawns": [
-          {
-            "npc": "Morlock__",
-            "count": 20
-          },
-          {
-            "npc": "Dark_Kn1",
-            "count": 20
-          },
-          {
-            "npc": "Elf_ABJ2",
-            "count": 20
-          },
-          {
-            "npc": "Aqua_Golem__",
-            "count": 20
-          },
-          {
-            "npc": "Gargoyle3",
-            "count": 20
-          },
-          {
-            "npc": "Dark_Shadow_",
-            "count": 1
-          }
-        ]
+        "generator": "NPCGener/NightmareN.txt"
       },
       "description": "Nightmare Normal pessoal."
     },
@@ -3067,32 +2958,7 @@
           "celestial",
           "subcelestial"
         ],
-        "spawns": [
-          {
-            "npc": "Tauron__",
-            "count": 10
-          },
-          {
-            "npc": "Hell_Spider3",
-            "count": 20
-          },
-          {
-            "npc": "GrubSwarm_",
-            "count": 30
-          },
-          {
-            "npc": "Wise_Gargo3",
-            "count": 20
-          },
-          {
-            "npc": "Xeno_Cropper_",
-            "count": 20
-          },
-          {
-            "npc": "Dark_Shadow__",
-            "count": 1
-          }
-        ]
+        "generator": "NPCGener/NightmareM.txt"
       },
       "description": "Nightmare Mystic pessoal."
     },
@@ -3144,28 +3010,7 @@
           "celestial",
           "subcelestial"
         ],
-        "spawns": [
-          {
-            "npc": "Dark_Elf_Ab2",
-            "count": 20
-          },
-          {
-            "npc": "Tauron_____",
-            "count": 20
-          },
-          {
-            "npc": "Morlock_",
-            "count": 20
-          },
-          {
-            "npc": "Hell_Spider2",
-            "count": 20
-          },
-          {
-            "npc": "Lugefer_",
-            "count": 1
-          }
-        ]
+        "generator": "NPCGener/NightmareA.txt"
       },
       "description": "Nightmare Arcane pessoal."
     }

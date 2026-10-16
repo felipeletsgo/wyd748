@@ -3100,6 +3100,12 @@
                   }
               ],
     "renderers":  [
+{"type":6,"parts":[{"texture":"mesh\\ch010195.wys","mesh":"mesh\\ch010195.msh"},{"texture":"mesh\\ch010195.wys","mesh":"mesh\\ch010295.msh"},{"texture":"mesh\\ch010195.wys","mesh":"mesh\\ch010395.msh"},{"texture":"mesh\\ch010195.wys","mesh":"mesh\\ch010495.msh"},{"texture":"mesh\\ch010195.wys","mesh":"mesh\\ch010595.msh"},{"texture":"mesh\\ch010195.wys","mesh":"mesh\\ch010695.msh"}]},
+{"type":7,"parts":[{"texture":"mesh\\ch020197.wys","mesh":"mesh\\ch020197.msh"},{"texture":"mesh\\ch020297.wys","mesh":"mesh\\ch020297.msh"},{"texture":"mesh\\ch020397.wys","mesh":"mesh\\ch020397.msh"},{"texture":"mesh\\ch020497.wys","mesh":"mesh\\ch020497.msh"},{"texture":"mesh\\ch020597.wys","mesh":"mesh\\ch020597.msh"},{"texture":"mesh\\ch020697.wys","mesh":"mesh\\ch020697.msh"}]},
+{"type":8,"parts":[{"texture":"mesh\\RedSanta.wys","mesh":"mesh\\ch020196.msh"},{"texture":"mesh\\RedSanta.wys","mesh":"mesh\\ch020296.msh"},{"texture":"mesh\\RedSanta.wys","mesh":"mesh\\ch020396.msh"},{"texture":"mesh\\RedSanta.wys","mesh":"mesh\\ch020496.msh"},{"texture":"mesh\\RedSanta.wys","mesh":"mesh\\ch020596.msh"},{"texture":"mesh\\RedSanta.wys","mesh":"mesh\\ch020696.msh"}]},
+{"type":9,"parts":[{"texture":"mesh\\WhiteSanta.wys","mesh":"mesh\\ch020196.msh"},{"texture":"mesh\\WhiteSanta.wys","mesh":"mesh\\ch020296.msh"},{"texture":"mesh\\WhiteSanta.wys","mesh":"mesh\\ch020396.msh"},{"texture":"mesh\\WhiteSanta.wys","mesh":"mesh\\ch020496.msh"},{"texture":"mesh\\WhiteSanta.wys","mesh":"mesh\\ch020596.msh"},{"texture":"mesh\\WhiteSanta.wys","mesh":"mesh\\ch020696.msh"}]},
+{"type":10,"parts":[{"texture":"mesh\\PurpleRudol.wys","mesh":"mesh\\ch020194.msh"},{"texture":"mesh\\PurpleRudol.wys","mesh":"mesh\\ch020294.msh"},{"texture":"mesh\\PurpleRudol.wys","mesh":"mesh\\ch020394.msh"},{"texture":"mesh\\PurpleRudol.wys","mesh":"mesh\\ch020494.msh"},{"texture":"mesh\\PurpleRudol.wys","mesh":"mesh\\ch020594.msh"},{"texture":"mesh\\PurpleRudol.wys","mesh":"mesh\\ch020694.msh"}]},
+{"type":11,"parts":[{"texture":"mesh\\BlueRudol.wys","mesh":"mesh\\ch020194.msh"},{"texture":"mesh\\BlueRudol.wys","mesh":"mesh\\ch020294.msh"},{"texture":"mesh\\BlueRudol.wys","mesh":"mesh\\ch020394.msh"},{"texture":"mesh\\BlueRudol.wys","mesh":"mesh\\ch020494.msh"},{"texture":"mesh\\BlueRudol.wys","mesh":"mesh\\ch020594.msh"},{"texture":"mesh\\BlueRudol.wys","mesh":"mesh\\ch020694.msh"}]},
                       {
                           "type":  12,
                           "parts":  [
@@ -6843,6 +6849,17 @@
                       }
                   ],
     "textures":  [
+{"name":"mesh\\ch010195.wys","alpha":65},
+{"name":"mesh\\ch020197.wys","alpha":65},
+{"name":"mesh\\ch020297.wys","alpha":65},
+{"name":"mesh\\ch020397.wys","alpha":65},
+{"name":"mesh\\ch020497.wys","alpha":65},
+{"name":"mesh\\ch020597.wys","alpha":65},
+{"name":"mesh\\ch020697.wys","alpha":65},
+{"name":"mesh\\RedSanta.wys","alpha":65},
+{"name":"mesh\\WhiteSanta.wys","alpha":65},
+{"name":"mesh\\PurpleRudol.wys","alpha":65},
+{"name":"mesh\\BlueRudol.wys","alpha":65},
                      {
                          "name":  "mesh\\BlackPolice.wys",
                          "alpha":  65

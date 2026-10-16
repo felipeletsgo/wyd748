@@ -3,6 +3,7 @@
 #include "SGrid.h"
 #include "GridInsertion.h"
 #include "GridItemPresentation.h"
+#include "NativeInventoryGlow.h"
 #include "../application/NativeVolatileRoutes.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
@@ -53,13 +54,17 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 			// source-side equivalent is BASE_GetMeshIndex; using nIndexMesh raw
 			// produced generic spheres/rocks in the active client.
 			m_GCObj.n3DObjIndex = BASE_GetMeshIndex(pItem->sIndex);
-			m_GCObj.nTextureSetIndex = itemDef.nIndexTexture;
+			m_GCObj.nTextureSetIndex = grid_item_presentation::IconTexture(
+				pItem->sIndex, itemDef.nIndexTexture);
 		}
 		m_GCText.strString[0] = 0;
 		m_GCText.pFont = &m_Font;
 
 		int nSizeIndex = BASE_GetItemAbility(pItem, 33);
 		int nType = BASE_GetItemAbility(pItem, 38);
+		if (itemDef.nIndexMesh >= 0)
+			m_GCObj.dwBGColor = native_inventory_glow::Background(
+				pItem->sIndex, nType, pItem->stEffect[0].cEffect);
 		if (nSizeIndex > 7 || nSizeIndex < 0)
 			nSizeIndex = 0;
 

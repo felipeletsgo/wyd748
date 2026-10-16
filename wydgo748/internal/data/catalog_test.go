@@ -105,10 +105,11 @@ func TestNative748SpecialSkillIndices(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := map[int]string{
-		79: "Tempestade_de_Raios",
-		83: "Extração",
-		84: "Alquimia",
-		85: "Escudo_Dourado",
+		37: "Lightning_Storm",
+		79: "Another_Soul",
+		83: "Discount",
+		84: "Craft_Gold_Piece",
+		85: "Backpack",
 	}
 	for index, name := range want {
 		if skill, ok := catalog.Skills[index]; !ok || !strings.EqualFold(skill.Name, name) {

@@ -1193,6 +1193,8 @@ int TMFieldScene::InitializeCompatFieldScene()
 		// FieldScene2.bin; leaving these members null crashes on the first 0x3C4
 		// shop list when OnPacketShopList writes the section captions.
 		m_pSkillMDesc = static_cast<SListBox*>(m_pControlContainer->FindControl(TML_SKILLM_DESC));
+		if (m_pSkillMDesc)
+			LoadMsgText(m_pSkillMDesc, (char*)"UI\\descskillm.txt");
 		m_pSkillMSec1 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_SKILLM_SEC1_C));
 		m_pSkillMSec2 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_SKILLM_SEC2_C));
 		m_pSkillMSec3 = static_cast<SText*>(m_pControlContainer->FindControl(TMT_SKILLM_SEC3_C));
@@ -1360,6 +1362,18 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pParamText[i] = static_cast<SText*>(m_pControlContainer->FindControl(native748DescParamIDs[i]));
 		if (m_pDescPanel)
 		{
+			m_fDescPanelWidth = m_pDescPanel->m_nWidth;
+			if (m_pDescNameText) m_vecDescNamePos = m_pDescNameText->GetPos();
+			for (int i = 0; i < NUM_ITEM_DESC_PARAMS; ++i)
+				if (m_pParamText[i]) m_vecDescParamPos[i] = m_pParamText[i]->GetPos();
+			for (auto& help : m_pSkillHelpText)
+			{
+				help = new SText(-2, "", 0xCC9900FF, 0, 0, m_fDescPanelWidth, 16,
+					0, 0, SText::TEXT_TYPE_SHADOW, SText::TEXT_ALIGN_CENTER);
+				help->m_bSelectEnable = 0;
+				help->SetVisible(0);
+				m_pDescPanel->AddChild(help);
+			}
 			// The native initializer keeps the tooltip hidden and non-selectable
 			// until MouseOver has materialized a valid item description.
 			m_pDescPanel->m_bSelectEnable = 0;
@@ -2203,10 +2217,13 @@ int TMFieldScene::OpenNativeServerPanel()
 	m_pMessagePanel->SetMessage(g_pMessageStringTable[23], 0);
 	m_pMessagePanel->SetVisible(1, 0);
 
-	const int serverGroup = LastConfiguredServerGroup(g_pServerList);
+	const int serverGroup = AggregateServerGroupFromOrder(g_nServerCountList, MAX_SERVERGROUP);
 	const int currentGroup = g_pObjectManager->m_nServerGroupIndex;
-	if (serverGroup < 0 || currentGroup < 0 || currentGroup >= MAX_SERVERGROUP)
+	if (currentGroup < 0 || currentGroup >= MAX_SERVERGROUP)
+	{
+		m_pMessagePanel->SetVisible(0, 1);
 		return 1;
+	}
 
 	// Each group rotates its channel numbering by the local day of month.
 	_SYSTEMTIME time{};
@@ -2226,8 +2243,8 @@ int TMFieldScene::OpenNativeServerPanel()
 	int nUserCount2[MAX_SERVERNUMBER]{};
 	if (currentGroup == serverGroup)
 	{
-		// The last configured group aggregates the selected channel of every
-		// other group.
+		// Only the featured group named by sn.bin aggregates other groups.
+		// A last populated ordinary group must retain its status and channels.
 		for (int i = serverGroup; i < MAX_SERVERGROUP; ++i)
 			g_pServerList[i][0][0] = 0;
 		for (int i = 0; i < serverGroup; ++i)

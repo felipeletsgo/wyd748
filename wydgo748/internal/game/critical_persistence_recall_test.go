@@ -113,6 +113,9 @@ func TestCriticalRecallDetachedDepartureAndRevival(t *testing.T) {
 				if fallback.saves != 0 || fallback.gameSaves != 0 {
 					t.Fatal("recall saved synchronously on World")
 				}
+				if outcome != "closed" {
+					assertInstanceHUDCleared(t, p, room && success)
+				}
 			})
 		}
 	}

@@ -56,6 +56,9 @@ type Config struct {
 	LoginVerifier         RegistrationVerifier
 	AuthenticationLimiter authlimit.Limiter
 	ItemNames             map[uint16]string
+	// GuildMarkDir receives leader-uploaded guild marks served by Caddy under
+	// /patch/guildmark/. Empty disables uploads.
+	GuildMarkDir string
 }
 type session struct {
 	Account, CSRF, Peer string
@@ -119,6 +122,9 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("GET /api/player/v1/cargo", h.cargo)
 	h.mux.HandleFunc("GET /api/player/v1/ranking", h.ranking)
 	h.mux.HandleFunc("GET /api/player/v1/guilds/{name}", h.guildProfile)
+	h.mux.HandleFunc("GET /api/player/v1/guild", h.guildManage)
+	h.mux.HandleFunc("POST /api/player/v1/guild/mark", h.uploadGuildMark)
+	h.mux.HandleFunc("POST /api/player/v1/guild/mark/delete", h.deleteGuildMark)
 	h.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		reply(w, 200, map[string]any{"version": 1, "status": "ok"})
 	})

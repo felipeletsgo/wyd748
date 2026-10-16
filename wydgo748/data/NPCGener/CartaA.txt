@@ -1,0 +1,339 @@
+// Carta de Duelo A (Magic Chamber Arcane)
+// Instance-only generators: the instance spawns each block at its start
+// point within StartRange. MinuteGenerate stays -1 (never in the open world).
+
+// Carta de Duelo A (Sala 1)
+// ********************************************
+#	[2476]
+	MinuteGenerate:	-1
+	MaxNumMob:	25
+	MinGroup:	24
+	MaxGroup:	24
+	Leader:		Dark_Elf_Ab2
+	Follower:	Dark_Elf_Ab2
+	RouteType:	2
+	Formation:	0
+	StartX:		801
+	StartY:		3684
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	801
+	Segment1Y:	3684
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	801
+	Segment2Y:	3684
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		801
+	DestY:		3684
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 1)
+// ********************************************
+#	[2477]
+	MinuteGenerate:	-1
+	MaxNumMob:	25
+	MinGroup:	24
+	MaxGroup:	24
+	Leader:		Dark_Elf_Ab2
+	Follower:	Dark_Elf_Ab2
+	RouteType:	2
+	Formation:	0
+	StartX:		816
+	StartY:		3684
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	816
+	Segment1Y:	3684
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	816
+	Segment2Y:	3684
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		816
+	DestY:		3684
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 1)
+// ********************************************
+#	[2478]
+	MinuteGenerate:	-1
+	MaxNumMob:	25
+	MinGroup:	24
+	MaxGroup:	24
+	Leader:		Dark_Elf_Ab2
+	Follower:	Dark_Elf_Ab2
+	RouteType:	2
+	Formation:	0
+	StartX:		808
+	StartY:		3667
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	808
+	Segment1Y:	3667
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	808
+	Segment2Y:	3667
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		808
+	DestY:		3667
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 2)
+// ********************************************
+#	[2479]
+	MinuteGenerate:	-1
+	MaxNumMob:	10
+	MinGroup:	10
+	MaxGroup:	10
+	Leader:		Tauron_____
+	Follower:	Tauron_____
+	RouteType:	2
+	Formation:	0
+	StartX:		861
+	StartY:		3683
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	861
+	Segment1Y:	3683
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	861
+	Segment2Y:	3683
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		861
+	DestY:		3683
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 2)
+// ********************************************
+#	[2480]
+	MinuteGenerate:	-1
+	MaxNumMob:	10
+	MinGroup:	10
+	MaxGroup:	10
+	Leader:		Tauron_____
+	Follower:	Tauron_____
+	RouteType:	2
+	Formation:	0
+	StartX:		872
+	StartY:		3681
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	872
+	Segment1Y:	3681
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	872
+	Segment2Y:	3681
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		872
+	DestY:		3681
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 2)
+// ********************************************
+#	[2481]
+	MinuteGenerate:	-1
+	MaxNumMob:	10
+	MinGroup:	10
+	MaxGroup:	10
+	Leader:		Tauron_____
+	Follower:	Tauron_____
+	RouteType:	2
+	Formation:	0
+	StartX:		866
+	StartY:		3670
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	866
+	Segment1Y:	3670
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	866
+	Segment2Y:	3670
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		866
+	DestY:		3670
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 3)
+// ********************************************
+#	[2482]
+	MinuteGenerate:	-1
+	MaxNumMob:	25
+	MinGroup:	24
+	MaxGroup:	24
+	Leader:		Morlock_
+	Follower:	Morlock_
+	RouteType:	2
+	Formation:	0
+	StartX:		861
+	StartY:		3628
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	861
+	Segment1Y:	3628
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	861
+	Segment2Y:	3628
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		861
+	DestY:		3628
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 3)
+// ********************************************
+#	[2483]
+	MinuteGenerate:	-1
+	MaxNumMob:	25
+	MinGroup:	24
+	MaxGroup:	24
+	Leader:		Morlock_
+	Follower:	Morlock_
+	RouteType:	2
+	Formation:	0
+	StartX:		870
+	StartY:		3626
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	870
+	Segment1Y:	3626
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	870
+	Segment2Y:	3626
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		870
+	DestY:		3626
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 3)
+// ********************************************
+#	[2484]
+	MinuteGenerate:	-1
+	MaxNumMob:	25
+	MinGroup:	24
+	MaxGroup:	24
+	Leader:		Morlock_
+	Follower:	Morlock_
+	RouteType:	2
+	Formation:	0
+	StartX:		866
+	StartY:		3619
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	866
+	Segment1Y:	3619
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	866
+	Segment2Y:	3619
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		866
+	DestY:		3619
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 4)
+// ********************************************
+#	[2485]
+	MinuteGenerate:	-1
+	MaxNumMob:	12
+	MinGroup:	11
+	MaxGroup:	11
+	Leader:		Hell_Spider2
+	Follower:	Hell_Spider2
+	RouteType:	2
+	Formation:	0
+	StartX:		806
+	StartY:		3629
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	806
+	Segment1Y:	3629
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	806
+	Segment2Y:	3629
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		806
+	DestY:		3629
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Sala 4)
+// ********************************************
+#	[2486]
+	MinuteGenerate:	-1
+	MaxNumMob:	12
+	MinGroup:	11
+	MaxGroup:	11
+	Leader:		Hell_Spider2
+	Follower:	Hell_Spider2
+	RouteType:	2
+	Formation:	0
+	StartX:		806
+	StartY:		3610
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	806
+	Segment1Y:	3610
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	806
+	Segment2Y:	3610
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		806
+	DestY:		3610
+	DestRange:	3
+	DestWait:	10
+
+// Carta de Duelo A (Boss)
+// ********************************************
+#	[2488]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		Lugefer_
+	Follower:	Lugefer_
+	RouteType:	2
+	Formation:	0
+	StartX:		806
+	StartY:		3620
+	StartRange:	3
+	StartWait:	9
+	Segment1X:	806
+	Segment1Y:	3620
+	Segment1Range:	3
+	Segment1Wait:	8
+	Segment2X:	806
+	Segment2Y:	3620
+	Segment2Range:	3
+	Segment2Wait:	8
+	DestX:		806
+	DestY:		3620
+	DestRange:	3
+	DestWait:	10

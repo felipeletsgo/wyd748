@@ -9,6 +9,22 @@
         header Cache-Control "no-cache"
         file_server
     }
+    # Guild marks uploaded by guild leaders on the player panel. The 7.48
+    # client requests b<group:02><channel:02><guild:04>.bmp; every group and
+    # channel maps to the single <guild:04>.bmp stored by the player API.
+    handle /patch/guildmark/* {
+        @mark path_regexp mark ^/patch/guildmark/b[0-9]{4}([0-9]{4})\.bmp$
+        handle @mark {
+            root * /var/lib/wyd-go-guildmark
+            rewrite * /{re.mark.1}.bmp
+            header Cache-Control "no-cache"
+            header Content-Type "image/bmp"
+            file_server
+        }
+        handle {
+            respond 404
+        }
+    }
     handle /patch/* {
         root * /srv/wyd-go/patch
         uri strip_prefix /patch

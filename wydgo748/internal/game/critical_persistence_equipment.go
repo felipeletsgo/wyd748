@@ -49,10 +49,15 @@ func (w *World) queueEquipmentSwap(p *Player, st, sp, dt, dp byte, targetID uint
 		mountInitialized = w.initFreshMount(mount)
 	}
 	sourceItem, destinationItem := *plannedSrc, *plannedDst
+	promoted := w.promoteOffhandWeapon(planned.Char)
+	mainWeapon, offhandWeapon := planned.Char.Equip[6], planned.Char.Equip[7]
 	mountItem := planned.Char.Equip[mountSlot]
 	_, err := w.submitCriticalWritePhased(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			*src, *dst = sourceItem, destinationItem
+			if promoted {
+				p.Char.Equip[6], p.Char.Equip[7] = mainWeapon, offhandWeapon
+			}
 			if mountInitialized {
 				p.Char.Equip[mountSlot] = mountItem
 			}
@@ -69,6 +74,10 @@ func (w *World) queueEquipmentSwap(p *Player, st, sp, dt, dp byte, targetID uint
 				return nil
 			}
 			p.Session.Send(wire.SwapItem(p.ID, st, sp, dt, dp, targetID))
+			if promoted {
+				p.Session.Send(wire.SendItem(p.ID, placeEquip, 6, p.Char.Equip[6]))
+				p.Session.Send(wire.SendItem(p.ID, placeEquip, 7, p.Char.Equip[7]))
+			}
 			w.recalcPlayer(p.Char)
 			p.Session.Send(playerScorePacket(p))
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))

@@ -2239,16 +2239,19 @@ scale against the data's 1.0. Bone lists for every mount type match KR.
 - Missing textures: eleven imported renderers (4470, 4472..4475, 4485..4490)
   use `ch0101282..302.wys`, which the shipped `MeshTextureList.bin` never
   registered, so they drew untextured. `CostumeTable.generated.h` now exports
-  the 176 manifest textures and `InitModelTextureList` appends any missing
+  the manifest textures and `InitModelTextureList` appends any missing
   row (`model_texture_748::RegisterTextures`, all-or-nothing, existing IDs
   preserved). No asset was patched.
-- Eight costumes were marked unavailable only because their `.wyt` texture
-  name has no file, but the model table resolves `.wyt` to the registered
-  `.wys` (`SameName`). 4157..4162 use the native 7.48 `SetHumanCostume` types
-  6..11; KR 4187/4188 were added as types 10/8. `costume748::Select` now
-  delegates types 1..11 to the native renderer. They are in the catalog,
-  `ItemList.bin` and the new ShopCostum06 (generator 5227, Armia 2117,2104):
-  143 costumes in total.
+- Correction, 2026-10-15: resolving `.wyt` to registered `.wys` names was
+  insufficient for eight ShopCostum06 costumes. Types 6..11 must not delegate
+  to native costume selection: only types 1..5 do. IDs 4157..4162 and KR
+  4187/4188 now select explicit imported manifest renderers. Twenty-four missing
+  part meshes were copied from the KR reference, with matching SHA-256 values;
+  eleven additional texture registrations use alpha mode A. The manifest now
+  has 143 items, 135 renderers and 187 texture dependencies. Catalog, ItemList
+  and ShopCostum06 (generator 5227, Armia 2117,2104) identities are preserved.
+  This is imported-asset adaptation, not native 7.48 parity. In-game rendering
+  remains unverified; this local correction is not in the earlier publication.
 - Still unavailable: 21st Hero's Costume (4418, type 231 has no renderer) and
   the KR rows whose meshes exist in neither client.
 
@@ -2311,6 +2314,57 @@ server): a text row under the minimap coordinates shows `FPS: n  Ping: n ms`, re
 round-trip time from Windows `SIO_TCP_INFO` (`CPSock::RoundTripMs`, links
 `Ws2_32.lib`), shown as `--` when unavailable. The row sits under the map
 when the UI2 compact coordinates are inside it, otherwise under their row.
+
+## Local instance, equipment and inventory follow-up (2026-10-15)
+
+The client batch is published in patch 10027, with the native icon halo
+follow-up in 10028; server changes remain local.
+Internal lifecycle changes are `MODERNIZACAO_COMPATIVEL`; existing packet
+layouts are unchanged. Other changed flows still lack in-game acceptance.
+The owner's subsequent 10027 screenshot confirms that the dull-icon report
+persists, including Glihtning Stone. The inventory-lighting change must not be
+described as a successful visual repair. Patch 10028 restores the separate
+native per-item halo omitted by SGridControlItem, plus its sine pulse,
+alpha retention and UV. Automated tests/build passed; visual acceptance
+of 10028 remains pending. No server restart was performed.
+
+- `TMFieldSceneWorld.cpp::OnPacketCreateMob` replaces a remote actor marked
+  dying, delayed-removal or deleted before accepting its new CreateMob state.
+  A live duplicate and the local player retain their existing handling.
+  `EntityReentryPolicy.h` and dispatch tests cover these decisions. Server tests
+  retain the last five living instance monsters, remove/recreate them at the
+  visibility boundary, and exclude outsiders. Small movement within the same
+  visible set intentionally does not resend CreateMob. A second disappearance
+  cause is not excluded without reproduction in the game.
+- `TMHumanAppearance.cpp::SetWeaponType` now refreshes the current motion and
+  loop after selecting a different weapon posture. Previously InitObject could
+  initialize the new skin with the old two-weapon posture, then CheckWeapon
+  changed only the index. `WeaponPoseRefresh.h` and presentation tests cover
+  dual-to-single transitions, unchanged posture and absent mesh. This targets
+  the reported Balmung/Neorion and two-Balmung removal cases; item mapping and
+  handedness are unchanged. See the existing equipment evidence record
+  `.agents/research/client748/flows/transport/legacy-sale-confirmation-envelope.md`.
+- `TMMesh::RenderForUI` ordinary refinement now uses native texture
+  `233 + gradeLookup[grade]` on normal hardware and `233 + grade` on legacy
+  hardware. Native `FUN_004bbcb5` and the existing lookup in `NativeMountGlow.h`
+  establish this `PARIDADE_NATIVA` delta; tests cover grades 0..12 in both paths.
+  This lookup alone does not address the general dull-icon report: item 3140 is unrefined,
+  mesh 2721 (`mesh/junsin.msa`), texture offset zero and legend zero, so it
+  takes the native Render(0, offset) branch before that lookup. Its active mesh
+  matches both available OnGame and KR reference copies.
+- The shared dull-icon render-state divergence is now corrected:
+  native `FUN_0042e8a1` selects block 3 (verified from the native push/call
+  instructions), while the port selected world block 1. The restored inventory
+  profile uses fixed white main light, 0.6 fill light, white ambient and the
+  native alpha cutoffs, independent of map darkness. It maps to internal block
+  4 because the port already uses block 3 for a separate 2D setup. No textures
+  or extra glow layers were added. World lighting and special meshes remain
+  unchanged. Visual confirmation, including Glihtning Stone, remains pending.
+
+AUTOMATED TESTED: ArchitectureTests 1,209,240 checks and incremental Release/x86
+solution build passed; manifest validation passed. Final local artifact identity
+and the separate server gates are recorded in [current state](../current-state.md).
+No executable was installed in the runtime and no game was launched.
 
 ## Adaptation sequence
 

@@ -53,6 +53,18 @@ const turnstileSiteKey = import.meta.env.PUBLIC_TURNSTILE_SITE_KEY ?? '0x4AAAAAA
       <ul id="cargo-items" class="equipment-grid" aria-label="Saved Cargo"></ul>
       <p id="cargo-asof" class="muted"></p><p id="cargo-status" class="status" role="status" aria-live="polite"></p>
     </details>
+    <section class="character-detail" id="guild-panel" hidden aria-labelledby="guild-title">
+      <h2 id="guild-title">Guild</h2>
+      <div id="guild-details"></div>
+      <img id="guild-mark" class="guild-mark" alt="Current guild mark" width="64" height="48" hidden />
+      <form id="guild-mark-form" class="form guild-mark-form" hidden>
+        <label for="guild-mark-file">Guild mark</label>
+        <input id="guild-mark-file" name="mark" type="file" accept=".bmp,image/bmp,image/png,image/jpeg,image/gif" required />
+        <p class="muted guild-mark-help">Send a ready-to-use 16x12, 24-bit BMP. Other images (PNG, JPEG, GIF or BMP up to 64 KB) are converted to 16x12 automatically.</p>
+        <div class="actions"><button type="submit" class="button">Send guild mark</button><button type="button" class="button" id="guild-mark-remove" hidden>Remove guild mark</button></div>
+      </form>
+      <p class="status" id="guild-status" role="status" aria-live="polite"></p>
+    </section>
     <details class="disclosure"><summary>Website sessions</summary>
     <p class="muted">Website access only. Your game and staff sessions stay connected.</p>
     <div class="actions">

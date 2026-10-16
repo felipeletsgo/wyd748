@@ -4,7 +4,7 @@ title: Persistent buff scales, particles, and material colors
 subsystem: combat
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-13
+updated: 2026-10-15
 ---
 
 # Persistent buff visuals
@@ -84,10 +84,10 @@ are existing contracts. No assets were replaced or added. Ground-plane textures
 are Skill Amp `93`, Aurora/Shadow `94`; Protector uses mesh `32`, Critical Armor
 mesh `2838`/texture `413`, Soul mesh `2839`.
 
-Do not copy native affect IDs blindly: current Critical Armor is affect `24`,
-whereas native dispatch uses `36`. Current affect capacity is `32` slots versus
-native `16`. These established integrated differences are preserved, not
-reclassified as native parity. Hunter's Vision plus OverExp uses the current
+Native dispatch uses visual `36` for Critical Armor. The earlier source mapping
+to `24` collided with the server's Samaritan affect; the correction below
+supersedes that routing. Current affect capacity remains `32` slots versus
+native `16`. Hunter's Vision plus OverExp uses the current
 extension textures `439`/`440`; native standalone Hunter's Vision uses `438`.
 
 ## Current mapping
@@ -107,11 +107,11 @@ compared parameter branches from routing-only checks and unresolved composites:
 | 4, 5, 6, 7, 8 | PowerUp, SkillBlack, Shield2, SpeedDown, DilpunchJewel | Routing inspected; full material/shader composites not certified |
 | 9, 13, 21, 27 | Magic Weapon, Assert, Armor Class, Enchant | Native weapon parameter branches compared; three branches corrected |
 | 10, 11, 19, 22, 23, 26 | Waste, Shield, Immunity, Lighten, Elemental, Dodge | Human emission parameters compared; Immunity, Lighten, Elemental corrected |
-| 15, 17, 18, 24, 25, 28, 37 | Skill Amp, Aurora, Mana Control, Critical Armor, Protector, Shadow, Soul | Persistent branches compared; five corrected, Aurora/Shadow retained |
+| 15, 17, 18, 36, 25, 28, 37 | Skill Amp, Aurora, Mana Control, Critical Armor, Protector, Shadow, Soul | Persistent branches compared; five corrected, Aurora/Shadow retained |
 | 29, 31 | Avatar, Coin Armor | Routing inspected; complete class/material composites remain open |
 | 30, 39 | Hunter's Vision, OverExp | Standalone native effect compared; current combined extension retained |
 | 40, 44, 45 | Movement/attack restrictions and black flag | Routing inspected; no invented standalone emitter |
-| 12, 14, 16, 33, 34, 35, 36, 38, 41, 42, 43 | No dedicated visual flag in the current affect switch | Inventory only; no new visual effect inferred |
+| 12, 14, 16, 24, 33, 34, 35, 38, 41, 42, 43 | No dedicated visual flag in the current affect switch | Inventory only; no new visual effect inferred |
 
 Life Drain is also latent in native/current flags: neither inspected affect
 switch activates it. Do not invent an affect mapping solely to show that effect.
@@ -140,13 +140,55 @@ native functions and unchanged constructor/resource contracts.
 
 ## Decisions
 
-Correct only proven parameter/emission divergences. Preserve existing affect IDs,
+Correct only proven parameter/emission divergences. Preserve canonical affect IDs,
 the OverExp combination, and gameplay. Remove only incompatible commented-out
 weapon emission alternatives after establishing the native two-family flow.
 Translate legacy comments in touched source files; untouched older records remain
 language migration debt, not a release exception.
 
-## Gaps
+## Samaritan and Critical Armor icon correction (2026-10-15)
+
+Classification: `EXTENSAO_COORDENADA`, correcting the existing visual contract
+without changing packet sizes, opcodes, canonical gameplay or persisted state.
+Native `FUN_0052433d` already proves Critical Armor visual 36; native
+`FUN_004431e4` reads the skill atlas mapping at `DAT_005b77c0`.
+Those recorded roots and unchanged atlas inputs were reused, not re-exported.
+Current server SkillData assigns Samaritan skill 3 to affect 24; native table
+entry 24 points to unrelated skill 49 and is contradictory for that assignment.
+TMProject is used only to locate consumers; external sources are not needed.
+
+Wire visual mapping v2 is server-to-client: Samaritan 24 remains 24 and maps to
+skill icon 3; Critical Armor canonical 31 with persisted ClientType 24 maps to
+native visual 36 and skill icon 15. Legacy raw type 50 also maps to 36, including
+old ClientType 50. Ordinary canonical 31 remains Coin Armor with icon 86.
+No other server effect owns visual 36. The shared table retains all other
+entries, including its zero-filled tail, and drives owner, target, party and
+C.C. recognition. `TMHuman::CheckAffect` activates Critical Armor only for 36;
+Samaritan must not activate that persistent mesh.
+
+The private 140-byte 0x3B9 snapshot retains 16 eight-byte entries beginning at
+12: visual byte, level byte, value WORD and duration DWORD. Public 232-byte
+0x336 score snapshots and coordinated 328-byte 0x364 CreateMob snapshots retain
+affect WORDs at 152 and 70 respectively: high byte visual, low byte duration.
+Duration remains measured in eight-second units; values/levels are unchanged.
+No client intent is trusted and no new allocation, ownership or UI lifecycle
+is introduced. Invalid/expired observed entries continue to hide their controls.
+Apply/remove, death, view reentry and relogin use the same central projection;
+serialization never mutates authoritative affects. Logout/shutdown retain the
+existing scene-owned panel and persistent-effect cleanup paths.
+
+Client and server must be deployed as a pair; there is no capability negotiation
+or new wire format. Mixed old source clients may omit Critical Armor's mesh;
+old servers still alias both buffs as 24. Roll back both builds together.
+Tests cover both simultaneous buffs, Coin Armor isolation, legacy states,
+owner/public/reentry packets, unchanged level/value/state, production atlas
+indices and removal without corrupting the remaining icon.
+
+AUTOMATED TESTED: full Go suite and vet passed; Release/x86 build passed,
+ArchitectureTests 1,229,509 checks, socket 231, crash capture 83, launcher 56.
+No gameplay process was launched: CLIENT-TESTED remains pending.
+
+## Remaining gaps
 
 - Actual built-client visual comparison remains open: Skill Amp on foot/mounted,
   apply/remove/hide/death/relogin, buff combinations and the other changed effects.

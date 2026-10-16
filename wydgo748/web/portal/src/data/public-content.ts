@@ -3,8 +3,8 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10024,
-  publishedAt: '2026-10-14',
+  patchVersion: 10031,
+  publishedAt: '2026-10-16',
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -13,16 +13,78 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10024.zip',
-    sizeBytes: 824185,
-    sha256: '24F3AFBEA36E1E8754D6520E69EE8B1468B007B9DFFF095ECD882C1D981D2E09',
-    executableSha256: 'DD357D0EACD58882FAF872FCE645BDF9A93B196C6853DAD8D1521DF1A15E76F6',
+    url: '/patch/patch-10031.zip',
+    sizeBytes: 832800,
+    sha256: '38D1B4C3B069A3F19F61E6280EF697FA53BE0E6631FA1617DAD59F1CDD1B03B2',
+    executableSha256: '2F75CA77281CCF21F899A6879DBB1A353C6FBE69A98A2F24C52D6E9309A51F1A',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
 } as const;
 
 export const news = [
+  {
+    slug: 'chat-labels-and-buff-icons-10031', date: '2026-10-16', category: 'News',
+    title: 'Patch 10031: chat labels, buff icons and guild kingdoms',
+    summary: 'Colored tab messages, SND status, distinct buff icons and the pending guild, cape and weapon server corrections.',
+    paragraphs: [
+      'Use /tab text or /tab2 through /tab9 to set a colored character label. Use /snd text to set private presentation text returned by an empty /PlayerName lookup. Sending a command without text clears its message.',
+      'Samaritan and Critical Armor now display their respective skill icons. Coin Armor is unchanged. Client and server are updated together.',
+      'Guild recruitment requires matching kingdoms. Ordinary members and sub-leaders cannot change kingdom independently; a leader change updates member capes, with offline characters synchronized when they enter.',
+      'Warrior\'s Seal grants eligible Mortals at level 355 or higher the Elite cape for their kingdom, or the white Adventurer cape without a kingdom. Removing the main weapon promotes an eligible remaining off-hand weapon to the main hand.',
+      'This update also delivers the previously published skill descriptions, Character menu and C.C. client work through the cumulative launcher feed. The skill text asset keeps the same 102 descriptions with adjusted line wrapping.',
+      'Close the game and open WYDLauncher.exe to receive patch 10031. Automated checks passed; in-game confirmation remains pending. This update does not claim to complete the Nightmare or Backpack gameplay corrections.',
+    ],
+  },
+  {
+    slug: 'player-report-fixes-10029', date: '2026-10-15', category: 'News',
+    title: 'Patch 10029: player-reported fixes, buff durations and Soul Limit',
+    summary: 'Aylin and Cythera +10, earring refinement, buff durations, C.C. rebuff, summons, sub-leader recruitment and invisible costumes and monsters.',
+    paragraphs: [
+      'Aylin follows the original rules: two identical +9 items, a Light Stone and four gems. Ancient items need their own gem (Diamond, Emerald, Coral or Garnet) and weapons must be Ancient. Aylin now explains why a combination is refused.',
+      'Celestials receive a second Cythera when they unlock level 90, so two Cytheras +9 can be composed to +10 at Aylin.',
+      'Lac Dust refines the equipped earring from +9 to +10 and from +10 to +11 at 16%; a failed attempt breaks the earring. Gems now change the effect of a +10 or +11 earring.',
+      'All support buffs last 5 minutes at mastery 0 up to 10 minutes at mastery 320. Soul Limit lasts 5 minutes for a new Celestial up to 15 minutes at Celestial level 199, and its bonus now raises physical and magic attack, defense, attack speed, evasion, HP and MP.',
+      'Samaritan is a self buff. Golden Shield costs 100 gold per mastery point. Enchant Ice and Lightning Storm require a bow. C.C. no longer stops when one buff on the bar cannot be cast.',
+      'Summons follow their owner through teleports and stay close when idle. Guild leaders can recruit directly as Sub-leader 1, 2 or 3; sub-leader marks have a silver border.',
+      'The female Skeleton Set, the KR Carnival Mount and the Nightmare Mystic swarms are visible again, and oversized monsters have a normal size.',
+      'Close the game and open WYDLauncher.exe to receive patch 10029. Automated checks passed; in-game confirmation remains pending.',
+    ],
+  },
+  {
+    slug: 'inventory-lighting-costumes-and-equipment', date: '2026-10-15', category: 'News',
+    title: 'Patch 10027: inventory lighting, costumes and equipment',
+    summary: 'A follow-up for dull item icons, invisible ShopCostum06 costumes, monster reentry and weapon poses.',
+    paragraphs: [
+      'Item icons now use the native fixed inventory lights, white ambient and transparency cutoffs instead of map lighting. This addresses the additional dull-icon defect reported after patch 10025, including unrefined Glihtning Stone. Refinement overlays also use the native grade-to-texture lookup.',
+      'Eight imported ShopCostum06 costumes receive explicit renderers and 24 missing mesh files. Changing from two weapons to one refreshes the remaining weapon pose.',
+      'A new appearance packet replaces a retired remote actor instead of keeping its pending-deletion state. This fixes one monster reentry defect; it does not establish that every reported Carta disappearance has the same cause.',
+      'Close the game and open WYDLauncher.exe to receive patch 10027. Automated checks passed; in-game confirmation remains pending. This is a client-only publication: no game-server update or restart, and the pending Ehre and private-instance HUD server fixes are not included.',
+    ],
+  },
+  {
+    slug: 'guild-marks-and-cc-update', date: '2026-10-15', category: 'News',
+    title: 'Patch 10026: guild marks, C.C. rebuff and server fixes',
+    summary: 'Guild leaders can upload a guild mark, C.C. renews buffs before they expire, and several monsters and test shops are fixed.',
+    paragraphs: [
+      'Guild marks: the guild leader opens the player panel, section Guild, and sends a ready-to-use 16x12, 24-bit BMP. Other images (PNG, JPEG, GIF or BMP up to 64 KB) are converted automatically. The mark appears next to the name of every guild member in the game, including other players on screen.',
+      'C.C. now renews your buffs shortly before they expire, so the character is never left unbuffed. Support buffs last as long as in the original game: longer with higher mastery.',
+      'Basilisks, Lizards, Grub and Liggle swarms and other monsters that appeared giant now have their normal size.',
+      'Magic Chamber (Carta) rooms and the Nightmare spawn their monsters in the original groups and places instead of piling up around the party. Some Carta and Nightmare monsters that were wrongly spawning in the open world near Noatum were removed.',
+      'The training field is for mortals below level 35: reaching level 35 there returns the character to the city, and the field cannot be entered again.',
+      'New test NPCs in Armia: the mortal D and E weapon shops and the D and E armor set shops.',
+      'Close the game and open WYDLauncher.exe to receive patch 10026. Automated checks passed; in-game confirmation remains pending.',
+    ],
+  },
+  {
+    slug: 'shining-item-icons', date: '2026-10-14', category: 'News',
+    title: 'Patch 10025: shining item icons',
+    summary: 'Item icons keep their shine again, such as the Glittering Stone and the gems.',
+    paragraphs: [
+      'Inventory, equipment, shop and trade icons are drawn with the original transparency and shine again. Shining items such as the Glittering Stone no longer look flat and opaque.',
+      'Close the game and open WYDLauncher.exe to receive patch 10025. Automated checks passed; in-game confirmation remains pending.',
+    ],
+  },
   {
     slug: 'mounts-interface-and-equipment-update', date: '2026-10-14', category: 'News',
     title: 'Patch 10024: mounts, interface and equipment fixes',
@@ -199,6 +261,40 @@ export const news = [
 ] as const;
 
 export const changelog = [
+  { date: '2026-10-16', category: 'Client and server', title: 'Patch 10031 — chat labels and buff icons', entries: [
+    'Restore /tab and /snd dispatch and add nine coordinated tab colors without respawning the character.',
+    'Give Samaritan and Critical Armor their respective skill icons while preserving canonical server effects.',
+    'Deploy guild kingdom recruitment/change rules, eligible Warrior\'s Seal Elite capes and remaining off-hand weapon promotion.',
+    'Include the adjusted skill-description wrapping; previous client updates remain available through the cumulative launcher feed.',
+    'Automated checks passed. In-game confirmation remains pending; Nightmare and Backpack gameplay are not completed by this batch.',
+  ] },
+  { date: '2026-10-15', category: 'Client and server', title: 'Patch 10029 — player-reported fixes', entries: [
+    'Aylin uses the W2PP grade/gem rules and requires Ancient weapons; the level-90 Celestial unlock grants the second Cythera.',
+    'Lac refines the slot-8 earring +9→+10 and +10→+11 at 16% and breaks it on failure; gems apply to +10/+11 earrings.',
+    'Support buffs last 5–10 minutes by mastery; Soul Limit 5–15 minutes by Celestial level and feeds derived stats.',
+    'Samaritan is self-only; Golden Shield costs 100 gold per mastery; Enchant Ice and Lightning Storm need a bow; C.C. skips buffs that do not cast.',
+    'Summons follow teleports and stay near idle owners; InviteType 1–3 recruits sub-leaders; sub-leader guild marks keep the silver border.',
+    'Female Skeleton Set meshes restored, KR Carnival Mount visible, 64 monster templates use Con 1.',
+    'Automated checks passed; in-game confirmation remains pending.',
+  ] },
+  { date: '2026-10-15', category: 'Client', title: 'Patch 10027 — inventory lighting, costumes and equipment', entries: [
+    'Restore native fixed inventory lighting, white ambient, transparency cutoffs and the refinement texture lookup.',
+    'Add renderers and 24 missing meshes for eight ShopCostum06 costumes; refresh the remaining weapon pose after removing a second weapon.',
+    'Replace retired remote actors when a new appearance arrives, fixing a concrete visibility-reentry lifecycle defect.',
+    'Client-only publication without a game-server update or restart. Ehre and private-instance HUD server corrections remain pending. Automated checks passed; in-game confirmation remains pending.',
+  ] },
+  { date: '2026-10-15', category: 'Client and server', title: 'Patch 10026 — guild marks, C.C. rebuff and server fixes', entries: [
+    'Guild leaders upload the guild mark on the player panel; the client shows it next to own and visible characters.',
+    'C.C. renews buffs before they expire; support buffs use the native mastery-based duration.',
+    'Monsters with a native negative Constitution (Basilisk, Lizard, swarms) no longer appear giant.',
+    'Magic Chamber and Nightmare waves spawn from dedicated generator files at their native positions; stray open-world spawns were removed.',
+    'The training field returns and blocks characters from level 35; mortal D/E weapon and armor set test shops are placed in Armia.',
+    'Automated checks passed; in-game confirmation remains pending.',
+  ] },
+  { date: '2026-10-14', category: 'Client', title: 'Patch 10025 — shining item icons', entries: [
+    '3D item icons keep the native alpha blending and alpha test, so shining items such as the Glittering Stone are no longer drawn opaque.',
+    'Automated checks passed; in-game confirmation remains pending.',
+  ] },
   { date: '2026-10-14', category: 'Client and server', title: 'Patch 10024 — mounts, interface and equipment fixes', entries: [
     'Mount magic amplification affects spells, and mount level glow uses native textures for owner and observer appearances.',
     'Native green player trumpet chat is separate from server top notices. Party Leave, Escape menus, Mystic Amulet equipment and shared equipment icon fitting are corrected.',

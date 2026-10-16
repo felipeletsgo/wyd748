@@ -1,115 +1,146 @@
 ---
 id: update-equip-visual-contract
-title: Contrato do snapshot visual de equipamento
+title: Equipment appearance snapshot and transformation effects
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-07
+updated: 2026-10-15
 ---
 
-# Snapshot visual de equipamento
+# Equipment appearance snapshot
 
-## Pergunta
+## Question
 
-Como o client 7.48 recebe `0x36B` e atualiza a aparencia sem transportar itens
-autoritativos nem reintroduzir Necklace/Belt ausentes da UI do emulador?
+How does 7.48 apply `0x36B` appearance without transferring authoritative
+items or restoring unsupported Necklace/Belt slots? When may this snapshot
+play transformation effects rather than interrupting ordinary buff casts?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- `UTILIZADA`: binario nativo do hash acima, projeto Ghidra
-  `WYD748Native_20260821.gpr` e decompilacao de `FUN_0052EAA9`,
-  `FUN_0052B116` e `FUN_0055890A`.
-- `UTILIZADA`: source atual `MSG_UpdateEquip`,
-  `TMHuman::OnPacketUpdateEquip`, `SetPacketEquipItem`, `SetColorItem` e
-  `ReceivedPacketDispatch`.
-- `UTILIZADA`: WYD-Go `wire.SelfEquip`, `VisualEquip`, `bodyMesh`,
-  `bodyAncient`, `clientEquipProjection`, emissores e testes.
-- `NAO APLICAVEL`: o guia KR nao define o wire; nenhum asset novo participa.
-  Sources 7.54, fontes legadas externas nao foram consultadas.
+- USED: native binary with the hash above, Ghidra project
+  `tmproject/build/native-research/WYD748.gpr` and cached decompilations of
+  `FUN_0052eaa9`, `FUN_0052b116` and `FUN_0055890a`. The October 15 focused
+  `ExportWydFlow.java` instruction export confirmed the unchanged conditional
+  branch to `0x0052b46c`; no new corpus export is needed.
+- USED: current `MSG_UpdateEquip`, `TMHuman::OnPacketUpdateEquip`,
+  `SetPacketEquipItem`, `SetColorItem` and `ReceivedPacketDispatch` source.
+- USED: WYD-Go `wire.SelfEquip`, `VisualEquip`, `bodyMesh`, `bodyAncient`,
+  `clientEquipProjection`, appearance publisher and existing contract tests.
+  The October correction does not change server source or packet emission.
+- USED: C++ packet contract tests and source-scope regression checks in
+  `SceneDisconnectContractTests.cpp`.
+- NOT APPLICABLE: no new asset, resource binding or later-client algorithm
+  participates. KR guides and third-party sources do not define this wire.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
 ### Callers
 
-`FUN_0052EAA9 @ 0x0052EAA9` encaminha `0x36B` a
-`FUN_0052B116 @ 0x0052B116` para o personagem indicado por `Header.ID`.
-`FUN_0055890A @ 0x0055890A` exige `0x3C`/60 bytes.
+`FUN_0052eaa9 @ 0x0052eaa9` dispatches `0x36B` to
+`FUN_0052b116 @ 0x0052b116` for the character selected by `Header.ID`.
+`FUN_0055890a @ 0x0055890a` requires `0x3C`/60 bytes.
 
 ### Callees
 
-`FUN_0052B116` le os 16 WORDs desde `+0x0C`, atualiza rosto, armas, montaria,
-mesh e ficha e usa o bloco de 16 bytes em `+0x2C` para cor/AnctCode. O handler
-aciona efeitos de troca e reconstrucao do objeto, mas nao altera o inventario
-nem transfere ownership de item.
+`FUN_0052b116` reads sixteen visual WORDs at `+0x0C` and sixteen color/AnctCode
+bytes at `+0x2C`. If face mesh and `EF_CLASS` both match the current actor,
+it jumps to `0x0052b46c`, bypassing the entire transformation effect block:
+particle creation, sound 158, bright shade, motion 14, and level-up effect.
+Only the level-up effect additionally checks the hidden-character flag.
 
-## Estado e lifecycle
+The unconditional snapshot tail applies equipment (`FUN_00526140`), colors
+(`FUN_00527032`), height (`FUN_005277a7`), race (`FUN_004faf13`), weapon state
+(`FUN_0051bb41`), object rebuilding/angle through virtual calls, and score UI
+(`FUN_004431e4`). Effects are submitted through `FUN_0054ac09`; motion changes
+use `FUN_0051dba4`. No item ownership or inventory transfer occurs.
 
-No source atual, o handler atualiza `TMHuman` do owner ou observador, aplica os
-16 visuais, trata a montaria importada, aplica cores, recalcula altura/armas e
-atualiza a ficha. O frame e emprestado apenas durante o callback. Efeitos
-criados sao entregues ao container da cena; relogin ou reentrada na visao
-rematerializam a aparencia pelo snapshot seguinte.
+## State and lifecycle
 
-O servidor projeta a posicao 9 como zero em `bodyMesh`, `bodyAncient` e
-`clientEquipProjection`; posicoes 16/17 nem cabem no frame de 16 entradas.
-Assim este lote protege o envelope visual sem modificar a correcao ja publicada
-que remove Necklace/Belt/NewSlot da UI e dos destinos equipaveis.
+The handler updates the owner or an observed `TMHuman`; the frame is borrowed
+only for the callback. It applies sixteen visuals, imported mount selection,
+colors, height, weapons and HUD. Newly created effects belong to the scene
+effect container; no new retained pointer or cleanup responsibility is added.
+Visibility re-entry or relogin rematerializes appearance from the next snapshot.
 
-## Wire, ABI e recursos
+Ordinary same-face/class updates do not request transformation motion, sound
+or effects. Genuine face/class transitions retain the existing effects and
+their hidden-character guard. Both branches still execute the snapshot tail.
+This correction does not suppress packets or skip real equipment updates.
+
+The server keeps slot 9 empty in `bodyMesh`, `bodyAncient` and
+`clientEquipProjection`; slots 16/17 cannot fit in this frame. Unsupported
+Necklace/Belt/NewSlot UI and equipment rules are outside this change.
+
+## Wire, ABI, and resources
 
 `0x36B`, S->C, 60 bytes:
 
-| Offset | Tamanho | Campo |
+| Offset | Size | Field |
 | --- | ---: | --- |
-| `0x00` | 12 | `MSG_STANDARD`; `ID@6` seleciona o personagem |
-| `0x0C` | 32 | `sEquip[16]`, WORD visual por posicao |
-| `0x2C` | 16 | `Equip2[16]`, AnctCode/cor por posicao |
+| `0x00` | 12 | `MSG_STANDARD`; `ID@6` selects the character |
+| `0x0C` | 32 | `sEquip[16]`, one visual WORD per slot |
+| `0x2C` | 16 | `Equip2[16]`, one AnctCode/color byte per slot |
 
-`UpdateEquipContract.h` nomeia opcode, tamanho, offsets e capacidades.
-`Basedef.h` fixa os dois arrays por asserts. O gate valida tamanho real e
-declarado e Type/opcode antes do cast. Nenhum recurso de UI ou mesh e criado por
-esta alteracao.
+`internal/wire/UpdateEquipContract.h` names the opcode, size, offsets and
+capacities. `Basedef.h` asserts both arrays. Dispatch validates actual and
+declared size and opcode before casting. No UI resource or mesh is added.
 
-## Mapeamento atual
+## Current mapping
 
-`TMHuman::OnPacketUpdateEquip` usa a constante do contrato no dispatch. No
-WYD-Go, `SelfEquip` deriva os arrays do equipamento e `VisualEquip` limita cada
-bloco a 16 entradas. A projecao do emulador zera slots sem suporte antes do
-builder; o client conserva os bytes recebidos sem reinterpretar o wire.
+`TMHumanPackets.cpp :: TMHuman::OnPacketUpdateEquip` now encloses the entire
+effect block in the existing face/class condition, rather than guarding only
+the first particle allocation. The following snapshot application is unchanged.
+This removes the unconditional bright shade and animation replacement reported
+during buff use. Existing particle/effect parameters are preserved; this is a
+branch-scope correction, not a redesign of transformation effects.
 
-## Matriz de delta
+On WYD-Go, `SelfEquip` derives the arrays from equipment, and `VisualEquip`
+bounds each block to sixteen entries. `visibility.go :: refreshAppearance`
+publishes this snapshot to the player view. The server zeros unsupported slots
+before building it; the client keeps the received visual/color bytes.
 
-| Claim | Nativo 7.48 | Source/Go antes | Estado atual | Decisao |
+## Delta matrix
+
+| Claim | Native 7.48 | Previous source | Current behavior | Classification |
 | --- | --- | --- | --- | --- |
-| envelope | `0x36B/60` | 60B sem gate | gate e asserts | `PARIDADE_NATIVA` |
-| visual | 16 WORD em `+12` | mesmo layout | preservado | manter |
-| cor | 16 bytes em `+44` | mesmo layout | preservado | manter |
-| Necklace/Belt | fora da projecao solicitada | zerados no servidor | inalterado | manter correcao publicada |
+| Envelope | `0x36B/60` | 60B without gate | Existing gate/asserts retained | `PARIDADE_NATIVA` |
+| Visual/color | 16 WORDs at +12; 16 bytes at +44 | Same layout | Unchanged | Preserve |
+| Transformation effect scope | Face mesh OR class changed | Only particle conditional | Entire effect/motion block conditional | `PARIDADE_NATIVA` |
+| Ordinary snapshot | Applies visual state without transformation effects | Always played shade/sound/motion | Still applies visuals, no transformation effects | Same correction as above |
+| Necklace/Belt | Outside requested projection | Server zeros unsupported slots | Unchanged | Preserve published correction |
 
-## Decisões
+## Decisions
 
-- Preservar o contrato nativo de 60 bytes e os dois arrays paralelos.
-- Rejeitar frame invalido antes de efeitos e reconstrucao do avatar.
-- Manter o servidor responsavel por projetar slots sem suporte como vazios.
-- Nao reabrir a UI ou as regras de Necklace/Belt neste lote.
+- Preserve the native 60-byte contract and parallel arrays.
+- Reject invalid frames before effects and avatar rebuilding.
+- Restore the native effect branch, not a blanket removal of legitimate effects.
+- Keep ordinary snapshot application outside that branch for owner and observers.
+- Keep unsupported slot projection authoritative on the server.
 
-## Lacunas
+## Gaps
 
-- Executar equip/refino/cor/capa/montaria com owner e observador.
-- Confirmar troca durante movimento, morte, reentrada na visao e relogin no
-  `project.exe` antes de classificar como `CLIENT_TESTED`.
+Real-client checks remain for buffs under repeated equipment snapshots,
+genuine transformation/untransformation, hidden actors, owner/observer views,
+equipment/refinement/color/cape/mount changes, movement, death, visibility
+re-entry and relogin. Automated source checks cannot prove visual continuity.
 
-## Validação
+## Validation
 
-- Pesquisa: dispatch, consumidor, tamanho, offsets, arrays e projecao do
-  servidor confirmados.
-- Automacao: a fixture C++ cobre 60 prefixos truncados, excesso, nulo,
-  Type/Size divergentes, receptor, limites dos dois arrays, entrega unica e
-  preservacao. O teste Go confere o primeiro item usado e a posicao 15 nos
-  blocos visual/AnctCode; `go test -count=1 ./...` passou.
-- Build Release passou pelo `Build-Client.ps1` com 25685 checks e asserts
-  estaticos. XML, registro unico do header, `git diff --check` e validador de
-  pesquisa passaram. Candidato instalado:
-  `50AF940F6A1FBF8D7E1AE34603A94CAC8DCBB328F09C6FB8D9825CF7443A7655`.
-- Estado `AUTOMATED TESTED` / `STATICALLY VERIFIED`; o fluxo ainda nao e
-  `CLIENT_TESTED`.
+STATICALLY VERIFIED: native branch bypass at `0x0052b46c`, dispatch, consumer,
+size, offsets, arrays and unchanged server projection. Current source retains
+the native face/class comparison and unconditional appearance tail.
+
+AUTOMATED TESTED, October 15: Release/x86 `Build-Client.ps1 -NoDeploy` passed;
+ArchitectureTests 1,228,406 checks, socket 231, crash capture 83 and launcher
+56. Thirteen new source-contract checks require all five effect/motion call
+sites inside the complete native guard, retain the hidden-character check,
+and require equipment/color/object/weapon/HUD updates outside it. Existing
+packet fixtures cover truncated/oversized/null/mismatched frames and arrays.
+Historical Go packet coverage is reused, not rerun for this client-only scope.
+
+Candidate `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256:
+`BBCF4B139CC89B4A732E1461FC3CD85BA02D891270C3A04960DF94AC63F2D7BA`.
+Installed runtime remains
+`0B0EB676E192DB1626B03EC38E8FA06DE1F6235CF5EC9F4B4557F12E21CB7DD6`.
+Real client: pending. No runtime replacement, public patch, VPS deployment
+or restart; this flow remains CONTRACT, not CLIENT_TESTED.

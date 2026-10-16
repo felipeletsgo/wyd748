@@ -338,27 +338,56 @@ func (w *World) onCombineAgatha(s *net.Session, pkt []byte) {
 }
 
 func (w *World) aylinRecipe(req combineRequest) (model.Item, int, bool) {
+	result, reason := w.aylinRecipeResult(req)
+	return result, 40, reason == ""
+}
+
+// aylinRecipeResult ports W2PP GetMatchCombineAilyn: two identical +9 items
+// of the same grade, Light Stone 1774 and four gems. Ancient grades 5..8
+// require their own gem (Diamond 2441, Emerald 2442, Coral 2443, Garnet
+// 2444); any other item takes four equal gems. WYD-Go also requires a weapon
+// to be Ancient, so two normal weapons cannot reach +10. A Cythera (circlet,
+// slot 2) follows the armor rule. The reason is shown to the player.
+func (w *World) aylinRecipeResult(req combineRequest) (model.Item, string) {
 	a, b := req.Items[0], req.Items[1]
 	defA, okA := w.items[a.Index]
 	defB, okB := w.items[b.Index]
 	validPos := defA.Pos == 2 || defA.Pos == 4 || defA.Pos == 8 || defA.Pos == 16 ||
 		defA.Pos == 32 || defA.Pos == 64 || defA.Pos == 128 || defA.Pos == 192
-	if !okA || !okB || a.Index != b.Index || defA.Grade != defB.Grade || !validPos ||
-		itemSanc(a) != 9 || itemSanc(b) != 9 || req.Items[2].Index != 1774 || itemStackAmount(req.Items[2]) > 1 ||
-		req.Items[7].Index != 0 {
-		return model.Item{}, 0, false
+	if !okA || !okB || a.Index != b.Index || defA.Grade != defB.Grade || !validPos {
+		return model.Item{}, "Place two identical +9 items."
+	}
+	if itemSanc(a) != 9 || itemSanc(b) != 9 {
+		return model.Item{}, "Both items must be refined to +9."
+	}
+	ancient := defA.Grade >= 5 && defA.Grade <= 8
+	if (defA.Pos == 64 || defA.Pos == 192) && !ancient {
+		return model.Item{}, "Only Ancient weapons can be composed to +10."
+	}
+	if req.Items[2].Index != 1774 || itemStackAmount(req.Items[2]) > 1 || req.Items[7].Index != 0 {
+		return model.Item{}, "A Light Stone is required."
+	}
+	gem := req.Items[3].Index
+	if ancient {
+		gem = uint16(2441 + defA.Grade - 5)
 	}
 	for i := 3; i <= 6; i++ {
-		if req.Items[i].Index < 2441 || req.Items[i].Index > 2444 || itemStackAmount(req.Items[i]) > 1 {
-			return model.Item{}, 0, false
+		if req.Items[i].Index < 2441 || req.Items[i].Index > 2444 || req.Items[i].Index != gem ||
+			itemStackAmount(req.Items[i]) > 1 {
+			if ancient {
+				return model.Item{}, "This Ancient item requires four " + aylinGemNames[gem-2441] + " gems."
+			}
+			return model.Item{}, "Four equal gems are required."
 		}
 	}
 	result := a
-	if !setItemSancRaw(&result, byte(230+req.Items[3].Index-2441)) {
-		return model.Item{}, 0, false
+	if !setItemSancRaw(&result, byte(230+gem-2441)) {
+		return model.Item{}, "This item cannot be composed."
 	}
-	return result, 40, true
+	return result, ""
 }
+
+var aylinGemNames = [4]string{"Diamond", "Emerald", "Coral", "Garnet"}
 
 func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 	if w.criticalTradeReserved(w.players[s]) {
@@ -369,8 +398,15 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 		return
 	}
 	result, chance, valid := w.aylinRecipe(req)
-	if !valid || p.Char.Gold < aylinGoldCost {
+	if !valid {
 		w.sendCombineResult(p, 0)
+		_, reason := w.aylinRecipeResult(req)
+		s.Send(wire.MessagePanel(reason))
+		return
+	}
+	if p.Char.Gold < aylinGoldCost {
+		w.sendCombineResult(p, 0)
+		s.Send(wire.MessagePanel("Aylin charges 50,000,000 gold."))
 		return
 	}
 	if w.criticalWrites != nil {

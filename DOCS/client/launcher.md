@@ -591,3 +591,195 @@ News and append-only feed through 10024 were verified. A transient SSH timeout
 was recovered by resuming the existing remote staging; earlier patches remain
 unchanged. No game was launched; in-game confirmation remains pending. The
 item-drop stack overflow is not fixed by this patch.
+
+## Published patch 10025 (2026-10-14)
+
+The feed ends with `10025 patch-10025.zip`, containing only `WYD.exe`. 3D item
+icons keep render block 1 alpha blending and alpha test, as WYD.exe 7.48
+FUN_0042E8A1 does, and unrefined icons use `Render(0, offset)` as in
+FUN_004BBCB5; shining items such as the Glittering Stone were drawn opaque.
+
+- ZIP: 824,258 bytes, SHA-256 `85B1F24F818268937259FEE6DFBC29B291F21445226945C978F204B6E7944291`.
+- `WYD.exe`: 1,871,872 bytes, SHA-256 `192417E70B559B0E24013DD33BABA976926CCC1936F20F0AB32B5E7FABE69FEF`.
+- A fresh HTTPS download matched both hashes and contained exactly `WYD.exe`.
+- Release client gates passed (architecture, socket, crash-capture, launcher).
+  Portal build and all 60 tests passed.
+- Website: only the six changed public pages (home, manifest, download, News,
+  the new article and changelog) were installed into the live release, with a
+  backup at `/srv/wyd-go/backups/site-before-10025-20261015T015821Z`. No
+  service restarted. Not `CLIENT_TESTED`.
+
+## Published patch 10026 (2026-10-15)
+
+The feed ends with `10026 patch-10026.zip`, containing only `WYD.exe`: guild
+marks downloaded off the render thread from
+`http://wyd.forjago.com/patch/guildmark/` (textures created on the render
+thread, bounded BMP header, marks for visible characters from CreateMob), C.C.
+rebuff inside the last 24 seconds of a buff, and mob scale reading the native
+signed-short Con.
+
+- ZIP: 825,170 bytes, SHA-256 `33A113999984554405BD592E504FCAD684B186D4E1135E08FE323655DC2D9E87`.
+- `WYD.exe`: 1,873,920 bytes, SHA-256 `12C38CFBF29CE900044EA6B2E4F74916BB2B906F2FDBFF9EA27E45BA66BDE583`.
+- A fresh HTTPS download matched both hashes and contained exactly `WYD.exe`.
+- Release client gates passed (architecture 1,209,017 checks, socket,
+  crash-capture, launcher). Portal build, `astro check` and 60 tests passed.
+  Paired with server release `20261015T023211Z`. Not `CLIENT_TESTED`.
+
+## Published patch 10027 (2026-10-15)
+
+Client-only publication, explicitly without a server deployment or restart.
+The 25-file allowlist contains `WYD.exe` and 24 restored meshes for eight
+ShopCostum06 costumes. It includes the inventory grade-texture lookup and
+fixed inventory-lighting profile, retired-actor CreateMob reentry and weapon
+animation refresh after dual-to-single equipment changes. Server-side Ehre
+and private-instance HUD fixes are excluded and remain pending.
+
+- ZIP: 1,116,039 bytes, SHA-256 `A8768BFC2956F6546ADE2B9E9640BEFD006AE4FE4953CEB4FCA111A8BE3C0DF6`.
+- `WYD.exe`: 1,875,968 bytes, SHA-256 `F3E40F97FD9F3B47EFECE890CFB117E0486B93B76C5F99BB4E13134BE4DF8855`.
+- The unchanged, validated candidate was packaged explicitly from the dirty
+  working tree at HEAD `fa1c853fa9d279719acd4aa0c3518a550505134f`, not from
+  committed From/To revisions. Personal `config.txt` and build-only costume
+  audit metadata were excluded. No commit or local runtime replacement occurred.
+- `Publish-ClientPatch.ps1 -Version 10027` appended the feed while retaining
+  older patches and its previous-feed rollback. Remote ZIP SHA-256, fresh
+  HTTP/HTTPS ZIP hashes and all 25 embedded file hashes matched the sources.
+- Reused candidate gates: ArchitectureTests 1,209,240 checks and incremental
+  Release/x86 build; unchanged socket, crash-capture, launcher and shader gates.
+  The receipt's two public-content tests and Astro build passed.
+- Only home, download, changelog, manifest, News and the new article were
+  installed in the existing static site. All three referenced shared assets
+  already matched the VPS. Public pages returned 200 with 10027; the manifest
+  matched the ZIP receipt. Previous pages are retained at
+  `/srv/wyd-go/backups/site-before-10027-20261015/previous-pages.tar.gz`.
+- Current remains `/srv/wyd-go/releases/20261015T023211Z`. Game PID `1510633`
+  and API PID `1510645` retained start time `2026-10-15 02:32:14 UTC`.
+  No service reload/restart or player disconnection was performed.
+
+The owner then tested 10027 and reported that icons still lack brightness,
+with Glihtning Stone visible only as sparse dark/gold pixels. This is negative
+visual acceptance, not a successful `CLIENT_TESTED` result. The reported icon
+defect remains open; publication and passing automated checks do not close it.
+
+## Published patch 10028 (2026-10-15)
+
+Client-only follow-up to the owner's negative 10027 icon test. The constructor
+now selects the native item halo (including white/effect 273 for item 3140),
+and the existing halo renderer uses the native sine pulse, unchanged alpha
+and full-width UV. No server changes or asset replacements are included.
+
+- ZIP: 826,278 bytes, SHA-256 `D093974C2CE408AAD0E3737F27FEF48EB19025C5026DEB7FC3BE831A9F9A187E`.
+- `WYD.exe`: 1,876,480 bytes, SHA-256 `75868D55FA061A5256F8A213785D2B6A81EF563BCDD26D161FE4D5BFB99CA2FD`.
+- Explicit single-file packaging from the tested incremental output in the
+  dirty working tree at HEAD `fa1c853fa9d279719acd4aa0c3518a550505134f`,
+  not committed From/To revisions. No commit or local runtime replacement.
+- `Publish-ClientPatch.ps1 -Version 10028` appended the feed, preserving old
+  patches and the previous-feed rollback. Fresh HTTP and HTTPS downloads
+  matched ZIP and embedded executable hashes; feeds returned 200 with 10028.
+- ArchitectureTests 1,221,246 checks; socket 231, crash capture 83, launcher
+  56, shader/costume gates and incremental Release/x86 build passed.
+- Current remains release `20261015T023211Z`; game PID 1510633 and API PID
+  1510645 retained their 02:32:14 UTC start time after publication.
+- No server restart, disconnection, account write or website update.
+  The static website still advertises the previous 10027 receipt.
+- CLIENT-TESTED pending: request an updated in-game inventory screenshot.
+
+## Published patch 10029 (2026-10-15)
+
+The feed ends with `10029 patch-10029.zip`: `WYD.exe` plus the six female
+Skeleton Set meshes `mesh/ch020190.msh`..`ch020690.msh` restored from the
+read-only KR reference. Client changes: Samaritan self-only, C.C. rebuff
+continues past a buff that does not cast, KR Carnival Mount fallback visual,
+earring gem highlight, guild-mark border contract, and the elite cape icon
+colors prepared earlier.
+
+- ZIP: 895,630 bytes, SHA-256 `8DEDE4BA296A9756A1B954C85464283AE5838E5065369A681AD51B0A5E8E3C70`.
+- `WYD.exe`: 1,876,480 bytes, SHA-256 `21F67FBC625D6A52868D57ECAE35372AA97382E5D6209D9D428E43B15E51CFB6`.
+- A fresh HTTPS download matched both hashes and contained 7 entries.
+- `Build-Client.ps1 -NoDeploy`: ArchitectureTests 1,227,750 checks, socket 231,
+  crash capture 83, launcher 56. Paired with server release
+  `20261015T215714Z`. Not `CLIENT_TESTED`.
+
+## Published patch 10031 (2026-10-16)
+
+Paired with server/site release `20261016T032951Z`. This explicit two-file
+patch contains the validated executable and required, rewrapped skill corpus;
+unchanged assets remain in previous cumulative patches. It excludes personal
+configuration and launcher binaries. Source is the dirty working tree at
+HEAD `fa1c853fa9d279719acd4aa0c3518a550505134f`, not a committed release.
+No generated executable was committed and no Git index changes were made.
+
+- ZIP: 832,800 bytes, SHA-256
+  `38D1B4C3B069A3F19F61E6280EF697FA53BE0E6631FA1617DAD59F1CDD1B03B2`.
+- `WYD.exe`: 1,881,088 bytes, SHA-256
+  `2F75CA77281CCF21F899A6879DBB1A353C6FBE69A98A2F24C52D6E9309A51F1A`.
+- `skillhelp.dat`: 19,309 bytes, SHA-256
+  `1BDD96ADC246CF2A71097301EA1C5152D24F5109A43A557A22B0C3335E3DDA24`.
+  All 102 IDs and description prose match 10030; 72 records only rewrap lines.
+- `/tab`, `/tab2`..`/tab9` and `/snd` use the paired client/server contracts.
+  Samaritan and Critical Armor use their respective skill icons. Previous
+  skill-window, menu and C.C. fixes remain included in the cumulative update.
+- `Publish-ClientPatch.ps1` appended 10031. Both public HTTP/HTTPS feeds and
+  downloads returned 200; ZIP and embedded hashes match. The remote ZIP hash
+  matches, the prior feed is preserved byte-for-byte as the retained prefix,
+  and patch 10030 is unchanged. The site manifest, home and News advertise 10031.
+- The server and player API restarted at `2026-10-16 03:29:54 UTC`; Caddy
+  restarted one second later. Running binary hashes, readiness, backup and
+  rollback checks passed. See [current state](../current-state.md).
+- Reused the unchanged Release/x86 build and Go/vet evidence. Linux release
+  cross-build passed, as did portal checks, 60 existing tests and the two
+  receipt tests after the updated static build. No local game was launched
+  or runtime executable replaced. CLIENT-TESTED remains pending.
+
+Use `WYDLauncher.exe` with the game closed. Nightmare, Backpack and existing
+English-migration debt are not declared complete by this publication.
+
+## Published patch 10030 (2026-10-15)
+
+Client-only publication, with no server deployment or restart. The explicit
+35-file allowlist contains the validated `WYD.exe`, required `skillhelp.dat`,
+`UI/UITextureSetList.txt`, `Costumes-KR.json`, `Mounts-KR.json` and 30 restored
+costume meshes. Some costume dependencies were already published and are
+included again unchanged. Personal configuration and launcher files are absent.
+
+The executable includes the 102 available native skill descriptions faithfully
+localized to English, separate prose/metadata controls and bounded tooltip
+placement, the corrected appearance-update transformation-effect guard and
+the pending C.C. client logic. The atlas definitions restore all sidebar button
+states. Skill IDs without native prose still retain calculated captions rather
+than fabricated descriptions. Server-authoritative guild kingdom, seal and
+weapon promotion changes are not deployed by this client patch.
+
+- ZIP: 1,216,419 bytes; SHA-256
+  `F08898C442024C754C5CE0DE8D82EA374917711A1A331340549F471CCD4E3461`.
+- `WYD.exe`: 1,880,576 bytes; SHA-256
+  `3F38F354E4108FDE1C24BE15E456DF2B77D9536429E16DC13C8CAF2B192A5429`.
+- `skillhelp.dat`: SHA-256
+  `D614DA42CE36B2C2CA61DEC6BF4DF964D047C28A4A3B618D53695C26FC967629`.
+- Packaging reused the unchanged incremental output and an explicit runtime
+  allowlist in the dirty tree at HEAD `fa1c853fa9d279719acd4aa0c3518a550505134f`.
+  ZIP bytes came directly from those files, not committed From/To revisions;
+  `Build-ClientPatch.ps1` was therefore not used. No commit, push, index change
+  or local runtime executable replacement occurred.
+- `Publish-ClientPatch.ps1 -Version 10030` appended the production feed.
+  All 35 local archive entries matched their sources. Fresh HTTP and HTTPS
+  feeds and ZIPs returned 200; both downloads matched the ZIP hash and all
+  embedded file hashes. Remote ZIP size/hash matched. The previous-feed
+  rollback matches the old prefix, and patch 10029 remains unchanged.
+- Reused gates: ArchitectureTests 1,228,509 checks, socket 231, crash capture
+  83, launcher 56, shader/costume validation and Release/x86 build. No new
+  product build was needed because its inputs had not changed.
+- Current remains release `20261015T215714Z`. Game PID 1694828 and player API
+  PID 1694841 retained their `2026-10-15 21:57:17 UTC` start time; readiness
+  returned `ready`. No service restart/reload or player disconnection.
+- Remote staging was removed. Local cleanup was rejected before execution;
+  `build/patch/patch-10030.zip`, `build/patch/verify-10030-http.zip` and
+  `build/patch/verify-10030-https.zip` remain in the sanctioned ignored root.
+  Existing build output and previous patches were preserved. No static website
+  receipt update was made.
+
+CLIENT-TESTED remains pending for description content/layout, uninterrupted
+buff visuals, legitimate transformations and the updated C.C. behavior.
+Use `WYDLauncher.exe` with the client closed to install the executable and its
+required skill asset together. Existing Portuguese item-resource migration
+debt remains outside this scoped publication; this is not global release
+certification.

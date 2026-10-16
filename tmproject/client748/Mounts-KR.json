@@ -670,9 +670,10 @@
       "name": "KR_Carnival_Mount",
       "type": 31,
       "scale": 1,
+      "fallback": "Native mesh 19 (hs010120/hs010220) is absent from the supplied clients; the base hs01 mesh 0 is shown.",
       "mesh": [
-        19,
-        19,
+        0,
+        0,
         0
       ],
       "skin": [

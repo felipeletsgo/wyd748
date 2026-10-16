@@ -1,62 +1,47 @@
-# UI, HUD e grids do client WYD 7.48
+# WYD 7.48 UI, HUD and grids
 
-Referência focada para impedir regressões ao portar a UI do TMProject para o
-client 7.48. Deve ser lida junto de `ghidra-client748.md`; não substitui o gate
-Ghidra nem transforma relato visual em contrato.
+Read with [native evidence](ghidra-client748.md). This reference retains proven
+IDs and historical observations; it does not make every listed scenario
+`CLIENT-TESTED`. Reuse valid flow records and reopen only the affected gap,
+not all callers/callees after every edit.
 
-## Escopo e fontes
+## Authority and identity
 
-Ordem de decisão para UI:
+For parity, use the historical `references/client748/WYD.exe` and Ghidra,
+then resources actually loaded by 7.48 and comparable original screenshots.
+Candidate runtime logs explain the implementation, not native intent.
+TMProject 7.59 is secondary implementation evidence.
 
-1. lifecycle, IDs e cálculos do binário histórico
-   `references/client748/WYD.exe` no Ghidra;
-2. recursos efetivamente carregados pelo 7.48;
-3. screenshot do client original para composição visual;
-4. log runtime do `project.exe` para confirmar materialização e posição;
-5. TMProject 7.59 apenas como referência de implementação.
+`tmproject/client748/screenshot/Capture0084.jpg` is a historical HUD/inventory
+anchor. `tmproject/client748/client-debug.log` is volatile: link it to the exact
+launched executable path/hash and resources before using values. The normal
+installed runtime is `WYD.exe`; an old `project.exe` is not automatically current.
 
-Referências visuais ficam em `tmproject/client748/screenshot/`. A imagem
-`Capture0084.jpg` é a âncora atual para HUD e inventário. O log
-`tmproject/client748/client-debug.log` é diagnóstico volátil: confirmar que pertence ao
-hash do executável em teste antes de promover seus valores.
+## Native anchors
 
-## Evidência nativa confirmada
-
-Exportações Ghidra citadas abaixo são descobertas pelo procedimento de
-`ghidra-client748.md` e ficam fora do Git.
-
-| Função 7.48 | Contrato recuperado |
+| Function | Recovered contract |
 | --- | --- |
-| `FUN_0040d13e` | Construtor nativo de `SGridControlItem`; meshes e UI legada usam caixa de 24 por dimensão lógica. Sprites UI2 usam 23 para itens 5000..5102 e 32 para os demais, sempre multiplicados por `g_pItemGridXY`. |
-| `FUN_0040e817` | Ao adicionar item à grid ordinária, limita a escala a `(altura_lógica × 0.3) / mesh->m_fMaxZ` quando a malha excede o alvo. A comparação histórica com o binário patchado mostra altura lógica 1 sem alteração do renderer; esse fato deve ser adaptado na source. |
-| `FUN_0040dd00` | Atualiza frame/posição do item e centraliza a representação na célula/região nativa. |
-| `FUN_00435b13` | Materializa os seis textos do HUD compacto nos IDs 1029, 1030, 1031, 1032, 1033 e 1040; vincula Skill comum (1905), Skill Apprentice (1889), Inventory (257), os seis ItemMix e Party (root 1857, lista 1863, botão 5742); recompõe em runtime os layouts responsivos desses roots. |
-| `FUN_004431e4` | Atualiza EXP atual/limiar absoluto do próximo nível, ATT/dano da skill selecionada, DEF/defesa base-companheira, progresso de EXP dividido em quatro quartos e os campos Character Att Speed/C.POINT/HOLD/Kingdom. |
-| `FUN_0044da6f` | Toggle central do painel Party: alterna o root 1857 e mantém a seleção do botão 5742 inversa à visibilidade. |
-| `FUN_00492e7d` | Dispatcher FieldScene que encaminha `0x37F`, `0x37D` e `0x37E` aos handlers de convite, inclusão e remoção Party. |
+| `FUN_0040d13e` | `SGridControlItem` constructor; legacy meshes/UI use 24 per logical dimension. UI2 sprites use 23 for items 5000..5102, otherwise 32, multiplied by `g_pItemGridXY`. |
+| `FUN_0040e817` | Ordinary-grid scale caps at `(logicalHeight * 0.3) / mesh->m_fMaxZ` when oversized. Historical patched footprint 1 changes the input, not the renderer. |
+| `FUN_0040dd00` | Item frame/position and centering within its native cell/region. |
+| `FUN_00435b13` | HUD texts 1029/1030/1031/1032/1033/1040; Skill 1905, Apprentice 1889, Inventory 257, six ItemMix roots, Party 1857/1863/5742 and responsive layout. |
+| `FUN_004431e4` | Current/next-threshold EXP, ATT/selected-skill damage, DEF/companion base defense, four-quarter EXP and Character Att Speed/C.POINT/HOLD/Kingdom updates. |
+| `FUN_0044da6f` | Party root 1857 toggle with button 5742 selection inverse to visibility. |
+| `FUN_00492e7d` | Party invite/add/remove dispatch for `0x37F/0x37D/0x37E`. |
 
-Antes de alterar esse fluxo, abrir a função e seus callers/callees novamente.
-Os nomes acima são âncoras do hash legado registrado em
-`ghidra-client748.md`, não API estável entre binários.
+Addresses belong to the recorded historical hash in `ghidra-client748.md`.
 
-## Contrato do HUD compacto
+## Compact HUD and Character fields
 
-IDs nativos:
+| ID | Meaning |
+| --- | --- |
+| 1029 / 1030 | Primary ATT / selected-skill damage |
+| 1031 / 1032 | Current EXP / absolute next-level threshold |
+| 1033 / 1040 | Primary DEF / companion base/native ability defense |
+| 1171 | Progress within the current EXP quarter |
+| 1172 / 1173 / 1174 | First / second / third completed-quarter indicators |
 
-```text
-1029  ATT primário
-1030  ATT companion (dano da skill selecionada)
-1031  EXP atual
-1032  limiar absoluto do próximo nível
-1033  DEF primária
-1040  DEF companion (defesa base/ability nativa)
-1171  progresso dentro do quarto atual da EXP
-1172  indicador do primeiro quarto concluído
-1173  indicador do segundo quarto concluído
-1174  indicador do terceiro quarto concluído
-```
-
-No snapshot runtime de 23/08/2026, sob o parent 5716:
+The 2026-08-23 runtime snapshot under parent 5716 recorded:
 
 ```text
 1032 x=110.4 y=16.6
@@ -67,319 +52,200 @@ No snapshot runtime de 23/08/2026, sob o parent 5716:
 1029 x=24.4  y=38.4
 ```
 
-Essas posições confirmam o recurso carregado; não devem virar coordenadas
-hardcoded se o controle nativo já existe. IDs modernos 5718–5720 não podem ser
-reaproveitados: no grafo 7.48 eles podem identificar filhos não relacionados e
-deslocar/corromper ATT, DEF ou EXP.
+These identify the loaded resource, not new hardcoded coordinates. Modern IDs
+5718..5720 may name unrelated native children. `Capture0084.jpg` shows absolute
+EXP such as `139188261 / 140000000`, with ATT/DEF pairs below. Divide the
+current-to-next-level interval into four: 1172..1174 use completed textures;
+1171 receives only the current quarter's value/maximum, not a newer progress UI.
 
-`Capture0084.jpg` mostra EXP como par textual absoluto, por exemplo
-`139188261 / 140000000`, e a linha inferior como pares de ATT/DEF. A função
-nativa divide o intervalo entre o nível atual e o próximo em quatro partes:
-1172–1174 recebem a textura concluída conforme os quartos completos e 1171
-recebe máximo/valor apenas do quarto corrente. Não substituir esse contrato por
-progress bar ou labels exclusivos da 7.59.
+Parent 5716 starts near width 196.3 in the 1024x768 resource. If stretched to
+fill the lower center, transform children 1029..1040 and 1171 horizontally too;
+stretching only the background crowds values at the left. Keep ornaments
+1168 and 1172..1174 right-anchored at native size.
 
-O parent 5716 nasce com largura aproximada de 196,3 no recurso 1024×768. Se o
-background for estendido para preencher o centro inferior, a mesma transformação
-horizontal deve ser aplicada aos filhos 1029–1040 e ao progresso 1171. Alargar
-somente parent/background mantém os filhos nas coordenadas estreitas originais e
-amontoa EXP/ATT/DEF no lado esquerdo. Os ornamentos 1168 e 1172–1174 permanecem
-ancorados à direita, preservando o tamanho nativo.
-
-## Contrato dos campos de estado em Character
-
-`FUN_00435b13` vincula e `FUN_004431e4` atualiza os controles nativos abaixo:
+Character bindings from `FUN_00435b13` / `FUN_004431e4`:
 
 ```text
 1110  Att Speed
-1168  ornamento HOLD, visível somente com Hold/FakeExp positivo
-1376  texto C.POINT no formato da mensagem 304
-1377  emblema Kingdom, visível somente com manto/reino válido
+1168  HOLD ornament, visible for positive Hold/FakeExp only
+1376  C.POINT text using message 304
+1377  Kingdom emblem, visible for valid cape/kingdom only
 ```
 
-O grupo moderno `65768/65771..65774` não substitui `1377` no recurso 7.48.
-HOLD e Kingdom devem partir ocultos durante a construção e ser recalculados
-em cada atualização de estado. Textos de tooltip modernos são opcionais;
-ausência deles não pode bloquear nem derrubar a atualização nativa.
+Modern `65768/65771..65774` does not replace 1377. HOLD/Kingdom begin hidden
+and recalculate on state updates; missing modern tooltip controls are optional.
+`flows/ui/character-stat-fields-update.md` covers callers/callees and lifecycle.
+CP/Chaos is not `MSG_UpdateEtc::Hold`: that field carries persisted Held EXP
+debt; CP stays on the legacy CreateMob boundary. Positive Hold shows 1168;
+1376 displays value/percentage over 10% of the current-level interval. See
+`flows/combat/pvp-death-held-exp-lifecycle.md` for that lifecycle.
 
-A ficha `flows/ui/character-stat-fields-update.md` fecha callers, callees,
-ownership, teardown e relogin. CP/Chaos não ocupa `MSG_UpdateEtc::Hold`: esse
-campo transporta a dívida Held EXP persistida, enquanto CP continua na borda
-legada de `CreateMob`. Hold zero significa somente ausência de dívida; Hold
-positivo torna `1168` visível e `1376` mostra valor/percentual sobre 10% do
-intervalo do nível atual. O lifecycle completo está em
-`flows/combat/pvp-death-held-exp-lifecycle.md`.
+## Item context, scale and appearance
 
-## Contrato contextual dos itens
-
-O footprint lógico e a escala visual são conceitos diferentes.
-
-| Contexto | Ocupação lógica | Render e drag |
+| Context | Logical occupancy | Render/drag |
 | --- | --- | --- |
-| Inventário | 1×1 | Centralizado e contido numa célula 24×24. |
-| Cargo | 1×1 | Mesmo contrato do inventário. |
-| Loja de NPC | Grade ordinária da loja; para os itens adaptados, 1×1 | Centralizado na célula, sem invadir colunas vizinhas. |
-| Equipamento | Região irregular do slot | Item grande, ajustado à região inteira. |
-| Drag sobre inventário/cargo/loja | Footprint do destino | Visual usa escala do destino e highlight de uma célula. |
-| Drag sobre equipamento | Região do slot de destino | Visual e highlight cobrem toda a região de equipamento. |
+| Inventory/cargo | 1x1 | Centered, contained within 24x24 cell |
+| Ordinary NPC shop | Adapted items use 1x1 | Contained without invading neighboring columns |
+| Equipment | Irregular slot region | Large representation fitted to the full region |
+| Drag over inventory/cargo/shop | Destination footprint | Destination scale and one-cell highlight |
+| Drag over equipment | Destination slot region | Representation/highlight cover the whole region |
 
-No executável stock, a fórmula nativa usa `meshMaxZ` e a altura do footprint
-lógico original:
+Stock uses mesh maximum Z and original logical footprint height:
 
 ```text
-targetExtent = max(itemCellHeight, 1) × 0.3
+targetExtent = max(itemCellHeight, 1) * 0.3
 scale = min(1, targetExtent / meshMaxZ)
 ```
 
-O `WYD.exe` histórico patchado deste repositório muda as 16 entradas de
-`g_pItemGridXY` para `{1,1}` e reduz cada máscara de `g_pItemGrid` à primeira
-célula. A comparação byte a byte comprova que ele não altera o renderer. Assim,
-em inventário, cargo e loja ordinária a altura lógica que chega a
-`FUN_0040e817` já é 1. Essa é a fórmula nativa recuperada:
+Historical patched `WYD.exe` changes all 16 `g_pItemGridXY` entries to `{1,1}`
+and masks to the first cell. The recorded byte comparison leaves the renderer
+unchanged, so ordinary-grid target extent becomes 0.3. Both `FUN_0040e6aa`
+(virtual +0x8C) and `FUN_0040e817` (+0x90) use mesh +0x354 MaxZ, not AABB/radius
+or item-family overrides. Equipment retains its own 1.0/context scale; drag
+recalculates for destination, not stale source context.
 
-```text
-targetExtent = 0.3
-scale = min(1, targetExtent / meshMaxZ)
-```
+The 23/24/32 sizes are logical 800x600 units. Apply `m_fWidthRatio` and
+`m_fHeightRatio` consistently to `m_nWidth/m_nHeight` and `m_GCObj.width/height`,
+not again to model `fScale`. `FUN_0040fc3e` derives origin from width/columns
+and height/rows; `FUN_0040dd00` centers by half the region. Keep blue valid and
+red invalid destination feedback across the complete equipment region.
 
-`FUN_0040e6aa` (slot virtual `+0x8c`) e `FUN_0040e817` (slot virtual `+0x90`)
-executam a mesma regra de inserção e escala. Ambas consultam exclusivamente
-`mesh+0x354` (`MaxZ`); o client nativo não usa AABB, raio nem exceção por família
-de item. A source ativa mantém essa fórmula única para grids de células,
-mantém equipamento em escala própria `1.0` e recalcula o contexto durante drag.
+The historical centered footprint does not prove visual acceptance for every
+family. A dull/missing glow is not automatically a scale problem: distinguish
+wrong icon/mesh, material/texture, blend/depth/draw-order state and stale
+create/update state. Preserve native render-state restoration. A tooltip name
+does not prove icon identity, and a cape icon does not prove a kingdom change.
+Implement in active source/assets; never execute a historical patcher.
 
-Os tamanhos `23`, `24` e `32` são coordenadas lógicas da UI 800×600. Na source,
-a caixa visual (`m_nWidth`/`m_nHeight` e `m_GCObj.m_fWidth`/`m_fHeight`) deve
-aplicar `RenderDevice::m_fWidthRatio`/`m_fHeightRatio`, assim como a grid. Isso
-preserva o resultado em 800×600 e evita ícones fisicamente pequenos dentro de
-slots ampliados em resoluções maiores sem alterar `fScale`.
+## AutoTrade
 
-`FUN_0040fc3e` calcula a origem com `largura/colunas` e `altura/linhas`.
-`FUN_0040dd00` centraliza usando metade da largura e metade da altura da região;
-essa centralização foi confirmada visualmente no client atual. Isso não prova,
-sozinho, drag, equipamento ou todas as famílias de malha. O redimensionamento
-dos itens ainda exige execução real documentada antes de receber
-`CLIENT-TESTED`.
+`FUN_004110f5` materializes panel 626, price edit 627, caption 630 and confirm
+667, without the inherited `m_pChatSelectPanel`. Guard all optional accesses:
+open, invalid price, cancel, close, reentry and shared input. Do not fabricate
+a modern control. Historical crash `client-crash-20260826-154302.dmp` in
+`SGridControl::TradeItem`, RVA `0x718AC`, demonstrates this null access.
 
-Equipamento não deve reutilizar a escala reduzida do inventário. Recalcular a
-escala quando o item muda de contexto, inclusive durante drag. A área azul
-indica destino aceito; vermelha indica destino bloqueado. No equipamento, a
-cor deve cobrir a região inteira, não somente o quadrado sob o cursor.
+Native sale blacklist: `508, 509, 522, 526..537, 747, 3200..3299`. Item 4905
+is not blocked by this 7.48 rule. Server revalidation of item, slot, quantity
+and price remains mandatory regardless of client permission.
 
-A diferença binária histórica que comprovou o footprint 1×1 altera
-inventário/cargo; ela não autoriza reduzir o visual equipado nem mudar o
-packet/ABI. Esse comportamento deve existir integralmente na source e nos
-assets consumidos pelo `project.exe`; aplicar ou verificar o patcher legado é
-proibido.
+For this flow, test permitted item/valid price, invalid price without crash,
+cancel/close paths, publication, genuinely blocked item versus 4905, and reentry
+without phantom items, wrong messages or stale focus.
 
-## AutoTrade e seleção de itens para venda
+## ItemMix and artisan routing
 
-O fluxo nativo recuperado em `FUN_004110f5` materializa somente:
+All six panels have native uses; none is free UI for an invented system.
 
-```text
-626  painel de entrada
-627  edit de preço
-630  caption
-667  botão de confirmação
-```
-
-Não existe seletor de chat nesse fluxo do 7.48. `m_pChatSelectPanel` veio da
-source 7.59 e pode ser nulo por contrato; proteger todos os acessos — abertura,
-preço inválido, cancelamento, fechamento, reentrada e paths compartilhados de
-input — sem criar controle moderno para satisfazer o ponteiro.
-
-A blacklist nativa comprovada para adicionar item à loja é:
-
-```text
-508, 509, 522, 526–537, 747, 3200–3299
-```
-
-Não importar blacklist de versão mais nova. Em particular, o item `4905` não
-pertence à regra 7.48 e não deve receber a mensagem de item impossível de
-vender. O servidor continua obrigado a revalidar item, slot, quantidade e preço;
-a permissão no client não o torna autoritativo.
-
-Crash confirmado no dump `tmproject/client748/client-crash-20260826-154302.dmp`:
-`SGridControl::TradeItem`, RVA `0x718AC`, ao desreferenciar
-`m_pChatSelectPanel`. Corrigir somente o primeiro acesso não basta; procurar o
-símbolo em todo o lifecycle e proteger cada path executável.
-
-Aceitação mínima do AutoTrade:
-
-1. adicionar item permitido e informar preço válido;
-2. rejeitar preço inválido sem crash e conservar foco/estado útil;
-3. cancelar e fechar por todos os caminhos nativos;
-4. abrir a loja e publicar a oferta;
-5. tentar item realmente bloqueado e o item `4905`;
-6. repetir/reentrar sem mensagem indevida, item fantasma ou crash.
-
-## ItemMix e NPCs artesãos nativos
-
-O client 7.48 possui seis painéis ItemMix distintos. Todos são utilizados pelo
-fluxo nativo; portanto nenhum deles é uma UI livre para um sistema novo.
-
-| ItemMix | Painel / slots / executar | NPC e condição nativa | Opcode ativo |
+| Mix | Panel / slots / execute | Native NPC condition | Opcode |
 | --- | --- | --- | --- |
-| 1 | 1360 / 1367–1374 / 1375 | Compositor, cabeça 54; chunk 19,13 usa modo 0 e chunk 25,13 usa modo 1 | `0x3A6` |
-| 2 | 6110 / 6112–6119 / 6111 | Aylin, cabeça 55 | `0x3B5` |
-| 3 | 6145 / 6147–6152 / 6146 | Agatha, cabeça 56 | `0x3BA` |
-| 4 | 6432 / 6436–6438 / 6434 | Tiny, cabeça 68 fora do chunk 19,15 | `0x3C0` |
-| 5 | 6481 / 6483–6489 / 6482 | Lindy no chunk 13,13 e Odin no chunk 25,13 com Merchant baixo = 8 | `0x2C3` Lindy; `0x2D2` Odin |
-| 6 | 6512 / 6516–6518 / 6514 | Ehre, cabeça 68 no chunk 19,15 | `0x2D3` |
+| 1 | 1360 / 1367..1374 / 1375 | Compositor head 54; chunk 19,13 mode 0, chunk 25,13 mode 1 | `0x3A6` |
+| 2 | 6110 / 6112..6119 / 6111 | Aylin head 55 | `0x3B5` |
+| 3 | 6145 / 6147..6152 / 6146 | Agatha head 56 | `0x3BA` |
+| 4 | 6432 / 6436..6438 / 6434 | Tiny head 68 outside chunk 19,15 | `0x3C0` |
+| 5 | 6481 / 6483..6489 / 6482 | Lindy chunk 13,13; Odin chunk 25,13, low Merchant = 8 | `0x2C3` Lindy; `0x2D2` Odin |
+| 6 | 6512 / 6516..6518 / 6514 | Ehre head 68 in chunk 19,15 | `0x2D3` |
 
-`FUN_00435b13` centraliza cada um dos seis roots ItemMix separadamente e
-posiciona Inventory à direita por
-`centerX + Inventory.width*0.5 + 10`, com ambos centralizados verticalmente.
-Como Shop, Trade e AutoTrade movem o mesmo root 257, essa composição deve ser
-reaplicada ao abrir qualquer artesão; a posição serializada ou residual não é
-o layout final nativo. Os toggles/cleanups correspondentes são, em ordem,
-`FUN_00449384`/`FUN_004487E2`, `FUN_00449632`/`FUN_004489C5`,
-`FUN_004498E0`/`FUN_00448C38`, `FUN_00449B8E`/`FUN_00448E0B`,
-`FUN_00449E3C`/`FUN_00448FDE` e `FUN_0044A0FB`/`FUN_004491B1`.
+`FUN_00435b13` centers each root separately and places Inventory to the right
+at `centerX + Inventory.width*0.5 + 10`, both vertically centered. Reapply when
+opening an artisan because Shop/Trade/AutoTrade move shared Inventory root 257.
+Serialized/residual position is not the final native layout. Ordered toggle/
+cleanup pairs:
 
-ItemMix2 também possui quatro grids de resultado, IDs 6129–6132. A ordem das
-condições em `MouseClick_MixNPC` faz parte do contrato: Ehre deve ser testada
-antes do fallback Tiny e os casos específicos da cabeça 67 antes do fallback.
-Não centralizar artesãos por nome ou cabeça sem conservar chunk e Merchant.
+```text
+FUN_00449384 / FUN_004487E2
+FUN_00449632 / FUN_004489C5
+FUN_004498E0 / FUN_00448C38
+FUN_00449B8E / FUN_00448E0B
+FUN_00449E3C / FUN_00448FDE
+FUN_0044A0FB / FUN_004491B1
+```
 
-O ItemMix5 possui ainda o modo nativo `0x2C4`, selecionado pela cabeça 67 no
-chunk 28,24 quando o NPC não tem ID 1033. A source atual do servidor não possui
-handler nem receita autoritativa para esse opcode. Esse ramo é `DORMANT`, não
-uma autorização para inventar uma receita ou reutilizar o painel. O ItemMix5
-continua compartilhado por Lindy e Odin.
+Mix2 result grids are 6129..6132. In `MouseClick_MixNPC`, Ehre precedes Tiny
+fallback; specific head-67 cases precede fallback. Preserve chunk/Merchant
+conditions instead of routing only by name/head. Mix5 also has native `0x2C4`
+for head 67, chunk 28,24, NPC ID other than 1033. At the original investigation
+the server lacked its authoritative handler/recipe (`DORMANT`); check current
+source before reusing that finding. Absence does not authorize inventing a
+recipe or repurposing Lindy/Odin's panel.
 
-Os controles modernos 65857/65861+, o botão 81923 e o caminho 86019 pertencem
-à source mais nova e não substituem os IDs acima. Como os valores numéricos de
-grid foram reaproveitados na source moderna, resolver os destinos ItemMix pelo
-painel visível e pelos IDs/ponteiros exatos; não renumerar a ABI nem deixar os
-ramos de quickslot capturarem as grids nativas.
+Modern 65857/65861+, button 81923 and path 86019 do not replace these IDs.
+Modern grid numbers were reused: resolve destinations by visible panel and
+exact IDs/pointers; do not renumber ABI or let quickslot branches intercept them.
 
-## Painel Party nativo
+## Party and Quest
 
-O 7.48 usa root `1857`, lista `1863` e botão inferior `5742`.
-`FUN_00435b13` coloca root e botão em `x=0` e
-`y=viewportHeight-root.height-165`. `FUN_0044da6f` é o toggle compartilhado
-por botão, tecla `P`, packets, `Esc` e fechamento por UI concorrente; o botão
-fica selecionado quando o painel está oculto e não selecionado quando visível.
+Party uses root 1857, list 1863, button 5742. `FUN_00435b13` positions root/
+button at `x=0`, `y=viewportHeight-root.height-165`. `FUN_0044da6f` shares the
+toggle among button, `P`, packets, `Esc` and competing UI; button selection is
+inverse to panel visibility. `0x37F/0x37D/0x37E` update invitation/add/removal;
+left-click invitation emits `0x3AB`; Ctrl-click removes and right-click supports
+support skills. The container owns controls and list owns items. Hiding the
+panel does not leave the party; distinguish leave action from visibility.
+Teardown converges at FieldScene deleting destructor `FUN_004358da`.
+Modern `475136/475138/65799` and optional AutoParty do not replace native IDs.
+See `flows/ui/party-panel-layout-lifecycle.md`; repeat affected paths after relogin.
 
-Os packets `0x37F`, `0x37D` e `0x37E` alimentam convite, inclusão e remoção;
-o click esquerdo no convite envia `0x3AB`. A lista também trata
-`Ctrl`+click para remoção e click direito para skill de suporte. O container é
-dono dos controles e a lista dos itens; esconder Party não encerra o grupo.
-No teardown, o deleting destructor da FieldScene converge em `FUN_004358da`.
+Quest uses toggle 315, root 320, list/content pairs 321/322, 325/326, 327/328,
+335/334, close 323, title 324, tabs 329/330/331/333 and memo 332.
+`FUN_00441823` centers root `(viewport-panel)/2` on both axes and loads
+`QuestSubjects.txt` through `QuestSubjects4.txt` plus `QuestMessage.txt`.
+`FUN_004662C5` handles toggles, tabs, list selection, memo and closure;
+`FUN_0049E50F` rejects a null destination. `X` routes to 315, not imported 65793;
+`FUN_00453C59` sends `Esc` to `FUN_0044DF53`; teardown reaches `FUN_004358DA`.
+Share visibility across click, `X`, close, `Esc` and AirMove. Select only one
+list/content pair, protect optional controls, and recreate bindings/text after
+scene change/relogin. See `flows/ui/quest-panel-layout-lifecycle.md`.
 
-A source compatível deve vincular `1857/1863/5742`, reaplicar a posição ao
-abrir e centralizar a seleção do botão no mesmo helper de visibilidade. Os
-controles modernos `475136/475138/65799` podem permanecer no layout posterior,
-mas não substituem os IDs nativos. AutoParty moderno é opcional no modo 7.48 e
-não justifica fabricar controles ausentes. A ficha `TRACED` é
-`flows/ui/party-panel-layout-lifecycle.md`.
+## Skill windows, closure and messages
 
-## Painel Quest nativo
+For each affected window prove loaded IDs, creation, input/callback, initial
+state, modality, focus, ownership and destruction. Native `Esc`, `X` and
+Cancel paths converge; hiding a drawing must not leave mouse capture/modal
+state active. System menu placement follows native centered resource/lifecycle.
 
-O 7.48 materializa o toggle `315`, root `320`, listas/conteúdos
-`321/322`, `325/326`, `327/328` e `335/334`, fechar `323`, título `324`, abas
-`329/330/331/333` e memo `332`. `FUN_00441823` centraliza `320` exatamente em
-`(viewport-panel)/2` nos dois eixos e carrega `QuestSubjects.txt` até
-`QuestSubjects4.txt`, além de `QuestMessage.txt`.
+Skill 1905 toggles independently. Apprentice 1889 is NPC-driven and starts
+hidden. `FUN_0044c15c` opens both: 1889 centered and 1905 right at
+`centerX + skillWidth*0.5 + 10`. Closing hides the pair and recenters 1905 for
+its independent toggle. The master grid in `FieldScene2.bin` is 1894,
+type 16, parent 1889, position 31,63, size 191x241, 8x4. ID 6128 is description
+control `TML_SKILLM_DESC`, not a grid. Native descriptions must come from the
+identified native text/resources; calculated stat labels or generated prose
+are not substitutes. Validate content coverage and tooltip position in learned,
+apprentice and equipped/quickslot contexts separately.
 
-`FUN_004662C5` centraliza toggle, abas, seleção das listas, memo e fechamento.
-Os conteúdos passam por `FUN_0049E50F`, que rejeita destino nulo. A tecla `X`
-deve convergir no toggle nativo `315`; `65793` é o ID importado e não substitui
-o callback clássico. `FUN_00453C59` encaminha `Esc` para `FUN_0044DF53`, e o
-deleting destructor da FieldScene converge em `FUN_004358DA`.
+For login/notice/confirmation messages, identify native panel, texture/alpha,
+text writer, visibility and callbacks before changing layout. Compare the same
+original scenario; test click/`Esc` without stranded focus. Do not conflate
+top-of-screen notices, ordinary chat and player-attributed trumpet messages.
 
-A source deve reaplicar a centralização no open, vincular todo o grupo
-`320..335`, selecionar somente um par lista/conteúdo e proteger controles
-opcionais. Click, tecla `X`, botão fechar, `Esc` e AirMove precisam compartilhar
-o mesmo helper de visibilidade. Após troca de cena ou relogin, todos os
-bindings e textos são recriados; nenhum ponteiro antigo pode sobreviver. A
-ficha `TRACED` é `flows/ui/quest-panel-layout-lifecycle.md`.
+Scene2 `FUN_004A8F14` centers native root 4622 in X/Y; source translation is
+`P_SERVER_SEL` 65537. Children, labels, lists and hitboxes follow that root;
+do not add a second vertical offset. Proven independent adjustments: channel
+width 140, Server `y += 5`, Channel `x += 8`, `y += 5`, and logo branches for
+1024/1280/1600. See `flows/ui/server-selection-layout-lifecycle.md`.
+Selection overlays must not be replaced by channel-availability bypasses or
+weaken server validation after connection.
 
-## Lifecycle e fechamento
+## Proportional acceptance
 
-Para cada janela, recuperar no 7.48:
+Select affected scenarios, not this whole inventory after every edit:
 
-- função de criação e IDs realmente presentes no recurso;
-- ação de abrir, tecla/click e callback;
-- estado modal e ordem de fechamento/destruição;
-- owner de ponteiros e proteção para controles opcionais ausentes.
+- Server/channel overlay, aligned names and translucent native message panels.
+- Correct callbacks, native `Esc` priority and no remaining input capture.
+- Character fields, existing controls, no stray black bar.
+- Contained ordinary-grid icons; full-region equipment/drag and valid feedback.
+- Move/equip/drop and shop price, insufficient gold, sale confirmation.
+- Party list/leave callbacks and scene/relogin lifecycle.
+- Imported mounts without ABI corruption; correct HUD EXP/ATT/DEF composition.
+- Icon identity and native glow across relevant item families; remote appearance
+  uses owner/observer creation and incremental update checks when affected.
 
-`Esc`, botão `X` e botão textual de cancelamento/fechamento devem convergir no
-mesmo caminho nativo de transição. Não ocultar apenas o desenho deixando modal,
-captura de mouse ou ponteiro ativo. O menu de sistema deve usar o
-posicionamento central do recurso/lifecycle nativo, não coordenada absoluta do
-canto superior esquerdo.
-
-Roots 1905 e 1889 possuem lifecycles distintos no 7.48. A tecla/botão Skill
-alterna somente 1905. O root 1889 é a janela Skill Apprentice controlada pela
-interação com NPC e deve iniciar oculto; nunca vinculá-lo ao mesmo toggle da
-Skill comum.
-
-Durante a interação com o Skill Apprentice, `FUN_0044c15c` abre os dois roots:
-1889 centralizado e 1905 à direita em
-`centerX + skillWidth*0.5 + 10`. O fechamento oculta o par e devolve 1905 ao
-centro para seu toggle independente. A grade do mestre em `FieldScene2.bin` é
-1894 (`type=16`, parent 1889, `31,63`, `191x241`, `8x4`); 6128 é o controle de
-descrição `TML_SKILLM_DESC`, não uma grade.
-
-## Mensagens, login e seleção de servidor
-
-O 7.48 reutiliza recursos próprios para login, notice, confirmação e
-notificação. Antes de alterar translucidez, tamanho ou posição:
-
-1. identificar o painel nativo, sua textura e alpha;
-2. identificar a função que escreve o texto e controla visibilidade;
-3. confirmar botões e callbacks materializados no recurso;
-4. comparar com screenshot original equivalente;
-5. testar fechamento por click e `Esc` sem deixar input capturado.
-
-Na seleção de servidor/canal, a seleção deve aparecer pelo overlay/estado do
-controle nativo. O bypass de disponibilidade de canal, quando necessário para
-desenvolvimento, não pode substituir o estado visual de seleção nem relaxar a
-validação autoritativa depois da conexão.
-
-No branch Scene2 de `FUN_004A8F14`, o root nativo `4622` é centralizado em X e
-Y por `(viewport-root)/2`. A tradução da source é `P_SERVER_SEL` (`65537`). Os
-filhos dinâmicos, textos, listas e hitboxes acompanham esse root; não aplicar
-offset vertical adicional nem corrigir cada filho separadamente. Os ajustes
-independentes já comprovados são largura de canal 140, Server `y += 5`, Channel
-`x += 8`, `y += 5` e os branches de logo para 1024/1280/1600. A ficha
-`TRACED` é `flows/ui/server-selection-layout-lifecycle.md`.
-
-## Checklist de aceitação ainda não provado
-
-Os itens abaixo vieram de regressões observadas e precisam de teste real. Eles
-não são `CLIENT-TESTED` apenas por estarem documentados:
-
-- seleção de servidor/canal mostra overlay translúcido e nomes alinhados;
-- login, notice, informação e mensagens de erro usam painel translúcido 7.48;
-- `Esc` fecha todas as UIs abertas conforme prioridade nativa;
-- `X`, Confirm e Cancel executam o callback correto;
-- Character não contém barra preta e mostra Skill Mastery, Chaos Point e
-  Attack Speed nos controles existentes do 7.48;
-- grid 1×1 mantém item contido e centralizado em inventário, cargo e loja;
-- equipamento e drag de equipamento usam a região inteira e highlight completo;
-- item pode ser movido, equipado e jogado no chão com feedback correto;
-- compra sem gold, preço, gold e confirmação de venda aparecem corretamente;
-- menu de venda de NPC e menu de sistema têm layout/lifecycle nativos;
-- Party abre por botão e `P`, mantém lista/callbacks funcionais e fecha por
-  `Esc`/UI concorrente sem perder membros; repetir após troca de cena/relogin;
-- montarias KR importadas são renderizadas sem corromper ABI 7.48;
-- barra inferior exibe EXP/ATT/DEF nos IDs nativos e ocupa a composição correta.
-
-## Validação mínima
-
-1. Confirmar hashes dos executáveis.
-2. Compilar e confirmar que o build instalou `tmproject/client748/project.exe`
-   automaticamente.
-3. Registrar hash do candidato e limpar/rotacionar log diagnóstico.
-4. Executar o fluxo real em resolução de referência.
-5. Capturar screenshot comparável ao original.
-6. Testar click, drag, destino válido/inválido, `X`, `Esc`, erro e relogin.
-7. Inspecionar log e minidump se houver crash.
-8. Classificar cada item individualmente como `IMPLEMENTED`,
-   `STATICALLY VERIFIED`, `AUTOMATED TESTED` ou `CLIENT-TESTED`.
-
-Paridade só é concluída quando o fluxo e o visual forem testados no client; uma
-compilação sem erro não fecha este checklist.
+Use focused tests and incremental build for source changes, asset identity/
+loader checks for asset changes. Build-only uses PowerShell 7 and `-NoDeploy`.
+Only install/run when in scope and allowed. Record exact executable hash,
+loaded assets, resolution and scenario; preserve crash logs/dumps before any
+rotation. Test applicable click/drag/valid-invalid destinations/closure/error/
+relogin and compare equivalent screenshots. Report each issue as `IMPLEMENTED`,
+`STATICALLY VERIFIED`, `AUTOMATED TESTED` or `CLIENT-TESTED`; compilation alone
+does not close visual acceptance. Keep blocked or unexecuted checks explicit.

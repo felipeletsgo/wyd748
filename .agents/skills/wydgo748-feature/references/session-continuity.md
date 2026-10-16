@@ -48,6 +48,14 @@ patch:
 - gaps and pending acceptance criteria;
 - next executable step and blocking condition, if any.
 
+For delivery continuations, distinguish the source revision/dirty scope,
+validated candidate, installed runtime, public patch and active server release.
+Include the payload allowlist and dependency hashes when packaging from a
+working-tree candidate. Preserve the exact deployment account and configured
+identity-file location in the appropriate operational receipt, never private
+key contents. Record the failure phase and explicit restart restriction rather
+than guessing a new account or repeating unsuccessful authentication.
+
 Update the record when closing a batch or stopping unfinished work if these
 items changed materially. Do not record activity that added no knowledge.
 Links replace dumps, copied code, and transcripts.

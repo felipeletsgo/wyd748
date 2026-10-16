@@ -55,11 +55,13 @@ func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 func (w *World) resolvePlayerTeleportDestination(p *Player, x, y uint16) (uint16, uint16, bool) {
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld ||
 		x == 0 || y == 0 || !w.terrain.Walkable(x, y) ||
-		!hiddenValleyDestinationAllowed(p, x, y, w.now()) {
+		!hiddenValleyDestinationAllowed(p, x, y, w.now()) ||
+		!w.newbieZoneDestinationAllowed(p, x, y) {
 		return 0, 0, false
 	}
 	x, y = w.findFreePlayerPosition(x, y, 3, p)
-	return x, y, w.terrain.Walkable(x, y) && hiddenValleyDestinationAllowed(p, x, y, w.now())
+	return x, y, w.terrain.Walkable(x, y) && hiddenValleyDestinationAllowed(p, x, y, w.now()) &&
+		w.newbieZoneDestinationAllowed(p, x, y)
 }
 
 func (w *World) publishPlayerTeleport(p *Player) {
@@ -76,6 +78,7 @@ func (w *World) publishPlayerTeleport(p *Player) {
 	w.sendToPlayerView(p, func() []byte {
 		return wire.ActionStop(p.ID, p.X, p.Y)
 	})
+	w.relocateOwnerSummons(p)
 }
 
 // onReqTeleport handles the native MSG_ReqTeleport 0x290. The packet carries no

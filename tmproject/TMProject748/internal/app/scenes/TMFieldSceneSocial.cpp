@@ -6,67 +6,102 @@
 #include "TMUtil.h"
 #include "WYD748Assets.h"
 #include <WinInet.h>
+#include <mutex>
+#include <vector>
+#include "GuildMarkDownload.h"
 #include "TMHuman.h"
 #include "TMObjectContainer.h"
 
-DWORD WINAPI Guildmark_Download(void* pArg)
+namespace
 {
-	// TODO: we have to find a better way to download the guildmark
-	// currently we have a great treat of data race...
-	auto pMark = (stGuildMarkInfo*)pArg;
-	auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+// A download only fetches bytes on its own thread. The texture is created by
+// PumpGuildMarkDownloads on the render thread, and a request never points at a
+// TMHuman, which may be destroyed while the download is in flight.
+struct GuildMarkRequest
+{
+	int markIndex;
+	int guildKey;
+	char url[192];
+	char data[640];
+	DWORD size;
+};
 
-	if (!g_pCurrentScene || !pMark || !pMark->strMarkFileName[0] || !pMark->pGuildMark)
+std::mutex g_guildMarkMutex;
+std::vector<GuildMarkRequest*> g_guildMarkDone;
+// Key of the request in flight per cache slot (0 = none) and the last failure,
+// so a missing mark is retried after guild_mark_download::RetryMs.
+int g_guildMarkPendingKey[64]{};
+unsigned int g_guildMarkFailedAt[64]{};
+
+DWORD WINAPI DownloadGuildMark(void* pArg)
+{
+	auto request = static_cast<GuildMarkRequest*>(pArg);
+	HINTERNET session = InternetOpenA("WYD", INTERNET_OPEN_TYPE_PRECONFIG, nullptr, nullptr, 0);
+	if (session)
 	{
-		g_pTextureManager->m_stGuildMark[pMark->nMarkIndex].nGuild = -1;
-		return 0;
-	}
-
-	pFScene->m_dwLastGetGuildmarkTime = timeGetTime();
-
-	char strMarkBuffer[632]{};
-	char strURL[64]{};
-
-	auto URLMark = "http://meusite.com/guilds/";
-	strcpy(strURL, URLMark); // g_pMessageStringTable[377] stores the guild mark address
-	strcat(strURL, pMark->strMarkFileName);
-
-	if (!pFScene->m_hInternetSession)
-	{
-		pFScene->m_hInternetSession = InternetOpen("MS", 0, 0, 0, 0);
-		if (!pFScene->m_hInternetSession)
-			return 0;
-	}
-
-	auto m_hHttpFile = InternetOpenUrl(pFScene->m_hInternetSession, strURL, 0, 0, 0x4000000, 0);
-
-	DWORD dwBytesRead = 0;
-	if (m_hHttpFile)
-	{
-		char szData[1024]{};
-		InternetReadFile(m_hHttpFile, szData, 632, &dwBytesRead);
-		memcpy(strMarkBuffer, szData, dwBytesRead);
-		InternetCloseHandle(m_hHttpFile);
-
-		int bIsCorrectBMP = pFScene->Guildmark_IsCorrectBMP(strMarkBuffer);
-		if (bIsCorrectBMP == 1 && g_pTextureManager->LoadGuildTexture(pMark->nMarkIndex, strMarkBuffer) == 1)
+		HINTERNET file = InternetOpenUrlA(session, request->url, nullptr, 0,
+			INTERNET_FLAG_RELOAD | INTERNET_FLAG_NO_CACHE_WRITE, 0);
+		if (file)
 		{
-			++pFScene->m_nGuildMarkCount;
-			g_pTextureManager->m_stGuildMark[pMark->nMarkIndex].nGuild = pMark->nGuild + (pMark->nGuildChannel << 16);
-			pMark->pGuildMark->m_GCPanel.nMarkIndex = pMark->nMarkIndex;
-			if (pMark->sGuildIndex == 509)
-				pMark->pGuildMark->m_GCPanel.nMarkLayout = 1;
-			else if (pMark->sGuildIndex >= 526 && pMark->sGuildIndex <= 531)
-				pMark->pGuildMark->m_GCPanel.nMarkLayout = 2;
-			else
-				pMark->pGuildMark->m_GCPanel.nMarkLayout = 3;
+			DWORD read = 0;
+			while (request->size < sizeof(request->data) &&
+				InternetReadFile(file, request->data + request->size,
+					static_cast<DWORD>(sizeof(request->data)) - request->size, &read) && read)
+			{
+				request->size += read;
+			}
+			InternetCloseHandle(file);
 		}
+		InternetCloseHandle(session);
 	}
+	std::lock_guard<std::mutex> lock(g_guildMarkMutex);
+	g_guildMarkDone.push_back(request);
+	return 0;
+}
 
-	if (m_hHttpFile != nullptr)
-		InternetCloseHandle(m_hHttpFile);
+void RequestGuildMark(int markIndex, int guildKey, const char* fileName)
+{
+	auto request = new GuildMarkRequest{};
+	request->markIndex = markIndex;
+	request->guildKey = guildKey;
+	sprintf_s(request->url, "%s%s", guild_mark_download::Address, fileName);
+	g_guildMarkPendingKey[markIndex] = guildKey;
+	HANDLE thread = CreateThread(nullptr, 0, DownloadGuildMark, request, 0, nullptr);
+	if (!thread)
+	{
+		g_guildMarkPendingKey[markIndex] = 0;
+		g_guildMarkFailedAt[markIndex] = timeGetTime();
+		delete request;
+		return;
+	}
+	CloseHandle(thread);
+}
+}
 
-	return 1;
+void TMFieldScene::PumpGuildMarkDownloads()
+{
+	std::vector<GuildMarkRequest*> done;
+	{
+		std::lock_guard<std::mutex> lock(g_guildMarkMutex);
+		done.swap(g_guildMarkDone);
+	}
+	for (auto request : done)
+	{
+		const int index = request->markIndex;
+		const bool current = g_guildMarkPendingKey[index] == request->guildKey;
+		if (current)
+			g_guildMarkPendingKey[index] = 0;
+		auto& slot = g_pTextureManager->m_stGuildMark[index];
+		if (current && slot.nGuild == request->guildKey && !slot.pTexture)
+		{
+			if (request->size >= 630 && Guildmark_IsCorrectBMP(request->data) &&
+				g_pTextureManager->LoadGuildTexture(index, request->data) == 1)
+				++m_nGuildMarkCount;
+			else
+				g_guildMarkFailedAt[index] = timeGetTime();
+		}
+		delete request;
+	}
 }
 
 void TMFieldScene::SetVisibleParty()
@@ -364,39 +399,34 @@ int TMFieldScene::Guildmark_Create(stGuildMarkInfo* pMark)
 	if (!pMark || !pMark->pGuildMark)
 		return 0;
 
-	int nFindMarkIndex = Guildmark_Find_ArrayIndex(pMark->nGuild + (pMark->nGuildChannel << 16));
-
+	const int guildKey = pMark->nGuild + (pMark->nGuildChannel << 16);
+	char strFileName[64]{};
+	Guildmark_MakeFileName(strFileName, pMark->nGuild, 0, pMark->nGuildChannel);
+	strcpy_s(pMark->strMarkFileName, strFileName);
 	pMark->bLoadedGuildmark = 1;
-	if (nFindMarkIndex != -1)
+
+	int nMarkIndex = Guildmark_Find_ArrayIndex(guildKey);
+	if (nMarkIndex != -1)
 	{
-		Guildmark_Link(pMark->pGuildMark, nFindMarkIndex, pMark->sGuildIndex);
+		Guildmark_Link(pMark->pGuildMark, nMarkIndex, pMark->sGuildIndex);
+		// A guild without a mark (or a failed download) is retried later, so a
+		// mark the leader uploads afterwards appears without restarting.
+		if (!g_pTextureManager->m_stGuildMark[nMarkIndex].pTexture && !g_guildMarkPendingKey[nMarkIndex] &&
+			timeGetTime() - g_guildMarkFailedAt[nMarkIndex] >= guild_mark_download::RetryMs)
+			RequestGuildMark(nMarkIndex, guildKey, strFileName);
 		return 1;
 	}
 
-	pMark->nMarkIndex = Guildmark_Find_EmptyArrayIndex();
-	if (pMark->nMarkIndex == -1)
-		pMark->nMarkIndex = Guildmark_DeleteIdleGuildmark();
-
-	if (pMark->nMarkIndex != -1)
-	{
-		char strFileName[64]{};
-
-		int nChief = 0;
-		if (pMark->sGuildIndex == 526 || pMark->sGuildIndex == 529 || pMark->sGuildIndex == 532 || pMark->sGuildIndex == 535)
-			nChief = 1;
-		if (pMark->sGuildIndex == 527 || pMark->sGuildIndex == 530 || pMark->sGuildIndex == 533 || pMark->sGuildIndex == 536)
-			nChief = 2;
-		if (pMark->sGuildIndex == 528 || pMark->sGuildIndex == 531 || pMark->sGuildIndex == 534 || pMark->sGuildIndex == 537)
-			nChief = 3;
-
-		Guildmark_MakeFileName(strFileName, pMark->nGuild, nChief, pMark->nGuildChannel);
-		strcpy(pMark->strMarkFileName, strFileName);
-		g_pTextureManager->m_stGuildMark[pMark->nMarkIndex].nGuild = pMark->nGuild + (pMark->nGuildChannel << 16);
-
-		CreateThread(NULL, 0, Guildmark_Download, pMark, 0, NULL);
+	nMarkIndex = Guildmark_Find_EmptyArrayIndex();
+	if (nMarkIndex == -1)
+		nMarkIndex = Guildmark_DeleteIdleGuildmark();
+	if (nMarkIndex < 0 || nMarkIndex >= 64)
 		return 1;
-	}
 
+	pMark->nMarkIndex = nMarkIndex;
+	g_pTextureManager->m_stGuildMark[nMarkIndex].nGuild = guildKey;
+	Guildmark_Link(pMark->pGuildMark, nMarkIndex, pMark->sGuildIndex);
+	RequestGuildMark(nMarkIndex, guildKey, strFileName);
 	return 1;
 }
 
@@ -475,11 +505,15 @@ int TMFieldScene::Guildmark_IsCorrectBMP(char* szMarkBuffer)
 		return 0;
 	if (header.bfSize != 630 && header.bfSize != 632)
 		return 0;
+	// The native mark has a 54-byte header; a larger offset would copy past
+	// the info header from a downloaded (untrusted) buffer.
+	if (header.bfOffBits != sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER))
+		return 0;
 
-	BITMAPINFO info;
-	memcpy(&info, &szMarkBuffer[14], header.bfOffBits - 14);
-	if (info.bmiHeader.biWidth == 16 && info.bmiHeader.biHeight == 12)
-		return info.bmiHeader.biBitCount == 24;
+	BITMAPINFOHEADER info;
+	memcpy(&info, &szMarkBuffer[sizeof(BITMAPFILEHEADER)], sizeof(info));
+	if (info.biWidth == 16 && info.biHeight == 12)
+		return info.biBitCount == 24 && info.biCompression == BI_RGB;
 
 	return 0;
 }

@@ -177,6 +177,15 @@ func (w *World) hideGhostShop(p *Player, shop *GhostShop) {
 	p.hide(shop.ID)
 }
 
+// playerCreatePacket includes session labels in every player snapshot.
+func playerCreatePacket(subject *Player) []byte {
+	packet := wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
+		bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
+		subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP, model.AppearanceCapeEmblem(*subject.Char))
+	wire.PutCreateMobTab(packet, subject.TabText, subject.TabColor)
+	return packet
+}
+
 // playerEnterViewPackets materializes one player with the canonical 7.48+
 // packet ABI. HP/MP follows CreateMob so a reused entity ID cannot retain a
 // stale dead-state resource cache.
@@ -185,9 +194,7 @@ func playerEnterViewPackets(subject *Player) [][]byte {
 		return nil
 	}
 	return [][]byte{
-		wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
-			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
-			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP, model.AppearanceCapeEmblem(*subject.Char)),
+		playerCreatePacket(subject),
 		wire.HpMp(subject.ID, wireScoreState(subject.Char)),
 		wire.ActionStop(subject.ID, subject.X, subject.Y),
 	}
@@ -206,7 +213,7 @@ func sendPlayerEnterView(observer, subject *Player) {
 // face transformation, color, refinement, cape, or mount) via MSG_UpdateEquip
 // 0x36B. This is the native SendEquip/GridMulticast: it has no coordinates and
 // therefore does not interrupt or snap an ongoing walk. CreateMob is reserved
-// for entering or re-entering view.
+// for entering/re-entering view and the existing in-place CP/tab metadata path.
 func (w *World) refreshAppearance(subject *Player) {
 	if subject == nil || !subject.InWorld || subject.Char == nil {
 		return
@@ -772,9 +779,7 @@ func (w *World) syncPlayerChaos(subject *Player) {
 		return
 	}
 	w.sendToPlayerViewProtocol(subject, func(observer *Player) []byte {
-		return wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
-			bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
-			subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP, model.AppearanceCapeEmblem(*subject.Char))
+		return playerCreatePacket(subject)
 	})
 }
 

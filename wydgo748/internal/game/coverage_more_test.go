@@ -186,11 +186,13 @@ func TestSummonCombatCoversAttackFollowPassiveAndImmobileKinds(t *testing.T) {
 	}
 	// Remove the order: ordinary summons and pets should only follow.
 	owner.CombatTargetID = 0
-	oldFollowerX, oldPetX, oldWallX := follower.X, pet.X, wall.X
+	// Idle followers far beyond the leash are placed beside the owner.
+	oldWallX := wall.X
 	w.tickSummonCombat(now.Add(3 * time.Second))
-	if follower.X == oldFollowerX || pet.X == oldPetX {
-		t.Fatalf("followers did not keep up: normal=%d/%d pet=%d/%d",
-			oldFollowerX, follower.X, oldPetX, pet.X)
+	if chebyshev(follower.X, follower.Y, owner.X, owner.Y) > summonFollowDistance ||
+		chebyshev(pet.X, pet.Y, owner.X, owner.Y) > summonFollowDistance {
+		t.Fatalf("followers did not keep up: normal=(%d,%d) pet=(%d,%d)",
+			follower.X, follower.Y, pet.X, pet.Y)
 	}
 	if wall.X != oldWallX {
 		t.Fatal("Thorn Wall moved")

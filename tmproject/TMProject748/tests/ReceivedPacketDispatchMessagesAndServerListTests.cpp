@@ -16,7 +16,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
     messagePanel[0] = 108;
     messagePanel[4] = 0x01;
     messagePanel[5] = 0x01;
-    std::memcpy(messagePanel.data() + 12, "Inventario limpo", 17);
+    std::memcpy(messagePanel.data() + 12, "Inventory clear", 16);
     int panelCalls = 0;
     const auto receivePanel = [&](const PacketView& view) {
         ++panelCalls;
@@ -46,7 +46,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
         "valid MessagePanel delivered once");
     MSG_MessagePanel decodedPanel{};
     std::memcpy(&decodedPanel, messagePanel.data(), sizeof(decodedPanel));
-    check(decodedPanel.Header.ID == 0 && std::strcmp(decodedPanel.String, "Inventario limpo") == 0 &&
+    check(decodedPanel.Header.ID == 0 && std::strcmp(decodedPanel.String, "Inventory clear") == 0 &&
         decodedPanel.String[95] == 0,
         "MessagePanel preserves zero ID, text and final terminator");
     check(messagePanel == panelBefore, "gate preserves every MessagePanel byte");
@@ -126,7 +126,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
         // -938 little-endian, the same index as the party invitation in Go.
         frame[14] = 0x56;
         frame[15] = static_cast<char>(0xFC);
-        if (opcode == 0x106) std::memcpy(frame.data() + 16, "Lider", 6);
+        if (opcode == 0x106) std::memcpy(frame.data() + 16, "Leader", 7);
         int calls = 0;
         const auto receiveExtension = [&](const PacketView& view) {
             ++calls;
@@ -196,7 +196,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
     };
     parseTicket("*0", true, 0);
     parseTicket("*6:ticket", true, 6);
-    parseTicket("* +2resto", true, 2);
+    parseTicket("* +2suffix", true, 2);
     parseTicket("*7", false, 0);
     parseTicket("*-1", false, 0);
     parseTicket("*", false, 0);
@@ -234,10 +234,44 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
     char serverGroups[10][11][64]{};
     check(LastConfiguredServerGroup(serverGroups) == -1,
         "empty server list does not access a missing group");
+    const int publicAndFeaturedOrders[11]{1, 2};
+    const int aggregateGroup = AggregateServerGroupFromOrder(publicAndFeaturedOrders, 10);
+    check(aggregateGroup == 1,
+        "hidden featured group comes from the name asset, not status endpoints");
+    std::memcpy(serverGroups[0][0], "https://example.invalid/status", 31);
+    std::memcpy(serverGroups[0][1], "127.0.0.1", 10);
+    for (int open = 0; open < 2; ++open) {
+        const bool isAggregate = 0 == AggregateServerGroupFromOrder(publicAndFeaturedOrders, 10);
+        check(LastConfiguredServerGroup(serverGroups) == 0 && !isAggregate,
+            "reopening the only public group cannot enter aggregate handling");
+        int visibleChannels = 0;
+        for (int channel = 1; channel < 11; ++channel)
+            if (serverGroups[0][channel][0] && (!isAggregate || 0 - channel >= 0))
+                ++visibleChannels;
+        check(visibleChannels == 1 && serverGroups[0][0][0] != '\0',
+            "single-group channel row and status endpoint survive repeated opens");
+    }
+    const int onlyPublicOrder[11]{1};
+    const int emptyOrders[11]{};
+    const int reversedOrders[11]{3, 1, 2};
+    const int fullOrders[11]{10, 1};
+    const int invalidOrders[11]{1, 11};
+    const int negativeOrders[11]{1, -1};
+    check(AggregateServerGroupFromOrder(onlyPublicOrder, 10) == -1 &&
+        AggregateServerGroupFromOrder(emptyOrders, 10) == -1,
+        "no synthetic aggregate is inferred from zero or one named group");
+    check(AggregateServerGroupFromOrder(reversedOrders, 10) == 2 &&
+        AggregateServerGroupFromOrder(fullOrders, 10) == 9,
+        "aggregate identity follows the highest order within physical capacity");
+    check(AggregateServerGroupFromOrder(invalidOrders, 10) == -1 &&
+        AggregateServerGroupFromOrder(negativeOrders, 10) == -1 &&
+        AggregateServerGroupFromOrder(publicAndFeaturedOrders, 0) == -1,
+        "malformed orders cannot route an ordinary group through aggregation");
+    std::memset(serverGroups, 0, sizeof(serverGroups));
     serverGroups[0][0][0] = 'a';
     serverGroups[1][0][0] = 'b';
     check(LastConfiguredServerGroup(serverGroups) == 1,
-        "lista parcial termina no primeiro grupo vazio");
+        "partial list ends at the first empty group");
     for (auto& group : serverGroups)
         group[0][0] = 'a';
     check(LastConfiguredServerGroup(serverGroups) == 9,
@@ -247,7 +281,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
         orderedGroups[group] = group + 1;
     auto visibleGroups = VisibleServerGroupSlots(orderedGroups, serverGroups, 9);
     check(visibleGroups.count == 10 && visibleGroups.slots[0] == 9 && visibleGroups.slots[9] == 0,
-        "dez grupos visiveis preservam o ultimo slot e a ordem inversa");
+        "ten visible groups retain the last slot and descending order");
     serverGroups[9][0][0] = 0;
     check(visibleGroups.count == 10 && visibleGroups.slots[0] == 9,
         "row snapshot does not change when the aggregate clears status endpoints");
@@ -272,7 +306,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
         ChannelForVisibleRow(sparseChannels, 11, 0) == -1,
         "stale or out-of-list selection does not resolve an endpoint");
     char channelNames[10][10][9]{};
-    std::memcpy(channelNames[0][9], "Canal 10", 9);
+    std::memcpy(channelNames[0][9], "Room 10", 8);
     check(ServerChannelNameAt(channelNames, 0, 9) == channelNames[0][9] &&
         !ServerChannelNameAt(channelNames, 0, 10) &&
         !ServerChannelNameAt(channelNames, 10, 0) &&

@@ -1,197 +1,143 @@
-# Ghidra — client nativo WYD 7.48
+# Ghidra: native WYD 7.48 client
 
-Esta referência governa claims de paridade e mudanças que interceptam uma
-fronteira legada em `tmproject`. O objetivo é reproduzir o que
-precisa permanecer 7.48 sem impedir modernizações internas ou extensões
-coordenadas client/server.
+Use this reference for parity claims and affected legacy boundaries in
+`tmproject/`, not as a gate for unrelated internal modernization. Reuse proven
+records; investigate only missing or invalidated evidence.
 
-## Artefatos canônicos
+## Artifact identity
 
-Os executáveis têm papéis distintos:
+| Artifact | Role |
+| --- | --- |
+| `references/client748/WYDoriginal.exe` | Immutable historical stock client |
+| `references/client748/WYD.exe` | Historical Ghidra reference |
+| Build output identified by `tmproject/Build-Client.ps1` | Recompiled candidate; build-only uses `-NoDeploy` |
+| `tmproject/client748/WYD.exe` | Normal installed runtime; verify actual launched path/hash |
 
-```text
-references/client748/WYDoriginal.exe  stock histórico imutável
-references/client748/WYD.exe          referência histórica Ghidra
-tmproject/client748/project.exe                            único candidato executável e de validação
-```
-
-Hashes confirmados no snapshot de 23/08/2026:
+The 2026-08-23 historical snapshot recorded:
 
 ```text
-WYDoriginal.exe  B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
-WYD.exe          8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-project.exe      variável por build; vincular o hash do candidato às validações
+WYDoriginal.exe B545EA104DE50641E820F00B6BC54E4B2B14583ED75C7DCEC06F50BA5042619C
+WYD.exe         8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
 ```
 
-Os scripts e patches em `references/client748/` são somente material
-histórico. Não executá-los nem editá-los. O build de `tmproject`
-deve ser copiado/renomeado diretamente para `tmproject/client748/project.exe`, sem patch;
-toda alteração ativa pertence à source ou aos assets.
+These hashes identify historical evidence, not the current candidate. Old
+records mentioning `project.exe` do not make that file the current product.
+Do not run/edit historical patchers or copy a historical executable as fallback.
+Active changes belong in source/assets. Do not install a binary as a side effect
+of consulting Ghidra; installation and client execution require task scope.
 
-Os artefatos Ghidra ficam fora do Git e devem ser descobertos no perfil do
-usuário, sem gravar caminho absoluto da máquina no código:
+Discover local analysis outside Git. The following finds candidates, not proof
+that the newest project/export belongs to the required binary:
 
 ```powershell
 $ghidraProject = Get-ChildItem "$env:USERPROFILE\Tools\GhidraProjects" `
     -Filter 'WYD748Native_*.gpr' | Sort-Object LastWriteTime -Descending | `
     Select-Object -First 1
-
 $decompRoot = Get-ChildItem "$env:USERPROFILE\Tools\GhidraAnalysis" `
     -Directory | Sort-Object Name -Descending | ForEach-Object {
         Join-Path $_.FullName 'decompiled'
     } | Where-Object { Test-Path $_ } | Select-Object -First 1
 ```
 
-O export atual contém `functions.tsv` e um `.c` por função. Use o projeto Ghidra
-quando xrefs, tipos, stack, calling convention ou call graph forem necessários;
-use o export para busca rápida em massa.
+Verify the analyzed program identity against the record before using addresses.
+`functions.tsv` and per-function `.c` files support search; the Ghidra project
+resolves xrefs, types, stack, calling conventions and call graphs.
 
-## Procedimento para evidência nova ou invalidada
+## New or invalidated evidence
 
-Primeiro consultar a ficha existente. Evidência suficiente e com identidade
-válida permite avançar sem repetir busca/exportação. Aplicar os passos abaixo
-somente à lacuna nativa afetada; os gates de execução e validação estão no
-[AGENTS.md](../../../../AGENTS.md).
+1. Read the existing transition record first. Reuse a confirmed fingerprint
+   when recorded path, size, mtime and corpus are unchanged; hash again when
+   these inputs change or identity is insufficient. A mismatch requires
+   remapping, never silent reuse of addresses.
+2. Locate the behavior by string, opcode, size, constant, import or symbol.
+   Resolve native callers/callees and indirect reachability, not just a plausible
+   decompiled block.
+3. Map initial state, mutations, effects, ownership, rejection and lifecycle.
+   For wire/ABI, record size, offsets, signedness, packing and C->S/S->C direction;
+   tie byte tests/assertions to independent 7.48 evidence.
+4. Compare current source and secondary TMProject. Preserve compatible manual
+   improvements and explicit coordinated extensions. Port readable behavior,
+   not temporary decompiler names, virtual addresses or unstructured pseudocode.
+   Comment non-obvious compatibility/ownership decisions.
+5. Apply proportional gates from [AGENTS.md](../../../../AGENTS.md). Research
+   alone ends with a validated record; source adaptation adds focused tests/build.
+   Use `-NoDeploy` for build-only work. When actual client testing is allowed,
+   identify the installed candidate/hash, loaded resources and affected scenario.
+   A blocked visual test stays pending, not `CLIENT-TESTED`.
 
-1. Conferir o fingerprint registrado de
-   `references/client748/WYD.exe`. Reutilizar o SHA-256 confirmado se
-   caminho, tamanho e mtime não mudaram; recalculá-lo quando esses inputs
-   mudarem ou o registro for insuficiente. Se divergir, não reutilizar endereços
-   silenciosamente: reanalisar o novo binário.
-2. Localizar o comportamento por string, opcode, tamanho, constante, import ou
-   símbolo relacionado no export e no Ghidra.
-3. Abrir a função nativa e conferir callers e callees, não apenas o bloco que
-   parece relevante.
-4. Mapear estado inicial, mutações, side effects, lifecycle e condições de erro.
-5. Para wire/ABI, registrar tamanho, offsets, signedness, packing e direção
-   C→S/S→C. Confirmar com `static_assert` ou teste byte a byte na source.
-6. Comparar com a source atual e TMProject. Preservar melhorias manuais e
-   adotar estrutura posterior superior quando ela mantiver a fronteira legada
-   ou quando client e servidor definirem deliberadamente um contrato novo.
-7. Portar o comportamento para código legível. Não copiar nomes temporários,
-   endereços virtuais ou pseudocódigo desestruturado como arquitetura final.
-8. Inserir comentário apenas junto a decisões não óbvias de contrato,
-   compatibilidade ou ownership.
-9. Validar conforme o delta: pesquisa documental termina com a ficha validada;
-   adaptação de source exige testes/build afetados. Para o teste real, instalar
-   o candidato com `tmproject/Build-Client.ps1`, identificar o hash resultante e
-   executar o fluxo. Não instalar binário como efeito de uma consulta Ghidra.
+## Minimum evidence by boundary
 
-## Evidência mínima por área
+- Packets: native opcode/size validator, constructor/parser, direction,
+  enabling state, expected bytes and corresponding assertion/test.
+- UI/input: materialized resource IDs, creation/initial visibility,
+  input/callback, open/close conditions, pointer ownership and destruction order.
+  An inherited modern control may legitimately be null. Protect all access
+  paths; do not fabricate a widget merely to satisfy a newer member.
+- Character/items/render: consumed struct, mesh/face/item selector, actual
+  loaded resources/indices, renderer/fallback and create/update/destroy lifecycle.
+  Include owner and observer paths when synchronization affects appearance.
 
-### Packets e handlers
+## Known seeds
 
-- validador nativo de opcode/tamanho;
-- construtor ou parser nativo;
-- direção do packet;
-- transição de estado que habilita o handler;
-- bytes esperados e `static_assert`/teste correspondente.
-
-### UI e input
-
-- função que cria os controles;
-- IDs dos controles e estado inicial visível/oculto;
-- função de input/click/tecla;
-- callback e condição que abre/fecha a janela;
-- ownership e ordem de destruição para evitar crash.
-
-Além do código, confirmar que cada ID é materializado no recurso de UI carregado.
-Um membro herdado do TMProject 7.59 pode ficar legitimamente nulo no 7.48. Nesse
-caso, proteger todos os acessos e preservar o lifecycle principal; não criar um
-widget moderno apenas para satisfazer o ponteiro.
-
-### Personagem, item e render
-
-- struct realmente consumida pelo 7.48;
-- selector de mesh/face/item;
-- recursos e índices carregados;
-- renderer e condições de fallback;
-- lifecycle de criação, atualização e destruição.
-
-## Funções já identificadas
-
-Use estes pontos como seeds. Reconfirmar no projeto Ghidra quando o binário,
-corpus, função candidata ou claim dependente tiver mudado:
+These addresses belong to the recorded historical identity, not a stable API.
+Reopen only a changed or unproven dependent claim:
 
 ```text
-FUN_0055890a  validador nativo de opcode e tamanho
-FUN_00524bbb  construção do movimento C→S 0x366
-FUN_00520216  construção/validação da rota local
-FUN_0055f2dd  throttle/envio
-FUN_00492e7d  input e dispatch de campo
-FUN_00489a3e  dispatch de packets recebidos
-FUN_00441823  criação/inicialização principal da UI de campo
+FUN_0055890a  Native opcode/size validator
+FUN_00524bbb  C->S movement 0x366 construction
+FUN_00520216  Local route construction/validation
+FUN_0055f2dd  Send/throttle
+FUN_00492e7d  Field input/dispatch
+FUN_00489a3e  Received packet dispatch
+FUN_00441823  Main field UI creation/initialization
 ```
 
-## Triagem de crash com minidump e ASLR
-
-Para mapear um endereço carregado ao endereço preferido usado no Ghidra:
+## Crash triage, minidumps and ASLR
 
 ```text
-RVA = endereço_da_falha - base_carregada_do_módulo
-VA_preferido = ImageBase_preferido + RVA
+RVA = fault_address - loaded_module_base
+preferred_VA = preferred_ImageBase + RVA
 ```
 
-Registrar dump, exceção, módulo, base carregada, RVA, image base e hash exato do
-executável. Depois desassemblar a instrução, identificar o registrador/ponteiro
-inválido e mapear o acesso à linha da source; não concluir apenas pelo endereço.
+Record dump, exception, module, loaded base, RVA, preferred image base and exact
+executable hash. Use matching symbols/PDB or disassembly for that binary.
+An RVA from a recompiled candidate does not map directly into a different
+historical binary's Ghidra project. Identify the invalid register/pointer and
+source access; the address alone is not a diagnosis. Preserve crash artifacts
+before rotating logs or replacing the candidate.
 
-Exemplo confirmado em 23/08/2026: `0x009A1F46` com módulo carregado em
-`0x008B0000` resulta em RVA `0x000F1F46` e VA preferido `0x004F1F46`. A instrução
-fazia chamada virtual com `ecx == 0`, correspondente a acesso direto a
-`pFScene->m_pMHPBar` durante materialização do personagem.
+Historical examples (not current addresses):
 
-Exemplo confirmado em 26/08/2026: o dump
-`tmproject/client748/client-crash-20260826-154302.dmp` falhou em
-`SGridControl::TradeItem`, RVA `0x000718AC`, ao desreferenciar
-`m_pChatSelectPanel`. A UI 7.48 do AutoTrade usa painel 626, edit 627, caption
-630 e botão 667, sem o seletor de chat herdado da 7.59. A regra extraída desse
-caso é global: depois de identificar um controle opcional ausente, localizar
-todos os seus acessos, inclusive erro, reentrada e fechamento; proteger somente
-o frame que apareceu no primeiro dump deixa crashes equivalentes ativos.
+- 2026-08-23: fault `0x009A1F46`, loaded base `0x008B0000`, RVA `0x000F1F46`,
+  preferred VA `0x004F1F46`; virtual call with `ecx == 0` at direct
+  `pFScene->m_pMHPBar` access during character materialization.
+- 2026-08-26: `tmproject/client748/client-crash-20260826-154302.dmp`,
+  `SGridControl::TradeItem`, RVA `0x000718AC`, dereferenced
+  `m_pChatSelectPanel`. Native AutoTrade uses panel 626, edit 627, caption 630
+  and button 667, without the inherited 7.59 chat selector. Inspect all accesses,
+  including error, reentry, input and closure; guarding only the first frame
+  leaves equivalent crashes reachable.
 
-Os controles modernos `T_CURRENT_MHP=65618`, `T_MAX_MHP=65619`,
-`P_MHP_PROGRESS=65625` e `P_MHP_PROGRESS_TR=65626` não existem no dump atual da
-UI 7.48, nem como IDs truncados para 16 bits (`82`, `83`, `89`, `90`). Portanto,
-os bindings podem ser nulos por contrato: updates de score/equip/montaria devem
-testá-los sem impedir a entrada no mundo ou a criação do personagem.
+The recorded 7.48 UI lacks modern `T_CURRENT_MHP=65618`, `T_MAX_MHP=65619`,
+`P_MHP_PROGRESS=65625` and `P_MHP_PROGRESS_TR=65626`, including truncated IDs
+`82/83/89/90`. Their bindings may be null by contract. Score/equipment/mount
+updates must tolerate that without blocking world entry. Do not truncate IDs
+or fabricate replacements. A deliberate new control needs its own coordinated
+resource, binding, input and lifecycle contract.
 
-Ausência comprovada de um controle moderno não autoriza fabricar ID, truncar o
-ID para 16 bits ou instanciar um widget substituto. Preservar a transição nativa
-principal e tornar todos os paths auxiliares tolerantes a nulo.
+## Review boundaries and result
 
-## Proibições
+Do not infer parity from compilation or a similar screenshot, import newer
+packing/IDs without proof, remove an extension merely because stock lacks it,
+or accept a wrong modern packet to conceal a client constructor mismatch.
+Coordinate fixes must not conceal incorrect control identity/lifecycle.
 
-- Não declarar paridade com base apenas em compilação ou imagem semelhante.
-- Não portar `sizeof`, packing, offsets ou IDs do TMProject 7.59 sem prova 7.48.
-- Não remover função, asset ou estrutura manual apenas porque não existe no
-  nativo 7.48; ausência pode representar uma extensão intencional.
-- Não exigir equivalente nativo para contrato novo explicitamente coordenado;
-  exigir em seu lugar especificação e teste client/server.
-- Não corrigir UI apenas deslocando coordenadas se o lifecycle/ID do controle
-  ainda divergir.
-- Não aceitar packet moderno no servidor só para mascarar um construtor errado
-  no client recompilado.
-- Não promover uma adaptação a `CLIENT-TESTED` antes do `project.exe` passar pelo
-  fluxo in-game afetado; `IMPLEMENTED` e validação estática/automatizada são
-  estados intermediários legítimos. O histórico nunca é fallback do produto.
-- Não executar nem editar o patcher binário legado; ele é evidência histórica.
-
-## Saída esperada da investigação
-
-Antes da alteração, deixar uma matriz concisa:
+Before adaptation, record a concise claim matrix:
 
 ```text
-modo | comportamento | função/fronteira 7.48 | source atual | contrato server | decisão
+Mode | Behavior | 7.48 function/boundary | Current source | Server contract | Decision
 ```
 
-Depois da alteração, classificar o estado como:
-
-```text
-IMPLEMENTED
-STATICALLY VERIFIED
-AUTOMATED TESTED
-CLIENT-TESTED
-```
-
-Somente usar `CLIENT-TESTED` depois da execução real do fluxo afetado.
+Report `IMPLEMENTED`, `STATICALLY VERIFIED`, `AUTOMATED TESTED` and
+`CLIENT-TESTED` distinctly. The last requires actual execution of the affected
+flow in the identified candidate; historical evidence is never a product fallback.

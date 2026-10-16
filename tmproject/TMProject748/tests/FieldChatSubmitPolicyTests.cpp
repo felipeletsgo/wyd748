@@ -211,6 +211,32 @@ int RunFieldChatSubmitPolicyTests(int& checks)
         check(Describe(chat_submit::ClassifyCommand(input, colliding)) ==
             LegacyCommand(input, collisions), "literal/table collisions keep legacy precedence");
 
+    for (const char* command : {"tab", "tab2", "tab3", "tab4", "tab5", "tab6", "tab7", "tab8", "tab9"})
+        check(chat_submit::ClassifyCommand(command, names) == chat_submit::Command::Nickname,
+            "all nine tab commands use the bounded nickname path");
+    for (const char* command : {"tab0", "tab1", "tab10", "tab22", "tab2x", "tab ", "snd"})
+        check(chat_submit::ClassifyCommand(command, names) == chat_submit::Command::Whisper,
+            "near matches and SND retain ordinary whisper transport");
+    check(chat_submit::ClassifyCommand("tab", colliding) != chat_submit::Command::Nickname,
+        "tab extension preserves localized command precedence");
+    for (unsigned int color = 0; color < 9; ++color) {
+        check((tab_label::Color(color) >> 24) == 255, "tab colors are opaque");
+        for (unsigned int other = color + 1; other < 9; ++other)
+            check(tab_label::Color(color) != tab_label::Color(other), "tab colors are distinct");
+    }
+    check(tab_label::Color(0) == 0xFFCCCCCC && tab_label::Color(9) == tab_label::Color(0) &&
+        tab_label::Color(255) == tab_label::Color(0), "existing gray and invalid-color fallback");
+    struct GuardedTab { char before; char text[26]; char after; } label{'L', {}, 'R'};
+    const std::string longText(96, 'x');
+    tab_label::CopyText(label.text, longText.c_str());
+    check(std::strlen(label.text) == 25 && label.before == 'L' && label.after == 'R',
+        "oversized tab is terminated without touching adjacent memory");
+    tab_label::CopyText(label.text, "new");
+    check(std::strcmp(label.text, "new") == 0 && label.text[24] == 0,
+        "replacing a long tab clears stale tail bytes");
+    tab_label::CopyText(label.text, "");
+    check(label.text[0] == 0, "empty command clears the tab");
+
     for (int level = -2; level < 12; ++level)
         check(chat_submit::CanHandOverGuild(level) == !(level != 9 && (level < 3 || level > 8)),
             "guild handover gate matches legacy");

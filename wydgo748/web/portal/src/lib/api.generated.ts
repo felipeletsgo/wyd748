@@ -1085,10 +1085,180 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/player/v1/guild": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read the signed-in account's guild for management
+         * @description Resolves the guild through the account's characters in the saved guild projection, preferring the leader character. Only the leader may change the guild mark.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description The account's guild, role and current guild mark */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerGuildManagement"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/guild/mark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Upload the guild mark (guild leader only)
+         * @description A ready-to-use 16x12, 24-bit BMP of 630 or 632 bytes is stored unchanged; a PNG, JPEG, GIF or uncompressed BMP up to 64 KB is converted to it. The 7.48 client downloads it from /patch/guildmark/b<group><channel><guild>.bmp.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /** @description Base64 image bytes */
+                        image: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Stored guild mark */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerGuildMarkResult"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/player/v1/guild/mark/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove the guild mark (guild leader only) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description Guild mark removed */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerGuildMarkResult"];
+                    };
+                };
+                default: components["responses"]["PlayerError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PlayerGuildMark: {
+            /** @description Public address of the stored guild mark */
+            url: string;
+            /** Format: date-time */
+            updatedAt: string;
+        } | null;
+        PlayerGuildMarkResult: {
+            /** @constant */
+            version: 1;
+            mark: components["schemas"]["PlayerGuildMark"];
+        };
+        PlayerGuildManagement: {
+            /** @constant */
+            version: 1;
+            guild: {
+                id: number;
+                name: string;
+                /** @enum {integer} */
+                kingdom: 0 | 7 | 8;
+                fame: number;
+                members: {
+                    name: string;
+                    /** @enum {integer} */
+                    rank: 0 | 6 | 7 | 8 | 9;
+                }[];
+            };
+            /** @description The account's character in this guild */
+            character: string;
+            /** @enum {integer} */
+            rank: 0 | 6 | 7 | 8 | 9;
+            leader: boolean;
+            marksEnabled: boolean;
+            mark: components["schemas"]["PlayerGuildMark"];
+            /** @constant */
+            source: "persisted snapshot";
+        };
         PublicGuildProfile: {
             name: string;
             /** @enum {integer} */

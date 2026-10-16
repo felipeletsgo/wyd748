@@ -110,28 +110,27 @@ func TestCancelamentoRemovesOnlyFirstImmunityAffect(t *testing.T) {
 	}
 }
 
-func TestSamaritanoTransfersOnlyHostileAggroInSameRuntime(t *testing.T) {
+// Samaritan is a self buff: a selected party member or monster is ignored and
+// only the caster receives affect 24.
+func TestSamaritanIsSelfOnly(t *testing.T) {
 	caster, _ := networkedTestPlayer(1, "TK", 2200, 2200)
 	target, _ := networkedTestPlayer(2, "Target", 2201, 2200)
 	party := &Party{Members: []*Player{caster, target}}
 	caster.Party, target.Party = party, party
+	monster := &Mob{ID: 1400, X: 2202, Y: 2200, TargetID: target.ID,
+		Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100}
 	w := testSpatialWorld(nil, caster, target)
-	monsters := []*Mob{
-		{ID: 1400, TargetID: target.ID, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100},
-		{ID: 1401, TargetID: target.ID, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100, InstanceID: "another"},
-		{ID: 1402, TargetID: target.ID, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100, SummonerID: target.ID},
-		{ID: 1403, TargetID: 3, Def: testNPCDef(model.Score{MaxHP: 100}), HP: 100},
+	w.activeMobs[monster.ID] = monster
+	skill := model.SkillDef{Index: 3, InstanceType: 10, AffectType: 24, AffectValue: 200, AffectTime: 150}
+	for _, targetID := range []uint16{target.ID, monster.ID, 0} {
+		got := w.applySupportSkill(caster, skillCastRequest{TargetID: targetID}, skill, 100)
+		if len(got) != 1 || got[0].player != caster {
+			t.Fatalf("target %d: Samaritan affected %+v", targetID, got)
+		}
 	}
-	for _, m := range monsters {
-		m.X, m.Y = 2202, 2200
-		w.activeMobs[m.ID] = m
-	}
-	got := w.applySupportSkill(caster, skillCastRequest{TargetID: target.ID}, model.SkillDef{Index: 3, InstanceType: 10}, 100)
-	if len(got) != 1 || monsters[0].TargetID != caster.ID {
-		t.Fatal("Samaritano nao protegeu o alvo")
-	}
-	if monsters[1].TargetID != target.ID || monsters[2].TargetID != target.ID || monsters[3].TargetID != 3 {
-		t.Fatal("Samaritano alterou alvo fora do escopo")
+	if !hasActiveAffectAt(caster.Char, 24, w.now()) || hasActiveAffectAt(target.Char, 24, w.now()) ||
+		monster.TargetID != target.ID {
+		t.Fatal("Samaritan buffed or protected someone other than the caster")
 	}
 }
 

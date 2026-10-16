@@ -2,6 +2,7 @@
 #include "LightingProfile.h"
 #include "ClientSettings.h"
 #include "RenderStateCache.h"
+#include "NativeInventoryLighting.h"
 // RenderDevice split by responsibility; device lifecycle stays in RenderDevice.cpp.
 #include "RenderDevice.h"
 #include "TMGlobal.h"
@@ -94,31 +95,36 @@ int RenderDevice::SetRenderStateBlock(int nIndex)
 		SetTextureStageState(0, D3DTSS_TEXCOORDINDEX, 0);
 		m_pd3dDevice->SetFVF(322);
 	}
-	else if (nIndex == 1)
+	else if (nIndex == 1 || nIndex == native_inventory_lighting::RenderBlock)
 	{
-		m_light[0].Diffuse = m_colorLight;
-		m_light[0].Specular = m_colorLight;
-		m_light[1].Diffuse = m_colorBackLight;
-		m_light[1].Specular = m_colorBackLight;
-
-		if (g_pCurrentScene != nullptr && g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
+		const bool inventoryLighting = nIndex == native_inventory_lighting::RenderBlock;
+		if (inventoryLighting)
 		{
-			if (static_cast<TMFieldScene*>(g_pCurrentScene)->m_bShowBoss == 1)
-			{
-				m_light[0].Diffuse.a = 0.0;
-				m_light[0].Diffuse.b = 0.0;
-				m_light[0].Diffuse.g = 0.0;
-				m_light[0].Diffuse.r = 0.0;
-				m_light[0].Specular.a = 0.0;
-				m_light[0].Specular.b = 0.0;
-				m_light[0].Specular.g = 0.0;
-				m_light[0].Specular.r = 0.0;
-			}
-			static_cast<TMFieldScene*>(g_pCurrentScene)->m_bShowBoss = 0;
+			native_inventory_lighting::Prepare(m_light);
 		}
+		else
+		{
+			m_light[0].Diffuse = m_colorLight;
+			m_light[0].Specular = m_colorLight;
+			m_light[1].Diffuse = m_colorBackLight;
+			m_light[1].Specular = m_colorBackLight;
 
-		m_light[1].Diffuse = m_colorBackLight;
-		m_light[1].Specular = m_colorBackLight;
+			if (g_pCurrentScene != nullptr && g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
+			{
+				if (static_cast<TMFieldScene*>(g_pCurrentScene)->m_bShowBoss == 1)
+				{
+					m_light[0].Diffuse.a = 0.0;
+					m_light[0].Diffuse.b = 0.0;
+					m_light[0].Diffuse.g = 0.0;
+					m_light[0].Diffuse.r = 0.0;
+					m_light[0].Specular.a = 0.0;
+					m_light[0].Specular.b = 0.0;
+					m_light[0].Specular.g = 0.0;
+					m_light[0].Specular.r = 0.0;
+				}
+				static_cast<TMFieldScene*>(g_pCurrentScene)->m_bShowBoss = 0;
+			}
+		}
 		m_light[0].Direction = D3DXVECTOR3(1.0f, -1.0f, -1.0f);
 		m_light[1].Direction = D3DXVECTOR3(0.0f, 0.0f, 1.0f);
 
@@ -153,7 +159,12 @@ int RenderDevice::SetRenderStateBlock(int nIndex)
 
 		m_pd3dDevice->SetVertexShaderConstantF(1, (const float*)&vLightDir, 1);
 
-		if (g_pDevice->m_iVGAID == 1)
+		if (inventoryLighting)
+		{
+			SetRenderState(D3DRS_ALPHAREF, native_inventory_lighting::AlphaReference(m_dwBitCount));
+			SetRenderState(D3DRS_CLIPPING, 0);
+		}
+		else if (g_pDevice->m_iVGAID == 1)
 		{
 			if (g_pDevice->m_dwBitCount == 32)
 				SetRenderState(D3DRS_ALPHAREF, 0xFF000000);
@@ -172,7 +183,7 @@ int RenderDevice::SetRenderStateBlock(int nIndex)
 		SetRenderState(D3DRS_ALPHABLENDENABLE, 1);
 		SetRenderState(D3DRS_ALPHATESTENABLE, 1);
 		SetRenderState(D3DRS_ALPHAFUNC, 7);
-		SetRenderState(D3DRS_AMBIENT, g_LightingProfile.AmbientColor());
+		SetRenderState(D3DRS_AMBIENT, inventoryLighting ? native_inventory_lighting::Ambient : g_LightingProfile.AmbientColor());
 		SetRenderState(D3DRS_ZENABLE, 1);
 		SetRenderState(D3DRS_ZFUNC, 4);
 		SetRenderState(D3DRS_ZWRITEENABLE, 1);
@@ -199,7 +210,7 @@ int RenderDevice::SetRenderStateBlock(int nIndex)
 		SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, 1);
 		SetRenderState(D3DRS_SPECULARMATERIALSOURCE, 2);
 		SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, 1);
-		SetRenderState(D3DRS_SPECULARMATERIALSOURCE, 1);
+		SetRenderState(D3DRS_SPECULARMATERIALSOURCE, inventoryLighting ? 2 : 1);
 		SetTextureStageState(0, D3DTSS_COLOROP, 4u);
 		SetTextureStageState(0, D3DTSS_COLORARG1, 2u);
 		SetTextureStageState(0, D3DTSS_COLORARG2, 0);

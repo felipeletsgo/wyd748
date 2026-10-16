@@ -11,6 +11,20 @@
 #include "TMMesh.h"
 #include "TMFieldScene.h"
 #include "TMObjectContainer.h"
+#include "../../application/TabLabel.h"
+
+void TMHuman::SetTabLabel(const char* text, unsigned char color)
+{
+    // InitObject can pass the owned buffer back to this setter.
+    if (text != m_szNickName)
+        tab_label::CopyText(m_szNickName, text);
+    m_tabColor = color < 9 ? color : 0;
+    if (m_pNickNameLabel)
+    {
+        m_pNickNameLabel->SetText(m_szNickName, 1);
+        m_pNickNameLabel->SetTextColor(tab_label::Color(m_tabColor));
+    }
+}
 
 int TMHuman::IsMouseOver()
 {

@@ -9,7 +9,7 @@ $headerPath = Join-Path $repo 'tmproject/TMProject748/internal/render/mesh/Costu
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $items = @($manifest.items | Where-Object available | Sort-Object item)
 $renderers = @($manifest.renderers | Sort-Object type)
-if ($items.Count -ne 143 -or $renderers.Count -ne 129) { throw 'Unexpected validated costume collection.' }
+if ($items.Count -ne 143 -or $renderers.Count -ne 135) { throw 'Unexpected validated costume collection.' }
 $textures = @($manifest.textures | Where-Object { $_.PSObject.Properties['available'] -eq $null -or $_.available } | Sort-Object name)
 if (@($items | ForEach-Object { $_.item } | Sort-Object -Unique).Count -ne $items.Count -or
     @($renderers.type | Sort-Object -Unique).Count -ne $renderers.Count) { throw 'Duplicate costume ID/type.' }
@@ -33,8 +33,8 @@ $lines.Add('struct Renderer { int type; Part parts[6]; };')
 $lines.Add('struct Texture { const char* name; char alpha; };')
 $lines.Add('inline constexpr Item Items[] = {')
 foreach ($item in $items) {
-    # Types 1..11 are drawn by the native SetHumanCostume/SetCostume path.
-    $supportedTypes = @($renderers.type) + @(1..11)
+    # Types 1..5 retain the native SetHumanCostume/SetCostume path.
+    $supportedTypes = @($renderers.type) + @(1..5)
     if ($item.maleType -notin $supportedTypes -or $item.femaleType -notin $supportedTypes -or
         $item.skin -notin @(-1, 0, 1)) { throw "Invalid selector: $($item.item)" }
     $lines.Add(('    {{ {0}, {1}, {2}, {3} }},' -f $item.item, $item.maleType, $item.femaleType, $item.skin))

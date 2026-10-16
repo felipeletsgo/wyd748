@@ -1082,38 +1082,39 @@ int TMHuman::OnPacketUpdateEquip(MSG_STANDARD* pStd)
     STRUCT_ITEM item{};
     item.sIndex = pEquip->sEquip[0] & 0xFFF;
 
-    TMEffectParticle* pParticle = nullptr;
+    // Native FUN_0052b116 skips all transformation effects when face/class
+    // are unchanged, preserving an ongoing cast during ordinary equip refresh.
     if (m_stLookInfo.FaceMesh != g_pItemList[item.sIndex].nIndexMesh || BASE_GetItemAbility(&item, EF_CLASS) != m_nClass)
-        pParticle = new TMEffectParticle(TMVector3{ m_vecPosition.x, m_fHeight + 1.0f, m_vecPosition.y }, 1, 3, 3.0f, 0, 1, 56, 1.0f, 1, TMVector3{}, 1000u);
-
-    if (pParticle)
-        g_pCurrentScene->m_pEffectContainer->AddChild(pParticle);
-
-    if (g_pSoundManager && g_pSoundManager->GetSoundData(158))
-        g_pSoundManager->GetSoundData(158)->Play();
-
-    auto pLightMap = new TMShade(4, 7, 1.0f);
-
-    if (pLightMap)
     {
-        pLightMap->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-        pLightMap->SetPosition(m_vecPosition);
-        pLightMap->m_dwLifeTime = 3000;
-        pLightMap->SetColor(0xAAAAAAAA);
-        g_pCurrentScene->m_pEffectContainer->AddChild(pLightMap);
+        auto pParticle = new TMEffectParticle(TMVector3{ m_vecPosition.x, m_fHeight + 1.0f, m_vecPosition.y }, 1, 3, 3.0f, 0, 1, 56, 1.0f, 1, TMVector3{}, 1000u);
+
+        if (pParticle)
+            g_pCurrentScene->m_pEffectContainer->AddChild(pParticle);
+
+        if (g_pSoundManager && g_pSoundManager->GetSoundData(158))
+            g_pSoundManager->GetSoundData(158)->Play();
+
+        auto pLightMap = new TMShade(4, 7, 1.0f);
+
+        if (pLightMap)
+        {
+            pLightMap->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+            pLightMap->SetPosition(m_vecPosition);
+            pLightMap->m_dwLifeTime = 3000;
+            pLightMap->SetColor(0xAAAAAAAA);
+            g_pCurrentScene->m_pEffectContainer->AddChild(pLightMap);
+        }
+
+        SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP, 0);
+
+        if (!m_cHide)
+        {
+            auto pLevelUp = new TMEffectLevelUp(TMVector3{ m_vecPosition.x, m_fHeight, m_vecPosition.y }, 0);
+
+            if (pLevelUp)
+                g_pCurrentScene->m_pEffectContainer->AddChild(pLevelUp);
+        }
     }
-
-    SetAnimation(ECHAR_MOTION::ECMOTION_LEVELUP, 0);
-
-    if (!m_cHide)
-    {
-        auto pLevelUp = new TMEffectLevelUp(TMVector3{ m_vecPosition.x, m_fHeight, m_vecPosition.y }, 0);
-
-        if (pLevelUp)
-            g_pCurrentScene->m_pEffectContainer->AddChild(pLevelUp);
-    }
-
-
 
     if (g_pCurrentScene->m_pMyHuman == this)
     {

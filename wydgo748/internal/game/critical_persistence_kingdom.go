@@ -15,6 +15,9 @@ func (w *World) queueKingdomCape(p *Player, kingdom byte, change kingdomCapeChan
 	if w.criticalGuildMutationReserved(p) {
 		return errCriticalPersistenceBusy
 	}
+	if !w.guildKingdomChangeAllowed(p.Char, kingdom) {
+		return errCriticalPersistenceIdentity
+	}
 	proposed := accountStateSnapshot(p.Account)
 	ch := &proposed.Chars[p.CharSlot]
 	if useEmblem {
@@ -29,6 +32,20 @@ func (w *World) queueKingdomCape(p *Player, kingdom byte, change kingdomCapeChan
 	}
 	w.ensureCapeEmblem(ch)
 	w.recalcPlayer(ch)
+	if guild, member := w.guildOf(p.Char); guild != nil && member.Rank == model.GuildRankLeader {
+		registry := w.criticalGuildSnapshot()
+		registry.FindByID(guild.ID).Kingdom = kingdom
+		seeds, changes := w.guildKingdomAccounts(p, proposed, guild.ID, kingdom)
+		return w.queueGuildAccountChange(p, seeds, registry, changes,
+			"Save failed. The kingdom was not changed.", func() {
+				installKingdomAccounts(changes)
+			}, func() {
+				w.publishGuildKingdomAccounts(changes)
+				if publish != nil {
+					publish()
+				}
+			})
+	}
 	registry := w.guilds
 	write := criticalWrite{}
 	// Kingdom admission reads guild membership even for non-leaders. Retain the

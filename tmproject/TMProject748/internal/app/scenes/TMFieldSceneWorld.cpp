@@ -26,6 +26,7 @@
 #include "TMGate.h"
 #include "../../ui/MiniMapLayout.h"
 #include "TMHuman.h"
+#include "../../game/entities/EntityReentryPolicy.h"
 #include "TMEffectStart.h"
 #include "TMSkillJudgement.h"
 #include "TMSkillTownPortal.h"
@@ -406,11 +407,24 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 		return 1;
 
 	auto pCreateMob = reinterpret_cast<MSG_CreateMob*>(pStd);
+	// Trade packets reuse byte 327 as shop-title text, never as tab color.
+	const unsigned char tabColor = pStd->Type == MSG_CreateMob_Opcode
+		? pCreateMob->TabColor : 0;
 	auto pExisting = pCreateMob->MobID == g_pObjectManager->m_dwCharID
 		? m_pMyHuman : g_pObjectManager->GetHumanByID(pCreateMob->MobID);
+	if (pExisting && entity_reentry::Replace(pExisting == m_pMyHuman,
+		pExisting->m_nWillDie, pExisting->m_dwDelayDel, pExisting->m_cDeleted != 0))
+	{
+		// Retire all target/effect references before creating the new actor.
+		// DeleteObject marks the old node; normal scene cleanup owns destruction.
+		pExisting->DelayDelete();
+		g_pObjectManager->DeleteObject(pExisting);
+		pExisting = nullptr;
+	}
 	if (pExisting)
 	{
 		// A metadata refresh must not respawn the entity or interrupt movement.
+		pExisting->SetTabLabel(pCreateMob->Nick, tabColor);
 		if (pExisting->m_citizen != pCreateMob->Server)
 		{
 			pExisting->m_citizen = pCreateMob->Server;
@@ -439,7 +453,7 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	pCreateMob->Nick[25] = 0;
 	// Byte 12 carries player CP, not a name character. NPC names retain 15 bytes.
 	strncpy_s(pHuman->m_szName, pCreateMob->MobName, pCreateMob->MobID < 1000 ? 12 : 15);
-	sprintf_s(pHuman->m_szNickName, "%s", pCreateMob->Nick);
+	pHuman->SetTabLabel(pCreateMob->Nick, tabColor);
 
 	// Equipment and affects are copied before InitObject because the skin
 	// builder derives the visible mesh, mount and weapon state from these fields.
@@ -450,6 +464,18 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	pHuman->SetCharHeight(static_cast<float>(pHuman->m_stScore.Con));
 	pHuman->SetRace(pCreateMob->Equip[0] & 0x0FFF);
 	pHuman->InitObject();
+	// Other characters receive their guild mark when they appear, as the own
+	// character does from its score update. GuildLevel is the guild rank.
+	pHuman->m_sGuildLevel = static_cast<unsigned char>(pCreateMob->GuildLevel);
+	if (pCreateMob->Guild && pCreateMob->MobID < 1000)
+	{
+		pHuman->m_stGuildMark.bHideGuildmark = 0;
+		pHuman->m_stGuildMark.nGuild = pCreateMob->Guild & 0xFFF;
+		pHuman->m_stGuildMark.nGuildChannel = (pCreateMob->Guild >> 12) & 0xF;
+		pHuman->m_stGuildMark.nSubGuild = BASE_GetSubGuild(pHuman->m_sGuildLevel);
+		pHuman->m_stGuildMark.sGuildIndex = pHuman->m_sGuildLevel;
+		Guildmark_Create(&pHuman->m_stGuildMark);
+	}
 	if (pStd->Type == MSG_CreateMobTrade_Opcode)
 	{
 		auto pCreateMobTrade = reinterpret_cast<MSG_CreateMobTrade*>(pStd);

@@ -1,41 +1,43 @@
-# Mapa de subsistemas do client 7.48
+# Native 7.48 subsystem research index
 
-Este é um inventário de pesquisa, não uma declaração de paridade. `UNMAPPED`
-significa que ainda não existe fluxo nativo completo versionado. Atualize a
-linha somente quando a ficha correspondente passar pelo validador.
+This is a search index, not a current whole-client parity audit. The rows retain
+the historical coverage snapshot; consult the actual versioned record for the
+current state and inputs. Broad `UNMAPPED` rows do not negate later narrow
+records. Update coverage only after validating the relevant record; do not
+promote a whole subsystem because one transition is proven.
 
-| Subsistema | Transições a mapear | Estado atual | Fichas |
+| Subsystem | Transitions | Recorded coverage | Records and limits |
 | --- | --- | --- | --- |
-| Bootstrap e configuração | WinMain, config, device, managers, primeira cena, falha de boot | `UNMAPPED` | — |
-| Transporte e criptografia | connect, seed/queues, framing, decrypt, checksum, disconnect | `CONTRACT` estreito | `transport/socket-disconnect-return-selectserver.md` cobre connect, callback, ownership e disconnect; framing, decrypt e checksum permanecem abertos |
-| Gate de tamanho por opcode | header recebido, opcode/tamanho, log/rejeição, caller real | `LOCATED` | `transport/packet-size-gate.md` |
-| Seleção de servidor e login | server list, credenciais, resposta, troca de chaves, falhas | `UNMAPPED` | — |
-| Seleção/criação de personagem | lista, create/delete, slot, enter world, teardown | `CONTRACT` estreito | `lifecycle/character-logout-selectchar-relogin.md` cobre logout, retorno à seleção e novo enter world; `ui/select-character-exp-threshold.md` rastreia a apresentação de EXP na seleção; criação/delete permanecem abertos |
-| Dispatcher de cena/campo | socket -> cena atual -> controles -> handler -> side effects | `UNMAPPED` | — |
-| Tick e input do mundo | message loop, FrameMove, mouse/tecla, focus, auto-run | `CONTRACT` estreito | `transport/motion-emote-roundtrip.md` fecha somente input, wire e retorno de emotes `0x36A`; `ui/screenshot-capture.md` cobre Print Screen; tick, auto-run e demais teclas permanecem abertos |
-| Visibilidade e recuperação de entidades | referência antes do CreateMob, request, validação espacial e rematerialização | `CONTRACT` estreito | `transport/missing-entity-request.md` fecha somente o request C->S `0x369`; ciclo geral de visibilidade permanece aberto |
-| Morte e renascimento | death state, cooldown, recall, pedido e persistência | `CONTRACT` estreito | `transport/restart-recall-request.md` fecha somente o pedido C->S `0x289`; lifecycle completo permanece aberto |
-| Keepalive de sessão | tick por cena, header, fase e ausência de resposta | `CONTRACT` estreito | `transport/keepalive-ping.md` fecha somente o frame C->S `0x3A0`; timeouts gerais permanecem no fluxo de transporte |
-| Troca de cidade | calculo de vila, frame e atualizacao de HomeTown | `CONTRACT` estreito | `transport/change-city-request.md` fecha somente o frame C->S `0x291`; regras de posicao e cidade permanecem autoritativas no servidor |
-| Pedido de portal | confirmação da célula, frame e resolução server-side | `CONTRACT` estreito | `transport/req-teleport.md` fecha somente o frame C->S `0x290`; rota, cobrança e persistência permanecem autoritativas no servidor |
-| Interação com NPC | clique, confirmação, frame e allowlist server-side | `CONTRACT` estreito | `transport/use-npc-request.md` fecha somente o frame C->S `0x28B`; contexto e regras permanecem autoritativos no servidor |
-| Remoção de membro da guild | confirmação, alvo e autorização server-side | `CONTRACT` estreito | `transport/guild-deprivate-request.md` fecha somente o frame C->S `0x28C`; cargo, alvo e persistência permanecem autoritativos no servidor |
-| Relações entre guilds | confirmação, guild local/alvo e autorização server-side | `CONTRACT` estreito | `transport/guild-relations-request.md` fecha os frames C->S `0xE0E/0xE12`; liderança, guerra, aliança e persistência permanecem autoritativas no servidor |
-| Confirmação de disputa de zona | seleção, frame e resposta server-side | `CONTRACT` estreito | `transport/challenge-confirm-request.md` fecha somente o frame C->S `0x28F`; regra da disputa permanece autoritativa no servidor |
-| Movimento | intenção, rota, predição local, stop, correção server-side | `UNMAPPED` | — |
-| Combate e skills | seleção, alcance, intenção, confirmação, efeitos, rejeição | `UNMAPPED` | — |
-| Character/Score/equipamento | create/update, score, equip, owner/observer, HUD | `UNMAPPED` | — |
-| Affects e efeitos visuais | update, criação visual, tick, remoção, relogin | `UNMAPPED` | — |
-| Inventário e cargo | abertura, grid, drag, use, move, rollback, fechamento | `UNMAPPED` | — |
-| NPC, shop e auto-trade | criação, interação, buy/sell, merchant, teardown | `UNMAPPED` | — |
-| Trade, party e guild | request, confirmação, janelas, sync, cancelamento | `UNMAPPED` | — |
-| Mix, quest e sistemas especiais | recipes, slots, intents, resposta, falha | `UNMAPPED` | — |
-| UI e lifecycle | construção, binding, root, input, focus, destroy, relogin | `LOCATED` | `ui/control-focus-ime-lifecycle.md` |
-| Render e assets | loaders, meshes, texturas, escala, pipeline, device reset | `UNMAPPED` | — |
-| Shutdown e reconexão | socket close, cena teardown, globals, retry, exit | `CONTRACT` por fluxos estreitos | `lifecycle/application-close-global-shutdown.md` cobre teardown terminal; `transport/socket-disconnect-return-selectserver.md` cobre disconnect e novo login; `field-scene-rebuild-after-server-move.md` cobre migração e `character-logout-selectchar-relogin.md` cobre logout na mesma sessão; troca explícita de conta permanece aberta |
+| Bootstrap/configuration | WinMain, config, device, managers, first scene, boot failure | `UNMAPPED` | No complete subsystem claim |
+| Transport/cryptography | Connect, seed/queues, framing, decrypt, checksum, disconnect | Narrow `CONTRACT` | `transport/socket-disconnect-return-selectserver.md`: connection, callback, ownership and disconnect only; framing/decrypt/checksum remain separate gaps |
+| Opcode size gate | Received header, opcode/size, rejection/logging, actual caller | `LOCATED` | `transport/packet-size-gate.md` |
+| Server selection/login | List, credentials, response, key exchange, failures | `UNMAPPED` | Search newer flow records before opening research |
+| Character selection/creation | List, create/delete, slot, enter world, teardown | Narrow `CONTRACT` | `lifecycle/character-logout-selectchar-relogin.md`; `ui/select-character-exp-threshold.md` covers selection EXP; creation/deletion are separate |
+| Scene/field dispatcher | Socket -> current scene -> controls -> handler -> effects | `UNMAPPED` | No complete dispatcher claim |
+| World tick/input | Message loop, FrameMove, mouse/keyboard, focus, auto-run | Narrow `CONTRACT` | `transport/motion-emote-roundtrip.md`: `0x36A` emotes; `ui/screenshot-capture.md`: Print Screen; not general tick/auto-run |
+| Entity visibility/recovery | Reference before CreateMob, request, spatial validation, recreation | Narrow `CONTRACT` | `transport/missing-entity-request.md`: C->S `0x369`, not the general visibility lifecycle |
+| Death/rebirth | Death state, cooldown, recall, request, persistence | Narrow `CONTRACT` | `transport/restart-recall-request.md`: C->S `0x289`, not the full lifecycle |
+| Session keepalive | Scene tick, header, phase, absent response | Narrow `CONTRACT` | `transport/keepalive-ping.md`: C->S `0x3A0`; general timeouts belong to transport |
+| City change | Town calculation, frame, HomeTown update | Narrow `CONTRACT` | `transport/change-city-request.md`: C->S `0x291`; position/town rules remain server-authoritative |
+| Portal request | Cell confirmation, frame, server resolution | Narrow `CONTRACT` | `transport/req-teleport.md`: C->S `0x290`; route, charge and persistence remain authoritative |
+| NPC interaction | Click, confirmation, frame, server allowlist | Narrow `CONTRACT` | `transport/use-npc-request.md`: C->S `0x28B`; context/rules remain authoritative |
+| Guild member removal | Confirmation, target, server authorization | Narrow `CONTRACT` | `transport/guild-deprivate-request.md`: C->S `0x28C`; role/target/persistence remain authoritative |
+| Guild relations | Confirmation, local/target guild, authorization | Narrow `CONTRACT` | `transport/guild-relations-request.md`: C->S `0xE0E/0xE12`; leadership/war/alliance/persistence remain authoritative |
+| Zone challenge confirmation | Selection, frame, server response | Narrow `CONTRACT` | `transport/challenge-confirm-request.md`: C->S `0x28F`, not challenge rules |
+| Movement | Intention, route, local prediction, stop, correction | `UNMAPPED` | No complete subsystem claim |
+| Combat/skills | Selection, range, intention, confirmation, effects, rejection | `UNMAPPED` | Search transition records |
+| Character/Score/equipment | Create/update, score, equipment, owner/observer, HUD | `UNMAPPED` | Search transition records |
+| Affects/visual effects | Update, visual creation, tick, removal, relogin | `UNMAPPED` | Search transition records |
+| Inventory/cargo | Open, grid, drag, use, move, rollback, close | `UNMAPPED` | Search transition records |
+| NPC/shop/auto-trade | Creation, interaction, buy/sell, merchant, teardown | `UNMAPPED` | Search transition records |
+| Trade/party/guild | Request, confirmation, windows, sync, cancellation | `UNMAPPED` | Search transition records |
+| Mix/quest/special systems | Recipes, slots, intentions, response, failure | `UNMAPPED` | Search transition records |
+| UI lifecycle | Construction, binding, root, input, focus, destruction, relogin | `LOCATED` | `ui/control-focus-ime-lifecycle.md` |
+| Render/assets | Loaders, meshes, textures, scale, pipeline, device reset | `UNMAPPED` | No complete rendering claim |
+| Shutdown/reconnection | Socket close, scene teardown, globals, retry, exit | Narrow `CONTRACT` flows | `lifecycle/application-close-global-shutdown.md`, `transport/socket-disconnect-return-selectserver.md`, `field-scene-rebuild-after-server-move.md`, `character-logout-selectchar-relogin.md`; explicit account switching remains separate |
 
-Os documentos [port-748.md](../../../../DOCS/client/port-748.md),
-[ui-windows.md](../../../../DOCS/client/ui-windows.md) e comentários atuais da
-source são índices de busca. Migre conhecimento estável deles para fichas por
-transição conforme cada subsistema for rastreado; não marque a linha como
-`TRACED` apenas porque há funções citadas nesses documentos.
+Record paths above resolve under `.agents/research/client748/flows/`.
+[Porting notes](../../../../DOCS/client/port-748.md),
+[UI windows](../../../../DOCS/client/ui-windows.md) and source comments are
+search aids. Move stable knowledge into the affected transition record as it
+is traced. A cited function alone never promotes coverage to `TRACED`.

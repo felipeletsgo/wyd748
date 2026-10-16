@@ -19,9 +19,9 @@ inline int Select(int index, int skeleton)
     if (!item) return 0;
     const int type = item->skin == -1 && (skeleton & 1)
         ? item->femaleType : item->maleType;
-    // Types 1..11 are the native 7.48 costume renderers (SetHumanCostume and
-    // TMSkinMesh::SetCostume); the manifest supplies no replacement parts.
-    if (type >= 1 && type <= 11) return 0;
+    // Types 1..5 keep their existing base renderer. Types 6..11 use explicit
+    // imported parts: the legacy path requests missing .wyt assets.
+    if (type >= 1 && type <= 5) return 0;
     return ImportedTag | type;
 }
 

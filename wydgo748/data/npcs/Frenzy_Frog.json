@@ -138,7 +138,7 @@
     "str": 6,
     "int": 90,
     "dex": 100,
-    "con": 1800,
+    "con": 1,
     "critical": 255,
     "resistFire": 20,
     "resistIce": 20,

@@ -115,6 +115,9 @@ func (w *World) queuePlayerTeleportSnapshot(p *Player, proposed *model.Account, 
 			}
 			// Maintain indexes even if the socket closed during the write.
 			w.publishPlayerTeleport(p)
+			if departure != nil {
+				clearItemInstanceHUD(p)
+			}
 			if afterAck != nil {
 				afterAck()
 			}

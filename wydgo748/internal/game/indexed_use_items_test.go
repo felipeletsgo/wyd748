@@ -55,6 +55,22 @@ func TestEquipmentGemsApplyAllFourVariants(t *testing.T) {
 	}
 }
 
+// A +10 earring refined with Lac changes its gem like armor.
+func TestEquipmentGemChangesEarringVariant(t *testing.T) {
+	w, p, st := volatileTransformWorld()
+	registerTransformRule(w, 3389, 183, model.VolatileRule{Action: "equipment_gem", Consume: true, Variant: 3})
+	w.items[3389] = model.ItemDef{Index: 3389}
+	w.items[591] = model.ItemDef{Index: 591, Pos: 256}
+	p.Char.Inv[0] = model.Item{Index: 3389, UID: "gem"}
+	p.Char.Equip[8] = model.Item{Index: 591, UID: "earring", Eff: [6]byte{43, 230}}
+
+	w.onUseItem(p.Session, indexedUsePacket(0, 8, placeEquip))
+	raw, _ := sancRaw(p.Char.Equip[8])
+	if p.Char.Inv[0].Index != 0 || p.Char.Equip[8].Index != 591 || raw != 233 || st.saves != 1 {
+		t.Fatalf("source=%+v earring=%+v raw=%d saves=%d", p.Char.Inv[0], p.Char.Equip[8], raw, st.saves)
+	}
+}
+
 func TestEquipmentGemMigratesWeaponFamilyAndPreservesUID(t *testing.T) {
 	w, p, _ := volatileTransformWorld()
 	registerTransformRule(w, 3389, 183,

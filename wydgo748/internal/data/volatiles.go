@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -142,6 +143,27 @@ func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 				"data: item %d duplicado entre %s e %s", id, volatilesPath, instancesPath)
 		}
 		file.Items[id] = rule
+	}
+	// Instance waves may come from generator files under the data directory
+	// (NPCGener/*.txt), placing each group at its native start point.
+	generators := &instanceGeneratorCache{dir: filepath.Dir(instancesPath),
+		files: make(map[string][]model.NPCGener)}
+	for code, rule := range file.Rules {
+		if err := generators.expand(fmt.Sprintf("%s rules[%d]", instancesPath, code), rule.Instance); err != nil {
+			return model.VolatileCatalog{}, err
+		}
+	}
+	for id, rule := range file.Items {
+		if err := generators.expand(fmt.Sprintf("%s items[%d]", instancesPath, id), rule.Instance); err != nil {
+			return model.VolatileCatalog{}, err
+		}
+	}
+	for name, inst := range instanceFile.Instances {
+		instance := inst
+		if err := generators.expand(fmt.Sprintf("%s instances[%s]", instancesPath, name), &instance); err != nil {
+			return model.VolatileCatalog{}, err
+		}
+		instanceFile.Instances[name] = instance
 	}
 	file.Instances = instanceFile.Instances
 	file.EntryAreaSets = instanceFile.EntryAreaSets

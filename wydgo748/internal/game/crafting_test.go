@@ -686,3 +686,48 @@ func TestCombineRejectsBlockedItem(t *testing.T) {
 		}
 	}
 }
+
+// W2PP GetMatchCombineAilyn plus the WYD-Go Ancient-weapon rule.
+func TestAylinRecipeRules(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{
+		811:  {Index: 811, Pos: 192},              // normal weapon
+		2491: {Index: 2491, Pos: 192, Grade: 5},   // Diamond Ancient
+		2494: {Index: 2494, Pos: 192, Grade: 8},   // Garnet Ancient
+		1209: {Index: 1209, Pos: 4, Grade: 1},     // armor
+		3502: {Index: 3502, Pos: 2, Grade: 26},    // Mystic Cythera
+		1711: {Index: 1711, Pos: 128, Unique: 51}, // shield
+	}}
+	request := func(index uint16, gems ...uint16) combineRequest {
+		var req combineRequest
+		req.Items[0], req.Items[1] = model.Item{Index: index}, model.Item{Index: index}
+		setItemSanc(&req.Items[0], 9)
+		setItemSanc(&req.Items[1], 9)
+		req.Items[2] = model.Item{Index: 1774}
+		for i, gem := range gems {
+			req.Items[3+i] = model.Item{Index: gem}
+		}
+		return req
+	}
+	for _, tc := range []struct {
+		name    string
+		req     combineRequest
+		wantRaw byte
+	}{
+		{"normal-weapon", request(811, 2441, 2441, 2441, 2441), 0},
+		{"ancient-diamond", request(2491, 2441, 2441, 2441, 2441), 230},
+		{"ancient-wrong-gem", request(2491, 2443, 2443, 2443, 2443), 0},
+		{"ancient-garnet", request(2494, 2444, 2444, 2444, 2444), 233},
+		{"armor-coral", request(1209, 2443, 2443, 2443, 2443), 232},
+		{"armor-mixed-gems", request(1209, 2441, 2442, 2443, 2444), 0},
+		{"cythera-emerald", request(3502, 2442, 2442, 2442, 2442), 231},
+		{"shield-garnet", request(1711, 2444, 2444, 2444, 2444), 233},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			result, _, valid := w.aylinRecipe(tc.req)
+			raw, _ := sancRaw(result)
+			if valid != (tc.wantRaw != 0) || valid && raw != tc.wantRaw {
+				t.Fatalf("valid=%t raw=%d", valid, raw)
+			}
+		})
+	}
+}

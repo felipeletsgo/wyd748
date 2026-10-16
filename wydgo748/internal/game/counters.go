@@ -102,19 +102,25 @@ func (w *World) useCounterGrant(s *net.Session, p *Player, item *model.Item, slo
 	}
 	before := *item
 	countersBefore := copyCounters(p)
+	capeBefore := p.Char.Equip[model.CapeSlot]
 
 	grantCounters(p, rule.Counters)
+	eliteCape := before.Index == warriorSealItem && warriorSealCape(p.Char)
 	if rule.Consume {
 		consumeOne(item)
 	}
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*item = before
 		p.SpecialCoins = countersBefore
+		p.Char.Equip[model.CapeSlot] = capeBefore
 		log.Printf("[#%d] save counter for item %d failed: %v", s.ID, before.Index, err)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+	if eliteCape {
+		w.publishWarriorSealCape(p)
+	}
 	for name, amount := range rule.Counters {
 		log.Printf("[#%d] counter %q +%d = %d (item %d volatile %d)",
 			s.ID, name, amount, counterBalance(p, name), before.Index, code)
@@ -201,4 +207,12 @@ func applyQuestRecharge(p *Player, quest *model.QuestDef) bool {
 	}
 	grantCounters(p, map[string]uint32{r.Counter: r.Amount})
 	return true
+}
+
+func (w *World) publishWarriorSealCape(p *Player) {
+	p.Session.Send(wire.SendItem(p.ID, placeEquip, model.CapeSlot, p.Char.Equip[model.CapeSlot]))
+	w.recalcPlayer(p.Char)
+	p.Session.Send(playerScorePacket(p))
+	w.refreshAppearance(p)
+	p.Session.Send(wire.MessagePanel("You received the Elite cape."))
 }

@@ -1,4 +1,4 @@
 interface:
   display_name: "WYD Client 7.48 Research"
   short_description: "Trace native 7.48 flows with evidence"
-  default_prompt: "Use $wyd-client748-research to close the gap in the affected legacy transition, reuse valid evidence, and release the adaptation as soon as the required gate is proven."
+  default_prompt: "Use $wyd-client748-research to close the affected legacy evidence gap, reuse valid records, and validate the scoped adaptation without implying publication or gameplay proof."

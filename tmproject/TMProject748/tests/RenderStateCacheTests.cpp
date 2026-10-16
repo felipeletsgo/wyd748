@@ -1,4 +1,5 @@
 #include "../internal/platform/windows/RenderStateCache.h"
+#include "../internal/platform/windows/NativeInventoryLighting.h"
 #include <cstdio>
 #include <cstring>
 #include <initializer_list>
@@ -58,6 +59,29 @@ int RunRenderStateCacheTests(int& checks)
         if (!condition) { ++failures; std::fprintf(stderr, "RenderStateCache: %s\n", name); }
     };
     using namespace render_state_cache;
+    D3DLIGHT9 iconLights[2]{};
+    for (int index = 0; index < 2; ++index) {
+        iconLights[index].Type = D3DLIGHT_DIRECTIONAL;
+        iconLights[index].Diffuse = { 0.05f, 0.1f, 0.15f, 0.25f };
+        iconLights[index].Specular = { 0.0f, 0.0f, 0.0f, 0.75f };
+        iconLights[index].Ambient = { 0.2f, 0.3f, 0.4f, 0.5f };
+    }
+    native_inventory_lighting::Prepare(iconLights);
+    for (int index = 0; index < 2; ++index) {
+        const float expected = index == 0 ? 1.0f : 0.6f;
+        check(iconLights[index].Diffuse.r == expected && iconLights[index].Diffuse.g == expected &&
+            iconLights[index].Diffuse.b == expected && iconLights[index].Specular.r == expected &&
+            iconLights[index].Specular.g == expected && iconLights[index].Specular.b == expected,
+            "inventory RGB uses native fixed lighting instead of dark world colors");
+        check(iconLights[index].Diffuse.a == 0.25f && iconLights[index].Specular.a == 0.75f &&
+            iconLights[index].Ambient.r == 0.2f && iconLights[index].Type == D3DLIGHT_DIRECTIONAL,
+            "inventory lighting preserves alpha and unrelated light fields");
+    }
+    check(native_inventory_lighting::AlphaReference(32) == 0xAA &&
+        native_inventory_lighting::AlphaReference(16) == 0xFF,
+        "native inventory transparency cutoff retains translucent texture detail");
+    check(native_inventory_lighting::Ambient == 0xFFFFFFFF && native_inventory_lighting::RenderBlock != 3,
+        "inventory ambient is native white without replacing the port's 2D block");
     Device device;
     Cache cache;
     D3DMATRIX identity{};

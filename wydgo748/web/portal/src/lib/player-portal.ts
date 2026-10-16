@@ -5,6 +5,7 @@ import { ArchAdvisor } from './arch-advisor';
 import { CelestialAdvisor } from './celestial-advisor';
 import { SubCelestialAdvisor } from './subcelestial-advisor';
 import { StorageView } from './storage-view';
+import { GuildManager } from './guild-manager';
 import type { components } from './api.generated';
 type Session = { version: number; authenticated: boolean; username: string; csrf: string };
 type Character = { slot: number; name: string; class: number; level: number; evolution: string };
@@ -14,6 +15,7 @@ let accountSessions: AccountSessions | undefined;
 let characterDetails: CharacterDetails | undefined;
 let inventoryView: StorageView | undefined;
 let cargoView: StorageView | undefined;
+let guildManager: GuildManager | undefined;
 let registrationChallenge: RegistrationChallenge | undefined;
 let registrationSubmitting = false;
 let loginChallenge: RegistrationChallenge | undefined;
@@ -83,6 +85,7 @@ function clearProfile() {
   accountSessions?.clear();
   characterDetails?.clear();
   inventoryView?.clear(); cargoView?.clear();
+  guildManager?.clear();
 }
 async function profile() {
   const loggedIn = session?.authenticated === true;
@@ -102,6 +105,7 @@ async function profile() {
     const asOf = element('profile-asof'); if (asOf) asOf.textContent = `Saved account snapshot: ${displayTime(data.profile.asOf)}`;
     status('profile-status', '');
     cargoView?.select(null);
+    void guildManager?.load();
   } catch (error) { if (identity === session) status('profile-status', message(error), true); }
   if (identity === session) await accountSessions?.load();
 }
@@ -155,6 +159,13 @@ async function initialize() {
   if (detailPanel && detailTitle && detailStats && equipment && detailTimestamp && detailStatus && detailRefresh) {
     characterDetails = new CharacterDetails(detailPanel, detailTitle, detailStats, equipment, detailTimestamp, detailStatus, detailRefresh, api,
       () => session?.authenticated ? session.csrf : undefined, slot => inventoryView?.select(slot), advisor, celestialAdvisor, subCelestialAdvisor);
+  }
+  const guildPanel = element('guild-panel'), guildTitle = element('guild-title'), guildDetails = element('guild-details');
+  const guildPreview = element<HTMLImageElement>('guild-mark'), guildForm = element<HTMLFormElement>('guild-mark-form');
+  const guildFile = element<HTMLInputElement>('guild-mark-file'), guildRemove = element<HTMLButtonElement>('guild-mark-remove');
+  const guildStatus = element('guild-status');
+  if (guildPanel && guildTitle && guildDetails && guildPreview && guildForm && guildFile && guildRemove && guildStatus) {
+    guildManager = new GuildManager(guildPanel, guildTitle, guildDetails, guildPreview, guildForm, guildFile, guildRemove, guildStatus, api);
   }
   const sessionList = element('account-sessions'); const sessionStatus = element('sessions-status');
   const refresh = element<HTMLButtonElement>('sessions-refresh'); const revokeAll = element<HTMLButtonElement>('sessions-revoke-all');

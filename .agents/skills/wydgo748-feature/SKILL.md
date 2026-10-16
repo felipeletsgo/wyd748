@@ -17,10 +17,10 @@ client-provided position, item, damage, skill, or balance as truth without
 server-side validation.
 
 Before editing, classify the delta as `PARIDADE_NATIVA`,
-`MODERNIZACAO_COMPATIVEL`, or `EXTENSAO_COORDENADA`. If it touches legacy
-behavior, packet, ABI, UI, input, rendering, asset, or lifecycle, use
-`wyd-client748-research` before this skill. Do not blindly port TMProject
-7.69 to 7.48.
+`MODERNIZACAO_COMPATIVEL`, or `EXTENSAO_COORDENADA`. Use
+`wyd-client748-research` for an affected legacy client boundary or parity
+claim, not merely because an internal server change has a lifecycle. Reuse
+proven boundaries; do not blindly port later TMProject behavior to 7.48.
 
 ## Procedure
 
@@ -35,6 +35,16 @@ behavior, packet, ABI, UI, input, rendering, asset, or lifecycle, use
    opcode/IDs, validation, fallback, and compatibility on both sides.
 4. Make a small patch, run a focused test, then continue. Do not refactor
    unrelated code.
+5. For incomplete mechanics, distinguish native proof, secondary algorithms
+   and explicit product choices. Read the actual recipe/configuration and
+   caller, not just a similarly named NPC or skill. Native presentation must
+   use the recovered resources/text rather than a plausible substitute.
+
+Trace the representations that can diverge: persisted/canonical IDs versus
+wire/visual IDs, base stat versus displayed percent, item/refinement versus
+mesh/glow, and public coordinates versus private RuntimeID. Check units and
+mapping order at each conversion. Prefer a shared conversion at the boundary
+over unrelated compensating overrides.
 
 ## Validation
 
@@ -49,6 +59,14 @@ client parser/UI. Build the affected C++ target and record real execution as
 pending when unavailable; never install a candidate as a hidden side effect
 of a check. Validation states are defined in `AGENTS.md`.
 
+Select lifecycle cases by the failure: owner/observer create and update for
+equipment/affects; both weapon slots and derived pose after removal; death,
+exit, timeout and teardown for instances; spawn/visibility recovery without
+requiring movement. A counter is not proof its entities still exist or are
+visible. Economy changes also need consumption, rejection, rollback and
+repetition checks. Do not turn these examples into a full-suite ritual for
+every local change.
+
 Active client changes belong in source/assets. `references/client748/`
 contains historical evidence and must not be overwritten.
 
@@ -62,3 +80,6 @@ contains historical evidence and must not be overwritten.
 - Native evidence access: [ghidra-client748.md](references/ghidra-client748.md).
 - Requested audits: [audit.md](references/audit.md).
 - Continuation: [session-continuity.md](references/session-continuity.md).
+
+Publication and deployment use `wyd-release`; they are not automatic feature
+validation steps.

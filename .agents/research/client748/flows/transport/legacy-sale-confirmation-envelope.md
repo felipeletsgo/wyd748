@@ -4,10 +4,33 @@ title: Native sale confirmation reaches the field receiver with a 20-byte envelo
 subsystem: transport
 status: CONTRACT
 native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
-updated: 2026-10-01
+updated: 2026-10-15
 ---
 
 # Native sale confirmation envelope
+
+## Equipment posture lifecycle follow-up (2026-10-15)
+
+Classification: `MODERNIZACAO_COMPATIVEL`, not a literal native setter port.
+Reuse the equipment InitObject/CheckWeapon flow documented below and cached
+native setters `FUN_0051bb1a`/`FUN_0051bb41`; no new native census is needed.
+The native setter stores the weapon-type index only. In the current client,
+InitObject can create the skin and select its standing animation while that
+index still describes two weapons. CheckWeapon then selects the remaining
+single weapon without refreshing the already-selected animation. The reported
+cases are Balmung plus Neorion, and two Balmungs, followed by removing one;
+the visual defect is position through the body, not the refinement color.
+
+`WeaponPoseRefresh.h`, called by `TMHumanAppearance.cpp::SetWeaponType`, stores
+the new type before reapplying the current motion/loop to an existing skin.
+Unchanged types do not restart animation and absent skins do not animate.
+Existing delay guards, handedness, item-to-posture rules and packet handling
+are unchanged. Tests cover old two-weapon types 2/4 to single types 0/1/5,
+assignment ordering, motion/loop retention and both no-op cases.
+
+AUTOMATED TESTED: ArchitectureTests passed 1,209,233 checks and the incremental
+Release/x86 solution build passed. Actual weapon placement remains unverified
+in the game; no installation, publication or CLIENT-TESTED promotion occurred.
 
 ## Question
 

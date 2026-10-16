@@ -6,6 +6,7 @@
 #include "TMLog.h"
 #include "DyePixelShader.h"
 #include "RefinementGlowTexture.h"
+#include "NativeMountGlow.h"
 #include <cfloat>
 
 TMMesh::TMMesh()
@@ -345,9 +346,10 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 
 	if (nMultiTex <= 0 && (sLegend < 4 || sLegend > 8))
 	{
-		g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_ALPHATESTENABLE, 0);
-		Render(1, nTexOffset);
-		return 1;	
+		// FUN_004BBCB5 draws an unrefined icon with Render(0, offset) and the
+		// caller's alpha states unchanged.
+		Render(0, nTexOffset);
+		return 1;
 	}
 
 	g_pDevice->SetTextureStageState(1, D3DTEXTURESTAGESTATETYPE::D3DTSS_TEXCOORDINDEX, 1);
@@ -445,7 +447,10 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 	}
 	else
 	{
-		g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(nMultiTex + 233, 5000));
+		const bool legacyHardware = g_pDevice->m_bVoodoo || g_pDevice->m_bIntel
+			|| g_pDevice->m_bG400 || g_pDevice->m_bTNT;
+		g_pDevice->SetTexture(1, g_pTextureManager->GetEffectTexture(
+			native_mount_glow::InventoryTextureIndex(nMultiTex, legacyHardware), 5000));
 
 		if (g_pDevice->m_bVoodoo || g_pDevice->m_bIntel || g_pDevice->m_bG400 || g_pDevice->m_bTNT)
 		{

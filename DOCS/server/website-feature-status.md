@@ -16,7 +16,7 @@ Deployment identities and validation limits are in [current state](../current-st
 | Inventory and Cargo | Private read-only snapshots with item presentation | No website item mutation, withdrawal or trading |
 | Progression advice | Saved-state Arch, Celestial and SubCelestial advice | Advisory only; no web ascension or guaranteed live eligibility |
 | Ranking | Persisted character ranking and supported filters | No separate competitive/event ladder projections |
-| Guilds | Searchable name directory and public saved profiles: kingdom, Fame, members/roles, allies and war target | No member administration, guild marks or war-history UI; nonempty production rendering remains manual |
+| Guilds | Searchable name directory and public saved profiles: kingdom, Fame, members/roles, allies and war target; signed-in guild section on `/player` where the leader uploads or removes the guild mark | No member administration or war-history UI; nonempty production rendering remains manual |
 | Downloads and updates | External full-client link, launcher patches, changelog and manifest advertising 10005 | Full package size/hash receipt and actual launcher extraction remain acceptance gaps |
 | News and roadmap | Versioned static content and detail pages | No editable CMS or staff publishing workflow |
 | Game reference content | Read-only item, skill and quest catalogues with detail URLs | Catalogue presence is not proof that every listed game mechanic is implemented |
@@ -55,7 +55,7 @@ test or a guarantee against SQL injection, credential stuffing or DDoS.
 - Web marketplace, payments, cash/shop or website-authorized item transfers.
 - Support-ticket lifecycle and staff assignment.
 - Editable news/CMS publication and moderation workflow.
-- Guild marks, war history, membership/leadership web actions.
+- War history, membership/leadership web actions.
 - Live world/map views or guaranteed live presence snapshots.
 
 These are not enabled by adding routes alone. Each needs ownership, permissions,
@@ -67,3 +67,18 @@ The [public-launch ledger](public-launch.md) retains build/deployment evidence
 for individual batches. Later guild, storage and progression entries supersede
 earlier statements that those features are absent. Do not rewrite old receipts
 as if they described the latest release.
+
+## Guild marks
+
+The guild leader manages the mark in the signed-in player panel (`/player`,
+section Guild). `POST /api/player/v1/guild/mark` accepts a ready-to-use 16x12,
+24-bit BMP of 630/632 bytes unchanged, or converts a PNG, JPEG, GIF or BMP up
+to 64 KB. The player API (`-guildmark-dir /var/lib/wyd-go-guildmark`) stores
+`<guild:04>.bmp`; Caddy serves every client request
+`/patch/guildmark/b<group:02><channel:02><guild:04>.bmp` from that file. The
+client downloads marks off the render thread from
+`http://wyd.forjago.com/patch/guildmark/`, creates textures on the render
+thread, shows the mark next to the own character (score update) and other
+characters (CreateMob), and retries a missing mark after five minutes.
+Leadership is resolved from the account's characters in the saved guild
+projection; only the leader (rank 9) may upload or remove.

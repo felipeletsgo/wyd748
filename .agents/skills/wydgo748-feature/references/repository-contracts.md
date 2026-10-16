@@ -92,6 +92,15 @@ necessary. Do not create an implicit exception merely because `RuntimeID == ""`.
 Do not use `CreateMob` to update an already visible player. Use the appropriate
 incremental packets for score, affects, equipment, movement, HP, and state.
 `CreateMob` is for initial materialization.
+Do not replay materialization/spawn visuals during ordinary score, equipment
+or affect refreshes. Preserve the native cast animation and effect lifecycle;
+an update must not restart unrelated effects or interrupt a buff. Resolve
+incomplete appearance state through the appropriate delta, not entity recreation.
+
+When visibility fails in a runtime, trace authoritative entity existence and
+RuntimeID, spatial-index membership, per-observer known state, and create/remove
+ordering. Requiring the player to move is not recovery proof; a remaining-monster
+counter alone does not show that its entities are alive, reachable and visible.
 
 ## Spatial index
 

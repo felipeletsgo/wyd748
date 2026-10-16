@@ -31,6 +31,7 @@ type memoryBackend struct {
 	registrationChecks  int
 	authenticationReads int
 	fail                bool
+	characters          map[string][]Character
 }
 
 func (b *memoryBackend) LoadAccount(name string) (*model.Account, error) {
@@ -70,7 +71,11 @@ func (b *memoryBackend) Profile(_ context.Context, name string) (Profile, error)
 	if b.fail {
 		return Profile{}, errors.New("private details")
 	}
-	return Profile{Username: name, Characters: []Character{}}, nil
+	characters := b.characters[strings.ToLower(name)]
+	if characters == nil {
+		characters = []Character{}
+	}
+	return Profile{Username: name, Characters: characters}, nil
 }
 func (b *memoryBackend) Ranking(context.Context) ([]Character, error) {
 	b.mu.Lock()

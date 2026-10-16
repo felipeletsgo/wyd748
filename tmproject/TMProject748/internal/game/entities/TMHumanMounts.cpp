@@ -189,7 +189,10 @@ bool TMHuman::SetImportedMountCostume(unsigned int itemIndex)
         {4217, 39, 1.00f, 3, 3, 0, 0, 0, 0, 12, 12, 12},
         {4218, 50, 1.00f, 1, 1, 0, 0, 0, 0, 13, 13, 13},
         {4219, 31, 1.00f, 18, 18, 0, 0, 0, 0, 10, 10, 10},
-        {4220, 31, 1.00f, 19, 19, 0, 0, 0, 0, 13, 13, 13},
+        // KR Carnival Mount: its native mesh 19 (hs010120/hs010220) is absent
+        // from every supplied client, so it rendered invisible. Show the base
+        // hs01 horse with its +13 glow until the authentic asset is found.
+        {4220, 31, 1.00f, 0, 0, 0, 0, 0, 0, 13, 13, 13},
         {4221, 49, 0.70f, 0, 0, 0, 5, 0, 0, 0, 0, 0},
         {4222, 31, 1.00f, 20, 20, 0, 0, 0, 0, 13, 13, 13},
         {4223, 59, 1.00f, 1, 1, 1, 0, 0, 0, 7, 7, 7},

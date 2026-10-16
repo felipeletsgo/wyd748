@@ -93,7 +93,7 @@ an exit code alone is not a test.
 `ExportWydFingerprints.java` extracts byte, mnemonic, normalized-operand,
 p-code, and CFG hashes for each function, along with strings, imports,
 constants, and direct neighbors. Run it in separate read-only Ghidra projects
-for the 7.48 binary and the exact `project.exe` being compared. The export
+for the 7.48 binary and the exact candidate executable being compared. The export
 must contain the program SHA-256; the correlator must also validate the
 binaries when they are available.
 
@@ -211,8 +211,11 @@ Before promoting a native record:
 4. Ensure gaps and unconfirmed claims were not used to make the decision;
 5. Record reproducible tests and the actual validation state.
 
-`CLIENT_TESTED` requires running the flow in `tmproject/client748/project.exe`;
-a build or isolated startup is insufficient.
+`CLIENT_TESTED` requires running the affected flow in the identified built
+candidate (normally installed as `tmproject/client748/WYD.exe`), with its path
+and SHA-256 recorded. A build, isolated startup, or an older `project.exe` is
+insufficient. Respect blocked visual testing; preserve the pending gate instead
+of silently installing or launching a replacement.
 
 For lifecycle records at `TRACED`, `CONTRACT`, or `CLIENT_TESTED`, the validator
 requires verifiable content for observable entry, transition matrix,

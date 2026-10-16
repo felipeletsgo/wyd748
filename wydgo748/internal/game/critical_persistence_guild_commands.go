@@ -176,9 +176,13 @@ func (w *World) queueGuildJoin(actor, target *Player, guild *model.Guild, cost, 
 	proposedGuilds := w.criticalGuildSnapshot()
 	id, name := guild.ID, guild.Name
 	proposedGuild := proposedGuilds.FindByID(id)
+	rank, ok := guildInviteRank(proposedGuild, inviteType)
+	if !ok {
+		return errCriticalPersistenceIdentity
+	}
 	proposedGuild.Members = append(proposedGuild.Members, model.GuildMember{
 		Character: target.Char.Name, Account: target.Account.Name,
-		Rank: model.GuildRankMember, JoinedAt: w.now().UTC(),
+		Rank: rank, JoinedAt: w.now().UTC(),
 	})
 	accounts[0].Chars[actor.CharSlot].Gold -= cost
 	targetIndex := 0
@@ -186,7 +190,7 @@ func (w *World) queueGuildJoin(actor, target *Player, guild *model.Guild, cost, 
 		targetIndex = 1
 	}
 	accounts[targetIndex].Chars[target.CharSlot].GuildID = id
-	accounts[targetIndex].Chars[target.CharSlot].GuildRank = model.GuildRankMember
+	accounts[targetIndex].Chars[target.CharSlot].GuildRank = rank
 	(&World{guilds: proposedGuilds}).pruneGuildWarReferences()
 	inviteFrom, inviteUntil, cooldown := target.GuildInviteFrom, target.GuildInviteUntil, actor.NextGuildInvite
 	checkRetained := func() error {
@@ -210,7 +214,7 @@ func (w *World) queueGuildJoin(actor, target *Player, guild *model.Guild, cost, 
 			}
 			*w.guilds = *proposedGuilds
 			actor.Char.Gold -= cost
-			target.Char.GuildID, target.Char.GuildRank = id, model.GuildRankMember
+			target.Char.GuildID, target.Char.GuildRank = id, rank
 			if acceptance {
 				target.GuildInviteFrom = 0
 			}

@@ -1858,3 +1858,39 @@ and 60 portal tests passed for this publication. Both remote staging directories
 were removed. The temporary SSH timeout was recovered without duplicate feed
 entries. This is not CLIENT_TESTED or global release-readiness certification;
 the reported item-drop crash and complete Noatum war remain open.
+
+## Guild marks and gameplay release — 2026-10-15
+
+Release `20261015T023211Z` (game binary SHA-256 prefix `620b8ec08c36f8df`) is
+paired with launcher patch 10026. With the owner's authorization the game was
+stopped first (`1 accounts persisted, 0 failures`); the installer then
+restarted the game and player API, validated Caddy and passed readiness.
+
+- Guild marks: player API `-guildmark-dir /var/lib/wyd-go-guildmark`
+  (`wyd-player`, 755); Caddy serves `/patch/guildmark/b<group><channel><guild>.bmp`
+  from `<guild>.bmp` as `image/bmp`, 404 otherwise. A temporary file proved the
+  mapping for two groups and was removed; the directory is empty.
+- Server: native support-buff duration, Magic Chamber and Nightmare waves from
+  `data/NPCGener/Carta*.txt` and `Nightmare*.txt`, training-field level-35
+  return/block, and D/E weapon and armor-set test shops placed in Armia.
+- Checks: services active, port 8281 listening, public `/readyz` 200, warning
+  journal empty, home/News/player 200, anonymous `/api/player/v1/guild` 401,
+  manifest advertises 10026. Remote and local staging removed. Not `CLIENT_TESTED`.
+
+## Player-report release — 2026-10-15
+
+Release `20261015T215714Z` (bundle SHA-256
+`1c692d4434f965c6dbdf3ade12dc0fe660e119bc4fdc0486f5ef9633fa8909c6`) is paired
+with launcher patch 10029. With the owner's authorization (players
+disconnected) the game was stopped first, then the installer restarted the
+game and player API, validated Caddy and passed readiness. The remote staging
+was removed by the installer; the local staging was deleted.
+
+- Server: Aylin W2PP grade/gem rules with Ancient weapons, second Cythera at
+  the level-90 unlock, earring Lac +9→+11 at 16% with breakage, earring gems,
+  Golden Shield 100 gold per mastery, Samaritan self-only, bow for skills
+  75/79, sub-leader InviteType 1–3, summons following teleports, 5–10 minute
+  support buffs, 5–15 minute Soul Limit feeding derived stats, and Con 1 for
+  64 monster templates.
+- Website: receipt 10029 and News `player-report-fixes-10029` (portal build
+  and 60 tests passed). Not CLIENT_TESTED.

@@ -45,6 +45,13 @@ func (w *World) prepareAdvancedCraft(p *Player, req combineRequest, artisan stri
 		return roll.Success
 	}
 	if artisan == "Ehre" {
+		if result, valid := ehreSpiritStone(req); valid {
+			consume(0, 2)
+			if decide(ehreSpiritStoneChance) {
+				ch.Inv[int(req.Pos[2])] = result
+			}
+			return plan, nil
+		}
 		if odinRune(req.Items[0].Index) && odinRune(req.Items[1].Index) &&
 			req.Items[2].Index == 413 && itemStackAmount(req.Items[2]) >= 10 &&
 			exactRecipeTailEmpty(req, 3) {

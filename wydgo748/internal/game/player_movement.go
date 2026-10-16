@@ -1,6 +1,10 @@
 package game
 
-import "time"
+import (
+	"time"
+
+	"wydgo/internal/wire"
+)
 
 func movementStepInterval(p *Player) time.Duration {
 	tilesPerSecond := movementTilesPerSecond(p)
@@ -134,6 +138,13 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		if !w.guildWarStepAllowed(p, nextX, nextY) ||
 			!hiddenValleyDestinationAllowed(p, nextX, nextY, now) {
 			w.publishPlayerStop(p)
+			return
+		}
+		if !w.newbieZoneDestinationAllowed(p, nextX, nextY) {
+			w.publishPlayerStop(p)
+			if p.Session != nil {
+				p.Session.Send(wire.MessagePanel(newbieZoneMessage))
+			}
 			return
 		}
 		if !w.terrain.RouteHeightCompatible(p.X, p.Y, nextX, nextY) {

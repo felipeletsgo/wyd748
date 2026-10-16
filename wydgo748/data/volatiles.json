@@ -40,7 +40,7 @@
       "consume": true,
       "refineMax": 9,
       "refineTenChance": 5,
-      "description": "Lac Dust (PL): refines equipment up to +9 and +10 to +11 at 5%, preserving its gem variant. Equipped earrings may also reach +10 from +9 at 16%; failure consumes powder without destroying the item. Other +9 equipment requires Aylin."
+      "description": "Lac Dust (PL): refines equipment up to +9 and +10 to +11 at 5%, preserving its gem variant. The earring equipped in slot 8 refines +9 to +10 and +10 to +11 at 16%, and breaks on failure (W2PP). Other +9 equipment requires Aylin."
     },
     "6": {
       "action": "magical_pill",
@@ -510,25 +510,25 @@
       "action": "equipment_gem",
       "consume": true,
       "variant": 0,
-      "description": "Diamond Gem: applies the Diamond variant to +10..+15 equipment or an Ancient weapon."
+      "description": "Diamond Gem: applies the Diamond variant to +10..+15 equipment (earrings included) or an Ancient weapon."
     },
     "181": {
       "action": "equipment_gem",
       "consume": true,
       "variant": 1,
-      "description": "Emerald Gem: applies the Emerald variant to +10..+15 equipment or an Ancient weapon."
+      "description": "Emerald Gem: applies the Emerald variant to +10..+15 equipment (earrings included) or an Ancient weapon."
     },
     "182": {
       "action": "equipment_gem",
       "consume": true,
       "variant": 2,
-      "description": "Coral Gem: applies the Coral variant to +10..+15 equipment or an Ancient weapon."
+      "description": "Coral Gem: applies the Coral variant to +10..+15 equipment (earrings included) or an Ancient weapon."
     },
     "183": {
       "action": "equipment_gem",
       "consume": true,
       "variant": 3,
-      "description": "Garnet Gem: applies the Garnet variant to +10..+15 equipment or an Ancient weapon."
+      "description": "Garnet Gem: applies the Garnet variant to +10..+15 equipment (earrings included) or an Ancient weapon."
     },
     "184": {
       "action": "no_direct_use",

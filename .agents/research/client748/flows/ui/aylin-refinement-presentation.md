@@ -4,7 +4,7 @@ title: Aylin result previews and gem refinement glow
 subsystem: ui-layout
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-14
+updated: 2026-10-15
 ---
 
 # Aylin result previews and gem refinement glow
@@ -164,6 +164,109 @@ Imported mesh 2906-2909 retains its pre-existing fixed glow intentionally.
 - Published in patch 10023 and retained in 10024. Not CLIENT-TESTED; no client
   launch or local runtime installation. See
   [current state](../../../../../DOCS/current-state.md) for publication receipts.
+
+## Ordinary inventory grade lookup follow-up (2026-10-15)
+
+Classification: `PARIDADE_NATIVA`, reusing the same native hash and cached
+`FUN_004bbcb5` export. The ordinary normal-hardware branch selects texture
+233 plus the grade lookup at 0x005baa04, already retained in `NativeMountGlow.h`:
+`10,1,2,3,4,6,7,7,8,9,10,11,12`. Legacy hardware selects 233 plus grade directly.
+The current ordinary UI branch had used the latter formula on both paths.
+`InventoryTextureIndex` now shares the native lookup, with all grades 0..12
+tested in both hardware modes. Gem/dye branches remain separate.
+
+The general dull-icon report is not closed by this correction. Runtime item
+3140, named Glihtning_Stone in the catalog, has mesh 2721, texture offset 0,
+visual effect 0 and legend 0. It therefore takes the native unrefined
+Render(0, offset) branch before grade selection. Both mesh lists map 2721 to
+`mesh/junsin.msa`; the active file and the available OnGame/KR copies share
+SHA-256 `EED01EFF2FB558C67236689164933D1296E979C3DA7BFDBC8DF607D6B6E25BB3`.
+No evidence supports replacing that mesh or inventing a glow layer. The later
+constructor trace below proves that a separate native halo was omitted; the
+RenderForUI-only trace did not cover it. Visual confirmation still requires
+client execution.
+
+AUTOMATED TESTED: the batch's ArchitectureTests passed 1,209,233 checks and
+the incremental Release/x86 solution build passed. This follow-up was later
+published in patch 10027; the earlier 10023/10024 receipts do not cover it.
+The owner subsequently reported that the dull-icon defect persists in 10027.
+
+## Native inventory lighting follow-up (2026-10-15)
+
+Classification: `PARIDADE_NATIVA`, using the same native executable SHA-256
+`8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`.
+The cached `FUN_0042e8a1` decompile omits the state-block call argument.
+Native instructions at 0x0042eccb are `6A 03` (push 3), followed by the
+virtual call at 0x0042ecd5 (`FF 52 40`). Ordinary 3D inventory icons therefore
+use native block 3, not block 1. Cached `FUN_0042dea5` supplies the missing
+state contract: main diffuse/specular RGB 1.0, fill diffuse/specular RGB 0.6,
+white ambient, alpha reference 0xAA at 32 bits or 0xFF otherwise, alpha blend
+and alpha test enabled, clipping disabled, and depth writes enabled. Light
+alpha and unrelated light fields remain unchanged.
+
+The port had selected world block 1, inheriting map lighting and a different
+alpha cutoff. Its block 3 already serves a separate 2D setup, so the native
+inventory contract is mapped to internal block 4 through
+`NativeInventoryLighting.h`; existing 2D callers remain unchanged. Only the
+ordinary 3D icon branch selects this block. World lighting, special meshes
+737..739, item identity, textures, and refinement passes are preserved.
+This corrects a concrete shared lighting/transparency divergence affecting
+the reported dull icons, including unrefined item 3140; no extra glow pass or
+asset replacement is introduced.
+
+AUTOMATED TESTED: ArchitectureTests passed 1,209,240 checks, including fixed
+RGB values, preserved light fields, both alpha cutoffs and production wiring.
+The incremental Release/x86 solution build passed. Patch 10027 subsequently
+published this executable and the costume meshes; no local runtime executable
+installation or agent-initiated game execution was performed. The owner's
+10027 screenshot is negative visual evidence: Glihtning Stone and other icons
+remain dull. The fixed-lighting divergence is corrected in source, but it is
+not sufficient to close the reported defect. The later constructor trace below
+identifies an additional omitted halo.
+
+## Native inventory halo follow-up after 10027 (2026-10-15)
+
+Classification: `PARIDADE_NATIVA`, reusing the same native hash and cached
+Ghidra exports of `FUN_0040d13e`, `FUN_0042e8a1` and `FUN_0042eeea`.
+The native binary and exports are USED; the runtime effect assets and current
+source are USED. TMProject 7.69 is not parity authority; server state and wire
+contracts are NOT APPLICABLE because this is local icon rendering.
+
+Entry: creating a mesh-backed grid item. `FUN_0040d13e` writes item object
+offset 0x1c0 (GeomControl offset 0x15c, dwBGColor). Item 3140 receives
+0xFFFFFFFF, 3407..3416 receive the same value, and selected other items receive
+the native colored palette. The eight-entry palette at native VA 0x005b129c
+is retained verbatim in `NativeInventoryGlow.h`. Type 206 with first effect
+59 selects 0xFFAA8888, subject to the later item-ID overrides.
+
+The active constructor previously left dwBGColor zero for every item. This
+prevented the existing RenderGeomControl branch from selecting effect texture
+273 for the white halo (56/122/123 for the other native colors). The helper now
+sets that field for mesh-backed items only. Original models, item identities,
+refinement passes and texture files are unchanged. The halo is owned by the
+same GeomControl as the icon; no new allocation, callback, persistence or
+logout lifecycle is introduced. Grid destruction retains existing ownership.
+
+Direct native instruction verification resolves three errors in the existing
+halo renderer: 0x0042efa1 calls the sine wrapper (0x0058fe22 is FSIN), then
+0x0042efa9/0x0042efaf multiply/add the floats at 0x005a41f4/0x005a41f0,
+respectively 0.35 and 0.65. The period is 2000 ms. Native alpha is preserved,
+not multiplied by the pulse. The top-right quad UV is (1,0), not (0.1,0).
+The production renderer now uses the tested sine/color helper and full UV.
+Existing native texture selection, additive blending and halo dimensions stay
+unchanged. No extra world effect or guessed brightness adjustment is added.
+
+AUTOMATED TESTED: ArchitectureTests passed 1,221,246 checks, including all
+catalog halo boundaries, palette and override priority, first-effect gating,
+pulse extrema, alpha retention and 2000-ms periodicity, plus production wiring.
+Socket 231, crash capture 83, launcher 56, shader and costume gates passed;
+incremental Release/x86 build passed. Candidate SHA-256:
+`75868D55FA061A5256F8A213785D2B6A81EF563BCDD26D161FE4D5BFB99CA2FD`.
+CLIENT-TESTED remains pending. The owner's 10027 screenshot is retained as
+negative evidence for the previous fix, not acceptance of this follow-up.
+Published as executable-only patch 10028; fresh HTTP/HTTPS ZIP and executable
+hashes matched. See the launcher receipt for artifact identities. No local
+runtime installation, service restart or agent-initiated game execution.
 
 ## Independent equipped-earring Lac exception
 

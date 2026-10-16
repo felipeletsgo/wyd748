@@ -130,7 +130,7 @@
     "str": 4,
     "int": 100,
     "dex": 90,
-    "con": 2450,
+    "con": 1,
     "critical": 255,
     "resistFire": 30,
     "resistIce": 30,

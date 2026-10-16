@@ -4,7 +4,7 @@ title: Citizenship metadata and cape emblems
 subsystem: appearance
 status: CONTRACT
 native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
-updated: 2026-10-14
+updated: 2026-10-15
 ---
 
 # Citizenship metadata and cape emblems
@@ -259,3 +259,40 @@ representative cape IDs, clamping and the two source entry paths. The
 records the incremental Release build and automated gates. No game was
 launched; visible brightness at each refinement, owner/observer agreement,
 equipment changes and relogin remain manual acceptance gates.
+
+### Elite cape grid icons — 2026-10-15
+
+The owner narrowed the Arch 355 report to swapped icons and explicitly
+requested Hekalotia blue, Akeronia red and Adventurer white. The current
+XOR-decoded `client748/ItemList.bin` rows 3191..3193 use mesh 27 with offsets
+24/25/26. `mesh/MeshList.txt` maps 27 to `mantua.msa`; its first material
+`mt010101` resolves to model texture 943 in the active 528-byte-row
+`mesh/MeshTextureList.bin`. Thus those offsets select 967/968/969, whose
+textures are `mt010127.wys` (white), `mt010128.wys` (blue), and
+`mt010129.wys` (red). Wrapped DDS decoding and direct texture inspection
+confirm the colors; this is asset inspection, not execution in the game.
+
+`MODERNIZACAO_COMPATIVEL`: `GridItemPresentation.h::IconTexture` overrides
+only the three grid offsets to 25/26/27. Texture 970 is `mt010130.wys`, white.
+`SGridControlItem` applies the helper only for mesh-backed icons. Existing
+native grid construction/render boundaries (`FUN_0040d13e`, `FUN_004bbcb5`)
+are reused; the new user-selected mapping makes no additional parity claim.
+The grid owns the existing geometry control; no new resource, callback, ABI,
+packet, timer, or persistent state is introduced. Every other item retains
+its catalog texture. Equipped world capes, kingdom/emblem state, the shared
+catalog and dropped-world-item rendering are unchanged.
+
+Consumed texture SHA-256 identities, in blue/red/white order:
+
+- `mt010128.wys`: `E7AD4B6D8D40E2DD28686B27D215611AD2D1FB6AEFC5E6F4F332A813F3033236`.
+- `mt010129.wys`: `C70881CC478301ACF035C38E7ED7E243188E65F44E663CEEC6140391BA5B468A`.
+- `mt010130.wys`: `6B39579FAFA639A70B6FB2DE0E24FFD2244A505CD8146B389C714BE214858268`.
+
+`GridInsertionTests` tests the three overrides and preservation for all other
+6,497 catalog IDs. The scene source contract verifies the production hookup.
+`Build-Client.ps1 -NoDeploy` passed: ArchitectureTests 1,227,747 checks,
+socket 231, crash capture 83, launcher 56, costume/shader gates and incremental
+Release/x86 build. `STATICALLY VERIFIED` and `AUTOMATED TESTED`, not
+`CLIENT_TESTED`. Publication, actual grid color acceptance in inventory,
+equipment and shops, and re-equipping/relogin remain pending. No local runtime
+install, account change, server restart, commit or push was performed.

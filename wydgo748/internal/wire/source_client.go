@@ -291,6 +291,21 @@ func CreateMobTrade(id uint16, name string, x, y uint16, mesh []uint16, score *m
 	return b
 }
 
+// PutCreateMobTab writes the 26-byte nickname and coordinated color v1.
+// Byte 327 was padding; zero/unknown colors retain the original gray label.
+// Reject trade packets: their title overlaps bytes 326..349.
+func PutCreateMobTab(packet []byte, text string, color byte) {
+	if len(packet) != 328 || ParseHeader(packet).Type != OpCreateMob {
+		return
+	}
+	clear(packet[300:326])
+	copy(packet[300:325], text)
+	if color > 8 {
+		color = 0
+	}
+	packet[327] = color
+}
+
 func ShopList(items []model.Item, tax, shopType uint32) []byte {
 	b := Build(OpShopList, SceneField, 236)
 	putU32(b, 12, shopType)

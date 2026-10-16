@@ -2682,6 +2682,7 @@ void TMHuman::Init()
     memset(&m_stColorInfo, 0, sizeof(m_stColorInfo));
     memset(m_szName, 0, sizeof(m_szName));
     memset(m_szNickName, 0, sizeof(m_szNickName));
+    m_tabColor = 0;
     memset(&m_stScore, 0, sizeof(m_stScore));
     memset(&m_stPunchEvent, 0, sizeof(m_stPunchEvent));
     memset(&m_stEffectEvent, 0, sizeof(m_stEffectEvent));
@@ -2805,8 +2806,7 @@ void TMHuman::UpdateScore(int nGuildLevel)
 
             if (m_pNickNameLabel)
             {
-                m_pNickNameLabel->SetText(m_szNickName, 1);
-                m_pNickNameLabel->SetTextColor(0xFFCCCCCC);
+                SetTabLabel(m_szNickName, m_tabColor);
             }
 
             if (pScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
@@ -2955,10 +2955,10 @@ void TMHuman::CheckAffect()
         case 12:
         case 14:
         case 16:
+        case 24:
         case 33:
         case 34:
         case 35:
-        case 36:
         case 38:
         case 41:
         case 42:
@@ -2991,7 +2991,7 @@ void TMHuman::CheckAffect()
         case 23:
             m_cElimental = 1;
             break;
-        case 24:
+        case 36:
             m_cCriticalArmor = 1;
             break;
         case 25:

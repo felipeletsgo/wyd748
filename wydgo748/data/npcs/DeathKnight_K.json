@@ -90,7 +90,7 @@
     "str": 4,
     "int": 100,
     "dex": 90,
-    "con": 2000,
+    "con": 1,
     "critical": 255,
     "resistFire": 40,
     "resistIce": 40,

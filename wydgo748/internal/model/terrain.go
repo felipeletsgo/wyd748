@@ -39,6 +39,16 @@ func (m TerrainMap) Walkable(x, y uint16) bool {
 	return attribute&0x02 == 0
 }
 
+// NewbieZone reports the native training-field attribute (0x80). WYD 7.48
+// recalls a mortal at FREEEXP or above, or any evolved character, that tries
+// to enter it (_MSG_Action GetAttribute & 0x80).
+func (m TerrainMap) NewbieZone(x, y uint16) bool {
+	if !m.Loaded() || int(x) >= TerrainWidth || int(y) >= TerrainHeight {
+		return false
+	}
+	return m.Attribute[(int(y)/4)*AttributeWidth+int(x)/4]&0x80 != 0
+}
+
 func (m TerrainMap) heightCompatible(fromX, fromY, toX, toY uint16, limit int) bool {
 	if !m.Walkable(toX, toY) {
 		return false

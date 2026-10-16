@@ -8,7 +8,7 @@
     "version": 2, "level": 60, "attack": 0, "magicAttack": 0,
     "defense": 200, "maxHP": 50000000, "maxMP": 0,
     "curHP": 50000000, "curMP": 0, "str": 4, "int": 100,
-    "dex": 100, "con": 1250, "critical": 255, "saveMana": 255,
+    "dex": 100, "con": 1, "critical": 255, "saveMana": 255,
     "mastery": [255, 2, 105, 1], "attackRun": 2
   },
   "carry": [

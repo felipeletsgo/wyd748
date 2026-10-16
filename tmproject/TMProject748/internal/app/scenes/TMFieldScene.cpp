@@ -2831,10 +2831,10 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 			if (chat_submit::IsBlockedByProgress(m_pMyHuman->m_fProgressRate))
 				{ extractedResult = 1; return ExtractedFlow::Return; }
 
-			if (!strcmp(m_pMyHuman->m_szNickName, stMsgWhisper.String))
-				{ extractedResult = 1; return ExtractedFlow::Return; }
-
-			sprintf(g_TempNick, "%s", stMsgWhisper.String);
+			// The server also bounds direct requests. Do not suppress identical
+			// text: /tab2..9 may change only its color, or clear an empty label.
+			stMsgWhisper.String[25] = 0;
+			tab_label::CopyText(g_TempNick, stMsgWhisper.String);
 
 			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 		}
@@ -4216,6 +4216,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// clears m_pMouseOverHuman and submits controls for this frame.
 	UpdateCompatObservedAffects();
 	UpdateWeatherEffects();
+	PumpGuildMarkDownloads();
 	if (m_pMyHuman && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible())
 	{
 		if (m_pPositionText)

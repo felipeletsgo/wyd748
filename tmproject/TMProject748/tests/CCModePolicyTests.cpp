@@ -3,6 +3,7 @@
 #include "../internal/application/DamageNumberPolicy.h"
 #include <climits>
 #include <cstdio>
+#include <initializer_list>
 
 int RunCCModePolicyTests(int& checks)
 {
@@ -18,17 +19,50 @@ int RunCCModePolicyTests(int& checks)
     check(cc_mode::NormalizeThreshold(-1) == 0, "negative threshold disabled");
     check(cc_mode::NormalizeThreshold(INT_MAX) == 90, "large threshold bounded");
     check(cc_mode::NormalizeThreshold(59) == 50, "threshold snaps to tens");
-    check(!cc_mode::ShouldFeed(1, 100, 1, 0), "disabled means no HP or hunger feeding");
-    check(!cc_mode::ShouldFeed(0, 100, 1, 90), "dead mount is not fed");
-    check(cc_mode::ShouldFeed(49, 100, 10, 50), "low HP triggers feeding");
-    check(!cc_mode::ShouldFeed(50, 100, 10, 50), "HP boundary is strict");
-    check(cc_mode::ShouldFeed(100, 100, 1, 50), "hunger triggers feeding");
-    check(cc_mode::ShouldFeed(100, 100, 5, 50), "last hungry value triggers feeding");
-    check(!cc_mode::ShouldFeed(100, 100, 6, 50), "sated mount is not fed");
-    check(!cc_mode::ShouldFeed(100, 100, 0, 50), "absent hunger is not low hunger");
-    check(!cc_mode::ShouldFeed(1, 0, 10, 50), "unknown max does not trigger HP feeding");
-    check(cc_mode::ShouldFeed(1, 0, 1, 50), "hunger works independently of max HP");
+    check(!cc_mode::BelowThreshold(1, 100, 0), "disabled percentage suppresses HP feeding");
+    check(!cc_mode::BelowThreshold(0, 100, 90), "dead mount has no HP feeding");
+    check(cc_mode::BelowThreshold(49, 100, 50), "low HP triggers feeding");
+    check(!cc_mode::BelowThreshold(50, 100, 50), "HP boundary is strict");
+    check(cc_mode::Hungry(1) && cc_mode::Hungry(5), "reference hunger range is independent of percentage");
+    check(!cc_mode::Hungry(0) && !cc_mode::Hungry(6), "absent and sated hunger do not trigger feeding");
+    check(!cc_mode::BelowThreshold(1, 0, 50), "unknown max does not trigger HP feeding");
     check(!cc_mode::BelowThreshold(INT_MAX, INT_MAX, 90), "threshold arithmetic does not overflow");
+    check(cc_mode::RemainingAffectUnits(10, 16000, 0) == 8, "remaining time counts 8-second units");
+    check(cc_mode::RemainingAffectUnits(2, 80000, 0) == 0, "an elapsed buff has no time left");
+    check(cc_mode::RemainingAffectUnits(5, 7999u, 0xFFFFFFFFu) == 4, "arrival time survives tick wraparound");
+    check(!cc_mode::BuffNeedsRefresh(4), "a buff with more than 24 seconds left is kept");
+    check(cc_mode::BuffNeedsRefresh(3), "a buff is refreshed before it expires");
+    check(cc_mode::BuffNeedsRefresh(0), "a missing buff is cast");
+    const int referenceBuffs[] = {3, 5, 53, 54, 9, 11, 37, 41, 43, 44, 45, 46,
+        64, 66, 68, 70, 71, 87, 75, 76, 77, 81, 85, 89, 92};
+    for (int skill = -1; skill < 256; ++skill) {
+        bool expected = false;
+        for (int reference : referenceBuffs) expected |= skill == reference;
+        check(cc_mode::IsAutomaticBuff(skill) == expected, "automatic buff set matches pinned reference");
+    }
+    for (int skill : {64, 66, 68, 70, 71})
+        check(cc_mode::BuffAffectSkill(skill) == 71, "all transformations share one active affect");
+    check(cc_mode::BuffAffectSkill(44) == 44, "ordinary buff keeps its own affect identity");
+    for (int skill : {3, 5, 53, 54, 74, 76, 77})
+        check(cc_mode::BuffMasterySlot(skill) == 1, "first mastery group matches reference");
+    for (int skill : {9, 11, 13, 15, 37, 86, 87})
+        check(cc_mode::BuffMasterySlot(skill) == 2, "second mastery group matches reference");
+    for (int skill : {41, 43, 44, 45, 46, 64, 66, 68, 70, 71, 89, 90})
+        check(cc_mode::BuffMasterySlot(skill) == 3, "third mastery group matches reference");
+    for (int skill : {75, 81, 85, 92})
+        check(cc_mode::BuffDelayMs(skill, 150, 320) == 0, "reference has no mastery delay for this buff");
+    check(cc_mode::BuffDelayMs(3, 2, 100) == 20000, "reference delay is 100 times AffectTime times mastery");
+    check(cc_mode::BuffDelayMs(3, 150, 320) == 576000, "reference delay cannot outlast server refresh window");
+    check(cc_mode::BuffDelayMs(3, INT_MAX, INT_MAX) == 576000, "delay multiplication cannot overflow");
+    check(cc_mode::BuffDelayMs(3, -1, 100) == 0 && cc_mode::BuffDelayMs(3, 150, -1) == 0,
+        "invalid catalog or mastery cannot create a huge unsigned delay");
+    check(cc_mode::BuffDelayDue(1, 0, 576000), "unused buff does not wait for server uptime");
+    check(!cc_mode::BuffDelayDue(29999, 10000, 20000), "mastery delay blocks an early repeat");
+    check(cc_mode::BuffDelayDue(30000, 10000, 20000), "mastery delay opens at its exact boundary");
+    check(cc_mode::BuffDelayDue(499, UINT_MAX - 500, 1000), "mastery delay survives timer wraparound");
+    for (int mastery = 0; mastery <= 320; ++mastery)
+        check(cc_mode::BuffDelayMs(44, 150, mastery) <= (38u + 37u * mastery / 320u - 3u) * 8000u,
+            "every server mastery preserves the pre-expiry refresh window");
     check(cc_mode::ShouldReportInsufficientMana(false, true, 10, 10),
         "manual casts keep the native per-attempt warning");
     check(cc_mode::ShouldReportInsufficientMana(true, false, 10, 0),

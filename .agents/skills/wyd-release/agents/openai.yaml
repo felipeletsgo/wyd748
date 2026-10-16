@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Release Delivery"
+  short_description: "Publish and verify scoped client/VPS releases"
+  default_prompt: "Use $wyd-release to deliver the authorized components, verify artifact and active-release identity, and preserve restart restrictions and pending gameplay gates."

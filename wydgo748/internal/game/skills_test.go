@@ -60,6 +60,24 @@ func TestSkillFinalDamageDoesNotClampWideAttackToWord(t *testing.T) {
 	}
 }
 
+func TestEnchantIceAndLightningStormRequireBow(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{
+		729: {Index: 729, StaticEffects: []model.StaticEffect{{Name: "EF_WTYPE", Value: 101}}},
+		832: {Index: 832, StaticEffects: []model.StaticEffect{{Name: "EF_WTYPE", Value: 41}}},
+	}}
+	ch := &model.Char{}
+	for _, tc := range []struct {
+		weapon uint16
+		skill  int
+		want   bool
+	}{{729, 75, true}, {832, 75, false}, {0, 79, false}, {832, 92, true}, {832, 55, true}} {
+		ch.Equip[6] = model.Item{Index: tc.weapon}
+		if got := w.skillWeaponAllowed(ch, tc.skill); got != tc.want {
+			t.Fatalf("weapon %d skill %d: %t", tc.weapon, tc.skill, got)
+		}
+	}
+}
+
 func TestHunter79And86Use748CatalogBuffs(t *testing.T) {
 	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
 	if err != nil {
@@ -72,6 +90,9 @@ func TestHunter79And86Use748CatalogBuffs(t *testing.T) {
 		p.Char.LearnedSkill = 1 << (index - 72)
 		p.Char.Score.MaxMP, p.Char.Score.CurMP = 5_000, 5_000
 		p.Char.Score.Mastery = [4]uint32{0, 100, 100, 100}
+		// Lightning Storm (79) needs a bow, as in the 7.48 client.
+		w.items[729] = catalog.Items[729]
+		p.Char.Equip[6] = model.Item{Index: 729}
 		applyScore(p.Char)
 		w.recalcPlayer(p.Char)
 		skill := w.skills[index]
@@ -596,29 +617,27 @@ func TestSoulLimitUsesW2PPCooldownAndAffectDuration(t *testing.T) {
 		t.Fatalf("cooldown skill comum=%s, quer 7s", got)
 	}
 
+	// Soul Limit: 5 minutes (38 units of 8 s) for a new Celestial up to
+	// 15 minutes (113 units) at Celestial level 199.
 	tests := []struct {
-		name       string
-		evolution  string
-		level      uint32
-		multiplier int
-		wantUnits  int
+		name      string
+		evolution string
+		level     uint32
+		wantUnits int
 	}{
-		{name: "mortal", level: 1, multiplier: 200, wantUnits: 2},
-		{name: "arch", evolution: archEvolution, level: 400, multiplier: 100, wantUnits: 1},
-		{name: "celestial abaixo 39", evolution: "celestial", level: 30, multiplier: 164, wantUnits: 1},
-		{name: "celestial normal", evolution: "celestial", level: 100, multiplier: 200, wantUnits: 2},
-		{name: "celestial 199", evolution: "celestial", level: 199, multiplier: 400, wantUnits: 4},
-		{name: "subcelestial", evolution: "subcelestial", level: 250, multiplier: 400, wantUnits: 4},
+		{name: "mortal", level: 1, wantUnits: 38},
+		{name: "arch", evolution: archEvolution, level: 400, wantUnits: 38},
+		{name: "celestial 0", evolution: "celestial", level: 0, wantUnits: 38},
+		{name: "celestial 100", evolution: "celestial", level: 100, wantUnits: 75},
+		{name: "celestial 199", evolution: "celestial", level: 199, wantUnits: 113},
+		{name: "subcelestial", evolution: "subcelestial", level: 250, wantUnits: 113},
 	}
 	skill := model.SkillDef{Index: 102, AffectType: 29, AffectTime: 0}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ch := &model.Char{Evolution: test.evolution, Score: testScore(model.Score{Level: test.level})}
-			if got := soulLimitDelayMultiplier(ch); got != test.multiplier {
-				t.Fatalf("multiplicador=%d, quer %d", got, test.multiplier)
-			}
 			if got := soulLimitAffectTime(skill, ch); got != test.wantUnits {
-				t.Fatalf("duracao=%d unidade(s), quer %d", got, test.wantUnits)
+				t.Fatalf("duration=%d unit(s), want %d", got, test.wantUnits)
 			}
 		})
 	}
@@ -646,7 +665,7 @@ func TestSoulLimitUsesFixedSlot15AndOverwritesIt(t *testing.T) {
 	if got.Type != 29 || got.ClientType != 29 || got.Value != 0 || got.Level != 25 {
 		t.Fatalf("slot 15 incorreto: %+v", got)
 	}
-	if want := now.Add(16 * time.Second); !got.ExpiresAt.Equal(want) {
+	if want := now.Add(75 * 8 * time.Second); !got.ExpiresAt.Equal(want) { // Celestial 100: 10 minutes
 		t.Fatalf("expiracao=%s, quer %s", got.ExpiresAt, want)
 	}
 	if want := now.Add(8 * time.Second); !got.NextTick.Equal(want) {

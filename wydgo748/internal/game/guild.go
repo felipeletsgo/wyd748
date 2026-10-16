@@ -97,8 +97,12 @@ func (w *World) repairGuildState(ch *model.Char) bool {
 		ch.GuildID, ch.GuildRank = 0, 0
 		return true
 	}
+	capeChanged := alignGuildCape(ch, guild.Kingdom)
+	if capeChanged && ch.Score != nil {
+		w.recalcPlayer(ch)
+	}
 	if ch.GuildID == guild.ID && ch.GuildRank == member.Rank {
-		return false
+		return capeChanged
 	}
 	log.Printf("guild: %q repaired to guild=%d rank=%d (previous guild=%d rank=%d)",
 		ch.Name, guild.ID, member.Rank, ch.GuildID, ch.GuildRank)

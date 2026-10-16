@@ -362,6 +362,7 @@ struct MSG_CreateMob
 	char Equip2[MAX_EQUIPITEM];
 	char Nick[26];
 	char Server;
+	unsigned char TabColor; // v1 extension in the former trailing padding byte.
 };
 static_assert(sizeof(MSG_CreateMob) == kCreateMobPacketSize,
 	"coordinated CreateMob packet size changed");
@@ -393,6 +394,8 @@ static_assert(offsetof(MSG_CreateMob, Nick) == kCreateMobNickOffset &&
 	"CreateMob nickname block changed");
 static_assert(offsetof(MSG_CreateMob, Server) == kCreateMobServerOffset,
 	"CreateMob server byte offset changed");
+static_assert(offsetof(MSG_CreateMob, TabColor) == kCreateMobTabColorOffset,
+	"CreateMob tab-color byte offset changed");
 
 struct MSG_CreateMobTrade
 {

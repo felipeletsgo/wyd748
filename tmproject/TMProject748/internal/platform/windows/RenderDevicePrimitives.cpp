@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "NativeInventoryLighting.h"
+#include "../../ui/NativeInventoryGlow.h"
 // RenderDevice split by responsibility; device lifecycle stays in RenderDevice.cpp.
 #include "TextureManager.h"
 #include "MeshManager.h"
@@ -1207,11 +1209,11 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 		case RENDERCTRLTYPE::RENDER_3DOBJ:
 			if (ipControl->n3DObjIndex < 737 || ipControl->n3DObjIndex > 739)
 			{
-				SetRenderStateBlock(1);
+				// FUN_0042e8a1 uses native block 3: fixed inventory lighting,
+				// independent of map darkness. This port maps it to RenderBlock.
+				SetRenderStateBlock(native_inventory_lighting::RenderBlock);
 				g_pDevice->SetRenderState(D3DRS_ZFUNC, 8);
 				SetRenderState(D3DRS_FOGENABLE, 0);
-				SetRenderState(D3DRS_ALPHABLENDENABLE, 0);
-				SetRenderState(D3DRS_ALPHATESTENABLE, 0);
 
 				TMMesh* pMesh = g_pMeshManager->GetCommonMesh(ipControl->n3DObjIndex, 0, 3_min);
 				// Port the exact WYD 7.48 control renderer from Ghidra
@@ -1318,12 +1320,8 @@ void RenderDevice::RenderGeomControlBG(GeomControl* ipControl, DWORD dwColor, in
 	if (m_dwStartTime == 0)
 		m_dwStartTime = g_pTimerManager->GetServerTime();
 
-	float fCurrRatio = (float)((g_pTimerManager->GetServerTime() - m_dwStartTime) % 2000);
-	fCurrRatio = (((fCurrRatio * 0.0005f) - 0.5f) * 2.0f) * D3DXToRadian(180);
-	fCurrRatio = (fCurrRatio * 0.34f) + 0.64f;
-
-	unsigned int dwCurrColor = WYD_RGBA((unsigned int)((float)WYDCOLOR_RED(dwColor) * fCurrRatio), (unsigned int)((float)WYDCOLOR_GREEN(dwColor) * fCurrRatio),
-		(unsigned int)((float)WYDCOLOR_BLUE(dwColor) * fCurrRatio), (unsigned int)((float)WYDCOLOR_ALPHA(dwColor) * fCurrRatio));
+	const auto dwCurrColor = native_inventory_glow::PulsedColor(
+		dwColor, g_pTimerManager->GetServerTime() - m_dwStartTime);
 
 	RDTLVERTEX v[4]{};
 	for (int i = 0; i < 4; ++i)
@@ -1351,7 +1349,7 @@ void RenderDevice::RenderGeomControlBG(GeomControl* ipControl, DWORD dwColor, in
 	v[1].position.x = fX + fHalfWidth;
 	v[1].position.y = fY - fHalfHeight;
 	v[1].position.z = 0.1f;
-	v[1].tu = 0.1f;
+	v[1].tu = 1.0f;
 	v[1].tv = 0.0f;
 	v[2].position.x = fX - fHalfWidth;
 	v[2].position.y = fY + fHalfHeight;

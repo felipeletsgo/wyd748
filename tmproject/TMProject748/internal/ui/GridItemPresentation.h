@@ -3,6 +3,19 @@
 #include <cmath>
 
 namespace grid_item_presentation {
+// The elite catalog offsets precede their intended blue/red/white textures
+// in the active 7.48 model directory. Correct only grid presentation: world
+// capes, kingdom identity and the shared item catalog remain unchanged.
+constexpr int IconTexture(int itemIndex, int catalogTexture)
+{
+    switch (itemIndex) {
+    case 3191: return 25; // Elite Of Hekalotia: mt010128.wys, blue.
+    case 3192: return 26; // Elite Of Akeronia: mt010129.wys, red.
+    case 3193: return 27; // Elite Of Adventurer: mt010130.wys, white.
+    default: return catalogTexture;
+    }
+}
+
 // FUN_0040E6AA/FUN_0040E817 apply the same fit at insertion, including
 // equipment receptacles. Slot geometry changes centering, not mesh scale.
 inline float MeshScale(float maxZ, int cellHeight)

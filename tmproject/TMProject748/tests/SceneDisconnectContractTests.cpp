@@ -900,6 +900,29 @@ int RunSceneDisconnectContractTests(int& checks)
         "weapon damage bounds both 7.48 ItemList uniqueness lookups");
     const auto updateEquipHandler = source_contract::Method(packetSource,
         "int TMHuman::OnPacketUpdateEquip(MSG_STANDARD* pStd)");
+    const auto transformationEffects = source_contract::Method(updateEquipHandler,
+        "if (m_stLookInfo.FaceMesh != g_pItemList[item.sIndex].nIndexMesh || BASE_GetItemAbility(&item, EF_CLASS) != m_nClass)");
+    check(!transformationEffects.empty(),
+        "UpdateEquip encloses every transformation effect in the native face/class change guard");
+    auto ordinaryEquipRefresh = updateEquipHandler;
+    const auto transformationAt = ordinaryEquipRefresh.find(transformationEffects);
+    if (!transformationEffects.empty() && transformationAt != std::string::npos)
+        ordinaryEquipRefresh.erase(transformationAt, transformationEffects.size());
+    for (const char* effect : {"new TMEffectParticle(", "GetSoundData(158)",
+        "new TMShade(4, 7, 1.0f)", "SetAnimation(", "new TMEffectLevelUp("})
+        check(transformationEffects.find(effect) != std::string::npos &&
+            ordinaryEquipRefresh.find(effect) == std::string::npos,
+            "ordinary UpdateEquip cannot emit transformation effects or replace the current cast animation");
+    check(transformationEffects.find("if (!m_cHide)") != std::string::npos,
+        "genuine transformations retain the native hidden-character effect guard");
+    for (const char* update : {"SetPacketEquipItem(pEquip->sEquip);", "SetColorItem(pEquip->Equip2);",
+        "InitObject();", "CheckWeapon(", "pScene->UpdateScoreUI(0);"})
+        check(transformationEffects.find(update) == std::string::npos &&
+            ordinaryEquipRefresh.find(update) != std::string::npos,
+            "ordinary UpdateEquip still applies equipment, color, weapon and HUD state");
+    check(!transformationEffects.empty() &&
+        transformationAt + transformationEffects.size() < updateEquipHandler.find("SetPacketEquipItem(pEquip->sEquip);"),
+        "transformation guard ends before authoritative appearance is applied for owner and observers");
     const auto mountHudGuard = updateEquipHandler.find(
         "if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)");
     const auto mountHudCast = updateEquipHandler.find(
@@ -1670,6 +1693,73 @@ int RunSceneDisconnectContractTests(int& checks)
     check(centeredBranch != std::string::npos && centeredDraw != std::string::npos &&
         gridFrame.substr(centeredBranch, centeredDraw - centeredBranch).find("m_GCEnable") == std::string::npos,
         "occupied trade slots keep the FieldScene2 receptacle instead of an opaque black backdrop");
+    // Guild marks: bytes are downloaded off-thread, textures are created on the
+    // render thread, the untrusted BMP header is bounded, the address is the
+    // WYD-Go site and other characters receive their mark on CreateMob.
+    const auto socialSource = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneSocial.cpp");
+    const auto markAddress = LoadSource("TMProject748/internal/ui/GuildMarkDownload.h");
+    const auto markFieldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.cpp");
+    const auto worldSource = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneWorld.cpp");
+    check(markAddress.find("\"http://wyd.forjago.com/patch/guildmark/\"") != std::string::npos &&
+        socialSource.find("meusite.com") == std::string::npos &&
+        socialSource.find("void TMFieldScene::PumpGuildMarkDownloads()") != std::string::npos &&
+        socialSource.find("LoadGuildTexture", socialSource.find("void TMFieldScene::PumpGuildMarkDownloads()")) <
+            socialSource.find("int TMFieldScene::Guildmark_Create(") &&
+        socialSource.find("if (header.bfOffBits != sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER))") != std::string::npos &&
+        markFieldSource.find("PumpGuildMarkDownloads();") != std::string::npos &&
+        worldSource.find("Guildmark_Create(&pHuman->m_stGuildMark);") != std::string::npos,
+        "guild marks download safely from the WYD-Go site and appear for visible characters");
+    // Guild rank selects the mark border: leader (9) gold, sub-leaders
+    // (Sub1..Sub3 = ranks 6..8, inside the native 3..8 band) silver.
+    const auto markLink = socialSource.find("void TMFieldScene::Guildmark_Link(");
+    const auto markPrimitives = LoadSource("TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp");
+    const auto silverLayout = markPrimitives.find("else if (ipControl->nMarkLayout == 2)");
+    check(markLink != std::string::npos &&
+        socialSource.find("if (nGuildIndex == 509 || nGuildIndex == 9)\n\t\t\tpPanel->m_GCPanel.nMarkLayout = 1;", markLink) != std::string::npos &&
+        socialSource.find("(nGuildIndex < 3 || nGuildIndex > 8))\n\t\t\tpPanel->m_GCPanel.nMarkLayout = 3;", markLink) != std::string::npos &&
+        silverLayout != std::string::npos && markPrimitives.find("0xFFC0C0C0", silverLayout) != std::string::npos &&
+        markPrimitives.find("0xFFFFD700") < silverLayout,
+        "guild leader marks get a gold border and sub-leader marks a silver border");
+    // Mob Con is a signed short in WYD 7.48; its 16-bit pattern must not
+    // inflate monsters such as Basilisk (64736 = -800).
+    const auto appearanceSource = LoadSource("TMProject748/internal/game/entities/TMHumanAppearance.cpp");
+    const auto heightBody = appearanceSource.find("void TMHuman::SetCharHeight(float fCon)");
+    check(heightBody != std::string::npos &&
+        appearanceSource.find("if (fCon >= 32768.0f && fCon < 65536.0f)", heightBody) <
+            appearanceSource.find("m_fScale = ((fCon / fRatio) + 1.0f) * 0.89999998f;", heightBody),
+        "mob height reads Con as the native signed short");
+    // FUN_0042e8a1 calls native block 3 (mapped to RenderBlock in this port),
+    // not world block 1. Plain meshes still use their original texture pass.
+    const auto primitivesSource = LoadSource("TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp");
+    const auto iconCase = primitivesSource.find("case RENDERCTRLTYPE::RENDER_3DOBJ:");
+    const auto iconMesh = primitivesSource.find("pMesh->RenderForUI(", iconCase);
+    const auto uiMeshSource = LoadSource("TMProject748/internal/render/mesh/TMMesh.cpp");
+    const auto uiPlain = uiMeshSource.find("if (nMultiTex <= 0 && (sLegend < 4 || sLegend > 8))");
+    check(iconCase != std::string::npos && iconMesh != std::string::npos &&
+        primitivesSource.substr(iconCase, iconMesh - iconCase).find("SetRenderStateBlock(native_inventory_lighting::RenderBlock)") != std::string::npos &&
+        primitivesSource.substr(iconCase, iconMesh - iconCase).find("SetRenderStateBlock(1)") == std::string::npos &&
+        primitivesSource.substr(iconCase, iconMesh - iconCase).find("ALPHABLENDENABLE, 0") == std::string::npos &&
+        primitivesSource.substr(iconCase, iconMesh - iconCase).find("ALPHATESTENABLE, 0") == std::string::npos &&
+        uiPlain != std::string::npos &&
+        uiMeshSource.find("Render(0, nTexOffset);", uiPlain) < uiMeshSource.find("return 1;", uiPlain),
+        "3D item icons use fixed native lighting and retain original texture and alpha paths");
+    const auto deviceStates = LoadSource("TMProject748/internal/platform/windows/RenderDeviceState.cpp");
+    const auto inventoryItems = LoadSource("TMProject748/internal/ui/SGridItem.cpp");
+    check(inventoryItems.find("m_GCObj.nTextureSetIndex = grid_item_presentation::IconTexture(\n") != std::string::npos &&
+        inventoryItems.find("pItem->sIndex, itemDef.nIndexTexture)") != std::string::npos,
+        "mesh-backed grid icons use the tested presentation-only cape texture mapping");
+    check(inventoryItems.find("m_GCObj.dwBGColor = native_inventory_glow::Background(") != std::string::npos &&
+        inventoryItems.find("pItem->sIndex, nType, pItem->stEffect[0].cEffect)") != std::string::npos &&
+        primitivesSource.find("native_inventory_glow::PulsedColor(") != std::string::npos &&
+        primitivesSource.find("v[1].tu = 0.1f;") == std::string::npos &&
+        primitivesSource.find("nTexIndex = 273;") != std::string::npos,
+        "native item halo selection reaches the pulsing full-width effect quad");
+    check(deviceStates.find("nIndex == 1 || nIndex == native_inventory_lighting::RenderBlock") != std::string::npos &&
+        deviceStates.find("native_inventory_lighting::Prepare(m_light)") != std::string::npos &&
+        deviceStates.find("native_inventory_lighting::AlphaReference(m_dwBitCount)") != std::string::npos &&
+        deviceStates.find("inventoryLighting ? native_inventory_lighting::Ambient : g_LightingProfile.AmbientColor()") != std::string::npos &&
+        deviceStates.find("else if (nIndex == 3)") != std::string::npos,
+        "inventory states implement native lights and transparency without replacing world or 2D profiles");
     // WYD.exe 7.48 FUN_004bbcb5/FUN_004c3eec: +10 glow Legend 9..12 uses
     // 153/166/246/260; Garnet (absorb) must not use the newer 440 texture.
     const auto meshSource = LoadSource("TMProject748/internal/render/mesh/TMMesh.cpp");
@@ -2643,6 +2733,28 @@ int RunSceneDisconnectContractTests(int& checks)
             frame.find("m_pRenderDevice->Unlock(") == std::string::npos &&
             frame.find("if (!frame.End(0)) return S_FALSE;") < frame.find("m_pObjectManager->RenderTargetObject("),
             "application routes all scene segments through ownership and checked UI/presentation gates");
+    }
+    {
+        // A buff that SkillUse consumed without casting must not stall the
+        // C.C. loop: only a recorded cast ends the frame.
+        const auto skillUse = ccModeScene.find("SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);");
+        const auto castCheck = ccModeScene.find("if (m_dwSkillLastTime[idxSkill] != lastCast)", skillUse);
+        check(skillUse != std::string::npos && castCheck != std::string::npos &&
+            ccModeScene.find("cc_mode::BuffDelayDue(") != std::string::npos &&
+            ccModeScene.find("RebuffRetryDue") == std::string::npos &&
+            ccModeScene.find("if (used == 1)") == std::string::npos,
+            "C.C. uses reference mastery scheduling and does not stall on a rejected buff");
+        const auto hpFeed = ccModeScene.find("cc_mode::BelowThreshold(nMountHP");
+        const auto hpPotion = ccModeScene.find("UseHPotion()", hpFeed);
+        const auto mpPotion = ccModeScene.find("UseMPotion()", hpPotion);
+        const auto hunger = ccModeScene.find("cc_mode::Hungry(nMountFeed)", mpPotion);
+        const auto buffs = ccModeScene.find("cc_mode::IsAutomaticBuff(idxSkill)", hunger);
+        const auto support = ccModeScene.find("if (g_GameAuto == 3)", buffs);
+        const auto physicalAttack = ccModeScene.find("if (g_GameAuto == 1)", support);
+        check(hpFeed != std::string::npos && hpFeed < hpPotion && hpPotion < mpPotion &&
+            mpPotion < hunger && hunger < buffs && buffs < support && support < physicalAttack &&
+            physicalAttack != std::string::npos,
+            "reference order is mount HP, potions, hunger, buffs, support stop, attacks");
     }
     check(ccModeScene.find("{\"Off\", \"Physical\", \"Magic\", \"Support\"}") != std::string::npos &&
         ccModeScene.find("{\"Free\", \"Cycle\", \"Fixed\"}") != std::string::npos,

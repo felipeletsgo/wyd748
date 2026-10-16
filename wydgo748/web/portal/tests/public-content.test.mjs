@@ -29,14 +29,22 @@ test('public content ships real static routes with valid internal links and no i
 });
 test('download receipt distinguishes verified incremental patch from unknown full-package metadata', () => {
   const receipt = JSON.parse(html('client-manifest.json'));
-  assert.equal(receipt.version, 1); assert.equal(receipt.patchVersion, 10024);
-  assert.equal(receipt.publishedAt, '2026-10-14');
-  assert.equal(receipt.patch.sizeBytes, 824185);
-  assert.equal(receipt.patch.sha256, '24F3AFBEA36E1E8754D6520E69EE8B1468B007B9DFFF095ECD882C1D981D2E09');
-  assert.equal(receipt.patch.executableSha256, 'DD357D0EACD58882FAF872FCE645BDF9A93B196C6853DAD8D1521DF1A15E76F6');
-  assert.equal(receipt.patch.url, '/patch/patch-10024.zip'); assert.equal(receipt.updateFeed, '/patch/update.htm');
-  assert.match(html('index.html'), /Latest published patch 10024/);
+  assert.equal(receipt.version, 1); assert.equal(receipt.patchVersion, 10031);
+  assert.equal(receipt.publishedAt, '2026-10-16');
+  assert.equal(receipt.patch.sizeBytes, 832800);
+  assert.equal(receipt.patch.sha256, '38D1B4C3B069A3F19F61E6280EF697FA53BE0E6631FA1617DAD59F1CDD1B03B2');
+  assert.equal(receipt.patch.executableSha256, '2F75CA77281CCF21F899A6879DBB1A353C6FBE69A98A2F24C52D6E9309A51F1A');
+  assert.equal(receipt.patch.url, '/patch/patch-10031.zip'); assert.equal(receipt.updateFeed, '/patch/update.htm');
+  assert.match(html('index.html'), /Latest published patch 10031/);
+  assert.match(html('news/chat-labels-and-buff-icons-10031/index.html'), /Critical Armor/);
+  assert.match(html('changelog/index.html'), /Patch 10031 — chat labels and buff icons/);
   assert.match(html('news/mounts-interface-and-equipment-update/index.html'), /item-drop crash remains unresolved/);
+  assert.match(html('changelog/index.html'), /Patch 10025 — shining item icons/);
+  assert.match(html('news/shining-item-icons/index.html'), /Glittering Stone/);
+  assert.match(html('changelog/index.html'), /Patch 10026 — guild marks, C.C. rebuff and server fixes/);
+  assert.match(html('news/guild-marks-and-cc-update/index.html'), /16x12, 24-bit BMP/);
+  assert.match(html('changelog/index.html'), /Patch 10029 — player-reported fixes/);
+  assert.match(html('news/player-report-fixes-10029/index.html'), /second Cythera/);
   // Every published patch must be announced in News, not only in the changelog.
   assert.ok(html('news/index.html').includes(String(receipt.patchVersion)), 'News does not announce the latest published patch');
   assert.match(html('changelog/index.html'), /Patch 10022 — Aylin previews, \+10 glow and Lac \+11/);
