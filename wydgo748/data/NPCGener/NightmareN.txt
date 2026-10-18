@@ -1,16 +1,16 @@
-// Pesadelo N (Nightmare Normal)
+// Nightmare N (Nightmare Normal)
 // Instance-only generators: the instance spawns each block at its start
 // point within StartRange. MinuteGenerate stays -1 (never in the open world).
 
-// Pesadelo N (Erion)
+// Nightmare N (Erion)
 // ********************************************
 #	[2433]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Morlock__
-	Follower:	Morlock__
+	Leader:		NMN_Morlock
+	Follower:	NMN_Morlock
 	RouteType:	2
 	Formation:	0
 	StartX:		1305
@@ -30,15 +30,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo N (Erion)
+// Nightmare N (Erion)
 // ********************************************
 #	[2434]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Dark_Kn1
-	Follower:	Dark_Kn1
+	Leader:		NMN_DarkKn
+	Follower:	NMN_DarkKn
 	RouteType:	2
 	Formation:	0
 	StartX:		1317
@@ -58,15 +58,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo N (Erion)
+// Nightmare N (Erion)
 // ********************************************
 #	[2435]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Elf_ABJ2
-	Follower:	Elf_ABJ2
+	Leader:		NMN_Elf
+	Follower:	NMN_Elf
 	RouteType:	2
 	Formation:	0
 	StartX:		1301
@@ -86,15 +86,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo N (Erion)
+// Nightmare N (Erion)
 // ********************************************
 #	[2436]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Aqua_Golem__
-	Follower:	Aqua_Golem__
+	Leader:		NMN_Aqua
+	Follower:	NMN_Aqua
 	RouteType:	2
 	Formation:	0
 	StartX:		1310
@@ -114,15 +114,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo N (Erion)
+// Nightmare N (Erion)
 // ********************************************
 #	[2437]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Gargoyle3
-	Follower:	Gargoyle3
+	Leader:		NMN_Gargoyle
+	Follower:	NMN_Gargoyle
 	RouteType:	2
 	Formation:	0
 	StartX:		1309
@@ -142,15 +142,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo N (Erion) - BOSS
+// Nightmare N (Erion) - BOSS
 // ********************************************
 #	[2438]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Dark_Shadow_
-	Follower:	Dark_Shadow_
+	Leader:		NMN_Shadow
+	Follower:	NMN_Shadow
 	RouteType:	2
 	Formation:	0
 	StartX:		1309

@@ -17,6 +17,7 @@
 #include "WYD748Assets.h"
 #include "../../platform/windows/SocketTransport.h"
 #include "../../application/RequestCharacterLogin.h"
+#include "../../application/BoundedText.h"
 #include "../../wire/CharacterLoginSender.h"
 
 bool TMSelectCharScene::HandleJudgementEffect(char* buf)
@@ -239,7 +240,8 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case MSG_InitGuldName_Opcode:
 	{
 		MSG_INITGULDNAME* pGuildName = (MSG_INITGULDNAME*)pStd;
-		memcpy(g_pObjectManager->m_strGuildName[pGuildName->Parm], pGuildName->GuildName, sizeof(pGuildName->GuildName));
+		// The server-supplied slot cannot select memory outside the name table.
+		bounded_text::CopyIndexedField(g_pObjectManager->m_strGuildName, pGuildName->Parm, pGuildName->GuildName);
 	}
 	return 1;
 	}

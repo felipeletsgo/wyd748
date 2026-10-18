@@ -105,7 +105,7 @@ int RunUiModeContractTests(int& checks)
 
     // FUN_004528c5 mirrors the selected skill damage into Character text 0x450.
     const auto input = ReadAppSource("internal/app/scenes/TMFieldSceneInput.cpp");
-    const auto skillKey = source_contract::Method(input, "int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)");
+    const auto skillKey = source_contract::Method(input, "int TMFieldScene::SelectShortSkill(int slot)");
     check(skillKey.find("FindControl(TMT_CI_ATRT)") != std::string::npos &&
         skillKey.find("for (SText* target : {m_pSkillDam, pCharSkillDam})") != std::string::npos,
         "skill damage reaches both the HUD cell and Character text 0x450");

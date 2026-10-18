@@ -22,9 +22,44 @@
 #include "TMSkillPoison.h"
 #include "TMFont3.h"
 
-int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime)
+void TMFieldScene::UpdatePhysicalAttack(unsigned int dwServerTime)
 {
-	auto pOver = m_pMouseOverHuman;
+	if (!m_pTargetHuman || !m_pMyHuman || !g_pObjectManager)
+		return;
+
+	const auto action = field_interaction::PhysicalAttackTick(
+		m_pMyHuman->m_cDie == 0 && g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0,
+		m_pTargetHuman->m_cDie == 0 && m_pTargetHuman->m_sDelayDel == 0 &&
+			m_pTargetHuman->m_stScore.CurHP > 0,
+		m_dwLastLogout || m_dwLastTown || m_dwLastTeleport || g_dwStartQuitGameTime ||
+			m_bAirMove || m_pMyHuman->m_dwDelayDel,
+		g_GameAuto != 0,
+		m_pMyHuman->m_cHide == 1 || m_pMyHuman->m_bMoveing != 0,
+		dwServerTime, m_dwLastAutoAttackTime);
+	if (action == field_interaction::PhysicalAttackAction::Cancel)
+	{
+		m_pTargetHuman = nullptr;
+		m_pMyHuman->m_pMoveTargetHuman = nullptr;
+		return;
+	}
+	if (action != field_interaction::PhysicalAttackAction::Retry)
+		return;
+
+	m_dwLastAutoAttackTime = dwServerTime;
+	auto target = m_pTargetHuman;
+	D3DXVECTOR3 position(target->m_vecPosition.x, target->m_fHeight, target->m_vecPosition.y);
+	// Reuse click validation and its existing packet/cooldown path, without
+	// borrowing the mouse hover or selecting another enemy when this one dies.
+	if (!MobAttack(0, position, dwServerTime, target))
+	{
+		m_pTargetHuman = nullptr;
+		m_pMyHuman->m_pMoveTargetHuman = nullptr;
+	}
+}
+
+int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime, TMHuman* target)
+{
+	auto pOver = target ? target : m_pMouseOverHuman;
 	int nSpecForce = 0;
 	auto pMobData = &g_pObjectManager->m_stMobData;
 
@@ -36,6 +71,8 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 
 	if (pOver)
 	{
+		if (pOver == m_pMyHuman || pOver->m_cDie || pOver->m_sDelayDel || pOver->m_stScore.CurHP <= 0)
+			return 0;
 		if (pOver->m_nClass == 66 && pOver->m_cShadow == 1 && !m_pMyHuman->m_JewelGlasses)
 			return 0;
 		if (pOver->m_bParty == 1)
@@ -71,7 +108,7 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 			}
 		}
 	}
-	if (pOver && pOver->m_bMouseOver == 1)
+	if (pOver && (target || pOver->m_bMouseOver == 1))
 	{
 		int IsTargetUser = pOver->m_dwID > 0 && pOver->m_dwID < 1000;
 
@@ -137,6 +174,9 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 					return 0;
 			}
 
+			// A valid physical click retains the enemy even during cooldown or
+			// before reaching attack range. Manual movement/skills cancel it.
+			m_pTargetHuman = pOver;
 			unsigned int dwAddTime = 0;
 			if (dwServerTime <= m_dwOldAttackTime + 1000)
 				return 1;
@@ -265,8 +305,6 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 						stAttack.SkillParm = 1;
 				}
 
-				if (m_cAutoAttack == 1)
-					m_pTargetHuman = pOver;
 				stAttack.Dam[0].TargetID = pOver->m_dwID;
 				auto pTarget = g_pObjectManager->GetHumanByID(stAttack.Dam[0].TargetID);
 				int nCritical = (unsigned char)pMobData->CurrentScore.Critical;

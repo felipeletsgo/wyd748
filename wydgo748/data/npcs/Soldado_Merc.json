@@ -1,6 +1,6 @@
 {
   "name": "Soldado_Merc",
-  "tipo": "monstro",
+  "tipo": "npc",
   "equip": {
     "rosto": {
       "index": 60

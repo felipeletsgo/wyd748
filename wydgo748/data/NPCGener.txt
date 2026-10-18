@@ -107706,8 +107706,8 @@
 	Follower:	ShopArch
 	RouteType:	0
 	Formation:	0
-	StartX:		2100
-	StartY:		2102
+	StartX:		2097
+	StartY:		2108
 	StartRange:	0
 	StartWait:	0
 	DestX:		2100
@@ -108681,12 +108681,12 @@
 	Follower:	ShopSetE
 	RouteType:	0
 	Formation:	0
-	StartX:		2092
-	StartY:		2102
+	StartX:		2093
+	StartY:		2107
 	StartRange:	0
 	StartWait:	0
-	DestX:		2092
-	DestY:		2102
+	DestX:		2093
+	DestY:		2107
 	DestRange:	0
 	DestWait:	0
 
@@ -108702,10 +108702,10 @@
 	RouteType:	0
 	Formation:	0
 	StartX:		2091
-	StartY:		2102
+	StartY:		2107
 	StartRange:	0
 	StartWait:	0
 	DestX:		2091
-	DestY:		2102
+	DestY:		2107
 	DestRange:	0
 	DestWait:	0

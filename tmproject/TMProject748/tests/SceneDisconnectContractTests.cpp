@@ -1777,6 +1777,11 @@ int RunSceneDisconnectContractTests(int& checks)
     // FUN_004110f5 fills Aylin's four result grids from the staged pair once
     // a refinement gem occupies slot 3.
     const auto mixSource = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneMix.cpp");
+    const auto odinRecipe = mixSource.find("else if (first == 4127)");
+    const auto odinNext = mixSource.find("else if (first >= 5110", odinRecipe);
+    const auto odinGuard = mixSource.find("valid = odin_composition::AcceptsSealRecipe(packet->Item);", odinRecipe);
+    check(odinRecipe != std::string::npos && odinGuard != std::string::npos && odinGuard < odinNext,
+        "Odin dispatch uses the tested cape and level-40 recipe guard");
     const auto preview = mixSource.find("void TMFieldScene::RefreshNativeMixPreview()");
     check(preview != std::string::npos &&
         mixSource.find("native_aylin::Build(packet->Item[0], packet->Item[1],", preview) != std::string::npos &&
@@ -1800,7 +1805,7 @@ int RunSceneDisconnectContractTests(int& checks)
     // FUN_0040586f, UI mode 2: up 423, down 424, thumb 425, track 426, added
     // in that order; the 7.69 sets 174..176/510 are absent or wrong in 7.48.
     const auto nativeUp = rcScrollSource.find("m_pUpPanel = attachPanel(new SPanel(423, x, 0.0f, 10.0f, m_nBtnSize, 0xAAAA00FF");
-    const auto nativeDown = rcScrollSource.find("m_pDownPanel = attachPanel(new SPanel(424, x, m_nHeight - m_nBtnSize + 7.0f, 10.0f");
+    const auto nativeDown = rcScrollSource.find("m_pDownPanel = attachPanel(new SPanel(424, x, scrollbar_layout::DownArrowY(inHeight, 1.0f), 10.0f");
     const auto nativeThumb = rcScrollSource.find("m_pBar = attachPanel(new SPanel(425, x + 1.0f, 0.0f, 10.0f - 2.0f, m_nBtnSize, 0xFFFFFFFF");
     const auto nativeTrack = rcScrollSource.find("m_pBackground1 = attachPanel(new SPanel(426, x, 0.0f, 10.0f, inHeight, 0xFFFFFFFF");
     check(rcScrollSource.find("if (m_dwStyle == 0 && g_UIVer == 2)") != std::string::npos &&
@@ -1810,7 +1815,7 @@ int RunSceneDisconnectContractTests(int& checks)
     // follows the bottom and track 426 stretches to the new height.
     const auto resizeBody = rcScrollSource.substr(rcScrollSource.find("void SScrollBar::SetSize("));
     check(resizeBody.find("if (m_dwStyle == 0 && g_UIVer == 2)") < resizeBody.find("else if (m_dwStyle == 0)") &&
-        resizeBody.find("m_pDownPanel->SetPos(m_pDownPanel->m_nPosX, m_nHeight - m_nBtnSize + 7.0f);") != std::string::npos &&
+        resizeBody.find("scrollbar_layout::DownArrowY(m_nHeight, RenderDevice::m_fUIScaleY)") != std::string::npos &&
         resizeBody.find("m_pBackground1->SetSize(m_pBackground1->m_nWidth, m_nHeight);") != std::string::npos,
         "UI2 scrollbar resize stretches the track and moves the down arrow");
     const auto rcContainerSource = LoadSource("TMProject748/internal/ui/SControlContainer.cpp");
@@ -2508,16 +2513,20 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto startupSource = LoadUnits("TMProject748/internal/app/scenes/",
         {"NewApp", "NewAppWindow", "NewAppServices"});
     const auto basedefSource = LoadBasedefSources();
-    const auto receiveLoop = startupSource.find("ReadPacketView(&ErrorCode, &ErrorType)");
-    const auto readError = startupSource.find("if (ErrorCode != 0)", receiveLoop);
-    const auto closeOnError = startupSource.find("m_pSocketManager->CloseSocket();", readError);
-    const auto notifyOnError = startupSource.find("m_pObjectManager->OnPacketEvent(0, nullptr);", closeOnError);
-    const auto dispatchCheck = startupSource.find("if (!packet_dispatch::CanDispatch(packet", readError);
-    check(receiveLoop != std::string::npos && readError != std::string::npos &&
-        closeOnError != std::string::npos && notifyOnError != std::string::npos &&
-        dispatchCheck != std::string::npos &&
-        receiveLoop < readError && readError < closeOnError &&
-        closeOnError < notifyOnError && notifyOnError < dispatchCheck,
+    const auto socketSource = LoadSource("TMProject748/internal/platform/windows/CPSock.cpp");
+    const auto serialized = source_contract::Method(socketSource,
+        "void CPSock::DispatchNetworkEvent(WPARAM socket, LPARAM notification,\n"
+        "\tconst std::function<bool(const PacketView&)>& onPacket,\n"
+        "\tconst std::function<void()>& onDisconnected)");
+    const auto receiveLoop = serialized.find("ReadPacketView(&error, &detail)");
+    const auto readError = serialized.find("if (error != 0)", receiveLoop);
+    const auto closeOnError = serialized.find("CloseSocket();", readError);
+    const auto notifyOnError = serialized.find("onDisconnected();", closeOnError);
+    const auto dispatchCheck = serialized.find("!onPacket(packet)", notifyOnError);
+    check(!serialized.empty() && receiveLoop != std::string::npos && readError != std::string::npos &&
+        closeOnError != std::string::npos && notifyOnError != std::string::npos && dispatchCheck != std::string::npos &&
+        receiveLoop < readError && readError < closeOnError && closeOnError < notifyOnError && notifyOnError < dispatchCheck &&
+        startupSource.find("[this] { m_pObjectManager->OnPacketEvent(0, nullptr); }") != std::string::npos,
         "protocol errors close the socket and notify the scene before dispatch");
     check(startupSource.find("ReadItemName();") != std::string::npos &&
         startupSource.find("if (!ReadUIString())") != std::string::npos &&
@@ -2760,5 +2769,42 @@ int RunSceneDisconnectContractTests(int& checks)
         ccModeScene.find("{\"Free\", \"Cycle\", \"Fixed\"}") != std::string::npos,
         "7.48 compact combat controls use English labels");
 
+    {
+        const auto inventory = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneInventoryPackets.cpp");
+        const auto removeItem = source_contract::Method(inventory, "int TMFieldScene::OnPacketRemoveItem(MSG_STANDARDPARM* pStd)");
+        check(!removeItem.empty() && removeItem.find("DeleteObject(g_pObjectManager->GetItemByID(pStd->Parm))") != std::string::npos &&
+            removeItem.find("DeleteObject(pStd->Parm)") == std::string::npos,
+            "ground-item removal cannot select an actor with a colliding numeric ID");
+        const auto human = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
+        const auto retire = source_contract::Method(human, "void TMHuman::DelayDelete()");
+        check(!retire.empty() && retire.find("actor_lifetime::MayDelayDelete(this, m_pParentScene, ESCENE_TYPE::ESCENE_FIELD)") <
+            retire.find("m_dwDelayDel =") && retire.find("m_pMyHuman = nullptr") == std::string::npos,
+            "production retirement protects the local field actor before mutating lifetime state");
+        const auto tree = LoadSource("TMProject748/internal/core/TreeNode.cpp");
+        const auto detach = source_contract::Method(tree, "void TreeNode::DeleteOwner(TMObject* pOwner)");
+        check(detach.find("tree_attachment::ClearOwner(this, pOwner)") != std::string::npos,
+            "production owner detachment uses the tested iterative descendant traversal");
+        const auto manager = LoadSource("TMProject748/internal/core/ObjectManager.cpp");
+        const auto byId = source_contract::Method(manager, "void ObjectManager::DeleteObject(unsigned int dwID)");
+        check(byId.find("DeleteObject(pNode)") != std::string::npos,
+            "ID-based deletion shares final owner detachment with pointer-based deletion");
+        const auto window = LoadSource("TMProject748/internal/app/scenes/NewAppWindow.cpp");
+        const auto network = source_contract::Method(window, "ExtractedFlow NewApp::OnNetworkMessage(DWORD& wParam, int& lParam)");
+        check(network.find("DispatchNetworkEvent(") != std::string::npos && network.find("ReadPacketView(") == std::string::npos,
+            "window packet dispatch uses the tested serialized socket boundary");
+    }
+    {
+        const auto mesh = LoadSource("TMProject748/internal/render/mesh/CMesh.cpp");
+        const auto load = source_contract::Method(mesh, "int CMesh::LoadMesh(char* file)");
+        check(!load.empty() && load.find("skin_mesh_load::Plan(") < load.find("malloc(") &&
+            load.find("skin_mesh_load::ReadBuffer(handle, payload.indices") < load.find("entry.pMesh = pending.release()"),
+            "production skin loader validates extents before allocation and publishes only after both uploads");
+        check(load.find("malloc(160)") == std::string::npos && load.find("strnlen_s(file, pathCapacity)") != std::string::npos &&
+            load.find("skin_mesh_load::Positions(") != std::string::npos && load.find("skin_mesh_load::Indices(") != std::string::npos,
+            "production skin loader binds checked path, position, index and palette helpers");
+        const auto render = source_contract::Method(mesh, "int CMesh::Render(int nBright)");
+        check(render.find("if (!m_pBoneOffset[i]) return 0") < render.find("GetModelTexture("),
+            "unlinked bone palette is rejected before rendering");
+    }
     return failures;
 }

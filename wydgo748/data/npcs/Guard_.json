@@ -1,6 +1,7 @@
 {
   "name": "Guard_",
-  "tipo": "monstro",
+  "tipo": "npc",
+  "combatRole": "city_guard",
   "equip": {
     "rosto": {
       "index": 60

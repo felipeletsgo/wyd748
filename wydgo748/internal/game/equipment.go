@@ -512,6 +512,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	w.applyPassiveSkills(ch)
 	affectAttackSpeed := w.applyAffectStats(ch)
 	attackSpeedPoints := int(ch.RuntimeScore.Dex/5) + int(total("EF_ATTSPEED")) + affectAttackSpeed
+	ch.RuntimeAttackSpeedPercent = maxInt(100+attackSpeedPoints, 0)
 	ch.RuntimeScore.AttackRun = packedAttackSpeed(attackSpeedPoints) | ch.RuntimeScore.AttackRun&0x0F
 	if heldExperiencePenaltyActive(ch) {
 		ch.RuntimeScore.MaxHP /= 2

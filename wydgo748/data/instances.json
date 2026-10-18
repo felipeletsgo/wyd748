@@ -3,7 +3,7 @@
   "instances": {
     "uxmal": {
       "id": "uxmal",
-      "name": "Pista de Runas",
+      "name": "Clue of Runes",
       "mode": "state_machine",
       "stateMachine": "uxmal",
       "finishPolicy": "state_machine",
@@ -27,7 +27,7 @@
       ],
       "stages": [
         {
-          "name": "Pista +0 - Lich",
+          "name": "Clue +0 - Lich",
           "x": 3350,
           "y": 1622,
           "spawnX": 3350,
@@ -42,7 +42,7 @@
           ]
         },
         {
-          "name": "Pista +1 - Torre",
+          "name": "Clue +1 - Tower",
           "x": 3362,
           "y": 1574,
           "spawnX": 3362,
@@ -61,7 +61,7 @@
           ]
         },
         {
-          "name": "Pista +2 - Amon",
+          "name": "Clue +2 - Amon",
           "x": 3410,
           "y": 1453,
           "spawnX": 3410,
@@ -80,7 +80,7 @@
           ]
         },
         {
-          "name": "Pista +3 - Sulrang",
+          "name": "Clue +3 - Sulrang",
           "x": 3376,
           "y": 1096,
           "spawnX": 3376,
@@ -99,7 +99,7 @@
           ]
         },
         {
-          "name": "Pista +4 - Labirinto",
+          "name": "Clue +4 - Labyrinth",
           "x": 3342,
           "y": 1394,
           "spawnX": 3342,
@@ -114,7 +114,7 @@
           ]
         },
         {
-          "name": "Pista +5 - Balrog",
+          "name": "Clue +5 - Balrog",
           "x": 3421,
           "y": 1217,
           "spawnX": 3421,
@@ -129,7 +129,7 @@
           ]
         },
         {
-          "name": "Pista +6 - Coelho",
+          "name": "Clue +6 - Rabbit",
           "x": 3404,
           "y": 1517,
           "spawnX": 3404,
@@ -366,7 +366,7 @@
             }
           ],
           "quiz": {
-            "question": "A tecla M mostra o minimapa no canto inferior direito.",
+            "question": "The M key shows the minimap in the lower-right corner.",
             "answer": false,
             "trueX": 1689,
             "trueY": 4081,
@@ -390,7 +390,7 @@
             }
           ],
           "quiz": {
-            "question": "A tecla M mostra o minimapa no canto superior direito.",
+            "question": "The M key shows the minimap in the upper-right corner.",
             "answer": true,
             "trueX": 1711,
             "trueY": 4081,
@@ -414,7 +414,7 @@
             }
           ],
           "quiz": {
-            "question": "Ao andar, a Foema comeca com o pe direito.",
+            "question": "Foema starts walking with her right foot.",
             "answer": true,
             "trueX": 1733,
             "trueY": 4081,
@@ -438,7 +438,7 @@
             }
           ],
           "quiz": {
-            "question": "A quest Sociedade do WYD de dois castelos entrega um IMP.",
+            "question": "The two-castle WYD Society quest grants an IMP.",
             "answer": true,
             "trueX": 1755,
             "trueY": 4081,
@@ -462,7 +462,7 @@
             }
           ],
           "quiz": {
-            "question": "A quest Sociedade do WYD de dois castelos entrega o Nyerdes.",
+            "question": "The two-castle WYD Society quest grants Nyerdes.",
             "answer": false,
             "trueX": 1777,
             "trueY": 4081,
@@ -486,7 +486,7 @@
             }
           ],
           "quiz": {
-            "question": "A medalha de guild custa 8000000 sem impostos.",
+            "question": "A guild medal costs 8000000 before taxes.",
             "answer": true,
             "trueX": 1775,
             "trueY": 4049,
@@ -510,7 +510,7 @@
             }
           ],
           "quiz": {
-            "question": "A resolucao maxima do WYD e 1600x1200 32 bits.",
+            "question": "WYD's maximum resolution is 1600x1200 at 32 bits.",
             "answer": true,
             "trueX": 1775,
             "trueY": 4027,
@@ -534,7 +534,7 @@
             }
           ],
           "quiz": {
-            "question": "A resolucao minima do WYD e 640x480 16 bits.",
+            "question": "WYD's minimum resolution is 640x480 at 16 bits.",
             "answer": true,
             "trueX": 1775,
             "trueY": 4005,
@@ -558,7 +558,7 @@
             }
           ],
           "quiz": {
-            "question": "Existem sete tipos de cristais.",
+            "question": "There are seven types of crystals.",
             "answer": true,
             "trueX": 1767,
             "trueY": 3983,
@@ -582,7 +582,7 @@
             }
           ],
           "quiz": {
-            "question": "A Gema Estelar memoriza qualquer lugar.",
+            "question": "The Star Gem can memorize any location.",
             "answer": false,
             "trueX": 1743,
             "trueY": 3985,
@@ -606,7 +606,7 @@
             }
           ],
           "quiz": {
-            "question": "Itens +9 nao podem receber opcoes.",
+            "question": "+9 items cannot receive options.",
             "answer": false,
             "trueX": 1721,
             "trueY": 3985,
@@ -630,7 +630,7 @@
             }
           ],
           "quiz": {
-            "question": "Pontos de skill sao necessarios para aprender skills.",
+            "question": "Skill points are required to learn skills.",
             "answer": true,
             "trueX": 1699,
             "trueY": 3985,
@@ -654,7 +654,7 @@
             }
           ],
           "quiz": {
-            "question": "Um set completo concede bonus de defesa.",
+            "question": "A complete set grants a defense bonus.",
             "answer": true,
             "trueX": 1677,
             "trueY": 3985,
@@ -678,7 +678,7 @@
             }
           ],
           "quiz": {
-            "question": "Toque de Athena aumenta a aprendizagem de skill.",
+            "question": "Athena's Touch increases skill learning.",
             "answer": true,
             "trueX": 1679,
             "trueY": 4017,
@@ -702,7 +702,7 @@
             }
           ],
           "quiz": {
-            "question": "Safira e vendida pelo comerciante real.",
+            "question": "Sapphire is sold by the Royal Merchant.",
             "answer": true,
             "trueX": 1679,
             "trueY": 4039,
@@ -726,7 +726,7 @@
             }
           ],
           "quiz": {
-            "question": "Uma conta pode possuir cinco personagens.",
+            "question": "An account can have five characters.",
             "answer": false,
             "trueX": 1679,
             "trueY": 4061,
@@ -750,7 +750,7 @@
             }
           ],
           "quiz": {
-            "question": "A experiencia total e maior em grupo.",
+            "question": "Total experience is greater in a party.",
             "answer": true,
             "trueX": 1711,
             "trueY": 4059,
@@ -774,7 +774,7 @@
             }
           ],
           "quiz": {
-            "question": "Voz das Fadas e usada em monstros com alvo.",
+            "question": "Fairy's Voice is used on targeted monsters.",
             "answer": false,
             "trueX": 1733,
             "trueY": 4059,
@@ -798,7 +798,7 @@
             }
           ],
           "quiz": {
-            "question": "Pontos de skill sao obtidos apenas por level.",
+            "question": "Skill points are obtained only by leveling.",
             "answer": false,
             "trueX": 1755,
             "trueY": 4059,
@@ -822,7 +822,7 @@
             }
           ],
           "quiz": {
-            "question": "Foema usa lanca-chamas para Ataque de Fogo.",
+            "question": "Foema uses a flamethrower for Fire Attack.",
             "answer": false,
             "trueX": 1753,
             "trueY": 4027,
@@ -846,7 +846,7 @@
             }
           ],
           "quiz": {
-            "question": "Pocoes sao vendidas pelo comerciante real.",
+            "question": "Potions are sold by the Royal Merchant.",
             "answer": false,
             "trueX": 1753,
             "trueY": 4005,
@@ -870,7 +870,7 @@
             }
           ],
           "quiz": {
-            "question": "Sucesso na combinacao sempre reseta as opcoes.",
+            "question": "Successful composition always resets the options.",
             "answer": false,
             "trueX": 1721,
             "trueY": 4007,
@@ -898,7 +898,7 @@
             }
           ],
           "quiz": {
-            "question": "Nao existe guarda banco em Erion.",
+            "question": "There is no Cargo Guard in Erion.",
             "answer": false,
             "trueX": 1699,
             "trueY": 4007,
@@ -926,7 +926,7 @@
             }
           ],
           "quiz": {
-            "question": "Escudo +9 recebe defesa e resistencias adicionais.",
+            "question": "A +9 shield receives additional defense and resistances.",
             "answer": true,
             "trueX": 1701,
             "trueY": 4039,
@@ -1002,7 +1002,7 @@
           "areaRadius": 20,
           "spawns": [],
           "quiz": {
-            "question": "Ao pressionar a tecla A aparece o minimapa no canto inferior direito.",
+            "question": "Pressing A shows the minimap in the lower-right corner.",
             "answer": false,
             "trueX": 1316,
             "trueY": 1500,
@@ -1017,7 +1017,8 @@
     "hell-gate-native": {
       "id": "hell-gate",
       "name": "Hell Gate",
-      "durationSeconds": 240,
+      "durationSeconds": 1200,
+      "activeDurationSeconds": 1080,
       "mode": "shared_timed_zone",
       "sharedGroup": "hell-gate",
       "finishPolicy": "state_machine",
@@ -1026,11 +1027,11 @@
       "schedule": [
         {
           "startMinute": 0,
-          "durationSeconds": 240
+          "durationSeconds": 120
         },
         {
           "startMinute": 30,
-          "durationSeconds": 240
+          "durationSeconds": 120
         }
       ],
       "exitX": 2100,
@@ -1044,18 +1045,640 @@
           "spawnX": 1754,
           "spawnY": 3674,
           "areaRadius": 150,
-          "spawns": [
-            {
-              "npc": "Hell_Spider",
-              "count": 1,
-              "x": 1754,
-              "y": 3674
-            }
+          "generator": "NPCGener/HellGate.txt",
+          "generatorIds": [
+            1
           ]
         }
       ],
       "hellGate": {
-        "controllerNPC": "Hell_Spider",
+        "version": 3,
+        "population759": {
+          "corridorEscorts": [
+            {
+              "npc": "HG_CorrSkel",
+              "count": 1,
+              "x": 1748,
+              "y": 3672,
+              "range": 4
+            },
+            {
+              "npc": "HG_CorrSkel",
+              "count": 1,
+              "x": 1748,
+              "y": 3676,
+              "range": 4
+            },
+            {
+              "npc": "HG_CorrSkel",
+              "count": 1,
+              "x": 1748,
+              "y": 3644,
+              "range": 4
+            },
+            {
+              "npc": "HG_CorrSkel",
+              "count": 1,
+              "x": 1748,
+              "y": 3648,
+              "range": 4
+            },
+            {
+              "npc": "HG_CorrSkel",
+              "count": 1,
+              "x": 1748,
+              "y": 3620,
+              "range": 4
+            },
+            {
+              "npc": "HG_CorrSkel",
+              "count": 1,
+              "x": 1748,
+              "y": 3616,
+              "range": 4
+            }
+          ],
+          "rooms": [
+            [
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1814,
+                "y": 3608,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1804,
+                "y": 3608,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1816,
+                "y": 3616,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1806,
+                "y": 3620,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1810,
+                "y": 3612,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1810,
+                "y": 3618,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1804,
+                "y": 3616,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1820,
+                "y": 3616,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1818,
+                "y": 3610,
+                "range": 4
+              }
+            ],
+            [
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1878,
+                "y": 3616,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1878,
+                "y": 3610,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1868,
+                "y": 3610,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1868,
+                "y": 3618,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1880,
+                "y": 3620,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1874,
+                "y": 3620,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1872,
+                "y": 3614,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1884,
+                "y": 3616,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1870,
+                "y": 3622,
+                "range": 4
+              }
+            ],
+            [
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1882,
+                "y": 3688,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1876,
+                "y": 3684,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1868,
+                "y": 3690,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1882,
+                "y": 3676,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1866,
+                "y": 3678,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1872,
+                "y": 3674,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1876,
+                "y": 3668,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1890,
+                "y": 3672,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1866,
+                "y": 3664,
+                "range": 4
+              }
+            ],
+            [
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1814,
+                "y": 3688,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1804,
+                "y": 3690,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelArch",
+                "count": 4,
+                "x": 1808,
+                "y": 3680,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1820,
+                "y": 3684,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelWar",
+                "count": 4,
+                "x": 1810,
+                "y": 3686,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1814,
+                "y": 3682,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelSpear",
+                "count": 4,
+                "x": 1802,
+                "y": 3682,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1816,
+                "y": 3678,
+                "range": 4
+              },
+              {
+                "npc": "HG_SkelGuard",
+                "count": 4,
+                "x": 1804,
+                "y": 3676,
+                "range": 4
+              }
+            ]
+          ],
+          "lichEscorts": [
+            [
+              {
+                "npc": "HG_SkelMage",
+                "count": 3,
+                "x": 1810,
+                "y": 3606,
+                "range": 4
+              }
+            ],
+            [
+              {
+                "npc": "HG_SkelMage",
+                "count": 3,
+                "x": 1876,
+                "y": 3606,
+                "range": 4
+              }
+            ],
+            [
+              {
+                "npc": "HG_SkelMage",
+                "count": 3,
+                "x": 1878,
+                "y": 3694,
+                "range": 4
+              }
+            ],
+            [
+              {
+                "npc": "HG_SkelMage",
+                "count": 3,
+                "x": 1810,
+                "y": 3692,
+                "range": 4
+              }
+            ]
+          ],
+          "finalSpawns": [
+            {
+              "npc": "HG_Lich",
+              "count": 1,
+              "x": 1844,
+              "y": 3694,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1846,
+              "y": 3690,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1842,
+              "y": 3690,
+              "range": 4
+            },
+            {
+              "npc": "HG_Lich",
+              "count": 1,
+              "x": 1896,
+              "y": 3648,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1892,
+              "y": 3650,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1892,
+              "y": 3646,
+              "range": 4
+            },
+            {
+              "npc": "HG_Lich",
+              "count": 1,
+              "x": 1844,
+              "y": 3602,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1846,
+              "y": 3606,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1842,
+              "y": 3606,
+              "range": 4
+            },
+            {
+              "npc": "HG_Lich",
+              "count": 1,
+              "x": 1792,
+              "y": 3648,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1796,
+              "y": 3650,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelSpear",
+              "count": 1,
+              "x": 1796,
+              "y": 3646,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelArch",
+              "count": 10,
+              "x": 1880,
+              "y": 3650,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelMage",
+              "count": 10,
+              "x": 1868,
+              "y": 3648,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelWar",
+              "count": 10,
+              "x": 1880,
+              "y": 3646,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelMage",
+              "count": 1,
+              "x": 1842,
+              "y": 3672,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelArch",
+              "count": 9,
+              "x": 1842,
+              "y": 3672,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelMage",
+              "count": 1,
+              "x": 1844,
+              "y": 3672,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelArch",
+              "count": 9,
+              "x": 1844,
+              "y": 3672,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1846,
+              "y": 3672,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1846,
+              "y": 3684,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1844,
+              "y": 3684,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1842,
+              "y": 3684,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1806,
+              "y": 3650,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1806,
+              "y": 3648,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1806,
+              "y": 3646,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1818,
+              "y": 3650,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1818,
+              "y": 3648,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1818,
+              "y": 3646,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1844,
+              "y": 3612,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1846,
+              "y": 3612,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1842,
+              "y": 3612,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1844,
+              "y": 3622,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1846,
+              "y": 3622,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1842,
+              "y": 3622,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1880,
+              "y": 3648,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1868,
+              "y": 3646,
+              "range": 4
+            },
+            {
+              "npc": "HG_SkelGuard",
+              "count": 10,
+              "x": 1868,
+              "y": 3650,
+              "range": 4
+            }
+          ]
+        },
+        "rewardExp": 10000000,
+        "controllerNPC": "HG_Spider",
+        "corridors": [
+          { "generatorId": 13 },
+          { "generatorId": 14 },
+          { "generatorId": 15 }
+        ],
+        "portals": [
+          { "SourceX": 1756, "SourceY": 3616, "DestX": 1811, "DestY": 3606 },
+          { "SourceX": 1756, "SourceY": 3644, "DestX": 1876, "DestY": 3606 },
+          { "SourceX": 1756, "SourceY": 3672, "DestX": 1811, "DestY": 3692 }
+        ],
         "quadrants": [
           {
             "id": 1,
@@ -1066,17 +1689,11 @@
             "areaRadius": 28,
             "spawns": [
               {
-                "npc": "Skeleton",
-                "count": 9,
-                "x": 1811,
-                "y": 3606
+                "generatorId": 2
               }
             ],
             "lich": {
-              "npc": "Lich_Dragon",
-              "count": 1,
-              "x": 1811,
-              "y": 3606
+              "generatorId": 6
             }
           },
           {
@@ -1088,17 +1705,11 @@
             "areaRadius": 28,
             "spawns": [
               {
-                "npc": "Skeleton",
-                "count": 9,
-                "x": 1876,
-                "y": 3606
+                "generatorId": 3
               }
             ],
             "lich": {
-              "npc": "Lich_Dragon",
-              "count": 1,
-              "x": 1876,
-              "y": 3606
+              "generatorId": 7
             }
           },
           {
@@ -1110,17 +1721,11 @@
             "areaRadius": 28,
             "spawns": [
               {
-                "npc": "Skeleton",
-                "count": 9,
-                "x": 1876,
-                "y": 3692
+                "generatorId": 4
               }
             ],
             "lich": {
-              "npc": "Lich_Dragon",
-              "count": 1,
-              "x": 1876,
-              "y": 3692
+              "generatorId": 8
             }
           },
           {
@@ -1132,48 +1737,34 @@
             "areaRadius": 28,
             "spawns": [
               {
-                "npc": "Skeleton",
-                "count": 9,
-                "x": 1811,
-                "y": 3692
+                "generatorId": 5
               }
             ],
             "lich": {
-              "npc": "Lich_Dragon",
-              "count": 1,
-              "x": 1811,
-              "y": 3692
+              "generatorId": 9
             }
           }
         ],
         "finalSpawns": [
           {
-            "npc": "Skeleton",
-            "count": 10,
-            "x": 1855,
-            "y": 3647
+            "generatorId": 10
           },
           {
-            "npc": "Skeleton",
-            "count": 10,
-            "x": 1843,
-            "y": 3618
+            "generatorId": 11
           },
           {
-            "npc": "Skeleton",
-            "count": 10,
-            "x": 1843,
-            "y": 3680
+            "generatorId": 12
           }
         ],
         "finalNPCs": [
           {
-            "npc": "Aki",
+            "npc": "HG_Dionys",
             "count": 1,
             "x": 1852,
             "y": 3650
           }
-        ]
+        ],
+        "generator": "NPCGener/HellGate.txt"
       }
     }
   },
@@ -1632,28 +2223,28 @@
       "consume": true,
       "partyMode": "solo",
       "instanceRef": "big-cube-native",
-      "description": "Entrance Ticket do Big Cube: perguntas O/X server-side; O representa Sim e X representa Nao."
+      "description": "Big Cube Entrance Ticket: server-side O/X questions; O means Yes and X means No."
     },
     "54": {
       "action": "instance_ticket",
       "consume": true,
       "partyMode": "solo",
       "instanceRef": "cube-native",
-      "description": "Cube Normal: solo ou grupo, 25 salas, perguntas O/X e EXP por resposta correta."
+      "description": "Normal Cube: solo or party, 25 rooms, O/X questions and EXP for correct answers."
     },
     "171": {
       "action": "instance_ticket",
       "consume": true,
       "partyMode": "solo",
       "instanceRef": "cube-mystic-native",
-      "description": "Cube Mystic usa a cadeia nativa de salas O/X."
+      "description": "Mystic Cube uses the native O/X room chain."
     },
     "172": {
       "action": "instance_ticket",
       "consume": true,
       "partyMode": "solo",
       "instanceRef": "cube-arcane-native",
-      "description": "Cube Arcane usa a cadeia nativa de salas O/X."
+      "description": "Arcane Cube uses the native O/X room chain."
     }
   },
   "items": {
@@ -1670,7 +2261,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Dark_Elf2",
+            "npc": "WTM_DarkElf",
             "count": 15
           }
         ],
@@ -1701,7 +2292,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Troll_Ghoul_",
+            "npc": "WTM_Troll",
             "count": 15
           }
         ],
@@ -1731,7 +2322,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Anf_Ninja_",
+            "npc": "WTM_Ninja",
             "count": 15
           }
         ],
@@ -1761,7 +2352,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Tauron___",
+            "npc": "WTM_Tauron",
             "count": 15
           }
         ],
@@ -1791,7 +2382,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Grim_Lock_",
+            "npc": "WTM_Grim",
             "count": 15
           }
         ],
@@ -1821,7 +2412,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Elf_Witch2",
+            "npc": "WTM_Witch",
             "count": 15
           }
         ],
@@ -1851,7 +2442,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Gargoyle2",
+            "npc": "WTM_Gargoyle",
             "count": 15
           }
         ],
@@ -1881,7 +2472,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Aqua_Golem_",
+            "npc": "WTM_Golem",
             "count": 15
           }
         ],
@@ -1911,11 +2502,11 @@
         "areaRadius": 12,
         "spawns": [
           {
-            "npc": "Immort_Hydra",
+            "npc": "WTM_HydraB",
             "count": 1
           },
           {
-            "npc": "Hydra2",
+            "npc": "WTM_Hydra",
             "count": 10
           }
         ],
@@ -1946,7 +2537,6 @@
         ],
         "exitX": 2100,
         "exitY": 2100,
-        "exclusiveGroup": "magic-chamber",
         "finishPolicy": "advance_on_clear",
         "stages": [
           {
@@ -1955,6 +2545,8 @@
             "y": 3688,
             "spawnX": 808,
             "spawnY": 3676,
+            "areaX": 808,
+            "areaY": 3676,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaA.txt",
@@ -1970,6 +2562,8 @@
             "y": 3688,
             "spawnX": 866,
             "spawnY": 3678,
+            "areaX": 866,
+            "areaY": 3678,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaA.txt",
@@ -1985,6 +2579,8 @@
             "y": 3632,
             "spawnX": 866,
             "spawnY": 3622,
+            "areaX": 866,
+            "areaY": 3622,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaA.txt",
@@ -2000,6 +2596,8 @@
             "y": 3640,
             "spawnX": 807,
             "spawnY": 3621,
+            "areaX": 807,
+            "areaY": 3621,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaA.txt",
@@ -2013,7 +2611,7 @@
           }
         ]
       },
-      "description": "Carta Arcane: quatro salas de 100 monstros e boss, com transicao de 10 segundos."
+      "description": "Arcane card: four rooms of 100 monsters and a boss, with a ten-second transition."
     },
     "3171": {
       "action": "instance_ticket",
@@ -2029,7 +2627,6 @@
         ],
         "exitX": 2100,
         "exitY": 2100,
-        "exclusiveGroup": "magic-chamber",
         "finishPolicy": "advance_on_clear",
         "stages": [
           {
@@ -2038,6 +2635,8 @@
             "y": 3688,
             "spawnX": 808,
             "spawnY": 3676,
+            "areaX": 808,
+            "areaY": 3676,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaM.txt",
@@ -2053,6 +2652,8 @@
             "y": 3688,
             "spawnX": 866,
             "spawnY": 3678,
+            "areaX": 866,
+            "areaY": 3678,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaM.txt",
@@ -2068,6 +2669,8 @@
             "y": 3632,
             "spawnX": 866,
             "spawnY": 3622,
+            "areaX": 866,
+            "areaY": 3622,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaM.txt",
@@ -2083,6 +2686,8 @@
             "y": 3640,
             "spawnX": 807,
             "spawnY": 3621,
+            "areaX": 807,
+            "areaY": 3621,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaM.txt",
@@ -2096,7 +2701,7 @@
           }
         ]
       },
-      "description": "Carta Mystic: quatro salas de 100 monstros e boss."
+      "description": "Mystic card: four rooms of 100 monsters and a boss."
     },
     "3172": {
       "action": "instance_ticket",
@@ -2112,7 +2717,6 @@
         ],
         "exitX": 2100,
         "exitY": 2100,
-        "exclusiveGroup": "magic-chamber",
         "finishPolicy": "advance_on_clear",
         "stages": [
           {
@@ -2121,6 +2725,8 @@
             "y": 3688,
             "spawnX": 808,
             "spawnY": 3676,
+            "areaX": 808,
+            "areaY": 3676,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaN.txt",
@@ -2136,6 +2742,8 @@
             "y": 3688,
             "spawnX": 866,
             "spawnY": 3678,
+            "areaX": 866,
+            "areaY": 3678,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaN.txt",
@@ -2150,6 +2758,8 @@
             "y": 3632,
             "spawnX": 866,
             "spawnY": 3622,
+            "areaX": 866,
+            "areaY": 3622,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaN.txt",
@@ -2165,6 +2775,8 @@
             "y": 3640,
             "spawnX": 807,
             "spawnY": 3621,
+            "areaX": 807,
+            "areaY": 3621,
             "areaRadius": 24,
             "durationSeconds": 180,
             "generator": "NPCGener/CartaN.txt",
@@ -2178,7 +2790,7 @@
           }
         ]
       },
-      "description": "Carta Normal: quatro salas de 100 monstros e boss."
+      "description": "Normal card: four rooms of 100 monsters and a boss."
     },
     "3173": {
       "action": "instance_ticket",
@@ -2193,7 +2805,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Meio_Orc_",
+            "npc": "WTN_Orc",
             "count": 15
           }
         ],
@@ -2223,7 +2835,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Troll_Hunter",
+            "npc": "WTN_Hunter",
             "count": 15
           }
         ],
@@ -2252,7 +2864,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Ghoul_Chief",
+            "npc": "WTN_Ghoul",
             "count": 15
           }
         ],
@@ -2281,7 +2893,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Cyclops_Arc3",
+            "npc": "WTN_CyclArc",
             "count": 15
           }
         ],
@@ -2310,7 +2922,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Skeleton",
+            "npc": "WTN_Skeleton",
             "count": 15
           }
         ],
@@ -2339,7 +2951,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Grim_Lock_D",
+            "npc": "WTN_Grim",
             "count": 15
           }
         ],
@@ -2368,7 +2980,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Cyclops_Anc",
+            "npc": "WTN_CyclAnc",
             "count": 15
           }
         ],
@@ -2397,7 +3009,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Anf_Assasn2",
+            "npc": "WTN_Assassin",
             "count": 15
           }
         ],
@@ -2426,11 +3038,11 @@
         "areaRadius": 12,
         "spawns": [
           {
-            "npc": "Troll_Caos__",
+            "npc": "WTN_TrollB",
             "count": 1
           },
           {
-            "npc": "Troll_Hunter",
+            "npc": "WTN_Hunter",
             "count": 10
           }
         ],
@@ -2459,7 +3071,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Gargoyle3",
+            "npc": "WTA_Gargoyle",
             "count": 15
           }
         ],
@@ -2486,7 +3098,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Fire_Golem",
+            "npc": "WTA_Fire",
             "count": 15
           }
         ],
@@ -2512,7 +3124,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Tauron_",
+            "npc": "WTA_Tauron",
             "count": 15
           }
         ],
@@ -2538,7 +3150,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Lich_Dragon2",
+            "npc": "WTA_Dragon",
             "count": 5
           }
         ],
@@ -2564,7 +3176,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Dark_Kn2",
+            "npc": "WTA_DarkKn",
             "count": 15
           }
         ],
@@ -2590,7 +3202,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Morlock____",
+            "npc": "WTA_Morlock",
             "count": 15
           }
         ],
@@ -2616,7 +3228,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "Hell_Spider2",
+            "npc": "WTA_Spider",
             "count": 15
           }
         ],
@@ -2642,7 +3254,7 @@
         "areaRadius": 8,
         "spawns": [
           {
-            "npc": "LiggleSwarm",
+            "npc": "WTA_Liggle",
             "count": 15
           }
         ],
@@ -2668,11 +3280,11 @@
         "areaRadius": 12,
         "spawns": [
           {
-            "npc": "Lugefer_Maligno",
+            "npc": "WTA_Lugefer",
             "count": 1
           },
           {
-            "npc": "Gargoyle3",
+            "npc": "WTA_Gargoyle",
             "count": 10
           }
         ],
@@ -2728,6 +3340,38 @@
         "exitX": 2100,
         "exitY": 2100,
         "nightmareTier": "normal",
+        "nightmareProtectors": [
+          {
+            "npc": "NM Martin",
+            "count": 1,
+            "x": 1317,
+            "y": 346
+          },
+          {
+            "npc": "NM Balmers",
+            "count": 1,
+            "x": 1305,
+            "y": 351
+          },
+          {
+            "npc": "NM Rubyen",
+            "count": 1,
+            "x": 1302,
+            "y": 333
+          },
+          {
+            "npc": "NM Naomi",
+            "count": 1,
+            "x": 1315,
+            "y": 329
+          },
+          {
+            "npc": "NM Arnold",
+            "count": 1,
+            "x": 1308,
+            "y": 310
+          }
+        ],
         "allowedEvolutions": [
           "mortal",
           "arch",
@@ -2736,7 +3380,7 @@
         ],
         "generator": "NPCGener/NightmareN.txt"
       },
-      "description": "Nightmare Normal para o grupo."
+      "description": "Party Nightmare Normal."
     },
     "3325": {
       "action": "instance_ticket",
@@ -2781,6 +3425,56 @@
         "exitX": 2100,
         "exitY": 2100,
         "nightmareTier": "mystic",
+        "nightmareProtectors": [
+          {
+            "npc": "NM Urano",
+            "count": 1,
+            "x": 1113,
+            "y": 330
+          },
+          {
+            "npc": "NM Selene",
+            "count": 1,
+            "x": 1106,
+            "y": 310
+          },
+          {
+            "npc": "NM Artemis",
+            "count": 1,
+            "x": 1114,
+            "y": 288
+          },
+          {
+            "npc": "NM Galena",
+            "count": 1,
+            "x": 1089,
+            "y": 299
+          },
+          {
+            "npc": "NM Hiero",
+            "count": 1,
+            "x": 1076,
+            "y": 310
+          },
+          {
+            "npc": "NM Anubis",
+            "count": 1,
+            "x": 1057,
+            "y": 328
+          },
+          {
+            "npc": "NM Maya",
+            "count": 1,
+            "x": 1054,
+            "y": 300
+          },
+          {
+            "npc": "NM Morpheu",
+            "count": 1,
+            "x": 1053,
+            "y": 284
+          }
+        ],
         "allowedEvolutions": [
           "mortal",
           "arch",
@@ -2789,7 +3483,7 @@
         ],
         "generator": "NPCGener/NightmareM.txt"
       },
-      "description": "Nightmare Mystic para o grupo."
+      "description": "Party Nightmare Mystic."
     },
     "3326": {
       "action": "instance_ticket",
@@ -2834,29 +3528,83 @@
         "exitX": 2100,
         "exitY": 2100,
         "nightmareTier": "arcane",
+        "nightmareProtectors": [
+          {
+            "npc": "NM Phoenix",
+            "count": 1,
+            "x": 1223,
+            "y": 180
+          },
+          {
+            "npc": "NM Yue",
+            "count": 1,
+            "x": 1246,
+            "y": 172
+          },
+          {
+            "npc": "NM Kemi",
+            "count": 1,
+            "x": 1226,
+            "y": 152
+          },
+          {
+            "npc": "NM Erin",
+            "count": 1,
+            "x": 1195,
+            "y": 152
+          },
+          {
+            "npc": "NM Kei",
+            "count": 1,
+            "x": 1214,
+            "y": 148
+          },
+          {
+            "npc": "NM Lion",
+            "count": 1,
+            "x": 1212,
+            "y": 197
+          },
+          {
+            "npc": "NM Darkness",
+            "count": 1,
+            "x": 1187,
+            "y": 190
+          },
+          {
+            "npc": "NM Kara",
+            "count": 1,
+            "x": 1175,
+            "y": 175
+          }
+        ],
         "allowedEvolutions": [
           "mortal",
           "arch",
           "celestial",
           "subcelestial"
         ],
-        "generator": "NPCGener/NightmareA.txt"
+        "generator": "NPCGener/NightmareA.txt",
+        "nightmareBoss": {
+          "spawn": { "npc": "NMA_Lugefer", "count": 1, "x": 1208, "y": 173, "range": 1 },
+          "secondsRemaining": 300
+        }
       },
-      "description": "Nightmare Arcane para o grupo."
+      "description": "Party Nightmare Arcane."
     },
     "3328": {
       "action": "instance_ticket",
       "consume": true,
       "partyMode": "solo",
       "instanceRef": "hell-gate-native",
-      "description": "Hell Gate pessoal: entrada, quatro selos e corredor final em quatro minutos."
+      "description": "Solo Hell Gate: two-minute admission, corridor bosses, four Liches and Dionys defense; twenty minutes total."
     },
     "3329": {
       "action": "instance_ticket",
       "consume": true,
       "partyMode": "party",
       "instanceRef": "hell-gate-native",
-      "description": "Hell Gate para o grupo: entrada, quatro selos e corredor final em quatro minutos."
+      "description": "Party Hell Gate: two-minute admission, corridor bosses, four Liches and Dionys defense; twenty minutes total."
     },
     "3390": {
       "action": "instance_ticket",
@@ -2900,6 +3648,38 @@
         "exitX": 2100,
         "exitY": 2100,
         "nightmareTier": "normal",
+        "nightmareProtectors": [
+          {
+            "npc": "NM Martin",
+            "count": 1,
+            "x": 1317,
+            "y": 346
+          },
+          {
+            "npc": "NM Balmers",
+            "count": 1,
+            "x": 1305,
+            "y": 351
+          },
+          {
+            "npc": "NM Rubyen",
+            "count": 1,
+            "x": 1302,
+            "y": 333
+          },
+          {
+            "npc": "NM Naomi",
+            "count": 1,
+            "x": 1315,
+            "y": 329
+          },
+          {
+            "npc": "NM Arnold",
+            "count": 1,
+            "x": 1308,
+            "y": 310
+          }
+        ],
         "allowedEvolutions": [
           "mortal",
           "arch",
@@ -2908,7 +3688,7 @@
         ],
         "generator": "NPCGener/NightmareN.txt"
       },
-      "description": "Nightmare Normal pessoal."
+      "description": "Solo Nightmare Normal."
     },
     "3391": {
       "action": "instance_ticket",
@@ -2952,6 +3732,56 @@
         "exitX": 2100,
         "exitY": 2100,
         "nightmareTier": "mystic",
+        "nightmareProtectors": [
+          {
+            "npc": "NM Urano",
+            "count": 1,
+            "x": 1113,
+            "y": 330
+          },
+          {
+            "npc": "NM Selene",
+            "count": 1,
+            "x": 1106,
+            "y": 310
+          },
+          {
+            "npc": "NM Artemis",
+            "count": 1,
+            "x": 1114,
+            "y": 288
+          },
+          {
+            "npc": "NM Galena",
+            "count": 1,
+            "x": 1089,
+            "y": 299
+          },
+          {
+            "npc": "NM Hiero",
+            "count": 1,
+            "x": 1076,
+            "y": 310
+          },
+          {
+            "npc": "NM Anubis",
+            "count": 1,
+            "x": 1057,
+            "y": 328
+          },
+          {
+            "npc": "NM Maya",
+            "count": 1,
+            "x": 1054,
+            "y": 300
+          },
+          {
+            "npc": "NM Morpheu",
+            "count": 1,
+            "x": 1053,
+            "y": 284
+          }
+        ],
         "allowedEvolutions": [
           "mortal",
           "arch",
@@ -2960,7 +3790,7 @@
         ],
         "generator": "NPCGener/NightmareM.txt"
       },
-      "description": "Nightmare Mystic pessoal."
+      "description": "Solo Nightmare Mystic."
     },
     "3392": {
       "action": "instance_ticket",
@@ -3004,15 +3834,69 @@
         "exitX": 2100,
         "exitY": 2100,
         "nightmareTier": "arcane",
+        "nightmareProtectors": [
+          {
+            "npc": "NM Phoenix",
+            "count": 1,
+            "x": 1223,
+            "y": 180
+          },
+          {
+            "npc": "NM Yue",
+            "count": 1,
+            "x": 1246,
+            "y": 172
+          },
+          {
+            "npc": "NM Kemi",
+            "count": 1,
+            "x": 1226,
+            "y": 152
+          },
+          {
+            "npc": "NM Erin",
+            "count": 1,
+            "x": 1195,
+            "y": 152
+          },
+          {
+            "npc": "NM Kei",
+            "count": 1,
+            "x": 1214,
+            "y": 148
+          },
+          {
+            "npc": "NM Lion",
+            "count": 1,
+            "x": 1212,
+            "y": 197
+          },
+          {
+            "npc": "NM Darkness",
+            "count": 1,
+            "x": 1187,
+            "y": 190
+          },
+          {
+            "npc": "NM Kara",
+            "count": 1,
+            "x": 1175,
+            "y": 175
+          }
+        ],
         "allowedEvolutions": [
           "mortal",
           "arch",
           "celestial",
           "subcelestial"
         ],
-        "generator": "NPCGener/NightmareA.txt"
+        "generator": "NPCGener/NightmareA.txt",
+        "nightmareBoss": {
+          "spawn": { "npc": "NMA_Lugefer", "count": 1, "x": 1208, "y": 173, "range": 1 },
+          "secondsRemaining": 300
+        }
       },
-      "description": "Nightmare Arcane pessoal."
+      "description": "Solo Nightmare Arcane."
     }
   }
 }

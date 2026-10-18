@@ -4,6 +4,7 @@
 #include "../network/ReceiveBuffer.h"
 #include "../diagnostics/ClientDiagnostics.h"
 #include "PacketSendBoundary.h"
+#include "../../application/ScopedReentry.h"
 #include <climits>
 #include <WinSock2.h>
 #include <mstcpip.h>
@@ -342,6 +343,8 @@ char* CPSock::ReadMessage(int* ErrorCode, int* ErrorType)
 
 int CPSock::CloseSocket()
 {
+	++generation_;
+	pendingEvents_.clear();
 	nSendPosition = 0;
 	nSentPosition = 0;
 	nRecvPosition = 0;
@@ -517,6 +520,49 @@ CPSock::EventResult CPSock::HandleNetworkEvent(WPARAM socket, LPARAM notificatio
 
 	CloseSocket();
 	return EventResult::Disconnected;
+}
+
+void CPSock::DispatchNetworkEvent(WPARAM socket, LPARAM notification,
+	const std::function<bool(const PacketView&)>& onPacket,
+	const std::function<void()>& onDisconnected)
+{
+	if (!Sock || socket != Sock)
+		return;
+	pendingEvents_.push_back({socket, notification, generation_});
+	ScopedReentry dispatch(dispatching_);
+	if (!dispatch)
+		return;
+
+	while (!pendingEvents_.empty())
+	{
+		const PendingEvent event = pendingEvents_.front();
+		pendingEvents_.pop_front();
+		if (event.generation != generation_)
+			continue;
+		const auto result = HandleNetworkEvent(event.socket, event.notification);
+		if (result == EventResult::Disconnected)
+		{
+			onDisconnected();
+			continue;
+		}
+		if (result != EventResult::ReadReady)
+			continue;
+
+		const auto stream = generation_;
+		while (Sock && stream == generation_)
+		{
+			int error = 0, detail = 0;
+			const PacketView packet = ReadPacketView(&error, &detail);
+			if (error != 0)
+			{
+				CloseSocket();
+				onDisconnected();
+				break;
+			}
+			if (!packet.data || !onPacket(packet))
+				break;
+		}
+	}
 }
 
 int CPSock::SendPacket(const MutablePacketView& packet)

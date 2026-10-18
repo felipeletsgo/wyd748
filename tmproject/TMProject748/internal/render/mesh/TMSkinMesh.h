@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Structures.h"
+#include <vector>
 
 class CFrame;
 class TMHuman;
@@ -87,5 +88,7 @@ public:
 	int m_bRenderEffect;
 
 private:
+	void ReleaseFrames();
+	std::vector<CFrame*> m_ownedFrames;
 	int m_Cos;
 };

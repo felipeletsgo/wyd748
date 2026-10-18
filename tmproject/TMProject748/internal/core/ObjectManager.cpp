@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "ObjectManager.h"
+#include "../application/AssetLoadValidation.h"
 #include "../wire/ReceivedPacketDispatch.h"
 #include "../application/ApplyCargoSlot.h"
 #include "../platform/diagnostics/ClientDiagnostics.h"
@@ -845,18 +846,14 @@ void ObjectManager::DeleteObject(TreeNode* pNode)
 	pNode->m_cDeleted = 1;
 	m_bCleanUp = 1;
 
-	g_pCurrentScene->DeleteOwner((TMObject*)pNode);
+	if (g_pCurrentScene)
+		g_pCurrentScene->DeleteOwner((TMObject*)pNode);
 }
 
 void ObjectManager::DeleteObject(unsigned int dwID)
 {
 	TreeNode* pNode = GetNodeByID(dwID);
-
-	if (pNode == nullptr)
-		return;
-
-	pNode->m_cDeleted = 1;
-	m_bCleanUp = 1;
+	DeleteObject(pNode);
 }
 
 void ObjectManager::DisconnectEffectFromMob(TMHuman* pMob)
@@ -919,49 +916,62 @@ void ObjectManager::InitAniSoundTable()
 	if (fp == nullptr)
 		return;
 	
+	const auto readRecord = [&](char (&line)[512]) {
+		asset_load::LineResult result;
+		do { result = asset_load::ReadLine(fp, line); } while (result == asset_load::LineResult::Blank);
+		return result;
+	};
+	// Stage the complete table: malformed files never partially overwrite globals.
+	stAniSoundTable table[MAX_ANI_TYPE]{};
+	stAniSoundTable2 extended[4][2]{};
+	bool loaded[MAX_ANI_TYPE]{};
 	for (int ObjType = 0; ObjType < MAX_ANI_TYPE; ++ObjType)
 	{
-		char szDummy[128];
-		int nObjType;
-		fscanf(fp, "%s %d\n", szDummy, &nObjType);
+		char line[512]{};
+		std::string label;
+		int header[1]{};
+		const auto result = readRecord(line);
+		if (result == asset_load::LineResult::End) break;
+		if (result != asset_load::LineResult::Record || !asset_load::ParseNamedIntegers(line, label, header, 128) ||
+			header[0] < 0 || header[0] >= MAX_ANI_TYPE || loaded[header[0]])
+		{ fclose(fp); return; }
+		const int nObjType = header[0];
+		loaded[nObjType] = true;
 
 		if (nObjType < 2)
 		{
 			for (int i = 0; i < MAX_ANI_MOTION; ++i)
 			{
-				fscanf(
-					fp,
-					"%s %d %d %d %d %d %d %d %d %d\n",
-					szDummy,
-					&g_MobAniTableEx[0][nObjType].dwAniTable[i],
-					&g_MobAniTableEx[0][nObjType].dwSpeed[i],
-					&g_MobAniTableEx[1][nObjType].dwAniTable[i],
-					&g_MobAniTableEx[1][nObjType].dwSpeed[i],
-					&g_MobAniTableEx[2][nObjType].dwAniTable[i],
-					&g_MobAniTableEx[2][nObjType].dwSpeed[i],
-					&g_MobAniTableEx[3][nObjType].dwAniTable[i],
-					&g_MobAniTableEx[3][nObjType].dwSpeed[i],
-					&g_MobAniTable[nObjType].dwSoundTable[i]);
-				g_MobAniTable[nObjType].dwAniTable[i] = g_MobAniTableEx[0][nObjType].dwAniTable[i];
-				g_MobAniTable[nObjType].dwSpeed[i] = g_MobAniTableEx[0][nObjType].dwSpeed[i];
+				int values[9]{};
+				if (readRecord(line) != asset_load::LineResult::Record || !asset_load::ParseNamedIntegers(line, label, values, 128))
+				{ fclose(fp); return; }
+				for (int variant = 0; variant < 4; ++variant)
+				{
+					extended[variant][nObjType].dwAniTable[i] = values[2 * variant];
+					extended[variant][nObjType].dwSpeed[i] = values[2 * variant + 1];
+				}
+				table[nObjType].dwSoundTable[i] = values[8];
+				table[nObjType].dwAniTable[i] = extended[0][nObjType].dwAniTable[i];
+				table[nObjType].dwSpeed[i] = extended[0][nObjType].dwSpeed[i];
 			}
 		}
 		else
 		{
 			for (int j = 0; j < MAX_ANI_MOTION; ++j)
 			{
-				fscanf(
-					fp,
-					"%s %d %d %d\n",
-					szDummy,
-					&g_MobAniTable[nObjType].dwAniTable[j],
-					&g_MobAniTable[nObjType].dwSpeed[j],
-					&g_MobAniTable[nObjType].dwSoundTable[j]);
+				int values[3]{};
+				if (readRecord(line) != asset_load::LineResult::Record || !asset_load::ParseNamedIntegers(line, label, values, 128))
+				{ fclose(fp); return; }
+				table[nObjType].dwAniTable[j] = values[0];
+				table[nObjType].dwSpeed[j] = values[1];
+				table[nObjType].dwSoundTable[j] = values[2];
 			}			
 		}
 	}
 
 	fclose(fp);
+	memcpy(g_MobAniTable, table, sizeof(table));
+	memcpy(g_MobAniTableEx, extended, sizeof(extended));
 }
 
  

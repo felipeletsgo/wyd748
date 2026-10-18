@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/BoundedText.h"
 #include "TMFieldScene.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
@@ -178,7 +179,7 @@ void TMFieldScene::VisibleInputGuildName()
 int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 {
 	auto pPartyList = m_pPartyList;
-	if (!pStd || !pPartyList)
+	if (!pStd || !pPartyList || !m_pMyHuman)
 		return 0;
 
 	pStd->Leader.Name[15] = 0;
@@ -212,14 +213,14 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 	auto pChatList = m_pChatList;
 
 	char szMsg[128]{};
-	sprintf(szMsg, g_pMessageStringTable[62], pStd->Leader.Name);
+	_snprintf_s(szMsg, _TRUNCATE, g_pMessageStringTable[62], pStd->Leader.Name);
 
 	if (pChatList)
 		pChatList->AddItem(new SListBoxItem(szMsg, 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
 	if (!m_bAutoParty)
 	{
-		sprintf(szMsg, g_pMessageStringTable[63], pStd->Leader.Name);
+		_snprintf_s(szMsg, _TRUNCATE, g_pMessageStringTable[63], pStd->Leader.Name);
 
 		if (pChatList)
 			pChatList->AddItem(new SListBoxItem(szMsg, 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
@@ -232,7 +233,7 @@ int TMFieldScene::OnPacketREQParty(MSG_REQParty* pStd)
 		stCnfParty.Header.ID = m_pMyHuman->m_dwID;
 		stCnfParty.Header.Type = MSG_CNFParty2_Opcode;
 		stCnfParty.LeaderID = pStd->Leader.ID;
-		sprintf(stCnfParty.LeaderName, pStd->Leader.Name);
+		bounded_text::Copy(stCnfParty.LeaderName, pStd->Leader.Name, sizeof(pStd->Leader.Name));
 
 		if (pNode)
 			pNode->m_bParty = 1;

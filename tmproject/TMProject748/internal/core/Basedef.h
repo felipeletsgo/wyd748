@@ -62,6 +62,8 @@ char BASE_CheckChatValid(const char* Chat);
 char CheckGuildName(const char* GuildName, bool bSubguild);
 void BASE_GetHitPosition(int sx, int sy, int* tx, int* ty, char* pHeight, int MH);
 int BASE_Get3DTo2DPos(float fX, float fY, float fZ, int* pX, int* pY);
+class TMHuman;
+int BASE_GetAttackSpeedPercent(STRUCT_MOB* mob, const TMHuman* human);
 int BASE_GetDoubleCritical(STRUCT_MOB* mob, unsigned short* sProgress, unsigned short* cProgress, char* bDoubleCritical);
 void BASE_GetHitPosition2(int sx, int sy, int* tx, int* ty, char* pHeight, int MH);
 void BASE_SetBit(char* byte, int pos);

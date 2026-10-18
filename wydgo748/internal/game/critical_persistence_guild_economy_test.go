@@ -257,6 +257,9 @@ func TestCriticalCityTreasuryDisconnectWaitsForPayoutAndFinalSave(t *testing.T) 
 func TestCriticalCityTreasuryActualWorldLoopProgress(t *testing.T) {
 	var collector *Mob
 	w, p, unrelatedUID, base, q, ticks, release, stop := criticalEconomyLoopFixture(t, nil, func(w *World, p *Player) {
+		// Treasury admission must not depend on the machine's current weekday.
+		w.clock = newFakeClock(time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC))
+		w.playersByID[2].NextRegen = w.now().Add(-time.Second)
 		collector = configureCriticalTreasury(w, p, 100)
 		w.warConfig.Enabled = false
 		base := w.criticalWrites.queue.store.(*criticalTestStore)

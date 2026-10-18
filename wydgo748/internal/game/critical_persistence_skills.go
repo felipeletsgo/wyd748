@@ -14,12 +14,14 @@ func (w *World) queueSkillLearning(p *Player, proposed *model.Account, globalSki
 	ch := &proposed.Chars[p.CharSlot]
 	gold, learned, shortcuts := ch.Gold, ch.LearnedSkill, ch.ShortSkill
 	score, runtime := *ch.Score, *ch.RuntimeScore
+	attackSpeed := ch.RuntimeAttackSpeedPercent
 	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p},
 		func(criticalPersistenceResult) error {
 			p.Char.Gold, p.Char.LearnedSkill, p.Char.ShortSkill = gold, learned, shortcuts
 			*p.Char.Score = score // Keep the retained live score identity.
 			committedRuntime := runtime
 			p.Char.RuntimeScore = &committedRuntime
+			p.Char.RuntimeAttackSpeedPercent = attackSpeed
 			if !p.Session.IsClosed() {
 				p.Session.Send(playerScorePacket(p))
 				p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))

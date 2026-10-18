@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ClientDiagnostics.h"
 #include "CrashCapture.h"
+#include "CrashMonitor.h"
 #include "SControlContainer.h"
 #include "SControl.h"
 
@@ -273,6 +274,11 @@ void WYD748_LayoutProbe(SControlContainer* container, unsigned int screenWidth,
     }
 }
 
+int WYD748_RunCrashMonitor()
+{
+    return wyd_crash_monitor::RunFromCommandLine();
+}
+
 void WYD748_InstallDiagnostics()
 {
     char executable[MAX_PATH]{};
@@ -282,7 +288,21 @@ void WYD748_InstallDiagnostics()
     char* slash = strrchr(directory, '\\');
     if (slash) *slash = '\0';
     else strcpy_s(directory, ".");
+    if (strlen(directory) + sizeof("\\dumps") > sizeof(directory))
+    {
+        WYD748_DiagnosticsLog("CRASH capture unavailable stage=directory error=filename_too_long\r\n");
+        return;
+    }
+    strcat_s(directory, "\\dumps");
+    if (!CreateDirectoryA(directory, nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
+        WYD748_DiagnosticsLog("CRASH dump directory creation failed error=%lu\r\n", GetLastError());
     const bool installed = wyd_crash::Install(directory, AppendLine);
+    static bool monitorAttempted = false;
+    if (!monitorAttempted)
+    {
+        monitorAttempted = true;
+        wyd_crash_monitor::Start(directory, AppendLine);
+    }
     WYD748_DiagnosticsLog("SESSION diagnostics=%s exe=%s module_base=%p build=%s %s\r\n",
         installed ? "ready" : "unavailable", executable,
         static_cast<void*>(GetModuleHandleW(nullptr)), __DATE__, __TIME__);

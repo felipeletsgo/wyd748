@@ -10,6 +10,34 @@
 
 namespace asset_load
 {
+template<std::size_t N>
+bool ParseNamedIntegers(const char* line, std::string& name, int (&values)[N], std::size_t nameCapacity)
+{
+    if (!line) return false;
+    std::istringstream input(line);
+    std::string parsed, extra;
+    int numbers[N]{};
+    if (!(input >> parsed) || parsed.size() >= nameCapacity) return false;
+    for (auto& value : numbers) if (!(input >> value)) return false;
+    if (input >> extra) return false;
+    name = parsed;
+    for (std::size_t i = 0; i < N; ++i) values[i] = numbers[i];
+    return true;
+}
+
+inline bool ParseMinimap(const char* line, int (&values)[5], std::string& name)
+{
+    if (!line) return false;
+    std::istringstream input(line);
+    int numbers[5]{};
+    std::string parsed, extra;
+    for (auto& value : numbers) if (!(input >> value)) return false;
+    if (!(input >> parsed) || parsed.size() >= 32 || (input >> extra)) return false;
+    for (int i = 0; i < 5; ++i) values[i] = numbers[i];
+    name = parsed;
+    return true;
+}
+
 enum class LineResult { End, Blank, Record, Invalid };
 
 // Each call consumes a complete physical line, including an overlong record.

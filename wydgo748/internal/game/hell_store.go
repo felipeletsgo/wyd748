@@ -16,8 +16,9 @@ import (
 // (FUN_0045ee28, FUN_0044a3a9) and sends the request after the confirmation
 // box (FUN_004640e5). UI/hellStoredesc.txt states the rules: a random item of
 // the chosen category, random options, no refinement, unlimited purchases.
-// The item pools and the option rules below are the server's reconstruction
-// (owner decision, 2026-10-03); see DOCS/protocol/hell-gate-store.md.
+// The public merchant retains the owner-approved reconstruction (2026-10-03).
+// Instance Dionys uses the historical 7.59 tables in hell_store_759.go;
+// see DOCS/protocol/hell-gate-store.md for authority and lifecycle boundaries.
 const (
 	hellStorePacketSize = 24
 	hellStoreNPCName    = "Hell_Store"
@@ -39,7 +40,23 @@ var hellStorePrices = map[int]uint64{
 }
 
 func isHellStoreNPC(m *Mob) bool {
-	return m != nil && m.Def != nil && m.Def.Name == hellStoreNPCName
+	return m != nil && m.Def != nil && (m.Def.Name == hellStoreNPCName || m.Def.Name == "HG_Dionys")
+}
+
+func (w *World) hellStoreAvailable(p *Player, m *Mob) bool {
+	if p == nil || !isHellStoreNPC(m) {
+		return false
+	}
+	if m.Def.Name == hellStoreNPCName {
+		return true // Preserve the previously published public merchant contract.
+	}
+	inst := w.instanceForMob(m)
+	if !hellGateVersion2(inst) || inst.State != "protection" || m.Dead || m.HP == 0 ||
+		!w.now().Before(inst.HardDeadline) || !itemInstanceHasMember(inst, p.ID) {
+		return false
+	}
+	_, protector := inst.NPCIDs[m.ID]
+	return protector
 }
 
 // hellStorePool lists the catalog items of one category in ascending order.
@@ -200,7 +217,7 @@ func (w *World) onHellStoreBuy(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel(npcInteractionMessage(err)))
 		return
 	}
-	if !isHellStoreNPC(m) {
+	if !w.hellStoreAvailable(p, m) {
 		s.Send(wire.MessagePanel("That character is not the Hell Gate merchant."))
 		return
 	}
@@ -217,7 +234,12 @@ func (w *World) onHellStoreBuy(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("You do not have enough gold."))
 		return
 	}
-	rolled, ok := w.rollHellStoreItem(option)
+	var rolled model.Item
+	if m.Def.Name == "HG_Dionys" {
+		rolled, ok = w.rollDionysStoreItem(option)
+	} else {
+		rolled, ok = w.rollHellStoreItem(option)
+	}
 	if !ok {
 		s.Send(wire.MessagePanel("The Hell Gate store has nothing to sell."))
 		return

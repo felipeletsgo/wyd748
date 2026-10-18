@@ -1,6 +1,6 @@
 {
   "name": "Town_Watcher_",
-  "tipo": "monstro",
+  "tipo": "npc",
   "equip": {
     "rosto": {
       "index": 17

@@ -2,8 +2,9 @@
 
 Classification: `EXTENSAO_COORDENADA` on the server, restoring a native 7.48
 client flow. The client side and the packet are native (`PARIDADE_NATIVA`
-evidence below); the server rules are a reconstruction approved by the project
-owner on 2026-10-03, because no 7.48 server source records them.
+evidence below). The public merchant retains the reconstruction approved by the
+project owner on 2026-10-03. Instance Dionys now adapts the supplied historical
+7.59 server tables; this does not establish complete native-7.48 event parity.
 
 ## Native client flow
 
@@ -33,7 +34,7 @@ The server answers with `UpdateCarry` then `UpdateEtc` on success. Domain and
 save/admission refusals use a message panel; malformed, unavailable or reserved
 participants are rejected without a purchase response.
 
-## Server rules
+## Existing public merchant
 
 - NPC `Hell_Store` (head 51) spawns at (1746, 3670), in the Hell Gate entrance
   room. Global NPCs stay visible inside the Hell Gate instance.
@@ -59,6 +60,42 @@ participants are rejected without a purchase response.
 
 Code: `wydgo748/internal/game/hell_store.go`; client open path:
 `TMFieldScene::MouseClick_NPC` in `TMFieldSceneInput.cpp`.
+
+## Instance Dionys: historical 7.59 adaptation (2026-10-18)
+
+`HG_Dionys` now has head 51, enabling the existing client panel without a new
+executable or packet. Purchases require the tracked protector of the caller's
+exact instance, membership, visibility and interaction range, protection phase,
+positive protector HP, and time remaining before the absolute event deadline.
+An admission-phase NPC, dead protector, foreign instance or expired encounter
+cannot sell items. The existing public `Hell_Store` remains available under its
+previous rules; it does not silently acquire the new catalogs.
+
+The owner requested the 7.59 random shop. `hell_store_759.go` implements its
+20 weapons, 40 armor pieces and 14 accessories, including special accessories
+540 and 541. The random category uses 33% weapons, 33% armor and 34% accessories.
+Accessories 540 and 541 each have a 1% selection weight; the other three
+accessory tiers receive 40%, 30% and 28%. Historical option-effect codes, grade
+tables and caller fallbacks are retained. Partial weight tables are placed at
+a random offset in 10,000 slots; they are not normalized to a full distribution.
+In particular, the historical weapon algorithm selects the second grade using
+the first option's row. This intentional behavior has a regression test.
+
+Prices remain the established project settings: 9,000,000 / 6,000,000 /
+5,000,000 / 7,000,000 gold for weapon / armor / accessory / random. They are not
+claimed as independently established native-7.48 prices. Purchase persistence,
+UID materialization and success packet ordering use the existing critical path
+below. A pending purchase cannot reroll, charge or publish success twice.
+
+Source: the supplied local-only
+`references/decompilacao server/descompilacao tmsrv 7.59/TMSRVIN/TMSRVIN.c`,
+SHA-256 `F8C064D7B3E73600B244A743A1D3CC3F6E4DB66F2B44364367A2E1E825E664CD`.
+Functions `sub_4E3D50`, `sub_4E4160`, `sub_4E46C0`, `sub_4E4AA0` and
+`sub_4E4B60` implement weapon, armor, accessory, random and weighted selection.
+The bundled `DestinyServer-main/TMSRV/run/hellgate/HellGateRate_Weapon.txt`,
+`HellGateRate_Armor.txt` and `HellGateRate_Accessory.txt` provide the rate rows;
+the loader reads 30 rows. The collection's server version attribution and
+bundled data are historical evidence, not a matched native-7.48 server binary.
 
 ## Critical persistence migration and activation
 
@@ -86,6 +123,13 @@ See the [critical persistence plan](../server/critical-persistence-plan.md).
 - Server: `hell_store_test.go` (pools, option tables, purchase per category,
   refusals, rollback) and `internal/data/hell_store_npc_test.go` (spawn inside
   the native region on a walkable tile).
+- Dionys: `hell_store_759_test.go` covers weight boundaries and partial/empty
+  tables, catalog existence, deterministic item/options, lifecycle and runtime
+  refusals, save failure, detached proposals, pending-request deduplication and
+  success publication only after committed persistence. The complete server
+  suite and `go vet ./...` passed on 2026-10-18. Published in server release
+  `20261018T171412Z` with game/API restart, payload hashes and readiness checked;
+  actual purchases in the client remain unverified.
 - Coordinator path: `critical_persistence_purchases_test.go` covers detached
   proposals, repetition/rejection, trade reservations, unknown outcomes,
   disconnect/readmission, shutdown snapshot contents and actual World-loop

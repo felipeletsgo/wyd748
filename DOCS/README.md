@@ -15,6 +15,7 @@ documentation, research evidence, and continuity records.
 | Goal | Starting document |
 | --- | --- |
 | Resume work and distinguish local changes from the deployed release | [Current state](current-state.md) and [continuation record](../.agents/handoffs/project-continuation.md) |
+| Track current player-reported gameplay defects and acceptance checks | [Gameplay bug register](bug-register.md) |
 | Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
 | Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
 | Set up Windows development | [Windows environment](windows-development-environment.md) |

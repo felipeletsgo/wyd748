@@ -1,6 +1,6 @@
 {
   "name": "Compounder",
-  "tipo": "monstro",
+  "tipo": "npc",
   "equip": {
     "rosto": {
       "index": 54

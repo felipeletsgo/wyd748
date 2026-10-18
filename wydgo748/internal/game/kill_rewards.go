@@ -88,6 +88,7 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 		return nil // isolated guild transaction: no ordinary EXP, loot or quest progress
 	}
 	baseReward := scaledMobExperience(m.Def.ExpReward, w.gameplay)
+	baseReward = w.nightmareExperience(m, baseReward)
 	shares := w.partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
 	plan := &killRewardPlan{
 		killer: p, mob: m, calculatedDamage: calculatedDamage, appliedDamage: appliedDamage,
@@ -154,12 +155,16 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 			}
 		}
 	}
-	plan.drops = append(plan.drops, w.planMobDrops(p, m)...)
-	plan.drops = append(plan.drops, w.planGlobalDrop(p, m)...)
-	plan.gold = w.rollMobGold(p, m)
 	plan.bossState = w.bossSpawnStateForMob(m.ID)
-	if plan.bossState != nil {
-		plan.drops = append(plan.drops, w.planBossDrops(p, m, plan.bossState)...)
+	// Leveling-instance kills are EXP-only, including events and boss loot.
+	// Skip planning entirely: planners can mutate inventory or reserve event drops.
+	if !expOnlyInstance(w.instanceForMob(m)) {
+		plan.drops = append(plan.drops, w.planMobDrops(p, m)...)
+		plan.drops = append(plan.drops, w.planGlobalDrop(p, m)...)
+		plan.gold = w.rollMobGold(p, m)
+		if plan.bossState != nil {
+			plan.drops = append(plan.drops, w.planBossDrops(p, m, plan.bossState)...)
+		}
 	}
 	if g := w.mobGenerator(m); g != nil && g.current > 0 {
 		plan.generator = g

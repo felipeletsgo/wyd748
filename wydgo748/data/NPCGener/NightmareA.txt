@@ -1,16 +1,16 @@
-// Pesadelo A (Nightmare Arcane)
+// Nightmare A (Arcane)
 // Instance-only generators: the instance spawns each block at its start
 // point within StartRange. MinuteGenerate stays -1 (never in the open world).
 
-// Pesadelo A (Arcane)
+// Nightmare A (Arcane)
 // ********************************************
 #	[2445]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Dark_Elf_Ab2
-	Follower:	Dark_Elf_Ab2
+	Leader:		NMA_ArmTaur
+	Follower:	NMA_ArmTaur
 	RouteType:	2
 	Formation:	0
 	StartX:		1192
@@ -30,15 +30,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo A (Arcane)
+// Nightmare A (Arcane)
 // ********************************************
 #	[2446]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Tauron_____
-	Follower:	Tauron_____
+	Leader:		NMA_Tauron
+	Follower:	NMA_Tauron
 	RouteType:	2
 	Formation:	0
 	StartX:		1217
@@ -58,15 +58,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo A (Arcane)
+// Nightmare A (Arcane)
 // ********************************************
 #	[2447]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Morlock_
-	Follower:	Morlock_
+	Leader:		NMA_Manticor
+	Follower:	NMA_Manticor
 	RouteType:	2
 	Formation:	0
 	StartX:		1185
@@ -86,15 +86,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo A (Arcane)
+// Nightmare A (Arcane)
 // ********************************************
 #	[2448]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Hell_Spider2
-	Follower:	Hell_Spider2
+	Leader:		NMA_Spider
+	Follower:	NMA_Spider
 	RouteType:	2
 	Formation:	0
 	StartX:		1223
@@ -114,30 +114,4 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo A (Arcane) - BOSS
-// ********************************************
-#	[2449]
-	MinuteGenerate:	-1
-	MaxNumMob:	1
-	MinGroup:	0
-	MaxGroup:	0
-	Leader:		Lugefer_
-	Follower:	Lugefer_
-	RouteType:	2
-	Formation:	0
-	StartX:		1208
-	StartY:		173
-	StartRange:	1
-	StartWait:	9
-	Segment1X:	1208
-	Segment1Y:	173
-	Segment1Range:	1
-	Segment1Wait:	7
-	Segment2X:	1208
-	Segment2Y:	173
-	Segment2Range:	1
-	Segment2Wait:	8
-	DestX:		1208
-	DestY:		173
-	DestRange:	1
-	DestWait:	8
+// Lugefer is scheduled separately by nightmareBoss in instances.json.

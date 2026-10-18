@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/BoundedText.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "SControl.h"
@@ -1835,12 +1836,12 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
             nIndex = 2;
         }
 
-        sprintf_s(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
+        bounded_text::Format(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
     }
     else if (pMsg->Color == 7)
     {
         dwColor = 0xFFBBBBBB;
-        sprintf_s(szMsg, "[%s]> %s", pMsg->MobName, pMsg->String);
+        bounded_text::Format(szMsg, "[%s]> %s", pMsg->MobName, pMsg->String);
     }
     else if (pMsg->String[0] == '=')
     {
@@ -1857,7 +1858,7 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
             dwColor = 0xFFFF99FF;
             nIndex = 1;
         }
-        sprintf_s(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
+        bounded_text::Format(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
     }
     else if (pMsg->String[0] == '@')
     {
@@ -1871,14 +1872,12 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
             dwColor = 0xFF00AAFF;
             nIndex = 1;
         }
-        sprintf_s(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
+        bounded_text::Format(szMsg, "[%s]> %s", pMsg->MobName, &pMsg->String[nIndex]);
     }
     else if (pMsg->String[0] == '!')
     {
         if (pScene->m_pChatWhisper && !pScene->m_pChatWhisper->m_bSelected)
             bDrawText = 0;
-
-        sprintf_s(szMsg, "[%s] : %s> %s", pMsg->MobName, m_szName, pMsg->String);
 
         _SYSTEMTIME sysTime;
         GetLocalTime(&sysTime);
@@ -1886,15 +1885,15 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
         if (pScene->m_pHelpList[3] != nullptr)
             pScene->m_pHelpList[3]->AddItem(new SListBoxItem(" ", 0xFFFFFFFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777u, 1u, 0));
 
-        sprintf_s(szMsg, g_pMessageStringTable[226], pMsg->MobName);
+        bounded_text::Format(szMsg, g_pMessageStringTable[226], pMsg->MobName);
 
         char szTime[128]{};
-        sprintf_s(szTime, "%s [%02d:%02d:%02d]", szMsg, sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
+        bounded_text::Format(szTime, "%s [%02d:%02d:%02d]", szMsg, sysTime.wHour, sysTime.wMinute, sysTime.wSecond);
 
         if (pScene->m_pHelpList[3] != nullptr)
             pScene->m_pHelpList[3]->AddItem(new SListBoxItem(szTime, 0xFFFFFFFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777u, 1u, 0));
 
-        sprintf_s(szMsg, "%s", &pMsg->String[1]);
+        bounded_text::Copy(szMsg, &pMsg->String[1], sizeof(pMsg->String) - 1);
 
         if (pScene->m_pHelpList[3] != nullptr)
             pScene->m_pHelpList[3]->AddItem(new SListBoxItem(szMsg, 0xFFFFFFCC, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777u, 1u, 0));
@@ -1907,7 +1906,7 @@ int TMHuman::OnPacketMessageWhisper(MSG_MessageWhisper* pMsg)
         if (pScene->m_pChatWhisper && !pScene->m_pChatWhisper->m_bSelected)
             bDrawText = 0;
 
-        sprintf_s(szMsg, "[%s]> %s", pMsg->MobName, pMsg->String);
+        bounded_text::Format(szMsg, "[%s]> %s", pMsg->MobName, pMsg->String);
     }
 
     if (!bDrawText)

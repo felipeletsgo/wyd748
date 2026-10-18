@@ -1,4 +1,6 @@
 #include "../internal/wire/AttackVisualDamage.h"
+#include "../internal/application/AttackVisualTiming.h"
+#include "../internal/application/AttackSpeedPolicy.h"
 
 #include <array>
 #include <cstdio>
@@ -88,5 +90,84 @@ int RunAttackVisualDamageTests(int& checks)
         "negative legacy damage precedes a valid physical extension");
     check(attack_visual::ReadDamage(physical.data(), 0, 0x39D, 0, 32767) == 32767,
         "local prediction with zero header size keeps its legacy visual damage");
+    for (unsigned int firstLife : {1000u, 1200u, 1400u, 2100u, 2200u})
+    for (unsigned int firstCreated : {500u, 10000u, 0xFFFFFFC0u})
+    for (int secondOffset : {-20, 0, 50, 60}) {
+        attack_visual::DoubleHitNumbers timing;
+        unsigned int created = firstCreated;
+        unsigned int lifetime = firstLife;
+        int viewHalf = 0;
+        int speed = static_cast<int>(firstLife / 700);
+        int startY = 500;
+        timing.Schedule(0, created, lifetime, viewHalf, speed, startY);
+        check(created == firstCreated && lifetime == firstLife && viewHalf == 0,
+            "first impact keeps its original delay, lifetime and visibility");
+        created += 25; // Simulate constructing the second number in a later tick.
+        lifetime += 1100;
+        viewHalf = 1;
+        speed = static_cast<int>(lifetime / 700);
+        startY += secondOffset;
+        timing.Schedule(1, created, lifetime, viewHalf, speed, startY);
+        check(created - firstCreated == 120 && lifetime == firstLife && viewHalf == 0,
+            "normal and critical follow-ups share the first curve, exactly 120 ms later including tick wrap");
+        check(speed == static_cast<int>(firstLife / 700) && startY == 500,
+            "incoming, outgoing and ground pairs share cached speed and initial height");
+        for (float scale : {1.0f, 1.25f, 1.5f})
+        for (int distance : {100, 120}) {
+            const auto y = [&](unsigned int age) {
+                return startY - speed * (static_cast<float>(age) / lifetime) * distance * scale;
+            };
+            for (unsigned int age = firstLife / 2; age + 50 < firstLife; age += 50) {
+                const unsigned int secondAge = age - (created - firstCreated);
+                check(y(secondAge) > y(age),
+                    "the delayed number stays below the first throughout their shared visible trajectory");
+                const float delta = (y(secondAge + 50) - y(secondAge)) - (y(age + 50) - y(age));
+                check(delta > -0.001f && delta < 0.001f,
+                    "both numbers rise at equal velocity for normal and critical distances and UI scales");
+            }
+        }
+    }
+    attack_visual::DoubleHitNumbers unpaired;
+    unsigned int created = 1000, lifetime = 2200;
+    int viewHalf = 1;
+    int speed = 3, startY = 550;
+    unpaired.Schedule(1, created, lifetime, viewHalf, speed, startY);
+    check(created == 1000 && lifetime == 2200 && viewHalf == 1 && speed == 3 && startY == 550,
+        "missing first number does not invent a follow-up timeline");
+    for (unsigned int dex : {0u, 50u, 250u, 300u, 499u, 500u, 505u, 545u, 550u, 1000u}) {
+        const int percent = attack_speed::Percent(dex, 0, 0, 0, 0, 0, 0, 0, false);
+        const unsigned int band = (dex / 5 > 150 ? 150 : dex / 5) / 10;
+        const int chance = attack_speed::DoubleChancePerMille(percent, band << 4);
+        const int expected = percent > 200 ? 1000 : band < 5 ? 0 : (band - 5) * 100;
+        check(percent == 100 + static_cast<int>(dex / 5) && chance == expected,
+            "HUD and prediction retain exact speed and the project double-hit threshold");
+        int doubles = 0;
+        for (int roll = 0; roll < 1000; ++roll)
+            doubles += roll < chance;
+        check(doubles == expected, "every probability-table value follows the threshold");
+    }
+    check(attack_speed::DoubleChancePerMille(200, 0xA2) == 500 &&
+        attack_speed::DoubleChancePerMille(201, 0xA2) == 1000 &&
+        attack_speed::DoubleChancePerMille(209, 0xA2) == 1000,
+        "201 and 209 guarantee doubles despite sharing the packed band with 200");
+    check(attack_speed::Percent(505, 0, 0, 0, 0, 0, 0, 0, true) == 171 &&
+        attack_speed::Percent(455, 0, 0, 0, 0, 0, 1, 0, false) == 201 &&
+        attack_speed::Percent(405, 0, 0, 0, 40, 0, 0, 0, false) == 201 &&
+        attack_speed::Percent(405, 0, 0x80000, 0, 26, 1, 0, 0, false) == 201 &&
+        attack_speed::Percent(305, 0, 0x200000, 0, 33, 0, 0, 0, false) == 201 &&
+        attack_speed::Percent(355, 0, 0, 0, 63, 0, 0, 0, false) == 201,
+        "buff, freeze and transformation bonuses retain the existing HUD calculation");
+    for (int weapon : {0, 1, 41, 101})
+    for (int motions : {0, 1, 2, 3})
+    for (bool frozen : {false, true}) {
+        const unsigned int base = frozen ? 46u : 40u;
+        const unsigned int expectedDouble = static_cast<unsigned int>(
+            static_cast<float>(base) / (weapon == 101 ? 2.0f : 1.7f));
+        check(attack_visual::AttackFrameStep(40, frozen, motions, true, weapon) == expectedDouble,
+            "first and follow-up motions use double speed despite previous skill motion count");
+        check(attack_visual::AttackFrameStep(40, frozen, motions, false, weapon) ==
+            (motions > 1 ? static_cast<unsigned int>(static_cast<float>(base) / 1.2f) : base),
+            "single attacks, ordinary skills and freeze retain existing frame timing");
+    }
     return failures;
 }

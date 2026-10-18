@@ -4,6 +4,19 @@
 
 namespace field_interaction
 {
+enum class PhysicalAttackAction { Cancel, Wait, Retry };
+
+// Retrying an intention does not bypass the existing attack packet cooldown.
+constexpr PhysicalAttackAction PhysicalAttackTick(bool alive, bool targetAlive,
+    bool transitioning, bool combatControl, bool busy,
+    unsigned int now, unsigned int lastRetry)
+{
+    return !alive || !targetAlive || transitioning || combatControl
+        ? PhysicalAttackAction::Cancel
+        : busy || now - lastRetry <= 200u
+            ? PhysicalAttackAction::Wait : PhysicalAttackAction::Retry;
+}
+
 constexpr unsigned int AutoTradeFirstListingControl = 653;
 constexpr unsigned int AutoTradePurchaseMessage = 646;
 

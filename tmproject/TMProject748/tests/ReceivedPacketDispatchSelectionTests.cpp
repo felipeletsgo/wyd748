@@ -173,7 +173,7 @@ int RunReceivedPacketDispatchSelectionTests(int& checks)
             "challenge preserves player and mode at the contract offsets");
     };
     check(received_packet::ExpectedSize(MSG_PlayerChallenge_Opcode) ==
-        kPlayerChallengePacketSize, "desafio possui tamanho exato no dispatcher");
+        kPlayerChallengePacketSize, "challenge has an exact size in the dispatcher");
     for (std::size_t size = 0; size < kPlayerChallengePacketSize; ++size)
         check(!received_packet::Dispatch({MSG_PlayerChallenge_Opcode,
             playerChallenge.data(), size}, receivePlayerChallenge),
@@ -283,7 +283,7 @@ int RunReceivedPacketDispatchSelectionTests(int& checks)
     bytes[4] = 0x19;
     bytes[5] = 0x01;
     check(!received_packet::Dispatch({0xFAA, bytes, 52}, receive),
-        "metadado transferencia exige Type correspondente");
+        "transfer metadata requires the matching Type");
     check(delivered == 1, "mismatches run neither the callback nor a retry");
 
     int otherDelivered = 0;
@@ -323,6 +323,52 @@ int RunReceivedPacketDispatchSelectionTests(int& checks)
         sizeof(MSG_STANDARD)}, receiveChallengePrompt) && challengePromptCalls == 1,
         "exact contest prompt delivered once");
 
-    // Same canonical fixture consumed by the Go test. It does not depend on the Basedef struct.
+    // Consumer lower bounds protect existing casts without imposing an
+    // unproven exact native size or rejecting future trailing fields.
+    const SelectionEnvelope consumerMinimums[] = {
+        {0x7B1, 528}, {0x3B2, 32}, {0x1D0, 236}, {0x292, 18},
+        {0x3A2, 24}, {0x2132, 32}, {0x457, 112}, {0x755, 24},
+        {0x5000, 144}, {0x18A, 18}, {0x1D6, 28},
+        {0x3A3, 16}, {0x3AC, 16}, {0x3A4, 16}, {0x3BB, 16}, {0x3CF, 16},
+        {0x3AF, 16}, {0x1CF, 16}, {0x193, 16}, {0x3AD, 16}, {0xADA, 16},
+        {0x1C2, 20}, {0x3D0, 20}, {0x3B4, 20}
+    };
+    for (const auto& contract : consumerMinimums)
+    {
+        check(received_packet::ConsumerMinimumSize(contract.opcode) == contract.size, "audited consumer extent is protected");
+        std::vector<char> packet(contract.size + 10, static_cast<char>(0xCD));
+        char* data = packet.data() + 1; // deliberately unaligned, with adjacent-frame guards
+        MSG_STANDARD header{};
+        header.Type = static_cast<unsigned short>(contract.opcode);
+        const auto writeSize = [&](std::size_t size) {
+            header.Size = static_cast<unsigned short>(size);
+            std::memcpy(data, &header, sizeof(header));
+        };
+        int deliveredCount = 0;
+        const auto receiveMinimum = [&](const PacketView&) { ++deliveredCount; };
+        for (std::size_t size = 0; size < contract.size; ++size)
+        {
+            writeSize(size);
+            const auto before = packet;
+            check(!received_packet::Dispatch({contract.opcode, data, size}, receiveMinimum), "every short consumer frame is rejected before callback");
+            check(packet == before, "rejection preserves frame and adjacent bytes");
+        }
+        writeSize(contract.size);
+        check(!received_packet::Dispatch({contract.opcode, nullptr, contract.size}, receiveMinimum), "null consumer frame rejected");
+        check(!received_packet::Dispatch({0x119, data, contract.size}, receiveMinimum), "consumer Type cannot be hidden by metadata");
+        check(!received_packet::Dispatch({contract.opcode, data, contract.size + 1}, receiveMinimum), "consumer declared extent must match the view");
+        header.Type = 0x119;
+        writeSize(contract.size);
+        check(!received_packet::Dispatch({contract.opcode, data, contract.size}, receiveMinimum), "consumer metadata cannot hide a different Type");
+        check(deliveredCount == 0, "rejected consumer frames never reach payload mutation");
+        header.Type = static_cast<unsigned short>(contract.opcode);
+        writeSize(contract.size);
+        check(received_packet::Dispatch({contract.opcode, data, contract.size}, receiveMinimum), "complete consumer prefix accepted");
+        writeSize(contract.size + 8);
+        const bool hasExactContract = received_packet::ExpectedSize(contract.opcode) != 0;
+        check(received_packet::Dispatch({contract.opcode, data, contract.size + 8}, receiveMinimum) == !hasExactContract, "lower bounds preserve extensions while exact contracts stay exact");
+        check(packet.front() == static_cast<char>(0xCD) && packet.back() == static_cast<char>(0xCD), "consumer gate preserves adjacent-frame sentinels");
+    }
+
     return failures;
 }

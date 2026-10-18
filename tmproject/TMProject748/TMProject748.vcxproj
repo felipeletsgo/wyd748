@@ -382,6 +382,7 @@
     <ClInclude Include="internal\render\lighting\TMLight.h" />
     <ClInclude Include="internal\platform\diagnostics\TMLog.h" />
     <ClInclude Include="internal\render\mesh\TMMesh.h" />
+    <ClInclude Include="internal\render\mesh\SkinMeshLoad.h" />
     <ClInclude Include="internal\game\entities\TMObject.h" />
     <ClInclude Include="internal\render\world\objects\TMObjectContainer.h" />
     <ClInclude Include="internal\platform\windows\TMPaths.h" />

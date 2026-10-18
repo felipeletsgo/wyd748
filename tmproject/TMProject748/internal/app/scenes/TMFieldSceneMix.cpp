@@ -11,6 +11,7 @@
 #include "ClientDiagnostics.h"
 #include "ItemEffect.h"
 #include "../../ui/NativeAylinPreview.h"
+#include "../../ui/OdinComposition.h"
 
 SPanel* TMFieldScene::GetNativeMixPanel(int mixIndex) const
 {
@@ -233,9 +234,7 @@ void TMFieldScene::DoNativeMix(int mixIndex)
 			}
 			else if (first == 4127)
 			{
-				valid = packet->Item[1].sIndex == 4127 && packet->Item[2].sIndex == 5135;
-				for (int slot = 3; slot < 7; ++slot)
-					valid = valid && packet->Item[slot].sIndex == 413;
+				valid = odin_composition::AcceptsSealRecipe(packet->Item);
 			}
 			else if (first >= 5110 && first <= 5133)
 			{

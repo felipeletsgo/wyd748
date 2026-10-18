@@ -118,10 +118,6 @@ TMSkillDoubleSwing::TMSkillDoubleSwing(TMVector3 vecStart, TMVector3 vecTarget, 
 
 TMSkillDoubleSwing::~TMSkillDoubleSwing()
 {
-    // Adiciona efeito de fogo no inimigo quando a fenix some.
-    if (m_nLevel == 4)
-        g_pCurrentScene->m_pEffectContainer->AddChild(new TMSkillFire(m_vecTargetPos, 0, nullptr, 0xFFFFFFFF, 0x22331100));
-
     g_pObjectManager->DeleteObject(m_pCenterLight);
     g_pObjectManager->DeleteObject(m_pCenterLight2);
     g_pObjectManager->DeleteObject(m_pCenterFlare);
@@ -196,6 +192,9 @@ int TMSkillDoubleSwing::FrameMove(unsigned int dwServerTime)
     m_fProgress = (float)(dwServerTime - m_dwStartTime) / (float)m_dwLifeTime;
     if (m_fProgress >= 1.0f || (m_nLevel == 4 && m_fProgress > 0.5f))
     {
+        // Spawn the follow-up only on natural expiry, never during scene teardown.
+        if (!m_cDeleted && m_nLevel == 4 && g_pCurrentScene && g_pCurrentScene->m_pEffectContainer)
+            g_pCurrentScene->m_pEffectContainer->AddChild(new TMSkillFire(m_vecTargetPos, 0, nullptr, 0xFFFFFFFF, 0x22331100));
         g_pObjectManager->DeleteObject(this);
         return 1;
     }

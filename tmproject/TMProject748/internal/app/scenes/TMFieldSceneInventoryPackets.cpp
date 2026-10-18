@@ -114,11 +114,14 @@ int TMFieldScene::OnPacketCNFDropItem(MSG_CNFDropItem* pMsg)
 	if (!m_pMyHuman)
 		return 1;
 
-	m_pMyHuman->SetFamiliarItem(g_pObjectManager->m_stMobData.Equip[costume_slot::FamiliarSlot].sIndex);
 	GetSoundAndPlay(45, 0, 0);
-
 	UpdateScoreUI(0);
-	UpdateMyHuman();
+	// Carry/cargo changes do not invalidate the equipped mesh or its effects.
+	if (pMsg->SourType == 0)
+	{
+		m_pMyHuman->SetFamiliarItem(g_pObjectManager->m_stMobData.Equip[costume_slot::FamiliarSlot].sIndex);
+		UpdateMyHuman();
+	}
 	return 1;
 }
 
@@ -226,7 +229,9 @@ int TMFieldScene::OnPacketRemoveItem(MSG_STANDARDPARM* pStd)
 	if (!pStd || !g_pObjectManager)
 		return 0;
 	m_pMouseOverItem = nullptr;
-	g_pObjectManager->DeleteObject(pStd->Parm);
+	// Item and actor IDs occupy separate lookup domains on the wire.
+	// Never remove an actor that happens to share this item's numeric ID.
+	g_pObjectManager->DeleteObject(g_pObjectManager->GetItemByID(pStd->Parm));
 	return 1;
 }
 

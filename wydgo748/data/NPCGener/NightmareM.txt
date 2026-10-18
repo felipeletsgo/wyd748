@@ -1,16 +1,16 @@
-// Pesadelo M (Nightmare Mystic)
+// Nightmare M (Nightmare Mystic)
 // Instance-only generators: the instance spawns each block at its start
 // point within StartRange. MinuteGenerate stays -1 (never in the open world).
 
-// Pesadelo M (Armia)
+// Nightmare M (Armia)
 // ********************************************
 #	[2439]
 	MinuteGenerate:	-1
 	MaxNumMob:	10
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Tauron__
-	Follower:	Tauron__
+	Leader:		NMM_Tauron
+	Follower:	NMM_Tauron
 	RouteType:	2
 	Formation:	0
 	StartX:		1075
@@ -30,15 +30,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo M (Armia)
+// Nightmare M (Armia)
 // ********************************************
 #	[2440]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Hell_Spider3
-	Follower:	Hell_Spider3
+	Leader:		NMM_Spider
+	Follower:	NMM_Spider
 	RouteType:	2
 	Formation:	0
 	StartX:		1110
@@ -58,15 +58,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo M (Armia)
+// Nightmare M (Armia)
 // ********************************************
 #	[2441]
 	MinuteGenerate:	-1
 	MaxNumMob:	30
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		GrubSwarm_
-	Follower:	GrubSwarm_
+	Leader:		NMM_Grub
+	Follower:	NMM_Grub
 	RouteType:	2
 	Formation:	0
 	StartX:		1092
@@ -86,15 +86,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo M (Armia)
+// Nightmare M (Armia)
 // ********************************************
 #	[2442]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Wise_Gargo3
-	Follower:	Wise_Gargo3
+	Leader:		NMM_Gargoyle
+	Follower:	NMM_Gargoyle
 	RouteType:	2
 	Formation:	0
 	StartX:		1110
@@ -114,15 +114,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo M (Armia)
+// Nightmare M (Armia)
 // ********************************************
 #	[2443]
 	MinuteGenerate:	-1
 	MaxNumMob:	20
 	MinGroup:	5
 	MaxGroup:	5
-	Leader:		Xeno_Cropper_
-	Follower:	Xeno_Cropper_
+	Leader:		NMM_Cropper
+	Follower:	NMM_Cropper
 	RouteType:	2
 	Formation:	0
 	StartX:		1057
@@ -142,15 +142,15 @@
 	DestRange:	2
 	DestWait:	8
 
-// Pesadelo M (Armia) - BOSS
+// Nightmare M (Armia) - BOSS
 // ********************************************
 #	[2444]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Dark_Shadow__
-	Follower:	Dark_Shadow__
+	Leader:		NMM_Shadow
+	Follower:	NMM_Shadow
 	RouteType:	2
 	Formation:	0
 	StartX:		1085

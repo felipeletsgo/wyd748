@@ -58,10 +58,13 @@ func TestPlayerAttackSpeedUsesPercentagePointsNotTemplateNibbles(t *testing.T) {
 }
 
 func TestDoubleHitBandsUseBonusNibbleWithoutChangingAttackCadence(t *testing.T) {
+	if doubleHitChance(nil) != 0 {
+		t.Fatal("a missing character must not have a double-hit chance")
+	}
 	for _, tc := range []struct {
 		percent int
 		chance  int
-	}{{100, 0}, {110, 0}, {150, 0}, {160, 10}, {200, 50}, {250, 100}} {
+	}{{100, 0}, {110, 0}, {150, 0}, {160, 10}, {200, 50}, {210, 100}, {250, 100}} {
 		ch := &model.Char{Score: testScore(model.Score{AttackRun: packedAttackSpeed(tc.percent - 100)})}
 		if got := attackSpeedPercent(ch); got != tc.percent {
 			t.Fatalf("speed=%d, want %d", got, tc.percent)
@@ -80,6 +83,59 @@ func TestDoubleHitBandsUseBonusNibbleWithoutChangingAttackCadence(t *testing.T) 
 					t.Fatalf("speed %d%% produced a double at action %d", tc.percent, action)
 				}
 			}
+		}
+	}
+}
+
+func TestDoubleHitGuaranteeStartsAt201PercentWithUnpackedPrecision(t *testing.T) {
+	w := &World{}
+	for _, percent := range []int{110, 159, 160, 199, 200, 201, 209, 210, 250, 300} {
+		ch := &model.Char{Class: 2, Score: testScore(model.Score{
+			Level: 399, Str: 8, Int: 4, Con: 6,
+			Dex: uint32((percent - 100) * 5), AttackRun: 2,
+		})}
+		for recalculation := 0; recalculation < 2; recalculation++ {
+			w.recalcPlayer(ch)
+			if got := attackSpeedPercent(ch); got != percent {
+				t.Fatalf("recalculation %d: speed=%d, want %d", recalculation, got, percent)
+			}
+			wantChance := clampInt((percent-100)/10*10-50, 0, 100)
+			if percent > 200 {
+				wantChance = 100
+			}
+			if got := doubleHitChance(ch); got != wantChance {
+				t.Fatalf("speed %d: chance=%d, want %d", percent, got, wantChance)
+			}
+			misses := 0
+			var progress uint16
+			for action := range hitRateProgression {
+				double, critical := rollPhysicalHitFlags(ch, &progress, func(int) int { return 999 })
+				if critical {
+					t.Fatal("double-hit guarantee changed the independent critical roll")
+				}
+				if !double {
+					misses++
+					if percent > 200 {
+						t.Fatalf("speed %d: action %d was not a double", percent, action)
+					}
+				}
+			}
+			if percent == 200 && misses == 0 {
+				t.Fatal("exactly 200 percent must not guarantee double hits")
+			}
+			if attackIntervalFor(ch) != 900*time.Millisecond {
+				t.Fatal("double-hit rule changed the action interval")
+			}
+		}
+		// Losing DEX must invalidate the previous guarantee on recalculation.
+		ch.Score.Dex = 500
+		w.recalcPlayer(ch)
+		if attackSpeedPercent(ch) != 200 || doubleHitChance(ch) != 50 {
+			t.Fatal("recalculation retained a stale guarantee after speed decreased")
+		}
+		applyScore(ch)
+		if ch.RuntimeAttackSpeedPercent != 0 {
+			t.Fatal("base-score reset retained a stale exact-speed cache")
 		}
 	}
 }

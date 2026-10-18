@@ -364,9 +364,12 @@ type Char struct {
 	// the persisted base; this copy defines no other score format. Keeping them
 	// apart stops each recalculation from stacking Possessed/transformations and
 	// writing the temporary bonus to the JSON.
-	RuntimeScore *Score   `json:"-"`
-	Equip        [16]Item `json:"equip"` // equipment slots
-	Inv          [64]Item `json:"inv"`   // wire/persistence has 64; the UI uses 0..62
+	RuntimeScore *Score `json:"-"`
+	// RuntimeAttackSpeedPercent preserves the precision lost by AttackRun's
+	// ten-point bands. It is derived on recalculation, never persisted or sent.
+	RuntimeAttackSpeedPercent int      `json:"-"`
+	Equip                     [16]Item `json:"equip"` // equipment slots
+	Inv                       [64]Item `json:"inv"`   // wire/persistence has 64; the UI uses 0..62
 	// CP is the displayed, signed and authoritative Chaos/PK Point (-75..+75).
 	// CP 0 is the neutral state of a new character; the legacy CreateMob byte
 	// uses CP+75 only at the protocol boundary.
@@ -1038,11 +1041,12 @@ const (
 
 // NPCDef is the static definition of an NPC (loaded from readable JSON).
 type NPCDef struct {
-	Name      string `json:"name"`
-	Tipo      string `json:"tipo,omitempty"` // "monstro" or "npc" (default npc)
-	Equip     Equip  `json:"equip"`          // appearance (16 named slots)
-	ClassInfo byte   `json:"classInfo,omitempty"`
-	ExpReward uint32 `json:"expReward"`
+	CombatRole string `json:"combatRole,omitempty"`
+	Name       string `json:"name"`
+	Tipo       string `json:"tipo,omitempty"` // "monstro" or "npc" (default npc)
+	Equip      Equip  `json:"equip"`          // appearance (16 named slots)
+	ClassInfo  byte   `json:"classInfo,omitempty"`
+	ExpReward  uint32 `json:"expReward"`
 	// Score is the NPC's only attribute source. As for characters, the WORD
 	// STRUCT_SCORE is only a projection created at the protocol boundary.
 	Score *Score `json:"score"`
@@ -1063,6 +1067,12 @@ type NPCDef struct {
 	// Vende lists the goods of a trading NPC (the mob's Inventory[]; the client
 	// buys by sending the sellSlot). Only merchants use it.
 	Vende []Item `json:"vende,omitempty"`
+}
+
+// IsCityGuard is an explicit server-side role, never inferred from a name or face.
+// Guards remain friendly NPCs at the player interaction boundary.
+func (n *NPCDef) IsCityGuard() bool {
+	return n != nil && n.Tipo == TipoNPC && n.CombatRole == "city_guard"
 }
 
 // MaxCarry is the STRUCTURAL Carry size on the wire/JSON and of mob carries.

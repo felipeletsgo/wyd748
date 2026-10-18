@@ -5,6 +5,7 @@
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMFieldScene.h"
+#include "../../application/BoundedText.h"
 
 SText::SText(int inTextureSetIndex, const char* istrText, unsigned int idwFontColor, float inX, float inY, float inWidth, float inHeight, int ibBorder, unsigned int idwBorderColor, unsigned int dwType, unsigned int dwAlignType)
 	: SControl(inX, inY, inWidth, inHeight)
@@ -34,20 +35,15 @@ SText::SText(int inTextureSetIndex, const char* istrText, unsigned int idwFontCo
 	m_GCText4.strString[0] = 0;
 	m_GCText4.pFont = &m_Font4;
 
+	// Convert underscores in a bounded local copy, never in the caller's text.
 	if (istrText != nullptr)
 	{
-		BASE_UnderBarToSpace((char*)istrText);
+		bounded_text::Prepare(m_GCText.strString, istrText, sizeof(m_GCText.strString) - 1, false);
 
-		if (!strcmp(istrText, " "))
-			istrText = nullptr;
-	}
-	if (istrText != nullptr)
-	{
-		if (strlen(istrText) != 0)
-		{
-			strcpy(m_GCText.strString, istrText);
+		if (!strcmp(m_GCText.strString, " "))
+			m_GCText.strString[0] = 0;
+		if (m_GCText.strString[0] != 0)
 			m_GCText.pFont->SetText(m_GCText.strString, m_GCText.dwColor, 0);
-		}
 	}
 }
 
@@ -89,124 +85,51 @@ SText::~SText()
 
 void SText::SetText(char* istrText, int bCheckZero)
 {
-	if (istrText != nullptr)
-	{
-		BASE_UnderBarToSpace(istrText);
-		if (!strcmp(istrText, " "))
-			istrText = 0;
-	}
-
-	size_t count = 0;
-
-	if (istrText == nullptr)
-	{
-		sprintf(m_GCText.strString, "");
-		m_Font.SetText(m_GCText.strString, m_GCText.dwColor, bCheckZero);
-
-		return;
-	}
-	else if (!strcmp(m_GCText.strString, istrText) && !m_cComma)
+	// Format a bounded local copy. The legacy routine rewrote the caller's
+	// buffer in place, so comma grouping overflowed tight caller buffers and
+	// underscore conversion wrote into string literals.
+	char szText[sizeof(m_GCText.strString)]{};
+	bounded_text::Prepare(szText, istrText, sizeof(szText) - 1, m_cComma == 1 || m_cComma == 2);
+	if (!strcmp(m_GCText.strString, szText) && !m_cComma)
 		return;
 
-	if (strlen(istrText) != 0 && (m_cComma == 2 || m_cComma == 1))
-	{
-		for (size_t i = 0; i < strlen(istrText); ++i)
-		{
-			if (!isdigit(istrText[i]) && istrText[i] != ' ')
-				++count;
-		}
-
-		if (!count && atoi(istrText))
-		{
-			char str[100]{};
-			for (size_t i = 0; i < strlen(istrText); ++i)
-			{
-				if (istrText[i] != ' ')
-					continue;
-
-				++count;
-				for (size_t j = i; j < strlen(istrText); ++j)
-				{
-					istrText[j] = istrText[j + 1];
-				}
-				i -= 1;
-			}
-
-			size_t i = 0;
-			int j = 0;
-			while (1)
-			{
-				if (i >= strlen(istrText))
-					break;
-
-				if (((strlen(istrText) - i) % 3) || i == 0)
-					str[j++] = istrText[i];
-				else
-				{
-					str[j] = ',';
-					str[j + 1] = istrText[i];
-					j += 2;
-				}
-				++i;
-			}
-
-			strcpy(istrText, str);
-
-			if (count > 0)
-			{
-				char temp1[128]{};
-				char temp2[128]{};
-				strcpy(temp1, istrText);
-
-				for (i = 0; i < count; ++i)
-					temp2[i] = ' ';
-
-				strcat(temp2, temp1);
-				strcpy(istrText, temp2);
-			}
-		}
-	}
-
-	if (strlen(istrText) > 255)
-		istrText[255] = 0;
-
-	strcpy(m_GCText.strString, istrText);
+	strncpy_s(m_GCText.strString, szText, _TRUNCATE);
 	m_Font.SetText(m_GCText.strString, m_GCText.dwColor, bCheckZero);
 
 	if (m_cComma == 2)
 	{
-		int nStartPos = strlen(istrText);
+		const int nStartPos = static_cast<int>(strlen(szText));
 		memset(m_GCText.strString, 0, sizeof(m_GCText.strString));
 		memset(m_GCText2.strString, 0, sizeof(m_GCText2.strString));
 		memset(m_GCText3.strString, 0, sizeof(m_GCText3.strString));
 		memset(m_GCText4.strString, 0, sizeof(m_GCText4.strString));
 
 		int i = 0;
-		int count = 0;
+		int nCommaCount = 0;
 		while (i < nStartPos)
 		{
-			if (istrText[i] == ',')
-				++count;
+			if (szText[i] == ',')
+				++nCommaCount;
 
 			if (i >= 255)
 				break;
 
-			if (count != 0)
+			if (nCommaCount != 0)
 				m_GCText.strString[i] = ' ';
 			else
-				m_GCText.strString[i] = istrText[i];
-			if (count == 1)
-				m_GCText2.strString[i] = istrText[i];
+				m_GCText.strString[i] = szText[i];
+			if (nCommaCount == 1)
+				m_GCText2.strString[i] = szText[i];
 			else
 				m_GCText2.strString[i] = ' ';
-			if (count == 2)
-				m_GCText3.strString[i] = istrText[i];
+			if (nCommaCount == 2)
+				m_GCText3.strString[i] = szText[i];
 			else
 				m_GCText3.strString[i] = ' ';
-			if (count <= 2)
+			if (nCommaCount <= 2)
 				m_GCText4.strString[i] = ' ';
 			else
-				m_GCText4.strString[i] = istrText[i];
+				m_GCText4.strString[i] = szText[i];
 
 			++i;
 		}

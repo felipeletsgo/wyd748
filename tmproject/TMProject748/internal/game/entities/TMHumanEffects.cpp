@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/AttackVisualTiming.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "TMItem.h"
@@ -2166,7 +2167,8 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                 {
                     auto pSwing = new TMSkillDoubleSwing(vecStart, vecTempDest, 3, m_stEffectEvent.pTarget);
                     g_pCurrentScene->m_pEffectContainer->AddChild(pSwing);
-                    m_stEffectEvent.dwTime += 700;
+                    m_stEffectEvent.dwTime += m_bDoubleAttack == 1 ?
+                        attack_visual::DoubleHitGapMs : 700;
                 }
                 else
                 {
@@ -2178,7 +2180,8 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                     auto pArrow = new TMArrow(vecStart, vecTempDest, m_stEffectEvent.sEffectLevel, m_stEffectEvent.sEffectIndex,
                         m_cAvatar, m_stSancInfo.Legend7, m_nAttackDestID);
                     g_pCurrentScene->m_pEffectContainer->AddChild(pArrow);
-                    m_stEffectEvent.dwTime += 500;
+                    m_stEffectEvent.dwTime += m_bDoubleAttack == 1 ?
+                        attack_visual::DoubleHitGapMs : 500;
                 }
             }
         }

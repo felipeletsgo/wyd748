@@ -19,6 +19,39 @@ remain applicable to those unchanged boundaries.
 
 ## Scheduling
 
+### Manual physical target continuation (2026-10-17)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Per the owner's explicit rule,
+a valid physical click retains that enemy until death or cancellation,
+independently of C.C. and without selecting a replacement enemy. The compact
+field frame had omitted retained-target retries. It now schedules them at
+200 ms intervals through the existing `MobAttack` path, preserving its
+guild/party, PK, town, merchant, range and route validation. The existing
+1000 ms client packet gate and authoritative 900 ms server gate are unchanged.
+An attempt during cooldown retains the selected enemy without sending early.
+
+Manual movement, skill use and toggling native autoattack off clear the
+selection through existing input paths. Death, delayed removal, transitions
+and enabling C.C. cancel the retained target; C.C. keeps its own scheduler.
+Movement in progress suspends retries rather than rebuilding the route each
+frame. A kill confirmation clears only the selected victim, regardless of
+who killed it, not an unrelated surviving target. No MP requirement is added
+to physical attacks.
+
+The local native decompilation `FUN_004776c3` contains a 200 ms retained-target
+retry into `FUN_0051a939` while native autoattack is enabled. Reusing that
+scheduling interval does not prove parity for the owner's always-retain-on-
+click choice. No opcode, packet layout, server cadence or damage formula
+changed. Existing wire evidence remains applicable.
+
+AUTOMATED TESTED: retry/cancellation and unsigned-wrap policy plus frame,
+validation-path and victim-cleanup source contracts passed. Release/x86
+compiled with `Build-Client.ps1 -NoDeploy`: architecture 1,240,451 checks,
+socket 231, crash capture 83, launcher 56; asset/shader checks passed.
+CLIENT-TESTED remains pending for melee/ranged combat, pursuit, cooldown
+retargeting, manual cancellation, third-party kills, transitions and C.C.
+No runtime installation, client launch, publication or restart was performed.
+
 ### Skill-name alignment (2026-10-16)
 
 Skill identity is its numeric ID, not a translated label. The active client

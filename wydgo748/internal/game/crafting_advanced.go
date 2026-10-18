@@ -335,15 +335,12 @@ func (w *World) onCombineOdin(s *net.Session, pkt []byte) {
 
 	unlock := []uint16{4127, 4127, 5135, 5113, 5129, 5112, 5110}
 	if exactRecipe(req, unlock) && advancedEvolution(p.Char, "celestial") && playerLevel(p.Char) == 39 &&
-		!p.Char.CelestialLevel40Unlocked && counterBalance(p, fameCounter) >= 200 {
+		!p.Char.CelestialLevel40Unlocked {
 		oldInv, oldEquip, oldGold := p.Char.Inv, p.Char.Equip, p.Char.Gold
-		oldFame := copyCounters(p)
 		changed := make(map[int]struct{}, 7)
 		consumeCombineItems(p.Char, req, 0, 6, changed)
-		spendCounters(p, map[string]uint32{fameCounter: 200})
 		p.Char.CelestialLevel40Unlocked = true
 		if !w.commitCombineWithPlayerState(p, oldInv, oldEquip, oldGold, changed, nil, 1) {
-			p.SpecialCoins = oldFame
 			p.Char.CelestialLevel40Unlocked = false
 			w.recalcPlayer(p.Char)
 		}

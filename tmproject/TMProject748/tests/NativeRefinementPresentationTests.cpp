@@ -1,5 +1,6 @@
 #include "../internal/core/Basedef.h"
 #include "../internal/ui/NativeAylinPreview.h"
+#include "../internal/ui/OdinComposition.h"
 #include "../internal/ui/NativeInventoryGlow.h"
 #include "../internal/render/mesh/RefinementGlowTexture.h"
 #include "../internal/render/mesh/NativeMountGlow.h"
@@ -36,6 +37,29 @@ int RunNativeRefinementPresentationTests(int& checks)
             std::fprintf(stderr, "FAIL refinement presentation: %s\n", description);
         }
     };
+    STRUCT_ITEM odin[8]{};
+    constexpr short unlock[] = {4127, 4127, 5135, 5113, 5129, 5112, 5110};
+    for (int slot = 0; slot < 7; ++slot)
+        odin[slot].sIndex = unlock[slot];
+    check(odin_composition::AcceptsSealRecipe(odin), "Odin accepts the ordered level-40 recipe");
+    for (int slot = 0; slot < 8; ++slot) {
+        const auto original = odin[slot];
+        odin[slot].sIndex = 0;
+        check(odin_composition::AcceptsSealRecipe(odin) == (slot == 7),
+            "all seven ingredients are required and the unused slot is empty");
+        odin[slot].sIndex = 413;
+        check(!odin_composition::AcceptsSealRecipe(odin), "partial powder substitutions are rejected");
+        odin[slot] = original;
+    }
+    for (int left = 3; left < 7; ++left)
+        for (int right = left + 1; right < 7; ++right) {
+            std::swap(odin[left], odin[right]);
+            check(!odin_composition::AcceptsSealRecipe(odin), "unlock rune order matches the server");
+            std::swap(odin[left], odin[right]);
+        }
+    for (int slot = 3; slot < 7; ++slot)
+        odin[slot].sIndex = 413;
+    check(odin_composition::AcceptsSealRecipe(odin), "Odin cape recipe remains accepted");
     const auto first = Item(1000, 2, 30, 3);
     using native_inventory_glow::Background;
     using native_inventory_glow::PulsedColor;

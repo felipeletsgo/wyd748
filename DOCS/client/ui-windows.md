@@ -86,6 +86,64 @@ batch was not installed locally, published, or tested in the running client.
 
 ## Verification rule
 
+### Helper shortcut audit — 2026-10-17
+
+This is a source audit, not current-client gameplay validation. The Helper
+screenshots are not sufficient authority to replace existing C.C. bindings.
+`EventTranslator` dispatches input; actual field bindings live in
+`internal/app/scenes/TMFieldSceneInput.cpp` and `TMFieldScene::OnCharEvent`.
+Unless noted otherwise, the character routes below require `g_nKeyType == 0`
+and no focused edit consuming input. Alive-state, transition and panel guards
+remain relevant. The owner subsequently chose 1-0 instead of F1-F10 for
+skill selection. Visible-list scrolling is restored without changing
+C.C./consumable ownership.
+
+| Advertised shortcut | Current source result |
+| --- | --- |
+| F1–F10; Shift+F1–F10 | Disabled for skill selection/assignment by explicit owner choice on 2026-10-17. Native `FUN_00454763` supports these keys, but the current project deliberately uses the number row instead. F11 is unchanged. |
+| 1–0; Shift+1–0 | Current skill controls: `OnKeyShortSkill` selects slots 0-9 in the visible bank, with 0 selecting the tenth; `OnKeySkill` assigns through shifted symbols, subject to cursor/skill-panel context. Shared selection refreshes highlight, selected magic and both damage labels. Focused text input keeps priority. Not runtime-tested. |
+| Minus | `OnKeyDash` cycles automatic skill selection only while autoattack is enabled. |
+| Q/W/E; V; F11 | Potion, mount feed and recall-item handlers are bound. F11 searches the native 9x7 Carry grid for volatile effect 11. Actual inventory/server results are unverified. |
+| C/I/S; P; M | Character, inventory, skills, party and minimap handlers are present. |
+| A/D | These toggle current C.C. modes, rather than the Helper's alternate minimap/party actions. Preserve them pending evidence and an explicit conflict decision. |
+| R; T; N; Tab | Run, autoattack, names and camera handlers are present; Toto focus can consume Tab first. |
+| Grave | No grave-character PK binding found; `OnKeyPK` currently accepts K/k. |
+| Plus | `OnKeyPlus` resizes chat. Its down-arrow scale correction is described in the [UI2 scrollbar record](port-748.md#ui2-vertical-scrollbar-2026-10-13). |
+| PageUp/PageDown | Corrected from native `FUN_00454763` and visibility getter `FUN_0040c0f0`: scroll the message list when its panel is visible, otherwise chat; scroll only a visible list with a scrollbar. Focused editable controls keep priority. Real-client execution pending. |
+| Up/Down while editing | Editable-text history events are connected to field chat history. |
+| F | Invokes the existing equipped-item consumable shortcut, not the Helper's guild-chat action. Do not overwrite that recorded native flow. |
+| H/Z/right bracket/X; Enter; quote | Help, skill-page switching, autorun, quest, chat and guild-display handlers are present. |
+| PrintScreen | The window handles `VK_SNAPSHOT` with `CaptureScreen`; no screenshot was captured in this batch. |
+| Ctrl: see loot | Not verified. Absence of Ctrl in item-pickup packets does not establish a failure of the separate label-visibility behavior. |
+
+Alternate keyboard mode needs a separate repair: `g_nKeyType == 1` bypasses
+most character bindings and uses `OnAccel` IDs 400xx/401xx, but the current
+`TMProject.rc` accelerator table contains only the two Alt About entries.
+Do not report that mode as operational merely because `OnAccel` contains cases.
+
+`UI/interface.txt` and the keyboard-page descriptions in `UI/interface1.txt`
+now state 1-0 and Shift+1-0. The latter explicitly excludes F1-F10 because
+the native keyboard-page artwork still contains those labels. That artwork
+and older Shift+F1-F10 prose in the legacy-encoded `UI/etc.txt` remain help
+content debt; they do not enable function-key selection. No binary asset was
+rewritten, and this is not a completed Helper-content audit.
+
+The command page also needs an end-to-end audit. The inspected server routes
+`=` to party, `-` to guild and `--` to global/channel chat; the Helper labels
+`--` as allies. The client/server recognize kingdom/king paths, but `/r`,
+`*`, `/Town`, guild tax/summoning/teleport and war/alliance-ending commands
+were not established end to end. Expulsion is table-driven in the client and
+has a server alias; exact resource-key agreement remains unverified. These
+findings do not authorize inventing server commands or changing guild policy.
+
+The native consumable ownership is separately recorded in
+[equipped-item matched shortcut](../../.agents/research/client748/flows/ui/equipped-item-matched-consumable-shortcut.md).
+Function-key selection and scrolling evidence is recorded in
+[field shortcuts and visible chat](../../.agents/research/client748/flows/ui/field-shortcut-selection-and-chat-scroll.md).
+The full input matrix needs actual execution with chat focused/unfocused,
+alive/dead state, both keyboard modes and each listed window before it can
+be marked `CLIENT_TESTED`.
+
 Whenever another unknown panel appears, capture a fresh `project.exe` startup
 log and register its root ID, captions and intended trigger here before adding
 it to the startup-hidden list.

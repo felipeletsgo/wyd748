@@ -1,16 +1,16 @@
-// Carta de Duelo N (Magic Chamber Normal)
+// Normal Magic Chamber: dedicated leveling monsters
 // Instance-only generators: the instance spawns each block at its start
 // point within StartRange. MinuteGenerate stays -1 (never in the open world).
 
-// Carta de Duelo N (Sala 1)
+// Magic Chamber (Room 1)
 // ********************************************
 #	[2451]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Meio_Orc__
-	Follower:	Meio_Orc__
+	Leader:		MCN_Orc
+	Follower:	MCN_Orc
 	RouteType:	2
 	Formation:	0
 	StartX:		801
@@ -30,15 +30,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 1)
+// Magic Chamber (Room 1)
 // ********************************************
 #	[2452]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Meio_Orc__
-	Follower:	Meio_Orc__
+	Leader:		MCN_Orc
+	Follower:	MCN_Orc
 	RouteType:	2
 	Formation:	0
 	StartX:		816
@@ -58,15 +58,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 1)
+// Magic Chamber (Room 1)
 // ********************************************
 #	[2453]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Meio_Orc__
-	Follower:	Meio_Orc__
+	Leader:		MCN_Orc
+	Follower:	MCN_Orc
 	RouteType:	2
 	Formation:	0
 	StartX:		808
@@ -86,15 +86,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 2)
+// Magic Chamber (Room 2)
 // ********************************************
 #	[2454]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Skull2
-	Follower:	Skull2
+	Leader:		MCN_Skull
+	Follower:	MCN_Skull
 	RouteType:	2
 	Formation:	0
 	StartX:		861
@@ -114,15 +114,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 2)
+// Magic Chamber (Room 2)
 // ********************************************
 #	[2455]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Skull2
-	Follower:	Skull2
+	Leader:		MCN_Skull
+	Follower:	MCN_Skull
 	RouteType:	2
 	Formation:	0
 	StartX:		872
@@ -142,15 +142,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 3)
+// Magic Chamber (Room 3)
 // ********************************************
 #	[2456]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Skull_Lancr2
-	Follower:	Skull_Lancr2
+	Leader:		MCN_Lancer
+	Follower:	MCN_Lancer
 	RouteType:	2
 	Formation:	0
 	StartX:		861
@@ -170,15 +170,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 3)
+// Magic Chamber (Room 3)
 // ********************************************
 #	[2457]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Skull_Lancr2
-	Follower:	Skull_Lancr2
+	Leader:		MCN_Lancer
+	Follower:	MCN_Lancer
 	RouteType:	2
 	Formation:	0
 	StartX:		870
@@ -198,15 +198,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 3)
+// Magic Chamber (Room 3)
 // ********************************************
 #	[2458]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Skull_Lancr2
-	Follower:	Skull_Lancr2
+	Leader:		MCN_Lancer
+	Follower:	MCN_Lancer
 	RouteType:	2
 	Formation:	0
 	StartX:		866
@@ -226,15 +226,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 4)
+// Magic Chamber (Room 4)
 // ********************************************
 #	[2459]
 	MinuteGenerate:	-1
 	MaxNumMob:	12
 	MinGroup:	11
 	MaxGroup:	11
-	Leader:		Minotauro_
-	Follower:	Minotauro_
+	Leader:		MCN_Minotaur
+	Follower:	MCN_Minotaur
 	RouteType:	2
 	Formation:	0
 	StartX:		806
@@ -254,15 +254,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Sala 4)
+// Magic Chamber (Room 4)
 // ********************************************
 #	[2460]
 	MinuteGenerate:	-1
 	MaxNumMob:	12
 	MinGroup:	11
 	MaxGroup:	11
-	Leader:		Minotauro_
-	Follower:	Minotauro_
+	Leader:		MCN_Minotaur
+	Follower:	MCN_Minotaur
 	RouteType:	2
 	Formation:	0
 	StartX:		806
@@ -282,15 +282,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo N (Boss)
+// Magic Chamber (Boss)
 // ********************************************
 #	[2462]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Troll_Caos__
-	Follower:	Troll_Caos__
+	Leader:		MCN_Troll
+	Follower:	MCN_Troll
 	RouteType:	2
 	Formation:	0
 	StartX:		806

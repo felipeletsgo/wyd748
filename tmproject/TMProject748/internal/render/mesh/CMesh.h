@@ -3,34 +3,32 @@
 class TMMesh;
 class TMSkinMesh;
 
-// Parte renderizável de uma skin mesh, incluindo material, paleta de ossos e
-// marcadores de equipamento. O layout público é preservado por compatibilidade.
+// Renderable skin part with material, bone palette and equipment markers.
+// Preserve the public layout for compatibility.
 class CMesh
 {
 public:
-	// pParentSkin é referência não proprietária e deve permanecer válida durante
-	// o uso desta peça.
+	// pParentSkin is borrowed and must outlive this part.
 	CMesh(TMSkinMesh* pParentSkin);
 	~CMesh();
 
-	// Renderiza a peça com o modo de brilho indicado e devolve status inteiro.
+	// Render with the requested brightness mode and return an integer status.
 	virtual int Render(int bBright);
 
-	// Carrega a mesh identificada por file. A string pertence ao chamador e é
-	// apenas consultada; LoadMesh não assume ownership do buffer.
+	// Load the named mesh without modifying or owning the caller's path buffer.
 	int LoadMesh(char* file);
-	// Prepara recursos de efeito após o carregamento da malha.
+	// Prepare effect resources after loading the mesh.
 	int InitEffect();
-	// Atualiza o material usando o nível de alpha informado.
+	// Update the material with the requested alpha.
 	void SetMaterial(char cAlpha);
 
 private:
 	int RenderMesh(char cAlpha);
 
 public:
-	// m_pMesh e m_pParentSkin referenciam objetos externos. m_pBoneMatrix e
-	// m_dwNames são buffers do carregamento cujo ownership deve ser mantido pela
-	// implementação de CMesh; consumidores não devem liberá-los diretamente.
+	// All resource pointers are borrowed. MeshManager owns m_pMesh, m_pBoneMatrix
+	// and m_dwNames; CFrame owns the matrices referenced by m_pBoneOffset.
+	// Consumers must detach before the corresponding owner releases resources.
 	TMMesh* m_pMesh;
 	DWORD m_dwID;
 	DWORD m_numPalette;

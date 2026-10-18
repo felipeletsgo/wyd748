@@ -17,6 +17,7 @@
 #include "TMUtil.h"
 #include "TMObjectContainer.h"
 #include "ItemEffect.h"
+#include "../../application/AttackVisualTiming.h"
 
 void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
 {
@@ -292,19 +293,9 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
                         m_pSkinMesh->m_pSwingEffect[1]->m_dwStartTime = g_pTimerManager->GetServerTime();
                 }
 
-                float fSpeed = 1.0f;
-                m_pSkinMesh->m_dwFPS = (unsigned int)(float)((float)m_pSkinMesh->m_dwFPS / 1.0f);
-                if (m_cFreeze == 1)
-                    m_pSkinMesh->m_dwFPS = (unsigned int)(float)((float)m_pSkinMesh->m_dwFPS * 1.15f);
-                if (m_nMotionCount > 1)
-                    m_pSkinMesh->m_dwFPS = (unsigned int)(float)((float)m_pSkinMesh->m_dwFPS / 1.2f);
-                else if (m_bDoubleAttack == 1)
-                {
-                    if (m_nWeaponTypeL == 101)
-                        m_pSkinMesh->m_dwFPS = (unsigned int)(float)((float)m_pSkinMesh->m_dwFPS / 2.0f);
-                    else
-                        m_pSkinMesh->m_dwFPS = (unsigned int)(float)((float)m_pSkinMesh->m_dwFPS / 1.7f);
-                }
+                m_pSkinMesh->m_dwFPS = attack_visual::AttackFrameStep(
+                    m_pSkinMesh->m_dwFPS, m_cFreeze == 1, m_nMotionCount,
+                    m_bDoubleAttack == 1, m_nWeaponTypeL);
             }
             else
             {

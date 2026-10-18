@@ -4,6 +4,7 @@
 #include "SControl.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
+#include "../RenderControlList.h"
 
 unsigned int SControl::m_dwStaticID{ 0 };
 int SControl::m_nGridCellSize{ 35 };
@@ -233,51 +234,18 @@ int PointInRect(int inPosX, int inPosY, float ifX, float ifY, float ifWidth, flo
 
 void RemoveRenderControlItem(stGeomList* pDrawList, GeomControl* pGeomControl, int nLayer)
 {
-	if (nLayer >= MAX_DRAW_CONTROL)
+	if (!pDrawList || !pGeomControl || nLayer < 0 || nLayer >= MAX_DRAW_CONTROL)
 		return;
-
-	GeomControl* pCurrent = pDrawList[nLayer].pHeadGeom;
-
-	if (pCurrent == nullptr)
-		return;
-
-	if (pCurrent == pGeomControl)
-	{
-		pDrawList[nLayer].pHeadGeom = pCurrent->m_pNextGeom;
-		return;
-	}
-
-	int nCount{ 0 };
-	while (pCurrent != nullptr && pCurrent->m_pNextGeom != nullptr)
-	{
-		if (pCurrent->m_pNextGeom == pGeomControl)
-		{
-			pCurrent->m_pNextGeom = pCurrent->m_pNextGeom->m_pNextGeom;
-			return;
-		}
-
-		pCurrent = pCurrent->m_pNextGeom;
-		if (++nCount > g_pDebugMaxCount)
-			g_pDebugMaxCount = nCount;
-
-		if (nCount > MAX_DRAW_CONTROL)
-			return;
-	}
+	// FrameMove may update nLayer before a previously queued node is removed.
+	render_control_list::RemoveAny(pDrawList, MAX_DRAW_CONTROL, pGeomControl);
 }
 
 int AddRenderControlItem(stGeomList* pDrawList, GeomControl* pGeomControl, int nLayer)
 {
-	if (nLayer >= MAX_DRAW_CONTROL)
+	if (!pDrawList || !pGeomControl || nLayer < 0 || nLayer >= MAX_DRAW_CONTROL)
 		return 0;
-
-	if (pGeomControl)
-		pGeomControl->nLayer = nLayer;
-
-	if (pDrawList[nLayer].pHeadGeom)
-		pDrawList[nLayer].pTailGeom->m_pNextGeom = pGeomControl;
-	else
-		pDrawList[nLayer].pHeadGeom = pGeomControl;
-
-	pDrawList[nLayer].pTailGeom = pGeomControl;
+	if (!render_control_list::AppendUnique(pDrawList, MAX_DRAW_CONTROL, nLayer, pGeomControl))
+		return 0;
+	pGeomControl->nLayer = nLayer;
 	return 1;
 }

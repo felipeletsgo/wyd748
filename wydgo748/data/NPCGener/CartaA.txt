@@ -1,16 +1,16 @@
-// Carta de Duelo A (Magic Chamber Arcane)
+// Arcane Magic Chamber: dedicated leveling monsters
 // Instance-only generators: the instance spawns each block at its start
 // point within StartRange. MinuteGenerate stays -1 (never in the open world).
 
-// Carta de Duelo A (Sala 1)
+// Magic Chamber (Room 1)
 // ********************************************
 #	[2476]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Dark_Elf_Ab2
-	Follower:	Dark_Elf_Ab2
+	Leader:		MCA_DarkElf
+	Follower:	MCA_DarkElf
 	RouteType:	2
 	Formation:	0
 	StartX:		801
@@ -30,15 +30,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 1)
+// Magic Chamber (Room 1)
 // ********************************************
 #	[2477]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Dark_Elf_Ab2
-	Follower:	Dark_Elf_Ab2
+	Leader:		MCA_DarkElf
+	Follower:	MCA_DarkElf
 	RouteType:	2
 	Formation:	0
 	StartX:		816
@@ -58,15 +58,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 1)
+// Magic Chamber (Room 1)
 // ********************************************
 #	[2478]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Dark_Elf_Ab2
-	Follower:	Dark_Elf_Ab2
+	Leader:		MCA_DarkElf
+	Follower:	MCA_DarkElf
 	RouteType:	2
 	Formation:	0
 	StartX:		808
@@ -86,15 +86,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 2)
+// Magic Chamber (Room 2)
 // ********************************************
 #	[2479]
 	MinuteGenerate:	-1
 	MaxNumMob:	10
 	MinGroup:	10
 	MaxGroup:	10
-	Leader:		Tauron_____
-	Follower:	Tauron_____
+	Leader:		MCA_Tauron
+	Follower:	MCA_Tauron
 	RouteType:	2
 	Formation:	0
 	StartX:		861
@@ -114,15 +114,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 2)
+// Magic Chamber (Room 2)
 // ********************************************
 #	[2480]
 	MinuteGenerate:	-1
 	MaxNumMob:	10
 	MinGroup:	10
 	MaxGroup:	10
-	Leader:		Tauron_____
-	Follower:	Tauron_____
+	Leader:		MCA_Tauron
+	Follower:	MCA_Tauron
 	RouteType:	2
 	Formation:	0
 	StartX:		872
@@ -142,15 +142,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 2)
+// Magic Chamber (Room 2)
 // ********************************************
 #	[2481]
 	MinuteGenerate:	-1
 	MaxNumMob:	10
 	MinGroup:	10
 	MaxGroup:	10
-	Leader:		Tauron_____
-	Follower:	Tauron_____
+	Leader:		MCA_Tauron
+	Follower:	MCA_Tauron
 	RouteType:	2
 	Formation:	0
 	StartX:		866
@@ -170,15 +170,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 3)
+// Magic Chamber (Room 3)
 // ********************************************
 #	[2482]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Morlock_
-	Follower:	Morlock_
+	Leader:		MCA_Morlock
+	Follower:	MCA_Morlock
 	RouteType:	2
 	Formation:	0
 	StartX:		861
@@ -198,15 +198,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 3)
+// Magic Chamber (Room 3)
 // ********************************************
 #	[2483]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Morlock_
-	Follower:	Morlock_
+	Leader:		MCA_Morlock
+	Follower:	MCA_Morlock
 	RouteType:	2
 	Formation:	0
 	StartX:		870
@@ -226,15 +226,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 3)
+// Magic Chamber (Room 3)
 // ********************************************
 #	[2484]
 	MinuteGenerate:	-1
 	MaxNumMob:	25
 	MinGroup:	24
 	MaxGroup:	24
-	Leader:		Morlock_
-	Follower:	Morlock_
+	Leader:		MCA_Morlock
+	Follower:	MCA_Morlock
 	RouteType:	2
 	Formation:	0
 	StartX:		866
@@ -254,15 +254,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 4)
+// Magic Chamber (Room 4)
 // ********************************************
 #	[2485]
 	MinuteGenerate:	-1
 	MaxNumMob:	12
 	MinGroup:	11
 	MaxGroup:	11
-	Leader:		Hell_Spider2
-	Follower:	Hell_Spider2
+	Leader:		MCA_Spider
+	Follower:	MCA_Spider
 	RouteType:	2
 	Formation:	0
 	StartX:		806
@@ -282,15 +282,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Sala 4)
+// Magic Chamber (Room 4)
 // ********************************************
 #	[2486]
 	MinuteGenerate:	-1
 	MaxNumMob:	12
 	MinGroup:	11
 	MaxGroup:	11
-	Leader:		Hell_Spider2
-	Follower:	Hell_Spider2
+	Leader:		MCA_Spider
+	Follower:	MCA_Spider
 	RouteType:	2
 	Formation:	0
 	StartX:		806
@@ -310,15 +310,15 @@
 	DestRange:	3
 	DestWait:	10
 
-// Carta de Duelo A (Boss)
+// Magic Chamber (Boss)
 // ********************************************
 #	[2488]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
 	MinGroup:	0
 	MaxGroup:	0
-	Leader:		Lugefer_
-	Follower:	Lugefer_
+	Leader:		MCA_Lugefer
+	Follower:	MCA_Lugefer
 	RouteType:	2
 	Formation:	0
 	StartX:		806

@@ -139,6 +139,38 @@ namespace received_packet
         }
     }
 
+    // Unmigrated legacy consumers without a proven exact 7.48 size. The value
+    // is the end of the last field each handler reads or rewrites in place, so a
+    // shorter frame can no longer make it touch the next frame or the end of the
+    // receive block. Zero means the consumer reads only the header or is
+    // unlisted. Longer frames remain accepted: these are minimums, not contracts.
+    inline std::size_t ConsumerMinimumSize(unsigned int opcode)
+    {
+        constexpr std::size_t header = sizeof(MSG_STANDARD);
+        constexpr std::size_t oneParameter = header + sizeof(int);
+        constexpr std::size_t twoParameters = header + 2 * sizeof(int);
+        switch (opcode)
+        {
+        case 0x7B1: return header + 2 * sizeof(short) + 4 * 128;     // long message panel: Parm1, Parm2, Line[4][128]
+        case 0x3B2: return header + sizeof(int) + 16;                // summon request: Result, Name[16]
+        case 0x1D0: return kShopListPacketSize;                      // alternate shop list uses MSG_ShopList
+        case 0x292: return header + sizeof(int) + sizeof(short);     // HP mode: Hp, Mode
+        case 0x3A2: return header + 6 * sizeof(short);               // environment effect rectangle and effect
+        case 0x2132: return header + 5 * sizeof(int);                // play information bonuses and cash
+        case 0x457: return header + 5 * 16 + 5 * sizeof(int);        // tower war names and points
+        case 0x755: return header + 3 * sizeof(int);                 // water scroll macro: Parm, PosX, PosY
+        case 0x5000: return header + 128 + sizeof(int);              // experience panel: Msg[128], Color32
+        case 0x18A: return header + sizeof(int) + sizeof(short);     // HP damage: Hp, Dam
+        case 0x1D6: return header + sizeof(int) + 12;                // guild name: Parm, GuildName[12]
+        case 0x3A3: case 0x3AC: case 0x3A4: case 0x3BB: case 0x3CF:
+        case 0x3AF: case 0x1CF: case 0x193: case 0x3AD: case 0xADA:
+            return oneParameter;
+        case 0x1C2: case 0x3D0: case 0x3B4:
+            return twoParameters;
+        default: return 0;
+        }
+    }
+
     inline bool CanDispatch(const PacketView& packet)
     {
         if (!packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
@@ -173,6 +205,13 @@ namespace received_packet
             // bypassing the guard: the legacy scene uses the buffer's Type.
             return packet.opcode == header.Type &&
                 header.Size == expected && packet.size == expected;
+        }
+
+        const auto minimum = ConsumerMinimumSize(header.Type);
+        if (minimum != 0 || ConsumerMinimumSize(packet.opcode) != 0)
+        {
+            return packet.opcode == header.Type &&
+                header.Size == packet.size && packet.size >= minimum;
         }
         return true;
     }

@@ -1,121 +1,117 @@
 ---
 id: instance-runtime-counter-controls
-title: Contadores runtime de tempo e objetivos de instancia
+title: Runtime instance time and objective counters
 subsystem: ui
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-08
+updated: 2026-10-16
 ---
 
-# Contadores runtime de tempo e objetivos de instancia
+# Runtime instance time and objective counters
 
-## Pergunta
+## Question
 
-Como o caminho compatível 7.48 deve materializar os textos atualizados pelos
-packets de tempo e objetivos enviados pelo WYD-Go?
+How should the 7.48-compatible path construct and update the runtime text
+controls driven by WYD-Go time and objective packets?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- `UTILIZADA`: binario nativo do hash acima, projeto Ghidra
-  `WYD748Native_20260821.gpr` e decompilacao de `FUN_00492E7D`,
-  `FUN_00489192` e `FUN_00489260`.
-- `UTILIZADA`: source atual `InitializeScene`, `InitializeCompatFieldScene`,
-  `FrameMove`, handlers de contagem e ownership do `SControlContainer`.
-- `UTILIZADA`: WYD-Go, que emite `OpInstanceTime=0x3A1` e
-  `OpInstanceMobs=0x3B0` em Big Cube, Uxmal e item instances (incluindo
-  Cube, Big Cube, Nightmare, Hell Gate e salas Water).
-- `NAO APLICAVEL`: os textos sao objetos runtime e nao exigem novo asset.
-- `NAO APLICAVEL`: guia KR nao define os controles internos. Sources 7.54,
-  fontes legadas externas nao foram consultadas.
+- Used: the native binary identified above, Ghidra project
+  `WYD748Native_20260821.gpr`, and decompiled `FUN_00492E7D`,
+  `FUN_00489192` and `FUN_00489260`.
+- Used: current `InitializeScene`, `InitializeCompatFieldScene`, `FrameMove`,
+  counter handlers and `SControlContainer` ownership.
+- Used: WYD-Go emitters of `OpInstanceTime=0x3A1` and `OpInstanceMobs=0x3B0`
+  in Big Cube, Uxmal and item instances, including Nightmare and Water rooms.
+- No additional texture or serialized control resource is required.
+- Secondary server sources and official gameplay guides do not establish
+  native client control construction or geometry.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
 ### Callers
 
-`FUN_00492E7D @ 0x00492E7D` encaminha `0x3A1` para
-`FUN_00489192 @ 0x00489192` e `0x3B0` para
+`FUN_00492E7D @ 0x00492E7D` dispatches `0x3A1` to
+`FUN_00489192 @ 0x00489192` and `0x3B0` to
 `FUN_00489260 @ 0x00489260`.
 
 ### Callees
 
-`FUN_00489192` guarda o valor recebido, captura o tempo atual, formata o texto
-e o torna visivel. `FUN_00489260` formata a quantidade restante, captura o
-tempo atual e mostra o segundo texto. Ambos chamam `FUN_0058F078` para formatar
-e depois metodos virtuais dos controles. A criacao nativa exata desses objetos
-e seu teardown ainda nao foram localizados; por isso a ficha permanece
-`LOCATED`.
+`FUN_00489192` stores the received value, records the current time, formats the
+timer and makes its text visible. `FUN_00489260` formats the remaining count,
+records the current time and shows the second text. Both call `FUN_0058F078`
+and virtual control methods. The exact native construction and teardown have
+not been located, so this record remains `LOCATED`.
 
-## Estado e lifecycle
+The existing decompilation at
+`tmproject/build/native-research/decompiled/FUN_00489260.c` independently proves
+the counter format: `s__d_Left_005b88b0` is `%d Left`, with the packet value at
+`+0xC`. The handler records time at `+0x27910` and updates the control at
+`+0x278dc` through virtual offsets `+0x80` (text) and `+0x60` (visible, value
+one), including a count of zero. This narrow format correction is
+`PARIDADE_NATIVA`; it does not promote the entire lifecycle to native parity.
 
-No caminho completo da source, tres `SText` sao alocados em runtime e entregues
-ao `SControlContainer`: tempo, quantidade restante e tempo de quest. O caminho
-compatível retornava antes dessas alocacoes, deixando os membros nulos. Um
-`0x3A1` ou `0x3B0` emitido pelo WYD-Go causava acesso nulo; `FrameMove` tambem
-podia acessar os membros sem packet quando o estado de dungeon mudava.
+## State and ownership
 
-O helper compartilhado agora cria os mesmos objetos para ambos os caminhos,
-mantem estado inicial, fontes, cores e coordenadas e transfere ownership ao
-container. Falha parcial deixa cada ponteiro nulo; handlers, tick e quest
-ignoram apenas o controle ausente e preservam o restante do estado.
+The full source initializer allocates three runtime `SText` objects and
+transfers ownership to `SControlContainer`: time, remaining count and quest
+time. The compatible initializer used to return before allocation, leaving
+null members. Instance packets and dungeon transitions in `FrameMove` could
+then dereference them.
 
-## Correção do fluxo multi-instância
+`InitializeRuntimeCounterTexts` now constructs these controls for both
+initializers, preserving initial state, fonts, colors and coordinates. Each
+consumer tolerates individual allocation failure without discarding unrelated
+state. Accepted controls remain owned by the container.
 
-O contador e o cronômetro agora são dirigidos pelo contrato de packet, não por
-coordenadas hardcoded do terreno. O `0x3A1` inicia o cronômetro para qualquer
-instância e `Parm == 0` o oculta; o `0x3B0` mantém `Monsters N` visível até que
-o servidor envie zero. O mesmo lifecycle é aplicado ao contador `0x3BB` de
-objetivos com formato `current / max`. Isso cobre transições, quizzes,
-respawn-until-timeout e salas alternativas que compartilham os emissores do
-WYD-Go, sem depender de `RenderDevice::m_bDungeon` ou da lista histórica de
-offsets.
+## Packet-driven lifecycle
 
-## Wire, ABI e recursos
+The timer and counter follow server packets, not hardcoded map coordinates.
+`0x3A1` starts the timer; zero hides it. `0x3B0` displays `%d Left`. A zero
+count remains visible while the timer is active: zero protected Nightmare
+NPCs is meaningful state, not encounter completion. The server clears the
+timer before sending zero count on departure, hiding both controls. The
+`0x3BB` objective counter retains its `current / max` format.
 
-Esta mudanca nao altera wire. Os emissores Go continuam usando
-`MSG_STANDARDPARM` para `0x3A1` e `0x3B0`. Os objetos sao runtime e usam
-`ControlID=-2`; nenhum ID serializado ou novo recurso foi criado.
+This compatible lifecycle supports transitions, quizzes, continuous respawn
+and alternate rooms without depending on `RenderDevice::m_bDungeon` or its
+historical offset list. Its complete native equivalent is not yet proven.
 
-## Mapeamento atual
+## Wire, ABI and resources
 
-`InitializeRuntimeCounterTexts` e o unico construtor dos tres textos na source.
-`InitializeScene` e `InitializeCompatFieldScene` chamam o mesmo helper.
-`OnPacketStartTime`, `OnPacketRemainCount`, `OnPacketRemainNPCCount`, os dois
-handlers Quest12, `SetQuestStatus`, `UpdateQuestTime` e `FrameMove` toleram
-falha individual de alocacao. O container continua owner dos controles aceitos.
+The wire format is unchanged. Go emitters retain the 16-byte
+`MSG_STANDARDPARM`, matching type/opcode and the unsigned value at `+12`.
+Runtime controls use `ControlID=-2`; no serialized ID or new asset was added.
 
-## Matriz de delta
+## Current mapping
 
-| Claim | Nativo 7.48 | Source antes | Source atual | Decisao |
-| --- | --- | --- | --- | --- |
-| handlers `3A1/3B0` | atualizam textos | implementados | preservados | manter |
-| criacao no compat | raiz exata pendente | pulada pelo retorno antecipado | helper compartilhado | `MODERNIZACAO_COMPATIVEL` |
-| falha parcial | pendente | dereference nulo | consumidores tolerantes | proteger |
-| assets/wire | sem novo recurso | existentes | inalterados | manter |
+`InitializeScene` and `InitializeCompatFieldScene` use the shared constructor.
+`OnPacketStartTime`, `OnPacketRemainCount`, `OnPacketRemainNPCCount`, both
+Quest12 handlers, `SetQuestStatus`, `UpdateQuestTime` and `FrameMove` tolerate
+individual missing controls.
 
-## Decisões
+## Decisions and gaps
 
-- Materializar os controles runtime necessários no caminho compatível.
-- Compartilhar uma unica implementacao com o inicializador completo.
-- Preservar os packets e todos os efeitos quando os controles existem.
-- Nao atribuir a geometria atual ao nativo sem localizar seu construtor.
-- Tratar `0x3A1`, `0x3B0` e `0x3BB` como sinais de estado do servidor; a
-  coordenada do mapa não pode desligar uma UI já autorizada pelo packet.
+- Preserve the existing packet boundary and container ownership.
+- Use the proven native remaining-count label, including zero during a timer.
+- Do not infer native geometry from the current source initializer.
+- Locate the exact native allocation and teardown before claiming that parity.
+- Validate Big Cube, Uxmal and item instances in the built client at multiple
+  resolutions, including expiry, scene changes, departure and relogin.
 
-## Lacunas
+## Validation
 
-- Localizar no Ghidra a alocacao e o teardown exatos dos dois textos nativos.
-- Testar Big Cube, Uxmal e item instance no `project.exe` em varias resolucoes.
-- Confirmar esconder, expirar, trocar de regiao e relogar sem texto residual.
+Historical baseline: the Release build passed `Build-Client.ps1` with 26,968
+checks and static assertions; `go test ./... -count=1` and `git diff --check`
+passed. Transport tests covered truncation, oversize/null input, mismatched
+types, single delivery and byte preservation. Historical candidate SHA-256:
+`840D3E2B124B732640F9556F023CFC16920F8F86D7EDA6ACD5EE98A697BA17E2`.
 
-## Validação
-
-- Pesquisa: dispatch e efeitos dos dois handlers confirmados; criador nativo
-  permanece pendente, logo nao ha promocao para `TRACED`.
-- Build Release passou pelo `Build-Client.ps1` com 26968 checks e asserts
-  estaticos. O gate de transporte agora exige 16 bytes, Type/opcode
-  correspondentes e valor em `+12` para `0x3A1`/`0x3B0`; os testes cobrem
-  truncamento, excesso, nulo, divergencias, entrega unica e preservacao de
-  bytes. `go test ./... -count=1` e `git diff --check` passaram. Candidato:
-  `840D3E2B124B732640F9556F023CFC16920F8F86D7EDA6ACD5EE98A697BA17E2`.
-- Estado `STATICALLY VERIFIED`; fluxo real ainda nao executado, portanto nao e
-  `CLIENT_TESTED`.
+2026-10-16 follow-up: `Build-Client.ps1 -NoDeploy` passed with 1,229,517
+architecture checks, 231 socket receive checks, 83 crash-capture checks and
+56 launcher checks. Candidate SHA-256:
+`E96B8514B8B5CEC3A6C7D832DE8E0FE3AA11F4A390816A74C96A34285CCB5A36`.
+The focused Nightmare suite and complete Go game package passed, including
+survivor-count emissions and departure clearing. The installed client was not
+replaced or executed. These are static/build and server-test results, not
+`CLIENT_TESTED` evidence.

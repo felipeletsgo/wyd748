@@ -84,7 +84,8 @@ bool WYD748_IsCenteredSingleCellGrid(const TMEGRIDTYPE gridType)
 {
 	// FUN_0040fc3e treats trade/mix result controls as one visual receptacle,
 	// even though their packet position is still a single logical cell.
-	return gridType == TMEGRIDTYPE::GRID_TRADENONE
+	return grid_item_presentation::IsNativeMixReceptacle(static_cast<int>(gridType))
+		|| gridType == TMEGRIDTYPE::GRID_TRADENONE
 		|| gridType == TMEGRIDTYPE::GRID_TRADEOP
 		|| gridType == TMEGRIDTYPE::GRID_TRADEMY
 		|| gridType == TMEGRIDTYPE::GRID_TRADEMY2

@@ -411,31 +411,11 @@ ExtractedFlow NewApp::OnNetworkMessage(DWORD& wParam, int& lParam)
 	if (m_pSocketManager == nullptr)
 		return ExtractedFlow::Break;
 
-	const auto result = m_pSocketManager->HandleNetworkEvent(wParam, lParam);
-	if (result == CPSock::EventResult::Disconnected)
+	m_pSocketManager->DispatchNetworkEvent(wParam, lParam,
+	[this](const PacketView& packet)
 	{
-		m_pObjectManager->OnPacketEvent(0, nullptr);
-		return ExtractedFlow::Break;
-	}
-	if (result != CPSock::EventResult::ReadReady)
-		return ExtractedFlow::Break;
-
-	int ErrorCode = 0;
-	int ErrorType = 0;
-	while (1)
-	{
-		PacketView packet = m_pSocketManager->ReadPacketView(&ErrorCode, &ErrorType);
-
-		if (ErrorCode != 0)
-		{
-			// A malformed stream cannot be retried at the same receive cursor.
-			// Use the normal disconnect transition before any scene dispatch.
-			m_pSocketManager->CloseSocket();
-			m_pObjectManager->OnPacketEvent(0, nullptr);
-			break;
-		}
 		if (!packet_dispatch::CanDispatch(packet, sizeof(MSG_STANDARD)))
-			break;
+			return false;
 
 		// The clock and dump only read the envelope. ObjectManager handles
 		// mutable callback adaptation after these historical effects.
@@ -468,7 +448,8 @@ ExtractedFlow NewApp::OnNetworkMessage(DWORD& wParam, int& lParam)
 			g_pLastFixTime = dwServerTime;
 		}
 		m_pObjectManager->OnPacketView(packet);
-	}
+		return true;
+	}, [this] { m_pObjectManager->OnPacketEvent(0, nullptr); });
 	return ExtractedFlow::Next;
 }
 

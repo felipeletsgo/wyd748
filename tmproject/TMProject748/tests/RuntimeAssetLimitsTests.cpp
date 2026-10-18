@@ -1,5 +1,6 @@
 #include "../internal/render/resources/RuntimeAssetLimits.h"
 #include "../internal/application/AssetLoadValidation.h"
+#include "../internal/application/SkinFrameValidation.h"
 #include "../internal/application/WrappedTexture.h"
 #include "../internal/render/resources/ModelTextureDirectory.h"
 #include "../internal/render/mesh/CostumeTable.generated.h"
@@ -215,6 +216,94 @@ int RunRuntimeAssetLimitsTests(int& checks)
             ++entries;
         }
         check(entries > 0 && input.eof(), "the complete shipped sound table was checked");
+    }
+    const auto animationSounds = FindRuntimeFile("AniSound4.txt");
+    check(!animationSounds.empty(), "active animation sound table is available");
+    if (!animationSounds.empty()) {
+        FILE* file = nullptr;
+        fopen_s(&file, animationSounds.string().c_str(), "rt");
+        check(file != nullptr, "animation sound table opens");
+        if (file) {
+            char line[512]{};
+            auto record = [&]() {
+                asset_load::LineResult result;
+                do { result = asset_load::ReadLine(file, line); } while (result == asset_load::LineResult::Blank);
+                return result;
+            };
+            bool seen[60]{}, valid = true;
+            int sections = 0;
+            for (;;) {
+                const auto result = record();
+                if (result == asset_load::LineResult::End) break;
+                std::string label;
+                int header[1]{};
+                valid = result == asset_load::LineResult::Record &&
+                    asset_load::ParseNamedIntegers(line, label, header, 128) &&
+                    header[0] >= 0 && header[0] < 60 && !seen[header[0]];
+                check(valid, "animation sound headers fit the table and are unique");
+                if (!valid) break;
+                seen[header[0]] = true;
+                for (int motion = 0; motion < 56 && valid; ++motion) {
+                    int extended[9]{}, ordinary[3]{};
+                    valid = record() == asset_load::LineResult::Record &&
+                        (header[0] < 2 ? asset_load::ParseNamedIntegers(line, label, extended, 128) :
+                            asset_load::ParseNamedIntegers(line, label, ordinary, 128));
+                    check(valid, "active animation sound motion fits its production parser");
+                }
+                if (!valid) break;
+                ++sections;
+            }
+            check(valid && sections > 0 && sections <= 60 && std::feof(file),
+                "complete shipped animation sound table accepted, including sparse section IDs");
+            std::fclose(file);
+        }
+    }
+    const auto minimap = FindRuntimeFile("minimap.dat");
+    check(!minimap.empty(), "active minimap table is available");
+    if (!minimap.empty()) {
+        std::ifstream input(minimap);
+        std::string line, name;
+        int rows = 0;
+        while (std::getline(input, line)) {
+            if (line.find_first_not_of(" \t\r") == std::string::npos) continue;
+            int values[5]{};
+            check(asset_load::ParseMinimap(line.c_str(), values, name),
+                "active minimap row fits its production parser");
+            ++rows;
+        }
+        check(rows > 0 && rows <= 256 && input.eof(), "complete active minimap fits its capacity");
+    }
+    const auto boneList = FindRuntimeFile("Mesh/BoneAni4.txt");
+    check(!boneList.empty(), "active bone hierarchy table is available");
+    if (!boneList.empty()) {
+        const auto runtime = boneList.parent_path().parent_path();
+        std::ifstream input(boneList);
+        std::string line;
+        int entries = 0;
+        while (std::getline(input, line)) {
+            if (line.find_first_not_of(" \t\r") == std::string::npos) continue;
+            int index = -1, animations = 0, parts = 0;
+            std::string prefix;
+            const bool parsed = asset_load::ParseList(line.c_str(), index, prefix, animations, parts,
+                false, true, 100, 116);
+            check(parsed, "active bone entry has valid bounded fields");
+            if (!parsed) continue;
+            auto relative = prefix + ".bon";
+            for (char& character : relative) if (character == '\\') character = '/';
+            const auto path = runtime / relative;
+            const auto size = FileSize(path);
+            check(size > 0 && size <= 80 * 8 && size % 8 == 0, "active hierarchy fits frame capacity");
+            if (!size || size > 80 * 8 || size % 8) continue;
+            std::vector<std::uint32_t> pairs(static_cast<std::size_t>(size / 4));
+            std::ifstream bone(path, std::ios::binary);
+            const bool read = static_cast<bool>(bone.read(reinterpret_cast<char*>(pairs.data()),
+                static_cast<std::streamsize>(size)));
+            check(read && skin_frames::Valid(pairs.data(), static_cast<std::size_t>(size),
+                static_cast<std::size_t>(size / 8), static_cast<std::size_t>(parts), prefix.c_str(), 116),
+                relative.c_str());
+            ++entries;
+        }
+        check(entries > 0 && input.eof(), "all active hierarchies checked, including duplicate-ID wings");
     }
     return failures;
 }

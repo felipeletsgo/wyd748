@@ -595,6 +595,105 @@ int main()
         }
         if (peer != INVALID_SOCKET) closesocket(peer);
     }
+    if (ready) {
+        for (int scenario = 0; scenario < 5; ++scenario) {
+            SOCKET client = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            const bool connected = client != INVALID_SOCKET &&
+                connect(client, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0;
+            SOCKET peer = connected ? acceptPeer() : INVALID_SOCKET;
+            check(connected && peer != INVALID_SOCKET, "nested dispatch fixture connects");
+            if (!connected || peer == INVALID_SOCKET) {
+                if (client != INVALID_SOCKET) closesocket(client);
+                continue;
+            }
+            CPSock socket;
+            socket.Sock = static_cast<unsigned int>(client);
+            socket.Init = 1;
+            u_long nonblocking = 1;
+            check(ioctlsocket(client, FIONBIO, &nonblocking) == 0,
+                "nested dispatch fixture is nonblocking");
+            std::memcpy(socket.pRecvBuffer, encrypted.data(), encrypted.size());
+            socket.nRecvPosition = static_cast<int>(encrypted.size());
+            int packets = 0, disconnects = 0, depth = 0, maxDepth = 0;
+            SOCKET replacementPeer = INVALID_SOCKET;
+            std::function<bool(const PacketView&)> onPacket;
+            const auto onDisconnect = [&] {
+                check(depth == 0, "disconnect transition occurs outside the packet callback");
+                ++disconnects;
+            };
+            onPacket = [&](const PacketView& packet) {
+                ++depth;
+                if (depth > maxDepth) maxDepth = depth;
+                ++packets;
+                check(packet.size == plain.size() &&
+                    std::memcmp(packet.data, plain.data(), plain.size()) == 0,
+                    "nested dispatch receives the complete decoded frame");
+                if (packets == 1) {
+                    if (scenario <= 1) {
+                        // A modal pump processes FD_READ while this packet is borrowed.
+                        check(send(peer, reinterpret_cast<const char*>(encrypted.data()),
+                            static_cast<int>(encrypted.size()), 0) == encrypted.size(),
+                            "second frame reaches the real TCP receive queue");
+                        socket.DispatchNetworkEvent(client, WSAMAKESELECTREPLY(FD_READ, 0),
+                            onPacket, onDisconnect);
+                    }
+                    if (scenario == 1 || scenario == 2 || scenario == 3) {
+                        const auto notice = scenario == 3
+                            ? WSAMAKESELECTREPLY(FD_READ, WSAECONNRESET)
+                            : WSAMAKESELECTREPLY(FD_CLOSE, 0);
+                        socket.DispatchNetworkEvent(client, notice, onPacket, onDisconnect);
+                        check(disconnects == 0 && socket.Sock == client,
+                            "nested close and read errors do not mutate the borrowed stream");
+                    }
+                    check(packets == 1 &&
+                        std::memcmp(packet.data, plain.data(), plain.size()) == 0,
+                        "nested events cannot dispatch recursively or overwrite the current packet");
+                    if (scenario == 4) {
+                        // A callback can replace the stream; do not read the replacement
+                        // as the remainder of the original notification.
+                        socket.DispatchNetworkEvent(client, WSAMAKESELECTREPLY(FD_CLOSE, 0),
+                            onPacket, onDisconnect);
+                        socket.CloseSocket();
+                        SOCKET replacement = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+                        const bool replacementOk = replacement != INVALID_SOCKET &&
+                            connect(replacement, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0;
+                        replacementPeer = replacementOk ? acceptPeer() : INVALID_SOCKET;
+                        check(replacementOk && replacementPeer != INVALID_SOCKET,
+                            "callback creates a replacement stream");
+                        if (replacementOk && replacementPeer != INVALID_SOCKET) {
+                            socket.Sock = static_cast<unsigned int>(replacement);
+                            check(ioctlsocket(replacement, FIONBIO, &nonblocking) == 0,
+                                "replacement stream is nonblocking");
+                            socket.Init = 1;
+                            std::memcpy(socket.pRecvBuffer, encrypted.data(), encrypted.size());
+                            socket.nRecvPosition = static_cast<int>(encrypted.size());
+                            socket.DispatchNetworkEvent(replacement, WSAMAKESELECTREPLY(FD_READ, 0),
+                                onPacket, onDisconnect);
+                        } else if (replacement != INVALID_SOCKET) closesocket(replacement);
+                    }
+                }
+                --depth;
+                return true;
+            };
+            socket.DispatchNetworkEvent(client, WSAMAKESELECTREPLY(FD_READ, 0), onPacket, onDisconnect);
+            check(maxDepth == 1, "packet callback depth stays one across nested message pumps");
+            check(packets == (scenario <= 1 || scenario == 4 ? 2 : 1),
+                "queued packets are delivered once in stream order");
+            check(disconnects == (scenario >= 1 && scenario <= 3 ? 1 : 0),
+                "deferred close and errors disconnect once and old-generation close is discarded");
+            if (scenario == 0) {
+                // Invalid framing uses the same disconnection callback, not scene dispatch.
+                socket.Init = 1;
+                socket.nRecvPosition = 28;
+                std::memset(socket.pRecvBuffer, 0, 28);
+                socket.DispatchNetworkEvent(client, WSAMAKESELECTREPLY(FD_READ, 0), onPacket, onDisconnect);
+                check(packets == 2 && disconnects == 1 && socket.Sock == 0,
+                    "malformed frame closes once without delivering another packet");
+            }
+            if (replacementPeer != INVALID_SOCKET) closesocket(replacementPeer);
+            closesocket(peer);
+        }
+    }
     if (sender != INVALID_SOCKET) closesocket(sender);
     if (receiver != INVALID_SOCKET) closesocket(receiver);
     if (listener != INVALID_SOCKET) closesocket(listener);

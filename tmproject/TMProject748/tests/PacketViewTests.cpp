@@ -442,6 +442,19 @@ int main()
 
     check(!field_interaction::ShouldCloseOnDelayAck(0),
         "recall/logout/server-select/unsolicited ack does not close client");
+    using AttackAction = field_interaction::PhysicalAttackAction;
+    check(field_interaction::PhysicalAttackTick(true, true, false, false, false, 1201, 1000) == AttackAction::Retry,
+        "a retained physical enemy retries without requiring Combat Control");
+    check(field_interaction::PhysicalAttackTick(true, true, false, false, false, 1200, 1000) == AttackAction::Wait,
+        "physical retry preserves the 200 ms scheduling interval");
+    check(field_interaction::PhysicalAttackTick(true, true, false, false, true, 2000, 1000) == AttackAction::Wait,
+        "movement or another pending action suspends the physical retry");
+    for (int reason = 0; reason < 4; ++reason)
+        check(field_interaction::PhysicalAttackTick(reason != 0, reason != 1,
+            reason == 2, reason == 3, false, 2000, 1000) == AttackAction::Cancel,
+            "death, target removal, transition and Combat Control cancel the manual target");
+    check(field_interaction::PhysicalAttackTick(true, true, false, false, false, 0x10u, 0xFFFFFF00u) == AttackAction::Retry,
+        "physical retry survives an unsigned clock wrap");
     check(field_interaction::ShouldCloseOnDelayAck(1) &&
         field_interaction::ShouldCloseOnDelayAck(UINT_MAX),
         "pending local quit accepts delay ack");

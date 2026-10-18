@@ -116,6 +116,9 @@ func attackSpeedPercent(ch *model.Char) int {
 	if ch == nil {
 		return 100
 	}
+	if ch.RuntimeScore != nil && ch.RuntimeAttackSpeedPercent > 0 {
+		return ch.RuntimeAttackSpeedPercent
+	}
 	// The high nibble stores ten-point bonuses above the implicit 100% base.
 	// The character panel also includes the unquantized remainder of DEX/items.
 	return 100 + int(effectiveScore(ch).AttackRun>>4&0x0F)*10
@@ -126,9 +129,15 @@ func packedAttackSpeed(bonusPercent int) uint32 {
 }
 
 func doubleHitChance(ch *model.Char) int {
-	// Native BASE_GetDoubleCritical uses (highNibble - 5) * 100 per mille.
-	// Thus 110% has no double hit; 160% starts the first 10% chance band.
-	return clampInt(attackSpeedPercent(ch)-150, 0, 100)
+	if ch == nil {
+		return 0
+	}
+	// Project rule: 201% and above guarantee a double; exactly 200% does not.
+	if attackSpeedPercent(ch) > 200 {
+		return 100
+	}
+	// Preserve the existing ten-point probability bands below that threshold.
+	return clampInt(int(effectiveScore(ch).AttackRun>>4&0x0F)*10-50, 0, 100)
 }
 
 type physicalHitResult struct {

@@ -40,6 +40,8 @@ func cloneCriticalInstanceMembership(w *World) *World {
 		clone.MemberIDs = slices.Clone(inst.MemberIDs)
 		clone.MemberCharacterUIDs = slices.Clone(inst.MemberCharacterUIDs)
 		clone.MobIDs, clone.NPCIDs = maps.Clone(inst.MobIDs), maps.Clone(inst.NPCIDs)
+		clone.NightmareProtectors = maps.Clone(inst.NightmareProtectors)
+		clone.NightmareSpawns = maps.Clone(inst.NightmareSpawns)
 		clone.MobQuadrants, clone.HellGateLichIDs = maps.Clone(inst.MobQuadrants), maps.Clone(inst.HellGateLichIDs)
 		copy.itemInstances[id] = &clone
 	}

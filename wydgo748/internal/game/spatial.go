@@ -175,7 +175,7 @@ func (w *World) recomputeMobActive(m *Mob) {
 	if w.criticalGuildMobReserved(m) {
 		return
 	}
-	if m == nil || m.Dead || m.Def == nil || !m.Def.IsMonster() || m.SummonerID != 0 {
+	if m == nil || m.Dead || m.Def == nil || (!m.Def.IsMonster() && !m.Def.IsCityGuard()) || m.SummonerID != 0 {
 		if m != nil {
 			m.Awake = false
 			m.TargetID = 0
@@ -183,12 +183,14 @@ func (w *World) recomputeMobActive(m *Mob) {
 		}
 		return
 	}
-	awake := false
-	if m.InstanceID != "" {
+	// City defense remains active even when no player is nearby.
+	awake := m.Def.IsCityGuard()
+	if !awake && m.InstanceID != "" {
 		// Instance content never acquires outside players. Check membership
 		// and the room area, not just spatial proximity.
-		awake = w.instanceMobHasNearbyMember(m, mobActivationRange)
-	} else {
+		awake = w.instanceMobHasNearbyMember(m, mobActivationRange) ||
+			w.nightmareProtectorTarget(m, mobActivationRange) != nil || w.hellGateMarchTarget(m) != nil
+	} else if !awake {
 		awake = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
 	}
 	m.Awake = awake

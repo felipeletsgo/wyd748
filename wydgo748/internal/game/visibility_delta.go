@@ -199,10 +199,17 @@ func (w *World) applyGroundItemVisibilityRegions(p *Player, regions [4]visibilit
 // refreshPlayerVisibilityAfterMove applies only the geometric delta between
 // the old and new authoritative view windows. This keeps PvP/war visibility
 // immediate on every movement step without rebuilding all nearby entity sets.
+// Room-edge eligibility changes also reconcile the overlapping view region;
+// edge strips alone cannot remove ghost actors or recreate stationary mobs.
 // Full refresh remains the recovery path for non-overlapping jumps and all
 // callers outside normal movement (login, teleport, revive, instance changes).
 func (w *World) refreshPlayerVisibilityAfterMove(p *Player, oldX, oldY uint16) {
 	if p == nil || !p.InWorld {
+		return
+	}
+	inst := w.itemInstances[w.playerRuntimeInstanceID(p.ID)]
+	if inst != nil && instanceMemberInStageAt(inst, p, oldX, oldY) != instanceMemberInStage(inst, p) {
+		w.refreshPlayerVisibility(p)
 		return
 	}
 	oldBounds := playerVisibilityBounds(oldX, oldY)

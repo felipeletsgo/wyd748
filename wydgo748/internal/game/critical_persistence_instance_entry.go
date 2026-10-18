@@ -61,7 +61,7 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 		plan.proposed.itemInstances = make(map[string]*ItemInstance)
 	}
 	runtimeID := instanceRuntimeKey(cfg)
-	if isDurablePrivateWaterConfig(*cfg) {
+	if independentPrivateInstance(*cfg) {
 		runtimeID = w.nextItemInstanceRuntimeID(cfg)
 	}
 	inst := plan.proposed.itemInstances[runtimeID]
@@ -165,7 +165,7 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 				}
 			}
 		}
-		if !sharedTimedInstance(*cfg) && !isDurablePrivateWaterConfig(*cfg) &&
+		if !sharedTimedInstance(*cfg) && !independentPrivateInstance(*cfg) &&
 			w.instanceAreaOccupied(cfg, runtimeID, members...) {
 			return errors.New("This room is already occupied.")
 		}
@@ -180,6 +180,8 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 		} else if cfg.TotalDurationSeconds > 0 {
 			inst.HardDeadline = at.Add(time.Duration(cfg.TotalDurationSeconds) * time.Second)
 		}
+		prepareHellGateEntry(inst)
+		prepareNightmareEntry(inst)
 		plan.proposed.itemInstances[runtimeID] = inst
 	}
 	stage := stages[0]
@@ -231,7 +233,12 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 		inst.ScheduleEnd = scheduleEnd
 	}
 	created := []*Mob(nil)
-	if newRoom {
+	if newRoom && nightmareWaiting(inst) {
+		created, err = w.planNightmareProtectors(inst, tiles, p)
+		if err != nil {
+			return err
+		}
+	} else if newRoom {
 		created, err = w.planCriticalInstanceFirstWave(inst, stage, at, tiles, p)
 		if err != nil {
 			return err
@@ -281,14 +288,7 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 		for _, mob := range created {
 			w.recomputeMobActive(mob)
 		}
-		for _, member := range members {
-			// Spatial ownership must advance even if the transport closed.
-			w.updatePlayerSpatial(member)
-			if !member.Session.IsClosed() {
-				w.refreshPlayerVisibility(member)
-				w.sendToPlayerView(member, func() []byte { return wire.ActionStop(member.ID, member.X, member.Y) })
-			}
-		}
+		w.publishInstanceMemberRelocation(members)
 		live := w.itemInstances[runtimeID]
 		w.publishCriticalInstanceEntryStatus(live)
 		if !p.Session.IsClosed() {
@@ -349,7 +349,7 @@ func (w *World) publishCriticalInstanceEntryStatus(inst *ItemInstance) {
 			seconds = remainingInstanceSeconds(inst.QuizDeadline, w.now())
 		}
 		member.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, uint32(seconds)))
-		member.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, uint32(inst.Remaining)))
+		member.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, instanceDisplayedMobCount(inst)))
 		name := stage.Name
 		if name == "" {
 			name = inst.Config.Name

@@ -16,8 +16,8 @@ const instanceSignalID = uint16(0x7530)
 
 type ItemInstance struct {
 	Config model.VolatileInstance
-	// RuntimeID is the effective World key. Private executions use Config.ID;
-	// shared zones use shared:<SharedGroup>.
+	// RuntimeID is the effective World key: Config.ID with an optional unique
+	// suffix for private executions, or shared:<SharedGroup> for shared zones.
 	RuntimeID string
 	LeaderID  uint16
 	MemberIDs []uint16
@@ -50,9 +50,24 @@ type ItemInstance struct {
 	HellGateLichSpawnedMask uint8
 	HellGateValidLichMask   uint8
 	HellGateWrongLich       bool
-	MobQuadrants            map[uint16]uint8
-	HellGateLichIDs         map[uint8]uint16
-	NPCIDs                  map[uint16]struct{}
+	HellGateDionysHP        uint32
+	// Terrain-only reverse distances are shared by the defense population.
+	// They are rebuilt after restoration or when the protector changes tile.
+	HellGateRouteTarget    [2]uint16
+	HellGateRouteDistances map[[2]uint16]uint16
+	HellGateDefenseSpawns  map[uint16]model.VolatileInstanceSpawn
+	HellGateReplacements   []model.VolatileInstanceSpawn
+	MobQuadrants           map[uint16]uint8
+	HellGateLichIDs        map[uint8]uint16
+	NPCIDs                 map[uint16]struct{}
+	// Rebuilt from the stage on restoration; each Nightmare death replaces
+	// only its own configured spawn, never the surviving population.
+	NightmareSpawns      map[uint16]nightmareSpawnPoint
+	NightmareProtectors  map[uint16]uint8
+	NightmareLostMask    uint8
+	NightmareBossID      uint16
+	NightmareBossSpawned bool
+	NightmareBossKilled  bool
 	// UxmalRoom/Slot identify the Rune Track room and slot. Configuration uses
 	// one stage per group while retaining the reward/audit origin.
 	UxmalRoom int
@@ -131,13 +146,12 @@ func sharedTimedInstance(cfg model.VolatileInstance) bool {
 }
 
 // instanceAdmissionOnlySchedule means ScheduleEnd closes admission but does
-// not end the encounter. Hell Gate has a short entry window followed by a
-// separate combat deadline.
+// not end the encounter. Hell Gate and Nightmare have separate combat clocks.
 func instanceAdmissionOnlySchedule(inst *ItemInstance) bool {
 	if inst == nil {
 		return false
 	}
-	return sharedTimedInstance(inst.Config) &&
+	return scheduledNightmare(inst) || sharedTimedInstance(inst.Config) &&
 		strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate")
 }
 
@@ -208,7 +222,8 @@ func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 			if radius < itemInstanceGeneratorReserveRadius {
 				radius = itemInstanceGeneratorReserveRadius
 			}
-			if chebyshev(x, y, stage.X, stage.Y) <= radius {
+			areaX, areaY := instanceStageAreaCenter(stage)
+			if chebyshev(x, y, areaX, areaY) <= radius {
 				return true
 			}
 		}
@@ -234,8 +249,9 @@ func (w *World) generatorReservedForItemInstance(g model.NPCGener) bool {
 			// NPCGener moves monotonically between route points. The expanded
 			// box conservatively reserves any segment crossing the room so
 			// the generator cannot be reactivated there.
-			if int(stage.X) >= minX-radius && int(stage.X) <= maxX+radius &&
-				int(stage.Y) >= minY-radius && int(stage.Y) <= maxY+radius {
+			areaX, areaY := instanceStageAreaCenter(stage)
+			if int(areaX) >= minX-radius && int(areaX) <= maxX+radius &&
+				int(areaY) >= minY-radius && int(areaY) <= maxY+radius {
 				return true
 			}
 		}
@@ -307,6 +323,8 @@ func (w *World) validateItemInstanceTemplates() error {
 			}
 		}
 		if cfg.HellGate != nil {
+			spawns = append(spawns, cfg.HellGate.Population759.Spawns()...)
+			spawns = append(spawns, cfg.HellGate.Corridors...)
 			spawns = append(spawns, cfg.HellGate.FinalSpawns...)
 			for _, quadrant := range cfg.HellGate.Quadrants {
 				spawns = append(spawns, quadrant.Spawns...)
@@ -439,7 +457,7 @@ func (w *World) instanceAreaOccupied(cfg *model.VolatileInstance, space string,
 			continue
 		}
 		for _, stage := range instanceStages(cfg) {
-			if chebyshev(player.X, player.Y, stage.X, stage.Y) <= stage.AreaRadius {
+			if instanceStageContains(stage, player.X, player.Y) {
 				return true
 			}
 		}
@@ -839,6 +857,22 @@ func instanceStageForMob(inst *ItemInstance) (model.VolatileInstanceStage, bool)
 	return stages[inst.CurrentStage], true
 }
 
+func instanceStageAreaCenter(stage model.VolatileInstanceStage) (uint16, uint16) {
+	x, y := stage.AreaX, stage.AreaY
+	if x == 0 {
+		x = stage.X
+	}
+	if y == 0 {
+		y = stage.Y
+	}
+	return x, y
+}
+
+func instanceStageContains(stage model.VolatileInstanceStage, x, y uint16) bool {
+	areaX, areaY := instanceStageAreaCenter(stage)
+	return stage.AreaRadius > 0 && chebyshev(x, y, areaX, areaY) <= stage.AreaRadius
+}
+
 // instanceMobArea returns the smallest authoritative room for a mob. Hell
 // Gate keeps each quadrant inside its own seal instead of letting the generic
 // entrance radius (which covers the whole event) turn into a movement leak.
@@ -859,10 +893,15 @@ func instanceMobArea(inst *ItemInstance, mob *Mob) (uint16, uint16, int, bool) {
 	if !ok || stage.AreaRadius <= 0 {
 		return 0, 0, 0, false
 	}
-	return stage.X, stage.Y, stage.AreaRadius, true
+	x, y := instanceStageAreaCenter(stage)
+	return x, y, stage.AreaRadius, true
 }
 
 func instanceMemberInStage(inst *ItemInstance, p *Player) bool {
+	return p != nil && instanceMemberInStageAt(inst, p, p.X, p.Y)
+}
+
+func instanceMemberInStageAt(inst *ItemInstance, p *Player, x, y uint16) bool {
 	if inst == nil || p == nil || !itemInstanceHasMember(inst, p.ID) {
 		return false
 	}
@@ -870,7 +909,7 @@ func instanceMemberInStage(inst *ItemInstance, p *Player) bool {
 	if !ok || stage.AreaRadius <= 0 {
 		return false
 	}
-	return chebyshev(p.X, p.Y, stage.X, stage.Y) <= stage.AreaRadius
+	return instanceStageContains(stage, x, y)
 }
 
 func (w *World) instanceMobInsideArea(m *Mob) bool {
@@ -1218,7 +1257,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID,
 		uint32(remainingInstanceSeconds(instanceCombatDeadline(inst), now))))
 	p.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID,
-		uint32(inst.Remaining)))
+		instanceDisplayedMobCount(inst)))
 	name := stages[0].Name
 	if name == "" {
 		name = inst.Config.Name
@@ -1366,10 +1405,7 @@ func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *mod
 		return
 	}
 	w.markInstanceStateDirty()
-	for _, member := range members {
-		w.refreshPlayerVisibility(member)
-		w.sendToPlayerView(member, func() []byte { return wire.ActionStop(member.ID, member.X, member.Y) })
-	}
+	w.publishInstanceMemberRelocation(members)
 	p.Session.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	w.sendItemInstanceStageStatus(inst)
 	log.Printf("[#%d] INSTANCE %q shared zone entry members=%d",
@@ -1403,10 +1439,10 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	// Resolve the player's own grace instance before looking up the next
 	// template; otherwise the old boss membership would survive forever.
 	graceSource := w.itemInstanceExitGraceForPlayer(p.ID)
-	// Private Water executions are independent. The same configured room can
+	// Private Water and Magic Chamber executions are independent. A room can
 	// therefore have several live RuntimeIDs at once; only shared-timed events
 	// use a single shared aggregate.
-	if isDurablePrivateWaterConfig(*cfg) {
+	if independentPrivateInstance(*cfg) {
 		runtimeID = w.nextItemInstanceRuntimeID(cfg)
 	}
 	if inst := w.itemInstances[runtimeID]; inst != nil {
@@ -1499,7 +1535,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 			return
 		}
 	}
-	if !sharedTimedInstance(*cfg) && !isDurablePrivateWaterConfig(*cfg) &&
+	if !sharedTimedInstance(*cfg) && !independentPrivateInstance(*cfg) &&
 		w.instanceAreaOccupied(cfg, runtimeID, members...) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		s.Send(wire.MessagePanel("This room is already occupied."))
@@ -1609,9 +1645,20 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		inst.MemberIDs = append(inst.MemberIDs, member.ID)
 	}
 	w.indexInstanceMembers(inst)
+	prepareHellGateEntry(inst)
+	prepareNightmareEntry(inst)
 	// Prepare the first wave before confirming the ticket. It is unpublished,
-	// so rejection can roll it back without leaving an empty room.
-	if ok, _ := w.spawnItemInstanceStage(inst, 0, now, false, false); !ok {
+	// so rejection can roll it back without leaving an empty room. Nightmare
+	// intentionally waits for the scheduled combat start before spawning.
+	ready := inst.State == "preparing" && hellGateVersion2(inst)
+	if ready {
+		setInstanceCombatDeadline(inst, inst.HardDeadline)
+	} else if nightmareWaiting(inst) {
+		ready = w.spawnNightmareProtectors(inst)
+	} else {
+		ready, _ = w.spawnItemInstanceStage(inst, 0, now, false, false)
+	}
+	if !ready {
 		w.rebuildPlayerInstanceIndex()
 		restoreNightmareEntries(nightmareCharges)
 		*item = oldItem
@@ -1678,10 +1725,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 			w.recomputeMobActive(mob)
 		}
 	}
-	for _, member := range members {
-		w.refreshPlayerVisibility(member)
-		w.sendToPlayerView(member, func() []byte { return wire.ActionStop(member.ID, member.X, member.Y) })
-	}
+	w.publishInstanceMemberRelocation(members)
 	w.sendItemInstanceStageStatus(inst)
 	if isBigCubeInstance(inst) && !w.startBigCubeQuestion(inst, now) {
 		// The loader guarantees a valid question list. Keep the defensive path
@@ -1691,10 +1735,15 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		log.Printf("INSTANCE %q: Big Cube has no valid initial question", cfg.ID)
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	log.Printf("[#%d] INSTANCE %q opened members=%d mobs=%d", s.ID, cfg.ID, len(members), totalMobs)
+	log.Printf("[#%d] INSTANCE %q opened members=%d mobs=%d", s.ID, cfg.ID, len(members), inst.Remaining)
 }
 
 func cfgCopy(cfg model.VolatileInstance) model.VolatileInstance {
+	if cfg.NightmareBoss != nil {
+		boss := *cfg.NightmareBoss
+		cfg.NightmareBoss = &boss
+	}
+	cfg.NightmareProtectors = append([]model.VolatileInstanceSpawn(nil), cfg.NightmareProtectors...)
 	cfg.Spawns = append([]model.VolatileInstanceSpawn(nil), cfg.Spawns...)
 	cfg.AllowedEvolutions = append([]string(nil), cfg.AllowedEvolutions...)
 	cfg.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), cfg.EntryAreas...)
@@ -1702,9 +1751,25 @@ func cfgCopy(cfg model.VolatileInstance) model.VolatileInstance {
 	cfg.Stages = append([]model.VolatileInstanceStage(nil), cfg.Stages...)
 	if cfg.HellGate != nil {
 		hell := *cfg.HellGate
+		hell.Corridors = append([]model.VolatileInstanceSpawn(nil), cfg.HellGate.Corridors...)
+		hell.Portals = append([]model.Teleport(nil), cfg.HellGate.Portals...)
 		hell.Quadrants = append([]model.VolatileHellGateQuadrant(nil), cfg.HellGate.Quadrants...)
 		hell.FinalSpawns = append([]model.VolatileInstanceSpawn(nil), cfg.HellGate.FinalSpawns...)
 		hell.FinalNPCs = append([]model.VolatileInstanceSpawn(nil), cfg.HellGate.FinalNPCs...)
+		if source := cfg.HellGate.Population759; source != nil {
+			population := *source
+			population.CorridorEscorts = append([]model.VolatileInstanceSpawn(nil), source.CorridorEscorts...)
+			population.FinalSpawns = append([]model.VolatileInstanceSpawn(nil), source.FinalSpawns...)
+			population.Rooms = make([][]model.VolatileInstanceSpawn, len(source.Rooms))
+			population.LichEscorts = make([][]model.VolatileInstanceSpawn, len(source.LichEscorts))
+			for i := range source.Rooms {
+				population.Rooms[i] = append([]model.VolatileInstanceSpawn(nil), source.Rooms[i]...)
+			}
+			for i := range source.LichEscorts {
+				population.LichEscorts[i] = append([]model.VolatileInstanceSpawn(nil), source.LichEscorts[i]...)
+			}
+			hell.Population759 = &population
+		}
 		for index := range hell.Quadrants {
 			hell.Quadrants[index].Spawns = append([]model.VolatileInstanceSpawn(nil), hell.Quadrants[index].Spawns...)
 		}
@@ -1816,16 +1881,39 @@ func (w *World) moveInstanceMembersAtomic(inst *ItemInstance, stage model.Volati
 		}
 	}
 	return w.commitInstanceMutation("instance room move", accounts, restore, func() {
-		for _, member := range members {
-			w.refreshPlayerVisibility(member)
-			w.sendToPlayerView(member, func() []byte {
-				return wire.ActionStop(member.ID, member.X, member.Y)
-			})
-		}
+		w.publishInstanceMemberRelocation(members)
 		if then != nil {
 			then()
 		}
 	}, rejected)
+}
+
+// Commit every spatial position before computing any member's view. Otherwise
+// a party teleport can temporarily hide peers still indexed in the old room.
+// Old movement must not be replayed when those peers enter the new view.
+func (w *World) publishInstanceMemberRelocation(members []*Player) {
+	for _, member := range members {
+		clearAirMove(member)
+		clearPublishedPlayerMove(member)
+		w.updatePlayerSpatial(member)
+	}
+	for _, member := range members {
+		if member.Session != nil && !member.Session.IsClosed() {
+			w.refreshPlayerVisibility(member)
+		}
+	}
+	parties := make(map[*Party]struct{})
+	for _, member := range members {
+		if member.Session != nil && !member.Session.IsClosed() {
+			w.sendToPlayerView(member, func() []byte { return wire.ActionStop(member.ID, member.X, member.Y) })
+		}
+		if member.Party != nil {
+			parties[member.Party] = struct{}{}
+		}
+	}
+	for party := range parties {
+		w.syncParty(party)
+	}
 }
 
 func (w *World) sendItemInstanceStageStatus(inst *ItemInstance) {
@@ -1843,7 +1931,7 @@ func (w *World) sendItemInstanceStageStatus(inst *ItemInstance) {
 			member.Session.Send(wire.StandardParm(
 				wire.OpInstanceTime, instanceSignalID, uint32(remaining)))
 			member.Session.Send(wire.StandardParm(
-				wire.OpInstanceMobs, instanceSignalID, uint32(inst.Remaining)))
+				wire.OpInstanceMobs, instanceSignalID, instanceDisplayedMobCount(inst)))
 			name := stage.Name
 			if name == "" {
 				name = inst.Config.Name
@@ -1923,6 +2011,7 @@ func (w *World) spawnItemInstanceStageThen(inst *ItemInstance, stageIndex int, n
 	// mob allocation failed. Movement and instance state need one commit before
 	// publication.
 	created := make([]*Mob, 0, stageMobCount(stage))
+	nightmareSpawns := make(map[uint16]nightmareSpawnPoint)
 	reserved := make(map[uint32]struct{}, len(created))
 	instanceID := itemInstanceGameplaySpace(inst)
 	findFree := func(baseX, baseY uint16, radius int) (uint16, uint16, bool) {
@@ -1941,6 +2030,10 @@ func (w *World) spawnItemInstanceStageThen(inst *ItemInstance, stageIndex int, n
 					}
 					x, y := uint16(nx), uint16(ny)
 					key := uint32(x)<<16 | uint32(y)
+					// Explicit room bounds constrain placement as well as combat.
+					if (stage.AreaX != 0 || stage.AreaY != 0) && !instanceStageContains(stage, x, y) {
+						continue
+					}
 					if _, used := reserved[key]; used ||
 						w.positionOccupiedInGameplaySpace(x, y, instanceID, nil, nil, nil) {
 						continue
@@ -1985,6 +2078,10 @@ func (w *World) spawnItemInstanceStageThen(inst *ItemInstance, stageIndex int, n
 			w.mobsByID[mob.ID] = mob
 			reserved[uint32(x)<<16|uint32(y)] = struct{}{}
 			created = append(created, mob)
+			if scheduledNightmare(inst) {
+				nightmareSpawns[mob.ID] = nightmareSpawnPoint{X: spawnX, Y: spawnY,
+					Radius: uint16(min(max(instanceSpawnRadius(spawn, stage.AreaRadius), 4), 65535))}
+			}
 		}
 	}
 	oldInstance := *inst
@@ -2001,10 +2098,11 @@ func (w *World) spawnItemInstanceStageThen(inst *ItemInstance, stageIndex int, n
 	inst.QuizDeadline = time.Time{}
 	inst.BossSpawned = false
 	inst.MobIDs = newMobIDs
+	inst.NightmareSpawns = nightmareSpawns
 	inst.Remaining = len(created)
 	duration := stageDuration(inst.Config, stage)
 	var deadline time.Time
-	if _, hellGate := hellGateInstance(inst); hellGate && inst.Config.ActiveDurationSeconds > 0 {
+	if _, hellGate := hellGateInstance(inst); scheduledNightmare(inst) || hellGate && inst.Config.ActiveDurationSeconds > 0 {
 		deadline = inst.HardDeadline
 	} else if duration > 0 {
 		deadline = now.Add(time.Duration(duration) * time.Second)
@@ -2095,6 +2193,9 @@ func (w *World) spawnItemInstanceCompletionWave(inst *ItemInstance,
 					}
 					x, y := uint16(nx), uint16(ny)
 					key := uint32(x)<<16 | uint32(y)
+					if (stage.AreaX != 0 || stage.AreaY != 0) && !instanceStageContains(stage, x, y) {
+						continue
+					}
 					if _, used := reserved[key]; used ||
 						w.positionOccupiedInGameplaySpace(x, y, instanceID, nil, nil, nil) {
 						continue
@@ -2287,6 +2388,12 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 	if inst == nil {
 		return
 	}
+	if w.hellGateProtectorKilled(inst, m) {
+		return
+	}
+	if w.nightmareProtectorKilled(inst, m) {
+		return
+	}
 	if strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "uxmal") {
 		w.onUxmalMobKilled(m, now)
 		return
@@ -2310,6 +2417,10 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 	if _, belongs := inst.MobIDs[m.ID]; !belongs {
 		return
 	}
+	if scheduledNightmare(inst) {
+		w.respawnNightmareMob(inst, m, now)
+		return
+	}
 	if _, special := hellGateInstance(inst); special {
 		w.onHellGateMobKilled(inst, m, now)
 		for _, id := range inst.MemberIDs {
@@ -2325,7 +2436,7 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 	}
 	for _, id := range inst.MemberIDs {
 		if member := w.playersByID[id]; member != nil && member.InWorld {
-			member.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, uint32(inst.Remaining)))
+			member.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, instanceDisplayedMobCount(inst)))
 		}
 	}
 	if inst.Remaining == 0 {
@@ -2542,12 +2653,33 @@ func (w *World) tickItemInstances(now time.Time) {
 		return
 	}
 	for id, inst := range w.itemInstances {
+		if w.tickHellGate(inst, now) {
+			if w.criticalInstanceReserved() {
+				return
+			}
+			continue
+		}
 		hardExpired := !inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline)
 		scheduleExpired := !inst.ScheduleEnd.IsZero() && !now.Before(inst.ScheduleEnd)
 		if instanceAdmissionOnlySchedule(inst) {
-			// Hell Gate closes admission at ScheduleEnd but remains active until
-			// its independent event deadline.
+			// Admission closes before the independent event deadline.
 			scheduleExpired = false
+		}
+		if nightmareWaiting(inst) && !hardExpired && !now.Before(inst.ScheduleEnd) {
+			inst.State = "combat"
+			if ok, _ := w.spawnItemInstanceStage(inst, 0, now, false, true); !ok {
+				// Do not leave a paid, empty event running if content creation fails.
+				inst.HardDeadline = now
+				hardExpired = true
+			}
+			w.markInstanceStateDirty()
+		}
+		if !hardExpired && !scheduleExpired && !w.spawnNightmareBoss(inst, now, true) {
+			log.Printf("INSTANCE %q: Nightmare boss creation failed", inst.Config.ID)
+			inst.HardDeadline = now
+			setInstanceCombatDeadline(inst, now)
+			hardExpired = true
+			w.markInstanceStateDirty()
 		}
 		quizDeadline := inst.QuizDeadline
 		if quizDeadline.IsZero() {

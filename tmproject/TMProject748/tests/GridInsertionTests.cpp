@@ -43,6 +43,21 @@ int RunGridInsertionTests(int& checks)
         if (!ok) { ++failures; std::fprintf(stderr, "FAIL: %s\n", name); }
     };
     const auto source = ReadGridSource();
+    for (int type = -1; type <= 30; ++type) {
+        const bool expected = type == 12 || type == 14 || type == 16 ||
+            type == 18 || type == 20 || type == 22;
+        check(grid_item_presentation::IsNativeMixReceptacle(type) == expected,
+            "native mix slots center without changing adjacent Carry or ordinary grids");
+    }
+    const auto centered = source_contract::Method(source,
+        "bool WYD748_IsCenteredSingleCellGrid(const TMEGRIDTYPE gridType)");
+    check(centered.find("grid_item_presentation::IsNativeMixReceptacle(static_cast<int>(gridType))") != std::string::npos,
+        "production rendering recognizes all six native mix receptacle types");
+    const auto frame = source_contract::Method(source,
+        "void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)");
+    check(frame.find("WYD748_IsCenteredSingleCellGrid(m_eGridType)") != std::string::npos &&
+        frame.find("m_pItemList[0]->FrameMoveAtCenter748(pDrawList, vecCenter, inParentLayer)") != std::string::npos,
+        "mix slots use the shared centered sprite, mesh and label path");
     check(grid_item_presentation::IconTexture(3191, 24) == 25,
         "Elite Of Hekalotia uses the blue cape icon");
     check(grid_item_presentation::IconTexture(3192, 25) == 26,

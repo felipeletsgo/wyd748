@@ -416,7 +416,7 @@ int TMFieldScene::OnPacketLongMessagePanel(MSG_LongMessagePanel* pMsg)
 	if (pMsg->Parm1 == 10)
 	{
 		for (int i = 0; i < 4; ++i)
-			strcpy(m_szEventTextTemp[i], pMsg->Line[i]);
+			strncpy_s(m_szEventTextTemp[i], pMsg->Line[i], _TRUNCATE);
 		m_dwEventStartTime = 0;
 
 		return 1;
@@ -430,8 +430,10 @@ int TMFieldScene::OnPacketLongMessagePanel(MSG_LongMessagePanel* pMsg)
 
 		for (int j = 0; j < 4; ++j)
 		{
-			m_pChatListnotice->AddItem(new SListBoxItem(pMsg->Line[j], 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
-			m_pQuizText[j]->SetText(pMsg->Line[j], 0);
+			if (m_pChatListnotice)
+				m_pChatListnotice->AddItem(new SListBoxItem(pMsg->Line[j], 0xFFCCAAFF, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
+			if (m_pQuizText[j])
+				m_pQuizText[j]->SetText(pMsg->Line[j], 0);
 		}
 
 		m_dwQuizStart = g_pTimerManager->GetServerTime();
@@ -506,7 +508,7 @@ int TMFieldScene::OnPacketRemainCount(MSG_STANDARDPARM* pStd)
 {
 	if (!pStd || !g_pTimerManager)
 		return 0;
-	if (pStd->Parm == 0)
+	if (pStd->Parm == 0 && !m_bRankTimeOn)
 	{
 		m_bInstanceRemainOn = 0;
 		if (m_pRemainText)
@@ -514,10 +516,9 @@ int TMFieldScene::OnPacketRemainCount(MSG_STANDARDPARM* pStd)
 		return 1;
 	}
 	char szText[128]{};
-	// Do not use strdef index 230 here: the English asset maps that slot to
-	// the placeholder sequence "1 2 3 4 5".  The server packet and value are
-	// unchanged; only the client-visible label is corrected.
-	sprintf(szText, "Monsters %d", pStd->Parm);
+	// Native 7.48 FUN_00489260 formats 0x3B0 as "%d Left". Nightmare
+	// sends protected NPC survivors here, not a hostile-monster kill quota.
+	sprintf(szText, "%d Left", pStd->Parm);
 	m_dwRemainTime = g_pTimerManager->GetServerTime();
 	m_bInstanceRemainOn = 1;
 	if (m_pRemainText)
@@ -726,10 +727,15 @@ int TMFieldScene::OnPacketSendExpMsg(MSG_Exp_MsgPanel* pStd)
 {
 	auto pEdit = m_pEditChat;
 	auto pChatList = m_pChatListnotice;
-	pChatList->AddItem(new SListBoxItem(pStd->Msg, pStd->Color32, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
-	pEdit->SetText((char*)"");
-	m_pControlContainer->SetFocusedControl(nullptr);
-	if (g_pObjectManager->m_bTvControl != 1)
+	// Msg is a fixed network field; terminate it inside the validated frame.
+	pStd->Msg[sizeof(pStd->Msg) - 1] = 0;
+	if (pChatList)
+		pChatList->AddItem(new SListBoxItem(pStd->Msg, pStd->Color32, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
+	if (pEdit)
+		pEdit->SetText((char*)"");
+	if (m_pControlContainer)
+		m_pControlContainer->SetFocusedControl(nullptr);
+	if (pEdit && g_pObjectManager->m_bTvControl != 1)
 		pEdit->SetText((char*)"");
 	return 1;
 }

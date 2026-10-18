@@ -30,6 +30,7 @@
 #include "TMObjectContainer.h"
 #include "TMLight.h"
 #include "ItemEffect.h"
+#include "../../application/ActorLifetime.h"
 
 TMVector2 TMHuman::m_vecPickSize[100] = {
   { 0.40000001f, 2.0f },
@@ -3102,6 +3103,10 @@ void TMHuman::CheckAffect()
 
 void TMHuman::DelayDelete()
 {
+    if (!m_pParentScene || !g_pTimerManager || !g_pObjectManager ||
+        !actor_lifetime::MayDelayDelete(this, m_pParentScene, ESCENE_TYPE::ESCENE_FIELD))
+        return;
+
     m_dwDelayDel = g_pTimerManager->GetServerTime();
     g_pObjectManager->DisconnectEffectFromMob(this);
 
@@ -3134,14 +3139,12 @@ void TMHuman::DelayDelete()
 
         if (pScene->m_pPGTOver == this)
             pScene->m_pPGTOver = nullptr;
-        if (pScene->m_pMyHuman == this)
-            pScene->m_pMyHuman = nullptr;
     }
 
-    if (g_pCurrentScene->m_pMouseOverHuman == this)
+    if (g_pCurrentScene && g_pCurrentScene->m_pMouseOverHuman == this)
         g_pCurrentScene->m_pMouseOverHuman = nullptr;
 
-    if (static_cast<TMHuman*>(g_pObjectManager->m_pCamera->m_pFocusedObject) == this)
+    if (g_pObjectManager->m_pCamera && g_pObjectManager->m_pCamera->m_pFocusedObject == this)
         g_pObjectManager->m_pCamera->m_pFocusedObject = nullptr;
 
     if (m_pSkinMesh)

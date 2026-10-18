@@ -4291,6 +4291,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		return 1;
 	// The 7.48 HUD has its own lifecycle, but CC still needs the existing
 	// item/skill/attack scheduler after transition gates, once per frame.
+	UpdatePhysicalAttack(dwServerTime);
 	GameAuto();
 	UpdateSkillCooldownUI(dwServerTime);
 	return 1;

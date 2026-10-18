@@ -15,14 +15,29 @@ import (
 // keeps a coordinate inside that block, not an isolated activation point.
 const portalAttributeBlockSize = 4
 
+// Project choice (MODERNIZACAO_COMPATIVEL): accept one extra world tile on
+// each side of the existing block, using the server position only. The native
+// request, destination rules and fees are unchanged.
+const portalActivationMargin = 1
+
 func samePortalAttributeBlock(x, y, sourceX, sourceY uint16) bool {
 	const blockMask = ^uint16(portalAttributeBlockSize - 1)
 	return x&blockMask == sourceX&blockMask && y&blockMask == sourceY&blockMask
 }
 
 func teleportAt(teleports []model.Teleport, x, y uint16) (model.Teleport, bool) {
+	// An exact block always wins over a neighboring portal's margin.
 	for _, portal := range teleports {
 		if samePortalAttributeBlock(x, y, portal.SourceX, portal.SourceY) {
+			return portal, true
+		}
+	}
+	for _, portal := range teleports {
+		// Use signed bounds so coordinates near zero or 65535 cannot wrap.
+		minX := int(portal.SourceX) / portalAttributeBlockSize * portalAttributeBlockSize
+		minY := int(portal.SourceY) / portalAttributeBlockSize * portalAttributeBlockSize
+		if int(x) >= minX-portalActivationMargin && int(x) <= minX+portalAttributeBlockSize-1+portalActivationMargin &&
+			int(y) >= minY-portalActivationMargin && int(y) <= minY+portalAttributeBlockSize-1+portalActivationMargin {
 			return portal, true
 		}
 	}
@@ -86,6 +101,9 @@ func (w *World) publishPlayerTeleport(p *Player) {
 func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || len(pkt) != 16 || w.criticalTradeReserved(p) {
+		return
+	}
+	if w.handleHellGatePortal(p) {
 		return
 	}
 	portal, ok := teleportAt(w.teleports, p.X, p.Y)

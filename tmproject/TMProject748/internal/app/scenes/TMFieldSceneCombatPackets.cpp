@@ -37,6 +37,7 @@
 #include "../../wire/AttackVisualDamage.h"
 #include "../../application/AttackAttackerState.h"
 #include "../../application/AttackTargetState.h"
+#include "../../application/AttackVisualTiming.h"
 #include "TMHuman.h"
 #include "TMEffectLevelUp.h"
 #include "TMFont3.h"
@@ -80,8 +81,6 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 		if (pAttacker->m_bParty == 1 || m_pMyHuman == pAttacker)
 		{
 			SetMyHumanExp(pStd->Exp, pStd->FakeExp);
-			if (m_cAutoAttack == 1 && m_pMyHuman == pAttacker)
-				m_pTargetHuman = 0;
 		}
 
 		m_pEffectContainer->AddChild(new TMEffectCharge(pAttacker, 0, 0xFFFFFFFF));
@@ -90,6 +89,10 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 	auto pKilled = g_pObjectManager->GetHumanByID(pStd->KilledMob);
 	if (pKilled)
 	{
+		if (m_pTargetHuman == pKilled)
+			m_pTargetHuman = nullptr;
+		if (m_pMyHuman && m_pMyHuman->m_pMoveTargetHuman == pKilled)
+			m_pMyHuman->m_pMoveTargetHuman = nullptr;
 		pKilled->m_stScore.CurHP = 0;
 		pKilled->Die();
 	}
@@ -177,7 +180,12 @@ int TMFieldScene::OnPacketSetHpMode(MSG_SetHpMode* pStd)
 
 int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 {
+	if (!pStd || !g_pObjectManager || !m_pMyHuman)
+		return 0;
 	auto pAttack = reinterpret_cast<MSG_Attack*>(pStd);
+	// -1 is the physical-attack sentinel, never a spell-table subscript.
+	if (pAttack->SkillIndex < -1 || pAttack->SkillIndex >= MAX_SPELL_LIST)
+		return 0;
 	const int targetCount = static_cast<int>(AttackTargetCapacity(pAttack->Header.Type));
 
 	auto pAttacker = (TMHuman*)g_pObjectManager->GetHumanByID(pAttack->AttackerID);
@@ -196,7 +204,7 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 
 	if (pAttacker)
 	{
-		if (pAttack->DoubleCritical & 8)
+		if ((pAttack->DoubleCritical & 8) && pAttacker->m_pSkinMesh)
 		{
 			unsigned int dwStartTime = g_pTimerManager->GetServerTime();
 			const int force = attack_attacker::SwingForce(pAttacker->m_nSkinMeshType,
@@ -291,8 +299,9 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 	}
 
 	unsigned int dwDelay = 0;
-	if (g_pSpell[pAttack->SkillIndex].TargetType != 3 && g_pSpell[pAttack->SkillIndex].TargetType != 4 &&
-		g_pSpell[pAttack->SkillIndex].TargetType != 5 && g_pSpell[pAttack->SkillIndex].TargetType != 6)
+	if (pAttack->SkillIndex == -1 ||
+		(g_pSpell[pAttack->SkillIndex].TargetType != 3 && g_pSpell[pAttack->SkillIndex].TargetType != 4 &&
+		g_pSpell[pAttack->SkillIndex].TargetType != 5 && g_pSpell[pAttack->SkillIndex].TargetType != 6))
 	{
 		int extractedResult{};
 		const ExtractedFlow extractedFlow = ApplyTargetedAttackHits(pAttack, targetCount, pAttacker, vecAttackerPos, nClass, dwDelay, extractedResult);
@@ -511,6 +520,7 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 						if (!pTargetHuman || !pAttacker)
 							{ extractedResult = 1; return ExtractedFlow::Return; }
 
+						attack_visual::DoubleHitNumbers numberTiming;
 						for (int bViewHalf = 0; bViewHalf < (pAttack->DoubleCritical & 1) + 1; bViewHalf++)
 						{
 							int nFlank = 0;
@@ -773,6 +783,10 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 										}
 									}
 
+									if (pFont && (pAttack->DoubleCritical & 1))
+										numberTiming.Schedule(bViewHalf, pFont->m_dwCreateTime,
+											pFont->m_dwLifeTime, pFont->m_bViewHalf,
+											pFont->m_nSpeed, pFont->m_vecStartPosition.y);
 									m_pExtraContainer->AddChild(pFont);
 								}
 
@@ -1027,6 +1041,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 						if (!pTargetHuman || !pAttacker)
 							{ extractedResult = 1; return ExtractedFlow::Return; }
 
+						attack_visual::DoubleHitNumbers numberTiming;
 						for (int bViewHalf = 0; bViewHalf < (pAttack->DoubleCritical & 1) + 1; bViewHalf++)
 						{
 							// Preserve legacy HP arithmetic while rendering the authoritative
@@ -1159,6 +1174,10 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 										}
 									}
 
+									if (pFont && (pAttack->DoubleCritical & 1))
+										numberTiming.Schedule(bViewHalf, pFont->m_dwCreateTime,
+											pFont->m_dwLifeTime, pFont->m_bViewHalf,
+											pFont->m_nSpeed, pFont->m_vecStartPosition.y);
 									m_pExtraContainer->AddChild(pFont);
 								}
 
@@ -1416,6 +1435,11 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 
 	float fAngle = pAttacker->m_fWantAngle;
 
+	// SetAnimation reads this flag while Attack starts the first motion, not
+	// afterward. Replace stale state as well when the next action is a single hit.
+	if (!pTarget || (unsigned char)pAttack->Motion != 254)
+		pAttacker->m_bDoubleAttack = (pAttack->DoubleCritical & 1) != 0;
+
 	if (!pTarget)
 		pAttacker->Attack((ECHAR_MOTION)pAttack->Motion, TMVector2((float)pAttack->TargetX, (float)pAttack->TargetY), static_cast<char>(pAttack->SkillIndex));
 	else if ((unsigned char)pAttack->Motion != 254)
@@ -1433,8 +1457,6 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 
 	if (pAttack->SkillIndex == 98) // Superior Cannon
 		fAngle = atan2f((float)pAttack->TargetX - pAttacker->m_vecPosition.x, (float)pAttack->TargetY - pAttacker->m_vecPosition.y) + D3DXToRadian(90);
-	if (pAttack->DoubleCritical & 1)
-		pAttacker->m_bDoubleAttack = 1;
 	if (pAttacker->m_nClass != 44)
 		pAttacker->SetWantAngle(fAngle);
 

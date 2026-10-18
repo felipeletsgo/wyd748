@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/BoundedText.h"
 #include "TMFieldScene.h"
 #include "../../game/entities/DeathMotionPolicy.h"
 #include "SGrid.h"
@@ -38,6 +39,16 @@ int TMFieldScene::UpdateTeleportPrompt()
 			break;
 		}
 	}
+	const bool hasPortalIndex = nPosIndex >= 0 &&
+		nPosIndex < static_cast<int>(_countof(g_TeleportTable));
+	const bool hasLastPortal = m_nLastPotal >= 0 &&
+		m_nLastPotal < static_cast<int>(_countof(g_TeleportTable));
+	const auto messageAt = [](int index) -> char*
+	{
+		if (index < 0 || index >= static_cast<int>(_countof(g_pMessageStringTable)))
+			return nullptr;
+		return g_pMessageStringTable[index];
+	};
 
 	const bool isStanding = m_pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_STAND01 ||
 		m_pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_STAND02;
@@ -48,13 +59,7 @@ int TMFieldScene::UpdateTeleportPrompt()
 
 		if ((bAttr & 0x10) && !m_bTeleportMsg)
 		{
-			if (nPosIndex < 0)
-			{
-				WYD748_DiagnosticsLog("teleport ignored x=%d y=%d attr=0x%02X motion=%d index=-1\r\n",
-					x, y, bAttr, static_cast<int>(m_pMyHuman->m_eMotion));
-				m_bTeleportMsg = 1;
-			}
-			else if (!m_pMessageBox)
+			if (!m_pMessageBox)
 			{
 				WYD748_DiagnosticsLog("teleport blocked x=%d y=%d attr=0x%02X index=%d messagebox=null\r\n",
 					x, y, bAttr, nPosIndex);
@@ -62,7 +67,7 @@ int TMFieldScene::UpdateTeleportPrompt()
 			else
 			{
 				bool deferPrompt = false;
-				if (m_nLastPotal >= 0 && m_nLastPotal < _countof(g_TeleportTable))
+				if (hasPortalIndex && hasLastPortal)
 				{
 					int GridX = g_TeleportTable[nPosIndex].nX / 64;
 					int GridY = g_TeleportTable[nPosIndex].nY / 64;
@@ -80,9 +85,10 @@ int TMFieldScene::UpdateTeleportPrompt()
 					(int)m_pMyHuman->m_vecPosition.y > 1770 &&
 					(int)m_pMyHuman->m_vecPosition.y < 1777)
 				{
-					if (m_pMessagePanel)
+					char* pMessage = messageAt(160);
+					if (m_pMessagePanel && pMessage)
 					{
-						m_pMessagePanel->SetMessage(g_pMessageStringTable[160], 3000);
+						m_pMessagePanel->SetMessage(pMessage, 3000);
 						m_pMessagePanel->SetVisible(1, 1);
 						m_bTeleportMsg = 1;
 					}
@@ -94,9 +100,10 @@ int TMFieldScene::UpdateTeleportPrompt()
 						(int)m_pMyHuman->m_vecPosition.y >= 1728 &&
 						(int)m_pMyHuman->m_vecPosition.y <= 1759)
 					{
-						if (m_pMessagePanel)
+						char* pMessage = messageAt(258);
+						if (m_pMessagePanel && pMessage)
 						{
-							m_pMessagePanel->SetMessage(g_pMessageStringTable[258], 3000);
+							m_pMessagePanel->SetMessage(pMessage, 3000);
 							m_pMessagePanel->SetVisible(1, 1);
 							m_bTeleportMsg = 1;
 						}
@@ -115,36 +122,64 @@ int TMFieldScene::UpdateTeleportPrompt()
 							return 1;
 
 						m_nLastPotal = nPosIndex;
-						char szGoto[256]{};
-						sprintf(szGoto, g_pMessageStringTable[208],
-							g_TeleportTable[nPosIndex].szTarget);
-						int nShowPrice = 0;
-						if (!m_cWarClan && m_pMyHuman->m_cMantua &&
-							m_pMyHuman->m_cMantua != 3)
-							nShowPrice = 1;
-						if (m_cWarClan == 7 && m_pMyHuman->m_cMantua != 1)
-							nShowPrice = 1;
-						if (m_cWarClan == 8 && m_pMyHuman->m_cMantua != 2)
-							nShowPrice = 1;
-						if (m_cWarClan == -1)
-							nShowPrice = 1;
 
-						if (g_TeleportTable[nPosIndex].nPrice > 0 && nShowPrice == 1)
+						char szGoto[256]{};
+						char* pPrompt = messageAt(43);
+						if (hasPortalIndex)
 						{
-							char szPrice[256]{};
-							sprintf(szPrice, g_pMessageStringTable[207],
-								g_TeleportTable[nPosIndex].nPrice);
-							m_pMessageBox->SetMessage(szGoto, 16, szPrice);
+							char* pNamedFormat = messageAt(208);
+							char* pTarget = g_TeleportTable[nPosIndex].szTarget;
+							if (pNamedFormat && pTarget &&
+								sprintf_s(szGoto, _countof(szGoto), pNamedFormat, pTarget) >= 0)
+								pPrompt = szGoto;
+						}
+
+						if (!pPrompt)
+						{
+							WYD748_DiagnosticsLog("teleport prompt unavailable x=%d y=%d attr=0x%02X index=%d\r\n",
+								x, y, bAttr, nPosIndex);
 						}
 						else
 						{
-							m_pMessageBox->SetMessage(szGoto, 16, 0);
+							int nShowPrice = 0;
+							if (hasPortalIndex)
+							{
+								if (!m_cWarClan && m_pMyHuman->m_cMantua &&
+									m_pMyHuman->m_cMantua != 3)
+									nShowPrice = 1;
+								if (m_cWarClan == 7 && m_pMyHuman->m_cMantua != 1)
+									nShowPrice = 1;
+								if (m_cWarClan == 8 && m_pMyHuman->m_cMantua != 2)
+									nShowPrice = 1;
+								if (m_cWarClan == -1)
+									nShowPrice = 1;
+							}
+
+							if (hasPortalIndex && g_TeleportTable[nPosIndex].nPrice > 0 &&
+								nShowPrice == 1)
+							{
+								char* pPriceFormat = messageAt(207);
+								char szPrice[256]{};
+								if (pPriceFormat &&
+									sprintf_s(szPrice, _countof(szPrice), pPriceFormat,
+										g_TeleportTable[nPosIndex].nPrice) >= 0)
+									m_pMessageBox->SetMessage(pPrompt, 16, szPrice);
+								else
+									m_pMessageBox->SetMessage(pPrompt, 16, nullptr);
+							}
+							else
+							{
+								m_pMessageBox->SetMessage(pPrompt, 16, nullptr);
+							}
 						}
-						m_pMessageBox->SetVisible(1);
-						m_bTeleportMsg = 1;
-						WYD748_DiagnosticsLog("teleport prompt x=%d y=%d attr=0x%02X motion=%d index=%d visible=%d\r\n",
-							x, y, bAttr, static_cast<int>(m_pMyHuman->m_eMotion),
-							nPosIndex, m_pMessageBox->IsVisible());
+						if (pPrompt)
+						{
+							m_pMessageBox->SetVisible(1);
+							m_bTeleportMsg = 1;
+							WYD748_DiagnosticsLog("teleport prompt x=%d y=%d attr=0x%02X motion=%d index=%d visible=%d\r\n",
+								x, y, bAttr, static_cast<int>(m_pMyHuman->m_eMotion),
+								nPosIndex, m_pMessageBox->IsVisible());
+						}
 					}
 				}
 			}
@@ -287,17 +322,20 @@ void TMFieldScene::MobStop(D3DXVECTOR3 vec)
 
 int TMFieldScene::OnPacketReqSummon(MSG_ReqSummon* pStd)
 {
+	if (!pStd || !m_pHelpSummon)
+		return 0;
 	pStd->Name[15] = 0;
 
 	m_pHelpSummon->SetVisible(1);
 
-	sprintf(m_szSummoner, pStd->Name);
+	bounded_text::Copy(m_szSummoner, pStd->Name, sizeof(pStd->Name));
 	return 1;
 }
 
 int TMFieldScene::OnPacketCancelSummon(MSG_STANDARD* pStd)
 {
-	m_pHelpSummon->SetVisible(0);
+	if (m_pHelpSummon)
+		m_pHelpSummon->SetVisible(0);
 	return 1;
 }
 

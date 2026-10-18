@@ -47,15 +47,16 @@ namespace wyd_crash
         char line[1024]{};
         MEMORY_BASIC_INFORMATION memory{};
         const auto address = reinterpret_cast<ULONG_PTR>(state.record.ExceptionAddress);
-        const bool mapped = VirtualQuery(state.record.ExceptionAddress, &memory, sizeof(memory)) != 0;
+        const bool mapped = VirtualQuery(state.record.ExceptionAddress, &memory, sizeof(memory)) != 0 &&
+            memory.State == MEM_COMMIT && memory.Type == MEM_IMAGE && memory.AllocationBase;
         const auto base = mapped ? reinterpret_cast<ULONG_PTR>(memory.AllocationBase) : 0;
         char module[MAX_PATH]{};
         if (mapped)
             GetModuleFileNameA(static_cast<HMODULE>(memory.AllocationBase), module, MAX_PATH);
         sprintf_s(line,
             "CRASH code=0x%08lX address=%p module=%s base=%p rva=0x%llX fault_tid=%lu capture_tid=%lu\r\n",
-            state.record.ExceptionCode, state.record.ExceptionAddress, module,
-            reinterpret_cast<void*>(base), static_cast<unsigned long long>(address - base),
+            state.record.ExceptionCode, state.record.ExceptionAddress, mapped ? module : "<unmapped>",
+            reinterpret_cast<void*>(base), static_cast<unsigned long long>(mapped ? address - base : 0),
             state.faultThread, GetCurrentThreadId());
         Log(line);
         // Access violations carry the attempted operation and address, not a payload.

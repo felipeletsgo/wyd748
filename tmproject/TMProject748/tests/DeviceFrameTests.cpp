@@ -1,4 +1,5 @@
 #include "../internal/platform/windows/DeviceFrame.h"
+#include "../internal/ui/RenderControlList.h"
 #include <cstdio>
 #include <string>
 
@@ -19,6 +20,8 @@ struct Renderer {
     int Lock(int clear) { order += clear ? 'B' : 'b'; return lockResult; }
     int Unlock(int present) { order += present ? 'P' : 'e'; return unlockResult; }
 };
+struct Geometry { Geometry* m_pNextGeom = nullptr; };
+struct GeometryList { Geometry* pHeadGeom = nullptr; Geometry* pTailGeom = nullptr; };
 }
 
 int RunDeviceFrameTests(int& checks)
@@ -147,5 +150,74 @@ int RunDeviceFrameTests(int& checks)
             scene.Begin(0) && scene.End(1), "all existing frame segments remain supported");
     }
     check(renderer.order == "BebebP", "multi-scene frame presents exactly once");
+
+    // Production UI links are intrusive and non-owning. Aborted frames must
+    // release them before controls can be destroyed or inserted next frame.
+    for (int stop = 0; stop <= 8; ++stop) {
+        GeometryList lists[3]{};
+        Geometry first, second, third;
+        check(render_control_list::AppendUnique(lists, 3, 0, &first) &&
+            render_control_list::AppendUnique(lists, 3, 0, &second) &&
+            render_control_list::AppendUnique(lists, 3, 2, &third), "queue frame geometry");
+        check(!render_control_list::AppendUnique(lists, 3, 2, &first),
+            "cross-layer duplicate rejected before modifying links");
+        check(first.m_pNextGeom == &second && lists[0].pTailGeom == &second &&
+            lists[2].pHeadGeom == &third && !third.m_pNextGeom,
+            "duplicate insertion preserves both layers");
+        Renderer aborted;
+        int cleanups = 0;
+        const auto draw = [&] {
+            render_control_list::FrameCleanup cleanup([&] {
+                ++cleanups;
+                for (auto& list : lists) render_control_list::Clear(list);
+            });
+            device_frame::Scene<Renderer> scene(aborted);
+            if (stop == 0) return;
+            if (stop == 1) aborted.lockResult = 0;
+            if (!scene.Begin(1)) return;
+            if (stop == 2) return; // State setup or world rendering failed.
+            if (stop == 3) aborted.unlockResult = 0;
+            if (!scene.End(0)) return;
+            if (stop == 4) aborted.lockResult = 0;
+            if (!scene.Begin(0)) return;
+            if (stop == 5) return; // UI state setup failed.
+            if (stop == 6) {
+                // Normal consumption may already have cleared these lists.
+                for (auto& list : lists) render_control_list::Clear(list);
+            }
+            if (stop == 7) aborted.unlockResult = 0;
+            scene.End(1);
+        };
+        draw();
+        check(cleanups == 1, "frame cleanup runs once on every return path");
+        for (const auto& list : lists)
+            check(!list.pHeadGeom && !list.pTailGeom, "aborted frame clears head and tail");
+        check(!first.m_pNextGeom && !second.m_pNextGeom && !third.m_pNextGeom,
+            "aborted frame detaches every node");
+        check(render_control_list::AppendUnique(lists, 3, 1, &first) &&
+            render_control_list::AppendUnique(lists, 3, 1, &second),
+            "nodes can be queued in another layer next frame");
+        check(render_control_list::RemoveAny(lists, 3, &second) &&
+            lists[1].pTailGeom == &first && !first.m_pNextGeom,
+            "removal finds actual layer and repairs tail");
+        check(render_control_list::RemoveAny(lists, 3, &first) &&
+            !lists[1].pHeadGeom && !lists[1].pTailGeom,
+            "last node can be destroyed after abort and requeue");
+        check(!render_control_list::RemoveAny(lists, 3, &first), "repeat removal is harmless");
+    }
+    GeometryList layers[2]{};
+    Geometry* removed = new Geometry;
+    Geometry survivor;
+    render_control_list::AppendUnique(layers, 2, 0, removed);
+    render_control_list::AppendUnique(layers, 2, 0, &survivor);
+    {
+        render_control_list::FrameCleanup cleanup([&] {
+            for (auto& list : layers) render_control_list::Clear(list);
+        });
+    }
+    delete removed;
+    check(render_control_list::AppendUnique(layers, 2, 1, &survivor),
+        "next frame does not traverse destroyed control from aborted frame");
+    render_control_list::Clear(layers[1]);
     return failures;
 }

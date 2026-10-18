@@ -7,8 +7,8 @@ import (
 	"wydgo/internal/model"
 )
 
-// hellGateInstance identifica a configuracao de Porto Infernal sem espalhar
-// comparacoes de nomes pelo motor generico de salas.
+// hellGateInstance identifies Hell Gate without spreading name comparisons
+// throughout the generic room engine.
 func hellGateInstance(inst *ItemInstance) (*model.VolatileHellGate, bool) {
 	if inst == nil || !strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate") ||
 		inst.Config.HellGate == nil {
@@ -38,7 +38,7 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 	}
 	for _, spawn := range spawns {
 		def := w.npcDefByName(spawn.NPC)
-		if def == nil || def.Score == nil || spawn.Count <= 0 {
+		if def == nil || !def.IsMonster() || def.Score == nil || spawn.Count <= 0 {
 			rollback()
 			return nil, false
 		}
@@ -54,6 +54,7 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 		if searchRadius <= 0 {
 			searchRadius = 1
 		}
+		searchRadius = instanceSpawnRadius(spawn, searchRadius)
 		for n := 0; n < spawn.Count; n++ {
 			baseX, baseY := inst.Config.X, inst.Config.Y
 			if spawn.X != 0 && spawn.Y != 0 {
@@ -119,7 +120,7 @@ func findHellGatePosition(w *World, instanceID string, baseX, baseY uint16, dist
 			x, y := uint16(nx), uint16(ny)
 			key := uint32(x)<<16 | uint32(y)
 			if _, used := reserved[key]; used || w.findMobPositionOccupied(instanceID, x, y) ||
-				!w.terrain.Walkable(x, y) {
+				!w.terrain.Walkable(x, y) || !w.terrain.LineOfSight(baseX, baseY, x, y) {
 				continue
 			}
 			return x, y, true
@@ -155,6 +156,9 @@ func (w *World) removeHellGateMobs(inst *ItemInstance) {
 	inst.NPCIDs = make(map[uint16]struct{})
 	inst.MobQuadrants = make(map[uint16]uint8)
 	inst.HellGateLichIDs = make(map[uint8]uint16)
+	inst.HellGateRouteDistances = nil
+	inst.HellGateDefenseSpawns = nil
+	inst.HellGateReplacements = nil
 	inst.Remaining = 0
 }
 
@@ -178,7 +182,7 @@ func (w *World) spawnHellGateQuadrants(inst *ItemInstance, now time.Time) bool {
 	inst.HellGateWrongLich = false
 	inst.MobIDs = make(map[uint16]struct{})
 	for _, quadrant := range cfg.Quadrants {
-		created, ok := w.spawnHellGateWave(inst, quadrant.Spawns, uint8(quadrant.ID), true)
+		created, ok := w.spawnHellGateWave(inst, hellGateRoomSpawns(inst, quadrant), uint8(quadrant.ID), true)
 		if !ok {
 			w.removeHellGateMobs(inst)
 			return false
@@ -225,6 +229,16 @@ func (w *World) spawnHellGateLich(inst *ItemInstance, quadrant uint8) bool {
 		inst.HellGateLichIDs[quadrant] = created[0].ID
 		inst.HellGateLichSpawnedMask |= hellGateBit(quadrant)
 		inst.Remaining++
+		if population := hellGatePopulation(inst); population != nil {
+			escorts, ok := w.spawnHellGateWave(inst, population.LichEscorts[q.ID-1], quadrant, true)
+			if !ok {
+				return false
+			}
+			for _, escort := range escorts {
+				inst.MobIDs[escort.ID] = struct{}{}
+				inst.Remaining++
+			}
+		}
 		w.sendItemInstanceStageStatus(inst)
 		return true
 	}
@@ -238,15 +252,16 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 	}
 	w.removeHellGateMobs(inst)
 	inst.State = "final"
-	created, ok := w.spawnHellGateWave(inst, cfg.FinalSpawns, 0, true)
-	if !ok && len(cfg.FinalSpawns) > 0 {
-		return false
+	if hellGateVersion2(inst) {
+		inst.State = "protection"
 	}
-	inst.MobIDs = make(map[uint16]struct{}, len(created))
-	for _, mob := range created {
-		inst.MobIDs[mob.ID] = struct{}{}
+	for _, spawn := range hellGateFinalSpawns(inst) {
+		if !w.spawnHellGateDefenseGroup(inst, spawn) {
+			w.removeHellGateMobs(inst)
+			return false
+		}
 	}
-	inst.Remaining = len(created)
+	inst.Remaining = len(inst.MobIDs)
 	for _, spawn := range cfg.FinalNPCs {
 		def := w.npcDefByName(spawn.NPC)
 		if def == nil || def.Score == nil || def.IsMonster() || spawn.Count <= 0 {
@@ -254,7 +269,16 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 			return false
 		}
 		for n := 0; n < spawn.Count; n++ {
-			x, y, found := findHellGatePosition(w, inst.RuntimeID, spawn.X, spawn.Y, 0, map[uint32]struct{}{})
+			// A member standing on the protector anchor must not cancel the
+			// encounter. Stay in the anchor's local, reachable terrain component.
+			var x, y uint16
+			var found bool
+			for distance := 0; distance <= 4; distance++ {
+				x, y, found = findHellGatePosition(w, inst.RuntimeID, spawn.X, spawn.Y, distance, nil)
+				if found {
+					break
+				}
+			}
 			if !found {
 				w.removeHellGateMobs(inst)
 				return false
@@ -264,7 +288,14 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 				w.removeHellGateMobs(inst)
 				return false
 			}
-			mob := &Mob{ID: id, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
+			hp := def.Score.MaxHP
+			if hellGateVersion2(inst) {
+				if inst.HellGateDionysHP == 0 {
+					inst.HellGateDionysHP = hp
+				}
+				hp = min(hp, inst.HellGateDionysHP)
+			}
+			mob := &Mob{ID: id, Def: def, X: x, Y: y, HP: hp,
 				GenerIndex: -1, InstanceID: inst.RuntimeID}
 			w.appendMobInstance(mob)
 			w.mobsByID[id] = mob
@@ -275,7 +306,12 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 			w.publishMobSpawn(mob)
 		}
 	}
-	if inst.Remaining == 0 {
+	// Attackers were registered before the protector existed. Wake them now,
+	// including groups outside both player proximity and normal aggro range.
+	for id := range inst.MobIDs {
+		w.recomputeMobActive(w.mobsByID[id])
+	}
+	if inst.Remaining == 0 && !hellGateVersion2(inst) {
 		w.completeItemInstance(inst, now)
 	} else {
 		w.sendItemInstanceStageStatus(inst)
@@ -283,9 +319,8 @@ func (w *World) spawnHellGateFinal(inst *ItemInstance, now time.Time) bool {
 	return true
 }
 
-// onHellGateMobKilled consome o evento de morte antes do motor linear. Isso
-// garante que um Lich nao possa ser morto duas vezes para liberar a porta e
-// que a combinacao escolhida nao seja determinada pelo pacote do cliente.
+// onHellGateMobKilled consumes deaths before the linear room engine. A Lich
+// cannot unlock the gate twice, and the client cannot select the valid pair.
 func (w *World) onHellGateMobKilled(inst *ItemInstance, mob *Mob, now time.Time) bool {
 	cfg, ok := hellGateInstance(inst)
 	if !ok || mob == nil {
@@ -300,6 +335,10 @@ func (w *World) onHellGateMobKilled(inst *ItemInstance, mob *Mob, now time.Time)
 	}
 	quadrant := inst.MobQuadrants[mob.ID]
 	delete(inst.MobQuadrants, mob.ID)
+	if hellGateVersion2(inst) {
+		w.onHellGateVersion2Killed(inst, mob, quadrant, now)
+		return true
+	}
 	if inst.State == "entry" && strings.EqualFold(mob.Def.Name, cfg.ControllerNPC) {
 		inst.HellGateVariant = w.intn(2) + 1
 		if inst.HellGateVariant == 1 {
@@ -318,8 +357,8 @@ func (w *World) onHellGateMobKilled(inst *ItemInstance, mob *Mob, now time.Time)
 			inst.HellGateClearedMask |= hellGateBit(quadrant)
 			if hellGateBit(quadrant)&inst.HellGateValidLichMask == 0 {
 				// Keep the diagnostic flag for logging/state replication, but do
-				// not make it a permanent lock. The native gate opens as soon as
-				// the two autoritatively selected Lichs are defeated; killing an
+				// not make it a permanent lock. The configured gate opens when
+				// the two authoritatively selected Liches are defeated; killing an
 				// unselected Lich does not change that selected pair.
 				inst.HellGateWrongLich = true
 			}
@@ -357,6 +396,6 @@ func (w *World) onHellGateMobKilled(inst *ItemInstance, mob *Mob, now time.Time)
 // hellGateAcceptsFinalState lets tickItemInstances finish the encounter even
 // though the zone itself remains alive until ScheduleEnd for other entrants.
 func hellGateAcceptsFinalState(inst *ItemInstance) bool {
-	return inst != nil && strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate") &&
+	return inst != nil && !hellGateVersion2(inst) && strings.EqualFold(strings.TrimSpace(inst.Config.StateMachine), "hell_gate") &&
 		inst.State == "final" && inst.Remaining == 0
 }

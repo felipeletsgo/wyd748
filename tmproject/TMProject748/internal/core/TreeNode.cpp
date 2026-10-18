@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TreeNode.h"
 #include "TMObject.h"
+#include "TreeAttachment.h"
 
 int TreeNode::m_VisualKey1 = -1;
 int TreeNode::m_VisualKey2 = -1;
@@ -119,6 +120,9 @@ void TreeNode::InitTexture()
 
 void TreeNode::AddChild(TreeNode* pChild)
 {
+	if (!tree_attachment::CanAdopt(this, pChild) || pChild->m_pTop == this)
+		return;
+	pChild->Unlink();
 	pChild->m_pTop = this;
 	pChild->m_pNextLink = m_pDown;
 
@@ -130,20 +134,18 @@ void TreeNode::AddChild(TreeNode* pChild)
 
 void TreeNode::AddChild(TreeNode* pChild, unsigned int id, unsigned int key)
 {
-	pChild->m_pTop = this;
-	pChild->m_pNextLink = m_pDown;
-
-	m_pDown = pChild;
-
-	if (pChild->m_pNextLink)
-		pChild->m_pNextLink->m_pPrevLink = pChild;
-
+	if (!tree_attachment::CanAdopt(this, pChild))
+		return;
+	AddChild(pChild);
 	pChild->m_dwID = id;
 	pChild->m_dwKey = key;
 }
 
 void TreeNode::SetPrevNode(TreeNode* pPrev)
 {
+	if (pPrev == this || !tree_attachment::CanAdopt(m_pTop, pPrev))
+		return;
+	pPrev->Unlink();
 	pPrev->m_pTop = m_pTop;
 	pPrev->m_pNextLink = this;
 
@@ -161,6 +163,9 @@ void TreeNode::SetPrevNode(TreeNode* pPrev)
 
 void TreeNode::SetNextNode(TreeNode* pNext)
 {
+	if (pNext == this || !tree_attachment::CanAdopt(m_pTop, pNext))
+		return;
+	pNext->Unlink();
 	pNext->m_pTop = m_pTop;
 
 	pNext->m_pPrevLink = this;
@@ -211,16 +216,5 @@ TreeNode* TreeNode::FindNodeWithKey(unsigned int Key)
 
 void TreeNode::DeleteOwner(TMObject* pOwner)
 {
-	TreeNode* n;
-
-	for (n = m_pDown; n; n = n->m_pNextLink)
-	{
-		if (pOwner)
-		{
-			if (n->m_pOwner == pOwner)
-				n->m_pOwner = nullptr;
-		}
-		else
-			n->m_pOwner = nullptr;
-	}
+	tree_attachment::ClearOwner(this, pOwner);
 }

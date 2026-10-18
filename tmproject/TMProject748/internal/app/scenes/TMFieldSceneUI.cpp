@@ -446,31 +446,7 @@ void TMFieldScene::UpdateCompatScoreUI()
 	// WYD.exe 7.48 FUN_004431e4 includes the native class bonuses and freeze
 	// penalty in this presentation value. The server still authorizes cadence;
 	// this restores only the number shown by control 1110 (Att Speed).
-	int attackSpeedClass = 0;
-	if (m_pMyHuman && m_pMyHuman->m_nClass == 26 && m_pMyHuman->m_stLookInfo.FaceMesh == 0)
-		attackSpeedClass = 20;
-	else if (m_pMyHuman && m_pMyHuman->m_nClass == 26 && m_pMyHuman->m_stLookInfo.FaceMesh == 1)
-	{
-		if ((pMobData->LearnedSkill[0] & 0x80000) == 0x80000)
-			attackSpeedClass = 20;
-	}
-	else if (m_pMyHuman && m_pMyHuman->m_nClass == 33)
-	{
-		attackSpeedClass = 20;
-		if ((pMobData->LearnedSkill[0] & 0x200000) == 0x200000)
-			attackSpeedClass = 40;
-	}
-	else if (m_pMyHuman && m_pMyHuman->m_nClass == 40)
-		attackSpeedClass = 20;
-	else if (m_pMyHuman && m_pMyHuman->m_nClass == 63)
-		attackSpeedClass = 30;
-
-	int attackSpeed = (pMobData->CurrentScore.Mastery[2] / 10 + 10)
-		* (m_pMyHuman ? m_pMyHuman->m_cSpeedUp - m_pMyHuman->m_cSpeedDown : 0)
-		+ pMobData->CurrentScore.Dex / 5 + attackSpeedClass
-		+ BASE_GetMobAbility(pMobData, 26) + 100;
-	if (m_pMyHuman && m_pMyHuman->m_cFreeze == 1)
-		attackSpeed -= 30;
+	const int attackSpeed = BASE_GetAttackSpeedPercent(pMobData, m_pMyHuman);
 	char percent[32]{};
 	sprintf_s(percent, "%d%%", attackSpeed);
 	setCompatText(TMT_CI_DFBT, percent);

@@ -1,6 +1,7 @@
 #include "SourceMethod.h"
 #include "../internal/core/CameraInput.h"
 #include "../internal/game/entities/BerielAuraPolicy.h"
+#include "../internal/ui/controls/ScrollbarLayout.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -31,7 +32,7 @@ std::string ReadClientSource(const char* relative)
 }
 }
 
-// Camera zoom and the BerialGuard darkness aura.
+// Field input, scrollbar geometry, camera zoom and the BerialGuard aura.
 int RunFieldViewContractTests(int& checks)
 {
     int failures = 0;
@@ -42,6 +43,74 @@ int RunFieldViewContractTests(int& checks)
             std::fprintf(stderr, "FAIL field view: %s\n", message);
         }
     };
+
+    // Explicit project choice: 1-0 selects skills instead of native F1-F10.
+    // Native FUN_00454763 still establishes visible-list page scrolling.
+    const auto fieldInput = ReadClientSource("internal/app/scenes/TMFieldSceneInput.cpp");
+    const auto keydown = source_contract::Method(fieldInput,
+        "int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)");
+    check(!keydown.empty() && keydown.find("VK_F10") == std::string::npos &&
+        keydown.find("VK_F1 &&") == std::string::npos &&
+        keydown.find("SelectShortSkill(slot)") == std::string::npos,
+        "F1-F10 no longer select or assign skills");
+    const auto fieldScene = ReadClientSource("internal/app/scenes/TMFieldScene.cpp");
+    const auto characters = source_contract::Method(fieldScene,
+        "int TMFieldScene::OnCharEvent(char iCharCode, int lParam)");
+    check(characters.find("TMScene::OnCharEvent(iCharCode, lParam)") <
+        characters.find("OnKeySkill(iCharCode, lParam)") &&
+        characters.find("OnKeySkill(iCharCode, lParam)") <
+        characters.find("OnKeyShortSkill(iCharCode, lParam)"),
+        "focused text input precedes assignment and number-key selection");
+    const auto assignment = source_contract::Method(fieldInput,
+        "int TMFieldScene::OnKeySkill(char iCharCode, int lParam)");
+    check(assignment.find("if (!m_pSkillPanel || !g_pCursor)") != std::string::npos &&
+        assignment.find("if (!m_pSkillPanel->IsVisible())") != std::string::npos &&
+        assignment.find("case '!':") != std::string::npos &&
+        assignment.find("case ')':") != std::string::npos,
+        "Shift+1-0 retains hovered assignment in the visible skill panel");
+    const auto beltSelection = source_contract::Method(fieldInput,
+        "int TMFieldScene::SelectShortSkill(int slot)");
+    check(beltSelection.find("slot < 0 || slot >= 10 || !g_pObjectManager") != std::string::npos &&
+        beltSelection.find("!m_pGridSkillBelt2 || !m_pGridSkillBelt3") != std::string::npos &&
+        beltSelection.find("cSkillIndex < 248 && m_pMyHuman") != std::string::npos,
+        "selection safely handles invalid slots and incomplete scene construction");
+    check(beltSelection.find("m_cSelectShortSkill = slot;") != std::string::npos &&
+        beltSelection.find("if (m_pGridSkillBelt3->IsVisible())") != std::string::npos &&
+        beltSelection.find("m_cSelectShortSkill += 10;") != std::string::npos,
+        "the visible second bank offsets selection by ten");
+    const auto numberKeys = source_contract::Method(fieldInput,
+        "int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)");
+    check(numberKeys.find("if (m_bNumPad == 1)") != std::string::npos &&
+        numberKeys.find("return SelectShortSkill(slot);") != std::string::npos,
+        "number keys retain numpad suppression and use the shared selection helper");
+    check(numberKeys.find("slot = iCharCode - '1';") != std::string::npos &&
+        numberKeys.find("if (iCharCode == '0')") != std::string::npos &&
+        numberKeys.find("slot = 9;") != std::string::npos,
+        "1-9 select the first nine slots and 0 selects the tenth");
+    for (const auto key : {"VK_PRIOR", "VK_NEXT"}) {
+        const auto scrolling = source_contract::Method(keydown,
+            std::string("if (iKeyCode == ") + key + ")");
+        check(scrolling.find("m_pMsgPanel && m_pMsgPanel->IsVisible() == 1") != std::string::npos &&
+            scrolling.find("pChatList = m_pMsgList;") != std::string::npos &&
+            scrolling.find("pChatList = m_pChatList;") != std::string::npos,
+            "page keys choose messages only when their panel is visible");
+        check(scrolling.find("pChatList && pChatList->IsVisible() == 1 && pChatList->m_pScrollBar") != std::string::npos &&
+            scrolling.find(key == std::string("VK_PRIOR") ? "->Up();" : "->Down();") != std::string::npos &&
+            scrolling.find("IsVisible() == 0") == std::string::npos,
+            "page keys scroll the visible list in the requested direction");
+    }
+
+    for (const float scale : {0.75f, 1.0f, 1.2f, 1.5f, 2.0f}) {
+        const float resourceHeight = 320.0f;
+        const float created = scrollbar_layout::DownArrowY(resourceHeight, 1.0f) * scale;
+        const float resized = scrollbar_layout::DownArrowY(resourceHeight * scale, scale);
+        check(created - resized < 0.001f && resized - created < 0.001f,
+            "UI2 scrollbar creation and pixel resize apply UI scale exactly once");
+        check(resized == 310.0f * scale,
+            "the down arrow preserves the native ten-unit bottom inset at every scale");
+        check(scrollbar_layout::DownArrowY(400.0f * scale, scale) > resized,
+            "growing the chat moves the down arrow with the content bottom");
+    }
 
     // [CAMERAROTATE] 1 inverts the wheel delta but not viewchange; with
     // [CAMERAVIEW] 0 the distance must follow the selected direction or the
@@ -165,5 +234,25 @@ int RunFieldViewContractTests(int& checks)
         existing.find("SetPacketEquipItem(pCreateMob->Equip)") != std::string::npos &&
         existing.find("InitObject") == std::string::npos && existing.find("InitPosition") == std::string::npos,
         "live citizenship refresh keeps the existing entity and movement");
+    const auto physicalSource = ReadClientSource("internal/app/scenes/TMFieldSceneCombat.cpp");
+    const auto physicalTick = source_contract::Method(physicalSource,
+        "void TMFieldScene::UpdatePhysicalAttack(unsigned int dwServerTime)");
+    const auto physicalClick = source_contract::Method(physicalSource,
+        "int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime, TMHuman* target)");
+    check(frame.find("UpdatePhysicalAttack(dwServerTime);") != std::string::npos &&
+        frame.find("UpdatePhysicalAttack(dwServerTime);") > frame.find("UpdateTeleportPrompt()") &&
+        physicalTick.find("field_interaction::PhysicalAttackTick(") != std::string::npos &&
+        physicalTick.find("MobAttack(0, position, dwServerTime, target)") != std::string::npos,
+        "the field retries the retained enemy through click validation after transition gates");
+    check(physicalClick.find("m_pTargetHuman = pOver;") < physicalClick.find("dwServerTime <= m_dwOldAttackTime + 1000") &&
+        physicalClick.find("target || pOver->m_bMouseOver == 1") != std::string::npos &&
+        physicalClick.find("if (m_cAutoAttack == 1)") == std::string::npos,
+        "physical clicks retain targets during cooldown without hover or CC dependency");
+    const auto physicalPackets = ReadClientSource("internal/app/scenes/TMFieldSceneCombatPackets.cpp");
+    const auto killed = source_contract::Method(physicalPackets,
+        "int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)");
+    check(killed.find("if (m_pTargetHuman == pKilled)") != std::string::npos &&
+        killed.find("m_pMyHuman->m_pMoveTargetHuman == pKilled") != std::string::npos,
+        "any killer clears the selected victim, not an unrelated surviving target");
     return failures;
 }

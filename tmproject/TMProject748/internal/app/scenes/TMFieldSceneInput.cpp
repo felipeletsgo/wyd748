@@ -159,8 +159,7 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 		SendOneMessage((char*)&stWhisper, sizeof(stWhisper));
 	}
 
-	// F1-F4 are not inventory-page shortcuts in the 7.48 executable.  Leaving
-	// them out of this dispatcher preserves the native shortcut ownership.
+	// Project controls use 1-0 / Shift+1-0 through OnCharEvent, not F1-F10.
 
 	if (iKeyCode == VK_F11)
 	{
@@ -283,12 +282,12 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 	{
 		SListBox* pChatList{};
 
-		if (m_pMsgPanel && m_pMsgPanel->IsVisible() == 0)
+		if (m_pMsgPanel && m_pMsgPanel->IsVisible() == 1)
 			pChatList = m_pMsgList;
 		else
 			pChatList = m_pChatList;
 
-		if (pChatList && pChatList->IsVisible() == 0 && pChatList->m_pScrollBar)
+		if (pChatList && pChatList->IsVisible() == 1 && pChatList->m_pScrollBar)
 			pChatList->m_pScrollBar->Up();
 
 		return 1;
@@ -298,12 +297,12 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 	{
 		SListBox* pChatList{};
 
-		if (m_pMsgPanel && m_pMsgPanel->IsVisible() == 0)
+		if (m_pMsgPanel && m_pMsgPanel->IsVisible() == 1)
 			pChatList = m_pMsgList;
 		else
 			pChatList = m_pChatList;
 
-		if (pChatList && pChatList->IsVisible() == 0 && pChatList->m_pScrollBar)
+		if (pChatList && pChatList->IsVisible() == 1 && pChatList->m_pScrollBar)
 			pChatList->m_pScrollBar->Down();
 
 		return 1;
@@ -1149,53 +1148,63 @@ int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 		return 1;
 	}
 
+	int slot = 0;
 	if (iCharCode >= '0' && iCharCode <= '9')
 	{
-		g_pObjectManager->m_cSelectShortSkill = iCharCode - '1';
-		if (iCharCode == 48)
-			g_pObjectManager->m_cSelectShortSkill = 9;
+		slot = iCharCode - '1';
+		if (iCharCode == '0')
+			slot = 9;
 	}
 	else
 	{
 		switch (iCharCode)
 		{
 		case '!':
-			g_pObjectManager->m_cSelectShortSkill = 0;
+			slot = 0;
 			break;
 		case '@':
-			g_pObjectManager->m_cSelectShortSkill = 1;
+			slot = 1;
 			break;
 		case '#':
-			g_pObjectManager->m_cSelectShortSkill = 2;
+			slot = 2;
 			break;
 		case '$':
-			g_pObjectManager->m_cSelectShortSkill = 3;
+			slot = 3;
 			break;
 		case '%':
-			g_pObjectManager->m_cSelectShortSkill = 4;
+			slot = 4;
 			break;
 		case '^':
-			g_pObjectManager->m_cSelectShortSkill = 5;
+			slot = 5;
 			break;
 		case '&':
-			g_pObjectManager->m_cSelectShortSkill = 6;
+			slot = 6;
 			break;
 		case '*':
-			g_pObjectManager->m_cSelectShortSkill = 7;
+			slot = 7;
 			break;
 		case '(':
-			g_pObjectManager->m_cSelectShortSkill = 8;
+			slot = 8;
 			break;
 		case ')':
-			g_pObjectManager->m_cSelectShortSkill = 9;
+			slot = 9;
 			break;
 		}
 	}
+	return SelectShortSkill(slot);
+}
+
+int TMFieldScene::SelectShortSkill(int slot)
+{
+	if (slot < 0 || slot >= 10 || !g_pObjectManager)
+		return 1;
+
 	// FUN_004528c5 always receives both native belt grids from FUN_00435b13.
 	// A malformed resource must consume the shortcut safely instead of crashing.
 	if (!m_pGridSkillBelt2 || !m_pGridSkillBelt3)
 		return 1;
 
+	g_pObjectManager->m_cSelectShortSkill = slot;
 	if (m_pGridSkillBelt3->IsVisible())
 		g_pObjectManager->m_cSelectShortSkill += 10;
 
@@ -1247,7 +1256,7 @@ int TMFieldScene::OnKeyShortSkill(char iCharCode, int lParam)
 	int cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
 	if (cSkillIndex >= 105)
 		cSkillIndex += 95;
-	if (cSkillIndex >= 0 && cSkillIndex < 248)
+	if (cSkillIndex >= 0 && cSkillIndex < 248 && m_pMyHuman)
 	{
 		SetMyHumanMagic();
 

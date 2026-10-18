@@ -21,16 +21,16 @@ func clampScoreValue(value uint32) uint32 {
 	return value
 }
 
-// ensureScore garante a unica representacao autoritativa do jogador.
+// ensureScore enforces the player's sole authoritative score representation.
 func ensureScore(ch *model.Char) {
 	if ch == nil {
 		return
 	}
 	if ch.Score == nil {
-		panic("game: personagem sem score")
+		panic("game: character has no score")
 	}
 	if ch.Score.Version != model.ScoreVersion {
-		panic("game: versao de score invalida")
+		panic("game: invalid score version")
 	}
 }
 
@@ -80,10 +80,11 @@ func applyScore(ch *model.Char) {
 	effective := *ch.Score
 	clampRuntime(&effective)
 	ch.RuntimeScore = &effective
+	ch.RuntimeAttackSpeedPercent = 0
 }
 
-// normalizeRuntimeScore foi mantida como ponto unico de validacao para os
-// recalculos existentes. Nenhum Score estreito e armazenado aqui.
+// normalizeRuntimeScore is the validation point for existing recalculations.
+// No narrow score representation is stored here.
 func normalizeRuntimeScore(ch *model.Char) {
 	if ch == nil || ch.RuntimeScore == nil {
 		return
@@ -167,8 +168,8 @@ func setPlayerCurHP(ch *model.Char, value uint32) {
 	}
 	ensureScore(ch)
 	value = minU32(value, playerMaxHP(ch))
-	// O valor VIVO (limitado pelo teto efetivo) fica no runtime; o base
-	// so aceita ate o proprio teto, senao o autosave grava cur > max.
+	// Keep the live value within the effective runtime cap. Limit the persisted
+	// base to its own cap so autosave never writes a current value above max.
 	ch.Score.CurHP = minU32(value, ch.Score.MaxHP)
 	if ch.RuntimeScore != nil {
 		ch.RuntimeScore.CurHP = value
@@ -183,8 +184,8 @@ func setPlayerCurMP(ch *model.Char, value uint32) {
 	}
 	ensureScore(ch)
 	value = minU32(value, playerMaxMP(ch))
-	// O valor VIVO (limitado pelo teto efetivo) fica no runtime; o base
-	// so aceita ate o proprio teto, senao o autosave grava cur > max.
+	// Keep the live value within the effective runtime cap. Limit the persisted
+	// base to its own cap so autosave never writes a current value above max.
 	ch.Score.CurMP = minU32(value, ch.Score.MaxMP)
 	if ch.RuntimeScore != nil {
 		ch.RuntimeScore.CurMP = value

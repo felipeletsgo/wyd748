@@ -3,6 +3,9 @@
 #include "Basedef.h"
 #include "TMGlobal.h"
 #include "ServerListAsset.h"
+#include "ObjectManager.h"
+#include "TMHuman.h"
+#include "../application/AttackSpeedPolicy.h"
 
 int BASE_GetSpeed(STRUCT_SCORE* score)
 {
@@ -364,6 +367,15 @@ int BASE_GetMaxAbility(STRUCT_MOB* mob, char Type)
     return value;
 }
 
+int BASE_GetAttackSpeedPercent(STRUCT_MOB* mob, const TMHuman* human)
+{
+    return attack_speed::Percent(mob->CurrentScore.Dex, mob->CurrentScore.Mastery[2],
+        mob->LearnedSkill[0], BASE_GetMobAbility(mob, 26),
+        human ? human->m_nClass : 0, human ? human->m_stLookInfo.FaceMesh : 0,
+        human ? human->m_cSpeedUp : 0, human ? human->m_cSpeedDown : 0,
+        human && human->m_cFreeze == 1);
+}
+
 int BASE_GetDoubleCritical(STRUCT_MOB* mob, unsigned short* sProgress, unsigned short* cProgress, char* bDoubleCritical)
 {
     *bDoubleCritical = 0;
@@ -374,9 +386,14 @@ int BASE_GetDoubleCritical(STRUCT_MOB* mob, unsigned short* sProgress, unsigned 
     if (sProgress && (int)*sProgress >= 1024)
         *sProgress %= 1024;
 
+    // Only local intentions use this prediction; observed hits use server flags.
+    const auto human = g_pObjectManager && mob == &g_pObjectManager->m_stMobData
+        ? g_pObjectManager->GetHumanByID(g_pObjectManager->m_dwCharID) : nullptr;
+    const int percent = human ? BASE_GetAttackSpeedPercent(mob, human)
+        : 100 + static_cast<int>((mob->CurrentScore.AttackRun >> 4) & 15) * 10;
     int hitvalue[2] =
     {
-        100 * (((int)(unsigned char)mob->CurrentScore.AttackRun >> 4) - 5),
+        attack_speed::DoubleChancePerMille(percent, mob->CurrentScore.AttackRun),
         // Critical is part of the shared canonical Score and is expressed in
         // tenths of a percent (1000 = 100%), matching the server roll.
         (int)(mob->CurrentScore.Critical > 1000 ? 1000 : mob->CurrentScore.Critical)

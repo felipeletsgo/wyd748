@@ -8,6 +8,8 @@
 #define INIT_CODE 521270033
 
 #include "../../application/ports/PacketView.h"
+#include <deque>
+#include <functional>
 
 class CPSock
 {
@@ -22,6 +24,11 @@ public:
 	int Receive();
 	enum class EventResult { Ignored, ReadReady, Disconnected };
 	EventResult HandleNetworkEvent(WPARAM socket, LPARAM notification);
+	// Serializes window notifications across modal message pumps. Packet storage
+	// remains borrowed until the callback returns; nested events are deferred.
+	void DispatchNetworkEvent(WPARAM socket, LPARAM notification,
+		const std::function<bool(const PacketView&)>& onPacket,
+		const std::function<void()>& onDisconnected);
 	char* ReadMessage(int* ErrorCode, int* ErrorType);
 	// Non-owning view over the next framed message; storage remains owned by the
 	// receive ring and is invalidated by subsequent buffer operations.
@@ -56,4 +63,14 @@ public:
 	int SendCount;
 	int RecvCount;
 	int ErrCount;
+
+private:
+	struct PendingEvent {
+		WPARAM socket;
+		LPARAM notification;
+		unsigned long long generation;
+	};
+	std::deque<PendingEvent> pendingEvents_;
+	bool dispatching_ = false;
+	unsigned long long generation_ = 0;
 };

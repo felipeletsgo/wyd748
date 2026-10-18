@@ -31,14 +31,29 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
 			continue
 		}
-		if m.Dead || !m.Def.IsMonster() || m.SummonerID != 0 || m.GuildWarTower {
+		if m == nil || m.Dead || m.Def == nil || m.SummonerID != 0 || m.GuildWarTower {
+			continue
+		}
+		if m.Def.IsCityGuard() {
+			w.tickCityGuard(m, now, allowMovement)
+			continue
+		}
+		if !m.Def.IsMonster() {
+			continue
+		}
+		if guardian := w.hellGateMarchTarget(m); guardian != nil {
+			m.TargetID = guardian.ID
+			if allowMovement && !now.Before(m.NextMove) {
+				w.marchHellGateAttacker(m, guardian, now)
+			}
 			continue
 		}
 		// Movement, death and disconnect update the grid by event. Also retire
 		// mobs whose last nearby player died without moving.
 		nearbyTarget := false
 		if m.InstanceID != "" {
-			nearbyTarget = w.instanceMobHasNearbyMember(m, mobActivationRange)
+			nearbyTarget = w.instanceMobHasNearbyMember(m, mobActivationRange) ||
+				w.nightmareProtectorTarget(m, mobActivationRange) != nil
 		} else {
 			nearbyTarget = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
 		}
@@ -53,9 +68,9 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 			// into the public map. Return to the room center before retargeting.
 			m.TargetID = 0
 			if allowMovement {
-				stage, ok := instanceStageForMob(w.instanceForMob(m))
+				x, y, _, ok := instanceMobArea(w.instanceForMob(m), m)
 				if ok {
-					w.moveMobToward(m, stage.X, stage.Y, 0, now)
+					w.moveMobToward(m, x, y, 0, now)
 				}
 			}
 			continue
@@ -65,6 +80,12 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 			home := m.Segments[0]
 			if allowMovement && home.X != 0 && home.Y != 0 {
 				w.moveMobToward(m, home.X, home.Y, 0, now)
+			}
+			continue
+		}
+		if guardian := w.retainedNightmareProtector(m, mobRetentionRange); guardian != nil {
+			if allowMovement && !now.Before(m.NextMove) && chebyshev(m.X, m.Y, guardian.X, guardian.Y) > mobAttackRange {
+				w.moveMobToward(m, guardian.X, guardian.Y, mobAttackRange, now)
 			}
 			continue
 		}
@@ -88,6 +109,14 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 				target = w.nearestPlayerMatching(m.X, m.Y, mobAggroRange, "",
 					func(p *Player) bool { return w.mobCanTargetPlayer(m, p) && !sameKingdomGuard(m, p) })
 			}
+			guardian := w.nightmareProtectorTarget(m, mobAggroRange)
+			if guardian != nil && (target == nil || chebyshev(m.X, m.Y, guardian.X, guardian.Y) < chebyshev(m.X, m.Y, target.X, target.Y)) {
+				m.TargetID = guardian.ID
+				if allowMovement && !now.Before(m.NextMove) && chebyshev(m.X, m.Y, guardian.X, guardian.Y) > mobAttackRange {
+					w.moveMobToward(m, guardian.X, guardian.Y, mobAttackRange, now)
+				}
+				continue
+			}
 			if target == nil {
 				continue
 			}
@@ -104,15 +133,15 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 	}
 }
 
-// tickActiveMobActions executes attack deadlines without choosing targets or
-// routes. Perception runs every second, but the configured 1.5-second attack
-// interval remains authoritative for DPS.
+// tickActiveMobActions executes attack deadlines and advances the cached Hell
+// Gate objective route at movement speed. Ordinary perception runs every second;
+// the configured 1.5-second attack interval remains authoritative for DPS.
 func (w *World) tickActiveMobActions(now time.Time) {
 	for _, m := range w.activeMobs {
 		if w.criticalGuildMobReserved(m) {
 			continue
 		}
-		if m == nil || m.Dead || m.Def == nil || !m.Def.IsMonster() || m.SummonerID != 0 {
+		if m == nil || m.Dead || m.Def == nil || (!m.Def.IsMonster() && !m.Def.IsCityGuard()) || m.SummonerID != 0 {
 			if m != nil {
 				m.Awake = false
 				m.TargetID = 0
@@ -124,6 +153,28 @@ func (w *World) tickActiveMobActions(now time.Time) {
 			continue
 		}
 		if now.Before(m.NextMove) || now.Before(m.NextAttack) {
+			continue
+		}
+		if guardian := w.hellGateMarchTarget(m); guardian != nil &&
+			chebyshev(m.X, m.Y, guardian.X, guardian.Y) > mobAttackRange {
+			m.TargetID = guardian.ID
+			w.marchHellGateAttacker(m, guardian, now)
+			continue
+		}
+		if m.Def.IsCityGuard() {
+			w.cityGuardAttack(m, now)
+			continue
+		}
+		if guardian := w.retainedNightmareProtector(m, mobAttackRange); guardian != nil {
+			// A protected death changes the retained instance aggregate. Do not
+			// damage it behind an unsettled entry/departure or snapshot write.
+			if w.criticalInstanceReserved() {
+				continue
+			}
+			if w.combatLineOfSight(m.X, m.Y, guardian.X, guardian.Y) {
+				m.NextAttack = now.Add(mobAttackInterval)
+				w.mobAttackNightmareProtector(m, guardian, now)
+			}
 			continue
 		}
 		target := w.playerByID(m.TargetID)
@@ -229,7 +280,7 @@ func (w *World) chasePlayer(m *Mob, target *Player, now time.Time) {
 }
 
 func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
-	if target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
+	if m == nil || m.Def == nil || !m.Def.IsMonster() || target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
 		return
 	}
 	hit := mobPhysicalHitPlayerAt(m, target.Char, w.intn, now)
@@ -254,10 +305,11 @@ func (w *World) mobAttackPlayer(m *Mob, target *Player, now time.Time) {
 // this boundary, differing only in damage calculation and packet construction.
 func (w *World) applyMobDamageToPlayer(m *Mob, target *Player, damage uint32,
 	now time.Time, build func(applied uint32) []byte) {
-	if target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
+	if m == nil || m.Def == nil || !m.Def.IsMonster() || target == nil || target.Char == nil || w.criticalPlayerReserved(target) {
 		return
 	}
 	target.LastAttackerID = m.ID
+	damage = w.levelingInstanceDamage(m, damage)
 	damage = absorbFlatDamage(damage, w.playerFlatDamageAbsorb(target.Char))
 	// A living adult mount absorbs 25% of damage into its own HP.
 	damage = uint32(w.absorbMountDamage(target, int(damage)))

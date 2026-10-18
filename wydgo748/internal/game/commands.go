@@ -336,7 +336,9 @@ var chatCommandAliases = map[string]string{
 	"day": "day", "time": "time", "cp": "cp", "chaos": "cp", "fame": "fame",
 	"srv":   "srv",
 	"parry": "parry",
-	"nig":   "nig", "limparinv": "clearinv", "clearinv": "clearinv",
+	"saldo": "balance", "balance": "balance",
+	"medals": "medals", "medalhas": "medals",
+	"nig": "nig", "limparinv": "clearinv", "clearinv": "clearinv",
 	"spk": "spk", "kingdom": "kingdom", "reino": "kingdom", "king": "king", "rei": "king",
 	"criar": "create", "create": "create", "convidar": "invite", "invite": "invite",
 	"aceitar": "accept", "accept": "accept", "sair": "leave", "leave": "leave",
@@ -386,6 +388,8 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		s.Send(wire.MessagePanel(fameMessage(p)))
 	case "parry":
 		w.sendParryMatchup(s, p, arg)
+	case "balance", "medals":
+		w.sendBalanceNotice(s, p, arg, command)
 	case "nig":
 		// The client sends this command internally when using Nightmare tickets
 		// (SGrid.cpp): it expects !!HHMMSS to update the instance's local clock.

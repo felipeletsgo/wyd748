@@ -3,8 +3,8 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10031,
-  publishedAt: '2026-10-16',
+  patchVersion: 10035,
+  publishedAt: '2026-10-18',
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -13,16 +13,85 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10031.zip',
-    sizeBytes: 832800,
-    sha256: '38D1B4C3B069A3F19F61E6280EF697FA53BE0E6631FA1617DAD59F1CDD1B03B2',
-    executableSha256: '2F75CA77281CCF21F899A6879DBB1A353C6FBE69A98A2F24C52D6E9309A51F1A',
+    url: '/patch/patch-10035.zip',
+    sizeBytes: 846770,
+    sha256: '8172AFA041A234E8C01BD956DEB36591062E70EEE8A99B0A3FFCC62B24C77E2A',
+    executableSha256: '251CF754409F8AE4C0251C9FDD88EDA14C6799E78A377BD0665B6E858FDAFAB0',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
 } as const;
 
 export const news = [
+  {
+    slug: 'client-safety-10035', date: '2026-10-18', category: 'News',
+    title: 'Patch 10035: client stability safeguards',
+    summary: 'Harden packet and text handling, minimap uploads, actor cleanup and skin-mesh loading.',
+    paragraphs: [
+      'This update adds bounded packet and text handling, safer minimap texture copying and cleanup after aborted UI frames.',
+      'Nested network notifications are serialized while packet handlers are active. Actor removal clears nested effect references, and skin-mesh loading validates sizes, bone palettes, positions and indices before publishing resources.',
+      'These safeguards do not change skill visuals, rewards or encounter rules. Automated checks passed; the causes of the historical Mana Control, item-drop and heap-corruption incidents remain under investigation.',
+      'Close the game and open WYDLauncher.exe to receive patch 10035. Actual gameplay acceptance and broader graphics-resource recovery remain pending.',
+    ],
+  },
+  {
+    slug: 'hell-gate-routes-10034', date: '2026-10-17', category: 'News',
+    title: 'Patch 10034: Hell Gate routes and defense',
+    summary: 'Restore the event route through corridor bosses, room guardians, Liches and the defense of Dionys.',
+    paragraphs: [
+      'Hell Gate lasts twenty minutes total: two minutes for entry and eighteen for the encounter. Defeat the entry spider, find the corridor passage and clear the room guardians and Liches to reach the defense of Dionys.',
+      'The three internal portals now use server-validated destinations inside the encounter. The client displays the generic transport prompt for these routes. Wrong corridor or Lich choices do not permanently block progression.',
+      'Entry spiders, corridor bosses and Liches have 400,000 HP. Keep Dionys alive until the deadline for the 10,000,000 completion EXP reward, subject to normal progression limits. Event state and rewards are persisted.',
+      'Close the game and open WYDLauncher.exe to receive patch 10034. Automated checks passed; actual route, visual and solo-balance acceptance remain pending. These encounter settings do not claim complete native parity.',
+    ],
+  },
+  {
+    slug: 'instance-party-recovery', date: '2026-10-17', category: 'News',
+    title: 'Server update: instance parties and reconnect recovery',
+    summary: 'Group tickets keep eligible party members together; Nightmare reconnects restore the encounter HUD and available party membership.',
+    paragraphs: [
+      'Group Nightmare entry requires the party leader and consumes only that leader\'s ticket. Eligible members enter the same encounter together. Individual tickets transport and charge only their user.',
+      'Reconnecting to a live Nightmare restores its actual remaining time and protected-NPC count without resetting the encounter or charging another ticket. The original party is restored when it still exists and has a free slot; a returning former leader does not replace the current leader.',
+      'Magic Chamber group entries keep eligible members in the same run; individual entries remain separate. Party relocation and room visibility are synchronized together.',
+      'Compounder remains passive, and friendly city guards target monsters rather than players. Hell Gate now uses dedicated monster generators; its remaining event-design corrections are still pending.',
+      'This server update requires no additional client patch. The latest launcher patch remains 10033. Automated checks passed; in-game confirmation remains pending.',
+    ],
+  },
+  {
+    slug: 'combat-controls-and-balances-10033', date: '2026-10-17', category: 'News',
+    title: 'Patch 10033: double hits, controls and balance notices',
+    summary: 'Paired client and server fixes for double hits, physical autoattack, number-row skills and private balance notices.',
+    paragraphs: [
+      'Double hits are guaranteed at 201% attack speed and above, not at exactly 200%. The 900 ms interval between attack actions remains unchanged. Both floating hit numbers use the same trajectory, with the second appearing after 120 ms.',
+      'A manual physical attack keeps attacking its selected target until it dies or an interruption cancels the action. Number-row keys 1-0 select skills; Shift+1-0 assigns the hovered skill. F1-F10 do not select skills.',
+      'The Helper scrollbar down arrow stays inside the panel. PageUp and PageDown scroll the visible chat list. Other previously reported Helper shortcut gaps are not claimed as completed.',
+      'Use /balance or /saldo for Donate, Fame, Honor, event passes and Kefra entries. Use /medals or /medalhas separately for Gold, Red and Blue medals. Each command displays one private top notification, not chat; gold carried and CP are excluded. Unconfigured Honor is shown as N/A.',
+      'Close the game and open WYDLauncher.exe to receive patch 10033. Automated checks passed; gameplay confirmation remains pending.',
+    ],
+  },
+  {
+    slug: 'instance-leveling-balance', date: '2026-10-16', category: 'News',
+    title: 'Server update: dedicated leveling monsters',
+    summary: 'Nightmare, Water and Magic Chamber use dedicated monsters with low damage, tier-based HP and EXP, and no monster loot.',
+    paragraphs: [
+      'All three activities now use exclusive monster definitions rather than changing monsters shared with other maps. Physical and magic attacks deal at most one damage before absorption, and defense is one.',
+      'Nightmare Normal, Mystic and Arcane monsters have 2,000, 5,000 and 10,000 HP and grant base EXP of 200,000, 400,000 and 600,000 respectively. Each dead protector still reduces the original Nightmare EXP by 10%.',
+      'Water and Magic Chamber Normal, Mystic and Arcane monsters have 1,000, 4,000 and 10,000 HP and grant base EXP of 200,000, 300,000 and 500,000 respectively, across every room in each tier.',
+      'These monsters drop neither gold nor items, including event and boss loot. Existing room-completion rewards and Water Scroll progression are unchanged. Existing EXP modifiers and party sharing still apply.',
+      'This server-only update requires no new client patch; the latest launcher patch remains 10032. Automated server checks passed; gameplay confirmation remains pending.',
+    ],
+  },
+  {
+    slug: 'nightmare-lifecycle-10032', date: '2026-10-16', category: 'News',
+    title: 'Patch 10032: Nightmare clocks, protectors and Lugefer',
+    summary: 'Separate admission from 15-minute combat, restore continuous common-monster respawns and count protected NPCs instead of hostile monsters.',
+    paragraphs: [
+      'Nightmare admission lasts four minutes. Combat then lasts 15 minutes on a shared clock; entering late or restoring the encounter does not reset its deadline.',
+      'The remaining counter now reports living protected NPCs. Each dead protector removes 10% of the original monster EXP before party sharing. Common monsters keep respawning until the combat clock ends, even when every protector has died.',
+      'In Arcane Nightmare, Lugefer appears once with five minutes remaining if at least one protector is alive. Defeating this boss does not start another boss respawn; its defeat is saved with player rewards.',
+      'Close the game and open WYDLauncher.exe to receive patch 10032. Automated checks passed; in-game confirmation and complete native population and loot parity remain pending.',
+    ],
+  },
   {
     slug: 'chat-labels-and-buff-icons-10031', date: '2026-10-16', category: 'News',
     title: 'Patch 10031: chat labels, buff icons and guild kingdoms',
@@ -261,6 +330,40 @@ export const news = [
 ] as const;
 
 export const changelog = [
+  { date: '2026-10-18', category: 'Client', title: 'Patch 10035 — client stability safeguards', entries: [
+    'Validate packet/text boundaries and minimap uploads; clean UI draw lists after aborted frames.',
+    'Serialize nested network notifications and clear nested effect-owner references during final actor removal.',
+    'Bound skin-mesh payloads, bone palettes, positions and indices; roll back failed GPU buffer creation and uploads.',
+    'Automated checks passed. Historical crash root causes and scenario-specific gameplay acceptance remain pending.',
+  ] },
+  { date: '2026-10-17', category: 'Client and server', title: 'Patch 10034 — Hell Gate routes and defense', entries: [
+    'Restore corridor, room, Lich and Dionys-defense progression with private encounter portals and persisted lifecycle state.',
+    'Use a twenty-minute total duration, two-minute entry, 400,000 HP bosses and a 10,000,000 completion EXP reward.',
+    'Add the generic client transport prompt for internal event routes. Automated checks passed; gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-17', category: 'Server', title: 'Instance party and reconnect recovery', entries: [
+    'Synchronize group Nightmare and Magic Chamber relocation while keeping individual tickets individual.',
+    'Restore the current Nightmare timer, protected-NPC count and available original party membership on reconnect.',
+    'Keep Compounder passive and city guards hostile only to monsters; add dedicated Hell Gate generators without claiming full event parity.',
+    'Launcher patch remains 10033. Automated checks passed; gameplay confirmation remains pending.',
+  ] },
+  { date: '2026-10-17', category: 'Client and server', title: 'Patch 10033 — combat, controls and balances', entries: [
+    'Guarantee double hits above 200% attack speed; align the two floating damage trajectories and preserve the 900 ms action interval.',
+    'Continue manual physical attacks, select skills with 1-0 and assign with Shift+1-0, and correct Helper scrollbar placement and chat scrolling.',
+    'Add private single-notice /balance and /saldo reports, with medals separated into /medals and /medalhas.',
+    'Automated checks passed. In-game confirmation remains pending.',
+  ] },
+  { date: '2026-10-16', category: 'Server', title: 'Dedicated instance leveling monsters', entries: [
+    'Exclusive Nightmare, Water and Magic Chamber monsters with tier-based HP and base EXP, one defense and incoming damage capped at one.',
+    'No monster gold, native drops, event drops or special boss loot; existing progression and completion rewards remain unchanged.',
+    'Client patch remains 10032. Automated checks passed; in-game confirmation remains pending.',
+  ] },
+  { date: '2026-10-16', category: 'Client and server', title: 'Patch 10032 — Nightmare lifecycle', entries: [
+    'Separate four-minute admission from the shared 15-minute combat period and preserve the absolute deadline across restoration.',
+    'Show protected NPC survivors, apply a 10% original EXP penalty per lost protector and continuously replace common monsters until expiry.',
+    'Spawn Arcane Lugefer once with five minutes remaining while a protector survives; persist its defeat with player rewards.',
+    'Automated checks passed. In-game confirmation remains pending; this update does not certify complete native population or loot parity.',
+  ] },
   { date: '2026-10-16', category: 'Client and server', title: 'Patch 10031 — chat labels and buff icons', entries: [
     'Restore /tab and /snd dispatch and add nine coordinated tab colors without respawning the character.',
     'Give Samaritan and Critical Armor their respective skill icons while preserving canonical server effects.',

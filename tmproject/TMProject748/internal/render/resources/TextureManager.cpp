@@ -7,6 +7,7 @@
 #include "../mesh/CostumeTable.generated.h"
 #include "../../application/CCModePolicy.h"
 #include "../../application/WrappedTexture.h"
+#include "../../application/TextureRegionCopy.h"
 
 int TextureManager::DYNAMIC_TEXTURE_WIDTH = 256;
 int TextureManager::DYNAMIC_TEXTURE_HEIGHT = 256;
@@ -1089,17 +1090,24 @@ IDirect3DTexture9* TextureManager::GetEnvTexture(int nIndex, DWORD showTime)
 
 int TextureManager::GenerateTexture(int nDestUIIndex, int nSrcUIIndex, int nDestX, int nDestY, int nSrcX, int nSrcY, int nWidth, int nHeight)
 {
-	if (TextureManager::DYNAMIC_TEXTURE_WIDTH == 256)
+	if (nDestX < 0 || nDestY < 0 || nSrcX < 0 || nSrcY < 0 || nWidth <= 0 || nHeight <= 0)
+		return 0;
+
+	const int nScale = TextureManager::DYNAMIC_TEXTURE_WIDTH == 256 ? 2 : 1;
+	if (nScale == 2)
 	{
 		nWidth /= 2;
 		nHeight /= 2;
 		nDestX /= 2;
 		nDestY /= 2;
 	}
-	if (nWidth > TextureManager::DYNAMIC_TEXTURE_WIDTH)
-		nWidth = TextureManager::DYNAMIC_TEXTURE_WIDTH;
-	if (nHeight > TextureManager::DYNAMIC_TEXTURE_HEIGHT)
-		nHeight = TextureManager::DYNAMIC_TEXTURE_HEIGHT;
+
+	if (!wrapped_texture::ValidIndex(nDestUIIndex, MAX_UI_TEXTURE) ||
+		!wrapped_texture::ValidIndex(nSrcUIIndex, MAX_UI_TEXTURE) ||
+		nDestUIIndex == nSrcUIIndex || !g_pDevice || !g_pDevice->m_pd3dDevice)
+	{
+		return 0;
+	}
 
 	if (!m_ppUITexture[nSrcUIIndex])
 	{
@@ -1110,19 +1118,44 @@ int TextureManager::GenerateTexture(int nDestUIIndex, int nSrcUIIndex, int nDest
 
 	LPDIRECT3DSURFACE9 lpSrcSurface = nullptr;
 	LPDIRECT3DSURFACE9 lpDestSurface = nullptr;
-	m_ppUITexture[nSrcUIIndex]->GetSurfaceLevel(0, &lpSrcSurface);
+	D3DSURFACE_DESC SrcDesc{};
+	D3DSURFACE_DESC DestDesc{};
 
-	D3DSURFACE_DESC SrcDesc;
-	D3DSURFACE_DESC DestDesc;
-	D3DLOCKED_RECT srcRect3d;
-	D3DLOCKED_RECT destRect3d;
-
-	lpSrcSurface->GetDesc(&SrcDesc);
-	lpSrcSurface->LockRect(&srcRect3d, 0, 0);
-
-	if (m_ppUITexture[nDestUIIndex] == nullptr)
+	if (FAILED(m_ppUITexture[nSrcUIIndex]->GetSurfaceLevel(0, &lpSrcSurface)) || !lpSrcSurface ||
+		FAILED(lpSrcSurface->GetDesc(&SrcDesc)))
 	{
-		D3DFORMAT texFormat = SrcDesc.Format;
+		SAFE_RELEASE(lpSrcSurface);
+		return 0;
+	}
+
+	const int nBytesPerPixel = texture_region_copy::BytesPerPixel(static_cast<int>(SrcDesc.Format));
+	if (!nBytesPerPixel)
+	{
+		SAFE_RELEASE(lpSrcSurface);
+		return 0;
+	}
+
+	// Reuse the destination only when its actual format and dimensions match
+	// the dynamic copy. A slot reloaded from disk (UI\minimap.wyt is 128x128)
+	// or from another alpha mode is replaced instead of being overrun.
+	if (m_ppUITexture[nDestUIIndex])
+	{
+		const bool bReusable =
+			SUCCEEDED(m_ppUITexture[nDestUIIndex]->GetSurfaceLevel(0, &lpDestSurface)) && lpDestSurface &&
+			SUCCEEDED(lpDestSurface->GetDesc(&DestDesc)) &&
+			texture_region_copy::DestinationCompatible(static_cast<int>(DestDesc.Format),
+				static_cast<int>(DestDesc.Width), static_cast<int>(DestDesc.Height),
+				static_cast<int>(SrcDesc.Format),
+				TextureManager::DYNAMIC_TEXTURE_WIDTH, TextureManager::DYNAMIC_TEXTURE_HEIGHT);
+		if (!bReusable)
+		{
+			SAFE_RELEASE(lpDestSurface);
+			SAFE_RELEASE(m_ppUITexture[nDestUIIndex]);
+		}
+	}
+
+	if (!m_ppUITexture[nDestUIIndex])
+	{
 		if (FAILED(D3DXCreateTexture(
 			g_pDevice->m_pd3dDevice,
 			TextureManager::DYNAMIC_TEXTURE_WIDTH,
@@ -1133,155 +1166,46 @@ int TextureManager::GenerateTexture(int nDestUIIndex, int nSrcUIIndex, int nDest
 			D3DPOOL::D3DPOOL_MANAGED,
 			&m_ppUITexture[nDestUIIndex])))
 		{
-			m_ppUITexture[nDestUIIndex] = nullptr;
-
+			SAFE_RELEASE(m_ppUITexture[nDestUIIndex]);
 			SAFE_RELEASE(lpSrcSurface);
 			return 0;
 		}
-		m_ppUITexture[nDestUIIndex]->GetSurfaceLevel(0, &lpDestSurface);
-	}
-	else
-	{
-		m_ppUITexture[nDestUIIndex]->GetSurfaceLevel(0, &lpDestSurface);
-		lpDestSurface->GetDesc(&DestDesc);
 
-		if (SrcDesc.Format != DestDesc.Format)
+		const bool bCreated =
+			SUCCEEDED(m_ppUITexture[nDestUIIndex]->GetSurfaceLevel(0, &lpDestSurface)) && lpDestSurface &&
+			SUCCEEDED(lpDestSurface->GetDesc(&DestDesc)) &&
+			texture_region_copy::DestinationCompatible(static_cast<int>(DestDesc.Format),
+				static_cast<int>(DestDesc.Width), static_cast<int>(DestDesc.Height),
+				static_cast<int>(SrcDesc.Format),
+				TextureManager::DYNAMIC_TEXTURE_WIDTH, TextureManager::DYNAMIC_TEXTURE_HEIGHT);
+		if (!bCreated)
 		{
-			SAFE_RELEASE(lpSrcSurface);
+			SAFE_RELEASE(lpDestSurface);
 			SAFE_RELEASE(m_ppUITexture[nDestUIIndex]);
-
-			D3DFORMAT texFormat = SrcDesc.Format;
-			if (FAILED(D3DXCreateTexture(
-				g_pDevice->m_pd3dDevice,
-				TextureManager::DYNAMIC_TEXTURE_WIDTH,
-				TextureManager::DYNAMIC_TEXTURE_HEIGHT,
-				1,
-				0,
-				SrcDesc.Format,
-				D3DPOOL::D3DPOOL_MANAGED,
-				&m_ppUITexture[nDestUIIndex])))
-			{
-				m_ppUITexture[nDestUIIndex] = nullptr;
-
-				SAFE_RELEASE(lpDestSurface);
-				return 0;
-			}
+			SAFE_RELEASE(lpSrcSurface);
+			return 0;
 		}
 	}
 
-	HRESULT hResult = lpDestSurface->LockRect(&destRect3d, 0, 0);
-	if (hResult != 0)
+	const texture_region_copy::Plan plan = texture_region_copy::Build(
+		static_cast<int>(DestDesc.Width), static_cast<int>(DestDesc.Height),
+		static_cast<int>(SrcDesc.Width), static_cast<int>(SrcDesc.Height),
+		nDestX, nDestY, nSrcX, nSrcY, nWidth, nHeight, nScale);
+	if (!plan.valid)
+	{
+		SAFE_RELEASE(lpDestSurface);
+		SAFE_RELEASE(lpSrcSurface);
 		return 0;
-
-	if (g_pDevice->m_dwBitCount == 16)
-	{
-		if (SrcDesc.Format != 23 && SrcDesc.Format != 24 && SrcDesc.Format != 25)
-		{
-			unsigned short* pSrc = (unsigned short*)srcRect3d.pBits;
-			unsigned short* pDst = (unsigned short*)destRect3d.pBits;
-			if (nWidth + nDestX >= TextureManager::DYNAMIC_TEXTURE_WIDTH)
-				nWidth = TextureManager::DYNAMIC_TEXTURE_WIDTH - nDestX;
-			if (nHeight + nDestY >= TextureManager::DYNAMIC_TEXTURE_HEIGHT)
-				nHeight = TextureManager::DYNAMIC_TEXTURE_HEIGHT - nDestY;
-
-			if (TextureManager::DYNAMIC_TEXTURE_WIDTH == 256)
-			{
-				for (int i = 0; i < nHeight; ++i)
-				{
-					for (int j = 0; j < nWidth; ++j)
-					{
-						pDst[TextureManager::DYNAMIC_TEXTURE_WIDTH * (i + nDestY) + nDestX + j] = pSrc[2
-							* SrcDesc.Width
-							* (i + nSrcY)
-							+ 2 * j
-							+ nSrcX];
-					}
-				}
-			}
-			else
-			{
-				for (int k = 0; k < nHeight; ++k)
-				{
-					memcpy(
-						&pDst[TextureManager::DYNAMIC_TEXTURE_WIDTH * (k + nDestY) + nDestX],
-						&pSrc[SrcDesc.Width * (k + nSrcY) + nSrcX],
-						2 * nWidth);
-				}
-			}
-		}
-		else
-		{
-			unsigned short* pSrc = (unsigned short*)srcRect3d.pBits;
-			unsigned short* pDest = (unsigned short*)destRect3d.pBits;
-			if (nWidth + nDestX >= TextureManager::DYNAMIC_TEXTURE_WIDTH)
-				nWidth = TextureManager::DYNAMIC_TEXTURE_WIDTH - nDestX;
-			if (nHeight + nDestY >= TextureManager::DYNAMIC_TEXTURE_HEIGHT)
-				nHeight = TextureManager::DYNAMIC_TEXTURE_HEIGHT - nDestY;
-			if (TextureManager::DYNAMIC_TEXTURE_WIDTH == 256)
-			{
-				for (int nY = 0; nY < nHeight; ++nY)
-				{
-					for (int nX = 0; nX < nWidth; ++nX)
-					{
-						pDest[TextureManager::DYNAMIC_TEXTURE_WIDTH * (nY + nDestY) + nDestX + nX] = pSrc[2
-							* SrcDesc.Width
-							* (nY + nSrcY)
-							+ 2 * nX
-							+ nSrcX];
-					}
-				}
-			}
-			else
-			{
-				for (int l = 0; l < nHeight; ++l)
-				{
-					memcpy(
-						&pDest[TextureManager::DYNAMIC_TEXTURE_WIDTH * (l + nDestY) + nDestX],
-						&pSrc[SrcDesc.Width * (l + nSrcY) + nSrcX],
-						2 * nWidth);
-				}
-			}
-		}
-	}
-	else
-	{
-		unsigned int* pSrc = (unsigned int*)srcRect3d.pBits;
-		unsigned int* pDst = (unsigned int*)destRect3d.pBits;
-		if (nWidth + nDestX >= TextureManager::DYNAMIC_TEXTURE_WIDTH)
-			nWidth = TextureManager::DYNAMIC_TEXTURE_WIDTH - nDestX;
-		if (nHeight + nDestY >= TextureManager::DYNAMIC_TEXTURE_HEIGHT)
-			nHeight = TextureManager::DYNAMIC_TEXTURE_HEIGHT - nDestY;
-		if (TextureManager::DYNAMIC_TEXTURE_WIDTH == 256)
-		{
-			for (int m = 0; m < nHeight; ++m)
-			{
-				for (int n = 0; n < nWidth; ++n)
-				{
-					pDst[TextureManager::DYNAMIC_TEXTURE_WIDTH * (m + nDestY) + nDestX + n] = pSrc[2 * SrcDesc.Width * (m + nSrcY)
-						+ 2 * n
-						+ nSrcX];
-				}
-			}
-		}
-		else
-		{
-			for (int ii = 0; ii < nHeight; ++ii)
-			{
-				memcpy(
-					&pDst[TextureManager::DYNAMIC_TEXTURE_WIDTH * (ii + nDestY) + nDestX],
-					&pSrc[SrcDesc.Width * (ii + nSrcY) + nSrcX],
-					4 * nWidth);
-			}
-		}
 	}
 
-	lpSrcSurface->UnlockRect();
-	lpDestSurface->UnlockRect();
+	const bool bCopied = texture_region_copy::CopyLocked<D3DLOCKED_RECT>(
+		*lpSrcSurface, *lpDestSurface, plan, nBytesPerPixel,
+		static_cast<int>(SrcDesc.Width), static_cast<int>(DestDesc.Width), D3DLOCK_READONLY);
 
 	SAFE_RELEASE(lpSrcSurface);
 	SAFE_RELEASE(lpDestSurface);
 
-	return 1;
+	return bCopied ? 1 : 0;
 }
 
 int TextureManager::LoadGuildTexture(int nIndex, char* szMarkBuffer)

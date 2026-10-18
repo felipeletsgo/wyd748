@@ -1,10 +1,10 @@
 FFFFFF  
 FFFFFF Shortcut Key
 FFFFAA
-FFFFAA F1-F10 or 1-10
+FFFFAA 1-0
 AAFFAA Choose skill from quick skill slots.
 FFFFAA
-FFFFAA Shift+1-10 or Shift+F1-F10
+FFFFAA Shift+1-0
 AAFFAA To assign skill in quick skill slots. 
 FFFFAA
 FFFFAA -

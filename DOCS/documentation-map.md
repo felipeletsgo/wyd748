@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 205.
+Markdown documents: 209.
 
 | Document | Type |
 | --- | --- |
@@ -43,6 +43,7 @@ Markdown documents: 205.
 | [.agents/research/client748/flows/transport/create-mob-source-contract.md](<../.agents/research/client748/flows/transport/create-mob-source-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/guild-deprivate-request.md](<../.agents/research/client748/flows/transport/guild-deprivate-request.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/guild-relations-request.md](<../.agents/research/client748/flows/transport/guild-relations-request.md>) | Research evidence |
+| [.agents/research/client748/flows/transport/hell-gate-portals.md](<../.agents/research/client748/flows/transport/hell-gate-portals.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/hp-mp-source-contract.md](<../.agents/research/client748/flows/transport/hp-mp-source-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/inventory-transaction-confirmations.md](<../.agents/research/client748/flows/transport/inventory-transaction-confirmations.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/keepalive-ping.md](<../.agents/research/client748/flows/transport/keepalive-ping.md>) | Research evidence |
@@ -78,6 +79,7 @@ Markdown documents: 205.
 | [.agents/research/client748/flows/ui/equipped-item-matched-consumable-shortcut.md](<../.agents/research/client748/flows/ui/equipped-item-matched-consumable-shortcut.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/feature-panel-layout.md](<../.agents/research/client748/flows/ui/feature-panel-layout.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/field-hud-death-prompt-regressions.md](<../.agents/research/client748/flows/ui/field-hud-death-prompt-regressions.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/field-shortcut-selection-and-chat-scroll.md](<../.agents/research/client748/flows/ui/field-shortcut-selection-and-chat-scroll.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md](<../.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/gamble-jackpot.md](<../.agents/research/client748/flows/ui/gamble-jackpot.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/gamble-result-contract.md](<../.agents/research/client748/flows/ui/gamble-result-contract.md>) | Research evidence |
@@ -163,6 +165,8 @@ Markdown documents: 205.
 | [DOCS/agent-token-efficiency.md](<agent-token-efficiency.md>) | Product documentation |
 | [DOCS/architecture-map.md](<architecture-map.md>) | Product documentation |
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Product documentation |
+| [DOCS/bug-register.md](<bug-register.md>) | Product documentation |
+| [DOCS/BUGS.md](<BUGS.md>) | Product documentation |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Product documentation |
 | [DOCS/client/classic-ui-assets.md](<client/classic-ui-assets.md>) | Product documentation |
 | [DOCS/client/combat-control.md](<client/combat-control.md>) | Product documentation |

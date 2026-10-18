@@ -212,7 +212,6 @@ func criticalAdvancedExpected(t *testing.T, w *World, p *Player, req combineRequ
 	}
 	if tc.name == "unlock" {
 		ch.CelestialLevel40Unlocked = true
-		delete(coins, fameCounter)
 	}
 	slices.Sort(positions)
 	return want, coins, positions, code, message
@@ -247,6 +246,15 @@ func TestCriticalAdvancedCraftDetachedRecipesReplayAndTrade(t *testing.T) {
 						p.Account.Chars[0], p.Account.Chars[slot] = p.Account.Chars[slot], p.Account.Chars[0]
 						p.CharSlot, p.Char = slot, &p.Account.Chars[slot]
 					}
+					if tc.name == "unlock" {
+						// Exercise absent, zero, insufficient and surplus Fame through
+						// the same held-write, replay and reciprocal-trade lifecycle.
+						if slot == 0 {
+							delete(p.SpecialCoins, fameCounter)
+						} else {
+							p.SpecialCoins[fameCounter] = []uint32{0, 0, 199, 500}[slot]
+						}
+					}
 					var peer *Player
 					if trading {
 						peer = criticalTinyTradePeer(t, w, p)
@@ -261,7 +269,7 @@ func TestCriticalAdvancedCraftDetachedRecipesReplayAndTrade(t *testing.T) {
 					}
 					if tc.name == "unlock" {
 						if proposal.character == nil || proposal.character.uid != p.Char.UID || !reflect.DeepEqual(proposal.character.state, buildCharState(&Player{Char: &want.Chars[slot], SpecialCoins: wantCoins}, w.now())) {
-							t.Fatal("unlock omitted atomic Fame state")
+							t.Fatal("unlock omitted atomic character state or changed counters")
 						}
 					} else if proposal.character != nil {
 						t.Fatal("inventory recipe unexpectedly changed sidecar")

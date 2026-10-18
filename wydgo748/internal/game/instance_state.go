@@ -47,7 +47,9 @@ func (w *World) instanceStateSnapshotAt(now time.Time) *model.InstanceStateSnaps
 		if inst == nil || !resumableInstance(inst) {
 			continue
 		}
-		if !inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline) {
+		if !inst.HardDeadline.IsZero() && !now.Before(inst.HardDeadline) &&
+			!(hellGateVersion2(inst) && inst.State == "protection" &&
+				(!inst.RewardGranted || now.Before(inst.ExitAt))) {
 			continue
 		}
 		saved := model.InstanceRuntimeState{
@@ -57,11 +59,18 @@ func (w *World) instanceStateSnapshotAt(now time.Time) *model.InstanceStateSnaps
 			HardDeadline: inst.HardDeadline, CombatDeadline: instanceCombatDeadline(inst),
 			TransitionAt: inst.TransitionAt, QuizAt: inst.QuizAt, ExitAt: inst.ExitAt,
 			RewardGranted:         inst.RewardGranted,
+			NightmareLostMask:     inst.NightmareLostMask,
+			NightmareBossSpawned:  inst.NightmareBossSpawned,
+			NightmareBossKilled:   inst.NightmareBossKilled,
 			HellGateVariant:       inst.HellGateVariant,
 			HellGateClearedMask:   inst.HellGateClearedMask,
 			HellGateLichSpawned:   inst.HellGateLichSpawnedMask,
 			HellGateValidLichMask: inst.HellGateValidLichMask,
 			HellGateWrongLich:     inst.HellGateWrongLich,
+			HellGateDionysHP:      inst.HellGateDionysHP,
+		}
+		if gate, ok := hellGateInstance(inst); ok {
+			saved.HellGateVersion = gate.Version
 		}
 		memberUIDs, leaderUID := w.instanceCharacterUIDs(runtimeID, inst)
 		// A resumable event without a stable owner cannot be reattached after
@@ -115,6 +124,13 @@ func isDurablePrivateWaterConfig(cfg model.VolatileInstance) bool {
 	}
 	id := strings.ToLower(strings.TrimSpace(cfg.ID))
 	return strings.HasPrefix(id, "water-")
+}
+
+// Independent executions may reuse map coordinates, but never membership or
+// runtime identities. This does not change their persistence/resume policy.
+func independentPrivateInstance(cfg model.VolatileInstance) bool {
+	return isDurablePrivateWaterConfig(cfg) ||
+		(instanceMode(cfg) == "private_chain" && strings.HasPrefix(strings.ToLower(strings.TrimSpace(cfg.ID)), "magic-chamber-"))
 }
 
 func appendUniqueString(values []string, value string) []string {
@@ -339,7 +355,8 @@ func (w *World) restoreInstanceState() error {
 	now := w.now()
 	for _, saved := range snapshot.Instances {
 		if saved.RuntimeID == "" || saved.ConfigID == "" ||
-			(!saved.HardDeadline.IsZero() && !now.Before(saved.HardDeadline)) {
+			(!saved.HardDeadline.IsZero() && !now.Before(saved.HardDeadline) &&
+				(!saved.RewardGranted || !now.Before(saved.ExitAt))) {
 			continue
 		}
 		cfg, found := w.instanceConfigByID(saved.ConfigID, saved.RuntimeID)
@@ -361,6 +378,21 @@ func (w *World) restoreInstanceState() error {
 			HellGateLichSpawnedMask: saved.HellGateLichSpawned,
 			HellGateValidLichMask:   saved.HellGateValidLichMask,
 			HellGateWrongLich:       saved.HellGateWrongLich,
+			HellGateDionysHP:        saved.HellGateDionysHP,
+			NightmareLostMask:       saved.NightmareLostMask,
+			NightmareBossSpawned:    saved.NightmareBossSpawned,
+			NightmareBossKilled:     saved.NightmareBossKilled,
+		}
+		if scheduledNightmare(inst) {
+			// Reconstruct absolute phases, including snapshots from the old
+			// admission-only implementation. A restart never buys extra time.
+			prepareNightmareEntry(inst)
+			if !now.Before(inst.HardDeadline) {
+				continue
+			}
+			if !now.Before(inst.ScheduleEnd) {
+				inst.State = "combat"
+			}
 		}
 		if w.pendingInstanceMembers == nil {
 			w.pendingInstanceMembers = make(map[string]map[string]struct{})
@@ -391,12 +423,19 @@ func (w *World) restoreInstanceState() error {
 			inst.CurrentStage = 0
 		}
 		w.itemInstances[saved.RuntimeID] = inst
+		if scheduledNightmare(inst) && !w.spawnNightmareProtectors(inst) {
+			delete(w.itemInstances, saved.RuntimeID)
+			continue
+		}
 		// Rebuild content from data; no old player or mob ID is trusted after a
 		// process restart. A shared zone with no members remains joinable. Hell
 		// Gate needs its state-machine phase restored before the generic stage
 		// path, otherwise a partially solved puzzle would respawn only the entry
 		// controller and silently discard the selected Lich pair.
-		if isDurablePrivateWaterInstance(inst) && !inst.ExitAt.IsZero() {
+		if nightmareWaiting(inst) {
+			// No monsters exist during the admission countdown.
+			inst.Remaining = 0
+		} else if isDurablePrivateWaterInstance(inst) && !inst.ExitAt.IsZero() {
 			// A completed room in exit grace has no live content to respawn. The
 			// ticket chain remains represented by the durable deadlines/UIDs.
 			inst.Remaining = 0
@@ -411,11 +450,17 @@ func (w *World) restoreInstanceState() error {
 				ok, _ := w.spawnItemInstanceStage(inst, inst.CurrentStage, now, false, false)
 				return !ok
 			}() {
+				w.removeUnpublishedItemInstanceMobs(inst)
 				delete(w.itemInstances, saved.RuntimeID)
 				continue
 			}
 		}
-		if !saved.CombatDeadline.IsZero() {
+		if !w.spawnNightmareBoss(inst, now, false) {
+			w.removeUnpublishedItemInstanceMobs(inst)
+			delete(w.itemInstances, saved.RuntimeID)
+			continue
+		}
+		if !scheduledNightmare(inst) && !saved.CombatDeadline.IsZero() {
 			setInstanceCombatDeadline(inst, saved.CombatDeadline)
 		}
 		log.Printf("INSTANCE %q restored after restart", saved.RuntimeID)
@@ -432,6 +477,23 @@ func (w *World) restoreHellGateRuntime(inst *ItemInstance,
 	saved model.InstanceRuntimeState, now time.Time) bool {
 	if inst == nil {
 		return false
+	}
+	if gate, ok := hellGateInstance(inst); ok && (gate.Version == 2 || gate.Version == 3) {
+		// Existing timed snapshots predate the explicit version field. Finish
+		// those runs with v2 rules; never reroll a saved single-Lich puzzle.
+		switch saved.HellGateVersion {
+		case 0, 2:
+			gate.Version = 2
+		case 3:
+			if gate.Version != 3 {
+				return false // A configuration rollback cannot downgrade a live puzzle.
+			}
+		default:
+			return false
+		}
+	}
+	if hellGateVersion2(inst) {
+		return w.restoreHellGateVersion2(inst, saved, now)
 	}
 	switch strings.ToLower(strings.TrimSpace(saved.State)) {
 	case "final":

@@ -4,6 +4,7 @@
 #include "SGrid.h"
 #include "SControl.h"
 #include "TMGlobal.h"
+#include "ScrollbarLayout.h"
 
 SScrollBar::SScrollBar(int inCurrent, int inMax, float inX, float inY, float inWidth, float inHeight, unsigned int dwStyle, unsigned int idwBarColor, unsigned int idwColor, int bChat)
 	: SControl(inX, inY, inWidth, inHeight)
@@ -30,7 +31,8 @@ SScrollBar::SScrollBar(int inCurrent, int inMax, float inX, float inY, float inW
 		m_nBarSize = inWidth;
 		const float x = bChat ? -5.0f : 0.0f;
 		m_pUpPanel = attachPanel(new SPanel(423, x, 0.0f, 10.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 0);
-		m_pDownPanel = attachPanel(new SPanel(424, x, m_nHeight - m_nBtnSize + 7.0f, 10.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 1);
+		// SPanel scales constructor coordinates; do not pass m_nHeight here.
+		m_pDownPanel = attachPanel(new SPanel(424, x, scrollbar_layout::DownArrowY(inHeight, 1.0f), 10.0f, m_nBtnSize, 0xAAAA00FF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 1);
 		m_nScrollLength = (int)m_nHeight;
 		m_pBar = attachPanel(new SPanel(425, x + 1.0f, 0.0f, 10.0f - 2.0f, m_nBtnSize, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 2);
 		m_pBackground1 = attachPanel(new SPanel(426, x, 0.0f, 10.0f, inHeight, 0xFFFFFFFF, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH), 3);
@@ -99,7 +101,8 @@ void SScrollBar::SetSize(float nWidth, float nHeight)
 		// Keep the constructor's UI2 geometry (sets 423..426) when the chat
 		// list grows with '+': the down arrow follows the new bottom and the
 		// track stretches to the full height instead of keeping its old size.
-		m_pDownPanel->SetPos(m_pDownPanel->m_nPosX, m_nHeight - m_nBtnSize + 7.0f);
+		m_pDownPanel->SetPos(m_pDownPanel->m_nPosX,
+			scrollbar_layout::DownArrowY(m_nHeight, RenderDevice::m_fUIScaleY));
 		m_pBackground1->SetSize(m_pBackground1->m_nWidth, m_nHeight);
 		m_nScrollLength = (int)m_nHeight;
 		Update();

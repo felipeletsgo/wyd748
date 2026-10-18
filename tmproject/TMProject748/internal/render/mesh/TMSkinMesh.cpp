@@ -10,6 +10,7 @@
 #include "HumanAnglePolicy.h"
 #include "CMesh.h"
 #include "TMLog.h"
+#include "../../application/SkinFrameValidation.h"
 
 int TMSkinMesh::m_nSmooth = 1;
 
@@ -91,15 +92,7 @@ TMSkinMesh::TMSkinMesh(LOOK_INFO* pLook, SANC_INFO* pSanc, int nBoneAniIndex, in
 
 TMSkinMesh::~TMSkinMesh()
 {
-	if (m_pRoot != m_pframeToAnimate[0] && m_pRoot != nullptr)
-	{
-		SAFE_DELETE(m_pRoot);
-	}
-
-	for (int i = 0; i < MAX_VALID_FRAME_TO_ANIMATE; ++i)
-	{
-		SAFE_DELETE(m_pframeToAnimate[i]);
-	}
+	ReleaseFrames();
 
 	for (int i = 0; i < 2; ++i)
 	{
@@ -111,15 +104,29 @@ TMSkinMesh::~TMSkinMesh()
 	}
 }
 
+void TMSkinMesh::ReleaseFrames()
+{
+	// ID lookup slots are aliases, not owners (some shipped bones repeat IDs).
+	for (auto* frame : m_ownedFrames) delete frame;
+	m_ownedFrames.clear();
+	memset(m_pframeToAnimate, 0, sizeof(m_pframeToAnimate));
+	m_pRoot = nullptr;
+}
+
 HRESULT TMSkinMesh::RestoreDeviceObjects()
 {
 	m_bMeshGenerated = 0;
-
-	if (m_pRoot != m_pframeToAnimate[0])
-		SAFE_DELETE(m_pRoot);
-	for (int i = 0; i < MAX_VALID_FRAME_TO_ANIMATE; ++i)
-		SAFE_DELETE(m_pframeToAnimate[i]);
-	m_pRoot = nullptr;
+	ReleaseFrames();
+	if (m_nBoneAniIndex < 0 || m_nBoneAniIndex >= MAX_BONE_ANIMATION_LIST)
+		return E_INVALIDARG;
+	const auto& animation = MeshManager::m_BoneAnimationList[m_nBoneAniIndex];
+	if (!skin_frames::Valid(animation.pBone, animation.numBoneBytes, animation.numBone,
+		animation.numParts, animation.szAniName, sizeof(animation.szAniName)))
+	{
+		LOG_WRITELOG("Invalid skin frame hierarchy index=%d\r\n", m_nBoneAniIndex);
+		return E_INVALIDARG;
+	}
+	m_ownedFrames.reserve(animation.numBone + 1);
 
 	m_pRoot = new CFrame(0);
 
@@ -127,6 +134,7 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 		return 0x80004005;
 
 	m_pframeToAnimate[0] = m_pRoot;
+	m_ownedFrames.push_back(m_pRoot);
 	m_pRoot->m_pParentSkin = this;
 
 	for (size_t i = 0; i < MeshManager::m_BoneAnimationList[m_nBoneAniIndex].numBone; ++i)
@@ -141,6 +149,7 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 		CFrame* tmp = new CFrame(my_ID);
 		if (tmp == nullptr)
 			return 0x80004005;
+		m_ownedFrames.push_back(tmp);
 
 		tmp->m_dwParentID = parent_temp;
 		tmp->m_pParentSkin = this;
@@ -151,8 +160,9 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 			parent->AddFrame(tmp);
 	}
 
-	char szName[32]{};
-	char szTexture[64]{};
+	// Validated prefixes are at most 115 bytes; numeric suffixes fit MAX_PATH.
+	char szName[MAX_PATH]{};
+	char szTexture[MAX_PATH]{};
 
 	unsigned short* look = (unsigned short*)& m_Look;
 	unsigned char* sanc = (unsigned char*)& m_Sanc;
@@ -164,32 +174,32 @@ HRESULT TMSkinMesh::RestoreDeviceObjects()
 		if (look[2 * i] == '_' || look[2 * i] == 'a' || look[2 * i] == 'N' || look[2 * i] == 'L')
 			god2cos = true;
 
-		sprintf(szName, "%s%02d%02d.msh", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName,
+		sprintf_s(szName, "%s%02d%02d.msh", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName,
 			i + 1,
 			look[2 * i] + 20 * m_bExpand + 1);
 
 		if (m_nBoneAniIndex == 45 || m_nBoneAniIndex == 46 || m_nBoneAniIndex == 53 || m_nBoneAniIndex == 54)
 		{
-			sprintf(szName, "%s%02d%02d.msh", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName, i + 1, 1);
+			sprintf_s(szName, "%s%02d%02d.msh", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName, i + 1, 1);
 		}
 
 		// Meshs that use only one texture must be in God2Exception
 		if (God2Exception(i))
 		{
-			sprintf(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName,
+			sprintf_s(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName,
 				1, (look[2 * i + 1] & 0xFFF) + look[2 * i] + 20 * m_bExpand + 1);
 			if (m_nBoneAniIndex == 53)
-				sprintf(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName, i + 1, 1);
+				sprintf_s(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName, i + 1, 1);
 		}
 		else
 		{
-			sprintf(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName,
+			sprintf_s(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName,
 				i + 1,
 				(look[2 * i + 1] & 0xFFF) + look[2 * i] + 20 * m_bExpand + 1);
 
 			if (m_nBoneAniIndex == 45 || m_nBoneAniIndex == 46 || m_nBoneAniIndex == 53 || m_nBoneAniIndex == 54)
 			{
-				sprintf(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName, i + 1, 1);
+				sprintf_s(szTexture, "%s%02d%02d.wyt", MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName, i + 1, 1);
 			}
 
 			if (!strcmp(szName, "mesh\\ch010218.msh") && !strcmp(szTexture, "mesh\\ch010219.wyt"))

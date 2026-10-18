@@ -51,10 +51,12 @@ unexercised catalog entries to `CLIENT_TESTED`. The sections below retain the
 limits of each proven flow; unresolved sale policy, legacy opcode and asset
 evidence must not be closed merely because the general session looked correct.
 
-## Crash capture and investigation, 2026-10-14
+## Memory safety and crash capture, 2026-10-17
 
-Classification: `MODERNIZACAO_COMPATIVEL`. Diagnostics only; no packet,
-asset, skill rule or visual contract changes.
+Classification: `MODERNIZACAO_COMPATIVEL`. Memory/lifetime corrections and
+diagnostics; no packet, asset format or skill-rule changes. This batch was
+built from the existing dirty working tree at base commit `de87cd87`, not an
+isolated release commit. Other changes in that tree are not certified here.
 
 The October 13 Mana Control incident recorded `0xC00000FD` (stack overflow)
 and an empty dump. Windows subsequently recorded an access violation inside
@@ -62,7 +64,51 @@ and an empty dump. Windows subsequently recorded an access violation inside
 gameplay function caused the original overflow. The original empty dump and
 logs must remain evidence; the skill crash is not considered resolved.
 
-`internal/platform/diagnostics/CrashCapture.h` now prepares a dedicated worker
+The October 17 local review also found three readable access-violation dumps
+(including execution at an address outside loaded modules), and seven Windows
+heap-corruption events (`0xC0000374`) without corresponding crash captures.
+The available PDBs do not match those dumps' recorded PDB ages. Consequently,
+the historical faulting functions and the original heap writer remain
+unidentified. An exception reported in `ntdll.dll` is not evidence that Windows
+caused the corruption. The supplied audit and original dumps were not edited.
+
+### Implemented safety corrections
+
+- Geometry unlinking updates both head and tail and clears the removed link.
+  Duplicate insertion and invalid draw layers are rejected. Previously,
+  removing/deleting the last icon in a nonempty list left a dangling tail;
+  the next insertion wrote through that freed object. This is a concrete
+  use-after-free defect, not proof that it caused every recorded heap crash.
+- Item swapping validates the attached item, backing item, grid, cell size
+  and geometry before dereferencing them. Synchronous commerce mouse
+  redispatch has a scoped reentry guard.
+- Carry/cargo drop confirmation no longer rebuilds the character skin and
+  effects. Equipment changes retain familiar and appearance refreshes.
+- Attack handling validates skill indices before table access, preserves
+  physical attack index `-1` without indexing the skill table, and checks the
+  attacker's skin before double-critical animation access.
+- Skin restoration validates hierarchy size, IDs, parent ordering, part count
+  and path prefix before indexing frame storage. Separate frame ownership
+  retains every allocation, including the duplicate IDs legitimately present
+  in the active wing assets; lookup slots are not owners. Mesh/texture path
+  formatting is bounded.
+- Tree attachment rejects self/ancestor cycles and duplicate child insertion,
+  and unlinks a node before reparenting or sibling insertion. Double Swing's
+  follow-up effect is created at natural expiry, not from its destructor
+  while its effect container is being destroyed.
+- Animation-sound records use bounded, checked parsing and staged table
+  replacement. Minimap records and portal labels are bounded; malformed
+  physical lines cannot trap the parser in a non-progressing loop. UI traversal
+  checks for a missing parent before reading its position.
+
+The audit's Mana Control particle-rate concern remains a separate performance
+and gameplay-validation item. Its native visual emission was not reduced as
+a speculative crash fix. These changes do not establish that every recursive
+traversal, asset loader or effect in the client is memory-safe.
+
+### Capture and investigation workflow
+
+`internal/platform/diagnostics/CrashCapture.h` prepares a dedicated worker
 and loads system DbgHelp at startup. The main thread reserves 64 KiB for
 exception handling. The filter copies the original exception/context into
 preallocated storage and signals the worker, with a ten-second wait limit.
@@ -71,13 +117,28 @@ Other overflow-prone application threads must reserve their own exception
 stack at thread entry. The test covers both main-thread and secondary-thread
 overflow; it does not establish that every application thread is instrumented.
 
+`CrashMonitor.h` adds an external collector because fail-fast termination can
+bypass in-process exception handlers. Startup launches the same executable in
+`--wyd-crash-monitor` mode before normal application initialization. This mode
+validates its actual parent and matching executable path, attaches only to
+that parent and exits without loading game assets, Direct3D or networking.
+It passes ordinary exceptions through, captures unhandled second-chance
+exceptions and lets the original fatal termination continue. It is not a
+recovery mechanism. Normal and handled-exception exits produce no dump.
+The helper uses `DebugSetProcessKillOnExit(FALSE)` so its own exit does not
+kill an otherwise healthy game. An existing debugger skips helper startup;
+attachment failures are logged and retain the in-process fallback. Startup
+waits at most five seconds for readiness. Storage failures, external process
+termination or a stuck dump writer can still prevent capture; neither path
+guarantees a dump for every possible termination.
+
 Captures use UTC time, milliseconds, PID and the faulting thread ID in their
-names. They are created exclusively as `.dmp.partial`, checked for nonempty
+names, under `dumps/` beside the executable. External collector records are
+written to `dumps/crash-monitor-p<PID>.log`. Dumps are created exclusively as
+`.dmp.partial`, checked for nonempty
 output and flushed before being renamed to `.dmp`. Failures retain partial
 evidence and report Windows error codes; they never report an empty file as
-a successful dump. The mechanism is best effort: process-wide corruption,
-external termination, unavailable storage or a stuck dump worker can still
-prevent a complete capture. It is not a recovery mechanism.
+a successful dump.
 
 `client-debug.log`, beside the executable, prefixes records with UTC time,
 PID, thread ID and elapsed milliseconds. Startup records identify the loaded
@@ -87,21 +148,389 @@ Access violations record the attempted operation/address. Skill-grid self-buff
 use records send and local-prediction begin/end stages, using numeric skill,
 control and opcode IDs only. `WYD748_TRACE_PACKETS` remains opt-in metadata
 tracing; no packet payloads, passwords or chat are added by these hooks.
+An exception address outside a committed image is labeled `<unmapped>` with
+zero module base/RVA, rather than falsely attributed to the game executable.
 
 For investigation, collect the dump, log and the exact executable/PDB pair
 from that build before rebuilding. Minidumps can contain private process
 memory even though the diagnostic hooks do not log credentials: do not post
 them publicly. A different build's PDB cannot reliably symbolize the crash.
 
-Validation: the integrated Release build passes the architecture, socket,
-launcher and new crash-capture gates. `CrashCaptureTests` checks actual dumps
-from isolated console subprocesses for stack overflow and access violation,
-including the original exception/thread/context, module and thread streams,
-separate capture thread, and bounded termination. Missing output directories
-and a simulated disk-full writer are rejected without a published dump.
-The game is never launched by this gate. This is `AUTOMATED TESTED` and build
-evidence, not `CLIENT_TESTED`; an in-game Mana Control reproduction with the
-instrumented executable remains pending.
+### Validation and delivery state
+
+The integrated Release build through `Build-Client.ps1 -NoDeploy` passed:
+
+- Architecture: **1,263,718 checks** and static assertions, including list,
+  attachment, reentry, parser and frame-boundary regressions. Every active
+  `BoneAni4.txt` hierarchy passes the production frame validator, including
+  duplicate-ID wings. The complete active animation-sound and minimap tables
+  also pass their production row parsers. This expanded runtime-asset test was
+  rerun after the full build; no client source changed after that build.
+- Socket receive: **231 checks**; launcher: **56 checks**.
+- Crash capture: **198 checks, zero failures**. Isolated processes produce
+  readable dumps for main/secondary-thread overflow, access violation and
+  external fail-fast capture. Tests verify original exception/thread/context,
+  module/thread streams, separate capture thread/process and bounded test
+  termination. Missing directories and a simulated disk-full writer do not
+  publish a successful dump. External normal and handled-exception paths
+  produce no dump. A freed-tail regression protects the removed icon's page
+  against access before inserting its replacement.
+- The `0xC0000374` collector test raises that exact fatal status using
+  `RaiseFailFastException`. It tests capture, **not actual allocator corruption
+  or reproduction of the game's unknown heap write**.
+- Costume dependencies and shader gates pass. Existing Winsock deprecation
+  warnings for `inet_addr` and `WSAAsyncSelect` remain nonblocking.
+
+Candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+`784DE7CD7F1DF968C52CEBBA58375412A35F14B102A8BD40121D5E6B89517B3D`.
+Its matching `WYD.pdb` SHA-256 is
+`478F00F6893B5CC8CFD041891C45901F8543A61C1D2D16181596A3DA460053D4`.
+Preserve this pair before another build if it will be used for crash diagnosis.
+The installed `tmproject/client748/WYD.exe` remains unchanged, SHA-256
+`4183973219F67EC0F22D29276E42541DD9793FA1EB0A54BADFF7919938F60C41`.
+No game process was launched, stopped or replaced; no launcher patch or VPS
+release was published.
+
+Status: `AUTOMATED TESTED` and built candidate, **not `CLIENT_TESTED`**.
+Pending acceptance includes Mana Control activation/removal, repeated
+drag/swap/drop with equipment and carry/cargo, scene transitions, relogin,
+winged models and orderly exit using the exact candidate. A new heap failure
+requires its matching EXE/PDB, dump and both logs; historical crash closure
+and unrestricted release readiness are not claimed.
+
+Repository validation: the scoped diff whitespace check passes. The layout
+validator still fails on two pre-existing locations: the user-supplied audit
+under `tmproject/client748/dumps/` and `tmproject/TMProject748/build/`. Neither
+was created by this batch; neither was moved or deleted. This layout failure
+is separate from the successful client build and automated checks.
+
+Cleanup of this batch's generated output was blocked by execution policy;
+no alternate deletion method was attempted. The following ignored locations
+remain and can be removed later without deleting the user's original dumps
+or the current incremental build:
+
+- `tmproject/build/tests/Release/crash-capture-tests-26568-636432828/`
+- `tmproject/build/tests/Release/crash-capture-tests-32372-636540109/`
+- `tmproject/build/tests/Release/crash-capture-tests-29380-636730281/`
+- `build/crash-hardening/` (build log).
+
+### Correction plan update, 2026-10-18
+
+This is the active crash-correction queue. It incorporates the supplied
+`crashes-cliente-2026-10-18.md` audit and the subsequent source review. The
+audit examined committed `de87cd8`, not the later uncommitted safety batch
+described above. Preserve the original audit; its recommendations are evidence
+to assess, not authorization to change configuration or publish a release.
+The initial plan was documentation-only. The continuation below records source
+corrections and a fresh automated build; it does not renew earlier gameplay proof.
+
+#### Baseline and evidence limits
+
+- Already implemented locally: commerce mouse reentry protection, geometry
+  head/tail repair and duplicate-insertion checks, attack-index/skin guards,
+  skin hierarchy validation and allocation ownership, tree attachment guards,
+  bounded table parsing, and external crash collection. Reuse their recorded
+  automated coverage unless a dependent change invalidates it. None closes the
+  original Mana Control, item-drop or heap-corruption incident by itself.
+- The first continuation repairs unchecked texture dimensions and row pitch,
+  surface cleanup on format replacement, guild-name destination indices, and
+  network strings used as formatting templates. Remaining coverage limits are
+  listed per batch below; these defects are not historical crash attribution.
+- Actor/effect lifetime, scene transitions, resource recovery and other loader
+  findings remain investigation items until their reachable lifecycle and
+  failure are established. Do not label the entire audit reproduced.
+- Small frames in a different compiler's static analysis do not prove that
+  infinite recursion is the only explanation for `0xC00000FD`. Record actual
+  exception parameters, stack and matching symbols before attributing a crash.
+- The external collector supersedes the audit's claim that only WER can capture
+  fast-fail exits. WER is an optional diagnostic fallback, not a completed or
+  mandatory machine-wide configuration change. The simulated `0xC0000374` test
+  proves collection, not repair of a real allocator overwrite.
+
+#### Ordered implementation batches
+
+The batches are **partially implemented**, not collectively complete. Keep
+corrections contract-preserving; for an unmapped wire/layout boundary, resolve
+only that missing 7.48 evidence before adaptation. Do not invent packet sizes
+or remove supported legacy behavior.
+
+1. **P0 — Minimap texture copying and surface lifetime.** Repair
+   `TextureManager::GenerateTexture` and its `TMGround::SetMiniMapData` caller
+   path. Validate indices, actual source/destination descriptions, formats,
+   rectangles, arithmetic and both lock results. Use each surface's `Pitch`,
+   not an assumed tightly packed width. Recreate an incompatible destination
+   with the required dimensions, reacquire its surface and balance locks and
+   COM references on every failure; never release the locked source in place
+   of the destination. Tests must cover an undersized 128x128 destination,
+   padded rows, both dynamic resolutions, edge/out-of-range rectangles, format
+   replacement and failed create/get-surface/lock operations. Client acceptance:
+   hide/show the minimap, cross terrain blocks repeatedly, and repeat after
+   device recovery. This is a candidate heap-corruption path, not a proven
+   explanation of the historical dumps.
+
+   **Source implemented; automated copy/lock tests passed.** The production
+   copy uses actual surface descriptions, supports padded 16/32-bit rows and
+   bounded legacy half-resolution sampling, recreates incompatible destinations,
+   and releases acquired surfaces. Successful locks are balanced even when a
+   driver returns a null pixel pointer; destination-lock failure unlocks the
+   source. Regression tests cover 256/512 destinations, the 128x128 mismatch,
+   incompatible formats, clipped/overflowing rectangles, row/adjacent sentinels,
+   and failed locks/unlocks. Full COM create/get-surface/get-description failure
+   injection and real device/minimap acceptance remain pending.
+2. **P0 — Received-packet and text boundaries.** Inventory the audit's handled
+   but unmigrated opcodes against current consumers and their existing guards.
+   Add proven size/discriminant checks before casts, payload writes or decode;
+   validate embedded indices and bounded text termination. Start with guild
+   names (`0x1D6`), summon (`0x3B2`), event lines (`0x7B1`) and the alternate shop
+   path (`0x1D0`). Replace network-controlled format templates in party/summon
+   and remove or bound the redundant long-whisper formatting. Tests must use
+   header-only/truncated/oversized frames, mismatched metadata, invalid guild
+   indices, nonterminated names, maximum-length whispers and literal percent
+   characters. Assert rejection before mutation, preserve adjacent-frame
+   sentinels and retain valid native/variable-sized packet coverage. Include
+   transport callback reentry and borrowed-buffer lifetime in this review.
+
+   **Consumer-boundary guards and text fixes implemented; focused tests passed.**
+   Twenty-four unmigrated opcodes now require at least the last field accessed
+   by the current consumer, with matching header/view metadata. These minima
+   are source-derived safety checks, not newly proven exact native wire sizes;
+   larger legacy frames remain accepted where no exact contract applies.
+   Existing exact/variable packet validation is retained. Guild slots are
+   bounded, fixed-width fields are terminated, summon/party names are data
+   rather than format strings, and whisper/memo formatting truncates safely.
+   Tests exercise every shorter prefix, invalid slots, nonterminated fields,
+   literal percent characters, long text and adjacent-frame sentinels. Transport
+   callback reentry and borrowed-buffer lifetime are addressed by the second
+   continuation below; arbitrary application teardown inside a modal callback
+   remains outside that transport guarantee.
+3. **P1 — Device loss and per-frame UI cleanup.** Trace creation, partial
+   failure, invalidation and restoration of all render-target textures and
+   surfaces, including `D3DPOOL_DEFAULT` resources. Release owned resources
+   before reset and rebuild without leaving borrowed mesh pointers dangling.
+   Complete UI-list cleanup for every early return in `NewApp::RenderScene`;
+   the existing head/tail fix does not prove this abort lifecycle is safe.
+   Tests must cover failed begin/end/reset/restore, repeated recovery, resource
+   release counts, aborted frames followed by control deletion, and insertion
+   across draw layers. Client acceptance: fullscreen Alt+Tab, minimize/restore
+   and resolution changes, with active effects and pending actor removal.
+
+   **UI abort cleanup implemented; broader resource recovery pending.** A scoped
+   cleanup in `NewApp::RenderScene` discards non-owning UI links on every return,
+   including failed begin/end, state setup and skipped UI rendering. Container
+   teardown clears links before deleting controls. A node cannot enter a second
+   draw layer; removal searches its actual layer even after its layer field
+   changes. Regression tests exercise failed/aborted multi-segment frames,
+   cross-layer insertion, tail repair, deletion and next-frame requeue. These
+   test seams do not prove all scene-transition or render-resource lifetimes.
+   Render-target/default-pool ownership, borrowed meshes and gameplay recovery
+   remain pending.
+4. **P1 — Actor, effect and scene lifetime.** Trace delayed deletion through
+   lookup, packet delivery, effect creation and final owner detachment;
+   include nested effect containers, delayed actors after device recovery,
+   local-player death/removal and scene changes during traversal. Verify
+   item-removal lookup cannot select an actor sharing its numeric ID. Add
+   regressions for packets arriving during removal, new effects after detach,
+   local-player protection, item/actor ID collisions, and repeated scene
+   transition/relogin/teardown. Prove the intended delayed-visibility behavior
+   before changing lookup policy. Exercise owner and observer paths separately.
+
+   **Partial lifetime correction implemented in the second continuation.**
+   Final owner detachment now iterates all descendants, including nested effect
+   containers and effects attached after initial retirement, without recursive
+   stack consumption. ID-based deletion shares that path. Ground-item removal
+   resolves only the item container, preventing an actor/item numeric-ID
+   collision from deleting the actor. `TMHuman::DelayDelete` preserves the local
+   field actor for HUD/resurrection/logout and rejects unavailable parent/timer/
+   manager dependencies; remote and selection retirement remain enabled.
+   Pure regressions cover nested/unrelated owners, subtree boundaries, a
+   10,000-level tree and the local/remote/selection policy. Source-binding tests
+   verify production integration, not execution of the full scene lifecycle.
+   Scene transitions during traversal, repeated transition/relogin/teardown,
+   owner/observer gameplay and delayed actors after device recovery remain open.
+5. **P2 — Remaining loader/UI bounds and effect pressure.** Triage the audit's
+   `CMesh` palette/allocation/lock handling, mesh filenames, string-table NUL
+   termination, tooltip line count, guild-mark index 64, editable-list limits,
+   `SText` copy/caller mutation, item-price indices, character-slot indices,
+   motion/level indices, world-effect rectangle limits, optional UI pointers
+   and scene casts. Keep the guild-dialog target lifetime in scope. Add focused
+   malformed-input and allocation-failure regressions for each confirmed path.
+   Recheck recursive skeleton traversal against the validated hierarchy limits
+   without redoing the completed skin-ID fix. Measure Mana Control node count,
+   emission rate and cleanup cost at bounded/unbounded FPS and with multiple
+   actors; do not change native visuals as a speculative crash workaround.
+
+   **The `SText` and bounded `CMesh` loading subtasks are implemented locally.** Constructor
+   and updates prepare bounded local text without changing the caller's buffer.
+   Comma grouping avoids `atoi` overflow and fixed-size temporary overflows;
+   null updates also clear segmented text. Tests cover immutable literals,
+   tight input buffers, grouping/zero/space behavior and long digit strings.
+   The third continuation below adds mesh payload validation and transactional
+   buffer/cache publication. Other loader/UI/index and effect-pressure findings
+   remain pending; this does not close device recovery or mesh lifetime work.
+
+#### Continuation validation, 2026-10-18
+
+Classification: `MODERNIZACAO_COMPATIVEL`. No wire layout, server rule, skill
+visual or runtime asset was changed by this crash-boundary continuation.
+The build includes the existing dirty tree at base `de87cd8789bef3165babbdf41fe1f86bc449106a`;
+passing it does not certify unrelated changes in that tree.
+
+- `pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release -NoDeploy`
+  completed successfully: 3,263,747 architecture checks and static assertions,
+  231 socket checks, 198 isolated crash-capture checks and 56 launcher checks.
+  Costume and skin-shader gates passed. Two nonblocking C4996 warnings remain
+  for the existing `inet_addr` and `WSAAsyncSelect` APIs in the socket test build.
+- Built candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `8F1E95377995A6C773761D30AE5E3C5DA07A6A6AAD249CB9752CF7020DA4CAAB`.
+  Matching build PDB: `tmproject/build/TMProject748/Release/WYD.pdb`, SHA-256
+  `6B6EAC20D68653E4258E4192DCDA6DA1A1027665BEE4DE69BED5B97ECE47C838`.
+  Retain this pair for diagnostics until a later build replaces it; these paths
+  are current incremental outputs, not a separately archived release.
+- The candidate still depends on the current 7.48 runtime assets/configuration
+  and compatible server contracts. No asset package, server binary or Go rule
+  was produced by this batch. The installed `tmproject/client748/WYD.exe` was
+  not replaced; its observed SHA-256 is
+  `4183973219F67EC0F22D29276E42541DD9793FA1EB0A54BADFF7919938F60C41`.
+- State: **source corrected / automated checks passed / candidate built**.
+  Installation, launcher publication, VPS update and `CLIENT_TESTED` acceptance
+  are pending and were not attempted. No game was started or stopped.
+- `git diff --check` passed. Repository layout validation remains blocked by
+  pre-existing paths: `tmproject/client748/dumps/TMProject748_STACK_OVERFLOW_AUDIT_2026-10-17.md`
+  and generated output under `tmproject/TMProject748/build/`. Neither was moved
+  or removed as part of this correction.
+- Cleanup of this continuation's generated fixtures/log was rejected by
+  execution policy. No alternate deletion method was attempted. Remaining
+  ignored paths: `tmproject/build/tests/Release/crash-capture-tests-31336-639862375/`
+  and `build/crash-boundary-hardening/`. Original dumps and current incremental
+  EXE/PDB outputs were preserved.
+- Next: continue render-resource/actor/effect lifetimes and the remaining P2
+  bounds after the serialized transport correction below. Real Mana Control, item-drop and
+  `0xC0000374` incidents remain open until matching crash/gameplay evidence
+  establishes their causes; synthetic collection tests do not close them.
+
+#### Second continuation: serialized transport and actor references, 2026-10-18
+
+Classification: `MODERNIZACAO_COMPATIVEL`; no wire, asset, server or skill-visual
+contract change. A modal window can pump another Winsock notification while a
+packet handler still borrows the receive buffer. `CPSock::DispatchNetworkEvent`
+now defers nested read/write/connect/close/error notifications until that
+handler returns. Close/reconnect advances the stream generation, discards
+queued old events and stops draining the old stream. `NewApp::OnNetworkMessage`
+uses this boundary while retaining envelope validation, clock adjustment,
+packet recording and scene-disconnect notification.
+
+Production socket loopback tests exercise nested encrypted frames, close/error
+notification ordering, malformed framing and reconnect while an old close is
+queued. They verify stable borrowed bytes and callback depth one: **281 checks
+passed**. Updated architecture and production source-binding tests passed
+**3,273,759 checks plus static assertions**. An initial test compile exposed a
+fixture identifier collision; the next run identified an obsolete source-order
+assertion after moving the receive loop. Both tests were corrected, including
+the full method signature required by the source extractor, before the passing
+run. No game executable was used for these isolated tests.
+
+The user is testing the prior Release candidate. Its EXE/PDB and the installed
+runtime must not be overwritten by this continuation. The integration build
+therefore uses the solution's separate Debug output, without deployment. A
+Debug build is compilation evidence, not a fresh integrated Release gate or
+`CLIENT_TESTED` acceptance. The original Mana Control, item-drop and real
+`0xC0000374` root causes remain unconfirmed. The next isolated investigation is
+render-target/default-pool and borrowed-mesh recovery, followed by the `CMesh`
+loader and the remaining UI/index bounds; do not declare the audit closed.
+
+- Integration command: MSBuild `tmproject/WYDESTINY.sln /t:Build
+  /p:Configuration=Debug /p:Platform=x86 /m /nologo /v:minimal`; exit 0.
+  No build errors were reported. The socket test build retains the two existing
+  nonblocking C4996 API warnings; those APIs were not replaced by this batch.
+- Separate candidate: `tmproject/build/TMProject748/Debug/WYDestiny.exe`,
+  SHA-256 `6B48AA4EB471CA885822E6D31B144BB7163434EAB4330F5266D6CD426B02203C`.
+  Its `WYDestiny.pdb` SHA-256 is
+  `40AE4EEE55AE3DB5FD46174E91152D4CBD03B4C855726EF02CAAAED113BCBF54`.
+  It depends on the existing 7.48 runtime/configuration and compatible server;
+  no corresponding asset or server package was produced.
+- Release EXE/PDB and installed runtime hashes were rechecked against the
+  preceding receipt and remain identical. No client was started/stopped,
+  installed or published; no server change/restart, commit or push occurred.
+- `git diff --check` passed. The layout validator still reports the same two
+  pre-existing out-of-place documentation/build paths recorded above. They and
+  the previously policy-blocked cleanup targets were left untouched. This
+  continuation created only current incremental outputs under `tmproject/build/`;
+  no new crash fixtures, staging downloads or scratch files were retained.
+
+#### Third continuation: bounded skin-mesh loading, 2026-10-18
+
+Classification: `MODERNIZACAO_COMPATIVEL`. This batch preserves the existing
+mesh format and bounds calculation. No runtime asset, wire layout, server rule
+or skill visual was changed. Native research was not reopened for this internal
+memory-safety correction.
+
+`CMesh::LoadMesh` previously trusted file palette counts while allocating only
+160 bytes for names and exposing a fixed 40-entry bone binding array. Header
+reads, size multiplication, GPU creation/locking and payload reads could also
+fail without a complete rollback. The loader now checks the full payload size,
+palette capacity, influence count, stride, triangle indices, finite positions
+and cache filename before publishing a mesh. Temporary allocations and COM
+buffers are owned until all reads, validation and unlocks succeed. Missing files
+do not consume a cache slot. Constructor initialization and render-time binding
+checks prevent rendering with an incomplete bone palette. Borrowed mesh/frame
+ownership is documented; general device recovery remains pending.
+
+- Focused Release architecture target: **3,281,408 checks plus static assertions
+  passed**. Cases include every truncation before the minimum valid payload,
+  palette/count/product overflow, invalid positions/indices and injected create,
+  lock, read, validation and unlock failures. COM rollback and lock/unlock balance
+  are checked with test buffers; these are not real device-loss tests.
+- The same production validation helpers accepted **all 1,596 current `.msh`
+  runtime files**. This establishes compatibility for the checked payload,
+  position, palette and index constraints, not visual or animation acceptance.
+  Source-binding tests verify integration before allocation/cache publication
+  and missing-bone checks before rendering.
+- Debug solution integration build passed (MSBuild, Debug/x86, exit 0); no
+  errors or warnings were reported by that incremental build. Its current
+  `tmproject/build/TMProject748/Debug/WYDestiny.exe` SHA-256 is
+  `6E9354A24C48FD675BB1F6C671DF8F6BD771BC154E1B7F0AC9FE8641FF3BCCC8`;
+  matching `WYDestiny.pdb` SHA-256 is
+  `800232109AA6D2D3198BF47396302AB1680E310F7F603729980885FF96DCC7D7`.
+  These incremental outputs supersede the second continuation's Debug pair;
+  the earlier hashes are historical, not an archived candidate. Runtime assets,
+  configuration and compatible server dependencies are unchanged.
+- The first continuation's Release EXE/PDB and installed runtime hashes were
+  rechecked and remain unchanged. No client was installed, started or stopped;
+  no publication, VPS change, restart, commit or push was attempted.
+- No new scratch files or fixtures were retained. Existing policy-blocked
+  cleanup targets and user-provided audit/dump files remain untouched.
+- `git diff --check` passed. Layout validation exited 1 on the same pre-existing
+  misplaced audit and generated `tmproject/TMProject748/build/` paths recorded
+  above; neither was removed or relocated by this batch.
+
+State: **source corrected / focused checks passed / separate Debug built**.
+The original Mana Control, item-drop and `0xC0000374` causes remain unconfirmed.
+Next: transactional render-resource recovery and borrowed-mesh/scene lifetime,
+then the remaining UI/index bounds and measured effect pressure. A fresh
+integrated Release gate and scenario-specific gameplay tests remain required
+before accepting these newer source batches in the user's runtime.
+
+#### Completion and release gates
+
+- For each batch: demonstrate the failing boundary with a focused regression,
+  apply the smallest correction, then run the affected tests/target. Run one
+  integrated Release build after the executable batch, not after every edit;
+  broaden checks only when changed dependencies or failures require it.
+- Preserve the exact candidate EXE/PDB pair before replacing build outputs.
+  Record its hashes and dependencies. If a real heap failure remains, collect
+  its dump and logs; consider an isolated diagnostic build or scoped heap
+  instrumentation to catch the first invalid write. Do not enable global
+  instrumentation or claim root-cause closure from a synthetic status test.
+- Keep source completion, automated checks, built candidate, local installation,
+  launcher publication, active VPS release and gameplay acceptance separate.
+  Installation, client interruption, publication/restart and commit/push need
+  their own authorized scope. Do not repeat already valid capture tests or
+  deploy merely to update this plan.
+- Gameplay acceptance must identify the executable and scenario: Mana Control
+  by icon/right-click and shortcut, drag/swap/drop, long text/party/summon,
+  minimap reload, device recovery, actor removal, relogin and orderly exit.
+  A clean session is not proof that every historical crash is fixed. Close
+  each incident only with evidence specific to its original reproduction.
 
 ## Input and layout review, 2026-10-10
 
@@ -1082,6 +1511,19 @@ the 7.69 sets 174..176 and 510; 510 is absent from the 7.48
 `UITextureSetList.txt`, so the chat list showed a stray block without a track.
 Classic mode and horizontal bars keep their previous path. Pending:
 `CLIENT-TESTED` for the chat list and other scrolling lists.
+
+Follow-up, 2026-10-17: `MODERNIZACAO_COMPATIVEL` fixes the Helper down arrow
+appearing below its window at non-unit UI scales. `SControl` scales constructor
+coordinates, but the scrollbar passed its already-scaled height into the down
+panel constructor, applying scale twice. `scrollbar_layout::DownArrowY` now
+receives resource units during construction and physical pixels during resize
+through `ScrollbarLayout.h`. The native 17-unit button and 7-unit texture
+offset are unchanged. Five-scale geometry tests and production source bindings
+cover initial placement and chat growth; they are not visual gameplay proof.
+`Build-Client.ps1 -NoDeploy` passed 1,240,466 architecture checks, socket 231,
+crash capture 83, launcher 56 and Release/x86 compilation. No runtime install
+or publication occurred. Open Helper at 800x600, 1024x768 and 1280x960, scroll
+to both ends, and grow/shrink chat to complete the in-game validation.
 
 Texture-set audit (same date). `UI/UITextureSetList.txt` is unchanged since
 import, defines 446 sets (0..456) and is a superset of the OnGame list (only
@@ -2365,6 +2807,59 @@ AUTOMATED TESTED: ArchitectureTests 1,209,240 checks and incremental Release/x86
 solution build passed; manifest validation passed. Final local artifact identity
 and the separate server gates are recorded in [current state](../current-state.md).
 No executable was installed in the runtime and no game was launched.
+
+## Odin level-40 composition and receptacle alignment (2026-10-17)
+
+Local source correction, not a published patch or gameplay acceptance:
+
+- `OdinComposition.h`, called by `TMFieldSceneMix.cpp::DoNativeMix`, accepts
+  the existing ordered server recipe: slots 0/1 Locked Seal (4127), slot 2
+  Magic's Seal (5135), then Fehu (5113), Mannaz (5129), Thurisaz (5112),
+  Ansuz (5110). Wire slot 7 remains empty. Previously the client accepted only
+  four powders after the seals, rejecting the level-40 recipe before sending
+  `0x2D2`. The powder-based cape recipe remains accepted. Packet size, Carry
+  positions and server-side item/UID/progression validation are unchanged.
+- The user's explicit progression rule removes both the 200-Fame requirement
+  and its consumption from Celestial level-40 unlocking, in both legacy and
+  detached critical-persistence paths. Existing Fame balances remain unchanged.
+  Classification: `MODERNIZACAO_COMPATIVEL` for correcting this existing recipe
+  contract. This is an explicit project rule, not a claim of native recipe
+  parity. The user's Fame-at-level-500 rule is not implemented or redefined by
+  this patch; no other unlock's requirements were changed.
+- Native `FUN_0040fc3e` centers all six mix receptacle types 12/14/16/18/20/22.
+  The inherited 7.69 enum names hid the missing 16/18/20/22 selection in the
+  port. Odin uses type 20. These now reach the existing centered mesh/sprite/
+  label path without changing item scale, assets or input regions.
+  Classification: `PARIDADE_NATIVA`; see the updated evidence record
+  `.agents/research/client748/flows/ui/grid-item-mesh-scale.md`.
+
+Validation: focused `TestOdin*` and `TestCriticalAdvancedCraft*` passed with
+`go test -count=1 ./internal/game -run '^Test(Odin|CriticalAdvancedCraft)'`.
+Coverage includes zero/absent/insufficient/surplus Fame, ordered ingredients,
+preserved cape composition, replay, reciprocal trade, persistence rejection/
+unknown outcomes, disconnect and shutdown. ArchitectureTests: 1,240,536 checks;
+socket: 231; crash capture: 83; launcher: 56; all passed. Release/Win32 candidate
+built with `Build-Client.ps1 -NoDeploy`; SHA-256
+`8D811FF60B70D8ADAE4AB37E89BC6A6268235035D9574142D1F9A43359ED10F1` at
+`tmproject/build/TMProject748/Release/WYD.exe`. No runtime installation, game
+launch, VPS release, restart or launcher publication. Real-client Odin layout,
+drag/removal, close/reopen, successful unlocking and relogin remain pending.
+
+Repository-wide checks are not globally green: the research validator accepts
+the changed grid evidence record but reports missing sections in the unrelated
+`persistent-buff-visuals.md` and `instance-runtime-counter-controls.md` records.
+The layout validator reports the existing `tmproject/TMProject748/build/`
+directory (created earlier at 18:10, outside the permitted output root). It was
+not created or removed by this change. Full diagnostics:
+`build/odin-correction/research-validation.log` and
+`build/odin-correction/repository-layout.log`, both validator exits 1.
+Scoped `git diff --check` and the English-text inspection passed. No global
+release-readiness claim follows from the successful Odin tests/build.
+Cleanup of this run's disposable crash-test evidence was rejected by execution
+policy; no alternate deletion method was attempted. Leftover directory:
+`tmproject/build/tests/Release/crash-capture-tests-28740-634458171/`.
+The candidate remains in the normal incremental build output; no runtime or
+player data was deleted.
 
 ## Adaptation sequence
 

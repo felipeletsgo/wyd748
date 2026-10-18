@@ -550,6 +550,7 @@ func (w *World) publishCharacterEntry(p *Player, slot int) {
 
 	// 4) Publish nearby mobs, players, and items, then populate p.Visible.
 	w.refreshPlayerVisibility(p)
+	w.restoreNightmareSession(p)
 	w.issueClientIntegrityChallenge(p)
 	log.Printf("[#%d] initial visibility: %d entities", s.ID, len(p.Visible))
 }
@@ -2594,7 +2595,7 @@ func (w *World) finishDisconnectAfterInstances(s *net.Session, p *Player) {
 	w.cancelTrade(p, "disconnect")
 	// Remove party membership and visibility first so clients cannot
 	// retain ghost characters or party members after socket closure.
-	w.removePartyPlayer(p)
+	w.removePartyPlayerMode(p, w.rememberNightmareParty(p))
 	// Despawn owner summons on disconnect; orphans must not follow
 	// the next player to reuse this ID.
 	w.removePlayerSummons(p.ID)

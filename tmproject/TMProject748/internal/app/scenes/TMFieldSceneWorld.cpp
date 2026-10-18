@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/AssetLoadValidation.h"
 #include "WeatherPacket.h"
 #include "WeatherPresentation.h"
 #include "TMFieldScene.h"
@@ -43,11 +44,20 @@ void SetMinimapPos()
 
 	if (fpMinimap)
 	{
-		int Color = 0;
 		for (int index = 0; index < 256; ++index)
 		{
-			if (fscanf(fpMinimap, "%d %d %d %d %d %s", &g_MinimapPos[index].nX, &g_MinimapPos[index].nY, &Color, &g_MinimapPos[index].nCX, &g_MinimapPos[index].nCY, g_MinimapPos[index].szTarget) == -1)
+			char line[512]{};
+			asset_load::LineResult result;
+			do { result = asset_load::ReadLine(fpMinimap, line); } while (result == asset_load::LineResult::Blank);
+			int values[5]{};
+			std::string name;
+			if (result != asset_load::LineResult::Record || !asset_load::ParseMinimap(line, values, name))
 				break;
+			auto& position = g_MinimapPos[index];
+			position.nX = values[0]; position.nY = values[1];
+			position.nCX = values[3]; position.nCY = values[4];
+			strcpy_s(position.szTarget, name.c_str());
+			const int Color = values[2];
 
 			switch (Color)
 			{
@@ -80,11 +90,11 @@ void TMFieldScene::SetVisiblePotal(int bShow, int nPos)
 		return;
 
 	char strTmp1[32]{};
-	strcpy(strTmp1, g_pMessageStringTable[382]);
+	strncpy_s(strTmp1, g_pMessageStringTable[382], _TRUNCATE);
 	char strTmp2[32]{};
-	strcpy(strTmp2, g_pMessageStringTable[383]);
+	strncpy_s(strTmp2, g_pMessageStringTable[383], _TRUNCATE);
 	char strTmp3[32]{};
-	strcpy(strTmp3, g_pMessageStringTable[384]);
+	strncpy_s(strTmp3, g_pMessageStringTable[384], _TRUNCATE);
 	if (m_pPotalText1)
 		m_pPotalText1->SetText(strTmp1, 0);
 	if (m_pPotalText2)

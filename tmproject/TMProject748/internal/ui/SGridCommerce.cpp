@@ -13,6 +13,9 @@
 #include "SellConfirmationText.h"
 #include "NativeSaleQuote.h"
 #include "SGridSupport.h"
+#include "../application/ScopedReentry.h"
+
+namespace { thread_local bool commerceMouseDispatch = false; }
 
 
 void SGridControl::BuyItem(int nCellX, int nCellY)
@@ -1053,10 +1056,13 @@ ExtractedFlow SGridControl::SellItemOnOtherGrid(int& nCellX, int& nCellY, unsign
 	{
 	// The 7.48 grid has no locked pages; every valid CanChangeItem target must
 	// reach the scene swap handler so the blue preview and mouse-up agree.
-	SGridControl::m_pLastAttachedItem = g_pCursor->m_pAttachedItem;
-
-	auto pos = g_pCursor->GetPos();
-	g_pCurrentScene->OnMouseEvent(dwFlags, wParam, (int)pos.x, (int)pos.y);
+	ScopedReentry dispatch(commerceMouseDispatch);
+	if (dispatch)
+	{
+		SGridControl::m_pLastAttachedItem = g_pCursor->m_pAttachedItem;
+		auto pos = g_pCursor->GetPos();
+		g_pCurrentScene->OnMouseEvent(dwFlags, wParam, (int)pos.x, (int)pos.y);
+	}
 	}
 	return ExtractedFlow::Next;
 }
@@ -1274,10 +1280,13 @@ int SGridControl::SellItem2()
 	}
 	else if (CanChangeItem(g_pCursor->m_pAttachedItem, nCellX, nCellY, 0))
 	{
-		SGridControl::m_pLastAttachedItem = g_pCursor->m_pAttachedItem;
-
-		auto vecPos = g_pCursor->GetPos();
-		pFScene->OnMouseEvent(dwFlags, wParam, (int)vecPos.x, (int)vecPos.y);
+		ScopedReentry dispatch(commerceMouseDispatch);
+		if (dispatch)
+		{
+			SGridControl::m_pLastAttachedItem = g_pCursor->m_pAttachedItem;
+			auto vecPos = g_pCursor->GetPos();
+			pFScene->OnMouseEvent(dwFlags, wParam, (int)vecPos.x, (int)vecPos.y);
+		}
 	}
 
 	return 2;
@@ -1285,7 +1294,12 @@ int SGridControl::SellItem2()
 
 void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVHeight, STRUCT_ITEM* pItem)
 {
+	if (!pItem || !g_pCurrentScene || !g_pObjectManager || nCellVWidth <= 0 || nCellVHeight <= 0 ||
+		!m_pLastAttachedItem || !m_pLastAttachedItem->m_pItem || !m_pLastAttachedItem->m_pGridControl)
+		return;
 	auto pGeom = SGridControl::m_pLastAttachedItem->GetGeomControl();
+	if (!pGeom)
+		return;
 	auto nWidth = (int)(pGeom->nWidth / (float)nCellVWidth);
 	auto nHeight = (int)(pGeom->nHeight / (float)nCellVHeight);
 	unsigned int nAtItemPos = 0;

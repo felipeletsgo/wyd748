@@ -156,7 +156,34 @@ func (w *World) queueCriticalKillRewards(p *Player, plans []*killRewardPlan, acc
 	if guildProposal != nil {
 		guildsBefore = w.criticalGuildSnapshot()
 	}
+	// Commit a one-shot Nightmare boss defeat with its account rewards. A
+	// restart after the acknowledgement must not resurrect a rewarded boss.
+	at, instanceGeneration := w.now(), w.criticalInstanceGeneration
+	var instanceBefore, instanceProposal *model.InstanceStateSnapshot
+	for _, plan := range plans {
+		if plan == nil || plan.mob == nil {
+			continue
+		}
+		inst := w.instanceForMob(plan.mob)
+		if !scheduledNightmare(inst) || inst.NightmareBossID != plan.mob.ID || !inst.NightmareBossSpawned {
+			continue
+		}
+		if instanceProposal == nil {
+			instanceBefore = w.instanceStateSnapshotAt(at)
+			instanceProposal = w.instanceStateSnapshotAt(at)
+		}
+		for index := range instanceProposal.Instances {
+			saved := &instanceProposal.Instances[index]
+			if saved.RuntimeID == itemInstanceGameplaySpace(inst) {
+				saved.NightmareBossKilled = true
+			}
+		}
+	}
 	check := func() error {
+		if instanceProposal != nil && (w.criticalInstanceGeneration != instanceGeneration ||
+			!reflect.DeepEqual(w.instanceStateSnapshotAt(at), instanceBefore)) {
+			return errCriticalPersistenceIdentity
+		}
 		for i, participant := range participants {
 			if !reflect.DeepEqual(accountStateSnapshot(participant.Account), before[i]) {
 				return errCriticalPersistenceIdentity
@@ -172,7 +199,7 @@ func (w *World) queueCriticalKillRewards(p *Player, plans []*killRewardPlan, acc
 		}
 		return nil
 	}
-	write := criticalWrite{accounts: proposals, guilds: guildProposal}
+	write := criticalWrite{accounts: proposals, guilds: guildProposal, instances: instanceProposal}
 	_, err := w.submitCriticalSharedWriteWithRejection(write, participants,
 		func(criticalPersistenceResult) error {
 			if err := check(); err != nil {

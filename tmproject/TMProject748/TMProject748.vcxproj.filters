@@ -609,6 +609,9 @@
     <ClInclude Include="internal\application\AssetLoadValidation.h">
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>
+    <ClInclude Include="internal\render\mesh\SkinMeshLoad.h">
+      <Filter>Header Files\Internal\App</Filter>
+    </ClInclude>
     <ClInclude Include="internal\application\IndexedPartyMessage.h">
       <Filter>Header Files\Internal\App</Filter>
     </ClInclude>

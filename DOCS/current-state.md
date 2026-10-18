@@ -1,5 +1,1073 @@
 # Current project state
 
+## Active release — 2026-10-18, historical Hell Gate version 3
+
+The owner authorized publication and restart. Server release
+`/srv/wyd-go/releases/20261018T171412Z` is active; rollback is
+`/srv/wyd-go/releases/20261018T152826Z`. Activation occurred at
+17:14:15 UTC (14:14:15 America/Sao_Paulo), with no established game connections.
+No host reboot, app-td restart, client installation, commit or push occurred.
+
+- Scope: the historical Hell Gate encounter described below, including the
+  selected entrance and two-Lich puzzle, grouped populations, autonomous march
+  toward Dionys, individual replacements, Dionys lottery and KR Sand Lich face.
+  Start a new encounter to exercise version 3: restored version-2 snapshots
+  intentionally keep their original rules instead of being reset or migrated.
+- Source: dirty `main` at `de87cd8789bef3165babbdf41fe1f86bc449106a`, compiled
+  using Go 1.26.5 for Linux/amd64, CGO disabled. Full Go tests and vet from the
+  preceding implementation were reused; source provenance covers 762 Go/module
+  inputs in `build/hell-gate-historical/deploy-source-inputs.sha256`.
+- Packaging used `Build-VpsRelease.ps1` plus an explicit 93-entry supplemental
+  runtime-data allowlist. Every previous payload path is preserved. Exactly ten
+  files differ: the game executable, instance configuration, Dionys/Lich
+  definitions and six new skeleton definitions. The deployed API binary,
+  public website and staff-panel payload remain byte-for-byte unchanged.
+- Archive: 22,327,763 bytes, SHA-256
+  `37AAD514CC00E2806D904D46894F3672D4ABA25FEF1E2D9F99FA59087792F921`.
+  All 7,352 extracted payload checksums passed before activation and again in
+  the active release. Private account state and configuration are not included.
+- Game PID `2343020`, executable SHA-256
+  `9A0DCB56234BF2CA8F89BD63CF2794E01FB76257968447A96470D2AA88E499F6`;
+  API PID `2343032`, executable SHA-256
+  `4722A4B376642AE6DBE9B0AE753C07EEECF0CBC93F20965670F972555F0C054C`.
+  Both started at 17:14:15 UTC and their `/proc` paths identify the new release.
+  Both readiness endpoints and public HTTPS readiness passed; TCP 8281 listens.
+  Warning-priority game/API journals since activation contain no entries.
+- The established updater backed up the database to
+  `/var/backups/wyd-go/wydgo-20261018T171412Z.dump` (138,097 bytes), restarted
+  game/API and reloaded Caddy. Configuration validation passed with existing
+  nonblocking forwarded-header/HTTP-listener warnings. Game/player environment,
+  server settings, staff configuration and Caddy configuration hashes are
+  unchanged. Remote staging is absent.
+- Launcher feed remains at 10035: this server-only change requires no new
+  client patch. Existing cumulative Sand Lich assets remain required. No site
+  news or client executable was changed by this publication.
+
+Publication and restart are verified, not `CLIENT_TESTED` or global release
+certification. In-game encounter, lottery and Lich rendering acceptance remain
+pending. Deployment logs, supplemental paths and payload hashes are recorded in
+`build/hell-gate-historical/`; durable delivery facts are recorded above.
+
+Execution policy rejected local staging cleanup before execution. No alternate
+method or retry was attempted. The exact remaining directory is
+`build/deploy/wyd-deploy-20261018-hellgate759/`. Remote staging was removed by
+the successful updater; the active release and rollback remain preserved.
+
+## Previous release — 2026-10-18, client stability safeguards, patch 10035
+
+The owner authorized publication and restart, including disconnection of the
+one established game connection observed immediately before activation.
+Patch 10035 and `/srv/wyd-go/releases/20261018T152826Z` are active. Rollback is
+`/srv/wyd-go/releases/20261017T221343Z`. No host reboot, app-td restart, local
+client installation, commit or push was performed.
+
+- Source: dirty `main` at `de87cd8789bef3165babbdf41fe1f86bc449106a`.
+  This is a working-tree release, not a release of the committed HEAD alone.
+  Client safeguards cover bounded packet/text/minimap handling, UI draw-list
+  unwinding, serialized socket dispatch, actor retirement and skin-mesh loading.
+  These safeguards do not establish the root cause or closure of every crash.
+- Release/x86 client and automated gates passed: 3,281,408 architecture checks,
+  281 socket checks and 198 crash-capture checks, including the 1,596-mesh corpus.
+  Existing Winsock deprecation warnings are nonblocking. Fresh complete
+  `go test -count=1 ./...`, `go vet ./...`, Linux cross-build, portal build,
+  all 60 portal tests and Astro checks passed. Conditional database fixtures
+  were not enabled. The initial portal test failure was the obsolete 10034
+  receipt expectation; the updated 10035 receipt test passed.
+- Public patch: `patch-10035.zip`, 846,770 bytes, SHA-256
+  `8172AFA041A234E8C01BD956DEB36591062E70EEE8A99B0A3FFCC62B24C77E2A`.
+  Its sole entry is `WYD.exe`, SHA-256
+  `251CF754409F8AE4C0251C9FDD88EDA14C6799E78A377BD0665B6E858FDAFAB0`.
+  The matching Release PDB is retained with the incremental build; SHA-256
+  `D29C437505BE2CC34A35B474CBDA38032270DBE30F1DA12A4EA69A1D9255252F`.
+  Interface resources match published patch 10033; earlier cumulative assets
+  remain in the feed. HTTP/HTTPS feed checks and a fresh public ZIP download
+  passed. Website manifest, home, download, News/article and changelog match.
+- Server archive: 22,299,735 bytes, SHA-256
+  `533E6A624234B8CB153D48C69F34109533DFFD47CE7C1D1A462AE2A2BA570D9D`.
+  The explicit 87-entry supplemental runtime allowlist was verified against
+  the active release inventory. All 685 runtime-data paths were preserved.
+  Archive paths exclude private account/settings files; all 7,346 deployed
+  payload checksums passed after activation.
+- Game PID `2325444` started at `2026-10-18 15:28:29 UTC`; actual executable
+  SHA-256 `5404ED74151256C4E803C06D7D2E532884E07D39ACECEE2F9F16B7C3560959E0`.
+  API PID `2325457` started at `15:28:30 UTC`; actual executable SHA-256
+  `4722A4B376642AE6DBE9B0AE753C07EEECF0CBC93F20965670F972555F0C054C`.
+  Both `/proc` paths identify the new release. Both readiness endpoints are
+  ready, TCP 8281 listens, and warning-priority journals are empty. The text
+  error scan found only the normal critical-persistence worker startup line.
+- Backup succeeded: `/var/backups/wyd-go/wydgo-20261018T152825Z.dump`,
+  135,743 bytes. Private game/player environment and server configuration
+  hashes are unchanged. Caddy validation passed with existing nonblocking
+  forwarded-header/HTTP-listener warnings. Remote release/patch staging is absent.
+
+The installed local `tmproject/client748/WYD.exe` remains unchanged at SHA-256
+`4183973219F67EC0F22D29276E42541DD9793FA1EB0A54BADFF7919938F60C41`.
+Players must close the client and run `WYDLauncher.exe` to receive 10035.
+Actual in-game crash reproduction and resource/lifecycle gaps remain pending;
+this publication is not `CLIENT_TESTED` or global language/release certification.
+
+Execution policy rejected local cleanup before execution; no alternative method
+or retry was attempted. New remaining outputs are
+`build/deploy/wyd-deploy-20261018-crash-hardening-10035/`,
+`build/patch/patch-10035.zip`,
+`build/release-crash-hardening-20261018/public-10035.zip` and
+`tmproject/build/tests/Release/crash-capture-tests-27764-681877187/`.
+Logs, the supplemental runtime list and payload hashes remain in
+`build/release-crash-hardening-20261018/`. Its `prior-release/` EXE/PDB pair
+is deliberately retained for diagnosis of the previously tested executable.
+Previously blocked cleanup outputs below were not retried.
+
+## Implemented rules — 2026-10-18, historical Hell Gate
+
+The supplied historical 7.59 server decompilation establishes two distinct
+random Liches and a single usable entrance selected by the corridor puzzle.
+New Hell Gate runs now use encounter version 3 with those rules. Versioned
+snapshots retain pair/progress; existing version-2 runs retain their old rules
+when restored. Invalid progress and incompatible configuration downgrades fail
+closed instead of rerolling the puzzle.
+
+The owner's follow-up extends version 3 with the bundled 7.59 populations:
+six corridor escorts, 144 room guards (nine four-member groups per room),
+three mage escorts per Lich, and 252 defense attackers. Defense mobs remain
+active without a nearby player and follow a terrain-aware route toward Dionys.
+Casualties replenish individually from their original generator anchors until
+the absolute deadline, without healing Dionys or resetting surviving attackers.
+
+Dionys opens the existing random-item shop through head 51 and the native
+0x2BD packet. Historical catalogs, weights and option generation apply only to
+instance Dionys; the public merchant is unchanged. Purchases remain restricted
+to living, active, same-instance protectors and critical committed persistence.
+The Lich template now uses the existing imported KR Sand Lich head 4088,
+selecting skeleton type 12 (`mesh/rc01`), not the Dragon Lich head. All 15 local
+`rc01` resources match the supplied KR files; no asset was copied or replaced.
+
+Classification: `EXTENSAO_COORDENADA`, adapting historical 7.59 behavior over
+the unchanged 7.48 wire contract, not complete native-7.48 parity. Existing
+owner-selected timing, HP, reward, prices and party admission remain unchanged.
+Historical spawn dispersal and replacement timing are bounded project
+adaptations, and skeleton combat balance remains the existing project's.
+The supplied 6.13 map alone does not reconstruct its implementation. Evidence,
+differences and remaining acceptance are recorded in the
+[Hell Gate bug record](bug-register.md#historical-correction--2026-10-18-version-3)
+and [store contract](protocol/hell-gate-store.md).
+
+Full Go tests and vet passed; focused tests cover pair selection, portal
+authorization/reachability, duplicate deaths, restoration/upgrade safety,
+all 252 attack origins, a complete march to damaging Dionys, occupied-route
+waiting, individual replacements, shop selection and purchase persistence.
+Evidence logs are in `build/hell-gate-historical/`. No new client artifact was
+needed or built. This work is now published in server release
+`20261018T171412Z` as recorded above; it has not been committed, pushed or tested
+in game. Launcher patch 10035 remains unchanged.
+
+## Previous release — 2026-10-17, Hell Gate route and defense, patch 10034
+
+The owner authorized publication, player disconnection and game-service restart.
+Three established game connections were present at the preflight check.
+Patch 10034 and release `/srv/wyd-go/releases/20261017T221343Z` were activated.
+Rollback remains `/srv/wyd-go/releases/20261017T164649Z`. The host was not
+rebooted; no local client installation, launch, commit or push was performed.
+
+- Source: dirty `main` at `de87cd8789bef3165babbdf41fe1f86bc449106a`.
+  The canonical validated client candidate was reused. Patch 10034 contains
+  only `WYD.exe`; both interface resources match patch 10033, and cumulative
+  earlier assets remain available.
+- Public ZIP: 829,693 bytes; SHA-256
+  `03D044C9C65A56F9A3005DF0836859EC5EEB1043AD5CD340FBFE8D830FE9A6F3`.
+  A fresh advertised HTTPS download and its sole executable entry match.
+  HTTP/HTTPS feeds return 200 and preserve prior entries with only 10034
+  appended. Website manifest, home, News, article and changelog advertise 10034.
+- Server archive: 22,299,469 bytes; SHA-256
+  `DD463B6AEF9244289A9DFB308285218A170B5976E8294513A3F3ADD15EF2F9A1`.
+  The tracked-data packager was supplemented with an explicit 87-entry runtime
+  allowlist: previously deployed exclusive templates plus five Hell Gate
+  definitions and its generator. Every previous payload entry is preserved;
+  24 files are new or changed. Archive paths exclude private settings/accounts.
+  All 7,344 extracted checksums passed before activation and again in the
+  active release afterward.
+- Game PID `2163007` started at `2026-10-17 22:13:46 UTC`; actual executable
+  SHA-256 `839D3D02D749C9063A48E25102126A287EFFAEF59EF04108D3A756C4E5CB90ED`.
+  Player API PID `2163020` started one second later; actual executable SHA-256
+  `4722A4B376642AE6DBE9B0AE753C07EEECF0CBC93F20965670F972555F0C054C`.
+  Both `/proc` paths identify the new release. Both readiness endpoints respond
+  ready, TCP 8281 listens, and warning-priority game/API journals since
+  activation contain no entries.
+- Existing configuration matched before activation; private game/player
+  environment and server configuration hashes remain unchanged. The established
+  updater made backup `/var/backups/wyd-go/wydgo-20261017T221343Z.dump`
+  (128,888 bytes), validated Caddy and atomically activated the release.
+  Existing redundant forwarded-header and HTTP-only-listener Caddy warnings
+  are nonblocking. Remote release and patch staging paths are absent.
+- Fresh complete `go test -count=1 ./...` and `go vet ./...` passed; this does
+  not certify unavailable conditional database/account fixtures. Portal build,
+  all 60 tests and Astro checks passed with zero errors, warnings or hints.
+
+Publication and restart are verified. Actual portal confirmation, full encounter
+progression and solo balance remain pending; this is neither `CLIENT_TESTED`
+nor global release-readiness/language-migration certification.
+Local publication cleanup was rejected by execution policy before deletion;
+no alternate shell/API or retry was attempted. Exact new leftovers are
+`build/deploy/wyd-deploy-20261017-hellgate-10034/`,
+`build/patch/patch-10034.zip` and `build/hell-gate/public-10034.zip`.
+Task logs also remain in `build/hell-gate/`: `release-go-tests.log`,
+`release-go-vet.log`, `release-portal-build.log`, `release-portal-tests.log`,
+`release-portal-check.log`, `release-package.log`,
+`release-patch-publish.log` and `release-activation.log`.
+These ignored local outputs are not operational state; remote staging is absent.
+Previously blocked cleanup paths below were not retried.
+
+BUG-003 now has a version-2 encounter reconstruction; details and remaining
+gameplay checks are in the [bug register](bug-register.md#bug-003--hell-gate-population-visibility).
+The entry and arena are disconnected terrain components. Three server-owned
+portal routes and the native generic client prompt address that blockage.
+Progression now includes corridor bosses, four rooms/Liches and defending
+Dionys until the deadline, rather than ending on a cleared wave.
+
+The owner chose twenty minutes total (two preparation plus eighteen active)
+and 10,000,000 completion EXP. The subsequent owner-requested HP increase sets
+the entry spider, corridor bosses and Liches to 400,000 HP each; friendly
+Dionys remains at 150,000 HP. At 10,000 magical damage per cast, not DPS,
+each boss takes forty casts. The owner clarified that spells rotate every
+900 milliseconds: the estimate is 35.1 seconds with an immediate first cast,
+not 234 seconds repeating a single six-second-cooldown skill. This is a
+planning estimate, not actual FelipeTr gameplay evidence or a combat-cadence
+change. The requested timer and HP are preserved. These values and the
+reconstructed population are project settings, not proven native 7.48 constants.
+
+The native prompt boundary is documented in the
+[Hell Gate portal record](../.agents/research/client748/flows/transport/hell-gate-portals.md).
+Client compilation through `tmproject/Build-Client.ps1 -NoDeploy` passed.
+Candidate: `tmproject/build/TMProject748/Release/WYD.exe`; SHA-256
+`4183973219F67EC0F22D29276E42541DD9793FA1EB0A54BADFF7919938F60C41`.
+No local runtime installation or client launch was made. The candidate was
+subsequently published as patch 10034 with server activation recorded above.
+Automated server/data validation is recorded in BUG-003; visual acceptance and
+real solo balance remain pending.
+The earlier `go test ./internal/game ./internal/data -count=1` and scoped `go vet`
+passed. After the 400,000 HP update, focused `TestHellGate*` cases passed in
+both packages (game 0.622s, data 0.163s). The route review additionally exercises
+all three portals through the real request handler with installed terrain and
+populated room/defense phases, preserving membership and free arrival tiles.
+The documentation inventory was refreshed earlier. Layout validation remains
+blocked solely by the obsolete, task-owned direct-compile output at
+`tmproject/TMProject748/build/` (177 files). Its recursive deletion was rejected
+by execution policy; no alternate cleanup route was attempted. Canonical
+incremental outputs under `tmproject/build/` are preserved. This cleanup limit
+does not change the source/test/build result and is not a gameplay claim.
+
+## Active release — 2026-10-17, instance parties and reconnect recovery
+
+The owner explicitly authorized publishing all pending updates, disconnecting
+players and restarting game services. Four established game connections were
+present before the authorized stop. The host was not rebooted; no credentials,
+firewall policy, local client runtime, Git index, commit or remote branch changed.
+
+Source: dirty `main`, HEAD `de87cd8789bef3165babbdf41fe1f86bc449106a`.
+This activates the implemented portions of BUG-003, BUG-007, BUG-008, BUG-009
+and BUG-011 in the [bug register](bug-register.md). Group Nightmare charges
+only the leader and transports eligible members together; individual tickets
+remain individual. Reconnection restores the current encounter HUD and rejoins
+the original process-local party when it still exists and has room. It does
+not add social-party persistence across a server restart. Magic Chamber party
+relocation and independent-run isolation, dedicated Hell Gate generators, and
+friendly Compounder/city-guard behavior are included. Remaining Hell Gate event
+rules, other open reports and in-game acceptance checks are not closed.
+
+Fresh `go test -count=1 ./...` and `go vet ./...` passed. This does not certify
+conditional database/account fixtures unavailable to the local run. Portal build,
+all 60 tests and Astro checks passed with zero errors, warnings or hints.
+The client candidate and both UI resources match published patch 10033 exactly;
+no redundant patch, client rebuild, local installation or launch was performed.
+The public feed and website receipt remain at 10033. Server news and changelog
+now describe this follow-up without claiming full Hell Gate parity.
+
+`Build-VpsRelease.ps1` produced the Linux/amd64 binaries and tracked runtime
+payload. An explicit allowlist restored 85 untracked runtime entries: the
+previous 81 dedicated NPC templates, three Hell Gate templates and its generator.
+Archive comparison preserved every previous payload entry; 18 files are new or
+changed, including binaries, instance data, friendly NPC definitions and website
+news. Archive paths and all 7,340 extracted payload checksums passed before the
+authorized downtime. A redundant local nested website staging copy was excluded
+from both the archive and its manifest; it is not part of the deployed payload.
+
+- Archive: 22,259,567 bytes; SHA-256
+  `D26D70A035BA5E7D82CA496246F6580263C4030AF9C8DDE8CFC625F6406425EF`.
+- Game SHA-256:
+  `4B36369936F45DCC4BCFFEC51BDF0851C6855D7C72617EC78FBE0FEEDFE616E4`.
+- Player API SHA-256:
+  `0A0E3AC870A96CB70FC17430F4AA04D7E362C266DDB3FE14C23CB9B18EBCB2E0`.
+- Active release: `/srv/wyd-go/releases/20261017T164649Z`.
+  Rollback: `/srv/wyd-go/releases/20261017T145456Z`.
+- Game PID `2109897` started at `2026-10-17 16:46:51 UTC`; player API PID
+  `2109910` started one second later (`13:46:51`/`13:46:52` America/Sao_Paulo).
+  Actual `/proc/<pid>/exe` paths and hashes match the release. All 7,340 active
+  payload files match the manifest; both readiness endpoints report `ready`,
+  TCP 8281 listens, and warning-priority journals since startup have no entries.
+- Established deployment configuration matched before activation; private game
+  and player environment hashes are unchanged afterward. The established updater
+  completed backup `/var/backups/wyd-go/wydgo-20261017T164649Z.dump`
+  (121,682 bytes), atomic activation and Caddy validation. Existing redundant
+  forwarded-header and HTTP-only-listener warnings remain nonblocking.
+- Public HTTP/HTTPS feeds, client manifest and the new news article return 200.
+  The manifest retains patch 10033's original size and hashes.
+- Remote `/tmp/wyd-deploy-20261017-party-recovery/` was removed by the updater.
+  Local recursive staging cleanup was rejected by execution policy; no alternate
+  deletion was attempted. Exact leftovers are
+  `build/deploy/wyd-deploy-20261017-party-recovery/`,
+  `build/nightmare-release-tests.log`, `build/party-recovery-portal-build.log`
+  and `build/party-recovery-portal-check.log`. They are not operational state.
+
+Publication and restart are verified; actual gameplay remains pending. This is
+not a global release-readiness, language-migration or `CLIENT_TESTED` claim.
+
+## Active release — 2026-10-17, Magic Chamber room bounds
+
+Classification: `MODERNIZACAO_COMPATIVEL`. No packet, client ABI or native
+actor-lifecycle contract changed; existing 7.48 CreateMob/RemoveMob evidence
+is reused. The server/data correction is active, but gameplay validation is pending.
+
+The repeated Carta N/M/A report had two reproducible server causes. Room bounds
+were centered on the entrance rather than the encounter: for example, room 3
+ended at x=867 while generators placed living monsters beyond that boundary.
+Combat and visibility rejected a member crossing it. Incremental movement
+visibility only examined view-edge strips, leaving actors in the overlapping
+view region stale when logical room eligibility changed.
+
+All twelve configured rooms now have explicit `areaX`/`areaY` centers, separate
+from unchanged entrance coordinates. Existing templates without these fields
+retain their old centers. Membership, combat, movement containment, recovery,
+occupancy and generator reservation use the same room geometry. Explicit bounds
+also constrain ordinary, detached-admission and completion-wave spawn placement.
+Crossing a logical room edge reconciles the full visibility set; ordinary movement retains the
+incremental fast path. Population, timers, EXP and loot rules are unchanged.
+
+The regressions failed before the correction: all twelve real rooms could spawn
+outside their combat bounds, and a one-tile boundary crossing sent no removals.
+They now pass, covering every real spawn/boss tile, member targetability,
+non-member isolation, distinct room entrances, clear/transition/final completion,
+and repeated leave/reentry without mob movement or population changes. A crowded
+detached first wave also stays inside explicit bounds without publishing actors.
+`go test ./internal/game ./internal/data ./internal/model -count=1` passed
+after the final regression and detached-admission changes.
+`go vet ./internal/game ./internal/data ./internal/model` also passed.
+The owner authorized upload, then explicitly approved game-service restart and
+player disconnection through the follow-up question.
+`Build-VpsRelease.ps1` built the Linux/amd64 game/API from dirty `main` at
+`de87cd8789bef3165babbdf41fe1f86bc449106a`. The previous release's explicit
+81-NPC allowlist was restored with unchanged hashes. Comparison against its
+7,334-entry manifest found changes only in `game/wyd-server`,
+`game/wyd-player-api` and `game/data/instances.json`; portal and other data
+remain byte-identical. Archive paths were checked before upload.
+
+Uploaded staging: `/tmp/wyd-deploy-20261017-carta-bounds/`. Archive:
+22,245,477 bytes, SHA-256
+`2BC7C31EAED6ABBDD549B3066F53BDEF5F29F197652798A0A97CBA946F56A3AE`.
+Game SHA-256:
+`48BD0BF791EF9E23FA6047F239F5F75559B8AE70DC7B7FB8C558A480F3A5CB9C`.
+Player API SHA-256:
+`713D6B9E18DD1E69A0D4962E30081D25052D9B09B74A24A07D9D21922214835D`.
+Instances SHA-256:
+`EB59C4DBFC071253AC57B3BA5090061DC3A5FB927D1A54E769E2E540DE29AA67`.
+Remote archive verification and all 7,334 extracted payload checksums passed.
+The temporary remote verification extraction was removed. Activation then used
+the established `update-release.sh`; its remote staging was removed successfully.
+
+The active release is `/srv/wyd-go/releases/20261017T145456Z`; rollback remains
+`/srv/wyd-go/releases/20261017T041938Z`. Game/API PIDs `2091183`/`2091196`
+started at `2026-10-17 14:54:59 UTC` (`11:54:59` America/Sao_Paulo).
+Both actual running executable paths/hashes match this release and the values
+above; all 7,334 active payload checksums match. Both readiness endpoints returned
+`ready`, TCP 8281 is listening, and warning-priority game/API journals since
+activation have no entries. Deployment configurations were byte-identical before
+activation, and game/player environment hashes are unchanged afterward.
+Database backup `/var/backups/wyd-go/wydgo-20261017T145456Z.dump`
+(120,238 bytes) completed. Caddy validation passed with the existing nonblocking
+forwarded-header and HTTP-listener warnings. The host was not rebooted.
+No client patch/build/install, commit or push occurred. An in-game replay is
+still required; this is not a global release-readiness or CLIENT-TESTED claim.
+Local cleanup of `build/deploy/wyd-deploy-20261017-carta-bounds/` was rejected
+by execution policy before deletion. This staging directory remains; no alternate
+deletion mechanism was attempted. Remote staging was removed successfully.
+
+### Follow-up report queue
+
+The active reports, initial diagnostic findings and acceptance checks now live
+in the [gameplay bug register](bug-register.md), issues BUG-001 through BUG-010.
+It includes the original combat/gate/Foema queue, delayed party identification
+on Nightmare M entry, party and encounter HUD loss after reconnection, recurring
+Magic Chamber monster visibility failures, and missing room-transition ground
+markings. The exact native identity of the reported markings remains unverified.
+
+The published Carta bounds correction above is a verified partial correction,
+not closure of the recurring gameplay report. The latest report's running
+artifacts have not yet been verified. Registration and initial diagnosis add no
+source fix, client build, balance change or deployment.
+
+## Published release — 2026-10-17, patch 10033
+
+The owner authorized publication and game/player API restart, including
+disconnection of online players. No host reboot, credential replacement,
+firewall-policy change, local client installation, commit or push is requested.
+This release pairs the double-hit, manual physical autoattack, number-row
+skill selection, Helper scrollbar/chat scroll and private balance/medal
+commands documented below. Other open gameplay and Helper gaps stay open.
+
+Source: dirty `main` at `de87cd8789bef3165babbdf41fe1f86bc449106a`.
+The unchanged, previously compiled client candidate is
+`tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+`D6CC42D093FE240127F5096FA133965C225AB410D133AC79B8A6094AD8A7FA8D`.
+Patch 10033 has an explicit three-entry allowlist: `WYD.exe`,
+`UI/interface.txt` and `UI/interface1.txt`. Personal settings, account data
+and launcher binaries are excluded. ZIP: 830,698 bytes, SHA-256
+`FC8CB13743F3F1A94D76497C6D1A9B625D643B54C983EE964F1E3878766FB777`.
+UI hashes, respectively:
+`407857BFE8CD47BBA5CA2F1379CCF84AC38E0865A26F38423D6A74DFC5FE9B93`
+and `EC260EDFAED70727771A3C9443D3D063B6BA24DA1846110297FC98D727007468`.
+
+`Build-VpsRelease.ps1` cross-built the Linux/amd64 game and player API.
+The archive includes the explicit 81-template exclusive-instance allowlist
+omitted by the script's tracked-only data inventory, plus the rebuilt portal.
+All 7,334 regular payload files have checksums. Archive: 22,244,355 bytes,
+SHA-256 `5AD94C424F1EFDD0ED335C99C7DABB517D3718F65A37038F779561346CC2EC69`.
+Game SHA-256:
+`67F379CC21F99CD196613C849569342CC6B3D71DF34EAD17968989A4492882F5`.
+Player API SHA-256:
+`2D56FC94E3C882FE7ECB5D38327C9163106007D9F1587E6C2410E981C278F722`.
+
+Fresh `go test -json -count=1 ./...` and `go vet ./...` passed.
+Four tests remain explicitly skipped: dedicated auth/player database
+integration, web-admin PostgreSQL integration and optional local account
+fixtures. This does not certify those skipped paths. The treasury world-loop
+test now fixes its clock to an allowed Sunday and re-arms the unrelated
+player's regeneration deadline; Saturday admission rules in production are
+unchanged. The previously reported weekday-dependent failure is resolved,
+not excluded. Portal build, all 60 tests and Astro checks passed (zero
+errors, warnings or hints). Layout/link validation passed (206 documents).
+Existing unchanged client build evidence below is reused; gameplay remains
+pending, not `CLIENT_TESTED`.
+
+Preflight SSH recovered the established account/key and verified live patch
+10032 and release `/srv/wyd-go/releases/20261016T232841Z` as the rollback
+reference. Server/staff/service/proxy configurations match local deployment
+inputs. Patch 10033 is published and release
+`/srv/wyd-go/releases/20261017T041938Z` is active. Game PID `1990466` and
+player API PID `1990481` both started at `2026-10-17 04:19:41 UTC`
+(`01:19:41` America/Sao_Paulo). The host was not rebooted. Actual running
+executables resolve to this release and match the binary hashes above;
+all 7,334 active payload checksums also match. Both readiness endpoints
+returned `ready`, and the public game listener is open on TCP 8281.
+
+The publisher preserved the previous feed byte-for-byte and appended only
+`10033 patch-10033.zip`; patch 10032 is unchanged. Public HTTP and HTTPS
+feeds returned 200. A fresh HTTPS ZIP download and all three embedded file
+hashes match the candidate. The public site manifest matches version, size
+and ZIP hash; home, News, the new article and changelog returned 200 and
+advertise 10033. No local runtime executable was replaced or launched.
+
+An SSH connection timed out after publication while the game services were
+stopped. A bounded TCP probe subsequently confirmed port 22 was reachable;
+the established account/key then activated the release successfully without
+credential or firewall changes. Server, staff, authentication environments,
+service units and proxy configuration hashes remain unchanged. The first
+running-process audit needed `sudo` for `/proc/<pid>/exe`; the corrected
+read-only check passed without repeating the payload hash audit.
+
+Database backup `/var/backups/wyd-go/wydgo-20261017T041938Z.dump`
+(106,196 bytes) completed before activation. The previous release remains
+available as the rollback target. Game/API warning-priority journals since
+the restart contain no entries. Caddy validation passed with existing,
+nonblocking redundant-forwarded-header and HTTP-only-listener warnings.
+Remote release and patch staging were removed. Local cleanup was rejected
+before execution by the execution policy; no alternate deletion method was
+attempted. Exact leftovers are `build/deploy/wyd-deploy-20261017-combat-10033/`,
+`build/release-10033/` and `build/patch/patch-10033.zip`. They contain staging,
+verification output and diagnostics, not active runtime data. Earlier
+cleanup-blocked artifacts were not touched. Publication and activation
+verification succeeded independently of this housekeeping limitation.
+
+This is scoped publication evidence, not global language-migration or native
+parity certification. Other open issues and actual gameplay validation remain
+pending; no new `CLIENT_TESTED` claim is made.
+
+## Local follow-up — 2026-10-17, private balance commands
+
+`MODERNIZACAO_COMPATIVEL`: `/saldo` and `/balance` query balances;
+`/medals` and `/medalhas` separately query Game Room medal counters.
+All four case-insensitive aliases use the existing chat/whisper dispatcher,
+but the response is exactly one private `0x101` top notification, not chat.
+There are no pages, delayed sends or additional commands to read a report.
+Command names accept both languages; displayed text stays English. Only the
+requesting, in-world character may query its own values. Aliases share their
+canonical command's rate limit. No new packet or client build is required.
+
+The balance report contains account Donate and character Fame, Honor,
+event passes (`Pass`) and Kefra entries (`Kefra`). Per owner direction,
+gold, CP and medals are excluded. The medal report always shows Gold, Red
+and Blue counters, including zero. These counters currently have grant rules
+but no implemented spending flow. Honor has no configured active wallet:
+show its legacy counter if present, otherwise `Honor:N/A`. Legacy character
+`donate` is not account Donate and is excluded. Other persisted SpecialCoins
+keys can contain access-expiry timestamps rather than currencies and are
+not exposed as money. Pending premium credits are not available money.
+Neither command mutates or reloads live economic state.
+
+Maximum-width `uint32` values produce 83 ASCII bytes for balances and 55 for
+medals, below the existing 95-byte notice text limit; values are never clipped.
+Focused tests passed for all four aliases through both transport paths,
+private single-notice delivery, unchanged economic state, zero/unconfigured
+counters, medal/CP/gold separation, invalid arguments (including old page
+numbers), inactive sessions, shared alias rate limits, reserved names and
+maximum-width encrypted packet round trips.
+Repository layout/link validation (206 documents) and `git diff --check` passed.
+The earlier broader `go test ./internal/game` gate failed at
+`TestCriticalCityTreasuryActualWorldLoopProgress`: `critical store call did not
+start` (two-second timeout). That guild-treasury path was not changed here;
+its weekday-dependent cause was subsequently fixed in the test fixture
+and the complete server gate now passes; see the release receipt above.
+Earlier diagnostics are retained in
+`build/balance-command/game-tests.jsonl`. That older failed run is not passing
+evidence; the fresh complete gate in the publication receipt above passed.
+This section records the original source-only phase. The commands are now
+published in patch 10033's paired server release; gameplay validation remains
+pending. No local installation, commit or push occurred.
+
+## Local follow-up — 2026-10-17, number-row skill controls
+
+The owner chose 1-0 instead of F1-F10 for skills. The temporary native F-key
+branch has been removed; number-row selection and Shift+1-0 hovered
+assignment retain their existing character routing, focus/mode/alive-state
+guards and numpad suppression. Both belts and both damage labels share one
+selection implementation. F11 and current C.C./consumable bindings remain
+unchanged. Native PageUp/PageDown visible-list scrolling remains corrected.
+This control choice is not a claim of native F-key parity. No new packet,
+resource ID or server behavior. Helper selection text names the number row;
+old keyboard artwork and `UI/etc.txt` still need a separate content correction.
+
+Details: [Helper audit](client/ui-windows.md#helper-shortcut-audit--2026-10-17)
+and [native evidence](../.agents/research/client748/flows/ui/field-shortcut-selection-and-chat-scroll.md).
+Alternate-mode accelerator registration, Helper text conflicts, Ctrl loot
+labels and command-page end-to-end verification remain separate open gaps.
+`Build-Client.ps1 -NoDeploy` passed: architecture 1,240,477 checks, socket 231,
+crash capture 83, launcher 56 and Release/x86 compilation. Candidate
+`tmproject/build/TMProject748/Release/WYD.exe` SHA-256:
+`D6CC42D093FE240127F5096FA133965C225AB410D133AC79B8A6094AD8A7FA8D`.
+It includes the previous double-hit, manual autoattack and scrollbar changes.
+Installed `tmproject/client748/WYD.exe` remains
+`1FE4CBA89C18847C3E4C35CC9497B049B9E01DCAB12E58B36152AE7FBFE19F6A`.
+No installation, launch, publication, restart, commit or push. Actual gameplay
+remains pending; source-contract checks are not `CLIENT_TESTED` evidence.
+The flow record validator and repository layout/link checks passed (206
+documents); `git diff --check` passed. Cleanup was rejected before execution;
+no alternate deletion was attempted. Task leftovers are
+`build/hotkey-native-flow.tsv`, `build/hotkey-native-entry.tsv`, their
+`*-ghidra.log` files, `build/hotkey-client-build.log`, and
+`tmproject/build/tests/Release/crash-capture-tests-26200-552293093/`.
+The number-row build also produced
+`tmproject/build/tests/Release/crash-capture-tests-19624-553526015/`;
+its exact-target cleanup was likewise rejected before execution. No retry
+or alternate deletion mechanism was used. The candidate is the current
+incremental build output and is intentionally retained.
+
+## Local follow-up — 2026-10-17, Helper scrollbar
+
+The queued Helper placement correction is implemented and compiled. The down
+arrow no longer applies UI scale twice during construction; resizing uses the
+same native resource offset in physical pixels. Classic and horizontal bars
+are unchanged. Details: [UI2 scrollbar](client/port-748.md#ui2-vertical-scrollbar-2026-10-13).
+The [Helper shortcut audit](client/ui-windows.md#helper-shortcut-audit--2026-10-17)
+identified unbound F1–F10, missing alternate-mode accelerators, the apparent
+PageUp/PageDown visibility inversion, and help text conflicts with A/D/F.
+F1–F10 and scrolling are addressed by the follow-up above; the other gaps
+remain open. Existing C.C./consumable bindings were
+not overwritten. Ctrl loot-label behavior and command-page end-to-end routes
+remain unverified. No claim is made that every advertised shortcut works.
+
+`Build-Client.ps1 -NoDeploy` passed: architecture 1,240,466 checks, socket 231,
+crash capture 83, launcher 56 and Release/x86 compilation. Candidate
+`tmproject/build/TMProject748/Release/WYD.exe` SHA-256:
+`1A144D0017F001EBE68B814694E796F45AD3ECD8270445A4C8BB31E004FFDA8A`.
+It includes the double-hit and manual autoattack source changes below.
+The installed runtime was not changed. No launch, deployment, restart,
+commit or push occurred; gameplay validation remains pending.
+The new crash-test evidence directory is
+`tmproject/build/tests/Release/crash-capture-tests-23696-545265781/`.
+Previous cleanup was policy-blocked; no alternate deletion was attempted.
+
+## Local follow-up — 2026-10-17, manual physical autoattack
+
+The double-hit follow-up is complete at source/build level. The next queued
+task, manual physical continuation, now retains a clicked enemy and retries
+through existing click validation without requiring C.C. The client/server
+cooldowns and damage formula remain unchanged. Death, removal, transition,
+manual cancellation and C.C. handover are covered by the local policy and
+source-contract checks. Details: [combat control](client/combat-control.md).
+
+`Build-Client.ps1 -NoDeploy` passed: architecture 1,240,451 checks, socket 231,
+crash capture 83, launcher 56 and Release/x86 compilation. Candidate
+`tmproject/build/TMProject748/Release/WYD.exe` SHA-256:
+`EE8C2DC67CF4BCAE54DC5953871A394CA968C1C218B04399DBC5AA22997F8055`.
+Installed runtime remains unchanged at
+`1FE4CBA89C18847C3E4C35CC9497B049B9E01DCAB12E58B36152AE7FBFE19F6A`.
+No install, launch, deployment, restart, commit or push occurred.
+Gameplay validation remains pending; this is not `CLIENT_TESTED`.
+Next queued batch: native hotkey audit and Helper scrollbar placement.
+Cleanup was rejected before execution; no alternate deletion was attempted.
+Generated crash-test evidence remains under `tmproject/build/tests/Release/`:
+`crash-capture-tests-18636-544892015/` and
+`crash-capture-tests-12948-544945843/`.
+
+## Local follow-up — 2026-10-17 00:40 UTC, double-hit speed and threshold
+
+`MODERNIZACAO_COMPATIVEL`: this completes the owner's double-hit follow-up
+before the queued physical autoattack and Helper shortcut/scrollbar work.
+Those queued tasks have not been implemented or validated in this batch.
+
+- Both damage numbers now share the first number's cached movement speed,
+  lifetime, visibility curve and initial Y position, with the existing 120 ms
+  delay between them. Matching lifetime alone had left the constructor's
+  cached speed and branch-specific vertical offsets inconsistent. Both
+  targeted and ground attack presentation paths use the correction.
+- The authoritative server guarantees double hits at **201% and above**.
+  Exactly 200% retains its existing 50% chance; lower ten-point probability
+  bands are unchanged. An ephemeral, non-serialized character field retains
+  exact speed before `AttackRun` quantization, including 201–209%. Score reset
+  clears it, recalculation refreshes it, and detached skill-learning commits
+  copy it together with the prepared runtime score. No persisted schema,
+  score ABI, packet, damage formula or 900 ms physical-action interval changed.
+- Local prediction shares the existing HUD speed formula, including item,
+  transformation and affect contributions. Observer presentation continues
+  to consume the server's double/critical flags. These are project rules,
+  not a new claim about native probabilities or native 120 ms timing.
+- `Build-Client.ps1 -NoDeploy` passed: architecture 1,240,440 checks, socket
+  231, crash capture 83, launcher 56. Known nonblocking `C4996` socket warnings
+  remain. Tests cover relative number trajectories, construction delays,
+  first-number fallback, probability boundaries and shared HUD inputs.
+- Focused Go attack-speed/cadence and critical skill-learning tests passed.
+  The broader game/model run passed with only
+  `TestCriticalCityTreasuryActualWorldLoopProgress` excluded. That unchanged
+  test uses the real clock in UTC and attempted treasury collection on
+  Saturday, when the domain rejects it; the unfiltered run therefore failed.
+  Initial skill-learning failures exposed the missing exact-speed commit
+  copy and were fixed before the final run. Full failure diagnostics remain
+  under `build/double-hit-followup/`; this is not an all-tests-green claim.
+- Candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `D7D87D8615A50271DFA9FB86393DB3280E800FC2B9A46E239A12E835189FA4FF`.
+  It supersedes the older candidate below and requires the existing 7.48
+  resources plus the updated server for the authoritative 201% rule.
+- Installed runtime `tmproject/client748/WYD.exe` was observed at SHA-256
+  `1FE4CBA89C18847C3E4C35CC9497B049B9E01DCAB12E58B36152AE7FBFE19F6A`.
+  This batch did not replace it. No launch, publication, restart, commit or
+  push occurred. Gameplay proof remains pending for owner and observers,
+  melee/ranged attacks, normal/critical doubles, speed falling to 200%,
+  equip/unequip, affect expiry, scene change and relogin. Not `CLIENT_TESTED`.
+- Cleanup was rejected before execution; no alternate deletion was attempted.
+  Retained generated output: `build/double-hit-followup/focused-tests.log`,
+  `build/double-hit-followup/go-tests-final.jsonl` and
+  `tmproject/build/tests/Release/crash-capture-tests-9668-542330859/`.
+  Failure diagnostics and the incremental candidate are intentionally retained.
+
+## Operational follow-up — 2026-10-17 00:14 UTC, authorized service restart
+
+The owner requested a restart after the double-hit presentation adjustment.
+The existing 900 ms server interval limits separate physical actions, not the
+two presentations within a double hit. It was not changed; neither a game
+restart nor a host reboot is required to activate a client-only change.
+
+At the owner's request, the existing game and player API were nevertheless
+restarted, disconnecting the one established game connection. The pre-stop
+database backup succeeded. The game stopped gracefully with `Result=success`
+and `ExecMainStatus=0` before being started again. Both services started at
+`2026-10-17 00:14:14 UTC`: game PID `1951043`, player API PID `1951046`.
+Both readiness endpoints report ready and TCP 8281 is listening. No
+warning-priority game/API journal entries appeared during the restart.
+
+Active release remains `/srv/wyd-go/releases/20261016T232841Z`; both running
+executable paths and hashes match the prior publication receipt below. No
+files were uploaded, no release was activated, and no client patch was
+published. Caddy and PostgreSQL were left running; the VPS was not rebooted.
+The double-hit candidate below remains local and uninstalled, so this restart
+does not deliver its visual changes to players. Gameplay validation remains
+pending.
+
+## Local follow-up — 2026-10-16, double-hit presentation
+
+`MODERNIZACAO_COMPATIVEL`: owner-requested presentation adjustment, not a
+claim that 120 ms is native 7.48 timing. The targeted and ground attack-number
+paths now schedule the second number 120 ms after the first using the same
+visibility curve. Previously, longer second-number lifetimes and half-view
+windows produced roughly 580–660 ms gaps in ordinary/critical branches.
+Double-hit state is assigned before starting the animation, including clearing
+stale state on a single attack. The existing double-animation speed takes
+precedence over a previous skill's motion count. Physical projectile follow-ups
+use the same 120 ms gap instead of the existing 500/700 ms intervals; ordinary
+single-projectile timing is unchanged.
+
+The server, packet layout, damage calculation, double-hit probability and
+900 ms physical-action interval are unchanged. Existing attack-envelope
+evidence was reused; no new native-parity claim is made. Local prediction and
+remote actor dispatch retain their existing routing.
+
+- `Build-Client.ps1 -NoDeploy` passed. Architecture tests: 1,229,612 checks;
+  socket tests: 231 checks; crash capture: 83 checks; launcher: 56 checks.
+  Focused assertions cover normal/critical number lifetimes, construction
+  delay, unsigned timestamp arithmetic, missing first numbers, weapon types,
+  freeze and previous skill motion counts. They do not certify renderer
+  behavior across timer wrap or actual gameplay animation.
+- Existing nonblocking `C4996` warnings remain in `CPSock.cpp` for `inet_addr`
+  and `WSAAsyncSelect`; no blocking compilation errors occurred.
+- Candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `1FE4CBA89C18847C3E4C35CC9497B049B9E01DCAB12E58B36152AE7FBFE19F6A`.
+  It still depends on the existing 7.48 runtime resources and server.
+- Installed runtime `tmproject/client748/WYD.exe` was not replaced; its
+  observed SHA-256 is
+  `E96B8514B8B5CEC3A6C7D832DE8E0FE3AA11F4A390816A74C96A34285CCB5A36`.
+  No client launch, publication, VPS change, restart, commit or push occurred.
+- Gameplay confirmation remains pending for owner and observers, melee and
+  ranged attacks, critical/noncritical doubles, freeze, single attacks after
+  doubles, scene changes and relogin. Automated checks are not `CLIENT_TESTED`.
+- Cleanup was rejected before execution. No alternate deletion was attempted.
+  Retained task output: `build/double-hit-client-build.log` and
+  `tmproject/build/tests/Release/crash-capture-tests-23824-540543968/`.
+  The current incremental candidate is intentionally retained for local testing.
+
+## Published follow-up — 2026-10-16, instance leveling balance
+
+The owner authorized publication of all pending changes and a game restart.
+Nightmare, Water and Magic Chamber leveling changes below are active in
+`/srv/wyd-go/releases/20261016T232841Z`. These are explicit project balance
+choices (`MODERNIZACAO_COMPATIVEL`), not certified native monster statistics.
+The preceding Nightmare lifecycle and client patch 10032 remain included.
+
+- Source: dirty working tree on `main`, HEAD
+  `de87cd8789bef3165babbdf41fe1f86bc449106a`. No commit, push, local client
+  replacement or gameplay launch was performed. Personal client settings
+  were excluded and preserved.
+- `Build-VpsRelease.ps1` cross-built Linux/amd64 game and player API binaries.
+  Its tracked runtime-data inventory was supplemented with an explicit
+  allowlist of 81 untracked JSON templates: 17 Nightmare monsters, 28 Water
+  monsters, 15 Magic Chamber monsters and 21 existing Nightmare protectors.
+  All 81 entries were inspected in the resulting archive. Account state and
+  private runtime settings were excluded.
+- Release archive: 22,236,652 bytes, SHA-256
+  `4A3339578D7BC7DD79FFCF10CC832387C377C14DB88283E0D2AC5972AC4238BD`.
+  Game SHA-256:
+  `B2BF27AC1ED8F59C0B3E29A2F3800EA243C258FE0494EE939D6F8719EF848F2B`.
+  Player API SHA-256, unchanged:
+  `C6E3836149FDDEAF58E893485CD81FD2DE87FD0C8F7A72520771B5A7FBCBFCB5`.
+- Upload archive checksum and all 93 payload checksums matched before
+  activation and against the active release afterward. Coverage includes
+  both executables, all 81 templates, instances, all six affected generator
+  files, the public news article, changelog and client manifest.
+- The established installer activated the release atomically after an
+  authorized graceful game stop. Game PID `1943006` and player API PID
+  `1943018` started at `2026-10-16 23:28:44 UTC`; their `/proc/.../exe`
+  targets and hashes match this release. Both readiness endpoints report
+  ready and TCP 8281 is listening. Caddy was reloaded, not rebooted.
+- Backup `wydgo-20261016T232841Z.dump` succeeded (106,295 bytes). Previous
+  release `/srv/wyd-go/releases/20261016T183715Z` remains the rollback target.
+  Server/staff/service/proxy configurations matched before activation;
+  both private authentication environments remain byte-identical afterward.
+- No warning-priority game/API journal entries appeared after startup.
+  Caddy validation passed with its existing redundant-header and HTTP-only
+  warnings, which do not block this deployment.
+- Public HTTPS news and changelog include the leveling update. The manifest
+  and public HTTP launcher feed retain patch 10032; no duplicate client patch
+  was necessary. New article: `/news/instance-leveling-balance/`.
+- Fresh `go test -count=1 ./...` and `go vet ./...` passed. Portal build,
+  all 60 portal tests and Astro checks passed (zero errors, warnings or
+  hints). No disposable PostgreSQL fixture integration or live gameplay
+  proof is claimed. Prior unchanged client build evidence was reused.
+- The installer removed remote upload/extraction staging. The post-activation
+  verification checksum file was also removed. Local cleanup was rejected
+  before execution; no alternate deletion mechanism was attempted. This
+  publication's exact retained paths are
+  `build/deploy/wyd-deploy-20261016-instance-leveling/`,
+  `build/instance-leveling-portal-build.log` and
+  `build/instance-leveling-portal-check.log`. Active release and rollback
+  artifacts are unaffected.
+
+The active changes still require gameplay confirmation for all three
+activities. Publication does not certify unrelated gameplay gaps, the global
+English migration or native encounter parity. Earlier blocked cleanup paths
+remain untouched; they are listed in the previous publication receipt below.
+
+## Published follow-up — 2026-10-16, Magic Chamber leveling monsters
+
+`MODERNIZACAO_COMPATIVEL`: explicit owner-selected server balance matching
+Water, not native monster-statistics parity. Implemented and tested locally;
+published with the restart in release `20261016T232841Z` above. Gameplay
+validation remains pending.
+
+| Tier | HP | Physical/magic attack | Defense | Base EXP per monster |
+| --- | ---: | ---: | ---: | ---: |
+| Normal | 1,000 | 1 | 1 | 200,000 |
+| Mystic | 4,000 | 1 | 1 | 300,000 |
+| Arcane | 10,000 | 1 | 1 | 500,000 |
+
+The three Magic Chamber generator files now reference 15 independent static
+definitions with `MCN_`, `MCM_` and `MCA_` prefixes, including each tier's boss.
+All four rooms use the same tier balance. Names fit the existing 12-byte field;
+appearance and unrelated statistics retain their source values. The original
+templates, Water, Nightmare and other maps do not borrow these definitions.
+No runtime HP/EXP override is used.
+
+Definitions have zero gold and no carry/drop inventory. The central EXP-only
+kill policy also excludes global event drops and special boss loot before
+inventory mutation or event reservation. EXP and boss death bookkeeping remain
+active. Final physical/spell damage is capped at one before player absorption,
+preserving zero-damage outcomes. Existing EXP modifiers and party sharing apply.
+Entry rules, four-room progression, populations, three-minute room timers,
+ten-second transitions and completion rewards are unchanged; the delayed boss
+still uses the fourth room's remaining time.
+
+Validation: `go test ./internal/data ./internal/game -count=1` passed
+(data: 2.835 seconds; game: 12.915 seconds). Coverage includes all 15 definitions,
+exclusive references, all 12 real-map room spawns and three delayed bosses,
+private runtime ownership, physical/spell damage caps, and native/event/boss
+loot exclusion with empty/full inventories. Open-world and Cube controls retain
+their normal loot and damage. This is automated evidence, not gameplay proof.
+
+## Published follow-up — 2026-10-16, Water leveling monsters
+
+`MODERNIZACAO_COMPATIVEL`: explicit owner-selected server balance, not native
+monster-statistics parity. Implemented and tested locally, then published with
+the restart in release `20261016T232841Z`. Gameplay validation remains pending.
+
+| Tier | HP | Physical/magic attack | Defense | Base EXP per monster |
+| --- | ---: | ---: | ---: | ---: |
+| Normal | 1,000 | 1 | 1 | 200,000 |
+| Mystic | 4,000 | 1 | 1 | 300,000 |
+| Arcane | 10,000 | 1 | 1 | 500,000 |
+
+All 27 Water configurations (eight rooms plus the boss room per tier) now
+reference 28 independent static definitions, with `WTN_`, `WTM_` and `WTA_`
+prefixes. Bosses and boss-room escorts use the same tier balance and EXP.
+The definitions fit the existing 12-byte name field, retain source appearance
+and unrelated statistics, and have no carry/drop inventory and zero gold.
+Other maps and Nightmare do not borrow these Water definitions; their original
+shared templates are unchanged. No runtime HP/EXP override is used.
+
+Water now shares Nightmare's central EXP-only kill policy. Native carry, gold,
+global event drops and special boss loot are excluded before inventory changes
+or event reservations. EXP and boss death bookkeeping remain active. The
+shared incoming-damage boundary caps physical and spell hits at one before
+player absorption; misses and absorption can still yield zero. Existing EXP
+modifiers and party sharing still apply to the configured base rewards.
+
+Room populations, timers, entry rules and completion behavior are unchanged.
+In particular, next-room Water Scroll rewards and their full-inventory ground
+fallback remain available; these are progression rewards, not monster drops.
+Boss rooms retain their reward-free return to room one.
+
+Validation: `go test ./internal/data ./internal/game -count=1` passed
+(data: 2.962 seconds; game: 12.387 seconds). Coverage includes all 28 dedicated
+definitions and their preserved appearance, all 27 room references and
+progression rewards, real-map spawning through the production private-room
+path, physical/spell damage caps, and guaranteed native/event/boss loot
+exclusion with empty and full inventories. Open-world and Cube controls
+retain their normal loot and damage. Water chain and full-inventory reward
+tests passed. This is automated server evidence, not gameplay validation.
+
+## Published follow-up — 2026-10-16, Nightmare leveling balance
+
+`MODERNIZACAO_COMPATIVEL`: explicit owner-selected server balance, not native
+monster-statistics parity. Implemented and tested locally, then published with
+the restart in release `20261016T232841Z`. Gameplay validation remains pending.
+
+| Tier | HP | Physical/magic attack | Defense | Base monster EXP |
+| --- | ---: | ---: | ---: | ---: |
+| Normal | 2,000 | 1 | 1 | 200,000 |
+| Mystic | 5,000 | 1 | 1 | 400,000 |
+| Arcane | 10,000 | 1 | 1 | 600,000 |
+
+The values belong to 17 independent static monster definitions in `data/npcs/`,
+including Arcane's Lugefer. Their names use the `NMN_`, `NMM_` and `NMA_`
+prefixes and fit the client's 12-byte name field. The three Nightmare generator
+files and both Arcane boss configurations reference these exclusive definitions;
+shared NPC templates, monsters outside Nightmare and friendly protectors remain
+unchanged. Appearance and unrelated statistics retain their source values.
+All 17 dedicated definitions have no carry/drop inventory and zero gold.
+There is no runtime HP/EXP template rewrite. Ordinary respawns, restoration and
+delayed boss creation all use the dedicated definitions.
+Final physical/spell damage is capped at one
+before player absorption, so level/attribute bonuses cannot produce stronger
+hits; misses and absorption can still yield zero damage. Attacks against
+protectors use the same cap without changing protector HP.
+
+Existing EXP modifiers and the approved 10% loss per dead protector still
+apply to these base rewards. Nightmare kills grant no items or gold: the shared
+kill-reward planner skips native carry, global event drops, gold and special boss
+loot before any inventory mutation or event reservation. Boss death bookkeeping
+and EXP remain active. All six configurations also have no completion item reward.
+Timing, population and entry rules are unchanged. No client or wire change is required.
+
+Validation: `go test ./internal/data ./internal/game -count=1` passed
+(data: 2.682 seconds; game: 14.286 seconds), including the no-loot follow-up.
+Coverage includes dedicated
+definition isolation, preserved appearance, exclusive generator references,
+wire-name limits, friendly/outside-instance exclusions, zero/one/large incoming
+damage, repeated respawns, restoration and delayed Lugefer balance. Installed-map
+tests explicitly cover all six party/solo tier configurations, including inline
+item rules: Normal and Mystic each spawn 101 hostiles; Arcane spawns 80 plus its
+delayed boss. This is automated server evidence, not gameplay validation.
+
+No-loot follow-up: focused data and game tests passed (0.117 and 0.045 seconds).
+They cover all 17 empty drop definitions, six reward-free configurations and
+Normal/Mystic/Arcane kills with empty and full inventories. Guaranteed native,
+global-event and special boss loot plus gold are excluded without changing EXP;
+open-world and non-leveling-instance controls still plan all reward sources,
+including the full-inventory ground fallback. Water now follows the additional
+no-loot policy documented above. Publication and gameplay validation remain pending.
+
+## Published follow-up — 2026-10-16, Nightmare clocks and protected NPCs
+
+`MODERNIZACAO_COMPATIVEL`: server lifecycle repair using the existing wire
+contract, plus a native counter-label correction. Published as patch 10032
+and active VPS release `20261016T183715Z`; local runtime installation and
+actual gameplay validation remain pending.
+The six Normal/Mystic/Arcane party and solo configurations specify a four-minute
+admission window. The runtime incorrectly treated its end as the encounter end,
+spawned monsters immediately and displayed a monster counter. A late entrant
+could therefore receive only one minute before expulsion.
+
+The read-only W2PP reference separates admission from combat:
+`Code/TMSrv/_MSG_UseItem.cpp` (Normal/Mystic/Arcane admission paths around
+lines 2494–2745) sends the remaining part of 240 seconds;
+`Code/TMSrv/ProcessSecMinTimer.cpp` (around lines 1040–1093) starts combat with
+`sm.Parm = 900`. Its cleanup schedule is around lines 660–690. This is
+secondary server-algorithm evidence, not independent proof of full native
+7.48 Nightmare parity.
+
+- Admission remains four minutes: Normal opens at minutes 00/20/40, Mystic
+  at 05/25/45 and Arcane at 10/30/50. No monsters spawn during this wait.
+- Combat starts when admission closes and lasts 15 minutes. The absolute end
+  survives individual respawns and state restoration; late admission, a delayed
+  scheduler tick or restart does not grant a fresh combat period.
+- The counter reports surviving protected NPCs, not hostile monsters. Normal
+  has five protectors; Mystic and Arcane have eight, using the secondary 7.59
+  generator/template data. Protectors spawn during admission, can be attacked
+  by encounter monsters during combat, and never respawn. Their loss mask is
+  persisted and cannot be reset by rejoining or restoring the encounter.
+- Each dead protector removes 10% of original monster EXP before party sharing,
+  as explicitly approved by the owner. Eight survivors yield 100%; zero of
+  eight yield 20%. The
+  [official Arcane guide](https://feedback.kersef.com/pt-br/knowledge-bases/21/articles/47597-nightmare-a)
+  confirms eight protected NPCs and decreasing EXP, but not the percentage.
+  The percentage and imported NPC data are project choices sourced from
+  `MacedaoRG/w2Project-SeitTbNao`, not independent 7.48 parity evidence.
+  Reproduction roots on its `main` branch: `Projects/Gameserver/GetFunc.cpp`
+  (EXP around lines 2458–2540), `Projects/Gameserver/Basedef.cpp`
+  (`DoNightmare`, around lines 9239–9368), `Release/TMSRV/NPCGener.txt` and
+  the corresponding 808-byte NPC templates under `Release/TMSRV/npc/`.
+- The client uses the native `%d Left` format and preserves a visible zero
+  while the encounter timer is active. Departure clears the timer before
+  clearing the count, hiding both. Existing evidence in
+  [instance runtime controls](../.agents/research/client748/flows/ui/instance-runtime-counter-controls.md)
+  is reused; native `FUN_00489260` proves the label, not the constructor,
+  geometry or complete teardown behavior. No wire or asset format changed.
+- Both legacy and critical-persistence admission paths preserve ticket/state
+  commit and rejection behavior. Failed combat creation closes the encounter
+  without a clear reward.
+- Each committed monster death immediately replaces only that monster,
+  retaining its type and configured spawn origin. Survivors are not cleared;
+  no wave-clear gate or completion reward exists. Respawns continue without a
+  quota until the absolute combat deadline and do not resend/reset the clock.
+  This uses the W2PP `Code/TMSrv/MobKilled.cpp` Nightmare generator branches
+  around lines 1074–1082, plus the owner's explicit behavior requirement.
+  The owner explicitly rejected the secondary 7.59 rule that stops selected
+  groups after their protector dies: all common groups continue respawning,
+  including with zero survivors. Runtime spawn origins are rebuilt with the
+  stage after restoration.
+- Arcane Lugefer is a separate one-shot boss, not an ordinary respawn group.
+  It first appears with five minutes remaining, an explicit owner choice;
+  the official guide supplies no exact minute. Its survivor condition is
+  interpreted as at least one living protector. Once spawned, it remains
+  restorable even if the remaining protectors subsequently die. Its defeat
+  is persisted atomically with player rewards through critical persistence;
+  rejection leaves both the boss and rewards unchanged. A defeated boss
+  never respawns within that encounter.
+- Arcane uses four common families: `Tauron_____`, `Adamant_Tauron`,
+  `Hell_Spider2` and `Manticora_`. Existing generator locations/counts and NPC
+  statistics are reused, with `Adamant_Tauron` serving as the armored Tauron
+  counterpart. Exact native template identity, population distribution and
+  boss loot parity have not been independently established. This repair is
+  not a claim of complete native 7.48 encounter parity.
+
+Validation: the focused Nightmare suites and the complete
+`go test ./internal/game ./internal/data -count=1` packages passed
+(`game`: 12.053 seconds; `data`: 2.576 seconds). Coverage includes all
+three tiers and schedule windows, late entry, hour rollover, absolute expiry,
+individual repeated respawns, restoration, critical commit/rejection and
+combat-spawn failure, protected-NPC attacks/deaths, loss restoration, all six
+installed protector configurations, EXP scaling and detached state isolation.
+Repeated death tests exercise both player-reward commits and deaths without a
+player, with stationary observers and an unchanged surviving monster.
+The installed-map test ran successfully and spawned five protectors during
+Normal admission and 101 hostile monsters at combat start.
+Both real Arcane configurations spawned eight protectors and 80 common
+monsters on valid, distinct terrain tiles, then one Lugefer at the ten-minute
+combat mark. Tests also cover no duplicate boss, no boss before its deadline,
+late ticks, boss restoration/defeat, zero-protector common respawns, invalid
+boss configuration before ticket consumption, and atomic reward commit and
+certified rejection. No additional client build was needed for these
+server-only follow-up changes.
+The preceding `Build-Client.ps1 -NoDeploy` passed: 1,229,517 architecture checks, 231 socket
+receive checks, 83 crash-capture checks and 56 launcher checks. Candidate
+`tmproject/build/TMProject748/Release/WYD.exe` SHA-256:
+`E96B8514B8B5CEC3A6C7D832DE8E0FE3AA11F4A390816A74C96A34285CCB5A36`.
+The installed `tmproject/client748/WYD.exe` remains different, SHA-256
+`D689BF77899F906629AE93F2C127EC72F3099DBE4A959B73F08B5F45693A05FF`.
+Publication receipt:
+
+- Source: dirty working tree on `main`, HEAD
+  `de87cd8789bef3165babbdf41fe1f86bc449106a`. No commit, push, local runtime
+  replacement or game launch was performed.
+- Patch 10032 contains only `WYD.exe`: ZIP 829,102 bytes, SHA-256
+  `60EB65FCD22EF96CE47337897999F409A927D4BA22365D2229616CB11191B411`.
+  The executable hash is the candidate hash above. Earlier assets remain in
+  the cumulative launcher feed; no resource or packet-format change is needed.
+- Linux release archive: 22,229,289 bytes, SHA-256
+  `238BA87689B09AE19E4263C69E75A55846AE906647C9E7275909226706DBC7F1`.
+  The tracked-data packager was supplemented with an explicit allowlist of
+  all 21 new protector templates, each referenced by the installed config.
+  The archive excludes account state and private runtime settings.
+- Active release: `/srv/wyd-go/releases/20261016T183715Z`. Game PID 1895803
+  and player API PID 1895815 started at `2026-10-16 18:37:18 UTC`.
+  Actual running executable hashes match the packaged binaries:
+  game `CD0D86612C27ADD4D97AF40DF98C09B9542118167B8FC2C969C9D1389BF42BF4`;
+  API `C6E3836149FDDEAF58E893485CD81FD2DE87FD0C8F7A72520771B5A7FBCBFCB5`.
+  Both readiness endpoints report ready and TCP 8281 is listening.
+- The first activation safely restored the old release because a game
+  connection appeared. The explicitly authorized restart then stopped the
+  game before retrying activation. Caddy was reloaded, not rebooted; its
+  existing redundant-header/HTTP-only validation warnings are nonblocking.
+  No warning-priority game/API journal entries appeared after startup.
+- Backup `wydgo-20261016T183715Z.dump` succeeded (102,914 bytes). Previous
+  release `20261016T032951Z`, patch 10031 and the prior feed are retained.
+  Server/staff configuration hashes are unchanged; private environments and
+  account data were preserved by the installer.
+- Public HTTP/HTTPS feeds and ZIP downloads return 200. ZIP and embedded EXE
+  hashes match; the retained previous feed is exactly the new feed's prefix.
+  Site manifest, home and News advertise 10032. Installed instance/generator
+  hashes match local sources and all 21 protector templates are present.
+- Fresh `go test -count=1 ./...`, `go vet ./...`, portal build, 60 portal
+  tests and portal checks passed (zero errors, warnings or hints). Existing
+  client build evidence above was reused with unchanged inputs. No database
+  fixture integration or live gameplay proof is claimed.
+- Remote upload staging was removed by the publishers. Subsequent cleanup
+  was blocked before execution; no alternate deletion method was attempted.
+  Leftovers: `build/deploy/wyd-deploy-20261016-nightmare-10032/`,
+  `build/patch/patch-10032.zip`, `build/patch/verify-10032.zip`,
+  `build/patch/verify-10032-http.zip`,
+  `build/nightmare-10032-portal-build.log`,
+  `build/nightmare-10032-portal-check.log` and the inactive failed-attempt
+  release `/srv/wyd-go/releases/20261016T183640Z`. These do not affect the
+  active release or its retained production rollback reference.
+
+Actual Nightmare gameplay, full native population/loot parity and launcher
+installation remain pending; this is not `CLIENT_TESTED` evidence. Use
+`WYDLauncher.exe` with the game closed to install patch 10032.
+
 ## Published follow-up — 2026-10-16, patch 10031 and server restart
 
 Published client patch 10031 and deployed server/site release
@@ -914,6 +1982,39 @@ absence-of-error guarantee. The daily backup timer is active around `04:15 UTC`;
 off-VPS retention, restore drills and failure alerts remain unverified.
 
 ## Validation and next work
+
+### Active client crash-correction queue — 2026-10-18
+
+Follow the [updated correction plan](client/port-748.md#correction-plan-update-2026-10-18)
+before resuming crash work. It reconciles the supplied October 18 audit of
+committed `de87cd8` with the later local safety batch: minimap copying and
+packet/text boundaries first, device/UI recovery and actor/effect lifetime
+next, then remaining loader/UI bounds and measured effect pressure. Existing
+guards and external crash collection are already implemented locally. The
+continuation has now corrected bounded minimap copies/lock cleanup, legacy
+packet/text boundaries, `SText` caller mutation and UI draw-list cleanup after
+aborted frames. The Release `-NoDeploy` gate passed 3,263,747 architecture,
+231 socket, 198 capture and 56 launcher checks, plus costume/shader checks.
+The second continuation serializes modal Winsock reentry, clears nested effect
+owners on final deletion, scopes ground-item removal to item lookup and protects
+local-field actor retirement. Its focused gates passed 3,273,759 architecture
+and 281 production socket checks. The prior Release EXE/PDB is preserved for the
+user's gameplay test; separate Debug integration compilation passed without
+deployment. Its exact EXE/PDB hashes and unchanged Release/runtime identities
+are recorded in the plan.
+The third continuation bounds `CMesh` palette/payload allocation, validates
+positions and indices, rolls back failed GPU uploads and rejects incomplete
+bone bindings. Its focused gates passed 3,281,408 architecture checks plus static
+assertions and accepted all 1,596 current skin-mesh files. Separate Debug
+integration compilation passed; its new EXE/PDB hashes supersede the earlier
+Debug receipt and are recorded in the plan. Release and installed runtime
+identities remain unchanged. This is not visual/gameplay acceptance or closure
+of device recovery and borrowed-resource lifetime work.
+The plan records candidate identities and remaining COM failure injection,
+application teardown/modal lifetime, resource recovery, scene/actor lifecycle
+and P2 coverage gaps. Historical Mana Control, item-drop and heap incidents remain
+open. No client installation, active VPS/launcher release or gameplay acceptance
+was changed by this continuation.
 
 ### Current cape-symbol continuation
 

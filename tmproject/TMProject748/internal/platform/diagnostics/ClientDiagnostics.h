@@ -1,5 +1,8 @@
 #pragma once
 
+// Returns -1 for normal startup; otherwise the external crash monitor's exit code.
+int WYD748_RunCrashMonitor();
+
 #include <cstddef>
 
 class SControlContainer;

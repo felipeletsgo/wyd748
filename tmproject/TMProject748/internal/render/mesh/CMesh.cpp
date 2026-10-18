@@ -10,11 +10,19 @@
 #include "DyeTextureStages.h"
 #include "RefinementGlowTexture.h"
 #include "NativeMountGlow.h"
+#include "SkinMeshLoad.h"
+#include <memory>
+#include <new>
 
 CMesh::CMesh(TMSkinMesh* pParentSkin)
 {
 	m_pMesh = nullptr;
     m_pBoneMatrix = nullptr;
+    m_dwNames = nullptr;
+    m_dwID = 0;
+    m_numFaceInflunce = 0;
+    m_bMeshGenerated = 0;
+    memset(m_pBoneOffset, 0, sizeof(m_pBoneOffset));
     m_pParentSkin = pParentSkin;
     m_nSkinMeshIndex = -1;
     m_sLegendType = 0;
@@ -40,6 +48,10 @@ int CMesh::Render(int nBright)
 {
     if (!m_pParentSkin)
         return 0;
+    if (m_numPalette > sizeof(m_pBoneOffset) / sizeof(m_pBoneOffset[0]) ||
+        (m_numPalette && !m_pBoneMatrix)) return 0;
+    for (std::size_t i = 0; i < m_numPalette; ++i)
+        if (!m_pBoneOffset[i]) return 0;
 
     LPDIRECT3DTEXTURE9 pTex = g_pTextureManager->GetModelTexture(m_nTextureIndex, 10000);
  
@@ -773,126 +785,107 @@ int CMesh::RenderMesh(char cAlpha)
 
 int CMesh::LoadMesh(char* file)
 {
+    if (!file || !g_pMeshManager || !g_pDevice || !g_pDevice->m_pd3dDevice)
+        return 0;
+    const std::size_t pathCapacity = sizeof(g_pMeshManager->m_stSkinMeshList[0].szFileName);
+    if (strnlen_s(file, pathCapacity) >= pathCapacity || !file[0])
+        return 0;
     m_nSkinMeshIndex = g_pMeshManager->GetSkinMeshIndex(file);
     if (m_nSkinMeshIndex == -1)
     {
         m_nSkinMeshIndex = g_pMeshManager->GetAvailableSkinMeshIndex();
 
-        if (m_nSkinMeshIndex >= 0 && m_nSkinMeshIndex < 1024)
-        {
-            g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].pMesh = new TMMesh();
-            if (g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].pMesh)
-                m_pMesh = g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].pMesh;
-
-            sprintf(g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].szFileName, "%s", file);
-        }
-
-        if (m_nSkinMeshIndex < 0)
+        if (m_nSkinMeshIndex < 0 || m_nSkinMeshIndex >= MAX_SKIN_MESH_LIST)
             return 0;
 
         FILE* handle = nullptr;
         fopen_s(&handle, file, "rb");
         if (handle == nullptr)
-        {
-            g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].pMesh->m_bDummy = 1;
             return 0;
-        }
+        std::unique_ptr<FILE, decltype(&fclose)> input(handle, &fclose);
+        if (_fseeki64(handle, 0, SEEK_END) != 0) return 0;
+        const auto fileBytes = _ftelli64(handle);
+        if (fileBytes < 0 || _fseeki64(handle, 0, SEEK_SET) != 0) return 0;
+        skin_mesh_load::Header header{};
+        skin_mesh_load::Payload payload;
+        if (!skin_mesh_load::ReadExact(handle, &header, sizeof(header)) ||
+            !skin_mesh_load::Plan(header, static_cast<std::uint64_t>(fileBytes),
+                sizeof(m_pBoneOffset) / sizeof(m_pBoneOffset[0]), payload))
+            return 0;
 
-        unsigned int dwParentID = 0;
-        fread(&dwParentID, 4, 1, handle);
-        fread(&m_dwID, 4, 1, handle);
-        fread(&m_pMesh->m_dwFVF, 4, 1, handle);
-        fread(&m_pMesh->m_sizeVertex, 4, 1, handle);
-        fread(&m_numFaceInflunce, 4, 1, handle);
-        fread(&m_numPalette, 4, 1, handle);
-        fread(&m_pMesh->m_AttRange[0].VertexCount, 4, 1, handle);
-        fread(&m_pMesh->m_AttRange[0].FaceCount, 4, 1, handle);
-        m_numFaces = m_pMesh->m_AttRange[0].FaceCount / 3;
+        std::unique_ptr<TMMesh> pending(new (std::nothrow) TMMesh());
+        if (!pending) return 0;
+        auto* mesh = pending.get();
+        mesh->m_dwFVF = header.fvf;
+        mesh->m_sizeVertex = header.stride;
+        mesh->m_AttRange[0].VertexCount = header.vertices;
+        mesh->m_AttRange[0].FaceCount = header.indices;
+        std::unique_ptr<D3DXMATRIX, decltype(&free)> matrices(
+            payload.matrices ? static_cast<D3DXMATRIX*>(malloc(payload.matrices)) : nullptr, &free);
+        std::unique_ptr<DWORD, decltype(&free)> names(
+            payload.names ? static_cast<DWORD*>(malloc(payload.names)) : nullptr, &free);
+        if (!skin_mesh_load::ReadExact(handle, matrices.get(), payload.matrices) ||
+            !skin_mesh_load::ReadExact(handle, names.get(), payload.names)) return 0;
 
-        g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_dwID = m_dwID;
-        g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_numFaceInflunce = m_numFaceInflunce;
-        g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_numPalette = m_numPalette;
-        if (m_numPalette)
-        {
-            g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_pBoneMatrix = (D3DXMATRIX*)malloc(m_numPalette << 6);
-            g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_dwNames = (DWORD*)malloc(160);
-            fread(g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_pBoneMatrix, m_numPalette << 6, 1, handle);
-            fread(g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_dwNames, 4, m_numPalette, handle);
-            m_pBoneMatrix = g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_pBoneMatrix;
-            m_dwNames = g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_dwNames;
-        }
-        else
-        {
-            m_pBoneMatrix = nullptr;
-        }
+        const auto createVertices = [&](IDirect3DVertexBuffer9** buffer) {
+            return g_pDevice->m_pd3dDevice->CreateVertexBuffer(payload.vertices, 0,
+                header.fvf, D3DPOOL_MANAGED, buffer, nullptr);
+        };
+        const auto readVertices = [&](void* data) {
+            auto* pVertex = static_cast<float*>(data);
+            const std::size_t nFloatCount = header.stride / sizeof(float);
+            const std::size_t nNumVertex = header.vertices;
+            if (!skin_mesh_load::Positions(data, header)) return false;
 
-        float* pVertex = nullptr;
-        char* pIndices = nullptr;
+            // Preserve the established bounds calculation; this batch changes safety only.
+            for (std::size_t i = 0; i < nNumVertex - 1; ++i)
+            {
+                if (pVertex[nFloatCount * i] > mesh->m_fMaxX)
+                    mesh->m_fMaxX = pVertex[nFloatCount * i];
+                if (mesh->m_fMinX > pVertex[nFloatCount * i])
+                    mesh->m_fMinX = pVertex[nFloatCount * i];
+                if (pVertex[nFloatCount * i + 1] > mesh->m_fMaxY)
+                    mesh->m_fMaxY = pVertex[nFloatCount * i + 1];
+                if (mesh->m_fMinY > pVertex[nFloatCount * i + 1])
+                    mesh->m_fMinY = pVertex[nFloatCount * i + 1];
+                if (pVertex[nFloatCount * i + 2] > mesh->m_fMaxZ)
+                    mesh->m_fMaxZ = pVertex[nFloatCount * i + 2];
+                if (mesh->m_fMinZ > pVertex[nFloatCount * i + 2])
+                    mesh->m_fMinZ = pVertex[nFloatCount * i + 2];
+            }
 
-        g_pDevice->m_pd3dDevice->CreateVertexBuffer(
-            m_pMesh->m_sizeVertex * m_pMesh->m_AttRange[0].VertexCount,
-            0,
-            m_pMesh->m_dwFVF,
-            D3DPOOL_MANAGED,
-            &m_pMesh->m_pVB,
-            0);
+            for (const float bound : {mesh->m_fMaxX, mesh->m_fMinX, mesh->m_fMaxY,
+                mesh->m_fMinY, mesh->m_fMaxZ, mesh->m_fMinZ})
+                if (fabsf(bound) > mesh->m_fRadius) mesh->m_fRadius = fabsf(bound);
+            return true;
+        };
+        if (!skin_mesh_load::ReadBuffer(handle, payload.vertices, mesh->m_pVB,
+            createVertices, readVertices)) return 0;
+        const auto createIndices = [&](IDirect3DIndexBuffer9** buffer) {
+            return g_pDevice->m_pd3dDevice->CreateIndexBuffer(payload.indices, 0,
+                D3DFMT_INDEX16, D3DPOOL_MANAGED, buffer, nullptr);
+        };
+        const auto readIndices = [&](void* data) {
+            return skin_mesh_load::Indices(data, header);
+        };
+        if (!skin_mesh_load::ReadBuffer(handle, payload.indices, mesh->m_pIB,
+            createIndices, readIndices)) return 0;
 
-        m_pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-        fread(pVertex, m_pMesh->m_sizeVertex, m_pMesh->m_AttRange[0].VertexCount, handle);
-        int nFloatCount = m_pMesh->m_sizeVertex >> 2;
-        int nNumVertex = m_pMesh->m_AttRange[0].VertexCount;
-
-        for (int i = 0; i < nNumVertex - 1; ++i)
-        {
-            if (pVertex[nFloatCount * i] > m_pMesh->m_fMaxX)
-                m_pMesh->m_fMaxX = pVertex[nFloatCount * i];
-            if (m_pMesh->m_fMinX > pVertex[nFloatCount * i])
-                m_pMesh->m_fMinX = pVertex[nFloatCount * i];
-            if (pVertex[nFloatCount * i + 1] > m_pMesh->m_fMaxY)
-                m_pMesh->m_fMaxY = pVertex[nFloatCount * i + 1];
-            if (m_pMesh->m_fMinY > pVertex[nFloatCount * i + 1])
-                m_pMesh->m_fMinY = pVertex[nFloatCount * i + 1];
-            if (pVertex[nFloatCount * i + 2] > m_pMesh->m_fMaxZ)
-                m_pMesh->m_fMaxZ = pVertex[nFloatCount * i + 2];
-            if (m_pMesh->m_fMinZ > pVertex[nFloatCount * i + 2])
-                m_pMesh->m_fMinZ = pVertex[nFloatCount * i + 2];
-        }
-
-        if (fabsf(m_pMesh->m_fMaxX) > m_pMesh->m_fRadius)
-            m_pMesh->m_fRadius = fabsf(m_pMesh->m_fMaxX);
-        if (fabsf(m_pMesh->m_fMinX) > m_pMesh->m_fRadius)
-            m_pMesh->m_fRadius = fabsf(m_pMesh->m_fMinX);
-
-        if (fabsf(m_pMesh->m_fMaxY) > m_pMesh->m_fRadius)
-            m_pMesh->m_fRadius = fabsf(m_pMesh->m_fMaxY);
-        if (fabsf(m_pMesh->m_fMinY) > m_pMesh->m_fRadius)
-            m_pMesh->m_fRadius = fabsf(m_pMesh->m_fMinY);
-
-        if (fabsf(m_pMesh->m_fMaxZ) > m_pMesh->m_fRadius)
-            m_pMesh->m_fRadius = fabsf(m_pMesh->m_fMaxZ);
-        if (fabsf(m_pMesh->m_fMinZ) > m_pMesh->m_fRadius)
-            m_pMesh->m_fRadius = fabsf(m_pMesh->m_fMinZ);
-
-        m_pMesh->m_pVB->Unlock();
-
-        g_pDevice->m_pd3dDevice->CreateIndexBuffer(
-            2 * m_pMesh->m_AttRange[0].FaceCount,
-            0,
-            D3DFORMAT::D3DFMT_INDEX16,
-            D3DPOOL::D3DPOOL_MANAGED,
-            &m_pMesh->m_pIB,
-            nullptr);
-
-        m_pMesh->m_pIB->Lock(0, 0, (void**)&pIndices, 0);
-        fread(pIndices, 2, m_pMesh->m_AttRange[0].FaceCount, handle);
-        m_pMesh->m_pIB->Unlock();
-        m_bMeshGenerated = 1;
-        fclose(handle);
+        // Publish only a completely initialized entry. MeshManager owns these resources.
+        auto& entry = g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex];
+        strcpy_s(entry.szFileName, file);
+        entry.m_dwID = header.id;
+        entry.m_numFaceInflunce = header.influences;
+        entry.m_numPalette = header.palette;
+        entry.m_pBoneMatrix = matrices.release();
+        entry.m_dwNames = names.release();
+        entry.pMesh = pending.release();
     }
-    else
+
     {
         m_pMesh = g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].pMesh;
-        if (!m_pMesh)
+        if (!m_pMesh || g_pMeshManager->m_stSkinMeshList[m_nSkinMeshIndex].m_numPalette >
+            sizeof(m_pBoneOffset) / sizeof(m_pBoneOffset[0]))
             return 0;
 
         if (m_pMesh->m_bDummy == 1)

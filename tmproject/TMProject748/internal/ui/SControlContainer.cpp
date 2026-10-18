@@ -5,6 +5,7 @@
 #include "TMGlobal.h"
 #include "WYD748Assets.h"
 #include "ClientDiagnostics.h"
+#include "RenderControlList.h"
 #include <memory>
 
 SControlContainer::SControlContainer(TMScene* pScene) 
@@ -28,6 +29,9 @@ SControlContainer::SControlContainer(TMScene* pScene)
 
 SControlContainer::~SControlContainer()
 {
+	for (auto& list : m_pDrawControl)
+		render_control_list::Clear(list);
+
 	if (m_pFocusControl != nullptr)
 		m_pFocusControl->SetFocused(0);
 
@@ -345,6 +349,8 @@ int SControlContainer::FrameMove(unsigned int dwServerTime)
 			}
 
 			pCurrentControl = static_cast<SControl*>(pCurrentControl->m_pTop);
+			if (!pCurrentControl)
+				break;
 			vParentPos.x -= pCurrentControl->m_nPosX;
 			vParentPos.y -= pCurrentControl->m_nPosY;
 		} while (pCurrentControl != pRootControl && pCurrentControl != nullptr);

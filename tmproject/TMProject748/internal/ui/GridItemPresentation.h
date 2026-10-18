@@ -3,6 +3,13 @@
 #include <cmath>
 
 namespace grid_item_presentation {
+// FUN_0040fc3e centers all six native mix receptacles. The inherited
+// 7.69 enum names for 16/18/20/22 do not describe their active 7.48 role.
+constexpr bool IsNativeMixReceptacle(int gridType)
+{
+    return gridType >= 12 && gridType <= 22 && gridType % 2 == 0;
+}
+
 // The elite catalog offsets precede their intended blue/red/white textures
 // in the active 7.48 model directory. Correct only grid presentation: world
 // capes, kingdom identity and the shared item catalog remain unchanged.

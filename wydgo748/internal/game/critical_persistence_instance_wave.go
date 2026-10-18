@@ -11,6 +11,10 @@ import (
 // allocation plan. Entity IDs are not published or inserted into World here.
 func (w *World) planCriticalInstanceFirstWave(inst *ItemInstance, stage model.VolatileInstanceStage,
 	at time.Time, tiles map[criticalTeleportTile]*Player, owner *Player) ([]*Mob, error) {
+	if hellGateVersion2(inst) && inst.State == "preparing" {
+		setInstanceCombatDeadline(inst, inst.HardDeadline)
+		return nil, nil
+	}
 	space := itemInstanceGameplaySpace(inst)
 	ignored := make(map[*Player]struct{}, len(inst.MemberIDs))
 	for _, id := range inst.MemberIDs {
@@ -34,6 +38,9 @@ func (w *World) planCriticalInstanceFirstWave(inst *ItemInstance, stage model.Vo
 						continue
 					}
 					x, y := uint16(nx), uint16(ny)
+					if (stage.AreaX != 0 || stage.AreaY != 0) && !instanceStageContains(stage, x, y) {
+						continue
+					}
 					tile := criticalTile(x, y, space)
 					if tiles[tile] != nil || w.positionOccupiedInGameplaySpace(x, y, space, nil, nil, ignored) {
 						continue

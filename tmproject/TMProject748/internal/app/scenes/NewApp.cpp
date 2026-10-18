@@ -25,6 +25,7 @@
 #include "ClientSettings.h"
 #include "DeviceFrame.h"
 #include "../../ui/ItemHelpText.h"
+#include "../../ui/RenderControlList.h"
 #include <fstream>
 
 const char ClassName[4] = "WYD";
@@ -711,6 +712,14 @@ void NewApp::WritePerfSample()
 
 HRESULT NewApp::RenderScene()
 {
+	// Discard this frame's non-owning UI references on every return path,
+	// including device loss and frames where RenderControl is skipped.
+	render_control_list::FrameCleanup clearControls([this] {
+		TMScene* scene = m_pObjectManager ? m_pObjectManager->GetCurrentScene() : nullptr;
+		if (scene && scene->m_pControlContainer)
+			for (auto& list : scene->m_pControlContainer->m_pDrawControl)
+				render_control_list::Clear(list);
+	});
 	if (!m_pRenderDevice || !m_pRenderDevice->m_pd3dDevice ||
 		!m_pObjectManager || !m_pObjectManager->m_pCamera)
 		return S_FALSE;
@@ -791,6 +800,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
 {
+	const int monitorResult = WYD748_RunCrashMonitor();
+	if (monitorResult >= 0) return monitorResult;
 	// Install before any bootstrap work and install again after device/UI setup:
 	// third-party initialization may replace the process-wide top-level filter.
 	WYD748_InstallDiagnostics();

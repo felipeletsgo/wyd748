@@ -180,7 +180,7 @@ func (w *World) onPartyRemove(s *net.Session, pkt []byte) {
 }
 
 func (w *World) syncParty(party *Party) {
-	if party == nil || len(party.Members) < 2 {
+	if party == nil || len(party.Members) == 0 {
 		return
 	}
 	for _, receiver := range party.Members {
@@ -230,6 +230,12 @@ func (w *World) updatePartyMember(member *Player) {
 }
 
 func (w *World) removePartyPlayer(leaving *Player) {
+	w.removePartyPlayerMode(leaving, false)
+}
+
+// A Nightmare disconnect frees its slot but retains a one-member party so
+// its survivor can still invite, leave, or accept the returning character.
+func (w *World) removePartyPlayerMode(leaving *Player, reconnect bool) {
 	if leaving == nil || leaving.Party == nil {
 		return
 	}
@@ -246,7 +252,8 @@ func (w *World) removePartyPlayer(leaving *Player) {
 		leaving.Session.Send(wire.PartyRemove(0))
 	}
 
-	if len(party.Members) < 2 {
+	if len(party.Members) < 2 && !reconnect {
+		party.closed = true
 		for _, member := range party.Members {
 			member.Party = nil
 			if member.InWorld {

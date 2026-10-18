@@ -26,7 +26,7 @@ func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
 	}`)
 	write(instancesPath, `{"instances":{},"rules":{},"items":{}}`)
 	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, nil, nil); err == nil {
-		t.Fatal("volatiles.json aceitou regra de instancia")
+		t.Fatal("volatiles.json accepted an instance rule")
 	}
 
 	write(volatilesPath, `{"default":{"action":"generic"},"rules":{},"items":{}}`)
@@ -36,7 +36,7 @@ func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
 		"items":{}
 	}`)
 	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, nil, nil); err == nil {
-		t.Fatal("instances.json aceitou regra volatile comum")
+		t.Fatal("instances.json accepted an ordinary volatile rule")
 	}
 }
 
@@ -60,11 +60,11 @@ func TestLoadVolatilesDiscoversCatalogItems(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(catalog.ItemCodes) != 2 || catalog.Codes[1] != 2 {
-		t.Fatalf("descoberta incorreta: items=%v codes=%v", catalog.ItemCodes, catalog.Codes)
+		t.Fatalf("incorrect discovery: items=%v codes=%v", catalog.ItemCodes, catalog.Codes)
 	}
 	rule, code, ok := catalog.Rule(401)
 	if !ok || code != 1 || rule.HP != 999 {
-		t.Fatalf("override nao aplicado: rule=%+v code=%d ok=%v", rule, code, ok)
+		t.Fatalf("override not applied: rule=%+v code=%d ok=%v", rule, code, ok)
 	}
 }
 
@@ -85,12 +85,12 @@ func TestLoadVolatilesRejectsInvalidEquipmentTransforms(t *testing.T) {
 			t.Fatal(err)
 		}
 		if _, err := LoadVolatiles(path, items, nil); err == nil {
-			t.Fatalf("transformacao de equipamento invalida foi aceita: %s", body)
+			t.Fatalf("invalid equipment transform was accepted: %s", body)
 		}
 	}
 }
 
-func TestLoadVolatilesValidaQuestReward(t *testing.T) {
+func TestLoadVolatilesValidatesQuestReward(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "volatiles.json")
 	items := map[uint16]model.ItemDef{
@@ -104,7 +104,7 @@ func TestLoadVolatilesValidaQuestReward(t *testing.T) {
 			t.Fatal(err)
 		}
 		if _, err := LoadVolatiles(path, items, nil); err == nil {
-			t.Fatalf("quest_reward invalida foi aceita: %s", body)
+			t.Fatalf("invalid quest_reward was accepted: %s", body)
 		}
 	}
 }
@@ -124,7 +124,7 @@ func TestLoadVolatilesRejectsIncompleteRefineSet(t *testing.T) {
 			t.Fatal(err)
 		}
 		if _, err := LoadVolatiles(path, items, nil); err == nil {
-			t.Fatalf("refine_set invalido foi aceito: %s", body)
+			t.Fatalf("invalid refine_set was accepted: %s", body)
 		}
 	}
 }
@@ -150,7 +150,7 @@ func TestLoadVolatilesRejectsAmbiguousOrInvalidBuffs(t *testing.T) {
 			t.Fatal(err)
 		}
 		if _, err := LoadVolatiles(path, items, skills); err == nil {
-			t.Fatalf("buff invalido foi aceito: %s", body)
+			t.Fatalf("invalid buff was accepted: %s", body)
 		}
 	}
 }
@@ -174,7 +174,7 @@ func TestLoadVolatilesAllowsSharedInstanceIDOnlyForSameLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := LoadVolatiles(path, items, nil); err != nil {
-		t.Fatalf("mesma sala compartilhada foi recusada: %v", err)
+		t.Fatalf("identical shared room was rejected: %v", err)
 	}
 
 	divergent := `{"default":{"action":"generic"},"rules":{` +
@@ -184,7 +184,7 @@ func TestLoadVolatilesAllowsSharedInstanceIDOnlyForSameLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := LoadVolatiles(path, items, nil); err == nil {
-		t.Fatal("mesmo ID com layouts divergentes foi aceito")
+		t.Fatal("same ID with conflicting layouts was accepted")
 	}
 }
 
@@ -202,14 +202,13 @@ func TestLoadVolatilesRejectsWaterChainCrossTier(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := LoadVolatiles(path, items, nil); err == nil {
-		t.Fatal("cadeia Water cruzando normal->mystic foi aceita")
+		t.Fatal("cross-tier Water chain normal->mystic was accepted")
 	}
 }
 
-// TestVolatilesRealConfigDifferentiatesByItemIndex carrega os arquivos REAIS e
-// prova a regra do felipe: itens que compartilham o mesmo EF_VOLATILE podem ter
-// parametros diferentes, resolvidos por Index. Tambem garante que o volatiles.json
-// de producao carrega sem erro contra o catalogo real.
+// TestVolatilesRealConfigDifferentiatesByItemIndex loads production data and
+// verifies distinct Index overrides for items sharing EF_VOLATILE. Production
+// configuration must load against the real catalog.
 func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
 	if err != nil {
@@ -218,62 +217,62 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	vc, err := LoadVolatilesWithInstances("../../data/volatiles.json",
 		"../../data/instances.json", catalog.Items, catalog.Skills)
 	if err != nil {
-		t.Fatalf("volatiles.json real nao carrega contra o catalogo: %v", err)
+		t.Fatalf("production volatiles.json does not load against the catalog: %v", err)
 	}
 	for _, itemID := range []uint16{3173, 777, 3182} {
 		rule, _, ok := vc.Rule(itemID)
 		if !ok || rule.Instance == nil || !rule.Instance.ChainStart {
-			t.Fatalf("Water root %d nao foi marcado como ChainStart: %+v", itemID, rule)
+			t.Fatalf("Water root %d is not marked ChainStart: %+v", itemID, rule)
 		}
 	}
 	for _, itemID := range []uint16{3174, 3181, 778, 785, 3183, 3190} {
 		rule, _, ok := vc.Rule(itemID)
 		if !ok || rule.Instance == nil || rule.Instance.ChainStart {
-			t.Fatalf("Water nao-root %d recebeu ChainStart indevido: %+v", itemID, rule)
+			t.Fatalf("Water non-root %d incorrectly received ChainStart: %+v", itemID, rule)
 		}
 	}
 
-	// Sefirah 7 dias vs 30 dias: MESMO codigo (67, o portador aceito pelo client),
-	// duracoes diferentes por override de Index -> diferenciacao por Index funciona.
+	// Sefirah 7-day and 30-day items share client-supported code 67, but resolve
+	// distinct durations through their Index overrides.
 	r7, c7, ok7 := vc.Rule(3361)
 	r30, c30, ok30 := vc.Rule(3363)
 	if !ok7 || !ok30 || c7 != 67 || c30 != 67 {
-		t.Fatalf("codigos Sefirah inesperados: c7=%d c30=%d ok=%v/%v", c7, c30, ok7, ok30)
+		t.Fatalf("unexpected Sefirah codes: c7=%d c30=%d ok=%v/%v", c7, c30, ok7, ok30)
 	}
 	if r7.DurationUnits == r30.DurationUnits {
-		t.Fatalf("Sefirah 7d e 30d resolveram a MESMA duracao (%d): diferenciacao por index falhou",
+		t.Fatalf("Sefirah 7d and 30d resolved the same duration (%d): Index overrides failed",
 			r7.DurationUnits)
 	}
 	if r30.DurationUnits <= r7.DurationUnits {
-		t.Fatalf("Sefirah 30d (%d) deveria durar mais que 7d (%d)", r30.DurationUnits, r7.DurationUnits)
+		t.Fatalf("Sefirah 30d (%d) must last longer than 7d (%d)", r30.DurationUnits, r7.DurationUnits)
 	}
 
-	// Buff de dano keyed por codigo (Kappa 787 -> Type 4 escalando por %).
+	// Code-keyed damage buff (Kappa 787 -> Type 4 scaling by percentage).
 	if r, _, _ := vc.Rule(787); r.Action != "buff" || r.AffectType != 4 || r.AffectValue == 0 {
-		t.Fatalf("Kappa (787) nao virou buff Type 4 escalado: %+v", r)
+		t.Fatalf("Kappa (787) did not resolve a scaled Type 4 buff: %+v", r)
 	}
-	// Fairy Dust usa o proximo marco da tabela nativa, nunca EXP fixa.
+	// Fairy Dust uses the next native level threshold, never fixed EXP.
 	if r, _, _ := vc.Rule(414); r.Action != "grant_next_level" {
-		t.Fatalf("Fairy_Dust (414) nao virou grant_next_level: %+v", r)
+		t.Fatalf("Fairy_Dust (414) did not resolve grant_next_level: %+v", r)
 	}
-	// Gema Estelar / Warp (12/13) e bau de EXP (198) resolvem as acoes certas.
+	// Star Gem / Warp (12/13) and EXP chest (198) resolve their intended actions.
 	if vc.Rules[12].Action != "save_position" {
-		t.Fatalf("code 12 deveria ser save_position: %q", vc.Rules[12].Action)
+		t.Fatalf("code 12 must resolve save_position: %q", vc.Rules[12].Action)
 	}
 	if vc.Rules[13].Action != "warp_saved" {
-		t.Fatalf("code 13 deveria ser warp_saved: %q", vc.Rules[13].Action)
+		t.Fatalf("code 13 must resolve warp_saved: %q", vc.Rules[13].Action)
 	}
 	if r := vc.Rules[198]; r.Action != "buff" || r.AffectType != 39 || !r.Accumulate {
-		t.Fatalf("code 198 deveria ser buff acumulativo affect 39: %+v", r)
+		t.Fatalf("code 198 must resolve an accumulating affect 39 buff: %+v", r)
 	}
 	uxmal, ok := vc.Instances["uxmal"]
 	if !ok || uxmal.StateMachine != "uxmal" || uxmal.Uxmal == nil ||
 		len(uxmal.Stages) != 7 || len(uxmal.Uxmal.RoomPositions) != 7 ||
 		len(uxmal.Uxmal.Runes) != 7 || uxmal.Uxmal.TicketItem != 5134 {
-		t.Fatalf("Uxmal nao resolveu a configuracao nomeada: ok=%v cfg=%+v", ok, uxmal)
+		t.Fatalf("Uxmal did not resolve its named configuration: ok=%v cfg=%+v", ok, uxmal)
 	}
 	if uxmal.Uxmal.MaxParties[0] != 2 || uxmal.Uxmal.MaxParties[1] != 3 {
-		t.Fatalf("capacidade nativa das salas Uxmal perdida: %v", uxmal.Uxmal.MaxParties)
+		t.Fatalf("native Uxmal room capacity was lost: %v", uxmal.Uxmal.MaxParties)
 	}
 	for itemID, expected := range map[uint16]struct {
 		code, variant int
@@ -283,15 +282,15 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 		r, code, ok := vc.Rule(itemID)
 		if !ok || code != expected.code || r.Action != "equipment_gem" ||
 			r.Variant != expected.variant || !r.Consume {
-			t.Fatalf("Gema %d: code=%d rule=%+v ok=%v", itemID, code, r, ok)
+			t.Fatalf("Gem %d: code=%d rule=%+v ok=%v", itemID, code, r, ok)
 		}
 	}
 	if r, code, ok := vc.Rule(578); !ok || code != 9 || r.Action != "ore_upgrade" ||
 		r.Variant != 3 || r.SuccessPercent != 50 || !r.Consume {
-		t.Fatalf("Adamantita: code=%d rule=%+v ok=%v", code, r, ok)
+		t.Fatalf("Adamantite: code=%d rule=%+v ok=%v", code, r, ok)
 	}
-	// Rodada final do _MSG_UseItem: os multiplexados por Index nao podem
-	// regredir silenciosamente para a regra no_direct_use do codigo.
+	// Index-multiplexed _MSG_UseItem rules must not silently regress to the
+	// code-level no_direct_use fallback.
 	for itemID, action := range map[uint16]string{
 		3453: "mount_revive", 4003: "loot_box",
 		1731: "instance_ticket", 3171: "instance_ticket", 3172: "instance_ticket",
@@ -302,63 +301,64 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	} {
 		r, _, ok := vc.Rule(itemID)
 		if !ok || r.Action != action {
-			t.Fatalf("item %d deveria ser %s: %+v ok=%v", itemID, action, r, ok)
+			t.Fatalf("item %d must resolve %s: %+v ok=%v", itemID, action, r, ok)
 		}
 	}
 	for _, itemID := range []uint16{1772, 4000, 4001, 3328, 3329} {
 		r, _, ok := vc.Rule(itemID)
 		if !ok || r.Action != "instance_ticket" || r.Instance == nil ||
 			len(r.Instance.Stages) == 0 {
-			t.Fatalf("dungeon %d nao resolveu uma instancia completa: %+v", itemID, r)
+			t.Fatalf("dungeon %d did not resolve a complete instance: %+v", itemID, r)
 		}
 	}
 	if r, _, ok := vc.Rule(1737); !ok || r.Action != "instance_ticket" || !r.Consume ||
 		r.Instance == nil || r.Instance.StateMachine != "big_cube" ||
 		len(r.Instance.Stages) != 1 || r.Instance.Stages[0].Quiz == nil {
-		t.Fatalf("Big Cube deveria resolver a maquina O/X: %+v ok=%v", r, ok)
+		t.Fatalf("Big Cube must resolve the O/X state machine: %+v ok=%v", r, ok)
 	}
 	if cube, _, _ := vc.Rule(1772); len(cube.Instance.Stages) != 25 {
-		t.Fatalf("Cube deveria possuir 25 salas, possui %d", len(cube.Instance.Stages))
+		t.Fatalf("Cube must have 25 rooms, got %d", len(cube.Instance.Stages))
 	}
-	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.ActiveDurationSeconds != 0 {
-		t.Fatalf("Hell Gate deve seguir somente a janela nativa de 240s: %+v", hellSolo.Instance)
+	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.ActiveDurationSeconds != 1080 ||
+		hellSolo.Instance.DurationSeconds != 1200 || hellSolo.Instance.Schedule[0].DurationSeconds != 120 {
+		t.Fatalf("Hell Gate must retain the approved 2-minute admission and 18-minute encounter: %+v", hellSolo.Instance)
 	}
 	if hellSolo, _, _ := vc.Rule(3328); hellSolo.Instance.ID != "hell-gate" {
-		t.Fatalf("Hell Gate solo resolveu ID inesperado: %q", hellSolo.Instance.ID)
+		t.Fatalf("Hell Gate solo resolved an unexpected ID: %q", hellSolo.Instance.ID)
 	}
 	if hellParty, _, _ := vc.Rule(3329); hellParty.Instance.ID != "hell-gate" {
-		t.Fatalf("Hell Gate party deve compartilhar ocupacao: %q", hellParty.Instance.ID)
+		t.Fatalf("Hell Gate party must share occupancy: %q", hellParty.Instance.ID)
 	}
 	if nightmare, _, _ := vc.Rule(3324); len(nightmare.Instance.Schedule) != 3 ||
 		len(nightmare.Instance.EntryAreas) != 1 || nightmare.Instance.NightmareTier != "normal" ||
 		nightmare.Instance.PartyRunLimit != 3 {
-		t.Fatalf("Nightmare Normal perdeu janela/area de entrada: %+v", nightmare.Instance)
+		t.Fatalf("Nightmare Normal lost its entry window/area: %+v", nightmare.Instance)
 	}
 	if nightmare, _, _ := vc.Rule(3325); nightmare.Instance.NightmareTier != "mystic" {
-		t.Fatalf("Nightmare Mystic perdeu tier: %+v", nightmare.Instance)
+		t.Fatalf("Nightmare Mystic lost its tier: %+v", nightmare.Instance)
 	}
 	if nightmare, _, _ := vc.Rule(3326); nightmare.Instance.NightmareTier != "arcane" {
-		t.Fatalf("Nightmare Arcane perdeu tier: %+v", nightmare.Instance)
+		t.Fatalf("Nightmare Arcane lost its tier: %+v", nightmare.Instance)
 	}
 	if hell, _, _ := vc.Rule(3328); len(hell.Instance.Schedule) != 2 {
-		t.Fatalf("Hell Gate deveria possuir duas janelas horarias: %+v", hell.Instance)
+		t.Fatalf("Hell Gate must have two scheduled windows: %+v", hell.Instance)
 	}
 	if magic, _, _ := vc.Rule(3172); magic.PartyMode != "" {
-		t.Fatalf("Magic Chamber deve aceitar solo e grupo liderado: partyMode=%q", magic.PartyMode)
+		t.Fatalf("Magic Chamber must accept solo and leader-led parties: partyMode=%q", magic.PartyMode)
 	}
 	for _, itemID := range []uint16{1731, 3171, 3172} {
 		magic, _, ok := vc.Rule(itemID)
 		if !ok || magic.Instance == nil || len(magic.Instance.Stages) != 4 ||
-			magic.Instance.ExclusiveGroup != "magic-chamber" ||
+			magic.Instance.ExclusiveGroup != "" ||
 			len(magic.Instance.Stages[3].CompletionSpawns) == 0 {
-			t.Fatalf("Magic Chamber %d nao preservou quatro salas/boss na quarta: %+v", itemID, magic.Instance)
+			t.Fatalf("Magic Chamber %d must allow independent runs with four rooms and a final boss: %+v", itemID, magic.Instance)
 		}
 	}
 	for itemID, wantID := range map[uint16]string{1772: "cube", 4000: "cube-mystic", 4001: "cube-arcane"} {
 		cube, _, ok := vc.Rule(itemID)
 		if !ok || cube.Instance == nil || cube.Instance.ID != wantID ||
 			!cube.Instance.SharedEntry || len(cube.Instance.Stages) != 25 {
-			t.Fatalf("Cube %d nao resolveu variante independente: id=%q shared=%v stages=%d",
+			t.Fatalf("Cube %d did not resolve its independent variant: id=%q shared=%v stages=%d",
 				itemID, cube.Instance.ID, cube.Instance.SharedEntry, len(cube.Instance.Stages))
 		}
 	}
@@ -367,57 +367,57 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 		if !ok || nightmare.Instance == nil || nightmare.Instance.Mode != "shared_timed_zone" ||
 			nightmare.Instance.FinishPolicy != "respawn_until_timeout" ||
 			nightmare.Instance.SharedGroup == "" {
-			t.Fatalf("Nightmare %d nao e zona compartilhada com respawn: %+v", itemID, nightmare.Instance)
+			t.Fatalf("Nightmare %d is not a shared zone with respawn: %+v", itemID, nightmare.Instance)
 		}
 	}
 	if hell, _, ok := vc.Rule(3328); !ok || hell.Instance == nil ||
 		hell.Instance.StateMachine != "hell_gate" || hell.Instance.HellGate == nil ||
 		len(hell.Instance.HellGate.Quadrants) != 4 || hell.Instance.FinishPolicy != "state_machine" {
-		t.Fatalf("Hell Gate nao resolveu a maquina de estados: %+v ok=%v", hell.Instance, ok)
+		t.Fatalf("Hell Gate did not resolve its state machine: %+v ok=%v", hell.Instance, ok)
 	}
 	for _, itemID := range []uint16{646, 647, 3378} {
 		r, _, _ := vc.Rule(itemID)
 		if r.Action != "buff" || r.AffectType != 30 {
-			t.Fatalf("Courage %d nao usa affect 30: %+v", itemID, r)
+			t.Fatalf("Courage %d does not use affect 30: %+v", itemID, r)
 		}
 	}
 	for _, itemID := range []uint16{1739, 4145} {
 		r, _, _ := vc.Rule(itemID)
 		if len(r.Affects) != 4 {
-			t.Fatalf("Love item %d nao possui os quatro affects: %+v", itemID, r)
+			t.Fatalf("Love item %d does not have all four affects: %+v", itemID, r)
 		}
 	}
 	if expBox := vc.Rules[198]; expBox.MaxDurationUnits != 10800 {
-		t.Fatalf("Bau de EXP perdeu o teto de 24h: %+v", expBox)
+		t.Fatalf("EXP chest lost its 24-hour cap: %+v", expBox)
 	}
 	if r, _, ok := vc.Rule(3443); !ok || r.Action != "celestial_capsule" || !r.Consume {
-		t.Fatalf("Spirit's Seal deve executar encapsulamento: %+v ok=%v", r, ok)
+		t.Fatalf("Spirit's Seal must perform encapsulation: %+v ok=%v", r, ok)
 	}
 	if r, _, ok := vc.Rule(3455); !ok || r.Action != "no_direct_use" || r.Consume {
-		t.Fatalf("Extraction of Magical Power nao deve ser uso direto: %+v ok=%v", r, ok)
+		t.Fatalf("Extraction of Magical Power must not allow direct use: %+v ok=%v", r, ok)
 	}
 	if r, _, ok := vc.Rule(5338); !ok || r.Action != "celestial_ideal" || !r.Consume {
-		t.Fatalf("Pedra Ideal deve criar Celestial/SubCelestial: %+v ok=%v", r, ok)
+		t.Fatalf("Ideal Stone must create Celestial/SubCelestial: %+v ok=%v", r, ok)
 	}
 	if r, _, ok := vc.Rule(3020); !ok || r.Action != "celestial_fury" || !r.Consume {
-		t.Fatalf("Pedra da Furia deve executar destraves Celestial: %+v ok=%v", r, ok)
+		t.Fatalf("Fury Stone must perform Celestial unlocks: %+v ok=%v", r, ok)
 	}
 	if r, _, ok := vc.Rule(4148); !ok || r.Action != "celestial_switch" || !r.Consume {
-		t.Fatalf("Pedra Misteriosa deve alternar as formas: %+v ok=%v", r, ok)
+		t.Fatalf("Mysterious Stone must switch forms: %+v ok=%v", r, ok)
 	}
-	// Refino: Ori(4)=teto+6, Lac(5)=teto+9, Molar(194)=set +6.
+	// Refinement: Ori(4)=cap +6, Lac(5)=cap +9, Molar(194)=set +6.
 	if r := vc.Rules[4]; r.Action != "refine" || r.RefineMax != 6 {
-		t.Fatalf("code 4 deveria ser refine teto 6: %+v", r)
+		t.Fatalf("code 4 must resolve refine with cap 6: %+v", r)
 	}
 	if r := vc.Rules[5]; r.Action != "refine" || r.RefineMax != 9 {
-		t.Fatalf("code 5 deveria ser refine teto 9: %+v", r)
+		t.Fatalf("code 5 must resolve refine with cap 9: %+v", r)
 	}
 	if r := vc.Rules[194]; r.Action != "refine_set" || r.RefineMax != 6 ||
 		!r.MortalOnly || r.MinLevel != 200 || r.MaxLevelExclusive != 256 || r.OnceQuestID != -194 {
-		t.Fatalf("code 194 deveria ser refine_set teto 6: %+v", r)
+		t.Fatalf("code 194 must resolve refine_set with cap 6: %+v", r)
 	}
-	// As 24 salas regulares e os tres Nessus sao instancias distintas. Cada
-	// sala comum entrega o pergaminho seguinte; o boss encerra a cadeia.
+	// The 24 regular rooms and three Nessus rooms are distinct instances.
+	// Each regular room awards the next scroll; the boss ends the chain.
 	waterItems := []uint16{
 		777, 778, 779, 780, 781, 782, 783, 784, 785,
 		3173, 3174, 3175, 3176, 3177, 3178, 3179, 3180, 3181,
@@ -427,12 +427,12 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	for _, itemID := range waterItems {
 		r, _, ok := vc.Rule(itemID)
 		if !ok || r.Action != "instance_ticket" || r.Instance == nil {
-			t.Fatalf("pergaminho Water %d sem instancia: %+v ok=%v", itemID, r, ok)
+			t.Fatalf("Water scroll %d has no instance: %+v ok=%v", itemID, r, ok)
 		}
 		instanceIDs[r.Instance.ID] = struct{}{}
 	}
 	if len(instanceIDs) != len(waterItems) {
-		t.Fatalf("salas Water repetidas: ids=%d itens=%d", len(instanceIDs), len(waterItems))
+		t.Fatalf("duplicate Water rooms: ids=%d items=%d", len(instanceIDs), len(waterItems))
 	}
 	chains := [][]uint16{
 		{777, 778, 779, 780, 781, 782, 783, 784, 785},
@@ -447,15 +447,14 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 				want = chain[index+1]
 			}
 			if r.Instance.RewardItem != want {
-				t.Fatalf("Water %d recompensa %d, quer %d",
+				t.Fatalf("Water %d reward %d, want %d",
 					itemID, r.Instance.RewardItem, want)
 			}
 		}
 	}
-	// Cada ticket possui a origem exata. O primeiro aceita a entrada externa e
-	// a sala do boss (fecha o ciclo); Room 2..8 aceitam somente a plataforma
-	// anterior; o boss aceita somente Room 8. A tabela continua em data, e o
-	// loader apenas a expande.
+	// Each ticket has an exact origin. The first accepts external entry and the
+	// boss room (closing the cycle); Rooms 2..8 accept only the previous platform;
+	// the boss accepts only Room 8. The loader expands the data-owned table.
 	waterSets := []struct {
 		items  []uint16
 		prefix string
@@ -468,7 +467,7 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 		for index, itemID := range family.items {
 			r, _, ok := vc.Rule(itemID)
 			if !ok || r.Instance == nil {
-				t.Fatalf("Water %d sem instancia apos expandir entryAreaSet", itemID)
+				t.Fatalf("Water %d has no instance after entryAreaSet expansion", itemID)
 			}
 			wantSet, wantAreas := family.prefix+"-room1-entry", 2
 			if index > 0 {
@@ -478,25 +477,25 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 				wantSet = family.prefix + "-room8"
 			}
 			if r.Instance.EntryAreaSet != wantSet || len(r.Instance.EntryAreas) != wantAreas {
-				t.Fatalf("Water %d entry areas incorretas: set=%q areas=%d want=%q/%d",
+				t.Fatalf("Water %d incorrect entry areas: set=%q areas=%d want=%q/%d",
 					itemID, r.Instance.EntryAreaSet, len(r.Instance.EntryAreas), wantSet, wantAreas)
 			}
 			if !r.Instance.AllowChainDuringExitGrace {
-				t.Fatalf("Water %d perdeu AllowChainDuringExitGrace", itemID)
+				t.Fatalf("Water %d lost AllowChainDuringExitGrace", itemID)
 			}
 			if index == len(family.items)-1 {
 				if r.Instance.RewardItem != 0 || r.Instance.ChainNextItem != family.items[0] {
-					t.Fatalf("Water boss %d deve aceitar Room1 sem recompensa: reward=%d next=%d",
+					t.Fatalf("Water boss %d must accept Room1 without a reward: reward=%d next=%d",
 						itemID, r.Instance.RewardItem, r.Instance.ChainNextItem)
 				}
 			} else if r.Instance.ChainNextItem != 0 {
-				t.Fatalf("Water regular %d nao deveria ter ChainNextItem=%d", itemID, r.Instance.ChainNextItem)
+				t.Fatalf("regular Water %d must not have ChainNextItem=%d", itemID, r.Instance.ChainNextItem)
 			}
 		}
 	}
 }
 
-func TestCatalogoRealMantemFamiliasAncientParaGemas(t *testing.T) {
+func TestRealCatalogPreservesAncientGemFamilies(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
 		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
@@ -521,11 +520,11 @@ func TestCatalogoRealMantemFamiliasAncientParaGemas(t *testing.T) {
 		}
 	}
 	if families == 0 {
-		t.Fatal("catalogo nao possui familia Ancient completa (grades 5..8 contiguas)")
+		t.Fatal("catalog has no complete Ancient family (contiguous grades 5..8)")
 	}
 }
 
-func TestCatalogoRealMapeiaAdamantitaParaMesmaVarianteLegend(t *testing.T) {
+func TestRealCatalogMapsAdamantiteToMatchingLegendVariant(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
 		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
@@ -540,25 +539,25 @@ func TestCatalogoRealMapeiaAdamantitaParaMesmaVarianteLegend(t *testing.T) {
 			continue
 		}
 		if def.Extra <= 0 || def.Extra > int(^uint16(0)) {
-			t.Errorf("equipamento %d elegivel para Adamantita nao aponta para variante Le", itemID)
+			t.Errorf("Adamantite-eligible equipment %d has no Le variant target", itemID)
 			continue
 		}
 		legend, ok := catalog.Items[uint16(def.Extra)]
 		if !ok || legend.Pos != def.Pos || legend.Grade != 4 || legend.Unique != def.Unique {
-			t.Errorf("equipamento %d aponta Extra=%d para variante Le invalida: %+v",
+			t.Errorf("equipment %d points Extra=%d to an invalid Le variant: %+v",
 				itemID, def.Extra, legend)
 		}
 		checked++
 	}
 	if checked == 0 {
-		t.Fatal("catalogo nao possui equipamentos elegiveis para Adamantita")
+		t.Fatal("catalog has no Adamantite-eligible equipment")
 	}
 
-	// Exemplo real: Golden Embersed Helmet (Mystic) -> o MESMO elmo (Legend).
+	// Real example: Golden Embersed Helmet (Mystic) -> the same helmet (Legend).
 	input, output := catalog.Items[1207], catalog.Items[2186]
 	if input.Extra != 2186 || input.Pos != output.Pos || input.Unique != output.Unique ||
 		input.Grade != 2 || output.Grade != 4 {
-		t.Fatalf("Golden Embersed (M)->(Le) perdeu o vinculo: input=%+v output=%+v",
+		t.Fatalf("Golden Embersed (M)->(Le) lost its link: input=%+v output=%+v",
 			input, output)
 	}
 }
@@ -578,7 +577,7 @@ func TestLoadVolatilesAppliesGenericToEveryUnconfiguredCode(t *testing.T) {
 	}
 	rule, code, ok := catalog.Rule(700)
 	if !ok || code != 77 || rule.Action != "generic" || rule.Consume {
-		t.Fatalf("fallback generico incorreto: rule=%+v code=%d ok=%v", rule, code, ok)
+		t.Fatalf("incorrect generic fallback: rule=%+v code=%d ok=%v", rule, code, ok)
 	}
 }
 
@@ -613,10 +612,10 @@ func TestVolatileInstancesReferenceExistingHostileNPCs(t *testing.T) {
 			for _, spawn := range stage.Spawns {
 				npc, exists := byName[spawn.NPC]
 				if !exists {
-					t.Errorf("%s sala %d referencia NPC inexistente %q",
+					t.Errorf("%s room %d references missing NPC %q",
 						label, stageIndex+1, spawn.NPC)
 				} else if npc.Tipo != model.TipoMonstro {
-					t.Errorf("%s sala %d usa NPC nao-hostil %q",
+					t.Errorf("%s room %d uses non-hostile NPC %q",
 						label, stageIndex+1, spawn.NPC)
 				}
 			}

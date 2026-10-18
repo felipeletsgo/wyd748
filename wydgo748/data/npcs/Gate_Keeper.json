@@ -1,6 +1,6 @@
 {
   "name": "Gate_Keeper",
-  "tipo": "monstro",
+  "tipo": "npc",
   "equip": {
     "rosto": {
       "index": 60

@@ -58,7 +58,8 @@ public:
 	void UpdateSkillCooldownUI(unsigned int now);
 	int MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServerTime);
 	int CheckMerchant(TMHuman* pOver);
-	int MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime);
+	int MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime, TMHuman* target = nullptr);
+	void UpdatePhysicalAttack(unsigned int dwServerTime);
 	void DropItem(unsigned int dwServerTime);
 	int TimeDelay(unsigned int dwServerTime);
 	int GetItem(TMItem* pItem);
@@ -165,6 +166,7 @@ public:
 	int OnKeyAutoRun(char iCharCode, int lParam);
 	int OnKeyGuildOnOff(char iCharCode, int lParam);
 	int OnKeyShortSkill(char iCharCode, int lParam);
+	int SelectShortSkill(int slot);
 	int OnKeyVisibleSkill(char iCharCode, int lParam);
 	int OnKeyCamView(char iCharCode, int lParam);
 	int OnKeyVisibleInven(char iCharCode, int lParam);

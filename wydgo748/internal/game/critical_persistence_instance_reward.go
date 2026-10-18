@@ -37,6 +37,9 @@ func (w *World) queueCriticalInstanceReward(inst *ItemInstance, now time.Time) e
 	if err := plan.proposed.validateInstanceStateOwnership(); err != nil {
 		return err
 	}
+	if hellGateVersion2(inst) {
+		return w.queueCriticalHellGateExperience(inst, plan, now)
+	}
 	if inst.Config.RewardItem == 0 {
 		// No player fields change. Membership and aggregate identity are still
 		// retained by the singleton fence, including disconnected members.

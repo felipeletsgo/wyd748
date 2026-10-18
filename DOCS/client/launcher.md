@@ -733,6 +733,43 @@ No generated executable was committed and no Git index changes were made.
 Use `WYDLauncher.exe` with the game closed. Nightmare, Backpack and existing
 English-migration debt are not declared complete by this publication.
 
+## Published patch 10032 (2026-10-16)
+
+Nightmare counter-label update paired with authoritative server lifecycle
+corrections. Explicit working-tree payload: only `WYD.exe`; earlier assets
+remain supplied by the cumulative launcher feed. Source HEAD on `main`:
+`de87cd8789bef3165babbdf41fe1f86bc449106a`, with the pending Nightmare changes.
+No commit, push or local runtime replacement was performed.
+
+- ZIP: 829,102 bytes, SHA-256
+  `60EB65FCD22EF96CE47337897999F409A927D4BA22365D2229616CB11191B411`.
+- `WYD.exe`: 1,881,088 bytes, SHA-256
+  `E96B8514B8B5CEC3A6C7D832DE8E0FE3AA11F4A390816A74C96A34285CCB5A36`.
+  Candidate: `tmproject/build/TMProject748/Release/WYD.exe`.
+- `Publish-ClientPatch.ps1` appended 10032 without altering earlier entries.
+  Public HTTP/HTTPS feeds and ZIP downloads returned 200; ZIP and embedded
+  executable hashes match. Patch 10031 is unchanged and the previous feed
+  remains exactly the new feed's retained prefix.
+- Site manifest, home and News advertise 10032. Active server/site release
+  `20261016T183715Z` includes all 21 new protector templates. Game/API restarted
+  at `2026-10-16 18:37:18 UTC`; actual running hashes and readiness passed.
+  Backup and rollback references are recorded in
+  [current state](../current-state.md).
+- Reused the unchanged Release/x86 candidate and its architecture/socket/
+  crash-capture/launcher gates. Fresh full Go tests, vet, Linux cross-build,
+  portal build, 60 portal tests and portal checks passed. Actual in-game
+  validation remains pending; publication is not `CLIENT_TESTED` evidence.
+- Upload staging was removed. Local artifact cleanup was blocked before
+  execution; exact leftovers are recorded in current state. Active delivery
+  and rollback verification succeeded independently of cleanup.
+
+Use `WYDLauncher.exe` with the client closed. The counter now reports protected
+NPC survivors rather than a quota of hostile monsters. The server separates
+four-minute admission from 15-minute combat, continuously respawns common
+monsters, applies the approved EXP loss per dead protector and spawns Arcane
+Lugefer once with five minutes remaining. Exact native population and loot
+parity are not certified by this delivery.
+
 ## Published patch 10030 (2026-10-15)
 
 Client-only publication, with no server deployment or restart. The explicit
@@ -783,3 +820,111 @@ Use `WYDLauncher.exe` with the client closed to install the executable and its
 required skill asset together. Existing Portuguese item-resource migration
 debt remains outside this scoped publication; this is not global release
 certification.
+
+## Published patch 10034 (2026-10-17)
+
+Explicit working-tree publication from dirty `main` at
+`de87cd8789bef3165babbdf41fe1f86bc449106a`: only `WYD.exe`, 1,881,088 bytes,
+SHA-256 `4183973219F67EC0F22D29276E42541DD9793FA1EB0A54BADFF7919938F60C41`.
+The canonical validated build was reused; interface resources are unchanged
+from 10033. No private client settings, launcher, version marker or other assets
+are included. Earlier dependencies remain in the cumulative feed.
+
+The executable restores the native generic transport prompt for portal tiles
+without a named client table entry, with bounded table access. The paired
+Hell Gate reconstruction is active in server release `20261017T221343Z`, after
+authorized game/API restart. It uses twenty minutes total, two-minute entry,
+400,000 HP bosses and a 10,000,000 completion EXP reward; these event settings
+are project choices rather than proven historical native constants.
+
+ZIP: 829,693 bytes, SHA-256
+`03D044C9C65A56F9A3005DF0836859EC5EEB1043AD5CD340FBFE8D830FE9A6F3`.
+Public HTTP/HTTPS feeds return 200 with the prior feed preserved and only 10034
+appended. A fresh advertised HTTPS ZIP and its sole executable entry match.
+The website manifest, home, News, article and changelog advertise 10034.
+Full Go tests/vet, Linux cross-build, portal build, all 60 tests and Astro checks
+passed. Local installation and in-game confirmation remain pending.
+
+Use `WYDLauncher.exe` with the game closed. See
+[current state](../current-state.md#previous-release--2026-10-17-hell-gate-route-and-defense-patch-10034)
+for active-process hashes, rollback, backup and cleanup. This is not
+`CLIENT_TESTED` evidence or global release certification.
+
+## Published patch 10033 (2026-10-17)
+
+Paired client/server publication from dirty `main` at
+`de87cd8789bef3165babbdf41fe1f86bc449106a`. The owner authorized service
+restart and player disconnection, not a host reboot, local installation,
+commit or push. The explicit payload contains only `WYD.exe`,
+`UI/interface.txt` and `UI/interface1.txt`; earlier assets remain available
+through the cumulative launcher feed.
+
+- ZIP: 830,698 bytes, SHA-256
+  `FC8CB13743F3F1A94D76497C6D1A9B625D643B54C983EE964F1E3878766FB777`.
+- `WYD.exe`: 1,881,600 bytes, SHA-256
+  `D6CC42D093FE240127F5096FA133965C225AB410D133AC79B8A6094AD8A7FA8D`.
+- `UI/interface.txt`: SHA-256
+  `407857BFE8CD47BBA5CA2F1379CCF84AC38E0865A26F38423D6A74DFC5FE9B93`.
+- `UI/interface1.txt`: SHA-256
+  `EC260EDFAED70727771A3C9443D3D063B6BA24DA1846110297FC98D727007468`.
+- Double-hit numbers share their trajectory and speed, with a 120 ms
+  second-number delay. The server guarantees double hit at 201% attack speed
+  and above, not at exactly 200%; the 900 ms action interval remains intact.
+  Manual physical attacks continue against their target until death or
+  interruption. Number-row 1-0 selects skills, with Shift+1-0 assignment;
+  F1-F10 does not select them. Helper down-arrow placement and chat
+  PageUp/PageDown scrolling are corrected; other Helper gaps remain open.
+- `/saldo` and `/balance` return one private top notification with Donate,
+  Fame, Honor, event passes and Kefra entries. Gold, CP and medals are absent.
+  `/medals` and `/medalhas` separately report medal balances. Alias names
+  accept both languages; displayed text remains English.
+- The prior feed is preserved byte-for-byte, with only 10033 appended.
+  Public HTTP/HTTPS feeds returned 200, and a fresh HTTPS ZIP download and
+  all embedded hashes match. Patch 10032 is unchanged. Site manifest,
+  home, News, the new article and changelog advertise 10033.
+- Active release: `/srv/wyd-go/releases/20261017T041938Z`. Game/API both
+  restarted at `2026-10-17 04:19:41 UTC`; running binary hashes, all 7,334
+  payload checksums, readiness and listener checks passed. Backup and
+  rollback references, the transient SSH timeout and configuration-preservation
+  evidence are recorded in [current state](../current-state.md).
+- Fresh complete Go tests, vet, Linux cross-build, portal build, all 60 portal
+  tests and Astro checks passed. Four optional server integration tests were
+  explicitly skipped. Unchanged client build evidence was reused. Neither
+  publication nor these checks establish actual in-game validation.
+
+Use `WYDLauncher.exe` with the client closed. No local runtime was replaced.
+Remote staging was removed; local publication output cleanup is tracked in
+current state. Existing unrelated gameplay and language-migration debt remain
+open; this is not global release certification or `CLIENT_TESTED` evidence.
+
+## Published patch 10035 (2026-10-18)
+
+This working-tree release publishes client stability safeguards, not a claim
+that all historical crashes have been reproduced or fixed. It preserves the
+wire contract and uses an explicit executable-only patch allowlist; both UI
+interface resources already match patch 10033. Cumulative earlier assets are
+still required and remain available in the existing feed.
+
+- ZIP: `patch-10035.zip`, 846,770 bytes, SHA-256
+  `8172AFA041A234E8C01BD956DEB36591062E70EEE8A99B0A3FFCC62B24C77E2A`.
+- Sole entry: `WYD.exe`, 1,907,712 bytes, SHA-256
+  `251CF754409F8AE4C0251C9FDD88EDA14C6799E78A377BD0665B6E858FDAFAB0`.
+- Matching Release PDB: SHA-256
+  `D29C437505BE2CC34A35B474CBDA38032270DBE30F1DA12A4EA69A1D9255252F`.
+  Symbols are retained locally, not distributed in the patch.
+- Release build, architecture, socket and crash-capture gates passed. Fresh
+  public HTTP/HTTPS feeds return 200; the advertised ZIP and executable hashes
+  match. Website manifest, home, download, News/article and changelog advertise
+  10035. No private settings or local account state are in the patch.
+- Server release `/srv/wyd-go/releases/20261018T152826Z` was activated. The owner
+  authorized game/API restart and player disconnection. Running binary paths,
+  all 7,346 payload checksums, readiness, backup and configuration-preservation
+  checks passed. The [activation receipt](../current-state.md#previous-release--2026-10-18-client-stability-safeguards-patch-10035)
+  records exact hashes, remaining gameplay validation and blocked local cleanup.
+  The subsequent [server-only Hell Gate release](../current-state.md#active-release--2026-10-18-historical-hell-gate-version-3)
+  supersedes its server process without changing patch 10035 or the public site.
+
+Close the client and run `WYDLauncher.exe` to install this patch. Publication
+does not replace an already running client or the local installed executable.
+Mana Control/right-click and item-drop reproductions, heap-corruption root cause
+and remaining resource/lifecycle gaps still need actual gameplay evidence.

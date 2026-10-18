@@ -238,6 +238,7 @@ type Player struct {
 // contains the leader first, followed by members in joining order.
 type Party struct {
 	Members []*Player
+	closed  bool // Explicit dissolution invalidates pending Nightmare reconnects.
 }
 
 // Mob is a live NPC/monster instance of an NPCDef in the world.
@@ -625,6 +626,7 @@ type World struct {
 	pendingInstanceMembers map[string]map[string]struct{}
 	pendingInstanceLeaders map[string]string
 	nightmarePartyRuns     map[string]int
+	nightmarePartyReturns  map[string]nightmarePartyReturn
 	// GambleJackpot/Pool are durable global aggregates owned by World so bets,
 	// accounts, and pools share one writer and transaction.
 	gambleJackpot      uint32
@@ -1025,9 +1027,9 @@ func (w *World) mobStepBlockedFrom(m *Mob, fromX, fromY, toX, toY uint16) bool {
 		// If an earlier version left the entity outside the boundary, allow only
 		// steps toward the center so it can return; lateral/outward steps cannot
 		// be used to pursue another player.
-		stage, ok := instanceStageForMob(w.instanceForMob(m))
-		if !ok || chebyshev(toX, toY, stage.X, stage.Y) >=
-			chebyshev(fromX, fromY, stage.X, stage.Y) {
+		areaX, areaY, _, ok := instanceMobArea(w.instanceForMob(m), m)
+		if !ok || chebyshev(toX, toY, areaX, areaY) >=
+			chebyshev(fromX, fromY, areaX, areaY) {
 			return true
 		}
 	}
@@ -1895,6 +1897,7 @@ func (w *World) tick() {
 	w.tickGroundItems(now)
 	if !w.criticalInstanceReserved() {
 		w.tickItemInstances(now)
+		w.tickNightmarePartyReturns()
 	}
 	w.tickTrades(now)
 	w.tickClientIntegrity(now)
