@@ -55,10 +55,19 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 			searchRadius = 1
 		}
 		searchRadius = instanceSpawnRadius(spawn, searchRadius)
+		formation := spawn
 		for n := 0; n < spawn.Count; n++ {
 			baseX, baseY := inst.Config.X, inst.Config.Y
 			if spawn.X != 0 && spawn.Y != 0 {
 				baseX, baseY = spawn.X, spawn.Y
+			}
+			if hellGatePopulation(inst) != nil && spawn.Formation759 != 0 {
+				var valid bool
+				baseX, baseY, valid = hellGateFormationAnchor(formation, n)
+				if !valid {
+					rollback()
+					return nil, false
+				}
 			}
 			// Explicit coordinates are authoritative, but a small deterministic
 			// search resolves a tile occupied by a previous member/mob.
@@ -73,6 +82,9 @@ func (w *World) spawnHellGateWave(inst *ItemInstance, spawns []model.VolatileIns
 			if !ok {
 				rollback()
 				return nil, false
+			}
+			if n == 0 && spawn.Formation759 == 1 {
+				formation.X, formation.Y = x, y
 			}
 			mobID := w.allocMobID()
 			if mobID == 0 {

@@ -140,6 +140,7 @@ public:
 	void TotoBuy();
 	void TotoClose();
 	void MobStop(D3DXVECTOR3 vec);
+	void UpdateAutoRun();
 	void VisibleInputTradeName();
 	void VisibleInputPass();
 	void VisibleInputGuildName();

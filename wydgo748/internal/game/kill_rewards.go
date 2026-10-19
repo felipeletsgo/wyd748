@@ -70,6 +70,7 @@ func (w *World) killMobWithoutPlayer(m *Mob) {
 	w.notifyBossAddDied(m.ID)
 	w.finishBossMobKilled(m, false)
 	w.UnregisterBoss(m.ID)
+	w.onRuneTrackKill(nil, m, w.now())
 	w.onItemInstanceMobKilled(m, w.now())
 	w.onKefraKilled(nil, m)
 	if g := w.mobGenerator(m); g != nil && g.current > 0 {
@@ -375,6 +376,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 	w.notifyBossAddDied(m.ID)
 	w.finishBossMobKilled(m, rewardCommitted)
 	w.UnregisterBoss(m.ID)
+	w.onRuneTrackKill(p, m, w.now())
 	w.onItemInstanceMobKilled(m, w.now())
 	w.removeMobInstance(m)
 	if p != nil && p.Session != nil {

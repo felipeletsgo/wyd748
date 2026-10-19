@@ -43,6 +43,19 @@ func isHellStoreNPC(m *Mob) bool {
 	return m != nil && m.Def != nil && (m.Def.Name == hellStoreNPCName || m.Def.Name == "HG_Dionys")
 }
 
+// The historical 0x37A handler discounts the quarter-price at strict thresholds.
+// Apply this only to instance Dionys; published ordinary/public prices remain
+// unchanged. Existing passive bonuses and city tax are applied afterwards.
+func dionysSalePrice(quarterPrice uint64) uint64 {
+	if quarterPrice > 10_000 {
+		return quarterPrice / 2
+	}
+	if quarterPrice > 5_000 {
+		return quarterPrice * 2 / 3
+	}
+	return quarterPrice
+}
+
 func (w *World) hellStoreAvailable(p *Player, m *Mob) bool {
 	if p == nil || !isHellStoreNPC(m) {
 		return false

@@ -158,6 +158,9 @@ func (w *World) onMessageChat(s *net.Session, pkt []byte) {
 	if !ok || message == "" {
 		return
 	}
+	if w.handleGuildDisableCommand(s, p, message) {
+		return
+	}
 
 	// Dispatch commands first: depending on chat input focus, the SAME command
 	// arrives as 0x333 (here) or 0x334. Both paths use the dispatcher.

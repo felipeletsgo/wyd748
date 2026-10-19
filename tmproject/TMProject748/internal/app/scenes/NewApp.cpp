@@ -540,7 +540,7 @@ bool NewApp::IsIdleWindow() const
 
 DWORD NewApp::Run()
 {
-	HACCEL hAccel = LoadAccelerators(0, MAKEINTRESOURCE(IDC_TMPROJECT));
+	HACCEL hAccel = LoadAccelerators(GetModuleHandle(nullptr), MAKEINTRESOURCE(IDC_TMPROJECT));
 
 	// A 1 ms timer period keeps the frame caps accurate.
 	const bool usesFrameCap = g_ClientSettings.idleFps > 0 || g_ClientSettings.focusedFps > 0;
@@ -566,7 +566,10 @@ DWORD NewApp::Run()
 
 		if (bGotMsg > 0)
 		{
-			if (!hAccel || !m_hWnd || TranslateAccelerator(m_hWnd, hAccel, &msg) == 0)
+			// Gameplay accelerators belong to KEYTYPE=1. Native edit windows
+			// still need Ctrl+C/V/X in either mode.
+			const bool useAccelerators = g_nKeyType == 1 || GetFocus() != m_hWnd;
+			if (!useAccelerators || !hAccel || !m_hWnd || TranslateAccelerator(m_hWnd, hAccel, &msg) == 0)
 			{
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);

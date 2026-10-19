@@ -70,18 +70,19 @@ func TestCityWarNativeChallengePromptConfirmAndReplay(t *testing.T) {
 	}
 
 	w.onGuildChallenge(p.Session, challengePacket(wire.OpChallengeConfirm, p.ID, collector.ID, 0))
-	if got := w.guilds.FindByID(2).Fame; got != 100 {
-		t.Fatalf("confirmation fee incorrect: fame=%d", got)
+	if got := w.guilds.FindByID(2).Fame; got != 200 {
+		t.Fatalf("amount-free confirmation spent guild fame: fame=%d", got)
 	}
-	if got := len(w.guilds.Wars.Cities.Entries); got != 1 || w.guilds.Wars.Cities.Entries[0].Guild != 2 || w.guilds.Wars.Cities.Entries[0].City != 0 {
-		t.Fatalf("registration not committed once: %+v", w.guilds.Wars.Cities.Entries)
+	if got := len(w.guilds.Wars.Cities.Entries); got != 0 {
+		t.Fatalf("amount-free confirmation registered a bid: %+v", w.guilds.Wars.Cities.Entries)
 	}
+	assertCriticalPickupPacket(t, p, wire.MessagePanel("Bid with /citywar 1 <total guild fame>. No gold or entry fee."))
 	if !p.CityWarUntil.IsZero() || p.CityWarNPC != 0 || p.CityWarGuild != 0 {
 		t.Fatal("confirmation context was not consumed")
 	}
 
 	w.onGuildChallenge(p.Session, challengePacket(wire.OpChallengeConfirm, p.ID, collector.ID, 0))
-	if w.guilds.FindByID(2).Fame != 100 || len(w.guilds.Wars.Cities.Entries) != 1 {
+	if w.guilds.FindByID(2).Fame != 200 || len(w.guilds.Wars.Cities.Entries) != 0 {
 		t.Fatal("replayed 0x28F charged fame or registered twice")
 	}
 }
@@ -182,12 +183,50 @@ func TestCityWarRejectedConfirmationConsumesContext(t *testing.T) {
 				t.Fatal("confirmation after rejection reused the previous context")
 			}
 			w.onGuildChallenge(p.Session, request)
+			drainPlayerPackets(p)
 			w.onGuildChallenge(p.Session, confirm)
-			if w.guilds.FindByID(2).Fame != 100 || len(w.guilds.Wars.Cities.Entries) != 1 {
-				t.Fatal("a fresh collector request could not register after rejection")
+			if w.guilds.FindByID(2).Fame != 200 || len(w.guilds.Wars.Cities.Entries) != 0 || !p.CityWarUntil.IsZero() {
+				t.Fatal("a fresh amount-free confirmation changed guild balances or retained context")
 			}
+			assertCriticalPickupPacket(t, p, wire.MessagePanel("Bid with /citywar 1 <total guild fame>. No gold or entry fee."))
 		})
 	}
+}
+
+func TestCityWarCommandUsesCumulativeFameBid(t *testing.T) {
+	w, _, leader, _, clock := scheduledWarWorld(t, "2026-09-12 12:00")
+	w.tickGuildWars(clock.Now())
+	guild := w.guilds.FindByID(1)
+	guild.Fame = 300
+	drainPlayerPackets(leader)
+
+	w.guildWarCommand(leader, "citywar", "1 100")
+	if guild.Fame != 200 || len(w.guilds.Wars.Cities.Entries) != 1 {
+		t.Fatalf("initial total bid was not charged and registered: fame=%d entries=%+v", guild.Fame, w.guilds.Wars.Cities.Entries)
+	}
+	entry := w.guilds.Wars.Cities.Entries[0]
+	if entry.Guild != guild.ID || entry.City != 0 || entry.Bid != 100 || w.guilds.Wars.Cities.Territories[0].Challenger != guild.ID || w.guilds.Wars.Cities.Territories[0].Bid != 100 {
+		t.Fatalf("initial total bid projection mismatch: entry=%+v territory=%+v", entry, w.guilds.Wars.Cities.Territories[0])
+	}
+	assertCriticalPickupPacket(t, leader, wire.MessageWhisper(0, "[WAR]", "City 1 bid saved: 100 guild fame. Highest total challenges; ties retain the leader.", 7))
+
+	w.guildWarCommand(leader, "citywar", "1 250")
+	if guild.Fame != 50 || w.guilds.Wars.Cities.Entries[0].Bid != 250 || w.guilds.Wars.Cities.Territories[0].Bid != 250 {
+		t.Fatalf("only the cumulative bid increase should be charged: fame=%d entry=%+v territory=%+v", guild.Fame, w.guilds.Wars.Cities.Entries[0], w.guilds.Wars.Cities.Territories[0])
+	}
+	assertCriticalPickupPacket(t, leader, wire.MessageWhisper(0, "[WAR]", "City 1 bid saved: 250 guild fame. Highest total challenges; ties retain the leader.", 7))
+
+	w.guildWarCommand(leader, "citywar", "1 250")
+	if guild.Fame != 50 || len(w.guilds.Wars.Cities.Entries) != 1 || w.guilds.Wars.Cities.Entries[0].Bid != 250 {
+		t.Fatalf("equal cumulative bid changed state: fame=%d entries=%+v", guild.Fame, w.guilds.Wars.Cities.Entries)
+	}
+	assertCriticalPickupPacket(t, leader, wire.MessageWhisper(0, "[WAR]", "City 1 bid saved: 250 guild fame. Highest total challenges; ties retain the leader.", 7))
+
+	w.guildWarCommand(leader, "citywar", "1 200")
+	if guild.Fame != 50 || w.guilds.Wars.Cities.Entries[0].Bid != 250 || w.guilds.Wars.Cities.Territories[0].Bid != 250 {
+		t.Fatalf("lower cumulative bid changed state: fame=%d entry=%+v territory=%+v", guild.Fame, w.guilds.Wars.Cities.Entries[0], w.guilds.Wars.Cities.Territories[0])
+	}
+	assertCriticalPickupPacket(t, leader, wire.MessageWhisper(0, "[WAR]", "a bid cannot be reduced", 7))
 }
 
 func cityEconomyFixture(t *testing.T, item model.ItemDef) (*World, *guildFlowStore, *Player, *Mob) {
@@ -207,6 +246,13 @@ func cityEconomyFixture(t *testing.T, item model.ItemDef) (*World, *guildFlowSto
 	p.show(shop.ID)
 	p.ShopNPC = shop.ID
 	return w, st, p, shop
+}
+
+func legacyTreasuryFixture(t *testing.T, date string) (*World, *guildFlowStore, *Player, *Player, *fakeClock) {
+	t.Helper()
+	w, st, p, q, clock := scheduledWarWorld(t, date)
+	w.warConfig.Enabled = false
+	return w, st, p, q, clock
 }
 
 func TestCityTaxBuySellAndTOTOArithmetic(t *testing.T) {
@@ -312,7 +358,7 @@ func TestCityTreasuryRejectsUnauthorizedCollection(t *testing.T) {
 			if rejection == "saturday" {
 				date = "2026-09-12 12:00"
 			}
-			w, st, p, _, _ := scheduledWarWorld(t, date)
+			w, st, p, _, _ := legacyTreasuryFixture(t, date)
 			w.guilds.Wars.Cities.Territories[0].Owner = 1
 			w.guilds.Wars.Cities.Territories[0].Treasury = 100
 			if rejection == "other owner" {
@@ -331,7 +377,7 @@ func TestCityTreasuryRejectsUnauthorizedCollection(t *testing.T) {
 
 func TestCityTreasuryGoldAndChequeBoundaries(t *testing.T) {
 	t.Run("direct gold cap", func(t *testing.T) {
-		w, _, p, _, _ := scheduledWarWorld(t, "2026-09-13 12:00")
+		w, _, p, _, _ := legacyTreasuryFixture(t, "2026-09-13 12:00")
 		w.guilds.Wars.Cities.Territories[0].Owner = 1
 		w.guilds.Wars.Cities.Territories[0].Treasury = 100
 		p.Char.Gold = maxCharacterGold - 99
@@ -345,7 +391,7 @@ func TestCityTreasuryGoldAndChequeBoundaries(t *testing.T) {
 	})
 
 	t.Run("full inventory", func(t *testing.T) {
-		w, _, p, _, _ := scheduledWarWorld(t, "2026-09-13 12:00")
+		w, _, p, _, _ := legacyTreasuryFixture(t, "2026-09-13 12:00")
 		w.guilds.Wars.Cities.Territories[0].Owner = 1
 		w.guilds.Wars.Cities.Territories[0].Treasury = cityWarChequeValue
 		for i := 0; i < model.PlayerCarrySlots; i++ {
@@ -357,7 +403,7 @@ func TestCityTreasuryGoldAndChequeBoundaries(t *testing.T) {
 	})
 
 	t.Run("partial cheques", func(t *testing.T) {
-		w, _, p, _, _ := scheduledWarWorld(t, "2026-09-13 12:00")
+		w, _, p, _, _ := legacyTreasuryFixture(t, "2026-09-13 12:00")
 		w.guilds.Wars.Cities.Territories[0].Owner = 1
 		w.guilds.Wars.Cities.Territories[0].Treasury = 3_500_000_000
 		for i := 0; i < model.PlayerCarrySlots-2; i++ {
@@ -372,7 +418,7 @@ func TestCityTreasuryGoldAndChequeBoundaries(t *testing.T) {
 	})
 
 	t.Run("invalid city", func(t *testing.T) {
-		w, _, p, _, _ := scheduledWarWorld(t, "2026-09-13 12:00")
+		w, _, p, _, _ := legacyTreasuryFixture(t, "2026-09-13 12:00")
 		if err := w.withdrawCityTreasury(p, -1); err == nil {
 			t.Fatal("invalid city treasury request accepted")
 		}
@@ -382,7 +428,7 @@ func TestCityTreasuryGoldAndChequeBoundaries(t *testing.T) {
 func TestCityTreasuryPersistenceFailureAndRetry(t *testing.T) {
 	for name, amount := range map[string]uint64{"gold": 100, "cheques": cityWarChequeValue * 2} {
 		t.Run(name, func(t *testing.T) {
-			w, st, p, _, _ := scheduledWarWorld(t, "2026-09-13 12:00")
+			w, st, p, _, _ := legacyTreasuryFixture(t, "2026-09-13 12:00")
 			w.guilds.Wars.Cities.Territories[0].Owner = 1
 			w.guilds.Wars.Cities.Territories[0].Treasury = amount
 			beforeGold, beforeInv := p.Char.Gold, p.Char.Inv

@@ -69,9 +69,10 @@ type ItemInstance struct {
 	NightmareBossSpawned bool
 	NightmareBossKilled  bool
 	// UxmalRoom/Slot identify the Rune Track room and slot. Configuration uses
-	// one stage per group while retaining the reward/audit origin.
+	// one stage per runtime; historical Rune Track shares it across parties.
 	UxmalRoom int
 	UxmalSlot int
+	RuneTrack *runeTrackRuntime
 }
 
 func itemInstanceGameplaySpace(inst *ItemInstance) string {
@@ -1777,6 +1778,7 @@ func cfgCopy(cfg model.VolatileInstance) model.VolatileInstance {
 	}
 	if cfg.Uxmal != nil {
 		uxmal := *cfg.Uxmal
+		uxmal.Generators = append([]model.NPCGener(nil), cfg.Uxmal.Generators...)
 		uxmal.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), cfg.Uxmal.EntryAreas...)
 		uxmal.RoomPositions = make([][]model.VolatileDestination, len(cfg.Uxmal.RoomPositions))
 		for index := range cfg.Uxmal.RoomPositions {
@@ -2653,6 +2655,12 @@ func (w *World) tickItemInstances(now time.Time) {
 		return
 	}
 	for id, inst := range w.itemInstances {
+		if w.tickRuneTrack(inst, now) {
+			if w.criticalInstanceReserved() {
+				return
+			}
+			continue
+		}
 		if w.tickHellGate(inst, now) {
 			if w.criticalInstanceReserved() {
 				return
@@ -2763,28 +2771,18 @@ func (w *World) tickItemInstances(now time.Time) {
 		if !expired && !completed {
 			continue
 		}
-		for mobID := range inst.MobIDs {
-			if mob := w.mobsByID[mobID]; mob != nil {
-				mob.Dead = true
-				w.publishMobDeath(mob, 0, nil)
-				w.removeMobInstance(mob)
-			}
-		}
-		for npcID := range inst.NPCIDs {
-			if npc := w.mobsByID[npcID]; npc != nil {
-				w.publishMobRemoval(npc)
-				w.removeMobInstance(npc)
-			}
-		}
 		if w.criticalWrites != nil {
 			// All members leave in one durable transition; the room closes
-			// only after that commit. A rejected or busy exit retries next tick.
+			// only after that commit. Do not retire its entities before admission:
+			// a pending kill still owns its unpublished mob until acknowledgement.
+			// A rejected or busy exit retries next tick without changing the room.
 			w.queueCriticalInstanceExit(id, inst)
 			if w.criticalInstanceReserved() {
 				return
 			}
 			continue
 		}
+		w.retireItemInstanceEntities(inst)
 		allExited := true
 		for _, playerID := range inst.MemberIDs {
 			if member := w.playersByID[playerID]; member != nil && member.InWorld {
@@ -2806,6 +2804,24 @@ func (w *World) tickItemInstances(now time.Time) {
 			continue
 		}
 		w.closeItemInstance(id)
+	}
+}
+
+// retireItemInstanceEntities publishes teardown only after the coordinated exit
+// commits (or inline for legacy worlds without a coordinator).
+func (w *World) retireItemInstanceEntities(inst *ItemInstance) {
+	for mobID := range inst.MobIDs {
+		if mob := w.mobsByID[mobID]; mob != nil {
+			mob.Dead = true
+			w.publishMobDeath(mob, 0, nil)
+			w.removeMobInstance(mob)
+		}
+	}
+	for npcID := range inst.NPCIDs {
+		if npc := w.mobsByID[npcID]; npc != nil {
+			w.publishMobRemoval(npc)
+			w.removeMobInstance(npc)
+		}
 	}
 }
 
@@ -2866,6 +2882,7 @@ func (w *World) queueCriticalInstanceExit(id string, inst *ItemInstance) {
 		}
 	}
 	w.commitInstanceMutation("instance exit", accounts, restore, func() {
+		w.retireItemInstanceEntities(inst)
 		for _, m := range players {
 			p := m.player
 			clearAirMove(p)

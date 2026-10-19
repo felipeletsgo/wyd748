@@ -389,6 +389,9 @@ int TMFieldScene::OnPacketReqChallange(MSG_STANDARD* pStd)
 
 int TMFieldScene::OnPacketGuildDisable(MSG_STANDARDPARM* pStd)
 {
+	if (!pStd || (pStd->Parm != 0 && pStd->Parm != 1))
+		return 0;
+	m_cGuildOnOff = pStd->Parm == 0;
 	if (m_pBtnGuildOnOff)
 		m_pBtnGuildOnOff->SetSelected(pStd->Parm == 1 ? 1 : 0);
 

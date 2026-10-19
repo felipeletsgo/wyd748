@@ -89,7 +89,10 @@ func (w *World) queueTowerCapture(p *Player, m *Mob, applied uint32) error {
 	}
 	owner, guildName, characterName := guild.ID, guild.Name, p.Char.Name
 	proposed := w.criticalGuildSnapshot()
-	proposed.Wars.Tower.Owner = owner
+	if err := proposed.CaptureTower(owner); err != nil {
+		return err
+	}
+	w.addTowerMedals(proposed, "capture")
 	retained := *m
 	publishHP := func() {
 		w.sendToMobViewProtocol(m, func(_ *Player) []byte {
@@ -101,7 +104,7 @@ func (w *World) queueTowerCapture(p *Player, m *Mob, applied uint32) error {
 			m.HP, m.Affects, m.TargetID = m.Def.Score.MaxHP, [16]model.Affect{}, 0
 		}, func() {
 			w.warNotice(fmt.Sprintf("%s of guild %s brought the tower down! New defender: %s.", characterName, guildName, guildName))
-			w.ejectTowerArena()
+			w.ejectTowerOpponents(w.guilds.TowerKingdom())
 			publishHP()
 		}, criticalGuildChangeHooks{
 			check: func() error {
@@ -148,24 +151,17 @@ func (w *World) queueKefraDeathWithoutPlayer(m *Mob) error {
 	})
 }
 
-func (w *World) queueTowerWarFinish(owner uint16) error {
-	return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
-		if guild := guilds.FindByID(owner); guild != nil {
-			if err := guild.AddFame(model.GuildWarFame); err != nil {
-				return err
-			}
-		}
-		guilds.Wars.Tower.Finished = true
+func (w *World) queueTowerWarFinish(_ uint16) error {
+	if w.guilds.Wars.Tower.Finished {
 		return nil
-	}, func() {
-		w.removeWarTower()
-		w.ejectTowerArena()
-		if owner == 0 {
-			w.warNotice("Tower war over without a winner. No reward granted.")
-		} else {
-			w.warNotice(fmt.Sprintf("Tower war over! Winner: %s. Reward: 100 guild fame.", w.warGuildName(owner)))
+	}
+	return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
+		if err := guilds.ResolveTowerWar(); err != nil {
+			return err
 		}
-	})
+		w.addTowerMedals(guilds, "finish")
+		return nil
+	}, w.publishTowerFinish)
 }
 
 func (w *World) tickCriticalTowerWar(now time.Time) error {
@@ -179,14 +175,14 @@ func (w *World) tickCriticalTowerWar(now time.Time) error {
 	day := now.Format("2006-01-02")
 	start := time.Date(now.Year(), now.Month(), now.Day(), int(w.warConfig.TowerHour), 0, 0, 0, now.Location())
 	if now.Weekday() >= time.Monday && now.Weekday() <= time.Friday &&
-		!now.Before(start) && now.Before(start.Add(35*time.Minute)) && s.Day != day {
+		!now.Before(start.Add(-5*time.Minute)) && now.Before(start.Add(time.Hour)) && s.Day != day {
 		return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
-			guilds.Wars.Tower = model.TowerWarState{Day: day, EndsAt: start.Add(35 * time.Minute)}
+			startTowerRound(guilds, day, start)
 			return nil
 		}, nil)
 	}
 	if s.Day == day && !s.Finished {
-		battle := s.EndsAt.Add(-30 * time.Minute)
+		battle := s.EndsAt.Add(-time.Hour)
 		for _, warning := range []struct {
 			end     time.Time
 			bit     uint16
@@ -195,7 +191,7 @@ func (w *World) tickCriticalTowerWar(now time.Time) error {
 		}{
 			{battle, 1, 5, "Tower war starts within 5 minutes! Enter with /tower in Erion."},
 			{battle, 2, 1, "Tower war starts in 1 minute!"},
-			{s.EndsAt, 4, 5, "Tower war ends in 5 minutes! The last owning guild receives 100 fame."},
+			{s.EndsAt, 4, 5, "Tower war ends in 5 minutes! Guild fame is awarded only on a kingdom change."},
 			{s.EndsAt, 8, 1, "Tower war ends in 1 minute!"},
 		} {
 			if err := w.warCountdown(now, warning.end, &s.Notices, warning.bit, warning.minutes, warning.text); err != nil {
@@ -218,8 +214,8 @@ func (w *World) tickCriticalTowerWar(now time.Time) error {
 					panic(fmt.Sprintf("committed tower start cannot spawn: %v", err))
 				}
 			}
-			w.ejectTowerArena()
-			w.warNotice("Tower war started! Use /tower in Erion. Duration: 30 minutes.")
+			w.ejectTowerOpponents(w.guilds.TowerKingdom())
+			w.warNotice("Tower war started! Use /tower in Erion. Duration: 60 minutes.")
 		})
 	}
 	if w.towerBattleActive(now) && w.warTower() == nil {
@@ -230,19 +226,7 @@ func (w *World) tickCriticalTowerWar(now time.Time) error {
 
 func (w *World) queueCityWarCancel() error {
 	return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
-		cities := &guilds.Wars.Cities
-		for _, entry := range cities.Entries {
-			if guild := guilds.FindByID(entry.Guild); guild != nil {
-				if err := guild.AddFame(model.GuildWarFame); err != nil {
-					return err
-				}
-			}
-		}
-		for i := range cities.Territories {
-			cities.Territories[i].Challenger, cities.Territories[i].Bid = 0, 0
-		}
-		cities.Entries, cities.Phase = nil, "finished"
-		return nil
+		return guilds.CancelCityBids()
 	}, func() {
 		w.cityWarRunning = false
 		for p := range w.cityFighters {
@@ -250,7 +234,7 @@ func (w *World) queueCityWarCancel() error {
 		}
 		w.cityFighters = nil
 		w.cityWarScores = [4]map[uint16]uint64{}
-		w.warNotice("City war cancelled by an interruption. Applications refunded: 100 fame per guild; owners kept.")
+		w.warNotice("City war interrupted; owners kept. Only bids from the current fame week can be refunded.")
 	})
 }
 
@@ -259,7 +243,7 @@ func (w *World) tickCriticalCityWar(now time.Time) error {
 		return errCriticalPersistenceBusy
 	}
 	c := &w.guilds.Wars.Cities
-	if c.Day != "" && c.Phase != "finished" && !now.Before(c.StartsAt.Add(21*time.Minute)) {
+	if c.Day != "" && c.Phase != "finished" && !now.Before(c.StartsAt.Add(31*time.Minute)) {
 		if !w.cityWarRunning {
 			return w.queueCityWarCancel()
 		}
@@ -274,10 +258,12 @@ func (w *World) tickCriticalCityWar(now time.Time) error {
 				for i := range territories {
 					territories[i].Challenger, territories[i].Bid = 0, 0
 				}
-				guilds.Wars.Cities = model.CityWarState{Day: day, Phase: "registration", Territories: territories,
+				guilds.Wars.Cities = model.CityWarState{Day: day, Phase: "registration", FameBids: true, Territories: territories,
 					StartsAt: time.Date(sunday.Year(), sunday.Month(), sunday.Day(), int(w.warConfig.CityHour), 0, 0, 0, now.Location())}
 				return nil
-			}, func() { w.warNotice("City war applications open until midnight! /citywar 1..4. Fee: 100 fame.") })
+			}, func() {
+				w.warNotice("Saturday bids open until 23:59:59! /citywar <1..4> <total guild fame>. No entry fee.")
+			})
 		}
 	}
 	if c.Day == "" || c.Phase == "finished" {
@@ -300,8 +286,8 @@ func (w *World) tickCriticalCityWar(now time.Time) error {
 		{c.StartsAt, 1, 5, "City war starts in 5 minutes! Gather in the contested city; summons 3 minutes after the start."},
 		{c.StartsAt, 2, 1, "City war starts in 1 minute! Limit: 26 per guild. Erion: mortals only."},
 		{c.StartsAt.Add(6 * time.Minute), 8, 1, "City war combat opens in 1 minute!"},
-		{c.StartsAt.Add(21 * time.Minute), 16, 5, "City wars end in 5 minutes! The surviving forces win."},
-		{c.StartsAt.Add(21 * time.Minute), 32, 1, "City wars end in 1 minute!"},
+		{c.StartsAt.Add(31 * time.Minute), 16, 5, "City wars end in 5 minutes! The surviving forces win."},
+		{c.StartsAt.Add(31 * time.Minute), 32, 1, "City wars end in 1 minute!"},
 	} {
 		if err := w.warCountdown(now, warning.end, &c.Notices, warning.bit, warning.minutes, warning.text); err != nil {
 			return err
@@ -314,7 +300,7 @@ func (w *World) tickCriticalCityWar(now time.Time) error {
 		return w.queueScheduledGuildChange(func(guilds *model.GuildRegistry) error {
 			guilds.Wars.Cities.Notices |= 4
 			return nil
-		}, func() { w.warNotice("City war started! Summons at +3 minutes; combat at +6; result at +21.") })
+		}, func() { w.warNotice("City war started! Summons at +3 minutes; combat at +6; result at +31.") })
 	}
 	if c.Phase == "waiting" && !now.Before(c.StartsAt.Add(3*time.Minute)) {
 		if !now.Before(c.StartsAt.Add(6 * time.Minute)) {
@@ -334,7 +320,7 @@ func (w *World) tickCriticalCityWar(now time.Time) error {
 			guilds.Wars.Cities.Phase = "battle"
 			return nil
 		}, func() {
-			w.warNotice("Combat open in the four cities! Duration: 15 minutes; a tie favors the defender.")
+			w.warNotice("Combat open in the four cities! Duration: 25 minutes; a tie favors the defender.")
 			for p, fighter := range w.cityFighters {
 				territory := w.guilds.Wars.Cities.Territories[fighter.city]
 				enemy := territory.Challenger

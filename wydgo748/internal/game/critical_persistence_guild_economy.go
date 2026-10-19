@@ -20,6 +20,9 @@ func (w *World) criticalGuildSnapshot() *model.GuildRegistry {
 // The actor prepares a private payout and guild debit. The worker sees neither
 // live state nor sessions; every response follows durable commit and actor ack.
 func (w *World) queueCityTreasury(p *Player, city int) error {
+	if w.guildFameWars() {
+		return fmt.Errorf("gold treasury collection is disabled for guild-fame wars")
+	}
 	if w.criticalWrites == nil || w.guilds == nil || p == nil || p.Account == nil || p.Char == nil ||
 		!p.InWorld || p.Session == nil || p.Session.IsClosed() || p.CharSlot < 0 ||
 		p.CharSlot >= len(p.Account.Chars) || p.Char != &p.Account.Chars[p.CharSlot] ||

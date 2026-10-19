@@ -128,6 +128,7 @@ func resetCharacterRuntime(p *Player) {
 	p.AttackProgress = 0
 	p.DeadAt = time.Time{}
 	p.PKMode = false
+	p.GuildDisable = false
 
 	// Cooldowns and timers.
 	p.SkillReady = nil

@@ -179,9 +179,10 @@ func (w *World) hideGhostShop(p *Player, shop *GhostShop) {
 
 // playerCreatePacket includes session labels in every player snapshot.
 func playerCreatePacket(subject *Player) []byte {
+	clientChar := clientGuildProjection(subject, *subject.Char)
 	packet := wire.CreateMobWithGuildRank(subject.ID, subject.Char.Name, subject.X, subject.Y,
 		bodyMesh(subject.Char), bodyAncient(subject.Char), wireScoreState(subject.Char),
-		subject.Char.Affects[:], 2, subject.Char.GuildID, subject.Char.GuildRank, subject.Char.CP, model.AppearanceCapeEmblem(*subject.Char))
+		subject.Char.Affects[:], 2, clientChar.GuildID, clientChar.GuildRank, subject.Char.CP, model.AppearanceCapeEmblem(*subject.Char))
 	wire.PutCreateMobTab(packet, subject.TabText, subject.TabColor)
 	return packet
 }

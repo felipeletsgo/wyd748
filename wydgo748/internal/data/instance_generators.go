@@ -67,6 +67,19 @@ func (c *instanceGeneratorCache) expand(where string, inst *model.VolatileInstan
 	if inst == nil {
 		return nil
 	}
+	if inst.Uxmal != nil && inst.Uxmal.Version == 759 {
+		if strings.TrimSpace(inst.Uxmal.Generator) == "" {
+			return fmt.Errorf("data: %s Rune Track requires a generator file", where)
+		}
+		generators, err := c.load(inst.Uxmal.Generator)
+		if err != nil {
+			return err
+		}
+		inst.Uxmal.Generators = generators
+	}
+	if inst.Uxmal != nil && inst.Uxmal.Version != 0 && inst.Uxmal.Version != 759 {
+		return fmt.Errorf("data: %s unsupported Rune Track version %d", where, inst.Uxmal.Version)
+	}
 	if inst.Generator != "" {
 		if len(inst.Spawns) != 0 {
 			return fmt.Errorf("data: %s declares both spawns and generator", where)
@@ -187,7 +200,8 @@ func validateHellGateVersion(where string, gate *model.VolatileHellGate) error {
 		for _, spawn := range population.Spawns() {
 			total += spawn.Count
 			if spawn.GeneratorID != 0 || strings.TrimSpace(spawn.NPC) == "" || spawn.Count <= 0 ||
-				spawn.Count > 64 || spawn.X == 0 || spawn.Y == 0 || spawn.Range < 1 || spawn.Range > 8 {
+				spawn.Count > 64 || spawn.X == 0 || spawn.Y == 0 || spawn.Range < 1 || spawn.Range > 8 ||
+				spawn.Formation759 < 0 || spawn.Formation759 > 2 || spawn.Formation759 != 0 && spawn.Count > 12 {
 				return fmt.Errorf("data: %s Hell Gate historical population has an invalid inline group", where)
 			}
 		}

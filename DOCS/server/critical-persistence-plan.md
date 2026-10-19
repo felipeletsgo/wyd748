@@ -74,6 +74,70 @@ Uxmal runtime/floor state is process-local; restart-resumable Uxmal is not
 delivered by this migration. Synchronous login/world-entry reads are a separate
 latency workstream, not an unfinished critical-save producer.
 
+### Instance expiry and pending kill settlement (2026-10-19, local correction)
+
+Classification: `MODERNIZACAO_COMPATIVEL`; no packet, reward, database schema,
+instance timing or native-client contract changes.
+
+The active release `20261018T234132Z` entered global maintenance at
+00:49:01 UTC (October 18, 21:49:01 America/Sao_Paulo), logging
+`persistence completion 3842 failed; entering maintenance: critical persistence: participant identity changed`.
+The game process and PostgreSQL stayed active, but subsequent connections were
+closed after initialization. Transport and readiness success did not establish
+that game admission was available.
+
+A deterministic regression reproduced an expiry/kill conflict: instance expiry
+removed room entities before checking whether a member's pending kill still
+reserved admission. The kill's identity check then found its unpublished dead
+mob missing. Even a confirmed database commit could consequently trigger shared
+World containment. The incident coincides with the scheduled Nightmare Arcane
+combat deadline: monsters appeared at 00:34:01 UTC and maintenance started fifteen
+minutes later. This is consistent with the reproduced failure; the original log
+does not identify the producer or missing mob, so it alone cannot prove that
+specific in-memory continuation.
+
+`tickItemInstances` now admits the coordinated group exit before retiring room
+entities. Teardown runs only in the exit's confirmed publication callback.
+A kill reservation defers expiry without removing mobs, partially moving group
+members or sending exit packets. After kill settlement, expiry retries normally.
+Certified exit rejection leaves the room and entities intact; uncertain outcomes
+retain the existing fail-closed policy. Worlds without the coordinator retain
+their synchronous teardown path.
+
+Validation: `critical_persistence_kill_expiry_test.go` covers held workers and
+completed-but-unacknowledged kills, commit and certified rejection, rollback of
+an earlier unreserved group member, later successful exit without reward replay,
+and group exit commit/rejection/unknown outcomes with both monsters and NPCs.
+The new regressions, existing instance-consumer cases and Nightmare lifecycle
+tests passed with `-race`; `go test ./... -count=1` and `go vet ./...` passed.
+The full suite included the configured isolated local PostgreSQL database
+(`127.0.0.1:5432/wydgo_test`), including shared kill settlement cases; optional
+fixtures with separate configuration are not certified by this run. This source
+correction is included in the Linux candidate with game SHA-256
+`2AD463F629535B856CD4CF6887B5CA176D15E4D71F78899E03C2A51A6415971F`.
+Concurrent guild-war changes initially invalidated registration and collector
+fixtures. Tests now follow the existing explicit-bid rules without changing
+production economics; retained legacy treasury transactions are tested directly,
+including PostgreSQL and progress through the actual World loop. The final
+`go test -p 1 ./...` and `go vet ./...` passed with the configured isolated
+PostgreSQL database. Production inputs still match the cross-build manifest;
+only the reviewed test fixtures changed afterward.
+
+All 7,389 uploaded payload files and the archive checksum were independently
+verified remotely. Client patch 10036 was published and its public download
+matches the candidate. SSH briefly timed out before authentication after the old
+game/API were stopped for coordinated activation. Access recovered without
+security changes. The established updater backed up PostgreSQL and activated
+`20261019T050509Z`; the running game/API hashes matched their candidates and
+readiness passed. The authorized VPS reboot completed: the boot ID changed,
+game/API process hashes still match, PostgreSQL and required services are
+active, and both loopback readiness checks pass. The inspected post-boot
+game/API journal contains no maintenance or persistence failure. Actual client
+login, expiry reproduction in gameplay and broader recovery acceptance remain
+pending. No maintenance bypass, credential change, firewall workaround or
+production database rewrite occurred.
+The unknown-outcome recovery gaps above remain open.
+
 ## Reading the migration history
 
 The integration notes and staged batches below record how the migration was

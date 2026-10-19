@@ -19,6 +19,12 @@ const (
 
 var errShopInventoryFull = errors.New("shop inventory full")
 
+// Disable the old gold economy before the first scheduler tick as well as
+// after migration. Disabling the schedule must not re-enable migrated taxes.
+func (w *World) guildFameWars() bool {
+	return w != nil && (w.warConfig.Enabled || w.guilds != nil && w.guilds.Wars.FameResetDay != "")
+}
+
 // cityCollectorCity identifies only the active city-tax NPCs. The city is
 // taken from the NPC definition and its position is checked against the same
 // four 7.48 city rectangles used by the war scheduler; a client cannot select
@@ -39,6 +45,10 @@ func cityCollectorCity(m *Mob) (int, bool) {
 // purchasable shop. Missing or stale owners fail closed and do not create tax
 // revenue outside a valid guild territory.
 func (w *World) cityShopTax(m *Mob) (city int, rate uint32, ok bool) {
+	// Once migrated, wars neither levy gold taxes nor mint treasury revenue.
+	if w.guildFameWars() {
+		return 0, 0, false
+	}
 	if w == nil || w.guilds == nil || m == nil || m.Def == nil || m.Def.Score == nil {
 		return 0, 0, false
 	}
@@ -137,6 +147,9 @@ func (w *World) guildEconomyCommit(p *Player, change func() error) error {
 func (w *World) creditCityTreasury(city int, amount uint64) error {
 	if amount == 0 {
 		return nil
+	}
+	if w.guildFameWars() {
+		return fmt.Errorf("gold treasury funding is disabled for guild-fame wars")
 	}
 	if w == nil || w.guilds == nil || city < 0 || city >= len(cityWarZones) {
 		return fmt.Errorf("invalid city treasury")
@@ -242,6 +255,9 @@ func (w *World) commitShopSale(p *Player, src *model.Item, net uint64, city int,
 // Limited carry space withdraws only what fits and leaves the remainder in the
 // treasury for a later collection.
 func (w *World) withdrawCityTreasury(p *Player, city int) error {
+	if w.guildFameWars() {
+		return fmt.Errorf("gold treasury collection is disabled for guild-fame wars")
+	}
 	if w == nil || w.guilds == nil || p == nil || p.Char == nil || city < 0 || city >= len(cityWarZones) {
 		return fmt.Errorf("invalid city treasury")
 	}

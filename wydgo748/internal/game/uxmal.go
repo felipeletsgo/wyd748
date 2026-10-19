@@ -39,6 +39,30 @@ func (w *World) validateUxmalConfig() error {
 	if cfg == nil || cfg.Uxmal == nil {
 		return fmt.Errorf("missing template")
 	}
+	if cfg.Uxmal.Version != 0 && cfg.Uxmal.Version != 759 {
+		return fmt.Errorf("unsupported Rune Track version %d", cfg.Uxmal.Version)
+	}
+	if cfg.Uxmal.Version == 759 {
+		seen := map[int]bool{}
+		for _, g := range cfg.Uxmal.Generators {
+			if runeGeneratorRoom(g.Label) < 0 || seen[g.Label] || g.MaxNumMob <= 0 || g.MinGroup < 0 || g.MaxGroup < g.MinGroup || g.Segments[0].X == 0 || g.Segments[0].Y == 0 {
+				return fmt.Errorf("invalid Rune Track generator %d", g.Label)
+			}
+			seen[g.Label] = true
+			for role, name := range []string{g.Leader, g.Follower} {
+				if name == "" && role == 1 {
+					continue
+				}
+				def := w.npcDefByName(name)
+				if !strings.HasPrefix(name, "RT_") || len(name) > 12 || def == nil || def.Score == nil || def.Score.MaxHP == 0 {
+					return fmt.Errorf("generator %d requires an event-only NPC: %q", g.Label, name)
+				}
+			}
+		}
+		if len(seen) != 327 {
+			return fmt.Errorf("Rune Track requires all 327 generators, got %d", len(seen))
+		}
+	}
 	if !strings.EqualFold(strings.TrimSpace(cfg.StateMachine), "uxmal") {
 		return fmt.Errorf("stateMachine must be uxmal")
 	}
@@ -69,14 +93,18 @@ func (w *World) validateUxmalConfig() error {
 		return fmt.Errorf("seven rooms are required")
 	}
 	for room, stage := range cfg.Stages {
-		if stage.AreaRadius <= 0 || stage.SpawnX == 0 || stage.SpawnY == 0 || len(stage.Spawns) == 0 {
+		if stage.AreaRadius <= 0 || stage.SpawnX == 0 || stage.SpawnY == 0 || (cfg.Uxmal.Version != 759 && len(stage.Spawns) == 0) {
 			return fmt.Errorf("room %d is incomplete", room)
 		}
 		if !w.terrain.Walkable(stage.SpawnX, stage.SpawnY) {
 			return fmt.Errorf("room %d has a blocked spawn", room)
 		}
-		if len(cfg.Uxmal.RoomPositions[room]) != 3 || cfg.Uxmal.MaxParties[room] < 1 || cfg.Uxmal.MaxParties[room] > 3 {
-			return fmt.Errorf("room %d lacks three slots or has invalid maxParties", room)
+		limit := 3
+		if cfg.Uxmal.Version == 759 && room == 4 {
+			limit = 4
+		}
+		if len(cfg.Uxmal.RoomPositions[room]) < cfg.Uxmal.MaxParties[room] || cfg.Uxmal.MaxParties[room] < 1 || cfg.Uxmal.MaxParties[room] > limit {
+			return fmt.Errorf("room %d has insufficient slots or invalid maxParties", room)
 		}
 		for _, spawn := range stage.Spawns {
 			def := w.npcDefByName(spawn.NPC)
@@ -209,6 +237,10 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 	if s == nil || p == nil || p.Char == nil || w.uxmal == nil || w.uxmal.Uxmal == nil {
 		return
 	}
+	if w.uxmal.Uxmal.Version == 759 {
+		w.registerRuneTrack(s, p)
+		return
+	}
 	now := w.now()
 	if !uxmalScheduleAllowed(w.uxmal, now) {
 		s.Send(wire.MessagePanel("Rune Track is closed. Return at minutes 16, 36, or 56."))
@@ -307,7 +339,32 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 		return inst != nil && inst.RewardGranted
 	}
 	runes := w.uxmal.Uxmal.Runes[inst.UxmalRoom]
-	if len(runes) == 0 {
+	return w.grantRuneRewards(inst, now, inst.MemberIDs, inst.LeaderID, runes, 0, func() {
+		inst.RewardGranted = true
+		inst.ExitAt = now.Add(10 * time.Second)
+		inst.ExitDeadline = inst.ExitAt
+	})
+}
+
+// grantRuneRewards persists one party's complete grant, including any floor
+// fallback, without completing the other parties sharing its room.
+func (w *World) grantRuneRewards(inst *ItemInstance, now time.Time, memberIDs []uint16,
+	leaderID uint16, runes []uint16, gold uint32, complete func()) bool {
+	if len(runes) == 0 || w.criticalInstanceReserved() {
+		return false
+	}
+	leader := w.playersByID[leaderID]
+	validLeader := false
+	uniqueMembers := make(map[uint16]bool, len(memberIDs))
+	for _, id := range memberIDs {
+		p := w.playersByID[id]
+		if uniqueMembers[id] || p == nil || !p.InWorld || p.Char == nil || p.Account == nil || w.criticalPlayerReserved(p) {
+			return false
+		}
+		uniqueMembers[id] = true
+		validLeader = validLeader || p == leader
+	}
+	if !validLeader {
 		return false
 	}
 	type snapshot struct {
@@ -315,11 +372,11 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 		char   model.Char
 	}
 	snapshots := make([]snapshot, 0, len(inst.MemberIDs))
-	oldInstance := *inst
+	oldInstance := cloneRuneInstance(inst)
 	accounts := make([]*model.Account, 0, len(inst.MemberIDs))
 	seen := make(map[*model.Account]struct{})
 	rollback := func() {
-		*inst = oldInstance
+		*inst = *oldInstance
 		for _, old := range snapshots {
 			*old.player.Char = old.char
 		}
@@ -328,7 +385,7 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 		p    *Player
 		item model.Item
 	}, 0)
-	for _, id := range inst.MemberIDs {
+	for _, id := range memberIDs {
 		member := w.playersByID[id]
 		if member == nil || !member.InWorld || member.Char == nil || member.Account == nil {
 			continue
@@ -353,7 +410,7 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 		}
 	}
 	if inst.UxmalRoom < 6 {
-		leader := w.playersByID[inst.LeaderID]
+		leader := w.playersByID[leaderID]
 		if leader == nil || leader.Char == nil {
 			rollback()
 			return false
@@ -389,6 +446,14 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 				}{leader, next})
 			}
 		}
+	}
+	if gold != 0 {
+		leader := w.playersByID[leaderID]
+		if leader == nil || leader.Char == nil {
+			rollback()
+			return false
+		}
+		leader.Char.Gold = uint32(min(uint64(2_000_000_000), uint64(leader.Char.Gold)+uint64(gold)))
 	}
 	// Ground rewards are part of the same authoritative transition as the
 	// inventory rewards.  Materialize them before the account commit, but do
@@ -433,17 +498,20 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 	}
 	// Stage the runtime completion marker with the detached grant. Uxmal is
 	// process-local, so this does not make it a restart-resumable event.
-	inst.RewardGranted = true
-	inst.ExitAt = now.Add(10 * time.Second)
-	inst.ExitDeadline = inst.ExitAt
+	complete()
 	// Unpublished ground rewards stay registered but invisible while pending.
 	admitted := w.commitInstanceMutation("Uxmal reward", accounts, rollback, func() {
 		for _, item := range createdGround {
 			item.criticalDrop = 0
 			w.publishItemSpawn(item)
 		}
-		for _, id := range inst.MemberIDs {
-			if member := w.playersByID[id]; member != nil && member.InWorld && !member.Session.IsClosed() {
+		for _, old := range snapshots {
+			if member := old.player; member.InWorld && member.Session != nil && !member.Session.IsClosed() {
+				for slot, item := range member.Char.Inv {
+					if item != old.char.Inv[slot] {
+						member.Session.Send(wire.SendItem(member.ID, placeInv, byte(slot), item))
+					}
+				}
 				member.Session.Send(wire.UpdateEtc(member.ID, *member.Char))
 				member.Session.Send(wire.MessagePanel("Rune Track completed: rune received."))
 			}
@@ -451,7 +519,9 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 	}, func() {
 		// Same follow-up as an inline save failure: keep the room open.
 		rollbackGround()
-		inst.Remaining = 1
+		if inst.RuneTrack == nil {
+			inst.Remaining = 1
+		}
 		log.Printf("UXMAL room=%d: reward pending after persistence rejection", inst.UxmalRoom)
 	}, checkGround)
 	if !admitted {
@@ -462,6 +532,9 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 
 func (w *World) onUxmalMobKilled(m *Mob, now time.Time) {
 	inst := w.itemInstances[m.InstanceID]
+	if inst != nil && inst.RuneTrack != nil {
+		return
+	}
 	if inst == nil || inst.RewardGranted {
 		return
 	}

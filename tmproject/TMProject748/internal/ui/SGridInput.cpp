@@ -14,6 +14,7 @@
 #include "SellConfirmationText.h"
 #include "NativeSaleQuote.h"
 #include "SGridSupport.h"
+#include "../application/ItemShortcutPolicy.h"
 
 
 int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)
@@ -43,6 +44,22 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	}
 
 	auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	const bool storageGrid = pFScene && (this == pFScene->m_pGridInv || this == pFScene->m_pCargoGrid);
+	const bool equipmentGrid = m_eGridType == TMEGRIDTYPE::GRID_DEFAULT &&
+		CheckType(m_eItemType, m_eGridType) == 0 &&
+		item_shortcuts::ValidSlot(0, CheckPos(m_eItemType));
+	const bool warehouseOpen = pFScene && pFScene->m_pCargoPanel &&
+		pFScene->m_pCargoPanel->IsVisible() && TMFieldScene::m_dwCargoID != 0;
+	const auto shortcut = item_shortcuts::Resolve(dwFlags, wParam, bPtInRect != 0,
+		g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_HAND && !g_pCursor->m_pAttachedItem,
+		storageGrid, equipmentGrid, warehouseOpen);
+	if (shortcut == item_shortcuts::Action::ReservePress)
+		return 1; // Do not use a consumable or attach a drag source on press.
+	if (shortcut == item_shortcuts::Action::Warehouse)
+	{
+		automove(nCellX, nCellY);
+		return 1;
+	}
 	if (dwFlags == 513)
 	{
 		int extractedResult{};
@@ -80,7 +97,7 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	else if (!bClick && dwFlags == 517 && bPtInRect && g_pCursor->GetStyle() == ECursorStyle::TMC_CURSOR_HAND &&
 		(m_eGridType == TMEGRIDTYPE::GRID_CARGO || m_eGridType == TMEGRIDTYPE::GRID_DEFAULT))
 	{
-		// Double-click actions use the same native grid regardless of visual row;
+		// Right-button release uses the same native grid regardless of visual row;
 		// there are no 7.59 bag pages to unlock in the 7.48 control topology.
 		if (!pFScene || !pFScene->m_pMyHuman)
 			return 0;
@@ -90,7 +107,7 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 
 		if (m_eGridType == TMEGRIDTYPE::GRID_DEFAULT && // Sell with a fairy equipped.
 			(pMyHuman->m_sFamiliar == 3914 || pMyHuman->m_sFamiliar == 3915)
-			&& g_pEventTranslator->m_bShift == 1)
+			&& g_pEventTranslator->m_bShift == 1 && !(wParam & MK_CONTROL))
 		{
 			if (pItem)
 			{
@@ -107,8 +124,12 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 				}
 			}
 		}
-		if (!g_pEventTranslator->m_bCtrl)
+		if (shortcut != item_shortcuts::Action::Equipment)
 			return 0;
+		// Cargo must pass through Carry; the authoritative 7.48 server rejects
+		// direct warehouse/equipment swaps.
+		if (this == pFScene->m_pCargoGrid)
+			return 1;
 
 		if (pItem)
 		{
@@ -125,19 +146,24 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 
 				NewItemPos = BASE_GetItemAbility(pItem->m_pItem, 17);
 				if (NewItemPos <= 1)
-					return 0;
+					return 1;
 
 				int sDestType = CheckType(pItem->m_pGridControl->m_eItemType, pItem->m_pGridControl->m_eGridType);
 				int sDestPos = CheckPos(pItem->m_pGridControl->m_eItemType);
 				int nAX = pItem->m_nCellIndexX;
 				int nAY = pItem->m_nCellIndexY;
 				auto pMobData = &g_pObjectManager->m_stMobData;
+				const int sourceSlot = sDestPos == -1
+					? WYD748_ResolveWireSlot(pFScene, this, static_cast<short>(sDestType), nAX, nAY)
+					: sDestPos;
+				if (pItem->m_pGridControl != this || !item_shortcuts::ValidSlot(sDestType, sourceSlot))
+					return 1;
 
 				if (sDestPos == -1)
 				{
 					if (!BASE_CanEquip(pItem->m_pItem, &pMobData->CurrentScore, sDestPos, pMobData->Equip[0].sIndex, pMobData->Equip,
 						g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex, pMobData->HasSoulSkill()))
-						return 0;
+						return 1;
 
 					if (NewItemPos >= 64 && NewItemPos <= 192)
 					{
@@ -155,7 +181,7 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 						if (nWeaponLPos == 64 && NewItemPos == 192)
 							NewItemPosConv = 6;
 						if (nWeaponLPos == 192 && nWeaponRPos == 192 && NewItemPos != 128 && NewItemPos != 192)
-							return 0;
+							return 1;
 						if (nWeaponRPos == 128 && NewItemPosConv == 7)
 							NewItemPosConv = 6;
 
@@ -163,11 +189,13 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 							g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex, pMobData->HasSoulSkill()) &&
 							NewItemPos != 128)
 						{
-							return 0;
+							return 1;
 						}
 					}
 
 					MSG_SwapItem stSwapItem{};
+					if (!item_shortcuts::ValidSlot(0, NewItemPosConv))
+						return 1;
 					stSwapItem.Header.ID = g_pObjectManager->m_dwCharID;
 					stSwapItem.Header.Type = MSG_SwapItem_Opcode;
 					stSwapItem.SourType = 0;
@@ -195,22 +223,23 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 						SendOneMessage((char*)&stSwapItem, 20);
 						pFScene->m_pMouseOverHuman = 0;
 					}
-					return 0;
+					return 1;
 				}
 
 				IVector2 vecGrid{};
 
 				auto pMyGrid = pFScene->m_pGridInv;
 				if (!pMyGrid)
-					return 0;
+					return 1;
 
 				int nGridIndex = BASE_GetItemAbility(pItem->m_pItem, 33);
 				if (nGridIndex > 7 || nGridIndex < 0)
 					nGridIndex = 0;
 
 				vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
-				if (vecGrid.x == -1)
-					return 0;
+				if (vecGrid.x == -1 || !item_shortcuts::ValidSlot(1,
+					pFScene->GetCarrySlotForCell(pMyGrid, vecGrid.x, vecGrid.y)))
+					return 1;
 
 				MSG_SwapItem Msg{};
 				Msg.Header.ID = g_pObjectManager->m_dwCharID;
@@ -227,11 +256,12 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 					SendOneMessage((char*)&Msg, 20);
 					pFScene->m_pMouseOverHuman = nullptr;
 				}
+				return 1;
 			}
 		}
 	}
 
-	return 0;
+	return shortcut == item_shortcuts::Action::Equipment ? 1 : 0;
 }
 
 // Extracted from SGridControl::OnMouseEvent; behavior is unchanged.
@@ -290,16 +320,6 @@ ExtractedFlow SGridControl::OnLeftButtonDown(bool& bClick, int& bPtInRect, int& 
 // Extracted from SGridControl::OnMouseEvent; behavior is unchanged.
 ExtractedFlow SGridControl::OnLeftButtonUp(int& bPtInRect, int& nCellVHeight, int& nCellVWidth, int& nCellX, int& nCellY, TMFieldScene*& pFScene, unsigned int& wParam, int& extractedResult)
 {
-	if (g_pEventTranslator->m_bCtrl)
-	{
-		if (pFScene->m_pCargoPanel && pFScene->m_pCargoPanel->m_bVisible)
-		{
-			g_pCursor->m_pAttachedItem = nullptr;
-			automove(nCellX, nCellY);
-		}
-		{ extractedResult = 0; return ExtractedFlow::Return; }
-	}
-
 	STRUCT_ITEM dst{};
 	unsigned int nItemPos = 0;
 	if (g_pCursor->m_pAttachedItem)
@@ -968,19 +988,15 @@ void SGridControl::RButtonUseItem3467(unsigned int& dwServerTime, const short& n
 char SGridControl::automove(int nCellX, int nCellY)
 {
 	auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+	if (!pScene || !pScene->m_pCargoPanel || !pScene->m_pCargoPanel->IsVisible() ||
+		!TMFieldScene::m_dwCargoID || g_pCursor->m_pAttachedItem ||
+		(this != pScene->m_pGridInv && this != pScene->m_pCargoGrid) ||
+		nCellX < 0 || nCellX >= m_nColumnGridCount || nCellY < 0 || nCellY >= m_nRowGridCount)
+		return 0;
 	auto pItem = SelectItem(nCellX, nCellY);
 
-	if (pItem && pItem->m_GCObj.dwColor != 0xFFFF0000)
+	if (pItem && pItem->m_pItem && pItem->m_pGridControl == this && pItem->m_GCObj.dwColor != 0xFFFF0000)
 	{
-		unsigned int NewItemPos = BASE_GetItemAbility(pItem->m_pItem, 17);
-		for (int NewItemPosConv = 0; ; ++NewItemPosConv)
-		{
-			NewItemPos /= 2;
-			if (!NewItemPos)
-				break;
-		}
-
-		NewItemPos = BASE_GetItemAbility(pItem->m_pItem, 17);
 		short sDestType = CheckType(pItem->m_pGridControl->m_eItemType, pItem->m_pGridControl->m_eGridType);
 		short sDestPos = CheckPos(pItem->m_pGridControl->m_eItemType);
 
@@ -1001,10 +1017,6 @@ char SGridControl::automove(int nCellX, int nCellY)
 			sDestPos = WYD748_ResolveWireSlot(pScene, pItem->m_pGridControl,
 				sDestType, pItem->m_nCellIndexX, pItem->m_nCellIndexY);
 		}
-
-		int nAX = pItem->m_nCellIndexX;
-		int nAY = pItem->m_nCellIndexY;
-		auto pMobData = &g_pObjectManager->m_stMobData;
 
 		IVector2 vecGrid;
 		if (Type == 1)
@@ -1034,7 +1046,8 @@ char SGridControl::automove(int nCellX, int nCellY)
 			vecGrid = pMyGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
 		}
 
-		if (vecGrid.x == -1)
+		if (vecGrid.x < 0 || vecGrid.y < 0 || !item_shortcuts::ValidSlot(sDestType, sDestPos) ||
+			!item_shortcuts::ValidSlot(Type, vecGrid.x + 9 * vecGrid.y))
 			return 0;
 
 		MSG_SwapItem stSwapItem{};
@@ -1050,6 +1063,8 @@ char SGridControl::automove(int nCellX, int nCellY)
 		if ((unsigned char)sDestPos != (unsigned char)stSwapItem.SourPos
 			|| stSwapItem.SourType != stSwapItem.DestType)
 		{
+			// No optimistic move or cursor detach; the server acknowledgement
+			// owns mutation, rejection and persistence rollback.
 			SendOneMessage((char*)&stSwapItem, 20);
 			pScene->m_pMouseOverHuman = 0;
 		}

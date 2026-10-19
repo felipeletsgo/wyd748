@@ -17,6 +17,37 @@
 #include "TMSkinMesh.h"
 #include "TMEffectParticle.h"
 
+void TMFieldScene::UpdateAutoRun()
+{
+	if (!m_pMyHuman || !m_pGround || !g_pObjectManager || !g_pObjectManager->m_pCamera)
+		return;
+	if (!field_interaction::CanAutoRun(m_bAutoRun != 0,
+		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0 && !m_pMyHuman->m_cDie,
+		m_bAirMove != 0 || m_nAirMove_State != 0, m_pMyHuman->m_cCantMove != 0,
+		m_stAutoTrade.TargetID == m_pMyHuman->m_dwID ||
+			(m_pMessageBox && m_pMessageBox->IsVisible()), m_pMyHuman->m_fProgressRate))
+		return;
+
+	m_pMyHuman->SetSpeed(m_bMountDead);
+	const auto direction = g_pObjectManager->m_pCamera->GetCameraLookatDir();
+	const auto target = field_interaction::AutoRunDestination(m_pMyHuman->m_vecPosition.x,
+		m_pMyHuman->m_vecPosition.y, direction.x, direction.z,
+		m_pMyHuman->m_fMaxSpeed, m_bReverse != 0);
+	// Check bounds before BASE_GetAttr, which assumes valid map coordinates.
+	if (!field_interaction::AutoRunCellAllowed(target.x, target.y, 0) ||
+		!field_interaction::AutoRunCellAllowed(target.x, target.y, BASE_GetAttr(target.x, target.y)))
+		return;
+	m_vecMyNext = {target.x, target.y};
+	// Reuse normal route validation, transition gates and packet throttling.
+	// The same movement intent remains subject to server validation.
+	m_pMyHuman->GetRoute(m_vecMyNext, 0, 0);
+	m_pTargetHuman = nullptr;
+	m_pMyHuman->m_pMoveTargetHuman = nullptr;
+	m_pMyHuman->m_pMoveSkillTargetHuman = nullptr;
+	m_pTargetItem = nullptr;
+	m_bMoveing = 1;
+}
+
 int TMFieldScene::UpdateTeleportPrompt()
 {
 	if (!m_pMyHuman)

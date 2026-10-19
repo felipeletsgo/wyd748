@@ -1214,6 +1214,14 @@ int TMFieldScene::InitializeCompatFieldScene()
 		// otherwise dereference null controls after Ctrl+right-click.
 		m_pPGTPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(TMP_PGT_MENU));
 		m_pPGTText = static_cast<SText*>(m_pControlContainer->FindControl(TMT_PGT_TEXT));
+		if (auto control = m_pControlContainer->FindControl(TMB_GUILDONOFF))
+		{
+			if (control->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_BUTTON)
+			{
+				m_pBtnGuildOnOff = static_cast<SButton*>(control);
+				m_pBtnGuildOnOff->SetSelected(m_cGuildOnOff == 0);
+			}
+		}
 		m_pBtnPGTParty = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_PARTY));
 		m_pBtnPGTGuild = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_GUILD));
 		m_pBtnPGTTrade = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_PGT_TRADE));
@@ -1837,11 +1845,22 @@ void TMFieldScene::SelectHelpTab(int tabIndex)
 		if (m_nCurrInterfacePanelIndex < 0 || m_nCurrInterfacePanelIndex >= 3)
 			m_nCurrInterfacePanelIndex = 0;
 		setControlsVisible(6067, 1);
-		setControlsVisible(6064 + m_nCurrInterfacePanelIndex, 1);
-		setControlsVisible(6071 + m_nCurrInterfacePanelIndex, 1);
-		setControlsVisible(6074 + m_nCurrInterfacePanelIndex, 1);
-		if (m_pHelpInterfaceList[m_nCurrInterfacePanelIndex])
-			m_pHelpInterfaceList[m_nCurrInterfacePanelIndex]->m_bSelectEnable = 1;
+		if (m_nCurrInterfacePanelIndex == 0)
+		{
+			// The legacy keyboard artwork labels F1-F10. Use the live shortcut
+			// guide instead; keep both mouse diagrams and their resource IDs.
+			setControlsVisible(868, 1);
+			if (m_pHelpList[0])
+				m_pHelpList[0]->m_bSelectEnable = 0;
+		}
+		else
+		{
+			setControlsVisible(6064 + m_nCurrInterfacePanelIndex, 1);
+			setControlsVisible(6071 + m_nCurrInterfacePanelIndex, 1);
+			setControlsVisible(6074 + m_nCurrInterfacePanelIndex, 1);
+			if (m_pHelpInterfaceList[m_nCurrInterfacePanelIndex])
+				m_pHelpInterfaceList[m_nCurrInterfacePanelIndex]->m_bSelectEnable = 1;
+		}
 		WYD748_DiagnosticsLog("help tab end tab=%d rootVisible=%d p0=%d/%d/%d b0=%d/%d/%d l0=%d/%d/%d\r\n",
 			tabIndex,
 			m_pHelpInterface ? m_pHelpInterface->IsVisible() : -1,

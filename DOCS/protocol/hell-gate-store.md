@@ -14,9 +14,9 @@ project owner on 2026-10-03. Instance Dionys now adapts the supplied historical
 | Choose | `FUN_004662c5` | Buttons 6193-6196 select the category and show its text from `UI/hellStoredesc.txt`; 6192 opens the confirmation box. |
 | Confirm | `FUN_004640e5` | Finds free inventory space (2x4 weapon, 2x3 armor, 1x1 amulet, 2x4 random) and sends 0x2BD. |
 
-`UI/hellStoredesc.txt` (in the 7.48 runtime) states the rules: a random item
-of the category, random options, no refinement, unlimited purchases, the
-inventory must have space, and items can be sold back to the store.
+The current English `UI/hellStoredesc.txt` lists purchase rules: a random item
+of the category, random options, no refinement, unlimited purchases and required
+inventory space. Selling is a separate 0x37A flow, not part of 0x2BD.
 
 ## Packet
 
@@ -99,6 +99,39 @@ bundled data are historical evidence, not a matched native-7.48 server binary.
 
 ## Critical persistence migration and activation
 
+### Native-panel sales: local follow-up (2026-10-18)
+
+The existing 20-byte 0x37A request carries the target NPC as u16 at offset 12,
+the container type as u16 at offset 14 and the Carry position as u16 at offset
+16. The server validates full-width fields before converting them to internal
+indices; wide aliases and the reserved Carry position are rejected.
+
+Head-51 panels do not establish an ordinary `ShopNPC` session. Sales now resolve
+the visible interaction target directly for `HG_Dionys` and `Hell_Store`, without
+weakening ordinary merchant session checks. Dionys additionally requires the
+tracked live protector, exact runtime, membership, protection phase and an
+unexpired absolute deadline, as purchases do. Filled seals, passive-item rules,
+taxes and the character gold cap retain their existing checks.
+
+The supplied 7.59 sale handler applies an adjustment to the quarter-catalog
+price: strictly above 10,000, halve it; otherwise, strictly above 5,000, multiply
+by two thirds with integer truncation; otherwise leave it unchanged. This rule
+now applies only to `HG_Dionys`. Public `Hell_Store` retains its existing
+quarter-price policy. Special historical potion/stack pricing is not imported;
+this is not a claim of complete historical sale-economy parity.
+
+Both synchronous save/rollback and detached S2 persistence retain the existing
+sale path. Inventory removal, gold and success frames are published only after
+commit; pending requests cannot sell twice. Unknown S2 outcomes remain containment
+cases, not certified rollbacks. These sale changes were published in release
+`20261018T234132Z` with game/API restart, running hashes and readiness verified.
+Actual sales in the client remain unverified.
+
+Historical authority: the same `TMSRVIN.c` hash above, sale handler around lines
+62471–62700. Native 7.48 open/request evidence remains unchanged.
+
+### Existing persistence path
+
 The internal S2 migration is `MODERNIZACAO_COMPATIVEL`, not a new store contract.
 When a coordinator is configured, a detached account proposal contains the charge
 and the already materialized item UID/options. Live inventory/gold and the two
@@ -137,6 +170,10 @@ See the [critical persistence plan](../server/critical-persistence-plan.md).
   in the critical persistence plan; these purchase tests alone do not prove
   those guarantees or production-local containment for every purchase failure.
 - Client: `HellStoreClickContractTests.cpp`; architecture tests pass.
-- Pending: `CLIENT-TESTED` (open, buy each category, refusals in the real
-  client), and selling back to the store, which uses the 0x37A sale flow and
-  is not yet connected to `Hell_Store`.
+- Local sale follow-up: `hell_store_sale_test.go` covers price thresholds,
+  no ordinary-shop context, lifecycle/runtime/range refusals, wide fields,
+  reserved slots, gold cap, synchronous failure, detached proposals and committed
+  publication. Public-shop pricing is checked separately. The full server suite
+  and `go vet ./...` passed; these changes have not been published.
+- Pending: `CLIENT-TESTED` (open, buy each category, sell, verify resulting
+  inventory/gold, and exercise refusals in the real client).

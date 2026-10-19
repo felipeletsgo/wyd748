@@ -226,6 +226,10 @@ type Player struct {
 	// clone disappears.
 	BrowsingGhostShopID uint16
 	PKMode              bool
+	// GuildDisable masks public guild affiliation for this live character;
+	// the authoritative Char guild fields remain unchanged and this flag is
+	// cleared on character/session reset.
+	GuildDisable bool
 	// SpecialCoins are named counters persisted by character UID alongside buffs
 	// in the session-state sidecar.
 	SpecialCoins map[string]uint32

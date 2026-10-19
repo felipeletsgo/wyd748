@@ -2,6 +2,7 @@ package game
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"time"
 
@@ -249,14 +250,6 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 		w.tickGuildWars(now)
 		local := w.cityWarLocal(now)
 		territory := w.guilds.Wars.Cities.Territories[city]
-		guild, member := w.guildOf(p.Char)
-		if local.Weekday() != time.Saturday && guild != nil && member != nil && member.Rank == model.GuildRankLeader && territory.Owner == guild.ID {
-			if err := w.withdrawCityTreasury(p, city); err != nil {
-				fail(err.Error())
-				return
-			}
-			return
-		}
 		if local.Weekday() != time.Saturday || w.guilds.Wars.Cities.Phase != "registration" {
 			fail("City-war registration is open on Saturday only.")
 			return
@@ -283,10 +276,11 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 		fail("The city-war target changed. Speak to the collector again.")
 		return
 	}
-	if err := w.registerCityWar(p, city, func() {
-		s.Send(wire.MessagePanel("Application saved. Fee: 100 guild fame. The highest fame bid challenges the city."))
-	}); err != nil {
+	if _, err := w.requireGuildLeader(p.Char); err != nil {
 		fail(err.Error())
 		return
 	}
+	// Native confirmation carries no amount. Never reinterpret its option as a
+	// bid or silently spend the guild's balance. The command supplies the total.
+	s.Send(wire.MessagePanel(fmt.Sprintf("Bid with /citywar %d <total guild fame>. No gold or entry fee.", city+1)))
 }

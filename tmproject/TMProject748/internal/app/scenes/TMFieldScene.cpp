@@ -158,6 +158,7 @@ TMFieldScene::TMFieldScene()
 	m_cLastRelo = 0;
 	m_cLastWhisper = 0;
 	m_cGuildOnOff = 1;
+	m_pBtnGuildOnOff = nullptr;
 	m_bMoveing = 0;
 	m_nDustCount = 0;
 	m_pSysMsgList = 0;
@@ -1543,21 +1544,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 		stMsgChat.Header.ID = g_pObjectManager->m_dwCharID;
 		stMsgChat.Header.Type = MSG_MessageChat_Opcode;
 
-		if (m_pBtnGuildOnOff)
-		{
-			if(m_pBtnGuildOnOff->m_bSelected == 1)
-				strcpy_s(stMsgChat.String, "guildon");
-			else
-				strcpy_s(stMsgChat.String, "guildoff");
-		}
-		else
-		{
-			m_cGuildOnOff = m_cGuildOnOff == 0;
-			if (m_cGuildOnOff == 1)
-				strcpy_s(stMsgChat.String, "guildon");
-			else
-				strcpy_s(stMsgChat.String, "guildoff");
-		}
+		// Both the keyboard and button use the last server-confirmed state.
+		// Repeated input before an acknowledgement sends the same intent.
+		strcpy_s(stMsgChat.String, m_cGuildOnOff ? "guildoff" : "guildon");
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 		return 1;
 	}
@@ -4289,6 +4278,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	UpdateCompatStatusTexts();
 	if (UpdateTeleportPrompt() == 1)
 		return 1;
+	UpdateAutoRun();
 	// The 7.48 HUD has its own lifecycle, but CC still needs the existing
 	// item/skill/attack scheduler after transition gates, once per frame.
 	UpdatePhysicalAttack(dwServerTime);

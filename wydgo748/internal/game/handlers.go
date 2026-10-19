@@ -525,7 +525,7 @@ func (w *World) publishCharacterEntry(p *Player, slot int) {
 
 	// 1) Full STRUCT_MOB. Recalculation already subtracted purchased skills
 	// from SkillPts; do not restore the entire budget on each relog.
-	clientChar := *ch
+	clientChar := clientGuildProjection(p, *ch)
 	clientChar.Equip = clientEquipProjection(ch)
 	enter := wire.EnterWorld(p.ID, uint16(slot), clientChar)
 	wire.PutEnterWorldWeather(enter, uint16(w.weather))
@@ -1251,13 +1251,10 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 		s.ID, match, scoreA, scoreB, totalPrice, basePrice, dst)
 }
 
-// onSellItem: 0x37A. Sell an inventory item to the open merchant at 25% of
-// purchase price. TargetID must match, but p.ShopNPC resolves the
-// authoritative shop and price.
+// onSellItem: 0x37A. Ordinary sales require the open shop context. The native
+// Hell Store panel opens locally, so its target is validated independently.
 func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	// Require 17 bytes for MyType@14 and MyPos@16. Otherwise a forged short
-	// 0x37A would panic at pkt[16].
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || w.shuttingDown ||
 		p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) || playerCurHP(p.Char) == 0 || len(pkt) != 20 {
 		return
@@ -1267,26 +1264,36 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	}
 	w.cancelTrade(p, "shop sale")
 	targetID := binary.LittleEndian.Uint16(pkt[12:14])
-	if p.ShopNPC == 0 {
+	m, interactionErr := w.resolveNPCInteraction(p, targetID)
+	if interactionErr != nil {
+		if p.ShopNPC == targetID {
+			p.ShopNPC = 0
+		}
+		return
+	}
+	hellStore := isHellStoreNPC(m)
+	if hellStore && !w.hellStoreAvailable(p, m) {
+		return
+	}
+	if !hellStore && p.ShopNPC == 0 {
 		log.Printf("[#%d] sale without an open shop", s.ID)
 		return
 	}
-	if targetID != p.ShopNPC {
+	if !hellStore && targetID != p.ShopNPC {
 		log.Printf("[#%d] sale merchant mismatch packet=%d open=%d", s.ID, targetID, p.ShopNPC)
 		s.Send(wire.MessagePanel("That merchant is no longer available."))
 		return
 	}
-	m, interactionErr := w.resolveNPCInteraction(p, p.ShopNPC)
-	if interactionErr != nil {
+	if _, isShop := shopTypeForMerchant(m.Def.Score.Merchant); !hellStore && !isShop {
 		p.ShopNPC = 0
 		return
 	}
-	if _, isShop := shopTypeForMerchant(m.Def.Score.Merchant); !isShop {
-		p.ShopNPC = 0
+	myTypeWord := binary.LittleEndian.Uint16(pkt[14:16])
+	myPosWord := binary.LittleEndian.Uint16(pkt[16:18])
+	if myTypeWord != uint16(placeInv) || myPosWord >= uint16(model.PlayerCarrySlots) {
 		return
 	}
-	myType := pkt[14] // MyType@14 (0=equip,1=inv)
-	myPos := pkt[16]  // MyPos@16
+	myType, myPos := byte(myTypeWord), byte(myPosWord)
 	// Normal UI sells from Carry. Accepting Equip would allow forged MyType
 	// to sell faces, capes, mounts, or other structural slots.
 	if myType != placeInv {
@@ -1308,6 +1315,9 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	basePrice := uint64(0)
 	if exists {
 		basePrice = uint64(def.Price) / 4 // WYD sale price is 25% of purchase price.
+	}
+	if m.Def.Name == "HG_Dionys" {
+		basePrice = dionysSalePrice(basePrice)
 	}
 	basePrice = passiveMerchantSalePrice(p.Char, sold, basePrice)
 	city, taxRate, taxed := w.cityShopTax(m)

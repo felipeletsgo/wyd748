@@ -1,0 +1,289 @@
+{
+  "name": "RT_MageBoss",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 382
+    },
+    "elmo": {
+      "index": 383
+    },
+    "armadura": {
+      "index": 384
+    },
+    "calca": {
+      "index": 385
+    },
+    "luva": {
+      "index": 386
+    },
+    "bota": {
+      "index": 387
+    },
+    "arma": {
+      "index": 3582
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        60,
+        71,
+        20,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 1936,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 2388
+    },
+    "capa": {
+      "index": 4015
+    }
+  },
+  "classInfo": 1,
+  "expReward": 8500,
+  "score": {
+    "version": 2,
+    "level": 599,
+    "attack": 6000,
+    "magicAttack": 0,
+    "defense": 5350,
+    "maxHP": 32000,
+    "maxMP": 50,
+    "curHP": 32000,
+    "curMP": 50,
+    "str": 5,
+    "int": 100,
+    "dex": 100,
+    "con": 1500,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 5135
+    },
+    {
+      "index": 3140
+    },
+    {
+      "index": 2322
+    },
+    {
+      "index": 4127
+    },
+    {
+      "index": 578
+    }
+  ],
+  "gold": 500,
+  "learnedSkill": 60050,
+  "skillBar": [
+    33,
+    33,
+    37,
+    255
+  ]
+}

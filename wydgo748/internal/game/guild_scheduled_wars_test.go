@@ -3,6 +3,8 @@ package game
 import (
 	"errors"
 	"fmt"
+	"math"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -44,7 +46,7 @@ func TestScheduledCityAllCountdownsAndCommandHistory(t *testing.T) {
 		minute int
 		mask   uint16
 	}{
-		{-5, 1}, {-1, 3}, {0, 7}, {3, 7}, {5, 15}, {6, 15}, {16, 31}, {20, 63},
+		{-5, 1}, {-1, 3}, {0, 7}, {3, 7}, {5, 15}, {6, 15}, {26, 31}, {30, 63},
 	} {
 		clock.current = start.Add(time.Duration(step.minute) * time.Minute)
 		w.tickGuildWars(clock.Now())
@@ -139,14 +141,24 @@ func scheduledWarWorld(t *testing.T, date string) (*World, *guildFlowStore, *Pla
 	w.clock = clock
 	w.terrain = loadedFlatTerrain()
 	w.npcs = []model.NPCDef{{Name: "Torre", Score: &model.Score{MaxHP: 9000, Defense: 500}}}
+	w.guilds.FindByID(1).Kingdom = 7
+	w.guilds.FindByID(2).Kingdom = 8
 	a.Char.Citizenship, b.Char.Citizenship = w.channel, w.channel
 	return w, st, a, b, clock
 }
 
 func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
-	w, st, a, b, clock := scheduledWarWorld(t, "2026-09-14 21:00")
+	w, st, a, b, clock := scheduledWarWorld(t, "2026-09-14 20:55")
+	w.guilds.Wars.Castle.Owner = 1
+	prepareWarMedalPlayer(w, a)
+	prepareWarMedalPlayer(w, b)
+	for _, p := range []*Player{a, b} {
+		for i := range p.Char.Inv {
+			p.Char.Inv[i] = model.Item{Index: 400}
+		}
+	}
 	w.tickGuildWars(clock.Now())
-	if w.guilds.Wars.Tower.Notices != 1 || w.warTower() != nil {
+	if s := w.guilds.Wars.Tower; s.Notices != 1 || w.warTower() != nil || s.Owner != 0 || s.Kingdom != 7 || s.InitialKingdom != 7 || s.DefenderCaptures != 1 {
 		t.Fatal("missing prewarning or early tower")
 	}
 	queued := a.Session.QueuedPacketsForTest()
@@ -169,27 +181,43 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 	}
 	a.X, a.Y = towerWarSpawnX-1, towerWarSpawnY
 	b.X, b.Y = towerWarSpawnX-2, towerWarSpawnY
-	if !w.towerTargetAllowed(a, m) {
-		t.Fatal("guild cannot attack")
+	if w.towerTargetAllowed(a, m) {
+		t.Fatal("defending kingdom may attack its own tower")
+	}
+	if !w.towerTargetAllowed(b, m) {
+		t.Fatal("opposing kingdom cannot attack")
 	}
 	m.HP = 0
-	w.killMobState(a, m, 9000, 9000)
-	if w.guilds.Wars.Tower.Owner != 1 || m.HP != 9000 || m.Dead || a.Char.Gold != 0 || w.guilds.FindByID(1).Fame != 0 {
+	w.killMobState(b, m, 9000, 9000)
+	if s := w.guilds.Wars.Tower; s.Owner != 2 || s.Kingdom != 8 || s.InitialKingdom != 7 || s.DefenderCaptures != 1 || s.Captures != 1 || m.HP != 9000 || m.Dead || b.Char.Gold != 0 || w.guilds.FindByID(2).Fame != 0 || len(w.guilds.Wars.Medals) != 1 {
 		t.Fatal("capture leaked ordinary kill rewards")
 	}
 	a.X, a.Y = towerWarSpawnX-1, towerWarSpawnY
-	if w.towerTargetAllowed(a, m) {
-		t.Fatal("owner can attack own tower")
+	if !w.towerTargetAllowed(a, m) {
+		t.Fatal("opposing kingdom cannot recapture the tower")
 	}
-	b.X, b.Y = towerWarSpawnX-2, towerWarSpawnY
 	m.HP = 0
 	st.err = errors.New("disk unavailable")
-	w.killMobState(b, m, 9000, 9000)
-	if w.guilds.Wars.Tower.Owner != 1 || m.HP == 0 {
+	w.killMobState(a, m, 9000, 9000)
+	if s := w.guilds.Wars.Tower; s.Owner != 2 || s.Kingdom != 8 || s.DefenderCaptures != 1 || s.Captures != 1 || m.HP == 0 || len(w.guilds.Wars.Medals) != 1 {
 		t.Fatal("failed capture not rolled back")
 	}
 	st.err = nil
-	clock.Advance(25 * time.Minute)
+	m.HP = 0
+	w.killMobState(a, m, 9000, 9000)
+	if s := w.guilds.Wars.Tower; s.Owner != 1 || s.Kingdom != 7 || s.DefenderCaptures != 2 || s.Captures != 2 || len(w.guilds.Wars.Medals) != 2 {
+		t.Fatal("defending recapture did not increment the native divisor")
+	}
+	b.X, b.Y = towerWarSpawnX-2, towerWarSpawnY
+	if !w.towerTargetAllowed(b, m) {
+		t.Fatal("opposing kingdom cannot recapture after a defense")
+	}
+	m.HP = 0
+	w.killMobState(b, m, 9000, 9000)
+	if s := w.guilds.Wars.Tower; s.Owner != 2 || s.Kingdom != 8 || s.DefenderCaptures != 2 || s.Captures != 3 || len(w.guilds.Wars.Medals) != 3 {
+		t.Fatal("final opposing capture did not preserve the divisor")
+	}
+	clock.Advance(55 * time.Minute)
 	w.tickGuildWars(clock.Now())
 	if w.guilds.Wars.Tower.Notices&4 == 0 {
 		t.Fatal("missing end warning")
@@ -197,20 +225,41 @@ func TestScheduledTowerLifecycleNoticesCaptureRewardAndReplay(t *testing.T) {
 	clock.Advance(5 * time.Minute)
 	st.err = errors.New("disk unavailable")
 	w.tickGuildWars(clock.Now())
-	if w.guilds.FindByID(1).Fame != 0 || w.guilds.Wars.Tower.Finished {
+	if w.guilds.FindByID(1).Fame != 0 || w.guilds.FindByID(2).Fame != 0 || w.guilds.Wars.Tower.Finished || w.guilds.Wars.Tower.DefenderCaptures != 2 || len(w.guilds.Wars.Medals) != 3 {
 		t.Fatal("failed reward published")
 	}
 	st.err = nil
 	clock.Advance(time.Second)
 	w.tickGuildWars(clock.Now())
-	if w.guilds.FindByID(1).Fame != 100 || !w.guilds.Wars.Tower.Finished || w.warTower() != nil {
+	if w.guilds.FindByID(1).Fame != 0 || w.guilds.FindByID(2).Fame != 100 || !w.guilds.Wars.Tower.Finished || w.guilds.Wars.Tower.DefenderCaptures != 1 || w.warTower() != nil || len(w.guilds.Wars.Medals) != 4 {
 		t.Fatal("reward or cleanup missing")
 	}
 	w.warInitialized = false
 	clock.Advance(time.Second)
 	w.tickGuildWars(clock.Now())
-	if w.guilds.FindByID(1).Fame != 100 {
+	if w.guilds.FindByID(1).Fame != 0 || w.guilds.FindByID(2).Fame != 100 {
 		t.Fatal("restart doubled fame")
+	}
+	w.guilds.Wars.Castle.Owner = 2
+	nextStart := time.Date(clock.Now().Year(), clock.Now().Month(), clock.Now().Day()+1, 20, 55, 0, 0, clock.Now().Location())
+	clock.current = nextStart
+	w.warInitialized = false
+	w.tickGuildWars(clock.Now())
+	if s := w.guilds.Wars.Tower; s.Owner != 0 || s.Kingdom != 8 || s.InitialKingdom != 8 || s.DefenderCaptures != 1 || s.Captures != 0 || s.Notices != 1 || w.warTower() != nil {
+		t.Fatal("next round did not use castle realm, reset owner, or reset changed-realm divisor")
+	}
+}
+
+func TestScheduledTowerSameRealmRoundPreservesDefenderCaptures(t *testing.T) {
+	w, _, _, _, clock := scheduledWarWorld(t, "2026-09-14 20:55")
+	w.guilds.Wars.Castle.Owner = 1
+	w.guilds.Wars.Tower = model.TowerWarState{
+		Day: "2026-09-13", Finished: true, Owner: 1, Kingdom: 7, InitialKingdom: 7,
+		DefenderCaptures: 2, Captures: 5,
+	}
+	w.tickGuildWars(clock.Now())
+	if s := w.guilds.Wars.Tower; s.Owner != 0 || s.Kingdom != 7 || s.InitialKingdom != 7 || s.DefenderCaptures != 2 || s.Captures != 0 || s.Notices != 1 || w.warTower() != nil {
+		t.Fatal("same-realm round did not preserve the native defender divisor")
 	}
 }
 
@@ -218,14 +267,14 @@ func TestScheduledCityLifecycleAndCombatGates(t *testing.T) {
 	w, st, a, b, clock := scheduledWarWorld(t, "2026-09-12 12:00")
 	w.guilds.FindByID(2).Fame = 200
 	w.guilds.Wars.Cities.Territories[0].Owner = 1
-	if err := w.registerCityWar(b, 0); err != nil {
+	if err := w.registerCityWar(b, 0, 100); err != nil {
 		t.Fatal(err)
 	}
 	if w.guilds.FindByID(2).Fame != 100 {
-		t.Fatal("fee")
+		t.Fatal("bid increase was not deducted")
 	}
-	if err := w.registerCityWar(b, 1); err == nil || w.guilds.FindByID(2).Fame != 100 {
-		t.Fatal("duplicate")
+	if err := w.registerCityWar(b, 0, 100); err != nil || w.guilds.FindByID(2).Fame != 100 || len(w.guilds.Wars.Cities.Entries) != 1 {
+		t.Fatal("repeated cumulative bid must not charge or enroll twice")
 	}
 	clock.current = w.guilds.Wars.Cities.StartsAt.Add(-5 * time.Minute)
 	w.tickGuildWars(clock.Now())
@@ -262,7 +311,7 @@ func TestScheduledCityLifecycleAndCombatGates(t *testing.T) {
 	if w.guildWarStepAllowed(a, 205, 220) {
 		t.Fatal("outsider can reenter")
 	}
-	clock.Advance(15 * time.Minute)
+	clock.Advance(25 * time.Minute)
 	st.err = errors.New("disk unavailable")
 	w.tickGuildWars(clock.Now())
 	if w.guilds.Wars.Cities.Territories[0].Owner != 1 || w.guilds.Wars.Cities.Phase != "battle" {
@@ -276,8 +325,8 @@ func TestScheduledCityLifecycleAndCombatGates(t *testing.T) {
 	if w.guilds.Wars.Cities.Territories[0].Owner != 2 || w.guilds.Wars.Cities.Phase != "finished" || len(w.cityFighters) != 0 || cityWarZones[0].arena.contains(b.X, b.Y) {
 		t.Fatal("result or cleanup")
 	}
-	if w.guilds.FindByID(2).Fame != 100 {
-		t.Fatal("city invented fame award")
+	if w.guilds.FindByID(2).Fame != 50 {
+		t.Fatal("city conquest must award the reference's 50 guild fame")
 	}
 }
 
@@ -304,13 +353,18 @@ func TestScheduledWarRegistrationRollbackAndLeaderAuthority(t *testing.T) {
 	w, st, a, _, _ := scheduledWarWorld(t, "2026-09-12 12:00")
 	w.tickGuildWars(w.now())
 	w.guilds.FindByID(1).Fame = 100
+	w.guilds.FindByID(1).Kingdom = 0
+	if err := w.registerCityWar(a, 0, 100); err == nil || w.guilds.FindByID(1).Fame != 100 || len(w.guilds.Wars.Cities.Entries) != 0 {
+		t.Fatal("neutral kingdom was accepted for city registration")
+	}
+	w.guilds.FindByID(1).Kingdom = 7
 	st.err = errors.New("disk failure")
-	if err := w.registerCityWar(a, 0); err == nil || w.guilds.FindByID(1).Fame != 100 || len(w.guilds.Wars.Cities.Entries) != 0 {
-		t.Fatal("fee rollback")
+	if err := w.registerCityWar(a, 0, 100); err == nil || w.guilds.FindByID(1).Fame != 100 || len(w.guilds.Wars.Cities.Entries) != 0 {
+		t.Fatal("bid rollback")
 	}
 	st.err = nil
 	w.guilds.FindByID(1).Members[0].Rank = model.GuildRankMember
-	if err := w.registerCityWar(a, 0); err == nil {
+	if err := w.registerCityWar(a, 0, 100); err == nil {
 		t.Fatal("forged leader projection accepted")
 	}
 }
@@ -318,7 +372,7 @@ func TestScheduledWarRegistrationRollbackAndLeaderAuthority(t *testing.T) {
 func TestScheduledCityInterruptedRefundIsAtomicAndOnce(t *testing.T) {
 	w, st, _, b, clock := scheduledWarWorld(t, "2026-09-12 12:00")
 	w.guilds.FindByID(2).Fame = 100
-	if err := w.registerCityWar(b, 0); err != nil {
+	if err := w.registerCityWar(b, 0, 100); err != nil {
 		t.Fatal(err)
 	}
 	w.guilds.Wars.Cities.Phase = "battle"
@@ -343,9 +397,40 @@ func TestScheduledCityInterruptedRefundIsAtomicAndOnce(t *testing.T) {
 	}
 }
 
+func TestScheduledCityWeeklyFameResetAtSundayMidnight(t *testing.T) {
+	w, _, leader, _, clock := scheduledWarWorld(t, "2026-09-12 23:59")
+	w.tickGuildWars(clock.Now())
+	guild := w.guilds.FindByID(1)
+	guild.Fame = 300
+	if err := w.registerCityWar(leader, 0, 100); err != nil {
+		t.Fatal(err)
+	}
+	if guild.Fame != 200 || len(w.guilds.Wars.Cities.Entries) != 1 {
+		t.Fatalf("Saturday bid setup mismatch: fame=%d entries=%+v", guild.Fame, w.guilds.Wars.Cities.Entries)
+	}
+
+	clock.Advance(time.Minute + time.Second)
+	w.tickGuildWars(clock.Now())
+	city := w.guilds.Wars.Cities
+	if got := w.guilds.FindByID(1).Fame; got != 0 || w.guilds.Wars.FameResetDay != "2026-09-13" || city.Phase != "waiting" {
+		t.Fatalf("Sunday reset mismatch: fame=%d reset=%q phase=%q", got, w.guilds.Wars.FameResetDay, city.Phase)
+	}
+	if len(city.Entries) != 1 || city.Entries[0].Bid != 100 || city.Territories[0].Challenger != guild.ID || city.Territories[0].Bid != 100 {
+		t.Fatalf("Sunday reset did not retain the accepted city bid: entries=%+v territory=%+v", city.Entries, city.Territories[0])
+	}
+
+	guild = w.guilds.FindByID(1)
+	guild.Fame = 17
+	clock.Advance(time.Second)
+	w.tickGuildWars(clock.Now())
+	if got := w.guilds.FindByID(1).Fame; got != 17 || w.guilds.Wars.FameResetDay != "2026-09-13" {
+		t.Fatalf("weekly fame reset replayed within the same Sunday: fame=%d reset=%q", got, w.guilds.Wars.FameResetDay)
+	}
+}
+
 func TestScheduledCityTieRetainsDefenderAndDefenseCaps(t *testing.T) {
-	w, _, _, _, clock := scheduledWarWorld(t, "2026-09-13 20:21")
-	w.guilds.Wars.Cities = model.CityWarState{Day: "2026-09-13", StartsAt: clock.Now().Add(-21 * time.Minute), Phase: "battle"}
+	w, _, _, _, clock := scheduledWarWorld(t, "2026-09-13 20:31")
+	w.guilds.Wars.Cities = model.CityWarState{Day: "2026-09-13", StartsAt: clock.Now().Add(-31 * time.Minute), Phase: "battle"}
 	for i := range w.guilds.Wars.Cities.Territories {
 		w.guilds.Wars.Cities.Territories[i] = model.CityTerritory{Owner: 1, Challenger: 2, Victories: 4}
 	}
@@ -356,5 +441,181 @@ func TestScheduledCityTieRetainsDefenderAndDefenseCaps(t *testing.T) {
 		if z.Owner != 1 || z.Victories != 4 || z.Challenger != 0 {
 			t.Fatal("tie/cap")
 		}
+	}
+}
+
+func TestScheduledCityConquestRollbackAndRetry(t *testing.T) {
+	for _, failure := range []string{"storage", "late-fame-overflow"} {
+		t.Run(failure, func(t *testing.T) {
+			w, st, a, _, clock := scheduledWarWorld(t, "2026-09-13 20:21")
+			w.guilds.FindByID(1).Fame = 75
+			w.guilds.FindByID(2).Fame = 100
+			w.guilds.Guilds = append(w.guilds.Guilds, model.Guild{ID: 3, Name: "Third"})
+			w.guilds.Wars.Castle.Owner = 1
+			w.guilds.Wars.Cities = model.CityWarState{Day: "2026-09-13", StartsAt: clock.Now().Add(-21 * time.Minute), Phase: "battle"}
+			w.guilds.Wars.Cities.Territories[0] = model.CityTerritory{Owner: 1, Challenger: 2}
+			w.cityWarScores[0] = map[uint16]uint64{2: 1}
+			if failure == "storage" {
+				st.err = errors.New("city settlement unavailable")
+			} else {
+				w.guilds.FindByID(3).Fame = math.MaxUint32
+				w.guilds.Wars.Cities.Territories[1].Challenger = 3
+				w.cityWarScores[1] = map[uint16]uint64{3: 1}
+			}
+			before := w.criticalGuildSnapshot()
+			packets := a.Session.QueuedPacketsForTest()
+			if err := w.finishCityWar(); err == nil {
+				t.Fatal("failed settlement was accepted")
+			}
+			if !reflect.DeepEqual(w.criticalGuildSnapshot(), before) || len(w.warNotices) != 0 || a.Session.QueuedPacketsForTest() != packets {
+				t.Fatal("failed settlement changed fame, ownership or publications")
+			}
+			st.err = nil
+			w.guilds.FindByID(3).Fame = 0
+			if err := w.finishCityWar(); err != nil {
+				t.Fatal(err)
+			}
+			if w.guilds.FindByID(1).Fame != 25 || w.guilds.FindByID(2).Fame != 150 || w.guilds.Wars.Castle.Owner != 2 {
+				t.Fatal("retry did not settle frozen scores, fame and castle ownership together")
+			}
+			saves := st.gameSaves
+			if err := w.finishCityWar(); err != nil || st.gameSaves != saves || w.guilds.FindByID(2).Fame != 150 {
+				t.Fatal("finished settlement was replayed")
+			}
+		})
+	}
+}
+
+func TestScheduledCityConquestCriticalAcknowledgement(t *testing.T) {
+	for _, reject := range []bool{false, true} {
+		t.Run(fmt.Sprintf("reject-%t", reject), func(t *testing.T) {
+			w, p, _, fallback, base, q, release := criticalTreasuryFixture(t, 0)
+			w.guilds.FindByID(1).Fame = 75
+			w.guilds.Guilds = append(w.guilds.Guilds, model.Guild{ID: 2, Name: "Attacker", Fame: 100}, model.Guild{ID: 3, Name: "OtherCityOwner"})
+			w.guilds.Wars.Castle.Owner = 1
+			w.guilds.Wars.Cities = model.CityWarState{Day: "2026-09-13", StartsAt: w.now().Add(-21 * time.Minute), Phase: "battle"}
+			for i := range w.guilds.Wars.Cities.Territories {
+				w.guilds.Wars.Cities.Territories[i].Owner = 3
+			}
+			w.guilds.Wars.Cities.Territories[0] = model.CityTerritory{Owner: 1, Challenger: 2}
+			w.cityWarScores[0] = map[uint16]uint64{2: 1}
+			w.cityWarRunning = true
+			before := w.criticalGuildSnapshot()
+			packets := p.Session.QueuedPacketsForTest()
+			if reject {
+				base.failure = criticalCertifiedRejection(t)
+			}
+			if err := w.finishCityWar(); err != nil {
+				t.Fatal(err)
+			}
+			proposal := awaitCriticalWrite(t, base.entered)
+			if proposal.guilds == nil || len(proposal.accounts) != 0 || proposal.guilds.FindByID(1).Fame != 25 || proposal.guilds.FindByID(2).Fame != 150 || proposal.guilds.Wars.Castle.Owner != 2 || proposal.guilds.Wars.Cities.Phase != "finished" {
+				t.Fatal("settlement did not prepare one detached registry proposal")
+			}
+			assertRetained := func() {
+				t.Helper()
+				if !reflect.DeepEqual(w.criticalGuildSnapshot(), before) || !w.cityWarRunning || len(w.warNotices) != 0 || p.Session.QueuedPacketsForTest() != packets || fallback.gameSaves != 0 {
+					t.Fatal("unacknowledged settlement changed live state or announced a winner")
+				}
+			}
+			assertRetained()
+			if err := w.finishCityWar(); !errors.Is(err, errCriticalPersistenceBusy) {
+				t.Fatal("pending settlement did not fence a duplicate")
+			}
+			release()
+			result := awaitCriticalResult(t, q)
+			assertRetained()
+			w.applyCriticalCompletion(result)
+			if reject {
+				assertRetained()
+				if w.criticalGuildReserved() || w.shuttingDown {
+					t.Fatal("certified rejection did not release the settlement fence")
+				}
+				base.failure = nil
+				if err := w.finishCityWar(); err != nil {
+					t.Fatal(err)
+				}
+				awaitCriticalWrite(t, base.entered)
+				w.applyCriticalCompletion(awaitCriticalResult(t, q))
+			}
+			if w.shuttingDown || w.criticalGuildReserved() || w.cityWarRunning || len(q.pending) != 0 || !reflect.DeepEqual(w.criticalGuildSnapshot(), proposal.guilds) || len(w.warNotices) == 0 {
+				t.Fatal("acknowledgement did not apply and publish exactly the committed settlement")
+			}
+			if err := w.finishCityWar(); err != nil || len(base.entered) != 0 || w.guilds.FindByID(2).Fame != 150 {
+				t.Fatal("acknowledged settlement was awarded again")
+			}
+		})
+	}
+}
+
+func TestScheduledWarPrivateSpaceIsolation(t *testing.T) {
+	for _, arena := range []string{"city", "tower"} {
+		t.Run(arena, func(t *testing.T) {
+			w, _, a, b, clock := scheduledWarWorld(t, "2026-09-14 21:05")
+			x, y := towerWarSpawnX, towerWarSpawnY
+			if arena == "city" {
+				x, y = cityWarZones[0].defendX, cityWarZones[0].defendY
+				w.guilds.Wars.Cities = model.CityWarState{StartsAt: clock.Now().Add(-6 * time.Minute), Phase: "battle"}
+				w.cityWarRunning = true
+				w.cityFighters = map[*Player]cityFighter{a: {city: 0, guild: 1}, b: {city: 0, guild: 2}}
+			} else {
+				w.guilds.Wars.Tower = model.TowerWarState{Day: "2026-09-14", Started: true, EndsAt: clock.Now().Add(55 * time.Minute), Kingdom: 7, InitialKingdom: 7, DefenderCaptures: 1}
+			}
+			a.X, a.Y, b.X, b.Y = x, y, x+1, y
+			w.itemInstances = map[string]*ItemInstance{"private-war-coordinates": {RuntimeID: "private-war-coordinates", MemberIDs: []uint16{a.ID, b.ID}}}
+			w.rebuildPlayerInstanceIndex()
+			if allowed, handled := w.guildWarPvP(a, b); allowed || handled {
+				t.Fatal("public war rules overrode combat inside a shared private runtime")
+			}
+			if !w.guildWarStepAllowed(a, x, y) {
+				t.Fatal("public city gate blocked private instance movement")
+			}
+			if arena == "tower" {
+				m := &Mob{GuildWarTower: true, X: x, Y: y}
+				if w.towerTargetAllowed(a, m) {
+					t.Fatal("private participant may attack the public tower")
+				}
+				w.ejectTowerArena()
+			} else {
+				w.cleanCityArena()
+			}
+			if a.X != x || a.Y != y || b.X != x+1 || b.Y != y || w.gameplaySpaceForPlayer(a) == "" || w.gameplaySpaceForPlayer(b) == "" {
+				t.Fatal("public war cleanup ejected private participants")
+			}
+			w.itemInstances["private-war-coordinates"].MemberIDs = []uint16{a.ID}
+			w.rebuildPlayerInstanceIndex()
+			if allowed, _ := w.guildWarPvP(a, b); allowed {
+				t.Fatal("public war authorized cross-runtime PvP")
+			}
+			if arena == "tower" {
+				m := &Mob{GuildWarTower: true, InstanceID: "private-war-coordinates", X: x, Y: y}
+				if w.towerTargetAllowed(b, m) {
+					t.Fatal("public participant may attack a private tower actor")
+				}
+				w.ejectTowerArena()
+			} else {
+				w.cleanCityArena()
+			}
+			if b.X == x+1 && b.Y == y {
+				t.Fatal("public arena outsider was not removed")
+			}
+			if a.X != x || a.Y != y || w.gameplaySpaceForPlayer(a) == "" {
+				t.Fatal("public cleanup affected the remaining private participant")
+			}
+		})
+	}
+}
+
+func TestCastleOwnerPrunedOnGuildDissolution(t *testing.T) {
+	w, _, _, _, _ := scheduledWarWorld(t, "2026-09-13 20:21")
+	w.guilds.Wars.Castle.Owner = 1
+	w.pruneGuildWarReferences()
+	if w.guilds.Wars.Castle.Owner != 1 {
+		t.Fatal("existing castle owner was pruned")
+	}
+	w.guilds.Guilds = w.guilds.Guilds[1:]
+	w.pruneGuildWarReferences()
+	if w.guilds.Wars.Castle.Owner != 0 {
+		t.Fatal("dissolved guild retained castle ownership")
 	}
 }

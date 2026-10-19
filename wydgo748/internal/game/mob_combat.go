@@ -41,6 +41,9 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		if !m.Def.IsMonster() {
 			continue
 		}
+		if w.tickRuneMarch(m, now, allowMovement) {
+			continue
+		}
 		if guardian := w.hellGateMarchTarget(m); guardian != nil {
 			m.TargetID = guardian.ID
 			if allowMovement && !now.Before(m.NextMove) {
@@ -152,6 +155,12 @@ func (w *World) tickActiveMobActions(now time.Time) {
 		if m.GuildWarTower {
 			continue
 		}
+		if inst := w.instanceForMob(m); inst != nil && inst.RuneTrack != nil && !w.runeTrackCombatActor(m, now) {
+			continue
+		}
+		if w.tickRuneMarch(m, now, true) {
+			continue
+		}
 		if now.Before(m.NextMove) || now.Before(m.NextAttack) {
 			continue
 		}
@@ -173,7 +182,9 @@ func (w *World) tickActiveMobActions(now time.Time) {
 			}
 			if w.combatLineOfSight(m.X, m.Y, guardian.X, guardian.Y) {
 				m.NextAttack = now.Add(mobAttackInterval)
-				w.mobAttackNightmareProtector(m, guardian, now)
+				if !w.hellGateCastAtProtector(m, guardian, now) {
+					w.mobAttackNightmareProtector(m, guardian, now)
+				}
 			}
 			continue
 		}
@@ -189,7 +200,9 @@ func (w *World) tickActiveMobActions(now time.Time) {
 			continue
 		}
 		m.NextAttack = now.Add(mobAttackInterval)
-		w.mobAttackPlayer(m, target, now)
+		if !w.hellGateCastAtPlayer(m, target, now) && !w.runeTrackCastAtPlayer(m, target, now) {
+			w.mobAttackPlayer(m, target, now)
+		}
 	}
 }
 

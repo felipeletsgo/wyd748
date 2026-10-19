@@ -8,35 +8,32 @@ import (
 	"wydgo/internal/wire"
 )
 
-// Os quatro cristais elementais de Kefra, portados do volatile 187 nativo
-// (_MSG_UseItem.cpp:7184). Sao feitos como ARCH e cada um acrescenta 100
-// pontos ao futuro orcamento do Celestial. Eles NAO sao requisito para criar
-// o Celestial; o progresso fica em QuestInfo.Arch.Cristal.
+// The four Kefra elemental crystals originate from volatile 187 in the
+// historical source (_MSG_UseItem.cpp:7184). Each Arch oath adds 100 points
+// to the later Celestial budget. They are not an ascension prerequisite;
+// progress is stored in QuestInfo.Arch.Cristal.
 //
-// NOTA DE DIVERGENCIA: o `if` do nativo testa ClassMaster CELESTIAL. Aqui o
-// portao e ARCH porque o mesmo trecho exige nivel 355, inalcançavel pela
-// progressao Celestial 7.54 (cap interno 199). O campo no bloco Arch e o uso
-// posterior no calculo de pontos confirmam que se trata de progresso do Arch,
-// nao de uma trava da ascensao.
+// Historical-source divergence: its condition tests ClassMaster CELESTIAL.
+// This project gates on ARCH because that branch also requires level 355,
+// beyond the 7.54 Celestial progression's internal cap of 199. Its Arch field
+// and later point-budget use support treating this as Arch progress rather
+// than an ascension gate; this is not independent native 7.48 parity proof.
 const (
 	firstArchCrystal = uint16(4106) // Elime, Sylphid, Salion, Nohas
 	archCrystalCount = 4
-	// archCrystalExpCost e o preco de cada cristal. O nivel e RECALCULADO a
-	// partir da EXP reduzida, entao o personagem desce de nivel -- e assim no
-	// nativo, nao e efeito colateral.
+	// Each crystal costs experience. Recalculate the level from the reduced
+	// experience; the resulting level decrease is intentional.
 	archCrystalExpCost = uint32(100_000_000)
-	// archCrystalMinLevel e o nivel INTERNO minimo, na mesma convencao do
-	// archMinLevel do rei. O nativo exige BaseScore.Level >= 355
-	// (_MSG_UseItem.cpp:6362) e o texto do client repete "the ascension
-	// requirement is level 355".
+	// Minimum internal level, using the king's archMinLevel convention.
+	// Historical _MSG_UseItem.cpp:6362 requires BaseScore.Level >= 355;
+	// the client text also specifies an ascension requirement of level 355.
 	//
-	// O piso e conferido ANTES de descontar, e nao depois: como cada cristal
-	// rebaixa o nivel, verificar no fim deixaria o segundo em diante
-	// impossivel -- o proprio desconto derrubaria o personagem abaixo do piso.
+	// Check the minimum before deducting experience. Checking it afterwards
+	// would reject a valid oath because its own cost lowers the level.
 	archCrystalMinLevel = uint32(355)
 )
 
-// archCrystalStep devolve a posicao do cristal na sequencia (1..4).
+// archCrystalStep returns the crystal's position in the sequence (1..4).
 func archCrystalStep(index uint16) (byte, bool) {
 	if index < firstArchCrystal || index >= firstArchCrystal+archCrystalCount {
 		return 0, false
@@ -44,8 +41,8 @@ func archCrystalStep(index uint16) (byte, bool) {
 	return byte(index-firstArchCrystal) + 1, true
 }
 
-// levelForExp acha o nivel correspondente a uma EXP. Usado para REBAIXAR o
-// personagem depois do desconto: grantExp so sobe, nunca desce.
+// levelForExp finds the level for an experience total. It supports level
+// decreases after a deduction, unlike grantExp, which only increases levels.
 func levelForExp(exp uint32) uint32 {
 	level := uint32(0)
 	for i := 1; i < len(mortalNextLevel); i++ {
@@ -60,13 +57,13 @@ func levelForExp(exp uint32) uint32 {
 	return level
 }
 
-// useArchCrystal consome um cristal elemental. Ordem obrigatoria: o cristal N
-// so vale se os N-1 anteriores ja foram feitos.
+// useArchCrystal consumes an elemental crystal in sequence: crystal N
+// requires all N-1 preceding oaths.
 func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot byte, rule model.VolatileRule, code int) {
 	ch := p.Char
 	passo, ok := archCrystalStep(item.Index)
 	if !ok {
-		log.Printf("[#%d] cristal %d fora da faixa %d..%d", s.ID, item.Index,
+		log.Printf("[#%d] crystal %d outside range %d..%d", s.ID, item.Index,
 			firstArchCrystal, firstArchCrystal+archCrystalCount-1)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -91,11 +88,9 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
-	// GUARDA DE UNDERFLOW. Na pratica o piso de nivel 355 ja exige mais de 2
-	// bilhoes de EXP, muito acima do custo -- mas Exp e uint32, e sem esta
-	// checagem um estado inconsistente (edicao manual, tabela de nivel
-	// alterada, piso reduzido) faria `Exp -= custo` dar a volta para ~4
-	// bilhoes, presenteando o jogador em vez de cobra-lo.
+	// Guard unsigned underflow even if edited state or a changed level table
+	// violates the usual minimum-level experience assumptions. Wrapping a
+	// uint32 subtraction would reward experience instead of charging it.
 	if ch.Exp < archCrystalExpCost {
 		s.Send(wire.MessagePanel("You need 100 million experience for this oath."))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
@@ -114,27 +109,26 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 	}
 	w.recalcPlayer(ch)
 
-	// Persist-before-confirm: 100 milhoes de EXP e caro demais para sair sem
-	// estar em disco. Uma falha aqui devolve tudo.
+	// Persist before confirming this costly oath; restore all state on failure.
 	if err := w.saveAccount(p.Account); err != nil {
 		*item, ch.Exp = anteriorItem, anteriorExp
 		ch.Score.Level, ch.ArchCrystals = anteriorNivel, anteriorCristais
 		syncProgression(ch)
 		w.recalcPlayer(ch)
 		s.Send(wire.MessagePanel("Save failed. The oath was not taken."))
-		log.Printf("[#%d] ERRO ao salvar cristal %d: %v", s.ID, anteriorItem.Index, err)
+		log.Printf("[#%d] ERROR saving crystal %d: %v", s.ID, anteriorItem.Index, err)
 		return
 	}
 
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	// Score publication follows the source/stock ABI negotiated at login.
-	s.Send(wire.UpdateScore(p.ID, *ch))
+	s.Send(playerScorePacketForChar(p, ch))
 	s.Send(wire.UpdateEtc(p.ID, *ch))
 	w.syncPlayerVitalsToObservers(p)
 	if ch.ArchCrystals == archCrystalCount {
 		s.Send(wire.MessagePanel("The four oaths are complete."))
 	}
-	log.Printf("[#%d] CRISTAL %d (%d/%d) item=%d volatile=%d exp=%d->%d nivel=%d->%d",
+	log.Printf("[#%d] CRYSTAL %d (%d/%d) item=%d volatile=%d exp=%d->%d level=%d->%d",
 		s.ID, passo, ch.ArchCrystals, archCrystalCount, anteriorItem.Index, code,
 		anteriorExp, ch.Exp, anteriorNivel, ch.Score.Level)
 }

@@ -3,6 +3,7 @@
   "tipo": "monstro",
   "equip": {
     "rosto": {
+      "index": 277,
       "eff": [
         43,
         6,
@@ -10,10 +11,10 @@
         0,
         0,
         0
-      ],
-      "index": 277
+      ]
     },
     "elmo": {
+      "index": 278,
       "eff": [
         43,
         6,
@@ -21,10 +22,10 @@
         0,
         0,
         0
-      ],
-      "index": 278
+      ]
     },
     "armadura": {
+      "index": 279,
       "eff": [
         43,
         6,
@@ -32,10 +33,10 @@
         0,
         0,
         0
-      ],
-      "index": 279
+      ]
     },
     "calca": {
+      "index": 280,
       "eff": [
         43,
         6,
@@ -43,10 +44,10 @@
         0,
         0,
         0
-      ],
-      "index": 280
+      ]
     },
     "luva": {
+      "index": 281,
       "eff": [
         43,
         6,
@@ -54,10 +55,10 @@
         0,
         0,
         0
-      ],
-      "index": 281
+      ]
     },
     "bota": {
+      "index": 282,
       "eff": [
         43,
         6,
@@ -65,10 +66,10 @@
         0,
         0,
         0
-      ],
-      "index": 282
+      ]
     },
     "arma": {
+      "index": 943,
       "eff": [
         43,
         6,
@@ -76,18 +77,9 @@
         0,
         0,
         0
-      ],
-      "index": 943
+      ]
     },
     "escudo": {
-      "eff": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
-      ],
       "index": 0
     },
     "acessorio1": {
@@ -106,7 +98,15 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 0
+      "index": 786,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "montaria": {
       "index": 0
@@ -116,209 +116,32 @@
     }
   },
   "classInfo": 1,
-  "expReward": 17000,
+  "expReward": 5500,
   "score": {
     "version": 2,
-    "level": 84,
-    "attack": 115,
+    "level": 399,
+    "attack": 3600,
     "magicAttack": 0,
-    "defense": 296,
-    "maxHP": 3300,
+    "defense": 1820,
+    "maxHP": 24000,
     "maxMP": 0,
-    "curHP": 3300,
+    "curHP": 24000,
     "curMP": 0,
-    "str": 5,
-    "int": 70,
+    "str": 4,
+    "int": 100,
     "dex": 60,
-    "con": 400,
+    "con": 1500,
     "critical": 255,
-    "resistFire": 10,
-    "resistIce": 246,
-    "resistHoly": 236,
-    "resistThunder": 10,
     "saveMana": 255,
     "mastery": [
-      255,
+      123,
       7,
-      255,
+      123,
       7
     ],
-    "attackRun": 2
+    "attackRun": 3
   },
-  "carry": [
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    }
-  ],
-  "gold": 9999,
+  "gold": 500,
   "skillBar": [
     255,
     255,

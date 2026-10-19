@@ -57,6 +57,35 @@ the reservation, and resynchronizes both cells. Unknown outcomes retain failure
 containment and never acknowledge, replay, or roll back a potentially committed
 merge.
 
+## Item mouse shortcuts — October 18, 2026
+
+- Ctrl + right click: equip from inventory or unequip into the first fitting
+  inventory space, subject to the existing equipment requirements.
+- Shift + right click: move inventory to warehouse or warehouse to inventory
+  while the warehouse is open. Ctrl + left click remains a supported alias.
+- Shift + left click retains stack splitting. Plain right click retains item
+  use. Shift + right click retains fairy selling when the warehouse is closed.
+
+Ctrl takes precedence when both modifiers are held. Quick moves require an
+empty cursor and a hit inside the visible relevant grid; hidden/deleted parent
+panels cannot capture the shortcut. Warehouse moves also require an active
+warehouse NPC ID. Destination selection respects item footprint and visible
+Carry slots 0..62 or Cargo slots 0..119. Direct Cargo-to-Equip is not supported:
+move the item into inventory first.
+
+These gestures send the existing 20-byte `0x376` intention: `st/sp` is the
+destination, `dt/dp` is the origin, and warehouse moves include the NPC target
+ID. No optimistic grid mutation occurs; the existing authoritative server
+checks and acknowledgement flow apply. Full storage or rejected equipment
+does not fall through into a world action. Visible inventory and warehouse
+panels take priority over the Ctrl-right world interaction menu.
+
+Ctrl-right equipment behavior is proven in the native 7.48 binary. The
+Shift-right warehouse alias and input guards are compatible project changes,
+not a claim of independently established native Shift behavior. See the
+[equipment and shortcut evidence](../../.agents/research/client748/flows/ui/equipment-slot-compatibility.md).
+Installation, patch publication, and gameplay validation remain separate gates.
+
 ## CP and name policy
 
 Persisted signed CP is clamped to −75…+75. Each actual level increment awards

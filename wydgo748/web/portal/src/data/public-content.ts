@@ -3,8 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10035,
-  publishedAt: '2026-10-18',
+  patchVersion: 10036,
+  publishedAt: '2026-10-19',
+  serverUpdate: { id: 'instance-expiry-persistence', publishedAt: '2026-10-19' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -13,16 +14,49 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10035.zip',
-    sizeBytes: 846770,
-    sha256: '8172AFA041A234E8C01BD956DEB36591062E70EEE8A99B0A3FFCC62B24C77E2A',
-    executableSha256: '251CF754409F8AE4C0251C9FDD88EDA14C6799E78A377BD0665B6E858FDAFAB0',
+    url: '/patch/patch-10036.zip',
+    sizeBytes: 850509,
+    sha256: 'E4F2940353D425B0C6DEE0B7F3FC4C9F8A24305D1950EB03D6ED323DA2F4B49B',
+    executableSha256: 'B20510B20D34651D206C72340B96D2B7314D56B19072AC25678D37183889DE3D',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
 } as const;
 
 export const news = [
+  {
+    slug: 'client-controls-10036', date: '2026-10-19', category: 'News',
+    title: 'Patch 10036: keyboard and inventory shortcuts',
+    summary: 'Restore alternate keyboard controls, Auto Run, public guild affiliation and item-click shortcuts.',
+    paragraphs: [
+      'Alternate keyboard mode restores its modifier and consumable controls while keeping native text editing separate from gameplay actions. Number-row skill selection and assignment remain the project controls.',
+      'Auto Run follows the camera through the normal server-validated movement path. Apostrophe toggles public guild affiliation without leaving the guild or changing PK mode.',
+      'Ctrl+Right-click equips or unequips items. With the warehouse open, Shift+Right-click or Ctrl+Left-click transfers items; Shift+Left-click keeps stack splitting. The server still validates every inventory change.',
+      'Help includes the current English shortcut guide. Close the game and open WYDLauncher.exe to receive patch 10036. Automated build gates passed; actual gameplay acceptance remains pending.',
+    ],
+  },
+  {
+    slug: 'instance-expiry-persistence', date: '2026-10-19', category: 'News',
+    title: 'Server update: instance expiry persistence',
+    summary: 'Keep pending kill rewards and instance exits coordinated when an encounter expires.',
+    paragraphs: [
+      'Instance expiry now waits for pending kill settlement before retiring encounter monsters. Group exits remove room entities only after persistence confirms the exit.',
+      'This corrects a reproduced conflict that could put the server into maintenance and prevent login. Rewards, encounter deadlines and the fail-closed policy for uncertain saves are unchanged.',
+      'The server update includes the current Hell Gate and Rune Track implementation. Launcher patch 10036 separately delivers the pending control fixes; the persistence correction does not change the client protocol.',
+      'Automated regressions and isolated PostgreSQL tests passed. Actual gameplay acceptance remains pending.',
+    ],
+  },
+  {
+    slug: 'hell-gate-rune-track-759', date: '2026-10-18', category: 'News',
+    title: 'Server update: Hell Gate and Rune Track',
+    summary: 'Seven Rune Track rooms, independent rune rewards, event monsters and historical Hell Gate corrections.',
+    paragraphs: [
+      'Rune Track rooms +0 through +6 now use event-specific monsters with separate combat stats, EXP and drops. Each eligible recipient independently draws from the full historical reward pool for that room, regardless of party order; duplicate draws are possible.',
+      'Room mechanics include the Balrog portals, the hidden labyrinth passage and Freyja\'s gold donation through the existing amount-entry prompt. Imported monster skill bars now participate in combat.',
+      'Hell Gate receives historical infantry definitions and formations, mage skills and the Dionys sale request flow. Existing configured encounter balance and legacy-version recovery remain distinct from complete native parity.',
+      'This is a server-only update. The latest launcher patch remains 10035. Automated tests passed; in-game validation of every room, portal, donation prompt and encounter remains pending.',
+    ],
+  },
   {
     slug: 'client-safety-10035', date: '2026-10-18', category: 'News',
     title: 'Patch 10035: client stability safeguards',
@@ -330,6 +364,23 @@ export const news = [
 ] as const;
 
 export const changelog = [
+  { date: '2026-10-19', category: 'Client and server', title: 'Patch 10036 — keyboard and inventory shortcuts', entries: [
+    'Restore alternate keyboard accelerators, consumable controls and camera-directed Auto Run while preserving text-input priority.',
+    'Synchronize public guild affiliation with server acknowledgement; restore validated equipment and warehouse item-click shortcuts.',
+    'Ship three English Help assets alongside the client executable; preserve player settings and the launcher executable.',
+    'Automated build gates passed; actual gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-19', category: 'Server', title: 'Instance expiry persistence', entries: [
+    'Defer instance teardown while a pending kill still reserves a participant; retire room entities only after a confirmed group exit.',
+    'Preserve room state on certified exit rejection and retain fail-closed handling for uncertain persistence outcomes.',
+    'Keep existing rewards, instance timers and client protocol unchanged. Automated and isolated PostgreSQL checks passed; gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-18', category: 'Server', title: 'Hell Gate and Rune Track', entries: [
+    'Implement Rune Track rooms +0 through +6 with dedicated monsters, room objectives, portals and Freyja gold donations.',
+    'Draw each eligible player\'s rune independently from the full historical room pool, without party-position restrictions.',
+    'Dispatch imported caster skill bars; correct Hell Gate infantry, formation and Dionys sale handling.',
+    'Client patch remains 10035. Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
   { date: '2026-10-18', category: 'Client', title: 'Patch 10035 — client stability safeguards', entries: [
     'Validate packet/text boundaries and minimap uploads; clean UI draw lists after aborted frames.',
     'Serialize nested network notifications and clear nested effect-owner references during final actor removal.',

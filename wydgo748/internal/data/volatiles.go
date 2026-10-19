@@ -13,12 +13,12 @@ import (
 
 func validateInstanceSpawnShape(where, label string, spawns []model.VolatileInstanceSpawn) error {
 	if len(spawns) == 0 {
-		return fmt.Errorf("data: %s %s nao possui spawns", where, label)
+		return fmt.Errorf("data: %s %s has no spawns", where, label)
 	}
 	for n, spawn := range spawns {
 		if strings.TrimSpace(spawn.NPC) == "" || spawn.Count <= 0 ||
 			(spawn.X == 0) != (spawn.Y == 0) {
-			return fmt.Errorf("data: %s %s spawns[%d] invalido", where, label, n)
+			return fmt.Errorf("data: %s %s spawns[%d] invalid", where, label, n)
 		}
 	}
 	return nil
@@ -77,10 +77,8 @@ func ruleConfiguresInstance(rule model.VolatileRule) bool {
 		rule.Instance != nil || strings.TrimSpace(rule.InstanceRef) != ""
 }
 
-// LoadVolatilesWithInstances mantem duas fronteiras de conteudo explicitas:
-// volatilesPath configura os itens volateis comuns; instancesPath concentra
-// exclusivamente templates e ingressos de instancia. Misturar as categorias
-// falha no boot em vez de voltar a transformar volatiles.json num monolito.
+// LoadVolatilesWithInstances separates ordinary volatile rules from instance
+// templates and tickets. Mixing these categories fails at startup.
 func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 	items map[uint16]model.ItemDef, skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
 	file, err := readVolatileDataFile(volatilesPath)
@@ -89,20 +87,20 @@ func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 	}
 	if len(file.Instances) != 0 || len(file.EntryAreaSets) != 0 {
 		return model.VolatileCatalog{}, fmt.Errorf(
-			"data: %s nao pode declarar instances/entryAreaSets; use %s",
+			"data: %s must not declare instances/entryAreaSets; use %s",
 			volatilesPath, instancesPath)
 	}
 	for code, rule := range file.Rules {
 		if ruleConfiguresInstance(rule) {
 			return model.VolatileCatalog{}, fmt.Errorf(
-				"data: %s rules[%d] configura instancia; use %s",
+				"data: %s rules[%d] configures an instance; use %s",
 				volatilesPath, code, instancesPath)
 		}
 	}
 	for id, rule := range file.Items {
 		if ruleConfiguresInstance(rule) {
 			return model.VolatileCatalog{}, fmt.Errorf(
-				"data: %s items[%d] configura instancia; use %s",
+				"data: %s items[%d] configures an instance; use %s",
 				volatilesPath, id, instancesPath)
 		}
 	}
@@ -113,7 +111,7 @@ func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 	}
 	if !reflect.DeepEqual(instanceFile.Default, model.VolatileRule{}) {
 		return model.VolatileCatalog{}, fmt.Errorf(
-			"data: %s nao pode declarar default de volatile", instancesPath)
+			"data: %s must not declare a volatile default", instancesPath)
 	}
 	if file.Rules == nil {
 		file.Rules = make(map[int]model.VolatileRule)
@@ -124,11 +122,11 @@ func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 	for code, rule := range instanceFile.Rules {
 		if !strings.EqualFold(strings.TrimSpace(rule.Action), "instance_ticket") {
 			return model.VolatileCatalog{}, fmt.Errorf(
-				"data: %s rules[%d] deve usar action instance_ticket", instancesPath, code)
+				"data: %s rules[%d] must use action instance_ticket", instancesPath, code)
 		}
 		if _, duplicate := file.Rules[code]; duplicate {
 			return model.VolatileCatalog{}, fmt.Errorf(
-				"data: codigo volatile %d duplicado entre %s e %s",
+				"data: volatile code %d duplicated between %s and %s",
 				code, volatilesPath, instancesPath)
 		}
 		file.Rules[code] = rule
@@ -136,11 +134,11 @@ func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 	for id, rule := range instanceFile.Items {
 		if !strings.EqualFold(strings.TrimSpace(rule.Action), "instance_ticket") {
 			return model.VolatileCatalog{}, fmt.Errorf(
-				"data: %s items[%d] deve usar action instance_ticket", instancesPath, id)
+				"data: %s items[%d] must use action instance_ticket", instancesPath, id)
 		}
 		if _, duplicate := file.Items[id]; duplicate {
 			return model.VolatileCatalog{}, fmt.Errorf(
-				"data: item %d duplicado entre %s e %s", id, volatilesPath, instancesPath)
+				"data: item %d duplicated between %s and %s", id, volatilesPath, instancesPath)
 		}
 		file.Items[id] = rule
 	}
@@ -170,9 +168,8 @@ func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 	return loadVolatileData(file, items, skills)
 }
 
-// LoadVolatiles le apenas as funcoes de data/volatiles.json e descobre os itens
-// automaticamente no catalogo. Assim um item novo com EF_VOLATILE entra no
-// registro sem manter uma segunda lista manual e sujeita a divergencias.
+// LoadVolatiles reads ordinary volatile rules and discovers EF_VOLATILE items
+// directly from the catalog, avoiding a second manually maintained registry.
 func LoadVolatiles(path string, items map[uint16]model.ItemDef,
 	skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
 	file, err := readVolatileDataFile(path)
@@ -189,10 +186,10 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 	resolveInstance = func(ref string, stack map[string]bool) (model.VolatileInstance, error) {
 		raw, exists := file.Instances[ref]
 		if !exists {
-			return model.VolatileInstance{}, fmt.Errorf("data: referencia instancia inexistente %q", ref)
+			return model.VolatileInstance{}, fmt.Errorf("data: unknown instance reference %q", ref)
 		}
 		if stack[ref] {
-			return model.VolatileInstance{}, fmt.Errorf("data: ciclo em baseRef de instancia %q", ref)
+			return model.VolatileInstance{}, fmt.Errorf("data: cycle in instance baseRef %q", ref)
 		}
 		if strings.TrimSpace(raw.BaseRef) == "" {
 			return raw, nil
@@ -203,9 +200,8 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		if err != nil {
 			return model.VolatileInstance{}, err
 		}
-		// Variantes podem sobrescrever qualquer campo escalar que tenha valor e
-		// qualquer tabela que tenha sido declarada. Campos zero permanecem os do
-		// template base, que e o objetivo do alias de Cube.
+		// Variants override nonzero scalar fields and declared tables.
+		// Zero fields retain their base-template values, as Cube aliases require.
 		if raw.ID != "" {
 			base.ID = raw.ID
 		}
@@ -286,6 +282,7 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		}
 		if raw.Uxmal != nil {
 			uxmal := *raw.Uxmal
+			uxmal.Generators = append([]model.NPCGener(nil), raw.Uxmal.Generators...)
 			uxmal.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), raw.Uxmal.EntryAreas...)
 			uxmal.RoomPositions = make([][]model.VolatileDestination, len(raw.Uxmal.RoomPositions))
 			for index := range raw.Uxmal.RoomPositions {
@@ -346,39 +343,39 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 				areas, exists := file.EntryAreaSets[setName]
 				if !exists || len(areas) == 0 {
 					return rule, fmt.Errorf(
-						"data: %s referencia entryAreaSet inexistente %q", where, setName)
+						"data: %s unknown entryAreaSet reference %q", where, setName)
 				}
 				if len(rule.Instance.EntryAreas) != 0 {
 					return rule, fmt.Errorf(
-						"data: %s combina entryAreaSet com entryAreas", where)
+						"data: %s combines entryAreaSet with entryAreas", where)
 				}
 				rule.Instance.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), areas...)
 			}
 			if rule.Instance.ChainStart &&
 				!strings.HasPrefix(strings.ToLower(strings.TrimSpace(rule.Instance.ID)), "water-") {
-				return rule, fmt.Errorf("data: %s chainStart so pode ser usado por instancia Water", where)
+				return rule, fmt.Errorf("data: %s chainStart is only supported by Water instances", where)
 			}
 		}
 		if !validVolatileActions[rule.Action] {
-			return rule, fmt.Errorf("data: %s possui action desconhecida %q", where, rule.Action)
+			return rule, fmt.Errorf("data: %s has unknown action %q", where, rule.Action)
 		}
 		if rule.CustomPattern && (rule.Action != "firework" || !rule.Consume) {
 			return rule, fmt.Errorf(
-				"data: %s customPattern exige firework com consume=true", where)
+				"data: %s customPattern requires firework with consume=true", where)
 		}
 		if rule.Action == "teleport" && (rule.X == 0 || rule.Y == 0) {
-			return rule, fmt.Errorf("data: %s teleport exige x/y positivos", where)
+			return rule, fmt.Errorf("data: %s teleport requires x/y positive", where)
 		}
 		if rule.Action == "hunting_teleport" && len(rule.Destinations) != 10 {
-			return rule, fmt.Errorf("data: %s hunting_teleport exige exatamente 10 destinos", where)
+			return rule, fmt.Errorf("data: %s hunting_teleport requires exactly 10 destinations", where)
 		}
 		if rule.Action == "learn_special_skill" && (rule.LearnedBit < 25 || rule.LearnedBit > 29) {
-			return rule, fmt.Errorf("data: %s learn_special_skill exige learnedBit 25..29", where)
+			return rule, fmt.Errorf("data: %s learn_special_skill requires learnedBit 25..29", where)
 		}
 		if rule.Action == "summon_contract" {
 			if rule.Summon == nil || rule.Summon.Name == "" || rule.Summon.Group == "" ||
 				rule.Summon.Face == 0 || rule.Summon.HP == 0 || rule.Summon.AttackRange <= 0 {
-				return rule, fmt.Errorf("data: %s summon_contract possui template incompleto", where)
+				return rule, fmt.Errorf("data: %s summon_contract has template incomplete", where)
 			}
 		}
 		if rule.Action == "buff" {
@@ -386,188 +383,188 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 			hasPackage := len(rule.Affects) > 0
 			if hasSingle == hasPackage {
 				return rule, fmt.Errorf(
-					"data: %s buff exige exatamente affectType ou affects", where)
+					"data: %s buff requires exactly one of affectType or affects", where)
 			}
 			if hasSingle && (rule.AffectType > 255 || rule.DurationUnits <= 0) {
 				return rule, fmt.Errorf(
-					"data: %s buff singular possui affectType/durationUnits invalido", where)
+					"data: %s buff single has affectType/durationUnits invalid", where)
 			}
 			for index, affect := range rule.Affects {
 				hasType := affect.Type > 0 && affect.Type <= 255
 				hasSkill := affect.SkillID > 0
 				if hasType == hasSkill || affect.DurationUnits <= 0 {
 					return rule, fmt.Errorf(
-						"data: %s affects[%d] invalido", where, index)
+						"data: %s affects[%d] invalid", where, index)
 				}
 				if hasSkill {
 					skill, exists := skills[affect.SkillID]
 					if !exists || skill.AffectType <= 0 || skill.AffectType > 255 {
 						return rule, fmt.Errorf(
-							"data: %s affects[%d] referencia skill %d sem affect",
+							"data: %s affects[%d] references skill %d without an affect",
 							where, index, affect.SkillID)
 					}
 				}
 			}
 		}
 		if rule.Accumulate && rule.MaxDurationUnits <= 0 {
-			return rule, fmt.Errorf("data: %s accumulate exige maxDurationUnits positivo", where)
+			return rule, fmt.Errorf("data: %s accumulate requires maxDurationUnits positive", where)
 		}
 		if rule.Action == "grant_exp" && rule.Exp == 0 {
-			return rule, fmt.Errorf("data: %s grant_exp exige exp positivo", where)
+			return rule, fmt.Errorf("data: %s grant_exp requires exp positive", where)
 		}
 		if rule.Action == "equipment_gem" &&
 			(rule.Variant < 0 || rule.Variant > 3 || !rule.Consume) {
-			return rule, fmt.Errorf("data: %s equipment_gem exige variant 0..3 e consume=true", where)
+			return rule, fmt.Errorf("data: %s equipment_gem requires variant 0..3 and consume=true", where)
 		}
 		if rule.Action == "ore_upgrade" &&
 			(rule.Variant < 0 || rule.Variant > 3 || rule.SuccessPercent < 1 ||
 				rule.SuccessPercent > 100 || !rule.Consume) {
-			return rule, fmt.Errorf("data: %s ore_upgrade exige variant 0..3, chance 1..100 e consume=true", where)
+			return rule, fmt.Errorf("data: %s ore_upgrade requires variant 0..3, chance 1..100 and consume=true", where)
 		}
 		if (rule.Action == "grant_counter" || rule.Action == "grant_counter_once") &&
 			len(rule.Counters) == 0 {
-			return rule, fmt.Errorf("data: %s %s exige counters", where, rule.Action)
+			return rule, fmt.Errorf("data: %s %s requires counters", where, rule.Action)
 		}
 		if rule.Action == "grant_counter_once" {
 			for _, itemID := range rule.RewardItems {
 				if _, exists := items[itemID]; !exists {
 					return rule, fmt.Errorf(
-						"data: %s grant_counter_once recompensa item inexistente %d",
+						"data: %s grant_counter_once rewards unknown item %d",
 						where, itemID)
 				}
 			}
 		}
 		if rule.Action == "loot_box" {
 			if len(rule.RewardItems) == 0 {
-				return rule, fmt.Errorf("data: %s loot_box exige rewardItems", where)
+				return rule, fmt.Errorf("data: %s loot_box requires rewardItems", where)
 			}
 			for _, itemID := range rule.RewardItems {
 				if itemID == 0 {
-					return rule, fmt.Errorf("data: %s loot_box possui recompensa zero", where)
+					return rule, fmt.Errorf("data: %s loot_box has a zero reward", where)
 				}
 				if _, exists := items[itemID]; !exists {
 					return rule, fmt.Errorf(
-						"data: %s loot_box recompensa item inexistente %d", where, itemID)
+						"data: %s loot_box rewards unknown item %d", where, itemID)
 				}
 			}
 		}
 		if rule.Action == "timed_access" &&
 			(strings.TrimSpace(rule.AccessKey) == "" || rule.DurationSeconds <= 0) {
 			return rule, fmt.Errorf(
-				"data: %s timed_access exige accessKey e durationSeconds positivos", where)
+				"data: %s timed_access requires accessKey and durationSeconds positive", where)
 		}
 		if rule.PartyMode != "" && rule.PartyMode != "party" && rule.PartyMode != "solo" {
-			return rule, fmt.Errorf("data: %s possui partyMode invalido %q", where, rule.PartyMode)
+			return rule, fmt.Errorf("data: %s has partyMode invalid %q", where, rule.PartyMode)
 		}
 		if rule.Action == "mastery_reset" &&
 			(rule.Amount <= 0 || rule.MaxLevelExclusive <= rule.MinLevel) {
-			return rule, fmt.Errorf("data: %s mastery_reset exige amount e faixa de nivel validos", where)
+			return rule, fmt.Errorf("data: %s mastery_reset requires a positive amount and valid level range", where)
 		}
 		if rule.Action == "territory_pass" &&
 			(rule.X == 0 || rule.Y == 0 || rule.RequiredEvolution == "") {
-			return rule, fmt.Errorf("data: %s territory_pass exige x/y e requiredEvolution", where)
+			return rule, fmt.Errorf("data: %s territory_pass requires x/y and requiredEvolution", where)
 		}
 		if rule.Action == "quest_reward" {
 			if rule.Exp == 0 {
-				return rule, fmt.Errorf("data: %s quest_reward exige exp positivo", where)
+				return rule, fmt.Errorf("data: %s quest_reward requires exp positive", where)
 			}
 			if rule.MaxLevelExclusive <= rule.MinLevel {
 				return rule, fmt.Errorf(
-					"data: %s quest_reward exige maxLevelExclusive maior que minLevel", where)
+					"data: %s quest_reward requires maxLevelExclusive greater than minLevel", where)
 			}
 		}
 		if (rule.Action == "refine" || rule.Action == "refine_set") &&
 			(rule.RefineMax <= 0 || rule.RefineMax > 15) {
-			return rule, fmt.Errorf("data: %s %s exige refineMax entre 1 e 15", where, rule.Action)
+			return rule, fmt.Errorf("data: %s %s requires refineMax between 1 and 15", where, rule.Action)
 		}
 		if rule.RefineTenChance < 0 || rule.RefineTenChance > 100 ||
 			rule.RefineTenChance != 0 && rule.Action != "refine" {
 			return rule, fmt.Errorf("data: %s refineTenChance must be 0..100 on a refine rule", where)
 		}
 		if rule.OnceQuestID != 0 && rule.Action != "refine_set" {
-			return rule, fmt.Errorf("data: %s onceQuestId so pode ser usado por refine_set", where)
+			return rule, fmt.Errorf("data: %s onceQuestId is only supported by refine_set", where)
 		}
 		if rule.Action == "refine_set" {
 			if !rule.MortalOnly || rule.OnceQuestID == 0 {
-				return rule, fmt.Errorf("data: %s refine_set exige mortalOnly e onceQuestId", where)
+				return rule, fmt.Errorf("data: %s refine_set requires mortalOnly and onceQuestId", where)
 			}
 			if rule.MaxLevelExclusive != 0 && rule.MaxLevelExclusive <= rule.MinLevel {
-				return rule, fmt.Errorf("data: %s refine_set possui faixa de nivel invalida", where)
+				return rule, fmt.Errorf("data: %s refine_set has level range invalid", where)
 			}
 		}
 		if rule.Action == "refine_equipped" &&
 			(rule.RefineMax <= 0 || rule.RefineMax > 15 ||
 				rule.TargetSlot < 0 || rule.TargetSlot >= 16 || len(rule.TargetItems) == 0) {
-			return rule, fmt.Errorf("data: %s refine_equipped possui alvo/teto invalidos", where)
+			return rule, fmt.Errorf("data: %s refine_equipped has invalid target/ceiling", where)
 		}
 		if rule.Action == "nightmare_ticket" &&
 			(rule.Amount <= 0 || rule.CooldownSeconds <= 0) {
-			return rule, fmt.Errorf("data: %s nightmare_ticket exige amount e cooldownSeconds positivos", where)
+			return rule, fmt.Errorf("data: %s nightmare_ticket requires amount and cooldownSeconds positive", where)
 		}
 		if rule.Action == "instance_ticket" {
 			i := rule.Instance
 			if i == nil || i.ID == "" || i.Name == "" ||
 				i.ExitX == 0 || i.ExitY == 0 ||
 				(len(i.Stages) == 0 && i.DurationSeconds <= 0) {
-				return rule, fmt.Errorf("data: %s instance_ticket possui template incompleto", where)
+				return rule, fmt.Errorf("data: %s instance_ticket has template incomplete", where)
 			}
 			switch tier := strings.ToLower(strings.TrimSpace(i.NightmareTier)); tier {
 			case "", "normal", "mystic", "arcane":
 			default:
-				return rule, fmt.Errorf("data: %s nightmareTier invalido %q", where, i.NightmareTier)
+				return rule, fmt.Errorf("data: %s nightmareTier invalid %q", where, i.NightmareTier)
 			}
 			// Nightmare allows three native parties of up to thirteen members
 			// in the same timed zone. Private instances keep their own lower
 			// limit in data.
 			if i.MaxPlayers < 0 || i.MaxPlayers > 39 {
 				return rule, fmt.Errorf(
-					"data: %s instance_ticket possui maxPlayers fora de 0..39", where)
+					"data: %s instance_ticket has maxPlayers outside 0..39", where)
 			}
 			if i.SharedEntry && i.MaxPlayers <= 0 {
 				return rule, fmt.Errorf(
-					"data: %s instance_ticket compartilhada exige maxPlayers positivo", where)
+					"data: %s instance_ticket shared requires maxPlayers positive", where)
 			}
 			if i.TotalDurationSeconds < 0 {
 				return rule, fmt.Errorf(
-					"data: %s instance_ticket possui totalDurationSeconds negativo", where)
+					"data: %s instance_ticket has totalDurationSeconds negative", where)
 			}
 			if i.ActiveDurationSeconds < 0 {
 				return rule, fmt.Errorf(
-					"data: %s instance_ticket possui activeDurationSeconds negativo", where)
+					"data: %s instance_ticket has activeDurationSeconds negative", where)
 			}
 			if i.PartyRunLimit < 0 || i.PartyRunLimit > 1000 {
 				return rule, fmt.Errorf(
-					"data: %s instance_ticket possui partyRunLimit invalido", where)
+					"data: %s instance_ticket has partyRunLimit invalid", where)
 			}
 			switch mode := strings.ToLower(strings.TrimSpace(i.Mode)); mode {
 			case "", "private_chain", "private_shared_entry", "shared_timed_zone", "state_machine":
 			default:
-				return rule, fmt.Errorf("data: %s possui mode de instancia invalido %q", where, i.Mode)
+				return rule, fmt.Errorf("data: %s has instance mode invalid %q", where, i.Mode)
 			}
 			switch policy := strings.ToLower(strings.TrimSpace(i.FinishPolicy)); policy {
 			case "", "finish_on_clear", "finish_on_timeout", "advance_on_clear", "respawn_until_timeout", "state_machine":
 			default:
-				return rule, fmt.Errorf("data: %s possui finishPolicy invalido %q", where, i.FinishPolicy)
+				return rule, fmt.Errorf("data: %s has finishPolicy invalid %q", where, i.FinishPolicy)
 			}
 			if i.Mode == "shared_timed_zone" && strings.TrimSpace(i.SharedGroup) == "" {
-				return rule, fmt.Errorf("data: %s shared_timed_zone exige sharedGroup", where)
+				return rule, fmt.Errorf("data: %s shared_timed_zone requires sharedGroup", where)
 			}
 			switch machine := strings.ToLower(strings.TrimSpace(i.StateMachine)); machine {
 			case "":
 			case "hell_gate":
 				if i.HellGate == nil || strings.TrimSpace(i.HellGate.ControllerNPC) == "" ||
 					len(i.HellGate.Quadrants) != 4 {
-					return rule, fmt.Errorf("data: %s hell_gate exige controlador e quatro quadrantes", where)
+					return rule, fmt.Errorf("data: %s hell_gate requires a controller and four quadrants", where)
 				}
 				seenQuadrants := make(map[int]struct{}, len(i.HellGate.Quadrants))
 				for q, quadrant := range i.HellGate.Quadrants {
 					if quadrant.ID < 1 || quadrant.ID > 4 || quadrant.X == 0 || quadrant.Y == 0 ||
 						quadrant.SpawnX == 0 || quadrant.SpawnY == 0 || quadrant.AreaRadius <= 0 ||
 						quadrant.Lich.NPC == "" || quadrant.Lich.Count != 1 {
-						return rule, fmt.Errorf("data: %s hell_gate quadrante[%d] incompleto", where, q)
+						return rule, fmt.Errorf("data: %s hell_gate quadrant[%d] incomplete", where, q)
 					}
 					if _, duplicate := seenQuadrants[quadrant.ID]; duplicate {
-						return rule, fmt.Errorf("data: %s hell_gate quadrante[%d] duplicado", where, q)
+						return rule, fmt.Errorf("data: %s hell_gate quadrant[%d] duplicate", where, q)
 					}
 					seenQuadrants[quadrant.ID] = struct{}{}
 					if err := validateInstanceSpawnShape(where, fmt.Sprintf("hell_gate quadrants[%d]", q), quadrant.Spawns); err != nil {
@@ -581,11 +578,11 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 				}
 				for id := 1; id <= 4; id++ {
 					if _, ok := seenQuadrants[id]; !ok {
-						return rule, fmt.Errorf("data: %s hell_gate quadrante %d ausente", where, id)
+						return rule, fmt.Errorf("data: %s hell_gate quadrant %d missing", where, id)
 					}
 				}
 				if len(i.HellGate.FinalSpawns) == 0 && len(i.HellGate.FinalNPCs) == 0 {
-					return rule, fmt.Errorf("data: %s hell_gate exige onda ou NPC final", where)
+					return rule, fmt.Errorf("data: %s hell_gate requires a final wave or NPC", where)
 				}
 				if len(i.HellGate.FinalSpawns) > 0 {
 					if err := validateInstanceSpawnShape(where, "hell_gate finalSpawns", i.HellGate.FinalSpawns); err != nil {
@@ -603,14 +600,14 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 				// stage is allowed to have zero NPC spawns; the game opens the quiz
 				// immediately after the ticket commit.
 				if len(i.Stages) == 0 || !i.NoCombatTimeout {
-					return rule, fmt.Errorf("data: %s big_cube exige stages e noCombatTimeout", where)
+					return rule, fmt.Errorf("data: %s big_cube requires stages and noCombatTimeout", where)
 				}
 				for stageIndex, stage := range i.Stages {
 					if stage.Quiz == nil {
-						return rule, fmt.Errorf("data: %s big_cube stages[%d] exige quiz", where, stageIndex)
+						return rule, fmt.Errorf("data: %s big_cube stages[%d] requires quiz", where, stageIndex)
 					}
 					if len(stage.Spawns) > 0 {
-						return rule, fmt.Errorf("data: %s big_cube stages[%d] nao pode possuir mobs", where, stageIndex)
+						return rule, fmt.Errorf("data: %s big_cube stages[%d] must not contain mobs", where, stageIndex)
 					}
 				}
 			case "uxmal":
@@ -618,75 +615,79 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 					i.Uxmal.TicketItem == 0 || len(i.Uxmal.RoomPositions) != 7 ||
 					len(i.Uxmal.MaxParties) != 7 || len(i.Uxmal.Runes) != 7 ||
 					len(i.Uxmal.TicketNextSanc) != 7 || len(i.Stages) != 7 {
-					return rule, fmt.Errorf("data: %s uxmal exige NPC, ticket e sete salas completas", where)
+					return rule, fmt.Errorf("data: %s uxmal requires an NPC, a ticket and seven complete rooms", where)
 				}
 				if _, exists := items[i.Uxmal.TicketItem]; !exists {
-					return rule, fmt.Errorf("data: %s uxmal ticket %d ausente no catalogo", where, i.Uxmal.TicketItem)
+					return rule, fmt.Errorf("data: %s uxmal ticket %d missing from the catalog", where, i.Uxmal.TicketItem)
 				}
 				for areaIndex, area := range i.Uxmal.EntryAreas {
 					if area.MinX == 0 || area.MinY == 0 || area.MaxX < area.MinX || area.MaxY < area.MinY {
-						return rule, fmt.Errorf("data: %s uxmal entryAreas[%d] invalida", where, areaIndex)
+						return rule, fmt.Errorf("data: %s uxmal entryAreas[%d] invalid", where, areaIndex)
 					}
 				}
 				for room := range i.Stages {
-					if len(i.Uxmal.RoomPositions[room]) != 3 || i.Uxmal.MaxParties[room] < 1 || i.Uxmal.MaxParties[room] > 3 ||
+					limit := 3
+					if i.Uxmal.Version == 759 && room == 4 {
+						limit = 4
+					}
+					if len(i.Uxmal.RoomPositions[room]) < i.Uxmal.MaxParties[room] || i.Uxmal.MaxParties[room] < 1 || i.Uxmal.MaxParties[room] > limit ||
 						len(i.Uxmal.Runes[room]) == 0 || i.Uxmal.TicketNextSanc[room] < 0 || i.Uxmal.TicketNextSanc[room] > 6 {
-						return rule, fmt.Errorf("data: %s uxmal sala[%d] possui tabela invalida", where, room)
+						return rule, fmt.Errorf("data: %s uxmal room[%d] has a table that is invalid", where, room)
 					}
 					for slot, position := range i.Uxmal.RoomPositions[room] {
 						if position.X == 0 || position.Y == 0 {
-							return rule, fmt.Errorf("data: %s uxmal sala[%d] posicao[%d] invalida", where, room, slot)
+							return rule, fmt.Errorf("data: %s uxmal room[%d] position[%d] invalid", where, room, slot)
 						}
 					}
 					for _, itemID := range i.Uxmal.Runes[room] {
 						if itemID == 0 {
-							return rule, fmt.Errorf("data: %s uxmal sala[%d] possui rune zero", where, room)
+							return rule, fmt.Errorf("data: %s uxmal room[%d] contains a zero rune", where, room)
 						}
 						if _, exists := items[itemID]; !exists {
-							return rule, fmt.Errorf("data: %s uxmal rune %d ausente no catalogo", where, itemID)
+							return rule, fmt.Errorf("data: %s uxmal rune %d missing from the catalog", where, itemID)
 						}
 					}
 				}
 			default:
-				return rule, fmt.Errorf("data: %s stateMachine invalida %q", where, i.StateMachine)
+				return rule, fmt.Errorf("data: %s stateMachine invalid %q", where, i.StateMachine)
 			}
 			if i.Mode == "state_machine" && strings.TrimSpace(i.SharedGroup) != "" &&
 				i.ExclusiveGroup == strings.TrimSpace(i.SharedGroup) {
-				return rule, fmt.Errorf("data: %s nao pode reutilizar sharedGroup como exclusiveGroup", where)
+				return rule, fmt.Errorf("data: %s must not reuse sharedGroup as exclusiveGroup", where)
 			}
 			for areaIndex, area := range i.EntryAreas {
 				if area.MinX == 0 || area.MinY == 0 || area.MaxX < area.MinX ||
 					area.MaxY < area.MinY {
 					return rule, fmt.Errorf(
-						"data: %s entryAreas[%d] invalida", where, areaIndex)
+						"data: %s entryAreas[%d] invalid", where, areaIndex)
 				}
 			}
 			for windowIndex, window := range i.Schedule {
 				if window.StartMinute < 0 || window.StartMinute > 59 ||
 					window.DurationSeconds <= 0 || window.DurationSeconds > 3600 {
 					return rule, fmt.Errorf(
-						"data: %s schedule[%d] invalida", where, windowIndex)
+						"data: %s schedule[%d] invalid", where, windowIndex)
 				}
 			}
 			if len(i.Stages) == 0 {
 				if i.X == 0 || i.Y == 0 || i.SpawnX == 0 || i.SpawnY == 0 ||
 					i.AreaRadius <= 0 || len(i.Spawns) == 0 {
 					return rule, fmt.Errorf(
-						"data: %s instance_ticket possui sala unica incompleta", where)
+						"data: %s instance_ticket has an incomplete single room", where)
 				}
 			}
 			validateSpawns := func(label string, spawns []model.VolatileInstanceSpawn) error {
 				if len(spawns) == 0 {
-					return fmt.Errorf("data: %s %s nao possui spawns", where, label)
+					return fmt.Errorf("data: %s %s has no spawns", where, label)
 				}
 				for n, spawn := range spawns {
 					if strings.TrimSpace(spawn.NPC) == "" || spawn.Count <= 0 {
 						return fmt.Errorf(
-							"data: %s %s spawns[%d] invalido", where, label, n)
+							"data: %s %s spawns[%d] invalid", where, label, n)
 					}
 					if (spawn.X == 0) != (spawn.Y == 0) {
 						return fmt.Errorf(
-							"data: %s %s spawns[%d] possui coordenada parcial",
+							"data: %s %s spawns[%d] has a partial coordinate",
 							where, label, n)
 					}
 				}
@@ -702,9 +703,10 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 						stage.SpawnY == 0 || stage.AreaRadius <= 0 ||
 						(stage.DurationSeconds <= 0 && i.DurationSeconds <= 0 && !i.NoCombatTimeout) {
 						return rule, fmt.Errorf(
-							"data: %s instance_ticket stages[%d] incompleto", where, stageIndex)
+							"data: %s instance_ticket stages[%d] incomplete", where, stageIndex)
 					}
-					if !strings.EqualFold(strings.TrimSpace(i.StateMachine), "big_cube") {
+					if !strings.EqualFold(strings.TrimSpace(i.StateMachine), "big_cube") &&
+						!(i.StateMachine == "uxmal" && i.Uxmal != nil && i.Uxmal.Version == 759) {
 						if err := validateSpawns(
 							fmt.Sprintf("instance_ticket stages[%d]", stageIndex), stage.Spawns); err != nil {
 							return rule, err
@@ -722,7 +724,7 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 						if strings.TrimSpace(q.Question) == "" || q.DurationSeconds <= 0 ||
 							q.TrueX == 0 || q.TrueY == 0 || q.FalseX == 0 || q.FalseY == 0 {
 							return rule, fmt.Errorf(
-								"data: %s instance_ticket stages[%d] possui quiz incompleto",
+								"data: %s instance_ticket stages[%d] has quiz incomplete",
 								where, stageIndex)
 						}
 					}
@@ -733,47 +735,47 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 				case "mortal", "arch", "celestial", "subcelestial":
 				default:
 					return rule, fmt.Errorf(
-						"data: %s instance_ticket possui evolucao invalida %q",
+						"data: %s instance_ticket has evolution invalid %q",
 						where, evolution)
 				}
 			}
 			if i.RewardItem != 0 {
 				if _, exists := items[i.RewardItem]; !exists {
 					return rule, fmt.Errorf(
-						"data: %s instance_ticket recompensa item inexistente %d",
+						"data: %s instance_ticket rewards unknown item %d",
 						where, i.RewardItem)
 				}
 			}
 			if i.ChainNextItem != 0 {
 				if _, exists := items[i.ChainNextItem]; !exists {
 					return rule, fmt.Errorf(
-						"data: %s instance_ticket chainNextItem inexistente %d",
+						"data: %s instance_ticket unknown chainNextItem %d",
 						where, i.ChainNextItem)
 				}
 				if i.ChainNextItem == i.RewardItem {
 					return rule, fmt.Errorf(
-						"data: %s instance_ticket chainNextItem duplica rewardItem %d",
+						"data: %s instance_ticket chainNextItem duplicates rewardItem %d",
 						where, i.ChainNextItem)
 				}
 			}
 		}
 		if rule.Action == "face_transform" && rule.FaceMesh <= 0 {
-			return rule, fmt.Errorf("data: %s face_transform exige faceMesh positivo", where)
+			return rule, fmt.Errorf("data: %s face_transform requires faceMesh positive", where)
 		}
 		if rule.Action == "tint" && (rule.Color < 116 || rule.Color > 125) {
-			return rule, fmt.Errorf("data: %s tint exige color entre 116 e 125", where)
+			return rule, fmt.Errorf("data: %s tint requires color between 116 and 125", where)
 		}
 		if rule.Action == "mount" {
 			if !validMountActions[rule.MountAction] {
-				return rule, fmt.Errorf("data: %s mount exige mountAction valido, veio %q", where, rule.MountAction)
+				return rule, fmt.Errorf("data: %s mount requires a valid mountAction; got %q", where, rule.MountAction)
 			}
 			if rule.MountAction == "longevity_restore" && rule.Amount <= 0 {
-				return rule, fmt.Errorf("data: %s mount longevity_restore exige amount positivo", where)
+				return rule, fmt.Errorf("data: %s mount longevity_restore requires amount positive", where)
 			}
 			if rule.MountAction == "level_set" &&
 				(rule.Amount <= 0 || rule.Amount > model.MountMaxLevel ||
 					rule.MountMinLevel < 0 || rule.MountMinLevel >= rule.Amount) {
-				return rule, fmt.Errorf("data: %s mount level_set possui nivel alvo/minimo invalido", where)
+				return rule, fmt.Errorf("data: %s mount level_set has target/minimum level invalid", where)
 			}
 		}
 		return rule, nil
@@ -784,7 +786,7 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 	}
 	for code, rule := range file.Rules {
 		if code < 0 || code > 255 {
-			return model.VolatileCatalog{}, fmt.Errorf("data: codigo volatile invalido %d", code)
+			return model.VolatileCatalog{}, fmt.Errorf("data: volatile code invalid %d", code)
 		}
 		rule, err = normalize(fmt.Sprintf("rules[%d]", code), rule)
 		if err != nil {
@@ -814,7 +816,7 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 	}
 	for id, rule := range file.Items {
 		if _, ok := result.ItemCodes[id]; !ok {
-			return model.VolatileCatalog{}, fmt.Errorf("data: items[%d] nao possui EF_VOLATILE no itemlist", id)
+			return model.VolatileCatalog{}, fmt.Errorf("data: items[%d] has no EF_VOLATILE in itemlist", id)
 		}
 		rule, err = normalize(fmt.Sprintf("items[%d]", id), rule)
 		if err != nil {
@@ -822,9 +824,8 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		}
 		result.Items[id] = rule
 	}
-	// Instancias nomeadas tambem podem ser abertas por um NPC. Materialize-as
-	// com o mesmo resolvedor de BaseRef e passe-as pelo contrato de instancia
-	// sem exigir que exista um item com EF_VOLATILE apontando para elas.
+	// NPCs can open named instances without an EF_VOLATILE item. Resolve their
+	// BaseRef and validate them against the same instance contract.
 	for name := range file.Instances {
 		instance, resolveErr := resolveInstance(name, make(map[string]bool))
 		if resolveErr != nil {
@@ -838,9 +839,8 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		}
 		result.Instances[name] = *normalized.Instance
 	}
-	// Vários ingressos podem compartilhar a mesma sala (Cube Mystic/Arcane,
-	// Hell Gate solo/party), mas o mesmo ID nunca pode apontar para dois
-	// layouts diferentes: o mapa runtime é indexado por esse ID.
+	// Tickets may share a room, but one ID must never identify two layouts:
+	// the runtime map is keyed by this ID.
 	instanceDefs := make(map[string]model.VolatileInstance)
 	checkInstance := func(where string, rule model.VolatileRule) error {
 		if rule.Action != "instance_ticket" || rule.Instance == nil {
@@ -849,7 +849,7 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		if previous, exists := instanceDefs[rule.Instance.ID]; exists {
 			if !reflect.DeepEqual(previous, *rule.Instance) {
 				return fmt.Errorf(
-					"data: instancia %q possui configuracoes divergentes (%s)",
+					"data: instance %q has conflicting configurations (%s)",
 					rule.Instance.ID, where)
 			}
 			return nil
@@ -886,12 +886,12 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		}
 		target, _, ok := result.Rule(rule.Instance.ChainNextItem)
 		if !ok || target.Action != "instance_ticket" || target.Instance == nil {
-			return fmt.Errorf("data: %s chainNextItem %d nao e instance_ticket", where,
+			return fmt.Errorf("data: %s chainNextItem %d is not instance_ticket", where,
 				rule.Instance.ChainNextItem)
 		}
 		fromFamily, toFamily := waterFamily(rule.Instance.ID), waterFamily(target.Instance.ID)
 		if fromFamily != "" && fromFamily != toFamily {
-			return fmt.Errorf("data: %s chainNextItem %d cruza tier Water (%s -> %s)",
+			return fmt.Errorf("data: %s chainNextItem %d crosses Water tiers (%s -> %s)",
 				where, rule.Instance.ChainNextItem, fromFamily, toFamily)
 		}
 		return nil

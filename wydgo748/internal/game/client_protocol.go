@@ -1,9 +1,27 @@
 package game
 
 import (
+	"wydgo/internal/model"
 	gameNet "wydgo/internal/net"
 	"wydgo/internal/wire"
 )
+
+// clientGuildProjection keeps the authoritative membership fields intact
+// while applying the native runtime-only public affiliation mask.
+func clientGuildProjection(p *Player, ch model.Char) model.Char {
+	if p != nil && p.GuildDisable {
+		ch.GuildID = 0
+		ch.GuildRank = 0
+	}
+	return ch
+}
+
+func playerScorePacketForChar(p *Player, ch *model.Char) []byte {
+	if p == nil || p.Session == nil || ch == nil {
+		return nil
+	}
+	return wire.UpdateScore(p.ID, clientGuildProjection(p, *ch))
+}
 
 // playerScorePacket is the only private score publication path for a live
 // player. Keeping the ABI choice next to the recipient prevents a source
@@ -12,7 +30,7 @@ func playerScorePacket(p *Player) []byte {
 	if p == nil || p.Session == nil || p.Char == nil {
 		return nil
 	}
-	return wire.UpdateScore(p.ID, *p.Char)
+	return playerScorePacketForChar(p, p.Char)
 }
 
 // playerAffectsPacket follows the same recipient-owned ABI rule as score.
@@ -29,7 +47,7 @@ func observedPlayerScorePacket(observer, subject *Player) []byte {
 	if observer == nil || observer.Session == nil || subject == nil || subject.Char == nil {
 		return nil
 	}
-	return wire.UpdateScore(subject.ID, *subject.Char)
+	return wire.UpdateScore(subject.ID, clientGuildProjection(subject, *subject.Char))
 }
 
 // selectionUpdatePacket rebuilds the four-character selection aggregate after

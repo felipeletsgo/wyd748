@@ -74,7 +74,8 @@ func criticalTreasuryFixture(t *testing.T, amount uint64) (*World, *Player, *Mob
 	w, p, _ := handlerTestWorld(t)
 	w.clock = newFakeClock(time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC))
 	collector := configureCriticalTreasury(w, p, amount)
-	w.warConfig.Enabled = true
+	// Retained legacy gold persistence is tested with the fame economy disabled.
+	w.warConfig.Enabled = false
 	// Admission precedes the due-tick probe; handle also runs the scheduler.
 	w.warNextTick = w.now().Add(time.Minute)
 	fallback := &guildFlowStore{}
@@ -114,7 +115,10 @@ func TestCriticalCityTreasuryDetachedCommitAndSharedFence(t *testing.T) {
 				nextWarTick := w.warNextTick
 				trade := p.Trade
 				request := criticalTreasuryRequest(p, collector)
-				w.handle(command{s: p.Session, pkt: request})
+				// Exercise retained legacy persistence directly: collectors no longer withdraw gold.
+				if err := w.withdrawCityTreasury(p, 0); err != nil {
+					t.Fatal(err)
+				}
 				proposal := awaitCriticalWrite(t, base.entered)
 				prepared := proposal.accounts[0].Chars[p.CharSlot]
 				units, remaining, gold := 0, uint64(0), before.Chars[p.CharSlot].Gold+100
@@ -255,25 +259,20 @@ func TestCriticalCityTreasuryDisconnectWaitsForPayoutAndFinalSave(t *testing.T) 
 }
 
 func TestCriticalCityTreasuryActualWorldLoopProgress(t *testing.T) {
-	var collector *Mob
 	w, p, unrelatedUID, base, q, ticks, release, stop := criticalEconomyLoopFixture(t, nil, func(w *World, p *Player) {
 		// Treasury admission must not depend on the machine's current weekday.
 		w.clock = newFakeClock(time.Date(2026, 9, 13, 12, 0, 0, 0, time.UTC))
 		w.playersByID[2].NextRegen = w.now().Add(-time.Second)
-		collector = configureCriticalTreasury(w, p, 100)
+		configureCriticalTreasury(w, p, 100)
 		w.warConfig.Enabled = false
 		base := w.criticalWrites.queue.store.(*criticalTestStore)
 		w.criticalWrites.queue.store = &criticalTreasuryTestStore{criticalGameStateTestStore: &criticalGameStateTestStore{base}}
-	})
-	deliver := func() {
-		t.Helper()
-		select {
-		case w.commands <- command{s: p.Session, pkt: criticalTreasuryRequest(p, collector)}:
-		case <-time.After(time.Second):
-			t.Fatal("World did not accept the treasury intention")
+		// Admit the retained legacy operation before starting the actor; the real
+		// loop must acknowledge it while unrelated commands and ticks progress.
+		if err := w.withdrawCityTreasury(p, 0); err != nil {
+			t.Fatal(err)
 		}
-	}
-	deliver()
+	})
 	awaitCriticalWrite(t, base.entered)
 	for range 3 {
 		deliverCriticalLoopPing(t, w, p)

@@ -123,7 +123,9 @@ func TestCriticalCityTreasuryPostgresCommitAndRejection(t *testing.T) {
 				}
 			}
 			request := criticalTreasuryRequest(p, collector)
-			w.handle(command{s: p.Session, pkt: request})
+			if err := w.withdrawCityTreasury(p, 0); err != nil {
+				t.Fatal(err)
+			}
 			proposal := awaitCriticalWrite(t, backend.entered)
 			w.handle(command{s: p.Session, pkt: request})
 			assertDurable(before, retained)
@@ -149,7 +151,9 @@ func TestCriticalCityTreasuryPostgresCommitAndRejection(t *testing.T) {
 					len(q.pending) != 0 || len(backend.entered) != 0 {
 					t.Fatal("certified rejection changed retained state or automatically replayed")
 				}
-				w.handle(command{s: p.Session, pkt: request})
+				if err := w.withdrawCityTreasury(p, 0); err != nil {
+					t.Fatal(err)
+				}
 				proposal = awaitCriticalWrite(t, backend.entered)
 				w.applyCriticalCompletion(awaitCriticalResult(t, q))
 				assertDurable(proposal.accounts[0], proposal.guilds)

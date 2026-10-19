@@ -22,7 +22,7 @@ func TestHellGateHistoricalPopulationValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, reason := range []string{"valid", "old-version", "missing-room", "empty-room", "empty-escorts", "missing-npc", "oversized-group", "unsafe-range", "actor-budget"} {
+	for _, reason := range []string{"valid", "old-version", "missing-room", "empty-room", "empty-escorts", "missing-npc", "oversized-group", "unsafe-range", "invalid-formation", "oversized-formation", "actor-budget"} {
 		t.Run(reason, func(t *testing.T) {
 			var candidate model.VolatileHellGate
 			if err := json.Unmarshal(encoded, &candidate); err != nil {
@@ -47,9 +47,14 @@ func TestHellGateHistoricalPopulationValidation(t *testing.T) {
 				p.FinalSpawns[0].Count = 65
 			case "unsafe-range":
 				p.FinalSpawns[0].Range = 9
+			case "invalid-formation":
+				p.FinalSpawns[0].Formation759 = 3
+			case "oversized-formation":
+				p.FinalSpawns[0].Formation759, p.FinalSpawns[0].Count = 2, 13
 			case "actor-budget":
 				for i := range p.FinalSpawns {
 					p.FinalSpawns[i].Count = 64
+					p.FinalSpawns[i].Formation759 = 0
 				}
 			}
 			err := validateHellGateVersion(reason, &candidate)

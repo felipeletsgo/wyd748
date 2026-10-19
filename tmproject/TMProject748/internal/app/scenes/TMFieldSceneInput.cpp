@@ -13,6 +13,7 @@
 #include "ClientDiagnostics.h"
 #include "WYD748Assets.h"
 #include "../../application/FieldInteractionPolicy.h"
+#include "../../application/ItemShortcutPolicy.h"
 #include "TMObjectContainer.h"
 #include "TMSkinMesh.h"
 
@@ -25,7 +26,11 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	// resource the hidden PGT root is registered as modal; forwarding its
 	// opening click to SControlContainer first makes the container consume the
 	// WM_RBUTTONUP before this scene can inspect MK_CONTROL.
-	const bool bOpenPGT = dwFlags == WM_RBUTTONUP && (wParam & MK_CONTROL);
+	// Item panels retain UI priority: Ctrl + right click belongs to their
+	// equipment shortcut, not to a player standing behind the inventory.
+	const bool bItemPanelHit = item_shortcuts::VisibleHit<SControl>(m_pInvenPanel, nX, nY) ||
+		item_shortcuts::VisibleHit<SControl>(m_pCargoPanel, nX, nY);
+	const bool bOpenPGT = dwFlags == WM_RBUTTONUP && (wParam & MK_CONTROL) && !bItemPanelHit;
 	const bool bPGTAlreadyVisible = m_pPGTPanel && m_pPGTPanel->IsVisible();
 	if (!bOpenPGT || bPGTAlreadyVisible)
 	{
@@ -353,6 +358,8 @@ int TMFieldScene::OnAccel(int nMsg)
 		return OnKeyHelp(104, 0);
 	case 40097:
 		return OnKeyRun(114, 0);
+	case 40089:
+		return OnKeyAuto('f', 0);
 	case 40100:
 		return OnKeyFeedMount(118, 0);
 	case 40098:
@@ -372,6 +379,12 @@ int TMFieldScene::OnAccel(int nMsg)
 	{
 		switch (nMsg)
 		{
+		case 40096:
+			return OnKeyHPotion('q', 0);
+		case 40101:
+			return OnKeyMPotion('w', 0);
+		case 40088:
+			return OnKeyPPotion('e', 0);
 		case 40103:
 			return OnKeySkillPage(122, 0);
 		case 40102:

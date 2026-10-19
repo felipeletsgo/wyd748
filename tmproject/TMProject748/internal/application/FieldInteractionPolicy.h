@@ -4,6 +4,29 @@
 
 namespace field_interaction
 {
+struct AutoRunTarget { int x; int y; };
+
+// FUN_004776c3: camera X/Z, maximum speed * 1.5, optionally reversed.
+constexpr AutoRunTarget AutoRunDestination(float x, float y, float cameraX,
+    float cameraZ, float speed, bool reverse)
+{
+    const float distance = speed * (reverse ? -1.5f : 1.5f);
+    return {static_cast<int>(x + cameraX * distance),
+        static_cast<int>(y + cameraZ * distance)};
+}
+
+constexpr bool CanAutoRun(bool enabled, bool alive, bool transitioning,
+    bool cannotMove, bool busy, float progress)
+{
+    return enabled && alive && !transitioning && !cannotMove && !busy &&
+        (progress >= 0.89999998f || progress == 0.0f);
+}
+
+constexpr bool AutoRunCellAllowed(int x, int y, unsigned char attribute)
+{
+    return x >= 0 && y >= 0 && x < 4096 && y < 4096 && !(attribute & 0x80);
+}
+
 enum class PhysicalAttackAction { Cancel, Wait, Retry };
 
 // Retrying an intention does not bypass the existing attack packet cooldown.

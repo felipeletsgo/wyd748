@@ -1,6 +1,148 @@
 # Current project state
 
-## Active release — 2026-10-18, historical Hell Gate version 3
+## Release — 2026-10-19, persistence recovery and patch 10036
+
+The owner authorized the current server, portal, pending client fixes and a VPS
+reboot. Full Go tests and vet passed, including the configured isolated
+PostgreSQL tests; the portal's 60 tests, Astro checks and build passed. Client
+build and automated checks passed. No gameplay validation or local client
+replacement was performed.
+
+Patch 10036 is published. Its independently downloaded ZIP has SHA-256
+`E4F2940353D425B0C6DEE0B7F3FC4C9F8A24305D1950EB03D6ED323DA2F4B49B`;
+the four entries are `WYD.exe`, `UI/etc.txt`, `UI/interface.txt` and
+`UI/interface1.txt`. The executable SHA-256 is
+`B20510B20D34651D206C72340B96D2B7314D56B19072AC25678D37183889DE3D`.
+The previous feed entries remain present. Client settings were excluded.
+
+The server/portal archive was uploaded to
+`/tmp/wyd-deploy-20261019-persistence-full`. All 7,389 payload hashes and
+archive SHA-256 `7DAC09D03A204CF04F3631837F3D73780269010A0E9CAF629921ACBB92AC3091`
+passed remote verification. Private server, staff, Caddy and unit configuration
+were copied from the VPS into staging and compared before stopping game/API;
+no established game connections were present. SSH briefly timed out before
+authentication, then recovered without credential or security changes.
+
+The established updater backed up PostgreSQL and activated
+`/srv/wyd-go/releases/20261019T050509Z`, with rollback
+`/srv/wyd-go/releases/20261018T234132Z`. Game/API restarted at 05:05:12 UTC
+(02:05:12 America/Sao_Paulo). Readiness passed, PostgreSQL and Caddy were active,
+and the running executable hashes matched the candidates:
+
+- Game: `2AD463F629535B856CD4CF6887B5CA176D15E4D71F78899E03C2A51A6415971F`.
+- API: `5ECF69231E409DD1351A160600CAE3770541C09BB228DA2708BC7248093BCA08`.
+
+The authorized whole-VPS reboot completed. The boot ID changed from
+`0b093ffb-7520-4810-a584-2580f7fd490f` to
+`b1d60b33-191b-45f9-8a72-981d9176a1c8`. Game/API restarted at 05:05:45 UTC
+(02:05:45 America/Sao_Paulo), PIDs 1319/1320, with the same verified executable
+hashes and active release path. Game, API, Caddy, PostgreSQL 18, Docker,
+Fail2ban and SSH are active; systemd lists no failed units. Game TCP 8281
+listens, PostgreSQL remains on loopback 5433, and loopback readiness for both
+APIs passes. The inspected post-boot game/API journal has no maintenance or
+persistence failure. This is bounded startup evidence, not gameplay proof.
+
+Public home, news, changelog, readiness and the client manifest returned 200;
+the manifest identifies 10036 and the persistence release. The public HTTP
+launcher feed preserves versions through 10036. Private environment, server,
+staff, Caddy and all four WYD unit hashes match preflight exactly. The backup
+is `/var/backups/wyd-go/wydgo-20261019T050509Z.dump` (139,848 bytes).
+
+The persistence correction and incident evidence are recorded in
+[the persistence plan](server/critical-persistence-plan.md#instance-expiry-and-pending-kill-settlement-2026-10-19-local-correction).
+Working audit records remain under `build/persistence-release-20261019/`.
+The established updater removed remote release staging; the post-boot check
+also confirms that patch publication staging is absent. Current local client
+incremental build outputs and remote rollback releases are retained.
+Actual client login and gameplay remain pending; publication and service
+readiness do not establish `CLIENT_TESTED`.
+
+Local cleanup was blocked by execution policy and was not retried. Remaining
+task artifacts (repository-relative unless absolute) are:
+
+- `build/deploy/wyd-deploy-20261019-persistence-full/`.
+- `build/patch/patch-10036.zip`.
+- `build/persistence-release-20261019/public-patch-10036.zip`.
+- `tmproject/build/tests/Release/crash-capture-tests-3716-730556234/`.
+- `C:\Users\xereca\AppData\Local\Temp\wyd-release-20261019.ps1`.
+- `C:\Users\xereca\AppData\Local\Temp\wyd-finalize-20261019.ps1`.
+
+The final repository layout check still fails on existing client dump
+documentation/logs and `tmproject/TMProject748/build/`. The broad diff check
+also reports whitespace in `TMProject.rc`; unrelated work was preserved.
+These local housekeeping findings do not change the verified VPS delivery.
+
+## Previous release — 2026-10-18, Hell Gate and Rune Track
+
+The owner explicitly authorized publication and restart, including the three
+established game connections present immediately before shutdown. Release
+`/srv/wyd-go/releases/20261018T234132Z` is active; rollback remains
+`/srv/wyd-go/releases/20261018T171412Z`. Game/API started at 23:41:35 UTC
+(20:41:35 America/Sao_Paulo). No host reboot, unrelated application restart,
+local client installation, commit or push occurred.
+
+- Scope: Rune Track rooms +0 through +6, thirty event-only NPC templates,
+  327 room generators, independent full-room-pool rune draws, room objectives,
+  Balrog/labyrinth portals, Freyja donation handling and imported caster bars;
+  Hell Gate infantry, formations, mage combat and Dionys sales. These are the
+  historical adaptations and explicit project choices documented in
+  [Rune Track](server/rune-track.md) and the
+  [Hell Gate follow-up](bug-register.md#infantry-formation-and-dionys-sale-follow-up--2026-10-18),
+  not complete native-7.48 event parity.
+- Source: dirty `main` at `b0e8cfa547ce107a71fd559fa319737820f1316f`.
+  Linux/amd64 candidates were built through `Build-VpsRelease.ps1`, CGO off.
+  The 878 Go/module, portal and deployment source inputs were hash-checked
+  unchanged before activation. The previous complete Go tests/vet and final
+  focused caster tests remain valid; production code was not changed for
+  deployment. Fresh portal build, all 60 tests and Astro checks passed
+  (zero errors, warnings or hints).
+- Packaging used the established builder plus a 124-path supplemental-data
+  allowlist, including the Rune Track file and thirty NPC definitions.
+  All 7,352 previous payload paths survive; 50 files are new or different.
+  All 7,385 extracted payload hashes passed before activation and match the
+  complete independently read active tree afterward. Private account state,
+  client settings and local crash dumps were excluded.
+- Archive: 22,416,446 bytes, SHA-256
+  `D5424E523422EAFABC16A8DAD17A0DA92A33A7E5C288C3480A4ADECF026E0A0A`.
+  Game PID `2404633`, `/proc` executable SHA-256
+  `AA2F935359ADC8DFCB487C8D8A13A4B67BAF9A7FF601928D878428CDEEBCAA87`;
+  API PID `2404646`, `/proc` executable SHA-256
+  `B217DEF1415F0E20E4ACB1807F1F673C71B5A297DA6FDBB4FE9DF2386FFF152A`.
+  Both executable paths identify this release, not the prior checkout.
+- The established updater backed up PostgreSQL to
+  `/var/backups/wyd-go/wydgo-20261018T234132Z.dump` (138,104 bytes), atomically
+  switched the release, restarted game/API and reloaded Caddy. Private
+  environments, server/staff/Caddy configuration and all four WYD units match
+  their pre-activation backups byte-for-byte. The existing game firewall rule
+  was already present. Caddy validation passed with its existing nonblocking
+  forwarded-header and HTTP-listener warnings.
+- Loopback readiness on 8082/8083, public HTTPS readiness, home, news,
+  changelog and manifest all returned 200; TCP 8281 listens. Warning-priority
+  game/API journals since startup contain no entries. Startup loaded 691 NPC
+  definitions. Remote staging was removed by the updater.
+- The website receipt identifies `hell-gate-rune-track-759`; English News and
+  changelog describe the server changes and outstanding gameplay acceptance.
+  Launcher feed remains at 10035. A fresh public download of patch 10035 has
+  SHA-256 `8172AFA041A234E8C01BD956DEB36591062E70EEE8A99B0A3FFCC62B24C77E2A`,
+  unchanged. No new client patch or executable was published.
+
+Delivery is `AUTOMATED TESTED` and deployment-verified, not `CLIENT_TESTED` or
+global release certification. Actual room traversal, party/observer behavior,
+Freyja's prompt, portal visuals, combat, sales and rewards remain pending in
+the exact installed client against this release. Existing unrelated repository
+layout violations remain unchanged: the stack-overflow audit and crash-monitor
+log under `tmproject/client748/dumps/`, and `tmproject/TMProject748/build/`.
+`git diff --check` passed. Input manifests and delivery logs are retained in
+`build/rune-hg-release/` as the working-tree release audit record.
+
+Cleanup limitation: execution policy rejected deletion of the disposable local
+staging directory
+`C:\Users\xereca\Documents\PROJETOS\wyd-go\build\deploy\wyd-deploy-20261018-rune-hg-final`.
+It remains in the sanctioned ignored build root. No alternative cleanup
+mechanism or retry was attempted. This does not affect the verified active
+release; remote staging is absent.
+
+## Previous release — 2026-10-18, historical Hell Gate version 3
 
 The owner authorized publication and restart. Server release
 `/srv/wyd-go/releases/20261018T171412Z` is active; rollback is

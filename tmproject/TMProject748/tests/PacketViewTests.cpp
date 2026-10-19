@@ -33,11 +33,13 @@
 int RunCharacterLoginUseCaseTests(int& checks);
 int RunReceivedPacketDispatchTests(int& checks);
 int RunCargoSlotTests(int& checks);
+int RunItemShortcutPolicyTests(int& checks);
 int RunGridInsertionTests(int& checks);
 int RunCostumeSelectionTests(int& checks);
 int RunHumanCostumeRefinementTests(int& checks);
 int RunNativeRefinementPresentationTests(int& checks);
 int RunFieldSceneChatContractTests(int& checks);
+int RunFieldShortcutContractTests(int& checks);
 int RunFieldChatControlTests(int& checks);
 int RunFieldChatSubmitPolicyTests(int& checks);
 int RunFieldCoinInputPolicyTests(int& checks);
@@ -549,13 +551,31 @@ int main()
                 "result neither masks failure nor repeats calls");
         }
     }
+    const auto forwardRun = field_interaction::AutoRunDestination(100, 200, 1, 0, 4, false);
+    const auto reverseRun = field_interaction::AutoRunDestination(100, 200, 0, 1, 4, true);
+    check(forwardRun.x == 106 && forwardRun.y == 200, "autorun follows camera X at native speed factor");
+    check(reverseRun.x == 100 && reverseRun.y == 194, "reverse autorun follows camera Z backwards");
+    check(field_interaction::CanAutoRun(true, true, false, false, false, 0), "standing autorun can route");
+    check(field_interaction::CanAutoRun(true, true, false, false, false, 0.9f), "completed route allows autorun renewal");
+    for (int reason = 0; reason < 6; ++reason)
+        check(!field_interaction::CanAutoRun(reason != 0, reason != 1,
+            reason == 2, reason == 3, reason == 4, reason == 5 ? 0.5f : 0.0f),
+            "autorun respects toggle death transitions immobilization modal and route gates");
+    check(field_interaction::AutoRunCellAllowed(0, 4095, 0), "autorun accepts map boundary");
+    check(!field_interaction::AutoRunCellAllowed(-1, 200, 0) &&
+        !field_interaction::AutoRunCellAllowed(4096, 200, 0) &&
+        !field_interaction::AutoRunCellAllowed(200, -1, 0) &&
+        !field_interaction::AutoRunCellAllowed(200, 4096, 0), "autorun rejects out of bounds before attribute lookup");
+    check(!field_interaction::AutoRunCellAllowed(200, 200, 0x80), "autorun rejects native restricted terrain");
     failures += RunReceivedPacketDispatchTests(checks);
     failures += RunCargoSlotTests(checks);
+    failures += RunItemShortcutPolicyTests(checks);
     failures += RunGridInsertionTests(checks);
     failures += RunCostumeSelectionTests(checks);
     failures += RunHumanCostumeRefinementTests(checks);
     failures += RunNativeRefinementPresentationTests(checks);
     failures += RunFieldSceneChatContractTests(checks);
+    failures += RunFieldShortcutContractTests(checks);
     failures += RunFieldChatControlTests(checks);
     failures += RunFieldChatSubmitPolicyTests(checks);
     failures += RunFieldCoinInputPolicyTests(checks);

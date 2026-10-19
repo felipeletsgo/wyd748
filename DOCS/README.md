@@ -18,6 +18,8 @@ documentation, research evidence, and continuity records.
 | Track current player-reported gameplay defects and acceptance checks | [Gameplay bug register](bug-register.md) |
 | Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
 | Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
+| Review Rune Track rooms +0 through +6 and their independent event monsters | [Rune Track](server/rune-track.md) |
+| Compare the supplied server 7.59 decompilation with current Go systems | [Server 7.59 map and gap analysis](server/server-759-gap-analysis.md) |
 | Set up Windows development | [Windows environment](windows-development-environment.md) |
 | Start the server for the first time | [Root README](../README.md#quick-start-on-windows) |
 | Operate the database, accounts, panel, network, and backups | [Server operations](server/operations.md) |

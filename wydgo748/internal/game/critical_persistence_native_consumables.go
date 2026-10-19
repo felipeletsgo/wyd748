@@ -200,7 +200,7 @@ func (w *World) queueNativeConsumable(p *Player, item *model.Item, slot byte, ru
 			switch rule.Action {
 			case "arch_crystal":
 				session.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))
-				session.Send(wire.UpdateScore(p.ID, *ch))
+				session.Send(playerScorePacketForChar(p, ch))
 				session.Send(wire.UpdateEtc(p.ID, *ch))
 				w.syncPlayerVitalsToObservers(p)
 				if ch.ArchCrystals == archCrystalCount {
@@ -218,7 +218,7 @@ func (w *World) queueNativeConsumable(p *Player, item *model.Item, slot byte, ru
 				session.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))
 				session.Send(wire.MessagePanel(fmt.Sprintf("%d Nightmare entries received.", rule.Amount)))
 			case "mastery_reset":
-				session.Send(wire.UpdateScore(p.ID, *ch))
+				session.Send(playerScorePacketForChar(p, ch))
 				session.Send(wire.UpdateEtc(p.ID, *ch))
 				session.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
 				session.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))

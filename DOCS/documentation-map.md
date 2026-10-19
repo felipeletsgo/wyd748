@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 209.
+Markdown documents: 212.
 
 | Document | Type |
 | --- | --- |
@@ -41,6 +41,7 @@ Markdown documents: 209.
 | [.agents/research/client748/flows/transport/challenge-confirm-request.md](<../.agents/research/client748/flows/transport/challenge-confirm-request.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/change-city-request.md](<../.agents/research/client748/flows/transport/change-city-request.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/create-mob-source-contract.md](<../.agents/research/client748/flows/transport/create-mob-source-contract.md>) | Research evidence |
+| [.agents/research/client748/flows/transport/environment-effect-contract.md](<../.agents/research/client748/flows/transport/environment-effect-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/guild-deprivate-request.md](<../.agents/research/client748/flows/transport/guild-deprivate-request.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/guild-relations-request.md](<../.agents/research/client748/flows/transport/guild-relations-request.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/hell-gate-portals.md](<../.agents/research/client748/flows/transport/hell-gate-portals.md>) | Research evidence |
@@ -210,7 +211,9 @@ Markdown documents: 209.
 | [DOCS/server/hidden-valley-access.md](<server/hidden-valley-access.md>) | Product documentation |
 | [DOCS/server/operations.md](<server/operations.md>) | Product documentation |
 | [DOCS/server/public-launch.md](<server/public-launch.md>) | Product documentation |
+| [DOCS/server/rune-track.md](<server/rune-track.md>) | Product documentation |
 | [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
+| [DOCS/server/server-759-gap-analysis.md](<server/server-759-gap-analysis.md>) | Product documentation |
 | [DOCS/server/website-feature-status.md](<server/website-feature-status.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |
 | [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Product documentation |

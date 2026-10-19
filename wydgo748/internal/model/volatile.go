@@ -206,11 +206,14 @@ type VolatileNightmareBoss struct {
 	SecondsRemaining int                   `json:"secondsRemaining"`
 }
 
-// VolatileUxmal is the authoritative Clue of Runes table. RoomPositions
-// lists three positions per room; MaxParties expresses the first room's
-// two-party exception. Runes are selected per room; TicketNextSanc is the
-// next Clue of Runes refinement.
+// VolatileUxmal is the authoritative Rune Track table. Version 759 selects
+// historical room objectives and event-only generators. Room +0 allows two
+// parties, +4 allows four, and other rooms allow three. Rewards use each
+// party's historical global slot; TicketNextSanc selects the next refinement.
 type VolatileUxmal struct {
+	Version        int                         `json:"version,omitempty"`
+	Generator      string                      `json:"generator,omitempty"`
+	Generators     []NPCGener                  `json:"-"`
 	NPC            string                      `json:"npc"`
 	TicketItem     uint16                      `json:"ticketItem"`
 	EntryAreas     []VolatileInstanceEntryArea `json:"entryAreas"`
@@ -291,6 +294,9 @@ type VolatileInstanceSpawn struct {
 	// Range limits placement around X/Y (the generator StartRange). Zero keeps
 	// the stage area radius.
 	Range int `json:"range,omitempty"`
+	// Formation759 selects the historical formation-zero offsets: 1 includes
+	// the leader, 2 contains followers only. Zero retains ordinary placement.
+	Formation759 int `json:"formation759,omitempty"`
 	// GeneratorID selects one block from the enclosing Hell Gate generator.
 	// The loader resolves it before validating the encounter. Runtime code
 	// consumes the resulting NPC/count/position, not the selector.

@@ -247,6 +247,9 @@ func (w *World) removePartyPlayerMode(leaving *Player, reconnect bool) {
 	}
 	wasLeader := index == 0
 	party.Members = append(party.Members[:index], party.Members[index+1:]...)
+	if wasLeader && len(party.Members) > 0 {
+		w.transferRuneTrackLeader(leaving, party.Members[0])
+	}
 	leaving.Party = nil
 	if leaving.InWorld {
 		leaving.Session.Send(wire.PartyRemove(0))

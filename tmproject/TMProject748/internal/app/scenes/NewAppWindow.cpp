@@ -165,7 +165,7 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 			break;
 		}
 
-		int msg = wParam;
+		int msg = LOWORD(wParam);
 		HWND hWndFocus = GetFocus();
 
 		if (hWndFocus != g_pApp->m_hWnd)
@@ -182,8 +182,15 @@ HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 				PostMessageA(hWndFocus, 0x300, 0, 0);
 				return 1;
 			}
+			// Typing into a native edit must never consume a potion or move.
+			return 1;
 		}
 
+		if (m_pEventTranslator)
+		{
+			m_pEventTranslator->m_bCtrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+			m_pEventTranslator->m_bShift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+		}
 		if (g_pCurrentScene != nullptr)
 			g_pCurrentScene->OnAccel(msg);
 	}
@@ -372,7 +379,8 @@ ExtractedFlow NewApp::OnKeyDownMessage(DWORD& wParam)
 	WORD sVal2 = GetKeyState(VK_SHIFT);
 	m_pEventTranslator->m_bShift = (int)sVal2 >> 8 > 0;
 
-	if (wParam != VK_CONTROL && g_pCurrentScene != nullptr && m_pEventTranslator->m_bCtrl != 0)
+	if (g_nKeyType == 1 && GetFocus() == m_hWnd && wParam != VK_CONTROL &&
+		g_pCurrentScene != nullptr && m_pEventTranslator->m_bCtrl != 0)
 	{
 		if (wParam == VK_OEM_MINUS || wParam == VK_SUBTRACT)
 		{

@@ -36,6 +36,7 @@ func cloneCriticalInstanceMembership(w *World) *World {
 			continue
 		}
 		clone := *inst
+		clone.RuneTrack = cloneRuneTrack(inst.RuneTrack)
 		clone.Config = cfgCopy(inst.Config)
 		clone.MemberIDs = slices.Clone(inst.MemberIDs)
 		clone.MemberCharacterUIDs = slices.Clone(inst.MemberCharacterUIDs)

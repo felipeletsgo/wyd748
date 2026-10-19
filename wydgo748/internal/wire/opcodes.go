@@ -71,6 +71,7 @@ const (
 	OpDeleteItem         = 0x2E4 // C->S deletes an item from the Carry (Slot@12, Index@16)
 	OpSplitItem          = 0x2E5 // C->S splits a Carry stack (Slot@12, Index@16, Amount@20)
 	OpMessageChat        = 0x333 // C<->S local chat/commands (String[96]@12, 108B)
+	OpGuildDisable       = 0x3A4 // S->C native guild-affiliation signal (Parm@12, 16B)
 	OpMessageWhisper     = 0x334 // C->S whisper/command/day (MobName[16]@12, String[96]@28, 128B observed)
 	OpSetShortSkill      = 0x378 // C<->S bar of 20 skill shortcuts (32B)
 	OpChangeCity         = 0x291 // C->S entered/changed city (village@12, 16B)

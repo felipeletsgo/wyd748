@@ -112,7 +112,7 @@ func TestTeleportControlRejections(t *testing.T) {
 				p.X, p.Y = 205, 220
 				want = "restricted_area"
 			case "tower":
-				p.X, p.Y = 2450, 1855
+				p.X, p.Y = 2500, 1870
 				want = "restricted_area"
 			case "fighter":
 				w.cityFighters = map[*Player]cityFighter{p: {}}

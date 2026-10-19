@@ -11,7 +11,10 @@ player disconnect and game-service restart. Full server tests, vet, portal
 checks and active-payload verification passed. The subsequent Hell Gate version-2
 encounter was published in release `20261017T221343Z` and retained by the recorded
 10035 release. The historical version-3 correction below was subsequently
-published in server release `20261018T171412Z`, without a new client patch.
+published in server release `20261018T171412Z`. The infantry/sale follow-up
+and Rune Track subsequently activated in `20261018T234132Z`, with explicit
+authorization for the three active connections and game/API restart. The
+launcher patch remains 10035, with no new client patch.
 Gameplay acceptance remains pending.
 
 ## Queue
@@ -226,8 +229,8 @@ in progress. No publication or restart is authorized by this register.
 - Preserved project settings: twenty minutes total (two admission, eighteen
   active), minute-0/30 scheduling, ticket IDs 3328/3329 and party admission,
   configured boss/protector HP and defense, existing purchase prices and the
-  10,000,000 completion-EXP policy. Skeleton variants reuse the project's
-  existing skeleton score/loot, not historical caster-specific AI or balance.
+  10,000,000 completion-EXP policy. The initial publication reused ordinary
+  skeleton score/loot; the local follow-up below replaces those six templates.
   Existing deadline, failure, reward persistence and isolation checks remain in
   force. Published version-2 snapshots retain thirty attackers and their prior
   replenishment/puzzle behavior; new version-3 runs use the extended population.
@@ -236,8 +239,9 @@ in progress. No publication or restart is authorized by this register.
   The bundled generator/rate files have not been independently matched to the
   decompiled binary and are used as the owner-requested secondary 7.59 data.
   Their historical origin does not establish a native-7.48 server equivalent.
-  Exact historical schedule, monster balance, spatial dispersal, replacement
-  interval and selling items back to Dionys remain outside this adaptation.
+  Exact historical schedule, boss balance, occupancy fallback and replacement
+  interval remain outside this adaptation. Infantry balance, formation offsets
+  and Dionys sales are addressed by the local follow-up below.
 - Validation: complete `go test ./... -count=1` and `go vet ./...` passed.
   Focused Hell Gate tests cover all twelve ordered pair draws, all selected
   entrances/phases, installed-terrain reachability, duplicate deaths, progress
@@ -256,7 +260,83 @@ in progress. No publication or restart is authorized by this register.
   selected entrance, both selected Liches, observers/party, reconnect, Dionys
   survival/failure, approaching/replacement mobs, shop purchases in each
   category, the rendered Sand Lich and the existing deadline reward with the
-  active release. Historical caster AI/balance is not covered by these tests.
+  active release. The follow-up below has separate automated coverage and is
+  now published, but has not been tested in the client.
+
+#### Infantry, formation and Dionys sale follow-up — 2026-10-18
+
+- Delivery: published in release `20261018T234132Z`, after explicit owner
+  authorization for publication/restart. All 7,385 active payload hashes,
+  running game/API executables, readiness and private configuration preservation
+  were verified. Release `20261018T171412Z` predates this follow-up.
+  Classification remains `EXTENSAO_COORDENADA`: historical 7.59 adaptation over
+  unchanged 7.48 packets, not complete native-7.48 event parity.
+- Six event-only templates now import the bundled `TMSRV/run/npc` binary data,
+  including score, EXP, gold, equipment, Carry holes/options and skill bars.
+  Ordinary field monsters and restored version-2 `HG_Skeleton` are unchanged.
+  `cmd/runetrack759 -hell-gate` provides the repeatable importer; default
+  Rune Track import behavior is unchanged.
+
+  | Event template | Historical source | Level | HP | Attack | Defense | EXP | Gold |
+  | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |
+  | HG_CorrSkel | Skeleton_ | 350 | 26,000 | 850 | 1,600 | 5,000 | 500 |
+  | HG_SkelArch | SkeletonArcher | 399 | 24,000 | 3,600 | 1,820 | 5,500 | 500 |
+  | HG_SkelMage | SkeletonMage | 399 | 32,000 | 3,600 | 1,850 | 5,500 | 500 |
+  | HG_SkelWar | Guer_Caveira | 110 | 8,100 | 468 | 1,236 | 1,500 | 500 |
+  | HG_SkelSpear | SpearSkeleton | 399 | 21,000 | 3,410 | 1,940 | 5,500 | 500 |
+  | HG_SkelGuard | EsqGuerreiro | 399 | 22,000 | 3,600 | 1,700 | 10,900 | 0 |
+
+- Version-3 owned `HG_SkelMage` uses the historical single-roll 50/35/15 skill
+  windows and imported bar `[32,33,32,255]`. Damage uses monster Attack against
+  defense and compressed elemental resistance, not player spell scaling or an
+  added magic-attack score. Existing hit accuracy, melee reach, attack interval,
+  terrain and runtime isolation remain in force. Players and the live tracked
+  Dionys receive the supported skill packet. This is not full historical AI.
+- Inline groups now use the twelve historical formation-zero offsets from
+  `sub_514310` and `byte_63C300/301`. Leader/follower groups anchor followers on
+  the actual placed leader. Separate follower-only groups retain their declared
+  anchor. Occupied tiles still use the project's bounded placement fallback.
+  Replacements retain each casualty's original formation anchor, not its last
+  combat position. Group counts and the 252-actor defense budget are unchanged.
+- Dionys and the public head-51 store accept the existing 0x37A sale request
+  without an ordinary shop session. Full-width slot validation, authoritative
+  interaction/lifecycle checks and existing critical persistence remain in
+  force. Only Dionys applies the historical quarter-price adjustment. See the
+  [store contract](protocol/hell-gate-store.md) for thresholds and economic limits.
+- Preserved choices and gaps: event schedule/duration, calibrated boss/protector
+  HP/defense, shop prices and completion reward are unchanged. Other boss stats
+  are not imported. Exact historical generator-call/replacement cadence remains
+  unproven; deadline-bounded next-tick replacement is still a project adaptation.
+  A full historical balance/AI or gameplay-parity claim would be premature.
+- Validation: complete `go test ./... -count=1` and `go vet ./...` passed after
+  production changes. A subsequent test-only addition passed focused combat and
+  sale tests. Coverage includes six data goldens, independence from field/v2
+  monsters, Carry/options, formation anchors, caster selection/damage,
+  player/protector targeting, member isolation, deadline expiry and sales/S2.
+  Pending: actual client traversal/combat/purchases/sales. Publication and
+  game/API restart are verified separately in the current-state receipt.
+- Build/repository checks: `go build` for `./cmd/server` passed. The temporary
+  candidate at `build/hell-gate759/wyd-server.exe` had SHA-256
+  `A88B6B9E4A28CBA695966FD3D9B482112ADF28E13ADF6EB1F7F45D1B389D3478`;
+  no installed runtime was replaced. Cleanup was blocked by execution policy;
+  the candidate remains at that exact path.
+  `git diff --check` passed. The layout validator remains blocked by preexisting
+  `tmproject/TMProject748/build/`, a stack-overflow audit Markdown file under
+  `tmproject/client748/dumps/`, and `crash-monitor-p31348.log` in that directory.
+  Those unrelated files were preserved. Cleanup of the seven temporary JSON
+  files under `build/hell-gate759/infantry/` was also blocked. The cleanup was
+  not retried through another mechanism; source identities are recorded below.
+- Source identity: `TMSRVIN.c` uses the SHA-256 recorded above. Binary NPC
+  SHA-256 values, from the supplied historical `TMSRV/run/npc` directory:
+
+  | Source | SHA-256 |
+  | --- | --- |
+  | Skeleton_ | `56b7d998bc04873662e16dc954d4feb73abbceed6ce32c8a3e98a96587042972` |
+  | SkeletonArcher | `480f9de65a9e90bb23031af7a4bf55416774905408c053ce07308f4965525106` |
+  | SkeletonMage | `a0183083eaf730b8adeb1c78ce740babda893d44093658961ee7b9b31aad2fcc` |
+  | Guer_Caveira | `d5087d7f502e35fb896da8fc5385dbdbc8c91259ff1e603500f306d2102a846e` |
+  | SpearSkeleton | `4b102e0109a30bdc3fb3708344c31f5f87775c61e56c62a08dfa43d82a58822f` |
+  | EsqGuerreiro | `affa16d2802ba19b478e3d21434293bd06f328cc29bdcb1ead8e6b2de47e8db7` |
 
 ### BUG-004 — Blood Foema incoming damage
 

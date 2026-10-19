@@ -1,82 +1,62 @@
-FFFFFF  
-FFFFFF Shortcut Key
-FFFFAA
-FFFFAA 1-0
-AAFFAA Choose skill from quick skill slots.
-FFFFAA
-FFFFAA Shift+1-0
-AAFFAA To assign skill in quick skill slots. 
-FFFFAA
-FFFFAA -
-AAFFAA To control skills in Auto Attack Mode.
-AAFFAA You can use skill combos from 2 to 10 skills.
-FFFFAA
-FFFFAA Q
-AAFFAA Use Health Potion
-FFFFAA
-FFFFAA W
-AAFFAA Use Mana Potion
-FFFFAA
-FFFFAA E
-AAFFAA Use Kapa Potion
-FFFFAA
-FFFFAA V
-AAFFAA Feed your mount
-FFFFAA
-FFFFAA F11
-AAFFAA Use Recall Scroll 
-FFFFAA
-FFFFAA Ctrl
-AAFFAA To see loot
-FFFFAA
-FFFFAA Print Scrn SysRq
-AAFFAA For screen shots, Save screen shots to WYD folder. 
-FFFFAA
-FFFFAA C
-AAFFAA Open Character Screen
-FFFFAA
-FFFFAA I
-AAFFAA Open Inventory
-FFFFAA
-FFFFAA S
-AAFFAA Open Skill
-FFFFAA
-FFFFAA P or D
-AAFFAA Open Party Screen
-FFFFAA
-FFFFAA M or A
-AAFFAA Open Minimap
-FFFFAA
-FFFFAA R
-AAFFAA Toggle Mount Run/Walk
-FFFFAA
-FFFFAA ~
-AAFFAA Toggle PK Mode ON/OFF
-FFFFAA
-FFFFAA T
-AAFFAA Toggle Auto Attack ON/OFF
-FFFFAA
-FFFFAA N
-AAFFAA Toggle Character Name ON/OFF
-FFFFAA
-FFFFAA Tab
-AAFFAA Change Camera
-FFFFAA
-FFFFAA Enter
-AAFFAA Chatting Input Status
-FFFFAA
-FFFFAA +
-AAFFAA Adjust the size of the chatting windows(4step)
-FFFFAA
-FFFFAA PageUp or PageDown
-AAFFAA Move chatting contents scroll
-FFFFAA
-FFFFAA Arrow Up or Arrow Down
-AAFFAA Scroll through previous chat
-FFFFAA
+FFFFFF Keyboard shortcuts
+FFFFAA Keyboard mode (KEYTYPE)
+AAFFAA Mode 0: use the keys listed below.
+AAFFAA Mode 1: add Ctrl to letters and numbers.
+AAFFAA Mode 1: assign skills with Ctrl+Shift+1-0.
+AAFFAA Mode 1: use Alt for +, -, ], and apostrophe.
+AAFFAA Ctrl punctuation is also supported in mode 1.
+AAFFAA F11, Tab, PageUp/Down and item clicks are unchanged.
+FFFFAA 1-0 / Shift+1-0
+AAFFAA Select a skill / assign the hovered skill.
+AAFFAA Open Skills before assigning a hovered skill.
+AAFFAA Use the number row, not F1-F10.
+FFFFAA Z
+AAFFAA Switch between the two skill shortcut bars.
+FFFFAA Q / W / E
+AAFFAA Use a health / mana / Kapa potion.
+FFFFAA V / F11
+AAFFAA Feed your mount / use a Recall Scroll.
 FFFFAA F
-AAFFAA Open Guild Board
-FFFFAA
-FFFFAA H
-AAFFAA Open HELP
-FFFFFF  
+AAFFAA Use a compatible medal consumable.
+AAFFAA Requires the matching equipped medal.
+FFFFAA T / -
+AAFFAA Toggle Auto Attack / adjust skill combo usage.
+FFFFAA ]
+AAFFAA Toggle Auto Run in the camera's direction.
+AAFFAA Rotate the camera to steer; press again to stop.
+AAFFAA Unavailable on restricted maps or while unable to move.
+FFFFAA R
+AAFFAA Toggle mount run/walk.
+FFFFAA K
+AAFFAA Toggle PK Mode, subject to server restrictions.
+FFFFAA Apostrophe (')
+AAFFAA Toggle public guild affiliation on/off.
+AAFFAA Does not leave the guild or change PK Mode.
+FFFFAA C / I or G / S
+AAFFAA Open Character / Inventory / Skills.
+FFFFAA P / M / X / H
+AAFFAA Open Party / Minimap / Quests / Help.
+FFFFAA A / D (mode 0)
+AAFFAA Select C.C. mode 1 / mode 2.
+FFFFAA N / Tab
+AAFFAA Toggle character names / change the camera.
+FFFFAA Enter / +
+AAFFAA Enter chat / resize the chat window.
+FFFFAA PageUp / PageDown
+AAFFAA Scroll the visible message list or chat list.
+FFFFAA Arrow Up / Arrow Down
+AAFFAA Browse previous chat input.
+FFFFAA Ctrl / Print Screen
+AAFFAA Show ground-item names / save a screenshot.
+FFFFAA Ctrl+Right-click an item
+AAFFAA Equip from inventory or unequip to inventory.
+AAFFAA Requires room and valid equipment requirements.
+FFFFAA Shift+Right-click an item
+AAFFAA Transfer between open warehouse and inventory.
+AAFFAA Uses the first free space in the destination.
+FFFFAA Ctrl+Left-click an item
+AAFFAA Alternate warehouse transfer shortcut.
+FFFFAA Shift+Left-click a stack
+AAFFAA Open the stack-splitting prompt.
+AAFFAA Ctrl takes priority when Ctrl and Shift are both held.
+AAFFAA Transfers and equipment changes require server approval.

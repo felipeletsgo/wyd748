@@ -538,6 +538,10 @@ void EventTranslator::OnRMouseReleased()
 void EventTranslator::OnMouseEvent(unsigned int nFlags, unsigned int wParam, int ix, int iy)
 {
     m_wParam = wParam;
+    // Mouse modifiers are authoritative for this click, including when a key
+    // was held before the application regained focus.
+    m_bCtrl = (wParam & MK_CONTROL) != 0;
+    m_bShift = (wParam & MK_SHIFT) != 0;
     if (g_pCursor != nullptr)
         g_pCursor->SetPosition(ix, iy);
 
