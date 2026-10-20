@@ -4205,6 +4205,7 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// clears m_pMouseOverHuman and submits controls for this frame.
 	UpdateCompatObservedAffects();
 	UpdateWeatherEffects();
+	UpdateEntranceRunes(dwServerTime);
 	PumpGuildMarkDownloads();
 	if (m_pMyHuman && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible())
 	{

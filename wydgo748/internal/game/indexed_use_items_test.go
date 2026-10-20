@@ -172,6 +172,22 @@ func TestAdamantiteSuccessFailureAndValidation(t *testing.T) {
 		}
 	})
 
+	t.Run("E set is rejected", func(t *testing.T) {
+		for _, unique := range []int{10, 20, 30, 40} {
+			w, p, st := setup(0)
+			def := w.items[3000]
+			def.Unique = unique
+			w.items[3000] = def
+			result := w.items[3001]
+			result.Unique = unique
+			w.items[3001] = result
+			w.onUseItem(p.Session, indexedUsePacket(0, 1, placeInv))
+			if p.Char.Inv[0].Index != 578 || p.Char.Inv[1].Index != 3000 || st.saves != 0 {
+				t.Fatalf("E set unique %d upgraded: source=%+v target=%+v", unique, p.Char.Inv[0], p.Char.Inv[1])
+			}
+		}
+	})
+
 	t.Run("invalid unique does not consume", func(t *testing.T) {
 		w, p, st := setup(0)
 		def := w.items[3000]

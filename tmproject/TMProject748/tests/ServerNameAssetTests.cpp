@@ -235,6 +235,9 @@ int RunServerNameAssetTests(int& checks)
             "time gate matches the server object definition");
         check(items[746].nIndexMesh == 1607 && effectValue(items[746], 34) == 0,
             "cannon matches the server object definition");
+        check(items[4019].nIndexMesh == 2837 && items[4020].nIndexMesh == 2860 &&
+            items[4025].nIndexMesh == 2860,
+            "grade-E Repliction uses its distinct mesh after item-list loading");
 
         // Imported KR mounts once cloned the Shire_Horse face row, inheriting
         // its bush mesh (7) and model class 43, which hid them from the

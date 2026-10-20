@@ -523,6 +523,7 @@ type World struct {
 	skills                map[int]model.SkillDef
 	groundItems           map[uint16]*GroundItem
 	ghostShops            map[uint16]*GhostShop
+	ghostShopHonorAt      map[uint16]time.Time // next honor point per open shop
 	groundItemCells       map[uint32]map[uint16]*GroundItem
 	groundItemCell        map[uint16]uint32
 	groundExpiry          groundItemExpiryHeap
@@ -1904,6 +1905,7 @@ func (w *World) tick() {
 		w.tickNightmarePartyReturns()
 	}
 	w.tickTrades(now)
+	w.tickGhostShopHonor(now)
 	w.tickClientIntegrity(now)
 	w.tickQuiz(now)
 	w.tickWeather(now)

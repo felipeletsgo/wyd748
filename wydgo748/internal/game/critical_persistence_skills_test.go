@@ -15,7 +15,7 @@ import (
 )
 
 func configureCriticalSkill(w *World, p *Player, master *Mob, local int) {
-	p.Char.Class, p.Char.Score.Level, p.Char.Gold = 0, 20, 3_000_000
+	p.Char.Class, p.Char.Score.Level, p.Char.Gold = 0, 20, 6_000_000
 	p.Char.LearnedSkill = 0
 	if local == 7 {
 		p.Char.LearnedSkill = 0x7f
@@ -104,7 +104,7 @@ func TestCriticalSkillDetachedCommitAndRepeatedRequests(t *testing.T) {
 					ch := &wantLive.Chars[slot]
 					w.recalcPlayer(ch)
 					if local == 7 {
-						ch.Gold -= ultimateSkillGold
+						ch.Gold -= ultimateSkillGold(ch)
 					}
 					ch.LearnedSkill |= 1 << local
 					w.recalcPlayer(ch)
@@ -165,7 +165,7 @@ func TestCriticalSkillRejectionDoesNotMutateLiveScore(t *testing.T) {
 			case "other-ultimate":
 				p.Char.LearnedSkill |= 1 << 15
 			case "gold":
-				p.Char.Gold = ultimateSkillGold - 1
+				p.Char.Gold = ultimateSkillGold(p.Char) - 1
 			case "catalog":
 				delete(w.skills, 7)
 			case "class":
@@ -251,7 +251,7 @@ func TestCriticalSkillDisconnectFinalSnapshotContainsCommit(t *testing.T) {
 			w.handle(command{s: p.Session, pkt: criticalSkillRequest(kind, p.ID, master.ID, 7)})
 			proposal := awaitCriticalWrite(t, backend.entered)
 			w.handle(command{s: p.Session})
-			if fallback.saves != 0 || len(backend.entered) != 0 || p.Char.Gold != 3_000_000 {
+			if fallback.saves != 0 || len(backend.entered) != 0 || p.Char.Gold != 6_000_000 {
 				t.Fatal("disconnect saved or applied uncommitted skill state")
 			}
 			release()

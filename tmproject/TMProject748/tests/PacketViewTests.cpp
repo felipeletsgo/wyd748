@@ -70,6 +70,7 @@ int RunWeatherParticlesTests(int& checks);
 int RunRuntimeAssetLimitsTests(int& checks);
 int RunObservedAffectProjectionTests(int& checks);
 int RunCCModePolicyTests(int& checks);
+int RunEntranceRunesTests(int& checks);
 int RunEffectVertexColorTests(int& checks);
 int RunSceneDisconnectContractTests(int& checks);
 int RunUIBinaryTests(int& checks);
@@ -606,6 +607,7 @@ int main()
     failures += RunRuntimeAssetLimitsTests(checks);
     failures += RunObservedAffectProjectionTests(checks);
     failures += RunCCModePolicyTests(checks);
+    failures += RunEntranceRunesTests(checks);
     failures += RunEffectVertexColorTests(checks);
     failures += RunSceneDisconnectContractTests(checks);
     failures += RunUIBinaryTests(checks);

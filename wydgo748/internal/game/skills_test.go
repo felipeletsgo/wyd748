@@ -60,7 +60,9 @@ func TestSkillFinalDamageDoesNotClampWideAttackToWord(t *testing.T) {
 	}
 }
 
-func TestEnchantIceAndLightningStormRequireBow(t *testing.T) {
+// Owner rule: Enchant Frost (74) cannot be cast with a claw; Hide in Shadow
+// (75) and Another Soul (79) carry no weapon restriction.
+func TestEnchantFrostRejectsClaw(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		729: {Index: 729, StaticEffects: []model.StaticEffect{{Name: "EF_WTYPE", Value: 101}}},
 		832: {Index: 832, StaticEffects: []model.StaticEffect{{Name: "EF_WTYPE", Value: 41}}},
@@ -70,7 +72,7 @@ func TestEnchantIceAndLightningStormRequireBow(t *testing.T) {
 		weapon uint16
 		skill  int
 		want   bool
-	}{{729, 75, true}, {832, 75, false}, {0, 79, false}, {832, 92, true}, {832, 55, true}} {
+	}{{729, 74, true}, {832, 74, false}, {0, 74, true}, {832, 75, true}, {832, 79, true}} {
 		ch.Equip[6] = model.Item{Index: tc.weapon}
 		if got := w.skillWeaponAllowed(ch, tc.skill); got != tc.want {
 			t.Fatalf("weapon %d skill %d: %t", tc.weapon, tc.skill, got)
@@ -90,7 +92,8 @@ func TestHunter79And86Use748CatalogBuffs(t *testing.T) {
 		p.Char.LearnedSkill = 1 << (index - 72)
 		p.Char.Score.MaxMP, p.Char.Score.CurMP = 5_000, 5_000
 		p.Char.Score.Mastery = [4]uint32{0, 100, 100, 100}
-		// Lightning Storm (79) needs a bow, as in the 7.48 client.
+		p.Char.Gold = 1_000_000 // Coin Armor (86) costs Trade x 100 gold.
+		// Weapon kept from the earlier bow rule; 79 has no restriction now.
 		w.items[729] = catalog.Items[729]
 		p.Char.Equip[6] = model.Item{Index: 729}
 		applyScore(p.Char)

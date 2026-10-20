@@ -153,8 +153,11 @@ func oreAcceptsUnique(variant, unique int) bool {
 	case 2:
 		return unique == 7 || unique == 16 || unique == 26 || unique == 36
 	case 3:
-		return unique == 8 || unique == 17 || unique == 27 || unique == 37 ||
-			unique == 10 || unique == 20 || unique == 30 || unique == 40
+		// Adamantite upgrades only the D sets (Golden Embersed, Mithril Robe,
+		// Meta Elemental, Gold Curve Web). Owner rule: the E sets (uniques
+		// 10/20/30/40: Slayer, Templess, Raven, Region) cannot become Legendary,
+		// although W2PP accepted them.
+		return unique == 8 || unique == 17 || unique == 27 || unique == 37
 	default:
 		return false
 	}

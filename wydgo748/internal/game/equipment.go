@@ -26,6 +26,8 @@ func refineAbility(value, sanc int) int {
 		return value * 320 / 100
 	case 15:
 		return value * 370 / 100
+	case 16:
+		return value * 400 / 100
 	default:
 		return value * (sanc + 10) / 10
 	}
@@ -81,11 +83,13 @@ func setItemSanc(item *model.Item, level int) bool {
 	return false
 }
 
-// refinementLocked reports items that never accept refinement: costumes
-// (costume slot or the native slot-13 costume rows) and fairies (familiar
-// slot 13). Fairy Water keeps its own fixed-target rule for Naiad/Grewpain.
+// refinementLocked rejects generic powder refinement for costumes, fairies,
+// and Master capes. Master capes retain their dedicated Odin composition.
+// Fairy Water keeps its own fixed-target rule for Naiad/Grewpain.
 func refinementLocked(def model.ItemDef) bool {
-	return model.IsCostumeDef(def) || def.Pos&(1<<model.FamiliarSlot) != 0
+	tier, cape := model.KingdomCapeTierOf(def.Index)
+	return model.IsCostumeDef(def) || def.Pos&(1<<model.FamiliarSlot) != 0 ||
+		cape && tier == model.CapeTierMaster
 }
 
 func itemSanc(item model.Item) int {
@@ -183,7 +187,11 @@ func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 	}
 	sanc := itemSanc(item)
 	if !nonRefinableEffects[effect] {
-		value = refineAbility(value, sanc)
+		effectiveSanc := sanc
+		if sanc >= 9 && def.Pos&0xF00 != 0 {
+			effectiveSanc++
+		}
+		value = refineAbility(value, effectiveSanc)
 	}
 	if effect == "EF_RUNSPEED" {
 		if value >= 3 {
@@ -350,7 +358,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		defensePerLevel = 2
 	}
 	defense := int64(base.Defense) + int64(w.equipmentDefense(ch)) +
-		dex/5 + special[3]/2 + level*defensePerLevel
+		dex/5 + level*defensePerLevel
 
 	class := int(ch.Class)
 	maxHP, maxMP := int64(base.MaxHP), int64(base.MaxMP)
@@ -371,7 +379,8 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 			maxMP += bonusMP
 		}
 	}
-	maxHP += total("EF_HP") + special[3]*2
+	// The fourth (capture) mastery grants neither HP nor defense (owner rule).
+	maxHP += total("EF_HP")
 	maxMP += total("EF_MP")
 	maxHP = maxHP * (100 + total("EF_HPADD") + total("EF_HPADD2")) / 100
 	maxMP = maxMP * (100 + total("EF_MPADD") + total("EF_MPADD2")) / 100

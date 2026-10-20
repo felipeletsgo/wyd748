@@ -183,12 +183,19 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 		return 0;
 
 	int ItemType = BASE_GetItemAbility(&pMobData->Equip[6], 21);
-	if (cSkillIndex == 79 && ItemType != 101)
+	if (!skill_request::SkillWeaponAllowed((unsigned char)cSkillIndex, ItemType))
 		return 0;
-	if (cSkillIndex == 75 && ItemType != 101)
-		return 0;
-	if (cSkillIndex == 92 && ItemType != 41)
-		return 0;
+	// Backpack opens Cargo locally from anywhere; the server accepts Cargo
+	// moves for a Huntress who learned it, with no banker ID.
+	if ((unsigned char)cSkillIndex == skill_request::BackpackSkill)
+	{
+		if (m_pCargoPanel && !m_pCargoPanel->IsVisible())
+		{
+			TMFieldScene::m_dwCargoID = 0;
+			SetVisibleCargo(1);
+		}
+		return 1;
+	}
 
 	switch (cSkillIndex)
 	{
@@ -599,7 +606,8 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 		ReportInsufficientMana(dwServerTime);
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
-	if (cSkillIndex == 85 && (100LL * m_pMyHuman->m_stScore.Mastery[2]) > g_pObjectManager->m_stMobData.Coin)
+	if ((unsigned char)cSkillIndex == skill_request::CoinArmorSkill &&
+		(100LL * m_pMyHuman->m_stScore.Mastery[2]) > g_pObjectManager->m_stMobData.Coin)
 	{
 		auto ipNewItem = new SListBoxItem(g_pMessageStringTable[155],
 			0xFFFFAAAA,
@@ -1717,7 +1725,8 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		(int)m_pMyHuman->m_vecPosition.y >= 3927 && (int)m_pMyHuman->m_vecPosition.y <= 3935)
 		return 0;
 
-	if (cSkillIndex == 79 && BASE_GetItemAbility(&pMobData->Equip[6], 21) != 101)
+	if (!skill_request::SkillWeaponAllowed((unsigned char)cSkillIndex,
+		BASE_GetItemAbility(&pMobData->Equip[6], 21)))
 		return 0;
 
 	if (skill_request::UsesAreaRequest(TarType))

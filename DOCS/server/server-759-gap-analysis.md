@@ -157,7 +157,8 @@ controller rather than ordinary spawn/respawn behavior.
 - Current implementation: `game/guild_war_generators.go:9-21` reserves the
   Noatum Tower of Thor generators and explicitly excludes an ordinary spawn
   substitute. The complete controller is absent from `game/guild_wars.go` and
-  the inspected registration, scheduler, and economy paths.
+  the inspected registration, scheduler, and economy paths. The staged domain
+  controller described below does not enable that missing runtime.
 - Impact: enabling ordinary towers or waiting for Sunday will not supply the
   missing castle battle lifecycle. This is a missing event, not evidence that
   current city/tower registration, treasury, or rewards are generally broken.
@@ -174,9 +175,30 @@ controller rather than ordinary spawn/respawn behavior.
   tests cover the change. Public war cleanup, movement and combat exceptions
   now respect private runtime ownership. This closes those settlement and
   isolation gaps, **not G04 as a whole**.
+- Staged domain implementation on 2026-10-19:
+  `model/guild_war_castle.go` adds persisted preparation, assault, seal,
+  closing, finished and cancelled phases. Reference minute gates are 6, 15,
+  50 and 55; an unprepared opening missed at minute 10 cancels as explicit
+  fail-closed project hardening. Authorized city-owner leaders require 23
+  consecutive server samples at `(1046,1690)`. Guild fame, ownership,
+  victory count and completion are one settlement; no gold, individual fame
+  or additional reward item is introduced. Sample progress is transient.
+  Model, JSON-store and critical-acknowledgement tests cover persistence,
+  replay, authorization loss, overflow, deadline and certified rejection.
+  This is `MODERNIZACAO_COMPATIVEL`, not a native 7.48 parity claim or a
+  playable castle event. See the [staged domain receipt](../guild-wars.md#staged-noatum-domain-controller-2026-10-19).
+- Additional reference resolution: executable entry jumps `0x4B1569` and
+  `0x4B29D7` resolve to `sub_566BE0` and `sub_55EAB0`. The supplied 7.59
+  door body at `N:71904` addresses four scene objects, indices 42..45, using
+  item IDs `15000 + index`, not W2PP's older door numbering. The scheduler
+  creates four event towers at `(1051,1690)`, `(1046,1690)`, `(1124,1708)` and
+  `(1106,1718)`. Installed actor identities must still be validated. The
+  calendar at `N:70840-70845` alternates channel/week parity; it does not
+  authorize assuming a weekly battle on every channel.
 - Next implementation gate: resolve door/breach actors and the 7.48 castle
-  state/capture presentation boundary, then implement and test the complete
-  battle controller, admission, interruption and reconnect/recovery. The
+  state/capture presentation boundary, seal sampling cadence and its status
+  exclusion, then wire and test the complete battle controller, calendar
+  admission, interruption and reconnect/recovery. The
   existing defense-count cap and tax policy remain separately documented
   differences. Do not synthesize rewards or extend schedules from another
   source.

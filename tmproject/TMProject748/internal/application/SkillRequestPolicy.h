@@ -15,6 +15,20 @@ constexpr bool UsesAreaRequest(int targetType)
 
 // Samaritan (skill 3) is a self buff: the catalog marks it TargetType 1, but
 // WYD-Go always casts it on the caster, never on players or monsters.
+// WYD 7.48 Huntress skills by index: Enchant Frost (74), Backpack (85, opens
+// Cargo anywhere) and Coin Armor (86, spends Trade x 100 gold).
+constexpr int EnchantFrostSkill = 74;
+constexpr int BackpackSkill = 85;
+constexpr int CoinArmorSkill = 86;
+constexpr int ClawWeaponType = 41;
+
+// Owner rule: Enchant Frost cannot be cast with a claw. Hide in Shadow (75)
+// and Another Soul (79) carry no weapon restriction.
+constexpr bool SkillWeaponAllowed(int skillIndex, int weaponType)
+{
+    return skillIndex != EnchantFrostSkill || weaponType != ClawWeaponType;
+}
+
 constexpr bool IsSelfOnlySkill(int skillIndex)
 {
     return skillIndex == 3;

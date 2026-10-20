@@ -120,6 +120,21 @@ func TestEquipmentCriticalUsesCurrentScoreScale(t *testing.T) {
 	}
 }
 
+func TestFourthMasteryAddsNoHPOrDefense(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{}}
+	ch := &model.Char{Class: 3, Score: testScore(model.Score{Level: 100, Str: 8, Int: 4, Dex: 7, Con: 6})}
+	w.recalcPlayer(ch)
+	baseHP, baseDefense := effectiveScore(ch).MaxHP, effectiveScore(ch).Defense
+	ch.Score.Mastery[3] = 200
+	w.recalcPlayer(ch)
+	if got := effectiveScore(ch).MaxHP; got != baseHP {
+		t.Fatalf("fourth mastery changed MaxHP %d -> %d", baseHP, got)
+	}
+	if got := effectiveScore(ch).Defense; got != baseDefense {
+		t.Fatalf("fourth mastery changed defense %d -> %d", baseDefense, got)
+	}
+}
+
 func TestCanEquipIsServerAuthoritative(t *testing.T) {
 	def := model.ItemDef{Index: 100, Pos: 1 << 6, ReqLevel: 10, ReqStr: 20,
 		StaticEffects: []model.StaticEffect{{Name: "EF_CLASS", Value: 1}}}

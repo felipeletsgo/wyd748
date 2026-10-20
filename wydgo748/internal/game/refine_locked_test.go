@@ -8,19 +8,25 @@ import (
 	"wydgo/internal/model"
 )
 
-func TestCostumesAndFairiesRejectRefinement(t *testing.T) {
+func TestCostumesFairiesAndMasterCapesRejectPowderRefinement(t *testing.T) {
 	costume := model.ItemDef{Index: 4180, Mesh: model.CostumeMesh, Pos: model.CostumeSlotMask}
 	fairy := model.ItemDef{Index: 769, Pos: 1 << model.FamiliarSlot}
 	weapon := model.ItemDef{Index: 200, Pos: 4}
 	if !refinementLocked(costume) || !refinementLocked(fairy) || refinementLocked(weapon) {
-		t.Fatal("only costumes and fairies are refinement-locked")
+		t.Fatal("costumes and fairies must reject generic refinement")
+	}
+	for _, index := range []uint16{3197, 3198, 3199} {
+		if !refinementLocked(model.ItemDef{Index: index, Pos: 1 << model.CapeSlot}) {
+			t.Fatalf("Master cape %d accepted generic refinement", index)
+		}
 	}
 
 	for _, tc := range []struct {
 		name string
 		slot uint32
 		def  model.ItemDef
-	}{{"costume", model.CostumeSlot, costume}, {"fairy", model.FamiliarSlot, fairy}} {
+	}{{"costume", model.CostumeSlot, costume}, {"fairy", model.FamiliarSlot, fairy},
+		{"master-cape", model.CapeSlot, model.ItemDef{Index: 3197, Pos: 1 << model.CapeSlot}}} {
 		t.Run(tc.name, func(t *testing.T) {
 			rule := model.VolatileRule{Action: "refine", Consume: true, RefineMax: 9}
 			w, p, st := useItemWorld(rule)
@@ -43,7 +49,7 @@ func TestCostumesAndFairiesRejectRefinement(t *testing.T) {
 
 // Production enables critical persistence; the rejection must happen while
 // building the proposal, before any durable write is queued.
-func TestCriticalRefinementRejectsCostumesAndFairies(t *testing.T) {
+func TestCriticalRefinementRejectsCostumesFairiesAndMasterCapes(t *testing.T) {
 	for _, tc := range []struct {
 		name string
 		slot uint32
@@ -51,6 +57,7 @@ func TestCriticalRefinementRejectsCostumesAndFairies(t *testing.T) {
 	}{
 		{"costume", model.CostumeSlot, model.ItemDef{Index: 4180, Mesh: model.CostumeMesh, Pos: model.CostumeSlotMask}},
 		{"fairy", model.FamiliarSlot, model.ItemDef{Index: 769, Pos: 1 << model.FamiliarSlot}},
+		{"master-cape", model.CapeSlot, model.ItemDef{Index: 3197, Pos: 1 << model.CapeSlot}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			w, p, _, _, _, _, _ := criticalTreasuryFixture(t, 100)

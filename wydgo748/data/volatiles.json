@@ -68,7 +68,7 @@
       "consume": true,
       "variant": 3,
       "successPercent": 50,
-      "description": "Adamantite (578): turns compatible grade 1..3 equipment into the Legendary result given by Extra. Consumed on success and failure."
+      "description": "Adamantite (578): turns D-set equipment (uniques 8/17/27/37) of grade 1..3 into the Legendary result given by Extra; E sets are rejected. Consumed on success and failure."
     },
     "10": {
       "action": "buff",

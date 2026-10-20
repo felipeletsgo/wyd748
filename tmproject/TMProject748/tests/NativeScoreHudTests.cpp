@@ -121,6 +121,19 @@ int RunNativeScoreHudTests(int& checks)
     std::istringstream runtimeHelpInput(ReadNameColorSource("../client748/itemhelp.dat"));
     check(item_help_748::Load(runtimeHelpInput, runtimeHelp.get(), 6500) > 300,
         "production itemhelp asset loads complete records");
+    item_help_748::LocalizeRepliction(runtimeHelp.get(), 6500);
+    for (int index = 4016; index <= 4025; ++index) {
+        const auto& record = runtimeHelp[index];
+        const char grade = static_cast<char>('A' + (index - 4016) % 5);
+        check(std::strstr(record.Help[0], "Repliction") != nullptr
+            && record.Help[0][11] == grade, "each Repliction has its own English grade heading");
+        check(std::strcmp(record.Help[5], index < 4021
+            ? "Maximum refinement: +6." : "Maximum refinement: +9.") == 0,
+            "standard and premium Repliction descriptions match server refinement limits");
+        for (int row = 0; row < item_help_748::Rows; ++row)
+            check(std::strlen(record.Help[row]) <= 42,
+                "Repliction descriptions fit one native tooltip line");
+    }
     std::istringstream nativeSkillInput(ReadNameColorSource("../client748/skillhelp.dat"));
     check(item_help_748::Load(nativeSkillInput, runtimeHelp.get(), 6500) == 102,
         "all 102 available native skill descriptions load as a separate English corpus");

@@ -12,7 +12,15 @@ import (
 	"wydgo/internal/wire"
 )
 
-const ultimateSkillGold = 2_000_000
+func ultimateSkillGold(ch *model.Char) uint32 {
+	if isCelestialEvolution(ch) {
+		return 100_000_000
+	}
+	if isArch(ch) {
+		return 50_000_000
+	}
+	return 5_000_000
+}
 
 func (w *World) onLearnSkill(s *net.Session, p *Player, itemIndex int) {
 	w.onLearnSkillAtMaster(s, p, itemIndex, 0)
@@ -128,11 +136,12 @@ func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, r
 				return
 			}
 		}
-		if ch.Gold < ultimateSkillGold {
+		cost := ultimateSkillGold(ch)
+		if ch.Gold < cost {
 			reject("Insufficient gold to learn the ultimate skill.")
 			return
 		}
-		ch.Gold -= ultimateSkillGold
+		ch.Gold -= cost
 	}
 	ch.LearnedSkill |= bit
 	w.recalcPlayer(ch)
@@ -540,6 +549,10 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if !w.skillWeaponAllowed(p.Char, skillIndex) {
 		return
 	}
+	if skillIndex == backpackSkill {
+		// Backpack has no cast or affect: the client opens Cargo locally.
+		return
+	}
 	kind := local/8 + 1
 	if special {
 		kind = 4
@@ -582,20 +595,20 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if playerCurMP(p.Char) < uint32(mana) {
 		return
 	}
-	if skillIndex == 85 { // Golden Shield: W2PP _MSG_Attack.cpp charges 100 gold per mastery point.
+	if skillIndex == coinArmorSkill { // Coin Armor (7.48 skill help): costs Trade x 100 gold.
 		cost := uint32(100 * mastery)
 		if p.goldenShieldPaid {
 			// The committed charge belongs to exactly this resumed cast.
 			p.goldenShieldPaid = false
 		} else if p.Char.Gold < cost {
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Golden Shield requires %d gold.", cost)))
+			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Coin Armor requires %d gold.", cost)))
 			return
 		} else if w.criticalWrites != nil {
 			// Commit the native gold charge first, then resume this same cast
 			// on acknowledgement without charging again.
 			images := criticalPreimages(p)
 			p.Char.Gold -= cost
-			if err := w.queueCriticalLiveMutation("Golden Shield cost", images, func() {
+			if err := w.queueCriticalLiveMutation("Coin Armor cost", images, func() {
 				if !p.Session.IsClosed() {
 					p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 				}
@@ -603,7 +616,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 				w.onSkillAttack(p, req)
 				p.goldenShieldPaid = false
 			}, criticalLiveMutationOptions{}); err != nil {
-				log.Printf("[#%d] Golden Shield cost admission rejected: %v", p.Session.ID, err)
+				log.Printf("[#%d] Coin Armor cost admission rejected: %v", p.Session.ID, err)
 			}
 			return
 		} else {
@@ -611,7 +624,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			p.Char.Gold -= cost
 			if err := w.saveAccount(p.Account); err != nil {
 				p.Char.Gold = oldGold
-				log.Printf("[#%d] save Golden Shield cost: %v", p.Session.ID, err)
+				log.Printf("[#%d] save Coin Armor cost: %v", p.Session.ID, err)
 				return
 			}
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
@@ -860,14 +873,22 @@ func uniqueKillAccounts(killer *Player, shares []partyExpShare) []*model.Account
 	return accounts
 }
 
-// skillWeaponAllowed mirrors the WYD 7.48 client gate in SkillUse: Enchant
-// Ice (75) and Lightning Storm (79) need a bow (EF_WTYPE 101) in weapon slot
-// 6, so a claw cannot cast them through a modified client.
+// WYD 7.48 Huntress skills (skill help 5074/5085/5086).
+const (
+	enchantFrostSkill = 74
+	backpackSkill     = 85 // Opens Cargo from anywhere; the client opens it locally.
+	coinArmorSkill    = 86
+	clawWeaponType    = 41
+)
+
+// skillWeaponAllowed mirrors the client gate (owner rule): Enchant Frost
+// cannot be cast with a claw in weapon slot 6. Hide in Shadow (75) and
+// Another Soul (79) carry no weapon restriction.
 func (w *World) skillWeaponAllowed(ch *model.Char, skillIndex int) bool {
-	if skillIndex != 75 && skillIndex != 79 {
+	if skillIndex != enchantFrostSkill {
 		return true
 	}
 	weapon := ch.Equip[6]
 	def, ok := w.items[weapon.Index]
-	return weapon.Index != 0 && ok && itemAbility(weapon, def, "EF_WTYPE") == 101
+	return weapon.Index == 0 || !ok || itemAbility(weapon, def, "EF_WTYPE") != clawWeaponType
 }

@@ -166,15 +166,64 @@ func activeCelestialForm(ch *model.Char) model.CelestialForm {
 		Evolution: ch.Evolution, Class: ch.Class, Face: ch.Equip[0],
 		Score: ch.Score, Exp: ch.Exp, LearnedSkill: ch.LearnedSkill,
 		SecondaryLearnedSkill: ch.SecondaryLearnedSkill,
-		ShortSkill:            ch.ShortSkill, Affects: ch.Affects,
+		ShortSkill:            ch.ShortSkill, Affects: itemBuffsRemoved(ch.Affects),
+	}
+}
+
+// Consumable buffs (potions, food, Sephira...) record their source item and
+// belong to the character, not to a Celestial form: they survive Celestial
+// creation and form changes, while skill buffs stay with their form.
+func itemBuffsRemoved(affects [16]model.Affect) [16]model.Affect {
+	for i := range affects {
+		if affects[i].SourceItemIndex != 0 {
+			affects[i] = model.Affect{}
+		}
+	}
+	return affects
+}
+
+func itemBuffsOnly(affects [16]model.Affect) [16]model.Affect {
+	for i := range affects {
+		if affects[i].SourceItemIndex == 0 {
+			affects[i] = model.Affect{}
+		}
+	}
+	return affects
+}
+
+func carryItemBuffs(target *[16]model.Affect, source [16]model.Affect) {
+	for i, buff := range source {
+		if buff.Type == 0 || buff.SourceItemIndex == 0 {
+			continue
+		}
+		slot := -1
+		for j := range target {
+			if target[j].Type == buff.Type {
+				slot = j
+				break
+			}
+		}
+		if slot < 0 && target[i].Type == 0 {
+			slot = i
+		}
+		for j := 0; slot < 0 && j < len(target)-1; j++ { // slot 15 is Soul Limit's
+			if target[j].Type == 0 {
+				slot = j
+			}
+		}
+		if slot >= 0 {
+			target[slot] = buff
+		}
 	}
 }
 
 func loadCelestialForm(ch *model.Char, form model.CelestialForm) {
+	itemBuffs := itemBuffsOnly(ch.Affects)
 	ch.Evolution, ch.Class, ch.Equip[0] = form.Evolution, form.Class, form.Face
 	ch.Score, ch.Exp, ch.LearnedSkill = form.Score, form.Exp, form.LearnedSkill
 	ch.SecondaryLearnedSkill = form.SecondaryLearnedSkill
-	ch.ShortSkill, ch.Affects = form.ShortSkill, form.Affects
+	ch.ShortSkill, ch.Affects = form.ShortSkill, itemBuffsRemoved(form.Affects)
+	carryItemBuffs(&ch.Affects, itemBuffs)
 	ch.RuntimeScore = nil
 }
 
@@ -329,7 +378,7 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	ch.LearnedSkill = celestialSoulBit
 	ch.SecondaryLearnedSkill = 0
 	ch.ShortSkill = [20]byte{}
-	ch.Affects = [16]model.Affect{}
+	ch.Affects = itemBuffsOnly(ch.Affects) // potion buffs survive the conversion
 	ch.Equip[1] = cythera
 	kingdom := model.KingdomFromCape(snapshot.Equip[model.CapeSlot].Index)
 	cape, _ := model.KingdomCapeAtTier(model.CapeTierMaster, kingdom)

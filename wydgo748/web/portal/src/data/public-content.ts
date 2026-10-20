@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10036,
-  publishedAt: '2026-10-19',
-  serverUpdate: { id: 'instance-expiry-persistence', publishedAt: '2026-10-19' },
+  patchVersion: 10037,
+  publishedAt: '2026-10-20',
+  serverUpdate: { id: 'skills-items-10037', publishedAt: '2026-10-20' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -14,16 +14,28 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10036.zip',
-    sizeBytes: 850509,
-    sha256: 'E4F2940353D425B0C6DEE0B7F3FC4C9F8A24305D1950EB03D6ED323DA2F4B49B',
-    executableSha256: 'B20510B20D34651D206C72340B96D2B7314D56B19072AC25678D37183889DE3D',
+    url: '/patch/patch-10037.zip',
+    sizeBytes: 849103,
+    sha256: 'B41A987968CF478B1FAAF8330BF695D68A3ADA528C70FB219292096097B3AB32',
+    executableSha256: '0254CEA3D2C9D8E6AD3579C07701D132DC6A3F2704A99D9628456BD1829A0D90',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
 } as const;
 
 export const news = [
+  {
+    slug: 'skills-items-10037', date: '2026-10-20', category: 'News',
+    title: 'Patch 10037: skills, items and exchange stones',
+    summary: 'Huntress Backpack, Lightning Storm damage, Exchange Stones, ghost shop honor, Noatun gate and Magic Chamber runes.',
+    paragraphs: [
+      'Huntress Backpack opens your Cargo anywhere on the map. Coin Armor charges its own gold cost and grants its listed defense. Enchant Frost cannot be used with claws; Hide in Shadow and Another Soul no longer require a bow. Each 8-second Lightning Storm strike now deals full Thunderbolt damage.',
+      'Equip the Greater and Lesser Exchange Stones on two characters of the same account and log in again: their names are swapped and both stones are consumed. Characters in a guild must leave it first. Adamantite now works only on D sets; E sets are rejected without consuming the ore. An open ghost shop earns its owner 1 honor every 10 minutes.',
+      'Potion, food and Sephira buffs survive Celestial creation and form changes. Glory Ankh +9 applies its accessory critical bonus, Tiny option transfer uses chances by donor item and refinement, Master capes reject ordinary powder, and the eighth skill costs 5,000,000, 50,000,000 or 100,000,000 gold for Mortal, Arch and Celestial characters. The fourth capture mastery no longer adds HP or defense.',
+      'The Noatun gate no longer closes locally and blocks the way back, colored runes light up on the Magic Chamber entrance floor, Repliction descriptions are readable, the grade-E Repliction uses its own appearance, and Uxmal stands at the Rune Track entrance again.',
+      'Close the game and open WYDLauncher.exe to receive patch 10037. Automated checks passed; actual gameplay acceptance remains pending.',
+    ],
+  },
   {
     slug: 'client-controls-10036', date: '2026-10-19', category: 'News',
     title: 'Patch 10036: keyboard and inventory shortcuts',
@@ -364,6 +376,13 @@ export const news = [
 ] as const;
 
 export const changelog = [
+  { date: '2026-10-20', category: 'Client and server', title: 'Patch 10037 — skills, items and exchange stones', entries: [
+    'Huntress Backpack opens Cargo anywhere; Coin Armor charges its own gold cost; Enchant Frost rejects claws; Lightning Storm strikes as Thunderbolt.',
+    'Exchange Stones swap the names of two account characters on login; Adamantite accepts only D sets; ghost shops earn 1 honor every 10 minutes.',
+    'Item buffs survive Celestial changes; Glory Ankh +9, Tiny chances, Master cape refinement, eighth skill cost and fourth capture mastery corrected.',
+    'Noatun gate local close removed; Magic Chamber entrance runes added; Repliction text and grade-E appearance fixed; Uxmal moved to the Rune Track entrance.',
+    'Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
   { date: '2026-10-19', category: 'Client and server', title: 'Patch 10036 — keyboard and inventory shortcuts', entries: [
     'Restore alternate keyboard accelerators, consumable controls and camera-directed Auto Run while preserving text-input priority.',
     'Synchronize public guild affiliation with server acknowledgement; restore validated equipment and warehouse item-click shortcuts.',

@@ -30,6 +30,50 @@ func dequeueSkillMessage(t *testing.T, p *Player) string {
 	return string(body)
 }
 
+func TestUltimateSkillCostByEvolution(t *testing.T) {
+	for _, tc := range []struct {
+		name, evolution string
+		cost            uint32
+	}{
+		{"mortal", "", 5_000_000},
+		{"arch", archEvolution, 50_000_000},
+		{"celestial", "celestial", 100_000_000},
+		{"subcelestial", "subcelestial", 100_000_000},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ultimateSkillGold(&model.Char{Evolution: tc.evolution}); got != tc.cost {
+				t.Fatalf("ultimate skill fee=%d, want %d", got, tc.cost)
+			}
+			for _, available := range []uint32{tc.cost - 1, tc.cost} {
+				w, p, st := handlerTestWorld(t)
+				p.Char.Class = 0
+				p.Char.Evolution = tc.evolution
+				p.Char.Score.Level = 100
+				p.Char.Gold = available
+				p.Char.LearnedSkill = 0x7f
+				w.skills = map[int]model.SkillDef{7: {Index: 7, Name: "Ultimate", SkillPoint: 1}}
+				w.items[5007] = model.ItemDef{Index: 5007}
+				master := &Mob{ID: 1200, X: p.X + 1, Y: p.Y, Def: &model.NPCDef{
+					Name: "Master", Tipo: model.TipoNPC,
+					Score: &model.Score{Version: model.ScoreVersion, Merchant: skillMasterMerchant},
+					Vende: []model.Item{{Index: 5007}},
+				}}
+				w.registerMobSpatial(master)
+				p.ShopNPC = master.ID
+				p.show(master.ID)
+				w.onLearnSkillAtMaster(p.Session, p, 5007, master.ID)
+				if available < tc.cost {
+					if p.Char.LearnedSkill != 0x7f || p.Char.Gold != available || st.saves != 0 {
+						t.Fatal("insufficient gold learned, charged or persisted the ultimate skill")
+					}
+				} else if p.Char.LearnedSkill != 0xff || p.Char.Gold != 0 || st.saves != 1 {
+					t.Fatalf("ultimate skill: learned=%x gold=%d saves=%d", p.Char.LearnedSkill, p.Char.Gold, st.saves)
+				}
+			}
+		})
+	}
+}
+
 func skillMasterApplyBonusPacket(item, master uint16) []byte {
 	pkt := make([]byte, applyBonusPacketSize)
 	binary.LittleEndian.PutUint16(pkt[12:14], 2)
@@ -786,14 +830,14 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		t.Helper()
 		w, p, st := handlerTestWorld(t)
 		p.Char.Class = 3
-		p.Char.LearnedSkill = 1 << 13 // global 85, local 13
+		p.Char.LearnedSkill = 1 << 14 // global 86 Coin Armor, local 14
 		p.Char.Gold = 1_000
 		p.Char.Score.Mastery[2] = 5 // W2PP cost: 100 gold per mastery point = 500
 		p.Char.Score.CurMP = 1_000
 		p.Char.Score.MaxMP = 1_000
 		applyScore(p.Char)
-		w.skills = map[int]model.SkillDef{85: {
-			Index: 85, Name: "Golden_Shield", ManaSpent: 10, Delay: 1,
+		w.skills = map[int]model.SkillDef{86: {
+			Index: 86, Name: "Coin_Armor", ManaSpent: 10, Delay: 1,
 			AffectType: 1, AffectValue: 10, AffectTime: 10,
 		}}
 		return w, p, st
@@ -801,9 +845,9 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		w, p, st := newPlayer(t)
-		w.onSkillAttack(p, skillCastRequest{Skill: 85, TargetID: p.ID, Motion: 5})
+		w.onSkillAttack(p, skillCastRequest{Skill: 86, TargetID: p.ID, Motion: 5})
 		if st.saves != 1 || p.Char.Gold != 500 {
-			t.Fatalf("incorrect Golden Shield cost: saves=%d gold=%d", st.saves, p.Char.Gold)
+			t.Fatalf("incorrect Coin Armor cost: saves=%d gold=%d", st.saves, p.Char.Gold)
 		}
 	})
 
@@ -812,7 +856,7 @@ func TestGoldenShieldGoldCostPersistsBeforeSkillPublication(t *testing.T) {
 		st.err = errors.New("database unavailable")
 		beforeMP := playerCurMP(p.Char)
 		beforePackets := p.Session.QueuedPacketsForTest()
-		w.onSkillAttack(p, skillCastRequest{Skill: 85, TargetID: p.ID, Motion: 5})
+		w.onSkillAttack(p, skillCastRequest{Skill: 86, TargetID: p.ID, Motion: 5})
 		if p.Char.Gold != 1_000 || playerCurMP(p.Char) != beforeMP ||
 			p.Session.QueuedPacketsForTest() != beforePackets {
 			t.Fatalf("save failure published/charged the skill: gold=%d mp=%d packets=%d",

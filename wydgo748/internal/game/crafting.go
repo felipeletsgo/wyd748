@@ -14,9 +14,6 @@ const (
 	combinePacketSize = 84
 	combineSlots      = 8
 	tinyGoldCost      = 100_000_000
-	// Historical WYD 7.48 RELEASE SERVER/Common/Settings/CompRate.txt uses 100.
-	// Its compiled default was 20, overridden by the file at startup.
-	tinyBaseChance = 100
 )
 
 type combineRequest struct {
@@ -94,18 +91,48 @@ func craftingNPCMatches(m *Mob, expectedName string) bool {
 		strings.EqualFold(generName(m.Def.Name), expectedName)
 }
 
-func tinyBlockedWeapon(index uint16) bool {
-	ranges := [][2]uint16{
-		{2511, 2542}, {2571, 2602}, {2811, 2842}, {2851, 2854},
-		{2631, 2662}, {2691, 2722}, {2871, 2886}, {2471, 2482},
-		{2911, 2926}, {2751, 2782},
+// tinyDonorTier follows the donor-ID branches in the 7.59 TMSRVIN.exe
+// TransWeaponUpgrade routine (0x4DB0C0). This later-server algorithm is a
+// project choice for Tiny, not independent proof of native 7.48 parity.
+func tinyDonorTier(index uint16) int {
+	if index >= 3600 && index <= 3800 {
+		return 2
 	}
-	for _, r := range ranges {
-		if index >= r[0] && index <= r[1] {
-			return true
+	for _, span := range [][2]uint16{
+		{2723, 2726}, {2887, 2890}, {2483, 2486}, {2927, 2930},
+		{2663, 2666}, {2843, 2846}, {2603, 2606}, {2543, 2546},
+		{2783, 2786}, {2875, 2878},
+	} {
+		if index >= span[0] && index <= span[1] {
+			return 0
 		}
 	}
-	return false
+	for _, span := range [][2]uint16{
+		{2727, 2730}, {2891, 2894}, {2487, 2490}, {2931, 2934},
+		{2667, 2670}, {2855, 2858}, {2847, 2850}, {2607, 2610},
+		{2547, 2550}, {2787, 2790},
+	} {
+		if index >= span[0] && index <= span[1] {
+			return 1
+		}
+	}
+	return -1
+}
+
+func tinyChance(donorID uint16, donorSanc int) int {
+	tier := tinyDonorTier(donorID)
+	if tier < 0 || donorSanc < 9 {
+		return 0
+	}
+	column := 3
+	if donorSanc == 9 {
+		column = 1
+	} else if donorSanc == 10 {
+		column = 2
+	}
+	// The native table contains thresholds 25/37/42, 29/41/47 and
+	// 33/45/53. Its rand()%100 <= threshold adds one effective percent.
+	return [3][4]int{{0, 26, 38, 43}, {0, 30, 42, 48}, {0, 34, 46, 54}}[tier][column]
 }
 
 func (w *World) tinyRecipe(req combineRequest) (model.Item, int, error) {
@@ -124,13 +151,11 @@ func (w *World) tinyRecipe(req combineRequest) (model.Item, int, error) {
 	if itemAbility(a, defA, "EF_MOBTYPE") != 1 || defA.Grade < 5 || defA.Grade > 8 {
 		return model.Item{}, 0, fmt.Errorf("main item is not a grade 5..8 Arch weapon")
 	}
-	if tinyBlockedWeapon(b.Index) || defB.Grade < 5 || defB.Grade > 8 {
+	if tinyDonorTier(b.Index) < 0 || defB.Grade < 5 || defB.Grade > 8 {
 		return model.Item{}, 0, fmt.Errorf("invalid donor weapon")
 	}
-	// BASE_GetItemSanc > 237 is rejected in the native encoding: 230+ starts
-	// this exclusion at +12. A donor may be 0..+11, but not +12..+15.
-	if itemSanc(b) >= 12 {
-		return model.Item{}, 0, fmt.Errorf("donor weapon exceeds +11")
+	if itemSanc(b) < 9 {
+		return model.Item{}, 0, fmt.Errorf("donor weapon requires at least +9 refinement")
 	}
 	if itemAbility(catalyst, defC, "EF_ITEMTYPE") == 1 {
 		return model.Item{}, 0, fmt.Errorf("prohibited catalyst type")
@@ -138,7 +163,7 @@ func (w *World) tinyRecipe(req combineRequest) (model.Item, int, error) {
 	if defA.Pos != defB.Pos || defA.Pos != 64 && defA.Pos != 192 {
 		return model.Item{}, 0, fmt.Errorf("weapons must occupy the same hand")
 	}
-	if itemSanc(a) < 9 || itemSanc(catalyst) < 9 {
+	if itemSanc(a) != 9 || itemSanc(catalyst) != 9 {
 		return model.Item{}, 0, fmt.Errorf("main item and catalyst require +9 refinement")
 	}
 	result := a
@@ -146,8 +171,7 @@ func (w *World) tinyRecipe(req combineRequest) (model.Item, int, error) {
 	if !setItemSanc(&result, 7) {
 		return model.Item{}, 0, fmt.Errorf("donor weapon effects cannot hold refinement")
 	}
-	chance := tinyBaseChance + 5*itemAbility(b, defB, "EF_ITEMLEVEL")
-	return result, clampInt(chance, 0, 100), nil
+	return result, tinyChance(b.Index, itemSanc(b)), nil
 }
 
 func (w *World) sendCombineResult(p *Player, result uint32) {

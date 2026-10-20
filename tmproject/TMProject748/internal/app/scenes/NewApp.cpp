@@ -351,6 +351,7 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	}
 
 	item_help_748::Load(itemHelp, g_pItemHelp, _countof(g_pItemHelp));
+	item_help_748::LocalizeRepliction(g_pItemHelp, _countof(g_pItemHelp));
 	itemHelp.close();
 	// Faithful English localization of the native 7.48 skill-help corpus.
 	// Keep this separate from historical item records and their ANSI encoding.

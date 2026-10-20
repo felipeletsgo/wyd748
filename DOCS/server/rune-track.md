@@ -196,6 +196,62 @@ Anchors in that decompilation:
   `sub_589AE0`: 86504–86520. Floor rectangles come from the executable's
   table at VA `0x646FA8`.
 
+### Targeted REA cross-check
+
+On 2026-10-19, REA 6.7.0 with Ghidra 12.1.2 produced address-based
+pseudocode and instruction-flow evidence for the same SHA-256 inputs above:
+
+- `Core.dll!0x1002DF30` (`ev_8274301e3572279283e70956cd8de083a5a771fde1fd353c63c7089ee5f3e7db`)
+  computes `DAT_1074EBDC + 0x191E` and calls the resulting code address.
+  With the startup value `0x4B1000`, this resolves to the executable thunk at
+  `0x4B291E`, which jumps to `0x514310`. The static call path is coherent; it
+  is not a function-pointer dereference mismatch.
+- `TMSRVIN.exe!0x514310`
+  (`ev_a24b2c81140d704eb9e82f8d618b95515b6ad30e1812c9db8577749803dcd4f4`)
+  is `GenerateMob`: its first argument is validated as an index from 0 through
+  6999 and used to read the generator record at a `0xDC8` stride. The returned
+  decompile was limited to its first 5,000 tokens, so this confirms the
+  function role and initial path, not every spawn branch.
+- `Core.dll!0x10008CF0`
+  (`ev_a65cf9c4046d2f469d434e8efa9e53500588a9828d25da8f7df4a1fac742818a`)
+  handles a guarded boss-teleport callback: it invokes the player helper with
+  `0xD13/0x535`, calls `GenerateMob(0x16E2, 0, 0)`, then checks up to twelve
+  candidate slots before notifying eligible nearby players. In this call,
+  `0x16E2` is monster index 5858; this occurrence is not evidence of a packet
+  opcode. Any packet use of the same number remains unlocated and must be
+  traced independently.
+- `TMSRVIN.exe!0x585BC0`
+  (`ev_055f72cf90b85f6ea0cde5a68d33511da5838d6cebdcb2c131d3b49c233a5cdd`)
+  independently confirms two settlement paths. For the resolved group root it
+  maps the stored index to one of six codes and sends an 8-byte `0x140E/0x2B`
+  message. The accompanying log label mentions `5134`, but this path alone does
+  not prove that `5134` is an item grant. For each matching group member, a
+  separate random four-value offset is added to a base derived from the root's
+  stored index; a boundary fallback rerolls before the numeric result is sent
+  to the helper. This supports the documented room/group-index pool
+  restriction, rather than selection by each recipient's member-list position.
+- `TMSRVIN.exe!0x584C70`
+  (`ev_263e7f27646ad7867089a0fbcabe394d2305088eceb94ea43bc044fb80d15b54`)
+  resolves inside `FUN_005849B0`, the objective-death handler, rather than to a
+  packet-dispatch entry. It reads the defeated actor's template ID and calls
+  `FUN_00585BC0` when that ID equals `0x16E2`. This confirms the monster-ID use
+  in this branch; it does not establish whether an inbound opcode also uses
+  that numeric value.
+- The saved receive-window pseudocode for `TMSRVIN.exe!0x518790`
+  (`ev_804c037ce971e4be2857e3cd2c15df659ff91466a787087456148bf43327fad3`)
+  receives socket data and calls `FUN_00519CA0`. Its instruction-flow record
+  (`ev_14da12a13766379cd884793af6559aec2b578801bd04e37e5a379430c55fb1a8`)
+  reads the command word at packet offset `+4`; the guarded dispatch tables and
+  explicit branches top out at `0xFDE`. A value of `0x16E2` takes the shared
+  epilogue at `0x5548F5`, not a command-specific handler. Therefore, `0x16E2`
+  is not an inbound command in this observed player-socket receive path. This
+  does not rule out unrelated transports or internal call paths.
+
+These are static pseudocode observations, not proof of runtime patching,
+successful in-game teleport, or full native parity. The `0x16E2` monster ID is
+now distinguished from the observed player-socket command namespace; any
+separate transport or internal route using the same number remains untraced.
+
 The reproducible converter is `wydgo748/cmd/runetrack759`. Run from
 `wydgo748/`, specifying the read-only source and an ignored staging output:
 

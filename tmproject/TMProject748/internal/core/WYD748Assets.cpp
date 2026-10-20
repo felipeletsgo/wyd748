@@ -433,6 +433,10 @@ bool WYD748_LoadItemList(
         LegacyItemRecord source{};
         memcpy(&source, bytes.data() + index * LegacyItemRecordSize, sizeof(source));
         CopyLegacyItem(source, destination[index]);
+        // The distributed grade-E Repliction row reuses grade D's mesh.
+        // Its permanent grade-E counterpart already uses the distinct mesh.
+        if (index == 4020 && source.IndexMesh == 2837)
+            destination[index].nIndexMesh = 2860;
     }
 
     return true;

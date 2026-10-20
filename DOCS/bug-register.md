@@ -1,6 +1,6 @@
 # Gameplay bug register
 
-Updated: 2026-10-18. This is the active queue for the current player reports,
+Updated: 2026-10-20. This is the active queue for the current player reports,
 not an inventory of every historical defect. Release receipts remain in
 [current state](current-state.md). Registration does not mean that a cause has
 been reproduced, a fix implemented, or gameplay validated.
@@ -27,15 +27,15 @@ in progress. No publication or restart is authorized by this register.
 | ID | Priority | Issue | Current status |
 | --- | --- | --- | --- |
 | BUG-001 | P2 | HIT/MISS feedback missing for the attacker | Initial diagnosis; no confirmed cause |
-| BUG-002 | P1 | Noatun gate closes unexpectedly and blocks return | Initial diagnosis; no confirmed cause |
+| BUG-002 | P1 | Noatun gate closes unexpectedly and blocks return | Client-local target-distance close removed in source; gameplay pending |
 | BUG-003 | P1 | Hell Gate has no visible monsters after entry | Version-3 historical populations, march, Dionys shop and Sand Lich selection published in server release 20261018T171412Z; gameplay pending |
-| BUG-004 | P2 | Blood Foema incoming damage reduction appears incorrect | Existing mitigation covered by tests; reported scenario unverified |
-| BUG-005 | P2 | Blood Foema mana consumption/control appears inconsistent | Concrete skill/resource reproduction needed |
+| BUG-004 | P2 | Blood Foema incoming damage reduction appears incorrect | Owner confirmed current behavior is correct; no change requested |
+| BUG-005 | P2 | Blood Foema mana consumption/control appears inconsistent | Owner confirmed current behavior is correct; no change requested |
 | BUG-006 | P2 | Divine Judgment deals damage without its visual effect | Client effect lifecycle investigation started; no fix yet |
 | BUG-007 | P2 | Nightmare party entry and identification are not synchronized | Shared-zone party relocation corrected; automated checks passed, gameplay pending |
 | BUG-008 | P1 | Nightmare reconnect loses party and encounter HUD state | Server recovery implemented; automated checks passed, gameplay pending |
 | BUG-009 | P1 | Magic Chamber monsters disappear or remain untargetable | Party relocation and independent-run isolation corrected in source; automated checks passed, gameplay pending |
-| BUG-010 | P2 | Magic Chamber room-transition ground markings are missing | New player report; native presentation not yet identified |
+| BUG-010 | P2 | Magic Chamber entrance floor runes are missing | Owner-defined client generator implemented in source; build and policy tests passed, gameplay pending |
 | BUG-011 | P1 | Compounder and city guards attack players | Friendly roles and monster-only guard combat implemented; automated checks passed, gameplay pending |
 
 ## Reports and acceptance checks
@@ -47,7 +47,16 @@ in progress. No publication or restart is authorized by this register.
 - Findings: authoritative physical and skill result builders already clear
   `FlagLocal`. The client preserves negative MISS sentinels when reading wide
   damage and permits floating feedback for the local attacker and target.
-  A local-flag change alone is not a supported fix.
+  The server view helpers include an eligible attacker who has the target in
+  visibility; the same result packet is sent to other eligible observers.
+  Neither a local-flag change nor a speculative broadcast is a supported fix.
+- Re-checked 2026-10-20: player-versus-mob and PvP misses go to the whole view
+  (attacker included) as `0x39D/52` with `FlagLocal=0` and `Dam[0]=-3`; skill
+  misses use the same sentinel. The client's `ApplyTargetedAttackHits` draws
+  "miss" for a local attacker when `FlagLocal=0`. Monster misses against a
+  player are sent as zero damage and draw no text by design. No static defect
+  remains; a capture of one failing case (attack type, skill, target type,
+  attacker/target positions) is needed.
 - Next check: follow one actual result packet through delivery, target lookup,
   floating-text creation and rendering on both participants.
 - Acceptance: attacker and target see the correct result for hits and misses,
@@ -59,9 +68,22 @@ in progress. No publication or restart is authorized by this register.
 - Report: the gate closes unexpectedly and prevents normal return to town.
 - Findings: no automatic close writer was found in the inspected server
   lifecycle. Castle key IDs 15/16 initialize open; client creation and
-  incremental updates use different state encodings.
-- Next check: capture server gate state, client state and collision mask when
-  the failure occurs; include visibility refresh and scene reentry.
+  incremental updates use different state encodings. The native 7.48 gate
+  frame also closes locally when the *movement target* is over 33 tiles away,
+  even if the player and gate are still adjacent. WYD-Go item visibility follows
+  actual position at 32 tiles, so it need not resend an object closed this way.
+  The client source now leaves gate state and collision to server packets and
+  visibility removal. This is an intentional `MODERNIZACAO_COMPATIVEL`, not a
+  native-parity claim. See the [gate evidence record](../.agents/research/client748/flows/gameplay/gate-target-distance-closure.md).
+- Validation: `Build-Client.ps1 -NoDeploy` passed, including the source contract
+  check; candidate SHA-256 is
+  `A4C78CFA74786F6A9573B5887A09D73DDE37888873BB4A80E3A1F6AF3C40A5FC`.
+  The installed `tmproject/client748/WYD.exe` is still a different build
+  (`B20510B20D34651D206C72340B96D2B7314D56B19072AC25678D37183889DE3D`).
+- Next check: in the exact installed candidate test a distant click while
+  beside an open gate, actual view exit
+  and reentry, relogin, and a legitimate war-related close. If it still fails,
+  capture server gate state, client state, packets, and collision mask.
 - Acceptance: the gate's presentation and passability agree with authoritative
   state, including after leaving/reentering view and reconnecting. Intended
   war-related closures must remain intact.
@@ -346,8 +368,10 @@ in progress. No publication or restart is authorized by this register.
   damage into MP at 1:1, after other mitigation; an MP deficit spills into HP.
   This is an existing project rule, not a proposed rebalance. Existing tests
   cover physical, magical, multi-hit, boss, summon and poison damage.
-- Next check: reproduce with the exact skill/affect, MP, HP, attacker and damage
-  type; distinguish an absent/expired buff from incorrect mitigation.
+- Owner decision (2026-10-20): current Blood Foema behavior is correct; no
+  correction or additional reproduction is requested for this report.
+- Reopen only for a new concrete counterexample with the exact skill/affect,
+  MP, HP, attacker and damage type.
 - Acceptance: observed HP/MP changes and displayed damage match the established
   rule with full, partial and empty MP. Do not invent new balance values.
 
@@ -357,8 +381,10 @@ in progress. No publication or restart is authorized by this register.
   resource sequence have not been identified.
 - Findings: Mana Control does not discount casting costs. Holy Judgment's HP
   sacrifice bypasses incoming-damage absorption by design in the current rule.
-- Next check: obtain or reproduce a named skill, active affects, and before/after
-  HP/MP values, including any Combat Control involvement.
+- Owner decision (2026-10-20): current Blood Foema behavior is correct; no
+  correction or additional reproduction is requested for this report.
+- Reopen only for a new concrete counterexample with a named skill, active
+  affects and before/after HP/MP values.
 - Acceptance: casting costs and incoming-damage absorption each follow their
   own validated contract without duplicate resource deductions.
 
@@ -368,7 +394,10 @@ in progress. No publication or restart is authorized by this register.
   absent.
 - Findings: skill 30 already creates `TMSkillJudgement`. Local requests dispatch
   a `FlagLocal=1` preview; authoritative local results suppress duplicate cast
-  visuals. The result gate alone does not explain the missing effect.
+  visuals. The native 7.48 attack dispatcher (`FUN_00489a3e`) allocates the
+  corresponding effect for skill 30, and its constructor (`FUN_004e6590`)
+  confirms the same 300 ms controller lifetime and base texture 124. The
+  result gate and controller lifetime alone do not explain the missing effect.
 - Next check: trace the reproduced local request/preview and effect ownership,
   lifetime and assets against native 7.48 evidence before changing dispatch.
 - Acceptance: the proper effect plays through for the caster and observers,
@@ -485,13 +514,35 @@ in progress. No publication or restart is authorized by this register.
 
 ### BUG-010 — Magic Chamber ground markings
 
-- Report: ground runes/markings expected during passage between rooms are not
-  shown. The player is unsure whether these objects are specifically runes.
-- Next check: identify the native 7.48 transition object/effect and its trigger,
-  assets and lifetime. Keep this separate from monster visibility unless a
+- Report: colored runes appear at random on the floor near the Magic Chamber
+  entrance in the native client, but are missing from the current client.
+- Findings (2026-10-20, static): the historical secret-room ticket is accepted
+  only at `(1045..1047, 1689..1691)` (7.59 `TMSRVIN.c`), so the entrance is in
+  `Field0813`; the rooms are in `Field0628`. Every object type near the entrance
+  (503 braziers, 1596 at the exact entrance tile, 1585–1647, 1697, 658) and in
+  the rooms (6/7 butterflies and bats, 532, 1520, 1540–1542 wall glows) takes
+  the same branch in the native loader `FUN_00541065` and in
+  `TMObjectContainer::Load`. The native field frame (`FUN_004776c3`) only hides
+  a control in zone (6,28) and spawns ambient particles elsewhere; the
+  environment-effect consumer `FUN_00489618` knows only effect 32. No random
+  floor-rune generator was found in the decompiled corpus.
+- Owner decision (2026-10-20): add a generator at the entrance; runes appear on
+  the floor when the player enters. Implemented as a client-only project visual
+  (no packet or server state): `EntranceRunesPolicy.h` and
+  `TMFieldScene::UpdateEntranceRunes`. Entering the hall `(1039..1058,
+  1679..1701)` projects five runes at once, then one every 350–1049 ms while the
+  local player stays inside. Each rune is a 2x2-cell floor decal (`TMShade`)
+  with a random colored texture `Effect\pattern01..04.wys` (effect list 82–85),
+  a 4-second sine fade, and a random center kept clear of the walls. Leaving
+  the hall stops spawning; existing runes expire, and scene teardown removes
+  them. Tests: `EntranceRunesTests.cpp`; `Build-Client.ps1 -NoDeploy` passed,
+  candidate SHA-256
+  `0254CEA3D2C9D8E6AD3579C07701D132DC6A3F2704A99D9628456BD1829A0D90`.
+- Next check: identify the native 7.48 floor effect and its random trigger,
+  assets, position and lifetime. Keep this separate from monster visibility unless a
   common cause is demonstrated.
-- Acceptance: the proven native transition presentation appears at the correct
-  location and time, and is removed at the proper lifecycle boundary.
+- Acceptance: the colored runes appear at the native entrance location with
+  the proven random timing and are removed at the proper lifecycle boundary.
 
 ### BUG-011 — Friendly Compounder and city guards
 

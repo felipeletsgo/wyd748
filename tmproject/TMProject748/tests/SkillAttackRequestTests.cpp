@@ -105,6 +105,10 @@ int RunSkillAttackRequestTests(int& checks)
             check(IsClientToServerAttackPacketSize(packet.Header.Type, expectedSize),
                 "normal skill envelopes remain accepted client-to-server prefixes");
     }
+    check(!skill_request::SkillWeaponAllowed(74, 41) && skill_request::SkillWeaponAllowed(74, 101) &&
+        skill_request::SkillWeaponAllowed(75, 41) && skill_request::SkillWeaponAllowed(79, 41) &&
+        skill_request::BackpackSkill == 85 && skill_request::CoinArmorSkill == 86,
+        "Enchant Frost rejects claws; Hide in Shadow and Another Soul accept them");
     check(skill_request::IsSelfOnlySkill(3) && !skill_request::IsSelfOnlySkill(4) &&
         !skill_request::IsSelfOnlySkill(31),
         "Samaritan is cast only on the caster");

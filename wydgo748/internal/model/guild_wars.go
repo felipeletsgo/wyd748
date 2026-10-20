@@ -50,10 +50,15 @@ type GuildWarState struct {
 	Medals       []WarMedalClaim `json:"medals,omitempty"`
 }
 
-// CastleWarState keeps Noatum ownership in the same transaction as city
-// results. It does not imply that the castle battle controller is implemented.
+// CastleWarState keeps Noatum ownership and round settlement in the guild
+// transaction. The domain controller does not enable the event scheduler.
 type CastleWarState struct {
-	Owner uint16 `json:"owner,omitempty"`
+	Owner     uint16         `json:"owner,omitempty"`
+	Victories uint32         `json:"victories,omitempty"`
+	Day       string         `json:"day,omitempty"`
+	StartsAt  time.Time      `json:"startsAt,omitempty"`
+	Phase     CastleWarPhase `json:"phase,omitempty"`
+	Captured  bool           `json:"captured,omitempty"`
 }
 
 // ReconcileCastleOwner follows the 7.59 city-war finish routine: retain the
@@ -255,6 +260,9 @@ func (r *GuildRegistry) ResetWeeklyGuildFame(local time.Time) bool {
 }
 
 func (s GuildWarState) Validate(r *GuildRegistry) error {
+	if err := s.Castle.validate(); err != nil {
+		return err
+	}
 	if err := s.validateMedals(); err != nil {
 		return err
 	}

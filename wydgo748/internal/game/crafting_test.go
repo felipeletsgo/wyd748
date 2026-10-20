@@ -18,7 +18,7 @@ func TestCombineResultMessages(t *testing.T) {
 	}
 	for result, want := range tests {
 		if got := combineResultMessage(result); got != want {
-			t.Fatalf("resultado %d: mensagem %q, esperado %q", result, got, want)
+			t.Fatalf("result %d: message %q, expected %q", result, got, want)
 		}
 	}
 }
@@ -41,7 +41,7 @@ func TestCombineNPCResolvesClientSideOpenedArtisan(t *testing.T) {
 
 	got, err := w.combineNPC(p, "Lindy")
 	if err != nil {
-		t.Fatalf("combineNPC recusou artesao aberto localmente: %v", err)
+		t.Fatalf("combineNPC rejected a locally opened artisan: %v", err)
 	}
 	if got != artisan || p.CraftNPC != artisan.ID {
 		t.Fatalf("contexto incorreto: mob=%v CraftNPC=%d", got, p.CraftNPC)
@@ -67,20 +67,19 @@ func TestCombineNPCReplacesStaleArtisanContext(t *testing.T) {
 
 	got, err := w.combineNPC(p, "Aylin")
 	if err != nil || got != wanted || p.CraftNPC != wanted.ID {
-		t.Fatalf("nao substituiu contexto antigo: mob=%v CraftNPC=%d err=%v", got, p.CraftNPC, err)
+		t.Fatalf("did not replace stale artisan context: mob=%v CraftNPC=%d err=%v", got, p.CraftNPC, err)
 	}
 }
 
-// craftStore e um store.Store minimo, injetavel com erro, para testar o
-// caminho persist-before-confirm/rollback dos handlers de craft (mesmo padrao
-// de autoSaveStore em autosave_test.go).
+// craftStore is a minimal store.Store with injectable errors for testing the
+// crafting handlers' persist-before-confirm and rollback paths.
 type craftStore struct {
 	saves int
 	err   error
 }
 
 func (s *craftStore) LoadAccount(string) (*model.Account, error) {
-	return nil, errors.New("nao usado")
+	return nil, errors.New("unused")
 }
 func (s *craftStore) SaveAccount(acc *model.Account) error {
 	s.saves++
@@ -101,9 +100,8 @@ func (s *craftStore) SaveGameStateWithInstanceState(*model.GuildRegistry,
 	return s.err
 }
 
-// newCraftWorld monta um World minimo com um artesao `npcName` (Merchant tipo
-// craftingMerchant) visivel e ao alcance do jogador, pronto para exercitar um
-// handler onCombine*. items entra no catalogo autoritativo (w.items).
+// newCraftWorld sets up a minimal world with a visible artisan in range and
+// authoritative item definitions, ready to exercise an onCombine* handler.
 func newCraftWorld(t *testing.T, npcName string, items map[uint16]model.ItemDef, gold uint32) (*World, *Player, *net.Session, *craftStore) {
 	t.Helper()
 	st := &craftStore{}
@@ -127,9 +125,8 @@ func newCraftWorld(t *testing.T, npcName string, items map[uint16]model.ItemDef,
 	return w, p, session, st
 }
 
-// buildCombinePacket monta os 84 bytes do MSG_CombineItem nativo: 8 STRUCT_ITEM
-// (Index LE + Eff[6]) a partir de 12, seguidos de 8 bytes de posicao a partir
-// de 76. Espelha o parsing de parseCombineRequest (crafting.go).
+// buildCombinePacket builds the native 84-byte MSG_CombineItem: eight
+// STRUCT_ITEM entries starting at offset 12 and eight positions at offset 76.
 func buildCombinePacket(items [combineSlots]model.Item, pos [combineSlots]int8) []byte {
 	pkt := make([]byte, combinePacketSize)
 	for i, item := range items {
@@ -160,7 +157,7 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 		Level: archLockLevel355, MaxHP: 100, CurHP: 100, MaxMP: 100, CurMP: 100,
 	})
 	p.Char.Evolution = archEvolution
-	// O destrave 355 não exige nem consome Fame.
+	// The level 355 unlock neither requires nor consumes Fame.
 	p.SpecialCoins = map[string]uint32{}
 	originalCape, err := materializeItem(model.Item{Index: 3193})
 	if err != nil {
@@ -176,7 +173,7 @@ func TestCombineLindyCreatesEliteCape(t *testing.T) {
 	}
 	for index := 0; index <= 6; index++ {
 		if p.Char.Inv[index].Index != 0 {
-			t.Fatalf("Lindy nao consumiu ingrediente no slot %d: %+v",
+			t.Fatalf("Lindy did not consume ingredient in slot %d: %+v",
 				index, p.Char.Inv[index])
 		}
 	}
@@ -187,18 +184,18 @@ func TestLindyRequiresSevenFiveFourLaktoreriumPackage(t *testing.T) {
 		item := model.Item{Index: index}
 		setItemAmount(&item, 10)
 		if !lindyMaterialStack(item) {
-			t.Fatalf("material %d de 10 unidades foi recusado", index)
+			t.Fatalf("material %d with 10 units was rejected", index)
 		}
 	}
 	for _, index := range []uint16{413, 3448} {
 		item := model.Item{Index: index}
 		setItemAmount(&item, 9)
 		if lindyMaterialStack(item) {
-			t.Fatalf("material %d incompleto foi aceito", index)
+			t.Fatalf("incomplete material %d was accepted", index)
 		}
 	}
 	if item := (model.Item{Index: 413, Eff: [6]byte{effectAmount, 10}}); lindyMaterialStack(item) {
-		t.Fatal("poeira 413 foi aceita como pacote V754")
+		t.Fatal("dust 413 was accepted as a V754 pack")
 	}
 }
 
@@ -224,7 +221,7 @@ func TestCombineLindyRejectsCharacterOutsideArchLock(t *testing.T) {
 	w.onCombineLindy(session, buildCombinePacket(items, pos))
 
 	if st.saves != 0 || p.Char.Inv != before {
-		t.Fatalf("Lindy aceitou Arch fora das travas: saves=%d inventarioMudou=%t",
+		t.Fatalf("Lindy accepted Arch outside the locks: saves=%d inventoryChanged=%t",
 			st.saves, p.Char.Inv != before)
 	}
 }
@@ -254,7 +251,7 @@ func TestCombineLindyLevel370KeepsEquippedCape(t *testing.T) {
 	w.onCombineLindy(session, buildCombinePacket(items, pos))
 
 	if st.saves != 1 || !p.Char.ArchLevel370 || counterBalance(p, fameCounter) != 0 {
-		t.Fatalf("destrave 370 incompleto: saves=%d flag=%t fama=%d",
+		t.Fatalf("incomplete level 370 unlock: saves=%d flag=%t fame=%d",
 			st.saves, p.Char.ArchLevel370, counterBalance(p, fameCounter))
 	}
 	if p.Char.Equip[15] != beforeCape {
@@ -286,7 +283,7 @@ func TestCombineLindyLevel370RequiresOneFameWithoutConsumingRecipe(t *testing.T)
 	w.onCombineLindy(session, buildCombinePacket(items, pos))
 
 	if st.saves != 0 || p.Char.ArchLevel370 || p.Char.Inv != before {
-		t.Fatalf("370 sem Fame alterou estado: saves=%d flag=%t inventarioMudou=%t",
+		t.Fatalf("level 370 without Fame changed state: saves=%d flag=%t inventoryChanged=%t",
 			st.saves, p.Char.ArchLevel370, p.Char.Inv != before)
 	}
 }
@@ -303,9 +300,8 @@ func TestCombineLindyUnlocksRollBackFlagsFameAndRecipeOnSaveFailure(t *testing.T
 		t.Run(test.name, func(t *testing.T) {
 			defs := map[uint16]model.ItemDef{}
 			if test.level == archLockLevel355 {
-				// A capa resultante depende do reino inferido pela capa atual.
-				// Cadastre as três variantes para que o teste alcance a fronteira
-				// de persistência independentemente dessa escolha.
+				// The resulting cape depends on the realm inferred from the current cape.
+				// Include all three variants to reach persistence regardless of that choice.
 				defs[3191] = model.ItemDef{Index: 3191}
 				defs[3192] = model.ItemDef{Index: 3192}
 				defs[3193] = model.ItemDef{Index: 3193}
@@ -337,7 +333,7 @@ func TestCombineLindyUnlocksRollBackFlagsFameAndRecipeOnSaveFailure(t *testing.T
 			if st.saves != 1 || p.Char.Inv != beforeInv || p.Char.Equip[15] != beforeCape ||
 				p.Char.ArchLevel370 || p.Char.ArchLevel355 != (test.level == archLockLevel370) ||
 				counterBalance(p, fameCounter) != test.fame {
-				t.Fatalf("rollback Lindy incompleto: saves=%d 355=%t 370=%t fame=%d inv=%t cape=%+v",
+				t.Fatalf("incomplete Lindy rollback: saves=%d 355=%t 370=%t fame=%d inv=%t cape=%+v",
 					st.saves, p.Char.ArchLevel355, p.Char.ArchLevel370,
 					counterBalance(p, fameCounter), p.Char.Inv != beforeInv, p.Char.Equip[15])
 			}
@@ -345,8 +341,8 @@ func TestCombineLindyUnlocksRollBackFlagsFameAndRecipeOnSaveFailure(t *testing.T
 	}
 }
 
-// placeItems copia os itens de req para o inventario do personagem nas
-// posicoes dadas, para que parseCombineRequest valide o snapshot autoritativo.
+// placeItems copies request items into the character's inventory so that
+// parseCombineRequest can validate the authoritative snapshot.
 func placeItems(ch *model.Char, items [combineSlots]model.Item, pos [combineSlots]int8) {
 	for i, item := range items {
 		if item.Index != 0 {
@@ -368,7 +364,7 @@ func agathaScenario() (arch, donor, catalyst model.Item, defs map[uint16]model.I
 	return
 }
 
-// TestCombineAgathaChanceMatchesPortedFormula prova a correcao do bug: antes,
+// TestCombineAgathaChanceMatchesPortedFormula verifies the corrected chance:
 // chance := 100+grade*5+1 (sempre >=106, clamped a 100) fazia a Agatha NUNCA
 // falhar. A formula real (GetMatchCombineAgatha, WYD 7.48 GetFunc.cpp:564-628) e
 // agathaBaseChance(20) + grade*5 + bonus-de-nivel = 20+25+1 = 46% neste
@@ -382,10 +378,8 @@ func TestCombineAgathaChanceMatchesPortedFormula(t *testing.T) {
 	pos[0], pos[1], pos[2], pos[3], pos[4], pos[5] = 0, 1, 2, 3, 4, 5
 	pkt := buildCombinePacket(items, pos)
 
-	// Resultado esperado no sucesso: Index do item ARCH original + Eff do
-	// doador, mas com o SANC forcado a +7 (onCombineAgatha faz
-	// result.Eff=donor.Eff seguido de setItemSanc(&result,7) -- o doador foi
-	// setado a +9, entao o byte de valor muda de 9 para 7 no resultado).
+	// On success, retain the original Arch item ID, copy the donor effects,
+	// and set refinement to +7. The donor's refinement byte changes from 9 to 7.
 	expectedSuccess := arch
 	expectedSuccess.Eff = donor.Eff
 	setItemSanc(&expectedSuccess, 7)
@@ -397,37 +391,35 @@ func TestCombineAgathaChanceMatchesPortedFormula(t *testing.T) {
 		placeItems(p.Char, items, pos)
 		w.onCombineAgatha(session, pkt)
 		if st.saves != 1 {
-			t.Fatalf("tentativa %d: saves=%d, quer 1 (persist-before-confirm)", i, st.saves)
+			t.Fatalf("attempt %d: saves=%d, want 1 (persist-before-confirm)", i, st.saves)
 		}
 		result := p.Char.Inv[0]
 		switch {
 		case result == expectedSuccess:
 			successes++
 		case result == (model.Item{}):
-			// Fiel a fonte: _MSG_CombineItemAgatha.cpp limpa o item alvo ANTES
-			// do roll e so o reescreve em caso de sucesso -- falha destroi o
-			// alvo, nao so os catalisadores. Confirmado com o codigo-fonte.
+			// The historical handler clears the target before the roll and only
+			// restores it on success: failure destroys the target as well as catalysts.
 			failures++
 		default:
-			t.Fatalf("tentativa %d: slot 0 inesperado: %+v", i, result)
+			t.Fatalf("attempt %d: unexpected slot 0: %+v", i, result)
 		}
 	}
 	if successes == 0 || failures == 0 {
-		t.Fatalf("chance=46%% deveria produzir sucesso E falha em %d tentativas; sucessos=%d falhas=%d",
+		t.Fatalf("46%% chance should yield successes and failures in %d attempts; successes=%d failures=%d",
 			attempts, successes, failures)
 	}
-	t.Logf("Agatha: %d/%d sucessos (~%.0f%%, esperado ~46%%)", successes, attempts, 100*float64(successes)/attempts)
+	t.Logf("Agatha: %d/%d successes (~%.0f%%, expected ~46%%)", successes, attempts, 100*float64(successes)/attempts)
 }
 
-// TestCombineAgathaRejectsWrongPosition prova que a validacao de posicao (o
-// item Arch e o doador precisam ocupar o MESMO slot de equip) continua ativa
-// apos a mudanca de formula -- nao consome nada, nao salva.
+// TestCombineAgathaRejectsWrongPosition verifies that the Arch item and donor
+// must occupy the same equipment slot; rejection consumes and saves nothing.
 func TestCombineAgathaRejectsWrongPosition(t *testing.T) {
 	arch, donor, catalyst, defs := agathaScenario()
 	donor.Index = 601
 	d := defs[600]
 	d.Index = 601
-	d.Pos = 8 // slot diferente do arch (4)
+	d.Pos = 8 // A different slot from the Arch item (4).
 	defs[601] = d
 	delete(defs, 600)
 
@@ -442,28 +434,26 @@ func TestCombineAgathaRejectsWrongPosition(t *testing.T) {
 	placeItems(p.Char, items, pos)
 	w.onCombineAgatha(session, pkt)
 	if st.saves != 0 {
-		t.Fatalf("posicoes divergentes nao deveriam salvar, saves=%d", st.saves)
+		t.Fatalf("different positions should not save, saves=%d", st.saves)
 	}
 	if p.Char.Inv[0] != arch {
-		t.Fatalf("item alvo foi alterado apesar da validacao falhar: %+v", p.Char.Inv[0])
+		t.Fatalf("target item changed despite failed validation: %+v", p.Char.Inv[0])
 	}
 }
 
-// TestCombineTinySucceedsAndChargesGoldOnce prova que o refactor do Tiny (para
-// reusar beginCombine/commitCombine em vez de reimplementar a sequencia) nao
-// mudou o comportamento: tinyBaseChance=100 torna o roll sempre >=100%
-// (chance nunca cai abaixo de 100 para nivel>=0), entao o sucesso e
-// deterministico -- serve de regressao ao refactor do Passo 2.
+// TestCombineTinySucceedsAndChargesGoldOnce verifies a successful roll and
+// charges the composition fee exactly once.
 func TestCombineTinySucceedsAndChargesGoldOnce(t *testing.T) {
-	main := model.Item{Index: 700}
+	main := model.Item{Index: 2723}
 	setItemSanc(&main, 9)
-	donor := model.Item{Index: 701}
+	donor := model.Item{Index: 2727}
+	setItemSanc(&donor, 9)
 	catalyst := model.Item{Index: 702}
-	setItemSanc(&catalyst, 9) // tinyRecipe exige itemSanc(catalyst) >= 9
+	setItemSanc(&catalyst, 9)
 	defs := map[uint16]model.ItemDef{
-		700: {Index: 700, Pos: 64, Grade: 5, StaticEffects: []model.StaticEffect{{Name: "EF_MOBTYPE", Value: 1}}},
-		701: {Index: 701, Pos: 64, Grade: 5},
-		702: {Index: 702, Pos: 1},
+		2723: {Index: 2723, Pos: 64, Grade: 5, StaticEffects: []model.StaticEffect{{Name: "EF_MOBTYPE", Value: 1}}},
+		2727: {Index: 2727, Pos: 64, Grade: 5},
+		702:  {Index: 702, Pos: 1},
 	}
 	var items [combineSlots]model.Item
 	items[0], items[1], items[2] = main, donor, catalyst
@@ -472,30 +462,32 @@ func TestCombineTinySucceedsAndChargesGoldOnce(t *testing.T) {
 	pkt := buildCombinePacket(items, pos)
 
 	w, p, session, st := newCraftWorld(t, "Tiny", defs, tinyGoldCost+1)
+	w.rng = fixedRNG{value: 0}
 	placeItems(p.Char, items, pos)
 	w.onCombineTiny(session, pkt)
 
 	if st.saves != 1 {
-		t.Fatalf("saves=%d, quer 1", st.saves)
+		t.Fatalf("saves=%d, want 1", st.saves)
 	}
 	if p.Char.Gold != 1 {
-		t.Fatalf("gold=%d, quer 1 (custo cobrado exatamente uma vez)", p.Char.Gold)
+		t.Fatalf("gold=%d, want 1 (fee charged exactly once)", p.Char.Gold)
 	}
 	if p.Char.Inv[0].Index != main.Index || p.Char.Inv[1] != (model.Item{}) {
-		t.Fatalf("resultado inesperado: slot0=%+v slot1=%+v", p.Char.Inv[0], p.Char.Inv[1])
+		t.Fatalf("unexpected result: slot0=%+v slot1=%+v", p.Char.Inv[0], p.Char.Inv[1])
 	}
 }
 
 func TestCombineTinyRejectsBelowGoldCost(t *testing.T) {
-	main := model.Item{Index: 700}
+	main := model.Item{Index: 2723}
 	setItemSanc(&main, 9)
-	donor := model.Item{Index: 701}
+	donor := model.Item{Index: 2727}
+	setItemSanc(&donor, 9)
 	catalyst := model.Item{Index: 702}
-	setItemSanc(&catalyst, 9) // tinyRecipe exige itemSanc(catalyst) >= 9
+	setItemSanc(&catalyst, 9)
 	defs := map[uint16]model.ItemDef{
-		700: {Index: 700, Pos: 64, Grade: 5, StaticEffects: []model.StaticEffect{{Name: "EF_MOBTYPE", Value: 1}}},
-		701: {Index: 701, Pos: 64, Grade: 5},
-		702: {Index: 702, Pos: 1},
+		2723: {Index: 2723, Pos: 64, Grade: 5, StaticEffects: []model.StaticEffect{{Name: "EF_MOBTYPE", Value: 1}}},
+		2727: {Index: 2727, Pos: 64, Grade: 5},
+		702:  {Index: 702, Pos: 1},
 	}
 	var items [combineSlots]model.Item
 	items[0], items[1], items[2] = main, donor, catalyst
@@ -508,21 +500,20 @@ func TestCombineTinyRejectsBelowGoldCost(t *testing.T) {
 	w.onCombineTiny(session, pkt)
 
 	if st.saves != 0 {
-		t.Fatalf("gold insuficiente nao deveria salvar, saves=%d", st.saves)
+		t.Fatalf("insufficient gold should not save, saves=%d", st.saves)
 	}
 	if p.Char.Inv[0] != main || p.Char.Inv[1] != donor {
-		t.Fatalf("itens nao deveriam mudar: slot0=%+v slot1=%+v", p.Char.Inv[0], p.Char.Inv[1])
+		t.Fatalf("items should not change: slot0=%+v slot1=%+v", p.Char.Inv[0], p.Char.Inv[1])
 	}
 }
 
-// TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure cobre o caminho de
-// persist-before-confirm com falha de disco: commitCombine precisa restaurar
-// todo o estado (inventario E gold) e nao confirmar sucesso ao client quando
-// o save falha, mesmo quando o craft em si teria sido valido.
+// TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure covers a storage
+// failure: commitCombine must restore both inventory and gold and must not
+// confirm success to the client even when the recipe itself was valid.
 func TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure(t *testing.T) {
 	a := model.Item{Index: 800}
 	setItemSanc(&a, 9)
-	b := a                              // mesmo Index/grade/sanc exigido pela Aylin
+	b := a                              // Aylin requires the same item ID, grade, and refinement.
 	catalyst := model.Item{Index: 1774} // catalisador fixo, distinto das joias
 	jewel := model.Item{Index: 2441}
 	defs := map[uint16]model.ItemDef{800: {Index: 800, Pos: 2, Grade: 3}}
@@ -543,13 +534,13 @@ func TestCombineAylinRollsBackGoldAndInventoryOnSaveFailure(t *testing.T) {
 	w.onCombineAylin(session, pkt)
 
 	if st.saves != 1 {
-		t.Fatalf("deveria tentar salvar exatamente 1 vez, saves=%d", st.saves)
+		t.Fatalf("should attempt exactly one save, saves=%d", st.saves)
 	}
 	if p.Char.Gold != oldGold {
-		t.Fatalf("gold nao foi revertido: got=%d quer=%d", p.Char.Gold, oldGold)
+		t.Fatalf("gold was not rolled back: got=%d want=%d", p.Char.Gold, oldGold)
 	}
 	if p.Char.Inv != oldInv {
-		t.Fatalf("inventario nao foi revertido apos falha de save")
+		t.Fatalf("inventory was not rolled back after save failure")
 	}
 }
 
@@ -580,7 +571,7 @@ func TestCombineEhreRollsBackSoulOnSaveFailure(t *testing.T) {
 	w.onCombineEhre(session, buildCombinePacket(items, pos))
 
 	if st.saves != 1 || p.Char.SoulInfo != 7 || p.Char.Inv != before {
-		t.Fatalf("rollback Ehre soul incompleto: saves=%d soul=%d inventarioMudou=%t",
+		t.Fatalf("incomplete Ehre soul rollback: saves=%d soul=%d inventoryChanged=%t",
 			st.saves, p.Char.SoulInfo, p.Char.Inv != before)
 	}
 }
@@ -602,7 +593,7 @@ func TestCombineEhreRollsBackExperienceOnSaveFailure(t *testing.T) {
 	w.onCombineEhre(session, buildCombinePacket(items, pos))
 
 	if st.saves != 1 || p.Char.Exp != beforeExp || p.Char.Inv != beforeInv {
-		t.Fatalf("rollback Ehre exp incompleto: saves=%d exp=%d/%d inventarioMudou=%t",
+		t.Fatalf("incomplete Ehre experience rollback: saves=%d exp=%d/%d inventoryChanged=%t",
 			st.saves, p.Char.Exp, beforeExp, p.Char.Inv != beforeInv)
 	}
 }
@@ -629,7 +620,7 @@ func TestCombineEhreRejectsRefinementWithoutEffectSlot(t *testing.T) {
 	w.onCombineEhre(session, buildCombinePacket(items, pos))
 
 	if st.saves != 0 || p.Char.Inv != beforeInv || p.Char.Exp != beforeExp {
-		t.Fatalf("Ehre consumiu sem poder gravar EF_SANC: saves=%d inv=%t exp=%d/%d",
+		t.Fatalf("Ehre consumed items without being able to store EF_SANC: saves=%d inv=%t exp=%d/%d",
 			st.saves, p.Char.Inv != beforeInv, p.Char.Exp, beforeExp)
 	}
 }
@@ -656,14 +647,13 @@ func TestCombineOdinCapeRejectsWhenRefinementHasNoEffectSlot(t *testing.T) {
 	w.onCombineOdin(session, buildCombinePacket(items, pos))
 
 	if st.saves != 0 || p.Char.Inv != beforeInv || p.Char.Equip[15] != beforeCape {
-		t.Fatalf("Odin consumiu receita sem poder gravar EF_SANC: saves=%d inv=%t cape=%+v",
+		t.Fatalf("Odin consumed recipe without being able to store EF_SANC: saves=%d inv=%t cape=%+v",
 			st.saves, p.Char.Inv != beforeInv, p.Char.Equip[15])
 	}
 }
 
-// TestCombineRejectsBlockedItem: Atila's_Crown (747) em QUALQUER um dos oito
-// slots recusa a composicao. A GetMatchCombineAgatha nao repete a varredura,
-// mas o proprio handler _MSG_CombineItemAgatha.cpp:54-55 faz a mesma recusa.
+// TestCombineRejectsBlockedItem rejects Atila's_Crown (747) in any of the
+// eight slots. The historical Agatha handler also checks this restriction.
 func TestCombineRejectsBlockedItem(t *testing.T) {
 	defs := map[uint16]model.ItemDef{
 		blockedCombineItem: {Index: blockedCombineItem, Name: "Atila's_Crown"},
@@ -681,7 +671,7 @@ func TestCombineRejectsBlockedItem(t *testing.T) {
 			placeItems(p.Char, items, pos)
 
 			if _, _, ok := w.beginCombine(session, buildCombinePacket(items, pos), npc); ok {
-				t.Errorf("%s: item %d no slot %d foi aceito", npc, blockedCombineItem, slot)
+				t.Errorf("%s: item %d in slot %d was accepted", npc, blockedCombineItem, slot)
 			}
 		}
 	}

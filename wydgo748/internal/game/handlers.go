@@ -239,7 +239,7 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	p := &Player{Session: s, Account: acc, CharSlot: -1}
 	w.players[s] = p
 	s.MarkAuthenticated()
-	s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
+	w.sendLoginCharacterList(s, p)
 	log.Printf("[#%d] character list sent (%d characters)", s.ID, characterCount(acc.Chars))
 }
 
@@ -781,11 +781,18 @@ func (w *World) validCargoAccess(p *Player, pkt []byte) bool {
 		return false
 	}
 	npcID := uint16(rawNPCID)
-	return npcID != 0 && w.resolveCargoNPC(p, npcID) != nil
+	return npcID != 0 && w.resolveCargoNPC(p, npcID) != nil || hasBackpack(p)
 }
 
 func (w *World) nearCargoNPC(p *Player) bool {
-	return w.resolveCargoNPC(p, 0) != nil
+	return w.resolveCargoNPC(p, 0) != nil || hasBackpack(p)
+}
+
+// hasBackpack reports a living Huntress who learned Backpack (skill 85):
+// WYD 7.48 skill help 5085 opens Cargo from anywhere, without a banker.
+func hasBackpack(p *Player) bool {
+	return p != nil && p.Char != nil && playerCurHP(p.Char) > 0 &&
+		isLearnedClassSkill(p.Char, backpackSkill)
 }
 
 func (w *World) resolveCargoNPC(p *Player, requestedID uint16) *Mob {

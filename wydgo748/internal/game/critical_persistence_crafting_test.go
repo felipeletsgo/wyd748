@@ -31,19 +31,22 @@ func configureCriticalTiny(w *World, p *Player, extras, success bool) (combineRe
 	if w.items == nil {
 		w.items = make(map[uint16]model.ItemDef)
 	}
-	w.items[700] = model.ItemDef{Index: 700, Grade: 5, Pos: 64,
+	w.items[2723] = model.ItemDef{Index: 2723, Grade: 5, Pos: 64,
 		StaticEffects: []model.StaticEffect{{Name: "EF_MOBTYPE", Value: 1}}}
-	// A synthetic catalog value makes both outcomes reachable without changing
-	// the production recipe or chance. This fixture is not native parity evidence.
-	w.items[701] = model.ItemDef{Index: 701, Grade: 5, Pos: 64,
-		StaticEffects: []model.StaticEffect{{Name: "EF_ITEMLEVEL", Value: -10}}}
+	w.items[2727] = model.ItemDef{Index: 2727, Grade: 5, Pos: 64}
 	w.items[702] = model.ItemDef{Index: 702}
 	req := combineRequest{Pos: [combineSlots]int8{62, 0, 1, 2, 3, 4, 5, 6}}
 	for i := range combineSlots {
 		if i >= 3 && !extras {
 			continue
 		}
-		req.Items[i] = model.Item{Index: uint16(700 + i), UID: fmt.Sprintf("tiny-ingredient-%d", i),
+		index := uint16(700 + i)
+		if i == 0 {
+			index = 2723
+		} else if i == 1 {
+			index = 2727
+		}
+		req.Items[i] = model.Item{Index: index, UID: fmt.Sprintf("tiny-ingredient-%d", i),
 			ActivatedUnix: int64(123 + i), ExpiresUnix: int64(4102444800 + i)}
 		if i < 3 {
 			req.Items[i].Eff = [6]byte{43, 9, 7, byte(i + 1), 0, 0}
@@ -99,7 +102,7 @@ func criticalTinyExpected(before *model.Account, slot int, req combineRequest, s
 			positions = append(positions, int(req.Pos[i]))
 		}
 	}
-	roll, code := percentRoll{Chance: 50, Roll: 100}, uint32(2)
+	roll, code := percentRoll{Chance: 30, Roll: 100}, uint32(2)
 	if success {
 		result := req.Items[0]
 		result.Eff = req.Items[1].Eff

@@ -253,8 +253,9 @@ The existing four-defense cap remains a project limit; the 7.59 result routine
 increments its historical counter without this cap. Guild-fame-only bidding,
 weekly reset, medals, restart cancellation and deterministic summoning order are not
 newly established as 7.59 parity by this settlement correction. Castle battle
-calendar, doors and breach actors, event towers, seal capture, recovery and
-native client presentation remain separate work; see
+calendar, doors and breach actors, event towers, runtime seal capture,
+recovery and native client presentation remain separate work. A staged
+domain implementation is recorded below; see
 [G04](server/server-759-gap-analysis.md#g04--full-noatum-castle-battle-controller-is-absent).
 
 Focused automated coverage includes conquest/defense/ties, fame floor,
@@ -313,7 +314,7 @@ Implementing one does not implement the others.
 | Erion tower | Monday-Friday 21:05-21:35; owner and target restrictions by guild | Monday-Friday, approximately 21:00-22:00; defending and capturing kingdom plus capturing guild |
 | Tower capture | Restore tower and eject all participants | Reward qualifying members of the capturing kingdom; recall opponents, not the winning side |
 | Tower completion | Final guild receives 100 guild fame | Qualifying winning-kingdom participants receive character fame and an item; guild fame and treasury effects additionally depend on a kingdom change |
-| Noatum castle | Owner reconciliation and reserved generators only | Separate phase controller, event towers, doors/breach, seal capture, and settlement |
+| Noatum castle | Owner reconciliation, reserved generators, staged phase/capture/settlement domain | Runtime calendar, event towers, doors/breach, seal sampling and client presentation |
 
 ### City registration, calendar, and collection
 
@@ -464,8 +465,9 @@ Implementation should proceed through these dependencies:
    implement the reference's ten-channel ownership checks or treasury relay.
 6. Complete Noatum as a separate controller; see
    [G04](server/server-759-gap-analysis.md#g04--full-noatum-castle-battle-controller-is-absent).
-   The recovered seal counter and `+650/-650` fame are not implemented by
-   city-owner reconciliation or ordinary tower generation.
+   The recovered seal counter and `+650/-650` fame now have a staged domain
+   implementation, but city-owner reconciliation and ordinary tower
+   generation do not activate it or provide the missing runtime.
 
 Focused validation on 2026-10-19 passed for `internal/model` and
 `internal/game`: registration/bid/replay, collector prompt and confirmation,
@@ -535,6 +537,106 @@ upload, player disconnection or server restart was performed for this batch.
 The persisted model/critical-write tests do not replace live database or
 in-game validation. Noatum's full controller, unresolved reference dispatches
 and the future medal-redemption NPC remain separate gaps.
+
+## Staged Noatum domain controller (2026-10-19)
+
+This batch implements domain state and settlement only. It does not schedule
+a live castle battle, spawn actors, update doors, or send castle packets.
+Classification: `MODERNIZACAO_COMPATIVEL`; the supplied 7.59 reference guides
+internal rules, but this is not a claim of native 7.48 parity or
+`CLIENT_TESTED` coverage.
+
+Implementation: `wydgo748/internal/model/guild_war_castle.go`, with optional
+round fields in `CastleWarState`. Existing ownership-only registries remain
+readable. `BeginCastleWar` accepts an already-authorized exact-hour start;
+same-round admission is idempotent and cannot reopen a completed round.
+It deliberately supplies no default castle calendar.
+
+The primary evidence is the supplied `TMSRVIN.c` corpus identified above:
+
+- `sub_567780`, line 72224 onward: preparation, opening during minute 6..9,
+  seal phase at minute 15, closing at minute 50 and finish at minute 55.
+- `sub_55EC40`, lines 68529-68805: a guild leader at `(1046,1690)` must be
+  in the channel's authorized owner list and not be the current castle
+  owner. The counter completes above 22. It is a routine-call counter, not
+  evidence of seconds or permission to count client packets.
+- `sub_55EAB0`, line 68485 onward: finishing increments the victory counter.
+  A conquest resets it before that increment; the resulting count is one.
+  Conquest transfers 650 guild fame with a zero floor for the previous owner.
+
+The domain authorizes leaders using canonical membership and the four
+current city owners. Pending bids, challenger status, kingdom membership and
+client-supplied ranks do not authorize capture. Each invalid observation
+clears progress; round, guild or character changes start a new count.
+Progress is intentionally not persisted or restored on relogin/restart.
+The future server-owned sampler must validate position, life, public runtime
+and the reference status exclusion before every observation and revalidate
+the live capture context before submission and acknowledgement.
+
+Guild fame, castle ownership, victory count and the completion marker share
+one registry proposal. Overflow fails before mutation. Persisted completion
+prevents duplicate fame after retry/reload. Defense alone grants no conquest
+fame. No gold, individual fame or new medal entitlement is introduced by
+this batch; existing medal rules are unchanged.
+
+Two recovery rules are explicit project hardening, not recovered parity:
+an unopened round missed at minute 10 cancels without counting a defense;
+an already-open battle reaching its absolute minute-55 deadline finishes
+without extending capture to compensate for delayed ticks. These rules
+are domain primitives, not a completed runtime interruption policy.
+
+Additional reference findings prevent an unsafe direct W2PP port:
+
+- Executable jump `0x4B1569 -> 0x566BE0` resolves the door helper. Its body
+  at line 71904 uses four objects, indices 42..45, scene item IDs
+  `15000 + index`, and opcode `0x374`. Do not substitute older W2PP IDs.
+- Jump `0x4B29D7 -> 0x55EAB0` resolves the finishing helper invoked by seal
+  capture. Its cleanup and door effects still need runtime integration.
+- Four event-tower anchors are `(1051,1690)`, `(1046,1690)`, `(1124,1708)` and
+  `(1106,1718)`. Historical generator numbers are not installed identities.
+- Lines 70840-70845 select a Sunday using channel/week parity, with a
+  separate custom-hour override. No all-channel weekly schedule is inferred.
+
+The existing 7.48 client contract research does not yet cover castle state
+`0x3AC`, seal presentation `0x3AD`, and their targeting/lifecycle dependencies.
+The `wyd-client748-research` evidence gate therefore keeps runtime activation
+pending. Door/breach actors, installed tower identities, the seal routine's
+sampling cadence/status field, calendar/channel admission, interruption and
+real-client presentation must be resolved before enabling the full event.
+G04 remains open.
+
+Focused tests are in `model/guild_war_castle_test.go`,
+`game/guild_castle_persistence_test.go` and `store/guild_castle_test.go`.
+They cover phase boundaries, missed opening, timeout, canonical authority,
+consecutive sample reset, overflow, guild-fame floor, JSON-store round trips,
+retained live state before acknowledgement, duplicate admission,
+certified rejection/retry and duplicate completion. Persistence integration
+uses the existing critical-write queue in a test fixture; there is no
+production castle coordinator in this batch.
+
+Validation receipt for this staged domain batch:
+
+- `go test ./...`: passed.
+- `go vet ./...`: passed.
+- `CGO_ENABLED=1 go test -race ./internal/model ./internal/game ./internal/store -run Castle -count=1`:
+  passed in all three packages. This is focused race coverage only.
+- Native Windows `go build` for `./cmd/server`: passed. Candidate size:
+  25,825,792 bytes; SHA-256:
+  `DC626DBE6A619E00257FA49566BC0AD3E175940B6CB35E1CD4B0B755B0E15F85`.
+  Candidate path was
+  `C:/Users/xereca/Documents/PROJETOS/wyd-go/build/noatum-domain-20261019/wyd-server.exe`;
+  it was not installed or started. Execution policy blocked the cleanup
+  command before execution. The candidate and successful test log
+  `C:/Users/xereca/Documents/PROJETOS/wyd-go/build/noatum-domain-20261019/go-test.log`
+  remain in the sanctioned ignored build directory. Cleanup was not retried
+  through another shell or API.
+- Authored text was checked for the English-only repository requirement;
+  `git diff --check` passed. Pre-existing unrelated client configuration and
+  crash-dump changes are preserved.
+
+No live database/VPS deployment, client execution, patch publication, player
+disconnection or service restart was performed. Automated domain evidence
+does not establish a functional in-game castle battle.
 
 ## Remaining validation
 

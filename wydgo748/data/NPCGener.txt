@@ -106605,12 +106605,12 @@
 	Follower:	            Uxmal
 	RouteType:	0
 	Formation:	0
-	StartX:		1057
-	StartY:		1717
+	StartX:		3297
+	StartY:		1693
 	StartRange:	0
 	StartWait:	0
-	DestX:		1057
-	DestY:		1717
+	DestX:		3297
+	DestY:		1693
 	DestRange:	0
 	DestWait:	0
 

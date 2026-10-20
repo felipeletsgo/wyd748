@@ -83,4 +83,32 @@ std::size_t Load(std::istream& input, Help* table, std::size_t capacity)
     }
     return loaded;
 }
+
+// The ten Repliction records in the distributed itemhelp.dat are GBK text.
+// Replace only their prose with the rules enforced by the current server.
+template<class Help>
+void LocalizeRepliction(Help* table, std::size_t capacity)
+{
+    if (capacity <= 4025) return;
+    for (int index = 4016; index <= 4025; ++index) {
+        Help& record = table[index];
+        record = {};
+        const auto set = [&](int row, unsigned int color, std::string_view value) {
+            record.Color[row] = LegacyColor(color);
+            const auto length = value.size() < sizeof(record.Help[row])
+                ? value.size() : sizeof(record.Help[row]) - 1;
+            std::memcpy(record.Help[row], value.data(), length);
+        };
+        const char grade = static_cast<char>('A' + (index - 4016) % 5);
+        const char title[] = {'R', 'e', 'p', 'l', 'i', 'c', 't', 'i', 'o', 'n', ' ', grade, '\0'};
+        set(0, 0xFFFF00FFu, title);
+        set(2, 0xFFFFFFFFu, "Rerolls both armor bonus options.");
+        set(4, 0xFFFF0000u, "Requires matching equipment grade.");
+        set(5, 0xFFFF0000u, index < 4021
+            ? "Maximum refinement: +6."
+            : "Maximum refinement: +9.");
+        set(6, 0xFFFF0000u, "Existing bonuses are replaced.");
+        set(7, 0xFFFFFFFFu, "Refinement is preserved.");
+    }
+}
 }

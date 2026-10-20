@@ -23,7 +23,7 @@ try {
 } finally {
     $env:GOOS=$priorGoOS; $env:GOARCH=$priorGoArch; $env:CGO_ENABLED=$priorCGO
 }
-$required = 'NPCGener.txt|teleports.ini|quest_zones.json|quests.json|init_items.csv|itemlist.csv|Itemname.csv|ItemEffect.h|SkillData.csv|droprate.json|volatiles.json|instances.json|repliction.json|mounts.json|character_templates.json|network_admission.json|client_integrity.json'
+$required = 'NPCGener.txt|teleports.ini|quest_zones.json|quests.json|init_items.csv|itemlist.csv|Itemname.csv|ItemEffect.h|SkillData.csv|droprate.json|volatiles.json|instances.json|RuneTrack759.txt|repliction.json|mounts.json|character_templates.json|network_admission.json|client_integrity.json'
 $files = @(git -C $repo ls-files wydgo748/data)
 if ($LASTEXITCODE -ne 0) { throw 'Data inventory failed' }
 foreach ($file in $files) {

@@ -120,6 +120,8 @@ public:
 	void SetMyHumanMagic();
 	void SetWeather(int nWeather);
 	void UpdateWeatherEffects();
+	void UpdateEntranceRunes(unsigned int dwServerTime);
+	void SpawnEntranceRune();
 	int LoadMsgText(SListBox* pListBox, char* szFileName);
 	void SetPosPKRun();
 	char UseHPotion();
@@ -991,6 +993,8 @@ public:
 	unsigned int m_dwMoveCamTick;
 	TMObject* m_pKhepraPortal;
 	kefra_portal::ClientState m_kefraPortal{};
+	bool m_bInEntranceRunes{};
+	unsigned int m_dwNextEntranceRune{};
 	TMEffectBillBoard* m_pKhepraPortalEff1;
 	TMEffectBillBoard* m_pKhepraPortalEff2;
 	unsigned int m_dwKhepraDieTime;

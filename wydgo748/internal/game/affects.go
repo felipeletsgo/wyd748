@@ -503,7 +503,13 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				if skill.Index == 102 {
 					applied = setSoulLimitAffectAt(target.Char, affectType, value, mastery, duration, now)
 				} else {
-					applied = setAffectAt(target.Char, affectType, value, mastery, duration, now)
+					level := mastery
+					if skill.Index == coinArmorSkill {
+						// Affect 31 adds Level/2 + Value; Coin Armor's native help
+						// grants Trade/10 defense, so its level is mastery/5.
+						level = mastery / 5
+					}
+					applied = setAffectAt(target.Char, affectType, value, level, duration, now)
 				}
 				if applied && skill.Index == 15 { // TK Critical Armor uses visual 24 in 7.48.
 					for i := range target.Char.Affects {
@@ -1159,8 +1165,12 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 	}
 	wireTargets := make([]wire.SkillTarget, 0, len(targets))
 	appliedByMob := make(map[*Mob]uint32, len(targets))
+	now := w.now()
 	for _, m := range targets {
 		damage := uint32(clampInt(affect.Level+affect.Value, 1, int(maxScoreValue)))
+		if _, catalogued := w.skills[33]; skillIndex == 37 && catalogued {
+			damage = w.lightningStormTickDamage(p, m, now)
+		}
 		appliedByMob[m] = minU32(damage, m.HP)
 		if damage >= m.HP {
 			m.HP = 0
@@ -1192,6 +1202,25 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 		}
 	}
 	w.commitKillRewardBatch(p, killPlans, batchAccounts, "area-affect kills")
+}
+
+// lightningStormTickDamage follows W2PP ProcessAffect Type 22: every eight
+// seconds the storm attacks up to six nearby enemies as a Thunderbolt (33)
+// cast by the owner, so each hit uses Thunderbolt's skill damage, mitigation
+// and bonuses instead of the bare affect value (about 300 at high mastery).
+func (w *World) lightningStormTickDamage(p *Player, m *Mob, now time.Time) uint32 {
+	thunder, ok := w.skills[33]
+	if !ok {
+		return 1
+	}
+	damage := w.skillFinalDamage(w.baseSkillDamage(p.Char, thunder), effectiveMobDefenseAt(m, now),
+		skillDamageMastery(p.Char))
+	damage = damage * 70 / 100 // the same Mortal PvE reduction as a cast skill
+	damage = applySkillResistance(damage, thunder.InstanceType, effectiveMobResistancesAt(m, now), true)
+	damage = applyCouragePvEDamageAt(p.Char, damage, skillUsesMagic(p.Char, thunder), now)
+	result := addFlatDamage(uint32(clampInt(damage, 1, int(maxScoreValue))),
+		w.equipmentGemBonuses(p.Char).forceDamage)
+	return w.bossMitigateDamage(m, result)
 }
 
 func tickAreaVisual(skillIndex int) (int, byte) {

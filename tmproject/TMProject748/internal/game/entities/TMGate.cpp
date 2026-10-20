@@ -299,19 +299,9 @@ int TMGate::FrameMove(unsigned int dwServerTime)
         m_fHeight = 0.0f;
         m_sAuth = 0;
     }
-    auto pFocused = g_pCurrentScene->m_pMyHuman;
-    if (pFocused &&
-        ((float)(pFocused->m_vecTargetPos.x - 33) > m_vecPosition.x || m_vecPosition.x > (float)(pFocused->m_vecTargetPos.x + 33) ||
-         (float)(pFocused->m_vecTargetPos.y - 33) > m_vecPosition.y || m_vecPosition.y > (float)(pFocused->m_vecTargetPos.y + 33)))
-    {
-        if ((TMGate*)g_pCurrentScene->m_pMouseOverItem == this)
-            g_pCurrentScene->m_pMouseOverItem = nullptr;
-
-        m_eState = EGATE_STATE::EGATE_CLOSED;
-        m_sAuth = 0;
-        if (m_stItem.sIndex == 359)
-            g_pObjectManager->DeleteObject(this);
-    }
+    // The server owns gate state and removes the item when the player's actual
+    // position leaves its view. A distant movement target must not close an
+    // otherwise visible gate or stamp closed collision before that removal.
     if (!m_sAuth && m_stItem.sIndex > 0)
     {
         int nMaskIndex = BASE_GetItemAbility(&m_stItem, 34);

@@ -65,7 +65,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			ch.Score.Defense = celestialBaseDefense(ch.ArchCrystals)
 			ch.RuntimeScore = nil
 			ch.LearnedSkill, ch.SecondaryLearnedSkill = celestialSoulBit, 0
-			ch.ShortSkill, ch.Affects = [20]byte{}, [16]model.Affect{}
+			ch.ShortSkill, ch.Affects = [20]byte{}, itemBuffsOnly(ch.Affects) // potion buffs survive
 			ch.Equip[1] = cythera
 			kingdom := model.KingdomFromCape(ch.Equip[model.CapeSlot].Index)
 			cape, _ := model.KingdomCapeAtTier(model.CapeTierMaster, kingdom)

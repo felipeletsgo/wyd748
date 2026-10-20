@@ -1,6 +1,41 @@
 # Current project state
 
-## Release — 2026-10-19, persistence recovery and patch 10036
+## Release — 2026-10-20, skills, items and patch 10037
+
+The owner authorized publishing the pending updates, the launcher patch and a
+game-server restart. `go vet ./...`, `go test -count=1 ./...`, the client build
+with architecture checks (3,282,468) and the portal's 60 tests passed. No
+gameplay validation was performed. Issue status: [player reports](BUGS.md) and
+[bug register](bug-register.md).
+
+Patch 10037 contains only `WYD.exe` (SHA-256
+`0254CEA3D2C9D8E6AD3579C07701D132DC6A3F2704A99D9628456BD1829A0D90`). The ZIP
+is 849,103 bytes, SHA-256
+`B41A987968CF478B1FAAF8330BF695D68A3ADA528C70FB219292096097B3AB32`. The HTTPS
+and HTTP feeds list 10036 and 10037; the ZIP downloaded through the public URL
+and its entry matched both hashes. Client settings were excluded.
+
+The first server activation (`20261020T200827Z`) failed readiness because
+`Build-VpsRelease.ps1` omitted `data/RuneTrack759.txt`; the updater restored
+`20261019T050509Z` automatically. The script now packages that runtime file.
+The rebuilt archive (SHA-256
+`b2c38672b75030aefa022e3062e205fb8d1814eb566f2c66b88ca2e84f24e9a3`) has the
+same data inventory as the previous release plus the changed files. Private
+server, staff, Caddy and unit files matched the VPS before activation. With no
+established game connections, release `/srv/wyd-go/releases/20261020T201006Z`
+went live at 20:10:09 UTC (rollback `20261019T050509Z`); game and player API
+restarted and the running executables match the candidates:
+
+- Game: `5c5cc23b3c31cc5f95a98d357604fc9d89d1a42545c778a4c36f1f9294783670`.
+- Player API: `08cb2db3d044a724c0f83cd43ae8a4e5abc51e5d06ca2225cad59bb1b8acd21a`.
+
+Game, player API and Caddy are active, TCP 8281 listens, Uxmal loaded seven
+rooms, and the post-start journal shows no failure. The public home, news,
+changelog and manifest (patch 10037, 2026-10-20) returned 200. Remote staging
+was removed. The failed release directory `20261020T200827Z` remains on the
+VPS as inert evidence. Actual login and gameplay remain pending.
+
+## Previous release — 2026-10-19, persistence recovery and patch 10036
 
 The owner authorized the current server, portal, pending client fixes and a VPS
 reboot. Full Go tests and vet passed, including the configured isolated

@@ -492,6 +492,13 @@ int RunUiModeContractTests(int& checks)
         worldScene.find("pItem->m_nMaskHeight = static_cast<unsigned char>(pMsg->Height);") != std::string::npos &&
         inventoryScene.find("pItem->m_nMaskHeight = static_cast<unsigned char>(pMsg->Height);") != std::string::npos,
         "both height rebuilds re-seat ground objects and re-stamp known gates");
+    const auto gateFrame = source_contract::Method(ReadAppSource("internal/game/entities/TMGate.cpp"),
+        "int TMGate::FrameMove(unsigned int dwServerTime)");
+    check(gateFrame.find("m_vecTargetPos") == std::string::npos &&
+        gateFrame.find("m_stItem.sIndex == 359") == std::string::npos &&
+        worldScene.find("pItem->m_sAuth = 1;") != std::string::npos &&
+        inventoryScene.find("pItem->m_sAuth = 1;") != std::string::npos,
+        "a movement target cannot close an authoritative gate before server removal");
     // Mesh 36 remains the costume identity but resolves to sword16.msa; grid
     // and ground items present costumes with the KR costume mesh instead.
     static_assert(costume_slot::IconMesh == 2885 && costume_slot::IconMesh != costume_slot::CostumeMesh);
