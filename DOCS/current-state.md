@@ -1,5 +1,72 @@
 # Current project state
 
+## Release — 2026-10-21, audit batch and patch 10041
+
+The owner authorized commits/push to `main`, VPS activation and necessary
+player disconnection. Source commit `6746e784` and portal receipt commit
+`60c2b618` are pushed to GitHub `main`. The required `ItemListWide.csv` is
+now tracked. Local `tmproject/client748/config.txt` remains excluded.
+
+The Linux archive passed its remote SHA-256 check before activation.
+Archive SHA-256:
+`D8AD95D1ABA052D1D2905C24FC341A031D17F1C9CE98AD87C9F47B5189166669`.
+The candidate game binary has SHA-256
+`D506103DE1C05F8E3D143439B28A61966784544552FF360DFCF1FFCD353DA5D6`;
+the player API has SHA-256
+`4940149C382C194D749C1C3E81F1B7A2868DC9FD57A32371AD183D17718BA610`.
+Both embed revision `60c2b618193c10de220973aaa0c560bd4137f791` with
+`vcs.modified=true`: the excluded local client configuration was dirty, not
+the Go sources. Existing private server/Caddy/systemd settings were copied
+into staging; existing staff membership/capabilities were preserved, adding
+only the two audited capabilities. The backup service completed successfully.
+
+One game connection was present before the authorized controlled stop at
+18:59:20 UTC. Shutdown logged one persisted account, zero failures and
+`shutdown complete`; systemd reported `Result=success`, `ExecMainStatus=0`.
+No game connections remained. The previous/rollback release is
+`/srv/wyd-go/releases/20261020T235014Z`.
+
+After upload, the patch publication SSH connection timed out before
+authentication. TCP diagnostics found port 22 timing out while HTTPS remained
+reachable. At 19:01 UTC the feed still ended at 10040 and patch 10041 returned
+HTTP 404. After a connection-free backoff, established SSH access recovered;
+no credential, SSH policy or firewall workaround was used. The publisher
+installed the ZIP before appending 10041, then the established release updater
+activated `/srv/wyd-go/releases/20261021T190239Z` at 19:02:42 UTC, restarting
+the game and player API. The game was unavailable from its controlled stop
+until the new listener started at 19:02:43 UTC.
+
+Both services are active. Their running `/proc/<pid>/exe` paths resolve inside
+the active release, and both executable hashes match the candidates above.
+Both loopback readiness endpoints return `ready`, TCP 8281 listens, and the
+post-activation game/API error journal has no entries. Startup confirms
+PostgreSQL persistence, four critical-write workers, four boss encounters and
+the game listener, without an admission-containment error. Readiness and startup
+are not a login or gameplay test. The backup service again reports success.
+The updater and publisher removed both remote staging directories.
+
+The published three-entry client ZIP is 900,489 bytes, SHA-256
+`4CF0535F04C58362478F4927D50717FD6D1140B4262439CBB357DC8790BB0628`.
+It contains the audited `WYD.exe`, `ItemList.bin`, and `ItemListWide.csv`,
+without private settings. Fresh HTTP and HTTPS downloads match the ZIP hash;
+the HTTPS archive's three entry hashes match the candidate/asset allowlist.
+Both public feeds end at 10041. The public manifest reports the correct ZIP
+size/hash and executable hash, and home/download/News/changelog/article return
+HTTP 200 with patch 10041. Portal check/build and all 60 tests passed again.
+The local installed runtime was not replaced. Native formula conflicts,
+real-client acceptance and global English migration remain pending; publication
+does not establish `CLIENT_TESTED` or global release readiness.
+
+Remote staging was removed automatically. Local cleanup was rejected by
+execution policy before execution and was not retried. Exact retained output:
+`build/deploy/wyd-deploy-20261021-audit-10041/`,
+`build/patch/patch-10041.zip`, `build/release-10041/verify-10041-http.zip`,
+and `build/release-10041/verify-10041-https.zip`.
+An unrelated stopped client's 51-byte crash-monitor log was preserved by moving
+its otherwise empty dumps directory to
+`build/release-10041/local-client-dumps-p29464/`; layout validation then passed.
+The earlier blocked audit-cluster artifacts below were not touched.
+
 ## Source corrections — 2026-10-21, generated-code audit
 
 The [final audit record](../.agents/research/native-combat-audit-2026-10-21.md)
@@ -18,13 +85,13 @@ architecture, 281 socket, 198 crash capture and 56 launcher. Candidate:
 `tmproject/build/TMProject748/Release/WYD.exe`, 1,916,928 bytes, SHA-256
 `64C9BDDEEC0EE6E6197B63A0CA915B10BE1AEA8F1C6B03A1F9D3EC47428C3F82`.
 
-These results are source and automated-test validation only: no local runtime
-installation, publication, restart, player disconnection, commit/push or in-game
-flow occurred in this review. Native 7.48 formula conflicts, real-client
-acceptance and release-input closure remain pending; the wide item sidecar is
-still untracked. No global language/release-readiness claim is made. The stopped
-test PostgreSQL cluster and log remain at `build/final-audit-20261021/` because
-cleanup was blocked by policy; see the audit record for exact paths.
+At the original review boundary only source and automated-test validation had
+occurred. The release above subsequently committed the required sidecar and
+published the validated artifacts, without local installation or gameplay
+execution. Native 7.48 formula conflicts and real-client acceptance remain
+pending; no global language/release-readiness claim is made. The stopped test
+PostgreSQL cluster and log remain at `build/final-audit-20261021/` because cleanup
+was blocked by policy; see the audit record for exact paths.
 
 ## Release — 2026-10-20, player camera independent of CON (patch 10040)
 

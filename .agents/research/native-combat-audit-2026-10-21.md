@@ -129,16 +129,21 @@ snapshot regressions cover those boundaries instead.
 
 ## Delivery boundary
 
-This review verifies source and candidate-build validation only. No installed
-runtime, publication, server restart, or real in-game execution was performed,
-so this change is not marked `CLIENT_TESTED`, published, or deployed.
-No players were disconnected and no commit or GitHub push was performed in
-this review. Earlier publication authorization is not a publication receipt.
+At the original review boundary this verified source and candidate-build
+validation only. No installation, publication, restart, disconnection, commit,
+push or actual gameplay occurred in that review phase.
 
-The current local client build also depends on the untracked
-`tmproject/client748/ItemListWide.csv` sidecar. The client build succeeds with
-that local file, but release packaging still requires the asset to be tracked
-or otherwise supplied through the established release input.
+At that boundary the local client build also depended on the untracked
+`tmproject/client748/ItemListWide.csv` sidecar. The subsequent authorized
+publication committed that sidecar in `6746e784` and
+pushed the source and portal receipt (`60c2b618`) to GitHub `main`.
+See [current state](../../DOCS/current-state.md) for the subsequent publication:
+controlled shutdown completed with one account saved and zero failures.
+Transient SSH TCP timeouts delayed activation; access recovered after backoff
+without a security-policy workaround. Patch 10041 is publicly hash-verified,
+and `/srv/wyd-go/releases/20261021T190239Z` is active with matching process
+hashes and successful readiness checks. No actual client gameplay was validated
+by that operation.
 
 Native 7.48 formula conflicts above, real-client owner/observer and relogin
 flows, installed-artifact identity, and global English-migration acceptance

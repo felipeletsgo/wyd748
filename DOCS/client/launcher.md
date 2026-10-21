@@ -1,5 +1,45 @@
 # WYD launcher and client patches
 
+## Published patch 10041 (2026-10-21)
+
+The owner authorized committing/pushing the audited October 19-21 batch to
+`main`, VPS publication and required player disconnection. Source commit
+`6746e784` includes the required wide-item sidecar; portal receipt commit
+`60c2b618` advertises the matching update. The patch builder took assets from
+Git between `7ff2cfc94344c757db05525f60fe6be18a77d537` and `6746e784`; the
+exact validated Release executable was added explicitly. No private settings,
+launcher or local version marker are included. Earlier dependencies remain in
+the cumulative feed.
+
+- ZIP: 900,489 bytes, SHA-256
+  `4CF0535F04C58362478F4927D50717FD6D1140B4262439CBB357DC8790BB0628`.
+- `WYD.exe`: 1,916,928 bytes, SHA-256
+  `64C9BDDEEC0EE6E6197B63A0CA915B10BE1AEA8F1C6B03A1F9D3EC47428C3F82`.
+- `ItemList.bin`: 910,004 bytes, SHA-256
+  `B674BFD2992E9B38A8C81A5CE7CEDB11FE5CE37E64093BB14D22B9DBE9EBCA0F`.
+- `ItemListWide.csv`: 225 bytes, SHA-256
+  `4E777CF0C799525527226B0D8E39446AD70927C52FD044F2CB81C4E880E6837B`.
+  Git packaging uses Windows CRLF; the working copy's LF-only byte hash
+  differs without changing the parsed sidecar contract.
+- Both public HTTP/HTTPS feeds append 10041. Fresh HTTP/HTTPS ZIP downloads
+  match, and the HTTPS archive contains exactly the three entries/hashes
+  above. The public manifest and website home, download, News/article and
+  changelog advertise 10041 with the matching receipt.
+- Active server release: `/srv/wyd-go/releases/20261021T190239Z`. Authorized
+  controlled shutdown saved one account with zero failures before activation.
+  Game/API running executable hashes, readiness and listener checks passed.
+  See [current state](../current-state.md) for provenance, rollback, backup
+  and the recovered transient SSH timeout.
+- Reused client Release/architecture/socket/crash/launcher gates and full Go
+  tests with real isolated PostgreSQL coverage. Portal check/build and all 60
+  tests passed again. Publication does not validate native damage formulas or
+  actual gameplay, and does not establish `CLIENT_TESTED`.
+
+Close the game and run `WYDLauncher.exe` to install the coordinated patch.
+The local installed executable was not replaced by this publication. Native
+formula conflicts, wide progress-bar end-to-end rendering and real-client
+acceptance remain open. No global language/release-readiness claim is made.
+
 `tmproject/client748/WYDLauncher.exe` is the OnGame 7.47 launcher adapted to
 this client. It downloads incremental patches from the VPS, keeps
 `config.txt` and `guilds.txt` current and starts `WYD.exe`. The full client
