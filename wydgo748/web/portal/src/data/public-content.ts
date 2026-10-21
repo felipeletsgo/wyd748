@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10040,
-  publishedAt: '2026-10-20',
-  serverUpdate: { id: 'world-bosses-con5000-10039', publishedAt: '2026-10-20' },
+  patchVersion: 10041,
+  publishedAt: '2026-10-21',
+  serverUpdate: { id: 'combat-events-persistence-10041', publishedAt: '2026-10-21' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -14,16 +14,28 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10040.zip',
-    sizeBytes: 851211,
-    sha256: '76905B3E7258F97CEE6EE4C0B0504A2951A5A77D8B21F02715EB75816F4F3DEC',
-    executableSha256: '81E6662D8867268E7ADE81FCDE14C8B264DBE9D72026C96B8BCFE90732689B88',
+    url: '/patch/patch-10041.zip',
+    sizeBytes: 900489,
+    sha256: '4CF0535F04C58362478F4927D50717FD6D1140B4262439CBB357DC8790BB0628',
+    executableSha256: '64C9BDDEEC0EE6E6197B63A0CA915B10BE1AEA8F1C6B03A1F9D3EC47428C3F82',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
 } as const;
 
 export const news = [
+  {
+    slug: 'combat-events-persistence-10041', date: '2026-10-21', category: 'News',
+    title: 'Patch 10041: combat resources and event safety',
+    summary: 'Combat HP handling, ghost-shop honor and event persistence receive audited corrections.',
+    paragraphs: [
+      'Damage and healing use bounded resource calculations, and authoritative snapshots refresh active large HP and MP pools. The item table includes the wide-attribute companion file.',
+      'Colosseum entry waits for payment confirmation, rejected exits are retried, and the event can finish after a delayed clock tick. Ghost-shop honor is published only after its persistence transaction commits.',
+      'Boss shields avoid overflow, duplicate encounter registration is rejected, and OX results use separate sides with a neutral gate column. Staff controls include the PvP door and OX event.',
+      'Close the game and open WYDLauncher.exe to receive patch 10041 before reconnecting. The matching game-server update requires a controlled restart.',
+      'Automated checks passed. Real-client gameplay acceptance and unresolved native 7.48 formula comparisons remain pending.',
+    ],
+  },
   {
     slug: 'camera-con-10040', date: '2026-10-20', category: 'News',
     title: 'Patch 10040: camera height correction',
@@ -407,6 +419,13 @@ export const news = [
 ] as const;
 
 export const changelog = [
+  { date: '2026-10-21', category: 'Client and server', title: 'Patch 10041 — combat resources and event safety', entries: [
+    'Bound damage and healing calculations, synchronize active large resource pools, and ship the wide item-attribute companion table.',
+    'Commit ghost-shop honor atomically; wait for Colosseum entry payment and retry rejected arena exits after event finalization.',
+    'Prevent boss shield overflow and duplicate registration; align OX result regions with their status counts.',
+    'Publish the audited staff controls and runtime data with the matching game-server release.',
+    'Automated checks passed; actual gameplay and unresolved native 7.48 formula validation remain pending.',
+  ] },
   { date: '2026-10-20', category: 'Client', title: 'Patch 10040 — camera height correction', entries: [
     'Keep player camera height and mounted minimum distance independent of CON.',
     'Preserve normal mount and seated camera offsets; no game-server restart is required.',
