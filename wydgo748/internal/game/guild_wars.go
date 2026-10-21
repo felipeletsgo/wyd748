@@ -142,21 +142,31 @@ func (w *World) warCountdown(now, deadline time.Time, mask *uint16, bit uint16, 
 	return nil
 }
 
+// serverLocation is the server-local timezone shared by the scheduled events
+// (guild wars and the Colosseum).
+func (w *World) serverLocation() (*time.Location, error) {
+	if w.warLocation == nil {
+		location, err := time.LoadLocation(w.warConfig.Timezone)
+		if err != nil {
+			return nil, err
+		}
+		w.warLocation = location
+	}
+	return w.warLocation, nil
+}
+
 func (w *World) tickGuildWars(now time.Time) {
 	if !w.warConfig.Enabled || w.guilds == nil || w.criticalGuildReserved() || now.Before(w.warNextTick) {
 		return
 	}
 	w.warNextTick = now.Add(time.Second)
 	defer w.flushWarNotices(now)
-	if w.warLocation == nil {
-		var err error
-		w.warLocation, err = time.LoadLocation(w.warConfig.Timezone)
-		if err != nil {
-			log.Printf("guild wars timezone: %v", err)
-			return
-		}
+	location, err := w.serverLocation()
+	if err != nil {
+		log.Printf("guild wars timezone: %v", err)
+		return
 	}
-	local := now.In(w.warLocation)
+	local := now.In(location)
 	if pending, err := w.tickGuildWarEconomy(local); pending || err != nil {
 		if err != nil {
 			log.Printf("guild war economy: %v", err)
@@ -191,6 +201,7 @@ func (w *World) tickGuildWars(now time.Time) {
 		return
 	}
 	w.cleanCityArena()
+	w.syncCityArenaGates(now)
 	if err := w.deliverWarMedal(); err != nil {
 		log.Printf("war medal delivery: %v", err)
 	}

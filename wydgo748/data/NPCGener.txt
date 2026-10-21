@@ -108575,7 +108575,7 @@
 	DestWait:	0
 
 // ShopAmulet - test NPC with the earrings, Mystic Amulets (+45 damage, +16 magic),
-// Spirit Stones and Ankhs
+// Spirit Stones, Ankhs and the Limit_Test_Amulet (6015, +100000 STR/INT/DEX/CON)
 #	[5230]
 	MinuteGenerate:	-1
 	MaxNumMob:	1
@@ -108707,5 +108707,79 @@
 	StartWait:	0
 	DestX:		2091
 	DestY:		2107
+	DestRange:	0
+	DestWait:	0
+
+// Boss entrance teleporters in Armia (one per world boss).
+// ********************************************
+#	[5237]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		ArchmageGate
+	Follower:	ArchmageGate
+	RouteType:	0
+	Formation:	0
+	StartX:		2093
+	StartY:		2095
+	StartRange:	0
+	StartWait:	0
+	DestX:		2093
+	DestY:		2095
+	DestRange:	0
+	DestWait:	0
+// ********************************************
+#	[5238]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		GuardianGate
+	Follower:	GuardianGate
+	RouteType:	0
+	Formation:	0
+	StartX:		2096
+	StartY:		2095
+	StartRange:	0
+	StartWait:	0
+	DestX:		2096
+	DestY:		2095
+	DestRange:	0
+	DestWait:	0
+// ********************************************
+#	[5239]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		DemonGate
+	Follower:	DemonGate
+	RouteType:	0
+	Formation:	0
+	StartX:		2104
+	StartY:		2095
+	StartRange:	0
+	StartWait:	0
+	DestX:		2104
+	DestY:		2095
+	DestRange:	0
+	DestWait:	0
+// ********************************************
+#	[5240]
+	MinuteGenerate:	-1
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:		NecroGate
+	Follower:	NecroGate
+	RouteType:	0
+	Formation:	0
+	StartX:		2107
+	StartY:		2095
+	StartRange:	0
+	StartWait:	0
+	DestX:		2107
+	DestY:		2095
 	DestRange:	0
 	DestWait:	0

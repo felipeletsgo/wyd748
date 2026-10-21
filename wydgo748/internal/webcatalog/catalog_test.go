@@ -25,7 +25,7 @@ func TestAuthoritativeExport(t *testing.T) {
 	if err := json.Unmarshal(first, &catalog); err != nil {
 		t.Fatal(err)
 	}
-	if catalog.SchemaVersion != SchemaVersion || len(catalog.Items) < 3000 || len(catalog.Skills) != 103 || len(catalog.Sources) != 6 || len(catalog.Quests) != 18 {
+	if catalog.SchemaVersion != SchemaVersion || len(catalog.Items) < 3000 || len(catalog.Skills) != 103 || len(catalog.Sources) != 6 || len(catalog.Quests) != 22 {
 		t.Fatalf("unexpected catalog sizes: items=%d skills=%d", len(catalog.Items), len(catalog.Skills))
 	}
 	claimed := catalog.ContentHash

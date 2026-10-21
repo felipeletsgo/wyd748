@@ -288,13 +288,10 @@ TMVector3 TMCamera::GetCameraPos()
                     m_fMinClose = 3.5f;
                 }
 
-                m_fMinClose = (pMyHuman->m_stScore.Con * 0.001f) + m_fMinClose;
-                m_fCamHeight = (pMyHuman->m_stScore.Con * 0.00019999999f) + m_fCamHeight;
             }
             else
             {
                 m_fCamHeight = 0.40000001f;
-                m_fCamHeight = (pMyHuman->m_stScore.Con * 0.00019999999f) + m_fCamHeight;
                 m_fMinClose = 1.3f;
 
                 if (pMyHuman->m_eMotion == ECHAR_MOTION::ECMOTION_SEATING ||

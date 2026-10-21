@@ -33,7 +33,7 @@ test('public catalog and search index agree, use stable routes and preserve veri
 test('quest pages preserve display levels, rewards, prerequisites and reverse item links', () => {
   const catalog = JSON.parse(file('database/catalog.json'));
   const index = JSON.parse(file('database/index.json'));
-  assert.equal(catalog.quests.length, 18); assert.equal(index.quests.length, 18);
+  assert.equal(catalog.quests.length, 22); assert.equal(index.quests.length, 22);
   assert.match(file('database/quests/1/index.html'), /40–116/);
   assert.match(file('database/quests/1/index.html'), /not a personal duration/);
   assert.match(file('database/quests/18/index.html'), /zero balance/);

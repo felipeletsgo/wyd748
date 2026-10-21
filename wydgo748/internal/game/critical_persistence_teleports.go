@@ -185,6 +185,11 @@ func (w *World) admitTeleportConsumable(p *Player, slot byte, rule model.Volatil
 			fail("This pass does not belong to your evolution.")
 			return
 		}
+	case "ox_ticket":
+		if !w.oxQuizMode {
+			fail("")
+			return
+		}
 	}
 	if p.Account == nil {
 		fail("")

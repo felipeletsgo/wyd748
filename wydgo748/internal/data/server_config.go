@@ -98,6 +98,7 @@ type ServerConfig struct {
 	LoadtestAccountPrefix string
 	Gameplay              model.GameplayConfig
 	GuildWars             model.GuildWarConfig
+	Colosseum             model.ColosseumConfig
 }
 
 func DefaultServerConfig() ServerConfig {
@@ -160,6 +161,7 @@ func DefaultServerConfig() ServerConfig {
 		LoadtestAccountPrefix:        "",
 		Gameplay:                     model.DefaultGameplayConfig(),
 		GuildWars:                    model.DefaultGuildWarConfig(),
+		Colosseum:                    model.DefaultColosseumConfig(),
 	}
 }
 
@@ -230,6 +232,8 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"guild_wars_timezone":              func(v string) error { cfg.GuildWars.Timezone = v; return nil },
 		"tower_war_hour":                   setUint32(&cfg.GuildWars.TowerHour),
 		"city_war_hour":                    setUint32(&cfg.GuildWars.CityHour),
+		"colosseum_enabled":                func(v string) error { b, err := strconv.ParseBool(v); cfg.Colosseum.Enabled = b; return err },
+		"colosseum_event_hour":             setUint32(&cfg.Colosseum.EventHour),
 		"listen_address":                   func(v string) error { cfg.ListenAddress = v; return nil },
 		"database_driver":                  func(v string) error { cfg.DatabaseDriver = strings.ToLower(v); return nil },
 		"database_url":                     func(v string) error { cfg.DatabaseURL = v; return nil },
@@ -435,6 +439,9 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	}
 	if err := cfg.GuildWars.Validate(); err != nil {
 		return ServerConfig{}, fmt.Errorf("%s: guild wars: %w", path, err)
+	}
+	if err := cfg.Colosseum.Validate(); err != nil {
+		return ServerConfig{}, fmt.Errorf("%s: %w", path, err)
 	}
 	return cfg, nil
 }

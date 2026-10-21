@@ -9,8 +9,8 @@ import (
 // The 7.48 UpdateItem request carries a 16-bit State followed by a separate
 // Height byte. Height is client input, never the authoritative gate height.
 func TestUpdateGroundItemDecodesStateWithoutClientHeight(t *testing.T) {
-	w, gate := mundoComPorta(2, 2100, 2100)
-	p, session := jogadorComChave(w, 451, 2100, 2100)
+	w, gate := worldWithGate(2, 2100, 2100)
+	p, session := playerWithKey(w, 451, 2100, 2100)
 	p.show(gate.ID)
 
 	pkt := wire.UpdateItem(gate.ID, uint16(gateOpen))
@@ -24,8 +24,8 @@ func TestUpdateGroundItemDecodesStateWithoutClientHeight(t *testing.T) {
 }
 
 func TestUpdateGroundItemRejectsNegativeSignedState(t *testing.T) {
-	w, gate := mundoComPorta(2, 2100, 2100)
-	p, session := jogadorComChave(w, 451, 2100, 2100)
+	w, gate := worldWithGate(2, 2100, 2100)
+	p, session := playerWithKey(w, 451, 2100, 2100)
 	p.show(gate.ID)
 
 	pkt := wire.UpdateItem(gate.ID, 0xffff)

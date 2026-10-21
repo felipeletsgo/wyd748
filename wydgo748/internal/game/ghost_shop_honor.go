@@ -41,16 +41,42 @@ func (w *World) tickGhostShopHonor(now time.Time) {
 			continue
 		}
 		owner := w.playerByID(shop.OwnerID)
-		if owner == nil || owner.GhostShop != shop || owner.Char == nil || owner.Session == nil {
+		if owner == nil || owner.GhostShop != shop || owner.Account == nil || owner.Char == nil || owner.Session == nil {
 			continue
 		}
 		if w.criticalPlayerReserved(owner) {
 			continue // retried on the next tick
 		}
+		// Honor lives in the character sidecar, not the account. Never admit a
+		// credit on a backend that cannot save that sidecar atomically.
+		if w.criticalWrites != nil && !w.criticalStoreHasSidecars() {
+			continue
+		}
+		images := criticalPreimages(owner)
 		grantCounters(owner, map[string]uint32{honorCounter: 1})
-		w.ghostShopHonorAt[id] = next.Add(ghostShopHonorInterval)
-		owner.Session.Send(wire.MessageWhisper(0, ghostShopHonorSender, ghostShopHonorLetter, 0))
-		log.Printf("[#%d] GHOST SHOP honor +1 owner=%s total=%d", owner.Session.ID,
-			owner.Char.Name, counterBalance(owner, honorCounter))
+		publish := func() {
+			if w.ghostShops[id] == shop && owner.GhostShop == shop {
+				w.ghostShopHonorAt[id] = next.Add(ghostShopHonorInterval)
+			}
+			if !owner.Session.IsClosed() {
+				owner.Session.Send(wire.MessageWhisper(0, ghostShopHonorSender, ghostShopHonorLetter, 0))
+			}
+			log.Printf("[#%d] GHOST SHOP honor +1 owner=%s total=%d", owner.Session.ID,
+				owner.Char.Name, counterBalance(owner, honorCounter))
+		}
+		if w.criticalWrites != nil {
+			if err := w.queueCriticalLiveMutation("ghost_shop_honor", images, publish,
+				criticalLiveMutationOptions{sidecar: true}); err != nil {
+				log.Printf("[#%d] GHOST SHOP honor admission failed: %v", owner.Session.ID, err)
+			}
+			continue
+		}
+		if err := w.saveAccountAndCharStateResult(owner); err != nil {
+			w.restoreCriticalPreimages(images)
+			log.Printf("[#%d] GHOST SHOP honor persistence failed owner=%s: %v",
+				owner.Session.ID, owner.Char.Name, err)
+			continue
+		}
+		publish()
 	}
 }

@@ -120,8 +120,6 @@ public:
 	void SetMyHumanMagic();
 	void SetWeather(int nWeather);
 	void UpdateWeatherEffects();
-	void UpdateEntranceRunes(unsigned int dwServerTime);
-	void SpawnEntranceRune();
 	int LoadMsgText(SListBox* pListBox, char* szFileName);
 	void SetPosPKRun();
 	char UseHPotion();
@@ -445,7 +443,7 @@ public:
 	// newer HUD IDs expected by the imported source implementation.
 	int m_nMySanc;
 	int m_bMountDead;
-	unsigned short m_nReqHP;
+	unsigned int m_nReqHP;
 	unsigned int m_nReqMP;
 	TMEffectMesh* m_pTarget1;
 	TMEffectMesh* m_pTarget2;
@@ -993,8 +991,6 @@ public:
 	unsigned int m_dwMoveCamTick;
 	TMObject* m_pKhepraPortal;
 	kefra_portal::ClientState m_kefraPortal{};
-	bool m_bInEntranceRunes{};
-	unsigned int m_dwNextEntranceRune{};
 	TMEffectBillBoard* m_pKhepraPortalEff1;
 	TMEffectBillBoard* m_pKhepraPortalEff2;
 	unsigned int m_dwKhepraDieTime;

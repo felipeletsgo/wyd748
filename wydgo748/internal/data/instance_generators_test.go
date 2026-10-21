@@ -247,3 +247,19 @@ func TestNightmareBossConfigurationValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestInstanceGeneratorRejectsInlineCompletionSpawns(t *testing.T) {
+	gener := model.NPCGener{Label: 1, MaxNumMob: 1, Leader: "Mob"}
+	gener.Segments[0] = model.GenerSegment{X: 100, Y: 200}
+	cache := &instanceGeneratorCache{files: map[string][]model.NPCGener{
+		"waves.txt": {gener},
+	}}
+	inst := &model.VolatileInstance{Stages: []model.VolatileInstanceStage{{
+		Generator:        "waves.txt",
+		GeneratorIDs:     []int{1},
+		CompletionSpawns: []model.VolatileInstanceSpawn{{NPC: "Boss", Count: 1, X: 100, Y: 200}},
+	}}}
+	if err := cache.expand("inline completion", inst); err == nil {
+		t.Fatal("inline completion spawns were accepted alongside a generator")
+	}
+}

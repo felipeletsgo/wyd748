@@ -312,6 +312,9 @@ func (w *World) beginRuneTrack(inst *ItemInstance) bool {
 			moves = append(moves, move{p, dest[0], dest[1]})
 		}
 	}
+	if len(moves) == 0 {
+		return false
+	}
 	players := make([]*Player, 0, len(moves))
 	for _, m := range moves {
 		players = append(players, m.p)

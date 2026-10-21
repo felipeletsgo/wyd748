@@ -87,7 +87,6 @@
     <ClCompile Include="RuntimeAssetLimitsTests.cpp" />
     <ClCompile Include="ObservedAffectProjectionTests.cpp" />
     <ClCompile Include="CCModePolicyTests.cpp" />
-    <ClCompile Include="EntranceRunesTests.cpp" />
     <ClCompile Include="EffectVertexColorTests.cpp" />
     <ClCompile Include="SceneDisconnectContractTests.cpp" />
     <ClCompile Include="UIBinaryTests.cpp" />

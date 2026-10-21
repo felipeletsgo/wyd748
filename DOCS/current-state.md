@@ -1,5 +1,181 @@
 # Current project state
 
+## Source corrections — 2026-10-21, generated-code audit
+
+The [final audit record](../.agents/research/native-combat-audit-2026-10-21.md)
+covers the October 19-21 changes and the working-tree batch. Colosseum reset
+and admission, Rune Track eligibility, ghost-shop honor durability and required
+`ItemListWide.csv` dependency checks were corrected. The final review also
+fixed critical-write entry/exit handling, skipped-hour finalization, overlapping
+OX sides, boss shield overflow, duplicate boss registration, wide combat HP
+projection, and authoritative snapshots leaving active big HP/MP pools stale.
+
+The full Go suite passed with isolated PostgreSQL enabled; dedicated transaction
+and World activation tests confirmed execution rather than conditional skips.
+Vet/build, focused regressions, portal check (77 files, zero diagnostics), all
+60 portal tests, and client Release build passed. Client checks: 3,105,526
+architecture, 281 socket, 198 crash capture and 56 launcher. Candidate:
+`tmproject/build/TMProject748/Release/WYD.exe`, 1,916,928 bytes, SHA-256
+`64C9BDDEEC0EE6E6197B63A0CA915B10BE1AEA8F1C6B03A1F9D3EC47428C3F82`.
+
+These results are source and automated-test validation only: no local runtime
+installation, publication, restart, player disconnection, commit/push or in-game
+flow occurred in this review. Native 7.48 formula conflicts, real-client
+acceptance and release-input closure remain pending; the wide item sidecar is
+still untracked. No global language/release-readiness claim is made. The stopped
+test PostgreSQL cluster and log remain at `build/final-audit-20261021/` because
+cleanup was blocked by policy; see the audit record for exact paths.
+
+## Release — 2026-10-20, player camera independent of CON (patch 10040)
+
+The owner reported that patch 10039 restored normal player model size, but
+the camera still tracked the character as if the 100,000-CON amulet had made
+them giant. `TMCamera::GetCameraPos` still added player CON to mounted minimum
+distance and mounted/unmounted camera height. Those three additions are removed;
+mount-type distances and seated offsets remain. The source contract now guards
+the camera against CON coupling alongside the existing player/monster scale
+checks. `Build-Client.ps1 -NoDeploy` passed (architecture 3,282,440 checks,
+socket 281, crash capture 198, launcher 56); the candidate executable at
+`tmproject/build/TMProject748/Release/WYD.exe` has SHA-256
+`81E6662D8867268E7ADE81FCDE14C8B264DBE9D72026C96B8BCFE90732689B88`.
+The launcher feed now lists patch 10040. Public HTTPS download of its sole
+`WYD.exe` entry matched the candidate SHA-256 above; the ZIP is 851,211 bytes
+with SHA-256
+`76905B3E7258F97CEE6EE4C0B0504A2951A5A77D8B21F02715EB75816F4F3DEC`.
+The static website manifest, home, News and changelog advertise patch 10040.
+The portal build and all 60 tests passed. A website-only VPS release at
+`/srv/wyd-go/releases/20261020T235014Z` changed six public files; its game
+and service configuration matched the previous release, and the updater
+reported no game or player API restart. The active game executable hash remains
+`3BE39B5503C1238EC286B45B88BD175A59EDFEDA8496923297F022D89361FB74`;
+both services remain active. The installed local `tmproject/client748/WYD.exe`
+remains patch 10039 with SHA-256
+`40A4D94DDFE14F3A873945BEBF0463D39B1979F97D4230B456DE222C06CDFAF9`.
+Publication is verified, but this is not `CLIENT_TESTED`: gameplay acceptance
+must compare the camera with and without the amulet, mounted and unmounted,
+after the launcher installs patch 10040.
+
+## Release — 2026-10-20, player scale and world boss CON 5000
+
+Client patch 10039 is published in the launcher feed and available publicly as
+`/patch/patch-10039.zip`. The archive is 851,253 bytes with SHA-256
+`82E56AAD4E6936C038F4305E89B6D21A003CBA3938F28963E3398B48DA08A672`;
+its sole `WYD.exe` entry has SHA-256
+`40A4D94DDFE14F3A873945BEBF0463D39B1979F97D4230B456DE222C06CDFAF9`.
+The client change keeps player height independent of CON while preserving
+monster scaling. The client build and automated checks passed, but the local
+installed executable was not replaced and actual gameplay acceptance remains
+pending.
+
+The owner authorized a game restart and possible player disconnections. Four
+established connections were present before the game service was stopped. The
+server release changed only the four boss Lua files relative to the previous
+active game's files, setting each encounter CON to 5000. The established
+updater activated `/srv/wyd-go/releases/20261020T233645Z`, restarting the game
+and player API. The final website-only release, archive SHA-256
+`CCA31AC5A60CB7FCD944651143CBBD8E27B5E6FEC1E8EC528E1729723A0CA5D0`,
+activated `/srv/wyd-go/releases/20261020T234007Z` without restarting either
+service; only three public website files differed from the preceding release.
+
+The active game process still matches the deployed binary SHA-256
+`3BE39B5503C1238EC286B45B88BD175A59EDFEDA8496923297F022D89361FB74`.
+All four installed boss Lua files contain CON 5000; game and player API are
+active, both loopback readiness checks return HTTP 200, TCP 8281 listens, and
+the game error journal has no entries since activation. The public manifest
+reports patch 10039 and server update `world-bosses-con5000-10039`; its news
+page and launcher feed return the updated content. The portal build and all 60
+tests passed. In-game visual and boss-encounter validation remain pending;
+deployment checks do not establish `CLIENT_TESTED`.
+
+## Release — 2026-10-20, world boss CON hotfix
+
+The owner requested immediate correction of the previous server release. The
+four boss encounters now use CON 10000 without changing their KR preview NPCs.
+The hotfix reused the 10038 release payload and replaced only the game binary
+and four boss Lua files. The local full Go suite and vet had passed before
+packaging. The archive SHA-256 was
+`D11875BE0FEC796F6A92B6E61D71F1EE67C119E931C383EE263412ACFE30C069`;
+the upload passed the remote checksum and archive-entry checks. The previous
+release was `/srv/wyd-go/releases/20261020T230245Z`.
+
+The owner had authorized disconnecting players for the game restart. Two
+established game connections were present. The game service was stopped before
+the established updater activated `/srv/wyd-go/releases/20261020T232346Z`,
+then both game and player API restarted. The active game binary SHA-256 is
+`3BE39B5503C1238EC286B45B88BD175A59EDFEDA8496923297F022D89361FB74`.
+The running game process executable matches that binary hash. All four
+installed boss Lua files contain `con = 10000`; both services are active, both
+loopback readiness checks return HTTP 200, TCP 8281 listens, the post-activation
+game error journal shows no entries, and remote staging was removed by the
+updater. Actual in-game visual
+confirmation remains pending; this deployment is not `CLIENT_TESTED`.
+
+Local staging remains at `build/deploy/wyd-deploy-20261020-boss-con-hotfix/`.
+An earlier failed relative-path command left generated output under
+`wydgo748/build/deploy/wyd-deploy-20261020-boss-con-hotfix/`; cleanup was
+blocked by execution policy and was not retried.
+
+## Previous local follow-up — 2026-10-20, world boss scale
+
+The owner confirmed that CON 10000 was intentional for the four configured
+world bosses: DeathWorm, LegendBerial, Murmy, and Anubis. The local source now
+supports a per-encounter `stats.con` override and sets it to 10000 in all four
+boss Lua definitions. The corresponding KR catalog NPCs retain CON 1 because
+NPCGener also spawns them as one-mob preview groups. The existing client scale
+formula uses the transmitted CON, so no client source change is required for
+this correction. The boss catalog is loaded only at game-server startup; Lua
+edits are not hot-reloaded. The subsequent hotfix above built, published, and
+activated this correction; validation in a running client remains pending.
+
+## Release — 2026-10-20, world bosses, wide values and patch 10038
+
+The owner authorized activating the pending VPS release, including game and
+player API restarts. The client patch 10038 was already listed in the public
+feed. Its public ZIP and local archive both have SHA-256
+`A0012C6E5215A6693B3DBE1001EA2B465B34290675F6F87C0891B415834AF571`
+(900,401 bytes); a fresh `Build-Client.ps1 -NoDeploy` produced the same `WYD.exe`
+as the patch, SHA-256
+`B2417172F15E968E26A6F6B1BB8451F2CE7125476000CE3295079EE01FF54A27`.
+The local installed client was not replaced. Client architecture, socket,
+crash-capture and launcher tests passed; Go `go vet ./...` and
+`go test -count=1 -p 1 ./...` passed, as did the portal's 60 tests.
+
+The first prepared server archive was not activated: fresh tests exposed three
+conflicts with existing boss-data expectations. The owner's deliberate NPC swaps
+for different monster faces were preserved: DeathWorm, LegendBerial, Murmy and
+Anubis remain the four boss base NPCs. Encounter names and stable IDs were
+restored to match the four Armia gates and public announcement; two NPC
+references were changed from filenames to catalog names. DeathWorm's CON was
+changed from 10000 back to 1 to satisfy the existing base-NPC test. The owner
+subsequently confirmed that 10000 was intentional for the boss itself; the local
+follow-up above keeps that value on boss encounters without changing preview
+NPCs. The focused boss/preview/reference tests and full Go suite passed at
+the time of this release.
+The corrected archive SHA-256 is
+`4576233701806CFDCC1762A8959FA0F71EA8062AD2BD3CB713A3E4D5960C1679`.
+Remote checksum and archive checks passed, private configuration matched the
+existing VPS files, and no game connections were established before activation.
+
+The updater backed up the database and activated
+`/srv/wyd-go/releases/20261020T230245Z` (rollback
+`/srv/wyd-go/releases/20261020T201006Z`), restarting game and player API.
+The live binaries match the built payload:
+
+- Game: `90E0E29AA9EECDD7CEE5379FB662B1A0813DC4F0D6590AFC1F02671D5D0562A6`.
+- Player API: `95741B48E0D7BD1BE35D92727BAA0357B868A13BF1B606EE407BC905C77CBF4C`.
+
+Both services are active and return HTTP 200 on loopback readiness, TCP 8281
+listens, and the post-activation error journal is empty. The public manifest
+reports patch 10038 and the release news returns HTTP 200. No actual client
+login or gameplay acceptance was performed; `CLIENT_TESTED` remains pending.
+The updater removed its remote staging directory, and the obsolete remote
+preparation directory was removed separately. Local cleanup was blocked by
+execution policy before deletion. The two ignored staging directories remain
+at `build/deploy/wyd-deploy-20261020-patch10038` and
+`build/deploy/wyd-deploy-20261020-patch10038-r2`; the latest ignored crash-test
+output remains at
+`tmproject/build/tests/Release/crash-capture-tests-34424-882294218`.
+
 ## Release — 2026-10-20, skills, items and patch 10037
 
 The owner authorized publishing the pending updates, the launcher patch and a

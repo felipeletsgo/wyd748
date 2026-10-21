@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "../../application/BoundedText.h"
+#include "../../application/AttackTargetState.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "SControl.h"
@@ -1534,6 +1535,9 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
     if (m_stScore.CurMP >= m_stScore.MaxMP)
         m_stScore.CurMP = m_stScore.MaxMP;
 
+    attack_target::SyncActivePool(m_stScore.CurHP, m_stScore.MaxHP, m_BigHp, m_MaxBigHp);
+    attack_target::SyncActivePool(m_stScore.CurMP, m_stScore.MaxMP, m_BigMp, m_MaxBigMp);
+
     resource_ui::Project(m_pProgressBar, m_stScore.CurHP, m_stScore.MaxHP);
 
     resource_ui::Project(m_pProgressBar1, m_stScore.CurMP, m_stScore.MaxMP);
@@ -1574,7 +1578,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         if (pFScene->m_pCurrentHPText)
         {
             char szHP[32]{};
-            sprintf(szHP, "%d", m_stScore.CurHP);
+            sprintf(szHP, "%u", m_stScore.CurHP);
             if (pFScene->m_pCurrentHPText)
                 pFScene->m_pCurrentHPText->SetText(szHP, 0);
         }
@@ -1588,7 +1592,7 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
         if (pFScene->m_pCurrentMPText)
         {
             char szMP[32]{};
-            sprintf(szMP, "%d", m_stScore.CurMP);
+            sprintf(szMP, "%u", m_stScore.CurMP);
             if (pFScene->m_pCurrentMPText)
                 pFScene->m_pCurrentMPText->SetText(szMP, 0);
         }

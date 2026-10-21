@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 212.
+Markdown documents: 215.
 
 | Document | Type |
 | --- | --- |
@@ -21,6 +21,7 @@ Markdown documents: 212.
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/skill-visual-dispatch.md](<../.agents/research/client748/flows/combat/skill-visual-dispatch.md>) | Research evidence |
 | [.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md](<../.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md>) | Research evidence |
+| [.agents/research/client748/flows/gameplay/gate-target-distance-closure.md](<../.agents/research/client748/flows/gameplay/gate-target-distance-closure.md>) | Research evidence |
 | [.agents/research/client748/flows/gameplay/kefra-portal-visuals.md](<../.agents/research/client748/flows/gameplay/kefra-portal-visuals.md>) | Research evidence |
 | [.agents/research/client748/flows/gameplay/source-todo-native-review.md](<../.agents/research/client748/flows/gameplay/source-todo-native-review.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md](<../.agents/research/client748/flows/lifecycle/application-bootstrap-message-loop.md>) | Research evidence |
@@ -137,6 +138,8 @@ Markdown documents: 212.
 | [.agents/research/client748/inventory/scene-transition-evidence-log.md](<../.agents/research/client748/inventory/scene-transition-evidence-log.md>) | Research evidence |
 | [.agents/research/client748/inventory/set-my-human-magic-noop.md](<../.agents/research/client748/inventory/set-my-human-magic-noop.md>) | Research evidence |
 | [.agents/research/client748/README.md](<../.agents/research/client748/README.md>) | Research evidence |
+| [.agents/research/native-combat-audit-2026-10-21.md](<../.agents/research/native-combat-audit-2026-10-21.md>) | Research evidence |
+| [.agents/research/rea-server-759-runtime-map.md](<../.agents/research/rea-server-759-runtime-map.md>) | Research evidence |
 | [.agents/research/source-audit-2026-10-03.md](<../.agents/research/source-audit-2026-10-03.md>) | Research evidence |
 | [.agents/skills/repo-architecture/SKILL.md](<../.agents/skills/repo-architecture/SKILL.md>) | Active skill |
 | [.agents/skills/wyd-client748-assets/SKILL.md](<../.agents/skills/wyd-client748-assets/SKILL.md>) | Active skill |

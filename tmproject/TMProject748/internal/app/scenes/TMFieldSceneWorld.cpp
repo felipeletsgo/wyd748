@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "../../application/AssetLoadValidation.h"
-#include "../../application/EntranceRunesPolicy.h"
 #include "WeatherPacket.h"
 #include "WeatherPresentation.h"
 #include "TMFieldScene.h"
@@ -405,43 +404,6 @@ void TMFieldScene::UpdateWeatherEffects()
 		const int transition = weather_presentation::SkyTransition(weather, m_pSky->m_nState);
 		if (transition >= 0)
 			m_pSky->SetWeatherState(transition);
-	}
-}
-
-void TMFieldScene::SpawnEntranceRune()
-{
-	if (!m_pEffectContainer)
-		return;
-	auto pRune = new TMShade(entrance_runes::kGridCells, entrance_runes::Texture(rand()), 1.0f);
-	pRune->m_dwLifeTime = entrance_runes::kLifetimeMs;
-	pRune->SetColor(0xFFFFFFFF);
-	pRune->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-	pRune->SetPosition(TMVector2(static_cast<float>(entrance_runes::RuneX(rand())) + 0.5f,
-		static_cast<float>(entrance_runes::RuneY(rand())) + 0.5f));
-	m_pEffectContainer->AddChild(pRune);
-}
-
-void TMFieldScene::UpdateEntranceRunes(unsigned int dwServerTime)
-{
-	const bool inHall = m_pMyHuman && entrance_runes::InHall(
-		static_cast<int>(m_pMyHuman->m_vecPosition.x), static_cast<int>(m_pMyHuman->m_vecPosition.y));
-	if (!inHall)
-	{
-		m_bInEntranceRunes = false;
-		return;
-	}
-	if (!m_bInEntranceRunes)
-	{
-		m_bInEntranceRunes = true;
-		for (int i = 0; i < entrance_runes::kEntryBurst; ++i)
-			SpawnEntranceRune();
-		m_dwNextEntranceRune = dwServerTime + entrance_runes::NextDelayMs(rand());
-		return;
-	}
-	if (entrance_runes::Due(dwServerTime, m_dwNextEntranceRune))
-	{
-		SpawnEntranceRune();
-		m_dwNextEntranceRune = dwServerTime + entrance_runes::NextDelayMs(rand());
 	}
 }
 

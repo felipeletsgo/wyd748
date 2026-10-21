@@ -74,6 +74,12 @@ namespace
 
     static_assert(sizeof(LegacySpellRecord) == LegacySpellRecordSize);
 
+    struct LegacyStaticEffect
+    {
+        std::int16_t Effect;
+        std::int16_t Value;
+    };
+
     struct LegacyItemRecord
     {
         char Name[64];
@@ -85,7 +91,7 @@ namespace
         std::int16_t RequiredIntelligence;
         std::int16_t RequiredDexterity;
         std::int16_t RequiredConstitution;
-        STRUCT_STATICEFFECT Effects[12];
+        LegacyStaticEffect Effects[12];
         std::int32_t Price;
         std::int16_t Unique;
         std::uint16_t Position;
@@ -102,7 +108,9 @@ namespace
     static_assert(offsetof(LegacyItemRecord, Price) == 0x80);
     static_assert(offsetof(LegacyItemRecord, Position) == 0x86);
     static_assert(offsetof(LegacyItemRecord, Grade) == 0x8A);
-    static_assert(sizeof(STRUCT_ITEMLIST) == 156);
+    static_assert(sizeof(LegacyStaticEffect) == 4);
+    static_assert(sizeof(STRUCT_STATICEFFECT) == 8);
+    static_assert(sizeof(STRUCT_ITEMLIST) == 204);
 
     bool IsTextureMode(const unsigned char value)
     {
@@ -255,7 +263,11 @@ namespace
         destination.nReqInt = source.RequiredIntelligence;
         destination.nReqDex = source.RequiredDexterity;
         destination.nReqCon = source.RequiredConstitution;
-        memcpy(destination.stEffect, source.Effects, sizeof(source.Effects));
+        for (std::size_t i = 0; i < std::size(source.Effects); ++i)
+        {
+            destination.stEffect[i].sEffect = source.Effects[i].Effect;
+            destination.stEffect[i].sValue = source.Effects[i].Value;
+        }
         destination.nPrice = source.Price;
         destination.nUnique = source.Unique;
         // WYD-Go costume-slot extension: costumes equip in slot 12, not 13.
@@ -440,6 +452,85 @@ bool WYD748_LoadItemList(
     }
 
     return true;
+}
+
+namespace
+{
+    STRUCT_STATICEFFECT* WideEffectSlot(STRUCT_ITEMLIST& item, const short effect)
+    {
+        for (auto& entry : item.stEffect)
+            if (entry.sEffect == effect)
+                return &entry;
+        for (auto& entry : item.stEffect)
+            if (entry.sEffect == 0)
+                return &entry;
+        return nullptr;
+    }
+}
+
+bool WYD748_ApplyItemListWide(
+    const char* text,
+    const std::size_t size,
+    STRUCT_ITEMLIST* destination,
+    const std::size_t destinationCount)
+{
+    if (text == nullptr || destination == nullptr || destinationCount == 0)
+        return false;
+
+    struct Row { std::size_t index; short effect; int value; };
+    std::vector<Row> rows;
+    std::istringstream input(std::string(text, size));
+    std::string line;
+    while (std::getline(input, line))
+    {
+        if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+        const auto first = line.find_first_not_of(" \t");
+        if (first == std::string::npos || line[first] == '#')
+            continue;
+        long long index = 0, effect = 0, value = 0;
+        char tail = 0;
+        if (sscanf_s(line.c_str(), " %lld , %lld , %lld %c", &index, &effect, &value, &tail, 1u) != 3 ||
+            index <= 0 || static_cast<unsigned long long>(index) >= destinationCount ||
+            effect <= 0 || effect > SHRT_MAX || value < INT_MIN || value > INT_MAX)
+            return false;
+        rows.push_back({ static_cast<std::size_t>(index), static_cast<short>(effect), static_cast<int>(value) });
+    }
+
+    // Check every row before changing the catalog so a bad file is atomic.
+    // Rows apply in order, so a later row may fill a slot an earlier one took.
+    std::vector<STRUCT_ITEMLIST> preview;
+    preview.reserve(rows.size());
+    for (const Row& row : rows)
+    {
+        STRUCT_ITEMLIST* item = nullptr;
+        for (std::size_t i = 0; i < preview.size(); ++i)
+            if (rows[i].index == row.index)
+                item = &preview[i];
+        preview.push_back(item ? *item : destination[row.index]);
+        STRUCT_STATICEFFECT* slot = WideEffectSlot(preview.back(), row.effect);
+        if (slot == nullptr)
+            return false;
+        slot->sEffect = row.effect;
+        slot->sValue = row.value;
+    }
+    for (std::size_t i = 0; i < rows.size(); ++i)
+        destination[rows[i].index] = preview[i];
+    return true;
+}
+
+bool WYD748_LoadItemListWide(
+    const char* path,
+    STRUCT_ITEMLIST* destination,
+    const std::size_t destinationCount)
+{
+    if (path == nullptr)
+        return false;
+    std::ifstream file(path, std::ios::binary);
+    if (!file)
+        return false;
+    const std::string text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    return WYD748_ApplyItemListWide(text.data(), text.size(), destination, destinationCount);
 }
 
 bool WYD748_LoadMessageStrings(

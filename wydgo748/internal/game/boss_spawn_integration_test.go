@@ -26,7 +26,7 @@ func bossSpawnTestWorld() (*World, *fakeClock) {
 		Name: "Base_Boss", Tipo: model.TipoNPC,
 		Score: &model.Score{
 			Version: model.ScoreVersion,
-			Level:   10, MaxHP: 1000, CurHP: 1000,
+			Level:   10, MaxHP: 1000, CurHP: 1000, Con: 1,
 			Attack: 100, Defense: 50, AttackRun: 4,
 		},
 		Carry: []model.Item{{Index: 100}},
@@ -37,7 +37,7 @@ func bossSpawnTestWorld() (*World, *fakeClock) {
 		Type:  model.BossTypeChaser,
 		Spawn: model.BossSpawn{X: 2100, Y: 2100, RespawnSeconds: 5},
 		Stats: model.BossStats{
-			Level: uint32Ptr(200), MaxHP: uint32Ptr(50000),
+			Level: uint32Ptr(200), MaxHP: uint32Ptr(50000), Con: uint32Ptr(10000),
 			Attack: uint32Ptr(900), Defense: uint32Ptr(700),
 			AttackRun: uint32Ptr(6), ExpReward: uint32Ptr(12345), Gold: uint32Ptr(678),
 		},
@@ -65,7 +65,7 @@ func TestConfiguredBossSpawnDeathAndRespawnLifecycle(t *testing.T) {
 	if first.Def.Name != "Configured Boss" || first.Def.Tipo != model.TipoMonstro {
 		t.Fatalf("wrong boss identity: name=%q type=%q", first.Def.Name, first.Def.Tipo)
 	}
-	if first.HP != 50000 || first.Def.Score.Level != 200 ||
+	if first.HP != 50000 || first.Def.Score.Level != 200 || first.Def.Score.Con != 10000 ||
 		first.Def.Score.Attack != 900 || first.Def.Score.Defense != 700 ||
 		first.Def.Score.AttackRun != 6 || first.Def.ExpReward != 12345 || first.Def.Gold != 678 {
 		t.Fatalf("overrides not applied: mob=%+v extended=%+v", first, first.Def.Score)
@@ -74,6 +74,7 @@ func TestConfiguredBossSpawnDeathAndRespawnLifecycle(t *testing.T) {
 		t.Fatal("boss inherited carry/vende from the base NPC")
 	}
 	if w.npcs[0].Tipo != model.TipoNPC || w.npcs[0].Score.MaxHP != 1000 ||
+		w.npcs[0].Score.Con != 1 ||
 		len(w.npcs[0].Carry) != 1 || len(w.npcs[0].Vende) != 1 {
 		t.Fatal("boss configuration changed the base NPC")
 	}
@@ -103,19 +104,56 @@ func TestConfiguredBossSpawnDeathAndRespawnLifecycle(t *testing.T) {
 	if w.mobsByID[state.mobID] == nil || w.bossFor(state.mobID) == nil {
 		t.Fatal("respawned boss was not indexed")
 	}
+	if got := w.mobsByID[state.mobID].Def.Score.Con; got != 10000 {
+		t.Fatalf("respawned boss CON=%d, want 10000", got)
+	}
 }
 
 func TestConfiguredBossRejectsMissingOrLegacyBase(t *testing.T) {
 	w, _ := bossSpawnTestWorld()
 	w.bossCatalog.Bosses[0].NPC = "Missing"
 	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "does not exist") {
-		t.Fatalf("NPC ausente deveria falhar claramente: %v", err)
+		t.Fatalf("missing NPC should fail clearly: %v", err)
 	}
 
 	w, _ = bossSpawnTestWorld()
 	w.npcs[0].Score = nil
 	if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), "has no score") {
 		t.Fatalf("an NPC without extended data should fail clearly: %v", err)
+	}
+}
+
+func TestConfiguredBossRejectsUnknownRuntimeReferencesBeforeMutation(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*model.BossConfig)
+		want   string
+	}{
+		{"skill", func(c *model.BossConfig) {
+			c.Skills = []model.BossSkill{{ID: 9999, CooldownSeconds: 1, Range: 1}}
+		}, "unknown SkillData index"},
+		{"summon", func(c *model.BossConfig) {
+			c.Summons = []model.BossSummon{{NPC: "Missing Add", Count: 1, CooldownSeconds: 1}}
+		}, "unknown NPC"},
+		{"drop", func(c *model.BossConfig) {
+			c.Drops = []model.BossDrop{{Item: 999, ChancePercent: 100}}
+		}, "unknown item"},
+		{"area reward", func(c *model.BossConfig) {
+			c.AreaReward = model.BossAreaReward{Item: 999, Amount: 1}
+		}, "area reward references unknown item"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			w, _ := bossSpawnTestWorld()
+			tc.mutate(&w.bossCatalog.Bosses[0])
+			if err := w.spawnConfiguredBosses(); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("invalid %s reference was accepted: %v", tc.name, err)
+			}
+			if len(w.bossSpawns) != 0 || len(w.mobs) != 0 {
+				t.Fatalf("invalid %s reference partially mutated the world: states=%d mobs=%d",
+					tc.name, len(w.bossSpawns), len(w.mobs))
+			}
+		})
 	}
 }
 
@@ -152,10 +190,10 @@ func TestBossDropsApplyChanceAmountAndInventoryFallback(t *testing.T) {
 		model.BossDrop{Item: 999, ChancePercent: 50, Amount: 1})
 	w.rollBossDrops(p, mob, state)
 	if p.Char.Inv[0].Index != 421 || itemStackAmount(p.Char.Inv[0]) != 7 {
-		t.Fatalf("drop garantido/pilha incorretos: %+v", p.Char.Inv[0])
+		t.Fatalf("guaranteed drop or stack amount is incorrect: %+v", p.Char.Inv[0])
 	}
-	if p.Char.Inv[1].Index != 999 {
-		t.Fatal("a fixed RNG should accept the 50% drop")
+	if p.Char.Inv[1].Index != 0 {
+		t.Fatal("an unknown item must not enter the inventory")
 	}
 
 	for i := range p.Char.Inv {

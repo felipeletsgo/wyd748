@@ -357,6 +357,20 @@ func mobPhysicalHitPlayerAt(m *Mob, def *model.Char, intn func(int) int, now tim
 	return physicalHitResult{Damage: uint32(clampInt(dam, 0, int(maxScoreValue))), Hit: true}
 }
 
+// mobPhysicalHitMobAt resolves the same BASE_GetDamage path for monster and
+// summon attacks against a monster. The caller performs the accuracy roll;
+// this helper owns only effective attack, effective defense and damage.
+func mobPhysicalHitMobAt(attacker, target *Mob, intn func(int) int, now time.Time) uint32 {
+	if attacker == nil || attacker.Def == nil || attacker.Def.Score == nil ||
+		target == nil || target.Def == nil || target.Def.Score == nil {
+		return 0
+	}
+	damBase := effectiveMobAttackAt(attacker, now) + int(attacker.Def.Score.Str)/2 +
+		int(attacker.Def.Score.Dex)/4 + int(attacker.Def.Score.Level)
+	dam := hitDamageWithRNG(damBase, effectiveMobDefenseAt(target, now), 0, intn)
+	return uint32(clampInt(dam, 0, int(maxScoreValue)))
+}
+
 func mobHitsPlayer(m *Mob, def *model.Char) uint32 {
 	return mobHitsPlayerWithRNG(m, def, realRNG{}.Intn)
 }

@@ -8,12 +8,11 @@ import (
 	"wydgo/internal/wire"
 )
 
-// boss_actions.go -- EXECUCAO das acoes. E o unico lugar do subsistema que muta
-// o mundo, e roda sempre dentro da goroutine do World, apos a validacao
-// autoritativa em boss_events.go.
+// Boss actions mutate the world only on the World goroutine, after the
+// authoritative validation in boss_events.go.
 
-// executeBossAction aplica a acao ja validada. depth propaga o limite de
-// eventos encadeados: uma acao pode gerar evento que dispara outra regra.
+// executeBossAction applies a validated action and propagates the depth limit
+// for chained events.
 func (w *World) executeBossAction(boss *BossRuntime, mob *Mob, action BossActionDef, event BossEvent, depth int) {
 	switch action.Kind {
 	case ActionChangePhase:
@@ -29,8 +28,8 @@ func (w *World) executeBossAction(boss *BossRuntime, mob *Mob, action BossAction
 	}
 }
 
-// bossChangePhase troca a fase e anuncia. Cancela a acao pendente: uma mecanica
-// da fase anterior nao deve completar depois da virada.
+// bossChangePhase announces the new phase and cancels the previous phase's
+// pending action.
 func (w *World) bossChangePhase(boss *BossRuntime, mob *Mob, action BossActionDef, depth int) {
 	phase, ok := boss.Profile.Phases[action.Phase]
 	if !ok || boss.Phase == action.Phase {
@@ -38,42 +37,39 @@ func (w *World) bossChangePhase(boss *BossRuntime, mob *Mob, action BossActionDe
 	}
 	previous := boss.Phase
 	if boss.Pending != nil {
-		// Incrementar a geracao invalida o callback ja agendado.
+		// A new generation invalidates the scheduled callback.
 		boss.Generation++
 		boss.Pending = nil
 	}
 	boss.Phase = action.Phase
-	log.Printf("BOSS %q: fase %d -> %d (%s)", boss.Profile.ID, previous, phase.ID, phase.Name)
+	log.Printf("BOSS %q: phase %d -> %d (%s)", boss.Profile.ID, previous, phase.ID, phase.Name)
 	if phase.EnterMessage != "" {
 		w.announceToMobView(mob, phase.EnterMessage)
 	}
-	_ = depth // reservado: entrada de fase ainda nao emite evento proprio na v1
+	_ = depth // Reserved: phase entry does not emit a separate event in v1.
 }
 
-// bossCastSkill aplica a skill do boss. A v1 cobre o caso do encontro atual:
-// dano direto no alvo do evento, ja validado como jogador vivo e proximo.
+// bossCastSkill applies direct damage to the event's validated living player.
 func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef, event BossEvent) {
 	target := w.playerByID(event.SourceID)
 	if !w.mobCanTargetPlayer(mob, target) {
 		return
 	}
-	// Alcance da skill configurada; sem valor, cai no corpo a corpo.
+	// Use the configured range, falling back to melee range.
 	reach := action.CastRange
 	if reach <= 0 {
 		reach = mobAttackRange
 	}
 	if chebyshev(mob.X, mob.Y, target.X, target.Y) > reach {
-		return // saiu de alcance entre a aceitacao e a execucao
+		return // The target left range after admission.
 	}
 	if !w.combatLineOfSight(mob.X, mob.Y, target.X, target.Y) {
 		return
 	}
 	skill, known := w.skills[action.SkillID]
 	if !known {
-		// Skill inexistente no catalogo: nao inventa dano. O boot ja loga o
-		// perfil, entao isto aparece como skill silenciosa e nao como golpe
-		// disfarcado de magia.
-		log.Printf("BOSS %q: skill %d nao existe em SkillData.csv; ignorada",
+		// Missing skills must not produce fabricated damage.
+		log.Printf("BOSS %q: skill %d missing from SkillData.csv; skipped",
 			boss.Profile.ID, action.SkillID)
 		return
 	}
@@ -88,29 +84,23 @@ func (w *World) bossCastSkill(boss *BossRuntime, mob *Mob, action BossActionDef,
 				0, mob.Def.Score.MaxMP, int16(skill.Index), 0, 0, 1,
 				[]wire.SkillTarget{{ID: target.ID, Miss: true, MaxHP: playerMaxHP(target.Char)}})
 		})
-		log.Printf("BOSS %q: skill %d (%s) errou jogador id=%d",
+		log.Printf("BOSS %q: skill %d (%s) missed player id=%d",
 			boss.Profile.ID, action.SkillID, skill.Name, target.ID)
 		return
 	}
 	damage := bossSkillDamageWithRNG(mob, target, skill, w.intn, now)
 	w.applyMobDamageToPlayer(mob, target, damage, now, func(applied uint32) []byte {
-		// SkillHitExtended (0x36C + 0x39D) faz o client desenhar a MAGIA, e nao
-		// o golpe corpo a corpo. Motion/mastery em 0: o boss nao tem barra de
-		// skill, o efeito visual vem do proprio indice.
+		// SkillHitExtended (0x36C + 0x39D) selects the skill visual rather than
+		// melee. Motion/mastery stay zero; the skill index supplies the effect.
 		return wire.SkillHitExtended(mob.ID, target.ID, mob.X, mob.Y, target.X, target.Y,
 			applied, playerMaxHP(target.Char), 0, mob.Def.Score.MaxMP, int16(skill.Index), 0, 0)
 	})
-	log.Printf("BOSS %q: skill %d (%s) em jogador id=%d dano=%d",
+	log.Printf("BOSS %q: skill %d (%s) on player id=%d damage=%d",
 		boss.Profile.ID, action.SkillID, skill.Name, target.ID, damage)
 }
 
-// bossSkillDamage calcula o dano MAGICO de uma skill de boss. Porta o caminho
-// das skills de jogador para o lado do mob: nucleo magico do atacante, defesa e
-// resistencia elemental do alvo.
-//
-// Existe porque o caminho de golpe comum (mobHitsPlayer) e fisico: usar ele
-// aqui faria a "magia" ignorar resistencia elemental e escalar com forca --
-// seria um golpe corpo a corpo com outro nome.
+// bossSkillDamage uses the magical core, target defense and elemental
+// resistance instead of the ordinary physical melee path.
 func bossSkillDamage(m *Mob, target *Player, skill model.SkillDef) uint32 {
 	return bossSkillDamageWithRNG(m, target, skill, realRNG{}.Intn, time.Now())
 }
@@ -124,15 +114,13 @@ func bossSkillDamageWithRNG(m *Mob, target *Player, skill model.SkillDef, intn f
 		return 0
 	}
 	extended := m.Def.Score
-	// Nucleo magico do mob: MagicAttack proprio mais a contribuicao de INT e do
-	// nivel, na mesma forma do calculo de skill do jogador.
+	// The magical core includes MagicAttack, INT and level contributions.
 	core := int(extended.MagicAttack) + int(extended.Int)/4 + int(extended.Level)
 	if core <= 0 {
-		// NPC sem atributo magico: cai no ataque fisico para a skill ainda doer,
-		// em vez de bater zero e parecer bug.
+		// NPCs without a magical core use their effective physical attack.
 		core = effectiveMobAttackAt(m, now)
 	}
-	// InstanceValue escala o efeito da skill no catalogo nativo.
+	// InstanceValue scales the catalog skill effect.
 	if skill.InstanceValue > 0 {
 		core = core * (100 + skill.InstanceValue) / 100
 	}
@@ -141,17 +129,15 @@ func bossSkillDamageWithRNG(m *Mob, target *Player, skill model.SkillDef, intn f
 	return uint32(clampInt(damage, 1, int(maxScoreValue)))
 }
 
-// bossSummonAdds cria os adds do encontro a partir de um NPC do catalogo. Os
-// adds sao mobs COMUNS: usam a IA normal e sao mortos normalmente. O encontro
-// so guarda referencia para contagem e limpeza.
+// bossSummonAdds creates ordinary mobs from a catalog NPC. The encounter
+// tracks them only for counting and cleanup; normal AI and death still apply.
 func (w *World) bossSummonAdds(boss *BossRuntime, mob *Mob, action BossActionDef) {
 	template := w.npcDefByName(action.SummonNPC)
 	if template == nil {
-		log.Printf("BOSS %q: NPC de add %q nao existe no catalogo", boss.Profile.ID, action.SummonNPC)
+		log.Printf("BOSS %q: add NPC %q missing from catalog", boss.Profile.ID, action.SummonNPC)
 		return
 	}
-	// max_alive limita o total simultaneo: sem isso um boss de cooldown curto
-	// encheria a tela de adds durante uma luta longa.
+	// max_alive bounds simultaneous adds during long encounters.
 	wanted := action.SummonCount
 	if action.SummonMax > 0 {
 		if free := action.SummonMax - boss.addsAlive(); free < wanted {
@@ -166,28 +152,28 @@ func (w *World) bossSummonAdds(boss *BossRuntime, mob *Mob, action BossActionDef
 		x, y := w.findFreeMobPosition(mobGameplaySpace(mob), mob.X, mob.Y, 3)
 		mobID := w.allocMobID()
 		if mobID == 0 {
-			log.Printf("BOSS %q: adds interrompidos: faixa de IDs de mob esgotada", boss.Profile.ID)
+			log.Printf("BOSS %q: summoning stopped: mob IDs exhausted", boss.Profile.ID)
 			break
 		}
 		add := &Mob{
 			ID: mobID, Def: template, X: x, Y: y,
 			HP: template.Score.MaxHP, GenerIndex: -1,
 			InstanceID: mob.InstanceID,
-			// LeaderID aponta para o boss: e a ligacao natural do encontro.
+			// LeaderID links the add to its encounter boss.
 			LeaderID: mob.ID,
 		}
 		w.appendMobInstance(add)
-		w.publishMobSpawn(add) // registra no grid/mobsByID e materializa no client
+		w.publishMobSpawn(add) // Register spatial state and publish to clients.
 		boss.Adds[add.ID] = struct{}{}
 		created++
 	}
 	if action.Message != "" {
 		w.announceToMobView(mob, action.Message)
 	}
-	log.Printf("BOSS %q: invocou %d adds %q", boss.Profile.ID, created, action.SummonNPC)
+	log.Printf("BOSS %q: summoned %d adds %q", boss.Profile.ID, created, action.SummonNPC)
 }
 
-// bossApplyEffect aplica um affect nativo no proprio boss (escudo, enrage).
+// bossApplyEffect applies a boss affect, such as a shield or enrage.
 func (w *World) bossApplyEffect(boss *BossRuntime, mob *Mob, action BossActionDef) {
 	if !setMobOwnedMobAffectAt(mob, mob, action.AffectType, action.AffectValue,
 		action.AffectLevel, action.AffectDuration, w.now()) {
@@ -197,11 +183,10 @@ func (w *World) bossApplyEffect(boss *BossRuntime, mob *Mob, action BossActionDe
 	if action.Message != "" {
 		w.announceToMobView(mob, action.Message)
 	}
-	log.Printf("BOSS %q: efeito %d aplicado", boss.Profile.ID, action.AffectType)
+	log.Printf("BOSS %q: effect %d applied", boss.Profile.ID, action.AffectType)
 }
 
-// bossRemoveEffect tira um affect do boss (queda do escudo quando os adds
-// morrem, por exemplo).
+// bossRemoveEffect removes a boss affect, such as the shield after add deaths.
 func (w *World) bossRemoveEffect(boss *BossRuntime, mob *Mob, action BossActionDef) {
 	if !clearMobAffect(mob, action.AffectType) {
 		return
@@ -210,23 +195,17 @@ func (w *World) bossRemoveEffect(boss *BossRuntime, mob *Mob, action BossActionD
 	if action.Message != "" {
 		w.announceToMobView(mob, action.Message)
 	}
-	log.Printf("BOSS %q: efeito %d removido", boss.Profile.ID, action.AffectType)
+	log.Printf("BOSS %q: effect %d removed", boss.Profile.ID, action.AffectType)
 }
 
-// bossShieldAffect e o affect usado como escudo de encontro. O 19 e a
-// "Imunidade" nativa: ja tem visual no client e nao e consumido por nenhuma
-// regra de mob (as de mob sao 1, 3, 10 e 12).
+// bossShieldAffect uses the existing immunity visual (19); ordinary mob
+// affect rules (1, 3, 10 and 12) do not consume it.
 const bossShieldAffect = 19
 
-// bossMitigateDamage reduz o dano recebido enquanto o escudo estiver ativo.
-// Value e a porcentagem absorvida (100 = imune).
-//
-// Existe porque NENHUM affect de mob concedia mitigacao: os quatro honrados
-// hoje sao debuffs. Sem esta funcao o "escudo" seria puramente decorativo e o
-// boss morreria durante a fase em que deveria estar protegido -- uma mentira de
-// gameplay, nao uma simplificacao.
+// bossMitigateDamage applies the active shield's absorbed percentage.
+// Ordinary mob affects do not provide this encounter-specific mitigation.
 func (w *World) bossMitigateDamage(m *Mob, damage uint32) uint32 {
-	if damage == 0 || w.bossFor(m.ID) == nil {
+	if damage == 0 || m == nil || w.bossFor(m.ID) == nil {
 		return damage
 	}
 	affect := activeMobAffectAt(m, bossShieldAffect, w.now())
@@ -234,11 +213,11 @@ func (w *World) bossMitigateDamage(m *Mob, damage uint32) uint32 {
 		return damage
 	}
 	absorbed := clampInt(affect.Value, 0, 100)
-	return damage * uint32(100-absorbed) / 100
+	return uint32(uint64(damage) * uint64(100-absorbed) / 100)
 }
 
-// clearMobAffect remove um affect do mob. Devolve false se ele nao existia --
-// assim uma regra nao anuncia a queda de um escudo que nunca subiu.
+// clearMobAffect reports whether an affect existed, preventing false removal
+// announcements.
 func clearMobAffect(m *Mob, affectType byte) bool {
 	if m == nil || affectType == 0 {
 		return false
@@ -253,8 +232,7 @@ func clearMobAffect(m *Mob, affectType byte) bool {
 	return removed
 }
 
-// announceToMobView manda uma mensagem a quem enxerga o mob. Usa o painel
-// nativo, o mesmo canal das falas de NPC.
+// announceToMobView uses the NPC panel channel for players viewing the mob.
 func (w *World) announceToMobView(m *Mob, message string) {
 	if message == "" {
 		return
@@ -262,8 +240,7 @@ func (w *World) announceToMobView(m *Mob, message string) {
 	w.sendToMobView(m, func() []byte { return wire.MessagePanel(message) })
 }
 
-// npcDefByName resolve um NPC do catalogo pelo nome, aceitando a forma com
-// underscore usada pelo NPCGener.
+// npcDefByName accepts catalog names and NPCGener underscore names.
 func (w *World) npcDefByName(name string) *model.NPCDef {
 	wanted := generName(name)
 	for i := range w.npcs {

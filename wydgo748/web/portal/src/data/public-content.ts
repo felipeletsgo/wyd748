@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10037,
+  patchVersion: 10040,
   publishedAt: '2026-10-20',
-  serverUpdate: { id: 'skills-items-10037', publishedAt: '2026-10-20' },
+  serverUpdate: { id: 'world-bosses-con5000-10039', publishedAt: '2026-10-20' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -14,16 +14,47 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10037.zip',
-    sizeBytes: 849103,
-    sha256: 'B41A987968CF478B1FAAF8330BF695D68A3ADA528C70FB219292096097B3AB32',
-    executableSha256: '0254CEA3D2C9D8E6AD3579C07701D132DC6A3F2704A99D9628456BD1829A0D90',
+    url: '/patch/patch-10040.zip',
+    sizeBytes: 851211,
+    sha256: '76905B3E7258F97CEE6EE4C0B0504A2951A5A77D8B21F02715EB75816F4F3DEC',
+    executableSha256: '81E6662D8867268E7ADE81FCDE14C8B264DBE9D72026C96B8BCFE90732689B88',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
 } as const;
 
 export const news = [
+  {
+    slug: 'camera-con-10040', date: '2026-10-20', category: 'News',
+    title: 'Patch 10040: camera height correction',
+    summary: 'The camera no longer rises or pulls back when player equipment grants a large CON bonus.',
+    paragraphs: [
+      'Player CON no longer changes the camera height or mounted minimum distance. Normal mount and seated camera offsets remain.',
+      'Close the game and open WYDLauncher.exe to receive patch 10040. No game-server restart is required.',
+      'Automated checks passed; in-game acceptance with and without the CON amulet remains pending.',
+    ],
+  },
+  {
+    slug: 'player-scale-10039', date: '2026-10-20', category: 'News',
+    title: 'Patch 10039: player size correction',
+    summary: 'Player height no longer changes with CON; monster scaling remains unchanged.',
+    paragraphs: [
+      'Player characters retain their normal size even when equipment grants a very large CON bonus. Monster scaling remains separate.',
+      'Close the game and open WYDLauncher.exe to receive patch 10039. The four world bosses now use CON 5,000 in the active game-server release.',
+      'Automated checks passed; actual gameplay acceptance remains pending.',
+    ],
+  },
+  {
+    slug: 'world-bosses-limits-10038', date: '2026-10-20', category: 'News',
+    title: 'Patch 10038: world bosses and higher limits',
+    summary: 'World bosses move to their own areas with Armia gates, damage, heal and attribute displays reach 32-bit values, and the Magic Chamber floor squares are fixed.',
+    paragraphs: [
+      'The four world bosses now wait in their own areas: the Black Archmage, the Guardian of the Ruins, the Demon Lord and the Ancient Necromancer. Four gate keepers north of the Armia spawn point take you to each entrance for free.',
+      'Hit numbers above 1,000,000 are shown again, heals display their full amount, your own HP is no longer cut at 65,535, and item attribute bonuses beyond 32,767 now appear in the item description.',
+      'The white squares that appeared on the Magic Chamber entrance floor after patch 10037 are removed. The colored runes under arriving characters are the native teleport effect.',
+      'Close the game and open WYDLauncher.exe to receive patch 10038. Automated checks passed; actual gameplay acceptance remains pending.',
+    ],
+  },
   {
     slug: 'skills-items-10037', date: '2026-10-20', category: 'News',
     title: 'Patch 10037: skills, items and exchange stones',
@@ -376,6 +407,22 @@ export const news = [
 ] as const;
 
 export const changelog = [
+  { date: '2026-10-20', category: 'Client', title: 'Patch 10040 — camera height correction', entries: [
+    'Keep player camera height and mounted minimum distance independent of CON.',
+    'Preserve normal mount and seated camera offsets; no game-server restart is required.',
+    'Automated checks passed; in-game acceptance with and without the CON amulet remains pending.',
+  ] },
+  { date: '2026-10-20', category: 'Client and server', title: 'Patch 10039 — player size correction', entries: [
+    'Keep player size independent of CON while preserving monster scaling.',
+    'Set the four world boss CON values to 5,000 in the active game-server release.',
+    'Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-20', category: 'Client and server', title: 'Patch 10038 — world bosses and 32-bit limits', entries: [
+    'Move the four world bosses to their own areas and add four free Armia gate keepers to their entrances.',
+    'Show hit numbers above 1,000,000 and full 32-bit heals; keep local HP and item attribute bonuses in 32 bits.',
+    'Remove the non-native Magic Chamber floor squares introduced in patch 10037.',
+    'Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
   { date: '2026-10-20', category: 'Client and server', title: 'Patch 10037 — skills, items and exchange stones', entries: [
     'Huntress Backpack opens Cargo anywhere; Coin Armor charges its own gold cost; Enchant Frost rejects claws; Lightning Storm strikes as Thunderbolt.',
     'Exchange Stones swap the names of two account characters on login; Adamantite accepts only D sets; ghost shops earn 1 honor every 10 minutes.',

@@ -1,27 +1,28 @@
--- EXEMPLO: boss com fases por HP -- o mais completo.
+-- Boss 3: Demon Lord, HP phases (the most complete type).
 --
 --
--- O tipo define o que e OBRIGATORIO, nao o que e permitido: este boss e
--- `phased` e ainda assim tem `skills` e `summons`, recebendo as regras dos tres.
+-- The type defines what is REQUIRED, not what is allowed: this boss is
+-- `phased` and still has `skills` and `summons`, so all three rule sets apply.
 --
--- Mecanica classica: aos 60% ele ergue um escudo que absorve TUDO e chama
--- guardas. O escudo so cai quando o ultimo guarda morre -- por isso
--- `shield_until_adds_dead` exige que o boss tenha `summons` (o validador recusa
--- a combinacao impossivel, senao o escudo nunca cairia).
+-- Classic mechanic: at 60% it raises a shield that absorbs EVERYTHING and calls
+-- guards. The shield drops only when the last guard dies, so
+-- `shield_until_adds_dead` requires the boss to have `summons` (the validator
+-- rejects the impossible combination, or the shield would never drop).
 
 return {
   id   = "senhor_demoniaco",
-  npc  = "Demon_Lord__",
+  npc  = "Murmy",
   name = "Demon Lord",
   type = "phased",
 
   spawn = {
-    x = 2281, y = 2153,
-    respawn_seconds = 3600,       -- 1 hora
+    x = 731, y = 3173,
+    respawn_seconds = 360,
   },
 
   stats = {
     level      = 400,
+    con        = 5000,
     max_hp     = 20000000 * 20,
     attack     = 1100,
     defense    = 620,
@@ -30,7 +31,7 @@ return {
   },
 
 
-  -- Tempestade de Gelo (23), conferida em data/SkillData.csv.
+  -- Ice Storm (23), checked against data/SkillData.csv.
   skills = {
     {
       id = 23,
@@ -51,7 +52,7 @@ return {
   },
 
   phases = {
-    -- Aos 60%: escudo total ate os guardas morrerem.
+    -- At 60%: full shield until the guards die.
     {
       hp_percent = 60,
       type = "summoner",
@@ -59,7 +60,7 @@ return {
       shield_until_adds_dead = true,
       message = "The Demon Lord summons his guardians!",
     },
-    -- Aos 25%: enrage, sem escudo.
+    -- At 25%: enrage, no shield.
     {
       hp_percent = 25,
       type = "caster",
@@ -67,15 +68,15 @@ return {
     },
   },
 
-  -- Itens conferidos em data/itemlist.csv.
+  -- Items checked against data/itemlist.csv.
   drops = {
-    { item = 4131, chance_percent = 100 },  -- Bundles_Sapphire(10) (garantido)
+    { item = 4131, chance_percent = 100 },  -- Bundles_Sapphire(10) (guaranteed)
     { item = 1775, chance_percent = 50 },   -- 11_Refine_Item
-    { item = 1776, chance_percent = 5 },    -- 12_Refine_Item (muito raro)
+    { item = 1776, chance_percent = 5 },    -- 12_Refine_Item (very rare)
   },
-  -- Premiacao coletiva: cai no CHAO ao redor do corpo, uma unidade por celula,
-  -- para todos os presentes recolherem. Os `drops` acima vao so para quem deu
-  -- o golpe final.
+  -- Shared reward: dropped on the GROUND around the body, one unit per cell,
+  -- for everyone present to pick up. The `drops` above go only to the player
+  -- who landed the final blow.
   area_reward = { item = 420, amount = 50 },
 
 

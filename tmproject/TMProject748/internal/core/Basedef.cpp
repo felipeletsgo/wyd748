@@ -187,11 +187,17 @@ void BASE_ApplyAttribute(char* pHeight, int size)
 int BASE_ReadItemList()
 {
     // ItemList 7.48 stores 140-byte rows, whereas this newer source keeps a
-    // 156-byte runtime struct. The adapter translates fields instead of
+    // 204-byte runtime struct. The adapter translates fields instead of
     // reading across record boundaries and corrupting meshes and slot masks.
     if (!WYD748_LoadItemList(".\\ItemList.bin", g_pItemList, _countof(g_pItemList)))
     {
         MessageBoxA(0, "Can't read ItemList.bin", "ERROR", 0);
+        return 0;
+    }
+    // Server catalog values beyond the 16-bit 7.48 field (WYD-Go extension).
+    if (!WYD748_LoadItemListWide(".\\ItemListWide.csv", g_pItemList, _countof(g_pItemList)))
+    {
+        MessageBoxA(0, "Can't read ItemListWide.csv", "ERROR", 0);
         return 0;
     }
 

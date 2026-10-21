@@ -90,6 +90,29 @@ int RunAttackVisualDamageTests(int& checks)
         "negative legacy damage precedes a valid physical extension");
     check(attack_visual::ReadDamage(physical.data(), 0, 0x39D, 0, 32767) == 32767,
         "local prediction with zero header size keeps its legacy visual damage");
+
+    // Heals read the real 32-bit amount from the same DMGX slot.
+    std::array<unsigned char, 60> heal{};
+    const unsigned int dmgx = 0x58474D44, one = 1, healAmount = 250000;
+    std::memcpy(heal.data() + 48, &dmgx, sizeof(dmgx));
+    std::memcpy(heal.data() + 52, &one, sizeof(one));
+    std::memcpy(heal.data() + 56, &healAmount, sizeof(healAmount));
+    check(attack_visual::ReadHeal(heal.data(), 60, 0x39D, 0, -32767) == -250000,
+        "heal reads the real 32-bit amount beyond the saturated word");
+    check(attack_visual::ReadHeal(heal.data(), 60, 0x39D, 0, -3) == -3 &&
+        attack_visual::ReadHeal(heal.data(), 60, 0x39D, 0, 500) == 500,
+        "miss sentinels and damage values are not heals");
+    check(attack_visual::ReadHeal(heal.data(), 0, 0x39D, 0, -700) == -700 &&
+        attack_visual::ReadHeal(heal.data(), 60, 0x39D, 1, -700) == -700 &&
+        attack_visual::ReadHeal(nullptr, 60, 0x39D, 0, -700) == -700,
+        "local previews, absent targets and packets keep the legacy heal");
+    const unsigned int zero = 0, huge = 0x80000000u;
+    std::memcpy(heal.data() + 56, &zero, sizeof(zero));
+    check(attack_visual::ReadHeal(heal.data(), 60, 0x39D, 0, -700) == -700,
+        "an old server's zero heal tail keeps the legacy heal");
+    std::memcpy(heal.data() + 56, &huge, sizeof(huge));
+    check(attack_visual::ReadHeal(heal.data(), 60, 0x39D, 0, -700) == -700,
+        "an unrepresentable heal tail keeps the legacy heal");
     for (unsigned int firstLife : {1000u, 1200u, 1400u, 2100u, 2200u})
     for (unsigned int firstCreated : {500u, 10000u, 0xFFFFFFC0u})
     for (int secondOffset : {-20, 0, 50, 60}) {

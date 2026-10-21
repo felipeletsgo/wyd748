@@ -4205,7 +4205,6 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	// clears m_pMouseOverHuman and submits controls for this frame.
 	UpdateCompatObservedAffects();
 	UpdateWeatherEffects();
-	UpdateEntranceRunes(dwServerTime);
 	PumpGuildMarkDownloads();
 	if (m_pMyHuman && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible())
 	{
@@ -5063,10 +5062,9 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 
 //Reviewed
 
-// GetWYD748AttackVisualDamage reads only the optional server-authoritative
-// uint32 damage tail. The signed WORD in STRUCT_DAM remains responsible for
-// the legacy HP-bar projection, so extending the floating text cannot make the
-// old 7.48 score overflow or subtract the same hit twice.
+// The combat receiver validates the optional server-authoritative wide tail
+// before using it for floating text and saturating HP projection. The signed
+// WORD still selects the legacy damage/healing/sentinel branch.
 
 void TMFieldScene::GetTimeString(char* szVal, int sTime, int nTime, int i)
 {

@@ -371,7 +371,7 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 		}
 		nearGroundIDs[g.ID] = struct{}{}
 		if !p.hasVisible(g.ID) {
-			p.Session.Send(w.groundItemCreatePacket(g))
+			p.Session.Send(w.groundItemCreatePacketFor(p, g))
 			p.show(g.ID)
 		}
 	}
@@ -790,7 +790,7 @@ func (w *World) publishItemSpawn(g *GroundItem) {
 	}
 	for _, p := range w.nearbyWorldPlayers(g.X, g.Y, viewHalfX) {
 		if w.groundItemVisibleToPlayer(p, g) && !p.hasVisible(g.ID) {
-			p.Session.Send(w.groundItemCreatePacket(g))
+			p.Session.Send(w.groundItemCreatePacketFor(p, g))
 			p.show(g.ID)
 		}
 	}

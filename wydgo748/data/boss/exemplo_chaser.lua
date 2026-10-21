@@ -1,24 +1,25 @@
--- EXEMPLO: boss perseguidor puro.
+-- Boss 2: Guardian of the Ruins, a pure chaser.
 --
 --
--- O chaser e o tipo mais simples: persegue e bate. Nao precisa de skills,
--- summons nem phases -- so calibra a perseguicao e os atributos.
+-- The chaser is the simplest type: it chases and hits. It needs no skills,
+-- summons or phases; only the chase and the attributes are tuned.
 
 return {
   id   = "guardiao_das_ruinas",
-  npc  = "Fire_Golem",         -- assets (rosto/equip) vem de data/npcs/Fire_Golem.json
+  npc  = "LegendBerial",         -- base NPC supplies the face and equipment
   name = "Guardian of the Ruins",
   type = "chaser",
 
   spawn = {
-    x = 2275, y = 2082,
-    respawn_seconds = 900,        -- 15 minutos apos a morte
+    x = 3806, y = 4019,
+    respawn_seconds = 90,
   },
 
-  -- O NPC base tem 18000 de HP; um boss precisa aguentar mais que isso.
+  -- The base NPC has 18000 HP; a boss must withstand more than that.
   stats = {
     level      = 218,
-    max_hp     = 18000000 * 12,      -- da para calcular: e Lua, nao JSON
+    con        = 5000,
+    max_hp     = 18000000 * 12,      -- arithmetic is allowed: this is Lua, not JSON
     attack     = 700,
     defense    = 380,
     exp_reward = 250000,
@@ -26,14 +27,14 @@ return {
   },
 
 
-  -- Itens conferidos em data/itemlist.csv.
+  -- Items checked against data/itemlist.csv.
   drops = {
-    { item = 697,  chance_percent = 100, amount = 3 },  -- Sapphire (garantido)
-    { item = 1775, chance_percent = 25 },               -- 11_Refine_Item (raro)
+    { item = 697,  chance_percent = 100, amount = 3 },  -- Sapphire (guaranteed)
+    { item = 1775, chance_percent = 25 },               -- 11_Refine_Item (rare)
   },
-  -- Premiacao coletiva: cai no CHAO ao redor do corpo, uma unidade por celula,
-  -- para todos os presentes recolherem. Os `drops` acima vao so para quem deu
-  -- o golpe final.
+  -- Shared reward: dropped on the GROUND around the body, one unit per cell,
+  -- for everyone present to pick up. The `drops` above go only to the player
+  -- who landed the final blow.
   area_reward = { item = 420, amount = 50 },
 
 

@@ -4,24 +4,20 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	lua "github.com/yuin/gopher-lua"
 )
 
-// boss_lua.go -- conversao de valores Lua para Go.
-//
-// Todas as funcoes daqui sao ESTRITAS: tipo errado, numero fracionario onde se
-// espera inteiro e valor fora da faixa viram erro de boot. O objetivo e que um
-// engano no arquivo de conteudo apareca imediatamente, com o caminho do campo,
-// em vez de virar um boss silenciosamente errado.
+// boss_lua.go converts Lua values to Go. All decoders are strict: wrong types,
+// fractional counts, and out-of-range values fail startup with a field path.
 
 func contextWithTimeout(d time.Duration) (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), d)
 }
 
-// eachField percorre as chaves da tabela e aplica o decodificador de cada uma.
-// Chave desconhecida e erro: protege contra campo digitado errado.
+// eachField decodes each table key. Unknown keys are errors to catch typos.
 func eachField(table *lua.LTable, prefix string, known map[string]func(lua.LValue) error) error {
 	var failure error
 	table.ForEach(func(key, value lua.LValue) {
@@ -30,12 +26,12 @@ func eachField(table *lua.LTable, prefix string, known map[string]func(lua.LValu
 		}
 		name, ok := key.(lua.LString)
 		if !ok {
-			failure = fmt.Errorf("%schave %v nao e um nome", prefix, key)
+			failure = fmt.Errorf("%skey %v is not a name", prefix, key)
 			return
 		}
 		decode, exists := known[string(name)]
 		if !exists {
-			failure = fmt.Errorf("%scampo desconhecido %q", prefix, string(name))
+			failure = fmt.Errorf("%sunknown field %q", prefix, string(name))
 			return
 		}
 		if err := decode(value); err != nil {
@@ -45,39 +41,61 @@ func eachField(table *lua.LTable, prefix string, known map[string]func(lua.LValu
 	return failure
 }
 
-// eachEntry percorre uma lista de tabelas (skills, summons, phases, drops).
+// eachEntry traverses a list of tables (skills, summons, phases, drops).
 func eachEntry(value lua.LValue, field string, visit func(index int, entry *lua.LTable) error) error {
 	table, err := luaTable(value, field)
 	if err != nil {
 		return err
 	}
+	type listEntry struct {
+		key   float64
+		value *lua.LTable
+	}
+	entries := make([]listEntry, 0)
 	var failure error
-	index := 0
 	table.ForEach(func(key, item lua.LValue) {
 		if failure != nil {
 			return
 		}
-		if _, ok := key.(lua.LNumber); !ok {
-			failure = fmt.Errorf("%s deve ser uma lista; encontrei a chave %v", field, key)
+		number, ok := key.(lua.LNumber)
+		if !ok {
+			failure = fmt.Errorf("%s must be a list; found key %v", field, key)
+			return
+		}
+		rawKey := float64(number)
+		if math.IsNaN(rawKey) || math.IsInf(rawKey, 0) || rawKey < 1 || rawKey != math.Trunc(rawKey) {
+			failure = fmt.Errorf("%s must use positive integer keys; found key %v", field, key)
 			return
 		}
 		entry, ok := item.(*lua.LTable)
 		if !ok {
-			failure = fmt.Errorf("%s[%d] deve ser uma tabela", field, index+1)
+			failure = fmt.Errorf("%s[%v] must be a table", field, key)
 			return
 		}
-		if err := visit(index+1, entry); err != nil {
-			failure = err
-		}
-		index++
+		entries = append(entries, listEntry{key: rawKey, value: entry})
 	})
-	return failure
+	if failure != nil {
+		return failure
+	}
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].key < entries[j].key
+	})
+	for index, entry := range entries {
+		expectedKey := float64(index + 1)
+		if entry.key != expectedKey {
+			return fmt.Errorf("%s must be a contiguous list starting at 1; found key %v at position %d", field, entry.key, index+1)
+		}
+		if err := visit(index+1, entry.value); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func luaTable(value lua.LValue, field string) (*lua.LTable, error) {
 	table, ok := value.(*lua.LTable)
 	if !ok {
-		return nil, fmt.Errorf("%s deve ser uma tabela, veio %s", field, value.Type())
+		return nil, fmt.Errorf("%s must be a table, got %s", field, value.Type())
 	}
 	return table, nil
 }
@@ -85,7 +103,7 @@ func luaTable(value lua.LValue, field string) (*lua.LTable, error) {
 func luaString(value lua.LValue, target *string) error {
 	text, ok := value.(lua.LString)
 	if !ok {
-		return fmt.Errorf("esperava texto, veio %s", value.Type())
+		return fmt.Errorf("expected text, got %s", value.Type())
 	}
 	*target = string(text)
 	return nil
@@ -98,24 +116,23 @@ func luaBool(value lua.LValue, target *bool) error {
 	case lua.LFalse:
 		*target = false
 	default:
-		return fmt.Errorf("esperava true ou false, veio %s", value.Type())
+		return fmt.Errorf("expected true or false, got %s", value.Type())
 	}
 	return nil
 }
 
-// luaWholeNumber exige um numero INTEIRO. Lua so tem float; aceitar 2.5 onde se
-// espera contagem esconderia erro de digitacao.
+// luaWholeNumber requires an integer. Accepting fractional counts would hide typos.
 func luaWholeNumber(value lua.LValue) (float64, error) {
 	number, ok := value.(lua.LNumber)
 	if !ok {
-		return 0, fmt.Errorf("esperava numero, veio %s", value.Type())
+		return 0, fmt.Errorf("expected number, got %s", value.Type())
 	}
 	raw := float64(number)
 	if math.IsNaN(raw) || math.IsInf(raw, 0) {
-		return 0, fmt.Errorf("numero invalido")
+		return 0, fmt.Errorf("invalid number")
 	}
 	if raw != math.Trunc(raw) {
-		return 0, fmt.Errorf("esperava inteiro, veio %v", raw)
+		return 0, fmt.Errorf("expected integer, got %v", raw)
 	}
 	return raw, nil
 }
@@ -126,7 +143,7 @@ func luaInt(value lua.LValue, target *int) error {
 		return err
 	}
 	if raw < math.MinInt32 || raw > math.MaxInt32 {
-		return fmt.Errorf("valor %v fora da faixa suportada", raw)
+		return fmt.Errorf("value %v outside the supported range", raw)
 	}
 	*target = int(raw)
 	return nil
@@ -138,21 +155,20 @@ func luaUint16(value lua.LValue, target *uint16) error {
 		return err
 	}
 	if raw < 0 || raw > math.MaxUint16 {
-		return fmt.Errorf("valor %v fora de [0,65535]", raw)
+		return fmt.Errorf("value %v outside [0,65535]", raw)
 	}
 	*target = uint16(raw)
 	return nil
 }
 
-// luaUint32Ptr aloca o destino: e assim que "campo ausente" se distingue de
-// "campo definido como zero" nos atributos que sobrescrevem o NPC base.
+// luaUint32Ptr distinguishes an absent override from an explicit zero.
 func luaUint32Ptr(value lua.LValue, target **uint32) error {
 	raw, err := luaWholeNumber(value)
 	if err != nil {
 		return err
 	}
 	if raw < 0 || raw > math.MaxUint32 {
-		return fmt.Errorf("valor %v fora de [0,4294967295]", raw)
+		return fmt.Errorf("value %v outside [0,4294967295]", raw)
 	}
 	converted := uint32(raw)
 	*target = &converted

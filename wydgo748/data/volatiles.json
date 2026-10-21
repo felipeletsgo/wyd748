@@ -759,6 +759,11 @@
       ],
       "description": "Love Chocolate: simultaneous native package of affects 43, 44, 45 and 41."
     },
+    "3170": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Elixir_Notice: Colosseum A spends one on entry (7.59 TMSRV sub_565F50); it has no direct use."
+    },
     "3313": {
       "action": "buff",
       "consume": true,

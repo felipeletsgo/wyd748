@@ -74,7 +74,8 @@ func ReadStaff(path string) (map[string]Staff, error) {
 		}
 		for _, cap := range staff.Capabilities {
 			if cap != StatusCapability && cap != PlayersCapability && cap != control.GlobalDropCapability && cap != control.QuizCapability && cap != control.BossesCapability && cap != control.KickCapability && cap != control.TeleportCapability &&
-				cap != control.PremiumCatalogCapability && cap != control.DonateCreditCapability && cap != control.GotoCapability {
+				cap != control.PremiumCatalogCapability && cap != control.DonateCreditCapability && cap != control.GotoCapability &&
+				cap != control.PvPDoorCapability && cap != control.OXEventCapability {
 				return nil, errors.New("unsupported capability")
 			}
 		}

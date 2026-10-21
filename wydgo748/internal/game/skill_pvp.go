@@ -225,8 +225,9 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		}
 		blocked := hasActiveAffectAt(target.Char, 19, now) // Immunity blocks hostile affects.
 		if directDamage {
-			damageValue := skillPvPFinalDamageWithRNG(baseDamage, playerDefense(target.Char),
-				skillDamageMastery(caster.Char), w.intn)
+			damageValue := skillPvPFinalDamageForTargetWithRNG(baseDamage, playerDefense(target.Char),
+				skillDamageMastery(caster.Char), target.Char.Class, w.intn)
+
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, playerElementalResists(target.Char), false)
 			perHit := uint32(clampInt(damageValue, 1, int(maxScoreValue)))
 			perHit = addFlatDamage(perHit, w.equipmentGemBonuses(caster.Char).forceDamage)
@@ -311,6 +312,16 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 // twice the target's AC. W2PP's offensive exception 79 is not part of the
 // 7.48 catalog, where this ID applies a buff.
 func skillPvPFinalDamageWithRNG(baseDamage, defense, mastery int, intn func(int) int) int {
+	return skillPvPFinalDamageForTargetWithRNG(baseDamage, defense, mastery, 0, intn)
+}
+
+// Elemental skill resolution doubles player defense and applies the native
+// class-1 target factor after that PvP multiplier.
+func skillPvPFinalDamageForTargetWithRNG(baseDamage, defense, mastery int, targetClass byte,
+	intn func(int) int) int {
 	defense *= 2
+	if targetClass == 1 {
+		defense = defense * 3 / 2
+	}
 	return skillFinalDamageWithRNG(baseDamage, defense, mastery, intn)
 }

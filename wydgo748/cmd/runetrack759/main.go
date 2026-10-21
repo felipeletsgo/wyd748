@@ -108,13 +108,20 @@ func run(source, output string) error {
 	var text strings.Builder
 	text.WriteString("// Rune Track 7.59: event-only aliases; labels and route values are preserved.\n")
 	used := map[string]bool{}
+	seenGenerators := map[int]bool{}
 	count := 0
 	for i, h := range indices {
 		var id int
-		fmt.Sscanf(string(input[h[2]:h[3]]), "%d", &id)
+		if _, err := fmt.Sscanf(string(input[h[2]:h[3]]), "%d", &id); err != nil {
+			return fmt.Errorf("invalid generator ID %q: %w", input[h[2]:h[3]], err)
+		}
 		if id < 5662 || id > 5988 {
 			continue
 		}
+		if seenGenerators[id] {
+			return fmt.Errorf("generator %d is duplicated", id)
+		}
+		seenGenerators[id] = true
 		end := len(input)
 		if i+1 < len(indices) {
 			end = indices[i+1][0]
@@ -190,6 +197,7 @@ func main() {
 	source := flag.String("source", "", "Explicit historical TMSRV2/run directory (read-only)")
 	output := flag.String("output", "", "Explicit staging directory; does not install data")
 	hellGate := flag.Bool("hell-gate", false, "Extract the Hell Gate infantry from TMSRV/run instead")
+	colosseum := flag.Bool("colosseum", false, "Extract the Colosseum population from TMSRV/run instead")
 	flag.Parse()
 	if *source == "" || *output == "" {
 		fmt.Fprintln(os.Stderr, "Both -source and -output are required")
@@ -198,6 +206,9 @@ func main() {
 	extract := run
 	if *hellGate {
 		extract = runHellGate
+	}
+	if *colosseum {
+		extract = runColosseum
 	}
 	if err := extract(*source, *output); err != nil {
 		fmt.Fprintln(os.Stderr, err)

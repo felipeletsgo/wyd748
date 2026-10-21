@@ -179,7 +179,10 @@ func TestSummonCombatCoversAttackFollowPassiveAndImmobileKinds(t *testing.T) {
 	owner.CombatTargetID = target.ID
 	now := time.Unix(2_000_000_000, 0)
 	w.tickSummonCombat(now)
-	if target.HP != 500 || attacker.TargetID != target.ID ||
+	// Summon attacks use the native BASE_GetDamage path rather than the old
+	// raw attack-minus-half-defense shortcut. With the fixed RNG this is 495
+	// damage, leaving 505 HP.
+	if target.HP != 505 || attacker.TargetID != target.ID ||
 		attacker.NextAttack.IsZero() {
 		t.Fatalf("summon attack: hp=%d target=%d next=%v",
 			target.HP, attacker.TargetID, attacker.NextAttack)

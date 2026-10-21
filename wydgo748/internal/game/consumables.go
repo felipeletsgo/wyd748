@@ -128,6 +128,10 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 	slot := byte(req.srcPos)
 	item := &p.Char.Inv[slot]
+	if rule, ok := w.oxTicketRule(*item); ok {
+		w.useOXTicket(s, p, item, slot, rule)
+		return
+	}
 	if rule, _, registered := w.volatiles.Rule(item.Index); registered && isDonateCoinRule(rule) {
 		if _, exists := w.items[item.Index]; exists {
 			w.admitDonateCoin(p, slot, rule)

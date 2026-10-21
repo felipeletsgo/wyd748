@@ -41,7 +41,8 @@ func (w *World) gateByKeyID(p *Player, keyID int) (*GroundItem, bool) {
 			continue
 		}
 		def, ok := w.items[g.Item.Index]
-		if !ok || staticEffect(def, "EF_KEYID") != keyID {
+		if !ok || !playerGateKeyID(staticEffect(def, "EF_KEYID")) ||
+			staticEffect(def, "EF_KEYID") != keyID {
 			continue
 		}
 		if g.State == gateOpen {
@@ -61,8 +62,8 @@ func (w *World) useGateKey(s *net.Session, p *Player, item *model.Item, slot byt
 		return
 	}
 	keyID := staticEffect(def, "EF_KEYID")
-	if keyID == 0 {
-		log.Printf("[#%d] key %d has no EF_KEYID in the catalog", s.ID, item.Index)
+	if !playerGateKeyID(keyID) {
+		log.Printf("[#%d] key %d has no player-gate EF_KEYID in the catalog", s.ID, item.Index)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -100,7 +101,9 @@ func (w *World) openGateWithKey(s *net.Session, p *Player, gate *GroundItem, slo
 	keyDef, keyOK := w.items[item.Index]
 	gateDef, gateOK := w.items[gate.Item.Index]
 	keyID := staticEffect(keyDef, "EF_KEYID")
-	if !keyOK || !gateOK || keyID == 0 || staticEffect(gateDef, "EF_KEYID") != keyID {
+	if !keyOK || !gateOK || !playerGateKeyID(keyID) ||
+		!playerGateKeyID(staticEffect(gateDef, "EF_KEYID")) ||
+		staticEffect(gateDef, "EF_KEYID") != keyID {
 		return false
 	}
 
@@ -117,6 +120,7 @@ func (w *World) openGateWithKey(s *net.Session, p *Player, gate *GroundItem, slo
 
 	gate.State = gateOpen
 	w.applyGroundItemHeight(gate)
+	w.scheduleGateRelock(gate)
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	// The gate belongs to the world, not the player. Everyone seeing it must
 	// receive the update; later arrivals receive its state in CreateItem.
@@ -136,7 +140,8 @@ func (w *World) gateKeySlot(p *Player, keyID int) int {
 	}
 	for slot := 0; slot < model.PlayerCarrySlots; slot++ {
 		item := p.Char.Inv[slot]
-		if def, ok := w.items[item.Index]; ok && staticEffect(def, "EF_KEYID") == keyID {
+		if def, ok := w.items[item.Index]; ok && playerGateKeyID(staticEffect(def, "EF_KEYID")) &&
+			staticEffect(def, "EF_KEYID") == keyID {
 			return slot
 		}
 	}
@@ -171,7 +176,7 @@ func (w *World) onUpdateGroundItem(s *net.Session, pkt []byte) {
 	}
 	gateDef, ok := w.items[gate.Item.Index]
 	keyID := staticEffect(gateDef, "EF_KEYID")
-	if !ok || keyID == 0 {
+	if !ok || !playerGateKeyID(keyID) {
 		w.recordSecurityViolation(s, wire.OpUpdateItem, "object is not a keyed gate")
 		return
 	}

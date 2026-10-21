@@ -527,6 +527,90 @@
         "One Locked Seal grants 50 entries. Each visit uses one entry.",
         "Step through when you are ready. I will not follow you in."
       ]
+    },
+    {
+      "id": 19,
+      "npc": "ArchmageGate",
+      "repeatable": true,
+      "rewards": {
+        "teleport": {
+          "x": 3893,
+          "y": 3418
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Black Archmage.",
+        "success": "You have reached the Black Archmage.",
+        "denied": "You cannot reach the Black Archmage right now."
+      },
+      "dialogue": [
+        "The Black Archmage awaits beyond this gate. Prepare yourself.",
+        "His storms answer every blow. Keep your distance and your potions close.",
+        "Many went to face his spells. Few walked back through here."
+      ]
+    },
+    {
+      "id": 20,
+      "npc": "GuardianGate",
+      "repeatable": true,
+      "rewards": {
+        "teleport": {
+          "x": 3792,
+          "y": 4006
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Guardian of the Ruins.",
+        "success": "You have reached the Guardian of the Ruins.",
+        "denied": "You cannot reach the Guardian of the Ruins right now."
+      },
+      "dialogue": [
+        "The Guardian of the Ruins awaits beyond this gate. Prepare yourself.",
+        "It never tires and never stops chasing. Do not run alone.",
+        "The ruins were quiet once. Then it woke."
+      ]
+    },
+    {
+      "id": 21,
+      "npc": "DemonGate",
+      "repeatable": true,
+      "rewards": {
+        "teleport": {
+          "x": 711,
+          "y": 3169
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Demon Lord.",
+        "success": "You have reached the Demon Lord.",
+        "denied": "You cannot reach the Demon Lord right now."
+      },
+      "dialogue": [
+        "The Demon Lord awaits beyond this gate. Prepare yourself.",
+        "When his shield rises, strike his guards first.",
+        "Hold your nerve when he rages. That is when he is weakest."
+      ]
+    },
+    {
+      "id": 22,
+      "npc": "NecroGate",
+      "repeatable": true,
+      "rewards": {
+        "teleport": {
+          "x": 2087,
+          "y": 328
+        }
+      },
+      "messages": {
+        "offer": "Entrance to the Ancient Necromancer.",
+        "success": "You have reached the Ancient Necromancer.",
+        "denied": "You cannot reach the Ancient Necromancer right now."
+      },
+      "dialogue": [
+        "The Ancient Necromancer awaits beyond this gate. Prepare yourself.",
+        "His servants rise faster than you can bury them. Keep moving.",
+        "Strike the master, not the dead. The dead never end."
+      ]
     }
   ]
 }

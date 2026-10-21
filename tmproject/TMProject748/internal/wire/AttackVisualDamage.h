@@ -49,4 +49,38 @@ inline int ReadDamage(const unsigned char* bytes, unsigned int packetSize,
         return legacyDamage;
     return static_cast<int>(realDamage);
 }
+
+// Heals travel as a negative prefix WORD (at most -32767). WYD-Go puts the
+// real 32-bit heal in the same DMGX slot, so a heal reads that amount and
+// returns it negated. Misses (-3/-4) and other sentinels above -6, local
+// previews and absent or invalid tails keep the legacy value.
+inline int ReadHeal(const unsigned char* bytes, unsigned int packetSize,
+    unsigned int opcode, int index, int legacyDamage)
+{
+    if (legacyDamage > -6 || !bytes || index < 0 ||
+        index >= static_cast<int>(kAttackMultiTargetCapacity))
+        return legacyDamage;
+    unsigned int baseSize = 0;
+    if (opcode == MSG_Attack_One_Opcode)
+        baseSize = static_cast<unsigned int>(kAttackOneBasePacketSize);
+    else if (opcode == MSG_Attack_Two_Opcode)
+        baseSize = static_cast<unsigned int>(kAttackTwoBasePacketSize);
+    else if (opcode == MSG_Attack_Multi_Opcode)
+        baseSize = static_cast<unsigned int>(kAttackMultiBasePacketSize);
+    if (!baseSize || packetSize < baseSize + 8)
+        return legacyDamage;
+    std::uint32_t signature = 0;
+    std::uint32_t count = 0;
+    std::memcpy(&signature, bytes + baseSize, sizeof(signature));
+    std::memcpy(&count, bytes + baseSize + 4, sizeof(count));
+    if (signature != kAttackWideSignature || count > kAttackMultiTargetCapacity ||
+        static_cast<unsigned int>(index) >= count ||
+        packetSize < baseSize + 8 + count * sizeof(std::uint32_t))
+        return legacyDamage;
+    std::uint32_t realHeal = 0;
+    std::memcpy(&realHeal, bytes + baseSize + 8 + index * sizeof(std::uint32_t), sizeof(realHeal));
+    if (realHeal == 0 || realHeal > 0x7FFFFFFF)
+        return legacyDamage;
+    return -static_cast<int>(realHeal);
+}
 }

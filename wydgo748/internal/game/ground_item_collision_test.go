@@ -70,14 +70,14 @@ func TestClosedGroundMaskRejectsRouteUntilOpened(t *testing.T) {
 }
 
 func TestGatePersistenceControlsTerrainTransition(t *testing.T) {
-	w, gate := mundoComPorta(2, 100, 100)
+	w, gate := worldWithGate(2, 100, 100)
 	def := w.items[gate.Item.Index]
 	def.StaticEffects = append(def.StaticEffects, model.StaticEffect{Name: "EF_GROUND", Value: 1})
 	w.items[gate.Item.Index] = def
 	w.terrain = model.TerrainMap{Height: make([]byte, model.TerrainCells),
 		Attribute: make([]byte, model.AttributeCells)}
 	w.applyGroundItemHeight(gate)
-	player, session := jogadorComChave(w, 451, 100, 100)
+	player, session := playerWithKey(w, 451, 100, 100)
 	w.store = &craftStore{err: errors.New("storage unavailable")}
 
 	if w.openGateWithKey(session, player, gate, 0, true, 3) {

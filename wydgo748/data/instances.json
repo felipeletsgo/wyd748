@@ -2235,7 +2235,11 @@
       "consume": true,
       "partyMode": "solo",
       "instanceRef": "big-cube-native",
-      "description": "Big Cube Entrance Ticket: server-side O/X questions; O means Yes and X means No."
+      "quizArena": {
+        "x": 1340,
+        "y": 1492
+      },
+      "description": "Big Cube Entrance Ticket: server-side O/X questions; O means Yes and X means No. While staff runs the OX quiz mode it is spent to enter the OX arena instead (7.59 TMSRV)."
     },
     "54": {
       "action": "instance_ticket",
@@ -2619,6 +2623,14 @@
             ],
             "completionGeneratorIds": [
               2488
+            ],
+            "runeBonusSpawns": [
+              {
+                "npc": "MCA_Rujeper",
+                "count": 1,
+                "x": 806,
+                "y": 3621
+              }
             ]
           }
         ]
@@ -2709,6 +2721,14 @@
             ],
             "completionGeneratorIds": [
               2475
+            ],
+            "runeBonusSpawns": [
+              {
+                "npc": "MCM_Gargoyle",
+                "count": 1,
+                "x": 806,
+                "y": 3621
+              }
             ]
           }
         ]
@@ -2798,6 +2818,14 @@
             ],
             "completionGeneratorIds": [
               2462
+            ],
+            "runeBonusSpawns": [
+              {
+                "npc": "MCN_CruelZak",
+                "count": 1,
+                "x": 806,
+                "y": 3621
+              }
             ]
           }
         ]

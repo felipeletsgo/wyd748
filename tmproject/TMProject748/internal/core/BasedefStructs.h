@@ -192,10 +192,13 @@ struct STRUCT_MISSIONITEM
 	unsigned int dNeedvolume[2];
 };
 
+// Runtime catalog effect. The 7.48 ItemList.bin stores 16-bit values; the
+// value is 32-bit in memory so ItemListWide.csv can carry the server's full
+// catalog bonuses (WYD-Go extension).
 struct STRUCT_STATICEFFECT
 {
 	short sEffect;
-	short sValue;
+	int sValue;
 };
 
 struct STRUCT_ITEMLIST

@@ -3,30 +3,199 @@
 ## Scope and inputs
 
 This is an incomplete, static-analysis record for the original server executable
-and its hook DLL. The REA 6.7.0 analyses were produced with Ghidra 12.1.2 and
-12.1.4. The source files under `references/` are read-only evidence.
+and associated DLLs. The REA 6.7.0 analyses were produced with Ghidra 12.1.2,
+12.1.3, and 12.1.4. The source files under `references/` are read-only evidence.
 
 | Input | SHA-256 |
 | --- | --- |
 | `references/decompilacao server/dlls/TMSRVIN.exe` | `27EE313BB4B4D4A0D897DAC9A188D8249068CE701311CBDA1E24AD28C5E43642` |
 | `references/decompilacao server/dlls/Core.dll` | `EB9E12B0BF79C874E8E9525D1DD90F6A5FD553D6FCEC2D475F47439CFCF37D62` |
+| `references/decompilacao server/dlls/DBSRVIN.exe` | `3ADB3A1704DF4910604F0B862D69D963F4E1A017EFE5743A23E6F07AD1ECF736` |
+| `references/decompilacao server/dlls/DBWYD.dll` | `58F41DA172228DC007D02B620D15B791E36344F7B559002CAC0BD66521384D85` |
 
 The analysis artifacts are retained under the ignored `build/rea-analysis/`
 root. They do not modify the input binaries. Findings below are decompiler or
 instruction-flow observations, not runtime proof.
 
-At this checkpoint, the running investigation has examined 142 distinct
-function entries: 126 in `Core.dll` and 16 in `TMSRVIN.exe`. The preceding
-checkpoint recorded 139 entries; this turn separately analyzed
-`Core.dll!0x100317E0`, `Core.dll!0x10012200`, and `TMSRVIN.exe!0x4E6B90`.
+At the earlier Core/TMSRVIN checkpoint, the running investigation had examined
+150 distinct function entries: 126 in `Core.dll` and 24 in `TMSRVIN.exe`. The
+preceding checkpoint recorded 146 entries; that continuation separately
+analyzed four previously unrepresented `TMSRVIN.exe` thunk entries:
+`0x004B2DBF`, `0x004B31D4`, `0x004B2527`, and `0x004B15A5`.
 This is a tally of examined targets, not a complete inventory of either
-binary; referenced functions not separately analyzed are excluded. The
-retained per-function result files currently contain 69 unique
-`analyze_function` records (63 in `Core.dll`, 6 in `TMSRVIN.exe`); including
-the separately returned evidence for `0x10034980`, `0x100317E0`, `0x10012200`,
-and `0x4E6B90`, 73 targets are directly represented in the saved corpus or
-returned analysis evidence. The larger running tally is therefore provisional
-until the missing analysis outputs are reconciled.
+binary; referenced functions not separately analyzed are excluded. At that
+checkpoint, the retained Core/TMSRVIN corpus contained 73 unique
+`analyze_function` records (63 in `Core.dll`, 10 in `TMSRVIN.exe`) and 81
+directly represented targets when separately returned and bundled procedure
+evidence is included. Subsequent saved evidence adds ten non-thunk
+`DBSRVIN.exe` function entries and 18 `DBWYD.dll` targets (its entry plus 17
+analyzed functions), bringing the prior reconciled tally to 178 examined
+entries and 108 directly represented targets. One additional `DBSRVIN.exe`
+function entry, `FUN_004616A0`, has since been analyzed, bringing the current
+tally to 179 examined entries and 109 directly represented targets.
+One further `DBSRVIN.exe` entry, `FUN_0048B920`, was analyzed to resolve a
+`DBWYD.dll` patch site, bringing the tally to 180 examined entries and 110
+directly represented targets. One more `DBSRVIN.exe` function entry,
+`FUN_0047BA20`, was analyzed to trace the guild-record persistence helper,
+bringing the current tally to 181 examined entries and 111 directly
+represented targets.
+One additional `DBSRVIN.exe` function entry, `FUN_0048EAE0`, was analyzed as
+the upstream account-record dispatcher, bringing the current tally to 182
+examined entries and 112 directly represented targets.
+`DBSRVIN.exe!0x487E50` was analyzed earlier and already appeared as a caller in
+a message-path dossier
+(`ev_ddaf4159fb1d58ef2a2d31c4fe1d28c53c7ce70ac2af53ce45a3eefdcd510ac0`),
+so it increases the analyzed-function count but not the unique represented-target
+count. These remain checkpoint-derived counts, not a
+complete inventory; older raw outputs are not fully reconciled. Six new direct
+`Core.dll` procedure records were captured for `0x1002C660`, `0x1002A240`,
+`0x1002A37F`, `0x10014980`, `0x10036430`, and `0x10034ED0`, bringing the current
+checkpoint to 188 examined entries and 118 directly represented targets. This
+supersedes the earlier empty bounded CLI projection for `0x1002C660`. A seventh
+new direct record for `DBSRVIN.exe!0x489D50` brings the current checkpoint to
+189 examined entries and 119 directly represented targets. Direct decompilation
+of `DBSRVIN.exe!0x48F410` adds one more unique function, bringing it to 190
+examined entries and 120 directly represented targets. A query at `0x48DE7D`
+resolves to the new function entry `DBSRVIN.exe!FUN_0048DE50`, bringing the
+checkpoint to 191 examined entries and 121 directly represented targets. A
+new direct analysis of `Core.dll!FUN_10021420` adds one unique function, bringing
+the checkpoint to 192 examined entries and 122 directly represented targets.
+The `DBWYD.dll` callback address `0x10001450` is still only a referenced code
+label, not a procedure recognized by Ghidra, and is excluded from both counts.
+Eleven additional direct procedure records have since been analyzed: six `Core.dll`
+hook helpers (`FUN_10002F00`, `FUN_10002E60`, `FUN_10002D40`, `FUN_10002030`,
+`__telli64`, and `FUN_1009F5A0`), `TMSRVIN.exe!FUN_0056A320`, and
+`Core.dll!FUN_100248E0`, `FUN_10029FB0`, and `FUN_1002A040`, plus
+`TMSRVIN.exe!FUN_004D7140`. This brings the checkpoint to 203 examined entries
+and 133 directly represented targets. A further `Core.dll!FUN_1002EE50`
+decompilation adds one unique target; `FUN_1002E4E0` was already represented in
+the Tower fame analysis. Direct decompilation of `FUN_1002F2D0`,
+`FUN_1000C160`, and `FUN_1000C200` adds three unique targets, bringing the
+current checkpoint to 207 examined entries and 137 directly represented
+targets. Direct decompilation of `Core.dll!FUN_1002DDA0` and the referenced
+`TMSRVIN.exe!0x004B2C0C` adds two more entries and represented targets, bringing
+the checkpoint to 209 examined entries and 139 directly represented targets.
+The direct decompilation of `TMSRVIN.exe!FUN_004E0740` adds one further entry
+and represented target, bringing the checkpoint to 210 examined entries and
+140 directly represented targets. Direct decompilation of
+`TMSRVIN.exe!FUN_00503360` adds another entry and represented target, bringing
+the checkpoint to 211 examined entries and 141 directly represented targets.
+Direct decompilation of `TMSRVIN.exe!FUN_004DEB60` and `FUN_005029F0` adds two
+unique procedure bodies, bringing the checkpoint to 213 examined entries and
+143 directly represented targets; the five-byte thunk at `0x004B16EA` resolves
+to `FUN_004DEB60` and is not counted as another body.
+A direct decompilation of `TMSRVIN.exe!FUN_00581250` adds one unique procedure
+body, bringing the checkpoint to 214 examined entries and 144 directly
+represented targets. The follow-up `FUN_00503360` dossier expands on a body
+already counted above and adds no entry. The direct decompilation of
+`TMSRVIN.exe!FUN_00575450` adds one unique body, bringing the checkpoint to 215
+examined entries and 145 directly represented targets. The direct decompilation
+of `TMSRVIN.exe!FUN_005818A0` adds one unique body, bringing the checkpoint to
+216 examined entries and 146 directly represented targets. A caller-address
+query resolves the two references to `FUN_005818A0` inside the previously
+unrepresented `FUN_00580F30`; adding that unique body brings the checkpoint to
+217 examined entries and 147 directly represented targets. Direct analyses of
+`Core.dll!FUN_1002D150`, `TMSRVIN.exe!FUN_005755E0` and `FUN_00505610`,
+`DBSRVIN.exe!FUN_0047B200`, and `DBWYD.dll!FUN_10002BB0` and `FUN_100016C0`
+add six represented bodies. The separately analyzed `TMSRVIN.exe!0x004B196A`
+thunk resolves to `FUN_00505610`; it adds an examined entry but not another
+body. This brings the checkpoint to 224 examined entries and 153 directly
+represented targets. Follow-up reads of the existing `Core.dll!FUN_100248E0`
+and `TMSRVIN.exe!FUN_00580F30` evidence clarify the `0x397` branch and the
+`0x004B17BC` jump/callsites, respectively, but add no new function entries.
+The callbacks at `Core.dll!0x10021210` and `0x100212E0` are not procedure
+entries and remain excluded from the tally. This remains a research checkpoint,
+not a complete inventory of binary functions.
+Direct static analysis of three `Core.dll` procedures in the existing `0x397`
+event-registration path adds three examined entries and two newly represented
+targets, bringing the checkpoint to 227 examined entries and 155 directly
+represented targets. `FUN_1002F130` was already represented as a call target in
+the dispatcher evidence, so its direct dossier adds no second target.
+One new direct `DBSRVIN.exe` function dossier, `FUN_004900F0`, adds one examined
+entry and one represented target, bringing the checkpoint to 228 examined
+entries and 156 directly represented targets.
+Two new direct `TMSRVIN.exe` function dossiers, `FUN_005656F0` and
+`FUN_00567780`, add two examined entries and two represented targets, bringing
+the checkpoint to 230 examined entries and 158 directly represented targets.
+One additional direct Ghidra analysis examined `Core.dll!FUN_10038280`
+(`0x10038280..0x100382C7`). It adds one examined entry but no new represented
+target because the existing `FUN_1002F130` evidence already records the call to
+it; the checkpoint is now 231 examined entries and 158 directly represented
+targets. The new direct decompilation of `TMSRVIN.exe!FUN_0056C360` adds one
+examined entry but no new represented target: its thunk call was already
+present in the earlier `FUN_00512800` decompilation. This corrects the prior
+target tally to 232 examined entries and 158 directly represented targets. A
+direct analysis of `TMSRVIN.exe!FUN_00512580` adds one examined entry but no
+new represented target because its thunk call is also present in
+`FUN_00512800`; the current checkpoint is 233 examined entries and 158
+directly represented targets. The direct REA dossier for
+`TMSRVIN.exe!FUN_0050BCC0` adds one examined entry and one represented target,
+bringing the checkpoint to 234 examined entries and 159 directly represented
+targets. The body sets a bit in the global byte `0x61AA207` using the supplied
+index masked to five bits; the business meaning of this flag remains unproven.
+A further direct REA dossier for `Core.dll!FUN_10020890` adds one examined
+entry but no represented target because that call target was already present
+in the `FUN_1002C710` dossier. The checkpoint is now 235 examined entries and
+159 directly represented targets.
+Three further direct `Core.dll` dossiers, `FUN_1001C920`, `FUN_1001A370`, and
+`FUN_1001CC10`, add three examined entries but no represented targets: the first
+two already appear as callees in `FUN_1002C710`, and `FUN_1001CC10` already
+appears as a caller in `FUN_10020890`. The checkpoint is now 238 examined
+entries and 159 directly represented targets.
+A further direct REA dossier for `Core.dll!FUN_1001C270`
+(`ev_5fa1ed6ae16c09f560a22cff9c70e71b887dec654912b6e66bf4264b7842e7f3`,
+`build/rea-analysis/work/Core-stream-facet-resolver-1001c270-20261021.rea-snapshot.json`)
+adds one examined entry but no represented target because it already appears as
+a callee in `FUN_1002C710`. The checkpoint is now 239 examined entries and 159
+directly represented targets.
+A direct dossier for `Core.dll!FUN_10014DE0`
+(`ev_521adfba824c66b81b4874c93528d2f8b59dfe9ff4394aedb96a66b7070bd837`,
+`build/rea-analysis/work/Core-locale-facet-key-10014de0-20261021.rea-snapshot.json`)
+adds one examined entry but no represented target because it was already listed
+as a callee in `FUN_1001C270`. The checkpoint is now 240 examined entries and
+159 directly represented targets.
+A fresh direct pass over six additional `TMSRVIN.exe` war-lifecycle bodies adds
+six examined entries and six directly represented targets. The checkpoint is
+now 246 examined entries and 165 directly represented targets. These findings
+are static REA/Ghidra evidence; they do not establish that the paths execute in
+the live server.
+Direct body analyses of `Core.dll!FUN_10011FF0` and
+`DBSRVIN.exe!FUN_0048DB80` add two examined entries but no represented targets,
+because both were already exposed as call/thunk targets. `DBWYD.dll!FUN_10042830`
+adds one examined entry and one represented target; the `TMSRVIN.exe`
+`GridMulticast` body at `0x503FF0` adds one examined entry but no represented
+target because it was already identified by its war-state caller. The reconciled
+checkpoint is now 250 examined entries and 166 directly represented targets.
+Direct analysis of `TMSRVIN.exe!FUN_00502250` adds one examined entry but no
+newly represented target because its address was already present as an
+unresolved call lead. Direct analysis of `FUN_00508270` adds one examined
+entry but no represented target because the earlier `FUN_00567780` dossier
+already records calls through its thunk. The checkpoint is now 252 examined
+entries and 166 directly represented targets. Direct analysis of
+`TMSRVIN.exe!FUN_00506240` adds one examined entry but no new represented
+target: the call target was already exposed by the mapped `FUN_00566D60` body
+at `0x56762E`. The checkpoint is now 253 examined entries and 166 directly
+represented targets. Direct analysis of `TMSRVIN.exe!FUN_00502700` adds one
+examined entry but no new represented target because its call target was
+already exposed by `FUN_00506240`. Direct analysis of `FUN_00572CF0` and
+`FUN_00573180` adds two examined entries and two directly represented targets.
+The checkpoint is now 256 examined entries and 168 directly represented
+targets.
+One additional `TMSRVIN.exe` thunk entry, `0x4B2559`, was directly analyzed;
+it resolves to `FUN_00572CF0`, bringing the checkpoint to 257 examined entries
+and 169 directly represented targets.
+A direct body analysis of `TMSRVIN.exe!FUN_00555600` adds one examined entry,
+but no new directly represented target: its caller identity and both thunk
+call sites were already present in the saved xref evidence
+(`ev_bb910a34aceeb0f8808c7ef59392fee18c3c5cd2ca423d34216cba9d60731870` and
+`ev_2f07b8d257b521ff5e516aea26283855007a61b2e6ff91d50656051f1b8f5afd`). The
+checkpoint is therefore 258 examined entries and 169 directly represented
+targets. Direct analysis of `DBSRVIN.exe!FUN_0048D8E0` adds one examined entry
+and one directly represented target. The fresh direct dossier for
+`Core.dll!FUN_100317E0` adds one examined entry but no represented target because
+it was already present as a call target. The checkpoint is therefore 260
+examined entries and 170 directly represented targets. Direct analysis also
+resolves the war and ally map mutator call chain documented below.
 
 ## Executable receive and command path
 
@@ -40,7 +209,7 @@ until the missing analysis outputs are reconciled.
   item/inventory notification path; neither runtime transmission nor a stock
   update is established here.
 - `TMSRVIN.exe!0x518790`
-  (`ev_804c037ce971e4be2857e3cd2c15df659ff91466a787456148bf43327fad3`)
+  (`ev_804c037ce971e4be2857e3cd2c15df659ff91466a787087456148bf43327fad3`)
   handles per-connection socket notifications, receives data, and calls
   `FUN_00519CA0`.
 - The saved instruction-flow record for `TMSRVIN.exe!0x519CA0`
@@ -62,6 +231,16 @@ until the missing analysis outputs are reconciled.
   from the root's stored room index, with a boundary reroll. This supports the
   documented native room/group-index pool behavior, not member-list-rank
   selection.
+- `TMSRVIN.exe!FUN_0056A320`
+  (`ev_3fd2566f6bb317d7f257cf290dc2b95e9f0e02571c6d9608e3e64eb0f68fb4e4`,
+  body `0x56A320..0x56A8B4` and `0x56A8B7..0x56A936`) validates a player slot
+  and follows a connection-close/cleanup path. For linked slot states it
+  snapshots per-user fields and attempts the close helper up to five times,
+  sleeping 100 ms between retries. After five failures it logs a critical
+  close failure; otherwise it calls follow-up helpers, then transitions the
+  slot to `0x18` and invokes update helpers. This is static session-teardown
+  evidence; durable persistence and the exact semantics of those helpers are
+  not established.
 - `Core.dll!0x1002DF30`
   (`ev_8274301e3572279283e70956cd8de083a5a771fde1fd353c63c7089ee5f3e7db`)
   computes `DAT_1074EBDC + 0x191E`. With startup value `0x4B1000`, this reaches
@@ -81,6 +260,15 @@ More detail on the Rune Track settlement comparison is in
 
 ## DLL startup and worker map
 
+- Focused body `Core.dll!FUN_10011FF0`
+  (`ev_1cf00f57bb4ba807d5a559b15b7f555d87c918e6abf4702cc7a0758bd05ec427`,
+  body `0x10011FF0..0x10012036`, 71 bytes,
+  `build/rea-analysis/work/Core.dll-FUN-10011FF0-REA-function-20261021.json`)
+  calls `__CheckForDebuggerJustMyCode` and returns a DWORD from the context at
+  offset `+0x14`. Its observed callers are `FUN_100110F0` and `FUN_1001D2C0`;
+  this is an accessor/debug-check helper, not evidence of worker dispatch or
+  lifecycle behavior. It was already exposed as a call target in earlier
+  evidence, so this direct analysis adds an examined entry but no unique target.
 - `Core.dll!dllmain_dispatch`
   (`ev_9b4a635add334ee22c72c6ac1c59c1b917017e6ad0f52289a2e1764e8aab851f`)
   forwards attach processing to `FUN_1003AC70`.
@@ -135,15 +323,36 @@ More detail on the Rune Track settlement comparison is in
 - Cash reader `Core.dll!0x1002FDD0`
   (`ev_24576e2652d89f30648d9f5b24e688528a7319c5c4110cc3bfc2669c7fcd78fe`)
   formats `../../WYD_DB/Cash/%s.txt` from its string argument, opens the path,
-  initializes the parsed 32-bit value to zero, and passes its address to
+  initializes a 32-bit value to zero, and passes its address to
   `0x1002C660` when the stream is readable. The decoded instruction flow then
   reloads that value into `EAX` after stream cleanup; the unreadable/error path
   returns zero. This resolves the apparent `void`/caller-result mismatch in
-  Ghidra's pseudocode: the worker's `0x1002FDD0` call does receive the parsed
-  value. The filename's substituted identity follows the worker's per-slot
-  player argument; the file producer, write cadence, and deletion/consumption
-  policy are not established. Static file access does not prove runtime
-  delivery or durable persistence.
+  Ghidra's pseudocode: the worker's `0x1002FDD0` call does receive the value in
+  that local. Direct REA records now show `0x1002C660`
+  (`ev_f6abded903ce598d864954a1795235dd7387dee64da969e8fe90311487201d0d`)
+  copies the incoming 32-bit value into a local, calls `0x1002A240`, then copies
+  the updated local back. `0x1002A240`
+  (`ev_8078771ed141a2d248b6720daeae7997d768c692d0b26c8450785d252bbc26e8`)
+  obtains a cached facet through `0x1002B4E0` and calls the stream wrapper
+  `0x10036430`; the wrapper dispatches vtable slot `+0x28`
+  (`ev_f9fd5bb4599eabbb84449fe1dc0c2d0665a3ff09d3b1cb6668113dc58cf9a1e5`).
+  The `num_get<char, istreambuf_iterator<...>>` vtable has `0x10034ED0` at
+  `+0x28` and `0x10034DF0` at `+0x2c`
+  (`ev_8d7f84b60bbcd3d861dee142b323a4865852db4d754e2e25ed6320d711bcb332`).
+  The `+0x28` implementation `0x10034ED0`
+  (`ev_449f8b01192da0b75a49f7bc1491ec34a8c9f325e04840508b81386494318157`)
+  collects a formatted numeric token through `0x10033590`, applies stream-format
+  flags, and calls signed CRT `__Stolx`; the `+0x2c` implementation is the
+  separately mapped unsigned `__Stoulx` path. This establishes a signed numeric
+  extraction path for the queued Cash value, but not the exact textual grammar,
+  validation policy, or contents of any particular Cash file. The other direct
+  helper records are `0x1002A37F` (`ev_9392ad96c1dc024e46a06f8c3b0fb8a0f8fa89fce6d0250ca23d9de177b071b0`)
+  for cleanup and `0x10014980`
+  (`ev_a3c35b2addefcf8a8b201694730457bb978f6613c8f24b7e9b300654271244ff`),
+  whose precise semantic role remains unresolved. The filename's substituted
+  identity follows the worker's per-slot player argument; the file producer,
+  write cadence, and deletion/consumption policy are also unresolved. Static
+  file access does not prove runtime delivery or durable persistence.
 - Cash companion `Core.dll!0x100314B0`
   (`ev_29744195fc98e9ce9ee4556771f2fba4d3c01bcdb8cbd3fcf9268da83c08f6d5`)
   is `void`, not a boolean predicate. It formats the same per-player Cash path,
@@ -154,13 +363,54 @@ More detail on the Rune Track settlement comparison is in
   `0x10018D70`/`0x10018E50` calls update and validate stream state, not the cash
   contents. `0x1002C710`
   (`ev_10f6eb4afcea486a6924a649072a905f1648419d646f55079f625a6f2b05ff79`)
-  is a larger state-oriented routine, not an evident scalar file writer; its
-  effect on this file remains unresolved. `0x10034980`
+  calls `0x10020890` with its incoming value as the last argument. The direct
+  dossier for `0x10020890`
+  (`ev_efdf9e18ef140144fad07f7327a8b1b787130ae6958b87fdbb0c5eb23d430c21`,
+  saved in `build/rea-analysis/work/Core.dll-cash-helper-10020890-20261021.rea-snapshot.json`)
+  is a 117-byte wrapper that forwards six arguments, including that value, to
+  an unresolved virtual call through slot `+0x20`. This supports a stream/facet
+  formatting operation but does not identify its concrete implementation or
+  prove a write, clear, or consumption of the Cash file. `0x10034980`
   (`ev_6271484f82f30be55ea79b380308f49e42a5905accb7daae5d064d3cd82fe7cb`)
   checks another helper and, on a zero result, calls `0x1001AA90(2,0)` to
   update stream state. This chain does not prove that the queued amount is
   consumed, reset, or protected from repeat credit; do not infer any of those
   behaviors from the helper call alone.
+  The direct dossier for `FUN_1001C920`
+  (`ev_11dd8083bf523117ec1c632b95da5f3abfe66a7c312af8222b1fc58ac022a4b9`,
+  `build/rea-analysis/work/Core.dll-cash-locale-facet-1001c920-20261021.rea-snapshot.json`)
+  shows an 85-byte helper returning the pair `{0, param_1}` through a hidden
+  aggregate-return pointer. Its input is obtained through
+  `FUN_1001A370` (`ev_d1c1bfd2feb324f5857068af26c967c2e62c845d90eb0256c882d56aea1a7735`,
+  `build/rea-analysis/work/Core.dll-cash-facet-origin-1001a370-20261021.rea-snapshot.json`),
+  a 71-byte getter for the DWORD at `this+0x38`; the owning object's identity
+  and that field's meaning remain unknown. A second direct caller,
+  `FUN_1001CC10` (`ev_99669acacf1d1a62a8e5329c137d664f15230e5a3de87147e54983e29e4a0ddc`,
+  `build/rea-analysis/work/Core-dynamic-dispatch-caller-1001cc10-20261021.rea-snapshot.json`),
+  takes a `ushort`, builds the same pair, and invokes `FUN_10020890` with that
+  value and stream-related state. This confirms reuse of the wrapper in a
+  separate formatted-value path; it does not resolve slot `+0x20` or establish
+  a file write in the Cash caller. `FUN_1001C270`
+  (`ev_5fa1ed6ae16c09f560a22cff9c70e71b887dec654912b6e66bf4264b7842e7f3`,
+  `build/rea-analysis/work/Core-stream-facet-resolver-1001c270-20261021.rea-snapshot.json`)
+  selects a cached `_Facet_base` using locale-related helpers and, on a cache
+  miss, creates, registers, and initializes a facet under `_Lockit`. Its callers
+  are `FUN_1002C710`, `FUN_1001CC10`, and `std::locale::_Locimp::_Makeloc`.
+  Although Ghidra inferred a `void` prototype, the instruction path preserves
+  the selected facet pointer in `EAX` across cleanup, and both formatting
+  callers use that result as the receiver passed to `FUN_10020890`. This narrows
+  the receiver to a locale facet; its concrete subclass and the implementation
+  behind virtual slot `+0x20` remain unresolved, so the Cash path still does not
+  prove a file write, clear, or consumption.
+  `FUN_10014DE0`
+  (`ev_521adfba824c66b81b4874c93528d2f8b59dfe9ff4394aedb96a66b7070bd837`,
+  `build/rea-analysis/work/Core-locale-facet-key-10014de0-20261021.rea-snapshot.json`)
+  lazily assigns and returns a monotonically increasing DWORD from global
+  `0x1074ecd8` under `_Lockit`. `FUN_1001C270` passes the address `0x1074de78`
+  to it, then passes the returned index and locale argument to
+  `FUN_10017B90`, whose recovered type is `_Facet_base*`. This confirms an
+  indexed locale-facet lookup, but the identity of that static ID and the
+  concrete facet subclass remain unknown.
 - A defined-string search (`ev_f8a3313b2598180860ce68787bffe336ff704fc7fdd78145f33d6a9f40d0e7d5`)
   found two Cash paths: the queued-credit path above, `Cash/%s.txt`, and a
   separate `Cash/%d.txt` path, plus the `openCashStore` label and administrative
@@ -168,7 +418,9 @@ More detail on the Rune Track settlement comparison is in
   (`ev_a1f0cae8eea2f16aa35652ee47840a1b7047aa5de9d86a7cbac5ec6b37623cf7`)
   resolve to one use, inside `0x100317E0`.
 - Cash file routine `Core.dll!0x100317E0`
-  (`ev_63c85df9c1e318e672f97c27533cdc1584d3a01aa3256a940904bd124182fe44`)
+  (`ev_63c85df9c1e318e672f97c27533cdc1584d3a01aa3256a940904bd124182fe44`;
+  fresh direct dossier `ev_3f0193eb3a4be66f7ff3351257c1dbc2f22e79c2b30540d97fa094751b3e928c`,
+  `build/rea-analysis/results/core-cash-classification-100317e0-exact670-20261021T145329476/Core.dll-FUN-100317E0-REA-evidence.json`)
   formats `../../WYD_DB/Cash/%d.txt` from its second argument, opens the path
   through the same stream wrappers, and calls `0x10012200(buffer, first_arg)`
   only when the stream-state check succeeds. Its only observed caller is
@@ -182,9 +434,11 @@ More detail on the Rune Track settlement comparison is in
   identity is not yet proven. On the successful parse/length path, the caller
   passes the same local buffer to `0x100317E0`, then formats the buffer with
   `0x100375F0` and sends the resulting text through `0x10030560` to the player
-  slot. This supports a file-backed response/read path, not a direct balance
-  write. The body does not establish a purchase or producer for the file; do
-  not conflate this path with the `%s.txt` queued-credit path.
+  slot. This establishes a file-backed response path, but the transfer
+  direction (read, write, or update) and the file's semantic meaning remain
+  unresolved; it is not evidence of a direct balance write. The body does not
+  establish a purchase or producer for the file; do not conflate this path with
+  the `%s.txt` queued-credit path.
 - Transfer helper `Core.dll!0x10012200`
   (`ev_1ce5a33d8ce178b03a686f89fe9ec818dd5c7eb6aca023a71529d1151346f391`)
   traverses a sized range through virtual stream-like operations and checks
@@ -219,6 +473,225 @@ More detail on the Rune Track settlement comparison is in
   `[SERVER STARTED SUCCESSFULLY]`, and return success. Static analysis now
   identifies the role of all four gates; live acceptance behavior and
   dependence on deployed configuration files have not been tested.
+- `Core.dll!FUN_10021420`
+  (`ev_1dfe05f034f37cf03a8fe4dbd83df0bf3f4af80d8d98954f02326feb2a282f0d`,
+  body `0x10021420..0x1002149B`) is called late in the successful
+  `FUN_10039FA0` startup path, after that routine sets `DAT_1074EBDC` to
+  `0x4B1000` (`ev_f24ec404a7b6e2a51d1f9770a279f4eea5fbe8aed7832105c1519877da65bfea`).
+  It calls `FUN_10002F00` with derived target addresses `0x519D90` and
+  `0x4D7219`, code labels `0x10021210` and `0x100212E0`, and lengths 4 and 2.
+  This call pattern is consistent with two startup hook registrations. Static
+  callback paths and their direct callees are now traced below; successful
+  installation and runtime effects remain unconfirmed.
+- The two callback addresses above are not procedure entries recognized by
+  Ghidra. Address-based instruction evidence decodes `0x10021210`
+  (`ev_efd8c13d9805519b1612b281b369aa2a370161bef5aa0f320e198f590410f87d`)
+  and `0x100212E0`
+  (`ev_d0db89df048d5447a562977710e348225ea6414f165d608f10064f6da60ca899`)
+  as the same first x86 instruction, `MOV EAX,[0x1074EFA0]`. Ghidra records
+  incoming data references from `FUN_10021420` at `0x10021457` and
+  `0x10021477`, respectively. Further instruction evidence at `0x10021215`
+  (`ev_bc9e4a294b59537ab6432b67fb112c6a6ad528b8cb0254fedb49835fe8b5d601`)
+  and `0x1002121C`
+  (`ev_bd2938114698fd1b692eb307752c93055802fbe3714fc10a2c0c2a58db2055a3`)
+  shows a TLS-vector read (`FS:[0x2c]`) followed by an indexed per-thread
+  pointer read. These are static instruction/data-flow observations, not
+  runtime confirmation.
+- The callback at `Core.dll!0x10021210` reads the TLS-associated value and
+  calls `FUN_100248E0` (`ev_09753ead2133c462bb1a7130127ff5ff42f955bacd52939a2fb176706e3b82ac`,
+  body has 18 non-contiguous ranges totaling 10,807 bytes, spanning
+  `0x100248E0..0x1002735C`) with the thread slot and packet pointer. The callee
+  reads the packet opcode from `param_2[2]`, stores the thread slot in
+  `param_2[3]`, and branches on opcodes. The recovered pseudocode contains 18
+  direct equality-comparison values: `0x20D`, `0xB01`, `0xB05`, `0x291`, `0x373`,
+  `0x3A6`, `0x3B5`, `0x39D`, `0x39E`, `0x367`, `0x397`, `0x27C`, `0x380`,
+  `0x36C`, `0x366`, `0x368`, `0x28F`, and `0x2D2`. This is a list of direct
+  comparisons in the decompilation, not proof of every packet accepted by the
+  hook or the complete wire protocol. Static callback disassembly routes a
+  true result to the original continuation `TMSRVIN.exe!0x519D99` and a false
+  result to `0x5548F5`, the shared server-function epilogue. This supports a
+  custom packet gate/dispatcher interpretation; it does not prove that the
+  hook was installed or exercised in a running server.
+- In the hook's `0x28F` branch, `FUN_1002EE50`
+  (`ev_6141611953545d6d435b4d56b3363e001c4ad6c1e2d7dc150c903cab30a45dd1`)
+  resolves the injected thread slot to a player-record address using a
+  `0x928`-byte stride. The branch reads a 16-bit field at player-record offset
+  `+0x12`; when nonzero, it passes that value to `FUN_1002E4E0`
+  (`ev_7c77fa6d5e1aa01e075f54d62d68905b25619f3df6b7f47aaa4469357bf25585`).
+  That helper reads the first DWORD of the indexed `0x3C`-byte record in the
+  fame table based at `0x4D7F1A8`, matching the guild-fame getter already
+  traced below. If this value is below 100, the hook sends its fame-required
+  error and returns false, preventing the original continuation. A zero field
+  skips this check. The branch does not debit or otherwise mutate fame, and the
+  packet's native operation beyond this pre-dispatch gate remains unresolved.
+  This is behavior in the examined hook DLL, not evidence that the untouched
+  executable independently enforces the same gate.
+- Opcode `0x397` at `0x10026A7B` enters an event-registration branch in the
+  same dispatcher (`ev_09753ead2133c462bb1a7130127ff5ff42f955bacd52939a2fb176706e3b82ac`).
+  It bounds the player slot, reads a 32-bit event key at player-record offset
+  `+0x14`, and scans other active slots (`state == 0x16`) for the same key.
+  The branch also processes event state, checks a global duplicate-registration
+  condition, and gates on `FUN_1002F130()` for novice-channel eligibility.
+  The event identity and key semantics remain unresolved; this does not prove
+  a city-war or Tower-War path, fame accounting, settlement, or rewards.
+- Three direct procedure dossiers further resolve calls from this branch
+  (`Core.dll` SHA-256
+  `EB9E12B0BF79C874E8E9525D1DD90F6A5FD553D6FCEC2D475F47439CFCF37D62`;
+  Ghidra 12.1.2 headless evidence in
+  `build/rea-analysis/results/Core.dll-event-registration-1002f130-Ghidra-evidence-20261021.json`):
+  `FUN_1002F130` (`0x1002F130..0x1002F1F6`) calls `FUN_10038280` and
+  `FUN_10038120`, then computes a modulo-based comparison using the returned
+  local value and globals at `0x6472B4` and `0x6472F4`. The dispatcher calls it
+  at `0x10026C98` for novice-channel eligibility; the constants' meaning and
+  the helper's precise semantic result remain unresolved. `FUN_10028100`
+  (`0x10028100..0x1002814E`), called at `0x10026B5A`, forwards its argument to
+  `FUN_10023C00`; its wrapper role is established, but the argument's meaning
+  is not. `FUN_10028150` (`0x10028150..0x100281A5`), called at `0x10026B67`,
+  returns the difference between two pointed-to 32-bit values divided by four.
+  The pointed-to structure and the returned count's meaning are unknown.
+  These procedures establish static call/data flow only and provide no evidence
+  of fame accounting, war settlement, or runtime behavior.
+  A direct Ghidra dossier for `FUN_10038280`
+  (`0x10038280..0x100382C7`, evidence file
+  `build/rea-analysis/results/Core.dll-event-registration-10038280-Ghidra-evidence-20261021.json`,
+  SHA-256 `9B59F8B995680B9E0F7D13A481C95AEF99C8A1C7948EB2D32439181BE2EBC1FB`)
+  confirms it is a thin wrapper around `__time64` at `0x100D99D0`. Besides the
+  event-eligibility caller `FUN_1002F130` at `0x1002F166`, it has a caller at
+  `FUN_100311C0` / `0x100311F4`. This resolves the helper as a timestamp source,
+  but not the event key, event identity, or war semantics. Since the call was
+  already present in the preceding `FUN_1002F130` evidence, this adds an
+  examined entry without increasing the unique represented-target count.
+- `Core.dll!FUN_1002D150`
+  (`ev_54636688e3919df3f993aa901a918274000071325519984314a511770a0121ac`,
+  `0x1002D150..0x1002D205`, 182 bytes) is called by `FUN_100248E0` at
+  `0x10026E4B`. It compares a thread-local value with `DAT_1074DF1C`, performs
+  lazy initialization when needed, then invokes the initialized indirect
+  callback with its four arguments unchanged. Although the recovered C
+  signature is `void`, the assembly preserves the callback's `EAX` result;
+  the caller rejects values above 6. This establishes callback dispatch and
+  result gating, not coordinate validation or city-war/Tower-War semantics.
+- In the same hook callback, opcode `0x3A6` enters a separate item-composition
+  path (`FUN_100248E0`, `ev_09753ead2133c462bb1a7130127ff5ff42f955bacd52939a2fb176706e3b82ac`).
+  When `DAT_10194A00` is zero, the recovered branch returns true before item
+  processing. Otherwise it validates six supplied inventory-slot references
+  against the player's current records, rejects invalid or mismatched item
+  data and item IDs above `0x1964`, and applies the configured minimum-refine
+  checks (`DAT_10194A04`) to eligible slots. `FUN_1002F2D0`
+  (`ev_0afbd30812d389a2a4fb5c87a94606c754c148ca192eacde205dbc3ae50dfd5f`)
+  performs exact item-ID membership against an integer range: its accessors
+  `FUN_1000C160` (`ev_85eae6767f45d1495c460646e5b852be02d7635b4fe56c7355c69f7929c161ff`)
+  and `FUN_1000C200` (`ev_c6771c03f1b90c71b17a10a2ef60d9fa2db6ca380ae053abf4ecab0dee66a696`)
+  read fields at offsets `+4` and `+8` from their implicit object, respectively.
+  The range's owner and contents are unresolved; this is not enough to call it
+  a grade table. Ghidra records four references to `FUN_1000C160`, at
+  `0x100085DB`, `0x100093A2`, `0x1002D582`, and `0x1002F302`
+  (`ev_76410d47ab81932561ef7cd80e38e0b191b5ff65ec30fce6c90bb52074d2cf3e`).
+  The branch also checks target-item metadata against two base IDs, accepts a
+  selected jewel ID in `0x989..0x98C`, consumes five ingredient records before
+  resolving the outcome, then compares `rand()%100` with `DAT_10194A08`.
+  Failure clears the target slot; success constructs the output item and both
+  paths resynchronize inventory. The configured threshold's value is unknown,
+  so no effective probability is asserted. This supports an item-composition
+  feature in the hook, but no evidence yet links it to the Rune Track; keep the
+  two systems distinct unless a call/data bridge is found.
+- The hook's opcode `0x3B5` branch is another distinct item-composition path
+  in `FUN_100248E0` (same evidence). It validates up to seven submitted
+  inventory-slot references against the live 8-byte records and rejects
+  duplicate slot IDs. The two base items must each have refine value at least
+  9; the branch requires at least 50,000,000 in the player's balance and checks
+  four jewel positions for IDs in `0x989..0x98C`, requiring those IDs to match.
+  Although later code contains count cases for one through four components,
+  this recovered validation loop increments the count for all four positions;
+  fewer-component reachability is therefore unresolved. The visible count
+  thresholds are `4`, `8`, `16`, or `32`, compared with `rand()%101`, so no
+  effective success probability is asserted. The 50,000,000 balance is
+  deducted before the roll, on both success and failure. On the failure path
+  it clears and updates five component slots. On the success path it randomly
+  selects one of the two base items, consumes both base items and the
+  components, computes an output item, and sends inventory updates. The branch's own
+  diagnostic identifies this as an Aylin operation. This is a separate
+  gold-based item feature in the hook, not evidence of a Rune Track mechanic
+  or of gold participating in the war wager system.
+- The same callback groups opcodes `0x39D`, `0x39E`, and `0x367` into a
+  rate-limited target-validation path (same `FUN_100248E0` evidence). It scans
+  up to 13 target entries subject to packet-size gates, checks target IDs and
+  player-to-target state, and treats an entity whose name matches the Thor
+  Tower label specially. That case clears the submitted target fields when a
+  configured flag is set and the player's guild field matches a configured
+  value; it also rejects players with no guild or whose accessor result does
+  not match the current channel/city value. The latter two cases invoke
+  `FUN_1002DDA0` (`ev_b058fc1d02192571a6270307fc77f3d7810f2373abba4428981b6b0195d7a99d`),
+  a Core hook wrapper that calls the original executable at `0x004B2C0C`.
+  That target (`ev_d5ba7f770b107390ff7e22515027da5fcc6966c38cfb32d5693bb244ec35e203`)
+  derives a region index from the player's state, chooses coordinates using
+  `rand()%15` and region-specific bases, and may replace them with one of five
+  configured coordinate pairs selected by a player field. It passes the result
+  to `FUN_004E0740` (`ev_f28d32b07f1419c10e4459aeff64b53733096823eb40229c0a47e80755c177b6`),
+  whose diagnostic format identifies it as `GetEmptyMobGrid`: it validates the
+  coordinate range, accepts the player's current cell, or searches expanding
+  square neighborhoods through radius three for an unoccupied, non-`0x7F` grid
+  and updates the coordinate pointers. The caller then passes those coordinates
+  to `FUN_00503360` (`ev_6df810e4d612c89bbec1b4cefbd0acf040b60505f5d9a49eb785856fcf2a5710`).
+  That routine validates the entity and coordinate ranges, clears its old grid
+  occupancy, marks the new cell, processes neighboring entities, and writes the
+  new coordinates to the live entity record. The hook therefore invokes an
+  authoritative server-side reposition to a nearby free cell. The exact packet
+  side effects of the neighboring updates remain unresolved; this does not prove
+  a map change, a kick, or a complete tower-war rule. The per-player
+  throttle uses `_clock()` and a `+600` comparison; its wall-clock duration is
+  not established. This is direct evidence of guild/citizenship validation
+  for a Thor Tower target in the hook, but not a complete tower-war flow, a
+  fame wager, or independent enforcement by the untouched executable.
+- The callback at `Core.dll!0x100212E0` calls
+  `FUN_10029FB0` (`ev_8e7669d575805e5cd44a4645ee48cbbd4f46cedcfedb79375ed949e0b4a6495f`,
+  body `0x10029FB0..0x1002A039`) with a 16-bit-value pointer, a context value,
+  and a size-like third argument. The callee also calls `FUN_1002A040` with a
+  derived global address, the context, and `0xFC8`. `FUN_1002A040`
+  (`ev_a8e1d914da639a7b9bf68426fd4767d602cdc567f7f5221af9e2cbe562e84541`)
+  returns `UINT_MAX` if any input is zero; otherwise it returns the unsigned
+  address difference divided by the third argument. Here that is an arithmetic
+  record-index calculation using `0xFC8` as the stride. Its result is stored
+  but not subsequently read by `FUN_10029FB0`. That function compares the
+  pointed 16-bit value with its third argument, zeroes the pointed buffer for
+  that many bytes when they differ, and returns the equality result. In the static
+  callback path, true sets local `-0x68` to `4` and resumes at the original
+  continuation `TMSRVIN.exe!0x4D7220`; false jumps to the function epilogue at
+  `0x4D7396`. The containing routine confirms this is its 16-bit packet-length
+  field; the external protocol contract, the purpose of the unused record-index
+  calculation, and runtime behavior remain unresolved.
+- The containing routine is `TMSRVIN.exe!FUN_004D7140`
+  (`ev_1c393b7db98368142370599881e281c9b781135532c39ed41e9e8ab4517c137f`).
+  Its arguments are a packet-buffer pointer, a length, and a one-byte mode;
+  ECX supplies its output-buffer context. Before the hook point, it writes the
+  length into the packet's first two bytes. The hook therefore checks that the
+  16-bit packet length matches the supplied length before the original routine
+  continues its byte transform, checksum, output-buffer append, and flush path.
+  On mismatch, `FUN_10029FB0` clears the input buffer for the supplied length
+  and the callback returns false through the routine epilogue. On a match, the
+  callback restores the original loop counter to `4`, so processing resumes
+  after the four-byte header. Because the routine writes the low 16 bits of
+  the supplied length immediately before this check, static control flow
+  implies lengths above `0xFFFF` fail this equality check (assuming a
+  non-negative length reaching the hook). This is static evidence; external
+  callers and live behavior have not been validated.
+- `FUN_10002F00`
+  (`ev_28fd060ea8a6152f580ae224aa5b45041dd6ef5b5ed5bd141d312d6ab5f46dfb`)
+  calls `FUN_10002E60` and then `FUN_10002D40`. `FUN_10002E60`
+  (`ev_11f2d7a8f0204390da978005fa62e1f41c629e708dad38d848f78f2b06a8e1e6`)
+  prepares an `E9` jump opcode; `FUN_10002030`
+  (`ev_1e5232f0eb98e7f87b8dfd3e5286a0549d39425ab83834ee879dd869bf4a7312`)
+  computes a relative displacement and copies a five-byte jump to the target
+  under a temporary page-protection change. `FUN_10002D40`
+  (`ev_3ed9eceda65f452d38adb1172a6b302b6f1dc41758cc720e425b0257997d7058`)
+  writes requested NOP bytes and copies them using overlap-aware
+  `FUN_1009F5A0`
+  (`ev_f41a06703bca01d1ed01ccd57b034039b0ce107c24f2623ef48d5dcf66de3834`).
+  Both paths use `__telli64`
+  (`ev_63e7d1436734c79f949fa54448c4306f48e096b9cc0351f06176c1c110868105`),
+  which resolves to a CRT file-position routine, while treating its return as
+  an apparent address; the observed patch lengths are 5, 4, and 2. The reason
+  is unresolved. These static code shapes do not establish successful hook
+  installation or operational safety.
 - Tower War configuration initializer `Core.dll!0x1002FA90`
   (`ev_138ea158f09bd7218c1cf3a40f7387ba422365eb6b6c245bb8d5bad8b4392055`)
   is called from `0x10039FA0` before the four startup gates. It reads
@@ -801,7 +1274,11 @@ More detail on the Rune Track settlement comparison is in
   timezone and actual runtime execution remain unverified. When the gate
   matches, it reads `../../WYD_DB/FileConfig/LastServerBoss.txt`, writes the
   opposite integer value (`0` or `1`) back to that file, and clears process
-  globals `DAT_101949c8` and `DAT_101949c9`.
+  globals `DAT_101949c8` and `DAT_101949c9`. This gate is not conditioned on
+  weekday and has no guild-fame mutation in its recovered branch. The separate
+  Tower War schedule is guarded by local weekday values `1..5` (Monday through
+  Friday under the CRT `tm_wday` convention). Thus, this worker does not show a
+  weekly fame reset at the Saturday boundary.
 - Tower fame shared-state path: getter `Core.dll!0x1002E4E0`
   (`ev_d736d22fd58c848b9b3fd99d0be610e5448576e0c98bf042be3eba45cf5bcee1`)
   reads a guild-indexed value from the table based at `0x4D7F1A8`. Setter
@@ -813,16 +1290,359 @@ More detail on the Rune Track settlement comparison is in
   constructs the same update from the getter. The defense-success branch in
   the worker calls the getter, adds `DefendTowerFame`, invokes the setter, and
   sends the update helper. TMSRVIN has 22 static references to the same base
-  (`ev_0f55b57d26a4bc04dcd03d09186cad7b5413e7834900c7125d2a06619e7efca6`).
-  One, at `0x4E940F` in `FUN_004E6B90`, decodes as a 32-bit store to
-  `[EAX + ECX + 0x4D7F1A8]`
-  (`ev_88ae376132b4f7dd1fb4ac78c1100aece216e50ebab38c056b6588e69a676316`),
-  confirming that the executable also writes into this shared memory region.
-  This establishes in-memory mutation and client/server update packets, not
-  durable fame persistence. `FUN_004E6B90` is a large non-contiguous function
-  (35,466 body bytes); its returned dossier exceeded the output window before
-  its pseudocode could be inspected (`ev_2fcb6d4cb1bea9467cb8e4853230d86d49e3b58064da445e603415f1675a90a4`).
-  No fame-specific file or database writer has yet been identified.
+  (`ev_90d4556ba80230b08b6c89180f0f9c73b48973cd1f1e671549866d81a00aa7c6`).
+  The recovered setter clamps negative values to zero, writes the in-process
+  table, and emits network updates; its body contains no file or database write
+  call. This bounds the known Tower fame mutation path, but does not rule out a
+  separate serializer or persistence path elsewhere; the corresponding
+  `DBSRVIN.exe` guild-record file writer is traced below. This establishes
+  a file-backed write path for the receiver's guild record, not a direct durable
+  write from the shared `Core.dll` table.
+  Four references (`0x4E940F`, `0x4E9459`, `0x4E94F1`, `0x4E9566`) lie in the
+  large non-contiguous command dispatcher `FUN_004E6B90` (35,466 body bytes).
+  Its recovered pseudocode identifies a `guildfame` command path: the `set`
+  branch parses a guild ID and value, writes the value into the table at
+  `0x4D7F1A8`, logs the change, replies to the requester, and sends a 24-byte
+  `0xC17` packet containing the guild ID and value through `0x4D7850`. When the
+  second token is not `set`, that path parses it as a guild ID, reads the
+  table, and replies with the current fame. Evidence: complete function result
+  `ev_cd5ed21a2b48f8713162982982a56367103a7702175952d63d9dc249f21c9b6b`;
+  instruction at `0x4E940F` is a 32-bit store to the same table
+  (`ev_88ae376132b4f7dd1fb4ac78c1100aece216e50ebab38c056b6588e69a676316`).
+  Of the other 18 xrefs, 13 resolve to named procedures: `0x4F6E8F` in
+  `FUN_004F6D60`; `0x50CC8F` in `FUN_0050CB80`; `0x512967`, `0x512A78`, and
+  `0x512B31` in `FUN_00512800`; `0x51AB18` in `FUN_00519CA0`; `0x556619`,
+  `0x5569CC`, `0x556A8D`, and `0x55C943` in `FUN_00555600`; `0x57D60B` in
+  `FUN_0057BDF0`; and `0x58839F` plus `0x5883D1` in `FUN_00588340`.
+  Four newly saved thunk dossiers identify the transport helpers:
+  `0x4B2DBF -> 0x4D5BA0` clears socket-state fields and closes a nonzero socket
+  (`ev_b5de3da4629f8a43392241f2477d65bdce4566d7044040d1f09b1864c4a5e1e0);
+  `0x4B31D4 -> 0x4D5EC0` initializes/reconnects an IPv4 stream socket, binds and
+  connects it, registers asynchronous message `0x402`, and sends the four-byte
+  protocol magic (`ev_db46d76eb20a70cd5d714155f15894c4aba5dc92396eed8296feac3f499ab851);
+  `0x4B2527 -> 0x4D6770` receives into the connection buffer at its current
+  offset (`ev_652d305629f611d5a2769459b0f63636f3c74a6aadabd228c3ff05c69e299630);
+  and `0x4B15A5 -> 0x4D6810` parses framed data, validates the magic, length,
+  transformed payload, and checksum
+  (`ev_bc14e3fafc11fb200ffc79941d16c3ccb91c8f17f0dbda2a49da47ca1c89ed34`).
+  These are static code findings, not observed network behavior.
+  Startup routine `FUN_00517DB0`
+  (`ev_8f37740ca6d7be2e21865e5cc776ed1d4c61e362be492871fcb22a9afe0b6ff8`)
+  reads primary and optional secondary IPv4 values from `localip.txt`, matches
+  the primary address against the in-memory server table at `0x00B7C330` (the
+  failure message names `ServerList.txt`), and selects the destination string
+  at `0x05145578`. On a match it sets the DB port to `0x1D5A` (7514) and calls
+  `0x4D5EC0` with that destination, port, bind address, and async event `0x402`.
+  Thus the endpoint is selected from deployment configuration rather than
+  encoded as one universal IP in this startup path; the actual configuration
+  and a successful connection were not observed. The same routine zeroes both
+  `0x061802B0` and `0x061602B0` for `0x20000` bytes each, so these in-memory
+  ID maps start empty on this initialization path.
+  `FUN_00555600` pseudocode
+  (`ev_67bb30fa8f3f36f9aa6281b925c06c26a87756a24bec767bc6b0205675daf9dc`)
+  contains guild-result update handling that writes a 32-bit value at the
+  fame-field offset (`+0x38`) for one indexed record on type `1`, and clears
+  that field across active records on type `4`. The bulk path scans the
+  16-by-4096 record table and checks both a nonzero guild ID and a nonempty
+  name before clearing. This confirms a packet-handler mutation/reset path,
+  but does not identify a weekly schedule; durable writes by the corresponding
+  `DBSRVIN.exe` receiver are traced below. The saved
+  `FUN_00518790` procedure
+  (`ev_804c037ce971e4be2857e3cd2c15df659ff91466a787087456148bf43327fad3`)
+  calls `FUN_00555600` for non-error buffers returned by `0x4D6810` inside its
+  `readdb`/reconnect receive loop. This establishes a receive-side caller for
+  the handler. The callback has distinct player-socket and DB-socket branches:
+  player events in `0x9000..0xA000` select a slot record at
+  `0x061AAAD8 + slot * 0xFC8`, receive and parse packets, and dispatch valid
+  commands to `FUN_00519CA0`; DB message `0x402` receives and parses on the fixed
+  object `0x06584FF8`, then sends accepted payloads to `FUN_00555600`. At the
+  six DB call-setup sites (`0x518CD7`, `0x518DAC`, `0x518E36`, `0x518E71`,
+  `0x518ECA`, and `0x518F63`), the decoded instruction loads `ECX` with
+  `0x06584FF8`; the corresponding instruction evidence IDs are
+  `ev_b7d168cabf046190bc2f3c256ac08d72929afb30559261976b79a9d9e89cc272`,
+  `ev_71157da0f26f4588c4abf96e82bb0654a4f037ae7cbdc2a809f954bb08e63af3`,
+  `ev_62483e598925570522622cb84249c0a90592bb25c76e61da1e7ce39c90eb9cec`,
+  `ev_f5969d722da46ccbd35f68b23fd1eab9b2791be5090d59f3475f81c35f252030`,
+  `ev_a307330cc0029442844aadfc35c1fc0e6823d132ce581cbf707584f399f6f2d2`, and
+  `ev_065a60c05f82ed878bd7dc8ca7ea11d665270dc0a8833aaa9eb81952b8d98379`.
+  This corrects the earlier reading: the parser call at `0x518F63` uses the
+  fixed DB object, not a per-player slot object. The traced Core.dll send caller
+  also supplies `0x06584FF8` to `FUN_004D7850`, so that Core.dll send call and
+  the DB receive path pass the same object address. Startup now resolves the
+  endpoint source and port statically, but the concrete IP remains dependent on
+  the external configuration. The matching `DBSRVIN.exe` opcode/operation
+  handler is traced below, but this call-graph relationship does not prove
+  actual packet delivery or successful runtime processing.
+  `FUN_00512800` pseudocode
+  (`ev_51a5d7ce3cfaf5669d7cf0abe1a673afc1c7c19442c9b998709e161121977b86`)
+  shows the city-war challenge entry path referenced at `0x512967`, `0x512A78`,
+  and `0x512B31`. It reads the applicant guild's current fame from the shared
+  table at `0x4D7F1A8`, not a player-supplied bid amount. Its conditional
+  admission checks include a 100-fame floor in the `local_24 == DAT_006472F4+1`
+  branch only when the city's `local_6C` value is nonzero, and a 1,000-fame
+  floor in the other branch; these are not one universal minimum. The procedure
+  compares current fame against city-indexed values at `0x4D7E258` and, in one
+  path, `0x4D7E26C`. On acceptance it stores the guild ID in `DAT_0063A064`,
+  stores the current fame in one of two city-indexed slots at `0x4D7E258`, emits
+  the `gld,ChallangeGuild` log, sends response `0x1E`, and invokes three update
+  helpers. In the `local_6C != 0` path it calls
+  `FUN_00588340(guild_id, -100)` before the later slot comparison; this caller
+  shows no refund path if that comparison rejects the bid.
+  `FUN_00588340` pseudocode
+  (`ev_e29688a857e436196fc6a3749dd9986dd07ea469199bf71331cdd85e7f5506dd`)
+  confirms that the `-100` delta subtracts 100 from guild fame, clamped at zero.
+  The helper writes the shared fame table, logs the resulting value, sends the
+  24-byte `0xC17` guild-fame update, and scans ten records for the guild to
+  conditionally send a 28-byte `0xC23` update when its record field is 7 or 8.
+   A separate TMSRVIN war-state path links `FUN_00567780`
+   (`ev_26b0f4fd519bc3be4a4c139eca8bb2a6ce5eb4e1c677d55c3efa37f8326abe7f`)
+   to the guild-summon helper `FUN_005656F0`
+   (`ev_abd290d09cea0147f93f4ef3289917bba95902aa357339192c94a7751f5485fc`).
+   In one state-transition branch, `FUN_00567780` iterates indices 0 through 4
+   while excluding index 4, and calls the helper from two loops with per-entry
+   values and coordinates read from global tables. The first loop requires two
+   corresponding values to be nonzero; the second requires one. Both pass
+   `0x1A` as the helper's fourth argument and the index (0 through 3) as its
+   fifth. The helper scans up to 1,000 player slots and applies state,
+   connection, matching-field, and additional partition/eligibility checks; it
+   then processes its local candidate list up to the caller-supplied limit
+   (26 in these war calls). For each selected slot it calls
+   `FUN_00575450(slot, x, y, 0)`, emits a `sys,guild war summon` message, and
+   publishes it on the system channel. This is a recovered static path, not
+   proof that the transition ran or that players were moved at runtime.
+   The newly decompiled `FUN_0056C360`
+   (`ev_58f11a31eb7f42d50698cae88c721ea472334c07b0c849b11a157b1ba34e4295`;
+   saved in `build/rea-analysis/work/TMSRVIN-war-followup.rea-snapshot.json`)
+   opens `Chall.txt` in text-write mode (`"wt"`), logs if the open fails, and
+   otherwise writes five `"%d %d\n"` rows from the global arrays at
+   `0x4D7E258` and `0x4D7E26C`, then closes the file. Ghidra xrefs identify
+   references to its thunk at `0x512F2B`, `0x53D4B4`, and `0x568903`
+   (`ev_8a62bfabddee671b4ac59736a107789433a780e2b0100af660604db20c6a77ae`).
+   The `0x568903` site is recorded as an unconditional call from
+   `FUN_00567780` in its function dossier
+   (`ev_26b0f4fd519bc3be4a4c139eca8bb2a6ce5eb4e1c677d55c3efa37f8326abe7f`).
+   Direct instruction evidence confirms `0x53D4B4` is `CALL 0x4B12EE`, but
+   Ghidra reports no containing procedure for that address
+   (`ev_27d4d3d78f6a1666195992ee4056f48f29178408120a35edfe83960836581f43`).
+   The `0x512F2B` reference lies within the already mapped challenge routine
+   `FUN_00512800`; the function pseudocode independently shows a call to
+   `thunk_FUN_0056C360` on the accepted-bid branch, resolving this reference as
+   a call despite the xrefs projection not exposing its kind.
+   Therefore the writer is statically linked to the challenge path and to
+   `FUN_00567780`. The supplied TMSRVIN C listing places the block containing
+   `0x53D4B4` under `sub_519CA0` (`references/decompilacao server/descompilacao
+   tmsrv 7.59/TMSRVIN/TMSRVIN.c:61308-61357`): after city/challenge eligibility
+   checks it decrements or clears the challenge item and sends the updated item
+   slot, calls `sub_4B14F1(village)`, stores a value in `dword_63A064`, clears
+   the corresponding `dword_4D7E258` challenge entry, writes a challenge log,
+   sends client message ID `140`, then calls the `Chall.txt` writer thunk and
+   two helpers at `0x4B27B1` and `0x4B2757`. Ghidra still reports no containing
+   procedure for `0x53D4B4`; the saved `FUN_00519CA0` body has noncontiguous
+   ranges and omits this address, despite including the common epilogue at
+   `0x5548F5` (`ev_27d4d3d78f6a1666195992ee4056f48f29178408120a35edfe83960836581f43`,
+   `ev_14da12a13766379cd884793af6559aec2b578801bd04e37e5a379430c55fb1a8`).
+   Thus the listing associates the block with `sub_519CA0` and clarifies the
+   callsite's challenge-settlement role, but Ghidra does not establish function
+   ownership. This is static listing/code-reference evidence only, not proof
+   of successful file writes, runtime scheduling, or delivery.
+   The same accepted-bid branch then calls `thunk_FUN_00512580` before
+   `thunk_FUN_0050CB80` (`FUN_00512800` evidence above). Its thunk resolves to
+   the newly analyzed body `FUN_00512580`
+   (`ev_8f46c3d178defaae33fff743cfcc5d47b1684830391e569d8f5453e65adba4f8`,
+   saved in `build/rea-analysis/results/TMSRVIN-city-war-helper-512580-20261021.json`).
+   This helper opens `Guild.txt` in text-write mode (`"wt"`); on failure it
+   logs `err,Writing Guild error - can't open Guild.txt(Local)` on the system
+   channel. On success it performs six five-entry formatted-output loops over
+   global arrays and one ten-entry loop over another global table, then closes
+   the file. The decompiler's wide format literals are garbled, so the exact
+   row format and data semantics remain unknown. This statically links the
+   `Guild.txt` writer to the accepted challenge path; it does not prove a
+    successful write or runtime persistence.
+    The separate call at `0x53D404` resolves through thunk `0x4B14F1` to the
+    newly analyzed `FUN_0050BCC0`
+    (`ev_de1215efc04601350044a779124be592144fe7fb333120506d36536bd3c97a3e`,
+    saved in `build/rea-analysis/work/TMSRVIN-0x50BCC0-20261021.rea-snapshot.json`).
+    That 65-byte body sets `byte_61AA207 |= 1 << (village & 0x1f)`; the adjacent
+    `sub_50BC70` listing tests the same city-indexed bit. This confirms a
+    per-index flag mutation on the accepted challenge path, but its lifecycle
+    and role in later war resolution are still unknown. Do not confuse this
+    call with `0x53D4B4`, which is the separate `Chall.txt` writer call above.
+  Six newly analyzed bodies add the following city/tower-war lifecycle detail;
+  all use the verified `TMSRVIN.exe` input SHA-256 in the scope table above:
+  - `FUN_005122B0` (`0x5122B0..0x512579`,
+    `ev_082ec93f4c955a1ed0ed2ee5545074cd5dd8ceb45bb9ff18910f6b229f6f8f7b`,
+    `build/rea-analysis/results/TMSRVIN-guild-state-loader-005122B0-REA-evidence-20261021.json`)
+    reads `Guild.txt` and initializes five guild-war slots, including owner and
+    challenger values, zone fields, types, and result counters. The body also
+    contains file-open and zero-counter error handling. This establishes a
+    static file-backed state-load path, not successful runtime loading.
+  - `FUN_00566D60` (`0x566D60..0x567639` and `0x56763F..0x567734`,
+    `ev_f100ca23ec30715d4d81ddbe3f6fecf1d418739f6c423d753c307fd8ab90e228`,
+    `build/rea-analysis/results/TMSRVIN-guild-war-settlement-00566D60-REA-evidence-20261021.json`)
+    processes active mode-22 guild-war participants, selects a winner, updates
+    ownership, resets challenger/result state, emits guild-result messages,
+    adjusts guild fame through `FUN_00588340`, updates world state, and invokes
+    the mapped `FUN_00512580` `Guild.txt` writer. The analyzed body has a
+    five-byte gap between its recovered ranges. A focused Ghidra xref query for
+    thunk `0x4B19F6` (`ev_71e87bc0477d9ed901a29c2f25389b3f442e254c8c0708f4d3cedc36501df12f`,
+    `build/rea-analysis/work/TMSRVIN-war-settlement-thunk-xrefs-20261021.rea-snapshot.json`)
+    returns caller address `0x5688F4`. The `FUN_00567780` body dossier records an
+    unconditional call there to the thunk, which resolves to this settlement
+    body. The supplied TMSRVIN C listing associates that block with
+    `WeekMode == 3` and the configured `GuildDay`/hour/minute guard, or the
+    `dword_64737C == 4` override
+    (`references/decompilacao server/descompilacao tmsrv 7.59/TMSRVIN/TMSRVIN.c:72644-72655`).
+    This locates a static settlement trigger inside the state machine; it does
+    not establish what invokes `FUN_00567780` or prove runtime execution.
+  - `FUN_0056C230` (`0x56C230..0x56C29A`,
+    `ev_ea5f613e6c9144d92b32b0694b778d97d08f3b111cfe1df66b53fe197e350ff3`,
+    `build/rea-analysis/results/TMSRVIN-challenge-reset-0056C230-REA-evidence-20261021.json`)
+    clears the five challenge/bid slots, challenger IDs, and bid values.
+  - `FUN_0056C2A0` (`0x56C2A0..0x56C354`,
+    `ev_1769daa624e22c19df1982f67982ae25fc02844f615643d942dbc1d4f445f7fc`,
+    `build/rea-analysis/results/TMSRVIN-challenge-loader-0056C2A0-REA-evidence-20261021.json`)
+    calls that reset helper, then reads five challenge rows from `Chall.txt`;
+    its file-open failure path logs an error. This complements the already
+    mapped writer `FUN_0056C360`, but does not prove persistence succeeds.
+  - `FUN_0057DDE0` (`0x57DDE0..0x57DF25`,
+    `ev_67e78bde50764395b6f25ddd0555166ab992fa9bb4dd90c0f10a43b368f060ce`,
+    `build/rea-analysis/results/TMSRVIN-mantle-zone-score-0057DDE0-REA-evidence-20261021.json`)
+    totals red/blue mantle-zone values across the five war slots and sends a
+    16-byte status update via the mapped `0x4D7850` transport helper. Opcode
+    field `0x80A` is observed; its exact external meaning remains unresolved.
+  - `FUN_005778D0` (`0x5778D0..0x577B8C`,
+    `ev_5f54f53a8c85744615212020f912159bddb30df8098e1f9854d76642385da08a`,
+    `build/rea-analysis/results/TMSRVIN-war-state-broadcast-005778D0-REA-evidence-20261021.json`)
+    synchronizes war ownership/result values into world/grid objects, uses
+    object IDs `3145 + result`, and multicasts 32-byte updates through
+    `GridMulticast` at `0x503FF0`. Interpreting these records as specific NPC
+    types is not proven.
+  Earlier xref records for these six bodies mostly exposed import thunks. The
+  new call edge resolves the settlement inside `FUN_00567780`, but the caller or
+  scheduler of that state machine remains unresolved. NPC/packet-entry callers,
+  the complete tower-war schedule, and a reward/medal path also remain open.
+  - The `GridMulticast` body `FUN_00503FF0` (`0x503FF0..0x5043E5`, 1,014 bytes,
+    `ev_cce22edfee441925c834ea18a96dcfb9934c9894811ee8a012401cfce8ae80de`,
+    `build/rea-analysis/results/TMSRVIN-grid-multicast-00503FF0-REA-evidence-20261021.json`)
+    is the implementation behind thunk `0x4B1960` used by the mapped war-state
+    synchronization. It scans nearby grid cells, skips the excluded entity ID,
+    clears cells whose entity records are absent, and for eligible active slots
+    below 1,000 sends the supplied packet through `FUN_004D6F40`. For packet
+    field `0x338`, it first copies three values from the entity record into the
+    packet. Error branches log `grid -2/-3 empty` and invoke slot cleanup. This
+    grounds the caller's grid update in a spatial scan/send path, but does not
+    identify the game-object types represented by the records or resolve the
+    war scheduler/reward gaps above.
+   Xrefs for the `0x4B290A` thunk resolve to `0x4E9E69`, `0x5687A6`, and
+   `0x56882D`; the latter two are callsites in `FUN_00567780`, while the thunk
+   itself adds no unique procedure body
+   (`ev_b228d7b1381ff4ece7d83312d4ce9988eb78774c16d34c128448657686f3e9ea`).
+   The `0x4E9E69` reference lies in the already mapped
+   `FUN_004E6B90` dispatcher
+   (`ev_cd5ed21a2b48f8713162982982a56367103a7702175952d63d9dc249f21c9b6b`):
+   its `gsummon` branch calls the same helper with `0x27` as argument four and
+   `-1` as argument five. Since candidate enrollment in `FUN_005656F0` is
+   guarded by `-1 < param_5 < 4`, this call appears to leave the candidate list
+   empty and perform no relocations. Treat this as a static inconsistency and
+   likely no-op, not a runtime-confirmed failure.
+  `FUN_004F6D60` pseudocode
+  (`ev_4673820710a1fafc9398adcabe2f8e7446285e51bc0896b410a864b4e5db4f0e`)
+  has a `case 0x32` inventory exchange. For a guild member, it scans the
+  inventory for item IDs `0x0FAA` or `0x0FAB`, removes one matching item, and
+  credits the guild fame table by 1,000 or 10,000 respectively through
+  `FUN_00588340`. Its guard permits the exchange only while the pre-credit
+  fame is below 1,000,001; it does not clamp the post-credit value, so the
+  resulting fame can exceed that threshold. No gold payment is visible in this
+  branch. This is a positive fame source, but its caller/UI identity and
+  runtime reachability are not established.
+  `FUN_0057BDF0` pseudocode
+  (`ev_8a6c5acd9338588270b107be726a58d5806d1373a7692d4bcf8005170e08b5de`)
+  runs in the character-load path. For a guild found in the ten-record guild
+  table, it reads fame and selects one of several inventory item/effect
+  constants when fame exceeds 1,000, with boundaries at 1,500, 3,000, 5,000,
+  8,000, and 11,000. It inserts the selected payload into an available
+  character inventory slot. The exact player-facing meaning of that payload
+  is unresolved; this is not evidence of fame persistence or weekly reset.
+  `FUN_0050CB80` pseudocode
+  (`ev_704c15724cff64e60f7d2e8169a66e170e1924a58c548c2b80da7b4634d4577f`)
+  copies five city-war board entries and sends a `0x80D` packet. It reads the
+  guild's fame and status to prepare a `0xC23` update when the guild entry is
+  nonzero, but the loaded fame local is not used in that packet and this
+  routine does not mutate fame.
+  The `0x51AB18` access in `FUN_00519CA0` reads guild fame as a gate: the path
+  requires at least 500 fame and at least 10,000,000 player gold, then deducts
+  the gold and sends a 20-byte response. It does not write fame. The exact
+  command purpose is not established, so this is not evidence of a city-war
+  fee.
+  Instruction-level decoding classifies the five references for which Ghidra
+  supplied no containing procedure name:
+  - `0x52590B` reads fame and formats a `"Challange, %s:%d"` log entry.
+  - `0x53D2B5` reads fame and later includes it in the
+    `"gld,Cash - ChallangeGuild %s (%d %d %d)"` city-war challenge log.
+  - `0x54C2E5` is in the text-command branch matching `getout`. If the
+    player's state byte is `9`, it clears the fame value for the packed guild
+    ID and emits a `0xC17` fame update with value zero, followed by a companion
+    update. This is a conditional command-path reset, not evidence of a weekly
+    timer; the semantic meaning of state `9` is unresolved.
+  - `0x54E93C` and `0x54E9F9` read fame into two formatted guild-list rows and
+    send response opcode `0x216`; neither is a mutation.
+  The same command dispatcher contains the literal administrative command
+  `resetguildfame` at `0x4EA22F`. Its branch emits a 24-byte `0xC17` packet
+  with guild ID zero, type `4`, and fame zero. This matches the separate
+  `FUN_00555600` type-4 handler's bulk clearing of fame fields for active guild
+  records. The recovered command branch sends this packet through
+  `0x4D7850`; it does not directly store to the shared fame table or directly
+  call `FUN_00555600`.
+  `DBSRVIN.exe!FUN_00471210`
+  (`ev_c6090371cfada3010c88e82829cc7e1ee0f92569b77c01f96fd80c819777d5af`)
+  contains a matching `case 0xC17`. For operation type `1`, packet offsets
+  `+0x0C`, `+0x10`, and `+0x14` carry the packed guild index, operation type,
+  and new fame value. After validating the packed index, the handler writes the
+  value into the selected in-memory guild record at `+0x38`, then copies the
+  full `0x3C`-byte record and calls `FUN_0047BA20`. No visible range check is
+  applied to the new fame value. An invalid index logs
+  `err,UPDATE GUILD guild index error %d` and skips the mutation. A persistence
+  failure logs `err,guild update fail` and exits without rolling back the
+  already-mutated in-memory value. On success, the handler broadcasts the
+  updated 24-byte packet through `FUN_004847A0` to active server slots; when
+  `0x02735B78` is active it also constructs and sends a `0x1EC`-byte message.
+  The outer handler returns `1` on both common and error exits, so that return
+  value is not a success signal. For operation type `4`, it scans the
+  16-by-4096 guild table, skips inactive/empty records, clears each active
+  record's fame field at `+0x38`, and calls `FUN_0047BA20` for that record. A
+  failed helper call is logged and aborts the bulk path.
+  `DBSRVIN.exe!FUN_0047BA20`
+  (`ev_70fca9fa128b52fef4c923d83535e793360aaf6bf6bf8821a84f7ff32a15b7de`)
+  formats the process-relative path `./guild/%d.bin` from the guild record ID,
+  opens the file, seeks to offset zero, and writes the complete `0x3C`-byte
+  record, including the fame field. Its successful path closes the file and
+  returns success; error paths log failures. The helper checks for `-1` from
+  `open`, `lseek`, and `write`, but it does not detect short writes or close the
+  descriptor after a seek/write failure. Static code does not establish runtime
+  success or the deployed working directory. Thus the administrative packet's opcode and
+  operation now have a statically matched recipient and file-backed persistence
+  path, while actual network delivery/acceptance remains unobserved. No weekly
+  trigger is established.
+  A separate `DBSRVIN.exe!FUN_004900F0` dossier
+  (`ev_1cb587424b0cdcae6374ab0769a6eca8c4446a3cd9f4aa30363f34b65fd27680`,
+  input SHA-256 `3adb3a1704df4910604f0b862d69d963f4e1a017efe5743a23e6f07ad1ecf736`)
+  scans `./account/%s/*.*` and iterates four indexed character slots. In that
+  per-character export loop it emits `FAME,%s,%d,...` keyed by the indexed name,
+  alongside `GUILD`/`GMASTER` rows. This is evidence of a character/account
+  export field, not evidence that the row is guild fame. The dossier has no
+  resolved callers, so it does not establish when this exporter runs. Guild
+  fame remains the distinct `+0x38` field of `./guild/%d.bin` cleared by the
+  `0xC17` type-4 path above. The string xref is recorded as
+  `ev_86cdeefafb331fabea9729e50f7032a88bd1585d957698301a68e1795a23b0a0`.
+  Together the examined paths establish local fame mutation, notifications,
+  a positive item-exchange source, a fame-derived login payload, a conditional
+  local `getout` reset, an administrative reset packet with a matching
+  `DBSRVIN` file-write path, city-war logging, and fame-dependent list output.
+  They do not establish a weekly scheduler or successful runtime execution.
+  The shared `Core.dll` table setter itself still has no direct file/database
+  write. A 12-address
+  pseudocode batch timed out after 600 seconds; isolating `FUN_00555600`
+  succeeded in 208.9 seconds.
 - `Core.dll!0x10030170`
   (`ev_2b8f77779bde69d05f12dc1ff92a470211119e24fef9bc33639ea16250a68e72`)
   builds the `../../WYD_DB/FileConfig/%s.txt` path, checks for the file, opens
@@ -864,6 +1684,219 @@ More detail on the Rune Track settlement comparison is in
   `hour-1`) to announce the event five minutes ahead, corroborating the
   `tm_sec`, `tm_min`, `tm_hour` ordering used for the `LastServerBoss` gate.
 
+## TMSRVIN.exe: opcode 0x36C packet construction
+
+- `FUN_004DEB60` (`ev_3f00abc10c3c9171cc179da2c0118ee816eacfafa190982f9bb87843a3362d35`,
+  input SHA-256 `27ee313bb4b4d4a0d897dac9a188d8249068ce701311cbda1e24ad28c5e43642`)
+  constructs a 0x34-byte packet with length `0x34`, opcode `0x36C`, and a
+  16-bit player-slot field. It also copies a global DWORD, reads two 16-bit
+  values from the slot-indexed table at stride `0x928`, and writes constants
+  into fields at offsets `+0x10`, `+0x14`, and `+0x18`. It also copies the
+  low 16 bits of two parameters to offsets `+0x30` and `+0x32`; the remaining
+  packet fields are not semantically resolved. The thunk at `0x004B16EA`
+  (`ev_78c49989b3d8e8640e3b73df01d0ddd2b00ae0f87d61dc120ba9ba511916beff`)
+  resolves directly to this body.
+- Ghidra reports 16 static calls to that thunk: ten occur in seven recognized
+  procedures (`FUN_005029F0`, `FUN_00572640`, `FUN_00572AE0`, `FUN_00575450`,
+  `FUN_005755E0`, `FUN_00581250`, and `FUN_005818A0`); six callsites have no
+  containing procedure assigned. The six addresses are outside the recovered
+  body ranges of `FUN_00519CA0`, so they do not establish callers in that
+  dispatcher.
+- `FUN_005029F0` (`ev_da820883b3ad66c22532dfda13b41f43f181e0fd1415f5fe3126eab08a0df910`)
+  reads the same two slot-indexed values, passes them and the slot to
+  `FUN_004DEB60`, then calls `FUN_004D7850(buffer, 0x34)` when the slot is below
+  1,000. REA's xrefs query returned no direct references to `FUN_005029F0`
+  (`ev_6f6821eeecf61f2ac503170e4734db4f2bafdc9815fd822da8daf9ba744b99b8`),
+  so its upstream trigger is not established.
+- `FUN_00581250` (`ev_d4bcd61cf77fd0fbecbb880f531670e46000aa112cd8351455bbe0b1cf623361`,
+  body `0x581250..0x581874`) calls `FUN_004DEB60` at `0x5815AE` and `0x5817A5`
+  in two state-processing branches, then passes each constructed buffer to
+  `FUN_00503360`. Its error format mentions a mob whose HP is zero, but this
+  does not identify the `0x36C` packet's application-level meaning.
+- `FUN_00575450` (`ev_859aab1765a7b4e9b8b9716c1a0addd3c5da2c1c47056a1a28e139eca11722c5`,
+  body `0x575450..0x5755BC`) resolves coordinates through `FUN_004E0740` or
+  `FUN_004E0310`, then constructs the `0x36C` packet. For entity slots below
+  1,000 it calls `FUN_004D6F40` directly, then calls `FUN_00503360` to update
+  the grid and process neighboring entities. In this caller, the sequence is
+  consistent with a position/grid update; it does not establish that every
+  `0x36C` callsite has the same purpose.
+- `FUN_005755E0` (`ev_9bd63e6a6a8ef2e095f2d8ca598c23967f3f7be9abc3836999ad1c1c98d2926d`,
+  body `0x5755E0..0x5756D0`) resolves coordinates with `FUN_004E0740`, builds
+  the `0x36C` packet through `FUN_004DEB60`, and calls `FUN_004D6F40` for slots
+  below 1,000. It then updates the grid through `FUN_00503360` and calls
+  `FUN_004CE1C0` and `FUN_00504ED0`. This supports another spatial/entity
+  update path, not city-war or Tower-War semantics.
+- `FUN_005818A0` (`ev_b2b48d629a243d3287f3a18b99f9a0cb7381bdae84e3ae830e8561551b5b2bbb`,
+  body `0x5818A0..0x582159`) contains three branches that construct the `0x36C`
+  packet from slot-indexed coordinate fields and pass it to `FUN_00503360`.
+  Its diagnostic string identifies a `battleprocessor` path, placing this
+  caller in battle processing; the evidence does not distinguish ordinary
+  combat from city war or Tower War.
+- `FUN_00580F30` (`ev_e5e88c03280e4d2755c0cf6f1c7f2dc57a2d71537f2ba4cb6e00d5c649cb0b29`,
+  body `0x580F30..0x58124F`) iterates entity records in modulo-based batches.
+  Records whose state field is `4` are passed to `FUN_00581250`; records whose
+  state field is `5` are passed through the jump thunk at `0x004B17BC` to
+  `FUN_005818A0`. Instruction evidence resolves that stub as a five-byte
+  unconditional `JMP 0x005818A0` and shows callsites at `0x5810F5` and
+  `0x581162` (`ev_5ad701820d6b3fe76478d6b788b6e605e5122acaa1aeaf6d8d4da4d17d1ecbcc`).
+  This locates the latter in a shared entity-state processing path, not
+  specifically in a city-war or Tower-War dispatcher.
+- `FUN_00503360`'s earlier dossier
+  (`ev_6df810e4d612c89bbec1b4cefbd0acf040b60505f5d9a49eb785856fcf2a5710`)
+  established grid occupancy and neighboring-entity processing. The follow-up
+  dossier (`ev_a0d8bc8dcf594779e766707b55d9eff61f64993b9211e77f09191efcb2bada72`)
+  shows it forwarding the supplied packet pointer and its length field to
+  `FUN_004D6F40` for in-grid player slots below 1,000. `FUN_004D6F40` is already
+  traced to `FUN_004D7140` and `FUN_004D7570`, which frame the packet and reach
+  Winsock `send` (`ev_c4ccf051dede1b4fdb2b52a17abcb0d85eba4bd1601be3914e488a7b493fcec0`,
+  `ev_0d35d62d7da40eb4b42418f06a9a6e6a49b7d267e87c43249ee40212fc0db15e`,
+  `ev_73013d7395f16620ba667a3581bd4809445dbcc948f33c59471083cdee5992ae`).
+  Together, these static paths support an outbound spatial-multicast send
+  attempt for the constructed `0x36C` packet; they do not prove runtime delivery
+  or establish city war, Tower War, fame, or reward semantics.
+- `Core.dll!FUN_100248E0` separately compares against opcode `0x36C` in its
+  recovered packet-gate list (`ev_09753ead2133c462bb1a7130127ff5ff42f955bacd52939a2fb176706e3b82ac`).
+  This overlap does not identify the packet's feature: the available evidence
+  does not connect it to city war, Tower War, fame settlement, or a reward.
+  Runtime receipt and the origin of the other six callsites remain unverified.
+
+## TMSRVIN.exe: opcode 0x3AF player-slot message
+
+- The five-byte thunk at `0x004B196A` resolves to `FUN_00505610`
+  (`ev_3f27e903e388eec77632eac361f0ba36eaab811905563d865fbdccc4f3251df4`).
+  The target body (`ev_6bc4d58875867a16e0db11f9ebad322cbd569a292dbdfa14aac0ff48280cadb0`,
+  `0x505610..0x5056FB`) accepts slots 1 through 999 only when the slot state
+  equals `0x16` and a second slot-indexed field is nonzero. It constructs a
+  16-byte message with opcode `0x3AF`, includes the 16-bit slot and a DWORD from
+  the table at `0x07D84AD8 + slot * 0x928`, then calls `FUN_004D6F40`. When that
+  call returns zero, it invokes `FUN_0056A320(slot, 7)`. The opcode's gameplay
+  meaning and any relation to war, fame, or rewards are not established.
+
+## TMSRVIN.exe: keyed packet fan-out
+
+- `FUN_00502250` (`0x502250..0x5022DF`, 144 bytes;
+  `ev_a63768ccf8eec824d259160bfa9b5207afdb30a5a33c7a54eaafbb72c5b4e3f8`,
+  `build/rea-analysis/results/TMSRVIN-function-00502250-REA-evidence-20261021.json`)
+  scans 1,000 slot records. It selects records whose state is `0x16` and whose
+  16-bit field at `0x07D84AD2 + slot * 0x928` equals `param_1`; each match is
+  passed to `FUN_00508270(slot, 0, param_2, param_3)`. The body is reached via
+  thunk `0x4B1DF7`, and its call at `0x5022C2` goes through thunk `0x4B1041`.
+- `FUN_00508270` (`0x508270..0x50840E`, 415 bytes;
+  `ev_b6ee0cbae127e35ba87e5360d7d9c445dc60ec96ee7020f03cacbb5d12a4a2d6`,
+  `build/rea-analysis/results/TMSRVIN-function-00508270-REA-evidence-20261021.json`)
+  validates the slot and payload pointer, then builds a `0x90`-byte packet.
+  The observed header stores `0x90` at offset `+0` and `0x106` at `+4`; these
+  values alone do not establish the protocol meaning of that field. Text copied
+  into the packet is capped at `0x80` bytes. With mode `param_2 == 1`, the
+  helper writes the slot and reads its grid coordinates from the slot table,
+  then calls `FUN_00503FF0` (`GridMulticast`) with excluded ID zero. Otherwise,
+  for slots below 1,000, it calls `FUN_004D6F40` with the packet and size `0x90`;
+  a zero return invokes `FUN_0056A320(slot, 0x14)`. In the currently mapped
+  caller, mode is zero, so each selected slot follows this packet-sender branch.
+- The key's business meaning, the packet field `0x106`, payload semantics,
+  caller identity, and runtime delivery remain unresolved. This is static
+  evidence of a keyed active-slot fan-out path, not proof of a particular
+  feature such as guild, party, or war messaging.
+
+## TMSRVIN.exe: war and ally ID-pair maps
+
+- Startup `FUN_00517DB0` clears both maps (`0x20000` bytes apiece); its saved
+  dossier is `build/rea-analysis/results/TMSRVIN.exe.app-entry.json`
+  (`ev_8f37740ca6d7be2e21865e5cc776ed1d4c61e362be492871fcb22a9afe0b6ff8`).
+  Ghidra xrefs report 26 exact reference sites for `0x061802B0`
+  (`ev_10c818379821b756d81c45b4ae116ec06b6a417801fdd2fb9328a0d1059d0e72`)
+  and 14 for `0x061602B0`
+  (`ev_ec4b06e0bb8c3331bfa43732de7d929587005cbdae383be86cb514a481125745`).
+  The xrefs operation does not expose reference kinds; the role assignments
+  below come from directly analyzed function bodies, not from counts alone.
+- `FUN_00572CF0` (`0x572CF0..0x573141`, 1,101 bytes across two body ranges;
+  `ev_b2fcccade57b13ffcb955f481a7b875a01dca442731fb0c65493d55f0728fc1c`,
+  `build/rea-analysis/results/TMSRVIN-function-from-xref-00573004-REA-evidence-20261021.json`)
+  operates on 16-bit IDs in `0x061802B0`, bounded by `DAT_00647770`. Its
+  embedded `dowar` error strings and state transitions identify this as a war
+  pairing/request map: a request writes `ID A -> ID B` and sends message `0xD2`;
+  a reciprocal request sends `0xD3`, retains the reciprocal entries, and
+  refreshes matching active sessions through `FUN_00506240`. Clearing with a
+  zero target removes both entries and sends `0xD4` when the pair is reciprocal;
+  if it is not reciprocal, it sends `0xDD` and clears only the caller's entry.
+  The clear path also calls `FUN_00588340` for both IDs with `-100` and `100`;
+  the meaning of that adjustment is not established here. These are static
+  control-flow and message-ID observations, not proof of client-visible packet
+  semantics or live war behavior.
+- Ghidra xrefs identify one callsite to thunk `0x4B2559` at `0x556135`
+  (`ev_bb910a34aceeb0f8808c7ef59392fee18c3c5cd2ca423d34216cba9d60731870`).
+  A separate xrefs query finds one reference site, `0x55615F`, to the ally
+  thunk `0x4B277A` (`ev_2f07b8d257b521ff5e516aea26283855007a61b2e6ff91d50656051f1b8f5afd`);
+  the `FUN_00573180` dossier identifies that thunk as its incoming reference.
+  Both sites lie in `FUN_00555600`'s `0x556118..0x55767A` body range, recorded
+  in the saved `0x4B16AE` thunk dossier
+  (`ev_2c3fc6a89a2563c1630dd1767fd961fe660bb2e4eaac629f3d739b4367fcd278`).
+  Direct analysis maps `0x4B2559` to the five-byte thunk for
+  `FUN_00572CF0` (`ev_f73024e66c7f8ad3eb017bb794b3fea8ea26be209db73494f8634a1f843a2b83`),
+  establishing its war-pair target. Direct analysis of `FUN_00555600`
+  (`ev_4824a03512114fbfeb823c7315f97b18d8c0049f4f1acc4f671e48d36885a553`,
+  `build/rea-analysis/results/TMSRVIN-FUN-00555600-REA-evidence-20261021.json`)
+  confirms the callsites: the dispatch guard requires bit `0x400` in the
+  16-bit selector at byte offset `+4` and bounds the 16-bit field at `+6` to
+  999. When the latter field is zero, selector `0xE0E` calls
+  `thunk_FUN_00572CF0(param_1[3], param_1[4])`, while selector `0xE12` calls
+  `thunk_FUN_00573180(param_1[3], param_1[4])`. This establishes distinct
+  server-side routing of the two payload values to the war and ally ID-pair
+  mutators. Their wire-level field names, client interpretation, and the
+  response-code semantics remain unresolved.
+- `FUN_00573180` (`0x573180..0x57340E`, 650 bytes across two body ranges;
+  `ev_8ad0cebb857872ce0f53b5a6eb5ed1d8ea5f17cc9431165ac8d48ebd97e28a65`,
+  `build/rea-analysis/results/TMSRVIN-function-from-xref-0057325A-REA-evidence-20261021.json`)
+  operates on `0x061602B0`; its `doally` error string and operations support
+  identifying this as an ally-ID map. A nonzero target is stored as
+  `ID A -> ID B` when A's slot is empty and emits message `0x11F`; a zero target
+  clears both entries for an existing in-range pair and emits `0x11E`. It scans
+  active sessions for A and calls `FUN_00506240` after the state transition.
+  The exact message payloads, client interpretation, and whether this map
+  represents an accepted alliance or a pending invitation remain unresolved.
+- In the large request dispatcher `FUN_00519CA0`, static instruction evidence
+  shows reciprocal-link checks before emitting response codes: the
+  `0x061602B0` ally map is checked in both directions before a call carrying
+  `0x121`, and the `0x061802B0` war map before one carrying `0xD6`
+  (`ev_14da12a13766379cd884793af6559aec2b578801bd04e37e5a379430c55fb1a8`).
+  This links both maps to request validation, but the response-code and packet
+  meanings remain unresolved.
+- The individual `FUN_00572CF0` and `FUN_00573180` dossiers list their incoming
+  thunk references, while the separate `FUN_00555600` analysis above resolves
+  the caller and dispatch cases. `FUN_00506240` reads the two maps by the slot's
+  16-bit ID: it validates the war-map value by requiring a reverse
+  mapping to the original ID, then passes that value (or zero) and the ally-map
+  value to `FUN_00502700`. The mapped `FUN_00566D60` settlement path calls
+  `FUN_00506240` at `0x56762E`, but that does not make the helper itself a war
+  settlement or reward routine.
+
+- `FUN_00506240` (`0x506240..0x50633A`, 251 bytes;
+  `ev_d61f6cb5cc7177e32615edc9f91922b97b1b4fdb3855775dcd5278e7aa71f7b0`,
+  `build/rea-analysis/results/TMSRVIN-function-00506240-REA-evidence-20261021.json`)
+  reads the 16-bit field at `0x07D84AD2 + slot * 0x928`, the same slot-record
+  field tested by `FUN_00502250`. It looks up two values in separate tables at
+  `0x061802B0 + key * 2` and `0x061602B0 + key * 2`; the first value is accepted
+  only if a reverse lookup maps it back to the original key. It then calls
+  `FUN_00502700(slot, 30000, 0x3A8, validated_value_or_zero, param_2,
+  second_table_value)` through thunk `0x4B2315`.
+- `FUN_00502700` (`0x502700..0x502792`, 147 bytes;
+  `ev_b8314eaf7065e46f80d252f280402da777ae89787540d60e5b0183fe9948315e`,
+  `build/rea-analysis/results/TMSRVIN-function-00502700-REA-evidence-retry2-20261021.json`)
+  derives a transport context at `0x061AAAD8 + slot * 0xFC8` and passes a
+  24-byte stack buffer to `FUN_004D6F40`. In the mapped caller, the values
+  `0x3A8` and `30000` are written at buffer offsets `+4` and `+6`, while
+  arguments are also written at `+12`, `+16`, and `+20`. The traced sender
+  `FUN_004D7140` (`ev_0d35d62d7da40eb4b42418f06a9a6e6a49b7d267e87c43249ee40212fc0db15e`,
+  `build/rea-analysis/results/TMSRVIN.exe-war-network-method-4d7140-REA-evidence-20261019.json`)
+  constructs the transport header at `+0..+3`, overwrites `+4..+7` with
+  `DAT_061AA0F0`, then transforms bytes from `+4` through the declared length
+  into the connection's output buffer. Thus the caller's `0x3A8` and `30000`
+  do not survive as those payload bytes; offsets `+8..+11` remain the explicit
+  `0xCCCCCCCC` stack-fill sentinel in this builder and are consumed by the
+  sender's transform. This is a suspicious packet construction, but the
+  expected packet schema and runtime effect are unresolved; no defect is
+  claimed from static analysis alone.
+
 ## Limits and next research
 
 - No live server execution or in-game behavior was tested. Do not describe
@@ -883,16 +1916,22 @@ More detail on the Rune Track settlement comparison is in
   the meaning of the caller object's `+0x12` field and the producer for its
   numeric Cash file. The arguments and response flow at `0x10015A9D` are now
   statically traced. The `+readautotrade` trigger at `0x10016FAB` and its
-  `AutoTrade reloaded!` response are also statically recovered. Inspect durable
-  persistence for Tower of Thor fame and the cash/gift worker; the EXE fame
-  base has 22 references, so classify its readers and writers before concluding
-  whether the value is durable. Continue into the post-purchase helper chain
-  only if proving finite-stock mutation is required. The `LastServerBoss` file
+  `AutoTrade reloaded!` response are also statically recovered. The recovered
+  weekly-reset candidate is now bounded: `0x10011A60` has no weekly fame reset,
+  and `0x10030C70` has no direct durable write. The connector's configuration
+  source, port, and event are now statically resolved. `DBSRVIN`'s `0xC17`
+  type-4 receiver and its writer for the full guild record are also statically
+  traced; remaining fame gaps are the weekly trigger and whether the outbound
+  reset packet is actually delivered and processed at runtime.
+  Continue the cash/gift worker's file producer/consumer trace separately. The fame-base
+  xrefs are now classified at instruction level; do not repeat that sweep unless
+  new evidence appears. Continue into the post-purchase helper chain only if
+  proving finite-stock mutation is required. The `LastServerBoss` file
   path is resolved above and should not be re-opened without new evidence. The
   transport path from `0x10030660` to
-  Winsock `send` is statically traced, but the fixed socket's owner/recipient
-  scope and runtime delivery remain unverified. After those bounded paths,
-  map remaining relevant functions in `Core.dll` and the executable.
+  Winsock `send` is statically traced, but the fixed socket's configured
+  endpoint values and runtime delivery remain unverified. After those bounded
+  paths, map remaining relevant functions in `Core.dll` and the executable.
   Any new `0x16E2` protocol claim needs a separate observed transport path.
 
 ## DBSRV: exchange-stone name swap
@@ -909,3 +1948,417 @@ More detail on the Rune Track settlement comparison is in
 - Applied in `wydgo748/internal/game/switch_stones.go`; WYD-Go additionally
   rejects ambiguous stones and guild members, because its guild roster is
   keyed by name.
+
+## DBSRVIN: request dispatcher and time wrappers
+
+- `DBSRVIN.exe!FUN_00471210`
+  (`ev_c6090371cfada3010c88e82829cc7e1ee0f92569b77c01f96fd80c819777d5af`,
+  input SHA-256 `3adb3a1704df4910604f0b862d69d963f4e1a017efe5743a23e6f07ad1ecf736`)
+  is the procedure containing query address `0x4744d9`; that address is not a
+  separate caller function. The procedure has 13 noncontiguous body ranges,
+  38,113 bytes of code, 8,756 captured instructions, and 972 basic blocks. It
+  is a large request dispatcher with character and guild database operations.
+- Within that dispatcher, the `0xE0E` branch logs `guild war request` with two
+  request fields, bounds-checks the first field to `1..65535`, writes a
+  16-bit value from a local calendar-time buffer to a global indexed table,
+  and forwards both request fields to active server slots. The `0xE12` branch
+  logs `guild ally request`, writes a 16-bit value from its local calendar-time
+  buffer to another indexed table, and forwards both fields to active server
+  slots. These labels and forwarding paths do not by themselves identify a
+  city-war or tower-war settlement mechanism, fame accounting, betting rules,
+  persistence, or the meaning of the indexed values.
+- `DBSRVIN.exe!FUN_0047B200`
+  (`ev_09b7e4468d200d635c4c821b7bb7c63720a3093833db5473364aafd238a4d899`,
+  body `0x47B200..0x47B2A1`) builds a 0x14-byte local message, stores its
+  length at offset `+0`, copies `param_3` and `param_2` to offsets `+4` and
+  `+6`, and places `param_4` and `param_5` at `+0xC` and `+0x10`. It passes the
+  message and length to `FUN_004847A0`. No opcode is set in this body, and the
+  available evidence does not connect it to the `0xE0E` branch or establish a
+  war-related meaning.
+- `DBSRVIN.exe!FUN_00470320`
+  (`ev_77f496ad6f68444eda4bb0435edde8a452e3e3c2df065a2c8a038b62f136c6bc`)
+  wraps `__localtime32`. The dispatcher calls it after `FUN_00470360` and uses
+  its returned `EAX` as a pointer to copy nine 32-bit calendar fields, despite
+  the decompiler's `void` signature. This return use is supported by the
+  caller pseudocode; exact CRT type recovery remains imperfect.
+- `DBSRVIN.exe!FUN_00470360`
+  (`ev_d584971bee84225a53c0d162b858fbf85c31b2b2da96d0fa8f43061d123f1738`)
+  wraps `__time32` and is called with the destination passed to that CRT call.
+  Ghidra also types this wrapper as `void`; its output and return semantics
+  should not be inferred beyond the call and the observed dispatcher flow.
+- The `__localtime32` wrapper has two callers, and the `__time32` wrapper has
+  six. The dispatcher branches are static database-server evidence only; no
+  runtime or player-socket path has been established here.
+
+## DBSRVIN: new-account record path
+
+- `DBSRVIN.exe!FUN_0046FBB0`
+  (`ev_4111b75c9c318cc1c5369bab1da7bfb97a320757f493e6b9d0f6bcef833a6114`,
+  input SHA-256 `3adb3a1704df4910604f0b862d69d963f4e1a017efe5743a23e6f07ad1ecf736`)
+  handles the `./Newaccount/%s/%s` path. It uppercases the supplied name,
+  special-cases `COM`/`LPT` followed by one digit, derives a directory
+  component through `FUN_004616A0`, and checks whether the corresponding file
+  can already be opened. The existing-file and special-name paths return
+  without entering the record-initialization branch.
+- On the missing-file branch it initializes an in-memory record and fills
+  defaults according to its sixth parameter. Values 3 and 5 call the
+  `__time32`/`__localtime32` wrappers, copy nine 32-bit fields to a shared
+  calendar buffer, and derive another value from `DAT_0052667C` using offsets
+  `0x23280` or `0x46500`. The function then delegates the record to
+  `FUN_0047C480(buffer, 0, 1)`; the callee behavior is traced below.
+- `DBSRVIN.exe!FUN_0047C480`
+  (`ev_3396365a2d3c47973ef14dda0120152741916d77ffae34ab8cda8e1d85c9a7cf`,
+  input SHA-256 `3adb3a1704df4910604f0b862d69d963f4e1a017efe5743a23e6f07ad1ecf736`)
+  routes its second parameter `0`, `1`, or `2` to `./Newaccount/%s/%s`,
+  `./account/%s/%s`, or `./OLDaccount/%s/%s`, respectively; other values and
+  `COM`/`LPT` plus one digit return without writing. It calls `__time32` and,
+  when the third parameter is nonzero, stores that value at record offset
+  `+0xB8`. It then opens the selected path, seeks to offset zero, and calls
+  `__write` with the record and size `0x1F80` (8,064 bytes). The observed
+  success branch closes the file and returns 1; error branches log and return
+  0. This confirms a static file-write path for the caller's
+  `FUN_0047C480(buffer, 0, 1)` call, not runtime execution or durable-storage
+  guarantees.
+- `DBSRVIN.exe!FUN_004616A0`
+  (`ev_02e35b7d770b4eecdeb67e796e7f38ee6e5040a717027772bc707df285bbcca2`,
+  input SHA-256 `3adb3a1704df4910604f0b862d69d963f4e1a017efe5743a23e6f07ad1ecf736`)
+  is the target of the Ghidra thunk `thunk_FUN_004616A0` at `0x45643C`;
+  `FUN_0046FBB0` and `FUN_0047C480` call that thunk at `0x46FCAC` and
+  `0x47C584`, respectively. It derives the account-directory component from
+  the first byte of the supplied name: ASCII letters are copied as a one-byte prefix;
+  non-ASCII leading bytes are converted to an index using the first two input
+  bytes and compared against 18 thresholds at `DAT_00522AE0`, then select a
+  two-byte prefix from `DAT_00522AB8`. Values outside the accepted multibyte
+  range, or non-ASCII bytes that do not take that path, use `"etc"`. The
+  caller uppercases the name before this helper in the new-account path. This
+  is static function evidence, not proof of filesystem behavior at runtime.
+- A read-only byte query of the table region
+  (`ev_c1f74e67d48495a9f408c7c91ed415a992a9ddfaca06c496b435cfa0f2eca9d4`)
+  resolves the 18 thresholds at `0x522AE0..0x522B24` as little-endian values
+  `171, 291, 432, 560, 646, 773, 902, 1031, 1104, 1237, 1353, 1561, 1696,
+  1770, 1890, 1997, 2103, 2208`. The preceding bytes contain 19 two-byte
+  values at `0x522AB8..0x522ADB`: `A4A1, A4A2, A4A4, A4A7, A4A8, A4A9, A4B1,
+  A4B2, A4B3, A4B5, A4B6, A4B7, A4B8, A4B9, A4BA, A4BB, A4BC, A4BD, A4BE`,
+  followed by `0000`. The helper accepts only computed indices 0 through 17,
+  so the 19th value `A4BE` is not selected by its success branch. When all 18
+  thresholds have been crossed (computed index 18, corresponding to values
+  from 2208 through the accepted upper bound `0x92D`), the helper instead
+  returns `"etc"`. This is a static table/control-flow discrepancy; intent and
+  runtime effect remain unverified.
+- `DBSRVIN.exe!FUN_0048EAE0`
+  (`ev_fd0c854eecce12e39fcfc9a59982d420a34ddc82a4e17e568acdb3ec0a0f1f99`,
+  input SHA-256 `3adb3a1704df4910604f0b862d69d963f4e1a017efe5743a23e6f07ad1ecf736`)
+  is an upstream dispatcher for the account-record path. Its branch for
+  `param_2 == "_A_ _A_"` parses `param_1` with `"%s %s %d %d %d"` and forwards
+  the parsed fields through the call at `0x48EBF8` to
+  `thunk_FUN_0046FBB0` (`ev_ba015f6275baa07e3da239d3957e7f714a84b7e180888bf5bffd3d0944d69e4f`),
+  which resolves to `FUN_0046FBB0`. This statically connects the dispatcher to
+  the new-account path above; whether this command represents account creation
+  or another operation, and whether the path executes at runtime, remain
+  unverified.
+- `DBSRVIN.exe!FUN_0048DB80`
+  (`ev_5381d4efaf35c529dedeb2507582003b46523b2293b4e33bb3e7660d2fb223f1`,
+  body `0x48DB80..0x48DC8B`, 268 bytes,
+  `build/rea-analysis/work/DBSRVIN-account-callee-0048db80-REA-20261021-retry.json`)
+  is reached from `FUN_0048EAE0` through thunk `0x455EB0` in the file-open-error
+  fallback. It formats a timestamped CSV-like line, writes it through
+  `_fprintf` when the log stream is non-null, then displays the same text with
+  `SetWindowTextA`. This is static evidence of a logging/status helper, not
+  successful account persistence or login acceptance.
+
+## DBSRVIN.exe: periodic callback and weekly fame-reset check
+
+- `DBSRVIN.exe!FUN_0048D8E0`
+  (`ev_373ff41b4c6e5127d6ed8fbcbc5c4d8602a641a33741716a4a2c54037b49c51b`,
+  `build/rea-analysis/results/DBSRVIN-weekly-reset-timer-0048D8E0-REA-20261021.json`)
+  increments `DAT_027355AC` each time it runs. Every `0x78` counter cycles it
+  calls the mapped `FUN_0048F410` item-file importer. On multiples of `0x1E`,
+  it calls `FUN_00487E50`; the argument is `0` at multiples of 600 and `1`
+  otherwise. The mapped `FUN_00487E50` builds the online-player snapshot and
+  sends opcode `0x300E`. A thunk xref query
+  (`ev_a9ae1e67011566cbe8dda1e2e0a2cd9b8f995cc25ce93ff1ae0d49fd681ced16`,
+  `build/rea-analysis/results/DBSRVIN-weekly-reset-timer-thunk-0045514A-xrefs-REA-20261021.json`)
+  locates a caller at `0x489E1C`, inside the already mapped
+  `FUN_00489D50` window-message/socket handler. The timer's cadence in wall-clock
+  time is not established, and its 600-cycle branch is online-list maintenance,
+  not a weekly guild-fame reset. This rules out this callback as the reset
+  mechanism; the weekly reset trigger elsewhere remains unresolved.
+
+## DBWYD.dll: attach, process discovery, and server patch flow
+
+- Input SHA-256 for all records below:
+  `58f41da172228dc007d02b620d15b791e36344f7b559002cac0bd66521384d85`.
+- `DBWYD.dll!entry` at `0x100022BB`
+  (`ev_e0f77b330e3a8f48767b64bc69ae9948e0b4e4b8ca96acd4b703bfd0b1d449da`)
+  is an x86 three-parameter stdcall entry. When its second parameter equals 1,
+  it initializes the security cookie, then forwards all parameters to
+  `FUN_1000217B`; it returns with `RET 0xC`.
+- `FUN_1000217B`
+  (`ev_02367e2ebf74f6ef9c35d561c1b2fb9a54554677496c689895f53ea31e964112`)
+  performs the CRT/raw DLL attach and detach dispatch and calls
+  `FUN_10001700`. On attach (`param_2 == 1`), `FUN_10001700`
+  (`ev_a10ed87358f86722c4e7d4f7789aded7689549fe40d28fda1dea94a63a4541b3`)
+  temporarily changes protection for `0x401000..0x5FFFFF`, disables thread
+  attach notifications, and enters its initialization path. A separate error
+  branch calls `FUN_10001890`
+  (`ev_8c8c196cdc91587a19adfef82cdbff369255841d3fff322385cbc3cdb0e633a7`),
+  which displays `DB ERROR!` / `Error: DBWYD.dll`. These are static branches,
+  not observed runtime outcomes.
+- `FUN_10001000`
+  (`ev_b2c7e8fb0e8ec3ba2aba9cb916a754fa56b58a944a141f538780a22cb154d075`)
+  allocates a console, redirects stdout to `CONOUT$`, enumerates process IDs,
+  and calls `FUN_10001180(pid, "DBSRVIN.exe")` for each. The process helper
+  (`ev_f41c8fe4c7a18d54b31af5c2d6cd39c8ff4394793e9ce35fb2e4197009496714`)
+  opens each PID with access mask `0x410`, obtains the first enumerated module,
+  compares its base name case-insensitively with `DBSRVIN.exe`, and, on a match,
+  stores `module_base + 0x55000` in `DAT_1004DC08`. This establishes the intended
+  host process name and computed base; it does not establish that a live
+  process was found during this analysis. The decompiled `FUN_10001000`
+  returns a low byte of 1 on both visible branches, so that return value alone
+  is not evidence that process enumeration or patching succeeded.
+- A follow-up checked the separately alleged target `0x432FCF` against both
+  analyzed `DBSRVIN.exe` images. Neither image has initialized bytes or a file
+  offset there; in the primary image the address is in the uninitialized
+  `.textbss` block (`0x401000..0x454C01`), so no containing procedure or code
+  flow can be recovered at that address. The DLL's process helper first adds
+  `0x55000` to the module base, and the setup then adds `0x32FCF`, resolving
+  the supplied images' actual computed hook to `0x487FCF`. Therefore
+  `0x432FCF` is not a file-backed inline-patch target in either analyzed image;
+  this conclusion is limited to those artifacts and does not establish runtime
+  patch success (`ev_ad912c72b6d03202bdb2b0db110db919fe010aa4237a46860404ce93d3c281e8`,
+  `ev_accaa16bf1591f2390172240b1e0fc44a5b4bacc7186a3e257e27ea47dcf1379`,
+  `ev_8a4669c68632db2d9065c8fb6abc971aac7a06fc8c9816ad963ba8e00b291ac8`,
+  `ev_f41c8fe4c7a18d54b31af5c2d6cd39c8ff4394793e9ce35fb2e4197009496714`,
+  `ev_b2c7e8fb0e8ec3ba2aba9cb916a754fa56b58a944a141f538780a22cb154d075`).
+- `FUN_10001390`
+  (`ev_60782910cc8e72566387ba6b673501136029e76fd40ac059640437115ab2c437`)
+  temporarily applies `VirtualProtect`, writes one byte, then restores the
+  prior protection. `FUN_100013D0`
+  (`ev_a9f88114b136d24dedc1e77f20c59c35aef9d985663c305d2361a84270b25ea6`)
+  does the same for one DWORD. These helpers are used on fixed addresses in
+  the server image. The direct setup calls write byte `0x90` at
+  `0x48A839`, `0x48A83A`, `0x48A84E`, `0x48A84F`, and `0x48F441`, and byte
+  `0x3F` at `0x48CC84`.
+- A targeted patch-writer audit accounts for all ten direct `DBWYD.dll`
+  references to its `VirtualProtect` import and confirms two two-byte NOP
+  patches in `DBSRVIN.exe!FUN_00489D50`: original `EB A8` at
+  `0x48A839..0x48A83A` and original `75 0E` at `0x48A84E..0x48A84F` are each
+  replaced with `90 90`. Both writes are made through `FUN_10001390` from the
+  startup writer path. The audit found no additional statically resolved
+  `E8`/`E9` inline-hook installer chain or callback, but indirect/computed flows
+  and the semantics of unresolved path/string rewrite targets remain outside
+  that bounded result (`ev_0b7e927b97b879fc52dbcf3ffa1e511a315c2cb8d37ef0689622c69c897458b3`,
+  `ev_5839785915b280901c04ed0e5b36bb6f531797b1be8cc10f2cd4b98ad21617c4`,
+  `ev_6e83e3f43b8658b25d4a4534a2b23ce55cfcb923004ff66eb6e70421cfa0b53b`,
+  `ev_e3011c32ca996d2a7f6b3af79002a837b97484302bbca1db5679cb0e6a293ea5`).
+  This confirms the bytes and static write path, not execution or the runtime
+  effect of either bypass.
+- Direct decompilation of `DBSRVIN.exe!FUN_00489D50`
+  (`ev_4f070fd13662efff86448e27dacc3e091bf6e9a9644e6b4dea06a8f6c88dc7af`)
+  identifies it as a window-message/socket handler. Its visible branches process
+  Winsock accept (`0x403`), admin accept (`0x405`), admin-socket read (`0x406`),
+  admin-client read (`0x407`), and game-server read (`0x464`) events. This places
+  the patched bytes inside that network-event procedure, but the recovered
+  pseudocode does not include either patch address, so their exact case,
+  predicates, and application-level effect remain unresolved.
+- At `DBSRVIN.exe!0x48F441`, the original instruction is the one-byte `PUSH EAX`
+  (`ev_e3fb633f400880b580360858c3b48b53b500884b9507abe42fb93b5865d9f3ef`),
+  and the containing procedure is `FUN_0048F410`. Direct decompilation
+  (`ev_e5935cb578e726f0374fa11acbf8d0c2412065edd85ce10d84e3a199b554b728`)
+  identifies that function as an item-file importer: it enumerates
+  `Q:/serv%2.2d/item/*.*`, parses each file, attempts to update account cargo,
+  and moves or deletes files based on validation and save results. The byte
+  window (`ev_514e9715ec1b22c4099b447eb3deb5ecb7530ada45c0736e8fd089c3e0c0e2b1`)
+  shows the patched `PUSH EAX` supplying `DAT_00524B8C` to the initial
+  `_sprintf(local_214,"Q:/serv%2.2d/item/*.*",DAT_00524B8C)` call. Replacing
+  it with `NOP` would remove the explicit server-index argument, but the same
+  startup routine `FUN_10001250`
+  (`ev_6edfd537ffef3b3740f9a7822636db9ad2307be00c12b2b1bcad1aaed223dc5b`)
+  also replaces the following `PUSH imm32` string pointer at `0x48F443` with
+  `0x1004321C`, the DLL string `../../WYD_DB/ImportItem/*.*`. The new format has
+  no `%2.2d` conversion, so removing the server-index vararg is a coordinated
+  static path redirection, not evidence of a malformed `sprintf` call. The
+  same setup routine writes `0x08` at `0x48F455`; the byte window shows this is
+  the immediate of `ADD ESP,0x0C` beginning at `0x48F453`. The direct address
+  query (`ev_2e3f096c70db7ea741e7f8f64cf2a53e175d4fafddadbeded411e548b221b9bf`)
+  correctly classifies `0x48F455` as inside, not at the start of, that
+  instruction. Reducing the cleanup from 12 to 8 bytes matches removal of the
+  one four-byte server-index argument and independently supports a coordinated
+  call-site rewrite. The intended shared import directory is supported by
+  these writes; execution of the startup patcher and successful runtime import
+  remain unverified.
+- The full instruction listing for the same importer
+  (`ev_e5c6730b02773eb9c1319ddf791e4bc1ec6c1763635471ea416af6b468cde8de`)
+  confirms two matching filename-format call sites. At `0x48F4F9`, the DLL
+  removes the server-index `PUSH ECX`, replaces the format pointer at
+  `0x48F4FB` with `../../WYD_DB/ImportItem/%s`, and changes the `ADD ESP` byte
+  at `0x48F50D` from `0x10` to `0x0C`. At `0x48F51B`, it makes the same
+  three-part change for the error path, replacing the format at `0x48F51D`
+  with `../../WYD_DB/err_ImportItem/%s` and reducing cleanup at `0x48F52F` from
+  `0x10` to `0x0C`. These paired path, argument, and stack-cleanup changes
+  statically support redirects for both imported files and rejected/error
+  files while retaining the filename `%s`. The matching patch writes are in
+  `FUN_10001250` evidence above; runtime execution and filesystem outcomes are
+  not established.
+- The same setup routine also redirects the update-file importer
+  `DBSRVIN.exe!FUN_0048DE50` (`ev_815ebbefe42d5c25f66a1716dfbf9d8d205153331a0a3833c87ee4d8b2ea8b09`,
+  queried at `0x48DE7D`; body `0x48DE50..0x48E38C`). Its original pseudocode
+  enumerates `Q:/serv%2.2d/update/*.*`, opens each matching file as text, parses
+  two bounded strings and up to two integer fields, and calls
+  `FUN_004708F0`; when that call returns nonzero, it deletes the processed
+  file. The patch writer replaces the glob format with
+  `../../WYD_DB/Update/*.*` at `0x48DE7F`, writes a NOP at `0x48DE7D`, and
+  writes byte `0x08` at `0x48DE91`. The filename formatter is similarly
+  redirected to `../../WYD_DB/Update/%s` at `0x48DF1A`, with a NOP at
+  `0x48DF18` and byte `0x0C` at `0x48DF2C`. The original formats include the
+  server-index conversion and argument, while the replacement formats do not;
+  this statically supports a paired path/argument adjustment. The original
+  cleanup immediates have not yet been separately decoded, and runtime file
+  processing remains unverified. The separate `data%2.2d.csv` redirection at
+  `0x4880FE` is now traced to a 4-byte pointer write by `DBWYD.dll!FUN_100013D0`
+  (`ev_a9f88114b136d24dedc1e77f20c59c35aef9d985663c305d2361a84270b25ea6`),
+  called by the setup routine with that address as its destination
+  (`ev_6edfd537ffef3b3740f9a7822636db9ad2307be00c12b2b1bcad1aaed223dc5b`).
+  The backing bytes are available and begin `68 4C 6D 50 00` at
+  `0x4880FE` (`ev_820be638c79ef4658069afdc746f9d9622409b1bad45ebe8037359cc2537ad65`,
+  address mapping `ev_d138cc72f106576624dca7ba43d69dc542454de0856214577c96f624256a0658`).
+  A linear x86 decode would read these as a `PUSH` immediate, but Ghidra still
+  reports the address as `undecodable` with no containing procedure
+  (`ev_77d0e1bb856cc071caf3ecac69cc357588463bed1fb27e07fdae1efc403fbfbe`), and
+  the 4-byte write starts at that candidate opcode. Thus the pointer redirection
+  is evidenced, while the code/data classification, caller flow, and resulting
+  file behavior remain unresolved. A bounded audit found no additional direct
+  writer, but does not rule out indirect writes. This site adds no function to
+  the tally.
+- The `0x48CC84` write targets the immediate byte of the instruction beginning
+  at `DBSRVIN.exe!0x48CC7E`: `CMP dword ptr [EBP-0xA900], 0x40`, followed by
+  `JGE 0x48CD58`. In `FUN_0048B920`, the decompilation identifies this as a
+  loop over 64 records with an 8-byte comparison stride, nested inside a
+  four-entry outer loop; changed records are passed to `FUN_0048B3A0`. Replacing
+  the comparison immediate `0x40` with `0x3F` makes the loop process indices
+  `0..62` instead of `0..63`, omitting its final record on each outer pass.
+  The record's application-level meaning and the runtime effect are not
+  established by this static analysis (`ev_6edfd537ffef3b3740f9a7822636db9ad2307be00c12b2b1bcad1aaed223dc5b`,
+  `ev_385a6978da911e960d3d6f1eeb7621ebf3dd2e9aa6809834dde187ec2663e4e8`,
+  `ev_4b703d2a0d8552fac6a123b57796f64c0b52be585c97c79cbd9946537388446a`).
+  The follow-up boundary audit reports that `0x48CC84` is not itself an
+  instruction start; this is consistent with the earlier decode because the
+  patched byte is inside the immediate operand of the instruction at `0x48CC7E`,
+  not a separate branch or third hook (`ev_5ca75344695986075ca062b87394623a9987d500f6070e496aba24e9f465d87a`,
+  `ev_3df5fddc7d8e4e59a4f3d2db087912b1dadac6de0ba45fdf9b03718a3d3f7a8b`).
+- `FUN_10001250`
+  (`ev_6edfd537ffef3b3740f9a7822636db9ad2307be00c12b2b1bcad1aaed223dc5b`)
+  applies additional immediate-value and byte writes in the server image.
+  Among them, it writes pointers to DLL strings for
+  `../../WYD_DB/ImportItem/*.*`, `../../WYD_DB/ImportItem/%s`,
+  `../../WYD_DB/err_ImportItem/%s`, `../../WYD_DB/data%2.2d.csv`,
+  `../../WYD_DB/Update/*.*`, and `../../WYD_DB/Update/%s`, alongside nearby
+  byte values `0x08`, `0x0C`, and `0x90`. This establishes attempted path/string
+  redirection in the patch setup; the exact semantics of every modified server
+  instruction and resulting runtime file behavior remain unverified.
+- The main setup also calls `FUN_10001560` with target
+  `module_base + 0x87FCF`, callback address `0x10001450`, and tail length 2.
+  `FUN_10001000` derives that target by adding `0x32FCF` to the stored base;
+  for the PE image base `0x400000`, this is VA `0x487FCF`.
+  `FUN_10001530`'s assembly shows opcode `0xE8`; `FUN_10001470`
+  (`ev_e785c84de979d2f63d663d2284e0d9fae60ac9a32bc21df0d621fa4552d3a375`)
+  computes a 32-bit relative displacement from the supplied callback and writes
+  the resulting five-byte `CALL rel32` at the target. `FUN_10001590`
+  (`ev_c8dc2f87a35bb7f19718d99abd803fe70f771154cef5bb35a91a84f5b2dc6947`)
+  then writes two `0x90` bytes at target `+5`. This confirms the static patch
+  shape (`E8 <rel32> 90 90`), not that it was applied to a running server. The
+  original target bytes (`ev_eaae9effac4c8b9d6fc39ef5e1489706b4a6f31e181bdb7e834a7f91619e806b`)
+  begin with a seven-byte `CMP dword ptr [0x02735B78], 0` at `0x487FCF`,
+  followed by `JBE 0x488076` at `0x487FD6`. Thus the injected call and two NOPs
+  replace the comparison while leaving the original conditional branch in
+  place.
+- A second setup call from `FUN_10001000`
+  (`ev_b2c7e8fb0e8ec3ba2aba9cb916a754fa56b58a944a141f538780a22cb154d075`)
+  invokes `FUN_10001650(0x479CB1, 0x479D3C, 1)`. `FUN_10001650`
+  (`ev_4b63b13e10f9309c42a9849175f81143297e92feddb35c8fe810086589f27455`)
+  calls `FUN_10001620` to write an `E9 rel32` jump, then writes the requested
+  NOP tail at target `+5`. The `FUN_10001620` assembly
+  (`ev_1cbf3833ab6e758bf57d629911dcded79103cdcaff8559e081620854bd4b4ea8`)
+  passes opcode `0xE9` and destination `0x479D3C` to the shared patch writer,
+  which emits a five-byte relative jump. `FUN_10001650` then appends one NOP,
+  producing `E9 <rel32> 90` over the six-byte branch beginning at
+  `DBSRVIN.exe!0x479CB1`.
+- The original target instructions
+  (`ev_7fb43673c323c4ff5e4e97479982174325aa806f97633695167f88db2c2d036c`)
+  are in `FUN_00471210`. At `0x479CB1`, the server compares the dword at
+  `0x02735B78` with zero and executes `JBE 0x479D3C`; when nonzero, it falls
+  through to build a `0x1F98`-byte message with opcode `0x1005`, copy a
+  `0x1F80`-byte per-slot payload, and call the object at `0x02735B78`.
+  The DLL's unconditional jump skips this block in every case, suppressing the
+  message path when the original condition would have fallen through.
+- The called `0x4557DA` thunk resolves to `FUN_004847A0`
+  (`ev_c3d8ee51f124358f132eed752f7349acd8912a2904fa89d241259b4f13016870`),
+  which calls `FUN_00483E90` and then `FUN_004844C0`. `FUN_00483E90`
+  (`ev_3ab53cdab626d1c0c2b12ef0639eed1102a07af22a1cf12e312ff39739fa8f39`)
+  derives a byte-transform key from object state and forwards the message to
+  `FUN_00484090` (`ev_57008876b9f4e1ae8021322a89ebf60e620a238a8bedfad23b7432279fc67395`).
+  That routine frames the message, transforms its payload, appends it to the
+  object's outgoing buffer, and invokes the flush method. `FUN_004844C0`
+  (`ev_190b29e76b0f31dac6d16cc8fd70819b6565d054d2750c629cf159eb2caa1f0e`)
+  validates the buffer offsets and calls Winsock `send`, advancing partial
+  sends or clearing the queue on completion/error. Thus the skipped `0x1005`
+  block is a real outbound network-message path in static code, not just local
+  packet construction; no runtime transmission was observed.
+- The callback target `0x10001450` is passed from the setup at
+  `0x100010D9` (`ev_6647e499daa674a895b8e591c3b27331df5854f9a5315f51c6b0e8a23ee41ddc`)
+  and maps to file offset `0x850`
+  (`ev_4ed5c5c136e36088b15f86a2f78effe8fb5b7a2750412750ad514d3d3dfd294a`).
+  It lies between `FUN_10001410` and `FUN_10001470`; no Ghidra procedure starts
+  at or contains the callback label. However, raw callback bytes
+  (`ev_bcaaed583af0da86dc3275f8d5f2cf99536ad6be20350b26b45235a65624af52`)
+  decode as `LEA EAX,[EBP-0x108]`, call `FUN_10001410`, clean one stack
+  argument, compare `dword ptr [0x02735B78]` with zero, and return. `FUN_10001410`
+  (`ev_f0020a170350d31e33d24af869401bd9277df6cbc8a2dab19408b2807b90a7d4`)
+  writes its string argument to `C:/Dump/Onlines.txt`. The static flow therefore
+  attributes this callback to writing the caller's `EBP-0x108` buffer and then
+  restoring the comparison flags consumed by the original `JBE` at target
+  `+7`; this interpretation is supported by the callback xref from setup and
+  the original target bytes, but is not runtime-observed.
+- The original-server analysis resolves target `0x487FCF` inside
+  `FUN_00487E50` (`ev_aa5e09ec1af70e6c78a2addbfee5b5f1e2da58f7634fb7072b40c5f631aca329`,
+  body `0x487E50..0x4880A4`). Its pseudocode builds a 260-byte local text
+  buffer by iterating over ten slots and appending each formatted value with
+  `%s %d `. This is the caller buffer passed by the DLL callback; the dump path
+  `Onlines.txt` supports identifying it as an online-list snapshot, though the
+  meaning of every slot/value is not established. The same function then gates
+  on `DAT_02735B78`, builds a `0x1EC`-byte message with opcode `0x300E`, and
+  calls the already analyzed message sender. The hook therefore dumps the
+  generated ten-slot list before the original comparison and leaves the
+  original send/skip branch decision intact; actual file writes and network
+  sends remain unobserved.
+- The additional helper analyses show `FUN_100017B0`
+  (`ev_2783e5332785633ca448b842c2aea8bc74b9123aea88fb0bdf29f8fb3a212e1c`)
+  performing TLS/static initialization and registering an exit callback, while
+  `FUN_10001170` (`ev_7b8d9503fb472b9412c6b435004990431f87ff5122a9c378136d08c5785438ef`)
+  is a return-only stub with no observed side effects.
+- `DBWYD.dll!FUN_10042830`
+  (`ev_10bb1cfb17c268cb0896401416971a2c3ed29eacd8e2f192e7910673025f1055`,
+  body `0x10042830..0x1004283E`, 15 bytes,
+  `build/rea-analysis/results/DBWYD-shutdown-callback-10042830-REA-evidence-20261021.json`)
+  is the exit callback registered by `FUN_100017B0` through `_atexit`. Its
+  body passes `DAT_1004DC18` to `FUN_10001870`; until that callee is analyzed,
+  the teardown purpose and side effects remain unknown. Registration is static
+  evidence and does not establish process-exit execution.
+- `DBWYD.dll!FUN_10002BB0`
+  (`ev_45308504aca773294a83ccd3de0935caeae6c76c4b59f8141c18fcd2b32cb524`,
+  body `0x10002BB0..0x100030E1`) is an optimized overlap-safe copy routine:
+  it selects backward copying for an overlapping destination range and forward
+  copying otherwise. The DLL's patch writers `FUN_10001470` and `FUN_10001590`
+  call it, as do CRT routines. Ghidra reports complex control-flow recovery
+  near `0x10002DD5`, so low-level path details remain tentative.
+- `DBWYD.dll!FUN_100016C0`
+  (`ev_2bdb19c772b757d7998f127b76e6eec8972a3c752311ce0a9831359d07f60809`)
+  formats wide-character output to the CRT stdout stream through
+  `__vfwprintf_l`. Its `FUN_10001000` caller (`ev_b2c7e8fb0e8ec3ba2aba9cb916a754fa56b58a944a141f538780a22cb154d075`)
+  passes the startup text `DBSRV loaded!`; this establishes a static log-output
+  path only, not successful DLL attachment or server readiness.
+  The callback code block is not a Ghidra function entry and remains excluded
+  from the function tally. Its instruction-level behavior is now decoded, but
+  process attachment, successful patch writes, redirected DB operations, and
+  runtime behavior have not been observed. All findings are static analysis of
+  the exact DLL and related address computations.

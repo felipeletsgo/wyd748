@@ -23,10 +23,13 @@ type VolatileRule struct {
 	X                 uint16                `json:"x,omitempty"`
 	Y                 uint16                `json:"y,omitempty"`
 	Destinations      []VolatileDestination `json:"destinations,omitempty"`
-	LearnedBit        int                   `json:"learnedBit,omitempty"`
-	Summon            *VolatileSummon       `json:"summon,omitempty"`
-	Instance          *VolatileInstance     `json:"instance,omitempty"`
-	InstanceRef       string                `json:"instanceRef,omitempty"`
+	// QuizArena is where the ticket teleports while staff runs the 7.59 OX
+	// quiz mode; outside it the rule's own action applies.
+	QuizArena   *VolatileDestination `json:"quizArena,omitempty"`
+	LearnedBit  int                  `json:"learnedBit,omitempty"`
+	Summon      *VolatileSummon      `json:"summon,omitempty"`
+	Instance    *VolatileInstance    `json:"instance,omitempty"`
+	InstanceRef string               `json:"instanceRef,omitempty"`
 	// Parameters for the "buff" action (potions and food). AffectType selects
 	// applyExtendedAffectStats; AffectValue and AffectLevel feed that formula.
 	// DurationUnits uses eight-second blocks. Balance remains data-driven.
@@ -323,7 +326,10 @@ type VolatileInstanceStage struct {
 	// Magic Chamber uses it for the fourth room's boss without adding a fifth
 	// room or renewing the combat deadline.
 	CompletionSpawns []VolatileInstanceSpawn `json:"completionSpawns,omitempty"`
-	Quiz             *VolatileInstanceQuiz   `json:"quiz,omitempty"`
+	// RuneBonusSpawns appears after the completion boss when the run's Magic
+	// Chamber runes include colors 1, 2 and 3 (7.59 TMSRV sub_561F90).
+	RuneBonusSpawns []VolatileInstanceSpawn `json:"runeBonusSpawns,omitempty"`
+	Quiz            *VolatileInstanceQuiz   `json:"quiz,omitempty"`
 	// Generator, GeneratorIDs and CompletionGeneratorIDs select blocks (#[n])
 	// of a generator file under the data directory for this room's wave and
 	// completion boss. The loader fills Spawns/CompletionSpawns from them.

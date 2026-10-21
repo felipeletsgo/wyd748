@@ -22,14 +22,15 @@ triaged issues, evidence and acceptance checks.
 - Adamantite: players report being able to upgrade an (E) set to (LE), which
   should not be permitted according to this report. Confirm item identifiers
   and the authoritative upgrade rules.
-- Offline shop honor: request one honor point per ten minutes of shop time,
-  with a letter saying "You received 1 honor." This is a requested mechanic,
-  not an approved reward contract.
+- Offline shop honor: the requested owner rule is one honor point per ten
+  minutes of shop time, with a letter saying "You received 1 honor." The
+  current implementation and its persistence status are recorded below; this
+  entry is not approval of any additional reward contract.
 - Celestial conversion: Health, Sephira and Pancake potion buffs disappear.
   Players request account-bound buffs shared by all characters on the account.
 - Huntress Cargo Guard skill: the skill reportedly does not open storage.
 
-## Status — 2026-10-20 (source only; not published)
+## Status — 2026-10-20 (patches 10037–10038 published; gameplay pending)
 
 | Report | Status |
 | --- | --- |
@@ -43,18 +44,19 @@ triaged issues, evidence and acceptance checks.
 | Greater/Lesser Exchange Stone (774/775) | Implemented from the 7.59 DBSRV (`FUN_00471210`): with 774 and 775 in `Equip[13]` of two characters of the account, the next login swaps their names and removes both stones. Guild members must leave their guild first. |
 | Adamantite (E) → (LE) | Owner rule implemented: only D sets (uniques 8/17/27/37) can become Legendary; E sets (10/20/30/40) are rejected without consuming the ore. |
 | Blood Foema | Owner confirmed the current behavior is correct; no correction needed. |
-| Magic Chamber floor runes | Owner-defined client generator implemented: entering the entrance hall projects random colored runes on the floor (BUG-010). Build and policy tests passed; visual acceptance pending. |
+| Magic Chamber floor runes | Native Rune_Slate objects lit per run, plus the 7.59 rune bonus boss (colors 1, 2 and 3 summon MCN_CruelZak/MCM_Gargoyle/MCA_Rujeper after room 4); see BUG-010. |
 | Divine Judgment | See [bug register](bug-register.md); identify the native visual trigger and assets before changing the client. |
 | Black Foema Lightning, Noatun gate | Lightning Storm tick damage and the client's local gate close are corrected in source; automated checks passed, but gameplay acceptance remains pending. |
-| Offline shop honor | Owner rule implemented: an open ghost shop earns its owner 1 honor every 10 minutes, with the letter "You received 1 honor." |
+| Offline shop honor | Owner rule implemented: an open ghost shop earns its owner 1 honor every 10 minutes, with the letter "You received 1 honor." The counter is persisted before the schedule advances or the letter is sent; a failed save rolls the counter back and retries on the next tick. Source and automated tests only. |
 
-AUTOMATED TESTED (2026-10-20): `go vet ./...` and `go test -count=1 ./...`
-passed before the latest catalog mesh adjustment; focused
-`go test -count=1 ./internal/data ./internal/game` passed afterward.
-`Build-Client.ps1 -NoDeploy` passed after the latest client changes
-(3,282,421 architecture checks); current candidate WYD.exe SHA-256
-`B8FA01A4DA17660D59CD1A43F33B951D626F34536E0258831005A57E85A4B8D5`.
-Installation, CLIENT-TESTED, and publication are pending.
+AUTOMATED TESTED (2026-10-20): `go vet ./...`,
+`go test -count=1 -p 1 ./...`, the portal's 60 tests, and
+`Build-Client.ps1 -NoDeploy` passed after the boss-data corrections
+(3,282,438 architecture checks). The candidate and public patch 10038
+executable SHA-256 is
+`B2417172F15E968E26A6F6B1BB8451F2CE7125476000CE3295079EE01FF54A27`.
+The server is active at `/srv/wyd-go/releases/20261020T230245Z`.
+Local installation and actual gameplay/`CLIENT_TESTED` remain pending.
 
 ## Follow-up — 2026-10-20
 
@@ -120,6 +122,88 @@ Installation, CLIENT-TESTED, and publication are pending.
   entrance (3297,1693), as in the 7.59 `NPCGener.txt` generator 5661.
   `TestUxmalStandsAtTheRuneTrackEntrance` checks the position and walkability.
   Source only.
+- Rune Track admission correction (2026-10-21): an entry with no eligible
+  party member now remains in `entry` instead of advancing to `preparation`.
+  `TestRuneTrackEmptyEntryStaysPending` covers the fail-closed path. Source
+  only.
+- Limit test item (owner request, 2026-10-20): `Limit_Test_Amulet` (6015)
+  reuses the Crystal Amulet (563) appearance, has no level requirement, is
+  untradeable (`EF_NOTRADE`) and adds 100000 STR/INT/DEX/CON in the server
+  catalog. ShopAmulet sells it for 1,000 gold. Test:
+  `TestLimitTestAmuletAddsAttributesAndIsSold`. Remove it after the limit tests.
+- 32-bit limits (`EXTENSAO_COORDENADA`): the client catalog effect value is now
+  32-bit in memory (`STRUCT_STATICEFFECT`, runtime `STRUCT_ITEMLIST` 204 bytes)
+  while `ItemList.bin` keeps the native 140-byte rows. `ItemListWide.csv`
+  (`index,effect id,value`) carries every server catalog value outside 16 bits;
+  `TestItemListWideMatchesServerCatalog` keeps both sides equal, and the
+  client loader rejects malformed files atomically. The client build and patch
+  builder also fail closed when this required sidecar is absent. Audit: the
+  server score is
+  35 uint32 fields (cap 2,000,000,000), HP/MP travel in 32-bit `SetHpMp`, and
+  real damage in the 32-bit DMGX tail. The client's last 16-bit narrowings were
+  removed: local pending HP (`m_nReqHP`, which truncated HP above 65,535 and
+  capped heals at 100,000) and the big-HP-pool `short` cast. The floating hit
+  number no longer disappears above 1,000,000. Heals now carry their real
+  32-bit amount in the DMGX slot (`wideTailValue`, client `ReadHeal`) instead of
+  the 32,767 prefix word. EXP is uint32 on both sides with no server cap; the
+  gain text no longer passes a 64-bit value to an `int` format. Remaining
+  16-bit projections are native display packets only: party HP (`/100` above
+  32,000, ratio preserved) and the Spirit's Seal capsule's stored base stats
+  (32,767).
+- World bosses moved (owner request, 2026-10-20): Black Archmage (3910,3418),
+  Guardian of the Ruins (3806,4019), Demon Lord (731,3173), Ancient
+  Necromancer (2083,347). Four Armia NPCs at y=2095 (ArchmageGate 2093,
+  GuardianGate 2096, DemonGate 2104, NecroGate 2107) clone the Gravedigger
+  confirmation window and run free repeatable quests 19–22 that teleport to
+  the entrances (3893,3418), (3792,4006), (711,3169) and (2087,328). The boss
+  files' comments are translated. Test: `TestBossGatesTeleportToTheBossEntrances`.
+- Gate audit (2026-10-21). `init_items.csv` row = 7.59 `g_pInitItem` index - 1.
+  Startup rule here and in W2PP: KEYID 1–14 locked, everything else open.
+  | Rows | Gate (item, KEYID) | Key / controller | Expected (W2PP, 7.59) | Current |
+  | --- | --- | --- | --- | --- |
+  | 46–48 | Training field gates (458/459/461, 2–4) | First/Second/Final_Gate_Key 451–453 | locked; key opens; relocks | fixed: relocks 10 s after opening (owner rule), never on a player in the mask |
+  | 49–52 | Orc castle gates (462–464/468, 5–8) | Orc castle keys 465–467/469 | same | fixed: 10 s relock |
+  | 53–61 | Zakum castle gates (757–761, 10–14) | Dragon_Emblem 751, Phoenix_Emblem 752/754–756 | same | fixed: 10 s relock |
+  | 45 | South_Gate (457, 1) at (64,64) | no key | locked map-corner dummy | locked (correct) |
+  | 0–11 | City-war arena gates (471, 9), 3 per city | `SetArenaDoor` (city 0–3: Armia, Azran, Erion, Nippleheim) | locked; open while the battle runs | fixed: open from +6 to +31 min of city-war combat, locked otherwise |
+  | 12–13 | Colosseum Steel_Window (472, 9) | `SetColoseumDoor`, Battle Royale | open at startup, locked by the event | fixed: open at startup; the Colosseum locks them from minute 5 to 17 (no Battle Royale event yet) |
+  | 14–18 | Colosseum gates (471, 9) | `SetColoseumDoor2`, Colosseum event | locked, opened by the event | fixed: Colosseum opens them at minute 7 and locks them at minute 17 |
+  | 35–40 | OX quiz gates (471, 9) | 7.59 `sub_561C10` | locked, driven by the OX event | fixed: staff panel "OX arena" (`game.event.ox`) locks/opens them |
+  | 41–44 | Noatum castle gates (773/800, 15/16) | `SetCastleDoor`, castle war | open; locked during the castle war | always open (no castle battle) |
+  | 66–70 | Victory's_Tower (3145) | 7.59 init (`EF_GROUND` 8) | 7.59 locked; W2PP open | open (sunk) — confirm 7.48 |
+  | 71–72 | Gate_Of_Time (4101, 19) | 7.59 init + `sub_578CE0` | 7.59 locked; not in W2PP | open — confirm 7.48 |
+  | 73–74 | Slot machines (4102/4103, 20) | `gamble.go` | open, interactive | working |
+  | 19–34 | Rune slates (1733–1736, 17) | Magic Chamber | per-run lit slates | working |
+  | — | PvP door (4143 First_Gate, 21) at (2123,2143) | 7.59 GM `pkgate` (1 locks, 0 opens) | open; closed only by a GM | fixed: server-only fixture, staff panel "PvP door" (`game.world.pvp-door`) |
+- Colosseum (7.59 TMSRV `sub_567780`, 2026-10-21): every day at
+  EventHour+1/+2/+3 (`colosseum_event_hour`, default 19, guild-war timezone)
+  Colosseum N (mortals only), M (no Celestials) and A (one Elixir_Notice 3170
+  each from the 60 scanned carry slots, `_NN_Need_Elixer` and recall
+  otherwise; a pending or rejected charge is retried every tick) run from
+  `data/NPCGener/Coliseu{N,M,A}.txt` with the 16 `COL_*` monsters. Minute 5
+  locks the steel windows and filters the arena, waves spawn at minutes 6, 9,
+  11, 13 and 15 (3–5 GenerateMob calls per label), the inner gates open at
+  minute 7, and minute 17 moves players out to (2615,1727) (the dead are
+  revived and their corpse removed, through the critical persistence
+  coordinator in production), reopens the windows, locks the gates and
+  deletes the event mobs. N/M keep recalling ineligible classes that walk in,
+  skipping players with a pending write. The base NPCGener arena spawns
+  (MinuteGenerate -1) are reserved for the event; the generator files load
+  only while `colosseum_enabled` is true. Project choice: a server that misses
+  minutes 5–6 skips that hour instead of firing every missed wave at once. The
+  daily reset runs before the tier guard, so the completed stage cannot leak
+  into the next day's first scheduled tier. Tests: `TestColosseum*`. Source
+  and automated tests only.
+- OX arena (7.59 `quizmode`, `quizdoor`, `quizresultx`, `quizresulto`): staff
+  panel "OX arena" (`game.event.ox`). With quiz mode on the Entrance_Ticket
+  1737 is spent and teleports to the `quizArena` (1340,1492) of its
+  instances.json rule 51; with quiz mode off it keeps this
+  project's Big Cube ticket (instances.json rule 51) instead of the 7.59
+  `_NN_Only_quiz_time` reply. Results move the losing side to (1341,1465) and
+  revive the dead there. Tests: `TestOX*`, `TestOXEventHTTPAuthCSRFAndRevocation`.
+- Elixir_Notice (3170) shared volatile 91 with Mount_Recovery_Potion, so using
+  it raised an equipped mount to level 100. It is now `no_direct_use` (server
+  rule and client route `Interaction`).
 - Throwing Knife (94): the current skill catalog and client/server cooldown
   paths both use five seconds. The reported +9 glove interaction still needs
   native 7.48 verification; no cooldown change was made.

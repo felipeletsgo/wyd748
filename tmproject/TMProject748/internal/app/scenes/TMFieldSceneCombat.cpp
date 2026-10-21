@@ -530,11 +530,14 @@ void TMFieldScene::SetMyHumanExp(long long unExp, int nFakeExp)
 	if (nExp >= 0 && BASE_Get3DTo2DPos(m_pMyHuman->m_vecPosition.x, m_pMyHuman->m_fHeight + 1.0f, m_pMyHuman->m_vecPosition.y, &nTX, &nTY))
 	{
 		char szStr[128]{};
-		sprintf(szStr, "Exp +%d", static_cast<unsigned int>(nExp));
+		// EXP is 32-bit; the message-table format takes an int, never the
+		// 64-bit difference itself.
+		const unsigned int gainedExp = static_cast<unsigned int>(nExp);
+		sprintf(szStr, "Exp +%u", gainedExp);
 
 		m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFF8866, 0.5f, 0, 1, 1200, 0, 1));
 
-		sprintf(szStr, g_pMessageStringTable[148], nExp);
+		sprintf(szStr, g_pMessageStringTable[148], static_cast<int>(gainedExp));
 		if (!m_bShowExp)
 		{
 			if (m_pChatListnotice)

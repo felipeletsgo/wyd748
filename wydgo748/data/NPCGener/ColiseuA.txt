@@ -1,0 +1,74 @@
+// Colosseum A (EventHour+3, item 3170): 7.59 TMSRV generators; labels and route values are preserved.
+// Event-only: MinuteGenerate -1 never spawns in the open world.
+
+#	[103]
+	MinuteGenerate:	-1
+	MaxNumMob:	100
+	MinGroup:	30
+	MaxGroup:	100
+	Leader:	COL_FCyclop2
+	Follower:	COL_FCyclop2
+	RouteType:	2
+	Formation:	0
+	StartX:	2640
+	StartY:	1726
+	StartRange:	5
+	StartWait:	10
+	DestX:	2625
+	DestY:	1726
+	DestRange:	10
+	DestWait:	10
+
+#	[104]
+	MinuteGenerate:	-1
+	MaxNumMob:	100
+	MinGroup:	2
+	MaxGroup:	5
+	Leader:	COL_SCyclop2
+	Follower:	COL_CycArch2
+	RouteType:	2
+	Formation:	0
+	StartX:	2635
+	StartY:	1726
+	StartRange:	5
+	StartWait:	9
+	DestX:	2627
+	DestY:	1726
+	DestRange:	13
+	DestWait:	10
+
+#	[105]
+	MinuteGenerate:	-1
+	MaxNumMob:	100
+	MinGroup:	3
+	MaxGroup:	7
+	Leader:	COL_Talos
+	Follower:	COL_WCyclop2
+	RouteType:	2
+	Formation:	0
+	StartX:	2635
+	StartY:	1726
+	StartRange:	5
+	StartWait:	9
+	DestX:	2627
+	DestY:	1726
+	DestRange:	13
+	DestWait:	10
+
+#	[106]
+	MinuteGenerate:	-1
+	MaxNumMob:	2
+	MinGroup:	2
+	MaxGroup:	2
+	Leader:	COL_Lugefer
+	Follower:	COL_Lugefer
+	RouteType:	2
+	Formation:	0
+	StartX:	2635
+	StartY:	1726
+	StartRange:	5
+	StartWait:	9
+	DestX:	2627
+	DestY:	1726
+	DestRange:	13
+	DestWait:	10

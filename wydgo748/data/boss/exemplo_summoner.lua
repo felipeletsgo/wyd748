@@ -1,23 +1,24 @@
--- EXEMPLO: boss que invoca adds.
+-- Boss 4: Ancient Necromancer, summons adds.
 --
 --
--- Os adds sao mobs COMUNS do catalogo: usam a IA normal, dao exp e morrem
--- normalmente. `max_alive` e o teto simultaneo -- sem ele, um cooldown curto
--- encheria a tela numa luta longa.
+-- The adds are ORDINARY catalog mobs: they use the normal AI, grant EXP and die
+-- normally. `max_alive` caps how many live at once; without it a short cooldown
+-- would flood the screen in a long fight.
 
 return {
   id   = "necromante_ancestral",
-  npc  = "Astaroth",
+  npc  = "Anubis",
   name = "Ancient Necromancer",
   type = "summoner",
 
   spawn = {
-    x = 2336, y = 2125,
-    respawn_seconds = 2400,
+    x = 2083, y = 347,
+    respawn_seconds = 240,
   },
 
   stats = {
     level      = 300,
+    con        = 5000,
     max_hp     = 25000000 * 12,
     attack     = 850,
     defense    = 560,
@@ -29,21 +30,21 @@ return {
   summons = {
     {
       npc = "Skeleton",
-      count = 4,
-      max_alive = 8,
-      cooldown_seconds = 30,
+      count = 10,
+      max_alive = 10,
+      cooldown_seconds = 60,
       message = "The Ancient Necromancer calls the dead!",
     },
   },
 
-  -- Itens conferidos em data/itemlist.csv.
+  -- Items checked against data/itemlist.csv.
   drops = {
     { item = 4131, chance_percent = 100 },  -- Bundles_Sapphire(10)
     { item = 1775, chance_percent = 15 },   -- 11_Refine_Item
   },
-  -- Premiacao coletiva: cai no CHAO ao redor do corpo, uma unidade por celula,
-  -- para todos os presentes recolherem. Os `drops` acima vao so para quem deu
-  -- o golpe final.
+  -- Shared reward: dropped on the GROUND around the body, one unit per cell,
+  -- for everyone present to pick up. The `drops` above go only to the player
+  -- who landed the final blow.
   area_reward = { item = 420, amount = 50 },
 
 

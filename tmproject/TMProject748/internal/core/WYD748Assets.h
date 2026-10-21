@@ -83,6 +83,22 @@ bool WYD748_LoadItemList(
     STRUCT_ITEMLIST* destination,
     std::size_t destinationCount);
 
+// WYD-Go extension: applies "index,effect,value" rows from ItemListWide.csv
+// over the loaded catalog so values beyond the 16-bit 7.48 field match the
+// server catalog. A matching effect is replaced, otherwise the first empty
+// slot is used. A missing file applies nothing; a malformed one applies
+// nothing and returns false.
+bool WYD748_ApplyItemListWide(
+    const char* text,
+    std::size_t size,
+    STRUCT_ITEMLIST* destination,
+    std::size_t destinationCount);
+
+bool WYD748_LoadItemListWide(
+    const char* path,
+    STRUCT_ITEMLIST* destination,
+    std::size_t destinationCount);
+
 // Loads the variable-length 7.48 string table into TMProject's 2000-row
 // buffer without treating missing newer rows as a malformed partial read.
 bool WYD748_LoadMessageStrings(

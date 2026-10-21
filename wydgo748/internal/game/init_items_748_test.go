@@ -57,9 +57,10 @@ func TestClient748InitItemsSpawnWithReservedCannonIDs(t *testing.T) {
 		if staticEffect(def, "EF_GROUND") > 0 {
 			groundMasks++
 			// TMSrv creates every fixture open and locks only keyed gates with
-			// EF_KEYID 1..14; the Noatum castle gates (15/16) stay open.
+			// EF_KEYID 1..14; the Noatum castle gates (15/16) stay open, and
+			// W2PP reopens the Colosseum Steel_Window pair at startup.
 			wantState, wantHeight := clientGateOpen, byte(0)
-			if key := staticEffect(def, "EF_KEYID"); key > 0 && key < 15 {
+			if key := staticEffect(def, "EF_KEYID"); key > 0 && key < 15 && item.Item.Index != 472 {
 				wantState, wantHeight = clientGateLocked, clientGateHeight
 			}
 			if pkt[27] != wantState || pkt[28] != wantHeight {

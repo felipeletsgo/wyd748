@@ -460,6 +460,9 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 			(rule.Amount <= 0 || rule.MaxLevelExclusive <= rule.MinLevel) {
 			return rule, fmt.Errorf("data: %s mastery_reset requires a positive amount and valid level range", where)
 		}
+		if rule.QuizArena != nil && (rule.QuizArena.X == 0 || rule.QuizArena.Y == 0) {
+			return rule, fmt.Errorf("data: %s quizArena requires x/y", where)
+		}
 		if rule.Action == "territory_pass" &&
 			(rule.X == 0 || rule.Y == 0 || rule.RequiredEvolution == "") {
 			return rule, fmt.Errorf("data: %s territory_pass requires x/y and requiredEvolution", where)
@@ -716,6 +719,13 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 						if err := validateSpawns(
 							fmt.Sprintf("instance_ticket stages[%d].completionSpawns", stageIndex),
 							stage.CompletionSpawns); err != nil {
+							return rule, err
+						}
+					}
+					if len(stage.RuneBonusSpawns) > 0 {
+						if err := validateSpawns(
+							fmt.Sprintf("instance_ticket stages[%d].runeBonusSpawns", stageIndex),
+							stage.RuneBonusSpawns); err != nil {
 							return rule, err
 						}
 					}

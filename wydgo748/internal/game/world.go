@@ -25,6 +25,8 @@ type command struct {
 	bosses          *bossesRequest
 	globalDrop      *globalDropRequest
 	quiz            *quizRequest
+	pvpDoor         *pvpDoorRequest
+	oxEvent         *oxEventRequest
 	premium         *premiumEvent
 	control         *controlRequest
 	accountPresence *accountPresenceRequest
@@ -433,6 +435,8 @@ func WithMounts(catalog model.MountCatalog) WorldOption {
 // World exclusively owns game state.
 type World struct {
 	bossesPending      atomic.Bool
+	pvpDoorPending     atomic.Bool
+	oxEventPending     atomic.Bool
 	kickPending        atomic.Bool
 	kickEpoch          string
 	kickReceipts       map[string]kickReceipt
@@ -523,7 +527,11 @@ type World struct {
 	skills                map[int]model.SkillDef
 	groundItems           map[uint16]*GroundItem
 	ghostShops            map[uint16]*GhostShop
-	ghostShopHonorAt      map[uint16]time.Time // next honor point per open shop
+	ghostShopHonorAt      map[uint16]time.Time       // next honor point per open shop
+	magicChamberRunes     map[string]magicChamberRun // rune colors and bonus, by run
+	gateRelockAt          map[uint16]time.Time       // key-opened gate -> relock time
+	colosseum             *colosseumRuntime
+	oxQuizMode            bool // 7.59 quizmode: the OX Entrance_Ticket works
 	groundItemCells       map[uint32]map[uint16]*GroundItem
 	groundItemCell        map[uint16]uint32
 	groundExpiry          groundItemExpiryHeap
@@ -750,6 +758,11 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	for _, option := range options {
 		option(w)
 	}
+	if w.colosseum != nil {
+		if err := w.colosseum.config.Validate(); err != nil {
+			return nil, fmt.Errorf("colosseum configuration: %w", err)
+		}
+	}
 	if w.warConfig.Enabled {
 		if err := w.warConfig.Validate(); err != nil {
 			return nil, fmt.Errorf("guild wars: %w", err)
@@ -821,6 +834,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	if err := w.spawnInitItems(); err != nil {
 		return nil, fmt.Errorf("world objects: %w", err)
 	}
+	if err := w.spawnServerFixtures(); err != nil {
+		return nil, fmt.Errorf("server fixtures: %w", err)
+	}
 	for _, template := range characterTemplates.Classes {
 		if template.Class < 4 {
 			w.charTemplates[template.Class] = template
@@ -835,6 +851,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	if err := w.validateItemInstanceTemplates(); err != nil {
 		return nil, err
 	}
+	if err := w.bindColosseumTemplates(templates); err != nil {
+		return nil, err
+	}
 	for _, g := range geners {
 		if !g.Enabled {
 			continue
@@ -845,6 +864,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		// ticket and duplicate them when the instance opens. Reserve generators
 		// from authoritative item configuration, not a decorative NPCGener index.
 		if w.generatorReservedForItemInstance(g) {
+			continue
+		}
+		if w.colosseum != nil && w.colosseum.config.Enabled && generatorReservedForColosseum(g) {
 			continue
 		}
 		leader := templates[g.Leader]
@@ -1753,6 +1775,12 @@ func commandLabel(cmd command) string {
 	if cmd.quiz != nil {
 		return "control.quiz"
 	}
+	if cmd.pvpDoor != nil {
+		return "control.pvp-door"
+	}
+	if cmd.oxEvent != nil {
+		return "control.ox-event"
+	}
 	if cmd.premium != nil {
 		return "premium.poll"
 	}
@@ -1873,6 +1901,7 @@ func (w *World) tick() {
 	w.advanceAllPlayerMovement(now)
 	w.tickGlobalDrop(now)
 	w.tickGuildWars(now)
+	w.tickColosseum(now)
 	w.tickKefra(now)
 	// The grid limits this list to mobs near players. An active mob senses a
 	// target every second. Pursuit and patrol start new legs every two seconds
@@ -1906,6 +1935,7 @@ func (w *World) tick() {
 	}
 	w.tickTrades(now)
 	w.tickGhostShopHonor(now)
+	w.tickGateRelock(now)
 	w.tickClientIntegrity(now)
 	w.tickQuiz(now)
 	w.tickWeather(now)
@@ -2056,6 +2086,14 @@ func (w *World) handle(cmd command) {
 	}
 	if cmd.quiz != nil {
 		w.handleQuiz(cmd.quiz)
+		return
+	}
+	if cmd.oxEvent != nil {
+		w.handleOXEvent(cmd.oxEvent)
+		return
+	}
+	if cmd.pvpDoor != nil {
+		w.handlePvPDoor(cmd.pvpDoor)
 		return
 	}
 	if cmd.premium != nil {
@@ -2401,7 +2439,8 @@ func (w *World) spawnInitItems() error {
 }
 
 // initialFixtureState follows TMSrv: every map fixture is created open and
-// only keyed gates with EF_KEYID 1..14 are locked at start. Castle gates
+// only keyed gates with EF_KEYID 1..14 are locked at start, except the
+// Colosseum Steel_Window pair that W2PP reopens (SetColoseumDoor(1)). Castle gates
 // (15/16), towers, cannons, rune slates and machines stay open; the Noatum
 // castle gates close only during a castle war, which this server does not run.
 // Objects without EF_GROUND (cannons) keep state 0, which their CreateItem
@@ -2409,6 +2448,9 @@ func (w *World) spawnInitItems() error {
 func initialFixtureState(def model.ItemDef) byte {
 	if staticEffect(def, "EF_GROUND") <= 0 {
 		return 0
+	}
+	if openFixtureAtStartup(def) {
+		return gateOpen
 	}
 	if key := staticEffect(def, "EF_KEYID"); key > 0 && key < 15 {
 		return gateClosed

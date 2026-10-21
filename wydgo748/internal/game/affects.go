@@ -647,6 +647,20 @@ func effectiveMobDefenseAt(m *Mob, now time.Time) int {
 	return maxInt(0, defense)
 }
 
+// The recovered native skill path applies an additional 3/2 defense factor
+// to class-1 targets. Keep it separate from physical defense because the
+// factor belongs to elemental skill resolution, not to the target score.
+func effectiveMobElementalDefenseAt(m *Mob, now time.Time) int {
+	if m == nil || m.Def == nil || m.Def.Score == nil {
+		return 0
+	}
+	defense := effectiveMobDefenseAt(m, now)
+	if m.Def.ClassInfo == 1 {
+		defense = defense * 3 / 2
+	}
+	return maxInt(0, defense)
+}
+
 func effectiveMobAttack(m *Mob) int {
 	return effectiveMobAttackAt(m, time.Now())
 }
@@ -1213,7 +1227,7 @@ func (w *World) lightningStormTickDamage(p *Player, m *Mob, now time.Time) uint3
 	if !ok {
 		return 1
 	}
-	damage := w.skillFinalDamage(w.baseSkillDamage(p.Char, thunder), effectiveMobDefenseAt(m, now),
+	damage := w.skillFinalDamage(w.baseSkillDamage(p.Char, thunder), effectiveMobElementalDefenseAt(m, now),
 		skillDamageMastery(p.Char))
 	damage = damage * 70 / 100 // the same Mortal PvE reduction as a cast skill
 	damage = applySkillResistance(damage, thunder.InstanceType, effectiveMobResistancesAt(m, now), true)

@@ -124,6 +124,8 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	events, _ := source.(control.GlobalDropSource)
 	quiz, _ := source.(control.QuizSource)
 	bosses, _ := source.(control.BossesSource)
+	pvpDoor, _ := source.(control.PvPDoorSource)
+	oxEvent, _ := source.(control.OXEventSource)
 	kick, _ := source.(control.KickSource)
 	teleport, _ := source.(control.TeleportSource)
 	premium, _ := source.(control.PremiumSource)
@@ -135,6 +137,8 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 		GlobalDrop: events,
 		Quiz:       quiz,
 		Bosses:     bosses,
+		PvPDoor:    pvpDoor,
+		OXEvent:    oxEvent,
 		Kick:       kick,
 		Teleport:   teleport,
 		Premium:    premium,

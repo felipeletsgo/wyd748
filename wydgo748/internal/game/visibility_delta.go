@@ -181,7 +181,7 @@ func (w *World) applyGroundItemVisibilityRegions(p *Player, regions [4]visibilit
 					}
 					if entering {
 						if w.groundItemVisibleToPlayer(p, g) && !p.hasVisible(g.ID) {
-							p.Session.Send(w.groundItemCreatePacket(g))
+							p.Session.Send(w.groundItemCreatePacketFor(p, g))
 							p.show(g.ID)
 						}
 						continue

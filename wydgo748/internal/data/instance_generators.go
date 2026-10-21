@@ -110,7 +110,7 @@ func (c *instanceGeneratorCache) expand(where string, inst *model.VolatileInstan
 			}
 			continue
 		}
-		if len(stage.Spawns) != 0 || len(stage.CompletionSpawns) != 0 && len(stage.CompletionGeneratorIDs) != 0 {
+		if len(stage.Spawns) != 0 || len(stage.CompletionSpawns) != 0 {
 			return fmt.Errorf("data: %s stage %d declares both spawns and generator blocks", where, i)
 		}
 		if len(stage.GeneratorIDs) == 0 {

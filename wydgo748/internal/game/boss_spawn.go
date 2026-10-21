@@ -48,6 +48,17 @@ func (w *World) spawnConfiguredBosses() error {
 	if len(w.bossCatalog.Bosses) == 0 {
 		return nil
 	}
+	if err := w.bossCatalog.Validate(); err != nil {
+		return fmt.Errorf("boss catalog: %w", err)
+	}
+	// Validate every cross-catalog reference before mutating the world. A
+	// malformed later entry must not leave an earlier boss registered in a
+	// partially initialized World.
+	for _, config := range w.bossCatalog.Bosses {
+		if err := w.validateBossReferences(config); err != nil {
+			return err
+		}
+	}
 	w.bossSpawns = make([]*bossSpawnState, 0, len(w.bossCatalog.Bosses))
 	for _, config := range w.bossCatalog.Bosses {
 		base := w.npcDefByName(config.NPC)
@@ -80,6 +91,38 @@ func (w *World) spawnConfiguredBosses() error {
 	return nil
 }
 
+func (w *World) validateBossReferences(config model.BossConfig) error {
+	where := config.SourceFile
+	if where == "" {
+		where = config.ID
+	}
+	for i, skill := range config.Skills {
+		if _, ok := w.skills[skill.ID]; !ok {
+			return fmt.Errorf("%s: boss %q skill[%d] references unknown SkillData index %d",
+				where, config.ID, i, skill.ID)
+		}
+	}
+	for i, summon := range config.Summons {
+		if w.npcDefByName(summon.NPC) == nil {
+			return fmt.Errorf("%s: boss %q summon[%d] references unknown NPC %q",
+				where, config.ID, i, summon.NPC)
+		}
+	}
+	for i, drop := range config.Drops {
+		if _, ok := w.items[drop.Item]; !ok {
+			return fmt.Errorf("%s: boss %q drop[%d] references unknown item %d",
+				where, config.ID, i, drop.Item)
+		}
+	}
+	if config.AreaReward.Item != 0 {
+		if _, ok := w.items[config.AreaReward.Item]; !ok {
+			return fmt.Errorf("%s: boss %q area reward references unknown item %d",
+				where, config.ID, config.AreaReward.Item)
+		}
+	}
+	return nil
+}
+
 // bossDefFrom creates the boss NPCDef: a copy of the base NPC (assets) with
 // the .lua attributes on top.
 func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
@@ -102,6 +145,9 @@ func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
 	if stats.MaxHP != nil {
 		def.Score.MaxHP = *stats.MaxHP
 		def.Score.CurHP = *stats.MaxHP
+	}
+	if stats.Con != nil {
+		def.Score.Con = *stats.Con
 	}
 	if stats.Attack != nil {
 		def.Score.Attack = *stats.Attack
@@ -128,7 +174,7 @@ func bossDefFrom(base *model.NPCDef, config model.BossConfig) *model.NPCDef {
 	return &def
 }
 
-// spawnBoss materializa a instancia e registra o runtime.
+// spawnBoss creates the instance and registers its runtime.
 func (w *World) spawnBoss(state *bossSpawnState) error {
 	x, y := w.findFreePosition(state.config.Spawn.X, state.config.Spawn.Y, 3)
 	mobID := w.allocMobID()
@@ -331,6 +377,10 @@ func (w *World) planBossDrops(p *Player, mob *Mob, state *bossSpawnState) []plan
 	}
 	planned := make([]plannedDrop, 0, len(state.config.Drops))
 	for _, drop := range state.config.Drops {
+		if _, ok := w.items[drop.Item]; !ok {
+			log.Printf("BOSS %q: drop skipped, item %d does not exist", state.config.ID, drop.Item)
+			continue
+		}
 		if drop.ChancePercent < 100 && w.intn(100) >= drop.ChancePercent {
 			continue
 		}

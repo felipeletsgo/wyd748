@@ -222,7 +222,7 @@ int RunServerNameAssetTests(int& checks)
             for (const auto& entry : item.stEffect)
                 if (entry.sEffect == effect)
                     return entry.sValue;
-            return short{0};
+            return 0;
         };
         check(items[471].nIndexMesh == 148 &&
             effectValue(items[471], 34) == 5 && effectValue(items[471], 39) == 9,
@@ -238,6 +238,47 @@ int RunServerNameAssetTests(int& checks)
         check(items[4019].nIndexMesh == 2837 && items[4020].nIndexMesh == 2860 &&
             items[4025].nIndexMesh == 2860,
             "grade-E Repliction uses its distinct mesh after item-list loading");
+
+        const auto wideList = asset.parent_path() / "ItemListWide.csv";
+        check(WYD748_LoadItemListWide(wideList.string().c_str(), items.data(), items.size()),
+            "shipped wide item catalog loads");
+        check(effectValue(items[6015], 7) == 100000 && effectValue(items[6015], 8) == 100000 &&
+            effectValue(items[6015], 9) == 100000 && effectValue(items[6015], 10) == 100000 &&
+            effectValue(items[6015], 18) == 255 && items[6015].nIndexMesh == 91,
+            "limit test amulet carries 32-bit attribute bonuses");
+
+        std::vector<STRUCT_ITEMLIST> wide(8);
+        wide[1].stEffect[0] = { 7, 5 };
+        const char good[] = "# comment\r\n\n1,7,70000\r\n1, 8 ,-2\n2,9,2147483647\n";
+        check(WYD748_ApplyItemListWide(good, sizeof(good) - 1, wide.data(), wide.size()) &&
+            wide[1].stEffect[0].sEffect == 7 && wide[1].stEffect[0].sValue == 70000 &&
+            wide[1].stEffect[1].sEffect == 8 && wide[1].stEffect[1].sValue == -2 &&
+            wide[2].stEffect[0].sValue == 2147483647,
+            "wide catalog replaces a matching effect and fills empty slots");
+        const auto sameEffects = [](const std::vector<STRUCT_ITEMLIST>& a, const std::vector<STRUCT_ITEMLIST>& b) {
+            for (std::size_t item = 0; item < a.size(); ++item)
+                for (int slot = 0; slot < 12; ++slot)
+                    if (a[item].stEffect[slot].sEffect != b[item].stEffect[slot].sEffect ||
+                        a[item].stEffect[slot].sValue != b[item].stEffect[slot].sValue)
+                        return false;
+            return true;
+        };
+        const auto before = wide;
+        for (const char* bad : { "1,7,1\n9,7,1\n", "1,7,2147483648\n", "1,0,5\n",
+            "1,7\n", "1,7,5,6\n", "0,7,5\n" })
+        {
+            check(!WYD748_ApplyItemListWide(bad, std::strlen(bad), wide.data(), wide.size()) &&
+                sameEffects(wide, before),
+                "malformed wide catalog is rejected without partial changes");
+        }
+        std::vector<STRUCT_ITEMLIST> full(2);
+        for (short i = 0; i < 12; ++i)
+            full[1].stEffect[i] = { static_cast<short>(i + 1), 1 };
+        check(!WYD748_ApplyItemListWide("1,50,9\n", 7, full.data(), full.size()) &&
+            full[1].stEffect[11].sValue == 1,
+            "wide catalog rejects an item without a free effect slot");
+        check(!WYD748_LoadItemListWide("missing-ItemListWide.csv", full.data(), full.size()),
+            "a missing wide catalog fails closed");
 
         // Imported KR mounts once cloned the Shire_Horse face row, inheriting
         // its bush mesh (7) and model class 43, which hid them from the
@@ -326,7 +367,7 @@ int RunServerNameAssetTests(int& checks)
                         break;
                     }
                     const auto& definition = items[index];
-                    const short groundMask = effectValue(definition, 34);
+                    const int groundMask = effectValue(definition, 34);
                     const bool cannon = definition.nIndexMesh == 1607;
                     const bool gate = groundMask > 0;
                     // Both slot machines use EF_GROUND=10 and mesh 2784. The

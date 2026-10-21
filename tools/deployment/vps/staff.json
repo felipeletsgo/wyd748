@@ -10,7 +10,9 @@
       "game.boss.summon",
       "economy.premium.catalog",
       "economy.donate.credit",
-      "game.command.goto"
+      "game.command.goto",
+      "game.world.pvp-door",
+      "game.event.ox"
     ]
   }
 }

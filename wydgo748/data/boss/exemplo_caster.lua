@@ -1,23 +1,24 @@
--- EXEMPLO: boss que usa magia.
+-- Boss 1: Black Archmage, a spell caster.
 --
 --
--- O caster lanca as skills configuradas ao levar dano. Cada skill tem cooldown
--- e alcance proprios; `max_hp_percent` transforma uma skill em recurso de
--- desespero, liberado so quando o boss ja apanhou bastante.
+-- The caster casts its configured skills when it takes damage. Each skill has
+-- its own cooldown and range; `max_hp_percent` turns a skill into a desperate
+-- move, unlocked only after the boss has taken enough damage.
 
 return {
   id   = "arquimago_negro",
-  npc  = "Cyclop_Arch",
+  npc  = "DeathWorm",
   name = "Black Archmage",
   type = "caster",
 
   spawn = {
-    x = 2206, y = 2145,
-    respawn_seconds = 1800,
+    x = 3910, y = 3418,
+    respawn_seconds = 180,
   },
 
   stats = {
     level      = 200,
+    con        = 5000,
     max_hp     = 20000000 * 12,
     attack     = 900,
     defense    = 500,
@@ -26,18 +27,18 @@ return {
   },
 
 
-  -- IDs e alcances conferem com data/SkillData.csv. Use magia OFENSIVA:
-  -- a 27 (Cura) e a 26 (Flash), por exemplo, nao sao skills de dano.
+  -- IDs and ranges match data/SkillData.csv. Use OFFENSIVE spells:
+  -- 27 (Heal) and 26 (Flash), for example, are not damage skills.
   skills = {
-    -- Tempestade de Gelo (23): dano de gelo, alcance 4.
+    -- Ice Storm (23): ice damage, range 4.
     {
       id = 23,
       cooldown_seconds = 2,
       range = 10,
-      max_hp_percent = 100,      -- sempre disponivel
+      max_hp_percent = 100,      -- always available
       message = "The Black Archmage summons an ice storm!",
     },
-    -- Choque Divino (28): mais forte, so a partir de 40% de HP.
+    -- Divine Shock (28): stronger, only from 40% HP down.
     {
       id = 28,
       cooldown_seconds = 2,
@@ -47,14 +48,14 @@ return {
     },
   },
 
-  -- Itens conferidos em data/itemlist.csv.
+  -- Items checked against data/itemlist.csv.
   drops = {
     { item = 697,  chance_percent = 100, amount = 5 },  -- Sapphire
     { item = 1775, chance_percent = 20 },               -- 11_Refine_Item
   },
-  -- Premiacao coletiva: cai no CHAO ao redor do corpo, uma unidade por celula,
-  -- para todos os presentes recolherem. Os `drops` acima vao so para quem deu
-  -- o golpe final.
+  -- Shared reward: dropped on the GROUND around the body, one unit per cell,
+  -- for everyone present to pick up. The `drops` above go only to the player
+  -- who landed the final blow.
   area_reward = { item = 420, amount = 50 },
 
 

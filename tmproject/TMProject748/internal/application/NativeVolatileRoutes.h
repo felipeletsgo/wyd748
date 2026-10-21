@@ -8,6 +8,7 @@ enum class Route { Unknown, Direct, Target, Recall, Portal, Confirm, Capsule, Cu
 struct Entry { int first; int last; Route route; };
 
 inline constexpr Entry ItemRoutes[] = {
+    {3170, 3170, Route::Interaction},
     {3442, 3442, Route::CustomFirework},
     {3453, 3454, Route::Direct},
     {3455, 3455, Route::Interaction},

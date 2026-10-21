@@ -2,10 +2,48 @@ package main
 
 import (
 	"encoding/binary"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"wydgo/internal/model"
 )
+
+func TestRunRejectsMalformedGeneratorHeaders(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		input string
+		fn    func(string, string) error
+	}{
+		{
+			name:  "rune track duplicate",
+			input: "#[5662]\nMinuteGenerate: 1\n#[5662]\nMinuteGenerate: 2\n",
+			fn:    run,
+		},
+		{
+			name:  "colosseum duplicate",
+			input: "#[5]\nLeader: ForceCyclops\n#[5]\nLeader: ForceCyclops\n",
+			fn:    runColosseum,
+		},
+		{
+			name:  "rune track overflowing ID",
+			input: "#[999999999999999999999999999999999999999999]\n",
+			fn:    run,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			source := t.TempDir()
+			if err := os.WriteFile(filepath.Join(source, "NPCGener.txt"), []byte(tc.input), 0600); err != nil {
+				t.Fatal(err)
+			}
+			err := tc.fn(source, filepath.Join(source, "output"))
+			if err == nil || !strings.Contains(err.Error(), "generator") {
+				t.Fatalf("expected a malformed generator error, got %v", err)
+			}
+		})
+	}
+}
 
 func TestDecode759IndependentOffsets(t *testing.T) {
 	b := make([]byte, 1024)

@@ -44,6 +44,8 @@ type Config struct {
 	GlobalDrop            control.GlobalDropSource
 	Quiz                  control.QuizSource
 	Bosses                control.BossesSource
+	PvPDoor               control.PvPDoorSource
+	OXEvent               control.OXEventSource
 	Kick                  control.KickSource
 	Teleport              control.TeleportSource
 	Premium               control.PremiumSource
@@ -131,6 +133,10 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("POST /api/v1/staff/events/quiz", h.quiz)
 	h.mux.HandleFunc("GET /api/v1/staff/bosses", h.bosses)
 	h.mux.HandleFunc("POST /api/v1/staff/bosses", h.bosses)
+	h.mux.HandleFunc("GET /api/v1/staff/world/pvp-door", h.pvpDoor)
+	h.mux.HandleFunc("POST /api/v1/staff/world/pvp-door", h.pvpDoor)
+	h.mux.HandleFunc("GET /api/v1/staff/events/ox", h.oxEvent)
+	h.mux.HandleFunc("POST /api/v1/staff/events/ox", h.oxEvent)
 	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/kick", h.kick)
 	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/teleport", h.teleport)
 	h.mux.HandleFunc("GET /api/v1/staff/players/{uid}/persistent", h.persistentPlayer)

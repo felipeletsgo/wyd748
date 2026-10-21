@@ -1,18 +1,18 @@
 package wire
 
-// SkillHits preserva o prefixo nativo 7.48 e acrescenta os danos reais
-// que o TMProject748 client ja sabe consumir. Isso evita enviar um segundo 0x39D por
-// alvo apenas para o floating damage.
+// SkillHits keeps the native 7.48 prefix and appends the real 32-bit values
+// the TMProject748 client already consumes, so no second 0x39D per target is
+// needed just for the floating number.
 //
-// Layouts lidos pelo TMProject748 client:
+// Layouts read by the TMProject748 client:
 //
-//	0x39D skill: DMGX@48, count@52, dano uint32 @56 (60 bytes total)
-//	0x39E: DMGX@52, count@56, danos @60+i*4
-//	0x36C: DMGX@96, count@100, danos @104+i*4
+//	0x39D skill: DMGX@48, count@52, uint32 value @56 (60 bytes total)
+//	0x39E: DMGX@52, count@56, values @60+i*4
+//	0x36C: DMGX@96, count@100, values @104+i*4
 //
-// Os WORDs do prefixo continuam vindo de wireDamage(target), portanto a barra
-// de HP permanece na escala projetada do alvo; a cauda leva o dano real apenas
-// para o texto flutuante.
+// The prefix WORDs still come from wireDamage(target) and only drive the local
+// HP bar until the authoritative SetHpMp arrives. The tail carries the real
+// damage, or the real heal for a heal target, for the floating number.
 func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	currentExp, currentMP uint32, skill int16, motion, mastery byte,
 	maxTargets int, targets []SkillTarget) []byte {
@@ -32,11 +32,11 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 		return base
 	}
 
-	// O pacote wide substitui o antigo par compacto+SkillHitExtended. O
-	// FlagLocal=0 e intencional para TODA a familia: o OnPacketAttack local e o
-	// caminho que cria o floating damage. O formato anterior tambem enviava os
-	// 0x39D extras com esse flag zerado; consolidar sem zera-lo faria o atacante
-	// deixar de ver os numeros embora observadores ainda processassem o hit.
+	// The wide packet replaces the old compact + SkillHitExtended pair.
+	// FlagLocal=0 is intentional for the WHOLE family: the local OnPacketAttack
+	// path creates the floating number. The previous format also sent the extra
+	// 0x39D with this flag cleared; keeping it set would hide the numbers from
+	// the attacker while observers still processed the hit.
 	base[30] = 0
 
 	// Skill single-target must not collide with the physical 0x39D/52 layout.
@@ -48,15 +48,13 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 		putU16(extended, 0, uint16(len(extended)))
 		putU32(extended, 48, 0x58474D44)
 		putU32(extended, 52, 1)
-		if !targets[0].Miss {
-			putU32(extended, 56, targets[0].Damage)
-		}
+		putU32(extended, 56, wideTailValue(targets[0]))
 		return extended
 	}
 
-	// O helper do client recompilado reserva oito bytes antes do vetor. Ele testa o
-	// tamanho e le o vetor diretamente, mas manter assinatura+count deixa o
-	// contrato auto-descritivo e permite validacao futura sem mudar offsets.
+	// The client helper reserves eight bytes before the vector. It checks the
+	// size and reads the vector directly; signature and count keep the contract
+	// self-describing and allow future validation without moving offsets.
 	baseSize := len(base)
 	extended := make([]byte, baseSize+8+4*len(targets))
 	copy(extended, base)
@@ -64,7 +62,20 @@ func SkillHits(attackerID, attackerX, attackerY, targetX, targetY uint16,
 	putU32(extended, baseSize, 0x58474D44) // "DMGX" little-endian.
 	putU32(extended, baseSize+4, uint32(len(targets)))
 	for i, target := range targets {
-		putU32(extended, baseSize+8+i*4, target.Damage)
+		putU32(extended, baseSize+8+i*4, wideTailValue(target))
 	}
 	return extended
+}
+
+// wideTailValue is the real 32-bit amount behind the saturated prefix WORD: the
+// heal for a heal target, zero for a miss, otherwise the damage.
+func wideTailValue(t SkillTarget) uint32 {
+	switch {
+	case t.Miss:
+		return 0
+	case t.Heal > 0:
+		return t.Heal
+	default:
+		return t.Damage
+	}
 }

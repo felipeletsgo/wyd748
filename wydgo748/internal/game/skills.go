@@ -744,7 +744,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		appliedTotal := uint32(0)
 		calculatedTotal := uint32(0)
 		if directDamage {
-			damageValue := w.skillFinalDamage(baseDamage, effectiveMobDefenseAt(target, now), skillDamageMastery(p.Char))
+			damageValue := w.skillFinalDamage(baseDamage, effectiveMobElementalDefenseAt(target, now), skillDamageMastery(p.Char))
 			damageValue = damageValue * 70 / 100 // Historical 7.59 _MSG_Attack Mortal PvE reduction.
 			damageValue = applySkillResistance(damageValue, skill.InstanceType, effectiveMobResistancesAt(target, now), true)
 			damageValue = applyCouragePvEDamageAt(p.Char, damageValue, magicDamage, now)

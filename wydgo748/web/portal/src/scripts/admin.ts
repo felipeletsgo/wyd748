@@ -3,6 +3,8 @@ import { RegistrationChallenge } from '../lib/registration-challenge';
 import { setupGlobalDrop } from './global-drop';
 import { setupQuiz } from './quiz';
 import { setupBosses } from './bosses';
+import { setupPvPDoor } from './pvp-door';
+import { setupOXEvent } from './ox-event';
 import { setupPremiumShop } from './premium-shop';
 import { setupPlayerModeration } from './player-moderation';
 import { setupPlayerTeleport } from './player-teleport';
@@ -92,6 +94,8 @@ async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> 
 const globalDropPanel = setupGlobalDrop(api, explain);
 const quizPanel = setupQuiz(api, explain);
 const bossesPanel = setupBosses(api, explain);
+const pvpDoorPanel = setupPvPDoor(api, explain);
+const oxEventPanel = setupOXEvent(api, explain);
 const premiumPanel = setupPremiumShop(api, explain);
 const moderationPanel = setupPlayerModeration(api, explain);
 const teleportPanel = setupPlayerTeleport(api, explain);
@@ -111,6 +115,8 @@ function resetSnapshot() {
   globalDropPanel.reset();
   quizPanel.reset();
   bossesPanel.reset();
+  pvpDoorPanel.reset();
+  oxEventPanel.reset();
   premiumPanel.reset();
   moderationPanel.reset();
   teleportPanel.reset();
@@ -131,7 +137,7 @@ async function init() {
   try {
     session = await api<Session>('/auth/session');
     showSession(); text('login-message','');
-    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void premiumPanel.refresh(); }
+    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void premiumPanel.refresh(); }
   } catch (error) {
     session = undefined; showSession(); text('login-message',explain(error));
   } finally {
@@ -380,7 +386,7 @@ el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
     if (!session) session = await api<Session>('/auth/session');
     session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value,turnstileToken:loginChallenge.token});
     resetSnapshot(); showSession(); el<HTMLButtonElement>('refresh').focus();
-    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void premiumPanel.refresh();
+    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void premiumPanel.refresh();
   } catch (error) {
     text('login-message',explain(error)); if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
   } finally {
@@ -395,7 +401,7 @@ el('logout').addEventListener('click',async () => {
     else {text('snapshot-state','Could not end the session');text('snapshot-detail',explain(error));el('snapshot-banner').classList.add('error');}
   } finally {button.disabled = false;}
 });
-el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void premiumPanel.refresh(); });
+el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void premiumPanel.refresh(); });
 el<HTMLFormElement>('search-form').addEventListener('submit',event => {event.preventDefault();void query(0,el<HTMLInputElement>('search').value.trim());});
 el('previous').addEventListener('click',() => void query(Math.max(0,offset-50)));
 el('next').addEventListener('click',() => void query(offset+50));

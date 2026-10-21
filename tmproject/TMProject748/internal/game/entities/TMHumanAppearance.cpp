@@ -1823,24 +1823,21 @@ int TMHuman::GetBloodColor()
 
 void TMHuman::SetCharHeight(float fCon)
 {
-    float fRatio = 0.0f;
-    if (m_dwID >= 0 && m_dwID < 1000 || g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR)
+    // Character CON is combat state, not a visual scale input. Keep the same
+    // appearance for the owner, observers, and character selection.
+    if ((m_dwID >= 0 && m_dwID < 1000) || g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR)
     {
-        fRatio = 4000.0f;
-        if (fCon > 500.0f && m_stScore.Level < 500)
-            fCon = 500.0f;
-    }
-    else
-    {
-        fRatio = 2000.0;
-        // WYD 7.48 stores mob Con as a signed short. Imported templates keep
-        // its 16-bit pattern (-800 arrives as 64736), which made Basilisks,
-        // Lizards and Grub swarms about 30 times larger than native.
-        if (fCon >= 32768.0f && fCon < 65536.0f)
-            fCon -= 65536.0f;
+        m_fScale = 0.89999998f;
+        return;
     }
 
-    m_fScale = ((fCon / fRatio) + 1.0f) * 0.89999998f;
+    // WYD 7.48 stores mob Con as a signed short. Imported templates keep
+    // its 16-bit pattern (-800 arrives as 64736), which made Basilisks,
+    // Lizards and Grub swarms about 30 times larger than native.
+    if (fCon >= 32768.0f && fCon < 65536.0f)
+        fCon -= 65536.0f;
+
+    m_fScale = ((fCon / 2000.0f) + 1.0f) * 0.89999998f;
 }
 
 void TMHuman::SetAvatar(char cAvatar)

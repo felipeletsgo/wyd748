@@ -321,6 +321,7 @@ func (w *World) validateItemInstanceTemplates() error {
 			for _, stage := range cfg.Stages {
 				spawns = append(spawns, stage.Spawns...)
 				spawns = append(spawns, stage.CompletionSpawns...)
+				spawns = append(spawns, stage.RuneBonusSpawns...)
 			}
 		}
 		if cfg.HellGate != nil {
@@ -1797,6 +1798,8 @@ func cfgCopy(cfg model.VolatileInstance) model.VolatileInstance {
 			[]model.VolatileInstanceSpawn(nil), cfg.Stages[index].Spawns...)
 		cfg.Stages[index].CompletionSpawns = append(
 			[]model.VolatileInstanceSpawn(nil), cfg.Stages[index].CompletionSpawns...)
+		cfg.Stages[index].RuneBonusSpawns = append(
+			[]model.VolatileInstanceSpawn(nil), cfg.Stages[index].RuneBonusSpawns...)
 		if cfg.Stages[index].Quiz != nil {
 			quiz := *cfg.Stages[index].Quiz
 			cfg.Stages[index].Quiz = &quiz
@@ -2090,6 +2093,7 @@ func (w *World) spawnItemInstanceStageThen(inst *ItemInstance, stageIndex int, n
 	// Make the new stage authoritative before movement so the position commit
 	// and the instance snapshot are written together.
 	inst.CurrentStage = stageIndex
+	w.rollMagicChamberRune(inst, stageIndex)
 	newMobIDs := make(map[uint16]struct{}, len(created))
 	for _, mob := range created {
 		newMobIDs[mob.ID] = struct{}{}
@@ -2469,6 +2473,10 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 			setInstanceCombatDeadline(inst, now)
 			return
 		}
+		if w.spawnMagicChamberRuneBonus(inst, stages[inst.CurrentStage], now) {
+			w.markInstanceStateDirty()
+			return
+		}
 		if inst.CurrentStage+1 < len(stages) {
 			if quiz := stages[inst.CurrentStage].Quiz; quiz != nil {
 				deadline := now.Add(time.Duration(quiz.DurationSeconds) * time.Second)
@@ -2840,6 +2848,7 @@ func (w *World) closeItemInstance(id string) {
 	delete(w.itemInstances, id)
 	delete(w.pendingInstanceMembers, id)
 	delete(w.pendingInstanceLeaders, id)
+	delete(w.magicChamberRunes, id)
 	w.markInstanceStateDirty()
 	log.Printf("INSTANCE %q closed", id)
 }

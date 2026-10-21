@@ -1,0 +1,20 @@
+<section id="pvp-door" class="panel bosses-panel" aria-labelledby="pvp-door-title">
+  <div class="panel-heading">
+    <div><span class="eyebrow">WORLD CONTROLS</span><h2 id="pvp-door-title">Armia PvP door</h2></div>
+    <button id="pvp-door-refresh" class="button subtle" type="button">Refresh door</button>
+  </div>
+  <div class="event-body">
+    <p class="muted">The PvP door at Armia (2123, 2143) is open by default. Lock it to close the PvP area and open it again afterward. Players nearby see the change immediately.</p>
+    <div class="bosses-toolbar">
+      <label for="pvp-door-reason">Reason for operation</label>
+      <input id="pvp-door-reason" minlength="3" maxlength="200" required placeholder="E.g. PvP tournament" />
+    </div>
+    <p><strong>State:</strong> <span id="pvp-door-state">Not queried</span></p>
+    <div class="bosses-toolbar">
+      <button id="pvp-door-lock" class="button subtle" type="button" disabled>Lock door</button>
+      <button id="pvp-door-open" class="button subtle" type="button" disabled>Open door</button>
+    </div>
+    <p id="pvp-door-message" class="form-message" role="status" aria-live="polite"></p>
+    <p id="pvp-door-asof" class="muted">No automatic refresh.</p>
+  </div>
+</section>

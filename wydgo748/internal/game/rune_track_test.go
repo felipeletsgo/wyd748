@@ -171,6 +171,30 @@ func TestRuneTrackRegistrationEntryAndRollback(t *testing.T) {
 	}
 }
 
+func TestRuneTrackEmptyEntryStaysPending(t *testing.T) {
+	w, leader, _, _, _ := runeTrackTestWorld(t)
+	leader.Char.Inv[0] = model.Item{Index: 5134}
+	if !setItemSanc(&leader.Char.Inv[0], 0) {
+		t.Fatal("cannot set ticket refinement")
+	}
+	w.startUxmal(leader.Session, leader)
+	inst := w.itemInstances["uxmal:0"]
+	if inst == nil {
+		t.Fatal("registration did not create the Rune Track room")
+	}
+
+	// The registered party becomes invalid before the cycle begins. No member
+	// may be attached and the room must remain retryable in the entry state.
+	leader.Char.UID = ""
+	if w.beginRuneTrack(inst) {
+		t.Fatal("an empty Rune Track entry was reported as committed")
+	}
+	if inst.State != "entry" || len(inst.MemberIDs) != 0 || len(inst.RuneTrack.Parties) != 1 {
+		t.Fatalf("empty Rune Track entry mutated the room: state=%q members=%d parties=%d",
+			inst.State, len(inst.MemberIDs), len(inst.RuneTrack.Parties))
+	}
+}
+
 func TestRuneTrackSharedArrivalsAndFourPartyCapacity(t *testing.T) {
 	for _, room := range []int{3, 4, 5} {
 		t.Run(fmt.Sprint(room), func(t *testing.T) {

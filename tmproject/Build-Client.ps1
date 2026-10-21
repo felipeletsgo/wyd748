@@ -28,8 +28,13 @@ Set-StrictMode -Version Latest
 # Resolve all paths from this script, regardless of the shell's working directory.
 $solution = Join-Path $PSScriptRoot 'WYDESTINY.sln'
 $candidate = Join-Path $PSScriptRoot 'client748\WYD.exe'
+$wideItemCatalog = Join-Path $PSScriptRoot 'client748\ItemListWide.csv'
 $targetName = if ($Configuration -eq 'Release') { 'WYD.exe' } else { 'WYDestiny.exe' }
 $artifact = Join-Path $PSScriptRoot "build\TMProject748\$Configuration\$targetName"
+
+if (-not (Test-Path -LiteralPath $wideItemCatalog -PathType Leaf)) {
+    throw "Required client contract asset is missing: $wideItemCatalog"
+}
 
 if (-not $MSBuildPath) {
     $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'

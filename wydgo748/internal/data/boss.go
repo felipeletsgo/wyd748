@@ -13,32 +13,24 @@ import (
 	"wydgo/internal/model"
 )
 
-// boss.go -- carrega data/boss/*.lua.
-//
-// O Lua aqui e um formato de CONFIGURACAO, nao um motor de comportamento: cada
-// arquivo devolve uma tabela e o Go le os valores. O comportamento vive em
-// internal/game/boss_types.go, hardcoded.
-//
-// SANDBOX: o interpretador sobe sem as bibliotecas de sistema (os, io, package,
-// debug) e com limite de tempo. Um arquivo de conteudo nao pode abrir arquivo,
-// executar processo, acessar rede nem travar o boot. As bibliotecas seguras
-// (base, string, table, math) ficam, porque tornam o config expressivo -- dar
-// para escrever `hp = 500 * 1000` ou montar uma lista com um loop e justamente
-// a vantagem de usar Lua em vez de JSON.
+// boss.go loads declarative configuration from data/boss/*.lua. Runtime
+// behavior remains in internal/game/boss_types.go. Each Lua file returns a
+// table; it cannot define new world behavior.
+// The sandbox excludes system libraries and limits execution time, while
+// retaining safe base, string, table, and math operations for configuration.
 
-// bossScriptTimeout limita a execucao de UM arquivo. Config e declarativo: se
-// levar mais que isso, ha laco infinito.
+// bossScriptTimeout limits execution of one declarative configuration file.
 const bossScriptTimeout = 5 * time.Second
 
-// LoadBossCatalog le todos os .lua do diretorio. Diretorio ausente devolve
-// catalogo vazio: um servidor sem boss e uma configuracao legitima.
+// LoadBossCatalog reads all .lua files. A missing directory yields an empty
+// catalog because a server without bosses is valid.
 func LoadBossCatalog(dir string) (model.BossCatalog, error) {
 	entries, err := os.ReadDir(dir)
 	if os.IsNotExist(err) {
 		return model.BossCatalog{}, nil
 	}
 	if err != nil {
-		return model.BossCatalog{}, fmt.Errorf("abrir diretorio de boss %q: %w", dir, err)
+		return model.BossCatalog{}, fmt.Errorf("open boss directory %q: %w", dir, err)
 	}
 
 	names := make([]string, 0, len(entries))
@@ -48,7 +40,7 @@ func LoadBossCatalog(dir string) (model.BossCatalog, error) {
 		}
 		names = append(names, entry.Name())
 	}
-	// Ordem alfabetica: o catalogo (e qualquer erro) fica reproduzivel.
+	// Alphabetical order makes the catalog and any errors reproducible.
 	sort.Strings(names)
 
 	var catalog model.BossCatalog
@@ -66,10 +58,10 @@ func LoadBossCatalog(dir string) (model.BossCatalog, error) {
 	return catalog, nil
 }
 
-// newBossSandbox cria um estado Lua sem acesso ao sistema operacional.
+// newBossSandbox creates a Lua state without operating-system access.
 func newBossSandbox() *lua.LState {
 	state := lua.NewState(lua.Options{SkipOpenLibs: true})
-	// Somente bibliotecas puras: nenhuma toca em arquivo, processo ou rede.
+	// Only pure libraries; none can access files, processes, or the network.
 	for _, lib := range []struct {
 		name string
 		open lua.LGFunction
@@ -83,20 +75,19 @@ func newBossSandbox() *lua.LState {
 		state.Push(lua.LString(lib.name))
 		state.Call(1, 0)
 	}
-	// OpenBase traz dofile/loadfile, que leem disco. Removidos explicitamente:
-	// um arquivo de boss nao pode carregar outro nem sair do diretorio.
+	// OpenBase includes disk-reading functions, which must be removed.
 	for _, unsafe := range []string{"dofile", "loadfile", "load", "loadstring", "collectgarbage", "print"} {
 		state.SetGlobal(unsafe, lua.LNil)
 	}
 	return state
 }
 
-// loadBossFile executa UM arquivo e converte a tabela devolvida.
+// loadBossFile runs one file and converts its returned table.
 func loadBossFile(path string) (model.BossConfig, error) {
 	state := newBossSandbox()
 	defer state.Close()
 
-	// O timeout corta laco infinito sem derrubar o processo.
+	// The timeout interrupts infinite loops without stopping the process.
 	ctx, cancel := contextWithTimeout(bossScriptTimeout)
 	defer cancel()
 	state.SetContext(ctx)
@@ -105,11 +96,11 @@ func loadBossFile(path string) (model.BossConfig, error) {
 		return model.BossConfig{}, fmt.Errorf("%s: %w", path, err)
 	}
 	if state.GetTop() == 0 {
-		return model.BossConfig{}, fmt.Errorf("%s: o arquivo precisa terminar com `return { ... }`", path)
+		return model.BossConfig{}, fmt.Errorf("%s: file must end with `return { ... }`", path)
 	}
 	table, ok := state.Get(-1).(*lua.LTable)
 	if !ok {
-		return model.BossConfig{}, fmt.Errorf("%s: o retorno precisa ser uma tabela", path)
+		return model.BossConfig{}, fmt.Errorf("%s: return value must be a table", path)
 	}
 
 	boss := model.BossConfig{SourceFile: filepath.Base(path)}
@@ -119,9 +110,8 @@ func loadBossFile(path string) (model.BossConfig, error) {
 	return boss, nil
 }
 
-// decodeBossTable copia a tabela Lua para a struct. Chave desconhecida e ERRO,
-// nao aviso: um `atack = 500` digitado errado passaria despercebido e o boss
-// nasceria fraco sem ninguem entender por que.
+// decodeBossTable copies the Lua table into a struct. Unknown keys are errors
+// so a typo such as `atack = 500` cannot silently weaken a boss.
 func decodeBossTable(table *lua.LTable, boss *model.BossConfig) error {
 	known := map[string]func(lua.LValue) error{
 		"id":            func(v lua.LValue) error { return luaString(v, &boss.ID) },
@@ -160,8 +150,7 @@ func decodeBossSpawn(value lua.LValue, spawn *model.BossSpawn) error {
 	})
 }
 
-// decodeBossAreaReward le a premiacao coletiva: item e quantas unidades caem
-// no chao ao redor do boss.
+// decodeBossAreaReward reads the shared item and ground-drop count.
 func decodeBossAreaReward(value lua.LValue, reward *model.BossAreaReward) error {
 	table, err := luaTable(value, "area_reward")
 	if err != nil {
@@ -181,6 +170,7 @@ func decodeBossStats(value lua.LValue, stats *model.BossStats) error {
 	return eachField(table, "stats.", map[string]func(lua.LValue) error{
 		"level":      func(v lua.LValue) error { return luaUint32Ptr(v, &stats.Level) },
 		"max_hp":     func(v lua.LValue) error { return luaUint32Ptr(v, &stats.MaxHP) },
+		"con":        func(v lua.LValue) error { return luaUint32Ptr(v, &stats.Con) },
 		"attack":     func(v lua.LValue) error { return luaUint32Ptr(v, &stats.Attack) },
 		"defense":    func(v lua.LValue) error { return luaUint32Ptr(v, &stats.Defense) },
 		"attack_run": func(v lua.LValue) error { return luaUint32Ptr(v, &stats.AttackRun) },

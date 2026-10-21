@@ -726,6 +726,136 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/world/pvp-door": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect the Armia PvP door (game.world.pvp-door capability) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Authoritative World state of the PvP door */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PvPDoorStatus"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Lock or open the Armia PvP door (7.59 pkgate); staff session rechecked at execution */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PvPDoorCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt; lock and open are idempotent */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PvPDoorResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/events/ox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect the OX quiz arena (game.event.ox capability) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Authoritative World state of the OX arena */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OXEventStatus"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Run the OX quiz arena (7.59 quizmode, quizdoor, quizresultx, quizresulto); staff session rechecked at execution */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["OXEventCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt; mode and door actions are idempotent, results move only players still on the losing side */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["OXEventResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/session": {
         parameters: {
             query?: never;
@@ -1720,6 +1850,58 @@ export interface components {
             code: "ok" | "invalid_command" | "capability_required" | "server_maintenance" | "stale_boss" | "operation_conflict" | "operation_capacity" | "unknown_boss" | "boss_alive" | "spawn_failed";
             replayed: boolean;
             status: components["schemas"]["BossesStatus"];
+        };
+        /** @description Lock closes the Armia PvP door; open reopens it. Repeating the current state reports unchanged. */
+        PvPDoorCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            /** @enum {string} */
+            action: "lock" | "open";
+            reason: string;
+        };
+        PvPDoorStatus: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            available: boolean;
+            locked: boolean;
+            x: number;
+            y: number;
+        };
+        PvPDoorResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "unchanged" | "door_unavailable" | "invalid_command" | "capability_required" | "server_maintenance";
+            status: components["schemas"]["PvPDoorStatus"];
+        };
+        /** @description mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465). */
+        OXEventCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            /** @enum {string} */
+            action: "mode_on" | "mode_off" | "doors_lock" | "doors_open" | "result_x" | "result_o";
+            reason: string;
+        };
+        OXEventStatus: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            quizMode: boolean;
+            doors: number;
+            doorsLocked: boolean;
+            playersX: number;
+            playersO: number;
+        };
+        OXEventResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "unchanged" | "doors_unavailable" | "invalid_command" | "capability_required" | "server_maintenance";
+            moved: number;
+            status: components["schemas"]["OXEventStatus"];
         };
         Session: {
             authenticated: boolean;

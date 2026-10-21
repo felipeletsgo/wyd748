@@ -573,6 +573,15 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto vitalsBody = source_contract::Method(packetSource,
         "int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)");
     const auto hpClamp = vitalsBody.find("m_stScore.CurHP = m_stScore.MaxHP;");
+    const auto bigHpSync = vitalsBody.find(
+        "attack_target::SyncActivePool(m_stScore.CurHP, m_stScore.MaxHP, m_BigHp, m_MaxBigHp);");
+    const auto bigMpSync = vitalsBody.find(
+        "attack_target::SyncActivePool(m_stScore.CurMP, m_stScore.MaxMP, m_BigMp, m_MaxBigMp);");
+    const auto entityHpDraw = vitalsBody.find("resource_ui::Project(m_pProgressBar,");
+    check(hpClamp != std::string::npos && bigHpSync != std::string::npos &&
+        bigMpSync != std::string::npos && entityHpDraw != std::string::npos &&
+        hpClamp < bigHpSync && bigHpSync < bigMpSync && bigMpSync < entityHpDraw,
+        "authoritative vitals replace stale big pools before the next draw or attack");
     const auto localScoreCopy = vitalsBody.find("if (isLocalHuman)\n    {\n        auto& localScore =");
     const auto localHpCopy = vitalsBody.find("localScore.CurHP = m_stScore.CurHP;", localScoreCopy);
     const auto localMpCopy = vitalsBody.find("localScore.CurMP = m_stScore.CurMP;", localHpCopy);
@@ -1720,14 +1729,31 @@ int RunSceneDisconnectContractTests(int& checks)
         silverLayout != std::string::npos && markPrimitives.find("0xFFC0C0C0", silverLayout) != std::string::npos &&
         markPrimitives.find("0xFFFFD700") < silverLayout,
         "guild leader marks get a gold border and sub-leader marks a silver border");
-    // Mob Con is a signed short in WYD 7.48; its 16-bit pattern must not
-    // inflate monsters such as Basilisk (64736 = -800).
+    // Player Con must not affect visual scale, including equipment refreshes
+    // and observer updates. Mob Con still controls scale; its signed-short
+    // pattern must not inflate Basilisk (64736 = -800).
     const auto appearanceSource = LoadSource("TMProject748/internal/game/entities/TMHumanAppearance.cpp");
-    const auto heightBody = appearanceSource.find("void TMHuman::SetCharHeight(float fCon)");
-    check(heightBody != std::string::npos &&
-        appearanceSource.find("if (fCon >= 32768.0f && fCon < 65536.0f)", heightBody) <
-            appearanceSource.find("m_fScale = ((fCon / fRatio) + 1.0f) * 0.89999998f;", heightBody),
-        "mob height reads Con as the native signed short");
+    const auto heightBody = source_contract::Method(appearanceSource, "void TMHuman::SetCharHeight(float fCon)");
+    const auto playerGuard = heightBody.find("if ((m_dwID >= 0 && m_dwID < 1000) || g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR)");
+    const auto fixedPlayerScale = heightBody.find("m_fScale = 0.89999998f;", playerGuard);
+    const auto playerReturn = heightBody.find("return;", fixedPlayerScale);
+    const auto mobSignedCon = heightBody.find("if (fCon >= 32768.0f && fCon < 65536.0f)");
+    const auto mobScale = heightBody.find("m_fScale = ((fCon / 2000.0f) + 1.0f) * 0.89999998f;");
+    check(playerGuard != std::string::npos && fixedPlayerScale != std::string::npos &&
+        playerReturn != std::string::npos && playerReturn < mobSignedCon,
+        "player height is fixed before mob Con scaling");
+    check(mobSignedCon != std::string::npos && mobScale != std::string::npos && mobSignedCon < mobScale,
+        "mob height retains signed Con handling and Con-based scaling");
+    const auto cameraBody = source_contract::Method(
+        LoadSource("TMProject748/internal/render/camera/TMCamera.cpp"),
+        "TMVector3 TMCamera::GetCameraPos()");
+    check(!cameraBody.empty() && cameraBody.find("m_stScore.Con") == std::string::npos &&
+        cameraBody.find("m_fMinClose = 2.5f;") != std::string::npos &&
+        cameraBody.find("m_fCamHeight = 1.0f;") != std::string::npos &&
+        cameraBody.find("m_fMinClose = 1.3f;") != std::string::npos &&
+        cameraBody.find("m_fCamHeight = 0.40000001f;") != std::string::npos &&
+        cameraBody.find("m_fCamHeight = -0.2f;") != std::string::npos,
+        "player Con does not move the camera while mount and seated camera offsets remain");
     // FUN_0042e8a1 calls native block 3 (mapped to RenderBlock in this port),
     // not world block 1. Plain meshes still use their original texture pass.
     const auto primitivesSource = LoadSource("TMProject748/internal/platform/windows/RenderDevicePrimitives.cpp");
@@ -2016,6 +2042,12 @@ int RunSceneDisconnectContractTests(int& checks)
             bigSubtract != std::string::npos &&
             attack.find("pTargetHuman->m_BigHp -=") == std::string::npos,
             "target HP projection is applied through the policy before snapshot copies");
+        // Scores are 32-bit end to end; the local pending HP must not narrow them.
+        const std::string fieldHeader = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.h");
+        check(fieldHeader.find("unsigned int m_nReqHP;") != std::string::npos &&
+            attack.find("static_cast<unsigned short>(m_pMyHuman->m_stScore") == std::string::npos &&
+            attack.find("Dam > 100000") == std::string::npos,
+            "local pending HP keeps the 32-bit authoritative score");
     }
     const std::string selectChar = LoadUnits("TMProject748/internal/app/scenes/",
         {"TMSelectCharScene", "TMSelectCharSceneInput", "TMSelectCharScenePackets"});

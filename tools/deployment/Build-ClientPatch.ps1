@@ -31,8 +31,16 @@ Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $prefix = 'tmproject/client748/'
+$requiredClientFiles = @('ItemListWide.csv')
 $skipped = @('config.txt', 'ClientSettings.txt')
 $refused = @('WYDLauncher.exe', 'update.dat')
+
+foreach ($required in $requiredClientFiles) {
+    & git -C $repo cat-file -e "${To}:$prefix$required"
+    if ($LASTEXITCODE -ne 0) {
+        throw "Required client contract asset '$prefix$required' is not present in revision '$To'; commit it before building a patch."
+    }
+}
 
 $changed = @(git -C $repo -c core.quotepath=off diff --name-only --diff-filter=ACMRT $From $To -- $prefix)
 if ($LASTEXITCODE -ne 0) { throw "git diff $From..$To failed." }

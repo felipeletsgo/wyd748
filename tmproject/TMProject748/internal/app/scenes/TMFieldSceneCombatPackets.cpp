@@ -57,6 +57,15 @@ static int GetWYD748AttackVisualDamage(const MSG_Attack* pAttack, int index)
 	return attack_visual::ReadDamage(bytes, pAttack->Header.Size,
 		pAttack->Header.Type, index, legacyDamage);
 }
+
+static int GetWYD748AttackStateDamage(const MSG_Attack* attack, int index)
+{
+	const int legacy = attack->Dam[index].Damage;
+	if (legacy < 0)
+		return attack_visual::ReadHeal(reinterpret_cast<const unsigned char*>(attack),
+			attack->Header.Size, attack->Header.Type, index, legacy);
+	return GetWYD748AttackVisualDamage(attack, index);
+}
 }
 
 int TMFieldScene::OnPacketAction(MSG_STANDARD* pStd)
@@ -321,24 +330,24 @@ int TMFieldScene::OnPacketAttack(MSG_STANDARD* pStd)
 		if (pAttacker == m_pMyHuman)
 		{
 			m_nReqMP = pAttack->ReqMp;
-			if (m_nReqHP < static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP);
+			if (m_nReqHP < static_cast<unsigned int>(m_pMyHuman->m_stScore.CurHP))
+				m_nReqHP = static_cast<unsigned int>(m_pMyHuman->m_stScore.CurHP);
 			if (m_nReqMP < static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP))
 				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP);
-			if (m_nReqHP > static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP);
+			if (m_nReqHP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxHP))
+				m_nReqHP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxHP);
 			if (m_nReqMP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP))
 				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP);
 			UpdateScoreUI(0);
 		}
 		else if (pTarget == m_pMyHuman)
 		{
-			if (m_nReqHP < static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.CurHP);
+			if (m_nReqHP < static_cast<unsigned int>(m_pMyHuman->m_stScore.CurHP))
+				m_nReqHP = static_cast<unsigned int>(m_pMyHuman->m_stScore.CurHP);
 			if (m_nReqMP < static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP))
 				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.CurMP);
-			if (m_nReqHP > static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP))
-				m_nReqHP = static_cast<unsigned short>(m_pMyHuman->m_stScore.MaxHP);
+			if (m_nReqHP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxHP))
+				m_nReqHP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxHP);
 			if (m_nReqMP > static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP))
 				m_nReqMP = static_cast<unsigned int>(m_pMyHuman->m_stScore.MaxMP);
 			UpdateScoreUI(16);
@@ -362,9 +371,8 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 		auto pTargetHuman = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
 		if (pTargetHuman)
 		{
-			int nDamageRate = pTargetHuman->m_cDamageRate;
-			if (nDamageRate == 0)
-				nDamageRate = 1;
+			int nDamageRate = attack_target::SafeDamageRate(pTargetHuman->m_cDamageRate);
+			const int stateDamage = GetWYD748AttackStateDamage(pAttack, i);
 
 			if (m_pMyHuman)
 			{
@@ -416,22 +424,18 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 					{
 						if (!pTargetHuman->m_MaxBigHp)
 							attack_target::HealPool(pTargetHuman->m_stScore.CurHP,
-								pTargetHuman->m_stScore.MaxHP, pAttack->Dam[i].Damage, nDamageRate);
+								pTargetHuman->m_stScore.MaxHP, stateDamage, nDamageRate);
 						else
 							attack_target::HealBigPool(pTargetHuman->m_stScore.CurHP,
-								pTargetHuman->m_BigHp, pAttack->Dam[i].Damage, nDamageRate);
+								pTargetHuman->m_BigHp, stateDamage, nDamageRate);
 
 						if (pTargetHuman == m_pMyHuman)
 						{
-							int HealDam = pAttack->Dam[i].Damage / nDamageRate;
-							int Dam = HealDam + m_nReqHP;
-							// TODO: change to define
-							if (Dam > 100000)
-								Dam = 100000;
-							if (Dam <= 0)
-								m_nReqHP = 0;
-							else
-								m_nReqHP = Dam;
+							// The wire value is signed: healing is negative and therefore
+							// increases the pending HP projection.
+							attack_target::ApplyPendingHPDelta(m_nReqHP,
+								-(stateDamage / nDamageRate),
+								pTargetHuman->m_stScore.MaxHP);
 
 							memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pTargetHuman->m_stScore, sizeof(pTargetHuman->m_stScore));
 						}
@@ -448,7 +452,9 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 							sprintf(szStr, "?");
 						}
 						else
-							sprintf(szStr, "+ %d", -pAttack->Dam[i].Damage / ((pAttack->DoubleCritical & 1) + 1));
+							sprintf(szStr, "+ %d", -attack_visual::ReadHeal(reinterpret_cast<const unsigned char*>(pAttack),
+								pAttack->Header.Size, pAttack->Header.Type, i, pAttack->Dam[i].Damage) /
+								((pAttack->DoubleCritical & 1) + 1));
 
 						bool bDrawFront = false;
 						if (g_bHideEffect)
@@ -478,15 +484,12 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 					{
 						int nValue = attack_target::Damage(pTargetHuman->m_stScore.CurHP,
 							pTargetHuman->m_BigHp, pTargetHuman->m_MaxBigHp != 0,
-							pAttack->Dam[i].Damage, nDamageRate);
+							stateDamage, nDamageRate);
 						if (pTargetHuman->m_stScore.CurHP < 0)
 							pTargetHuman->m_stScore.CurHP = 0;
 						if (pTargetHuman == m_pMyHuman)
 						{
-							if (m_nReqHP - pAttack->Dam[i].Damage > 0)
-								m_nReqHP -= nValue;
-							else
-								m_nReqHP = 0;
+							attack_target::SubtractPendingHP(m_nReqHP, nValue);
 
 							if ((int)pAttack->AttackerID > 1000)
 							{
@@ -527,11 +530,8 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 							if (pAttack->DoubleCritical & 4)
 								nFlank = GetWYD748AttackVisualDamage(pAttack, 1);
 
-							// The HP mutation above deliberately used the projected WORD; only
-							// the floating number consumes the optional uint32 WYD-Go tail.
+							// HP projection and floating damage share the validated wide value.
 							int nValue = (GetWYD748AttackVisualDamage(pAttack, i) - nFlank) / ((pAttack->DoubleCritical & 1) + 1);
-							if (nValue > 1000000)
-								nValue = 0;
 
 							if (nValue > 0)
 							{
@@ -913,9 +913,8 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 			auto pTargetHuman = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
 			if (pTargetHuman)
 			{
-				int nDamageRate = pTargetHuman->m_cDamageRate;
-				if (nDamageRate == 0)
-					nDamageRate = 1;
+				int nDamageRate = attack_target::SafeDamageRate(pTargetHuman->m_cDamageRate);
+				const int stateDamage = GetWYD748AttackStateDamage(pAttack, i);
 
 				if (pAttack->Dam[i].Damage == -3 || pAttack->Dam[i].Damage == -4)
 				{
@@ -951,14 +950,17 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 				{
 					if (!pAttack->FlagLocal)
 					{
-						attack_target::SubtractPool(pTargetHuman->m_stScore.CurHP,
-							pAttack->Dam[i].Damage, nDamageRate);
+						if (!pTargetHuman->m_MaxBigHp)
+							attack_target::HealPool(pTargetHuman->m_stScore.CurHP,
+								pTargetHuman->m_stScore.MaxHP, stateDamage, nDamageRate);
+						else
+							attack_target::HealBigPool(pTargetHuman->m_stScore.CurHP,
+								pTargetHuman->m_BigHp, stateDamage, nDamageRate);
 						if (pTargetHuman == m_pMyHuman)
 						{
-							if (m_nReqHP - pAttack->Dam[i].Damage <= 0)
-								m_nReqHP = 0;
-							else
-								m_nReqHP -= pAttack->Dam[i].Damage / nDamageRate;
+							attack_target::ApplyPendingHPDelta(m_nReqHP,
+								-(stateDamage / nDamageRate),
+								pTargetHuman->m_stScore.MaxHP);
 
 							memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pTargetHuman->m_stScore, sizeof(pTargetHuman->m_stScore));
 						}
@@ -976,7 +978,9 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 							sprintf(szStr, "?");
 						}
 						else
-							sprintf(szStr, "+ %d", -pAttack->Dam[i].Damage / ((pAttack->DoubleCritical & 1) + 1));
+							sprintf(szStr, "+ %d", -attack_visual::ReadHeal(reinterpret_cast<const unsigned char*>(pAttack),
+								pAttack->Header.Size, pAttack->Header.Type, i, pAttack->Dam[i].Damage) /
+								((pAttack->DoubleCritical & 1) + 1));
 
 						bool bDrawFront = false;
 						if (g_bHideEffect)
@@ -1006,16 +1010,16 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 					{
 						if (!pTargetHuman->m_MaxBigHp)
 							attack_target::SubtractPool(pTargetHuman->m_stScore.CurHP,
-								pAttack->Dam[i].Damage, nDamageRate);
+								stateDamage, nDamageRate);
 						else
 							attack_target::SubtractBigPool(pTargetHuman->m_stScore.CurHP,
-								pTargetHuman->m_BigHp, pAttack->Dam[i].Damage);
+								pTargetHuman->m_BigHp, stateDamage);
 						if (pTargetHuman == m_pMyHuman)
 						{
-							if (m_nReqHP - pAttack->Dam[i].Damage <= 0)
-								m_nReqHP = 0;
-							else
-								m_nReqHP -= pAttack->Dam[i].Damage / nDamageRate;
+							const int pendingDamage = pTargetHuman->m_MaxBigHp
+								? stateDamage
+								: stateDamage / nDamageRate;
+							attack_target::SubtractPendingHP(m_nReqHP, pendingDamage);
 
 							memcpy(&g_pObjectManager->m_stMobData.CurrentScore, &pTargetHuman->m_stScore, sizeof(pTargetHuman->m_stScore));
 						}
@@ -1044,8 +1048,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 						attack_visual::DoubleHitNumbers numberTiming;
 						for (int bViewHalf = 0; bViewHalf < (pAttack->DoubleCritical & 1) + 1; bViewHalf++)
 						{
-							// Preserve legacy HP arithmetic while rendering the authoritative
-							// wide damage when the server supplied a validated DMGX tail.
+							// Render the same validated wide value used for HP projection.
 							int nValue = GetWYD748AttackVisualDamage(pAttack, i) / ((pAttack->DoubleCritical & 1) + 1);
 
 							if (nValue > 0)

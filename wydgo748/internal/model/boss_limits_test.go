@@ -35,7 +35,7 @@ func TestBossRejectsUnsafeContentLimits(t *testing.T) {
 			config := validLimitedBoss()
 			tc.mutate(&config)
 			if err := config.Validate(); err == nil {
-				t.Fatal("configuracao capaz de amplificar carga foi aceita")
+				t.Fatal("configuration capable of amplifying load was accepted")
 			}
 		})
 	}
@@ -47,6 +47,35 @@ func TestBossAcceptsLimitsAtBoundary(t *testing.T) {
 	config.Summons[0].MaxAlive = MaxBossSummonedAlive
 	config.SpawnMessage = strings.Repeat("x", MaxBossMessageBytes)
 	if err := config.Validate(); err != nil {
-		t.Fatalf("limites validos foram recusados: %v", err)
+		t.Fatalf("valid limits were rejected: %v", err)
+	}
+}
+
+func TestBossRejectsDurationAndStackOverflow(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*BossConfig)
+	}{
+		{"respawn duration", func(c *BossConfig) {
+			c.Spawn.RespawnSeconds = int(MaxBossDurationSeconds) + 1
+		}},
+		{"skill duration", func(c *BossConfig) {
+			c.Skills = []BossSkill{{ID: 1, CooldownSeconds: int(MaxBossDurationSeconds) + 1}}
+		}},
+		{"summon duration", func(c *BossConfig) {
+			c.Summons[0].CooldownSeconds = int(MaxBossDurationSeconds) + 1
+		}},
+		{"drop stack", func(c *BossConfig) {
+			c.Drops = []BossDrop{{Item: 1, ChancePercent: 100, Amount: MaxBossDropAmount + 1}}
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			config := validLimitedBoss()
+			tc.mutate(&config)
+			if err := config.Validate(); err == nil {
+				t.Fatal("overflow-prone configuration was accepted")
+			}
+		})
 	}
 }

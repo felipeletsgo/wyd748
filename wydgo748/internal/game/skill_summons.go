@@ -424,8 +424,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 				})
 				continue
 			}
-			damage := uint32(clampInt(int(summon.Def.Score.Attack)-
-				int(target.mob.Def.Score.Defense)/2, 1, int(maxScoreValue)))
+			damage := mobPhysicalHitMobAt(summon, target.mob, w.intn, now)
 			oldHP := target.mob.HP
 			if damage >= target.mob.HP {
 				target.mob.HP = 0

@@ -35,7 +35,7 @@ in progress. No publication or restart is authorized by this register.
 | BUG-007 | P2 | Nightmare party entry and identification are not synchronized | Shared-zone party relocation corrected; automated checks passed, gameplay pending |
 | BUG-008 | P1 | Nightmare reconnect loses party and encounter HUD state | Server recovery implemented; automated checks passed, gameplay pending |
 | BUG-009 | P1 | Magic Chamber monsters disappear or remain untargetable | Party relocation and independent-run isolation corrected in source; automated checks passed, gameplay pending |
-| BUG-010 | P2 | Magic Chamber entrance floor runes are missing | Owner-defined client generator implemented in source; build and policy tests passed, gameplay pending |
+| BUG-010 | P2 | Magic Chamber entrance floor runes are missing | Rune slates and the 7.59 rune bonus boss implemented in source; automated checks passed, gameplay pending |
 | BUG-011 | P1 | Compounder and city guards attack players | Friendly roles and monster-only guard combat implemented; automated checks passed, gameplay pending |
 
 ## Reports and acceptance checks
@@ -526,18 +526,52 @@ in progress. No publication or restart is authorized by this register.
   a control in zone (6,28) and spawns ambient particles elsewhere; the
   environment-effect consumer `FUN_00489618` knows only effect 32. No random
   floor-rune generator was found in the decompiled corpus.
-- Owner decision (2026-10-20): add a generator at the entrance; runes appear on
-  the floor when the player enters. Implemented as a client-only project visual
-  (no packet or server state): `EntranceRunesPolicy.h` and
-  `TMFieldScene::UpdateEntranceRunes`. Entering the hall `(1039..1058,
-  1679..1701)` projects five runes at once, then one every 350–1049 ms while the
-  local player stays inside. Each rune is a 2x2-cell floor decal (`TMShade`)
-  with a random colored texture `Effect\pattern01..04.wys` (effect list 82–85),
-  a 4-second sine fade, and a random center kept clear of the walls. Leaving
-  the hall stops spawning; existing runes expire, and scene teardown removes
-  them. Tests: `EntranceRunesTests.cpp`; `Build-Client.ps1 -NoDeploy` passed,
-  candidate SHA-256
-  `0254CEA3D2C9D8E6AD3579C07701D132DC6A3F2704A99D9628456BD1829A0D90`.
+- Correction (2026-10-21, owner capture): the runes are the Rune_Slate
+  objects (items 1733–1736, meshes 989–992, `EF_GROUND` 6), already in the
+  native 7.48 `InitItem` rows 20–35 and in `data/init_items.csv`: one 2x2
+  block per room at (786,3676), (844,3676), (844,3620) and (786,3634). The
+  7.48 client (`TMGate`, special case for meshes 989–992) sinks a slate below
+  the floor while open and shows it with its glow while closed/locked. WYD-Go
+  created them open, so they never appeared. The 7.59 TMSRV rolls a color 1–4
+  when each room starts (`sub_561F90`) and shows in every block cell k as room
+  k's rune (item 1732+color, state 3) (`sub_561E80`), so up to four runes of
+  random colors appear. Implemented per run (`magic_chamber_runes.go`): the
+  rune is rolled once per room when the stage starts, members see their run's
+  lit slates (locked, height 0, no collision), and other viewers keep the open
+  fixtures; already-visible slates are re-sent after a roll. Test:
+  `TestMagicChamberRuneSlatesFollowTheViewersRun`.
+- Rune bonus boss (owner request, 2026-10-21; 7.59 `sub_561F90`, generators
+  97/123/140): the leader's Voucher_Courage (1732, slot 10) limits the roll to
+  colors 1–3; without it the Arcane chamber (ticket 1731) always rolls 4 and
+  Normal/Mystic roll 1–4. When the fourth room and its completion boss are
+  cleared and the runes include colors 1, 2 and 3, `runeBonusSpawns` summons
+  one bonus boss at (806,3621) and the run finishes when it dies. Mobs, with
+  the 7.59 appearance and the chamber's EXP-only rules (1 damage, no drops),
+  3x the room-4 boss HP and 2x its EXP: Normal `MCN_CruelZak` (CruelZakum,
+  3,000 HP, 400,000 EXP), Mystic `MCM_Gargoyle` (WiseGagoilKing, 12,000 HP,
+  600,000 EXP), Arcane `MCA_Rujeper` (RujeperKing, 30,000 HP, 1,000,000 EXP).
+  The inert 7.59 HP marker item 1936 was removed from their equipment. Tests:
+  `TestMagicChamberRuneBonusBossFollowsTheCompletionBoss`,
+  `TestMagicChamberWithoutTheThreeRunesFinishesAfterTheBoss`,
+  `TestMagicChamberRuneRollRules`, `TestMagicChamberRuneBonusBossesAreConfigured`.
+  Run state is process-local: a restart forgets the rolled runes.
+- Native mechanism (2026-10-20, Ghidra over the whole binary): the only users
+  of the rune textures `pattern01..04` (effect rows 91–94) are `TMSkillFlash`
+  (`FUN_004e3610`), the per-character affect auras (`FUN_00506f9d`) and
+  `TMSkillTownPortal` (`FrameMove` `FUN_004eeb0d`, texture 94, 700 ms, 1.5).
+  The teleport handler (`FUN_005284a0`) creates one `TMSkillTownPortal`
+  (`FUN_004ee730`) at each arriving character's destination before `Warp`.
+  The runes seen at the Carta N/M/A arrival are these one-second arrival
+  portals, one per member, at the members' spread positions; that is why
+  their number and placement vary. WYD-Go already sends `0x366` Effect=1 for
+  every Carta entry and room move (`publishInstanceMemberRelocation`, ticket
+  entry), and `OnPacketIllusion` creates the same portal; source and native
+  match, including the pre-`Warp` height lookup.
+- Correction: the owner-requested hall generator shipped in patch 10037
+  (`EntranceRunesPolicy`, Field0813) is not native. It used wrong texture
+  rows (82–85, counted names instead of the 264-byte rows) and drew white
+  squares. It is removed in source; the next client patch must ship the
+  removal.
 - Next check: identify the native 7.48 floor effect and its random trigger,
   assets, position and lifetime. Keep this separate from monster visibility unless a
   common cause is demonstrated.

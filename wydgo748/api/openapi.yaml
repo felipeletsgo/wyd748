@@ -295,6 +295,62 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/BossesResult' }
         default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/world/pvp-door:
+    get:
+      summary: Inspect the Armia PvP door (game.world.pvp-door capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Authoritative World state of the PvP door
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PvPDoorStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Lock or open the Armia PvP door (7.59 pkgate); staff session rechecked at execution
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PvPDoorCommand' }
+      responses:
+        '200':
+          description: Domain receipt; lock and open are idempotent
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PvPDoorResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/events/ox:
+    get:
+      summary: Inspect the OX quiz arena (game.event.ox capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Authoritative World state of the OX arena
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OXEventStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Run the OX quiz arena (7.59 quizmode, quizdoor, quizresultx, quizresulto); staff session rechecked at execution
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OXEventCommand' }
+      responses:
+        '200':
+          description: Domain receipt; mode and door actions are idempotent, results move only players still on the losing side
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OXEventResult' }
+        default: { $ref: '#/components/responses/Error' }
   /api/v1/auth/session:
     get:
       summary: Get session and CSRF token; create an anonymous session if absent
@@ -1103,6 +1159,62 @@ components:
         code: { type: string, enum: [ok, invalid_command, capability_required, server_maintenance, stale_boss, operation_conflict, operation_capacity, unknown_boss, boss_alive, spawn_failed] }
         replayed: { type: boolean }
         status: { $ref: '#/components/schemas/BossesStatus' }
+    PvPDoorCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, action, reason]
+      description: Lock closes the Armia PvP door; open reopens it. Repeating the current state reports unchanged.
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        action: { type: string, enum: [lock, open] }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    PvPDoorStatus:
+      type: object
+      required: [version, asOf, available, locked, x, y]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        available: { type: boolean }
+        locked: { type: boolean }
+        x: { type: integer }
+        y: { type: integer }
+    PvPDoorResult:
+      type: object
+      required: [operationId, code, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, unchanged, door_unavailable, invalid_command, capability_required, server_maintenance] }
+        status: { $ref: '#/components/schemas/PvPDoorStatus' }
+    OXEventCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, action, reason]
+      description: mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465).
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        action: { type: string, enum: [mode_on, mode_off, doors_lock, doors_open, result_x, result_o] }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    OXEventStatus:
+      type: object
+      required: [version, asOf, quizMode, doors, doorsLocked, playersX, playersO]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        quizMode: { type: boolean }
+        doors: { type: integer }
+        doorsLocked: { type: boolean }
+        playersX: { type: integer }
+        playersO: { type: integer }
+    OXEventResult:
+      type: object
+      required: [operationId, code, moved, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, unchanged, doors_unavailable, invalid_command, capability_required, server_maintenance] }
+        moved: { type: integer }
+        status: { $ref: '#/components/schemas/OXEventStatus' }
     Session:
       type: object
       required: [authenticated, account, csrf, expiresAt]

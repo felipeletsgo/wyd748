@@ -1,0 +1,6 @@
+# WYD-Go extension: catalog effect values beyond the 16-bit 7.48 ItemList.bin
+# field. Format: item index,effect id,value. Must match wydgo748/data/itemlist.csv.
+6015,7,100000
+6015,8,100000
+6015,9,100000
+6015,10,100000

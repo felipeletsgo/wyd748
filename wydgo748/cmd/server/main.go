@@ -12,6 +12,7 @@ import (
 	stdhttp "net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"wydgo/internal/control"
 	"wydgo/internal/data"
 	"wydgo/internal/game"
+	"wydgo/internal/model"
 	"wydgo/internal/net"
 	"wydgo/internal/store"
 	"wydgo/internal/webadmin"
@@ -256,6 +258,15 @@ func main() {
 		log.Fatalf("load world objects: %v", err)
 	}
 
+	// The Colosseum generators are only required while the event is enabled.
+	var colosseum model.ColosseumGenerators
+	if cfg.Colosseum.Enabled {
+		colosseum, err = data.LoadColosseum(filepath.Dir(*generPath))
+		if err != nil {
+			log.Fatalf("load Colosseum: %v", err)
+		}
+	}
+
 	var st store.Store
 	var postgresStore *store.PostgresStore
 	switch cfg.DatabaseDriver {
@@ -304,6 +315,7 @@ func main() {
 		}),
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
 		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
+		game.WithColosseum(cfg.Colosseum, colosseum),
 		game.WithLoadtestSpawn(cfg.LoadtestSpawn, cfg.LoadtestAccountPrefix),
 		// In-game staff commands use the panel's staff file, re-read per use.
 		game.WithCommandAuthorizer(func(account, capability string) bool {

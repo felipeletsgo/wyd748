@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"log"
 	"time"
 )
@@ -105,6 +106,9 @@ func (w *World) RegisterBoss(mobID uint16, profile *BossProfile) error {
 	}
 	if w.bosses == nil {
 		w.bosses = make(map[uint16]*BossRuntime)
+	}
+	if w.bosses[mobID] != nil {
+		return fmt.Errorf("boss runtime already registered for mob %d", mobID)
 	}
 	w.bosses[mobID] = newBossRuntime(mobID, profile)
 	log.Printf("BOSS %q registered on mob id=%d (%d rules)", profile.ID, mobID, len(profile.Rules))

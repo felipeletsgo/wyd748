@@ -23,7 +23,8 @@ func (w *World) queueGateKey(p *Player, gate *GroundItem, slot byte, consume boo
 	keyDef, keyOK := w.items[source.Index]
 	gateDef, gateOK := w.items[gate.Item.Index]
 	keyID := staticEffect(keyDef, "EF_KEYID")
-	if !keyOK || !gateOK || keyID == 0 || staticEffect(gateDef, "EF_KEYID") != keyID {
+	gateKeyID := staticEffect(gateDef, "EF_KEYID")
+	if !keyOK || !gateOK || !playerGateKeyID(keyID) || !playerGateKeyID(gateKeyID) || gateKeyID != keyID {
 		return errors.New("critical gate: key does not match the gate")
 	}
 	proposed := accountStateSnapshot(p.Account)
@@ -62,6 +63,7 @@ func (w *World) queueGateKey(p *Player, gate *GroundItem, slot byte, consume boo
 			p.Char.Inv[slot] = proposed.Chars[p.CharSlot].Inv[slot]
 			gate.State = gateOpen
 			w.applyGroundItemHeight(gate)
+			w.scheduleGateRelock(gate)
 		}, func() { resyncUsedItem(p.Session, p, slot) }, true, hooks)
 	if err == nil {
 		admitted, gate.criticalGate = true, true
