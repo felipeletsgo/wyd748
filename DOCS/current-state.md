@@ -38,7 +38,13 @@ during the update used the previous script. Remote staging was removed.
 
 Pending: authenticated browser acceptance of the panel, in-game acceptance of
 moderation/notices/maintenance and the Big Cube flow (not `CLIENT_TESTED`).
-`game.event.colosseum` is still not provisioned in the staff template.
+
+Follow-up 18:18 UTC: `game.event.colosseum` was added to `flptr` in the
+staff template and the local staff file, and installed as
+`/etc/wyd-go/staff.json` (`root:wyd-game 0640`; previous file kept as
+`staff.json.pre-20261022T181843Z`). Membership unchanged; only that
+capability added. The game reads the file per check, so no restart was
+needed; staff sessions sign in again because the capability set changed.
 
 ## Local source — 2026-10-22, staff panel P1 and stages 0–3
 

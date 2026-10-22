@@ -13,6 +13,7 @@
       "game.command.goto",
       "game.world.pvp-door",
       "game.event.ox",
+      "game.event.colosseum",
       "moderation.account.ban",
       "moderation.account.mute",
       "server.notice",

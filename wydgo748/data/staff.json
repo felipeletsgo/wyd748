@@ -5,6 +5,7 @@
       "moderation.player.search",
       "game.event.global-drop",
       "game.event.quiz",
+      "game.event.colosseum",
       "game.boss.summon",
       "moderation.player.kick",
       "moderation.player.teleport",
