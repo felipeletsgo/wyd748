@@ -9,9 +9,20 @@ import Quiz from '../../components/Quiz.astro';
 import Bosses from '../../components/Bosses.astro';
 import PvPDoor from '../../components/PvPDoor.astro';
 import OXEvent from '../../components/OXEvent.astro';
+import Colosseum from '../../components/Colosseum.astro';
 import PremiumShop from '../../components/PremiumShop.astro';
 import AccountCreate from '../../components/AccountCreate.astro';
 import AccountDirectory from '../../components/AccountDirectory.astro';
+import Sanctions from '../../components/Sanctions.astro';
+import StaffNotices from '../../components/StaffNotices.astro';
+import Maintenance from '../../components/Maintenance.astro';
+import AuditLog from '../../components/AuditLog.astro';
+import RuntimeCharts from '../../components/RuntimeCharts.astro';
+import AccountPage from '../../components/AccountPage.astro';
+import ServerLogs from '../../components/ServerLogs.astro';
+import WorldMap from '../../components/WorldMap.astro';
+import InstancesPanel from '../../components/InstancesPanel.astro';
+import ContentIndex from '../../components/ContentIndex.astro';
 ---
 <!doctype html>
 <html lang="en">
@@ -31,13 +42,23 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
         <nav id="staff-navigation" hidden>
           <a class="nav-link active" href="#overview"><span aria-hidden="true">◈</span> Overview</a>
           <a class="nav-link" href="#players"><span aria-hidden="true">♙</span> Online players</a>
+          <a class="nav-link" href="#world"><span aria-hidden="true">⌖</span> World map</a>
+          <a class="nav-link" href="#instances"><span aria-hidden="true">⧉</span> Instances</a>
+          <a class="nav-link" href="#content"><span aria-hidden="true">⌕</span> Content index</a>
           <a class="nav-link" href="#account-directory"><span aria-hidden="true">≡</span> Accounts</a>
+          <a class="nav-link" href="#account"><span aria-hidden="true">☺</span> Account page</a>
           <a class="nav-link" href="#accounts"><span aria-hidden="true">⊕</span> Create account</a>
+          <a class="nav-link" href="#sanctions"><span aria-hidden="true">⊘</span> Sanctions</a>
+          <a class="nav-link" href="#notices"><span aria-hidden="true">✉</span> Notices</a>
+          <a class="nav-link" href="#maintenance"><span aria-hidden="true">⏻</span> Maintenance</a>
+          <a class="nav-link" href="#logs"><span aria-hidden="true">⌸</span> Server logs</a>
+          <a class="nav-link" href="#audit"><span aria-hidden="true">☰</span> Audit history</a>
           <a class="nav-link" href="#events"><span aria-hidden="true">✦</span> Events</a>
           <a class="nav-link" href="#quiz"><span aria-hidden="true">?</span> Math quiz</a>
           <a class="nav-link" href="#bosses"><span aria-hidden="true">♜</span> Bosses</a>
           <a class="nav-link" href="#pvp-door"><span aria-hidden="true">⚔</span> PvP door</a>
           <a class="nav-link" href="#ox-event"><span aria-hidden="true">✕</span> OX arena</a>
+          <a class="nav-link" href="#colosseum"><span aria-hidden="true">⚑</span> Colosseum</a>
           <a class="nav-link" href="#premium"><span aria-hidden="true">◆</span> Premium shop</a>
           <a class="nav-link" href="#security"><span aria-hidden="true">◇</span> Session security</a>
         </nav>
@@ -70,11 +91,24 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
                 <article class="metric"><div><span>WORLD ENTITIES</span><span aria-hidden="true">◇</span></div><strong id="metric-mobs">—</strong><p>Mobs registered on the server</p></article>
                 <article class="metric"><div><span>COMMAND QUEUE</span><span aria-hidden="true">≋</span></div><strong id="metric-queue">—</strong><p>Commands waiting for the game loop</p></article>
               </div>
-              <div class="detail-grid"><article class="panel"><div class="panel-heading"><h2>World status</h2><span class="tag">WORLD SNAPSHOT</span></div><dl class="world-details"><div><dt>Reported status</dt><dd id="world-state">Not queried</dd></div><div><dt>Control API uptime</dt><dd id="world-uptime">—</dd></div><div><dt>Last tick duration</dt><dd id="world-tick">—</dd></div><div><dt>Loop delay</dt><dd id="world-lag">—</dd></div></dl></article><article class="panel"><div class="panel-heading"><h2>Operational diagnostics</h2><span class="tag">PROCESS</span></div><dl class="world-details"><div><dt>Process reading</dt><dd id="diagnostics-asof">—</dd></div><div><dt>PostgreSQL queue</dt><dd id="postgres-queue">—</dd></div><div><dt>Persistence failures</dt><dd id="persistence-failures">—</dd></div><div><dt>Contained panics</dt><dd id="world-panics">—</dd></div></dl></article></div><div class="detail-grid"><article id="security" class="panel security-panel"><span class="eyebrow">SECURE BY DEFAULT</span><h2>Operations under control.</h2><p>Inspect players, disconnect sessions, teleport players to cities, and control global drops, quizzes, and boss spawns with specific permissions and audited operations. Bans and war triggers are not yet available in this panel.</p><div class="session-row"><span>Session for <strong id="session-account">—</strong><small id="session-expiry">—</small></span><button id="logout" class="button subtle">Sign out ↗</button></div></article></div>
+              <div class="detail-grid"><article class="panel"><div class="panel-heading"><h2>World status</h2><span class="tag">WORLD SNAPSHOT</span></div><dl class="world-details"><div><dt>Reported status</dt><dd id="world-state">Not queried</dd></div><div><dt>Control API uptime</dt><dd id="world-uptime">—</dd></div><div><dt>Last tick duration</dt><dd id="world-tick">—</dd></div><div><dt>Loop delay</dt><dd id="world-lag">—</dd></div></dl></article><article class="panel"><div class="panel-heading"><h2>Operational diagnostics</h2><span class="tag">PROCESS</span></div><dl class="world-details"><div><dt>Process reading</dt><dd id="diagnostics-asof">—</dd></div><div><dt>PostgreSQL queue</dt><dd id="postgres-queue">—</dd></div><div><dt>Persistence failures</dt><dd id="persistence-failures">—</dd></div><div><dt>Contained panics</dt><dd id="world-panics">—</dd></div></dl></article></div><div class="detail-grid"><article id="security" class="panel security-panel"><span class="eyebrow">SECURE BY DEFAULT</span><h2>Operations under control.</h2><p>Inspect players, disconnect, ban or mute accounts, send notices, schedule maintenance, teleport players to cities, and control global drops, quizzes, and boss spawns with specific permissions. Every operation is audited. War triggers are not yet available in this panel.</p><div class="session-row"><span>Session for <strong id="session-account">—</strong><small id="session-expiry">—</small></span><button id="logout" class="button subtle">Sign out ↗</button></div></article></div>
+              <RuntimeCharts />
             </section>
             <AccountDirectory />
+            <AccountPage />
             <section id="players" class="panel players-panel" aria-labelledby="players-title">
               <div class="players-heading"><div><span class="eyebrow">WORLD PRESENCE</span><h2 id="players-title">Online players <span id="player-count" class="count">—</span></h2></div><form id="search-form" class="search-form"><label class="sr-only" for="search">Search by character, account, or UID</label><input id="search" maxlength="48" placeholder="Character, account, or UID" /><button class="button subtle" type="submit">Search</button></form></div>
+              <form id="player-filter-form" class="player-filters" aria-label="Player filters">
+                <label>Min level<input id="filter-min-level" type="number" min="1" max="1000" step="1" /></label>
+                <label>Max level<input id="filter-max-level" type="number" min="1" max="1000" step="1" /></label>
+                <label>Class ID<input id="filter-class" type="number" min="0" max="255" step="1" /></label>
+                <label>Guild ID<input id="filter-guild" type="number" min="1" max="65535" step="1" /></label>
+                <label>Area X<input id="filter-x" type="number" min="0" max="4095" step="1" /></label>
+                <label>Area Y<input id="filter-y" type="number" min="0" max="4095" step="1" /></label>
+                <label>Radius<input id="filter-radius" type="number" min="1" max="256" step="1" /></label>
+                <div class="player-filter-actions"><button class="button subtle" type="submit">Apply filters</button><button id="filter-clear" class="button subtle" type="button">Clear</button></div>
+                <p id="filter-message" class="muted">Filters run in the same server pass as the search. An area needs X, Y and radius.</p>
+              </form>
               <article id="player-inspector" class="player-inspector" hidden aria-labelledby="inspector-name">
                 <div class="inspector-heading"><div><span class="eyebrow">PLAYER INSPECTOR</span><h3 id="inspector-name">—</h3><span id="inspector-account" class="inspector-account">—</span></div><button id="inspector-close" class="button subtle" type="button" aria-label="Close player details">Close ×</button></div>
                 <div class="inspector-source-heading"><strong>LIVE STATE · WORLD</strong><span>snapshot from <span id="inspector-asof" class="mono">—</span></span></div>
@@ -91,19 +125,33 @@ import AccountDirectory from '../../components/AccountDirectory.astro';
                   </div>
                   <footer>Independent reading from <span id="persistent-asof" class="mono">—</span></footer>
                 </section>
+                <section class="persistent-state" aria-labelledby="storage-title">
+                  <div class="inspector-source-heading"><strong id="storage-title">SAVED ITEMS · POSTGRESQL</strong><button id="storage-load" class="button subtle" type="button" disabled>Load saved items</button></div>
+                  <p id="storage-state" class="muted">Not loaded.</p>
+                  <div class="storage-grid"><div><h4>Equipment</h4><ul id="storage-equipment"></ul></div><div><h4>Inventory</h4><ul id="storage-inventory"></ul></div><div><h4>Cargo</h4><ul id="storage-cargo"></ul></div></div>
+                </section>
                 <footer class="inspector-note">Read-only · LIVE and PERSISTENT values may differ until the next save.</footer>
               </article>
               <div class="table-scroll"><table><thead><tr><th>CHARACTER</th><th>ACCOUNT</th><th>CLASS / ID</th><th>LEVEL</th><th>POSITION</th><th>DETAILS</th></tr></thead><tbody id="player-rows"><tr><td colspan="6" class="empty"><span>◈</span>No query has been made.<small>Refresh data to see the players currently online.</small></td></tr></tbody></table></div>
               <footer class="table-footer"><span id="page-info">Up to 50 players per query · Sorted by UID</span><div><button id="previous" class="button pager" disabled aria-label="Previous page">←</button><button id="next" class="button pager" disabled aria-label="Next page">→</button></div></footer>
             </section>
+            <WorldMap />
+            <InstancesPanel />
+            <ContentIndex />
             <PlayerModeration />
             <PlayerTeleport />
+            <Sanctions />
+            <StaffNotices />
+            <Maintenance />
+            <ServerLogs />
+            <AuditLog />
             <AccountCreate />
             <GlobalDrop />
             <Quiz />
             <Bosses />
             <PvPDoor />
             <OXEvent />
+            <Colosseum />
             <PremiumShop />
             <footer class="page-footer"><span>WYD · ADMINISTRATION</span><span>Data obtained through the server's authoritative queue.</span></footer>
           </div>

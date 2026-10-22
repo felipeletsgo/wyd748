@@ -49,6 +49,9 @@ type BossStatus struct {
 	SpawnX    uint16     `json:"spawnX"`
 	SpawnY    uint16     `json:"spawnY"`
 	RespawnAt *time.Time `json:"respawnAt"`
+	// Phase is the live boss behaviour phase (1 = initial); 0 when dead or
+	// without boss behaviour.
+	Phase int `json:"phase"`
 }
 type BossesStatus struct {
 	Version int          `json:"version"`

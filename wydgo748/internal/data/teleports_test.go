@@ -53,6 +53,7 @@ func TestShippedTeleportsCoverClientPortalBlocks(t *testing.T) {
 		{1044, 1724}: {2118, 2102}, {1044, 1716}: {2481, 1717}, {1044, 1708}: {2457, 2018},
 		{2456, 2016}: {1044, 1709}, {2480, 1716}: {1044, 1717}, {2468, 1716}: {2248, 1558},
 		{2548, 1740}: {2281, 3688},
+		{1340, 1464}: {1058, 1725},
 		{2364, 2284}: {145, 3789}, {144, 3788}: {2367, 2284}, {2668, 2156}: {146, 3775},
 		{144, 3772}: {2669, 2157}, {144, 3780}: {1006, 4030}, {148, 3780}: {1006, 4030},
 		{1004, 4028}: {147, 3781}, {408, 4072}: {1006, 4066}, {1004, 4064}: {410, 4072},
@@ -72,6 +73,9 @@ func TestShippedTeleportsCoverClientPortalBlocks(t *testing.T) {
 	terrain, err := LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
+	}
+	if terrain.Attribute[(1466/4)*1024+1342/4]&0x10 == 0 {
+		t.Fatal("Big Cube return portal is missing its native client activation attribute")
 	}
 	for _, route := range routes {
 		if !terrain.Walkable(route.DestX, route.DestY) {

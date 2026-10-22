@@ -17,6 +17,7 @@ documentation, research evidence, and continuity records.
 | Resume work and distinguish local changes from the deployed release | [Current state](current-state.md) and [continuation record](../.agents/handoffs/project-continuation.md) |
 | Track current player-reported gameplay defects and acceptance checks | [Gameplay bug register](bug-register.md) |
 | Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
+| Use or extend the staff panel: sanctions, notices, maintenance, audit and the next work packages | [Staff operations](server/staff-operations.md) and [staff panel roadmap](server/admin-panel-roadmap.md) |
 | Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
 | Review Rune Track rooms +0 through +6 and their independent event monsters | [Rune Track](server/rune-track.md) |
 | Compare the supplied server 7.59 decompilation with current Go systems | [Server 7.59 map and gap analysis](server/server-759-gap-analysis.md) |
@@ -41,6 +42,7 @@ documentation, research evidence, and continuity records.
 | Review the Claude refactoring batch and proposed corrections | [Refactoring batch audit — 2026-10-03](client/refactoring-batch-audit-2026-10-03.md) |
 | Review the client and Go server source audit | [Full-source audit — 2026-10-03](client/full-source-audit-2026-10-03.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
+| Check Cube question visibility, Big Cube ticket entry and return portal | [Instance question v1](protocol/instance-question.md) |
 | Keep the Kefra hall mirror hidden until a persisted boss defeat | [Kefra portal visibility v1](protocol/kefra-portal.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Work with Codex or Claude Code | [Agent environments](agent-environments.md) |

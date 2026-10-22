@@ -32,6 +32,7 @@
 // Isolated application suite, compiled without this runner's wire includes.
 int RunCharacterLoginUseCaseTests(int& checks);
 int RunReceivedPacketDispatchTests(int& checks);
+int RunInstanceQuestionTests(int& checks);
 int RunCargoSlotTests(int& checks);
 int RunItemShortcutPolicyTests(int& checks);
 int RunGridInsertionTests(int& checks);
@@ -568,6 +569,7 @@ int main()
         !field_interaction::AutoRunCellAllowed(200, 4096, 0), "autorun rejects out of bounds before attribute lookup");
     check(!field_interaction::AutoRunCellAllowed(200, 200, 0x80), "autorun rejects native restricted terrain");
     failures += RunReceivedPacketDispatchTests(checks);
+    failures += RunInstanceQuestionTests(checks);
     failures += RunCargoSlotTests(checks);
     failures += RunItemShortcutPolicyTests(checks);
     failures += RunGridInsertionTests(checks);

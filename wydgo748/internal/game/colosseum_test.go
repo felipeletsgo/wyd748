@@ -131,8 +131,8 @@ func runColosseumUntil(w *World, clock *fakeClock, minute int) {
 // 7.59 TMSRV sub_567780: Colosseum N (EventHour+1) locks the windows and
 // recalls non-mortals at minute 5, spawns waves from minute 6, opens the inner
 // gates at minute 7 and empties and resets the arena at minute 17.
-func TestColosseumNFollowsTheOfficialSchedule(t *testing.T) {
-	w, clock := colosseumWorld(t, time.Date(2026, 10, 21, 20, 4, 58, 0, time.UTC))
+func TestColosseumNFollowsConfiguredSchedule(t *testing.T) {
+	w, clock := colosseumWorld(t, time.Date(2026, 10, 21, 18, 4, 58, 0, time.UTC))
 	mortal := addZonePlayer(w, 1, 2630, 1726, 500)
 	arch := addZonePlayer(w, 2, 2630, 1720, 500)
 	arch.Char.Evolution = archEvolution
@@ -242,7 +242,7 @@ func TestColosseumArenaExitRollsBackRevivalWhenPersistenceFails(t *testing.T) {
 // Colosseum A (EventHour+3) consumes one Elixir_Notice per player inside and
 // recalls players without it (sub_565F50); M recalls only Celestials.
 func TestColosseumEntryRules(t *testing.T) {
-	w, clock := colosseumWorld(t, time.Date(2026, 10, 21, 22, 4, 59, 0, time.UTC))
+	w, clock := colosseumWorld(t, time.Date(2026, 10, 21, 20, 4, 59, 0, time.UTC))
 	paid := addZonePlayer(w, 1, 2630, 1726, 500)
 	paid.Char.Evolution = "celestial"
 	paid.Char.Inv[4] = model.Item{Index: colosseumElixirItem}
@@ -257,7 +257,7 @@ func TestColosseumEntryRules(t *testing.T) {
 
 	// Only the 60 carry slots sub_565F50 scans count; a rejected charge is
 	// retried while Colosseum A runs.
-	w, clock = colosseumWorld(t, time.Date(2026, 10, 21, 22, 4, 59, 0, time.UTC))
+	w, clock = colosseumWorld(t, time.Date(2026, 10, 21, 20, 4, 59, 0, time.UTC))
 	hidden := addZonePlayer(w, 1, 2630, 1726, 500)
 	hidden.Char.Inv[60] = model.Item{Index: colosseumElixirItem}
 	retried := addZonePlayer(w, 2, 2630, 1720, 500)
@@ -274,7 +274,7 @@ func TestColosseumEntryRules(t *testing.T) {
 		t.Fatal("an unpaid player was not charged again")
 	}
 
-	w, clock = colosseumWorld(t, time.Date(2026, 10, 21, 21, 4, 59, 0, time.UTC))
+	w, clock = colosseumWorld(t, time.Date(2026, 10, 21, 19, 4, 59, 0, time.UTC))
 	arch := addZonePlayer(w, 1, 2630, 1726, 500)
 	arch.Char.Evolution = archEvolution
 	celestial := addZonePlayer(w, 2, 2630, 1720, 500)
@@ -289,7 +289,7 @@ func TestColosseumEntryRules(t *testing.T) {
 // missed wave within seconds; the next hour runs normally.
 func TestColosseumRestartAfterTheStartSkipsTheHour(t *testing.T) {
 	for _, minute := range []int{7, 12, 30} {
-		w, clock := colosseumWorld(t, time.Date(2026, 10, 21, 21, minute, 0, 0, time.UTC))
+		w, clock := colosseumWorld(t, time.Date(2026, 10, 21, 19, minute, 0, 0, time.UTC))
 		runColosseumUntil(w, clock, minute+1)
 		if w.colosseum.stage != 8 || colosseumMobs(w) != 0 {
 			t.Fatalf("restart at :%02d replayed the event: stage=%d mobs=%d", minute, w.colosseum.stage, colosseumMobs(w))

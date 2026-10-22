@@ -5,9 +5,22 @@ import { setupQuiz } from './quiz';
 import { setupBosses } from './bosses';
 import { setupPvPDoor } from './pvp-door';
 import { setupOXEvent } from './ox-event';
+import { setupColosseum } from './colosseum';
 import { setupPremiumShop } from './premium-shop';
 import { setupPlayerModeration } from './player-moderation';
 import { setupPlayerTeleport } from './player-teleport';
+import { setupSanctions } from './sanctions';
+import { setupStaffNotices } from './staff-notices';
+import { setupMaintenance } from './maintenance';
+import { setupAuditLog } from './audit-log';
+import { setupRuntimeCharts } from './runtime-charts';
+import { playerFilters } from './player-filters';
+import { setupAccountPage } from './account-page';
+import { setupPlayerStorage } from './player-storage';
+import { setupServerLogs } from './server-logs';
+import { setupWorldMap } from './world-map';
+import { setupInstances } from './instances';
+import { setupContentIndex } from './content-index';
 
 type Session = components['schemas']['Session'];
 type AccountCreateResponse = components['schemas']['AccountCreateResponse'];
@@ -34,6 +47,8 @@ let snapshot: Overview | undefined;
 let busy = false;
 let offset = 0;
 let search = '';
+let filters: Record<string, string> = {};
+const filterInputs: Record<string, string> = { minLevel: 'filter-min-level', maxLevel: 'filter-max-level', class: 'filter-class', guild: 'filter-guild', x: 'filter-x', y: 'filter-y', radius: 'filter-radius' };
 let inspectedUID: string | undefined;
 let persistentRequest = 0;
 let directorySnapshot: AccountDirectory | undefined;
@@ -76,6 +91,20 @@ const messages: Record<string, string> = {
   premium_unavailable: 'The premium shop requires the panel integrated with tm.exe and PostgreSQL.',
   unknown_account: 'Account not found.',
   invalid_account: 'Invalid account name.',
+  invalid_id: 'Invalid record identifier. Reload the list.',
+  sanctions_unavailable: 'Sanctions require the panel integrated with tm.exe and PostgreSQL.',
+  notices_unavailable: 'Notices require the panel integrated with tm.exe.',
+  shutdown_unavailable: 'Scheduled maintenance requires the panel integrated with tm.exe.',
+  audit_unavailable: 'The audit history could not be read from PostgreSQL. The server log still records every action.',
+  temporarily_unavailable: 'The server is under load, so searches, filters and later pages are paused. The first page stays available; try again shortly.',
+  metrics_unavailable: 'Server load history requires the panel integrated with tm.exe.',
+  history_unavailable: 'Account history requires the panel integrated with tm.exe and PostgreSQL.',
+  storage_unavailable: 'Saved items could not be read from PostgreSQL.',
+  logs_unavailable: 'Server logs need the wyd-log-reader service, which runs only on the VPS.',
+  cursor_expired: 'Those log lines rotated out of the journal. Load the newest entries again.',
+  content_unavailable: 'The content index requires the panel integrated with tm.exe.',
+  content_not_found: 'Not found in the loaded game data.',
+  world_unavailable: 'Live world views require the panel integrated with tm.exe.',
 };
 function explain(error: unknown) {
   return error instanceof APIError ? (messages[error.code] ?? 'The service could not complete this request. Please try again.') : 'Could not connect to the panel. Check your connection and try again.';
@@ -96,9 +125,22 @@ const quizPanel = setupQuiz(api, explain);
 const bossesPanel = setupBosses(api, explain);
 const pvpDoorPanel = setupPvPDoor(api, explain);
 const oxEventPanel = setupOXEvent(api, explain);
+const colosseumPanel = setupColosseum(api, explain);
 const premiumPanel = setupPremiumShop(api, explain);
 const moderationPanel = setupPlayerModeration(api, explain);
 const teleportPanel = setupPlayerTeleport(api, explain);
+const sanctionsPanel = setupSanctions(api, explain);
+const noticesPanel = setupStaffNotices(api, explain);
+const maintenancePanel = setupMaintenance(api, explain);
+const auditPanel = setupAuditLog(api, explain);
+const runtimePanel = setupRuntimeCharts(api, explain);
+const accountPanel = setupAccountPage(api, explain);
+const storagePanel = setupPlayerStorage(api, explain);
+const logsPanel = setupServerLogs(api, explain);
+const worldPanel = setupWorldMap(api, explain, uid => { el<HTMLInputElement>('search').value = uid; void query(0, uid); document.getElementById('players')?.scrollIntoView({ block: 'start' }); });
+const instancesPanel = setupInstances(api, explain, (x, y) => worldPanel.focus(x, y));
+const contentPanel = setupContentIndex(api, explain);
+function refreshStaffOps() { void noticesPanel.refresh(); void maintenancePanel.refresh(); void runtimePanel.refresh(); void logsPanel.refreshBackups(); }
 function showSession() {
   const authenticated = session?.authenticated ?? false;
   el<HTMLButtonElement>('account-create-submit').disabled = !authenticated;
@@ -117,10 +159,23 @@ function resetSnapshot() {
   bossesPanel.reset();
   pvpDoorPanel.reset();
   oxEventPanel.reset();
+  colosseumPanel.reset();
   premiumPanel.reset();
   moderationPanel.reset();
   teleportPanel.reset();
-  snapshot = undefined; offset = 0; search = '';
+  sanctionsPanel.reset();
+  noticesPanel.reset();
+  maintenancePanel.reset();
+  auditPanel.reset();
+  runtimePanel.reset();
+  accountPanel.reset();
+  storagePanel.reset();
+  logsPanel.reset();
+  worldPanel.reset();
+  instancesPanel.reset();
+  contentPanel.reset();
+  snapshot = undefined; offset = 0; search = ''; filters = {};
+  for (const id of Object.values(filterInputs)) el<HTMLInputElement>(id).value = '';
   closeInspector();
   el<HTMLInputElement>('search').value = '';
   for (const id of ['metric-online','metric-auth','metric-mobs','metric-queue','world-uptime','world-tick','world-lag','diagnostics-asof','postgres-queue','persistence-failures','world-panics','player-count','snapshot-time']) text(id,'—');
@@ -137,7 +192,7 @@ async function init() {
   try {
     session = await api<Session>('/auth/session');
     showSession(); text('login-message','');
-    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void premiumPanel.refresh(); }
+    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); refreshStaffOps(); }
   } catch (error) {
     session = undefined; showSession(); text('login-message',explain(error));
   } finally {
@@ -201,6 +256,7 @@ function showInspector(player: Player, asOf = snapshot?.asOf) {
   text('inspector-position',`${player.x}, ${player.y}`);
   text('inspector-asof',asOf ? date(asOf) : '—');
   el('player-inspector').hidden = false;
+  storagePanel.show(player.uid,player.account);
   void loadPersistent(player);
 }
 function render(data: Overview) {
@@ -227,6 +283,12 @@ function render(data: Overview) {
     kick.setAttribute('aria-controls','moderation'); kick.addEventListener('click',() => moderationPanel.select(player,data.moderationEpoch)); action.append(kick);
     const teleport = document.createElement('button'); teleport.type = 'button'; teleport.className = 'button subtle'; teleport.textContent = 'Teleport';
     teleport.setAttribute('aria-controls','player-teleport'); teleport.addEventListener('click',() => teleportPanel.select(player,data.moderationEpoch)); action.append(teleport);
+    const message = document.createElement('button'); message.type = 'button'; message.className = 'button subtle'; message.textContent = 'Message';
+    message.setAttribute('aria-controls','notices'); message.addEventListener('click',() => noticesPanel.selectPlayer(player,data.moderationEpoch)); action.append(message);
+    const sanction = document.createElement('button'); sanction.type = 'button'; sanction.className = 'button subtle'; sanction.textContent = 'Account';
+    const locate = document.createElement('button'); locate.type = 'button'; locate.className = 'button subtle'; locate.textContent = 'Map';
+    locate.setAttribute('aria-controls','world'); locate.addEventListener('click',() => worldPanel.focus(player.x,player.y)); action.append(locate);
+    sanction.setAttribute('aria-controls','account'); sanction.addEventListener('click',() => { sanctionsPanel.open(player.account); accountPanel.open(player.account); }); action.append(sanction);
     return row;
   });
   if (rows.length) el('player-rows').replaceChildren(...rows);
@@ -243,7 +305,7 @@ function updatePagination() {
   text('page-info',snapshot ? `${snapshot.players.length ? offset + 1 : 0}–${offset + snapshot.players.length} of ${snapshot.matched} · Each page requires a new query` : 'Up to 50 players per query · Sorted by UID');
 }
 function emptyDirectory(message: string) {
-  const cell = document.createElement('td'); cell.colSpan = 4; cell.className = 'empty'; cell.textContent = message;
+  const cell = document.createElement('td'); cell.colSpan = 5; cell.className = 'empty'; cell.textContent = message;
   const row = document.createElement('tr'); row.append(cell); el('account-directory-rows').replaceChildren(row);
 }
 function resetDirectory() {
@@ -290,7 +352,10 @@ function renderDirectory(data: AccountDirectory) {
     badge.className = `presence-badge ${data.presenceAvailable ? (account.online ? 'online' : 'offline') : 'unknown'}`;
     badge.textContent = data.presenceAvailable ? (account.online ? 'Online' : 'Offline') : 'Unavailable'; presence.append(badge);
     const updated = document.createElement('td'); updated.textContent = date(account.updatedAt);
-    row.append(username,presence,characterSummary(account),updated);
+    const actions = document.createElement('td');
+    const sanctions = document.createElement('button'); sanctions.type = 'button'; sanctions.className = 'button subtle'; sanctions.textContent = 'Open account';
+    sanctions.setAttribute('aria-controls','account'); sanctions.addEventListener('click',() => { sanctionsPanel.open(account.username); accountPanel.open(account.username,account); }); actions.append(sanctions);
+    row.append(username,presence,characterSummary(account),updated,actions);
     return row;
   });
   if (rows.length) el('account-directory-rows').replaceChildren(...rows);
@@ -317,15 +382,15 @@ async function loadDirectory(nextCursor = directoryCursor, nextSearch = director
     }
   } finally { directoryBusy = false; updateDirectoryPagination(); }
 }
-async function query(nextOffset = 0, nextSearch = search) {
+async function query(nextOffset = 0, nextSearch = search, nextFilters = filters) {
   if (busy) return;
   busy = true; el<HTMLButtonElement>('refresh').disabled = true; updatePagination();
   text('snapshot-state','Querying the server…');
   text('snapshot-detail',snapshot ? 'Previous data remains visible until the response arrives.' : 'Waiting for a world queue snapshot.');
   try {
-    const value = await api<Overview>(`/staff/overview?${new URLSearchParams({search: nextSearch,offset: String(nextOffset)})}`);
+    const value = await api<Overview>(`/staff/overview?${new URLSearchParams({search: nextSearch,offset: String(nextOffset),...nextFilters})}`);
     if (value.version !== 1 || value.diagnostics?.version !== 1 || !value.diagnostics.asOf || !Array.isArray(value.players) || value.players.length > 50 || !['running','maintenance'].includes(value.state)) throw new APIError(200, 'invalid_snapshot');
-    snapshot = value; offset = value.offset; search = nextSearch; render(value);
+    snapshot = value; offset = value.offset; search = nextSearch; filters = nextFilters; render(value);
   } catch (error) {
     if (error instanceof APIError && (error.status === 401 || error.code === 'staff_revoked')) {
       session = undefined; resetSnapshot(); showSession(); text('login-message',explain(error));
@@ -386,7 +451,7 @@ el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
     if (!session) session = await api<Session>('/auth/session');
     session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value,turnstileToken:loginChallenge.token});
     resetSnapshot(); showSession(); el<HTMLButtonElement>('refresh').focus();
-    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void premiumPanel.refresh();
+    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); refreshStaffOps();
   } catch (error) {
     text('login-message',explain(error)); if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
   } finally {
@@ -401,8 +466,21 @@ el('logout').addEventListener('click',async () => {
     else {text('snapshot-state','Could not end the session');text('snapshot-detail',explain(error));el('snapshot-banner').classList.add('error');}
   } finally {button.disabled = false;}
 });
-el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void premiumPanel.refresh(); });
+el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); refreshStaffOps(); });
 el<HTMLFormElement>('search-form').addEventListener('submit',event => {event.preventDefault();void query(0,el<HTMLInputElement>('search').value.trim());});
+el<HTMLFormElement>('player-filter-form').addEventListener('submit',event => {
+  event.preventDefault();
+  const raw = Object.fromEntries(Object.entries(filterInputs).map(([name,id]) => [name,el<HTMLInputElement>(id).value]));
+  const parsed = playerFilters(raw);
+  if (!parsed.filters) { text('filter-message',parsed.error ?? 'Invalid filters.'); return; }
+  text('filter-message',Object.keys(parsed.filters).length ? 'Filters applied to the next query.' : 'No filters set.');
+  void query(0,el<HTMLInputElement>('search').value.trim(),parsed.filters);
+});
+el('filter-clear').addEventListener('click',() => {
+  for (const id of Object.values(filterInputs)) el<HTMLInputElement>(id).value = '';
+  text('filter-message','Filters cleared.');
+  void query(0,search,{});
+});
 el('previous').addEventListener('click',() => void query(Math.max(0,offset-50)));
 el('next').addEventListener('click',() => void query(offset+50));
 el('inspector-close').addEventListener('click',closeInspector);

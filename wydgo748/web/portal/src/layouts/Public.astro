@@ -3,6 +3,8 @@ import '../styles/public.css';
 import '../styles/wyd-theme.css';
 interface Props { title: string; description?: string }
 const { title, description = 'WYD 7.48 — accounts, guides, ranking, project news and client downloads.' } = Astro.props;
+// Optional site-wide notice set at build time (for example during maintenance).
+const banner = (import.meta.env.PUBLIC_SITE_BANNER ?? '').trim().slice(0, 200);
 const links = [['/', 'Home'], ['/news/', 'News'], ['/player/', 'Account'], ['/ranking/', 'Ranking'], ['/guilds/', 'Guilds'], ['/download/', 'Download']];
 ---
 <!doctype html>
@@ -18,6 +20,7 @@ const links = [['/', 'Home'], ['/news/', 'News'], ['/player/', 'Account'], ['/ra
       <a href="/" class="logo" aria-label="WYD 7.48 home"><img src="/ui/logo.png" alt="WYD" width="505" height="164" /></a>
       <nav aria-label="Main navigation">{links.map(([url, label]) => <a class="button" href={url} aria-current={Astro.url.pathname === url ? 'page' : url !== '/' && Astro.url.pathname.startsWith(url) ? 'location' : undefined}>{label}</a>)}</nav>
     </header>
+    {banner && <p class="site-banner" role="status">{banner}</p>}
     <main id="main"><slot /></main>
     <footer class="site-footer"><nav aria-label="Project information"><a href="/play/rules/">Guidelines</a><a href="/play/faq/">Help</a><a href="/changelog/">Changelog</a><a href="/roadmap/">Roadmap</a></nav><p>WYD 7.48 · With Your Destiny</p></footer>
     <script>

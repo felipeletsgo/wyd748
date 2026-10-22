@@ -1,6 +1,7 @@
 package game
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"log"
@@ -116,7 +117,7 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	}
 	// After the final shutdown snapshot, admitting a login would create state
 	// that cannot be persisted.
-	if w.shuttingDown {
+	if w.shuttingDown || w.shutdownLoginsBlocked(w.now()) {
 		s.Send(wire.MessagePanel("Server going into maintenance. Try again shortly."))
 		return
 	}
@@ -149,9 +150,13 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	go func() {
 		defer func() { <-w.authSlots }()
 		acc, err := account.Authenticate(w.store, accountName, password)
-		w.commands <- command{s: s, queuedAt: time.Now(), login: &loginResult{
-			accountName: accountName, account: acc, err: err,
-		}}
+		result := &loginResult{accountName: accountName, account: acc, err: err}
+		if backend, ok := w.sanctionBackend(); ok && err == nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			result.sanctions, result.sanctionErr = backend.ActiveSanctionState(ctx, acc.Name)
+			cancel()
+		}
+		w.commands <- command{s: s, queuedAt: time.Now(), login: result}
 	}()
 }
 
@@ -174,6 +179,18 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		return
 	}
 	acc := result.account
+	if result.sanctionErr != nil {
+		log.Printf("[#%d] LOGIN sanction check failed account=%q: %v", s.ID, acc.Name, result.sanctionErr)
+		s.Send(wire.MessagePanel("Login temporarily unavailable. Try again shortly."))
+		time.AfterFunc(300*time.Millisecond, s.Close)
+		return
+	}
+	if message, banned := w.admitSanctions(acc.Name, result.sanctions, w.now()); banned {
+		log.Printf("[#%d] LOGIN rejected account=%q: account suspended", s.ID, acc.Name)
+		s.Send(wire.MessagePanel(message))
+		time.AfterFunc(300*time.Millisecond, s.Close)
+		return
+	}
 	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN rejected account=%q ip=%q: network policy (%s)",
 			s.ID, acc.Name, s.RemoteIP(), reason)
@@ -240,6 +257,7 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	w.players[s] = p
 	s.MarkAuthenticated()
 	w.sendLoginCharacterList(s, p)
+	w.recordLogin(acc.Name, s.RemoteIP())
 	log.Printf("[#%d] character list sent (%d characters)", s.ID, characterCount(acc.Chars))
 }
 

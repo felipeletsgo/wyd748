@@ -33,6 +33,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="PacketViewTests.cpp" />
+    <ClCompile Include="InstanceQuestionTests.cpp" />
     <ClCompile Include="ItemShortcutPolicyTests.cpp" />
     <ClCompile Include="CharacterLoginUseCaseTests.cpp" />
     <ClCompile Include="ReceivedPacketDispatchTests.cpp" />

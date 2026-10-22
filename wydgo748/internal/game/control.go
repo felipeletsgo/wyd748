@@ -125,12 +125,6 @@ func (w *World) handleControl(req *controlRequest) {
 			UID: ch.UID, Name: ch.Name, Account: p.Account.Name, Class: ch.Class,
 			GuildID: ch.GuildID, GuildRank: ch.GuildRank, X: p.X, Y: p.Y,
 		}
-		if p.Session != nil {
-			row.SessionID = p.Session.ID
-		}
-		if p.Party != nil {
-			row.PartySize = len(p.Party.Members)
-		}
 		score := ch.RuntimeScore
 		if score == nil {
 			score = ch.Score
@@ -139,6 +133,15 @@ func (w *World) handleControl(req *controlRequest) {
 			row.Level = score.Level
 			row.HP, row.MaxHP = score.CurHP, score.MaxHP
 			row.MP, row.MaxMP = score.CurMP, score.MaxMP
+		}
+		if !overviewFilterMatches(req.query, row) {
+			continue
+		}
+		if p.Session != nil {
+			row.SessionID = p.Session.ID
+		}
+		if p.Party != nil {
+			row.PartySize = len(p.Party.Members)
 		}
 		result.Players = append(result.Players, row)
 	}
@@ -150,6 +153,15 @@ func (w *World) handleControl(req *controlRequest) {
 	result.Players = result.Players[start:end]
 	// Buffered reply remains non-blocking after a disconnected/timed-out caller.
 	req.reply <- result
+}
+
+// overviewFilterMatches applies the optional overview filters to a row built
+// in the same pass; it adds no extra scan of players.
+func overviewFilterMatches(q control.Query, row control.Player) bool {
+	distance := func(a, b uint16) uint16 { return max(a, b) - min(a, b) }
+	return (q.MinLevel == 0 || row.Level >= q.MinLevel) && (q.MaxLevel == 0 || row.Level <= q.MaxLevel) &&
+		(!q.HasClass || row.Class == q.Class) && (q.GuildID == 0 || row.GuildID == q.GuildID) &&
+		(q.Radius == 0 || (distance(row.X, q.AreaX) <= q.Radius && distance(row.Y, q.AreaY) <= q.Radius))
 }
 
 func (w *World) handleAccountPresence(req *accountPresenceRequest) {

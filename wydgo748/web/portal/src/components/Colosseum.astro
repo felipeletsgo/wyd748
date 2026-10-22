@@ -1,0 +1,25 @@
+<section id="colosseum" class="panel bosses-panel" aria-labelledby="colosseum-title">
+  <div class="panel-heading">
+    <div><span class="eyebrow">EVENTS</span><h2 id="colosseum-title">Colosseum</h2></div>
+    <button id="colosseum-refresh" class="button subtle" type="button">Refresh schedule</button>
+  </div>
+  <div class="event-body">
+    <p class="muted">Start today's N, M or A session before its scheduled time. The same 12-minute cycle, class restrictions and tier A Elixir Notice charge apply. Only one tier can run at a time. An early run replaces that tier's scheduled session until the server restarts; these overrides are not persisted.</p>
+    <p class="muted">A run spanning another tier's start window can cause that scheduled session to be skipped. Review all three start times before confirming.</p>
+    <p id="colosseum-schedule" class="muted">Schedule not queried.</p>
+    <p id="colosseum-state">State not queried.</p>
+    <div class="bosses-toolbar">
+      <label for="colosseum-tier">Tier</label>
+      <select id="colosseum-tier">
+        <option value="N">N — Mortals only</option>
+        <option value="M">M — No Celestials</option>
+        <option value="A">A — Requires Elixir Notice</option>
+      </select>
+      <label for="colosseum-reason">Reason for operation</label>
+      <input id="colosseum-reason" minlength="3" maxlength="200" required placeholder="E.g. Start the evening session early" />
+      <button id="colosseum-start" class="button subtle" type="button" disabled>Start selected tier now</button>
+    </div>
+    <p id="colosseum-message" class="form-message" role="status" aria-live="polite"></p>
+    <p id="colosseum-asof" class="muted">No automatic refresh.</p>
+  </div>
+</section>

@@ -40,13 +40,15 @@ var (
 	metricCommandsTotal       = expvar.NewInt("world_commands_total")
 	// metricCommandDurationMicros accumulates the time spent per opcode.
 	// Divided by world_commands_by_type it gives the mean per command.
-	metricCommandDurationMicros  = expvar.NewMap("world_command_duration_micros")
-	metricCommandsByType         = expvar.NewMap("world_commands_by_type")
-	metricCommandQueueAgeMicros  = expvar.NewInt("world_command_queue_age_micros")
-	metricCommandBatchSize       = expvar.NewInt("world_command_batch_size")
-	metricCommandBatchesTotal    = expvar.NewInt("world_command_batches_total")
-	metricCommandBudgetExceeded  = expvar.NewInt("world_command_budget_exceeded_total")
-	metricTickDurationBuckets    = expvar.NewMap("world_tick_duration_buckets")
+	metricCommandDurationMicros = expvar.NewMap("world_command_duration_micros")
+	metricCommandsByType        = expvar.NewMap("world_commands_by_type")
+	metricCommandQueueAgeMicros = expvar.NewInt("world_command_queue_age_micros")
+	metricCommandBatchSize      = expvar.NewInt("world_command_batch_size")
+	metricCommandBatchesTotal   = expvar.NewInt("world_command_batches_total")
+	metricCommandBudgetExceeded = expvar.NewInt("world_command_budget_exceeded_total")
+	metricTickDurationBuckets   = expvar.NewMap("world_tick_duration_buckets")
+	// Fixed lag distribution: p95/p99 between two readings, not only last/max.
+	metricLoopLagBuckets         = expvar.NewMap("world_loop_lag_buckets")
 	metricCommandDurationBuckets = expvar.NewMap("world_command_duration_buckets")
 	metricCommandAgeBuckets      = expvar.NewMap("world_command_age_buckets")
 	metricActivePlayers          = expvar.NewInt("world_active_players")
@@ -204,6 +206,7 @@ func observeTick(start time.Time, duration time.Duration) {
 	}
 	micros := lag.Microseconds()
 	metricLoopLagMicros.Set(micros)
+	observeBucket(metricLoopLagBuckets, lag)
 	if micros > metricLoopLagMaxMicros.Value() {
 		metricLoopLagMaxMicros.Set(micros)
 	}

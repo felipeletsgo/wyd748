@@ -1,0 +1,21 @@
+<section id="world" class="panel staff-ops-panel" aria-labelledby="world-title">
+  <div class="panel-heading"><div><span class="eyebrow">WORLD</span><h2 id="world-title">World map and zones</h2></div><button id="world-load" class="button subtle" type="button">Load terrain</button></div>
+  <div class="event-body">
+    <p class="muted">The terrain is the attribute map rendered once by the server (one pixel per 4×4 cells, image row = y/4): dark is blocked, amber has the client teleport attribute, blue is the newbie field. Click a point to see the rules there and the live players and monsters around it. Live views are limited to 12 a minute and pause while the server is under load.</p>
+    <div class="world-layout">
+      <div class="world-canvas-wrap"><canvas id="world-canvas" width="1024" height="1024" aria-label="World terrain map"></canvas></div>
+      <div class="world-side">
+        <form id="world-form" class="player-filters">
+          <label>X<input id="world-x" type="number" min="0" max="4095" step="1" required /></label>
+          <label>Y<input id="world-y" type="number" min="0" max="4095" step="1" required /></label>
+          <label>Radius<select id="world-radius"><option value="32">32 cells</option><option value="64" selected>64 cells</option><option value="128">128 cells</option></select></label>
+          <div class="player-filter-actions"><button class="button primary" type="submit">Inspect</button></div>
+        </form>
+        <p id="world-status" class="muted" role="status" aria-live="polite">Terrain not loaded.</p>
+        <dl id="world-zone" class="event-status"></dl>
+        <h3 class="account-section-title">Live around this point</h3>
+        <ul id="world-live" class="world-list"></ul>
+      </div>
+    </div>
+  </div>
+</section>

@@ -5,11 +5,15 @@ Keeps the client and server collision maps byte-identical where consumed.
 The 7.48 client AttributeMap has a four-byte trailer that its loader ignores.
 The server consumes its first 1,048,576 bytes. The server HeightMap is a
 16,777,216-byte world map; the client loads a copy for route collision.
+Optional PortalX/PortalY enable the portal bit for one native 4x4 block,
+preserving all other attributes and the client trailer. Requires -Apply.
 #>
 param(
     [string]$ClientRoot = (Join-Path $PSScriptRoot '../../tmproject/client748'),
     [string]$ServerRoot = (Join-Path $PSScriptRoot '../../wydgo748'),
-    [switch]$Apply
+    [switch]$Apply,
+    [ValidateRange(-1, 4095)][int]$PortalX = -1,
+    [ValidateRange(-1, 4095)][int]$PortalY = -1
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,6 +29,14 @@ $serverHeight = [IO.File]::ReadAllBytes($serverHeightPath)
 if ($clientAttribute.Length -ne 1048580 -or $serverHeight.Length -ne 16777216) {
     throw 'The canonical client attribute or server height map has an unexpected size.'
 }
+if (($PortalX -ge 0) -ne ($PortalY -ge 0)) {
+    throw 'PortalX and PortalY must be supplied together.'
+}
+if ($PortalX -ge 0) {
+    if (-not $Apply) { throw 'Enabling a portal requires -Apply.' }
+    $portalOffset = ([int][Math]::Floor($PortalY / 4) * 1024) + [int][Math]::Floor($PortalX / 4)
+    $clientAttribute[$portalOffset] = $clientAttribute[$portalOffset] -bor 0x10
+}
 
 $attributePayload = New-Object 'byte[]' 1048576
 [Array]::Copy($clientAttribute, $attributePayload, $attributePayload.Length)
@@ -37,6 +49,9 @@ if ($Apply) {
     if ((Test-Path -LiteralPath $clientHeightPath) -and
         ([IO.FileInfo]$clientHeightPath).Length -ne $serverHeight.Length) {
         throw 'The destination client height map has an unexpected size.'
+    }
+    if ($PortalX -ge 0) {
+        [IO.File]::WriteAllBytes($clientAttributePath, $clientAttribute)
     }
     [IO.File]::WriteAllBytes($serverAttributePath, $attributePayload)
     [IO.File]::WriteAllBytes($clientHeightPath, $serverHeight)

@@ -184,3 +184,34 @@ func TestWorldGeneratorSchedulingAndWalkableFallbacks(t *testing.T) {
 		t.Fatal("terrain fallback returned invalid coordinates")
 	}
 }
+
+// A generator an item-instance room reserves is skipped before the template
+// check, so its missing template cannot fail the boot; the World exposes the
+// reservation for the staff content index.
+func TestNewWorldRecordsReservedGenerators(t *testing.T) {
+	npcs, geners, catalog, templates := minimalWorldInputs()
+	npcs = append(npcs, model.NPCDef{Name: "RoomMob", Tipo: model.TipoMonstro,
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 100, CurHP: 100}})
+	catalog.Items[100] = model.ItemDef{Index: 100}
+	catalog.Items[3174] = model.ItemDef{Index: 3174}
+	room := model.NPCGener{Index: 8, Enabled: true, Leader: "Missing_Room_Mob", Follower: "Missing_Room_Mob"}
+	room.Segments[0] = model.GenerSegment{X: 2208, Y: 2202}
+	volatiles := model.VolatileCatalog{
+		Default:   model.VolatileRule{Action: "generic"},
+		Items:     map[uint16]model.VolatileRule{100: instanceTestRule()},
+		ItemCodes: map[uint16]int{100: 21},
+	}
+	w, err := NewWorld(&craftStore{}, npcs, append(geners, room), catalog, [model.MaxCarry]int{},
+		volatiles, templates, model.TerrainMap{}, WithClock(newFakeClock(time.Unix(2_000_000_000, 0))), WithNPCGenerLog("quiet"))
+	if err != nil {
+		t.Fatalf("NewWorld: %v", err)
+	}
+	reserved := w.ReservedGenerators()
+	if len(reserved) != 1 || reserved[8] != "item_instance" || len(w.generators) != 1 {
+		t.Fatalf("reserved=%v generators=%d", reserved, len(w.generators))
+	}
+	reserved[9] = "mutated"
+	if _, leaked := w.ReservedGenerators()[9]; leaked {
+		t.Fatal("ReservedGenerators must return a copy")
+	}
+}

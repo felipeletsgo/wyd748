@@ -17,6 +17,8 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Game cross-build failed' }
         go build -trimpath -o "$release/game/wyd-player-api" ./cmd/player-api
         if ($LASTEXITCODE -ne 0) { throw 'Player API cross-build failed' }
+        go build -trimpath -o "$release/game/wyd-log-reader" ./cmd/log-reader
+        if ($LASTEXITCODE -ne 0) { throw 'Log reader cross-build failed' }
         go test -c -o "$stage/playerportal.test" ./internal/playerportal
         if ($LASTEXITCODE -ne 0) { throw 'Database test cross-build failed' }
     } finally { Pop-Location }

@@ -162,3 +162,4 @@ tbody tr:last-child td { border-bottom: 0; }
    column and pushed the file picker outside the panel. */
 .guild-mark-form .guild-mark-help { grid-column: 1 / -1; }
 .guild-mark-form input[type="file"] { width: 100%; min-width: 0; max-width: 100%; }
+.site-banner{margin:0 auto;max-width:1180px;padding:10px 16px;background:#3a2c18;border:1px solid #7a5a2a;color:#f1dfb8;border-radius:6px;text-align:center;font-size:14px}

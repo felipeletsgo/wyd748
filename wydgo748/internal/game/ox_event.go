@@ -194,8 +194,21 @@ func (w *World) handleOXEvent(req *oxEventRequest) {
 		finish("server_maintenance")
 		return
 	}
+	if req.ctx.Err() != nil {
+		return
+	}
 	code := "ok"
 	switch c.Action {
+	case "start":
+		// Repeated starts must not unlock the gates during a live question.
+		if w.oxQuizMode {
+			code = "unchanged"
+		} else if len(w.oxGates()) != 6 {
+			code = "doors_unavailable"
+		} else {
+			w.setOXDoors(false)
+			w.oxQuizMode = true
+		}
 	case "mode_on", "mode_off":
 		on := c.Action == "mode_on"
 		if w.oxQuizMode == on {

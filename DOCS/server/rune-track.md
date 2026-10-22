@@ -222,14 +222,33 @@ pseudocode and instruction-flow evidence for the same SHA-256 inputs above:
   traced independently.
 - `TMSRVIN.exe!0x585BC0`
   (`ev_055f72cf90b85f6ea0cde5a68d33511da5838d6cebdcb2c131d3b49c233a5cdd`)
-  independently confirms two settlement paths. For the resolved group root it
-  maps the stored index to one of six codes and sends an 8-byte `0x140E/0x2B`
-  message. The accompanying log label mentions `5134`, but this path alone does
-  not prove that `5134` is an item grant. For each matching group member, a
-  separate random four-value offset is added to a base derived from the root's
-  stored index; a boundary fallback rerolls before the numeric result is sent
-  to the helper. This supports the documented room/group-index pool
-  restriction, rather than selection by each recipient's member-list position.
+  independently confirms two settlement paths. For the resolved group root,
+  stored indexes map as `0..1 -> 1`, `2..4 -> 2`, `5..7 -> 3`, `8..10 -> 6`,
+  `11..13 -> 4`, and `14..17 -> 5`; indexes `18..21` have no mapped code and
+  skip this root-only reward path. A mapped result builds an 8-byte item record
+  with item ID `5134` (`Clue_Of_Runes`, `0x140E`), attribute byte `0x2B`, and
+  the mapped code, then calls the item-slot helper. The helper attempts to
+  place that record in the first eligible empty inventory slot and invokes
+  `FUN_005045E0`, which builds a 24-byte `0x182` inventory-update buffer and
+  passes it to the transport helper. This is static evidence of an update
+  attempt, not proof of runtime delivery or client application. The direct
+  `FUN_004D7850` dossier shows the wrapper forwarding the buffer to
+  `FUN_004D6F40`, invoking `FUN_004D7570`, and returning its result; existing
+  transport evidence traces this chain to Winsock `send`. That establishes a
+  static socket-send path, not successful runtime delivery or client handling.
+  If no eligible slot is available, it emits message ID `0x56` and returns
+  failure. The root's item reward is therefore a proven native insertion
+  attempt, but a successful grant is conditional on an eligible empty slot.
+  Slots 0–29 are always eligible; slots 30–44 and 45–59 are gated by
+  `Traveling_Bag` item code `3467` (`0xD8B`) in the two bag records at offsets
+  `+0x1E0` and `+0x1E8`, respectively. For each matching group member, a
+  separate `rand() % 4` offset is added to the root's stored index, and the
+  result is added to `5110`; if the sum reaches 24, the offset is rerolled as a
+  fresh `rand() % 4`. The root qualifies for this member path too, so it can
+  receive both `Clue_Of_Runes` and a regular rune. This supports the documented
+  room/group-index pool behavior, rather than selection by each recipient's
+  member-list position. The helper and slot predicate are documented in the
+  [REA runtime map](../../.agents/research/rea-server-759-runtime-map.md).
 - `TMSRVIN.exe!0x584C70`
   (`ev_263e7f27646ad7867089a0fbcabe394d2305088eceb94ea43bc044fb80d15b54`)
   resolves inside `FUN_005849B0`, the objective-death handler, rather than to a

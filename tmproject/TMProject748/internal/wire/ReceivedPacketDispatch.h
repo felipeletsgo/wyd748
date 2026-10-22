@@ -49,6 +49,7 @@
 #include "PartyRequestPacket.h"
 #include "MotionPacket.h"
 #include "QuizEventPacket.h"
+#include "InstanceQuestionPacket.h"
 #include "PremiumShopPacket.h"
 #include "IndexedMessageContract.h"
 #include "LegacySceneMessagePacket.h"
@@ -73,6 +74,7 @@ namespace received_packet
         switch (opcode)
         {
         case quiz_event::ChallengeOpcode: return sizeof(quiz_event::Challenge);
+        case instance_question::Opcode: return sizeof(instance_question::Packet);
         case premium_shop::StateOpcode: return sizeof(premium_shop::State);
         case kefra_portal::StateOpcode: return sizeof(kefra_portal::State);
         case MSG_ReqTransper_Opcode: return sizeof(MSG_ReqTransper);

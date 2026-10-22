@@ -23,6 +23,7 @@ import (
 	"wydgo/internal/account"
 	"wydgo/internal/authlimit"
 	"wydgo/internal/control"
+	"wydgo/internal/staffcontent"
 )
 
 type Control interface {
@@ -46,9 +47,23 @@ type Config struct {
 	Bosses                control.BossesSource
 	PvPDoor               control.PvPDoorSource
 	OXEvent               control.OXEventSource
+	Colosseum             control.ColosseumSource
 	Kick                  control.KickSource
 	Teleport              control.TeleportSource
 	Premium               control.PremiumSource
+	Sanctions             control.SanctionSource
+	Notices               control.NoticeSource
+	Shutdown              control.ShutdownSource
+	AuditStore            control.AuditStore // nil keeps only the structured log
+	Metrics               func() control.RuntimeReading
+	AccountHistory        control.AccountHistoryStore
+	Storage               StorageReader
+	ItemName              func(uint16) string
+	Logs                  LogReader
+	Content               *staffcontent.Index
+	Zones                 *staffcontent.Zones
+	WorldReads            control.WorldReadSource
+	Notes                 control.AccountNotesStore
 	Persistent            PersistentReader
 	Ready                 func(context.Context) error
 	Audit                 *slog.Logger
@@ -94,6 +109,14 @@ type Handler struct {
 	trustedProxies []netip.Prefix
 	now            func() time.Time
 	mux            *http.ServeMux
+	auditMu        sync.Mutex
+	auditQueue     chan control.AuditEntry
+	auditDone      chan struct{}
+	auditClosed    bool
+	sampler        *metricsSampler
+	samplerStop    chan struct{}
+	samplerDone    chan struct{}
+	samplerOnce    sync.Once
 }
 
 func New(cfg Config) (*Handler, error) {
@@ -137,6 +160,8 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("POST /api/v1/staff/world/pvp-door", h.pvpDoor)
 	h.mux.HandleFunc("GET /api/v1/staff/events/ox", h.oxEvent)
 	h.mux.HandleFunc("POST /api/v1/staff/events/ox", h.oxEvent)
+	h.mux.HandleFunc("GET /api/v1/staff/events/colosseum", h.colosseum)
+	h.mux.HandleFunc("POST /api/v1/staff/events/colosseum", h.colosseum)
 	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/kick", h.kick)
 	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/teleport", h.teleport)
 	h.mux.HandleFunc("GET /api/v1/staff/players/{uid}/persistent", h.persistentPlayer)
@@ -144,6 +169,32 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("PUT /api/v1/staff/premium-shop", h.premiumShop)
 	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/donate", h.donateAccount)
 	h.mux.HandleFunc("POST /api/v1/staff/accounts/{account}/donate", h.donateAccount)
+	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/sanctions", h.sanctions)
+	h.mux.HandleFunc("POST /api/v1/staff/accounts/{account}/sanctions", h.sanctions)
+	h.mux.HandleFunc("POST /api/v1/staff/accounts/{account}/sanctions/{id}/revoke", h.revokeSanction)
+	h.mux.HandleFunc("GET /api/v1/staff/notices", h.notices)
+	h.mux.HandleFunc("POST /api/v1/staff/notices", h.notices)
+	h.mux.HandleFunc("POST /api/v1/staff/notices/{id}/cancel", h.cancelNotice)
+	h.mux.HandleFunc("POST /api/v1/staff/players/{uid}/message", h.messagePlayer)
+	h.mux.HandleFunc("GET /api/v1/staff/server/shutdown", h.shutdown)
+	h.mux.HandleFunc("POST /api/v1/staff/server/shutdown", h.shutdown)
+	h.mux.HandleFunc("GET /api/v1/staff/audit", h.auditLog)
+	h.mux.HandleFunc("GET /api/v1/staff/metrics", h.metricsHistory)
+	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/logins", h.accountLogins)
+	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/actions", h.accountActions)
+	h.mux.HandleFunc("GET /api/v1/staff/players/{uid}/storage", h.characterStorage)
+	h.mux.HandleFunc("GET /api/v1/staff/logs", h.serverLogs)
+	h.mux.HandleFunc("GET /api/v1/staff/backups", h.backupStatus)
+	h.mux.HandleFunc("GET /api/v1/staff/content/search", h.contentSearch)
+	h.mux.HandleFunc("GET /api/v1/staff/content/items/{id}", h.contentItem)
+	h.mux.HandleFunc("GET /api/v1/staff/content/mobs/{name}", h.contentMob)
+	h.mux.HandleFunc("GET /api/v1/staff/content/issues", h.contentIssues)
+	h.mux.HandleFunc("GET /api/v1/staff/world/zone", h.worldZone)
+	h.mux.HandleFunc("GET /api/v1/staff/world/terrain", h.worldTerrain)
+	h.mux.HandleFunc("GET /api/v1/staff/world/map", h.worldMap)
+	h.mux.HandleFunc("GET /api/v1/staff/world/instances", h.worldInstances)
+	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/notes", h.accountNotes)
+	h.mux.HandleFunc("POST /api/v1/staff/accounts/{account}/notes", h.accountNotes)
 	h.mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, map[string]string{"status": "ok"}) })
 	h.mux.HandleFunc("GET /readyz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
@@ -154,6 +205,8 @@ func New(cfg Config) (*Handler, error) {
 		}
 		writeJSON(w, 200, map[string]string{"status": "ready"})
 	})
+	h.startAuditWriter()
+	h.startMetricsSampler()
 	return h, nil
 }
 
@@ -241,6 +294,17 @@ func (h *Handler) allowAll(limits ...rateLimit) bool {
 		h.rates[item.key] = v
 	}
 	return true
+}
+
+// refund returns one use of a quota taken by allow for an operation that was
+// not served, so a busy or failed backend does not exhaust it.
+func (h *Handler) refund(key string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if v, exists := h.rates[key]; exists && v.count > 0 {
+		v.count--
+		h.rates[key] = v
+	}
 }
 
 func remoteIP(r *http.Request) (netip.Addr, bool) {
@@ -588,6 +652,11 @@ func (h *Handler) overview(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "invalid_query")
 		return
 	}
+	// The default first page stays available under load: it is how staff see
+	// the problem. Search, filters and later pages are optional.
+	if q.Optional() && !h.optionalReadAllowed(w) {
+		return
+	}
 	if !h.allow("overview:"+s.Actor, 30) {
 		w.Header().Set("Retry-After", "60")
 		writeError(w, 429, "rate_limited")
@@ -715,7 +784,7 @@ func (h *Handler) accountDirectory(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 503, "persistent_unavailable")
 		return
 	}
-	if presenceControl, available := h.cfg.Control.(AccountPresenceControl); available {
+	if presenceControl, available := h.cfg.Control.(AccountPresenceControl); available && !h.breaker().Open {
 		accounts := make([]string, 0, len(result.Accounts))
 		for _, entry := range result.Accounts {
 			accounts = append(accounts, entry.Username)
@@ -733,14 +802,18 @@ func (h *Handler) accountDirectory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) audit(r *http.Request, action, actor, result string, attrs ...any) {
+	requestID, _ := r.Context().Value(requestIDContextKey{}).(string)
+	clientIP := h.peer(r)
 	base := []any{
 		"action", action,
 		"actor", actor,
 		"result", result,
-		"request_id", r.Context().Value(requestIDContextKey{}),
-		"client_ip", h.peer(r),
+		"request_id", requestID,
+		"client_ip", clientIP,
 		"method", r.Method,
 		"path", r.URL.Path,
 	}
 	h.cfg.Audit.Info("web_admin", append(base, attrs...)...)
+	h.persistAudit(control.AuditEntry{Actor: actor, Action: action, Result: result, RequestID: requestID,
+		ClientIP: clientIP, Method: r.Method, Path: r.URL.Path, Details: auditDetails(attrs)})
 }

@@ -43,8 +43,11 @@ func (w *World) setPlayerTab(s *net.Session, p *Player, text string, color byte)
 		return
 	}
 	// W2PP's server rule: the displayed Mortal level must be at least 70.
-	// Clearing an existing label is always permitted.
+	// Clearing an existing label is always permitted, also while muted.
 	text = boundedChatLabel(text, 25)
+	if w.labelMuted(p, text, w.now()) {
+		return
+	}
 	mortal := p.Char.Evolution == "" || strings.EqualFold(p.Char.Evolution, "mortal")
 	if text != "" && mortal && displayLevel(p.Char) < 70 {
 		s.Send(wire.MessagePanel("Mortal characters need level 70 to set a tab."))
@@ -68,7 +71,11 @@ func (w *World) setPlayerStatus(s *net.Session, p *Player, text string) {
 	}
 	// Reserve eight bytes for the "Status: " prefix. Apart from identifying
 	// the notice, it prevents user text from invoking !!/!# panel controls.
-	p.StatusMessage = boundedChatLabel(text, 87)
+	status := boundedChatLabel(text, 87)
+	if w.labelMuted(p, status, w.now()) {
+		return
+	}
+	p.StatusMessage = status
 	if p.StatusMessage == "" {
 		s.Send(wire.MessagePanel("Status message cleared."))
 	} else {

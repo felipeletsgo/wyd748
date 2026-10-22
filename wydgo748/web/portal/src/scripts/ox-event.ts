@@ -5,6 +5,7 @@ type Result = components['schemas']['OXEventResult'];
 type API = <T>(path: string, method?: string, body?: unknown) => Promise<T>;
 
 const labels: Record<Command['action'], string> = {
+  start: 'Start OX event and open its gates',
   mode_on: 'Turn quiz mode on',
   mode_off: 'Turn quiz mode off',
   doors_lock: 'Lock the OX gates',
@@ -18,6 +19,7 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
   const text = (id: string, value: string) => { el(id).textContent = value; };
   const path = '/staff/events/ox';
   const buttons: Record<Command['action'], string> = {
+    start: 'ox-event-start',
     mode_on: 'ox-event-mode-on', mode_off: 'ox-event-mode-off', doors_lock: 'ox-event-doors-lock',
     doors_open: 'ox-event-doors-open', result_x: 'ox-event-result-x', result_o: 'ox-event-result-o',
   };
@@ -37,6 +39,7 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
     el<HTMLButtonElement>('ox-event-refresh').disabled = busy;
     el<HTMLInputElement>('ox-event-reason').disabled = busy;
     const ready = !busy && !!status;
+    el<HTMLButtonElement>(buttons.start).disabled = !ready || !!status?.quizMode || status?.doors !== 6;
     el<HTMLButtonElement>(buttons.mode_on).disabled = !ready || !!status?.quizMode;
     el<HTMLButtonElement>(buttons.mode_off).disabled = !ready || !status?.quizMode;
     const doors = ready && (status?.doors ?? 0) > 0;
@@ -73,9 +76,9 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
   }
 
   async function send(action: Command['action']) {
-    if (busy || !status) return;
+    if (busy || !status || el<HTMLButtonElement>(buttons[action]).disabled) return;
     const reason = el<HTMLInputElement>('ox-event-reason');
-    if (!reason.reportValidity()) return;
+    if (!reason.reportValidity() || reason.value.trim().length < 3) return;
     const command: Command = { version: 1, operationId: crypto.randomUUID(), action, reason: reason.value.trim() };
     if (!window.confirm(`${labels[action]}?\nReason: ${command.reason}`)) return;
     const current = generation;
@@ -84,12 +87,13 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
     try {
       const result = await api<Result>(path, 'POST', command);
       if (current !== generation) return;
-      if (result.operationId !== command.operationId || !messages[result.code]) throw new Error('Invalid OX arena receipt');
+      if (result.operationId !== command.operationId || result.status.version !== 1 || !Object.hasOwn(messages, result.code)) throw new Error('Invalid OX arena receipt');
       render(result.status);
       const moved = action === 'result_x' || action === 'result_o' ? ` ${result.moved} player(s) moved out.` : '';
       text('ox-event-message', messages[result.code] + moved);
     } catch (error) {
       if (current !== generation) return;
+      status = undefined;
       text('ox-event-message', `${explain(error)} Outcome not confirmed; refresh the arena before trying again.`);
     } finally { if (current === generation) { busy = false; setControls(); } }
   }
@@ -101,6 +105,7 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
 
   return { refresh, reset() {
     generation++; status = undefined; busy = false;
+    el<HTMLInputElement>('ox-event-reason').value = '';
     for (const id of ['ox-event-mode', 'ox-event-doors', 'ox-event-players']) text(id, 'Not queried');
     text('ox-event-message', ''); text('ox-event-asof', 'No automatic refresh.');
     setControls();

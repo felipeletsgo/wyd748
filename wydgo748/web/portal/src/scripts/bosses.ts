@@ -72,7 +72,7 @@ export function setupBosses(api: API, explain: (error: unknown) => string) {
     for (const boss of value.bosses) {
       const row = document.createElement('tr');
       appendCell(row, boss.name || boss.id, boss.id);
-      appendCell(row, boss.alive ? 'Alive' : 'Dead', boss.alive ? `Mob ${boss.mobId}` : `Revision ${boss.revision}`);
+      appendCell(row, boss.alive ? 'Alive' : 'Dead', boss.alive ? `Mob ${boss.mobId}${boss.phase ? ` · phase ${boss.phase}` : ''}` : `Revision ${boss.revision}`);
       appendCell(row, boss.alive ? `${boss.hp.toLocaleString('en-US')} / ${boss.maxHp.toLocaleString('en-US')}` : `0 / ${boss.maxHp.toLocaleString('en-US')}`);
       appendCell(row, boss.alive ? `${boss.x}, ${boss.y}` : '—');
       appendCell(row, `${boss.spawnX}, ${boss.spawnY}`);

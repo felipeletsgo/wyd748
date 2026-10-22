@@ -176,7 +176,8 @@ Local installation and actual gameplay/`CLIENT_TESTED` remain pending.
   | 19–34 | Rune slates (1733–1736, 17) | Magic Chamber | per-run lit slates | working |
   | — | PvP door (4143 First_Gate, 21) at (2123,2143) | 7.59 GM `pkgate` (1 locks, 0 opens) | open; closed only by a GM | fixed: server-only fixture, staff panel "PvP door" (`game.world.pvp-door`) |
 - Colosseum (7.59 TMSRV `sub_567780`, 2026-10-21): every day at
-  EventHour+1/+2/+3 (`colosseum_event_hour`, default 19, guild-war timezone)
+  EventHour+1/+2/+3 (`colosseum_event_hour`, default 17, guild-war timezone),
+  which gives N/M/A starts at 18:05/19:05/20:05 by default.
   Colosseum N (mortals only), M (no Celestials) and A (one Elixir_Notice 3170
   each from the 60 scanned carry slots, `_NN_Need_Elixer` and recall
   otherwise; a pending or rejected charge is retried every tick) run from
@@ -192,10 +193,19 @@ Local installation and actual gameplay/`CLIENT_TESTED` remain pending.
   only while `colosseum_enabled` is true. Project choice: a server that misses
   minutes 5–6 skips that hour instead of firing every missed wave at once. The
   daily reset runs before the tier guard, so the completed stage cannot leak
-  into the next day's first scheduled tier. Tests: `TestColosseum*`. Source
-  and automated tests only.
+  into the next day's first scheduled tier. The staff panel can advance a
+  selected tier with `game.event.colosseum`; the same admission, elixir,
+  wave and exit rules run for 12 minutes from the early start. An early start
+  replaces that tier's scheduled session for the same local day in the current
+  process. Day claims and operation receipts are not durable across restarts.
+  Active events, pending player exits, claimed tiers and passed schedules block
+  a new start; epoch/revision checks and receipts fence stale or repeated
+  commands. Tests: `TestColosseum*`. Source and automated tests only.
 - OX arena (7.59 `quizmode`, `quizdoor`, `quizresultx`, `quizresulto`): staff
-  panel "OX arena" (`game.event.ox`). With quiz mode on the Entrance_Ticket
+  panel "OX arena" (`game.event.ox`). "Start OX event" enables quiz mode and
+  opens all six gates in one World command. Starting an already enabled event
+  does not reopen gates locked for an active question. OX has no automatic
+  schedule. With quiz mode on the Entrance_Ticket
   1737 is spent and teleports to the `quizArena` (1340,1492) of its
   instances.json rule 51; with quiz mode off it keeps this
   project's Big Cube ticket (instances.json rule 51) instead of the 7.59

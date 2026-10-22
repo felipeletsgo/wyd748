@@ -27,9 +27,11 @@ type command struct {
 	quiz            *quizRequest
 	pvpDoor         *pvpDoorRequest
 	oxEvent         *oxEventRequest
+	colosseum       *colosseumRequest
 	premium         *premiumEvent
 	control         *controlRequest
 	accountPresence *accountPresenceRequest
+	staff           *staffRequest
 	s               *net.Session
 	pkt             []byte
 	login           *loginResult
@@ -53,6 +55,10 @@ type loginResult struct {
 	accountName string
 	account     *model.Account
 	err         error
+	// sanctions is the durable state read with authentication; sanctionErr
+	// rejects the login because a ban cannot be ruled out.
+	sanctions   store.SanctionState
+	sanctionErr error
 }
 
 const (
@@ -437,8 +443,11 @@ type World struct {
 	bossesPending      atomic.Bool
 	pvpDoorPending     atomic.Bool
 	oxEventPending     atomic.Bool
+	colosseumPending   atomic.Bool
 	kickPending        atomic.Bool
 	kickEpoch          string
+	staffOps           staffOpsState
+	loginHistory       chan loginRecord
 	kickReceipts       map[string]kickReceipt
 	teleportPending    atomic.Bool
 	teleportReceipts   map[string]teleportReceipt
@@ -522,6 +531,7 @@ type World struct {
 	sephiraObjects        map[uint16]*Mob
 	generators            []generState
 	generatorByIndex      map[int]int
+	reservedGenerators    map[int]string
 	nextMobID             uint16
 	items                 map[uint16]model.ItemDef
 	skills                map[int]model.SkillDef
@@ -726,6 +736,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		summons:                make(map[uint16]*Mob),
 		sephiraObjects:         make(map[uint16]*Mob),
 		generatorByIndex:       make(map[int]int),
+		reservedGenerators:     make(map[int]string),
 		nextMobID:              1000,
 		items:                  catalog.Items,
 		skills:                 catalog.Skills,
@@ -864,9 +875,11 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		// ticket and duplicate them when the instance opens. Reserve generators
 		// from authoritative item configuration, not a decorative NPCGener index.
 		if w.generatorReservedForItemInstance(g) {
+			w.reservedGenerators[g.Index] = "item_instance"
 			continue
 		}
 		if w.colosseum != nil && w.colosseum.config.Enabled && generatorReservedForColosseum(g) {
+			w.reservedGenerators[g.Index] = "colosseum"
 			continue
 		}
 		leader := templates[g.Leader]
@@ -903,6 +916,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	if err := w.startCriticalPersistence(); err != nil {
 		return nil, err
 	}
+	w.startLoginHistory()
 	return w, nil
 }
 
@@ -1769,6 +1783,9 @@ func commandLabel(cmd command) string {
 	if cmd.kick != nil {
 		return "control.kick"
 	}
+	if cmd.staff != nil {
+		return cmd.staff.label
+	}
 	if cmd.teleport != nil {
 		return "control.teleport"
 	}
@@ -1780,6 +1797,9 @@ func commandLabel(cmd command) string {
 	}
 	if cmd.oxEvent != nil {
 		return "control.ox-event"
+	}
+	if cmd.colosseum != nil {
+		return "control.colosseum"
 	}
 	if cmd.premium != nil {
 		return "premium.poll"
@@ -1938,6 +1958,7 @@ func (w *World) tick() {
 	w.tickGateRelock(now)
 	w.tickClientIntegrity(now)
 	w.tickQuiz(now)
+	w.tickStaffOps(now)
 	w.tickWeather(now)
 	w.tickPremium(now)
 	if !now.Before(w.nextQuestZoneGuard) {
@@ -2076,6 +2097,10 @@ func (w *World) handle(cmd command) {
 		w.handleKick(cmd.kick)
 		return
 	}
+	if cmd.staff != nil {
+		w.handleStaff(cmd.staff)
+		return
+	}
 	if cmd.teleport != nil {
 		w.handleTeleport(cmd.teleport)
 		return
@@ -2090,6 +2115,10 @@ func (w *World) handle(cmd command) {
 	}
 	if cmd.oxEvent != nil {
 		w.handleOXEvent(cmd.oxEvent)
+		return
+	}
+	if cmd.colosseum != nil {
+		w.handleColosseum(cmd.colosseum)
 		return
 	}
 	if cmd.pvpDoor != nil {

@@ -1,0 +1,33 @@
+[Unit]
+Description=WYD read-only log reader for the staff panel
+Requires=wyd-log-reader.socket
+After=wyd-log-reader.socket
+
+[Service]
+Type=simple
+User=wyd-log-reader
+Group=wyd-log-reader
+# Journal read access; the helper itself restricts reads to the game,
+# player API and backup units and checks the caller's user ID.
+SupplementaryGroups=systemd-journal
+ExecStart=/srv/wyd-go/current/game/wyd-log-reader -allow-user wyd-game
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateNetwork=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX
+CapabilityBoundingSet=
+MemoryMax=64M
+CPUQuota=20%
+TasksMax=16
+Nice=10
+IOSchedulingClass=idle

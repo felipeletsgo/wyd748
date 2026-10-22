@@ -1,0 +1,16 @@
+<section id="logs" class="panel staff-ops-panel" aria-labelledby="logs-title">
+  <div class="panel-heading"><div><span class="eyebrow">OPERATIONS</span><h2 id="logs-title">Server logs and backups</h2></div><button id="backup-refresh" class="button subtle" type="button">Refresh backup status</button></div>
+  <div class="event-body">
+    <p class="muted">Read through the separate wyd-log-reader service, limited to the game server, the player API and the backup job. Logs may contain account names and addresses; every read is audited without its content. Backup files themselves can never be downloaded here.</p>
+    <dl class="event-status"><div><dt>Last backup</dt><dd id="backup-last">Not queried</dd></div><div><dt>Size / SHA-256</dt><dd id="backup-size">—</dd></div><div><dt>Last restore test</dt><dd id="backup-restore">—</dd></div></dl>
+    <form id="logs-form" class="player-filters">
+      <label>Source<select id="logs-source"><option value="game">Game server</option><option value="player">Player API</option><option value="backup">Backup job</option></select></label>
+      <label>Window<select id="logs-window"><option value="15">15 minutes</option><option value="60" selected>1 hour</option><option value="360">6 hours</option><option value="1440">24 hours</option><option value="10080">7 days</option></select></label>
+      <label>Up to level<select id="logs-priority"><option value="3">Errors</option><option value="4">Warnings</option><option value="6" selected>Info</option><option value="7">Debug</option></select></label>
+      <label>Contains<input id="logs-query" maxlength="80" placeholder="E.g. LOGIN" /></label>
+      <div class="player-filter-actions"><button id="logs-submit" class="button primary" type="submit">Load newest</button><button id="logs-older" class="button subtle" type="button" disabled>Older →</button></div>
+    </form>
+    <p id="logs-status" class="muted" role="status" aria-live="polite">Not queried. Times are shown in UTC and in your local time.</p>
+    <div class="table-scroll"><table class="logs-table"><thead><tr><th>TIME (UTC)</th><th>LEVEL</th><th>MESSAGE</th></tr></thead><tbody id="logs-rows"><tr><td colspan="3" class="empty">No query has been made.</td></tr></tbody></table></div>
+  </div>
+</section>

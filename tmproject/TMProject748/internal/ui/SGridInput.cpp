@@ -754,6 +754,16 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			pFScene->m_pMessageBox->SetVisible(1);
 			return;
 		}
+		if (nItemSIndex == 1737 && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+		{
+			if (pFScene->m_pMessageBox->IsVisible()) return;
+			pFScene->m_nEntranceTicketSlot = nativeCarryPos;
+			pFScene->m_stEntranceTicket = *pItem->m_pItem;
+			char prompt[] = "Use this Entrance Ticket to enter?";
+			pFScene->m_pMessageBox->SetMessage(prompt, 1737, nullptr);
+			pFScene->m_pMessageBox->SetVisible(1);
+			return; // Send and optimistic consumption happen only after confirmation.
+		}
 		if (Check_ItemRightClick(nType, nItemSIndex) && (g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD ||
 			pMyHuman->m_cCancel != 1 || nType != 1))
 		{

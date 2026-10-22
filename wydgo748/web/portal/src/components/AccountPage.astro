@@ -1,0 +1,26 @@
+<section id="account" class="panel staff-ops-panel" aria-labelledby="account-title">
+  <div class="panel-heading">
+    <div><span class="eyebrow">ACCOUNT</span><h2 id="account-title">Account <span id="account-name">—</span></h2></div>
+    <button id="account-refresh" class="button subtle" type="button" disabled>Refresh account</button>
+  </div>
+  <div class="event-body">
+    <p id="account-status" class="muted">Open an account from the directory or the online player list.</p>
+    <h3 class="account-section-title">Characters</h3>
+    <div class="table-scroll"><table><thead><tr><th>SLOT</th><th>CHARACTER</th><th>CLASS / LEVEL</th><th>EVOLUTION</th></tr></thead><tbody id="account-characters"><tr><td colspan="4" class="empty">No account open.</td></tr></tbody></table></div>
+    <h3 class="account-section-title">Login history</h3>
+    <p id="account-logins-note" class="muted">Last 50 admitted game logins, kept 90 days.</p>
+    <div class="table-scroll"><table><thead><tr><th>TIME</th><th>CHANNEL</th><th>IP ADDRESS</th></tr></thead><tbody id="account-logins"><tr><td colspan="3" class="empty">No account open.</td></tr></tbody></table></div>
+    <h3 class="account-section-title">Staff actions on this account</h3>
+    <div class="table-scroll"><table><thead><tr><th>TIME</th><th>STAFF</th><th>ACTION</th><th>RESULT</th><th>DETAILS</th></tr></thead><tbody id="account-actions"><tr><td colspan="5" class="empty">No account open.</td></tr></tbody></table></div>
+    <h3 class="account-section-title">Case notes</h3>
+    <p class="muted">Append-only staff notes: corrections are new notes. Link entries of the gameplay bug register as BUG-NNN. Writing needs a ban or mute permission.</p>
+    <form id="account-note-form">
+      <label for="account-note-body">New note</label><textarea id="account-note-body" class="account-note-body" maxlength="2000" rows="3" placeholder="What was reported, checked or decided"></textarea>
+      <label for="account-note-bugs">Bug references</label><input id="account-note-bugs" maxlength="80" placeholder="E.g. BUG-004, BUG-011" />
+      <div class="event-actions"><button id="account-note-submit" class="button subtle" type="submit" disabled>Add note</button></div>
+    </form>
+    <p id="account-note-status" class="muted" role="status" aria-live="polite"></p>
+    <ul id="account-notes" class="world-list"></ul>
+    <p class="muted">Sanctions for this account are in the Sanctions section below.</p>
+  </div>
+</section>

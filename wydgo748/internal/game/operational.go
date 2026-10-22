@@ -169,6 +169,9 @@ func (w *World) allowChat(p *Player, channel string, now time.Time) bool {
 	if p == nil || p.Account == nil {
 		return false
 	}
+	if w.chatMuted(p, channel, now) {
+		return false
+	}
 	if w.chatRateByAccount == nil {
 		w.chatRateByAccount = make(map[string]*fixedWindowRate)
 	}

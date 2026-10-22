@@ -34,8 +34,17 @@ var postgresProgressionSchema string
 //go:embed postgres_guild_public.sql
 var postgresGuildPublicSchema string
 
+//go:embed postgres_staff_ops.sql
+var postgresStaffOpsSchema string
+
+//go:embed postgres_account_history.sql
+var postgresAccountHistorySchema string
+
+//go:embed postgres_account_notes.sql
+var postgresAccountNotesSchema string
+
 const postgresWriteQueueSize = 2048
-const postgresSchemaVersion = 8
+const postgresSchemaVersion = 11
 const postgresOperationTimeout = 10 * time.Second
 const postgresStartupTimeout = 30 * time.Second
 const postgresAutosaveBatchSize = 64
@@ -310,7 +319,7 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 			return fmt.Errorf("schema v%d; this binary requires v%d", currentVersion, postgresSchemaVersion)
 		}
 	}
-	// Upgrading v6+ adds only read views and their markers. Do not replay the
+	// Upgrading v6+ adds read views, staff tables and their markers. Do not replay the
 	// historical account migration or rewrite any live character snapshot.
 	if currentVersion < 6 {
 		if _, err := conn.Exec(ctx, postgresSchema); err != nil {
@@ -324,6 +333,21 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	if _, err := conn.Exec(ctx, postgresGuildPublicSchema); err != nil {
 		return err
+	}
+	if currentVersion < 9 {
+		if _, err := conn.Exec(ctx, postgresStaffOpsSchema); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 10 {
+		if _, err := conn.Exec(ctx, postgresAccountHistorySchema); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 11 {
+		if _, err := conn.Exec(ctx, postgresAccountNotesSchema); err != nil {
+			return err
+		}
 	}
 	var version int
 	if err := conn.QueryRow(ctx, `SELECT COALESCE(MAX(version),0) FROM schema_migrations`).Scan(&version); err != nil {

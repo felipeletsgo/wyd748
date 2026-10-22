@@ -99,7 +99,7 @@ func adminTestConfig(t *testing.T) data.ServerConfig {
 }
 
 func TestStartWebAdminDisabledAndInvalid(t *testing.T) {
-	stop, err := startWebAdmin(data.DefaultServerConfig(), nil, nil)
+	stop, err := startWebAdmin(data.DefaultServerConfig(), nil, nil, adminInputs{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -108,17 +108,17 @@ func TestStartWebAdminDisabledAndInvalid(t *testing.T) {
 		cfg := data.DefaultServerConfig()
 		cfg.WebAdminEnabled = true
 		cfg.WebAdminAddress = address
-		if _, err := startWebAdmin(cfg, nil, nil); err == nil {
+		if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil {
 			t.Fatalf("accepted %s", address)
 		}
 	}
 	cfg := adminTestConfig(t)
 	cfg.WebAdminStaticPath = t.TempDir()
-	if _, err := startWebAdmin(cfg, nil, nil); err == nil || !strings.Contains(err.Error(), "admin panel build is missing") {
+	if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil || !strings.Contains(err.Error(), "admin panel build is missing") {
 		t.Fatalf("missing assets: %v", err)
 	}
 	cfg.AdminAccessPIN = ""
-	if _, err := startWebAdmin(cfg, nil, nil); err == nil {
+	if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil {
 		t.Fatal("empty PIN accepted")
 	}
 }
@@ -131,7 +131,7 @@ func TestStartWebAdminOccupiedPortDoesNotStopOwner(t *testing.T) {
 	defer listener.Close()
 	cfg := adminTestConfig(t)
 	cfg.WebAdminAddress = listener.Addr().String()
-	if _, err := startWebAdmin(cfg, nil, nil); err == nil || !strings.Contains(err.Error(), "admin panel port unavailable") {
+	if _, err := startWebAdmin(cfg, nil, nil, adminInputs{}); err == nil || !strings.Contains(err.Error(), "admin panel port unavailable") {
 		t.Fatalf("occupied port: %v", err)
 	}
 	conn, err := net.DialTimeout("tcp", cfg.WebAdminAddress, time.Second)
@@ -180,7 +180,7 @@ func TestStartWebAdminDatabaseFailureReleasesPort(t *testing.T) {
 	}
 	cfg.WebAdminAddress = listener.Addr().String()
 	listener.Close()
-	_, err = startWebAdmin(cfg, nil, nil)
+	_, err = startWebAdmin(cfg, nil, nil, adminInputs{})
 	if err == nil || !strings.Contains(err.Error(), "admin panel database unavailable") || strings.Contains(err.Error(), "DO_NOT_LOG") {
 		t.Fatalf("database error not sanitized: %v", err)
 	}
@@ -223,7 +223,7 @@ func TestStartWebAdminPostgres(t *testing.T) {
 	source := adminSourceFunc(func(context.Context, control.Query) (control.Overview, error) {
 		return control.Overview{Version: 1}, nil
 	})
-	stop, err := startWebAdmin(cfg, source, nil)
+	stop, err := startWebAdmin(cfg, source, nil, adminInputs{})
 	if err != nil {
 		t.Fatal(err)
 	}

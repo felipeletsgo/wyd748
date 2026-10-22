@@ -1,0 +1,15 @@
+<section id="content" class="panel staff-ops-panel" aria-labelledby="content-title">
+  <div class="panel-heading"><div><span class="eyebrow">GAME DATA</span><h2 id="content-title">Content index</h2></div><button id="content-issues" class="button subtle" type="button">Show data issues</button></div>
+  <div class="event-body">
+    <p class="muted">Built once when the server starts from the loaded data files: where an item is sold, dropped (slot rate "1 in N" per kill) and used by quests, and where a monster spawns. Staff only; never part of the public site.</p>
+    <form id="content-form" class="search-form staff-ops-lookup">
+      <label class="sr-only" for="content-query">Item or monster name</label>
+      <input id="content-query" maxlength="48" required placeholder="Item or monster name" />
+      <button class="button subtle" type="submit">Search</button>
+    </form>
+    <ul id="content-hits" class="world-list"></ul>
+    <h3 id="content-detail-title" class="account-section-title"></h3>
+    <ul id="content-detail" class="world-list"></ul>
+    <p id="content-status" class="muted" role="status" aria-live="polite"></p>
+  </div>
+</section>

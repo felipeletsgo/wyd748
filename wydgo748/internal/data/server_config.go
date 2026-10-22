@@ -28,13 +28,16 @@ type ServerConfig struct {
 	WebAdminOrigin string
 	// WebAdminTrustedProxies lists proxy CIDRs allowed to supply X-Forwarded-For.
 	WebAdminTrustedProxies string
+	// WebAdminLogReaderSocket is the wyd-log-reader Unix socket; empty
+	// disables the server log and backup status views.
+	WebAdminLogReaderSocket string
 	// AdminAccessPINEnv names an environment variable holding the PIN, so a
 	// published deployment keeps the secret out of the versioned server.txt.
 	AdminAccessPINEnv string
-	DatabaseDriver     string
-	DatabaseURL        string
-	DatabaseURLEnv     string
-	DatabaseMaxConns   uint32
+	DatabaseDriver    string
+	DatabaseURL       string
+	DatabaseURLEnv    string
+	DatabaseMaxConns  uint32
 	// CriticalPersistenceWorkers/Capacity size the nonblocking coordinator
 	// that persists every gameplay write off the World goroutine (PostgreSQL).
 	CriticalPersistenceWorkers   uint32
@@ -206,6 +209,13 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"web_admin_address": func(v string) error { cfg.WebAdminAddress = v; return nil },
 		"web_admin_staff":   func(v string) error { cfg.WebAdminStaffPath = v; return nil },
 		"web_admin_static":  func(v string) error { cfg.WebAdminStaticPath = v; return nil },
+		"web_admin_log_reader_socket": func(v string) error {
+			if v != "" && !strings.HasPrefix(v, "/") {
+				return errors.New("web_admin_log_reader_socket must be an absolute path")
+			}
+			cfg.WebAdminLogReaderSocket = v
+			return nil
+		},
 		"web_admin_origin": func(v string) error {
 			if err := ValidateWebAdminOrigin(v); err != nil {
 				return err

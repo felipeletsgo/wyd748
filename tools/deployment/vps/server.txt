@@ -13,6 +13,7 @@ web_admin_origin=https://wyd.forjago.com
 web_admin_trusted_proxies=127.0.0.1/32,::1/128
 web_admin_staff=/etc/wyd-go/staff.json
 web_admin_static=web
+web_admin_log_reader_socket=/run/wyd-log-reader/socket
 admin_access_pin_env=WYD_ADMIN_PIN
 session_queue_capacity=256
 world_command_queue_capacity=1024

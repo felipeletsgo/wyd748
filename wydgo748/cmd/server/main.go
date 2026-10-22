@@ -26,6 +26,7 @@ import (
 	"wydgo/internal/game"
 	"wydgo/internal/model"
 	"wydgo/internal/net"
+	"wydgo/internal/staffcontent"
 	"wydgo/internal/store"
 	"wydgo/internal/webadmin"
 )
@@ -295,6 +296,7 @@ func main() {
 	default:
 		log.Fatalf("unknown database_driver %q", cfg.DatabaseDriver)
 	}
+	maintenance := make(chan string, 1)
 	worldOptions := []game.WorldOption{
 		game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithGameplayLog(cfg.GameplayLog),
@@ -321,6 +323,13 @@ func main() {
 		game.WithCommandAuthorizer(func(account, capability string) bool {
 			return webadmin.StaffPermits(cfg.WebAdminStaffPath, account, capability)
 		}),
+		// A staff-scheduled shutdown ends here, on the same path as SIGTERM.
+		game.WithShutdownRequest(func(mode string) {
+			select {
+			case maintenance <- mode:
+			default:
+			}
+		}),
 	}
 	if postgresStore != nil {
 		// Production persistence never blocks the World goroutine: gameplay
@@ -339,8 +348,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("create world: %v", err)
 	}
+	// The staff content index and zone diagnostics are built once from the
+	// same inputs as the World, plus the generators it reserved at boot, and
+	// never change afterwards.
+	panelInputs := adminInputs{
+		content: staffcontent.Build(npcs, geners, catalog, quests, questZones, dropRates, world.ReservedGenerators(), time.Now()),
+		zones:   staffcontent.NewZones(terrain, append([]model.Teleport(nil), teleports...), questZones, volatiles),
+	}
+	log.Printf("staff content index: %d unresolved references", len(panelInputs.content.Issues))
 	go world.Run()
-	stopWebAdmin, webErr := startWebAdmin(cfg, world, postgresStore)
+	stopWebAdmin, webErr := startWebAdmin(cfg, world, postgresStore, panelInputs)
 	if webErr != nil {
 		log.Printf("staff panel failed to start: %v; game server remains active", webErr)
 		stopWebAdmin = func() {}
@@ -369,12 +386,20 @@ func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGTERM, syscall.SIGINT)
 	go func() {
-		sig := <-signals
-		log.Printf("received signal %v: persisting state before exit", sig)
+		exitCode := 0
+		select {
+		case sig := <-signals:
+			log.Printf("received signal %v: persisting state before exit", sig)
+		case mode := <-maintenance:
+			log.Printf("scheduled %s: persisting state before exit", mode)
+			if mode == control.ShutdownModeRestart {
+				exitCode = game.RestartExitCode
+			}
+		}
 		stopWebAdmin()
 		if world.Shutdown(shutdownTimeout) {
 			log.Print("shutdown complete")
-			os.Exit(0)
+			os.Exit(exitCode)
 		}
 		// Shutdown already logged the incomplete drain; a nonzero exit status
 		// makes the failure visible to systemd.

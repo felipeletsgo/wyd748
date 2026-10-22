@@ -12,7 +12,10 @@ import (
 	"wydgo/internal/wire"
 )
 
-const instanceSignalID = uint16(0x7530)
+const (
+	instanceSignalID         = uint16(0x7530)
+	instanceQuestionDuration = 10 * time.Second
+)
 
 type ItemInstance struct {
 	Config model.VolatileInstance
@@ -2479,17 +2482,22 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 		}
 		if inst.CurrentStage+1 < len(stages) {
 			if quiz := stages[inst.CurrentStage].Quiz; quiz != nil {
-				deadline := now.Add(time.Duration(quiz.DurationSeconds) * time.Second)
+				// A committed kill may arrive with an older tick timestamp.
+				// Give every question a full answer window after publication.
+				if committedAt := w.now(); now.Before(committedAt) {
+					now = committedAt
+				}
+				deadline := now.Add(instanceQuestionDuration)
 				inst.QuizAt = deadline
 				inst.QuizDeadline = deadline
 				inst.TransitionAt = time.Time{}
 				inst.TransitionDeadline = time.Time{}
 				for _, id := range inst.MemberIDs {
-					if member := w.playersByID[id]; member != nil && member.InWorld {
+					if member := w.playersByID[id]; member != nil && member.InWorld && member.Session != nil && !member.Session.IsClosed() {
 						member.Session.Send(wire.StandardParm(
-							wire.OpInstanceTime, instanceSignalID, uint32(quiz.DurationSeconds)))
-						member.Session.Send(wire.MessagePanel(
-							strings.ReplaceAll(quiz.Question, "_", " ")))
+							wire.OpInstanceTime, instanceSignalID, uint32(instanceQuestionDuration/time.Second)))
+						member.Session.Send(wire.InstanceQuestion(member.ID,
+							strings.ReplaceAll(quiz.Question, "_", " "), uint32(instanceQuestionDuration/time.Millisecond)))
 					}
 				}
 				w.markInstanceStateDirty()
@@ -2627,6 +2635,11 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 		}
 	}
 	return w.commitInstanceMutation("instance quiz answer", accounts, restore, func() {
+		// Close every member's question before result publication can send
+		// party updates or EXP packets to another member.
+		for _, result := range states {
+			result.player.Session.Send(wire.InstanceQuestion(result.player.ID, "", 0))
+		}
 		for _, result := range states {
 			p := result.player
 			if !result.ok {

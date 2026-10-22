@@ -66,6 +66,16 @@ type colosseumRuntime struct {
 	exits    map[*Player]bool
 	endsAt   time.Time
 	nextTick time.Time
+	// A manual start uses the same timeline relative to startedAt, independent
+	// of the wall-clock hour. Day claims and admin receipts are process-local.
+	tier       int
+	startedAt  time.Time
+	claimed    [model.ColosseumTiers]string
+	epoch      string
+	revision   uint64
+	receipts   map[string]colosseumReceipt
+	notices    [model.ColosseumTiers]colosseumNoticeState
+	countdowns map[*Player]time.Time
 }
 
 func WithColosseum(config model.ColosseumConfig, generators model.ColosseumGenerators) WorldOption {
@@ -115,10 +125,18 @@ func generatorReservedForColosseum(g model.NPCGener) bool {
 
 func (w *World) tickColosseum(now time.Time) {
 	c := w.colosseum
-	if c == nil || !c.config.Enabled || now.Before(c.nextTick) {
+	if c == nil {
+		return
+	}
+	if !c.config.Enabled {
+		w.clearColosseumCountdowns(now)
+		return
+	}
+	if now.Before(c.nextTick) {
 		return
 	}
 	c.nextTick = now.Add(time.Second)
+	defer w.syncColosseumCountdowns(now)
 	w.retryColosseumExits()
 	location, err := w.serverLocation()
 	if err != nil {
@@ -126,6 +144,7 @@ func (w *World) tickColosseum(now time.Time) {
 		return
 	}
 	local := now.In(location)
+	w.tickColosseumNotices(local)
 	minute := local.Minute()
 	if !c.endsAt.IsZero() && !now.Before(c.endsAt) && c.stage >= 1 && c.stage <= 7 {
 		w.finishColosseum()
@@ -138,10 +157,23 @@ func (w *World) tickColosseum(now time.Time) {
 	if minute < 5 && c.stage == 8 {
 		c.stage, c.filter, c.unpaid = 0, false, nil
 	}
-	tier := local.Hour() - int(c.config.EventHour) - 1
-	if tier < 0 || tier >= model.ColosseumTiers {
+	tier := c.tier
+	if c.stage == 0 || c.stage == 8 {
+		tier = local.Hour() - int(c.config.EventHour) - 1
+		if tier < 0 || tier >= model.ColosseumTiers || c.claimed[tier] == local.Format("2006-01-02") {
+			return
+		}
+		if c.stage != 0 || minute < 5 {
+			return
+		}
+		if minute > colosseumStartWindow || len(c.exits) != 0 {
+			c.stage = 8
+			return
+		}
+		w.startColosseum(tier, time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), 5, 0, 0, location))
 		return
 	}
+	minute = 5 + int(now.Sub(c.startedAt)/time.Minute)
 	if c.filter {
 		w.enforceColosseumClass(tier, colosseumMoveArea)
 	}
@@ -157,33 +189,6 @@ func (w *World) tickColosseum(now time.Time) {
 		return
 	}
 	if tier == model.ColosseumTierA && len(c.unpaid) != 0 {
-		return
-	}
-	if c.stage == 0 {
-		if minute < 5 {
-			return
-		}
-		if minute > colosseumStartWindow {
-			// MODERNIZACAO_COMPATIVEL: a server that was down during minutes
-			// 5..6 would make the native scheduler fire every missed wave within
-			// seconds; the hour is skipped instead.
-			c.stage = 8
-			return
-		}
-		w.setColosseumFixtures(steelWindowItem, gateClosed)
-		c.stage = 1
-		c.endsAt = time.Date(local.Year(), local.Month(), local.Day(), local.Hour(), 17, 0, 0, location)
-		switch tier {
-		case model.ColosseumTierN, model.ColosseumTierM:
-			c.filter = true
-			w.enforceColosseumClass(tier, colosseumArea)
-		case model.ColosseumTierA:
-			c.unpaid = make(map[*Player]bool)
-			for _, p := range w.colosseumPlayers(colosseumElixirArea) {
-				w.chargeColosseumElixir(p)
-			}
-		}
-		log.Printf("colosseum %c: started", "NMA"[tier])
 		return
 	}
 	switch {
@@ -208,6 +213,31 @@ func (w *World) tickColosseum(now time.Time) {
 	}
 }
 
+// MODERNIZACAO_COMPATIVEL: scheduled and staff-triggered runs share all
+// admission, persistence, wave and cleanup rules. Starting early consumes
+// today's scheduled tier in this process; it is not an extra reward session.
+func (w *World) startColosseum(tier int, start time.Time) {
+	c := w.colosseum
+	c.tier, c.startedAt, c.endsAt = tier, start, start.Add(12*time.Minute)
+	c.stage, c.filter, c.unpaid = 1, false, nil
+	c.claimed[tier] = start.Format("2006-01-02")
+	c.revision++
+	w.setColosseumFixtures(steelWindowItem, gateClosed)
+	switch tier {
+	case model.ColosseumTierN, model.ColosseumTierM:
+		c.filter = true
+		w.enforceColosseumClass(tier, colosseumArea)
+	case model.ColosseumTierA:
+		c.unpaid = make(map[*Player]bool)
+		for _, p := range w.colosseumPlayers(colosseumElixirArea) {
+			w.chargeColosseumElixir(p)
+		}
+	}
+	log.Printf("colosseum %c: started", "NMA"[tier])
+	w.colosseumNotice(fmt.Sprintf("Colosseum %c has started. Entrance gates are now closed.", "NMA"[tier]))
+	w.syncColosseumCountdowns(w.now())
+}
+
 // spawnColosseumWave ports sub_566770: each label runs GenerateMob 3..5 times.
 func (w *World) spawnColosseumWave(tier, wave int) {
 	for _, label := range colosseumWaves[tier][wave] {
@@ -217,6 +247,17 @@ func (w *World) spawnColosseumWave(tier, wave int) {
 		}
 		for i, n := 0, 3+w.intn(3); i < n; i++ {
 			w.spawnGroup(g)
+		}
+	}
+	message := fmt.Sprintf("Colosseum %c: wave %d/5 has begun.", "NMA"[tier], wave+1)
+	if wave == 0 {
+		w.colosseumNotice(fmt.Sprintf("Colosseum %c: combat has begun! Wave 1/5 is now active.", "NMA"[tier]))
+	} else {
+		for _, p := range w.colosseumPlayers(colosseumArea) {
+			if w.gameplaySpaceForPlayer(p) == "" && p.Session != nil && !p.Session.IsClosed() {
+				p.Session.Send(wire.MessagePanel(message))
+				p.Session.Send(wire.MessageWhisper(0, "[Colosseum]", message, 7))
+			}
 		}
 	}
 }
@@ -337,6 +378,8 @@ func (w *World) consumeColosseumElixir(p *Player, slot byte) bool {
 // (sub_566230), reopen the windows, lock the inner gates and delete the event
 // mobs that are still alive (sub_5667F0).
 func (w *World) finishColosseum() {
+	w.colosseum.revision++
+	w.clearColosseumCountdowns(w.now())
 	if w.colosseum.exits == nil {
 		w.colosseum.exits = make(map[*Player]bool)
 	}

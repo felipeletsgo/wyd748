@@ -320,7 +320,7 @@
             "trueY": 4081,
             "falseX": 1689,
             "falseY": 4073,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 8000
           }
         },
@@ -344,7 +344,7 @@
             "trueY": 4081,
             "falseX": 1711,
             "falseY": 4073,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 9000
           }
         },
@@ -368,7 +368,7 @@
             "trueY": 4081,
             "falseX": 1733,
             "falseY": 4073,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 10000
           }
         },
@@ -392,7 +392,7 @@
             "trueY": 4081,
             "falseX": 1755,
             "falseY": 4073,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 11000
           }
         },
@@ -416,7 +416,7 @@
             "trueY": 4081,
             "falseX": 1777,
             "falseY": 4073,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 12000
           }
         },
@@ -440,7 +440,7 @@
             "trueY": 4049,
             "falseX": 1767,
             "falseY": 4049,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 13000
           }
         },
@@ -464,7 +464,7 @@
             "trueY": 4027,
             "falseX": 1767,
             "falseY": 4027,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 14000
           }
         },
@@ -488,7 +488,7 @@
             "trueY": 4005,
             "falseX": 1767,
             "falseY": 4005,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 15000
           }
         },
@@ -512,7 +512,7 @@
             "trueY": 3983,
             "falseX": 1775,
             "falseY": 3983,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 16000
           }
         },
@@ -536,7 +536,7 @@
             "trueY": 3985,
             "falseX": 1743,
             "falseY": 3993,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 17000
           }
         },
@@ -560,7 +560,7 @@
             "trueY": 3985,
             "falseX": 1721,
             "falseY": 3993,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 18000
           }
         },
@@ -584,7 +584,7 @@
             "trueY": 3985,
             "falseX": 1699,
             "falseY": 3993,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 19000
           }
         },
@@ -608,7 +608,7 @@
             "trueY": 3985,
             "falseX": 1677,
             "falseY": 3993,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 20000
           }
         },
@@ -632,7 +632,7 @@
             "trueY": 4017,
             "falseX": 1687,
             "falseY": 4017,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 21000
           }
         },
@@ -656,7 +656,7 @@
             "trueY": 4039,
             "falseX": 1687,
             "falseY": 4039,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 22000
           }
         },
@@ -680,7 +680,7 @@
             "trueY": 4061,
             "falseX": 1687,
             "falseY": 4061,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 23000
           }
         },
@@ -704,7 +704,7 @@
             "trueY": 4059,
             "falseX": 1711,
             "falseY": 4051,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 24000
           }
         },
@@ -728,7 +728,7 @@
             "trueY": 4059,
             "falseX": 1733,
             "falseY": 4051,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 25000
           }
         },
@@ -752,7 +752,7 @@
             "trueY": 4059,
             "falseX": 1755,
             "falseY": 4051,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 26000
           }
         },
@@ -776,7 +776,7 @@
             "trueY": 4027,
             "falseX": 1745,
             "falseY": 4027,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 27000
           }
         },
@@ -800,7 +800,7 @@
             "trueY": 4005,
             "falseX": 1745,
             "falseY": 4005,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 28000
           }
         },
@@ -824,7 +824,7 @@
             "trueY": 4007,
             "falseX": 1721,
             "falseY": 4015,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 29000
           }
         },
@@ -852,7 +852,7 @@
             "trueY": 4007,
             "falseX": 1699,
             "falseY": 4015,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 30000
           }
         },
@@ -880,7 +880,7 @@
             "trueY": 4039,
             "falseX": 1709,
             "falseY": 4039,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 31000
           }
         },
@@ -931,10 +931,10 @@
       "totalDurationSeconds": 300,
       "entryAreas": [
         {
-          "minX": 1340,
-          "minY": 1445,
-          "maxX": 1344,
-          "maxY": 1449
+          "minX": 1308,
+          "minY": 1444,
+          "maxX": 1375,
+          "maxY": 1743
         }
       ],
       "exitX": 2100,
@@ -956,7 +956,7 @@
             "trueY": 1500,
             "falseX": 1366,
             "falseY": 1500,
-            "durationSeconds": 14,
+            "durationSeconds": 10,
             "rewardExp": 8000
           }
         }

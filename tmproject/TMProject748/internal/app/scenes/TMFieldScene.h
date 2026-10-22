@@ -4,6 +4,7 @@
 #include "Basedef.h"
 #include "TMScene.h"
 #include "../../wire/QuizEventPacket.h"
+#include "../../wire/InstanceQuestionPacket.h"
 #include "../../wire/PremiumShopPacket.h"
 #include "../../wire/KefraPortalPacket.h"
 #include "../../game/entities/BerielAuraPolicy.h"
@@ -822,6 +823,11 @@ public:
 	SText* m_pQuizText[4];
 	unsigned int m_dwQuizStart;
 	SPanel* m_pQuizBG;
+	SMessagePanel* m_pInstanceQuestionPanel = nullptr; // Owned by the scene container.
+	instance_question::State m_instanceQuestion{};
+	int OnPacketInstanceQuestion(MSG_STANDARD* packet);
+	int m_nEntranceTicketSlot = -1;
+	STRUCT_ITEM m_stEntranceTicket{};
 	quiz_event::State m_quizEvent{};
 	// Premium shop opened by a ShopType 4 list (DOCS/protocol/premium-shop.md).
 	premium_shop::ClientState m_premiumShop{};

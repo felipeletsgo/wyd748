@@ -4,7 +4,7 @@
     <button id="ox-event-refresh" class="button subtle" type="button">Refresh arena</button>
   </div>
   <div class="event-body">
-    <p class="muted">Turn quiz mode on so the Entrance Ticket takes players into the OX arena (1340, 1492); with quiz mode off the ticket opens the Big Cube. Lock the gates while a question is asked, then send the losing side (X or O) out to (1341, 1465). Dead players on the losing side are revived.</p>
+    <p class="muted">Start OX event opens the six gates and enables Entrance Ticket entry to the OX arena (1340, 1492). OX has no automatic schedule. Lock the gates while a question is asked, then send the losing side (X or O) out to (1341, 1465). Dead players on the losing side are revived. Turn quiz mode off to stop ticket entry; this does not evacuate the arena, and the ticket returns to its Big Cube route.</p>
     <div class="bosses-toolbar">
       <label for="ox-event-reason">Reason for operation</label>
       <input id="ox-event-reason" minlength="3" maxlength="200" required placeholder="E.g. Saturday OX event" />
@@ -12,6 +12,7 @@
     <p><strong>Quiz mode:</strong> <span id="ox-event-mode">Not queried</span> · <strong>Gates:</strong> <span id="ox-event-doors">Not queried</span> · <strong>Players:</strong> <span id="ox-event-players">Not queried</span></p>
     <div class="bosses-toolbar">
       <button id="ox-event-mode-on" class="button subtle" type="button" disabled>Quiz mode on</button>
+      <button id="ox-event-start" class="button subtle" type="button" disabled>Start OX event</button>
       <button id="ox-event-mode-off" class="button subtle" type="button" disabled>Quiz mode off</button>
       <button id="ox-event-doors-lock" class="button subtle" type="button" disabled>Lock gates</button>
       <button id="ox-event-doors-open" class="button subtle" type="button" disabled>Open gates</button>

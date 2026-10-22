@@ -70,6 +70,9 @@ func (w *World) bossesSnapshot() control.BossesStatus {
 		if mob := w.mobsByID[state.mobID]; mob != nil {
 			b.HP, b.X, b.Y = mob.HP, mob.X, mob.Y
 		}
+		if runtime := w.bosses[state.mobID]; runtime != nil && state.mobID != 0 {
+			b.Phase = int(runtime.Phase)
+		}
 		if !state.respawnAt.IsZero() {
 			at := state.respawnAt.UTC()
 			b.RespawnAt = &at

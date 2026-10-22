@@ -522,6 +522,15 @@ There is not yet off-VPS backup replication, an automatic retention policy,
 alerting, or a verified ongoing restore schedule. Monitor disk usage and
 configure those before opening the game to production players.
 
+Each backup writes a receipt to `/var/lib/wyd-go-backup/status.json` and
+each release restore test writes `restore.json` there. The staff panel reads
+them, together with the game, player API and backup journals, through the
+`wyd-log-reader.socket`/`.service` pair installed by `first-install.sh` and
+`update-release.sh` (user `wyd-log-reader`, member of `systemd-journal`). The
+game reaches it with `web_admin_log_reader_socket=/run/wyd-log-reader/socket`;
+see [staff operations](staff-operations.md#server-logs-and-backup-status).
+Rolling back from schema v9/v10 removes only those version markers.
+
 `test-database.sh` uses only `wyd_portal_validation` and
 `wyd_restore_validation`, refuses existing fixtures, and removes those
 temporary databases on exit. It never inserts test accounts in `wydgo`.

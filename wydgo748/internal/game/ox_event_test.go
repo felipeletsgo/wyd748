@@ -44,6 +44,28 @@ func TestOXEventDoorsAndMode(t *testing.T) {
 	}
 }
 
+func TestOXEventStartOpensArenaOnce(t *testing.T) {
+	w, _ := colosseumWorld(t, time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC))
+	if r := runOXEvent(w, "start", false); r.Code != "capability_required" || r.Status.QuizMode {
+		t.Fatalf("unauthorized start = %+v", r)
+	}
+	if r := runOXEvent(w, "start", true); r.Code != "ok" || !r.Status.QuizMode || r.Status.DoorsLocked {
+		t.Fatalf("start = %+v", r)
+	}
+	runOXEvent(w, "doors_lock", true)
+	if r := runOXEvent(w, "start", true); r.Code != "unchanged" || !r.Status.DoorsLocked {
+		t.Fatalf("repeated start unlocked an active question = %+v", r)
+	}
+	runOXEvent(w, "mode_off", true)
+	if r := runOXEvent(w, "start", true); r.Code != "ok" || r.Status.DoorsLocked {
+		t.Fatalf("next event = %+v", r)
+	}
+	w = newZoneTestWorld()
+	if r := runOXEvent(w, "start", true); r.Code != "doors_unavailable" || r.Status.QuizMode {
+		t.Fatalf("started without six gates = %+v", r)
+	}
+}
+
 // With quiz mode the Entrance_Ticket enters the OX arena and is spent;
 // without it the ticket stays the Big Cube ticket.
 func TestOXTicketFollowsQuizMode(t *testing.T) {

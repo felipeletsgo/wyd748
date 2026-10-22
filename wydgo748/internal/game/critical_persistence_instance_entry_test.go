@@ -37,7 +37,7 @@ func criticalInstanceEntryFixture(t *testing.T, kind, outcome string) (*World, *
 		rule.Instance.Spawns = nil
 		rule.Instance.Stages = []model.VolatileInstanceStage{{Name: "Question", X: 2200, Y: 2200,
 			SpawnX: 2202, SpawnY: 2202, Quiz: &model.VolatileInstanceQuiz{Question: "Test_question",
-				DurationSeconds: 30, TrueX: 2204, TrueY: 2204, FalseX: 2205, FalseY: 2205}}}
+				DurationSeconds: 10, TrueX: 2204, TrueY: 2204, FalseX: 2205, FalseY: 2205}}}
 	}
 	if kind == "shared-join" {
 		inst := &ItemInstance{Config: cfgCopy(*rule.Instance), RuntimeID: rule.Instance.ID,
@@ -135,8 +135,8 @@ func TestCriticalInstanceEntryDetachedBatchAndSettlement(t *testing.T) {
 						t.Fatal("entry did not install its complete detached membership")
 					}
 					if kind == "big-cube" {
-						if inst.State != "big_cube_quiz" || inst.QuizDeadline.IsZero() || len(inst.MobIDs) != 0 {
-							t.Fatal("question was not part of the prepared entry")
+						if inst.State != "big_cube_waiting" || !inst.QuizDeadline.IsZero() || len(inst.MobIDs) != 0 {
+							t.Fatal("prepared entry started the question before acknowledgement")
 						}
 					} else if len(inst.MobIDs) != 1 || inst.Remaining != 1 {
 						t.Fatal("entry did not install the prepared wave")
@@ -168,6 +168,33 @@ func TestCriticalInstanceEntryDetachedBatchAndSettlement(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestCriticalBigCubeWindowStartsAfterDelayedEntryAcknowledgement(t *testing.T) {
+	w, leader, member, _, _, base, q, rule, release := criticalInstanceEntryFixture(t, "big-cube", "commit")
+	clock := newFakeClock(w.now())
+	w.clock = clock
+	w.onUseItem(leader.Session, useItemPacket(0, 0))
+	awaitCriticalWrite(t, base.entered)
+	clock.Advance(20 * time.Second)
+	w.tickItemInstances(clock.Now())
+	if leader.Session.QueuedPacketsForTest() != 0 || member.Session.QueuedPacketsForTest() != 0 || len(w.itemInstances) != 0 {
+		t.Fatal("pending entry published a question or installed the instance")
+	}
+	release()
+	awaitReadyCriticalResults(t, q, 1)
+	w.processCriticalCompletions(1)
+	inst := w.itemInstances[rule.Instance.ID]
+	if inst == nil || !inst.QuizDeadline.IsZero() {
+		t.Fatal("acknowledgement did not install a waiting question")
+	}
+	drainPlayerPackets(leader)
+	drainPlayerPackets(member)
+	w.tickItemInstances(clock.Now())
+	if !inst.QuizDeadline.Equal(clock.Now().Add(10*time.Second)) || leader.Session.QueuedPacketsForTest() != 2 ||
+		member.Session.QueuedPacketsForTest() != 2 {
+		t.Fatal("persistence latency shortened the answer window or omitted a member")
 	}
 }
 

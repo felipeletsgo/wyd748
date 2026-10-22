@@ -21,54 +21,10 @@ type plannedDrop struct {
 // Mob-kill loot uses the historical MobKilled.cpp slot-based drop rates.
 // The killer receives items directly; ground drops are the full-inventory fallback.
 
-// dropRateForSlot applies the historical level-band adjustments to the base
-// slot rate (MobKilled.cpp:2359+) and reports whether the drop is guaranteed.
+// dropRateForSlot applies the shared native slot rule; the staff content
+// index uses the same function, so both always agree.
 func (w *World) dropRateForSlot(slot int, mobLevel int) (rate int, guaranteed bool) {
-	rate = w.dropRates[slot]
-	if slot < 60 {
-		if pos := slot / 8; pos <= 2 {
-			switch {
-			case mobLevel < 10:
-				rate = 4 * rate / 100
-			case mobLevel < 20:
-				rate = 5 * rate / 100
-			case mobLevel < 30:
-				rate = 6 * rate / 100
-			case mobLevel < 40:
-				rate = 7 * rate / 100
-			case mobLevel < 60:
-				rate = 8 * rate / 100
-			default:
-				rate = 99 * rate / 100
-			}
-		}
-	} else {
-		switch {
-		case mobLevel < 170:
-			rate = 90 * rate / 100
-		case mobLevel < 200:
-			rate = 60 * rate / 100
-		case mobLevel < 230:
-			rate = 50 * rate / 100
-		case mobLevel < 255:
-			rate = 43 * rate / 100
-		case mobLevel < 320:
-			rate = 38 * rate / 100
-		default:
-			rate = 50 * rate / 100
-		}
-	}
-	// Special slots: 8-10 force rate 4; slot 11 guarantees the drop.
-	if slot >= 8 && slot <= 10 {
-		rate = 4
-	}
-	if slot == 11 {
-		return 0, true
-	}
-	if rate > 32000 {
-		rate = 32000
-	}
-	return rate, false
+	return model.DropRateForSlot(w.dropRates, slot, mobLevel)
 }
 
 // dropBonusFor combines citizenship and equipped gem drop bonuses.

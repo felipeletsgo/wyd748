@@ -12,7 +12,14 @@
       "economy.donate.credit",
       "game.command.goto",
       "game.world.pvp-door",
-      "game.event.ox"
+      "game.event.ox",
+      "moderation.account.ban",
+      "moderation.account.mute",
+      "server.notice",
+      "server.shutdown",
+      "staff.audit.read",
+      "moderation.account.ip",
+      "operations.logs.read"
     ]
   }
 }

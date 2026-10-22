@@ -33,15 +33,21 @@ func (w *World) startBigCubeQuestion(inst *ItemInstance, now time.Time) bool {
 	if quiz == nil || quiz.DurationSeconds <= 0 || len(inst.MemberIDs) == 0 {
 		return false
 	}
-	deadline := now.Add(time.Duration(quiz.DurationSeconds) * time.Second)
+	// Legacy entry can return from synchronous persistence with an older tick
+	// timestamp. Admission latency must not shorten the answer window either.
+	if committedAt := w.now(); now.Before(committedAt) {
+		now = committedAt
+	}
+	deadline := now.Add(instanceQuestionDuration)
 	inst.State = "big_cube_quiz"
 	inst.QuizAt = deadline
 	inst.QuizDeadline = deadline
 	for _, id := range inst.MemberIDs {
-		if member := w.playersByID[id]; member != nil && member.InWorld {
+		if member := w.playersByID[id]; member != nil && member.InWorld && member.Session != nil && !member.Session.IsClosed() {
 			member.Session.Send(wire.StandardParm(
-				wire.OpInstanceTime, instanceSignalID, uint32(quiz.DurationSeconds)))
-			member.Session.Send(wire.MessagePanel(strings.ReplaceAll(quiz.Question, "_", " ")))
+				wire.OpInstanceTime, instanceSignalID, uint32(instanceQuestionDuration/time.Second)))
+			member.Session.Send(wire.InstanceQuestion(member.ID, strings.ReplaceAll(quiz.Question, "_", " "),
+				uint32(instanceQuestionDuration/time.Millisecond)))
 		}
 	}
 	w.markInstanceStateDirty()
@@ -173,6 +179,7 @@ func (w *World) publishBigCubeAnswer(inst *ItemInstance, results []bigCubeResult
 	lastQuestion bool, now time.Time) bool {
 	for _, current := range results {
 		p := current.player
+		p.Session.Send(wire.InstanceQuestion(p.ID, "", 0))
 		if !current.ok {
 			w.refreshPlayerVisibility(p)
 			w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })

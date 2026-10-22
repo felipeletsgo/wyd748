@@ -34,13 +34,15 @@ install -d -m 755 "$release"
 tar -xzf release.tar.gz -C "$release" --no-same-owner
 # Archives built on Windows carry 0777 directory modes; release trees stay root-owned and read-only.
 chmod -R u=rwX,go=rX "$release"
-chmod 755 "$release/game/wyd-server" "$release/game/wyd-player-api"
+chmod 755 "$release/game/wyd-server" "$release/game/wyd-player-api" "$release/game/wyd-log-reader"
 
 restart_game=false
 restart_player=false
 game_touched=false
 player_touched=false
-diff -rq --exclude=wyd-player-api "$previous/game" "$release/game" >/dev/null || restart_game=true
+diff -rq --exclude=wyd-player-api --exclude=wyd-log-reader "$previous/game" "$release/game" >/dev/null || restart_game=true
+restart_log_reader=false
+cmp -s "$previous/game/wyd-log-reader" "$release/game/wyd-log-reader" || restart_log_reader=true
 cmp -s "$previous/game/wyd-player-api" "$release/game/wyd-player-api" || restart_player=true
 cmp -s /etc/wyd-go/server.txt config/server.txt || restart_game=true
 for unit in wyd-game.service wyd-player.service wyd-backup.service wyd-backup.timer; do
@@ -67,9 +69,14 @@ rollback() {
     echo "Restoring release $previous" >&2
     if [ "$game_touched" = true ]; then systemctl stop wyd-game || true; fi
     if [ "$player_touched" = true ]; then systemctl stop wyd-player || true; fi
-    # Versions 6-8 add a counter table and read-only views, not account
+    # Versions 6-11 add counter/staff tables and read-only views, not account
     # transformations. Keep these additions, but restore the expected marker
     # before starting an older binary. Never rewind an unknown migration.
+    for version in 11 10 9; do
+        if [ "$game_touched" = true ] && [ -n "$previous_schema" ] && [ "$previous_schema" -ge 8 ] && [ "$previous_schema" -lt "$version" ]; then
+            runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c                 "DELETE FROM schema_migrations WHERE version=$version AND (SELECT max(version) FROM schema_migrations)=$version" || true
+        fi
+    done
     if [ "$game_touched" = true ] && { [ "$previous_schema" = 5 ] || [ "$previous_schema" = 6 ] || [ "$previous_schema" = 7 ]; }; then
         runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c \
             'DELETE FROM schema_migrations WHERE version=8 AND (SELECT max(version) FROM schema_migrations)=8' || true
@@ -120,6 +127,15 @@ install -m 644 config/server.txt /etc/wyd-go/server.txt
 install -m 644 config/wyd-game.service config/wyd-player.service config/wyd-backup.service config/wyd-backup.timer /etc/systemd/system/
 install -m 700 config/backup.sh /usr/local/sbin/wyd-backup
 install -m 644 config/wyd-site.caddy /etc/caddy/wyd-site.caddy
+# Staff panel log reader: its own user and socket. Each step only warns on
+# failure (|| keeps the ERR rollback trap out of it): the helper never
+# decides whether the game release goes live.
+log_reader_warning() { echo "Warning: log reader $1 failed; the game release is unaffected" >&2; }
+if ! id wyd-log-reader >/dev/null 2>&1; then
+    useradd --system --no-create-home --shell /usr/sbin/nologin wyd-log-reader || log_reader_warning 'user creation'
+fi
+install -d -m 755 /var/lib/wyd-go-backup || log_reader_warning 'receipt directory'
+install -m 644 config/wyd-log-reader.service config/wyd-log-reader.socket /etc/systemd/system/ || log_reader_warning 'unit installation'
 systemctl daemon-reload
 if ! caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
     rollback
@@ -157,6 +173,8 @@ runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c \
 if [ "$restart_game" = true ]; then restart_player=true; fi
 if [ "$restart_player" = true ]; then player_touched=true; systemctl restart wyd-player; fi
 systemctl reload caddy
+systemctl enable --now wyd-log-reader.socket || log_reader_warning 'socket start'
+if [ "$restart_log_reader" = true ]; then systemctl try-restart wyd-log-reader.service || log_reader_warning 'restart'; fi
 
 ready=false
 for attempt in {1..15}; do

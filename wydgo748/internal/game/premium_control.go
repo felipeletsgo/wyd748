@@ -153,3 +153,8 @@ func (w *World) DonateAccount(ctx context.Context, account string) (control.Dona
 }
 
 var _ control.PremiumSource = (*World)(nil)
+
+// ItemName serves the staff panel from HTTP goroutines. The item catalog is
+// built in NewWorld and never written afterwards, so the read needs no World
+// command.
+func (w *World) ItemName(index uint16) string { return w.itemName(index) }

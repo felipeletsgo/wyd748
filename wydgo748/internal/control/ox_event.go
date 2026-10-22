@@ -16,6 +16,7 @@ import (
 const OXEventCapability = "game.event.ox"
 
 var oxEventActions = map[string]bool{
+	"start":   true,
 	"mode_on": true, "mode_off": true, "doors_lock": true, "doors_open": true,
 	"result_x": true, "result_o": true,
 }

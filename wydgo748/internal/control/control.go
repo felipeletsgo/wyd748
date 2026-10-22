@@ -25,6 +25,16 @@ var ErrBusy = errors.New("control: busy")
 type Query struct {
 	Search string
 	Offset int
+	// Optional filters evaluated in the same World pass as Search. Zero values
+	// mean "any"; HasClass distinguishes class 0 from no class filter.
+	MinLevel uint32
+	MaxLevel uint32
+	HasClass bool
+	Class    uint8
+	GuildID  uint16
+	// Area keeps players within Radius cells (Chebyshev distance) of X/Y.
+	AreaX, AreaY uint16
+	Radius       uint16
 }
 
 const PageSize = 50
@@ -110,6 +120,34 @@ func ParseQuery(values url.Values) (Query, error) {
 			return q, errors.New("invalid offset")
 		}
 		q.Offset = v
+	}
+	for _, field := range []struct {
+		name      string
+		low, high int
+		apply     func(int)
+	}{
+		{"minLevel", 1, 1000, func(v int) { q.MinLevel = uint32(v) }},
+		{"maxLevel", 1, 1000, func(v int) { q.MaxLevel = uint32(v) }},
+		{"class", 0, 255, func(v int) { q.HasClass, q.Class = true, uint8(v) }},
+		{"guild", 1, 65535, func(v int) { q.GuildID = uint16(v) }},
+		{"x", 0, 4095, func(v int) { q.AreaX = uint16(v) }},
+		{"y", 0, 4095, func(v int) { q.AreaY = uint16(v) }},
+		{"radius", 1, 256, func(v int) { q.Radius = uint16(v) }},
+	} {
+		raw := values.Get(field.name)
+		if raw == "" {
+			continue
+		}
+		v, ok := parseBounded(raw, field.low, field.high)
+		if !ok {
+			return q, errors.New("invalid " + field.name)
+		}
+		field.apply(v)
+	}
+	// An area needs x, y and radius together.
+	hasX, hasY := values.Get("x") != "", values.Get("y") != ""
+	if hasX != hasY || (q.Radius != 0) != hasX || (q.MinLevel != 0 && q.MaxLevel != 0 && q.MinLevel > q.MaxLevel) {
+		return q, errors.New("invalid filter combination")
 	}
 	return q, nil
 }

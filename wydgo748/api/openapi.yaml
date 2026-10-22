@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: WYD website and administrative APIs
-  version: 0.12.0
+  version: 0.14.0
 paths:
   /api/player/v1/characters/{slot}/inventory:
     get:
@@ -351,6 +351,34 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/OXEventResult' }
         default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/events/colosseum:
+    get:
+      summary: Inspect today's Colosseum schedule (game.event.colosseum capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Authoritative World state and schedule in the guild-war timezone
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ColosseumStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Start today's selected tier early; staff session rechecked at execution
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ColosseumCommand' }
+      responses:
+        '200':
+          description: Process-local receipt; the early run replaces today's scheduled tier until restart
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ColosseumResult' }
+        default: { $ref: '#/components/responses/Error' }
   /api/v1/auth/session:
     get:
       summary: Get session and CSRF token; create an anonymous session if absent
@@ -431,12 +459,32 @@ paths:
         - in: query
           name: offset
           schema: { type: integer, minimum: 0, maximum: 10000, default: 0 }
+        - { in: query, name: minLevel, schema: { type: integer, minimum: 1, maximum: 1000 } }
+        - { in: query, name: maxLevel, schema: { type: integer, minimum: 1, maximum: 1000 }, description: Must not be below minLevel }
+        - { in: query, name: class, schema: { type: integer, minimum: 0, maximum: 255 } }
+        - { in: query, name: guild, schema: { type: integer, minimum: 1, maximum: 65535 } }
+        - { in: query, name: x, schema: { type: integer, minimum: 0, maximum: 4095 }, description: Area center; requires y and radius }
+        - { in: query, name: y, schema: { type: integer, minimum: 0, maximum: 4095 } }
+        - { in: query, name: radius, schema: { type: integer, minimum: 1, maximum: 256 }, description: Chebyshev distance in cells from x/y }
       responses:
         '200':
-          description: Snapshot sorted by UID, maximum 50 players; pages are not a stable cursor
+          description: Snapshot sorted by UID, maximum 50 players; pages are not a stable cursor. Filters run in the same World pass as search; online stays the unfiltered count. Search, filters and offset above zero are optional reads, refused with 503 temporarily_unavailable while the panel circuit breaker is open
           content:
             application/json:
               schema: { $ref: '#/components/schemas/Overview' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/metrics:
+    get:
+      summary: Runtime history from the in-process sampler (server.status); never queries the World
+      security: [{ staffSession: [] }]
+      parameters:
+        - { in: query, name: window, schema: { type: string, enum: ['15m', '1h', '6h', '24h'], default: '1h' } }
+      responses:
+        '200':
+          description: 10-second points, oldest first, merged into at most 360 points; includes the circuit breaker state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MetricsHistory' }
         default: { $ref: '#/components/responses/Error' }
   /api/v1/staff/accounts:
     get:
@@ -559,6 +607,391 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PlayerGuildMarkResult' }
         default: { $ref: '#/components/responses/PlayerError' }
+  /api/v1/staff/accounts/{account}/sanctions:
+    get:
+      summary: List an account's sanction history (moderation.account.ban or moderation.account.mute)
+      security: [{ staffSession: [] }]
+      parameters:
+        - name: account
+          in: path
+          required: true
+          schema: { type: string, pattern: '^[a-zA-Z0-9]{1,12}$' }
+      responses:
+        '200':
+          description: Newest 50 sanctions from PostgreSQL; active is computed at read time
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SanctionsView' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Ban the account or mute its chat; the capability follows the kind
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+        - name: account
+          in: path
+          required: true
+          schema: { type: string }
+          description: Must equal the canonical account in the command body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SanctionCommand' }
+      responses:
+        '200':
+          description: The row is durable before any live effect. A ban disconnects online sessions and blocks login; live=pending means the World did not confirm and the row still governs the next login.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SanctionResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/accounts/{account}/sanctions/{id}/revoke:
+    post:
+      summary: Lift one sanction before it expires; the capability follows the kind
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+        - name: account
+          in: path
+          required: true
+          schema: { type: string }
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SanctionRevokeCommand' }
+      responses:
+        '200':
+          description: replayed=true when it was already revoked; the live state is refreshed either way
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SanctionResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/notices:
+    get:
+      summary: List scheduled staff notices (server.notice); process-local, cleared on restart
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Pending notices
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoticesView' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Broadcast a notice now or later, optionally repeated (server.notice)
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NoticeCommand' }
+      responses:
+        '200':
+          description: Process-local receipt; uses the native top notice and a [Staff] chat line
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoticeResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/notices/{id}/cancel:
+    post:
+      summary: Cancel a scheduled notice (server.notice)
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NoticeCancelCommand' }
+      responses:
+        '200':
+          description: Process-local receipt
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NoticeResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/players/{uid}/message:
+    post:
+      summary: Send a staff message to the selected live session (server.notice)
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+        - name: uid
+          in: path
+          required: true
+          schema: { type: string }
+          description: Must equal the UID in the command body
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PlayerMessageCommand' }
+      responses:
+        '200':
+          description: Domain receipt bound to the Overview moderationEpoch and session
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PlayerMessageResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/server/shutdown:
+    get:
+      summary: Inspect the scheduled maintenance shutdown (server.shutdown)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Process-local countdown state
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShutdownStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Schedule or cancel a maintenance shutdown or restart (server.shutdown)
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShutdownCommand' }
+      responses:
+        '200':
+          description: Countdown notices at 60, 30, 15, 10, 5, 3, 2 and 1 minutes and 30 and 10 seconds; logins close in the final minute. At zero the process persists state like SIGTERM and exits 0 (shutdown) or 75 (restart, for a supervisor with Restart=on-failure).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShutdownResult' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/audit:
+    get:
+      summary: Page the persisted staff audit history newest first (staff.audit.read)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: actor, in: query, schema: { type: string, pattern: '^[a-zA-Z0-9]{0,12}$' } }
+        - { name: action, in: query, schema: { type: string, pattern: '^[a-z0-9._-]{0,64}$' } }
+        - { name: before, in: query, schema: { type: integer, minimum: 1 }, description: nextBefore from the previous page }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+      responses:
+        '200':
+          description: Keyset page; credentials and PINs are never recorded
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AuditPage' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/accounts/{account}/logins:
+    get:
+      summary: Newest 50 admitted game logins of the account (moderation.player.search); 90-day retention
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: account, in: path, required: true, schema: { type: string, pattern: '^[a-zA-Z0-9]{1,12}$' } }
+      responses:
+        '200':
+          description: clientIp is empty unless the staff entry holds moderation.account.ip
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountLogins' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/accounts/{account}/actions:
+    get:
+      summary: Newest 50 persisted staff actions naming the account as target (staff.audit.read)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: account, in: path, required: true, schema: { type: string, pattern: '^[a-zA-Z0-9]{1,12}$' } }
+      responses:
+        '200':
+          description: Entries from staff_audit whose details target the account
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountActions' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/players/{uid}/storage:
+    get:
+      summary: Saved equipment, carry inventory and account Cargo of one character, read-only (moderation.player.search)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: uid, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 128 } }
+        - { name: account, in: query, required: true, schema: { type: string, pattern: '^[a-zA-Z0-9]{1,12}$' } }
+      responses:
+        '200':
+          description: Persisted snapshot; live state may differ until the next save. Occupied cells only.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CharacterStorage' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/logs:
+    get:
+      summary: Allowlisted server logs through the wyd-log-reader helper (operations.logs.read)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: source, in: query, required: true, schema: { type: string, enum: [game, player, backup] } }
+        - { name: since, in: query, schema: { type: string, format: date-time }, description: Default one hour before now }
+        - { name: until, in: query, schema: { type: string, format: date-time }, description: Default now; window at most 7 days }
+        - { name: priority, in: query, schema: { type: integer, minimum: 0, maximum: 7, default: 6 }, description: Journal maximum level (0 emerg to 7 debug) }
+        - { name: query, in: query, schema: { type: string, maxLength: 80 }, description: Case-insensitive substring; never passed to a shell }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 200 } }
+        - { name: cursor, in: query, schema: { type: string, maxLength: 512 }, description: nextCursor of the previous page }
+      responses:
+        '200':
+          description: Newest first; messages are plain text with escapes and control characters removed. Reads are audited without content.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LogPage' }
+        '410':
+          description: The cursor no longer exists in the journal; restart from the newest entries
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/backups:
+    get:
+      summary: Latest backup and restore-test receipts through the wyd-log-reader helper (operations.logs.read)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: A null receipt means none was recorded. Dumps are never downloadable.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BackupStatus' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/content/search:
+    get:
+      summary: Search items and monsters by name in the staff content index (server.status)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 48 } }
+      responses:
+        '200':
+          description: Static index built at server start
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentSearch' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/content/items/{id}:
+    get:
+      summary: Where an item is sold, dropped and used by quests (server.status)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer, minimum: 1, maximum: 65535 } }
+      responses:
+        '200':
+          description: Static index built at server start
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentItem' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/content/mobs/{name}:
+    get:
+      summary: Drops, sales and spawn generators of one NPC template (server.status)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: name, in: path, required: true, schema: { type: string, maxLength: 64 } }
+      responses:
+        '200':
+          description: Static index built at server start
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentMob' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/content/issues:
+    get:
+      summary: Unresolved references in the loaded game data (server.status)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Static index built at server start
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContentIssues' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/world/zone:
+    get:
+      summary: 'Static rules at one cell: terrain attributes, portals, quest zones and instance areas (server.status)'
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: x, in: query, required: true, schema: { type: integer, minimum: 0, maximum: 4095 } }
+        - { name: y, in: query, required: true, schema: { type: integer, minimum: 0, maximum: 4095 } }
+      responses:
+        '200':
+          description: Static index built at server start
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ZoneInfo' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/world/terrain:
+    get:
+      summary: Attribute map rendered once as a 1024x1024 PNG, one pixel per 4x4 cells (server.status)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Dark blocked, height-shaded walkable, amber teleport attribute, blue newbie field
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/world/map:
+    get:
+      summary: Live players and monsters in a square around a cell (moderation.player.search)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: x, in: query, required: true, schema: { type: integer, minimum: 0, maximum: 4095 } }
+        - { name: y, in: query, required: true, schema: { type: integer, minimum: 0, maximum: 4095 } }
+        - { name: radius, in: query, required: true, schema: { type: integer, minimum: 1, maximum: 128 } }
+      responses:
+        '200':
+          description: Bounded World read (200 players, 400 monsters) through the overview gate; optional read refused while the circuit breaker is open; 12 reads a minute per staff
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MapSnapshot' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/world/instances:
+    get:
+      summary: Active item instances with members, stage and deadlines (server.status)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Bounded World read through the overview gate; optional read refused while the circuit breaker is open
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InstancesView' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/accounts/{account}/notes:
+    get:
+      summary: Newest 50 append-only case notes of the account (moderation.player.search)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: account, in: path, required: true, schema: { type: string, pattern: '^[a-zA-Z0-9]{1,12}$' } }
+      responses:
+        '200':
+          description: Notes newest first
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountNotes' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Append a case note (moderation.account.ban or moderation.account.mute)
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+        - { name: account, in: path, required: true, schema: { type: string, pattern: '^[a-zA-Z0-9]{1,12}$' } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AccountNoteCommand' }
+      responses:
+        '200':
+          description: The stored note; the audit records its ID and length, not its text
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AccountNote' }
+        default: { $ref: '#/components/responses/Error' }
 components:
   securitySchemes:
     playerSession:
@@ -1127,7 +1560,7 @@ components:
         reason: { type: string, minLength: 3, maxLength: 200 }
     BossStatus:
       type: object
-      required: [id, name, revision, alive, mobId, hp, maxHp, x, y, spawnX, spawnY, respawnAt]
+      required: [id, name, revision, alive, mobId, hp, maxHp, x, y, spawnX, spawnY, respawnAt, phase]
       properties:
         id: { type: string }
         name: { type: string }
@@ -1141,6 +1574,7 @@ components:
         spawnX: { type: integer, minimum: 0, maximum: 65535 }
         spawnY: { type: integer, minimum: 0, maximum: 65535 }
         respawnAt: { type: [string, 'null'], format: date-time }
+        phase: { type: integer, minimum: 0, description: Live behaviour phase (1 = initial); 0 when dead or without boss behaviour }
     BossesStatus:
       type: object
       required: [version, epoch, asOf, bosses]
@@ -1190,11 +1624,11 @@ components:
       type: object
       additionalProperties: false
       required: [version, operationId, action, reason]
-      description: mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465).
+      description: start opens all six gates and enables ticket entry unless already active; mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465).
       properties:
         version: { type: integer, const: 1 }
         operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
-        action: { type: string, enum: [mode_on, mode_off, doors_lock, doors_open, result_x, result_o] }
+        action: { type: string, enum: [start, mode_on, mode_off, doors_lock, doors_open, result_x, result_o] }
         reason: { type: string, minLength: 3, maxLength: 200 }
     OXEventStatus:
       type: object
@@ -1215,6 +1649,50 @@ components:
         code: { type: string, enum: [ok, unchanged, doors_unavailable, invalid_command, capability_required, server_maintenance] }
         moved: { type: integer }
         status: { $ref: '#/components/schemas/OXEventStatus' }
+    ColosseumCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, epoch, expectedRevision, tier, reason]
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        epoch: { type: string, minLength: 32, maxLength: 32 }
+        expectedRevision: { type: integer, minimum: 1 }
+        tier: { type: string, enum: [N, M, A] }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    ColosseumSchedule:
+      type: object
+      required: [tier, startsAt, claimed]
+      properties:
+        tier: { type: string, enum: [N, M, A] }
+        startsAt: { type: string, format: date-time }
+        claimed: { type: boolean }
+    ColosseumStatus:
+      type: object
+      required: [version, asOf, epoch, revision, enabled, active, tier, stage, endsAt, pendingExits, timezone, schedule]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        epoch: { type: string }
+        revision: { type: integer, minimum: 0 }
+        enabled: { type: boolean }
+        active: { type: boolean }
+        tier: { type: string }
+        stage: { type: integer, minimum: 0, maximum: 8 }
+        endsAt: { type: [string, 'null'], format: date-time }
+        pendingExits: { type: integer, minimum: 0 }
+        timezone: { type: string }
+        schedule:
+          type: array
+          items: { $ref: '#/components/schemas/ColosseumSchedule' }
+    ColosseumResult:
+      type: object
+      required: [operationId, code, replayed, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, invalid_command, capability_required, server_maintenance, event_disabled, stale_event, operation_conflict, operation_capacity, event_active, event_busy, already_started, schedule_passed] }
+        replayed: { type: boolean }
+        status: { $ref: '#/components/schemas/ColosseumStatus' }
     Session:
       type: object
       required: [authenticated, account, csrf, expiresAt]
@@ -1306,3 +1784,522 @@ components:
         postgresQueueDepth: { type: integer, format: int64, minimum: 0 }
         persistenceFailures: { type: integer, format: int64, minimum: 0 }
         panics: { type: integer, format: int64, minimum: 0 }
+    SanctionCommand:
+      type: object
+      additionalProperties: false
+      required: [version, requestId, account, kind, durationMinutes, reason]
+      description: requestId makes a retry idempotent; a different body under the same ID returns operation_conflict.
+      properties:
+        version: { type: integer, const: 1 }
+        requestId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        account: { type: string, pattern: '^[a-z0-9]{1,12}$' }
+        kind: { type: string, enum: [ban, mute] }
+        durationMinutes: { type: integer, minimum: 0, maximum: 525600, description: Zero means permanent }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    SanctionRevokeCommand:
+      type: object
+      additionalProperties: false
+      required: [version, account, kind, reason]
+      properties:
+        version: { type: integer, const: 1 }
+        account: { type: string, pattern: '^[a-z0-9]{1,12}$' }
+        kind: { type: string, enum: [ban, mute] }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    Sanction:
+      type: object
+      required: [id, account, kind, reason, actor, durationMinutes, createdAt, expiresAt, revokedAt, revokedBy, revokeReason, active]
+      properties:
+        id: { type: integer, minimum: 0 }
+        account: { type: string }
+        kind: { type: string, enum: [ban, mute] }
+        reason: { type: string }
+        actor: { type: string }
+        durationMinutes: { type: integer, minimum: 0 }
+        createdAt: { type: string, format: date-time }
+        expiresAt: { type: [string, 'null'], format: date-time }
+        revokedAt: { type: [string, 'null'], format: date-time }
+        revokedBy: { type: string }
+        revokeReason: { type: string }
+        active: { type: boolean }
+    SanctionsView:
+      type: object
+      required: [version, asOf, account, sanctions]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        account: { type: string }
+        sanctions:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/Sanction' }
+    SanctionResult:
+      type: object
+      required: [code, replayed, live, sanction]
+      properties:
+        code: { type: string, enum: [ok, capability_required, operation_conflict, unknown_sanction] }
+        replayed: { type: boolean }
+        live: { type: string, enum: ['', applied, offline, pending] }
+        sanction: { $ref: '#/components/schemas/Sanction' }
+    NoticeCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, message, delaySeconds, repeatCount, repeatEverySeconds]
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        message: { type: string, minLength: 1, maxLength: 94, pattern: '^[ -~]+$', description: Printable ASCII without surrounding spaces }
+        delaySeconds: { type: integer, minimum: 0, maximum: 86400 }
+        repeatCount: { type: integer, minimum: 1, maximum: 100 }
+        repeatEverySeconds: { type: integer, minimum: 0, maximum: 86400, description: Zero for one delivery; 60..86400 when repeatCount > 1 }
+    NoticeCancelCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId]
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+    ScheduledNotice:
+      type: object
+      required: [id, message, actor, nextAt, remaining, repeatEverySeconds]
+      properties:
+        id: { type: integer, minimum: 1 }
+        message: { type: string }
+        actor: { type: string }
+        nextAt: { type: string, format: date-time }
+        remaining: { type: integer, minimum: 1 }
+        repeatEverySeconds: { type: integer, minimum: 0 }
+    NoticesView:
+      type: object
+      required: [version, asOf, notices]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        notices:
+          type: array
+          maxItems: 32
+          items: { $ref: '#/components/schemas/ScheduledNotice' }
+    NoticeResult:
+      type: object
+      required: [operationId, code, replayed, delivered, view]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, capability_required, server_maintenance, operation_conflict, operation_capacity, notice_capacity, unknown_notice] }
+        replayed: { type: boolean }
+        delivered: { type: integer, minimum: 0 }
+        view: { $ref: '#/components/schemas/NoticesView' }
+    PlayerMessageCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, epoch, uid, account, expectedSessionId, message]
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        epoch: { type: string, pattern: '^[a-f0-9]{32}$' }
+        uid: { type: string, minLength: 1, maxLength: 128 }
+        account: { type: string, pattern: '^[a-z0-9]{1,12}$' }
+        expectedSessionId: { type: integer, minimum: 1, maximum: 9007199254740991 }
+        message: { type: string, minLength: 1, maxLength: 94, pattern: '^[ -~]+$' }
+    PlayerMessageResult:
+      type: object
+      required: [operationId, code, replayed]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, stale_target, capability_required, operation_conflict, operation_capacity] }
+        replayed: { type: boolean }
+    ShutdownCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, action, mode, delaySeconds, reason]
+      description: schedule requires mode and delaySeconds 60..86400; cancel requires an empty mode and zero delay.
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        action: { type: string, enum: [schedule, cancel] }
+        mode: { type: string, enum: ['', shutdown, restart] }
+        delaySeconds: { type: integer, minimum: 0, maximum: 86400 }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    ShutdownStatus:
+      type: object
+      required: [version, asOf, scheduled, mode, at, secondsRemaining, actor, reason, loginsBlocked, available]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        scheduled: { type: boolean }
+        mode: { type: string, enum: ['', shutdown, restart] }
+        at: { type: [string, 'null'], format: date-time }
+        secondsRemaining: { type: integer, minimum: 0 }
+        actor: { type: string }
+        reason: { type: string }
+        loginsBlocked: { type: boolean }
+        available: { type: boolean, description: False when this process has no shutdown hook }
+    ShutdownResult:
+      type: object
+      required: [operationId, code, replayed, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, capability_required, server_maintenance, operation_conflict, operation_capacity, shutdown_unavailable, already_scheduled, not_scheduled, already_started] }
+        replayed: { type: boolean }
+        status: { $ref: '#/components/schemas/ShutdownStatus' }
+    AuditEntry:
+      type: object
+      required: [id, at, actor, action, result, requestId, clientIp, method, path, details]
+      properties:
+        id: { type: integer, minimum: 1 }
+        at: { type: string, format: date-time }
+        actor: { type: string }
+        action: { type: string }
+        result: { type: string }
+        requestId: { type: string }
+        clientIp: { type: string }
+        method: { type: string }
+        path: { type: string }
+        details:
+          type: object
+          additionalProperties: true
+    AuditPage:
+      type: object
+      required: [version, asOf, entries, nextBefore]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        entries:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/AuditEntry' }
+        nextBefore: { type: integer, minimum: 0, description: Zero when there is no older page }
+    MetricsPoint:
+      type: object
+      required: [at, players, mobs, queueDepth, loopLagP99Micros, tickP99Micros, queueAgeP99Micros, commandsPerSecond, budgetExceeded, panics, postgresQueueDepth, postgresFailures, postgresTxMicros, heapBytes, goroutines, gcCycles]
+      description: P99 values are the upper bound of the fixed bucket holding the interval's 99th percentile (0 = no observation, 1000001 = above one second). Counts are per interval.
+      properties:
+        at: { type: string, format: date-time }
+        players: { type: integer, minimum: 0 }
+        mobs: { type: integer, minimum: 0 }
+        queueDepth: { type: integer, minimum: 0 }
+        loopLagP99Micros: { type: integer, minimum: 0 }
+        tickP99Micros: { type: integer, minimum: 0 }
+        queueAgeP99Micros: { type: integer, minimum: 0 }
+        commandsPerSecond: { type: number, minimum: 0 }
+        budgetExceeded: { type: integer, minimum: 0 }
+        panics: { type: integer, minimum: 0 }
+        postgresQueueDepth: { type: integer, minimum: 0 }
+        postgresFailures: { type: integer, minimum: 0 }
+        postgresTxMicros: { type: integer, minimum: 0 }
+        heapBytes: { type: integer, minimum: 0 }
+        goroutines: { type: integer, minimum: 0 }
+        gcCycles: { type: integer, minimum: 0 }
+    BreakerState:
+      type: object
+      required: [open, reason]
+      properties:
+        open: { type: boolean }
+        reason: { type: string, enum: ['', loop_lag, command_queue_age, persistence_backlog] }
+    MetricsHistory:
+      type: object
+      required: [version, asOf, window, intervalSeconds, points, breaker]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        window: { type: string, enum: ['15m', '1h', '6h', '24h'] }
+        intervalSeconds: { type: integer, minimum: 1 }
+        points:
+          type: array
+          maxItems: 360
+          items: { $ref: '#/components/schemas/MetricsPoint' }
+        breaker: { $ref: '#/components/schemas/BreakerState' }
+    AccountLogin:
+      type: object
+      required: [at, clientIp, channel]
+      properties:
+        at: { type: string, format: date-time }
+        clientIp: { type: string }
+        channel: { type: integer, minimum: 1, maximum: 255 }
+    AccountLogins:
+      type: object
+      required: [version, asOf, account, ipVisible, logins]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        account: { type: string }
+        ipVisible: { type: boolean }
+        logins:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/AccountLogin' }
+    AccountActions:
+      type: object
+      required: [version, asOf, account, entries]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        account: { type: string }
+        entries:
+          type: array
+          maxItems: 50
+          items: { $ref: '#/components/schemas/AuditEntry' }
+    StaffStoredItem:
+      type: object
+      required: [slot, itemId, name, effects]
+      properties:
+        slot: { type: integer, minimum: 0 }
+        itemId: { type: integer, minimum: 1, maximum: 65535 }
+        name: { type: string }
+        effects:
+          type: array
+          minItems: 6
+          maxItems: 6
+          items: { type: integer, minimum: 0, maximum: 255 }
+    CharacterStorage:
+      type: object
+      required: [version, asOf, account, uid, name, gold, cargoGold, equipment, inventory, cargo]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        account: { type: string }
+        uid: { type: string }
+        name: { type: string }
+        gold: { type: integer, minimum: 0 }
+        cargoGold: { type: integer, minimum: 0 }
+        equipment: { type: array, items: { $ref: '#/components/schemas/StaffStoredItem' } }
+        inventory: { type: array, items: { $ref: '#/components/schemas/StaffStoredItem' } }
+        cargo: { type: array, items: { $ref: '#/components/schemas/StaffStoredItem' } }
+    LogEntry:
+      type: object
+      required: [cursor, time, priority, message]
+      properties:
+        cursor: { type: string }
+        time: { type: string, format: date-time }
+        priority: { type: integer, minimum: 0, maximum: 7 }
+        message: { type: string, maxLength: 2048 }
+    LogPage:
+      type: object
+      required: [version, asOf, source, entries, nextCursor, truncated]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        source: { type: string, enum: [game, player, backup] }
+        entries:
+          type: array
+          maxItems: 500
+          items: { $ref: '#/components/schemas/LogEntry' }
+        nextCursor: { type: string, description: Empty when no older entry matches }
+        truncated: { type: boolean, description: The scan budget or response size ended the page early }
+    BackupReceipt:
+      type: [object, 'null']
+      required: [at, archive]
+      properties:
+        at: { type: string, format: date-time }
+        archive: { type: string }
+        bytes: { type: integer, minimum: 0 }
+        sha256: { type: string }
+        restoredAccounts: { type: integer, minimum: 0 }
+    BackupStatus:
+      type: object
+      required: [version, asOf, backup, restoreTest]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        backup: { $ref: '#/components/schemas/BackupReceipt' }
+        restoreTest: { $ref: '#/components/schemas/BackupReceipt' }
+    ContentHit:
+      type: object
+      required: [kind, key, name]
+      properties:
+        kind: { type: string, enum: [item, mob] }
+        key: { type: string, description: Item ID or NPC template name }
+        name: { type: string }
+    ContentSearch:
+      type: object
+      required: [version, builtAt, hits]
+      properties:
+        version: { type: integer, const: 1 }
+        builtAt: { type: string, format: date-time }
+        hits: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/ContentHit' } }
+    ContentItem:
+      type: object
+      required: [id, name, soldBy, droppedBy, quests]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        soldBy:
+          type: array
+          items: { type: object, required: [npc, slot], properties: { npc: { type: string }, slot: { type: integer } } }
+        droppedBy:
+          type: array
+          items:
+            type: object
+            required: [mob, slot, oneIn, always, baseOneIn]
+            properties:
+              mob: { type: string }
+              slot: { type: integer }
+              oneIn: { type: integer, minimum: 0, description: 'Effective rate for this monster (level band, special slots, cap) before the killer drop bonus; each kill drops the slot when rand()%oneIn==0.' }
+              always: { type: boolean, description: 'The slot drops on every kill (slot 11, or an effective rate of zero).' }
+              baseOneIn: { type: integer, minimum: 0, description: 'Unadjusted droprate.json slot value.' }
+        quests:
+          type: array
+          items: { type: object, required: [id, name, role], properties: { id: { type: integer }, name: { type: string }, role: { type: string, enum: [required, consumed, reward] } } }
+    ContentMobItem:
+      type: object
+      required: [itemId, name, slot]
+      properties:
+        itemId: { type: integer }
+        name: { type: string }
+        slot: { type: integer }
+        oneIn: { type: integer, description: 'Drops only; same meaning as ContentItem droppedBy oneIn. Omitted when zero.' }
+        always: { type: boolean, description: 'Drops only; the slot drops on every kill. Omitted when false.' }
+        baseOneIn: { type: integer, description: 'Drops only; unadjusted droprate.json value. Omitted when zero.' }
+    ContentMob:
+      type: object
+      required: [name, kind, level, gold, drops, sells, spawns, merchant]
+      properties:
+        name: { type: string }
+        kind: { type: string, enum: [npc, monster] }
+        level: { type: integer }
+        gold: { type: integer }
+        merchant: { type: boolean }
+        drops: { type: array, items: { $ref: '#/components/schemas/ContentMobItem' } }
+        sells: { type: array, items: { $ref: '#/components/schemas/ContentMobItem' } }
+        spawns:
+          type: array
+          items:
+            type: object
+            required: [generator, enabled, role, x, y, maxMobs]
+            properties:
+              generator: { type: integer }
+              enabled: { type: boolean }
+              reserved: { type: string, enum: [item_instance, colosseum], description: 'Feature owning an enabled generator the World skips at boot; such entries never spawn in the open world.' }
+              role: { type: string, enum: [leader, follower, both] }
+              x: { type: integer }
+              y: { type: integer }
+              maxMobs: { type: integer }
+    ContentIssue:
+      type: object
+      required: [severity, kind, subject, detail]
+      properties:
+        severity: { type: string, enum: [error, warning], description: error would also fail the boot for an enabled generator }
+        kind: { type: string }
+        subject: { type: string }
+        detail: { type: string }
+    ContentIssues:
+      type: object
+      required: [version, builtAt, issues]
+      properties:
+        version: { type: integer, const: 1 }
+        builtAt: { type: string, format: date-time }
+        issues: { type: array, items: { $ref: '#/components/schemas/ContentIssue' } }
+    ZoneInfo:
+      type: object
+      required: [version, x, y, terrainLoaded, height, attribute, walkable, blocked, teleportActivation, newbieZone, teleports, questZones, clearAreas, instances]
+      description: Only attribute bits the server relies on are named (0x02 blocked, 0x10 client teleport activation, 0x80 newbie field); attribute keeps the raw byte.
+      properties:
+        version: { type: integer, const: 1 }
+        x: { type: integer }
+        y: { type: integer }
+        terrainLoaded: { type: boolean }
+        height: { type: integer, minimum: -128, maximum: 127 }
+        attribute: { type: integer, minimum: 0, maximum: 255 }
+        walkable: { type: boolean }
+        blocked: { type: boolean }
+        teleportActivation: { type: boolean }
+        newbieZone: { type: boolean }
+        teleports:
+          type: array
+          items: { type: object, required: [name, destX, destY, price], properties: { name: { type: string }, destX: { type: integer }, destY: { type: integer }, price: { type: integer } } }
+        questZones: { type: array, items: { type: string } }
+        clearAreas: { type: array, items: { type: string } }
+        instances:
+          type: array
+          items: { type: object, required: [id, name, x, y, areaRadius], properties: { id: { type: string }, name: { type: string }, x: { type: integer }, y: { type: integer }, areaRadius: { type: integer } } }
+    MapPlayer:
+      type: object
+      required: [uid, name, account, level, x, y, sessionId]
+      properties:
+        uid: { type: string }
+        name: { type: string }
+        account: { type: string }
+        level: { type: integer }
+        x: { type: integer }
+        y: { type: integer }
+        sessionId: { type: integer }
+    MapMob:
+      type: object
+      required: [id, name, x, y, hp, maxHp, boss, npc]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        x: { type: integer }
+        y: { type: integer }
+        hp: { type: integer }
+        maxHp: { type: integer }
+        boss: { type: boolean }
+        npc: { type: boolean }
+    MapSnapshot:
+      type: object
+      required: [version, asOf, x, y, radius, players, mobs, truncated]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        x: { type: integer }
+        y: { type: integer }
+        radius: { type: integer, minimum: 1, maximum: 128 }
+        players: { type: array, maxItems: 200, items: { $ref: '#/components/schemas/MapPlayer' } }
+        mobs: { type: array, maxItems: 400, items: { $ref: '#/components/schemas/MapMob' } }
+        truncated: { type: boolean }
+    InstanceStatus:
+      type: object
+      required: [runtimeId, configId, name, x, y, areaRadius, state, stage, members, mobs, remaining, bossSpawned, rewardGranted, combatEnds, transitionAt, quizEnds, exitAt, hardDeadline, scheduleEnd, maxPlayers]
+      properties:
+        runtimeId: { type: string }
+        configId: { type: string }
+        name: { type: string }
+        x: { type: integer }
+        y: { type: integer }
+        areaRadius: { type: integer }
+        state: { type: string }
+        stage: { type: integer }
+        members:
+          type: array
+          items: { type: object, required: [name, leader], properties: { name: { type: string }, leader: { type: boolean } } }
+        mobs: { type: integer }
+        remaining: { type: integer }
+        bossSpawned: { type: boolean }
+        rewardGranted: { type: boolean }
+        combatEnds: { type: [string, 'null'], format: date-time }
+        transitionAt: { type: [string, 'null'], format: date-time }
+        quizEnds: { type: [string, 'null'], format: date-time }
+        exitAt: { type: [string, 'null'], format: date-time }
+        hardDeadline: { type: [string, 'null'], format: date-time }
+        scheduleEnd: { type: [string, 'null'], format: date-time }
+        maxPlayers: { type: integer }
+    InstancesView:
+      type: object
+      required: [version, asOf, instances]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        instances: { type: array, items: { $ref: '#/components/schemas/InstanceStatus' } }
+    AccountNote:
+      type: object
+      required: [id, at, actor, body, bugRefs]
+      properties:
+        id: { type: integer }
+        at: { type: string, format: date-time }
+        actor: { type: string }
+        body: { type: string, maxLength: 2000 }
+        bugRefs: { type: array, items: { type: string, pattern: '^BUG-[0-9]{3,6}$' } }
+    AccountNotes:
+      type: object
+      required: [version, asOf, account, notes]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        account: { type: string }
+        notes: { type: array, maxItems: 50, items: { $ref: '#/components/schemas/AccountNote' } }
+    AccountNoteCommand:
+      type: object
+      additionalProperties: false
+      required: [version, body, bugRefs]
+      properties:
+        version: { type: integer, const: 1 }
+        body: { type: string, minLength: 3, maxLength: 2000, description: 'Plain text; newlines allowed and other control characters rejected' }
+        bugRefs: { type: array, maxItems: 10, uniqueItems: true, items: { type: string, pattern: '^BUG-[0-9]{3,6}$' } }

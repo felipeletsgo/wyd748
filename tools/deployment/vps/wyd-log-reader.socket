@@ -1,0 +1,13 @@
+[Unit]
+Description=WYD log reader socket for the staff panel
+
+[Socket]
+ListenStream=/run/wyd-log-reader/socket
+SocketUser=wyd-log-reader
+SocketGroup=wyd-game
+SocketMode=0660
+DirectoryMode=0755
+Accept=no
+
+[Install]
+WantedBy=sockets.target

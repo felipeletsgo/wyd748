@@ -528,6 +528,9 @@ capability checks. Its current gameplay controls are:
   `moderation.player.teleport` (included for `felipetr`; sign in again).
   No arbitrary coordinates. Dead players, trade, ghost shops, poisoned
   persistence, instances and war arenas/participants are rejected.
+- sanctions, notices, scheduled maintenance and the audit history: see
+  [Staff operations](staff-operations.md) for capabilities, limits and the
+  restart exit code.
 
 Teleport uses the same target identity/epoch safeguards as kick, with a
 separate 1024-receipt capacity. The server resolves a walkable free tile within

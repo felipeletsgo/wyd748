@@ -856,6 +856,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/events/colosseum": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect today's Colosseum schedule (game.event.colosseum capability) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Authoritative World state and schedule in the guild-war timezone */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ColosseumStatus"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Start today's selected tier early; staff session rechecked at execution */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ColosseumCommand"];
+                };
+            };
+            responses: {
+                /** @description Process-local receipt; the early run replaces today's scheduled tier until restart */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ColosseumResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/session": {
         parameters: {
             query?: never;
@@ -1046,6 +1111,16 @@ export interface paths {
                     /** @description Case-insensitive name, account or UID substring; maximum 48 Unicode characters */
                     search?: string;
                     offset?: number;
+                    minLevel?: number;
+                    /** @description Must not be below minLevel */
+                    maxLevel?: number;
+                    class?: number;
+                    guild?: number;
+                    /** @description Area center; requires y and radius */
+                    x?: number;
+                    y?: number;
+                    /** @description Chebyshev distance in cells from x/y */
+                    radius?: number;
                 };
                 header?: never;
                 path?: never;
@@ -1053,13 +1128,52 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Snapshot sorted by UID, maximum 50 players; pages are not a stable cursor */
+                /** @description Snapshot sorted by UID, maximum 50 players; pages are not a stable cursor. Filters run in the same World pass as search; online stays the unfiltered count. Search, filters and offset above zero are optional reads, refused with 503 temporarily_unavailable while the panel circuit breaker is open */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
                         "application/json": components["schemas"]["Overview"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Runtime history from the in-process sampler (server.status); never queries the World */
+        get: {
+            parameters: {
+                query?: {
+                    window?: "15m" | "1h" | "6h" | "24h";
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description 10-second points, oldest first, merged into at most 360 points; includes the circuit breaker state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MetricsHistory"];
                     };
                 };
                 default: components["responses"]["Error"];
@@ -1341,6 +1455,980 @@ export interface paths {
                     };
                 };
                 default: components["responses"]["PlayerError"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/accounts/{account}/sanctions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List an account's sanction history (moderation.account.ban or moderation.account.mute) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Newest 50 sanctions from PostgreSQL; active is computed at read time */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SanctionsView"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Ban the account or mute its chat; the capability follows the kind */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    /** @description Must equal the canonical account in the command body */
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SanctionCommand"];
+                };
+            };
+            responses: {
+                /** @description The row is durable before any live effect. A ban disconnects online sessions and blocks login; live=pending means the World did not confirm and the row still governs the next login. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SanctionResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/accounts/{account}/sanctions/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Lift one sanction before it expires; the capability follows the kind */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    account: string;
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["SanctionRevokeCommand"];
+                };
+            };
+            responses: {
+                /** @description replayed=true when it was already revoked; the live state is refreshed either way */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SanctionResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/notices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List scheduled staff notices (server.notice); process-local, cleared on restart */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Pending notices */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NoticesView"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Broadcast a notice now or later, optionally repeated (server.notice) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NoticeCommand"];
+                };
+            };
+            responses: {
+                /** @description Process-local receipt; uses the native top notice and a [Staff] chat line */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NoticeResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/notices/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel a scheduled notice (server.notice) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NoticeCancelCommand"];
+                };
+            };
+            responses: {
+                /** @description Process-local receipt */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NoticeResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/players/{uid}/message": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a staff message to the selected live session (server.notice) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    /** @description Must equal the UID in the command body */
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PlayerMessageCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt bound to the Overview moderationEpoch and session */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PlayerMessageResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/server/shutdown": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inspect the scheduled maintenance shutdown (server.shutdown) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Process-local countdown state */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShutdownStatus"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Schedule or cancel a maintenance shutdown or restart (server.shutdown) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ShutdownCommand"];
+                };
+            };
+            responses: {
+                /** @description Countdown notices at 60, 30, 15, 10, 5, 3, 2 and 1 minutes and 30 and 10 seconds; logins close in the final minute. At zero the process persists state like SIGTERM and exits 0 (shutdown) or 75 (restart, for a supervisor with Restart=on-failure). */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ShutdownResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Page the persisted staff audit history newest first (staff.audit.read) */
+        get: {
+            parameters: {
+                query?: {
+                    actor?: string;
+                    action?: string;
+                    /** @description nextBefore from the previous page */
+                    before?: number;
+                    limit?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Keyset page; credentials and PINs are never recorded */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AuditPage"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/accounts/{account}/logins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Newest 50 admitted game logins of the account (moderation.player.search); 90-day retention */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description clientIp is empty unless the staff entry holds moderation.account.ip */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountLogins"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/accounts/{account}/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Newest 50 persisted staff actions naming the account as target (staff.audit.read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Entries from staff_audit whose details target the account */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountActions"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/players/{uid}/storage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Saved equipment, carry inventory and account Cargo of one character, read-only (moderation.player.search) */
+        get: {
+            parameters: {
+                query: {
+                    account: string;
+                };
+                header?: never;
+                path: {
+                    uid: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Persisted snapshot; live state may differ until the next save. Occupied cells only. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["CharacterStorage"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Allowlisted server logs through the wyd-log-reader helper (operations.logs.read) */
+        get: {
+            parameters: {
+                query: {
+                    source: "game" | "player" | "backup";
+                    /** @description Default one hour before now */
+                    since?: string;
+                    /** @description Default now; window at most 7 days */
+                    until?: string;
+                    /** @description Journal maximum level (0 emerg to 7 debug) */
+                    priority?: number;
+                    /** @description Case-insensitive substring; never passed to a shell */
+                    query?: string;
+                    limit?: number;
+                    /** @description nextCursor of the previous page */
+                    cursor?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Newest first; messages are plain text with escapes and control characters removed. Reads are audited without content. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LogPage"];
+                    };
+                };
+                /** @description The cursor no longer exists in the journal; restart from the newest entries */
+                410: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Latest backup and restore-test receipts through the wyd-log-reader helper (operations.logs.read) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A null receipt means none was recorded. Dumps are never downloadable. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["BackupStatus"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search items and monsters by name in the staff content index (server.status) */
+        get: {
+            parameters: {
+                query?: {
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Static index built at server start */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentSearch"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where an item is sold, dropped and used by quests (server.status) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    id: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Static index built at server start */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentItem"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/mobs/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Drops, sales and spawn generators of one NPC template (server.status) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Static index built at server start */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentMob"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/content/issues": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unresolved references in the loaded game data (server.status) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Static index built at server start */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ContentIssues"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/world/zone": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Static rules at one cell: terrain attributes, portals, quest zones and instance areas (server.status) */
+        get: {
+            parameters: {
+                query: {
+                    x: number;
+                    y: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Static index built at server start */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ZoneInfo"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/world/terrain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Attribute map rendered once as a 1024x1024 PNG, one pixel per 4x4 cells (server.status) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Dark blocked, height-shaded walkable, amber teleport attribute, blue newbie field */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "image/png": string;
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/world/map": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Live players and monsters in a square around a cell (moderation.player.search) */
+        get: {
+            parameters: {
+                query: {
+                    x: number;
+                    y: number;
+                    radius: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Bounded World read (200 players, 400 monsters) through the overview gate; optional read refused while the circuit breaker is open; 12 reads a minute per staff */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["MapSnapshot"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/world/instances": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Active item instances with members, stage and deadlines (server.status) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Bounded World read through the overview gate; optional read refused while the circuit breaker is open */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["InstancesView"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/accounts/{account}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Newest 50 append-only case notes of the account (moderation.player.search) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Notes newest first */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountNotes"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Append a case note (moderation.account.ban or moderation.account.mute) */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    account: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AccountNoteCommand"];
+                };
+            };
+            responses: {
+                /** @description The stored note; the audit records its ID and length, not its text */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AccountNote"];
+                    };
+                };
+                default: components["responses"]["Error"];
             };
         };
         delete?: never;
@@ -1835,6 +2923,8 @@ export interface components {
             spawnY: number;
             /** Format: date-time */
             respawnAt: string | null;
+            /** @description Live behaviour phase (1 = initial); 0 when dead or without boss behaviour */
+            phase: number;
         };
         BossesStatus: {
             /** @constant */
@@ -1876,13 +2966,13 @@ export interface components {
             code: "ok" | "unchanged" | "door_unavailable" | "invalid_command" | "capability_required" | "server_maintenance";
             status: components["schemas"]["PvPDoorStatus"];
         };
-        /** @description mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465). */
+        /** @description start opens all six gates and enables ticket entry unless already active; mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465). */
         OXEventCommand: {
             /** @constant */
             version: 1;
             operationId: string;
             /** @enum {string} */
-            action: "mode_on" | "mode_off" | "doors_lock" | "doors_open" | "result_x" | "result_o";
+            action: "start" | "mode_on" | "mode_off" | "doors_lock" | "doors_open" | "result_x" | "result_o";
             reason: string;
         };
         OXEventStatus: {
@@ -1902,6 +2992,47 @@ export interface components {
             code: "ok" | "unchanged" | "doors_unavailable" | "invalid_command" | "capability_required" | "server_maintenance";
             moved: number;
             status: components["schemas"]["OXEventStatus"];
+        };
+        ColosseumCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            epoch: string;
+            expectedRevision: number;
+            /** @enum {string} */
+            tier: "N" | "M" | "A";
+            reason: string;
+        };
+        ColosseumSchedule: {
+            /** @enum {string} */
+            tier: "N" | "M" | "A";
+            /** Format: date-time */
+            startsAt: string;
+            claimed: boolean;
+        };
+        ColosseumStatus: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            epoch: string;
+            revision: number;
+            enabled: boolean;
+            active: boolean;
+            tier: string;
+            stage: number;
+            /** Format: date-time */
+            endsAt: string | null;
+            pendingExits: number;
+            timezone: string;
+            schedule: components["schemas"]["ColosseumSchedule"][];
+        };
+        ColosseumResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "invalid_command" | "capability_required" | "server_maintenance" | "event_disabled" | "stale_event" | "operation_conflict" | "operation_capacity" | "event_active" | "event_busy" | "already_started" | "schedule_passed";
+            replayed: boolean;
+            status: components["schemas"]["ColosseumStatus"];
         };
         Session: {
             authenticated: boolean;
@@ -2007,6 +3138,502 @@ export interface components {
             persistenceFailures: number;
             /** Format: int64 */
             panics: number;
+        };
+        /** @description requestId makes a retry idempotent; a different body under the same ID returns operation_conflict. */
+        SanctionCommand: {
+            /** @constant */
+            version: 1;
+            requestId: string;
+            account: string;
+            /** @enum {string} */
+            kind: "ban" | "mute";
+            /** @description Zero means permanent */
+            durationMinutes: number;
+            reason: string;
+        };
+        SanctionRevokeCommand: {
+            /** @constant */
+            version: 1;
+            account: string;
+            /** @enum {string} */
+            kind: "ban" | "mute";
+            reason: string;
+        };
+        Sanction: {
+            id: number;
+            account: string;
+            /** @enum {string} */
+            kind: "ban" | "mute";
+            reason: string;
+            actor: string;
+            durationMinutes: number;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string | null;
+            /** Format: date-time */
+            revokedAt: string | null;
+            revokedBy: string;
+            revokeReason: string;
+            active: boolean;
+        };
+        SanctionsView: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            account: string;
+            sanctions: components["schemas"]["Sanction"][];
+        };
+        SanctionResult: {
+            /** @enum {string} */
+            code: "ok" | "capability_required" | "operation_conflict" | "unknown_sanction";
+            replayed: boolean;
+            /** @enum {string} */
+            live: "" | "applied" | "offline" | "pending";
+            sanction: components["schemas"]["Sanction"];
+        };
+        NoticeCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            /** @description Printable ASCII without surrounding spaces */
+            message: string;
+            delaySeconds: number;
+            repeatCount: number;
+            /** @description Zero for one delivery; 60..86400 when repeatCount > 1 */
+            repeatEverySeconds: number;
+        };
+        NoticeCancelCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+        };
+        ScheduledNotice: {
+            id: number;
+            message: string;
+            actor: string;
+            /** Format: date-time */
+            nextAt: string;
+            remaining: number;
+            repeatEverySeconds: number;
+        };
+        NoticesView: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            notices: components["schemas"]["ScheduledNotice"][];
+        };
+        NoticeResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "capability_required" | "server_maintenance" | "operation_conflict" | "operation_capacity" | "notice_capacity" | "unknown_notice";
+            replayed: boolean;
+            delivered: number;
+            view: components["schemas"]["NoticesView"];
+        };
+        PlayerMessageCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            epoch: string;
+            uid: string;
+            account: string;
+            expectedSessionId: number;
+            message: string;
+        };
+        PlayerMessageResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "stale_target" | "capability_required" | "operation_conflict" | "operation_capacity";
+            replayed: boolean;
+        };
+        /** @description schedule requires mode and delaySeconds 60..86400; cancel requires an empty mode and zero delay. */
+        ShutdownCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            /** @enum {string} */
+            action: "schedule" | "cancel";
+            /** @enum {string} */
+            mode: "" | "shutdown" | "restart";
+            delaySeconds: number;
+            reason: string;
+        };
+        ShutdownStatus: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            scheduled: boolean;
+            /** @enum {string} */
+            mode: "" | "shutdown" | "restart";
+            /** Format: date-time */
+            at: string | null;
+            secondsRemaining: number;
+            actor: string;
+            reason: string;
+            loginsBlocked: boolean;
+            /** @description False when this process has no shutdown hook */
+            available: boolean;
+        };
+        ShutdownResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "capability_required" | "server_maintenance" | "operation_conflict" | "operation_capacity" | "shutdown_unavailable" | "already_scheduled" | "not_scheduled" | "already_started";
+            replayed: boolean;
+            status: components["schemas"]["ShutdownStatus"];
+        };
+        AuditEntry: {
+            id: number;
+            /** Format: date-time */
+            at: string;
+            actor: string;
+            action: string;
+            result: string;
+            requestId: string;
+            clientIp: string;
+            method: string;
+            path: string;
+            details: {
+                [key: string]: unknown;
+            };
+        };
+        AuditPage: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            entries: components["schemas"]["AuditEntry"][];
+            /** @description Zero when there is no older page */
+            nextBefore: number;
+        };
+        /** @description P99 values are the upper bound of the fixed bucket holding the interval's 99th percentile (0 = no observation, 1000001 = above one second). Counts are per interval. */
+        MetricsPoint: {
+            /** Format: date-time */
+            at: string;
+            players: number;
+            mobs: number;
+            queueDepth: number;
+            loopLagP99Micros: number;
+            tickP99Micros: number;
+            queueAgeP99Micros: number;
+            commandsPerSecond: number;
+            budgetExceeded: number;
+            panics: number;
+            postgresQueueDepth: number;
+            postgresFailures: number;
+            postgresTxMicros: number;
+            heapBytes: number;
+            goroutines: number;
+            gcCycles: number;
+        };
+        BreakerState: {
+            open: boolean;
+            /** @enum {string} */
+            reason: "" | "loop_lag" | "command_queue_age" | "persistence_backlog";
+        };
+        MetricsHistory: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            /** @enum {string} */
+            window: "15m" | "1h" | "6h" | "24h";
+            intervalSeconds: number;
+            points: components["schemas"]["MetricsPoint"][];
+            breaker: components["schemas"]["BreakerState"];
+        };
+        AccountLogin: {
+            /** Format: date-time */
+            at: string;
+            clientIp: string;
+            channel: number;
+        };
+        AccountLogins: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            account: string;
+            ipVisible: boolean;
+            logins: components["schemas"]["AccountLogin"][];
+        };
+        AccountActions: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            account: string;
+            entries: components["schemas"]["AuditEntry"][];
+        };
+        StaffStoredItem: {
+            slot: number;
+            itemId: number;
+            name: string;
+            effects: number[];
+        };
+        CharacterStorage: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            account: string;
+            uid: string;
+            name: string;
+            gold: number;
+            cargoGold: number;
+            equipment: components["schemas"]["StaffStoredItem"][];
+            inventory: components["schemas"]["StaffStoredItem"][];
+            cargo: components["schemas"]["StaffStoredItem"][];
+        };
+        LogEntry: {
+            cursor: string;
+            /** Format: date-time */
+            time: string;
+            priority: number;
+            message: string;
+        };
+        LogPage: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            /** @enum {string} */
+            source: "game" | "player" | "backup";
+            entries: components["schemas"]["LogEntry"][];
+            /** @description Empty when no older entry matches */
+            nextCursor: string;
+            /** @description The scan budget or response size ended the page early */
+            truncated: boolean;
+        };
+        BackupReceipt: {
+            /** Format: date-time */
+            at: string;
+            archive: string;
+            bytes?: number;
+            sha256?: string;
+            restoredAccounts?: number;
+        } | null;
+        BackupStatus: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            backup: components["schemas"]["BackupReceipt"];
+            restoreTest: components["schemas"]["BackupReceipt"];
+        };
+        ContentHit: {
+            /** @enum {string} */
+            kind: "item" | "mob";
+            /** @description Item ID or NPC template name */
+            key: string;
+            name: string;
+        };
+        ContentSearch: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            builtAt: string;
+            hits: components["schemas"]["ContentHit"][];
+        };
+        ContentItem: {
+            id: number;
+            name: string;
+            soldBy: {
+                npc: string;
+                slot: number;
+            }[];
+            droppedBy: {
+                mob: string;
+                slot: number;
+                /** @description Effective rate for this monster (level band, special slots, cap) before the killer drop bonus; each kill drops the slot when rand()%oneIn==0. */
+                oneIn: number;
+                /** @description The slot drops on every kill (slot 11, or an effective rate of zero). */
+                always: boolean;
+                /** @description Unadjusted droprate.json slot value. */
+                baseOneIn: number;
+            }[];
+            quests: {
+                id: number;
+                name: string;
+                /** @enum {string} */
+                role: "required" | "consumed" | "reward";
+            }[];
+        };
+        ContentMobItem: {
+            itemId: number;
+            name: string;
+            slot: number;
+            /** @description Drops only; same meaning as ContentItem droppedBy oneIn. Omitted when zero. */
+            oneIn?: number;
+            /** @description Drops only; the slot drops on every kill. Omitted when false. */
+            always?: boolean;
+            /** @description Drops only; unadjusted droprate.json value. Omitted when zero. */
+            baseOneIn?: number;
+        };
+        ContentMob: {
+            name: string;
+            /** @enum {string} */
+            kind: "npc" | "monster";
+            level: number;
+            gold: number;
+            merchant: boolean;
+            drops: components["schemas"]["ContentMobItem"][];
+            sells: components["schemas"]["ContentMobItem"][];
+            spawns: {
+                generator: number;
+                enabled: boolean;
+                /**
+                 * @description Feature owning an enabled generator the World skips at boot; such entries never spawn in the open world.
+                 * @enum {string}
+                 */
+                reserved?: "item_instance" | "colosseum";
+                /** @enum {string} */
+                role: "leader" | "follower" | "both";
+                x: number;
+                y: number;
+                maxMobs: number;
+            }[];
+        };
+        ContentIssue: {
+            /**
+             * @description error would also fail the boot for an enabled generator
+             * @enum {string}
+             */
+            severity: "error" | "warning";
+            kind: string;
+            subject: string;
+            detail: string;
+        };
+        ContentIssues: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            builtAt: string;
+            issues: components["schemas"]["ContentIssue"][];
+        };
+        /** @description Only attribute bits the server relies on are named (0x02 blocked, 0x10 client teleport activation, 0x80 newbie field); attribute keeps the raw byte. */
+        ZoneInfo: {
+            /** @constant */
+            version: 1;
+            x: number;
+            y: number;
+            terrainLoaded: boolean;
+            height: number;
+            attribute: number;
+            walkable: boolean;
+            blocked: boolean;
+            teleportActivation: boolean;
+            newbieZone: boolean;
+            teleports: {
+                name: string;
+                destX: number;
+                destY: number;
+                price: number;
+            }[];
+            questZones: string[];
+            clearAreas: string[];
+            instances: {
+                id: string;
+                name: string;
+                x: number;
+                y: number;
+                areaRadius: number;
+            }[];
+        };
+        MapPlayer: {
+            uid: string;
+            name: string;
+            account: string;
+            level: number;
+            x: number;
+            y: number;
+            sessionId: number;
+        };
+        MapMob: {
+            id: number;
+            name: string;
+            x: number;
+            y: number;
+            hp: number;
+            maxHp: number;
+            boss: boolean;
+            npc: boolean;
+        };
+        MapSnapshot: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            x: number;
+            y: number;
+            radius: number;
+            players: components["schemas"]["MapPlayer"][];
+            mobs: components["schemas"]["MapMob"][];
+            truncated: boolean;
+        };
+        InstanceStatus: {
+            runtimeId: string;
+            configId: string;
+            name: string;
+            x: number;
+            y: number;
+            areaRadius: number;
+            state: string;
+            stage: number;
+            members: {
+                name: string;
+                leader: boolean;
+            }[];
+            mobs: number;
+            remaining: number;
+            bossSpawned: boolean;
+            rewardGranted: boolean;
+            /** Format: date-time */
+            combatEnds: string | null;
+            /** Format: date-time */
+            transitionAt: string | null;
+            /** Format: date-time */
+            quizEnds: string | null;
+            /** Format: date-time */
+            exitAt: string | null;
+            /** Format: date-time */
+            hardDeadline: string | null;
+            /** Format: date-time */
+            scheduleEnd: string | null;
+            maxPlayers: number;
+        };
+        InstancesView: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            instances: components["schemas"]["InstanceStatus"][];
+        };
+        AccountNote: {
+            id: number;
+            /** Format: date-time */
+            at: string;
+            actor: string;
+            body: string;
+            bugRefs: string[];
+        };
+        AccountNotes: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            account: string;
+            notes: components["schemas"]["AccountNote"][];
+        };
+        AccountNoteCommand: {
+            /** @constant */
+            version: 1;
+            /** @description Plain text; newlines allowed and other control characters rejected */
+            body: string;
+            bugRefs: string[];
         };
     };
     responses: {

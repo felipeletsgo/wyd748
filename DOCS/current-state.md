@@ -1,5 +1,147 @@
 # Current project state
 
+## Local source — 2026-10-22, staff panel P1 and stages 0–3
+
+The staff panel adds persistent bans and chat mutes, scheduled staff notices
+and private staff messages, scheduled maintenance shutdown/restart, a
+persisted audit history, runtime charts with a load circuit breaker, account
+login/action history and storage views, server logs and backup receipts
+through the `wyd-log-reader` helper, a live map, an instance list, a static
+content index and case notes. Plan and per-package status:
+[admin panel roadmap](server/admin-panel-roadmap.md); behavior and
+capabilities: [staff operations](server/staff-operations.md). Classification:
+`MODERNIZACAO_COMPATIVEL`; notices, whispers and disconnects reuse existing
+wire messages, and no client change is required.
+
+Source API version `0.14.0`; schema `11` (v9 sanctions and staff audit, v10
+account logins, v11 case notes), applied by the game binary at start. The
+VPS update script installs the log-reader socket and user, and its rollback
+restores the schema 8 marker. Site news moved to Markdown files; the
+release post is `server-notices-maintenance-moderation`.
+
+Final audit 2026-10-22: full `go test ./... -count=1` and `go vet ./...`;
+store, player API, webadmin and server tests against a temporary PostgreSQL
+18 cluster, including a v11 → v8 marker rollback and re-upgrade; race tests
+on staff operations, log reader and control; Linux cross-build; portal
+build, tests and `astro check`; repository layout gate. Pending: VPS
+activation, the log reader against the real journal, and authenticated
+browser and in-game acceptance. No commit, push or publication yet.
+
+## Local source — 2026-10-21, Colosseum notices and wave countdown
+
+Colosseum now announces scheduled sessions globally at five minutes and one
+minute before entry closes, using the configured guild-war timezone. Notices
+are deduplicated per tier and local day. A late tick announces only the current
+remaining time, not expired warnings. An already claimed tier, active run or
+pending durable exits suppress advance notices.
+
+Both scheduled and staff-triggered starts announce that the entrance gates
+have closed. The first wave announces combat globally; subsequent waves notify
+only public-world players in the arena. Notices also remain in chat, rather
+than relying solely on the transient notice panel. Manual starts remain
+immediate, without a new admission delay or an extra scheduled session.
+
+Arena participants receive the existing `0x3A1` HUD countdown to each next
+wave: offsets +1, +4, +6, +8 and +10 minutes from event start. The client
+decrements locally; the server sends a new deadline only on a wave transition
+or for a newly observed participant. Leaving, finishing, disabling the event
+or an overdue wave retires the countdown. Cleanup does not overwrite a newer
+private-instance or public-area timer. The quest reset/guard does not own this
+countdown. Pending Elixir persistence cannot invent a later wave deadline.
+
+Classification: `MODERNIZACAO_COMPATIVEL`, preserving the existing notice/chat
+and timer wire contracts, admission, persistence, rewards and scheduler. No new
+packet, client binary or native-parity claim. Focused Colosseum tests and the
+unchanged client ArchitectureTests executable (3,105,777 checks) passed.
+Full `go test ./... -count=1`, `go vet ./...`, `go build ./...`, focused
+Colosseum/public-area timer race tests and `git diff --check` also passed.
+The layout gate still fails only on the preexisting
+`tmproject/client748/dumps/` and `crash-monitor-p26020.log`; both are preserved.
+These are local source changes, not a VPS release or actual in-game HUD
+acceptance; not `CLIENT_TESTED`. No installation, restart, disconnection,
+commit or push was performed.
+
+## Local source — 2026-10-21, regular Cube question visibility
+
+Regular, Mystic and Arcane Cube now use the private timed instance-question
+panel already implemented for Big Cube. All 24 questions before the final
+combat room have ten-second configured and authoritative answer windows.
+The question no longer uses the shared notice panel, so actions and EXP
+notices cannot replace it. Stale kill timestamps are refreshed before opening
+the window. Answer persistence closes every participant's question before
+publishing results; failed commits publish neither close nor rewards.
+
+This continues `EXTENSAO_COORDENADA` v1, with no new opcode or client change.
+The [existing contract](protocol/instance-question.md) now documents both
+Cube lifecycles. Validation passed: full `go test ./... -count=1`,
+`go vet ./...`, `go build ./...`, focused race tests for Cube/Big Cube,
+atomic answer publication, data configuration and wire, plus the existing
+client ArchitectureTests executable (3,105,777 checks). Client question state
+and packet tests exercise expiry at 10,000 ms; gameplay visibility during
+actions and EXP is source-reviewed, not actual in-game acceptance.
+
+The unchanged client candidate and its hash are recorded below. These changes
+are local source only: no client installation, publication, commit, push,
+restart or player disconnection. Real in-game visibility remains pending;
+not `CLIENT_TESTED`.
+
+## Local source — 2026-10-21, Big Cube ticket and return portal
+
+Entrance Ticket admission now accepts the owner's inclusive rectangle
+X1308..1375 / Y1444..1743. The portal at (1342,1466) returns to Noatum
+(1058,1725), using the existing route's 700-gold tariff. Client and server
+attribute maps enable that portal's 4x4 block with one byte changed in each
+map (`0x04` to `0x14`); other bytes, including the client trailer, are unchanged.
+
+The client confirms the ticket before sending its use intention. Big Cube
+questions start only after persisted admission and use a dedicated private
+panel for the authoritative ten-second answer window, independent of modal
+confirmations and ordinary notices. See the versioned
+[instance question contract](protocol/instance-question.md).
+
+Validation passed: full `go test ./... -count=1`, `go vet ./...`,
+`go build ./...`, focused race tests for Big Cube/admission/wire/portal,
+terrain synchronization and `Build-Client.ps1 -Configuration Release -NoDeploy`.
+Client gates: ArchitectureTests 3,105,777 checks, SocketReceiveTests 281,
+CrashCaptureTests 198 and LauncherTests 56, all passed. `git diff --check`
+passed. The documentation map was refreshed; the layout gate still fails
+only on the preexisting client crash-monitor file/directory noted below.
+
+Candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+`7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9`.
+Client Env attribute SHA-256:
+`3D56C0E1EA4AC286EF74D9A7AB764B02AF77964D904F9A3D21AD0B83444465F4`.
+Server attribute SHA-256:
+`A5238811FE70330DC02A0F2B5D9BDB063A3DD1FB37CBD247F969A95B3AC73358`.
+These sources/assets and candidate are local, not an installed runtime or
+published client/server release. No commit, push, player disconnection or
+restart was performed. Actual in-game confirmation, movement during the
+question, O/X resolution and portal use remain pending; not `CLIENT_TESTED`.
+
+## Local source — 2026-10-21, event schedule and staff controls
+
+Colosseum defaults now start N/M/A at 18:05/19:05/20:05 in the configured
+guild-war timezone. The admin panel can advance a selected tier, retaining
+the same 12-minute lifecycle and authoritative admission/persistence rules.
+An early start claims that tier's scheduled session for the same local day
+in the current process; claims and command receipts do not survive restart.
+The OX panel adds a one-click start that enables quiz entry and opens its
+six gates, without reopening an already active question on a repeated start.
+
+API version is now `0.13.0`. Details and capability requirements are in
+[website feature status](server/website-feature-status.md#colosseum-and-ox-controls--2026-10-21).
+No VPS activation, player disconnection, commit or push was requested for
+this batch. Automated validation does not establish authenticated browser or
+in-game acceptance; the deployment receipts below describe earlier code.
+
+Validation: `go test ./... -count=1`, `go vet ./...`, `go build ./...`, portal
+type generation, `npm run check` (80 files, zero diagnostics), `npm test`
+(65 passed), `npm run build` and focused `go test -race` for the Colosseum/OX
+game, control and webadmin tests passed. The repository layout check remains
+failed on the unrelated client crash-monitor output
+`tmproject/client748/dumps/crash-monitor-p26020.log` and its directory;
+this task did not create or remove them.
+
 ## Release — 2026-10-21, audit batch and patch 10041
 
 The owner authorized commits/push to `main`, VPS activation and necessary

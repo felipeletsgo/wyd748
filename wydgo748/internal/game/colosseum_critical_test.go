@@ -10,7 +10,7 @@ import (
 func colosseumCriticalWorld(t *testing.T, rejection bool) (*World, *Player, *criticalTestStore, func()) {
 	t.Helper()
 	w, p, _ := handlerTestWorld(t)
-	w.clock = newFakeClock(time.Date(2026, 10, 21, 22, 5, 0, 0, time.UTC))
+	w.clock = newFakeClock(time.Date(2026, 10, 21, 20, 5, 0, 0, time.UTC))
 	p.Char.UID = "colosseum-owner"
 	w.playersByCharacterUID[p.Char.UID] = p
 	if !w.claimAccountSession(p.Session, p.Account.Name) {
@@ -85,6 +85,9 @@ func TestColosseumWaitsForElixirCommitBeforeStartingWaves(t *testing.T) {
 		w.warConfig.Timezone = "UTC"
 		w.colosseum.config = model.DefaultColosseumConfig()
 		w.colosseum.stage = 1
+		w.colosseum.tier = model.ColosseumTierA
+		w.colosseum.startedAt = w.now()
+		w.colosseum.endsAt = w.now().Add(12 * time.Minute)
 		p.X, p.Y = 2630, 1726
 		w.updatePlayerSpatial(p)
 		p.Char.Inv[2] = model.Item{Index: colosseumElixirItem}
@@ -100,6 +103,30 @@ func TestColosseumWaitsForElixirCommitBeforeStartingWaves(t *testing.T) {
 		if rejected && w.colosseum.stage != 1 || !rejected && w.colosseum.stage != 2 {
 			t.Fatalf("rejected=%v stage=%d", rejected, w.colosseum.stage)
 		}
+	}
+}
+
+func TestColosseumManualStartKeepsCriticalElixirAdmission(t *testing.T) {
+	w, p, base, commit := colosseumCriticalWorld(t, false)
+	w.clock = newFakeClock(time.Date(2026, 10, 21, 17, 0, 0, 0, time.UTC))
+	w.warConfig.Timezone = "UTC"
+	w.colosseum.config = model.DefaultColosseumConfig()
+	p.X, p.Y = 2630, 1726
+	w.updatePlayerSpatial(p)
+	p.Char.Inv[2] = model.Item{Index: colosseumElixirItem}
+	r := runColosseumCommand(w, colosseumStartCommand(w, "A"), true)
+	if r.Code != "ok" || !w.colosseum.unpaid[p] {
+		t.Fatalf("manual admission skipped the critical write: %+v", r)
+	}
+	awaitCriticalWrite(t, base.entered)
+	w.tickColosseum(w.now().Add(time.Minute))
+	if w.colosseum.stage != 1 || p.Char.Inv[2].Index != colosseumElixirItem {
+		t.Fatal("manual start advanced or consumed the item before commit")
+	}
+	commit()
+	w.tickColosseum(w.now().Add(time.Minute + time.Second))
+	if w.colosseum.stage != 2 || p.Char.Inv[2].Index != 0 || w.colosseum.unpaid[p] {
+		t.Fatal("manual start did not resume after the durable elixir charge")
 	}
 }
 

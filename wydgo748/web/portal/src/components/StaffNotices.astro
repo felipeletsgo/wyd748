@@ -1,0 +1,26 @@
+<section id="notices" class="panel staff-ops-panel" aria-labelledby="notices-title">
+  <div class="panel-heading"><div><span class="eyebrow">COMMUNICATION</span><h2 id="notices-title">Notices and staff messages</h2></div><button id="notice-refresh" class="button subtle" type="button">Refresh schedule</button></div>
+  <div class="event-body">
+    <p class="muted">Notices use the native top-of-screen banner and a [Staff] chat line. The 7.48 client accepts printable ASCII only, up to 94 characters. Scheduled notices live in this server process and are lost on restart.</p>
+    <form id="notice-form">
+      <label for="notice-message">Notice for every online player</label><input id="notice-message" maxlength="94" required placeholder="E.g. Double EXP starts at 20:00 server time!" />
+      <div class="event-fields">
+        <label>Delay (minutes)<input id="notice-delay" type="number" min="0" max="1440" step="1" value="0" required /></label>
+        <label>Deliveries<input id="notice-count" type="number" min="1" max="100" step="1" value="1" required /></label>
+        <label>Every (minutes)<input id="notice-every" type="number" min="1" max="1440" step="1" value="10" required /></label>
+      </div>
+      <div class="event-actions"><button id="notice-submit" class="button primary" type="submit" disabled>Send / schedule notice</button><button id="notice-retry" class="button subtle" type="button" hidden>Check / retry the same notice</button></div>
+    </form>
+    <p id="notice-message-status" class="form-message" role="status" aria-live="polite"></p>
+    <div class="table-scroll"><table><thead><tr><th>NEXT DELIVERY</th><th>MESSAGE</th><th>REMAINING</th><th>STAFF</th><th>ACTION</th></tr></thead><tbody id="notice-rows"><tr><td colspan="5" class="empty">Schedule not queried.</td></tr></tbody></table></div>
+    <form id="player-message-form">
+      <fieldset id="player-message-settings" disabled>
+        <legend>Message one player</legend>
+        <p id="player-message-target">Select “Message” from the online player list.</p>
+        <label for="player-message-text">Message</label><input id="player-message-text" maxlength="94" required placeholder="E.g. Please contact staff on Discord." />
+      </fieldset>
+      <div class="event-actions"><button id="player-message-submit" class="button subtle" type="submit" disabled>Send message</button></div>
+    </form>
+    <p id="player-message-status" class="form-message" role="status" aria-live="polite"></p>
+  </div>
+</section>

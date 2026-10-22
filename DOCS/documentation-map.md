@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 215.
+Markdown documents: 218.
 
 | Document | Type |
 | --- | --- |
@@ -201,6 +201,7 @@ Markdown documents: 215.
 | [DOCS/login-dispatch.md](<login-dispatch.md>) | Product documentation |
 | [DOCS/protocol/data-consistency.md](<protocol/data-consistency.md>) | Product documentation |
 | [DOCS/protocol/hell-gate-store.md](<protocol/hell-gate-store.md>) | Product documentation |
+| [DOCS/protocol/instance-question.md](<protocol/instance-question.md>) | Product documentation |
 | [DOCS/protocol/kefra-portal.md](<protocol/kefra-portal.md>) | Product documentation |
 | [DOCS/protocol/opcode-compatibility-matrix.md](<protocol/opcode-compatibility-matrix.md>) | Product documentation |
 | [DOCS/protocol/packet-fixtures.md](<protocol/packet-fixtures.md>) | Product documentation |
@@ -208,6 +209,7 @@ Markdown documents: 215.
 | [DOCS/README.md](<README.md>) | Product documentation |
 | [DOCS/reference-upstream.md](<reference-upstream.md>) | Product documentation |
 | [DOCS/SCORE.md](<SCORE.md>) | Product documentation |
+| [DOCS/server/admin-panel-roadmap.md](<server/admin-panel-roadmap.md>) | Product documentation |
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Product documentation |
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
 | [DOCS/server/ground-items.md](<server/ground-items.md>) | Product documentation |
@@ -217,6 +219,7 @@ Markdown documents: 215.
 | [DOCS/server/rune-track.md](<server/rune-track.md>) | Product documentation |
 | [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
 | [DOCS/server/server-759-gap-analysis.md](<server/server-759-gap-analysis.md>) | Product documentation |
+| [DOCS/server/staff-operations.md](<server/staff-operations.md>) | Product documentation |
 | [DOCS/server/website-feature-status.md](<server/website-feature-status.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |
 | [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Product documentation |

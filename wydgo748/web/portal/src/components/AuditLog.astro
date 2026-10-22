@@ -1,0 +1,15 @@
+<section id="audit" class="panel staff-ops-panel" aria-labelledby="audit-title">
+  <div class="players-heading">
+    <div><span class="eyebrow">ACCOUNTABILITY</span><h2 id="audit-title">Staff audit history</h2></div>
+    <form id="audit-form" class="search-form">
+      <label class="sr-only" for="audit-actor">Staff account</label>
+      <input id="audit-actor" maxlength="12" pattern="[a-zA-Z0-9]{0,12}" placeholder="Staff account" />
+      <label class="sr-only" for="audit-action">Action</label>
+      <input id="audit-action" maxlength="64" pattern="[a-z0-9._\-]{0,64}" placeholder="Action, e.g. account.sanction" />
+      <button class="button subtle" type="submit">Search</button>
+    </form>
+  </div>
+  <p id="audit-status" class="account-directory-status" role="status" aria-live="polite">Waiting for a query.</p>
+  <div class="table-scroll"><table><thead><tr><th>TIME</th><th>STAFF</th><th>ACTION</th><th>RESULT</th><th>DETAILS</th></tr></thead><tbody id="audit-rows"><tr><td colspan="5" class="empty">No query has been made.</td></tr></tbody></table></div>
+  <footer class="table-footer"><span id="audit-page">Newest first · 50 entries per page</span><div><button id="audit-newest" class="button pager" type="button" disabled aria-label="Newest audit entries">⇤</button><button id="audit-older" class="button pager" type="button" disabled aria-label="Older audit entries">→</button></div></footer>
+</section>

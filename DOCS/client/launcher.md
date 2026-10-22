@@ -131,9 +131,14 @@ installs it, keeps the previous list as `.update.htm.previous` and replaces
 `update.htm` last. A launcher change requires a new full client.
 
 Every published patch or player-visible server release also updates the
-website in `wydgo748/web/portal/src/data/public-content.ts`: the
-`clientRelease` receipt, a `changelog` entry and a player-facing `news` post
-(newest first). `tests/public-content.test.mjs` fails when News does not
+website: the `clientRelease` receipt and a `changelog` entry in
+`wydgo748/web/portal/src/data/public-content.ts`, and a player-facing news
+post as a new file `wydgo748/web/portal/src/content/news/<slug>.md`. A post
+has `number` (the next one after the highest existing), `slug` (same as the
+file name), `date`, `category`, `title` and `summary` front-matter lines,
+then plain-text paragraphs separated by blank lines; markup and HTML are not
+interpreted, and a malformed post fails the build. `tests/news-content.test.mjs`
+checks every post, and `tests/public-content.test.mjs` fails when News does not
 mention the latest published patch. Build the portal, run its tests and
 deploy it with the release.
 

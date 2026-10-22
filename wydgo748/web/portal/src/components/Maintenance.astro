@@ -1,0 +1,20 @@
+<section id="maintenance" class="panel staff-ops-panel" aria-labelledby="maintenance-title">
+  <div class="panel-heading"><div><span class="eyebrow">SERVER OPERATIONS</span><h2 id="maintenance-title">Scheduled maintenance</h2></div><button id="maintenance-refresh" class="button subtle" type="button">Refresh status</button></div>
+  <div class="event-body">
+    <p class="muted">Players are warned at 60, 30, 15, 10, 5, 3, 2 and 1 minutes and at 30 and 10 seconds. New logins are refused in the final minute. At zero the server saves every player exactly like a normal stop. “Restart” exits with code 75, which the service manager restarts automatically (Restart=on-failure); “Shutdown” stays offline.</p>
+    <dl class="event-status"><div><dt>Status</dt><dd id="maintenance-state">Waiting for a query</dd></div><div><dt>Mode</dt><dd id="maintenance-mode">—</dd></div><div><dt>Scheduled for</dt><dd id="maintenance-at">—</dd></div><div><dt>Scheduled by</dt><dd id="maintenance-actor">—</dd></div></dl>
+    <form id="maintenance-form">
+      <fieldset id="maintenance-settings" disabled>
+        <legend>Schedule maintenance</legend>
+        <div class="event-fields">
+          <label>Mode<select id="maintenance-kind"><option value="restart">Restart</option><option value="shutdown">Shutdown</option></select></label>
+          <label>Starts in (minutes)<input id="maintenance-minutes" type="number" min="1" max="1440" step="1" value="10" required /></label>
+        </div>
+      </fieldset>
+      <label for="maintenance-reason">Reason for operation</label><input id="maintenance-reason" minlength="3" maxlength="200" required placeholder="E.g. Apply patch 10042" />
+      <div class="event-actions"><button id="maintenance-schedule" class="button primary" type="submit" disabled>Schedule</button><button id="maintenance-cancel" class="button subtle" type="button" disabled>Cancel scheduled maintenance</button></div>
+    </form>
+    <p id="maintenance-message" class="form-message" role="status" aria-live="polite"></p>
+    <p id="maintenance-asof" class="muted">No automatic refresh.</p>
+  </div>
+</section>

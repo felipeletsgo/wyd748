@@ -471,6 +471,9 @@ int TMFieldScene::OnPacketStartTime(MSG_STANDARDPARM* pStd)
 	m_nLastTime = pStd->Parm;
 	if (m_nLastTime <= 0)
 	{
+		m_instanceQuestion.Clear();
+		if (m_pInstanceQuestionPanel)
+			m_pInstanceQuestionPanel->SetVisible(0, 1);
 		m_nLastTime = 0;
 		m_bRankTimeOn = 0;
 		if (m_pRankTimeText)
@@ -660,6 +663,15 @@ int TMFieldScene::OnPacketREQArray(MSG_STANDARD* pStd)
 void TMFieldScene::InitializeQuizEventControls()
 {
 	if (!m_pControlContainer || !g_pDevice || m_pQuizBG) return;
+	// Keep timed instance questions independent of confirmations and notices.
+	m_pInstanceQuestionPanel = new SMessagePanel("", 0.0f, 0.0f, 680.0f, 24.0f, 0);
+	m_pInstanceQuestionPanel->SetControlID(-1);
+	m_pInstanceQuestionPanel->m_bSelectEnable = 0;
+	m_pInstanceQuestionPanel->SetPos(
+		(static_cast<float>(g_pDevice->m_dwScreenWidth) - 680.0f) * 0.5f,
+		64.0f * RenderDevice::m_fUIScaleY);
+	m_pInstanceQuestionPanel->SetVisible(0, 1);
+	m_pControlContainer->AddItem(m_pInstanceQuestionPanel);
 	// Keep the 7.48 runtime control IDs (896..900), but render the extension with
 	// the native NewUI message-box atlas used by SMessageBox (sets 164/165).
 	// Coordinates below are pixels: UI mode 2 does not scale controls.
@@ -710,7 +722,7 @@ int TMFieldScene::OnPacketQuizEvent(MSG_STANDARD* packet)
 	if (m_quizEvent.Active)
 	{
 		char question[128]{};
-		sprintf_s(question, "%s  (10 segundos)", challenge.Question);
+		sprintf_s(question, "%s  (10 seconds)", challenge.Question);
 		m_pQuizQuestion->SetText(question, 0);
 		for (int i = 0; i < 4; ++i)
 		{
@@ -720,6 +732,18 @@ int TMFieldScene::OnPacketQuizEvent(MSG_STANDARD* packet)
 		}
 	}
 	m_pQuizBG->SetVisible(m_quizEvent.Active ? 1 : 0);
+	return 1;
+}
+
+int TMFieldScene::OnPacketInstanceQuestion(MSG_STANDARD* packet)
+{
+	instance_question::Packet question{};
+	if (!packet || !g_pObjectManager || !m_pInstanceQuestionPanel ||
+		packet->ID != g_pObjectManager->m_dwCharID ||
+		!instance_question::Parse(packet, packet->Size, question)) return 0;
+	m_instanceQuestion.Apply(question, GetTickCount());
+	m_pInstanceQuestionPanel->SetMessage(question.Question, 0);
+	m_pInstanceQuestionPanel->SetVisible(m_instanceQuestion.Visible(GetTickCount()) ? 1 : 0, 1);
 	return 1;
 }
 

@@ -113,9 +113,9 @@ func (w *World) planCriticalInstanceFirstWave(inst *ItemInstance, stage model.Vo
 		if stage.Quiz == nil || stage.Quiz.DurationSeconds <= 0 || len(inst.MemberIDs) == 0 {
 			return nil, errors.New("The instance question is not configured.")
 		}
-		inst.State = "big_cube_quiz"
-		inst.QuizAt = at.Add(time.Duration(stage.Quiz.DurationSeconds) * time.Second)
-		inst.QuizDeadline = inst.QuizAt
+		// The World tick starts the full answer window after entry is acknowledged.
+		// Time spent waiting for persistence must not consume the player's time.
+		inst.State = "big_cube_waiting"
 	}
 	return created, nil
 }

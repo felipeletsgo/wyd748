@@ -1,0 +1,29 @@
+<section id="sanctions" class="panel staff-ops-panel" aria-labelledby="sanctions-title">
+  <div class="panel-heading"><div><span class="eyebrow">MODERATION</span><h2 id="sanctions-title">Sanctions · ban and mute</h2></div><span class="tag">POSTGRESQL</span></div>
+  <div class="event-body">
+    <p class="muted">A ban disconnects every session of the account and blocks login until it expires or is revoked. A mute blocks player chat: local, whisper, party, guild, kingdom, global and name labels. Sanctions are stored in PostgreSQL and survive restarts.</p>
+    <form id="sanction-lookup" class="search-form staff-ops-lookup">
+      <label class="sr-only" for="sanction-account">Account</label>
+      <input id="sanction-account" maxlength="12" pattern="[a-zA-Z0-9]{1,12}" required placeholder="Account name" />
+      <button id="sanction-load" class="button subtle" type="submit">Load history</button>
+    </form>
+    <p id="sanction-status" class="muted">No account loaded.</p>
+    <form id="sanction-form">
+      <fieldset id="sanction-settings" disabled>
+        <legend>New sanction for <span id="sanction-target">—</span></legend>
+        <div class="event-fields">
+          <label>Sanction<select id="sanction-kind"><option value="mute">Chat mute</option><option value="ban">Account ban</option></select></label>
+          <label>Duration<select id="sanction-duration">
+            <option value="15">15 minutes</option><option value="60" selected>1 hour</option><option value="360">6 hours</option>
+            <option value="1440">1 day</option><option value="4320">3 days</option><option value="10080">7 days</option>
+            <option value="43200">30 days</option><option value="0">Permanent</option>
+          </select></label>
+        </div>
+        <label for="sanction-reason">Reason required</label><input id="sanction-reason" minlength="3" maxlength="200" required placeholder="Describe the violation" />
+      </fieldset>
+      <div class="event-actions"><button id="sanction-submit" class="button primary" type="submit" disabled>Apply sanction</button><button id="sanction-retry" class="button subtle" type="button" hidden>Check / retry the same request</button></div>
+    </form>
+    <p id="sanction-message" class="form-message" role="status" aria-live="polite"></p>
+    <div class="table-scroll"><table><thead><tr><th>KIND</th><th>STATUS</th><th>CREATED</th><th>ENDS</th><th>STAFF / REASON</th><th>ACTION</th></tr></thead><tbody id="sanction-rows"><tr><td colspan="6" class="empty">No account loaded.</td></tr></tbody></table></div>
+  </div>
+</section>

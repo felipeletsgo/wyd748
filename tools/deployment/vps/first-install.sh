@@ -30,7 +30,7 @@ printf '%s\n' '[Service]' 'MemoryMax=600M' 'CPUQuota=100%' > /etc/systemd/system
 systemctl daemon-reload
 systemctl restart postgresql@18-main
 
-for principal in wyd-game wyd-player; do
+for principal in wyd-game wyd-player wyd-log-reader; do
     if ! id "$principal" >/dev/null 2>&1; then
         useradd --system --no-create-home --shell /usr/sbin/nologin "$principal"
     fi
@@ -81,9 +81,10 @@ install -d -m 755 "$release"
 tar -xzf "$stage/release.tar.gz" -C "$release" --no-same-owner
 # Archives built on Windows carry 0777 directory modes; release trees stay root-owned and read-only.
 chmod -R u=rwX,go=rX "$release"
-chmod 755 "$release/game/wyd-server" "$release/game/wyd-player-api"
+chmod 755 "$release/game/wyd-server" "$release/game/wyd-player-api" "$release/game/wyd-log-reader"
 ln -s "$release" /srv/wyd-go/current
-install -m 644 "$stage/config/wyd-game.service" "$stage/config/wyd-player.service" "$stage/config/wyd-backup.service" "$stage/config/wyd-backup.timer" /etc/systemd/system/
+install -m 644 "$stage/config/wyd-game.service" "$stage/config/wyd-player.service" "$stage/config/wyd-backup.service" "$stage/config/wyd-backup.timer"     "$stage/config/wyd-log-reader.service" "$stage/config/wyd-log-reader.socket" /etc/systemd/system/
+install -d -m 755 /var/lib/wyd-go-backup
 install -m 700 "$stage/config/backup.sh" /usr/local/sbin/wyd-backup
 systemctl daemon-reload
 systemctl enable --now wyd-game
@@ -93,7 +94,7 @@ for attempt in {1..20}; do
     sleep 1
 done
 runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 < "$stage/config/player-privileges.sql"
-systemctl enable --now wyd-player wyd-backup.timer
+systemctl enable --now wyd-player wyd-backup.timer wyd-log-reader.socket
 ready=false
 for attempt in {1..10}; do
     if curl --fail --silent -H 'Host: wyd.forjago.com' http://127.0.0.1:8083/readyz; then ready=true; break; fi

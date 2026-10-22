@@ -27,6 +27,8 @@ foreach ($directory in @('tmproject', 'wydgo748', 'tools', '.github')) {
         # Installed dependencies and build outputs are generated, not authored source.
         $relativeSource = [IO.Path]::GetRelativePath($repoRoot, $file.FullName).Replace('\', '/')
         if ($relativeSource -match '^(?:tmproject/(?:build|bin|obj)/|wydgo748/web/portal/(?:node_modules|dist|\.astro)/)') { continue }
+        # Site news posts are product content rendered by the portal, not documentation.
+        if ($relativeSource -match '^wydgo748/web/portal/src/content/news/[a-z0-9-]+\.md$') { continue }
         $issues.Add("Documentation outside its canonical location: $($file.FullName)")
     }
 }

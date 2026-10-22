@@ -2089,6 +2089,7 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	{
 		if (!idwEvent)
 			return TMFieldScene::OnMsgBoxEvent(4617, 0, dwServerTime);
+		m_nEntranceTicketSlot = -1;
 
 		if (g_nKeyType == 1)
 			m_pControlContainer->SetFocusedControl(m_pEditChat);
@@ -4113,6 +4114,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	case quiz_event::ChallengeOpcode:
 		return OnPacketQuizEvent(pStd);
 		break;
+	case instance_question::Opcode:
+		return OnPacketInstanceQuestion(pStd);
 	case premium_shop::StateOpcode:
 		return OnPacketPremiumShopState(pStd);
 	case 0x1C2:
@@ -4243,6 +4246,8 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	TMScene::FrameMove(dwServerTime);
 	UpdateGambleRequestTimeout();
 	UpdateInstanceTimerHud(dwServerTime);
+	if (m_pInstanceQuestionPanel && !m_instanceQuestion.Visible(GetTickCount()))
+		m_pInstanceQuestionPanel->SetVisible(0, 1);
 	// Native field lifecycle advances the five-second quit/logout/server-change
 	// countdown immediately after the base scene.  Keep that proven slice even
 	// while unsafe 7.59-only HUD ticks remain excluded from the compact path.
@@ -4797,6 +4802,19 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		stQuest.Parm2 = 4;
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stQuest)->Type, reinterpret_cast<char*>(&stQuest), sizeof(stQuest)});
 		m_pPGTOver = nullptr;
+	}
+	break;
+	case 1737:
+	{
+		const int slot = m_nEntranceTicketSlot;
+		m_nEntranceTicketSlot = -1;
+		if (slot < 0 || slot >= MAX_CARRY - 1) break;
+		int x = 0, y = 0;
+		GetCarryCellForSlot(slot, x, y);
+		auto item = m_pGridInv->GetItem(x, y);
+		if (item && item->m_pItem && item->m_pItem->sIndex == 1737 &&
+			std::memcmp(item->m_pItem, &m_stEntranceTicket, sizeof(STRUCT_ITEM)) == 0)
+			UseItem(item, BASE_GetItemAbility(item->m_pItem, EF_VOLATILE), 1737, x, y);
 	}
 	break;
 	case 883:

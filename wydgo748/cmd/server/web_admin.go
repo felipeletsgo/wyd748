@@ -2,21 +2,27 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/debug"
 	"sync"
 	"time"
 
 	"wydgo/internal/account"
 	"wydgo/internal/control"
 	"wydgo/internal/data"
+	"wydgo/internal/logreader"
 	"wydgo/internal/playerportal"
+	"wydgo/internal/staffcontent"
 	"wydgo/internal/store"
 	"wydgo/internal/webadmin"
 )
@@ -56,7 +62,13 @@ func adminDatabaseURL(cfg data.ServerConfig) string {
 }
 
 // Failure disables only the panel. Never stop or replace the game process.
-func startWebAdmin(cfg data.ServerConfig, source control.Source, registration account.RegistrationStore) (func(), error) {
+// adminInputs carries the static, boot-time panel data built in main.
+type adminInputs struct {
+	content *staffcontent.Index
+	zones   *staffcontent.Zones
+}
+
+func startWebAdmin(cfg data.ServerConfig, source control.Source, registration account.RegistrationStore, inputs adminInputs) (func(), error) {
 	if !cfg.WebAdminEnabled {
 		return func() {}, nil
 	}
@@ -126,9 +138,27 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	bosses, _ := source.(control.BossesSource)
 	pvpDoor, _ := source.(control.PvPDoorSource)
 	oxEvent, _ := source.(control.OXEventSource)
+	colosseum, _ := source.(control.ColosseumSource)
 	kick, _ := source.(control.KickSource)
 	teleport, _ := source.(control.TeleportSource)
 	premium, _ := source.(control.PremiumSource)
+	sanctions, _ := source.(control.SanctionSource)
+	notices, _ := source.(control.NoticeSource)
+	shutdown, _ := source.(control.ShutdownSource)
+	// Audit rows use the game's writer store: the panel database role may be
+	// read-only. The stderr audit log remains when it is unavailable.
+	auditStore, _ := registration.(control.AuditStore)
+	accountHistory, _ := registration.(control.AccountHistoryStore)
+	accountNotes, _ := registration.(control.AccountNotesStore)
+	worldReads, _ := source.(control.WorldReadSource)
+	var logReader webadmin.LogReader
+	if cfg.WebAdminLogReaderSocket != "" {
+		logReader = logreader.Client{Path: cfg.WebAdminLogReaderSocket}
+	}
+	var itemName func(uint16) string
+	if items, ok := source.(interface{ ItemName(uint16) string }); ok {
+		itemName = items.ItemName
+	}
 	handler, err := webadmin.New(webadmin.Config{
 		Origin: origin, DevHTTP: devHTTP, AdminAccessPIN: pin, TrustedProxies: trustedProxies,
 		RequireLoginProtection: !devHTTP, LoginVerifier: verification, AuthenticationLimiter: db.AuthenticationLimiter(),
@@ -139,23 +169,66 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 		Bosses:     bosses,
 		PvPDoor:    pvpDoor,
 		OXEvent:    oxEvent,
+		Colosseum:  colosseum,
 		Kick:       kick,
 		Teleport:   teleport,
 		Premium:    premium,
-		Audit:      slog.New(slog.NewJSONHandler(os.Stderr, nil)),
+		Sanctions:  sanctions,
+		Notices:    notices,
+		Shutdown:   shutdown,
+		AuditStore: auditStore,
+		Metrics:    control.ReadRuntime,
+		// Login history and staff actions use the writer store like the audit;
+		// saved storage is read through the panel's read-only pool.
+		AccountHistory: accountHistory,
+		Storage:        db,
+		ItemName:       itemName,
+		Logs:           logReader,
+		Content:        inputs.content,
+		Zones:          inputs.zones,
+		WorldReads:     worldReads,
+		Notes:          accountNotes,
+		Audit:          slog.New(slog.NewJSONHandler(os.Stderr, nil)),
 	})
 	if err != nil {
 		return nil, err
 	}
 	site, err := handler.Site(cfg.WebAdminStaticPath)
 	if err != nil {
+		handler.Close()
 		return nil, err
 	}
-	stop := serveWebAdmin(listener, site, db.Close)
+	stop := serveWebAdmin(listener, site, func() { handler.Close(); db.Close() })
 	started = true
+	handler.RecordServerStart(append(serverBuildIdentity(), "channel_id", cfg.ChannelID)...)
 	log.Printf("Admin panel: %s/admin/ (listener %s; account password + PIN; permissions from %s)",
 		origin, cfg.WebAdminAddress, cfg.WebAdminStaffPath)
 	return stop, nil
+}
+
+// serverBuildIdentity describes the running binary for the boot receipt: Go
+// and VCS stamps when the build has them, plus the executable's SHA-256.
+func serverBuildIdentity() []any {
+	attrs := []any{"pid", os.Getpid()}
+	if info, ok := debug.ReadBuildInfo(); ok {
+		attrs = append(attrs, "go_version", info.GoVersion)
+		for _, setting := range info.Settings {
+			switch setting.Key {
+			case "vcs.revision", "vcs.time", "vcs.modified":
+				attrs = append(attrs, setting.Key, setting.Value)
+			}
+		}
+	}
+	if path, err := os.Executable(); err == nil {
+		if file, err := os.Open(path); err == nil {
+			hash := sha256.New()
+			if _, err := io.Copy(hash, file); err == nil {
+				attrs = append(attrs, "executable_sha256", hex.EncodeToString(hash.Sum(nil)))
+			}
+			_ = file.Close()
+		}
+	}
+	return attrs
 }
 
 func serveWebAdmin(listener net.Listener, handler http.Handler, cleanup func()) func() {

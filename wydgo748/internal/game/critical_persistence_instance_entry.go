@@ -339,14 +339,15 @@ func (w *World) publishCriticalInstanceEntryStatus(inst *ItemInstance) {
 		return
 	}
 	stage := stages[inst.CurrentStage]
+	now := w.now()
 	for _, id := range inst.MemberIDs {
 		member := w.playersByID[id]
 		if member == nil || !member.InWorld || member.Session == nil || member.Session.IsClosed() {
 			continue
 		}
-		seconds := remainingInstanceSeconds(instanceCombatDeadline(inst), w.now())
+		seconds := remainingInstanceSeconds(instanceCombatDeadline(inst), now)
 		if isBigCubeInstance(inst) && stage.Quiz != nil {
-			seconds = remainingInstanceSeconds(inst.QuizDeadline, w.now())
+			seconds = remainingInstanceSeconds(inst.QuizDeadline, now)
 		}
 		member.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, uint32(seconds)))
 		member.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, instanceDisplayedMobCount(inst)))
@@ -355,8 +356,9 @@ func (w *World) publishCriticalInstanceEntryStatus(inst *ItemInstance) {
 			name = inst.Config.Name
 		}
 		member.Session.Send(wire.MessagePanel(name))
-		if isBigCubeInstance(inst) && stage.Quiz != nil {
-			member.Session.Send(wire.MessagePanel(strings.ReplaceAll(stage.Quiz.Question, "_", " ")))
+		if isBigCubeInstance(inst) && stage.Quiz != nil && inst.QuizDeadline.After(now) {
+			member.Session.Send(wire.InstanceQuestion(member.ID, strings.ReplaceAll(stage.Quiz.Question, "_", " "),
+				uint32(inst.QuizDeadline.Sub(now)/time.Millisecond)))
 		}
 	}
 }
