@@ -17,7 +17,7 @@ Source API version `0.14.0`; schema `11` (v9 sanctions and staff audit, v10
 account logins, v11 case notes), applied by the game binary at start. The
 VPS update script installs the log-reader socket and user, and its rollback
 restores the schema 8 marker. Site news moved to Markdown files; the
-release post is `server-notices-maintenance-moderation`.
+release post is `big-cube-staff-notices-10042` (patch 10042).
 
 Final audit 2026-10-22: full `go test ./... -count=1` and `go vet ./...`;
 store, player API, webadmin and server tests against a temporary PostgreSQL

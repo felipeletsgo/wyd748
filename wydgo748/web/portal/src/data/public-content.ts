@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10041,
-  publishedAt: '2026-10-21',
-  serverUpdate: { id: 'combat-events-persistence-10041', publishedAt: '2026-10-21' },
+  patchVersion: 10042,
+  publishedAt: '2026-10-22',
+  serverUpdate: { id: 'big-cube-staff-notices-10042', publishedAt: '2026-10-22' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -14,10 +14,10 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10041.zip',
-    sizeBytes: 900489,
-    sha256: '4CF0535F04C58362478F4927D50717FD6D1140B4262439CBB357DC8790BB0628',
-    executableSha256: '64C9BDDEEC0EE6E6197B63A0CA915B10BE1AEA8F1C6B03A1F9D3EC47428C3F82',
+    url: '/patch/patch-10042.zip',
+    sizeBytes: 863580,
+    sha256: 'F91D11AA93292AFE38DBD2092443C72E7A536CBB57292D556FD6B9DCC50FE7DA',
+    executableSha256: '7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -27,6 +27,14 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-22', category: 'Client and server', title: 'Patch 10042 — Big Cube, staff notices and planned maintenance', entries: [
+    'Confirm the Big Cube Entrance Ticket before use, accept it across the Big Cube entry area and add a paid return portal to Noatum.',
+    'Show Big Cube and Cube room questions in a private panel with a ten-second timer; the server still decides by position.',
+    'Deliver staff announcements and private staff messages in the notice panel and chat.',
+    'Announce planned maintenance and restarts with a countdown and close new logins in the final minute.',
+    'Enforce chat mutes and account suspensions recorded by the staff team.',
+    'Automated checks passed; real-client acceptance of the new Big Cube flow remains pending.',
+  ] },
   { date: '2026-10-21', category: 'Client and server', title: 'Patch 10041 — combat resources and event safety', entries: [
     'Bound damage and healing calculations, synchronize active large resource pools, and ship the wide item-attribute companion table.',
     'Commit ghost-shop honor atomically; wait for Colosseum entry payment and retry rejected arena exits after event finalization.',
