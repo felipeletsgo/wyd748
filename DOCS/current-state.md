@@ -1,5 +1,45 @@
 # Current project state
 
+## Release — 2026-10-22, staff panel stages 0–3, Big Cube and patch 10042
+
+The owner authorized commit/push to `main`, VPS publication and a service
+restart (not a machine reboot). Source commit `379dcd93`, portal receipt
+commit `0f4b8b71`; both pushed to GitHub `main`. Local
+`tmproject/client748/config.txt` remains excluded. Client patch: see
+[launcher patch 10042](client/launcher.md#published-patch-10042-2026-10-22).
+
+Archive SHA-256
+`DCC1EC8C3F64A08C31C9E29B78E8B857CF89768A16A3CA37D58BCBD4A57FE6C3`, checked
+on the host before activation. Game binary
+`4B7A19D0F96DDB3B39FECC6DB3A108D60CC4141273DAA9436D39701EC9855B86`, player
+API `A2967E413137C33FFB9E43D438D942AF2E76F1A16871C9E436C3D25FE0EAAA02`, log
+reader `DC64DD149625812F6F3B39D7DDE552EE58D9E44961A55DA08D06E7924330ED65`;
+all embed revision `0f4b8b71` with `vcs.modified=true` (only the excluded
+client configuration and a research note were dirty). Live server, unit and
+Caddy files matched staging except the new `web_admin_log_reader_socket`
+line; staff membership was unchanged, adding the seven panel capabilities.
+
+Zero game connections before activation. The updater ran the existing backup
+(`Result=success`), then the controlled stop at 18:04:51 UTC logged zero
+persisted accounts, zero failures and `shutdown complete`. Release
+`/srv/wyd-go/releases/20261022T180448Z` went live with game and player API
+restarted; the game listened on 8281 at 18:04:52 UTC. Rollback reference:
+`/srv/wyd-go/releases/20261021T190239Z` (schema 8 marker restore is built
+into the updater).
+
+Verified after activation: running `/proc/<pid>/exe` paths are inside the
+new release with the hashes above; schema 11; staff and player readiness
+return 200/`ready`; a `server.start` audit row is persisted; the
+`wyd-log-reader` socket (`wyd-log-reader:wyd-game 0660`) served a real
+journal read to `wyd-game` and refused `wyd-player`; no game, player API or
+log-reader journal entries at priority error or above. The first backup
+receipt (`status.json`) appears with the next timer run, because the backup
+during the update used the previous script. Remote staging was removed.
+
+Pending: authenticated browser acceptance of the panel, in-game acceptance of
+moderation/notices/maintenance and the Big Cube flow (not `CLIENT_TESTED`).
+`game.event.colosseum` is still not provisioned in the staff template.
+
 ## Local source — 2026-10-22, staff panel P1 and stages 0–3
 
 The staff panel adds persistent bans and chat mutes, scheduled staff notices

@@ -1,5 +1,34 @@
 # WYD launcher and client patches
 
+## Published patch 10042 (2026-10-22)
+
+The owner authorized committing/pushing the staff panel (P1, stages 0–3) and
+Big Cube batch to `main`, VPS publication and a service restart (no machine
+reboot). Source commit `379dcd93`; portal receipt commit `0f4b8b71`. The
+patch builder took client assets from Git between `1faf8aca` and `379dcd93`;
+the validated Release executable was added explicitly. No private settings,
+launcher or local version marker are included.
+
+- ZIP: 863,580 bytes, SHA-256
+  `F91D11AA93292AFE38DBD2092443C72E7A536CBB57292D556FD6B9DCC50FE7DA`.
+- `WYD.exe`: 1,917,952 bytes, SHA-256
+  `7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9`
+  (built after the last client product-source edit; gates recorded in
+  [current state](../current-state.md#local-source--2026-10-21-big-cube-ticket-and-return-portal)).
+- `Env/AttributeMap.dat`: 1,048,580 bytes, SHA-256
+  `3D56C0E1EA4AC286EF74D9A7AB764B02AF77964D904F9A3D21AD0B83444465F4`.
+- Both public HTTP/HTTPS feeds append 10042; fresh HTTP and HTTPS downloads
+  match the ZIP hash. The public manifest, home, News article and changelog
+  advertise 10042.
+- Active server release: `/srv/wyd-go/releases/20261022T180448Z`. See
+  [current state](../current-state.md) for activation and rollback.
+
+Close the game and run `WYDLauncher.exe` to install the coordinated patch:
+the game server now sends the private Big Cube question packet `0x7F12`,
+which earlier clients do not display. Not `CLIENT_TESTED`: ticket
+confirmation, the question panel, O/X resolution and the return portal still
+need real-client acceptance.
+
 ## Published patch 10041 (2026-10-21)
 
 The owner authorized committing/pushing the audited October 19-21 batch to
