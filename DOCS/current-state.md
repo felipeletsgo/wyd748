@@ -1,6 +1,6 @@
 # Current project state
 
-## Local source — 2026-10-23, ankh inventory tint, second cause
+## Release — 2026-10-23, patch 10045 (ankh tint, second cause) and revision 3
 
 Patch 10044 (`53AE5960`, confirmed installed) still drew the inventory ankhs
 grey. The table lookup was correct, but the UI pass leaves texture stage 0 at
@@ -8,10 +8,27 @@ grey. The table lookup was correct, but the UI pass leaves texture stage 0 at
 tint was discarded; the world pass that draws ground ankhs modulates by vertex
 color. The 737..739 branch in `RenderDevicePrimitives.cpp` now sets
 `MODULATE(TEXTURE, DIFFUSE)` for that draw and restores the cached stage
-values; `AnkhInventoryTintTests` checks the order. Client gate passed
-(ArchitectureTests 3,171,485); candidate `WYD.exe` SHA-256
-`4FB1CBF8440ADF602E984DEA1322A2369861DB451904DCAFF341CF8D0DF01B80` (still build revision 2). Not committed, installed
-or published; visual confirmation pending.
+values; `AnkhInventoryTintTests` checks the order.
+
+Commits `41e192ad` (source, revision 3 on both sides) and `cd91c527` (portal
+receipt), pushed. Gates: full `go test ./... -count=1`, vet, handshake
+cross-check at 3, `Build-Client.ps1 -NoDeploy` (ArchitectureTests 3,171,485,
+socket 281, crash 200, launcher 56), portal build, 89 tests, `astro check`.
+Patch 10045 published and verified first
+([launcher receipt](client/launcher.md#published-patch-10045-2026-10-23)).
+Archive SHA-256
+`D09760D0A696318B0FACD13CBFE8C1FCA2E5EC3BB271489EB173DE54F5AD43E0`; game
+`01B7CC40408081C3F5B8DF29ADA7B00AE23673ADBA8CBD08007D4CEECD1A0D8D`, player
+API `1026925B2C6AC0F364DD64D1B6AC5247A9269319066BF86157D701F1D749DA60`, log
+reader `55513EB6B11555883649E1CE263D2C8B5A2AE9A50FE8EFF54E2689F7E14FBE78`,
+revision `cd91c527`. All nine private configuration files matched staging.
+No players online; the controlled stop at 15:35:45 UTC persisted zero
+accounts with zero failures. Release `/srv/wyd-go/releases/20261023T153545Z`
+is live (game listening 15:35:49 UTC); rollback reference
+`/srv/wyd-go/releases/20261023T053602Z` (pairs with 10044, revision 2).
+Readiness 200/`ready`, schema 11, no error-priority journal entries, remote
+staging removed. Pending: visual confirmation of the inventory ankh colors
+and a first revision-3 login; not `CLIENT_TESTED`.
 
 ## Release — 2026-10-23, patch 10044 and client build revision 2
 
@@ -43,9 +60,10 @@ accounts with zero failures (`Result=success`); release
 05:36:06 UTC. Rollback reference: `/srv/wyd-go/releases/20261023T012326Z`
 (pairs with patch 10043, revision 1). Running executables match the hashes
 above; staff and player readiness 200/`ready`; schema 11; no error-priority
-journal entries; remote staging removed. Pending: the first production login
-with revision 2 and in-game acceptance of the three fixes; not
-`CLIENT_TESTED`.
+journal entries; remote staging removed. The gate held in production: a
+revision-1 client was rejected at 05:53:57 UTC and a revision-2 client
+logged in at 05:54:11 UTC. Pending: in-game acceptance of the three fixes;
+not `CLIENT_TESTED`.
 
 ## Release — 2026-10-23, patch 10043 and mandatory client build gate
 

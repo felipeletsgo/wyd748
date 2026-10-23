@@ -1,5 +1,24 @@
 # WYD launcher and client patches
 
+## Published patch 10045 (2026-10-23)
+
+Client build revision **3**; the activated server requires revision >= 3.
+The owner authorized commit/push, publication and the controlled restart.
+Source commit `41e192ad`; portal receipt commit `cd91c527`; both pushed.
+Executable-only ZIP, packaged as 10044.
+
+- ZIP: 852,533 bytes, SHA-256
+  `A95C70FA2875F5CA9820076E12468A8617E6D338AE1E8A929A6082C8177B31C0`.
+- `WYD.exe`: 1,919,488 bytes, SHA-256
+  `1FCC782FBB7F95B2F619A55D8A566DBFA8453FB65EA95D40F1D96F2D944FDF0F`;
+  it embeds build identity `0x57470003` and no revision-2 identity.
+- HTTP/HTTPS feeds list 10045 and both downloads match; the public manifest,
+  News article and changelog advertise 10045. Published before the server
+  activation.
+- Revision-2 gate evidence from the 10044 server: a revision-1 client was
+  rejected before authentication at 05:53:57 UTC and a revision-2 client
+  logged in at 05:54:11 UTC.
+
 ## Published patch 10044 (2026-10-23)
 
 Client build revision **2**; the activated server requires revision >= 2.
@@ -209,7 +228,8 @@ together, one above the last published revision, and ships with the server
 release that enforces it: publish and verify the patch first, then activate
 the server. Record the revision in the patch receipt. Published revisions:
 patches up to 10042 predate the gate (no revision); patch 10043 carries
-revision 1 and patch 10044 revision 2, so the next patch carries revision 3.
+revision 1, patch 10044 revision 2 and patch 10045 revision 3, so the next
+patch carries revision 4.
 
 Every published patch or player-visible server release also updates the
 website: the `clientRelease` receipt and a `changelog` entry in
