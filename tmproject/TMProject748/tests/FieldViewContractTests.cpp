@@ -123,6 +123,10 @@ int RunFieldViewContractTests(int& checks)
         CameraZoomDistance(10.0f, 1.2f, 10.0f, 0, 120, -120) == 9.5f &&
         CameraZoomDistance(5.0f, 1.2f, 10.0f, 1, 120, -120) == 5.5f,
         "zoom distance follows the selected wheel direction");
+    check(camera.find("m_stScore.Con") == std::string::npos,
+        "the zoom near limit does not grow with player CON");
+    check(CameraZoomDistance(20.0f, 1.2f, 20.0f, 1, -120, 0) == 19.5f,
+        "a fixed near limit lets a high-CON player zoom in from the maximum");
 
     check(beriel_aura::InRange(0.0f, 0.0f) && beriel_aura::InRange(8.0f, 0.0f) &&
         beriel_aura::InRange(5.0f, 6.0f), "the aura reaches players near the guard");

@@ -33,7 +33,8 @@ int RunCCModePolicyTests(int& checks)
     check(!cc_mode::BuffNeedsRefresh(4), "a buff with more than 24 seconds left is kept");
     check(cc_mode::BuffNeedsRefresh(3), "a buff is refreshed before it expires");
     check(cc_mode::BuffNeedsRefresh(0), "a missing buff is cast");
-    const int referenceBuffs[] = {3, 5, 53, 54, 9, 11, 37, 41, 43, 44, 45, 46,
+    // Reference set plus Growth (13), whose Possessed affect the C.C. now keeps.
+    const int referenceBuffs[] = {3, 5, 53, 54, 9, 11, 13, 37, 41, 43, 44, 45, 46,
         64, 66, 68, 70, 71, 87, 75, 76, 77, 81, 86, 89, 92};
     for (int skill = -1; skill < 256; ++skill) {
         bool expected = false;

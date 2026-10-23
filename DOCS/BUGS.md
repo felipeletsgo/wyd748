@@ -29,6 +29,14 @@ triaged issues, evidence and acceptance checks.
 - Celestial conversion: Health, Sephira and Pancake potion buffs disappear.
   Players request account-bound buffs shared by all characters on the account.
 - Huntress Cargo Guard skill: the skill reportedly does not open storage.
+- Party request stops the C.C. macro (reported 2026-10-23, pending
+  reproduction): with the macro attacking, receiving a party request makes
+  the character stop attacking. Static review of the client request handler,
+  the `-938` notice panel, the macro loop and the server invite state found
+  no cause (see [current state](current-state.md)). Next step: reproduce
+  with `WYD748_TRACE_PACKETS=1` set before starting `WYDLauncher.exe` and
+  compare the outgoing attack opcodes in `client-debug.log` before and after
+  the incoming `0x37F`.
 
 ## Status — 2026-10-20 (patches 10037–10038 published; gameplay pending)
 

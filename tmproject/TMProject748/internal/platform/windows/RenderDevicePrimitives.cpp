@@ -1257,7 +1257,7 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 			}
 			else
 			{
-				unsigned int dwColor[3] = { 0xFFFF4400, 0xFF3366FF, 0xFF00FF00 };
+				static const unsigned int dwColor[3] = { 0xFFFF4400, 0xFF3366FF, 0xFF00FF00 };
 				g_pDevice->SetRenderState(D3DRS_ZFUNC, 8u);
 				g_pDevice->SetRenderState(D3DRS_LIGHTING, 0);
 				g_pDevice->SetRenderState(D3DRS_DESTBLEND, 2u);
@@ -1278,8 +1278,12 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 						pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
 
 						int nCount = vDesc.Size / 24;
+						// Native FUN_0042e8a1, as FUN_004f59b4 for ground items: ankh
+						// meshes 737..739 (Justice, Eternity, Glory) tint every vertex
+						// with dwColor[mesh - 737]. The decompiled stack offset 2964
+						// wrote an unrelated constant, so inventory ankhs lost color.
 						for (int i = 0; i < nCount; ++i)
-							pVertex[i].diffuse = ipControl->n3DObjIndex - 2964;
+							pVertex[i].diffuse = dwColor[ipControl->n3DObjIndex - 737];
 
 						pMesh->m_pVB->Unlock();
 

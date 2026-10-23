@@ -38,13 +38,48 @@ weapons, mount HUD); not `CLIENT_TESTED`.
 
 ## Local source — 2026-10-23, ankh inventory colors and Lactolerium 100%
 
-- Ankh inventory halos (`MODERNIZACAO_COMPATIVEL`, presentation only): the
-  ground effect already tinted Justice Ankh 661 (MP) red, Eternity Ankh 662
-  (HP) blue and Glory Ankh 663 (critical) green (`TMItem.cpp`), but the
-  inventory used the native halo list, which has no ankhs. They now use native
-  palette shades `0xFF995555`, `0xFF555599` and `0xFF559955`, added after the
-  native rules in `native_inventory_glow::Background` and marked as a project
-  extension; its catalog test covers them.
+- Ankh inventory color (`PARIDADE_NATIVA` fix, 2026-10-23, after patch
+  10043 showed the ankhs still uncolored): the inventory renderer keeps
+  meshes 737..739 out of the ordinary item path and, as native
+  `FUN_0042e8a1`/`FUN_004f59b4`, tints every vertex with
+  `{0xFFFF4400, 0xFF3366FF, 0xFF00FF00}[mesh - 737]` (Justice MP red-orange,
+  Eternity HP blue, Glory critical green). The port wrote the decompiled stack
+  offset (`n3DObjIndex - 2964`) instead of the table lookup, so inventory
+  ankhs lost their color; ground items already used the table. Fixed in
+  `RenderDevicePrimitives.cpp`; `AnkhInventoryTintTests` guards both
+  renderers. The earlier halo entries in `native_inventory_glow::Background`
+  were never reached for these meshes and were removed, keeping the native
+  halo catalog exact. Client gate passed (ArchitectureTests 3,171,482);
+  candidate `WYD.exe` SHA-256
+  `C5703F6E0D844C20D3B87001EB1EB0207369428F257A7404859D665BAAEFD1D4`. Not
+  committed or published; needs the next patch (build revision 2).
+- C.C. auto-buff (2026-10-23): TK Growth (skill 13) was missing from
+  `cc_mode::IsAutomaticBuff`, although the same policy already gave it a
+  mastery slot. Growth applies affect 14 (server "Possessed"), which
+  `g_AffectSkillType[14]` maps back to skill 13, so the existing rebuff
+  timing recognizes it. It is now in the list; `CCModePolicyTests` pins the
+  set. Client gate passed (ArchitectureTests 3,171,482); candidate `WYD.exe`
+  SHA-256 `203C8CECE4CC4A93AD39AD3FB8959618FDD84E9300DE678714B5D81868966314`
+  (also contains the ankh fix). Not committed or published.
+- Camera zoom with high CON (2026-10-23, `MODERNIZACAO_COMPATIVEL`): the
+  wheel's near limit in `EventTranslator::CameraEventData` still added native
+  `CON * 0.00019` to 1.2 (2.5 mounted). With the 100,000-CON test amulet it
+  reached about 20.2, above the 20.0 maximum, so the camera could not zoom in.
+  Patch 10040 had removed CON from `TMCamera` but missed this limit. It no
+  longer reads CON, matching the fixed player size; `FieldViewContractTests`
+  guards it. Client gate passed (ArchitectureTests 3,171,484); candidate
+  `WYD.exe` SHA-256
+  `4B552FCE7E855EB4CE312DF1DA8745624712C9E3D8040C6EB3FE889A56D3DBCA`
+  (also contains the ankh and Growth fixes). Not committed or published.
+- Reported, not reproduced (2026-10-23): attacking stops when a party request
+  arrives. Static review found no dialog, focus change or attack-state reset:
+  the client `OnPacketREQParty` only fills the party list, opens the party
+  panel and writes chat lines; the parameterized `-938` notice is a
+  non-modal panel; the server stores only `InviteFrom/InviteUntil`, which no
+  combat path reads; the C.C. loop has no party gate. Needs reproduction
+  details before a change. The owner confirmed the C.C. macro was attacking;
+  the server log has no macro-attack records. Pending a trace reproduction
+  ([additional player reports](BUGS.md)).
 - Lactolerium 100% (`EXTENSAO_COORDENADA`, new catalog item): item **3022**,
   free on both sides, uses the Fury Stone (3020) mesh/texture `2874.8`; 3020
   is unchanged. It carries Lac's `EF_VOLATILE 5`, so the native client already

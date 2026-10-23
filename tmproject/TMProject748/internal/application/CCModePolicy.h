@@ -34,7 +34,8 @@ namespace cc_mode
     constexpr bool IsAutomaticBuff(int skill)
     {
         switch (skill) {
-        case 3: case 5: case 53: case 54: case 9: case 11: case 37:
+        // 13 Growth applies the Possessed affect (14), mapped back to skill 13.
+        case 3: case 5: case 53: case 54: case 9: case 11: case 13: case 37:
         case 41: case 43: case 44: case 45: case 46: case 64: case 66:
         case 68: case 70: case 71: case 87: case 75: case 76: case 77:
         case 81: case 86: case 89: case 92: // 86 Coin Armor; 85 Backpack opens Cargo

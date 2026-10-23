@@ -5,7 +5,7 @@
 namespace client_build {
 constexpr unsigned int Protocol = 748;
 constexpr unsigned int Prefix = 0x57470000;
-constexpr unsigned int Revision = 1;
+constexpr unsigned int Revision = 2;
 constexpr unsigned int Identity = Prefix | Revision;
 static_assert(Revision > 0 && Revision <= 0xFFFF, "client build revision must not wrap");
 
