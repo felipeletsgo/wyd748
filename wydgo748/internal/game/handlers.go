@@ -112,7 +112,7 @@ func shopTypeForMerchant(merchant uint32) (uint32, bool) {
 
 // onLogin: 0x20D. Load the account from storage and send character selection.
 func (w *World) onLogin(s *net.Session, pkt []byte) {
-	if len(pkt) < 44 || w.authPending[s] || w.players[s] != nil {
+	if len(pkt) < 44 || s.IsClosed() || s.AdmissionRejected() || w.authPending[s] || w.players[s] != nil {
 		return
 	}
 	// After the final shutdown snapshot, admitting a login would create state
@@ -124,9 +124,10 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	accountName := cstr(pkt[12:28])
 	password := cstr(pkt[28:40])
 	cliver := binary.LittleEndian.Uint32(pkt[40:44])
-	// Select the response ABI before authentication. This changes only packet
-	// serialization; account/password and all gameplay values are still
-	// validated from the canonical server-side sources.
+	var clientBuild uint32
+	if len(pkt) >= 48 {
+		clientBuild = binary.LittleEndian.Uint32(pkt[44:48])
+	}
 	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN rejected before authentication ip=%q: network policy (%s)",
 			s.ID, s.RemoteIP(), reason)
@@ -134,12 +135,19 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
+	if !wire.CompatibleClientLogin(pkt) {
+		log.Printf("[#%d] LOGIN rejected before authentication: incompatible client protocol=%d build=0x%08X minimum_build_revision=%d",
+			s.ID, cliver, clientBuild, wire.MinimumClientBuildRevision)
+		s.RejectAdmission(wire.MessagePanel("Client update required. Close the game and run the launcher to update."))
+		return
+	}
 	if !w.allowLoginAttempt(s.RemoteIP(), accountName, w.now()) {
 		log.Printf("[#%d] LOGIN rate limited account=%q ip=%q", s.ID, accountName, s.RemoteIP())
 		s.Send(wire.MessagePanel("Too many login attempts. Try again later."))
 		return
 	}
-	log.Printf("[#%d] LOGIN account=%q cliver=%d password_len=%d", s.ID, accountName, cliver, len(password))
+	log.Printf("[#%d] LOGIN account=%q cliver=%d build_revision=%d password_len=%d", s.ID, accountName, cliver,
+		clientBuild&0xFFFF, len(password))
 	select {
 	case w.authSlots <- struct{}{}:
 	default:
@@ -147,10 +155,11 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 		return
 	}
 	w.authPending[s] = true
+	sanctionVersion := w.staffOps.sanctionVersions[accountSessionKey(accountName)]
 	go func() {
 		defer func() { <-w.authSlots }()
 		acc, err := account.Authenticate(w.store, accountName, password)
-		result := &loginResult{accountName: accountName, account: acc, err: err}
+		result := &loginResult{accountName: accountName, account: acc, err: err, sanctionVersion: sanctionVersion}
 		if backend, ok := w.sanctionBackend(); ok && err == nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			result.sanctions, result.sanctionErr = backend.ActiveSanctionState(ctx, acc.Name)
@@ -165,7 +174,13 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		return
 	}
 	delete(w.authPending, s)
-	if s.IsClosed() {
+	if s.IsClosed() || s.AdmissionRejected() {
+		return
+	}
+	// Authentication runs outside the World loop and may finish after the
+	// maintenance cutoff or the final persistence snapshot.
+	if w.shuttingDown || w.shutdownLoginsBlocked(w.now()) {
+		s.Send(wire.MessagePanel("Server going into maintenance. Try again shortly."))
 		return
 	}
 	if result.err != nil {
@@ -179,8 +194,14 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 		return
 	}
 	acc := result.account
-	if result.sanctionErr != nil {
-		log.Printf("[#%d] LOGIN sanction check failed account=%q: %v", s.ID, acc.Name, result.sanctionErr)
+	sanctionErr := result.sanctionErr
+	if result.sanctionVersion != w.staffOps.sanctionVersions[accountSessionKey(acc.Name)] {
+		// An old authentication snapshot must not restore a revoked mute or
+		// bypass a sanction refresh that is still in flight. Retry a fresh read.
+		sanctionErr = errors.New("sanction state changed during authentication")
+	}
+	if sanctionErr != nil {
+		log.Printf("[#%d] LOGIN sanction check failed account=%q: %v", s.ID, acc.Name, sanctionErr)
 		s.Send(wire.MessagePanel("Login temporarily unavailable. Try again shortly."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
@@ -736,6 +757,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		item     *model.Item
 	}{{st, sp, src}, {dt, dp, dst}} {
 		if target.typ != placeEquip {
+			timedActivated = pauseUnequippedFairy(target.item, activationNow) || timedActivated
 			continue
 		}
 		activated, err := w.activateTimedItem(target.item, target.pos, activationNow)
@@ -767,6 +789,15 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	// Two 0x182 snapshots update cells but do not finish cursor state.
 	targetID := binary.LittleEndian.Uint16(pkt[16:18])
 	s.Send(wire.SwapItem(p.ID, st, sp, dt, dp, targetID))
+	// Refresh the remaining-time projection after freezing or resuming a fairy.
+	for _, target := range []struct {
+		typ, pos byte
+		item     model.Item
+	}{{st, sp, *src}, {dt, dp, *dst}} {
+		if isFairyIndex(target.item.Index) {
+			s.Send(wire.SendItem(p.ID, target.typ, target.pos, target.item))
+		}
+	}
 	if promoted {
 		s.Send(wire.SendItem(p.ID, placeEquip, 6, p.Char.Equip[6]))
 		s.Send(wire.SendItem(p.ID, placeEquip, 7, p.Char.Equip[7]))
@@ -1448,7 +1479,9 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 	targetX := binary.LittleEndian.Uint16(pkt[24:26])
 	targetY := binary.LittleEndian.Uint16(pkt[26:28])
 	if targetX == 0 || targetY == 0 || chebyshev(p.X, p.Y, targetX, targetY) > 8 ||
-		!w.terrain.Walkable(targetX, targetY) {
+		!w.terrain.Walkable(targetX, targetY) ||
+		!w.oxStepAllowed(p, targetX, targetY) ||
+		w.isOXMember(p) && w.ox.phase == "question" && !now.Before(w.ox.deadline) {
 		return
 	}
 	mastery := int(playerMastery(p.Char, 1))
@@ -1458,6 +1491,9 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 	}
 	fromX, fromY := p.X, p.Y
 	targetX, targetY = w.findFreePlayerPosition(targetX, targetY, 2, p)
+	if !w.oxStepAllowed(p, targetX, targetY) {
+		return
+	}
 	spendPlayerMP(p.Char, uint32(mana))
 	p.SkillReady[illusionSkill] = now.Add(900 * time.Millisecond)
 	p.X, p.Y = targetX, targetY

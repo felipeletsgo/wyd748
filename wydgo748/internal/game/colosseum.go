@@ -430,7 +430,11 @@ func (w *World) moveOutOfArenaWithAck(p *Player, x, y uint16, afterAck func()) b
 		return w.queuePlayerTeleportState(p, proposed, x, y, "arena exit", nil, afterAck, nil, dead) == nil
 	}
 	if !dead {
-		return w.teleportPlayer(p, x, y)
+		moved := w.teleportPlayer(p, x, y)
+		if moved && afterAck != nil {
+			afterAck()
+		}
+		return moved
 	}
 	if _, _, ok := w.resolvePlayerTeleportDestination(p, x, y); !ok {
 		return false
@@ -461,6 +465,9 @@ func (w *World) moveOutOfArenaWithAck(p *Player, x, y uint16, afterAck func()) b
 		}
 	}
 	w.syncPlayerVitals(p)
+	if moved && afterAck != nil {
+		afterAck()
+	}
 	return moved
 }
 

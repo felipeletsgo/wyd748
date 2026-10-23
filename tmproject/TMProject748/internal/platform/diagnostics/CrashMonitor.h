@@ -121,8 +121,12 @@ namespace wyd_crash_monitor
         EXCEPTION_POINTERS pointers{&record, &context};
         MINIDUMP_EXCEPTION_INFORMATION info{event.dwThreadId, &pointers, FALSE};
         const BOOL written = writer(process, event.dwProcessId, file,
+            // Indirectly referenced memory keeps the heap objects that stack
+            // values point to; a heap failure (0xC0000374) is otherwise
+            // undiagnosable because the freed object and its owner are absent.
             static_cast<MINIDUMP_TYPE>(MiniDumpNormal | MiniDumpWithDataSegs |
-                MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules | MiniDumpWithFullMemoryInfo),
+                MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules | MiniDumpWithFullMemoryInfo |
+                MiniDumpWithIndirectlyReferencedMemory),
             &info, nullptr, nullptr);
         DWORD error = written ? ERROR_SUCCESS : GetLastError();
         LARGE_INTEGER size{};

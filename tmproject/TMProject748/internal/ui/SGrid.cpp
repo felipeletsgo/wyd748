@@ -107,6 +107,12 @@ float WYD748_GetGridMeshScale(const SGridControlItem* item)
 	if (!mesh)
 		return 1.0f;
 
+	const auto* grid = item->m_pGridControl;
+	if (grid && (grid->m_eItemType == TMEITEMTYPE::ITEMTYPE_LEFT ||
+		grid->m_eItemType == TMEITEMTYPE::ITEMTYPE_RIGHT))
+		return grid_item_presentation::WeaponMeshScale(mesh->m_fMaxZ,
+			static_cast<float>(grid->m_nHeight), RenderDevice::m_fUIScaleY);
+
 	// Native FUN_0040e817 compares only MaxZ against 0.3 mesh units for each
 	// occupied cell row.  It shrinks meshes that exceed that vertical budget
 	// and never enlarges a mesh beyond its authored 1.0 scale.
@@ -118,7 +124,7 @@ void WYD748_ApplyGridMeshScale(SGridControlItem* item)
 	if (!item)
 		return;
 
-	// Equipment, inventory, mix slots and cursor share the native mesh fit.
+	// Recompute on each insertion so moving back to Carry restores its fit.
 	item->m_GCObj.fScale = WYD748_GetGridMeshScale(item);
 }
 

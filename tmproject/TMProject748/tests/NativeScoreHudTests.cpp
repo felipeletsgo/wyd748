@@ -4,6 +4,7 @@
 #include "../internal/ui/ItemHelpText.h"
 #include "../internal/ui/GuildNameDirectory.h"
 #include "../internal/ui/CapePresentation748.h"
+#include "../internal/application/PremiumMountMagic.h"
 #include <cstdio>
 #include <cstring>
 #include <initializer_list>
@@ -45,6 +46,55 @@ int RunNativeScoreHudTests(int& checks)
         ++checks;
         if (!condition) { ++failures; std::printf("FAIL native score HUD: %s\n", name); }
     };
+
+    struct MountEffect { short sEffect; short sValue; };
+    struct MountDefinition { MountEffect stEffect[12]{}; };
+    MountDefinition timedMount{{{EF_NOTRADE, 1}, {EF_DATE, 30}, {EF_MAGIC, 65}}};
+    check(premium_mount_magic::Percent(6000, timedMount, 0) == 65,
+        "KR magic uses the static exact percentage, not refinement or timer effects");
+    check(premium_mount_magic::Percent(3981, timedMount, 55) == 55,
+        "premium horses use the mount table instead of static magic");
+    MountDefinition namedHorse{{{EF_NOTRADE, 1}}};
+    check(premium_mount_magic::Percent(3980, namedHorse, 7) == 7
+        && premium_mount_magic::Percent(3990, namedHorse, 45) == 0,
+        "only the ten server catalog horses have name-based lifetime");
+    for (int index : {0, 2330, 2362, 2389})
+        check(premium_mount_magic::Percent(index, timedMount, 0) == 0,
+            "empty, egg and adult mounts never receive a second magic multiplier");
+    timedMount.stEffect[0].sValue = 0;
+    check(premium_mount_magic::Percent(6000, timedMount, 0) == 0,
+        "unmarked items do not qualify as timed mounts");
+    timedMount.stEffect[0].sValue = 1;
+    timedMount.stEffect[1].sValue = 0;
+    check(premium_mount_magic::Percent(6000, timedMount, 0) == 0,
+        "missing lifetime does not qualify as a timed mount");
+    timedMount.stEffect[1] = {EF_HOUR, 24};
+    check(premium_mount_magic::Percent(6000, timedMount, 0) == 0,
+        "invalid lifetime is rejected just as on the server");
+    timedMount.stEffect[1] = {EF_MIN, 1};
+    check(premium_mount_magic::Percent(6000, timedMount, 0) == 65,
+        "minute-only lifetimes retain the same percentage");
+    for (int percent : {7, 35, 45, 55, 65, 72, 145})
+        check(premium_mount_magic::Apply(1003, percent) == 1003 * (100 + percent) / 100,
+            "magic percentage retains integer rounding without quarter-point truncation");
+    check(premium_mount_magic::Apply(1003, 0) == 1003
+        && premium_mount_magic::Apply(-1003, 65) == -1003,
+        "unequipped mounts and healing remain unchanged");
+    check(premium_mount_magic::Apply(2000000000, 72) == (std::numeric_limits<int>::max)(),
+        "wide multiplication cannot wrap a projected damage into healing");
+    const auto skillDamage = source_contract::Method(ReadNameColorSource("internal/core/BasedefCombat.cpp"),
+        "int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weapondamage, int OriginalFace)");
+    const auto physicalBranch = skillDamage.find("if (!mob->Class && skind == 1 || mob->Class == 3)");
+    const auto magicBranch = skillDamage.find("else\n            {", physicalBranch);
+    const auto mountProjection = skillDamage.find("premium_mount_magic::Apply", magicBranch);
+    check(physicalBranch != std::string::npos && magicBranch != std::string::npos
+        && mountProjection != std::string::npos
+        && skillDamage.find("if (skillnum != 97)") < physicalBranch
+        && skillDamage.find("if (skillnum == 79)") < physicalBranch
+        && skillDamage.find("dam = 5 * (dam *", magicBranch) < mountProjection
+        && mountProjection < skillDamage.find("if ((1 << (8 * skillclass))")
+        && skillDamage.find("mob->Equip[14].sIndex", magicBranch) < mountProjection,
+        "production magic branch reads live slot 14 after amplification, before passives, excluding physical and fixed skills");
 
     for (int characterClass = 0; characterClass < 4; ++characterClass) {
         for (int lineage = 0; lineage < 3; ++lineage) {

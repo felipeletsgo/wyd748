@@ -1,6 +1,7 @@
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/core/Basedef.h"
 #include "../internal/core/ServerChannelLabel.h"
+#include "../internal/application/PremiumMountMagic.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -294,6 +295,19 @@ int RunServerNameAssetTests(int& checks)
         }
         check(krMounts == 99 && krMountsPresentable,
             "the 99 KR mounts use the horse icon and allow every class");
+
+        for (int index = 3980; index <= 3989; ++index) {
+            const int expected = g_pMountBonus2[index - 3980][1];
+            check(expected > 0 && premium_mount_magic::Percent(index, items[index], expected) == expected,
+                "all ten production premium horses retain their exact table percentage");
+        }
+        for (std::size_t index = 4190; index <= 6014; ++index) {
+            if ((index > 4299 && index < 6000) || items[index].nPos != 0x4000)
+                continue;
+            const int expected = effectValue(items[index], EF_MAGIC);
+            check(expected > 0 && premium_mount_magic::Percent(static_cast<int>(index), items[index], 0) == expected,
+                "all 99 production KR mounts project the static magic percentage");
+        }
 
         // Grid icons resolve through MeshList.txt; both replacement icons must
         // name meshes the client ships.

@@ -9,7 +9,114 @@ import (
 
 	"wydgo/internal/data"
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
+
+func TestMagicChamberCriticalEntryPublishesInitialRuneAfterCommit(t *testing.T) {
+	root := filepath.Join("..", "..", "data")
+	catalog, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"),
+		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	objects, err := data.LoadInitItems(filepath.Join(root, "init_items.csv"), catalog.Items)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, mode := range []string{"", "solo"} {
+		for _, outcome := range []string{"commit", "rejection", "unknown"} {
+			t.Run("mode="+mode+"/"+outcome, func(t *testing.T) {
+				w, leader, member, outsider, _, base, q, _, release := criticalInstanceEntryFixture(t, "water", outcome)
+				rule := magicChamberPartyRule()
+				rule.PartyMode = mode
+				rule.Instance.Mode = "private_chain"
+				// Put the entrance in view of the real room-1 InitItem slates.
+				rule.Instance.Stages[0].X, rule.Instance.Stages[0].Y = 786, 3672
+				rule.Instance.Stages[0].SpawnX, rule.Instance.Stages[0].SpawnY = 790, 3672
+				w.volatiles.Items[100] = rule
+				for index := uint16(runeSlateBase + 1); index <= runeSlateLast; index++ {
+					w.items[index] = catalog.Items[index]
+				}
+				for _, object := range objects {
+					if _, slate := runeSlateCell(object.X, object.Y); slate {
+						w.initItems = append(w.initItems, object)
+					}
+				}
+				w.nextItemID = 10000
+				if err := w.spawnInitItems(); err != nil {
+					t.Fatal(err)
+				}
+				w.onUseItem(leader.Session, useItemPacket(0, 0))
+				awaitCriticalWrite(t, base.entered)
+				assertPending := func() {
+					t.Helper()
+					if len(w.magicChamberRunes) != 0 || w.gameplaySpaceForPlayer(leader) != "" ||
+						leader.Session.QueuedPacketsForTest() != 0 || member.Session.QueuedPacketsForTest() != 0 {
+						t.Fatal("unacknowledged entry rolled or published a rune")
+					}
+				}
+				assertPending()
+				release()
+				awaitReadyCriticalResults(t, q, 1)
+				assertPending()
+				w.processCriticalCompletions(1)
+				if outcome != "commit" {
+					if len(w.magicChamberRunes) != 0 || w.gameplaySpaceForPlayer(leader) != "" {
+						t.Fatal("unsuccessful entry installed a rune or membership")
+					}
+					return
+				}
+				runtimeID := w.gameplaySpaceForPlayer(leader)
+				inst := w.itemInstances[runtimeID]
+				run := w.magicChamberRunes[runtimeID]
+				if inst == nil || run.Runes[0] < 1 || run.Runes[0] > 4 ||
+					run.Runes[1] != 0 || run.Runes[2] != 0 || run.Runes[3] != 0 {
+					t.Fatalf("committed entry did not roll only room 1: runtime=%q runes=%v", runtimeID, run.Runes)
+				}
+				viewers := []*Player{leader}
+				if mode != "solo" {
+					viewers = append(viewers, member)
+				}
+				for _, viewer := range viewers {
+					var seen [4]bool
+					for _, packet := range labelPackets(t, viewer.Session) {
+						if wire.ParseHeader(packet).Type != wire.OpCreateItem {
+							continue
+						}
+						x, y := binary.LittleEndian.Uint16(packet[12:14]), binary.LittleEndian.Uint16(packet[14:16])
+						cell, slate := runeSlateCell(x, y)
+						if !slate {
+							continue
+						}
+						seen[cell] = true
+						if cell == 0 {
+							if binary.LittleEndian.Uint16(packet[18:20]) != runeSlateBase+uint16(run.Runes[0]) ||
+								packet[27] != clientGateLocked || packet[28] != 0 {
+								t.Fatalf("player %d received an unlit or blocking room-1 rune", viewer.ID)
+							}
+						} else if packet[27] != clientGateOpen {
+							t.Fatalf("player %d received a future room's lit rune", viewer.ID)
+						}
+					}
+					if seen != [4]bool{true, true, true, true} {
+						t.Fatalf("player %d did not receive all entrance slates: %v", viewer.ID, seen)
+					}
+				}
+				for _, g := range w.groundItems {
+					if cell, slate := runeSlateCell(g.X, g.Y); slate && cell == 0 {
+						if packet := w.groundItemCreatePacketFor(outsider, g); packet[27] != clientGateOpen {
+							t.Fatal("a viewer outside the run sees the committed rune")
+						}
+					}
+				}
+				w.processCriticalCompletions(1)
+				if w.magicChamberRunes[runtimeID] != run {
+					t.Fatal("processing completions again rerolled the entry rune")
+				}
+			})
+		}
+	}
+}
 
 // Rune slates show, per run, the rune rolled when each room starts: cell k of
 // every block lights with room k's color; other viewers see hidden slates.

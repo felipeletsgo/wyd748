@@ -5,6 +5,7 @@
 #include <string>
 #include <windows.h>
 #include "../internal/platform/windows/AdapterIdentity.h"
+#include "../internal/wire/ClientBuildContract.h"
 #include "SourceMethod.h"
 
 namespace {
@@ -108,6 +109,30 @@ int RunLoginCredentialContractTests(int& checks)
         "int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)");
     check(fieldSource.find("ReadFirstAdapterIdentity(stAccountLogin.AdapterName)") !=
         std::string::npos, "migration login uses bounded adapter identity");
+
+    const auto identify = handler.find("client_build::IdentifyLogin(stAccountLogin)");
+    const auto send = handler.find("SendPacket(");
+    check(identify != std::string::npos && send != std::string::npos && identify < send,
+        "initial login identifies compiled build before sending");
+    const auto migrateIdentify = fieldSource.find("client_build::IdentifyLogin(stAccountLogin)");
+    check(migrateIdentify != std::string::npos && migrateIdentify < fieldSource.find("SendPacket("),
+        "migration reconnect identifies the same compiled build");
+    struct LoginIdentity {
+        int ClientVersion = 0;
+        unsigned int ClientBuild = 0;
+        char ticket[52] = "migration-ticket";
+        int adapter[4] = {1, 2, 3, 4};
+    } login;
+    client_build::IdentifyLogin(login);
+    check(login.ClientVersion == 748 && login.ClientBuild ==
+        (client_build::Prefix | client_build::Revision), "compiled identity fields match contract");
+    check(std::string(login.ticket) == "migration-ticket" && login.adapter[0] == 1 &&
+        login.adapter[3] == 4, "build identification preserves ticket and adapter identity");
+    const std::string disconnectSource = source_contract::Method(LoadSource(
+        "TMProject748/internal/app/scenes/TMScene.cpp"),
+        "int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)");
+    check(disconnectSource.find("m_pMessagePanel && !m_pMessagePanel->IsVisible()") !=
+        std::string::npos, "disconnect does not replace a visible update-required message");
 
     // Password fields render an ASCII asterisk per character. Byte 0xA2, left
     // from an imported bullet literal, drew a stray glyph in the 7.48 font.

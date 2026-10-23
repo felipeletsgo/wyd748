@@ -60,13 +60,8 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 			MSG_AccountLogin stAccountLogin{};
 			stAccountLogin.Header.ID = 0;
 			stAccountLogin.Header.Type = MSG_AccountLogin_Opcode;
-			// Channel migration reuses the account-login ABI, so it must retain the
-			// same 7.48 version marker as the initial login instead of reverting to
-			// the newer TMProject protocol during reconnect.
-			stAccountLogin.ClientVersion = 748;
-			// WYD-Go now exposes one canonical 7.48 protocol, so reconnect must keep
-			// the legacy DBNeedSave field zero instead of selecting a second ABI.
-			stAccountLogin.DBNeedSave = 0;
+			// Migration must advertise the same compiled identity as initial login.
+			client_build::IdentifyLogin(stAccountLogin);
 			stAccountLogin.Header.Size = sizeof(MSG_AccountLogin);
 
 			ReadFirstAdapterIdentity(stAccountLogin.AdapterName);

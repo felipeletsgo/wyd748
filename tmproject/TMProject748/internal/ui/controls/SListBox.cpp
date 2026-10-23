@@ -6,9 +6,15 @@
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMFieldScene.h"
+#include "ListBoxItems.h"
+
+namespace
+{
+void DestroyListBoxItem(SListBoxItem* item) { delete item; }
+}
 
 SListBoxItem::SListBoxItem(const char* istrText, unsigned int idwFontColor, float inX, float inY, float inWidth, float inHeight, int ibBorder, unsigned int idwBorderColor, unsigned int dwType, unsigned int dwAlignType)
-	: SText(-1, //bordas do serverlist
+	: SText(-1, // server list borders
 		istrText,
 		idwFontColor,
 		inX,
@@ -252,23 +258,16 @@ SListBox::~SListBox()
 
 int SListBox::AddItem(SListBoxItem* ipNewItem)
 {
-	if (m_nNumItem >= m_nMaxCount - m_cEditable)
-	{
-		SAFE_DELETE(m_pItemList[0]);
+	// The list takes ownership of a new item. A null or already listed item is
+	// refused unchanged; a list without capacity deletes the item it refuses.
+	const auto result = list_box_items::Add(m_pItemList, m_nNumItem, m_nMaxCount - m_cEditable, ipNewItem,
+		DestroyListBoxItem);
+	if (result == list_box_items::AddResult::Rejected || result == list_box_items::AddResult::Discarded)
+		return 0;
 
-		for (int i = 1; i < m_nNumItem; ++i)
-			m_pItemList[i - 1] = m_pItemList[i];
-
-		m_pItemList[m_nNumItem - 1] = ipNewItem;
-		m_pItemList[m_nNumItem - 1]->m_dwID = m_nNumItem - 1;
-
+	m_pItemList[m_nNumItem - 1]->m_dwID = m_nNumItem - 1;
+	if (result == list_box_items::AddResult::Rotated)
 		return 1;
-	}
-
-	m_pItemList[m_nNumItem] = ipNewItem;
-	m_pItemList[m_nNumItem]->m_dwID = m_nNumItem;
-
-	++m_nNumItem;
 
 	if (m_cScrollBar != 0 && m_pScrollBar != nullptr)
 	{
@@ -286,16 +285,8 @@ int SListBox::AddItem(SListBoxItem* ipNewItem)
 
 int SListBox::DeleteItem(int inItemIndex)
 {
-	if (m_nNumItem <= inItemIndex || inItemIndex < 0)
+	if (!list_box_items::RemoveAt(m_pItemList, m_nNumItem, inItemIndex, DestroyListBoxItem))
 		return 0;
-
-	SAFE_DELETE(m_pItemList[inItemIndex]);
-
-	for (int i = inItemIndex + 1; i < m_nNumItem; ++i)
-		m_pItemList[i - 1] = m_pItemList[i];
-
-	m_pItemList[m_nNumItem - 1] = 0;
-	m_nNumItem--;
 
 	if (m_cScrollBar != 0)
 		m_pScrollBar->SetMaxValue(m_nNumItem);
@@ -305,25 +296,10 @@ int SListBox::DeleteItem(int inItemIndex)
 
 int SListBox::DeleteItem(SListBoxItem* ipItem)
 {
-	int i = 0;
-	for (i = 0; ; ++i)
-	{
-		if (i >= m_nNumItem)
-			return 0;
-
-		if (m_pItemList[i] == ipItem)
-			break;
-	}
-
-	if (m_pItemList[i] != nullptr)
-	{
-		SAFE_DELETE(m_pItemList[i]);
-	}
-
-	for (int j = i + 1; j < m_nNumItem; ++j)
-		m_pItemList[j - 1] = m_pItemList[j];
-
-	--m_nNumItem;
+	// Removal clears the vacated last slot, so no stale copy remains.
+	if (!list_box_items::RemoveAt(m_pItemList, m_nNumItem, list_box_items::IndexOf(m_pItemList, m_nNumItem, ipItem),
+		DestroyListBoxItem))
+		return 0;
 
 	if (m_cScrollBar != 0)
 		m_pScrollBar->SetMaxValue(m_nNumItem);
@@ -344,12 +320,7 @@ SListBoxItem* SListBox::GetItem(int inItemIndex)
 
 void SListBox::Empty()
 {
-	for (int i = 0; i < m_nNumItem; ++i)
-	{
-		SAFE_DELETE(m_pItemList[i]);
-	}
-
-	m_nNumItem = 0;
+	list_box_items::Clear(m_pItemList, m_nNumItem, DestroyListBoxItem);
 	if (m_cScrollBar != 0 && m_pScrollBar != nullptr)
 		m_pScrollBar->SetMaxValue(m_nNumItem);
 }

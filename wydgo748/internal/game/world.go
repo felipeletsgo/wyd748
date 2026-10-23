@@ -59,6 +59,8 @@ type loginResult struct {
 	// rejects the login because a ban cannot be ruled out.
 	sanctions   store.SanctionState
 	sanctionErr error
+	// Captured by the World before asynchronous authentication starts.
+	sanctionVersion uint64
 }
 
 const (
@@ -541,7 +543,8 @@ type World struct {
 	magicChamberRunes     map[string]magicChamberRun // rune colors and bonus, by run
 	gateRelockAt          map[uint16]time.Time       // key-opened gate -> relock time
 	colosseum             *colosseumRuntime
-	oxQuizMode            bool // 7.59 quizmode: the OX Entrance_Ticket works
+	oxQuizMode            bool // Automatic OX event is active.
+	ox                    *oxRuntime
 	groundItemCells       map[uint32]map[uint16]*GroundItem
 	groundItemCell        map[uint16]uint32
 	groundExpiry          groundItemExpiryHeap
@@ -1958,6 +1961,7 @@ func (w *World) tick() {
 	w.tickGateRelock(now)
 	w.tickClientIntegrity(now)
 	w.tickQuiz(now)
+	w.tickOXEvent(now)
 	w.tickStaffOps(now)
 	w.tickWeather(now)
 	w.tickPremium(now)

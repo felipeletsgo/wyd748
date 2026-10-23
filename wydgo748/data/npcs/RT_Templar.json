@@ -90,7 +90,7 @@
     "str": 5,
     "int": 100,
     "dex": 500,
-    "con": 1500,
+    "con": 100,
     "critical": 255,
     "saveMana": 255,
     "mastery": [

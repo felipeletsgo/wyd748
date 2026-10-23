@@ -44,15 +44,19 @@ account; the installed `/etc/wyd-go/staff.json` changes only with a release.
     a new tab or status label. Clearing a label (empty `/tab` or `/snd`) stays
     allowed, so an offensive label can always be removed. Balance/medal
     queries stay available.
-  - a revocation that arrives a few milliseconds before a login whose
-    database read predates it can leave that session muted; repeating the
-    revocation pushes the live state again.
+  - each live refresh reserves a generation on the World loop before reading
+    storage, scoped to the normalized account. A superseded result is discarded,
+    including when a revocation removed every active sanction. It cannot
+    resurrect a revoked ban/mute or remove a newer sanction.
 - `live` in the result: `applied` (online sessions updated), `offline`
   (applies at next login) or `pending` (the World did not confirm; the row
   still governs the next login; revoke/apply again to refresh).
 - Login reads the active state in the authentication goroutine, never on the
   World loop. If that read fails, the login is refused ("Login temporarily
-  unavailable") rather than admitting a possibly banned account.
+  unavailable") rather than admitting a possibly banned account. If a live
+  refresh starts after authentication began, its old result is also refused:
+  the player must retry with a fresh snapshot instead of restoring a revoked
+  mute or bypassing an in-flight sanction change.
 - Accounts are identified by the canonical lowercase name (1–12 `[a-z0-9]`).
 
 ## Notices and staff messages
@@ -81,7 +85,9 @@ account; the installed `/etc/wyd-go/staff.json` changes only with a release.
   Only one schedule exists at a time; cancel it before scheduling another.
 - Players are warned at scheduling and when the countdown crosses 60, 30, 15,
   10, 5, 3, 2 and 1 minutes and 30 and 10 seconds. New logins are refused in
-  the final minute.
+  the final minute. The cutoff and final-shutdown state are checked both when
+  authentication starts and when its result returns, before reserving an
+  account session or loading character-selection state.
 - At zero the process follows the SIGTERM path: the panel stops, the World
   persists every player and the process exits. Exit code `0` for shutdown,
   `75` for restart. The VPS unit uses `Restart=on-failure`, so `75` restarts
@@ -245,6 +251,10 @@ account; the installed `/etc/wyd-go/staff.json` changes only with a release.
   deadlines. The Colosseum keeps its own section.
 - The live map and instance list share the overview's single World read slot
   and are optional reads: they pause while the circuit breaker is open.
+- Resetting either panel invalidates its pending requests. Replies from the
+  previous staff session cannot repopulate player/account names, coordinates
+  or instance members, overwrite new-session errors, or release the new
+  session's in-flight request guard. Terrain image callbacks use the same fence.
 
 ## Case notes
 
@@ -275,6 +285,10 @@ Next steps for the panel are planned in the [staff panel roadmap](admin-panel-ro
 - Automated: Go unit tests (World, HTTP, PostgreSQL store including the v8→v9
   upgrade on a temporary cluster), full `go test ./...` and `go vet ./...`,
   portal `astro check`, `node --test` and a static build.
+- Regression coverage: delayed, out-of-order ban/mute refreshes and account
+  isolation; revocation during pending authentication; maintenance cutoff at
+  authentication completion; and old-session map/instance success/error replies
+  while a new session request remains pending.
 - Pending: real-client acceptance (login rejection text, mute notice, top
   notice and `[Staff]` line rendering, countdown during play), a browser run of
   the panel against `tm.exe`, and a supervised restart on the VPS.

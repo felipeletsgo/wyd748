@@ -92,6 +92,21 @@ int RunGridInsertionTests(int& checks)
             "invalid mesh bounds retain safe scale");
     check(grid_item_presentation::MeshScale(1.0f, 0) == 1.0f,
         "invalid footprint retains safe scale");
+    check(grid_item_presentation::WeaponMeshScale(1.2f, 72.0f, 1.0f) >
+        grid_item_presentation::MeshScale(1.2f, 1), "equipped weapons fill the hand receptacle");
+    check(grid_item_presentation::WeaponMeshScale(1.2f, 144.0f, 2.0f) ==
+        grid_item_presentation::WeaponMeshScale(1.2f, 72.0f, 1.0f),
+        "weapon fit is invariant under UI scaling");
+    check(grid_item_presentation::WeaponMeshScale(0.1f, 72.0f, 1.0f) == 1.0f &&
+        grid_item_presentation::WeaponMeshScale(1.2f, 72.0f, 0.0f) == 1.0f,
+        "weapon fit retains authored scale and rejects invalid UI scale");
+    const auto meshScale = source_contract::Method(source,
+        "float WYD748_GetGridMeshScale(const SGridControlItem* item)");
+    check(meshScale.find("ITEMTYPE_LEFT") != std::string::npos &&
+        meshScale.find("ITEMTYPE_RIGHT") != std::string::npos &&
+        meshScale.find("grid_item_presentation::WeaponMeshScale") != std::string::npos &&
+        meshScale.find("grid_item_presentation::MeshScale") != std::string::npos,
+        "production hand grids use receptacle fit and other grids retain cell fit");
     for (const char* caption : emptyCaptions)
         check(std::strcmp(grid_item_presentation::SplitCaption(caption),
             "Enter the quantity to split.") == 0, "missing split resource has an English caption");

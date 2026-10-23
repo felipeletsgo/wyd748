@@ -6,6 +6,7 @@
 #include "ObjectManager.h"
 #include "TMHuman.h"
 #include "../application/AttackSpeedPolicy.h"
+#include "../application/PremiumMountMagic.h"
 
 int BASE_GetSpeed(STRUCT_SCORE* score)
 {
@@ -213,9 +214,22 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
             if (!mob->Class && skind == 1 || mob->Class == 3)
                 dam = 5 * dam / 4;
             else
+            {
                 // The 7.48 canonical Score owns MagicAmp; the removed Magician
                 // sidecar represented the same value and must not be read again.
                 dam = 5 * (dam * (4 * (unsigned __int8)mob->CurrentScore.MagicAmp + 100) / 100) / 4;
+                // Apply the timed mount's exact percentage after 5/4 and before
+                // passives, as on the server. Expiry/removal is server-owned;
+                // read the current equipment snapshot, never cache its bonus.
+                const int mountIndex = mob->Equip[14].sIndex;
+                if (mountIndex > 0 && mountIndex < MAX_ITEMLIST)
+                {
+                    const int horsePercent = mountIndex >= 3980 && mountIndex <= 3989
+                        ? g_pMountBonus2[mountIndex - 3980][1] : 0;
+                    dam = premium_mount_magic::Apply(dam, premium_mount_magic::Percent(
+                        mountIndex, g_pItemList[mountIndex], horsePercent));
+                }
+            }
         }
         if ((1 << (8 * skillclass)) & mob->LearnedSkill[0])
         {

@@ -125,3 +125,57 @@ func TestPremiumMountMagicAlsoAppliesToSpells(t *testing.T) {
 		t.Fatal("expired mount kept spell bonus")
 	}
 }
+
+func TestPremiumAndKRMountMagicWithProductionCatalog(t *testing.T) {
+	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	mounts, err := data.LoadMounts("../../data/mounts.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Unix(1700000000, 0)
+	w := &World{items: catalog.Items, mounts: mounts, clock: newFakeClock(now)}
+	for index := uint16(3980); index <= 6014; index++ {
+		if index > 3989 && index < 6000 {
+			continue
+		}
+		t.Run(fmt.Sprint(index), func(t *testing.T) {
+			for class := byte(0); class < 3; class++ {
+				t.Run(fmt.Sprintf("class-%d", class), func(t *testing.T) {
+					plain, mounted := mountMagicChar(), mountMagicChar()
+					plain.Class, mounted.Class = class, class
+					mounted.Equip[mountSlot] = model.Item{Index: index, UID: "33333333333343338333333333333333"}
+					if _, err := w.activateTimedItem(&mounted.Equip[mountSlot], mountSlot, now); err != nil {
+						t.Fatal(err)
+					}
+					w.recalcPlayer(plain)
+					w.recalcPlayer(mounted)
+					percent := staticAbility(catalog.Items[index], "EF_MAGIC")
+					if stats, ok := mounts.PremiumStats(index); ok {
+						percent = stats.MagicPercent
+					}
+					if percent <= 0 {
+						t.Fatal("production mount has no expected magic bonus")
+					}
+					if got, want := playerMagicAttack(mounted), playerMagicAttack(plain)*(100+percent)/100; got != want {
+						t.Fatalf("score=%d want=%d", got, want)
+					}
+					checkedSkills := 0
+					for _, skill := range catalog.Skills {
+						if skillUsesMagic(mounted, skill) && skill.Index != 97 && skill.Index >= int(class)*24 && skill.Index < (int(class)+1)*24 {
+							checkedSkills++
+							if got, want := w.baseSkillDamage(mounted, skill), w.baseSkillDamage(plain, skill)*(100+percent)/100; got != want {
+								t.Fatalf("skill %d damage=%d want=%d", skill.Index, got, want)
+							}
+						}
+					}
+					if checkedSkills == 0 {
+						t.Fatal("production catalog did not exercise any damaging magic skills")
+					}
+				})
+			}
+		})
+	}
+}

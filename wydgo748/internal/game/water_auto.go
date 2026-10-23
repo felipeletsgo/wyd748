@@ -22,8 +22,8 @@ func (r itemInstanceRewardReceipt) valid() bool {
 }
 
 // Manual clicks and Silver Angel auto-advance share this Water entry point.
-// Only manual use originates from 0x373. Auto-advance requires the exact UID
-// of the newly granted item; an empty expectedUID denotes manual use.
+// Only manual use originates from 0x373. Automation requires the exact UID
+// of the granted or carried scroll; an empty expectedUID denotes manual use.
 func (w *World) useWaterScroll(s *net.Session, p *Player, item *model.Item,
 	slot byte, rule model.VolatileRule, req useItemRequest, expectedUID string) bool {
 	if w == nil || s == nil || p == nil || p.Char == nil || item == nil ||
@@ -41,6 +41,40 @@ func (w *World) useWaterScroll(s *net.Session, p *Player, item *model.Item,
 	w.useInstanceTicket(s, p, item, slot, rule, req)
 	after := w.itemInstanceForPlayer(p.ID)
 	return after != nil && after != before
+}
+
+// Restart only after a successful terminal room exit has committed. Unlike
+// next-room rewards, the first scroll is an existing carried item. Never grant
+// a replacement, retry from a ticker, or restart after a timeout/death.
+func (w *World) tryWaterAutoRestart(inst *ItemInstance, now time.Time) {
+	if w == nil || inst == nil || !isDurablePrivateWaterInstance(inst) ||
+		!inst.RewardGranted || inst.Config.RewardItem != 0 || inst.Config.ChainNextItem == 0 ||
+		inst.ExitAt.IsZero() || now.Before(inst.ExitAt) {
+		return
+	}
+	leader := w.playersByID[inst.LeaderID]
+	if leader == nil || !leader.InWorld || leader.Char == nil || leader.Account == nil ||
+		leader.Session == nil || leader.Session.IsClosed() || playerCurHP(leader.Char) == 0 ||
+		w.itemInstanceForPlayer(leader.ID) != nil || !w.hasActiveSilverFairy(leader.Char) {
+		return
+	}
+	for slot := 0; slot < model.PlayerCarrySlots; slot++ {
+		item := &leader.Char.Inv[slot]
+		if item.Index != inst.Config.ChainNextItem || item.UID == "" {
+			continue
+		}
+		rule, _, registered := w.volatiles.Rule(item.Index)
+		if !registered || rule.Action != "instance_ticket" || !rule.Consume || rule.Instance == nil ||
+			!isDurablePrivateWaterConfig(*rule.Instance) || !rule.Instance.ChainStart {
+			return
+		}
+		if w.criticalWrites == nil {
+			w.cancelTrade(leader, "Water auto-restart")
+		}
+		w.useWaterScroll(leader.Session, leader, item, byte(slot), rule,
+			useItemRequest{srcType: placeInv, srcPos: uint32(slot)}, item.UID)
+		return
+	}
 }
 
 // Auto-advance runs once after the next scroll grant is durably committed.

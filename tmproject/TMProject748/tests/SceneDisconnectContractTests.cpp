@@ -4,6 +4,7 @@
 #include "../internal/core/Structures.h"
 #include "../internal/game/entities/AppearanceRefinementRefresh.h"
 #include "../internal/game/entities/HumanAnglePolicy.h"
+#include "../internal/game/entities/MonsterVisualScale.h"
 #include "../internal/game/entities/BaseCostumeLook.h"
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/render/world/objects/ObjectFileRecordLayout.h"
@@ -1737,13 +1738,37 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto playerGuard = heightBody.find("if ((m_dwID >= 0 && m_dwID < 1000) || g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR)");
     const auto fixedPlayerScale = heightBody.find("m_fScale = 0.89999998f;", playerGuard);
     const auto playerReturn = heightBody.find("return;", fixedPlayerScale);
-    const auto mobSignedCon = heightBody.find("if (fCon >= 32768.0f && fCon < 65536.0f)");
-    const auto mobScale = heightBody.find("m_fScale = ((fCon / 2000.0f) + 1.0f) * 0.89999998f;");
+    const auto mobScale = heightBody.find("m_fScale = monster_visual_scale::FromCon(fCon);");
     check(playerGuard != std::string::npos && fixedPlayerScale != std::string::npos &&
-        playerReturn != std::string::npos && playerReturn < mobSignedCon,
+        playerReturn != std::string::npos && playerReturn < mobScale,
         "player height is fixed before mob Con scaling");
-    check(mobSignedCon != std::string::npos && mobScale != std::string::npos && mobSignedCon < mobScale,
-        "mob height retains signed Con handling and Con-based scaling");
+    check(mobScale != std::string::npos,
+        "monster height uses the bounded Con policy");
+    for (unsigned con = 0; con <= 65535; ++con)
+    {
+        const float signedCon = con < 32768 ? static_cast<float>(con) : static_cast<float>(con) - 65536.0f;
+        const float uncapped = (signedCon / 2000.0f + 1.0f) * monster_visual_scale::Base;
+        const float expected = (std::min)(uncapped, monster_visual_scale::Maximum);
+        check(monster_visual_scale::FromCon(static_cast<float>(con)) == expected,
+            "all legacy word Con values retain signed conversion and obey the visual ceiling");
+    }
+    check(monster_visual_scale::FromCon(100.0f) == 1.05f * monster_visual_scale::Base &&
+        monster_visual_scale::FromCon(5000.0f) == monster_visual_scale::Maximum &&
+        monster_visual_scale::FromCon(5001.0f) == monster_visual_scale::Maximum &&
+        monster_visual_scale::FromCon(65536.0f) == monster_visual_scale::Maximum &&
+        monster_visual_scale::FromCon(static_cast<float>((std::numeric_limits<std::uint32_t>::max)())) == monster_visual_scale::Maximum &&
+        monster_visual_scale::FromCon((std::numeric_limits<float>::infinity)()) == monster_visual_scale::Maximum &&
+        monster_visual_scale::FromCon((std::numeric_limits<float>::quiet_NaN)()) == monster_visual_scale::Maximum,
+        "monster sizes stop at 5000 Con even for wide or invalid inputs");
+    const auto raceBody = source_contract::Method(appearanceSource, "void TMHuman::SetRace(short sIndex)");
+    check(raceBody.find("if (m_dwID >= 1000)") != std::string::npos &&
+        raceBody.find("m_fScale = monster_visual_scale::Limit(m_fScale);") != std::string::npos,
+        "race refresh cannot enlarge a monster beyond the Con ceiling");
+    float repeatedRaceScale = monster_visual_scale::FromCon(5000.0f);
+    for (unsigned refresh = 0; refresh < 100; ++refresh)
+        repeatedRaceScale = monster_visual_scale::Limit((255.0f * 0.003f + 1.0f) * repeatedRaceScale);
+    check(repeatedRaceScale == monster_visual_scale::Maximum,
+        "repeated race multipliers cannot bypass the monster size ceiling");
     const auto cameraBody = source_contract::Method(
         LoadSource("TMProject748/internal/render/camera/TMCamera.cpp"),
         "TMVector3 TMCamera::GetCameraPos()");

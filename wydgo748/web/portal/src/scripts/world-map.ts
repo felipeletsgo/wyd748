@@ -28,6 +28,7 @@ export function setupWorldMap(api: API, explain: (error: unknown) => string, onP
   let terrain: HTMLImageElement | undefined;
   let snapshot: Snapshot | undefined;
   let busy = false;
+  let generation = 0;
 
   function draw() {
     const context = canvas.getContext('2d');
@@ -73,12 +74,14 @@ export function setupWorldMap(api: API, explain: (error: unknown) => string, onP
 
   async function inspect(x: number, y: number) {
     if (busy) return;
+    const current = generation;
     busy = true;
     el('world-status').textContent = 'Reading…';
     const radius = el<HTMLSelectElement>('world-radius').value;
     const cell = new URLSearchParams({ x: String(x), y: String(y) });
     const [zone, live] = await Promise.allSettled([api<Zone>(`/staff/world/zone?${cell}`),
       api<Snapshot>(`/staff/world/map?${new URLSearchParams({ x: String(x), y: String(y), radius })}`)]);
+    if (current !== generation) return;
     if (zone.status === 'fulfilled') renderZone(zone.value); else el('world-zone').replaceChildren();
     if (live.status === 'fulfilled') { snapshot = live.value; renderLive(live.value); }
     else { snapshot = undefined; el('world-live').replaceChildren(); }
@@ -90,9 +93,16 @@ export function setupWorldMap(api: API, explain: (error: unknown) => string, onP
   }
 
   el('world-load').addEventListener('click', () => {
+    const current = generation;
     const image = new Image();
-    image.onload = () => { terrain = image; el('world-status').textContent = 'Terrain loaded. Click the map or enter a cell.'; draw(); };
-    image.onerror = () => { el('world-status').textContent = 'Terrain unavailable. Check permissions or the panel connection.'; };
+    image.onload = () => {
+      if (current !== generation) return;
+      terrain = image; el('world-status').textContent = 'Terrain loaded. Click the map or enter a cell.'; draw();
+    };
+    image.onerror = () => {
+      if (current !== generation) return;
+      el('world-status').textContent = 'Terrain unavailable. Check permissions or the panel connection.';
+    };
     image.src = '/api/v1/staff/world/terrain';
   });
   canvas.addEventListener('click', event => {
@@ -115,6 +125,7 @@ export function setupWorldMap(api: API, explain: (error: unknown) => string, onP
       void inspect(x, y);
     },
     reset() {
+      generation++;
       snapshot = undefined; busy = false; draw();
       el('world-zone').replaceChildren(); el('world-live').replaceChildren();
       el('world-status').textContent = terrain ? 'Terrain loaded. Click the map or enter a cell.' : 'Terrain not loaded.';

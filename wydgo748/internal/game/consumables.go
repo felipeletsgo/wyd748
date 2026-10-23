@@ -1002,12 +1002,19 @@ func earringPowderRefine(item model.Item, def model.ItemDef, destType, destPos u
 		destType == placeEquip && destPos == 8 && def.Pos == 1<<8
 }
 
+// equipmentPowderChance applies a rule's fixed RefineChance to every step the
+// rule allows; the earring keeps its breaking branch, which a 100% chance
+// never reaches.
 func equipmentPowderChance(item model.Item, def model.ItemDef, destType, destPos uint32,
 	powderCode int, rule model.VolatileRule) (int, bool) {
-	if earringPowderRefine(item, def, destType, destPos, powderCode, rule) {
-		return 16, true
+	chance, allowed := 16, true
+	if !earringPowderRefine(item, def, destType, destPos, powderCode, rule) {
+		chance, allowed = refinePowderChance(itemSanc(item), rule)
 	}
-	return refinePowderChance(itemSanc(item), rule)
+	if allowed && rule.RefineChance > 0 {
+		chance = clampInt(rule.RefineChance, 0, 100)
+	}
+	return chance, allowed
 }
 
 func refineChance(sanc int) int {

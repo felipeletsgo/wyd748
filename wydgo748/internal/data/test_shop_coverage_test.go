@@ -127,13 +127,13 @@ func TestShopTest2SellsRefinementPowderStacks(t *testing.T) {
 			continue
 		}
 		for _, item := range npc.Vende {
-			if item.Index == 412 || item.Index == 413 {
+			if item.Index == 412 || item.Index == 413 || item.Index == 3022 {
 				found[item.Index] = item.Eff[0] == 61 && item.Eff[1] == 120
 			}
 		}
 	}
-	if !found[412] || !found[413] {
-		t.Fatalf("ShopTest2 must sell Ori and Lac with EF_AMOUNT 120: %v", found)
+	if !found[412] || !found[413] || !found[3022] {
+		t.Fatalf("ShopTest2 must sell Ori, Lac and Lactolerium 100%% with EF_AMOUNT 120: %v", found)
 	}
 }
 

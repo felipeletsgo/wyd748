@@ -130,7 +130,7 @@
     "str": 4,
     "int": 100,
     "dex": 60,
-    "con": 1500,
+    "con": 100,
     "critical": 255,
     "saveMana": 255,
     "mastery": [

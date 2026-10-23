@@ -1,5 +1,6 @@
 {
   "name": "COL_Lugefer",
+  "combatRole": "boss",
   "tipo": "monstro",
   "equip": {
     "rosto": {

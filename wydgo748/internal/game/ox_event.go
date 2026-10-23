@@ -11,20 +11,18 @@ import (
 	"wydgo/internal/wire"
 )
 
-// The OX quiz arena follows the 7.59 TMSRV staff commands. "quizmode" lets
-// the Entrance_Ticket (1737, volatile 51) teleport to its quizArena; "quizdoor" locks
-// or opens the six OX gates (InitItem rows 35..40, sub_561C10); "quizresultx"
-// and "quizresulto" revive and move every player standing on the losing side
-// to (1341,1465) (sub_566230).
+// Automatic OX is a project extension using the existing question display,
+// configured Cube questions, and the existing six arena gates.
 const (
 	oxExitX, oxExitY = 1341, 1465
 	oxGateX          = 1341
 )
 
 var (
-	oxSideX   = warRect{1296, 1481, oxGateX - 1, 1518}
-	oxSideO   = warRect{oxGateX + 1, 1481, 1387, 1518}
+	oxSideO   = warRect{1296, 1481, oxGateX - 1, 1518}
+	oxSideX   = warRect{oxGateX + 1, 1481, 1387, 1518}
 	oxGateRow = warRect{oxGateX, 1481, oxGateX, 1518}
+	oxArena   = warRect{1296, 1481, 1387, 1518}
 )
 
 // oxGates returns the OX arena gates (471 on column 1341).
@@ -56,7 +54,7 @@ func (w *World) setOXDoors(locked bool) int {
 func (w *World) oxPlayers(side warRect) []*Player {
 	var out []*Player
 	for _, p := range w.nearbyWorldPlayers(1341, 1500, 50) {
-		if p != nil && p.InWorld && p.Char != nil && side.contains(p.X, p.Y) {
+		if p != nil && p.InWorld && p.Char != nil && w.playerRuntimeInstanceID(p.ID) == "" && side.contains(p.X, p.Y) {
 			out = append(out, p)
 		}
 	}
@@ -74,14 +72,9 @@ func (w *World) clearOXSide(side warRect) int {
 	return moved
 }
 
-// oxTicketRule reports the OX entry of a rule with quizArena while quiz mode
-// runs. EXTENSAO_COORDENADA: outside quiz mode this project keeps the
-// Entrance_Ticket as the Big Cube ticket (instances.json rule 51) instead of
-// the 7.59 _NN_Only_quiz_time reply.
+// Always intercept configured OX tickets, including when inactive. Falling
+// through would consume the ticket for an unrelated private Big Cube instance.
 func (w *World) oxTicketRule(item model.Item) (model.VolatileRule, bool) {
-	if !w.oxQuizMode {
-		return model.VolatileRule{}, false
-	}
 	rule, _, ok := w.volatiles.Rule(item.Index)
 	if !ok || rule.QuizArena == nil {
 		return model.VolatileRule{}, false
@@ -92,6 +85,11 @@ func (w *World) oxTicketRule(item model.Item) (model.VolatileRule, bool) {
 // useOXTicket consumes the ticket and teleports into the OX arena; critical
 // persistence admits it through admitTeleportConsumable.
 func (w *World) useOXTicket(s *net.Session, p *Player, item *model.Item, slot byte, rule model.VolatileRule) {
+	if message := w.oxEntryRejection(p, *item); message != "" {
+		resyncUsedItem(s, p, slot)
+		s.Send(wire.MessagePanel(message))
+		return
+	}
 	if _, known := w.items[item.Index]; !known {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -101,12 +99,16 @@ func (w *World) useOXTicket(s *net.Session, p *Player, item *model.Item, slot by
 		return
 	}
 	oldItem := *item
+	w.ox.admitting[p] = true
 	if rule.Consume {
 		consumeOne(item)
 	}
 	if !w.teleportPlayer(p, rule.X, rule.Y) {
 		*item = oldItem
+	} else {
+		w.admitOXMember(p)
 	}
+	delete(w.ox.admitting, p)
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 }
 
@@ -164,6 +166,16 @@ func (w *World) oxEventSnapshot() control.OXEventStatus {
 			s.DoorsLocked = false
 		}
 	}
+	if w.ox != nil {
+		s.Phase, s.Round, s.Questions = w.ox.phase, min(w.ox.round+1, len(w.ox.questions)), len(w.ox.questions)
+		s.Participants = len(w.ox.members)
+		if !w.ox.deadline.IsZero() {
+			deadline := w.ox.deadline.UTC()
+			s.EndsAt = &deadline
+		}
+	} else {
+		s.Phase = "inactive"
+	}
 	return s
 }
 
@@ -198,6 +210,10 @@ func (w *World) handleOXEvent(req *oxEventRequest) {
 		return
 	}
 	code := "ok"
+	if w.ox != nil && (w.ox.settling || len(w.ox.admitting) != 0) {
+		finish("busy")
+		return
+	}
 	switch c.Action {
 	case "start":
 		// Repeated starts must not unlock the gates during a live question.
@@ -206,15 +222,20 @@ func (w *World) handleOXEvent(req *oxEventRequest) {
 		} else if len(w.oxGates()) != 6 {
 			code = "doors_unavailable"
 		} else {
-			w.setOXDoors(false)
-			w.oxQuizMode = true
+			code = w.startOXEvent()
 		}
 	case "mode_on", "mode_off":
 		on := c.Action == "mode_on"
 		if w.oxQuizMode == on {
 			code = "unchanged"
 		}
-		w.oxQuizMode = on
+		if code != "unchanged" {
+			if on {
+				code = w.startOXEvent()
+			} else {
+				w.stopOXEvent()
+			}
+		}
 	case "doors_lock", "doors_open":
 		if len(w.oxGates()) == 0 {
 			code = "doors_unavailable"
@@ -222,9 +243,9 @@ func (w *World) handleOXEvent(req *oxEventRequest) {
 			code = "unchanged"
 		}
 	case "result_x":
-		result.Moved = w.clearOXSide(oxSideX)
+		code, result.Moved = w.resolveOXCommand(c, false)
 	case "result_o":
-		result.Moved = w.clearOXSide(oxSideO)
+		code, result.Moved = w.resolveOXCommand(c, true)
 	}
 	log.Printf("[web-admin] ox-event actor=%q operation=%q action=%q reason=%q result=%q moved=%d",
 		req.actor, c.OperationID, c.Action, c.Reason, code, result.Moved)

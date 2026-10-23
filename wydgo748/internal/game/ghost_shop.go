@@ -175,7 +175,13 @@ const ghostShopFaceNPC = "Carbunkle"
 // not exposed while selling.
 func (w *World) applyGhostShopLook(shop *GhostShop) {
 	shop.Mesh = [16]uint16{}
+	// The clone has a monster ID: player CON would scale the Carbunkle body.
+	// Keep the owner's other score fields, but use the appearance template CON.
+	shop.Score.Con = 0
 	if def := w.npcDefByName(ghostShopFaceNPC); def != nil {
+		if def.Score != nil {
+			shop.Score.Con = def.Score.Con
+		}
 		if mesh := def.Mesh(); len(mesh) > 0 {
 			shop.Mesh[0] = mesh[0]
 			return

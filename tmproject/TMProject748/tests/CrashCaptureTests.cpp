@@ -100,6 +100,24 @@ namespace
         return valid ? 0 : 19;
     }
 
+    // A heap block whose only reference is a stack local of the faulting
+    // frame. Its text exists nowhere else, so finding it proves the dump kept
+    // indirectly referenced heap memory (the objects a heap failure needs).
+    std::string ReferencedMarker(DWORD pid)
+    {
+        char text[64]{};
+        sprintf_s(text, "wyd-referenced-%lu-%lu", pid, pid ^ 0x5A5A1234u);
+        return text;
+    }
+
+    char* PlantReferencedMarker()
+    {
+        auto* block = static_cast<char*>(HeapAlloc(GetProcessHeap(), 0, 64));
+        if (block)
+            sprintf_s(block, 64, "wyd-referenced-%lu-%lu", GetCurrentProcessId(), GetCurrentProcessId() ^ 0x5A5A1234u);
+        return block;
+    }
+
     void RunChild(const char* executable, const std::string& directory, const char* mode, DWORD expected)
     {
         Check(CreateDirectoryA(directory.c_str(), nullptr) != FALSE, "create isolated capture directory");
@@ -168,6 +186,12 @@ namespace
         FindClose(search);
         Check(bytes.size() >= sizeof(MINIDUMP_HEADER), "dump is not empty");
         if (bytes.size() < sizeof(MINIDUMP_HEADER)) return;
+        // Real faults for both writers. The synthetic heap-status context comes
+        // from RtlCaptureContext, which on x86 without frame pointers reports
+        // an outer frame, so main's locals lie outside its dumped stack.
+        if (std::strcmp(mode, "access") == 0 || std::strcmp(mode, "external-access") == 0)
+            Check(bytes.find(ReferencedMarker(child.dwProcessId)) != std::string::npos,
+                "dump keeps heap memory referenced from the faulting stack");
         // Copy to aligned writable storage for the Windows minidump reader.
         std::vector<unsigned long long> aligned((bytes.size() + 7) / 8);
         std::memcpy(aligned.data(), bytes.data(), bytes.size());
@@ -237,6 +261,8 @@ int main(int argc, char** argv)
         char line[128]{};
         sprintf_s(line, "TEST fault_tid=%lu\r\n", GetCurrentThreadId());
         Log(line);
+        char* volatile referenced = PlantReferencedMarker();
+        if (!referenced) return 20;
         if (std::strcmp(argv[3], "external-handled") == 0)
         {
             HandledException();

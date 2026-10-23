@@ -33,6 +33,18 @@ inline float MeshScale(float maxZ, int cellHeight)
     return maxZ > target ? target / maxZ : 1.0f;
 }
 
+// Equipment hand receptacles have a larger visual area than Carry's single
+// wire cell. Fit that area without changing occupancy or authored mesh scale.
+inline float WeaponMeshScale(float maxZ, float slotHeight, float uiScaleY)
+{
+    if (!std::isfinite(slotHeight) || !std::isfinite(uiScaleY) ||
+        slotHeight <= 0.0f || uiScaleY <= 0.0f ||
+        !std::isfinite(maxZ) || maxZ <= 0.0f)
+        return 1.0f;
+    const float target = slotHeight / (24.0f * uiScaleY) * 0.3f;
+    return maxZ > target ? target / maxZ : 1.0f;
+}
+
 inline const char* SplitCaption(const char* resource)
 {
     if (resource) {

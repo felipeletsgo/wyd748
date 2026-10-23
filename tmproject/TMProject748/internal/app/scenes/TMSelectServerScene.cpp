@@ -831,16 +831,14 @@ ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
 	MSG_AccountLogin stAccountLogin{};
 	stAccountLogin.Header.ID = 0;
 	stAccountLogin.Header.Type = MSG_AccountLogin_Opcode;
-	// The source-built client must identify the same 7.48 protocol selected by
-	// its packet layouts; advertising TMProject's newer value is rejected by
-	// the server before password verification.
-	stAccountLogin.ClientVersion = 748;
+	// Protocol and compiled build identity are checked before authentication.
+	client_build::IdentifyLogin(stAccountLogin);
 
 	ReadFirstAdapterIdentity(stAccountLogin.AdapterName);
 
 	// The 7.48 login envelope has fixed 16/12-byte credential fields. Bounded
-	// copies preserve the protocol marker at byte 44 and prevent a long edit
-	// value from silently changing ClientVersion before encryption.
+	// copies preserve protocol/build identity at bytes 40/44 and prevent a long
+	// edit value from silently changing either field before encryption.
 	strncpy_s(stAccountLogin.AccountName, pEditID->GetText(), _TRUNCATE);
 	strncpy_s(stAccountLogin.AccountPassword, pEditPassword->GetText(), _TRUNCATE);
 	sprintf_s(g_pObjectManager->m_szAccountName, "%s", stAccountLogin.AccountName);

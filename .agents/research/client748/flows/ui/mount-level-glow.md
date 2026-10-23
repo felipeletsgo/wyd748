@@ -4,7 +4,7 @@ title: Mounted pet level to owner and observer glow textures
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-14
+updated: 2026-10-22
 ---
 
 # Mounted pet level to owner and observer glow textures
@@ -129,3 +129,35 @@ mounts. Full Go suite and vet passed. Release/Win32 -NoDeploy build passed with
 checks. Published in server release `20261014T234237Z` and patch 10024; see
 [current state](../../../../../DOCS/current-state.md) for receipts and acceptance.
 Not CLIENT_TESTED; the installed local runtime was not overwritten.
+
+### Local client percentage projection follow-up — 2026-10-22
+
+Classification remains `MODERNIZACAO_COMPATIVEL`. The server already applies
+timed premium/KR magic as an exact percentage. `BASE_GetSkillDamage`, consumed
+by the selected-skill HUD and skill tooltip, omitted it and rebuilt damage
+from canonical MagicAmp alone. Do not multiply the canonical MagicAttack score
+again or reinterpret the premium percentage as ordinary adult-mount MagicAmp.
+
+The client now reads current `Equip[14]` and applies the marked timed mount's
+percentage after amplification and 5/4, before passives, matching the existing
+server operation order. Horses 3980..3989 use the existing bonus table and
+name-based lifetime; other marked timed mounts use static EF_MAGIC and valid
+EF_DATE/HOUR/MIN duration. This rejects ordinary adults (already in MagicAmp),
+unmarked items and invalid duration. Physical branches, skill 79, skill 97 and
+healing remain outside this projection. No packets, ABI, server damage formula,
+item assets or expiry authority change. Equipment removal and entry/relogin
+reconstruct the projection from the authoritative snapshot; no bonus is cached.
+
+AUTOMATED TESTED: exact percentage arithmetic, invalid/missing lifetime,
+ordinary and empty mount exclusion, wide intermediate multiplication, all
+10 premium and 99 KR production client definitions, plus source integration
+guards for slot 14 and operation ordering. Win32 Release `-NoDeploy` passed
+3,105,911 architecture checks, 281 socket checks, 198 crash-capture checks and
+56 launcher checks. Focused server magic/score regressions and the full Go suite
+passed. Candidate and unchanged installed executable hashes are recorded in
+[current state](../../../../../DOCS/current-state.md).
+
+Pending: actual equip/unequip, expiry, scene/relogin and selected-skill/tooltip
+acceptance in the exact built game client. No observer damage UI or full
+client/server skill-formula parity is claimed. Not installed, published or
+`CLIENT_TESTED`; the earlier patch 10024 receipt does not cover this follow-up.

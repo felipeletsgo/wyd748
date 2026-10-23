@@ -1,5 +1,6 @@
 {
   "name": "RT_MageBoss",
+  "combatRole": "boss",
   "tipo": "monstro",
   "equip": {
     "rosto": {

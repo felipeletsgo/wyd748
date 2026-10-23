@@ -49,6 +49,8 @@
     <ClCompile Include="ReceivedPacketDispatchRequestsAndEventsTests.cpp" />
     <ClCompile Include="CargoSlotTests.cpp" />
     <ClCompile Include="GridInsertionTests.cpp" />
+    <ClCompile Include="ListBoxItemsTests.cpp" />
+    <ClCompile Include="SummonVisualScaleTests.cpp" />
     <ClCompile Include="CostumeSelectionTests.cpp" />
     <ClCompile Include="HumanCostumeRefinementTests.cpp" />
     <ClCompile Include="NativeRefinementPresentationTests.cpp">

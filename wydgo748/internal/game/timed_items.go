@@ -72,6 +72,14 @@ func (w *World) activateTimedItem(item *model.Item, slot byte, now time.Time) (b
 		if item.ActivatedUnix <= 0 || item.ExpiresUnix < item.ActivatedUnix {
 			return false, errors.New("invalid timed item metadata")
 		}
+		if isFairyIndex(item.Index) && item.PausedUnix != 0 {
+			if item.PausedUnix < item.ActivatedUnix || item.PausedUnix >= item.ExpiresUnix || now.Unix() < item.PausedUnix {
+				return false, errors.New("invalid paused fairy metadata")
+			}
+			item.ExpiresUnix += now.Unix() - item.PausedUnix
+			item.PausedUnix = 0
+			return true, nil
+		}
 		if item.ExpiresUnix <= now.Unix() {
 			return false, errTimedItemExpired
 		}
@@ -85,6 +93,18 @@ func (w *World) activateTimedItem(item *model.Item, slot byte, now time.Time) (b
 	item.ActivatedUnix = activated
 	item.ExpiresUnix = time.Unix(activated, 0).UTC().Add(duration).Unix()
 	return true, nil
+}
+
+// Fairies spend lifetime only while equipped. This server-only timestamp
+// follows the UID through inventory, Cargo, trade and relogin; premium mounts
+// and costumes retain their absolute-deadline contract.
+func pauseUnequippedFairy(item *model.Item, now time.Time) bool {
+	if item == nil || !isFairyIndex(item.Index) || item.PausedUnix != 0 ||
+		item.ActivatedUnix <= 0 || item.ExpiresUnix <= now.Unix() || now.Unix() < item.ActivatedUnix {
+		return false
+	}
+	item.PausedUnix = now.Unix()
+	return true
 }
 
 type timedItemRemoval struct {
@@ -126,14 +146,14 @@ func restoreTimedAccountItems(account *model.Account, snapshot timedAccountItems
 }
 
 // expireTimedAccountItems consumes every expired UID in the live account,
-// regardless of whether it is equipped, carried or stored in Cargo. The caller
+// except paused fairies carried or stored in Cargo. The caller
 // owns the save/rollback boundary and must not publish these removals first.
 func expireTimedAccountItems(account *model.Account, now time.Time) []timedItemRemoval {
 	if account == nil {
 		return nil
 	}
 	expired := func(item model.Item) bool {
-		return item.Index != 0 && item.ExpiresUnix > 0 && item.ExpiresUnix <= now.Unix()
+		return item.Index != 0 && item.PausedUnix == 0 && item.ExpiresUnix > 0 && item.ExpiresUnix <= now.Unix()
 	}
 	removals := make([]timedItemRemoval, 0, 2)
 	for charIndex := range account.Chars {
@@ -194,6 +214,16 @@ func (w *World) prepareTimedEquipmentForEnter(p *Player, now time.Time) error {
 // exposes the proposal until its durable write is acknowledged.
 func (w *World) planTimedEquipmentForEnter(p *Player, now time.Time) (bool, error) {
 	changed := len(expireTimedAccountItems(p.Account, now)) != 0
+	// Migrate still-live carried fairies from the former wall-clock policy.
+	// Already expired items are not resurrected and no unknown past usage is refunded.
+	for i := range p.Account.Chars {
+		for slot := range p.Account.Chars[i].Inv {
+			changed = pauseUnequippedFairy(&p.Account.Chars[i].Inv[slot], now) || changed
+		}
+	}
+	for slot := range p.Account.Cargo {
+		changed = pauseUnequippedFairy(&p.Account.Cargo[slot], now) || changed
+	}
 	// Costumes equipped in slot 13 by older builds move to the costume slot
 	// before activation, persisted with the same entry write.
 	if model.MigrateCostumeSlot(p.Char, w.items) {

@@ -94,7 +94,11 @@ namespace wyd_crash
 
         MINIDUMP_EXCEPTION_INFORMATION info{state.faultThread, &state.pointers, FALSE};
         const BOOL written = state.writeDump(GetCurrentProcess(), GetCurrentProcessId(), file,
-            static_cast<MINIDUMP_TYPE>(MiniDumpNormal | MiniDumpWithDataSegs), &info, nullptr, nullptr);
+            // Indirectly referenced memory keeps the heap objects that stack
+            // values point to (lists, items, packets), which a heap failure
+            // needs for diagnosis, without capturing the whole heap.
+            static_cast<MINIDUMP_TYPE>(MiniDumpNormal | MiniDumpWithDataSegs | MiniDumpWithIndirectlyReferencedMemory),
+            &info, nullptr, nullptr);
         DWORD error = written ? ERROR_SUCCESS : GetLastError();
         LARGE_INTEGER size{};
         bool valid = written != FALSE;

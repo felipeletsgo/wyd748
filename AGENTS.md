@@ -123,6 +123,14 @@ builds, static checks, and isolated tests do not substitute for it.
   pending. A successful deployment does not close unrelated gameplay gaps.
   User-reported reproduction is evidence for that scenario, not blanket
   `CLIENT_TESTED` coverage.
+- Every published client patch is a mandatory update. In the commit that
+  carries its client changes, raise `client_build::Revision`
+  (`tmproject/TMProject748/internal/wire/ClientBuildContract.h`) and
+  `MinimumClientBuildRevision` (`wydgo748/internal/wire/client_build.go`)
+  together to one more than the last published revision. Publish and verify
+  the patch first, then activate the server release that requires it. Never
+  lower, reuse or disable the gate
+  ([client build admission](DOCS/login-dispatch.md)).
 - Use `wyd-release` for publication/restart and SSH deployment diagnosis.
   Recover the established account/host/key from deployment configuration or
   receipts before connecting. Do not guess accounts or replace credentials,

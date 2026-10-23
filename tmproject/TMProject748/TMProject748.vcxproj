@@ -237,6 +237,7 @@
     <ClInclude Include="internal\wire\ChatMessagePacket.h" />
     <ClInclude Include="internal\wire\LegacySceneMessagePacket.h" />
     <ClInclude Include="internal\ui\GridInsertion.h" />
+    <ClInclude Include="internal\ui\ListBoxItems.h" />
     <ClInclude Include="internal\ui\GridItemPresentation.h" />
     <ClInclude Include="internal\ui\SellConfirmationText.h" />
     <ClInclude Include="internal\application\ApplyCargoSlot.h" />

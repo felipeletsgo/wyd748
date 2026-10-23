@@ -74,10 +74,13 @@ type staffOpsState struct {
 	receiptCount map[string]int
 	bans         map[string]time.Time
 	mutes        map[string]time.Time
-	notices      []*staffNotice
-	noticeSeq    int64
-	shutdown     *shutdownPlan
-	request      func(mode string)
+	// World-owned generations fence database reads and pending authentication
+	// independently per normalized account, including revocation tombstones.
+	sanctionVersions map[string]uint64
+	notices          []*staffNotice
+	noticeSeq        int64
+	shutdown         *shutdownPlan
+	request          func(mode string)
 }
 
 // WithShutdownRequest installs the process hook a scheduled shutdown calls
@@ -304,13 +307,32 @@ func (w *World) applySanctionState(account string, state store.SanctionState, no
 }
 
 func (w *World) pushSanctionState(ctx context.Context, backend sanctionStore, account, notify string) string {
+	key := accountSessionKey(account)
+	var version uint64
+	if err := w.submitStaff(ctx, "control.sanction.begin", func() {
+		if w.staffOps.sanctionVersions == nil {
+			w.staffOps.sanctionVersions = make(map[string]uint64)
+		}
+		w.staffOps.sanctionVersions[key]++
+		version = w.staffOps.sanctionVersions[key]
+	}); err != nil {
+		return "pending"
+	}
 	state, err := backend.ActiveSanctionState(ctx, account)
 	if err != nil {
 		log.Printf("[web-admin] sanction live refresh account=%q: %v", account, err)
 		return "pending"
 	}
-	affected := 0
-	if err := w.submitStaff(ctx, "control.sanction", func() { affected = w.applySanctionState(account, state, notify) }); err != nil {
+	affected, applied := 0, false
+	if err := w.submitStaff(ctx, "control.sanction", func() {
+		// A newer read may already have observed a revocation or a new ban.
+		// Never let this older snapshot restore or remove its live effect.
+		if w.staffOps.sanctionVersions[key] != version {
+			return
+		}
+		affected = w.applySanctionState(account, state, notify)
+		applied = true
+	}); err != nil || !applied {
 		return "pending"
 	}
 	if affected > 0 {
@@ -586,7 +608,7 @@ func shutdownNotice(mode string, left time.Duration) string {
 	return "Server maintenance in " + countdownText(left) + ". Please log out safely."
 }
 
-// shutdownLoginsBlocked runs on the World goroutine from onLogin.
+// shutdownLoginsBlocked runs on the World goroutine at login start and completion.
 func (w *World) shutdownLoginsBlocked(now time.Time) bool {
 	plan := w.staffOps.shutdown
 	return plan != nil && (plan.requested || plan.at.Sub(now) <= control.ShutdownLoginCutoff)

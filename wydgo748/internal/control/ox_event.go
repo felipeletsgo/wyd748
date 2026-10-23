@@ -9,10 +9,8 @@ import (
 	"unicode/utf8"
 )
 
-// OXEventCapability lets staff run the OX quiz arena, the 7.59 TMSRV
-// "quizmode", "quizdoor", "quizresultx" and "quizresulto" commands. Every
-// action is idempotent or reports how many players it moved, so no receipt is
-// kept.
+// OXEventCapability lets staff start/stop automatic OX and override a round.
+// Accepted result operation IDs are retained for the event to prevent replay.
 const OXEventCapability = "game.event.ox"
 
 var oxEventActions = map[string]bool{
@@ -41,13 +39,18 @@ func (c OXEventCommand) Validate() error {
 }
 
 type OXEventStatus struct {
-	Version     int       `json:"version"`
-	AsOf        time.Time `json:"asOf"`
-	QuizMode    bool      `json:"quizMode"`
-	Doors       int       `json:"doors"`
-	DoorsLocked bool      `json:"doorsLocked"`
-	PlayersX    int       `json:"playersX"`
-	PlayersO    int       `json:"playersO"`
+	Version      int        `json:"version"`
+	AsOf         time.Time  `json:"asOf"`
+	QuizMode     bool       `json:"quizMode"`
+	Doors        int        `json:"doors"`
+	DoorsLocked  bool       `json:"doorsLocked"`
+	PlayersX     int        `json:"playersX"`
+	PlayersO     int        `json:"playersO"`
+	Phase        string     `json:"phase"`
+	Round        int        `json:"round"`
+	Questions    int        `json:"questions"`
+	Participants int        `json:"participants"`
+	EndsAt       *time.Time `json:"endsAt"`
 }
 
 type OXEventResult struct {

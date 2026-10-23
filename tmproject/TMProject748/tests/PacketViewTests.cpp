@@ -36,6 +36,8 @@ int RunInstanceQuestionTests(int& checks);
 int RunCargoSlotTests(int& checks);
 int RunItemShortcutPolicyTests(int& checks);
 int RunGridInsertionTests(int& checks);
+int RunListBoxItemsTests(int& checks);
+int RunSummonVisualScaleTests(int& checks);
 int RunCostumeSelectionTests(int& checks);
 int RunHumanCostumeRefinementTests(int& checks);
 int RunNativeRefinementPresentationTests(int& checks);
@@ -573,6 +575,8 @@ int main()
     failures += RunCargoSlotTests(checks);
     failures += RunItemShortcutPolicyTests(checks);
     failures += RunGridInsertionTests(checks);
+    failures += RunListBoxItemsTests(checks);
+    failures += RunSummonVisualScaleTests(checks);
     failures += RunCostumeSelectionTests(checks);
     failures += RunHumanCostumeRefinementTests(checks);
     failures += RunNativeRefinementPresentationTests(checks);

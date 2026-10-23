@@ -186,8 +186,8 @@ func (w *World) admitTeleportConsumable(p *Player, slot byte, rule model.Volatil
 			return
 		}
 	case "ox_ticket":
-		if !w.oxQuizMode {
-			fail("")
+		if message := w.oxEntryRejection(p, p.Char.Inv[slot]); message != "" {
+			fail(message)
 			return
 		}
 	}
@@ -199,8 +199,21 @@ func (w *World) admitTeleportConsumable(p *Player, slot byte, rule model.Volatil
 	if rule.Consume {
 		consumeOne(&proposed.Chars[p.CharSlot].Inv[slot])
 	}
+	var afterAck, reject func()
+	if rule.Action == "ox_ticket" {
+		o := w.ox
+		o.admitting[p] = true
+		afterAck = func() { delete(o.admitting, p); w.admitOXMember(p) }
+		reject = func() {
+			delete(o.admitting, p)
+			fail("OX entry could not be saved. Your Entrance Ticket was not consumed.")
+		}
+	}
 	if err := w.queuePlayerTeleport(p, proposed, x, y, "teleport item",
-		func() { resyncUsedItem(p.Session, p, slot) }, nil, nil); err != nil {
+		func() { resyncUsedItem(p.Session, p, slot) }, afterAck, reject); err != nil {
+		if rule.Action == "ox_ticket" {
+			delete(w.ox.admitting, p)
+		}
 		fail("")
 		if !errors.Is(err, errCriticalPersistenceBusy) {
 			log.Printf("[#%d] teleport item admission rejected: %v", p.Session.ID, err)

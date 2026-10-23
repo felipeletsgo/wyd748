@@ -159,6 +159,16 @@ patch-<version>.zip` to the live list; `vps/publish-patch.sh` tests the ZIP,
 installs it, keeps the previous list as `.update.htm.previous` and replaces
 `update.htm` last. A launcher change requires a new full client.
 
+Every client patch is a mandatory update. The game server rejects, before
+authentication, any client whose compiled build revision is below its minimum
+([client build admission](../login-dispatch.md)). Each patch therefore raises
+`client_build::Revision` and the server's `MinimumClientBuildRevision`
+together, one above the last published revision, and ships with the server
+release that enforces it: publish and verify the patch first, then activate
+the server. Record the revision in the patch receipt. Published revisions:
+patches up to 10042 predate the gate (no revision); the next patch carries
+revision 1.
+
 Every published patch or player-visible server release also updates the
 website: the `clientRelease` receipt and a `changelog` entry in
 `wydgo748/web/portal/src/data/public-content.ts`, and a player-facing news

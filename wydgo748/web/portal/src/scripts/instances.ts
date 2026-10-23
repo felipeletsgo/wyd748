@@ -17,6 +17,7 @@ export function nextDeadline(instance: Instance, now: number) {
 export function setupInstances(api: API, explain: (error: unknown) => string, onLocate?: (x: number, y: number) => void) {
   const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
   let busy = false;
+  let generation = 0;
 
   function render(value: View) {
     const now = Date.parse(value.asOf);
@@ -49,15 +50,23 @@ export function setupInstances(api: API, explain: (error: unknown) => string, on
 
   async function refresh() {
     if (busy) return;
+    const current = generation;
     busy = true; el<HTMLButtonElement>('instances-refresh').disabled = true;
-    try { render(await api<View>('/staff/world/instances')); }
-    catch (error) { el('instances-status').textContent = explain(error); }
-    finally { busy = false; el<HTMLButtonElement>('instances-refresh').disabled = false; }
+    try {
+      const value = await api<View>('/staff/world/instances');
+      if (current === generation) render(value);
+    }
+    catch (error) { if (current === generation) el('instances-status').textContent = explain(error); }
+    finally {
+      if (current === generation) { busy = false; el<HTMLButtonElement>('instances-refresh').disabled = false; }
+    }
   }
 
   el('instances-refresh').addEventListener('click', () => void refresh());
   return { refresh, reset() {
+    generation++;
     busy = false; el('instances-status').textContent = '';
+    el<HTMLButtonElement>('instances-refresh').disabled = false;
     const cell = document.createElement('td'); cell.colSpan = 6; cell.className = 'empty'; cell.textContent = 'Not queried.';
     const row = document.createElement('tr'); row.append(cell); el('instances-rows').replaceChildren(row);
   } };

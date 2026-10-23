@@ -270,14 +270,18 @@ func TestCloneDoesNotInheritOwnerBody(t *testing.T) {
 	w := &World{npcs: []model.NPCDef{{
 		Name:  "Carbunkle",
 		Equip: model.Equip{Rosto: model.Item{Index: 230}, Armadura: model.Item{Index: 999}},
+		Score: &model.Score{Con: 6},
 	}}}
-	shop := &GhostShop{}
+	shop := &GhostShop{Score: model.Score{Con: 100000, MaxHP: 12345}}
 	// Populate every slot as if it came from the owner.
 	for i := range shop.Mesh {
 		shop.Mesh[i] = uint16(500 + i)
 	}
 
 	w.applyGhostShopLook(shop)
+	if shop.Score.Con != 6 || shop.Score.MaxHP != 12345 {
+		t.Fatalf("clone score did not isolate appearance CON: %+v", shop.Score)
+	}
 
 	if shop.Mesh[0] != 230 {
 		t.Errorf("face=%d, want 230 (Carbunkle)", shop.Mesh[0])
@@ -294,12 +298,15 @@ func TestCloneDoesNotInheritOwnerBody(t *testing.T) {
 // the clone without a face instead of silently copying the owner.
 func TestCloneWithoutCatalogDoesNotInheritOwner(t *testing.T) {
 	w := &World{}
-	shop := &GhostShop{}
+	shop := &GhostShop{Score: model.Score{Con: 100000}}
 	for i := range shop.Mesh {
 		shop.Mesh[i] = uint16(500 + i)
 	}
 
 	w.applyGhostShopLook(shop)
+	if shop.Score.Con != 0 {
+		t.Fatalf("missing appearance template retained owner CON: %d", shop.Score.Con)
+	}
 
 	if shop.Mesh != ([16]uint16{}) {
 		t.Errorf("clone kept the owner's appearance without the catalog: %v", shop.Mesh)

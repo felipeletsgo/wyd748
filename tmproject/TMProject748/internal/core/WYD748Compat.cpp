@@ -43,9 +43,9 @@ static_assert(offsetof(STRUCT_SCORE, Merchant) == 136, "STRUCT_SCORE.Merchant of
 
 // These packet assertions document the two first C->S authentication
 // boundaries. They prevent a later source merge from silently moving the
-// password, protocol marker or character-login proof again.
+// password, compiled build identity or character-login proof again.
 static_assert(sizeof(MSG_AccountLogin) == 116, "7.48 login request must remain 116 bytes");
-static_assert(offsetof(MSG_AccountLogin, DBNeedSave) == 44, "source protocol marker offset changed");
+static_assert(offsetof(MSG_AccountLogin, ClientBuild) == 44, "client build identity offset changed");
 static_assert(sizeof(MSG_CharacterLogin) == 36, "7.48 character login must remain 36 bytes");
 static_assert(offsetof(MSG_CharacterLogin, Force) == 16, "7.48 character login Force offset changed");
 static_assert(offsetof(MSG_CharacterLogin, SecretCode) == 20, "7.48 character login proof offset changed");

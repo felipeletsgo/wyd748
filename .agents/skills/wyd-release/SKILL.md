@@ -49,6 +49,28 @@ host, account, feed-version, or deployment-state authority.
   prerequisite or evidence of a transient condition. After two unchanged
   failures, change the diagnostic method or report the blocker.
 
+## Client build revision (every client patch)
+
+The server admits only clients whose compiled build revision is at least its
+minimum ([client build admission](../../../DOCS/login-dispatch.md)), so a
+client patch is always a coordinated client and server release:
+
+1. Read the last published revision from the latest patch receipt in
+   [launcher delivery](../../../DOCS/client/launcher.md), not from source.
+2. Before building the candidate, set `client_build::Revision` in
+   `ClientBuildContract.h` and `MinimumClientBuildRevision` in
+   `internal/wire/client_build.go` to that value plus one, unless the
+   unpublished source already carries exactly that value. Keep the prefix and
+   protocol; never lower, reuse or wrap a revision.
+3. Run `go test ./internal/wire` (cross-checks both constants) and the client
+   gate, then build the candidate and the patch from the same commit.
+4. Publish and verify the patch on the launcher feed before activating the
+   server release. Activating first rejects every installed client; a client
+   patch without its server release is not finished.
+5. After activation, confirm a current-client login is admitted and record
+   the revision with the patch receipt. Rollback restores a matching
+   client/server pair; never disable the gate to recover.
+
 ## Package the actual inputs
 
 - `Build-ClientPatch.ps1` packages explicit committed `-From`/`-To` revisions,

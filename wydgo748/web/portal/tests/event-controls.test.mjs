@@ -14,7 +14,8 @@ const colosseum = () => ({ version: 1, asOf, epoch: 'a'.repeat(32), revision: 7,
   active: false, tier: '', stage: 0, endsAt: null, pendingExits: 0, timezone: 'America/Sao_Paulo',
   schedule: ['N', 'M', 'A'].map((tier, i) => ({ tier, startsAt: `2026-10-21T${21 + i}:05:00Z`, claimed: false })),
 });
-const ox = () => ({ version: 1, asOf, quizMode: false, doors: 6, doorsLocked: true, playersX: 1, playersO: 2 });
+const ox = () => ({ version: 1, asOf, quizMode: false, doors: 6, doorsLocked: true, playersX: 1, playersO: 2,
+  phase: 'inactive', round: 0, questions: 24, participants: 0, endsAt: null });
 function fixture(name, snapshot) {
   const elements = new Map(), calls = [], confirmations = [];
   let respond = async () => snapshot;
@@ -88,11 +89,28 @@ for (const [name, snapshot] of [['colosseum', colosseum], ['ox-event', ox]]) {
 test('OX one-click start opens entry once and cannot reopen a running question', async () => {
   const f = fixture('ox-event', ox()); await f.controller.refresh();
   f.respond(async (_path, _method, command) => ({ operationId: command.operationId, code: 'ok', moved: 0,
-    status: { ...ox(), quizMode: true, doorsLocked: false } }));
+    status: { ...ox(), quizMode: true, doorsLocked: false, phase: 'enrollment', round: 1 } }));
   f.element('ox-event-start').handlers.click(); await flush();
   assert.equal(f.calls[1].body.action, 'start'); assert.equal(f.calls[1].path, '/staff/events/ox');
   f.respond(async () => ({ ...ox(), quizMode: true })); await f.controller.refresh();
   assert.equal(f.element('ox-event-start').disabled, true);
   const count = f.calls.length; f.element('ox-event-start').handlers.click(); await flush();
   assert.equal(f.calls.length, count); assert.equal(f.element('ox-event-doors').textContent, 'Locked');
+});
+
+test('OX side overrides require a question and preserve the full response window', async () => {
+  const f = fixture('ox-event', ox()); await f.controller.refresh();
+  assert.equal(f.element('ox-event-result-o').disabled, true);
+  assert.match(f.element('ox-event-mode').textContent, /ticket is preserved/);
+  f.respond(async () => ({ ...ox(), quizMode: true, phase: 'question', round: 2, participants: 3,
+    endsAt: '2026-10-21T15:00:10Z' })); await f.controller.refresh();
+  assert.match(f.element('ox-event-cycle').textContent, /question 2\/24; 3 admitted/);
+  for (const side of ['o', 'x']) {
+    f.respond(async (_path, _method, command) => ({ operationId: command.operationId, code: 'ok', moved: 0,
+      status: { ...ox(), quizMode: true, phase: 'question' } }));
+    f.element(`ox-event-result-${side}`).handlers.click(); await flush();
+    assert.equal(f.calls.at(-1).body.action, `result_${side}`);
+    assert.match(f.confirmations.at(-1), /10-second answer window ends/);
+    assert.match(f.element('ox-event-message').textContent, /evaluation waits/);
+  }
 });

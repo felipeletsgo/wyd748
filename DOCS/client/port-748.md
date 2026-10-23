@@ -2877,3 +2877,69 @@ Do not change several structural packets at once: `STRUCT_SCORE` is embedded
 in larger structures, so each change needs a corpus and test for the final
 packet. Never add protocol-variant selection during authentication or
 elsewhere; this source implements only the 7.48 contract.
+
+## Heap failure in chat list, patch 10042 (2026-10-23)
+
+Evidence: `tmproject/client748/dumps/client-crash-20261023-001533-597-p22476-t34116.dmp`
+and `crash-monitor-p22476.log`, written by the external collector for the
+installed patch 10042 client (`WYD.exe` SHA-256 `7F8C10E4…E033A9`, PDB GUID
+`95ae9d6e26e8994791c45942dba8e6f7` age 438). Code `0xC0000374` was raised in
+`ntdll`; Windows' heap failure record reports failure type 8 (block not busy)
+for user block `0x1B360228`: the client freed an already free block.
+
+The original age-438 PDB was overwritten by later builds. Commit `379dcd93`'s
+client source was rebuilt in isolation; its `.text` is 100% identical to the
+crashed executable, so that PDB symbolizes it exactly. It is stored with the
+original executable in
+`tmproject/build/crash-symbols/7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9/`
+(load the PDB with a mismatch allowance; GUID/age differ, code does not).
+
+Main thread, from the heap failure record's own stack trace:
+`CPSock::DispatchNetworkEvent` → `ObjectManager::OnPacketEvent` →
+`TMHuman::OnPacketEvent` (0x333) → `TMHuman::OnPacketMessageChat` →
+`SListBox::AddItem` (full list: `SAFE_DELETE(m_pItemList[0])`) →
+`TreeNode` scalar deleting destructor → `operator delete`. The deleted object
+already carried the base `TreeNode` vtable, consistent with an item whose
+destructor had run before. The triggering line was an ordinary short chat
+message. The 10042 client changes do not touch chat or list ownership.
+
+The dump type (`MiniDumpNormal | DataSegs | ThreadInfo | UnloadedModules |
+FullMemoryInfo`) contains no heap memory, so the chat list, its item array and
+the first deletion cannot be inspected. Root cause: **unidentified**. Some
+code freed an item still referenced by the chat list's `m_pItemList`. No
+concurrent thread was in chat or list code at capture time.
+
+### Follow-up hardening (local source, 2026-10-23)
+
+Classification: `MODERNIZACAO_COMPATIVEL`; no wire, asset or UI layout change.
+
+- Both dump writers (in-process `CrashCapture.h` and the external
+  `CrashMonitor.h` used for `0xC0000374`) add
+  `MiniDumpWithIndirectlyReferencedMemory`, so the next heap failure keeps
+  the heap objects that stack values point to (the list, its items, the
+  packet) without capturing the whole heap.
+- `SListBox` item ownership moved to `internal/ui/ListBoxItems.h`: a null or
+  already listed item is refused without being deleted, so one pointer can
+  never be owned twice; removal by index or pointer nulls the vacated slot;
+  a list without capacity deletes the refused item instead of writing before
+  the array; a capacity that shrank keeps the newest items. This closes one
+  possible double-free path; it does not prove the cause of the recorded
+  crash.
+- Tests: `ListBoxItemsTests` (ownership, rotation, removal, edge capacities
+  and a source contract that `SListBox` owns items only through the header)
+  in ArchitectureTests; CrashCaptureTests requires a heap marker referenced
+  only from the faulting stack in both the `access` (in-process) and
+  `external-access` (external monitor) dumps. Removing the flag from both
+  writers makes both checks fail. The synthetic `external-heap-status` case
+  is not used for this check: its `RtlCaptureContext` context reports an
+  outer frame on x86 without frame pointers, so `main`'s locals lie outside
+  its dumped stack; a real fault carries the true stack pointer.
+
+`Build-Client.ps1 -NoDeploy` passed: ArchitectureTests 3,171,473 checks,
+SocketReceiveTests 281, CrashCaptureTests 200 (0 failures), launcher 56.
+Candidate `tmproject/build/TMProject748/Release/WYD.exe` SHA-256
+`4D83048D1A543A6963365D6B36E42D04E55E55244A4949D5A53EF1EFCE506089`, PDB
+`AC2C6E97514E0888501B13D2B10DA2DD6CE5FE869FB7154B46FA115521888B95`. The
+working tree also contained other sessions' uncommitted client UI edits,
+which this candidate includes. The installed `tmproject/client748/WYD.exe`
+is unchanged (patch 10042, `7F8C10E4…`). Not published, not `CLIENT_TESTED`.

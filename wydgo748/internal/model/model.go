@@ -37,8 +37,8 @@ func ClampCP(value int) int16 {
 func clampCP(value int16) int16 { return ClampCP(int(value)) }
 
 // Item holds the native STRUCT_ITEM (Index+Eff = 8 bytes), the instance
-// identity and its optional absolute expiry. UID and dates exist only on the
-// server and are never serialized on the wire: shops/NPCs/templates use an
+// identity, optional expiry and fairy pause timestamp. UID and dates exist
+// only on the server and are never serialized on the wire: shops/NPCs/templates use an
 // empty UID as a blueprint; materialized items keep the same identity and
 // expiry through inventory, Cargo, trade and relogin.
 type Item struct {
@@ -47,6 +47,7 @@ type Item struct {
 	Eff           [6]byte `json:"eff,omitempty"`
 	ActivatedUnix int64   `json:"activatedUnix,omitempty"`
 	ExpiresUnix   int64   `json:"expiresUnix,omitempty"`
+	PausedUnix    int64   `json:"pausedUnix,omitempty"`
 }
 
 // MarshalJSON omits "eff" when it is all zero -- "omitempty" does NOT work on
@@ -58,7 +59,8 @@ func (it Item) MarshalJSON() ([]byte, error) {
 			UID           string `json:"uid,omitempty"`
 			ActivatedUnix int64  `json:"activatedUnix,omitempty"`
 			ExpiresUnix   int64  `json:"expiresUnix,omitempty"`
-		}{Index: it.Index, UID: it.UID, ActivatedUnix: it.ActivatedUnix, ExpiresUnix: it.ExpiresUnix})
+			PausedUnix    int64  `json:"pausedUnix,omitempty"`
+		}{Index: it.Index, UID: it.UID, ActivatedUnix: it.ActivatedUnix, ExpiresUnix: it.ExpiresUnix, PausedUnix: it.PausedUnix})
 	}
 	type alias Item
 	return json.Marshal(alias(it))
@@ -741,10 +743,13 @@ func (a *Account) Validate() error {
 	validateItemTime := func(item Item, location string) error {
 		if item.ActivatedUnix < 0 || item.ExpiresUnix < 0 ||
 			(item.ActivatedUnix == 0) != (item.ExpiresUnix == 0) ||
-			item.ExpiresUnix != 0 && item.ExpiresUnix < item.ActivatedUnix {
+			item.ExpiresUnix != 0 && item.ExpiresUnix < item.ActivatedUnix ||
+			item.PausedUnix < 0 || item.PausedUnix != 0 &&
+			(item.ActivatedUnix == 0 || item.PausedUnix < item.ActivatedUnix || item.PausedUnix >= item.ExpiresUnix ||
+				item.Index < 3900 || item.Index >= 3980) {
 			return fmt.Errorf("account %q has an invalid item expiry at %s", a.Name, location)
 		}
-		if item.Index == 0 && (item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0) {
+		if item.Index == 0 && (item.UID != "" || item.ActivatedUnix != 0 || item.ExpiresUnix != 0 || item.PausedUnix != 0) {
 			return fmt.Errorf("account %q has an empty item with identity/expiry at %s", a.Name, location)
 		}
 		if item.ActivatedUnix != 0 {

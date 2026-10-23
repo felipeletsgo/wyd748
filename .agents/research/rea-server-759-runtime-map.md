@@ -536,6 +536,26 @@ adds one unique body, bringing the running examined-entry count to at least
   represented target because it was already called by `FUN_004BB4C0`; the floors
   now stand at least at 364 examined entries and 224 directly represented
   targets.
+  Direct analysis of `FUN_004C4BA0` below adds one examined entry but no new
+  represented target because it was already called by `FUN_004BB4C0`; the floors
+  now stand at least at 365 examined entries and 224 directly represented
+  targets.
+  Direct analysis of `FUN_005AD070` below adds one examined entry but no new
+  represented target because it was already called by `FUN_004BB4C0`; the floors
+  now stand at least at 366 examined entries and 224 directly represented
+  targets.
+  Direct analysis of `FUN_004B7190` below adds one examined entry but no new
+  represented target because it was already called by `FUN_004CE1C0`; the floors
+  now stand at least at 367 examined entries and 224 directly represented
+  targets.
+  Direct analysis of `FUN_004B9A30` below adds one examined entry but no new
+  represented target because it was already called by `FUN_004CE1C0`; the floors
+  now stand at least at 368 examined entries and 224 directly represented
+  targets.
+  Direct analysis of `FUN_004CC430` below adds one examined entry but no new
+  represented target because `FUN_00503FF0` already exposed it as a callee; the
+  floors now stand at least at 369 examined entries and 224 directly represented
+  targets.
 
 ## Executable receive and command path
 
@@ -682,6 +702,14 @@ adds one unique body, bringing the running examined-entry count to at least
   established. This traces a mob-state serialization path into nearby-grid
   delivery, but does not identify combat-stat formulas or prove runtime delivery.
   Static evidence only.
+- `TMSRVIN.exe!FUN_004CC430`
+  (`ev_6a98bc0f1949deae30efabe7b143bd3042bf6a8dad3e9bad642e97ec0b3cecaf`,
+  `build/rea-analysis/work/TMSRVIN-grid-multicast-helper-4CC430-20261022.rea-snapshot.json`)
+  is a bounded variadic-formatting helper: it calls `_vsprintf_s` with a
+  destination capacity of `0x100` bytes. `FUN_00503FF0` uses it in the `grid -2`
+  and `grid -3` error branches to format diagnostics before passing them to
+  `FUN_00569D50`. It is logging support, not part of mob-packet serialization
+  or delivery. Static evidence only.
 - `TMSRVIN.exe!FUN_005025B0`
   (`ev_2a0210230e6deb1ee13677571f4061a6fe104a50836dfb366a142d3d32d730e3`,
   body `0x5025B0..0x502636`, 135 bytes,
@@ -772,6 +800,23 @@ adds one unique body, bringing the running examined-entry count to at least
   unresolved. This supports a broad record-recomputation helper in the mob
   refresh path, not the gameplay meaning of each derived value. Static evidence
   only.
+- `TMSRVIN.exe!FUN_004B7190`
+  (`ev_ff6853f2fbc53cbf74987c8d6f581cdae361db0d8e6ba6ad29a84ff2bd51d987`,
+  `build/rea-analysis/work/TMSRVIN-record-base-helper-4B7190-20261022.rea-snapshot.json`)
+  reads the low nibble of the byte at its argument offset `+0xD`, changes zero
+  to one, and caps the result at seven. `FUN_004CE1C0` passes the address at
+  record offset `+0x5C`, so the helper reads the byte at `+0x69`; its semantic
+  meaning remains unresolved. Static evidence only.
+- `TMSRVIN.exe!FUN_004B9A30`
+  (`ev_4213e49bb015163c1103656c26ff691d45065f08547364063ed1964b4e11d46e`,
+  `build/rea-analysis/work/TMSRVIN-equipment-option-count-helper-4B9A30-20261022.rea-snapshot.json`)
+  returns zero for item IDs `0x91A..0x955`, `0xC80..0xCE3`, and `0xF8C..3999`.
+  For other IDs it selects an adjacent byte from one of three short slots at
+  entry offsets `+2`, `+4`, or `+6`, based first on a `'+'` marker and otherwise
+  on a byte in `0x73..0x7E`. It normalizes the selected value as `value % 10`
+  below `0xE6`, or `value - 0xDC` otherwise. `FUN_004CE1C0` uses this result in
+  its equipment-derived calculation; the slot encoding and gameplay meaning
+  remain unresolved. Static evidence only.
 - `TMSRVIN.exe!FUN_004BA690`
   (`ev_793e4ce58857ab1d35087aa62b7aae13fe0e2ee2ba69b518f057e612490382b7`,
   `build/rea-analysis/work/TMSRVIN-record-value-helper-4BA690-20261022.rea-snapshot.json`)
@@ -817,9 +862,27 @@ adds one unique body, bringing the running examined-entry count to at least
   `build/rea-analysis/work/TMSRVIN-record-gate-helper-4C61D0-20261022.rea-snapshot.json`)
   returns whether the signed integer remainder `param_1 % 10` is greater than
   5. `FUN_004BB4C0` passes its record value from offset `+0x844` as `param_1`;
-  when true, that caller enters a four-index loop and tests each index through
-  `FUN_004C4BA0`. The meaning of the record field and the threshold remain
-  unresolved. Static evidence only.
+  when true, that caller enters a four-index loop and tests indices 0 through
+  3 with `FUN_004C4BA0` against the byte at record offset `+0x521`. The meaning
+  of the record field, flag byte, and threshold remain unresolved. Static
+  evidence only.
+- `TMSRVIN.exe!FUN_004C4BA0`
+  (`ev_16eb25376d356c4ae2fd4a3046fae171eb3ce8247fae9967266e3dbf0d6a9bbb`,
+  `build/rea-analysis/work/TMSRVIN-record-option-helper-4C4BA0-20261022.rea-snapshot.json`)
+  accepts a flag byte and an index, then returns whether the byte has the bit
+  selected by `1 << (index & 0x1F)` set. Its `FUN_004BB4C0` callsite uses indices
+  0 through 3 on the byte at record offset `+0x521`, gated by `FUN_004C61D0`.
+  The meanings of the individual bits remain unresolved. Static evidence only.
+- `TMSRVIN.exe!FUN_005AD070`
+  (`ev_cf05f07f3cea4ce1ef0ba3f894b588733483f33ba4274bdd89e0d1cdda59dfe6`,
+  `build/rea-analysis/work/TMSRVIN-record-modifier-helper-5AD070-20261022.rea-snapshot.json`)
+  is a compiler/runtime-style floating-to-integer helper: Ghidra recovers an
+  implicit x87 `ST0` input and a 64-bit integer result, with a `ROUND`-based
+  conversion path selected when `DAT_0B643C58` is zero. In `FUN_004BB4C0`'s
+  modifier-code `0xC` branch, it converts `(100 - local_240) / 100.0`; the
+  result is narrowed to a short and stored at record offset `+0x60`. This is a
+  numeric conversion path, not evidence of randomness or the field's gameplay
+  meaning. Static evidence only.
 - `TMSRVIN.exe!FUN_00589AE0`
   (`ev_c88664ac7895c2f413e37c281ec9519e06d2c9c4e33b8fa8b8a40fb90d93efd7`,
   body `0x589AE0..0x589B31`, 82 bytes,
@@ -865,6 +928,13 @@ adds one unique body, bringing the running examined-entry count to at least
   above is direct REA byte evidence; monster progression and names remain based
   on secondary decompilation and reference data, not a recovered REA function
   body or runtime validation.
+  A focused REA 6.7.0/Ghidra 12.1.4 lookup mapped file offset `0x755F4` back to
+  VA `0x5261F4` in the same executable SHA-256
+  (`27ee313bb4b4d4a0d897dac9a188d8249068ce701311cbda1e24ad28c5e43642`) and
+  reported that no analyzed procedure starts at or contains that address
+  (run `9466ce19-ac57-46fb-a837-ebd65a13f70b`). This is an analysis-coverage
+  gap, not evidence that the bytes are absent or inert; it adds no identified
+  function to the running count.
 - `TMSRVIN.exe!FUN_005076D0`
   (`ev_80057e6b57250d4e8cf1f605a9b542ae711ed804afc99ca4b23fc7ff978acb87`,
   `build/rea-analysis/work/TMSRVIN-item-grant-5076d0-20261021.rea-snapshot.json`)

@@ -38,7 +38,7 @@ func (w *World) activeFairyBonus(ch *model.Char) fairyBonus {
 	}
 	item := ch.Equip[fairySlot]
 	bonus := fairyBonusByIndex(item.Index)
-	if bonus == (fairyBonus{}) {
+	if bonus == (fairyBonus{}) || item.PausedUnix != 0 {
 		return fairyBonus{}
 	}
 	def, ok := w.items[item.Index]

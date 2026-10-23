@@ -1,5 +1,6 @@
 {
   "name": "RT_Balrog",
+  "combatRole": "boss",
   "tipo": "monstro",
   "equip": {
     "rosto": {

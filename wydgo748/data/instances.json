@@ -2001,7 +2001,7 @@
       },
       {
         "minX": 1964,
-        "minY": 1772,
+        "minY": 1768,
         "maxX": 1967,
         "maxY": 1775
       }
@@ -2080,7 +2080,7 @@
       },
       {
         "minX": 1964,
-        "minY": 1772,
+        "minY": 1768,
         "maxX": 1967,
         "maxY": 1775
       }
@@ -2159,7 +2159,7 @@
       },
       {
         "minX": 1964,
-        "minY": 1772,
+        "minY": 1768,
         "maxX": 1967,
         "maxY": 1775
       }
@@ -2239,7 +2239,7 @@
         "x": 1340,
         "y": 1492
       },
-      "description": "Big Cube Entrance Ticket: server-side O/X questions; O means Yes and X means No. While staff runs the OX quiz mode it is spent to enter the OX arena instead (7.59 TMSRV)."
+      "description": "Entrance Ticket: admits one player during the public OX event's 60-second enrollment in the Big Cube entry area. Inactive or closed enrollment preserves the ticket. O means Yes (west); X means No (east). Correct answers earn the configured Cube EXP and continue to the next question."
     },
     "54": {
       "action": "instance_ticket",

@@ -66,6 +66,12 @@ func (w *World) beginPlayerMovement(p *Player, fromX, fromY, targetX, targetY ui
 	if p == nil || p.Char == nil || playerCurHP(p.Char) == 0 || len(authorityRoute) == 0 {
 		return
 	}
+	if !w.oxStepAllowed(p, targetX, targetY) ||
+		w.isOXMember(p) && w.ox.phase == "question" && !now.Before(w.ox.deadline) {
+		w.publishPlayerStop(p)
+		p.Session.Send(wire.ActionRouteCorrection(p.ID, p.X, p.Y))
+		return
+	}
 	// The 7.48 client continuously updates its destination, even before the next
 	// visual step is due. Preserve the current deadline: resetting it on every
 	// 0x366 would let a legitimate sequence freeze authority indefinitely.
@@ -112,6 +118,9 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		clearPublishedPlayerMove(p)
 		return
 	}
+	if w.isOXMember(p) && w.ox.phase == "question" && now.After(w.ox.deadline) {
+		now = w.ox.deadline
+	}
 	// Teleports and recalls change coordinates through another flow. An old
 	// plan must never keep walking from the new map or location.
 	if p.X != p.MoveAuthorityX || p.Y != p.MoveAuthorityY {
@@ -135,7 +144,7 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		}
 		nextX := uint16(int(p.X) + direction[0])
 		nextY := uint16(int(p.Y) + direction[1])
-		if !w.guildWarStepAllowed(p, nextX, nextY) ||
+		if !w.oxStepAllowed(p, nextX, nextY) || !w.guildWarStepAllowed(p, nextX, nextY) ||
 			!hiddenValleyDestinationAllowed(p, nextX, nextY, now) {
 			w.publishPlayerStop(p)
 			return

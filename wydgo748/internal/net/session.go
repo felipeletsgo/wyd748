@@ -47,6 +47,7 @@ type Session struct {
 	out                     chan []byte
 	done                    chan struct{}
 	doneOnce                sync.Once
+	admissionRejected       atomic.Bool
 	readDeadlineMu          sync.Mutex
 	authenticated           bool
 	readingFrame            bool
@@ -117,6 +118,21 @@ func (s *Session) IsClosed() bool {
 	default:
 		return false
 	}
+}
+
+// AdmissionRejected is terminal even while the final message is draining.
+func (s *Session) AdmissionRejected() bool {
+	return s.admissionRejected.Load()
+}
+
+// RejectAdmission queues one final message and closes after a bounded grace
+// period. The latch prevents pipelined retries from entering authentication.
+func (s *Session) RejectAdmission(message []byte) {
+	if !s.admissionRejected.CompareAndSwap(false, true) {
+		return
+	}
+	s.Send(message)
+	time.AfterFunc(300*time.Millisecond, s.Close)
 }
 
 func (s *Session) closeDone() {

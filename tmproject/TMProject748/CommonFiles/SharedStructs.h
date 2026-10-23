@@ -1,5 +1,6 @@
  #pragma once
 #include <cstddef>
+#include "../internal/wire/ClientBuildContract.h"
 /*
 This header shares structures between the server and client as they evolve.
 Other headers may be added for constants and related definitions.
@@ -31,7 +32,7 @@ struct MSG_HSTANDARD
 #ifdef _WYDCLIENT
 #include "../internal/wire/MessageHeader.h"
 #include <type_traits>
-// A extracao conserva inclusive os tipos subjacentes usados pelo SDK Windows.
+// The extraction also preserves the Windows SDK's underlying integer types.
 static_assert(std::is_same<decltype(MSG_STANDARD::Size), WORD>::value, "WORD changed");
 static_assert(std::is_same<decltype(MSG_STANDARD::KeyWord), BYTE>::value, "BYTE changed");
 static_assert(std::is_same<decltype(MSG_STANDARD::Tick), DWORD>::value, "DWORD changed");
@@ -46,7 +47,7 @@ struct		  MSG_AccountLogin
 	char AccountName[16];
 	char AccountPassword[12];
 	int  ClientVersion;
-	int  DBNeedSave;
+	unsigned int ClientBuild; // Coordinated build identity, not the native DBNeedSave selector.
 	char Zero[52];
 	int AdapterName[4];
 
@@ -59,6 +60,9 @@ static_assert(sizeof(MSG_AccountLogin) == 116, "WYD 7.48 login packet must be 11
 static_assert(offsetof(MSG_AccountLogin, AccountName) == 12, "WYD 7.48 account offset changed");
 static_assert(offsetof(MSG_AccountLogin, AccountPassword) == 28, "WYD 7.48 password offset changed");
 static_assert(offsetof(MSG_AccountLogin, ClientVersion) == 40, "WYD 7.48 cliver offset changed");
+static_assert(offsetof(MSG_AccountLogin, ClientBuild) == 44, "client build offset changed");
+static_assert(offsetof(MSG_AccountLogin, Zero) == 48, "migration ticket offset changed");
+static_assert(offsetof(MSG_AccountLogin, AdapterName) == 100, "adapter identity offset changed");
 #pragma pack(push, 1)
 
 #pragma pack(pop)

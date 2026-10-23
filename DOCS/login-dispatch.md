@@ -1,5 +1,75 @@
 # Login and character-selection dispatch
 
+## Client build admission — contract v1, 2026-10-22
+
+Classification: `EXTENSAO_COORDENADA`, not native build-version parity.
+The native login boundary is reused from
+`account-login-credential-bounds.md` (`FUN_004AC985`) and
+`field-scene-rebuild-after-server-move.md` (`FUN_00484D44`) under
+`.agents/research/client748/flows/`: native SHA-256
+`8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593`,
+opcode `0x20D`, 116 bytes, account/password/protocol at 12/28/40. Those records
+and their Ghidra evidence are USED for the unchanged envelope and migration
+ticket. Current source and Go/tests are USED for the new policy. Native assets
+and later-version algorithms are NOT APPLICABLE; no resource or opcode is added.
+Native evidence does not establish this project's new build policy.
+
+The little-endian unsigned word at byte 44, formerly the zero/obsolete
+`DBNeedSave` selector, is now `ClientBuild`. Its upper 16 bits must be `0x5747`
+and its lower 16 bits are a monotonically increasing admission revision.
+The compiled client sends `0x57470001` (revision 1) in initial login and
+migration reconnect. The server requires protocol 748 and revision >= 1.
+Reserved migration bytes 48..99 and adapter words 100..115 remain untouched.
+Do not reuse byte 44 as an ABI selector. Zero, old selectors, unknown prefixes
+and insufficient revisions fail closed; the 116-byte framing remains exact.
+
+The gate runs before password verification, auth-slot acquisition and account/IP
+reservations. Rejection sends the existing `0x101/108` message with ID 0:
+`Client update required. Close the game and run the launcher to update.`
+It permanently marks that socket as rejected, queues the message once and
+closes after a bounded 300 ms delivery grace period. Retrying a different build
+on the same socket cannot authenticate; a fresh connection is required.
+Late authentication results cannot admit a rejected socket. Existing network,
+maintenance, sanctions, duplicate-account and credential policies remain active.
+No account or character data is mutated by the version rejection. Normal
+disconnect cleanup releases the transport; no per-world rejection map is kept.
+The existing client message panel remains visible across the disconnect callback
+instead of being replaced by its generic connection-lost message. This source
+behavior still requires actual game validation on both an old and new executable.
+
+`ClientBuildContract.h` and `internal/wire/client_build.go` own their respective
+constants; cross-project tests prevent drift. This is a compiled executable
+identity, independent of the launcher's mutable `config.txt` patch counter.
+It is not cryptographic attestation: a modified client can forge the claim,
+and the existing asset-integrity probes remain separate. No hot update or
+automatic download is attempted inside the game.
+
+For each future mandatory client update, increment `Revision` in the client
+and `MinimumClientBuildRevision` in the server together, preserving the prefix
+and protocol; do not reset or wrap revisions. Revision 1 covers the local
+2026-10-22 fixes (Water/fairy/mount HUD/hand slots/monster scaling). Release
+ordering is mandatory: build and publish the compatible client through the
+established launcher feed first, verify that update, then activate the server
+gate. Otherwise every currently installed old executable will be rejected.
+Rollback requires a matching client/server policy; never silently disable the
+gate. Existing authenticated sessions are not forcibly disconnected by this
+implementation. Shutdown/restart and publication are operational actions and
+are not authorized by this implementation request.
+
+Implemented with automated tests covering all 65,536 revision values, legacy
+selectors, unknown prefixes, protocol mismatch and every truncated length;
+client/server constants are cross-checked. Handler tests verify rejection
+before authentication or account/IP reservations, a single update message,
+same-socket retry rejection, late-result rejection, normal admission for current
+and newer revisions, and wrong-password behavior. A real local socket test
+verifies encrypted message delivery and EOF after the grace period. Full
+`go test ./... -count=1`, `go vet ./...` and `go build ./...` passed locally.
+Client build validation is recorded in `DOCS/current-state.md`. Manual acceptance
+must still cover old-client rejection/message/close, current-client normal login,
+wrong credentials, reconnect, and migration when a real coordinator is available.
+No `CLIENT_TESTED` claim is made; no client installation or server activation
+has occurred in this batch.
+
 ## Current map
 
 - `CPSock::ReadPacketView` validates framing and preserves the opcode,

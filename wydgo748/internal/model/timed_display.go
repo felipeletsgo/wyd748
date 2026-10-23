@@ -32,6 +32,9 @@ func ExpiryDisplayEffects(item Item, now time.Time) [6]byte {
 	}
 	var values [3][2]byte
 	if item.Index >= 3900 && item.Index < 3980 {
+		if item.PausedUnix > 0 {
+			now = time.Unix(item.PausedUnix, 0)
+		}
 		remaining := time.Unix(item.ExpiresUnix, 0).Sub(now)
 		if remaining < 0 {
 			remaining = 0

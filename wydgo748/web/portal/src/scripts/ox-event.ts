@@ -10,8 +10,8 @@ const labels: Record<Command['action'], string> = {
   mode_off: 'Turn quiz mode off',
   doors_lock: 'Lock the OX gates',
   doors_open: 'Open the OX gates',
-  result_x: 'Send the X side out of the arena',
-  result_o: 'Send the O side out of the arena',
+  result_x: 'Mark X as the losing side when the 10-second answer window ends',
+  result_o: 'Mark O as the losing side when the 10-second answer window ends',
 };
 
 export function setupOXEvent(api: API, explain: (error: unknown) => string) {
@@ -30,6 +30,8 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
     ok: 'The server applied the change.',
     unchanged: 'The arena was already in that state.',
     doors_unavailable: 'The OX gates are not loaded on this server.',
+    questions_unavailable: 'The configured Cube questions are not loaded on this server.',
+    busy: 'An OX entry or round is being saved. Refresh before trying again.',
     invalid_command: 'Invalid operation. Check the reason and try again.',
     capability_required: 'This session no longer has permission to run the OX event.',
     server_maintenance: 'The server is under maintenance and does not accept changes.',
@@ -45,15 +47,17 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
     const doors = ready && (status?.doors ?? 0) > 0;
     el<HTMLButtonElement>(buttons.doors_lock).disabled = !doors || !!status?.doorsLocked;
     el<HTMLButtonElement>(buttons.doors_open).disabled = !doors || !status?.doorsLocked;
-    el<HTMLButtonElement>(buttons.result_x).disabled = !ready;
-    el<HTMLButtonElement>(buttons.result_o).disabled = !ready;
+    el<HTMLButtonElement>(buttons.result_x).disabled = !ready || status?.phase !== 'question';
+    el<HTMLButtonElement>(buttons.result_o).disabled = !ready || status?.phase !== 'question';
   }
 
   function render(value: Status) {
     status = value;
-    text('ox-event-mode', value.quizMode ? 'On (ticket enters the arena)' : 'Off (ticket opens the Big Cube)');
+    text('ox-event-mode', value.quizMode ? 'On (entry only during enrollment)' : 'Off (ticket is preserved)');
     text('ox-event-doors', value.doors === 0 ? 'Unavailable' : value.doorsLocked ? 'Locked' : 'Open');
     text('ox-event-players', `X side ${value.playersX}, O side ${value.playersO}`);
+    const deadline = value.endsAt ? `; phase ends ${new Date(value.endsAt).toLocaleString('en-US')}` : '';
+    text('ox-event-cycle', `${value.phase}; question ${value.round}/${value.questions}; ${value.participants} admitted${deadline}`);
     text('ox-event-asof', `Snapshot from ${new Date(value.asOf).toLocaleString('en-US')}. State is not updated automatically.`);
     setControls();
   }
@@ -89,8 +93,9 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
       if (current !== generation) return;
       if (result.operationId !== command.operationId || result.status.version !== 1 || !Object.hasOwn(messages, result.code)) throw new Error('Invalid OX arena receipt');
       render(result.status);
-      const moved = action === 'result_x' || action === 'result_o' ? ` ${result.moved} player(s) moved out.` : '';
-      text('ox-event-message', messages[result.code] + moved);
+      const override = result.code === 'ok' && (action === 'result_x' || action === 'result_o')
+        ? ' Losing side selected; evaluation waits for the full 10-second answer window.' : '';
+      text('ox-event-message', messages[result.code] + override);
     } catch (error) {
       if (current !== generation) return;
       status = undefined;
@@ -106,7 +111,7 @@ export function setupOXEvent(api: API, explain: (error: unknown) => string) {
   return { refresh, reset() {
     generation++; status = undefined; busy = false;
     el<HTMLInputElement>('ox-event-reason').value = '';
-    for (const id of ['ox-event-mode', 'ox-event-doors', 'ox-event-players']) text(id, 'Not queried');
+    for (const id of ['ox-event-mode', 'ox-event-doors', 'ox-event-players', 'ox-event-cycle']) text(id, 'Not queried');
     text('ox-event-message', ''); text('ox-event-asof', 'No automatic refresh.');
     setControls();
   } };

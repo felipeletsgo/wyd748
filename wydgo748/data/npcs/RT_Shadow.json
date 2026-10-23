@@ -146,7 +146,7 @@
     "str": 5,
     "int": 1000,
     "dex": 8000,
-    "con": 2000,
+    "con": 100,
     "critical": 255,
     "saveMana": 255,
     "mastery": [

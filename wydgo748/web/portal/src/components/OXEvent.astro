@@ -4,12 +4,13 @@
     <button id="ox-event-refresh" class="button subtle" type="button">Refresh arena</button>
   </div>
   <div class="event-body">
-    <p class="muted">Start OX event opens the six gates and enables Entrance Ticket entry to the OX arena (1340, 1492). OX has no automatic schedule. Lock the gates while a question is asked, then send the losing side (X or O) out to (1341, 1465). Dead players on the losing side are revived. Turn quiz mode off to stop ticket entry; this does not evacuate the arena, and the ticket returns to its Big Cube route.</p>
+    <p class="muted">Start OX event opens 60 seconds of enrollment. Use an Entrance Ticket in the Big Cube lobby (X 1308–1375, Y 1444–1743). The 24 Cube questions run automatically: 10 seconds to answer, then 50 seconds until the next question. Only correct answers earn the configured EXP; winners stay and losers leave. O is west of X 1341; X is east. Side overrides apply at the end of the full answer window. Stopping the event evacuates the arena. Inactive or closed entry never consumes a ticket.</p>
     <div class="bosses-toolbar">
       <label for="ox-event-reason">Reason for operation</label>
       <input id="ox-event-reason" minlength="3" maxlength="200" required placeholder="E.g. Saturday OX event" />
     </div>
     <p><strong>Quiz mode:</strong> <span id="ox-event-mode">Not queried</span> · <strong>Gates:</strong> <span id="ox-event-doors">Not queried</span> · <strong>Players:</strong> <span id="ox-event-players">Not queried</span></p>
+    <p><strong>Cycle:</strong> <span id="ox-event-cycle">Not queried</span></p>
     <div class="bosses-toolbar">
       <button id="ox-event-mode-on" class="button subtle" type="button" disabled>Quiz mode on</button>
       <button id="ox-event-start" class="button subtle" type="button" disabled>Start OX event</button>

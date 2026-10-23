@@ -130,7 +130,7 @@
     "str": 5,
     "int": 80,
     "dex": 100,
-    "con": 1700,
+    "con": 100,
     "critical": 255,
     "saveMana": 255,
     "regenHP": 35,

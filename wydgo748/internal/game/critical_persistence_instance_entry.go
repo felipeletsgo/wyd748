@@ -288,8 +288,12 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 		for _, mob := range created {
 			w.recomputeMobActive(mob)
 		}
-		w.publishInstanceMemberRelocation(members)
 		live := w.itemInstances[runtimeID]
+		if newRoom {
+			// Roll only after acknowledgement, before the initial slate snapshot.
+			w.rollMagicChamberRune(live, live.CurrentStage)
+		}
+		w.publishInstanceMemberRelocation(members)
 		w.publishCriticalInstanceEntryStatus(live)
 		if !p.Session.IsClosed() {
 			resyncUsedItem(p.Session, p, slot)

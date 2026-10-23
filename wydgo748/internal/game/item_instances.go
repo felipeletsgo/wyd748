@@ -2825,6 +2825,7 @@ func (w *World) tickItemInstances(now time.Time) {
 			continue
 		}
 		w.closeItemInstance(id)
+		w.tryWaterAutoRestart(inst, now)
 	}
 }
 
@@ -2848,6 +2849,13 @@ func (w *World) retireItemInstanceEntities(inst *ItemInstance) {
 
 // closeItemInstance removes a room whose members have all left durably.
 func (w *World) closeItemInstance(id string) {
+	if inst := w.itemInstances[id]; inst != nil {
+		// Remove derived membership before admitting another durable room.
+		// A stale party index would otherwise change during admission checks.
+		for _, memberID := range inst.MemberIDs {
+			w.clearPlayerInstanceIndex(memberID, id)
+		}
+	}
 	// A reward dropped on the floor is private while its Water room exists.
 	// Once the room is definitively gone, release it to the public world so
 	// an uncollected fallback is not stranded behind a deleted RuntimeID.
@@ -2917,6 +2925,7 @@ func (w *World) queueCriticalInstanceExit(id string, inst *ItemInstance) {
 		}
 		if w.itemInstances[id] == inst {
 			w.closeItemInstance(id)
+			w.tryWaterAutoRestart(inst, w.now())
 		}
 	}, nil)
 }

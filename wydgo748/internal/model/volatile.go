@@ -66,6 +66,10 @@ type VolatileRule struct {
 	// a "refine" powder; zero disables it. It never opens +9 -> +10, which only
 	// the Aylin composition produces, nor any level above +11.
 	RefineTenChance int `json:"refineTenChance,omitempty"`
+	// RefineChance, when positive, replaces the success chance of every
+	// refinement the rule allows, including the +10 step and the equipped
+	// earring branch (Lactolerium 100% uses 100). Zero keeps the native rates.
+	RefineChance int `json:"refineChance,omitempty"`
 	// OnceQuestID is a permanent server-side latch for single-use quests,
 	// such as Gargoyle Tooth. Negative IDs are reserved for internal flags
 	// and cannot collide with configured quests.

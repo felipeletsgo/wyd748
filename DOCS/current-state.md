@@ -1,5 +1,232 @@
 # Current project state
 
+## Local source — 2026-10-23, ankh inventory colors and Lactolerium 100%
+
+- Ankh inventory halos (`MODERNIZACAO_COMPATIVEL`, presentation only): the
+  ground effect already tinted Justice Ankh 661 (MP) red, Eternity Ankh 662
+  (HP) blue and Glory Ankh 663 (critical) green (`TMItem.cpp`), but the
+  inventory used the native halo list, which has no ankhs. They now use native
+  palette shades `0xFF995555`, `0xFF555599` and `0xFF559955`, added after the
+  native rules in `native_inventory_glow::Background` and marked as a project
+  extension; its catalog test covers them.
+- Lactolerium 100% (`EXTENSAO_COORDENADA`, new catalog item): item **3022**,
+  free on both sides, uses the Fury Stone (3020) mesh/texture `2874.8`; 3020
+  is unchanged. It carries Lac's `EF_VOLATILE 5`, so the native client already
+  offers drop-on-equipment refinement, and price 900. The server rule
+  (`volatiles.json` item 3022: `refineMax 9`, `refineTenChance 100`, new
+  `refineChance 100`) allows exactly what Lac allows and succeeds on every
+  step, by the owner's choice: up to +9, +10 to +11, and the equipped earring
+  +9 to +10 and +10 to +11, which therefore never breaks. `refineChance` is
+  validated 0..100 on refine rules only; ordinary Lac keeps the native rates.
+  Files: server `itemlist.csv`, `Itemname.csv`, `volatiles.json`, test shop
+  `ShopVolGen2`; client `ItemList.bin` record 3022 (SHA-256
+  `81AD6789B9AB0B4607E5F76EF9772676A6DC9FDDC79790EB1EC31CDA4E53EDFC`) and an
+  `itemhelp.dat` tooltip (SHA-256
+  `47C97E7FCD119C4D8B5C2E549AF80C5CFE1ACBBF4741055C050D96459C633FB3`). No
+  `Itemname.bin` record is needed: the overlay applies only to listed IDs.
+  The test shop `ShopTest2` sells it beside Lac (slot after 413, stack of
+  120, like Ori and Lac); a coverage test requires all three. No player shop,
+  drop or event gives it yet.
+- Validation: full `go test ./... -count=1`, focused vet, Lac/earring/+10
+  regressions and new `perfect_lactolerium_test.go` (worst roll on an earring
+  still succeeds and consumes the stone); `Build-Client.ps1 -NoDeploy`
+  (ArchitectureTests 3,171,479, socket 281, crash 200, launcher 56).
+  Candidate `WYD.exe` SHA-256
+  `7FE98A22B51E2EA8864FF31483186866075B648F81C554592218AD523E55DC64`, from the
+  shared tree with other uncommitted client work. Not published,
+  not `CLIENT_TESTED`. The client patch needs the next build revision and the
+  matching server release (see the client build admission rule).
+- Observed, not changed: the 2007 `Itemname.bin` overlays numeric labels
+  (for example `2874.8` for Fury Stone 3020, and 33 other items such as
+  649/650 and 1901..1912) onto the item list names.
+
+## Local follow-up — 2026-10-22, monster CON and maximum visual size
+
+Implemented and automated-tested locally, not installed, published or restarted.
+This is `MODERNIZACAO_COMPATIVEL`: an explicit project presentation/data policy,
+not a claim that native 7.48 imposed these limits. Existing packets are unchanged.
+
+- Monster visual scale cannot exceed `(5000 / 2000 + 1) * 0.89999998`, including
+  bosses and race-25 multipliers. Player scaling remains unchanged. Historical
+  signed-short CON interpretation is preserved before applying the ceiling.
+- Twenty ordinary Colosseum, Hell Gate and Rune Track templates above 1000 CON
+  now use 100. Templates at or below 1000 are unchanged. Five event objective
+  templates retain their CON and are explicitly tagged `combatRole: "boss"`:
+  `COL_Lugefer` (1300), `RT_Balrog` (2000), `RT_BunnyKing` (3000), `RT_MageBoss`
+  (1500), and `RT_Valkyrie` (2500). The tag documents the exception; it introduces
+  no new AI. Colosseum A generator 106 is the final encounter; Rune Track kill
+  transitions 5798/5908/5776 and 5957..5964 identify the other objectives.
+  Pack/wave monsters such as `RT_LichKing`, `RT_Sulrang` and `COL_Talos` are not
+  exempt merely because they lead a group or have a boss-like name.
+- The Auto Trade clone copied its owner's complete score despite using a monster
+  ID and Carbunkle face. It now takes CON from the Carbunkle appearance template
+  (currently 6), or 0 when unavailable, preserving all other copied score fields.
+  Owner score is untouched. Existing shop visibility snapshots carry that same
+  corrected clone score to the owner and observers. This is a source-confirmed
+  cause of oversized Carbunkle shop clones, not proof of the reported live entity.
+- 2026-10-23: server companions named `Name^` (BM and contract summons, the
+  mount hatchling) keep the base visual scale. A BM summon copies its caster's
+  CON (`skill_summons.go`), so high-CON casters produced giant summons. The
+  client rule (`monster_visual_scale::IsSummonName`, applied first in
+  `SetCharHeight`, with the native whole-character `^` check) changes size
+  only; the authoritative summon score is unchanged. Client gate passed
+  (ArchitectureTests 3,171,478 checks); candidate
+  `tmproject/build/TMProject748/Release/WYD.exe` SHA-256
+  `AA6352EA90E0305B061B2E0323BC68CD29CA7A8C020805AB8ED21C3B1A324218`, built
+  from the shared working tree with other uncommitted client changes. Not
+  installed, published or `CLIENT_TESTED`.
+- The four configured world-boss Lua CON values remain 5000. Boss overrides are
+  not normalized, including larger configured values; only their client scale
+  is capped. A catalog regression test checks all ordinary monster templates
+  and the exact twenty corrections/five preserved exceptions.
+
+Validation: full `go test ./... -count=1`, `go vet ./...`, focused monster/clone/
+boss/Rune Track tests and `Build-Client.ps1 -NoDeploy` passed. Client architecture
+tests passed 3,171,450 checks, including all 65,536 legacy word CON values, wide
+values, invalid floats and repeated race multipliers; socket/crash/launcher
+checks passed 281/198/56. Candidate `tmproject/build/TMProject748/Release/WYD.exe`
+SHA-256: `886B33B3F7CEE864FA6D7F6730BAE295E47CD69510F229D9F9657028D2081CD5`.
+Installed `tmproject/client748/WYD.exe` remains
+`7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9`.
+Actual visual acceptance remains pending, not `CLIENT_TESTED`. Changed text is
+English; established JSON keys and persisted identifiers are preserved.
+`git diff --check` passed. Cleanup of the new crash-test fixture was blocked by
+execution policy; no alternate deletion was attempted. Leftover:
+`tmproject/build/tests/Release/crash-capture-tests-29476-1058925578/`.
+
+## Local follow-up — 2026-10-22, Water cycling, fairy lifetime, hand-slot fit and mount HUD
+
+Implemented locally; not installed, published or restarted. These changes are
+`MODERNIZACAO_COMPATIVEL`: existing item/instance packets are unchanged, fairy
+pause metadata is server-only, and the equipped weapon fit changes presentation
+without changing inventory occupancy. The requested behavior is not claimed
+as newly proven native parity.
+
+- Silver Angel now consumes an existing matching first-level scroll after a
+  successfully completed terminal Water room has durably exited. It preserves
+  party admission, exact item UID checks and the normal entry transaction;
+  timeout/death, unequipped/expired/paused fairy, or missing scroll stops cycling.
+  No replacement scroll is granted and no periodic retry is introduced.
+  Room closure clears derived membership indexes before another durable entry.
+- Production N/M/A bosses return to `(1966,1768)`, outside the former external
+  Room 1 entry rectangle starting at `Y=1772`. Only the three Room 1 external
+  entry rectangles now start at `Y=1768`; boss-platform chain requirements and
+  the existing return coordinates remain unchanged. A production-table test
+  covers all three terminal exits against their first-scroll entry rules.
+- Unequipping a functional fairy freezes its remaining lifetime and tooltip.
+  Re-equipping shifts its expiry by the paused interval. Optional `pausedUnix`
+  follows the UID through account JSON, inventory and Cargo. Entry migrates
+  still-live stored fairies; it does not resurrect already expired items or
+  refund unknown past consumption. Equipped fairies still consume lifetime
+  while offline; costumes and premium mounts retain absolute expiry.
+- Equipped left/right hand meshes fit the full hand receptacle rather than a
+  Carry cell. Reinsertion into Carry restores the smaller fit; authored mesh
+  scale is never exceeded. Source-level layout tests and the Win32 build passed;
+  actual equipped weapon appearance remains unverified in the game.
+- The selected-skill HUD and skill tooltip now include the equipped timed
+  premium/KR mount's exact magic percentage, after amplification and 5/4,
+  before passives. The server already applied this bonus to actual spell
+  damage; its formula and packets are unchanged. Ordinary adult mounts are
+  not multiplied again, and physical/healing/fixed skills retain their paths.
+  The client reads live slot 14 on each projection; server equipment updates
+  own expiry/removal, with no client-side timer or cached bonus.
+
+Water is not strictly native-equivalent: the existing 27 room/boss definitions
+use dedicated templates with project HP/EXP, disabled NPC loot and a cap of 1
+on incoming monster hits before player absorption. These balance choices were
+not changed. No complete native 7.48 Water contract was established in this
+batch; the 7.59 runtime map does not establish 7.48 parity.
+
+The reported premium/KR magic-damage failure was not reproduced on the server.
+Production server catalog tests cover all 10 premium and 15 KR mounts with
+TK, FM and BM magic skills, verifying the exact mount percentage against
+unmounted skill damage. The client projection omission was reproduced in
+source and corrected in `BASE_GetSkillDamage`. Client tests exercise all
+10 premium and 99 KR production definitions, exact percentage rounding,
+invalid lifetimes, ordinary-mount exclusion and wide multiplication.
+This does not establish full client/server formula parity or in-game acceptance.
+
+Validation: full `go test ./... -count=1`, `go vet ./...`, focused race tests
+for fairy pause/critical equipment/Water restart/mounts/account snapshots, and
+`tmproject/Build-Client.ps1 -NoDeploy` passed. Optional live PostgreSQL fixture
+tests were not enabled; the snapshot test checks JSON persistence preparation.
+Client candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+`FF9445EB8B0AC9DFB92B61AF1AD32CFFF255531B5672F51696B368FAE28D4CB8`.
+The final client build passed 3,105,911 architecture checks, 281 socket checks,
+198 crash-capture checks and 56 launcher checks. The final full Go suite and
+focused fairy/Water/mount/score packet regressions passed. Installed local
+`tmproject/client748/WYD.exe` remains SHA-256
+`7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9`.
+The installed client and active VPS release below were not changed. This is
+source/build validation, not `CLIENT_TESTED` or global release readiness.
+
+Repository checks: `git diff --check` passed. The layout gate still reports
+only the preexisting client crash-monitor directory/logs noted in the release
+receipt below. The research-record validator accepted `mount-level-glow.md`
+but returned exit 1 for an unrelated, unchanged record:
+`.agents/research/client748/flows/combat/persistent-buff-visuals.md` lacks the
+required `Gaps` section. No unrelated evidence record was edited.
+A cleanup attempt for this run's crash-test output was blocked
+by execution policy; no alternate deletion was attempted. Leftover:
+`tmproject/build/tests/Release/crash-capture-tests-23544-1054885390/`.
+The final client validation created another crash-test fixture directory;
+cleanup was also blocked by execution policy, without an alternate attempt:
+`tmproject/build/tests/Release/crash-capture-tests-38460-1056697562/`.
+Incremental client build output is retained. Changed-file language inspection
+found only preserved `Montaria` identifiers/JSON keys in the account contract;
+these were not renamed because that would change persisted/API compatibility.
+
+## Release — 2026-10-22, Duel Letter runes and all local server/panel fixes
+
+The owner authorized publishing all local corrections and restarting the
+server, not just the rune fix. Built the working tree at
+`8273c4e8bdc3b463491a99814e3c24c85d729208` with `vcs.modified=true`, including
+the untracked O/X runtime source. This batch includes first-room Duel Letter
+rune initialization after the durable entry acknowledgment, O/X lifecycle,
+admission, rewards and movement guards, teleport/arena callbacks, stale login
+and sanction-result fencing, and panel event/instance/map corrections.
+No commit or push was performed. Private client configuration was excluded;
+no client patch was published, and the launcher feed remains at patch 10042.
+
+Archive SHA-256
+`EEC8D290C56F5DC0D8F0E0850BB319BE55D181AE845447D1808F6846FBDD03C0`
+(25,455,220 bytes), verified again on the VPS. Running executable hashes:
+game `CF11F9E44F6E2BC5C8899F841FB8BB241F2ACCA9208B68DA77BC21A48B825BE3`,
+player API `E1721449DAABD7A1AA04456A5AF09A37985DC848BD7A77887D42754441C800A5`,
+log reader `66ACFA084E6E05E8FD94CC3EA9E54C865ED5074AB01824FAA44DF80D5B3F5BB4`.
+The archive contained no account files or private runtime configuration.
+Server, staff, Caddy and service configurations matched staging before
+activation; authentication environment files remained byte-identical.
+
+Active release: `/srv/wyd-go/releases/20261022T222536Z`. Rollback reference:
+`/srv/wyd-go/releases/20261022T180448Z`. Zero game connections before the
+controlled restart at 22:25:39 UTC (19:25:39 America/Sao_Paulo). The previous
+process logged zero account-save failures and `shutdown complete`. Game,
+player API and log reader run from the new release with the hashes above.
+The pre-update database backup succeeded; receipt:
+`wydgo-20261022T222536Z.dump`, 178,159 bytes, SHA-256
+`216FE9F373B1EFF618642CA6BA5C5FCCE331FB23A842FC34E4D7D196D10707FD`.
+
+Validation: full `go test ./... -count=1` and `go vet ./...`; focused race
+tests for Magic Chamber, O/X persistence/security and login/sanction ordering;
+portal checks, tests and production build (3,324 pages); Linux cross-build.
+Optional PostgreSQL fixture tests were not enabled in this run; the live
+database remains at schema 11. Post-activation staff/player readiness returned
+200/`ready`, game port 8281 listened, public portal returned HTTP 200, and
+deployed portal/admin entry-point hashes matched staging. Startup logged the
+expected revision and executable hash; no error-priority journal entries
+were present for the three services during the activation check.
+
+`git diff --check` passed. The repository layout gate remains blocked only by
+preexisting `tmproject/client748/dumps/` and its crash-monitor logs; these were
+preserved. Remote task staging was removed. Local cleanup was blocked by the
+execution policy; the package, extracted candidates and configuration copies
+remain in `build/deploy/wyd-deploy-20261022-local-fixes/`. No alternate deletion
+method was attempted. Incremental portal build output is retained.
+Pending: actual first-room rune visibility and
+O/X/teleport/panel acceptance in the running client/browser. Publication and
+readiness do not establish `CLIENT_TESTED` or complete language migration.
+
 ## Release — 2026-10-22, staff panel stages 0–3, Big Cube and patch 10042
 
 The owner authorized commit/push to `main`, VPS publication and a service

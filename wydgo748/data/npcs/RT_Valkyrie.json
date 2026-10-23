@@ -1,5 +1,6 @@
 {
   "name": "RT_Valkyrie",
+  "combatRole": "boss",
   "tipo": "monstro",
   "equip": {
     "rosto": {

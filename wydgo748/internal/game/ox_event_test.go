@@ -2,12 +2,15 @@ package game
 
 import (
 	"context"
+	"encoding/binary"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"wydgo/internal/control"
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 func runOXEvent(w *World, action string, allowed bool) control.OXEventResult {
@@ -18,7 +21,7 @@ func runOXEvent(w *World, action string, allowed bool) control.OXEventResult {
 	return <-req.reply
 }
 
-// 7.59 TMSRV quizdoor drives the six OX gates; staff needs the capability.
+// Staff must hold the capability for both automatic and manual gate controls.
 func TestOXEventDoorsAndMode(t *testing.T) {
 	w, _ := colosseumWorld(t, time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC))
 	if r := runOXEvent(w, "doors_open", false); r.Code != "capability_required" || !r.Status.DoorsLocked {
@@ -66,78 +69,234 @@ func TestOXEventStartOpensArenaOnce(t *testing.T) {
 	}
 }
 
-// With quiz mode the Entrance_Ticket enters the OX arena and is spent;
-// without it the ticket stays the Big Cube ticket.
-func TestOXTicketFollowsQuizMode(t *testing.T) {
-	w, _ := colosseumWorld(t, time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC))
-	p := addZonePlayer(w, 1, 2100, 2100, 500)
-	p.Char.Inv[2] = model.Item{Index: 1737} // Entrance_Ticket, rule 51 with quizArena
-	if _, ok := w.oxTicketRule(p.Char.Inv[2]); ok {
-		t.Fatal("the ticket entered the OX arena without quiz mode")
+func oxTestPlayer(w *World, id uint16, x, y uint16) *Player {
+	p := addZonePlayer(w, id, x, y, 500)
+	p.Account.Name = fmt.Sprintf("ox-%d", id)
+	p.Char.UID = p.Account.Name
+	p.Char.X, p.Char.Y = x, y
+	w.indexPlayerCharacter(p)
+	w.claimAccountSession(p.Session, p.Account.Name)
+	return p
+}
+
+func enterOXTest(t *testing.T, w *World, p *Player) {
+	t.Helper()
+	p.Char.Inv[2] = model.Item{Index: 1737, UID: fmt.Sprintf("ticket-%d", p.ID)}
+	w.onUseItem(p.Session, useItemPacket(2, 0))
+	if !w.isOXMember(p) || p.Char.Inv[2].Index != 0 {
+		t.Fatal("ticket did not admit the player")
 	}
-	w.oxQuizMode = true
-	rule, ok := w.oxTicketRule(p.Char.Inv[2])
-	if !ok {
-		t.Fatal("quiz mode did not route the ticket to the OX arena")
+	drainPlayerPackets(p)
+}
+
+func placeOXTest(w *World, p *Player, x, y uint16) {
+	p.X, p.Y, p.Char.X, p.Char.Y = x, y, x, y
+	w.updatePlayerSpatial(p)
+}
+
+func TestOXTicketInactiveClosedAndWrongAreaAreNotConsumed(t *testing.T) {
+	w, clock := colosseumWorld(t, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
+	p := oxTestPlayer(w, 1, 1340, 1460)
+	p.Char.Inv[2] = model.Item{Index: 1737}
+	w.onUseItem(p.Session, useItemPacket(2, 0))
+	if p.Char.Inv[2].Index != 1737 || p.Y != 1460 || len(w.itemInstances) != 0 {
+		t.Fatal("inactive ticket was consumed or opened a private instance")
 	}
-	if _, other := w.oxTicketRule(model.Item{Index: colosseumElixirItem}); other {
-		t.Fatal("another item was routed to the OX arena")
+	if !oxNoticeContains(p, "inactive") {
+		t.Fatal("missing inactive explanation")
 	}
-	w.useOXTicket(p.Session, p, &p.Char.Inv[2], 2, rule)
-	if p.Char.Inv[2].Index != 0 || chebyshev(p.X, p.Y, 1340, 1492) > 3 {
-		t.Fatalf("ticket=%d position=(%d,%d)", p.Char.Inv[2].Index, p.X, p.Y)
+	runOXEvent(w, "start", true)
+	placeOXTest(w, p, 2100, 2100)
+	w.onUseItem(p.Session, useItemPacket(2, 0))
+	if p.Char.Inv[2].Index != 1737 || !oxNoticeContains(p, "entry area") {
+		t.Fatal("wrong-area admission was not rejected")
+	}
+	placeOXTest(w, p, 1340, 1460)
+	clock.Advance(time.Minute)
+	w.onUseItem(p.Session, useItemPacket(2, 0))
+	if p.Char.Inv[2].Index != 1737 || !oxNoticeContains(p, "closed") {
+		t.Fatal("deadline admitted a late ticket")
 	}
 }
 
-// quizresultx moves the X side to (1341,1465) and revives the dead there;
-// the O side stays.
-func TestOXResultMovesTheLosingSide(t *testing.T) {
-	w, _ := colosseumWorld(t, time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC))
-	loser := addZonePlayer(w, 1, 1335, 1500, 0)
-	winner := addZonePlayer(w, 2, 1345, 1500, 500)
-	winner.Visible[loser.ID] = struct{}{}
-	r := runOXEvent(w, "result_x", true)
-	if r.Code != "ok" || r.Moved != 1 {
-		t.Fatalf("result_x = %+v", r)
-	}
-	if chebyshev(loser.X, loser.Y, oxExitX, oxExitY) > 3 || playerCurHP(loser.Char) == 0 {
-		t.Fatalf("loser at (%d,%d) hp=%d", loser.X, loser.Y, playerCurHP(loser.Char))
-	}
-	if !sentRemoveMob(winner, loser.ID, 3) {
-		t.Fatal("observers kept the loser's corpse")
-	}
-	if winner.X != 1345 || winner.Y != 1500 {
-		t.Fatal("the winning side was moved")
+func oxNoticeContains(p *Player, text string) bool {
+	found := false
+	for {
+		packet, ok := p.Session.DequeuePacketForTest()
+		if !ok {
+			return found
+		}
+		if wire.Decrypt(packet) && strings.Contains(string(packet[12:]), text) {
+			found = true
+		}
 	}
 }
 
-func TestOXResultMatchesStatusAtTheGateBoundary(t *testing.T) {
+func TestOXAutomaticEnrollmentAnswerAndNextQuestionCadence(t *testing.T) {
+	w, clock := colosseumWorld(t, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
+	a := oxTestPlayer(w, 1, 1340, 1460)
+	b := oxTestPlayer(w, 2, 1338, 1460)
+	outsider := oxTestPlayer(w, 3, 1350, 1460)
+	r := runOXEvent(w, "start", true)
+	if r.Code != "ok" || r.Status.Phase != "enrollment" || r.Status.Questions != 24 || !r.Status.EndsAt.Equal(clock.Now().Add(time.Minute)) {
+		t.Fatalf("start=%+v", r)
+	}
+	enterOXTest(t, w, a)
+	enterOXTest(t, w, b)
+	drainPlayerPackets(a)
+	drainPlayerPackets(outsider)
+	clock.Advance(59999 * time.Millisecond)
+	w.tickOXEvent(clock.Now())
+	if w.ox.phase != "enrollment" || a.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("early first question")
+	}
+	clock.Advance(time.Millisecond)
+	w.tickOXEvent(clock.Now())
+	if w.ox.phase != "question" || !w.ox.deadline.Equal(clock.Now().Add(10*time.Second)) {
+		t.Fatal("missing full response window")
+	}
+	for _, op := range []uint16{wire.OpInstanceTime, wire.OpInstanceQuestion} {
+		packet, ok := a.Session.DequeuePacketForTest()
+		if !ok || !wire.Decrypt(packet) || wire.ParseHeader(packet).Type != op {
+			t.Fatalf("missing private packet %#x", op)
+		}
+		if op == wire.OpInstanceQuestion && (binary.LittleEndian.Uint32(packet[16:20]) != 10000 || wire.ParseHeader(packet).ID != a.ID) {
+			t.Fatal("incorrect question lifetime or recipient")
+		}
+	}
+	if outsider.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("question leaked to outsider")
+	}
+	// The first configured answer is X. Only A earns its existing 8000 EXP.
+	placeOXTest(w, a, 1366, 1500)
+	placeOXTest(w, b, 1316, 1500)
+	drainPlayerPackets(a)
+	clock.Advance(9999 * time.Millisecond)
+	w.tickOXEvent(clock.Now())
+	if a.Char.Exp != 0 || a.Session.QueuedPacketsForTest() != 0 || w.ox.phase != "question" {
+		t.Fatal("question ended before ten seconds")
+	}
+	clock.Advance(time.Millisecond)
+	w.tickOXEvent(clock.Now())
+	if a.Char.Exp != 8000 || b.Char.Exp != 0 || !w.isOXMember(a) || w.isOXMember(b) || oxArena.contains(b.X, b.Y) {
+		t.Fatal("incorrect rewards, survivors or elimination")
+	}
+	if w.ox.phase != "waiting" || !w.ox.deadline.Equal(clock.Now().Add(50*time.Second)) {
+		t.Fatal("next-question wait is not 50 seconds")
+	}
+	if !oxNoticeContains(a, "50 seconds") {
+		t.Fatal("missing next-question countdown")
+	}
+	drainPlayerPackets(a)
+	clock.Advance(49999 * time.Millisecond)
+	w.tickOXEvent(clock.Now())
+	if w.ox.phase != "waiting" || a.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("next question started early")
+	}
+	clock.Advance(time.Millisecond)
+	w.tickOXEvent(clock.Now())
+	if w.ox.phase != "question" || w.ox.round != 1 || !w.ox.deadline.Equal(clock.Now().Add(10*time.Second)) {
+		t.Fatal("next question did not follow the minute cadence")
+	}
+}
+
+func TestOXSideOverridesGeometryAndFullWindow(t *testing.T) {
 	for _, action := range []string{"result_x", "result_o"} {
 		t.Run(action, func(t *testing.T) {
-			w, _ := colosseumWorld(t, time.Date(2026, 10, 21, 12, 0, 0, 0, time.UTC))
+			w, clock := colosseumWorld(t, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
+			runOXEvent(w, "start", true)
 			players := make([]*Player, 4)
 			for i := range players {
-				players[i] = addZonePlayer(w, uint16(i+1), uint16(1340+i), 1500, 500)
+				players[i] = oxTestPlayer(w, uint16(i+1), 1340, 1460)
+				enterOXTest(t, w, players[i])
+				placeOXTest(w, players[i], uint16(1340+i), 1500)
 			}
+			clock.Advance(time.Minute)
+			w.tickOXEvent(clock.Now())
 			before := w.oxEventSnapshot()
-			if before.PlayersX != 1 || before.PlayersO != 2 {
-				t.Fatalf("boundary counts = %+v", before)
+			if before.PlayersX != 2 || before.PlayersO != 1 {
+				t.Fatalf("boundary counts=%+v", before)
 			}
-			result := runOXEvent(w, action, true)
-			wantMoved := before.PlayersX
-			if action == "result_o" {
-				wantMoved = before.PlayersO
+			if r := runOXEvent(w, action, true); r.Code != "ok" {
+				t.Fatalf("override=%+v", r)
 			}
-			if result.Moved != wantMoved {
-				t.Fatalf("moved %d, counted %d", result.Moved, wantMoved)
+			if r := runOXEvent(w, action, true); r.Code != "unchanged" {
+				t.Fatal("duplicate override was applied twice")
 			}
+			clock.Advance(9999 * time.Millisecond)
+			w.tickOXEvent(clock.Now())
+			for _, p := range players {
+				if p.Y != 1500 || p.Char.Exp != 0 {
+					t.Fatal("override shortened response window")
+				}
+			}
+			clock.Advance(time.Millisecond)
+			w.tickOXEvent(clock.Now())
 			for i, p := range players {
-				wantMove := action == "result_x" && i == 0 || action == "result_o" && i >= 2
-				moved := p.Y != 1500
-				if moved != wantMove {
-					t.Fatalf("column %d moved=%v, want %v", 1340+i, moved, wantMove)
+				wantLose := i == 1 || action == "result_o" && i == 0 || action == "result_x" && i >= 2
+				if (p.Y != 1500) != wantLose || (p.Char.Exp == 0) != wantLose || w.isOXMember(p) == wantLose {
+					t.Fatalf("column %d: lost=%v exp=%d", 1340+i, p.Y != 1500, p.Char.Exp)
 				}
 			}
 		})
+	}
+}
+
+func TestOXDeadLoserRemovesCorpseAndDoesNotEarnReward(t *testing.T) {
+	w, clock := colosseumWorld(t, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
+	runOXEvent(w, "start", true)
+	loser := oxTestPlayer(w, 1, 1340, 1460)
+	winner := oxTestPlayer(w, 2, 1338, 1460)
+	enterOXTest(t, w, loser)
+	enterOXTest(t, w, winner)
+	placeOXTest(w, loser, 1360, 1500)
+	placeOXTest(w, winner, 1366, 1500)
+	winner.Visible[loser.ID] = struct{}{}
+	setPlayerCurHP(loser.Char, 0)
+	clock.Advance(time.Minute)
+	w.tickOXEvent(clock.Now())
+	clock.Advance(10 * time.Second)
+	w.tickOXEvent(clock.Now())
+	if loser.Char.Exp != 0 || playerCurHP(loser.Char) == 0 || oxArena.contains(loser.X, loser.Y) || !sentRemoveMob(winner, loser.ID, 3) {
+		t.Fatal("dead loser retained reward, arena place or corpse")
+	}
+}
+
+func TestOXAllQuestionsCompleteAndStopEvacuates(t *testing.T) {
+	w, clock := colosseumWorld(t, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
+	runOXEvent(w, "start", true)
+	p := oxTestPlayer(w, 1, 1340, 1460)
+	enterOXTest(t, w, p)
+	clock.Advance(time.Minute)
+	var expected uint32
+	for i, q := range w.ox.questions {
+		w.tickOXEvent(clock.Now())
+		drainPlayerPackets(p)
+		if w.ox.phase != "question" || w.ox.round != i {
+			t.Fatalf("round %d not active", i)
+		}
+		x := uint16(1366)
+		if q.Answer {
+			x = 1316
+		}
+		placeOXTest(w, p, x, 1500)
+		clock.Advance(10 * time.Second)
+		w.tickOXEvent(clock.Now())
+		expected += q.RewardExp
+		if p.Char.Exp != expected {
+			t.Fatalf("round %d EXP=%d want %d", i, p.Char.Exp, expected)
+		}
+		drainPlayerPackets(p)
+		clock.Advance(50 * time.Second)
+	}
+	if w.oxQuizMode || w.ox.phase != "inactive" {
+		t.Fatal("event did not finish after 24 questions")
+	}
+	w.tickOXEvent(clock.Now())
+	if oxArena.contains(p.X, p.Y) || w.isOXMember(p) {
+		t.Fatal("completed event left a participant in the arena")
+	}
+	if r := runOXEvent(w, "start", true); r.Code != "ok" {
+		t.Fatal("next event was blocked by stale membership")
 	}
 }

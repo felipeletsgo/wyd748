@@ -162,3 +162,19 @@ before execution. No alternate deletion mechanism was attempted. Leftovers:
 
 These are this audit's ignored artifacts, not player/account production state.
 The current incremental client build is retained under its sanctioned root.
+
+## DEX and critical — follow-up 2026-10-23
+
+Question: does DEX raise critical for every class? Evidence: the 7.59
+`TMSRVIN.c` score refresh `sub_4CE1C0` (REA `FUN_004CE1C0`), near line 21410.
+With the REA-mapped layout (base score copied from `+0x2C`, so `+80` is base
+DEX; the critical byte is `+794`), it computes
+`critical = (classBonus + min(ability 42 (EF_CRITICAL), 1000) + base) / 4`,
+capped at 255. `classBonus` is base DEX / 20 only for class 3 with learned
+bit 18 (Hunter's Vision) and 100 for class 0 with bit 15 (Critical Armor);
+other classes get none. Decision (owner, 2026-10-23): keep the native scope;
+DEX critical stays Huntress-only. The current Go Hunter's Vision formula
+(`2 * max(4, mastery/10 + DEX/75)` per mille, `skill_passives.go`) differs
+from this 7.59 expression and from the byte/4 unit; that is an open parity
+question with no 7.48 evidence yet, not changed here. 7.59 is secondary
+evidence, not 7.48 proof.

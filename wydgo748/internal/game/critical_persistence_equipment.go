@@ -35,6 +35,9 @@ func (w *World) queueEquipmentSwap(p *Player, st, sp, dt, dp byte, targetID uint
 		typ, pos byte
 		item     *model.Item
 	}{{st, sp, plannedSrc}, {dt, dp, plannedDst}} {
+		if target.typ != placeEquip {
+			pauseUnequippedFairy(target.item, now)
+		}
 		if target.typ == placeEquip {
 			if _, err := w.activateTimedItem(target.item, target.pos, now); err != nil {
 				return err
@@ -74,6 +77,14 @@ func (w *World) queueEquipmentSwap(p *Player, st, sp, dt, dp byte, targetID uint
 				return nil
 			}
 			p.Session.Send(wire.SwapItem(p.ID, st, sp, dt, dp, targetID))
+			for _, target := range []struct {
+				typ, pos byte
+				item     model.Item
+			}{{st, sp, *src}, {dt, dp, *dst}} {
+				if isFairyIndex(target.item.Index) {
+					p.Session.Send(wire.SendItem(p.ID, target.typ, target.pos, target.item))
+				}
+			}
 			if promoted {
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, 6, p.Char.Equip[6]))
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, 7, p.Char.Equip[7]))

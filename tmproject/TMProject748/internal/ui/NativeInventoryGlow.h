@@ -26,6 +26,15 @@ inline std::uint32_t Background(int item, int type, unsigned char firstEffect)
         color = 0xFFFFFFAAu;
     else if (item == 3140 || (item >= 3407 && item <= 3416))
         color = 0xFFFFFFFFu;
+    // Project extension, not native: the ankhs keep in the inventory the hue
+    // their ground effect already has (TMItem), using native palette shades:
+    // Justice (MP) red, Eternity (HP) blue, Glory (critical) green.
+    if (item == 661)
+        color = 0xFF995555u;
+    else if (item == 662)
+        color = 0xFF555599u;
+    else if (item == 663)
+        color = 0xFF559955u;
     return color;
 }
 

@@ -83,8 +83,13 @@ int RunNativeRefinementPresentationTests(int& checks)
         if ((item >= 1760 && item <= 1763) || item == 4032 ||
             (item >= 5334 && item <= 5338)) expected = 0xFFFFFFAAu;
         if (item == 3140 || (item >= 3407 && item <= 3416)) expected = 0xFFFFFFFFu;
+        if (item == 661) expected = 0xFF995555u;
+        if (item == 662) expected = 0xFF555599u;
+        if (item == 663) expected = 0xFF559955u;
         check(Background(item, 0, 0) == expected, "native halo catalog boundaries");
     }
+    check(Background(661, 0, 0) == palette[3] && Background(662, 0, 0) == palette[2] &&
+        Background(663, 0, 0) == palette[4], "ankh halos: MP red, HP blue, critical green");
     check(Background(1744, 206, 59) == palette[0] &&
         Background(3140, 206, 59) == 0xFFFFFFFFu, "native halo precedence");
     check(PulsedColor(0xFFFFFFFFu, 500) == 0xFF4C4C4Cu &&

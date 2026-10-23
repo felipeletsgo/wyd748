@@ -17,8 +17,8 @@ import (
 	"wydgo/internal/wire"
 )
 
-// RunConfig controla a carga de sessoes. O cliente de observacao (felipe) nao
-// passa por este pacote e pode permanecer conectado normalmente.
+// RunConfig controls session load. An observation client does not use this
+// package and can remain connected normally.
 type RunConfig struct {
 	Address       string
 	BotCount      int
@@ -30,8 +30,8 @@ type RunConfig struct {
 	MovePercent   int
 	SpawnX        uint16
 	SpawnY        uint16
-	// Terrain deve ser o mesmo HeightMap/AttributeMap usado pelo servidor.
-	// Quando carregado, o bot nunca envia deliberadamente um destino bloqueado.
+	// Terrain must match the server's HeightMap/AttributeMap. When loaded,
+	// the bot never deliberately sends a blocked destination.
 	Terrain model.TerrainMap
 }
 
@@ -68,10 +68,10 @@ type bot struct {
 	key    byte
 	tick   atomic.Uint32
 	id     atomic.Uint32
-	// predictedX/Y acompanha a interpolacao que um client real faria depois de
-	// enviar uma rota. confirmedX/Y guarda somente a ultima posicao recebida do
-	// servidor (EnterWorld, teleporte ou correcao). O 7.48 nao ecoa ao proprio
-	// jogador cada rota normal aceita.
+	// predictedX/Y tracks a real client's interpolation after sending a route.
+	// confirmedX/Y stores only the last server position (EnterWorld, teleport
+	// or correction). The 7.48 server does not echo normal accepted routes
+	// back to their owner.
 	predictedX, predictedY atomic.Uint32
 	confirmedX, confirmedY atomic.Uint32
 	targetMu               sync.RWMutex
@@ -87,8 +87,8 @@ type targetPosition struct {
 	y uint16
 }
 
-// RunBots inicia as sessoes em rampa e aguarda o contexto. Cada bot usa uma
-// conexao TCP propria, leitura continua e um escritor serializado.
+// RunBots ramps up sessions and waits for context completion. Each bot owns
+// its TCP connection, continuous reader and serialized writer.
 func RunBots(ctx context.Context, cfg RunConfig, logger *log.Logger) RunReport {
 	started := time.Now()
 	if cfg.BotCount <= 0 {
@@ -96,7 +96,7 @@ func RunBots(ctx context.Context, cfg RunConfig, logger *log.Logger) RunReport {
 	}
 	if cfg.BotCount > 990 {
 		if logger != nil {
-			logger.Printf("loadtest: limitando bots de %d para 990", cfg.BotCount)
+			logger.Printf("loadtest: limiting bots from %d to 990", cfg.BotCount)
 		}
 		cfg.BotCount = 990
 	}
@@ -171,14 +171,14 @@ func clampMovePercent(value int) int {
 func (b *bot) run(ctx context.Context) error {
 	conn, err := stdnet.DialTimeout("tcp", b.config.Address, 10*time.Second)
 	if err != nil {
-		return fmt.Errorf("conectar %s: %w", b.config.Address, err)
+		return fmt.Errorf("connect %s: %w", b.config.Address, err)
 	}
 	b.conn = conn
 	defer conn.Close()
 	b.counters.connected.Add(1)
 	init := initCodeBytes()
 	if _, err := conn.Write(init); err != nil {
-		return fmt.Errorf("enviar InitCode: %w", err)
+		return fmt.Errorf("send InitCode: %w", err)
 	}
 	b.counters.bytesSent.Add(int64(len(init)))
 	readErr := make(chan error, 1)
@@ -193,7 +193,7 @@ func (b *bot) run(ctx context.Context) error {
 	case err := <-readErr:
 		return err
 	case <-time.After(30 * time.Second):
-		return fmt.Errorf("timeout para entrar no mundo")
+		return fmt.Errorf("timed out entering the world")
 	}
 	b.counters.entered.Add(1)
 	activityCtx, cancel := context.WithCancel(ctx)
@@ -220,7 +220,7 @@ func (b *bot) readLoop(ctx context.Context) error {
 			return err
 		}
 		if !ok || len(pkt) < wire.HeaderSize {
-			return fmt.Errorf("pacote cifrado/checksum invalido")
+			return fmt.Errorf("invalid encrypted packet or checksum")
 		}
 		b.counters.packets.Add(1)
 		b.counters.bytesRecv.Add(int64(len(pkt)))
@@ -232,10 +232,10 @@ func (b *bot) readLoop(ctx context.Context) error {
 			}
 		case wire.OpEnterWorld:
 			b.id.Store(uint32(h.ID))
-			// EnterWorld carrega a posicao autoritativa em PosX/PosY@12.
-			// O servidor pode ter empurrado o bot para uma celula livre; usar
-			// sempre a coordenada configurada aqui faria o proximo movimento
-			// parecer um teleport e seria recusado pela validacao de rota.
+			// EnterWorld carries the authoritative PosX/PosY at byte 12.
+			// The server may have moved the bot to a free cell. Always using
+			// configured coordinates would make the next movement look like
+			// a teleport and fail route validation.
 			if len(pkt) >= 16 {
 				b.applyServerPosition(binary.LittleEndian.Uint16(pkt[12:14]),
 					binary.LittleEndian.Uint16(pkt[14:16]))
@@ -244,9 +244,9 @@ func (b *bot) readLoop(ctx context.Context) error {
 			}
 			b.enteredOnce.Do(func() { close(b.entered) })
 		case wire.OpAction:
-			// Caminhadas aceitas nao sao ecoadas ao proprio jogador. Teleportes e
-			// correcoes usam 0x366 com a posicao server-side em @12 e reconciliam
-			// imediatamente qualquer predicao antiga do bot.
+			// Accepted walks are not echoed to their owner. Teleports and
+			// corrections use 0x366 with the server position at byte 12 and
+			// immediately reconcile stale bot predictions.
 			if h.ID == uint16(b.id.Load()) && len(pkt) >= 16 {
 				b.applyServerPosition(binary.LittleEndian.Uint16(pkt[12:14]),
 					binary.LittleEndian.Uint16(pkt[14:16]))
@@ -294,8 +294,8 @@ func (b *bot) sendMove() error {
 	x, y := uint16(b.predictedX.Load()), uint16(b.predictedY.Load())
 	_, target := b.nearestTarget()
 	if target.x == 0 || target.y == 0 {
-		// Sem uma entidade visível não inventa uma rota aleatória: isso só gera
-		// recusas de terreno e não representa uma decisão de um jogador.
+		// Do not invent a random route without a visible target: it only
+		// generates terrain rejections and does not model player decisions.
 		return nil
 	}
 	dx := signLoadtest(int(target.x) - int(x))
@@ -303,10 +303,10 @@ func (b *bot) sendMove() error {
 	if dx == 0 && dy == 0 {
 		return nil
 	}
-	// Tenta primeiro a direção do alvo e depois as oito vizinhas. A ordem
-	// rotativa evita que centenas de bots escolham sempre o mesmo canto quando
-	// há um pequeno obstáculo. Com o mapa carregado, cada candidato segue as
-	// mesmas travas de terreno/altura da validação server-side.
+	// Try the target direction before neighboring cells. Rotating the order
+	// prevents hundreds of bots from choosing the same corner near obstacles.
+	// With terrain loaded, each candidate follows the server's terrain/height
+	// validation constraints.
 	candidates := orderedMoveCandidates(dx, dy)
 	for _, candidate := range candidates {
 		nx, ny := int(x)+candidate[0], int(y)+candidate[1]
@@ -323,9 +323,9 @@ func (b *bot) sendMove() error {
 		if err := b.send(wire.PlayerMove(uint16(b.id.Load()), x, y, ux, uy, 1, nil)); err != nil {
 			return err
 		}
-		// Um client 7.48 real interpola localmente, e o servidor não ecoa ao dono
-		// a rota normal aceita. Avance somente a predição; a última coordenada
-		// confirmada permanece separada até chegar um 0x366 server-side.
+		// A real 7.48 client interpolates locally; normal accepted routes are
+		// not echoed to their owner. Advance prediction only, retaining the
+		// last confirmed coordinate until a server-side 0x366 arrives.
 		b.predictedX.Store(uint32(nx))
 		b.predictedY.Store(uint32(ny))
 		return nil
@@ -334,8 +334,8 @@ func (b *bot) sendMove() error {
 }
 
 func orderedMoveCandidates(dx, dy int) [][2]int {
-	// Direção principal, diagonais que preservam um componente e as demais
-	// alternativas. Duplicatas são removidas para manter no máximo oito testes.
+	// Main direction, diagonals preserving one component and other choices.
+	// Remove duplicates to keep at most eight candidates.
 	all := [][2]int{{dx, dy}, {dx, 0}, {0, dy}, {dy, -dx}, {-dy, dx},
 		{-dx, -dy}, {-dx, 0}, {0, -dy}}
 	seen := make(map[[2]int]struct{}, len(all))
@@ -422,7 +422,7 @@ func (b *bot) send(pkt []byte) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if b.conn == nil {
-		return fmt.Errorf("conexao ausente")
+		return fmt.Errorf("missing connection")
 	}
 	key := b.key + 1
 	if key == 0 {
@@ -451,13 +451,13 @@ func initCodeBytes() []byte {
 }
 
 func loginPacket(name, password string) []byte {
-	// O client 7.48 envia o bloco completo de MSG_ConnectAccount (116
-	// bytes). O servidor usa os campos legados em @12/@28/@40, mas a cauda
-	// faz parte do contrato de framing e nao pode ser omitida.
-	b := wire.Build(wire.OpConnectAccount, wire.SceneCharList, 116)
+	// Preserve the entire 116-byte envelope, including the compiled build
+	// identity at byte 44. Load clients follow the same admission policy.
+	b := wire.Build(wire.OpConnectAccount, wire.SceneCharList, wire.AccountLoginSize)
 	copy(b[12:28], name)
 	copy(b[28:40], password)
-	binary.LittleEndian.PutUint32(b[40:44], 748)
+	binary.LittleEndian.PutUint32(b[40:44], wire.ClientProtocolVersion)
+	binary.LittleEndian.PutUint32(b[44:48], wire.CurrentClientBuild)
 	return b
 }
 

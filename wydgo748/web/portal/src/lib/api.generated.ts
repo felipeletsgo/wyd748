@@ -2966,7 +2966,7 @@ export interface components {
             code: "ok" | "unchanged" | "door_unavailable" | "invalid_command" | "capability_required" | "server_maintenance";
             status: components["schemas"]["PvPDoorStatus"];
         };
-        /** @description start opens all six gates and enables ticket entry unless already active; mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465). */
+        /** @description start and mode_on begin 60 seconds of enrollment followed by automatic Cube questions (10 seconds to answer, 50 seconds between questions); mode_off stops and evacuates; doors_lock/doors_open drive the six gates; result_x/result_o select the losing east X/west O side for evaluation at the current answer deadline, never before it. */
         OXEventCommand: {
             /** @constant */
             version: 1;
@@ -2985,11 +2985,18 @@ export interface components {
             doorsLocked: boolean;
             playersX: number;
             playersO: number;
+            /** @enum {string} */
+            phase: "inactive" | "enrollment" | "question" | "waiting";
+            round: number;
+            questions: number;
+            participants: number;
+            /** Format: date-time */
+            endsAt: string | null;
         };
         OXEventResult: {
             operationId: string;
             /** @enum {string} */
-            code: "ok" | "unchanged" | "doors_unavailable" | "invalid_command" | "capability_required" | "server_maintenance";
+            code: "ok" | "unchanged" | "doors_unavailable" | "questions_unavailable" | "busy" | "invalid_command" | "capability_required" | "server_maintenance";
             moved: number;
             status: components["schemas"]["OXEventStatus"];
         };

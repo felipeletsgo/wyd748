@@ -1,5 +1,6 @@
 {
   "name": "RT_BunnyKing",
+  "combatRole": "boss",
   "tipo": "monstro",
   "equip": {
     "rosto": {

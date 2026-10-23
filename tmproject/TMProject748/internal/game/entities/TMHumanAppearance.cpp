@@ -5,6 +5,7 @@
 #include "TMGlobal.h"
 #include "HumanCostumeRefinement.h"
 #include "WeaponPoseRefresh.h"
+#include "MonsterVisualScale.h"
 #include "SControl.h"
 #include "TMScene.h"
 #include "TMEffectSkinMesh.h"
@@ -25,7 +26,11 @@ void TMHuman::SetRace(short sIndex)
     m_nSkinMeshType = BASE_DefineSkinMeshType(m_nClass);
 
     if(sIndex == 25)
+    {
         m_fScale = (((float)m_stScore.Mastery[3] * 0.003f) + 1.0f) * m_fScale;
+        if (m_dwID >= 1000)
+            m_fScale = monster_visual_scale::Limit(m_fScale);
+    }
 }
 
 void TMHuman::SetWeaponType(int nWeaponType)
@@ -1831,13 +1836,21 @@ void TMHuman::SetCharHeight(float fCon)
         return;
     }
 
-    // WYD 7.48 stores mob Con as a signed short. Imported templates keep
-    // its 16-bit pattern (-800 arrives as 64736), which made Basilisks,
-    // Lizards and Grub swarms about 30 times larger than native.
-    if (fCon >= 32768.0f && fCon < 65536.0f)
-        fCon -= 65536.0f;
+    // Summons keep the base size: they inherit the caster's CON. The '^' must
+    // be a whole character, as in the native name label.
+    if (monster_visual_scale::IsSummonName(m_szName))
+    {
+        const char* mark = strchr(m_szName, '^');
+        if (mark && IsClearString2(m_szName, static_cast<int>(mark - m_szName)))
+        {
+            m_fScale = monster_visual_scale::Base;
+            return;
+        }
+    }
 
-    m_fScale = ((fCon / 2000.0f) + 1.0f) * 0.89999998f;
+    // Project size policy: even bosses cannot exceed the scale at 5000 CON.
+    // This changes presentation only, never the authoritative combat score.
+    m_fScale = monster_visual_scale::FromCon(fCon);
 }
 
 void TMHuman::SetAvatar(char cAvatar)

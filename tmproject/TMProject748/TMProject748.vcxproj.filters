@@ -393,6 +393,9 @@
     <ClInclude Include="internal\ui\GridInsertion.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="internal\ui\ListBoxItems.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="internal\ui\SellConfirmationText.h">
       <Filter>Header Files</Filter>
     </ClInclude>

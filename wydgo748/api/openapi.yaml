@@ -1624,7 +1624,7 @@ components:
       type: object
       additionalProperties: false
       required: [version, operationId, action, reason]
-      description: start opens all six gates and enables ticket entry unless already active; mode_on/mode_off toggle the Entrance_Ticket entry; doors_lock/doors_open drive the six OX gates; result_x/result_o move the losing side to (1341,1465).
+      description: start and mode_on begin 60 seconds of enrollment followed by automatic Cube questions (10 seconds to answer, 50 seconds between questions); mode_off stops and evacuates; doors_lock/doors_open drive the six gates; result_x/result_o select the losing east X/west O side for evaluation at the current answer deadline, never before it.
       properties:
         version: { type: integer, const: 1 }
         operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
@@ -1632,7 +1632,7 @@ components:
         reason: { type: string, minLength: 3, maxLength: 200 }
     OXEventStatus:
       type: object
-      required: [version, asOf, quizMode, doors, doorsLocked, playersX, playersO]
+      required: [version, asOf, quizMode, doors, doorsLocked, playersX, playersO, phase, round, questions, participants, endsAt]
       properties:
         version: { type: integer, const: 1 }
         asOf: { type: string, format: date-time }
@@ -1641,12 +1641,17 @@ components:
         doorsLocked: { type: boolean }
         playersX: { type: integer }
         playersO: { type: integer }
+        phase: { type: string, enum: [inactive, enrollment, question, waiting] }
+        round: { type: integer }
+        questions: { type: integer }
+        participants: { type: integer }
+        endsAt: { type: [string, 'null'], format: date-time }
     OXEventResult:
       type: object
       required: [operationId, code, moved, status]
       properties:
         operationId: { type: string }
-        code: { type: string, enum: [ok, unchanged, doors_unavailable, invalid_command, capability_required, server_maintenance] }
+        code: { type: string, enum: [ok, unchanged, doors_unavailable, questions_unavailable, busy, invalid_command, capability_required, server_maintenance] }
         moved: { type: integer }
         status: { $ref: '#/components/schemas/OXEventStatus' }
     ColosseumCommand:
