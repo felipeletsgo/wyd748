@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10044,
+  patchVersion: 10045,
   publishedAt: '2026-10-23',
-  serverUpdate: { id: 'ankh-growth-camera-10044', publishedAt: '2026-10-23' },
+  serverUpdate: { id: 'ankh-colors-10045', publishedAt: '2026-10-23' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -14,10 +14,10 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10044.zip',
-    sizeBytes: 852632,
-    sha256: '5EA50C20CD9455FF37108E933AC0D2A64562C0A608676E47D51097C23A04136D',
-    executableSha256: '53AE596043FDCEE439821E549DC827C556C4CF07E646A2FF584D52957668CEDA',
+    url: '/patch/patch-10045.zip',
+    sizeBytes: 852533,
+    sha256: 'A95C70FA2875F5CA9820076E12468A8617E6D338AE1E8A929A6082C8177B31C0',
+    executableSha256: '1FCC782FBB7F95B2F619A55D8A566DBFA8453FB65EA95D40F1D96F2D944FDF0F',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -27,6 +27,11 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-23', category: 'Client and server', title: 'Patch 10045 — ankh inventory colors', entries: [
+    'Show the red, blue and green ankh colors in the inventory (completes the 10044 fix).',
+    'Required update: the server accepts only client build revision 3.',
+    'Automated checks passed; real-client confirmation remains pending.',
+  ] },
   { date: '2026-10-23', category: 'Client and server', title: 'Patch 10044 — ankh colors, Growth in C.C. and camera zoom', entries: [
     'Restore the red, blue and green ankh colors in the inventory.',
     'Let C.C. recast the Transknight Growth buff automatically.',
