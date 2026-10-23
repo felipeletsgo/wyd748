@@ -957,13 +957,12 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 				e.Dex = add(e.Dex, dexAdd)
 				e.Con = add(e.Con, conAdd)
 				// The extra points feed the same derived formulas as base
-				// attributes (recalcExtendedPlayer): STR/3 + DEX/4 physical
-				// attack, DEX/5 defense, the class INT share of magic attack
-				// (with the current amplification), 2 HP per CON and 2 MP per
-				// INT. Attack speed (DEX/5) and evasion read the final DEX.
-				physicalAdd := strAdd/3 + dexAdd/4
+				// attributes (recalcExtendedPlayer): STR/3 + DEX/8 physical
+				// attack, the class INT share of magic attack (with the current
+				// amplification), 2 HP per CON and 2 MP per INT. DEX adds no
+				// defense. Attack speed (DEX/5) and evasion read the final DEX.
+				physicalAdd := strAdd/3 + dexAdd/8
 				e.Attack = add(e.Attack, physicalAdd)
-				e.Defense = add(e.Defense, dexAdd/5)
 				var magicAdd int64
 				switch ch.Class {
 				case 1, 2:

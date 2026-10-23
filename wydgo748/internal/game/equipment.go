@@ -351,14 +351,17 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 		// In the native score Celestial/Sub counts as current level + MAX_LEVEL.
 		combatLevel += int64(maxMortalLevel)
 	}
+	// TMSRVIN 7.59 score (FUN_004bb4c0, REA map 2026-10-23): player physical
+	// damage adds STR/3 + DEX/8 + first mastery + level; DEX never feeds
+	// defense. Owner-chosen rule (2026-10-23), not 7.48-validated parity.
 	physical := int64(base.Attack) + int64(w.equipmentDamage(ch)) +
-		str/3 + dex/4 + special[0] + combatLevel
+		str/3 + dex/8 + special[0] + combatLevel
 	defensePerLevel := int64(1)
 	if isArch(ch) || isCelestialEvolution(ch) {
 		defensePerLevel = 2
 	}
 	defense := int64(base.Defense) + int64(w.equipmentDefense(ch)) +
-		dex/5 + level*defensePerLevel
+		level*defensePerLevel
 
 	class := int(ch.Class)
 	maxHP, maxMP := int64(base.MaxHP), int64(base.MaxMP)

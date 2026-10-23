@@ -31,18 +31,18 @@ func TestApplyBonusDoesNotRematerializeMovingPlayer(t *testing.T) {
 
 	w.onApplyBonus(session, pkt)
 
-	// UpdateScore + UpdateEtc. O SetHpMp NAO vai mais para o dono: o 0x336 ja
-	// leva HP/MP nos WORDs legados e na cauda wide, e cada pacote de vitals
-	// custa um redesenho nativo no client recompilado -- dois seguidos faziam a
-	// barra piscar. Os observadores continuam recebendo o 0x181.
+	// UpdateScore + UpdateEtc. SetHpMp no longer goes to the owner: 0x336
+	// already carries HP/MP in the legacy WORDs and the wide tail, and every
+	// vitals packet costs a native redraw in the rebuilt client; two in a row
+	// made the bar flicker. Observers still receive 0x181.
 	//
-	// Um terceiro pacote aqui seria o CreateMob que encaixava o avatar no
-	// destino enquanto a caminhada ainda interpolava.
+	// A third packet here would be the CreateMob that snapped the avatar to
+	// the destination while the walk was still interpolating.
 	if got := session.QueuedPacketsForTest(); got != 2 {
-		t.Fatalf("apply bonus enfileirou %d pacotes, esperado 2 sem CreateMob", got)
+		t.Fatalf("apply bonus queued %d packets, want 2 without CreateMob", got)
 	}
 	if !p.MovePublished || p.X != 2105 || p.Y != 2100 {
-		t.Fatalf("estado de movimento alterado: published=%v pos=(%d,%d)", p.MovePublished, p.X, p.Y)
+		t.Fatalf("movement state changed: published=%v pos=(%d,%d)", p.MovePublished, p.X, p.Y)
 	}
 }
 
@@ -58,14 +58,15 @@ func TestRecalcExtendedUsesAllAttributes(t *testing.T) {
 	ch := testChar()
 	(&World{}).recalcPlayer(&ch)
 	e := effectiveScore(&ch)
-	if e.Attack != 33 {
-		t.Fatalf("attack=%d, esperado 33", e.Attack)
+	// 7.59 score: 20 + STR 8/3 + DEX 7/8 + level 10; defense 10 + level 10.
+	if e.Attack != 32 {
+		t.Fatalf("attack=%d, want 32", e.Attack)
 	}
-	if e.Defense != 21 || e.MaxHP != 130 || e.MaxMP != 60 {
-		t.Fatalf("derivados incorretos: %+v", e)
+	if e.Defense != 20 || e.MaxHP != 130 || e.MaxMP != 60 {
+		t.Fatalf("incorrect derived values: %+v", e)
 	}
 	if e.MagicAttack == 0 || combatAccuracyPercent(int(e.Dex), int(e.Accuracy), int(e.Evasion), false) != 100 {
-		t.Fatalf("combate derivado nao calculado: %+v", e)
+		t.Fatalf("derived combat not calculated: %+v", e)
 	}
 }
 
@@ -78,7 +79,7 @@ func TestApplyStatusConsumesPointAndDoesNotCompound(t *testing.T) {
 	}
 	w.recalcPlayer(&ch)
 	if ch.Score.StatusPts != 49 || ch.Score.Con != 7 || playerMaxHP(&ch) != 132 {
-		t.Fatalf("CON/HP incorretos: pts=%d baseCON=%d maxHP=%d",
+		t.Fatalf("incorrect CON/HP: pts=%d baseCON=%d maxHP=%d",
 			ch.Score.StatusPts, ch.Score.Con, playerMaxHP(&ch))
 	}
 	w.recalcPlayer(&ch)
@@ -99,7 +100,7 @@ func TestBaseHPMPProgressionForAllMortalClasses(t *testing.T) {
 		}}
 		(&World{}).recalcPlayer(&ch)
 		if playerMaxHP(&ch) != want[class][0] || playerMaxMP(&ch) != want[class][1] {
-			t.Fatalf("classe=%d HP/MP=%d/%d, quer %d/%d", class,
+			t.Fatalf("class=%d HP/MP=%d/%d, want %d/%d", class,
 				playerMaxHP(&ch), playerMaxMP(&ch), want[class][0], want[class][1])
 		}
 	}
@@ -110,10 +111,10 @@ func TestMortalPointBudgetsUseHighLevelThresholds(t *testing.T) {
 		t.Fatalf("status level 253=%d", got)
 	}
 	if got := mortalStatusPointBudget(400); got != 3372 {
-		t.Fatalf("status level 400=%d, quer 3372", got)
+		t.Fatalf("status level 400=%d, want 3372", got)
 	}
 	if got := mortalSkillPointBudget(200); got != 601 {
-		t.Fatalf("skill level 200=%d, quer 601", got)
+		t.Fatalf("skill level 200=%d, want 601", got)
 	}
 }
 
@@ -126,7 +127,7 @@ func TestMasteryCapFollowsEighthAndSecondarySkills(t *testing.T) {
 	}
 	ch.LearnedSkill = 1 << 7
 	if got := masteryPointLimit(ch, 1); got != 255 {
-		t.Fatalf("limite oitava skill=%d", got)
+		t.Fatalf("eighth skill limit=%d", got)
 	}
 	ch.SecondaryLearnedSkill = 1 << 4
 	if got := masteryPointLimit(ch, 1); got != 320 {
@@ -140,11 +141,11 @@ func TestApplySpecialAffectsPhysicalAttack(t *testing.T) {
 	w.recalcPlayer(&ch)
 	before := playerAttack(&ch)
 	if !applyBonus(&ch, 1, 0) {
-		t.Fatal("especial recusado")
+		t.Fatal("special refused")
 	}
 	w.recalcPlayer(&ch)
 	if ch.Score.MasterPts != 19 || ch.Score.Mastery[0] != 1 || playerAttack(&ch) != before+1 {
-		t.Fatalf("especial fisico nao aplicado: mastery=%v attack=%d",
+		t.Fatalf("physical special not applied: mastery=%v attack=%d",
 			ch.Score.Mastery, playerAttack(&ch))
 	}
 }
@@ -156,7 +157,7 @@ func TestMasteryPointsFollowLevelAndSpent(t *testing.T) {
 	ch.Score.MasterPts = 60_000
 	syncMasteryPoints(&ch)
 	if ch.Score.MasterPts != 65 {
-		t.Fatalf("mastery disponivel=%d, esperado 65", ch.Score.MasterPts)
+		t.Fatalf("available mastery=%d, want 65", ch.Score.MasterPts)
 	}
 }
 
@@ -166,7 +167,7 @@ func TestSkillPointsFollowMortalLevel(t *testing.T) {
 	ch.Score.SkillPts = 3
 	syncSkillPoints(&ch)
 	if ch.Score.SkillPts != 150 {
-		t.Fatalf("skill points=%d, esperado 150", ch.Score.SkillPts)
+		t.Fatalf("skill points=%d, want 150", ch.Score.SkillPts)
 	}
 }
 
@@ -175,7 +176,7 @@ func TestApplyBonusRejectsInvalidAndEmpty(t *testing.T) {
 	ch.Score.Str += 50
 	syncStatusPoints(&ch)
 	if applyBonus(&ch, 0, 0) || applyBonus(&ch, 0, 4) || applyBonus(&ch, 2, 0) {
-		t.Fatal("bonus invalido foi aceito")
+		t.Fatal("invalid bonus was accepted")
 	}
 }
 
@@ -189,10 +190,10 @@ func TestStatusPointsAreFixedByLevelAndSpentStats(t *testing.T) {
 	ch.Score.StatusPts = 60_000
 	syncStatusPoints(&ch)
 	if ch.Score.StatusPts != 0 {
-		t.Fatalf("level 50 com 250 gastos ainda possui %d pontos", ch.Score.StatusPts)
+		t.Fatalf("level 50 with 250 spent still has %d points", ch.Score.StatusPts)
 	}
 	if applyBonus(&ch, 0, 0) {
-		t.Fatal("permitiu ultrapassar 250 pontos gastos no level 50")
+		t.Fatal("allowed exceeding 250 spent points at level 50")
 	}
 }
 
@@ -211,5 +212,27 @@ func TestStatusBudgetRepairsLegacyOverspend(t *testing.T) {
 	if ch.Score.Str < 8 || ch.Score.Int < 4 ||
 		ch.Score.Dex < 7 || ch.Score.Con < 6 {
 		t.Fatalf("reparo reduziu atributo natural: %+v", ch.Score)
+	}
+}
+
+// TMSRVIN 7.59 score (FUN_004bb4c0): DEX feeds physical damage as DEX/8 and
+// never defense, so a high-DEX amulet must not inflate defense.
+func TestDexterityFollows759Score(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{
+		500: {Index: 500, Pos: 1 << 9, StaticEffects: []model.StaticEffect{{Name: "EF_DEX", Value: 100_000}}},
+	}}
+	plain, amulet := testChar(), testChar()
+	amulet.Equip[9] = model.Item{Index: 500}
+	w.recalcPlayer(&plain)
+	w.recalcPlayer(&amulet)
+	before, after := effectiveScore(&plain), effectiveScore(&amulet)
+	if after.Dex != before.Dex+100_000 {
+		t.Fatalf("amulet DEX %d -> %d, want +100000", before.Dex, after.Dex)
+	}
+	if after.Defense != before.Defense {
+		t.Fatalf("DEX 100000 changed defense: %d -> %d", before.Defense, after.Defense)
+	}
+	if got, want := after.Attack-before.Attack, uint32((7+100_000)/8-7/8); got != want {
+		t.Fatalf("DEX 100000 added %d physical attack, want %d", got, want)
 	}
 }

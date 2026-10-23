@@ -399,6 +399,26 @@ than a blanket 200-level restriction.
   intentional; if restoring restrictions, validate evolution mapping and both
   request/accept paths, including a level change while an invitation is open.
 
+## Player score: DEX, damage and defense (adopted 2026-10-23)
+
+Evidence: REA TMSRVIN non-thunk map (2026-10-23, TMSRVIN SHA-256
+`27EE313B…E43642`). `GetCurrentScore` (`0x4B1C26`) leads to `FUN_004ce1c0`,
+which calls the score builder `FUN_004bb4c0` (batches 0036 and 0014). With
+CurrentScore at `+0x5c`, defense `+0x60` starts from BaseScore and adds
+`EF_AC` + `EF_ACADD`, then fixed and percentage effects; none of its 21 writes
+reads DEX (`+0x80`). For player classes (`local_e4 < 4`) damage adds
+`STR/3 + DEX/8 + Special[0] + level`; DEX/5 feeds attack speed (capped at 150).
+
+The owner adopted this rule: `recalcExtendedPlayer` and stat-granting affects
+now use `STR/3 + DEX/8` physical attack and add no DEX to defense (previously
+`DEX/4` attack and `DEX/5` defense, present since the initial commit without
+evidence). Level defense, attack speed and monster/guard damage
+(`Str/2 + Dex/4 + Level`) are unchanged. Classification: project choice from a
+secondary 7.59 source, not 7.48-validated parity. Tests:
+`TestDexterityFollows759Score` (a 100,000-DEX amulet adds DEX/8 attack and no
+defense), updated stat/Celestial expectations; full Go suite and vet passed.
+Not yet deployed.
+
 ## Mapped entry points and subsystem comparison
 
 These anchors make the investigation repeatable without rescanning the entire

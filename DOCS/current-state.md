@@ -1,5 +1,13 @@
 # Current project state
 
+## Player DEX score rule — 2026-10-23, source only
+
+Owner-requested: player physical attack now uses `STR/3 + DEX/8` and DEX adds
+no defense, following the official 7.59 score builder
+([7.59 analysis](server/server-759-gap-analysis.md#player-score-dex-damage-and-defense-adopted-2026-10-23)).
+Full Go suite and vet passed. Not committed, deployed or observed in game; a
+server release and restart are required for players to see it.
+
 ## Full client 7.48.001 — 2026-10-23, published and activated
 
 The owner reset the client version for the multilingual full client. Handshake
