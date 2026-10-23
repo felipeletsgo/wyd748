@@ -1,5 +1,41 @@
 # Current project state
 
+## Release — 2026-10-23, patch 10043 and mandatory client build gate
+
+Commits `4dcbeed3` (source) and `78bb9bd4` (portal receipt), pushed to `main`;
+local `tmproject/client748/config.txt` and the client crash dumps excluded.
+Patch 10043 was published and verified first
+([launcher receipt](client/launcher.md#published-patch-10043-2026-10-23)).
+
+Gates: full `go test ./... -count=1` with a temporary PostgreSQL 18 cluster
+(79 store tests ran), `go vet ./...`, race tests for wire/net and
+login/admission/fairy/Water/summon/Lactolerium paths, `Build-Client.ps1
+-NoDeploy` (ArchitectureTests 3,171,479, socket 281, crash 200, launcher 56),
+portal build, 89 tests and `astro check`.
+
+Archive SHA-256
+`3FEAFA5B042828B3D414D1D2F1FEBBEAA0152828B9FAF28832AE31A17D3B305B`. Game
+`FDB370E82A7FD6522CB3B165B9544B839603F887D449FCD4332C3C205772801C`, player
+API `F98295E4AEFF90B5CDF4A9B8064EAC1DDB8BDE977EFE40B67755606CA4CFA783`, log
+reader `3C9E612BCD5739B0CB9E40DF22B07DD5E4C0F0AF486E98632ADA7DD4174C7599`,
+revision `78bb9bd4` with `vcs.modified=true` (excluded local files only). All
+nine private server, staff, Caddy and unit files matched staging.
+
+The first updater run found three online players, refused the restart and
+restored the active release unchanged. With the owner's authorization, the
+controlled stop at 01:23:25 UTC persisted three accounts with zero failures
+(`Result=success`). Release `/srv/wyd-go/releases/20261023T012326Z` went
+live; the game listened at 01:23:30 UTC. Rollback reference:
+`/srv/wyd-go/releases/20261022T222536Z` (a rollback must pair it with a
+client that does not require the gate). Running executables match the
+hashes above; staff and player readiness 200/`ready`; schema 11; no
+error-priority journal entries; remote staging removed.
+
+Gate in production: build `0x00000000` rejected before authentication at
+01:24:17 UTC; a revision-1 client logged in at 01:24:37 UTC. Pending:
+in-game acceptance of the batch contents (sizes, ankh colors, fairy/Water,
+weapons, mount HUD); not `CLIENT_TESTED`.
+
 ## Local source — 2026-10-23, ankh inventory colors and Lactolerium 100%
 
 - Ankh inventory halos (`MODERNIZACAO_COMPATIVEL`, presentation only): the

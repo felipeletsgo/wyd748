@@ -1,5 +1,29 @@
 # WYD launcher and client patches
 
+## Published patch 10043 (2026-10-23)
+
+First mandatory patch: client build revision **1**; the activated server
+requires revision >= 1. The owner authorized commit/push, publication and a
+controlled stop of the three online players. Source commit `4dcbeed3`; portal
+receipt commit `78bb9bd4`; both pushed. Assets from Git between `379dcd93`
+and `4dcbeed3`; the validated Release executable was added explicitly.
+
+- ZIP: 913,376 bytes, SHA-256
+  `98F54183D7361484026CE8F4213568886FC76D0549E24A7A96980E1AE16C2FFD`.
+- `WYD.exe`: 1,918,976 bytes, SHA-256
+  `7FE98A22B51E2EA8864FF31483186866075B648F81C554592218AD523E55DC64`;
+  it embeds build identity `0x57470001`.
+- `ItemList.bin`: 910,004 bytes, SHA-256
+  `81AD6789B9AB0B4607E5F76EF9772676A6DC9FDDC79790EB1EC31CDA4E53EDFC`.
+- `itemhelp.dat`: 81,701 bytes, SHA-256
+  `47C97E7FCD119C4D8B5C2E549AF80C5CFE1ACBBF4741055C050D96459C633FB3`.
+- HTTP/HTTPS feeds list 10043 and both downloads match. The public manifest,
+  home, News article and changelog advertise 10043.
+- Published before the server activation, as the gate requires. First
+  production logins: an old client (build `0x00000000`) was rejected before
+  authentication at 01:24:17 UTC, and a current client logged in with build
+  revision 1 at 01:24:37 UTC.
+
 ## Published patch 10042 (2026-10-22)
 
 The owner authorized committing/pushing the staff panel (P1, stages 0–3) and
@@ -166,8 +190,8 @@ authentication, any client whose compiled build revision is below its minimum
 together, one above the last published revision, and ships with the server
 release that enforces it: publish and verify the patch first, then activate
 the server. Record the revision in the patch receipt. Published revisions:
-patches up to 10042 predate the gate (no revision); the next patch carries
-revision 1.
+patches up to 10042 predate the gate (no revision); patch 10043 carries
+revision 1, so the next patch carries revision 2.
 
 Every published patch or player-visible server release also updates the
 website: the `clientRelease` receipt and a `changelog` entry in
