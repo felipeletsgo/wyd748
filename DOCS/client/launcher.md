@@ -1,5 +1,23 @@
 # WYD launcher and client patches
 
+## Published patch 10044 (2026-10-23)
+
+Client build revision **2**; the activated server requires revision >= 2.
+The owner authorized commit/push, publication and the controlled restart.
+Source commit `271a75d4`; portal receipt commit `613a5cce`; both pushed. No
+client asset changed after `4dcbeed3`, so the ZIP holds only the validated
+Release executable (the asset builder refuses an empty diff); it was created
+with the same .NET ZIP entry method used to add the executable to 10043.
+
+- ZIP: 852,632 bytes, SHA-256
+  `5EA50C20CD9455FF37108E933AC0D2A64562C0A608676E47D51097C23A04136D`.
+- `WYD.exe`: 1,918,976 bytes, SHA-256
+  `53AE596043FDCEE439821E549DC827C556C4CF07E646A2FF584D52957668CEDA`;
+  it embeds build identity `0x57470002` and no revision-1 identity.
+- HTTP/HTTPS feeds list 10044 and both downloads match; the public
+  manifest, News article and changelog advertise 10044. Published before the
+  server activation.
+
 ## Published patch 10043 (2026-10-23)
 
 First mandatory patch: client build revision **1**; the activated server
@@ -191,7 +209,7 @@ together, one above the last published revision, and ships with the server
 release that enforces it: publish and verify the patch first, then activate
 the server. Record the revision in the patch receipt. Published revisions:
 patches up to 10042 predate the gate (no revision); patch 10043 carries
-revision 1, so the next patch carries revision 2.
+revision 1 and patch 10044 revision 2, so the next patch carries revision 3.
 
 Every published patch or player-visible server release also updates the
 website: the `clientRelease` receipt and a `changelog` entry in

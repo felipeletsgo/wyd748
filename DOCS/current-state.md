@@ -1,5 +1,39 @@
 # Current project state
 
+## Release — 2026-10-23, patch 10044 and client build revision 2
+
+Commits `271a75d4` (source: ankh inventory tint, Growth auto-buff, CON-free
+camera zoom, revision 2 on both sides) and `613a5cce` (portal receipt),
+pushed. Patch 10044 published and verified first
+([launcher receipt](client/launcher.md#published-patch-10044-2026-10-23)).
+
+Gates: `go test ./... -count=1` and `go vet ./...` (no persistence change;
+the PostgreSQL run of 10043 still covers the unchanged store), handshake
+cross-check with both constants at 2, `Build-Client.ps1 -NoDeploy`
+(ArchitectureTests 3,171,484, socket 281, crash 200, launcher 56), portal
+build, 89 tests and `astro check`.
+
+Archive SHA-256
+`87D4100A4FF258C6F502FDDC1ED84FDB051F86180C27E1ECA1CADD8A7CBD4C18`. Game
+`F893ADCB2F65BAFA13E22BF4F23E1F2C4857E80404394DF555590F0424C5CE9D`, player
+API `2B286B1C68DFD2714A8CD1CB0105988697D42A9A8CF48F5871A38BD6EA137B4E`, log
+reader `62B2E5EE307C079B9EA59ED0EBF494235790B1B2A5E5ED5B02232487762B7781`,
+revision `613a5cce` (`vcs.modified=true`: excluded local files only). All
+nine private configuration files matched staging. The first archive attempt
+failed because the build script ran from Git Bash, where `tar` resolved to
+GNU tar (it reads `C:` as a remote host); the PowerShell run uses Windows
+`tar`. The incomplete staging folder was removed.
+
+No players were online. The controlled stop at 05:36:02 UTC persisted zero
+accounts with zero failures (`Result=success`); release
+`/srv/wyd-go/releases/20261023T053602Z` went live and the game listened at
+05:36:06 UTC. Rollback reference: `/srv/wyd-go/releases/20261023T012326Z`
+(pairs with patch 10043, revision 1). Running executables match the hashes
+above; staff and player readiness 200/`ready`; schema 11; no error-priority
+journal entries; remote staging removed. Pending: the first production login
+with revision 2 and in-game acceptance of the three fixes; not
+`CLIENT_TESTED`.
+
 ## Release — 2026-10-23, patch 10043 and mandatory client build gate
 
 Commits `4dcbeed3` (source) and `78bb9bd4` (portal receipt), pushed to `main`;
