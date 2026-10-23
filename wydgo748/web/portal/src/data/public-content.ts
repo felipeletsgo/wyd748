@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10042,
-  publishedAt: '2026-10-22',
-  serverUpdate: { id: 'big-cube-staff-notices-10042', publishedAt: '2026-10-22' },
+  patchVersion: 10043,
+  publishedAt: '2026-10-23',
+  serverUpdate: { id: 'mandatory-update-sizes-10043', publishedAt: '2026-10-23' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -14,10 +14,10 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10042.zip',
-    sizeBytes: 863580,
-    sha256: 'F91D11AA93292AFE38DBD2092443C72E7A536CBB57292D556FD6B9DCC50FE7DA',
-    executableSha256: '7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9',
+    url: '/patch/patch-10043.zip',
+    sizeBytes: 913376,
+    sha256: '98F54183D7361484026CE8F4213568886FC76D0549E24A7A96980E1AE16C2FFD',
+    executableSha256: '7FE98A22B51E2EA8864FF31483186866075B648F81C554592218AD523E55DC64',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -27,6 +27,14 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-23', category: 'Client and server', title: 'Patch 10043 — required update, creature sizes and fairy fixes', entries: [
+    'Require the current client: older clients are asked to update through the launcher before logging in.',
+    'Cap monster size, including bosses, and keep summons and the mount hatchling at their normal size.',
+    'Show the ankh colors in the inventory.',
+    'Pause fairy lifetime while unequipped; continue Water rooms with a Silver Angel and a matching scroll.',
+    'Fit equipped weapons to the hand slots and show the premium/KR mount magic bonus in the skill panel.',
+    'Automated checks passed; real-client acceptance remains pending.',
+  ] },
   { date: '2026-10-22', category: 'Client and server', title: 'Patch 10042 — Big Cube, staff notices and planned maintenance', entries: [
     'Confirm the Big Cube Entrance Ticket before use, accept it across the Big Cube entry area and add a paid return portal to Noatum.',
     'Show Big Cube and Cube room questions in a private panel with a ten-second timer; the server still decides by position.',

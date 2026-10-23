@@ -29,9 +29,11 @@ test('public content ships real static routes with valid internal links and no i
 });
 test('download receipt distinguishes verified incremental patch from unknown full-package metadata', () => {
   const receipt = JSON.parse(html('client-manifest.json'));
-  assert.equal(receipt.version, 1); assert.equal(receipt.patchVersion, 10042);
-  assert.equal(receipt.publishedAt, '2026-10-22');
-  assert.deepEqual(receipt.serverUpdate, { id: 'big-cube-staff-notices-10042', publishedAt: '2026-10-22' });
+  assert.equal(receipt.version, 1); assert.equal(receipt.patchVersion, 10043);
+  assert.equal(receipt.publishedAt, '2026-10-23');
+  assert.deepEqual(receipt.serverUpdate, { id: 'mandatory-update-sizes-10043', publishedAt: '2026-10-23' });
+  assert.match(html('news/mandatory-update-sizes-10043/index.html'), /Client update required/);
+  assert.match(html('changelog/index.html'), /Patch 10043 — required update, creature sizes and fairy fixes/);
   assert.match(html('news/big-cube-staff-notices-10042/index.html'), /ten-second timer/);
   assert.match(html('changelog/index.html'), /Patch 10042 — Big Cube, staff notices and planned maintenance/);
   assert.match(html('news/combat-events-persistence-10041/index.html'), /payment confirmation/);
@@ -52,11 +54,11 @@ test('download receipt distinguishes verified incremental patch from unknown ful
   assert.match(html('news/hell-gate-rune-track-759/index.html'), /regardless of party order/);
   assert.match(html('news/hell-gate-rune-track-759/index.html'), /latest launcher patch remains 10035/);
   assert.match(html('changelog/index.html'), /Hell Gate and Rune Track/);
-  assert.equal(receipt.patch.sizeBytes, 863580);
-  assert.equal(receipt.patch.sha256, 'F91D11AA93292AFE38DBD2092443C72E7A536CBB57292D556FD6B9DCC50FE7DA');
-  assert.equal(receipt.patch.executableSha256, '7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9');
-  assert.equal(receipt.patch.url, '/patch/patch-10042.zip'); assert.equal(receipt.updateFeed, '/patch/update.htm');
-  assert.match(html('index.html'), /Latest published patch 10042/);
+  assert.equal(receipt.patch.sizeBytes, 913376);
+  assert.equal(receipt.patch.sha256, '98F54183D7361484026CE8F4213568886FC76D0549E24A7A96980E1AE16C2FFD');
+  assert.equal(receipt.patch.executableSha256, '7FE98A22B51E2EA8864FF31483186866075B648F81C554592218AD523E55DC64');
+  assert.equal(receipt.patch.url, '/patch/patch-10043.zip'); assert.equal(receipt.updateFeed, '/patch/update.htm');
+  assert.match(html('index.html'), /Latest published patch 10043/);
   assert.match(html('news/client-safety-10035/index.html'), /client stability safeguards/);
   assert.match(html('changelog/index.html'), /Patch 10035 — client stability safeguards/);
   assert.match(html('news/hell-gate-routes-10034/index.html'), /400,000 HP/);
