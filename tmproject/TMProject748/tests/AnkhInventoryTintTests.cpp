@@ -42,6 +42,12 @@ int RunAnkhInventoryTintTests(int& checks)
     const auto tint = render.find("pVertex[i].diffuse = dwColor[ipControl->n3DObjIndex - 737];", table);
     check(table != std::string::npos && tint != std::string::npos,
         "inventory ankhs use the native red, blue and green vertex tint");
+    const auto modulate = render.find("SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);", tint);
+    const auto draw = render.find("pMesh->RenderForUI(", modulate);
+    const auto restore = render.find("SetTextureStageState(0, D3DTSS_COLOROP, previousColorOp);", draw);
+    check(tint != std::string::npos && modulate != std::string::npos && draw != std::string::npos &&
+        restore != std::string::npos && render.find("D3DTSS_COLORARG2, D3DTA_DIFFUSE", modulate) < draw,
+        "the inventory ankh draw multiplies texture by the vertex tint and restores the stage");
     check(render.find("n3DObjIndex - 2964") == std::string::npos,
         "the decompiled stack offset no longer replaces the ankh color");
     check(ground.find("pVertex[i].diffuse = dwColor[nMeshIndex - 737];") != std::string::npos,

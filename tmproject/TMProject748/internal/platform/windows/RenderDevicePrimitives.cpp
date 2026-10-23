@@ -1289,8 +1289,23 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 
 						pMesh->m_nTextureIndex[0] = 204;
 
+						// The UI pass leaves stage 0 at SELECTARG1 (texture only), so the
+						// vertex tint above was discarded and the ankh drew as plain grey
+						// texture 204. Modulate texture by vertex color for this draw, as
+						// the world pass does for ground ankhs, then restore the stage.
+						const DWORD previousColorOp = m_dwTextureStageStateList[0][D3DTSS_COLOROP];
+						const DWORD previousColorArg1 = m_dwTextureStageStateList[0][D3DTSS_COLORARG1];
+						const DWORD previousColorArg2 = m_dwTextureStageStateList[0][D3DTSS_COLORARG2];
+						SetTextureStageState(0, D3DTSS_COLOROP, D3DTOP_MODULATE);
+						SetTextureStageState(0, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+						SetTextureStageState(0, D3DTSS_COLORARG2, D3DTA_DIFFUSE);
+
 						pMesh->RenderForUI((int)ipControl->nPosX, (int)ipControl->nPosY, ipControl->fAngle, ipControl->fScale * fScale,
 							ipControl->dwColor, ipControl->nTextureIndex, ipControl->nTextureSetIndex, ipControl->sLegend);
+
+						SetTextureStageState(0, D3DTSS_COLOROP, previousColorOp);
+						SetTextureStageState(0, D3DTSS_COLORARG1, previousColorArg1);
+						SetTextureStageState(0, D3DTSS_COLORARG2, previousColorArg2);
 					}
 				}
 

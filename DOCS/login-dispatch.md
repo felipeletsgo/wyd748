@@ -46,7 +46,8 @@ automatic download is attempted inside the game.
 
 For each future mandatory client update, increment `Revision` in the client
 and `MinimumClientBuildRevision` in the server together, preserving the prefix
-and protocol; do not reset or wrap revisions. Revision 2 (patch 10044)
+and protocol; do not reset or wrap revisions. Revision 3 (patch 10045)
+covers the inventory ankh stage-state fix. Revision 2 (patch 10044)
 covers the ankh inventory tint, Growth auto-buff and CON-free camera zoom.
 Revision 1 covers the local
 2026-10-22 fixes (Water/fairy/mount HUD/hand slots/monster scaling). Release

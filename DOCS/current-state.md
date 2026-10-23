@@ -1,5 +1,18 @@
 # Current project state
 
+## Local source — 2026-10-23, ankh inventory tint, second cause
+
+Patch 10044 (`53AE5960`, confirmed installed) still drew the inventory ankhs
+grey. The table lookup was correct, but the UI pass leaves texture stage 0 at
+`COLOROP = SELECTARG1` (texture only, `SetRenderStateBlock(0)`), so the vertex
+tint was discarded; the world pass that draws ground ankhs modulates by vertex
+color. The 737..739 branch in `RenderDevicePrimitives.cpp` now sets
+`MODULATE(TEXTURE, DIFFUSE)` for that draw and restores the cached stage
+values; `AnkhInventoryTintTests` checks the order. Client gate passed
+(ArchitectureTests 3,171,485); candidate `WYD.exe` SHA-256
+`4FB1CBF8440ADF602E984DEA1322A2369861DB451904DCAFF341CF8D0DF01B80` (still build revision 2). Not committed, installed
+or published; visual confirmation pending.
+
 ## Release — 2026-10-23, patch 10044 and client build revision 2
 
 Commits `271a75d4` (source: ankh inventory tint, Growth auto-buff, CON-free
