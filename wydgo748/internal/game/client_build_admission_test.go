@@ -28,6 +28,7 @@ func TestClientBuildRejectsBeforeAuthentication(t *testing.T) {
 		{"legacy selector", 748, 1},
 		{"old revision", 748, wire.ClientBuildPrefix | (wire.MinimumClientBuildRevision - 1)},
 		{"wrong prefix", 748, 0x12340001},
+		{"retired v1 line", 748, 0x57470003},
 		{"wrong protocol", 769, wire.CurrentClientBuild},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

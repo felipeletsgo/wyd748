@@ -1,6 +1,7 @@
 #include "pch.h"
 
 #include "WYD748Assets.h"
+#include "ClientLanguage.h"
 
 #include "TextureManager.h"
 #include "Basedef.h"
@@ -14,6 +15,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 bool WYD748_ReadAttributeMap(
     std::FILE* file,
@@ -314,6 +316,83 @@ namespace
         return offset == bytes.size();
     }
 
+}
+
+std::string WYD748_TextPath(const char* path)
+{
+    static const auto language = client_language::Read(L"lang.txt");
+    return client_language::Resolve(path, language);
+}
+
+void WYD748_LocalizeCaption(const char* scene, int type, int id, int parent, int texture,
+    char* destination, std::size_t capacity)
+{
+    static const auto captions = [] {
+        std::unordered_map<std::string, std::string> result;
+        std::ifstream input(WYD748_TextPath("UI/captions.txt"), std::ios::binary);
+        std::string line;
+        while (std::getline(input, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            const auto separator = line.find('\t');
+            if (separator == std::string::npos || separator == 0 || separator > 180 ||
+                line.size() - separator - 1 >= 128 || result.size() >= 10000 ||
+                !result.emplace(line.substr(0, separator), line.substr(separator + 1)).second) {
+                result.clear();
+                break;
+            }
+        }
+        return result;
+    }();
+    if (!scene || !destination || !capacity) return;
+    std::string name = client_language::Normalize(scene);
+    const auto separator = name.find_last_of('/');
+    if (separator != std::string::npos) name.erase(0, separator + 1);
+    const auto key = name + ':' + std::to_string(type) + ':' + std::to_string(id) + ':' +
+        std::to_string(parent) + ':' + std::to_string(texture);
+    const auto found = captions.find(key);
+    if (found != captions.end() && found->second.size() < capacity) {
+        std::memcpy(destination, found->second.c_str(), found->second.size() + 1);
+    }
+}
+
+bool WYD748_LoadLocalizedItemListNames(const char* path, const char* canonicalPath,
+    char* destination, std::size_t count, std::size_t stride, const char* itemNamesPath)
+{
+    std::vector<unsigned char> localized, canonical;
+    if (!destination || !count || count > static_cast<std::size_t>(INT_MAX) / LegacyItemRecordSize ||
+        stride < 64 || !ReadWholeFile(path, localized) ||
+        !ReadWholeFile(canonicalPath, canonical) || localized.size() != canonical.size() ||
+        localized.size() != count * LegacyItemRecordSize + 4)
+        return false;
+    std::int32_t storedChecksum = 0;
+    const auto payloadSize = localized.size() - 4;
+    std::memcpy(&storedChecksum, localized.data() + payloadSize, sizeof(storedChecksum));
+    if (storedChecksum != BASE_GetSum(reinterpret_cast<char*>(localized.data()), static_cast<int>(payloadSize)))
+        return false;
+    for (std::size_t index = 0; index < count; ++index) {
+        const std::size_t offset = index * LegacyItemRecordSize;
+        if (std::memcmp(localized.data() + offset + 64, canonical.data() + offset + 64, LegacyItemRecordSize - 64))
+            return false;
+        bool terminated = false;
+        for (std::size_t column = 0; column < 64; ++column)
+            terminated = terminated || localized[offset + column] == 0x5A;
+        if (!terminated) return false;
+    }
+    // A separately selected Itemname file must describe the very same catalog.
+    // This also rejects a leftover PT name table when its PT catalog is missing.
+    if (itemNamesPath) {
+        std::vector<char> names(count * 64);
+        if (!WYD748_LoadItemNames(itemNamesPath, names.data(), count, 64, 64))
+            return false;
+        for (std::size_t index = 0; index < count; ++index)
+            for (std::size_t column = 0; column < 64; ++column)
+                if (names[index * 64 + column] != static_cast<char>(localized[index * LegacyItemRecordSize + column] ^ 0x5A))
+                    return false;
+    }
+    for (std::size_t index = 0; index < count; ++index)
+        for (std::size_t column = 0; column < 64; ++column)
+            destination[index * stride + column] = static_cast<char>(localized[index * LegacyItemRecordSize + column] ^ 0x5A);
+    return true;
 }
 
 bool WYD748_InitializeAssetRoot()
@@ -803,7 +882,7 @@ bool WYD748_LoadServerNameList(
 
 bool WYD748_LoadClientConfig(
     const char* path,
-    short* version,
+    int* version,
     short* values,
     const std::size_t valueCount)
 {
@@ -865,7 +944,10 @@ bool WYD748_LoadClientConfig(
             }
         }
 
-        if (keyIndex == _countof(keys) || seen[keyIndex] || value < SHRT_MIN || value > SHRT_MAX)
+        // The launcher stores VERSION as an int (release line 7.48 starts at
+        // 48001); every other key keeps the native short range.
+        const bool inRange = keyIndex == 0 ? value > 0 : value >= SHRT_MIN && value <= SHRT_MAX;
+        if (keyIndex == _countof(keys) || seen[keyIndex] || !inRange)
         {
             valid = false;
             continue;
@@ -885,7 +967,7 @@ bool WYD748_LoadClientConfig(
     if (!valid)
         return false;
 
-    *version = static_cast<short>(parsedValues[0]);
+    *version = parsedValues[0];
     for (std::size_t index = 0; index < valueCount && index + 1 < _countof(keys); ++index)
     {
         if (seen[index + 1])

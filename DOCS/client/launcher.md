@@ -1,5 +1,37 @@
 # WYD launcher and client patches
 
+## Full client 7.48.001 (2026-10-23, published)
+
+Starts [release line 7.48](#release-line-748) and retires patches 10001-10045.
+`[VERSION] 48001`; game identity `0x02EC0001`; launcher SHA-256
+`85C9C648B389BE91CA348351590FCBEFA6752A4D4E849AFBBCB1F054CA12FDE2` with
+`WYDLauncherLanguage.dll` `003134AB…6BF59`; `WYD.exe` `D29873E2…76B7BB3A`.
+Distributed through the owner's Drive link (archive not downloaded or hashed
+here). The live feed is the 48001 baseline; the 100xx list and ZIPs are archived
+in `/srv/wyd-go/patch-archive/20261023T203833Z/`. Activation receipt:
+[current state](../current-state.md).
+
+### Full client contents
+
+Runtime files are only what `WYD.exe`, `WYDLauncher.exe` and its DLL read.
+Removed on 2026-10-23 after checking the built executables' import tables and
+path strings, the game source, tools and tests: the unimported `D3D8.dll` +
+`dgVoodoo.conf` wrapper (the game imports `d3d9.dll`), `JPGLib.dll`, the
+`JProtectDll.dll`/`jlock10x` anti-cheat files, `curse.bin` (the curse filter is
+a no-op), empty `extraitem.bin`, eight `Env/*.map` files, stray copies under
+`mesh/` and `UI/` (AttributeMap, ItemList, SkillData, cdata, Field*.dat, texture
+lists, a `MeshTextureList` backup), unused text lists, camera paths other than
+`CreCamAction`, `SelCamAction1-3` and `DemoCamAction4`, the never-entered demo
+and ending scenes, `TimeTable.bin`, `TOTOGame.csv` and `cursor3.cur` (cursors
+are embedded). Build-only inputs live in `tools/client-assets/inputs/`.
+
+Kept deliberately: `InitItem.bin` (asserted as shipped by the asset tests),
+the unused scene layouts `UI/FieldScene.bin`, `LoginScene*.bin`,
+`SelCharScene.bin` and `SelServerScene.bin` (the locale builder reads them for
+`UI/captions.txt`, whose keys only match these files and never the loaded
+`*2.bin` layouts), `Launcher.bmp`/`.hat` and `sound.txt` (launcher).
+Do not ship `lang.txt` (defaults to English), logs, `dumps/` or `update.dat`.
+
 ## Published patch 10045 (2026-10-23)
 
 Client build revision **3**; the activated server requires revision >= 3.
@@ -200,8 +232,40 @@ Caddy serves `/patch/` on both `http://` (no redirect, for the launcher) and
 - `/patch/guilds.txt` from the game server's `Guilds.txt` export in
   `/var/lib/wyd-go-public` (`guilds_txt` in `server.txt`).
 
-The client base version is `[VERSION] 10000` in the distributed
-`config.txt`. The initial list is `tools/deployment/vps/update.htm`.
+The client base version is `[VERSION] 48001` in the distributed
+`config.txt`. The baseline list is `tools/deployment/vps/update.htm`.
+
+## Release line 7.48
+
+Traced in the operational launcher (pinned SHA-256 `A60DCA35…E2E901`, Ghidra
+headless, 2026-10-23): the status text at `0x439ED8` is formatted at
+`0x403F37` with `[VERSION] / 1000` and `[VERSION] % 1000`; the range check at
+`0x4039D8` divides the local and newest versions by 10000 (`0x68DB8BAD`,
+shift 12) and asks for a full client when they differ; `0x402946` rejects a
+first feed line newer than the local version. The launcher keeps
+`[VERSION]` in an int. The game's `WYD748_LoadClientConfig` used to bound every
+key to `short`, so 48001 rejected the whole `config.txt` and the client fell
+back to full-screen defaults; `VERSION` is now an int (> 0) while every other
+key keeps the short range, with regression tests. The multilingual launcher build
+changes only that format to `Ready to play.  (Version 7.%d.%03d)`, so
+`[VERSION] 48001` shows **7.48.001**. All other native code and data stay
+byte-identical.
+
+The full-client reset retires every 100xx patch. The feed baseline is
+`[WYD]` + `48001 notice.txt`: an old client (10045, range 1) sees a newer
+first line and a different range and is told to download the full client.
+Patches of this line are 48002..49999 (7.48.002..7.49.999), enforced by
+`Build-ClientPatch.ps1`, `Publish-ClientPatch.ps1` and `vps/publish-patch.sh`;
+build the first one with `-From` the commit that produced the 7.48.001 full
+client. Each patch also raises the compiled admission revision
+([contract v2](../login-dispatch.md)).
+
+Activating the reset on the VPS is a one-time, authorized operation after the
+full client is downloadable: upload `vps/update.htm` and `vps/reset-patch-feed.sh`
+and run `sudo bash reset-patch-feed.sh <uploaded update.htm>`. It moves the
+current list and every `patch-*.zip` to `/srv/wyd-go/patch-archive/<UTC>/`
+(nothing is deleted) and installs the baseline list last. Then activate the
+server release carrying contract v2 and deploy the portal.
 
 ## Publishing a patch
 
@@ -213,12 +277,21 @@ pwsh -NoProfile -File tools/deployment/Publish-ClientPatch.ps1 -Version 10001 -S
 ```
 
 `Build-ClientPatch.ps1` takes bytes from Git with `core.autocrlf=true`
-pinned (a fresh Windows clone), skips `config.txt` and `ClientSettings.txt`,
-refuses `WYDLauncher.exe` (it cannot replace itself) and reports deletions,
+pinned (a fresh Windows clone), skips `config.txt`, `ClientSettings.txt` and
+`lang.txt`, refuses `WYDLauncher.exe` and `WYDLauncherLanguage.dll` (the running
+launcher cannot replace itself or its loaded extension), and reports deletions,
 which players keep. `Publish-ClientPatch.ps1` appends `<version>
 patch-<version>.zip` to the live list; `vps/publish-patch.sh` tests the ZIP,
 installs it, keeps the previous list as `.update.htm.previous` and replaces
 `update.htm` last. A launcher change requires a new full client.
+
+The local multilingual candidate preserves this native updater and adds a
+source-built language selector to its main dialog. Build and install with
+`pwsh -NoProfile -File tools/client-assets/Build-NativeLauncherLanguage.ps1`.
+Distribute `WYDLauncher.exe` and `WYDLauncherLanguage.dll` together. See the
+[multilingual client contract](multilingual-client.md) for pinned provenance,
+the `lang.txt` contract, automated coverage and remaining visual validation.
+This local candidate has not been published.
 
 Every client patch is a mandatory update. The game server rejects, before
 authentication, any client whose compiled build revision is below its minimum
@@ -226,10 +299,10 @@ authentication, any client whose compiled build revision is below its minimum
 `client_build::Revision` and the server's `MinimumClientBuildRevision`
 together, one above the last published revision, and ships with the server
 release that enforces it: publish and verify the patch first, then activate
-the server. Record the revision in the patch receipt. Published revisions:
-patches up to 10042 predate the gate (no revision); patch 10043 carries
-revision 1, patch 10044 revision 2 and patch 10045 revision 3, so the next
-patch carries revision 4.
+the server. Record the revision in the patch receipt. Retired v1 line: patches
+up to 10042 predate the gate; 10043, 10044 and 10045 carried revisions 1-3.
+Release line 7.48: the 7.48.001 full client carries revision 1, so patch 48002
+carries revision 2.
 
 Every published patch or player-visible server release also updates the
 website: the `clientRelease` receipt and a `changelog` entry in

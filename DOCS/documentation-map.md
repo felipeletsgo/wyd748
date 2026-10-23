@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 218.
+Markdown documents: 221.
 
 | Document | Type |
 | --- | --- |
@@ -169,6 +169,7 @@ Markdown documents: 218.
 | [DOCS/agent-token-efficiency.md](<agent-token-efficiency.md>) | Product documentation |
 | [DOCS/architecture-map.md](<architecture-map.md>) | Product documentation |
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Product documentation |
+| [DOCS/bilingual-channels-plan.md](<bilingual-channels-plan.md>) | Product documentation |
 | [DOCS/bug-register.md](<bug-register.md>) | Product documentation |
 | [DOCS/BUGS.md](<BUGS.md>) | Product documentation |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Product documentation |
@@ -179,6 +180,7 @@ Markdown documents: 218.
 | [DOCS/client/full-source-audit-2026-10-03.md](<client/full-source-audit-2026-10-03.md>) | Product documentation |
 | [DOCS/client/inventory-stack-and-cp-contract.md](<client/inventory-stack-and-cp-contract.md>) | Product documentation |
 | [DOCS/client/launcher.md](<client/launcher.md>) | Product documentation |
+| [DOCS/client/multilingual-client.md](<client/multilingual-client.md>) | Product documentation |
 | [DOCS/client/performance-and-visuals-plan.md](<client/performance-and-visuals-plan.md>) | Product documentation |
 | [DOCS/client/port-748.md](<client/port-748.md>) | Product documentation |
 | [DOCS/client/refactoring-batch-audit-2026-10-03.md](<client/refactoring-batch-audit-2026-10-03.md>) | Product documentation |
@@ -214,6 +216,7 @@ Markdown documents: 218.
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
 | [DOCS/server/ground-items.md](<server/ground-items.md>) | Product documentation |
 | [DOCS/server/hidden-valley-access.md](<server/hidden-valley-access.md>) | Product documentation |
+| [DOCS/server/kibita-soul.md](<server/kibita-soul.md>) | Product documentation |
 | [DOCS/server/operations.md](<server/operations.md>) | Product documentation |
 | [DOCS/server/public-launch.md](<server/public-launch.md>) | Product documentation |
 | [DOCS/server/rune-track.md](<server/rune-track.md>) | Product documentation |

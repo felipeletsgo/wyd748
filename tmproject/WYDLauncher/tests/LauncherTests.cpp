@@ -94,6 +94,9 @@ void ManifestTests()
         "case-insensitive duplicate paths are rejected");
     Check(Rejects(Replace(Valid(), "serverlist.bin", "WYDLauncher.exe")), "the launcher path is reserved");
     Check(Rejects(Replace(Valid(), "serverlist.bin", "patch.cache")), "the cache path is reserved");
+    Check(Rejects(Replace(Valid(), "serverlist.bin", "LaNg.TxT")), "patches cannot replace the language preference");
+    Check(ParseManifest(Replace(Valid(), "config.txt", "lang.txt"), manifest, error),
+        "a language preference can be declared as keep");
     Check(Rejects(Replace(Valid(), "serverlist.bin", "data.wydnew")), "partial-download names are reserved");
     Check(Rejects(Replace(Valid(), "serverlist.bin", "../serverlist.bin")), "parent traversal is rejected");
 }

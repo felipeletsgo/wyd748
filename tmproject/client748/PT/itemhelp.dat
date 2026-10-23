@@ -1,0 +1,3390 @@
+410
+FFFFFFFF Usado_no_campo_armazena_o_local
+FFFFFFFF e_volta_para_cidade.
+FFFFFFFF usado_novamente_consegue_voltar
+FFFFFFFF ao_local_marcado_anteriormente.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Atalho: Tecla F11
+FFFFFFFF 
+411
+FFFFFFFF Usado_no_campo_armazena_o_local
+FFFFFFFF e_volta_para_cidade.
+FFFFFFFF usado_novamente_consegue_voltar
+FFFFFFFF ao_local_marcado_anteriormente.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Atalho:_Tecla_F11
+FFFFFFFF 
+412
+FFFF00FF [Material_para_Refinação]
+FFFFFFFF 
+FFFFFFFF Através_de_refinação_é_possível_fortificar
+FFFFFFFF items_no_máximo_até_seis_níveis_(+6)
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Para_refinar,_basta_colocar_a_poeira_sobre
+FFFF0000 o_item_que_você_deseja_refinar. 
+FFFFFFFF 
+413
+FFFF00FF [Material_para_Refinação]
+FFFFFFFF 
+FFFFFFFF Através_de_refinação_é_possível_fortificar
+FFFFFFFF items_no_máximo_até_nove_níveis_(+9)
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Para_refinar,_basta_colocar_a_poeira_sobre
+FFFF0000 o_item_que_você_deseja_refinar.
+FFFFFFFF 
+419
+FFFFFFFF Material de composição
+FFFFFFFF 
+FFFFFFFF Usado para compor o Destino do
+FFFFFFFF Dragão Celeste.
+FFFFFFFF 
+FFFFFFFF Junte 10 unidades e leve a Jeffry
+FFFFFFFF em Azran. Custo: 1000000 gold.
+FFFFFFFF 
+FFFFFFFF 
+420
+FFFFFFFF Material de composição
+FFFFFFFF 
+FFFFFFFF Usado para compor o Destino do
+FFFFFFFF Dragão Divino.
+FFFFFFFF 
+FFFFFFFF Junte 10 unidades e leve a Jeffry
+FFFFFFFF em Azran. Custo: 1000000 gold.
+FFFFFFFF 
+FFFFFFFF 
+421
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Existem 7 peças (de 1 a 7).
+FFFFFFFF Junte as 7 e entregue ao Dragão
+FFFFFFFF Dourado de Armia para concluir
+FFFFFFFF a quest. O dragão encantará sua
+FFFFFFFF arma aleatoriamente.
+FFFFFFFF 
+FFFFFFFF 
+422
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Existem 7 peças (de 1 a 7).
+FFFFFFFF Junte as 7 e entregue ao Dragão
+FFFFFFFF Dourado de Armia para concluir
+FFFFFFFF a quest. O dragão encantará sua
+FFFFFFFF arma aleatoriamente.
+FFFFFFFF 
+FFFFFFFF 
+423
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Existem 7 peças (de 1 a 7).
+FFFFFFFF Junte as 7 e entregue ao Dragão
+FFFFFFFF Dourado de Armia para concluir
+FFFFFFFF a quest. O dragão encantará sua
+FFFFFFFF arma aleatoriamente.
+FFFFFFFF 
+FFFFFFFF 
+424
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Existem 7 peças (de 1 a 7).
+FFFFFFFF Junte as 7 e entregue ao Dragão
+FFFFFFFF Dourado de Armia para concluir
+FFFFFFFF a quest. O dragão encantará sua
+FFFFFFFF arma aleatoriamente.
+FFFFFFFF 
+FFFFFFFF 
+425
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Existem 7 peças (de 1 a 7).
+FFFFFFFF Junte as 7 e entregue ao Dragão
+FFFFFFFF Dourado de Armia para concluir
+FFFFFFFF a quest. O dragão encantará sua
+FFFFFFFF arma aleatoriamente.
+FFFFFFFF 
+FFFFFFFF 
+426
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Existem 7 peças (de 1 a 7).
+FFFFFFFF Junte as 7 e entregue ao Dragão
+FFFFFFFF Dourado de Armia para concluir
+FFFFFFFF a quest. O dragão encantará sua
+FFFFFFFF arma aleatoriamente.
+FFFFFFFF 
+FFFFFFFF 
+427
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Existem 7 peças (de 1 a 7).
+FFFFFFFF Junte as 7 e entregue ao Dragão
+FFFFFFFF Dourado de Armia para concluir
+FFFFFFFF a quest. O dragão encantará sua
+FFFFFFFF arma aleatoriamente.
+FFFFFFFF 
+FFFFFFFF 
+447
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Entregue 1000000 gold e Pedras
+FFFFFFFF de Purificação ao Alquimista
+FFFFFFFF Jeff em Azran para receber
+FFFFFFFF uma Pedra de Exorcismo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+448
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Reinicializa_aprendizagens_do_tipo
+FFFFFFFF Confiança/Magia_Sagrada/Elemental/Sobrevivência.
+FFFFFFFF Recebe_de_volta_até_50_pontos
+FFFFFFFF de_cada_tipo_de_aprendizagem.
+FFFF0000 Obs._Usa-se_no_Shaman_em_Azran.
+FFFF0000 Uso_único.
+FFFFFFFF 
+449
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Reinicializa_aprendizagens_do_tipo
+FFFFFFFF Trans/Magia_Negra/Evocação/Troca.
+FFFFFFFF Recebe_de_volta_até_50_pontos
+FFFFFFFF de_cada_tipo_de_aprendizagem.
+FFFF0000 Obs._Usa-se_no_Shaman_em_Azran.
+FFFF0000 Uso_único.
+FFFFFFFF 
+450
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Reinicializa_aprendizagens_do_tipo
+FFFFFFFF Espada_Mágica/Magia_Especial/Natureza/Captura.
+FFFFFFFF Recebe_de_volta_até_50_pontos
+FFFFFFFF de_cada_tipo_de_aprendizagem.
+FFFF0000 Obs._Usa-se_no_Shaman_em_Azran.
+FFFF0000 Uso_único.
+FFFFFFFF 
+575
+FFFF00FF [Pedra_Lendária]
+FFFFFFFF 
+FFFFFFFF Transformar_items_abaixo_em_Lendários.
+FFFFFFFF Peitoral_de_Metal,_Armadura_de_Aço,
+FFFFFFFF Chapéu_Sombrio,_Elmo_de_Águia.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Somente_nas_partes_citadas.
+FFFFFFFF 
+576
+FFFF00FF [Pedra_Lendária]
+FFFFFFFF 
+FFFFFFFF Transformar_items_abaixo_em_Lendários.
+FFFFFFFF Peitoral_de_Metal,_Armadura_de_Aço,
+FFFFFFFF Chapéu_Sombrio,Elmo_de_Águia,Armadura_Dourada,
+FFFFFFFF Concha,Armadura_de_Osso,Peitoral_de_Combate.
+FFFFFFFF 
+FFFF0000 Obs._Somente_nas_partes_citadas.
+FFFFFFFF 
+577
+FFFF00FF [Pedra_Lendária]
+FFFFFFFF 
+FFFFFFFF Transformar_items_abaixo_em_Lendários.
+FFFFFFFF Armadura_Anã,_Conjurador,
+FFFFFFFF Armadura_Aeon,_Peitoral_da_Natureza.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Somente_nas_partes_citadas.
+FFFFFFFF 
+578
+FFFF00FF [Pedra_Lendária]
+FFFFFFFF 
+FFFFFFFF Transformar_items_abaixo_em_Lendários.
+FFFFFFFF Mytril,_Armadura_Embutida,_Armadura_Elemental,
+FFFFFFFF Peitoral_de_Teia.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Somente_nas_partes_citadas.
+FFFFFFFF 
+646
+FFFFFFFF Você_ganhará_+500_de_ataque 
+FFFFFFFF por_um_determinado_tempo_após_usa_lo.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 O_bonus_é_aplicado_apenas_em 
+FFFF0000 monstros,_e_não_em_outros_usuários
+FFFF0000 durante_o_modo_PvP.
+FFFF0000 Disponível_a_partir_do_level_255
+FFFFFFFF 
+647
+FFFFFFFF Você_ganhará_+1000_de_ataque 
+FFFFFFFF por_um_determinado_tempo_após_usa_lo.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 O_bonus_é_aplicado_apenas_em 
+FFFF0000 monstros,_e_não_em_outros_usuários
+FFFF0000 durante_o_modo_PvP.
+FFFF0000 Disponível_a_partir_do_level_255
+FFFFFFFF 
+692
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Vá_até_o_Alquimista_Jeffi_em_Azran.
+FFFFFFFF Com_5_milhões_de_Gold_você_recebe
+FFFFFFFF a_purificação_do_Círculo_Divino_Comp_Puro.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+693
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Reinicializa_aprendizagens_do_tipo
+FFFFFFFF Confiança/Magia_sagrada/Sobrevivência/Elemental.
+FFFFFFFF Recebe_de_volta_até_100_pontos
+FFFFFFFF de_cada_tipo_de_aprendizagem.
+FFFFFFFF 
+FFFF0000 Obs._Usa-se_no_Shaman_em_Azran.
+FFFFFFFF 
+694
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Reinicializa_aprendizagens_do_tipo
+FFFFFFFF Trans/Magia_Negra/Evocação/Troca.
+FFFFFFFF Recebe_de_volta_até_100_pontos
+FFFFFFFF de_cada_tipo_de_aprendizagem.
+FFFFFFFF 
+FFFF0000 Obs._Usa-se_no_Shaman_em_Azran.
+FFFFFFFF 
+695
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Reinicializa_aprendizagens_do_tipo
+FFFFFFFF Espada_Mágica/Magia Especial/Natureza/Captura
+FFFFFFFF Recebe_de_volta_até_100_pontos
+FFFFFFFF de_cada_tipo_de_aprendizagem.
+FFFFFFFF 
+FFFF0000 Obs._Usa-se_no_Shaman_em_Azran.
+FFFFFFFF 
+697
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Item_utilizado_em_diversas_QUESTs.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+699
+FFFFFFFF Teleporta_para_o_local_onde_foi 
+FFFFFFFF armazenado_usando_a_Gema_Estelar.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs. Necessário_local_armazenado.
+FFFF0000 Obs. Botão_direto_do_mouse_para_usar.
+FFFFFFFF 
+700
+FFFFFFFF Armazena_o_local_e_desaparece._Usando 
+FFFFFFFF o_pergaminho_de_Teleporte_é_possível
+FFFFFFFF teleportar_para_o_local_armazenado.
+FFFFFFFF O_local_armazenado_fica_guardado_até
+FFFFFFFF que_seja_armazenado_um_novo_local.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+751
+FFFF00FF [Item_premium]
+FFFFFFFF 
+FFFFFFFF Chave_para_entrar_em_Dois_Castelos.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Relacionado_com_a_Quest.
+FFFFFFFF 
+752
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Chave_interna_da_primeira_parte_do_castelo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Uso_somente_em_Quest.
+FFFFFFFF 
+753
+FFFF00FF [_Familiar_]
+FFFFFFFF 
+FFFFFFFF Equipa-se_em_frente_à_medalha_de_Guilda.
+FFFFFFFF Auxilia_o_ataque.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Relacionado_com_Quest_Dois_Castelos.
+FFFFFFFF 
+754
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Chave do 2º portão do Castelo Gêmeo.
+FFFFFFFF 
+FFFFFFFF Uso exclusivo na quest do castelo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+755
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Chave do 3º portão do Castelo Gêmeo.
+FFFFFFFF 
+FFFFFFFF Uso exclusivo na quest do castelo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+756
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Chave_interna_da_quarta_parte_do
+FFFFFFFF castelo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Uso_somente_em_Quest.
+FFFFFFFF 
+769
+FFFF00FF [_Familiar_]
+FFFFFFFF 
+FFFFFFFF Equipa-se_em_frente_à_Medalha_de
+FFFFFFFF _Guilda._Auxilia_o_ataque.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Relacionado_com_QUEST.
+FFFFFFFF 
+774
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Serve_para_mudar_o_nome_do_personagem
+FFFFFFFF Precisa_ser_usado_junto_com_Pedra_da_Troca_Menor.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Relacionado_com_QUEST.
+FFFFFFFF 
+775
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Serve_para_mudar_o_nome_do_personagem
+FFFFFFFF Precisa_ser_usado_junto_com_Pedra_da_
+FFFFFFFF Troca_Maior.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Relacionado_com_QUEST.
+FFFFFFFF 
+776
+FFFFFFFF Teleporta_para_o_local_onde_foi 
+FFFFFFFF armazenado_usando_a_Gema_Estelar.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Necessário_ter_armazenado_local.
+FFFF0000 Obs._Botão_direto_do_mouse_pra_uso.
+FFFFFFFF 
+777
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 1
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+778
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 2
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+779
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 3
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+780
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 4
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+781
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 5
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+782
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 6
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+783
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 7
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+784
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 8
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+785
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível final
+FFFFFFFF do Elemental da Água (Místico),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+1721
+FFFF00FF [Item_composto]
+FFFFFFFF 
+FFFFFFFF Ingrediente para produzir a Griupan.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1722
+FFFF00FF [Item_composto]
+FFFFFFFF 
+FFFFFFFF Ingrediente para produzir a Griupan.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1723
+FFFF00FF [Item_composto]
+FFFFFFFF 
+FFFFFFFF Ingrediente para produzir a Griupan.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1724
+FFFF00FF [Item_composto]
+FFFFFFFF 
+FFFFFFFF Ingrediente para produzir a Griupan.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1725
+FFFF00FF Material de composição
+FFFFFFFF 
+FFFFFFFF Material necessário para criar
+FFFFFFFF a Fada do Gelo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1726
+FFFF00FF [_Familiar_]
+FFFFFFFF 
+FFFFFFFF Equipa_em_frente_à_Medalha_de_Guilda
+FFFFFFFF Auxilia_o_ataque.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+1731
+FFFF00FF [Item_premium]
+FFFFFFFF 
+FFFFFFFF Necessário_para_entrar_no_Quarto_Secreto.
+FFFFFFFF Quest_Arcana,_teste_sua_habilidade.
+FFFFFFFF O_grupo_todo_poderá_entrar_e_só_o_líder 
+FFFFFFFF precisa_ter_a_entrada.
+FFFFFFFF 
+FFFF0000 Obs._Relacionado_com_Quest:_Quarto_Secreto.
+FFFFFFFF 
+1732
+FFFF00FF [Item_de_QUEST]
+FFFFFFFF 
+FFFFFFFF Item_que_permite_acesso_à_última_parte
+FFFFFFFF da_quest_Quarto_Secreto.
+FFFFFFFF 
+FFFF0000 Obs._Pode_obter_derrotando_o_rei_do
+FFFF0000 reino_oponente._Relacionado_com_Quests:
+FFFF0000 Quarto_Secreto,_Tempestade_Inacabável.
+FFFFFFFF 
+1772
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no estágio 25
+FFFFFFFF da quest Cubo.
+FFFFFFFF 
+FFFFFFFF Pode ser usado na entrada de Azran.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+2441
+FFFFFFFF Joia de composição
+FFFFFFFF 
+FFFFFFFF Ao ser composta com um item,
+FFFFFFFF adiciona a opção de aumento de drop.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+2442
+FFFFFFFF Joia de composição
+FFFFFFFF 
+FFFFFFFF Ao ser composta com um item,
+FFFFFFFF adiciona a opção de ataque perfurante.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+2443
+FFFFFFFF Joia de composição
+FFFFFFFF 
+FFFFFFFF Ao ser composta com um item,
+FFFFFFFF adiciona a opção de experiência adicional.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+2444
+FFFFFFFF Joia de composição
+FFFFFFFF 
+FFFFFFFF Ao ser composta com um item,
+FFFFFFFF adiciona a opção de absorção de dano.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3170
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Entrada para a missão de
+FFFFFFFF demônios e deuses.
+FFFFFFFF 
+FFFFFFFF Local: Arena de Azran.
+FFFFFFFF Horário: 10:00 PM.
+FFFFFFFF 
+FFFFFFFF 
+3171
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Entrada para o Quarto Secreto
+FFFFFFFF (Místico). Quando o líder
+FFFFFFFF usa o pergaminho, os membros
+FFFFFFFF do grupo são invocados para
+FFFFFFFF dentro da sala.
+FFFFFFFF 
+FFFFFFFF 
+3172
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Entrada para o Quarto Secreto
+FFFFFFFF (Normal). Quando o líder
+FFFFFFFF usa o pergaminho, os membros
+FFFFFFFF do grupo são invocados para
+FFFFFFFF dentro da sala.
+FFFFFFFF 
+FFFFFFFF 
+3173
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 1
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3174
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 2
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3175
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 3
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3176
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 4
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3177
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 5
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3178
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 6
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3179
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 7
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3180
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 8
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3181
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível final
+FFFFFFFF do Elemental da Água (Normal),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3182
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 1
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3183
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 2
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3184
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 3
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3185
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 4
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3186
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 5
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3187
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 6
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3188
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 7
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3189
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível 8
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3190
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no nível final
+FFFFFFFF do Elemental da Água (Arcano),
+FFFFFFFF junto aos membros do grupo.
+FFFFFFFF 
+FFFFFFFF Quest: Invocação dos Espíritos.
+FFFFFFFF 
+FFFFFFFF 
+3310
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Aumenta levemente o ataque e a velocidade.
+FFFFFFFF 
+FFFFFFFF Atalho: E
+FFFFFFFF Duração: 30 minutos.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3311
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Aumenta o poder de ataque.
+FFFFFFFF 
+FFFFFFFF Atalho: E
+FFFFFFFF Duração: 1 hora.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3312
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Aumenta muito o poder de ataque.
+FFFFFFFF 
+FFFFFFFF Atalho: E
+FFFFFFFF Duração: 1 hora.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3313
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Poção_que_aumenta_o_limite_máximo_de
+FFFFFFFF mana_e_HP.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Aumenta_10%.
+FFFF0000 Duração:_1_hora.
+FFFFFFFF 
+3314
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Mantém a barra de fome cheia.
+FFFFFFFF 
+FFFFFFFF Ataque e defesa: +10%.
+FFFFFFFF Duração: 4 horas.
+FFFFFFFF Máximo: 20 horas.
+FFFFFFFF 
+FFFFFFFF 
+3315
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Aumenta_a_vida_útil_de_Montarias
+FFFFFFFF tipo_cavalo._Aumenta_+1_de_vida_útil.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Limite_de_vida_útil_é_até_60.
+FFFFFFFF 
+3319
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Aumenta levemente o ataque e a velocidade.
+FFFFFFFF 
+FFFFFFFF Atalho: E
+FFFFFFFF Duração: 20 horas.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3320
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Poção_que_aumenta_o_poder_de_ataque.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Atalho_tecla_"E".
+FFFF0000 Efeito:_Aumenta_poder_de_ataque.
+FFFF0000 Durabilidade:_20_horas/poção.
+FFFFFFFF 
+3321
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Poção_que_aumenta_o_poder_de_ataque.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Atalho_tecla_"E".
+FFFF0000 Aumenta_bastante_o_poder_de_ataque.
+FFFF0000 Durabilidade:_20_horas/poção.
+FFFFFFFF 
+3322
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Recupera_500_de_HP.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Atalho:_Tecla_"Q".
+FFFF0000 Efeito: +500 HP.
+FFFFFFFF 
+3323
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Recupera_500_de_Mana.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Atalho:_Tecla_"W".
+FFFF0000 Efeito: +500 MP.
+FFFFFFFF 
+3324
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transfere_o_grupo_todo_para_a_zona
+FFFFFFFF de_Pesadelo_(normal).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Usar_no_reino_de_Erion.
+FFFFFFFF 
+3325
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transfere_o_grupo_todo_para_a_zona
+FFFFFFFF de_Pesadelo_(Mistico).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Usar_no_reino_de_Armia.
+FFFFFFFF 
+3326
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transfere_o_grupo_todo_para_a_zona
+FFFFFFFF de_Pesadelo_(Arcano).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Usar_no_reino_de_Azran.
+FFFFFFFF 
+3327
+FFFF00FF [Item_composto]
+FFFFFFFF 
+FFFFFFFF É_parte_da_entrada_do_Quest_Pesadelo.
+FFFFFFFF Junte_3_e_vá_até_ao_Alquimista_Jeffi
+FFFFFFFF +_1_milhão_de_GOLD.
+FFFFFFFF Jeffi_transformará_em_entrada.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3328
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Entrada_pessoal_para_Zona_Portão_do
+FFFFFFFF Inferno.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3329
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Entrada_do_todo_grupo_para_Zona
+FFFFFFFF Portão_do_Inferno.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3330
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Quando_você_digitar_o_comando_/canais,
+FFFFFFFF poderá_ver_o_chat_de_todos_os_canais_do
+FFFFFFFF servidor.
+FFFFFFFF 
+FFFF0000 É_nescessário_que_o_item_esteja_no_inventário 
+FFFFFFFF 
+FFFFFFFF 
+3331
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Entrada para o Parque do Destino.
+FFFFFFFF Requer tempo disponível do Emblema.
+FFFFFFFF Obtenha o emblema com o Mercador Nell.
+FFFFFFFF Consulte o tempo com /KT.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF 
+3332
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Javali_Selvagem.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_usar_Montaria.
+FFFF0000 Duração_900_segundos.
+FFFFFFFF 
+3333
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Lobo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_usar_Montaria.
+FFFF0000 Duração_900_segundos.
+FFFFFFFF 
+3334
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Golem_de_Fogo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_usar_Montaria.
+FFFF0000 Duração_900_segundos.
+FFFFFFFF 
+3335
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Desativar_a_transformação.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Uso_somente_quando_estiver
+FFFF0000 transformado.
+FFFFFFFF 
+3336
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Devolve_100_de_cada_status_atribuidos
+FFFFFFFF em_Força,_Mente,_Agilidade_e_Stamina.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Uso_através_do_Mestre_de_Habilidade.
+FFFF0000 Possível_de_usar_com_item_equipado.
+FFFFFFFF 
+3343
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Retorna os pontos de caos
+FFFFFFFF abaixo de 51 para neutro (0).
+FFFFFFFF 
+FFFFFFFF Só pode ser usado abaixo de 51.
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF 
+FFFFFFFF 
+3344
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF De_filhote_para_adulto_dos_seguintes:
+FFFFFFFF Dente_de_Sabre,_Dragão_Menor_e_Urso_Doméstico
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Uso_somente_para_montarias
+FFFF0000 mencionadas.
+FFFFFFFF 
+3345
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Transforma em adultos:
+FFFFFFFF cavalo, garanhão e cavalo veloz
+FFFFFFFF 
+FFFFFFFF Uso exclusivo nas montarias citadas,
+FFFFFFFF tanto pretas quanto brancas.
+FFFFFFFF 
+FFFFFFFF 
+3346
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Transforma em adultos:
+FFFFFFFF cavalo castrado e cavalo de guerra
+FFFFFFFF 
+FFFFFFFF Uso exclusivo nas montarias citadas,
+FFFFFFFF tanto pretas quanto brancas.
+FFFFFFFF 
+FFFFFFFF 
+3347
+FFFFFFFF Após_o_uso,_será_gerada_a_quantidade_de_poeiras
+FFFFFFFF de_Oriharucon_exibida.
+FFFFFFFF As_poeiras_geradas_apenas_poderão_ser_fundidas
+FFFFFFFF novamente_através_da_escritura_de_Oriharucon.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Utilize_com_o_botão_direito_do_mouse
+FFFFFFFF 
+3348
+FFFFFFFF Após_o_uso,_será_gerada_a_quantidade_de_poeiras
+FFFFFFFF de_Lactoleruim_exibida.
+FFFFFFFF As_poeiras_geradas_apenas_poderão_ser_fundidas
+FFFFFFFF novamente_através_da_escritura_de_Lactolerium.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Utilize_com_o_botão_direito_do_mouse
+FFFFFFFF 
+3349
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF De_filhote_para_adulto_dos_seguintes:
+FFFFFFFF Grifo_Sangrento,_HHipogrifo_e_Grifon
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Uso_somente_para_montarias
+FFFF0000 mencionadas.
+FFFFFFFF 
+3350
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF De_filhote_para_adulto_dos_seguintes:
+FFFFFFFF Dragão_Vermelho_e_Tigre_de_Fogo
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Uso_somente_para_montarias
+FFFF0000 mencionadas.
+FFFFFFFF 
+3351
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Aumenta_de_forma_randômica_a_vida
+FFFFFFFF útil_de_1_a_3._Dente_de_Sabre,_Dragão_Menor,
+FFFFFFFF Urso_Doméstico.
+FFFFFFFF 
+FFFF0000 Obs._Vida_útil_máximo_é_de_60._Uso
+FFFF0000 somente_para_montarias_mencionadas.
+FFFFFFFF 
+3352
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Aumenta_de_forma_randômica_a_vida
+FFFFFFFF útil_de_1_a_3._Cavalo_Leve,_Garanhão,
+FFFFFFFF Cavalo.
+FFFF0000 Obs._Vida_útil_máximo_é_de_60._Uso_p/
+FFFF0000 _Cavalos_Negros/Brancos,_somente_p/
+FFFF0000 montarias_mencionadas.
+FFFFFFFF 
+3353
+FFFF00FF [Item_Premium]
+FFFFFFFF Aumenta_de_forma_randômica_a_vida
+FFFFFFFF útil_de_1_a_3._Cavalo_de_Guerra,
+FFFFFFFF Cavalo_Selado.
+FFFFFFFF 
+FFFF0000 Obs._Vida_útil_máximo_é_de_60._Uso_p/
+FFFF0000 _Cavalos_Negros/Brancos,_somente_p/
+FFFF0000 montarias_mencionadas.
+FFFFFFFF 
+3354
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Aumenta_de_forma_randômica_a_vida
+FFFFFFFF útil_de_1_a_3._Dragão,_Grande_Fenrir,
+FFFFFFFF Fenrir.
+FFFFFFFF 
+FFFF0000 Obs._Vida_útil_máximo_é_de_60._Uso
+FFFF0000 somente_para_montarias_mencionadas.
+FFFFFFFF 
+3355
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Aumenta_de_forma_randômica_a_vida
+FFFFFFFF útil_de_1_a_3._Unisus,_Pegasus,
+FFFFFFFF Unicórnio.
+FFFFFFFF 
+FFFF0000 Obs._Vida_útil_máximo_é_de_60._Uso
+FFFF0000 somente_para_montarias_mencionadas.
+FFFFFFFF 
+3356
+FFFF00FF [Item_Premium]
+FFFFFFFF Aumenta_de_forma_randômica_a_vida
+FFFFFFFF útil_de_1_a_3._Grifo_Sangrento,
+FFFFFFFF Hipogrifo,_Grifon
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Vida_útil_máximo_é_de_60._Uso
+FFFF0000 somente_para_montarias_mencionadas.
+FFFFFFFF 
+3357
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Aumenta_de_forma_randômica_a_vida
+FFFFFFFF útil_de_1_a_3._Dragão_Vermelho,_Tigre_de_Fogo.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Vida_útil_máximo_é_de_60._Uso
+FFFF0000 somente_para_montarias_mencionadas.
+FFFFFFFF 
+3358
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Mantém a barra de fome cheia.
+FFFFFFFF 
+FFFFFFFF Ataque e defesa: +10%.
+FFFFFFFF Duração: 7 dias.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3359
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Mantém a barra de fome cheia.
+FFFFFFFF 
+FFFFFFFF Ataque e defesa: +5%.
+FFFFFFFF Duração: 15 dias.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3360
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Mantém a barra de fome cheia.
+FFFFFFFF 
+FFFFFFFF Ataque e defesa: +5%.
+FFFFFFFF Duração: 30 dias.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3361
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Poção_poderosa_que_aumenta_em
+FFFFFFFF abundância_o_poder_de_ataque.
+FFFFFFFF 
+FFFF0000 Atalho_tecla_"E"
+FFFF0000 Duração:_7dias_/_poção.
+FFFF0000 
+FFFFFFFF 
+3362
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Poção_poderosa_que_aumenta_em
+FFFFFFFF abundancia_o_poder_de_ataque.
+FFFFFFFF 
+FFFF0000 Atalho_tecla_"E".
+FFFF0000 Duração:_15dias_/_poção.
+FFFF0000 
+FFFFFFFF 
+3363
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Poção_poderosa_que_aumenta_em
+FFFFFFFF abundancia_o_poder_de_ataque.
+FFFFFFFF 
+FFFF0000 Atalho_tecla_"E".
+FFFF0000 Duração:_30_dias_/_poção.
+FFFF0000 
+FFFFFFFF 
+3364
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Poção superior que aumenta
+FFFFFFFF o HP e o MP máximos.
+FFFFFFFF 
+FFFFFFFF HP e MP máximos: +10%.
+FFFFFFFF Duração: 7 dias.
+FFFFFFFF 
+FFFFFFFF 
+3365
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Poção superior que aumenta
+FFFFFFFF o HP e o MP máximos.
+FFFFFFFF 
+FFFFFFFF HP e MP máximos: +10%.
+FFFFFFFF Duração: 15 dias.
+FFFFFFFF 
+FFFFFFFF 
+3366
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Poção superior que aumenta
+FFFFFFFF o HP e o MP máximos.
+FFFFFFFF 
+FFFFFFFF HP e MP máximos: +10%.
+FFFFFFFF Duração: 30 dias.
+FFFFFFFF 
+FFFFFFFF 
+3367
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Refinação máxima: nível 6.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3390
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Entrada_pessoal_de_Pesadelo_(Normal).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Usar_no_reino_de_Erion.
+FFFFFFFF 
+3391
+FFFF00FF [Item_Premium]
+FFFFFFFF Entrada_pessoal_de_Pesadelo_(Mistico).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Usar_no_reino_de_Armia.
+FFFFFFFF 
+3392
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Entrada_pessoal_de_Pesadelo_(Arkain).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Usar_no_reino_de_Azran.
+FFFFFFFF 
+3393
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Pode ser trocado por
+FFFFFFFF itens especiais ou pontos.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3394
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Pode ser trocado por
+FFFFFFFF itens especiais ou pontos.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3395
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Pode ser trocado por
+FFFFFFFF itens especiais ou pontos.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3396
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Pode ser trocado por
+FFFFFFFF itens especiais ou pontos (5000).
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+3397
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Azul).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3398
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Vermelho).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3399
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Verde).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon
+FFFFFFFF 
+3400
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Prateado).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3401
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Preto).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3402
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Roxo).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3403
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Marrom).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3404
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Violeta).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3405
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Amarelo).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3406
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Garrafinha_de_vidro_que_serve_para
+FFFFFFFF criar_o_Feijão_Mágico(Azul_Claro).
+FFFFFFFF 
+FFFF0000 Como_refinar
+FFFF0000 1._No_slot_familiar_equipe_a_tintura
+FFFF0000 2._Refine_com_Poeira_de_Oriharucon.
+FFFFFFFF 
+3407
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_azul.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3408
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_vermelho.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3409
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_verde.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3410
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_prata.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3411
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_preto.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3412
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_roxo.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3413
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_marrom.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3414
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_violeta.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3415
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_amarela.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3416
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Feijão_Mágico_que_possibilita
+FFFFFFFF pintar_de_azul_claro.
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicável_somente_em
+FFFF0000 equipamentos_de_defesa.
+FFFFFFFF 
+3417
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Apagar_a_cor_que_foi_aplicada_no_item.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Como_usar:_Mesma_forma_de_refinar.
+FFFF0000 Obs._Aplicavel_somente_em_equipamentos
+FFFF0000 que_foram_repintados.
+FFFFFFFF 
+3418
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Javali_Selvagem.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3419
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Lobo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3420
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Golem_de_fogo.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3421
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Imp.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3422
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Orc_Arqueiro.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3423
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Troll.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3424
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Carbuncle.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3425
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Transforme-se_em_Chefe_Ghoul.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Impossível_de_equipar_montaria,
+FFFF0000 ovo,_filhote,_adulto.Duração:_1_hora.
+FFFFFFFF 
+3431
+FFFFFFFF 
+FFFFFFFF 
+FFF00FFF [Item_Premium]
+FFFFFFFF Poção_de_alta_qualidade_que_recupera
+FFFFFFFF HP_e_mana_(HP_+_MP).
+FFFFFFFF 
+FFFF0000 Atalho_tecla_"Q"._Não_vendável.
+FFFF0000 Efeito:_HP_1000_MP_1000.
+FFFFFFFF 
+3442
+FFFF00FF Item especial
+FFFFFFFF 
+FFFFFFFF Permite desenhar suas próprias
+FFFFFFFF figuras e usá-las diretamente.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFFFFFF 
+FFFFFFFF 
+3445
+FFFFFFFF O Destino do Dragão Celeste no
+FFFFFFFF inventário pode ser composto em
+FFFFFFFF um pacote de Oriharucon.
+FFFFFFFF Até 10 unidades podem ser
+FFFFFFFF compostas por vez.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFFFFFF 
+3446
+FFFFFFFF O Destino do Dragão Divino no
+FFFFFFFF inventário pode ser composto em
+FFFFFFFF um pacote de Lactolerium.
+FFFFFFFF Até 10 unidades podem ser
+FFFFFFFF compostas por vez.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFFFFFF 
+3447
+FFFFFFFF O número de Destinos do Dragão
+FFFFFFFF Celeste usados será criado no
+FFFFFFFF inventário. Para recompô-los,
+FFFFFFFF use o Livro de Alquimia.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFFFFFF 
+3448
+FFFFFFFF O número de Destinos do Dragão
+FFFFFFFF Divino usados será criado no
+FFFFFFFF inventário. Para recompô-los,
+FFFFFFFF use o Livro de Alquimia.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFFFFFF 
+3451
+FFFFFFFF Ao_utilizar_esse_item_com_a_fada_vermelha
+FFFFFFFF equipada_no_respectivo_slot,_ela_se
+FFFFFFFF transformará_na_Fada_Prateada.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 
+FFFFFFFF 
+3452
+FFFFFFFF Ao_utilizar_esse_item_com_a_fada_vermelha
+FFFFFFFF equipada_no_respectivo_slot,_ela_se
+FFFFFFFF transformará_na_Fada_Prateada.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 
+FFFFFFFF 
+3453
+FFFFFFFF Com esse item você poderá reviver 
+FFFFFFFF instantaneamente uma montaria morta,
+FFFFFFFF sem precisar ir ao M. de Montaria.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 - O custo para reviver a montaria é o mesmo 
+FFFF0000 cobrado pelo M. de Montaria e tem os mesmos efeitos
+FFFFFFFF 
+FFFFFFFF 
+3454
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Com esse item você poderá reviver 
+FFFFFFFF instantaneamente uma montaria morta,
+FFFFFFFF sem precisar ir ao M. de Montaria.
+FFFFFFFF 
+FFFF0000 - O custo para reviver a montaria é o mesmo 
+FFFF0000 cobrado pelo M. de Montaria e tem os mesmos efeitos
+FFFFFFFF 
+3900
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem_de_ganho_da
+FFFFFFFF exp_em_até_16%.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3901
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem_de_drop_em
+FFFFFFFF até_32%.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3902
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem_em:
+FFFFFFFF Drop_de_16%_até_32%_na_Exp.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3903
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Equipe no espaço de equipamento
+FFFFFFFF para aumentar a experiência
+FFFFFFFF obtida em 32%.
+FFFFFFFF 
+FFFFFFFF O tempo não diminui enquanto
+FFFFFFFF o item estiver desequipado.
+FFFFFFFF 
+3904
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem_de_drop_em
+FFFFFFFF até_32%.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3905
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem:
+FFFFFFFF 32%_no Drop_e_16%_na Exp.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3906
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem_de_ganho_na
+FFFFFFFF exp_em_até_16%.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_este_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3907
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem_de_drop_em
+FFFFFFFF até_32%.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3908
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_em_slot_familiar_para_obter
+FFFFFFFF um_aumento_na_porcentagem:
+FFFFFFFF 32%_no Drop_e_16%_na Exp.
+FFFFFFFF 
+FFFF0000 Obs._Não_gasta_caso_não_esteja_equipado.
+FFFFFFFF 
+FFFFFFFF 
+3909
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Entrada para o Vale Escondido.
+FFFFFFFF Duração: 24 horas.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Permite usar a Joia da Memória.
+FFFFFFFF Tempo restante: /kt.
+FFFFFFFF 
+3910
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Entrada para o Vale Escondido.
+FFFFFFFF Duração: 7 dias.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Permite usar a Joia da Memória.
+FFFFFFFF Tempo restante: /kt.
+FFFFFFFF 
+3914
+FFFF00FF [Item Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_o_item_no_slot_correspondente.
+FFFFFFFF Ao_equipar_esse_item_você_receberá_um_aumento
+FFFFFFFF de_16%_na_taxa_de_experiência_e_32%_no_drop.
+FFFFFFFF 
+FFFF0000 A_duração_do_item_apenas_contará_caso_esteja_esquipado 
+ffff0000 Quando_equipado,_é_possível_vender_o_item
+ffff0000 utilizando_Shift_+_botão_direito_do_mouse.
+3915
+FFFF00FF [Item Premium]
+FFFFFFFF 
+FFFFFFFF Equipe_o_item_no_slot_correspondente.
+FFFFFFFF Ao_equipar_esse_item_você_receberá_um_aumento
+FFFFFFFF de_18%_na_taxa_de_experiência_e_50%_no_drop.
+FFFFFFFF 
+FFFF0000 A_duração_do_item_apenas_contará_caso_esteja_esquipado 
+ffff0000 Quando_equipado,_é_possível_vender_o_item
+ffff0000 utilizando_Shift_+_botão_direito_do_mouse.
+3980
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 3 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3981
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 3 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3982
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 3 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3983
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 15 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3984
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 15 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3985
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 15 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3986
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 30 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3987
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 30 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+3988
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Montaria imortal que pertenceu
+FFFFFFFF a um deus.
+FFFFFFFF 
+FFFFFFFF Não permite troca ou refinação.
+FFFFFFFF Duração após equipar: 30 dias.
+FFFFFFFF Desaparece ao expirar.
+FFFFFFFF 
+4000
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no estágio 25
+FFFFFFFF da quest Cubo (Místico).
+FFFFFFFF 
+FFFFFFFF Pode ser usado na entrada de Azran.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+4001
+FFFFFFFF Item especial
+FFFFFFFF 
+FFFFFFFF Permite entrar no estágio 25
+FFFFFFFF da quest Cubo (Arcano).
+FFFFFFFF 
+FFFFFFFF Pode ser usado na entrada de Azran.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+4010
+FFFFFFFF Pode ser trocado por
+FFFFFFFF 100,000,000 gold.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito para
+FFFFFFFF adicionar 100,000,000 gold
+FFFFFFFF ao inventário.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+4011
+FFFFFFFF Pode ser trocado por
+FFFFFFFF 1,000,000,000 gold.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito para
+FFFFFFFF adicionar 1,000,000,000 gold
+FFFFFFFF ao inventário.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+4013
+FFFF00FF Item de evento
+FFFFFFFF 
+FFFFFFFF Colete 15 itens do chefe de Kefra
+FFFFFFFF para obter prêmios conforme o ranking.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Use apenas durante o evento
+FFFF0000 > Período: a partir de 19 de abril
+FFFF0000 > Consulte os detalhes no site
+4014
+FFFF00FF [_Item_de_bônus_]
+FFFFFFFF 
+FFFFFFFF Juntando_vários_é_possível_de_trocar
+FFFFFFFF por_items_de_evento.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs.Uso_somente_em_período_de_evento.
+FFFF0000 Mais_informações_no_website.
+FFFFFFFF 
+4016
+FFFF00FF Replicação A
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +6.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4017
+FFFF00FF Replicação B
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +6.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4018
+FFFF00FF Replicação C
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +6.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4019
+FFFF00FF Replicação D
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +6.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4020
+FFFF00FF Replicação E
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +6.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4021
+FFFF00FF Replicação A
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +9.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4022
+FFFF00FF Replicação B
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +9.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4023
+FFFF00FF Replicação C
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +9.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4024
+FFFF00FF Replicação D
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +9.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4025
+FFFF00FF Replicação E
+FFFFFFFF 
+FFFFFFFF Sorteia os dois adicionais da armadura.
+FFFFFFFF 
+FFFF0000 Requer equipamento do mesmo grau.
+FFFF0000 Refinação máxima: +9.
+FFFF0000 Os adicionais anteriores são substituídos.
+FFFFFFFF A refinação é preservada.
+FFFFFFFF 
+4105
+FFFF00FF Item de evento
+FFFFFFFF 
+FFFFFFFF Feliz Ano Novo Chinês!
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito
+FFFFFFFF para receber um bônus!
+FFFFFFFF OU
+FFFFFFFF Guarde para trocar por
+FFFFFFFF presentes especiais!
+4106
+FFFF00FF [_Item_de_Quest_]
+FFFFFFFF 
+FFFFFFFF Item_necessário_para_QUEST
+FFFFFFFF de_Arch_de_level_355.
+FFFFFFFF Adiciona_80_de_MP.
+FFFFFFFF 
+FFFF0000 Obs._Gasta_100_milhões_de_EXP.
+FFFF0000 Uso_único_/_não_comercializável.
+FFFFFFFF 
+4107
+FFFF00FF [_Item_de_Quest_]
+FFFFFFFF 
+FFFFFFFF Item_necessário_para_QUEST
+FFFFFFFF de_Arch_de_level_355.
+FFFFFFFF Adiciona_30_de_AC.
+FFFFFFFF 
+FFFF0000 Obs._Gasta_100_milhões_de_EXP.
+FFFF0000 Uso_único_/_não_comercializável.
+FFFFFFFF 
+4108
+FFFF00FF [_Item_de_Quest_]
+FFFFFFFF 
+FFFFFFFF Item_necessário_para_QUEST
+FFFFFFFF de_Arch_de_level_355.
+FFFFFFFF Adiciona_80_de_HP.
+FFFFFFFF 
+FFFF0000 Obs._Gasta_100_milhões_de_EXP.
+FFFF0000 Uso_único_/_não_comercializável.
+FFFFFFFF 
+4109
+FFFF00FF [_Item_de_Quest_]
+FFFFFFFF 
+FFFFFFFF Item_necessário_para_QUEST
+FFFFFFFF de_Arch_de_level_355.
+FFFFFFFF Adiciona_60_de_HP,
+FFFFFFFF 20_de_AC_e_60de_MP.
+FFFF0000 Obs._Gasta_100_milhões_de_EXP.
+FFFF0000 Uso_único_/_não_comercializável.
+FFFFFFFF 
+4111
+FFFF00FF Recompensa de lan house
+FFFFFFFF 
+FFFFFFFF Uso exclusivo em lan houses.
+FFFFFFFF Convite para evento normal.
+FFFFFFFF 
+FFFF0000 > Não pode ser usado fora da lan house
+FFFF0000 > Removido fora da lan house
+FFFFFFFF 
+FFFFFFFF 
+4112
+FFFF00FF Recompensa de lan house
+FFFFFFFF 
+FFFFFFFF Uso exclusivo em lan houses.
+FFFFFFFF Convite para evento intermediário.
+FFFFFFFF 
+FFFF0000 > Não pode ser usado fora da lan house
+FFFF0000 > Removido fora da lan house
+FFFFFFFF 
+FFFFFFFF 
+4113
+FFFF00FF Recompensa de lan house
+FFFFFFFF 
+FFFFFFFF Uso exclusivo em lan houses.
+FFFFFFFF Convite para evento avançado.
+FFFFFFFF 
+FFFF0000 > Não pode ser usado fora da lan house
+FFFF0000 > Removido fora da lan house
+FFFFFFFF 
+FFFFFFFF 
+4114
+FFFF00FF Recompensa de lan house
+FFFFFFFF 
+FFFFFFFF Uso exclusivo em lan houses.
+FFFFFFFF Permite participar do evento de medalhas.
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFF0000 > Acumula pontos de medalha ao usar
+FFFFFFFF 
+FFFFFFFF 
+4115
+FFFF00FF Recompensa de lan house
+FFFFFFFF 
+FFFFFFFF Uso exclusivo em lan houses.
+FFFFFFFF Permite participar do evento de medalhas.
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFF0000 > Acumula pontos de medalha ao usar
+FFFFFFFF 
+FFFFFFFF 
+4116
+FFFF00FF Recompensa de lan house
+FFFFFFFF 
+FFFFFFFF Troque por itens especiais ou pontos.
+FFFFFFFF Permite participar do evento de medalhas.
+FFFFFFFF 
+FFFF0000 > Clique com o botão direito
+FFFF0000 > Acumula pontos de medalha ao usar
+FFFFFFFF 
+FFFFFFFF 
+4117
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Obtido na quest Defensor da Alma.
+FFFFFFFF Concede experiência.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Uso exclusivo do nível 40 ao 115.
+FFFFFFFF Personagens Arch não podem usar.
+FFFFFFFF 
+4118
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Obtido na quest Jardim Sagrado.
+FFFFFFFF Concede experiência.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Uso exclusivo do nível 116 ao 190.
+FFFFFFFF Personagens Arch não podem usar.
+FFFFFFFF 
+4119
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Obtido na quest Retorno do Cavaleiro Negro.
+FFFFFFFF Concede experiência.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Uso exclusivo do nível 191 ao 265.
+FFFFFFFF Personagens Arch não podem usar.
+FFFFFFFF 
+4120
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Obtido na quest Olho da Medusa.
+FFFFFFFF Concede experiência.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Uso exclusivo do nível 266 ao 320.
+FFFFFFFF Personagens Arch não podem usar.
+FFFFFFFF 
+4121
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Obtido na quest Evento Infeliz.
+FFFFFFFF Concede experiência.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Uso exclusivo do nível 321 ao 350.
+FFFFFFFF Personagens Arch não podem usar.
+FFFFFFFF 
+4122
+FFFF00FF [_Item_de_Quest_]
+FFFFFFFF Item_da_Quest_Molar_do_Gárgula.
+FFFFFFFF Armadura_pode_ser_refinada_para_+4
+FFFFFFFF 
+FFFF0000 Use_o_botão_direito_do_mouse.  
+FFFF0000 Limite_de_uso_apenas_em_level
+FFFF0000 201_a_205.
+FFFF0000 Não_aplicável_em_personagem_Arch.
+FFFF0000 Uso_única_vez.
+4123
+FFFF00FF [_Item_de_Quest_]
+FFFFFFFF Item_da_Quest_Benção_do_Deus.
+FFFFFFFF Pode-se_compor_os_pedaços_através_do
+FFFFFFFF sacerdote_Kuruno.
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 Obs._Composição_permitida_somente_nos
+FFFF0000 levels_70_a_75.
+FFFF0000 Não_aplicável_em_personagem_Arch. 
+4124
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Obtido na quest Lança Divina.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Uso exclusivo do nível 70 ao 75.
+FFFFFFFF Personagens Arch não podem usar.
+FFFFFFFF Só pode ser usado uma vez.
+FFFFFFFF 
+4125
+FFFF00FF [_Item_de_Quest_]
+FFFFFFFF Item_do_Quest_Equilíbrio_de_Força
+FFFFFFFF Pode-se_compor_os_pedaços_através
+FFFFFFFF do_sacerdote_Amerlia.
+FFFFFFFF 
+FFFF0000 Obs._Composição_permitida_somente
+FFFF0000 nos_levels_120_a_125
+FFFF0000 Não_aplicável_em_personagem_Arch.
+FFFFFFFF 
+4126
+FFFFFFFF Item de quest
+FFFFFFFF 
+FFFFFFFF Obtido na quest Equilíbrio de Poder.
+FFFFFFFF 
+FFFFFFFF Clique com o botão direito.
+FFFFFFFF Uso exclusivo do nível 120 ao 125.
+FFFFFFFF Personagens Arch não podem usar.
+FFFFFFFF Só pode ser usado uma vez.
+FFFFFFFF 
+4127
+FFFF00FF [_Amuleto_de_bloqueio_]
+FFFFFFFF 
+FFFFFFFF Para_ativar_o_level_355_bloqueado.
+FFFFFFFF Desativa_o_bloqueio_do_limite_de_level
+FFFFFFFF máximo_de_355_p/_personagem_comum.
+FFFFFFFF Desativa_o_bloqueio_do_limite_de_level
+FFFFFFFF máximo_de_355_p/_personagem_Arch.
+FFFF0000 Uso_somente_em_level_355.
+FFFFFFFF 
+4152
+FFFF00FF [Item_Premium]
+FFFFFFFF 
+FFFFFFFF Equipe no slot oposto ao da medalha de guilda, 
+FFFFFFFF para se vestir como a Valquíria.
+FFFFFFFF 
+FFFF0000 - Impossível trocar, auto venda e drop 
+FFFF0000 - Limite de 30 dias
+FFFF0000 - O item sumirá quando acabar o prazo
+FFFFFFFF 
+4153
+FFFF00FF Special Item                
+FFFFFFFF 
+FFFFFFFF Setup opposite to Guild Medal, and 
+FFFFFFFF then change to extrorse by dress of 
+FFFFFFFF Skeleton.
+FFFFFFFF ¡Ø Impossibility of Trade, Auto Trade
+FFFF0000 and Drop
+FFFF0000 ¡Ø Limit of 30 days 
+FFFF0000 ¡Ø Out of existence after period time
+5000
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataques_de_energia_sagrada_são
+CC9900FF lançados_na_área_de_3m_x_3m.
+CC9900FF 
+CC9900FF Dano: 5 + (Confiança/4) x 5 + INT/4.
+FFFFFFFF 
+5001
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Diminui_a_velocidade_dos adversários.
+CC9900FF Movimento: -2.
+CC9900FF Redução na Velocidade de Ataque: 
+CC9900FF Vs. Jogador: 10% + (Confiança/10)%.
+CC9900FF Vs. Monstro: 20% + (Confiança/10)%.
+5002
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Diminui_a_imunidade_dos_inimigos_que
+CC9900FF estão_na_área_de_3m_x_3m_do_alvo.
+CC9900FF Vs. Jogador: -25%.
+CC9900FF Vs. Monstro: -50%.
+FFFFFFFF 
+5003
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Quando_aplicado_ao_personagem_que 
+CC9900FF estiver_sendo_atacado_por_um_monstro,
+CC9900FF troca_o_alvo_do_monstro_para_si_mesmo.
+CC9900FF 
+5004
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_poderoso_contra_1_oponente
+CC9900FF selecionado.
+CC9900FF 
+CC9900FF Dano: 75 + (confiança/4) x 5.
+5005
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Durante_o_tempo_definido,_recupera
+CC9900FF HP_a_cada_8_segundos.
+CC9900FF 
+CC9900FF Regeneração: 75 + (Confiança/2).
+5006
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Puxa_um_inimigo_alvo_para_sua_frente.
+CC9900FF Probabilidade de sucesso:
+CC9900FF Vs. Jogador: 50% + (Confiança/10)%
+CC9900FF Vs. Monstro: 50% + (Confiança/5)%
+5008
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_poderoso_contra_1_oponente 
+CC9900FF selecionado.
+CC9900FF 
+CC9900FF Dano: 15 + (Trans/4) x 5 + FOR/4.
+5009
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Durante_o_tempo_definido 
+CC9900FF aumenta_a_velocidade_de_ataque.
+CC9900FF 
+CC9900FF Velocidade: 110% + (Trans/10)%.
+5010
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_poderoso_contra_1_oponente 
+CC9900FF selecionado.
+CC9900FF 
+CC9900FF Dano: 40 + (Trans/4) x 5 + FOR/4.
+5011
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Durante certo tempo diminui até 10% de HP
+CC9900FF para aumentar o ataque físico.
+CC9900FF 
+CC9900FF Bônus de Ataque: 7% + (Trans/10)%.
+5012
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Perfura_o_inimigo_alvo_e o_que_estiver  
+CC9900FF atrás_dele_em_até_1m_de distância.
+CC9900FF 
+CC9900FF Dano: 60 + (Trans/4) x 5 + FOR/4.
+5013
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Durante_um_tempo_definido_aumenta_a 
+CC9900FF capacidade_máxima_de_HP_e_CONS.
+CC9900FF Bônus em CONS: 10 + (Trans/4) x 3.
+CC9900FF Bônus em HP: 20 + Trans + [level x (4/3)].
+5014
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF 
+CC9900FF Aumenta_a_força_do_ataque_físico_mais
+CC9900FF fraco_de_forma_passiva_e_randômica.
+CC9900FF Dano Mínimo: +(Trans/20)%
+5016
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Perfura_o_inimigo_alvo_e o_que_estiver atrás  
+CC9900FF dele_em_até_1m_de distância.
+CC9900FF 
+CC9900FF Dano: Ataque + 13 + (E. Mágica/4) x 5 + INT/4.
+5017
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_fogo_no_inimigo_alvo_e ao redor do
+CC9900FF personagem_numa distância_de_3m.
+CC9900FF (-10% de dano se estiver chovendo):
+CC9900FF Dano: Ataque + 25 + (E. Mágica/4) x 5 + INT/4.
+5018
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_poderoso_contra_1_oponente selecionado.
+CC9900FF 
+CC9900FF Dano: Ataque + 35 + (E. Mágica/4) x 5 + INT/4.
+CC9900FF 
+5019
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_gelo_em_um_inimigo_alvo.
+CC9900FF Em_caso_de_sucesso,_o_alvo_perde velocidade.
+CC9900FF Velocidade: -13% (Jogador) ou -20% (Monstro).
+CC9900FF Dano: Ataque + 50 + (E. Mágica/4) x 5 + INT/4.
+5020
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_no_oponente_selecionado.
+CC9900FF 
+CC9900FF Dano: Ataque + 65 + (E. Mágica/4) x 5 + INT/4.
+CC9900FF Dano extra: 2% do HP do inimigo.
+5021
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque venenoso em um único alvo.
+CC9900FF 
+CC9900FF Dano: Ataque + 80 + (E. Mágica/4) x 5 + INT/4.
+CC9900FF Dano extra: 10% do HP do inimigo a cada 8 seg.
+5022
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_fogo_no_alvo_gastando_toda mana.
+CC9900FF (-10% de dano se estiver chovendo):
+CC9900FF Dano: Ataque + 90 + (E. Mágica/4) x 5 + INT/4.
+CC9900FF Dano extra = Mana utilizada + (INT/4) x 3.
+5024
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_sagrado_de_longo_alcance_em_um_único
+CC9900FF alvo.
+CC9900FF 
+CC9900FF Dano: Ataque + 15 + (M. Sagrada/4) x 5 + INT/3.
+5025
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF 
+CC9900FF Cura_sintomas_como:_veneno_ou_baixa imunidade.
+CC9900FF 
+CC9900FF 
+5026
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF 
+CC9900FF Bloqueia_a_visualização_de_todos_inimigos 
+CC9900FF ao_seu_redor_(3m_x_3m)_durante_4_segundos.
+CC9900FF 
+5027
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Recupera_a_energia_do_alvo. Caso não tenha
+CC9900FF alvo, recupera_energia de_si_mesmo.
+CC9900FF 
+CC9900FF Recuperação: 100HP + Magia Sagrada x 2.
+5028
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_que_perfura_o_inimigo_alvo_e o_que  
+CC9900FF estiver_atrás_dele_em_até_1m_de distância.
+CC9900FF 
+CC9900FF Dano: Ataque + 155 + (M. Sagrada/4) x 5 + INT/3. 
+5029
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Recupera_a_energia_do_todo_grupo_e de_si_mesmo.
+CC9900FF 
+CC9900FF Recuperação: 150HP + (M. Sagrada/2) x 3.
+CC9900FF 
+5030
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Dano_extra_e_ataques_sagrados_nos inimigos ao
+CC9900FF seu_redor_(5m_x_5m) gastando_a_sua_HP.
+CC9900FF Dano: Ataque + 200 + (M. Sagrada/4) x 5 + INT/3.
+CC9900FF Dano extra: HP gasto + Magia Sagrada.
+5032
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_fogo_contra_1_oponente selecionado. 
+CC9900FF (-10% de dano se estiver chovendo)
+CC9900FF 
+CC9900FF Dano: Ataque + 20 + (M. Negra/4) x 5 + INT/3.
+5033
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_relâmpago_contra_1_oponente selecionado.
+CC9900FF (+50% de dano se estiver chovendo)
+CC9900FF 
+CC9900FF Dano: 65 + (M. Negra/4) x 5 + INT/3. 
+5034
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_gelo_no_alvo_escolhido. Congela caso 
+CC9900FF o_ataque_tenha sucesso (movimento -1).
+CC9900FF (+20% de dano se estiver nevando)
+CC9900FF Velocidade de Ataque do alvo: -10% a -50%.
+CC9900FF Dano: Ataque + 95 + (M. Negra/4) x 5 + INT/4.
+5035
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_fogo_na_área_de_5m_x_5m_ao redor
+CC9900FF do_alvo (-10% de dano se estiver chovendo).
+CC9900FF 
+CC9900FF Dano: Ataque + 55 + (M. Negra/4) x 5 + INT/3.
+5036
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_gelo_no_alvo_escolhido. Congela caso
+CC9900FF o_ataque_tenha sucesso (movimento -1). (Dano +20%
+CC9900FF na neve). Vel. de Ataque do alvo: -10% a -50%.
+CC9900FF Dano: Ataque + 200 + (M. Negra/4) x 5 + INT/4.
+5037
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Durante_o_tempo_determinado_ataca os_inimigos
+CC9900FF ao_seu_redor_a_cada 8_segundos. 
+CC9900FF (+50% de dano se estiver chovendo)
+CC9900FF Dano: 65 + (M. Negra/4) x 5 + INT/3.
+5038
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_fogo_contra_1_oponente selecionado. 
+CC9900FF (-10% de dano se estiver chovendo)
+CC9900FF 
+CC9900FF Dano: Ataque + 350 + (M. Negra/4) x 5 + INT/3.
+5040
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_venenoso_contra_1_alvo.
+CC9900FF 
+CC9900FF Dano: Ataque + 20 + (M. Especial/4) x 5 + INT/3.
+CC9900FF Dano extra: 10% do HP do alvo durante 8 seg.
+5041
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_seu movimento em_+1.
+CC9900FF 
+CC9900FF Efeito adicional: +5% de evasão.
+CC9900FF 
+5042
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Possibilita_ir_ou_trazer_membro_do grupo 
+CC9900FF ou_guilda.
+CC9900FF 
+CC9900FF Alvo possível: Seu lvl + 50 + Magia Especial.
+5043
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_a_defesa_do_alvo_durante_um_certo  
+CC9900FF período de tempo. Pode ser usada em si mesmo.
+CC9900FF Aumento de defesa (em si): 15 + (M. Especial/3).
+CC9900FF Aumento de defesa (outros): 15 + (M. Especial/10).
+5044
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_ataque_físico_de_si_mesmo_e dos membros
+CC9900FF do_grupo_que_estiverem_ao redor_(3m_x_3m).
+CC9900FF Em si: (Ataque/4) + [15 + (M. Especial/3)] x 5. 
+CC9900FF Em outros: (Ataque/20) + 15 + (M. Especial/3). 
+5045
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_todas_as_aprendizagens_do_alvo durante
+CC9900FF certo_período_de_tempo.
+CC9900FF 
+CC9900FF Aumento de Aprendizagens: 7 + (M. Especial/10).
+5046
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transforma_certo_volume_do_MP_em_HP durante
+CC9900FF um_período_de_tempo.
+CC9900FF 
+CC9900FF Bônus de HP: MP/4 + level + M. Especial.
+5048
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_fogo_no_oponente selecionado.
+CC9900FF (-10% de dano se estiver chovendo)
+CC9900FF 
+CC9900FF Dano: Ataque + 25 + (Elemental/4) x 5 + INT/3.
+5049
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Com_uma_certa_probabilidade, transforma_o
+CC9900FF monstro alvo_em_membro do_seu_grupo.
+CC9900FF Se o seu lvl for maior que o lvl do monstro
+CC9900FF há maior probabilidade de sucesso.
+5050
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_magia_no_inimigo selecionado.
+CC9900FF 
+CC9900FF Dano: Ataque + 115 + (Elemental/4) x 5 + INT/3.
+CC9900FF 
+5051
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Diminui_o_ataque_dos inimigos_numa_área de
+CC9900FF 3m_x_3m_do alvo_durante_um_certo_tempo.
+CC9900FF 
+CC9900FF Redução de dano: 10 + (Elemental/5).
+5052
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_de_magia_no_inimigo selecionado.
+CC9900FF 
+CC9900FF Dano: Ataque + 220 + (Elemental/4) x 5 + INT/3.
+CC9900FF 
+5053
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_sua defesa durante_certo_tempo.
+CC9900FF 
+CC9900FF Bônus de defesa: 10 + (Elemental/4).
+CC9900FF 
+5054
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_mágico_de_8_em 8 segundos_em todos os
+CC9900FF inimigos_que_estiverem_numa área_de_3m_x_3m.
+CC9900FF 
+CC9900FF Dano: Ataque + 160 + (Elemental/4) x 5 + INT/3.
+5056
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Evoca um Condor. 
+CC9900FF Ataque: 35 + INT + Evocação x 3.
+CC9900FF Defesa: 15 + INT/2 + (Evocação/4) x 3.
+CC9900FF HP: 60 + INT + Evocação x 4.
+5057
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Evoca um Javali Selvagem.
+CC9900FF Ataque: 35 + INT + (Evocação/2) x 5.
+CC9900FF Defesa: 20 + INT/2 + (Evocação/2) x 3.
+CC9900FF HP: 100 + (INT/4) x 5 + Evocação x 4.
+5058
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Evoca um Lobo.
+CC9900FF Ataque: 70 + INT + Evocação x 4.
+CC9900FF Defesa: 40 + INT/2 + (Evocação/4) x 5.
+CC9900FF HP: 80 + (INT/4) x 5 + Evocação x 4.
+5059
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Evoca um Urso Selvagem.
+CC9900FF Ataque: 70 + INT + (Evocação/2) x 7.
+CC9900FF Defesa: 60 + INT/2 + Evocação x 2.
+CC9900FF HP: 150 + (INT/2) x 3 + Evocação x 4.
+5060
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Evoca um Grande Tigre.
+CC9900FF Ataque: 75 + INT + Evocação x 5.
+CC9900FF Defesa: 50 + INT/2 + (Evocação/4) x 7.
+CC9900FF HP: 100 + (INT/2) x 3 + Evocação x 4.
+5061
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Evoca um Gorila Gigante.
+CC9900FF Ataque: 50 + INT + Evocação x 4.
+CC9900FF Defesa: 40 + INT/2 + (Evocação/2) x 5.
+CC9900FF HP: 200 + (INT/4) x 7 + Evocação x 4.
+5062
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Evoca um Dragão Negro.
+CC9900FF Ataque: 100 + INT + Evocação x 5.
+CC9900FF Defesa: 80 + INT/2 + (Evocação/2) x 5.
+CC9900FF HP: 350 + (INT/4) x 7 + Evocação x 4.
+5064
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transforme-se_em_Lobisomem.
+CC9900FF Ataque: 110% + (Natureza/10)%. Movimento + 1.
+CC9900FF Defesa: 95% + (Natureza/20)%. 
+CC9900FF HP: 95% + (Natureza/20)%. Vel de Ataque + 10%.
+5065
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Bônus quando_transformado_em lobisomem.
+CC9900FF 
+CC9900FF Ataque: +10%.
+CC9900FF Resistências: +15% contra todos os elementos.
+5066
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transforme-se_em_Homem_Urso.
+CC9900FF Ataque: 95% + (Natureza/20)%. 
+CC9900FF Defesa: 105% + (Natureza/20)%.
+CC9900FF HP: 120% + (Natureza/10)%.
+5067
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Bônus quando_transformado_em Homem_Urso.
+CC9900FF 
+CC9900FF Ataque: +10%.
+CC9900FF Resistências: +50% contra todos os elementos.
+5068
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transforme-se em Corvo Infernal. 
+CC9900FF Ataque à distância: 110% + (Natureza/20)%.
+CC9900FF Defesa: 95% + (Natureza/20)%. Movimento + 1. 
+CC9900FF HP: 100% + (Natureza/10)%. Vel de Ataque + 20%.
+5069
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Bônus quando_transformado_em Corvo_Infernal.
+CC9900FF Ataque: +10%.
+CC9900FF Resistências: +15% contra todos os elementos.
+CC9900FF Velocidade do ataque: +20%.
+5070
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transforme-se_em_Titã.
+CC9900FF Ataque: 115% + (Natureza/20)%.    
+CC9900FF Defesa: 115% + (Natureza/20)%. Resist + 50%.
+CC9900FF HP: 105% + (Natureza/20)%. Vel de Ataque + 20%.
+5072
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_no_inimigo_selecionado.
+CC9900FF 
+CC9900FF Dano: Ataque + 15 + (Sobrevivência/4) x 5 + FOR/4.
+CC9900FF 
+5073
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF 
+CC9900FF Cria_uma_cópia_de_si_para_confundir o_inimigo e
+CC9900FF move-se_com_agilidade para_o_local_selecionado.
+CC9900FF 
+5074
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Atribui_poder_de_congelamento_nas suas_armas,
+CC9900FF ataques_podem_causar lentidão_nos_inimigos.
+CC9900FF Movimento do alvo: -1.
+CC9900FF Velocidade de Ataque: -10% a -50%.  
+5075
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Esconde-se nas sombras, escapando de ataques
+CC9900FF inimigos e regenerando suas forças.
+CC9900FF 
+CC9900FF Taxa de regeneração: 110% + (Sobrevivência/10)%.
+5076
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Campo_de_energia_que_defende_contra 
+CC9900FF congelamento,_veneno,_lentidão_e 
+CC9900FF ataques físicos_durante_certo_tempo.
+CC9900FF Efeito adicional: Evasão +5%.
+5077
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transfere_uma_parte_da_sua_defesa para
+CC9900FF ataque_durante_certo_tempo.
+CC9900FF Aumento de dano: 10% + (Sobrevivência/10)%.
+CC9900FF Redução da defesa: 10 + (Sobrevivência/3).
+5078
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Habilidade de perfurar o inimigo, atingindo
+CC9900FF também criaturas que estejam diretamente atrás
+CC9900FF do alvo, até_uma distância_de_1m.
+5080
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_no_inimigo_selecionado.
+CC9900FF 
+CC9900FF Dano: Ataque + 15 + (Troca/4) x 5 + FOR/4.
+5081
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Vende_itens_na_loja_com_preço 6% superior
+CC9900FF ao_preço_padrão.
+CC9900FF 
+CC9900FF Preço de Venda: 106% + (Troca/10)%.
+5082
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_o poder_de ataque_das_armas_tipo
+CC9900FF Arco_e_Garra.
+CC9900FF 
+CC9900FF Aumento de Dano: 10 + (Troca/5).
+5083
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Compra_items_na_loja_com_preço pelo menos
+CC9900FF 6%_abaixo do preço_padrão.
+CC9900FF 
+CC9900FF Taxa de Desconto: 6% + (Troca/10)%. 
+5084
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Possibilita_transformar_os_items_do inventário
+CC9900FF em_Gold, pelo mesmo_preço padrão de venda nas
+CC9900FF lojas.
+5085
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Possibilita_abrir_e_guardar_items_no 
+CC9900FF banco,_onde quer que você esteja.
+FFFFFFFF 
+5086
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Gasta_o_seu_Gold_em_troca_de_maior defesa.
+CC9900FF 
+CC9900FF Aumento de Defesa: Troca/10.
+CC9900FF Consumo de Gold: Troca x 100.
+5088
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Ataque_no_inimigo_selecionado.
+CC9900FF 
+CC9900FF Dano: Ataque + 12 + (Captura/4) x 5 + FOR/4.
+5089
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_a_capacidade_de_evasão durante
+CC9900FF certo_tempo.
+CC9900FF 
+CC9900FF Aumento de Evasão: 10%.
+5090
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Transforma_uma_parte_do_HP_do_inimigo 
+CC9900FF em_seu_HP_quando_o_derrotar. 
+CC9900FF 
+CC9900FF Absorção de HP: (HP do monstro)/50 + Captura.
+5091
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF 
+CC9900FF Aumenta_a_porcentagem_de_drop_dos monstros.
+CC9900FF 
+CC9900FF Aumento de Drop: 10% + (Captura/10)%.
+5092
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Aumenta_em +1_a_distância_de_alcance 
+CC9900FF das_armas_com_alcance_1.
+CC9900FF 
+5093
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Dano adiconal_aos seus ataques. 
+CC9900FF 
+CC9900FF Dano adicional: (FOR + Captura)/2. 
+CC9900FF Probabilidade de acerto: 10% + (Captura/10)%.
+5094
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Joga_várias_facas_para_frente, atingindo
+CC9900FF múltiplos inimigos ao mesmo tempo.
+CC9900FF Alcance: de 2m a 4m.
+CC9900FF Dano: Ataque + 35 + (Captura/4) x 5 + FOR.
+5097
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Possibilita_usar_o_Canhão_Guardião_do 
+CC9900FF castelo_de_Noatun._Somente_possível 
+CC9900FF de_usar_na_guerra_de_castelos.
+CC9900FF 
+5098
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Convoca_plantas_com_espinhos._Estas 
+CC9900FF podem_ser_eliminadas_com_ataques, 
+CC9900FF ou_desaparecem_após_certo_tempo.
+CC9900FF 
+5099
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Skill_que_possibilita_a_ressucitação 
+CC9900FF no_local_onde_morreu.
+CC9900FF 
+5100
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Com_a_força_de_justiça_e_controle
+CC9900FF faz_com_que_outros_não_possam 
+CC9900FF recuperar_MP+HP_durante_certo_tempo.
+5101
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+CC9900FF Adiciona_+1_de_alcance 
+CC9900FF em_todas_armas_e_Skills.
+FFFFFFFF 
+5102
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+cc9900ff Dependendo_da_oitava_skill_aprendida,_durante_o_tempo
+cc9900ff exibido,_seus_stats_receberão_ótimos_bônus.
+FFFFFFFF 
+5134
+FFFFFFFF Item_que_permite_a_entrada_na_zona_de_Quest.
+FFFFFFFF Ao_clicar_no_"Uxmal"_dentro_do_inventário,
+FFFFFFFF Será_possível_registrar_a_entrada_para
+FFFFFFFF a_zona_de_quest.
+FFFFFFFF É_necessário_1_unidade_para_cada_grupo_e 
+FFFFFFFF será_consumido_cada_vez_que_for_feito_o
+FFFFFFFF registro_para_a_entrada_na_quest.
+FFFFFFFF 
+FFFFFFFF 
+5136
+FFFFFFFF Será_possível_refinar_os_mantos_do_tipo
+FFFFFFFF mestre_referentes_à_mudança_de_classe
+FFFFFFFF com_o_poder_da_força_mágica.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5137
+FFFFFFFF Escritura do Pesadelo - Item exclusivo para Personagem de Classe. 
+FFFFFFFF Utilizando esse será possível adentrar a zona de pesadelo 
+FFFFFFFF e permanecer por aproximadamente 4 horas.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 - Terá de esperar 20 horas para usar o item novamente
+FFFFFFFF 
+5334
+FFFFFFFF A_pedra_gerada_através_da_combinação_das 
+FFFFFFFF palavras_puras_das_escrituras_runicas.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5335
+FFFFFFFF Pedra criada pela composição
+FFFFFFFF de runas sob o nome verdadeiro.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5336
+FFFFFFFF Pedra criada pela composição
+FFFFFFFF de runas sob o nome verdadeiro.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5337
+FFFFFFFF Pedra criada pela composição
+FFFFFFFF de runas sob o nome verdadeiro.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+5338
+FFFFFFFF Item_utilizado_para_gerar_um_ser
+FFFFFFFF com_poderes_além_do_sonho_humano
+FFFFFFFF Quando_um_Arch_com_todos_os_requisitos
+FFFFFFFF para_sofrer_a_mudança_de_classe_guardar
+FFFFFFFF esse_item_no_inventário_e_utiliza-lo
+FFFFFFFF ele_renascerá_banhado_na_força_infinita
+FFFFFFFF dos_deuses
+FFFF0000 Utilizar_com_o_botão_direito_do_mouse
+FFFFFFFF 
+3022
+FFFF00FF [Alquimia]
+FFFFFFFF 
+FFFFFFFF Lactolerium que nunca falha:
+FFFFFFFF toda refinação com Lac tem sucesso
+FFFFFFFF (até +9, de +10 para +11 e
+FFFFFFFF brincos, que nunca quebram)
+FFFFFFFF 
+FFFFFFFF 
+FFFF0000 > Arraste sobre o item equipado

@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Basedef.h"
 
 // Client global tables and their loaders. BASE_* queries live in the domain
@@ -261,7 +261,7 @@ int BASE_ReadMessageBin()
 {
 	// The 7.48 strdef contains fewer rows than TMProject but keeps 128-byte indices.
 	return WYD748_LoadMessageStrings(
-		Strdef_Path,
+		WYD748_TextPath(Strdef_Path).c_str(),
 		&g_pMessageStringTable[0][0],
 		_countof(g_pMessageStringTable),
 		_countof(g_pMessageStringTable[0]));
@@ -271,9 +271,9 @@ int BASE_ReadMessageBin()
  * Missing or malformed assets leave the corresponding table untouched. */
 void BASE_InitEffectString()
 {
-    WYD748_LoadEffectStrings(EffectString_Path, &g_pAffectTable[0][0],
+    WYD748_LoadEffectStrings(WYD748_TextPath(EffectString_Path).c_str(), &g_pAffectTable[0][0],
         MAX_EFFECT_STRING_TABLE, sizeof(g_pAffectTable[0]), 1);
-    WYD748_LoadEffectStrings(EffectSubString_Path, &g_pAffectSubTable[0][0],
+    WYD748_LoadEffectStrings(WYD748_TextPath(EffectSubString_Path).c_str(), &g_pAffectSubTable[0][0],
         MAX_SUB_EFFECT_STRING_TABLE, sizeof(g_pAffectSubTable[0]), 0);
 
     /* There's a loading of the GuildString.txt file, but is not used */
@@ -333,11 +333,18 @@ void ReadItemName()
     WYD748_LoadItemNames(ItemName_Path, &g_pItemList[0].Name[0],
         _countof(g_pItemList), sizeof(g_pItemList[0]),
         sizeof(g_pItemList[0].Name));
+    const auto catalog = WYD748_TextPath("ItemList.bin");
+    const auto names = WYD748_TextPath(ItemName_Path);
+    if (catalog != "ItemList.bin" &&
+        !WYD748_LoadLocalizedItemListNames(catalog.c_str(), "ItemList.bin",
+            &g_pItemList[0].Name[0], _countof(g_pItemList), sizeof(g_pItemList[0]),
+            names != ItemName_Path ? names.c_str() : nullptr))
+        return; // An outdated locale must not rename newly assigned item IDs.
 }
 
 bool ReadUIString()
 {
-	return WYD748_LoadUIStrings(UIString_Path, &g_UIString[0][0],
+	return WYD748_LoadUIStrings(WYD748_TextPath(UIString_Path).c_str(), &g_UIString[0][0],
 		_countof(g_UIString), sizeof(g_UIString[0]));
 }
 

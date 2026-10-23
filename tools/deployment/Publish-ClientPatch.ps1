@@ -15,7 +15,7 @@ Optional SSH private key.
 #>
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory)] [ValidateRange(10001, 19999)] [int]$Version,
+    [Parameter(Mandatory)] [ValidateRange(48002, 49999)] [int]$Version,
     [Parameter(Mandatory)] [string]$SshTarget,
     [string]$IdentityFile
 )

@@ -15,8 +15,8 @@ test('Every news post parses and the order is newest first', () => {
   const posts = readdirSync(dir).filter(name => name.endsWith('.md'))
     .map(name => parseNewsPost(`../content/news/${name}`, readFileSync(new URL(name, dir), 'utf8')));
   const ordered = orderNews(posts);
-  assert.ok(ordered.length >= 35);
-  assert.equal(ordered[0].slug, 'ankh-colors-10045');
+  assert.ok(ordered.length >= 2);
+  assert.equal(ordered[0].slug, 'client-7-48-001');
   for (let i = 1; i < ordered.length; i++) assert.ok(ordered[i - 1].date >= ordered[i].date, `${ordered[i].slug} is out of date order`);
 });
 

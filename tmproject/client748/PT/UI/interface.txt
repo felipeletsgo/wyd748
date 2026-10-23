@@ -1,0 +1,62 @@
+FFFFFF Atalhos do teclado
+FFFFAA Modo do teclado (KEYTYPE)
+AAFFAA Modo 0: use as teclas listadas abaixo.
+AAFFAA Modo 1: adicione Ctrl às letras e aos números.
+AAFFAA Modo 1: atribua skills com Ctrl+Shift+1-0.
+AAFFAA Modo 1: use Alt com +, -, ] e apóstrofo.
+AAFFAA Ctrl com pontuação também funciona no modo 1.
+AAFFAA F11, Tab, PageUp/Down e cliques em itens permanecem iguais.
+FFFFAA 1-0 / Shift+1-0
+AAFFAA Selecione uma skill / atribua a skill sob o cursor.
+AAFFAA Abra Skills antes de atribuir uma skill sob o cursor.
+AAFFAA Use a fileira numérica, não F1-F10.
+FFFFAA Z
+AAFFAA Alterne entre as duas barras de atalhos de skills.
+FFFFAA Q / W / E
+AAFFAA Use uma poção de vida / mana / Kapa.
+FFFFAA V / F11
+AAFFAA Alimente a montaria / use um Pergaminho de Retorno.
+FFFFAA F
+AAFFAA Use um consumível de medalha compatível.
+AAFFAA Requer a medalha correspondente equipada.
+FFFFAA T / -
+AAFFAA Ative o Auto Ataque / ajuste o uso de combos de skills.
+FFFFAA ]
+AAFFAA Ative a Corrida Automática na direção da câmera.
+AAFFAA Gire a câmera para mudar a direção; pressione de novo para parar.
+AAFFAA Indisponível em mapas restritos ou sem poder se mover.
+FFFFAA R
+AAFFAA Alterne entre correr e andar com a montaria.
+FFFFAA K
+AAFFAA Alterne o modo PK, conforme as restrições do servidor.
+FFFFAA Apóstrofo (')
+AAFFAA Exiba ou oculte a afiliação pública à guilda.
+AAFFAA Isso não sai da guilda nem altera o modo PK.
+FFFFAA C / I ou G / S
+AAFFAA Abra Personagem / Inventário / Skills.
+FFFFAA P / M / X / H
+AAFFAA Abra Grupo / Minimapa / Quests / Ajuda.
+FFFFAA A / D (modo 0)
+AAFFAA Selecione o modo C.C. 1 / modo 2.
+FFFFAA N / Tab
+AAFFAA Exiba os nomes dos personagens / mude a câmera.
+FFFFAA Enter / +
+AAFFAA Abra o chat / redimensione a janela do chat.
+FFFFAA PageUp / PageDown
+AAFFAA Role a lista visível de mensagens ou do chat.
+FFFFAA Seta para cima / Seta para baixo
+AAFFAA Percorra as mensagens digitadas anteriormente.
+FFFFAA Ctrl / Print Screen
+AAFFAA Exiba nomes dos itens no chão / salve uma captura de tela.
+FFFFAA Ctrl+clique direito em um item
+AAFFAA Equipe do inventário ou desequipe para o inventário.
+AAFFAA Requer espaço e os requisitos válidos do equipamento.
+FFFFAA Shift+clique direito em um item
+AAFFAA Transfira entre o inventário e o armazém aberto.
+AAFFAA Usa o primeiro espaço livre no destino.
+FFFFAA Ctrl+clique esquerdo em um item
+AAFFAA Atalho alternativo para transferências do armazém.
+FFFFAA Shift+clique esquerdo em uma pilha
+AAFFAA Abra a janela para dividir a pilha.
+AAFFAA Ctrl tem prioridade quando Ctrl e Shift estão pressionados.
+AAFFAA Transferências e trocas de equipamento exigem aprovação do servidor.

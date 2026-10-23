@@ -1,0 +1,10 @@
+FFFFFF Abrir Personagem
+FFFFFF Abrir Inventário
+FFFFFF Abrir Skills
+FFFFFF Abrir Grupo
+FFFFFF Abrir Minimapa
+FFFFFF Alternar entre correr e andar com a montaria
+FFFFFF Ativar/desativar o modo PK
+FFFFFF Ativar/desativar o Auto Ataque
+FFFFFF Exibir/ocultar nomes dos personagens
+FFFFFF Mudar a câmera

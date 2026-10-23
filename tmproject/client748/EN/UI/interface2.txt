@@ -1,0 +1,10 @@
+FFFFFF Open Character Screen
+FFFFFF Open Inventory
+FFFFFF Open Skill
+FFFFFF Open Party Screen
+FFFFFF Open Minimap
+FFFFFF Toggle Mount Run/Walk
+FFFFFF PK Mode ON/OFF
+FFFFFF Toggle Auto Attack ON/OFF
+FFFFFF Toggle Character Name ON/OFF
+FFFFFF Change Camera

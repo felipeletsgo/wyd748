@@ -48,7 +48,7 @@ int RunClientConfigAssetTests(int& checks)
         return failures;
     const auto file = path.string();
 
-    short version = 0;
+    int version = 0;
     short values[14]{};
     values[13] = 1; // caller default for CAMERAVIEW
     check(WriteFixture(path, kLauncherConfig) &&
@@ -71,6 +71,24 @@ int RunClientConfigAssetTests(int& checks)
     check(WriteFixture(path, std::string(kLauncherConfig) + "[WINDOW] 0\r\n") &&
         !WYD748_LoadClientConfig(file.c_str(), &version, values, 14),
         "duplicate keys still reject the file");
+
+    // Release line 7.48 writes [VERSION] 48001, above the short range. It must
+    // not reject the file and silently fall back to full-screen defaults.
+    std::string releaseLine = kLauncherConfig;
+    releaseLine.replace(releaseLine.find("10000"), 5, "48001");
+    check(WriteFixture(path, releaseLine) &&
+        WYD748_LoadClientConfig(file.c_str(), &version, values, 14) &&
+        version == 48001 && values[0] == 2 && values[8] == 1,
+        "7.48.001 version keeps the window and resolution settings");
+    releaseLine.replace(releaseLine.find("48001"), 5, "0");
+    check(WriteFixture(path, releaseLine) &&
+        !WYD748_LoadClientConfig(file.c_str(), &version, values, 14),
+        "a zero VERSION is rejected like the native launcher");
+    std::string wideValue = kLauncherConfig;
+    wideValue.replace(wideValue.find("[RES] 2"), 7, "[RES] 40000");
+    check(WriteFixture(path, wideValue) &&
+        !WYD748_LoadClientConfig(file.c_str(), &version, values, 14),
+        "non-version keys keep the short range");
 
     std::error_code ignored;
     std::filesystem::remove(path, ignored);

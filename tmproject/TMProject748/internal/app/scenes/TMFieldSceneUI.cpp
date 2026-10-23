@@ -1989,12 +1989,14 @@ void TMFieldScene::UpdateScoreButtonRepeat(unsigned int dwServerTime)
 
 int TMFieldScene::LoadMsgText(SListBox* pListBox, char* szFileName)
 {
+	if (!pListBox)
+		return 0;
+
 	FILE* fp = nullptr;
-	fopen_s(&fp, szFileName, "rt");
+	const auto textPath = WYD748_TextPath(szFileName);
+	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
-		return 0;
-	if (!pListBox)
 		return 0;
 
 	char szCol[7]{};

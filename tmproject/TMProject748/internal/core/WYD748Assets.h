@@ -2,6 +2,17 @@
 
 #include <cstddef>
 #include <cstdio>
+#include <string>
+
+// Resolves only approved text resources. Missing PT text falls back to EN,
+// then the shared legacy resource. Language is fixed for this game process.
+std::string WYD748_TextPath(const char* path);
+void WYD748_LocalizeCaption(const char* scene, int type, int id, int parent, int texture,
+    char* destination, std::size_t capacity);
+
+// Copies names only after every non-name byte matches the shared catalog.
+bool WYD748_LoadLocalizedItemListNames(const char* path, const char* canonicalPath,
+    char* destination, std::size_t count, std::size_t stride, const char* itemNamesPath = nullptr);
 
 struct stTextureListInfo;
 struct STRUCT_SPELL;
@@ -119,9 +130,10 @@ bool WYD748_LoadServerNameList(
 
 // Loads the bracketed text configuration shipped with the 7.48 client into
 // TMProject's 14-value runtime contract without changing config.txt on disk.
+// VERSION is the launcher's int patch counter (7.48.001 is 48001), not a short.
 bool WYD748_LoadClientConfig(
     const char* path,
-    short* version,
+    int* version,
     short* values,
     std::size_t valueCount);
 

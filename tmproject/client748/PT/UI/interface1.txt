@@ -1,0 +1,10 @@
+FFFFFF Selecionar skill: 1-0 (não F1-F10)
+FFFFFF Atribuir skill sob o cursor: Shift+1-0
+FFFFFF Ajustar o uso de skills no Auto Ataque
+FFFFFF Usar uma poção de vida
+FFFFFF Usar uma poção de mana
+FFFFFF Usar uma poção de Kapa
+FFFFFF Alimentar a montaria
+FFFFFF Usar um Pergaminho de Retorno
+FFFFFF Exibir nomes dos itens no chão
+FFFFFF Salvar uma captura de tela na pasta do cliente

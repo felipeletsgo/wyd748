@@ -15,7 +15,7 @@ $runtime = Join-Path $PSScriptRoot '../../tmproject/client748'
 $operands = @{ 1=2; 2=3; 3=3; 4=4; 5=3; 7=2; 8=3; 10=3; 11=3; 16=2; 20=3; 21=3; 23=3 }
 $generated = @()
 for ($variant = 1; $variant -le 4; ++$variant) {
-    $inputPath = Join-Path $runtime "shader$variant.bin"
+    $inputPath = Join-Path $PSScriptRoot "inputs/skin-shaders/shader$variant.bin"
     $bytes = [IO.File]::ReadAllBytes($inputPath)
     if ($bytes.Length % 4) { throw "Unaligned shader: $inputPath" }
     $words = [uint32[]]::new($bytes.Length / 4)

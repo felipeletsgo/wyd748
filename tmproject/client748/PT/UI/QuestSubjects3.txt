@@ -1,0 +1,5 @@
+351 FFFFFF LV 355 [Os 4 cristais] Quest
+351 FFFFFF LV 355 [Primeiro: Água] Quest
+351 FFFFFF LV 355 [Segundo: Vento] Quest
+351 FFFFFF LV 355 [Terceiro: Fogo] Quest
+351 FFFFFF LV 355 [Quarto: Terra]  Quest

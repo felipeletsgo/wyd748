@@ -1,6 +1,32 @@
 # Login and character-selection dispatch
 
-## Client build admission — contract v1, 2026-10-22
+## Client build admission — contract v2, release line 7.48, 2026-10-23
+
+Classification: `EXTENSAO_COORDENADA`. The owner reset the client version for a
+new full client (the multilingual client). Contract v2 keeps the v1 envelope,
+gate placement, rejection message and socket lifecycle below unchanged and
+replaces only the identity at byte 44:
+
+- upper 16 bits: release line `748` (`0x02EC`), equal to the protocol word;
+- lower 16 bits: the line's revision, shown to players as three digits.
+
+The compiled client sends `0x02EC0001`, which is **7.48.001**, and the server
+requires prefix `0x02EC` with revision >= 1. The launcher counter in
+`config.txt` is `[VERSION] 48001`, displayed by the launcher as 7.48.001
+([launcher](client/launcher.md#release-line-748)); revision N pairs with
+`[VERSION] 48000 + N`. Every retired v1 identity (`0x5747xxxx`, last published
+revision 3 with patch 10045) fails the prefix check and receives the update
+message, so the reset admits no older executable: it is a new lineage, not a
+lowered gate. Tests reject `0x57470001`, `0x57470003`, `0x5747FFFF` and the
+neighbouring lines `0x02EB`/`0x02ED`, cover all 65,536 revisions of the line and
+cross-check both constants files.
+
+From 7.48.001 on, each mandatory client patch raises `Revision` and
+`MinimumClientBuildRevision` together by one (7.48.002 = revision 2 =
+`[VERSION] 48002`). Do not reuse the `0x5747` prefix. Release ordering is
+unchanged: distribute the new full client first, then activate the server gate.
+
+## Client build admission — contract v1 (retired), 2026-10-22
 
 Classification: `EXTENSAO_COORDENADA`, not native build-version parity.
 The native login boundary is reused from
@@ -44,9 +70,9 @@ It is not cryptographic attestation: a modified client can forge the claim,
 and the existing asset-integrity probes remain separate. No hot update or
 automatic download is attempted inside the game.
 
-For each future mandatory client update, increment `Revision` in the client
-and `MinimumClientBuildRevision` in the server together, preserving the prefix
-and protocol; do not reset or wrap revisions. Revision 3 (patch 10045)
+Retired by contract v2 above. Under v1, each mandatory client update
+incremented `Revision` and `MinimumClientBuildRevision` together, preserving
+the prefix and protocol, without resetting or wrapping. Revision 3 (patch 10045)
 covers the inventory ankh stage-state fix. Revision 2 (patch 10044)
 covers the ankh inventory tint, Growth auto-buff and CON-free camera zoom.
 Revision 1 covers the local

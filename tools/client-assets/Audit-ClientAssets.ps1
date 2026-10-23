@@ -46,7 +46,8 @@ $references = [Collections.Generic.List[object]]::new()
 $declaredUnavailable = [Collections.Generic.List[object]]::new()
 
 $costumeManifestName = 'Costumes-KR.json'
-$costumeManifestPath = Join-Path $assetRoot $costumeManifestName
+$manifestRoot = Join-Path $PSScriptRoot 'inputs'
+$costumeManifestPath = Join-Path $manifestRoot $costumeManifestName
 if (-not (Test-Path -LiteralPath $costumeManifestPath -PathType Leaf)) {
     throw "Manifest missing: $costumeManifestName"
 }
@@ -65,7 +66,7 @@ foreach ($item in @($costumeManifest.items)) {
 }
 
 $mountManifestName = 'Mounts-KR.json'
-$mountManifestPath = Join-Path $assetRoot $mountManifestName
+$mountManifestPath = Join-Path $manifestRoot $mountManifestName
 if (-not (Test-Path -LiteralPath $mountManifestPath -PathType Leaf)) {
     throw "Manifest missing: $mountManifestName"
 }

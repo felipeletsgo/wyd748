@@ -1,0 +1,100 @@
+AAFFAA Hell Gate Store
+AAFFAA Buy weapons, armor and amulets.
+AAFFAA Choose a category to purchase.
+AAFFAA Purchase rules:
+AAFFAA The item is selected at random.
+AAFFAA Its bonus options are random.
+AAFFAA Leave enough free inventory space
+AAFFAA before making a purchase.
+AAFFAA There is no purchase-count limit.
+AAFFAA Purchased items have no refinement
+AAFFAA level applied.
+AAFFAA The server validates each purchase.
+AAFFAA
+AAFFAA
+AAFFAA
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+AAFFAA
+AAFFAA [Weapons]
+AAFFAA Random tier 9-10 base weapons.
+AAFFAA The selection includes Gram and
+AAFFAA Vorpal Sword variants.
+AAFFAA You cannot choose a specific item.
+AAFFAA The item and options are random.
+AAFFAA Ancient weapons are not included.
+AAFFAA Leave enough free inventory space
+AAFFAA for the selected weapon.
+AAFFAA
+AAFFAA Price: 9,000,000 gold.
+AAFFAA
+AAFFAA
+AAFFAA
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+AAFFAA
+AAFFAA [Armor]
+AAFFAA Random tier 7-8 base armor.
+AAFFAA The selection includes Dwarven
+AAFFAA Plate Armor variants.
+AAFFAA You cannot choose a specific item.
+AAFFAA The item and options are random.
+AAFFAA
+AAFFAA Leave enough free inventory space
+AAFFAA for the selected armor.
+AAFFAA
+AAFFAA Price: 6,000,000 gold.
+AAFFAA
+AAFFAA
+AAFFAA
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+AAFFAA
+AAFFAA [Amulets]
+AAFFAA Random tier 1-3 amulets.
+AAFFAA Silver, Gold and Mystic variants.
+AAFFAA You cannot choose a specific item.
+AAFFAA The item and options are random.
+AAFFAA No refinement level is applied.
+AAFFAA
+AAFFAA Leave enough free inventory space
+AAFFAA for the selected amulet.
+AAFFAA
+AAFFAA Price: 5,000,000 gold.
+AAFFAA
+AAFFAA
+AAFFAA
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+AAFFAA
+AAFFAA [Random]
+AAFFAA Random weapon, armor or amulet.
+AAFFAA The purchased item receives random
+AAFFAA bonus options.
+AAFFAA You cannot choose a specific item
+AAFFAA or category for this purchase.
+AAFFAA No refinement level is applied.
+AAFFAA Leave enough free inventory space
+AAFFAA for the selected item.
+AAFFAA
+AAFFAA Price: 7,000,000 gold.
+AAFFAA
+AAFFAA
+AAFFAA
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF
+FFFFFF

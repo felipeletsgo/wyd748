@@ -787,6 +787,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 		}
 		return uint32(result)
 	}
+	fixedMortalSoul := false
 	for i := range ch.Affects {
 		a := &ch.Affects[i]
 		if a.Type == 0 || !a.ExpiresAt.After(now) {
@@ -903,10 +904,10 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resist, 0, 100))
 		case 26:
 			e.Evasion = add(e.Evasion, int64(a.Level+a.Value*10))
-		case 29: // Celestial/SubCelestial Soul Limit.
-			// WYD 7.48 calculates percentages from raw bStatus, not equipment or
-			// another buff's result. SoulInfo is shared between both forms;
-			// the affect itself belongs to each form.
+		case 29: // Soul Limit; the learned bit selects the Mortal branch.
+			// The existing Celestial branch calculates from raw bStatus.
+			// The official server's Mortal branch uses the current attributes.
+			// SoulInfo is shared between forms; affects belong to each form.
 			bonuses := [...][4]int{
 				{120, 0, 0, 0}, {0, 120, 0, 0},
 				{0, 0, 120, 0}, {0, 0, 0, 120},
@@ -915,12 +916,42 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 				{0, 40, 0, 80}, {0, 0, 40, 80},
 			}
 			config := int(ch.SoulInfo) - 1
-			if isCelestialEvolution(ch) && config >= 0 && config < len(bonuses) {
+			mortalLearned := mortalSoulCharacter(ch) && ch.LearnedSkill&celestialSoulBit != 0
+			if mortalSoulCharacter(ch) && !mortalLearned {
+				fixedMortalSoul = true
+			}
+			if mortalLearned {
+				// Official TMSRVIN sub_4BB4C0, affect 29, multiplier 1.
+				// Celestial SoulInfo mapping/formulas remain unchanged below.
+				bonuses = [10][4]int{
+					{40, 0, 0, 30}, {0, 40, 0, 30}, {0, 0, 40, 30},
+					{40, 0, 30, 0}, {0, 40, 30, 0}, {0, 0, 30, 40},
+					{60, 0, 0, 0}, {0, 60, 0, 0}, {0, 0, 0, 60}, {0, 0, 60, 0},
+				}
+				if config < 0 || config >= len(bonuses) {
+					config = 0
+				}
+			}
+			if (isCelestialEvolution(ch) || mortalLearned) && config >= 0 && config < len(bonuses) {
 				raw := ch.Score
+				if mortalLearned {
+					raw = e // The official Mortal branch includes equipped stats.
+				}
 				strAdd := int64(raw.Str/100) * int64(bonuses[config][0])
 				intAdd := int64(raw.Int/100) * int64(bonuses[config][1])
 				dexAdd := int64(raw.Dex/100) * int64(bonuses[config][2])
 				conAdd := int64(raw.Con/100) * int64(bonuses[config][3])
+				if mortalLearned {
+					strAdd = int64(raw.Str) * int64(bonuses[config][0]) / 100
+					intAdd = int64(raw.Int) * int64(bonuses[config][1]) / 100
+					dexAdd = int64(raw.Dex) * int64(bonuses[config][2]) / 100
+					conAdd = int64(raw.Con) * int64(bonuses[config][3]) / 100
+					// The official Soul branch caps each primary attribute at 60,000.
+					strAdd = int64(minU32(add(raw.Str, strAdd), 60000)) - int64(raw.Str)
+					intAdd = int64(minU32(add(raw.Int, intAdd), 60000)) - int64(raw.Int)
+					dexAdd = int64(minU32(add(raw.Dex, dexAdd), 60000)) - int64(raw.Dex)
+					conAdd = int64(minU32(add(raw.Con, conAdd), 60000)) - int64(raw.Con)
+				}
 				e.Str = add(e.Str, strAdd)
 				e.Int = add(e.Int, intAdd)
 				e.Dex = add(e.Dex, dexAdd)
@@ -964,6 +995,24 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			e.MaxHP = add(e.MaxHP, int64(mana))
 			e.MaxMP -= mana
 		}
+	}
+	if fixedMortalSoul {
+		// Apply the fixed score after the other effects so later HP modifiers
+		// cannot turn the 10,000 limit into a percentage bonus. Base state is
+		// preserved and normal recalculation restores it on expiration.
+		intDelta := int64(2000) - int64(e.Int)
+		physicalDelta := int64(2000/3) - int64(e.Str/3)
+		e.Attack = add(e.Attack, physicalDelta)
+		magicDelta := physicalDelta
+		switch ch.Class {
+		case 0:
+			magicDelta = int64(2000/4+2000/40) - int64(e.Int/4+e.Int/40)
+		case 1, 2:
+			magicDelta = int64(2000/3+2000/30) - int64(e.Int/3+e.Int/30)
+		}
+		e.MagicAttack = add(e.MagicAttack, magicDelta*(100+4*int64(e.MagicAmp))/100*5/4)
+		e.MaxMP = add(e.MaxMP, intDelta*2)
+		e.Str, e.Int, e.MaxHP = 2000, 2000, 10000
 	}
 	if e.CurHP > e.MaxHP {
 		e.CurHP = e.MaxHP

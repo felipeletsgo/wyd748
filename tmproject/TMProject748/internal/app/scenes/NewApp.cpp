@@ -167,7 +167,8 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 
 	// The distributed 7.48 client owns a named text configuration. Keep support
 	// for TMProject's Config.bin only as a fallback for upstream development.
-	if (!WYD748_LoadClientConfig("config.txt", &Config.Version, Config.Config, _countof(Config.Config)))
+	int launcherVersion = 0;
+	if (!WYD748_LoadClientConfig("config.txt", &launcherVersion, Config.Config, _countof(Config.Config)))
 	{
 		fopen_s(&fp, ConfigFile_Path, "rb");
 		if (fp)
@@ -337,7 +338,7 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 
 	memset(g_pItemHelp, 0, sizeof(g_pItemHelp));
 	char szItemHelpFile[128];
-	sprintf(szItemHelpFile, ItemHelp_Path);
+	sprintf_s(szItemHelpFile, "%s", WYD748_TextPath(ItemHelp_Path).c_str());
 
 	remove(ChangeUpdate_Path);
 
@@ -351,11 +352,13 @@ HRESULT NewApp::Initialize(HINSTANCE hInstance, int nFull)
 	}
 
 	item_help_748::Load(itemHelp, g_pItemHelp, _countof(g_pItemHelp));
-	item_help_748::LocalizeRepliction(g_pItemHelp, _countof(g_pItemHelp));
+	// Legacy English fallback only; localized resources own their descriptions.
+	if (WYD748_TextPath(ItemHelp_Path) == ItemHelp_Path)
+		item_help_748::LocalizeRepliction(g_pItemHelp, _countof(g_pItemHelp));
 	itemHelp.close();
-	// Faithful English localization of the native 7.48 skill-help corpus.
+	// Native skill-help IDs remain separate from item descriptions.
 	// Keep this separate from historical item records and their ANSI encoding.
-	std::ifstream skillHelp("skillhelp.dat");
+	std::ifstream skillHelp(WYD748_TextPath("skillhelp.dat"));
 	if (!skillHelp || item_help_748::Load(skillHelp, g_pItemHelp, _countof(g_pItemHelp)) != 102)
 	{
 		MessageBoxA(m_hWnd, "Can't load the complete native skillhelp.dat", "Error", 0);

@@ -130,7 +130,9 @@ builds, static checks, and isolated tests do not substitute for it.
   together to one more than the last published revision. Publish and verify
   the patch first, then activate the server release that requires it. Never
   lower, reuse or disable the gate
-  ([client build admission](DOCS/login-dispatch.md)).
+  ([client build admission](DOCS/login-dispatch.md)). Only an owner-requested
+  full-client reset may restart numbering, and only with a new build prefix
+  that every published identity fails (release line 7.48 began at 7.48.001).
 - Use `wyd-release` for publication/restart and SSH deployment diagnosis.
   Recover the established account/host/key from deployment configuration or
   receipts before connecting. Do not guess accounts or replace credentials,

@@ -1,0 +1,259 @@
+fieldscene.bin:12:1025:0:-1	0
+fieldscene.bin:12:1026:0:-1	0
+fieldscene.bin:12:1027:0:-1	0
+fieldscene.bin:12:1028:0:-1	0
+fieldscene.bin:12:1029:0:-1	0
+fieldscene.bin:12:1030:0:-1	0
+fieldscene.bin:12:1031:0:-1	0
+fieldscene.bin:12:1032:0:-1	0
+fieldscene.bin:12:1033:0:-1	0
+fieldscene.bin:12:1040:0:-1	0
+fieldscene.bin:12:1041:0:-1	0
+fieldscene.bin:12:1042:0:-1	0
+fieldscene.bin:12:1043:0:-1	0
+fieldscene.bin:12:1044:0:-1	0
+fieldscene.bin:12:1057:513:-1	Name
+fieldscene.bin:12:1059:513:-1	Class
+fieldscene.bin:12:1061:513:-1	0
+fieldscene.bin:12:1062:513:-1	0
+fieldscene.bin:12:1064:513:-1	0
+fieldscene.bin:12:1066:513:-1	Class
+fieldscene.bin:12:1072:513:-1	0
+fieldscene.bin:12:1075:513:-1	0
+fieldscene.bin:12:1078:513:-1	0
+fieldscene.bin:12:1081:513:-1	0
+fieldscene.bin:12:1090:513:-1	0
+fieldscene.bin:12:1092:513:-1	0
+fieldscene.bin:12:1094:513:-1	0
+fieldscene.bin:12:1096:513:-1	0
+fieldscene.bin:12:1104:513:-1	0
+fieldscene.bin:12:1106:513:-1	0
+fieldscene.bin:12:1108:513:-1	0
+fieldscene.bin:12:1110:513:-1	0
+fieldscene.bin:12:1112:513:-1	0
+fieldscene.bin:12:1120:513:-1	0
+fieldscene.bin:12:1121:513:-1	0
+fieldscene.bin:12:1122:513:-1	0
+fieldscene.bin:12:1123:513:-1	0
+fieldscene.bin:12:1138:513:-1	0
+fieldscene.bin:12:1141:513:-1	0
+fieldscene.bin:12:1144:513:-1	0
+fieldscene.bin:12:1153:513:-1	0
+fieldscene.bin:12:1156:513:-1	0
+fieldscene.bin:12:12290:12288:-1	Channel Select
+fieldscene.bin:12:12549:12544:-1	[123,456] Teleport Location
+fieldscene.bin:12:12550:12544:-1	[Area Name]
+fieldscene.bin:12:12551:12544:-1	Area Location
+fieldscene.bin:12:12552:12544:-1	Teleport Coordinate
+fieldscene.bin:12:1328:0:-2	 1234
+fieldscene.bin:12:1329:0:-2	 1234
+fieldscene.bin:12:1330:0:-2	 1234
+fieldscene.bin:12:1331:0:-2	 1234
+fieldscene.bin:12:1332:0:-2	 1234
+fieldscene.bin:12:1333:0:-2	 1234
+fieldscene.bin:12:1334:0:-2	 1234
+fieldscene.bin:12:1335:0:-2	 1234
+fieldscene.bin:12:1336:0:-2	 1234
+fieldscene.bin:12:1337:0:-2	 1234
+fieldscene.bin:12:1338:0:-2	 1234
+fieldscene.bin:12:1339:0:-2	 1234
+fieldscene.bin:12:1340:0:-2	 1234
+fieldscene.bin:12:1341:0:-2	 1234
+fieldscene.bin:12:1342:0:-2	 1234
+fieldscene.bin:12:1343:0:-2	 1234
+fieldscene.bin:12:1344:0:-2	0
+fieldscene.bin:12:1345:0:-2	0
+fieldscene.bin:12:1346:0:-2	0
+fieldscene.bin:12:1347:0:-2	0
+fieldscene.bin:12:1348:0:-2	0
+fieldscene.bin:12:1349:0:-2	0
+fieldscene.bin:12:1350:0:-2	0
+fieldscene.bin:12:1351:0:-2	0
+fieldscene.bin:12:1352:0:-2	0
+fieldscene.bin:12:1353:0:-2	0
+fieldscene.bin:12:1354:0:-2	0
+fieldscene.bin:12:1355:0:-2	0
+fieldscene.bin:12:1356:0:-2	0
+fieldscene.bin:12:1357:0:-2	0
+fieldscene.bin:12:1358:0:-2	0
+fieldscene.bin:12:1359:0:-2	0
+fieldscene.bin:12:1376:513:-1	0
+fieldscene.bin:12:1392:513:-1	Effect1
+fieldscene.bin:12:1393:513:-1	Effect2
+fieldscene.bin:12:1394:513:-1	Effect3
+fieldscene.bin:12:1395:513:-1	Effect4
+fieldscene.bin:12:1408:513:-1	0
+fieldscene.bin:12:1409:513:-1	0
+fieldscene.bin:12:1410:513:-1	0
+fieldscene.bin:12:1411:513:-1	0
+fieldscene.bin:12:1835:1825:106	0
+fieldscene.bin:12:2051:2048:-1	5000
+fieldscene.bin:12:324:320:-1	Quest
+fieldscene.bin:12:370:257:106	0
+fieldscene.bin:12:572:1905:-1	0
+fieldscene.bin:12:602:576:-1	Opponent
+fieldscene.bin:12:603:576:-1	0
+fieldscene.bin:12:6133:6110:-1	Cost : 50,000,000
+fieldscene.bin:12:618:576:-1	Self
+fieldscene.bin:12:6197:6185:-1	9000000
+fieldscene.bin:12:6198:6185:-1	6000000
+fieldscene.bin:12:6199:6185:-1	5000000
+fieldscene.bin:12:619:576:-1	0
+fieldscene.bin:12:6200:6185:-1	7000000
+fieldscene.bin:12:6215:6185:-1	Buy
+fieldscene.bin:12:630:626:-1	Please Enter Amount
+fieldscene.bin:12:637:632:-1	System Menu
+fieldscene.bin:12:638:669:-1	Notice
+fieldscene.bin:12:6407:6400:-1	CREDIT
+fieldscene.bin:12:6408:6400:-1	0
+fieldscene.bin:12:6409:6400:-1	BET
+fieldscene.bin:12:6416:6400:-1	1000
+fieldscene.bin:12:6433:6432:-1	0
+fieldscene.bin:12:6452:6432:-1	Cost 100000000
+fieldscene.bin:12:645:640:-1	Menu
+fieldscene.bin:12:6513:6512:-1	0
+fieldscene.bin:12:6532:6512:-1	Union dues 0
+fieldscene.bin:12:665:646:-2	Title
+fieldscene.bin:12:666:646:-2	Merchant by
+fieldscene.bin:12:800:646:-2	0
+fieldscene.bin:12:801:646:-2	0
+fieldscene.bin:12:802:646:-2	0
+fieldscene.bin:12:803:646:-2	0
+fieldscene.bin:12:804:646:-2	0
+fieldscene.bin:12:805:646:-2	0
+fieldscene.bin:12:806:646:-2	0
+fieldscene.bin:12:807:646:-2	0
+fieldscene.bin:12:808:646:-2	0
+fieldscene.bin:12:809:646:-2	0
+fieldscene.bin:12:810:646:-2	0
+fieldscene.bin:12:811:646:-2	0
+fieldscene.bin:12:812:646:106	0
+fieldscene.bin:12:820:819:-1	Guild Board
+fieldscene.bin:12:836:828:-2	Title
+fieldscene.bin:12:865:864:-1	Help
+fieldscene.bin:12:8962:8961:-1	Game Number
+fieldscene.bin:12:8965:8961:-1	Select
+fieldscene.bin:12:8967:8961:-1	Game Time
+fieldscene.bin:12:8969:8961:-1	Team A
+fieldscene.bin:12:8970:8961:-1	Team B
+fieldscene.bin:12:8975:8961:-1	VS
+fieldscene.bin:12:8977:8961:-1	:
+fieldscene.bin:12:8979:8961:-1	Buy
+fieldscene.bin:2:1045:0:107	HP(Q)
+fieldscene.bin:2:1046:0:108	MP(W)
+fieldscene.bin:2:1047:0:109	Kappa(E)
+fieldscene.bin:2:12291:12288:-2	Server Select
+fieldscene.bin:2:12546:12544:-2	Confirm
+fieldscene.bin:2:12547:12544:-2	Cancel
+fieldscene.bin:2:1375:1360:150	Combine
+fieldscene.bin:2:1864:1866:8	Quit Party
+fieldscene.bin:2:1865:1866:104	Close Party Window
+fieldscene.bin:2:1913:1905:104	Close
+fieldscene.bin:2:293:292:94	Character(C)
+fieldscene.bin:2:294:292:95	Inventory(I)
+fieldscene.bin:2:295:292:96	Skill(S)
+fieldscene.bin:2:296:292:97	Minimap(M,A)
+fieldscene.bin:2:297:292:98	Party(P,D)
+fieldscene.bin:2:298:292:146	Run On/Off(R)
+fieldscene.bin:2:299:292:147	Guild On/OFF(')
+fieldscene.bin:2:304:292:99	System(ESC)
+fieldscene.bin:2:306:292:52	PK Mode On/Off(K)
+fieldscene.bin:2:307:292:53	Disp Char Name(N)
+fieldscene.bin:2:308:292:54	Change View(TAB)
+fieldscene.bin:2:309:292:55	Guild Chat On/Off
+fieldscene.bin:2:310:1866:50	Party Chat On/Off
+fieldscene.bin:2:311:0:-51	Whisper On/Off
+fieldscene.bin:2:312:292:56	Auto Att On/Off(T)
+fieldscene.bin:2:313:292:59	Auto Selling
+fieldscene.bin:2:314:292:157	Help(H)
+fieldscene.bin:2:315:292:158	Quest(X)
+fieldscene.bin:2:316:292:159	AutoRun(])
+fieldscene.bin:2:323:320:104	Close
+fieldscene.bin:2:329:320:-2	350Quest
+fieldscene.bin:2:330:320:-2	Event Quest
+fieldscene.bin:2:331:320:-2	2nd Job Quest
+fieldscene.bin:2:332:0:365	New Quest
+fieldscene.bin:2:368:257:104	Close
+fieldscene.bin:2:533:513:104	Close
+fieldscene.bin:2:6111:6110:150	Combine
+fieldscene.bin:2:6146:6145:150	Combine
+fieldscene.bin:2:6192:6185:308	Buy
+fieldscene.bin:2:620:640:-2	Challenge
+fieldscene.bin:2:621:640:-2	5 : 5
+fieldscene.bin:2:622:640:-2	10 : 10
+fieldscene.bin:2:623:640:-2	All:All
+fieldscene.bin:2:633:632:-2	Chg Svr
+fieldscene.bin:2:634:632:-2	Chg Char
+fieldscene.bin:2:635:632:-2	Leave Game
+fieldscene.bin:2:636:632:-2	Cancel
+fieldscene.bin:2:639:640:-2	1 : 1
+fieldscene.bin:2:6401:6400:329	START
+fieldscene.bin:2:6402:6400:324	-10000
+fieldscene.bin:2:6403:6400:325	-1000
+fieldscene.bin:2:6404:6400:327	+10000
+fieldscene.bin:2:6405:6400:326	+1000
+fieldscene.bin:2:641:640:-2	Party
+fieldscene.bin:2:6421:6400:104	Close
+fieldscene.bin:2:642:640:-2	Guild
+fieldscene.bin:2:6434:6432:150	Weapon Composition
+fieldscene.bin:2:643:640:-2	Trade
+fieldscene.bin:2:6482:6481:150	Combine
+fieldscene.bin:2:6514:6512:150	Restore
+fieldscene.bin:2:667:646:59	Start Merchant
+fieldscene.bin:2:668:646:104	End Merchant
+fieldscene.bin:2:671:669:104	Close
+fieldscene.bin:2:816:640:-2	Expel
+fieldscene.bin:2:817:640:-2	Announce War
+fieldscene.bin:2:821:819:104	Close
+fieldscene.bin:2:822:823:-2	Confirm
+fieldscene.bin:2:827:823:-2	Write
+fieldscene.bin:2:831:828:-2	Reply
+fieldscene.bin:2:832:828:-2	Edit
+fieldscene.bin:2:833:838:-2	Delete
+fieldscene.bin:2:834:828:-2	Delete
+fieldscene.bin:2:835:828:-2	List
+fieldscene.bin:2:841:838:-2	Save
+fieldscene.bin:2:842:838:-2	Save Notice
+fieldscene.bin:2:843:838:-2	Cancel
+fieldscene.bin:2:862:640:-2	Allied
+fieldscene.bin:2:863:640:-2	Invite the guild
+fieldscene.bin:2:866:864:104	Close
+fieldscene.bin:2:867:864:-2	Interface
+fieldscene.bin:2:869:864:-2	Command
+fieldscene.bin:2:871:864:-2	etc.
+fieldscene.bin:2:873:864:-2	Message
+fieldscene.bin:2:875:0:153	Receive Message
+fieldscene.bin:2:878:0:156	Req Summon
+fieldscene.bin:2:8807:8705:-2	Quit
+fieldscene.bin:2:8809:8705:-2	OK
+fieldscene.bin:2:8810:8705:-2	Clear
+fieldscene.bin:2:8811:8705:376	Smile
+fieldscene.bin:2:8812:8705:377	Heart
+fieldscene.bin:2:8813:8705:378	Star
+fieldscene.bin:2:8814:8705:379	?
+fieldscene.bin:2:8815:8705:380	!
+fieldscene.bin:2:912:640:-2	Normal guild member
+fieldscene.bin:2:913:640:-2	Chief¥°master
+fieldscene.bin:2:914:640:-2	Chief¥±master
+fieldscene.bin:2:915:640:-2	Chief¥²master
+selcharscene.bin:12:1289:1282:-1	1
+selcharscene.bin:12:1296:1282:-1	Armia
+selcharscene.bin:12:1312:1282:-1	None
+selcharscene.bin:12:1313:1282:-1	0
+selcharscene.bin:12:1314:1282:-1	1
+selcharscene.bin:12:1315:1282:-1	1
+selcharscene.bin:12:1316:1282:-1	0
+selcharscene.bin:12:1317:1282:-1	0
+selcharscene.bin:12:1318:1282:-1	0
+selcharscene.bin:12:1319:1282:-1	0
+selcharscene.bin:12:1321:1282:-1	0
+selcharscene.bin:12:1322:1282:-1	0
+selcharscene.bin:12:1323:1282:-1	0
+selcharscene.bin:12:1324:1282:-1	0
+selcharscene.bin:12:1562:1542:-1	0
+selcharscene.bin:12:1563:1542:-1	0
+selcharscene.bin:12:1564:1542:-1	0
+selcharscene.bin:12:1565:1542:-1	0
+selcharscene.bin:12:1572:1568:-1	Ente new Name
+selcharscene.bin:12:630:626:-1	Enter Password
+selserverscene.bin:12:769:0:-1	Copyright 2002~2005 JoyImpact, All Rights Reserved.

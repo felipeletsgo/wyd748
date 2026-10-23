@@ -1,0 +1,37 @@
+FFFFFF Using skill shortcuts
+AAFFAA Open Skills with S and point at an available skill.
+AAFFAA Press Shift+1-0 to assign it to the active shortcut bar.
+AAFFAA Press 1-0 to select a skill; Z changes the bar.
+AAFFAA In keyboard mode 1, add Ctrl to these combinations.
+AAFFAA F1-F10 do not select or assign skills.
+FFFFFF Auto Attack
+AAFFAA T toggles Auto Attack. The - key adjusts skill usage.
+AAFFAA In mode 1, use Ctrl+T and Alt+-.
+AAFFAA Normal target, skill and resource requirements still apply.
+FFFFFF Auto Run
+AAFFAA Press ] to start or stop; in mode 1 use Alt+].
+AAFFAA Movement follows the camera direction. Rotate to steer.
+AAFFAA Obstacles and normal server movement rules still apply.
+AAFFAA Auto Run is unavailable in restricted maps.
+FFFFFF Equipment
+AAFFAA Ctrl+Right-click equips or unequips an item.
+AAFFAA An unequipped item needs free inventory space.
+AAFFAA The server validates class, level and slot requirements.
+FFFFFF Warehouse transfers
+AAFFAA Open the warehouse before using a transfer shortcut.
+AAFFAA Shift+Right-click moves an item in either direction.
+AAFFAA Ctrl+Left-click is an alternate transfer shortcut.
+AAFFAA The destination must have enough space for the item.
+AAFFAA Shift+Left-click retains the stack-splitting prompt.
+AAFFAA Ctrl takes priority if both modifiers are held.
+AAFFAA Inventory changes appear after server approval.
+FFFFFF Guild affiliation
+AAFFAA Apostrophe toggles public guild affiliation.
+AAFFAA In mode 1 use Alt+apostrophe.
+AAFFAA This does not leave the guild or toggle PK Mode.
+AAFFAA The button follows the server-confirmed state.
+FFFFFF Chat and Help
+AAFFAA Enter opens chat. Up/Down browse previous messages.
+AAFFAA PageUp/Down scroll the visible message or chat list.
+AAFFAA H opens Help; use Ctrl+H in keyboard mode 1.
+AAFFAA The keyboard page contains the current shortcut guide.

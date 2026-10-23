@@ -149,7 +149,7 @@ foreach ($file in $documents) {
 # (AGENTS.md "Cleanup"). Anything else ignored by Git is leftover build,
 # test or agent output and must be removed or moved under build/.
 $allowedIgnored = '^(?:references/|build/|tmproject/build/|\.codex/|\.venv/|\.claude/settings\.local\.json$' +
-    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|update\.dat|guilds\.txt|SkillData\.csv|screenshot/|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
+    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
     '|wydgo748/data/(?:SkillData\.bin$|accounts/|charstate/)' +
     '|wydgo748/web/portal/(?:node_modules/|dist/|\.astro/|src/data/catalog\.generated\.json$|\.env))'
 $ignored = @(& git -C $repoRoot ls-files --others --ignored --exclude-standard --directory)

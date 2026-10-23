@@ -88,6 +88,7 @@ int RunUITextureSetListTests(int& checks);
 int RunLoginCredentialContractTests(int& checks);
 int RunServerNameAssetTests(int& checks);
 int RunClientConfigAssetTests(int& checks);
+int RunClientLanguageAssetTests(int& checks);
 int RunTerrainTileMapReaderTests(int& checks);
 int RunCharacterTransferResponseTests(int& checks);
 
@@ -628,6 +629,7 @@ int main()
     failures += RunLoginCredentialContractTests(checks);
     failures += RunServerNameAssetTests(checks);
     failures += RunClientConfigAssetTests(checks);
+    failures += RunClientLanguageAssetTests(checks);
     failures += RunTerrainTileMapReaderTests(checks);
     failures += RunCharacterTransferResponseTests(checks);
     if (failures == 0) std::printf("ArchitectureTests: %d checks PASS; static assertions PASS\n", checks);

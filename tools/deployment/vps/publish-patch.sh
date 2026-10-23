@@ -29,7 +29,7 @@ candidate = pathlib.Path(new).read_text(encoding='ascii').splitlines()
 version = int(name[6:11])
 if candidate != previous + [f'{version} {name}']:
     raise SystemExit('The patch list must append exactly one entry to the current feed')
-if not 10001 <= version <= 19999 or version <= max(int(line.split()[0]) for line in previous[1:]):
+if not 48002 <= version <= 49999 or version <= max(int(line.split()[0]) for line in previous[1:]):
     raise SystemExit('The patch version must increase')
 PY
 

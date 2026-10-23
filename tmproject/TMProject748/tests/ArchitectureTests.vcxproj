@@ -107,6 +107,7 @@
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <ClCompile Include="ClientConfigAssetTests.cpp" />
+    <ClCompile Include="ClientLanguageAssetTests.cpp" />
     <ClCompile Include="TerrainTileMapReaderTests.cpp" />
     <ClCompile Include="CharacterTransferResponseTests.cpp" />
     <ClCompile Include="..\internal\core\WYD748Assets.cpp">

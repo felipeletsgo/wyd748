@@ -17,7 +17,9 @@ func TestClientBuildAdmissionContract(t *testing.T) {
 			t.Fatalf("revision=%d accepted=%v want=%v", revision, got, want)
 		}
 	}
-	for _, build := range []uint32{0, 1, 748, 0xFFFFFFFF, 0x57460001, 0x57480001} {
+	// The retired v1 line (0x5747xxxx, last published revision 3) stays rejected.
+	for _, build := range []uint32{0, 1, 748, 0xFFFFFFFF, 0x57460001, 0x57480001,
+		0x57470001, 0x57470003, 0x5747FFFF, 0x02ED0001, 0x02EB0001} {
 		binary.LittleEndian.PutUint32(pkt[44:48], build)
 		if CompatibleClientLogin(pkt) {
 			t.Fatalf("legacy or unknown identity 0x%X accepted", build)
@@ -38,6 +40,12 @@ func TestClientBuildAdmissionContract(t *testing.T) {
 	}
 	if CompatibleClientLogin(append(pkt, 0)) {
 		t.Fatal("extra login tail accepted")
+	}
+}
+
+func TestClientBuildReleaseLine(t *testing.T) {
+	if ClientBuildPrefix>>16 != ClientProtocolVersion || CurrentClientBuild != 0x02EC0001 {
+		t.Fatalf("release line identity 0x%08X does not encode 7.48.001", CurrentClientBuild)
 	}
 }
 

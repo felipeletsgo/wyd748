@@ -1,0 +1,10 @@
+FFFFFF Select skill: 1-0 (not F1-F10)
+FFFFFF Assign hovered skill: Shift+1-0
+FFFFFF Adjust skill usage in Auto Attack Mode
+FFFFFF Use a health potion
+FFFFFF Use a mana potion
+FFFFFF Use a Kapa potion
+FFFFFF Feed your mount
+FFFFFF Use a Recall Scroll
+FFFFFF Show ground-item names
+FFFFFF Save a screenshot in the client folder

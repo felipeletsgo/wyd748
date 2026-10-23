@@ -239,7 +239,7 @@ int RunNativeScoreHudTests(int& checks)
     const auto newApp = ReadNameColorSource("internal/app/scenes/NewApp.cpp");
     check(newApp.find("item_help_748::Load(itemHelp, g_pItemHelp, _countof(g_pItemHelp))") != std::string::npos,
         "production startup uses the tested bounded help reader");
-    check(newApp.find("std::ifstream skillHelp(\"skillhelp.dat\")") != std::string::npos
+    check(newApp.find("std::ifstream skillHelp(WYD748_TextPath(\"skillhelp.dat\"))") != std::string::npos
         && newApp.find("item_help_748::Load(skillHelp, g_pItemHelp, _countof(g_pItemHelp)) != 102") != std::string::npos,
         "production startup requires the complete native skill-help corpus");
 

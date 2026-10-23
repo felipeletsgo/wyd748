@@ -1,0 +1,46 @@
+FFFFFF 
+FFFFFF Comandos de guilda
+33FFFF guild
+AAFFAA Consultar aliados e inimigos dos membros da guilda conectados
+33FFFF guildtax [taxa]
+AAFFAA Ajustar os impostos da guilda (de 0% a 20%)
+AAFFAA Usado pelo líder da guilda para definir os impostos da cidade conquistada
+33FFFF /summonguildmembers
+AAFFAA Reunir os membros da guilda conectados
+AAFFAA O líder pode reunir todos, incluindo os vice-líderes
+AAFFAA O vice-líder pode invocar os membros da sua subguilda
+33FFFF /expel [nome do membro]
+AAFFAA Expulsar um membro da guilda
+33FFFF /tele [nome do membro]
+AAFFAA Mover-se até um membro da guilda
+AAFFAA Exclusivo do líder e de quem usa a medalha do reino
+33FFFF /Endwar
+AAFFAA Encerrar a inimizade com outra guilda
+AAFFAA Exclusivo do líder da guilda
+33FFFF /Endallies
+AAFFAA Encerrar todas as alianças com outras guildas
+AAFFAA Exclusivo do líder da guilda
+FFFFFF 
+FFFFFF Comandos de chat
+33FFFF /nome do jogador [mensagem]
+AAFFAA Enviar mensagem privada
+33FFFF /r [mensagem]
+AAFFAA Responder à mensagem privada
+33FFFF = [mensagem]
+AAFFAA Chat de grupo, visível apenas para seus membros
+33FFFF - [mensagem]
+AAFFAA Chat de guilda, visível apenas para seus membros
+33FFFF -- [mensagem]
+AAFFAA Chat de aliança, visível apenas para aliados
+33FFFF * [mensagem]
+AAFFAA Exibir mensagem sobre a cabeça do personagem por 10 segundos
+33FFFF /nome do jogador ! [mensagem]
+AAFFAA Enviar mensagem curta, que desaparece após ser recebida
+FFFFFF 
+FFFFFF Comandos de reino
+33FFFF /Town ou /Kingdom
+AAFFAA Enviar o personagem ao seu reino
+AAFFAA Exclusivo de personagens que entraram em um reino
+33FFFF /king
+AAFFAA Teleportar para perto do rei
+AAFFAA Para personagens que desejam entrar em um reino

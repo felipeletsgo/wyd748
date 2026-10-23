@@ -1,0 +1,37 @@
+FFFFFF Atalhos de skills
+AAFFAA Abra Skills com S e aponte para uma skill disponível.
+AAFFAA Pressione Shift+1-0 para atribuí-la à barra ativa.
+AAFFAA Pressione 1-0 para selecionar a skill; Z muda a barra.
+AAFFAA No modo de teclado 1, adicione Ctrl às combinações.
+AAFFAA F1-F10 não selecionam nem atribuem skills.
+FFFFFF Auto Ataque
+AAFFAA T alterna o Auto Ataque. A tecla - ajusta o uso das skills.
+AAFFAA No modo 1, use Ctrl+T e Alt+-.
+AAFFAA Os requisitos de alvo, skill e recursos continuam válidos.
+FFFFFF Corrida Automática
+AAFFAA Pressione ] para iniciar ou parar; no modo 1 use Alt+].
+AAFFAA O movimento segue a câmera. Gire-a para mudar a direção.
+AAFFAA Obstáculos e regras de movimento do servidor continuam válidos.
+AAFFAA Corrida Automática indisponível em mapas restritos.
+FFFFFF Equipamento
+AAFFAA Ctrl+clique direito equipa ou desequipa um item.
+AAFFAA Um item desequipado precisa de espaço livre no inventário.
+AAFFAA O servidor valida os requisitos de classe, nível e espaço.
+FFFFFF Transferências do armazém
+AAFFAA Abra o armazém antes de usar um atalho de transferência.
+AAFFAA Shift+clique direito move um item em qualquer direção.
+AAFFAA Ctrl+clique esquerdo é um atalho alternativo.
+AAFFAA O destino precisa ter espaço suficiente para o item.
+AAFFAA Shift+clique esquerdo mantém a janela de divisão de pilha.
+AAFFAA Ctrl tem prioridade se ambos os modificadores estiverem pressionados.
+AAFFAA O inventário muda após a aprovação do servidor.
+FFFFFF Afiliação à guilda
+AAFFAA Apóstrofo alterna a afiliação pública à guilda.
+AAFFAA No modo 1, use Alt+apóstrofo.
+AAFFAA Isso não sai da guilda nem alterna o modo PK.
+AAFFAA O botão segue o estado confirmado pelo servidor.
+FFFFFF Chat e Ajuda
+AAFFAA Enter abre o chat. Cima/Baixo percorrem as mensagens anteriores.
+AAFFAA PageUp/Down rolam a lista visível de mensagens ou do chat.
+AAFFAA H abre a Ajuda; use Ctrl+H no modo de teclado 1.
+AAFFAA A página de teclado contém o guia atual de atalhos.

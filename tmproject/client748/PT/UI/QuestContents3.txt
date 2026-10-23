@@ -1,0 +1,100 @@
+FFFFAA << A descoberta dos 4 cristais >>  
+FFFFFF 
+FFFFFF Na guerra lendária, o General do céu, Kafma, estava
+FFFFFF liderando o batalhão comandado por 4 contratantes
+FFFFFF dos espíritos.
+FFFFFF 
+FFFFFF Esse foi o fator principal para
+FFFFFF acabar com a tropa inimiga.
+FFFFFF Elime, espírito da Água. Sylphed, espírito do Vento.
+FFFFFF Thelio do Fogo e Noas, da Terra...
+FFFFFF O seu poder está chegando ao limite.
+FFFFFF 
+FFFFFF A partir de agora você poderá realizar 
+FFFFFF contratos com os 4 espíritos.
+FFFFFF 
+FFFFFF Os cristais dos espíritos são essenciais para
+FFFFFF realizar os contratos. Os cristais
+FFFFFF podem ser achados na Dungeon de Kefra.
+FFFFFF O contrato com os espíritos pode ser 
+FFFFFF realizado apenas no 355º nivel
+FFFFFF <<Juramento da Água>>
+FFFFFF 
+FFFFFF Nível necessário: 355.
+FFFFFF Custo: 100 milhões de experiência.
+FFFFFF Cristal necessário: Elime.
+FFFFFF Bônus permanente: MP máximo: +80.
+FFFFFF 
+FFFFFF Obtenha o cristal de Funer, Sickler e Kephra.
+FFFFFF Permite realizar o Juramento da Vento.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Juramento da Vento>>
+FFFFFF 
+FFFFFF Nível necessário: 355.
+FFFFFF Custo: 100 milhões de experiência.
+FFFFFF Cristal necessário: Sylphed.
+FFFFFF Bônus permanente: Defesa: +80.
+FFFFFF 
+FFFFFF Obtenha o cristal de Funer, Momentor e Kephra.
+FFFFFF Requer o Juramento da Água.
+FFFFFF Permite realizar o Juramento da Fogo.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Juramento da Fogo>>
+FFFFFF 
+FFFFFF Nível necessário: 355.
+FFFFFF Custo: 100 milhões de experiência.
+FFFFFF Cristal necessário: Thelion.
+FFFFFF Bônus permanente: HP máximo: +80.
+FFFFFF 
+FFFFFF Obtenha o cristal de Ape e Kephra.
+FFFFFF Requer o Juramento da Vento.
+FFFFFF Permite realizar o Juramento da Terra.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Juramento da Terra>>
+FFFFFF 
+FFFFFF Nível necessário: 355.
+FFFFFF Custo: 100 milhões de experiência.
+FFFFFF Cristal necessário: Noas.
+FFFFFF Bônus permanente: HP: +60. Defesa: +20. MP: +60.
+FFFFFF 
+FFFFFF Obtenha o cristal de Batorero e Kephra.
+FFFFFF Requer o Juramento da Fogo.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 

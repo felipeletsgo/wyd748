@@ -1,0 +1,100 @@
+AAFFAA Loja do Portão do Inferno
+AAFFAA Compre armas, armaduras e amuletos.
+AAFFAA Escolha uma categoria para comprar.
+AAFFAA Regras de compra:
+AAFFAA O item é selecionado aleatoriamente.
+AAFFAA Seus adicionais são aleatórios.
+AAFFAA Deixe espaço livre suficiente
+AAFFAA no inventário antes de comprar.
+AAFFAA Não há limite de quantidade de compras.
+AAFFAA Os itens comprados não possuem nível
+AAFFAA de refinação aplicado.
+AAFFAA O servidor valida cada compra.
+AAFFAA 
+AAFFAA 
+AAFFAA 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+AAFFAA 
+AAFFAA [Armas]
+AAFFAA Armas base aleatórias dos graus 9-10.
+AAFFAA A seleção inclui variantes de Gram e
+AAFFAA Espada Vorpal.
+AAFFAA Não é possível escolher o item.
+AAFFAA O item e os adicionais são aleatórios.
+AAFFAA Armas ancestrais não estão incluídas.
+AAFFAA Deixe espaço livre suficiente
+AAFFAA para a arma selecionada.
+AAFFAA 
+AAFFAA Preço: 9,000,000 gold.
+AAFFAA 
+AAFFAA 
+AAFFAA 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+AAFFAA 
+AAFFAA [Armaduras]
+AAFFAA Armaduras base aleatórias dos graus 7-8.
+AAFFAA A seleção inclui variantes da
+AAFFAA Armadura de Placas dos Anões.
+AAFFAA Não é possível escolher o item.
+AAFFAA O item e os adicionais são aleatórios.
+AAFFAA 
+AAFFAA Deixe espaço livre suficiente
+AAFFAA para a armadura selecionada.
+AAFFAA 
+AAFFAA Preço: 6,000,000 gold.
+AAFFAA 
+AAFFAA 
+AAFFAA 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+AAFFAA 
+AAFFAA [Amuletos]
+AAFFAA Amuletos aleatórios dos graus 1-3.
+AAFFAA Variantes Prata, Ouro e Místico.
+AAFFAA Não é possível escolher o item.
+AAFFAA O item e os adicionais são aleatórios.
+AAFFAA Nenhum nível de refinação é aplicado.
+AAFFAA 
+AAFFAA Deixe espaço livre suficiente
+AAFFAA para o amuleto selecionado.
+AAFFAA 
+AAFFAA Preço: 5,000,000 gold.
+AAFFAA 
+AAFFAA 
+AAFFAA 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+AAFFAA 
+AAFFAA [Aleatório]
+AAFFAA Arma, armadura ou amuleto aleatório.
+AAFFAA O item comprado recebe adicionais
+AAFFAA aleatórios.
+AAFFAA Não é possível escolher o item
+AAFFAA nem a categoria desta compra.
+AAFFAA Nenhum nível de refinação é aplicado.
+AAFFAA Deixe espaço livre suficiente
+AAFFAA para o item selecionado.
+AAFFAA 
+AAFFAA Preço: 7,000,000 gold.
+AAFFAA 
+AAFFAA 
+AAFFAA 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 

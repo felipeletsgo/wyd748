@@ -2598,7 +2598,7 @@ int RunSceneDisconnectContractTests(int& checks)
         captionExit != std::string::npos && priceLoad != std::string::npos &&
         captionGuard < captionError && captionError < captionExit && captionExit < priceLoad &&
         basedefSource.find("bool ReadUIString()") != std::string::npos &&
-        basedefSource.find("return WYD748_LoadUIStrings(UIString_Path") != std::string::npos,
+        basedefSource.find("return WYD748_LoadUIStrings(WYD748_TextPath(UIString_Path).c_str()") != std::string::npos,
         "startup stops before scene construction when the UI string table fails");
     check(sceneLoader.find("CopyRCIndexedCaption(g_UIString, stringIndex") != std::string::npos &&
         sceneLoader.find("static_cast<int>(_countof(g_UIString))") != std::string::npos &&

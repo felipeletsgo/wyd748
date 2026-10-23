@@ -223,7 +223,7 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 		Items    []mountItem `json:"items"`
 	}
 	// The manifest belongs to the client runtime, a sibling of the Go module.
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tmproject", "client748", "Mounts-KR.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tools", "client-assets", "inputs", "Mounts-KR.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -302,7 +302,7 @@ func TestCompleteKRCostumesKeep748Contract(t *testing.T) {
 	var manifest struct {
 		Items []costumeItem `json:"items"`
 	}
-	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tmproject", "client748", "Costumes-KR.json"))
+	raw, err := os.ReadFile(filepath.Join("..", "..", "..", "tools", "client-assets", "inputs", "Costumes-KR.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

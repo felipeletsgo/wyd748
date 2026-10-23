@@ -53,3 +53,8 @@ __pycache__/
 *.tmp
 *.tmp-*
 *~
+
+# Per-installation language preference; updates must preserve it.
+/tmproject/client748/lang.txt
+# Built by tools/client-assets/Build-NativeLauncherLanguage.ps1, like WYDLauncher.exe.
+/tmproject/client748/WYDLauncherLanguage.dll

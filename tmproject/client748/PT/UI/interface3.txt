@@ -1,0 +1,10 @@
+FFFFFF Ajustar o tamanho do chat (4 tamanhos disponíveis)
+FFFFFF Rolar o conteúdo do chat
+FFFFFF Consultar mensagens anteriores (modo de chat)
+FFFFFF Abrir o chat da guilda
+FFFFFF Abrir Ajuda e a janela de mensagens
+FFFFFF Alternar entre as skills (2 barras)
+FFFFFF Ativar/desativar a Corrida Automática
+FFFFFF Abrir Quests
+FFFFFF Modo de chat
+FFFFFF Exibir/ocultar afiliação à guilda

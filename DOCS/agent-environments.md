@@ -39,7 +39,7 @@ equivalent; its local configuration stays untracked.
 
 - Reuse the selected checkout and preserve its dirty changes. This document
   does not impose a branch policy absent from `AGENTS.md`. A fresh worktree
-  may lack ignored runtime inputs such as `tmproject/client748/Mounts-KR.json`;
+  may lack ignored runtime inputs such as `tmproject/client748/WYD.exe`;
   inspect prerequisites before treating fixture failures as product regressions.
 - Keep scratch output in the agent's temporary directory or ignored build
   directories, never in `tmproject/` or `wydgo748/`. Recorded paths such as

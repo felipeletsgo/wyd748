@@ -1,5 +1,98 @@
 # Current project state
 
+## Full client 7.48.001 — 2026-10-23, published and activated
+
+The owner reset the client version for the multilingual full client. Handshake
+contract v2 ([client build admission](login-dispatch.md)): the client sends
+`0x02EC0001` (7.48.001) and the server requires prefix `0x02EC`, revision >= 1;
+every retired `0x5747xxxx` client is refused. `config.txt` is `[VERSION] 48001`
+and the launcher shows 7.48.001 ([release line](client/launcher.md#release-line-748)).
+The site now has one changelog entry and one News post for 7.48.001 (only the
+account-protection announcement is kept); the download receipt (version 2)
+has no patch and links the owner's Drive full client
+`https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view`.
+The owner chose to publish without downloading it: its size, SHA-256 and the
+`WYD.exe` it contains were not verified and remain null on the site.
+
+Installed locally in `tmproject/client748/`: `WYD.exe` SHA-256
+`D29873E2DFA5528E432A164CC007D6DFE729A20D31C3902F3986542D76B7BB3A` (embeds
+`0x02EC0001` twice, no `0x57470003`), `WYDLauncher.exe`
+`85C9C648B389BE91CA348351590FCBEFA6752A4D4E849AFBBCB1F054CA12FDE2`,
+unchanged `WYDLauncherLanguage.dll`
+`003134ABA581FD9802FD0DDFA8D2048D7EA834E14043ED6B8878377E8666BF59`.
+Automated: ArchitectureTests 3,171,532 checks, SocketReceiveTests 281,
+CrashCaptureTests 200, LauncherTests 58, seven native-launcher tests, full Go
+suite and vet, portal build/check and 89 portal tests. Not `CLIENT_TESTED`:
+launcher status text, old client rejection, new client login and both languages
+need a real run.
+
+Runtime cleanup for distribution ([full client contents](client/launcher.md#full-client-contents)):
+build-only inputs moved to `tools/client-assets/inputs/` (`skin-shaders/shader1..8.bin`,
+`Costumes-KR.json`, `Mounts-KR.json`); 53 tracked files that neither `WYD.exe`,
+the launcher nor any tool or test reads, plus local logs, `update.dat`,
+`SkillData.csv` and a crash log, were moved to the ignored quarantine
+`build/client-cleanup/client748/` because policy blocked direct deletion.
+The tracked removals appear as deletions in Git. Delete the quarantine once the
+cleaned client is confirmed in a real run.
+
+Publication (owner-authorized, including the game restart), from HEAD
+`76626439` with the working tree (`vcs.modified`; includes the already active
+Kibita server delta); nothing committed. Staged `server.txt`, `staff.json`,
+Caddy site and six units matched the live files; no player was connected.
+`reset-patch-feed.sh` archived the old list and 45 patch ZIPs to
+`/srv/wyd-go/patch-archive/20261023T203833Z/` and installed `48001 notice.txt`.
+`update-release.sh` activated `/srv/wyd-go/releases/20261023T203847Z` (archive
+SHA-256 `61A05401B2EE7E3CAE87F7E70E308772507185C4A3FD74CE9CC411D5AE09F6D8`),
+restarting game and player API. Running game `/proc/<pid>/exe` SHA-256
+`8675CEEF83E6C47D9B0F34F6870B7B2DCEB584BCB6227515B8CB916209033B01`
+(contains `0x02EC0001`, no `0x57470003`); player API unchanged
+`01066C11…488110F`. Both readiness endpoints `ready`, no error-priority journal
+entries, port 8281 reachable. Pre-activation backup
+`wydgo-20261023T203847Z.dump`. HTTP and HTTPS `update.htm` return the 48001
+baseline; `patch-10045.zip` and `patch-10001.zip` return 404; the manifest,
+Download, News and changelog show 7.48.001 only. Rollback reference
+`/srv/wyd-go/releases/20261023T173911Z` pairs only with the archived 10045 feed
+and revision-3 clients. Pending: a real 7.48.001 login and an old-client
+rejection observed in game; not `CLIENT_TESTED`.
+
+## Release — 2026-10-23, Kibita Mortal Soul
+
+The owner authorized publication and restart. Server-only working-tree release
+from HEAD `76626439342037f92b72518b94745ea4c795fc74`, with
+`vcs.modified=true`; the complete functional delta is the five Go files and
+hashes recorded in [Kibita Soul](server/kibita-soul.md#production-delivery).
+No commit or push was performed. The unrelated local client configuration and
+crash dumps were excluded. Client packets/assets are unchanged: patch **10045**
+and compiled admission revision **3** remain aligned on both sides.
+
+Release `/srv/wyd-go/releases/20261023T173911Z` is active. Rollback reference:
+`/srv/wyd-go/releases/20261023T153545Z`, with the same client revision.
+Archive: 25,486,009 bytes, SHA-256
+`AC7DEF60F16AB9747EC04771259EB2C12D668889C4ED02B60B352161B0007BAA`.
+Running game SHA-256
+`143902826F5B74A1F57CC3334A13F9640873558F954EFA971ACC591232609CCB`;
+player API `01066C11702176D1A5A4500E547D90FA88508AD5F89C5B45245B3906C488110F`;
+log reader `49121210861B93E187768266BD995941F8C634B813A939D5B2CFDB4ED2157342`.
+All three `/proc/<pid>/exe` paths and hashes match the candidate. Nine private
+configuration/unit files matched staging before activation.
+
+No players were connected. Graceful shutdown at **17:39:15 UTC** persisted
+zero accounts with zero failures; the game listened at **17:39:16 UTC**.
+Pre-activation backup: `wydgo-20261023T173911Z.dump`, 179,595 bytes, SHA-256
+`6619BC7AD2760295EE6518B9457A6389D8F2BD62E86D46FB034E2E5C1B131B20`.
+Schema remains 11. Both readiness endpoints returned `ready`; the public game
+port was reachable; no error-priority game/API journal entries appeared during
+activation. Public HTTP/HTTPS launcher feeds and the manifest still advertise
+10045. Remote staging was removed. Execution policy rejected the local recursive
+cleanup, so `build/deploy/wyd-deploy-20261023-kibita-soul/` remains with the
+candidate/archive/configuration and source-hash receipt. Deletion was not retried
+through another command or API.
+
+Validation reuses the full Go suite/vet and final game regressions recorded in
+the feature document; portal check passed with zero diagnostics and its build
+generated 3,328 pages. Actual Kibita exchanges, skill UI, casting, observer
+appearance and live relogin remain pending; this is not `CLIENT_TESTED`.
+
 ## Release — 2026-10-23, patch 10045 (ankh tint, second cause) and revision 3
 
 Patch 10044 (`53AE5960`, confirmed installed) still drew the inventory ankhs

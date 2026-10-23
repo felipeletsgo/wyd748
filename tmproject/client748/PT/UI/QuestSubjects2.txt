@@ -1,0 +1,23 @@
+050 FFFFFF LV 50 [Cubo da Maldade - N]
+070 FFFFFF LV 70 [Círculo Divino]
+071 FFFFFF LV 71 [O Quarto Secreto]
+075 FFFFFF LV 75 [Monstro Comerciante]
+080 FFFFFF LV 80 [Rastros além do céu]
+085 FFFFFF LV 85 [Pesadelo -N]
+090 FFFFFF LV 90 [Cubo da Maldade - M]
+100 FFFFFF LV 100 [Pedra da Troca]
+110 FFFFFF LV 110 [Z. Elem. Água - N]
+150 FFFFFF LV 150 Demônio do Caos
+150 FFFFFF LV 150 [Sociedade do WYD]
+160 FFFFFF LV 160 [Cubo da Maldade - A]
+180 FFFFFF LV 180 [Z. Elem. Água - M]
+200 FFFFFF LV 200 [Pesadelo - M]
+210 FFFFFF LV 210 [Portão do Inferno]
+220 FFFFFF LV 220 [Medalha do Reino]
+256 FFFFFF LV 256 [Endless Storm]
+260 FFFFFF LV 260 Demônio do Caos
+275 FFFFFF LV 275 [Z. Elem. Água - A]
+280 FFFFFF LV 280 [Proc da Vida Eterna]
+280 FFFFFF LV 280 [Um Novo Começo]
+295 FFFFFF LV 295 [Pesadelo - A]
+300 FFFFFF LV 300 Demônio do Caos

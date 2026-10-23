@@ -10,19 +10,21 @@ config.txt. Publish it with Publish-ClientPatch.ps1.
 
 The launcher cannot delete files, cannot replace itself while running, and
 must not overwrite player settings, so deletions are reported and
-WYDLauncher.exe, config.txt and ClientSettings.txt are refused or skipped.
+WYDLauncher.exe, WYDLauncherLanguage.dll, config.txt, ClientSettings.txt and
+lang.txt are refused or skipped.
 .PARAMETER From
 Revision that players already have.
 .PARAMETER To
 Revision to publish. Defaults to HEAD.
 .PARAMETER Version
-New client version (10001..19999), greater than every published version.
+New client version in the 7.48 release line (48002..49999; the launcher shows
+48002 as 7.48.002), greater than every published version.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)] [string]$From,
     [string]$To = 'HEAD',
-    [Parameter(Mandatory)] [ValidateRange(10001, 19999)] [int]$Version
+    [Parameter(Mandatory)] [ValidateRange(48002, 49999)] [int]$Version
 )
 
 $ErrorActionPreference = 'Stop'
@@ -32,8 +34,8 @@ Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
 $repo = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $prefix = 'tmproject/client748/'
 $requiredClientFiles = @('ItemListWide.csv')
-$skipped = @('config.txt', 'ClientSettings.txt')
-$refused = @('WYDLauncher.exe', 'update.dat')
+$skipped = @('config.txt', 'ClientSettings.txt', 'lang.txt')
+$refused = @('WYDLauncher.exe', 'WYDLauncherLanguage.dll', 'update.dat')
 
 foreach ($required in $requiredClientFiles) {
     & git -C $repo cat-file -e "${To}:$prefix$required"

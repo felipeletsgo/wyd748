@@ -365,6 +365,8 @@ ExtractedFlow TMScene::ReadRCButton(FILE*& fpBinary, const CONTROL_TYPE& nContro
 		binButtonData.nColor = legacy.nColor;
 		binButtonData.nSound = legacy.nSound;
 		strcpy_s(strbuf, legacy.szString);
+		WYD748_LocalizeCaption(szBinFileName, static_cast<int>(nControlType),
+			legacy.nID, legacy.nParentID, legacy.nTextureSetIndex, strbuf, sizeof(strbuf));
 	}
 	else
 	{
@@ -452,6 +454,8 @@ ExtractedFlow TMScene::ReadRCText(FILE*& fpBinary, const CONTROL_TYPE& nControlT
 		binTextData.nTextType = legacy.nTextType;
 		binTextData.nAlignType = legacy.nAlignType;
 		strcpy_s(strbuf, legacy.szString);
+		WYD748_LocalizeCaption(szBinFileName, static_cast<int>(nControlType),
+			legacy.nID, legacy.nParentID, legacy.nTextureSetIndex, strbuf, sizeof(strbuf));
 	}
 	else
 	{
@@ -738,7 +742,8 @@ int TMScene::LoadMsgText(SListBox* pListBox, const char* szFileName)
 {
 	FILE* fp{};
 
-	fopen_s(&fp, szFileName, "rt");
+	const auto textPath = WYD748_TextPath(szFileName);
+	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
 		return 0;
@@ -793,7 +798,8 @@ int TMScene::LoadMsgText2(SListBox* pListBox, const char* szFileName, int nStart
 {
 	FILE* fp{};
 
-	fopen_s(&fp, szFileName, "rt");
+	const auto textPath = WYD748_TextPath(szFileName);
+	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
 		return 0;
@@ -855,7 +861,8 @@ int TMScene::LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, i
 {
 	FILE* fp{};
 
-	fopen_s(&fp, szFileName, "rt");
+	const auto textPath = WYD748_TextPath(szFileName);
+	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
 		return 0;
@@ -929,7 +936,8 @@ unsigned int TMScene::LoadMsgText4(char* pStr, int dwStrSize, const char* szFile
 {
 	FILE* fp{};
 
-	fopen_s(&fp, szFileName, "rt");
+	const auto textPath = WYD748_TextPath(szFileName);
+	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
 		return 0;
@@ -981,7 +989,8 @@ int TMScene::LoadMsgLevel(char* LevelQuest, const char* szFileName, char cType)
 {
 	FILE* fp{};
 
-	fopen_s(&fp, szFileName, "rt");
+	const auto textPath = WYD748_TextPath(szFileName);
+	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
 		return 0;

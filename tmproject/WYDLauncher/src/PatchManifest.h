@@ -252,6 +252,8 @@ inline bool ParseManifest(std::string_view text, Manifest& out, std::string& err
                     return fail(lineNumber, "invalid install mode");
                 if (!IsSafeRelativePath(fields[4]) || IsLauncherOwnedPath(fields[4]))
                     return fail(lineNumber, "unsafe path");
+                if (FoldPath(fields[4]) == "lang.txt" && entry.install != Install::Keep)
+                    return fail(lineNumber, "language preference must be kept");
                 if (!seen.insert(FoldPath(fields[4])).second)
                     return fail(lineNumber, "duplicate path");
                 entry.sha256 = std::string(fields[1]);

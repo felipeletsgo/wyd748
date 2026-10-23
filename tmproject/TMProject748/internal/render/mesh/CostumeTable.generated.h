@@ -1,5 +1,5 @@
 #pragma once
-// Generated from tmproject/client748/Costumes-KR.json by tools/client-assets/Export-CostumeTable.ps1.
+// Generated from tools/client-assets/inputs/Costumes-KR.json by tools/client-assets/Export-CostumeTable.ps1.
 // Validated 7.48 data; renderer IDs are not the upstream TMProject switch IDs.
 namespace costume748 {
 struct Item { int index; int maleType; int femaleType; int skin; };

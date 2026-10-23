@@ -1,0 +1,260 @@
+FFFFAA << Campo de treino >>
+FFFFFF Ei, jovem...
+FFFFFF Nunca te vi por aqui, aconteceu algo?
+FFFFFF Ah... Ok então. Você realmente quer 
+FFFFFF ser um aventureiro...?! Muito bem então,
+FFFFFF eu posso te falar um bom local. No lado leste
+FFFFFF de Armia existe um acampamento de treinamento.
+FFFFFF Lá você pode adquirir mais experiência do que 
+FFFFFF matando monstros, e cada nivel de dificuldade
+FFFFFF existe um NPC para lhe ajudar. Não esqueça,
+FFFFFF cada NPC possui técnicas especiais 
+FFFFFF que podem salvar sua vida. 
+FFFFFF Boa sorte.
+AAFFFF Procure pelo treinador na Vila de Armia.
+AAFFFF Localização XY: 2106  2083
+FFFFFF 
+FFAAFF Limite de nível: 1 ~ 35
+FFAAFF Recompensa: Emblema Orc
+FFAAAA 
+FFAAAA Com o Emblema Orc, vá até o treinador.
+FFFFFF <<Defensor da Alma>>
+FFFFFF 
+FFFFFF Espíritos antigos foram presos no cemitério de Armia.
+FFFFFF O Adorador de Demônios os controla para destruir Armia.
+FFFFFF Derrote-o e liberte as almas. A Caixa da Sabedoria
+FFFFFF dos espíritos aumenta sua experiência.
+FFFFFF 
+FFFFFF Como participar: procure o guarda do cemitério ao norte
+FFFFFF de Armia (2374,2097).
+FFFFFF Nível: 40 ~ 115
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Caixa da Sabedoria (não permite drop ou troca).
+FFFFFF Use a caixa para receber experiência.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Conquistar Castelo dos Orc`s >>
+FFFFFF Ei .. Jovem... Já ouviu sobre os Orcs ?
+FFFFFF Hahahaha nem sabe o que são?
+FFFFFF Orc`s são criaturas malignas que vivem num castelo
+FFFFFF vazio entre a Armia e Azran. Eles assaltam as pessoas
+FFFFFF inocentes que passam por lá, eles querem dinheiro
+FFFFFF dos viajantes e a carne deles. E o chefe o Lorde Orc
+FFFFFF usa um "remédio negro" que o deixa mais poderoso
+FFFFFF para invadir a nossa vila. Muitos cavaleiros
+FFFFFF tentaram defender a vila mas nenhum conseguiu.  
+FFFFFF Se você conseguir derrotar o Lorde Orc e obter
+FFFFFF o remedio negro, todo o poder dele será seu.
+FFFFFF Então? Você tem a coragem necessária para
+FFFFFF livrar-nos do mal?
+FFFFFF Derrote o Orc que está frente ao castelo
+AAFFFF dos Orcs e pegue a chave para entrar.
+AAFFFF Localização: 2476  2130
+FFAAFF Limite de nível: Não há.
+FFAAFF Recompensa: Remédio negro (uso único)
+FFAAAA Efeito: +9 pontos de Skill
+FFFFFF <<Defesa da Terra Misteriosa>>
+FFFFFF 
+FFFFFF Os mineradores de Azran encontraram gemas misteriosas.
+FFFFFF A notícia atraiu monstros, e os mineradores pediram ajuda.
+FFFFFF O líder dos cavaleiros procura mercenários para defendê-los.
+FFFFFF 
+FFFFFF Como participar: em grupo, procure o Líder dos Cavaleiros
+FFFFFF ao sul de Azran (2446,1719).
+FFFFFF Procure o General Minerador na Terra Misteriosa (2400,1599).
+FFFFFF Nível: sem restrição.
+FFFFFF 
+FFFFFF Recompensa: Amuleto de Prata, de Ouro ou Místico.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Benção do Deus >>
+FFFFFF Jovem... Já ouviu a última notícia? Kuruno, que é um dos
+FFFFFF sacerdotes da catedral da Armia, estava levando o
+FFFFFF "Pedaço da salvação", uma das reliquias
+FFFFFF da catedral, para a catedral de Azran, mas no
+FFFFFF meio do caminho foi atacado por monstros e acabou perdendo
+FFFFFF a relíquia. Será que vc tem coragem para recuperar
+FFFFFF o tesouro perdido? Se conseguir levar isso ao
+FFFFFF sacerdote Kuruno, você poderá receber dele um 
+FFFFFF "Composto da Salvação" que possui a proteção
+FFFFFF dos deuses. Isso é urgente. Vá ao Norte de
+FFFFFF Armia até o fim e procure pelo Sacerdote Jester.
+FFFFFF
+AAFFFF Localização: 2625  1984
+FFAAFF Recompensa: Pedaço de salvação
+AAFFFF Leve o pedaço de salvação ao Kuruno.
+AAFFFF Localização: 2663  1970
+FFAAFF Recompensa: Composto de salvação
+FFAAAA Efeito: Skill mastering volta 50.
+FFAAFF Limite de nível: 70 ~ 75
+FFFFFF <<Caminho para a Cavalaria>>
+FFFFFF 
+FFFFFF Treine para se tornar escudeiro no campo de Azran.
+FFFFFF Após concluir o treinamento, receba o manto de escudeiro.
+FFFFFF 
+FFFFFF Como participar: procure o Guia (2246,1596).
+FFFFFF Nível: 101 ~ 150
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Emblema de Aprendiz (não permite drop ou troca).
+FFFFFF Equipe o emblema e procure o Líder do Esquadrão (2232,1568).
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Jardim Sagrado>>
+FFFFFF 
+FFFFFF O jardim sagrado de Azran foi abandonado durante a guerra.
+FFFFFF Agora os monstros o ameaçam. Ajude a defender o jardim.
+FFFFFF 
+FFFFFF Como participar: procure o Jardineiro ao sul de Azran
+FFFFFF (2220,1714).
+FFFFFF Nível: 116 ~ 190
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Lágrimas de Anjo (não permite drop ou troca).
+FFFFFF Use as lágrimas para receber experiência.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFAA << Equilibrio de força >>
+FFFFFF Ei Cavaleiro em treino... Não quer me ajudar?
+FFFFFF Sou o sacerdote da catedral Achro que lutava
+FFFFFF pelo equilibrio dos dois reinos de Akelonia
+FFFFFF Hekalotia. Recebemos informações de ataques
+FFFFFF de monstros e agora a catedral está em
+FFFFFF grande perigo. A única sobrevivente se chama
+FFFFFF Amerlia... ela está sozinha defendo a catedral...
+FFFFFF se ela perder a vida, o equilíbrio dos dois reinos
+FFFFFF irá ruir, gerando guerras sangrentas. Por favor,
+FFFFFF para a salvação dos dois reinos, ajude Amerlia 
+FFFFFF e defenda a catedral Archro.
+AAFFFF Procure pelo guarda ao Sul do Azran.
+AAFFFF Localização: 1969  1578
+FFAAFF Limite de nível: 120 ~ 125
+FFAAFF Recompensa: Pedaço de equilíbrio
+AAFFFF Procure a Amerlia com Pedaço de Equilíbrio.
+AAFFFF Localização:  1973  1579
+FFAAFF Recompensa: Composto de equilíbrio
+FFAAAA Efeito: Skill Mastering 100 de volta
+FFFFFF <<Retorno do Cavaleiro Negro>>
+FFFFFF 
+FFFFFF Kaizen, herói de uma guerra antiga, foi sepultado na dungeon.
+FFFFFF Um Invocador de Esqueletos o trouxe de volta como Cavaleiro
+FFFFFF da Morte, ameaçando Armia. Derrote essa ameaça.
+FFFFFF 
+FFFFFF Como participar: procure o Batedor no nível 1 da dungeon
+FFFFFF (454,3912).
+FFFFFF Nível: 191 ~ 265
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Coração de Kaizen (não permite drop ou troca).
+FFFFFF Use o coração para receber experiência.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Dente de Gárgula>>
+FFFFFF 
+FFFFFF Procure o dente raro de uma gárgula para melhorar
+FFFFFF seus equipamentos.
+FFFFFF 
+FFFFFF Como participar: procure o Batedor no nível 2 da dungeon
+FFFFFF (787,4058).
+FFFFFF Nível: 201 ~ 205
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Molar de Gárgula (não permite drop ou troca).
+FFFFFF Refina todos os equipamentos vestidos até o grau 4.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Cavaleiro do Reino>>
+FFFFFF 
+FFFFFF Escolha sua lealdade: Hekaloth ou Akelonia.
+FFFFFF Junte-se aos cavaleiros de um dos reinos.
+FFFFFF 
+FFFFFF Como participar: procure os guardas dos reis.
+FFFFFF Nível: 220 ~ 250
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Emblema do Reino (não permite drop ou troca).
+FFFFFF Equipe o emblema e aproxime-se do rei escolhido.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Imortalidade da Hidra>>
+FFFFFF 
+FFFFFF Medusa deixou o pântano ao norte de Armia e foi à dungeon.
+FFFFFF Procure o olho de sangue da Medusa Dourada.
+FFFFFF 
+FFFFFF Como participar: procure o Batedor no nível 1 da dungeon
+FFFFFF (667,3767).
+FFFFFF Nível: 266 ~ 320
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Olho de Sangue (não permite drop ou troca).
+FFFFFF Use o olho para receber experiência.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF <<Início da Infelicidade>>
+FFFFFF 
+FFFFFF Durante a guerra de Armia, os humanos perseguiram monstros
+FFFFFF imortais até o Portão do Inferno. Os Caçadores Sombrios
+FFFFFF voltaram em busca de vingança.
+FFFFFF 
+FFFFFF Como participar: procure o guarda do Portão do Inferno
+FFFFFF no nível 1 da dungeon (1300,4036).
+FFFFFF Nível: 321 ~ 350
+FFFFFF A quest reinicia a cada 10 minutos.
+FFFFFF 
+FFFFFF Recompensa: Pedra do Espírito Élfico (não permite drop ou troca).
+FFFFFF Use a pedra para receber experiência.
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 
+FFFFFF 

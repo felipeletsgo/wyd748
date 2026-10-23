@@ -4,7 +4,7 @@ param([switch]$Check)
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 $repo = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
-$manifestPath = Join-Path $repo 'tmproject/client748/Costumes-KR.json'
+$manifestPath = Join-Path $repo 'tools/client-assets/inputs/Costumes-KR.json'
 $headerPath = Join-Path $repo 'tmproject/TMProject748/internal/render/mesh/CostumeTable.generated.h'
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 $items = @($manifest.items | Where-Object available | Sort-Object item)
@@ -24,7 +24,7 @@ function ConvertTo-CppString([string]$Value, [int]$Capacity) {
 
 $lines = [Collections.Generic.List[string]]::new()
 $lines.Add('#pragma once')
-$lines.Add('// Generated from tmproject/client748/Costumes-KR.json by tools/client-assets/Export-CostumeTable.ps1.')
+$lines.Add('// Generated from tools/client-assets/inputs/Costumes-KR.json by tools/client-assets/Export-CostumeTable.ps1.')
 $lines.Add('// Validated 7.48 data; renderer IDs are not the upstream TMProject switch IDs.')
 $lines.Add('namespace costume748 {')
 $lines.Add('struct Item { int index; int maleType; int femaleType; int skin; };')

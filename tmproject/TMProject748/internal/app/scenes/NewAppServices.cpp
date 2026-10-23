@@ -20,7 +20,7 @@ void NewApp::MixHelp()
 {
 	memset(g_pItemMixHelp, 0, sizeof(g_pItemMixHelp));
 	char szItemHelpFile[128];
-	sprintf(szItemHelpFile, MixHelp_Path);
+	sprintf_s(szItemHelpFile, "%s", WYD748_TextPath(MixHelp_Path).c_str());
 
 	FILE* fp = nullptr;
 	fopen_s(&fp, szItemHelpFile, "rt");

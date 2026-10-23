@@ -1077,6 +1077,9 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		return
 	}
 	if quest := w.questForNPC(m.Def); quest != nil {
+		if w.handleKibitaSoul(s, p, m, quest) {
+			return
+		}
 		w.onQuestInteraction(s, p, m, quest, clickOk)
 		return
 	}

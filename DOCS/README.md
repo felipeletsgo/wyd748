@@ -20,12 +20,15 @@ documentation, research evidence, and continuity records.
 | Use or extend the staff panel: sanctions, notices, maintenance, audit and the next work packages | [Staff operations](server/staff-operations.md) and [staff panel roadmap](server/admin-panel-roadmap.md) |
 | Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
 | Review Rune Track rooms +0 through +6 and their independent event monsters | [Rune Track](server/rune-track.md) |
+| Check Kibita's Mortal Soul exchanges and official server evidence | [Kibita Mortal Soul](server/kibita-soul.md) |
 | Compare the supplied server 7.59 decompilation with current Go systems | [Server 7.59 map and gap analysis](server/server-759-gap-analysis.md) |
 | Set up Windows development | [Windows environment](windows-development-environment.md) |
 | Start the server for the first time | [Root README](../README.md#quick-start-on-windows) |
 | Operate the database, accounts, panel, network, and backups | [Server operations](server/operations.md) |
 | Publish the public player portal and isolate its VPS services | [Public portal and native VPS deployment](server/public-launch.md) |
 | Publish client updates through the launcher | [WYD launcher and client patches](client/launcher.md) |
+| Plan Brazilian Portuguese and English channels with one bilingual client | [Bilingual channels plan](bilingual-channels-plan.md) |
+| Maintain shared EN/PT resources and the launcher language preference | [Multilingual client](client/multilingual-client.md) |
 | Build and validate the server and client | [Build and integration](build-and-integration.md) |
 | Understand the attribute contract | [Score](SCORE.md) |
 | Check server state | [Server operations](server/operations.md) and code/tests in `wydgo748/` |

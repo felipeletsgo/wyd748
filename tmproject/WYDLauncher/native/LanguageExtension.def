@@ -1,0 +1,3 @@
+LIBRARY WYDLauncherLanguage
+EXPORTS
+    InitializeClientLanguage=_InitializeClientLanguage@0
