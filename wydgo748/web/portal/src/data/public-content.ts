@@ -3,9 +3,9 @@
 export const clientRelease = {
   version: 1,
   clientVersion: '7.48',
-  patchVersion: 10043,
+  patchVersion: 10044,
   publishedAt: '2026-10-23',
-  serverUpdate: { id: 'mandatory-update-sizes-10043', publishedAt: '2026-10-23' },
+  serverUpdate: { id: 'ankh-growth-camera-10044', publishedAt: '2026-10-23' },
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -14,10 +14,10 @@ export const clientRelease = {
     sha256: null,
   },
   patch: {
-    url: '/patch/patch-10043.zip',
-    sizeBytes: 913376,
-    sha256: '98F54183D7361484026CE8F4213568886FC76D0549E24A7A96980E1AE16C2FFD',
-    executableSha256: '7FE98A22B51E2EA8864FF31483186866075B648F81C554592218AD523E55DC64',
+    url: '/patch/patch-10044.zip',
+    sizeBytes: 852632,
+    sha256: '5EA50C20CD9455FF37108E933AC0D2A64562C0A608676E47D51097C23A04136D',
+    executableSha256: '53AE596043FDCEE439821E549DC827C556C4CF07E646A2FF584D52957668CEDA',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -27,6 +27,13 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-23', category: 'Client and server', title: 'Patch 10044 — ankh colors, Growth in C.C. and camera zoom', entries: [
+    'Restore the red, blue and green ankh colors in the inventory.',
+    'Let C.C. recast the Transknight Growth buff automatically.',
+    'Allow the camera to zoom in at any CON.',
+    'Required update: the server accepts only client build revision 2.',
+    'Automated checks passed; real-client acceptance remains pending.',
+  ] },
   { date: '2026-10-23', category: 'Client and server', title: 'Patch 10043 — required update, creature sizes and fairy fixes', entries: [
     'Require the current client: older clients are asked to update through the launcher before logging in.',
     'Cap monster size, including bosses, and keep summons and the mount hatchling at their normal size.',
