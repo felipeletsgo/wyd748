@@ -71,8 +71,9 @@ rules live only in the root `AGENTS.md`.
   for the correct mode; Lindy head 67 requires `(13,13)`; Compositor head 54
   requires `(19,13)`; Odin head 67 + Merchant 8 requires `(25,13)`.
 - Send the text message before `0x3A7`: `0` invalid, `1` success, `2` failure.
-- Player-facing text must be in English and consistent with the contract on
-  both sides.
+- Player-facing text must use the selected EN/PT locale on both sides.
+  Use English fallback when a translation is unavailable. Keep protocol result
+  values unchanged.
 - Transactional flow: validate snapshot/recipe, copy state, mutate, persist,
   synchronize items/score, then send message/result. Restore all fields on
   error.

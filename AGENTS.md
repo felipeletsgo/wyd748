@@ -1,277 +1,211 @@
-# WYD-Go — repository rules
+# WYD-Go repository rules
 
-This is the repository's only active rule file. Do not create another
-`AGENTS.md`, `CLAUDE.md`, or equivalent inside a source tree. The root
-`CLAUDE.md` only imports this file for Claude Code and must hold no rules
-([agent environments](DOCS/agent-environments.md)). Archived rules are
-documentation, not active instructions.
+This is the only active repository rule file.
+Keep the root `CLAUDE.md` as an import of this file.
+Do not add rule files inside source trees.
+Treat archived instructions as historical documentation.
+Keep procedures and examples in linked documents or skills.
+See [agent environments](DOCS/agent-environments.md) for examples and writing guidance.
 
-## Project language
+## Language and writing
 
-English is the sole language of this global WYD project and its global client.
-This applies to the entire active repository, not only player-facing UI:
-client and server content, the staff panel, documentation, diagnostics, logs,
-comments, tests, scripts, rules, skills, research, handoffs, and release
-material must be in English. Do not add Portuguese text. Translate existing
-Portuguese text in every file being changed; track untouched legacy text as
-migration debt and remove it until the repository is fully in English. Preserve
-protocol bytes, resource IDs, persisted values, and established identifiers
-when translation would break compatibility. Never claim a partial translation
-is complete.
+- Write identifiers and engineering prose in English.
+- Use ASD-STE100 writing rules and approved vocabulary for English engineering prose.
+  Use consistent software technical names and verbs.
+  Use active voice and imperative verbs for instructions.
+  Write one instruction per sentence.
+  Limit instruction sentences to 20 words and descriptive sentences to 25 words.
+  Use one term for each meaning.
+  Check changed prose. Record unreviewed legacy sections.
+- Support English (`EN`) and Brazilian Portuguese (`PT`) in changed product content.
+  Preserve the multilingual client and shared assets.
+  Do not treat supported Portuguese as migration debt or a release blocker.
+- Use locale resources and the existing language selection mechanism.
+  Use English when a translation is unavailable.
+  Do not select a channel or citizenship from the language preference.
+- Translate legacy engineering prose only in changed sections.
+  Do not translate an entire file for a localized change.
+- Preserve protocol bytes, resource IDs, persisted values, and established identifiers.
+  Review compatibility before translating contract values.
+  Test affected contracts.
+- Check changed locale keys, encoding, placeholders, layout, fallback, and language selection.
+  Report actual locale coverage. Do not claim a partial translation is complete.
 
-English is a delivery requirement, not a localization option. Before closing a
-change, inspect all authored text in affected files, including user-visible
-text, errors, logs, comments, tests, examples, and documentation. Do not ship
-new Portuguese text or use remaining migration debt to justify it. Translate
-an existing contract-bearing value only with an explicit compatibility review
-and the affected tests. Completion of the language migration requires an
-active-repository audit, not merely an English UI or an updated rule.
-Do not declare a global client/server release ready while any known Portuguese
-player-facing text remains. A migration record is not a release exception.
+## Architecture and ownership
 
-## Active architecture
+- Keep only two active source roots: `tmproject/` and `wydgo748/`.
+- Keep the C++ client in `tmproject/` and runtime assets in `tmproject/client748/`.
+  Treat TMProject 7.69 as secondary evidence, not 7.48 contract proof.
+- Keep authoritative game state in the Go server under `wydgo748/`.
+  Validate client intentions on the server.
+  Define versioned, testable contracts on both sides.
+- Build the server as a native executable.
+  Run it from `wydgo748/`.
+  Use Docker, Railway, or external deployment manifests only when the user requests them.
+- Keep durable documentation in `DOCS/`.
+  Use [the documentation entry point](DOCS/README.md) and [inventory](DOCS/documentation-map.md).
+- Keep skills in `.agents/skills/`, evidence in `.agents/research/`, and continuity records in `.agents/handoffs/`.
+- Keep native server REA work in `references/decompilacao server/dlls/rea-analysis/`.
+  Read its `README.md` first for native server functions or logic.
+  Reuse matching evidence before new queries.
+- Keep `references/` local-only.
+  Preserve original binaries and third-party sources.
+  Update derived research within the authorized scope.
+  Do not deliver or patch historical binaries.
 
-- `tmproject/` is the C++ client. `TMProject748/` contains source based on
-  TMProject 7.69; `tmproject/client748/` contains the 7.48 runtime and assets.
-- `wydgo748/` is the authoritative Go server, with `go.mod` as its module root.
-  The client sends intentions and receives validated state; it is never the
-  source of truth for game state.
-- Build and run the server as a native process from `wydgo748/`. Docker,
-  Railway, and external deployment manifests are outside the product
-  architecture unless explicitly requested.
-- `DOCS/` holds durable documentation. Entry point and inventory:
-  [`DOCS/README.md`](DOCS/README.md) and
-  [`DOCS/documentation-map.md`](DOCS/documentation-map.md).
-- `.agents/skills/` holds working skills. `.agents/research/` and
-  `.agents/handoffs/` hold evidence and continuity records, not runtime.
-- `references/` is a local-only, Git-ignored research collection. Its historical
-  binaries, client variants, and third-party sources are read-only evidence,
-  not project deliverables. `tools/repository/` holds layout validators.
+## Evidence and compatibility
 
-The client/server contract must be explicit, versioned, and testable on both
-sides. TMProject 7.69 does not prove that an address, layout, asset, opcode,
-or behavior belongs to 7.48.
+- Classify each functional change once:
+  - `PARIDADE_NATIVA`: behavior proven through the native 7.48 client contract.
+  - `MODERNIZACAO_COMPATIVEL`: internal improvement that preserves the 7.48 contract.
+  - `EXTENSAO_COORDENADA`: a new contract implemented in client and server.
+- Use native 7.48 binary and Ghidra evidence before adapting legacy client boundaries or claiming parity.
+  Reuse records for unchanged inputs and contracts.
+- Validate historical data, formulas, and behavior independently through the 7.48 contract.
+  Record runtime observations or reproducible tests.
+  External legacy projects alone do not prove parity.
+- Study the legacy boundaries crossed by a coordinated extension.
+  Do not require native equivalents for new behavior.
+- Do not require new research for internal changes that preserve legacy client boundaries.
+- Keep catalog states distinct.
+  Catalog entries do not prove understanding.
+  Require actual execution in the built client for `CLIENT_TESTED`.
 
-## Version and evidence
+## Work process
 
-Classify each functional delta once. Documentation, organization, and tooling
-without a contract change need no native evidence record:
-
-- `PARIDADE_NATIVA`: behavior proven in the native 7.48 client;
-- `MODERNIZACAO_COMPATIVEL`: internal improvement preserving the 7.48 contract;
-- `EXTENSAO_COORDENADA`: new contract implemented in client and server.
-
-Before adapting a legacy client boundary or claiming parity, use evidence from
-the native 7.48 binary and Ghidra. Reuse proven records when they cover the
-current contract and inputs; investigate only the gap. Contract-preserving
-internal modernization does not require new native research. A coordinated
-extension requires a new contract and study of the legacy boundaries it
-crosses, not a native equivalent for the new feature. Internal server,
-documentation, and build changes that do not change those boundaries do not
-trigger Ghidra work. TMProject 7.69 is a secondary architecture/algorithm
-reference. External legacy projects are not parity authority on their own.
-Historically sourced data, formulas, or behaviors may count as
-`PARIDADE_NATIVA` only after independent, recorded validation in the real 7.48
-client/runtime or reproducible tests exercising the 7.48 contract. That 7.48
-validation, not historical origin, is the evidence. Do not reopen Ghidra for
-identical behavior already validated with unchanged inputs and contract.
-
-The catalog states are `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`,
-`IMPLEMENTED`, and `CLIENT_TESTED`. A cataloged function is not necessarily
-understood. `CLIENT_TESTED` requires actual execution in the built client;
-builds, static checks, and isolated tests do not substitute for it.
-
-## Implementation
-
-1. Before nontrivial technical work, read the applicable `.agents/skills/`
-   skill, check this file, `git status --short`, and `HEAD`, and preserve
-   other people's changes.
-2. For a legacy client boundary, follow
-   `catalog -> call graph -> observable flow -> adaptation -> validation`.
-   Do not blindly port 7.69 pseudocode.
-3. For cross-project features, define packet/state, authoritative validation,
-   failures, and lifecycle before connecting UI or effects.
-4. Implement active client changes in source and assets. Historical binaries
-   in the local-only `references/` collection are evidence only, never
-   implementation patches.
-5. Use small cycles: focused patch, focused test, next patch. Do not refactor
-   unrelated code.
-6. Do not delete or replace existing code/assets merely because native 7.48
-   lacks them. First demonstrate incompatibility in wire, ABI, resource,
-   lifecycle, or actual flow.
-7. A requested native behavior is not permission to invent missing recipes,
-   probabilities, timers, rewards, or descriptive text. Separate proven 7.48
-   behavior, secondary-source algorithms, and explicit project choices. Ask
-   only for a missing choice that changes the outcome; do not silently use a
-   later version's defaults.
+1. Read the applicable skill before nontrivial work.
+   Check these rules, `git status --short`, `HEAD`, and the scoped diff once.
+   Preserve existing changes.
+   Read handoffs only for continuations. The current tree takes precedence.
+2. For a legacy client boundary, use `catalog -> call graph -> observable flow -> adaptation -> validation`.
+   Do not port later-version pseudocode without evidence.
+3. Define packets, state, server validation, failures, and lifecycle before connecting UI or effects across projects.
+4. Implement active client changes in source and assets.
+   Make focused changes. Run focused tests.
+   Do not refactor unrelated code.
+5. Prove wire, ABI, resource, lifecycle, or flow incompatibility before removing existing code or assets for parity.
+6. Separate proven behavior, secondary algorithms, and product choices.
+   Do not invent missing recipes, probabilities, timers, rewards, or descriptive text.
+   Ask only for a missing choice that changes the outcome.
+7. Reuse valid reads, evidence, and tests across patches and context compaction.
+   Repeat only for changed inputs, failures, insufficient coverage, or integration requirements.
+   Do not rehash unchanged evidence at task entry.
+8. After two attempts without new evidence, change the method or report the blockage.
+   Correct the input or environment before repeating a failed command.
+   Do not treat a previous failure as approval.
+9. Complete supported work. Record independent gaps without blocking unrelated safe changes.
+   Update existing records for changed decisions or results.
+   Do not create a handoff for each patch.
+   Do not copy logs into source.
+10. Preserve full failure diagnostics in permitted output locations.
+    Report bounded excerpts, exit status, and the causal error.
+    Do not infer success from exit status, empty test selections, or file existence alone.
 
 ## Scope and delivery
 
-- Diagnose/review requests authorize inspection, not implementation or
-  deployment. A correction does not automatically authorize publication,
-  disconnection, restart, commit, push, or security changes. Follow the user's
-  explicit scope, including client-only and no-restart restrictions.
-- Separate source changes, built candidate, installed local runtime,
-  published patch, active VPS release, and actual gameplay evidence. Identify
-  the relevant executable path and SHA-256 plus resource/server dependencies;
-  a successful build does not prove the launcher or player used that build.
-- For a repeated report after a patch, check artifact/version and the original
-  reproduction before repeating the same fix. For replicated state or visuals,
-  cover owner and observers, initial creation and incremental update, removal,
-  scene change, and relogin where applicable.
-- Summarize delivery per issue as implemented, validated, published, or
-  pending. A successful deployment does not close unrelated gameplay gaps.
-  User-reported reproduction is evidence for that scenario, not blanket
-  `CLIENT_TESTED` coverage.
-- Every published client patch is a mandatory update. In the commit that
-  carries its client changes, raise `client_build::Revision`
-  (`tmproject/TMProject748/internal/wire/ClientBuildContract.h`) and
-  `MinimumClientBuildRevision` (`wydgo748/internal/wire/client_build.go`)
-  together to one more than the last published revision. Publish and verify
-  the patch first, then activate the server release that requires it. Never
-  lower, reuse or disable the gate
-  ([client build admission](DOCS/login-dispatch.md)). Only an owner-requested
-  full-client reset may restart numbering, and only with a new build prefix
-  that every published identity fails (release line 7.48 began at 7.48.001).
-- Use `wyd-release` for publication/restart and SSH deployment diagnosis.
-  Recover the established account/host/key from deployment configuration or
-  receipts before connecting. Do not guess accounts or replace credentials,
-  disable host verification, or change firewalls to work around a refusal.
+- Treat diagnosis and review requests as inspection only.
+  A correction request does not authorize publication, disconnection, restart, commit, push, or security changes.
+  Obey client-only and no-restart restrictions.
+- Distinguish source, built candidates, installed runtimes, published patches, active VPS releases, and gameplay evidence.
+  Record executable paths, SHA-256 values, and resource or server dependencies.
+  A build does not identify the player's executable.
+- Verify artifact, version, and original reproduction before repeating a fix.
+- Check replicated state for owners and observers where applicable.
+  Cover creation, incremental updates, removal, scene changes, and relogin.
+- Report each issue as implemented, validated, published, or pending.
+  Limit user validation to the observed scenario.
+  Do not close unrelated gaps after a successful deployment.
+- Use `wyd-release` for publication, restart, and SSH deployment diagnosis.
+  Recover the account, host, and key from established configuration or receipts.
+  Do not guess accounts.
+  Do not replace credentials to bypass a refusal.
+  Do not disable host verification.
+  Do not change firewalls to bypass a refusal.
 
-## Avoid repeated work
+## Mandatory client updates
 
-- Enter each task once: applicable rules/skills, status + HEAD + scoped diff,
-  and handoff only for a continuation. Reuse reads from this session; load
-  references only for the current decision.
-- After entry, advance with a patch, focused test, or concrete diagnosis. Do
-  not restart inventories, research, or audits after every patch, skill switch,
-  or context compaction. The current tree overrides a handoff.
-- Reuse evidence with known, still-valid inputs, dependencies, environment,
-  and coverage. Repeat only what a change, insufficient result, or integration
-  gate invalidates. Rehashing an immutable corpus is not a resume ritual;
-  a previous failure is never approval.
-- Research should close the transition needed for the task, not the entire
-  corpus. Implement the cleared batch; record independent gaps without
-  blocking safe work.
-- After two attempts on the same question without new evidence, change
-  hypothesis/method for a concrete reason or report the blockage. Do not
-  repeat a failed command without fixing input/environment or identifying a
-  transient cause. New evidence is progress; duration alone is not a loop.
-- Update an existing record when a decision, validation result, or next step
-  changes. Do not create a handoff per patch or copy logs into source.
-- Preserve full failure diagnostics in the sanctioned output location, but
-  return bounded excerpts with the exit status and causal error. A command
-  returning zero, an empty test selection, or a generated file's mere presence
-  is not proof that the requested operation succeeded.
+- Treat every published client patch as mandatory.
+- Raise `client_build::Revision` in `tmproject/TMProject748/internal/wire/ClientBuildContract.h` with `MinimumClientBuildRevision` in `wydgo748/internal/wire/client_build.go`.
+  Set both to the last published revision plus one in the client change commit.
+- Publish and verify the patch before activating the server release that requires it.
+  Follow [client build admission](DOCS/login-dispatch.md).
+  Never lower, reuse, or disable the gate.
+- Reset numbering only for an owner-requested full-client reset.
+  Use a new build prefix that rejects all previous published identities.
 
-## File organization
+## Files, outputs, and cleanup
 
-- Do not create `.md`, research scripts, dumps, logs, generated binaries, or
-  temporary files inside `tmproject/` or `wydgo748/` unless the product needs
-  them. Documentation belongs in `DOCS/`; agent evidence in `.agents/research/`
-  or `.agents/handoffs/`.
-- Keep only two active source roots: `tmproject/` and `wydgo748/`.
-- Keep builds and local artifacts in the sanctioned ignored build roots below,
-  not arbitrary `bin/` or `obj/` directories. Do not commit generated executables.
-- When moving documentation, fix links and update the central map. Do not
-  duplicate a document.
-
-## Cleanup
-
-Agents must not leave build, test or investigation leftovers in the project.
-
-- Generated output goes only to ignored build roots: the root `build/` for
-  release/patch staging, audits, reports, logs, temporary database clusters
-  and one-off task output (use `build/<task>/`), and `tmproject/build/` for
-  client builds, tests, Ghidra tools and the native research corpus. Build the
-  client through `tmproject/Build-Client.ps1` or the solution, never into
-  `tmproject/TMProject748/build/`. Build Go binaries into the root `build/`
-  using an absolute output path (or into the system temporary directory),
-  never into `wydgo748/build/` or `wydgo748/bin/`.
-- Scratch scripts, dumps, screenshots and downloaded copies belong in the
-  agent's own temporary/scratch directory, never in the repository root,
-  `.tmp/`, a source tree or `.agents/`. Run Python with `-B` (or
-  `PYTHONDONTWRITEBYTECODE=1`) so no `__pycache__` is written.
-- Before closing a task, delete what the task created and no longer needs:
-  staging directories, verification downloads, stopped temporary clusters,
-  candidate executables and remote `/tmp` staging. Durable facts (hashes,
-  sizes, results) go into `DOCS/` or `.agents/`, not kept artifacts.
-- Never delete `references/`, `tmproject/build/tools/`,
-  `tmproject/build/native-research/`, the current incremental build outputs,
-  tracked files, local account/character state, or runtime settings. Resolve
-  exact paths first; do not use broad recursive deletion.
-- If execution policy blocks cleanup, stop that deletion: do not retry through
-  another shell, API, renamed path, or script. Report the exact leftovers and
-  keep the successful delivery distinct from the cleanup limitation.
-- `tools/repository/Test-RepositoryLayout.ps1` fails on ignored files outside
-  the sanctioned locations. A new legitimate generated location must be added
-  to both `.gitignore` and that allowlist, not left as an exception.
+- Keep documentation, research scripts, dumps, logs, and temporary files outside source trees unless required by the product.
+  Fix links after moving documentation.
+  Update the central inventory.
+  Do not duplicate documents.
+  Do not commit generated executables.
+- Use ignored root `build/<task>/` for generated task output.
+  Use `tmproject/build/` for client builds, tests, Ghidra tools, and native research output.
+- Build clients through `tmproject/Build-Client.ps1` or the solution.
+  Do not build into `tmproject/TMProject748/build/`.
+- Build Go executables into root `build/` or system temporary storage, with absolute output paths.
+  Do not use `wydgo748/build/`, `wydgo748/bin/`, or arbitrary `bin/` and `obj/` directories.
+- Keep scratch scripts, dumps, screenshots, and downloads in agent temporary storage.
+  Product crash evidence may remain under `tmproject/client748/dumps/`; keep it ignored and local.
+  Run Python with `-B` or `PYTHONDONTWRITEBYTECODE=1`.
+- Remove task outputs when no longer needed, including remote `/tmp` staging.
+  Keep hashes, sizes, and results in existing records.
+- Never delete `references/`, `tmproject/build/tools/`, or `tmproject/build/native-research/`.
+  Preserve incremental outputs, tracked files, accounts, character state, runtime settings, and needed evidence.
+  Resolve exact paths before deletion.
+  Check each resolved path.
+- Stop cleanup when execution policy blocks it.
+  Do not bypass the block through another shell, API, path, or script.
+  Report exact leftovers separately from delivery results.
+- Add legitimate output locations to `.gitignore` and the layout validator allowlist.
+  Do not leave unexplained exceptions.
 
 ## Skills by scope
+
+Use canonical skills under `.agents/skills/` for procedures.
+Keep `.claude/skills/` as pointers with matching names and descriptions.
+Do not add procedures to those pointers.
 
 | Scope | Skill |
 | --- | --- |
 | Organization, documentation, rules, skills | `repo-architecture` |
 | Server and integrated features | `wydgo748-feature` |
-| Legacy client contracts and behavior | `wyd-client748-research`; add `wydgo748-feature` for server/integrated contracts |
+| Legacy client contracts | `wyd-client748-research`; add `wydgo748-feature` for integrated contracts |
 | Native census and root selection | `wyd-client748-catalog` |
 | Runtime assets and resources | `wyd-client748-assets` |
-| Client patch/server publication, restart, deployment SSH diagnosis | `wyd-release` |
+| Publication, restart, deployment SSH diagnosis | `wyd-release` |
 
-Skills detail procedures; this file holds global rules. Canonical skills live
-in `.agents/skills/`; each `.claude/skills/<name>/SKILL.md` is a Claude Code
-pointer with the same name and description and holds no procedure.
+## Validation
 
-## Proportional validation
+Select checks by risk and affected consumers.
+Use focused tests for functional changes.
+Run integration checks once per affected batch.
+Broaden checks for failures, shared dependencies, or insufficient coverage.
 
-Choose gates by risk and affected consumers, not file count. Pair each logical
-patch with a focused test. Run integration validation once per affected batch
-without repeating still-valid results. Failure, shared dependencies, or weak
-coverage justify a broader gate.
-
-| Change | Required gate |
+| Change | Required checks |
 | --- | --- |
-| Documentation/rules/skills only | Check links/layout once per batch, validate changed skills, and run `git diff --check`. No Go, C++, Ghidra, or runtime. |
-| Script or build/CI | Test the changed path and a relevant failure. Build the product only when its output/dependency resolution changed. |
-| Internal server | Test changed package/flow and consumers. Full Go suite and vet for cross-cutting/integration batches, not every patch. |
-| C++ source | Focused test and incremental affected-target build; integrated build for an executable/project batch. Clean rebuild only for dependency/configuration needs. |
-| Wire/ABI or coordinated feature | Contracts and tests on both sides, including rejections, sizes, and failures; affected builds and an integrated flow before claiming end-to-end functionality. |
-| Persistence/economy/concurrency | Also test applicable rejection, rollback, repetition, and concurrency; use database/race validation when the path needs them. |
-| Assets only | Validate identity, format, IDs, and resource loader; visual client flow. Rebuild only when generation, packaging, or build dependencies changed. |
+| Documentation, rules, skills | Links, layout, changed skills, `git diff --check`. No product build, Ghidra, or runtime. |
+| Scripts, build, CI | Changed path and a relevant failure. Build only for changed output or dependency resolution. |
+| Internal server | Changed flow, package, consumers. Full Go suite and vet for integration or shared components. |
+| C++ source | Focused tests and incremental affected-target build. Integrated build per executable or project batch. |
+| Wire, ABI, coordinated feature | Both contracts, rejection and failure tests, sizes, affected builds, and integrated flow. |
+| Persistence, economy, concurrency | Applicable rejection, rollback, repetition, concurrency, database, and race checks. |
+| Assets | Identity, format, IDs, loader, and visual client flow. Rebuild only for changed generation, packaging, or build dependencies. |
 
-Skipped tests caused by missing fixtures/services do not prove a path. Record
-the pending gate; do not promote validation or rerun the suite hoping the
-prerequisite appears. Broad audits and publication are not automatic after
-ordinary edits.
+- Use clean rebuilds only for dependency or configuration needs.
+- Record skipped checks and missing prerequisites as pending.
+  Do not repeat unchanged checks while prerequisites remain missing.
+- Do not start broad audits or publication after ordinary edits without authorization.
+- Use PowerShell 7 for client build scripts.
+  Pass `-NoDeploy` for build-only validation.
+  Replace `tmproject/client748/WYD.exe` or launch the game only when authorized.
+  Verify the installed executable when deployment is enabled.
+- Report `STATICALLY VERIFIED`, `AUTOMATED TESTED`, and `CLIENT-TESTED` separately.
 
-### Integration commands
+## Git and completion
 
-From the repository root:
-
-```powershell
-Push-Location .\wydgo748
-go test -count=1 ./...
-Pop-Location
-```
-
-To build and install a candidate in the local runtime (overwrites
-`tmproject/client748/WYD.exe`; only when the task includes that validation,
-not for documentation checks):
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\tmproject\Build-Client.ps1
-```
-
-Use PowerShell 7. Pass `-NoDeploy` for build-only validation; do not overwrite
-the runtime or launch the game unless that step is in scope and permitted.
-With deployment enabled, the script must produce/verify
-`tmproject/client748/WYD.exe` without altering historical evidence. Report
-`STATICALLY VERIFIED`, `AUTOMATED TESTED`,
-and `CLIENT-TESTED` separately; a build alone never promotes a state.
-
-## Git and delivery
-
-Work directly on `main`; do not create a branch, worktree, or PR to split the
-mapping. Do not run `git reset --hard`, `git checkout --`, or broad deletion.
-Before deleting anything, resolve exact paths and preserve evidence. At
-completion, report changed and removed files, commands run, and pending gates.
+Work directly on `main`.
+Do not create a branch, worktree, or PR to split the mapping.
+Do not use `git reset --hard`, `git checkout --`, or broad deletion.
+Report changed and removed files, checks run, and pending requirements.

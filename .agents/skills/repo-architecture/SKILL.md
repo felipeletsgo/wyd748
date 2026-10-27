@@ -14,16 +14,24 @@ Use this skill for structural, documentation, or skill-maintenance tasks.
 - `DOCS/`: durable documentation, indexed by `README.md` and
   `documentation-map.md`;
 - `.agents/skills/`: active skills;
-- `.agents/research/` and `.agents/handoffs/`: evidence and continuity records;
+- `.agents/research/` and `.agents/handoffs/`: project evidence and continuity records;
+- `references/decompilacao server/dlls/rea-analysis/`: native server REA work;
 - `CLAUDE.md` and `.claude/`: Claude Code entry points only (an `AGENTS.md`
   import, skill pointers, shared settings); see
   `DOCS/agent-environments.md`.
 
 Do not create `AGENTS.md`, `CLAUDE.md`, a project README, research script,
-dump, log, or temporary file inside the source trees. Never add rules to the
-root `CLAUDE.md` or procedure to `.claude/skills/`. Keep only the two active
-source roots above. Binary evidence belongs in `references/client748/`.
-Follow the repository-wide English-only language rule in `AGENTS.md`.
+dump, log, or temporary file inside the source trees. Product-generated client
+crash evidence may use `tmproject/client748/dumps/`; keep it ignored, local, and
+subject to the retention policy in `DOCS/agent-environments.md`. Never add rules
+to the root `CLAUDE.md` or procedure to `.claude/skills/`. Keep only the two
+active source roots above. Keep native and third-party evidence under
+`references/`; historical client evidence belongs in `references/client748/`.
+Keep native server REA maps, pseudocode, results, tools, and supporting records
+under `references/decompilacao server/dlls/rea-analysis/`. Read its `README.md`
+before researching server functions or logic. Separate static evidence, proven
+runtime behavior, and 7.48 compatibility claims.
+Follow the multilingual product and English engineering rules in `AGENTS.md`.
 
 ## Safe procedure
 
@@ -31,8 +39,9 @@ Follow the repository-wide English-only language rule in `AGENTS.md`.
    inspection when entering this skill. Identify the affected files and users.
 2. Before moving or removing files, search for references with `rg`. Use a
    global inventory only for global reorganization, not a paragraph edit.
-3. Move documentation into one `DOCS/` category and fix links. Keep technical
-   evidence in `.agents/`, without duplicate reports.
+3. Move product documentation into one `DOCS/` category and fix links.
+   Keep project evidence in `.agents/` and native server REA work in its reference directory.
+   Do not duplicate reports.
 4. Remove only verified duplicates, obsolete rules, and generated artifacts,
    after confirming exact paths. Do not delete source, assets, or native
    evidence for convenience.
@@ -49,7 +58,9 @@ paths, and reproducible tests.
 
 Adding, renaming, removing, or redescribing a skill also updates its pointer
 in `.claude/skills/<name>/SKILL.md` (same `name` and `description`, link to
-the canonical file); the layout validator enforces this parity.
+the canonical file). Each canonical skill also keeps
+`.agents/skills/<name>/agents/openai.yaml` with its UI interface fields; the
+layout validator enforces both discovery surfaces.
 
 When creating or revising skills, use the agent's `skill-creator` skill
 (Codex or Claude Code). Validate frontmatter and review triggering, evidence

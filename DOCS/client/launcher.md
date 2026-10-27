@@ -1,5 +1,565 @@
 # WYD launcher and client patches
 
+## Published patch 7.48.009 (2026-10-27)
+
+The revision-8 transport gate rejected the 160-byte categorized catalog before
+Premium Nell could open. Revision **9** delegates validation to the existing
+versioned parser. The regression failed at three dispatcher assertions before
+the correction and passes after it. Wire formats, catalog data, purchases and
+EN/PT shop controls are unchanged (`MODERNIZACAO_COMPATIVEL`).
+
+The Release build and client gates passed (3,177,017 architecture checks,
+281 socket checks, 200 crash checks and 58 launcher checks). The Go wire package
+passes with identity **0x02EC0009** and minimum revision **9**. Portal check
+reports zero errors/warnings/hints; all 91 portal tests pass and the build
+contains 3,299 pages. The new release article includes English and Portuguese.
+
+- Feed: **48009**, mandatory update; sole ZIP entry `WYD.exe`.
+- ZIP: **947,437 bytes**, SHA-256
+  `7A257F2E46A2D83D8A29B09C8C0B24897BA92E1A42ABA62D17C656685305B07D`.
+- Executable: **2,071,552 bytes**, SHA-256
+  `00688A969E0C73CDBF23229E0B78A34CC0142A91755A095A7051F80593759A07`.
+- Server/site archive: **25,953,043 bytes**, SHA-256
+  `BCDE199881EB2FC1DC343A47D06BAFAFC0D6BF1F08D3C8F300E8CC613CB111F0`.
+
+All 7,797 installed payload files and both running executable hashes match the
+package. All 1,157 runtime data files and eleven private settings were preserved.
+After public HTTP/HTTPS patch verification, the owner authorized disconnecting
+three game connections and restarting the game/API. Release
+`/srv/wyd-go/releases/20261027T031959Z` is active; the game/API started at
+03:20:02/03 UTC on 2026-10-27. Three accounts were saved with zero failures and
+the backup succeeded. Both readiness checks return 200; both channels reject
+revision 8 and admit revision 9 to credential validation using nonexistent
+account probes. These probes do not authenticate a real player. The log reader
+retains its prior process; automatic restart counts remain zero.
+
+The public manifest, homepage, download, changelog, News and release article
+advertise 7.48.009. Their HTTP URLs redirect to HTTPS; final responses are 200.
+The launcher feed and ZIP return 200 directly over HTTP and HTTPS. All 3,214
+recorded source inputs remained unchanged after activation. The existing
+thirteen disabled population groups and 169 unresolved staff references persist.
+Rollback is `/srv/wyd-go/releases/20261026T235538Z`. No VPS reboot was performed.
+Source provenance, public verification, active release and cleanup are recorded
+in `.agents/research/release-748009.json`. Real embedded-client opening, closing
+and purchases remain pending.
+
+## Published patch 7.48.008 (2026-10-26)
+
+The official-style embedded Premium Nell and catalog categories are published
+and verified over public HTTP and HTTPS. The owner explicitly authorized
+disconnection and game/API restart. After patch verification, the server
+activated `/srv/wyd-go/releases/20261026T235538Z` at 23:55:41 UTC. This coordinated
+release uses feed **48008**, compiled identity **0x02EC0008** and server minimum
+revision **8**; the old client cannot consume the v4 categorized catalog.
+
+- ZIP: **947,181 bytes**, SHA-256
+  `CA2980EBF0D9F9F5A277510A1CD71CA25B539E7A3010F56C2F7D5B27F656EA69`.
+- Sole entry `WYD.exe`: **2,071,040 bytes**, SHA-256
+  `15C41E8A790C5BEDE9F8EB3F126E67F016556E86405C023F579F41AAF17AD4B2`.
+- Server/site archive: **25,951,944 bytes**, SHA-256
+  `78427F6432C59D041136FFFAE78CD183C9555F5D5DDFE81C3AA790E1132B61D5`.
+  All **7,795** installed files and both running executables match the package.
+  All **1,157** runtime data files and eleven private configuration files were
+  preserved. Rollback: `/srv/wyd-go/releases/20261026T222350Z`.
+
+Backup succeeded; shutdown persisted three accounts with zero failures. Both
+readiness endpoints and public TCP channels passed, with zero automatic
+restarts. The log reader retained its existing process. Both channels reject
+revision 7 with the update requirement and admit revision 8 to credential
+validation in synthetic nonexistent-account probes. These probes do not log
+in a real player. The public site, manifest, News, download page and changelog
+advertise 7.48.008 over HTTP and HTTPS. The pre-existing thirteen disabled
+population groups and 169 unresolved staff content references remain unchanged.
+
+The canonical client gates/build, focused Go wire tests, nine page tests,
+portal check/build and all 91 portal tests passed. The page and category
+controls support EN/PT; the surrounding pre-existing staff editor remains
+English-only. Actual embedded display, focus, close/reopen and purchases remain
+pending client acceptance. The local runtime executable was not replaced.
+Source inputs, hashes and verification are recorded in
+`.agents/research/release-748008.json`. The 3,213 recorded source inputs were
+verified unchanged after activation. Cleanup status and retained paths are
+recorded in that receipt.
+
+## Published patch 7.48.007 (2026-10-26)
+
+The mandatory Premium Nell host correction was published and verified over
+public HTTP and HTTPS before activating
+`/srv/wyd-go/releases/20261026T222350Z` at 22:23:53 UTC. Feed **48007**,
+compiled identity **0x02EC0007**, server minimum revision **7**. The site,
+manifest and release article advertise the same version.
+
+- ZIP: **893,260 bytes**, SHA-256
+  `FF11AA275B35183EB853E05808153002FECA76B9923B60567C0CC461EB5DD292`.
+- Sole entry `WYD.exe`: **2,010,112 bytes**, SHA-256
+  `B4E5540A5F509983716CCC66680E887837729C0808AE78D667DCBE7200F19CE6`.
+- Server/site archive: **25,949,475 bytes**, SHA-256
+  `AC1956BD65727EC29A74563ED66C15D663747472BC7E6EFB062CEB4F560343FB`.
+  All **7,793** installed files matched, including **1,157** runtime data files.
+
+The owner authorized disconnecting the three active game connections and
+restarting the game/API. Backup succeeded; shutdown persisted three accounts
+with zero failures. Both readiness endpoints and TCP channels passed, private
+configuration was preserved and automatic restart counts remained zero. The
+log reader was not restarted. Rollback: `20261026T195612Z`.
+
+Synthetic nonexistent-account probes on both channels reject revision 6 with
+the update requirement and admit revision 7 to credential validation. These
+probes do not authenticate a player or establish gameplay acceptance.
+
+The canonical client gates/build, focused Go wire tests, six page tests and
+portal check/build plus 89 tests passed. An isolated corrected WebView host
+regression was blocked before execution by automatic approval review
+(`blocked by policy`, without a detailed reason). Opening/closing Premium Nell,
+real purchases, focus behavior and both locales remain pending in the updated
+game. See [the correction](../protocol/premium-shop.md#host-navigation-correction--client-748007).
+Exact inputs, verification and cleanup are recorded in
+`.agents/research/release-748007.json`. The local runtime was not replaced.
+Remote temporary files were removed. Automatic approval review blocked local
+cleanup before execution; the receipt lists the three retained staging paths.
+The repository layout check reports preexisting runtime logs, dumps and the
+local client ZIP outside build roots; unrelated artifacts were preserved.
+
+## Published patch 7.48.006 (2026-10-26)
+
+The mandatory patch was published and verified over public HTTP and HTTPS
+before activating `/srv/wyd-go/releases/20261026T195612Z` at 19:56:15 UTC.
+Feed **48006**, compiled identity **0x02EC0006**, server minimum revision **6**.
+The site, manifest and release article advertise the same version.
+
+- ZIP: **892,013 bytes**, SHA-256
+  `E39B127D23CF2FD4A9E20BC1D64040E73BB533F7DE42DD94F4E1D04AE9E3337A`.
+- Sole entry `WYD.exe`: **2,008,576 bytes**, SHA-256
+  `6DAB02915D38F7E25DA4A072FE182B9265CF50E1E22EFA097FF282C02BEB239F`.
+  The page is embedded and the x86 WebView2 loader is linked statically.
+  Eight dependencies from the preceding patch were verified unchanged.
+- Server/site archive: **25,948,478 bytes**, SHA-256
+  `3E325B84B8359A8D8FC199AE640F06FF3E0F500A61A61A37B2334557A3A140F8`.
+  All **7,791** installed files matched, including **1,157** runtime data files.
+
+The owner authorized the game/API restart. Both readiness endpoints and game
+ports passed; private configuration was preserved. Backup succeeded and the
+services had zero automatic restarts. The log reader was not restarted.
+Rollback: `/srv/wyd-go/releases/20261026T064741Z`.
+
+Canonical client gates/build, the full fresh Go suite, vet, focused race tests,
+six page tests, portal check/build and all 89 portal tests passed. The local
+runtime executable later matched the published hash and revision-6 player login
+was observed. These checks do not establish successful Premium Nell gameplay:
+the owner reported web startup failure despite an installed runtime. An isolated
+Win32 reproduction confirmed that the host cancels its own embedded navigation;
+see [the host diagnosis](../protocol/premium-shop.md#published-v3-host-diagnosis-2026-10-26).
+No correction of that defect is included in this published patch.
+
+Exact inputs, publication checks, recovered SSH timeout and diagnostic evidence
+are in `.agents/research/release-748006.json`.
+Remote staging was removed. Automatic approval review rejected local cleanup
+before execution (`blocked by policy`); no alternate deletion was attempted.
+The receipt lists the retained staging, verification and diagnostic paths.
+
+## Published patch 7.48.005 (2026-10-26)
+
+The owner explicitly authorized publication and immediate game/Player API
+restart. The patch was published and verified over public HTTP and HTTPS
+before server activation. The site, manifest and launcher now advertise
+7.48.005. The durable receipt is `.agents/research/release-748005.json`.
+
+The mandatory client uses feed **48005**, compiled identity
+**0x02EC0005** and minimum server revision **5**. The ZIP has nine entries:
+`WYD.exe`, `serverlist.bin`, `sn.bin`, and base/EN/PT copies of `UI/command.txt`
+and `UI/strdef.bin`. Channel endpoints are unchanged. The local runtime
+executable was not replaced.
+
+- Client ZIP: **881,705 bytes**, SHA-256
+  `2D3665651A8C085988852D25A54288A5B049F282A4D0A081A80DB01815BCA7BB`.
+- Client executable: SHA-256
+  `B0ADA8F60BEA7A82A3F3D1F86810959A0FBF2A3685D93A5C28A1F9CEC5B3C476`.
+- Server/site archive: **25,823,040 bytes**, **14,388 entries**, SHA-256
+  `0d478056de94d2183014293e583e6f8ac28bc39279bb54df0af6f3eac7e08436`.
+- Linux game executable: SHA-256
+  `994EDFC21A6E4EEA1EE04910ED13E6962F0729B3DF79A8FEF569234F9D272397`.
+
+Remote inspection verified all **1,157** installed runtime data files and the
+running executables against the packaged inputs. Public HTTP/HTTPS downloads
+matched the ZIP and all nine entry hashes. The runtime data include the owner's
+NPCGener cleanup and the three Perzen services. Live configuration, units and
+private authentication environments retained their previous hashes.
+
+The atomic updater activated `/srv/wyd-go/releases/20261026T061812Z` at
+06:18 UTC (03:18 America/Sao_Paulo). Game PID **1635034** and Player API PID
+**1635046** use the expected new executables. The unchanged log reader retained
+PID **1304661**. Both readiness endpoints and TCP 8281/8282 passed; no automatic
+restarts or new failure diagnostics appeared in the bounded post-start journal.
+Backup succeeded before activation; shutdown reported zero accounts and zero
+failures. Rollback release: `/srv/wyd-go/releases/20261026T051850Z`.
+
+Synthetic login probes on both public game ports verified that revision 4
+receives the update-required message and revision 5 reaches credential
+validation. These used random nonexistent accounts and did not authenticate
+a real player. The 20 disabled channel-2 source groups and 169 unresolved staff
+index references match the previous startup; this release does not resolve
+those existing content gaps.
+
+The full Go suite, `go vet`, 19 locale tests, canonical client build/checks,
+portal check/build and 89 portal tests passed. This is automated validation;
+actual launcher installation, Gryphon travel and Perzen exchanges remain
+pending. Neither automated checks nor protocol probes establish CLIENT_TESTED.
+
+Automatic approval review rejected cleanup of the local staging web trees with
+`blocked by policy`. No deletion was retried. The local deployment staging
+remains preserved. Both remote staging directories were removed by their
+successful publishers. The exact retained paths and the initial, subsequently
+resolved portal-copy race are recorded in the receipt. An initial installed
+inventory aggregate mismatch was a path-ordering difference in the verifier;
+direct comparison found zero differing files.
+
+A separate cleanup attempt for the new local verification files was also
+rejected with `blocked by policy`; no alternative deletion was attempted.
+Retained files are `build/release-748005/public-http.zip`, `public-https.zip`,
+`installed-data-inventory.json` and `verification-inputs.json` in that same
+directory. These local cleanup limits do not affect the verified live release.
+
+## Published patch 7.48.004 (2026-10-25)
+
+The patch was published and verified over public HTTP and HTTPS before matching
+server activation. The owner explicitly superseded the earlier no-disconnection
+instruction and authorized disconnecting the two active sockets. Shutdown
+persisted two accounts with zero failures. Game and Player API were restarted;
+the VPS itself was not rebooted. External access to channel 2 was verified
+after the authorized provider-firewall change described below.
+
+Feed **48004**, compiled identity **0x02EC0004**, minimum server revision **4**.
+This is an `EXTENSAO_COORDENADA`: two listeners share the authoritative actor,
+account reservation and durable state, with channel-local populations and
+one-use migration tickets. Existing 7.48 selector/migration boundary evidence
+is reused; native 7.59 population data does not establish 7.48 gameplay parity.
+Specialized NPC services documented as incomplete remain incomplete.
+
+Source HEAD `40706d99b7715167d7aa4a2c484704f7e91c2c8b` plus the working tree;
+no commit or push. Client built through `tmproject/Build-Client.ps1 -NoDeploy`.
+The local runtime executable and player settings are unchanged. Exact dirty
+input hashes and archive receipts are recorded in
+`.agents/research/channel2-release-748004.json`;
+the patch uses the established explicit working-tree entry allowlist.
+
+- ZIP: `build/patch/patch-48004.zip`, **879,243 bytes**, SHA-256
+  `9C45AF6CB21874F87389976407D016D528BC6FDC8CA8F22F4DD52F54D691C329`.
+- Exactly six entries: `WYD.exe`, `serverlist.bin`, `sn.bin`,
+  `UI/strdef.bin`, `EN/UI/strdef.bin`, `PT/UI/strdef.bin`. Entry names, lengths
+  and SHA-256 values were read back from the ZIP and matched the allowlist.
+- `WYD.exe`: **1,939,456 bytes**, SHA-256
+  `AB06F70B1CDAF6E52B7DA3A6F1156B56B277AD44C0B01669074DED92BE05FD1F`.
+- `serverlist.bin`: **7,040 bytes**, SHA-256
+  `D95A75FF82C8FBB8722C4B7DC0CFE40971D89045D55C28959D561C96BFEF4133`.
+  First group uses `46.224.58.209:8281` and `46.224.58.209:8282`; the default
+  8281 port is implicit in its encoded endpoint.
+- `sn.bin`: **143 bytes**, SHA-256
+  `2CBB82ED4D49BDFCEF1AD1E56B040E7BF709F2B772E393059A6A7F173CA1C165`.
+  Regenerated and verified byte-identical to the existing WYD-Go/Featured
+  group/order table. Channels occupy server-list slots, not separate SN groups.
+- Base/EN messages: **57,860 bytes** each, SHA-256
+  `8F642FF0E04D84A57CA92F1D6534BA0796BB2B8D271C14DFFBEE336B550E5777`.
+  PT: **57,860 bytes**, SHA-256
+  `7E9E17CD4ADC4F5207F0D29DD6A69EEC0162622BDAA72A19C99DAA5E34CDFBDF`.
+  These include the updated NPC service messages; locale selection and English
+  fallback are preserved. All 19 locale tests passed, including checksums,
+  fixed IDs and printf placeholders. Website news remains English fallback;
+  the portal does not yet provide complete Portuguese localization.
+
+Server/site archive: **25,823,918 bytes**, **14,384 entries**, SHA-256
+`6D2D1BB5F69260DFAB1131B89C548BBF2D1DD6AC0B4458BF15FE1C16C93CE12B`.
+The explicit additional-data allowlist contains **409** untracked runtime
+files, all confirmed in the archive. No account snapshots are packaged.
+Linux game executable SHA-256:
+`21023C507470096431F9FF7D42EB8D1F4D303FBCD924461D920799DFB090E06C`;
+Player API: `2680EB1EE7AEE1981BB11B3864C686EEDDC04688C67FBB82D83AF3219E1D65C3`;
+log reader: `16D8A9EA3E01B037EE846747CC4EFCF9853432BBD2A0E68D51BBD66904D2227D`.
+Nine installed runtime configuration/unit files match the staged copies.
+The staged `server.txt` preserves every live setting and changes only the five
+channel keys. Private authentication environments are preserved.
+
+Validation: full Go suite and `go vet ./...` passed; the release-line assertion
+was updated from 7.48.003 and its wire tests rerun successfully. Client gates
+passed **3,176,734** architecture checks, **281** socket checks, **200** crash
+checks and **58** launcher checks. Portal check/build and **89** tests passed.
+Stored database-fixture results were cached, not a new live integration run.
+Actual launcher installation, transfers in both directions, NPC interactions
+and visual confirmation remain pending. The layout validator still reports
+pre-existing runtime logs/archive/dumps outside sanctioned output roots; those
+unrelated files were preserved. An inventory update encountered a Windows
+mapped-file lock; the read-only inventory check reported only those existing
+artifacts. No blocked cleanup was retried.
+
+Activation started **2026-10-25 20:38:53 UTC** (17:38:53 America/Sao_Paulo).
+Active release: `/srv/wyd-go/releases/20261025T203853Z`; rollback reference:
+`/srv/wyd-go/releases/20261024T210842Z`. The active game PID **1539385** and
+Player API PID **1539402** resolve to the new release and their `/proc/.../exe`
+SHA-256 values match the candidates above. Both readiness endpoints passed.
+`game.env` and `player.env` hashes match the pre-activation values exactly.
+At the first resource check the game used **152,903,680 bytes** and had zero
+automatic restarts.
+
+The live feed preserved 48001, 48002 and 48003 and appended 48004. Public HTTP
+and HTTPS downloads matched the ZIP hash and all six entry hashes. The public
+manifest, home, Download, changelog and News route `/news/client-7-48-004/`
+advertise 7.48.004. Both remote `/tmp` staging directories were removed by the
+established activation/publisher scripts.
+
+Production loaded **727** channel-2 template bindings and **6,233** source
+groups. Its initial world summary reported **5,918** generators and **8,989**
+mobs after production event/reservation filtering; this is the observed VPS
+count, not the isolated boot-test count. Channel 1 loaded separately. The
+official generator and population JSON hashes match the local validated inputs.
+The previously documented 21 invalid groups remain disabled, and the staff
+content index reports 169 unresolved references; publication does not resolve
+those content gaps or complete every specialized service.
+
+Both TCP 8281 and 8282 listen in the same game process. UFW permits both ports
+for IPv4 and IPv6. The initial external channel-2 probe timed out. With the
+owner's authenticated Hetzner Console and explicit authorization, the applied
+`forjago-public-services` firewall (11796824) on server 169421488,
+`46.224.58.209`, was inspected: its five inbound rules allowed ICMP and TCP
+22, 80, 443 and 8281. A sixth inbound rule now allows TCP 8282 from Any IPv4
+and Any IPv6. The Console confirmed the rule was added and fully applied;
+the five existing rules and unrestricted outbound policy were preserved.
+No service restart was needed for this change. Public IPv4 channel-2 protocol
+verification passed at **20:47:01 UTC**. IPv6 connectivity was not tested.
+
+Production protocol probes at **20:41:10 UTC** (channel 1, public endpoint) and
+**20:42:48 UTC** (channel 2, loopback on VPS) reject compiled revision 3 with
+the update-required message and admit revision 4 to credential validation,
+which rejects a random nonexistent account. The public channel-2 probe at
+**20:47:01 UTC** confirmed the same behavior after the firewall change.
+These probes authenticate no real
+account and do not prove actual launcher use or successful gameplay transfers.
+Durable input/archive/probe metadata is recorded in
+`.agents/research/channel2-release-748004.json`.
+
+Cleanup of this build's completed crash-test folder was rejected by automatic
+approval review with `blocked by policy`:
+`tmproject/build/tests/Release/crash-capture-tests-18580-85565468`.
+It remains untouched; no alternate cleanup method was attempted.
+
+After the successful provider-firewall verification, automatic execution review
+also rejected the staging cleanup command before execution (`blocked by policy`).
+The remaining paths are `build/deploy/wyd-deploy-20261025-748004/`,
+`build/release-748004/{verify-http.zip,verify-https.zip,sn.bin,server.candidate.txt,server.pre.txt}`
+and `C:/Users/xereca/AppData/Local/Temp/wyd-release-748004-probe.py`.
+No alternate deletion was attempted. The firewall proof image is retained at
+`build/release-748004/hetzner-channel2-firewall.jpg`.
+
+## Published patch 7.48.003 (2026-10-24)
+
+Feed **48003**, compiled identity **0x02EC0003**, minimum server revision **3**.
+The mandatory patch corrects the raster-shrinking regression: only opted-in
+Character/Skill captions receive original-size ellipsis on overflow. Other
+labels and numeric fields preserve their previous rendering. This is
+`MODERNIZACAO_COMPATIVEL`; existing native boundary evidence is reused.
+
+Source HEAD `40706d99b7715167d7aa4a2c484704f7e91c2c8b` plus the explicitly
+selected working-tree inputs below; no commit or push. Built through
+`tmproject/Build-Client.ps1 -NoDeploy` into
+`tmproject/build/TMProject748/Release/WYD.exe`. The ZIP uses the established
+working-tree executable allowlist, rather than misrepresenting a committed
+resource diff. No local runtime installation occurred.
+
+- ZIP: **862,788 bytes**, SHA-256
+  `492DC2A390DEA1EBFB93CE52FF9F5A579F6D896EE4D72223CBAFEACF82741CAC`.
+- Only entry: `WYD.exe`, **1,938,944 bytes**, SHA-256
+  `882F11E6CBA65E6B290DA0C8DF7920485982F5A9F1E49005D31823D76881BBE6`.
+- No assets, launcher executable/DLL, account data, `config.txt`,
+  `ClientSettings.txt` or `lang.txt` are included. Both language trees and
+  shared assets retain the 7.48.001 baseline plus 48002 resource corrections.
+
+Fresh HTTP and HTTPS downloads matched the ZIP and executable hashes before
+server activation. Both public feeds preserved 48001 and 48002 and appended
+`48003 patch-48003.zip`. The live manifest matches these hashes and sizes;
+home, Download, changelog and the [announcement](https://wyd.forjago.com/news/client-7-48-003/)
+returned 200 and advertised 7.48.003 after activation. The native launcher and
+its language extension remain unchanged; full-client baseline remains 7.48.001.
+The owner's multilingual policy now explicitly supports EN/PT product content
+while keeping engineering instructions and documentation in English.
+
+Server/site archive: **25,434,568 bytes**, SHA-256
+`4A6463A663B8AF0B5AD0231E649AA68F63A73176C855F76E16EE5321FEDF7E6D`.
+Its 13,971 entries were inspected; private state/settings are excluded.
+Release `/srv/wyd-go/releases/20261024T210842Z` activated at 21:08:45 UTC.
+Game and Player API were restarted; the unchanged log-reader process continues
+from the previous release with the same executable hash as the new archive.
+Both readiness checks passed, services are active and no error-priority
+Game/API journal entries appeared. Configuration and private environment
+identities were preserved. Backup/rollback and actual process hashes are in
+[current state](../current-state.md#release-748003--2026-10-24-published-and-activated).
+Remote deployment staging was removed; no host reboot occurred.
+
+At 21:11:04 UTC, production probes rejected `0x02EC0002` with the update-required
+message before authentication and admitted `0x02EC0003` to credential validation
+with the expected invalid-credentials response for a random nonexistent account.
+No real account or character was authenticated. Actual launcher installation,
+game rendering, title usability and gameplay remain pending, not `CLIENT_TESTED`.
+The installed local runtime remains 7.48.002 with SHA-256
+`80CA48E77A8F83535401B7FE1415E33C9DE873E04F55C0313C844DF7B6A66209`.
+
+Validation passed: 3,179,319 client architecture checks/static assertions,
+281 socket, 200 crash and 58 launcher checks; full Go suite and vet; portal
+check/build and all 89 tests. PostgreSQL fixture and race coverage were not
+run. This does not establish complete server or website localization.
+Repository layout validation still reports preserved pre-existing runtime
+artifacts outside build roots, all excluded from the archive. Automatic
+execution review rejected deletion of
+`tmproject/build/tests/Release/crash-capture-tests-1516-9365828/`; no alternate
+cleanup was attempted. The two Python environments lack PyYAML, so skill
+validation could not execute; unchanged metadata and policy edits were
+reviewed manually.
+
+<details>
+<summary>Selected dirty build inputs at packaging time</summary>
+
+All other build inputs come from the stated HEAD. These selected inputs include
+previously published changes needed to reproduce the current working tree;
+the client ZIP itself contains only the executable above.
+
+| Input | SHA-256 |
+| --- | --- |
+| `tmproject/client748/EN/UI/command.txt` | `FC07616C20FAF3E76CCB84CC6F06AA89255A1D89065DDD052B57B7FAD0E9C683` |
+| `tmproject/client748/PT/UI/command.txt` | `722855F8D4A87EC7F7D6385C533ACD13F531CE6DA5A61606B7F3BD35C814D2BB` |
+| `tmproject/client748/UI/command.txt` | `FC07616C20FAF3E76CCB84CC6F06AA89255A1D89065DDD052B57B7FAD0E9C683` |
+| `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp` | `D7C219AB851B8CF85B63104B9671C53B0210278600CEAD720B8BE431A54305C5` |
+| `tmproject/TMProject748/internal/app/scenes/TMFieldSceneUI.cpp` | `36FBEA44200E5E4842327A1FD6353F07467593257E2A2523292DCCBFF4A52CC5` |
+| `tmproject/TMProject748/internal/app/scenes/TMScene.h` | `592F97CA521EC72F2854C7C35BB6ED3163A3E68262CA31B854F60A5FC122E9EA` |
+| `tmproject/TMProject748/internal/app/scenes/TMSceneResources.cpp` | `1768DAD4D1DB0A616E94EEED3BE1F664FA1E01DB4C7AA7160D5396596EC687C3` |
+| `tmproject/TMProject748/internal/application/FieldChatSubmitPolicy.h` | `3751E4C5044E10AE05420AD18A368DC2FF90109FD859833C7BDCFF427CBDB455` |
+| `tmproject/TMProject748/internal/core/QuestSubjectLevel.h` | `1A72F1002CBAA6346645B4E9518C1F83F34F5339C70CC3C9F1C7EE5F14BBB5A0` |
+| `tmproject/TMProject748/internal/platform/windows/FontGdiResources.h` | `DADB506F2997DF7603928053432C6738CC256E62F44046BADE04F9AF5DE50179` |
+| `tmproject/TMProject748/internal/platform/windows/ResourceTextGdi.h` | `1EAB18D5B8C066448E1BD7AFB82E007A1A92C7EBC21FF0F248C74D3C4DA6E7A3` |
+| `tmproject/TMProject748/internal/platform/windows/SingleLineTextLayout.h` | `E75EF16CC6C92A95506A8D4FF1B48E28B447467E216B0087E61D56F5F5D6B437` |
+| `tmproject/TMProject748/internal/platform/windows/TMFont2.cpp` | `BF362349E6949787438DCB14E09542B3C57E96E5DBC6DC388241334CC54BD098` |
+| `tmproject/TMProject748/internal/platform/windows/TMFont2.h` | `75C85E204FE63734B2A9485CD13E71629DC9DB3415DB575F05750697A8FF7AA1` |
+| `tmproject/TMProject748/internal/ui/controls/SText.cpp` | `D0DE78E99D2B2C6059EA17C5E0EE25A5230F1438D95E1FFF1BA4B10FBBFBE386` |
+| `tmproject/TMProject748/internal/ui/FieldCaptionLayout.h` | `C4B44B74F177A8DABD4A02B113240A40E3AC5E61B3F3AD40443BC302134CCDC2` |
+| `tmproject/TMProject748/internal/ui/SGridTooltip.cpp` | `52C5A8EA3AE9C2B9795C8651CC948BD5BC76991AA94384BAF269534C2799F2A5` |
+| `tmproject/TMProject748/internal/wire/ClientBuildContract.h` | `0FE7F1A14115B89F70334D6FB01A60BE3F5FD9817EAF649C63C37F3AAA881F1B` |
+| `tmproject/TMProject748/tests/ArchitectureTests.vcxproj` | `094A2B1DE8E5C36B36F9978AE7B55B5C2D26ECE5963E59F079B9A4073DDEFC77` |
+| `tmproject/TMProject748/tests/LocaleBoundaryTests.cpp` | `E16355B62318695C38D4DCCBA358799A5D261F7585A5803A107C92BFE9765380` |
+| `tmproject/TMProject748/tests/PacketViewTests.cpp` | `35F64DFFF1DD4F61C769E7BA457918412ECE714E7E6C96E1F31837E1E4D7AA86` |
+| `tmproject/TMProject748/tests/SceneDisconnectContractTests.cpp` | `E60CE15C88729E13A8EA28362F2599F040C09D7EA58E5914FD0B8C8FB0A3EA3A` |
+| `tmproject/TMProject748/tests/SingleLineTextLayoutTests.cpp` | `37944ABC3AF076168167F8AA42440435E032E5A6A6AE8B34F79E79E8043C6FD0` |
+| `tmproject/TMProject748/TMProject748.vcxproj` | `F4DCD9DBFA0014588ECD6FDCE3AF403B66CB19C42C178590AFE924BA4FE38117` |
+| `tools/client-assets/client_locale_overrides.json` | `886BC485E09133BD78AC57FC2605BB73B429EB8327458391E8154B663C2D6BFA` |
+| `tools/client-assets/test_client_locales.py` | `6E02B9F9F08D5CF53B712FBEC71EF6B07E2AEF36BB8EDE6957BC14BB27FE27AA` |
+| `wydgo748/internal/game/client_command_admission_test.go` | `21F24BE1168E0BF4B7EDBA39E709D79A75ABF1EBC36A7E4EBB383676734E4835` |
+| `wydgo748/internal/game/client_command_admission.go` | `8AE306563C9B820BB3843E161905D7F6BA5193EFF38A615AD6DAF2FD20BE808A` |
+| `wydgo748/internal/game/colosseum_combat_test.go` | `AE4AB47D71DAF677FBE62D9C6BE2530850645A9B81733A36427FD6568145205F` |
+| `wydgo748/internal/game/colosseum_control_test.go` | `87AA8059A88AF848CC384584A2D05834599320DDC7BD99745CBE3BCE1F1E1B5C` |
+| `wydgo748/internal/game/colosseum_notices.go` | `9C2BBD35B214CCF0A19EC1E9B9D5BA9708680FA36324478D75BCC29045AFC5C0` |
+| `wydgo748/internal/game/colosseum_test.go` | `5E7CF3DA34DAEAEEB3D448F8E0F0A938B5C0C07638580F8FCEFDB5A816E80FE9` |
+| `wydgo748/internal/game/colosseum.go` | `53012D82D7A0FC8A649BBCC4642FAA51EB0BDFEC1722398DB5DFF9785B431676` |
+| `wydgo748/internal/game/commands.go` | `B51F64302DE9957A1635EE2EAA9F0260488F95258ED6A9D993612D423AD2DE21` |
+| `wydgo748/internal/game/mob_combat.go` | `DB1A047DC6E3667DF4621406A7E987F42BCF9D81247A7F8E47FEB4FAAFC61952` |
+| `wydgo748/internal/wire/client_build_test.go` | `0F46B1D8B8723DEDF05C17A44BBAE139B901AE6C843B91B89FF70B27A75AA790` |
+| `wydgo748/internal/wire/client_build.go` | `DC2014864D26C56E31F4E2CF8F6F61F0F9EA84A342FA6A2A4E64456385B7445B` |
+| `wydgo748/web/portal/src/content/news/client-7-48-002.md` | `077A4CE8822A0DE67911637F17A4C271E4A9099CE08915B7E69AD03C758D0065` |
+| `wydgo748/web/portal/src/content/news/client-7-48-003.md` | `615B56897EC0EAB23E2DCDC47E5E70D9C17CA4523B43976D32366FFFA50D4FE9` |
+| `wydgo748/web/portal/src/data/public-content.ts` | `65FB0FF03008095B719BDE0683DDB0195980B5671B5D2049D4276E6CCF1DAA68` |
+| `wydgo748/web/portal/src/pages/download.astro` | `91BF8EF360F3B6E85C5A8B0AF53D61BE6BBA3CC641239608A265EE2C894447FC` |
+| `wydgo748/web/portal/tests/news-content.test.mjs` | `AACA0266C3218B8417CED8E7705F660EA2111475AC8B144C99BF57AFF3AFC12F` |
+| `wydgo748/web/portal/tests/public-content.test.mjs` | `A99052CAE1FAB67FA2282851DFEC726407BDF1D4469BE90D9F4E19C58D2BD785` |
+
+</details>
+
+## Published patch 7.48.002 (2026-10-24)
+
+Feed **48002**, compiled identity **0x02EC0002**, minimum server revision **2**.
+Published and verified before server activation. Every client patch is mandatory;
+the compiled identity, rather than the editable configuration counter, controls
+login admission. The native launcher and its language DLL are unchanged.
+Install full client 7.48.001 first if using the retired 100xx release line.
+
+Source: HEAD `40706d99b7715167d7aa4a2c484704f7e91c2c8b` plus the explicitly
+selected working-tree client, server and portal changes. No commit or push was
+performed. The package uses the established working-tree artifact allowlist;
+`Build-ClientPatch.ps1` would only represent committed resource inputs.
+Unrelated research, reference clients and local configuration are excluded.
+
+- ZIP: **864,100 bytes**, SHA-256
+  `AB2BC312460D30C9415129D32FF8FF35DC08EDF0E9E1D3296524DAE6BB7732B0`.
+- `WYD.exe`: **1,937,408 bytes**, SHA-256
+  `80CA48E77A8F83535401B7FE1415E33C9DE873E04F55C0313C844DF7B6A66209`.
+  Built from `tmproject/Build-Client.ps1 -NoDeploy`; candidate path
+  `tmproject/build/TMProject748/Release/WYD.exe`.
+- `UI/command.txt` and `EN/UI/command.txt`: 1,959 bytes each, SHA-256
+  `FC07616C20FAF3E76CCB84CC6F06AA89255A1D89065DDD052B57B7FAD0E9C683`.
+- `PT/UI/command.txt`: 1,759 bytes, SHA-256
+  `722855F8D4A87EC7F7D6385C533ACD13F531CE6DA5A61606B7F3BD35C814D2BB`.
+
+Those are the ZIP's only four entries. No shared assets, launcher binaries,
+`lang.txt`, `config.txt`, `ClientSettings.txt` or account state are included.
+Fresh HTTP and HTTPS downloads matched the ZIP and all four entry hashes.
+Both feeds preserve the 48001 baseline and append `48002 patch-48002.zip`.
+The live manifest, home, Download, News and changelog advertise 7.48.002;
+the full-client link remains the owner's 7.48.001 baseline with unverified
+archive size/hash. [Public announcement](https://wyd.forjago.com/news/client-7-48-002/).
+
+At 19:55:24 UTC, two production protocol probes verified the gate: identity
+`0x02EC0001` received the update-required message before authentication;
+`0x02EC0002` reached authentication and received the expected invalid-credentials
+response for a random nonexistent account. No account was created or character
+authenticated. This proves admission routing, not a real-client login or the
+launcher installation flow. Actual rendering, both languages and gameplay
+acceptance remain pending. See [active server receipt](../current-state.md).
+
+<details>
+<summary>Working-tree source provenance (41 SHA-256 inputs)</summary>
+
+These hashes identify the selected changed build inputs on top of the HEAD
+recorded above. They exclude local runtime configuration and unrelated work.
+
+| Input | SHA-256 |
+| --- | --- |
+| `tmproject/client748/EN/UI/command.txt` | `FC07616C20FAF3E76CCB84CC6F06AA89255A1D89065DDD052B57B7FAD0E9C683` |
+| `tmproject/client748/PT/UI/command.txt` | `722855F8D4A87EC7F7D6385C533ACD13F531CE6DA5A61606B7F3BD35C814D2BB` |
+| `tmproject/client748/UI/command.txt` | `FC07616C20FAF3E76CCB84CC6F06AA89255A1D89065DDD052B57B7FAD0E9C683` |
+| `tmproject/TMProject748/internal/app/scenes/TMFieldScene.cpp` | `D7C219AB851B8CF85B63104B9671C53B0210278600CEAD720B8BE431A54305C5` |
+| `tmproject/TMProject748/internal/app/scenes/TMFieldSceneUI.cpp` | `36FBEA44200E5E4842327A1FD6353F07467593257E2A2523292DCCBFF4A52CC5` |
+| `tmproject/TMProject748/internal/app/scenes/TMScene.h` | `592F97CA521EC72F2854C7C35BB6ED3163A3E68262CA31B854F60A5FC122E9EA` |
+| `tmproject/TMProject748/internal/app/scenes/TMSceneResources.cpp` | `1768DAD4D1DB0A616E94EEED3BE1F664FA1E01DB4C7AA7160D5396596EC687C3` |
+| `tmproject/TMProject748/internal/application/FieldChatSubmitPolicy.h` | `3751E4C5044E10AE05420AD18A368DC2FF90109FD859833C7BDCFF427CBDB455` |
+| `tmproject/TMProject748/internal/core/QuestSubjectLevel.h` | `1A72F1002CBAA6346645B4E9518C1F83F34F5339C70CC3C9F1C7EE5F14BBB5A0` |
+| `tmproject/TMProject748/internal/platform/windows/FontGdiResources.h` | `DADB506F2997DF7603928053432C6738CC256E62F44046BADE04F9AF5DE50179` |
+| `tmproject/TMProject748/internal/platform/windows/ResourceTextGdi.h` | `1EAB18D5B8C066448E1BD7AFB82E007A1A92C7EBC21FF0F248C74D3C4DA6E7A3` |
+| `tmproject/TMProject748/internal/platform/windows/SingleLineTextLayout.h` | `DA3DCCCCB96D5831965A54DB41DA6AA7465BDAF764067E2D2FB799FABD5E4224` |
+| `tmproject/TMProject748/internal/platform/windows/TMFont2.cpp` | `292E39B5024672D2EF18DDB92200A1F737F4E4E7F4E851F6D556D919CBA56A1E` |
+| `tmproject/TMProject748/internal/platform/windows/TMFont2.h` | `F699F0ACE27AAC356D26FC7E85476062034A4EDC7AFEDDDD6E86B450316C6A1E` |
+| `tmproject/TMProject748/internal/ui/controls/SText.cpp` | `BF72473C5438F0B57CF1555B73798FA6BBEC1762B0A2C49C310126B051903EDC` |
+| `tmproject/TMProject748/internal/ui/FieldCaptionLayout.h` | `4135CE4F4E8A1AEBEAA703CB42138F69FEC6B5D86B855F2C3FAD6A987B2B1A51` |
+| `tmproject/TMProject748/internal/ui/SGridTooltip.cpp` | `52C5A8EA3AE9C2B9795C8651CC948BD5BC76991AA94384BAF269534C2799F2A5` |
+| `tmproject/TMProject748/internal/wire/ClientBuildContract.h` | `1274E2F35F7EE714A45F3AC04040A4DA4EB79A5F92C544E3479356A8C9D6A7AD` |
+| `tmproject/TMProject748/tests/ArchitectureTests.vcxproj` | `094A2B1DE8E5C36B36F9978AE7B55B5C2D26ECE5963E59F079B9A4073DDEFC77` |
+| `tmproject/TMProject748/tests/LocaleBoundaryTests.cpp` | `E16355B62318695C38D4DCCBA358799A5D261F7585A5803A107C92BFE9765380` |
+| `tmproject/TMProject748/tests/PacketViewTests.cpp` | `35F64DFFF1DD4F61C769E7BA457918412ECE714E7E6C96E1F31837E1E4D7AA86` |
+| `tmproject/TMProject748/tests/SingleLineTextLayoutTests.cpp` | `6CF9663576363AD3AF3A2BBCFBA620B5601901E382A2526E79F2CDA8B7B98CB9` |
+| `tmproject/TMProject748/TMProject748.vcxproj` | `F4DCD9DBFA0014588ECD6FDCE3AF403B66CB19C42C178590AFE924BA4FE38117` |
+| `tools/client-assets/client_locale_overrides.json` | `886BC485E09133BD78AC57FC2605BB73B429EB8327458391E8154B663C2D6BFA` |
+| `tools/client-assets/test_client_locales.py` | `6E02B9F9F08D5CF53B712FBEC71EF6B07E2AEF36BB8EDE6957BC14BB27FE27AA` |
+| `wydgo748/internal/game/client_command_admission_test.go` | `21F24BE1168E0BF4B7EDBA39E709D79A75ABF1EBC36A7E4EBB383676734E4835` |
+| `wydgo748/internal/game/client_command_admission.go` | `8AE306563C9B820BB3843E161905D7F6BA5193EFF38A615AD6DAF2FD20BE808A` |
+| `wydgo748/internal/game/colosseum_combat_test.go` | `AE4AB47D71DAF677FBE62D9C6BE2530850645A9B81733A36427FD6568145205F` |
+| `wydgo748/internal/game/colosseum_control_test.go` | `87AA8059A88AF848CC384584A2D05834599320DDC7BD99745CBE3BCE1F1E1B5C` |
+| `wydgo748/internal/game/colosseum_notices.go` | `9C2BBD35B214CCF0A19EC1E9B9D5BA9708680FA36324478D75BCC29045AFC5C0` |
+| `wydgo748/internal/game/colosseum_test.go` | `5E7CF3DA34DAEAEEB3D448F8E0F0A938B5C0C07638580F8FCEFDB5A816E80FE9` |
+| `wydgo748/internal/game/colosseum.go` | `53012D82D7A0FC8A649BBCC4642FAA51EB0BDFEC1722398DB5DFF9785B431676` |
+| `wydgo748/internal/game/commands.go` | `B51F64302DE9957A1635EE2EAA9F0260488F95258ED6A9D993612D423AD2DE21` |
+| `wydgo748/internal/game/mob_combat.go` | `DB1A047DC6E3667DF4621406A7E987F42BCF9D81247A7F8E47FEB4FAAFC61952` |
+| `wydgo748/internal/wire/client_build_test.go` | `9F8515AD3119EAA393E8D32B906CCE1B62C06709C5B105A8B41F0704C3B28634` |
+| `wydgo748/internal/wire/client_build.go` | `0923B4B2E2D6BC8D5449A0A48E6D6464561BBAE46A06870D68A5025D9139E61B` |
+| `wydgo748/web/portal/src/content/news/client-7-48-002.md` | `077A4CE8822A0DE67911637F17A4C271E4A9099CE08915B7E69AD03C758D0065` |
+| `wydgo748/web/portal/src/data/public-content.ts` | `C5ACF64FD6AE6ECFAA29C6FF3D2FF28AD9F56BFE640C9FB6F6D1C9E6332D4619` |
+| `wydgo748/web/portal/src/pages/download.astro` | `91BF8EF360F3B6E85C5A8B0AF53D61BE6BBA3CC641239608A265EE2C894447FC` |
+| `wydgo748/web/portal/tests/news-content.test.mjs` | `592E282C6E5E80BD2C41961F04405888055412DB0F7ED0AE73AA9429F66222BB` |
+| `wydgo748/web/portal/tests/public-content.test.mjs` | `B6977AD7576D943491EC17E6B6AE14D94997C1102ABE5D9F677E992CB3CA2B44` |
+
+</details>
+
 ## Full client 7.48.001 (2026-10-23, published)
 
 Starts [release line 7.48](#release-line-748) and retires patches 10001-10045.
@@ -272,9 +832,14 @@ server release carrying contract v2 and deploy the portal.
 A patch is the set of client files added or changed between two commits:
 
 ```powershell
-pwsh -NoProfile -File tools/deployment/Build-ClientPatch.ps1 -From <released commit> -To HEAD -Version 10001
-pwsh -NoProfile -File tools/deployment/Publish-ClientPatch.ps1 -Version 10001 -SshTarget <user@host> -IdentityFile <key>
+$version = 48005 # Use the live maximum plus one; keep the value in 48002..49999.
+pwsh -NoProfile -File tools/deployment/Build-ClientPatch.ps1 -From <released commit> -To HEAD -Version $version
+pwsh -NoProfile -File tools/deployment/Publish-ClientPatch.ps1 -Version $version -SshTarget <user@host> -IdentityFile <key>
 ```
+
+The current release line accepts versions from `48002` through `49999`.
+The example uses `48005` because the recorded feed already contains `48004`.
+Read the live feed before each publication and use its maximum plus one.
 
 `Build-ClientPatch.ps1` takes bytes from Git with `core.autocrlf=true`
 pinned (a fresh Windows clone), skips `config.txt`, `ClientSettings.txt` and
@@ -327,6 +892,10 @@ deploy it with the release.
   client tree.
 - Not yet `CLIENT_TESTED`: the launcher window, settings dialog, a real
   patch download and **Start** need a person to run them.
+
+The following `100xx` sections are historical receipts from the retired v1
+line. They preserve provenance and do not define current commands, ranges, or
+release procedures.
 
 ## Published patch 10001 (2026-10-11)
 

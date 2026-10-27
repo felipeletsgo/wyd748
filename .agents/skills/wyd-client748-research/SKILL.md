@@ -75,6 +75,11 @@ once per changed batch of records/schema before accepting promotion. Changes
 only to this skill's instructions do not invalidate records or require
 reprocessing the corpus.
 
+Classify provider and execution errors as tooling limitations. Do not treat
+`resource_constraint`, `provider_unavailable`, `spawn EPERM`, `EACCES`, missing
+facets or timeouts as proof that code, xrefs or behavior is absent. Record the
+bounded failure and change method after two attempts without new evidence.
+
 `STATICALLY VERIFIED`, `AUTOMATED TESTED`, and `CLIENT-TESTED` are
 distinct states. A build or static test never promotes a front to
 `CLIENT_TESTED`.

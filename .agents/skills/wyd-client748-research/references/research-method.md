@@ -67,6 +67,14 @@ For each entry point not yet proven:
    still fails, inspect the function in the project or record the gap. Never
    infer the missing block or repeat the same timeout unchanged.
 
+Classify provider and execution failures separately from code evidence. Treat
+`resource_constraint`, `provider_unavailable`, `spawn EPERM`, `EACCES`, missing
+facets and provider timeouts as tooling limitations. They do not prove absent
+functions, callers, xrefs or runtime behavior. Record the provider error,
+command shape, attempt count and next bounded method in the research receipt.
+After two attempts without new evidence, change the method or record the
+limitation; do not broaden the query unchanged.
+
 When using `ExportWydFlow.java`, pass only the functions, vtable bases, and
 slots that answer the record's question. The data window provides structural
 context, but a slot's xrefs count as evidence only when the exact address was

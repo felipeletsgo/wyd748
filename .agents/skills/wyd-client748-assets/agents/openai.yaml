@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Client 7.48 Assets"
+  short_description: "Preserve 7.48 assets and runtime contracts"
+  default_prompt: "Use $wyd-client748-assets to audit or adapt client assets while preserving identity, paths, formats, dependencies, and server compatibility."

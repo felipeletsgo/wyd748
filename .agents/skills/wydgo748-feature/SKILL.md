@@ -10,6 +10,13 @@ and `tmproject/`.
 
 ## Authority model
 
+For native server functions or logic, first read
+`references/decompilacao server/dlls/rea-analysis/README.md`.
+Use its maps, coverage report, and saved function evidence before new REA queries.
+Treat the supplied server decompilation as primary server evidence and W2PP as secondary evidence.
+If the local archive is unavailable, report the missing input before repeating research.
+This server evidence does not replace validation of an affected 7.48 client contract.
+
 The client sends intentions and displays state. The server validates identity,
 permissions, rules, resources, cooldowns, collisions, and transitions;
 persists authoritative state; and sends snapshots/deltas. Never accept a

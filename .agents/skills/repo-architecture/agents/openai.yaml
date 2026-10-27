@@ -1,0 +1,4 @@
+interface:
+  display_name: "WYD Repository Architecture"
+  short_description: "Maintain repository rules, docs, and skills"
+  default_prompt: "Use $repo-architecture to review repository layout, rules, documentation, and skill discovery without changing product behavior."

@@ -24,8 +24,10 @@ host, account, feed-version, or deployment-state authority.
    and private runtime/account state. Never infer which executable was tested
    from its filename or build timestamp alone.
 3. Reuse valid focused checks. Block on failed required gates, unknown artifact
-   provenance, incompatible client/server versions, or known Portuguese
-   player-facing release content. Instruction-only review needs no build or
+   provenance, incompatible client/server versions, or broken affected locale
+   selection, resource contracts or fallback. Apply the multilingual product
+   and English engineering rules in `AGENTS.md`; supported Portuguese locale
+   content is not a release blocker. Instruction-only review needs no build or
    production access. Building/installing a local candidate and running it are
    separate actions; a blocked visual test remains pending.
 
@@ -52,8 +54,10 @@ host, account, feed-version, or deployment-state authority.
 ## Client build revision (every client patch)
 
 The server admits only clients whose compiled build revision is at least its
-minimum ([client build admission](../../../DOCS/login-dispatch.md)), so a
-client patch is always a coordinated client and server release:
+minimum ([client build admission](../../../DOCS/login-dispatch.md)). A local
+candidate, feed publication, and server activation are separate release gates.
+Every published patch that raises the minimum is a coordinated client and
+server release:
 
 1. Read the last published revision from the latest patch receipt in
    [launcher delivery](../../../DOCS/client/launcher.md), not from source.
@@ -63,28 +67,31 @@ client patch is always a coordinated client and server release:
    unpublished source already carries exactly that value. Keep the prefix and
    protocol; never lower, reuse or wrap a revision.
 3. Run `go test ./internal/wire` (cross-checks both constants) and the client
-   gate, then build the candidate and the patch from the same commit.
+   gate. In the committed path, build the candidate and patch from the exact
+   same client `To` commit. Record the server source revision separately; it
+   must contain the matching minimum revision.
 4. Publish and verify the patch on the launcher feed before activating the
-   server release. Activating first rejects every installed client; a client
-   patch without its server release is not finished.
-5. After activation, confirm a current-client login is admitted and record
-   the revision with the patch receipt. Rollback restores a matching
-   client/server pair; never disable the gate to recover.
+   server release. Activating first rejects every installed client.
+5. Activate the matching server release only with explicit restart or reload
+   authorization. If authorization is absent, report activation as pending;
+   never lower or disable the gate.
+6. After activation, confirm a current-client login is admitted and record the
+   revision with the patch receipt. Rollback restores a matching client/server
+   pair; never disable the gate to recover.
 
 ## Package the actual inputs
 
-- `Build-ClientPatch.ps1` packages explicit committed `-From`/`-To` revisions,
-  not arbitrary working-tree bytes or ignored executables. Do not label such
-  a package as containing an uncommitted candidate.
-- For an established explicit working-tree artifact allowlist, record HEAD,
-  relevant dirty scope, exact entry paths/hashes, and candidate build inputs.
-  Inspect the archive itself. Do not stage or commit silently to satisfy a
-  script. Use the path that represents the authorized source and dependencies.
-  Establish the allowlist from the requested fixes, build output and required
-  runtime dependencies, using a prior receipt only as a starting point. This
-  is normal packaging within authorized publication, not permission to include
-  unrelated dirty files. If provenance or component scope remains ambiguous,
-  resolve that gap before packaging.
+- Standard packaging uses `Build-ClientPatch.ps1` with explicit committed
+  `-From`/`-To` revisions. It does not package arbitrary working-tree bytes or
+  ignored executables. The candidate and patch must use the exact `To` commit.
+- An explicitly authorized working-tree artifact may use selected dirty or
+  ignored files when the Git-revision builder cannot represent the input.
+  Record HEAD, dirty scope, exact entry paths, sizes, SHA-256 values, build
+  inputs, and dependencies in the receipt. Inspect the archive itself and mark
+  its provenance as working-tree, not committed. Do not stage or commit
+  silently, include unrelated dirty files, or pass the artifact to the
+  Git-revision builder. Use the existing publisher only after this manifest and
+  scope check succeeds.
 - Inspect dependency closure: executable, descriptions, item tables, meshes,
   textures, UI, shaders and other changed loaders as applicable. Compare with
   supported earlier patches. Do not assume an executable-only ZIP fixes missing
@@ -119,10 +126,13 @@ client patch is always a coordinated client and server release:
    Check the launcher's website receipt requirement; if an explicit client-only
    scope excludes that component, report the outstanding site step rather than
    silently deploying it or claiming the whole release is complete.
-3. Restart only authorized services, after artifacts are ready. A client patch
-   normally needs launcher delivery, not a game-server restart. A copied server
-   binary is not active until its process uses it. A restart request does not
-   authorize unrelated host-service restarts or a VPS reboot.
+3. Treat local testing, feed publication, and server activation as separate
+   gates. Feed publication delivers client bytes; it does not activate the
+   server. For a patch that raises the minimum revision, activate the matching
+   server release after patch verification, using only authorized restart or
+   reload actions. A copied server binary is not active until its process uses
+   it. A restart request does not authorize unrelated host-service restarts or
+   a VPS reboot.
 4. On failure, determine the active version before retry or rollback. Use the
    established rollback path within scope; stop if recovery needs new authority.
    Never report success from exit code alone, an empty test result, or staging

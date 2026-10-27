@@ -87,6 +87,33 @@ Global NPCs, merchants, and permanent objects need explicit exceptions when
 necessary. Do not create an implicit exception merely because `RuntimeID == ""`.
 `Merchant != 0` is never hostile or attackable.
 
+## Channel ownership
+
+Entities, spatial indexes, movement, combat, drops, shops, bosses, and
+instances belong to one channel-owned live world. Channel-local IDs may repeat
+in another channel. Route every entity and session lookup with channel ownership
+or a stable session identity; never use a numeric live ID alone.
+
+Account admission and handoff use one shared coordinator with one owner and
+generation across all channels. Characters, inventory, currency, progression,
+and item identities use shared authoritative persistence; only the active owner
+may write them.
+
+Guild identity, membership, leadership, citizenship, kingdom, fame, and
+alliances use one global guild authority. City, challenge, bid, war, tower,
+tax, and event records remain channel-scoped, while a guild remains global.
+Persistence coordination is shared, but each write carries its owning channel,
+identity, and generation before completion publishes to that world.
+
+Tests must use equal channel-local entity and instance IDs in two channels.
+They must prove local movement, visibility, administration, and instance
+snapshots remain isolated while account admission, guild state, and persistence
+coordination retain their documented shared scope.
+Current regression coverage includes `channel_isolation_test.go`,
+`channel_instance_regression_test.go`, `channel_cluster_test.go`, and
+`channel_admission_regression_test.go`. Extend these cases when a new
+channel-owned identifier is added.
+
 ## Visibility and updates
 
 Do not use `CreateMob` to update an already visible player. Use the appropriate
@@ -146,9 +173,11 @@ when the rules grow.
 
 ## Language
 
-All authored product and project text must be in English, including text sent
-to the client, logs, comments, diagnostics, documentation, tests, and scripts.
-Follow the compatibility exceptions and migration requirements in `AGENTS.md`.
+Engineering identifiers and prose use English, including logs, comments,
+diagnostics, documentation, tests, and scripts. Player-facing text sent to the
+client uses the selected EN/PT locale on both sides, with English fallback.
+Keep protocol bytes, resource IDs, persisted values, and established identifiers
+unchanged. Translate legacy engineering prose only in changed sections.
 
 ## WYD 7.48 protocol
 

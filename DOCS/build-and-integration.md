@@ -18,25 +18,40 @@ the panel before first startup or disable `web_admin_enabled`.
 ```powershell
 pwsh -NoProfile -File tools/web-admin/Start-WYDAdmin.ps1 -NoBrowser
 
+$repoRootPath = (Get-Location).Path
+$serverOutput = Join-Path $repoRootPath 'build/server'
+New-Item -ItemType Directory -Force $serverOutput | Out-Null
 Push-Location wydgo748
-New-Item -ItemType Directory -Force bin | Out-Null
-go test -count=1 ./...
-go vet ./...
-go build -o bin/tm.exe ./cmd/server
-go build -o bin/account-create.exe ./cmd/account-create
-go build -o bin/player-api.exe ./cmd/player-api
-Pop-Location
+try {
+    go test -count=1 ./...
+    go vet ./...
+    go build -o (Join-Path $serverOutput 'tm.exe') ./cmd/server
+    go build -o (Join-Path $serverOutput 'account-create.exe') ./cmd/account-create
+    go build -o (Join-Path $serverOutput 'player-api.exe') ./cmd/player-api
+} finally {
+    Pop-Location
+}
 ```
 
 | Output | Purpose |
 | --- | --- |
-| `wydgo748/bin/tm.exe` | game server with integrated staff panel |
-| `wydgo748/bin/account-create.exe` | interactive local account registration |
-| `wydgo748/bin/player-api.exe` | public account, player, ranking and guild API; keep the listener private behind HTTPS |
+| `build/server/tm.exe` | game server with integrated staff panel |
+| `build/server/account-create.exe` | interactive local account registration |
+| `build/server/player-api.exe` | public account, player, ranking and guild API; keep the listener private behind HTTPS |
 | `wydgo748/web/portal/dist/` | built assets for the integrated panel |
 
-Start `tm.exe` with `wydgo748/` as the current directory; starting it from the
-repository root makes relative `data/...` paths point to the wrong location.
+Start `build/server/tm.exe` with `wydgo748/` as the current directory; starting
+it from the repository root makes relative `data/...` paths point to the wrong
+location.
+
+```powershell
+Push-Location wydgo748
+try {
+    & ..\build\server\tm.exe
+} finally {
+    Pop-Location
+}
+```
 See [server operations](server/operations.md) for database, configuration,
 accounts, ports, shutdown, and backups.
 
@@ -83,8 +98,8 @@ transport-loss/restart recovery remains distinct from injected worker outcomes.
 The versioned workflow checks repository layout, research, assets, the Go
 server with PostgreSQL, and the C++ client on Windows. It neither publishes
 nor configures an external server. The supported runtime is the native
-`bin/tm.exe` process started from `wydgo748/`; the repository has no container
-architecture or deployment-provider integration.
+`build/server/tm.exe` process started from `wydgo748/`; the repository has no
+container architecture or deployment-provider integration.
 
 The historical `cmd/npcconvert` converter is not part of the runtime. When its
 input format is needed, it requires explicit `-in` and `-out` arguments; it

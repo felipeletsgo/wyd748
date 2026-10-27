@@ -46,7 +46,8 @@ foreach ($file in $documents) {
     $issues.Add("Duplicate rules file: $($file.FullName)")
 }
 
-# Each canonical skill needs a Claude Code pointer with identical name and description.
+# Each canonical skill needs Codex metadata and a Claude Code pointer with
+# identical name and description.
 function Get-SkillFrontmatter([string]$path) {
     $fields = @{}
     $text = [IO.File]::ReadAllText($path).Replace("`r`n", "`n")
@@ -61,6 +62,23 @@ $canonicalSkills = @(Get-ChildItem -LiteralPath (Join-Path $repoRoot '.agents/sk
 $pointerRoot = Join-Path $repoRoot '.claude/skills'
 foreach ($skill in $canonicalSkills) {
     $canonical = Get-SkillFrontmatter (Join-Path $skill.FullName 'SKILL.md')
+    $metadataPath = Join-Path $skill.FullName 'agents/openai.yaml'
+    if (-not (Test-Path -LiteralPath $metadataPath)) {
+        $issues.Add("Missing Codex skill metadata: .agents/skills/$($skill.Name)/agents/openai.yaml")
+    } else {
+        $metadata = [IO.File]::ReadAllText($metadataPath)
+        $metadataFields = @{
+            interface = '(?m)^\s*interface\s*:\s*$'
+            display_name = '(?m)^\s+display_name\s*:\s*.+$'
+            short_description = '(?m)^\s+short_description\s*:\s*.+$'
+            default_prompt = '(?m)^\s+default_prompt\s*:\s*.+$'
+        }
+        foreach ($field in $metadataFields.Keys) {
+            if ($metadata -notmatch $metadataFields[$field]) {
+                $issues.Add("Codex skill metadata lacks ${field}: .agents/skills/$($skill.Name)/agents/openai.yaml")
+            }
+        }
+    }
     $pointerPath = Join-Path $pointerRoot "$($skill.Name)/SKILL.md"
     if (-not $canonical['name'] -or -not $canonical['description']) {
         $issues.Add("Skill without name/description frontmatter: .agents/skills/$($skill.Name)/SKILL.md")
@@ -120,6 +138,12 @@ foreach ($file in Get-ChildItem -LiteralPath (Join-Path $repoRoot '.agents/resea
     $target = [IO.Path]::GetRelativePath((Split-Path $mapPath), $file.FullName).Replace('\', '/')
     $lines.Add("- [$relative](<$target>)")
 }
+$lines.Add('')
+$lines.Add('## Local native server research')
+$lines.Add('')
+$lines.Add('The REA archive is local-only and ignored by Git. Read its index first for native server functions or logic.')
+$lines.Add('')
+$lines.Add('- [REA server research index](<../references/decompilacao server/dlls/rea-analysis/README.md>)')
 $expected = ($lines -join "`n") + "`n"
 if ($UpdateMap) {
     [IO.File]::WriteAllText($mapPath, $expected, [Text.UTF8Encoding]::new($false))
@@ -141,15 +165,74 @@ foreach ($file in $documents) {
         if (-not $target) { continue }
         $resolved = [IO.Path]::GetFullPath((Join-Path $file.DirectoryName $target))
         if (-not (Test-Path -LiteralPath $resolved)) {
+            # Native evidence is optional in checkouts because references/ is local-only.
+            $referencePrefix = (Join-Path $repoRoot 'references') + [IO.Path]::DirectorySeparatorChar
+            if ($resolved.StartsWith($referencePrefix, [StringComparison]::OrdinalIgnoreCase)) { continue }
             $issues.Add("Missing link in $([IO.Path]::GetRelativePath($repoRoot, $file.FullName)): $target")
         }
     }
 }
+
+# The local Codex limit must cover the complete root rules document.
+$projectDocLimit = 12288
+$codexConfigPath = Join-Path $repoRoot '.codex/config.toml'
+if (Test-Path -LiteralPath $codexConfigPath) {
+    $codexConfig = [IO.File]::ReadAllText($codexConfigPath)
+    $limitMatch = [regex]::Match($codexConfig, '(?m)^\s*project_doc_max_bytes\s*=\s*(\d+)\s*$')
+    if ($limitMatch.Success) {
+        $projectDocLimit = [int]::Parse($limitMatch.Groups[1].Value)
+    } else {
+        $issues.Add('Codex config does not define project_doc_max_bytes.')
+    }
+}
+$agentsPath = Join-Path $repoRoot 'AGENTS.md'
+if ((Get-Item -LiteralPath $agentsPath).Length -gt $projectDocLimit) {
+    $issues.Add("AGENTS.md exceeds project_doc_max_bytes ($projectDocLimit bytes).")
+}
+
+# Current operational examples must follow the active server output and patch range.
+foreach ($relativeBuildDocument in @('DOCS/build-and-integration.md', 'DOCS/server/operations.md')) {
+    $buildDocumentPath = Join-Path $repoRoot $relativeBuildDocument
+    $buildDocument = [IO.File]::ReadAllText($buildDocumentPath)
+    if ($buildDocument -match '(?im)(?:wydgo748[/\\]bin[/\\]|go\s+build\s+-o\s+bin[/\\])') {
+        $issues.Add("Build documentation contains a forbidden bin output path: $relativeBuildDocument")
+    }
+    if ($buildDocument -notmatch '(?im)build[/\\]server[/\\]tm\.exe') {
+        $issues.Add("Build documentation does not define the root build/server runtime path: $relativeBuildDocument")
+    }
+}
+
+foreach ($relativeCurrentDocument in @('DOCS/WYD-WEB-PLATAFORM.md')) {
+    $currentDocumentPath = Join-Path $repoRoot $relativeCurrentDocument
+    $currentDocument = [IO.File]::ReadAllText($currentDocumentPath)
+    if ($currentDocument -match '(?im)(?:wydgo748[/\\]bin[/\\]|go\s+build\s+-o\s+bin[/\\])') {
+        $issues.Add("Current documentation contains a forbidden bin output path: $relativeCurrentDocument")
+    }
+}
+
+$launcherDocumentPath = Join-Path $repoRoot 'DOCS/client/launcher.md'
+$launcherDocument = [IO.File]::ReadAllText($launcherDocumentPath)
+$publishingSection = [regex]::Match($launcherDocument, '(?ms)^## Publishing a patch\r?\n(?<body>.*?)(?=^## |\z)')
+if (-not $publishingSection.Success) {
+    $issues.Add('Launcher documentation is missing the current Publishing a patch section.')
+} else {
+    $publishingBody = $publishingSection.Groups['body'].Value
+    if ($publishingBody -match '(?im)-Version\s+100\d\d') {
+        $issues.Add('Current launcher examples still use a retired 100xx patch version.')
+    }
+    if ($publishingBody -notmatch '(?im)48002\s*(?:through|\.\.)\s*49999') {
+        $issues.Add('Current launcher documentation does not state the 48002..49999 patch range.')
+    }
+}
+
 # Generated output may live only in the sanctioned ignored locations below
 # (AGENTS.md "Cleanup"). Anything else ignored by Git is leftover build,
 # test or agent output and must be removed or moved under build/.
+# Client crash evidence, the local client ZIP, and the legacy runtime log have
+# explicit names and retention rules in DOCS/agent-environments.md.
 $allowedIgnored = '^(?:references/|build/|tmproject/build/|\.codex/|\.venv/|\.claude/settings\.local\.json$' +
-    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
+    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|dumps/(?:crash-monitor-p\d+\.log|client-crash-[^/]+\.dmp)$|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
+    '|tmproject/client748/dumps/$|tmproject/client748\.zip$|tmproject/WYD 7\.48 PORTUGUES/WYD\.log$' +
     '|wydgo748/data/(?:SkillData\.bin$|accounts/|charstate/)' +
     '|wydgo748/web/portal/(?:node_modules/|dist/|\.astro/|src/data/catalog\.generated\.json$|\.env))'
 $ignored = @(& git -C $repoRoot ls-files --others --ignored --exclude-standard --directory)
