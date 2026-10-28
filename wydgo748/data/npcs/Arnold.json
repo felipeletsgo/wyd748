@@ -55,28 +55,24 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 1,
     "attack": 500,
     "magicAttack": 0,
-    "defense": 3000,
-    "maxHP": 9270,
+    "defense": 500,
+    "maxHP": 9000,
     "maxMP": 0,
-    "curHP": 9270,
+    "curHP": 9000,
     "curMP": 0,
     "str": 5,
     "int": 100,
     "dex": 0,
     "con": 0,
     "critical": 255,
-    "resistFire": 255,
-    "resistIce": 255,
-    "resistHoly": 255,
-    "resistThunder": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -90,100 +86,13 @@
   ],
   "vende": [
     {
-      "index": 835
+      "index": 1772
     },
     {
-      "index": 0
+      "index": 4000
     },
     {
-      "index": 880
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 865
-    },
-    {
-      "index": 805
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 820
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 850
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 895
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1705
+      "index": 4001
     }
   ]
 }

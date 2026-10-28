@@ -105,14 +105,19 @@ func (w *World) handleControl(req *controlRequest) {
 		return
 	}
 	result := control.Overview{Version: 1, ModerationEpoch: w.moderationEpoch(), AsOf: time.Now().UTC(), State: "running",
-		Authenticated: len(w.players), Mobs: len(w.mobsByID), QueueDepth: w.commandQueueDepth(),
+		QueueDepth: 0,
 		TickMicros: metricTickDurationMicros.Value(), LagMicros: metricLoopLagMicros.Value(),
 		Players: make([]control.Player, 0), Offset: req.query.Offset}
 	if w.shuttingDown {
 		result.State = "maintenance"
 	}
+	for _, channel := range w.channelWorlds() {
+		result.Authenticated += len(channel.players)
+		result.Mobs += len(channel.mobsByID)
+		result.QueueDepth += channel.commandQueueDepth()
+	}
 	search := strings.ToLower(req.query.Search)
-	for _, p := range w.players {
+	for _, p := range w.channelPlayers() {
 		if p == nil || !p.InWorld || p.Char == nil || p.Account == nil {
 			continue
 		}
@@ -173,7 +178,7 @@ func (w *World) handleAccountPresence(req *accountPresenceRequest) {
 	for _, accountName := range req.accounts {
 		result[accountName] = false
 	}
-	for _, player := range w.players {
+	for _, player := range w.channelPlayers() {
 		if player == nil || !player.InWorld || player.Account == nil {
 			continue
 		}

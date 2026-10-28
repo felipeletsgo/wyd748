@@ -1,7 +1,6 @@
 package game
 
 import (
-	"strings"
 	"time"
 
 	"wydgo/internal/model"
@@ -14,7 +13,7 @@ func (w *World) runeTrackCombatActor(m *Mob, now time.Time) bool {
 	if inst == nil || inst.RuneTrack == nil || inst.State != "combat" || inst.RuneTrack.Settled ||
 		now.Before(inst.RuneTrack.Start.Add(31*time.Second)) || !now.Before(inst.RuneTrack.Start.Add(15*time.Minute)) ||
 		w.criticalInstanceReserved() || m.Dead || m.HP == 0 || m.Def == nil || m.Def.Score == nil ||
-		!m.Def.IsMonster() || !strings.HasPrefix(m.Def.Name, "RT_") || w.mobsByID[m.ID] != m {
+		!m.Def.IsMonster() || w.mobsByID[m.ID] != m {
 		return false
 	}
 	_, owned := inst.MobIDs[m.ID]

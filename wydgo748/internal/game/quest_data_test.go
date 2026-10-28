@@ -8,16 +8,16 @@ import (
 	"wydgo/internal/model"
 )
 
-// TestQuestsDeDadosReaisSaoValidas carrega o data/quests.json e o data/npcs de
+// TestQuestsDeDadosReaisSaoValidas carrega o data/content/quests.json e o data/npcs de
 // verdade e roda o mesmo cruzamento do boot. Uma quest apontando para NPC
 // inexistente ou reservado quebra AQUI, no `go test`, em vez de derrubar o
 // servidor na frente do jogador.
 func TestQuestsDeDadosReaisSaoValidas(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 
-	quests, err := data.LoadQuests(filepath.Join(root, "quests.json"))
+	quests, err := data.LoadQuests(filepath.Join(root, "content", "quests.json"))
 	if err != nil {
-		t.Fatalf("data/quests.json invalido: %v", err)
+		t.Fatalf("data/content/quests.json invalido: %v", err)
 	}
 	npcs, err := data.LoadNPCs(filepath.Join(root, "npcs"))
 	if err != nil {
@@ -55,7 +55,7 @@ func TestQuestsDeDadosReaisSaoValidas(t *testing.T) {
 
 func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	quests, err := data.LoadQuests(filepath.Join(root, "quests.json"))
+	quests, err := data.LoadQuests(filepath.Join(root, "content", "quests.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,13 +102,13 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 		t.Fatalf("quests principais encontradas=%v", seenQuests)
 	}
 
-	catalog, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := data.LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := data.LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances(filepath.Join(root, "content", "volatiles.json"),
+		filepath.Join(root, "content", "instances.json"), filepath.Join(root, "spawns", "instances"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -116,7 +116,7 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	rates, err := data.LoadDropRates(filepath.Join(root, "droprate.json"))
+	rates, err := data.LoadDropRates(filepath.Join(root, "content", "droprate.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -125,12 +125,12 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 	}
 
 	leaders := map[string]uint16{
-		"Aparicao": 4117, "Grande_Carb": 4118, "Kaizen_Kn": 4119,
-		"Gold_Hydra1": 4120, "Elf_Master": 4121,
+		"Aparicao@": 4117, "Carb_Invasor@": 4118, "Cav_Kaizen": 4119,
+		"HydraOuro@": 4120, "DarkElgMaster": 4121,
 	}
-	followers := map[string]bool{
-		"Skeleton": true, "Carb_Servant": true, "Servant_Kn": true,
-		"Immort_Hydra": true, "Elf_Servant1": true,
+	followers := map[string]uint16{
+		"Esqueleto@": 4117, "Carb_Invasor_": 4118,
+		"EsqGuerreiro@": 4119, "Hydra@": 4120,
 	}
 	seen := make(map[string]bool)
 	for i := range npcs {
@@ -145,11 +145,9 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 				t.Fatalf("item %d sem quest_reward Vol 191: %+v code=%d", item, rule, code)
 			}
 		}
-		if followers[npc.Name] {
-			for _, carried := range npc.Carry {
-				if carried.Index >= 4117 && carried.Index <= 4121 {
-					t.Fatalf("follower %s vazou caixa %d", npc.Name, carried.Index)
-				}
+		if item, ok := followers[npc.Name]; ok {
+			if len(npc.Carry) <= 8 || npc.Carry[8].Index != item {
+				t.Fatalf("native follower %s must retain box %d at slot 8", npc.Name, item)
 			}
 		}
 	}
@@ -160,7 +158,7 @@ func TestCadeiaPrincipalTemRecompensasEDropsNativos(t *testing.T) {
 }
 
 func TestQuestsComplementaresConfirmadasNaSource(t *testing.T) {
-	quests, err := data.LoadQuests(filepath.Join("..", "..", "data", "quests.json"))
+	quests, err := data.LoadQuests(filepath.Join("..", "..", "data", "content", "quests.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +199,7 @@ var lacunasDeFonte = map[uint16]string{}
 func TestItensDeEntradaTemFonteViva(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 
-	quests, err := data.LoadQuests(filepath.Join(root, "quests.json"))
+	quests, err := data.LoadQuests(filepath.Join(root, "content", "quests.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +207,7 @@ func TestItensDeEntradaTemFonteViva(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	geners, err := data.LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	geners, err := data.LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}

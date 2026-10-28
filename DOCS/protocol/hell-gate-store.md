@@ -50,7 +50,7 @@ participants are rejected without a purchase response.
   - amulets tier 1-3: Silver, Gold and Mystic, 551-562.
 - Options: every item keeps `EF_SANC +0` (no refinement). Armor draws one pair
   from the native `SetItemBonus2` pools also used by Repliction
-  (`data/repliction.json`). Weapons use the weapon branch of the native drop
+  (`data/content/repliction.json`). Weapons use the weapon branch of the native drop
   generator `SetItemBonus` at level difference 0 (two slots of `EF_ATTSPEED`,
   `EF_DAMAGE`, `EF_SPECIALALL`, `EF_MAGIC` or `EF_UNIQUE`). Amulets get no
   options, as `SetItemBonus` skips accessories.

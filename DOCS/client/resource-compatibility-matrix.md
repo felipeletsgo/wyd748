@@ -68,13 +68,13 @@ Individual `mesh/` model files (`.msh`, `.wys`, `.wyt`, `.msa`) are summarized a
 | `extraitem.csv` | FUN_0055474f | - | 0 | 0 | - | NM |
 | `font.txt` | FUN_0042ced1 | TMPaths.h | 0 | 0 | - | M |
 | `gameroomip.txt` | FUN_005584df | - | 0 | 0 | - | NM |
-| `guilds.txt` | FUN_00433d61 FUN_00557593 | - | 0 | 0 | wydgo748/data/Guilds.txt | NMS |
+| `guilds.txt` | FUN_00433d61 FUN_00557593 | - | 0 | 0 | runtime/Guilds.txt | NMS |
 | `inititem.bin` | 005c4960 FUN_00556cc7 | - | 1 | - | - | N |
 | `inititem.csv` | FUN_00556fa8 | - | 0 | 0 | - | NM |
 | `itemhelp.dat` | FUN_0055bc0a | TMPaths.h | 1 | - | - | - |
-| `itemlist.bin` | FUN_0054f7b6 FUN_0054fa27 | Basedef.cpp | 1 | - | wydgo748/data/itemlist.csv | S |
-| `itemlist.csv` | FUN_0055474f | - | 0 | 0 | wydgo748/data/itemlist.csv | NMS |
-| `itemname.bin` | FUN_004b1d64 | TMPaths.h | 1 | - | wydgo748/data/Itemname.csv | S |
+| `itemlist.bin` | FUN_0054f7b6 FUN_0054fa27 | Basedef.cpp | 1 | - | wydgo748/data/catalog/itemlist.csv | S |
+| `itemlist.csv` | FUN_0055474f | - | 0 | 0 | wydgo748/data/catalog/itemlist.csv | NMS |
+| `itemname.bin` | FUN_004b1d64 | TMPaths.h | 1 | - | wydgo748/data/catalog/Itemname.csv | S |
 | `itemprice.bin` | FUN_0054b14a | TMPaths.h | 0 | 1 | - | M |
 | `lang.txt` | - | Basedef.cpp | 0 | 0 | - | TM |
 | `mesh/%s.wys` | - | TMPaths.h | 1960 | 468 | - | T |
@@ -115,8 +115,8 @@ Individual `mesh/` model files (`.msh`, `.wys`, `.wyt`, `.msa`) are summarized a
 | `shader/pseffect%d.bin` | - | TMPaths.h | 6 | 0 | - | T |
 | `shader/skinmesh%d.bin` | - | TMPaths.h | 8 | 0 | - | T |
 | `shader/vseffect%d.bin` | - | TMPaths.h | 4 | 0 | - | T |
-| `skilldata.bin` | FUN_0054f692 FUN_0054f946 | TMPaths.h | 1 | - | wydgo748/data/SkillData.csv | S |
-| `skilldata.csv` | FUN_005571bd | - | 1 | - | wydgo748/data/SkillData.csv | NS |
+| `skilldata.bin` | FUN_0054f692 FUN_0054f946 | TMPaths.h | 1 | - | wydgo748/data/catalog/SkillData.csv | S |
+| `skilldata.csv` | FUN_005571bd | - | 1 | - | wydgo748/data/catalog/SkillData.csv | NS |
 | `sn.bin` | FUN_0055cf8f | TMPaths.h | 1 | - | - | - |
 | `sound.txt` | FUN_0042978d | - | 1 | - | - | N |
 | `sound/soundlist.txt` | FUN_0042978d | TMPaths.h | 1 | - | - | - |
@@ -307,7 +307,8 @@ costume models included); guard the references whose asset is not supplied.
 
 ### Also on the server (S)
 
-`ItemList.bin`, `SkillData.bin`/`SkillData.csv`, `Itemname.bin` and
-`Guilds.txt` exist on both sides. Their contents must agree with
-`wydgo748/data/itemlist.csv`, `SkillData.csv`, `Itemname.csv` and `Guilds.txt`;
-this is the client/server data consistency check of R2.
+The client reads `ItemList.bin`, `SkillData.bin`, `Itemname.bin` and
+`Guilds.txt`. Their contents must agree with the server's
+`wydgo748/data/catalog/itemlist.csv`, `SkillData.csv`, `Itemname.csv` and `Guilds.txt`;
+this is the client/server data consistency check of R2. The server reads the
+CSV skill table and does not need a second copy of the client's `SkillData.bin`.

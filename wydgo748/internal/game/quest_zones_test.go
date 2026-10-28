@@ -42,10 +42,12 @@ func addZonePlayer(w *World, id uint16, x, y uint16, hp uint32) *Player {
 	return p
 }
 
-// nearRecall checks the beginner field, allowing adjacent tiles when multiple
-// low-level mortals recall at the same time.
+// nearRecall checks the bound city's native return area, including the free
+// cell search when several characters return at the same time.
 func nearRecall(p *Player) bool {
-	return chebyshev(p.X, p.Y, mortalBeginnerSpawnX, mortalBeginnerSpawnY) <= 8
+	area := recallArea(playerHomeCity(p.Char))
+	area.x1, area.y1, area.x2, area.y2 = area.x1-3, area.y1-3, area.x2+3, area.y2+3
+	return area.contains(p.X, p.Y)
 }
 
 func TestQuestZoneResetRecallsInsideRevivesDeadLeavesOutside(t *testing.T) {

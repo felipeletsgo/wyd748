@@ -31,6 +31,11 @@ func criticalStoreCertified(w *World) bool {
 }
 
 func (w *World) startCriticalPersistence() error {
+	if w.cluster != nil && w.cluster.owner != nil {
+		w.criticalWrites = w.cluster.owner
+		w.cluster.enter(w)
+		return nil
+	}
 	if w.criticalPersistenceWorkers <= 0 {
 		return nil
 	}
@@ -42,6 +47,10 @@ func (w *World) startCriticalPersistence() error {
 		return fmt.Errorf("critical persistence: %w", err)
 	}
 	w.criticalWrites = newCriticalPersistenceOwner(queue)
+	if w.cluster != nil {
+		w.cluster.owner = w.criticalWrites
+		w.cluster.enter(w)
+	}
 	log.Printf("critical persistence: %d worker(s), capacity %d, account containment=%t",
 		w.criticalPersistenceWorkers, w.criticalPersistenceCapacity, w.criticalAccountContainment)
 	return nil

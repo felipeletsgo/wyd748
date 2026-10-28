@@ -45,10 +45,13 @@ func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	if def == nil || def.Score == nil {
 		return "", false
 	}
+	if kind, ok := officialNPCServiceKind(def); ok {
+		return kind, true
+	}
 	if _, isShop := shopTypeForMerchant(def.Score.Merchant); isShop {
 		return npcKindShop, true
 	}
-	if def.Score.Merchant&0x0F == craftingMerchant {
+	if def.Score.Merchant == craftingMerchant {
 		return npcKindCraft, true
 	}
 	if def.Score.Merchant&0xF == cargoMerchantType {
@@ -63,6 +66,9 @@ func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	if isAbilityResetMasterNPC(def) {
 		return npcKindAbilityResetMaster, true
 	}
+	if def.Score.Merchant == mysticLandStartMerchant || def.Score.Merchant == mysticLandRewardMerchant {
+		return "Mystic Land quest", true
+	}
 	return "", false
 }
 
@@ -71,8 +77,10 @@ func reservedNPCKind(def *model.NPCDef) (string, bool) {
 func indexQuests(file model.QuestFile, npcs []model.NPCDef) (map[string]*model.QuestDef, error) {
 	byName := make(map[string]*model.NPCDef, len(npcs)*2)
 	for i := range npcs {
-		byName[model.NormalizeQuestNPC(npcs[i].Name)] = &npcs[i]
-		byName[model.NormalizeQuestNPC(generName(npcs[i].Name))] = &npcs[i]
+		for _, name := range []string{npcs[i].Name, npcs[i].InteractionName()} {
+			byName[model.NormalizeQuestNPC(name)] = &npcs[i]
+			byName[model.NormalizeQuestNPC(generName(name))] = &npcs[i]
+		}
 	}
 	out := make(map[string]*model.QuestDef, len(file.Quests))
 	for i := range file.Quests {
@@ -99,10 +107,15 @@ func (w *World) questForNPC(def *model.NPCDef) *model.QuestDef {
 	if def == nil || len(w.questsByNPC) == 0 {
 		return nil
 	}
-	if quest, ok := w.questsByNPC[model.NormalizeQuestNPC(def.Name)]; ok {
-		return quest
+	for _, name := range []string{def.Name, def.InteractionName()} {
+		if quest := w.questsByNPC[model.NormalizeQuestNPC(name)]; quest != nil {
+			return quest
+		}
+		if quest := w.questsByNPC[model.NormalizeQuestNPC(generName(name))]; quest != nil {
+			return quest
+		}
 	}
-	return w.questsByNPC[model.NormalizeQuestNPC(generName(def.Name))]
+	return nil
 }
 
 // onQuestInteraction handles a click on a quest NPC.

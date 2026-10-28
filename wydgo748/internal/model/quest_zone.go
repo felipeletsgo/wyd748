@@ -12,10 +12,20 @@ const QuestZoneFileVersion = 1
 // ten minutes, reviving a dead player).
 type QuestZone struct {
 	Name string `json:"name"`
-	X1   uint16 `json:"x1"`
-	Y1   uint16 `json:"y1"`
-	X2   uint16 `json:"x2"`
-	Y2   uint16 `json:"y2"`
+	// NPC explicitly binds the entry guard; Name remains the zone identifier.
+	NPC string `json:"npc,omitempty"`
+	X1  uint16 `json:"x1"`
+	Y1  uint16 `json:"y1"`
+	X2  uint16 `json:"x2"`
+	Y2  uint16 `json:"y2"`
+}
+
+// EntryNPC retains the legacy Name binding when an older profile omits NPC.
+func (z QuestZone) EntryNPC() string {
+	if z.NPC != "" {
+		return z.NPC
+	}
+	return z.Name
 }
 
 // Contains reports whether the tile is inside the rectangle, borders included,
@@ -38,7 +48,7 @@ func (z *QuestZone) Validate() error {
 	return nil
 }
 
-// QuestZoneFile is the content of data/quest_zones.json. Zones are quest areas
+// QuestZoneFile is the content of data/content/quest_zones.json. Zones are quest areas
 // guarded by their NPC entry (ClearAreaQuest). ClearAreas are emptied by the
 // same reset cycle without an entry guard (native ClearArea, such as the Game
 // Room territories).

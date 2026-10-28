@@ -5,11 +5,11 @@ import "testing"
 // Uxmal registers the Rune Track, so it stands inside the entrance area like
 // the 7.59 generator (3297,1693), not at the old Field0813 spot (1057,1717).
 func TestUxmalStandsAtTheRuneTrackEntrance(t *testing.T) {
-	geners, err := LoadNPCGener("../../data/NPCGener.txt")
+	geners, err := LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	terrain, err := LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}

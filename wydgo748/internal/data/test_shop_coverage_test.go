@@ -13,13 +13,13 @@ import (
 func loadTestShopFixture(t *testing.T) (map[string]map[uint16]struct{}, map[uint16]struct{}) {
 	t.Helper()
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
+	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "content", "volatiles.json"),
+		filepath.Join(root, "content", "instances.json"), filepath.Join(root, "spawns", "instances"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,8 +208,8 @@ func TestMountsCostumesAndTimedFunctionsHaveTestShop(t *testing.T) {
 
 func TestKRMountsUsePremium748Contract(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -288,8 +288,8 @@ func TestKRMountsUsePremium748Contract(t *testing.T) {
 
 func TestCompleteKRCostumesKeep748Contract(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -366,8 +366,8 @@ func TestDESetsOfEveryClassHaveTestShop(t *testing.T) {
 func TestEveryCatalogDEWeaponHasTestShop(t *testing.T) {
 	shops, _ := loadTestShopFixture(t)
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -417,11 +417,11 @@ func TestDEShieldsHaveTestShop(t *testing.T) {
 
 func TestNewTestShopsAreInTheArmiaBlock(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	gens, err := LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	gens, err := LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	extra, err := LoadNPCGener(filepath.Join(root, "NPCGenerTest.txt"))
+	extra, err := LoadNPCGener(filepath.Join(root, "spawns", "NPCGenerTest.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}

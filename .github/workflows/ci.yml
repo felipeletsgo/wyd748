@@ -25,6 +25,17 @@ jobs:
         run: ./tools/client-assets/Audit-ClientAssets.ps1
       - name: Test research tooling
         run: python3 -m unittest discover -s .agents/skills/wyd-client748-research/scripts -p 'test_*.py'
+      - name: Test data layout consumers and deployment preflight
+        run: |
+          python3 -B .agents/research/matrix-data-audit-tests.py
+          python3 -B -m unittest discover -s tools/deployment -p 'test_*.py'
+          bash -n tools/deployment/vps/update-release.sh
+      - name: Test local panel shortcut
+        shell: pwsh
+        run: ./tools/web-admin/Test-Start-WYDAdmin.ps1
+      - name: Test VPS runtime inventory
+        shell: pwsh
+        run: ./tools/deployment/Test-VpsRuntimeInventory.ps1
       - name: Validate research records
         run: python3 .agents/skills/wyd-client748-research/scripts/validate_research.py
 

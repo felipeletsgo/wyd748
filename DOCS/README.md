@@ -18,13 +18,16 @@ documentation, research evidence, and continuity records.
 | Track current player-reported gameplay defects and acceptance checks | [Gameplay bug register](bug-register.md) |
 | Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
 | Use or extend the staff panel: sanctions, notices, maintenance, audit and the next work packages | [Staff operations](server/staff-operations.md) and [staff panel roadmap](server/admin-panel-roadmap.md) |
+| Edit active NPC JSON definitions in PostgreSQL and apply them live | [Live NPC definition management](protocol/npc-definitions.md) |
 | Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
 | Review Rune Track rooms +0 through +6 and their independent event monsters | [Rune Track](server/rune-track.md) |
 | Check Kibita's Mortal Soul exchanges and official server evidence | [Kibita Mortal Soul](server/kibita-soul.md) |
-| Compare the supplied server 7.59 decompilation with current Go systems | [Server 7.59 map and gap analysis](server/server-759-gap-analysis.md) |
+| Understand native server functions or logic | [REA server research index](<../references/decompilacao server/dlls/rea-analysis/README.md>) |
+| Compare the supplied server 7.59 decompilation with current Go systems | [Server 7.59 map and gap analysis](<../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md>) |
 | Set up Windows development | [Windows environment](windows-development-environment.md) |
 | Start the server for the first time | [Root README](../README.md#quick-start-on-windows) |
 | Operate the database, accounts, panel, network, and backups | [Server operations](server/operations.md) |
+| Find, add, or move a server data file | [Server data layout](server/data-layout.md) |
 | Publish the public player portal and isolate its VPS services | [Public portal and native VPS deployment](server/public-launch.md) |
 | Publish client updates through the launcher | [WYD launcher and client patches](client/launcher.md) |
 | Plan Brazilian Portuguese and English channels with one bilingual client | [Bilingual channels plan](bilingual-channels-plan.md) |
@@ -49,7 +52,7 @@ documentation, research evidence, and continuity records.
 | Keep the Kefra hall mirror hidden until a persisted boss defeat | [Kefra portal visibility v1](protocol/kefra-portal.md) |
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Work with Codex or Claude Code | [Agent environments](agent-environments.md) |
-| Track the English-only migration | [Language migration](language-migration.md) |
+| Track the scoped language migration | [Language migration](language-migration.md) |
 | Reduce agent context/token costs and evaluate Jev | [Agent token efficiency](agent-token-efficiency.md) |
 
 The schedule, rewards, commands, and open guild-war work are documented in

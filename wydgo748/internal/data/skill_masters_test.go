@@ -15,7 +15,7 @@ func TestSkillMastersReserveClientBranchSeparators(t *testing.T) {
 	}
 	found := 0
 	for _, npc := range npcs {
-		want, ok := wantFirst[npc.Name]
+		want, ok := wantFirst[npc.InteractionName()]
 		if !ok {
 			continue
 		}

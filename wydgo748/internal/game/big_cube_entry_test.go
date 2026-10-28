@@ -12,7 +12,7 @@ import (
 
 func shippedBigCubeConfig(t *testing.T) model.VolatileInstance {
 	t.Helper()
-	contents, err := os.ReadFile("../../data/instances.json")
+	contents, err := os.ReadFile("../../data/content/instances.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestBigCubeShippedEntryRectangleAndTicketAdmission(t *testing.T) {
 }
 
 func TestBigCubeLobbyPortalReturnsToNoatumWithoutUsingTicket(t *testing.T) {
-	routes, err := data.LoadTeleports("../../data/teleports.ini")
+	routes, err := data.LoadTeleports("../../data/world/teleports.ini")
 	if err != nil {
 		t.Fatal(err)
 	}

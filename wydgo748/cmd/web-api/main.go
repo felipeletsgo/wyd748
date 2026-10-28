@@ -33,7 +33,7 @@ func run() error {
 	address := flag.String("addr", "127.0.0.1:8082", "literal loopback listener")
 	origin := flag.String("origin", "", "exact browser origin, without trailing slash")
 	dev := flag.Bool("dev-http", false, "allow HTTP on literal loopback for local development only")
-	configPath := flag.String("config", "data/server.txt", "server configuration containing admin_access_pin")
+	configPath := flag.String("config", "data/config/server.txt", "server configuration containing admin_access_pin")
 	staffPath := flag.String("staff-file", "", "private staff JSON outside repository and static directory")
 	controlURL := flag.String("control-url", "http://127.0.0.1:8081", "private game Control API")
 	staticPath := flag.String("static", "web/portal/dist", "compiled Astro assets directory")

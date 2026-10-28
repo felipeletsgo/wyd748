@@ -572,7 +572,8 @@ DWORD NewApp::Run()
 		{
 			// Gameplay accelerators belong to KEYTYPE=1. Native edit windows
 			// still need Ctrl+C/V/X in either mode.
-			const bool useAccelerators = g_nKeyType == 1 || GetFocus() != m_hWnd;
+			const bool useAccelerators = !premium_nell::Window::BlocksGameInput(m_hWnd) &&
+				(g_nKeyType == 1 || GetFocus() != m_hWnd);
 			if (!useAccelerators || !hAccel || !m_hWnd || TranslateAccelerator(m_hWnd, hAccel, &msg) == 0)
 			{
 				TranslateMessage(&msg);
@@ -598,7 +599,7 @@ DWORD NewApp::Run()
 
 				unsigned int dwServerTime = m_pTimerManager->GetServerTime();
 
-				m_pEventTranslator->ReadInputEventData();
+				m_pEventTranslator->ReadInputEventData(premium_nell::Window::BlocksGameInput(m_hWnd));
 				m_pEventTranslator->CameraEventData();
 
 				{

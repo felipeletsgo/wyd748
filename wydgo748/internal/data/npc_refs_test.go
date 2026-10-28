@@ -31,12 +31,12 @@ func nomesDeNPC(t *testing.T) map[string]bool {
 
 func TestBossesReferenciamNPCsExistentes(t *testing.T) {
 	nomes := nomesDeNPC(t)
-	catalogo, err := LoadBossCatalog(filepath.Join("..", "..", "data", "boss"))
+	catalogo, err := LoadBossCatalog(filepath.Join("..", "..", "data", "content", "boss"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(catalogo.Bosses) == 0 {
-		t.Fatal("nenhum encontro de boss em data/boss")
+		t.Fatal("nenhum encontro de boss em data/content/boss")
 	}
 	for _, boss := range catalogo.Bosses {
 		// O NPC base do boss e o NPC de cada grupo de adds invocavel: os dois
@@ -56,13 +56,14 @@ func TestBossesReferenciamNPCsExistentes(t *testing.T) {
 
 func TestZonasDeQuestReferenciamNPCsExistentes(t *testing.T) {
 	nomes := nomesDeNPC(t)
-	b, err := os.ReadFile(filepath.Join("..", "..", "data", "quest_zones.json"))
+	b, err := os.ReadFile(filepath.Join("..", "..", "data", "content", "quest_zones.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var arquivo struct {
 		Zones []struct {
 			Name string `json:"name"`
+			NPC  string `json:"npc"`
 		} `json:"zones"`
 	}
 	if err := json.Unmarshal(b, &arquivo); err != nil {
@@ -72,8 +73,8 @@ func TestZonasDeQuestReferenciamNPCsExistentes(t *testing.T) {
 		t.Fatal("nenhuma zona em quest_zones.json")
 	}
 	for _, zona := range arquivo.Zones {
-		if !nomes[zona.Name] {
-			t.Errorf("zona %q nao corresponde a nenhum NPC em data/npcs", zona.Name)
+		if zona.NPC == "" || !nomes[zona.NPC] {
+			t.Errorf("zone %q needs an explicit catalog NPC, got %q", zona.Name, zona.NPC)
 		}
 	}
 }

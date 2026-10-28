@@ -3,12 +3,16 @@ package game
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"wydgo/internal/data"
 	"wydgo/internal/model"
 )
 
@@ -37,6 +41,128 @@ func useItemWorld(rule model.VolatileRule) (*World, *Player, *craftStore) {
 	}
 	p.Char.Inv[0] = model.Item{Index: 100}
 	return w, p, st
+}
+
+func TestMolarConfiguredEntryAndRewardLevelRange(t *testing.T) {
+	var quests model.QuestFile
+	var zones model.QuestZoneFile
+	var volatiles struct {
+		Rules map[int]model.VolatileRule `json:"rules"`
+	}
+	for name, target := range map[string]any{"quests.json": &quests, "volatiles.json": &volatiles, "quest_zones.json": &zones} {
+		content, err := os.ReadFile(filepath.Join("..", "..", "data", "content", name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := json.Unmarshal(content, target); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var entry *model.QuestDef
+	for i := range quests.Quests {
+		if quests.Quests[i].NPC == "Gargoyle_Watcher" {
+			entry = &quests.Quests[i]
+		}
+	}
+	rule := volatiles.Rules[194]
+	if entry == nil || entry.Requires.MinLevel != 200 || entry.Requires.MaxLevel != 204 ||
+		!entry.Requires.MortalOnly || rule.MinLevel != 200 || rule.MaxLevelExclusive != 205 ||
+		!rule.MortalOnly || rule.Action != "refine_set" || rule.OnceQuestID != -194 {
+		t.Fatalf("Molar entry and reward must both require displayed Mortal levels 201..205: entry=%+v rule=%+v", entry, rule)
+	}
+	npcs, err := data.LoadNPCs(filepath.Join("..", "..", "data", "npcs", "Gargoyle_Watcher.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	index, err := indexQuests(model.QuestFile{Quests: []model.QuestDef{*entry}}, npcs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if routed := (&World{questsByNPC: index}).questForNPC(&npcs[0]); routed == nil || routed.ID != entry.ID {
+		t.Fatal("configured Watcher does not route to the Molar entry handler")
+	}
+	for _, tc := range []struct {
+		name, evolution string
+		level           uint32
+		allowed         bool
+	}{
+		{name: "displayed-200", level: 199},
+		{name: "displayed-201", level: 200, allowed: true},
+		{name: "displayed-205", level: 204, allowed: true},
+		{name: "displayed-206", level: 205},
+		{name: "arch-201", level: 200, evolution: "arch"},
+	} {
+		t.Run(tc.name+"/entry", func(t *testing.T) {
+			w, p, _, _, backend, queue, release := criticalTreasuryFixture(t, 100)
+			w.questZones, w.questsByNPC = zones.Zones, index
+			w.nextQuestZoneReset = w.now().Add(questZoneResetInterval)
+			p.Char.Score.Level, p.Char.Evolution = tc.level, tc.evolution
+			beforeX, beforeY := p.X, p.Y
+			w.onQuestInteraction(p.Session, p, &Mob{Def: &npcs[0]}, entry, 1)
+			if p.X != beforeX || p.Y != beforeY || p.QuestZoneEntry != "" || p.QuestZoneTimer {
+				t.Fatal("entry moved or authorized the player before persistence completed")
+			}
+			if !tc.allowed {
+				if len(queue.pending) != 0 || len(backend.entered) != 0 {
+					t.Fatal("rejected entry queued persistence")
+				}
+				return
+			}
+			// Durable coordinates use the neutral login entry; the quest's
+			// session destination is published only after acknowledgement.
+			awaitCriticalWrite(t, backend.entered)
+			release()
+			awaitReadyCriticalResults(t, queue, 1)
+			w.processCriticalCompletions(1)
+			if p.X != 817 || p.Y != 4062 || p.QuestZoneEntry != entry.NPC || !p.QuestZoneTimer {
+				t.Fatal("committed entry did not teleport into and authorize the Molar area")
+			}
+			if zone := w.questZoneAt(p.X, p.Y); zone == nil || w.questZoneViolation(p, zone) != "" {
+				t.Fatal("legitimate Molar entry is rejected by the configured area guard")
+			}
+		})
+		t.Run(tc.name, func(t *testing.T) {
+			w, p, _ := useItemWorld(rule)
+			p.Char.Score.Level, p.Char.Evolution = tc.level, tc.evolution
+			p.Char.Equip[1] = model.Item{Index: 200}
+			if reason, allowed := w.questRequirementsMet(p, entry); allowed != tc.allowed {
+				t.Fatalf("entry allowed=%v, want %v: %s", allowed, tc.allowed, reason)
+			}
+			w.onUseItem(p.Session, useItemPacket(0, 0))
+			if consumed := p.Char.Inv[0].Index == 0; consumed != tc.allowed ||
+				questCompleted(p.Char, -194) != tc.allowed || (itemSanc(p.Char.Equip[1]) == 6) != tc.allowed {
+				t.Fatalf("reward disagrees with entry: inventory=%+v armor=%+v completed=%v", p.Char.Inv[0], p.Char.Equip[1], questCompleted(p.Char, -194))
+			}
+		})
+		t.Run(tc.name+"/critical", func(t *testing.T) {
+			w, p, _, _, backend, queue, release := criticalTreasuryFixture(t, 100)
+			_, packet := configureCriticalConsumableSettlement(w, p, "refine_set")
+			w.volatiles.Items[900] = rule
+			p.Char.Score.Level, p.Char.Evolution = tc.level, tc.evolution
+			w.onUseItem(p.Session, packet)
+			if !tc.allowed {
+				if len(queue.pending) != 0 || len(backend.entered) != 0 ||
+					p.Char.Inv[0].Index != 900 || questCompleted(p.Char, -194) || itemSanc(p.Char.Equip[4]) != 1 {
+					t.Fatal("rejected level or evolution changed state or queued persistence")
+				}
+				return
+			}
+			proposal := awaitCriticalWrite(t, backend.entered)
+			if p.Char.Inv[0].Index != 900 || questCompleted(p.Char, -194) {
+				t.Fatal("reward was published before persistence completed")
+			}
+			prepared := &proposal.accounts[0].Chars[p.CharSlot]
+			if prepared.Inv[0].Index != 0 || !questCompleted(prepared, -194) || itemSanc(prepared.Equip[4]) != 6 {
+				t.Fatal("persistence proposal did not contain the Molar reward")
+			}
+			release()
+			awaitReadyCriticalResults(t, queue, 1)
+			w.processCriticalCompletions(1)
+			if p.Char.Inv[0].Index != 0 || !questCompleted(p.Char, -194) || itemSanc(p.Char.Equip[4]) != 6 {
+				t.Fatal("committed reward was not installed")
+			}
+		})
+	}
 }
 
 func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
@@ -494,7 +620,7 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 	t.Run("molar requires mortal range and is one-shot", func(t *testing.T) {
 		rule := model.VolatileRule{
 			Action: "refine_set", Consume: true, RefineMax: 6, MortalOnly: true,
-			MinLevel: 200, MaxLevelExclusive: 256, OnceQuestID: -194,
+			MinLevel: 200, MaxLevelExclusive: 205, OnceQuestID: -194,
 		}
 		w, p, st := useItemWorld(rule)
 		p.Char.Score.Level = 200
@@ -517,14 +643,14 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 	t.Run("molar rejects arch and levels outside the native range", func(t *testing.T) {
 		rule := model.VolatileRule{
 			Action: "refine_set", Consume: true, RefineMax: 6, MortalOnly: true,
-			MinLevel: 200, MaxLevelExclusive: 256, OnceQuestID: -194,
+			MinLevel: 200, MaxLevelExclusive: 205, OnceQuestID: -194,
 		}
 		for _, tc := range []struct {
 			name, evolution string
 			level           uint32
 		}{
 			{name: "below", level: 199},
-			{name: "above", level: 256},
+			{name: "above", level: 205},
 			{name: "arch", evolution: "arch", level: 200},
 		} {
 			t.Run(tc.name, func(t *testing.T) {

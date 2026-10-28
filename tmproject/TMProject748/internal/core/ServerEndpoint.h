@@ -4,6 +4,47 @@
 #include <cstddef>
 #include <cstring>
 
+// Coordinated extension: an optional :port stays inside the existing 64-byte
+// endpoint cell. Legacy IPv4 entries retain the original game port. SocketManager
+// uses inet_addr, so DNS names and IPv6 are deliberately rejected here.
+template <std::size_t HostSize>
+inline bool ResolveGameEndpoint(const char* endpoint, char (&host)[HostSize], int& port)
+{
+    host[0] = '\0';
+    if (!endpoint) return false;
+    const char* colon = std::strchr(endpoint, ':');
+    const std::size_t length = colon ? static_cast<std::size_t>(colon - endpoint) : std::strlen(endpoint);
+    if (!length || length >= HostSize) return false;
+    unsigned octets = 0, value = 0, digits = 0;
+    for (std::size_t i = 0; i <= length; ++i) {
+        if (i == length || endpoint[i] == '.') {
+            if (!digits || ++octets > 4) return false;
+            value = digits = 0;
+        } else {
+            const unsigned char c = endpoint[i];
+            if (c < '0' || c > '9' || ++digits > 3) return false;
+            value = value * 10 + c - '0';
+            if (value > 255) return false;
+        }
+    }
+    if (octets != 4) return false;
+    int selectedPort = 8281;
+    if (colon) {
+        selectedPort = 0;
+        if (!colon[1]) return false;
+        for (const char* c = colon + 1; *c; ++c) {
+            if (*c < '0' || *c > '9') return false;
+            selectedPort = selectedPort * 10 + (*c - '0');
+            if (selectedPort > 65535) return false;
+        }
+        if (!selectedPort) return false;
+    }
+    std::memcpy(host, endpoint, length);
+    host[length] = '\0';
+    port = selectedPort;
+    return true;
+}
+
 // serverlist.bin stores every endpoint in a fixed-width cell. Copy only text
 // that is fully terminated inside that cell so a malformed asset cannot make
 // the client read into the next channel entry.

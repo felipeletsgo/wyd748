@@ -1,0 +1,383 @@
+{
+  "name": "Taron_Assassino",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 313
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 749,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 2378,
+      "eff": [
+        10,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 5000,
+  "score": {
+    "version": 2,
+    "level": 370,
+    "attack": 1550,
+    "magicAttack": 0,
+    "defense": 3400,
+    "maxHP": 30000,
+    "maxMP": 0,
+    "curHP": 30000,
+    "curMP": 0,
+    "str": 5,
+    "int": 75,
+    "dex": 100,
+    "con": 950,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      151,
+      1,
+      151,
+      1
+    ],
+    "attackRun": 3
+  },
+  "carry": [
+    {
+      "index": 2406
+    },
+    {
+      "index": 2406
+    },
+    {
+      "index": 2406
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 869,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 910,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 809,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 935,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 854,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 902,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 899,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 824,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 839,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 884,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 661
+    },
+    {
+      "index": 2406
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2316
+    }
+  ],
+  "gold": 500,
+  "learnedSkill": 60060,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

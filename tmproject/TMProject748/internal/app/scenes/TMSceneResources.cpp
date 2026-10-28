@@ -16,6 +16,7 @@
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "TMScene.h"
+#include "QuestSubjectLevel.h"
 #include "TMFieldScene.h"
 #include "TMEffectFirework.h"
 #include "TMSnow.h"
@@ -985,7 +986,7 @@ unsigned int TMScene::LoadMsgText4(char* pStr, int dwStrSize, const char* szFile
 	return dwCol | 0xFF000000;
 }
 
-int TMScene::LoadMsgLevel(char* LevelQuest, const char* szFileName, char cType)
+int TMScene::LoadMsgLevel(char* LevelQuest, std::size_t capacity, const char* szFileName, char cType)
 {
 	FILE* fp{};
 
@@ -999,16 +1000,7 @@ int TMScene::LoadMsgLevel(char* LevelQuest, const char* szFileName, char cType)
 
 	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
 	{
-		char szCol[11]{};
-
-		strncpy(szCol, szTemp, 10);
-
-		int nLvLimit{};
-		DWORD dwCol{};
-
-		sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol);
-
-		LevelQuest[nLvLimit - 1] = cType;
+		quest_subject::Apply(LevelQuest, capacity, szTemp, cType);
 	}
 	fclose(fp);
 	return 1;

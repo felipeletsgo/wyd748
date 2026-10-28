@@ -2,13 +2,51 @@ package main
 
 import (
 	"encoding/binary"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"wydgo/internal/data"
 	"wydgo/internal/model"
 )
+
+func TestRuneTrackExtractionWritesSevenRoomFiles(t *testing.T) {
+	source, output := t.TempDir(), t.TempDir()
+	if err := os.Mkdir(filepath.Join(source, "npc"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	var input strings.Builder
+	for label := 5662; label <= 5988; label++ {
+		fmt.Fprintf(&input, "#[%d]\nLeader: LichCruntKing\nFollower: LichCruntKing\nMaxNumMob: 1\nStartX: 100\nStartY: 200\n", label)
+	}
+	if err := os.WriteFile(filepath.Join(source, "NPCGener.txt"), []byte(input.String()), 0600); err != nil {
+		t.Fatal(err)
+	}
+	npc := make([]byte, 1024)
+	binary.LittleEndian.PutUint32(npc[108:], 100)
+	if err := os.WriteFile(filepath.Join(source, "npc", "LichCruntKing"), npc, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := run(source, output); err != nil {
+		t.Fatal(err)
+	}
+	for room, count := range []int{53, 60, 60, 28, 50, 49, 27} {
+		groups, err := data.LoadNPCGener(filepath.Join(output, fmt.Sprintf("RuneTrack%d.txt", room)))
+		if err != nil || len(groups) != count {
+			t.Fatalf("room %d count=%d error=%v", room, len(groups), err)
+		}
+		for _, g := range groups {
+			if model.RuneTrackGeneratorRoom(g.Label) != room || g.Leader != "RT_LichKing" {
+				t.Fatal("extraction changed the room or template mapping")
+			}
+		}
+	}
+	if _, err := os.Stat(filepath.Join(output, "RuneTrack759.txt")); !os.IsNotExist(err) {
+		t.Fatal("extractor produced the obsolete combined file")
+	}
+}
 
 func TestRunRejectsMalformedGeneratorHeaders(t *testing.T) {
 	for _, tc := range []struct {
@@ -77,7 +115,7 @@ func TestDecode759IndependentOffsets(t *testing.T) {
 		t.Fatalf("carry holes or effects changed: %+v", d.Carry)
 	}
 	b[17] = 9
-	d, err = decode("RT_Freyja", b)
+	d, err = decode("Freyja", b)
 	if err != nil || d.Tipo != model.TipoNPC || len(d.Carry) != 0 || len(d.Vende) != 6 {
 		t.Fatalf("merchant classification: %+v / %v", d, err)
 	}
@@ -96,7 +134,7 @@ func TestDecode759RejectsLossyInputs(t *testing.T) {
 	}
 	seen := map[string]bool{}
 	for _, alias := range aliases {
-		if len(alias) > 12 || seen[alias] {
+		if len(alias) > model.MaxNPCDisplayNameBytes || seen[alias] {
 			t.Fatalf("invalid wire alias %q", alias)
 		}
 		seen[alias] = true

@@ -52,7 +52,7 @@
     }
   },
   "classInfo": 1,
-  "expReward": 25000,
+  "expReward": 4000,
   "score": {
     "version": 2,
     "level": 302,
@@ -77,7 +77,7 @@
     ],
     "attackRun": 4
   },
-  "gold": 9999,
+  "gold": 500,
   "direction": 32,
   "skillBar": [
     255,

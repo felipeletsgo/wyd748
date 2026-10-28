@@ -1,4 +1,5 @@
 #pragma once
+#include "../../game/entities/AirMoveRoutes.h"
 #include "ExtractedFlow.h"
 
 #include "Basedef.h"
@@ -6,6 +7,7 @@
 #include "../../wire/QuizEventPacket.h"
 #include "../../wire/InstanceQuestionPacket.h"
 #include "../../wire/PremiumShopPacket.h"
+#include "../../platform/windows/PremiumNellWindow.h"
 #include "../../wire/KefraPortalPacket.h"
 #include "../../game/entities/BerielAuraPolicy.h"
 #include "../../ui/NativeScoreHud.h"
@@ -66,7 +68,7 @@ public:
 	int GetItem(TMItem* pItem);
 	void SetVisibleInventory();
 	void SetVisibleCharInfo();
-	void SetVisibleShop(int bShow);
+	void SetVisibleShop(int bShow, bool showPanels = true);
 	void SetVisibleCargo(int bShow);
 	void SetVisibleTrade(int bShow);
 	void DoCombine();
@@ -134,6 +136,9 @@ public:
 	void InitializeQuizEventControls();
 	int OnPacketQuizEvent(MSG_STANDARD* packet);
 	int OnPacketPremiumShopState(MSG_STANDARD* packet);
+	int OnPacketPremiumBuyResult(MSG_STANDARD* packet);
+	void TickPremiumNell();
+	void RefreshPremiumNell();
 	void UpdateFireWorkButton(int nIndex);
 	void ClearFireWork();
 	void UseFireWork();
@@ -831,6 +836,10 @@ public:
 	quiz_event::State m_quizEvent{};
 	// Premium shop opened by a ShopType 4 list (DOCS/protocol/premium-shop.md).
 	premium_shop::ClientState m_premiumShop{};
+	premium_nell::Window m_premiumNell;
+	std::array<premium_nell::Item, premium_shop::Slots> m_premiumNellItems{};
+	premium_shop::PendingPurchase m_premiumNellPending;
+	int m_premiumNellResult = -1;
 	SText* m_pQuizQuestion;
 	SButton* m_pQuizButton[4];
 	SPanel* m_pRPSGamePanel;
@@ -1064,69 +1073,6 @@ public:
 static RECT rectTownInCastle = { 1036, 1700, 1088, 1774 };
 static RECT g_rectField[2] = { { 2048, 1792, 2688, 2304 }, { 1920, 1408, 2688, 2048 } };
 
-const static STRUCT_AIRMOVELIST g_pAirMoveRoute[5][10] =
-{
-  {
-	{ 2112, 2051 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 }
-  },
-  {
-	{ 2372, 2099 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 }
-  },
-  {
-	{ 2485, 2097 },
-	{ 2485, 1712 },
-	{ 2220, 1714 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 }
-  },
-  {
-	{ 2356, 2112 },
-	{ 2365, 2279 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 }
-  },
-  {
-	{ 2485, 2097 },
-	{ 2485, 1712 },
-	{ 2220, 1712 },
-	{ 2220, 1593 },
-	{ 1982, 1593 },
-	{ 1982, 1734 },
-	{ 1826, 1771 },
-	{ 0, 0 },
-	{ 0, 0 },
-	{ 0, 0 }
-  }
-};
 
 const static STRUCT_AIRMOVELIST g_pAirMoveList[5] =
 {

@@ -123,7 +123,7 @@ func TestRestartRevivesAfterNativeDelayAndSysQuitPersists(t *testing.T) {
 	if playerCurHP(p.Char) == 0 || p.DeadAt.IsZero() == false {
 		t.Fatal("restart did not revive the player and clear the death deadline")
 	}
-	if chebyshev(p.X, p.Y, cityWarZones[1].exitX, cityWarZones[1].exitY) > 8 || st.saves != 1 {
+	if !recallArea(1).contains(p.X, p.Y) || st.saves != 1 {
 		t.Fatalf("restart did not perform safe recall: position=(%d,%d) saves=%d", p.X, p.Y, st.saves)
 	}
 

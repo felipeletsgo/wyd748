@@ -72,11 +72,11 @@ Pop-Location
 
 The web-panel script only prepares web files; it does not start or stop the
 server. To work without the panel, set `web_admin_enabled=false` in
-[`wydgo748/data/server.txt`](wydgo748/data/server.txt) and skip that script.
+[`wydgo748/data/config/server.txt`](wydgo748/data/config/server.txt) and skip that script.
 
 ### 3. Start the server
 
-Always run it from `wydgo748/` because `data/server.txt` uses paths relative
+Always run it from `wydgo748/` because `data/config/server.txt` uses paths relative
 to that directory.
 
 ```powershell
@@ -88,7 +88,7 @@ A successful boot reports authoritative PostgreSQL and finishes with the game
 listener at `0.0.0.0:8281`. If the panel is enabled, open
 `http://127.0.0.1:8082/admin/`. Change the example `admin_access_pin` before
 using the panel outside a local environment. The administrative account must
-also be authorized in `wydgo748/data/staff.json`.
+also be authorized in `wydgo748/data/config/staff.json`.
 
 Do not forcibly terminate the process. Use `Ctrl+C` so the server can drain
 persistence and shut down. For subsequent starts, confirm PostgreSQL is

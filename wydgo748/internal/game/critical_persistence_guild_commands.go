@@ -62,6 +62,7 @@ func (w *World) queueGuildCreate(p *Player, name string) error {
 	}
 	now := w.now().UTC()
 	proposedGuilds.Guilds = append(proposedGuilds.Guilds, model.Guild{
+		Citizenship: p.Char.Citizenship,
 		ID: id, Name: name, Kingdom: characterKingdom(p.Char), CreatedAt: now,
 		Members: []model.GuildMember{{Character: p.Char.Name, Account: p.Account.Name,
 			Rank: model.GuildRankLeader, JoinedAt: now}},

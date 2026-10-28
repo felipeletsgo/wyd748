@@ -172,6 +172,12 @@ func (binding criticalPlayerBinding) current(w *World) bool {
 // not authorize a new account write or gameplay continuation.
 func (binding criticalPlayerBinding) currentIdentity(w *World, allowPoisoned bool) bool {
 	p := binding.player
+	if w.cluster != nil {
+		w = w.playerWorld(p)
+		if w == nil {
+			return false
+		}
+	}
 	if w.players[binding.session] != p || p.Session != binding.session ||
 		p.Account != binding.account || accountSessionKey(p.Account.Name) != binding.accountKey ||
 		w.accountSessions[binding.accountKey] != binding.session || p.PersistencePoisoned && !allowPoisoned ||

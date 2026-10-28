@@ -13,7 +13,7 @@ int RunInstanceQuestionTests(int& checks)
     };
     // The native portal prompt reads one attribute per 4x4 world block.
     for (const char* path : {"tmproject/client748/Env/AttributeMap.dat",
-        "wydgo748/data/maps/AttributeMap.dat"}) {
+        "wydgo748/data/world/maps/AttributeMap.dat"}) {
         std::ifstream map(FindFixture(path), std::ios::binary);
         map.seekg((1466 / 4) * 1024 + 1342 / 4);
         char attribute = 0;

@@ -102,43 +102,53 @@ func (w *World) handleTeleport(req *teleportRequest) {
 		return
 	}
 	r.Code = "stale_target"
-	for s, p := range w.players {
+	for _, p := range w.globalPlayers() {
+		s := p.Session
 		if s == nil || s.ID != c.ExpectedSessionID || p == nil || p.Session != s || !p.InWorld || p.Char == nil || p.Account == nil ||
 			p.Char.UID != c.UID || accountSessionKey(p.Account.Name) != c.Account || s.IsClosed() {
 			continue
 		}
 
-		if w.criticalWrites != nil {
-			x, y, code := w.adminTeleportDestination(p, c.Destination)
-			if code != "ok" {
-				settle(code, 0, 0)
-				return
-			}
-			err := w.queuePlayerTeleport(p, accountStateSnapshot(p.Account), x, y, "staff teleport", nil,
-				func() {
-					w.finishAdminTeleport(p)
-					settle("ok", p.X, p.Y)
-				}, func() { settle("persistence_failed", 0, 0) })
-			if err != nil {
-				code = "persistence_failed"
-				if errors.Is(err, errCriticalPersistenceBusy) || errors.Is(err, errCriticalPersistenceFull) {
-					code = "player_busy"
+		owner := w.playerWorld(p)
+		execute := func() {
+			if owner.criticalWrites != nil {
+				x, y, code := owner.adminTeleportDestination(p, c.Destination)
+				if code != "ok" {
+					settle(code, 0, 0)
+					return
 				}
-				settle(code, 0, 0)
+				err := owner.queuePlayerTeleport(p, accountStateSnapshot(p.Account), x, y, "staff teleport", nil,
+					func() {
+						owner.finishAdminTeleport(p)
+						settle("ok", p.X, p.Y)
+					}, func() { settle("persistence_failed", 0, 0) })
+				if err != nil {
+					code = "persistence_failed"
+					if errors.Is(err, errCriticalPersistenceBusy) || errors.Is(err, errCriticalPersistenceFull) {
+						code = "player_busy"
+					}
+					settle(code, 0, 0)
+					return
+				}
+				// Retrying a timed-out HTTP request cannot enqueue a second teleport.
+				// An unknown transaction retains this receipt and its account fence;
+				// it must never be reported as either success or certified rejection.
+				r.Code = "operation_pending"
+				record(r)
 				return
 			}
-			// Retrying a timed-out HTTP request cannot enqueue a second teleport.
-			// An unknown transaction retains this receipt and its account fence;
-			// it must never be reported as either success or certified rejection.
-			r.Code = "operation_pending"
-			record(r)
-			return
+			r.Code = owner.adminTeleportPlayer(p, c.Destination)
+			if r.Code == "ok" {
+				r.X, r.Y = p.X, p.Y
+			}
+			settle(r.Code, r.X, r.Y)
 		}
-		r.Code = w.adminTeleportPlayer(p, c.Destination)
-		if r.Code == "ok" {
-			r.X, r.Y = p.X, p.Y
+		if w.cluster != nil {
+			w.cluster.inWorld(owner, execute)
+		} else {
+			execute()
 		}
-		break
+		return
 	}
 	settle(r.Code, r.X, r.Y)
 }

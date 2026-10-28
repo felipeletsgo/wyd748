@@ -1,0 +1,322 @@
+{
+  "name": "WriggleSwarm",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 355,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        1,
+        71,
+        13,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 8000,
+  "score": {
+    "version": 2,
+    "level": 325,
+    "attack": 1650,
+    "magicAttack": 0,
+    "defense": 2850,
+    "maxHP": 21000,
+    "maxMP": 0,
+    "curHP": 21000,
+    "curMP": 0,
+    "str": 3,
+    "int": 75,
+    "dex": 90,
+    "con": 100,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      126,
+      7,
+      126,
+      7
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 419
+    },
+    {
+      "index": 419
+    },
+    {
+      "index": 689
+    },
+    {
+      "index": 419
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 454,
+      "eff": [
+        36,
+        0,
+        37,
+        30,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 777
+    },
+    {
+      "index": 777
+    },
+    {
+      "index": 777
+    },
+    {
+      "index": 1709,
+      "eff": [
+        100,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "gold": 500,
+  "learnedSkill": 40040,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

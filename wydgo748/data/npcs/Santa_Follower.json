@@ -1,0 +1,343 @@
+{
+  "name": "Santa_Follower",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 356,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 356,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 356,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 356,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 356,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 394,
+      "eff": [
+        43,
+        253,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 1933,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        30,
+        71,
+        50,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 1936,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 14800,
+  "score": {
+    "version": 2,
+    "level": 399,
+    "attack": 4200,
+    "magicAttack": 0,
+    "defense": 6750,
+    "maxHP": 32000,
+    "maxMP": 0,
+    "curHP": 32000,
+    "curMP": 0,
+    "str": 4,
+    "int": 300,
+    "dex": 100,
+    "con": 500,
+    "critical": 255,
+    "saveMana": 255,
+    "regenHP": 25,
+    "regenMP": 10,
+    "mastery": [
+      200,
+      3,
+      200,
+      7
+    ],
+    "attackRun": 5
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "gold": 920,
+  "learnedSkill": 65100,
+  "skillBar": [
+    47,
+    39,
+    24,
+    55
+  ]
+}

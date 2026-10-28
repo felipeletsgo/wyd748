@@ -1,0 +1,268 @@
+{
+  "name": "C._de_Montaria",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 60
+    },
+    "elmo": {
+      "index": 120
+    },
+    "armadura": {
+      "index": 116
+    },
+    "calca": {
+      "index": 117
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 119
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 500,
+  "score": {
+    "version": 2,
+    "level": 2,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 500,
+    "maxHP": 9000,
+    "maxMP": 0,
+    "curHP": 9000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 1,
+    "merchant": 1
+  },
+  "gold": 500,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 2420,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2421,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2422,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2423,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2424,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2425,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2426,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2436,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2429,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2430,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2438,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

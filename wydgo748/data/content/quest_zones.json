@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "zones": [
+    { "name": "Gravedigger", "npc": "Gravedigger", "x1": 2379, "y1": 2076, "x2": 2426, "y2": 2133 },
+    { "name": "Gardener", "npc": "Gardener", "x1": 2228, "y1": 1700, "x2": 2257, "y2": 1728 },
+    { "name": "Scout", "npc": "Scout", "x1": 459, "y1": 3887, "x2": 497, "y2": 3916 },
+    { "name": "Guard__", "npc": "Guard__", "x1": 658, "y1": 3728, "x2": 703, "y2": 3762 },
+    { "name": "Envoy", "npc": "Envoy", "x1": 1312, "y1": 4027, "x2": 1348, "y2": 4055 },
+    { "name": "Gargoyle_Watcher", "npc": "Gargoyle_Watcher", "x1": 793, "y1": 4046, "x2": 827, "y2": 4080 }
+  ],
+  "clearAreas": [
+    { "name": "GameRoom", "x1": 3570, "y1": 3446, "x2": 3965, "y2": 3711 }
+  ]
+}

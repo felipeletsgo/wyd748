@@ -17,6 +17,10 @@ export function setupPremiumShop(api: API, explain: (error: unknown) => string) 
   let pendingCredit: CreditCommand | undefined;
   let busy = false;
   let generation = 0;
+  const portuguese = document.documentElement.lang.toLowerCase().startsWith('pt');
+  const categoryLabels = portuguese ? ['Destaque', 'Armia', 'Erion', 'Nifleheim'] : ['Featured', 'Armia', 'Erion', 'Nifleheim'];
+  const categoryLabel = portuguese ? 'Categoria' : 'Category';
+  text('premium-category-heading', categoryLabel);
   const catalogMessages: Record<string, string> = {
     ok: 'Catalog saved. Players see it the next time they open the shop.',
     stale_catalog: 'Another staff member changed the catalog. The current version was loaded; review and save again.',
@@ -54,7 +58,7 @@ export function setupPremiumShop(api: API, explain: (error: unknown) => string) 
     body.replaceChildren();
     if (!rows.length) {
       const tr = document.createElement('tr'); const td = document.createElement('td');
-      td.colSpan = 6; td.className = 'empty'; td.textContent = catalog?.available ? 'Empty catalog. Add items to sell.' : 'Premium shop unavailable on this server.';
+      td.colSpan = 7; td.className = 'empty'; td.textContent = catalog?.available ? 'Empty catalog. Add items to sell.' : 'Premium shop unavailable on this server.';
       tr.append(td); body.append(tr); return;
     }
     rows.forEach((row, index) => {
@@ -62,6 +66,13 @@ export function setupPremiumShop(api: API, explain: (error: unknown) => string) 
       tr.append(cell(input(row.slot, v => { row.slot = Number(v); }, { type: 'number', min: '0', max: '26', 'aria-label': 'Cell' })));
       tr.append(cell(input(row.itemId, v => { row.itemId = Number(v); row.itemName = ''; }, { type: 'number', min: '1', max: '6499', 'aria-label': 'Item ID' })));
       const name = document.createElement('span'); name.textContent = row.itemName || '—'; tr.append(cell(name));
+      const category = document.createElement('select'); category.setAttribute('aria-label', categoryLabel);
+      categoryLabels.forEach((label, value) => {
+        const option = document.createElement('option'); option.value = String(value); option.textContent = label; category.append(option);
+      });
+      category.value = String(row.category ?? 0);
+      category.addEventListener('change', () => { row.category = Number(category.value) as CatalogItem['category']; });
+      tr.append(cell(category));
       tr.append(cell(input(row.effects.join(','), v => {
         const parts = v.split(',').map(part => Number(part.trim()));
         row.effects = parts.length === 6 && parts.every(n => Number.isInteger(n) && n >= 0 && n <= 255) ? parts : row.effects;
@@ -101,7 +112,7 @@ export function setupPremiumShop(api: API, explain: (error: unknown) => string) 
     const reason = el<HTMLInputElement>('premium-reason');
     if (!reason.reportValidity()) return;
     const command: CatalogCommand = { version: 1, expectedCatalogVersion: catalog.catalogVersion, reason: reason.value.trim(),
-      items: rows.map(({ slot, itemId, effects, price }) => ({ slot, itemId, effects, price })) };
+      items: rows.map(({ slot, itemId, effects, price, category }) => ({ slot, itemId, effects, price, category: category ?? 0 })) };
     if (!window.confirm(`Save ${command.items.length} item(s) to the premium catalog?\nReason: ${command.reason}`)) return;
     busy = true; buttons();
     const current = generation;
@@ -174,7 +185,7 @@ export function setupPremiumShop(api: API, explain: (error: unknown) => string) 
   el('premium-add').addEventListener('click', () => {
     const used = new Set(rows.map(row => row.slot));
     let slot = 0; while (used.has(slot) && slot < 26) slot++;
-    rows.push({ slot, itemId: 3394, effects: [0, 0, 0, 0, 0, 0], price: 1000 });
+    rows.push({ slot, itemId: 3394, effects: [0, 0, 0, 0, 0, 0], price: 1000, category: 0 });
     renderRows(); buttons();
   });
   el('premium-refresh').addEventListener('click', () => void refresh());

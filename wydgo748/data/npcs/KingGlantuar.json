@@ -1,0 +1,280 @@
+{
+  "name": "KingGlantuar",
+  "serviceIdentity": "King_Glantuar",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 304
+    },
+    "elmo": {
+      "index": 159,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 160
+    },
+    "calca": {
+      "index": 161
+    },
+    "luva": {
+      "index": 162
+    },
+    "bota": {
+      "index": 163
+    },
+    "arma": {
+      "index": 866
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 2370,
+      "eff": [
+        10,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "capa": {
+      "index": 735
+    }
+  },
+  "classInfo": 1,
+  "expReward": 5500,
+  "score": {
+    "version": 2,
+    "level": 399,
+    "attack": 1400,
+    "magicAttack": 0,
+    "defense": 3500,
+    "maxHP": 30000,
+    "maxMP": 0,
+    "curHP": 30000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 3,
+    "merchant": 15
+  },
+  "gold": 500,
+  "direction": 96,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1732
+    }
+  ],
+  "clientMerchant": 11
+}

@@ -13,7 +13,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// boss.go loads declarative configuration from data/boss/*.lua. Runtime
+// boss.go loads declarative configuration from data/content/boss/*.lua. Runtime
 // behavior remains in internal/game/boss_types.go. Each Lua file returns a
 // table; it cannot define new world behavior.
 // The sandbox excludes system libraries and limits execution time, while

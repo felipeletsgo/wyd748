@@ -525,6 +525,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/npcs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read active NPC definitions from one game channel (content.npc.shop capability) */
+        get: {
+            parameters: {
+                query?: {
+                    channel?: number;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Active non-monster NPC templates and their PostgreSQL definitions */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NPCDefinitionCatalog"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/staff/npcs/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Edit or restore one channel NPC JSON definition with an optimistic version check
+         * @description PostgreSQL stores active, referenced NPC definitions. A lightweight revision query propagates one changed template without global despawn or respawn.
+         */
+        put: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path: {
+                    name: string;
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["NPCDefinitionCommand"];
+                };
+            };
+            responses: {
+                /** @description Domain receipt; stale_version returns the current NPC definition */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NPCDefinitionResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/accounts/{account}/donate": {
         parameters: {
             query?: never;
@@ -2782,6 +2872,12 @@ export interface components {
             effects: number[];
             price: number;
             itemName?: string;
+            /**
+             * @description 0 Featured, 1 Armia, 2 Erion, 3 Nifleheim. Omitted values default to Featured.
+             * @default 0
+             * @enum {integer}
+             */
+            category: 0 | 1 | 2 | 3;
         };
         PremiumCatalog: {
             /** @constant */
@@ -2804,6 +2900,77 @@ export interface components {
             /** @enum {string} */
             code: "ok" | "stale_catalog" | "unknown_item" | "invalid_command" | "capability_required" | "unavailable";
             catalog: components["schemas"]["PremiumCatalog"];
+        };
+        NPCDefinitionDocument: {
+            serviceIdentity?: string;
+            displayName?: string;
+            combatRole?: string;
+            name: string;
+            /** @enum {string} */
+            tipo?: "npc" | "monstro";
+            equip: {
+                [key: string]: unknown;
+            };
+            classInfo?: number;
+            expReward: number;
+            score: {
+                [key: string]: unknown;
+            };
+            carry?: {
+                [key: string]: unknown;
+            }[];
+            gold?: number;
+            direction?: number;
+            clientMerchant?: number;
+            learnedSkill?: number;
+            skillBar?: number[];
+            vende?: {
+                [key: string]: unknown;
+            }[];
+        };
+        NPCDefinitionView: {
+            name: string;
+            displayName: string;
+            channel: number;
+            version: number;
+            appliedVersion: number;
+            active: boolean;
+            overridden: boolean;
+            definition: components["schemas"]["NPCDefinitionDocument"];
+            source: components["schemas"]["NPCDefinitionDocument"];
+            updatedBy: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        NPCDefinitionCatalog: {
+            /** @constant */
+            version: 1;
+            available: boolean;
+            channel: number;
+            npcs: components["schemas"]["NPCDefinitionView"][];
+        };
+        NPCDefinitionCommand: {
+            /** @constant */
+            version: 1;
+            channel: number;
+            expectedVersion: number;
+            name: string;
+            reason: string;
+            restoreSource: boolean;
+            definition?: components["schemas"]["NPCDefinitionDocument"];
+            /** @description Optional atomic edit of channels 1 and 2. Include each channel once and match the primary expectedVersion. */
+            targets?: {
+                /** @enum {integer} */
+                channel: 1 | 2;
+                expectedVersion: number;
+            }[];
+        };
+        NPCDefinitionResult: {
+            /** @enum {string} */
+            code: "ok" | "saved_pending" | "stale_version" | "unknown_npc" | "not_editable" | "invalid_command" | "invalid_definition" | "capability_required" | "unavailable";
+            npc: components["schemas"]["NPCDefinitionView"];
+            /** @description Per-channel versions. A saved_pending result is durable and still requires World application. */
+            npcs?: components["schemas"]["NPCDefinitionView"][];
         };
         DonateCreditCommand: {
             /** @constant */

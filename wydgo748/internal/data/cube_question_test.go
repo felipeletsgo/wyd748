@@ -7,7 +7,7 @@ import (
 )
 
 func TestAllCubeVariantsConfigureTenSecondQuestions(t *testing.T) {
-	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

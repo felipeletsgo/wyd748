@@ -66,6 +66,13 @@ class ResourceMatrixTests(unittest.TestCase):
 
 
 class DataMatrixTests(unittest.TestCase):
+    def test_canonical_server_catalog_inputs_load(self):
+        for path in (data.SERVER_ITEMS, data.SERVER_SKILLS, data.SERVER_EFFECTS, data.SERVER_NAMES):
+            with self.subTest(path=path):
+                self.assertTrue(path.is_file(), str(path))
+        items, _ = data.server_items(data.effect_ids(data.SERVER_EFFECTS))
+        self.assertGreater(len(items), 0)
+
     def test_item_record_decodes_signed_fields_and_ignores_trailer(self):
         record = bytearray(140)
         record[:4] = b'Test'

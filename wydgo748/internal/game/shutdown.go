@@ -47,6 +47,13 @@ const shutdownWaiterLimit = 64
 // runShutdown closes admission but never waits on workers on the World actor.
 // Completion delivery resumes the final drain once all accepted writes settle.
 func (w *World) runShutdown(done chan error) {
+	if w.cluster != nil {
+		// Close all admission before any terminal snapshot, including requests
+		// that arrive through an individual world's administrative interface.
+		for _, other := range w.cluster.worlds {
+			other.shuttingDown = true
+		}
+	}
 	if w.shutdownFinished {
 		replyShutdown(done, w.shutdownErr)
 		return

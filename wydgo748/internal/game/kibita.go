@@ -26,7 +26,7 @@ func kibitaLacWindow(now time.Time) bool {
 
 func (w *World) handleKibitaSoul(s *net.Session, p *Player, m *Mob, quest *model.QuestDef) bool {
 	if quest == nil || !quest.Rewards.Citizenship || m == nil || m.Def == nil ||
-		model.NormalizeQuestNPC(generName(m.Def.Name)) != "kibita" {
+		model.NormalizeQuestNPC(generName(m.Def.InteractionName())) != "kibita" {
 		return false
 	}
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || w.shuttingDown ||

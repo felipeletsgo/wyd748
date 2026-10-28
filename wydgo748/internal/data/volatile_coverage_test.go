@@ -12,8 +12,8 @@ import (
 
 func loadRealVolatiles(t *testing.T, root string, catalog model.Catalog) model.VolatileCatalog {
 	t.Helper()
-	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
+	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "content", "volatiles.json"),
+		filepath.Join(root, "content", "instances.json"), filepath.Join(root, "spawns", "instances"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,8 +27,8 @@ func loadRealVolatiles(t *testing.T, root string, catalog model.Catalog) model.V
 // family falling back to generic.
 func TestEveryRealVolatileCodeHasExplicitContract(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -71,8 +71,8 @@ func TestEveryRealVolatileCodeHasExplicitContract(t *testing.T) {
 // instead of hiding the regression in the generic handler.
 func TestVolatileCatalogKeepsAuthoritativeCount(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,8 +87,8 @@ func TestVolatileCatalogKeepsAuthoritativeCount(t *testing.T) {
 
 func TestMountRecoveryAndCatalystsResolveNativeContracts(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,8 +115,8 @@ func TestMountRecoveryAndCatalystsResolveNativeContracts(t *testing.T) {
 
 func TestPremiumFirecrackerHasCustomContractWithoutChangingCommonFireworks(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,8 +137,8 @@ func TestPremiumFirecrackerHasCustomContractWithoutChangingCommonFireworks(t *te
 
 func TestLoveItemsResolveSkillDataToRealAffects(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -184,8 +184,8 @@ func TestLoveItemsResolveSkillDataToRealAffects(t *testing.T) {
 func TestEveryVolatileHasShop(t *testing.T) {
 	const premiumOnlyCode = 184
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -269,8 +269,8 @@ func TestVolatileShopsFitTheWindow(t *testing.T) {
 // exact item without starting the database, world and network.
 func TestItemInstancesReferenceExistingNPC(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,8 +306,8 @@ func TestItemInstancesReferenceExistingNPC(t *testing.T) {
 
 func TestRealCatalogHasNoGenericVolatile(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}

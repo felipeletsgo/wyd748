@@ -28,7 +28,10 @@ func (c *instanceGeneratorCache) load(file string) ([]model.NPCGener, error) {
 
 // spawns turns generator blocks into instance spawns at their native start
 // point and StartRange. Empty ids select every block of the file.
-func (c *instanceGeneratorCache) spawns(file string, ids []int) ([]model.VolatileInstanceSpawn, error) {
+func (c *instanceGeneratorCache) spawns(file string, ids []int, mode string) ([]model.VolatileInstanceSpawn, error) {
+	if mode != "" && mode != "initial_group" {
+		return nil, fmt.Errorf("data: generator %s has unsupported mode %q", file, mode)
+	}
 	geners, err := c.load(file)
 	if err != nil {
 		return nil, err
@@ -55,8 +58,27 @@ func (c *instanceGeneratorCache) spawns(file string, ids []int) ([]model.Volatil
 			return nil, fmt.Errorf("data: generator %s block #[%d] needs a leader, MaxNumMob and a start point",
 				file, gener.Label)
 		}
-		spawns = append(spawns, model.VolatileInstanceSpawn{NPC: gener.Leader, Count: gener.MaxNumMob,
-			X: start.X, Y: start.Y, Range: int(start.Range)})
+		spawn := model.VolatileInstanceSpawn{NPC: gener.Leader, Count: gener.MaxNumMob,
+			X: start.X, Y: start.Y, Range: int(start.Range)}
+		if mode == "initial_group" {
+			if !gener.Enabled || gener.MinGroup < 0 || gener.MinGroup != gener.MaxGroup {
+				return nil, fmt.Errorf("data: generator %s block #[%d] needs an enabled fixed-size initial group", file, gener.Label)
+			}
+			count := gener.MaxNumMob
+			if gener.MinGroup < count {
+				count = 1 + gener.MinGroup
+			}
+			spawn.Count = count
+			if count > 1 && gener.Follower != gener.Leader {
+				if strings.TrimSpace(gener.Follower) == "" {
+					return nil, fmt.Errorf("data: generator %s block #[%d] needs a follower", file, gener.Label)
+				}
+				spawn.Count = 1
+				spawns = append(spawns, spawn)
+				spawn.NPC, spawn.Count = gener.Follower, count-1
+			}
+		}
+		spawns = append(spawns, spawn)
 	}
 	return spawns, nil
 }
@@ -68,14 +90,9 @@ func (c *instanceGeneratorCache) expand(where string, inst *model.VolatileInstan
 		return nil
 	}
 	if inst.Uxmal != nil && inst.Uxmal.Version == 759 {
-		if strings.TrimSpace(inst.Uxmal.Generator) == "" {
-			return fmt.Errorf("data: %s Rune Track requires a generator file", where)
-		}
-		generators, err := c.load(inst.Uxmal.Generator)
-		if err != nil {
+		if err := c.expandRuneTrack(where, inst.Uxmal); err != nil {
 			return err
 		}
-		inst.Uxmal.Generators = generators
 	}
 	if inst.Uxmal != nil && inst.Uxmal.Version != 0 && inst.Uxmal.Version != 759 {
 		return fmt.Errorf("data: %s unsupported Rune Track version %d", where, inst.Uxmal.Version)
@@ -84,7 +101,7 @@ func (c *instanceGeneratorCache) expand(where string, inst *model.VolatileInstan
 		if len(inst.Spawns) != 0 {
 			return fmt.Errorf("data: %s declares both spawns and generator", where)
 		}
-		spawns, err := c.spawns(inst.Generator, nil)
+		spawns, err := c.spawns(inst.Generator, nil, "")
 		if err != nil {
 			return fmt.Errorf("%s: %w", where, err)
 		}
@@ -105,7 +122,7 @@ func (c *instanceGeneratorCache) expand(where string, inst *model.VolatileInstan
 	for i := range inst.Stages {
 		stage := &inst.Stages[i]
 		if stage.Generator == "" {
-			if len(stage.GeneratorIDs) != 0 || len(stage.CompletionGeneratorIDs) != 0 {
+			if len(stage.GeneratorIDs) != 0 || len(stage.CompletionGeneratorIDs) != 0 || stage.GeneratorMode != "" {
 				return fmt.Errorf("data: %s stage %d selects generator blocks without a generator", where, i)
 			}
 			continue
@@ -116,13 +133,13 @@ func (c *instanceGeneratorCache) expand(where string, inst *model.VolatileInstan
 		if len(stage.GeneratorIDs) == 0 {
 			return fmt.Errorf("data: %s stage %d needs generatorIds", where, i)
 		}
-		spawns, err := c.spawns(stage.Generator, stage.GeneratorIDs)
+		spawns, err := c.spawns(stage.Generator, stage.GeneratorIDs, stage.GeneratorMode)
 		if err != nil {
 			return fmt.Errorf("%s stage %d: %w", where, i, err)
 		}
 		stage.Spawns = spawns
 		if len(stage.CompletionGeneratorIDs) != 0 {
-			boss, err := c.spawns(stage.Generator, stage.CompletionGeneratorIDs)
+			boss, err := c.spawns(stage.Generator, stage.CompletionGeneratorIDs, stage.GeneratorMode)
 			if err != nil {
 				return fmt.Errorf("%s stage %d: %w", where, i, err)
 			}
@@ -130,6 +147,51 @@ func (c *instanceGeneratorCache) expand(where string, inst *model.VolatileInstan
 		}
 	}
 	return c.expandHellGate(where, inst.HellGate)
+}
+
+func (c *instanceGeneratorCache) expandRuneTrack(where string, cfg *model.VolatileUxmal) error {
+	if len(cfg.RoomGenerators) == 0 {
+		if strings.TrimSpace(cfg.Generator) == "" {
+			return fmt.Errorf("data: %s Rune Track requires generator files", where)
+		}
+		generators, err := c.load(cfg.Generator)
+		if err != nil {
+			return err
+		}
+		cfg.Generators = generators
+		return nil
+	}
+	if cfg.Generator != "" || len(cfg.RoomGenerators) != 7 {
+		return fmt.Errorf("data: %s Rune Track needs seven roomGenerators without a combined generator", where)
+	}
+	var combined []model.NPCGener
+	files, labels := map[string]bool{}, map[int]bool{}
+	for room, file := range cfg.RoomGenerators {
+		if strings.TrimSpace(file) == "" || files[file] {
+			return fmt.Errorf("data: %s Rune Track room %d needs a distinct generator file", where, room)
+		}
+		files[file] = true
+		generators, err := c.load(file)
+		if err != nil {
+			return err
+		}
+		if len(generators) == 0 {
+			return fmt.Errorf("data: %s Rune Track room %d has no generators", where, room)
+		}
+		for _, g := range generators {
+			if model.RuneTrackGeneratorRoom(g.Label) != room || labels[g.Label] {
+				return fmt.Errorf("data: %s Rune Track room %d has misplaced or duplicate generator %d", where, room, g.Label)
+			}
+			labels[g.Label] = true
+			g.Index = len(combined)
+			combined = append(combined, g)
+		}
+	}
+	if len(combined) != 327 {
+		return fmt.Errorf("data: %s Rune Track needs 327 generators, got %d", where, len(combined))
+	}
+	cfg.Generators = combined
+	return nil
 }
 
 // expandHellGate keeps every phase in the same NPCGener file, while allowing
@@ -151,7 +213,7 @@ func (c *instanceGeneratorCache) expandHellGate(where string, gate *model.Volati
 		if spawn.NPC != "" || spawn.Count != 0 || spawn.X != 0 || spawn.Y != 0 || spawn.Range != 0 {
 			return fmt.Errorf("data: %s Hell Gate declares both an inline spawn and generatorId", where)
 		}
-		resolved, err := c.spawns(gate.Generator, []int{spawn.GeneratorID})
+		resolved, err := c.spawns(gate.Generator, []int{spawn.GeneratorID}, "")
 		if err != nil {
 			return fmt.Errorf("%s Hell Gate: %w", where, err)
 		}

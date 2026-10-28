@@ -23,8 +23,9 @@ func (w *World) tickGuildWarEconomy(local time.Time) (bool, error) {
 		c.FameBids = true
 	}
 	before := proposed.Wars.FameResetDay
+	phaseBefore := proposed.Wars.Cities.Phase
 	reset := proposed.ResetWeeklyGuildFame(local)
-	if !reset && !migrated {
+	if !reset && !migrated && before == proposed.Wars.FameResetDay && phaseBefore == proposed.Wars.Cities.Phase {
 		return false, nil
 	}
 	publish := func() {

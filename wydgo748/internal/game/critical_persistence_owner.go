@@ -13,11 +13,13 @@ const criticalCompletionBatchLimit = 8
 // criticalPersistenceOwner retains gameplay continuations on the World actor.
 // NewWorld initializes it when the backend certifies the required atomic writes.
 type criticalPersistenceOwner struct {
+	activeWorld   *World
 	queue         *criticalPersistence
 	continuations map[uint64]*criticalContinuation
 }
 
 type criticalContinuation struct {
+	world *World
 	// Shared gameplay ownership is independent of the durable aggregate type.
 	// Ground objects and pending mob deaths cannot be discarded per account.
 	sharedWorld bool
@@ -52,11 +54,25 @@ func (owner *criticalPersistenceOwner) submitWithRejection(write criticalWrite, 
 	if owner == nil || owner.queue == nil || apply == nil {
 		return 0, errors.New("critical persistence: missing owner, queue or continuation")
 	}
+	w := owner.activeWorld
+	if w != nil && write.instances != nil {
+		write.instances = w.persistedChannelInstances(write.instances)
+	}
 	id, err := owner.queue.submit(write)
 	if err != nil {
 		return 0, err
 	}
-	owner.continuations[id] = &criticalContinuation{apply: apply, afterAck: afterAck, reject: reject}
+	if w != nil && write.instances != nil {
+		saved := write.instances.Clone()
+		next := apply
+		apply = func(result criticalPersistenceResult) error {
+			if result.err == nil {
+				w.committedChannelInstances(saved)
+			}
+			return next(result)
+		}
+	}
+	owner.continuations[id] = &criticalContinuation{world: w, apply: apply, afterAck: afterAck, reject: reject}
 	return id, nil
 }
 
@@ -151,6 +167,10 @@ func (w *World) processCriticalCompletions(limit int) {
 
 func (w *World) applyCriticalCompletion(result criticalPersistenceResult) {
 	continuation := w.criticalWrites.continuations[result.id]
+	if w.cluster != nil && continuation != nil && continuation.world != nil && continuation.world != w {
+		w.cluster.inWorld(continuation.world, func() { continuation.world.applyCriticalCompletion(result) })
+		return
+	}
 	firstDelivery := continuation != nil && !continuation.delivered
 	if err := w.criticalWrites.complete(result); err != nil &&
 		!(firstDelivery && w.recoverCommittedAccountFailure(result, err)) && !w.containCriticalFailureLocally(result.id, err) {
@@ -162,6 +182,20 @@ func (w *World) applyCriticalCompletion(result criticalPersistenceResult) {
 		w.criticalWrites.queue.closeAdmission()
 		w.shutdownErr = errors.Join(w.shutdownErr, fmt.Errorf("critical completion %d: %w", result.id, err))
 		w.shuttingDown = true
+		if w.cluster != nil {
+			for _, other := range w.cluster.worlds {
+				other.shuttingDown = true
+				other.shutdownErr = errors.Join(other.shutdownErr, w.shutdownErr)
+				for _, p := range other.players {
+					if p != nil {
+						p.PersistencePoisoned = true
+						if p.Session != nil {
+							p.Session.Close()
+						}
+					}
+				}
+			}
+		}
 		for _, player := range w.players {
 			if player != nil {
 				player.PersistencePoisoned = true

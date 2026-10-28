@@ -1,0 +1,95 @@
+{
+  "name": "Dionys",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 51
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 111
+    },
+    "calca": {
+      "index": 151
+    },
+    "luva": {
+      "index": 152
+    },
+    "bota": {
+      "index": 114
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "score": {
+    "version": 2,
+    "level": 1,
+    "attack": 500,
+    "magicAttack": 0,
+    "defense": 4000,
+    "maxHP": 21000,
+    "maxMP": 0,
+    "curHP": 21000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      200,
+      7,
+      200,
+      7
+    ],
+    "attackRun": 3,
+    "merchant": 1
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

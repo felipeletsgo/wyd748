@@ -7,12 +7,13 @@ import (
 	"time"
 
 	"wydgo/internal/data"
+	"wydgo/internal/npccontent"
 	"wydgo/internal/wire"
 )
 
 func loadRuneCombatSkills(t *testing.T, w *World) {
 	t.Helper()
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -25,10 +26,10 @@ func TestRuneTrack759AllCasterBarsAndSelectionWindows(t *testing.T) {
 	// Independent values from the historical event templates, including empty
 	// slots. The selection must not reroll an empty slot or use party order.
 	bars := map[string][4]byte{
-		"RT_Bat": {255, 255, 1, 255}, "RT_BunnyKing": {32, 32, 32, 255},
-		"RT_ElfArcher": {255, 255, 79, 255}, "RT_ElfKnight": {255, 255, 1, 255},
-		"RT_GoldBunny": {255, 255, 51, 255}, "RT_HellLich": {52, 52, 51, 255},
-		"RT_LichKing": {33, 33, 37, 255}, "RT_Mage": {33, 33, 37, 255},
+		"HellBatorero": {255, 255, 1, 255}, "RT_BunnyKing": {32, 32, 32, 255},
+		"Archer_Elf": {255, 255, 79, 255}, "Fighter_Elf": {255, 255, 1, 255},
+		"GoldCabuncle": {255, 255, 51, 255}, "RT_HellLich": {52, 52, 51, 255},
+		"RT_LichKing": {33, 33, 37, 255}, "KalintzMage": {33, 33, 37, 255},
 		"RT_MageBoss": {33, 33, 37, 255}, "RT_Ranger": {255, 79, 73, 255},
 		"RT_Shadow": {255, 255, 26, 255}, "RT_Shaman": {52, 55, 63, 255},
 		"RT_Sorcerer": {36, 34, 39, 255}, "RT_Templar": {255, 255, 2, 255},
@@ -38,8 +39,12 @@ func TestRuneTrack759AllCasterBarsAndSelectionWindows(t *testing.T) {
 		MobIDs:    map[uint16]struct{}{1300: {}}}
 	w.itemInstances[inst.RuntimeID] = inst
 	casters := 0
+	referenced, err := npccontent.RequiredNames(w.npcs, npccontent.Sources{Generators: w.uxmal.Uxmal.Generators})
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, def := range w.npcs {
-		if len(def.Name) >= 3 && def.Name[:3] == "RT_" && def.SkillBar != [4]byte{255, 255, 255, 255} {
+		if referenced[def.Name] && def.IsMonster() && def.SkillBar != [4]byte{255, 255, 255, 255} {
 			casters++
 		}
 	}
@@ -134,7 +139,7 @@ func TestRuneTrack759CasterTickVisibilityDeadlineAndPhysicalFallback(t *testing.
 		t.Fatal("caster bypassed its attack deadline")
 	}
 	// Bat's first slot is empty: exercise the real dispatcher, not only selection.
-	m.Def = w.npcDefByName("RT_Bat")
+	m.Def = w.npcDefByName("HellBatorero")
 	clock.Advance(mobAttackInterval)
 	w.tickActiveMobActions(clock.Now())
 	frames := runeCombatFrames(t, p, m.ID, p.ID)

@@ -540,13 +540,18 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] used bar item=%d gold=+%d total=%d",
 			s.ID, oldItem.Index, value, p.Char.Gold)
 
-	case "teleport":
+	case "teleport", "recall":
+		x, y := rule.X, rule.Y
+		if rule.Action == "recall" {
+			_, x, y = w.recallSpawn(p.Char)
+			x, y = w.findFreePlayerPosition(x, y, 3, p)
+		}
 		oldItem := *item
 		if rule.Consume {
 			consumeOne(item)
 		}
 		oldX, oldY := p.X, p.Y
-		if !w.teleportPlayer(p, rule.X, rule.Y) {
+		if !w.teleportPlayerWithHomeCity(p, x, y, rule.Action == "recall") {
 			*item = oldItem
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
@@ -1045,7 +1050,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 		}
 	}
 	// Molar is a Mortal quest, not a generic refinement consumable. Internal
-	// levels 200..255 display as 201..256 in the 7.48 client. Its negative flag
+	// levels 200..204 display as 201..205 in the 7.48 client. Its negative flag
 	// is separate from data-driven quests to prevent reward reuse.
 	if rule.MortalOnly && !matchesEvolution(p.Char, "mortal") {
 		resend()
@@ -1061,7 +1066,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	if (rule.MinLevel != 0 && playerLevel < rule.MinLevel) ||
 		(rule.MaxLevelExclusive != 0 && playerLevel >= rule.MaxLevelExclusive) {
 		resend()
-		s.Send(wire.MessagePanel("This item is only available between levels 201 and 256."))
+		s.Send(wire.MessagePanel("This item is only available between levels 201 and 205."))
 		return
 	}
 	if rule.OnceQuestID != 0 && questCompleted(p.Char, int(rule.OnceQuestID)) {

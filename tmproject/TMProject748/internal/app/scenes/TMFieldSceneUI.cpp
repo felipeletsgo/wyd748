@@ -829,11 +829,11 @@ int TMFieldScene::InitializeCompatFieldScene()
 		if (m_pQuestBtn)
 			m_pQuestBtn->SetSelected(0);
 		memset(m_pLevelQuest, 0, sizeof(m_pLevelQuest));
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects.txt", 97);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects2.txt", 98);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects3.txt", 99);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestSubjects4.txt", 101);
-		LoadMsgLevel(m_pLevelQuest, "UI\\QuestMessage.txt", 100);
+		LoadMsgLevel(m_pLevelQuest, sizeof(m_pLevelQuest), "UI\\QuestSubjects.txt", 97);
+		LoadMsgLevel(m_pLevelQuest, sizeof(m_pLevelQuest), "UI\\QuestSubjects2.txt", 98);
+		LoadMsgLevel(m_pLevelQuest, sizeof(m_pLevelQuest), "UI\\QuestSubjects3.txt", 99);
+		LoadMsgLevel(m_pLevelQuest, sizeof(m_pLevelQuest), "UI\\QuestSubjects4.txt", 101);
+		LoadMsgLevel(m_pLevelQuest, sizeof(m_pLevelQuest), "UI\\QuestMessage.txt", 100);
 		m_pNativeCCPhysicalBtn = static_cast<SButton*>(m_pControlContainer->FindControl(318));
 		m_pNativeCCMagicBtn = static_cast<SButton*>(m_pControlContainer->FindControl(319));
 		if (m_pNativeCCPhysicalBtn)

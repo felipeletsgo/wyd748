@@ -9,7 +9,7 @@ import (
 )
 
 func TestLoadMountsPreservesNativeRiderDamageRates(t *testing.T) {
-	catalog, err := LoadMounts(filepath.Join("..", "..", "data", "mounts.json"))
+	catalog, err := LoadMounts(filepath.Join("..", "..", "data", "content", "mounts.json"))
 	if err != nil {
 		t.Fatalf("LoadMounts: %v", err)
 	}
@@ -28,7 +28,7 @@ func TestLoadMountsPreservesNativeRiderDamageRates(t *testing.T) {
 // The timed horses mirror the client g_pMountBonus2 rows and name-encoded
 // lifetimes; without them they had no speed, bonus or expiry.
 func TestLoadMountsPremiumHorsesMirrorClientTable(t *testing.T) {
-	catalog, err := LoadMounts(filepath.Join("..", "..", "data", "mounts.json"))
+	catalog, err := LoadMounts(filepath.Join("..", "..", "data", "content", "mounts.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

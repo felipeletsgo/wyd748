@@ -16,8 +16,8 @@ import (
 // This checks reachability policy, not execution of the UI or in-game effects.
 func TestClientVolatileRoutesMatchAuthoritativeCatalog(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func expectedVolatileClientRoute(t *testing.T, rule model.VolatileRule) string {
 			return "Direct"
 		}
 		return "Target"
-	case "teleport", "warp_saved":
+	case "teleport", "recall", "warp_saved":
 		return "Recall"
 	case "hunting_teleport":
 		return "Portal"

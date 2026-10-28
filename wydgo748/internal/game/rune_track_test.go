@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
-	"strings"
 	"testing"
 	"time"
 
@@ -19,11 +18,11 @@ import (
 func runeTrackTestWorld(t *testing.T) (*World, *Player, *Player, *guildFlowStore, *fakeClock) {
 	t.Helper()
 	w, leader, member, st, clock := uxmalTestWorld()
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := data.LoadVolatilesWithInstances("../../data/volatiles.json", "../../data/instances.json", catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances("../../data/content/volatiles.json", "../../data/content/instances.json", "../../data/spawns/instances", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -109,8 +108,8 @@ func TestRuneTrackProductionPopulationIsIndependent(t *testing.T) {
 			if name == "" {
 				continue
 			}
-			if !strings.HasPrefix(name, "RT_") {
-				t.Fatalf("public template leaked into event: %s", name)
+			if w.npcDefByName(name) == nil {
+				t.Fatalf("event references a missing template: %s", name)
 			}
 			names[name] = true
 		}
@@ -123,10 +122,70 @@ func TestRuneTrackProductionPopulationIsIndependent(t *testing.T) {
 		t.Fatalf("historical stats changed: %+v", lich)
 	}
 	broken := cfgCopy(*w.uxmal)
-	broken.Uxmal.Generators[0].Leader = "LichCruntKing"
+	broken.Uxmal.Generators[0].Leader = "MissingRuneNPC"
 	w.uxmal = &broken
 	if err := w.validateUxmalConfig(); err == nil {
-		t.Fatal("accepted a public monster reference")
+		t.Fatal("accepted a missing monster reference")
+	}
+}
+
+func TestRuneTrackBootRejectsRenumberedPublicCopies(t *testing.T) {
+	fixtures, err := eventFixtures()
+	if err != nil {
+		t.Fatal(err)
+	}
+	npcs, err := data.LoadNPCs("../../data/npcs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg := fixtures.volatiles.Instances["uxmal"]
+	var copies []model.NPCGener
+	for _, g := range cfg.Uxmal.Generators {
+		if g.Label == 5662 || g.Label == 5985 || g.Label == 5986 {
+			g.Index = len(copies)
+			g.Label += 10000 // Imports can assign a fresh decorative label.
+			if g.Leader == "RT_LichKing" {
+				g.Leader, g.Follower = "LichCruntKing", "LichCruntKing"
+			}
+			copies = append(copies, g)
+		}
+	}
+	general, err := data.LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range general {
+		if g.Leader == "Uxmal" {
+			g.Index = len(copies)
+			copies = append(copies, g)
+			break
+		}
+	}
+	if len(copies) != 4 {
+		t.Fatal("missing event/public guard fixtures")
+	}
+	w, err := NewWorld(&craftStore{}, npcs, copies, model.Catalog{Items: fixtures.items},
+		[model.MaxCarry]int{}, fixtures.volatiles, model.CharacterTemplateFile{}, fixtures.terrain,
+		WithUxmal(cfg), WithNPCGenerLog("quiet"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, g := range copies[:3] {
+		if w.reservedGenerators[g.Index] != "rune_track" {
+			t.Fatalf("renumbered generator %d entered public population", g.Label)
+		}
+	}
+	if len(w.generators) != 1 || len(w.mobsByID) != 1 {
+		t.Fatalf("public startup population includes event actors: generators=%d mobs=%d", len(w.generators), len(w.mobsByID))
+	}
+	for _, mob := range w.mobsByID {
+		if mob.Def.Name != "Uxmal" || mob.InstanceID != "" {
+			t.Fatal("public entrance NPC was lost")
+		}
+	}
+	// A loaded event table does not create any room until registration/activation.
+	if len(w.itemInstances) != 0 {
+		t.Fatal("Rune Track started without player entry")
 	}
 }
 
@@ -541,7 +600,7 @@ type zeroRNG struct{}
 func (zeroRNG) Intn(int) int { return 0 }
 
 func TestRuneTrackInstalledTerrainAndCleanup(t *testing.T) {
-	terrain, err := data.LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := data.LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -553,10 +612,24 @@ func TestRuneTrackInstalledTerrainAndCleanup(t *testing.T) {
 				t.Fatal(err)
 			}
 			inst := enterRuneTrack(t, w, p, clock, room)
+			if room == 0 {
+				for _, label := range []int{5662, 5663} {
+					if w.runeGeneratorCount(inst, label) != 0 {
+						t.Fatalf("Lich King group %d spawned before room combat", label)
+					}
+				}
+			}
 			clock.Advance(31 * time.Second)
 			w.tickItemInstances(clock.Now())
 			if inst.State != "combat" {
 				t.Fatalf("installed population failed to initialize room %d", room)
+			}
+			if room == 0 {
+				for _, label := range []int{5662, 5663} {
+					if got := w.runeGeneratorCount(inst, label); got != 9 {
+						t.Fatalf("Lich King group %d has %d actors, want 9", label, got)
+					}
+				}
 			}
 			for id := range inst.RuneTrack.Generators {
 				m := w.mobsByID[id]
@@ -640,7 +713,7 @@ func TestRuneTrackFloorPulseAndPortalRollback(t *testing.T) {
 }
 
 func TestRuneTrackAllBalrogPortalRoutesOnInstalledTerrain(t *testing.T) {
-	terrain, err := data.LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := data.LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -773,7 +846,7 @@ func TestRuneTrackBalrogPortalRejectsIneligibleActivation(t *testing.T) {
 func TestRuneTrackMazePassageMovesPartyOnInstalledTerrain(t *testing.T) {
 	w, p, member, st, clock := runeTrackTestWorld(t)
 	var err error
-	w.terrain, err = data.LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	w.terrain, err = data.LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}

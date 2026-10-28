@@ -75,6 +75,7 @@ func ReadStaff(path string) (map[string]Staff, error) {
 		for _, cap := range staff.Capabilities {
 			if cap != StatusCapability && cap != PlayersCapability && cap != control.GlobalDropCapability && cap != control.QuizCapability && cap != control.BossesCapability && cap != control.KickCapability && cap != control.TeleportCapability &&
 				cap != control.PremiumCatalogCapability && cap != control.DonateCreditCapability && cap != control.GotoCapability &&
+				cap != control.NPCDefinitionCapability &&
 				cap != control.PvPDoorCapability && cap != control.OXEventCapability && cap != control.ColosseumCapability &&
 				cap != control.BanCapability && cap != control.MuteCapability && cap != control.NoticeCapability &&
 				cap != control.ShutdownCapability && cap != control.AuditReadCapability &&

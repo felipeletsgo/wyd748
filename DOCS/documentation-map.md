@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 221.
+Markdown documents: 222.
 
 | Document | Type |
 | --- | --- |
@@ -108,6 +108,7 @@ Markdown documents: 221.
 | [.agents/research/client748/flows/ui/premium-firework-response-contract.md](<../.agents/research/client748/flows/ui/premium-firework-response-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/premium-npc-click-dormant.md](<../.agents/research/client748/flows/ui/premium-npc-click-dormant.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md](<../.agents/research/client748/flows/ui/quest-panel-layout-lifecycle.md>) | Research evidence |
+| [.agents/research/client748/flows/ui/quest-subject-level-loading.md](<../.agents/research/client748/flows/ui/quest-subject-level-loading.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/quiz-choice-event.md](<../.agents/research/client748/flows/ui/quiz-choice-event.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/score-button-hold-repeat.md](<../.agents/research/client748/flows/ui/score-button-hold-repeat.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/score-hud-shortcut-counters-exp.md](<../.agents/research/client748/flows/ui/score-hud-shortcut-counters-exp.md>) | Research evidence |
@@ -139,7 +140,6 @@ Markdown documents: 221.
 | [.agents/research/client748/inventory/set-my-human-magic-noop.md](<../.agents/research/client748/inventory/set-my-human-magic-noop.md>) | Research evidence |
 | [.agents/research/client748/README.md](<../.agents/research/client748/README.md>) | Research evidence |
 | [.agents/research/native-combat-audit-2026-10-21.md](<../.agents/research/native-combat-audit-2026-10-21.md>) | Research evidence |
-| [.agents/research/rea-server-759-runtime-map.md](<../.agents/research/rea-server-759-runtime-map.md>) | Research evidence |
 | [.agents/research/source-audit-2026-10-03.md](<../.agents/research/source-audit-2026-10-03.md>) | Research evidence |
 | [.agents/skills/repo-architecture/SKILL.md](<../.agents/skills/repo-architecture/SKILL.md>) | Active skill |
 | [.agents/skills/wyd-client748-assets/SKILL.md](<../.agents/skills/wyd-client748-assets/SKILL.md>) | Active skill |
@@ -205,6 +205,7 @@ Markdown documents: 221.
 | [DOCS/protocol/hell-gate-store.md](<protocol/hell-gate-store.md>) | Product documentation |
 | [DOCS/protocol/instance-question.md](<protocol/instance-question.md>) | Product documentation |
 | [DOCS/protocol/kefra-portal.md](<protocol/kefra-portal.md>) | Product documentation |
+| [DOCS/protocol/npc-definitions.md](<protocol/npc-definitions.md>) | Product documentation |
 | [DOCS/protocol/opcode-compatibility-matrix.md](<protocol/opcode-compatibility-matrix.md>) | Product documentation |
 | [DOCS/protocol/packet-fixtures.md](<protocol/packet-fixtures.md>) | Product documentation |
 | [DOCS/protocol/premium-shop.md](<protocol/premium-shop.md>) | Product documentation |
@@ -214,6 +215,7 @@ Markdown documents: 221.
 | [DOCS/server/admin-panel-roadmap.md](<server/admin-panel-roadmap.md>) | Product documentation |
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Product documentation |
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
+| [DOCS/server/data-layout.md](<server/data-layout.md>) | Product documentation |
 | [DOCS/server/ground-items.md](<server/ground-items.md>) | Product documentation |
 | [DOCS/server/hidden-valley-access.md](<server/hidden-valley-access.md>) | Product documentation |
 | [DOCS/server/kibita-soul.md](<server/kibita-soul.md>) | Product documentation |
@@ -221,7 +223,6 @@ Markdown documents: 221.
 | [DOCS/server/public-launch.md](<server/public-launch.md>) | Product documentation |
 | [DOCS/server/rune-track.md](<server/rune-track.md>) | Product documentation |
 | [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
-| [DOCS/server/server-759-gap-analysis.md](<server/server-759-gap-analysis.md>) | Product documentation |
 | [DOCS/server/staff-operations.md](<server/staff-operations.md>) | Product documentation |
 | [DOCS/server/website-feature-status.md](<server/website-feature-status.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |
@@ -308,3 +309,9 @@ Markdown documents: 221.
 - [.agents/research/client748/inventory/source-files.tsv](<../.agents/research/client748/inventory/source-files.tsv>)
 - [.agents/research/client748/inventory/source-symbols.tsv](<../.agents/research/client748/inventory/source-symbols.tsv>)
 - [.agents/research/client748/inventory/ui-matrix.tsv](<../.agents/research/client748/inventory/ui-matrix.tsv>)
+
+## Local native server research
+
+The REA archive is local-only and ignored by Git. Read its index first for native server functions or logic.
+
+- [REA server research index](<../references/decompilacao server/dlls/rea-analysis/README.md>)

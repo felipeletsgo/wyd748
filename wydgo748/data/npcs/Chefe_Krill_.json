@@ -1,0 +1,250 @@
+{
+  "name": "Chefe_Krill_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 204
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 500,
+  "score": {
+    "version": 2,
+    "level": 40,
+    "attack": 45,
+    "magicAttack": 0,
+    "defense": 100,
+    "maxHP": 800,
+    "maxMP": 0,
+    "curHP": 800,
+    "curMP": 0,
+    "str": 4,
+    "int": 50,
+    "dex": 50,
+    "con": 600,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      2,
+      105,
+      1
+    ],
+    "attackRun": 17
+  },
+  "carry": [
+    {
+      "index": 1802,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1806,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1810,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1830,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1956,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2046,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2050,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 991,
+      "eff": [
+        105,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 971,
+      "eff": [
+        105,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 976,
+      "eff": [
+        105,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    }
+  ],
+  "gold": 500,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "name": "Legend_Verid",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 399
+    },
+    "elmo": {
+      "index": 182
+    },
+    "armadura": {
+      "index": 183
+    },
+    "calca": {
+      "index": 184
+    },
+    "luva": {
+      "index": 185
+    },
+    "bota": {
+      "index": 186
+    },
+    "arma": {
+      "index": 1927,
+      "eff": [
+        43,
+        9,
+        26,
+        10,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 1927,
+      "eff": [
+        43,
+        9,
+        26,
+        10,
+        0,
+        0
+      ]
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        0,
+        71,
+        45,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 633,
+      "eff": [
+        43,
+        9,
+        51,
+        50,
+        49,
+        50
+      ]
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 1937,
+      "eff": [
+        43,
+        14,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 5500,
+  "score": {
+    "version": 2,
+    "level": 399,
+    "attack": 9500,
+    "magicAttack": 0,
+    "defense": 9500,
+    "maxHP": 32000,
+    "maxMP": 0,
+    "curHP": 32000,
+    "curMP": 0,
+    "str": 5,
+    "int": 100,
+    "dex": 9000,
+    "con": 1000,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "gold": 500,
+  "learnedSkill": 60080,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

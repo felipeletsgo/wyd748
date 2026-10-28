@@ -15,8 +15,8 @@ import (
 // then materialize the complete first wave on distinct walkable tiles.
 func TestNightmareSoloOpensWithInstalledData(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	terrain, err := data.LoadTerrain(filepath.Join(root, "maps", "HeightMap.dat"),
-		filepath.Join(root, "maps", "AttributeMap.dat"))
+	terrain, err := data.LoadTerrain(filepath.Join(root, "world", "maps", "HeightMap.dat"),
+		filepath.Join(root, "world", "maps", "AttributeMap.dat"))
 	if err != nil {
 		t.Skipf("installed maps unavailable: %v", err)
 	}
@@ -24,13 +24,13 @@ func TestNightmareSoloOpensWithInstalledData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	items, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	items, err := data.LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	catalog, err := data.LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.json"), items.Items, items.Skills)
+	catalog, err := data.LoadVolatilesWithInstances(filepath.Join(root, "content", "volatiles.json"),
+		filepath.Join(root, "content", "instances.json"), filepath.Join(root, "spawns", "instances"), items.Items, items.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

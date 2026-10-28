@@ -31,7 +31,7 @@ type gameplayLogStats struct {
 }
 
 // WithGameplayLog selects quiet, summary or verbose. Invalid values fall back
-// to summary; the data/server.txt loader validates the public configuration.
+// to summary; the data/config/server.txt loader validates the public configuration.
 func WithGameplayLog(mode string) WorldOption {
 	return func(w *World) {
 		switch strings.ToLower(strings.TrimSpace(mode)) {

@@ -7,8 +7,8 @@ import (
 
 func TestMortalWeaponShopAdditionalEffects(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -63,7 +63,7 @@ func TestMortalWeaponShopAdditionalEffects(t *testing.T) {
 // Every mortal D/E weapon and armor set test shop must be spawned by an enabled generator,
 // next to the other Armia test shops.
 func TestMortalWeaponShopsHaveGenerators(t *testing.T) {
-	geners, err := LoadNPCGener(filepath.Join("..", "..", "data", "NPCGener.txt"))
+	geners, err := LoadChannelNPCGener(filepath.Join("..", "..", "data", "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}

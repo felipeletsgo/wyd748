@@ -138,7 +138,7 @@ func TestNative748NPCDatasetMatchesNPCGener(t *testing.T) {
 	if len(npcs) < native748BaseNPCs {
 		t.Fatalf("NPCs convertidos=%d, esperado ao menos %d", len(npcs), native748BaseNPCs)
 	}
-	geners, err := LoadNPCGener("../../data/NPCGener.txt")
+	geners, err := LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
 	if err != nil {
 		t.Fatalf("carregar NPCGener WYD 7.48: %v", err)
 	}

@@ -1,8 +1,11 @@
 #include "pch.h"
+#include "ResourceTextGdi.h"
 #include "TMFont2.h"
 #include "TMGlobal.h"
 #include "FontTextureUpload.h"
+#include "SingleLineTextLayout.h"
 #include <climits>
+#include <limits>
 
 char* TMFont2::m_pBuffer{};
 unsigned int TMFont2::m_nLength = 0;
@@ -14,6 +17,11 @@ TMFont2::TMFont2()
 	m_pTexture = nullptr;
 	m_fSize = 1.0f;
 	m_bMultiLine = 0;
+	m_nLineNumber = 0;
+	m_fMaximumWidth = 0.0f;
+	m_fRasterScale = m_fSize;
+	m_bRasterMultiLine = m_bMultiLine;
+	m_bCheckZero = 0;
 	memset(m_szString, 0, sizeof(m_szString));
 	memset(m_szStringArray, 0, sizeof(m_szStringArray));
 	memset(m_szStringSize, 0, sizeof(m_szStringSize));
@@ -61,62 +69,43 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 	memmove(m_szString, szString, nStrLength + 1);
 	m_szString[83] = 0;
 	m_szString[82] = 0;
+	m_bCheckZero = bCheckZero;
+	return Rasterize();
+}
 
-	char tempbuff[256]{};
-	char* temp = tempbuff;
-
-	strcpy(tempbuff, m_szString);
-	int nLen = strlen(m_szString);
-
-	if (nLen > 84)
-	{
-		if (IsClearString(temp, ')'))
-		{
-			strncpy(m_szStringArray[0], temp, 42);
-			temp += '*';
-		}
-		else
-		{
-			strncpy(m_szStringArray[0], temp, 41);
-			temp += ')';
-		}
-		if (IsClearString(temp, ')'))
-		{
-			strncpy(m_szStringArray[1], temp, 42);
-			temp += '*';
-			strncpy(m_szStringArray[2], temp, strlen(temp));
-		}
-		else
-		{
-			strncpy(m_szStringArray[1], temp, 41);
-			temp += ')';
-			strcpy(m_szStringArray[2], temp);
-		}
-		m_nLineNumber = 3;
+int TMFont2::Rasterize()
+{
+	m_fRasterScale = m_fSize;
+	m_bRasterMultiLine = m_bMultiLine;
+	if (!g_pDevice || !g_pDevice->m_hDC) {
+		SAFE_RELEASE(m_pTexture);
+		return FALSE;
 	}
-	else if (nLen > 42)
-	{
-		memset(m_szStringArray[0], 0, 44);
-		memset(m_szStringArray[1], 0, 44);
-		if (IsClearString(temp, ')'))
-		{
-			strncpy(m_szStringArray[0], temp, 42);
-			temp += '*';
+	const auto measure = [](const std::string& text) {
+		float width = 0.0f;
+		// Match the texture chunk boundaries, including their GDI metrics.
+		for (size_t offset = 0; offset < text.size(); offset += 42) {
+			SIZE size{};
+			const int count = static_cast<int>((std::min)(size_t{42}, text.size() - offset));
+			if (!resource_text::Measure(g_pDevice->m_hDC, text.data() + offset, count, &size))
+				return std::numeric_limits<float>::infinity();
+			width += size.cx;
 		}
-		else
-		{
-			strncpy(m_szStringArray[0], temp, 41);
-			temp += ')';
-		}
+		return width;
+	};
+	const auto display = m_bMultiLine == 1 ? std::string(m_szString) :
+		font_layout::Ellipsize(m_szString, m_fSize, m_fMaximumWidth, measure);
+	const int nLen = static_cast<int>(display.size());
 
-		strcpy(m_szStringArray[1], temp);
-		m_nLineNumber = 2;
-	}
-	else
+	// Windows-1252 has one byte per glyph, including accented letters. The
+	// old DBCS boundary test could move an accent into the wrong chunk.
+	memset(m_szStringArray, 0, sizeof(m_szStringArray));
+	m_nLineNumber = nLen > 42 ? 2 : 1;
+	for (int line = 0; line < m_nLineNumber; ++line)
 	{
-		memset(m_szStringArray[0], 0, 44);
-		strncpy(m_szStringArray[0], temp, nLen);
-		m_nLineNumber = 1;
+		const int offset = line * 42;
+		const int count = (nLen - offset) > 42 ? 42 : nLen - offset;
+		memcpy(m_szStringArray[line], display.data() + offset, count);
 	}
 
 	const auto failTexture = [this]() {
@@ -148,16 +137,16 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 			memset(szTemp, ' ', sizeof(szTemp));
 
 			// This buffer contains only spaces and has no terminator yet.
-			if (!TextOut(g_pDevice->m_hDC, 0, nLine * (RenderDevice::m_nFontSize + 1), szTemp, sizeof(szTemp)))
+			if (!resource_text::Draw(g_pDevice->m_hDC, 0, nLine * (RenderDevice::m_nFontSize + 1), szTemp, sizeof(szTemp)))
 				return failTexture();
 
 			sprintf(szTemp, "%s ", m_szStringArray[nLine]);
 
-			if (strlen(szTemp) && !TextOut(g_pDevice->m_hDC, 0,
+			if (strlen(szTemp) && !resource_text::Draw(g_pDevice->m_hDC, 0,
 				nLine * (RenderDevice::m_nFontSize + 1), szTemp, static_cast<int>(strlen(szTemp))))
 				return failTexture();
 
-			if (bCheckZero)
+			if (m_bCheckZero)
 			{
 				char szTemp2[45]{};
 
@@ -181,7 +170,7 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 				{
 					if (!SetBkMode(g_pDevice->m_hDC, TRANSPARENT))
 						return failTexture();
-					const BOOL drawn = TextOut(g_pDevice->m_hDC, 0,
+					const BOOL drawn = resource_text::Draw(g_pDevice->m_hDC, 0,
 						nLine * (RenderDevice::m_nFontSize + 1), szTemp2, static_cast<int>(strlen(szTemp2)));
 					const int restored = SetBkMode(g_pDevice->m_hDC, OPAQUE);
 					if (!drawn || !restored)
@@ -190,7 +179,7 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 			}
 
 			SIZE size{};
-			if (!GetTextExtentPoint32(g_pDevice->m_hDC, m_szStringArray[nLine],
+			if (!resource_text::Measure(g_pDevice->m_hDC, m_szStringArray[nLine],
 				static_cast<int>(strlen(m_szStringArray[nLine])), &size))
 				return failTexture();
 
@@ -257,6 +246,22 @@ char* TMFont2::GetText()
 	return m_szString;
 }
 
+float TMFont2::GetSingleLineWidth() const
+{
+	const float width = font_layout::Measure(m_szStringSize, m_nLineNumber);
+	return width > 0.0f ? width * m_fSize + 1.0f : 0.0f;
+}
+
+void TMFont2::SetMaximumWidth(float width)
+{
+	if (!std::isfinite(width) || width < 0.0f)
+		width = 0.0f;
+	if (m_fMaximumWidth == width && m_fRasterScale == m_fSize && m_bRasterMultiLine == m_bMultiLine)
+		return;
+	m_fMaximumWidth = width;
+	Rasterize();
+}
+
 int TMFont2::Render(int nPosX, int nPosY, int nRenderType)
 {
 	if (m_nPosX != -1)
@@ -266,7 +271,7 @@ int TMFont2::Render(int nPosX, int nPosY, int nRenderType)
 
 	nPosY = nPosY + 1;
 	if (!g_pDevice || !g_pDevice->m_pd3dDevice ||
-		(m_pTexture == nullptr && !SetText(m_szString, m_dwColor, 0)))
+		((m_pTexture == nullptr || m_fRasterScale != m_fSize || m_bRasterMultiLine != m_bMultiLine) && !Rasterize()))
 		return 0;
 
 	int strLen = strlen(m_szString);
@@ -275,6 +280,11 @@ int TMFont2::Render(int nPosX, int nPosY, int nRenderType)
 		return 0;
 
 	g_pDevice->SetRenderStateBlock(2);
+	if (m_bMultiLine != 1 && GetSingleLineWidth() <= 0.0f)
+		return 0;
+	// Keep the unbounded legacy chunk positioning for non-UI font users.
+	const float advanceScale = m_fMaximumWidth > 0.0f ? m_fSize : 1.0f;
+	const float singleLineY = static_cast<float>(nPosY);
 
 	int nLength = 0;
 	for (int nLine = 0; nLine < m_nLineNumber; ++nLine)
@@ -318,8 +328,8 @@ int TMFont2::Render(int nPosX, int nPosY, int nRenderType)
 					(float)nLine * (float)(RenderDevice::m_nFontSize + 1),
 					(float)nLocLen,
 					(float)RenderDevice::m_nFontSize,
-					((float)nPosX + (float)nLength) + 1.0f,
-					(float)(nPosY + 1),
+					((float)nPosX + nLength * advanceScale) + 1.0f,
+					singleLineY + 1.0f,
 					m_pTexture,
 					m_dwShadeColor,
 					m_fSize,
@@ -331,8 +341,8 @@ int TMFont2::Render(int nPosX, int nPosY, int nRenderType)
 				(float)nLine * (float)(RenderDevice::m_nFontSize + 1),
 				(float)nLocLen,
 				(float)RenderDevice::m_nFontSize,
-				(float)nPosX + (float)nLength,
-				(float)nPosY,
+				(float)nPosX + nLength * advanceScale,
+				singleLineY,
 				m_pTexture,
 				m_dwColor,
 				m_fSize,

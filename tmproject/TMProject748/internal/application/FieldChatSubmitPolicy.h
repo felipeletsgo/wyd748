@@ -114,7 +114,7 @@ inline void TruncateCommandName(char* name)
 enum class Command
 {
     Whisper, SummonGuild, Kingdom, Speaker, GuildCreate, GuildHandover,
-    GuildExpel, GuildWar, ServerQuery, ItemLock, ItemUnlock, Nickname
+    CitizenshipLeave, GuildWar, ServerQuery, ItemLock, ItemUnlock, Nickname
 };
 
 // Localized command names from the message-string table, by original index.
@@ -123,7 +123,7 @@ struct CommandNames
     const char* speaker;       // 389
     const char* guildCreate;   // 386
     const char* guildHandover; // 387
-    const char* guildExpel;    // 391
+    const char* citizenshipLeave; // 391
     const char* guildWar;      // 390
     const char* itemLock;      // 496
     const char* itemUnlock;    // 497
@@ -139,7 +139,7 @@ inline Command ClassifyCommand(const char* name, const CommandNames& names)
     if (!std::strcmp(name, names.speaker)) return Command::Speaker;
     if (!std::strcmp(name, names.guildCreate)) return Command::GuildCreate;
     if (!std::strcmp(name, names.guildHandover)) return Command::GuildHandover;
-    if (!std::strcmp(name, names.guildExpel)) return Command::GuildExpel;
+    if (!std::strcmp(name, names.citizenshipLeave)) return Command::CitizenshipLeave;
     if (!std::strcmp(name, names.guildWar)) return Command::GuildWar;
     if (!std::strcmp(name, "srv")) return Command::ServerQuery;
     if (!std::strcmp(name, names.itemLock)) return Command::ItemLock;
@@ -156,7 +156,7 @@ constexpr const char* ServerKeyword(Command command)
     case Command::Speaker: return "spk";
     case Command::GuildCreate: return "create";
     case Command::GuildHandover: return "handover";
-    case Command::GuildExpel: return "getout";
+    case Command::CitizenshipLeave: return "getout";
     case Command::GuildWar: return "war";
     case Command::ItemLock: return "item_lock";
     case Command::ItemUnlock: return "item_unlock";

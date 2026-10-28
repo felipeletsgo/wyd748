@@ -274,11 +274,23 @@ void EventTranslator::SetVisibleCandidateList(int lParam, int bVisible)
     pCandidateText->SetVisible(1);
 }
 
-int EventTranslator::ReadInputEventData()
+int EventTranslator::ReadInputEventData(bool captured)
 {
     dx = dy = wheel = viewchange = 0;
     DIMOUSESTATE2 dims2{};
     m_hasMouseSample = PollCameraMouse(m_pMouseDevice, dims2);
+    const unsigned int pressed = dims2.rgbButtons[0] | dims2.rgbButtons[1] | dims2.rgbButtons[2];
+    if (m_modalInput.Discard(captured, m_hasMouseSample, pressed & 0x80))
+    {
+        m_hasMouseSample = false;
+        for (unsigned int key = 0; key < 256; ++key) OnKeyUp(key);
+        memset(m_bKey, 0, sizeof(m_bKey));
+        memset(button, 0, sizeof(button));
+        memset(lastButtonState, 0, sizeof(lastButtonState));
+        m_bRBtn = m_bAlt = m_bCtrl = m_bShift = 0;
+        m_wParam = 0;
+        return 0;
+    }
     if (!m_hasMouseSample)
         return 0;
 

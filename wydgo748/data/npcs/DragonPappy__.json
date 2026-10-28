@@ -1,0 +1,350 @@
+{
+  "name": "DragonPappy__",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 300,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 3500,
+  "score": {
+    "version": 2,
+    "level": 251,
+    "attack": 805,
+    "magicAttack": 0,
+    "defense": 150,
+    "maxHP": 6500,
+    "maxMP": 0,
+    "curHP": 6500,
+    "curMP": 0,
+    "str": 6,
+    "int": 70,
+    "dex": 80,
+    "con": 1000,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      127,
+      2,
+      127,
+      2
+    ],
+    "attackRun": 4
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1351,
+      "eff": [
+        103,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1351,
+      "eff": [
+        103,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 907,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2392
+    },
+    {
+      "index": 551
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 907,
+      "eff": [
+        102,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 907,
+      "eff": [
+        103,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 907,
+      "eff": [
+        104,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2194,
+      "eff": [
+        104,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2194,
+      "eff": [
+        104,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 421
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 412
+    }
+  ],
+  "gold": 500,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

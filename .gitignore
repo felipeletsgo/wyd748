@@ -10,11 +10,13 @@
 /wydgo748/cmd/server/*.exe
 /tmproject/client748/*.pdb
 /tmproject/client748/client-crash-*.dmp
+/tmproject/client748/dumps/
 /tmproject/client748/screenshot/
 /tmproject/client748/project.exe
 /tmproject/client748/WYD.exe
 /tmproject/client748/WYDLauncher.exe
 /tmproject/client748.zip
+/tmproject/WYD 7.48 PORTUGUES/WYD.log
 /tmproject/client748/WYD.pre-*.exe
 /tmproject/client748/ItemList.pre-*.bin
 /tmproject/client748/SkillData.csv
@@ -23,9 +25,9 @@
 # Written by WYDLauncher.exe at run time.
 /tmproject/client748/update.dat
 /tmproject/client748/guilds.txt
-/wydgo748/data/SkillData.bin
-/wydgo748/data/accounts/*.json
-/wydgo748/data/charstate/*.json
+/wydgo748/data/catalog/SkillData.bin
+# Files the server writes while running (Guilds.txt export).
+/wydgo748/runtime/
 
 # Local state, temporary files, and caches.
 /wydgo748/web/portal/node_modules/

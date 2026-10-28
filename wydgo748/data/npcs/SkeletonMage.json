@@ -1,0 +1,159 @@
+{
+  "name": "SkeletonMage",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 271,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "elmo": {
+      "index": 272,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 273,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 274,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 275,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 276,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 726,
+      "eff": [
+        43,
+        8,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        12,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 5500,
+  "score": {
+    "version": 2,
+    "level": 399,
+    "attack": 3600,
+    "magicAttack": 0,
+    "defense": 1850,
+    "maxHP": 32000,
+    "maxMP": 0,
+    "curHP": 32000,
+    "curMP": 0,
+    "str": 4,
+    "int": 100,
+    "dex": 50,
+    "con": 1000,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 3
+  },
+  "gold": 500,
+  "skillBar": [
+    32,
+    33,
+    32,
+    255
+  ]
+}

@@ -953,12 +953,15 @@ func (w *World) mountEssence(mount *model.Item, essenceIndex uint16) mountEssenc
 // food and longevity initialization, zero-effect mounts would be sold dead.
 func (w *World) initShopMounts() {
 	for i := range w.npcs {
-		vende := w.npcs[i].Vende
-		for j := range vende {
-			if model.IsMount(vende[j].Index) {
-				w.initFreshMount(&vende[j])
-			}
-		}
+		w.prepareNPCShopMounts(&w.npcs[i])
+	}
+}
+
+// prepareNPCShopMounts applies the same stock defaults at boot and live reload.
+// Explicit mount state remains unchanged.
+func (w *World) prepareNPCShopMounts(def *model.NPCDef) {
+	for i := range def.Vende {
+		w.initFreshMount(&def.Vende[i])
 	}
 }
 

@@ -10,7 +10,7 @@ import (
 // W2PP ProcessAffect Type 22: the Lightning Storm tick hits as a Thunderbolt,
 // not with the bare affect value (Level + Value).
 func TestLightningStormTickHitsAsThunderbolt(t *testing.T) {
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

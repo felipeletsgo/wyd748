@@ -1,0 +1,56 @@
+// Colosseum M (EventHour+2, no Celestials): 7.59 TMSRV generators; labels and route values are preserved.
+// Event-only: MinuteGenerate -1 never spawns in the open world.
+
+#	[0]
+	MinuteGenerate:	-1
+	MaxNumMob:	100
+	MinGroup:	20
+	MaxGroup:	30
+	Leader:	ForceCyclops
+	Follower:	ForceCyclops
+	RouteType:	2
+	Formation:	0
+	StartX:	2640
+	StartY:	1726
+	StartRange:	5
+	StartWait:	10
+	DestX:	2625
+	DestY:	1726
+	DestRange:	10
+	DestWait:	10
+
+#	[1]
+	MinuteGenerate:	-1
+	MaxNumMob:	100
+	MinGroup:	50
+	MaxGroup:	50
+	Leader:	COL_SCyclops
+	Follower:	Ciclope_Arqs
+	RouteType:	2
+	Formation:	0
+	StartX:	2635
+	StartY:	1726
+	StartRange:	5
+	StartWait:	9
+	DestX:	2627
+	DestY:	1726
+	DestRange:	13
+	DestWait:	10
+
+#	[2]
+	MinuteGenerate:	-1
+	MaxNumMob:	100
+	MinGroup:	50
+	MaxGroup:	50
+	Leader:	COL_WCyclops
+	Follower:	MageCyclops
+	RouteType:	2
+	Formation:	0
+	StartX:	2635
+	StartY:	1726
+	StartRange:	5
+	StartWait:	9
+	DestX:	2627
+	DestY:	1726
+	DestRange:	13
+	DestWait:	10

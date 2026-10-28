@@ -5,76 +5,37 @@ description: Organize the WYD-Go repository architecture, documentation, rules, 
 
 # Repository architecture
 
-Use this skill for structural, documentation, or skill-maintenance tasks.
+Use this skill for repository layout, durable documentation, rules, or skill maintenance.
+Do not invoke gameplay, asset, research, or release skills for organization-only work.
 
-## Canonical layout
+## Route
 
-- `tmproject/`: only the adapted 7.48 C++ client, runtime, and required assets;
-- `wydgo748/`: only the authoritative Go server and its data/tests;
-- `DOCS/`: durable documentation, indexed by `README.md` and
-  `documentation-map.md`;
-- `.agents/skills/`: active skills;
-- `.agents/research/` and `.agents/handoffs/`: project evidence and continuity records;
-- `references/decompilacao server/dlls/rea-analysis/`: native server REA work;
-- `CLAUDE.md` and `.claude/`: Claude Code entry points only (an `AGENTS.md`
-  import, skill pointers, shared settings); see
-  `DOCS/agent-environments.md`.
+- Read the requested rule, document, or skill and its direct references.
+- Inspect AGENTS.md, git status --short, HEAD, and the scoped diff once.
+- Search with rg; do not rescan unrelated source or research trees.
+- Correct the source of a contradiction, not a duplicate or historical record.
 
-Do not create `AGENTS.md`, `CLAUDE.md`, a project README, research script,
-dump, log, or temporary file inside the source trees. Product-generated client
-crash evidence may use `tmproject/client748/dumps/`; keep it ignored, local, and
-subject to the retention policy in `DOCS/agent-environments.md`. Never add rules
-to the root `CLAUDE.md` or procedure to `.claude/skills/`. Keep only the two
-active source roots above. Keep native and third-party evidence under
-`references/`; historical client evidence belongs in `references/client748/`.
-Keep native server REA maps, pseudocode, results, tools, and supporting records
-under `references/decompilacao server/dlls/rea-analysis/`. Read its `README.md`
-before researching server functions or logic. Separate static evidence, proven
-runtime behavior, and 7.48 compatibility claims.
-Follow the multilingual product and English engineering rules in `AGENTS.md`.
+## Invariants
 
-## Safe procedure
+- Keep active source roots in tmproject/ and wydgo748/.
+- Keep documentation in DOCS/, skills in .agents/skills/, evidence in .agents/research/, and handoffs in .agents/handoffs/.
+- Keep native server REA under references/decompilacao server/dlls/rea-analysis/.
+- Keep references/ local-only and separate static evidence, proven behavior, and client 7.48 compatibility.
+- Keep generated outputs in approved ignored paths; never add source-tree rule files or generated executables.
 
-1. Use the one-time entry and validation gates in `AGENTS.md`; do not repeat
-   inspection when entering this skill. Identify the affected files and users.
-2. Before moving or removing files, search for references with `rg`. Use a
-   global inventory only for global reorganization, not a paragraph edit.
-3. Move product documentation into one `DOCS/` category and fix links.
-   Keep project evidence in `.agents/` and native server REA work in its reference directory.
-   Do not duplicate reports.
-4. Remove only verified duplicates, obsolete rules, and generated artifacts,
-   after confirming exact paths. Do not delete source, assets, or native
-   evidence for convenience.
-5. At batch close, run `tools/repository/Test-RepositoryLayout.ps1`. Use
-   `-UpdateMap` only when inventory paths, entries, or categories change; that
-   invocation already validates the result. Also run `git diff --check` and
-   validators for changed resources.
+## Skill maintenance
 
-## Skills
+- Keep one short canonical entrypoint per skill.
+- Put detailed schemas, procedures, and examples in named references.
+- Preserve frontmatter, IDs, evidence, and existing pointer names.
+- Keep matching .claude/skills/<name>/SKILL.md pointers and agents/openai.yaml metadata synchronized.
+- Use skill-creator guidance and its validator when changing a skill.
+- Keep automatic invocation enabled unless the user explicitly requests another mode.
 
-Each active skill has one short, specific `SKILL.md`. Avoid duplicating global
-rules in every skill. References and scripts need a clear purpose, current
-paths, and reproducible tests.
+## Closeout
 
-Adding, renaming, removing, or redescribing a skill also updates its pointer
-in `.claude/skills/<name>/SKILL.md` (same `name` and `description`, link to
-the canonical file). Each canonical skill also keeps
-`.agents/skills/<name>/agents/openai.yaml` with its UI interface fields; the
-layout validator enforces both discovery surfaces.
-
-When creating or revising skills, use the agent's `skill-creator` skill
-(Codex or Claude Code). Validate frontmatter and review triggering, evidence
-reuse, and blocking scenarios. Valid YAML alone does not prove useful behavior.
-For a rules/skills review, read all canonical entrypoints and their applicable
-references, check shims and discovery metadata, then correct contradictions at
-their owning source. A reference that prescribes obsolete paths or mandatory
-rework can undermine an otherwise correct entrypoint. Preserve proven IDs and
-historical evidence when translating or shortening it.
-
-Keep global constraints in `AGENTS.md`, reusable procedures in skills, and
-volatile release IDs, hashes, hosts and results in existing receipts. Do not
-turn a one-off failure into a universal ritual or edit globally installed
-skills as a side effect of reviewing this repository. Test nontrivial routing
-with realistic scenarios, including blocked prerequisites and no-write scope.
-Do not invoke gameplay skills merely because documentation mentions a client
-or server; instruction-only edits need no product build or production access.
+- Update DOCS/README.md and DOCS/documentation-map.md only when inventory changes.
+- Run tools/repository/Test-RepositoryLayout.ps1 once for the changed batch.
+- Validate each changed skill entrypoint, scoped links, and git diff --check.
+- Do not run product builds, Ghidra, or runtime checks for documentation-only work.
+- Report skipped checks and unrelated dirty files without modifying them.

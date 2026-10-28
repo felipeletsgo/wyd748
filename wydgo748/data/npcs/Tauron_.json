@@ -42,15 +42,7 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 786,
-      "eff": [
-        43,
-        1,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
     },
     "montaria": {
       "index": 0
@@ -60,40 +52,36 @@
     }
   },
   "classInfo": 1,
-  "expReward": 250000,
+  "expReward": 5000,
   "score": {
     "version": 2,
-    "level": 385,
-    "attack": 10,
+    "level": 350,
+    "attack": 980,
     "magicAttack": 0,
-    "defense": 1000,
-    "maxHP": 2000,
+    "defense": 1250,
+    "maxHP": 21000,
     "maxMP": 0,
-    "curHP": 2000,
+    "curHP": 21000,
     "curMP": 0,
     "str": 5,
-    "int": 70,
+    "int": 5,
     "dex": 100,
-    "con": 0,
+    "con": 500,
     "critical": 255,
-    "resistFire": 5,
-    "resistIce": 5,
-    "resistHoly": 5,
-    "resistThunder": 5,
     "saveMana": 255,
     "mastery": [
-      1,
-      7,
-      255,
-      7
+      0,
+      0,
+      0,
+      0
     ],
     "attackRun": 3
   },
-  "gold": 9999,
-  "learnedSkill": 50,
+  "gold": 500,
+  "learnedSkill": 50050,
   "skillBar": [
-    255,
-    255,
+    0,
+    0,
     255,
     255
   ]

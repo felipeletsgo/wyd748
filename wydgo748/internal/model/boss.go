@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// boss.go defines declarative boss configuration loaded from data/boss/*.lua.
+// boss.go defines declarative boss configuration loaded from data/content/boss/*.lua.
 // Boss behavior lives in internal/game/boss_types.go; Lua selects a behavior
 // and supplies values, but cannot define new server rules or mutate world state.
 // Bosses have their own spawn and respawn rules, separate from NPCGener. They
@@ -56,7 +56,7 @@ type BossStats struct {
 
 // BossSkill is a spell in the boss's repertoire.
 type BossSkill struct {
-	// ID indexes data/SkillData.csv.
+	// ID indexes data/catalog/SkillData.csv.
 	ID int
 	// CooldownSeconds is the minimum interval between uses of this skill.
 	CooldownSeconds int
@@ -122,14 +122,14 @@ const MaxBossDurationSeconds int64 = (1<<63 - 1) / int64(time.Second)
 // BossAreaReward distributes item units on the ground when the boss dies.
 // Zero Item and Amount disable the reward.
 type BossAreaReward struct {
-	// Item is the index in data/itemlist.csv.
+	// Item is the index in data/catalog/itemlist.csv.
 	Item uint16
 	// Amount is the number of ground units, one per cell.
 	Amount int
 }
 
 type BossDrop struct {
-	// Item is the index in data/itemlist.csv.
+	// Item is the index in data/catalog/itemlist.csv.
 	Item uint16
 	// ChancePercent is the probability (1-100); 100 is guaranteed.
 	ChancePercent int
@@ -316,7 +316,7 @@ func (c *BossConfig) RespawnDelay() time.Duration {
 	return time.Duration(c.Spawn.RespawnSeconds) * time.Second
 }
 
-// BossCatalog is the set loaded from data/boss/.
+// BossCatalog is the set loaded from data/content/boss/.
 type BossCatalog struct {
 	Bosses []BossConfig
 }

@@ -51,6 +51,7 @@ type Config struct {
 	Kick                  control.KickSource
 	Teleport              control.TeleportSource
 	Premium               control.PremiumSource
+	NPCDefinitions        control.NPCDefinitionSource
 	Sanctions             control.SanctionSource
 	Notices               control.NoticeSource
 	Shutdown              control.ShutdownSource
@@ -167,6 +168,8 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("GET /api/v1/staff/players/{uid}/persistent", h.persistentPlayer)
 	h.mux.HandleFunc("GET /api/v1/staff/premium-shop", h.premiumShop)
 	h.mux.HandleFunc("PUT /api/v1/staff/premium-shop", h.premiumShop)
+	h.mux.HandleFunc("GET /api/v1/staff/npcs", h.npcDefinitions)
+	h.mux.HandleFunc("PUT /api/v1/staff/npcs/{name}", h.npcDefinitions)
 	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/donate", h.donateAccount)
 	h.mux.HandleFunc("POST /api/v1/staff/accounts/{account}/donate", h.donateAccount)
 	h.mux.HandleFunc("GET /api/v1/staff/accounts/{account}/sanctions", h.sanctions)

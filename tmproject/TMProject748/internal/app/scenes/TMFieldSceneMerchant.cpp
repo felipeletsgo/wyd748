@@ -11,6 +11,9 @@
 #include "ClientDiagnostics.h"
 #include "../../core/NativeSalePrice.h"
 #include "FieldSceneInventorySupport.h"
+#include "../../core/ClientLanguage.h"
+#include "CPSock.h"
+#include "../../ui/ItemBonusText.h"
 
 int TMFieldScene::CheckMerchant(TMHuman* pOver)
 {
@@ -95,8 +98,11 @@ int TMFieldScene::CheckMerchant(TMHuman* pOver)
 	return 0;
 }
 
-void TMFieldScene::SetVisibleShop(int bShow)
+void TMFieldScene::SetVisibleShop(int bShow, bool showPanels)
 {
+	// Keep the premium context reserved until the server settles the purchase.
+	if (m_premiumNellPending) return;
+	m_premiumNell.Close();
 	SGridControl::m_sLastMouseOverIndex = -1;
 	// The 7.48 shop and inventory are one-page legacy panels.  Keep the modern
 	// grid state but avoid four-page inventory and optional store dereferences.
@@ -108,12 +114,13 @@ void TMFieldScene::SetVisibleShop(int bShow)
 			SetVisibleAutoTrade(0, 0);
 		PositionCompatShopPanels();
 	}
+	const int panelsVisible = bShow && showPanels;
 	if (m_pGridInv)
-		m_pGridInv->m_eGridType = bShow ? TMEGRIDTYPE::GRID_SELL : TMEGRIDTYPE::GRID_DEFAULT;
+		m_pGridInv->m_eGridType = panelsVisible ? TMEGRIDTYPE::GRID_SELL : TMEGRIDTYPE::GRID_DEFAULT;
 	if (m_pShopPanel)
-		m_pShopPanel->SetVisible(bShow);
+		m_pShopPanel->SetVisible(panelsVisible);
 	if (m_pInvenPanel)
-		m_pInvenPanel->SetVisible(bShow);
+		m_pInvenPanel->SetVisible(panelsVisible);
 	if (bShow && m_pCPanel)
 		m_pCPanel->SetVisible(0);
 	if (!bShow)
@@ -179,12 +186,13 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 {
 	auto pShopList = reinterpret_cast<MSG_ShopList*>(pStd);
 
-	// ShopType 4 is the coordinated premium shop: the same native window,
-	// priced in donate by the following 0x7F20.
+	// ShopType 4 prepares the native fallback without showing it while the
+	// following 0x7F20 opens the embedded shop.
 	if (pShopList->ShopType == 1 || pShopList->ShopType == static_cast<int>(premium_shop::ShopType))
 	{
 		// A resource failure can leave the merchant grid unbound when the
 		// packet arrives. Do not change coupon or shop state in that case.
+		if (m_premiumNellPending) return 0;
 		if (!m_pGridShop)
 		{
 			WYD748_DiagnosticsLog("merchant grid missing for ShopList\r\n");
@@ -237,8 +245,35 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			}
 		}
 
+		m_premiumNellItems = {};
+		for (int i = 0; i < premium_shop::Slots; ++i)
+		{
+			const auto& item = pShopList->List[i];
+			if (item.sIndex <= 0 || item.sIndex >= MAX_ITEMLIST) continue;
+			auto& entry = m_premiumNellItems[i];
+			entry.ID = item.sIndex;
+			const auto& name = g_pItemList[item.sIndex].Name;
+			const int length = static_cast<int>(strnlen_s(name, sizeof(name)));
+			const int count = MultiByteToWideChar(1252, 0, name, length, nullptr, 0);
+			entry.Name.resize(count);
+			if (count) MultiByteToWideChar(1252, 0, name, length, entry.Name.data(), count);
+			if (entry.Name.empty()) entry.Name = L"Item " + std::to_wstring(item.sIndex);
+			auto displayedItem = item;
+			const int amount = BASE_GetItemAmount(&displayedItem);
+			entry.Quantity = amount > 0 ? amount : 1;
+			entry.Refinement = BASE_GetItemSanc(&displayedItem);
+			item_bonus_text::ForEach(&displayedItem, [&](unsigned int, int, int, const char* text) {
+				const int bytes = static_cast<int>(strlen(text));
+				const int characters = MultiByteToWideChar(1252, 0, text, bytes, nullptr, 0);
+				std::wstring detail(characters, L'\0');
+				if (characters) MultiByteToWideChar(1252, 0, text, bytes, detail.data(), characters);
+				entry.Details.push_back(detail);
+			});
+			for (int effect = 0; effect < 3; ++effect)
+				entry.Effects[effect] = {item.stEffect[effect].cEffect, item.stEffect[effect].cValue};
+		}
 		g_pObjectManager->m_nTax = pShopList->Tax;
-		SetVisibleShop(1);
+		SetVisibleShop(1, pShopList->ShopType != static_cast<int>(premium_shop::ShopType));
 		m_premiumShop.OnShopList(static_cast<unsigned int>(pShopList->ShopType),
 			static_cast<unsigned short>(m_pGridShop->m_dwMerchantID));
 	}
@@ -521,7 +556,7 @@ void TMFieldScene::MouseClick_PremiumNPC(TMHuman* pOver)
 {
 	// Native 7.48 classifies face 57 as a merchant; the premium shop extension
 	// opens it with the native shop request (DOCS/protocol/premium-shop.md).
-	if (!pOver || !m_pMyHuman || !m_pGridShop || !m_pShopPanel || m_pShopPanel->IsVisible())
+	if (!pOver || !m_pMyHuman || !m_pGridShop || !m_pShopPanel || m_pShopPanel->IsVisible() || m_premiumNell.IsOpen() || m_premiumNellPending)
 		return;
 	m_nIsMP = 0;
 	MSG_REQShopList stReqShopList{};
@@ -537,16 +572,114 @@ void TMFieldScene::MouseClick_PremiumNPC(TMHuman* pOver)
 int TMFieldScene::OnPacketPremiumShopState(MSG_STANDARD* packet)
 {
 	premium_shop::State state{};
+	std::uint8_t categories[premium_shop::Slots]{};
 	if (!packet || !g_pObjectManager || packet->ID != g_pObjectManager->m_dwCharID ||
-		!premium_shop::Parse(packet, packet->Size, state))
+		!premium_shop::Parse(packet, packet->Size, state, categories))
 		return 0;
-	m_premiumShop.Apply(state);
-	if (m_pMessagePanel)
+	m_premiumShop.Apply(state, categories);
+	if (state.Kind == premium_shop::KindOpen && m_premiumShop.Open && !m_premiumNellPending)
 	{
-		char message[96]{};
-		sprintf_s(message, "Donate balance: %u", state.Balance);
-		m_pMessagePanel->SetMessage(message, 3000);
-		m_pMessagePanel->SetVisible(1, 1);
+		m_premiumNellResult = -1;
+		const bool portuguese = client_language::Read(L"lang.txt") == client_language::Language::Portuguese;
+		if (!g_pDevice || !m_premiumNell.Open(g_pDevice->m_hWnd, portuguese, g_pObjectManager->m_szAccountName))
+		{
+			SetVisibleShop(1);
+			WYD748_DiagnosticsLog("Premium Nell browser unavailable; using native shop\r\n");
+		}
 	}
+	RefreshPremiumNell();
 	return 1;
+}
+
+void TMFieldScene::RefreshPremiumNell()
+{
+	for (int i = 0; i < premium_shop::Slots; ++i)
+	{
+		m_premiumNellItems[i].Price = m_premiumShop.PriceAt(i);
+		m_premiumNellItems[i].Category = m_premiumShop.Categories[i];
+	}
+	m_premiumNell.Update(m_premiumNellItems, m_premiumShop.Balance, m_premiumNellPending, m_premiumNellResult);
+}
+
+int TMFieldScene::OnPacketPremiumBuyResult(MSG_STANDARD* packet)
+{
+	premium_shop::Result result{};
+	if (!packet || !g_pObjectManager || packet->ID != g_pObjectManager->m_dwCharID ||
+		!premium_shop::ParseResult(packet, packet->Size, result) || !m_premiumNellPending.Complete(result.RequestID))
+		return 0;
+	m_premiumNellResult = result.Code;
+	m_premiumShop.Balance = result.Balance;
+	if (!m_premiumNell.IsOpen())
+	{
+		SetVisibleShop(0); // A failed browser cannot invite a retry of an unresolved purchase.
+		if (m_pMessagePanel)
+		{
+			const bool pt = client_language::Read(L"lang.txt") == client_language::Language::Portuguese;
+			const char* message = result.Code == 0 ?
+				(pt ? "Nell: compra concluida. O item esta no inventario." : "Nell: purchase completed. The item is in your inventory.") :
+				(pt ? "Nell: compra nao realizada. Abra a loja novamente." : "Nell: purchase was not completed. Open the shop again.");
+			m_pMessagePanel->SetMessage(message, 5000);
+			m_pMessagePanel->SetVisible(1, 1);
+		}
+	}
+	else RefreshPremiumNell();
+	return 1;
+}
+
+void TMFieldScene::TickPremiumNell()
+{
+	if (!m_premiumNell.IsOpen()) return;
+	if (!m_pMyHuman || !g_pObjectManager || m_pMyHuman->m_cDie || !m_premiumShop.Open)
+	{
+		m_premiumNell.Close();
+		if (!m_premiumNellPending) SetVisibleShop(0);
+		return;
+	}
+	const auto action = m_premiumNell.Poll();
+	if (action.Kind == premium_nell::ActionKind::Ready)
+	{
+		if (m_pShopPanel) m_pShopPanel->SetVisible(0);
+		if (m_pInvenPanel) m_pInvenPanel->SetVisible(0);
+		if (m_pGridInv) m_pGridInv->m_eGridType = TMEGRIDTYPE::GRID_DEFAULT;
+		RefreshPremiumNell();
+	}
+	else if (action.Kind == premium_nell::ActionKind::Failed)
+	{
+		m_premiumNell.Close();
+		if (!m_premiumNellPending) SetVisibleShop(1);
+		WYD748_DiagnosticsLog("Premium Nell browser failed; pending=%d\r\n", static_cast<bool>(m_premiumNellPending));
+		if (m_pMessagePanel)
+		{
+			const bool pt = client_language::Read(L"lang.txt") == client_language::Language::Portuguese;
+			const char* message = m_premiumNellPending ?
+				(pt ? "Nell: aguardando a confirmacao da compra pelo servidor." : "Nell: waiting for the server to confirm your purchase.") :
+				(pt ? "Nell: interface web indisponivel. A loja padrao sera utilizada." : "Nell: web interface unavailable. The standard shop will be used.");
+			m_pMessagePanel->SetMessage(message, 5000);
+			m_pMessagePanel->SetVisible(1, 1);
+		}
+	}
+	else if (action.Kind == premium_nell::ActionKind::Close)
+	{
+		if (!m_premiumNellPending) SetVisibleShop(0);
+	}
+	else if (action.Kind == premium_nell::ActionKind::Buy && !m_premiumNellPending)
+	{
+		premium_shop::WebBuy request{};
+		if (!m_premiumShop.MakeBuy(static_cast<unsigned short>(m_pMyHuman->m_dwID), action.Slot, 0, request.Purchase))
+		{
+			m_premiumNellResult = 4;
+			RefreshPremiumNell();
+			return;
+		}
+		request.Purchase.Header.Size = sizeof(request);
+		request.Purchase.ContractVersion = premium_shop::WebVersion;
+		request.RequestID = premium_shop::NextRequestID();
+		m_premiumNellResult = -1;
+		// AddMessage reports queue acceptance even if the immediate flush fails.
+		// SendOneMessage conflates those outcomes and cannot safely invite a retry.
+		if (!m_premiumNellPending.Submit(request.RequestID, [&] {
+			return g_pSocketManager && g_pSocketManager->AddMessage(reinterpret_cast<char*>(&request), sizeof(request));
+		})) m_premiumNellResult = 9;
+		RefreshPremiumNell();
+	}
 }

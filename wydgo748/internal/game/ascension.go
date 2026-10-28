@@ -24,7 +24,7 @@ import (
 // exists and remains playable, exactly as natively.
 
 const (
-	// Chain items, all checked against data/itemlist.csv.
+	// Chain items, all checked against data/catalog/itemlist.csv.
 	unicornSpiritItem = 1740                       // Unicon's_Spirit
 	phoenixSpiritItem = 1741                       // Phoenix's_Spirit
 	eternalStoneItem  = model.ArchEternalStoneItem // Eternal_Stone (the "Immortality Stone")
@@ -79,7 +79,7 @@ func sefirotClassForNPC(def *model.NPCDef) (int, bool) {
 	if def == nil {
 		return 0, false
 	}
-	switch strings.ToLower(generName(def.Name)) {
+	switch strings.ToLower(generName(def.InteractionName())) {
 	case "knight leader":
 		return 0, true
 	case "foema ancian":
@@ -100,7 +100,7 @@ func hasSephiraStones(ch *model.Char) bool {
 }
 
 func isBlackOracle(def *model.NPCDef) bool {
-	return def != nil && strings.EqualFold(generName(def.Name), "Black Oracle")
+	return def != nil && strings.EqualFold(generName(def.InteractionName()), "Black Oracle")
 }
 
 // handleAscensionNPC handles Black_Oracle (Eternal Stone). The Sefirot does

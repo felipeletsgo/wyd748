@@ -818,7 +818,10 @@ ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
 	m_pMessagePanel->SetVisible(1, 1);
 
 
-	if (!g_pSocketManager->ConnectServer(g_pApp->m_szServerIP, TM_CONNECTION_PORT, 0, 1124))
+	char gameHost[128]{};
+	int gamePort = TM_CONNECTION_PORT;
+	if (!ResolveGameEndpoint(g_pApp->m_szServerIP, gameHost, gamePort) ||
+		!g_pSocketManager->ConnectServer(gameHost, gamePort, 0, 1124))
 	{
 		pLoginOK->SetEnable(1);
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);

@@ -1,0 +1,152 @@
+{
+  "name": "BlazingSorcerer",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 391
+    },
+    "elmo": {
+      "index": 2206,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "armadura": {
+      "index": 2207,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "calca": {
+      "index": 2208,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "luva": {
+      "index": 2209,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "bota": {
+      "index": 2210,
+      "eff": [
+        43,
+        4,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "arma": {
+      "index": 1931,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        23,
+        71,
+        27,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 3198,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "classInfo": 1,
+  "expReward": 5000,
+  "score": {
+    "version": 2,
+    "level": 355,
+    "attack": 3042,
+    "magicAttack": 0,
+    "defense": 800,
+    "maxHP": 15000,
+    "maxMP": 150,
+    "curHP": 15000,
+    "curMP": 150,
+    "str": 12,
+    "int": 2000,
+    "dex": 100,
+    "con": 800,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "gold": 500,
+  "learnedSkill": 55070,
+  "skillBar": [
+    36,
+    34,
+    26,
+    255
+  ]
+}

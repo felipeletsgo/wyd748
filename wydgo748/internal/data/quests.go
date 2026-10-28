@@ -10,7 +10,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// LoadQuests le data/quests.json com o mesmo contrato estrito dos demais
+// LoadQuests le data/content/quests.json com o mesmo contrato estrito dos demais
 // arquivos: versao exata, sem campo desconhecido e sem conteudo extra.
 //
 // Arquivo ausente e estado valido (servidor sem quest configurada): devolve um

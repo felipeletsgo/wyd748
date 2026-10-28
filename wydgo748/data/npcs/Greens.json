@@ -42,10 +42,10 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 769,
+      "index": 1937,
       "eff": [
         43,
-        9,
+        15,
         0,
         0,
         0,
@@ -63,7 +63,7 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 301,
+    "level": 302,
     "attack": 15000,
     "magicAttack": 0,
     "defense": 15000,
@@ -94,19 +94,54 @@
   ],
   "vende": [
     {
-      "index": 683
+      "index": 683,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
-      "index": 689
+      "index": 689,
+      "eff": [
+        61,
+        5,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "index": 410
     },
     {
-      "index": 411
+      "index": 411,
+      "eff": [
+        61,
+        10,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "index": 699
+    },
+    {
+      "index": 776,
+      "eff": [
+        61,
+        10,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "index": 700
@@ -115,75 +150,6 @@
       "index": 697
     },
     {
-      "index": 774
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 776
-    },
-    {
-      "index": 421
-    },
-    {
-      "index": 427
-    },
-    {
       "index": 0
     },
     {
@@ -254,21 +220,6 @@
     },
     {
       "index": 0
-    },
-    {
-      "index": 439
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 440
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 441
     }
   ]
 }

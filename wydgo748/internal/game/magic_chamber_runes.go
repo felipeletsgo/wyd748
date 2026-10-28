@@ -10,7 +10,7 @@ import (
 )
 
 // Magic Chamber rune slates. The native 7.48 InitItem rows 20..35
-// (data/init_items.csv) are Rune_Slate objects (1733..1736, meshes 989..992),
+// (data/world/init_items.csv) are Rune_Slate objects (1733..1736, meshes 989..992),
 // one 2x2 block per room. The 7.48 client draws a slate sunk below the floor
 // while open and on the floor with its glow while locked. The 7.59 TMSRV
 // (sub_561F90) rolls a color 1..4 when each room starts, and sub_561E80 shows

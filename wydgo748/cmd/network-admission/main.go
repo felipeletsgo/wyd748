@@ -37,8 +37,8 @@ func run(args []string, stdout io.Writer) error {
 	flags := flag.NewFlagSet("network-admission", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	var inputs stringList
-	basePath := flags.String("base", "data/network_admission.json", "politica existente a preservar")
-	outPath := flags.String("out", "data/network_admission.json", "politica compilada")
+	basePath := flags.String("base", "data/config/network_admission.json", "politica existente a preservar")
+	outPath := flags.String("out", "data/config/network_admission.json", "politica compilada")
 	source := flags.String("source", "", "identificador estavel da fonte (ex.: aws)")
 	action := flags.String("action", "deny", "allow, deny ou limit")
 	maxClients := flags.Int("max-clients", 0, "teto por rede quando action=limit")

@@ -11,13 +11,13 @@ import (
 	"strings"
 )
 
-// colosseumAliases keep the 7.59 Colosseum monsters independent from the
-// ordinary catalog and within the 12-byte wire name budget.
+// colosseumAliases retain distinct event variants and reuse identical templates.
+// Visible names must fit the supported 15-byte name field.
 var colosseumAliases = map[string]string{
-	"ForceCyclops": "COL_FCyclops", "SavageCyclops": "COL_SCyclops", "Ciclope_Arqs": "COL_CycArch",
-	"WildCyclops": "COL_WCyclops", "MageCyclops": "COL_MCyclops", "OrcSniper_": "COL_OSniper",
-	"ForceOrc": "COL_FOrc", "SavageOrc": "COL_SOrc", "OrcMage": "COL_OMage", "WildOrc": "COL_WOrc",
-	"ForceCyclop_": "COL_FCyclop2", "SavageCyclops_": "COL_SCyclop2", "Ciclope_Arq__": "COL_CycArch2",
+	"ForceCyclops": "ForceCyclops", "SavageCyclops": "COL_SCyclops", "Ciclope_Arqs": "Ciclope_Arqs",
+	"WildCyclops": "COL_WCyclops", "MageCyclops": "MageCyclops", "OrcSniper_": "OrcSniper_",
+	"ForceOrc": "ForceOrc", "SavageOrc": "SavageOrc", "OrcMage": "OrcMage", "WildOrc": "WildOrc",
+	"ForceCyclop_": "ForceCyclop_", "SavageCyclops_": "COL_SCyclop2", "Ciclope_Arq__": "Ciclope_Arq__",
 	"MightyTalos": "COL_Talos", "WildCyclops_": "COL_WCyclop2", "Cav_Lugefer_": "COL_Lugefer",
 }
 

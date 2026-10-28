@@ -1,0 +1,95 @@
+{
+  "name": "Pikeman__",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 60
+    },
+    "elmo": {
+      "index": 130
+    },
+    "armadura": {
+      "index": 126
+    },
+    "calca": {
+      "index": 127
+    },
+    "luva": {
+      "index": 128
+    },
+    "bota": {
+      "index": 129
+    },
+    "arma": {
+      "index": 865
+    },
+    "escudo": {
+      "index": 1704
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 290,
+      "eff": [
+        43,
+        6,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "classInfo": 1,
+  "expReward": 100,
+  "score": {
+    "version": 2,
+    "level": 301,
+    "attack": 828,
+    "magicAttack": 0,
+    "defense": 2582,
+    "maxHP": 25000,
+    "maxMP": 0,
+    "curHP": 25000,
+    "curMP": 0,
+    "str": 12,
+    "int": 2000,
+    "dex": 0,
+    "con": 800,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "direction": 96,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

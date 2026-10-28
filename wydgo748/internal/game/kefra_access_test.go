@@ -51,7 +51,7 @@ func (s *kefraAccessCriticalStore) SavePlayerStateBatch(_ *model.GuildRegistry,
 func kefraAccessFixture(t *testing.T) (*World, *Player, *kefraAccessStore) {
 	t.Helper()
 	w, p, _ := handlerTestWorld(t)
-	portals, err := data.LoadTeleports(filepath.Join("..", "..", "data", "teleports.ini"))
+	portals, err := data.LoadTeleports(filepath.Join("..", "..", "data", "world", "teleports.ini"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func setKefraAccessPosition(w *World, p *Player, x, y uint16) {
 
 func survivorAccessQuest(t *testing.T) *model.QuestDef {
 	t.Helper()
-	quests, err := data.LoadQuests(filepath.Join("..", "..", "data", "quests.json"))
+	quests, err := data.LoadQuests(filepath.Join("..", "..", "data", "content", "quests.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

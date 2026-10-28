@@ -55,6 +55,8 @@ type GuildMember struct {
 // Guild e o registro canonico. Char.GuildID/GuildRank sao copias
 // desnormalizadas dessa verdade, reparadas no login.
 type Guild struct {
+	// Citizenship is independent of kingdom and the currently selected world.
+	Citizenship byte `json:"citizenship,omitempty"`
 	ID      uint16        `json:"id"`
 	Name    string        `json:"name"`
 	Members []GuildMember `json:"members"`
@@ -73,9 +75,13 @@ type Guild struct {
 
 // GuildRegistry e o conteudo do guilds.json.
 type GuildRegistry struct {
-	Version int           `json:"version"`
-	Guilds  []Guild       `json:"guilds"`
-	Wars    GuildWarState `json:"wars,omitempty"`
+	CitizenshipVersion int `json:"citizenshipVersion,omitempty"`
+	Version          int                    `json:"version"`
+	Guilds           []Guild                `json:"guilds"`
+	Wars             GuildWarState          `json:"wars,omitempty"`
+	ChannelWars      map[byte]GuildWarState `json:"channelWars,omitempty"`
+	FameResetDay     string                 `json:"fameResetDay,omitempty"`
+	ActiveWarChannel byte                   `json:"-"`
 }
 
 // GuildRegistryVersion e a unica versao aceita pelo loader, seguindo o mesmo
@@ -139,6 +145,9 @@ func (g *Guild) Member(character string) *GuildMember {
 func (g *Guild) Validate() error {
 	if g == nil {
 		return fmt.Errorf("guild ausente")
+	}
+	if g.Citizenship > 2 {
+		return fmt.Errorf("guild %q has invalid citizenship %d", g.Name, g.Citizenship)
 	}
 	if g.ID < MinGuildID || g.ID > MaxGuildID {
 		return fmt.Errorf("guild %q com id %d fora da faixa %d..%d",
@@ -211,6 +220,9 @@ func (r *GuildRegistry) Validate() error {
 	if r == nil {
 		return fmt.Errorf("registro de guild ausente")
 	}
+	if r.CitizenshipVersion < 0 || r.CitizenshipVersion > 1 {
+		return fmt.Errorf("unsupported guild citizenship version %d", r.CitizenshipVersion)
+	}
 	if r.Version != GuildRegistryVersion {
 		return fmt.Errorf("registro de guild versao %d; esperado %d",
 			r.Version, GuildRegistryVersion)
@@ -266,7 +278,18 @@ func (r *GuildRegistry) Validate() error {
 			}
 		}
 	}
-	return r.Wars.Validate(r)
+	if err := r.Wars.Validate(r); err != nil {
+		return err
+	}
+	for channel, wars := range r.ChannelWars {
+		if channel == 0 {
+			return fmt.Errorf("invalid war channel 0")
+		}
+		if err := wars.Validate(r); err != nil {
+			return fmt.Errorf("channel %d wars: %w", channel, err)
+		}
+	}
+	return nil
 }
 
 // FindByID e FindByName servem tanto ao runtime quanto a validacao de comandos.

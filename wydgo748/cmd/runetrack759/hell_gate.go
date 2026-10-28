@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 )
 
-// Keep event-only definitions independent from ordinary monsters and from the
-// project-calibrated bosses. This path uses TMSRV/run, not TMSRV2/run.
+// Keep distinct event variants independent from project-calibrated bosses.
+// Reuse identical canonical definitions. This path uses TMSRV/run.
 func runHellGate(source, output string) error {
 	if err := os.MkdirAll(output, 0755); err != nil {
 		return err
@@ -18,7 +18,7 @@ func runHellGate(source, output string) error {
 	manifest := map[string]string{}
 	for _, pair := range [][2]string{
 		{"Skeleton_", "HG_CorrSkel"}, {"SkeletonArcher", "HG_SkelArch"},
-		{"SkeletonMage", "HG_SkelMage"}, {"Guer_Caveira", "HG_SkelWar"},
+		{"SkeletonMage", "HG_SkelMage"}, {"Guer_Caveira", "Guer_Caveira"},
 		{"SpearSkeleton", "HG_SkelSpear"}, {"EsqGuerreiro", "HG_SkelGuard"},
 	} {
 		b, err := os.ReadFile(filepath.Join(source, "npc", pair[0]))

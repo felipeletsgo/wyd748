@@ -209,9 +209,9 @@ func TestChatChannelOfTestaGlobalAntesDeGuild(t *testing.T) {
 	}
 }
 
-// --- membros online --------------------------------------------------------
+// --- Online members --------------------------------------------------------
 
-func TestOnlineGuildMembersFiltraPorGuildEPresenca(t *testing.T) {
+func TestOnlineGuildMembersFiltersByGuildAndPresence(t *testing.T) {
 	w := guildTestWorld(guildWithMembers(5, "Alfa",
 		member("A", "c1", model.GuildRankLeader),
 	))
@@ -225,13 +225,16 @@ func TestOnlineGuildMembersFiltraPorGuildEPresenca(t *testing.T) {
 		{ID: 3}: offline,
 		{ID: 4}: noGuild,
 	}
+	for session, player := range w.players {
+		player.Session = session
+	}
 
 	got := w.onlineGuildMembers(5)
 	if len(got) != 1 || got[0] != inGuild {
-		t.Fatalf("apenas o membro conectado da guild 5 deveria entrar: %d", len(got))
+		t.Fatalf("only the connected member of guild 5 should be included: %d", len(got))
 	}
 	if len(w.onlineGuildMembers(0)) != 0 {
-		t.Fatal("guild 0 significa sem guild e nao pode devolver ninguem")
+		t.Fatal("guild 0 means no guild and must return no members")
 	}
 }
 

@@ -11,7 +11,7 @@ Requirements:
 - Node.js `22.12` or later to build the Astro staff panel;
 - PostgreSQL for startup and database integration tests.
 
-The panel is enabled in the versioned `data/server.txt`, but
+The panel is enabled in the versioned `data/config/server.txt`, but
 `web/portal/dist/` is generated and ignored by Git. In a fresh clone, build
 the panel before first startup or disable `web_admin_enabled`.
 

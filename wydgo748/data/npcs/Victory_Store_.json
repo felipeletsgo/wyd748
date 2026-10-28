@@ -1,0 +1,232 @@
+{
+  "name": "Victory_Store_",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 59
+    },
+    "elmo": {
+      "index": 1260
+    },
+    "armadura": {
+      "index": 1221
+    },
+    "calca": {
+      "index": 1221
+    },
+    "luva": {
+      "index": 1221
+    },
+    "bota": {
+      "index": 1221
+    },
+    "arma": {
+      "index": 475
+    },
+    "escudo": {
+      "index": 475
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 2376
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "score": {
+    "version": 2,
+    "level": 32768500,
+    "attack": 20000,
+    "magicAttack": 0,
+    "defense": 600,
+    "maxHP": 20000,
+    "maxMP": 20000,
+    "curHP": 20000,
+    "curMP": 20000,
+    "str": 20000,
+    "int": 20000,
+    "dex": 20000,
+    "con": 20,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "merchant": 1
+  },
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ],
+  "vende": [
+    {
+      "index": 2441,
+      "eff": [
+        111,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2442,
+      "eff": [
+        111,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2443,
+      "eff": [
+        111,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 2444,
+      "eff": [
+        111,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1774,
+      "eff": [
+        111,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4024,
+      "eff": [
+        61,
+        10,
+        111,
+        1,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 3172,
+      "eff": [
+        111,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  ]
+}

@@ -11,10 +11,7 @@ import (
 )
 
 func (w *World) criticalGuildSnapshot() *model.GuildRegistry {
-	snapshot := *w.guilds
-	snapshot.Guilds = w.snapshotGuilds()
-	snapshot.Wars = w.guilds.Wars.Clone()
-	return &snapshot
+	return w.guilds.Clone()
 }
 
 // The actor prepares a private payout and guild debit. The worker sees neither

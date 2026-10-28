@@ -1,4 +1,4 @@
-# data/boss — boss encounters
+# data/content/boss — boss encounters
 
 Each `.lua` file in this directory defines **one** boss. The server loads all
 `.lua` files in alphabetical order at startup.
@@ -28,7 +28,7 @@ spawns or is unexpectedly weak because of a typo.
 
   ```bash
   comm -23 <(ls data/npcs/*.json | sed 's|.*/||; s|\.json$||' | sort) \
-           <(tr -s ' \t' '\n' < data/NPCGener.txt | grep -oE '^[A-Za-z_.][A-Za-z0-9_.]*$' | sort -u)
+           <(tr -s ' \t' '\n' < data/spawns/NPCGener.txt | grep -oE '^[A-Za-z_.][A-Za-z0-9_.]*$' | sort -u)
   ```
 
   Adds (`summons`) are different: using ordinary mobs is expected because
@@ -121,14 +121,14 @@ be silently ignored and produce an unexpectedly weak boss.
 The server validates *structure*, but cannot determine whether an item or
 skill is appropriate:
 
-- **Skills** (`data/SkillData.csv`): use **offensive** magic. Skill 27 is
+- **Skills** (`data/catalog/SkillData.csv`): use **offensive** magic. Skill 27 is
   `Cura` and 26 is `Flash`; configuring them would make the boss "attack" by
   healing. Possible offensive examples are 23 `Tempestade_de_Gelo` (range 4),
   28 `Choque_Divino` (5), 7 `Destino` (4), and 22 `Exterminar` (3). These are
   existing skill-data names, not text to translate in this guide.
-- **Items** (`data/itemlist.csv`): a nonexistent index produces a drop the
+- **Items** (`data/catalog/itemlist.csv`): a nonexistent index produces a drop the
   client cannot render. Check the index with:
 
   ```bash
-  awk -F, -v i=697 '$1==i {print $1" = "$2}' data/itemlist.csv
+  awk -F, -v i=697 '$1==i {print $1" = "$2}' data/catalog/itemlist.csv
   ```

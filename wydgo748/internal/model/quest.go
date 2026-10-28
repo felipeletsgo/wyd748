@@ -129,7 +129,7 @@ type QuestDef struct {
 	Dialogue []string `json:"dialogue,omitempty"`
 }
 
-// QuestFile e o conteudo de data/quests.json.
+// QuestFile e o conteudo de data/content/quests.json.
 type QuestFile struct {
 	Version int        `json:"version"`
 	Quests  []QuestDef `json:"quests"`

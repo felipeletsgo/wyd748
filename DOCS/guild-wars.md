@@ -256,7 +256,7 @@ newly established as 7.59 parity by this settlement correction. Castle battle
 calendar, doors and breach actors, event towers, runtime seal capture,
 recovery and native client presentation remain separate work. A staged
 domain implementation is recorded below; see
-[G04](server/server-759-gap-analysis.md#g04--full-noatum-castle-battle-controller-is-absent).
+[G04](<../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md#g04--full-noatum-castle-battle-controller-is-absent>).
 
 Focused automated coverage includes conquest/defense/ties, fame floor,
 overflow and storage rollback, frozen-score retry, completion replay,
@@ -285,7 +285,7 @@ remain. Cleanup was not retried through another mechanism. It was not
 installed, started, or published. No client build or gameplay validation was
 performed.
 The global layout and whitespace gates still fail on unrelated existing
-materials listed in the [gap audit](server/server-759-gap-analysis.md#validation-performed-and-delivery-state);
+materials listed in the [gap audit](<../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md#validation-performed-and-delivery-state>);
 the changed tracked files pass the scoped whitespace check.
 
 ## Server 7.59 full war comparison (2026-10-19)
@@ -464,7 +464,7 @@ Implementation should proceed through these dependencies:
    a single channel. Independent `World` instances sharing a file do not
    implement the reference's ten-channel ownership checks or treasury relay.
 6. Complete Noatum as a separate controller; see
-   [G04](server/server-759-gap-analysis.md#g04--full-noatum-castle-battle-controller-is-absent).
+   [G04](<../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md#g04--full-noatum-castle-battle-controller-is-absent>).
    The recovered seal counter and `+650/-650` fame now have a staged domain
    implementation, but city-owner reconciliation and ordinary tower
    generation do not activate it or provide the missing runtime.
@@ -630,7 +630,7 @@ Validation receipt for this staged domain batch:
   `C:/Users/xereca/Documents/PROJETOS/wyd-go/build/noatum-domain-20261019/go-test.log`
   remain in the sanctioned ignored build directory. Cleanup was not retried
   through another shell or API.
-- Authored text was checked for the English-only repository requirement;
+- Changed engineering prose was checked against the repository language rule;
   `git diff --check` passed. Pre-existing unrelated client configuration and
   crash-dump changes are preserved.
 

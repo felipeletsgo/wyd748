@@ -43,8 +43,14 @@ var postgresAccountHistorySchema string
 //go:embed postgres_account_notes.sql
 var postgresAccountNotesSchema string
 
+//go:embed postgres_npc_definitions.sql
+var postgresNPCDefinitionsSchema string
+
+//go:embed postgres_npc_exact_names.sql
+var postgresNPCExactNamesSchema string
+
 const postgresWriteQueueSize = 2048
-const postgresSchemaVersion = 11
+const postgresSchemaVersion = 14
 const postgresOperationTimeout = 10 * time.Second
 const postgresStartupTimeout = 30 * time.Second
 const postgresAutosaveBatchSize = 64
@@ -346,6 +352,16 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	if currentVersion < 11 {
 		if _, err := conn.Exec(ctx, postgresAccountNotesSchema); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 13 {
+		if _, err := conn.Exec(ctx, postgresNPCDefinitionsSchema); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 14 {
+		if _, err := conn.Exec(ctx, postgresNPCExactNamesSchema); err != nil {
 			return err
 		}
 	}

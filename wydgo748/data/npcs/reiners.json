@@ -70,9 +70,9 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -89,7 +89,7 @@
       "index": 833
     },
     {
-      "index": 0
+      "index": 819
     },
     {
       "index": 878
@@ -170,7 +170,7 @@
       "index": 834
     },
     {
-      "index": 0
+      "index": 848
     },
     {
       "index": 879
@@ -182,7 +182,7 @@
       "index": 804
     },
     {
-      "index": 819
+      "index": 894
     },
     {
       "index": 1704
@@ -248,7 +248,7 @@
       "index": 0
     },
     {
-      "index": 848
+      "index": 0
     },
     {
       "index": 0
@@ -257,16 +257,7 @@
       "index": 893
     },
     {
-      "index": 0
-    },
-    {
       "index": 849
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 894
     }
   ]
 }

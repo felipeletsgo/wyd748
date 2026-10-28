@@ -35,7 +35,7 @@ func (w *World) premiumCatalogView(catalog store.PremiumCatalog) control.Premium
 		Items: make([]control.PremiumCatalogItem, 0, len(catalog.Entries)), UpdatedBy: catalog.UpdatedBy, UpdatedAt: catalog.UpdatedAt}
 	for _, entry := range catalog.Entries {
 		view.Items = append(view.Items, control.PremiumCatalogItem{Slot: entry.Slot, ItemID: entry.Item.Index,
-			Effects: entry.Item.Eff, Price: entry.Price, ItemName: w.itemName(entry.Item.Index)})
+			Effects: entry.Item.Eff, Price: entry.Price, Category: entry.Category, ItemName: w.itemName(entry.Item.Index)})
 	}
 	return view
 }
@@ -75,7 +75,7 @@ func (w *World) SavePremiumCatalog(ctx context.Context, actor string, cmd contro
 			return control.PremiumCatalogResult{Code: "unknown_item"}, nil
 		}
 		entries = append(entries, store.PremiumCatalogEntry{Slot: item.Slot,
-			Item: model.Item{Index: item.ItemID, Eff: item.Effects}, Price: item.Price})
+			Item: model.Item{Index: item.ItemID, Eff: item.Effects}, Price: item.Price, Category: item.Category})
 	}
 	if actor == "" || authorize == nil || !authorize() {
 		return control.PremiumCatalogResult{Code: "capability_required"}, nil

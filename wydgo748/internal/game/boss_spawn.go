@@ -33,7 +33,7 @@ type bossSpawnState struct {
 	respawnAt time.Time
 }
 
-// WithBossCatalog injects the bosses loaded from data/boss/.
+// WithBossCatalog injects the bosses loaded from data/content/boss/.
 func WithBossCatalog(catalog model.BossCatalog) WorldOption {
 	return func(w *World) { w.bossCatalog = catalog }
 }
@@ -87,7 +87,7 @@ func (w *World) spawnConfiguredBosses() error {
 			return err
 		}
 	}
-	log.Printf("bosses: %d encounters loaded from data/boss", len(w.bossSpawns))
+	log.Printf("bosses: %d encounters loaded from data/content/boss", len(w.bossSpawns))
 	return nil
 }
 

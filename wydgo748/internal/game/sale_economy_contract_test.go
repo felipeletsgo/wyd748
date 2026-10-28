@@ -23,7 +23,7 @@ type saleEconomyCase struct {
 
 func saleEconomyCases(t *testing.T) []saleEconomyCase {
 	t.Helper()
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

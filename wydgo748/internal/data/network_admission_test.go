@@ -44,7 +44,7 @@ func TestLoadNetworkAdmissionRejectsUnknownAndTrailingData(t *testing.T) {
 }
 
 func TestRepositoryNetworkAdmissionFileIsValid(t *testing.T) {
-	file, err := LoadNetworkAdmission("../../data/network_admission.json")
+	file, err := LoadNetworkAdmission("../../data/config/network_admission.json")
 	if err != nil {
 		t.Fatal(err)
 	}

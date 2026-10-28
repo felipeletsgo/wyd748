@@ -16,9 +16,10 @@ execution. The standalone Web API cannot use them. The contract is in
 Add these to the staff file (`web_admin_staff`, `/etc/wyd-go/staff.json` on
 the VPS) to grant each operation. Staff must sign in again after a change.
 A staff entry may hold up to 32 capabilities. The tracked local
-(`wydgo748/data/staff.json`) and VPS template
-(`tools/deployment/vps/staff.json`) files grant all five to the maintainer
-account; the installed `/etc/wyd-go/staff.json` changes only with a release.
+(`wydgo748/data/config/staff.json`) and VPS template
+(`tools/deployment/vps/staff.json`) grant `content.npc.shop` to their
+maintainer accounts. Add it only to other authorized accounts. The installed
+`/etc/wyd-go/staff.json` remains separately managed.
 
 | Capability | Grants |
 | --- | --- |
@@ -27,6 +28,7 @@ account; the installed `/etc/wyd-go/staff.json` changes only with a release.
 | `server.notice` | Broadcast/schedule notices; message one player |
 | `server.shutdown` | Schedule and cancel maintenance shutdown or restart |
 | `staff.audit.read` | Read the persisted audit history |
+| `content.npc.shop` | Edit active NPC JSON definitions per channel; see [NPC definition management](../protocol/npc-definitions.md) |
 
 ## Sanctions (ban and mute)
 

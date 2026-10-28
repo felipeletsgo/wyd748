@@ -496,7 +496,7 @@ func TestMovementReconcilesCurvedVisualLeadWithoutLineOfSight(t *testing.T) {
 
 func TestMovementAcceptsCapturedNoatumReplanOnAuthoritativeTerrain(t *testing.T) {
 	w, p, _ := handlerTestWorld(t)
-	terrain, err := data.LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := data.LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}

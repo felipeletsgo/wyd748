@@ -45,7 +45,12 @@ func kingdomForNPC(def *model.NPCDef) byte {
 	if def == nil {
 		return model.KingdomNeutral
 	}
-	switch strings.ToLower(generName(def.Name)) {
+	// Decorative king variants share names with kingdom services. A configured
+	// selector must identify the service before its name can grant progression.
+	if def.Score != nil && def.Score.Merchant != 15 {
+		return model.KingdomNeutral
+	}
+	switch strings.ToLower(generName(def.InteractionName())) {
 	case "king harabard":
 		return model.KingdomHekalotia
 	case "king glantuar":
@@ -56,7 +61,7 @@ func kingdomForNPC(def *model.NPCDef) byte {
 }
 
 func isKingdomBroker(def *model.NPCDef) bool {
-	return def != nil && strings.EqualFold(generName(def.Name), "Kingdom Brocker")
+	return def != nil && strings.EqualFold(generName(def.InteractionName()), "Kingdom Brocker")
 }
 
 func kingdomJoinCost(kingdom byte) uint32 {

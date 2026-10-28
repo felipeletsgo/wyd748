@@ -333,7 +333,7 @@ func (w *World) towerTargetAllowed(p *Player, m *Mob) bool {
 		return false
 	}
 	g, _ := w.guildOf(p.Char)
-	return g != nil && (g.Kingdom == 7 || g.Kingdom == 8) && g.Kingdom != w.guilds.TowerKingdom()
+	return w.channelWarEligible(p) && g != nil && (g.Kingdom == 7 || g.Kingdom == 8) && g.Kingdom != w.guilds.TowerKingdom()
 }
 
 func (w *World) captureWarTower(p *Player, m *Mob, applied uint32) {
@@ -499,7 +499,7 @@ func (w *World) summonCityFighters() {
 	w.cityFighters = make(map[*Player]cityFighter)
 	players := make([]*Player, 0, len(w.players))
 	for _, p := range w.players {
-		if validPlayerMobParticipant(p) && p.GhostShop == nil && w.gameplaySpaceForPlayer(p) == "" {
+		if validPlayerMobParticipant(p) && w.channelWarEligible(p) && p.GhostShop == nil && w.gameplaySpaceForPlayer(p) == "" {
 			players = append(players, p)
 		}
 	}
@@ -551,7 +551,7 @@ func (w *World) cityFighterValid(p *Player, f cityFighter) bool {
 		return false
 	}
 	g, _ := w.guildOf(p.Char)
-	return g != nil && g.ID == f.guild && w.gameplaySpaceForPlayer(p) == ""
+	return w.channelWarEligible(p) && g != nil && g.ID == f.guild && w.gameplaySpaceForPlayer(p) == ""
 }
 
 func (w *World) finishCityWar() error {
@@ -654,7 +654,7 @@ func (w *World) guildWarPvP(a, b *Player) (allowed, handled bool) {
 	if towerWarArena.contains(a.X, a.Y) || towerWarArena.contains(b.X, b.Y) {
 		ga, _ := w.guildOf(a.Char)
 		gb, _ := w.guildOf(b.Char)
-		return w.towerBattleActive(w.now()) && towerWarArena.contains(a.X, a.Y) && towerWarArena.contains(b.X, b.Y) &&
+		return w.channelWarEligible(a) && w.channelWarEligible(b) && w.towerBattleActive(w.now()) && towerWarArena.contains(a.X, a.Y) && towerWarArena.contains(b.X, b.Y) &&
 			ga != nil && gb != nil && (ga.Kingdom == 7 || ga.Kingdom == 8) && (gb.Kingdom == 7 || gb.Kingdom == 8) && ga.Kingdom != gb.Kingdom, true
 	}
 	return false, false
@@ -677,7 +677,7 @@ func (w *World) registerCityWar(p *Player, city int, bid uint32, publications ..
 	if g.Kingdom != 7 && g.Kingdom != 8 {
 		return fmt.Errorf("city wars require a guild of kingdom 7 or 8")
 	}
-	if p.Char.Citizenship != w.channel || !cityWarZones[city].city.contains(p.X, p.Y) || w.gameplaySpaceForPlayer(p) != "" {
+	if !w.channelWarEligible(p) || p.Char.Citizenship != w.channel || !cityWarZones[city].city.contains(p.X, p.Y) || w.gameplaySpaceForPlayer(p) != "" {
 		return fmt.Errorf("leader must be a citizen of this channel and inside the challenged city")
 	}
 	publish := func() {
@@ -725,7 +725,7 @@ func (w *World) guildWarCommand(p *Player, command, arg string) {
 		send(fmt.Sprintf("Guild %s: %d fame.", g.Name, g.Fame))
 	case "tower":
 		g, _ := w.guildOf(p.Char)
-		if g == nil || (g.Kingdom != 7 && g.Kingdom != 8) || !validPlayerMobParticipant(p) || !w.towerBattleActive(w.now()) || w.gameplaySpaceForPlayer(p) != "" || !cityWarZones[2].city.contains(p.X, p.Y) {
+		if !w.channelWarEligible(p) || g == nil || (g.Kingdom != 7 && g.Kingdom != 8) || !validPlayerMobParticipant(p) || !w.towerBattleActive(w.now()) || w.gameplaySpaceForPlayer(p) != "" || !cityWarZones[2].city.contains(p.X, p.Y) {
 			send("Tower entry requires a kingdom guild, a living character in Erion and an active tower war.")
 			return
 		}
@@ -766,6 +766,7 @@ func (w *World) guildWarStepAllowed(p *Player, x, y uint16) bool {
 	if !w.warConfig.Enabled || w.guilds == nil || w.gameplaySpaceForPlayer(p) != "" {
 		return true
 	}
+	if towerWarArena.contains(x, y) && !w.channelWarEligible(p) { return false }
 	for i, z := range cityWarZones {
 		if !z.arena.contains(x, y) {
 			continue
@@ -789,6 +790,13 @@ func (w *World) guildWarStepAllowed(p *Player, x, y uint16) bool {
 // Guild dissolution must not leave a territory/entry pointing to an ID that
 // may later be reused. Called inside the existing guild persistence boundary.
 func (w *World) pruneGuildWarReferences() {
+	if w.guilds != nil {
+		for channel, state := range w.guilds.ChannelWars {
+			local := &World{guilds: &model.GuildRegistry{Guilds: w.guilds.Guilds, Wars: state}}
+			local.pruneGuildWarReferences()
+			w.guilds.ChannelWars[channel] = local.guilds.Wars
+		}
+	}
 	if w.guilds.FindByID(w.guilds.Wars.Tower.Owner) == nil {
 		w.guilds.Wars.Tower.Owner = 0
 	}

@@ -107,14 +107,18 @@ func TestChatHandlersRouteCitizenshipAndChannelChat(t *testing.T) {
 		t.Fatal("channel chat did not reach every character on the channel")
 	}
 
-	// A sender without citizenship is told why '@@' was not delivered.
+	// Neutral citizenship is an independent audience. The client echoes the
+	// sender locally, so the server must deliver only to the other recipients.
 	sender.Char.Citizenship = 0
+	outsider.Char.Citizenship = 0
 	beforeSender := sender.Session.QueuedPacketsForTest()
 	beforeCitizen = citizen.Session.QueuedPacketsForTest()
-	w.onMessageWhisper(sender.Session, whisperPacket("", "@@nobody"))
-	if sender.Session.QueuedPacketsForTest() != beforeSender+1 ||
+	beforeOutsider = outsider.Session.QueuedPacketsForTest()
+	w.onMessageWhisper(sender.Session, whisperPacket("", "@@neutral"))
+	if sender.Session.QueuedPacketsForTest() != beforeSender ||
+		outsider.Session.QueuedPacketsForTest() != beforeOutsider+1 ||
 		citizen.Session.QueuedPacketsForTest() != beforeCitizen {
-		t.Fatal("citizenship chat without citizenship was not reported to the sender")
+		t.Fatal("neutral citizenship chat did not stay within its audience")
 	}
 }
 
@@ -177,7 +181,7 @@ func TestWhisperDayRequestReturnsHiddenCalendarSync(t *testing.T) {
 	}
 }
 
-func TestServerSwitchRequestReportsUnavailableWithoutMigration(t *testing.T) {
+func TestServerSwitchRejectsUnavailableDestinationWithoutMigration(t *testing.T) {
 	sender, _ := networkedTestPlayer(1, "Sender", 2100, 2100)
 	w := worldWithNetworkedPlayers(sender)
 	oldX, oldY := sender.X, sender.Y
@@ -189,8 +193,8 @@ func TestServerSwitchRequestReportsUnavailableWithoutMigration(t *testing.T) {
 		}
 		pkt, ok := sender.Session.DequeuePacketForTest()
 		if !ok || !wire.Decrypt(pkt) || wire.ParseHeader(pkt).Type != wire.OpMessagePanel ||
-			!bytes.Contains(pkt[12:107], []byte("Channel switching is unavailable")) {
-			t.Fatalf("srv request %q did not return an unavailable notice", channel)
+			!bytes.Contains(pkt[12:107], []byte("Use srv 1 or srv 2")) {
+			t.Fatalf("srv request %q did not return a destination rejection", channel)
 		}
 		if sender.X != oldX || sender.Y != oldY || !sender.InWorld || w.players[sender.Session] != sender {
 			t.Fatalf("srv request %q changed state without migration", channel)

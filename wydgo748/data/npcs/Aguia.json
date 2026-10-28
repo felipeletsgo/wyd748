@@ -52,7 +52,7 @@
     }
   },
   "classInfo": 1,
-  "expReward": 4000,
+  "expReward": 50,
   "score": {
     "version": 2,
     "level": 2,
@@ -68,10 +68,6 @@
     "dex": 30,
     "con": 300,
     "critical": 255,
-    "resistFire": 255,
-    "resistIce": 255,
-    "resistHoly": 255,
-    "resistThunder": 255,
     "saveMana": 255,
     "mastery": [
       255,
@@ -83,7 +79,13 @@
   },
   "carry": [
     {
-      "index": 0
+      "index": 400
+    },
+    {
+      "index": 405
+    },
+    {
+      "index": 4038
     },
     {
       "index": 0
@@ -248,33 +250,13 @@
       "index": 0
     },
     {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
+      "index": 4021
     },
     {
       "index": 419
-    },
-    {
-      "index": 420
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 3178
     }
   ],
+  "gold": 500,
   "direction": 16,
   "skillBar": [
     255,

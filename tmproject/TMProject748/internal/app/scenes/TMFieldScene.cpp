@@ -595,6 +595,7 @@ TMFieldScene::TMFieldScene()
 
 TMFieldScene::~TMFieldScene()
 {
+	m_premiumNell.Close();
 	if (m_pMiniMapPanel && RenderDevice::m_pTextureRotationControl == m_pMiniMapPanel->GetGeomControl())
 		RenderDevice::m_pTextureRotationControl = nullptr;
 	g_nTempArray[1] = 0;
@@ -2805,7 +2806,7 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 		}
 		break;
-		case chat_submit::Command::GuildExpel:
+		case chat_submit::Command::CitizenshipLeave:
 		case chat_submit::Command::GuildWar:
 		case chat_submit::Command::ItemLock:
 		case chat_submit::Command::ItemUnlock:
@@ -4116,6 +4117,8 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 		break;
 	case instance_question::Opcode:
 		return OnPacketInstanceQuestion(pStd);
+	case premium_shop::ResultOpcode:
+		return OnPacketPremiumBuyResult(pStd);
 	case premium_shop::StateOpcode:
 		return OnPacketPremiumShopState(pStd);
 	case 0x1C2:
@@ -4161,6 +4164,7 @@ int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)
 
 int TMFieldScene::FrameMove(unsigned int dwServerTime)
 {
+	TickPremiumNell();
 	if (g_pObjectManager && g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 		m_bRespawnPromptOffered = false;
 	auto recallDeadPlayer = [&](unsigned int now)

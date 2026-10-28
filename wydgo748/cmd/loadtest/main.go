@@ -37,8 +37,8 @@ func main() {
 	skill := flag.Int("skill", -1, "local skill index; -1 = physical attack")
 	movePercent := flag.Int("move-percent", 50,
 		"percentage of cycles attempting movement; attacks are still sent")
-	heightMap := flag.String("heightmap", "data/maps/HeightMap.dat", "height map used to choose valid steps")
-	attributeMap := flag.String("attributemap", "data/maps/AttributeMap.dat", "attribute map used to choose valid steps")
+	heightMap := flag.String("heightmap", "data/world/maps/HeightMap.dat", "height map used to choose valid steps")
+	attributeMap := flag.String("attributemap", "data/world/maps/AttributeMap.dat", "attribute map used to choose valid steps")
 	provision := flag.Bool("provision", false, "create accounts in the test database")
 	reset := flag.Bool("reset", false, "delete only bot0001..bot0990 before provisioning")
 	provisionOnly := flag.Bool("provision-only", false, "provision without opening sessions")

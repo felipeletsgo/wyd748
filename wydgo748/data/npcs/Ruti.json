@@ -3,10 +3,10 @@
   "tipo": "npc",
   "equip": {
     "rosto": {
-      "index": 68
+      "index": 51
     },
     "elmo": {
-      "index": 68
+      "index": 139
     },
     "armadura": {
       "index": 140
@@ -55,7 +55,7 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 1,
     "attack": 500,
     "magicAttack": 0,
     "defense": 500,
@@ -70,9 +70,9 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -86,13 +86,10 @@
   ],
   "vende": [
     {
-      "index": 412
-    },
-    {
-      "index": 685,
+      "index": 3322,
       "eff": [
         61,
-        100,
+        120,
         0,
         0,
         0,
@@ -100,114 +97,21 @@
       ]
     },
     {
-      "index": 691,
+      "index": 3323,
       "eff": [
         61,
-        100,
+        120,
         0,
         0,
         0,
         0
       ]
-    },
-    {
-      "index": 415
-    },
-    {
-      "index": 410
-    },
-    {
-      "index": 411
-    },
-    {
-      "index": 697
-    },
-    {
-      "index": 787
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 575
-    },
-    {
-      "index": 576
-    },
-    {
-      "index": 577
-    },
-    {
-      "index": 448
-    },
-    {
-      "index": 449
-    },
-    {
-      "index": 450
     },
     {
       "index": 700
     },
     {
-      "index": 699
-    },
-    {
-      "index": 776
+      "index": 4146
     },
     {
       "index": 0
@@ -264,48 +168,25 @@
       "index": 0
     },
     {
-      "index": 2251,
-      "eff": [
-        43,
-        3,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
     },
     {
-      "index": 2252,
-      "eff": [
-        43,
-        3,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
     },
     {
-      "index": 2253,
-      "eff": [
-        43,
-        3,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
     },
     {
-      "index": 2254,
-      "eff": [
-        43,
-        3,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 411
     }
   ]
 }

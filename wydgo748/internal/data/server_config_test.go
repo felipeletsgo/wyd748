@@ -16,6 +16,16 @@ func writeServerConfig(t *testing.T, contents string) string {
 	return path
 }
 
+func TestChannelsShareOneGeneratorConfiguration(t *testing.T) {
+	cfg, err := LoadServerConfig(writeServerConfig(t, "channel2_enabled=true\nnpcgener=data/spawns/NPCGener.txt\n"))
+	if err != nil || !cfg.Channel2Enabled || cfg.GeneratorPath != "data/spawns/NPCGener.txt" {
+		t.Fatalf("shared generator configuration: %+v %v", cfg, err)
+	}
+	if _, err := LoadServerConfig(writeServerConfig(t, "npcgener2=data/other.txt\n")); err == nil {
+		t.Fatal("obsolete per-channel generator override accepted")
+	}
+}
+
 func TestGuildWarServerConfiguration(t *testing.T) {
 	c, err := LoadServerConfig(writeServerConfig(t, "guild_wars_enabled=false\nguild_wars_timezone=UTC\ntower_war_hour=18\ncity_war_hour=19\n"))
 	if err != nil {
@@ -35,9 +45,9 @@ func TestLoadServerConfigOverridesDefaults(t *testing.T) {
 	path := writeServerConfig(t, `
 # comentario
 listen_address = 127.0.0.1:9000
-accounts = "/srv/wyd/accounts"
-heightmap = data/maps/HeightMap.dat
-attributemap = data/maps/AttributeMap.dat
+quests = "/srv/wyd/quests.json"
+heightmap = data/world/maps/HeightMap.dat
+attributemap = data/world/maps/AttributeMap.dat
 npcgener_log = verbose
 gameplay_log = quiet
 teleports = custom/teleports.ini
@@ -50,11 +60,11 @@ party_exp_bonus = 3
 		t.Fatal(err)
 	}
 	if cfg.ListenAddress != "127.0.0.1:9000" ||
-		cfg.AccountsPath != "/srv/wyd/accounts" ||
+		cfg.QuestsPath != "/srv/wyd/quests.json" ||
 		cfg.NPCPath != "data/npcs" ||
-		cfg.InstancesPath != "data/instances.json" ||
+		cfg.InstancesPath != "data/content/instances.json" ||
 		cfg.NPCGenerLog != "verbose" || cfg.GameplayLog != "quiet" || cfg.TeleportPath != "custom/teleports.ini" ||
-		cfg.HeightMapPath != "data/maps/HeightMap.dat" ||
+		cfg.HeightMapPath != "data/world/maps/HeightMap.dat" ||
 		cfg.Gameplay.EXPMinimum != 10_000 || cfg.Gameplay.EXPRatePercent != 250 ||
 		cfg.Gameplay.PartyEXPBonusPercent != 3 {
 		t.Fatalf("configuracao incorreta: %+v", cfg)
@@ -63,7 +73,7 @@ party_exp_bonus = 3
 
 func TestLoadServerConfigWebAdmin(t *testing.T) {
 	defaults := DefaultServerConfig()
-	if defaults.WebAdminEnabled || defaults.WebAdminAddress != "127.0.0.1:8082" || defaults.WebAdminStaffPath != "data/staff.json" || defaults.WebAdminStaticPath != "web/portal/dist" {
+	if defaults.WebAdminEnabled || defaults.WebAdminAddress != "127.0.0.1:8082" || defaults.WebAdminStaffPath != "data/config/staff.json" || defaults.WebAdminStaticPath != "web/portal/dist" {
 		t.Fatal("unsafe or unexpected web admin defaults")
 	}
 	cfg, err := LoadServerConfig(writeServerConfig(t, "web_admin_enabled=true\nweb_admin_address=[::1]:9002\nweb_admin_staff=custom/staff.json\nweb_admin_static=custom/dist\n"))
@@ -272,16 +282,16 @@ func TestDebugAddressDefaultsToDisabled(t *testing.T) {
 
 func TestDefaultServerConfigUsesPackagedMapsAndNoInlineDatabaseURL(t *testing.T) {
 	cfg := DefaultServerConfig()
-	if cfg.HeightMapPath != "data/maps/HeightMap.dat" {
+	if cfg.HeightMapPath != "data/world/maps/HeightMap.dat" {
 		t.Fatalf("HeightMap padrao=%q", cfg.HeightMapPath)
 	}
-	if cfg.AttributeMapPath != "data/maps/AttributeMap.dat" {
+	if cfg.AttributeMapPath != "data/world/maps/AttributeMap.dat" {
 		t.Fatalf("AttributeMap padrao=%q", cfg.AttributeMapPath)
 	}
 	if cfg.DatabaseURL != "" || cfg.DatabaseURLEnv != "WYD_DATABASE_URL" {
 		t.Fatalf("PostgreSQL padrao deve usar somente ambiente: url=%q env=%q", cfg.DatabaseURL, cfg.DatabaseURLEnv)
 	}
-	if cfg.NetworkAdmissionPath != "data/network_admission.json" {
+	if cfg.NetworkAdmissionPath != "data/config/network_admission.json" {
 		t.Fatalf("politica de rede padrao=%q", cfg.NetworkAdmissionPath)
 	}
 	if cfg.WorldCommandQueueCapacity != 1024 || cfg.AuthHashConcurrency != 4 {
@@ -306,6 +316,19 @@ func TestLoadServerConfigParsesAndValidatesAuthenticatedClientLimit(t *testing.T
 		contents := "max_connections_per_ip=64\nmax_authenticated_clients_per_ip=" + value + "\n"
 		if _, err := LoadServerConfig(writeServerConfig(t, contents)); err == nil {
 			t.Fatalf("limite invalido %s foi aceito", value)
+		}
+	}
+}
+
+func TestLoadServerConfigRejectsRetiredJSONPersistence(t *testing.T) {
+	for _, content := range []string{
+		"database_driver=json\n",
+		"accounts=data/accounts\n",
+		"charstate=data/charstate\n",
+		"guilds=data/guilds.json\n",
+	} {
+		if _, err := LoadServerConfig(writeServerConfig(t, content)); err == nil {
+			t.Errorf("retired JSON persistence setting accepted: %q", content)
 		}
 	}
 }

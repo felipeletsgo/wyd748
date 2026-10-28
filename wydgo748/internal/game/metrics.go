@@ -2,6 +2,7 @@ package game
 
 import (
 	"expvar"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -21,6 +22,9 @@ import (
 // set. NEVER index by session, player or mob.
 
 var (
+	metricNPCDefinitionPollFailures     = expvar.NewInt("npc_definition_poll_failures_total")
+	metricNPCDefinitionQueueDrops       = expvar.NewInt("npc_definition_queue_drops_total")
+	metricNPCDefinitionApplyDelayMicros = expvar.NewMap("npc_definition_apply_delay_micros")
 	// metricLoopLagMicros is the delay of the last tick: how much the real
 	// interval exceeded the nominal 500 ms. It grows when the loop is congested
 	// -- the most direct sign that the server is not keeping up.
@@ -65,6 +69,20 @@ var (
 	// partial state.
 	metricPanicsTotal = expvar.NewInt("world_panics_total")
 )
+
+// Observe committed revisions only; channel labels are bounded to uint8.
+func observeNPCDefinitionApply(channel uint8, updatedAt, now time.Time) {
+	if updatedAt.IsZero() {
+		return
+	}
+	delay := now.Sub(updatedAt)
+	if delay < 0 {
+		delay = 0
+	}
+	value := new(expvar.Int)
+	value.Set(delay.Microseconds())
+	metricNPCDefinitionApplyDelayMicros.Set(strconv.Itoa(int(channel)), value)
+}
 
 // lastTickAt keeps the time of the previous tick to compute the lag. It is
 // atomic because expvar publishes functions that another goroutine (the HTTP

@@ -26,6 +26,7 @@ void NewApp::OnCreate(HWND hWnd, DWORD wParam, int lParam)
 
 HRESULT NewApp::MsgProc(HWND hWnd, DWORD uMsg, DWORD wParam, int lParam)
 {
+	if (premium_nell::Window::HandleOwnerMessage(hWnd, uMsg, wParam)) return 1;
 	switch (uMsg)
 	{
 	case WM_SETCURSOR:

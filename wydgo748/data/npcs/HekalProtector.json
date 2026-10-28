@@ -1,0 +1,120 @@
+{
+  "name": "HekalProtector",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 472
+    },
+    "elmo": {
+      "index": 1225
+    },
+    "armadura": {
+      "index": 1226
+    },
+    "calca": {
+      "index": 1227
+    },
+    "luva": {
+      "index": 1228
+    },
+    "bota": {
+      "index": 1229
+    },
+    "arma": {
+      "index": 728
+    },
+    "escudo": {
+      "index": 728
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        20,
+        71,
+        70,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 1936,
+      "eff": [
+        43,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 2366,
+      "eff": [
+        10,
+        1,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "capa": {
+      "index": 3197,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "classInfo": 1,
+  "expReward": 5500,
+  "score": {
+    "version": 2,
+    "level": 399,
+    "attack": 7500,
+    "magicAttack": 0,
+    "defense": 1,
+    "maxHP": 20000,
+    "maxMP": 0,
+    "curHP": 20000,
+    "curMP": 0,
+    "str": 12,
+    "int": 2000,
+    "dex": 100,
+    "con": 1000,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 4
+  },
+  "gold": 500,
+  "learnedSkill": 80100,
+  "skillBar": [
+    255,
+    255,
+    26,
+    255
+  ]
+}

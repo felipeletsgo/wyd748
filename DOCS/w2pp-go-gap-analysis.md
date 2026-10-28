@@ -16,6 +16,11 @@ experimento, código posterior ou comportamento incompatível com o alvo 7.48.
 Esta é uma auditoria **estática**. Ela não declara `CLIENT_TESTED` e não implica
 que cada fluxo listado foi exercitado em runtime.
 
+Os comandos e caminhos de candidatos preservados nas seções de validação são
+registros históricos. Não os copie para novos builds. Use [build and
+integration](build-and-integration.md), que envia executáveis Go para
+`build/<task>/` na raiz.
+
 ### Estados usados
 
 | Estado | Significado |

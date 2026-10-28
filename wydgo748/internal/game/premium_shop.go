@@ -13,7 +13,7 @@ import (
 	"wydgo/internal/wire"
 )
 
-// Premium shop and donate balance, EXTENSAO_COORDENADA v1
+// Premium shop and donate balance, EXTENSAO_COORDENADA v1/v3/v4
 // (DOCS/protocol/premium-shop.md).
 
 const (
@@ -89,22 +89,42 @@ func (w *World) openPremiumShop(s *net.Session, p *Player, m *Mob) {
 	// An empty catalog still opens the (empty) window and shows the balance.
 	var items [wire.PremiumShopSlots]model.Item
 	var prices [wire.PremiumShopSlots]uint32
+	var categories [wire.PremiumShopSlots]uint8
 	for _, entry := range w.premiumCatalog.Entries {
 		items[entry.Slot] = model.Item{Index: entry.Item.Index, Eff: entry.Item.Eff}
 		prices[entry.Slot] = entry.Price
+		categories[entry.Slot] = entry.Category
 	}
 	p.PremiumNPC, p.PremiumVersion = m.ID, w.premiumCatalog.Version
 	s.Send(wire.ShopList(items[:], 0, wire.ShopPremium))
-	s.Send(wire.PremiumShopState(p.ID, wire.PremiumStateOpen, w.premiumCatalog.Version, p.Account.Donate, prices))
+	s.Send(wire.PremiumCategorizedShopState(p.ID, w.premiumCatalog.Version, p.Account.Donate, prices, categories))
 	log.Printf("[#%d] premium shop opened: %q catalog v%d balance=%d", s.ID, m.Def.Name, w.premiumCatalog.Version, p.Account.Donate)
 }
 
-// onPremiumBuy: 0x7F21. Every rejection answers with a message and changes
-// nothing; success commits item, balance and ledger in one transaction.
+// The high-water mark survives shop reopenings for this player connection.
+// Lower IDs never execute; an equal ID can only replay its original result.
+type premiumPurchaseReceipt struct {
+	request wire.PremiumBuyRequest
+	code    uint16
+	settled bool
+}
+
+func completePremiumPurchase(p *Player, req wire.PremiumBuyRequest, code uint16) {
+	if req.Version != wire.PremiumWebVersion {
+		return
+	}
+	p.premiumReceipt.code, p.premiumReceipt.settled = code, true
+	if !p.Session.IsClosed() {
+		p.Session.Send(wire.PremiumBuyResult(p.ID, code, p.Account.Donate, req.RequestID))
+	}
+}
+
+// onPremiumBuy: 0x7F21. Valid requests receive a v1 message or v3 completion;
+// success commits item, balance and ledger in one transaction.
 func (w *World) onPremiumBuy(s *net.Session, pkt []byte) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || w.shuttingDown ||
-		p.PersistencePoisoned || s.IsClosed() || playerCurHP(p.Char) == 0 {
+		p.PersistencePoisoned || s.IsClosed() {
 		return
 	}
 	req, err := wire.ParsePremiumBuy(pkt)
@@ -112,50 +132,80 @@ func (w *World) onPremiumBuy(s *net.Session, pkt []byte) {
 		w.recordSecurityViolation(s, wire.OpPremiumBuy, "malformed premium purchase")
 		return
 	}
+	if req.Version == wire.PremiumWebVersion {
+		previous := p.premiumReceipt
+		if req.RequestID <= previous.request.RequestID {
+			if req == previous.request {
+				if previous.settled {
+					s.Send(wire.PremiumBuyResult(p.ID, previous.code, p.Account.Donate, req.RequestID))
+				}
+			} else {
+				// Do not overwrite a newer receipt with a stale or conflicting request.
+				s.Send(wire.PremiumBuyResult(p.ID, wire.PremiumResultFailed, p.Account.Donate, req.RequestID))
+			}
+			return
+		}
+		if previous.request.RequestID != 0 && !previous.settled {
+			s.Send(wire.PremiumBuyResult(p.ID, wire.PremiumResultBusy, p.Account.Donate, req.RequestID))
+			return
+		}
+		p.premiumReceipt = premiumPurchaseReceipt{request: req}
+	}
+	reject := func(code uint16, message string) {
+		if req.Version == wire.PremiumWebVersion {
+			completePremiumPurchase(p, req, code)
+		} else {
+			s.Send(wire.MessagePanel(message))
+		}
+	}
+	if playerCurHP(p.Char) == 0 {
+		reject(wire.PremiumResultExpired, "The merchant is no longer available.")
+		return
+	}
 	if _, ok := w.premiumBackend(); !ok {
-		s.Send(wire.MessagePanel(premiumUnavailable))
+		reject(wire.PremiumResultUnavailable, premiumUnavailable)
 		return
 	}
 	if w.criticalPlayerReserved(p) || w.criticalTradeReserved(p) {
-		s.Send(wire.MessagePanel("Please wait for your last action to finish."))
+		reject(wire.PremiumResultBusy, "Please wait for your last action to finish.")
 		return
 	}
 	if p.PremiumNPC == 0 || req.NPC != p.PremiumNPC {
-		s.Send(wire.MessagePanel("Open the premium shop before buying."))
+		reject(wire.PremiumResultExpired, "Open the premium shop before buying.")
 		return
 	}
 	m, interactionErr := w.resolveNPCInteraction(p, p.PremiumNPC)
 	if interactionErr != nil || !isPremiumMerchant(m.Def) {
 		p.PremiumNPC, p.PremiumVersion = 0, 0
-		s.Send(wire.MessagePanel("The merchant is no longer available."))
+		reject(wire.PremiumResultExpired, "The merchant is no longer available.")
 		return
 	}
 	entry, found := w.premiumEntry(int(req.ShopSlot))
 	if !found || req.CatalogVersion != w.premiumCatalog.Version || p.PremiumVersion != w.premiumCatalog.Version ||
 		req.Price != entry.Price {
-		s.Send(wire.MessagePanel(premiumShopChanged))
+		reject(wire.PremiumResultCatalogChanged, premiumShopChanged)
 		return
 	}
 	if p.Account.Donate < entry.Price {
-		s.Send(wire.MessagePanel(premiumNotEnough))
+		reject(wire.PremiumResultInsufficient, premiumNotEnough)
 		return
 	}
 	if _, exists := w.items[entry.Item.Index]; !exists {
-		s.Send(wire.MessagePanel("That item is unavailable on this server."))
+		reject(wire.PremiumResultItemUnavailable, "That item is unavailable on this server.")
 		return
 	}
 	w.cancelTrade(p, "premium purchase")
-	if err := w.queuePremiumPurchase(p, entry, req.NPC, req.ShopSlot); err != nil {
+	if err := w.queuePremiumPurchase(p, entry, req); err != nil {
 		if errors.Is(err, errShopInventoryFull) {
-			s.Send(wire.MessagePanel("Your inventory is full."))
+			reject(wire.PremiumResultInventoryFull, "Your inventory is full.")
 			return
 		}
 		log.Printf("[#%d] premium purchase not submitted slot=%d: %v", s.ID, req.ShopSlot, err)
-		s.Send(wire.MessagePanel(premiumPurchaseError))
+		reject(wire.PremiumResultFailed, premiumPurchaseError)
 	}
 }
 
-func (w *World) queuePremiumPurchase(p *Player, entry store.PremiumCatalogEntry, npc, shopSlot uint16) error {
+func (w *World) queuePremiumPurchase(p *Player, entry store.PremiumCatalogEntry, req wire.PremiumBuyRequest) error {
 	proposed, err := criticalShopProposal(p)
 	if err != nil {
 		return err
@@ -179,14 +229,22 @@ func (w *World) queuePremiumPurchase(p *Player, entry store.PremiumCatalogEntry,
 	}, []*Player{p}, false, func(criticalPersistenceResult) error {
 		p.Char.Inv[dst], p.Account.Donate = bought, balance
 		if !p.Session.IsClosed() {
-			p.Session.Send(wire.BuyItem(p.ID, npc, shopSlot, uint16(dst), p.Char.Gold))
+			if req.Version == wire.PremiumWebVersion {
+				// The browser does not infer the delivered item from a UI grid.
+				p.Session.Send(wire.SendItem(p.ID, placeInv, byte(dst), bought))
+			} else {
+				p.Session.Send(wire.BuyItem(p.ID, req.NPC, req.ShopSlot, uint16(dst), p.Char.Gold))
+			}
 			p.Session.Send(wire.PremiumBalance(p.ID, balance))
 		}
+		completePremiumPurchase(p, req, wire.PremiumResultSuccess)
 		log.Printf("[#%d] premium purchase item=%d price=%d -> inv[%d] balance=%d",
 			p.Session.ID, bought.Index, entry.Price, dst, balance)
 		return nil
 	}, nil, func(criticalPersistenceResult) error {
-		if !p.Session.IsClosed() {
+		if req.Version == wire.PremiumWebVersion {
+			completePremiumPurchase(p, req, wire.PremiumResultFailed)
+		} else if !p.Session.IsClosed() {
 			p.Session.Send(wire.MessagePanel(premiumPurchaseError))
 		}
 		return nil
@@ -294,7 +352,9 @@ func (w *World) tickPremium(now time.Time) {
 }
 
 func (w *World) handlePremiumEvent(event *premiumEvent) {
-	w.premiumPolling.Store(false)
+	if event.catalog != nil || event.credits != nil || event.pollFailed {
+		w.premiumPolling.Store(false)
+	}
 	if event.catalog != nil && event.catalog.Version != w.premiumCatalog.Version {
 		w.installPremiumCatalog(*event.catalog)
 	}

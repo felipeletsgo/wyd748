@@ -155,6 +155,13 @@ int RunClientLanguageAssetTests(int& checks)
             std::vector<char> messages(2000 * 128);
             check(WYD748_LoadMessageStrings((languageRoot / "UI/strdef.bin").string().c_str(),
                 messages.data(), 2000, 128), "shipped messages pass the checksum and table adapter");
+            for (int index = 440; index <= 444; ++index)
+                check(messages[index * 128] != '\0', "Mystic Land guidance is available in each locale");
+            check(std::string(messages.data() + 441 * 128).find("Exploit_Leader") != std::string::npos,
+                "Mystic Land guidance retains the reward NPC identity");
+            check(std::string(messages.data() + 444 * 128).find(
+                std::strcmp(language, "EN") == 0 ? "two random bonuses" : "dois adicionais") != std::string::npos,
+                "Mystic Land reward guidance follows the selected language");
             std::vector<char> labels(500 * 64);
             check(WYD748_LoadUIStrings((languageRoot / "UI/UIString.txt").string().c_str(),
                 labels.data(), 500, 64), "shipped indexed labels fit the actual UI buffers");

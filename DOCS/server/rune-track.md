@@ -4,7 +4,7 @@
 
 The authoritative Go server implements the seven-room event from the supplied
 7.59 server decompilation and companion runtime data. The active configuration
-is `wydgo748/data/instances.json`, Uxmal version `759`. The older version-zero
+is `wydgo748/data/content/instances.json`, Uxmal version `759`. The older version-zero
 path remains available for existing configuration fixtures.
 
 Classification: `MODERNIZACAO_COMPATIVEL`. Historical 7.59 gameplay is the
@@ -108,9 +108,32 @@ existing character gold cap. A completed party cannot receive a second award.
 
 ## Independent event population
 
-`wydgo748/data/RuneTrack759.txt` contains all 327 historical generator blocks,
-with their labels, routes, timing, group limits and coordinates preserved.
+Seven files under `wydgo748/data/spawns/instances/` contain the 327 historical
+generator blocks. Labels, templates, routes, timing, limits and coordinates stay unchanged.
+The `uxmal.roomGenerators` array selects one file per entry refinement:
+
+| Entry refinement | Encounter | File | Generator groups |
+| --- | --- | --- | --- |
+| +0 | Lich | `RuneTrack0.txt` | 53 |
+| +1 | Tower Defense | `RuneTrack1.txt` | 60 |
+| +2 | Amon | `RuneTrack2.txt` | 60 |
+| +3 | Sulrang | `RuneTrack3.txt` | 28 |
+| +4 | Labyrinth | `RuneTrack4.txt` | 50 |
+| +5 | Balrog | `RuneTrack5.txt` | 49 |
+| +6 | Golden Rabbits and trial guardians | `RuneTrack6.txt` | 27 |
+
+The active combined file was removed. The loader rejects missing, repeated,
+misplaced or incomplete room populations before runtime admission. The extraction
+tool also writes the seven files. Ticket IDs, refinements and durations are unchanged.
 They are owned by the event runtime, not the ordinary public-map scheduler.
+The general population no longer includes the 323 matching public-map copies.
+Two further imported copies, Valdor and Bragi, used new labels and escaped
+the earlier label-based check. They are removed from the public file too.
+Startup reserves event spawn origins independently of labels and template aliases.
+The same check applies to active-definition registration, preventing public
+copies from bypassing event ownership after a later import.
+This includes both Lich King groups, labels 5662 and 5663. They spawn only
+through their room lifecycle after registration, entry, and preparation.
 `MinuteGenerate` retains the current NPCGener timing unit of 12 seconds.
 Spawned groups are staged as a whole and require available walkable tiles;
 failed allocation does not publish a partial group.
@@ -168,7 +191,8 @@ writing Hell Gate's protected-NPC state.
   Cleanup uses the configured entrance rather than the historical ID-parity
   scatter. No reconnect entitlement or restart replay is invented.
 - Server messages are English. Historical binary names are converted to short
-  `RT_` names within the existing 12-byte wire name budget; item IDs, generator
+  `RT_` names within the original conservative 12-byte naming budget (the NPC
+  wire field supports 15 text bytes plus NUL); item IDs, generator
   IDs, equipment effects and refinement bytes remain unchanged.
 
 ## Provenance and reproduction
@@ -181,7 +205,7 @@ Read-only research root:
 | `TMSRVIN/TMSRVIN.c` | `F8C064D7B3E73600B244A743A1D3CC3F6E4DB66F2B44364367A2E1E825E664CD` |
 | `DestinyServer-main/TMSRV2/run/TMSRVIN.exe` | `27EE313BB4B4D4A0D897DAC9A188D8249068CE701311CBDA1E24AD28C5E43642` |
 | `DestinyServer-main/TMSRV2/run/NPCGener.txt` | `6A5FF788BF9AE2C66D050421A644054C5E277EB874AF3109E4944EFD99C369A8` |
-| Active `wydgo748/data/RuneTrack759.txt` | `82C9A738155D0955D08B44861A98DF4FBC30208E5914C7CD3B1C62E8E0F7BD1E` |
+| Historical combined extraction `RuneTrack759.txt` (superseded) | `82C9A738155D0955D08B44861A98DF4FBC30208E5914C7CD3B1C62E8E0F7BD1E` |
 
 Anchors in that decompilation:
 
@@ -248,7 +272,7 @@ pseudocode and instruction-flow evidence for the same SHA-256 inputs above:
   receive both `Clue_Of_Runes` and a regular rune. This supports the documented
   room/group-index pool behavior, rather than selection by each recipient's
   member-list position. The helper and slot predicate are documented in the
-  [REA runtime map](../../.agents/research/rea-server-759-runtime-map.md).
+  [REA runtime map](<../../references/decompilacao server/dlls/rea-analysis/maps/rea-server-759-runtime-map.md>).
 - `TMSRVIN.exe!0x584C70`
   (`ev_263e7f27646ad7867089a0fbcabe394d2305088eceb94ea43bc044fb80d15b54`)
   resolves inside `FUN_005849B0`, the objective-death handler, rather than to a

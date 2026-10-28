@@ -12,8 +12,8 @@ import (
 // such item must carry the same flag in itemlist.csv (validateTradableItem).
 func TestItemListNoTradeMatchesClient748(t *testing.T) {
 	dataRoot := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(dataRoot, "itemlist.csv"),
-		filepath.Join(dataRoot, "Itemname.csv"), filepath.Join(dataRoot, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(dataRoot, "catalog", "itemlist.csv"),
+		filepath.Join(dataRoot, "catalog", "Itemname.csv"), filepath.Join(dataRoot, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}

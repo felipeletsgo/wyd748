@@ -2,20 +2,25 @@
 // Do not fill unknown values with estimates or describe planned systems as live.
 export const clientRelease = {
   version: 2,
-  // Release line 7.48: the launcher's [VERSION] 48001 is shown as 7.48.001.
-  clientVersion: '7.48.001',
-  feedVersion: 48001,
-  publishedAt: '2026-10-23' as string | null,
+  // Release line 7.48: the launcher's [VERSION] 48010 is shown as 7.48.010.
+  clientVersion: '7.48.010',
+  feedVersion: 48010,
+  publishedAt: '2026-10-28' as string | null,
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
+    clientVersion: '7.48.001',
     url: 'https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view?usp=drive_link' as string | null,
     // Size and checksum of the uploaded archive are not recorded yet.
     sizeBytes: null as number | null,
     sha256: null as string | null,
   },
-  // The update history restarts with this full client; no patch is published yet.
-  patch: null,
+  patch: {
+    url: '/patch/patch-48010.zip',
+    sizeBytes: 916141,
+    sha256: '408AF09D74AC590C1E5DB99F12547CA4907CFF80304C9FF1C0C84E4A28A70324',
+    executableSha256: 'A4D664F12E049E476A8E38A9E7686A582EECF33F9BD7EBAB994A977E13295113',
+  },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
 } as const;
@@ -24,6 +29,73 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-28', category: 'Client and server', title: 'Client 7.48.010 — city binding and return teleport', entries: [
+    'Bind the last city reached through confirmed movement and use native city bounds and return areas.',
+    'Return scrolls and restart use the bound city, with the owning guild territory taking priority.',
+    'Correct persistence ordering that could disconnect a player when walking into a city.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Corrige a vinculação de cidade, o destino do retorno e a desconexão ao entrar na cidade. Atualização obrigatória pelo launcher.',
+    'Automated client, server and database checks passed; actual gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-27', category: 'Client and server', title: 'Client 7.48.009 — Premium Nell opening correction', entries: [
+    'Accept the categorized shop catalog in the client packet dispatch so Premium Nell can open its embedded interface.',
+    'Preserve the official layout, categories, prices, purchase validation and English/Brazilian Portuguese controls.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Corrige o recebimento do catálogo que impedia a abertura do Premium Nell. Atualização obrigatória pelo launcher.',
+    'Automated regression checks passed; opening, closing and purchases still require in-game confirmation.',
+  ] },
+  { date: '2026-10-26', category: 'Client and server', title: 'Client 7.48.008 — Premium Nell layout and categories', entries: [
+    'Use the official store artwork and layout inside the game area, with a close button in the upper-right corner.',
+    'Browse six items per page with search and Featured, Armia, Erion and Nifleheim categories, configurable in the catalog panel.',
+    'The shop and category controls support English and Brazilian Portuguese; existing items remain in Featured until edited.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Premium Nell ocupa a área do jogo, com arte oficial, botão de fechar e categorias configuráveis no painel: Destaque, Armia, Erion e Nifleheim.',
+    'Atualização obrigatória: feche o jogo e abra o launcher. A interface e as compras ainda precisam de confirmação dentro do jogo.',
+    'Automated checks passed; the updated embedded interface and purchases require in-game confirmation.',
+  ] },
+  { date: '2026-10-26', category: 'Client and server', title: 'Client 7.48.007 — Premium Nell startup correction', entries: [
+    'Correct Premium Nell opening when WebView2 is installed by allowing its embedded shop page to load.',
+    'Record the initialization stage and error code when the embedded interface fails.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Automated checks passed; opening, closing and purchases still require in-game confirmation.',
+  ] },
+  { date: '2026-10-26', category: 'Client and server', title: 'Client 7.48.006 — Premium Nell and instance cleanup', entries: [
+    'Open Premium Nell in an embedded WebView2 window with English and Brazilian Portuguese text, item details and purchase confirmation.',
+    'Use the existing staff panel to manage the catalog; the server validates purchases and protects against duplicate requests.',
+    'Create the browser only when opening Premium Nell and release it when closing the window. The native shop remains the fallback when WebView2 is unavailable.',
+    'Remove retained monsters when an instance ends and include channel regression corrections and the reviewed NPC population.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Automated checks and publication do not replace in-game acceptance of WebView2, purchases and instance transitions.',
+  ] },
+  { date: '2026-10-26', category: 'Client and server', title: 'Client 7.48.005 — Gryphon travel and Perzen exchanges', entries: [
+    'Correct Gryphon flight progression and deliver the current Help and NPC messages in English and Brazilian Portuguese.',
+    'Enable Normal, Mystic and Arcane Perzen sphere exchanges on both channels for the corresponding 30-day horses.',
+    'Preserve the manually reviewed NPC population and channel settings.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Actual Gryphon travel and Perzen exchange acceptance remain pending in-game confirmation.',
+  ] },
+  { date: '2026-10-25', category: 'Client and server', title: 'Client 7.48.004 — channel 2 and official population', entries: [
+    'Add channel 2 to server selection and support channel transfers with srv 1 and srv 2.',
+    'Load the official 7.59 generator on channel 2 with templates adapted to the 7.48 client; incompatible items are removed.',
+    'Include English and Brazilian Portuguese messages for the updated NPC services.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Automated checks passed; in-game channel transfer and complete NPC service validation remain pending.',
+  ] },
+  { date: '2026-10-24', category: 'Client and server', title: 'Client 7.48.003 — interface text legibility correction', entries: [
+    'Restore original-size interface letters after the 7.48.002 text rendering regression.',
+    'Handle overflow only in specific Character and Skill captions, using an ellipsis without shrinking glyphs.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Automated checks passed; in-game visual confirmation remains pending.',
+  ] },
+  { date: '2026-10-24', category: 'Client and server', title: 'Client 7.48.002 — required update and text corrections', entries: [
+    'Fit panel captions within their visible bounds and use consistent accented-text rendering and measurement.',
+    'Validate quest subject levels before accessing the client table and describe -- correctly as global chat.',
+    'Open the Colosseum inner gates with the first wave at minute 6; Colosseum monster hits deal at most 1 damage before absorption.',
+    'Use STR/3 + DEX/8 for player physical attack; DEX no longer adds defense.',
+    'Reserved legacy commands now return an explicit notice instead of becoming accidental whispers. These commands remain unavailable.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting; changing config.txt does not bypass the server check.',
+    'Automated checks passed; real-client confirmation remains pending.',
+  ] },
   { date: '2026-10-23', category: 'Client and server', title: 'Client 7.48.001 — new full client', entries: [
     'New full client with game text in English or Brazilian Portuguese, selected in the launcher.',
     'The launcher shows version 7.48.001 and the update history restarts from this client.',

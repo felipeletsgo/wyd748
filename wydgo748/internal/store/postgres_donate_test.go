@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -16,6 +17,7 @@ func TestValidatePremiumEntries(t *testing.T) {
 		t.Fatal(err)
 	}
 	for name, entries := range map[string][]PremiumCatalogEntry{
+		"category":  {{Slot: 1, Item: model.Item{Index: 1}, Price: 1, Category: 4}},
 		"slot":      {{Slot: 27, Item: model.Item{Index: 1}, Price: 1}},
 		"repeat":    {{Slot: 1, Item: model.Item{Index: 1}, Price: 1}, {Slot: 1, Item: model.Item{Index: 2}, Price: 1}},
 		"item":      {{Slot: 1, Item: model.Item{Index: 0}, Price: 1}},
@@ -26,6 +28,24 @@ func TestValidatePremiumEntries(t *testing.T) {
 	} {
 		if ValidatePremiumEntries(entries) == nil {
 			t.Fatalf("%s accepted", name)
+		}
+	}
+}
+
+func TestPremiumCategoryJSONCompatibility(t *testing.T) {
+	var old PremiumCatalogEntry
+	if err := json.Unmarshal([]byte(`{"slot":2,"item":{"index":400},"price":1000}`), &old); err != nil || old.Category != 0 {
+		t.Fatalf("old catalogs must default to Featured: %+v %v", old, err)
+	}
+	for category := uint8(0); category < 4; category++ {
+		entry := PremiumCatalogEntry{Slot: 2, Item: model.Item{Index: 400}, Price: 1000, Category: category}
+		encoded, err := json.Marshal(entry)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var decoded PremiumCatalogEntry
+		if err := json.Unmarshal(encoded, &decoded); err != nil || decoded != entry || ValidatePremiumEntries([]PremiumCatalogEntry{decoded}) != nil {
+			t.Fatalf("category %d failed JSON storage round trip: %+v %v", category, decoded, err)
 		}
 	}
 }
@@ -55,7 +75,7 @@ func TestPostgresPremiumCatalogAndDonateCredits(t *testing.T) {
 		}
 	})
 
-	entries := []PremiumCatalogEntry{{Slot: 3, Item: model.Item{Index: 3394, Eff: [6]byte{61, 2}}, Price: 1000}}
+	entries := []PremiumCatalogEntry{{Slot: 3, Item: model.Item{Index: 3394, Eff: [6]byte{61, 2}}, Price: 1000, Category: 3}}
 	saved, err := st.SavePremiumCatalog(ctx, previous.Version, entries, "staffer")
 	if err != nil || saved.Version == 0 || saved.Version <= previous.Version {
 		t.Fatalf("save catalog: %+v %v", saved, err)

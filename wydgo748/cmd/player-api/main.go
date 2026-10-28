@@ -54,7 +54,7 @@ func run() error {
 		return err
 	}
 	defer db.Close()
-	catalog, err := data.LoadCatalog(filepath.Join(*dataDir, "itemlist.csv"), filepath.Join(*dataDir, "Itemname.csv"), filepath.Join(*dataDir, "ItemEffect.h"), filepath.Join(*dataDir, "SkillData.csv"))
+	catalog, err := data.LoadCatalog(filepath.Join(*dataDir, "catalog", "itemlist.csv"), filepath.Join(*dataDir, "catalog", "Itemname.csv"), filepath.Join(*dataDir, "catalog", "ItemEffect.h"), filepath.Join(*dataDir, "catalog", "SkillData.csv"))
 	if err != nil {
 		return errors.New("portal: game catalog unavailable")
 	}

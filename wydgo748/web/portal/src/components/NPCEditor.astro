@@ -1,0 +1,34 @@
+<section id="npc-management" class="panel staff-ops-panel" aria-labelledby="npc-management-title">
+  <div class="panel-heading">
+    <div><span id="npc-editor-eyebrow" class="eyebrow">GAME CONTENT</span><h2 id="npc-management-title">NPC definitions</h2></div>
+    <button id="npc-editor-refresh" class="button subtle" type="button">Refresh</button>
+  </div>
+  <div class="event-body">
+    <p id="npc-editor-help" class="muted">Edit the complete active NPC definition stored in PostgreSQL. A valid save updates this channel without restarting the server.</p>
+    <div class="staff-ops-lookup">
+      <label id="npc-channel-label" for="npc-channel">Channel</label>
+      <input id="npc-channel" type="number" min="1" max="255" value="1" required />
+      <button id="npc-channel-load" class="button subtle" type="button">Load channel</button>
+    </div>
+    <label id="npc-scope-label" for="npc-scope">Apply to</label>
+    <select id="npc-scope">
+      <option id="npc-scope-channel" value="channel">Selected channel</option>
+      <option id="npc-scope-both" value="both">Both channels (1 and 2)</option>
+    </select>
+    <label id="npc-select-label" for="npc-select">Active NPC</label>
+    <select id="npc-select" required disabled><option value="">Load a channel</option></select>
+    <p id="npc-editor-state" class="muted" role="status" aria-live="polite">Waiting for a query.</p>
+    <p id="npc-target-state" class="muted" role="status" aria-live="polite"></p>
+    <label id="npc-definition-label" for="npc-definition">NPC JSON</label>
+    <textarea id="npc-definition" rows="24" spellcheck="false" autocomplete="off" autocapitalize="off" disabled></textarea>
+    <form id="npc-definition-form">
+      <label id="npc-reason-label" for="npc-reason">Reason for the change</label>
+      <input id="npc-reason" minlength="3" maxlength="200" required placeholder="E.g. add requested item" />
+      <div class="event-actions">
+        <button id="npc-restore" class="button subtle" type="button" disabled>Restore source JSON</button>
+        <button id="npc-save" class="button primary" type="submit" disabled>Save and apply</button>
+      </div>
+    </form>
+    <p id="npc-editor-message" class="form-message" role="status" aria-live="polite"></p>
+  </div>
+</section>

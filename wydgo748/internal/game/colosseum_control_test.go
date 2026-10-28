@@ -36,6 +36,7 @@ func TestColosseumManualStartTimelineAndScheduledSuppression(t *testing.T) {
 	if w.colosseum.stage != 2 || colosseumMobs(w) == 0 {
 		t.Fatal("first manual wave missing outside the scheduled hour")
 	}
+	colosseumFixturesState(t, w, arenaGateItem, gateOpen)
 	clock.Advance(time.Minute)
 	w.tickColosseum(clock.Now())
 	colosseumFixturesState(t, w, arenaGateItem, gateOpen)

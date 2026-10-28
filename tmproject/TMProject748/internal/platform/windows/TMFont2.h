@@ -21,6 +21,18 @@ public:
     char* GetText();
     // Renders at the given position and mode; transfers no resources.
     int Render(int nPosX, int nPosY, int nRenderType);
+    // Optional screen-space bound for single-line UI captions. Zero disables
+    // ellipsis; multiline and non-UI callers retain their existing rendering.
+    // Never resizes rasterized glyphs. GetText keeps the complete source.
+    void SetMaximumWidth(float width);
+    float GetSingleLineWidth() const;
+
+private:
+    float m_fMaximumWidth;
+    float m_fRasterScale;
+    int m_bRasterMultiLine;
+    int m_bCheckZero;
+    int Rasterize();
 
 public:
     // m_pTexture belongs to the instance and may be null before SetText or

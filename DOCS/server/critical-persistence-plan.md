@@ -20,6 +20,10 @@ Classification: `MODERNIZACAO_COMPATIVEL`; preserve existing packet formats,
 authoritative validation, durable transactions and save-before-confirm ordering.
 No new native research is required for this internal scheduling boundary.
 
+Validation entries below preserve historical commands and output paths. Do not
+copy old `bin/` commands. Use [build and integration](../build-and-integration.md)
+for current root `build/<task>/` output paths.
+
 ## Current gaps and acceptance criteria
 
 This is the current recovery queue, not a request to repeat completed producer

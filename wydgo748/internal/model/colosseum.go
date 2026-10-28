@@ -3,7 +3,7 @@ package model
 import "fmt"
 
 // Colosseum tiers follow the 7.59 TMSRV hours EventHour+1 (N), +2 (M) and
-// +3 (A); each tier owns its generator file under data/NPCGener.
+// +3 (A); each tier owns its generator file under data/spawns/instances.
 const (
 	ColosseumTierN = iota
 	ColosseumTierM

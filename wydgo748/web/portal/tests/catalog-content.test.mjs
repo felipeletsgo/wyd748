@@ -14,7 +14,7 @@ test('public catalog and search index agree, use stable routes and preserve veri
   const generated = JSON.parse(readFileSync(new URL('../src/data/catalog.generated.json', import.meta.url), 'utf8'));
   assert.equal(generated.contentHash, claimed);
   for (const source of catalog.sources) {
-    assert.ok(['itemlist.csv', 'Itemname.csv', 'ItemEffect.h', 'SkillData.csv', 'quests.json', 'quest_zones.json'].includes(source.file));
+    assert.ok(['catalog/itemlist.csv', 'catalog/Itemname.csv', 'catalog/ItemEffect.h', 'catalog/SkillData.csv', 'content/quests.json', 'content/quest_zones.json'].includes(source.file));
     const bytes = readFileSync(new URL(`../../../data/${source.file}`, import.meta.url));
     assert.equal(createHash('sha256').update(bytes).digest('hex'), source.sha256);
   }

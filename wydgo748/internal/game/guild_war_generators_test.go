@@ -4,21 +4,19 @@ import (
 	"testing"
 	"time"
 
-	"wydgo/internal/data"
 	"wydgo/internal/model"
 )
 
 func TestNoatumTowersCannotSpawnThroughOrdinaryGenerators(t *testing.T) {
-	geners, err := data.LoadNPCGener("../../data/NPCGener.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	reserved := 0
-	for _, def := range geners {
-		if !generatorReservedForGuildWar(def) {
-			continue
+	// Keep the import guard covered without retaining obsolete general spawns.
+	for i, start := range []model.GenerSegment{{X: 1051, Y: 1690}, {X: 1046, Y: 1690}, {X: 1124, Y: 1708}} {
+		def := model.NPCGener{
+			Index: i, Leader: "Tower_of_Thor", MinuteGenerate: -1, MaxNumMob: 1,
+			Segments: [model.MaxGenerSegments]model.GenerSegment{start},
 		}
-		reserved++
+		if !generatorReservedForGuildWar(def) {
+			t.Fatalf("Noatum tower at (%d,%d) was not reserved", start.X, start.Y)
+		}
 		for _, day := range []int{14, 18} { // Wednesday and Sunday: neither is a castle-war lifecycle.
 			w := newZoneTestWorld()
 			g := &generState{def: def}
@@ -28,9 +26,6 @@ func TestNoatumTowersCannotSpawnThroughOrdinaryGenerators(t *testing.T) {
 				t.Fatalf("ordinary generator %d created/scheduled a Noatum war tower", def.Index)
 			}
 		}
-	}
-	if reserved != 3 {
-		t.Fatalf("reserved Noatum tower generators=%d, want 3", reserved)
 	}
 }
 

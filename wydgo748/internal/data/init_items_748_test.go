@@ -43,7 +43,7 @@ func TestInitItemsMatchClient748Asset(t *testing.T) {
 		items[obj.Index] = model.ItemDef{Index: obj.Index}
 	}
 
-	got, err := LoadInitItems(filepath.Join("..", "..", "data", "init_items.csv"), items)
+	got, err := LoadInitItems(filepath.Join("..", "..", "data", "world", "init_items.csv"), items)
 	if err != nil {
 		t.Fatal(err)
 	}

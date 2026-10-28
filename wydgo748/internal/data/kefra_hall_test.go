@@ -2,8 +2,8 @@ package data
 
 import "testing"
 
-// The Kefra hall holds Kefra and his four guards (two Lich Crunt, two Lich
-// Vatama) on walkable cells around him.
+// The shared hall retains the approved native population and imported project
+// groups. Both populations must resolve to hostile templates on walkable cells.
 func TestKefraHallSpawnsKefraAndHisMagos(t *testing.T) {
 	npcs, err := LoadNPCs("../../data/npcs")
 	if err != nil {
@@ -13,11 +13,11 @@ func TestKefraHallSpawnsKefraAndHisMagos(t *testing.T) {
 	for _, npc := range npcs {
 		monsters[npc.Name] = npc.IsMonster()
 	}
-	geners, err := LoadNPCGener("../../data/NPCGener.txt")
+	geners, err := LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	terrain, err := LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -32,7 +32,8 @@ func TestKefraHallSpawnsKefraAndHisMagos(t *testing.T) {
 			t.Fatalf("%s spawn (%d,%d) has no monster template or is not walkable", gener.Leader, x, y)
 		}
 	}
-	if counts["Kefra"] != 1 || counts["Lich_Crunt"] != 2 || counts["Lich_Vatama"] != 2 || len(counts) != 3 {
+	if counts["Kefra"] != 2 || counts["Lich_Crunt"] != 2 || counts["Lich_Vatama"] != 2 ||
+		counts["CepraGuard@"] != 17 || counts["DarkMage"] != 5 || len(counts) != 5 {
 		t.Fatalf("Kefra hall spawns = %v", counts)
 	}
 }

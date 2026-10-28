@@ -1,16 +1,18 @@
-# English-language migration
+# Scoped language migration
 
-The project targets the global, English-language WYD client. English is the
-only language for new or edited human-readable content. The repository is not
-yet fully migrated; this document tracks the remaining work without treating
-a partial translation as completion.
+Engineering identifiers and prose use English. Changed player-facing product
+content supports English (`EN`) and Brazilian Portuguese (`PT`) through locale
+resources, with English fallback when a translation is unavailable. The
+repository is not fully migrated; this document tracks remaining English
+engineering-prose work without treating supported Portuguese as debt or a
+release blocker.
 
 ## Completed entry points
 
 - Root repository rules and all active skill entry points.
-- The Codex `agents/openai.yaml` metadata of the catalog, research, and
-  server feature skills; keys and `$skill` references are unchanged. The
-  Claude Code entry points (`CLAUDE.md`, `.claude/`) were authored in English.
+- The Codex `agents/openai.yaml` metadata of all six canonical skills; keys and
+  `$skill` references are unchanged. The Claude Code entry points (`CLAUDE.md`,
+  `.claude/`) were authored in English.
 - The emulator and cross-cutting contract references in the server feature
   skill are in English. The latter no longer permits Portuguese logs or
   comments; both now follow the repository-wide rule. Its session-continuity
@@ -139,13 +141,13 @@ a partial translation as completion.
 
 - The staged critical-persistence lifecycle binding, deferred-disconnect guards,
   packet/movement reservation diagnostics and their regression tests are in
-  English. This does not translate the remaining gameplay consumers or close
-  the global language migration.
+  English. This does not translate remaining gameplay consumers or complete the
+  scoped engineering-prose review.
 - The character-sidecar model (`internal/model/charstate.go`) now uses English
   documentation for persistence, buffs, counters and economic provenance.
   Persisted field names, identifiers and `CharStateVersion` are unchanged.
   Model and game package tests pass; this is a bounded documentation migration,
-  not completion of the server or global English migration.
+  not completion of the server or scoped engineering-prose migration.
 - The combat reservation batch translates all remaining prose in
   `internal/game/combat.go`, `mob_combat.go` and `skill_pvp.go`, including logs
   and trade-cancellation diagnostics. The skill death-notification kind is now
@@ -154,8 +156,8 @@ a partial translation as completion.
   lethal skill path and verifies the resulting English notification. Packet
   IDs, sizes, fields and formulas are unchanged; the notification text changes
   intentionally. The CP/timed-item guards and their new tests are in English.
-  Untouched combat callers and other output remain migration debt; this batch
-  does not complete the global language migration.
+  Untouched combat callers and other output remain pending scoped review; this
+  batch does not complete the engineering-prose migration.
 
 - The bounded support/effects reservation follow-up translates all authored
   prose in `internal/game/affects.go`, `skills.go` and `regen.go`. This includes
@@ -163,8 +165,8 @@ a partial translation as completion.
   used for persistence-error diagnostics. Established function identifiers,
   affect/skill IDs, packet layouts and numeric formulas are preserved. The new
   `critical_persistence_effects_test.go` is in English. This affected-file review
-  is not a global audit: remaining player-facing, administrative, resource and
-  documentation text still blocks completion of the English migration.
+  is not a global audit: remaining engineering prose and changed product
+  locale surfaces still require scoped review.
 
 - The bounded summon reservation follow-up translates all prose in
   `internal/game/skill_summons.go`, including creation logs, trade-cancellation
@@ -177,7 +179,7 @@ a partial translation as completion.
   every template with its existing face and decrypt actual lethal summon-PvP
   packets to check the English notification. External contract-summon data names
   are not rewritten by this batch. New fence comments and summon tests are in
-  English; the global migration remains incomplete.
+  English; the scoped migration remains incomplete.
 
 - The bounded reward/mount and staged CP/egg-timer follow-up uses English
   diagnostics, comments, tests and documentation. All remaining prose in
@@ -190,7 +192,7 @@ a partial translation as completion.
   mount-feed helper. They do not decode the outgoing feed packets. The remaining
   Portuguese attack log in `handlers.go` is translated. The new producer,
   reservation and actual-World-loop tests are in English; this does not close
-  the global language migration or establish a global release gate.
+  the scoped engineering-prose migration or establish a global release gate.
 
 ## Remaining work
 
@@ -203,31 +205,29 @@ a partial translation as completion.
    semantics or in-client language. Keep numeric IDs and parameters intact.
 2. Audit remaining server-facing and administrator-facing messages in
    `wydgo748/`, then update corresponding tests and API documentation together.
-3. Translate the remaining Portuguese prose in `DOCS/GUIA/GUIAS_JOGABILIDADE.md`,
-   `DOCS/w2pp-go-gap-analysis.md`, and `DOCS/WYD-WEB-PLATAFORM.md`, including
-   headings and examples. The upstream path `Source cliente/` in
-   `DOCS/reference-upstream.md` is a preserved identifier, not prose to
-   translate. Keep established paths stable unless every reference is updated.
-4. Translate scripts, diagnostics, and test descriptions in `tools/`,
+3. Translate the remaining Portuguese engineering prose in
+   `DOCS/GUIA/GUIAS_JOGABILIDADE.md`, `DOCS/w2pp-go-gap-analysis.md`, and
+   `DOCS/WYD-WEB-PLATAFORM.md`, including headings and examples. The upstream
+   path `Source cliente/` in `DOCS/reference-upstream.md` is a preserved
+   identifier, not prose to translate. Keep established paths stable unless
+   every reference is updated.
+4. Translate engineering prose, diagnostics, and test descriptions in `tools/`,
    `tmproject/`, and `wydgo748/` as each affected workflow is validated.
-5. Translate `.agents/research/` and `.agents/handoffs/` where they are still
-   used for current decisions; preserve technical evidence and provenance.
-6. Translate the remaining Portuguese prose in active skill references. A
-   translated skill entry point does not imply that all its supporting
-   references have been migrated.
-7. Review legacy Portuguese chat-command aliases before an English-only
-   release. Removing an established command spelling changes behavior, so
-   decide the compatibility policy and update command tests together.
+5. Translate engineering prose in `.agents/research/` and `.agents/handoffs/`
+   where those records still guide current decisions; preserve technical
+   evidence and provenance.
+6. Translate remaining Portuguese engineering prose in active skill references.
+   A translated skill entry point does not imply complete reference coverage.
+7. Review legacy Portuguese chat-command aliases before changing command policy.
+   Preserve established aliases unless a compatibility decision and command
+   tests support their removal.
 
 Code identifiers, persisted values, packet bytes, resource keys, and fixture
-data require compatibility review before renaming. English prose is the goal;
-blind replacement of contract-bearing values is not.
+data require compatibility review before renaming. English engineering prose
+is the goal; blind replacement of contract-bearing values is not.
 
-Completion requires a repository-wide review of authored text plus validation
-of affected client and server flows. This includes the client resources,
-server output, active documentation, scripts, tests, research records, and
-handoffs; none of these is exempt as historical migration debt. A keyword
-search alone cannot distinguish Portuguese prose from names, examples, and
-protocol data. The migration is still incomplete.
-Do not declare a global client/server release ready while known Portuguese
-player-facing text remains.
+Completion requires a review of changed engineering prose and validation of
+affected client and server flows. Product locale coverage requires EN/PT keys,
+encoding, placeholders, layout, fallback, and language-selection checks. A
+keyword search cannot distinguish Portuguese prose from names, examples, and
+protocol data. Do not claim complete locale coverage from a partial change.

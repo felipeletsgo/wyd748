@@ -40,6 +40,27 @@ def checksum(data):
     return result & 0xffffffff
 
 
+def message_overrides(data, overrides, language):
+    """Apply explicit project messages without changing existing row indices."""
+    if len(data) < 4 or (len(data) - 4) % 128:
+        raise ValueError('Unexpected message table layout')
+    payload = bytearray(data[:-4])
+    if struct.unpack('<I', data[-4:])[0] != checksum(payload):
+        raise ValueError('Invalid message table checksum')
+    for key, translations in sorted(overrides.items(), key=lambda pair: int(pair[0])):
+        index = int(key)
+        text = translations.get(language, translations['EN']).encode('cp1252')
+        if not 0 <= index < 2000 or len(text) >= 128 or any(c in text for c in (b'\0', b'\r', b'\n', b'\t')):
+            raise ValueError(f'Invalid message override: {index}/{language}')
+        if format_tokens(translations['EN'].encode('cp1252')) != format_tokens(text):
+            raise ValueError(f'Incompatible message placeholders: {index}/{language}')
+        if index * 128 > len(payload):
+            raise ValueError(f'Message overrides must append contiguous rows: {index}')
+        encoded = bytes(value ^ 0x5a for value in text.ljust(128, b'\0'))
+        payload[index * 128:(index + 1) * 128] = encoded
+    return bytes(payload) + struct.pack('<I', checksum(payload))
+
+
 def item_rows(data):
     if len(data) != 6500 * 140 + 4:
         raise ValueError("Unexpected ItemList layout")
@@ -182,15 +203,18 @@ def build(runtime, source, overrides):
             translated = (overrides["files"][relative].rstrip('\n') + '\n').replace('\n', '\r\n').encode('cp1252')
         elif relative == "UI/strdef.bin":
             old_messages = historical.read_bytes()
-            if len(old_messages) != len(original): raise ValueError("Message table size changed")
+            if len(old_messages) > len(original) or (len(old_messages) - 4) % 128:
+                raise ValueError("Historical message table layout changed")
             payload = bytearray(original[:-4])
-            for offset in range(0, len(payload), 128):
+            for offset in range(0, len(old_messages) - 4, 128):
                 before = bytes(x ^ 0x5a for x in original[offset:offset + 128]).split(b'\0', 1)[0]
                 after = bytes(x ^ 0x5a for x in old_messages[offset:offset + 128]).split(b'\0', 1)[0]
                 if format_tokens(before) == format_tokens(after):
                     payload[offset:offset + 128] = old_messages[offset:offset + 128]
                 else: gaps.append(f"strdef index {offset // 128}: incompatible format placeholders; English retained")
             translated = bytes(payload) + struct.pack('<I', checksum(payload))
+            original = message_overrides(original, overrides.get('messages', {}), 'EN')
+            translated = message_overrides(translated, overrides.get('messages', {}), 'PT')
         elif "Quest" in relative:
             # Blocks and subject indices differ across distributions. Remap
             # explicitly by semantic identity, preserving current level keys.

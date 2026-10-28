@@ -1,16 +1,24 @@
 # Shared multilingual client
 
-Status: implemented in source and generated text resources; candidate builds
-and automated validation passed on 2026-10-23. The game and production native
-launcher with its language extension are installed locally. The launcher keeps
-the site's existing `update.htm`/ZIP protocol. Not published or validated in
-gameplay. This is the client portion of the
+Status: the multilingual full-client baseline was published as 7.48.001;
+audit corrections were published as mandatory patch 7.48.002, followed by the
+caption legibility correction in mandatory patch 7.48.003 on 2026-10-24,
+with paired server minimum revision 3 active. Candidate builds and automated
+validation passed. The installed local game executable was verified as 7.48.003
+on October 25; a subsequent caption candidate is built locally only (see below).
+The production native launcher and its language extension
+are unchanged. The launcher keeps the site's existing `update.htm`/ZIP protocol.
+Actual launcher installation and gameplay validation remain pending.
+See the [patch receipt](launcher.md#published-patch-748003-2026-10-24) and
+[active server receipt](../current-state.md). This is the client portion of the
 [bilingual channels plan](../bilingual-channels-plan.md); it does not implement
 channels, citizenship, server translation, or guild-war isolation.
 
-The owner's explicit request authorizes Brazilian Portuguese localization
-data under `PT/`. Implementation, tooling and documentation remain English.
-This exception does not establish completion of the global language migration.
+The owner confirmed on 2026-10-24 that the product supports Brazilian and
+global players through English and Brazilian Portuguese localization. `PT/`
+is supported product content under the current repository rules.
+Implementation, tooling and documentation remain English. This policy does
+not establish complete localization of existing server or website surfaces.
 
 ## Preference and resource contract
 
@@ -93,8 +101,8 @@ The historical Portuguese installation is an explicit read-only input and is
 not a release payload. Generate from the repository root:
 
 ```powershell
-python -B tools/client-assets/build_client_locales.py --source 'tmproject/client748/WYD 7.48 PORTUGUES'
-python -B tools/client-assets/build_client_locales.py --source 'tmproject/client748/WYD 7.48 PORTUGUES' --check
+python -B tools/client-assets/build_client_locales.py --source 'references/client748/WYD 7.48 PORTUGUES'
+python -B tools/client-assets/build_client_locales.py --source 'references/client748/WYD 7.48 PORTUGUES' --check
 python -B tools/client-assets/test_client_locales.py
 pwsh -NoProfile -File tmproject/Build-Client.ps1 -NoDeploy
 pwsh -NoProfile -File tools/client-assets/Build-NativeLauncherLanguage.ps1 -NoDeploy
@@ -186,6 +194,110 @@ this correction. The new game executable is installed locally; its receipt is
 previous defects, while visual confirmation of this corrected build remains
 pending. Neither the native launcher nor the server was changed by this fix.
 
+### Caption legibility regression, October 24
+
+The October 23 overflow implementation was published in release 7.48.002.
+The owner subsequently reported missing/unreadable glyph pixels in Character,
+Skill and HUD labels at 1024x768. Both the installed local runtime and the
+published executable were identified by SHA-256
+`80CA48E77A8F83535401B7FE1415E33C9DE873E04F55C0313C844DF7B6A66209`.
+This identifies the installed artifact; it does not establish the executable
+path of every running process or the exact executable on the reporter's PC.
+
+Root cause: the previous correction bound every eligible panel-owned `SText`
+and shrank its already-rasterized texture to fit the intersection of resource,
+neighbor and artwork bounds. The text render state uses point sampling, which
+discards thin glyph pixels during fractional reduction. Some serialized
+rectangles and artwork tabs are much narrower than their captions. Passing
+geometry-only checks did not establish legibility and did not prevent this
+regression.
+
+The replacement is `MODERNIZACAO_COMPATIVEL`: retain the existing font scale,
+render complete glyphs, and use an ellipsis only for actual overflow. The
+source text remains intact for getters, recoloring, text replacement and
+restoration when a bound grows or is removed. Texture rebuilding reuses the
+stored color and zero-marking mode rather than applying brightness twice.
+Unchanged bounds do not rebuild the texture every frame.
+
+Bounds now opt in only for Character resistance/stat/mastery captions
+(parent 513, IDs 5768..5785, plus identity/attributes/kingdom artwork titles),
+skill points (1905/5786), four skill-tree titles (1905/5788..5791), and three
+skill-master titles (1889/6050..6052). Numeric values, player names, HUD labels
+and unrelated panels retain their ordinary layout. Existing twelve artwork
+bands, panel edges, neighbor separation and shadow allowance still apply to
+the opted-in captions. Geometry, hitboxes, shared assets, localization resources,
+launcher behavior and the wire contract are unchanged.
+
+Validation: `Build-Client.ps1 -NoDeploy` passed 3,179,319 architecture checks
+and static assertions, 281 socket checks, 200 crash checks and 58 launcher
+checks. Real Tahoma GDI tests at four UI scales and weights 500/700 compare
+fitting text masks pixel-for-pixel, including accents and texture chunk seams.
+They also cover original-size overflow with ellipsis, all twelve title bands,
+caption scoping and restoration from the complete source. These tests do not
+execute the game's Direct3D UI. In-game legibility, shortened title usability,
+class changes, panel reopen and resolution changes remain pending. This fix
+is not `CLIENT_TESTED` and does not close unrelated skill-icon issues.
+
+- Initial local candidate, superseded by the published revision-3 rebuild:
+  `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `627A97DF444BDEC0847CD947B00B297878373E8FE5EC9F6835BD3643A45F1FD6`.
+- Installed runtime: `tmproject/client748/WYD.exe`, unchanged during this fix,
+  SHA-256 `80CA48E77A8F83535401B7FE1415E33C9DE873E04F55C0313C844DF7B6A66209`.
+- The initial local check retained revision 2 and did not install or publish.
+  The subsequent revision-3 rebuild was published as patch 48003 before the
+  paired server activation. Published executable SHA-256:
+  `882F11E6CBA65E6B290DA0C8DF7920485982F5A9F1E49005D31823D76881BBE6`.
+  See the [release receipt](launcher.md#published-patch-748003-2026-10-24).
+  No local install, commit or push occurred; visual gameplay remains pending.
+
+The focused native evidence validator passes. Automatic execution review
+blocked the cleanup command as `blocked by policy`; it was not retried through
+another mechanism. Task leftovers are `build/ui-text-regression/` (build log)
+and `tmproject/build/tests/Release/crash-capture-tests-2560-5998234/` (isolated
+crash-test output). The incremental candidate remains available above.
+
+### Native caption comparison, October 25
+
+The owner rejected the revision-3 ellipses in the character and skill panels.
+Native 7.48 Ghidra evidence confirms Tahoma 13, weight 500 in mode 2 and full
+text drawing beyond decorative title notches. The previous fixed artwork bands
+were narrower than the original names. A second constraint mistook a one-pixel
+rectangle overlap with the next row for a same-row text collision.
+
+The local correction removes those title bands, preserves the native font and
+alignment, and distinguishes adjacent rows. Character stat/resistance/mastery
+labels use a two-pixel inset and stop before the following value's actual glyph
+origin. This fits complete EN/PT mastery names without moving values, shrinking
+glyphs or replacing shared artwork. Ellipsis remains a fallback for actual
+overflow; source bytes, locale selection, resources, hitboxes, launcher and wire
+contracts are unchanged. Classification: `MODERNIZACAO_COMPATIVEL`. See the
+[native evidence and measurements](../../.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md#complete-native-captions-october-25).
+
+Validation: the NoDeploy gate passed 3,176,709 architecture checks/static
+assertions, 281 socket checks, 200 crash checks and 58 launcher checks. Real
+GDI tests require complete representative EN/PT names with identical glyph
+masks at scales 1/1.25/1.5/2, and cover the identity/name-row collision. The
+final incremental solution build passed. These results do not execute the
+game's Direct3D UI. Actual visual acceptance, all classes, panel reopen,
+language changes, relogin and resolution changes remain pending.
+The 17 locale resource tests, focused native-record validator and
+`git diff --check` also passed.
+
+- Local candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+  `1144368EED4C048C58335DC45A7837F017A10FCCBCECFD1E34FDBFA93A343A08`.
+- Installed runtime: `tmproject/client748/WYD.exe`, SHA-256
+  `882F11E6CBA65E6B290DA0C8DF7920485982F5A9F1E49005D31823D76881BBE6`.
+- Source and candidate only: no local installation, patch publication, VPS
+  action, version change, commit or push. Revision 3 remains the last published
+  identity. Future publication requires the next paired client/server revision.
+
+Automatic execution review rejected cleanup with `blocked by policy` before
+the command ran. No alternate deletion mechanism was attempted. The new
+task-only leftovers are:
+
+- `C:/Users/xereca/AppData/Local/Temp/wyd-caption-native-20261025/`
+- `tmproject/build/tests/Release/crash-capture-tests-17592-33167218/`
+
 Hardcoded English strings, server-supplied messages and legacy untranslated
 content in the canonical English corpus remain outside this resource batch.
 Some legacy English resources also contain GBK-derived text requiring a
@@ -194,10 +306,11 @@ selection, direct launch, tooltips, quests and relaunch persistence still need
 observed gameplay validation using the exact candidate and resource hashes.
 No complete-translation or global-release readiness claim is made.
 
-The repository layout check still fails on the historical installation's
-`tmproject/WYD 7.48 PORTUGUES/WYD.log` and runtime `client748/dumps/` outside
-sanctioned build roots. Those runtime files are outside this change and were
-preserved; this check is not reported as passed.
+At that time, the repository-layout check failed on the installation's
+`WYD.log` at its former path and runtime crash files. The full local
+installation now resides in `references/client748/WYD 7.48 PORTUGUES/`.
+Current crash logs reside in `client748/dumps/`. The earlier check result is
+historical; this note does not claim that check passed.
 The installation preference `client748/lang.txt` is explicitly allowed by both
 the ignore rules and layout validator.
 Cleanup of this run's crash-test evidence was blocked by execution policy.
@@ -208,10 +321,114 @@ The Help/layout rebuild also retained
 after its cleanup command was rejected by execution policy.
 No alternate deletion method was attempted.
 
-Publication remains a separate authorized step: distribute the 7.48.001 full
-client (game, both resource folders, launcher EXE and its DLL) first, then
-reset the feed and activate the server gate as described in the
-[launcher release line](launcher.md#release-line-748). The legacy patch
+The adaptive-caption builds also left the following test-only evidence after
+their cleanup command was rejected by execution policy. No alternate deletion
+method was attempted. Incremental build outputs remain in their normal location.
+
+- `tmproject/build/tests/Release/crash-capture-tests-32816-1146126156`
+- `tmproject/build/tests/Release/crash-capture-tests-48244-1146385578`
+- `tmproject/build/tests/Release/crash-capture-tests-25516-1146469843`
+
+The title-tab follow-up cleanup was also rejected by execution policy. No
+alternate deletion method was attempted. Its remaining temporary output is:
+
+- `tmproject/build/tests/Release/crash-capture-tests-29692-1147563671`
+- `C:/Users/xereca/AppData/Local/Temp/wyd-caption-panels.png`
+- `C:/Users/xereca/AppData/Local/Temp/wyd-other-caption-panels.png`
+
+Build and research-validation diagnostics remain in `build/ui-text-fit/`.
+
+The 7.48.001 full client (game, both resource folders, launcher EXE and its DLL)
+established the published baseline and reset feed. Patch 7.48.002 and its server
+gate are now active, as recorded in the
+[launcher release receipt](launcher.md#published-patch-748002-2026-10-24). The legacy patch
 installer cannot replace its own running executable or loaded DLL, and the
 patch builder refuses both files. The obsolete source launcher's separate
 manifest/self-update flow remains outside the operational launcher contract.
+
+## October 23 audit corrections
+
+These changes are `MODERNIZACAO_COMPATIVEL`: existing wire keywords,
+opcodes, message indices, resource encodings, file selection and gameplay
+state representations remain unchanged. They do not establish complete
+translation or global-release readiness.
+
+- Font drawing and geometry now explicitly decode Windows-1252 bytes for
+  Unicode GDI calls, including text-control alignment and tooltip width.
+  Font selection uses an explicit ANSI character set. Accented single-byte
+  letters no longer pass through DBCS chunk splitting. The saved native
+  `FUN_00421b8f` establishes the shared draw/measure boundary, not a native
+  Unicode implementation. The existing
+  [UI evidence record](../../.agents/research/client748/flows/ui/field-ui-scale-and-anchors.md)
+  records that distinction and the automated coverage.
+- Quest subject loading validates the numeric prefix and destination range
+  before writing. The saved native `FUN_0049ec64` and caller `FUN_00441823`
+  establish the ten-byte prefix, 500 entries, one-based indices, type bytes
+  and overwrite order. Valid inputs keep those meanings; malformed inputs
+  no longer write outside the table. See the
+  [quest loading contract](../../.agents/research/client748/flows/ui/quest-subject-level-loading.md).
+- Canonical and EN/PT command help now describes `--` as global chat,
+  matching the authoritative broadcast path. Routing is unchanged.
+  Canonical help also replaces broken historical multibyte punctuation with
+  ASCII. Generator policy and its content hash were updated together.
+- The server reserves `getout`, `handover`, `war`, `item_lock`, `item_unlock`
+  and the existing localized aliases before nickname lookup in both chat
+  packet paths. They return an explicit unavailable notice instead of
+  accidentally whispering command arguments to a matching online nickname.
+  Every guild rank receives the owner-required guild rejection first when
+  attempting citizenship departure. Client message 391 is named
+  `CitizenshipLeave` internally; its index and `getout` wire token remain
+  unchanged.
+
+The reservation is not an implementation of citizenship departure, guild
+rank handover, legacy war operations or item locking. Those gameplay
+operations remain pending. The official server decompilation used for the
+command comparison is **7.59**, not proof of 7.48 parity. Its saved
+`FUN_00519CA0` includes citizenship departure and handover branches, including
+fees, rank checks, state changes and scheduling restrictions. Some field
+meanings and the complete persistence/login integration remain unresolved;
+the correction does not invent them or silently change fame or gold. The
+owner's prohibition on citizenship departure while in any guild takes
+precedence over historical leader-specific behavior. See the
+[channel plan](../bilingual-channels-plan.md) and
+[server gap analysis](<../../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md>).
+
+Validation completed:
+
+- `Build-Client.ps1 -NoDeploy`: 3,176,611 architecture checks and static
+  assertions, 281 socket checks, 200 crash checks and 58 launcher checks.
+- `LocaleBoundaryTests`: independent Unicode GDI expectations, invalid-input
+  handling, quest-table guards and native valid indexing/overwrite behavior.
+- Python locale suite: 17 tests passed. Generator check: 60 text resources,
+  2,859 item names and zero documented fallbacks. This is generation coverage,
+  not evidence that every legacy sentence is translated or correct.
+- `go test ./internal/game ./internal/wire`: passed. New command regressions
+  cover both incoming chat paths, uppercase keywords, colliding nicknames,
+  all ten guild-rank values and preservation of account/counter state.
+- `git diff --check`: passed. Existing Winsock deprecation warnings remain
+  outside this correction.
+
+Candidate: `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256
+`D5A36487DA7938E845B58FD91B697E412EE20301251F284502E3CA2F4D549085`.
+The previous candidate identity above is superseded. The installed game
+executable remains SHA-256
+`D29873E2DFA5528E432A164CC007D6DFE729A20D31C3902F3986542D76B7BB3A`.
+Canonical and EN/PT command resources in `client748/` were updated; no
+candidate EXE or launcher binary was installed. Operational launcher EXE
+and language DLL hashes remain
+`85C9C648B389BE91CA348351590FCBEFA6752A4D4E849AFBBCB1F054CA12FDE2`
+and `003134ABA581FD9802FD0DDFA8D2048D7EA834E14043ED6B8878377E8666BF59`.
+
+The audit candidate above was superseded for publication by revision 2,
+SHA-256 `80CA48E77A8F83535401B7FE1415E33C9DE873E04F55C0313C844DF7B6A66209`.
+Patch 7.48.002 contains that executable and the three command-help resources;
+it was publicly verified before server activation. The website now announces
+the mandatory compiled-version rule. No commit/push or local executable
+installation was performed. Actual client execution, non-Western Windows ACP
+validation and an observed launcher-to-game update flow remain pending.
+
+Cleanup of the new crash-test evidence was rejected by execution policy.
+The retained directory is
+`tmproject/build/tests/Release/crash-capture-tests-3516-1150995812`.
+No alternate deletion method was attempted. This cleanup limitation does
+not invalidate the successful build or imply publication.

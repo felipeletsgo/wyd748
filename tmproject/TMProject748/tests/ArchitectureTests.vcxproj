@@ -95,6 +95,8 @@
     <ClCompile Include="SceneDisconnectContractTests.cpp" />
     <ClCompile Include="UIBinaryTests.cpp" />
     <ClCompile Include="FontTextureUploadTests.cpp" />
+    <ClCompile Include="SingleLineTextLayoutTests.cpp" />
+    <ClCompile Include="LocaleBoundaryTests.cpp" />
     <ClCompile Include="FontGdiResourcesTests.cpp" />
     <ClCompile Include="RenderStateCacheTests.cpp" />
     <ClCompile Include="DeviceRestoreTests.cpp" />

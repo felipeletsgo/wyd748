@@ -1,7 +1,8 @@
 # Bilingual channels and shared client plan
 
-Status: implementation plan with the shared-server product model and the
-owner's guild departure and war isolation policies confirmed on 2026-10-23.
+Status (2026-10-25): a local two-channel implementation candidate is available.
+The owner's guild departure and war isolation policies were confirmed on
+2026-10-23. Installation, publication and in-game acceptance remain pending.
 This document authorizes no runtime change,
 publication, restart, or data migration. The requested product direction is
 Channel 1 for Brazilian Portuguese players and Channel 2 for English-speaking
@@ -15,7 +16,7 @@ are implemented, locally installed and automatically validated. The native
 launcher retains the website's existing update feed. See
 [multilingual client](client/multilingual-client.md) for the
 contract, exact artifacts, coverage and remaining gameplay validation. Channel
-and server-language work below remains planned.
+is implemented as described below; complete server localization remains pending.
 
 ## Confirmed product and proposed implementation
 
@@ -25,7 +26,8 @@ and server-language work below remains planned.
 | Game messages and NPC dialogue | Brazilian Portuguese (`pt-BR`) | English (`en`) |
 | Client distribution | One shared bilingual client | The same shared bilingual client |
 | Gameplay implementation | Shared server code | Shared server code |
-| Balance, items, recipes and rewards | Same canonical definitions | Same canonical definitions |
+| Items, recipes and rewards | Shared canonical definitions | Shared canonical definitions |
+| NPC population and monster attributes | Existing JSON population | Official 7.59 generator with channel-local adapted templates |
 | Maps, monsters and online population | Separate live world | Separate live world |
 
 Distribute one executable, one launcher, one full-client download and one
@@ -145,65 +147,100 @@ conditions and state transitions, not successful gameplay or persistence.
 | Core.dll `0x100248E0` | The inspected Thor Tower attack hook checks guild presence and personal citizenship against the hosting channel. This is not proof of every tower entry or reward check. Add the owner's guild-channel rule consistently across those operations. |
 | TMSRVIN score/drop/EXP paths | The current Go citizenship drop formulas were not confirmed. No generic citizenship EXP or drop percentage is established by this research. |
 
-The existing [server research map](../.agents/research/rea-server-759-runtime-map.md)
+The existing [server research map](<../references/decompilacao server/dlls/rea-analysis/maps/rea-server-759-runtime-map.md>)
 indexes the native evidence. Preserve the independent
 [7.48 citizenship and cape contract](../.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md):
 kingdom, cape emblem and citizenship must not become interchangeable fields.
 The detailed local investigation is retained in
-`build/rea-analysis/results/official-citizenship-system-20261023.md`; this plan
+`references/decompilacao server/dlls/rea-analysis/results/official-citizenship-system-20261023.md`; this plan
 records the decisions needed without depending on that ignored output alone.
 
-## Current implementation boundaries
+## Current implementation candidate (2026-10-25)
 
-- [Server configuration](../wydgo748/internal/data/server_config.go) provides
-  one listener and a `ChannelID`, but
-  [server startup](../wydgo748/cmd/server/main.go) creates one `World`.
-- [Account admission](../wydgo748/internal/game/handlers.go) claims accounts
-  in a map owned by that `World`. It does not establish exclusive ownership
-  between independent worlds or processes.
-- [PostgreSQL fences](../wydgo748/internal/store/postgres_fence.go) use
-  in-process synchronization. The advisory lock in
-  [PostgreSQL startup](../wydgo748/internal/store/postgres.go) protects schema
-  initialization, not online account ownership.
-- The [schema](../wydgo748/internal/store/postgres_schema.sql) stores guild and
-  instance aggregates as singleton rows. Two independent snapshots can
-  overwrite each other even when individual database transactions are valid.
-- The [guild model](../wydgo748/internal/model/guild.go) has kingdom and fame
-  but no separate guild citizenship field. A world-level character check alone
-  cannot enforce the owner's guild-channel rule.
-- The client already selects channels through `sn.bin` and `serverlist.bin`.
-  Initial login and migration currently use the fixed `TM_CONNECTION_PORT`
-  value, 8281; assigning another listener port alone is insufficient.
-- The [server command handler](../wydgo748/internal/game/commands.go) rejects
-  `srv`. The client has a migration receiver in
-  [TMFieldSceneSessionPackets.cpp](../tmproject/TMProject748/internal/app/scenes/TMFieldSceneSessionPackets.cpp),
-  but that does not establish an implemented server transfer protocol.
-- [TMPaths.h](../tmproject/TMProject748/internal/platform/windows/TMPaths.h)
-  identifies UI strings, message tables, item-name overlays, help and skill
-  files. [WYD748Assets.cpp](../tmproject/TMProject748/internal/core/WYD748Assets.cpp)
-  validates their legacy formats. Additional text exists directly in C++ and
-  in server responses and content files.
-- `WYD748_LoadClientConfig` currently rejects unknown keys in `config.txt`.
-  The selected separate `lang.txt` design avoids extending that schema or
-  depending on the historical launcher's configuration rewrite behavior.
-- The [launcher pipeline](client/launcher.md) currently publishes one feed.
-  [Build-ClientPatch.ps1](../tools/deployment/Build-ClientPatch.ps1) packages a
-  single runtime tree and excludes the launcher itself: replacing a running
-  launcher requires a separate bootstrap or full-client distribution path.
+The active configuration enables Channel 1 at `0.0.0.0:8281` and Channel 2 at
+`0.0.0.0:8282`. This is local source/configuration state, not an active VPS
+release. Both listeners must bind successfully before serving either channel.
 
-These findings support feasibility, but the existing configuration is not a
-safe two-channel deployment on its own.
+- One Go process runs both worlds on **one actor**, with bounded mailbox
+  rotation and a shared critical-persistence coordinator. Independent world
+  goroutines sharing aggregate pointers are not supported.
+- Accounts, names, connection/rate limits, guild identity/fame/citizenship,
+  sanctions and guild chat share an authority. Movement, entity IDs, parties,
+  monsters, instances and war runtime remain local to each world.
+- Guild registry snapshots preserve per-channel war projections. Instance
+  snapshots preserve both channels, with legacy root records representing
+  Channel 1. Guild citizenship is separate from kingdom/cape and character
+  citizenship. Legacy guilds without a citizenship version migrate to
+  Channel 1 once; explicitly neutral and Channel 2 guilds are preserved.
+- `srv 1` / `srv 2` waits for the final account and character-state write to
+  commit, then issues a random, account/channel/slot/session-bound ticket.
+  The 30-second ticket is single-use and blocks concurrent account admission.
+  The destination reloads durable state instead of sharing a live account.
+  Battle, instance, trade, shop and pending-write states reject transfer.
+- The client endpoint parser accepts bounded IPv4 literals with an optional
+  TCP port; legacy addresses keep port 8281. Initial login and migration use
+  the same parser. The current server list has two selectable slots, with
+  Channel 2 on port 8282. This coordinated extension requires the built client
+  candidate when the second channel is activated.
+- Global announcements, citizenship chat, whispers, guild chat and shared
+  guild mutations resolve the player's owning world. Nearby chat and entity
+  lookup stay local. Admin player presence, kick and teleport cover both
+  worlds, including colliding numeric entity IDs. NPC/map editing and detailed
+  map visualization remain attached to the admin world's population.
+- War admission uses both guild and character citizenship; transfer never
+  changes citizenship. Weekly guild-fame reset is global while city/tower
+  registration and outcomes are channel-scoped.
+- New channel-transfer messages provide EN/PT text with an English fallback.
+  Existing gameplay dialogue is only partially localized. Client language
+  preference does not select channel or citizenship.
+
+Both channels load the same `data/spawns/NPCGener.txt` population and `data/npcs/` catalog.
+The former channel 2 file supplied the baseline. Another 396 groups preserve
+missing project, quest, test, and legacy content. The 40 co-located replacements
+selected by the owner retain the channel 2 definitions. The final file contains
+5,501 source groups, with 5,485 enabled by the loader. `NPCGener2.txt` and the
+`npcgener2` configuration key were removed. Preserved deployment configuration
+must drop that key before activation. Each World owns independent runtime state.
+The former 727-template snapshot supplied the baseline; one identical unused
+Reimers variant was consolidated. Another 304 required templates preserve existing
+quests, instances, and events. The consolidated population JSON was removed.
+Canonical template aliases replace proven duplicates in generator references.
+Each World clones mutable definitions before applying channel-specific PostgreSQL
+overrides. Visible names use up to 15 printable ASCII bytes plus NUL
+in the existing 16-byte field; stable catalog IDs remain separate. Excessive
+CON uses the approved 1000 limit. Canonical service identities preserve routing
+for abbreviated skill masters, kings and the kingdom broker.
+
+The historical adaptation used the existing 7.48 client and removed incompatible items:
+179 item positions across 75 templates, involving 81 IDs, were cleared without
+shifting inventory/drop ordinals. The current shared loader leaves eleven
+out-of-map groups, two nonpositive-capacity groups, and three explicitly disabled
+groups inactive. Runtime instance/war/colosseum reservations still apply. Both
+Worlds are tested against the same general group definitions with independent
+mutable templates. These tests do not prove native service equivalence or
+live-client acceptance.
+
+See the [population review and adaptation report](<../references/decompilacao server/dlls/rea-analysis/maps/rea-server-759-npc-comparison.md>),
+[template bindings](<../references/decompilacao server/dlls/rea-analysis/maps/channel2-population-bindings.tsv>),
+[item removals](<../references/decompilacao server/dlls/rea-analysis/maps/channel2-incompatible-items.tsv>), and
+[disabled groups](<../references/decompilacao server/dlls/rea-analysis/maps/channel2-disabled-generators.tsv>).
+Exact artifacts and validation are recorded there. No commit, client install,
+patch publication, VPS upload or restart is part of this candidate.
+
+The phases below preserve the original planning checklist. The current status
+above supersedes their proposed topology; complete service parity, all legacy
+translations and real-client acceptance must not be inferred from local builds.
 
 ## Phase 0: define the contracts
 
 1. Encode the confirmed shared-server model in contracts and tests: both
    client languages can enter both channels, citizenship is independent of the current
    channel, and the same account and character state follow the player.
-2. Amend the English-only repository policy for approved player-facing
-   `pt-BR` and `en` resources. Keep code identifiers, comments, diagnostics,
-   internal staff tools and technical documentation in English. Update the
-   [language migration record](language-migration.md) to distinguish missing
-   translations from text in an intentionally supported language.
+2. Apply the repository policy for approved player-facing `pt-BR` and `en`
+   resources. Keep code identifiers, comments, diagnostics, internal staff
+   tools and technical documentation in English. Update the [language migration
+   record](language-migration.md) to distinguish missing translations from text
+   in an intentionally supported language.
 3. Adopt the ownership matrix below and define mutation ordering. Do not
    duplicate global rewards or overwrite shared state through two local caches.
 4. Specify event time zones explicitly. Preserve current schedules until a
@@ -233,8 +270,8 @@ they cross client/server boundaries. Do not label new behavior native parity.
 
 ## Phase 1: coordinate two live worlds
 
-Start with a design spike for one native Go process containing two isolated
-world loops and a shared coordinator. This avoids introducing distributed
+The selected implementation uses one native Go process containing two isolated
+worlds on one actor and a shared coordinator. This avoids introducing distributed
 ownership solely to offer two channels. Confirm that world construction,
 metrics, timers, shutdown and administration support this topology before
 adopting it. Do not simply instantiate a second `World` and share pointers.

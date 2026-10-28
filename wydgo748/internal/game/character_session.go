@@ -340,7 +340,7 @@ func (w *World) onREQMobByID(s *net.Session, pkt []byte) {
 		w.showMob(p, m)
 		if wasVisible { // Recover an entity lost from the client's local scene.
 			ancient := m.Def.Equip.AncientCodes()
-			p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.Name, m.X, m.Y,
+			p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.VisibleName(), m.X, m.Y,
 				m.Def.Mesh(), ancient[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 		}
 		return

@@ -58,7 +58,7 @@ func (w *World) tickColosseumNotices(local time.Time) {
 	}
 }
 
-// The next wave follows the actual stage, including the gate-opening stage.
+// The next wave follows the actual stage, including the post-wave transition.
 // An overdue wave has no positive countdown until the scheduler spawns it;
 // pending Elixir writes must never produce a fictitious future wave.
 func (w *World) nextColosseumWave() (int, time.Time) {

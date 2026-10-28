@@ -175,7 +175,7 @@ Local installation and actual gameplay/`CLIENT_TESTED` remain pending.
   | 45 | South_Gate (457, 1) at (64,64) | no key | locked map-corner dummy | locked (correct) |
   | 0–11 | City-war arena gates (471, 9), 3 per city | `SetArenaDoor` (city 0–3: Armia, Azran, Erion, Nippleheim) | locked; open while the battle runs | fixed: open from +6 to +31 min of city-war combat, locked otherwise |
   | 12–13 | Colosseum Steel_Window (472, 9) | `SetColoseumDoor`, Battle Royale | open at startup, locked by the event | fixed: open at startup; the Colosseum locks them from minute 5 to 17 (no Battle Royale event yet) |
-  | 14–18 | Colosseum gates (471, 9) | `SetColoseumDoor2`, Colosseum event | locked, opened by the event | fixed: Colosseum opens them at minute 7 and locks them at minute 17 |
+  | 14–18 | Colosseum gates (471, 9) | `SetColoseumDoor2`, Colosseum event | locked, opened by the event | fixed: Colosseum opens them with wave 1 at minute 6 and locks them at minute 17 |
   | 35–40 | OX quiz gates (471, 9) | 7.59 `sub_561C10` | locked, driven by the OX event | fixed: staff panel "OX arena" (`game.event.ox`) locks/opens them |
   | 41–44 | Noatum castle gates (773/800, 15/16) | `SetCastleDoor`, castle war | open; locked during the castle war | always open (no castle battle) |
   | 66–70 | Victory's_Tower (3145) | 7.59 init (`EF_GROUND` 8) | 7.59 locked; W2PP open | open (sunk) — confirm 7.48 |
@@ -191,8 +191,9 @@ Local installation and actual gameplay/`CLIENT_TESTED` remain pending.
   otherwise; a pending or rejected charge is retried every tick) run from
   `data/NPCGener/Coliseu{N,M,A}.txt` with the 16 `COL_*` monsters. Minute 5
   locks the steel windows and filters the arena, waves spawn at minutes 6, 9,
-  11, 13 and 15 (3–5 GenerateMob calls per label), the inner gates open at
-  minute 7, and minute 17 moves players out to (2615,1727) (the dead are
+  11, 13 and 15 (3–5 GenerateMob calls per label). Owner rule (2026-10-23):
+  the inner gates open in the same minute-6 transition, before wave 1 spawns.
+  Minute 17 moves players out to (2615,1727) (the dead are
   revived and their corpse removed, through the critical persistence
   coordinator in production), reopens the windows, locks the gates and
   deletes the event mobs. N/M keep recalling ineligible classes that walk in,
@@ -208,7 +209,13 @@ Local installation and actual gameplay/`CLIENT_TESTED` remain pending.
   process. Day claims and operation receipts are not durable across restarts.
   Active events, pending player exits, claimed tiers and passed schedules block
   a new start; epoch/revision checks and receipts fence stale or repeated
-  commands. Tests: `TestColosseum*`. Source and automated tests only.
+  commands. Owner rule (2026-10-23): all event-generator monsters in N/M/A
+  deal at most 1 damage per physical or spell hit, before player absorption;
+  zero-damage results remain zero. Other monsters sharing those templates
+  retain their damage. PvP retains the existing PK-mode requirement. These
+  internal server adjustments are `MODERNIZACAO_COMPATIVEL`, not a native
+  7.48 parity claim, and require no client change. Tests: `TestColosseum*`.
+  Source and automated tests only; deployment and gameplay validation pending.
 - OX arena (7.59 `quizmode`, `quizdoor`, `quizresultx`, `quizresulto`): staff
   panel "OX arena" (`game.event.ox`). "Start OX event" enables quiz mode and
   opens all six gates in one World command. Starting an already enabled event

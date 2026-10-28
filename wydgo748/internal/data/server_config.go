@@ -60,12 +60,11 @@ type ServerConfig struct {
 	ChatGlobalPer10Secs          uint32
 	CriticalPersistenceTimeoutMS uint32
 	ChannelID                    uint32
+	Channel2Enabled              bool
+	Channel2Address              string
 	NPCPath                      string
 	GeneratorPath                string
-	AccountsPath                 string
-	GuildsPath                   string
 	GuildsTxtPath                string
-	CharStatePath                string
 	QuestsPath                   string
 	QuestZonesPath               string
 	InitItemsPath                string
@@ -77,6 +76,7 @@ type ServerConfig struct {
 	DropRatePath                 string
 	VolatilePath                 string
 	InstancesPath                string
+	InstanceGeneratorsPath       string
 	ReplictionPath               string
 	MountPath                    string
 	CharacterTemplatePath        string
@@ -108,7 +108,7 @@ func DefaultServerConfig() ServerConfig {
 	return ServerConfig{
 		ListenAddress:                "0.0.0.0:8281",
 		WebAdminAddress:              "127.0.0.1:8082",
-		WebAdminStaffPath:            "data/staff.json",
+		WebAdminStaffPath:            "data/config/staff.json",
 		WebAdminStaticPath:           "web/portal/dist",
 		DatabaseDriver:               "postgres",
 		DatabaseURLEnv:               "WYD_DATABASE_URL",
@@ -133,31 +133,30 @@ func DefaultServerConfig() ServerConfig {
 		ChatGlobalPer10Secs:          2,
 		CriticalPersistenceTimeoutMS: 500,
 		ChannelID:                    1,
+		Channel2Address:              "0.0.0.0:8282",
 		NPCPath:                      "data/npcs",
-		GeneratorPath:                "data/NPCGener.txt",
-		AccountsPath:                 "data/accounts",
-		GuildsPath:                   "data/guilds.json",
-		GuildsTxtPath:                "data/Guilds.txt",
-		CharStatePath:                "data/charstate",
-		QuestsPath:                   "data/quests.json",
-		QuestZonesPath:               "data/quest_zones.json",
-		InitItemsPath:                "data/init_items.csv",
-		BossPath:                     "data/boss",
-		ItemPath:                     "data/itemlist.csv",
-		ItemNamePath:                 "data/Itemname.csv",
-		ItemEffectPath:               "data/ItemEffect.h",
-		SkillPath:                    "data/SkillData.csv",
-		DropRatePath:                 "data/droprate.json",
-		VolatilePath:                 "data/volatiles.json",
-		InstancesPath:                "data/instances.json",
-		ReplictionPath:               "data/repliction.json",
-		MountPath:                    "data/mounts.json",
-		CharacterTemplatePath:        "data/character_templates.json",
-		HeightMapPath:                "data/maps/HeightMap.dat",
-		AttributeMapPath:             "data/maps/AttributeMap.dat",
-		TeleportPath:                 "data/teleports.ini",
-		NetworkAdmissionPath:         "data/network_admission.json",
-		ClientIntegrityPath:          "data/client_integrity.json",
+		GeneratorPath:                "data/spawns/NPCGener.txt",
+		GuildsTxtPath:                "runtime/Guilds.txt",
+		QuestsPath:                   "data/content/quests.json",
+		QuestZonesPath:               "data/content/quest_zones.json",
+		InitItemsPath:                "data/world/init_items.csv",
+		BossPath:                     "data/content/boss",
+		ItemPath:                     "data/catalog/itemlist.csv",
+		ItemNamePath:                 "data/catalog/Itemname.csv",
+		ItemEffectPath:               "data/catalog/ItemEffect.h",
+		SkillPath:                    "data/catalog/SkillData.csv",
+		DropRatePath:                 "data/content/droprate.json",
+		VolatilePath:                 "data/content/volatiles.json",
+		InstancesPath:                "data/content/instances.json",
+		InstanceGeneratorsPath:       "data/spawns/instances",
+		ReplictionPath:               "data/content/repliction.json",
+		MountPath:                    "data/content/mounts.json",
+		CharacterTemplatePath:        "data/content/character_templates.json",
+		HeightMapPath:                "data/world/maps/HeightMap.dat",
+		AttributeMapPath:             "data/world/maps/AttributeMap.dat",
+		TeleportPath:                 "data/world/teleports.ini",
+		NetworkAdmissionPath:         "data/config/network_admission.json",
+		ClientIntegrityPath:          "data/config/client_integrity.json",
 		NPCGenerLog:                  "summary",
 		GameplayLog:                  "summary",
 		DebugAddress:                 "", // diagnostics disabled by default
@@ -269,12 +268,11 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"chat_global_per_10_seconds":       setUint32(&cfg.ChatGlobalPer10Secs),
 		"critical_persistence_timeout_ms":  setUint32(&cfg.CriticalPersistenceTimeoutMS),
 		"channel_id":                       setUint32(&cfg.ChannelID),
+		"channel2_enabled":                 func(v string) error { b, err := strconv.ParseBool(v); cfg.Channel2Enabled = b; return err },
+		"channel2_address":                 func(v string) error { cfg.Channel2Address = v; return nil },
 		"npcs":                             func(v string) error { cfg.NPCPath = v; return nil },
 		"npcgener":                         func(v string) error { cfg.GeneratorPath = v; return nil },
-		"accounts":                         func(v string) error { cfg.AccountsPath = v; return nil },
-		"guilds":                           func(v string) error { cfg.GuildsPath = v; return nil },
 		"guilds_txt":                       func(v string) error { cfg.GuildsTxtPath = v; return nil },
-		"charstate":                        func(v string) error { cfg.CharStatePath = v; return nil },
 		"quests":                           func(v string) error { cfg.QuestsPath = v; return nil },
 		"quest_zones":                      func(v string) error { cfg.QuestZonesPath = v; return nil },
 		"init_items":                       func(v string) error { cfg.InitItemsPath = v; return nil },
@@ -286,6 +284,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"droprates":                        func(v string) error { cfg.DropRatePath = v; return nil },
 		"volatiles":                        func(v string) error { cfg.VolatilePath = v; return nil },
 		"instances":                        func(v string) error { cfg.InstancesPath = v; return nil },
+		"instance_generators":              func(v string) error { cfg.InstanceGeneratorsPath = v; return nil },
 		"repliction":                       func(v string) error { cfg.ReplictionPath = v; return nil },
 		"mounts":                           func(v string) error { cfg.MountPath = v; return nil },
 		"character_templates":              func(v string) error { cfg.CharacterTemplatePath = v; return nil },
@@ -354,26 +353,23 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		return ServerConfig{}, fmt.Errorf("%s: invalid gameplay_log %q (use quiet, summary or verbose)",
 			path, cfg.GameplayLog)
 	}
-	switch cfg.DatabaseDriver {
-	case "postgres", "json":
-	default:
-		return ServerConfig{}, fmt.Errorf("%s: invalid database_driver %q (use postgres or json)",
+	// The JSON store is a test adapter only; the server always uses PostgreSQL.
+	if cfg.DatabaseDriver != "postgres" {
+		return ServerConfig{}, fmt.Errorf("%s: invalid database_driver %q (use postgres)",
 			path, cfg.DatabaseDriver)
 	}
-	if cfg.DatabaseDriver == "postgres" {
-		if cfg.DatabaseURL == "" && cfg.DatabaseURLEnv == "" {
-			return ServerConfig{}, fmt.Errorf("%s: PostgreSQL requires database_url or database_url_env", path)
-		}
-		if cfg.DatabaseMaxConns == 0 || cfg.DatabaseMaxConns > 64 {
-			return ServerConfig{}, fmt.Errorf("%s: database_max_conns must be between 1 and 64", path)
-		}
-		// Leave one pool connection for logins and the legacy async queue.
-		if cfg.CriticalPersistenceWorkers == 0 || cfg.CriticalPersistenceWorkers >= cfg.DatabaseMaxConns {
-			return ServerConfig{}, fmt.Errorf("%s: critical_persistence_workers must be between 1 and database_max_conns-1", path)
-		}
-		if cfg.CriticalPersistenceCapacity < cfg.CriticalPersistenceWorkers || cfg.CriticalPersistenceCapacity > 65536 {
-			return ServerConfig{}, fmt.Errorf("%s: critical_persistence_capacity must be between critical_persistence_workers and 65536", path)
-		}
+	if cfg.DatabaseURL == "" && cfg.DatabaseURLEnv == "" {
+		return ServerConfig{}, fmt.Errorf("%s: PostgreSQL requires database_url or database_url_env", path)
+	}
+	if cfg.DatabaseMaxConns == 0 || cfg.DatabaseMaxConns > 64 {
+		return ServerConfig{}, fmt.Errorf("%s: database_max_conns must be between 1 and 64", path)
+	}
+	// Leave one pool connection for logins and the legacy async queue.
+	if cfg.CriticalPersistenceWorkers == 0 || cfg.CriticalPersistenceWorkers >= cfg.DatabaseMaxConns {
+		return ServerConfig{}, fmt.Errorf("%s: critical_persistence_workers must be between 1 and database_max_conns-1", path)
+	}
+	if cfg.CriticalPersistenceCapacity < cfg.CriticalPersistenceWorkers || cfg.CriticalPersistenceCapacity > 65536 {
+		return ServerConfig{}, fmt.Errorf("%s: critical_persistence_capacity must be between critical_persistence_workers and 65536", path)
 	}
 	if cfg.SessionQueueCapacity == 0 || cfg.SessionQueueCapacity > 8192 {
 		return ServerConfig{}, fmt.Errorf("%s: session_queue_capacity must be between 1 and 8192", path)
@@ -425,6 +421,14 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	}
 	if cfg.ChannelID == 0 || cfg.ChannelID > 255 {
 		return ServerConfig{}, fmt.Errorf("%s: channel_id must be between 1 and 255", path)
+	}
+	if cfg.Channel2Enabled {
+		if cfg.ChannelID != 1 || cfg.Channel2Address == cfg.ListenAddress {
+			return ServerConfig{}, fmt.Errorf("%s: channel 2 requires channel_id=1 and a distinct listener", path)
+		}
+		if err := validateListenAddress(cfg.Channel2Address); err != nil {
+			return ServerConfig{}, fmt.Errorf("%s: channel2_address: %w", path, err)
+		}
 	}
 	if cfg.DebugAddress != "" {
 		if err := ValidateDebugAddress(cfg.DebugAddress); err != nil {

@@ -7,6 +7,7 @@ import { setupPvPDoor } from './pvp-door';
 import { setupOXEvent } from './ox-event';
 import { setupColosseum } from './colosseum';
 import { setupPremiumShop } from './premium-shop';
+import { setupNPCEditor } from './npc-editor';
 import { setupPlayerModeration } from './player-moderation';
 import { setupPlayerTeleport } from './player-teleport';
 import { setupSanctions } from './sanctions';
@@ -89,6 +90,7 @@ const messages: Record<string, string> = {
   invalid_origin: 'The panel origin does not match the service configuration.',
   events_unavailable: 'Events require an updated panel integrated with tm.exe. The separate Web API remains read-only.',
   premium_unavailable: 'The premium shop requires the panel integrated with tm.exe and PostgreSQL.',
+  npc_unavailable: 'NPC editing requires the panel integrated with tm.exe and PostgreSQL.',
   unknown_account: 'Account not found.',
   invalid_account: 'Invalid account name.',
   invalid_id: 'Invalid record identifier. Reload the list.',
@@ -127,6 +129,7 @@ const pvpDoorPanel = setupPvPDoor(api, explain);
 const oxEventPanel = setupOXEvent(api, explain);
 const colosseumPanel = setupColosseum(api, explain);
 const premiumPanel = setupPremiumShop(api, explain);
+const npcEditorPanel = setupNPCEditor(api, explain);
 const moderationPanel = setupPlayerModeration(api, explain);
 const teleportPanel = setupPlayerTeleport(api, explain);
 const sanctionsPanel = setupSanctions(api, explain);
@@ -161,6 +164,7 @@ function resetSnapshot() {
   oxEventPanel.reset();
   colosseumPanel.reset();
   premiumPanel.reset();
+  npcEditorPanel.reset();
   moderationPanel.reset();
   teleportPanel.reset();
   sanctionsPanel.reset();
@@ -192,7 +196,7 @@ async function init() {
   try {
     session = await api<Session>('/auth/session');
     showSession(); text('login-message','');
-    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); refreshStaffOps(); }
+    if (session.authenticated) { void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); void npcEditorPanel.refresh(); refreshStaffOps(); }
   } catch (error) {
     session = undefined; showSession(); text('login-message',explain(error));
   } finally {
@@ -451,7 +455,7 @@ el<HTMLFormElement>('login-form').addEventListener('submit', async event => {
     if (!session) session = await api<Session>('/auth/session');
     session = await api<Session>('/auth/login','POST',{username:el<HTMLInputElement>('username').value,password:el<HTMLInputElement>('password').value,adminPin:el<HTMLInputElement>('adminPin').value,turnstileToken:loginChallenge.token});
     resetSnapshot(); showSession(); el<HTMLButtonElement>('refresh').focus();
-    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); refreshStaffOps();
+    void query(); void loadDirectory(); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); void npcEditorPanel.refresh(); refreshStaffOps();
   } catch (error) {
     text('login-message',explain(error)); if (error instanceof APIError && error.code === 'invalid_csrf') session = undefined;
   } finally {
@@ -466,7 +470,7 @@ el('logout').addEventListener('click',async () => {
     else {text('snapshot-state','Could not end the session');text('snapshot-detail',explain(error));el('snapshot-banner').classList.add('error');}
   } finally {button.disabled = false;}
 });
-el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); refreshStaffOps(); });
+el('refresh').addEventListener('click',() => { void query(0); void loadDirectory(directoryCursor); void globalDropPanel.refresh(); void quizPanel.refresh(); void bossesPanel.refresh(); void pvpDoorPanel.refresh(); void oxEventPanel.refresh(); void colosseumPanel.refresh(); void premiumPanel.refresh(); void npcEditorPanel.refresh(); refreshStaffOps(); });
 el<HTMLFormElement>('search-form').addEventListener('submit',event => {event.preventDefault();void query(0,el<HTMLInputElement>('search').value.trim());});
 el<HTMLFormElement>('player-filter-form').addEventListener('submit',event => {
   event.preventDefault();

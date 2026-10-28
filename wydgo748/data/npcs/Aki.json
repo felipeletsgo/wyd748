@@ -55,10 +55,10 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 0,
     "attack": 500,
     "magicAttack": 0,
-    "defense": 3000,
+    "defense": 500,
     "maxHP": 9000,
     "maxMP": 0,
     "curHP": 9000,
@@ -70,9 +70,9 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -86,32 +86,114 @@
   ],
   "vende": [
     {
+      "index": 3322,
+      "eff": [
+        61,
+        120,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 3323,
+      "eff": [
+        61,
+        120,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 682,
+      "eff": [
+        61,
+        120,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 688,
+      "eff": [
+        61,
+        120,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1728
+    },
+    {
+      "index": 4111
+    },
+    {
       "index": 0
     },
     {
-      "index": 685,
-      "eff": [
-        61,
-        100,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
     },
     {
-      "index": 691,
-      "eff": [
-        61,
-        100,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
     },
     {
-      "index": 415
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
     },
     {
       "index": 0
@@ -120,94 +202,7 @@
       "index": 411
     },
     {
-      "index": 697
-    },
-    {
-      "index": 787
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 4038
-    },
-    {
-      "index": 4039
-    },
-    {
-      "index": 4040
-    },
-    {
-      "index": 4041
-    },
-    {
-      "index": 4042
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 700
-    },
-    {
-      "index": 699
-    },
-    {
-      "index": 776
+      "index": 4016
     }
   ]
 }

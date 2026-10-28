@@ -33,7 +33,7 @@ The native portal prompt reads bit `0x10` in a 4x4 world block, so this portal
 covers X1340..1343 / Y1464..1467. Attribute offset 375119 changes from `0x04`
 to `0x14`, preserving the safe-zone bit. Both active maps are synchronized:
 `tmproject/client748/Env/AttributeMap.dat` (1,048,580 bytes, trailer preserved)
-and `wydgo748/data/maps/AttributeMap.dat` (1,048,576 bytes). No historical
+and `wydgo748/data/world/maps/AttributeMap.dat` (1,048,576 bytes). No historical
 reference asset is modified. The generic portal prompt sends the existing
 16-byte `0x290`; no new client destination table is necessary.
 
@@ -111,6 +111,11 @@ instance result, persistence and exit rules remain authoritative.
 ### Regular, Mystic and Arcane Cube rooms
 
 Each variant inherits the same 24 questions preceding its final combat room.
+Combat populations use separate `CubeN.txt`, `CubeM.txt`, and `CubeA.txt`
+files under `data/spawns/instances/`. Each tier has 25 distinct rooms and
+selects its own generator blocks. O/X platforms follow each tier's room grid.
+Loading those definitions creates no public mobs. Instance activation creates
+the current room's fixed leader/follower wave; teardown removes it.
 After the last monster in a question room is cleared, the server refreshes
 any stale kill timestamp and opens the same private ten-second question
 panel. Both the configured duration and authoritative deadline are ten

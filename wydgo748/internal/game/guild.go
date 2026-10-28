@@ -116,7 +116,7 @@ func (w *World) onlineGuildMembers(guildID uint16) []*Player {
 		return nil
 	}
 	var members []*Player
-	for _, p := range w.players {
+	for _, p := range w.globalPlayers() {
 		if p.InWorld && p.Char != nil && p.Char.GuildID == guildID {
 			members = append(members, p)
 		}
@@ -128,6 +128,14 @@ func (w *World) onlineGuildMembers(guildID uint16) []*Player {
 // changes. Guild mark/rank changes must not recreate movement or coordinates.
 func (w *World) publishGuildIdentity(p *Player) {
 	if p == nil || p.Char == nil || !p.InWorld || p.Session == nil {
+		return
+	}
+	owner := w.playerWorld(p)
+	if owner == nil {
+		return
+	}
+	if owner != w {
+		w.cluster.inWorld(owner, func() { owner.publishGuildIdentity(p) })
 		return
 	}
 	w.syncPlayerChaos(p)
@@ -149,8 +157,8 @@ func (w *World) sendGuildChat(sender *Player, message string) {
 		return
 	}
 	delivered := 0
-	for _, member := range w.onlineGuildMembers(guild.ID) {
-		if member == sender {
+	for _, member := range w.globalPlayers() {
+		if member == sender || member.Char.GuildID != guild.ID || guild.Member(member.Char.Name) == nil {
 			continue // The sender's client already inserted the local line.
 		}
 		member.Session.Send(wire.MessageWhisper(0, sender.Char.Name, message, 3))
@@ -204,10 +212,11 @@ func (w *World) guildCommandCreate(s *net.Session, p *Player, arg string) {
 	previousGuilds := w.guilds.Guilds
 	oldID, oldRank := p.Char.GuildID, p.Char.GuildRank
 	w.guilds.Guilds = append(w.guilds.Guilds, model.Guild{
-		ID:        id,
-		Name:      name,
-		Kingdom:   characterKingdom(p.Char),
-		CreatedAt: w.now().UTC(),
+		Citizenship: p.Char.Citizenship,
+		ID:          id,
+		Name:        name,
+		Kingdom:     characterKingdom(p.Char),
+		CreatedAt:   w.now().UTC(),
 		Members: []model.GuildMember{{
 			Character: p.Char.Name,
 			Account:   p.Account.Name,
@@ -249,7 +258,7 @@ func (w *World) guildCommandInvite(s *net.Session, p *Player, arg string) {
 	}
 	// Without a character/account index, only online players can be invited.
 	// Offline invitations would require scanning every account.
-	invited := w.playerByCharacterName(target)
+	invited := w.guildPlayerByName(target)
 	if invited == nil || invited.Char == nil {
 		s.Send(wire.MessagePanel("That player is not online."))
 		return
@@ -363,7 +372,7 @@ func (w *World) removeGuildMember(guild *model.Guild, character string) (dissolv
 
 // applyGuildMembership synchronizes online character fields after a registry change.
 func (w *World) applyGuildMembership(character string, guildID uint16, rank byte) *Player {
-	target := w.playerByCharacterName(character)
+	target := w.guildPlayerByName(character)
 	if target == nil || target.Char == nil {
 		return nil
 	}
@@ -387,7 +396,7 @@ func (w *World) guildCommandLeave(s *net.Session, p *Player, _ string) {
 			if strings.EqualFold(successor.Character, p.Char.Name) {
 				continue
 			}
-			if w.criticalGuildMutationReserved(w.playerByCharacterName(successor.Character)) {
+			if w.criticalGuildMutationReserved(w.guildPlayerByName(successor.Character)) {
 				return
 			}
 			break
@@ -461,7 +470,7 @@ func (w *World) guildCommandExpel(s *net.Session, p *Player, arg string) {
 	}
 	// Only online members can be expelled without a character/account index
 	// for updating the persisted account of an offline member.
-	victimPlayer := w.playerByCharacterName(victim.Character)
+	victimPlayer := w.guildPlayerByName(victim.Character)
 	if victimPlayer == nil || victimPlayer.Char == nil {
 		s.Send(wire.MessagePanel("You can only expel members who are online."))
 		return
@@ -573,7 +582,7 @@ func (w *World) guildCommandSubLeader(s *net.Session, p *Player, arg string) {
 		s.Send(wire.MessagePanel(guildAuthMessage(err, "promote")))
 		return
 	}
-	promoted := w.playerByCharacterName(target)
+	promoted := w.guildPlayerByName(target)
 	if promoted == nil || promoted.Char == nil {
 		s.Send(wire.MessagePanel("That player is not online."))
 		return

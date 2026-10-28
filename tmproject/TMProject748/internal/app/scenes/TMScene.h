@@ -2,6 +2,7 @@
 #include "ExtractedFlow.h"
 
 #include <cstdio>
+#include <cstddef>
 #include "TreeNode.h"
 #include "Structures.h"
 #include "Basedef.h"
@@ -102,7 +103,7 @@ public:
     int LoadMsgText2(SListBox* pListBox, const char* szFileName, int nStartLine, int nEndLine);
     int LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, int ntrans);
     unsigned int LoadMsgText4(char* pStr, int dwStrSize, const char* szFileName, int nLv, int ntrans);
-    int LoadMsgLevel(char* LevelQuest, const char* szFileName, char cType);
+    int LoadMsgLevel(char* LevelQuest, std::size_t capacity, const char* szFileName, char cType);
     void CheckPKNonePK(int nServerIndex);
     void LogMsgCriticalError(int Type, int ID, int nMesh, int X, int Y);
 

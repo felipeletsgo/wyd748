@@ -26,7 +26,7 @@ func isCarbMasterNPC(def *model.NPCDef) bool {
 	if def == nil || def.Tipo != model.TipoNPC {
 		return false
 	}
-	name := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(def.Name), " ", "_"))
+	name := strings.ToLower(strings.ReplaceAll(strings.TrimSpace(def.InteractionName()), " ", "_"))
 	const prefix = "carb_mstr"
 	if len(name) != len(prefix)+1 || !strings.HasPrefix(name, prefix) {
 		return false
@@ -34,9 +34,9 @@ func isCarbMasterNPC(def *model.NPCDef) bool {
 	return name[len(prefix)] >= '1' && name[len(prefix)] <= '6'
 }
 
-// applyCarbMasterBuffs aplica o pacote completo ou restaura o snapshot. O
-// SetAffect nativo recebe os indices 41/43/44/45 e resolve por SkillData:
-// Velocidade, Escudo Magico, Arma Magica e Toque de Athena.
+// applyCarbMasterBuffs applies every buff or restores the snapshot. Native
+// SetAffect resolves indices 41/43/44/45 through SkillData: Speed, Magic
+// Shield, Magic Weapon and Athena's Touch.
 func (w *World) applyCarbMasterBuffs(ch *model.Char) bool {
 	if ch == nil {
 		return false

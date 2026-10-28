@@ -9,13 +9,13 @@ import (
 // position (806,3621), standing on a walkable cell.
 func TestMagicChamberRuneBonusBossesAreConfigured(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
+	volatiles, err := LoadVolatilesWithInstances(filepath.Join(root, "content", "volatiles.json"),
+		filepath.Join(root, "content", "instances.json"), filepath.Join(root, "spawns", "instances"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func TestMagicChamberRuneBonusBossesAreConfigured(t *testing.T) {
 	for _, npc := range npcs {
 		monsters[npc.Name] = npc.IsMonster()
 	}
-	terrain, err := LoadTerrain(filepath.Join(root, "maps", "HeightMap.dat"), filepath.Join(root, "maps", "AttributeMap.dat"))
+	terrain, err := LoadTerrain(filepath.Join(root, "world", "maps", "HeightMap.dat"), filepath.Join(root, "world", "maps", "AttributeMap.dat"))
 	if err != nil {
 		t.Fatal(err)
 	}

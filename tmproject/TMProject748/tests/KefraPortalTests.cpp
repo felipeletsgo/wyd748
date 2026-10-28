@@ -179,7 +179,7 @@ int RunKefraPortalTests(int& checks)
         movement.find("g_TeleportTable[ll].nX == x && g_TeleportTable[ll].nY == y") != std::string::npos,
         "the actual movement prompt resolves coordinates using the tested four-unit grid");
     for (const char* path : {"tmproject/client748/Env/AttributeMap.dat",
-        "wydgo748/data/maps/AttributeMap.dat"})
+        "wydgo748/data/world/maps/AttributeMap.dat"})
     {
         std::ifstream attributes(FindFixture(path), std::ios::binary);
         for (int x = 2364; x < 2368; ++x)
@@ -196,7 +196,7 @@ int RunKefraPortalTests(int& checks)
             }
         }
     }
-    std::istringstream routes(ReadSource("wydgo748/data/teleports.ini"));
+    std::istringstream routes(ReadSource("wydgo748/data/world/teleports.ini"));
     int routesFound = 0;
     for (std::string line; std::getline(routes, line);)
     {

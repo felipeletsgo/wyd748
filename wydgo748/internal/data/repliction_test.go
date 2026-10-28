@@ -8,15 +8,15 @@ import (
 func TestLoadNativeReplictionCatalog(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := LoadCatalog(
-		filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"),
-		filepath.Join(root, "ItemEffect.h"),
-		filepath.Join(root, "SkillData.csv"),
+		filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"),
+		filepath.Join(root, "catalog", "ItemEffect.h"),
+		filepath.Join(root, "catalog", "SkillData.csv"),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	repliction, err := LoadRepliction(filepath.Join(root, "repliction.json"), catalog.Items)
+	repliction, err := LoadRepliction(filepath.Join(root, "content", "repliction.json"), catalog.Items)
 	if err != nil {
 		t.Fatal(err)
 	}

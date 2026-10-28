@@ -307,6 +307,7 @@
     <ClInclude Include="internal\ui\SControlContainer.h" />
     <ClInclude Include="internal\ui\SGrid.h" />
     <ClInclude Include="internal\ui\SGridSupport.h" />
+    <ClInclude Include="internal\ui\ItemBonusText.h" />
     <ClInclude Include="internal\core\singleton.h" />
     <ClInclude Include="internal\platform\diagnostics\StackWalker.h" />
     <ClInclude Include="internal\core\Structures.h" />
@@ -349,7 +350,9 @@
     <ClInclude Include="internal\app\scenes\FieldSceneWorldSupport.h" />
     <ClInclude Include="internal\application\FieldChatControlPolicy.h" />
     <ClInclude Include="internal\application\FieldChatSubmitPolicy.h" />
+    <ClInclude Include="internal\core\QuestSubjectLevel.h" />
     <ClInclude Include="internal\application\FieldCoinInputPolicy.h" />
+    <ClInclude Include="internal\application\ModalInputPolicy.h" />
     <ClInclude Include="internal\application\MusicListLine.h" />
     <ClInclude Include="internal\application\AssetLoadValidation.h" />
     <ClInclude Include="internal\application\OwnedSoundBuffers.h" />
@@ -364,7 +367,10 @@
     <ClInclude Include="internal\render\world\water\TMFloat.h" />
     <ClInclude Include="internal\platform\windows\TMFont2.h" />
     <ClInclude Include="internal\platform\windows\FontTextureUpload.h" />
+    <ClInclude Include="internal\platform\windows\SingleLineTextLayout.h" />
+    <ClInclude Include="internal\ui\FieldCaptionLayout.h" />
     <ClInclude Include="internal\platform\windows\FontGdiResources.h" />
+    <ClInclude Include="internal\platform\windows\ResourceTextGdi.h" />
     <ClInclude Include="internal\platform\windows\RenderStateCache.h" />
     <ClInclude Include="internal\platform\windows\DeviceRestore.h" />
     <ClInclude Include="internal\platform\windows\DeviceBackBuffer.h" />
@@ -621,6 +627,23 @@
     <None Include="Resources\CursorGroup162.cur" />
     <None Include="Resources\CursorGroup164.cur" />
   </ItemGroup>
+  <PropertyGroup>
+    <WebView2SdkRoot>$(ProjectDir)..\build\tools\webview2\1.0.3856.49</WebView2SdkRoot>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile><AdditionalIncludeDirectories>$(WebView2SdkRoot)\build\native\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories></ClCompile>
+    <Link><AdditionalDependencies>$(WebView2SdkRoot)\build\native\x86\WebView2LoaderStatic.lib;ole32.lib;shlwapi.lib;version.lib;%(AdditionalDependencies)</AdditionalDependencies></Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="internal\platform\windows\PremiumNellWindow.cpp" />
+    <ClInclude Include="internal\platform\windows\PremiumNellWindow.h" />
+    <None Include="Resources\PremiumNell.html" />
+    <None Include="Resources\PremiumNell\*.png" />
+    <None Include="Resources\PremiumNell\*.gif" />
+  </ItemGroup>
+  <Target Name="InitializeWebView2" BeforeTargets="ClCompile" Condition="!Exists('$(WebView2SdkRoot)\build\native\include\WebView2.h') Or !Exists('$(WebView2SdkRoot)\build\native\x86\WebView2LoaderStatic.lib')">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(ProjectDir)..\..\tools\client-assets\Initialize-WebView2.ps1&quot;" />
+  </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

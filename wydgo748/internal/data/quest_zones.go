@@ -10,7 +10,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// LoadQuestZones le data/quest_zones.json com o contrato estrito dos demais
+// LoadQuestZones le data/content/quest_zones.json com o contrato estrito dos demais
 // arquivos: versao exata, sem campo desconhecido, sem conteudo extra. Arquivo
 // ausente e estado valido (servidor sem zona de reset): devolve arquivo vazio.
 func LoadQuestZones(path string) (model.QuestZoneFile, error) {

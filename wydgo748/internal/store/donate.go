@@ -22,6 +22,9 @@ type PremiumCatalogEntry struct {
 	Slot  int        `json:"slot"`
 	Item  model.Item `json:"item"`
 	Price uint32     `json:"price"`
+	// Category is 0 Featured, 1 Armia, 2 Erion, or 3 Nifleheim.
+	// Missing values in existing JSON catalogs default to Featured.
+	Category uint8 `json:"category"`
 }
 
 // PremiumCatalog is the staff-edited catalog. Version grows on every save so a
@@ -101,6 +104,9 @@ func ValidatePremiumEntries(entries []PremiumCatalogEntry) error {
 	}
 	seen := make(map[int]bool, len(entries))
 	for _, entry := range entries {
+		if entry.Category > 3 {
+			return fmt.Errorf("premium catalog slot %d has invalid category %d", entry.Slot, entry.Category)
+		}
 		if entry.Slot < 0 || entry.Slot >= PremiumCatalogSlots {
 			return fmt.Errorf("premium catalog slot %d outside 0..%d", entry.Slot, PremiumCatalogSlots-1)
 		}

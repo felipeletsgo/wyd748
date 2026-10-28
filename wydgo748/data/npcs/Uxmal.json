@@ -3,22 +3,22 @@
   "tipo": "npc",
   "equip": {
     "rosto": {
-      "index": 18
+      "index": 51
     },
     "elmo": {
-      "index": 149
+      "index": 0
     },
     "armadura": {
-      "index": 150
+      "index": 1314
     },
     "calca": {
-      "index": 151
+      "index": 1317
     },
     "luva": {
-      "index": 152
+      "index": 1320
     },
     "bota": {
-      "index": 153
+      "index": 1323
     },
     "arma": {
       "index": 0
@@ -52,38 +52,38 @@
     }
   },
   "classInfo": 1,
-  "expReward": 25000,
+  "expReward": 0,
   "score": {
     "version": 2,
-    "level": 11,
-    "attack": 10,
+    "level": 1,
+    "attack": 500,
     "magicAttack": 0,
-    "defense": 10,
-    "maxHP": 500,
+    "defense": 7000,
+    "maxHP": 15000,
     "maxMP": 0,
-    "curHP": 500,
+    "curHP": 15000,
     "curMP": 0,
     "str": 5,
     "int": 100,
     "dex": 0,
-    "con": 0,
+    "con": 1000,
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
-    "merchant": 43
+    "merchant": 72
   },
-  "gold": 9999,
-  "direction": 32,
+  "direction": 96,
   "skillBar": [
     255,
     255,
     255,
     255
-  ]
+  ],
+  "clientMerchant": 11
 }

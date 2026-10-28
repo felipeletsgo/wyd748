@@ -19,6 +19,7 @@ func TestMagicChamberDedicatedMonsterDefinitions(t *testing.T) {
 	for i := range npcs {
 		byName[npcs[i].Name] = &npcs[i]
 	}
+	donors := historicalInstanceDonors(t)
 	cases := []struct{ source, name, tier string }{
 		{"Meio_Orc__", "MCN_Orc", "normal"},
 		{"Skull2", "MCN_Skull", "normal"},
@@ -39,11 +40,11 @@ func TestMagicChamberDedicatedMonsterDefinitions(t *testing.T) {
 	dedicated := make(map[string]string)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			source, monster := byName[tc.source], byName[tc.name]
+			source, monster := donors[tc.source], byName[tc.name]
 			if source == nil || monster == nil || source.Score == nil || monster.Score == nil {
 				t.Fatal("missing dedicated Magic Chamber monster or source template")
 			}
-			if monster == source || monster.Score == source.Score || !monster.IsMonster() || len(monster.Name) > wireNameBytes {
+			if monster == source || monster.Score == source.Score || !monster.IsMonster() || len(monster.VisibleName()) > model.MaxNPCDisplayNameBytes {
 				t.Fatal("dedicated definition is shared, non-hostile or exceeds the wire name limit")
 			}
 			want := map[string][2]uint32{"normal": {1000, 200000}, "mystic": {4000, 300000}, "arcane": {10000, 500000}}[tc.tier]
@@ -59,7 +60,7 @@ func TestMagicChamberDedicatedMonsterDefinitions(t *testing.T) {
 		})
 		dedicated[tc.name] = tc.tier
 	}
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"), filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"), filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +138,7 @@ func TestMagicChamberDedicatedMonsterDefinitions(t *testing.T) {
 	if chambers != 3 || len(referenced) != len(dedicated) {
 		t.Fatalf("chambers=%d, referenced exclusive definitions=%d, want 3 and %d", chambers, len(referenced), len(dedicated))
 	}
-	geners, err := LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	geners, err := LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +148,7 @@ func TestMagicChamberDedicatedMonsterDefinitions(t *testing.T) {
 		}
 	}
 	for _, file := range []string{"CartaN.txt", "CartaM.txt", "CartaA.txt"} {
-		geners, err := LoadNPCGener(filepath.Join(root, "NPCGener", file))
+		geners, err := LoadNPCGener(filepath.Join(root, "spawns", "instances", file))
 		if err != nil {
 			t.Fatal(err)
 		}

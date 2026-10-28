@@ -38,7 +38,7 @@ func TestSkillDataNamesMatchClientItemNames(t *testing.T) {
 	if len(names) != 103 {
 		t.Fatalf("decoded %d skill names, want 103", len(names))
 	}
-	server, err := os.ReadFile("../../data/SkillData.csv")
+	server, err := os.ReadFile("../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

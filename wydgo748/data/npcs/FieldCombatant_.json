@@ -21,7 +21,7 @@
       "index": 129
     },
     "arma": {
-      "index": 933
+      "index": 908
     },
     "escudo": {
       "index": 0
@@ -52,11 +52,11 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 4000,
   "score": {
     "version": 2,
-    "level": 302,
-    "attack": 948,
+    "level": 301,
+    "attack": 960,
     "magicAttack": 0,
     "defense": 2800,
     "maxHP": 27000,
@@ -77,6 +77,7 @@
     ],
     "attackRun": 3
   },
+  "gold": 500,
   "skillBar": [
     255,
     255,

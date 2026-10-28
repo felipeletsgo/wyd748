@@ -14,7 +14,7 @@ The guide describes their basic role as occupying one hand while leaving the oth
 
 ### Relevance
 
-Individual item values must continue to come from `data/itemlist.csv`. This page is a cross-check for names, weapon classes, requirements, and the player's visual expectations.
+Individual item values must continue to come from `data/catalog/itemlist.csv`. This page is a cross-check for names, weapon classes, requirements, and the player's visual expectations.
 
 ---
 

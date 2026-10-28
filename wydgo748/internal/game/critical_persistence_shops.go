@@ -33,6 +33,12 @@ func (w *World) queueShopPurchase(p *Player, item model.Item, total, treasury ui
 	ch.Gold -= uint32(total)
 	return w.submitCriticalShopItem(p, proposed, dst, city, treasury, func() {
 		p.Session.Send(wire.BuyItem(p.ID, merchant, sellSlot, uint16(dst), p.Char.Gold))
+		if p.ShopNPC != merchant {
+			// A live edit may invalidate the old grid while persistence runs.
+			// Publish the committed item even if the client closed that window.
+			p.Session.Send(wire.SendItem(p.ID, placeInv, byte(dst), p.Char.Inv[dst]))
+			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+		}
 	})
 }
 

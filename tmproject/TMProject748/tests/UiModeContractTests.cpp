@@ -166,7 +166,7 @@ int RunUiModeContractTests(int& checks)
         candidates.find("if (pScene->m_pTextCandidate[i] != nullptr)") != std::string::npos &&
         candidates.find("pCandidateText->SetText(candidateText, 0);") != std::string::npos,
         "candidate notifications use the single row and tolerate absent spare controls");
-    const auto poll = source_contract::Method(translator, "int EventTranslator::ReadInputEventData()");
+    const auto poll = source_contract::Method(translator, "int EventTranslator::ReadInputEventData(bool captured)");
     const auto camera = source_contract::Method(translator, "int EventTranslator::CameraEventData()");
     check(poll.find("m_hasMouseSample = PollCameraMouse(m_pMouseDevice, dims2);") != std::string::npos &&
         poll.find("dx = dy = wheel = viewchange = 0;") != std::string::npos,

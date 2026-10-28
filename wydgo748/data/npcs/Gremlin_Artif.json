@@ -3,7 +3,15 @@
   "tipo": "monstro",
   "equip": {
     "rosto": {
-      "index": 222
+      "index": 222,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "elmo": {
       "index": 0
@@ -52,7 +60,7 @@
     }
   },
   "classInfo": 1,
-  "expReward": 25000,
+  "expReward": 362,
   "score": {
     "version": 2,
     "level": 18,
@@ -68,10 +76,6 @@
     "dex": 27,
     "con": 600,
     "critical": 255,
-    "resistFire": 255,
-    "resistIce": 255,
-    "resistHoly": 255,
-    "resistThunder": 255,
     "saveMana": 255,
     "mastery": [
       255,
@@ -95,7 +99,72 @@
       "index": 0
     },
     {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    },
+    {
+      "index": 4038
+    },
+    {
       "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 894,
+      "eff": [
+        100,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 849,
+      "eff": [
+        100,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 804,
+      "eff": [
+        100,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1185,
+      "eff": [
+        103,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "index": 0
@@ -122,7 +191,7 @@
       "index": 0
     },
     {
-      "index": 0
+      "index": 4038
     },
     {
       "index": 0
@@ -146,40 +215,7 @@
       "index": 0
     },
     {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
+      "index": 4038
     },
     {
       "index": 0
@@ -254,28 +290,21 @@
       "index": 451
     },
     {
-      "index": 0
+      "index": 454,
+      "eff": [
+        36,
+        0,
+        37,
+        4,
+        0,
+        0
+      ]
     },
     {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 3178
+      "index": 4038
     }
   ],
-  "gold": 9999,
+  "gold": 500,
   "skillBar": [
     255,
     255,

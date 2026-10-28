@@ -9,15 +9,15 @@ import (
 
 func TestInitItemDefinitionsMatchClient748ItemList(t *testing.T) {
 	dataRoot := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(dataRoot, "itemlist.csv"),
-		filepath.Join(dataRoot, "Itemname.csv"), filepath.Join(dataRoot, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(dataRoot, "catalog", "itemlist.csv"),
+		filepath.Join(dataRoot, "catalog", "Itemname.csv"), filepath.Join(dataRoot, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if catalog.ItemEffects[34] != "EF_GROUND" || catalog.ItemEffects[39] != "EF_KEYID" {
 		t.Fatal("ground/key effect IDs differ from the client 7.48 item list")
 	}
-	objects, err := LoadInitItems(filepath.Join(dataRoot, "init_items.csv"), catalog.Items)
+	objects, err := LoadInitItems(filepath.Join(dataRoot, "world", "init_items.csv"), catalog.Items)
 	if err != nil {
 		t.Fatal(err)
 	}

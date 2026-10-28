@@ -55,9 +55,10 @@ func TestMortalBeginnerSpawnOnLoginAndRestart(t *testing.T) {
 			setPlayerCurHP(player.Char, 0)
 			player.DeadAt = time.Now().Add(-5 * time.Second)
 			world.onRestart(player.Session)
-			if playerCurHP(player.Char) == 0 || chebyshev(player.X, player.Y, wantX, wantY) > 8 || store.saves != 1 {
-				t.Fatalf("restart state: HP=%d position=(%d,%d), saves=%d; expected near (%d,%d)",
-					playerCurHP(player.Char), player.X, player.Y, store.saves, wantX, wantY)
+			// Native DoRecall has no beginner override. Login remains separate.
+			if playerCurHP(player.Char) == 0 || !recallArea(boundCity).contains(player.X, player.Y) || store.saves != 1 {
+				t.Fatalf("restart state: HP=%d position=(%d,%d), saves=%d; expected bound city",
+					playerCurHP(player.Char), player.X, player.Y, store.saves)
 			}
 			if playerHomeCity(player.Char) != boundCity || player.Char.Score.Merchant != merchant ||
 				player.Char.RuntimeScore.Merchant != merchant {

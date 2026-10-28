@@ -275,9 +275,25 @@ func (w *World) admitSanctions(account string, state store.SanctionState, now ti
 // how many of its sessions were connected. A ban disconnects them through
 // the normal persistence path.
 func (w *World) applySanctionState(account string, state store.SanctionState, notify string) int {
+	if w.cluster != nil {
+		affected := 0
+		_, wasMuted := activeUntil(w.staffOps.mutes, accountSessionKey(account), w.now())
+		for _, channel := range w.cluster.worlds {
+			w.cluster.inWorld(channel, func() { affected += channel.applyLocalSanctionStateWithMute(account, state, notify, wasMuted) })
+		}
+		return affected
+	}
+	return w.applyLocalSanctionState(account, state, notify)
+}
+
+func (w *World) applyLocalSanctionState(account string, state store.SanctionState, notify string) int {
+	_, wasMuted := activeUntil(w.staffOps.mutes, accountSessionKey(account), w.now())
+	return w.applyLocalSanctionStateWithMute(account, state, notify, wasMuted)
+}
+
+func (w *World) applyLocalSanctionStateWithMute(account string, state store.SanctionState, notify string, wasMuted bool) int {
 	now := w.now()
 	key := accountSessionKey(account)
-	_, wasMuted := activeUntil(w.staffOps.mutes, key, now)
 	setSanctionEntry(&w.staffOps.bans, key, state.BanUntil, now)
 	setSanctionEntry(&w.staffOps.mutes, key, state.MuteUntil, now)
 	var sessions []*net.Session
@@ -421,7 +437,7 @@ func (w *World) RevokeSanction(ctx context.Context, actor string, id int64, cmd 
 
 func (w *World) staffBroadcast(message string) int {
 	delivered := 0
-	for _, p := range w.players {
+	for _, p := range w.globalPlayers() {
 		if p != nil && p.InWorld && p.Session != nil {
 			p.Session.Send(wire.MessagePanel(message))
 			p.Session.Send(wire.MessageWhisper(0, staffNoticeSender, message, 7))

@@ -3,7 +3,7 @@
   "tipo": "npc",
   "equip": {
     "rosto": {
-      "index": 17
+      "index": 52
     },
     "elmo": {
       "index": 149
@@ -42,7 +42,15 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 0
+      "index": 1937,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "montaria": {
       "index": 0
@@ -52,13 +60,13 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 500,
   "score": {
     "version": 2,
     "level": 1,
     "attack": 500,
     "magicAttack": 0,
-    "defense": 500,
+    "defense": 28000,
     "maxHP": 9000,
     "maxMP": 0,
     "curHP": 9000,
@@ -78,6 +86,7 @@
     "attackRun": 2,
     "merchant": 6
   },
+  "gold": 500,
   "direction": 64,
   "skillBar": [
     255,

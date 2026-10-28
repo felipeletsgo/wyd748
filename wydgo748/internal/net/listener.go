@@ -99,7 +99,17 @@ func ListenWithConfig(addr string, cfg ListenerConfig, onConn func(*Session)) er
 	if err != nil {
 		return err
 	}
-	log.Printf("WYD-Go TMSrv listening on %s", addr)
+	defer ln.Close()
+	return ServeListenerWithConfig(ln, cfg, onConn)
+}
+
+// ServeListenerWithConfig accepts an already bound socket. Startup can reserve
+// every channel's address before admitting the first account.
+func ServeListenerWithConfig(ln stdnet.Listener, cfg ListenerConfig, onConn func(*Session)) error {
+	if cfg.OutputQueueSize < 1 {
+		cfg.OutputQueueSize = defaultOutputQueueSize
+	}
+	log.Printf("WYD-Go TMSrv listening on %s", ln.Addr())
 	limiter := newConnectionLimiter(cfg.MaxConnections, cfg.MaxConnectionsPerIP)
 	for {
 		c, err := ln.Accept()

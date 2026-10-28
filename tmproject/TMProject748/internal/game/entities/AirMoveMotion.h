@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstddef>
+#include <cmath>
+#include "AirMoveRoutes.h"
 
 // AirMove stores only the displacement pending for the current frame.  Once
 // committed to the client's position it must not be applied again. The server
@@ -12,6 +14,40 @@ inline void ConsumeAirMoveDelta(Position& position, Position& delta)
     position.y += delta.y;
     delta.x = 0.0f;
     delta.y = 0.0f;
+}
+
+// Ground interpolation remains anchored to the server-owned departure point
+// during flight. Preserve the visual position reached in earlier frames before
+// consuming this frame's displacement, or every frame restarts at departure.
+template <typename Position>
+inline void UpdateHumanFramePosition(Position& position, const Position& ground,
+    Position& flightDelta, bool flying)
+{
+    if (flying)
+        ConsumeAirMoveDelta(position, flightDelta);
+    else
+        position = ground;
+}
+
+// Preserve the existing waypoint tolerance and diagonal speed. Both the scene
+// and the route regression exercise this calculation without a render device.
+template <typename Position, typename Waypoint>
+inline Position AirMoveWaypointDelta(const Position& position,
+    const Waypoint& waypoint, float speed)
+{
+    Position delta{};
+    delta.x = position.x >= waypoint.nX ? -speed : speed;
+    delta.y = position.y >= waypoint.nY ? -speed : speed;
+    if (std::fabs(waypoint.nX - (position.x + delta.x)) <= 0.5f)
+        delta.x = 0.0f;
+    if (std::fabs(waypoint.nY - (position.y + delta.y)) <= 0.5f)
+        delta.y = 0.0f;
+    if (std::fabs(delta.x) == speed && std::fabs(delta.y) == speed)
+    {
+        delta.x /= 2.0f;
+        delta.y /= 2.0f;
+    }
+    return delta;
 }
 
 // Death cancels the server-owned route. Discard uncommitted visual movement

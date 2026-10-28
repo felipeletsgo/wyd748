@@ -14,7 +14,7 @@ import (
 func loadReal(t *testing.T) (*Index, *Zones) {
 	t.Helper()
 	root := "../../data/"
-	catalog, err := data.LoadCatalog(root+"itemlist.csv", root+"Itemname.csv", root+"ItemEffect.h", root+"SkillData.csv")
+	catalog, err := data.LoadCatalog(root+"catalog/itemlist.csv", root+"catalog/Itemname.csv", root+"catalog/ItemEffect.h", root+"catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -22,31 +22,31 @@ func loadReal(t *testing.T) (*Index, *Zones) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	geners, err := data.LoadNPCGener(root + "NPCGener.txt")
+	geners, err := data.LoadChannelNPCGener(root + "spawns/NPCGener.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
-	drops, err := data.LoadDropRates(root + "droprate.json")
+	drops, err := data.LoadDropRates(root + "content/droprate.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	quests, err := data.LoadQuests(root + "quests.json")
+	quests, err := data.LoadQuests(root + "content/quests.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	zones, err := data.LoadQuestZones(root + "quest_zones.json")
+	zones, err := data.LoadQuestZones(root + "content/quest_zones.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	terrain, err := data.LoadTerrain(root+"maps/HeightMap.dat", root+"maps/AttributeMap.dat")
+	terrain, err := data.LoadTerrain(root+"world/maps/HeightMap.dat", root+"world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}
-	teleports, err := data.LoadTeleports(root + "teleports.ini")
+	teleports, err := data.LoadTeleports(root + "world/teleports.ini")
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := data.LoadVolatilesWithInstances(root+"volatiles.json", root+"instances.json", catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances(root+"content/volatiles.json", root+"content/instances.json", root+"spawns/instances", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

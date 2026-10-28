@@ -82,7 +82,11 @@ func (w *World) queueGuildAccountChange(actor *Player, seeds []*Player, proposed
 		seenKeys[accountSessionKey(p.Account.Name)] = true
 		before := retainedMember{player: p, account: accountStateSnapshot(p.Account), trade: p.Trade}
 		if p.Trade != nil {
-			peer := w.playerByID(p.Trade.OpponentID)
+			owner := w.playerWorld(p)
+			if owner == nil {
+				return errCriticalPersistenceIdentity
+			}
+			peer := owner.playerByID(p.Trade.OpponentID)
 			if peer == nil || peer == p || peer.Trade == nil || peer.Trade.OpponentID != p.ID {
 				return errCriticalPersistenceIdentity
 			}
@@ -187,7 +191,7 @@ func (w *World) queueGuildDeparture(actor, victim *Player, guild *model.Guild, l
 	updates := []criticalGuildMemberUpdate{{victim, 0, 0}}
 	var successor *Player
 	if promoted != "" {
-		successor = w.playerByCharacterName(promoted)
+		successor = w.guildPlayerByName(promoted)
 		if successor != nil {
 			if successor == actor || successor == victim {
 				return errCriticalPersistenceIdentity

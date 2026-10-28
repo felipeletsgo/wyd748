@@ -225,6 +225,15 @@ if (-not $publishingSection.Success) {
     }
 }
 
+# Server data follows DOCS/server/data-layout.md: no loose files at the root.
+$dataRoot = Join-Path $repoRoot 'wydgo748/data'
+$dataAreas = @('catalog', 'config', 'content', 'npcs', 'spawns', 'world')
+foreach ($entry in @(Get-ChildItem -LiteralPath $dataRoot -Force)) {
+    if (!$entry.PSIsContainer -or $entry.Name -notin $dataAreas) {
+        $issues.Add("Unexpected entry in wydgo748/data (see DOCS/server/data-layout.md): $($entry.Name)")
+    }
+}
+
 # Generated output may live only in the sanctioned ignored locations below
 # (AGENTS.md "Cleanup"). Anything else ignored by Git is leftover build,
 # test or agent output and must be removed or moved under build/.
@@ -233,7 +242,7 @@ if (-not $publishingSection.Success) {
 $allowedIgnored = '^(?:references/|build/|tmproject/build/|\.codex/|\.venv/|\.claude/settings\.local\.json$' +
     '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|dumps/(?:crash-monitor-p\d+\.log|client-crash-[^/]+\.dmp)$|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
     '|tmproject/client748/dumps/$|tmproject/client748\.zip$|tmproject/WYD 7\.48 PORTUGUES/WYD\.log$' +
-    '|wydgo748/data/(?:SkillData\.bin$|accounts/|charstate/)' +
+    '|wydgo748/data/catalog/SkillData\.bin$|wydgo748/runtime/' +
     '|wydgo748/web/portal/(?:node_modules/|dist/|\.astro/|src/data/catalog\.generated\.json$|\.env))'
 $ignored = @(& git -C $repoRoot ls-files --others --ignored --exclude-standard --directory)
 if ($LASTEXITCODE -ne 0) { $issues.Add('Cannot list ignored files with git.') }

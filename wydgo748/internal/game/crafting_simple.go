@@ -166,7 +166,7 @@ const compositorMaterials = 4
 // CompRate.txt. This server uses the second policy. In the legacy source it is
 // unused twice over: no function reads the array, and the parser applies
 // _strupr only to the first column, so "Item_+7" never matches "ITEM_+7".
-// Values here come from this server's data/server.txt, not that legacy array.
+// Values here come from this server's data/config/server.txt, not that legacy array.
 //
 // Return the chance, per-material log breakdown and recipe validity.
 func (w *World) compositorChance(req combineRequest) (int, string, bool) {

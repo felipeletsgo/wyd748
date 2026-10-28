@@ -6,19 +6,19 @@
       "index": 64
     },
     "elmo": {
-      "index": 1431
+      "index": 137
     },
     "armadura": {
-      "index": 1434
+      "index": 1404
     },
     "calca": {
-      "index": 1437
+      "index": 138
     },
     "luva": {
-      "index": 1440
+      "index": 1410
     },
     "bota": {
-      "index": 1443
+      "index": 1413
     },
     "arma": {
       "index": 0
@@ -70,9 +70,9 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -86,37 +86,31 @@
   ],
   "vende": [
     {
-      "index": 1431
+      "index": 1447
     },
     {
-      "index": 0
+      "index": 1450
     },
     {
-      "index": 1434
+      "index": 1453
     },
     {
-      "index": 0
+      "index": 1456
     },
     {
-      "index": 1437
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1440
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1443
+      "index": 1459
     },
     {
       "index": 0
     },
     {
       "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4017
     },
     {
       "index": 0
@@ -167,31 +161,25 @@
       "index": 0
     },
     {
-      "index": 1432
+      "index": 0
     },
     {
       "index": 0
     },
     {
-      "index": 1435
+      "index": 1448
     },
     {
-      "index": 0
+      "index": 1451
     },
     {
-      "index": 1438
+      "index": 1454
     },
     {
-      "index": 0
+      "index": 1457
     },
     {
-      "index": 1441
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1444
+      "index": 1460
     }
   ]
 }

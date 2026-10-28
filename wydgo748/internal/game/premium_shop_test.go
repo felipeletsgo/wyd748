@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"wydgo/internal/control"
 	"wydgo/internal/model"
 	"wydgo/internal/store"
 	"wydgo/internal/wire"
@@ -39,6 +40,184 @@ func (s *premiumTestStore) SaveDonateAccount(account *model.Account, credits []i
 
 const premiumTestPrice = 1000
 
+func TestPremiumCatalogCategoriesReachStaffAndPlayer(t *testing.T) {
+	w, p, shop, _, _, _ := premiumFixture(t)
+	view := w.premiumCatalogView(w.premiumCatalog)
+	if len(view.Items) != 1 || view.Items[0].Category != 2 {
+		t.Fatalf("staff lost category: %+v", view)
+	}
+	command := control.PremiumCatalogCommand{Version: 1, Reason: "Move item to Nifleheim", Items: view.Items}
+	command.Items[0].Category = 3
+	result, err := w.SavePremiumCatalog(context.Background(), "staff", command, func() bool { return true })
+	if err != nil || result.Code != "ok" || result.Catalog.Items[0].Category != 3 {
+		t.Fatalf("category save failed: %+v %v", result, err)
+	}
+	w.premiumCatalog.Entries[0].Category = 3
+	w.openPremiumShop(p.Session, p, shop)
+	_ = nextPacket(t, p)
+	packet := nextPacket(t, p)
+	if len(packet) != wire.PremiumCategoryStateSize || binary.LittleEndian.Uint16(packet[12:14]) != wire.PremiumCategoryVersion || packet[134] != 3 {
+		t.Fatalf("player lost category for slot 2: %x", packet)
+	}
+	command.Items[0].Category = 4
+	result, err = w.SavePremiumCatalog(context.Background(), "staff", command, func() bool { return true })
+	if err != nil || result.Code != "invalid_command" {
+		t.Fatalf("unknown category accepted: %+v %v", result, err)
+	}
+}
+
+func premiumWebBuy(p *Player, npc uint16, version, price uint32) []byte {
+	return wire.PremiumBuyPacket(wire.PremiumBuyRequest{Version: wire.PremiumWebVersion,
+		ID: p.ID, NPC: npc, ShopSlot: 2, CatalogVersion: version, Price: price, RequestID: 1})
+}
+
+func expectPremiumResult(t *testing.T, p *Player, code uint16, balance uint32) {
+	t.Helper()
+	b := nextPacket(t, p)
+	if len(b) != wire.PremiumBuyResultSize || wire.ParseHeader(b).Type != wire.OpPremiumBuyResult ||
+		binary.LittleEndian.Uint16(b[12:]) != wire.PremiumWebVersion ||
+		binary.LittleEndian.Uint16(b[14:]) != code || binary.LittleEndian.Uint32(b[16:]) != balance ||
+		binary.LittleEndian.Uint32(b[20:]) != 1 {
+		t.Fatalf("wrong web completion: %x", b)
+	}
+}
+
+func TestPremiumWebSettlementWaitsForDurability(t *testing.T) {
+	w, p, shop, backend, queue, release := premiumFixture(t)
+	openPremiumForTest(t, w, p, shop)
+	w.handle(command{s: p.Session, pkt: premiumWebBuy(p, shop.ID, 3, premiumTestPrice)})
+	write := awaitCriticalWrite(t, backend.entered)
+	if p.Account.Donate != 5000 || p.Char.Inv[1].Index != 0 || p.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("web purchase acknowledged or mutated before durable settlement")
+	}
+	// Exercise real ingress: duplicate commands are deferred by critical ownership.
+	w.handle(command{s: p.Session, pkt: premiumWebBuy(p, shop.ID, 3, premiumTestPrice)})
+	if p.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("a replay must not settle before the original purchase")
+	}
+	release()
+	awaitReadyCriticalResults(t, queue, 1)
+	w.processCriticalCompletions(1)
+	item := nextPacket(t, p)
+	if wire.ParseHeader(item).Type != wire.OpSendItem || p.Char.Inv[1] != write.accounts[0].Chars[p.CharSlot].Inv[1] {
+		t.Fatal("web settlement must deliver the authoritative inventory item")
+	}
+	if wire.ParseHeader(nextPacket(t, p)).Type != wire.OpPremiumShopState {
+		t.Fatal("missing settled balance update")
+	}
+	expectPremiumResult(t, p, wire.PremiumResultSuccess, 4000)
+	expectPremiumResult(t, p, wire.PremiumResultSuccess, 4000)
+	// Reopening does not reset the replay high-water mark.
+	openPremiumForTest(t, w, p, shop)
+	w.handle(command{s: p.Session, pkt: premiumWebBuy(p, shop.ID, 3, premiumTestPrice)})
+	expectPremiumResult(t, p, wire.PremiumResultSuccess, 4000)
+	if p.Account.Donate != 4000 || p.Char.Inv[2].Index != 0 {
+		t.Fatal("duplicate ingress charged or delivered twice")
+	}
+	if p.Session.QueuedPacketsForTest() != 0 || len(backend.entered) != 0 {
+		t.Fatal("duplicate settlement or write")
+	}
+}
+
+func TestPremiumWebNewIntentAndStaleOrConflictingReplay(t *testing.T) {
+	w, p, shop, backend, queue, release := premiumFixture(t)
+	openPremiumForTest(t, w, p, shop)
+	first := premiumWebBuy(p, shop.ID, 3, premiumTestPrice)
+	w.handle(command{s: p.Session, pkt: first})
+	awaitCriticalWrite(t, backend.entered)
+	release()
+	awaitReadyCriticalResults(t, queue, 1)
+	w.processCriticalCompletions(1)
+	nextPacket(t, p)
+	nextPacket(t, p)
+	expectPremiumResult(t, p, wire.PremiumResultSuccess, 4000)
+	// A changed payload cannot reuse an already settled request ID.
+	conflict := premiumWebBuy(p, shop.ID, 3, premiumTestPrice-1)
+	w.handle(command{s: p.Session, pkt: conflict})
+	expectPremiumResult(t, p, wire.PremiumResultFailed, 4000)
+	second := append([]byte(nil), first...)
+	binary.LittleEndian.PutUint32(second[28:], 2)
+	w.handle(command{s: p.Session, pkt: second})
+	awaitCriticalWrite(t, backend.entered)
+	awaitReadyCriticalResults(t, queue, 1)
+	w.processCriticalCompletions(1)
+	nextPacket(t, p)
+	nextPacket(t, p)
+	result := nextPacket(t, p)
+	if binary.LittleEndian.Uint16(result[14:]) != wire.PremiumResultSuccess ||
+		binary.LittleEndian.Uint32(result[20:]) != 2 || p.Account.Donate != 3000 || p.Char.Inv[2].Index != 400 {
+		t.Fatal("a new intent must allow another legitimate purchase")
+	}
+	w.handle(command{s: p.Session, pkt: first})
+	expectPremiumResult(t, p, wire.PremiumResultFailed, 3000)
+	if len(backend.entered) != 0 || p.Char.Inv[3].Index != 0 || p.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("stale or conflicting replay initiated another write")
+	}
+}
+
+func TestPremiumWebRejectionsHaveExplicitCompletion(t *testing.T) {
+	for _, name := range []string{"catalog", "price", "balance", "inventory", "merchant", "dead", "item"} {
+		t.Run(name, func(t *testing.T) {
+			w, p, shop, backend, _, _ := premiumFixture(t)
+			openPremiumForTest(t, w, p, shop)
+			version, price := uint32(3), uint32(premiumTestPrice)
+			code := wire.PremiumResultCatalogChanged
+			switch name {
+			case "catalog":
+				version = 2
+			case "price":
+				price--
+			case "balance":
+				p.Account.Donate = 1
+				code = wire.PremiumResultInsufficient
+			case "inventory":
+				for i := range p.Char.Inv {
+					p.Char.Inv[i] = model.Item{Index: 200, UID: "full"}
+				}
+				code = wire.PremiumResultInventoryFull
+			case "merchant":
+				p.PremiumNPC = 0
+				code = wire.PremiumResultExpired
+			case "dead":
+				p.Char.Score.CurHP = 0
+				p.Char.RuntimeScore = nil
+				code = wire.PremiumResultExpired
+			case "item":
+				delete(w.items, 400)
+				code = wire.PremiumResultItemUnavailable
+			}
+			before := *p.Account
+			w.onPremiumBuy(p.Session, premiumWebBuy(p, shop.ID, version, price))
+			expectPremiumResult(t, p, code, before.Donate)
+			if p.Account.Donate != before.Donate || len(backend.entered) != 0 || p.Session.QueuedPacketsForTest() != 0 {
+				t.Fatal("rejected web purchase wrote, changed balance or left extra packets")
+			}
+		})
+	}
+}
+
+func TestPremiumWebRejectedWriteDoesNotChargeOrDeliver(t *testing.T) {
+	w, p, shop, backend, queue, release := premiumFixture(t)
+	openPremiumForTest(t, w, p, shop)
+	backend.failure = criticalCertifiedRejection(t)
+	w.handle(command{s: p.Session, pkt: premiumWebBuy(p, shop.ID, 3, premiumTestPrice)})
+	awaitCriticalWrite(t, backend.entered)
+	release()
+	awaitReadyCriticalResults(t, queue, 1)
+	w.processCriticalCompletions(1)
+	expectPremiumResult(t, p, wire.PremiumResultFailed, 5000)
+	backend.failure = nil
+	w.handle(command{s: p.Session, pkt: premiumWebBuy(p, shop.ID, 3, premiumTestPrice)})
+	expectPremiumResult(t, p, wire.PremiumResultFailed, 5000)
+	if len(backend.entered) != 0 {
+		t.Fatal("a rejected intent must not become a new purchase on replay")
+	}
+	if p.Account.Donate != 5000 || p.Char.Inv[1].Index != 0 || p.PersistencePoisoned ||
+		p.Session.QueuedPacketsForTest() != 0 {
+		t.Fatal("rejected write must preserve the balance and inventory without publishing success")
+	}
+}
+
 func premiumFixture(t *testing.T) (*World, *Player, *Mob, *premiumTestStore, *criticalPersistence, func()) {
 	t.Helper()
 	w, p, _ := saleIngressWorld(t)
@@ -48,7 +227,7 @@ func premiumFixture(t *testing.T) (*World, *Player, *Mob, *premiumTestStore, *cr
 	p.ShopNPC = 0
 	w.items[3394] = model.ItemDef{Index: 3394}
 	w.premiumCatalog = store.PremiumCatalog{Version: 3, Entries: []store.PremiumCatalogEntry{
-		{Slot: 2, Item: model.Item{Index: 400, Eff: [6]byte{61, 7}}, Price: premiumTestPrice},
+		{Slot: 2, Item: model.Item{Index: 400, Eff: [6]byte{61, 7}}, Price: premiumTestPrice, Category: 2},
 	}}
 	p.Account.Donate = 5000
 	p.Char.Inv[0] = model.Item{Index: 200, UID: "occupied"}

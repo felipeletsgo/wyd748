@@ -1,12 +1,549 @@
 # Current project state
 
-## Player DEX score rule — 2026-10-23, source only
+## Local NPC catalog migration — 2026-10-27, not activated
+
+The general population now uses one `data/NPCGener.txt` for both channels.
+It preserves the former channel 2 baseline and retains 396 imported groups,
+including test and quest content. The owner selected the former channel 2
+definitions for 40 co-located replacement groups. The result has 5,501 source
+groups, with 5,485 enabled by the loader. Trainer quests retain their IDs and
+rewards under `Treinador_I`, `Treinador_II`, and `Treinador_III`.
+`NPCGener2.txt` and the `npcgener2` configuration key were removed locally.
+Distinct legacy spawns and existing overlaps remain for manual owner review.
+The owner removed DeathWorm group 5134 at `(2137,2052)` because its coordinates were incorrect.
+
+Both channels now load a common `data/npcs/` catalog based on the approved
+channel 2 templates. Required quest, instance, and event variants remain available.
+The consolidated `channel2_population.json` input and overlay loader were removed.
+PostgreSQL overrides remain channel-scoped, with independent mutable World data.
+Identical Reimers templates were consolidated into the spawned lowercase identity
+at `(2468, 1996)`; its stock and spawn remain unchanged. See
+[live NPC definition management](protocol/npc-definitions.md) for the source and
+database contract. These local changes have not been deployed or activated.
+
+## Release 7.48.008 — 2026-10-26, published and activated
+
+The official-style Premium Nell layout and catalog categories are packaged as
+mandatory patch 48008, with compiled identity `0x02EC0008` and server minimum
+revision 8. Public HTTP/HTTPS feed and ZIP verification preceded activation of
+`/srv/wyd-go/releases/20261026T235538Z` at 23:55:41 UTC. All 7,795 installed
+files and both running executables match the package. All 1,157 runtime data
+files and eleven private configuration files were preserved.
+
+The owner explicitly authorized disconnection and game/API restart. Shutdown
+persisted three accounts with zero failures; backup succeeded. Both readiness
+endpoints and game channels passed, with zero automatic restarts. The public
+site, News, changelog and manifest advertise 7.48.008. Both channels reject
+revision 7 and admit revision 8 to credential validation in synthetic probes.
+Build, wire/page tests and portal checks passed; actual embedded shop lifecycle
+and purchases remain pending gameplay acceptance. Pre-existing population and
+content-index warnings remain unchanged. See the
+[release receipt](client/launcher.md#published-patch-748008-2026-10-26).
+
+## Release 7.48.007 — 2026-10-26, published and activated
+
+The Premium Nell embedded-navigation correction is published as mandatory
+patch 48007. After public HTTP/HTTPS verification, the game and API activated
+`/srv/wyd-go/releases/20261026T222350Z` at 22:23:53 UTC with the owner's explicit
+authorization to disconnect the three active connections. Backup succeeded;
+shutdown persisted three accounts with zero failures. Both readiness endpoints
+and channels passed. All 7,793 installed files matched, private configuration
+was preserved and automatic restart counts remained zero.
+
+The launcher feed, public manifest and website advertise 7.48.007. Both channels
+reject revision 6 and accept revision 7 as far as credential validation in
+synthetic nonexistent-account probes. The local runtime executable was not
+replaced. The [release receipt](client/launcher.md#published-patch-748007-2026-10-26)
+records hashes, validation and rollback. The
+[host correction](protocol/premium-shop.md#host-navigation-correction--client-748007)
+preserves the v3 purchase contract. Actual shop opening, purchases and lifecycle
+acceptance in the corrected client remain pending; this is not `CLIENT_TESTED`.
+
+## Release 7.48.006 and Premium Nell diagnosis — 2026-10-26
+
+Mandatory patch 48006 was published and verified before activating
+`/srv/wyd-go/releases/20261026T195612Z`. Game and API restarted with owner
+authorization; both readiness endpoints and channels passed. All 7,791 installed
+files matched the archive and private configuration was preserved. The
+[release receipt](client/launcher.md#published-patch-748006-2026-10-26) records
+the exact hashes, validation and rollback reference.
+
+The owner's installed client matches 7.48.006, and revision-6 login is recorded.
+Premium Nell web startup nevertheless fails. An isolated x86 host using the
+actual compiled resource reproduced the cause: `NavigateToString` emits a
+`data:text/html;...` navigation on the installed WebView2 runtime, but the host
+only permits `about:blank`, cancelling its own page. Allowing that initial
+navigation in the diagnostic copy reached the page's `ready` message. The
+production source and installed client were not changed by this diagnosis.
+The correction and actual purchases remain pending; publication is not
+`CLIENT_TESTED` acceptance. See the
+[host diagnosis](protocol/premium-shop.md#published-v3-host-diagnosis-2026-10-26).
+
+## Molar entrance server update — 2026-10-26, activated
+
+The game now runs `/srv/wyd-go/releases/20261026T064741Z`, with executable
+SHA-256 `f735e212f890bc02ad85130d97df7fe4f86b455516cef6d2afc91672f334dd2c`.
+The owner requested the missing generator before publication and authorized
+the restart. Channel 2 now has one friendly `Gargoyle_Watcher` at `(787,4058)`,
+matching channel 1. Entry and Molar use accept displayed Mortal levels 201-205.
+The existing destination `(817,4062)`, Molar drops and one-time refinement remain.
+The Molar rectangle `(793,4046)-(827,4080)` now uses the shared quest area
+guard: unauthorized stays, invalid levels and the shared reset return players
+to town. NPC admission grants authorization only after persistence commits.
+The rectangle comes from the secondary W2PP reset reference, adopted as an
+explicit project choice without a new native 7.48 parity claim.
+
+Focused tests cover both populations, walkable entrance/destination, enabled
+Molar drop groups, handler routing, level boundaries and persistence settlement.
+Area tests cover wall jumps, relogin, authorized entry, countdown and reset.
+All 1,157 installed data files and the running executable match the package.
+Both readiness endpoints and public TCP channels passed; backup succeeded,
+shutdown reported zero failures and the game has zero automatic restarts.
+The owner requested another restart at 2026-10-26 06:58 UTC. All recorded
+server/client/website inputs were unchanged, and the running binary plus all
+1,157 installed data files matched the existing release. After a successful
+backup, only the game restarted (PID 1642569); both readiness endpoints and
+public channels passed again. No additional package was published.
+Player API/log-reader process identities and private settings are unchanged.
+The previous release remains available for rollback. Client 7.48.005 is unchanged.
+Actual NPC interaction and quest completion in the client remain pending;
+the generic quest still has incomplete PT localization. Exact provenance and
+verification are in the `serverUpdates` entry of
+`.agents/research/release-748005.json`.
+
+## Release 7.48.005 — 2026-10-26, published and activated
+
+The mandatory client patch was published and verified over public HTTP/HTTPS
+before activating `/srv/wyd-go/releases/20261026T061812Z`. The owner explicitly
+authorized the game and Player API restart. Game PID 1635034 and API PID 1635046
+use the expected new binaries; both readiness endpoints and public channels
+passed verification. The site and manifest now advertise 7.48.005. All 1,157
+installed data files match the package, including the owner's NPCGener cleanup
+and the three Perzen services. Runtime/private configuration hashes are
+unchanged. Backup succeeded, shutdown reported zero failures, and automatic
+restart counts remain zero. The previous release is retained for rollback.
+
+See the [published release receipt](client/launcher.md#published-patch-748005-2026-10-26)
+and `.agents/research/release-748005.json` for exact hashes, source inputs,
+public delivery, protocol probes and cleanup limits. No real player account
+was authenticated by the probes. Actual launcher installation, Gryphon travel
+and all Perzen exchanges still require gameplay acceptance. Existing disabled
+source groups and unresolved staff index references match the previous startup.
+
+## Individual disconnect investigation — 2026-10-26, channel 2 teleport
+
+Read-only production inspection identified session 7 (`FelipeTr`) closing at
+04:21:31 UTC (01:21:31 America/Sao_Paulo), immediately after staff `/goto` from
+`(2244,1333)` to `(2467,2007)` on TCP 8282. The reader reports
+`use of closed network connection`, consistent with a local socket close.
+There was no accompanying critical persistence, maintenance, security or
+invalid-outbound-packet diagnostic. The service remained active as PID 1604105,
+with zero automatic restarts, on the hotfix release documented below. Session 8
+authenticated eight seconds later and entered channel 1 at 04:22:00 UTC.
+
+The deployed configuration has `session_queue_capacity=256`. `Session.Send`
+closes the socket when its outbound queue is full, without logging that cause.
+The writer also closes on deadline setup, write error or short write without
+logging the underlying result. Therefore the reader message alone cannot
+distinguish queue overflow from a writer failure; it does not establish a
+client crash or an external network outage.
+
+A preliminary Go overlay probe used a reduced world and a paused writer.
+A follow-up replaced it with the full `NewWorld` constructor, the channel-2
+population, terrain, initial map items, item-instance reservations and enabled
+Colosseum reservations. Seed 759 produced 5,918 generators and 8,996 mobs at
+boot, including 624 visible mobs at `(2244,1333)`. The generator count matches
+the live channel-2 summary. This is a deterministic boot fixture, not a replay
+of the production world's subsequent movement, deaths, replenishment, players,
+shops or configured boss encounters.
+
+Of those 624 visible mobs, 561 use template `Cobra_`. Both official reference
+files (`DestinyServer-main/TMSRV/run/NPCGener.txt` and
+`DestinyServer-main/TMSRV2/run/NPCGener.txt`) and the then-installed `NPCGener2.txt`
+contained the same 561 enabled `Cobra_` records starting at `(2240,1324)`.
+The concentration is inherited from the reference data; this comparison does
+not establish how the native executable treats those records at runtime.
+
+Refreshing visibility at `(2467,2007)` emitted 664 packets totaling 22,808 bytes:
+624 mob removals, 39 mob creations and one ground-item creation, verified by
+decrypting and classifying the collected packets. Temporary instrumentation distinguished queue
+overflow from writer errors. With a real loopback TCP connection, a concurrent
+writer and a peer continuously reading, all 20 trials at capacity 256 closed
+through the queue-overflow branch; none reported a writer error as the first
+close cause. At capacity 2,048, none of 20 trials closed. A control that excluded
+only the 561 `Cobra_` IDs from the origin visibility snapshot emitted 103 packets
+and stayed open at capacity 256. Neither control changed runtime data files.
+
+This reproduces the disconnect mechanism with a healthy local receiver,
+without relying on the preliminary paused-writer assumption. The visibility
+refresh publishes the entire transition synchronously, while `Session.Send`
+closes immediately if the writer cannot drain the bounded queue fast enough.
+Queue overflow during this teleport is therefore strongly supported. The exact
+historical close cause remains unrecorded, and the capacity control is a
+diagnostic result, not a validated production sizing recommendation.
+
+At investigation time, the local population inputs matched the active VPS files by SHA-256:
+`NPCGener2.txt` =
+`5200d07243c0dbb232b000a42f7412ee600bd6d815ae4c80840a23cb7189bf98`;
+`channel2_population.json` =
+`107f511b41ed4575ce90ba61661b066523bf36a793ba0a31177e5057677caebb`.
+This is a historical snapshot hash. The later local catalog migration replaced
+the consolidated file with individual templates in `data/npcs/`.
+All three focused follow-up runs passed. Their tests and transport instrumentation
+existed only in a temporary Go overlay; product source was not changed.
+No gameplay correction, configuration change, publication or restart was
+performed for this diagnosis. Follow-up work should record outbound close
+causes and handle large visibility transitions without blocking the world
+actor, losing entity updates or silently overflowing its session queue.
+
+### Local population cleanup — 2026-10-26
+
+After the owner's manual cleanup, 541 `Cobra_` generator sections remained at
+`(2240,1324)` in `NPCGener2.txt`, plus one in `NPCGener.txt`. All 542 sections
+were removed from the local files. Every retained section was preserved byte
+for byte, including the 21 `Cobra_` sections elsewhere in `NPCGener.txt`.
+Neither file now has a `Cobra_` starting point within 32 tiles of that location.
+Templates and reference data were not changed.
+
+The four focused population resolution, channel-2 world boot, official monster
+bootstrap and mixed-group capacity tests passed. The channel-2 world boot
+created 5,154 generators and 8,448 mobs. This validates local loading, not live
+client acceptance or a general fix for outbound queue overflow. The initial
+cleanup was local; the owner subsequently authorized publication and restart.
+
+Resulting local SHA-256 values:
+`NPCGener.txt` =
+`467683cfa88aabba8b57d6da114335c8cb582e86b0625c8f9fe4aea909054cde`;
+`NPCGener2.txt` =
+`044f93d55db96cc51f4aeb8417881cf89fe33afe9785a50b8aacaef94110a7cc`.
+
+At 05:18:52 UTC (02:18:52 America/Sao_Paulo), the game service restarted on
+`/srv/wyd-go/releases/20261026T051850Z`, PID 1624402. The existing game-only
+updater activated a snapshot of the installed release with exactly two changed
+data files, the NPCGener files above; all 1,157 data paths were retained. Source
+HEAD remains `40706d99b7715167d7aa4a2c484704f7e91c2c8b` with working-tree
+population inputs. No commit, push, client patch or executable change occurred.
+The 14,067,875-byte release archive SHA-256 was
+`06fc092d9a75788c85b3216a2412d06fa0e8937437b9c278eedb6980cb35bd08`.
+The running executable still hashes to
+`9b23eb9619eaef2bebbfc2d93cda601ab848ac6cd331dc682eaa2b0c445a3d2a`.
+
+Backup completed successfully before activation. Graceful shutdown persisted
+one account with zero failures. Rollback remains available at
+`/srv/wyd-go/releases/20261026T031523Z`. All `/etc/wyd-go` file hashes were
+unchanged; Player API and log-reader PIDs were preserved. By 05:19:15 UTC,
+both readiness endpoints passed, both game ports were externally reachable,
+automatic restarts remained zero, and no critical containment, fatal or panic
+diagnostic appeared in the bounded post-start journal. Inspection of the active
+files confirmed zero regional `Cobra_` sections and the 21 sections elsewhere
+preserved in channel 1. Remote staging was removed. Actual gameplay acceptance
+and the separate transport queue correction remain pending.
+
+## Production incident — 2026-10-25, persistence containment
+
+Read-only SSH inspection confirmed that the former game release
+`/srv/wyd-go/releases/20261025T203853Z` entered global maintenance at
+22:55:01 UTC (19:55:01 America/Sao_Paulo). The journal reports:
+`CRITICAL: persistence completion 4810 failed; entering maintenance: critical persistence: participant identity changed`.
+All three connected sessions closed in the same second. Completion 4811 then
+reported `maintenance prevents publication`, a subsequent containment error.
+Later connection attempts on both TCP 8281 and 8282 closed after initialization.
+Listening ports and an active service therefore do not establish gameplay
+availability.
+
+At the first inspection, the game process was PID 1539385, started at 20:38:56 UTC,
+with `NRestarts=0`; PostgreSQL was also active. The running executable SHA-256
+was `21023c507470096431f9ff7d42eb8d1f4d303fbcd924461d920799dfb090e06c`.
+The immediate disconnect cause is confirmed persistence containment, rather
+than a process exit. The generic identity error does not identify the failing
+producer or the mismatched state. Opening a shop six seconds earlier is only
+temporal context, not proof that the shop caused the failure.
+
+An intervening restart at 23:15:21 UTC started PID 1565428 on the same release
+and executable hash. At 23:15:24 UTC, completion 1 produced the same identity
+error and global maintenance, before any player login. Both channels remained
+unavailable for gameplay despite the active process.
+
+Local diagnostic tests reproduced a deterministic defect in
+`queueScheduledGuildChange`: the proposal mutates `Wars`, leaving the active
+entry in `ChannelWars` stale. After applying that proposal, the post-acknowledgment
+identity check compares it against `criticalGuildSnapshot()`, whose `Clone()`
+refreshes that entry. `reflect.DeepEqual` consequently rejects the server's own
+committed change and invokes global containment. The no-channel control passed;
+channel 1, channel 2 and the automatic guild-economy producer reproduced the
+failure. Tests asserting normal operation initially failed with the same
+identity error, establishing a reproduction before the correction.
+
+City-war scheduling provides a more specific production lead. The original
+failure at 19:55:01 local time falls in the five-minute announcement window for
+the 20:00 city war. A read-only PostgreSQL query found guild-state version 114,
+updated at exactly 23:15:24.427472 UTC, with channel-1 city phase `waiting`,
+start time `2026-10-25T20:00:00-03:00`, and notice mask 5 (five-minute warning
+and start marker). Separate scheduler reproductions at 19:55:01 and 20:15:24
+produced notice transitions 0 to 1 and 1 to 5, respectively, followed by the
+same maintenance error. This strongly implicates city-war announcement writes;
+the production journal does not name the producer, so the exact original
+completion 4810 remains an inference. The current guild aggregate was committed;
+this does not establish the durable outcome of every operation from the first
+incident.
+
+The owner subsequently authorized correction, publication and restart.
+`queueScheduledGuildChange` now clones the changed proposal before submission,
+normalizing its active channel entry exactly as the persistence worker does.
+This is `MODERNIZACAO_COMPATIVEL`; the client contract and required revision 4
+are unchanged. Regression tests cover both channels, completion from the other
+channel, certified rejection, real identity divergence, city notices and the
+weekly fame reset. The reproductions pass after the correction; real divergence
+still invokes containment. The complete Go suite and `go vet ./...` passed.
+Race and PostgreSQL fixture tests were not enabled.
+
+Recovery inspection found the affected account write committed at the incident
+timestamp, matching account identities, zero character-index ownership
+mismatches, and no other active database transaction. Completion 4811's sole
+`maintenance prevents publication` error is emitted after a successful store
+result; it does not report an uncertain database write. No economic operation
+was replayed, no account data was overwritten, and no containment check was
+bypassed. The exact original producer remains inferred as described above.
+
+At 2026-10-26 03:15:25 UTC (00:15:25 America/Sao_Paulo), the game service was
+restarted on `/srv/wyd-go/releases/20261026T031523Z`, PID 1604105, executable
+SHA-256 `9b23eb9619eaef2bebbfc2d93cda601ab848ac6cd331dc682eaa2b0c445a3d2a`.
+The package includes the local manual NPC removals, direct NPC-name corrections,
+service classification and Silver Dragon handler. The replacement data tree
+does not retain old templates omitted from the package. The existing backup
+service completed before activation; private configuration, account state,
+Player API, log reader and website were preserved. The previous release remains
+available for rollback. Exact inputs and results are in the `serverHotfix`
+entry of `.agents/research/channel2-release-748004.json`.
+
+Both listeners and readiness endpoints passed. External protocol probes on
+8281 and 8282 rejected revision 3 and reached credential validation with
+revision 4, using nonexistent accounts. The startup city-war interruption
+committed guild-state version 115 at 03:15:27.783540 UTC, with phase `finished`,
+without maintenance. At 03:18:22 UTC the process remained active with zero
+automatic restarts and no new critical persistence error. Existing disabled
+terrain groups and unresolved staff-index references remain separate gaps.
+Actual client gameplay and full NPC acceptance remain pending. No client patch,
+commit or push was performed for this hotfix.
+
+Remote staging was removed. Local cleanup was rejected by execution policy
+before execution; the task staging and two scratch scripts remain at the exact
+paths recorded in the receipt. No alternate deletion was attempted.
+
+## Release 7.48.004 — 2026-10-25, published and activated; both channels externally reachable
+
+The owner authorized publication of channel 2 and the matching launcher assets.
+Patch 48004 and the Linux server/site archive are published and validated; see
+the [release receipt](client/launcher.md#published-patch-748004-2026-10-25).
+Paired client/server revision 4 adds the second endpoint on TCP 8282, the
+official `NPCGener2.txt` population and adapted 7.48-compatible templates.
+The six-entry patch includes the executable, server list, SN group names and
+base/EN/PT NPC message tables. Local runtime installation is unchanged.
+
+The full Go suite, vet, client build gates, 19 locale tests and 89 portal tests
+passed. Additional untracked runtime data is now accepted only through an
+explicit packaging allowlist; all 409 selected files were verified in the
+archive. The staged configuration preserves the VPS's current settings.
+The owner explicitly authorized disconnecting the two active sockets; shutdown
+persisted two accounts with zero failures. The initial active release was
+`/srv/wyd-go/releases/20261025T203853Z`; game and Player API were restarted.
+Public HTTP/HTTPS feeds, ZIP entries, site receipt, both readiness endpoints and
+running executable hashes were verified. Local runtime installation is unchanged.
+
+Both channels listen and their compiled admission gates work: revision 3 is
+rejected, revision 4 reaches credential validation for a nonexistent account.
+Both channels are externally reachable over IPv4. The owner authorized adding
+inbound TCP 8282 in the authenticated Hetzner Console. The applied firewall
+now has six inbound rules; ICMP and TCP 22/80/443/8281 and the outbound policy
+were preserved. Public channel-2 protocol probes passed at 20:47:01 UTC,
+rejecting revision 3 and reaching credential validation with revision 4.
+IPv6 connectivity was not tested. Actual client transfers and full
+NPC service acceptance remain pending. The production initial channel-2 world
+summary was 5,918 generators and 8,989 mobs, with 727 template bindings; 21
+invalid source groups remain disabled and the staff index has 169 unresolved
+references. The completed crash-test output folder recorded in the receipt
+could not be removed because automatic approval review blocked cleanup.
+Post-verification staging cleanup was also rejected before execution. Exact
+remaining paths are recorded in the release receipt; no alternate deletion
+was attempted. Publication and external reachability remain verified.
+
+## Release 7.48.003 — 2026-10-24, published and activated
+
+The owner authorized publication and restart of the caption correction. Patch
+48003 was published and verified through public HTTP and HTTPS before server
+activation. The native launcher feed, public manifest, home, Download, changelog
+and News now advertise 7.48.003. See the [patch receipt](client/launcher.md#published-patch-748003-2026-10-24).
+
+Paired client/server revision 3 is active on HEAD `40706d99` plus selected
+working-tree changes, without commit/push. The client gate passed 3,179,319
+architecture checks, 281 socket checks, 200 crash checks and 58 launcher checks.
+The full Go suite, `go vet ./...`, portal check/build and all 89 portal tests
+passed. Database fixture and race coverage were not enabled; actual rendering
+and launcher installation remain pending. The portal test baseline initially
+referenced 7.48.002; after correcting its input path and updating the baseline,
+the complete portal test rerun passed.
+
+- Candidate: `tmproject/build/TMProject748/Release/WYD.exe`, 1,938,944 bytes,
+  SHA-256 `882F11E6CBA65E6B290DA0C8DF7920485982F5A9F1E49005D31823D76881BBE6`.
+- Patch: `build/patch/patch-48003.zip`, 862,788 bytes, exactly one entry
+  `WYD.exe`, whose hash matches the candidate. ZIP SHA-256
+  `492DC2A390DEA1EBFB93CE52FF9F5A579F6D896EE4D72223CBAFEACF82741CAC`.
+- Server/site archive: `build/deploy/wyd-deploy-20261024-748003/release.tar.gz`,
+  25,434,568 bytes, 13,971 inspected entries, SHA-256
+  `4A6463A663B8AF0B5AD0231E649AA68F63A73176C855F76E16EE5321FEDF7E6D`.
+  Required executables, manifest and News page are present; private accounts,
+  environment files and client preference/configuration paths are excluded.
+- Exact selected input hashes are recorded in the patch receipt; verification
+  logs remain in the sanctioned ignored build root.
+
+Active release: `/srv/wyd-go/releases/20261024T210842Z`. Game and Player API
+restarted at 21:08:45 UTC; the listener was ready at 21:08:46 UTC. Running
+executable hashes match the inspected archive:
+
+| Component | PID at verification | SHA-256 |
+| --- | --- | --- |
+| Game | 1317427 | `F8D654E23E64802D750BCAFEDAFADC969D0F01C35EBC6BC24B7D4FE1C2449D06` |
+| Player API | 1317440 | `7374B707ED41EAB030418B04CEB452D650FC76E8AE10006BD0027FE7FB50B89C` |
+| Log reader, unchanged process on the previous release | 1304661 | `16D8A9EA3E01B037EE846747CC4EFCF9853432BBD2A0E68D51BBD66904D2227D` |
+
+Both readiness endpoints returned ready; all three services are active. No
+error-priority Game/API journal entries appeared after activation. No established
+game connections were present before the stop. Shutdown persisted zero accounts
+with zero failures and `Result=success`. All nine configuration/unit files
+matched production before activation; private game/player environment hashes
+were unchanged afterward. No host reboot or security-policy changes occurred.
+Backup `wydgo-20261024T210842Z.dump`: 186,110 bytes, SHA-256
+`C8EF596F854D2DE76882AD72F69DD852A994AAB8D91557FF024439E4520AF69E`.
+Remote deployment staging was removed. Rollback reference:
+`/srv/wyd-go/releases/20261024T195426Z` (minimum revision 2; accepts revision 3).
+
+At 21:11:04 UTC, production protocol probes rejected revision 2 before
+authentication and admitted revision 3 to credential validation using random
+nonexistent accounts. No account was created or character authenticated.
+Actual launcher installation and game rendering remain pending. The installed
+local runtime remains 7.48.002, SHA-256
+`80CA48E77A8F83535401B7FE1415E33C9DE873E04F55C0313C844DF7B6A66209`.
+
+The owner resolved the language policy conflict: the product supports English
+and Brazilian Portuguese. `AGENTS.md` and the affected skills now preserve
+multilingual product content and English engineering text. Existing client
+localization and the native launcher remain intact; this does not certify
+complete server or website localization. Repository layout validation still
+reports pre-existing runtime ZIP/log/dump artifacts outside sanctioned build
+roots; those files were preserved and excluded from delivery. Skill validation
+could not run because both available Python environments lack PyYAML; unchanged
+skill metadata and the focused instruction diff were inspected manually.
+
+Automatic execution review rejected cleanup of the new crash-test evidence
+directory `tmproject/build/tests/Release/crash-capture-tests-1516-9365828/`.
+No alternative deletion was attempted; this directory remains locally.
+The final cleanup command was also rejected as `blocked by policy` before
+execution. No alternate method was attempted. Additional exact leftovers:
+`build/deploy/wyd-deploy-20261024-748003/`,
+`build/release-748003/verify-http.zip`,
+`build/release-748003/verify-https.zip`, and these files under
+`C:/Users/xereca/AppData/Local/Temp/`:
+`wyd-release-748003-preflight.sh`, `wyd-release-748003-activate.sh`,
+`wyd-release-748003-probe.py`, `wyd-release-748003-receipt.py`.
+The published patch and current incremental client build are retained.
+
+## Local caption regression fix — 2026-10-24, subsequently published above
+
+The owner reported unreadable letters after 7.48.002. The local correction
+removes automatic raster shrinking and bounds only confirmed Character/Skill
+captions, using original-size glyphs and ellipsis for real overflow. Unrelated
+labels and numeric values retain their existing layout. The full NoDeploy
+build gate passed; actual game rendering remains pending, not `CLIENT_TESTED`.
+See [cause, coverage and artifact hashes](client/multilingual-client.md#caption-legibility-regression-october-24).
+That initial local check did not install or publish its candidate; the paired
+revision-3 rebuild and publication are recorded above.
+
+## Release 7.48.002 — 2026-10-24, published and activated
+
+The owner authorized client/server/site publication, restart and player
+disconnection. The native launcher patch was published and independently
+verified first; see [patch receipt](client/launcher.md#published-patch-748002-2026-10-24).
+Admission requires release prefix `0x02EC` and revision >= **2**. News explains
+mandatory updates and the full-client 7.48.001 baseline. No launcher binary or
+language-preference file was replaced.
+
+Source HEAD `40706d99b7715167d7aa4a2c484704f7e91c2c8b` plus selected working-tree
+changes (`vcs.modified=true`); no commit/push. Includes caption fitting, explicit
+Windows-1252 GDI text boundaries, bounded quest subject loading, corrected command
+help and reserved-command handling, the Colosseum minute-6 gates/first wave and
+one-damage monster cap, and the committed DEX score rule below. Citizenship
+departure, handover and legacy war commands remain unavailable. This deployment
+does not implement the separate channel plan.
+
+Release `/srv/wyd-go/releases/20261024T195426Z` is active. Archive SHA-256:
+`3FD9D7402BD836C3D6D84260EAA615E2D910381210D0A1680BD6BDE4EE56CE84`.
+Actual running executable paths and hashes match staging:
+
+| Component | PID at verification | SHA-256 |
+| --- | --- | --- |
+| Game | 1304575 | `7BE3E58C051842BC18F0584C044371B71AEA70185F0070F6812512A6BFC80192` |
+| Player API | 1304588 | `7374B707ED41EAB030418B04CEB452D650FC76E8AE10006BD0027FE7FB50B89C` |
+| Log reader | 1304661 | `16D8A9EA3E01B037EE846747CC4EFCF9853432BBD2A0E68D51BBD66904D2227D` |
+
+All nine staged private configuration/unit files matched production before the
+stop. The game had zero connections at 19:54:25 UTC; the previously observed
+player had disconnected at 19:48:27 UTC. Graceful shutdown persisted zero
+accounts with zero failures and `Result=success`. Game/API restarted at 19:54:28
+UTC; the game listener was ready at 19:54:29 UTC. No machine reboot. Schema
+remains 11. Backup `wydgo-20261024T195425Z.dump`: 185,993 bytes, SHA-256
+`36B0B2B5874EAFC7BAB4560C1A02CE65F93E36D3CB0193EB433785279DA6F6A6`.
+Rollback reference: `/srv/wyd-go/releases/20261023T203847Z` (minimum revision 1,
+same release prefix; accepts the new revision-2 client). Do not lower the gate
+in the new source to roll back.
+
+Both readiness endpoints returned ready; all three services are active; no
+error-priority game/API journal entries appeared after activation. Public
+HTTP/HTTPS feed, ZIP and manifest, plus News, Download, home and changelog were
+verified. Production protocol probes rejected revision 1 and admitted revision
+2 to credential validation; no real character login was attempted. Existing
+Caddy redundant-forwarded-header warnings and the staff index's 173 unresolved
+references remain outside this release's acceptance coverage.
+
+Validation: client gate/build (3,176,611 architecture assertions/checks, 281
+socket, 200 crash and 58 launcher checks); all Go packages passed across the full
+run and a focused wire rerun after updating its hardcoded baseline assertion;
+`go vet ./...`; portal check/build and 89 tests. PostgreSQL-dependent fixture
+and race coverage were not enabled. The previous locale suite/generator results
+remain valid for unchanged resource inputs. Not `CLIENT_TESTED`: visual text
+fitting, non-Western Windows ACP, actual launcher update/login and Colosseum
+gameplay remain pending. Installed local `client748/WYD.exe` is still the
+7.48.001 executable; publication does not install it locally.
+
+The initial server upload and subsequent SSH diagnostic timed out before
+authentication; access recovered with the same account/key. No credential or
+security-policy change was made. A filtered fail2ban log query returned no event
+for the current source in that file; this does not establish a global absence
+of network blocking. The activation succeeded; a trailing CR on the wrapper's
+final cleanup-trap command produced a post-activation exit status 1. Independent
+verification confirmed the selected release, process hashes, readiness, backup
+and removed remote staging; the activation was not repeated.
+
+Remote temporary staging was removed. Local cleanup was rejected by execution
+policy before the command ran; no alternative deletion method was attempted.
+The following task-created paths remain and can be removed manually. The
+published patch ZIP and current incremental client build are retained.
+
+- `build/deploy/wyd-deploy-20261024-748002/`
+- `build/release-748002/verify-http.zip`
+- `build/release-748002/verify-https.zip`
+- `tmproject/build/tests/Release/crash-capture-tests-13816-4580921/`
+
+Full build, transfer and activation failure diagnostics remain in the sanctioned
+`build/release-748002/` output directory. The 41 selected changed source/resource
+input hashes are preserved in the launcher receipt.
+
+## Player DEX score rule — 2026-10-23, activated in 7.48.002
 
 Owner-requested: player physical attack now uses `STR/3 + DEX/8` and DEX adds
 no defense, following the official 7.59 score builder
-([7.59 analysis](server/server-759-gap-analysis.md#player-score-dex-damage-and-defense-adopted-2026-10-23)).
-Full Go suite and vet passed. Not committed, deployed or observed in game; a
-server release and restart are required for players to see it.
+([7.59 analysis](<../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md#player-score-dex-damage-and-defense-adopted-2026-10-23>)).
+Committed in `40706d99`; full Go suite and vet passed. Activated by the release
+above. Actual in-game score observation remains pending.
 
 ## Full client 7.48.001 — 2026-10-23, published and activated
 
@@ -1914,7 +2451,8 @@ the restart in release `20261016T232841Z`. Gameplay validation remains pending.
 All 27 Water configurations (eight rooms plus the boss room per tier) now
 reference 28 independent static definitions, with `WTN_`, `WTM_` and `WTA_`
 prefixes. Bosses and boss-room escorts use the same tier balance and EXP.
-The definitions fit the existing 12-byte name field, retain source appearance
+The definitions retain their conservative 12-byte naming budget within the
+16-byte NPC field (15 text bytes plus NUL), retain source appearance
 and unrelated statistics, and have no carry/drop inventory and zero gold.
 Other maps and Nightmare do not borrow these Water definitions; their original
 shared templates are unchanged. No runtime HP/EXP override is used.
@@ -1954,7 +2492,8 @@ the restart in release `20261016T232841Z`. Gameplay validation remains pending.
 
 The values belong to 17 independent static monster definitions in `data/npcs/`,
 including Arcane's Lugefer. Their names use the `NMN_`, `NMM_` and `NMA_`
-prefixes and fit the client's 12-byte name field. The three Nightmare generator
+prefixes and retain their conservative 12-byte naming budget within the
+16-byte NPC field (15 text bytes plus NUL). The three Nightmare generator
 files and both Arcane boss configurations reference these exclusive definitions;
 shared NPC templates, monsters outside Nightmare and friendly protectors remain
 unchanged. Appearance and unrelated statistics retain their source values.

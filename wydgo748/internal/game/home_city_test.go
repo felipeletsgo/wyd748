@@ -32,7 +32,8 @@ func TestHomeCityMovementBindsWithoutRepeatedClientNotice(t *testing.T) {
 			w.store = st
 			p.Char.Score.Merchant = uint32((city+3)%4<<playerHomeCityShift) | 5
 			p.Char.RuntimeScore.Merchant = p.Char.Score.Merchant
-			p.X, p.Y = zone.city.x1-1, zone.city.y1+5
+			area := homeCityZones[city].area
+			p.X, p.Y = area.x1-1, area.y1+5
 			p.Char.X, p.Char.Y = p.X, p.Y
 			w.updatePlayerSpatial(p)
 			now := time.Unix(100, 0)
@@ -70,7 +71,7 @@ func TestHomeCityMovementBindsWithoutRepeatedClientNotice(t *testing.T) {
 			setPlayerCurHP(p.Char, 0)
 			p.DeadAt = time.Now().Add(-5 * time.Second)
 			w.onRestart(p.Session)
-			if playerCurHP(p.Char) == 0 || chebyshev(p.X, p.Y, zone.exitX, zone.exitY) > 8 {
+			if playerCurHP(p.Char) == 0 || !recallArea(city).contains(p.X, p.Y) {
 				t.Fatalf("bound city not used at restart: (%d,%d)", p.X, p.Y)
 			}
 		})

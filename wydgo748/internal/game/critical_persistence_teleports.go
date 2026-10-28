@@ -33,7 +33,7 @@ func (w *World) queuePlayerTeleport(p *Player, proposed *model.Account, x, y uin
 
 func (w *World) queuePlayerTeleportState(p *Player, proposed *model.Account, x, y uint16,
 	operation string, publish func(), afterAck func(), reject func(), revive bool) error {
-	return w.queuePlayerTeleportSnapshot(p, proposed, x, y, operation, publish, afterAck, reject, revive, nil)
+	return w.queuePlayerTeleportSnapshot(p, proposed, x, y, operation, publish, afterAck, reject, revive, nil, false)
 }
 
 // Counter-backed admission commits the balance and position together. A store
@@ -49,11 +49,12 @@ func (w *World) queuePlayerTeleportWithCounters(p *Player, proposed *model.Accou
 	state := buildCharState(p, w.now())
 	state.SpecialCoins = maps.Clone(counters)
 	return w.queuePlayerTeleportSnapshot(p, proposed, x, y, operation, publish, nil, nil, false,
-		&criticalCharacterState{uid: p.Char.UID, state: state})
+		&criticalCharacterState{uid: p.Char.UID, state: state}, false)
 }
 
 func (w *World) queuePlayerTeleportSnapshot(p *Player, proposed *model.Account, x, y uint16,
-	operation string, publish func(), afterAck func(), reject func(), revive bool, character *criticalCharacterState) error {
+	operation string, publish func(), afterAck func(), reject func(), revive bool, character *criticalCharacterState,
+	preserveHomeCity bool) error {
 	if p == nil || p.Char == nil || p.Account == nil || proposed == nil ||
 		!bindCriticalPlayer(p).current(w) || w.criticalWrites == nil {
 		return errCriticalPersistenceIdentity
@@ -71,7 +72,9 @@ func (w *World) queuePlayerTeleportSnapshot(p *Player, proposed *model.Account, 
 	}
 	ch := &proposed.Chars[p.CharSlot]
 	ch.X, ch.Y = x, y
-	stagePlayerHomeCity(&Player{Char: ch, X: x, Y: y})
+	if !preserveHomeCity {
+		stagePlayerHomeCity(&Player{Char: ch, X: x, Y: y})
+	}
 	oldX, oldY, oldSpace := p.X, p.Y, w.playerRuntimeInstanceID(p.ID)
 	// Public teleports also commit definitive departure from any retained room.
 	// Entry or movement within a private room requires a separate proposal.
@@ -154,7 +157,7 @@ func (w *World) queuePlayerTeleportSnapshot(p *Player, proposed *model.Account, 
 }
 
 func criticalTeleportConsumable(action string) bool {
-	return action == "teleport" || action == "warp_saved" ||
+	return action == "teleport" || action == "recall" || action == "warp_saved" ||
 		action == "hunting_teleport" || action == "territory_pass"
 }
 
@@ -167,6 +170,9 @@ func (w *World) admitTeleportConsumable(p *Player, slot byte, rule model.Volatil
 		}
 	}
 	switch rule.Action {
+	case "recall":
+		_, x, y = w.recallSpawn(p.Char)
+		x, y = w.findFreePlayerPosition(x, y, 3, p)
 	case "warp_saved":
 		x, y = p.Char.SavedX, p.Char.SavedY
 		if x == 0 || y == 0 {
@@ -209,8 +215,9 @@ func (w *World) admitTeleportConsumable(p *Player, slot byte, rule model.Volatil
 			fail("OX entry could not be saved. Your Entrance Ticket was not consumed.")
 		}
 	}
-	if err := w.queuePlayerTeleport(p, proposed, x, y, "teleport item",
-		func() { resyncUsedItem(p.Session, p, slot) }, afterAck, reject); err != nil {
+	if err := w.queuePlayerTeleportSnapshot(p, proposed, x, y, "teleport item",
+		func() { resyncUsedItem(p.Session, p, slot) }, afterAck, reject, false, nil,
+		rule.Action == "recall"); err != nil {
 		if rule.Action == "ox_ticket" {
 			delete(w.ox.admitting, p)
 		}

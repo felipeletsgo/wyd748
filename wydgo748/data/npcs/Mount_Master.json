@@ -3,13 +3,13 @@
   "tipo": "npc",
   "equip": {
     "rosto": {
-      "index": 18
+      "index": 53
     },
     "elmo": {
-      "index": 13,
+      "index": 3500,
       "eff": [
         43,
-        9,
+        7,
         0,
         0,
         0,

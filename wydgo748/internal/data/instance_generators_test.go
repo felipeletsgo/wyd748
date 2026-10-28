@@ -10,16 +10,16 @@ import (
 )
 
 // Magic Chamber (Carta) rooms and Nightmare waves spawn from the dedicated
-// generator files in data/NPCGener, at each block's native start point.
+// generator files in data/spawns/instances, at each block's native start point.
 func TestInstanceWavesComeFromGeneratorFiles(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	volatiles := loadRealVolatiles(t, root, catalog)
-	terrain, err := LoadTerrain(filepath.Join(root, "maps", "HeightMap.dat"), filepath.Join(root, "maps", "AttributeMap.dat"))
+	terrain, err := LoadTerrain(filepath.Join(root, "world", "maps", "HeightMap.dat"), filepath.Join(root, "world", "maps", "AttributeMap.dat"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -68,7 +68,7 @@ func TestInstanceWavesComeFromGeneratorFiles(t *testing.T) {
 	}
 
 	// The open world never spawns the instance-only Carta/Nightmare groups.
-	geners, err := LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	geners, err := LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,6 +96,7 @@ func TestNightmareDedicatedMonsterDefinitions(t *testing.T) {
 	for i := range npcs {
 		byName[npcs[i].Name] = &npcs[i]
 	}
+	donors := historicalInstanceDonors(t)
 	cases := []struct{ source, name, tier string }{
 		{"Morlock__", "NMN_Morlock", "normal"},
 		{"Dark_Kn1", "NMN_DarkKn", "normal"},
@@ -118,11 +119,11 @@ func TestNightmareDedicatedMonsterDefinitions(t *testing.T) {
 	dedicated := make(map[string]string)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			source, monster := byName[tc.source], byName[tc.name]
+			source, monster := donors[tc.source], byName[tc.name]
 			if source == nil || monster == nil || source.Score == nil || monster.Score == nil {
 				t.Fatal("missing dedicated monster or source template")
 			}
-			if monster == source || monster.Score == source.Score || !monster.IsMonster() || len(monster.Name) > wireNameBytes {
+			if monster == source || monster.Score == source.Score || !monster.IsMonster() || len(monster.VisibleName()) > model.MaxNPCDisplayNameBytes {
 				t.Fatal("dedicated definition is shared, non-hostile or exceeds the wire name limit")
 			}
 			want := map[string][2]uint32{"normal": {2000, 200000}, "mystic": {5000, 400000}, "arcane": {10000, 600000}}[tc.tier]
@@ -141,6 +142,10 @@ func TestNightmareDedicatedMonsterDefinitions(t *testing.T) {
 			expectedScore.MaxHP, expectedScore.CurHP = want[0], want[0]
 			expectedScore.Attack, expectedScore.MagicAttack, expectedScore.Defense = 1, 1, 1
 			expected.Score = &expectedScore
+			// Item 2947 has no 7.48 catalog entry; adapted variants keep that slot empty.
+			if expected.Equip.Arma.Index == 2947 {
+				expected.Equip.Arma = model.Item{}
+			}
 			if !reflect.DeepEqual(&expected, monster) {
 				t.Fatal("dedicated monster unexpectedly changed appearance or unrelated statistics")
 			}
@@ -150,7 +155,7 @@ func TestNightmareDedicatedMonsterDefinitions(t *testing.T) {
 		})
 		dedicated[tc.name] = tc.tier
 	}
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"), filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"), filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +216,7 @@ func TestNightmareDedicatedMonsterDefinitions(t *testing.T) {
 			t.Errorf("dedicated definition %s is not used by Nightmare", name)
 		}
 	}
-	geners, err := LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	geners, err := LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}

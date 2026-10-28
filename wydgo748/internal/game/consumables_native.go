@@ -12,7 +12,7 @@ import (
 )
 
 // Reserved internal IDs track the two one-shot rewards separately from the
-// positive quest IDs configured in data/quests.json.
+// positive quest IDs configured in data/content/quests.json.
 const (
 	questFlagOpportunityCompound = -192
 	questFlagBalanceCompound     = -193

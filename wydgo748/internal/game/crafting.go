@@ -87,8 +87,8 @@ func (w *World) combineNPC(p *Player, expectedName string) (*Mob, error) {
 
 func craftingNPCMatches(m *Mob, expectedName string) bool {
 	return m != nil && !m.Dead && m.Def != nil && m.Def.Score != nil &&
-		m.Def.Score.Merchant&0x0F == craftingMerchant &&
-		strings.EqualFold(generName(m.Def.Name), expectedName)
+		m.Def.Score.Merchant == craftingMerchant &&
+		strings.EqualFold(generName(m.Def.InteractionName()), expectedName)
 }
 
 // tinyDonorTier follows the donor-ID branches in the 7.59 TMSRVIN.exe

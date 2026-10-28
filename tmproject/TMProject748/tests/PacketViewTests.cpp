@@ -78,6 +78,8 @@ int RunEffectVertexColorTests(int& checks);
 int RunSceneDisconnectContractTests(int& checks);
 int RunUIBinaryTests(int& checks);
 int RunFontTextureUploadTests(int& checks);
+int RunSingleLineTextLayoutTests(int& checks);
+int RunLocaleBoundaryTests(int& checks);
 int RunFontGdiResourcesTests(int& checks);
 int RunRenderStateCacheTests(int& checks);
 int RunDeviceRestoreTests(int& checks);
@@ -197,6 +199,61 @@ int main()
     ConsumeAirMoveDelta(airPosition, airDelta);
     check(airPosition.x == 100.25f && airPosition.y == 199.5f,
         "AirMove does not reapply the consumed delta in the next frame");
+    const AirMovePoint departure{100.0f, 200.0f};
+    airDelta = {0.25f, -0.5f};
+    UpdateHumanFramePosition(airPosition, departure, airDelta, true);
+    check(airPosition.x == 100.5f && airPosition.y == 199.0f &&
+        airDelta.x == 0.0f && airDelta.y == 0.0f,
+        "AirMove advances from the previous frame instead of the ground origin");
+    UpdateHumanFramePosition(airPosition, departure, airDelta, true);
+    check(airPosition.x == 100.5f && airPosition.y == 199.0f,
+        "AirMove preserves progress during a frame without a new delta");
+    UpdateHumanFramePosition(airPosition, departure, airDelta, false);
+    check(airPosition.x == departure.x && airPosition.y == departure.y,
+        "ordinary movement still follows authoritative ground interpolation");
+
+    // Exercise the scene's real waypoint data and stepping calculation over
+    // many human frames. The ground route deliberately stays at departure,
+    // just as it does while the server waits for the flight-end packet.
+    const AirMovePoint flightDeparture{2115.0f, 2080.0f};
+    const AirMovePoint flightEndpoints[5]{{2112, 2051}, {2372, 2099},
+        {2220, 1714}, {2365, 2279}, {1826, 1771}};
+    for (int route = 0; route < kAirMoveRouteCount; ++route)
+    {
+        for (float speed : {0.2f, 0.6f, 0.71f})
+        {
+            AirMovePoint position = flightDeparture;
+            AirMovePoint pending{};
+            int waypoint = 0;
+            bool arrived = false;
+            for (int frame = 0; frame < 60000; ++frame)
+            {
+                UpdateHumanFramePosition(position, flightDeparture, pending, true);
+                pending = AirMoveWaypointDelta(position,
+                    g_pAirMoveRoute[route][waypoint], speed);
+                if (pending.x == 0.0f && pending.y == 0.0f)
+                {
+                    if (!HasNextAirMoveWaypoint(g_pAirMoveRoute[route], waypoint))
+                    {
+                        arrived = true;
+                        break;
+                    }
+                    ++waypoint;
+                }
+            }
+            // The existing stop rule compares the next full-speed step with
+            // the waypoint, so the current position may be speed + 0.5 away.
+            const float arrivalTolerance = speed + 0.51f;
+            if (!arrived)
+                std::fprintf(stderr, "AirMove route=%d speed=%f waypoint=%d position=%f,%f\n",
+                    route, speed, waypoint, position.x, position.y);
+            check(arrived &&
+                std::fabs(position.x - flightEndpoints[route].x) <= arrivalTolerance &&
+                std::fabs(position.y - flightEndpoints[route].y) <= arrivalTolerance &&
+                pending.x == 0.0f && pending.y == 0.0f,
+                "all five AirMove paths reach their final waypoint without looping");
+        }
+    }
     struct AirMoveLook { short mesh; short skin; };
     int bodySkin = 12;
     int mountSkin = 40;
@@ -619,6 +676,8 @@ int main()
     failures += RunSceneDisconnectContractTests(checks);
     failures += RunUIBinaryTests(checks);
     failures += RunFontTextureUploadTests(checks);
+    failures += RunSingleLineTextLayoutTests(checks);
+    failures += RunLocaleBoundaryTests(checks);
     failures += RunFontGdiResourcesTests(checks);
     failures += RunRenderStateCacheTests(checks);
     failures += RunDeviceRestoreTests(checks);

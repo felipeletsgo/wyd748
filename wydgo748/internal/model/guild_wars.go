@@ -244,6 +244,12 @@ func (r *GuildRegistry) CancelCityBids() error {
 func (r *GuildRegistry) ResetWeeklyGuildFame(local time.Time) bool {
 	boundary := time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, local.Location()).AddDate(0, 0, -int(local.Weekday()))
 	day := boundary.Format("2006-01-02")
+	if c := &r.Wars.Cities; c.Phase == "registration" && c.Day <= day {
+		c.Phase = "waiting"
+	}
+	if r.FameResetDay > r.Wars.FameResetDay {
+		r.Wars.FameResetDay = r.FameResetDay
+	}
 	if r.Wars.FameResetDay >= day {
 		return false
 	}
@@ -253,6 +259,7 @@ func (r *GuildRegistry) ResetWeeklyGuildFame(local time.Time) bool {
 		}
 	}
 	r.Wars.FameResetDay = day
+	r.FameResetDay = day
 	if c := &r.Wars.Cities; c.Phase == "registration" && c.Day <= day {
 		c.Phase = "waiting"
 	}

@@ -58,7 +58,7 @@ Skill identity is its numeric ID, not a translated label. The active client
 displays skill-item names from `Itemname.bin` (item ID = 5000 + skill ID),
 while its gameplay parameters load from `SkillData.bin`. The ignored local
 `client748/SkillData.csv` is not a runtime input. The server loads its tracked
-`wydgo748/data/SkillData.csv`, including names used in diagnostics.
+`wydgo748/data/catalog/SkillData.csv`, including names used in diagnostics.
 
 The server CSV names now match all 103 defined skill labels in the client's
 item-name resource and the matching server item-name catalog. The null row

@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.010",
+  "feedVersion": 48010,
+  "status": "PUBLISHED_AND_ACTIVE",
+  "classification": "PARIDADE_NATIVA (hometown binding and recall) and MODERNIZACAO_COMPATIVEL (binding after accepted movement)",
+  "authorization": {
+    "uploadAndPublication": "User requested upload of all components to the VPS",
+    "restart": "User explicitly requested removing players and restarting; zero game connections existed at activation",
+    "gui": "Not used"
+  },
+  "source": {
+    "head": "dbf820bcc00afdaefa68f6ca8ed85bf24851d659",
+    "mode": "working-tree",
+    "dirtyEntries": 1568,
+    "serverSourceFiles": 2183,
+    "clientBuildSourceFiles": 948,
+    "note": "Package inputs re-verified against the working tree before upload completion; 0 changed files."
+  },
+  "clientPatch": {
+    "version": 48010,
+    "mode": "working-tree",
+    "head": "dbf820bcc00afdaefa68f6ca8ed85bf24851d659",
+    "zipPath": "build/patch/patch-48010.zip",
+    "size": 916141,
+    "sha256": "408AF09D74AC590C1E5DB99F12547CA4907CFF80304C9FF1C0C84E4A28A70324",
+    "executablePath": "tmproject/build/TMProject748/Release/WYD.exe",
+    "executableSize": 2071552,
+    "executableSha256": "A4D664F12E049E476A8E38A9E7686A582EECF33F9BD7EBAB994A977E13295113",
+    "entries": [
+      "WYD.exe"
+    ],
+    "dependencyClosure": "Recorded client runtime inputs unchanged since published 7.48.009; no new untracked runtime assets. Exclude launcher/config/local settings."
+  },
+  "serverArchive": {
+    "path": "build/deploy/wyd-deploy-20261028-748010/release.tar.gz",
+    "payloadFiles": 7716,
+    "runtimeDataFiles": 1073,
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 25683668,
+      "sha256": "a94428349a020ba0b1e4f9e25c6f7c506c58dae7a6acbcc56c24db815afe385e"
+    },
+    "binaries": {
+      "game/wyd-log-reader": "170258846d8758895793a330ee67137c133fc9e7eca4bd09cf7eb4cea7fb8ac9",
+      "game/wyd-player-api": "21ed94c136294b0341ed06ab011d52de95bc87f0506fa90567d0da299c1e1c27",
+      "game/wyd-server": "260b5c62b0866fdc2a6f98ff61f221bd2a380645e4fd81adf33e3a528a795d2a"
+    }
+  },
+  "revision": {
+    "clientBuildContract": 10,
+    "serverMinimum": 10,
+    "previousPublished": 9
+  },
+  "preflight": {
+    "at": "2026-10-28T05:13:00Z",
+    "previousRelease": "/srv/wyd-go/releases/20261028T024440Z",
+    "previousFeedVersion": 48009,
+    "gamePid": "2061200",
+    "gameSha256": "457029f19b840c5b5dd1330cb663721db809f22791ee153631ec98b70dd75c6c"
+  },
+  "publication": {
+    "feed": "https://wyd.forjago.com/patch/update.htm lists 48010 patch-48010.zip after 48009; HTTP and HTTPS 200",
+    "zipDownload": "200 application/zip 916141 bytes; SHA-256 and WYD.exe entry hash match the receipt; archive test passed"
+  },
+  "activation": {
+    "script": "tools/deployment/vps/update-release.sh",
+    "result": "Release /srv/wyd-go/releases/20261028T052051Z is live (game restarted: true, player API restarted: true)",
+    "activeRelease": "/srv/wyd-go/releases/20261028T052051Z",
+    "rollback": "/srv/wyd-go/releases/20261028T024440Z",
+    "installedFilesVerified": 7716,
+    "configurationFilesPreserved": 12,
+    "services": {
+      "wyd-game": {
+        "pid": "2087540",
+        "nRestarts": "0",
+        "sha256": "260b5c62b0866fdc2a6f98ff61f221bd2a380645e4fd81adf33e3a528a795d2a",
+        "executable": "/srv/wyd-go/releases/20261028T052051Z/game/wyd-server"
+      },
+      "wyd-player": {
+        "pid": "2087554",
+        "nRestarts": "0",
+        "sha256": "21ed94c136294b0341ed06ab011d52de95bc87f0506fa90567d0da299c1e1c27",
+        "executable": "/srv/wyd-go/releases/20261028T052051Z/game/wyd-player-api"
+      }
+    },
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    },
+    "channelListeners": [
+      8281,
+      8282
+    ],
+    "backup": {
+      "at": "2026-10-28T05:20:51Z",
+      "archive": "wydgo-20261028T052051Z.dump",
+      "bytes": 477098,
+      "sha256": "62da70dcc7b1ff4153d0c2ed68343d65efbe90894a3c31cab379aaf14ac9127e"
+    }
+  },
+  "admission": {
+    "at": "2026-10-28T05:21:27.539270+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 9,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8281,
+        "revision": 10,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      },
+      {
+        "port": 8282,
+        "revision": 9,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 10,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "siteVerification": {
+    "clientManifestFeedVersion": 48010,
+    "homePageMentions": "7.48.010",
+    "externalPorts": [
+      8281,
+      8282
+    ]
+  },
+  "journal": "No CRITICAL, fatal or panic after start; only expected nonexistent-account probe login errors. Previous process shut down with 0 accounts persisted and 0 failures.",
+  "cleanup": {
+    "removed": [
+      "/tmp/wyd-deploy-20261028-748010 (by update-release.sh)",
+      "/tmp/wyd-patch-48010 (by publish-patch.sh)",
+      "/tmp/wyd-verify-748010",
+      "build/release-748010/public-verify"
+    ],
+    "preserved": [
+      "build/patch/patch-48010.zip",
+      "build/deploy/wyd-deploy-20261028-748010",
+      "rollback release /srv/wyd-go/releases/20261028T024440Z"
+    ]
+  },
+  "delivery": {
+    "source": "IMPLEMENTED",
+    "automatedTested": "Go suite, vet, focused race, local PostgreSQL integration, portal 115 tests (Codex run)",
+    "published": "CLIENT PATCH 48010 VERIFIED",
+    "activeServer": "VERIFIED",
+    "clientTested": "PENDING: in-game hometown walk, recall scroll and relogin"
+  }
+}

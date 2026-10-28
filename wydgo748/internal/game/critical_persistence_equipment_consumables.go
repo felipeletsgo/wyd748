@@ -41,7 +41,7 @@ func (w *World) queueEquipmentConsumable(p *Player, slot byte, req useItemReques
 			return reject("This item cannot be used by this evolution.")
 		}
 		if rule.MinLevel != 0 && ch.Score.Level < rule.MinLevel || rule.MaxLevelExclusive != 0 && ch.Score.Level >= rule.MaxLevelExclusive {
-			return reject("This item is only available between levels 201 and 256.")
+			return reject("This item is only available between levels 201 and 205.")
 		}
 		if rule.OnceQuestID != 0 && questCompleted(ch, int(rule.OnceQuestID)) {
 			return reject("You have already completed this quest.")

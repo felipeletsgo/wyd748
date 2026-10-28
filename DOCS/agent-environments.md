@@ -13,7 +13,7 @@ Rules remain in [`AGENTS.md`](../AGENTS.md) and procedures in
 | Repository rules | Loads `AGENTS.md` | Loads the root `CLAUDE.md`, which only imports `@AGENTS.md` |
 | Skill discovery | `.agents/skills/<name>/SKILL.md` | `.claude/skills/<name>/SKILL.md` pointer to the canonical skill |
 | Skill invocation | `$<name>` or automatic selection | `/<name>` or automatic selection by description |
-| Skill UI metadata | `agents/openai.yaml` | Not used |
+| Skill UI metadata | `.agents/skills/<name>/agents/openai.yaml` for every canonical skill | Not used |
 | Shared project settings | None tracked | `.claude/settings.json` (tracked guardrails) |
 | Local, personal settings | `.codex/config.toml` (ignored) | `.claude/settings.local.json` (ignored) |
 | Skill authoring helper | Codex `skill-creator` | Claude Code `skill-creator` |
@@ -45,6 +45,14 @@ equivalent; its local configuration stays untracked.
   directories, never in `tmproject/` or `wydgo748/`. Recorded paths such as
   `%TEMP%\codex-wyd748-lifecycle-149205b7` in research records and handoffs are
   historical evidence locations, not a required naming scheme.
+  Root `build/<task>/` holds generated staging, audit reports, logs, and temporary databases.
+  The client may write crash-monitor logs and dumps to
+  `tmproject/client748/dumps/`. Retain them until the incident closes, or for
+  30 days when no incident exists. Never commit or package them.
+  Retain `tmproject/client748.zip` only while its matching build or receipt is
+  under review. Remove it after publication verification.
+  Cleanup examples include staging, verification downloads, stopped temporary
+  clusters, and unused candidate executables created by the current task.
 - Model or reasoning-effort notes in historical handoffs (for example
   `gpt-5.6-sol/xhigh`) are provenance, not policy. Commands that call
   `%USERPROFILE%/.codex/skills/.system/skill-creator/scripts/quick_validate.py`
@@ -55,6 +63,79 @@ equivalent; its local configuration stays untracked.
 - `tmproject/Build-Client.ps1` installs `tmproject/client748/WYD.exe`
   by default. Pass `-NoDeploy` unless the task includes replacing the runtime.
   `CLIENT-TESTED` always requires running the built client.
+
+## Writing guidance
+
+The writing requirement is in [AGENTS.md](../AGENTS.md).
+It covers comments, diagnostics, logs, tests, scripts, rules, skills, documentation, research, and handoffs.
+Identifiers also remain in English, subject to compatibility requirements.
+Product content keeps its declared locale in the client, launcher, server messages, website, and releases.
+ASD-STE100 does not replace the product's EN/PT language selection.
+
+The [official ASD-STE100 source](https://www.asd-ste100.org/about_STE.html)
+describes writing rules and a controlled dictionary.
+Use the official standard when checking vocabulary and permitted technical terms.
+This page is a working guide, not a replacement for that standard.
+
+During review:
+
+1. Separate instructions from descriptions.
+2. Use imperative verbs for instructions.
+3. Put each instruction in a separate sentence.
+4. Check the 20-word instruction and 25-word description limits.
+5. Replace ambiguous references with specific names.
+6. Use the same technical term for the same concept.
+7. Check word meanings against the controlled dictionary.
+8. Preserve identifiers, commands, protocol values, and paths.
+9. Check that shorter text retains scope, conditions, exceptions, and required evidence.
+
+Sentence counts alone do not establish ASD-STE100 compliance.
+Record dictionary or terminology checks that remain incomplete.
+Review changed sections first; unrelated legacy text does not require a full-file rewrite.
+
+For example, replace "A successful build does not prove the launcher or player used that build"
+with "Verify the installed executable separately from the build."
+Keep the executable path and hash requirements in the relevant rule.
+
+## Integration command examples
+
+These examples support the validation requirements in `AGENTS.md`.
+They do not authorize a build, runtime replacement, or game launch.
+Run them from the repository root only when the affected scope requires them.
+
+For a Go integration batch:
+
+```powershell
+Push-Location .\wydgo748
+try {
+    go test -count=1 ./...
+} finally {
+    Pop-Location
+}
+```
+
+For a client build without runtime replacement, use PowerShell 7:
+
+```powershell
+pwsh -NoProfile -File .\tmproject\Build-Client.ps1 -NoDeploy
+```
+
+When runtime replacement is authorized, omit `-NoDeploy`.
+The script then installs and verifies `tmproject/client748/WYD.exe`.
+Running the built client is a separate validation step.
+Record its path, SHA-256, dependencies, scenario, and observed result.
+See [build and integration](build-and-integration.md) for additional build details.
+
+## Evidence terminology
+
+Catalog states are `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`, `IMPLEMENTED`, and `CLIENT_TESTED`.
+They distinguish discovery, contract knowledge, implementation, and actual client execution.
+Builds, static checks, and isolated tests do not establish `CLIENT_TESTED`.
+The execution requirement remains in `AGENTS.md`.
+
+Server, documentation, organization, tooling, and build changes can preserve all legacy client boundaries.
+Those internal changes do not require new native research under the root evidence rules.
+Changed boundaries still require the evidence specified there.
 
 ## Validation
 

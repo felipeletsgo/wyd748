@@ -256,22 +256,10 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 		}
 	}
 	if write.guilds != nil {
-		registry := *write.guilds
-		registry.Guilds = slices.Clone(registry.Guilds)
-		for i := range registry.Guilds {
-			registry.Guilds[i].Members = slices.Clone(registry.Guilds[i].Members)
-		}
-		registry.Wars = registry.Wars.Clone()
-		snapshot.guilds = &registry
+		snapshot.guilds = write.guilds.Clone()
 	}
 	if write.instances != nil {
-		instances := *write.instances
-		instances.NightmarePartyRuns = maps.Clone(instances.NightmarePartyRuns)
-		instances.Instances = slices.Clone(instances.Instances)
-		for i := range instances.Instances {
-			instances.Instances[i].MemberCharacterUIDs = slices.Clone(instances.Instances[i].MemberCharacterUIDs)
-		}
-		snapshot.instances = &instances
+		snapshot.instances = write.instances.Clone()
 	}
 	if write.character != nil {
 		character := *write.character

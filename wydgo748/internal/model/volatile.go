@@ -112,7 +112,7 @@ type VolatileAffect struct {
 }
 
 // VolatileInstance describes a ticket-activated room. Content, coordinates
-// and durations remain in data/instances.json; the engine enforces occupancy,
+// and durations remain in data/content/instances.json; the engine enforces occupancy,
 // party admission, spawning, clocks and closure.
 type VolatileInstance struct {
 	ID string `json:"id"`
@@ -128,7 +128,7 @@ type VolatileInstance struct {
 	MaxPlayers int                     `json:"maxPlayers,omitempty"`
 	Spawns     []VolatileInstanceSpawn `json:"spawns"`
 	// Generator names a generator file under the data directory (for example
-	// "NPCGener/NightmareN.txt"). The loader turns every block into a spawn at
+	// "NightmareN.txt" in data/spawns/instances). The loader turns every block into a spawn at
 	// its native start point, so Spawns must stay empty when it is set.
 	Generator  string `json:"generator,omitempty"`
 	RewardItem uint16 `json:"rewardItem,omitempty"`
@@ -218,8 +218,11 @@ type VolatileNightmareBoss struct {
 // parties, +4 allows four, and other rooms allow three. Rewards use each
 // party's historical global slot; TicketNextSanc selects the next refinement.
 type VolatileUxmal struct {
-	Version        int                         `json:"version,omitempty"`
-	Generator      string                      `json:"generator,omitempty"`
+	Version   int    `json:"version,omitempty"`
+	Generator string `json:"generator,omitempty"`
+	// RoomGenerators selects one file per ticket refinement, ordered +0 to +6.
+	// Generator remains available for older, single-file configurations.
+	RoomGenerators []string                    `json:"roomGenerators,omitempty"`
 	Generators     []NPCGener                  `json:"-"`
 	NPC            string                      `json:"npc"`
 	TicketItem     uint16                      `json:"ticketItem"`
@@ -268,11 +271,12 @@ type InstanceRuntimeState struct {
 // state. Keeping the Nightmare window counters beside the instances makes a
 // restart unable to reset the three-party limit.
 type InstanceStateSnapshot struct {
-	Version            int                    `json:"version"`
-	Instances          []InstanceRuntimeState `json:"instances,omitempty"`
-	NightmarePartyRuns map[string]int         `json:"nightmarePartyRuns,omitempty"`
-	GambleJackpot      uint32                 `json:"gambleJackpot,omitempty"`
-	GamblePool         uint64                 `json:"gamblePool,omitempty"`
+	Channels           map[byte]*InstanceStateSnapshot `json:"channels,omitempty"`
+	Version            int                             `json:"version"`
+	Instances          []InstanceRuntimeState          `json:"instances,omitempty"`
+	NightmarePartyRuns map[string]int                  `json:"nightmarePartyRuns,omitempty"`
+	GambleJackpot      uint32                          `json:"gambleJackpot,omitempty"`
+	GamblePool         uint64                          `json:"gamblePool,omitempty"`
 }
 
 const InstanceStateVersion = 1
@@ -340,6 +344,9 @@ type VolatileInstanceStage struct {
 	Generator              string `json:"generator,omitempty"`
 	GeneratorIDs           []int  `json:"generatorIds,omitempty"`
 	CompletionGeneratorIDs []int  `json:"completionGeneratorIds,omitempty"`
+	// Initial-group mode preserves fixed leader/follower waves without using
+	// the permanent generator's total capacity as the encounter population.
+	GeneratorMode string `json:"generatorMode,omitempty"`
 }
 
 // VolatileHellGate describes the controller, corridor bosses, four rooms,

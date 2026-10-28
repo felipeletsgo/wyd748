@@ -27,7 +27,7 @@ headings do not count as API coverage. The header has not been fully split;
   there are no active callers or consumers. The obsolete `TMFieldScene` scan
   and `CreateGate` helper were already removed. Permanent objects now enter
   the scene only through the server's `CreateItem` packets. The Go server
-  loads `data/init_items.csv` and owns their lifetime and IDs. Do not restore
+  loads `data/world/init_items.csv` and owns their lifetime and IDs. Do not restore
   client-local object creation without revisiting ownership.
   The shipped 7.48 `InitItem.bin` has 96 eight-byte XOR-`0xFF` records. The
   server CSV now contains those same 96 objects in the same order, verified by

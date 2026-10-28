@@ -75,7 +75,7 @@ namespace received_packet
         {
         case quiz_event::ChallengeOpcode: return sizeof(quiz_event::Challenge);
         case instance_question::Opcode: return sizeof(instance_question::Packet);
-        case premium_shop::StateOpcode: return sizeof(premium_shop::State);
+        case premium_shop::ResultOpcode: return sizeof(premium_shop::Result);
         case kefra_portal::StateOpcode: return sizeof(kefra_portal::State);
         case MSG_ReqTransper_Opcode: return sizeof(MSG_ReqTransper);
         case MSG_SendItem_Opcode: return kSendItemPacketSize;
@@ -182,6 +182,15 @@ namespace received_packet
         // inspection; never write or copy the handlers' payload.
         MSG_STANDARD header{};
         std::memcpy(&header, packet.data, sizeof(header));
+
+        // Premium state has two versioned lengths: v1 balances/legacy opens
+        // and v4 categorized opens. Use the shared parser before scene delivery.
+        if (header.Type == premium_shop::StateOpcode || packet.opcode == premium_shop::StateOpcode)
+        {
+            premium_shop::State state{};
+            return packet.opcode == header.Type &&
+                premium_shop::Parse(packet.data, packet.size, state);
+        }
 
         if (header.Type == kefra_portal::StateOpcode || packet.opcode == kefra_portal::StateOpcode)
         {

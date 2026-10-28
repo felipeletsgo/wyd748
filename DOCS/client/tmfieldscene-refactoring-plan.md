@@ -238,8 +238,8 @@ research for every mechanical move.
   aliases, request buffers, and reset ordering on disconnect or replacement.
 - Preserve compatibility guards and optional controls. Do not instantiate
   controls absent from the native resources as an extraction workaround.
-- Translate explanatory legacy text in changed source files as required by
-  the English-only rule. Review contract-bearing text separately; do not
+- Translate explanatory legacy engineering prose in changed source files as
+  required by the English prose rule. Review contract-bearing text separately; do not
   rename persisted values, resource IDs, opcodes, or established identifiers
   merely to make a mechanical diff look cleaner.
 

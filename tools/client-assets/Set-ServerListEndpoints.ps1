@@ -13,6 +13,10 @@ Optional replacement for every configured group status URL (slot 0).
 .PARAMETER KeepGroupCount
 Optional. Clears every record of groups at or beyond this index, so only the
 first groups named by sn.bin remain selectable.
+.PARAMETER ChannelPorts
+Optional channel-slot to TCP-port map. Existing explicit ports are preserved.
+.PARAMETER EnsureSecondChannel
+Adds channel 2 to the first group using the explicit ChannelPorts mapping.
 .PARAMETER SourcePath
 Input table. Defaults to tmproject/client748/serverlist.bin.
 .PARAMETER DestinationPath
@@ -24,6 +28,8 @@ Replace an existing destination other than the source if its contents differ.
 param(
     [Parameter(Mandatory)] [string]$Address,
     [string]$StatusUrl,
+    [hashtable]$ChannelPorts = @{},
+    [switch]$EnsureSecondChannel,
     [ValidateRange(1, 10)] [int]$KeepGroupCount = 10,
     [string]$SourcePath,
     [string]$DestinationPath,
@@ -45,6 +51,23 @@ if (-not [Net.IPAddress]::TryParse($Address, [ref]$parsed) -or
 }
 if ($StatusUrl -and ($StatusUrl -notmatch '^https?://[\x21-\x7E]+$' -or $StatusUrl.Length -ge $width)) {
     throw "StatusUrl must be a printable ASCII http(s) URL shorter than $width bytes."
+}
+foreach ($slot in $ChannelPorts.Keys) {
+    if ("$slot" -notmatch '^(10|[1-9])$' -or [int]$ChannelPorts[$slot] -lt 1 -or [int]$ChannelPorts[$slot] -gt 65535) {
+        throw 'ChannelPorts must map channel slots 1..10 to TCP ports 1..65535.'
+    }
+}
+function Game-Endpoint([int]$slot, [string]$current) {
+    foreach ($configured in $ChannelPorts.Keys) {
+        if ([int]$configured -eq $slot) {
+            $port = [int]$ChannelPorts[$configured]
+            if ($port -eq 8281) { return $Address }
+            return "${Address}:$port"
+        }
+    }
+    # Preserve a destination port when generating local overrides or changing IP.
+    if ($current -match ':(\d+)$') { return "${Address}:$($Matches[1])" }
+    return $Address
 }
 
 $assetRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../../tmproject/client748'))
@@ -89,6 +112,8 @@ $output = [byte[]]::new($sourceBytes.Length)
 $channels = 0
 $statuses = 0
 $cleared = 0
+$firstChannel = $false
+$secondChannel = $false
 for ($entry = 0; $entry -lt $entryCount; $entry++) {
     $offset = $entry * $width
     $plain = [byte[]]::new($width)
@@ -117,11 +142,26 @@ for ($entry = 0; $entry -lt $entryCount; $entry++) {
         continue
     }
     $current = [Text.Encoding]::ASCII.GetString($plain, 0, $end)
-    if ($current -notmatch '^[A-Za-z0-9][A-Za-z0-9.-]*$') {
+    if ($current -notmatch '^\d{1,3}(\.\d{1,3}){3}(:[1-9]\d{0,4})?$') {
         throw "Server-list entry $entry is not a game-channel address."
     }
-    Write-Record $output $entry $Address
+    $hostPart, $portPart = $current.Split(':')
+    $validIP = $null
+    if (-not [Net.IPAddress]::TryParse($hostPart, [ref]$validIP) -or
+        $validIP.AddressFamily -ne [Net.Sockets.AddressFamily]::InterNetwork -or
+        ($portPart -and [int]$portPart -gt 65535)) { throw "Invalid endpoint at entry $entry." }
+    if ($entry -eq 1) { $firstChannel = $true }
+    if ($entry -eq 2) { $secondChannel = $true }
+    Write-Record $output $entry (Game-Endpoint ($entry % $slotsPerGroup) $current)
     $channels++
+}
+if ($EnsureSecondChannel) {
+    if (-not $firstChannel) { throw 'The first server group must have channel 1 before adding channel 2.' }
+    if (-not $ChannelPorts.ContainsKey(2) -and -not $ChannelPorts.ContainsKey('2')) {
+        throw 'EnsureSecondChannel requires an explicit port for channel 2.'
+    }
+    Write-Record $output 2 (Game-Endpoint 2 '')
+    if (-not $secondChannel) { $channels++ }
 }
 if ($channels -eq 0) { throw 'The server list has no configured game channels.' }
 

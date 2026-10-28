@@ -1,0 +1,286 @@
+{
+  "name": "BerserkerElf",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 284
+    },
+    "elmo": {
+      "index": 284
+    },
+    "armadura": {
+      "index": 285
+    },
+    "calca": {
+      "index": 284
+    },
+    "luva": {
+      "index": 284
+    },
+    "bota": {
+      "index": 284
+    },
+    "arma": {
+      "index": 729
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 6000,
+  "score": {
+    "version": 2,
+    "level": 320,
+    "attack": 1400,
+    "magicAttack": 0,
+    "defense": 1100,
+    "maxHP": 9240,
+    "maxMP": 0,
+    "curHP": 9240,
+    "curMP": 0,
+    "str": 6,
+    "int": 40,
+    "dex": 90,
+    "con": 450,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      123,
+      1,
+      123,
+      1
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 2441
+    },
+    {
+      "index": 2442
+    },
+    {
+      "index": 2443
+    },
+    {
+      "index": 2444
+    },
+    {
+      "index": 2441
+    },
+    {
+      "index": 2442
+    },
+    {
+      "index": 2443
+    },
+    {
+      "index": 2444
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 697
+    },
+    {
+      "index": 697
+    },
+    {
+      "index": 697
+    },
+    {
+      "index": 2441
+    },
+    {
+      "index": 2442
+    },
+    {
+      "index": 2443
+    },
+    {
+      "index": 2444
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 692
+    },
+    {
+      "index": 692
+    },
+    {
+      "index": 692
+    },
+    {
+      "index": 692
+    },
+    {
+      "index": 692
+    },
+    {
+      "index": 692
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4019
+    },
+    {
+      "index": 4020
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413
+    }
+  ],
+  "gold": 500,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

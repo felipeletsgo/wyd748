@@ -20,7 +20,9 @@ import (
 
 const SchemaVersion = 2
 
-var sourceNames = []string{"itemlist.csv", "Itemname.csv", "ItemEffect.h", "SkillData.csv", "quests.json", "quest_zones.json"}
+// Paths are relative to the data root (see DOCS/server/data-layout.md).
+var sourceNames = []string{"catalog/itemlist.csv", "catalog/Itemname.csv", "catalog/ItemEffect.h",
+	"catalog/SkillData.csv", "content/quests.json", "content/quest_zones.json"}
 
 type Source struct {
 	File   string `json:"file"`
@@ -70,11 +72,11 @@ func Export(dir string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	quests, err := data.LoadQuests(filepath.Join(dir, "quests.json"))
+	quests, err := data.LoadQuests(filepath.Join(dir, sourceNames[4]))
 	if err != nil {
 		return nil, err
 	}
-	zones, err := data.LoadQuestZones(filepath.Join(dir, "quest_zones.json"))
+	zones, err := data.LoadQuestZones(filepath.Join(dir, sourceNames[5]))
 	if err != nil {
 		return nil, err
 	}

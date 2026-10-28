@@ -1,9 +1,11 @@
 #pragma once
 #include <windows.h>
+#include "ResourceTextGdi.h"
 #include <cerrno>
 #include <cstddef>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <limits>
 
 namespace font_gdi {
@@ -16,7 +18,9 @@ struct NativeApi {
         return bitmap;
     }
     HFONT CreateTypeface(int height, int weight, const char* face) {
-        return CreateFontA(height, 0, 0, 0, weight, 0, 0, 0, 1, 4, 0, 4, 2, face);
+        std::wstring decoded;
+        if (!resource_text::Decode(face, static_cast<int>(std::strlen(face)), decoded)) return nullptr;
+        return CreateFontW(height, 0, 0, 0, weight, 0, 0, 0, ANSI_CHARSET, 4, 0, 4, 2, decoded.c_str());
     }
     HGDIOBJ Select(HDC dc, HGDIOBJ object) { return SelectObject(dc, object); }
     COLORREF TextColor(HDC dc) { return SetTextColor(dc, 0xFFFFFF); }

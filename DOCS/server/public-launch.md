@@ -679,7 +679,7 @@ exercise were not performed; neither is implied by the passing checks.
   `wyd-deploy-20261012-costume-slot`. Archive SHA-256:
   `258b79e07151bb4db36ad7d6498da0ed64756c0c245c62fa433f298a588a1a42`.
 - Scope: costume-slot extension, expiry display projection and timed-horse
-  catalog (`data/mounts.json` `premium`); see the
+  catalog (`data/content/mounts.json` `premium`); see the
   [port record](../client/port-748.md#wyd-go-extensions-costume-slot-expiry-display-timed-horses-2026-10-12).
 - Applied with zero established connections on 8281. Game and player API
   restarted; game, player API and Caddy are active, 8281 listens, home returns
@@ -1880,7 +1880,7 @@ restarted the game and player API, validated Caddy and passed readiness.
   from `<guild>.bmp` as `image/bmp`, 404 otherwise. A temporary file proved the
   mapping for two groups and was removed; the directory is empty.
 - Server: native support-buff duration, Magic Chamber and Nightmare waves from
-  `data/NPCGener/Carta*.txt` and `Nightmare*.txt`, training-field level-35
+  `data/spawns/instances/Carta*.txt` and `Nightmare*.txt`, training-field level-35
   return/block, and D/E weapon and armor-set test shops placed in Armia.
 - Checks: services active, port 8281 listening, public `/readyz` 200, warning
   journal empty, home/News/player 200, anonymous `/api/player/v1/guild` 401,

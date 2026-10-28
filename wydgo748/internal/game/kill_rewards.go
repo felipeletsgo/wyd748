@@ -23,6 +23,7 @@ type killRewardPlan struct {
 	holdPenaltyChanged map[*Player]bool
 	cytheraChanged     map[*Player]bool
 	mountUpdates       []mountHuntUpdate
+	mysticLandProgress bool
 	drops              []plannedDrop
 	gold               uint32
 	killerLevels       int
@@ -121,6 +122,7 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	}
 
 	m.Dead = true
+	plan.mysticLandProgress = w.advanceMysticLand(p, m)
 	for _, share := range shares {
 		receiver := share.player
 		oldHP, oldMP := playerCurHP(receiver.Char), playerCurMP(receiver.Char)
@@ -343,6 +345,9 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 	}
 	w.publishMobDeath(m, p.ID, progressByPlayer)
 	if rewardCommitted {
+		if plan.mysticLandProgress {
+			circleServiceMessage(p, mysticLandReadyMessage)
+		}
 		for _, share := range plan.shares {
 			receiver := share.player
 			if !publishState || receiver == nil || receiver.Char == nil || receiver.Session == nil {

@@ -3,15 +3,7 @@
   "tipo": "npc",
   "equip": {
     "rosto": {
-      "index": 68,
-      "eff": [
-        43,
-        0,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 68
     },
     "elmo": {
       "index": 0
@@ -60,26 +52,22 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 500,
   "score": {
     "version": 2,
     "level": 1,
-    "attack": 713,
+    "attack": 500,
     "magicAttack": 0,
-    "defense": 3000,
+    "defense": 500,
     "maxHP": 9000,
     "maxMP": 0,
     "curHP": 9000,
     "curMP": 0,
     "str": 5,
-    "int": 0,
-    "dex": 100,
-    "con": 500,
+    "int": 100,
+    "dex": 0,
+    "con": 0,
     "critical": 255,
-    "resistFire": 255,
-    "resistIce": 255,
-    "resistHoly": 255,
-    "resistThunder": 255,
     "saveMana": 255,
     "mastery": [
       255,
@@ -87,8 +75,10 @@
       255,
       7
     ],
+    "attackRun": 1,
     "merchant": 8
   },
+  "gold": 500,
   "skillBar": [
     255,
     255,

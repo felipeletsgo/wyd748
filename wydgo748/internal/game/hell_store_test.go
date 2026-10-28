@@ -12,15 +12,15 @@ import (
 
 func hellStoreCatalog(t *testing.T) (map[uint16]model.ItemDef, model.VolatileCatalog) {
 	t.Helper()
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := data.LoadVolatilesWithInstances("../../data/volatiles.json", "../../data/instances.json", catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances("../../data/content/volatiles.json", "../../data/content/instances.json", "../../data/spawns/instances", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles.Repliction, err = data.LoadRepliction("../../data/repliction.json", catalog.Items)
+	volatiles.Repliction, err = data.LoadRepliction("../../data/content/repliction.json", catalog.Items)
 	if err != nil {
 		t.Fatal(err)
 	}

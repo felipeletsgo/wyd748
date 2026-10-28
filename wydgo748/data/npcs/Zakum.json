@@ -52,10 +52,10 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 1500,
   "score": {
     "version": 2,
-    "level": 140,
+    "level": 125,
     "attack": 340,
     "magicAttack": 0,
     "defense": 600,
@@ -315,15 +315,25 @@
       "index": 410
     },
     {
-      "index": 683
+      "index": 0
     },
     {
       "index": 0
     },
     {
       "index": 419
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
     }
   ],
+  "gold": 500,
   "direction": 64,
   "skillBar": [
     255,

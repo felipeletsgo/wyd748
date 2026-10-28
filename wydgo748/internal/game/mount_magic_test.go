@@ -20,7 +20,7 @@ func mountMagicChar() *model.Char {
 }
 
 func TestMountMagicAmplifiesScoreAndSpellsAtEveryLevel(t *testing.T) {
-	catalog, err := data.LoadMounts("../../data/mounts.json")
+	catalog, err := data.LoadMounts("../../data/content/mounts.json")
 	if err != nil || len(catalog.Types) != 30 {
 		t.Fatalf("mount catalog: count=%d err=%v", len(catalog.Types), err)
 	}
@@ -127,11 +127,11 @@ func TestPremiumMountMagicAlsoAppliesToSpells(t *testing.T) {
 }
 
 func TestPremiumAndKRMountMagicWithProductionCatalog(t *testing.T) {
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	mounts, err := data.LoadMounts("../../data/mounts.json")
+	mounts, err := data.LoadMounts("../../data/content/mounts.json")
 	if err != nil {
 		t.Fatal(err)
 	}

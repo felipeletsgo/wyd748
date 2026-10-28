@@ -217,7 +217,7 @@ The server has these systems. The server has authority on each system.
 - **Crafting** — The server has server-side recipes and native success and
   failure messages for Agatha, Aylin, Tiny, Lindy, Compositor, Ehre, and
   Alquimista Odin. The Compositor needs four materials of set D or E, each
-  refined +7 to +9. Its success chance comes from `data/server.txt`: a base
+  refined +7 to +9. Its success chance comes from `data/config/server.txt`: a base
   value plus a bonus for each material, selected by the refine level.
 - **Quests** — The server reads the quest requirements and gives atomic rewards
   from data files. The quest areas are repeatable. Only the entry NPC grants a
@@ -370,7 +370,7 @@ The server has these systems. The server has authority on each system.
 - **Boss encounters** — A boss is a normal mob with a parallel behavior
   runtime. Four behaviors are compiled into the server: chaser, caster,
   summoner, and phased. You configure each encounter in a Lua file in
-  `data/boss/`. The file sets the assets, the statistics, the position, the
+  `data/content/boss/`. The file sets the assets, the statistics, the position, the
   respawn time, the skills, the adds, the HP phases, and the drops. The Lua
   file selects a behavior; it cannot make a new rule.
 - **Communication** — The protocol carries local, party, guild, and global chat.
@@ -397,12 +397,14 @@ The server has these systems. The server has authority on each system.
 
 ## Language
 
-The 7.48 client is the global (English) client. All player-facing and
-project-authored text must be English. The terms agree with the client
-interface: Party, Guild, Whisper, Trade, Quest, Gold, Kingdom, Cargo, Mount,
-Refine, and Auto Trade. Legacy Portuguese chat-command aliases remain a
-compatibility issue to review before an English-only release; do not add new
-aliases.
+The 7.48 client supports English (`EN`) and Brazilian Portuguese (`PT`).
+Player-facing text uses the selected locale, with English fallback when a
+translation is unavailable. Engineering identifiers, logs, diagnostics,
+technical documentation, and scripts remain in English. The terms agree with
+the client interface: Party, Guild, Whisper, Trade, Quest, Gold, Kingdom,
+Cargo, Mount, Refine, and Auto Trade. Legacy Portuguese chat-command aliases
+remain a compatibility concern; preserve established aliases unless a
+versioned contract changes them.
 
 ## Requirements
 
@@ -420,15 +422,25 @@ aliases.
 
 The versioned configuration enables the integrated admin panel. Its `dist/`
 directory is generated and is not in Git, so build it once after a clone and
-after each frontend change. From `wydgo748/`, do these commands:
+after each frontend change. From the repository root, use these commands:
 
 ```powershell
-pwsh -NoProfile -File ..\tools\web-admin\Start-WYDAdmin.ps1 -NoBrowser
-New-Item -ItemType Directory -Force bin | Out-Null
-go build -o bin/tm.exe ./cmd/server
-go build -o bin/account-api.exe ./cmd/account-api
-go build -o bin/account-create.exe ./cmd/account-create
+$repoRootPath = (Get-Location).Path
+$serverOutput = Join-Path $repoRootPath 'build/server'
+New-Item -ItemType Directory -Force $serverOutput | Out-Null
+pwsh -NoProfile -File tools\web-admin\Start-WYDAdmin.ps1 -NoBrowser
+Push-Location wydgo748
+try {
+    go build -o (Join-Path $serverOutput 'tm.exe') ./cmd/server
+    go build -o (Join-Path $serverOutput 'account-api.exe') ./cmd/account-api
+    go build -o (Join-Path $serverOutput 'account-create.exe') ./cmd/account-create
+} finally {
+    Pop-Location
+}
 ```
+
+The server binary is `build/server/tm.exe`; run it with `wydgo748/` as its
+working directory.
 
 ## Prepare PostgreSQL
 
@@ -480,7 +492,7 @@ start, so it is slower:
 go run ./cmd/server
 ```
 
-The server reads the configuration from `data/server.txt`. A command-line flag
+The server reads the configuration from `data/config/server.txt`. A command-line flag
 replaces a data-file value. Examples: `-addr`, `-npcs`, and `-items`. The
 `-accounts` flag applies only to the explicit JSON development adapter. To see
 all the flags, do `./bin/tm.exe -h`.
@@ -488,12 +500,12 @@ all the flags, do `./bin/tm.exe -h`.
 The same `tm.exe` process can start the local administrative panel. If its
 assets were not built, the game listener continues but the console reports that
 the panel did not start. The local
-example uses these values in `data/server.txt`:
+example uses these values in `data/config/server.txt`:
 
 ```ini
 web_admin_enabled=true
 web_admin_address=127.0.0.1:8082
-web_admin_staff=data/staff.json
+web_admin_staff=data/config/staff.json
 web_admin_static=web/portal/dist
 admin_access_pin=123456
 ```
@@ -570,7 +582,7 @@ and loot counters once per minute instead of synchronously writing one line per
 hit. Use `gameplay_log=verbose` only for a short reproduction; `quiet` disables
 those hot-path diagnostics while preserving errors and security events.
 
-To monitor the server, set `debug_address` in `data/server.txt`. The server
+To monitor the server, set `debug_address` in `data/config/server.txt`. The server
 then gives metrics at `/debug/vars` and profiles at `/debug/pprof`. The host
 must be loopback: these pages show internal state. If you give a public
 address, the server refuses to start. For remote access, use an SSH tunnel.
@@ -588,7 +600,7 @@ You can make an account directly in the integrated panel. Open
 the `admin_access_pin`. The endpoint requires the same-origin session and CSRF
 token, applies per-origin, per-username, and global rate limits, and writes an
 audit record without the password or PIN. It creates a player account only;
-staff authorization remains controlled by `data/staff.json`.
+staff authorization remains controlled by `data/config/staff.json`.
 
 For recovery or automation, you can also use one of two standalone tools:
 
@@ -648,7 +660,7 @@ adapter is missing. The explicit JSON development adapter does not enable this
 production path. There is no configuration switch to fall back to inline
 gameplay saves after a PostgreSQL coordinator failure.
 
-These values in `data/server.txt` are read at startup; restart normally to apply
+These values in `data/config/server.txt` are read at startup; restart normally to apply
 changes, not as a way to clear an uncertain transaction:
 
 | Key | Default | Constraint and meaning |
@@ -777,9 +789,16 @@ use the same absolute UID-bound expiration system.
 Do these commands:
 
 ```powershell
-go test ./...
-go vet ./...
-go build -o bin/tm.exe ./cmd/server
+Push-Location wydgo748
+try {
+    $serverOutput = Join-Path (Split-Path -Parent (Get-Location).Path) 'build/server'
+    New-Item -ItemType Directory -Force $serverOutput | Out-Null
+    go test ./...
+    go vet ./...
+    go build -o (Join-Path $serverOutput 'tm.exe') ./cmd/server
+} finally {
+    Pop-Location
+}
 ```
 
 For the final Linux/CI validation, also run:
@@ -845,32 +864,11 @@ mounts, quests, and guilds. It is not one large file.
 
 ## Data files
 
-The game content is in the `data/` directory. The files are CSV, JSON, and text.
-The server reads these files when it starts. The running server does not change
-them.
-
-| File | Function |
-|---|---|
-| `itemlist.csv` | item catalog: statistics, requirements, static effects |
-| `Itemname.csv` | authoritative item display names |
-| `ItemEffect.h` | authoritative numeric IDs for persisted `EF_*` effects |
-| `SkillData.csv` | skill cost, delay, target type, range, parameters |
-| `NPCGener.txt` + `npcs/*.json` | NPC and mob spawns, statistics, shop items |
-| `character_templates.json` | start statistics and items for each class |
-| `volatiles.json` | server behavior for each consumable item-effect code |
-| `instances.json` | instance templates, rooms, waves, tickets, and state machines |
-| `NPCGener/*.txt` | instance-only generators: `CartaN/M/A.txt` (Magic Chamber rooms by `generatorIds`, boss by `completionGeneratorIds`) and `NightmareN/M/A.txt` (whole file per tier); each block spawns `MaxNumMob` at its start point within `StartRange` |
-| `repliction.json` | native paired bonus pools and A–E Repliction limits |
-| `mounts.json` | combat bonus for each mount type |
-| `quests.json` | quest definitions and prerequisites |
-| `quest_zones.json` | timed quest-area limits and reset behavior |
-| `init_items.csv` | permanent world objects: gates, doors, cannons |
-| `charstate/<characterUID>.json` | JSON-dev sidecar: affects and named counters; production uses PostgreSQL |
-| `boss/*.lua` | one boss encounter for each file |
-| `guilds.json` + `Guilds.txt` | guild registry and 7.48 client name list |
-| `droprate.json` | loot table weights |
-| `network_admission.json` | local allow/deny/per-network client limits for VPS, VPN, and datacenter CIDRs |
-| `server.txt` | server configuration and gameplay rules |
+The game content is in `wydgo748/data/`, organized in six areas: `config/`,
+`catalog/`, `world/`, `npcs/`, `spawns/`, and `content/`. The server reads these
+files when it starts and never writes to them. See
+[Server data layout](data-layout.md) for each file, its configuration key, and
+the rules for adding files.
 
 `go run ./cmd/network-admission` compiles reviewed text/JSON CIDR feeds into
 `network_admission.json` without adding network access to the login path.
@@ -890,7 +888,14 @@ On the shared VPS, SSH bans must not block game or website ports. Run
 profile permits only TCP 22, validates Fail2ban, and reloads only its SSH jail.
 Existing SSH authentication policy and retry/ban limits remain unchanged.
 For the provider firewall, retain TCP 22, 80, 443 and 8281 plus ICMP for
-IPv4/IPv6; no outbound restriction is needed for this inbound protection.
+IPv4/IPv6. Channel 2 also requires inbound TCP 8282 at both the provider firewall
+and UFW when `channel2_enabled=true`; a listening socket and a UFW rule alone
+do not prove external reachability. The 7.48.004 release enabled 8282 in UFW.
+The owner-authorized Hetzner rule was applied to `forjago-public-services`
+(11796824) on server 169421488 on 2026-10-25, retaining all five existing rules.
+A public IPv4 channel-2 protocol probe passed at 20:47:01 UTC; IPv6 remains
+untested. No service restart was required for the provider rule.
+No outbound restriction is needed for this inbound protection.
 PostgreSQL, staff/player APIs and Caddy administration stay loopback-only.
 
 ## Roadmap

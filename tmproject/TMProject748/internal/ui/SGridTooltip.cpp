@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "ResourceTextGdi.h"
 #include "WeatherPacket.h"
 // SGridControl split by responsibility; see SGrid.cpp for the grid model.
 #include "SGrid.h"
@@ -17,6 +18,7 @@
 #include "SGridSupport.h"
 #include "SkillRequirementPresentation.h"
 #include "ItemHelpText.h"
+#include "ItemBonusText.h"
 
 
 void SGridControl::UpdateDescPanelHeight()
@@ -40,7 +42,7 @@ void SGridControl::UpdateDescPanelHeight()
 		const auto measure = [&](SText* text) {
 			if (!text || !text->GetText()[0]) return;
 			SIZE extent{};
-			GetTextExtentPoint32(g_pDevice->m_hDC, text->GetText(),
+			resource_text::Measure(g_pDevice->m_hDC, text->GetText(),
 				static_cast<int>(strlen(text->GetText())), &extent);
 			const float required = static_cast<float>(extent.cx) + 24.0f * RenderDevice::m_fUIScaleX;
 			if (required > width) width = required;
@@ -1733,64 +1735,12 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 		}
 	}
 
-	for (int l = 0; l < 49; ++l)
-	{
-		int nEf = dwEFParam[l];
-		int nValue = 0;
-		int nValueAbility = 0;
-
-		if (nEf == 45)
-			nEf = 69;
-		if (nEf == 46)
-			nEf = 70;
-		unsigned int nPos = BASE_GetItemAbility(pItem->m_pItem, 17);
-
-		if (nEf == 42 || nEf == 53 || nPos == 32 && nEf == 2)
-		{
-			nValueAbility = BASE_GetItemAbility(pItem->m_pItem, nEf);
-			nValue = BASE_GetItemAbilityNosanc(pItem->m_pItem, nEf);
-		}
-		else
-		{
-			nValueAbility = BASE_GetBonusItemAbility(pItem->m_pItem, nEf);
-			nValue = BASE_GetBonusItemAbilityNosanc(pItem->m_pItem, nEf);
-		}
-		if (nLineId < NUM_ITEM_DESC_PARAMS && nValueAbility)
-		{
-			if (dwEFParam[l] == 42)
-			{
-				if (nValue == nValueAbility)
-					sprintf(szDesc, "%s : %d.%d%%", SGridControl::m_szParamString[l], nValueAbility / 10, nValueAbility % 10);
-				else
-					sprintf(szDesc, "%s : %d.%d%% (%d.%d%%)", SGridControl::m_szParamString[l],
-						nValue / 10,
-						nValue % 10,
-						nValueAbility / 10,
-						nValueAbility % 10);
-			}
-			else if (dwEFParam[l] == 26 || dwEFParam[l] == 60 || dwEFParam[l] == 45 || dwEFParam[l] == 46 || dwEFParam[l] == 68)
-			{
-				if (nValue == nValueAbility)
-					sprintf(szDesc, "%s : %d%%", SGridControl::m_szParamString[l], nValueAbility);
-				else
-					sprintf(szDesc, "%s : %d%% (%d%%)", SGridControl::m_szParamString[l], nValue, nValueAbility);
-			}
-			else if ((dwEFParam[l] != 73 || nPos != 32) && (dwEFParam[l] != 67 || nPos == 64 || nPos == 192) && dwEFParam[l] != 63)
-			{
-				if (nValue == nValueAbility)
-					sprintf(szDesc, "%s : %d", SGridControl::m_szParamString[l], nValueAbility);
-				else
-					sprintf(szDesc, "%s : %d (%d)", SGridControl::m_szParamString[l], nValue, nValueAbility);
-			}
-			else
-				continue;
-
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(BASE_GetOptionColor(nPos, dwEFParam[l], nValue));
-			++nLineId;
-		}
-	}
-
+	item_bonus_text::ForEach(pItem->m_pItem, [&](unsigned int position, int effect, int value, char* text) {
+		if (nLineId >= NUM_ITEM_DESC_PARAMS) return;
+		pFScene->m_pParamText[nLineId]->SetText(text, 0);
+		pFScene->m_pParamText[nLineId]->SetTextColor(BASE_GetOptionColor(position, effect, value));
+		++nLineId;
+	});
 	// Optional lines stop at the final FieldScene2 row; the 7.59 tooltip's
 	// extra controls do not exist in the 7.48 resource.
 	if (nLineId < NUM_ITEM_DESC_PARAMS && BASE_GetItemSanc(pItem->m_pItem) >= 9)

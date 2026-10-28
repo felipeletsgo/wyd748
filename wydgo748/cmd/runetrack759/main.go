@@ -1,5 +1,5 @@
-// runetrack759 extracts the event-only population from an explicitly supplied
-// historical TMSRV2/run directory. It never overwrites the ordinary NPC catalog.
+// runetrack759 extracts event populations into a staging directory.
+// Identical adapted templates reuse their canonical catalog identities.
 package main
 
 import (
@@ -19,16 +19,16 @@ import (
 )
 
 var aliases = map[string]string{
-	"Archer_Elf": "RT_ElfArcher", "Barlog": "RT_Balrog", "Bragi": "RT_Bragi",
-	"CabuncleKing": "RT_BunnyKing", "DarkShadow": "RT_Shadow", "Fighter_Elf": "RT_ElfKnight",
-	"Freyja": "RT_Freyja", "GoldCabuncle": "RT_GoldBunny", "Heimdall": "RT_Heimdall",
-	"Hell_Rujeper": "RT_HellLord", "Hell_Rujeper_": "RT_HellLord2", "HellAmonChief": "RT_AmonChief",
-	"HellAmonWarrior": "RT_AmonGuard", "HellBatorero": "RT_Bat", "HellLich_": "RT_HellLich",
+	"Archer_Elf": "Archer_Elf", "Barlog": "RT_Balrog", "Bragi": "Bragi",
+	"CabuncleKing": "RT_BunnyKing", "DarkShadow": "RT_Shadow", "Fighter_Elf": "Fighter_Elf",
+	"Freyja": "Freyja", "GoldCabuncle": "GoldCabuncle", "Heimdall": "Heimdall",
+	"Hell_Rujeper": "RT_HellLord", "Hell_Rujeper_": "RT_HellLord2", "HellAmonChief": "HellAmonChief",
+	"HellAmonWarrior": "HellAmonWarrior", "HellBatorero": "HellBatorero", "HellLich_": "RT_HellLich",
 	"HellRanger": "RT_Ranger", "HellShaman": "RT_Shaman", "HellSorcerer": "RT_Sorcerer",
-	"HellTemplar": "RT_Templar", "HellZakum": "RT_Zakum", "HellZakum_": "RT_Zakum2",
-	"KalintzFight": "RT_Knight", "KalintzMage": "RT_Mage", "LichCruntKing": "RT_LichKing",
-	"MageKalintz": "RT_MageBoss", "Sulrang": "RT_Sulrang", "ThorTower": "RT_ThorTower",
-	"Valdor": "RT_Valdor", "Valkyrier": "RT_Valkyrie", "Vidar": "RT_Vidar",
+	"HellTemplar": "RT_Templar", "HellZakum": "HellZakum", "HellZakum_": "HellZakum_",
+	"KalintzFight": "RT_Knight", "KalintzMage": "KalintzMage", "LichCruntKing": "RT_LichKing",
+	"MageKalintz": "RT_MageBoss", "Sulrang": "RT_Sulrang", "ThorTower": "ThorTower",
+	"Valdor": "Valdor", "Valkyrier": "RT_Valkyrie", "Vidar": "Vidar",
 }
 
 func decode(name string, b []byte) (model.NPCDef, error) {
@@ -105,8 +105,10 @@ func run(source, output string) error {
 	header := regexp.MustCompile(`(?m)^#\s*\[\s*(\d+)\][^\r\n]*`)
 	fields := regexp.MustCompile(`^\s*(Leader|Follower|MinuteGenerate|MaxNumMob|MinGroup|MaxGroup|RouteType|Formation|(?:Start|Segment[123]|Dest)(?:X|Y|Range|Wait|Action)):\s*(\S+)`)
 	indices := header.FindAllSubmatchIndex(input, -1)
-	var text strings.Builder
-	text.WriteString("// Rune Track 7.59: event-only aliases; labels and route values are preserved.\n")
+	var rooms [7]strings.Builder
+	for room := range rooms {
+		fmt.Fprintf(&rooms[room], "// Rune Track +%d: instance-only population; labels and routes are preserved.\n", room)
+	}
 	used := map[string]bool{}
 	seenGenerators := map[int]bool{}
 	count := 0
@@ -126,7 +128,8 @@ func run(source, output string) error {
 		if i+1 < len(indices) {
 			end = indices[i+1][0]
 		}
-		fmt.Fprintf(&text, "\n#[%d]\n", id)
+		text := &rooms[model.RuneTrackGeneratorRoom(id)]
+		fmt.Fprintf(text, "\n#[%d]\n", id)
 		for _, line := range strings.Split(string(input[h[1]:end]), "\n") {
 			m := fields.FindStringSubmatch(line)
 			if m == nil {
@@ -144,7 +147,7 @@ func run(source, output string) error {
 				used[value] = true
 				value = alias
 			}
-			fmt.Fprintf(&text, "%s: %s\n", m[1], value)
+			fmt.Fprintf(text, "%s: %s\n", m[1], value)
 		}
 		count++
 	}
@@ -182,8 +185,10 @@ func run(source, output string) error {
 		hash := sha256.Sum256(b)
 		manifest[name] = hex.EncodeToString(hash[:])
 	}
-	if err = os.WriteFile(filepath.Join(output, "RuneTrack759.txt"), []byte(text.String()), 0644); err != nil {
-		return err
+	for room := range rooms {
+		if err = os.WriteFile(filepath.Join(output, fmt.Sprintf("RuneTrack%d.txt", room)), []byte(rooms[room].String()), 0644); err != nil {
+			return err
+		}
 	}
 	m, _ := json.MarshalIndent(manifest, "", "  ")
 	if err = os.WriteFile(filepath.Join(output, "sources.json"), append(m, '\n'), 0644); err != nil {

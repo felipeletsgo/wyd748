@@ -6,19 +6,19 @@
       "index": 362
     },
     "elmo": {
-      "index": 362
+      "index": 0
     },
     "armadura": {
       "index": 362
     },
     "calca": {
-      "index": 362
+      "index": 0
     },
     "luva": {
-      "index": 362
+      "index": 0
     },
     "bota": {
-      "index": 362
+      "index": 0
     },
     "arma": {
       "index": 0
@@ -42,10 +42,10 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 786,
+      "index": 1937,
       "eff": [
         43,
-        255,
+        9,
         0,
         0,
         0,
@@ -60,41 +60,69 @@
     }
   },
   "classInfo": 1,
-  "expReward": 150000,
+  "expReward": 15000,
   "score": {
     "version": 2,
-    "level": 390,
-    "attack": 0,
+    "level": 400,
+    "attack": 7000,
     "magicAttack": 0,
-    "defense": 20690,
-    "maxHP": 1,
-    "maxMP": 0,
-    "curHP": 1,
-    "curMP": 0,
-    "str": 5,
-    "int": 100,
-    "dex": 50,
-    "con": 1,
+    "defense": 7000,
+    "maxHP": 30000,
+    "maxMP": 32000,
+    "curHP": 30000,
+    "curMP": 32000,
+    "str": 4,
+    "int": 99,
+    "dex": 100,
+    "con": 1000,
     "critical": 255,
-    "resistFire": 50,
-    "resistIce": 50,
-    "resistHoly": 50,
-    "resistThunder": 50,
     "saveMana": 255,
     "mastery": [
       255,
-      7,
+      3,
       255,
       7
     ],
     "attackRun": 2
   },
-  "gold": 9999,
-  "learnedSkill": 70,
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    }
+  ],
+  "gold": 50000,
+  "learnedSkill": 70100,
   "skillBar": [
-    109,
-    108,
-    111,
-    107
+    255,
+    255,
+    255,
+    255
   ]
 }

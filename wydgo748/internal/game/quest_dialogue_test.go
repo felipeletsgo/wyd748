@@ -16,7 +16,7 @@ import (
 // o builder copia 95 bytes. Fala maior nao da erro, ela chega CORTADA no meio
 // da frase, e isso so apareceria lendo o chat in-game.
 func TestTodaFalaCabeNoPacote(t *testing.T) {
-	quests, err := data.LoadQuests(filepath.Join("..", "..", "data", "quests.json"))
+	quests, err := data.LoadQuests(filepath.Join("..", "..", "data", "content", "quests.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

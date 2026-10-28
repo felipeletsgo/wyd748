@@ -1455,7 +1455,7 @@ Classification: `EXTENSAO_COORDENADA`. Contracts live in
 - Timed horses 3980..3989. Their item-list rows (client and server) carry no
   lifetime or stats; the client drew stats from `g_pMountBonus2`, while the
   server granted nothing: no speed (Run Mode had no effect), no bonus and no
-  expiry. `data/mounts.json` now has a `premium` table mirroring those rows
+  expiry. `data/content/mounts.json` now has a `premium` table mirroring those rows
   (attack, magic %, evasion, resistance, final speed 6) plus the lifetime
   encoded in each name. Activation, expiry and score use it.
 
@@ -1570,7 +1570,7 @@ Grid and ground icons resolve `BASE_GetMeshIndex` through `mesh/MeshList.txt`.
   Shire_Horse face row and kept its bush mesh (7, `bnsh05.msa`) and model class
   43. Class 43 omits the BeastMaster bit, so the server rejected those mounts
   for BeastMasters and the tooltip printed a partial class list. Both
-  `wydgo748/data/itemlist.csv` and `tmproject/client748/ItemList.bin` now use the
+  `wydgo748/data/catalog/itemlist.csv` and `tmproject/client748/ItemList.bin` now use the
   timed-horse icon (2821, `ches15.msa`) and `EF_CLASS 255`, matching WYD KR and
   the native mounts. Mount visuals still come from the imported item table.
 - Tooltip. A KR mount row keeps `EF_RUNSPEED 6` as the server's final mounted
@@ -2440,7 +2440,7 @@ checks passed for this batch. The executable was not installed or run.
 ### Shared static route maps
 
 The rejected `0x366` route at 2026-09-23 16:59:35 ended at `(3647,3112)`.
-The server's `data/maps/HeightMap.dat` records blocked height `127` there,
+The server's `data/world/maps/HeightMap.dat` records blocked height `127` there,
 but the client terrain tile plus static object masks reconstruct height `-88`.
 The client originally accepted that destination, while the server refused it.
 The denial preceded the lethal hit; it does not by itself explain the missing
@@ -2469,7 +2469,7 @@ changes are separate. The shared height payload SHA-256 is
 `B83A9DE78A32A79FC2647699EB44BE1561BED62FBC48EAA7165BA26C1297C640`.
 
 **WYD KR maps (2026-10-06).** The client `Env/AttributeMap.dat` payload, its
-`HeightMap.dat` and the server `data/maps` copies are now the WYD KR maps,
+`HeightMap.dat` and the server `data/world/maps` copies are now the WYD KR maps,
 byte for byte (product decision: the 7.48 version is modernized with the KR
 world data). Same formats and bit meanings (`0x01` town, `0x02` blocked,
 `0x08` house, `0x10` portal, `0x40` PK). Relative to 7.48 the KR attribute map
@@ -2538,7 +2538,7 @@ death/respawn behavior remain unverified in the executable client.
 
 The server now overlays permanent ground-object collision onto its private
 HeightMap copy during world creation. Object identity, position, and rotation
-come from the 96-row `wydgo748/data/init_items.csv`; mask geometry comes from
+come from the 96-row `wydgo748/data/world/init_items.csv`; mask geometry comes from
 the active client's `g_pGroundMask[10][4][6][6]`. A gate opening clears those
 cells only after key consumption is persisted, matching the `0x374` update
 sent to observers. Automated tests compare all 1,440 mask cells against the

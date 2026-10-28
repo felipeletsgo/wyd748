@@ -142,6 +142,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	kick, _ := source.(control.KickSource)
 	teleport, _ := source.(control.TeleportSource)
 	premium, _ := source.(control.PremiumSource)
+	npcDefinitions, _ := source.(control.NPCDefinitionSource)
 	sanctions, _ := source.(control.SanctionSource)
 	notices, _ := source.(control.NoticeSource)
 	shutdown, _ := source.(control.ShutdownSource)
@@ -164,20 +165,21 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 		RequireLoginProtection: !devHTTP, LoginVerifier: verification, AuthenticationLimiter: db.AuthenticationLimiter(),
 		Staff: staff, Accounts: db, Registration: registration, Control: localAdminControl{source: source, started: time.Now()},
 		Persistent: webadmin.NewAccountPersistentReader(db), Ready: db.Ping,
-		GlobalDrop: events,
-		Quiz:       quiz,
-		Bosses:     bosses,
-		PvPDoor:    pvpDoor,
-		OXEvent:    oxEvent,
-		Colosseum:  colosseum,
-		Kick:       kick,
-		Teleport:   teleport,
-		Premium:    premium,
-		Sanctions:  sanctions,
-		Notices:    notices,
-		Shutdown:   shutdown,
-		AuditStore: auditStore,
-		Metrics:    control.ReadRuntime,
+		GlobalDrop:     events,
+		Quiz:           quiz,
+		Bosses:         bosses,
+		PvPDoor:        pvpDoor,
+		OXEvent:        oxEvent,
+		Colosseum:      colosseum,
+		Kick:           kick,
+		Teleport:       teleport,
+		Premium:        premium,
+		NPCDefinitions: npcDefinitions,
+		Sanctions:      sanctions,
+		Notices:        notices,
+		Shutdown:       shutdown,
+		AuditStore:     auditStore,
+		Metrics:        control.ReadRuntime,
 		// Login history and staff actions use the writer store like the audit;
 		// saved storage is read through the panel's read-only pool.
 		AccountHistory: accountHistory,

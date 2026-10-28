@@ -21,8 +21,8 @@ Set-StrictMode -Version Latest
 
 $clientAttributePath = Join-Path $ClientRoot 'Env/AttributeMap.dat'
 $clientHeightPath = Join-Path $ClientRoot 'Env/HeightMap.dat'
-$serverAttributePath = Join-Path $ServerRoot 'data/maps/AttributeMap.dat'
-$serverHeightPath = Join-Path $ServerRoot 'data/maps/HeightMap.dat'
+$serverAttributePath = Join-Path $ServerRoot 'data/world/maps/AttributeMap.dat'
+$serverHeightPath = Join-Path $ServerRoot 'data/world/maps/HeightMap.dat'
 
 $clientAttribute = [IO.File]::ReadAllBytes($clientAttributePath)
 $serverHeight = [IO.File]::ReadAllBytes($serverHeightPath)

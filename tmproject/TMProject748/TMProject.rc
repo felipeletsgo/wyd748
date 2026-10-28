@@ -230,3 +230,15 @@ IDC_CURSOR2             CURSOR                  "Resources\\CursorGroup164.cur"
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
 
+
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
+IDR_PREMIUM_NELL RCDATA "Resources\\PremiumNell.html"
+IDR_NELL_BANNER RCDATA "Resources\\PremiumNell\\bar6.png"
+IDR_NELL_WALLET RCDATA "Resources\\PremiumNell\\base3.png"
+IDR_NELL_COIN RCDATA "Resources\\PremiumNell\\np_icon.png"
+IDR_NELL_SMALL_COIN RCDATA "Resources\\PremiumNell\\np_icon_small7.png"
+IDR_NELL_SEARCH RCDATA "Resources\\PremiumNell\\search2.png"
+IDR_NELL_CARD RCDATA "Resources\\PremiumNell\\store_item_base2.png"
+IDR_NELL_BUTTON RCDATA "Resources\\PremiumNell\\button5.png"
+IDR_NELL_PT RCDATA "Resources\\PremiumNell\\pt_br.gif"
+IDR_NELL_EN RCDATA "Resources\\PremiumNell\\en.gif"

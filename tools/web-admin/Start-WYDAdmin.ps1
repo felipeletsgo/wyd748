@@ -8,7 +8,10 @@ $ErrorActionPreference = "Stop"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $serverRoot = Join-Path $repoRoot "wydgo748"
 $portalRoot = Join-Path $serverRoot "web\portal"
-$configFile = Join-Path $serverRoot "data\server.txt"
+$configFile = Join-Path $serverRoot "data/config/server.txt"
+if (-not (Test-Path -LiteralPath $configFile -PathType Leaf)) {
+    throw "Server configuration not found: $configFile"
+}
 
 if (-not $SkipBuild) {
     $npm = Get-Command npm.cmd -ErrorAction Stop
@@ -57,6 +60,6 @@ catch {
     return
 }
 Write-Host "Panel available at: $panelUrl"
-Write-Host "Use the felipetr account, its usual password, and the PIN from data/server.txt."
+Write-Host "Use the felipetr account, its usual password, and the PIN from data/config/server.txt."
 Write-Host "Server output and logs remain in the tm.exe window."
 if (-not $NoBrowser) { Start-Process $panelUrl }

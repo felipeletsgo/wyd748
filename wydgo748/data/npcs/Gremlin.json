@@ -52,21 +52,21 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 200,
   "score": {
     "version": 2,
     "level": 4,
-    "attack": 8,
+    "attack": 5,
     "magicAttack": 0,
     "defense": 4,
-    "maxHP": 100,
+    "maxHP": 150,
     "maxMP": 0,
-    "curHP": 100,
+    "curHP": 150,
     "curMP": 0,
     "str": 4,
     "int": 50,
     "dex": 30,
-    "con": 0,
+    "con": 10,
     "critical": 255,
     "saveMana": 255,
     "mastery": [
@@ -79,10 +79,13 @@
   },
   "carry": [
     {
-      "index": 1115,
+      "index": 400
+    },
+    {
+      "index": 1805,
       "eff": [
         105,
-        6,
+        2,
         0,
         0,
         0,
@@ -90,10 +93,10 @@
       ]
     },
     {
-      "index": 1127,
+      "index": 1551,
       "eff": [
         105,
-        6,
+        2,
         0,
         0,
         0,
@@ -101,10 +104,10 @@
       ]
     },
     {
-      "index": 1265,
+      "index": 1801,
       "eff": [
         105,
-        6,
+        2,
         0,
         0,
         0,
@@ -112,10 +115,10 @@
       ]
     },
     {
-      "index": 1277,
+      "index": 1560,
       "eff": [
         105,
-        6,
+        2,
         0,
         0,
         0,
@@ -123,10 +126,10 @@
       ]
     },
     {
-      "index": 1406,
+      "index": 1404,
       "eff": [
         105,
-        6,
+        2,
         0,
         0,
         0,
@@ -134,10 +137,10 @@
       ]
     },
     {
-      "index": 1409,
+      "index": 1413,
       "eff": [
         105,
-        6,
+        2,
         0,
         0,
         0,
@@ -145,26 +148,145 @@
       ]
     },
     {
-      "index": 1556,
-      "eff": [
-        105,
-        6,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 1701
     },
     {
-      "index": 1559,
-      "eff": [
-        105,
-        6,
-        0,
-        0,
-        0,
-        0
-      ]
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
     },
     {
       "index": 0
@@ -180,161 +302,9 @@
     },
     {
       "index": 4038
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 420
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 3178
     }
   ],
+  "gold": 500,
   "skillBar": [
     255,
     255,

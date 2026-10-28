@@ -26,6 +26,9 @@ func (w *World) queueScheduledGuildChange(change func(*model.GuildRegistry) erro
 	if err := change(proposed); err != nil {
 		return err
 	}
+	// Calendar changes edit the active Wars view. Match the worker's detached
+	// snapshot, including ChannelWars, before retaining the post-ack identity.
+	proposed = proposed.Clone()
 	check := func() error {
 		if w.shutdownErr != nil {
 			return fmt.Errorf("critical persistence: maintenance prevents guild publication")

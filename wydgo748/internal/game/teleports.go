@@ -49,6 +49,10 @@ func teleportAt(teleports []model.Teleport, x, y uint16) (model.Teleport, bool) 
 // before confirming, recomputes visibility in both regions and sends the final
 // coordinate to the client itself and to the observers still in range.
 func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
+	return w.teleportPlayerWithHomeCity(p, x, y, false)
+}
+
+func (w *World) teleportPlayerWithHomeCity(p *Player, x, y uint16, preserveHomeCity bool) bool {
 	x, y, ok := w.resolvePlayerTeleportDestination(p, x, y)
 	if !ok {
 		return false
@@ -56,7 +60,13 @@ func (w *World) teleportPlayer(p *Player, x, y uint16) bool {
 	oldX, oldY := p.X, p.Y
 	p.X, p.Y = x, y
 	p.Char.X, p.Char.Y = x, y
-	if err := w.savePlayerLocation(p); err != nil {
+	var err error
+	if preserveHomeCity {
+		err = w.saveAccount(p.Account)
+	} else {
+		err = w.savePlayerLocation(p)
+	}
+	if err != nil {
 		p.X, p.Y = oldX, oldY
 		p.Char.X, p.Char.Y = oldX, oldY
 		log.Printf("[#%d] save teleport: %v", p.Session.ID, err)

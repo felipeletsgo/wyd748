@@ -44,8 +44,8 @@ func TestClientBuildAdmissionContract(t *testing.T) {
 }
 
 func TestClientBuildReleaseLine(t *testing.T) {
-	if ClientBuildPrefix>>16 != ClientProtocolVersion || CurrentClientBuild != 0x02EC0001 {
-		t.Fatalf("release line identity 0x%08X does not encode 7.48.001", CurrentClientBuild)
+	if ClientBuildPrefix>>16 != ClientProtocolVersion || CurrentClientBuild != 0x02EC000A {
+		t.Fatalf("release line identity 0x%08X does not encode 7.48.010", CurrentClientBuild)
 	}
 }
 

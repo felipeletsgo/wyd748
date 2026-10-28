@@ -542,6 +542,20 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto deathHumanSource = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
     const auto humanFrame = source_contract::WithHelpers(deathHumanSource,
         "int TMHuman::FrameMove(unsigned int dwServerTime)", "TMHuman");
+    const auto flightPositionUpdate = humanFrame.find(
+        "UpdateHumanFramePosition(m_vecPosition, vecCurrent, m_vecAirMove,");
+    check(flightPositionUpdate != std::string::npos &&
+        humanFrame.find("m_bIgnoreHeight != 0);", flightPositionUpdate) != std::string::npos &&
+        flightPositionUpdate < humanFrame.find("FrameMoveEffect(dwServerTime);") &&
+        humanFrame.find("m_vecPosition = vecCurrent;") == std::string::npos &&
+        humanFrame.find("ConsumeAirMoveDelta(") == std::string::npos,
+        "human frames preserve flight progress before effects and consume the delta once");
+    const auto flightFrame = source_contract::Method(
+        LoadSource("TMProject748/internal/app/scenes/TMFieldSceneMovement.cpp"),
+        "void TMFieldScene::AirMove_Main(unsigned int dwServerTime)");
+    check(flightFrame.find("AirMoveWaypointDelta(m_pMyHuman->m_vecPosition,") !=
+        std::string::npos,
+        "the flight scene uses the waypoint step exercised by route regressions");
     const auto animationSource = LoadSource("TMProject748/internal/game/entities/TMHumanAnimation.cpp");
     const auto animationBody = source_contract::Method(animationSource,
         "void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)");
@@ -700,6 +714,29 @@ int RunSceneDisconnectContractTests(int& checks)
         shopListHandler.substr(merchantGridGuard, couponStateChange - merchantGridGuard)
             .find("return 0;") != std::string::npos,
         "merchant ShopList rejects an unbound grid before changing coupon or shop state");
+    const auto merchantSource = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneMerchant.cpp");
+    check(shopListHandler.find("SetVisibleShop(1, pShopList->ShopType != static_cast<int>(premium_shop::ShopType));") != std::string::npos,
+        "premium lists prepare hidden fallback panels while ordinary shops remain visible");
+    const auto shopVisibility = source_contract::Method(merchantSource,
+        "void TMFieldScene::SetVisibleShop(int bShow, bool showPanels)");
+    check(shopVisibility.find("const int panelsVisible = bShow && showPanels;") != std::string::npos &&
+        shopVisibility.find("m_pShopPanel->SetVisible(panelsVisible);") != std::string::npos &&
+        shopVisibility.find("m_pInvenPanel->SetVisible(panelsVisible);") != std::string::npos &&
+        shopVisibility.find("panelsVisible ? TMEGRIDTYPE::GRID_SELL : TMEGRIDTYPE::GRID_DEFAULT") != std::string::npos,
+        "hidden premium fallback neither flashes native panels nor enables inventory selling");
+    const auto premiumOpen = source_contract::Method(merchantSource,
+        "int TMFieldScene::OnPacketPremiumShopState(MSG_STANDARD* packet)");
+    const auto browserUnavailable = premiumOpen.find("if (!g_pDevice || !m_premiumNell.Open(");
+    check(browserUnavailable != std::string::npos &&
+        premiumOpen.find("SetVisibleShop(1);", browserUnavailable) != std::string::npos,
+        "immediate browser initialization failure restores the populated native fallback");
+    const auto premiumTick = source_contract::Method(merchantSource,
+        "void TMFieldScene::TickPremiumNell()");
+    const auto browserFailed = premiumTick.find("action.Kind == premium_nell::ActionKind::Failed");
+    check(browserFailed != std::string::npos &&
+        premiumTick.find("if (!m_premiumNellPending) SetVisibleShop(1);", browserFailed) != std::string::npos &&
+        shopVisibility.find("if (m_premiumNellPending) return;") != std::string::npos,
+        "asynchronous browser failure restores fallback without releasing a pending purchase");
     const auto skillBranch = shopListHandler.find("else if (pShopList->ShopType == 3)");
     const auto skillFirstItemGuard = shopListHandler.find(
         "if (pShopList->List[0].sIndex < 5000)", skillBranch);
@@ -1889,7 +1926,7 @@ int RunSceneDisconnectContractTests(int& checks)
         rcFontSource.find("TMFont2::m_pBuffer = seed.release();") &&
         rcFontSource.find("if (FAILED(created) || !m_pTexture)") != std::string::npos &&
         rcFontSource.find("font_texture::UploadMask(m_pTexture, g_pDevice->m_pBitmapBits,") != std::string::npos &&
-        rcFontSource.find("m_pTexture == nullptr && !SetText(m_szString, m_dwColor, 0)") != std::string::npos,
+        rcFontSource.find("m_pTexture == nullptr || m_fRasterScale != m_fSize || m_bRasterMultiLine != m_bMultiLine) && !Rasterize()") != std::string::npos,
         "font creation and rendering propagate seed, creation and upload failure");
     for (const char* widget : {"pButton", "pText"}) {
         const auto ready = sceneLoader.find(std::string("if (!") + widget + "->IsCaptionReady())");
@@ -2615,12 +2652,12 @@ int RunSceneDisconnectContractTests(int& checks)
             std::istreambuf_iterator<char>());
     };
     const auto clientAttribute = readAsset("client748/Env/AttributeMap.dat");
-    const auto serverAttribute = readAsset("wydgo748/data/maps/AttributeMap.dat");
+    const auto serverAttribute = readAsset("wydgo748/data/world/maps/AttributeMap.dat");
     check(clientAttribute.size() == 1048580 && serverAttribute.size() == 1048576 &&
         std::equal(serverAttribute.begin(), serverAttribute.end(), clientAttribute.begin()),
         "the server consumes the complete 7.48 client attribute payload");
     const auto clientHeight = readAsset("client748/Env/HeightMap.dat");
-    const auto serverHeight = readAsset("wydgo748/data/maps/HeightMap.dat");
+    const auto serverHeight = readAsset("wydgo748/data/world/maps/HeightMap.dat");
     check(clientHeight.size() == 16777216 && clientHeight == serverHeight,
         "the client and server load an identical world height map");
     check(startupSource.find("!BASE_InitializeHeightMap()") != std::string::npos &&

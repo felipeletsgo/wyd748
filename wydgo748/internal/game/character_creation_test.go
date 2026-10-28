@@ -28,14 +28,14 @@ func TestCharacterNameValidation(t *testing.T) {
 func TestAllFourClassTemplatesCreatePlayableCharacters(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := data.LoadCatalog(
-		filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"),
-		filepath.Join(root, "SkillData.csv"),
+		filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"),
+		filepath.Join(root, "catalog", "SkillData.csv"),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cfg, err := data.LoadCharacterTemplates(filepath.Join(root, "character_templates.json"), catalog.Items)
+	cfg, err := data.LoadCharacterTemplates(filepath.Join(root, "content", "character_templates.json"), catalog.Items)
 	if err != nil {
 		t.Fatal(err)
 	}

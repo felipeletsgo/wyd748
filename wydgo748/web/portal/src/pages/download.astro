@@ -6,10 +6,12 @@ const clientUrl = clientRelease.fullClient.url;
 <Public title="Download">
   <section class="panel center">
     <h1 class="title">Download</h1>
-    <p>Full client · WYD {clientRelease.clientVersion} · Windows</p>
+    <p>Latest client · WYD {clientRelease.clientVersion} · Windows</p>
     {clientUrl
       ? <p><a class="button" href={clientUrl} rel="noopener noreferrer">Download client</a></p>
       : <p class="status" role="status">The client is not available yet.</p>}
+    <p>Full installation: {clientRelease.fullClient.clientVersion}. Run its launcher to install the mandatory {clientRelease.clientVersion} update.</p>
+    <p><a href={clientRelease.patch.url}>Download update {clientRelease.clientVersion}</a> · Requires the {clientRelease.fullClient.clientVersion} full client.</p>
     <ol class="steps">
       <li>Extract the client into a folder you can write to.</li>
       <li>Run <strong>WYDLauncher.exe</strong>. It installs updates before <strong>Start</strong>.</li>
@@ -19,7 +21,8 @@ const clientUrl = clientRelease.fullClient.url;
     <details class="disclosure prose">
     <summary>Client {clientRelease.clientVersion} · Details</summary>
     <dl class="details"><dt>Version</dt><dd>{clientRelease.clientVersion}</dd><dt>Game language</dt><dd>English or Brazilian Portuguese, selected in the launcher</dd></dl>
-    <p>Older clients must download this full client. Earlier patches are no longer offered.</p>
+    <p>Clients from before 7.48.001 must download the new full client. Earlier patches are no longer offered. Keep the full installation and let the launcher install every newer update.</p>
+    <p>Every client update is mandatory. The server checks the game build; changing the version counter does not make an old executable compatible.</p>
     <p><a href="/client-manifest.json">Versioned download receipt (JSON)</a></p>
     <p class="muted">Full-client size and checksum are not yet available.</p>
     </details>

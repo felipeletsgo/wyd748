@@ -1782,6 +1782,7 @@ func cfgCopy(cfg model.VolatileInstance) model.VolatileInstance {
 	}
 	if cfg.Uxmal != nil {
 		uxmal := *cfg.Uxmal
+		uxmal.RoomGenerators = append([]string(nil), cfg.Uxmal.RoomGenerators...)
 		uxmal.Generators = append([]model.NPCGener(nil), cfg.Uxmal.Generators...)
 		uxmal.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), cfg.Uxmal.EntryAreas...)
 		uxmal.RoomPositions = make([][]model.VolatileDestination, len(cfg.Uxmal.RoomPositions))
@@ -2832,18 +2833,27 @@ func (w *World) tickItemInstances(now time.Time) {
 // retireItemInstanceEntities publishes teardown only after the coordinated exit
 // commits (or inline for legacy worlds without a coordinator).
 func (w *World) retireItemInstanceEntities(inst *ItemInstance) {
-	for mobID := range inst.MobIDs {
-		if mob := w.mobsByID[mobID]; mob != nil {
-			mob.Dead = true
-			w.publishMobDeath(mob, 0, nil)
-			w.removeMobInstance(mob)
+	retire := func(id uint16) {
+		mob := w.mobsByID[id]
+		if mob == nil {
+			return
 		}
+		mob.Dead = true
+		// A committed exit has already moved members outside the room. Its
+		// teardown must reach every retained viewer, regardless of their new
+		// position or membership, before the canonical mob index is removed.
+		// Immediate removal also clears a dead client representation without
+		// fabricating a combat kill at the end of the event.
+		for _, player := range w.players {
+			w.hideMob(player, mob, 3)
+		}
+		w.removeMobInstance(mob)
+	}
+	for mobID := range inst.MobIDs {
+		retire(mobID)
 	}
 	for npcID := range inst.NPCIDs {
-		if npc := w.mobsByID[npcID]; npc != nil {
-			w.publishMobRemoval(npc)
-			w.removeMobInstance(npc)
-		}
+		retire(npcID)
 	}
 }
 

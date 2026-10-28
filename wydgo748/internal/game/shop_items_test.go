@@ -75,13 +75,13 @@ func TestInitShopItemDefaultsRejectsInvalidAmountStock(t *testing.T) {
 			name:  "amount outside wire",
 			items: map[uint16]model.ItemDef{411: amountItemDef(411, 256)},
 			item:  model.Item{Index: 411},
-			want:  "fora do wire",
+			want:  "outside the wire range",
 		},
 		{
 			name:  "no dynamic effect slot",
 			items: map[uint16]model.ItemDef{411: amountItemDef(411, 10)},
 			item:  model.Item{Index: 411, Eff: [6]byte{1, 1, 2, 2, 3, 3}},
-			want:  "sem par de efeito livre",
+			want:  "no free effect pair",
 		},
 	}
 	for _, tt := range tests {
@@ -148,9 +148,9 @@ func TestBuyItemKeepsSeededAmountAndAssignsUID(t *testing.T) {
 func TestAuthoritativeNPCShopsResolveMissingItemListAmounts(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
 	catalog, err := data.LoadCatalog(
-		filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"),
-		filepath.Join(root, "SkillData.csv"),
+		filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"),
+		filepath.Join(root, "catalog", "SkillData.csv"),
 	)
 	if err != nil {
 		t.Fatalf("LoadCatalog: %v", err)

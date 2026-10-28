@@ -41,7 +41,7 @@ func TestFaceTransformUsesNonBlockingClientAffectSlot(t *testing.T) {
 }
 
 func TestTransformationLettersLastTenMinutes(t *testing.T) {
-	raw, err := os.ReadFile("../../data/volatiles.json")
+	raw, err := os.ReadFile("../../data/content/volatiles.json")
 	if err != nil {
 		t.Fatalf("read volatiles: %v", err)
 	}

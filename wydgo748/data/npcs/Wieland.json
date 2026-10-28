@@ -55,7 +55,7 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 4,
     "attack": 500,
     "magicAttack": 0,
     "defense": 500,
@@ -70,9 +70,9 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -89,13 +89,13 @@
       "index": 836
     },
     {
-      "index": 0
+      "index": 851
     },
     {
       "index": 881
     },
     {
-      "index": 0
+      "index": 896
     },
     {
       "index": 866
@@ -104,82 +104,10 @@
       "index": 805
     },
     {
-      "index": 0
+      "index": 1706
     },
     {
       "index": 821
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 851
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 896
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1706
     }
   ]
 }

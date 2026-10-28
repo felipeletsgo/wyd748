@@ -8,7 +8,7 @@ func TestConfigPathFromArgs(t *testing.T) {
 		args []string
 		want string
 	}{
-		{name: "default", want: "data/server.txt"},
+		{name: "default", want: "data/config/server.txt"},
 		{name: "short separate", args: []string{"-config", "data/vps.txt"}, want: "data/vps.txt"},
 		{name: "long separate", args: []string{"--config", "data/vps.txt"}, want: "data/vps.txt"},
 		{name: "short equals", args: []string{"-config=data/vps.txt"}, want: "data/vps.txt"},

@@ -1,0 +1,484 @@
+// Inactive Realm versus Realm population: Hekalotia (red) versus Akelonia (blue).
+// Preserve source routes and groups. No event schedule or automatic loading exists yet.
+// Never include these groups in the permanent channel population.
+
+
+
+// Kingdom war Red cape Training center 1 adds
+// ********************************************
+// Spawn [ 500]: BlazingRanger | Follower: BlazingRanger | Marker: #
+// Location: sector (9, 15) | Start: (1184, 1956), radius 0 | Destination: (1075, 2125), radius 1
+#	[ 500]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	BlazingRanger
+	Follower:	BlazingRanger
+	RouteType:	0
+	Formation:	0
+	StartX:	1184
+	StartY:	1956
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1059
+	Segment1Y:	1955
+	Segment1Range:	1
+	Segment1Wait:	8
+	Segment2X:	1059
+	Segment2Y:	2083
+	Segment2Range:	1
+	Segment2Wait:	8
+	Segment3X:	1077
+	Segment3Y:	2100
+	DestX:	1075
+	DestY:	2125
+	DestRange:	1
+	DestWait:	10
+
+
+// Kingdom war Red cape Training center 1 adds
+// ********************************************
+// Spawn [ 501]: BlazingShaman | Follower: BlazingShaman | Marker: #
+// Location: sector (9, 15) | Start: (1186, 1956), radius 0 | Destination: (1074, 2125), radius 1
+#	[ 501]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	BlazingShaman
+	Follower:	BlazingShaman
+	RouteType:	0
+	Formation:	0
+	StartX:	1186
+	StartY:	1956
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1061
+	Segment1Y:	1957
+	Segment1Range:	1
+	Segment1Wait:	8
+	Segment2X:	1061
+	Segment2Y:	2083
+	Segment2Range:	1
+	Segment2Wait:	8
+	Segment3X:	1077
+	Segment3Y:	2099
+	DestX:	1074
+	DestY:	2125
+	DestRange:	1
+	DestWait:	10
+
+
+// Kingdom war Red cape Training center 2 adds
+// ********************************************
+// Spawn [ 502]: BlazingSorcerer | Follower: BlazingSorcerer | Marker: #
+// Location: sector (9, 15) | Start: (1205, 1991), radius 0 | Destination: (1076, 2126), radius 1
+#	[ 502]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	BlazingSorcerer
+	Follower:	BlazingSorcerer
+	RouteType:	0
+	Formation:	0
+	StartX:	1205
+	StartY:	1991
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1172
+	Segment1Y:	2024
+	Segment1Range:	1
+	Segment1Wait:	8
+	Segment2X:	1172
+	Segment2Y:	2069
+	Segment2Range:	1
+	Segment2Wait:	8
+	Segment3X:	1133
+	Segment3Y:	2069
+	DestX:	1076
+	DestY:	2126
+	DestRange:	1
+	DestWait:	10
+
+
+// Kingdom war Red cape Training center 2 adds
+// ********************************************
+// Spawn [ 503]: BlazingTemplar | Follower: BlazingTemplar | Marker: #
+// Location: sector (9, 15) | Start: (1204, 1992), radius 0 | Destination: (1076, 2126), radius 1
+#	[ 503]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	BlazingTemplar
+	Follower:	BlazingTemplar
+	RouteType:	0
+	Formation:	0
+	StartX:	1204
+	StartY:	1992
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1172
+	Segment1Y:	2024
+	Segment1Range:	1
+	Segment1Wait:	8
+	Segment2X:	1172
+	Segment2Y:	2069
+	Segment2Range:	1
+	Segment2Wait:	8
+	Segment3X:	1133
+	Segment3Y:	2069
+	DestX:	1076
+	DestY:	2126
+	DestRange:	1
+	DestWait:	10
+
+
+// Kingdom war Red cape Training center 3 adds
+// ********************************************
+// Spawn [ 504]: BlazingRanger | Follower: BlazingTemplar | Marker: #
+// Location: sector (9, 15) | Start: (1239, 2010), radius 0 | Destination: (1075, 2126), radius 1
+#	[ 504]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	BlazingRanger
+	Follower:	BlazingTemplar
+	RouteType:	0
+	Formation:	0
+	StartX:	1239
+	StartY:	2010
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1239
+	Segment1Y:	2143
+	Segment1Range:	1
+	Segment1Wait:	8
+	Segment2X:	1113
+	Segment2Y:	2143
+	Segment2Range:	1
+	Segment2Wait:	8
+	Segment3X:	1095
+	Segment3Y:	2121
+	DestX:	1075
+	DestY:	2126
+	DestRange:	1
+	DestWait:	10
+
+
+// Kingdom war Red cape Training center 3 adds
+// ********************************************
+// Spawn [ 505]: BlazingSorcerer | Follower: BlazingShaman | Marker: #
+// Location: sector (9, 15) | Start: (1239, 2011), radius 0 | Destination: (1077, 2126), radius 1
+#	[ 505]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	BlazingSorcerer
+	Follower:	BlazingShaman
+	RouteType:	0
+	Formation:	0
+	StartX:	1239
+	StartY:	2011
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1239
+	Segment1Y:	2143
+	Segment1Range:	1
+	Segment1Wait:	8
+	Segment2X:	1113
+	Segment2Y:	2143
+	Segment2Range:	1
+	Segment2Wait:	8
+	Segment3X:	1100
+	Segment3Y:	2125
+	DestX:	1077
+	DestY:	2126
+	DestRange:	1
+	DestWait:	10
+
+
+// Red cape King nearby patrol
+// ********************************************
+// Spawn [ 509]: BlazingRanger | Follower: BlazingRanger | Marker: #
+// Location: sector (9, 15) | Start: (1221, 1989), radius 0 | Destination: (1202, 1967), radius 2
+#	[ 509]
+	MinuteGenerate:	1
+	MaxNumMob:	5
+	MinGroup:	4
+	MaxGroup:	5
+	Leader:	BlazingRanger
+	Follower:	BlazingRanger
+	RouteType:	2
+	Formation:	0
+	StartX:	1221
+	StartY:	1989
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1220
+	Segment1Y:	1973
+	Segment1Range:	2
+	Segment1Wait:	8
+	DestX:	1202
+	DestY:	1967
+	DestRange:	2
+	DestWait:	10
+
+
+// Red cape King nearby patrol
+// ********************************************
+// Spawn [ 510]: BlazingShaman | Follower: BlazingShaman | Marker: #
+// Location: sector (9, 15) | Start: (1202, 1967), radius 0 | Destination: (1201, 1989), radius 2
+#	[ 510]
+	MinuteGenerate:	1
+	MaxNumMob:	5
+	MinGroup:	4
+	MaxGroup:	5
+	Leader:	BlazingShaman
+	Follower:	BlazingShaman
+	RouteType:	2
+	Formation:	0
+	StartX:	1202
+	StartY:	1967
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1220
+	Segment1Y:	1973
+	Segment1Range:	2
+	Segment1Wait:	8
+	DestX:	1201
+	DestY:	1989
+	DestRange:	2
+	DestWait:	10
+
+
+// Red cape King nearby patrol
+// ********************************************
+// Spawn [ 513]: ArqGelo | Follower: ArqGelo | Marker: #
+// Location: sector (8, 16) | Start: (1097, 2127), radius 0 | Destination: (1075, 2105), radius 2
+#	[ 513]
+	MinuteGenerate:	1
+	MaxNumMob:	5
+	MinGroup:	4
+	MaxGroup:	5
+	Leader:	ArqGelo
+	Follower:	ArqGelo
+	RouteType:	2
+	Formation:	0
+	StartX:	1097
+	StartY:	2127
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1081
+	Segment1Y:	2120
+	Segment1Range:	2
+	Segment1Wait:	8
+	DestX:	1075
+	DestY:	2105
+	DestRange:	2
+	DestWait:	10
+
+
+// Red cape King nearby patrol
+// ********************************************
+// Spawn [ 514]: MasterGelo | Follower: MasterGelo | Marker: #
+// Location: sector (8, 16) | Start: (1075, 2105), radius 0 | Destination: (1097, 2127), radius 2
+#	[ 514]
+	MinuteGenerate:	1
+	MaxNumMob:	5
+	MinGroup:	4
+	MaxGroup:	5
+	Leader:	MasterGelo
+	Follower:	MasterGelo
+	RouteType:	2
+	Formation:	0
+	StartX:	1075
+	StartY:	2105
+	StartRange:	0
+	StartWait:	9
+	Segment1X:	1081
+	Segment1Y:	2120
+	Segment1Range:	2
+	Segment1Wait:	8
+	DestX:	1097
+	DestY:	2127
+	DestRange:	2
+	DestWait:	10
+
+
+// Kingdom war Blue cape Training center 1 adds
+// ********************************************
+// Spawn [ 515]: ArqGelo | Follower: ArqGelo | Marker: #
+// Location: sector (8, 16) | Start: (1116, 2142), radius 0 | Destination: (1223, 1970), radius 0
+#	[ 515]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	ArqGelo
+	Follower:	ArqGelo
+	RouteType:	0
+	Formation:	0
+	StartX:	1116
+	StartY:	2142
+	StartRange:	0
+	StartWait:	0
+	Segment1X:	1238
+	Segment1Y:	2143
+	Segment2X:	1238
+	Segment2Y:	2010
+	Segment3X:	1219
+	Segment3Y:	1991
+	DestX:	1223
+	DestY:	1970
+	DestRange:	0
+	DestWait:	0
+
+
+// Kingdom war Blue cape Training center 1 adds
+// ********************************************
+// Spawn [ 516]: MasterGelo | Follower: MasterGelo | Marker: #
+// Location: sector (8, 16) | Start: (1119, 2142), radius 0 | Destination: (1224, 1969), radius 0
+#	[ 516]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	MasterGelo
+	Follower:	MasterGelo
+	RouteType:	0
+	Formation:	0
+	StartX:	1119
+	StartY:	2142
+	StartRange:	0
+	StartWait:	0
+	Segment1X:	1240
+	Segment1Y:	2141
+	Segment2X:	1240
+	Segment2Y:	2009
+	Segment3X:	1221
+	Segment3Y:	1910
+	DestX:	1224
+	DestY:	1969
+	DestRange:	0
+	DestWait:	0
+
+
+// Kingdom war Blue cape Training center 2 adds
+// ********************************************
+// Spawn [ 517]: MagoGelo | Follower: MagoGelo | Marker: #
+// Location: sector (8, 16) | Start: (1098, 2104), radius 0 | Destination: (1226, 1970), radius 0
+#	[ 517]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	MagoGelo
+	Follower:	MagoGelo
+	RouteType:	0
+	Formation:	0
+	StartX:	1098
+	StartY:	2104
+	StartRange:	0
+	StartWait:	0
+	Segment1X:	1131
+	Segment1Y:	2071
+	Segment2X:	1171
+	Segment2Y:	2071
+	Segment3X:	1171
+	Segment3Y:	2025
+	DestX:	1226
+	DestY:	1970
+	DestRange:	0
+	DestWait:	0
+
+
+// Kingdom war Blue cape Training center 2 adds
+// ********************************************
+// Spawn [ 518]: TemplarioGelo | Follower: TemplarioGelo | Marker: #
+// Location: sector (8, 16) | Start: (1100, 2102), radius 0 | Destination: (1226, 1971), radius 0
+#	[ 518]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	TemplarioGelo
+	Follower:	TemplarioGelo
+	RouteType:	0
+	Formation:	0
+	StartX:	1100
+	StartY:	2102
+	StartRange:	0
+	StartWait:	0
+	Segment1X:	1133
+	Segment1Y:	2069
+	Segment2X:	1133
+	Segment2Y:	2023
+	Segment3X:	1174
+	Segment3Y:	2023
+	DestX:	1226
+	DestY:	1971
+	DestRange:	0
+	DestWait:	0
+
+
+// Kingdom war Blue cape Training center 3 adds
+// ********************************************
+// Spawn [ 519]: ArqGelo | Follower: TemplarioGelo | Marker: #
+// Location: sector (8, 16) | Start: (1060, 2086), radius 0 | Destination: (1223, 1970), radius 0
+#	[ 519]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	ArqGelo
+	Follower:	TemplarioGelo
+	RouteType:	0
+	Formation:	0
+	StartX:	1060
+	StartY:	2086
+	StartRange:	0
+	StartWait:	0
+	Segment1X:	1061
+	Segment1Y:	1955
+	Segment2X:	1185
+	Segment2Y:	1955
+	Segment3X:	1208
+	Segment3Y:	1978
+	DestX:	1223
+	DestY:	1970
+	DestRange:	0
+	DestWait:	0
+
+
+// Kingdom war Blue cape Training center 3 adds
+// ********************************************
+// Spawn [ 520]: MagoGelo | Follower: MasterGelo | Marker: #
+// Location: sector (8, 16) | Start: (1060, 2084), radius 0 | Destination: (1220, 1972), radius 0
+#	[ 520]
+	MinuteGenerate:	-1
+	MaxNumMob:	18
+	MinGroup:	17
+	MaxGroup:	18
+	Leader:	MagoGelo
+	Follower:	MasterGelo
+	RouteType:	0
+	Formation:	0
+	StartX:	1060
+	StartY:	2084
+	StartRange:	0
+	StartWait:	0
+	Segment1X:	1059
+	Segment1Y:	1957
+	Segment2X:	1185
+	Segment2Y:	1957
+	Segment3X:	1207
+	Segment3Y:	1977
+	DestX:	1220
+	DestY:	1972
+	DestRange:	0
+	DestWait:	0

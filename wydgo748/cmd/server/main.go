@@ -12,7 +12,6 @@ import (
 	stdhttp "net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -53,7 +52,7 @@ func serveDebug(address string) {
 }
 
 func configPathFromArgs(args []string) string {
-	const defaultPath = "data/server.txt"
+	const defaultPath = "data/config/server.txt"
 	for i, arg := range args {
 		if arg == "-config" || arg == "--config" {
 			if i+1 < len(args) {
@@ -82,20 +81,17 @@ func main() {
 	npcPath := flag.String("npcs", cfg.NPCPath, "NPC directory (one .json file per NPC)")
 	generPath := flag.String("gener", cfg.GeneratorPath, "default NPCGener.txt spawn file")
 	generExtraPath := flag.String("gener-extra", defaultGeneratorExtraPath,
-		"additional generator file (e.g. data/NPCGenerTest.txt); empty disables it")
+		"additional generator file (e.g. data/spawns/NPCGenerTest.txt); empty disables it")
 	teleportPath := flag.String("teleports", cfg.TeleportPath, "server-side portal file")
 	networkAdmissionPath := flag.String("network-admission", cfg.NetworkAdmissionPath,
 		"server-side VPS/VPN/datacenter network admission policy")
 	clientIntegrityPath := flag.String("client-integrity", cfg.ClientIntegrityPath,
 		"server-side client integrity probe manifest")
-	accDir := flag.String("accounts", cfg.AccountsPath, "account directory")
-	guildsPath := flag.String("guilds", cfg.GuildsPath, "guild registry (guilds.json)")
 	guildsTxtPath := flag.String("guilds-txt", cfg.GuildsTxtPath, "Guilds.txt exported for the 7.48 client")
-	charStatePath := flag.String("charstate", cfg.CharStatePath, "session state directory (buffs/currency)")
 	questsPath := flag.String("quests", cfg.QuestsPath, "quest definitions (quests.json)")
 	questZonesPath := flag.String("quest_zones", cfg.QuestZonesPath, "area reset zones (quest_zones.json)")
 	initItemsPath := flag.String("init_items", cfg.InitItemsPath, "persistent world objects (init_items.csv)")
-	bossPath := flag.String("boss", cfg.BossPath, "boss directory (data/boss/*.lua)")
+	bossPath := flag.String("boss", cfg.BossPath, "boss directory (data/content/boss/*.lua)")
 	itemPath := flag.String("items", cfg.ItemPath, "authoritative itemlist.csv")
 	itemNamePath := flag.String("itemnames", cfg.ItemNamePath, "authoritative Itemname.csv")
 	itemEffectPath := flag.String("itemeffects", cfg.ItemEffectPath, "authoritative ItemEffect.h")
@@ -103,6 +99,8 @@ func main() {
 	dropRatePath := flag.String("droprates", cfg.DropRatePath, "per-slot drop-rate table")
 	volatilePath := flag.String("volatiles", cfg.VolatilePath, "server-side volatile item functions")
 	instancesPath := flag.String("instances", cfg.InstancesPath, "server-side instance configuration")
+	instanceGeneratorsPath := flag.String("instance-generators", cfg.InstanceGeneratorsPath,
+		"instance and event generator directory (data/spawns/instances)")
 	replictionPath := flag.String("repliction", cfg.ReplictionPath, "native Repliction tables")
 	mountPath := flag.String("mounts", cfg.MountPath, "mount attributes by type")
 	characterTemplatePath := flag.String("characters", cfg.CharacterTemplatePath, "server-side character creation templates")
@@ -143,7 +141,7 @@ func main() {
 	}
 	log.Printf("%d NPCs loaded from %s", len(npcs), *npcPath)
 
-	geners, err := data.LoadNPCGener(*generPath)
+	geners, err := data.LoadChannelNPCGener(*generPath)
 	if err != nil {
 		log.Fatalf("load NPCGener (%s): %v", *generPath, err)
 	}
@@ -186,6 +184,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("load catalog: %v", err)
 	}
+	if err := data.ValidateNPCItems(npcs, catalog.Items); err != nil {
+		log.Fatalf("validate NPC items: %v", err)
+	}
 	log.Printf("server-side catalog: %d items, %d effects, and %d skills loaded",
 		len(catalog.Items), len(catalog.ItemEffects), len(catalog.Skills))
 
@@ -196,7 +197,7 @@ func main() {
 	log.Printf("per-slot drop table loaded from %s", *dropRatePath)
 
 	volatiles, err := data.LoadVolatilesWithInstances(
-		*volatilePath, *instancesPath, catalog.Items, catalog.Skills)
+		*volatilePath, *instancesPath, *instanceGeneratorsPath, catalog.Items, catalog.Skills)
 	if err != nil {
 		log.Fatalf("load volatile items/instances (%s, %s): %v",
 			*volatilePath, *instancesPath, err)
@@ -262,7 +263,7 @@ func main() {
 	// The Colosseum generators are only required while the event is enabled.
 	var colosseum model.ColosseumGenerators
 	if cfg.Colosseum.Enabled {
-		colosseum, err = data.LoadColosseum(filepath.Dir(*generPath))
+		colosseum, err = data.LoadColosseum(*instanceGeneratorsPath)
 		if err != nil {
 			log.Fatalf("load Colosseum: %v", err)
 		}
@@ -289,14 +290,21 @@ func main() {
 		defer postgresStore.Close()
 		st = postgresStore
 		log.Printf("authoritative persistence: PostgreSQL (maximum pool size=%d)", cfg.DatabaseMaxConns)
-	case "json":
-		st = store.NewJSONStore(*accDir, store.WithGuildsPath(*guildsPath),
-			store.WithGuildsTxtPath(*guildsTxtPath), store.WithCharStatePath(*charStatePath))
-		log.Printf("development persistence: JSON at %s", *accDir)
 	default:
 		log.Fatalf("unknown database_driver %q", cfg.DatabaseDriver)
 	}
 	maintenance := make(chan string, 1)
+	operational := game.OperationalConfig{
+		AuthAttemptsPerMinuteIP:      int(cfg.AuthAttemptsPerMinIP),
+		AuthAttemptsPerMinuteAccount: int(cfg.AuthAttemptsPerMinAccount),
+		MaxAuthenticatedClientsPerIP: int(cfg.MaxAuthenticatedClientsPerIP),
+		AuthHashConcurrency:          int(cfg.AuthHashConcurrency),
+		WorldCommandQueueCapacity:    int(cfg.WorldCommandQueueCapacity),
+		ChatLocalPer10Seconds:        int(cfg.ChatLocalPer10Secs),
+		ChatWhisperPer10Seconds:      int(cfg.ChatWhisperPer10Secs),
+		ChatGlobalPer10Seconds:       int(cfg.ChatGlobalPer10Secs),
+		ChannelID:                    byte(cfg.ChannelID),
+	}
 	worldOptions := []game.WorldOption{
 		game.WithNPCGenerLog(cfg.NPCGenerLog),
 		game.WithGameplayLog(cfg.GameplayLog),
@@ -304,17 +312,7 @@ func main() {
 		game.WithGuildWars(cfg.GuildWars),
 		game.WithNetworkAdmission(networkAdmission),
 		game.WithClientIntegrity(clientIntegrity),
-		game.WithOperationalConfig(game.OperationalConfig{
-			AuthAttemptsPerMinuteIP:      int(cfg.AuthAttemptsPerMinIP),
-			AuthAttemptsPerMinuteAccount: int(cfg.AuthAttemptsPerMinAccount),
-			MaxAuthenticatedClientsPerIP: int(cfg.MaxAuthenticatedClientsPerIP),
-			AuthHashConcurrency:          int(cfg.AuthHashConcurrency),
-			WorldCommandQueueCapacity:    int(cfg.WorldCommandQueueCapacity),
-			ChatLocalPer10Seconds:        int(cfg.ChatLocalPer10Secs),
-			ChatWhisperPer10Seconds:      int(cfg.ChatWhisperPer10Secs),
-			ChatGlobalPer10Seconds:       int(cfg.ChatGlobalPer10Secs),
-			ChannelID:                    byte(cfg.ChannelID),
-		}),
+		game.WithOperationalConfig(operational),
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
 		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
 		game.WithColosseum(cfg.Colosseum, colosseum),
@@ -343,10 +341,43 @@ func main() {
 		worldOptions = append(worldOptions, game.WithUxmal(uxmal))
 		log.Printf("Uxmal loaded: %d rooms, ticket=%d", len(uxmal.Stages), uxmal.Uxmal.TicketItem)
 	}
+	var cluster *game.ChannelCluster
+	if cfg.Channel2Enabled {
+		cluster, err = game.NewChannelCluster(st)
+		if err != nil {
+			log.Fatalf("create channel cluster: %v", err)
+		}
+		worldOptions = append(worldOptions, game.WithChannelCluster(cluster))
+	}
 	world, err := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
 		characterTemplates, terrain, worldOptions...)
 	if err != nil {
 		log.Fatalf("create world: %v", err)
+	}
+	worlds := []*game.World{world}
+	addresses := []string{*addr}
+	if cfg.Channel2Enabled {
+		secondOptions := append([]game.WorldOption(nil), worldOptions...)
+		secondOperational := operational
+		secondOperational.ChannelID = 2
+		secondOptions = append(secondOptions, game.WithOperationalConfig(secondOperational))
+		second, createErr := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
+			characterTemplates, terrain, secondOptions...)
+		if createErr != nil {
+			log.Fatalf("create channel 2: %v", createErr)
+		}
+		worlds = append(worlds, second)
+		addresses = append(addresses, cfg.Channel2Address)
+		log.Printf("channel 2: %d templates, %d shared source groups", len(npcs), len(geners))
+	}
+	// Bind every game socket before admitting any account.
+	listeners := make([]stdnet.Listener, len(addresses))
+	for i, address := range addresses {
+		listeners[i], err = stdnet.Listen("tcp", address)
+		if err != nil {
+			log.Fatalf("bind channel %d (%s): %v", i+1, address, err)
+		}
+		defer listeners[i].Close()
 	}
 	// The staff content index and zone diagnostics are built once from the
 	// same inputs as the World, plus the generators it reserved at boot, and
@@ -356,7 +387,11 @@ func main() {
 		zones:   staffcontent.NewZones(terrain, append([]model.Teleport(nil), teleports...), questZones, volatiles),
 	}
 	log.Printf("staff content index: %d unresolved references", len(panelInputs.content.Issues))
-	go world.Run()
+	if cluster != nil {
+		go cluster.Run()
+	} else {
+		go world.Run()
+	}
 	stopWebAdmin, webErr := startWebAdmin(cfg, world, postgresStore, panelInputs)
 	if webErr != nil {
 		log.Printf("staff panel failed to start: %v; game server remains active", webErr)
@@ -397,7 +432,11 @@ func main() {
 			}
 		}
 		stopWebAdmin()
-		if world.Shutdown(shutdownTimeout) {
+		shutdown := world.Shutdown
+		if cluster != nil {
+			shutdown = cluster.Shutdown
+		}
+		if shutdown(shutdownTimeout) {
 			log.Print("shutdown complete")
 			os.Exit(exitCode)
 		}
@@ -416,7 +455,14 @@ func main() {
 		InboundPacketsPerSec: int(cfg.InboundPacketsPerSec),
 		InboundBytesPerSec:   int(cfg.InboundBytesPerSec),
 	}
-	if err := net.ListenWithConfig(*addr, listenerConfig, func(s *net.Session) { s.Serve(world.Enqueue) }); err != nil {
-		log.Fatalf("listen: %v", err)
+	listenerErrors := make(chan error, len(worlds))
+	for i, channelWorld := range worlds {
+		ln := listeners[i]
+		go func() {
+			listenerErrors <- net.ServeListenerWithConfig(ln, listenerConfig, func(s *net.Session) { s.Serve(channelWorld.Enqueue) })
+		}()
+	}
+	if err := <-listenerErrors; err != nil {
+		log.Fatalf("channel listener: %v", err)
 	}
 }

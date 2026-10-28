@@ -19,11 +19,11 @@ var colosseumFiles = [model.ColosseumTiers]struct {
 	model.ColosseumTierA: {"ColiseuA.txt", []int{103, 104, 105, 106}},
 }
 
-// LoadColosseum reads data/NPCGener/Coliseu{N,M,A}.txt from dataDir.
-func LoadColosseum(dataDir string) (model.ColosseumGenerators, error) {
+// LoadColosseum reads Coliseu{N,M,A}.txt from the instance generator directory.
+func LoadColosseum(generatorsDir string) (model.ColosseumGenerators, error) {
 	var out model.ColosseumGenerators
 	for tier, file := range colosseumFiles {
-		path := filepath.Join(dataDir, "NPCGener", file.name)
+		path := filepath.Join(generatorsDir, file.name)
 		geners, err := LoadNPCGener(path)
 		if err != nil {
 			return out, err

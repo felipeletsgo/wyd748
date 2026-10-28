@@ -12,7 +12,7 @@ import (
 
 func TestHellGateHistoricalPopulationValidation(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	items, err := LoadCatalog(filepath.Join(root, "itemlist.csv"), filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	items, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"), filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,16 +67,16 @@ func TestHellGateHistoricalPopulationValidation(t *testing.T) {
 
 func TestHellGateDedicatedGeneratorDefinitions(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	items, err := LoadCatalog(filepath.Join(root, "itemlist.csv"), filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	items, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"), filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	catalog := loadRealVolatiles(t, root, items)
 	inst := catalog.Items[3328].Instance
-	if inst == nil || inst.HellGate == nil || inst.HellGate.Generator != "NPCGener/HellGate.txt" {
+	if inst == nil || inst.HellGate == nil || inst.HellGate.Generator != "HellGate.txt" {
 		t.Fatal("Hell Gate has no dedicated generator file")
 	}
-	geners, err := LoadNPCGener(filepath.Join(root, "NPCGener", "HellGate.txt"))
+	geners, err := LoadNPCGener(filepath.Join(root, "spawns", "instances", "HellGate.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,6 +128,10 @@ func TestHellGateDedicatedGeneratorDefinitions(t *testing.T) {
 	for _, npc := range npcs {
 		byName[npc.Name] = npc
 	}
+	// Historical donors are test fixtures; only dedicated variants remain in the runtime catalog.
+ donors, err := LoadNPCs(filepath.Join("testdata", "hell_gate_donors"))
+ if err != nil { t.Fatal(err) }
+ for _, donor := range donors { byName[donor.Name] = donor }
 	if got, want := byName["HG_Lich"].Equip.Rosto, byName["Sand_Lich"].Equip.Rosto; got != want || got.Index != 4088 {
 		t.Fatalf("Hell Gate Lich face = %+v, want the existing KR Sand Lich face %+v", got, want)
 	}
@@ -175,9 +179,9 @@ func TestHellGateGeneratorRejectsAmbiguousSpawns(t *testing.T) {
 		gate model.VolatileHellGate
 	}{
 		{"missing file", model.VolatileHellGate{FinalSpawns: []model.VolatileInstanceSpawn{{GeneratorID: 1}}}},
-		{"missing selector", model.VolatileHellGate{Generator: "NPCGener/HellGate.txt", FinalSpawns: []model.VolatileInstanceSpawn{{NPC: "HG_Skeleton", Count: 1}}}},
-		{"inline conflict", model.VolatileHellGate{Generator: "NPCGener/HellGate.txt", FinalSpawns: []model.VolatileInstanceSpawn{{NPC: "HG_Skeleton", GeneratorID: 10}}}},
-		{"unknown block", model.VolatileHellGate{Generator: "NPCGener/HellGate.txt", FinalSpawns: []model.VolatileInstanceSpawn{{GeneratorID: 999}}}},
+		{"missing selector", model.VolatileHellGate{Generator: "HellGate.txt", FinalSpawns: []model.VolatileInstanceSpawn{{NPC: "HG_Skeleton", Count: 1}}}},
+		{"inline conflict", model.VolatileHellGate{Generator: "HellGate.txt", FinalSpawns: []model.VolatileInstanceSpawn{{NPC: "HG_Skeleton", GeneratorID: 10}}}},
+		{"unknown block", model.VolatileHellGate{Generator: "HellGate.txt", FinalSpawns: []model.VolatileInstanceSpawn{{GeneratorID: 999}}}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			cache := &instanceGeneratorCache{dir: filepath.Join("..", "..", "data"), files: make(map[string][]model.NPCGener)}

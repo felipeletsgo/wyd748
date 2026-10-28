@@ -3,22 +3,70 @@
   "tipo": "monstro",
   "equip": {
     "rosto": {
-      "index": 301
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "elmo": {
-      "index": 301
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "armadura": {
-      "index": 301
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "calca": {
-      "index": 301
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "luva": {
-      "index": 301
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "bota": {
-      "index": 301
+      "index": 301,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "arma": {
       "index": 0
@@ -42,7 +90,7 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 786
+      "index": 0
     },
     "montaria": {
       "index": 0
@@ -52,38 +100,40 @@
     }
   },
   "classInfo": 1,
-  "expReward": 100000,
+  "expReward": 5500,
   "score": {
     "version": 2,
-    "level": 355,
-    "attack": 1250,
+    "level": 404,
+    "attack": 1100,
     "magicAttack": 0,
-    "defense": 1500,
-    "maxHP": 13000,
+    "defense": 2900,
+    "maxHP": 30000,
     "maxMP": 0,
-    "curHP": 13000,
+    "curHP": 30000,
     "curMP": 0,
     "str": 5,
     "int": 90,
     "dex": 90,
-    "con": 500,
+    "con": 1000,
     "critical": 255,
-    "resistFire": 255,
-    "resistIce": 255,
-    "resistHoly": 255,
-    "resistThunder": 255,
     "saveMana": 255,
     "mastery": [
       255,
-      7,
+      3,
       255,
-      7
+      3
     ],
     "attackRun": 2
   },
   "carry": [
     {
-      "index": 1774
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
     },
     {
       "index": 0
@@ -95,7 +145,13 @@
       "index": 0
     },
     {
-      "index": 1774
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
     },
     {
       "index": 0
@@ -107,11 +163,161 @@
       "index": 0
     },
     {
-      "index": 1774
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 413
     }
   ],
-  "gold": 9999,
-  "learnedSkill": 50,
+  "gold": 500,
+  "learnedSkill": 50050,
   "skillBar": [
     255,
     255,

@@ -20,7 +20,8 @@
       "server.shutdown",
       "staff.audit.read",
       "moderation.account.ip",
-      "operations.logs.read"
+      "operations.logs.read",
+      "content.npc.shop"
     ]
   }
 }

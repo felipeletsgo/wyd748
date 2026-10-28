@@ -8,23 +8,23 @@ import (
 )
 
 func runeGeneratorRoom(id int) int {
-	switch {
-	case id >= 5662 && id <= 5714:
-		return 0
-	case id >= 5715 && id <= 5774:
-		return 1
-	case id >= 5775 && id <= 5797 || id >= 5985 && id <= 5988:
-		return 6
-	case id >= 5798 && id <= 5857:
-		return 2
-	case id >= 5858 && id <= 5907:
-		return 4
-	case id >= 5908 && id <= 5956:
-		return 5
-	case id >= 5957 && id <= 5984:
-		return 3
+	return model.RuneTrackGeneratorRoom(id)
+}
+
+// Reserve exact event spawn origins at admission, independently of decorative
+// labels and template aliases. This is a boot check, never a tick scan.
+func (w *World) generatorReservedForRuneTrack(g model.NPCGener) bool {
+	if w.uxmal == nil || w.uxmal.Uxmal == nil || w.uxmal.Uxmal.Version != 759 {
+		return false
 	}
-	return -1
+	start := g.Segments[0]
+	for _, owned := range w.uxmal.Uxmal.Generators {
+		point := owned.Segments[0]
+		if start.X == point.X && start.Y == point.Y {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *World) runeGeneratorCount(inst *ItemInstance, label int) int {

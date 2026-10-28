@@ -12,15 +12,15 @@ import (
 	"wydgo/internal/wire"
 )
 
-func TestKefraTemporaryOneHPDatasetDiesInOneSuccessfulAttack(t *testing.T) {
+func TestKefraOneHPFixtureDiesInOneSuccessfulAttack(t *testing.T) {
 	defs, err := data.LoadNPCs("../../data/npcs/Kefra.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	def := &defs[0]
-	if def.Name != kefraBossName || def.Score.MaxHP != 1 || def.Score.CurHP != 1 {
-		t.Fatalf("temporary Kefra test profile must have exactly 1 HP: %+v", def.Score)
-	}
+	if def.Name != kefraBossName || def.Score == nil { t.Fatal("missing native Kefra template") }
+ def.Score.MaxHP, def.Score.CurHP = 1, 1
+
 	w, _, killer, _, _, _ := kefraTestWorld(t)
 	w.rng = fixedRNG{value: 0} // A successful hit, not an evasion.
 	killer.Char.Score.Attack = 100_000
@@ -37,7 +37,7 @@ func TestKefraTemporaryOneHPDatasetDiesInOneSuccessfulAttack(t *testing.T) {
 		}
 	}
 	if boss == nil || boss.HP != 1 {
-		t.Fatal("generator did not spawn the temporary one-HP boss")
+		t.Fatal("generator did not spawn the one-HP fixture")
 	}
 	killer.show(boss.ID)
 	w.onAttack(killer.Session, physicalAttackPacket(1000, boss.ID, boss.X, boss.Y))

@@ -1,0 +1,295 @@
+{
+  "name": "HellLich_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 364
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 1925
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        30,
+        71,
+        0,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 1936,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 8500,
+  "score": {
+    "version": 2,
+    "level": 599,
+    "attack": 7682,
+    "magicAttack": 0,
+    "defense": 4000,
+    "maxHP": 30000,
+    "maxMP": 0,
+    "curHP": 30000,
+    "curMP": 0,
+    "str": 4,
+    "int": 90,
+    "dex": 100,
+    "con": 1000,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      3,
+      255,
+      7
+    ],
+    "attackRun": 5
+  },
+  "carry": [
+    {
+      "index": 426
+    },
+    {
+      "index": 427
+    },
+    {
+      "index": 421
+    },
+    {
+      "index": 422
+    },
+    {
+      "index": 423
+    },
+    {
+      "index": 424
+    },
+    {
+      "index": 425
+    },
+    {
+      "index": 426
+    },
+    {
+      "index": 4032
+    },
+    {
+      "index": 426
+    },
+    {
+      "index": 4032
+    },
+    {
+      "index": 421
+    },
+    {
+      "index": 422
+    },
+    {
+      "index": 423
+    },
+    {
+      "index": 424
+    },
+    {
+      "index": 425
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4127
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4127
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2400
+    },
+    {
+      "index": 2405
+    },
+    {
+      "index": 2411
+    },
+    {
+      "index": 2406
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 3140
+    },
+    {
+      "index": 578
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 671
+    }
+  ],
+  "gold": 500,
+  "learnedSkill": 60060,
+  "skillBar": [
+    52,
+    52,
+    51,
+    255
+  ]
+}

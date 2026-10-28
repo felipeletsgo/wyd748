@@ -21,14 +21,14 @@ it must not be described as a 7.48 server decompilation.
   lines 17166-17237: the fixed STR/INT/HP branch without that learned bit,
   and the percentage configurations with it.
 - Saved Ghidra dispatcher evidence:
-  `build/rea-analysis/results/TMSRVIN.exe-fame-004f6d60-evidence.json`,
+  `references/decompilacao server/dlls/rea-analysis/results/TMSRVIN.exe-fame-004f6d60-evidence.json`,
   evidence ID
   `ev_4673820710a1fafc9398adcabe2f8e7446285e51bc0896b410a864b4e5db4f0e`.
   This independently confirms the dispatcher constants and mutations.
 - Official binary: `references/decompilacao server/dlls/TMSRVIN.exe`, SHA-256
   `27EE313BB4B4D4A0D897DAC9A188D8249068CE701311CBDA1E24AD28C5E43642`.
   Related binary identity is recorded in the
-  [server runtime map](../../.agents/research/rea-server-759-runtime-map.md).
+  [server runtime map](<../../references/decompilacao server/dlls/rea-analysis/maps/rea-server-759-runtime-map.md>).
 
 The inspected official Kibita case does **not** contain a Lac exchange. The
 score routine establishes the fixed effect, not its item recipe, duration,
@@ -194,7 +194,7 @@ The server process has no `TZ` override and the VPS uses `Etc/UTC`: the selected
 21:00–21:59 **server-time** exchange window currently means 18:00–18:59 in
 America/Sao_Paulo. Deployment did not change the host or process timezone.
 
-Cape catalog verification also passed: server `data/itemlist.csv` and the
+Cape catalog verification also passed: server `data/catalog/itemlist.csv` and the
 loaded client root `ItemList.bin` both contain hero capes 3194/3195/3196,
 mesh 27, textures 27/28/29, DEF 200 and HP 220. The client loads the root
 catalog through `WYD748_LoadItemList(".\\ItemList.bin", ...)`; no asset

@@ -103,14 +103,20 @@ func (w *World) handleKick(req *kickRequest) {
 		return
 	}
 	r.Code = "stale_target"
-	for s, p := range w.players {
+	for _, p := range w.globalPlayers() {
+		s := p.Session
 		if s == nil || s.ID != c.ExpectedSessionID || p == nil || p.Session != s || !p.InWorld || p.Char == nil || p.Account == nil ||
 			p.Char.UID != c.UID || accountSessionKey(p.Account.Name) != c.Account || s.IsClosed() {
 			continue
 		}
 		// Close first so pending packets cannot act while cleanup/persistence runs.
 		s.Close()
-		w.onDisconnect(s)
+		owner := w.playerWorld(p)
+		if w.cluster != nil {
+			w.cluster.inWorld(owner, func() { owner.onDisconnect(s) })
+		} else {
+			w.onDisconnect(s)
+		}
 		r.Code = "ok"
 		if p.PersistencePoisoned {
 			r.Code = "disconnected_persistence_failed"

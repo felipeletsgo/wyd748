@@ -105,7 +105,8 @@ their lifecycle after the first phase, not by arbitrary line counts.
 - Keep implementation details local. Do not expose private fields or add a
   generic shared header solely to make extraction easier.
 - Preserve language-compatible identifiers and values. Translate explanatory
-  legacy text in touched files as required by the English-only rule, but review
+  legacy engineering prose in touched files as required by the English prose
+  rule, but review
   contract-bearing translations separately. Keep such edits explicit in review.
 
 ## Implementation sequence
@@ -176,7 +177,8 @@ For each logical move:
 2. Check includes, build registration, class declarations, and source-path consumers.
 3. Run the affected architecture/contract tests and an incremental affected-target
    compile/link. Record exact commands and outcomes, including missing prerequisites.
-4. Run `git diff --check`; inspect authored text for the English-only requirement.
+4. Run `git diff --check`; inspect changed engineering prose and EN/PT product
+   locale coverage.
 
 For the integrated C++ batch, use the supported non-deploy workflow from the
 repository root, as described in [build and integration](../build-and-integration.md):
@@ -303,7 +305,7 @@ inventory appearance, combat/death/resurrection, effects, labels/minimap,
 logout/reconnect and device-resource restoration. Other candidate policy
 extractions are future separately scoped work, not prerequisites to this
 bounded first specialization. No performance/token-savings measurement or
-global language-migration/release completion is claimed.
+scoped language-migration/release completion is claimed.
 
 ## Third phase: method decomposition
 

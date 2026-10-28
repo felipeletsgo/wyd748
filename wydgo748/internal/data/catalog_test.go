@@ -27,7 +27,7 @@ func TestItemEffectFileIsAuthoritative(t *testing.T) {
 }
 
 func TestLoadConverted748Catalog(t *testing.T) {
-	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestLoadConverted748Catalog(t *testing.T) {
 }
 
 func TestSkillsComeFromAuthoritativeSkillData(t *testing.T) {
-	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +100,7 @@ func TestSkillsComeFromAuthoritativeSkillData(t *testing.T) {
 }
 
 func TestNative748SpecialSkillIndices(t *testing.T) {
-	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -137,7 +137,7 @@ func TestCatalogRejectsDuplicateAndOutOfRangeIDs(t *testing.T) {
 		t.Fatal("an item outside ItemListSize was accepted")
 	}
 
-	firstSkill, err := os.ReadFile("../../data/SkillData.csv")
+	firstSkill, err := os.ReadFile("../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

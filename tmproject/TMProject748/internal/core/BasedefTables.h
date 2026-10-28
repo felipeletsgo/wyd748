@@ -14,7 +14,7 @@ const static int g_pDistanceTable[7][7] =
 };
 
 // Mount type stats (sIndex - 2360): attack, magic, evasion, resist, speed,
-// rider damage %. Mirrors wydgo748/data/mounts.json, the authoritative table
+// rider damage %. Mirrors wydgo748/data/content/mounts.json, the authoritative table
 // (a missing rider damage there means the server default of 75).
 const static int g_pMountBonus[30][6] =
 {

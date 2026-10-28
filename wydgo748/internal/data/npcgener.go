@@ -3,6 +3,7 @@ package data
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -10,10 +11,20 @@ import (
 	"wydgo/internal/model"
 )
 
-// LoadNPCGener le o NPCGener.txt tradicional do TMSrv. A numeracao efetiva e a
-// ordem das secoes, como em CNPCGenerator::ReadNPCGenerator; o numero entre [] e
-// apenas decorativo no parser original. Secoes iniciadas por #* ficam desativadas.
+// LoadNPCGener reads the traditional TMSrv generator format. Effective indices
+// follow section order; bracketed labels are decorative. #* disables a section.
 func LoadNPCGener(path string) ([]model.NPCGener, error) {
+	return loadNPCGener(path, false)
+}
+
+// LoadChannelNPCGener preserves source records but disables routes outside the
+// installed terrain. Disabled records retain their original index and values.
+// The caller must report these reservations; coordinates are never relocated.
+func LoadChannelNPCGener(path string) ([]model.NPCGener, error) {
+	return loadNPCGener(path, true)
+}
+
+func loadNPCGener(path string, disableOutsideTerrain bool) ([]model.NPCGener, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -40,14 +51,14 @@ func LoadNPCGener(path string) ([]model.NPCGener, error) {
 			continue
 		}
 		if cur == nil {
-			continue // o TMSrv tambem ignora texto antes da primeira secao
+			continue // TMSrv also ignores text before the first section.
 		}
 		fields := strings.Fields(line)
 		if len(fields) < 2 {
 			continue
 		}
 		key, value := fields[0], fields[1]
-		if err := setGenerField(cur, key, value); err != nil {
+		if err := setGenerFieldValue(cur, key, value, !disableOutsideTerrain); err != nil {
 			return nil, fmt.Errorf("NPCGener %s:%d: %w", path, lineNo, err)
 		}
 	}
@@ -59,27 +70,46 @@ func LoadNPCGener(path string) ([]model.NPCGener, error) {
 		if !g.Enabled {
 			continue
 		}
+		if disableOutsideTerrain {
+			for _, point := range g.Segments {
+				if int(point.X) >= model.TerrainWidth || int(point.Y) >= model.TerrainHeight {
+					log.Printf("NPCGener %s: disabled group %d (%s): route (%d,%d) outside installed terrain", path, g.Index, g.Leader, point.X, point.Y)
+					g.Enabled = false
+					break
+				}
+			}
+			if !g.Enabled {
+				continue
+			}
+		}
 		if g.Leader == "" || g.Leader == "0" {
-			return nil, fmt.Errorf("NPCGener %s: gerador %d sem Leader valido", path, g.Index)
+			return nil, fmt.Errorf("NPCGener %s: group %d has no valid Leader", path, g.Index)
 		}
 		if g.Follower == "" || g.Follower == "0" {
 			g.Follower = g.Leader
 		}
 		if g.MaxGroup < g.MinGroup {
-			// Quirk comum em NPCGener editados a mao (8 casos no arquivo do
-			// WYD 7.48): teto abaixo do piso. O TMSrv nativo nao rejeita o
-			// arquivo por isso; normalizamos para grupo de tamanho fixo
-			// (MaxGroup = MinGroup) em vez de abortar o boot.
+			// Hand-edited files may put the ceiling below the floor. Preserve
+			// boot compatibility by normalizing to a fixed-size group.
 			g.MaxGroup = g.MinGroup
 		}
 		if g.MaxNumMob <= 0 {
-			return nil, fmt.Errorf("NPCGener %s: gerador %d MaxNumMob deve ser positivo", path, g.Index)
+			if disableOutsideTerrain {
+				log.Printf("NPCGener %s: disabled group %d (%s): nonpositive capacity %d", path, g.Index, g.Leader, g.MaxNumMob)
+				g.Enabled = false // Nonpositive capacity cannot admit a live group.
+				continue
+			}
+			return nil, fmt.Errorf("NPCGener %s: group %d MaxNumMob must be positive", path, g.Index)
 		}
 	}
 	return out, nil
 }
 
 func setGenerField(g *model.NPCGener, key, value string) error {
+	return setGenerFieldValue(g, key, value, true)
+}
+
+func setGenerFieldValue(g *model.NPCGener, key, value string, strictTerrain bool) error {
 	switch key {
 	case "Leader:":
 		g.Leader = value
@@ -95,11 +125,8 @@ func setGenerField(g *model.NPCGener, key, value string) error {
 		return nil
 	}
 
-	// Daqui pra baixo o campo e inteiro. Uma chave FORA do vocabulario (ex.: o
-	// comentario malformado "/ Capa Verde" com uma barra so, ou lixo de edicao)
-	// e ignorada SEM tentar converter -- e o que o CNPCGenerator nativo faz:
-	// linhas nao reconhecidas nao sao erro. Chave reconhecida com valor invalido
-	// continua sendo erro.
+	// Ignore unknown keys before integer parsing, including malformed comments.
+	// Recognized keys with malformed values remain errors.
 	seg, isSeg := generSegmentIndex(key)
 	isSegInt := isSeg && (strings.HasSuffix(key, "X:") || strings.HasSuffix(key, "Y:") ||
 		strings.HasSuffix(key, "Range:") || strings.HasSuffix(key, "Wait:"))
@@ -107,13 +134,13 @@ func setGenerField(g *model.NPCGener, key, value string) error {
 	case "MinuteGenerate:", "MaxNumMob:", "MinGroup:", "MaxGroup:", "RouteType:", "Formation:":
 	default:
 		if !isSegInt {
-			return nil // linha desconhecida -> ignora
+			return nil // Ignore unknown lines.
 		}
 	}
 
 	n, err := strconv.Atoi(value)
 	if err != nil {
-		return fmt.Errorf("%s espera inteiro, recebeu %q", key, value)
+		return fmt.Errorf("%s expects an integer, received %q", key, value)
 	}
 	switch key {
 	case "MinuteGenerate:":
@@ -128,21 +155,21 @@ func setGenerField(g *model.NPCGener, key, value string) error {
 		g.RouteType = n
 	case "Formation:":
 		g.Formation = n
-	default: // campo de segmento inteiro (seg ja resolvido acima)
+	default: // Integer segment field; seg was resolved above.
 		switch {
 		case strings.HasSuffix(key, "X:"):
-			if n <= 0 || n >= model.TerrainWidth {
-				return fmt.Errorf("%s fora do mapa: %d", key, n)
+			if n <= 0 || n > 65535 || strictTerrain && n >= model.TerrainWidth {
+				return fmt.Errorf("%s outside supported coordinates: %d", key, n)
 			}
 			g.Segments[seg].X = uint16(n)
 		case strings.HasSuffix(key, "Y:"):
-			if n <= 0 || n >= model.TerrainHeight {
-				return fmt.Errorf("%s fora do mapa: %d", key, n)
+			if n <= 0 || n > 65535 || strictTerrain && n >= model.TerrainHeight {
+				return fmt.Errorf("%s outside supported coordinates: %d", key, n)
 			}
 			g.Segments[seg].Y = uint16(n)
 		case strings.HasSuffix(key, "Range:"):
 			if n < 0 || n > 65535 {
-				return fmt.Errorf("%s invalido: %d", key, n)
+				return fmt.Errorf("%s invalid value: %d", key, n)
 			}
 			g.Segments[seg].Range = uint16(n)
 		case strings.HasSuffix(key, "Wait:"):

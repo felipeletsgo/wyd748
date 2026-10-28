@@ -209,6 +209,40 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PremiumCatalogResult' }
         default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/npcs:
+    get:
+      summary: Read active NPC definitions from one game channel (content.npc.shop capability)
+      security: [{ staffSession: [] }]
+      parameters:
+        - { name: channel, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 255, default: 1 } }
+      responses:
+        '200':
+          description: Active non-monster NPC templates and their PostgreSQL definitions
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NPCDefinitionCatalog' }
+        default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/npcs/{name}:
+    parameters:
+      - { name: name, in: path, required: true, schema: { type: string, minLength: 1, maxLength: 64 } }
+    put:
+      summary: Edit or restore one channel NPC JSON definition with an optimistic version check
+      description: PostgreSQL stores active, referenced NPC definitions. A lightweight revision query propagates one changed template without global despawn or respawn.
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NPCDefinitionCommand' }
+      responses:
+        '200':
+          description: Domain receipt; stale_version returns the current NPC definition
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NPCDefinitionResult' }
+        default: { $ref: '#/components/responses/Error' }
   /api/v1/staff/accounts/{account}/donate:
     parameters:
       - { name: account, in: path, required: true, schema: { type: string, pattern: '^[a-z0-9]{1,12}$' } }
@@ -1427,6 +1461,7 @@ components:
         effects: { type: array, items: { type: integer, minimum: 0, maximum: 255 }, minItems: 6, maxItems: 6 }
         price: { type: integer, minimum: 1, maximum: 2000000000 }
         itemName: { type: string }
+        category: { type: integer, enum: [0, 1, 2, 3], default: 0, description: '0 Featured, 1 Armia, 2 Erion, 3 Nifleheim. Omitted values default to Featured.' }
     PremiumCatalog:
       type: object
       required: [version, available, catalogVersion, items, updatedBy, updatedAt]
@@ -1452,6 +1487,86 @@ components:
       properties:
         code: { type: string, enum: [ok, stale_catalog, unknown_item, invalid_command, capability_required, unavailable] }
         catalog: { $ref: '#/components/schemas/PremiumCatalog' }
+    NPCDefinitionDocument:
+      type: object
+      additionalProperties: false
+      required: [name, equip, expReward, score]
+      properties:
+        serviceIdentity: { type: string }
+        displayName: { type: string }
+        combatRole: { type: string }
+        name: { type: string, minLength: 1, maxLength: 64 }
+        tipo: { type: string, enum: [npc, monstro] }
+        equip: { type: object, additionalProperties: true }
+        classInfo: { type: integer, minimum: 0, maximum: 255 }
+        expReward: { type: integer, minimum: 0, maximum: 4294967295 }
+        score: { type: object, additionalProperties: true }
+        carry: { type: array, maxItems: 64, items: { type: object, additionalProperties: true } }
+        gold: { type: integer, minimum: 0, maximum: 4294967295 }
+        direction: { type: integer, minimum: 0, maximum: 255 }
+        clientMerchant: { type: integer, minimum: 0, maximum: 15 }
+        learnedSkill: { type: integer, minimum: 0, maximum: 4294967295 }
+        skillBar: { type: array, minItems: 4, maxItems: 4, items: { type: integer, minimum: 0, maximum: 255 } }
+        vende: { type: array, maxItems: 64, items: { type: object, additionalProperties: true } }
+    NPCDefinitionView:
+      type: object
+      required: [name, displayName, channel, version, appliedVersion, active, overridden, definition, source, updatedBy]
+      properties:
+        name: { type: string }
+        displayName: { type: string }
+        channel: { type: integer, minimum: 1, maximum: 255 }
+        version: { type: integer, minimum: 1, maximum: 4294967295 }
+        appliedVersion: { type: integer, minimum: 0, maximum: 4294967295 }
+        active: { type: boolean }
+        overridden: { type: boolean }
+        definition: { $ref: '#/components/schemas/NPCDefinitionDocument' }
+        source: { $ref: '#/components/schemas/NPCDefinitionDocument' }
+        updatedBy: { type: string }
+        updatedAt: { type: string, format: date-time }
+    NPCDefinitionCatalog:
+      type: object
+      required: [version, available, channel, npcs]
+      properties:
+        version: { type: integer, const: 1 }
+        available: { type: boolean }
+        channel: { type: integer, minimum: 1, maximum: 255 }
+        npcs: { type: array, items: { $ref: '#/components/schemas/NPCDefinitionView' } }
+    NPCDefinitionCommand:
+      type: object
+      additionalProperties: false
+      required: [version, channel, expectedVersion, name, reason, restoreSource]
+      properties:
+        version: { type: integer, const: 1 }
+        channel: { type: integer, minimum: 1, maximum: 255 }
+        expectedVersion: { type: integer, minimum: 1, maximum: 4294967294 }
+        name: { type: string, minLength: 1, maxLength: 64 }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+        restoreSource: { type: boolean }
+        definition: { $ref: '#/components/schemas/NPCDefinitionDocument' }
+        targets:
+          type: array
+          minItems: 2
+          maxItems: 2
+          description: Optional atomic edit of channels 1 and 2. Include each channel once and match the primary expectedVersion.
+          items:
+            type: object
+            additionalProperties: false
+            required: [channel, expectedVersion]
+            properties:
+              channel: { type: integer, enum: [1, 2] }
+              expectedVersion: { type: integer, minimum: 1, maximum: 4294967294 }
+    NPCDefinitionResult:
+      type: object
+      required: [code, npc]
+      properties:
+        code: { type: string, enum: [ok, saved_pending, stale_version, unknown_npc, not_editable, invalid_command, invalid_definition, capability_required, unavailable] }
+        npc: { $ref: '#/components/schemas/NPCDefinitionView' }
+        npcs:
+          type: array
+          minItems: 1
+          maxItems: 2
+          description: Per-channel versions. A saved_pending result is durable and still requires World application.
+          items: { $ref: '#/components/schemas/NPCDefinitionView' }
     DonateCreditCommand:
       type: object
       additionalProperties: false

@@ -1,22 +1,6 @@
-// Comando npcconvert -- converte os arquivos de mob binarios do TMSrv 7.54
-// (STRUCT_MOB de 756 bytes, um por arquivo na pasta npc/ do WYD 7.48) para o
-// formato JSON de NPCDef do wyd-go.
-//
-// Layout do STRUCT_MOB 7.54 (WYD 7.48/BaseStruct.h, truncado em 756B no arquivo):
-//
-//	Name[16]@0, Merchant@17, ClassInfo@20, Gold@24, Exp@28, LastPos@32,
-//	bStatus@36, Status@64 (a fonte autoritativa: ReadMob faz BaseScore=Status),
-//	Equip[16]@92, Inventory[64]@220, ... Resist1-4@752-755.
-//
-// STRUCT_STATUS (28B): Level@0 Defense@2 Attack@4 Merchant@6 ChaosRate@7
-//
-//	maxHP@8 maxMP@10 curHP@12 curMP@14 STR@16 INT@18 DEX@20 CON@22 masters@24.
-//
-// STRUCT_ITEM (8B): Index@0 + 6 bytes de efeito.
-//
-// Gold/Exp possuem lixo em parte da distribuicao; valores dentro dos tetos
-// documentados sao preservados e os demais zerados. A saida fica numa pasta
-// separada para preservar os NPCs curados a mao em data/npcs.
+// npcconvert reads the exact 756-byte legacy or 1024-byte 7.59 mob layout.
+// It writes candidates to a separate directory; it does not choose gameplay
+// roles, replace live generators, or establish client-version compatibility.
 package main
 
 import (
@@ -40,15 +24,15 @@ const (
 )
 
 const (
-	offStatus = 64  // bloco Status (STRUCT_STATUS autoritativo)
+	offStatus = 64  // authoritative STRUCT_STATUS
 	offEquip  = 92  // Equip[16]
-	offCarry  = 220 // Inventory[64] (tabela de drop / estoque)
+	offCarry  = 220 // Inventory[64] (drops or shop stock)
 	offResist = 752 // Resist1..4
 )
 
 func u16(b []byte, off int) uint16 { return binary.LittleEndian.Uint16(b[off : off+2]) }
 
-// item le um STRUCT_ITEM (8B) em off.
+// item reads one eight-byte STRUCT_ITEM at off.
 func item(b []byte, off int) model.Item {
 	var it model.Item
 	it.Index = u16(b, off)
@@ -56,21 +40,24 @@ func item(b []byte, off int) model.Item {
 	return it
 }
 
-// inventoryTrim devolve os 64 slots cortados ate o ultimo item ocupado,
-// PRESERVANDO buracos e os tres pares de efeito. Tanto drops quanto produtos
-// de loja usam esses efeitos (quantidade, refino, opcoes e marcadores nativos).
+// inventoryTrim retains slots through the last occupied item, preserving holes
+// and all three effect pairs used by drops and shop products.
 func inventoryTrim(b []byte) ([]model.Item, int) {
+	return inventoryAt(b, offCarry)
+}
+
+func inventoryAt(b []byte, offset int) ([]model.Item, int) {
 	items := make([]model.Item, 64)
 	last := -1
 	invalid := 0
 	for i := 0; i < 64; i++ {
-		it := item(b, offCarry+i*8)
+		it := item(b, offset+i*8)
 		switch {
 		case it.Index == 0:
 			it = model.Item{}
 		case int(it.Index) >= model.ItemListSize:
-			// Quatro arquivos da distribuicao WYD 7.48 possuem palavras
-			// residuais (11k..23k) no meio do Inventory. Nao sao item IDs.
+			// Four legacy distribution records contain residual words
+			// (11k..23k) in Inventory, outside the item table.
 			it = model.Item{}
 			invalid++
 		}
@@ -91,18 +78,18 @@ type conversionReport struct {
 	discardedExp  int
 }
 
-// convert monta um NPCDef a partir dos 756 bytes do STRUCT_MOB.
+// convert builds an NPCDef from the 756-byte legacy STRUCT_MOB.
 func convert(name string, b []byte) (model.NPCDef, conversionReport) {
 	s := offStatus
 	var report conversionReport
-	// STRUCT_MOB.Merchant@17 e a funcao server-side real. Status.Merchant
-	// mistura o nibble baixo dessa funcao com a direcao visual no nibble alto.
-	// Usar Status aqui transformava Kibita 43 em 251 e perdia o dispatch nativo.
+	// STRUCT_MOB.Merchant@17 is the full server function. Status.Merchant
+	// combines its low nibble with the visual direction in the high nibble.
+	// Reading Status as the function changed Kibita 43 to 251.
 	merchant := b[17]
 	direction := b[s+6] & 0xF0
 	tipo := model.TipoMonstro
 	if merchant != 0 {
-		tipo = model.TipoNPC // tem tipo de NPC (loja/quest/guarda) -> nao atacavel
+		tipo = model.TipoNPC // service NPCs are not attackable
 	}
 
 	var eq [16]model.Item
@@ -153,7 +140,7 @@ func convert(name string, b []byte) (model.NPCDef, conversionReport) {
 			Con:           uint32(u16(b, s+22)),
 			Mastery:       [4]uint32{uint32(b[s+24]), uint32(b[s+25]), uint32(b[s+26]), uint32(b[s+27])},
 			Merchant:      uint32(merchant),
-			AttackRun:     uint32(b[s+7]), // ChaosRate no 7.54 = AttackRun no wyd-go
+			AttackRun:     uint32(b[s+7]), // legacy ChaosRate maps to AttackRun
 			Critical:      uint32(b[742]),
 			SaveMana:      uint32(b[743]),
 			RegenHP:       uint32(b[750]),
@@ -170,7 +157,7 @@ func convert(name string, b []byte) (model.NPCDef, conversionReport) {
 		SkillBar:     [4]byte{b[744], b[745], b[746], b[747]},
 	}
 
-	// O Inventory[64] do mob e a tabela de drop (monstro) OU o estoque de loja (npc).
+	// Inventory[64] is either monster drops or NPC shop stock.
 	inv, invalidInventory := inventoryTrim(b)
 	report.invalidItems += invalidInventory
 	if tipo == model.TipoMonstro {
@@ -184,9 +171,72 @@ func convert(name string, b []byte) (model.NPCDef, conversionReport) {
 	return def, report
 }
 
-// Os mestres WYD 7.48 guardam os tres ramos nas paginas 0, 27 e 54 do
-// Inventory[64]. O client 7.48, porem, abre uma unica grade de 27 posicoes:
-// 8 skills + separador, repetido tres vezes.
+// decodeNPC selects by exact size. Truncating a 7.59 record to 756 bytes
+// would read its position/base status as equipment and its equipment as stock.
+func decodeNPC(name string, b []byte) (model.NPCDef, conversionReport, error) {
+	if len(b) == mobFileSize {
+		def, report := convert(name, b)
+		return def, report, nil
+	}
+	if len(b) != 1024 {
+		return model.NPCDef{}, conversionReport{}, fmt.Errorf("%s: unsupported mob size %d (expected 756 or 1024)", name, len(b))
+	}
+	u32 := func(off int) uint32 { return binary.LittleEndian.Uint32(b[off:]) }
+	if u32(784) != 0 {
+		return model.NPCDef{}, conversionReport{}, fmt.Errorf("%s: upper learned-skill word is not representable in the 7.48 contract", name)
+	}
+	exp := binary.LittleEndian.Uint64(b[32:40])
+	if exp > uint64(^uint32(0)) {
+		return model.NPCDef{}, conversionReport{}, fmt.Errorf("%s: EXP %d exceeds the current representation", name, exp)
+	}
+	score := &model.Score{
+		Version: model.ScoreVersion, Level: u32(92), Defense: u32(96), Attack: u32(100),
+		Merchant: uint32(b[17]), AttackRun: uint32(b[105]), MaxHP: u32(108), MaxMP: u32(112),
+		CurHP: u32(108), CurMP: u32(112), Str: uint32(u16(b, 124)), Int: uint32(u16(b, 126)),
+		Dex: uint32(u16(b, 128)), Con: uint32(u16(b, 130)),
+		Mastery:  [4]uint32{uint32(u16(b, 132)), uint32(u16(b, 134)), uint32(u16(b, 136)), uint32(u16(b, 138))},
+		Critical: uint32(b[794]), SaveMana: uint32(b[795]), MagicAttack: uint32(b[801]),
+		RegenHP: uint32(b[802]), RegenMP: uint32(b[803]), ResistFire: uint32(b[804]),
+		ResistIce: uint32(b[805]), ResistHoly: uint32(b[806]), ResistThunder: uint32(b[807]),
+	}
+	if err := score.Validate(); err != nil {
+		return model.NPCDef{}, conversionReport{}, fmt.Errorf("%s: %w", name, err)
+	}
+	var eq [16]model.Item
+	for i := range eq {
+		eq[i] = item(b, 140+i*8)
+		if int(eq[i].Index) >= model.ItemListSize {
+			return model.NPCDef{}, conversionReport{}, fmt.Errorf("%s: unsupported equipment item %d at slot %d", name, eq[i].Index, i)
+		}
+		if eq[i].Index == 0 {
+			eq[i] = model.Item{}
+		}
+	}
+	inv, invalid := inventoryAt(b, 268)
+	if invalid != 0 {
+		return model.NPCDef{}, conversionReport{}, fmt.Errorf("%s: %d unsupported inventory items", name, invalid)
+	}
+	def := model.NPCDef{Name: name, Tipo: model.TipoMonstro, ClassInfo: b[20], Score: score,
+		Gold: u32(24), ExpReward: uint32(exp), Direction: b[104] & 0xf0, LearnedSkill: u32(780),
+		SkillBar: [4]byte{b[796], b[797], b[798], b[799]},
+		Equip: model.Equip{Rosto: eq[0], Elmo: eq[1], Armadura: eq[2], Calca: eq[3], Luva: eq[4], Bota: eq[5],
+			Arma: eq[6], Escudo: eq[7], Acessorio1: eq[8], Acessorio2: eq[9], Acessorio3: eq[10],
+			Acessorio4: eq[11], Acessorio5: eq[12], Acessorio6: eq[13], Montaria: eq[14], Capa: eq[15]}}
+	if score.Merchant == 0 {
+		def.Carry = inv
+	} else {
+		def.Tipo = model.TipoNPC
+		def.Vende = inv
+		if score.Merchant == 19 {
+			def.Vende = skillShopInventory(inv)
+		}
+	}
+	return def, conversionReport{}, nil
+}
+
+// Skill masters store the three branches at Inventory offsets 0, 27 and 54.
+// The supported client displays one 27-slot grid: eight skills and a separator
+// for each branch.
 func skillShopInventory(inv []model.Item) []model.Item {
 	out := make([]model.Item, 27)
 	classStart := uint16(0)
@@ -198,9 +248,8 @@ func skillShopInventory(inv []model.Item) []model.Item {
 			if source+i < len(inv) {
 				out[branch*9+i] = inv[source+i]
 			}
-			// Cada classe possui exatamente 24 livros. A distribuicao WYD 7.48
-			// omite o Evilator (5071) do Mestre_Archi; complete lacunas dos 24
-			// slots utilizaveis sem tocar nos separadores 8/17/26.
+			// Each class has 24 books. The legacy Mestre_Archi record omits
+			// Evilator (5071); fill usable gaps without changing separators.
 			if out[branch*9+i].Index == 0 && classStart != 0 {
 				out[branch*9+i].Index = classStart + uint16(branch*8+i)
 			}
@@ -209,7 +258,7 @@ func skillShopInventory(inv []model.Item) []model.Item {
 	return out
 }
 
-// safeFileName transforma o nome do mob num nome de arquivo estavel.
+// safeFileName produces a stable filename without changing stored names.
 func safeFileName(name string) string {
 	r := strings.NewReplacer("/", "_", "\\", "_", ":", "_", "*", "_", "?", "_",
 		"\"", "_", "<", "_", ">", "_", "|", "_")
@@ -221,19 +270,26 @@ func safeFileName(name string) string {
 }
 
 func main() {
-	in := flag.String("in", "", "pasta de entrada dos mobs binarios 7.54 (obrigatoria)")
-	out := flag.String("out", "", "pasta de saida dos JSON (obrigatoria; use diretorio de trabalho isolado)")
+	in := flag.String("in", "", "input directory containing binary mob records (required)")
+	out := flag.String("out", "", "separate candidate JSON output directory (required)")
+	only := flag.String("only", "", "comma-separated exact input filenames; fail if any selected record cannot be converted")
 	flag.Parse()
 	if strings.TrimSpace(*in) == "" || strings.TrimSpace(*out) == "" {
-		log.Fatal("informe -in e -out explicitamente; nao ha pastas de projetos externos predefinidas")
+		log.Fatal("provide -in and -out explicitly")
+	}
+	selected := make(map[string]bool)
+	if *only != "" {
+		for _, name := range strings.Split(*only, ",") {
+			selected[strings.TrimSpace(name)] = false
+		}
 	}
 
 	entries, err := os.ReadDir(*in)
 	if err != nil {
-		log.Fatalf("ler pasta de entrada %s: %v", *in, err)
+		log.Fatalf("read input directory %s: %v", *in, err)
 	}
 	if err := os.MkdirAll(*out, 0o755); err != nil {
-		log.Fatalf("criar pasta de saida %s: %v", *out, err)
+		log.Fatalf("create output directory %s: %v", *out, err)
 	}
 
 	converted, skipped := 0, 0
@@ -244,6 +300,11 @@ func main() {
 			continue
 		}
 		name := e.Name()
+		if len(selected) != 0 {
+			if _, ok := selected[name]; !ok {
+				continue
+			}
+		}
 		if strings.EqualFold(filepath.Ext(name), ".dll") {
 			continue
 		}
@@ -254,12 +315,12 @@ func main() {
 			skipped++
 			continue
 		}
-		if len(b) < mobFileSize {
-			log.Printf("SKIP %s: %d bytes (< %d, nao e STRUCT_MOB)", name, len(b), mobFileSize)
+		def, convertedReport, err := decodeNPC(name, b)
+		if err != nil {
+			log.Printf("SKIP %s: %v", name, err)
 			skipped++
 			continue
 		}
-		def, convertedReport := convert(name, b[:mobFileSize])
 		report.invalidItems += convertedReport.invalidItems
 		report.discardedGold += convertedReport.discardedGold
 		report.discardedExp += convertedReport.discardedExp
@@ -273,18 +334,26 @@ func main() {
 		}
 		dst := filepath.Join(*out, safeFileName(name)+".json")
 		if err := os.WriteFile(dst, append(data, '\n'), 0o644); err != nil {
-			log.Printf("SKIP %s: gravar: %v", name, err)
+			log.Printf("SKIP %s: write: %v", name, err)
 			skipped++
 			continue
 		}
 		converted++
+		if len(selected) != 0 {
+			selected[name] = true
+		}
 	}
-	fmt.Printf("convertidos=%d (monstro=%d npc=%d) pulados=%d -> %s\n",
+	fmt.Printf("converted=%d (monster=%d npc=%d) skipped=%d -> %s\n",
 		converted, names[model.TipoMonstro], names[model.TipoNPC], skipped, *out)
 	if report.invalidItems > 0 {
-		fmt.Printf("indices de item invalidos removidos=%d (limite ItemList=%d)\n",
+		fmt.Printf("removed invalid item indexes=%d (ItemList limit=%d)\n",
 			report.invalidItems, model.ItemListSize)
 	}
-	fmt.Printf("recompensas corrompidas zeradas: gold=%d exp=%d\n",
+	fmt.Printf("cleared corrupt legacy rewards: gold=%d exp=%d\n",
 		report.discardedGold, report.discardedExp)
+	for name, done := range selected {
+		if !done {
+			log.Fatalf("selected record %q was not converted", name)
+		}
+	}
 }

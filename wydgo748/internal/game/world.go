@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"wydgo/internal/data"
 	"wydgo/internal/model"
 	"wydgo/internal/net"
 	"wydgo/internal/store"
@@ -29,6 +30,7 @@ type command struct {
 	oxEvent         *oxEventRequest
 	colosseum       *colosseumRequest
 	premium         *premiumEvent
+	npcDefinitions  *npcDefinitionEvent
 	control         *controlRequest
 	accountPresence *accountPresenceRequest
 	staff           *staffRequest
@@ -52,6 +54,7 @@ type commandBatchQueue struct {
 const commandBatchEnd = int16(-1)
 
 type loginResult struct {
+	transfer    *channelTicket
 	accountName string
 	account     *model.Account
 	err         error
@@ -161,6 +164,7 @@ type Player struct {
 	// PremiumNPC is the premium shop opened by this player and PremiumVersion
 	// the catalog version it showed (premium_shop.go).
 	PremiumNPC     uint16
+	premiumReceipt premiumPurchaseReceipt
 	PremiumVersion uint32
 	// Ephemeral tax/war collector context. Confirmation 0x28F may reuse only
 	// the NPC the player actually opened, for a few seconds.
@@ -308,7 +312,7 @@ type GroundItem struct {
 	X, Y   uint16
 	Expire time.Time
 	// Rotate is the object's map orientation. Ordinary drops use 0; permanent
-	// objects load their rotation from data/init_items.csv.
+	// objects load their rotation from data/world/init_items.csv.
 	Rotate byte
 	// Permanent marks world fixtures (gate, door, cannon, tower). They neither
 	// expire nor permit pickup. The native server keeps them below g_dwInitItem,
@@ -442,6 +446,7 @@ func WithMounts(catalog model.MountCatalog) WorldOption {
 
 // World exclusively owns game state.
 type World struct {
+	cluster            *ChannelCluster
 	bossesPending      atomic.Bool
 	pvpDoorPending     atomic.Bool
 	oxEventPending     atomic.Bool
@@ -608,11 +613,12 @@ type World struct {
 	weatherRNG        RNG
 	// Premium shop state (premium_shop.go): the staff catalog, the background
 	// poll of catalog/credits, and credits whose write is still in flight.
-	premiumCatalog  store.PremiumCatalog
-	premiumNextPoll time.Time
-	premiumPolling  atomic.Bool
-	premiumInFlight map[int64]bool
-	uxmal           *model.VolatileInstance
+	premiumCatalog     store.PremiumCatalog
+	premiumNextPoll    time.Time
+	premiumPolling     atomic.Bool
+	premiumInFlight    map[int64]bool
+	npcDefinitionState *npcDefinitionRuntime
+	uxmal              *model.VolatileInstance
 	// channel is the native ServerIndex+1. Citizenship is per channel; another
 	// channel's citizens receive no bonus here. A single instance uses channel 1.
 	channel byte
@@ -636,7 +642,7 @@ type World struct {
 	// also exists in mobs/mobsByID and participates in normal grid, visibility,
 	// and combat handling. An empty map costs nothing for non-boss paths.
 	bosses map[uint16]*BossRuntime
-	// bossCatalog is loaded from data/boss/*.lua; bossSpawns holds live encounter
+	// bossCatalog is loaded from data/content/boss/*.lua; bossSpawns holds live encounter
 	// state (current instance and respawn deadline).
 	bossCatalog model.BossCatalog
 	bossSpawns  []*bossSpawnState
@@ -713,6 +719,7 @@ func (w *World) allocMobID() uint16 {
 // NewWorld creates the world and materializes static NPCs as live mobs.
 // NPC ClientIds start at 1000; player IDs start at 1.
 func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, catalog model.Catalog, dropRates [model.MaxCarry]int, volatiles model.VolatileCatalog, characterTemplates model.CharacterTemplateFile, terrain model.TerrainMap, options ...WorldOption) (*World, error) {
+	npcs = data.CloneNPCs(npcs)
 	w := &World{
 		players:                make(map[*net.Session]*Player),
 		playersByID:            make(map[uint16]*Player),
@@ -814,6 +821,9 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	if err := w.initShopItemDefaults(); err != nil {
 		return nil, fmt.Errorf("initialize NPC stock: %w", err)
 	}
+	if err := w.loadNPCDefinitionsAtBoot(geners); err != nil {
+		return nil, fmt.Errorf("load PostgreSQL NPC definitions: %w", err)
+	}
 	// Shop mounts start alive (HP, food, lifespan) so they are not sold dead.
 	w.initShopMounts()
 	// A store without guild support (or with no file) yields an empty registry.
@@ -836,6 +846,11 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 			return nil, fmt.Errorf("index character names: %w", err)
 		}
 		w.charNames = names
+	}
+	if w.cluster != nil {
+		if err := w.cluster.attach(w); err != nil {
+			return nil, err
+		}
 	}
 	// A quest targeting a missing NPC or a type with its own handler fails
 	// startup; such a quest could never trigger, so silent misconfiguration is
@@ -877,21 +892,18 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 		// (one spawn at startup); retaining them would spawn monsters before the
 		// ticket and duplicate them when the instance opens. Reserve generators
 		// from authoritative item configuration, not a decorative NPCGener index.
-		if w.generatorReservedForItemInstance(g) {
-			w.reservedGenerators[g.Index] = "item_instance"
+		if owner := w.npcGeneratorReservation(g); owner != "" {
+			w.reservedGenerators[g.Index] = owner
 			continue
 		}
-		if w.colosseum != nil && w.colosseum.config.Enabled && generatorReservedForColosseum(g) {
-			w.reservedGenerators[g.Index] = "colosseum"
-			continue
-		}
-		leader := templates[g.Leader]
+		leaderName, followerName := g.Leader, g.Follower
+		leader := templates[leaderName]
 		if leader == nil {
-			leader = templates[generName(g.Leader)]
+			leader = templates[generName(leaderName)]
 		}
-		follower := templates[g.Follower]
+		follower := templates[followerName]
 		if follower == nil {
-			follower = templates[generName(g.Follower)]
+			follower = templates[generName(followerName)]
 		}
 		if leader == nil || follower == nil {
 			return nil, fmt.Errorf("NPCGener[%d]: missing template (Leader=%q Follower=%q)", g.Index, g.Leader, g.Follower)
@@ -907,7 +919,7 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	w.flushNPCGenerLog(now, true)
 	w.flushGameplayLog(now, true)
 	// Bosses do not adopt NPCGener mobs: they spawn from their own catalog
-	// (data/boss/*.lua), with separate positions and respawn behavior.
+	// (data/content/boss/*.lua), with separate positions and respawn behavior.
 	if err := w.spawnConfiguredBosses(); err != nil {
 		return nil, err
 	}
@@ -1504,6 +1516,9 @@ func (w *World) scatter(x, y, radius uint16) (uint16, uint16) {
 // It blocks only if the buffer fills, applying backpressure to that client.
 func (w *World) Enqueue(s *net.Session, pkt []byte) {
 	w.commands <- command{s: s, pkt: pkt, queuedAt: time.Now()}
+	if w.cluster != nil {
+		w.cluster.notify()
+	}
 }
 
 // worldTickInterval is native TIMER_SEC. Heavy AI work is sharded inside tick()
@@ -1520,6 +1535,9 @@ const (
 
 // Run processes client commands and game ticks sequentially.
 func (w *World) Run() {
+	if w.cluster != nil {
+		panic("cluster worlds must run through ChannelCluster.Run")
+	}
 	ticker := time.NewTicker(worldTickInterval)
 	defer ticker.Stop()
 	w.run(ticker.C, nil)
@@ -1807,6 +1825,9 @@ func commandLabel(cmd command) string {
 	if cmd.premium != nil {
 		return "premium.poll"
 	}
+	if cmd.npcDefinitions != nil {
+		return "npc-definitions.poll"
+	}
 	if cmd.globalDrop != nil {
 		return "control.global-drop"
 	}
@@ -1965,6 +1986,7 @@ func (w *World) tick() {
 	w.tickStaffOps(now)
 	w.tickWeather(now)
 	w.tickPremium(now)
+	w.tickNPCDefinitionChanges(now)
 	if !now.Before(w.nextQuestZoneGuard) {
 		w.tickQuestZoneGuard(now)
 		w.tickHiddenValleyAccess(now)
@@ -2131,6 +2153,10 @@ func (w *World) handle(cmd command) {
 	}
 	if cmd.premium != nil {
 		w.handlePremiumEvent(cmd.premium)
+		return
+	}
+	if cmd.npcDefinitions != nil {
+		w.handleNPCDefinitionEvent(cmd.npcDefinitions)
 		return
 	}
 	if cmd.globalDrop != nil {

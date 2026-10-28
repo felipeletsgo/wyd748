@@ -124,7 +124,7 @@ func (w *World) questZoneQuest(zone *model.QuestZone) *model.QuestDef {
 	if zone == nil || len(w.questsByNPC) == 0 {
 		return nil
 	}
-	return w.questsByNPC[model.NormalizeQuestNPC(zone.Name)]
+	return w.questsByNPC[model.NormalizeQuestNPC(zone.EntryNPC())]
 }
 
 // questZoneViolation explains why a player may not stay in the zone, or

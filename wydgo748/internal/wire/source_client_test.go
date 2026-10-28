@@ -103,6 +103,32 @@ func TestCanonicalMobPacketsUseScore140(t *testing.T) {
 	}
 }
 
+func TestNPCNameUsesSixteenByteFieldWithoutChangingEquipment(t *testing.T) {
+	mesh := make([]uint16, 18)
+	mesh[0], mesh[17] = 0x1234, 0x5678
+	for _, name := range []string{"ActKerdanChief", "Aranha_Dourada", "Berserker_Titan"} {
+		t.Run(name, func(t *testing.T) {
+			packet := CreateMobVisual(1000, name, 2100, 2101, mesh, nil, nil, nil, 2)
+			if len(packet) != 328 || string(packet[18:18+len(name)]) != name {
+				t.Fatalf("NPC label lost bytes: %x", packet[18:34])
+			}
+			for _, b := range packet[18+len(name) : 34] {
+				if b != 0 {
+					t.Fatalf("NPC label is not NUL-terminated: %x", packet[18:34])
+				}
+			}
+			if binary.LittleEndian.Uint16(packet[34:36]) != mesh[0] || binary.LittleEndian.Uint16(packet[68:70]) != mesh[17] {
+				t.Fatal("NPC label changed equipment offsets")
+			}
+		})
+	}
+	playerName := "TwelveLetter"
+	player := CreateMobWithGuildRank(1, playerName, 2100, 2101, mesh, nil, nil, nil, 2, 0, 0, 55, 0)
+	if string(player[18:30]) != playerName || player[30] != CPNameByte(55) {
+		t.Fatal("NPC name policy changed the player name/CP contract")
+	}
+}
+
 func TestCanonicalHpMpUsesOnlyUint32Resources(t *testing.T) {
 	score := &model.Score{Version: model.ScoreVersion, CurHP: 750000, CurMP: 250000, MaxHP: 1000000, MaxMP: 500000}
 	b := SetHpMp(1001, score)

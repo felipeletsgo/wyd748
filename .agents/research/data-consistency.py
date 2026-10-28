@@ -2,8 +2,8 @@
 
 Read-only. Compares, field by field:
   items   tmproject/client748/ItemList.bin (6500 x 140-byte records, XOR 0x5A,
-          then a 4-byte trailer) with wydgo748/data/itemlist.csv
-  skills  tmproject/client748/SkillData.csv with wydgo748/data/SkillData.csv
+          then a 4-byte trailer) with wydgo748/data/catalog/itemlist.csv
+  skills  tmproject/client748/SkillData.csv with wydgo748/data/catalog/SkillData.csv
 
 Effect IDs are translated with `#define EF_*` from the client's
 internal/ui/ItemEffect.h. A difference is a lead: the authoritative side and the
@@ -21,11 +21,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 CLIENT_ITEMS = ROOT / 'tmproject/client748/ItemList.bin'
-SERVER_ITEMS = ROOT / 'wydgo748/data/itemlist.csv'
+SERVER_ITEMS = ROOT / 'wydgo748/data/catalog/itemlist.csv'
 CLIENT_SKILLS = ROOT / 'tmproject/client748/SkillData.csv'
-SERVER_SKILLS = ROOT / 'wydgo748/data/SkillData.csv'
+SERVER_SKILLS = ROOT / 'wydgo748/data/catalog/SkillData.csv'
 EFFECTS = ROOT / 'tmproject/TMProject748/internal/ui/ItemEffect.h'
-SERVER_EFFECTS = ROOT / 'wydgo748/data/ItemEffect.h'
+SERVER_EFFECTS = ROOT / 'wydgo748/data/catalog/ItemEffect.h'
 ITEM_COUNT, RECORD = 6500, 140
 MARKER = '<!-- Decisions below are maintained by hand and kept on regeneration. -->'
 
@@ -154,7 +154,7 @@ def compare_skill_bin():
 
 
 CLIENT_NAMES = ROOT / 'tmproject/client748/Itemname.bin'
-SERVER_NAMES = ROOT / 'wydgo748/data/Itemname.csv'
+SERVER_NAMES = ROOT / 'wydgo748/data/catalog/Itemname.csv'
 
 
 def compare_item_names():

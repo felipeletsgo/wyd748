@@ -196,7 +196,7 @@ literal became the single byte MSVC already kept, which removes C4305/C4309.
 
 Not changed, because the native 7.48 value is unverified (a Ghidra question,
 not an encoding one): the password-mask byte, the IME comparison text and the
-billing label. `wydgo748/data/ItemEffect.h` lost 735 comment characters before
+billing label. `wydgo748/data/catalog/ItemEffect.h` lost 735 comment characters before
 this work (U+FFFD); it differs from the client copy, so the comments cannot be
 restored mechanically.
 

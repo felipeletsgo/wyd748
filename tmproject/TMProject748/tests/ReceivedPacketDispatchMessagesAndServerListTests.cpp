@@ -194,7 +194,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
         check(ParseMigrationServer(ticket, 7, result) == valid, "ticket validates prefix and capacity");
         check(result == (valid ? expected : 99), "invalid ticket preserves the output");
     };
-    parseTicket("*0", true, 0);
+    parseTicket("*0", false, 0);
     parseTicket("*6:ticket", true, 6);
     parseTicket("* +2suffix", true, 2);
     parseTicket("*7", false, 0);
@@ -211,6 +211,16 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
     check(!ParseMigrationServer(fullTicket, 0, parsed), "empty capacity rejected");
     char endpointSource[64]{};
     char endpointDestination[128]{};
+    int gamePort = 0;
+    check(ResolveGameEndpoint("127.0.0.1", endpointDestination, gamePort) && gamePort == 8281,
+        "legacy endpoint keeps the default game port");
+    check(ResolveGameEndpoint("127.0.0.1:8282", endpointDestination, gamePort) && gamePort == 8282 &&
+        std::strcmp(endpointDestination, "127.0.0.1") == 0, "channel endpoint resolves its own port");
+    for (const auto* invalid : {"", ":8282", "127.0.0.1:", "127.0.0.1:0", "127.0.0.1:65536",
+        "127.0.0.1:8282x", "127.0.0.1:9999999999999999", "https://example.invalid", "a b:8282"}) {
+        check(!ResolveGameEndpoint(invalid, endpointDestination, gamePort) && endpointDestination[0] == '\0',
+            "invalid game endpoint cannot retain an old destination");
+    }
     std::memcpy(endpointSource, "127.0.0.1", 10);
     check(CopyServerEndpoint(endpointDestination, endpointSource) &&
         std::strcmp(endpointDestination, "127.0.0.1") == 0,

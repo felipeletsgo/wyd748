@@ -43,7 +43,7 @@ func (w *World) showMob(p *Player, m *Mob) {
 		return
 	}
 	anct := m.Def.Equip.AncientCodes()
-	p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.Name, m.X, m.Y,
+	p.Session.Send(wire.CreateMobVisual(m.ID, m.Def.VisibleName(), m.X, m.Y,
 		m.Def.Mesh(), anct[:], mobPublicExtendedAt(m, w.now()), m.Affects[:], 0))
 	p.show(m.ID)
 }

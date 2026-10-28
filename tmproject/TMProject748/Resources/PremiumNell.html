@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: https://wydmisc.raidhut.com; connect-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Premium Nell</title>
+<style>
+:root{color-scheme:dark;font:14px Helvetica,Arial,sans-serif;background:#000;color:#c4ae78}
+*{box-sizing:border-box}body{margin:0;height:100vh;height:100dvh;display:grid;grid-template-rows:60px 50px 35px minmax(0,1fr) 45px;overflow:hidden;background:#000}
+button,input{font:inherit}button{cursor:pointer}button:disabled{cursor:default;opacity:.45}button:focus-visible,input:focus-visible{outline:2px solid #ecd19a;outline-offset:2px}[hidden]{display:none!important}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+header{position:relative;background:url('nell-art:bar6.png') center/100% 100% no-repeat;display:flex;align-items:center;justify-content:center;padding:0 55px}
+h1{font-size:25px;font-weight:800;margin:0;color:#ecd19a;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#close{position:absolute;top:10px;right:12px;width:36px;height:36px;padding:0;font-size:28px;line-height:28px;color:#ecd19a;background:#180500;border:1px solid #8b6a3e;border-radius:2px}
+.toolbar{display:flex;align-items:center;gap:25px;padding:5px 20px;background:#000}
+.wallet{position:relative;background:url('nell-art:base3.png') center/100% 100% no-repeat;width:150px;height:40px;padding:9px 20px 5px 40px;color:#ddd;text-align:right;font-size:18px;flex-shrink:0}
+.wallet::before{content:'';position:absolute;left:10px;top:7px;width:25px;height:25px;background:url('nell-art:np_icon.png') center/contain no-repeat}.wallet strong{font-weight:400}
+.languages{display:flex;gap:20px}.languages button{background:none;border:0;padding:5px;color:inherit}.languages img{width:18px;height:auto;vertical-align:middle}.languages button[aria-pressed=true]{outline:1px solid #c4ae78}
+.search{position:relative;margin-left:auto;width:160px;max-width:40%;height:35px}input{width:100%;height:100%;background:#0a0605;border:1px solid #322b29;border-radius:25px;color:#ccc;padding:4px 30px 4px 12px;outline:none;font-size:14px}.search::after{content:'';position:absolute;right:20px;top:8px;width:20px;height:19px;background:url('nell-art:search2.png') no-repeat;pointer-events:none}
+#categories{display:flex;align-items:center;justify-content:center;gap:12px;background:#272727}#categories button{border:0;padding:4px 0;background:none;color:#c4ae78;font-size:16px;font-weight:700}#categories button[aria-selected=true]{color:#ecd19a;text-decoration:underline;text-underline-offset:4px}
+main{min-height:0;position:relative;padding:12px 26px 0;overflow:hidden}#items{height:100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(3,minmax(0,1fr));gap:8px 12px}
+.card{min-height:0;position:relative;background:url('nell-art:store_item_base2.png') center/100% 100% no-repeat}.card h2{position:absolute;top:16%;left:10px;right:10px;text-align:center;margin:0;font-size:16px;line-height:22px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seal{position:absolute;width:50px;height:50px;left:7%;bottom:16%;display:grid;place-items:center;font-size:11px;color:#999}.seal img{max-width:50px;max-height:50px;image-rendering:auto}.card>.detail,.card>.additions{display:none}.card footer{position:absolute;bottom:13%;left:0;right:0;height:50px}.price{position:absolute;left:31%;top:14px;font-size:20px;font-weight:700;color:#949494;white-space:nowrap}.price small{display:inline-block;vertical-align:middle;margin-left:15px;width:19px;height:19px;font-size:0;background:url('nell-art:np_icon_small7.png') center/contain no-repeat}
+.buy,.primary{border:0;width:129px;height:50px;line-height:50px;padding:0;background:url('nell-art:button5.png') 0 0 no-repeat;color:#c7c4bc;text-transform:uppercase;font-size:18px;font-weight:700}.buy{position:absolute;right:7%;bottom:0}.buy:hover:enabled,.primary:hover:enabled{background-position:0 -50px}
+#empty{position:absolute;inset:0;display:grid;place-items:center;margin:0;padding:20px;text-align:center}
+body>footer{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:3px 12px}#pages{display:flex;justify-content:center;gap:10px}#pages button{background:none;border:0;padding:0;color:#fff;font-size:12px}#pages button[aria-current=page]{color:#ff0}#status{margin:0;max-width:100%;color:#ecd19a;text-align:center;font-size:11px;line-height:14px}
+dialog{width:430px;max-width:90%;max-height:90%;overflow:auto;padding:25px;color:#ecd19a;background:#090909;border:4px ridge #514b3b;box-shadow:0 24px 80px #0009}dialog::backdrop{background:#000b}dialog h2{font-size:22px;margin-top:0}dialog p{line-height:1.6;overflow-wrap:anywhere}.actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.secondary{padding:8px 16px;background:#272727;border:1px solid #6b5d41;color:#ecd19a}.additions{font-size:12px;line-height:1.6;overflow-wrap:anywhere}.additions p{margin:0}.additions details{color:#aaa;margin-top:8px}.additions summary{cursor:pointer}
+@media(max-width:650px){.toolbar{gap:10px;padding:5px 12px}.languages{gap:3px}main{padding:8px 8px 0}.card h2{font-size:13px;top:10%}.seal{width:35px;height:35px;left:6%;bottom:25%}.seal img{max-width:35px;max-height:35px}.price{left:25%;top:0;font-size:15px}.price small{margin-left:5px;width:14px;height:14px}.buy{right:5%;bottom:-6px;transform:scale(.8);transform-origin:right bottom}.card footer{bottom:10%}.card h2{right:6px;left:6px}}
+@media(max-height:540px){body{grid-template-rows:48px 44px 30px minmax(0,1fr) 42px}h1{font-size:21px}main{overflow:auto}#items{min-height:315px}.card h2{top:10%}}
+</style>
+</head>
+<body>
+<header><h1 id="login">Premium Nell</h1><button id="close" type="button"><span aria-hidden="true">×</span></button></header>
+<div class="toolbar"><div class="wallet"><span id="balanceLabel" class="sr-only"></span><strong id="balance">—</strong></div><div class="languages"><button id="languagePT" type="button" aria-label="Português"><img src="nell-art:pt_br.gif" alt=""></button><button id="languageEN" type="button" aria-label="English"><img src="nell-art:en.gif" alt=""></button></div><p id="intro" class="sr-only"></p><div class="search"><input id="search" type="search" maxlength="80" autocomplete="off"></div></div>
+<nav id="categories" aria-label="Categories"></nav>
+<main><section id="items" aria-label="Items"></section><p id="empty" hidden></p></main>
+<footer><nav id="pages" aria-label="Pages"></nav><p id="status" role="status" aria-live="polite"></p><span id="delivery" class="sr-only"></span></footer>
+<dialog id="confirmation" aria-labelledby="confirmTitle"><h2 id="confirmTitle"></h2><p id="confirmText"></p><div id="confirmDetails"></div><div class="actions"><button id="cancel" class="secondary" type="button"></button><button id="confirm" class="primary" type="button"></button></div></dialog>
+<script>
+'use strict';
+// All data comes from the game connection. This page has no HTTP checkout.
+const translations = {
+ EN: {items:'Items',balance:'Donate balance',intro:'A selection for your next adventure.',search:'Find an item…',buy:'Buy',donate:'Donate',empty:'No items are available.',noMatch:'No matching items.',delivery:'Purchases are delivered to your inventory.',close:'Close',confirmTitle:'Confirm purchase',confirm:'Confirm',cancel:'Cancel',confirmText:'Buy {name} for {price} Donate?',pending:'Processing your purchase. Please wait…',offline:'Open Premium Nell inside the game to shop.',quantity:'Quantity: {count}',refine:'Refinement +{level}',
+ login:'Login: {account}',categories:['Featured','Armia','Erion','Nifleheim'],categoryLabel:'Categories',pageLabel:'Pages',page:'Page {number}',effectData:'Configured item data',effect:'Effect {code}: {value}',
+ results:['Purchase completed. The item is in your inventory.','The shop is unavailable.','Please wait for your previous action to finish.','The merchant is no longer available. Close and open the shop again.','The catalog changed. Close and open the shop again.','You do not have enough Donate.','Your inventory is full.','This item is unavailable.','The purchase could not be completed.','The purchase was not sent. Please try again.']},
+ PT: {items:'Itens',balance:'Saldo de Donate',intro:'Uma seleção para sua próxima aventura.',search:'Buscar um item…',buy:'Comprar',donate:'Donate',empty:'Nenhum item disponível.',noMatch:'Nenhum item encontrado.',delivery:'As compras são entregues no seu inventário.',close:'Fechar',confirmTitle:'Confirmar compra',confirm:'Confirmar',cancel:'Cancelar',confirmText:'Comprar {name} por {price} Donate?',pending:'Processando sua compra. Aguarde…',offline:'Abra o Premium Nell dentro do jogo para comprar.',quantity:'Quantidade: {count}',refine:'Refinação +{level}',
+ login:'Login: {account}',categories:['Destaque','Armia','Erion','Nifleheim'],categoryLabel:'Categorias',pageLabel:'Páginas',page:'Página {number}',effectData:'Dados configurados do item',effect:'Efeito {code}: {value}',
+ results:['Compra concluída. O item está no seu inventário.','A loja está indisponível.','Aguarde a conclusão da sua ação anterior.','O comerciante não está mais disponível. Feche e abra a loja novamente.','O catálogo mudou. Feche e abra a loja novamente.','Você não tem Donate suficiente.','Seu inventário está cheio.','Este item está indisponível.','Não foi possível concluir a compra.','A compra não foi enviada. Tente novamente.']}
+};
+let state={locale:'EN',balance:0,items:[],pending:false,result:-1},selected=null,waiting=false,category=0,page=1,localeOverride=null;
+const $=id=>document.getElementById(id);
+const words=()=>translations[localeOverride||state.locale]||translations.EN;
+const number=n=>Number(n).toLocaleString((localeOverride||state.locale)==='PT'?'pt-BR':'en-US');
+const send=message=>{if(window.chrome?.webview)window.chrome.webview.postMessage(message);};
+const locked=()=>state.pending||waiting||state.result===3||state.result===4||!window.chrome?.webview;
+function itemAdditions(item){
+ const container=document.createElement('div');container.className='additions';
+ for(const text of item.details||[]){const row=document.createElement('p');row.textContent=text;container.append(row);}
+ // Keep the exact configured bytes available for special effects that do not
+ // have a native bonus row. These are data values, not invented stat formulas.
+ const effects=(item.effects||[]).filter(effect=>effect.code!==0||effect.value!==0);
+ if(effects.length){
+  const data=document.createElement('details'),summary=document.createElement('summary');summary.textContent=words().effectData;data.append(summary);
+  for(const effect of effects){const row=document.createElement('p');row.textContent=words().effect.replace('{code}',number(effect.code)).replace('{value}',number(effect.value));data.append(row);}
+  container.append(data);
+ }
+ return container;
+}
+function render(){
+ const t=words();$('login').textContent=state.account?t.login.replace('{account}',state.account):'Premium Nell';$('items').setAttribute('aria-label',t.items);document.documentElement.lang=(localeOverride||state.locale)==='PT'?'pt-BR':'en';
+ for(const key of ['intro','delivery','confirmTitle','confirm','cancel'])$(key).textContent=t[key];
+ $('close').setAttribute('aria-label',t.close);$('close').setAttribute('title',t.close);
+ $('balanceLabel').textContent=t.balance;$('balance').textContent=number(state.balance);$('search').placeholder=t.search;$('search').setAttribute('aria-label',t.search);
+ $('status').textContent=state.pending||waiting?t.pending:(state.result>=0?t.results[state.result]:(!window.chrome?.webview?t.offline:''));
+ $('close').disabled=state.pending||waiting;$('confirm').disabled=locked();
+ $('languagePT').setAttribute('aria-pressed',String((localeOverride||state.locale)==='PT'));$('languageEN').setAttribute('aria-pressed',String((localeOverride||state.locale)!=='PT'));
+ $('categories').setAttribute('aria-label',t.categoryLabel);$('pages').setAttribute('aria-label',t.pageLabel);
+ $('categories').replaceChildren();
+ t.categories.forEach((label,index)=>{const tab=document.createElement('button');tab.type='button';tab.textContent=label;tab.setAttribute('aria-selected',String(category===index));tab.onclick=()=>{category=index;page=1;render();};$('categories').append(tab);});
+ const query=$('search').value.toLocaleLowerCase();
+ const filtered=state.items.filter(item=>(item.category||0)===category&&item.name.toLocaleLowerCase().includes(query));
+ const pages=Math.max(1,Math.ceil(filtered.length/6));page=Math.min(page,pages);
+ const items=filtered.slice((page-1)*6,page*6);
+ $('pages').replaceChildren();
+ for(let index=1;index<=pages;index++){const button=document.createElement('button');button.type='button';button.textContent=String(index);button.setAttribute('aria-label',t.page.replace('{number}',index));if(index===page)button.setAttribute('aria-current','page');button.onclick=()=>{page=index;render();};$('pages').append(button);}
+ $('items').replaceChildren();
+ for(const item of items){
+  const card=document.createElement('article');card.className='card';
+  const seal=document.createElement('div');seal.className='seal';seal.setAttribute('aria-hidden','true');const icon=document.createElement('img');icon.alt='';icon.referrerPolicy='no-referrer';
+  if(Number.isInteger(item.id)&&item.id>0&&item.id<6500)icon.src='https://wydmisc.raidhut.com/icons/global_prod/'+item.id+'.gif';
+  icon.onerror=()=>{seal.textContent='#'+(item.id||0);};seal.append(icon);
+  const name=document.createElement('h2');name.textContent=item.name;
+  const detail=document.createElement('p');detail.className='detail';
+  const details=[t.quantity.replace('{count}',number(item.quantity||1))];
+  if(item.refinement>0)details.push(t.refine.replace('{level}',number(item.refinement)));
+  detail.textContent=details.join(' · ');
+  const footer=document.createElement('footer'),price=document.createElement('div'),unit=document.createElement('small');price.className='price';price.textContent=number(item.price);unit.textContent=t.donate;price.append(unit);
+  const button=document.createElement('button');button.type='button';button.className='buy';button.textContent=t.buy;button.disabled=locked()||item.price>state.balance;
+  button.onclick=()=>{if(locked())return;selected=item;$('confirmText').textContent=t.confirmText.replace('{name}',item.name).replace('{price}',number(item.price));const summary=document.createElement('p');summary.textContent=detail.textContent;$('confirmDetails').replaceChildren(itemAdditions(item),summary);$('confirmation').showModal();};
+  footer.append(price,button);card.append(seal,name,detail,itemAdditions(item),footer);$('items').append(card);
+ }
+ $('empty').hidden=items.length>0;$('empty').textContent=state.items.length?t.noMatch:t.empty;
+}
+$('search').addEventListener('input',()=>{page=1;render();});
+for(const locale of ['PT','EN'])$('language'+locale).onclick=()=>{localeOverride=locale;if($('confirmation').open){$('confirmation').close();selected=null;}render();};
+$('cancel').onclick=()=>{$('confirmation').close();selected=null;};
+$('confirm').onclick=()=>{if(!selected||locked())return;const slot=selected.slot;selected=null;waiting=true;$('confirmation').close();render();send('buy:'+slot);};
+$('close').onclick=()=>{if(!state.pending&&!waiting)send('close');};
+document.addEventListener('keydown',event=>{if(event.key==='Escape'&&!$('confirmation').open&&!state.pending&&!waiting)send('close');});
+if(window.chrome?.webview){
+ window.chrome.webview.addEventListener('message',event=>{
+  const incoming=event.data;
+  if(!incoming||!Array.isArray(incoming.items))return;
+  state=incoming;waiting=false;
+  if($('confirmation').open){$('confirmation').close();selected=null;}
+  render();
+ });
+ send('ready');
+}
+render();
+</script>
+</body>
+</html>

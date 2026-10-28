@@ -54,7 +54,7 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 0,
     "attack": 500,
     "magicAttack": 0,
     "defense": 500,
@@ -69,9 +69,9 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -85,7 +85,181 @@
   ],
   "vende": [
     {
-      "index": 4126
+      "index": 831
+    },
+    {
+      "index": 861
+    },
+    {
+      "index": 801
+    },
+    {
+      "index": 816
+    },
+    {
+      "index": 876
+    },
+    {
+      "index": 891
+    },
+    {
+      "index": 1701
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 832
+    },
+    {
+      "index": 862
+    },
+    {
+      "index": 802
+    },
+    {
+      "index": 817
+    },
+    {
+      "index": 877
+    },
+    {
+      "index": 1702
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 846
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 847
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 892
     }
   ]
 }

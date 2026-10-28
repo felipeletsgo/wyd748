@@ -1,9 +1,12 @@
 package data
 
 import (
+	"encoding/json"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
+	"wydgo/internal/model"
 )
 
 var krMobFaces = []struct {
@@ -34,9 +37,21 @@ func TestKRMobsCloneAgmoKrillAndHaveCatalogFaces(t *testing.T) {
 		t.Fatal("template Agmo_Krill ausente")
 	}
 	base := npcs[baseIndex]
+	raw, err := os.ReadFile("testdata/kr-native.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var approved []model.NPCDef
+	if err := json.Unmarshal(raw, &approved); err != nil {
+		t.Fatal(err)
+	}
+	native := make(map[string]model.NPCDef)
+	for _, def := range approved {
+		native[def.Name] = def
+	}
 
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,15 +62,22 @@ func TestKRMobsCloneAgmoKrillAndHaveCatalogFaces(t *testing.T) {
 			continue
 		}
 		got := npcs[index]
-		if got.Equip.Rosto.Index != want.face {
+		_, imported := native[want.name]
+		if !imported && got.Equip.Rosto.Index != want.face {
 			t.Errorf("%s usa face %d, esperado %d", want.name, got.Equip.Rosto.Index, want.face)
 		}
 		if item, ok := catalog.Items[want.face]; !ok || item.Name != want.name {
 			t.Errorf("face %d de %s ausente/divergente no catalogo: %+v", want.face, want.name, item)
 		}
 
-		// Nome e indice da face sao as duas unicas diferencas permitidas em
-		// relacao ao template solicitado pelo usuario.
+		// Approved native definitions replace provisional preview clones.
+		if expected, ok := native[want.name]; ok {
+			if !reflect.DeepEqual(got, expected) {
+				t.Errorf("%s differs from its approved native definition", want.name)
+			}
+			continue
+		}
+		// Supplemental previews retain the isolated Agmo_Krill baseline.
 		got.Name = base.Name
 		got.Equip.Rosto.Index = base.Equip.Rosto.Index
 		if !reflect.DeepEqual(got, base) {
@@ -65,7 +87,7 @@ func TestKRMobsCloneAgmoKrillAndHaveCatalogFaces(t *testing.T) {
 }
 
 func TestKRMobPreviewGroupsMaterializeOneMob(t *testing.T) {
-	gens, err := LoadNPCGener(filepath.Join("..", "..", "data", "NPCGener.txt"))
+	gens, err := LoadChannelNPCGener(filepath.Join("..", "..", "data", "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,8 +103,12 @@ func TestKRMobPreviewGroupsMaterializeOneMob(t *testing.T) {
 				matches++
 			}
 		}
-		if matches != 1 {
-			t.Errorf("%s possui %d grupos KR de um mob; esperado 1", want.name, matches)
+		expected := 1
+		if want.name == "DeathWorm" {
+			expected = 0 // Owner removed preview 5134 because its coordinates were invalid.
+		}
+		if matches != expected {
+			t.Errorf("%s has %d KR preview groups; expected %d", want.name, matches, expected)
 		}
 	}
 }

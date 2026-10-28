@@ -3,7 +3,7 @@
   "tipo": "npc",
   "equip": {
     "rosto": {
-      "index": 16
+      "index": 51
     },
     "elmo": {
       "index": 139
@@ -55,7 +55,7 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 1,
     "attack": 500,
     "magicAttack": 0,
     "defense": 500,
@@ -86,31 +86,6 @@
   ],
   "vende": [
     {
-      "index": 685,
-      "eff": [
-        61,
-        100,
-        0,
-        0,
-        0,
-        0
-      ]
-    },
-    {
-      "index": 691,
-      "eff": [
-        61,
-        100,
-        0,
-        0,
-        0,
-        0
-      ]
-    },
-    {
-      "index": 410
-    },
-    {
       "index": 411,
       "eff": [
         61,
@@ -122,82 +97,16 @@
       ]
     },
     {
-      "index": 0
+      "index": 3386
     },
     {
-      "index": 0
+      "index": 3387
     },
     {
-      "index": 0
+      "index": 3388
     },
     {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 4020
-    },
-    {
-      "index": 4019
-    },
-    {
-      "index": 4016
+      "index": 3389
     }
   ]
 }

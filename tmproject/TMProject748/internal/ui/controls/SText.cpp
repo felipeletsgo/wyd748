@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "ResourceTextGdi.h"
 // Widget control; split from SControl.h/.cpp. Include "SControl.h" for the whole library.
 #include "SGrid.h"
 #include "SControl.h"
@@ -6,6 +7,8 @@
 #include "SControlContainer.h"
 #include "TMFieldScene.h"
 #include "../../application/BoundedText.h"
+#include "../../platform/windows/SingleLineTextLayout.h"
+#include "../FieldCaptionLayout.h"
 
 SText::SText(int inTextureSetIndex, const char* istrText, unsigned int idwFontColor, float inX, float inY, float inWidth, float inHeight, int ibBorder, unsigned int idwBorderColor, unsigned int dwType, unsigned int dwAlignType)
 	: SControl(inX, inY, inWidth, inHeight)
@@ -242,17 +245,17 @@ void SText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParen
 
 		// This code is from WYD BR version.
 		SIZE size;
-		GetTextExtentPoint32(g_pDevice->m_hDC, m_GCText.strString, strlen(m_GCText.strString), &size);
+		resource_text::Measure(g_pDevice->m_hDC, m_GCText.strString, strlen(m_GCText.strString), &size);
 		m_GCText.nPosX = (float)(ivParentPos.x + m_nPosX) + ((m_nWidth - (float)size.cx) / 2.0f);
 
 		if (m_cComma == 2)
 		{
 			SIZE size2;
-			GetTextExtentPoint32(g_pDevice->m_hDC, m_GCText2.strString, strlen(m_GCText2.strString), &size2);
+			resource_text::Measure(g_pDevice->m_hDC, m_GCText2.strString, strlen(m_GCText2.strString), &size2);
 			SIZE size3;
-			GetTextExtentPoint32(g_pDevice->m_hDC, m_GCText3.strString, strlen(m_GCText3.strString), &size3);
+			resource_text::Measure(g_pDevice->m_hDC, m_GCText3.strString, strlen(m_GCText3.strString), &size3);
 			SIZE size4;
-			GetTextExtentPoint32(g_pDevice->m_hDC, m_GCText4.strString, strlen(m_GCText4.strString), &size4);
+			resource_text::Measure(g_pDevice->m_hDC, m_GCText4.strString, strlen(m_GCText4.strString), &size4);
 
 			auto fullSize = size2.cx + size3.cx + size4.cx;
 			m_GCText.nPosX = (float)(ivParentPos.x + m_nPosX) + ((m_nWidth - (float)fullSize) / 2.0f);
@@ -304,6 +307,61 @@ void SText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParen
 				+ (float)104;
 		}
 	}
+
+	// Native SText does not clip captions to decorative title tabs. Keep the
+	// original font and reserve the actual next value's drawing position.
+	const auto* parent = dynamic_cast<const SControl*>(m_pTop);
+	if (parent && parent->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_PANEL &&
+		field_caption_layout::IsBoundedCaption(parent->m_dwControlID, m_dwControlID) &&
+		m_dwAlignType <= 3 && m_cComma != 2 && m_Font.m_bMultiLine == 0)
+	{
+		const font_layout::Rectangle bounds{m_nPosX, m_nPosY, m_nWidth, m_nHeight};
+		const bool valueLabel = field_caption_layout::IsValueLabel(parent->m_dwControlID, m_dwControlID);
+		const float initialWidth = valueLabel ? parent->m_nWidth - m_nPosX : m_nWidth;
+		float controlWidth = font_layout::WithinPanel(
+			{bounds.x, bounds.y, initialWidth, bounds.height}, parent->m_nWidth, 2.0f * fWidthRatio);
+		for (auto* node = parent->m_pDown; node; node = node->m_pNextLink)
+		{
+			const auto* sibling = dynamic_cast<const SControl*>(node);
+			if (!sibling || sibling == this || !sibling->m_bVisible || sibling->m_cDeleted)
+				continue;
+			if (sibling->m_eCtrlType != CONTROL_TYPE::CTRL_TYPE_TEXT &&
+				sibling->m_eCtrlType != CONTROL_TYPE::CTRL_TYPE_BUTTON &&
+				sibling->m_eCtrlType != CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT)
+				continue;
+			const font_layout::Rectangle neighbor{sibling->m_nPosX, sibling->m_nPosY,
+				sibling->m_nWidth, sibling->m_nHeight};
+			if (!field_caption_layout::SharesRow(bounds, neighbor) || neighbor.x <= bounds.x)
+				continue;
+			float neighborLeft = neighbor.x;
+			if (valueLabel && sibling->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_TEXT)
+			{
+				const auto* text = static_cast<const SText*>(sibling);
+				// Left-aligned native values begin eight pixels inside their
+				// rectangle; the rectangle itself is not a clipping boundary.
+				if (text->m_dwAlignType == TEXT_ALIGN_LEFT)
+					neighborLeft += 8.0f * fWidthRatio;
+			}
+			controlWidth = (std::min)(controlWidth, neighborLeft - bounds.x);
+		}
+		const float leftPadding = (m_dwAlignType == 0 ? 8.0f : 2.0f) * fWidthRatio;
+		const float rightPadding = (valueLabel ? 1.0f : (m_dwAlignType == 2 ? 8.0f : 2.0f)) * fWidthRatio;
+		const auto band = field_caption_layout::DrawingBounds(parent->m_dwControlID,
+			m_dwControlID, bounds, controlWidth, leftPadding, rightPadding, fWidthRatio);
+		const float availableWidth = band.right - band.left;
+		m_Font.SetMaximumWidth((std::max)(1.0f, availableWidth));
+		if (availableWidth <= 1.0f)
+			return;
+		const float textWidth = m_Font.GetSingleLineWidth();
+		if (m_dwAlignType == 1 || band.centered)
+			m_GCText.nPosX = ivParentPos.x + band.left + (availableWidth - textWidth) * 0.5f;
+		else if (m_dwAlignType == 2)
+			m_GCText.nPosX = ivParentPos.x + band.right - textWidth;
+		else
+			m_GCText.nPosX = ivParentPos.x + band.left;
+	}
+	else
+		m_Font.SetMaximumWidth(0.0f);
 
 	m_GCText.nPosY = (float)(ivParentPos.y + m_nPosY)
 		+ (float)((float)((float)(m_nHeight - (float)(16.0f * fHeightRatio)) / 2.0f) + 2.0f);

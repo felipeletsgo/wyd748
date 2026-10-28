@@ -218,7 +218,8 @@ in progress. No publication or restart is authorized by this register.
   per Lich (338–341), twelve individual defense generators (378–389) and another
   24 ten-member groups (6023–6046), totaling 252 defense attackers. Leaders and
   followers retain their historical equipment distinctions. Dedicated template
-  names fit the 12-byte wire name limit. Spawn anchors are preserved with a
+  names retain their conservative 12-byte naming budget within the 16-byte NPC
+  field (15 text bytes plus NUL). Spawn anchors are preserved with a
   bounded four-tile placement range; exact original dispersal is not claimed.
 - Objective AI: version-3 defense attackers remain awake without nearby players,
   ignore the ordinary home leash, and march toward the live same-runtime Dionys

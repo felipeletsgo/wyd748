@@ -52,7 +52,7 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 500,
   "score": {
     "version": 2,
     "level": 0,
@@ -78,6 +78,7 @@
     "attackRun": 1,
     "merchant": 6
   },
+  "gold": 500,
   "direction": 32,
   "skillBar": [
     255,

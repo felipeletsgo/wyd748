@@ -47,14 +47,19 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 		// Do not read the next entry or connect with a truncated address.
 		if (!CopyServerEndpoint(g_pApp->m_szServerIP, address))
 			return 1;
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 0);
-		m_pMessagePanel->SetVisible(1, 0);
+		if (m_pMessagePanel) {
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[7], 0);
+			m_pMessagePanel->SetVisible(1, 0);
+		}
 
 		g_bMoveServer = 0;
 		g_pObjectManager->m_nServerIndex = nServer;
 		CheckPKNonePK(g_pObjectManager->m_nServerIndex);
 
-		if (g_pSocketManager->ConnectServer(g_pApp->m_szServerIP, TM_CONNECTION_PORT, 0, 1124))
+		char gameHost[128]{};
+		int gamePort = TM_CONNECTION_PORT;
+		if (ResolveGameEndpoint(g_pApp->m_szServerIP, gameHost, gamePort) &&
+			g_pSocketManager->ConnectServer(gameHost, gamePort, 0, 1124))
 		{
 
 			MSG_AccountLogin stAccountLogin{};
@@ -74,8 +79,10 @@ int TMFieldScene::OnPacketCNFRemoveServer(MSG_CNFRemoveServer* pStd)
 			return 1;
 		}
 
-		m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);
-		m_pMessagePanel->SetVisible(1, 1);
+		if (m_pMessagePanel) {
+			m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);
+			m_pMessagePanel->SetVisible(1, 1);
+		}
 
 		if (m_eSceneType != ESCENE_TYPE::ESCENE_LOGIN)
 		{

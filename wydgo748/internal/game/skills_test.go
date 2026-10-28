@@ -33,7 +33,7 @@ func skillHasServerRoute(skill model.SkillDef) bool {
 }
 
 func TestAllSkillCatalogEntriesHaveClassifiedRoute(t *testing.T) {
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestEnchantFrostRejectsClaw(t *testing.T) {
 }
 
 func TestHunter79And86Use748CatalogBuffs(t *testing.T) {
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

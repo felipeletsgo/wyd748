@@ -385,7 +385,16 @@ type Char struct {
 	NextExp         uint32 `json:"-"` // derived from the table by level
 	LearnedSkill    uint32 `json:"learnedSkill"`
 	MagicalPillUsed bool   `json:"magicalPillUsed,omitempty"`
-	SkillPointBonus uint32 `json:"skillPointBonus,omitempty"`
+	// Recovered server quest flags 0x10/0x20. Only the ordinary circle checks
+	// its used flag; a full circle may be used again with another item.
+	DivineCircleUsed     bool `json:"divineCircleUsed,omitempty"`
+	FullDivineCircleUsed bool `json:"fullDivineCircleUsed,omitempty"`
+	// Mystic Land corresponds to the recovered server's quest bits 2/4/8.
+	// These survive relogin and are independent of generic quests.json IDs.
+	MysticLandStarted       bool   `json:"mysticLandStarted,omitempty"`
+	MysticLandEligible      bool   `json:"mysticLandEligible,omitempty"`
+	MysticLandRewardClaimed bool   `json:"mysticLandRewardClaimed,omitempty"`
+	SkillPointBonus         uint32 `json:"skillPointBonus,omitempty"`
 	// Advanced progression used by the Ehre/Odin compositions. An empty
 	// Evolution means "mortal"; other values: arch, celestial and subcelestial.
 	Evolution string `json:"evolution,omitempty"`
@@ -1042,36 +1051,62 @@ func (e Equip) AncientCodes() [16]byte {
 const (
 	TipoNPC     = "npc"     // default: stationary, not attackable (merchant, quest, guard)
 	TipoMonstro = "monstro" // hostile: can be attacked, dies, respawns
+	// NPC names occupy 16 wire bytes, including the terminating NUL.
+	MaxNPCDisplayNameBytes = 15
 )
 
 // NPCDef is the static definition of an NPC (loaded from readable JSON).
 type NPCDef struct {
-	CombatRole string `json:"combatRole,omitempty"`
-	Name       string `json:"name"`
-	Tipo       string `json:"tipo,omitempty"` // "monstro" or "npc" (default npc)
-	Equip      Equip  `json:"equip"`          // appearance (16 named slots)
-	ClassInfo  byte   `json:"classInfo,omitempty"`
-	ExpReward  uint32 `json:"expReward"`
+	// ServiceIdentity identifies a shared service implemented by differently named NPCs.
+	// It is configuration metadata and is never serialized into a client packet.
+	ServiceIdentity string `json:"serviceIdentity,omitempty"`
+	// DisplayName overrides the label for distinct variants or names exceeding the wire limit.
+	DisplayName string `json:"displayName,omitempty"`
+	CombatRole  string `json:"combatRole,omitempty"`
+	Name        string `json:"name"`
+	Tipo        string `json:"tipo,omitempty"` // "monstro" or "npc" (default npc)
+	Equip       Equip  `json:"equip"`          // appearance (16 named slots)
+	ClassInfo   byte   `json:"classInfo,omitempty"`
+	ExpReward   uint32 `json:"expReward"`
 	// Score is the NPC's only attribute source. As for characters, the WORD
 	// STRUCT_SCORE is only a projection created at the protocol boundary.
 	Score *Score `json:"score"`
 	// Carry is the monster's DROP inventory (native WYD mechanic): the POSITION
 	// in the array is the slot (0..63) and sets the chance through the drop rate
-	// table (data/droprate.json, ported from WYD 7.48 g_pDropRate[64]). On death
+	// table (data/content/droprate.json, ported from WYD 7.48 g_pDropRate[64]). On death
 	// each occupied slot rolls rand()%rate==0; the drop goes STRAIGHT to the killer's inventory.
 	Carry []Item `json:"carry,omitempty"`
 	// Gold is the native mob "Coin"; on death it rolls the gold drop (MobKilled
 	// formula) straight into the killer's gold.
 	Gold uint32 `json:"gold,omitempty"`
 	// Direction keeps only the high nibble of Status.Merchant. On the wire the
-	// client receives Direction | (Score.Merchant & 0x0F). The full Merchant
+	// client receives Direction | the client merchant nibble. The full Merchant
 	// value stays in Score for server-side logic (19, 43 etc.).
-	Direction    byte    `json:"direction,omitempty"`
-	LearnedSkill uint32  `json:"learnedSkill,omitempty"`
-	SkillBar     [4]byte `json:"skillBar,omitempty"`
+	Direction byte `json:"direction,omitempty"`
+	// ClientMerchant overrides only the projected UI selector when a later
+	// server function uses a different window in the supported 7.48 client.
+	ClientMerchant *byte   `json:"clientMerchant,omitempty"`
+	LearnedSkill   uint32  `json:"learnedSkill,omitempty"`
+	SkillBar       [4]byte `json:"skillBar,omitempty"`
 	// Vende lists the goods of a trading NPC (the mob's Inventory[]; the client
 	// buys by sending the sellSlot). Only merchants use it.
 	Vende []Item `json:"vende,omitempty"`
+}
+
+// VisibleName returns the configured label or the template's own name.
+func (n *NPCDef) VisibleName() string {
+	if n.DisplayName != "" {
+		return n.DisplayName
+	}
+	return n.Name
+}
+
+// InteractionName returns the canonical identity used by service handlers.
+func (n *NPCDef) InteractionName() string {
+	if n.ServiceIdentity != "" {
+		return n.ServiceIdentity
+	}
+	return n.Name
 }
 
 // IsCityGuard is an explicit server-side role, never inferred from a name or face.
@@ -1136,7 +1171,7 @@ type NPCGener struct {
 	Segments       [MaxGenerSegments]GenerSegment
 }
 
-// Teleport is one server-side entry of data/teleports.ini. The portal fires on
+// Teleport is one server-side entry of data/world/teleports.ini. The portal fires on
 // 0x290 when the player stands in the 4x4 square whose origin is SourceX/SourceY.
 type Teleport struct {
 	SourceX, SourceY uint16
@@ -1166,7 +1201,11 @@ func (n *NPCDef) MakeScore(currentHP uint32) *Score {
 	score := *n.Score
 	score.Version = ScoreVersion
 	direction := uint32(n.Direction & 0xF0)
-	score.Merchant = direction | (score.Merchant & 0x0F)
+	merchant := score.Merchant & 0x0F
+	if n.ClientMerchant != nil {
+		merchant = uint32(*n.ClientMerchant & 0x0F)
+	}
+	score.Merchant = direction | merchant
 	score.CurHP = currentHP
 	if score.CurHP > score.MaxHP {
 		score.CurHP = score.MaxHP

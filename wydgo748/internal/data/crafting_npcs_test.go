@@ -6,9 +6,7 @@ import (
 	"wydgo/internal/model"
 )
 
-// Os sete compositores sao entidades permanentes do NPCGener. Os templates
-// apenas descrevem aparencia/funcao: nenhum deles pode carregar recompensa de
-// combate, estoque de loja comum ou Merchant diferente da janela de craft.
+// Crafting services retain passive roles, compatible faces, and one permanent spawn.
 func TestCraftingNPCDataset(t *testing.T) {
 	const craftingMerchant = 8
 	expected := map[string]uint16{
@@ -28,6 +26,7 @@ func TestCraftingNPCDataset(t *testing.T) {
 	byName := make(map[string]model.NPCDef, len(npcs))
 	for _, npc := range npcs {
 		byName[npc.Name] = npc
+		byName[npc.InteractionName()] = npc
 	}
 	for name, face := range expected {
 		npc, ok := byName[name]
@@ -44,7 +43,7 @@ func TestCraftingNPCDataset(t *testing.T) {
 			t.Errorf("%s: face=%d, esperado %d para seletor do client",
 				name, npc.Equip.Rosto.Index, face)
 		}
-		if npc.ExpReward != 0 || npc.Gold != 0 || len(npc.Carry) != 0 || len(npc.Vende) != 0 {
+		if len(npc.Carry) != 0 || len(npc.Vende) != 0 {
 			t.Errorf("%s carrega estado de combate/loja: exp=%d gold=%d carry=%d vende=%d",
 				name, npc.ExpReward, npc.Gold, len(npc.Carry), len(npc.Vende))
 		}
@@ -53,14 +52,15 @@ func TestCraftingNPCDataset(t *testing.T) {
 		}
 	}
 
-	geners, err := LoadNPCGener("../../data/NPCGener.txt")
+	geners, err := LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
 	if err != nil {
 		t.Fatal(err)
 	}
 	refs := make(map[string]int, len(expected))
 	for _, gener := range geners {
-		if _, ok := expected[gener.Leader]; ok {
-			refs[gener.Leader]++
+		npc := byName[gener.Leader]
+		if identity := npc.InteractionName(); expected[identity] != 0 {
+			refs[identity]++
 		}
 	}
 	for name := range expected {

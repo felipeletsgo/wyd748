@@ -1,0 +1,111 @@
+{
+  "name": "Haden",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 290
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 0
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 1937,
+      "eff": [
+        43,
+        14,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 2380,
+      "eff": [
+        120,
+        120,
+        120,
+        0,
+        0,
+        0
+      ]
+    },
+    "capa": {
+      "index": 4015,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "score": {
+    "version": 2,
+    "level": 399,
+    "attack": 18000,
+    "magicAttack": 0,
+    "defense": 16000,
+    "maxHP": 30000,
+    "maxMP": 0,
+    "curHP": 30000,
+    "curMP": 0,
+    "str": 20000,
+    "int": 20000,
+    "dex": 20000,
+    "con": 1000,
+    "critical": 255,
+    "regenHP": 200,
+    "regenMP": 50,
+    "mastery": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "attackRun": 82
+  },
+  "skillBar": [
+    38,
+    255,
+    255,
+    255
+  ]
+}

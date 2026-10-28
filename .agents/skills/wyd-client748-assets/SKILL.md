@@ -5,47 +5,27 @@ description: Audit and adapt 7.48 client assets while preserving identity, paths
 
 # 7.48 client assets
 
-Use this skill for assets, visual resources, UI, audio, or runtime files under
-`tmproject/client748/`.
+Use this skill for visual, audio, UI, runtime, or asset changes under tmproject/client748/.
 
-- Identify the asset, loader, and consumers. For a changed legacy boundary,
-  use `wyd-client748-research`, reusing valid evidence about resource/ID and,
-  for UI, binding, input, ownership, closing, and teardown. Replacing a
-  texture while preserving format and ID does not require retracing the UI.
-- Preserve existing names, formats, and files. Absence from native 7.48 does
-  not authorize removal of a manually created asset; demonstrate runtime,
-  contract, or build incompatibility first.
-- Distinguish assets actually used by the build from historical/reference
-  assets. Record origin, hash when identity matters, and materialized
-  destination in `DOCS/` or `.agents/research/`, never a source-tree dump.
-- `references/client748/` is historical evidence only; do not replace its
-  binaries with adaptation output.
-- When an asset participates in a coordinated extension, document its ID,
-  version/capability, fallback, and expected effect in `wydgo748/`.
-- Use ignored, removable temporary directories for builds, conversion, and
-  inspection. Do not scatter scripts, logs, or generated artifacts.
+## Route
 
-For a visual defect, distinguish item identity, icon/sprite lookup, mesh and
-pose, material/texture, blend/depth state, and effect lifecycle before changing
-scale or brightness. A correct tooltip does not prove a correct icon; an icon
-color mismatch does not establish that the player's kingdom changed. Trace
-glow state restoration and draw order as well as texture presence. Use native
-skill descriptions and each skill's own icon where parity is requested;
-do not replace missing text with generated summaries.
+- Identify the asset, resource ID, loader, format, path, and direct consumers.
+- Reuse valid evidence; do not rerun the catalog for an already located asset flow.
+- Invoke wyd-client748-research only when the change crosses an unproven legacy boundary.
+- Preserve client identity, protocol values, paths, dependencies, and fallback behavior.
+- Keep runtime assets and active source changes under tmproject/.
 
-Check initial materialization and incremental updates for remote players as
-well as the owner when the resource is replicated. Confirm the exact launched
-executable and loaded asset paths when a published fix appears unchanged.
-New costumes also require their mesh/texture/animation dependencies, not just
-an ItemList entry. These are diagnostic branches, not a reason to scan every
-asset family for an unrelated edit.
+## Decisions
 
-Validate format, references, and loading of changed resources, including
-applicable fallback. Follow the `AGENTS.md` matrix: an asset without a
-compilation dependency needs no rebuild; a coordinated contract requires
-tests on both sides. Visual/audio confirmation requires the real client flow;
-a hash or build cannot substitute for it. Do not rescan the entire archive for
-one asset.
+- A replacement with the same ID, format, path, and loader needs only focused validation.
+- A loader, binding, input, ownership, close, teardown, or protocol change needs contract research.
+- A replicated visual state needs owner and observer checks, including removal and scene changes.
+- A new coordinated asset contract needs client and server definitions before packaging.
 
-Use `wyd-release` for payload dependency closure and public artifact checks;
-editing this skill or reviewing a release receipt does not authorize upload.
+## Validation
+
+- Check identity, format, dimensions, encoding, IDs, path casing, loader behavior, and fallback.
+- Run the smallest affected test or client target; record unavailable visual execution as pending.
+- Do not claim gameplay or visual acceptance from file existence or automated checks.
+- Keep generated builds and research output in approved build paths.
+- Use wyd-release only for package, feed, activation, or deployment work.

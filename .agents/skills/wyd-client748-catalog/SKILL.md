@@ -5,59 +5,28 @@ description: Update the native WYD 7.48 census or locate and prioritize research
 
 # 7.48 client catalog
 
-Use this skill when a root is missing or the task changes the census/ranking.
-With a valid seed or evidence record, proceed to `wyd-client748-research`.
-The census prioritizes roots; a `functions.tsv` row does not mean the
-function is understood. Cataloging is not a repeated prerequisite for every
-adaptation.
+Use this skill only when a research root is missing or the census or ranking changes.
+With a valid seed or evidence record, continue with wyd-client748-research.
 
 ## Rules
 
-- Start from the live feature/function in `tmproject/` and propagate to
-  native candidates by seed, string, fingerprint, vtable, and call graph.
-- The native binary at `references/client748/WYD.exe`, the Ghidra project,
-  and studied decompilation are primary references for 7.48 claims.
-- `functions.tsv`, exports, scores, and `EXACT_MATCH` are discovery aids.
-  Callbacks, thunks, vtables, `bodyrefs`, and `rawrelatives` require Ghidra
-  confirmation.
-- Reuse hashes, seeds, triage, and confirmed correlations when inputs have
-  not changed. Do not repeat a global scan on continuation.
-- A coordinated extension may be planned without a native equivalent if
-  declared as such with a separate client/server contract.
+- Treat the native 7.48 client as primary evidence for 7.48 parity.
+- Treat server 7.59 REA as separate server evidence; do not merge it into client proof.
+- Catalog location and symbols do not prove function behavior or runtime execution.
+- Treat functions.tsv, exports, scores, and EXACT_MATCH as discovery aids only.
+- Reuse the saved corpus, hashes, coverage, and prior queue before new indexing.
+- Do not execute native binaries or modify tracked/shared-map evidence during catalog work.
 
 ## Procedure
 
-1. Reuse the one-time `AGENTS.md` entry. Consult the existing seed/census;
-   verify identity only when necessary evidence is missing or has changed.
-2. Run the triage tool only when the corpus/catalog changes or no valid queue
-   exists for the new root:
+1. Confirm that the requested root is absent or that source coverage changed.
+2. Record the exact source, SHA-256, architecture, tool version, and output location.
+3. Run triage_catalog.py only when the corpus changes or no valid queue exists.
+4. Rank a narrow candidate set by reachable flow, symbols, strings, callers, and saved evidence.
+5. Select one smallest root and hand it to research for call graph and observable flow.
+6. Update the existing catalog or evidence record; do not create duplicate reports.
 
-   ```powershell
-   python -B .agents/skills/wyd-client748-catalog/scripts/triage_catalog.py --repo . --format summary
-   ```
-
-3. Choose a small batch tied to an observable entry point; prioritize
-   `bootstrap -> login -> scenes -> dispatcher -> world -> logout/relogin`.
-4. Record root, rationale, candidates, evidence, and next symbol in
-   `.agents/research/`. Once the root is located, hand candidates and gaps
-   to research; full call-graph understanding is not required to end cataloging.
-
-### Reproducible source inventory
-
-When the task requires TMProject748 source coverage, install pinned
-dependencies from `scripts/requirements-source-inventory.txt` in an isolated
-environment and run `python -B scripts/source_inventory.py --repo <root> --write`
-from this skill's directory (or use its repository-relative script path).
-Use `--check --fail-on-parse-errors` at the gate to detect stale inventories
-or remaining parser errors. Generated TSVs record file, project, line, and
-symbol facts only; do not store human compatibility decisions or promote
-research state in them.
-
-## States
-
-Use only `UNMAPPED`, `LOCATED`, `TRACED`, `CONTRACT`, `IMPLEMENTED`,
-or `CLIENT_TESTED`. `LOCATED` means found, not approved for a parity
-claim; `CLIENT_TESTED` requires execution of the built client.
-
-Read `references/catalog-strategy.md` only when changing schema, ranking,
-or coverage criteria.
+Read references/catalog-strategy.md only for schema, ranking, coverage, or source-inventory decisions.
+Use UNMAPPED, LOCATED, TRACED, CONTRACT, IMPLEMENTED, or CLIENT_TESTED.
+LOCATED means found, not understood; CLIENT_TESTED requires built-client execution.
+Run the relevant catalog script or source_inventory.py --check once after the batch, not after every query.

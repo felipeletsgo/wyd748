@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 
@@ -26,7 +25,7 @@ func validateInstanceSpawnShape(where, label string, spawns []model.VolatileInst
 
 var validVolatileActions = map[string]bool{
 	"none": true, "restore": true, "ground_gold": true, "gold": true,
-	"teleport": true, "generic": true, "buff": true, "grant_exp": true,
+	"teleport": true, "recall": true, "generic": true, "buff": true, "grant_exp": true,
 	"grant_next_level": true, "firework": true, "chaos_remission": true,
 	"mastery_reset":    true,
 	"territory_pass":   true,
@@ -79,7 +78,7 @@ func ruleConfiguresInstance(rule model.VolatileRule) bool {
 
 // LoadVolatilesWithInstances separates ordinary volatile rules from instance
 // templates and tickets. Mixing these categories fails at startup.
-func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
+func LoadVolatilesWithInstances(volatilesPath, instancesPath, generatorsDir string,
 	items map[uint16]model.ItemDef, skills map[int]model.SkillDef) (model.VolatileCatalog, error) {
 	file, err := readVolatileDataFile(volatilesPath)
 	if err != nil {
@@ -142,9 +141,9 @@ func LoadVolatilesWithInstances(volatilesPath, instancesPath string,
 		}
 		file.Items[id] = rule
 	}
-	// Instance waves may come from generator files under the data directory
-	// (NPCGener/*.txt), placing each group at its native start point.
-	generators := &instanceGeneratorCache{dir: filepath.Dir(instancesPath),
+	// Instance waves may come from generator files in generatorsDir
+	// (data/spawns/instances), placing each group at its native start point.
+	generators := &instanceGeneratorCache{dir: generatorsDir,
 		files: make(map[string][]model.NPCGener)}
 	for code, rule := range file.Rules {
 		if err := generators.expand(fmt.Sprintf("%s rules[%d]", instancesPath, code), rule.Instance); err != nil {
@@ -282,6 +281,7 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 		}
 		if raw.Uxmal != nil {
 			uxmal := *raw.Uxmal
+			uxmal.RoomGenerators = append([]string(nil), raw.Uxmal.RoomGenerators...)
 			uxmal.Generators = append([]model.NPCGener(nil), raw.Uxmal.Generators...)
 			uxmal.EntryAreas = append([]model.VolatileInstanceEntryArea(nil), raw.Uxmal.EntryAreas...)
 			uxmal.RoomPositions = make([][]model.VolatileDestination, len(raw.Uxmal.RoomPositions))

@@ -54,7 +54,7 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 1,
     "attack": 500,
     "magicAttack": 0,
     "defense": 500,
@@ -69,9 +69,9 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
     "attackRun": 1,
@@ -85,25 +85,19 @@
   ],
   "vende": [
     {
-      "index": 1446
+      "index": 1462
     },
     {
-      "index": 0
+      "index": 1465
     },
     {
-      "index": 1449
+      "index": 1468
     },
     {
-      "index": 0
+      "index": 1471
     },
     {
-      "index": 1452
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1455
+      "index": 1474
     },
     {
       "index": 0
@@ -115,7 +109,7 @@
       "index": 0
     },
     {
-      "index": 0
+      "index": 4018
     },
     {
       "index": 0
@@ -166,7 +160,25 @@
       "index": 0
     },
     {
-      "index": 1458
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1463
+    },
+    {
+      "index": 1466
+    },
+    {
+      "index": 1469
+    },
+    {
+      "index": 1472
+    },
+    {
+      "index": 1475
     }
   ]
 }

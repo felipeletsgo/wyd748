@@ -1,0 +1,88 @@
+{
+  "name": "GodGovernment",
+  "tipo": "npc",
+  "equip": {
+    "rosto": {
+      "index": 271
+    },
+    "elmo": {
+      "index": 272
+    },
+    "armadura": {
+      "index": 273
+    },
+    "calca": {
+      "index": 274
+    },
+    "luva": {
+      "index": 275
+    },
+    "bota": {
+      "index": 276
+    },
+    "arma": {
+      "index": 4146
+    },
+    "escudo": {
+      "index": 4146
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 0,
+  "score": {
+    "version": 2,
+    "level": 1,
+    "attack": 1200,
+    "magicAttack": 0,
+    "defense": 2310,
+    "maxHP": 32000,
+    "maxMP": 0,
+    "curHP": 32000,
+    "curMP": 0,
+    "str": 6,
+    "int": 50,
+    "dex": 90,
+    "con": 900,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2,
+    "merchant": 68
+  },
+  "direction": 112,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

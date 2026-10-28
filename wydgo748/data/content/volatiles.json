@@ -1,0 +1,1552 @@
+{
+  "_comment": "Every item with EF_VOLATILE is discovered automatically from itemlist.csv. Rules under items fully replace the code rule for one specific item (matched by INDEX). Balance numbers (affectValue = %, durationUnits = 8-second blocks, exp) are tunable here without recompiling.",
+  "default": {
+    "action": "generic",
+    "consume": false,
+    "description": "Generic handler: logs the use and does not consume the item until its final function is configured."
+  },
+  "rules": {
+    "0": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "EF_VOLATILE=0 is multiplexed by INDEX; items without direct use belong to the matching NPC/command."
+    },
+    "1": {
+      "action": "restore",
+      "consume": true,
+      "valueSource": "item_effects",
+      "description": "Restores the EF_HP/EF_MP defined in itemlist."
+    },
+    "2": {
+      "action": "ground_gold",
+      "consume": true,
+      "valueSource": "coin_effects",
+      "description": "Ground coin; value = EF_HWORDCOIN * 256 + EF_LWORDCOIN."
+    },
+    "3": {
+      "action": "gate_key",
+      "consume": true,
+      "valueSource": "item_effects",
+      "description": "Door key: matches the ground door by the itemlist EF_KEYID, opens the door and leaves the inventory."
+    },
+    "4": {
+      "action": "refine",
+      "consume": true,
+      "refineMax": 6,
+      "description": "Ori Dust (PO): refines the target item up to +6. Consumed on success AND failure; chance from g_pCelestialRate."
+    },
+    "5": {
+      "action": "refine",
+      "consume": true,
+      "refineMax": 9,
+      "refineTenChance": 5,
+      "description": "Lac Dust (PL): refines equipment up to +9 and +10 to +11 at 5%, preserving its gem variant. The earring equipped in slot 8 refines +9 to +10 and +10 to +11 at 16%, and breaks on failure (W2PP). Other +9 equipment requires Aylin."
+    },
+    "6": {
+      "action": "magical_pill",
+      "consume": true,
+      "description": "Magical Pill: +9 permanent skill points, once per character."
+    },
+    "7": {
+      "action": "grant_next_level",
+      "consume": true,
+      "mortalOnly": true,
+      "description": "Fairy Dust: raises exactly one level, as in _MSG_UseItem.cpp."
+    },
+    "8": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": false,
+      "minLevel": 0,
+      "maxLevelExclusive": 399,
+      "exp": 5000,
+      "gold": 50000000,
+      "description": "Project-customized Eye Wax: keep these values; intentional native divergence."
+    },
+    "9": {
+      "action": "ore_upgrade",
+      "consume": true,
+      "variant": 3,
+      "successPercent": 50,
+      "description": "Adamantite (578): turns D-set equipment (uniques 8/17/27/37) of grade 1..3 into the Legendary result given by Extra; E sets are rejected. Consumed on success and failure."
+    },
+    "10": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 225,
+      "description": "Kappa Potion: +10% physical/magic damage for ~30min. Tune affectValue/durationUnits as desired."
+    },
+    "11": {
+      "action": "recall",
+      "consume": true,
+      "description": "Return to the bound city, with the owning guild's territory taking priority."
+    },
+    "12": {
+      "action": "save_position",
+      "consume": true,
+      "description": "Star Gem: stores the current coordinate for Warp."
+    },
+    "13": {
+      "action": "warp_saved",
+      "consume": true,
+      "description": "Warp: teleports to the coordinate stored by the Star Gem."
+    },
+    "15": {
+      "action": "mount",
+      "mountAction": "feed",
+      "consume": true,
+      "description": "Feed (2420+/3367+): +5000 HP (cap 30000) and +2 food (cap 100) on the equipped mount. Matched by type family (faithful to WYD 7.48 Vol 15)."
+    },
+    "16": {
+      "action": "mount",
+      "mountAction": "essence",
+      "consume": true,
+      "description": "Core/Essence (2390+): +1 level; an adult rolls a success chance (g_pSancRate[2]) and a failure may lower the level; evolves the stage when crossing the limit (faithful to Vol 16)."
+    },
+    "18": {
+      "action": "gold",
+      "consume": true,
+      "valueSource": "price",
+      "description": "Money Envelope: converts to the server-side itemlist Price."
+    },
+    "19": {
+      "action": "firework",
+      "consume": true,
+      "description": "Fireworks: Motion=100 emote with a random variant 0..5."
+    },
+    "20": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "N/M/A letters use staged instances configured by INDEX."
+    },
+    "32": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 25,
+      "description": "Sephira Book: Conjure Cannon (skill 97)."
+    },
+    "33": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 26,
+      "description": "Sephira Book: Thorn Wall (skill 98)."
+    },
+    "34": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 27,
+      "description": "Sephira Book: Resurrect (skill 99)."
+    },
+    "35": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 28,
+      "description": "Sephira Book: Cancellation (skill 100)."
+    },
+    "36": {
+      "action": "learn_special_skill",
+      "consume": true,
+      "learnedBit": 29,
+      "description": "Sephira Book: Spectral Force (skill 101)."
+    },
+    "41": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "soldier",
+        "name": "Knight Troop",
+        "face": 207,
+        "weapon": 946,
+        "attack": 78,
+        "defense": 140,
+        "hp": 600,
+        "moveSpeed": 4,
+        "attackRange": 3
+      },
+      "description": "Knight troop contract; temporary free use."
+    },
+    "42": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "soldier",
+        "name": "Archer Troop",
+        "face": 209,
+        "weapon": 950,
+        "attack": 63,
+        "defense": 130,
+        "hp": 500,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Archer troop contract; temporary free use."
+    },
+    "43": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "soldier",
+        "name": "Mage Troop",
+        "face": 232,
+        "weapon": 731,
+        "shield": 1915,
+        "attack": 350,
+        "defense": 600,
+        "hp": 15000,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Mage troop contract; temporary free use."
+    },
+    "46": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Knight Guard",
+        "face": 207,
+        "weapon": 946,
+        "attack": 78,
+        "defense": 140,
+        "hp": 600,
+        "moveSpeed": 4,
+        "attackRange": 3
+      },
+      "description": "Knight guard letter; separate identity for a future kingdom."
+    },
+    "47": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Archer Guard",
+        "face": 209,
+        "weapon": 950,
+        "attack": 63,
+        "defense": 130,
+        "hp": 500,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Archer guard letter; separate identity for a future kingdom."
+    },
+    "48": {
+      "action": "summon_contract",
+      "consume": true,
+      "summon": {
+        "group": "guard",
+        "name": "Mage Guard",
+        "face": 232,
+        "weapon": 731,
+        "shield": 1915,
+        "attack": 350,
+        "defense": 600,
+        "hp": 15000,
+        "moveSpeed": 4,
+        "attackRange": 8
+      },
+      "description": "Mage guard letter; separate identity for a future kingdom."
+    },
+    "52": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 15,
+      "durationUnits": 225,
+      "description": "Competent Potion: +15% damage for ~30min."
+    },
+    "53": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 25,
+      "durationUnits": 225,
+      "description": "Mental Potion: +25% damage for ~30min."
+    },
+    "55": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Kappa (P): +10% damage for ~1h."
+    },
+    "56": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 15,
+      "durationUnits": 450,
+      "description": "Competent (P): +15% damage for ~1h."
+    },
+    "57": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 25,
+      "durationUnits": 450,
+      "description": "Mental (P): +25% damage for ~1h."
+    },
+    "58": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Bigger Potion: +10% maximum HP; default duration 1h."
+    },
+    "60": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Food (Bread): Courage affect 30, +4h per use up to 24h; +1000 on a physical hit and +2000 on a magic hit, PvE only."
+    },
+    "61": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Food (Sausage): Courage affect 30, +4h per use up to 24h; fixed bonus on PvE hits only."
+    },
+    "62": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Food (Meat): Courage affect 30, +4h per use up to 24h; fixed bonus on PvE hits only."
+    },
+    "63": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 1800,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Food (Roast Chicken): Courage affect 30, +4h per use up to 24h; +1000 physical/+2000 magic per PvE hit."
+    },
+    "64": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 75600,
+      "description": "Pancake 7 days: Courage affect 30 for 7d; fixed bonus on PvE hits only."
+    },
+    "65": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 162000,
+      "description": "Pancake 15 days: Courage affect 30 for 15d; fixed bonus on PvE hits only."
+    },
+    "66": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "durationUnits": 324000,
+      "description": "Pancake 30 days: Courage affect 30 for 30d; fixed bonus on PvE hits only."
+    },
+    "67": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "FREE code accepted by the client on right-click (next to foods 60-66). Carrier of the Sefirah/Chocolate/Candy/Courage buffs, whose itemlist EF_VOLATILE changed from 202/204/205/230 to 67 (the 7.48 client does not use 202+). Real parameters per item in items[]."
+    },
+    "70": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 202,
+      "durationUnits": 75,
+      "description": "Turns into a Gremlin (face 202) for 10 minutes. Adjust faceMesh/duration if the visual does not match."
+    },
+    "71": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 209,
+      "durationUnits": 75,
+      "description": "Turns into an Archer Orc (face 209) for 10 minutes."
+    },
+    "72": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 212,
+      "durationUnits": 75,
+      "description": "Turns into a Troll (face 212) for 10 minutes."
+    },
+    "73": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 230,
+      "durationUnits": 75,
+      "description": "Turns into a Carbunkle (face 230) for 10 minutes."
+    },
+    "74": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 229,
+      "durationUnits": 75,
+      "description": "Turns into a Ghoul Chief (face 229) for 10 minutes."
+    },
+    "75": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 216,
+      "durationUnits": 75,
+      "description": "Turns into a Wild Boar (face 216) for 10 minutes."
+    },
+    "76": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 299,
+      "durationUnits": 75,
+      "description": "Turns into a Wolf (face 299) for 10 minutes."
+    },
+    "77": {
+      "action": "face_transform",
+      "consume": true,
+      "faceMesh": 297,
+      "durationUnits": 75,
+      "description": "Turns into a Fire Golem (face 297) for 10 minutes."
+    },
+    "89": {
+      "action": "face_restore",
+      "consume": true,
+      "description": "Restores the player's real face."
+    },
+    "90": {
+      "action": "mount",
+      "mountAction": "longevity_restore",
+      "consume": true,
+      "amount": 1,
+      "description": "Mount Recovery Potion 3315: restores exactly 1 LP/longevity of the equipped adult mount, up to the cap of 60 (7.48 client itemhelp)."
+    },
+    "91": {
+      "action": "mount",
+      "mountAction": "level_set",
+      "consume": true,
+      "amount": 100,
+      "description": "Item 3316: catalyst that raises an equipped adult mount below level 100 straight to level 100."
+    },
+    "92": {
+      "action": "mount",
+      "mountAction": "level_set",
+      "consume": true,
+      "mountMinLevel": 100,
+      "amount": 120,
+      "description": "Item 3317: catalyst that raises an equipped adult mount of level 100-119 straight to level 120."
+    },
+    "93": {
+      "action": "mount",
+      "mountAction": "longevity",
+      "consume": true,
+      "description": "Length Of Life Recovery (3351+): longevity +1~3 (cap 60). Refused at the maximum or with a dead mount (faithful to Vol 93)."
+    },
+    "94": {
+      "action": "mount",
+      "mountAction": "growth",
+      "consume": true,
+      "description": "Growth Potion (3344+): evolves the mount stage immediately (sIndex+=30), by category (faithful to Vol 94)."
+    },
+    "173": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Nightmare Normal uses the instance configured by INDEX (party/personal)."
+    },
+    "174": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Nightmare Mystic uses the instance configured by INDEX (party/personal)."
+    },
+    "175": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Nightmare Arcane uses the instance configured by INDEX (party/personal)."
+    },
+    "176": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Hell Gate uses the full instance configured by INDEX (party/personal)."
+    },
+    "177": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Hidden Ruins uses timed access configured by INDEX."
+    },
+    "178": {
+      "action": "grant_counter_once",
+      "consume": true,
+      "counters": {
+        "event_pass": 1
+      },
+      "rewardItems": [
+        4104
+      ],
+      "description": "Event pass: permanent unlock and delivery of identifier 4104, only once."
+    },
+    "179": {
+      "action": "refine_equipped",
+      "consume": true,
+      "targetSlot": 13,
+      "targetItems": [
+        769,
+        1726
+      ],
+      "refineMax": 6,
+      "description": "Fairy Bless Water: refines the Naiads/Grewpain equipped in slot 13, guaranteed, up to +6."
+    },
+    "180": {
+      "action": "equipment_gem",
+      "consume": true,
+      "variant": 0,
+      "description": "Diamond Gem: applies the Diamond variant to +10..+15 equipment (earrings included) or an Ancient weapon."
+    },
+    "181": {
+      "action": "equipment_gem",
+      "consume": true,
+      "variant": 1,
+      "description": "Emerald Gem: applies the Emerald variant to +10..+15 equipment (earrings included) or an Ancient weapon."
+    },
+    "182": {
+      "action": "equipment_gem",
+      "consume": true,
+      "variant": 2,
+      "description": "Coral Gem: applies the Coral variant to +10..+15 equipment (earrings included) or an Ancient weapon."
+    },
+    "183": {
+      "action": "equipment_gem",
+      "consume": true,
+      "variant": 3,
+      "description": "Garnet Gem: applies the Garnet variant to +10..+15 equipment (earrings included) or an Ancient weapon."
+    },
+    "184": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Wyden/Honor coins use server-side balances configured by INDEX."
+    },
+    "185": {
+      "action": "gold",
+      "consume": true,
+      "valueSource": "price",
+      "description": "Converts Silver Wyden into gold using the server-side itemlist Price."
+    },
+    "186": {
+      "action": "tint",
+      "consume": true,
+      "color": 116,
+      "description": "Dye (Enamel): paints only armor set pieces (helmet, chest, pants, gloves, boots), equipped or in inventory. Blue fallback; real color per item in items[]. Remover_Enamel uses untint."
+    },
+    "187": {
+      "action": "arch_crystal",
+      "consume": true,
+      "description": "Kefra elemental crystals (4106 Elime, 4107 Sylphid, 4108 Salion, 4109 Nohas). Made as Arch, IN ORDER; each costs 100 million EXP and the level is recalculated from the reduced EXP. Each crystal grants 100 points to the future Celestial; the creation itself does not require them."
+    },
+    "189": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Game Room medals use separate counters configured by INDEX."
+    },
+    "190": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Native Repliction: replaces the armor's two additional options with a pair drawn from data/content/repliction.json and keeps refinement/dye."
+    },
+    "192": {
+      "action": "mastery_reset",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 69,
+      "maxLevelExclusive": 74,
+      "amount": 50,
+      "description": "Opportunity Compound: once, returns up to 50 mastery from branches 1/2 and resets Mortal skills."
+    },
+    "193": {
+      "action": "mastery_reset",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 119,
+      "maxLevelExclusive": 124,
+      "amount": 100,
+      "description": "Balance Compound: once, returns up to 100 mastery from branches 1/2 and resets Mortal skills."
+    },
+    "194": {
+      "action": "refine_set",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 200,
+      "maxLevelExclusive": 205,
+      "onceQuestId": -194,
+      "refineMax": 6,
+      "description": "Gargoyle Molar: single-use quest for internal Mortal 200..204 (displayed levels 201..205); FIXED refinement up to +6 on the equipped armor pieces (slots 1-5), without a roll."
+    },
+    "195": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 2370,
+          "y": 2106
+        },
+        {
+          "x": 2508,
+          "y": 2101
+        },
+        {
+          "x": 2526,
+          "y": 2109
+        },
+        {
+          "x": 2529,
+          "y": 1882
+        },
+        {
+          "x": 2126,
+          "y": 1600
+        },
+        {
+          "x": 2005,
+          "y": 1617
+        },
+        {
+          "x": 2241,
+          "y": 1474
+        },
+        {
+          "x": 1858,
+          "y": 1721
+        },
+        {
+          "x": 2250,
+          "y": 1316
+        },
+        {
+          "x": 1989,
+          "y": 1755
+        }
+      ],
+      "description": "Hunting Scroll; destinations specific to each item."
+    },
+    "196": {
+      "action": "mount",
+      "mountAction": "hatch",
+      "consume": true,
+      "description": "Hatch accelerator: used on the equipped egg, turns it into a foal immediately."
+    },
+    "197": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Service Ticket uses timed access configured by INDEX."
+    },
+    "198": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 39,
+      "durationUnits": 900,
+      "accumulate": true,
+      "maxDurationUnits": 10800,
+      "description": "Experience Chest: buff that DOUBLES received EXP, +2h per use stacking up to 24h (affect 39)."
+    },
+    "199": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "fame": 10
+      },
+      "description": "Warrior's_Seal (4146): +10 fame. Port of _MSG_UseItem.cpp:7147, where extra.Fame += 10. Fame is spent at Lindy (1, unlocks Arch level 370) and Odin (200, Celestial level 40)."
+    },
+    "203": {
+      "action": "chaos_remission",
+      "consume": true,
+      "description": "Remission Letter: restores the signed CP to the maximum +75 (native byte 150)."
+    },
+    "206": {
+      "action": "celestial_capsule",
+      "consume": true,
+      "description": "An empty Spirit's Seal encapsulates the Celestial record; extraction uses the native 0x3CC packet."
+    },
+    "207": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "WYD TOTO is validated at the matching NPC/event, not by a direct click."
+    },
+    "208": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Contract Seal is a material for the contract NPC and has no direct use."
+    },
+    "211": {
+      "action": "celestial_ideal",
+      "consume": true,
+      "description": "Ideal Stone: creates the Celestial from the Arch, or the SubCelestial form from Celestial 121+."
+    },
+    "212": {
+      "action": "nightmare_ticket",
+      "consume": true,
+      "amount": 13,
+      "cooldownSeconds": 43200,
+      "description": "Nightmare Letter: +13 entries, persistent 12-hour cooldown."
+    },
+    "213": {
+      "action": "celestial_fury",
+      "consume": true,
+      "description": "Fury Stone: unlocks Celestial 90 or tries to compose the Arcane Cythera at level 200."
+    },
+    "214": {
+      "action": "celestial_switch",
+      "consume": true,
+      "description": "Mysterious Stone: switches Celestial/SubCelestial inside a city."
+    }
+  },
+  "items": {
+    "3022": {
+      "action": "refine",
+      "consume": true,
+      "refineMax": 9,
+      "refineTenChance": 100,
+      "refineChance": 100,
+      "description": "Lactolerium 100%: Lac Dust that never fails. Every step Lac allows succeeds: up to +9, +10 to +11, and the equipped earring +9 to +10 and +10 to +11, which therefore never breaks. Consumed on use."
+    },
+    "417": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Adelas is processed by the matching NPC/crafting."
+    },
+    "646": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "affectValue": 1,
+      "affectLevel": 500,
+      "durationUnits": 100,
+      "description": "Secret Medicine of Courage: PvE hit bonus (+1000 physical/+2000 magic), 800 seconds."
+    },
+    "647": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "affectValue": 1,
+      "affectLevel": 2000,
+      "durationUnits": 450,
+      "description": "Wonder Drug of Courage: PvE hit bonus (+1000 physical/+2000 magic), one hour."
+    },
+    "1739": {
+      "action": "buff",
+      "consume": true,
+      "affects": [
+        {
+          "skillId": 43,
+          "level": 320,
+          "durationUnits": 320
+        },
+        {
+          "skillId": 44,
+          "level": 320,
+          "durationUnits": 320
+        },
+        {
+          "skillId": 45,
+          "level": 320,
+          "durationUnits": 320
+        },
+        {
+          "skillId": 41,
+          "level": 320,
+          "durationUnits": 320
+        }
+      ],
+      "description": "Love Chocolate: simultaneous native package of affects 43, 44, 45 and 41."
+    },
+    "3170": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Elixir_Notice: Colosseum A spends one on entry (7.59 TMSRV sub_565F50); it has no direct use."
+    },
+    "3313": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 450,
+      "description": "Bigger Potion: +10% HP for 1 hour."
+    },
+    "3330": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Shout is consumed by the /spk command, not by a double click."
+    },
+    "3336": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Return of Ability is consumed by the Skill Master in the full reset."
+    },
+    "3337": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Internal ingredient without direct use."
+    },
+    "3338": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Internal ingredient without direct use."
+    },
+    "3339": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Internal ingredient without direct use."
+    },
+    "3361": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 75600,
+      "description": "Sefirah 7 days (damage buff)."
+    },
+    "3362": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 162000,
+      "description": "Sefirah 15 days."
+    },
+    "3363": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 4,
+      "affectValue": 10,
+      "durationUnits": 324000,
+      "description": "Sefirah 30 days."
+    },
+    "3364": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 75600,
+      "description": "Health Potion: +10% HP for 7 days."
+    },
+    "3365": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 162000,
+      "description": "Health Potion: +10% HP for 15 days."
+    },
+    "3366": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 35,
+      "affectValue": 10,
+      "durationUnits": 324000,
+      "description": "Health Potion: +10% HP for 30 days."
+    },
+    "3378": {
+      "action": "buff",
+      "consume": true,
+      "affectType": 30,
+      "affectValue": 1,
+      "affectLevel": 2000,
+      "durationUnits": 324000,
+      "description": "Wonder Drug of Courage 30 days: same PvE hit bonus as affect 30."
+    },
+    "3393": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "donate": 200
+      },
+      "description": "Coin_Wyden(200b/c): credits 200 donate to the account balance (premium shop)."
+    },
+    "3394": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "donate": 1000
+      },
+      "description": "Gold_Wyden(1000b/c): credits 1000 donate to the account balance (premium shop)."
+    },
+    "3395": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "donate": 3000
+      },
+      "description": "Gold_Wyden(3000b/c): credits 3000 donate to the account balance (premium shop)."
+    },
+    "3396": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "donate": 5000
+      },
+      "description": "Gold_Wyden(5000b/c): credits 5000 donate to the account balance (premium shop)."
+    },
+    "3407": {
+      "action": "tint",
+      "consume": true,
+      "color": 116,
+      "description": "Blue Enamel (mesh 2782.0 -> color 116)."
+    },
+    "3408": {
+      "action": "tint",
+      "consume": true,
+      "color": 117,
+      "description": "Red Enamel (2782.1 -> 117)."
+    },
+    "3409": {
+      "action": "tint",
+      "consume": true,
+      "color": 118,
+      "description": "Green Enamel (2782.2 -> 118)."
+    },
+    "3410": {
+      "action": "tint",
+      "consume": true,
+      "color": 119,
+      "description": "Silver Enamel (2782.3 -> 119)."
+    },
+    "3411": {
+      "action": "tint",
+      "consume": true,
+      "color": 120,
+      "description": "Black Enamel (2782.4 -> 120)."
+    },
+    "3412": {
+      "action": "tint",
+      "consume": true,
+      "color": 121,
+      "description": "Purple Enamel (2782.5 -> 121)."
+    },
+    "3413": {
+      "action": "tint",
+      "consume": true,
+      "color": 122,
+      "description": "Brown Enamel (2782.6 -> 122)."
+    },
+    "3414": {
+      "action": "tint",
+      "consume": true,
+      "color": 123,
+      "description": "Violet Enamel (2782.7 -> 123)."
+    },
+    "3415": {
+      "action": "tint",
+      "consume": true,
+      "color": 124,
+      "description": "Yellowish Enamel (2782.8 -> 124)."
+    },
+    "3416": {
+      "action": "tint",
+      "consume": true,
+      "color": 125,
+      "description": "Indigo Enamel (2782.9 -> 125)."
+    },
+    "3417": {
+      "action": "untint",
+      "consume": true,
+      "description": "Remover Enamel: removes the color (sanc returns to 43)."
+    },
+    "3432": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 2370,
+          "y": 2106
+        },
+        {
+          "x": 2508,
+          "y": 2101
+        },
+        {
+          "x": 2526,
+          "y": 2109
+        },
+        {
+          "x": 2529,
+          "y": 1882
+        },
+        {
+          "x": 2126,
+          "y": 1600
+        },
+        {
+          "x": 2005,
+          "y": 1617
+        },
+        {
+          "x": 2241,
+          "y": 1474
+        },
+        {
+          "x": 1858,
+          "y": 1721
+        },
+        {
+          "x": 2250,
+          "y": 1316
+        },
+        {
+          "x": 1989,
+          "y": 1755
+        }
+      ],
+      "description": "Hunting Scroll Armia."
+    },
+    "3433": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 290,
+          "y": 3799
+        },
+        {
+          "x": 724,
+          "y": 3781
+        },
+        {
+          "x": 481,
+          "y": 4062
+        },
+        {
+          "x": 876,
+          "y": 4058
+        },
+        {
+          "x": 855,
+          "y": 3922
+        },
+        {
+          "x": 808,
+          "y": 3876
+        },
+        {
+          "x": 959,
+          "y": 3813
+        },
+        {
+          "x": 926,
+          "y": 3750
+        },
+        {
+          "x": 1096,
+          "y": 3730
+        },
+        {
+          "x": 1132,
+          "y": 3800
+        }
+      ],
+      "description": "Hunting Scroll Dark/Dungeon."
+    },
+    "3434": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 1242,
+          "y": 4035
+        },
+        {
+          "x": 1264,
+          "y": 4017
+        },
+        {
+          "x": 1333,
+          "y": 3994
+        },
+        {
+          "x": 1358,
+          "y": 4041
+        },
+        {
+          "x": 1462,
+          "y": 4033
+        },
+        {
+          "x": 1326,
+          "y": 3788
+        },
+        {
+          "x": 1493,
+          "y": 3777
+        },
+        {
+          "x": 1437,
+          "y": 3741
+        },
+        {
+          "x": 1389,
+          "y": 3740
+        },
+        {
+          "x": 1422,
+          "y": 3810
+        }
+      ],
+      "description": "Hunting Scroll Underworld."
+    },
+    "3435": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 1376,
+          "y": 1722
+        },
+        {
+          "x": 1426,
+          "y": 1686
+        },
+        {
+          "x": 1381,
+          "y": 1861
+        },
+        {
+          "x": 1326,
+          "y": 1896
+        },
+        {
+          "x": 1510,
+          "y": 1723
+        },
+        {
+          "x": 1543,
+          "y": 1726
+        },
+        {
+          "x": 1580,
+          "y": 1758
+        },
+        {
+          "x": 1182,
+          "y": 1714
+        },
+        {
+          "x": 1634,
+          "y": 1727
+        },
+        {
+          "x": 1237,
+          "y": 1764
+        }
+      ],
+      "description": "Hunting Scroll Kalt."
+    },
+    "3436": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 2367,
+          "y": 4024
+        },
+        {
+          "x": 2236,
+          "y": 4044
+        },
+        {
+          "x": 2236,
+          "y": 3993
+        },
+        {
+          "x": 2209,
+          "y": 3989
+        },
+        {
+          "x": 2453,
+          "y": 4067
+        },
+        {
+          "x": 2485,
+          "y": 4043
+        },
+        {
+          "x": 2537,
+          "y": 3897
+        },
+        {
+          "x": 2489,
+          "y": 3919
+        },
+        {
+          "x": 2269,
+          "y": 3910
+        },
+        {
+          "x": 2202,
+          "y": 3866
+        }
+      ],
+      "description": "Hunting Scroll Kephra."
+    },
+    "3437": {
+      "action": "hunting_teleport",
+      "consume": true,
+      "destinations": [
+        {
+          "x": 3664,
+          "y": 3024
+        },
+        {
+          "x": 3582,
+          "y": 3007
+        },
+        {
+          "x": 3514,
+          "y": 3008
+        },
+        {
+          "x": 3819,
+          "y": 2977
+        },
+        {
+          "x": 3517,
+          "y": 2889
+        },
+        {
+          "x": 3745,
+          "y": 2977
+        },
+        {
+          "x": 3639,
+          "y": 2877
+        },
+        {
+          "x": 3650,
+          "y": 2727
+        },
+        {
+          "x": 3660,
+          "y": 2773
+        },
+        {
+          "x": 3746,
+          "y": 2879
+        }
+      ],
+      "description": "Hunting Scroll Niflheim."
+    },
+    "3439": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "service",
+      "durationSeconds": 86400,
+      "description": "Service Ticket for 24 hours."
+    },
+    "3440": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "service",
+      "durationSeconds": 604800,
+      "description": "Service Ticket for 7 days."
+    },
+    "3441": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "donate": 10000
+      },
+      "description": "Gold_Wyden(10000b/c): credits 10000 donate to the account balance (premium shop)."
+    },
+    "3442": {
+      "action": "firework",
+      "consume": true,
+      "customPattern": true,
+      "description": "Premium Firecracker: 10x10 drawing sent by the 7.48 client and published to visible players."
+    },
+    "3453": {
+      "action": "mount_revive",
+      "consume": true,
+      "description": "Revives the equipped injured mount, charging its price and reducing longevity by 0..2."
+    },
+    "3454": {
+      "action": "mount_revive",
+      "consume": true,
+      "description": "Premium Revival Horse: same native mount recovery rule."
+    },
+    "3455": {
+      "action": "no_direct_use",
+      "consume": false,
+      "description": "Extraction of Magical Power is not directly consumable in WYD 7.48; it remains a material of the native extraction flow."
+    },
+    "3909": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "hidden_ruins",
+      "durationSeconds": 86400,
+      "description": "Hidden Ruins for 24 hours."
+    },
+    "3910": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "hidden_ruins",
+      "durationSeconds": 604800,
+      "description": "Hidden Ruins for 7 days (native itemhelp description)."
+    },
+    "3974": {
+      "action": "timed_access",
+      "consume": true,
+      "accessKey": "hidden_ruins",
+      "durationSeconds": 28800,
+      "description": "Hidden Ruins for 8 hours."
+    },
+    "4003": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [
+        2300,
+        2301,
+        2302,
+        2303,
+        2304,
+        2305,
+        2306,
+        2307,
+        2308,
+        2309
+      ],
+      "description": "Mount Box Normal: draws an egg from the normal tier."
+    },
+    "4004": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [
+        2310,
+        2311,
+        2312,
+        2313,
+        2314,
+        2315,
+        2316,
+        2317,
+        2318,
+        2319
+      ],
+      "description": "Mount Box Mystic: draws an egg from the mystic tier."
+    },
+    "4005": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [
+        2320,
+        2321,
+        2322,
+        2323,
+        2324,
+        2325,
+        2326,
+        2327,
+        2328
+      ],
+      "description": "Mount Box Arcane: draws an egg from the arcane tier."
+    },
+    "4007": {
+      "action": "loot_box",
+      "consume": true,
+      "rewardItems": [
+        2316,
+        2317,
+        2318,
+        2319,
+        2320,
+        2321,
+        2322,
+        2323,
+        2324,
+        2325,
+        2326,
+        2327,
+        2328
+      ],
+      "description": "Premium Box: draws an egg from the rare mystic/arcane tiers."
+    },
+    "4016": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Normal Repliction for Grade A equipment, up to +6."
+    },
+    "4017": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Normal Repliction for Grade B equipment, up to +6."
+    },
+    "4018": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Normal Repliction for Grade C equipment, up to +6."
+    },
+    "4019": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Normal Repliction for Grade D equipment, up to +6."
+    },
+    "4020": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Normal Repliction for Grade E equipment, up to +6."
+    },
+    "4021": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Premium Repliction for Grade A equipment, up to +9."
+    },
+    "4022": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Premium Repliction for Grade B equipment, up to +9."
+    },
+    "4023": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Premium Repliction for Grade C equipment, up to +9."
+    },
+    "4024": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Premium Repliction for Grade D equipment, up to +9."
+    },
+    "4025": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Premium Repliction for Grade E equipment, up to +9."
+    },
+    "4111": {
+      "action": "territory_pass",
+      "consume": true,
+      "requiredEvolution": "mortal",
+      "x": 3639,
+      "y": 3639,
+      "description": "Game Room Bead Mortal: entrance to the Mortal territory."
+    },
+    "4112": {
+      "action": "territory_pass",
+      "consume": true,
+      "requiredEvolution": "arch",
+      "x": 3782,
+      "y": 3527,
+      "description": "Game Room Bead Arch: entrance to the Arch territory."
+    },
+    "4113": {
+      "action": "territory_pass",
+      "consume": true,
+      "requiredEvolution": "celestial",
+      "x": 3911,
+      "y": 3655,
+      "description": "Game Room Bead Celestial: entrance to the Celestial/Subcelestial territory."
+    },
+    "4114": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "game_medal_gold": 1
+      },
+      "description": "Game Room Gold Medal."
+    },
+    "4115": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "game_medal_red": 1
+      },
+      "description": "Game Room Red Medal."
+    },
+    "4116": {
+      "action": "grant_counter",
+      "consume": true,
+      "counters": {
+        "game_medal_blue": 1
+      },
+      "description": "Game Room Blue Medal."
+    },
+    "4117": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 39,
+      "maxLevelExclusive": 115,
+      "exp": 70000,
+      "gold": 2000,
+      "description": "Box of Wisdom: reward of the Gravedigger area."
+    },
+    "4118": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 115,
+      "maxLevelExclusive": 190,
+      "exp": 140000,
+      "gold": 2500,
+      "description": "Tears of Angell: reward of the Carbuncle area."
+    },
+    "4119": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 190,
+      "maxLevelExclusive": 265,
+      "exp": 320000,
+      "gold": 3000,
+      "description": "Heart of Kaizen: reward of the Kaizen area."
+    },
+    "4120": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 265,
+      "maxLevelExclusive": 320,
+      "exp": 640000,
+      "gold": 2000,
+      "description": "Blood Eye: reward of the Hydra area."
+    },
+    "4121": {
+      "action": "quest_reward",
+      "consume": true,
+      "mortalOnly": true,
+      "minLevel": 320,
+      "maxLevelExclusive": 350,
+      "exp": 1300000,
+      "gold": 4000,
+      "description": "Elf's Spirit Stone: reward of the Elf area."
+    },
+    "4145": {
+      "action": "buff",
+      "consume": true,
+      "affects": [
+        {
+          "skillId": 43,
+          "level": 320,
+          "durationUnits": 320
+        },
+        {
+          "skillId": 44,
+          "level": 320,
+          "durationUnits": 320
+        },
+        {
+          "skillId": 45,
+          "level": 320,
+          "durationUnits": 320
+        },
+        {
+          "skillId": 41,
+          "level": 320,
+          "durationUnits": 320
+        }
+      ],
+      "description": "Love Candy: same event family as the Chocolate, with the full affect package."
+    }
+  }
+}

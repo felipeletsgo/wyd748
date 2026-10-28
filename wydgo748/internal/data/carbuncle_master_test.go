@@ -35,7 +35,7 @@ func TestArchRemovedAndAncientCarbuncleDisabled(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "npcs", "Arch.json")); !os.IsNotExist(err) {
 		t.Fatalf("template Arch deveria ter sido removido, stat err=%v", err)
 	}
-	geners, err := LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	geners, err := LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}

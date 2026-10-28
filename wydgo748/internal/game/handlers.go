@@ -155,11 +155,28 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 		return
 	}
 	w.authPending[s] = true
+	var transfer *channelTicket
+	if len(pkt) >= 100 && pkt[48] != 0 {
+		var valid bool
+		transfer, valid = w.consumeTicket(cstr(pkt[48:100]), accountName, s)
+		if !valid {
+			delete(w.authPending, s)
+			<-w.authSlots
+			s.RejectAdmission(wire.MessagePanel("Channel transfer expired. Sign in again."))
+			return
+		}
+	}
 	sanctionVersion := w.staffOps.sanctionVersions[accountSessionKey(accountName)]
 	go func() {
 		defer func() { <-w.authSlots }()
-		acc, err := account.Authenticate(w.store, accountName, password)
-		result := &loginResult{accountName: accountName, account: acc, err: err, sanctionVersion: sanctionVersion}
+		var acc *model.Account
+		var err error
+		if transfer != nil {
+			acc, err = w.store.LoadAccount(accountName)
+		} else {
+			acc, err = account.Authenticate(w.store, accountName, password)
+		}
+		result := &loginResult{accountName: accountName, account: acc, err: err, sanctionVersion: sanctionVersion, transfer: transfer}
 		if backend, ok := w.sanctionBackend(); ok && err == nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			result.sanctions, result.sanctionErr = backend.ActiveSanctionState(ctx, acc.Name)
@@ -217,6 +234,12 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 			s.ID, acc.Name, s.RemoteIP(), reason)
 		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
 		time.AfterFunc(300*time.Millisecond, s.Close)
+		return
+	}
+	if result.transfer != nil && (w.cluster == nil || !w.now().Before(result.transfer.expires) ||
+		result.transfer.session != s || result.transfer.channel != w.channel ||
+		result.transfer.account != accountSessionKey(acc.Name) || w.cluster.transfers[result.transfer.account] != result.transfer) {
+		s.RejectAdmission(wire.MessagePanel("Channel transfer expired. Sign in again."))
 		return
 	}
 	if !w.claimAccountSession(s, acc.Name) {
@@ -280,6 +303,12 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	w.sendLoginCharacterList(s, p)
 	w.recordLogin(acc.Name, s.RemoteIP())
 	log.Printf("[#%d] character list sent (%d characters)", s.ID, characterCount(acc.Chars))
+	if result.transfer != nil {
+		delete(w.cluster.transfers, result.transfer.account)
+		entry := make([]byte, characterLoginPacketSize)
+		binary.LittleEndian.PutUint32(entry[12:16], uint32(result.transfer.slot))
+		w.onEnterWorld(s, entry)
+	}
 }
 
 const maxCharactersPerAccount = 4
@@ -1021,6 +1050,15 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	if w.handleAbilityResetMasterNPC(s, p, m, clickOk) {
 		return
 	}
+	if w.handleMysticLandNPC(s, p, m, clickOk) {
+		return
+	}
+	if w.handleCircleServiceNPC(s, p, m) {
+		return
+	}
+	if w.handleOfficialNPCService(s, p, m) {
+		return
+	}
 	if w.handleCarbMasterNPC(s, p, m) {
 		return
 	}
@@ -1053,7 +1091,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] shop opened: %q (%d displayed items)", s.ID, m.Def.Name, countShopItems(display))
 		return
 	}
-	if m.Def.Score.Merchant&0x0F == craftingMerchant {
+	if m.Def.Score.Merchant == craftingMerchant {
 		// The client selects the window from the NPC's face/position. Retain
 		// authoritative context for the subsequent composition request.
 		p.CraftNPC = m.ID
@@ -1574,8 +1612,8 @@ func playerHomeCity(ch *model.Char) int {
 
 func playerHomeCitySpawn(ch *model.Char) (int, uint16, uint16) {
 	city := playerHomeCity(ch)
-	// W2PP uses FREEEXP=35 by default for mortal login and recall. The
-	// beginner field overrides the destination, not the bound city.
+	// Keep the project's beginner login policy separate from native DoRecall.
+	// The beginner field overrides the login destination, not the bound city.
 	if newbieZoneEligible(ch) {
 		return city, mortalBeginnerSpawnX, mortalBeginnerSpawnY
 	}
@@ -1605,8 +1643,8 @@ func (w *World) homeCitySpawn(ch *model.Char) (int, uint16, uint16) {
 // bindableCityAt follows BASE_GetVillage for the four cities available through
 // the 7.48 ChangeCity packet. Server position, not the reported Village, wins.
 func bindableCityAt(x, y uint16) (int, bool) {
-	for city := range cityWarZones {
-		if cityWarZones[city].city.contains(x, y) {
+	for city := 0; city < 4; city++ {
+		if homeCityZones[city].area.contains(x, y) {
 			return city, true
 		}
 	}
@@ -1622,11 +1660,7 @@ func stagePlayerHomeCity(p *Player) {
 		return
 	}
 	if city, ok := bindableCityAt(p.X, p.Y); ok {
-		merchant := (p.Char.Score.Merchant &^ playerHomeCityMask) | uint32(city<<playerHomeCityShift)
-		p.Char.Score.Merchant = merchant
-		if p.Char.RuntimeScore != nil {
-			p.Char.RuntimeScore.Merchant = merchant
-		}
+		stageHomeCity(p.Char, city)
 	}
 }
 
@@ -1653,11 +1687,21 @@ func (w *World) savePlayerLocation(p *Player) error {
 }
 
 func (w *World) bindPlayerHomeCity(p *Player) {
+	if p == nil {
+		return
+	}
+	if city, ok := bindableCityAt(p.X, p.Y); ok {
+		w.bindPlayerHomeCityIndex(p, city)
+	}
+}
+
+// Bind the last city actually reached, even if a movement batch leaves it.
+// Call only after position, visibility and the account snapshot are stable.
+func (w *World) bindPlayerHomeCityIndex(p *Player, city int) {
 	if p == nil || !p.InWorld || p.Char == nil || p.Char.Score == nil || p.Account == nil {
 		return
 	}
-	city, ok := bindableCityAt(p.X, p.Y)
-	if !ok || playerHomeCity(p.Char) == city {
+	if city < 0 || city >= 4 || playerHomeCity(p.Char) == city {
 		return
 	}
 	if w.criticalWrites != nil {
@@ -1667,7 +1711,7 @@ func (w *World) bindPlayerHomeCity(p *Player) {
 		proposed := accountStateSnapshot(p.Account)
 		ch := &proposed.Chars[p.CharSlot]
 		oldX, oldY := p.X, p.Y
-		stagePlayerHomeCity(&Player{Char: ch, X: oldX, Y: oldY})
+		stageHomeCity(ch, city)
 		err := w.queueCriticalAccountWrite(p, proposed, criticalWrite{}, "hometown binding",
 			"Your return city could not be saved.", func() {
 				p.Char.Score.Merchant = ch.Score.Merchant
@@ -1685,14 +1729,24 @@ func (w *World) bindPlayerHomeCity(p *Player) {
 		}
 		return
 	}
-	if err := w.savePlayerLocation(p); err != nil {
+	previousMerchant := p.Char.Score.Merchant
+	previousRuntimeMerchant := uint32(0)
+	if p.Char.RuntimeScore != nil {
+		previousRuntimeMerchant = p.Char.RuntimeScore.Merchant
+	}
+	stageHomeCity(p.Char, city)
+	if err := w.saveAccount(p.Account); err != nil {
+		p.Char.Score.Merchant = previousMerchant
+		if p.Char.RuntimeScore != nil {
+			p.Char.RuntimeScore.Merchant = previousRuntimeMerchant
+		}
 		log.Printf("[#%d] ChangeCity failed to persist %s[%d]: %v",
 			p.Session.ID, cityWarZones[city].name, city, err)
 	}
 }
 
-// recallPlayer handles both restart and quest-zone reset. Mortal beginners go
-// to the Armia field; all other characters go to their bound city.
+// recallPlayer handles both restart and quest-zone reset through DoRecall's
+// city and guild destination rules. Login keeps its separate beginner policy.
 //
 // Observers see a corpse at its old position. RemoveMob type 3 must clear it
 // before movement; otherwise rematerialization uses the new position and
@@ -1728,8 +1782,8 @@ func (w *World) recallPlayer(p *Player, reason string) bool {
 		setPlayerCurHP(p.Char, hp)
 		p.DeadAt = time.Time{}
 	}
-	city, spawnX, spawnY := w.homeCitySpawn(p.Char)
-	p.X, p.Y = w.findFreePlayerPosition(spawnX, spawnY, 8, p)
+	city, spawnX, spawnY := w.recallSpawn(p.Char)
+	p.X, p.Y = w.findFreePlayerPosition(spawnX, spawnY, 3, p)
 	p.Char.X, p.Char.Y = p.X, p.Y
 	clearPublishedPlayerMove(p)
 	// Persist the safe position. A disk failure does not abort recall because
@@ -2694,6 +2748,9 @@ func accountSessionKey(name string) string {
 // exposing account presence. Ownership ends after persistence and cleanup, not
 // when the transport closes: a queued disconnect still owns live mutable state.
 func (w *World) claimAccountSession(s *net.Session, name string) bool {
+	if !w.transferAdmissionAllowed(name, s) {
+		return false
+	}
 	// Authentication may have read an old snapshot before a critical commit.
 	// Do not reach the gameplay reload until World has applied its completion.
 	if w.criticalAccountReserved(name) {

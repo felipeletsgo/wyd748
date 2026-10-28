@@ -13,15 +13,15 @@ import (
 // Exercise the installed rules, not a synthetic Consume=true override. The
 // empty source slot must be published after the account save succeeds.
 func TestReplictionRealCatalogConsumesAndPublishesSource(t *testing.T) {
-	catalog, err := data.LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/ItemEffect.h", "../../data/SkillData.csv")
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/ItemEffect.h", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := data.LoadVolatilesWithInstances("../../data/volatiles.json", "../../data/instances.json", catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances("../../data/content/volatiles.json", "../../data/content/instances.json", "../../data/spawns/instances", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles.Repliction, err = data.LoadRepliction("../../data/repliction.json", catalog.Items)
+	volatiles.Repliction, err = data.LoadRepliction("../../data/content/repliction.json", catalog.Items)
 	if err != nil {
 		t.Fatal(err)
 	}

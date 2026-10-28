@@ -6,7 +6,7 @@
       "index": 53
     },
     "elmo": {
-      "index": 13
+      "index": 0
     },
     "armadura": {
       "index": 145
@@ -52,7 +52,7 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 500,
   "score": {
     "version": 2,
     "level": 3,
@@ -68,10 +68,6 @@
     "dex": 0,
     "con": 0,
     "critical": 255,
-    "resistFire": 255,
-    "resistIce": 255,
-    "resistHoly": 255,
-    "resistThunder": 255,
     "saveMana": 255,
     "mastery": [
       255,
@@ -82,6 +78,7 @@
     "attackRun": 1,
     "merchant": 13
   },
+  "gold": 500,
   "skillBar": [
     255,
     255,

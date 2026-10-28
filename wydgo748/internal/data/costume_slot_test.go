@@ -9,7 +9,7 @@ import (
 // The costume-slot extension moves exactly the 143 mesh-36 costumes to slot 12;
 // familiars, emblems and guild medals keep their native positions.
 func TestCatalogMovesCostumesToCostumeSlot(t *testing.T) {
-	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}

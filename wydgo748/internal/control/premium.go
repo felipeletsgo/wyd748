@@ -23,6 +23,7 @@ type PremiumCatalogItem struct {
 	Effects  [6]uint8 `json:"effects"`
 	Price    uint32   `json:"price"`
 	ItemName string   `json:"itemName,omitempty"`
+	Category uint8    `json:"category"`
 }
 
 type PremiumCatalogView struct {
@@ -56,7 +57,7 @@ func (c PremiumCatalogCommand) Validate() error {
 	seen := make(map[int]bool, len(c.Items))
 	for _, item := range c.Items {
 		if item.Slot < 0 || item.Slot >= PremiumCatalogSlots || seen[item.Slot] ||
-			item.ItemID == 0 || item.ItemID >= 6500 || item.Price == 0 || item.Price > MaxDonateAmount {
+			item.ItemID == 0 || item.ItemID >= 6500 || item.Price == 0 || item.Price > MaxDonateAmount || item.Category > 3 {
 			return errors.New("invalid_command")
 		}
 		seen[item.Slot] = true

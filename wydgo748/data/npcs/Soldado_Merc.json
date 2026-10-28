@@ -1,5 +1,6 @@
 {
   "name": "Soldado_Merc",
+  "displayName": "Soldado_Merc.",
   "tipo": "npc",
   "equip": {
     "rosto": {

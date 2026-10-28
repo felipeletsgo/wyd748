@@ -22,9 +22,9 @@ func (w *World) queueCriticalRecall(p *Player, reason string) bool {
 		}
 		setPlayerCurHP(ch, hp)
 	}
-	city, x, y := w.homeCitySpawn(ch)
-	x, y = w.findFreePlayerPosition(x, y, 8, p)
-	err := w.queuePlayerTeleportState(p, proposed, x, y, "recall "+reason, func() {
+	city, x, y := w.recallSpawn(ch)
+	x, y = w.findFreePlayerPosition(x, y, 3, p)
+	err := w.queuePlayerTeleportSnapshot(p, proposed, x, y, "recall "+reason, func() {
 		p.Session.Send(playerScorePacket(p))
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		w.syncPlayerVitals(p)
@@ -32,7 +32,7 @@ func (w *World) queueCriticalRecall(p *Player, reason string) bool {
 		w.updatePartyMember(p)
 		log.Printf("[#%d] recall (%s) -> (%d,%d), bound city %s[%d], revived=%v",
 			p.ID, reason, p.X, p.Y, cityWarZones[city].name, city, dead)
-	}, nil, dead)
+	}, nil, dead, nil, true)
 	if err != nil {
 		log.Printf("[#%d] recall (%s) admission rejected: %v", p.ID, reason, err)
 	}

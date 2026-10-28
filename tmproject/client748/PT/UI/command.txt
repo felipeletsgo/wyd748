@@ -31,7 +31,7 @@ AAFFAA Chat de grupo, visível apenas para seus membros
 33FFFF - [mensagem]
 AAFFAA Chat de guilda, visível apenas para seus membros
 33FFFF -- [mensagem]
-AAFFAA Chat de aliança, visível apenas para aliados
+AAFFAA Chat global, visível para todos os jogadores conectados ao servidor
 33FFFF * [mensagem]
 AAFFAA Exibir mensagem sobre a cabeça do personagem por 10 segundos
 33FFFF /nome do jogador ! [mensagem]

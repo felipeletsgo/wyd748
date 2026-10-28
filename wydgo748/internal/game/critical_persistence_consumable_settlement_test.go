@@ -18,7 +18,7 @@ var criticalConsumableSettlementActions = []string{
 	"buff", "face_transform", "face_restore", "grant_counter", "grant_counter_once", "timed_access", "loot_box", "mount_revive",
 	"refine", "refine-failure", "refine-earring", "refine-earring-failure", "refine_set", "tint", "untint", "repliction", "mount-longevity", "mount-longevity_restore",
 	"mount-level_set", "mount-hatch", "incubation", "incubation-failure",
-	"teleport", "warp_saved", "hunting_teleport", "territory_pass",
+	"teleport", "recall", "warp_saved", "hunting_teleport", "territory_pass",
 	"warrior-seal-white", "warrior-seal-blue", "warrior-seal-red",
 }
 
@@ -46,7 +46,10 @@ func configureCriticalConsumableSettlement(w *World, p *Player, operation string
 		}
 		w.items[warriorSealItem] = model.ItemDef{Index: warriorSealItem}
 		w.volatiles.Items[warriorSealItem], w.volatiles.ItemCodes[warriorSealItem] = rule, 199
-	case "teleport", "warp_saved", "hunting_teleport", "territory_pass":
+	case "teleport", "recall", "warp_saved", "hunting_teleport", "territory_pass":
+		if operation == "recall" {
+			p.Char.Score.Merchant = 0x1C5 // Nippleheim; guild owns Armia in this fixture.
+		}
 		rule.X, rule.Y = cityWarZones[1].exitX, cityWarZones[1].exitY
 		rule.RequiredEvolution = "mortal"
 		p.Char.SavedX, p.Char.SavedY = rule.X, rule.Y
@@ -174,6 +177,9 @@ func TestCriticalConsumableSettlementMatrix(t *testing.T) {
 				w.onUseItem(p.Session, packet)
 				proposal := awaitCriticalWrite(t, base.entered)
 				prepared := &proposal.accounts[0].Chars[p.CharSlot]
+				if operation == "recall" && prepared.Score.Merchant != before.Chars[p.CharSlot].Score.Merchant {
+					t.Fatal("recall changed the bound city")
+				}
 				if strings.HasPrefix(operation, "warrior-seal-") {
 					want := map[string]uint16{"warrior-seal-white": 3193, "warrior-seal-blue": 3191, "warrior-seal-red": 3192}[operation]
 					cape := prepared.Equip[model.CapeSlot]
@@ -226,6 +232,9 @@ func TestCriticalConsumableSettlementMatrix(t *testing.T) {
 				}
 				w.processCriticalCompletions(1)
 				if outcome == "commit" {
+					if operation == "recall" && (p.X != homeCityZones[0].guildReturnX || p.Y != homeCityZones[0].guildReturnY) {
+						t.Fatal("recall did not use the guild territory")
+					}
 					if w.shuttingDown || len(q.pending) != 0 || p.Account != account || p.Char != character || p.Char.Score != score ||
 						!reflect.DeepEqual(accountPersistenceSnapshot(p.Account), proposal.accounts[0]) || p.Trade != nil || peer.Trade != nil ||
 						p.Session.QueuedPacketsForTest() == 0 || peer.Session.QueuedPacketsForTest() == 0 {

@@ -14,8 +14,8 @@ import (
 func TestLimitTestAmuletAddsAttributesAndIsSold(t *testing.T) {
 	const amulet = 6015
 	root := filepath.Join("..", "..", "data")
-	catalog, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := data.LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}

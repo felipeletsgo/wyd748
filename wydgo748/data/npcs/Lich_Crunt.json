@@ -3,7 +3,7 @@
   "tipo": "monstro",
   "equip": {
     "rosto": {
-      "index": 293
+      "index": 364
     },
     "elmo": {
       "index": 0
@@ -21,13 +21,21 @@
       "index": 0
     },
     "arma": {
-      "index": 0
+      "index": 1925
     },
     "escudo": {
       "index": 0
     },
     "acessorio1": {
-      "index": 0
+      "index": 786,
+      "eff": [
+        60,
+        30,
+        71,
+        50,
+        0,
+        0
+      ]
     },
     "acessorio2": {
       "index": 0
@@ -42,7 +50,15 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 0
+      "index": 1936,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "montaria": {
       "index": 0
@@ -52,38 +68,49 @@
     }
   },
   "classInfo": 1,
-  "expReward": 130000,
+  "expReward": 5500,
   "score": {
     "version": 2,
-    "level": 385,
-    "attack": 1100,
+    "level": 399,
+    "attack": 4600,
     "magicAttack": 0,
-    "defense": 2800,
-    "maxHP": 26000,
+    "defense": 5350,
+    "maxHP": 32000,
     "maxMP": 0,
-    "curHP": 26000,
+    "curHP": 32000,
     "curMP": 0,
     "str": 4,
-    "int": 70,
-    "dex": 90,
-    "con": 250,
+    "int": 95,
+    "dex": 100,
+    "con": 1000,
     "critical": 255,
-    "resistFire": 10,
-    "resistIce": 10,
-    "resistHoly": 10,
-    "resistThunder": 10,
     "saveMana": 255,
     "mastery": [
-      125,
-      7,
-      125,
+      255,
+      3,
+      255,
       7
     ],
-    "attackRun": 2
+    "attackRun": 5
   },
   "carry": [
     {
-      "index": 0
+      "index": 413
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 5134
     },
     {
       "index": 0
@@ -116,7 +143,196 @@
       "index": 0
     },
     {
+      "index": 840,
+      "eff": [
+        104,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 810,
+      "eff": [
+        104,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 870,
+      "eff": [
+        104,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 885,
+      "eff": [
+        104,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 911,
+      "eff": [
+        104,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 855,
+      "eff": [
+        104,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 825,
+      "eff": [
+        104,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 671
+    },
+    {
+      "index": 2441
+    },
+    {
+      "index": 2442
+    },
+    {
+      "index": 2443
+    },
+    {
+      "index": 2444
+    },
+    {
       "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 1710,
+      "eff": [
+        100,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 840,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 810,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 870,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 885,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 911,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 855,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 825,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "index": 0
@@ -143,7 +359,16 @@
       "index": 0
     },
     {
+      "index": 578
+    },
+    {
+      "index": 2411
+    },
+    {
       "index": 0
+    },
+    {
+      "index": 2321
     },
     {
       "index": 0
@@ -161,7 +386,10 @@
       "index": 0
     },
     {
-      "index": 0
+      "index": 420
+    },
+    {
+      "index": 1741
     },
     {
       "index": 0
@@ -170,105 +398,21 @@
       "index": 0
     },
     {
-      "index": 0
+      "index": 670
     },
     {
-      "index": 0
+      "index": 2412
     },
     {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1754
+      "index": 2322
     }
   ],
-  "gold": 9999,
-  "learnedSkill": 20,
+  "gold": 500,
+  "learnedSkill": 65100,
   "skillBar": [
-    255,
-    255,
-    255,
+    52,
+    52,
+    52,
     255
   ]
 }

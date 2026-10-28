@@ -5,12 +5,12 @@
 #include <cerrno>
 #include <cstring>
 
-// Migracao S->C: imagem completa retida pela cena ate a desconexao.
-// Campos inline nao possuem ponteiros; TID preserva os 52 bytes do servidor.
+// Server migration retains the complete inline image until disconnect.
+// TID preserves the server's opaque 52-byte ticket field.
 constexpr auto MSG_CNFRemoveServer_Opcode = 0x52A;
 
-// Le o prefixo *%d legado sem ultrapassar o campo recebido. Sufixos do
-// ticket permanecem opacos; falha preserva o indice de saida do chamador.
+// Read the legacy *%d prefix within the received field. The suffix remains
+// opaque; failure preserves the caller's output index.
 inline bool ParseMigrationServer(const char (&ticket)[52], int capacity, int& result)
 {
     if (capacity <= 0 || ticket[0] != '*') return false;
@@ -19,7 +19,7 @@ inline bool ParseMigrationServer(const char (&ticket)[52], int capacity, int& re
     char* end = nullptr;
     errno = 0;
     const long value = std::strtol(bounded + 1, &end, 10);
-    if (end == bounded + 1 || errno == ERANGE || value < 0 || value >= capacity)
+    if (end == bounded + 1 || errno == ERANGE || value < 1 || value >= capacity)
         return false;
     result = static_cast<int>(value);
     return true;

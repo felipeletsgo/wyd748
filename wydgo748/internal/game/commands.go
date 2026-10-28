@@ -236,7 +236,7 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 		if !w.allowChat(p, chatChannelGlobal, w.now()) {
 			return
 		}
-		for _, observer := range w.players {
+		for _, observer := range w.globalPlayers() {
 			if observer == p || !observer.InWorld || observer.Session == nil {
 				continue // The sender's client already inserted its own message.
 			}
@@ -244,15 +244,11 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 		}
 	case chatChannelCitizenship:
 		// '@@' reaches every online character holding the sender's citizenship.
-		// Tell a sender without citizenship instead of dropping the line.
-		if p.Char.Citizenship == 0 {
-			s.Send(wire.MessagePanel("You need citizenship to use @@ chat."))
-			return
-		}
+		// Neutral citizenship 0 forms its own audience across both channels.
 		if !w.allowChat(p, chatChannelCitizenship, w.now()) {
 			return
 		}
-		for _, observer := range w.players {
+		for _, observer := range w.globalPlayers() {
 			if observer == p || !observer.InWorld || observer.Session == nil ||
 				observer.Char == nil || observer.Char.Citizenship != p.Char.Citizenship {
 				continue
@@ -351,6 +347,9 @@ var chatCommandAliases = map[string]string{
 
 func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string) bool {
 	key := strings.ToLower(strings.TrimSpace(name))
+	if w.rejectUnavailableClientCommand(s, p, key) {
+		return true
+	}
 	if color, ok := tabCommandColor(key); ok {
 		w.setPlayerTab(s, p, arg, color)
 		return true
@@ -374,10 +373,7 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// m_nYear/m_nDays, which determine calendar-affect duration.
 		s.Send(wire.DaySync())
 	case "srv":
-		// The Field panel sends this request as a whisper after five seconds.
-		// This World has no channel coordinator or 0x52A ticket yet; do not
-		// simulate migration or treat "srv" as a character name.
-		s.Send(wire.MessagePanel("Channel switching is unavailable on this server."))
+		w.requestChannelTransfer(p, arg)
 	case "time":
 		// Manual command: display host date/time in the upper panel.
 		s.Send(wire.MessagePanel(w.now().Format("15:04:05 | 02-01-2006")))
@@ -545,7 +541,7 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 	if !w.allowChat(p, chatChannelWhisper, w.now()) {
 		return
 	}
-	recipient := w.playerByCharacterName(target)
+	recipientWorld, recipient := w.globalPlayerByName(target)
 	if recipient == nil {
 		s.Send(wire.MessagePanel("That player is not online."))
 		log.Printf("[#%d] WHISPER %q -> %q: offline", s.ID, p.Char.Name, target)
@@ -560,7 +556,9 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 	}
 	// Mirror TMSrv/WYD 7.48: /nick message arrives as 0x334; the server sets
 	// MobName to the sender, preserves String without prefixes, and uses its ID.
-	recipient.Session.Send(wire.MessageWhisper(p.ID, p.Char.Name, message, 0))
+	senderID := p.ID
+	if recipientWorld != w { senderID = 0 }
+	recipient.Session.Send(wire.MessageWhisper(senderID, p.Char.Name, message, 0))
 	log.Printf("[#%d] WHISPER %q -> %q", s.ID, p.Char.Name, recipient.Char.Name)
 }
 

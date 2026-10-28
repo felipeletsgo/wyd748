@@ -323,6 +323,11 @@ func (w *World) applyMobDamageToPlayer(m *Mob, target *Player, damage uint32,
 	}
 	target.LastAttackerID = m.ID
 	damage = w.levelingInstanceDamage(m, damage)
+	// Project rule: Colosseum monsters are bonuses during player combat.
+	// Cap physical and spell hits before absorption without turning misses into hits.
+	if w.colosseumGenerator(m.generator) {
+		damage = min(damage, 1)
+	}
 	damage = absorbFlatDamage(damage, w.playerFlatDamageAbsorb(target.Char))
 	// A living adult mount absorbs 25% of damage into its own HP.
 	damage = uint32(w.absorbMountDamage(target, int(damage)))

@@ -34,6 +34,15 @@ class ClientLocalesTests(unittest.TestCase):
             self.assertEqual(actual, expected)
             self.assertNotIn('SkillData.bin', actual)
 
+    def test_global_chat_help_matches_server_visibility(self):
+        for language in ('EN', 'PT'):
+            rows = self.read(language, 'UI/command.txt').decode('cp1252').splitlines()
+            index = next(i for i, row in enumerate(rows) if row.startswith('33FFFF -- '))
+            description = rows[index + 1].lower()
+            self.assertIn('global', description)
+            self.assertNotIn('allies', description)
+            self.assertNotIn('aliados', description)
+
     def test_item_gameplay_bytes_and_wide_values_remain_canonical(self):
         for language in ('EN', 'PT'):
             data = self.read(language, 'ItemList.bin')
@@ -125,6 +134,37 @@ class ClientLocalesTests(unittest.TestCase):
         for offset in range(0, len(en) - 4, 128):
             decode = lambda data: bytes(value ^ 0x5a for value in data[offset:offset + 128]).split(b'\0', 1)[0]
             self.assertEqual(locales.format_tokens(decode(en)), locales.format_tokens(decode(pt)), offset // 128)
+
+    def test_mystic_land_messages_are_localized_with_english_fallback(self):
+        for language in ('EN', 'PT'):
+            data = self.read(language, 'UI/strdef.bin')
+            self.assertEqual(struct.unpack('<I', data[-4:])[0], locales.checksum(data[:-4]))
+            for index in range(440, 445):
+                raw = data[index * 128:(index + 1) * 128]
+                text = bytes(value ^ 0x5a for value in raw).split(b'\0', 1)[0].decode('cp1252')
+                self.assertEqual(text, self.policy['messages'][str(index)][language])
+        base = (self.runtime / 'UI/strdef.bin').read_bytes()
+        self.assertEqual(base, self.read('EN', 'UI/strdef.bin'))
+        self.assertEqual(locales.message_overrides(base, self.policy['messages'], 'UNKNOWN'), base)
+        gap = str((len(base) - 4) // 128 + 1)
+        for invalid in ({gap: {'EN': 'Gap'}}, {'445': {'EN': '%d', 'PT': '%s'}},
+                        {'445': {'EN': 'x' * 128}}, {'445': {'EN': 'Bad\nrow'}}):
+            with self.assertRaises(ValueError):
+                locales.message_overrides(base, invalid, 'PT')
+
+    def test_official_npc_messages_preserve_locale_and_parameter_contract(self):
+        base = (self.runtime / 'UI/strdef.bin').read_bytes()
+        for language in ('EN', 'PT'):
+            data = self.read(language, 'UI/strdef.bin')
+            self.assertEqual(struct.unpack('<I', data[-4:])[0], locales.checksum(data[:-4]))
+            for index in range(445, 452):
+                raw = data[index * 128:(index + 1) * 128]
+                text = bytes(value ^ 0x5a for value in raw).split(b'\0', 1)[0]
+                self.assertEqual(text.decode('cp1252'), self.policy['messages'][str(index)][language])
+                self.assertLess(len(text), 128)
+                self.assertEqual(locales.format_tokens(text), [b'%s', b'%s'] if index == 451 else [])
+        self.assertEqual(base, self.read('EN', 'UI/strdef.bin'))
+        self.assertEqual(locales.message_overrides(base, self.policy['messages'], 'UNKNOWN'), base)
 
     def test_ui_string_indices_preserve_current_contract(self):
         def parse(data):

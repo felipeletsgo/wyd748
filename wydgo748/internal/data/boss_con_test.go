@@ -7,7 +7,7 @@ import (
 
 func TestConfiguredWorldBossesHaveLargeCON(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadBossCatalog(filepath.Join(root, "boss"))
+	catalog, err := LoadBossCatalog(filepath.Join(root, "content", "boss"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,10 +35,11 @@ func TestConfiguredWorldBossesHaveLargeCON(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	templateCON := map[string]uint32{"Anubis": 1000, "DeathWorm": 1000, "LegendBerial": 1, "Murmy": 1}
 	for _, npc := range npcs {
 		for _, name := range want {
-			if npc.Name == name && (npc.Score == nil || npc.Score.Con != 1) {
-				t.Errorf("preview NPC %q must retain base CON 1", name)
+			if npc.Name == name && (npc.Score == nil || npc.Score.Con != templateCON[name]) {
+				t.Errorf("native template %q must retain base CON %d", name, templateCON[name])
 			}
 		}
 	}

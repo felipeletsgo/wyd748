@@ -1,0 +1,321 @@
+{
+  "name": "Guer_Caveira@@",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 260
+    },
+    "elmo": {
+      "index": 266
+    },
+    "armadura": {
+      "index": 267
+    },
+    "calca": {
+      "index": 268
+    },
+    "luva": {
+      "index": 269
+    },
+    "bota": {
+      "index": 270
+    },
+    "arma": {
+      "index": 724
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 786,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 1500,
+  "score": {
+    "version": 2,
+    "level": 230,
+    "attack": 468,
+    "magicAttack": 0,
+    "defense": 1236,
+    "maxHP": 8100,
+    "maxMP": 0,
+    "curHP": 8100,
+    "curMP": 0,
+    "str": 6,
+    "int": 70,
+    "dex": 90,
+    "con": 950,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      2
+    ],
+    "attackRun": 2
+  },
+  "carry": [
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4039
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 1176,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1311,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1461,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1611,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4040
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 422
+    },
+    {
+      "index": 419
+    },
+    {
+      "index": 412
+    }
+  ],
+  "gold": 500,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

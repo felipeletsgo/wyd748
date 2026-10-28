@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"wydgo/internal/model"
+	"wydgo/internal/npccontent"
 )
 
 // itemEffectValue devolve o valor de um efeito dinamico do STRUCT_ITEM. O
@@ -18,36 +19,9 @@ func itemEffectValue(item model.Item, effect byte) (byte, bool) {
 	return 0, false
 }
 
-// seedShopItemAmount materializa no estoque do NPC o EF_AMOUNT definido no
-// itemlist.csv. Efeitos estaticos de combate NAO sao copiados: itemAbility ja os
-// le do catalogo e duplica-los no STRUCT_ITEM somaria o bonus duas vezes.
-//
-// Um EF_AMOUNT positivo configurado no proprio NPC e preservado. O estoque
-// nativo pode vender pacotes especiais (por exemplo, 100 pocoes) diferentes do
-// tamanho padrao do itemlist. Quando o JSON omite a quantidade, o itemlist e a
-// fonte autoritativa do valor inicial.
+// seedShopItemAmount uses the same blueprint preparation as live content edits.
 func seedShopItemAmount(item *model.Item, def model.ItemDef) error {
-	if item == nil || item.Index == 0 {
-		return nil
-	}
-	amount := staticEffect(def, "EF_AMOUNT")
-	if amount == 0 {
-		return nil
-	}
-	if amount < 0 || amount > 255 {
-		return fmt.Errorf("item %d possui EF_AMOUNT fora do wire: %d", item.Index, amount)
-	}
-	if current, present := itemEffectValue(*item, effectAmount); present && current > 0 {
-		return nil
-	}
-	for i := 0; i < 3; i++ {
-		if item.Eff[i*2] == effectAmount || item.Eff[i*2] == 0 {
-			item.Eff[i*2] = effectAmount
-			item.Eff[i*2+1] = byte(amount)
-			return nil
-		}
-	}
-	return fmt.Errorf("item %d sem par de efeito livre para EF_AMOUNT=%d", item.Index, amount)
+	return npccontent.SeedShopItemAmount(item, def)
 }
 
 // initShopItemDefaults prepara os blueprints enviados no ShopList e copiados

@@ -4,7 +4,7 @@ title: Field UI controls keep resource size and anchor to the viewport
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-10
+updated: 2026-10-25
 ---
 
 # Field UI controls keep resource size and anchor to the viewport
@@ -237,6 +237,193 @@ formulas. `MODERNIZACAO_COMPATIVEL` for the optional uniform scale, strict
 settings parsing and repeat-safe Party hint positioning. Uniform scaling at
 larger resolutions is a product decision, not native mode-2 behavior.
 
+The October 23 caption fitting, superseded by the October 24 correction below,
+is `MODERNIZACAO_COMPATIVEL`. It preserves
+control geometry, IDs, hitboxes, resource formats and the client/server wire
+contract. Existing native geometry evidence above is reused; the adaptive
+font reduction is a product improvement, not a claim of native behavior.
+Panel-owned `SText` fits ordinary single-line text using the actual rasterized glyph
+widths and reserves its padding and one-pixel shadow. In panel children,
+the available width also stops at the panel edge and visible text, button
+or edit controls to the right on the same row. Background panels and hidden
+controls do not reserve caption space. Multiline text, battle offsets and
+overlaid multicolor numbers keep their existing rendering paths.
+
+Current `FieldScene2.bin` illustrates why the declared text width alone is
+insufficient: parent 513 is 227 pixels wide, but resistance title 5784 has
+x=169 and width=90. Resistance caption 5769 has x=127 and width=67, while
+value 1121 starts at x=174. The fitting budget accounts for both cases
+without changing the resource or replacing language assets. No additional
+Ghidra query is needed for this internal rendering change; no server state
+or packet boundary is crossed. The secondary source version is not used as
+native authority for this decision.
+
+The historical title-tab follow-up (superseded on October 25 below) used the
+runtime artwork as an additional
+drawing constraint, without changing the serialized control or its hitbox.
+`FieldCaptionLayout.h` records inset horizontal edges in logical UI pixels:
+
+| Parent | Caption IDs | Inset horizontal edges |
+| --- | --- | --- |
+| Character 513 | 5781, 5782, 5783, 5784, 5785 | 41..95, 18..70, 10..66, 175..214, 129..211 |
+| Skills 1905 | 5788..5791 | 32..83 |
+| Skill master 1889 | 6050..6052 | 32..83 |
+
+These twelve titles center within the intersection of the artwork band and
+the existing control/panel/neighbor budget. Ordinary controls keep their
+normal alignment and padding. Class-specific titles updated by
+`TMFieldSceneUI.cpp` are measured again on the next drawing pass. This remains
+`MODERNIZACAO_COMPATIVEL`; the adaptive rendering is not native parity.
+
+The fixed bands depend on the following current runtime resources. Changing
+their geometry invalidates these measurements and requires reviewing the bands.
+
+| Resource under `tmproject/client748/` | SHA-256 |
+| --- | --- |
+| `UI/FieldScene2.bin` | `7F42B940A855A13F2DDA038B433B550A2C339F09BCBCC1D8457AF68EDF10A700` |
+| `UI/Skill2.wyt` | `7B3FE4C6B50C2ACE4A9E04F4A5A55CF5269DA43A8CA7692D8BE2712445DB37F8` |
+| `UI/SkillMaster2.wyt` | `C37060BD13EB852F98E8B3387EA57D700819BDE1E7D4F166788232A21FE85C23` |
+| `UI/character2.wyt` | `BBE0D1138AE00D111F33837C22A0104735A6808F27AE517BE5957545B5727648` |
+
+The bounded static audit also inspected text controls and artwork in inventory,
+shop, cargo, artisan, player-trade, auto-trade, notice, helper, guild-board,
+quest, jackpot, Hell Store and portal panels. It identified no additional
+narrow title-tab constraint in those reviewed controls. This does not establish
+complete coverage of buttons, lists, multiline content or actual game rendering.
+
+## Caption legibility regression, October 24
+
+The owner screenshot `codex-clipboard-e766e99b-8689-4334-9c5e-75f5196ca1d8.png`
+reports unreadable, partially missing letters at 1024x768 after the preceding
+caption correction. Installed local runtime and the release-2 executable both
+hash to `80CA48E77A8F83535401B7FE1415E33C9DE873E04F55C0313C844DF7B6A66209`.
+The exact executable path of the screenshot's process is not established.
+
+The source cause is the combination of global panel-owned caption fitting,
+`TMFont2::Render` reducing rasterized glyph textures with `layout.scale`, and
+`RenderDevice::SetRenderStateBlock(2)` selecting point minification/magnification.
+`RenderRectC` scales the destination rectangle of the existing glyph mask.
+This drops pixels during reduction; geometry containment tests cannot establish
+readability. The image demonstrates the reported scenario, not every panel.
+
+The correction removes bound-driven texture scaling. `SText::FrameMove2`
+opts in only through `field_caption_layout::IsBoundedCaption`: Character
+5768..5785 and the five artwork titles, Skills 5786/5788..5791, and Skill
+master 6050..6052, each under its established parent. Values, HUD labels,
+player names and unrelated panels stay on the ordinary path. Actual overflow
+is ellipsized in CP1252 at the original font scale before rasterization.
+`TMFont2` keeps canonical source bytes separate from display chunks, caches
+bounds/scale/multiline state and rebuilds without repeating color adjustment.
+The existing seed/upload failure handling remains in `Rasterize` and Render
+retries that path without replacing the source or zero-marking mode.
+
+Classification remains `MODERNIZACAO_COMPATIVEL`. This reuses the native
+geometry and draw/measure boundaries above; no new native equivalence, wire
+change, shared artwork replacement or server change is claimed. Resource
+hashes above remain the dependencies. Bounds still reserve neighbor values
+and the one-pixel shadow. Very narrow captions may be shortened; usability
+of those titles requires actual game observation.
+
+The complete NoDeploy gate passed: 3,179,319 architecture checks/static
+assertions, 281 socket checks, 200 crash checks and 58 launcher checks.
+Real GDI tests use Tahoma at scales 1/1.25/1.5/2 and weights 500/700, comparing
+fitting text masks exactly, covering CP1252 accents, chunk seams, scope,
+ellipsis containment and source restoration. These are GDI/helper and source
+checks, not execution in the built game's Direct3D path. Reopen, text/class
+changes, resolution changes and legibility remain pending; not `CLIENT_TESTED`.
+Candidate hash, installed hash and delivery scope are in
+[the client document](../../../../../DOCS/client/multilingual-client.md#caption-legibility-regression-october-24).
+
+## Complete native captions, October 25
+
+The owner capture `codex-clipboard-9f906b31-492b-4788-84aa-f946bc21f044.png`
+reports excessive ellipses in character titles, masteries and skill headings.
+The installed local executable now hashes to the published revision-3 identity
+`882F11E6CBA65E6B290DA0C8DF7920485982F5A9F1E49005D31823D76881BBE6`.
+The capture alone does not establish the running executable's path or hash.
+
+Saved native exports establish the actual rendering boundary:
+
+- `FUN_0042ced1`: mode 2 selects Tahoma, height 13 and weight 500, with the
+  existing optional `Font.txt` override.
+- `FUN_00401d03`: the text constructor installs vtable `0x005a35c8`.
+- A bounded Ghidra read-only/no-analysis export on October 25 confirms slot
+  `+0x58` at `0x005a3620` references `FUN_0040268c`. Direct callers are
+  `FUN_0040707d` and `FUN_00407281`; the draw queue callee is `FUN_0040c26d`.
+  The export program SHA-256 matches this record's native executable.
+- `FUN_0040268c`: ordinary left-aligned text starts eight pixels inside the
+  control, while alignment 3 starts two pixels inside. It queues the complete
+  text and does not clip to the serialized rectangle or decorative title tab.
+- `FUN_00402309` calls `FUN_00421b8f`, whose text rasterization/measurement
+  receives no control-width bound. This is not evidence for our added ellipsis.
+
+Two current-source constraints caused the reported truncation. The fixed
+skill-title band was only 51 logical pixels, although a native-sized Portuguese
+`Magia Branca` measures 64 pixels. Also, rectangle overlap treated the identity
+title at y=27 as sharing a row with the name at y=42: their sixteen-pixel
+rectangles overlap by one pixel, but their glyphs occupy different rows.
+
+`FieldCaptionLayout.h` removes decorative title bands and retains the resource
+text rectangle, alignment and panel boundary. `SharesRow` compares vertical
+centers, preserving same-row values offset by one pixel while ignoring the next
+row. Scoped character value labels use the native two-pixel inset and reserve
+the following value's actual text origin. For masteries, the label begins at
+x=69, after the flag; the value begins at x=154 (control x=146 plus its native
+eight-pixel inset). The resulting 84-pixel caption budget, including one shadow
+pixel, fits both `Weapon Mastery` (82 pixels) and `Aprender Arma` (73 pixels).
+Values and their controls do not move. The original-size ellipsis remains a
+fallback for genuinely longer content or custom fonts; source bytes stay intact.
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Native Ghidra/text exports and current
+source/resources are USED; the server and 7.69 source are not authorities for
+this rendering decision. Wire, resource IDs, CP1252 bytes, localization files,
+shared artwork, hitboxes and gameplay state are unchanged. The active resource
+hashes listed above remain applicable. Historical Portuguese artwork was
+inspected read-only and has a different skin; it was not imported.
+
+Existing text/class changes, bounds changes and scale changes rerasterize from
+the canonical source through the existing font cache. Ownership, panel teardown,
+scene reconstruction and logout behavior are unchanged; replicated gameplay
+state and server persistence are N/A.
+
+The NoDeploy gate passed 3,176,709 architecture checks/static assertions,
+281 socket checks, 200 crash checks and 58 launcher checks. Real Tahoma GDI
+tests require complete representative shipped EN/PT names and identical glyph
+masks at scales 1, 1.25, 1.5 and 2 with native weight 500. Generic fitting and
+ellipsis tests also exercise weight 700, accents and texture chunk boundaries.
+Regression cases distinguish the identity/name rows and same-row mastery values.
+The final incremental solution build also completed successfully.
+
+Real client: pending. These are static, GDI/helper and compilation results,
+not Direct3D/gameplay acceptance or `CLIENT_TESTED`. All four classes, EN/PT
+selection, panel reopen, relogin and resolution changes still need observation
+in the exact candidate. Candidate and delivery scope are recorded in
+[the client document](../../../../../DOCS/client/multilingual-client.md#native-caption-comparison-october-25).
+
+## Localized font boundary, October 23
+
+The saved `FUN_00421b8f.c` export, with the native hash in this record,
+shows texture generation drawing and measuring the same byte strings with
+`TextOutA` and `GetTextExtentPoint32A` on the same GDI context. The legacy
+DBCS splitting helper is `FUN_00421a90`. This does not establish a native
+Unicode implementation or the current source's 42-byte chunk size.
+
+The current EN/PT contract uses Windows-1252 resource and wire bytes.
+`ResourceTextGdi.h` now converts those bytes explicitly with code page 1252
+for both `TextOutW` and `GetTextExtentPoint32W`. `FontGdiResources.h` selects
+an explicit ANSI character set and a Unicode face name. `TMFont2`, `SText`
+and `SGridTooltip` share that boundary, and texture chunks no longer treat
+accented single-byte letters as DBCS lead bytes. The existing source limit
+and 42-byte chunk size remain unchanged. Classification:
+`MODERNIZACAO_COMPATIVEL`; this is not a claim that native 7.48 used Unicode.
+
+`LocaleBoundaryTests` compares production GDI measurements against explicit
+Unicode expectations for accented letters and the Euro sign, exercises
+drawing, and checks invalid and empty input plus GDI resource cleanup.
+Actual game rendering and testing on a Windows installation with another
+system ACP remain pending. Wire IDs, message indices and resource encoding
+are unchanged; owner/observer state replication is N/A for this conversion.
+
 ## Gaps
 
 - Previous layout records assumed native scaling; they hold only for mode 1.
@@ -287,3 +474,19 @@ larger resolutions is a product decision, not native mode-2 behavior.
 - Real client: the October 7 captures above do not validate the October 10
   changes. Repeated Party toggles, hover placement and scaled hitboxes still
   need execution in the newly built client.
+- October 23 caption fitting: real Tahoma GDI measurements cover the reported
+  localized captions, English captions and numeric values at UI scales 1,
+  1.25, 1.5 and 2. Tests cover neighboring value separation, panel boundaries,
+  shadow allowance, horizontal texture chunk continuity, alignment width and
+  restoration of the original size after a shorter text update. The NoDeploy
+  build passed 3,176,575 architecture checks and static assertions, 281 socket
+  checks, 200 crash checks and 58 launcher checks. Game rendering, legibility
+  and panel transitions in this candidate remain pending, not `CLIENT_TESTED`.
+  Candidate identity and delivery scope are recorded in
+  [the multilingual client document](../../../../../DOCS/client/multilingual-client.md).
+- The title-tab follow-up measures representative class-specific mastery names
+  and all twelve constrained titles at the same four UI scales. It checks
+  centering, shadow containment, shorter-text size restoration, parent/ID
+  scoping and precedence of nearer neighboring controls. These are helper/GDI
+  checks, not `CLIENT_TESTED` evidence. Reopen, class changes, resolution changes
+  and legibility at the smallest scale remain pending in the built game.

@@ -78,7 +78,7 @@ Iniciar. Consultar evento atualiza contadores e horários; Encerrar interrompe.
 Em timeout HTTP, repetir com o botão próprio conserva o ID da operação e não
 inicia outro evento. Não recarregar a página enquanto o resultado for incerto.
 `felipetr` recebeu as capabilities `game.event.global-drop`, `game.event.quiz` e
-`game.boss.summon` em `data/staff.json`; alterações de permissões invalidam
+`game.boss.summon` em `data/config/staff.json`; alterações de permissões invalidam
 sessões antigas e exigem novo login.
 
 **Fronteira administrativa:** GET/POST `/api/v1/staff/events/global-drop`,
@@ -110,7 +110,7 @@ arquitetura/contrato. `STATICALLY VERIFIED` e `AUTOMATED TESTED`; **não é
 CLIENT_TESTED**. Pendentes: janela real, quatro cliques, timeout, logout/relogin
 e recompensa com PostgreSQL real no fluxo integrado. O executável instalado e
 o servidor em execução não foram substituídos/reiniciados. Candidatos em
-`wydgo748/bin/tm-webadmin.exe` e `tmproject/build/TMProject748/Release/WYD.exe`;
+`build/web-admin/tm-webadmin.exe` e `tmproject/build/TMProject748/Release/WYD.exe`;
 atualizar servidor e cliente juntos numa parada planejada. O frontend está
 compilado no `web/portal/dist` usado pelo painel embarcado.
 
@@ -138,7 +138,7 @@ Não altera o wire do client e não aplica banimento: o jogador pode reconectar.
   não permite trocar o alvo pendente. Não recarregar a página com resultado
   incerto. Atualizar a lista após a confirmação. Resultados tardios após logout
   não alteram a UI de uma nova sessão administrativa.
-- `felipetr` recebeu a nova capability em `data/staff.json`; fazer novo login
+- `felipetr` recebeu a nova capability em `data/config/staff.json`; fazer novo login
   administrativo após a mudança. Web API separada retorna
   `moderation_unavailable`; a Control API HTTP continua somente leitura.
 
@@ -150,7 +150,7 @@ Inclui rejeições, fila cheia, cancelamento, revogação/expiração, replay ap
 relogin, callback duplo de desconexão e falha simulada de persistência.
 `STATICALLY VERIFIED` / `AUTOMATED TESTED`; **não CLIENT_TESTED**.
 Faltam operação pelo navegador com jogador real e save em PostgreSQL real.
-Build candidato: `wydgo748/bin/tm-webadmin.exe`. Nenhum servidor em execução foi
+Build candidato: `build/web-admin/tm-webadmin.exe`. Nenhum servidor em execução foi
 encerrado; `tm.exe` e `project.exe` não foram substituídos neste lote.
 
 ### Moderação: teleporte para cidades — 14/09/2026
@@ -190,7 +190,7 @@ anterior; testes de estado DOM em
 Gates de integração: suíte Go, vet, race focado, geração OpenAPI e Astro
 check/build. `STATICALLY VERIFIED` / `AUTOMATED TESTED`; **não CLIENT_TESTED**.
 Falta validar pelo navegador com jogador e PostgreSQL reais.
-O candidato fica em `wydgo748/bin/tm-webadmin.exe`; nenhum servidor é
+O candidato fica em `build/web-admin/tm-webadmin.exe`; nenhum servidor é
 reiniciado e `tm.exe`/`project.exe` não são substituídos por este lote.
 
 Próximo lote: banimento administrativo com persistência e revogação no login.
@@ -918,7 +918,7 @@ Para Moderator+:
 
 * 2FA/TOTP obrigatório antes de disponibilizar acesso de staff em produção;
 * durante a fase local inicial, o painel usa temporariamente um PIN numérico
-  adicional de 6–12 dígitos definido por `admin_access_pin` no `data/server.txt`;
+  adicional de 6–12 dígitos definido por `admin_access_pin` no `data/config/server.txt`;
 * sessões mais curtas;
 * reautenticação para ações críticas;
 * audit log;
@@ -4349,16 +4349,19 @@ em autorização/persistência usam PostgreSQL real de teste e rejeições,
 rollback, retry e concorrência. No fechamento de integração, a partir do root:
 
 ```powershell
+$repoRootPath = (Get-Location).Path
+$buildOutput = Join-Path $repoRootPath 'build/web-admin'
+New-Item -ItemType Directory -Force $buildOutput | Out-Null
 Push-Location .\wydgo748
 try {
     go test -count=1 ./...
     if ($LASTEXITCODE -ne 0) { throw 'go test falhou' }
     go vet ./...
     if ($LASTEXITCODE -ne 0) { throw 'go vet falhou' }
-    go build -o bin/wyd-web-check.exe ./cmd/web-api
+    go build -o (Join-Path $buildOutput 'wyd-web-check.exe') ./cmd/web-api
     if ($LASTEXITCODE -ne 0) { throw 'build web falhou' }
     # Construir cmd/server quando o lote alterar o servidor/Control API.
-    go build -o bin/server-check.exe ./cmd/server
+    go build -o (Join-Path $buildOutput 'server-check.exe') ./cmd/server
     if ($LASTEXITCODE -ne 0) { throw 'build server falhou' }
 } finally {
     Pop-Location
@@ -4534,12 +4537,12 @@ O `cmd/server` agora inicia o painel dentro do próprio processo, sem subprocess
 `go run`, sem redirecionar o console e sem reiniciar outro servidor.
 Classificação: `MODERNIZACAO_COMPATIVEL`; o protocolo do client não muda.
 
-Configuração em `wydgo748/data/server.txt` (já habilitada no exemplo local):
+Configuração em `wydgo748/data/config/server.txt` (já habilitada no exemplo local):
 
 ```ini
 web_admin_enabled=true
 web_admin_address=127.0.0.1:8082
-web_admin_staff=data/staff.json
+web_admin_staff=data/config/staff.json
 web_admin_static=web/portal/dist
 ```
 

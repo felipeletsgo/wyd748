@@ -7,11 +7,11 @@ import (
 )
 
 func TestLoadCharacterTemplatesProjectFile(t *testing.T) {
-	path := filepath.Join("..", "..", "data", "character_templates.json")
+	path := filepath.Join("..", "..", "data", "content", "character_templates.json")
 	catalog, err := LoadCatalog(
-		filepath.Join("..", "..", "data", "itemlist.csv"),
-		filepath.Join("..", "..", "data", "Itemname.csv"),
-		filepath.Join("..", "..", "data", "SkillData.csv"),
+		filepath.Join("..", "..", "data", "catalog", "itemlist.csv"),
+		filepath.Join("..", "..", "data", "catalog", "Itemname.csv"),
+		filepath.Join("..", "..", "data", "catalog", "SkillData.csv"),
 	)
 	if err != nil {
 		t.Fatal(err)

@@ -16,8 +16,8 @@ import (
 // carry rows the server does not define.
 func TestItemListWideMatchesServerCatalog(t *testing.T) {
 	dataRoot := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(dataRoot, "itemlist.csv"),
-		filepath.Join(dataRoot, "Itemname.csv"), filepath.Join(dataRoot, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(dataRoot, "catalog", "itemlist.csv"),
+		filepath.Join(dataRoot, "catalog", "Itemname.csv"), filepath.Join(dataRoot, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}

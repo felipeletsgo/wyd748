@@ -1,209 +1,221 @@
 ---
 id: airmove-contract
-title: Transporte aéreo 0xAD9 no client WYD 7.48
+title: Native WYD 7.48 AirMove transport and flight completion
 subsystem: transport
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-22
+updated: 2026-10-25
 ---
 
-# Transporte aéreo 0xAD9 no client WYD 7.48
+# Native WYD 7.48 AirMove transport and flight completion
 
-## Pergunta
+## Question
 
-Qual intenção o client envia ao iniciar/encerrar AirMove e quem decide o destino?
+Which intention does the client send when starting and ending AirMove, who
+owns its destination, and why can the imported Griphon remain in flight?
 
-## Fronteira de evidência
+## Evidence boundary
 
-- Executável canônico somente leitura: `references/client748/WYD.exe`, SHA-256
-  acima. Análise nativa/Ghidra registrada nos artefatos
-  `b0f942ba0403483066c168b3dbea8854e121d258` (frame),
-  `c155d2500f64052fb2d65bb1dc8786bee40302a7` (start) e
+- Read-only canonical binary: `references/client748/WYD.exe`, SHA-256 above.
+  Saved native/Ghidra artifacts: `b0f942ba0403483066c168b3dbea8854e121d258`
+  (frame), `c155d2500f64052fb2d65bb1dc8786bee40302a7` (start), and
   `ddab79441b3475059f820a0115a7f0ddf6eb6793` (end).
-- Callgraph nativo: `FUN_0047EF1D` (frame), `FUN_0047F7DA` (start) e
-  `FUN_0047FA1D` (end). TMProject 7.69 foi referência secundária.
-- Source compilável: `TMFieldScene.cpp`, `TMFieldScene.h`, `TMHuman.cpp`,
-  `Basedef.h`, `AirMoveContract.h`; servidor `airmove.go` e testes.
+- Native roots: `FUN_0047EF1D` (frame), `FUN_0047F7DA` (start), and
+  `FUN_0047FA1D` (end). TMProject 7.69 is a secondary reference.
+- Current client: `TMFieldSceneMovement.cpp`, `TMFieldScene.cpp`,
+  `TMFieldScene.h`, `TMHuman.cpp`, `TMHumanMovement.cpp`, `Basedef.h`,
+  `AirMoveContract.h`, `AirMoveMotion.h`, and `AirMoveRoutes.h`.
+- Current server: `wydgo748/internal/game/airmove.go`, its tests, and
+  `official_npc_dataset_test.go`. Imported NPC: `data/npcs/Griphon.json`.
+- The 2026-10-25 user screenshot demonstrates an active flight that does not
+  finish. It does not identify the running executable's path or hash.
+  Before this correction, both the local incremental build and installed
+  `tmproject/client748/WYD.exe` hashed
+  `AB06F70B1CDAF6E52B7DA3A6F1156B56B277AD44C0B01669074DED92BE05FD1F`.
+  This differs from the published 7.48.004 client hash
+  `61C34613ABA2069229D2DFE31350953EF6F7DE4140F70BEE5E8CA5B439D9FCC0`
+  recorded in `.agents/research/channel2-release-748004.json`.
+  Process inventory returned no executable paths; neither identity can be
+  assigned to the screenshot from this inspection.
 
-## Fluxo nativo 7.48
+## Native 7.48 flow
 
-### Entrada observável
+### Observable entry
 
-A interação com NPC visível `ID >= 1000`, face/head `63`, nibble baixo de
-Merchant `7`, no chunk `(16,16)` abre a UI de AirMove. O clique de uma das
-cinco rotas chama o start; a animação de subida, caminho e descida termina no
-end. O pacote não carrega o ID do NPC nem coordenadas escolhidas pelo client.
+A visible NPC with ID >= 1000, face/head 63 and Merchant low nibble 7 in
+chunk (16,16) opens AirMove selection. Choosing one of five routes starts
+ascent, waypoint traversal, descent, and completion. The intention contains
+neither an NPC ID nor arbitrary client-selected coordinates.
 
 ### Callers
 
-O fluxo de seleção da UI chama `FUN_0047F7DA`. O frame da cena
-`FUN_0047EF1D` avança o estado e chama `FUN_0047FA1D` ao terminar; o fluxo de
-ação de `TMHuman` também pode finalizar o movimento ao receber ação do server.
+The selection UI calls `FUN_0047F7DA`. The field frame `FUN_004776C3`
+invokes `FUN_0047EF1D` after the quit/logout countdown. The flight frame
+calls `FUN_0047FA1D` on completion. The human action handler can also end
+visual flight when receiving an authoritative server action.
 
-### Função principal
+### Main transition
 
-Start emite C->S `0xAD9`, 20 bytes, `Header.ID` do personagem local, `Parm1`
-rota `0..4`, `Parm2=1`. O frame executa estados de subida e descida de 2800 ms
-cada, além da travessia visual dos waypoints. End emite o mesmo envelope com
-`Parm1` da rota e `Parm2=2`.
+Start sends C->S opcode 0xAD9, 20 bytes, local character Header.ID, route
+0..4 in Parm1, and mode 1 in Parm2. The visual state machine surrounds
+waypoint traversal with 2800 ms ascent and descent states. End sends the
+same envelope and route with mode 2.
 
 ### Callees
 
-O transporte de pacotes recebe a estrutura temporária; a cena controla mount,
-altura, partícula e posição visual. O servidor decide se aceita a intenção e
-qual posição autoritativa publicar.
+Packet transport consumes the temporary stack structure. The scene owns
+mount, height, particle, and visual position changes. The server validates
+intentions and publishes the authoritative destination. Invalid route
+indices must not read the table; duplicate completion must not send again.
+Forged starts, replay and premature completion do not grant a destination.
 
-### Saídas e erros
+## State and lifecycle
 
-Índice fora de `0..4` não deve acessar a tabela de rotas. Fim duplicado não
-deve repetir o envio. Pacotes forjados, início sem NPC/contexto e fim
-antecipado não concedem destino.
-
-## Estado e lifecycle
-
-### Matriz de transições
-
-| Evento | Precondição | Estado resultante | Wire | Falha |
-| --- | --- | --- | --- | --- |
-| abrir UI | NPC visível compatível no chunk 16 | seleção visível | nenhum | sem NPC, sem UI |
-| start | rota `0..4`, humano local | voo ativo, estado 2 | `0xAD9/20`, modo 1 | rota inválida, sem acesso à tabela |
-| frame | voo ativo | subida, waypoints, descida | nenhum | sem destino arbitrário |
-| end | voo ativo | voo inativo | `0xAD9/20`, modo 2 | repetição sem novo envio |
-| morte/teleporte externo | voo pendente no servidor | pendência cancelada | nenhum destino AirMove | fim tardio ignorado |
-
-### Vtables, vptrs e receptores
-
-Não há mudança de vtable: as chamadas existentes da `TMFieldScene` e de
-`TMHuman` recebem o mesmo estado de cena. O wire não adiciona receptor S->C.
-
-### Ownership
-
-Os estados de animação e rota pertencem à FieldScene; o packet está na pilha.
-O servidor guarda apenas rota, origem e instante por personagem em sessão.
-
-### Falha parcial
-
-Sem `m_pMyHuman` ou rota válida, start retorna antes de construir efeitos ou
-packet. No servidor, falha de teleporte não publica destino e encerra o gate.
-Na UI, a inicialização compacta 7.48 vincula também o título `12549` e as
-colunas `12550..12552` do painel `12544`, observados no dump real de
-`FieldScene2.bin` em `tmproject/client748/client-debug.log` (primeiro bloco
-`compat-field-before-hide`). A source importada usava `12551/52/53/60`.
-Sem lista, texto principal ou nomes de rota carregados, a abertura
-falha com painel oculto e flag limpa. O fechamento não depende da lista.
-O titulo e aplicado diretamente ao controle; os cinco nomes de rota sao
-copiados com limite de 18 caracteres, sem interpretar texto do recurso como
-formato `printf`. Isso preserva o campo visual existente e evita overflow.
-Na travessia, `AirMove_Main` produz um delta por frame. `TMHuman::SetPosition`
-ja grava `m_vecPosition`; somar novamente o delta acumulado em cada
-`TMHuman::Update` deslocava o personagem mais de uma vez e o end o somava
-outra vez. O delta pendente agora e consumido e zerado no update ou, se o
-voo terminar antes do proximo update, no end. Os waypoints e o wire nao mudam.
-No retorno da montaria temporaria, `UpdateMount` havia substituido o tipo por
-`40` e zerado `m_stMountLook`. O end salvava somente o tipo anterior e o
-escrevia em `m_nSkinMeshType` (corpo), deixando a montaria de voo ativa.
-Agora preserva tambem o look e restaura ambos os campos da montaria antes de
-reconstrui-la. Correcao interna `MODERNIZACAO_COMPATIVEL`; nao afirma que o
-binario nativo usa estes mesmos campos ou a mesma sequencia de implementacao.
-Na passagem entre waypoints, a source incrementava o indice antes de testar
-o proximo elemento de `g_pAirMoveRoute[5][10]`. Uma rota que ocupasse a decima
-posicao leria fora do array no fim. A consulta agora verifica o limite e a
-sentinela `(0,0)` antes de incrementar; as cinco rotas e seus pontos nao
-mudaram. E `MODERNIZACAO_COMPATIVEL`, sem nova afirmacao sobre a implementacao
-nativa ou mudanca no wire/servidor.
-
-### Cleanup e teardown
-
-O fim restaura mount, animação e altura. O estado autoritativo é limpo no fim,
-no teleporte externo e no reset de runtime de personagem.
-
-### Shutdown
-
-`SysQuit` continua permitido enquanto o voo está ativo; não há buffer retido
-ou operação assíncrona proprietária da cena.
-
-### Logout e relogin
-
-Logout é permitido pelo gate e o reset de sessão remove rota e origem.
-Relogin começa sem voo pendente; um `Parm2=2` antigo não concede destino.
-
-## Wire, ABI e recursos
-
-`MSG_STANDARDPARM2` tem 20 bytes: header 12, `Parm1` DWORD em `+12`, `Parm2`
-DWORD em `+16`; opcode `0xAD9`; modos `1/2`; rotas `0..4`. A source contém
-`g_pAirMoveRoute[5][10]`. Somente os pontos finais são autoritativos:
-
-| Rota | Destino `(X,Y)` |
-| --- | --- |
-| 0 | `2112,2051` |
-| 1 | `2372,2099` |
-| 2 | `2220,1714` |
-| 3 | `2365,2279` |
-| 4 | `1826,1771` |
-
-## Mapeamento atual
-
-O client conserva o percurso visual e agora usa `AirMoveContract.h` para
-opcode, tamanho, offsets, modos e limite de rota. O servidor aceita só o
-envelope exato, exige NPC visível compatível e origem no chunk 16, guarda
-início/rota, bloqueia outras intenções de gameplay durante o voo e teleporta
-somente após fim correspondente e duração mínima. O servidor segue autoritativo.
-
-## Matriz de delta
-
-| Claim | Nativo 7.48 | Source anterior | Delta |
+| Event | Preconditions | Result | Wire / failure |
 | --- | --- | --- | --- |
-| C->S `0xAD9` | 20 B, dois modos | client emitia; servidor não reconhecia | contrato coordenado |
-| cinco rotas | tabela nativa | client tinha tabela, bounds frouxos | guarda `0..4` |
-| destino | terminal da rota | sem handler Go | destino autoritativo |
-| replay/falsificação | não define confiança do servidor | sem gate | rejeição e cleanup |
-| UI AirMove incompleta | painel de transporte usa título `12549` e colunas `12550..12552` no dump 7.48 | bootstrap compacto não vinculava textos; importado procura `12553/12560` ausentes | vincular IDs presentes e verificar dependências antes de exibir |
+| Open UI | Compatible visible NPC in chunk 16 | Route selection | No packet; missing dependencies keep it hidden |
+| Start | Valid route and living local human | Active flight, state 2 | 0xAD9/20, mode 1 |
+| Frame | Active flight | Ascent, waypoints, descent | Visual movement only |
+| Complete | Active matching flight | Inactive flight | 0xAD9/20, mode 2 |
+| Death | Pending flight | Restore visual origin; clear server route | No flight destination |
+| External teleport | Authoritative position received | Discard pending visual delta | No second completion packet |
+| Logout | Session active | Clear route, time and origin | Quit/logout remain allowed by the gameplay gate |
 
-## Decisões
+### Ownership, partial failure and cleanup
 
-- `PARIDADE_NATIVA` no envelope, seleção e cinco rotas do client.
-- `EXTENSAO_COORDENADA` no validador/estado autoritativo do servidor; o
-  tempo mínimo de 5400 ms é regra de segurança com 200 ms de tolerância em
-  relação aos dois estados de 2800 ms, não uma duração nativa exata.
-- `MODERNIZACAO_COMPATIVEL` para o gate de recurso parcial e a copia limitada
-  dos textos da UI: não altera packet, rotas ou resultado quando os controles
-  e textos existem.
-- `MODERNIZACAO_COMPATIVEL` para consumir o delta do voo uma so vez por frame,
-  preservando os waypoints e os modos de start/end comprovados no 7.48.
-- `MODERNIZACAO_COMPATIVEL` para impedir leitura apos a decima posicao da
-  rota visual; os dados de percurso e o destino autoritativo nao mudam.
-- Não remover estados de animação da source por parecerem inativos: não há
-  demonstração de incompatibilidade com o 7.48.
+No vtable or S->C receiver is added. Scene state owns the visual route;
+server session state stores route, source coordinates and start time.
+Start returns before effects or packets when required owners are missing.
+A server teleport failure clears the gameplay gate without granting a
+new destination. Logout/relogin cannot retain or replay a previous route.
 
-## Lacunas
+The 7.48 compact UI binds panel 12544, title 12549 and columns 12550..12552,
+observed in the real FieldScene2.bin dump (`compat-field-before-hide`). The
+imported layout used unavailable controls 12553/12560. Missing lists,
+text controls or route labels keep the panel hidden and clear its flag.
+Five labels are limited to 18 bytes and are never used as printf formats.
 
-- Os datasets atuais não contêm NPC face 63/Merchant 7 correspondente;
-  preservar essa ausência, sem inventar spawn, nome, preço ou rota.
-- A UI, o NPC e a viagem não foram exercitados no client construído. Falta
-  teste real para promover a `CLIENT_TESTED` e confirmar falhas visuais.
-- O build e os testes de wire não exercitam abertura/fechamento da UI nem
-  comprovam a presença de cada texto no recurso carregado; verificar no
-  client com NPC de transporte real antes de declarar o fluxo operacional.
+`UpdateMount` installs temporary mesh 40 and clears the mount look. End
+restores both the saved mount mesh and look before rebuilding it, without
+writing the mount type into the character's body mesh. Death and external
+teleport take their cancellation branches before emitting a completion.
+Waypoint advancement checks array bounds and the (0,0) sentinel before
+incrementing the index.
 
-## Validação
+### 2026-10-25 looping diagnosis
 
-- Testes Go focados cobrem cinco destinos, falsificação, tamanho, replay,
-  morte e cleanup. `PacketViewTests` fixa constantes/limites C++ e os asserts
-  em `Basedef.h` fixam o layout real da estrutura.
-- `go test -count=1 ./...` e `go vet ./...` passaram no lote do contrato;
-  não foram repetidos para este ajuste só de UI. O build integrado após a
-  guarda de recurso e a vinculação dos IDs reais passaram 51.693 checks e
-  instalaram `project.exe` SHA-256
-  `A29A600F5DF1B54ADFC352D8E02584185856C33F670D11B84F558444C7A4890A`.
-- Validador de fichas, layout/links e `git diff --check` passaram. O gate da
-  UI é build estático; a abertura real com NPC continua sem teste.
-- A copia limitada dos cinco nomes e a remocao de formato controlado pelo
-  recurso passaram novamente no build Release integrado e nos 51.693 checks.
-  O candidato instalado tem SHA-256
-  `10791835D8098F3F6D08D7951568C4EE5535BC5375F3375E2ABEAAAF2736B1FA`.
-- O teste C++ de regressao aplica um delta e verifica que o frame seguinte
-  nao o reaplica. Build Release integrado passou com 51.695 checks e instalou
-  `project.exe` SHA-256
-  `2140019A43B8B46D3739B6EA12375549CEFDFB2ACF98C0A55EF3141469A402C6`.
-  O teste isolado nao substitui a viagem real no client.
-- `STATICALLY VERIFIED` e `AUTOMATED TESTED`; não `CLIENT_TESTED`.
+`AirMove_Main` queues a per-frame displacement in `m_vecAirMove`.
+`TMHuman::FrameMove` formerly assigned the ground route interpolation to
+`m_vecPosition` unconditionally, then consumed and cleared that displacement.
+The server intentionally leaves its ground position at departure until
+mode 2. Consequently every human frame replaced prior flight progress with
+the ground origin: the next flight frame remained far from its waypoint
+and could not reach descent or send completion.
+
+`UpdateHumanFramePosition` now preserves the previous visual position while
+`m_bIgnoreHeight` is active and consumes the pending displacement once,
+before frame effects. Ordinary frames still use ground interpolation.
+`SetPosition` receives the resulting position without applying the delta
+again. `AirMove_End` can still consume a final pending delta when needed.
+Only AirMove sets this height flag in the current source; authoritative
+action handling and completion clear it.
+
+`AirMoveWaypointDelta` extracts the existing direction, stop tolerance and
+diagonal speed calculation without changing its formula. The unchanged
+five waypoint arrays are shared in `AirMoveRoutes.h`, allowing regressions
+to traverse the actual scene data. The existing stop check compares the
+next full-speed step with the waypoint, so visual arrival can be up to
+speed + 0.5 units away; the server publishes the exact endpoint.
+
+## Wire, ABI, and resources
+
+`MSG_STANDARDPARM2`: 12-byte header, DWORD route at +12, DWORD mode at +16,
+20 bytes total, opcode 0xAD9, modes 1/2, routes 0..4. Visual paths remain
+`g_pAirMoveRoute[5][10]`; only endpoints belong to server state.
+
+| Route | Authoritative endpoint (X,Y) |
+| --- | --- |
+| 0 | 2112,2051 |
+| 1 | 2372,2099 |
+| 2 | 2220,1714 |
+| 3 | 2365,2279 |
+| 4 | 1826,1771 |
+
+## Current mapping
+
+The imported Griphon now exists with face 63, Merchant 7 and source spawn
+(2115,2080), unlike the initial contract audit's dataset. The server checks
+a compatible visible NPC and chunk 16, validates exact packet size,
+retains the start context, and permits completion only after a matching
+start and minimum duration. Other gameplay intentions are blocked during
+flight; death, external teleport, logout and session reset clear the gate.
+
+## Delta matrix
+
+| Claim | Native evidence / existing behavior | Current adaptation |
+| --- | --- | --- |
+| Envelope and selection | Native 0xAD9/20, modes 1/2, five routes | Preserve existing ABI |
+| Destination | Native route terminals | Server-owned endpoint table |
+| Forgery and replay | Native transport does not establish trust | Go session validation and cleanup |
+| Compact transport UI | Real 7.48 controls and label resources | Bind existing controls; guard partial resources |
+| Visual progress | Scene traverses waypoints before end | Preserve frame-to-frame position instead of resetting to ground origin |
+| Waypoint storage | Existing five arrays | Share unchanged data with portable regressions |
+
+## Decisions
+
+- PARIDADE_NATIVA applies to the proven envelope, route selection and data.
+- EXTENSAO_COORDENADA applies to authoritative server validation. The
+  5400 ms minimum allows 200 ms tolerance against two 2800 ms visual states;
+  it is a project security rule, not an exact native flight duration.
+- MODERNIZACAO_COMPATIVEL applies to partial-resource guards, bounded label
+  copies, mount restoration, single delta consumption, waypoint bounds and
+  preservation of flight position between frames. These fixes change no
+  packet, route, price, destination, reward or resource identifier.
+- Reuse the saved 7.48 contract; no new native behavior is inferred from the
+  current C++ helper layout or internal field choices.
+
+## Gaps
+
+- Real client acceptance remains pending for each selected route, ascent,
+  traversal, descent, restored mount and input, external interruption,
+  owner/observer presentation and relogin.
+- Automated route stepping does not execute Direct3D rendering, the complete
+  scene state machine, UI selection, packet delivery or a live session.
+- A new candidate does not update the running game or published launcher.
+  This correction authorizes no installation, publication or restart.
+
+## Validation
+
+- Historical September contract checks covered Go route/state validation,
+  C++ envelope/layout assertions, UI bindings and delta/mount/bounds guards.
+  The earlier single-delta regression did not exercise ground interpolation
+  overwriting position on a subsequent frame; it missed this failure.
+- New C++ regressions run all five actual route tables at speeds 0.2, 0.6
+  and 0.71, across repeated human frames with a stationary ground origin.
+  They require final-waypoint arrival within the existing stop tolerance
+  and an empty pending delta. Separate checks cover ordinary ground
+  interpolation and a flight frame without a new displacement.
+- Source integration checks tie both production callers to the tested
+  position and waypoint helpers and prohibit the unconditional overwrite.
+- 2026-10-25 focused Go AirMove tests passed. The official NPC dataset test
+  also passed, exercising the imported Griphon against all five destinations.
+- Release build with `Build-Client.ps1 -Configuration Release -NoDeploy`
+  passed: 3,176,754 architecture checks, 281 socket checks, 200 crash-capture
+  checks, and 58 launcher checks. Candidate identity is recorded below;
+  the installed client and published patch were not replaced.
+- Candidate: `tmproject/build/TMProject748/Release/WYD.exe`, 1,939,456 bytes,
+  SHA-256 `2C6288AA71E689FC02F9F5D7B5E6B67F3A087CAE8B3FB7A26EE539E9FDF632BD`.
+- The changed-record validator and scoped `git diff --check` passed. The
+  repository layout gate failed on existing artifacts outside build roots:
+  the original installation's `WYD.log`, `tmproject/client748.zip`, and
+  `tmproject/client748/dumps/` with runtime crash-monitor logs. This task did
+  not create, remove or relocate those files. The original installation now
+  resides in `references/client748/WYD 7.48 PORTUGUES/`; the earlier result is
+  historical. Local cleanup later moved the client debug logs into `dumps/`
+  and recycled `tmproject/client748.zip` after confirming it had no paths absent
+  from the current client directory.
+- Cleanup was rejected by execution policy before execution. The remaining
+  task artifacts are `build/griphon-build.log` and
+  `tmproject/build/tests/Release/crash-capture-tests-14236-96561343/`.
+  No alternative deletion method was attempted.
+- STATICALLY VERIFIED and AUTOMATED TESTED; not CLIENT_TESTED.

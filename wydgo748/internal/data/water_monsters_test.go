@@ -21,6 +21,7 @@ func TestWaterDedicatedMonsterDefinitions(t *testing.T) {
 	for i := range npcs {
 		byName[npcs[i].Name] = &npcs[i]
 	}
+	donors := historicalInstanceDonors(t)
 	cases := []struct{ source, name, tier string }{
 		{"Meio_Orc_", "WTN_Orc", "normal"},
 		{"Troll_Hunter", "WTN_Hunter", "normal"},
@@ -54,11 +55,11 @@ func TestWaterDedicatedMonsterDefinitions(t *testing.T) {
 	dedicated := make(map[string]string)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			source, monster := byName[tc.source], byName[tc.name]
+			source, monster := donors[tc.source], byName[tc.name]
 			if source == nil || monster == nil || source.Score == nil || monster.Score == nil {
 				t.Fatal("missing dedicated Water monster or source template")
 			}
-			if monster == source || monster.Score == source.Score || !monster.IsMonster() || len(monster.Name) > wireNameBytes {
+			if monster == source || monster.Score == source.Score || !monster.IsMonster() || len(monster.VisibleName()) > model.MaxNPCDisplayNameBytes {
 				t.Fatal("Water definition is shared, non-hostile or exceeds the wire name limit")
 			}
 			want := map[string][2]uint32{"normal": {1000, 200000}, "mystic": {4000, 300000}, "arcane": {10000, 500000}}[tc.tier]
@@ -74,7 +75,7 @@ func TestWaterDedicatedMonsterDefinitions(t *testing.T) {
 		})
 		dedicated[tc.name] = tc.tier
 	}
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"), filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"), filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -161,7 +162,7 @@ func TestWaterDedicatedMonsterDefinitions(t *testing.T) {
 			}
 		}
 	}
-	geners, err := LoadNPCGener(filepath.Join(root, "NPCGener.txt"))
+	geners, err := LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}

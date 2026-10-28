@@ -109,6 +109,9 @@ func TestWritePreservesArtifactAndHashesChangedInputs(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(dir, name)), 0700); err != nil {
+			t.Fatal(err)
+		}
 		if err := os.WriteFile(filepath.Join(dir, name), contents, 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -126,7 +129,7 @@ func TestWritePreservesArtifactAndHashesChangedInputs(t *testing.T) {
 	if !stat.ModTime().Equal(statAgain.ModTime()) {
 		t.Fatal("identical export rewritten")
 	}
-	namePath := filepath.Join(dir, "Itemname.csv")
+	namePath := filepath.Join(dir, "catalog", "Itemname.csv")
 	names, _ := os.ReadFile(namePath)
 	changed := bytes.Replace(names, []byte("Heaven's_Dust"), []byte("Heaven's_Dust_Test"), 1)
 	if bytes.Equal(changed, names) {
@@ -145,7 +148,7 @@ func TestWritePreservesArtifactAndHashesChangedInputs(t *testing.T) {
 	if old.ContentHash == new.ContentHash || old.Sources[1].SHA256 == new.Sources[1].SHA256 || !bytes.Contains(after, []byte("Heaven's Dust Test")) {
 		t.Fatal("changed input not reflected")
 	}
-	if err := os.WriteFile(filepath.Join(dir, "SkillData.csv"), []byte("not,a,valid,skill\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "catalog", "SkillData.csv"), []byte("not,a,valid,skill\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err := Write(dir, output); err == nil {

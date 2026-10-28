@@ -42,7 +42,15 @@
       "index": 0
     },
     "acessorio6": {
-      "index": 0
+      "index": 786,
+      "eff": [
+        43,
+        2,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "montaria": {
       "index": 0
@@ -52,10 +60,10 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 1000,
   "score": {
     "version": 2,
-    "level": 128,
+    "level": 300,
     "attack": 400,
     "magicAttack": 0,
     "defense": 1080,
@@ -66,13 +74,12 @@
     "str": 4,
     "int": 75,
     "dex": 30,
-    "con": 0,
+    "con": 400,
     "critical": 255,
-    "resistHoly": 246,
     "saveMana": 255,
     "mastery": [
       255,
-      6,
+      7,
       255,
       7
     ],
@@ -80,13 +87,94 @@
   },
   "carry": [
     {
-      "index": 2442
+      "index": 4041
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 420
+    },
+    {
+      "index": 1708
+    },
+    {
+      "index": 852,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "index": 0
     },
     {
-      "index": 2442
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 419
+    },
+    {
+      "index": 868,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 823,
+      "eff": [
+        103,
+        0,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1708
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
     },
     {
       "index": 0
@@ -101,7 +189,93 @@
       "index": 0
     },
     {
-      "index": 4042
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4041
+    },
+    {
+      "index": 1207,
+      "eff": [
+        103,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1342,
+      "eff": [
+        103,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1642,
+      "eff": [
+        103,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "index": 1492,
+      "eff": [
+        103,
+        3,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     {
       "index": 0
@@ -134,7 +308,7 @@
       "index": 0
     },
     {
-      "index": 0
+      "index": 413
     },
     {
       "index": 0
@@ -152,105 +326,16 @@
       "index": 0
     },
     {
-      "index": 0
+      "index": 419
     },
     {
-      "index": 0
+      "index": 420
     },
     {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 2442
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 2442
+      "index": 412
     }
   ],
+  "gold": 500,
   "skillBar": [
     255,
     255,

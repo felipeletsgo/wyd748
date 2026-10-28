@@ -54,31 +54,27 @@
   "expReward": 0,
   "score": {
     "version": 2,
-    "level": 2,
+    "level": 0,
     "attack": 500,
     "magicAttack": 0,
-    "defense": 3000,
-    "maxHP": 9270,
+    "defense": 500,
+    "maxHP": 9000,
     "maxMP": 0,
-    "curHP": 9270,
+    "curHP": 9000,
     "curMP": 0,
     "str": 5,
     "int": 100,
     "dex": 0,
     "con": 0,
     "critical": 255,
-    "resistFire": 255,
-    "resistIce": 255,
-    "resistHoly": 255,
-    "resistThunder": 255,
     "saveMana": 255,
     "mastery": [
-      255,
+      200,
       7,
-      255,
+      200,
       7
     ],
-    "attackRun": 2,
+    "attackRun": 1,
     "merchant": 1
   },
   "skillBar": [
@@ -92,22 +88,22 @@
       "index": 1418
     },
     {
-      "index": 0
-    },
-    {
       "index": 1421
-    },
-    {
-      "index": 0
     },
     {
       "index": 1424
     },
     {
-      "index": 0
+      "index": 1427
     },
     {
       "index": 1430
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
     },
     {
       "index": 0
@@ -170,25 +166,19 @@
       "index": 0
     },
     {
-      "index": 1256
+      "index": 1568
     },
     {
-      "index": 0
+      "index": 1571
     },
     {
-      "index": 1268
+      "index": 1574
     },
     {
-      "index": 0
+      "index": 1577
     },
     {
-      "index": 1280
-    },
-    {
-      "index": 0
-    },
-    {
-      "index": 1304
+      "index": 1580
     }
   ]
 }

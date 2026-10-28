@@ -12,12 +12,12 @@ import (
 
 func TestClient748InitItemsSpawnWithReservedCannonIDs(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := data.LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	objects, err := data.LoadInitItems(filepath.Join(root, "init_items.csv"), catalog.Items)
+	objects, err := data.LoadInitItems(filepath.Join(root, "world", "init_items.csv"), catalog.Items)
 	if err != nil {
 		t.Fatal(err)
 	}

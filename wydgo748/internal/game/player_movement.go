@@ -135,30 +135,31 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		due = len(p.MoveAuthorityRoute)
 	}
 	oldX, oldY := p.X, p.Y
+	lastCity := -1
 	for p.MoveAuthorityStep < due {
 		encoded := p.MoveAuthorityRoute[p.MoveAuthorityStep]
 		direction, ok := routeDirections[encoded]
 		if !ok {
 			clearPublishedPlayerMove(p)
-			return
+			break
 		}
 		nextX := uint16(int(p.X) + direction[0])
 		nextY := uint16(int(p.Y) + direction[1])
 		if !w.oxStepAllowed(p, nextX, nextY) || !w.guildWarStepAllowed(p, nextX, nextY) ||
 			!hiddenValleyDestinationAllowed(p, nextX, nextY, now) {
 			w.publishPlayerStop(p)
-			return
+			break
 		}
 		if !w.newbieZoneDestinationAllowed(p, nextX, nextY) {
 			w.publishPlayerStop(p)
 			if p.Session != nil {
 				p.Session.Send(wire.MessagePanel(newbieZoneMessage))
 			}
-			return
+			break
 		}
 		if !w.terrain.RouteHeightCompatible(p.X, p.Y, nextX, nextY) {
 			w.publishPlayerStop(p)
-			return
+			break
 		}
 		// The native client checks occupancy at the final destination, not at
 		// every intermediate route tile. Blocking one of those tiles left the
@@ -168,13 +169,13 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		if isFinalStep && w.positionOccupiedInGameplaySpace(nextX, nextY,
 			w.gameplaySpaceForPlayer(p), nil, p, nil) {
 			w.publishPlayerStop(p)
-			return
+			break
 		}
 		p.X, p.Y = nextX, nextY
 		p.MoveAuthorityStep++
-		// Bind only tiles actually reached, including a city crossed before
-		// the route ends or is stopped. Repeated steps in that city are no-ops.
-		w.bindPlayerHomeCity(p)
+		if city, ok := bindableCityAt(p.X, p.Y); ok {
+			lastCity = city
+		}
 	}
 	p.MoveAuthorityX, p.MoveAuthorityY = p.X, p.Y
 	p.Char.X, p.Char.Y = p.X, p.Y
@@ -187,6 +188,11 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 	}
 	if p.X != oldX || p.Y != oldY {
 		w.refreshPlayerVisibilityAfterMove(p, oldX, oldY)
+	}
+	// Persistence retains the full account and position until acknowledgement.
+	// Queue once after all accepted steps and their state updates are complete.
+	if lastCity >= 0 {
+		w.bindPlayerHomeCityIndex(p, lastCity)
 	}
 }
 

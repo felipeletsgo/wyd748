@@ -1704,7 +1704,8 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
     if (fProgressRate > 1.0f)
         m_cSameHeight = 0;
 
-    m_vecPosition = vecCurrent;
+    UpdateHumanFramePosition(m_vecPosition, vecCurrent, m_vecAirMove,
+        m_bIgnoreHeight != 0);
     FrameMoveEffect(dwServerTime);
 
     if (pScene && pScene->m_pGround)
@@ -1753,13 +1754,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
     if (!m_bIgnoreHeight)
         m_fHeight = GetMyHeight();
 
-    if (m_bIgnoreHeight)
-    {
-        ConsumeAirMoveDelta(m_vecPosition, m_vecAirMove);
-        SetPosition(m_vecPosition.x, m_fHeight, m_vecPosition.y);
-    }
-    else
-        SetPosition(m_vecPosition.x, m_fHeight, m_vecPosition.y);
+    SetPosition(m_vecPosition.x, m_fHeight, m_vecPosition.y);
 
     TMHuman* pFocused = nullptr;
     if(pScene)

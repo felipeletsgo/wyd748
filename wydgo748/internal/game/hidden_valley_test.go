@@ -13,7 +13,7 @@ import (
 
 func hiddenValleyPortal(t *testing.T) model.Teleport {
 	t.Helper()
-	routes, err := data.LoadTeleports("../../data/teleports.ini")
+	routes, err := data.LoadTeleports("../../data/world/teleports.ini")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +65,7 @@ func TestHiddenValleyPortalRequiresActivatedMap(t *testing.T) {
 }
 
 func TestHiddenValleyMapActivationAndRelogExpiry(t *testing.T) {
-	contents, err := os.ReadFile("../../data/volatiles.json")
+	contents, err := os.ReadFile("../../data/content/volatiles.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -208,7 +208,7 @@ func TestHiddenValleyCriticalPortalCrossesExpiryWithoutContainment(t *testing.T)
 }
 
 func TestHiddenValleyInstalledTerrainBoundary(t *testing.T) {
-	terrain, err := data.LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := data.LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -239,7 +239,7 @@ func TestHiddenValleyInstalledTerrainBoundary(t *testing.T) {
 	if len(seen) < 1000 {
 		t.Fatalf("destination is not a substantial connected area: %d cells", len(seen))
 	}
-	generators, err := data.LoadNPCGener("../../data/NPCGener.txt")
+	generators, err := data.LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

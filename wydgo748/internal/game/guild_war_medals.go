@@ -57,7 +57,7 @@ func (w *World) addTowerMedals(registry *model.GuildRegistry, phase string) {
 	}
 	event := fmt.Sprintf("tower/%s/%s/%d", s.Day, phase, s.Captures)
 	for _, p := range w.players {
-		if !validPlayerMobParticipant(p) || p.Account == nil || w.gameplaySpaceForPlayer(p) != "" || !towerWarArena.contains(p.X, p.Y) {
+		if !validPlayerMobParticipant(p) || !w.channelWarEligible(p) || p.Account == nil || w.gameplaySpaceForPlayer(p) != "" || !towerWarArena.contains(p.X, p.Y) {
 			continue
 		}
 		g, _ := w.guildOf(p.Char)

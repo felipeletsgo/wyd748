@@ -175,6 +175,9 @@ func knownInboundOpcode(opcode uint16) bool {
 // the server recalculates targets/damage. Other sizes, including arbitrary
 // tails, remain rejected.
 func inboundPacketSizeAllowed(opcode uint16, size int) (bool, string) {
+	if opcode == wire.OpPremiumBuy {
+		return size == wire.PremiumBuySize || size == wire.PremiumWebBuySize, "28 or 32"
+	}
 	if opcode == wire.OpAttackOne {
 		return size == 48 || size == attackOneObservedExtendedSize, "48 or 96"
 	}

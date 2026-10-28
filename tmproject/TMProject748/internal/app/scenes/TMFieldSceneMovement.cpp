@@ -431,31 +431,10 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 			else
 				m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight + fVal;
 
-			float AddY = 0.0f;
-			float AddX = 0.0f;
-			float MyX = m_pMyHuman->m_vecPosition.x;
-			float MyY = m_pMyHuman->m_vecPosition.y;
-			if (MyX >= (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nX)
-				AddX = -m_fAirMove_Speed;
-			else if ((float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nX >= MyX)
-				AddX = +m_fAirMove_Speed;
-			if (MyY >= (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nY)
-				AddY = -m_fAirMove_Speed;
-			else if ((float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nY >= MyY)
-				AddY = +m_fAirMove_Speed;
-
-			float DiffX = (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nX - (float)(MyX + AddX);
-			float DiffY = (float)g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex].nY - (float)(MyY + AddY);
-			if (DiffX <= 0.5f && DiffX >= -0.5f)
-				AddX = 0.0f;
-			if (DiffY <= 0.5f && DiffY >= -0.5f)
-				AddY = 0.0f;
-
-			if (fabsf(AddX) == m_fAirMove_Speed && fabsf(AddY) == m_fAirMove_Speed)
-			{
-				AddX = AddX / 2.0f;
-				AddY = AddY / 2.0f;
-			}
+			const auto delta = AirMoveWaypointDelta(m_pMyHuman->m_vecPosition,
+				g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex], m_fAirMove_Speed);
+			const float AddX = delta.x;
+			const float AddY = delta.y;
 			if (AddX != 0.0f || AddY != 0.0f)
 			{
 				m_pMyHuman->m_vecAirMove.x = m_pMyHuman->m_vecAirMove.x + AddX;

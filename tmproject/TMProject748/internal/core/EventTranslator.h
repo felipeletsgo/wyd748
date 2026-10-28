@@ -1,6 +1,7 @@
 #pragma once
 
 #include <dinput.h>
+#include "../application/ModalInputPolicy.h"
 
 class IEventListener
 {
@@ -30,7 +31,7 @@ public:
 	void SetVisibleCandidateList(int lParam, int bVisible);
 
 
-	int ReadInputEventData();
+	int ReadInputEventData(bool captured = false);
 	int CameraEventData();
 
 	void OnKeyDown(unsigned int iKeyCode);
@@ -48,6 +49,7 @@ private:
 	IDirectInput8* m_pDI;
 	IDirectInputDevice8* m_pMouseDevice;
 	bool m_hasMouseSample = false;
+	ModalInputPolicy m_modalInput;
 
 public:
 	int dx = 0;

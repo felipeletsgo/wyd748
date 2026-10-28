@@ -10,9 +10,11 @@ set -euo pipefail
 umask 022
 test "$EUID" -eq 0
 migrate_pin=false
+game_only=false
 case "${2:-}" in
     '') ;;
     --migrate-admin-pin) migrate_pin=true ;;
+    --game-only) game_only=true ;;
     *) echo 'Unknown release option' >&2; exit 1 ;;
 esac
 stage=$(realpath -- "${1:?staging directory is required}")
@@ -23,7 +25,81 @@ test -f /etc/wyd-go/player.env
 previous_schema=$(runuser -u postgres -- psql -X -p 5433 -d wydgo -Atc 'SELECT max(version) FROM schema_migrations')
 cd "$stage"
 sha256sum --check --strict release.sha256
+if [ "$game_only" = true ]; then
+    # Preserve every installed setting and all non-game components. This mode
+    # accepts only the game binary and its complete, explicitly packaged data.
+    if tar -tzf release.tar.gz | grep -Ev '^game/($|data(/.*)?$|data-layout\.version$|wyd-server$)'; then
+        echo 'Game-only archive contains an unexpected path' >&2
+        exit 1
+    fi
+    if tar -tzvf release.tar.gz | grep -Eq '^[lh]'; then
+        echo 'Game-only archive must not contain links' >&2
+        exit 1
+    fi
+    if tar -tzf release.tar.gz | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+        echo 'Game-only archive contains an unsafe path' >&2
+        exit 1
+    fi
+    previous=$(readlink -f /srv/wyd-go/current)
+    python3 -B "$stage/config/check-game-only-layout.py" \
+        --installed-game "$previous/game" --config /etc/wyd-go/server.txt --archive release.tar.gz
+    test -z "$(ss -Htn state established '( sport = :8281 or sport = :8282 )')"
+    systemctl start wyd-backup.service
+    stamp=$(date -u +%Y%m%dT%H%M%SZ)
+    release="/srv/wyd-go/releases/$stamp"
+    test ! -e "$release"
+    install -d -m 755 "$release"
+    cp -a "$previous/." "$release/"
+    # This is a fresh, inactive checkout. Replace its population as a whole so
+    # deleted local templates cannot survive from the previous release.
+    [[ "$release" =~ ^/srv/wyd-go/releases/[0-9]{8}T[0-9]{6}Z$ ]]
+    test "$release" != "$previous"
+    rm -rf -- "$release/game/data"
+    tar -xzf release.tar.gz -C "$release" --no-same-owner
+    chmod -R u=rwX,go=rX "$release/game/data"
+    chmod 755 "$release/game/wyd-server"
+    test -s "$release/game/wyd-server"
+    test -s "$release/game/data/spawns/NPCGener.txt"
+    rollback_game() {
+        trap - ERR
+        ln -sfn "$previous" /srv/wyd-go/current.new
+        mv -Tf /srv/wyd-go/current.new /srv/wyd-go/current
+        systemctl restart wyd-game || true
+        echo "Game activation failed; restored $previous" >&2
+    }
+    trap rollback_game ERR
+    test -z "$(ss -Htn state established '( sport = :8281 or sport = :8282 )')"
+    ln -sfn "$release" /srv/wyd-go/current.new
+    mv -Tf /srv/wyd-go/current.new /srv/wyd-go/current
+    systemctl restart wyd-game
+    ready=false
+    for attempt in {1..30}; do
+        if curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8083/readyz &&
+            systemctl is-active --quiet wyd-game &&
+            ss -lnt '( sport = :8281 )' | grep -q LISTEN &&
+            { ! grep -qx 'channel2_enabled=true' /etc/wyd-go/server.txt ||
+                ss -lnt '( sport = :8282 )' | grep -q LISTEN; }; then
+            ready=true
+            break
+        fi
+        sleep 1
+    done
+    test "$ready" = true
+    trap - ERR
+    rm -rf -- "$stage"
+    printf 'Game release %s is live; previous: %s. Other services and configuration preserved.\n' "$release" "$previous"
+    exit 0
+fi
 grep -q '^wyd.forjago.com {' config/wyd-site.caddy
+second_channel=false
+if grep -qx 'channel2_enabled=true' config/server.txt; then
+    grep -qx 'channel2_address=0.0.0.0:8282' config/server.txt
+    second_channel=true
+fi
+if [ -n "$(ss -Htn state established '( sport = :8281 or sport = :8282 )')" ]; then
+    echo 'Active game connections prevent a safe release activation' >&2
+    exit 1
+fi
 systemctl start wyd-backup.service
 
 previous=$(readlink -f /srv/wyd-go/current)
@@ -144,11 +220,14 @@ if ! caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
 fi
 # server.txt binds the game listener publicly; admit only its TCP port.
 ufw allow 8281/tcp comment 'WYD game' >/dev/null
+if [ "$second_channel" = true ]; then
+    ufw allow 8282/tcp comment 'WYD channel 2' >/dev/null
+fi
 
 switch_to "$release"
 # The operator must not disconnect active players to publish a web update.
 if [ "$restart_game" = true ]; then
-    if [ -n "$(ss -Htn state established '( sport = :8281 )')" ]; then
+    if [ -n "$(ss -Htn state established '( sport = :8281 or sport = :8282 )')" ]; then
         echo 'Active game connections prevent a safe restart' >&2
         # No service was restarted; restore only configuration and the symlink.
         restart_game=false
@@ -181,7 +260,8 @@ for attempt in {1..15}; do
     if curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8083/readyz &&
         curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8082/readyz &&
         systemctl is-active --quiet wyd-game &&
-        ss -lnt '( sport = :8281 )' | grep -q LISTEN; then
+        ss -lnt '( sport = :8281 )' | grep -q LISTEN &&
+        { [ "$second_channel" = false ] || ss -lnt '( sport = :8282 )' | grep -q LISTEN; }; then
         ready=true
         break
     fi

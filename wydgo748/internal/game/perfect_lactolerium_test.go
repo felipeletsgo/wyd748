@@ -61,13 +61,13 @@ func TestPerfectLactoleriumNeverFailsOrBreaksTheEarring(t *testing.T) {
 
 func TestPerfectLactoleriumCatalogEntry(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"), filepath.Join(root, "Itemname.csv"),
-		filepath.Join(root, "ItemEffect.h"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := data.LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"), filepath.Join(root, "catalog", "Itemname.csv"),
+		filepath.Join(root, "catalog", "ItemEffect.h"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := data.LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills)
+	volatiles, err := data.LoadVolatilesWithInstances(filepath.Join(root, "content", "volatiles.json"),
+		filepath.Join(root, "content", "instances.json"), filepath.Join(root, "spawns", "instances"), catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

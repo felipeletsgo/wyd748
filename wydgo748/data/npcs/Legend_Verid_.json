@@ -1,0 +1,319 @@
+{
+  "name": "Legend_Verid_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 399
+    },
+    "elmo": {
+      "index": 182
+    },
+    "armadura": {
+      "index": 183
+    },
+    "calca": {
+      "index": 184
+    },
+    "luva": {
+      "index": 185
+    },
+    "bota": {
+      "index": 186
+    },
+    "arma": {
+      "index": 1927,
+      "eff": [
+        43,
+        9,
+        26,
+        10,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 1927,
+      "eff": [
+        43,
+        9,
+        26,
+        10,
+        0,
+        0
+      ]
+    },
+    "acessorio1": {
+      "index": 786,
+      "eff": [
+        60,
+        0,
+        71,
+        45,
+        0,
+        0
+      ]
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 633,
+      "eff": [
+        43,
+        9,
+        51,
+        50,
+        49,
+        50
+      ]
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 1937,
+      "eff": [
+        43,
+        14,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 260000,
+  "score": {
+    "version": 2,
+    "level": 399,
+    "attack": 14000,
+    "magicAttack": 0,
+    "defense": 12000,
+    "maxHP": 32000,
+    "maxMP": 0,
+    "curHP": 32000,
+    "curMP": 0,
+    "str": 10000,
+    "int": 10000,
+    "dex": 15000,
+    "con": 1000,
+    "critical": 255,
+    "resistFire": 200,
+    "resistIce": 200,
+    "resistHoly": 200,
+    "resistThunder": 200,
+    "saveMana": 255,
+    "regenHP": 160,
+    "regenMP": 50,
+    "mastery": [
+      200,
+      7,
+      200,
+      7
+    ],
+    "attackRun": 4
+  },
+  "carry": [
+    {
+      "index": 0
+    },
+    {
+      "index": 2409
+    },
+    {
+      "index": 4127
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 2407
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2409
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4127
+    },
+    {
+      "index": 413
+    },
+    {
+      "index": 412
+    },
+    {
+      "index": 671
+    },
+    {
+      "index": 2407
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 2407
+    },
+    {
+      "index": 2407
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 0
+    },
+    {
+      "index": 4141
+    },
+    {
+      "index": 2317
+    }
+  ],
+  "gold": 420,
+  "learnedSkill": 60080,
+  "skillBar": [
+    255,
+    255,
+    255,
+    255
+  ]
+}

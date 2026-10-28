@@ -30,12 +30,9 @@ correctly.
 
 ## Persistence and duplication prevention
 
-PostgreSQL is authoritative persistence. JSON exists only as an explicit
-development adapter:
-
-```text
-database_driver=json
-```
+PostgreSQL is authoritative persistence. The server accepts only
+`database_driver=postgres`; the JSON store remains a test adapter in
+`internal/store`.
 
 There is no automatic fallback. If PostgreSQL is configured but unavailable,
 the server must fail during startup rather than start with another state.

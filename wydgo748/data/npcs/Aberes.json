@@ -3,7 +3,7 @@
   "tipo": "monstro",
   "equip": {
     "rosto": {
-      "index": 17
+      "index": 52
     },
     "elmo": {
       "index": 149
@@ -52,7 +52,7 @@
     }
   },
   "classInfo": 1,
-  "expReward": 0,
+  "expReward": 4000,
   "score": {
     "version": 2,
     "level": 301,
@@ -70,13 +70,14 @@
     "critical": 255,
     "saveMana": 255,
     "mastery": [
-      101,
+      151,
       1,
-      101,
+      151,
       1
     ],
     "attackRun": 4
   },
+  "gold": 500,
   "direction": 32,
   "skillBar": [
     255,

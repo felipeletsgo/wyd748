@@ -11,6 +11,7 @@ import PvPDoor from '../../components/PvPDoor.astro';
 import OXEvent from '../../components/OXEvent.astro';
 import Colosseum from '../../components/Colosseum.astro';
 import PremiumShop from '../../components/PremiumShop.astro';
+import NPCEditor from '../../components/NPCEditor.astro';
 import AccountCreate from '../../components/AccountCreate.astro';
 import AccountDirectory from '../../components/AccountDirectory.astro';
 import Sanctions from '../../components/Sanctions.astro';
@@ -60,6 +61,7 @@ import ContentIndex from '../../components/ContentIndex.astro';
           <a class="nav-link" href="#ox-event"><span aria-hidden="true">✕</span> OX arena</a>
           <a class="nav-link" href="#colosseum"><span aria-hidden="true">⚑</span> Colosseum</a>
           <a class="nav-link" href="#premium"><span aria-hidden="true">◆</span> Premium shop</a>
+          <a class="nav-link" href="#npc-management"><span aria-hidden="true">♜</span> <span id="npc-management-nav-label">NPCs</span></a>
           <a class="nav-link" href="#security"><span aria-hidden="true">◇</span> Session security</a>
         </nav>
         <div class="sidebar-foot"><a href="/player/">Player account ↗</a><p>Permission-based access</p></div>
@@ -153,6 +155,7 @@ import ContentIndex from '../../components/ContentIndex.astro';
             <OXEvent />
             <Colosseum />
             <PremiumShop />
+            <NPCEditor />
             <footer class="page-footer"><span>WYD · ADMINISTRATION</span><span>Data obtained through the server's authoritative queue.</span></footer>
           </div>
         </main>

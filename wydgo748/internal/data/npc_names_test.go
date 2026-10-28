@@ -3,78 +3,99 @@ package data
 import (
 	"regexp"
 	"testing"
+
+	"wydgo/internal/model"
 )
 
-// wireNameBytes e quanto CreateMob copia do nome (wire/codec.go:366,
-// `copy(b[18:18+12], name)`). Nome maior chega CORTADO no client, sem aviso --
-// era o caso de Servo_Carbuncle, Gargula_Gigante e Cavaleiro_Negro antes da
-// traducao.
-const wireNameBytes = 12
-
-// O client 7.48 e global: todo texto que o jogador le e em ingles, e o nome do
-// NPC e o texto mais visivel que existe -- fica flutuando sobre a cabeca dele.
-var marcasPortuguesas = regexp.MustCompile(
-	`(?i)(guarda|mestre|treinador|ferreiro|sabio|sobreviv|guardiao|gargula|` +
-		`cavaleiro|alquimista|arqueiro|coveiro|jardineiro|batedor|` +
-		`representante|montaria|^loja|chefe|esqueleto|hidra|servo_|imortal|` +
-		`dourada|negro|caveira|gigante)`)
-
-// nomesLongosHerdados e a divida que ja existia antes da traducao: mobs cujo
-// nome sempre chegou cortado ao client. Nao e alvo desta rodada -- o teste os
-// CONTA para que o numero nao cresca, e falha se algum nome novo estourar.
-//
-// Baixar este numero e trabalho legitimo: cada nome encurtado e um mob que
-// passa a ser lido por inteiro no jogo.
-const nomesLongosHerdados = 55
-
-func TestNomesDeNPCCabemNoWire(t *testing.T) {
+func TestNPCNamesFitWire(t *testing.T) {
 	npcs, err := LoadNPCs("../../data/npcs")
 	if err != nil {
 		t.Fatal(err)
 	}
-	longos := make([]string, 0, nomesLongosHerdados)
+	byID := make(map[string]string, len(npcs))
+	suffixed := regexp.MustCompile(`_[0-9a-f]{4}$`)
 	for _, npc := range npcs {
-		if len(npc.Name) > wireNameBytes {
-			longos = append(longos, npc.Name)
+		byID[npc.Name] = npc.VisibleName()
+		if suffixed.MatchString(npc.Name) {
+			t.Errorf("artificial template identifier retained: %q", npc.Name)
+		}
+		if name := npc.VisibleName(); len(name) > model.MaxNPCDisplayNameBytes {
+			t.Errorf("NPC %q visible name %q exceeds %d bytes", npc.Name, name, model.MaxNPCDisplayNameBytes)
 		}
 	}
-	if len(longos) > nomesLongosHerdados {
-		t.Errorf("%d nomes passam de %d bytes, herdados eram %d -- algum nome NOVO "+
-			"chega cortado ao client: %v", len(longos), wireNameBytes,
-			nomesLongosHerdados, longos)
-	}
-	if len(longos) < nomesLongosHerdados {
-		t.Errorf("agora sao %d nomes longos e nao %d: baixe nomesLongosHerdados "+
-			"para travar o ganho", len(longos), nomesLongosHerdados)
-	}
-}
-
-func TestNomesDeNPCEstaoEmIngles(t *testing.T) {
-	npcs, err := LoadNPCs("../../data/npcs")
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, npc := range npcs {
-		if marcasPortuguesas.MatchString(npc.Name) {
-			t.Errorf("%q parece portugues -- o client 7.48 e global e o nome do "+
-				"NPC aparece sobre a cabeca dele", npc.Name)
+	for id, want := range map[string]string{
+		"ActKerdanChief":  "ActKerdanChief",
+		"Aranha_Dourada":  "Aranha_Dourada",
+		"Berserker_Titan": "Berserker_Titan",
+	} {
+		if got := byID[id]; got != want {
+			t.Errorf("shared NPC %q visible name = %q, want %q", id, got, want)
 		}
 	}
 }
 
-// TestNomesDeNPCSaoUnicos: o nome e a CHAVE usada por quests.json, pelo
-// NPCGener e por npcDefByName. Dois NPCs com o mesmo nome fazem a busca
-// devolver um deles em silencio.
-func TestNomesDeNPCSaoUnicos(t *testing.T) {
+func TestNPCNamesHaveSupportedEncoding(t *testing.T) {
 	npcs, err := LoadNPCs("../../data/npcs")
 	if err != nil {
 		t.Fatal(err)
 	}
-	visto := make(map[string]bool, len(npcs))
 	for _, npc := range npcs {
-		if visto[npc.Name] {
-			t.Errorf("nome duplicado: %q", npc.Name)
+		if npc.Name == "" {
+			t.Error("empty NPC identifier")
 		}
-		visto[npc.Name] = true
+		// These shared identifiers may contain English or Portuguese words.
+		// The unchanged byte-copy wire path supports their ASCII spelling;
+		// localized display names need a separate encoding contract.
+		for _, b := range []byte(npc.Name) {
+			if b < 0x20 || b > 0x7e {
+				t.Errorf("NPC identifier %q contains unsupported name byte 0x%02x", npc.Name, b)
+				break
+			}
+		}
+	}
+}
+
+// NPCGener, quest bindings and npcDefByName all use the same identifier.
+func TestNPCNamesAreUnique(t *testing.T) {
+	npcs, err := LoadNPCs("../../data/npcs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := make(map[string]bool, len(npcs))
+	for _, npc := range npcs {
+		if seen[npc.Name] {
+			t.Errorf("duplicate NPC identifier: %q", npc.Name)
+		}
+		seen[npc.Name] = true
+	}
+}
+
+func TestBaseGeneratorsResolveTemplateNames(t *testing.T) {
+	npcs, err := LoadNPCs("../../data/npcs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	groups, err := LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := make(map[string]bool, len(npcs))
+	for _, npc := range npcs {
+		names[npc.Name] = true
+	}
+	count := 0
+	for _, group := range groups {
+		if !group.Enabled {
+			continue
+		}
+		count++
+		for _, name := range []string{group.Leader, group.Follower} {
+			if !names[name] {
+				t.Errorf("generator %d has no direct template %q", group.Index, name)
+			}
+		}
+	}
+	if count == 0 {
+		t.Fatal("no enabled generators exercised")
 	}
 }

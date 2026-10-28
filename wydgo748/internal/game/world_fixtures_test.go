@@ -14,16 +14,16 @@ import (
 func fixtureWorld(t *testing.T) (*World, *fakeClock) {
 	t.Helper()
 	root := filepath.Join("..", "..", "data")
-	catalog, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := data.LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	objects, err := data.LoadInitItems(filepath.Join(root, "init_items.csv"), catalog.Items)
+	objects, err := data.LoadInitItems(filepath.Join(root, "world", "init_items.csv"), catalog.Items)
 	if err != nil {
 		t.Fatal(err)
 	}
-	terrain, err := data.LoadTerrain(filepath.Join(root, "maps", "HeightMap.dat"), filepath.Join(root, "maps", "AttributeMap.dat"))
+	terrain, err := data.LoadTerrain(filepath.Join(root, "world", "maps", "HeightMap.dat"), filepath.Join(root, "world", "maps", "AttributeMap.dat"))
 	if err != nil {
 		t.Fatal(err)
 	}

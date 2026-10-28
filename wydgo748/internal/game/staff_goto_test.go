@@ -57,7 +57,7 @@ func TestStaffGotoRequiresCapabilityAndPublicMap(t *testing.T) {
 }
 
 func TestStaffGotoBlockedTargetUsesNearestWalkableTile(t *testing.T) {
-	root := filepath.Join("..", "..", "data", "maps")
+	root := filepath.Join("..", "..", "data", "world", "maps")
 	terrain, err := data.LoadTerrain(filepath.Join(root, "HeightMap.dat"), filepath.Join(root, "AttributeMap.dat"))
 	if err != nil {
 		t.Skipf("installed maps unavailable: %v", err)
@@ -92,7 +92,7 @@ func formatGoto(x, y uint16) string {
 // y 188..191. The native 7.48 map left the central corridor open; only that
 // interior corridor is reopened, while the arena's outer walls stay blocked.
 func TestCityWarArenaCentralCorridorIsOpen(t *testing.T) {
-	root := filepath.Join("..", "..", "data", "maps")
+	root := filepath.Join("..", "..", "data", "world", "maps")
 	terrain, err := data.LoadTerrain(filepath.Join(root, "HeightMap.dat"), filepath.Join(root, "AttributeMap.dat"))
 	if err != nil {
 		t.Skipf("installed maps unavailable: %v", err)

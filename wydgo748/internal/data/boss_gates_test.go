@@ -5,19 +5,19 @@ import "testing"
 // The four world bosses live in their own areas, and an Armia NPC per boss
 // teleports players to that area's entrance through a free repeatable quest.
 func TestBossGatesTeleportToTheBossEntrances(t *testing.T) {
-	terrain, err := LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}
-	bosses, err := LoadBossCatalog("../../data/boss")
+	bosses, err := LoadBossCatalog("../../data/content/boss")
 	if err != nil {
 		t.Fatal(err)
 	}
-	quests, err := LoadQuests("../../data/quests.json")
+	quests, err := LoadQuests("../../data/content/quests.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	geners, err := LoadNPCGener("../../data/NPCGener.txt")
+	geners, err := LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
 	if err != nil {
 		t.Fatal(err)
 	}

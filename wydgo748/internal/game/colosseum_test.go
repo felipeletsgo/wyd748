@@ -19,23 +19,23 @@ import (
 // height map, so worlds never share collision state.
 var eventFixtures = sync.OnceValues(func() (*eventFixtureData, error) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := data.LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := data.LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		return nil, err
 	}
 	d := &eventFixtureData{items: catalog.Items}
-	if d.initItems, err = data.LoadInitItems(filepath.Join(root, "init_items.csv"), catalog.Items); err != nil {
+	if d.initItems, err = data.LoadInitItems(filepath.Join(root, "world", "init_items.csv"), catalog.Items); err != nil {
 		return nil, err
 	}
-	if d.terrain, err = data.LoadTerrain(filepath.Join(root, "maps", "HeightMap.dat"), filepath.Join(root, "maps", "AttributeMap.dat")); err != nil {
+	if d.terrain, err = data.LoadTerrain(filepath.Join(root, "world", "maps", "HeightMap.dat"), filepath.Join(root, "world", "maps", "AttributeMap.dat")); err != nil {
 		return nil, err
 	}
-	if d.volatiles, err = data.LoadVolatilesWithInstances(filepath.Join(root, "volatiles.json"),
-		filepath.Join(root, "instances.json"), catalog.Items, catalog.Skills); err != nil {
+	if d.volatiles, err = data.LoadVolatilesWithInstances(filepath.Join(root, "content", "volatiles.json"),
+		filepath.Join(root, "content", "instances.json"), filepath.Join(root, "spawns", "instances"), catalog.Items, catalog.Skills); err != nil {
 		return nil, err
 	}
-	d.colosseum, err = data.LoadColosseum(root)
+	d.colosseum, err = data.LoadColosseum(filepath.Join(root, "spawns", "instances"))
 	return d, err
 })
 
@@ -128,9 +128,30 @@ func runColosseumUntil(w *World, clock *fakeClock, minute int) {
 	w.tickColosseum(clock.Now())
 }
 
-// 7.59 TMSRV sub_567780: Colosseum N (EventHour+1) locks the windows and
-// recalls non-mortals at minute 5, spawns waves from minute 6, opens the inner
-// gates at minute 7 and empties and resets the arena at minute 17.
+func TestColosseumGatesAndFirstWaveShareMinuteSixTick(t *testing.T) {
+	for tier := 0; tier < model.ColosseumTiers; tier++ {
+		t.Run([]string{"N", "M", "A"}[tier], func(t *testing.T) {
+			w, clock := colosseumWorld(t, time.Date(2026, 10, 23, 18+tier, 5, 0, 0, time.UTC))
+			w.tickColosseum(clock.Now())
+			clock.Advance(59 * time.Second)
+			w.tickColosseum(clock.Now())
+			colosseumFixturesState(t, w, arenaGateItem, gateClosed)
+			if colosseumMobs(w) != 0 {
+				t.Fatal("wave 1 spawned before minute 6")
+			}
+			clock.Advance(time.Second)
+			w.tickColosseum(clock.Now())
+			colosseumFixturesState(t, w, arenaGateItem, gateOpen)
+			if w.colosseum.stage != 2 || colosseumMobs(w) == 0 {
+				t.Fatal("wave 1 did not spawn on the gate-opening tick at minute 6")
+			}
+		})
+	}
+}
+
+// Colosseum N (EventHour+1) locks the windows and recalls non-mortals at
+// minute 5. Project rule: wave 1 and the inner gates start together at minute 6;
+// the remaining waves and minute-17 cleanup retain their existing schedule.
 func TestColosseumNFollowsConfiguredSchedule(t *testing.T) {
 	w, clock := colosseumWorld(t, time.Date(2026, 10, 21, 18, 4, 58, 0, time.UTC))
 	mortal := addZonePlayer(w, 1, 2630, 1726, 500)
@@ -150,6 +171,7 @@ func TestColosseumNFollowsConfiguredSchedule(t *testing.T) {
 		t.Fatal("a mortal was removed from Colosseum N")
 	}
 	runColosseumUntil(w, clock, 6)
+	colosseumFixturesState(t, w, arenaGateItem, gateOpen)
 	if n := colosseumMobs(w); n == 0 {
 		t.Fatal("wave 1 spawned no Colosseum mobs")
 	}
@@ -307,17 +329,24 @@ func TestColosseumRestartAfterTheStartSkipsTheHour(t *testing.T) {
 // Only the event populates the arena: base NPCGener entries with
 // MinuteGenerate -1 inside it are reserved, other generators are not.
 func TestColosseumReservesBaseArenaGenerators(t *testing.T) {
-	geners, err := data.LoadNPCGener(filepath.Join("..", "..", "data", "NPCGener.txt"))
+	geners, err := data.LoadChannelNPCGener(filepath.Join("..", "..", "data", "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	var reserved []int
 	for _, g := range geners {
-		if generatorReservedForColosseum(g) {
-			reserved = append(reserved, g.Label)
+		if g.Enabled && generatorReservedForColosseum(g) {
+			t.Errorf("base generator %d duplicates the dedicated Colosseum population", g.Label)
 		}
 	}
-	if len(reserved) != 5 {
-		t.Fatalf("reserved base Colosseum generators %v; want labels 0, 2, 5, 6, 7", reserved)
+	// The rebuilt base omits event-owned entries altogether. Keep exercising
+	// the runtime guard for older configurations that still contain them.
+	g := model.NPCGener{MinuteGenerate: -1}
+	g.Segments[0] = model.GenerSegment{X: 2628, Y: 1726}
+	if !generatorReservedForColosseum(g) {
+		t.Fatal("timed Colosseum generator is not reserved for the event")
+	}
+	g.Segments[0].X = 2000
+	if generatorReservedForColosseum(g) {
+		t.Fatal("unrelated generator was reserved for the Colosseum")
 	}
 }

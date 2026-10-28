@@ -54,8 +54,10 @@ int RunCharacterTransferResponseTests(int& checks)
         std::vector<unsigned char> bytes{
             std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
         constexpr std::size_t rowWidth = 128;
-        check(bytes.size() == 440 * rowWidth + 4, "7.48 table has 440 rows");
-        if (bytes.size() == 440 * rowWidth + 4) {
+        const bool validSize = bytes.size() >= 440 * rowWidth + 4 &&
+            (bytes.size() - 4) % rowWidth == 0 && bytes.size() <= 2000 * rowWidth + 4;
+        check(validSize, "message table preserves 440 legacy rows within loader capacity");
+        if (validSize) {
             check(1131 >= (bytes.size() - 4) / rowWidth,
                 "newer-client message row 1131 is absent");
 

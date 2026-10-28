@@ -331,7 +331,7 @@ func TestScheduledCityLifecycleAndCombatGates(t *testing.T) {
 }
 
 func TestScheduledWarPositionsOnInstalledTerrain(t *testing.T) {
-	terrain, err := data.LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := data.LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}

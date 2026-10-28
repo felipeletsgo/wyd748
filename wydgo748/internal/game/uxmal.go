@@ -54,8 +54,8 @@ func (w *World) validateUxmalConfig() error {
 					continue
 				}
 				def := w.npcDefByName(name)
-				if !strings.HasPrefix(name, "RT_") || len(name) > 12 || def == nil || def.Score == nil || def.Score.MaxHP == 0 {
-					return fmt.Errorf("generator %d requires an event-only NPC: %q", g.Label, name)
+				if def == nil || def.Score == nil || def.Score.MaxHP == 0 || len(def.VisibleName()) > model.MaxNPCDisplayNameBytes {
+					return fmt.Errorf("generator %d requires a valid NPC template: %q", g.Label, name)
 				}
 			}
 		}

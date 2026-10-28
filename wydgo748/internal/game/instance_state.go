@@ -268,7 +268,12 @@ func (w *World) persistInstanceState() error {
 	if !ok {
 		return nil
 	}
-	return store.SaveInstanceState(w.instanceStateSnapshot())
+	snapshot := w.persistedChannelInstances(w.instanceStateSnapshot())
+	if err := store.SaveInstanceState(snapshot); err != nil {
+		return err
+	}
+	w.committedChannelInstances(snapshot)
+	return nil
 }
 
 func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
@@ -290,8 +295,13 @@ func (w *World) saveAccountsAndInstanceState(accounts ...*model.Account) error {
 	}
 	store, ok := w.store.(instanceRuntimeTransactionStore)
 	if ok {
-		return store.SaveGameStateWithInstanceState(nil, snapshot,
-			accountPersistenceSnapshots(accounts...)...)
+		snapshot = w.persistedChannelInstances(snapshot)
+		if err := store.SaveGameStateWithInstanceState(nil, snapshot,
+			accountPersistenceSnapshots(accounts...)...); err != nil {
+			return err
+		}
+		w.committedChannelInstances(snapshot)
+		return nil
 	}
 	// A mixed operation (ticket/position/account plus a durable instance) must
 	// never be split into two commits. The old fallback could consume a ticket
@@ -342,6 +352,7 @@ func (w *World) restoreInstanceState() error {
 	if err != nil {
 		return err
 	}
+	snapshot = w.restoredChannelInstances(snapshot)
 	if snapshot == nil || snapshot.Version != model.InstanceStateVersion {
 		return nil
 	}

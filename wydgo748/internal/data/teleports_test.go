@@ -35,7 +35,7 @@ func TestLoadTeleportsRejectsInvalidCoordinate(t *testing.T) {
 // Every client portal (TMGlobal.h g_TeleportTable) that the shipped table
 // serves must resolve in its own 4x4 block; Armia Field used Y 2169 and failed.
 func TestShippedTeleportsCoverClientPortalBlocks(t *testing.T) {
-	routes, err := LoadTeleports(filepath.Join("..", "..", "data", "teleports.ini"))
+	routes, err := LoadTeleports(filepath.Join("..", "..", "data", "world", "teleports.ini"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestShippedTeleportsCoverClientPortalBlocks(t *testing.T) {
 		}
 	}
 	// The server refuses a teleport whose destination is not walkable.
-	terrain, err := LoadTerrain("../../data/maps/HeightMap.dat", "../../data/maps/AttributeMap.dat")
+	terrain, err := LoadTerrain("../../data/world/maps/HeightMap.dat", "../../data/world/maps/AttributeMap.dat")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,7 @@
 package data
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,6 +9,33 @@ import (
 
 	"wydgo/internal/model"
 )
+
+func TestRecallRuleUsesHometownInsteadOfFixedCoordinates(t *testing.T) {
+	body, err := os.ReadFile("../../data/content/volatiles.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var file volatileDataFile
+	if err := json.Unmarshal(body, &file); err != nil {
+		t.Fatal(err)
+	}
+	rule := file.Rules[11]
+	if rule.Action != "recall" || !rule.Consume || rule.X != 0 || rule.Y != 0 {
+		t.Fatalf("return scroll still has a fixed destination: %+v", rule)
+	}
+	path := filepath.Join(t.TempDir(), "recall.json")
+	if err := os.WriteFile(path, []byte(`{"default":{"action":"generic"},"rules":{"11":{"action":"recall","consume":true}}}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	items := map[uint16]model.ItemDef{900: {Index: 900, StaticEffects: []model.StaticEffect{{Name: "EF_VOLATILE", Value: 11}}}}
+	catalog, err := LoadVolatiles(path, items, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded, code, ok := catalog.Rule(900); !ok || code != 11 || loaded.Action != "recall" || !loaded.Consume {
+		t.Fatalf("return scroll was not loaded: %+v/%d/%v", loaded, code, ok)
+	}
+}
 
 func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
 	dir := t.TempDir()
@@ -25,7 +53,7 @@ func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
 		"rules":{"51":{"action":"instance_ticket","instanceRef":"cube"}}
 	}`)
 	write(instancesPath, `{"instances":{},"rules":{},"items":{}}`)
-	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, nil, nil); err == nil {
+	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, filepath.Dir(instancesPath), nil, nil); err == nil {
 		t.Fatal("volatiles.json accepted an instance rule")
 	}
 
@@ -35,7 +63,7 @@ func TestSplitVolatileFilesEnforceInstanceBoundary(t *testing.T) {
 		"rules":{"1":{"action":"restore","consume":true}},
 		"items":{}
 	}`)
-	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, nil, nil); err == nil {
+	if _, err := LoadVolatilesWithInstances(volatilesPath, instancesPath, filepath.Dir(instancesPath), nil, nil); err == nil {
 		t.Fatal("instances.json accepted an ordinary volatile rule")
 	}
 }
@@ -210,12 +238,12 @@ func TestLoadVolatilesRejectsWaterChainCrossTier(t *testing.T) {
 // verifies distinct Index overrides for items sharing EF_VOLATILE. Production
 // configuration must load against the real catalog.
 func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
-	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	vc, err := LoadVolatilesWithInstances("../../data/volatiles.json",
-		"../../data/instances.json", catalog.Items, catalog.Skills)
+	vc, err := LoadVolatilesWithInstances("../../data/content/volatiles.json",
+		"../../data/content/instances.json", "../../data/spawns/instances", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatalf("production volatiles.json does not load against the catalog: %v", err)
 	}
@@ -413,7 +441,7 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 		t.Fatalf("code 5 must resolve refine with cap 9: %+v", r)
 	}
 	if r := vc.Rules[194]; r.Action != "refine_set" || r.RefineMax != 6 ||
-		!r.MortalOnly || r.MinLevel != 200 || r.MaxLevelExclusive != 256 || r.OnceQuestID != -194 {
+		!r.MortalOnly || r.MinLevel != 200 || r.MaxLevelExclusive != 205 || r.OnceQuestID != -194 {
 		t.Fatalf("code 194 must resolve refine_set with cap 6: %+v", r)
 	}
 	// The 24 regular rooms and three Nessus rooms are distinct instances.
@@ -497,8 +525,8 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 
 func TestRealCatalogPreservesAncientGemFamilies(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -526,8 +554,8 @@ func TestRealCatalogPreservesAncientGemFamilies(t *testing.T) {
 
 func TestRealCatalogMapsAdamantiteToMatchingLegendVariant(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	catalog, err := LoadCatalog(filepath.Join(root, "itemlist.csv"),
-		filepath.Join(root, "Itemname.csv"), filepath.Join(root, "SkillData.csv"))
+	catalog, err := LoadCatalog(filepath.Join(root, "catalog", "itemlist.csv"),
+		filepath.Join(root, "catalog", "Itemname.csv"), filepath.Join(root, "catalog", "SkillData.csv"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -582,12 +610,12 @@ func TestLoadVolatilesAppliesGenericToEveryUnconfiguredCode(t *testing.T) {
 }
 
 func TestVolatileInstancesReferenceExistingHostileNPCs(t *testing.T) {
-	catalog, err := LoadCatalog("../../data/itemlist.csv", "../../data/Itemname.csv", "../../data/SkillData.csv")
+	catalog, err := LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
 	if err != nil {
 		t.Fatal(err)
 	}
-	volatiles, err := LoadVolatilesWithInstances("../../data/volatiles.json",
-		"../../data/instances.json", catalog.Items, catalog.Skills)
+	volatiles, err := LoadVolatilesWithInstances("../../data/content/volatiles.json",
+		"../../data/content/instances.json", "../../data/spawns/instances", catalog.Items, catalog.Skills)
 	if err != nil {
 		t.Fatal(err)
 	}

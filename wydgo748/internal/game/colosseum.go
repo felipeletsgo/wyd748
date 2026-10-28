@@ -11,10 +11,10 @@ import (
 
 // The Colosseum follows the 7.59 TMSRV scheduler (sub_567780): every day at
 // EventHour+1 (N, mortals only), +2 (M, no Celestials) and +3 (A, consumes an
-// Elixir_Notice) the steel windows close at minute 5, waves spawn from minute
-// 6 to 15, the inner gates open at minute 7 and at minute 17 the arena is
-// emptied and reset. One transition runs per one-second tick, like the native
-// scheduler.
+// Elixir_Notice) the steel windows close at minute 5 and waves spawn from
+// minute 6 to 15. Project rule: the inner gates open with wave 1 at minute 6;
+// minute 17 empties and resets the arena. One transition runs per one-second
+// tick, like the native scheduler.
 const (
 	colosseumElixirItem = 3170
 	colosseumExitX      = 2615
@@ -22,8 +22,8 @@ const (
 	steelWindowItem     = 472
 	// colosseumElixirSlots is the carry range sub_565F50 scans.
 	colosseumElixirSlots = 60
-	// colosseumStartWindow is the last minute an hour may still start: the
-	// inner gates open at minute 7.
+	// colosseumStartWindow is the last minute an hour may still start:
+	// wave 1 and the inner gates start at minute 6.
 	colosseumStartWindow = 6
 	// colosseumIndexBase keeps event generators apart from NPCGener indices.
 	colosseumIndexBase = 1 << 20
@@ -193,10 +193,11 @@ func (w *World) tickColosseum(now time.Time) {
 	}
 	switch {
 	case minute >= 6 && c.stage == 1:
+		w.setColosseumFixtures(arenaGateItem, gateOpen)
 		w.spawnColosseumWave(tier, 0)
 		c.stage = 2
 	case minute >= 7 && c.stage == 2:
-		w.setColosseumFixtures(arenaGateItem, gateOpen)
+		// Preserve the stage numbers exposed by staff status and countdowns.
 		c.stage = 3
 	case minute >= 9 && c.stage == 3:
 		w.spawnColosseumWave(tier, 1)

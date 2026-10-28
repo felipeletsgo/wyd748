@@ -1,0 +1,95 @@
+{
+  "name": "Troll_Caido_",
+  "tipo": "monstro",
+  "equip": {
+    "rosto": {
+      "index": 213
+    },
+    "elmo": {
+      "index": 0
+    },
+    "armadura": {
+      "index": 0
+    },
+    "calca": {
+      "index": 0
+    },
+    "luva": {
+      "index": 0
+    },
+    "bota": {
+      "index": 0
+    },
+    "arma": {
+      "index": 713,
+      "eff": [
+        43,
+        9,
+        0,
+        0,
+        0,
+        0
+      ]
+    },
+    "escudo": {
+      "index": 0
+    },
+    "acessorio1": {
+      "index": 0
+    },
+    "acessorio2": {
+      "index": 0
+    },
+    "acessorio3": {
+      "index": 0
+    },
+    "acessorio4": {
+      "index": 0
+    },
+    "acessorio5": {
+      "index": 0
+    },
+    "acessorio6": {
+      "index": 0
+    },
+    "montaria": {
+      "index": 0
+    },
+    "capa": {
+      "index": 0
+    }
+  },
+  "classInfo": 1,
+  "expReward": 2000,
+  "score": {
+    "version": 2,
+    "level": 165,
+    "attack": 800,
+    "magicAttack": 0,
+    "defense": 1625,
+    "maxHP": 16500,
+    "maxMP": 0,
+    "curHP": 16500,
+    "curMP": 0,
+    "str": 4,
+    "int": 70,
+    "dex": 30,
+    "con": 500,
+    "critical": 255,
+    "saveMana": 255,
+    "mastery": [
+      255,
+      7,
+      255,
+      7
+    ],
+    "attackRun": 2
+  },
+  "gold": 500,
+  "skillBar": [
+    32,
+    35,
+    32,
+    35
+  ]
+}
