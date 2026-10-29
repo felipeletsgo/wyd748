@@ -56,12 +56,25 @@ func (w *World) applyPassiveSkills(ch *model.Char) {
 				e.Defense = extendedValue(int64(e.Defense) * 105 / 100)
 			}
 		}
-	case 3: // Huntress
-		if learnedLocal(ch, 90-72) { // Visao de Cacadora
-			critical := (int(playerMastery(ch, 3))+1)/10 + int(e.Dex)/75
-			e.Critical = addCritical(e.Critical, 2*maxInt(4, critical)) // 0.2% per point
+	case 3: // Huntress; official TMSRVIN bits mapped to 7.48 skills by name.
+		// Two Weapon Fighting (server bit 2, sub_4BB4C0): a slot-6 weapon of
+		// Unique 42 or 43 adds Special[1]/5 + 10, or + 320 with Rapid Hit.
+		if learnedLocal(ch, 82-72) && ch.Equip[6].Index != 0 {
+			if def, ok := w.items[ch.Equip[6].Index]; ok && (def.Unique == 42 || def.Unique == 43) {
+				bonus := int(playerMastery(ch, 1))/5 + 10
+				if learnedLocal(ch, 95-72) {
+					bonus = int(playerMastery(ch, 1))/5 + 320
+				}
+				e.Attack = extendedValue(int64(e.Attack) + int64(bonus))
+			}
 		}
-		if learnedLocal(ch, 92-72) { // Toxina de Serpente
+		// Hunter's Vision (server bit 18, sub_4CE1C0): base DEX/20, in tenths
+		// of a percent.
+		if learnedLocal(ch, 91-72) && ch.Score != nil {
+			e.Critical = addCritical(e.Critical, int(ch.Score.Dex)/20)
+		}
+		// Improved Range (server bit 19, sub_4BA690): range at least 2.
+		if learnedLocal(ch, 92-72) {
 			e.Range = uint32(maxInt(2, int(e.Range)))
 		}
 	}

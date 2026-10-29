@@ -42,7 +42,8 @@ func TestTKAffectFormulas759(t *testing.T) {
 		{model.Affect{Type: 13, Value: 7, Level: 40}, 111, 90, 1000, 6},
 		{model.Affect{Type: 14, Value: 10, Level: 40}, 100, 100, 1320, 46},
 		{model.Affect{Type: 24, Value: 0, Level: 40}, 100, 125, 1000, 6},
-		{model.Affect{Type: 31, Value: 150, Level: 40}, 100, 270, 1000, 6},
+		// Official TMSRVIN: Coin Armor adds Level/10 + Value.
+		{model.Affect{Type: 31, Value: 150, Level: 40}, 100, 254, 1000, 6},
 	}
 	for _, tt := range tests {
 		ch := &model.Char{Class: 0, Score: testScore(base)}

@@ -42,45 +42,73 @@ func TestDualWieldPassivesUseFullSecondaryWeapon(t *testing.T) {
 	if got := w.equipmentDamage(ch); got != 180 {
 		t.Fatalf("dual wield TK=%d, want 180", got)
 	}
-	ch.Class, ch.LearnedSkill = 3, 1<<10
-	if got := w.equipmentDamage(ch); got != 180 {
-		t.Fatalf("dual wield HT=%d, want 180", got)
+	// Official TMSRVIN: Huntress Life Drain (7.48 skill 90, server bit 10)
+	// adds 10 points to the 50% same-type share: 100 + 80*60/100.
+	ch.Class, ch.LearnedSkill = 3, 1<<(90-72)
+	if got := w.equipmentDamage(ch); got != 148 {
+		t.Fatalf("dual wield HT=%d, want 148", got)
 	}
-	ch.LearnedSkill = 1 << 11
+	ch.LearnedSkill = 1 << (82 - 72)
 	if got := w.equipmentDamage(ch); got != 140 {
-		t.Fatalf("HT bit 11 incorrectly activated mastery: %d", got)
+		t.Fatalf("Two Weapon Fighting incorrectly changed the dual-weapon share: %d", got)
 	}
 }
 
 func TestHuntressPassivesUseCorrectSkillBits(t *testing.T) {
-	w := &World{}
+	w := &World{items: map[uint16]model.ItemDef{
+		100: {Index: 100, Unique: 42},
+		101: {Index: 101, Unique: 7},
+	}}
 	ch := &model.Char{Class: 3, Score: testScore(model.Score{
-		Attack: 100, Dex: 150, Critical: 2, Range: 1, Mastery: [4]uint32{0, 0, 0, 99},
+		Attack: 100, Dex: 150, Critical: 2, Range: 1, Mastery: [4]uint32{0, 52, 0, 99},
 	})}
-	ch.RuntimeScore = testScore(*ch.Score)
-	ch.LearnedSkill = 1 << (90 - 72)
-	w.applyPassiveSkills(ch)
-	// Critical is in tenths of a percent; the passive keeps its 0.2% points:
-	// 2 + 2*((99+1)/10 + 150/75) = 26 (2.6%).
-	if got := effectiveScore(ch).Critical; got != 26 {
-		t.Fatalf("Hunter's Vision critical=%d, want 26", got)
-	}
-	if got := effectiveScore(ch).Attack; got != 100 {
-		t.Fatalf("Hunter Mastery changed attack directly: %d", got)
-	}
-
+	// Hunter's Vision is 7.48 skill 91 (server bit 18): base DEX/20 = 7.
 	ch.RuntimeScore = testScore(*ch.Score)
 	ch.LearnedSkill = 1 << (91 - 72)
 	w.applyPassiveSkills(ch)
+	if got := effectiveScore(ch).Critical; got != 9 {
+		t.Fatalf("Hunter's Vision critical=%d, want 9", got)
+	}
+	if got := effectiveScore(ch).Attack; got != 100 {
+		t.Fatalf("Hunter's Vision changed attack directly: %d", got)
+	}
+
+	ch.RuntimeScore = testScore(*ch.Score)
+	ch.LearnedSkill = 1 << (90 - 72)
+	w.applyPassiveSkills(ch)
 	if got := effectiveScore(ch).Critical; got != 2 {
-		t.Fatalf("Eagle Eyes incorrectly received the Vision bonus: %d", got)
+		t.Fatalf("Life Drain incorrectly received the Vision bonus: %d", got)
 	}
 
 	ch.RuntimeScore = testScore(*ch.Score)
 	ch.LearnedSkill = 1 << (92 - 72)
 	w.applyPassiveSkills(ch)
 	if got := effectiveScore(ch).Range; got != 2 {
-		t.Fatalf("Serpent Toxin range=%d, want 2", got)
+		t.Fatalf("Improved Range range=%d, want 2", got)
+	}
+
+	// Two Weapon Fighting (82): Special[1]/5 + 10, or + 320 with Rapid Hit (95).
+	ch.Equip[6] = model.Item{Index: 100}
+	for _, tc := range []struct {
+		learned uint32
+		want    uint32
+	}{
+		{1 << (82 - 72), 120},
+		{1<<(82-72) | 1<<(95-72), 430},
+	} {
+		ch.RuntimeScore = testScore(*ch.Score)
+		ch.LearnedSkill = tc.learned
+		w.applyPassiveSkills(ch)
+		if got := effectiveScore(ch).Attack; got != tc.want {
+			t.Fatalf("Two Weapon Fighting attack=%d, want %d", got, tc.want)
+		}
+	}
+	ch.Equip[6] = model.Item{Index: 101}
+	ch.RuntimeScore = testScore(*ch.Score)
+	ch.LearnedSkill = 1 << (82 - 72)
+	w.applyPassiveSkills(ch)
+	if got := effectiveScore(ch).Attack; got != 100 {
+		t.Fatalf("Two Weapon Fighting applied to Unique 7: %d", got)
 	}
 }
 

@@ -903,9 +903,13 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 				attackSpeedPoints += b.attackSpeed + attackSpeedAdd
 				e.AttackRun = e.AttackRun&0xF0 | uint32(run)
 			}
-		case 21:
+		case 21: // Transfer Armor Class; official TMSRVIN sub_4BB4C0.
+			bonus := a.Level/10 + a.Value
+			if ch.Class == 3 && learnedLocal(ch, 95-72) { // Rapid Hit, server bit 7.
+				bonus += 5
+			}
 			e.Defense = add(e.Defense, int64(-(a.Level/3 + 10)))
-			e.Attack = mul(e.Attack, 100+a.Level/10+a.Value)
+			e.Attack = mul(e.Attack, 100+bonus)
 		case 24:
 			e.Defense = add(e.Defense, int64(e.Defense)/4+int64(a.Value))
 		case 25:
@@ -992,8 +996,12 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 		case affectCourage:
 			// Courage does not modify score. Its fixed bonus belongs to each
 			// PvE hit's result and is applied in combat.go/skills.go.
-		case 31:
-			e.Defense = add(e.Defense, int64(a.Level/2+a.Value))
+		case 31: // Coin Armor; official TMSRVIN sub_4BB4C0.
+			defense := a.Level/10 + a.Value
+			if ch.Class == 3 && learnedLocal(ch, 87-72) { // Spirit Change, server bit 15.
+				defense += 100
+			}
+			e.Defense = add(e.Defense, int64(defense))
 		case 35: // Bigger/Health Potion: native 10% bonus to maximum HP.
 			bonus := a.Value
 			if bonus <= 0 {
@@ -1002,10 +1010,22 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			e.MaxHP = mul(e.MaxHP, 100+bonus)
 		case 37:
 			e.Attack = add(e.Attack, int64(playerMastery(ch, 2)))
-		case 38:
-			mana := e.MaxMP / 2
-			e.MaxHP = add(e.MaxHP, int64(mana))
-			e.MaxMP -= mana
+		case 38: // Spirit Change; official TMSRVIN sub_4BB4C0.
+			special := int64(playerMastery(ch, 2))
+			level := int64(playerLevel(ch))
+			var mana, hp int64
+			if mortalSoulCharacter(ch) {
+				mana = int64(e.MaxMP)/4 + (special+level)/4
+				hp = 750 + mana
+			} else {
+				if ch.LearnedSkill&celestialSoulBit != 0 {
+					level += 400
+				}
+				mana = int64(e.MaxMP) / 4
+				hp = special/2 + level*2 + 750 + mana
+			}
+			e.MaxHP = add(e.MaxHP, hp)
+			e.MaxMP = add(e.MaxMP, -mana)
 		}
 	}
 	if fixedMortalSoul {

@@ -237,10 +237,35 @@ func tkTransformationSkill(skillIndex int) bool {
 	return skillIndex >= 0 && skillIndex < 24 && (skillIndex%24)/8 == 1
 }
 
+// The official TMSRVIN loads TMSRV2 SkillData.csv, whose Huntress order
+// differs from the 7.48 client. This maps each 7.48 skill to the server skill
+// with the same name. Hard_Sale (81), Discount (83) and Backpack (85) have no
+// server entry.
+var huntressServerSkill = map[int]int{
+	72: 72, 73: 73, 74: 75, 75: 95, 76: 76, 77: 77, 78: 78, 79: 81,
+	80: 80, 82: 74, 84: 84, 86: 85, 87: 87, 88: 88, 89: 89, 90: 82,
+	91: 90, 92: 91, 93: 93, 94: 86, 95: 79,
+}
+
+// huntressTreeFinisher holds the 7.48 skill for each server tree's eighth
+// skill: Rapid Hit, Spirit Change and Hide in Shadow.
+var huntressTreeFinisher = [3]int{95, 87, 75}
+
+func serverSkillIndex(ch *model.Char, skillIndex int) int {
+	if ch != nil && ch.Class == 3 {
+		if mapped, ok := huntressServerSkill[skillIndex]; ok {
+			return mapped
+		}
+	}
+	return skillIndex
+}
+
 // baseSkillDamage adapts the historical 7.59 BASE_GetSkillDamage algorithm,
 // including its weather modifiers for the caster's position (weather.go).
+// Huntress trees, mastery and finisher bonuses follow the server skill order.
 func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
-	local := skill.Index % 24
+	serverIndex := serverSkillIndex(ch, skill.Index)
+	local := serverIndex % 24
 	kind := local/8 + 1
 	special := int(playerMastery(ch, kind))
 	level, base := clampInt(int(playerLevel(ch)), 0, 400), skill.InstanceValue
@@ -307,7 +332,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 				damage += special
 			}
 		case 3:
-			if skill.Index == 79 {
+			if serverIndex == 79 { // Rapid Hit (7.48 skill 95) uses the attack score.
 				return maxInt(1, playerAttack(ch))
 			}
 			damage = 3*weapon + 3*playerStr(ch) + level/2 + special + base
@@ -327,7 +352,11 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 		}
 	}
 	branch := local / 8
-	if int(ch.Class) < 4 && ch.LearnedSkill&(uint32(1)<<(branch*8+7)) != 0 {
+	finisher := branch*8 + 7
+	if ch.Class == 3 {
+		finisher = huntressTreeFinisher[branch] - 72
+	}
+	if int(ch.Class) < 4 && ch.LearnedSkill&(uint32(1)<<finisher) != 0 {
 		multipliers := [4][3]int{{115, 120, 115}, {110, 115, 115}, {110, 100, 100}, {110, 110, 120}}
 		damage = damage * multipliers[ch.Class][branch] / 100
 	}

@@ -28,6 +28,13 @@ is not built, published, or activated.
   absorption. The resist clamp stays 0..100 (server minimum is 0). Attack
   percentages still compound with other buffs. The 7.48 HUD speed for Bear
   and Astaroth still reads bits 19 and 21; no client change was made.
+- Huntress skills and passives (`PARIDADE_NATIVA`, official TMSRVIN). The
+  server loads `TMSRV2/run/SkillData.csv`, whose Huntress order differs from
+  7.48; skills map by name. Skill damage uses the server tree, mastery and
+  finisher (Rapid Hit, Spirit Change, Hide in Shadow); Rapid Hit (95) uses the
+  attack score. Two Weapon Fighting (82), Life Drain (90, dual-weapon +10),
+  Hunter's Vision (91, critical + base DEX/20), Transfer Armor Class, Coin
+  Armor and Spirit Change follow the server. Another Soul (79) stays pending.
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 

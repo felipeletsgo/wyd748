@@ -230,12 +230,13 @@ func (w *World) equipmentDamage(ch *model.Char) int {
 		if ldef.Unique == rdef.Unique {
 			multi = 50
 		}
-		// BASE_GetMobAbility: Hunter's Expertise (HT bit 10) and Weapon Master
-		// (TK bit 9) use 100% of the secondary weapon damage.
+		// BASE_GetMobAbility: Weapon Master (TK bit 9) uses 100% of the
+		// secondary weapon damage. Official TMSRVIN sub_4BA690 adds 10 points
+		// for Huntress server bit 10, Life Drain (7.48 skill 90).
 		if ch.Class == 0 && ch.LearnedSkill&(1<<9) != 0 {
 			multi = 100
-		} else if ch.Class == 3 && ch.LearnedSkill&(1<<10) != 0 {
-			multi = 100
+		} else if ch.Class == 3 && learnedLocal(ch, 90-72) {
+			multi += 10
 		}
 		return value + maxInt(ldam, rdam) + minInt(ldam, rdam)*multi/100
 	}

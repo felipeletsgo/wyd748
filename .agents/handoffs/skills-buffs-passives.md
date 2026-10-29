@@ -81,23 +81,23 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | 69 | Mist_Of_Hell | 2026-10-29: enables Wolf, Bear and Astaroth bonuses (official TMSRVIN sub_4BB4C0 bit 21); AUTOMATED TESTED |
 | 70 | Titã | AUTOMATED TESTED 2026-10-28: form switch in either direction; full in-game transformation pending |
 | 71 | Éden | 2026-10-29: +5% attack and +2% defense in every form; W2PP absorb removed; form switch AUTOMATED TESTED; native affect-33 clear not adapted |
-| 74 | Agressividade | Pendente: affect 27 versus bônus permanente W2PP bit 2 |
-| 75 | Encantar Gelo | Pendente: ID tratado como invisibilidade/affect 28, não confiar no nome |
+| 74 | Encantar Gelo (Enchant_Frost) | Server skill 75; affect 27 flag only; no change |
+| 75 | Invisibilidade (Hide_In_Shadow) | Server skill 95; tree-2 finisher for the skill damage x1.20 bonus (2026-10-29) |
 | 76 | Imunidade | Pendente: affect 19 e consumidores de resistência/cancelamento |
-| 77 | Meditação | Pendente: affect 21, ataque e penalidade de defesa |
+| 77 | Meditação (Transfer_Armor_Class) | 2026-10-29: affect 21 adds 5 attack points with Rapid Hit (95, server bit 7); AUTOMATED TESTED |
 | 78 | Lança de Ferro | Corrigido/testado na revisão: segundo alvo independente do MISS primário, preservando crítico/golpe duplo e lifecycle de morte |
-| 79 | Tempestade de Raios | Anterior: affect 37; W2PP bônus aprendido +200 diverge, não portar cegamente |
+| 79 | Ligação Espectral (Another_Soul) | Server skill 81; affect 37 writes CMob+0x8B0 = Special[2]/10*3+24, consumer not found; Go unchanged, pending |
 | 81 | Ligação Espectral | Venda corrigida/testada; precisão não comprovada |
-| 82 | Perícia de Caçador | Divergência de duas armas; sem conclusão nativa, ver abaixo |
+| 82 | Empunhar Duas Armas (Two_Weapon_Fighting) | 2026-10-29: server bit 2; slot-6 Unique 42/43 adds Special[1]/5+10 (+320 with 95); AUTOMATED TESTED |
 | 83 | Extração | Revisados autorização, receita, dado estrito, runtime mastery, replay e rollback; testes passaram |
 | 84 | Alquimia | Dez receitas testadas; corrigida rejeição de pilhas; runtime/replay/rollback passaram |
 | 85 | Escudo Dourado | Anterior: custo gold persistido antes da publicação; revisar fórmula |
-| 86 | Explosão Etérea | Anterior: affect 31, visual 31 distinto da skill 15; revisar fórmula |
-| 87 | Troca de Espírito | Pendente: affect 38 e arredondamento MP para HP |
+| 86 | Escudo Dourado (Coin_Armor) | 2026-10-29: affect 31 = Level/10+Value, +100 with Spirit Change; AUTOMATED TESTED |
+| 87 | Troca de Espírito (Spirit_Change) | 2026-10-29: affect 38 official MP-to-HP formula; tree-1 finisher; AUTOMATED TESTED |
 | 89 | Evasão Aprimorada | Pendente: affect 26 e escala no cálculo de acerto |
-| 90 | Visão de Caçadora | Fórmula crítica W2PP confirmada no código Go: bit 18, mínimo 4; teste de bits passou |
-| 91 | Olhos de Aguia | Sem efeito de aprendizado comprovado; não atribuir o bônus de 90 nem o alcance de 92 |
-| 92 | Toxina de Serpente | Alcance mínimo 2, bit 20 confirmado em FUN_0054eb20; teste passou |
+| 90 | Drenar Alma (Life_Drain) | 2026-10-29: server bit 10 adds 10 points to the dual-weapon share; AUTOMATED TESTED |
+| 91 | Visão de Caçadora (Hunter's_Vision) | 2026-10-29: server bit 18, critical + base DEX/20 per mille; AUTOMATED TESTED |
+| 92 | Olhos de Águia (Improved_Range) | Range minimum 2 (server bit 19, sub_4BA690); unchanged |
 | 93 | Lamina Aérea | Anterior: proc 1/4, bit 21, 0x39E/DMGX; teste passou, visual pendente |
 | 96 | Poder Superior | Affect 4 tem customização explícita de dano percentual; preservar, revisar aplicação |
 | 101 | Força Espectral | Anterior: +1 alcance inclusive desarmado; teste passou |
