@@ -59,6 +59,10 @@ func (w *World) killMobWithoutPlayer(m *Mob) {
 	if m == nil || m.Dead || w.criticalGuildMobReserved(m) {
 		return
 	}
+	if isThornWall(m) {
+		w.destroyThornWall(m, 0)
+		return
+	}
 	if w.criticalWrites != nil && isKefraBoss(m) && !w.kefraDefeated() {
 		if err := w.queueKefraDeathWithoutPlayer(m); err != nil && !w.criticalGuildReserved() {
 			m.HP = max(1, m.HP)
@@ -88,6 +92,10 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	if m.GuildWarTower {
 		w.captureWarTower(p, m, appliedDamage)
 		return nil // isolated guild transaction: no ordinary EXP, loot or quest progress
+	}
+	if isThornWall(m) {
+		w.destroyThornWall(m, p.ID)
+		return nil // a skill object: no EXP, loot, quest or instance progress
 	}
 	baseReward := scaledMobExperience(m.Def.ExpReward, w.gameplay)
 	baseReward = w.nightmareExperience(m, baseReward)

@@ -41,10 +41,12 @@ constexpr bool AimsAtPrimaryTarget(int skillIndex)
         skillIndex == 39 || skillIndex == 51 || skillIndex == 55;
 }
 
+// Rapid Hit is skill 95 in 7.48 (79 is Another_Soul, a buff). Both
+// invocations check its primary-target range so a click reaches Range 6.
 constexpr bool ChecksPrimaryTargetRange(int skillIndex, Invocation invocation)
 {
-    return AimsAtPrimaryTarget(skillIndex) || (invocation == Invocation::Manual
-        ? skillIndex == 79 || skillIndex == 97 : skillIndex == 95);
+    return AimsAtPrimaryTarget(skillIndex) || skillIndex == 95 ||
+        (invocation == Invocation::Manual && skillIndex == 97);
 }
 
 constexpr int AreaRadius(int targetType)

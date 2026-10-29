@@ -1066,7 +1066,8 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 									sprintf(szStr, "%d", nValue);
 								}
 
-								if (pAttack->SkillIndex == 79)
+								// Rapid Hit (95) shows each of its hits in sequence.
+								if (pAttack->SkillIndex == 95)
 									dwDelay += 100 * i;
 
 								bool bDrawFront = false;

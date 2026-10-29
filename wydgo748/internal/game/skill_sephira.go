@@ -12,6 +12,36 @@ import (
 // the 500 ms timer sharded six ways yields approximately 21 seconds.
 const thornWallLifetime = 21 * time.Second
 
+// The native countdown runs only in peace mode. A damaged wall holds its
+// remaining lifetime until one peace visit (about 6 s) passes without damage.
+const thornWallCombatHold = 6 * time.Second
+
+func isThornWall(m *Mob) bool {
+	return m != nil && m.SummonKind == summonKindThornWall
+}
+
+// thornWallAt reports a live thorn wall on the tile in the gameplay space.
+// Player routes may cross occupied tiles, but not a wall.
+func (w *World) thornWallAt(x, y uint16, space string) bool {
+	for _, m := range w.sephiraObjects {
+		if isThornWall(m) && !m.Dead && m.HP > 0 && m.X == x && m.Y == y && mobGameplaySpace(m) == space {
+			return true
+		}
+	}
+	return false
+}
+
+// destroyThornWall removes a wall killed by damage. It grants no reward.
+func (w *World) destroyThornWall(m *Mob, killerID uint16) {
+	if m == nil || m.Dead {
+		return
+	}
+	m.HP = 0
+	m.Dead = true
+	w.publishMobDeath(m, killerID, nil)
+	w.removeMobInstance(m)
+}
+
 func (w *World) groundCannonAt(x, y uint16) *GroundItem {
 	for _, g := range w.nearbyGroundItems(x, y, 0) {
 		if g != nil && !g.criticalReserved() && g.Item.Index == 746 && g.ID >= 15001 && g.ID <= 15100 && g.X == x && g.Y == y {
@@ -61,7 +91,8 @@ func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.Skill
 	m := &Mob{ID: mobID, Def: &def, X: req.TargetX, Y: req.TargetY,
 		InstanceID: w.playerRuntimeInstanceID(p.ID),
 		HP:         def.Score.MaxHP, GenerIndex: -1, SummonerID: p.ID,
-		SummonKind: summonKindThornWall, ExpiresAt: w.now().Add(thornWallLifetime)}
+		SummonKind: summonKindThornWall, ExpiresAt: w.now().Add(thornWallLifetime),
+		wallHP: def.Score.MaxHP}
 	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
 	w.sendToPlayerView(p, func() []byte {
@@ -73,9 +104,24 @@ func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.Skill
 }
 
 func (w *World) tickSephiraObjects(now time.Time) {
+	elapsed := time.Duration(0)
+	if !w.sephiraTickAt.IsZero() && now.After(w.sephiraTickAt) {
+		elapsed = now.Sub(w.sephiraTickAt)
+	}
+	w.sephiraTickAt = now
 	var expired []*Mob
 	for _, m := range w.sephiraObjects {
-		if m != nil && m.SummonKind == summonKindThornWall && !m.ExpiresAt.IsZero() && !m.ExpiresAt.After(now) {
+		if !isThornWall(m) || m.Dead {
+			continue
+		}
+		if m.HP < m.wallHP {
+			m.wallCombatUntil = now.Add(thornWallCombatHold)
+		}
+		m.wallHP = m.HP
+		if !m.ExpiresAt.IsZero() && now.Before(m.wallCombatUntil) {
+			m.ExpiresAt = m.ExpiresAt.Add(elapsed)
+		}
+		if !m.ExpiresAt.IsZero() && !m.ExpiresAt.After(now) {
 			expired = append(expired, m)
 		}
 	}

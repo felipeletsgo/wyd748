@@ -126,10 +126,10 @@ int RunSkillAttackRequestTests(int& checks)
         const bool primaryAim = skill == 0 || skill == 7 || skill == 16 ||
             skill == 17 || skill == 23 || skill == 35 || skill == 39 ||
             skill == 51 || skill == 55;
-        // Independent lists preserve the asymmetric manual/automatic behavior.
+        // Rapid Hit (95) checks range in both paths; 97 stays manual-only.
         const bool manualRange = skill == 0 || skill == 7 || skill == 16 ||
             skill == 17 || skill == 23 || skill == 35 || skill == 39 ||
-            skill == 51 || skill == 55 || skill == 79 || skill == 97;
+            skill == 51 || skill == 55 || skill == 95 || skill == 97;
         const bool automaticRange = skill == 0 || skill == 7 || skill == 16 ||
             skill == 17 || skill == 23 || skill == 35 || skill == 39 ||
             skill == 51 || skill == 55 || skill == 95;
@@ -137,10 +137,10 @@ int RunSkillAttackRequestTests(int& checks)
             "primary aim retains the original nine skill indices");
         check(skill_request::ChecksPrimaryTargetRange(skill,
             skill_request::Invocation::Manual) == manualRange,
-            "manual range retains skills 79 and 97 but not automatic-only 95");
+            "manual range checks Rapid Hit 95 and skill 97");
         check(skill_request::ChecksPrimaryTargetRange(skill,
             skill_request::Invocation::Automatic) == automaticRange,
-            "automatic range retains skill 95 but not manual-only 79 and 97");
+            "automatic range checks Rapid Hit 95 but not manual-only 97");
     }
     const int positions[][4]{{0, 0, 0, 0}, {1, 0, 0, 0}, {0, 1, 0, 0},
         {1, 1, 0, 0}, {-1, -2, -1, -2},

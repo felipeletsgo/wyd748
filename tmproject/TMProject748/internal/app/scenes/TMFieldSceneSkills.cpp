@@ -2136,7 +2136,7 @@ ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned
 				}
 			}
 
-			if (cSkillIndex == 79 && pNode != pOver)
+			if (cSkillIndex == 95 && pNode != pOver)
 			{
 				if (!pOver)
 					{ extractedResult = 0; return ExtractedFlow::Return; }

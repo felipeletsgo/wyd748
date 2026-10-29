@@ -285,6 +285,11 @@ type Mob struct {
 	Awake            bool
 	InstanceID       string
 
+	// Thorn wall lifetime pauses while the wall takes damage (native peace-only
+	// countdown). wallHP is the HP seen at the previous Sephira tick.
+	wallHP          uint32
+	wallCombatUntil time.Time
+
 	// generator is the NPCGener entry that spawned this mob. NPCGener.txt reuses
 	// some indexes (3856 is both Kefra and a Grim_Lock group), so the index
 	// alone cannot identify the counter to lower when the mob dies.
@@ -536,6 +541,7 @@ type World struct {
 	mobActivationScratch  map[uint16]*Mob
 	summons               map[uint16]*Mob
 	sephiraObjects        map[uint16]*Mob
+	sephiraTickAt         time.Time
 	generators            []generState
 	generatorByIndex      map[int]int
 	reservedGenerators    map[int]string

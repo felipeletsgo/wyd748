@@ -36,7 +36,9 @@ func setAffectAt(ch *model.Char, affectType byte, value, level, durationUnits in
 	slot := -1
 	for i := range ch.Affects {
 		if ch.Affects[i].Type == affectType {
-			if !canReplaceAffect(ch.Affects[i], value, level, expires, now) {
+			// Native SetAffect overwrites a BM form in either direction; its
+			// Value is a form ID, so the potency check would lock Eden (5) in.
+			if affectType != affectBMTransform && !canReplaceAffect(ch.Affects[i], value, level, expires, now) {
 				return false
 			}
 			slot = i

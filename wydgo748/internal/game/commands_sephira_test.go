@@ -267,3 +267,92 @@ func TestThornWallRejectsInvalidConfiguration(t *testing.T) {
 		t.Fatal("Thorn Wall vine was created without a template")
 	}
 }
+
+func thornWallTestWorld(t *testing.T) (*World, *Player, *Mob) {
+	t.Helper()
+	p, _ := networkedTestPlayer(1, "Sephira", 2100, 2100)
+	w := worldWithNetworkedPlayers(p)
+	w.terrain = loadedFlatTerrain()
+	w.ghostShops = make(map[uint16]*GhostShop)
+	w.npcs = []model.NPCDef{{
+		Name: "Vinha", Tipo: model.TipoMonstro,
+		Score: &model.Score{Version: model.ScoreVersion, MaxHP: 500, CurHP: 500},
+	}}
+	w.nextMobID = firstMobID
+	skill := model.SkillDef{Index: 98, Range: 6}
+	if !w.castThornWall(p, skillCastRequest{TargetX: 2102, TargetY: 2100}, skill, 40, 1) {
+		t.Fatal("Thorn Wall vine was not summoned")
+	}
+	for _, mob := range w.sephiraObjects {
+		return w, p, mob
+	}
+	t.Fatal("Thorn Wall vine was not registered")
+	return nil, nil, nil
+}
+
+// Native Vinha is an ordinary mob: players damage and destroy it, it grants no
+// reward, and it never targets players.
+func TestThornWallIsAttackableWithoutReward(t *testing.T) {
+	w, p, wall := thornWallTestWorld(t)
+	if !w.playerCanInteractWithMob(p, wall) {
+		t.Fatal("player cannot attack the Thorn Wall vine")
+	}
+	if w.mobCanTargetPlayer(wall, p) {
+		t.Fatal("Thorn Wall vine can target a player")
+	}
+	if w.hostileMob(wall) {
+		t.Fatal("Thorn Wall vine became a hostile mob for guards and summons")
+	}
+	exp, gold := p.Char.Exp, p.Char.Gold
+	wall.HP = 0
+	if plan := w.planMobKill(p, wall, 500, 500); plan != nil {
+		t.Fatalf("Thorn Wall kill produced a reward plan: %+v", plan)
+	}
+	if !wall.Dead || len(w.sephiraObjects) != 0 || len(w.mobsByID) != 0 || len(w.summons) != 0 {
+		t.Fatalf("destroyed Thorn Wall vine remained: dead=%v sephira=%d mobs=%d summons=%d",
+			wall.Dead, len(w.sephiraObjects), len(w.mobsByID), len(w.summons))
+	}
+	if p.Char.Exp != exp || p.Char.Gold != gold {
+		t.Fatalf("Thorn Wall kill granted a reward: exp %d->%d gold %d->%d", exp, p.Char.Exp, gold, p.Char.Gold)
+	}
+}
+
+// The native countdown runs only in peace mode: damage holds the lifetime.
+func TestThornWallLifetimePausesWhileDamaged(t *testing.T) {
+	w, _, wall := thornWallTestWorld(t)
+	start := wall.ExpiresAt.Add(-thornWallLifetime)
+	w.tickSephiraObjects(start)
+	wall.HP -= 10
+	w.tickSephiraObjects(start.Add(5 * time.Second))
+	w.tickSephiraObjects(start.Add(10 * time.Second))
+	if want := start.Add(thornWallLifetime + 10*time.Second); !wall.ExpiresAt.Equal(want) {
+		t.Fatalf("damaged wall expires at %v, want %v", wall.ExpiresAt, want)
+	}
+	w.tickSephiraObjects(start.Add(thornWallLifetime + 5*time.Second))
+	if wall.Dead {
+		t.Fatal("damaged wall expired before its held lifetime")
+	}
+	w.tickSephiraObjects(start.Add(thornWallLifetime + 10*time.Second))
+	if !wall.Dead || len(w.sephiraObjects) != 0 {
+		t.Fatal("wall did not expire after combat ended")
+	}
+}
+
+// Player routes may cross occupied tiles, but a thorn wall stops them.
+func TestThornWallBlocksPlayerRoute(t *testing.T) {
+	w, p, wall := thornWallTestWorld(t)
+	now := w.now()
+	w.beginPlayerMovement(p, 2100, 2100, 2103, 2100, []byte("666"), []byte("666"), 0, now)
+	w.advancePlayerMovement(p, now.Add(10*time.Second))
+	if p.X != 2101 || p.Y != 2100 {
+		t.Fatalf("player crossed the Thorn Wall vine: position=(%d,%d)", p.X, p.Y)
+	}
+
+	w.destroyThornWall(wall, p.ID)
+	now = w.now()
+	w.beginPlayerMovement(p, 2101, 2100, 2103, 2100, []byte("66"), []byte("66"), 0, now)
+	w.advancePlayerMovement(p, now.Add(10*time.Second))
+	if p.X != 2103 {
+		t.Fatalf("route stayed blocked after the wall was destroyed: x=%d", p.X)
+	}
+}

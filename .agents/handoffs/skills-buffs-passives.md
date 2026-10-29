@@ -77,10 +77,10 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | 65 | Armadura Elemental | Anterior: redução com escudo + bônus do lobo; consumidores físico/skill/mob |
 | 66 | Homem Urso | Anterior: transformação; teste preserva HP cheio em recálculo posterior |
 | 67 | Escudo do Tormento | Anterior: escudo equipado, `(AC+1)/7` e bônus do urso |
-| 68 | Astaroth | Pendente: transformação e interação com 69 |
+| 68 | Astaroth | AUTOMATED TESTED 2026-10-28: form switch in either direction (native SetAffect overwrite); interaction with 69 pending |
 | 69 | Metamorfose Superior | Anterior: bônus da transformação; fechar evidência individual |
-| 70 | Titã | Pendente: transformação completa |
-| 71 | Éden | Anterior: bypass do requisito de escudo na absorção; transformação pendente |
+| 70 | Titã | AUTOMATED TESTED 2026-10-28: form switch in either direction; full in-game transformation pending |
+| 71 | Éden | Shield bypass in absorption; 2026-10-28: Eden no longer blocks lower forms (AUTOMATED TESTED); native affect-33 clear not adapted |
 | 74 | Agressividade | Pendente: affect 27 versus bônus permanente W2PP bit 2 |
 | 75 | Encantar Gelo | Pendente: ID tratado como invisibilidade/affect 28, não confiar no nome |
 | 76 | Imunidade | Pendente: affect 19 e consumidores de resistência/cancelamento |

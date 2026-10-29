@@ -166,8 +166,9 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		// server behind the animation in Armia's NPC rows. Allow crossing, but
 		// never finish stacked with another entity in the gameplay space.
 		isFinalStep := p.MoveAuthorityStep+1 == len(p.MoveAuthorityRoute)
-		if isFinalStep && w.positionOccupiedInGameplaySpace(nextX, nextY,
-			w.gameplaySpaceForPlayer(p), nil, p, nil) {
+		space := w.gameplaySpaceForPlayer(p)
+		if w.thornWallAt(nextX, nextY, space) || isFinalStep &&
+			w.positionOccupiedInGameplaySpace(nextX, nextY, space, nil, p, nil) {
 			w.publishPlayerStop(p)
 			break
 		}

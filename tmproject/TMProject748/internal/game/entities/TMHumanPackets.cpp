@@ -1524,12 +1524,12 @@ int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)
     if (maxMp)
         m_stScore.MaxMP = maxMp;
 
+    // Only death releases the retained target. WYD-Go sends this packet for
+    // mobs after each hit, and most mobs have MaxMP 0; an MP check here
+    // stopped continuous attack after one hit while auto-attack was on.
     auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (pFScene->m_cAutoAttack == 1 && pFScene->m_pTargetHuman == this && hp == 0)
         pFScene->m_pTargetHuman = 0;
-    auto pFScene1 = static_cast<TMFieldScene*>(g_pCurrentScene);
-    if (pFScene1->m_cAutoAttack == 1 && pFScene->m_pTargetHuman == this && mp == 0)
-        pFScene1->m_pTargetHuman = 0;
     if (m_stScore.CurHP >= m_stScore.MaxHP)
         m_stScore.CurHP = m_stScore.MaxHP;
     if (m_stScore.CurMP >= m_stScore.MaxMP)

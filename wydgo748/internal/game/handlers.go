@@ -2921,6 +2921,10 @@ func playerSlotOf(p *Player, typ, pos byte) *model.Item {
 	return slotOf(p.Char, typ, pos)
 }
 
+// affectBMTransform is the BeastMaster form (skills 64/66/68/70/71). Value is
+// the form ID (Wolf 1 to Eden 5), not a potency.
+const affectBMTransform = 16
+
 // affectFaceTransform is cosmetic face transformation (volatiles 70-77).
 // Value is the monster mesh; unlike BM affect 16, there is no combat effect.
 // face_restore (89) removes it.

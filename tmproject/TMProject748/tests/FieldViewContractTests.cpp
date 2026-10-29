@@ -258,5 +258,9 @@ int RunFieldViewContractTests(int& checks)
     check(killed.find("if (m_pTargetHuman == pKilled)") != std::string::npos &&
         killed.find("m_pMyHuman->m_pMoveTargetHuman == pKilled") != std::string::npos,
         "any killer clears the selected victim, not an unrelated surviving target");
+    const auto hpMp = source_contract::Method(ReadClientSource("internal/game/entities/TMHumanPackets.cpp"),
+        "int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)");
+    check(hpMp.find("hp == 0") != std::string::npos && hpMp.find("mp == 0") == std::string::npos,
+        "a mob HP/MP update releases the retained target only at zero HP, not at zero MP");
     return failures;
 }

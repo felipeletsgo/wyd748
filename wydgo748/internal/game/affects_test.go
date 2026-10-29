@@ -200,3 +200,37 @@ func TestBMTransformationKeepsFullHPWhenAnotherBuffRecalculatesScore(t *testing.
 		t.Fatalf("buff curou/feriu BM que nao estava cheio: atual=%d, quer=%d", got, damagedHP)
 	}
 }
+
+// Native SetAffect overwrites a BM form in either direction. Eden (5) must not
+// lock out the lower forms, and a lower form must not block a higher one.
+func TestBMTransformationSwitchesFormsInEitherDirection(t *testing.T) {
+	forms := map[int]int{64: 1, 66: 2, 68: 3, 70: 4, 71: 5}
+	faces := map[int]uint16{1: 22, 2: 23, 3: 24, 4: 25, 5: 32}
+	for _, seq := range [][2]int{{71, 64}, {64, 71}, {70, 68}, {71, 66}} {
+		w, p, _ := handlerTestWorld(t)
+		w.clock = newFakeClock(time.Now()) // bodyMesh reads the wall clock.
+		p.Char.Class = 2
+		for _, skillIndex := range seq {
+			skill := model.SkillDef{Index: skillIndex, AffectType: affectBMTransform, AffectValue: forms[skillIndex]}
+			if got := w.applySupportSkillToTargets(p, []*Player{p}, skill, 100); len(got) != 1 {
+				t.Fatalf("%v: skill %d was not applied", seq, skillIndex)
+			}
+		}
+		want := forms[seq[1]]
+		count := 0
+		for _, affect := range p.Char.Affects {
+			if affect.Type == affectBMTransform {
+				count++
+				if affect.Value != want {
+					t.Fatalf("%v: form %d, want %d", seq, affect.Value, want)
+				}
+			}
+		}
+		if count != 1 {
+			t.Fatalf("%v: %d transformation slots, want 1", seq, count)
+		}
+		if got := bodyMesh(p.Char)[0]; got != faces[want] {
+			t.Fatalf("%v: face %d, want %d", seq, got, faces[want])
+		}
+	}
+}

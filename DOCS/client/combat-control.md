@@ -19,6 +19,19 @@ remain applicable to those unchanged boundaries.
 
 ## Scheduling
 
+### Auto-attack MP release fix (2026-10-28)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Players reported an inverted T bar:
+with auto-attack on, a click attacked once. `TMHuman::OnPacketSetHpMp`
+released the retained target at zero MP while auto-attack was on. WYD-Go sends
+0x181 for a mob after each nonfatal hit, and most mobs have MaxMP 0. The
+handler now releases the target only at zero HP. The owner's always-retain
+rule below is unchanged, so a click continues with the bar shown or hidden.
+Client revision 11 carries the change.
+
+AUTOMATED TESTED: source contract in `FieldViewContractTests.cpp`.
+CLIENT-TESTED pending: continuous attack with the T bar on and off.
+
 ### Manual physical target continuation (2026-10-17)
 
 Classification: `MODERNIZACAO_COMPATIVEL`. Per the owner's explicit rule,

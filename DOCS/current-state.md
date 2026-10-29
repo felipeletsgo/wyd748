@@ -1,5 +1,29 @@
 # Current project state
 
+## Player bug batch — 2026-10-28, local source, not published
+
+Client revision 11 and server minimum 11 are raised together; patch 48011
+is not built, published, or activated.
+
+- BM forms (`PARIDADE_NATIVA`): affect 16 now overwrites in either direction,
+  like native `SetAffect`. Eden (form 5) no longer blocks Wolf, Bear, Astaroth
+  or Titan until it expires.
+- Thorn Wall, skill 98: players can damage and destroy the vine, as with native
+  Vinha, and attackers see damage and HP (`PARIDADE_NATIVA`). It grants no EXP,
+  loot, quest or instance progress and never targets players. Its 21 s
+  lifetime pauses while it takes damage, until 6 s pass without damage (an
+  approximation of the native peace-only countdown). Player routes stop before
+  a live vine on any step (`MODERNIZACAO_COMPATIVEL`).
+- Rapid Hit (Tempestade de Raios), skill 95: the client checks primary-target
+  range for manual casts (Range 6 instead of area radius 3). The automatic
+  single-target filter uses 95, and the six damage numbers appear 100 ms apart.
+  The server keeps six hits. Skill 79 is Another_Soul in 7.48.
+- T bar: the client releases the retained target only at zero HP, not at zero
+  MP; see [combat control](client/combat-control.md).
+
+AUTOMATED TESTED: Go suite and vet, focused client tests and Release build.
+CLIENT-TESTED pending for all four items.
+
 ## Local NPC catalog migration — 2026-10-27, not activated
 
 The general population now uses one `data/NPCGener.txt` for both channels.

@@ -32,7 +32,9 @@ func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 	if !w.towerTargetAllowed(p, m) {
 		return false
 	}
-	if p == nil || !w.hostileMob(m) {
+	// The thorn wall is a player summon, but native Vinha is an ordinary mob
+	// that any player can damage and destroy.
+	if p == nil || !w.hostileMob(m) && !isThornWall(m) {
 		return false
 	}
 	// A few pure targeting helpers intentionally use a zero-value Player in
@@ -62,7 +64,7 @@ func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 // visible/targetable in one path while still attacking across a runtime wall
 // in another path.
 func (w *World) mobCanTargetPlayer(m *Mob, p *Player) bool {
-	return !w.criticalPlayerReserved(p) && w.playerCanInteractWithMob(p, m) &&
+	return !isThornWall(m) && !w.criticalPlayerReserved(p) && w.playerCanInteractWithMob(p, m) &&
 		(p.Char == nil || !hasActiveAffectAt(p.Char, 28, w.now()))
 }
 
