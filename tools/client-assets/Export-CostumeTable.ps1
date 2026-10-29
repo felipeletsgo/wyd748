@@ -45,6 +45,14 @@ foreach ($renderer in $renderers) {
     if ($renderer.parts.Count -ne 6 -or $renderer.type -le 0 -or $renderer.type -ge 0x4000) {
         throw "Invalid renderer: $($renderer.type)"
     }
+    # An empty part 0 keeps the native face. Native KR SetCostume loads the
+    # costume face (chXX01<id>.msh) when one exists; the costume head hides the native face.
+    if (-not $renderer.parts[0].mesh -and $renderer.parts[1].mesh -match '^mesh\\(ch\d\d)02(\d+)\.msh$') {
+        $face = "mesh\$($Matches[1])01$($Matches[2]).msh"
+        if (Test-Path -LiteralPath (Join-Path $repo "tmproject/client748/$face") -PathType Leaf) {
+            throw "Renderer $($renderer.type) omits its costume face: $face"
+        }
+    }
     $parts = foreach ($part in $renderer.parts) {
         if ($part.mesh -and -not $part.texture) { throw 'Mesh without texture.' }
         '{ ' + (ConvertTo-CppString $part.texture 64) + ', ' + (ConvertTo-CppString $part.mesh 32) + ' }'

@@ -425,8 +425,8 @@ int TMHuman::InitObject()
     int nCos = costume748::Select(m_sCostume, m_nSkinMeshType);
     if (nCos)
     {
-        // Validated collection: preserve the body/skeleton and native face look.
-        // The renderer replaces only the six explicitly catalogued parts.
+        // Validated collection: preserve the body/skeleton. The renderer replaces
+        // only the six catalogued parts; an empty part 0 keeps the native face.
         memset(&m_stColorInfo.Sanc0, 0, 6);
         memset(&m_stColorInfo.Legend0, 0, 6);
         memset(&m_stSancInfo.Sanc0, 0, 6);

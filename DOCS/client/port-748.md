@@ -2861,6 +2861,32 @@ policy; no alternate deletion method was attempted. Leftover directory:
 The candidate remains in the normal incremental build output; no runtime or
 player data was deleted.
 
+## Costume faces: Dancing_Girl and Student_Set (2026-10-29)
+
+A female Huntress in Student_Set (4183) showed a head and neck without a face.
+
+- Root cause: `Costumes-KR.json` left part 0 empty for renderer types 25
+  (Dancing_Girl, 4175) and 33 (Student_Set, 4183). An empty part 0 keeps the
+  native face. These costumes ship their own face (`ch0101105.msh`,
+  `ch0101114.msh`, head bone only). Their part 1 mesh is a torso with a neck
+  and head shell, which hides the native face.
+- Native evidence: WYD KR `SetCostume` cases `0x19` and `0x21` load the `01`
+  face mesh into part 0. See the
+  [KR costume record](../../.agents/research/client748/inventory/costume-native-contract.md).
+- Affected: items 4175 and 4183, class mask 10 (FoemaHuntress: FM and HT).
+  Both use one renderer for every skeleton and body variant.
+- Not affected: types 131..138 and 271..274 keep an empty part 0. KR has no
+  `01` face asset for them.
+- Fix: the manifest now carries both face parts, and the generated table was
+  regenerated. `Export-CostumeTable.ps1` rejects an empty part 0 when a
+  matching `chXX01<id>.msh` exists. No asset or wire change.
+
+Classification: `PARIDADE_NATIVA` for the imported KR renderer data.
+`STATICALLY VERIFIED`: KR disassembly, asset bones, table check.
+`AUTOMATED TESTED`: `CostumeSelectionTests.cpp` pins both faces and the
+twelve native-face types; `Build-Client.ps1 -NoDeploy` passed.
+Pending: `CLIENT-TESTED` for FM and HT in both costumes, owner and observer.
+
 ## Adaptation sequence
 
 1. Confirm the native flow and the historical reference SHA in Ghidra 7.48.

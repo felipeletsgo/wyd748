@@ -1,4 +1,5 @@
 #include "../internal/render/mesh/CostumeSelection.h"
+#include <algorithm>
 #include <cstdio>
 #include <cstring>
 #include <iterator>
@@ -83,6 +84,24 @@ int RunCostumeSelectionTests(int& checks)
         "corrected costume keeps native face without shifting other parts");
     check(ResolvePart(FindRenderer(ImportedTag | 200), 0, part) == PartAction::Replace && part,
         "real part-zero geometry is not discarded");
+    // KR SetCostume cases 0x19/0x21 load a costume face; its head shell hides the native face.
+    for (int skeleton : {0, 1}) {
+        check(ResolvePart(FindRenderer(Select(4175, skeleton)), 0, part) == PartAction::Replace && part &&
+            std::strcmp(part->mesh, "mesh\\ch0101105.msh") == 0 &&
+            std::strcmp(part->texture, "mesh\\ch0101105.wys") == 0,
+            "Dancing_Girl renders its own face");
+        check(ResolvePart(FindRenderer(Select(4183, skeleton)), 0, part) == PartAction::Replace && part &&
+            std::strcmp(part->mesh, "mesh\\ch0101114.msh") == 0 &&
+            std::strcmp(part->texture, "mesh\\ch0101114.wys") == 0,
+            "Student_Set renders its own face");
+    }
+    // Only KR five-part cases (no chXX01 face asset) keep the native face.
+    const int nativeFaceTypes[] = {131, 132, 133, 134, 135, 136, 137, 138, 271, 272, 273, 274};
+    for (const auto& renderer : Renderers) {
+        const bool expected = std::find(std::begin(nativeFaceTypes), std::end(nativeFaceTypes),
+            renderer.type) != std::end(nativeFaceTypes);
+        check((renderer.parts[0].mesh[0] == 0) == expected, "native face only for five-part KR cases");
+    }
     Renderer sparse{999, {{"", ""}, {"", ""}}};
     check(ResolvePart(&sparse, 1, part) == PartAction::Skip && !part, "empty body never falls into legacy loader");
     // Repeated loads and equip/dequip are stateless; no m_Cos cursor survives.

@@ -3487,8 +3487,8 @@
                           "type":  25,
                           "parts":  [
                                         {
-                                            "texture":  "",
-                                            "mesh":  ""
+                                            "texture":  "mesh\\ch0101105.wys",
+                                            "mesh":  "mesh\\ch0101105.msh"
                                         },
                                         {
                                             "texture":  "mesh\\ch0101105.wys",
@@ -3719,8 +3719,8 @@
                           "type":  33,
                           "parts":  [
                                         {
-                                            "texture":  "",
-                                            "mesh":  ""
+                                            "texture":  "mesh\\ch0101114.wys",
+                                            "mesh":  "mesh\\ch0101114.msh"
                                         },
                                         {
                                             "texture":  "mesh\\ch0101114.wys",
