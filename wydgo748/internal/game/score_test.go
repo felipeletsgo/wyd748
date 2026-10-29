@@ -29,7 +29,7 @@ func TestPossessedUsesWideMaxHPWithoutAccumulating(t *testing.T) {
 	w.recalcPlayer(ch)
 	firstMax := playerMaxHP(ch)
 	w.recalcPlayer(ch)
-	if firstMax != 501_280 || playerMaxHP(ch) != firstMax {
+	if firstMax != 500_420 || playerMaxHP(ch) != firstMax {
 		t.Fatalf("Possuido wide incorreto/acumulado: primeiro=%d segundo=%d",
 			firstMax, playerMaxHP(ch))
 	}

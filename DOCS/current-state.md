@@ -35,6 +35,14 @@ is not built, published, or activated.
   attack score. Two Weapon Fighting (82), Life Drain (90, dual-weapon +10),
   Hunter's Vision (91, critical + base DEX/20), Transfer Armor Class, Coin
   Armor and Spirit Change follow the server. Another Soul (79) stays pending.
+  Coin Armor stores the mastery as its level again (Level/10 + Value).
+- TransKnight skills and passives (`PARIDADE_NATIVA`, official TMSRVIN). By
+  name, 7.48 Slow Slash (2), Rescue (3), Growth (13) and Double Swing (16) are
+  server 16, 13, 3 and 2. Speed Up (9) is not Two-Hand Master, so TK gets no
+  dual-weapon bonus. Destiny adds 20 holy resist; Critical Armor gives defense
+  x1.2, attack + defense/10 and critical +10%. Assault lowers HP, not defense.
+  Growth and Rescue use the server formulas. The Critical Armor buff stays
+  affect 31; the server flag consumer is unknown.
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 

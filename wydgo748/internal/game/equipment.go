@@ -230,11 +230,12 @@ func (w *World) equipmentDamage(ch *model.Char) int {
 		if ldef.Unique == rdef.Unique {
 			multi = 50
 		}
-		// BASE_GetMobAbility: Weapon Master (TK bit 9) uses 100% of the
-		// secondary weapon damage. Official TMSRVIN sub_4BA690 adds 10 points
-		// for Huntress server bit 10, Life Drain (7.48 skill 90).
-		if ch.Class == 0 && ch.LearnedSkill&(1<<9) != 0 {
-			multi = 100
+		// Official TMSRVIN sub_4BA690 adds 15 points for TransKnight server
+		// bit 9 (Two-Hand Master) and 10 for Huntress server bit 10 (Life
+		// Drain, 7.48 skill 90). 7.48 has no Two-Hand Master: its bit 9 is
+		// Speed Up, so serverSkillLearned never reports it.
+		if ch.Class == 0 && serverSkillLearned(ch, transKnightTwoHandMaster) {
+			multi += 15
 		} else if ch.Class == 3 && learnedLocal(ch, 90-72) {
 			multi += 10
 		}

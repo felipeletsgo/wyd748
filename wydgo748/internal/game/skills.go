@@ -251,7 +251,19 @@ var huntressServerSkill = map[int]int{
 // skill: Rapid Hit, Spirit Change and Hide in Shadow.
 var huntressTreeFinisher = [3]int{95, 87, 75}
 
+// The official server swaps these TransKnight skills relative to 7.48.
+// Speed Up (9) has no server entry; server skill 9 is Two-Hand Master,
+// which 7.48 does not have.
+var transKnightServerSkill = map[int]int{2: 16, 3: 13, 13: 3, 16: 2}
+
+const transKnightTwoHandMaster = 9
+
 func serverSkillIndex(ch *model.Char, skillIndex int) int {
+	if ch != nil && ch.Class == 0 {
+		if mapped, ok := transKnightServerSkill[skillIndex]; ok {
+			return mapped
+		}
+	}
 	if ch != nil && ch.Class == 3 {
 		if mapped, ok := huntressServerSkill[skillIndex]; ok {
 			return mapped
@@ -260,9 +272,37 @@ func serverSkillIndex(ch *model.Char, skillIndex int) int {
 	return skillIndex
 }
 
+// serverSkillLearned tests an official TMSRVIN learned bit (class-local
+// server skill) against the 7.48 skill with the same name.
+func serverSkillLearned(ch *model.Char, serverLocal int) bool {
+	if ch == nil {
+		return false
+	}
+	switch ch.Class {
+	case 0:
+		if serverLocal == transKnightTwoHandMaster {
+			return false
+		}
+		for skill, mapped := range transKnightServerSkill {
+			if mapped == serverLocal {
+				return learnedLocal(ch, skill)
+			}
+		}
+	case 3:
+		for skill, mapped := range huntressServerSkill {
+			if mapped == serverLocal+72 {
+				return learnedLocal(ch, skill-72)
+			}
+		}
+		return false
+	}
+	return learnedLocal(ch, serverLocal)
+}
+
 // baseSkillDamage adapts the historical 7.59 BASE_GetSkillDamage algorithm,
 // including its weather modifiers for the caster's position (weather.go).
-// Huntress trees, mastery and finisher bonuses follow the server skill order.
+// TransKnight and Huntress trees, mastery and finisher bonuses follow the
+// server skill order.
 func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	serverIndex := serverSkillIndex(ch, skill.Index)
 	local := serverIndex % 24
@@ -272,7 +312,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	weapon := w.equipmentDamage(ch)
 	damage := 0
 	if skill.InstanceType == 0 {
-		switch skill.Index {
+		switch serverIndex {
 		case 11:
 			damage = special/10 + skill.AffectValue
 		case 13:
@@ -320,7 +360,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	} else {
 		switch ch.Class {
 		case 0:
-			if tkTransformationSkill(skill.Index) {
+			if tkTransformationSkill(serverIndex) {
 				damage = 3*weapon + 3*playerStr(ch) + levelPart + special + base
 			} else {
 				damage = levelPart + special + base + weapon +
@@ -340,7 +380,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	}
 	damage = applyWeatherDamage(damage, skillWeatherAt(w.weather, ch.X, ch.Y), skill)
 	if skill.Index != 97 {
-		if ch.Class != 3 && (ch.Class != 0 || !tkTransformationSkill(skill.Index)) {
+		if ch.Class != 3 && (ch.Class != 0 || !tkTransformationSkill(serverIndex)) {
 			damage = (4*int(effectiveScore(ch).MagicAmp) + 100) * damage / 100
 		}
 		damage = 5 * damage / 4

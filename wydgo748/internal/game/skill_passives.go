@@ -43,10 +43,17 @@ func (w *World) applyPassiveSkills(ch *model.Char) {
 		return
 	}
 	switch ch.Class {
-	case 0: // TransKnight
-		if learnedLocal(ch, 15) { // Armadura Critica
-			e.Defense = extendedValue(int64(e.Defense)*110/100 + 50)
-			e.Critical = addCritical(e.Critical, 48) // 4.8%
+	case 0: // TransKnight; official TMSRVIN sub_4CE1C0, same bits in 7.48.
+		// Destiny (7) adds 20 holy resistance.
+		if learnedLocal(ch, 7) {
+			e.ResistHoly = uint32(clampInt(int(e.ResistHoly)+20, 0, 100))
+		}
+		// Critical Armor (15): defense 120%, attack + defense/10 and
+		// critical + 100, in tenths of a percent.
+		if learnedLocal(ch, 15) {
+			e.Defense = extendedValue(int64(e.Defense) * 120 / 100)
+			e.Attack = extendedValue(int64(e.Attack) + int64(e.Defense)/10)
+			e.Critical = addCritical(e.Critical, 100)
 		}
 	case 2: // BeastMaster
 		// Official TMSRVIN sub_4CE1C0: Bear's Roar (67) with a shield in slot 7

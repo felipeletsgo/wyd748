@@ -505,13 +505,9 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				if skill.Index == 102 {
 					applied = setSoulLimitAffectAt(target.Char, affectType, value, mastery, duration, now)
 				} else {
-					level := mastery
-					if skill.Index == coinArmorSkill {
-						// Affect 31 adds Level/2 + Value; Coin Armor's native help
-						// grants Trade/10 defense, so its level is mastery/5.
-						level = mastery / 5
-					}
-					applied = setAffectAt(target.Char, affectType, value, level, duration, now)
+					// Affect 31 adds Level/10 + Value, so Coin Armor keeps the
+					// mastery level, as the official server does.
+					applied = setAffectAt(target.Char, affectType, value, mastery, duration, now)
 				}
 				if applied && skill.Index == 15 { // TK Critical Armor uses visual 24 in 7.48.
 					for i := range target.Char.Affects {
@@ -827,13 +823,31 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			e.Defense = add(e.Defense, int64(a.Level/3+a.Value))
 		case 12:
 			e.Defense = mul(e.Defense, 100-clampInt(a.Value, 0, 100))
-		case 13:
-			e.Attack = mul(e.Attack, 100+a.Level/10+a.Value)
-			e.Defense = mul(e.Defense, 90)
-		case 14: // Possessed
-			value := a.Level*3/4 + a.Value
-			e.Con = add(e.Con, int64(value))
-			e.MaxHP = add(e.MaxHP, int64(value)*8)
+		case 13: // Assault; official TMSRVIN sub_4BB4C0.
+			bonus := a.Level/10 + a.Value
+			if serverSkillLearned(ch, 15) { // Critical Armor.
+				bonus += 5
+			}
+			e.Attack = mul(e.Attack, 100+bonus)
+			e.MaxHP = mul(e.MaxHP, 90)
+		case 14: // Growth; official TMSRVIN sub_4BB4C0 and sub_4CE1C0.
+			level := int(playerLevel(ch))
+			if !mortalSoulCharacter(ch) && ch.LearnedSkill&celestialSoulBit != 0 {
+				level += 400
+			}
+			con := int64(a.Value + a.Level + level*4/3)
+			var stats int64
+			if serverSkillLearned(ch, 7) { // Destiny.
+				con += int64(a.Level)
+				stats = 200
+			}
+			e.Con = add(e.Con, con+stats)
+			e.Str = add(e.Str, stats)
+			e.Int = add(e.Int, stats)
+			e.Dex = add(e.Dex, stats)
+			// sub_4CE1C0 adds 2 HP per extra CON and 2 MP per extra INT.
+			e.MaxHP = add(e.MaxHP, 2*(con+stats))
+			e.MaxMP = add(e.MaxMP, 2*stats)
 		case 15: // Athena's Touch
 			value := uint32(maxInt(0, a.Level/10+a.Value))
 			for j := range e.Mastery {
@@ -910,8 +924,19 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			}
 			e.Defense = add(e.Defense, int64(-(a.Level/3 + 10)))
 			e.Attack = mul(e.Attack, 100+bonus)
-		case 24:
-			e.Defense = add(e.Defense, int64(e.Defense)/4+int64(a.Value))
+		case 24: // Rescue; official TMSRVIN sub_4BB4C0.
+			percent, resist := 100, 0
+			if _, _, ok := w.rightHandShield(ch); ok {
+				percent, resist = percent+30, 30
+			}
+			if serverSkillLearned(ch, 15) { // Critical Armor.
+				percent += 10
+			}
+			e.Defense = mul(add(e.Defense, int64(a.Level)), percent)
+			e.ResistFire = uint32(clampInt(int(e.ResistFire)+resist, 0, 100))
+			e.ResistIce = uint32(clampInt(int(e.ResistIce)+resist, 0, 100))
+			e.ResistHoly = uint32(clampInt(int(e.ResistHoly)+resist, 0, 100))
+			e.ResistThunder = uint32(clampInt(int(e.ResistThunder)+resist, 0, 100))
 		case 25:
 			e.Defense = add(e.Defense, int64(a.Value+a.Level+int(playerMastery(ch, 1))+1))
 			resist := (a.Value + a.Level/4) / 10

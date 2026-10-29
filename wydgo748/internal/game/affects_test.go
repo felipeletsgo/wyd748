@@ -39,9 +39,12 @@ func TestTKAffectFormulas759(t *testing.T) {
 		attack, ac uint16
 		hp, con    uint16
 	}{
-		{model.Affect{Type: 13, Value: 7, Level: 40}, 111, 90, 1000, 6},
-		{model.Affect{Type: 14, Value: 10, Level: 40}, 100, 100, 1320, 46},
-		{model.Affect{Type: 24, Value: 0, Level: 40}, 100, 125, 1000, 6},
+		// Official TMSRVIN: Assault lowers HP, not defense, to 90%.
+		{model.Affect{Type: 13, Value: 7, Level: 40}, 111, 100, 900, 6},
+		// Growth: CON + Value + Level + Level*4/3, 2 HP per CON.
+		{model.Affect{Type: 14, Value: 10, Level: 40}, 100, 100, 1126, 69},
+		// Rescue without a shield: AC + Level.
+		{model.Affect{Type: 24, Value: 0, Level: 40}, 100, 140, 1000, 6},
 		// Official TMSRVIN: Coin Armor adds Level/10 + Value.
 		{model.Affect{Type: 31, Value: 150, Level: 40}, 100, 254, 1000, 6},
 	}

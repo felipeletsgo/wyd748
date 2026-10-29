@@ -32,15 +32,17 @@ func TestItemMetadataIsNeverRefined(t *testing.T) {
 	}
 }
 
-func TestDualWieldPassivesUseFullSecondaryWeapon(t *testing.T) {
+func TestDualWieldPassivesFollowOfficialServer(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		100: {Index: 100, Unique: 7, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 100}}},
 		101: {Index: 101, Unique: 7, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 80}}},
 	}}
+	// 7.48 TransKnight bit 9 is Speed Up, not the server's Two-Hand Master,
+	// so the same-type share stays 50%: 100 + 80*50/100.
 	ch := &model.Char{Class: 0, LearnedSkill: 1 << 9}
 	ch.Equip[6], ch.Equip[7] = model.Item{Index: 100}, model.Item{Index: 101}
-	if got := w.equipmentDamage(ch); got != 180 {
-		t.Fatalf("dual wield TK=%d, want 180", got)
+	if got := w.equipmentDamage(ch); got != 140 {
+		t.Fatalf("dual wield TK with Speed Up=%d, want 140", got)
 	}
 	// Official TMSRVIN: Huntress Life Drain (7.48 skill 90, server bit 10)
 	// adds 10 points to the 50% same-type share: 100 + 80*60/100.
