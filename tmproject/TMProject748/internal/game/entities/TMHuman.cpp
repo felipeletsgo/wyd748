@@ -2936,6 +2936,9 @@ void TMHuman::CheckAffect()
             m_cSpeedDown = 1;
             break;
         case 8:
+            // Native FUN_0052433D: Berserk (visual 8) lights the weapon
+            // hand effect unless visual 7 (Speed Down) is also active.
+            m_cSpeedUp = 1;
             if (m_stAffect[i].Value & 1)
                 m_DilpunchJewel = 1;
             break;

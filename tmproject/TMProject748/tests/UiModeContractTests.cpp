@@ -295,6 +295,15 @@ int RunUiModeContractTests(int& checks)
         }), code.end());
         return code;
     };
+    // Native FUN_0052433D: visual 8 sets the Speed Up flag (human +0x783).
+    const auto human = ReadAppSource("internal/game/entities/TMHuman.cpp");
+    const auto checkAffect = buffCode(source_contract::Method(human, "void TMHuman::CheckAffect()"));
+    const auto berserk = checkAffect.find("case8:");
+    check(berserk != std::string::npos &&
+        checkAffect.find("m_cSpeedUp=1;", berserk) < checkAffect.find("case9:", berserk),
+        "Berserk visual 8 enables the native Speed Up weapon effect");
+    check(checkAffect.find("m_cShadow=1;") > checkAffect.find("case28:"),
+        "Magic Weapon visual 9 does not set the Invisibility flag");
     const auto skillAmpContract = [&](const std::string& body) {
         const auto code = buffCode(body);
         return code.find("kSkillAmpGroundOffset=0.4f;") != std::string::npos &&

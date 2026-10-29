@@ -48,6 +48,9 @@ is not built, published, or activated.
   not a passive: defense +(7 + Level/50)%, critical +(3 + Level/50)%.
   Combat Sensibility (14) gives Special[2]/20 minimum-damage mastery to
   physical hits too; other characters now get 0 instead of Special[0].
+- Berserk visual (`PARIDADE_NATIVA`, client): visual 8 now sets the Speed Up
+  weapon effect, as native `FUN_0052433d`. A buff visual audit found no other
+  divergence; see [persistent buff visuals](../.agents/research/client748/flows/combat/persistent-buff-visuals.md).
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 

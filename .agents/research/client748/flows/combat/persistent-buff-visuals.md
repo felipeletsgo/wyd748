@@ -188,6 +188,26 @@ AUTOMATED TESTED: full Go suite and vet passed; Release/x86 build passed,
 ArchitectureTests 1,229,509 checks, socket 231, crash capture 83, launcher 56.
 No gameplay process was launched: CLIENT-TESTED remains pending.
 
+## Berserk visual and buff dispatch audit (2026-10-29)
+
+Classification: `PARIDADE_NATIVA`. Native `FUN_0052433d` sets human `+0x783`
+(Speed Up) for visual 8 and `+0x784` (Speed Down) for visual 7. With Speed Up
+on and Speed Down off, it enables the weapon hand effect. `TMHuman::CheckAffect`
+handled visual 8 only for the later Dilpunch jewel bit and never set
+`m_cSpeedUp`, so Berserk (TK 9) showed no effect. Visual 8 now sets it; the
+existing hand-effect rule is unchanged.
+
+The same audit compared every 7.48 SkillData buff with the server wire visual
+and the native dispatcher. The server sends native IDs for all buffs. Native
+has no persistent effect for visuals 14, 24 and 38 (Possessed, Samaritan,
+Spirit Change, Improved Range); BM forms use the face transform. Magic Weapon
+(9) sets only `m_cWeapon`, as native. Visuals 5 and 6 (SkillBlack, Shield2)
+have no case in the native projector and stay unverified.
+
+AUTOMATED TESTED: `Build-Client.ps1 -NoDeploy` Release/x86; ArchitectureTests
+3,177,024 checks with two new `UiModeContractTests` assertions. No client was
+launched; CLIENT-TESTED is pending. Ships with unpublished revision 11.
+
 ## Remaining gaps
 
 - Actual built-client visual comparison remains open: Skill Amp on foot/mounted,
