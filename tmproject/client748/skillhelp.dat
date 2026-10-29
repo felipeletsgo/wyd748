@@ -989,10 +989,10 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5100
-CC9900FF Temporarily prevents other characters
-CC9900FF from recovering HP and MP.
-FFFFFFFF
-FFFFFFFF
+CC9900FF Temporarily prevents the target from
+CC9900FF using HP and MP potions.
+CC9900FF Against an immune target, removes one
+CC9900FF Immunity instead.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF

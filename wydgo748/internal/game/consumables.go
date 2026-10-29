@@ -473,6 +473,12 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 
 	case "restore":
 		now := w.now()
+		// Official TMSRVIN item use: a holder of Cancellation (affect 32)
+		// gets the potion back without any HP or MP.
+		if activePlayerAffectAt(p.Char, affectCancellation, now) != nil {
+			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
+			return
+		}
 		if !p.LastPotion.IsZero() && now.Sub(p.LastPotion) < potionCooldown {
 			// The client anticipates use visually; resend the authoritative slot.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))

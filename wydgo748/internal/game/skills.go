@@ -951,6 +951,8 @@ const (
 	// server 100 and 7.48 Cancellation (100) is server 47.
 	concentrationSkill = 47
 	cancellationSkill  = 100
+	// Cancellation's affect blocks EF_VOLATILE 1 potions (official TMSRVIN).
+	affectCancellation = 32
 )
 
 // skillWeaponAllowed mirrors the client gate (owner rule): Enchant Frost

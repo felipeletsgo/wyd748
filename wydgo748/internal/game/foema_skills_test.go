@@ -111,3 +111,23 @@ func TestTeleportRejectsTargetsAboveLevelLimit(t *testing.T) {
 		t.Fatal("Teleport rejected a target at the level limit")
 	}
 }
+
+// Official TMSRVIN sub_575830: Cancellation removes one Immunity from an
+// immune target and applies affect 32 only to a target without Immunity.
+func TestCancellationBreaksImmunityOrBlocksPotions(t *testing.T) {
+	caster, _ := networkedTestPlayer(1, "Caster", 2200, 2200)
+	target, _ := networkedTestPlayer(2, "Target", 2201, 2200)
+	w := testSpatialWorld(nil, caster, target)
+	skill := model.SkillDef{Index: cancellationSkill, TargetType: 1, Aggressive: 1,
+		AffectType: affectCancellation, AffectTime: 1, MaxTarget: 1}
+	now := w.now()
+	target.Char.Affects[0] = model.Affect{Type: 19, ExpiresAt: now.Add(time.Minute)}
+	w.executePlayerSkill(caster, []*Player{target}, skill, 100, 0)
+	if target.Char.Affects[0].Type != 0 || activePlayerAffectAt(target.Char, affectCancellation, now) != nil {
+		t.Fatalf("immune target: %+v", target.Char.Affects[:2])
+	}
+	w.executePlayerSkill(caster, []*Player{target}, skill, 100, 0)
+	if activePlayerAffectAt(target.Char, affectCancellation, now) == nil {
+		t.Fatal("Cancellation did not apply affect 32 without Immunity")
+	}
+}

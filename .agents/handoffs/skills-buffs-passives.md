@@ -71,7 +71,7 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | 44 | Arma Mágica | AUTOMATED TESTED 2026-10-29: ataque + Level/3 + 15 e +5%; Foema com bit 20: ×5 e +20% (+27% com bit 23) (TMSRVIN e cliente nativo) |
 | 45 | Toque da Athena | AUTOMATED TESTED 2026-10-29: Level/10 + Value, ×1.2 para Foema com bit 23, teto 320 |
 | 46 | Controle de Mana | AUTOMATED TESTED: regra expressa do usuário 90% MP / 10% HP, sem reserva; insuficiência transborda para HP no mesmo golpe; removido SaveMana indevido; teste in-game pendente |
-| 47 | Concentração (7.48) | AUTOMATED TESTED 2026-10-29: passiva, precisão +15% e mínimo 35%; o Cancelamento é a skill 100 no 7.48 (troca por nome com o servidor) |
+| 47 | Concentração (7.48) | AUTOMATED TESTED 2026-10-29: passiva, precisão +15% e mínimo 35%; o Cancelamento é a skill 100 no 7.48 (troca por nome): bloqueia poções (affect 32) ou remove uma Imunidade de alvo imune |
 | 53 | Proteção Elemental | Pendente: affect 25, defesa e resistências |
 | 64 | Lobisomem | Anterior: transformação; não contar teste isolado como todos os modelos validados |
 | 65 | Fangs_of_the_Wolf | 2026-10-29: official server adds no form bonus or absorption (bit-17 absorb is cleared before gems); AUTOMATED TESTED |

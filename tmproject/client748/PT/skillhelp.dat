@@ -989,15 +989,15 @@ CC9900FF Skill_que_possibilita_a_ressucitação
 CC9900FF no_local_onde_morreu.
 CC9900FF 
 5100
+CC9900FF Impede o alvo de usar poções de HP e MP
+CC9900FF durante certo tempo.
+CC9900FF Contra um alvo com Imunidade, remove
+CC9900FF uma Imunidade no lugar.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-CC9900FF Com_a_força_de_justiça_e_controle
-CC9900FF faz_com_que_outros_não_possam 
-CC9900FF recuperar_MP+HP_durante_certo_tempo.
 5101
 FFFFFFFF 
 FFFFFFFF 

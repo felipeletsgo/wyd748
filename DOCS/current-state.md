@@ -65,7 +65,9 @@ is not built, published, or activated.
   target level to level + mastery + 100. Magic Weapon, Magic Shield and
   Athena use the holder's bits 20/23. By name, 7.48 Concentration (47) and
   Cancellation (100) are server 100 and 47: Concentration is the passive
-  accuracy rule and Cancellation removes Immunity. FM tooltips match.
+  accuracy rule. Cancellation (affect 32) blocks HP/MP potions; against an
+  immune target it removes one Immunity instead (TMSRVIN `sub_575830`).
+  FM tooltips match.
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 

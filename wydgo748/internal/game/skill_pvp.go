@@ -254,9 +254,9 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 		} else {
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
 		}
-		if !blocked && skill.Index == cancellationSkill {
-			// Official TMSRVIN SetAffect: Cancellation removes Immunity (19),
-			// one entry per cast, like the support path.
+		if blocked && skill.Index == cancellationSkill {
+			// Official TMSRVIN SetAffect (sub_575830): against an immune target,
+			// Cancellation removes one Immunity (19) instead of applying 32.
 			for i := range target.Char.Affects {
 				if target.Char.Affects[i].Type == 19 {
 					target.Char.Affects[i] = model.Affect{}

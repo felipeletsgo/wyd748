@@ -442,6 +442,17 @@ func TestOnUseItemRestoreGoldTeleportAndPositionActions(t *testing.T) {
 		}
 	})
 
+	t.Run("restore blocked by Cancellation", func(t *testing.T) {
+		// Official TMSRVIN: affect 32 returns the potion without HP or MP.
+		w, p, _ := useItemWorld(model.VolatileRule{Action: "restore", Consume: true, HP: 100})
+		setPlayerCurHP(p.Char, 500)
+		p.Char.Affects[0] = model.Affect{Type: affectCancellation, ExpiresAt: w.now().Add(time.Minute)}
+		w.onUseItem(p.Session, useItemPacket(0, 0))
+		if playerCurHP(p.Char) != 500 || p.Char.Inv[0].Index != 100 || !p.LastPotion.IsZero() {
+			t.Fatalf("Cancellation allowed a potion: hp=%d item=%d", playerCurHP(p.Char), p.Char.Inv[0].Index)
+		}
+	})
+
 	t.Run("restore full", func(t *testing.T) {
 		w, p, _ := useItemWorld(model.VolatileRule{Action: "restore", Consume: true, HP: 100})
 		w.onUseItem(p.Session, useItemPacket(0, 0))

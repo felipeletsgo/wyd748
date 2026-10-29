@@ -2402,6 +2402,17 @@
       "FFFFFFFF ",
       "FFFFFFFF ",
       "FFFFFFFF "
+    ],
+    "5100": [
+      "CC9900FF Impede o alvo de usar poções de HP e MP",
+      "CC9900FF durante certo tempo.",
+      "CC9900FF Contra um alvo com Imunidade, remove",
+      "CC9900FF uma Imunidade no lugar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
     ]
   },
   "captions": {
@@ -2427,7 +2438,7 @@
     "fieldscene.bin:2:915:640:-2": "Líder III"
   },
   "canonical_text_sha256": {
-    "skillhelp.dat": "81fc7b0614286e4de6ffbf5d3ca12d70d2a44cfb69b9c11aa52fffb4eb6cc649",
+    "skillhelp.dat": "dd8fa19cb3b882e5c4f65a3544a712f44d29699cbf0abf112942db7209d3acd7",
     "UI/UIString.txt": "166d8f97e8bf7fb93a23601f4d5a952d0117a8042e54b58111bb8f46c5670d8d",
     "UI/EffectString.txt": "f49c1101dbba1679bbe3b437f4bb11d552f821247d3e089bd3c6ec4d54fdf244",
     "UI/interface.txt": "a0e6ce6c5f181d88e136939ebb305b8f462509c6cb65b9106a0de0d952c6a7d5",

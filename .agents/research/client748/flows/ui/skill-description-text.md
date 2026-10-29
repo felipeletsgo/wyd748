@@ -28,7 +28,7 @@ requirements overwriting their text or displacing the learned-skill tooltip?
   English localization of those native descriptions, including formulas,
   effects, conditions and native ARGB colors. SHA-256:
   `D614DA42CE36B2C2CA61DEC6BF4DF964D047C28A4A3B618D53695C26FC967629` (2026-10-15);
-  `81FC7B0614286E4DE6FFBF5D3CA12D70D2A44CFB69B9C11AA52FFFB4EB6CC649` after the
+  `DD8FA19CB3B882E5C4F65A3544A712F44D29699CBF0ABF112942DB7209D3ACD7` after the
   2026-10-29 implemented-effect updates below.
   This is translated content, not a byte-identical native asset.
 - Existing `itemhelp.dat` is unchanged: its historical item text and ANSI
@@ -127,7 +127,8 @@ states that it has no effect. PT rows are `skill_help` overrides in
 `tools/client-assets/client_locale_overrides.json`; numbers match EN.
 
 A second pass updated FM records 5025, 5027, 5029-5031 and 5041-5047 after
-the Foema server alignment. The PT White Magic name is `Magia Sagrada`.
+the Foema server alignment, and 5100 (Cancellation blocks potions). The PT
+White Magic name is `Magia Sagrada`.
 Other classes' damage records keep native prose.
 
 ## Gaps
