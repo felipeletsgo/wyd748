@@ -840,49 +840,60 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 				// Same mastery cap as recalculation and W2PP Type 15.
 				e.Mastery[j] = uint32(minInt(320, int(e.Mastery[j])+int(value)))
 			}
-		case 16: // BM transformations; WYD 7.48 pTransBonus.
+		case 16: // BM transformations; official TMSRVIN sub_4BB4C0, table 0x640660.
+			// The 7.48 client form table at 0x5C36B0 holds the same base values.
 			type transformBonus struct {
 				minDamage, maxDamage, minDefense, maxDefense int
-				minHP, maxHP, run, attackSpeed               int
+				minHP, maxHP, run, attackSpeed, resist       int
 			}
 			bonuses := [...]transformBonus{
-				{110, 130, 95, 105, 95, 105, 1, 20},
-				{80, 100, 100, 110, 110, 140, 0, 0},
-				{100, 120, 105, 115, 100, 120, 1, 20},
-				{90, 110, 110, 125, 105, 110, 0, 20},
-				{105, 120, 110, 120, 105, 115, 3, 20},
+				{110, 130, 95, 105, 95, 105, 1, 20, 5},
+				{95, 105, 105, 115, 110, 140, 0, 0, 20},
+				{110, 120, 90, 110, 100, 120, 1, 20, 5},
+				{115, 125, 115, 125, 105, 115, 0, 20, 20},
+				{118, 133, 110, 120, 113, 133, 2, 20, 17},
 			}
 			idx := a.Value - 1
 			if idx >= 0 && idx < len(bonuses) {
 				b := bonuses[idx]
 				damageAdd, defenseAdd, hpAdd := 0, 0, 0
 				resistAdd, attackSpeedAdd := 0, 0
+				// The official server tests local bit 21 (Mist of Hell, 69) for
+				// the Wolf, Bear and Astaroth bonuses; 65 and 67 add nothing here.
+				formPassive := learnedLocal(ch, 69-48)
 				switch idx {
 				case 0:
-					if learnedLocal(ch, 65-48) {
-						damageAdd = 50
-						e.Critical = addCritical(e.Critical, 22) // 2.2%
+					if formPassive {
+						damageAdd, resistAdd = 10, b.resist
+						// Native raw critical 50 + 5*(Special[2]/50), in tenths of a percent.
+						e.Critical = addCritical(e.Critical, 50+5*(int(playerMastery(ch, 2))/50))
 					}
 				case 1:
-					if learnedLocal(ch, 67-48) {
-						hpAdd, resistAdd, attackSpeedAdd = 30, 20, 20
+					if formPassive {
+						hpAdd, attackSpeedAdd, resistAdd = 20, 20, b.resist
 					}
 				case 2:
-					if learnedLocal(ch, 69-48) {
-						damageAdd, defenseAdd, hpAdd = 30, 3, 5
-						resistAdd, attackSpeedAdd = 20, 15
+					if formPassive {
+						damageAdd, defenseAdd, hpAdd = 10, 5, 5
+						attackSpeedAdd, resistAdd = 20, b.resist
 					}
 				case 3:
-					defenseAdd = 10
+					resistAdd = b.resist
 				case 4:
-					damageAdd, hpAdd, resistAdd, attackSpeedAdd = 40, 17, 5, 17
-					e.Critical = addCritical(e.Critical, 10) // 1.0%
+					attackSpeedAdd, resistAdd = 10, b.resist
+				}
+				if learnedLocal(ch, 71-48) { // Eden learned: every form.
+					damageAdd += 5
+					defenseAdd += 2
 				}
 				interpolate := func(minimum, maximum int) int {
 					return minimum + (maximum-minimum)*a.Level/200
 				}
 				e.Attack = mul(e.Attack, interpolate(b.minDamage+damageAdd, b.maxDamage+damageAdd))
 				e.Defense = mul(e.Defense, interpolate(b.minDefense+defenseAdd, b.maxDefense+defenseAdd))
+				if idx == 0 {
+					e.Defense = add(e.Defense, 5) // Native Wolf flat defense.
+				}
 				e.MaxHP = mul(e.MaxHP, interpolate(b.minHP+hpAdd, b.maxHP+hpAdd))
 				e.ResistFire = uint32(clampInt(int(e.ResistFire)+resistAdd, 0, 100))
 				e.ResistIce = uint32(clampInt(int(e.ResistIce)+resistAdd, 0, 100))

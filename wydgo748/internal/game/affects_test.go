@@ -137,17 +137,57 @@ func TestSetAffectRejectsWeakerOrShorterReplacement(t *testing.T) {
 
 func TestBMTransformationUsesNative748Interpolation(t *testing.T) {
 	now := time.Now()
-	ch := &model.Char{Class: 2, LearnedSkill: 1 << (65 - 48), Score: testScore(model.Score{
-		Attack: 100, Defense: 100, MaxHP: 1000, AttackRun: 0x11,
+	ch := &model.Char{Class: 2, LearnedSkill: 1 << (69 - 48), Score: testScore(model.Score{
+		Attack: 100, Defense: 100, MaxHP: 1000, AttackRun: 0x11, Mastery: [4]uint32{0, 0, 120, 0},
 	})}
 	ch.Affects[0] = model.Affect{Type: 16, Value: 1, Level: 200, ExpiresAt: now.Add(time.Minute)}
 	(&World{}).applyAffectStats(ch)
 	e := effectiveScore(ch)
-	if e.Attack != 180 || e.Defense != 105 || e.MaxHP != 1050 {
+	if e.Attack != 140 || e.Defense != 110 || e.MaxHP != 1050 || e.ResistFire != 5 {
 		t.Fatalf("transformacao lobo incorreta: %+v", e)
 	}
-	if e.Critical != 22 || bodyMesh(ch)[0] != 22 { // 2.2%
+	// 50 + 5*(120/50) = 60 (6.0%).
+	if e.Critical != 60 || bodyMesh(ch)[0] != 22 {
 		t.Fatalf("bonus/visual da transformacao incorreto: extended=%+v mesh=%v", e, bodyMesh(ch)[0])
+	}
+}
+
+// Official TMSRVIN sub_4BB4C0: Wolf, Bear and Astaroth bonuses need skill 69;
+// Titan and Eden bonuses are unconditional; learned Eden (71) adds 5%/2%.
+func TestBMTransformationBonusesFollowOfficialServer(t *testing.T) {
+	type want struct{ attack, defense, hp, resist, run, attackSpeed int }
+	cases := []struct {
+		name    string
+		form    int
+		learned uint32
+		want    want
+	}{
+		{"wolf without 69", 1, 1<<(65-48) | 1<<(67-48), want{130, 110, 1050, 0, 2, 30}},
+		{"bear without 69", 2, 1 << (67 - 48), want{105, 115, 1400, 0, 1, 10}},
+		{"bear with 69", 2, 1 << (69 - 48), want{105, 115, 1600, 20, 1, 30}},
+		{"astaroth with 69", 3, 1 << (69 - 48), want{130, 115, 1250, 5, 2, 50}},
+		{"titan", 4, 0, want{125, 125, 1150, 20, 1, 30}},
+		{"eden", 5, 0, want{133, 120, 1330, 17, 3, 40}},
+		{"titan with 71", 4, 1 << (71 - 48), want{130, 127, 1150, 20, 1, 30}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			now := time.Now()
+			ch := &model.Char{Class: 2, LearnedSkill: tc.learned, Score: testScore(model.Score{
+				Attack: 100, Defense: 100, MaxHP: 1000, AttackRun: 0x11,
+			})}
+			ch.Affects[0] = model.Affect{Type: 16, Value: tc.form, Level: 200, ExpiresAt: now.Add(time.Minute)}
+			attackSpeed := (&World{}).applyAffectStats(ch)
+			e := effectiveScore(ch)
+			got := want{int(e.Attack), int(e.Defense), int(e.MaxHP), int(e.ResistFire),
+				int(e.AttackRun & 0x0F), attackSpeed}
+			if got != tc.want {
+				t.Fatalf("form %d: got %+v, want %+v", tc.form, got, tc.want)
+			}
+			if tc.form != 1 && e.Critical != 0 {
+				t.Fatalf("form %d added critical %d", tc.form, e.Critical)
+			}
+		})
 	}
 }
 

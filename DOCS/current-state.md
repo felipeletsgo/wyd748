@@ -18,11 +18,21 @@ is not built, published, or activated.
   range for manual casts (Range 6 instead of area radius 3). The automatic
   single-target filter uses 95, and the six damage numbers appear 100 ms apart.
   The server keeps six hits. Skill 79 is Another_Soul in 7.48.
+- BM form and passive values (`PARIDADE_NATIVA`, official server TMSRVIN
+  `sub_4BB4C0`, table `0x640660`, and `sub_4CE1C0`): the form table now
+  matches the server and the 7.48 client. Wolf, Bear and Astaroth bonuses need
+  skill 69, as the server tests bit 21 for all three. Titan (+20 resist) and
+  Eden (+10 attack speed, +17 resist) bonuses are unconditional. Learned 71
+  adds 5% attack and 2% defense to every form. Wolf always adds 5 flat defense.
+  Bear's Roar (67) with a shield gives defense x1.05. No BM passive adds flat
+  absorption. The resist clamp stays 0..100 (server minimum is 0). Attack
+  percentages still compound with other buffs. The 7.48 HUD speed for Bear
+  and Astaroth still reads bits 19 and 21; no client change was made.
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 
 AUTOMATED TESTED: Go suite and vet, focused client tests and Release build.
-CLIENT-TESTED pending for all four items.
+CLIENT-TESTED pending for all items.
 
 ## Local NPC catalog migration — 2026-10-27, not activated
 

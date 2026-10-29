@@ -84,7 +84,7 @@ func TestHuntressPassivesUseCorrectSkillBits(t *testing.T) {
 	}
 }
 
-func TestBeastMasterShieldPassiveUsesShieldAC(t *testing.T) {
+func TestBeastMasterShieldPassiveRaisesDefenseByFivePercent(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		100: {Index: 100, Pos: 128, StaticEffects: []model.StaticEffect{{Name: "EF_AC", Value: 69}}},
 		101: {Index: 101, Pos: 64, StaticEffects: []model.StaticEffect{{Name: "EF_AC", Value: 69}}},

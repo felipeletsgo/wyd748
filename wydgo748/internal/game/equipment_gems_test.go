@@ -57,28 +57,18 @@ func TestEquipmentGemBonusesIncludeNativeNecklaceSlot(t *testing.T) {
 	}
 }
 
-func TestBeastMasterFlatDamageAbsorbMatchesW2PP(t *testing.T) {
-	w := &World{items: map[uint16]model.ItemDef{
-		100: {Index: 100, Pos: 128},
-		101: {Index: 101, Pos: 64},
-	}}
-	ch := &model.Char{Class: 2, Score: testScore(model.Score{Mastery: [4]uint32{0, 0, 0, 59}})}
+// The official server clears the BM bit-17 absorption before gems, so the
+// W2PP BM passive absorption is not applied.
+func TestBeastMasterPassivesAddNoFlatDamageAbsorb(t *testing.T) {
+	w := &World{items: map[uint16]model.ItemDef{100: {Index: 100, Pos: 128}}}
+	ch := &model.Char{Class: 2, Score: testScore(model.Score{Mastery: [4]uint32{0, 0, 59, 59}})}
 	ch.RuntimeScore = testScore(*ch.Score)
-
-	ch.LearnedSkill = 1 << (65 - 48)
 	ch.Equip[7] = model.Item{Index: 100}
-	if got := w.playerFlatDamageAbsorb(ch); got != 10 {
-		t.Fatalf("Elemental Armor with shield=%d, want 10", got)
-	}
-
-	ch.Equip[7] = model.Item{Index: 101}
-	if got := w.playerFlatDamageAbsorb(ch); got != 0 {
-		t.Fatalf("Elemental Armor activated without a shield: %d", got)
-	}
-
-	ch.LearnedSkill = 1 << (71 - 48)
-	if got := w.playerFlatDamageAbsorb(ch); got != 10 {
-		t.Fatalf("Eden absorb=%d, want 10", got)
+	for _, skill := range []int{65, 71} {
+		ch.LearnedSkill = 1 << (skill - 48)
+		if got := w.playerFlatDamageAbsorb(ch); got != 0 {
+			t.Fatalf("skill %d absorb=%d, want 0", skill, got)
+		}
 	}
 }
 

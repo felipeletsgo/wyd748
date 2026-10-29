@@ -49,10 +49,11 @@ func (w *World) applyPassiveSkills(ch *model.Char) {
 			e.Critical = addCritical(e.Critical, 48) // 4.8%
 		}
 	case 2: // BeastMaster
-		if learnedLocal(ch, 67-48) { // Escudo do Tormento
-			if item, def, ok := w.rightHandShield(ch); ok {
-				bonus := (itemAbility(item, def, "EF_AC") + 1) / 7
-				e.Defense = extendedValue(int64(e.Defense) + int64(bonus))
+		// Official TMSRVIN sub_4CE1C0: Bear's Roar (67) with a shield in slot 7
+		// raises defense to 105%.
+		if learnedLocal(ch, 67-48) {
+			if _, _, ok := w.rightHandShield(ch); ok {
+				e.Defense = extendedValue(int64(e.Defense) * 105 / 100)
 			}
 		}
 	case 3: // Huntress

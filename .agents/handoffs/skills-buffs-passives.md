@@ -74,13 +74,13 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | 47 | Cancelamento | Anterior: remove só primeira imunidade, cooldown 1s; teste passou |
 | 53 | Proteção Elemental | Pendente: affect 25, defesa e resistências |
 | 64 | Lobisomem | Anterior: transformação; não contar teste isolado como todos os modelos validados |
-| 65 | Armadura Elemental | Anterior: redução com escudo + bônus do lobo; consumidores físico/skill/mob |
+| 65 | Fangs_of_the_Wolf | 2026-10-29: official server adds no form bonus or absorption (bit-17 absorb is cleared before gems); AUTOMATED TESTED |
 | 66 | Homem Urso | Anterior: transformação; teste preserva HP cheio em recálculo posterior |
-| 67 | Escudo do Tormento | Anterior: escudo equipado, `(AC+1)/7` e bônus do urso |
+| 67 | Bear's_Roar | 2026-10-29: official server only gives defense x1.05 with a shield; form bonus needs 69; AUTOMATED TESTED |
 | 68 | Astaroth | AUTOMATED TESTED 2026-10-28: form switch in either direction (native SetAffect overwrite); interaction with 69 pending |
-| 69 | Metamorfose Superior | Anterior: bônus da transformação; fechar evidência individual |
+| 69 | Mist_Of_Hell | 2026-10-29: enables Wolf, Bear and Astaroth bonuses (official TMSRVIN sub_4BB4C0 bit 21); AUTOMATED TESTED |
 | 70 | Titã | AUTOMATED TESTED 2026-10-28: form switch in either direction; full in-game transformation pending |
-| 71 | Éden | Shield bypass in absorption; 2026-10-28: Eden no longer blocks lower forms (AUTOMATED TESTED); native affect-33 clear not adapted |
+| 71 | Éden | 2026-10-29: +5% attack and +2% defense in every form; W2PP absorb removed; form switch AUTOMATED TESTED; native affect-33 clear not adapted |
 | 74 | Agressividade | Pendente: affect 27 versus bônus permanente W2PP bit 2 |
 | 75 | Encantar Gelo | Pendente: ID tratado como invisibilidade/affect 28, não confiar no nome |
 | 76 | Imunidade | Pendente: affect 19 e consumidores de resistência/cancelamento |

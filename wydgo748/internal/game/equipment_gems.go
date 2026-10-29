@@ -74,19 +74,11 @@ func (w *World) equipmentGemBonuses(ch *model.Char) equipmentGemBonus {
 	return bonus
 }
 
-// playerFlatDamageAbsorb recompõe o ReflectDamage usado pelo caminho ativo do
-// W2PP. Além das gemas, BM recebe (Special[3]+1)/6 com Armadura Elemental e
-// escudo na mão direita; Éden (bit local 23) ativa o mesmo bônus sem escudo.
+// playerFlatDamageAbsorb returns the gem absorption. The official TMSRVIN
+// sub_4CE1C0 adds Special[2] for BM bit 17 (65), then clears the same field
+// before it accumulates gems, so no BM passive adds absorption.
 func (w *World) playerFlatDamageAbsorb(ch *model.Char) int {
-	bonus := w.equipmentGemBonuses(ch).absorbDamage
-	if ch == nil || ch.Class != 2 {
-		return bonus
-	}
-	_, _, hasShield := w.rightHandShield(ch)
-	if learnedLocal(ch, 65-48) && hasShield || learnedLocal(ch, 71-48) {
-		bonus += (int(playerMastery(ch, 3)) + 1) / 6
-	}
-	return bonus
+	return w.equipmentGemBonuses(ch).absorbDamage
 }
 
 func addFlatDamage(damage uint32, bonus int) uint32 {
