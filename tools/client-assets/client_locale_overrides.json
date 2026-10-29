@@ -1996,6 +1996,61 @@
       "FFFFFFFF ",
       "FFFFFFFF "
     ],
+    "5025": [
+      "CC9900FF Remove lentidão, veneno e redução de",
+      "CC9900FF resistência, DES, ataque e defesa.",
+      "CC9900FF Com Renascimento: também remove",
+      "CC9900FF Cancelamento.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5027": [
+      "CC9900FF Recupera o HP do alvo, ou o seu HP",
+      "CC9900FF se nenhum alvo estiver selecionado.",
+      "CC9900FF Recuperação de HP: 100 + Magia Sagrada x 2.",
+      "CC9900FF Celestial com Renascimento: + Lvl.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5029": [
+      "CC9900FF Recupera o seu HP e o HP do grupo.",
+      "CC9900FF Recuperação de HP: 150 + Magia Sagrada x 3/2.",
+      "CC9900FF Com Renascimento: x 120%.",
+      "CC9900FF Celestial com Renascimento: + Lvl.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5030": [
+      "CC9900FF Gasta HP para atacar inimigos em uma",
+      "CC9900FF área de 5m x 5m com energia sagrada.",
+      "CC9900FF Dano: Ataque + 200 + (Magia Sagrada/4) x",
+      "CC9900FF 5 + INT/3 + o seu HP atual.",
+      "CC9900FF Com Renascimento: parte do HP +10%.",
+      "CC9900FF Você mantém 2/3 do seu HP.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5031": [
+      "CC9900FF Ressuscita um membro morto do grupo ou",
+      "CC9900FF da guilda ao seu lado.",
+      "CC9900FF Chance de sucesso: 30% + (Magia Sagrada/15)",
+      "CC9900FF x 2%, até 90%.",
+      "CC9900FF O alvo volta com metade do HP e do MP.",
+      "CC9900FF O sucesso gasta 10% do seu MP base.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
     "5032": [
       "CC9900FF Ataca um alvo com fogo.",
       "CC9900FF Dano reduzido em 10% na chuva.",
@@ -2035,6 +2090,83 @@
       "CC9900FF x 5 + INT/3.",
       "CC9900FF Dano adicional durante 8 segundos:",
       "CC9900FF 10% do HP do alvo.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5041": [
+      "CC9900FF Aumenta a velocidade de movimento.",
+      "CC9900FF Bônus de movimento: +1.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5042": [
+      "CC9900FF Teleporta até um membro do grupo ou da",
+      "CC9900FF guilda, ou o invoca.",
+      "CC9900FF Limite de nível do alvo:",
+      "CC9900FF Seu nível + 100 + Magia Especial.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5043": [
+      "CC9900FF Aumenta a defesa durante certo tempo.",
+      "CC9900FF Bônus de defesa: 15 + Magia Especial/3.",
+      "CC9900FF Foema com Concentração: +100.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5044": [
+      "CC9900FF Aumenta o ataque seu e do grupo.",
+      "CC9900FF Ataque: + 15 + Magia Especial/3, e +5%.",
+      "CC9900FF Foema que aprendeu: (15 + Magia",
+      "CC9900FF Especial/3) x 5, e +20%.",
+      "CC9900FF Com Concentração: +27% no lugar.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5045": [
+      "CC9900FF Aumenta todas as maestrias por um tempo.",
+      "CC9900FF Bônus de maestria: 7 + Magia Especial/10.",
+      "CC9900FF Foema com Concentração: x 120%.",
+      "CC9900FF Maestria máxima: 320.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5046": [
+      "CC9900FF Protege o HP com o MP por um tempo.",
+      "CC9900FF Dano recebido: 90% no MP, 10% no HP.",
+      "CC9900FF Sem MP, o HP recebe o restante.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5047": [
+      "CC9900FF Aumenta a precisão de forma passiva.",
+      "CC9900FF Chance de acerto: +15%; mínimo 35%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
       "FFFFFFFF ",
       "FFFFFFFF ",
       "FFFFFFFF ",
@@ -2295,7 +2427,7 @@
     "fieldscene.bin:2:915:640:-2": "Líder III"
   },
   "canonical_text_sha256": {
-    "skillhelp.dat": "e6a20f25ca2f8e79ac4d4e9f2cfb2be4180cb9347d41ebcaa092ca75cb6b77db",
+    "skillhelp.dat": "81fc7b0614286e4de6ffbf5d3ca12d70d2a44cfb69b9c11aa52fffb4eb6cc649",
     "UI/UIString.txt": "166d8f97e8bf7fb93a23601f4d5a952d0117a8042e54b58111bb8f46c5670d8d",
     "UI/EffectString.txt": "f49c1101dbba1679bbe3b437f4bb11d552f821247d3e089bd3c6ec4d54fdf244",
     "UI/interface.txt": "a0e6ce6c5f181d88e136939ebb305b8f462509c6cb65b9106a0de0d952c6a7d5",

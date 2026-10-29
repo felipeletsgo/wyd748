@@ -225,7 +225,7 @@ func explosionBashBaseDamage(baseDamage, intelligence, currentMP int) int {
 }
 
 func skillCooldownDuration(skill model.SkillDef) time.Duration {
-	if skill.Index == 47 || skill.Index == 102 { // Cancellation/Soul Limit: W2PP forces skilldelay=1.
+	if skill.Index == cancellationSkill || skill.Index == 102 { // Cancellation/Soul Limit: W2PP forces skilldelay=1.
 		return time.Second
 	}
 	return time.Duration(skill.Delay) * time.Second
@@ -608,7 +608,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		return
 	}
 	skill, ok := w.skills[skillIndex]
-	if !ok || skill.Passive != 0 && skillIndex != 47 {
+	if !ok || skill.Passive != 0 { // 7.48 Concentration (47) is passive.
 		return
 	}
 	now := w.now()
@@ -785,9 +785,8 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	results := make([]skillResult, 0, len(targets))
 	wireTargets := make([]wire.SkillTarget, 0, len(targets))
 	baseDamage := w.baseSkillDamage(p.Char, skill)
-	if skillIndex == 30 { // Divine Judgment adds HP damage and sacrifices five sixths of HP.
-		baseDamage += int(playerCurHP(p.Char))
-		setPlayerCurHP(p.Char, playerCurHP(p.Char)/6+1)
+	if skillIndex == 30 { // Holy Judgement adds the caster's HP and keeps two thirds.
+		baseDamage += holyJudgementSacrifice(p.Char)
 	}
 	if skillIndex == 22 { // Explosion Bash converts current MP and INT into damage.
 		baseDamage = explosionBashBaseDamage(baseDamage, playerInt(p.Char), int(playerCurMP(p.Char)))
@@ -948,6 +947,10 @@ const (
 	backpackSkill     = 85 // Opens Cargo from anywhere; the client opens it locally.
 	coinArmorSkill    = 86
 	clawWeaponType    = 41
+	// The official server swaps these by name: 7.48 Concentration (47) is
+	// server 100 and 7.48 Cancellation (100) is server 47.
+	concentrationSkill = 47
+	cancellationSkill  = 100
 )
 
 // skillWeaponAllowed mirrors the client gate (owner rule): Enchant Frost

@@ -54,7 +54,18 @@ is not built, published, or activated.
 - Skill tooltips (`MODERNIZACAO_COMPATIVEL`, client assets): 26 TK, BM and HT
   descriptions, EN and PT, now state the implemented server effects; see
   [skill descriptions](../.agents/research/client748/flows/ui/skill-description-text.md).
-  Argumentar (83) says it has no effect. FM descriptions are not audited.
+  Argumentar (83) says it has no effect.
+- Foema skills (`PARIDADE_NATIVA`, official TMSRVIN; buffs also native
+  `FUN_0054FDB9`). Heal is Value + 2*mastery and Recovery Value + 3*mastery/2
+  (x1.2 with Bless Revival); the W2PP x1.4 and 548 cap are removed. A
+  Celestial with Bless Revival adds its level. Holy Judgement adds current HP
+  (+10% with Bless Revival) and keeps 2/3 HP. Bless Revival succeeds at
+  30 + 2*(mastery/15)%, max 90%, revives with half HP/MP next to the caster
+  and costs 10% of base MP. Cure also removes affect 33. Teleport limits the
+  target level to level + mastery + 100. Magic Weapon, Magic Shield and
+  Athena use the holder's bits 20/23. By name, 7.48 Concentration (47) and
+  Cancellation (100) are server 100 and 47: Concentration is the passive
+  accuracy rule and Cancellation removes Immunity. FM tooltips match.
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 

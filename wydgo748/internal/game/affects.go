@@ -296,7 +296,7 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 		if target == nil || !target.InWorld || target.Char == nil || w.criticalPlayerReserved(target) ||
 			(!revive && playerCurHP(target.Char) == 0) ||
 			!w.playersShareGameplaySpace(p, target) ||
-			(!sameSupportGroup(p, target) && skill.Index != 47) ||
+			(!sameSupportGroup(p, target) && skill.Index != cancellationSkill) ||
 			chebyshev(p.X, p.Y, target.X, target.Y) > maxInt(6, skill.Range) {
 			return nil
 		}
@@ -327,7 +327,7 @@ func (w *World) supportTargets(p *Player, req skillCastRequest, skill model.Skil
 	if target := w.playerByID(req.TargetID); target != nil && target.InWorld &&
 		target.Char != nil && w.playersShareGameplaySpace(p, target) &&
 		(revive || playerCurHP(target.Char) > 0) &&
-		(sameSupportGroup(p, target) || skill.Index == 47) &&
+		(sameSupportGroup(p, target) || skill.Index == cancellationSkill) &&
 		chebyshev(p.X, p.Y, target.X, target.Y) <= maxInt(6, skill.Range) {
 		return []*Player{target}
 	}
@@ -341,7 +341,8 @@ func cleansePlayer(ch *model.Char, cureSoul bool) bool {
 	changed := false
 	for i := range ch.Affects {
 		switch ch.Affects[i].Type {
-		case 1, 3, 5, 7, 10, 12, 20:
+		// Official TMSRVIN Cure (InstanceType 8) also removes affect 33.
+		case 1, 3, 5, 7, 10, 12, 20, 33:
 			ch.Affects[i] = model.Affect{}
 			changed = true
 		case 32:
@@ -364,14 +365,39 @@ type supportSkillResult struct {
 	revived bool
 }
 
-func foemaHealAmount(skillIndex, mastery, instanceValue int) int {
+// foemaHealAmount follows the official TMSRVIN InstanceType 6 branch.
+// Heal: Value + 2*mastery. Recovery: Value + 3*mastery/2, x1.2 with Bless
+// Revival (31) learned. A Celestial with Bless Revival adds its level.
+func foemaHealAmount(ch *model.Char, skillIndex, mastery, instanceValue int) int {
+	revival := ch != nil && ch.Class == 1 && learnedLocal(ch, 31-24)
 	heal := mastery*3/2 + instanceValue
 	if skillIndex == 27 {
 		heal = mastery*2 + instanceValue
+	} else if revival {
+		heal = heal * 120 / 100
 	}
-	// This formula retains the Mortal heal rule: WYD 7.48 applies 140% and
-	// caps Heal/Recover at 548 HP for that evolution.
-	return minInt(548, heal*14/10)
+	if revival && isCelestialEvolution(ch) {
+		heal += int(playerLevel(ch))
+	}
+	return heal
+}
+
+// holyJudgementSacrifice applies the official TMSRVIN Holy Judgement cost:
+// the damage gains the caster's HP (x1.1 with Bless Revival) and the caster
+// keeps two thirds of it.
+func holyJudgementSacrifice(ch *model.Char) int {
+	hp := playerCurHP(ch)
+	bonus := int(hp)
+	if ch.Class == 1 && learnedLocal(ch, 31-24) {
+		bonus = bonus * 110 / 100
+	}
+	setPlayerCurHP(ch, hp*2/3)
+	return bonus
+}
+
+// foemaRevivalChance is the official TMSRVIN Bless Revival rate.
+func foemaRevivalChance(mastery int) int {
+	return minInt(90, 2*(mastery/15)+30)
 }
 
 // Support buffs last from 5 minutes (mastery 0) to 10 minutes (mastery 320),
@@ -447,15 +473,28 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 		case 25: // Detoxify
 			applied = cleansePlayer(target.Char, p.Char.LearnedSkill&(1<<7) != 0)
 		case 27, 29: // Heal / Recover
-			heal := foemaHealAmount(skill.Index, mastery, skill.InstanceValue)
+			heal := foemaHealAmount(p.Char, skill.Index, mastery, skill.InstanceValue)
 			restorePlayerHP(target.Char, uint32(heal))
 			applied = true
-		case 31: // Foema Rebirth.
-			setPlayerCurMP(p.Char, 0)
-			if playerCurHP(target.Char) == 0 && w.intn(2) == 0 {
-				setPlayerCurHP(target.Char, playerMaxHP(target.Char))
-				setPlayerCurMP(target.Char, playerMaxMP(target.Char))
+		case 31: // Bless Revival; official TMSRVIN skill 31.
+			if playerCurHP(target.Char) == 0 && w.intn(100) < foemaRevivalChance(mastery) {
+				setPlayerCurHP(target.Char, uint32(maxInt(1, int(playerMaxHP(target.Char)/2))))
+				setPlayerCurMP(target.Char, playerMaxMP(target.Char)/2)
 				target.DeadAt = time.Time{}
+				// Success costs a tenth of the caster's base maximum MP.
+				cost := uint32(0)
+				if p.Char.Score != nil {
+					cost = p.Char.Score.MaxMP / 10
+				}
+				setPlayerCurMP(p.Char, playerCurMP(p.Char)-minU32(cost, playerCurMP(p.Char)))
+				if target != p {
+					target.X, target.Y = w.findFreeGameplayPosition(p, target, p.X, p.Y, 3)
+					target.Char.X, target.Char.Y = target.X, target.Y
+					w.refreshPlayerVisibility(target)
+					w.sendToPlayerView(target, func() []byte {
+						return wire.ActionStop(target.ID, target.X, target.Y)
+					})
+				}
 				applied = true
 			}
 		case 99: // Sephira Resurrection: dead caster's self-cast only (WYD 7.48).
@@ -474,6 +513,11 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				}
 			}
 		case 42: // Teleport brings the selected member next to the caster.
+			// Official TMSRVIN: the target's level may exceed the caster's
+			// level + mastery by at most 100.
+			if target != p && int(playerLevel(target.Char)) > int(playerLevel(p.Char))+mastery+100 {
+				continue
+			}
 			if target != p {
 				target.X, target.Y = w.findFreeGameplayPosition(p, target, p.X, p.Y, 4)
 				target.Char.X, target.Char.Y = target.X, target.Y
@@ -483,7 +527,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				})
 			}
 			applied = true
-		case 47: // Cancellation removes Immunity (Affect 19).
+		case cancellationSkill: // Cancellation removes Immunity (Affect 19).
 			for i := range target.Char.Affects {
 				if target.Char.Affects[i].Type == 19 {
 					target.Char.Affects[i] = model.Affect{}
@@ -821,12 +865,25 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			penalty := a.Level/10 + 20
 			attackSpeedPoints -= penalty
 			e.Int = add(e.Int, int64(-penalty))
-		case 9:
-			e.Attack = add(e.Attack, int64((a.Level*5/20+a.Value)*3/2))
+		case 9: // Magic Weapon; official TMSRVIN and native FUN_0054FDB9.
+			// A Foema holder who learned Magic Weapon gets x5 damage and +20%
+			// attack, +27% with Concentration (bit 23, the tree finisher).
+			flat, percent := a.Level/3+15, 5
+			if ch.Class == 1 && learnedLocal(ch, 44-24) {
+				flat, percent = flat*5, 20
+				if learnedLocal(ch, 47-24) {
+					percent = 27
+				}
+			}
+			e.Attack = mul(add(e.Attack, int64(flat)), 100+percent)
 		case 10:
 			e.Attack = add(e.Attack, int64(-(a.Level/5 + a.Value)))
-		case 11:
-			e.Defense = add(e.Defense, int64(a.Level/3+a.Value))
+		case 11: // Magic Shield; +100 for a Foema holder with bit 23.
+			shield := a.Level/3 + a.Value
+			if ch.Class == 1 && learnedLocal(ch, 47-24) {
+				shield += 100
+			}
+			e.Defense = add(e.Defense, int64(shield))
 		case 12:
 			e.Defense = mul(e.Defense, 100-clampInt(a.Value, 0, 100))
 		case 13: // Assault; official TMSRVIN sub_4BB4C0.
@@ -850,8 +907,12 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			e.Con = add(e.Con, con)
 			// sub_4CE1C0 adds 2 HP per extra CON.
 			e.MaxHP = add(e.MaxHP, 2*con)
-		case 15: // Athena's Touch
-			value := uint32(maxInt(0, a.Level/10+a.Value))
+		case 15: // Athena's Touch; x1.2 for a Foema holder with bit 23.
+			bonus := a.Level/10 + a.Value
+			if ch.Class == 1 && learnedLocal(ch, 47-24) {
+				bonus = bonus * 120 / 100
+			}
+			value := uint32(maxInt(0, bonus))
 			for j := range e.Mastery {
 				// Same mastery cap as recalculation and W2PP Type 15.
 				e.Mastery[j] = uint32(minInt(320, int(e.Mastery[j])+int(value)))

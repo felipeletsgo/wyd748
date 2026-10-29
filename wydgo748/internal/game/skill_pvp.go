@@ -194,8 +194,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 	now := w.now()
 	baseDamage := w.baseSkillDamage(caster.Char, skill)
 	if skill.Index == 30 {
-		baseDamage += int(playerCurHP(caster.Char))
-		setPlayerCurHP(caster.Char, playerCurHP(caster.Char)/6+1)
+		baseDamage += holyJudgementSacrifice(caster.Char)
 	}
 	if skill.Index == 22 {
 		baseDamage = explosionBashBaseDamage(baseDamage, playerInt(caster.Char), int(playerCurMP(caster.Char)))
@@ -254,6 +253,16 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			}
 		} else {
 			wireTargets = append(wireTargets, wire.SkillTarget{ID: target.ID})
+		}
+		if !blocked && skill.Index == cancellationSkill {
+			// Official TMSRVIN SetAffect: Cancellation removes Immunity (19),
+			// one entry per cast, like the support path.
+			for i := range target.Char.Affects {
+				if target.Char.Affects[i].Type == 19 {
+					target.Char.Affects[i] = model.Affect{}
+					break
+				}
+			}
 		}
 		if !blocked && skill.AffectType > 0 {
 			setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime, now)

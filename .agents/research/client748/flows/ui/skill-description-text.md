@@ -28,8 +28,8 @@ requirements overwriting their text or displacing the learned-skill tooltip?
   English localization of those native descriptions, including formulas,
   effects, conditions and native ARGB colors. SHA-256:
   `D614DA42CE36B2C2CA61DEC6BF4DF964D047C28A4A3B618D53695C26FC967629` (2026-10-15);
-  `E6A20F25CA2F8E79AC4D4E9F2CFB2BE4180CB9347D41EBCAA092CA75CB6B77DB` after the
-  2026-10-29 implemented-effect update below.
+  `81FC7B0614286E4DE6FFBF5D3CA12D70D2A44CFB69B9C11AA52FFFB4EB6CC649` after the
+  2026-10-29 implemented-effect updates below.
   This is translated content, not a byte-identical native asset.
 - Existing `itemhelp.dat` is unchanged: its historical item text and ANSI
   encoding are not rewritten. The separate skill corpus overrides its
@@ -124,8 +124,11 @@ changed: 5003, 5007, 5011, 5013, 5014, 5016, 5064-5071, 5077, 5079, 5081-5083,
 5086, 5087, 5090, 5091, 5093-5095. Each states the Go formula (official
 TMSRVIN or native client, per `DOCS/current-state.md`). Argumentar (5083)
 states that it has no effect. PT rows are `skill_help` overrides in
-`tools/client-assets/client_locale_overrides.json`; numbers match EN. FM and
-other records keep native prose and are not audited against the server.
+`tools/client-assets/client_locale_overrides.json`; numbers match EN.
+
+A second pass updated FM records 5025, 5027, 5029-5031 and 5041-5047 after
+the Foema server alignment. The PT White Magic name is `Magia Sagrada`.
+Other classes' damage records keep native prose.
 
 ## Gaps
 

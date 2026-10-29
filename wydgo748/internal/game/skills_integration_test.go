@@ -530,8 +530,15 @@ func TestFoemaStatBuffCastRecastAndExpiration(t *testing.T) {
 						wantSpeed = before.AttackRun&0xF0 | minU32(15, (before.AttackRun&0x0F)+1)
 					case 43:
 						wantDefense += uint32(mastery/3 + 15)
-					case 44:
-						wantAttack += uint32((mastery*5/20 + 5) * 3 / 2)
+					case 44: // Official TMSRVIN affect 9.
+						flat, percent := mastery/3+15, 5
+						if p.Char.Class == 1 && learnedLocal(p.Char, 44-24) {
+							flat, percent = flat*5, 20
+							if learnedLocal(p.Char, 47-24) {
+								percent = 27
+							}
+						}
+						wantAttack = (before.Attack + uint32(flat)) * uint32(100+percent) / 100
 					}
 				}
 				got := effectiveScore(p.Char)

@@ -286,7 +286,8 @@ func TestBuffConsumablesPersistSourceUIDAndAbsoluteExpiration(t *testing.T) {
 		w.recalcPlayer(&withoutCandy)
 		base := effectiveScore(&withoutCandy)
 		got := effectiveScore(p.Char)
-		if got.Defense != base.Defense+121 || got.Attack != base.Attack+255 {
+		// Magic Weapon level 320 on a non-Foema holder: (attack + 121) x 1.05.
+		if got.Defense != base.Defense+121 || got.Attack != (base.Attack+121)*105/100 {
 			t.Fatalf("candy did not change defense/attack: base=%+v got=%+v", base, got)
 		}
 		for branch := range got.Mastery {

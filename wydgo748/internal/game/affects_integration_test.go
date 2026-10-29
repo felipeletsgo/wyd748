@@ -97,7 +97,7 @@ func TestCancelamentoRemovesOnlyFirstImmunityAffect(t *testing.T) {
 	target.Char.Affects[1] = model.Affect{Type: 19, Value: 20, ExpiresAt: time.Now().Add(time.Minute)}
 
 	got := w.applySupportSkill(caster, skillCastRequest{TargetID: target.ID}, model.SkillDef{
-		Index: 47, Range: 6, MaxTarget: 1,
+		Index: cancellationSkill, Range: 6, MaxTarget: 1,
 	}, 100)
 	if len(got) != 1 || got[0].player != target {
 		t.Fatalf("Cancelamento nao aplicou no alvo: %+v", got)

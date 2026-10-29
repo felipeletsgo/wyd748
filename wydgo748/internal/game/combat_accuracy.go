@@ -64,8 +64,10 @@ func playerEvasionBonusPoints(ch *model.Char) int {
 	return maxInt(0, int(effectiveScore(ch).Evasion))
 }
 
+// playerHasConcentration reports the 7.48 Foema passive Concentration (47).
+// Skill 100 is Cancellation in 7.48; the official server swaps them by name.
 func playerHasConcentration(ch *model.Char) bool {
-	return specialSkillLearned(ch, 100)
+	return ch != nil && ch.Class == 1 && learnedLocal(ch, concentrationSkill-24)
 }
 
 func playerVersusPlayerAccuracy(attacker, defender *model.Char) int {

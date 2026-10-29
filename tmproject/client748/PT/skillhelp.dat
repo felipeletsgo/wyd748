@@ -249,15 +249,15 @@ CC9900FF alvo.
 CC9900FF 
 CC9900FF Dano: Ataque + 15 + (M. Sagrada/4) x 5 + INT/3.
 5025
+CC9900FF Remove lentidão, veneno e redução de
+CC9900FF resistência, DES, ataque e defesa.
+CC9900FF Com Renascimento: também remove
+CC9900FF Cancelamento.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF 
-CC9900FF Cura_sintomas_como:_veneno_ou_baixa imunidade.
-CC9900FF 
-CC9900FF 
 5026
 FFFFFFFF 
 FFFFFFFF 
@@ -269,15 +269,15 @@ CC9900FF Bloqueia_a_visualização_de_todos_inimigos
 CC9900FF ao_seu_redor_(3m_x_3m)_durante_4_segundos.
 CC9900FF 
 5027
+CC9900FF Recupera o HP do alvo, ou o seu HP
+CC9900FF se nenhum alvo estiver selecionado.
+CC9900FF Recuperação de HP: 100 + Magia Sagrada x 2.
+CC9900FF Celestial com Renascimento: + Lvl.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Recupera_a_energia_do_alvo. Caso não tenha
-CC9900FF alvo, recupera_energia de_si_mesmo.
-CC9900FF 
-CC9900FF Recuperação: 100HP + Magia Sagrada x 2.
 5028
 FFFFFFFF 
 FFFFFFFF 
@@ -289,35 +289,35 @@ CC9900FF estiver_atrás_dele_em_até_1m_de distância.
 CC9900FF 
 CC9900FF Dano: Ataque + 155 + (M. Sagrada/4) x 5 + INT/3. 
 5029
+CC9900FF Recupera o seu HP e o HP do grupo.
+CC9900FF Recuperação de HP: 150 + Magia Sagrada x 3/2.
+CC9900FF Com Renascimento: x 120%.
+CC9900FF Celestial com Renascimento: + Lvl.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Recupera_a_energia_do_todo_grupo_e de_si_mesmo.
-CC9900FF 
-CC9900FF Recuperação: 150HP + (M. Sagrada/2) x 3.
-CC9900FF 
 5030
+CC9900FF Gasta HP para atacar inimigos em uma
+CC9900FF área de 5m x 5m com energia sagrada.
+CC9900FF Dano: Ataque + 200 + (Magia Sagrada/4) x
+CC9900FF 5 + INT/3 + o seu HP atual.
+CC9900FF Com Renascimento: parte do HP +10%.
+CC9900FF Você mantém 2/3 do seu HP.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Dano_extra_e_ataques_sagrados_nos inimigos ao
-CC9900FF seu_redor_(5m_x_5m) gastando_a_sua_HP.
-CC9900FF Dano: Ataque + 200 + (M. Sagrada/4) x 5 + INT/3.
-CC9900FF Dano extra: HP gasto + Magia Sagrada.
 5031
+CC9900FF Ressuscita um membro morto do grupo ou
+CC9900FF da guilda ao seu lado.
+CC9900FF Chance de sucesso: 30% + (Magia Sagrada/15)
+CC9900FF x 2%, até 90%.
+CC9900FF O alvo volta com metade do HP e do MP.
+CC9900FF O sucesso gasta 10% do seu MP base.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Gasta_toda_mana_para_ressucitar um_membro da
-CC9900FF sua_guilda_ou_grupo que_estiver_perto_de_você.
-CC9900FF Probabilidade: 56% + [(M. Sagrada/15) x 2]%.
-CC9900FF Recuperação de HP e MP = Probabilidade. 
 5032
 CC9900FF Ataca um alvo com fogo.
 CC9900FF Dano reduzido em 10% na chuva.
@@ -409,75 +409,75 @@ FFFFFFFF
 FFFFFFFF 
 FFFFFFFF 
 5041
+CC9900FF Aumenta a velocidade de movimento.
+CC9900FF Bônus de movimento: +1.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Aumenta_seu movimento em_+1.
-CC9900FF 
-CC9900FF Efeito adicional: +5% de evasão.
-CC9900FF 
+FFFFFFFF 
+FFFFFFFF 
 5042
+CC9900FF Teleporta até um membro do grupo ou da
+CC9900FF guilda, ou o invoca.
+CC9900FF Limite de nível do alvo:
+CC9900FF Seu nível + 100 + Magia Especial.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Possibilita_ir_ou_trazer_membro_do grupo 
-CC9900FF ou_guilda.
-CC9900FF 
-CC9900FF Alvo possível: Seu lvl + 50 + Magia Especial.
 5043
+CC9900FF Aumenta a defesa durante certo tempo.
+CC9900FF Bônus de defesa: 15 + Magia Especial/3.
+CC9900FF Foema com Concentração: +100.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Aumenta_a_defesa_do_alvo_durante_um_certo  
-CC9900FF período de tempo. Pode ser usada em si mesmo.
-CC9900FF Aumento de defesa (em si): 15 + (M. Especial/3).
-CC9900FF Aumento de defesa (outros): 15 + (M. Especial/10).
+FFFFFFFF 
 5044
+CC9900FF Aumenta o ataque seu e do grupo.
+CC9900FF Ataque: + 15 + Magia Especial/3, e +5%.
+CC9900FF Foema que aprendeu: (15 + Magia
+CC9900FF Especial/3) x 5, e +20%.
+CC9900FF Com Concentração: +27% no lugar.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-CC9900FF Aumenta_ataque_físico_de_si_mesmo_e dos membros
-CC9900FF do_grupo_que_estiverem_ao redor_(3m_x_3m).
-CC9900FF Em si: (Ataque/4) + [15 + (M. Especial/3)] x 5. 
-CC9900FF Em outros: (Ataque/20) + 15 + (M. Especial/3). 
 5045
+CC9900FF Aumenta todas as maestrias por um tempo.
+CC9900FF Bônus de maestria: 7 + Magia Especial/10.
+CC9900FF Foema com Concentração: x 120%.
+CC9900FF Maestria máxima: 320.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Aumenta_todas_as_aprendizagens_do_alvo durante
-CC9900FF certo_período_de_tempo.
-CC9900FF 
-CC9900FF Aumento de Aprendizagens: 7 + (M. Especial/10).
 5046
+CC9900FF Protege o HP com o MP por um tempo.
+CC9900FF Dano recebido: 90% no MP, 10% no HP.
+CC9900FF Sem MP, o HP recebe o restante.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Transforma_certo_volume_do_MP_em_HP durante
-CC9900FF um_período_de_tempo.
-CC9900FF 
-CC9900FF Bônus de HP: MP/4 + level + M. Especial.
+FFFFFFFF 
 5047
+CC9900FF Aumenta a precisão de forma passiva.
+CC9900FF Chance de acerto: +15%; mínimo 35%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Aumenta_a_possibilidade_de_acertar o oponente. 
-CC9900FF Aumento da mira: 4% + (M. Especial/50)%.
-CC9900FF Chance de acerto:
-CC9900FF (Evasão total do oponente) - (Sua mira).
+FFFFFFFF 
+FFFFFFFF 
 5048
 FFFFFFFF 
 FFFFFFFF 

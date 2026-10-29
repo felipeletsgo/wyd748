@@ -249,10 +249,10 @@ FFFFFFFF
 FFFFFFFF 
 FFFFFFFF 
 5025
-CC9900FF Removes poison and reduced elemental
-CC9900FF resistance.
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Removes slow, poison and reduced
+CC9900FF resistance, DEX, attack and defense.
+CC9900FF With Bless Revival: also removes
+CC9900FF Cancellation.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
@@ -272,7 +272,7 @@ FFFFFFFF
 CC9900FF Restores the target's HP, or your own HP
 CC9900FF if no target is selected.
 CC9900FF HP recovery: 100 + White Magic x 2.
-FFFFFFFF 
+CC9900FF Celestial with Bless Revival: + Level.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
@@ -290,9 +290,9 @@ FFFFFFFF
 FFFFFFFF 
 5029
 CC9900FF Restores your HP and your party's HP.
-CC9900FF HP recovery: 150 + (White Magic/2) x 3.
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF HP recovery: 150 + White Magic x 3/2.
+CC9900FF With Bless Revival: x 120%.
+CC9900FF Celestial with Bless Revival: + Level.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
@@ -302,19 +302,19 @@ FFFFFFFF
 CC9900FF Spends HP to attack nearby enemies in a
 CC9900FF 5m x 5m area with holy energy.
 CC9900FF Damage: Attack + 200 + (White Magic/4) x
-CC9900FF 5 + INT/3.
-CC9900FF Additional damage: HP spent + White
-CC9900FF Magic.
+CC9900FF 5 + INT/3 + your current HP.
+CC9900FF With Bless Revival: HP part +10%.
+CC9900FF You keep 2/3 of your HP.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 5031
-CC9900FF Spends all MP to resurrect a nearby
-CC9900FF party or guild member.
-CC9900FF Success rate:
-CC9900FF 56% + [(White Magic/15) x 2]%.
-CC9900FF HP and MP recovery match the success
-CC9900FF rate.
+CC9900FF Resurrects a dead party or guild member
+CC9900FF next to you.
+CC9900FF Success rate: 30% + (White Magic/15) x
+CC9900FF 2%, up to 90%.
+CC9900FF The target returns with half HP and MP.
+CC9900FF Success costs 10% of your base MP.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
@@ -409,9 +409,9 @@ FFFFFFFF
 FFFFFFFF 
 FFFFFFFF 
 5041
-CC9900FF Increases movement speed and evasion.
+CC9900FF Increases movement speed.
 CC9900FF Movement speed bonus: +1.
-CC9900FF Evasion bonus: +5%.
+FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
@@ -422,46 +422,46 @@ FFFFFFFF
 CC9900FF Teleports to, or summons, a party or
 CC9900FF guild member.
 CC9900FF Target level limit:
-CC9900FF Your level + 50 + Special Magic.
+CC9900FF Your level + 100 + Special Magic.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 5043
-CC9900FF Temporarily increases your defense or
-CC9900FF the target's defense.
-CC9900FF Self bonus: 15 + Special Magic/3.
-CC9900FF Others' bonus: 15 + Special Magic/10.
+CC9900FF Temporarily increases defense.
+CC9900FF Defense bonus: 15 + Special Magic/3.
+CC9900FF Foema with Concentration: +100.
+FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 5044
-CC9900FF Increases physical attack for you and
-CC9900FF party members in a 3m x 3m area.
-CC9900FF Self: Attack/4 + [15 + Special Magic/3]
-CC9900FF x 5.
-CC9900FF Others: Attack/20 + 15 + Special
-CC9900FF Magic/3.
+CC9900FF Increases attack for you and party
+CC9900FF members.
+CC9900FF Attack: + 15 + Special Magic/3, then +5%.
+CC9900FF A Foema who learned it: (15 + Special
+CC9900FF Magic/3) x 5, then +20%.
+CC9900FF With Concentration: +27% instead.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 5045
 CC9900FF Temporarily increases all masteries.
 CC9900FF Mastery bonus: 7 + Special Magic/10.
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Foema with Concentration: x 120%.
+CC9900FF Maximum mastery: 320.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 5046
-CC9900FF Temporarily converts MP into HP.
-CC9900FF HP bonus: MP/4 + Level + Special Magic.
-FFFFFFFF 
+CC9900FF Temporarily protects HP with MP.
+CC9900FF Damage taken: 90% from MP, 10% from HP.
+CC9900FF When MP runs out, HP takes the rest.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
@@ -469,11 +469,11 @@ FFFFFFFF
 FFFFFFFF 
 FFFFFFFF 
 5047
-CC9900FF Increases accuracy.
-CC9900FF Accuracy bonus: 4% + (Special
-CC9900FF Magic/50)%.
-CC9900FF Hit chance: target's total evasion minus
-CC9900FF your accuracy.
+CC9900FF Passively increases accuracy.
+CC9900FF Hit chance: +15%; minimum 35%.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 

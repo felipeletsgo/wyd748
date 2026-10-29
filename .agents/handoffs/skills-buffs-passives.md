@@ -67,11 +67,11 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | 14 | Noção de Combate | AUTOMATED TESTED 2026-10-29: ajuda nativa 5014 e W2PP; Special[2]/20 no golpe físico e nas skills; sem ela, 0 |
 | 15 | Armadura Crítica | AUTOMATED TESTED 2026-10-29: buff nativo (ajuda 5015), defesa +(7 + Level/50)%, crítico +(3 + Level/50)%; sem passiva 7.59 |
 | 41 | Velocidade | AUTOMATED TESTED: affect 2, velocidade consumida pelo movimento, grupo/limite, custo, cooldown, recast e expiração; visual pendente |
-| 43 | Escudo Mágico | AUTOMATED TESTED: fórmula base affect 11 e lifecycle; comparação nativa encontrou bônus adicional por bit 23, ainda não adaptado; ver divergência abaixo |
-| 44 | Arma Mágica | AUTOMATED TESTED: fórmula base affect 9 e lifecycle/grupo; interação W2PP bit 19 contradiz rotina nativa (bit 20, outro cálculo); não portar o triplo |
-| 45 | Toque da Athena | Corrigido/testado neste lote: teto, base, repetição, expiração |
+| 43 | Escudo Mágico | AUTOMATED TESTED 2026-10-29: Level/3 + Value; +100 para Foema com bit 23 (TMSRVIN e cliente nativo) |
+| 44 | Arma Mágica | AUTOMATED TESTED 2026-10-29: ataque + Level/3 + 15 e +5%; Foema com bit 20: ×5 e +20% (+27% com bit 23) (TMSRVIN e cliente nativo) |
+| 45 | Toque da Athena | AUTOMATED TESTED 2026-10-29: Level/10 + Value, ×1.2 para Foema com bit 23, teto 320 |
 | 46 | Controle de Mana | AUTOMATED TESTED: regra expressa do usuário 90% MP / 10% HP, sem reserva; insuficiência transborda para HP no mesmo golpe; removido SaveMana indevido; teste in-game pendente |
-| 47 | Cancelamento | Anterior: remove só primeira imunidade, cooldown 1s; teste passou |
+| 47 | Concentração (7.48) | AUTOMATED TESTED 2026-10-29: passiva, precisão +15% e mínimo 35%; o Cancelamento é a skill 100 no 7.48 (troca por nome com o servidor) |
 | 53 | Proteção Elemental | Pendente: affect 25, defesa e resistências |
 | 64 | Lobisomem | Anterior: transformação; não contar teste isolado como todos os modelos validados |
 | 65 | Fangs_of_the_Wolf | 2026-10-29: official server adds no form bonus or absorption (bit-17 absorb is cleared before gems); AUTOMATED TESTED |

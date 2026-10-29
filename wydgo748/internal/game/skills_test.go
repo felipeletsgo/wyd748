@@ -610,7 +610,7 @@ func TestEtherealFlamesBurnsManaOrDispelsLikeW2PP(t *testing.T) {
 }
 
 func TestSoulLimitUsesW2PPCooldownAndAffectDuration(t *testing.T) {
-	if got := skillCooldownDuration(model.SkillDef{Index: 47, Delay: 1200}); got != time.Second {
+	if got := skillCooldownDuration(model.SkillDef{Index: cancellationSkill, Delay: 1200}); got != time.Second {
 		t.Fatalf("cooldown Cancelamento=%s, quer 1s", got)
 	}
 	if got := skillCooldownDuration(model.SkillDef{Index: 102, Delay: 1200}); got != time.Second {
@@ -690,14 +690,15 @@ func TestFoemaHealMatches759AndDoesNotRecalculateStats(t *testing.T) {
 	results := w.applySupportSkill(p, skillCastRequest{}, model.SkillDef{
 		Index: 27, InstanceValue: 100, MaxTarget: 1,
 	}, 0)
-	if len(results) != 1 || results[0].hpDelta != 140 || playerCurHP(ch) != 240 {
+	// Official TMSRVIN: Heal restores Value + 2*mastery, without the old x1.4.
+	if len(results) != 1 || results[0].hpDelta != 100 || playerCurHP(ch) != 200 {
 		t.Fatalf("cura incorreta: results=%+v hp=%d", results, playerCurHP(ch))
 	}
 	if playerAttack(ch) != 777 || playerDefense(ch) != 555 || playerInt(ch) != 250 {
 		t.Fatalf("cura recalculou/reduziu stats: %+v", effectiveScore(ch))
 	}
-	if got := foemaHealAmount(29, 40, 150); got != 294 {
-		t.Fatalf("Recovery 7.59=%d, quer 294", got)
+	if got := foemaHealAmount(nil, 29, 40, 150); got != 210 {
+		t.Fatalf("Recovery=%d, want 150 + 3*40/2 = 210", got)
 	}
 	if skill, motion := tickAreaVisual(37); skill != 33 || motion != 254 {
 		t.Fatalf("visual Lightning Storm: skill=%d motion=%d", skill, motion)

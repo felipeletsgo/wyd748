@@ -70,7 +70,15 @@ func TestCriticalSupportPreflightsEveryParticipant(t *testing.T) {
 						t.Fatal("healing did not resume")
 					}
 				case 31:
-					if playerCurHP(target.Char) == 0 || !target.DeadAt.IsZero() || playerCurMP(caster.Char) != 0 {
+					// Official TMSRVIN: each success costs a tenth of base maximum MP.
+					wantMP := playerCurMP(&snapshots[0])
+					for _, revived := range []*Player{first, target} {
+						if playerCurHP(revived.Char) > 0 {
+							wantMP -= minU32(caster.Char.Score.MaxMP/10, wantMP)
+						}
+					}
+					if playerCurHP(target.Char) == 0 || !target.DeadAt.IsZero() ||
+						playerCurMP(caster.Char) != wantMP {
 						t.Fatal("revival or caster cost did not resume")
 					}
 				case 42:
