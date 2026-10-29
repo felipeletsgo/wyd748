@@ -39,10 +39,14 @@ is not built, published, or activated.
 - TransKnight skills and passives (`PARIDADE_NATIVA`, official TMSRVIN). By
   name, 7.48 Slow Slash (2), Rescue (3), Growth (13) and Double Swing (16) are
   server 16, 13, 3 and 2. Speed Up (9) is not Two-Hand Master, so TK gets no
-  dual-weapon bonus. Destiny adds 20 holy resist; Critical Armor gives defense
-  x1.2, attack + defense/10 and critical +10%. Assault lowers HP, not defense.
-  Growth and Rescue use the server formulas. The Critical Armor buff stays
-  affect 31; the server flag consumer is unknown.
+  dual-weapon bonus. Destiny adds 20 holy resist. Assault lowers HP, not
+  defense. Growth and Rescue use the server formulas.
+- TransKnight native 7.48 buffs (`PARIDADE_NATIVA`, native client and help;
+  see [record](../.agents/research/client748/flows/combat/transknight-native-buffs.md)).
+  Berserk (9) adds attack speed Level/10 + 10. Critical Armor (15) is a buff,
+  not a passive: defense +(7 + Level/50)%, critical +(3 + Level/50)%.
+  Combat Sensibility (14) gives Special[2]/20 minimum-damage mastery to
+  physical hits too; other characters now get 0 instead of Special[0].
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 

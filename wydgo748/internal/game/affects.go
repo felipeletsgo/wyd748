@@ -249,6 +249,10 @@ func (w *World) applyVolatileBuff(ch *model.Char, rule model.VolatileRule, sourc
 	return volatileBuffApplied
 }
 
+// TK Critical Armor is stored as score type 31 with the 7.48 visual 24,
+// which separates it from Coin Armor (visual 31).
+const affectCriticalArmorClientType = 24
+
 func skillAffect(skill model.SkillDef) (byte, int, bool) {
 	if skill.AffectType > 0 {
 		return byte(skill.AffectType), skill.AffectValue, true
@@ -512,7 +516,7 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				if applied && skill.Index == 15 { // TK Critical Armor uses visual 24 in 7.48.
 					for i := range target.Char.Affects {
 						if target.Char.Affects[i].Type == affectType {
-							target.Char.Affects[i].ClientType = 24
+							target.Char.Affects[i].ClientType = affectCriticalArmorClientType
 							break
 						}
 					}
@@ -811,6 +815,8 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			e.MagicAttack = mul(e.MagicAttack, 100+a.Value)
 		case 5:
 			e.Dex = mul(e.Dex, 100-clampInt(a.Value, 0, 100))
+		case 8: // Berserk; native 7.48 FUN_0054FDB9 and help 5009.
+			attackSpeedPoints += a.Level/10 + 10
 		case 7:
 			penalty := a.Level/10 + 20
 			attackSpeedPoints -= penalty
@@ -1021,7 +1027,16 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 		case affectCourage:
 			// Courage does not modify score. Its fixed bonus belongs to each
 			// PvE hit's result and is applied in combat.go/skills.go.
-		case 31: // Coin Armor; official TMSRVIN sub_4BB4C0.
+		case 31:
+			if a.ClientType == affectCriticalArmorClientType {
+				// TK Critical Armor; native 7.48 help 5015: defense
+				// +(7 + Trans/50)% and critical +(3 + Trans/50)%.
+				bonus := a.Level / 50
+				e.Defense = mul(e.Defense, 107+bonus)
+				e.Critical = addCritical(e.Critical, 30+10*bonus)
+				break
+			}
+			// Coin Armor; official TMSRVIN sub_4BB4C0.
 			defense := a.Level/10 + a.Value
 			if ch.Class == 3 && learnedLocal(ch, 87-72) { // Spirit Change, server bit 15.
 				defense += 100

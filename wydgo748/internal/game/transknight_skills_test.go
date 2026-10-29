@@ -41,13 +41,60 @@ func TestTransKnightPassivesFollowOfficialServer(t *testing.T) {
 	ch.RuntimeScore = testScore(*ch.Score)
 	w.applyPassiveSkills(ch)
 	e := effectiveScore(ch)
-	// Critical Armor: AC 120%, attack + AC/10, critical +100.
-	if e.Defense != 240 || e.Attack != 124 || e.Critical != 100 {
-		t.Fatalf("Critical Armor=%+v", e)
+	// Critical Armor is a 7.48 buff: learning it adds no passive bonus.
+	if e.Defense != 200 || e.Attack != 100 || e.Critical != 0 {
+		t.Fatalf("Critical Armor passive=%+v", e)
 	}
 	// Destiny: holy resistance +20, clamped at 100.
 	if e.ResistHoly != 100 {
 		t.Fatalf("Destiny holy resistance=%d, want 100", e.ResistHoly)
+	}
+}
+
+// Native 7.48 help 5015 (Critical Armor) and 5009 (Berserk), and the native
+// client score FUN_0054FDB9 for affect 8.
+func TestTransKnightNativeBuffs(t *testing.T) {
+	now := time.Now()
+	ch := &model.Char{Class: 0, Score: testScore(model.Score{Defense: 200})}
+	ch.Affects[0] = model.Affect{Type: 31, ClientType: affectCriticalArmorClientType,
+		Level: 120, Value: 100, ExpiresAt: now.Add(time.Minute)}
+	(&World{}).applyAffectStats(ch)
+	// Defense +(7 + 120/50)% = 109%; critical +(3 + 2)% = 50 tenths.
+	if e := effectiveScore(ch); e.Defense != 218 || e.Critical != 50 {
+		t.Fatalf("Critical Armor buff=%+v", e)
+	}
+	coin := &model.Char{Class: 3, Score: testScore(model.Score{Defense: 200})}
+	coin.Affects[0] = model.Affect{Type: 31, ClientType: 31, Level: 120, Value: 100,
+		ExpiresAt: now.Add(time.Minute)}
+	(&World{}).applyAffectStats(coin)
+	if e := effectiveScore(coin); e.Defense != 312 || e.Critical != 0 {
+		t.Fatalf("Coin Armor changed=%+v", e)
+	}
+
+	plain := &model.Char{Class: 0, Score: testScore(model.Score{})}
+	base := (&World{}).applyAffectStats(plain)
+	berserk := &model.Char{Class: 0, Score: testScore(model.Score{})}
+	berserk.Affects[0] = model.Affect{Type: 8, Level: 120, Value: 10, ExpiresAt: now.Add(time.Minute)}
+	if got := (&World{}).applyAffectStats(berserk) - base; got != 22 {
+		t.Fatalf("Berserk attack speed=%d, want 10 + 120/10", got)
+	}
+}
+
+// Native 7.48 help 5014: Combat Sensibility raises the minimum physical
+// damage by Special[2]/20; other characters get no raise.
+func TestCombatSensibilityRaisesMinimumPhysicalDamage(t *testing.T) {
+	low := func(int) int { return 0 }
+	plain := &model.Char{Class: 0, Score: testScore(model.Score{Mastery: [4]uint32{255, 0, 200, 0}})}
+	if got := skillDamageMastery(plain); got != 0 {
+		t.Fatalf("mastery without Combat Sensibility=%d, want 0", got)
+	}
+	if got := hitDamageWithRNG(1000, 0, skillDamageMastery(plain), low); got != 990 {
+		t.Fatalf("minimum hit=%d, want 990", got)
+	}
+	learned := &model.Char{Class: 0, LearnedSkill: 1 << 14,
+		Score: testScore(model.Score{Mastery: [4]uint32{0, 0, 200, 0}})}
+	if got := hitDamageWithRNG(1000, 0, skillDamageMastery(learned), low); got != 1040 {
+		t.Fatalf("minimum hit with Combat Sensibility=%d, want 1040", got)
 	}
 }
 

@@ -52,7 +52,8 @@ func applyCouragePvEDamageAt(ch *model.Char, damage int, magical bool, now time.
 
 // hitDamage resolves one hit using BASE_GetDamage (Basedef.cpp:1553):
 // tdam = dam - ac/2, combat-skill variance, low-end smoothing, and a minimum of 1.
-// dam is attack, ac is target defense, and combat is the combat skill level.
+// dam is attack, ac is target defense, and combat is the combat skill level:
+// TK Combat Sensibility gives Special[2]/20 (native 7.48 help 5014), others 0.
 func hitDamageWithRNG(dam, ac, combat int, intn func(int) int) int {
 	tdam := dam - ac/2
 	c := combat / 2
@@ -244,7 +245,7 @@ func playerPhysicalHitMobAt(atk *Player, m *Mob, intn func(int) int, now time.Ti
 	if critical {
 		attack = (intn(2) + 15) * attack / 10
 	}
-	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), int(playerMastery(ch, 0)), intn)
+	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), skillDamageMastery(ch), intn)
 	if double {
 		dam *= 2
 	}
@@ -266,7 +267,7 @@ func playerPhysicalFollowupHitMobAt(atk *Player, m *Mob, double, critical bool,
 	if critical {
 		attack = (intn(2) + 15) * attack / 10
 	}
-	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), int(playerMastery(atk.Char, 0)), intn)
+	dam := hitDamageWithRNG(attack, effectiveMobDefenseAt(m, now), skillDamageMastery(atk.Char), intn)
 	if double {
 		dam *= 2
 	}
@@ -300,7 +301,7 @@ func playerPhysicalHitPlayerWithRNG(atk, target *Player, intn func(int) int) phy
 	if critical {
 		attack = (intn(2) + 13) * attack / 10
 	}
-	dam := hitDamageWithRNG(attack, playerDefense(target.Char), int(playerMastery(atk.Char, 0)), intn)
+	dam := hitDamageWithRNG(attack, playerDefense(target.Char), skillDamageMastery(atk.Char), intn)
 	if double {
 		dam *= 2
 	}
@@ -318,7 +319,7 @@ func playerPhysicalFollowupHitPlayerWithRNG(atk, target *Player, double, critica
 	if critical {
 		attack = (intn(2) + 13) * attack / 10
 	}
-	dam := hitDamageWithRNG(attack, playerDefense(target.Char), int(playerMastery(atk.Char, 0)), intn)
+	dam := hitDamageWithRNG(attack, playerDefense(target.Char), skillDamageMastery(atk.Char), intn)
 	if double {
 		dam *= 2
 	}

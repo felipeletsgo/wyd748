@@ -48,13 +48,8 @@ func (w *World) applyPassiveSkills(ch *model.Char) {
 		if learnedLocal(ch, 7) {
 			e.ResistHoly = uint32(clampInt(int(e.ResistHoly)+20, 0, 100))
 		}
-		// Critical Armor (15): defense 120%, attack + defense/10 and
-		// critical + 100, in tenths of a percent.
-		if learnedLocal(ch, 15) {
-			e.Defense = extendedValue(int64(e.Defense) * 120 / 100)
-			e.Attack = extendedValue(int64(e.Attack) + int64(e.Defense)/10)
-			e.Critical = addCritical(e.Critical, 100)
-		}
+		// Critical Armor (15) is a 7.48 buff, not a passive: see affect 31
+		// with visual 24 in applyExtendedAffectStats.
 	case 2: // BeastMaster
 		// Official TMSRVIN sub_4CE1C0: Bear's Roar (67) with a shield in slot 7
 		// raises defense to 105%.

@@ -61,11 +61,11 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | ID | Nome no catálogo | Situação / próxima verificação |
 | --- | --- | --- |
 | 3 | Samaritano | AUTOMATED TESTED 2026-10-29: affect 24 do TMSRVIN (servidor 13); AC + Level, escudo +30% AC e +30 resist, Armadura Crítica +10% AC; aggro inalterado |
-| 9 | Berserk (Speed_Up) | 2026-10-29: não é Mestre das Armas; o bit 9 do servidor (Two-Hand Master, +15 duas armas) não existe no 7.48; removido o 100% W2PP |
+| 9 | Berserk (Speed_Up) | AUTOMATED TESTED 2026-10-29: affect 8 nativo, velocidade de ataque + Level/10 + 10; não é Mestre das Armas, sem bônus de duas armas |
 | 11 | Assalto | AUTOMATED TESTED 2026-10-29: ataque + Level/10 + Value (+5 com Armadura Crítica); HP 90%, não defesa |
 | 13 | Possuído (Growth) | AUTOMATED TESTED 2026-10-29: servidor 3; CON + Value + Level + nível×4/3 (+400 celestial); com Destino +Level e +200 em todos os atributos; 2 HP/CON, 2 MP/INT |
-| 14 | Noção de Combate | Anterior: hook de combate; falta fechar evidência individual |
-| 15 | Armadura Crítica | AUTOMATED TESTED 2026-10-29: passiva AC 120%, ataque + AC/10, crítico +100‰; buff ainda affect 31 (servidor: affect 36, só flag 0x10 sem consumidor achado) |
+| 14 | Noção de Combate | AUTOMATED TESTED 2026-10-29: ajuda nativa 5014 e W2PP; Special[2]/20 no golpe físico e nas skills; sem ela, 0 |
+| 15 | Armadura Crítica | AUTOMATED TESTED 2026-10-29: buff nativo (ajuda 5015), defesa +(7 + Level/50)%, crítico +(3 + Level/50)%; sem passiva 7.59 |
 | 41 | Velocidade | AUTOMATED TESTED: affect 2, velocidade consumida pelo movimento, grupo/limite, custo, cooldown, recast e expiração; visual pendente |
 | 43 | Escudo Mágico | AUTOMATED TESTED: fórmula base affect 11 e lifecycle; comparação nativa encontrou bônus adicional por bit 23, ainda não adaptado; ver divergência abaixo |
 | 44 | Arma Mágica | AUTOMATED TESTED: fórmula base affect 9 e lifecycle/grupo; interação W2PP bit 19 contradiz rotina nativa (bit 20, outro cálculo); não portar o triplo |
