@@ -842,18 +842,14 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 				level += 400
 			}
 			con := int64(a.Value + a.Level + level*4/3)
-			var stats int64
+			// The server also adds 200 to every attribute with Destiny; the
+			// owner removed that bonus (MODERNIZACAO_COMPATIVEL).
 			if serverSkillLearned(ch, 7) { // Destiny.
 				con += int64(a.Level)
-				stats = 200
 			}
-			e.Con = add(e.Con, con+stats)
-			e.Str = add(e.Str, stats)
-			e.Int = add(e.Int, stats)
-			e.Dex = add(e.Dex, stats)
-			// sub_4CE1C0 adds 2 HP per extra CON and 2 MP per extra INT.
-			e.MaxHP = add(e.MaxHP, 2*(con+stats))
-			e.MaxMP = add(e.MaxMP, 2*stats)
+			e.Con = add(e.Con, con)
+			// sub_4CE1C0 adds 2 HP per extra CON.
+			e.MaxHP = add(e.MaxHP, 2*con)
 		case 15: // Athena's Touch
 			value := uint32(maxInt(0, a.Level/10+a.Value))
 			for j := range e.Mastery {

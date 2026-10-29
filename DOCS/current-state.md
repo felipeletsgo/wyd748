@@ -40,7 +40,8 @@ is not built, published, or activated.
   name, 7.48 Slow Slash (2), Rescue (3), Growth (13) and Double Swing (16) are
   server 16, 13, 3 and 2. Speed Up (9) is not Two-Hand Master, so TK gets no
   dual-weapon bonus. Destiny adds 20 holy resist. Assault lowers HP, not
-  defense. Growth and Rescue use the server formulas.
+  defense. Growth and Rescue use the server formulas, but Growth omits the
+  server's +200 to every attribute with Destiny (owner decision).
 - TransKnight native 7.48 buffs (`PARIDADE_NATIVA`, native client and help;
   see [record](../.agents/research/client748/flows/combat/transknight-native-buffs.md)).
   Berserk (9) adds attack speed Level/10 + 10. Critical Armor (15) is a buff,

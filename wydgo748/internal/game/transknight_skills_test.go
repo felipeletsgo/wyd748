@@ -118,10 +118,10 @@ func TestTransKnightAffectsUseServerSkillBits(t *testing.T) {
 	if e := apply(w, 1<<15, model.Affect{Type: 13, Level: 40, Value: 7}, false); e.Attack != 116 {
 		t.Fatalf("Assault with Critical Armor attack=%d, want 116", e.Attack)
 	}
-	// Growth with Destiny: CON + 10+40+40 + 40 + 200; STR/INT/DEX + 200.
+	// Growth with Destiny: CON + 10+40+40 + 40; no +200 to the attributes.
 	e := apply(w, 1<<7, model.Affect{Type: 14, Level: 40, Value: 10}, false)
-	if e.Con != 340 || e.Str != 210 || e.Int != 210 || e.Dex != 210 ||
-		e.MaxHP != 1660 || e.MaxMP != 800 {
+	if e.Con != 140 || e.Str != 10 || e.Int != 10 || e.Dex != 10 ||
+		e.MaxHP != 1260 || e.MaxMP != 400 {
 		t.Fatalf("Growth with Destiny=%+v", e)
 	}
 	// Speed Up (bit 9) is not Destiny: plain Growth.

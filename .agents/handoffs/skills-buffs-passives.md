@@ -63,7 +63,7 @@ de implementação. Efeitos ofensivos/debuffs e curas continuam fora deste lote.
 | 3 | Samaritano | AUTOMATED TESTED 2026-10-29: affect 24 do TMSRVIN (servidor 13); AC + Level, escudo +30% AC e +30 resist, Armadura Crítica +10% AC; aggro inalterado |
 | 9 | Berserk (Speed_Up) | AUTOMATED TESTED 2026-10-29: affect 8 nativo, velocidade de ataque + Level/10 + 10; não é Mestre das Armas, sem bônus de duas armas |
 | 11 | Assalto | AUTOMATED TESTED 2026-10-29: ataque + Level/10 + Value (+5 com Armadura Crítica); HP 90%, não defesa |
-| 13 | Possuído (Growth) | AUTOMATED TESTED 2026-10-29: servidor 3; CON + Value + Level + nível×4/3 (+400 celestial); com Destino +Level e +200 em todos os atributos; 2 HP/CON, 2 MP/INT |
+| 13 | Possuído (Growth) | AUTOMATED TESTED 2026-10-29: servidor 3; CON + Value + Level + nível×4/3 (+400 celestial); com Destino +Level de CON; sem os +200 em atributos do servidor (decisão do dono); 2 HP/CON |
 | 14 | Noção de Combate | AUTOMATED TESTED 2026-10-29: ajuda nativa 5014 e W2PP; Special[2]/20 no golpe físico e nas skills; sem ela, 0 |
 | 15 | Armadura Crítica | AUTOMATED TESTED 2026-10-29: buff nativo (ajuda 5015), defesa +(7 + Level/50)%, crítico +(3 + Level/50)%; sem passiva 7.59 |
 | 41 | Velocidade | AUTOMATED TESTED: affect 2, velocidade consumida pelo movimento, grupo/limite, custo, cooldown, recast e expiração; visual pendente |
