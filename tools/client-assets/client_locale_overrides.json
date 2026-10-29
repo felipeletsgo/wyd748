@@ -1886,11 +1886,33 @@
     }
   },
   "skill_help": {
+    "5003": [
+      "CC9900FF Aumenta a defesa durante certo tempo.",
+      "CC9900FF Defesa: + Fé.",
+      "CC9900FF Com escudo: defesa +30% e todas as",
+      "CC9900FF resistências +30.",
+      "CC9900FF Com Armadura Crítica: defesa +10%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
     "5004": [
       "CC9900FF Desfere um ataque poderoso contra um alvo.",
       "CC9900FF Dano: 75 + (Fé/4) x 5.",
       "FFFFFFFF ",
       "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5007": [
+      "CC9900FF Ataque_de_lanças_sagradas_nos_inimigos",
+      "CC9900FF que_estão_dentro_da_área_de_3m_x_3m.",
+      "CC9900FF Dano: 190 + (Confiança/4) x 5 + INT/4.",
+      "CC9900FF Aprendida: resistência sagrada +20.",
       "FFFFFFFF ",
       "FFFFFFFF ",
       "FFFFFFFF ",
@@ -1912,6 +1934,50 @@
       "CC9900FF Desfere um ataque poderoso contra um alvo.",
       "CC9900FF Dano: 40 + (Trans/4) x 5 + FOR/4.",
       "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5011": [
+      "CC9900FF Durante certo tempo reduz o HP máximo em 10%",
+      "CC9900FF para aumentar o ataque físico.",
+      "CC9900FF Bônus de Ataque: 7% + (Trans/10)%.",
+      "CC9900FF Com Armadura Crítica: ataque +5%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5013": [
+      "CC9900FF Durante certo tempo aumenta CONS e HP.",
+      "CC9900FF Bônus em CONS: 10 + Trans + Lvl x 4/3.",
+      "CC9900FF Com Destino: Bônus em CONS + Trans.",
+      "CC9900FF Bônus em HP: 2 por ponto de CONS ganho.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5014": [
+      "CC9900FF Aumenta de forma passiva o dano mínimo.",
+      "CC9900FF Skills: +(Trans/20)%, até 15%.",
+      "CC9900FF Ataque físico: +(Trans/40)%, até 7%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5016": [
+      "CC9900FF Perfura o inimigo alvo e o que estiver atrás",
+      "CC9900FF dele em até 1m de distância.",
+      "CC9900FF Dano: Ataque + 13 + (Fé/4) x 5 + INT/4.",
       "FFFFFFFF ",
       "FFFFFFFF ",
       "FFFFFFFF ",
@@ -1984,6 +2050,226 @@
       "FFFFFFFF ",
       "FFFFFFFF ",
       "FFFFFFFF "
+    ],
+    "5064": [
+      "CC9900FF Transforme-se em Lobisomem.",
+      "CC9900FF Ataque: 110% + (Natureza/10)%.",
+      "CC9900FF Defesa: 95% + (Natureza/20)% + 5.",
+      "CC9900FF HP: 95% + (Natureza/20)%.",
+      "CC9900FF Movimento +1; Vel de Ataque +20%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5065": [
+      "CC9900FF Sem efeito direto. Os bônus do",
+      "CC9900FF Lobisomem vêm de Asas do Inferno.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5066": [
+      "CC9900FF Transforme-se em Homem Urso.",
+      "CC9900FF Ataque: 95% + (Natureza/20)%.",
+      "CC9900FF Defesa: 105% + (Natureza/20)%.",
+      "CC9900FF HP: 110% + (Natureza x 3/20)%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5067": [
+      "CC9900FF Passiva. Com escudo equipado:",
+      "CC9900FF defesa +5%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5068": [
+      "CC9900FF Transforme-se em Astaroth.",
+      "CC9900FF Ataque: 110% + (Natureza/20)%.",
+      "CC9900FF Defesa: 90% + (Natureza/10)%.",
+      "CC9900FF HP: 100% + (Natureza/10)%.",
+      "CC9900FF Movimento +1; Vel de Ataque +20%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5069": [
+      "CC9900FF Melhora as transformações.",
+      "CC9900FF Lobisomem: ataque +10%, resistência +5,",
+      "CC9900FF crítico 5% + (Evocação/100)%.",
+      "CC9900FF Homem Urso: HP +20%, Vel de Ataque +20%,",
+      "CC9900FF resistência +20.",
+      "CC9900FF Astaroth: ataque +10%, defesa +5%,",
+      "CC9900FF HP +5%, Vel de Ataque +20%,",
+      "CC9900FF resistência +5.",
+      "FFFFFFFF "
+    ],
+    "5070": [
+      "CC9900FF Transforme-se em Titã.",
+      "CC9900FF Ataque: 115% + (Natureza/20)%.",
+      "CC9900FF Defesa: 115% + (Natureza/20)%.",
+      "CC9900FF HP: 105% + (Natureza/20)%.",
+      "CC9900FF Vel de Ataque +20%; resistência +20.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5071": [
+      "CC9900FF Transforme-se em Éden.",
+      "CC9900FF Ataque: 118% + (Natureza x 3/40)%.",
+      "CC9900FF Defesa: 110% + (Natureza/20)%.",
+      "CC9900FF HP: 113% + (Natureza/10)%.",
+      "CC9900FF Movimento +2; Vel de Ataque +30%;",
+      "CC9900FF resistência +17.",
+      "CC9900FF Aprendida: toda forma ataque +5%,",
+      "CC9900FF defesa +2%.",
+      "FFFFFFFF "
+    ],
+    "5077": [
+      "CC9900FF Transfere_uma_parte_da_sua_defesa para",
+      "CC9900FF ataque_durante_certo_tempo.",
+      "CC9900FF Aumento de dano: 10% + (Sobrevivência/10)%.",
+      "CC9900FF Redução da defesa: 10 + (Sobrevivência/3).",
+      "CC9900FF Com Tempestade de Raios: dano +5%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5079": [
+      "CC9900FF Aumenta o ataque físico durante certo tempo.",
+      "CC9900FF Bônus de Ataque: + Troca.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5081": [
+      "CC9900FF Vende_itens_na_loja_com_preço 6% superior",
+      "CC9900FF ao_preço_padrão.",
+      "CC9900FF Preço de Venda: 106% + (Troca/10)%, até 126%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5082": [
+      "CC9900FF Aumenta o ataque com arcos e garras.",
+      "CC9900FF Bônus de Ataque: 10 + (Troca/5).",
+      "CC9900FF Com Tempestade de Raios: 320 + (Troca/5).",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5083": [
+      "CC9900FF Não tem efeito neste servidor.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5086": [
+      "CC9900FF Gasta_o_seu_Gold_em_troca_de_maior defesa.",
+      "CC9900FF Aumento de Defesa: Troca/10.",
+      "CC9900FF Consumo de Gold: Troca x 100.",
+      "CC9900FF Com Troca de Espírito: defesa +100.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5087": [
+      "CC9900FF Converte MP em HP durante certo tempo.",
+      "CC9900FF Mortal: MP - (MP/4 + (Lvl + Troca)/4);",
+      "CC9900FF HP + 750 + o MP removido.",
+      "CC9900FF Arch: MP - MP/4; HP + 750 + MP/4 +",
+      "CC9900FF Troca/2 + Lvl x 2.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5090": [
+      "CC9900FF Melhora o ataque com duas armas.",
+      "CC9900FF Dano da segunda arma: +10%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5091": [
+      "CC9900FF Aumenta de forma passiva o crítico.",
+      "CC9900FF Crítico: +(DES/200)%.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5093": [
+      "CC9900FF Pode causar um acerto adicional.",
+      "CC9900FF Dano adicional: (FOR + Captura -",
+      "CC9900FF defesa/2)/2, mínimo 60.",
+      "CC9900FF Chance: 25% por ataque.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5094": [
+      "CC9900FF Joga várias facas para frente, atingindo",
+      "CC9900FF múltiplos inimigos ao mesmo tempo.",
+      "CC9900FF Alcance: de 2m a 4m.",
+      "CC9900FF Dano: Ataque + 35 + (Troca/4) x 5 + FOR.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
+    ],
+    "5095": [
+      "CC9900FF Ataque contínuo com flechas invisíveis.",
+      "CC9900FF Número de ataques: 6.",
+      "CC9900FF Dano a cada acerto: ataque físico.",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF ",
+      "FFFFFFFF "
     ]
   },
   "captions": {
@@ -2009,7 +2295,7 @@
     "fieldscene.bin:2:915:640:-2": "Líder III"
   },
   "canonical_text_sha256": {
-    "skillhelp.dat": "1bdd96adc246cf2a71097301ea1c5152d24f5109a43a557a22b0c3335e3dda24",
+    "skillhelp.dat": "e6a20f25ca2f8e79ac4d4e9f2cfb2be4180cb9347d41ebcaa092ca75cb6b77db",
     "UI/UIString.txt": "166d8f97e8bf7fb93a23601f4d5a952d0117a8042e54b58111bb8f46c5670d8d",
     "UI/EffectString.txt": "f49c1101dbba1679bbe3b437f4bb11d552f821247d3e089bd3c6ec4d54fdf244",
     "UI/interface.txt": "a0e6ce6c5f181d88e136939ebb305b8f462509c6cb65b9106a0de0d952c6a7d5",

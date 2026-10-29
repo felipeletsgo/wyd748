@@ -29,11 +29,11 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5003
-CC9900FF When cast on a character attacked by a
-CC9900FF monster, makes that monster attack you
-CC9900FF instead.
-FFFFFFFF
-FFFFFFFF
+CC9900FF Temporarily raises your defense.
+CC9900FF Defense: + Faith.
+CC9900FF With a shield: defense +30% and all
+CC9900FF resistances +30.
+CC9900FF With Critical Armor: defense +10%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -72,7 +72,7 @@ FFFFFFFF
 CC9900FF Attacks enemies in a 3m x 3m area with
 CC9900FF holy spears.
 CC9900FF Damage: 190 + (Faith/4) x 5 + INT/4.
-FFFFFFFF
+CC9900FF Learned: holy resistance +20.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -109,10 +109,10 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5011
-CC9900FF Temporarily sacrifices up to 10% of your
-CC9900FF HP to increase physical attack.
+CC9900FF Temporarily lowers max HP by 10% to
+CC9900FF increase physical attack.
 CC9900FF Attack bonus: 7% + (Trans/10)%.
-FFFFFFFF
+CC9900FF With Critical Armor: attack +5%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -129,19 +129,19 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5013
-CC9900FF Temporarily increases HP and
-CC9900FF Constitution.
-CC9900FF CON bonus: 10 + (Trans/4) x 3.
-CC9900FF HP bonus: 20 + Trans + [Level x (4/3)].
+CC9900FF Temporarily increases CON and HP.
+CC9900FF CON bonus: 10 + Trans + Level x 4/3.
+CC9900FF With Destiny: CON bonus + Trans.
+CC9900FF HP bonus: 2 per CON gained.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5014
-CC9900FF Randomly increases minimum physical
-CC9900FF damage.
-CC9900FF Minimum damage bonus: (Trans/20)%.
+CC9900FF Passively raises your minimum damage.
+CC9900FF Skills: +(Trans/20)%, up to 15%.
+CC9900FF Physical: +(Trans/40)%, up to 7%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -161,8 +161,8 @@ FFFFFFFF
 5016
 CC9900FF Pierces the target and enemies up to 1m
 CC9900FF behind it.
-CC9900FF Damage: Attack + 13 + (Magic Sword/4) x
-CC9900FF 5 + INT/4.
+CC9900FF Damage: Attack + 13 + (Faith/4) x 5
+CC9900FF + INT/4.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -641,17 +641,17 @@ FFFFFFFF
 5064
 CC9900FF Transforms into a Werewolf.
 CC9900FF Attack: 110% + (Nature/10)%.
-CC9900FF Defense: 95% + (Nature/20)%.
+CC9900FF Defense: 95% + (Nature/20)% + 5.
 CC9900FF HP: 95% + (Nature/20)%.
-CC9900FF Movement speed: +1; attack speed: +10%.
+CC9900FF Movement +1; attack speed +20%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5065
-CC9900FF Improves the Werewolf transformation.
-CC9900FF Attack bonus: +10%.
-CC9900FF All elemental resistances: +15%.
+CC9900FF No direct effect. Werewolf bonuses
+CC9900FF come from Mist of Hell.
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -659,19 +659,19 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5066
-CC9900FF Transforms into a Bear Man.
+CC9900FF Transforms into a Werebear.
 CC9900FF Attack: 95% + (Nature/20)%.
 CC9900FF Defense: 105% + (Nature/20)%.
-CC9900FF HP: 120% + (Nature/10)%.
+CC9900FF HP: 110% + (Nature x 3/20)%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5067
-CC9900FF Improves the Bear Man transformation.
-CC9900FF Attack bonus: +10%.
-CC9900FF All elemental resistances: +50%.
+CC9900FF Passive. With a shield equipped:
+CC9900FF defense +5%.
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -679,44 +679,44 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5068
-CC9900FF Transforms into an Infernal Raven.
-CC9900FF Ranged attack: 110% + (Nature/20)%.
-CC9900FF Defense: 95% + (Nature/20)%.
+CC9900FF Transforms into Astaroth.
+CC9900FF Attack: 110% + (Nature/20)%.
+CC9900FF Defense: 90% + (Nature/10)%.
 CC9900FF HP: 100% + (Nature/10)%.
-CC9900FF Movement speed: +1; attack speed: +20%.
+CC9900FF Movement +1; attack speed +20%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5069
-CC9900FF Improves the Infernal Raven
-CC9900FF transformation.
-CC9900FF Attack bonus: +10%.
-CC9900FF All elemental resistances: +15%.
-CC9900FF Attack speed bonus: +20%.
-FFFFFFFF
-FFFFFFFF
-FFFFFFFF
+CC9900FF Improves transformations.
+CC9900FF Werewolf: attack +10%, resistance +5,
+CC9900FF critical 5% + (Summon/100)%.
+CC9900FF Werebear: HP +20%, attack speed +20%,
+CC9900FF resistance +20.
+CC9900FF Astaroth: attack +10%, defense +5%,
+CC9900FF HP +5%, attack speed +20%,
+CC9900FF resistance +5.
 FFFFFFFF
 5070
 CC9900FF Transforms into a Titan.
 CC9900FF Attack: 115% + (Nature/20)%.
 CC9900FF Defense: 115% + (Nature/20)%.
 CC9900FF HP: 105% + (Nature/20)%.
-CC9900FF Resistance: +50%; attack speed: +20%.
+CC9900FF Attack speed +20%; resistance +20.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5071
-CC9900FF Transforms into Eden.
-CC9900FF Attack: 115% + (Nature/20)%.
+CC9900FF Transforms into Evilator.
+CC9900FF Attack: 118% + (Nature x 3/40)%.
 CC9900FF Defense: 110% + (Nature/20)%.
-CC9900FF HP: 110% + (Nature/10)%.
-CC9900FF Movement: +2; resistance: +27%.
-CC9900FF Attack speed: +50%.
-FFFFFFFF
-FFFFFFFF
+CC9900FF HP: 113% + (Nature/10)%.
+CC9900FF Movement +2; attack speed +30%;
+CC9900FF resistance +17.
+CC9900FF Learned: every form attack +5%,
+CC9900FF defense +2%.
 FFFFFFFF
 5072
 CC9900FF Attacks one target.
@@ -772,7 +772,7 @@ FFFFFFFF
 CC9900FF Temporarily trades defense for attack.
 CC9900FF Damage bonus: 10% + (Survival/10)%.
 CC9900FF Defense reduction: 10 + Survival/3.
-FFFFFFFF
+CC9900FF With Rapid Hit: damage +5%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -789,10 +789,10 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5079
-CC9900FF Temporarily fires additional soul
-CC9900FF arrows.
-CC9900FF Maximum damage: Attack + 24 +
-CC9900FF Survival/5.
+CC9900FF Temporarily increases physical attack.
+CC9900FF Attack bonus: + Trade.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -811,7 +811,7 @@ FFFFFFFF
 5081
 CC9900FF Sells items to shops for at least 6%
 CC9900FF above the base price.
-CC9900FF Sale price: 106% + (Trade/10)%.
+CC9900FF Sale price: 106% + (Trade/10)%, max 126%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -819,9 +819,9 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5082
-CC9900FF Increases damage with bows and claws.
-CC9900FF Damage bonus: 10 + Trade/5.
-FFFFFFFF
+CC9900FF Increases attack with bows and claws.
+CC9900FF Attack bonus: 10 + Trade/5.
+CC9900FF With Rapid Hit: 320 + Trade/5.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -829,9 +829,9 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5083
-CC9900FF Buys shop items for at least 6% below
-CC9900FF the base price.
-CC9900FF Discount: 6% + (Trade/10)%.
+CC9900FF Has no effect on this server.
+FFFFFFFF
+FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -862,7 +862,7 @@ FFFFFFFF
 CC9900FF Spends gold to increase defense.
 CC9900FF Defense bonus: Trade/10.
 CC9900FF Gold cost: Trade x 100.
-FFFFFFFF
+CC9900FF With Spirit Change: defense +100.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -870,10 +870,10 @@ FFFFFFFF
 FFFFFFFF
 5087
 CC9900FF Temporarily converts MP into HP.
-CC9900FF HP bonus: 250 + total MP/8 + (Level +
-CC9900FF Trade)/4.
-CC9900FF Arch: 250 + total MP/4 + (Level +
-CC9900FF Trade)/4.
+CC9900FF Mortal: MP - (MP/4 + (Level + Trade)/4);
+CC9900FF HP + 750 + the MP removed.
+CC9900FF Arch: MP - MP/4; HP + 750 + MP/4 +
+CC9900FF Trade/2 + Level x 2.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -899,8 +899,8 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5090
-CC9900FF Absorbs HP from a defeated monster.
-CC9900FF HP recovered: monster HP/50 + Capture.
+CC9900FF Improves dual-weapon attacks.
+CC9900FF Second weapon damage share: +10%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -909,8 +909,8 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5091
-CC9900FF Increases item drop rate.
-CC9900FF Drop bonus: 10% + (Capture/10)%.
+CC9900FF Passively raises the critical rate.
+CC9900FF Critical rate: +(DEX/200)%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -930,9 +930,9 @@ FFFFFFFF
 FFFFFFFF
 5093
 CC9900FF May deliver an additional hit.
-CC9900FF Additional damage: (STR + Capture)/2.
-CC9900FF Chance: 10% + (Capture/10)%.
-FFFFFFFF
+CC9900FF Additional damage: (STR + Capture -
+CC9900FF defense/2)/2, minimum 60.
+CC9900FF Chance: 25% per attack.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -941,7 +941,7 @@ FFFFFFFF
 5094
 CC9900FF Throws knives at several enemies in
 CC9900FF front of you. Range: 2m to 4m.
-CC9900FF Damage: Attack + 35 + (Capture/4) x 5 +
+CC9900FF Damage: Attack + 35 + (Trade/4) x 5 +
 CC9900FF STR.
 FFFFFFFF
 FFFFFFFF
@@ -950,8 +950,8 @@ FFFFFFFF
 FFFFFFFF
 5095
 CC9900FF Fires invisible arrows continuously.
-CC9900FF Number of hits: 3 + Capture/85.
-CC9900FF Damage per hit: 80% of physical attack.
+CC9900FF Number of hits: 6.
+CC9900FF Damage per hit: physical attack.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF

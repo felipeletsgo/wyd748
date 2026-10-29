@@ -51,6 +51,10 @@ is not built, published, or activated.
 - Berserk visual (`PARIDADE_NATIVA`, client): visual 8 now sets the Speed Up
   weapon effect, as native `FUN_0052433d`. A buff visual audit found no other
   divergence; see [persistent buff visuals](../.agents/research/client748/flows/combat/persistent-buff-visuals.md).
+- Skill tooltips (`MODERNIZACAO_COMPATIVEL`, client assets): 26 TK, BM and HT
+  descriptions, EN and PT, now state the implemented server effects; see
+  [skill descriptions](../.agents/research/client748/flows/ui/skill-description-text.md).
+  Argumentar (83) says it has no effect. FM descriptions are not audited.
 - T bar: the client releases the retained target only at zero HP, not at zero
   MP; see [combat control](client/combat-control.md).
 

@@ -29,15 +29,15 @@ CC9900FF Vs. Jogador: -25%.
 CC9900FF Vs. Monstro: -50%.
 FFFFFFFF 
 5003
+CC9900FF Aumenta a defesa durante certo tempo.
+CC9900FF Defesa: + Fé.
+CC9900FF Com escudo: defesa +30% e todas as
+CC9900FF resistências +30.
+CC9900FF Com Armadura Crítica: defesa +10%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-CC9900FF Quando_aplicado_ao_personagem_que 
-CC9900FF estiver_sendo_atacado_por_um_monstro,
-CC9900FF troca_o_alvo_do_monstro_para_si_mesmo.
-CC9900FF 
 5004
 CC9900FF Desfere um ataque poderoso contra um alvo.
 CC9900FF Dano: 75 + (Fé/4) x 5.
@@ -69,15 +69,15 @@ CC9900FF Probabilidade de sucesso:
 CC9900FF Vs. Jogador: 50% + (Confiança/10)%
 CC9900FF Vs. Monstro: 50% + (Confiança/5)%
 5007
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Ataque_de_lanças_sagradas_nos_inimigos 
+CC9900FF Ataque_de_lanças_sagradas_nos_inimigos
 CC9900FF que_estão_dentro_da_área_de_3m_x_3m.
-CC9900FF 
 CC9900FF Dano: 190 + (Confiança/4) x 5 + INT/4.
+CC9900FF Aprendida: resistência sagrada +20.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5008
 CC9900FF Desfere um ataque poderoso contra um alvo.
 CC9900FF Dano: 15 + (Trans/4) x 5 + FOR/4.
@@ -109,15 +109,15 @@ FFFFFFFF
 FFFFFFFF 
 FFFFFFFF 
 5011
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Durante certo tempo diminui até 10% de HP
+CC9900FF Durante certo tempo reduz o HP máximo em 10%
 CC9900FF para aumentar o ataque físico.
-CC9900FF 
 CC9900FF Bônus de Ataque: 7% + (Trans/10)%.
+CC9900FF Com Armadura Crítica: ataque +5%.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5012
 FFFFFFFF 
 FFFFFFFF 
@@ -129,25 +129,25 @@ CC9900FF atrás_dele_em_até_1m_de distância.
 CC9900FF 
 CC9900FF Dano: 60 + (Trans/4) x 5 + FOR/4.
 5013
+CC9900FF Durante certo tempo aumenta CONS e HP.
+CC9900FF Bônus em CONS: 10 + Trans + Lvl x 4/3.
+CC9900FF Com Destino: Bônus em CONS + Trans.
+CC9900FF Bônus em HP: 2 por ponto de CONS ganho.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Durante_um_tempo_definido_aumenta_a 
-CC9900FF capacidade_máxima_de_HP_e_CONS.
-CC9900FF Bônus em CONS: 10 + (Trans/4) x 3.
-CC9900FF Bônus em HP: 20 + Trans + [level x (4/3)].
 5014
+CC9900FF Aumenta de forma passiva o dano mínimo.
+CC9900FF Skills: +(Trans/20)%, até 15%.
+CC9900FF Ataque físico: +(Trans/40)%, até 7%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF 
-CC9900FF Aumenta_a_força_do_ataque_físico_mais
-CC9900FF fraco_de_forma_passiva_e_randômica.
-CC9900FF Dano Mínimo: +(Trans/20)%
+FFFFFFFF 
 5015
 FFFFFFFF 
 FFFFFFFF 
@@ -159,15 +159,15 @@ CC9900FF porcentagem_de_defesa_e_ataque_crítico.
 CC9900FF Bônus em Crítico: 3% +(Trans/50)%.
 CC9900FF Bônus em Defesa: 7% +(Trans/50)%.
 5016
+CC9900FF Perfura o inimigo alvo e o que estiver atrás
+CC9900FF dele em até 1m de distância.
+CC9900FF Dano: Ataque + 13 + (Fé/4) x 5 + INT/4.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Perfura_o_inimigo_alvo_e o_que_estiver atrás  
-CC9900FF dele_em_até_1m_de distância.
-CC9900FF 
-CC9900FF Dano: Ataque + 13 + (E. Mágica/4) x 5 + INT/4.
+FFFFFFFF 
 5017
 FFFFFFFF 
 FFFFFFFF 
@@ -639,85 +639,85 @@ CC9900FF Ataque: 350 + (INT/5) x 9 + (Evocação/2) x 11.
 CC9900FF Defesa: 650 + (INT/2) x 3 + Evocação x 4.
 CC9900FF HP: 800 + INT x 4 + (Evocação/2) x 11.
 5064
+CC9900FF Transforme-se em Lobisomem.
+CC9900FF Ataque: 110% + (Natureza/10)%.
+CC9900FF Defesa: 95% + (Natureza/20)% + 5.
+CC9900FF HP: 95% + (Natureza/20)%.
+CC9900FF Movimento +1; Vel de Ataque +20%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-CC9900FF Transforme-se_em_Lobisomem.
-CC9900FF Ataque: 110% + (Natureza/10)%. Movimento + 1.
-CC9900FF Defesa: 95% + (Natureza/20)%. 
-CC9900FF HP: 95% + (Natureza/20)%. Vel de Ataque + 10%.
 5065
+CC9900FF Sem efeito direto. Os bônus do
+CC9900FF Lobisomem vêm de Asas do Inferno.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Bônus quando_transformado_em lobisomem.
-CC9900FF 
-CC9900FF Ataque: +10%.
-CC9900FF Resistências: +15% contra todos os elementos.
+FFFFFFFF 
+FFFFFFFF 
 5066
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Transforme-se_em_Homem_Urso.
-CC9900FF Ataque: 95% + (Natureza/20)%. 
+CC9900FF Transforme-se em Homem Urso.
+CC9900FF Ataque: 95% + (Natureza/20)%.
 CC9900FF Defesa: 105% + (Natureza/20)%.
-CC9900FF HP: 120% + (Natureza/10)%.
+CC9900FF HP: 110% + (Natureza x 3/20)%.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5067
+CC9900FF Passiva. Com escudo equipado:
+CC9900FF defesa +5%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Bônus quando_transformado_em Homem_Urso.
-CC9900FF 
-CC9900FF Ataque: +10%.
-CC9900FF Resistências: +50% contra todos os elementos.
+FFFFFFFF 
+FFFFFFFF 
 5068
+CC9900FF Transforme-se em Astaroth.
+CC9900FF Ataque: 110% + (Natureza/20)%.
+CC9900FF Defesa: 90% + (Natureza/10)%.
+CC9900FF HP: 100% + (Natureza/10)%.
+CC9900FF Movimento +1; Vel de Ataque +20%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-CC9900FF Transforme-se em Corvo Infernal. 
-CC9900FF Ataque à distância: 110% + (Natureza/20)%.
-CC9900FF Defesa: 95% + (Natureza/20)%. Movimento + 1. 
-CC9900FF HP: 100% + (Natureza/10)%. Vel de Ataque + 20%.
 5069
+CC9900FF Melhora as transformações.
+CC9900FF Lobisomem: ataque +10%, resistência +5,
+CC9900FF crítico 5% + (Evocação/100)%.
+CC9900FF Homem Urso: HP +20%, Vel de Ataque +20%,
+CC9900FF resistência +20.
+CC9900FF Astaroth: ataque +10%, defesa +5%,
+CC9900FF HP +5%, Vel de Ataque +20%,
+CC9900FF resistência +5.
 FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Bônus quando_transformado_em Corvo_Infernal.
-CC9900FF Ataque: +10%.
-CC9900FF Resistências: +15% contra todos os elementos.
-CC9900FF Velocidade do ataque: +20%.
 5070
+CC9900FF Transforme-se em Titã.
+CC9900FF Ataque: 115% + (Natureza/20)%.
+CC9900FF Defesa: 115% + (Natureza/20)%.
+CC9900FF HP: 105% + (Natureza/20)%.
+CC9900FF Vel de Ataque +20%; resistência +20.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-CC9900FF Transforme-se_em_Titã.
-CC9900FF Ataque: 115% + (Natureza/20)%.    
-CC9900FF Defesa: 115% + (Natureza/20)%. Resist + 50%.
-CC9900FF HP: 105% + (Natureza/20)%. Vel de Ataque + 20%.
 5071
+CC9900FF Transforme-se em Éden.
+CC9900FF Ataque: 118% + (Natureza x 3/40)%.
+CC9900FF Defesa: 110% + (Natureza/20)%.
+CC9900FF HP: 113% + (Natureza/10)%.
+CC9900FF Movimento +2; Vel de Ataque +30%;
+CC9900FF resistência +17.
+CC9900FF Aprendida: toda forma ataque +5%,
+CC9900FF defesa +2%.
 FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Transforme-se_em_Éden.
-CC9900FF Ataque: 115% + (Natureza/20)%. Movimento + 2.
-CC9900FF Defesa: 110% + (Natureza/20)%. Resist + 27%.
-CC9900FF HP: 110% + (Natureza/10)%. Vel de Ataque + 50%.
 5072
 FFFFFFFF 
 FFFFFFFF 
@@ -769,15 +769,15 @@ CC9900FF congelamento,_veneno,_lentidão_e
 CC9900FF ataques físicos_durante_certo_tempo.
 CC9900FF Efeito adicional: Evasão +5%.
 5077
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
 CC9900FF Transfere_uma_parte_da_sua_defesa para
 CC9900FF ataque_durante_certo_tempo.
 CC9900FF Aumento de dano: 10% + (Sobrevivência/10)%.
 CC9900FF Redução da defesa: 10 + (Sobrevivência/3).
+CC9900FF Com Tempestade de Raios: dano +5%.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5078
 FFFFFFFF 
 FFFFFFFF 
@@ -789,15 +789,15 @@ CC9900FF Habilidade de perfurar o inimigo, atingindo
 CC9900FF também criaturas que estejam diretamente atrás
 CC9900FF do alvo, até_uma distância_de_1m.
 5079
+CC9900FF Aumenta o ataque físico durante certo tempo.
+CC9900FF Bônus de Ataque: + Troca.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Ataque_adicional_aos_inimigos_com flechas
-CC9900FF das_almas_durante_algum_tempo.
-CC9900FF 
-CC9900FF Dano máximo: Ataque + 24 + (Sobrevivência/5).
+FFFFFFFF 
+FFFFFFFF 
 5080
 FFFFFFFF 
 FFFFFFFF 
@@ -809,35 +809,35 @@ CC9900FF Ataque_no_inimigo_selecionado.
 CC9900FF 
 CC9900FF Dano: Ataque + 15 + (Troca/4) x 5 + FOR/4.
 5081
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
 CC9900FF Vende_itens_na_loja_com_preço 6% superior
 CC9900FF ao_preço_padrão.
-CC9900FF 
-CC9900FF Preço de Venda: 106% + (Troca/10)%.
+CC9900FF Preço de Venda: 106% + (Troca/10)%, até 126%.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5082
+CC9900FF Aumenta o ataque com arcos e garras.
+CC9900FF Bônus de Ataque: 10 + (Troca/5).
+CC9900FF Com Tempestade de Raios: 320 + (Troca/5).
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Aumenta_o poder_de ataque_das_armas_tipo
-CC9900FF Arco_e_Garra.
-CC9900FF 
-CC9900FF Aumento de Dano: 10 + (Troca/5).
+FFFFFFFF 
 5083
+CC9900FF Não tem efeito neste servidor.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Compra_items_na_loja_com_preço pelo menos
-CC9900FF 6%_abaixo do preço_padrão.
-CC9900FF 
-CC9900FF Taxa de Desconto: 6% + (Troca/10)%. 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5084
 FFFFFFFF 
 FFFFFFFF 
@@ -859,25 +859,25 @@ CC9900FF Possibilita_abrir_e_guardar_items_no
 CC9900FF banco,_onde quer que você esteja.
 FFFFFFFF 
 5086
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
 CC9900FF Gasta_o_seu_Gold_em_troca_de_maior defesa.
-CC9900FF 
 CC9900FF Aumento de Defesa: Troca/10.
 CC9900FF Consumo de Gold: Troca x 100.
+CC9900FF Com Troca de Espírito: defesa +100.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5087
+CC9900FF Converte MP em HP durante certo tempo.
+CC9900FF Mortal: MP - (MP/4 + (Lvl + Troca)/4);
+CC9900FF HP + 750 + o MP removido.
+CC9900FF Arch: MP - MP/4; HP + 750 + MP/4 +
+CC9900FF Troca/2 + Lvl x 2.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-FFFFFFFF 
-CC9900FF Transforma_uma_parte_do_MP_em_HP durante
-CC9900FF certo_tempo.
-CC9900FF Aumento de HP: 250 + (MP total/8) + (Lvl + Troca)/4
-CC9900FF Em Archs: 250 + (MP total/4) + (Lvl + Troca)/4
 5088
 FFFFFFFF 
 FFFFFFFF 
@@ -899,25 +899,25 @@ CC9900FF certo_tempo.
 CC9900FF 
 CC9900FF Aumento de Evasão: 10%.
 5090
+CC9900FF Melhora o ataque com duas armas.
+CC9900FF Dano da segunda arma: +10%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Transforma_uma_parte_do_HP_do_inimigo 
-CC9900FF em_seu_HP_quando_o_derrotar. 
-CC9900FF 
-CC9900FF Absorção de HP: (HP do monstro)/50 + Captura.
+FFFFFFFF 
+FFFFFFFF 
 5091
+CC9900FF Aumenta de forma passiva o crítico.
+CC9900FF Crítico: +(DES/200)%.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF 
-CC9900FF Aumenta_a_porcentagem_de_drop_dos monstros.
-CC9900FF 
-CC9900FF Aumento de Drop: 10% + (Captura/10)%.
+FFFFFFFF 
+FFFFFFFF 
 5092
 FFFFFFFF 
 FFFFFFFF 
@@ -929,35 +929,35 @@ CC9900FF Aumenta_em +1_a_distância_de_alcance
 CC9900FF das_armas_com_alcance_1.
 CC9900FF 
 5093
+CC9900FF Pode causar um acerto adicional.
+CC9900FF Dano adicional: (FOR + Captura -
+CC9900FF defesa/2)/2, mínimo 60.
+CC9900FF Chance: 25% por ataque.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Dano adiconal_aos seus ataques. 
-CC9900FF 
-CC9900FF Dano adicional: (FOR + Captura)/2. 
-CC9900FF Probabilidade de acerto: 10% + (Captura/10)%.
 5094
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Joga_várias_facas_para_frente, atingindo
+CC9900FF Joga várias facas para frente, atingindo
 CC9900FF múltiplos inimigos ao mesmo tempo.
 CC9900FF Alcance: de 2m a 4m.
-CC9900FF Dano: Ataque + 35 + (Captura/4) x 5 + FOR.
+CC9900FF Dano: Ataque + 35 + (Troca/4) x 5 + FOR.
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
+FFFFFFFF 
 5095
+CC9900FF Ataque contínuo com flechas invisíveis.
+CC9900FF Número de ataques: 6.
+CC9900FF Dano a cada acerto: ataque físico.
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
 FFFFFFFF 
-CC9900FF Ataque_contínuo_com flechas invisíveis. 
-CC9900FF 
-CC9900FF Número de ataques: 3 + (Captura/85).
-CC9900FF Dano a cada acerto: 80% do ataque físico. 
+FFFFFFFF 
 5097
 FFFFFFFF 
 FFFFFFFF 
