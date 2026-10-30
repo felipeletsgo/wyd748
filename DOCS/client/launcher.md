@@ -734,6 +734,21 @@ native 7.47 launcher, compatible with the 7.48 `config.txt`, `Music.txt` and
 `MODERNIZACAO_COMPATIVEL` adaptation. Game wire, assets and `WYD.exe` are
 unchanged.
 
+## Published patch 48011 (2026-10-29)
+
+Mandatory client 7.48.011 contains `WYD.exe`, `skillhelp.dat`,
+`EN/skillhelp.dat` and `PT/skillhelp.dat`. The working-tree ZIP is 929,053 bytes,
+SHA-256 `362682032FCCEA7C3A6F96CE4F80DAF146D047CE4407D5335AE10EE8DAB71806`.
+Fresh HTTP/HTTPS downloads matched the ZIP and all four entry hashes.
+The feed retains every earlier entry and appends patch 48011 once.
+
+Client revision and server minimum are both 11. Server release
+`20261029T161155Z` was activated after patch verification and a database backup.
+Both channels reject revision 10 and allow revision 11 through version admission.
+The site manifest, download page and news post identify 7.48.011.
+Actual gameplay acceptance remains pending. See the
+[release receipt](../../.agents/research/release-748011.json).
+
 ## Building the launcher
 
 ```powershell

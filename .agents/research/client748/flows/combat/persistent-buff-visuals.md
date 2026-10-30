@@ -206,9 +206,10 @@ have no case in the native projector and stay unverified.
 
 AUTOMATED TESTED: `Build-Client.ps1 -NoDeploy` Release/x86; ArchitectureTests
 3,177,024 checks with two new `UiModeContractTests` assertions. No client was
-launched; CLIENT-TESTED is pending. Ships with unpublished revision 11.
+launched; CLIENT-TESTED is pending. Revision 11 was published and activated
+as [release 7.48.011](../../../release-748011.json).
 
-## Remaining gaps
+## Gaps
 
 - Actual built-client visual comparison remains open: Skill Amp on foot/mounted,
   apply/remove/hide/death/relogin, buff combinations and the other changed effects.

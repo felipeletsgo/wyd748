@@ -2,10 +2,10 @@
 // Do not fill unknown values with estimates or describe planned systems as live.
 export const clientRelease = {
   version: 2,
-  // Release line 7.48: the launcher's [VERSION] 48010 is shown as 7.48.010.
-  clientVersion: '7.48.010',
-  feedVersion: 48010,
-  publishedAt: '2026-10-28' as string | null,
+  // Release line 7.48: the launcher's [VERSION] 48011 is shown as 7.48.011.
+  clientVersion: '7.48.011',
+  feedVersion: 48011,
+  publishedAt: '2026-10-29' as string | null,
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -16,10 +16,10 @@ export const clientRelease = {
     sha256: null as string | null,
   },
   patch: {
-    url: '/patch/patch-48010.zip',
-    sizeBytes: 916141,
-    sha256: '408AF09D74AC590C1E5DB99F12547CA4907CFF80304C9FF1C0C84E4A28A70324',
-    executableSha256: 'A4D664F12E049E476A8E38A9E7686A582EECF33F9BD7EBAB994A977E13295113',
+    url: '/patch/patch-48011.zip',
+    sizeBytes: 929053,
+    sha256: '362682032FCCEA7C3A6F96CE4F80DAF146D047CE4407D5335AE10EE8DAB71806',
+    executableSha256: '3C68615BCA0DCEDD73ACF7309C04690B5B6303A1630533FB6978EE50F7ADE8A8',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -29,6 +29,16 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-29', category: 'Client and server', title: 'Client 7.48.011 — skills and combat corrections', entries: [
+    'Update class skills, passives and English/Brazilian Portuguese descriptions to the reviewed server rules.',
+    'Correct BeastMaster form switching, Thorn Wall collisions and damage, Rapid Hit targeting and continuous attack.',
+    'Restore the Berserk weapon effect and the faces of Dancing Girl and Student Set costumes.',
+    'Holy Judgement preserves at least 1 HP for a living caster. Cancellation blocks potions or removes Immunity.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Atualiza habilidades, passivas e descrições EN/PT; corrige transformações, Vinha, Golpe Rápido, ataque contínuo e efeitos visuais.',
+    'Julgamento Divino preserva pelo menos 1 HP. Cancelamento bloqueia poções ou remove Imunidade. Atualização obrigatória pelo launcher.',
+    'Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
   { date: '2026-10-28', category: 'Client and server', title: 'Client 7.48.010 — city binding and return teleport', entries: [
     'Bind the last city reached through confirmed movement and use native city bounds and return areas.',
     'Return scrolls and restart use the bound city, with the owning guild territory taking priority.',

@@ -1,0 +1,451 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.011",
+  "feedVersion": 48011,
+  "status": "PUBLISHED_AND_ACTIVE",
+  "authorization": {
+    "scope": "User requested all components uploaded to the VPS and a restart.",
+    "restart": true,
+    "publication": true,
+    "workingTree": true
+  },
+  "source": {
+    "head": "3a2fef5c5525414b8e62bb4030379e14d71ebd50",
+    "mode": "working-tree",
+    "dirty": [
+      " M .agents/research/client748/flows/combat/persistent-buff-visuals.md",
+      " M .agents/research/client748/flows/ui/instance-runtime-counter-controls.md",
+      " M DOCS/documentation-map.md",
+      " M wydgo748/internal/game/affects.go",
+      " M wydgo748/internal/game/foema_skills_test.go",
+      " M wydgo748/web/portal/src/data/public-content.ts",
+      " M wydgo748/web/portal/tests/news-content.test.mjs",
+      " M wydgo748/web/portal/tests/public-content.test.mjs",
+      "?? wydgo748/web/portal/src/content/news/client-7-48-011.md"
+    ],
+    "serverSourceFiles": 2187,
+    "clientBuildSourceFiles": 949,
+    "serverManifest": "build/deploy/wyd-deploy-20261029-748011/release-manifest.json",
+    "clientManifest": "build/audit-claude-20261029/patch.json"
+  },
+  "changes": [
+    "Recent class skill and passive changes, Thorn Wall, Rapid Hit and continuous attack.",
+    "Berserk weapon effect, costume faces and matching root/EN/PT skill descriptions.",
+    "Holy Judgement minimum 1 HP for a living caster, with repeated PvE/PvP regression tests."
+  ],
+  "clientPatch": {
+    "mode": "working-tree",
+    "zip": {
+      "path": "build/patch/patch-48011.zip",
+      "size": 929053,
+      "sha256": "362682032fccea7c3a6f96ce4f80daf146d047ce4407d5335ae10ee8dab71806"
+    },
+    "entries": {
+      "WYD.exe": {
+        "path": "tmproject/build/TMProject748/Release/WYD.exe",
+        "size": 2071552,
+        "sha256": "3c68615bca0dcedd73acf7309c04690b5b6303a1630533fb6978ee50f7ade8a8"
+      },
+      "skillhelp.dat": {
+        "path": "tmproject/client748/skillhelp.dat",
+        "size": 19842,
+        "sha256": "dd8fa19cb3b882e5c4f65a3544a712f44d29699cbf0abf112942db7209d3acd7"
+      },
+      "EN/skillhelp.dat": {
+        "path": "tmproject/client748/EN/skillhelp.dat",
+        "size": 21399,
+        "sha256": "c19df4a5fcafc55b12c9db4ea7947b40b861738bb45c3558a5e481fb05f423a9"
+      },
+      "PT/skillhelp.dat": {
+        "path": "tmproject/client748/PT/skillhelp.dat",
+        "size": 22531,
+        "sha256": "66fbdb32fbc545f250c871757b18941babc4dffc3c0937f6aefbd3d509ef5cae"
+      }
+    },
+    "dependencyClosure": "Build validates costume and shader dependencies. Three changed skill assets accompany WYD.exe. No new runtime library or mesh is required."
+  },
+  "revision": {
+    "clientBuildContract": 11,
+    "serverMinimum": 11,
+    "previousPublished": 10
+  },
+  "serverArchive": {
+    "path": "build/deploy/wyd-deploy-20261029-748011/release.tar.gz",
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 25693466,
+      "sha256": "5eb26de99cb09abb6f2ccda50e7155f5cdc85b0dd1cdc9637a0bcfdd790c419b"
+    },
+    "inspection": {
+      "payloadFiles": 7718,
+      "sourceFiles": 2187,
+      "runtimeDataFiles": 1073,
+      "archive": {
+        "path": "release.tar.gz",
+        "size": 25693466,
+        "sha256": "5eb26de99cb09abb6f2ccda50e7155f5cdc85b0dd1cdc9637a0bcfdd790c419b"
+      },
+      "clientSourceFiles": 949,
+      "allHashesMatch": true,
+      "mode": "working-tree"
+    }
+  },
+  "preflight": {
+    "at": "2026-10-29T16:09:03.387359+00:00",
+    "release": "/srv/wyd-go/releases/20261028T052051Z",
+    "configuration": {
+      "/etc/wyd-go/game.env": "24e55a519b7d252244f40a86984e94047d85eb43be6052fe59b68bc51198eaad",
+      "/etc/wyd-go/player.env": "78ce958c746446d57c589dec4e66e8aed1e8a3893811878b79089b4d74a2929a",
+      "/etc/wyd-go/server.txt": "2ce6099b937b4bcec61a5db096c94db394779d9087ff15fce722b47aef66f29c",
+      "/etc/wyd-go/staff.json": "28bac599b06fb3b1b675dcbf0c9e117d39bc6c3a1367b24d86bbf6eaabb0b619",
+      "/etc/caddy/wyd-site.caddy": "95fea2d68632619aabca238d5b455e5bfc33f90bd3125f9228274200e1f007f0",
+      "/usr/local/sbin/wyd-backup": "8205d7aafa46c896f50c694f3453cd39c4b7d77994832285a4f9fa1870688f27",
+      "/etc/systemd/system/wyd-game.service": "dbe9df41597c0a8d4b8f4a6fe2c0cd208dda7f6a4b5a2475e2429340c03765e2",
+      "/etc/systemd/system/wyd-player.service": "3c31b17b14883f39dc15ad9a922a4a4a4fcaed19904a7fbac810c575a25856a3",
+      "/etc/systemd/system/wyd-backup.service": "b41f9e657e53dcf9e52a610e4a5d85cc2b5ca9eaf5f4068353fe85083eef525d",
+      "/etc/systemd/system/wyd-backup.timer": "0320a0f62b00df990d143ba5f3cac470c51a5501fc92e1f95f4977bba3943855",
+      "/etc/systemd/system/wyd-log-reader.service": "7c6e97e8fe793bbf18dac533b88dd9d4f77995e285689a3e73591941afe4ee78",
+      "/etc/systemd/system/wyd-log-reader.socket": "fbc43a0264eb71ee14454e0565ef79141f55e1b66c38f8b1b60008c1b8a420b9"
+    },
+    "connections": "",
+    "services": {
+      "wyd-game": {
+        "MainPID": "2087540",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-28 05:20:56 UTC",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261028T052051Z/game/wyd-server",
+        "sha256": "260b5c62b0866fdc2a6f98ff61f221bd2a380645e4fd81adf33e3a528a795d2a"
+      },
+      "wyd-player": {
+        "MainPID": "2087554",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-28 05:20:56 UTC",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261028T052051Z/game/wyd-player-api",
+        "sha256": "21ed94c136294b0341ed06ab011d52de95bc87f0506fa90567d0da299c1e1c27"
+      },
+      "wyd-log-reader": {
+        "MainPID": "2061292",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Wed 2026-10-28 02:44:45 UTC",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261028T024440Z/game/wyd-log-reader",
+        "sha256": "170258846d8758895793a330ee67137c133fc9e7eca4bd09cf7eb4cea7fb8ac9"
+      }
+    },
+    "feed": "[WYD]\n48001 notice.txt\n48002 patch-48002.zip\n48003 patch-48003.zip\n48004 patch-48004.zip\n48005 patch-48005.zip\n48006 patch-48006.zip\n48007 patch-48007.zip\n48008 patch-48008.zip\n48009 patch-48009.zip\n48010 patch-48010.zip\n",
+    "schema": "14"
+  },
+  "publication": {
+    "at": "2026-10-29T16:11:31.286842+00:00",
+    "results": [
+      {
+        "scheme": "http",
+        "feedStatus": 200,
+        "zipStatus": 200,
+        "zipBytes": 929053,
+        "zipSHA256": "362682032fccea7c3a6f96ce4f80daf146d047ce4407d5335ae10ee8dab71806",
+        "contentType": "application/zip",
+        "entriesVerified": [
+          "WYD.exe",
+          "skillhelp.dat",
+          "EN/skillhelp.dat",
+          "PT/skillhelp.dat"
+        ],
+        "previousFeedPreserved": true
+      },
+      {
+        "scheme": "https",
+        "feedStatus": 200,
+        "zipStatus": 200,
+        "zipBytes": 929053,
+        "zipSHA256": "362682032fccea7c3a6f96ce4f80daf146d047ce4407d5335ae10ee8dab71806",
+        "contentType": "application/zip",
+        "entriesVerified": [
+          "WYD.exe",
+          "skillhelp.dat",
+          "EN/skillhelp.dat",
+          "PT/skillhelp.dat"
+        ],
+        "previousFeedPreserved": true
+      }
+    ]
+  },
+  "activation": {
+    "utc": "2026-10-29T16:12:35.894213+00:00",
+    "activeRelease": "/srv/wyd-go/releases/20261029T161155Z",
+    "rollback": "/srv/wyd-go/releases/20261028T052051Z",
+    "installedFilesVerified": 7718,
+    "runtimeDataFiles": 1073,
+    "configurationFilesPreserved": 12,
+    "services": {
+      "wyd-game": {
+        "MainPID": "2416481",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Thu 2026-10-29 16:11:58 UTC",
+        "ExecMainStatus": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "executable": "/srv/wyd-go/releases/20261029T161155Z/game/wyd-server",
+        "sha256": "27beb7944633bc264783df672b26d70ce7d31d79d140156d0b1e9f004664b99b"
+      },
+      "wyd-player": {
+        "MainPID": "2416494",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Thu 2026-10-29 16:11:58 UTC",
+        "ExecMainStatus": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "executable": "/srv/wyd-go/releases/20261029T161155Z/game/wyd-player-api",
+        "sha256": "c01110eb8d00059fb28b7835f744fefacba815e00c78954957ffe298d1a738e7"
+      }
+    },
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    },
+    "channelListeners": [
+      8281,
+      8282
+    ],
+    "backup": {
+      "at": "2026-10-29T16:11:55Z",
+      "archive": "wydgo-20261029T161154Z.dump",
+      "bytes": 484326,
+      "sha256": "e7c7586cb89d558aad21d1c33a410f708d12b11be7ae552aa7922e900f632139"
+    },
+    "logReader": {
+      "MainPID": "2416587",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Thu 2026-10-29 16:11:59 UTC",
+      "ExecMainStatus": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "finalStability": {
+      "gamePID": 2416481,
+      "playerAPIPID": 2416494,
+      "automaticRestarts": 0,
+      "backupFileHashVerified": true
+    }
+  },
+  "admission": {
+    "at": "2026-10-29T16:12:33.167040+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 10,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8281,
+        "revision": 11,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      },
+      {
+        "port": 8282,
+        "revision": 10,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 11,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "siteVerification": {
+    "at": "2026-10-29T16:13:06.923995+00:00",
+    "clientManifestFeedVersion": 48011,
+    "patchHashesMatch": true,
+    "routes": {
+      "/": 200,
+      "/download/": 200,
+      "/news/client-7-48-011/": 200
+    }
+  },
+  "validation": {
+    "go": "Complete Go suite and vet PASS; PostgreSQL integration configured.",
+    "race": "Focused combat/support regression batch PASS.",
+    "client": "Release/x86 -NoDeploy PASS; architecture 3177165, socket 281, crash capture 200, launcher 58.",
+    "portal": "Astro check: 0 errors, 0 warnings, 0 hints; build: 3301 pages; 115 tests PASS.",
+    "logs": "No CRITICAL, fatal or panic after restart; only expected nonexistent-account admission probe errors.",
+    "shutdown": "0 accounts persisted, 0 failures on both worlds.",
+    "repository": "Documentation layout, local links, research record validator and git diff --check PASS."
+  },
+  "delivery": {
+    "source": "IMPLEMENTED",
+    "automatedTested": "PASS",
+    "published": "CLIENT PATCH 48011 VERIFIED",
+    "activeServer": "VERIFIED",
+    "clientTested": "PENDING: actual game-client acceptance"
+  },
+  "cleanup": {
+    "remoteStaging": "Publication, activation and verification staging directories removed after successful verification.",
+    "preserved": [
+      "build/patch/patch-48011.zip",
+      "build/deploy/wyd-deploy-20261029-748011",
+      "build/audit-claude-20261029",
+      "/srv/wyd-go/releases/20261028T052051Z"
+    ]
+  },
+  "serverCorrections20261029": {
+    "status": "ACTIVE",
+    "classification": "MODERNIZACAO_COMPATIVEL",
+    "authorization": "User requested deployment and restart with the corrections.",
+    "scope": "Game binary and Anubis appearance only; client feed remains 48011.",
+    "changes": [
+      "Reject restore potions during active Cancellation before critical persistence admission.",
+      "Restore Anubis face 73 and refinement 7 for Ancient Necromancer."
+    ],
+    "source": {
+      "head": "3a2fef5c5525414b8e62bb4030379e14d71ebd50",
+      "mode": "working-tree",
+      "dirty": [
+        " M .agents/research/client748/flows/combat/persistent-buff-visuals.md",
+        " M .agents/research/client748/flows/ui/instance-runtime-counter-controls.md",
+        " M DOCS/client/launcher.md",
+        " M DOCS/current-state.md",
+        " M DOCS/documentation-map.md",
+        " M tmproject/client748/config.txt",
+        " M wydgo748/data/npcs/Anubis.json",
+        " M wydgo748/internal/data/kr_mobs_test.go",
+        " M wydgo748/internal/game/affects.go",
+        " M wydgo748/internal/game/boss_spawn_integration_test.go",
+        " M wydgo748/internal/game/critical_persistence_basic_consumables.go",
+        " M wydgo748/internal/game/critical_persistence_consumable_settlement_test.go",
+        " M wydgo748/internal/game/foema_skills_test.go",
+        " M wydgo748/web/portal/src/data/public-content.ts",
+        " M wydgo748/web/portal/tests/news-content.test.mjs",
+        " M wydgo748/web/portal/tests/public-content.test.mjs",
+        "?? .agents/research/release-748011.json",
+        "?? wydgo748/web/portal/src/content/news/client-7-48-011.md"
+      ],
+      "manifest": "build/deploy/wyd-deploy-20261029-faces-cancellation/release-manifest.json"
+    },
+    "package": {
+      "path": "release.tar.gz",
+      "size": 13792069,
+      "sha256": "f0203650f2fbb297aa1148683c83b0f66f2f5c5fe71691fcc6ac770c8c1be815"
+    },
+    "verification": {
+      "at": "2026-10-29T20:37:16.353805+00:00",
+      "activeRelease": "/srv/wyd-go/releases/20261029T203701Z",
+      "rollback": "/srv/wyd-go/releases/20261029T161155Z",
+      "installedFilesVerified": 7718,
+      "runtimeDataFiles": 1073,
+      "configurationFilesPreserved": 12,
+      "services": {
+        "wyd-game": {
+          "MainPID": "2458727",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Thu 2026-10-29 20:37:03 UTC",
+          "ActiveState": "active",
+          "SubState": "running",
+          "executable": "/srv/wyd-go/releases/20261029T203701Z/game/wyd-server",
+          "sha256": "15f668521be5e31dba942252a7fa1851f17eb8c4f6a35921767d7ab9142edf51"
+        },
+        "wyd-player": {
+          "MainPID": "2416494",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Thu 2026-10-29 16:11:58 UTC",
+          "ActiveState": "active",
+          "SubState": "running",
+          "executable": "/srv/wyd-go/releases/20261029T161155Z/game/wyd-player-api",
+          "sha256": "c01110eb8d00059fb28b7835f744fefacba815e00c78954957ffe298d1a738e7"
+        },
+        "wyd-log-reader": {
+          "MainPID": "2416587",
+          "NRestarts": "0",
+          "ExecMainStartTimestamp": "Thu 2026-10-29 16:11:59 UTC",
+          "ActiveState": "active",
+          "SubState": "running",
+          "executable": "/srv/wyd-go/releases/20261029T161155Z/game/wyd-log-reader",
+          "sha256": "fbf2816177276be02add2d31a955ba5da8fbb8f7e6e59c735a9bc47e391f804e"
+        }
+      },
+      "readiness": {
+        "8082": 200,
+        "8083": 200
+      },
+      "channelListeners": [
+        8281,
+        8282
+      ],
+      "backup": {
+        "at": "2026-10-29T20:37:01Z",
+        "archive": "wydgo-20261029T203701Z.dump",
+        "bytes": 487594,
+        "sha256": "411e15d3a835445ee2a423fda36d31f25100c3fc21995e8ff00f3598d7aa4410"
+      },
+      "schema": "14",
+      "anubisFace": {
+        "index": 73,
+        "eff": [
+          43,
+          7,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "clientFeedUnchanged": true
+    },
+    "admission": {
+      "at": "2026-10-29T20:37:39.640699+00:00",
+      "results": [
+        {
+          "port": 8281,
+          "revision": 10,
+          "opcode": "0x101",
+          "message": "Client update required. Close the game and run the launcher to update."
+        },
+        {
+          "port": 8281,
+          "revision": 11,
+          "opcode": "0x101",
+          "message": "Wrong account or password."
+        },
+        {
+          "port": 8282,
+          "revision": 10,
+          "opcode": "0x101",
+          "message": "Client update required. Close the game and run the launcher to update."
+        },
+        {
+          "port": 8282,
+          "revision": 11,
+          "opcode": "0x101",
+          "message": "Wrong account or password."
+        }
+      ],
+      "realAccountAuthenticated": false
+    },
+    "shutdown": "SIGTERM; both channels persisted 0 accounts with 0 failures; shutdown complete.",
+    "validation": {
+      "packages": "game, data and store PASS with isolated PostgreSQL configured.",
+      "race": "Cancellation, settlement, PostgreSQL, legacy restore and boss dataset PASS.",
+      "vet": "game, data and store PASS.",
+      "archive": "All source and archive hashes match; only game/wyd-server and game/data/npcs/Anubis.json differ.",
+      "runtime": "7718 installed hashes, 12 configuration hashes, readiness, channels and backup hash verified.",
+      "backup": "pg_restore --list PASS.",
+      "stability": "Game PID 2458727, zero automatic restarts; no CRITICAL, panic or fatal entries.",
+      "clientTested": "Pending visual and gameplay acceptance."
+    },
+    "evidence": "build/deploy-corrections-20261029/",
+    "pending": [
+      "AkeProtector, HekalProtector and Haden appearance identities require evidence."
+    ],
+    "cleanup": "Task deployment and verification staging removed; local package, active release and rollback retained."
+  }
+}

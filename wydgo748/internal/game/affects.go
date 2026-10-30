@@ -384,14 +384,19 @@ func foemaHealAmount(ch *model.Char, skillIndex, mastery, instanceValue int) int
 
 // holyJudgementSacrifice applies the official TMSRVIN Holy Judgement cost:
 // the damage gains the caster's HP (x1.1 with Bless Revival) and the caster
-// keeps two thirds of it.
+// keeps two thirds of it, with a compatible minimum of 1 HP for a living caster.
 func holyJudgementSacrifice(ch *model.Char) int {
 	hp := playerCurHP(ch)
 	bonus := int(hp)
 	if ch.Class == 1 && learnedLocal(ch, 31-24) {
 		bonus = bonus * 110 / 100
 	}
-	setPlayerCurHP(ch, hp*2/3)
+	remaining := hp * 2 / 3
+	// MODERNIZACAO_COMPATIVEL: a skill cost must not bypass the death lifecycle.
+	if hp > 0 && remaining == 0 {
+		remaining = 1
+	}
+	setPlayerCurHP(ch, remaining)
 	return bonus
 }
 

@@ -4,7 +4,7 @@ title: Runtime instance time and objective counters
 subsystem: ui
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-16
+updated: 2026-10-29
 ---
 
 # Runtime instance time and objective counters
@@ -51,7 +51,7 @@ the counter format: `s__d_Left_005b88b0` is `%d Left`, with the packet value at
 one), including a count of zero. This narrow format correction is
 `PARIDADE_NATIVA`; it does not promote the entire lifecycle to native parity.
 
-## State and ownership
+## State and lifecycle
 
 The full source initializer allocates three runtime `SText` objects and
 transfers ownership to `SControlContainer`: time, remaining count and quest
@@ -64,7 +64,7 @@ initializers, preserving initial state, fonts, colors and coordinates. Each
 consumer tolerates individual allocation failure without discarding unrelated
 state. Accepted controls remain owned by the container.
 
-## Packet-driven lifecycle
+### Packet-driven lifecycle
 
 The timer and counter follow server packets, not hardcoded map coordinates.
 `0x3A1` starts the timer; zero hides it. `0x3B0` displays `%d Left`. A zero
@@ -77,7 +77,7 @@ This compatible lifecycle supports transitions, quizzes, continuous respawn
 and alternate rooms without depending on `RenderDevice::m_bDungeon` or its
 historical offset list. Its complete native equivalent is not yet proven.
 
-## Wire, ABI and resources
+## Wire, ABI, and resources
 
 The wire format is unchanged. Go emitters retain the 16-byte
 `MSG_STANDARDPARM`, matching type/opcode and the unsigned value at `+12`.
@@ -90,11 +90,22 @@ Runtime controls use `ControlID=-2`; no serialized ID or new asset was added.
 Quest12 handlers, `SetQuestStatus`, `UpdateQuestTime` and `FrameMove` tolerate
 individual missing controls.
 
-## Decisions and gaps
+## Delta matrix
+
+| Claim | Native 7.48 | Current source | Decision |
+| --- | --- | --- | --- |
+| Remaining-count label | `FUN_00489260` formats `%d Left`, including zero | The counter uses the same label | PARIDADE_NATIVA for the label only |
+| Runtime control construction | Exact allocation and teardown remain unlocated | Both initializers use `InitializeRuntimeCounterTexts` and container ownership | MODERNIZACAO_COMPATIVEL; native lifecycle parity remains open |
+| Counter visibility | Handlers show received values; complete lifecycle remains unproven | Timer and objective packets control visibility and departure clearing | MODERNIZACAO_COMPATIVEL |
+
+## Decisions
 
 - Preserve the existing packet boundary and container ownership.
 - Use the proven native remaining-count label, including zero during a timer.
 - Do not infer native geometry from the current source initializer.
+
+## Gaps
+
 - Locate the exact native allocation and teardown before claiming that parity.
 - Validate Big Cube, Uxmal and item instances in the built client at multiple
   resolutions, including expiry, scene changes, departure and relogin.

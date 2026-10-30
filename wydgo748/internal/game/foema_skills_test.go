@@ -1,6 +1,7 @@
 package game
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -36,6 +37,71 @@ func TestHolyJudgementKeepsTwoThirdsOfHP(t *testing.T) {
 	ch.LearnedSkill = 1 << 7
 	if got := holyJudgementSacrifice(ch); got != 2200 || playerCurHP(ch) != 1333 {
 		t.Fatalf("Holy Judgement with Bless Revival bonus=%d hp=%d, want 2200/1333", got, playerCurHP(ch))
+	}
+}
+
+func TestHolyJudgementPreservesLifeAtLowHP(t *testing.T) {
+	for _, tc := range []struct {
+		hp, want uint32
+	}{{0, 0}, {1, 1}, {2, 1}, {3, 2}} {
+		ch := &model.Char{Class: 1, Score: testScore(model.Score{MaxHP: 1000, CurHP: tc.hp})}
+		if bonus := holyJudgementSacrifice(ch); bonus != int(tc.hp) || playerCurHP(ch) != tc.want {
+			t.Errorf("initial HP=%d: damage bonus=%d remaining HP=%d, want %d/%d",
+				tc.hp, bonus, playerCurHP(ch), tc.hp, tc.want)
+		}
+	}
+}
+
+func TestHolyJudgementRepeatedCastsPreserveLivingCaster(t *testing.T) {
+	for _, mode := range []string{"PvE", "PvP"} {
+		for _, hp := range []uint32{1, 2, 3} {
+			t.Run(fmt.Sprintf("%s/HP%d", mode, hp), func(t *testing.T) {
+				caster, _ := networkedTestPlayer(1, "Foema", 2100, 2100)
+				target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
+				w := worldWithNetworkedPlayers(caster, target)
+				w.rng = fixedRNG{value: 0}
+				w.store = &craftStore{}
+				w.items = make(map[uint16]model.ItemDef)
+				w.ghostShops = make(map[uint16]*GhostShop)
+				caster.Char.Class = 1
+				caster.Char.LearnedSkill = 1 << (30 - 24)
+				caster.PKMode = true
+				setPlayerCurHP(caster.Char, hp)
+				w.skills = map[int]model.SkillDef{30: {
+					Index: 30, Name: "Holy Judgement", InstanceType: 2, InstanceValue: 1,
+					ManaSpent: 10, Range: 6, MaxTarget: 1, Aggressive: 1,
+				}}
+				targetID := target.ID
+				target.Char.Score.MaxHP, target.Char.Score.CurHP = 1_000_000, 1_000_000
+				applyScore(target.Char)
+				targetHP := func() uint32 { return playerCurHP(target.Char) }
+				if mode == "PvE" {
+					mob := &Mob{ID: 1300, X: caster.X + 2, Y: caster.Y, HP: 1_000_000, GenerIndex: -1,
+						Def: testNPCDef(model.Score{MaxHP: 1_000_000, CurHP: 1_000_000})}
+					w.appendMobInstance(mob)
+					w.registerMobSpatial(mob)
+					caster.show(mob.ID)
+					targetID = mob.ID
+					targetHP = func() uint32 { return mob.HP }
+				}
+				for cast := 0; cast < 10; cast++ {
+					beforeHP, beforeMP := targetHP(), playerCurMP(caster.Char)
+					w.onSkillAttack(caster, skillCastRequest{Skill: 30, TargetID: targetID, Motion: 5})
+					if targetHP() >= beforeHP || playerCurMP(caster.Char) >= beforeMP {
+						t.Fatalf("cast %d did not execute: target HP=%d/%d caster MP=%d/%d",
+							cast, targetHP(), beforeHP, playerCurMP(caster.Char), beforeMP)
+					}
+					wantHP := uint32(1)
+					if hp == 3 && cast == 0 {
+						wantHP = 2
+					}
+					if playerCurHP(caster.Char) != wantHP || !caster.DeadAt.IsZero() {
+						t.Fatalf("cast %d left caster HP=%d dead=%v, want living HP=%d",
+							cast, playerCurHP(caster.Char), caster.DeadAt, wantHP)
+					}
+				}
+			})
+		}
 	}
 }
 
