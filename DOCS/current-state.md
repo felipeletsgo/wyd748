@@ -4,8 +4,14 @@
 
 Not published or activated. CLIENT-TESTED is pending for every item.
 
-- Hold display (`MODERNIZACAO_COMPATIVEL`): player attack and skill packets
-  carry the attacker's Hold in FakeExp (@40). Heal and other casts no longer
+- Server PvP authority (`PARIDADE_NATIVA`, W2PP `GetFunc.cpp`): every PvP
+  attack, skill, area hit and summon attack needs both players in a PK cell
+  (AttributeMap 0x40 without 0x01). A modified client that attacks in a safe
+  area changes nothing. A player's poison deals no damage in a safe cell. The
+  client keeps its own PK-zone filter. All four city-war arenas and the tower
+  arena are PK cells, so guild wars are unchanged.
+- Hold display (`MODERNIZACAO_COMPATIVEL`): player attack, skill and poison
+  packets carry the attacker's Hold in FakeExp (@40). Heal and other casts no longer
   clear the displayed PvP EXP debt; durable Hold was already intact.
 - BM summons (`PARIDADE_NATIVA`, W2PP `GetFunc.cpp` PvP attribute rule): a
   player with PvP permission against the owner can damage and kill another

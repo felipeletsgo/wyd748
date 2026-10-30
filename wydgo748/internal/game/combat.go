@@ -12,8 +12,15 @@ const (
 	courageMagicBonus    int  = 2_000
 )
 
+// canInitiatePvP is the server PvP authority. Like W2PP GetFunc, both players
+// must stand in a PK cell (AttributeMap 0x40 without 0x01); a modified client
+// cannot attack in a safe area. Guild war arenas are PK cells.
 func (w *World) canInitiatePvP(attacker, target *Player) bool {
 	if w.criticalPlayerReserved(attacker) || w.criticalPlayerReserved(target) {
+		return false
+	}
+	if attacker == nil || target == nil ||
+		!w.terrain.PvPZone(attacker.X, attacker.Y) || !w.terrain.PvPZone(target.X, target.Y) {
 		return false
 	}
 	if allowed, handled := w.guildWarPvP(attacker, target); handled {

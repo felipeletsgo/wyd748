@@ -211,8 +211,9 @@ func isCombatSummon(m *Mob) bool {
 }
 
 // playerCanAttackSummon follows W2PP GetFunc: damage between a player and a
-// summon is PvP. The attacker needs PvP permission against the owner, and
-// both must stand in a PK cell. Owners and party members cannot hit it.
+// summon is PvP. The attacker needs PvP permission against the owner (which
+// checks both players' cells), and the summon must stand in a PK cell.
+// Owners and party members cannot hit it.
 func (w *World) playerCanAttackSummon(p *Player, m *Mob) bool {
 	if p == nil || p.Char == nil || !isCombatSummon(m) {
 		return false
@@ -221,6 +222,5 @@ func (w *World) playerCanAttackSummon(p *Player, m *Mob) bool {
 	if owner == nil || owner == p || owner.Party != nil && owner.Party == p.Party {
 		return false
 	}
-	return w.canInitiatePvP(p, owner) &&
-		w.terrain.PvPZone(p.X, p.Y) && w.terrain.PvPZone(m.X, m.Y)
+	return w.canInitiatePvP(p, owner) && w.terrain.PvPZone(m.X, m.Y)
 }

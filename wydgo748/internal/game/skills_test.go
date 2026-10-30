@@ -514,6 +514,9 @@ func TestSkillPvPAOEDoesNotHitSecondaryAcrossBlockedLineOfSight(t *testing.T) {
 	caster.PKMode = true
 	w := testSpatialWorld(nil, caster, primary, secondary)
 	w.terrain = loadedFlatTerrain()
+	for i := range w.terrain.Attribute {
+		w.terrain.Attribute[i] = 0x40 // PK cells: only the wall may reject the secondary.
+	}
 	w.terrain.Height[10*model.TerrainWidth+12] = model.TerrainBlockedByte
 	targets := w.skillPlayerTargets(caster, skillCastRequest{TargetID: primary.ID},
 		model.SkillDef{TargetType: 4, Range: 3, MaxTarget: 13, Aggressive: 1})

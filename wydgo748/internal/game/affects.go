@@ -1295,15 +1295,16 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				owner := w.affectOwnerPlayer(a)
 				currentHP := playerCurHP(p.Char)
 				damage := uint32(clampInt(a.Level/2+a.Value, 1, maxInt(1, int(currentHP)-1)))
-				if currentHP > 1 {
+				// A player's poison deals no PvP damage in a safe cell.
+				if currentHP > 1 && (owner == nil || w.terrain.PvPZone(p.X, p.Y)) {
 					damage = absorbManaControlDamageAt(p.Char, damage, now)
 					setPlayerCurHP(p.Char, currentHP-damage)
 					hpChanged = true
 					if owner != nil {
 						w.sendToPlayerView(p, func() []byte {
-							return wire.AttackHit(owner.ID, p.ID, owner.X, owner.Y, p.X, p.Y,
+							return wire.AttackerHold(wire.AttackHit(owner.ID, p.ID, owner.X, owner.Y, p.X, p.Y,
 								damage, playerMaxHP(p.Char), owner.Char.Exp,
-								playerCombatMP(owner.Char))
+								playerCombatMP(owner.Char)), owner.Char.Hold)
 						})
 					}
 				}
