@@ -4,10 +4,33 @@ title: Sincronização dos controles e do estado do C.C
 subsystem: ui-gameplay
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-15
+updated: 2026-10-29
 ---
 
 # Sincronização dos controles e do estado do C.C
+
+## Auxiliary attack and buff correction — 2026-10-29
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Reuse the native evidence below;
+this correction does not claim that auxiliary mode 3 existed in native 7.48.
+
+`UpdatePhysicalAttack` now treats only modes 1 and 2 as combat owners.
+Auxiliary mode 3 retains the manual attack target. Movement and skill animation
+pause attack retries without clearing the continuous attack request.
+`GameAuto` restores the live manual target after auxiliary buffs and summons.
+Dead, deleted or missing targets are not restored.
+
+Buff renewal uses the authoritative affect and the normal skill cooldown.
+The previous full-duration delay blocked retries after an unsuccessful renewal.
+Mana, animation, selection rotation and summon cooldown checks remain active.
+The existing attack and skill packets remain unchanged.
+
+`AUTOMATED TESTED`: policy tests, source contract checks and the Release
+build passed through `Build-Client.ps1 -NoDeploy`.
+Candidate revision 12 has SHA-256
+`DB1CF6E6D4D8A9B65A13316852A1A402F5BFD6D1F05A5F38563C6E3ACF530957`.
+No installed executable was replaced. `CLIENT-TESTED` remains pending for
+continuous attack with potions, ration, buff expiry, failed casts and target death.
 
 ## Pergunta
 

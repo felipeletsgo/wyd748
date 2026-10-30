@@ -157,6 +157,66 @@ func configureCriticalConsumableSettlement(w *World, p *Player, operation string
 	return rule, packet
 }
 
+func TestCriticalRestoreCancellation(t *testing.T) {
+	for _, state := range []string{"active", "expires-now", "expired", "absent"} {
+		for _, resource := range []string{"HP", "MP", "both"} {
+			t.Run(state+"/"+resource, func(t *testing.T) {
+				w, p, _, fallback, base, q, release := criticalTreasuryFixture(t, 0)
+				rule, packet := configureCriticalConsumableSettlement(w, p, "restore")
+				if resource == "HP" {
+					rule.MP = 0
+				} else if resource == "MP" {
+					rule.HP = 0
+				}
+				w.volatiles.Items[900] = rule
+				switch state {
+				case "active":
+					p.Char.Affects[0] = model.Affect{Type: affectCancellation, ExpiresAt: w.now().Add(time.Minute)}
+				case "expires-now":
+					p.Char.Affects[0] = model.Affect{Type: affectCancellation, ExpiresAt: w.now()}
+				case "expired":
+					p.Char.Affects[0] = model.Affect{Type: affectCancellation, ExpiresAt: w.now().Add(-time.Second)}
+				}
+				before, cooldown := accountStateSnapshot(p.Account), p.LastPotion
+				hp, mp := playerCurHP(p.Char), playerCurMP(p.Char)
+				packets := p.Session.QueuedPacketsForTest()
+				w.onUseItem(p.Session, packet)
+				if state == "active" {
+					// Repeated optimistic use must resync the slot without admission.
+					w.onUseItem(p.Session, packet)
+					w.onUseItem(p.Session, packet)
+					if len(q.pending) != 0 || w.criticalPlayerReserved(p) ||
+						!reflect.DeepEqual(accountStateSnapshot(p.Account), before) || p.LastPotion != cooldown {
+						t.Fatal("Cancellation admitted a potion or changed account state or cooldown")
+					}
+					if p.Session.QueuedPacketsForTest() != packets+3 {
+						t.Fatal("Cancellation rejection did not resync each optimistic use")
+					}
+				} else {
+					proposal := awaitCriticalWrite(t, base.entered)
+					prepared := &proposal.accounts[0].Chars[p.CharSlot]
+					if playerCurHP(prepared) != hp+uint32(rule.HP) || playerCurMP(prepared) != mp+uint32(rule.MP) || prepared.Inv[0].Index != 0 {
+						t.Fatal("inactive Cancellation changed the durable potion result")
+					}
+					if !reflect.DeepEqual(accountStateSnapshot(p.Account), before) || p.LastPotion != cooldown {
+						t.Fatal("potion changed actor state before durable acknowledgement")
+					}
+					release()
+					awaitReadyCriticalResults(t, q, 1)
+					w.processCriticalCompletions(1)
+					if playerCurHP(p.Char) != hp+uint32(rule.HP) || playerCurMP(p.Char) != mp+uint32(rule.MP) ||
+						p.Char.Inv[0].Index != 0 || p.LastPotion != w.now() || len(q.pending) != 0 || w.criticalPlayerReserved(p) {
+						t.Fatal("committed potion lost its result, consumption, cooldown or reservation cleanup")
+					}
+				}
+				if fallback.saves != 0 || fallback.gameSaves != 0 {
+					t.Fatal("potion used synchronous persistence on the World actor")
+				}
+			})
+		}
+	}
+}
+
 func TestCriticalConsumableSettlementMatrix(t *testing.T) {
 	for _, operation := range criticalConsumableSettlementActions {
 		for _, outcome := range []string{"commit", "rejection", "unknown", "stale-uid"} {

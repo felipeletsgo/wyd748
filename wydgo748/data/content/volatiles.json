@@ -50,8 +50,8 @@
     "7": {
       "action": "grant_next_level",
       "consume": true,
-      "mortalOnly": true,
-      "description": "Fairy Dust: raises exactly one level, as in _MSG_UseItem.cpp."
+      "mortalOnly": false,
+      "description": "Fairy Dust: raises exactly one level for every evolution, using its EXP table and retaining progression locks and level caps."
     },
     "8": {
       "action": "quest_reward",

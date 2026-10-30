@@ -9,6 +9,15 @@ For the dated live release, schema, client patch and outstanding gates, consult
 in [public launch](public-launch.md); they are not interchangeable with the
 current working tree.
 
+## BM summon dismissal (2026-10-29, local)
+
+Use `/unsummon` or `/dispensar` to dismiss your BM summons before changing families.
+The existing chat packet carries both aliases (`EXTENSAO_COORDENADA`).
+The server removes only summons with the player's owner ID and BM summon kind.
+It sends removal to current viewers and clears world and summon indexes.
+Mounts, contract summons and other owners remain. Pending critical writes block dismissal.
+Client help supports EN and PT. Publication and actual game acceptance remain pending.
+
 ## Local instance and Ehre follow-up (2026-10-15)
 
 Classification: `MODERNIZACAO_COMPATIVEL`; existing recall, instance HUD and

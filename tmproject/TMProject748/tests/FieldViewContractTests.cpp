@@ -246,6 +246,7 @@ int RunFieldViewContractTests(int& checks)
     check(frame.find("UpdatePhysicalAttack(dwServerTime);") != std::string::npos &&
         frame.find("UpdatePhysicalAttack(dwServerTime);") > frame.find("UpdateTeleportPrompt()") &&
         physicalTick.find("field_interaction::PhysicalAttackTick(") != std::string::npos &&
+        physicalTick.find("cc_mode::OwnsCombat(g_GameAuto)") != std::string::npos &&
         physicalTick.find("MobAttack(0, position, dwServerTime, target)") != std::string::npos,
         "the field retries the retained enemy through click validation after transition gates");
     check(physicalClick.find("m_pTargetHuman = pOver;") < physicalClick.find("dwServerTime <= m_dwOldAttackTime + 1000") &&

@@ -355,21 +355,13 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		w.syncPlayerChaos(p)
 
 	case "grant_next_level":
-		// Native Fairy Dust sets EXP exactly to the next threshold, granting
-		// one level rather than an arbitrary fixed amount.
-		if !matchesEvolution(p.Char, "mortal") ||
-			p.Char.Score == nil || p.Char.Score.Level >= maxMortalLevel {
-			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			return
-		}
-		next := mortalNextLevel[int(p.Char.Score.Level)+1]
-		if p.Char.Exp >= next {
-			syncProgression(p.Char)
+		reward, allowed := nextLevelItemExperience(p.Char)
+		if !allowed {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
 		oldIndex := item.Index
-		res := w.grantItemExpReward(s, p, item, slot, next-p.Char.Exp, 0, rule.Consume)
+		res := w.grantItemExpReward(s, p, item, slot, reward, 0, rule.Consume)
 		if !res.OK && res.Err != nil {
 			log.Printf("[#%d] failed to save Fairy Dust item=%d: %v", s.ID, oldIndex, res.Err)
 		}
@@ -1219,6 +1211,10 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	}
 	sanc := itemSanc(*dest)
 	chance, allowed := equipmentPowderChance(*dest, def, destType, destPos, code, rule)
+	stone := isArchMonsterStone(dest.Index)
+	if stone {
+		allowed = code == 4 || code == 5
+	}
 	if !allowed {
 		resend()
 		s.Send(wire.MessagePanel("That item cannot be refined any further."))
@@ -1227,9 +1223,19 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 
 	oldPowder, oldDest := *powder, *dest
 	breaks := earringPowderRefine(*dest, def, destType, destPos, code, rule)
-	roll := w.rollPercent(chance)
+	var roll percentRoll
+	if stone {
+		var err error
+		roll, err = w.convertArchMonsterStone(dest, code)
+		if err != nil {
+			resend()
+			return
+		}
+	} else {
+		roll = w.rollPercent(chance)
+	}
 	success := roll.Success
-	if success {
+	if success && !stone {
 		if !setItemSanc(dest, sanc+1) {
 			// Without EF_SANC or a free effect pair, reject without consuming
 			// powder: do not penalize the player for an invalid target.

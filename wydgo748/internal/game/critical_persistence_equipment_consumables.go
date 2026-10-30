@@ -106,8 +106,16 @@ func (w *World) queueEquipmentConsumable(p *Player, slot byte, req useItemReques
 			if !exists || def.Pos == 0 || refinementLocked(def) || itemAbility(*target, def, "EF_VOLATILE") != 0 || itemAbility(*target, def, "EF_NOSANC") != 0 {
 				return reject("That item cannot be refined.")
 			}
-			level := itemSanc(*target)
 			_, powderCode, _ := w.volatiles.Rule(ch.Inv[slot].Index)
+			if isArchMonsterStone(target.Index) {
+				roll, err := w.convertArchMonsterStone(target, powderCode)
+				if err != nil {
+					return reject("")
+				}
+				message = roll.message()
+				break
+			}
+			level := itemSanc(*target)
 			chance, allowed := equipmentPowderChance(*target, def, targetType, targetPos, powderCode, rule)
 			if !allowed {
 				return reject("That item cannot be refined any further.")

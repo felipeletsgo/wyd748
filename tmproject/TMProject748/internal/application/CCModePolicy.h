@@ -9,6 +9,11 @@ namespace cc_mode
     constexpr int Cyclic = 1;
     constexpr int Free = 0;
 
+    constexpr bool OwnsCombat(int mode)
+    {
+        return mode == 1 || mode == 2;
+    }
+
     constexpr int NormalizeThreshold(int value)
     {
         return value < 0 ? 0 : value > 90 ? 90 : value - value % 10;
@@ -51,21 +56,6 @@ namespace cc_mode
             ? 71 : skill;
     }
 
-    constexpr int BuffMasterySlot(int skill)
-    {
-        switch (skill) {
-        case 3: case 5: case 53: case 54: case 74: case 76: case 77:
-            return 1;
-        case 9: case 11: case 13: case 15: case 37: case 86: case 87:
-            return 2;
-        case 41: case 43: case 44: case 45: case 46: case 64: case 66:
-        case 68: case 70: case 71: case 89: case 90:
-            return 3;
-        default:
-            return 0;
-        }
-    }
-
     // Automatic casting repeats every frame. Without a mana gate it rebuilt a
     // chat line and replayed the error sound per frame (and per candidate mob
     // for area skills), which collapsed the frame rate.
@@ -103,20 +93,6 @@ namespace cc_mode
     constexpr bool BuffNeedsRefresh(int remainingUnits)
     {
         return remainingUnits <= RebuffLeadUnits;
-    }
-
-    // Reference delay: 100 * AffectTime * mastery. WYD-Go deliberately caps
-    // support duration at 5..10 minutes (affects.go), unlike the reference.
-    // Do not let a historical hour-long delay miss our server's refresh window.
-    constexpr unsigned int BuffDelayMs(int skill, int affectTime, int mastery)
-    {
-        if (!BuffMasterySlot(skill) || affectTime <= 0 || mastery <= 0)
-            return 0;
-        const int boundedMastery = mastery > 320 ? 320 : mastery;
-        const auto serverWindow = static_cast<unsigned int>(38 + 37 * boundedMastery / 320 - RebuffLeadUnits)
-            * AffectUnitMs;
-        const auto reference = 100ULL * static_cast<unsigned int>(affectTime) * static_cast<unsigned int>(mastery);
-        return reference < serverWindow ? static_cast<unsigned int>(reference) : serverWindow;
     }
 
     constexpr bool BuffDelayDue(unsigned int now, unsigned int lastCast, unsigned int delay)

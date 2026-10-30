@@ -1,15 +1,71 @@
 package game
 
 import (
+	"encoding/binary"
 	"strings"
 	"testing"
 	"time"
 
+	"wydgo/internal/data"
 	"wydgo/internal/model"
 	gameNet "wydgo/internal/net"
+	"wydgo/internal/wire"
 )
 
 func uint32Ptr(v uint32) *uint32 { return &v }
+
+func TestConfiguredBossDatasetPreservesFaces(t *testing.T) {
+	npcs, err := data.LoadNPCs("../../data/npcs")
+	if err != nil {
+		t.Fatal(err)
+	}
+	catalog, err := data.LoadCatalog("../../data/catalog/itemlist.csv", "../../data/catalog/Itemname.csv", "../../data/catalog/SkillData.csv")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, npc := range npcs {
+		face := npc.Equip.Rosto.Index
+		if face == 0 {
+			t.Errorf("NPC %q has no face", npc.Name)
+		} else if _, ok := catalog.Items[face]; !ok {
+			t.Errorf("NPC %q references unknown face %d", npc.Name, face)
+		}
+	}
+	bosses, err := data.LoadBossCatalog("../../data/content/boss")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, _ := bossSpawnTestWorld()
+	w.npcs, w.items, w.skills, w.bossCatalog = npcs, catalog.Items, catalog.Skills, bosses
+	if err := w.spawnConfiguredBosses(); err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]uint16{
+		"Ancient Necromancer": 73, "Black Archmage": 72,
+		"Guardian of the Ruins": 399, "Demon Lord": 71,
+	}
+	if len(w.bossSpawns) != len(want) {
+		t.Fatalf("spawned %d bosses, want %d", len(w.bossSpawns), len(want))
+	}
+	for _, state := range w.bossSpawns {
+		mob := w.mobsByID[state.mobID]
+		face, ok := want[state.config.Name]
+		if mob == nil || !ok || mob.Def.Equip.Rosto.Index != face {
+			t.Errorf("boss %q lost its expected face %d", state.config.Name, face)
+			continue
+		}
+		anct := mob.Def.Equip.AncientCodes()
+		packet := wire.CreateMobVisual(mob.ID, mob.Def.VisibleName(), mob.X, mob.Y,
+			mob.Def.Mesh(), anct[:], mob.Def.MakeScore(mob.HP), nil, 0)
+		if got := binary.LittleEndian.Uint16(packet[34:36]) & 0xFFF; got != face {
+			t.Errorf("boss %q sends face %d, want %d", state.config.Name, got, face)
+		}
+		if state.config.Name == "Ancient Necromancer" &&
+			mob.Def.Equip.Rosto.Eff != [6]byte{43, 7} {
+			t.Error("Ancient Necromancer lost its original face refinement")
+		}
+	}
+}
 
 func bossSpawnTestWorld() (*World, *fakeClock) {
 	clock := newFakeClock(time.Date(2026, 7, 26, 12, 0, 0, 0, time.UTC))

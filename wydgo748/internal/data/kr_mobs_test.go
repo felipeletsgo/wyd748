@@ -72,6 +72,10 @@ func TestKRMobsCloneAgmoKrillAndHaveCatalogFaces(t *testing.T) {
 
 		// Approved native definitions replace provisional preview clones.
 		if expected, ok := native[want.name]; ok {
+			if want.name == "Anubis" {
+				// Preserve native gameplay data with the restored 7.48 appearance.
+				expected.Equip.Rosto = model.Item{Index: 73, Eff: [6]byte{43, 7}}
+			}
 			if !reflect.DeepEqual(got, expected) {
 				t.Errorf("%s differs from its approved native definition", want.name)
 			}

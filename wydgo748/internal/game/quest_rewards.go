@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"wydgo/internal/model"
 	"wydgo/internal/net"
@@ -42,6 +41,19 @@ type expRewardOutcome struct {
 	Gold   uint32
 	OK     bool
 	Err    error
+}
+
+// MODERNIZACAO_COMPATIVEL: Fairy Dust grants one level in every evolution,
+// using its own EXP table without bypassing progression locks or level caps.
+func nextLevelItemExperience(ch *model.Char) (uint32, bool) {
+	if !canReceiveMortalExperience(ch) || ch.Score.Level >= progressionMaxLevel(ch) {
+		return 0, false
+	}
+	next := progressionTable(ch)[ch.Score.Level+1]
+	if ch.Exp >= next || next > progressionExperienceCap(ch) {
+		return 0, false
+	}
+	return next - ch.Exp, true
 }
 
 // grantItemExpReward is the synchronous nil-owner reward transaction. Callers
@@ -110,7 +122,7 @@ func questRewardAllowed(ch *model.Char, rule model.VolatileRule) bool {
 	if ch == nil || ch.Score == nil {
 		return false
 	}
-	if rule.MortalOnly && strings.TrimSpace(ch.Evolution) != "" {
+	if rule.MortalOnly && !matchesEvolution(ch, "mortal") {
 		return false
 	}
 	level := ch.Score.Level

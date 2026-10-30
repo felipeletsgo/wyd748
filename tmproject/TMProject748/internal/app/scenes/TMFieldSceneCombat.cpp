@@ -15,6 +15,7 @@
 #include "TMEffectParticle.h"
 #include "TMEffectDust.h"
 #include "../../application/FieldInteractionPolicy.h"
+#include "../../application/CCModePolicy.h"
 #include "TMHuman.h"
 #include "TMObjectContainer.h"
 #include "TMSkinMesh.h"
@@ -33,8 +34,8 @@ void TMFieldScene::UpdatePhysicalAttack(unsigned int dwServerTime)
 			m_pTargetHuman->m_stScore.CurHP > 0,
 		m_dwLastLogout || m_dwLastTown || m_dwLastTeleport || g_dwStartQuitGameTime ||
 			m_bAirMove || m_pMyHuman->m_dwDelayDel,
-		g_GameAuto != 0,
-		m_pMyHuman->m_cHide == 1 || m_pMyHuman->m_bMoveing != 0,
+		cc_mode::OwnsCombat(g_GameAuto),
+		m_pMyHuman->m_cHide == 1 || m_pMyHuman->m_bMoveing != 0 || static_cast<int>(m_pMyHuman->m_eMotion) > 1,
 		dwServerTime, m_dwLastAutoAttackTime);
 	if (action == field_interaction::PhysicalAttackAction::Cancel)
 	{

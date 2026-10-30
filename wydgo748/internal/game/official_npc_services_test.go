@@ -64,6 +64,7 @@ func TestOfficialNPCServicesRouteAndPersist(t *testing.T) {
 		for _, magic := range []bool{false, true} {
 			t.Run(name+"/"+map[bool]string{false: "physical", true: "magic"}[magic], func(t *testing.T) {
 				w, p, st, packet := officialCrystalServiceFixture(t, name)
+				w.clock = newFakeClock(time.Date(2026, 10, 29, 20, 0, 0, 0, time.UTC))
 				w.rng = fixedRNG{value: 0}
 				officialCrystalIngredients(p)
 				before := officialCrystalWeapon(t, w, magic)
@@ -92,8 +93,12 @@ func TestOfficialNPCServicesRouteAndPersist(t *testing.T) {
 				}
 				affect := activePlayerAffectAt(p.Char, 9, w.now())
 				if affect == nil || affect.Level != 200 || affect.Value != 5 ||
-					affect.ExpiresAt.Sub(w.now()) < time.Duration(w.skills[44].AffectTime*16-1)*time.Second {
-					t.Fatalf("missing catalog-backed Magic Weapon affect: %+v", affect)
+					!affect.ExpiresAt.Equal(w.now().Add(160*time.Second)) {
+					t.Fatalf("crystal Magic Weapon must last exactly 160 seconds: %+v", affect)
+				}
+				if activePlayerAffectAt(p.Char, 9, w.now().Add(160*time.Second-time.Millisecond)) == nil ||
+					activePlayerAffectAt(p.Char, 9, w.now().Add(160*time.Second)) != nil {
+					t.Fatal("crystal Magic Weapon expired outside its 160-second boundary")
 				}
 				beforeReplay := accountStateSnapshot(p.Account)
 				w.onUseNPC(p.Session, packet)
@@ -201,6 +206,7 @@ func TestOfficialNPCServicesWaitForDurableCompletion(t *testing.T) {
 		for _, outcome := range []string{"success", "rejected", "unknown"} {
 			t.Run(operation+"/"+outcome, func(t *testing.T) {
 				w, p, fallback, packet := officialCrystalServiceFixture(t, "Trainer4")
+				w.clock = newFakeClock(time.Date(2026, 10, 29, 20, 0, 0, 0, time.UTC))
 				w.rng = fixedRNG{}
 				if operation == "crystals" {
 					officialCrystalIngredients(p)
@@ -223,6 +229,12 @@ func TestOfficialNPCServicesWaitForDurableCompletion(t *testing.T) {
 				before := accountStateSnapshot(p.Account)
 				w.onUseNPC(p.Session, packet)
 				write := awaitCriticalWrite(t, backend.entered)
+				if operation == "crystals" {
+					affect := activePlayerAffectAt(&write.accounts[0].Chars[p.CharSlot], 9, w.now())
+					if affect == nil || !affect.ExpiresAt.Equal(w.now().Add(160*time.Second)) {
+						t.Fatalf("durable crystal proposal must retain the 160-second expiry: %+v", affect)
+					}
+				}
 				if reflect.DeepEqual(before, write.accounts[0]) || !reflect.DeepEqual(before, accountStateSnapshot(p.Account)) ||
 					p.Session.QueuedPacketsForTest() != 0 || !w.criticalTradeReserved(p) {
 					t.Fatal("conversion exposed before durable acknowledgement")

@@ -317,6 +317,15 @@ void TMFieldScene::GameAuto()
 	if (m_bSkillBeltSwitch && m_bSkillBeltSwitch != 1)
 		m_bSkillBeltSwitch = 0;
 
+	const unsigned int manualTargetID = g_GameAuto == 3 && m_pTargetHuman ? m_pTargetHuman->m_dwID : 0;
+	const auto restoreManualTarget = [&]() {
+		if (!manualTargetID)
+			return;
+		auto target = g_pObjectManager->GetHumanByID(manualTargetID);
+		if (target && !target->m_cDie && !target->m_sDelayDel && target->m_stScore.CurHP > 0)
+			m_pTargetHuman = target;
+	};
+
 	for (int i = 10 * m_bSkillBeltSwitch; i < 10 * m_bSkillBeltSwitch + 10; ++i)
 	{
 		int idxSkill = (char)g_pObjectManager->m_cShortSkill[i];
@@ -347,17 +356,16 @@ void TMFieldScene::GameAuto()
 			}
 			if (useSkill)
 			{
-				const int masterySlot = cc_mode::BuffMasterySlot(idxSkill);
-				const int mastery = g_pObjectManager->m_stMobData.CurrentScore.Mastery[masterySlot];
-				const unsigned int delay = cc_mode::BuffDelayMs(idxSkill, g_pSpell[idxSkill].AffectTime, mastery);
-				if (cc_mode::BuffDelayDue(dwServerTime, m_dwSkillLastTime[idxSkill], delay) &&
-					!IsSkillCoolingDown(static_cast<unsigned char>(idxSkill), dwServerTime) &&
+				// Retry a missing or expiring buff at its normal skill cooldown.
+				// A rejected cast must not restart a full buff-duration wait.
+				if (!IsSkillCoolingDown(static_cast<unsigned char>(idxSkill), dwServerTime) &&
 					cc_mode::HasMana(SkillManaCost(static_cast<unsigned char>(idxSkill)), CharMp))
 				{
 					const unsigned int lastCast = m_dwSkillLastTime[idxSkill];
 					const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 					g_pObjectManager->m_cSelectShortSkill = i;
 					SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);
+					restoreManualTarget();
 					// Keep the reference's suffix rotation after a successful cast.
 					// Without rotation (or on rejection), retain the chosen attack.
 					if (m_cAutoAttack != 1 || m_dwSkillLastTime[idxSkill] == lastCast)
@@ -377,6 +385,7 @@ void TMFieldScene::GameAuto()
 			const char selectedSkill = g_pObjectManager->m_cSelectShortSkill;
 			g_pObjectManager->m_cSelectShortSkill = i;
 			SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);
+			restoreManualTarget();
 			if (m_cAutoAttack != 1 || m_dwSkillLastTime[idxSkill] == lastCast)
 				g_pObjectManager->m_cSelectShortSkill = selectedSkill;
 			if (m_dwSkillLastTime[idxSkill] != lastCast)

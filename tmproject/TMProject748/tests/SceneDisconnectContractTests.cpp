@@ -2843,10 +2843,11 @@ int RunSceneDisconnectContractTests(int& checks)
         const auto skillUse = ccModeScene.find("SkillUse(nSX, nSY, GroundGetPickPos(), dwServerTime, 1, 0);");
         const auto castCheck = ccModeScene.find("if (m_dwSkillLastTime[idxSkill] != lastCast)", skillUse);
         check(skillUse != std::string::npos && castCheck != std::string::npos &&
-            ccModeScene.find("cc_mode::BuffDelayDue(") != std::string::npos &&
-            ccModeScene.find("RebuffRetryDue") == std::string::npos &&
+            ccModeScene.find("cc_mode::BuffDelayMs(") == std::string::npos &&
+            ccModeScene.find("!IsSkillCoolingDown(static_cast<unsigned char>(idxSkill), dwServerTime)") != std::string::npos &&
+            ccModeScene.find("restoreManualTarget();", skillUse) < castCheck &&
             ccModeScene.find("if (used == 1)") == std::string::npos,
-            "C.C. uses reference mastery scheduling and does not stall on a rejected buff");
+            "C.C. retries buffs at skill cooldown and preserves auxiliary manual targets");
         const auto hpFeed = ccModeScene.find("cc_mode::BelowThreshold(nMountHP");
         const auto hpPotion = ccModeScene.find("UseHPotion()", hpFeed);
         const auto mpPotion = ccModeScene.find("UseMPotion()", hpPotion);

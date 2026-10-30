@@ -3,7 +3,15 @@
   "tipo": "monstro",
   "equip": {
     "rosto": {
-      "index": 0
+      "index": 73,
+      "eff": [
+        43,
+        7,
+        0,
+        0,
+        0,
+        0
+      ]
     },
     "elmo": {
       "index": 0

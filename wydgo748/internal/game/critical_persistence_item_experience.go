@@ -23,14 +23,11 @@ func (w *World) queueItemExperience(p *Player, slot byte, rule model.VolatileRul
 	ch := &proposed.Chars[p.CharSlot]
 	reward, gold := rule.Exp, uint32(0)
 	if rule.Action == "grant_next_level" {
-		if !matchesEvolution(ch, "mortal") || ch.Score == nil || ch.Score.Level >= maxMortalLevel {
+		var allowed bool
+		reward, allowed = nextLevelItemExperience(ch)
+		if !allowed {
 			return &nativeConsumableRejection{}
 		}
-		next := mortalNextLevel[int(ch.Score.Level)+1]
-		if ch.Exp >= next {
-			return &nativeConsumableRejection{}
-		}
-		reward = next - ch.Exp
 	}
 	if rule.Action == "quest_reward" {
 		if !questRewardAllowed(ch, rule) {

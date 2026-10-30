@@ -343,6 +343,7 @@ var chatCommandAliases = map[string]string{
 	"aceitar": "accept", "accept": "accept", "sair": "leave", "leave": "leave",
 	"expulsar": "expel", "expel": "expel", "criarsub": "createsub", "subcreate": "createsub",
 	"createsub": "createsub",
+	"dispensar": "dismiss-summons", "unsummon": "dismiss-summons",
 }
 
 func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string) bool {
@@ -366,6 +367,8 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		return false
 	}
 	switch command {
+	case "dismiss-summons":
+		w.dismissBMSummons(p)
 	case "guildfame", "citywar", "tower":
 		w.guildWarCommand(p, command, arg)
 	case "day":

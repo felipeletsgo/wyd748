@@ -149823,3 +149823,23 @@
 
 // Spawn [11066]: Galford | Follower: Galford | Marker: #
 // Location: sector (16, 16) | Start: (2076, 2100), radius 1 | Destination: (2076, 2100), radius 1
+
+
+// Apprentice Cape reward; supplied quest position.
+# [16233]
+	MinuteGenerate:	0
+	MaxNumMob:	1
+	MinGroup:	0
+	MaxGroup:	0
+	Leader:	Lider_Aprendiz
+	Follower:	Lider_Aprendiz
+	RouteType:	0
+	Formation:	0
+	StartX:	2234
+	StartY:	1567
+	StartRange:	0
+	StartWait:	0
+	DestX:	2234
+	DestY:	1567
+	DestRange:	0
+	DestWait:	0

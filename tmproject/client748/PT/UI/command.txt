@@ -44,3 +44,6 @@ AAFFAA Exclusivo de personagens que entraram em um reino
 33FFFF /king
 AAFFAA Teleportar para perto do rei
 AAFFAA Para personagens que desejam entrar em um reino
+FFFFFF Evocacoes de BeastMaster
+33FFFF /dispensar ou /unsummon
+AAFFAA Dispense suas evocacoes para invocar outra familia.

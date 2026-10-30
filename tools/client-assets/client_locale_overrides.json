@@ -1490,7 +1490,7 @@
     "UI/interface1.txt": "FFFFFF Selecionar skill: 1-0 (não F1-F10)\nFFFFFF Atribuir skill sob o cursor: Shift+1-0\nFFFFFF Ajustar o uso de skills no Auto Ataque\nFFFFFF Usar uma poção de vida\nFFFFFF Usar uma poção de mana\nFFFFFF Usar uma poção de Kapa\nFFFFFF Alimentar a montaria\nFFFFFF Usar um Pergaminho de Retorno\nFFFFFF Exibir nomes dos itens no chão\nFFFFFF Salvar uma captura de tela na pasta do cliente\n",
     "UI/interface2.txt": "FFFFFF Abrir Personagem\nFFFFFF Abrir Inventário\nFFFFFF Abrir Skills\nFFFFFF Abrir Grupo\nFFFFFF Abrir Minimapa\nFFFFFF Alternar entre correr e andar com a montaria\nFFFFFF Ativar/desativar o modo PK\nFFFFFF Ativar/desativar o Auto Ataque\nFFFFFF Exibir/ocultar nomes dos personagens\nFFFFFF Mudar a câmera\n",
     "UI/interface3.txt": "FFFFFF Ajustar o tamanho do chat (4 tamanhos disponíveis)\nFFFFFF Rolar o conteúdo do chat\nFFFFFF Consultar mensagens anteriores (modo de chat)\nFFFFFF Abrir o chat da guilda\nFFFFFF Abrir Ajuda e a janela de mensagens\nFFFFFF Alternar entre as skills (2 barras)\nFFFFFF Ativar/desativar a Corrida Automática\nFFFFFF Abrir Quests\nFFFFFF Modo de chat\nFFFFFF Exibir/ocultar afiliação à guilda\n",
-    "UI/command.txt": "FFFFFF \nFFFFFF Comandos de guilda\n33FFFF guild\nAAFFAA Consultar aliados e inimigos dos membros da guilda conectados\n33FFFF guildtax [taxa]\nAAFFAA Ajustar os impostos da guilda (de 0% a 20%)\nAAFFAA Usado pelo líder da guilda para definir os impostos da cidade conquistada\n33FFFF /summonguildmembers\nAAFFAA Reunir os membros da guilda conectados\nAAFFAA O líder pode reunir todos, incluindo os vice-líderes\nAAFFAA O vice-líder pode invocar os membros da sua subguilda\n33FFFF /expel [nome do membro]\nAAFFAA Expulsar um membro da guilda\n33FFFF /tele [nome do membro]\nAAFFAA Mover-se até um membro da guilda\nAAFFAA Exclusivo do líder e de quem usa a medalha do reino\n33FFFF /Endwar\nAAFFAA Encerrar a inimizade com outra guilda\nAAFFAA Exclusivo do líder da guilda\n33FFFF /Endallies\nAAFFAA Encerrar todas as alianças com outras guildas\nAAFFAA Exclusivo do líder da guilda\nFFFFFF \nFFFFFF Comandos de chat\n33FFFF /nome do jogador [mensagem]\nAAFFAA Enviar mensagem privada\n33FFFF /r [mensagem]\nAAFFAA Responder à mensagem privada\n33FFFF = [mensagem]\nAAFFAA Chat de grupo, visível apenas para seus membros\n33FFFF - [mensagem]\nAAFFAA Chat de guilda, visível apenas para seus membros\n33FFFF -- [mensagem]\nAAFFAA Chat global, visível para todos os jogadores conectados ao servidor\n33FFFF * [mensagem]\nAAFFAA Exibir mensagem sobre a cabeça do personagem por 10 segundos\n33FFFF /nome do jogador ! [mensagem]\nAAFFAA Enviar mensagem curta, que desaparece após ser recebida\nFFFFFF \nFFFFFF Comandos de reino\n33FFFF /Town ou /Kingdom\nAAFFAA Enviar o personagem ao seu reino\nAAFFAA Exclusivo de personagens que entraram em um reino\n33FFFF /king\nAAFFAA Teleportar para perto do rei\nAAFFAA Para personagens que desejam entrar em um reino\n",
+    "UI/command.txt": "FFFFFF \nFFFFFF Comandos de guilda\n33FFFF guild\nAAFFAA Consultar aliados e inimigos dos membros da guilda conectados\n33FFFF guildtax [taxa]\nAAFFAA Ajustar os impostos da guilda (de 0% a 20%)\nAAFFAA Usado pelo líder da guilda para definir os impostos da cidade conquistada\n33FFFF /summonguildmembers\nAAFFAA Reunir os membros da guilda conectados\nAAFFAA O líder pode reunir todos, incluindo os vice-líderes\nAAFFAA O vice-líder pode invocar os membros da sua subguilda\n33FFFF /expel [nome do membro]\nAAFFAA Expulsar um membro da guilda\n33FFFF /tele [nome do membro]\nAAFFAA Mover-se até um membro da guilda\nAAFFAA Exclusivo do líder e de quem usa a medalha do reino\n33FFFF /Endwar\nAAFFAA Encerrar a inimizade com outra guilda\nAAFFAA Exclusivo do líder da guilda\n33FFFF /Endallies\nAAFFAA Encerrar todas as alianças com outras guildas\nAAFFAA Exclusivo do líder da guilda\nFFFFFF \nFFFFFF Comandos de chat\n33FFFF /nome do jogador [mensagem]\nAAFFAA Enviar mensagem privada\n33FFFF /r [mensagem]\nAAFFAA Responder à mensagem privada\n33FFFF = [mensagem]\nAAFFAA Chat de grupo, visível apenas para seus membros\n33FFFF - [mensagem]\nAAFFAA Chat de guilda, visível apenas para seus membros\n33FFFF -- [mensagem]\nAAFFAA Chat global, visível para todos os jogadores conectados ao servidor\n33FFFF * [mensagem]\nAAFFAA Exibir mensagem sobre a cabeça do personagem por 10 segundos\n33FFFF /nome do jogador ! [mensagem]\nAAFFAA Enviar mensagem curta, que desaparece após ser recebida\nFFFFFF \nFFFFFF Comandos de reino\n33FFFF /Town ou /Kingdom\nAAFFAA Enviar o personagem ao seu reino\nAAFFAA Exclusivo de personagens que entraram em um reino\n33FFFF /king\nAAFFAA Teleportar para perto do rei\nAAFFAA Para personagens que desejam entrar em um reino\nFFFFFF Evocacoes de BeastMaster\n33FFFF /dispensar ou /unsummon\nAAFFAA Dispense suas evocacoes para invocar outra familia.\n",
     "UI/hellStoredesc.txt": "AAFFAA Loja do Portão do Inferno\nAAFFAA Compre armas, armaduras e amuletos.\nAAFFAA Escolha uma categoria para comprar.\nAAFFAA Regras de compra:\nAAFFAA O item é selecionado aleatoriamente.\nAAFFAA Seus adicionais são aleatórios.\nAAFFAA Deixe espaço livre suficiente\nAAFFAA no inventário antes de comprar.\nAAFFAA Não há limite de quantidade de compras.\nAAFFAA Os itens comprados não possuem nível\nAAFFAA de refinação aplicado.\nAAFFAA O servidor valida cada compra.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Armas]\nAAFFAA Armas base aleatórias dos graus 9-10.\nAAFFAA A seleção inclui variantes de Gram e\nAAFFAA Espada Vorpal.\nAAFFAA Não é possível escolher o item.\nAAFFAA O item e os adicionais são aleatórios.\nAAFFAA Armas ancestrais não estão incluídas.\nAAFFAA Deixe espaço livre suficiente\nAAFFAA para a arma selecionada.\nAAFFAA \nAAFFAA Preço: 9,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Armaduras]\nAAFFAA Armaduras base aleatórias dos graus 7-8.\nAAFFAA A seleção inclui variantes da\nAAFFAA Armadura de Placas dos Anões.\nAAFFAA Não é possível escolher o item.\nAAFFAA O item e os adicionais são aleatórios.\nAAFFAA \nAAFFAA Deixe espaço livre suficiente\nAAFFAA para a armadura selecionada.\nAAFFAA \nAAFFAA Preço: 6,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Amuletos]\nAAFFAA Amuletos aleatórios dos graus 1-3.\nAAFFAA Variantes Prata, Ouro e Místico.\nAAFFAA Não é possível escolher o item.\nAAFFAA O item e os adicionais são aleatórios.\nAAFFAA Nenhum nível de refinação é aplicado.\nAAFFAA \nAAFFAA Deixe espaço livre suficiente\nAAFFAA para o amuleto selecionado.\nAAFFAA \nAAFFAA Preço: 5,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nAAFFAA \nAAFFAA [Aleatório]\nAAFFAA Arma, armadura ou amuleto aleatório.\nAAFFAA O item comprado recebe adicionais\nAAFFAA aleatórios.\nAAFFAA Não é possível escolher o item\nAAFFAA nem a categoria desta compra.\nAAFFAA Nenhum nível de refinação é aplicado.\nAAFFAA Deixe espaço livre suficiente\nAAFFAA para o item selecionado.\nAAFFAA \nAAFFAA Preço: 7,000,000 gold.\nAAFFAA \nAAFFAA \nAAFFAA \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \nFFFFFF \n"
   },
   "canonical_itemhelp_sha256": "47c97e7fcd119c4d8b5c2e549af80c5cfe1acbbf4741055c050d96459c633fb3",
@@ -2446,7 +2446,7 @@
     "UI/interface1.txt": "566cc0358e82e99992eedbe8cb48bcbfd9214adb65caa1fa92de4cf3edd6b549",
     "UI/interface2.txt": "65d1e3bfcb24a65674a9da88022781875c40372d9d3f058d113051365940327d",
     "UI/interface3.txt": "f32455ff273fe23177151f89e197e554124e95495442ae5dec7d835f6a19aaf3",
-    "UI/command.txt": "fc07616c20faf3e76ccb84cc6f06aa89255a1d89065ddd052b57b7fad0e9c683",
+    "UI/command.txt": "78404ba7a675d3c9c9a063292bb589cca4d14a3d90d7c9d55bdfa96d04189e41",
     "UI/hellStoredesc.txt": "85e7abe0d4a55fed9ed2589eece822ed0ee611f26d3d8fc7ad159f1f7cfd5487",
     "UI/QuestSubjects.txt": "0501c40a3abface9f7d1e40b910e0388e533ae165ee7b92a1d57add400c6899c",
     "UI/QuestSubjects2.txt": "d67f3b6cdf484b91653ec5a80f7c27f83f4c0254d005469a645f373de0e1eb49",
@@ -2463,7 +2463,7 @@
     "UI/mix4desc.txt": "936fe8dca727f5af0814ce5fc6093a395ca7119560019c766c66f4c05563e580",
     "UI/mix6desc.txt": "5566b73b3e90d1137443a89d28f8463baae245545608764b9d1c8c76a12a8512",
     "UI/PotalPos.txt": "d7507ecbea2eab433ba188a94f11341599e10cf879b0fbc4eaa7cb2f95f21885",
-    "UI/strdef.bin": "8f642ff0e04d84a57ca92f1d6534ba0796bb2b8d271c14dffbee336b550e5777"
+    "UI/strdef.bin": "52be127369d7bd9c5eed8aabcb8393b4fed34a72b43d56954afd638669442f67"
   },
   "canonical_itemname_sha256": "a22d0cf5045813731420ea1305414ece3af97a10baee56280d2cde166aa60de7",
   "english_item_names": {
@@ -2522,6 +2522,34 @@
     "451": {
       "EN": "Zakum area: %s and %s other player(s).",
       "PT": "Área do Zakum: %s e mais %s jogador(es)."
+    },
+    "452": {
+      "EN": "Your BeastMaster summons have been dismissed.",
+      "PT": "Suas evocacoes de BeastMaster foram dispensadas."
+    },
+    "453": {
+      "EN": "Please finish your current action and try again.",
+      "PT": "Conclua sua acao atual e tente novamente."
+    },
+    "454": {
+      "EN": "Equip the Apprentice Emblem to receive the green cape.",
+      "PT": "Equipe o Emblema da Aprendizagem para receber o manto verde."
+    },
+    "455": {
+      "EN": "This quest requires a Mortal between levels 101 and 150.",
+      "PT": "Esta quest exige um Mortal entre os niveis 101 e 150."
+    },
+    "456": {
+      "EN": "Remove your current cape before this exchange.",
+      "PT": "Retire seu manto atual antes desta troca."
+    },
+    "457": {
+      "EN": "You received the Apprentice Cape.",
+      "PT": "Voce recebeu o Manto do Aprendiz."
+    },
+    "458": {
+      "EN": "The exchange could not be saved. Your equipment was preserved.",
+      "PT": "Nao foi possivel salvar a troca. Seus equipamentos foram preservados."
     }
   }
 }

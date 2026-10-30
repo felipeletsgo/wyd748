@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"wydgo/internal/model"
 	"wydgo/internal/net"
@@ -44,6 +43,9 @@ const (
 func reservedNPCKind(def *model.NPCDef) (string, bool) {
 	if def == nil || def.Score == nil {
 		return "", false
+	}
+	if def.Name == apprenticeLeaderName {
+		return "apprentice cape exchange", true
 	}
 	if kind, ok := officialNPCServiceKind(def); ok {
 		return kind, true
@@ -158,7 +160,7 @@ func (w *World) questRequirementsMet(p *Player, quest *model.QuestDef) (string, 
 		level = ch.Score.Level
 	}
 	req := quest.Requires
-	if req.MortalOnly && strings.TrimSpace(ch.Evolution) != "" {
+	if req.MortalOnly && !matchesEvolution(ch, "mortal") {
 		return "Available only to Mortal characters.", false
 	}
 	if req.MinLevel != 0 && level < req.MinLevel {

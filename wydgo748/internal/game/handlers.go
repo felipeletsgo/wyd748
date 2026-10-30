@@ -1050,6 +1050,9 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	if w.handleAbilityResetMasterNPC(s, p, m, clickOk) {
 		return
 	}
+	if w.handleApprenticeCape(s, p, m, clickOk) {
+		return
+	}
 	if w.handleMysticLandNPC(s, p, m, clickOk) {
 		return
 	}

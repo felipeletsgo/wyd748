@@ -1,9 +1,124 @@
 # Current project state
 
-## Player bug batch — 2026-10-28, local source, not published
+## Player reports — 2026-10-29, local candidate 12
 
-Client revision 11 and server minimum 11 are raised together; patch 48011
-is not built, published, or activated.
+The local client retains continuous manual attack in auxiliary C.C. mode.
+Buff renewal now uses the current affect and normal skill cooldown.
+Ethereal Explosion, skill 94, uses a one-second delay in both skill tables.
+These corrections are `MODERNIZACAO_COMPATIVEL`.
+
+The `/unsummon` and `/dispensar` commands remove only the player's BM summons
+(`EXTENSAO_COORDENADA`). Other owners, mounts and contract summons remain.
+Root, EN and PT resources include command help and service messages.
+Both client revision and server minimum are 12. The last published patch is 48011.
+Publish mandatory patch 48012 before activating this server candidate.
+
+The Apprentice leader now exchanges equipped emblem 4080 for cape 4006.
+The configured position is 2234,1567. Eligible Mortals have displayed levels
+101 through 150. Existing Taurus drops remain; quest EXP is unchanged by request.
+Reset compound exchanges now accept both persisted Mortal representations.
+Existing drop, Kruno, Ameria, Jeffi and Shaman routes remain; no shop was added.
+
+Arch monster stones 1752–1759 now convert through the supplied native server's
+threshold table instead of gaining refinement. Both persistence paths retain
+item identity, consume one powder per valid attempt and restore items after rejection.
+These server corrections are `MODERNIZACAO_COMPATIVEL`, without a native 7.48 parity claim.
+
+The candidate is built with `-NoDeploy`. Publication, VPS activation and actual
+client acceptance remain pending. No tracked files were removed in this batch.
+The local Fairy Dust and crystal corrections below are part of the same candidate.
+
+`STATICALLY VERIFIED`: shared revision 12, skill-table agreement, native stone
+thresholds, locale indices and the configured quest/drop sources.
+`AUTOMATED TESTED`: all Go packages have passing results; vet and the focused
+race batch passed with the isolated PostgreSQL fixture configured.
+The Release client build, 19 locale tests, research schema and repository layout passed.
+Quest tests also spawn all three Taurus groups on the real terrain.
+`CLIENT-TESTED`: pending for combat, buff renewal, summon replacement and item exchanges.
+
+## Fairy Dust evolutions — 2026-10-29, local source
+
+Fairy Dust items 414 and 4142 now grant exactly one level for Mortal, Arch,
+Celestial and Subcelestial characters (`MODERNIZACAO_COMPATIVEL`). Both item-use
+paths select the current evolution's EXP table and retain level caps and unlocks.
+The common volatile-7 rule no longer marks the items Mortal-only.
+Tests cover both real item IDs, persistence acknowledgement, failed saves,
+repeated admission, locked levels, unlocked levels and final level boundaries.
+The existing client direct-use route needs no change.
+This correction is local and has not been activated on the VPS.
+
+## Crystal attack buff — 2026-10-29, local source
+
+The owner specified 160 seconds for the seven-crystal Magic Weapon buff
+(`MODERNIZACAO_COMPATIVEL`). The service now uses 20 units of 8 seconds,
+independent of the normal skill duration. Power, weapon conversion, crystal
+consumption, replacement validation and persistence remain unchanged.
+Tests check exact expiry and the detached persistence proposal.
+This correction is local; the active VPS release still uses the prior duration.
+Actual client acceptance remains pending.
+
+## Server corrections — 2026-10-29, activated
+
+Game release `/srv/wyd-go/releases/20261029T203701Z` is active with the
+Cancellation admission fix and restored Anubis face. All 7,718 installed files
+match the packaged or preserved component hashes. The game restarted normally;
+the player API, log reader, twelve configuration files and client feed are preserved.
+Readiness returns 200 on both listeners, and channels 8281/8282 pass version admission.
+The verified database backup is `wydgo-20261029T203701Z.dump`.
+Rollback remains `/srv/wyd-go/releases/20261029T161155Z`.
+See the [release receipt](../.agents/research/release-748011.json).
+
+## Cancellation potion admission — 2026-10-29, active
+
+The critical persistence route now rejects HP and MP potions while Cancellation
+is active (`MODERNIZACAO_COMPATIVEL`). Previously, only the synchronous route
+enforced this check, so production could persist recovery and consume the potion.
+Rejection precedes persistence admission and resends the authoritative item slot.
+It preserves account state and potion cooldown without reserving the account.
+
+Regression cases cover HP, MP and combined recovery, repeated rejection, exact
+expiration, expired effects and absent effects. Accepted use retains detached
+commit, acknowledgement, consumption and cooldown behavior.
+This correction is active on the VPS. Actual gameplay acceptance remains pending.
+
+## NPC face restoration — 2026-10-29, active
+
+Anubis now uses its previous compatible face 73 and refinement 7
+(`MODERNIZACAO_COMPATIVEL`). The population import had cleared the unsupported
+7.59 face 2973, so Ancient Necromancer inherited an empty appearance.
+All gameplay attributes, rewards and encounter rules remain unchanged.
+
+The client maps face 73 to class 73, renderer 56 and `mesh/an01`.
+Its skeleton, four mesh/texture parts and nine animation files are present.
+The 1,030-template catalog has no remaining empty faces. Regression tests
+cover catalog face references and the four configured bosses' creation packets.
+Three native templates retain class-255 face items: AkeProtector, HekalProtector
+and Haden. Their original identity requires separate evidence before replacement.
+
+The restored template is active in game release `20261029T203701Z`.
+Actual client rendering remains pending.
+
+## Release 7.48.011 — 2026-10-29, published and activated
+
+Mandatory patch 48011 contains `WYD.exe` and the root, EN and PT skill descriptions.
+HTTP/HTTPS downloads matched all four file hashes before server activation.
+Release `/srv/wyd-go/releases/20261029T161155Z` is active; game and player API
+restarted after a verified database backup, with no players connected.
+All 7,718 installed files match the package, including 1,073 runtime data files.
+Both process hashes match; readiness returns 200 and channels 8281/8282 listen.
+All twelve configuration files retain their pre-release hashes.
+Revision 10 is rejected and revision 11 passes version admission on both channels.
+Rollback remains `/srv/wyd-go/releases/20261028T052051Z`.
+See the [release receipt](../.agents/research/release-748011.json).
+
+The audit correction preserves at least 1 HP when a living caster uses Holy
+Judgement (`MODERNIZACAO_COMPATIVEL`). Boundary and repeated-cast tests cover
+PvE and PvP. Go tests, vet, focused race checks, the client build and portal
+checks passed. CLIENT-TESTED remains pending.
+
+## Player bug batch — 2026-10-28, included in release 7.48.011
+
+Client revision 11 and server minimum 11 are published and active together.
 
 - BM forms (`PARIDADE_NATIVA`): affect 16 now overwrites in either direction,
   like native `SetAffect`. Eden (form 5) no longer blocks Wolf, Bear, Astaroth
@@ -59,7 +174,8 @@ is not built, published, or activated.
   `FUN_0054FDB9`). Heal is Value + 2*mastery and Recovery Value + 3*mastery/2
   (x1.2 with Bless Revival); the W2PP x1.4 and 548 cap are removed. A
   Celestial with Bless Revival adds its level. Holy Judgement adds current HP
-  (+10% with Bless Revival) and keeps 2/3 HP. Bless Revival succeeds at
+  (+10% with Bless Revival) and keeps 2/3 HP, with a compatible 1 HP minimum
+  for a living caster. Bless Revival succeeds at
   30 + 2*(mastery/15)%, max 90%, revives with half HP/MP next to the caster
   and costs 10% of base MP. Cure also removes affect 33. Teleport limits the
   target level to level + mastery + 100. Magic Weapon, Magic Shield and
@@ -74,9 +190,9 @@ is not built, published, or activated.
 AUTOMATED TESTED: Go suite and vet, focused client tests and Release build.
 CLIENT-TESTED pending for all items.
 
-## Local NPC catalog migration — 2026-10-27, not activated
+## NPC catalog migration — 2026-10-27, included in release 7.48.011
 
-The general population now uses one `data/NPCGener.txt` for both channels.
+The general population now uses one `data/spawns/NPCGener.txt` for both channels.
 It preserves the former channel 2 baseline and retains 396 imported groups,
 including test and quest content. The owner selected the former channel 2
 definitions for 40 co-located replacement groups. The result has 5,501 source
@@ -93,7 +209,8 @@ PostgreSQL overrides remain channel-scoped, with independent mutable World data.
 Identical Reimers templates were consolidated into the spawned lowercase identity
 at `(2468, 1996)`; its stock and spawn remain unchanged. See
 [live NPC definition management](protocol/npc-definitions.md) for the source and
-database contract. These local changes have not been deployed or activated.
+database contract. The complete runtime dataset is deployed and hash-verified
+in release 7.48.011. In-game NPC acceptance remains pending.
 
 ## Release 7.48.008 — 2026-10-26, published and activated
 

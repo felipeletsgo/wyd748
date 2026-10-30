@@ -848,16 +848,16 @@ func TestOnUseItemBuffSkillAndCosmeticActions(t *testing.T) {
 		}
 	})
 
-	t.Run("fairy dust is mortal only", func(t *testing.T) {
+	t.Run("fairy dust respects the Arch level lock", func(t *testing.T) {
 		w, p, st := useItemWorld(model.VolatileRule{
-			Action: "grant_next_level", Consume: true, MortalOnly: true,
+			Action: "grant_next_level", Consume: true,
 		})
 		p.Char.Evolution = "arch"
-		p.Char.Score.Level = 10
-		p.Char.Exp = mortalNextLevel[10]
+		p.Char.Score.Level = archLockLevel355
+		p.Char.Exp = mortalNextLevel[archLockLevel355]
 		w.onUseItem(p.Session, useItemPacket(0, 0))
-		if p.Char.Score.Level != 10 || p.Char.Inv[0].Index != 100 || st.saves != 0 {
-			t.Fatal("Fairy Dust was accepted for an Arch")
+		if p.Char.Score.Level != archLockLevel355 || p.Char.Inv[0].Index != 100 || st.saves != 0 {
+			t.Fatal("Fairy Dust bypassed the Arch level lock")
 		}
 	})
 

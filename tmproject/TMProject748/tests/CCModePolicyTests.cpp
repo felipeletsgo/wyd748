@@ -1,6 +1,7 @@
 #include "../internal/application/CCModePolicy.h"
 #include "../internal/application/SkillCooldownPolicy.h"
 #include "../internal/application/DamageNumberPolicy.h"
+#include "../internal/application/FieldInteractionPolicy.h"
 #include <climits>
 #include <cstdio>
 #include <initializer_list>
@@ -12,6 +13,8 @@ int RunCCModePolicyTests(int& checks)
         ++checks;
         if (!condition) { ++failures; std::printf("FAIL CC: %s\n", name); }
     };
+    check(!cc_mode::OwnsCombat(0) && cc_mode::OwnsCombat(1) && cc_mode::OwnsCombat(2) &&
+        !cc_mode::OwnsCombat(3), "auxiliary automation does not own continuous attacks");
     for (int value = 0; value <= 90; value += 10) {
         check(cc_mode::NormalizeThreshold(value) == value, "valid percentage is stable");
         check(cc_mode::NextThreshold(value) == (value + 10) % 100, "step includes disabled state");
@@ -44,26 +47,17 @@ int RunCCModePolicyTests(int& checks)
     for (int skill : {64, 66, 68, 70, 71})
         check(cc_mode::BuffAffectSkill(skill) == 71, "all transformations share one active affect");
     check(cc_mode::BuffAffectSkill(44) == 44, "ordinary buff keeps its own affect identity");
-    for (int skill : {3, 5, 53, 54, 74, 76, 77})
-        check(cc_mode::BuffMasterySlot(skill) == 1, "first mastery group matches reference");
-    for (int skill : {9, 11, 13, 15, 37, 86, 87})
-        check(cc_mode::BuffMasterySlot(skill) == 2, "second mastery group matches reference");
-    for (int skill : {41, 43, 44, 45, 46, 64, 66, 68, 70, 71, 89, 90})
-        check(cc_mode::BuffMasterySlot(skill) == 3, "third mastery group matches reference");
-    for (int skill : {75, 81, 85, 92})
-        check(cc_mode::BuffDelayMs(skill, 150, 320) == 0, "reference has no mastery delay for this buff");
-    check(cc_mode::BuffDelayMs(3, 2, 100) == 20000, "reference delay is 100 times AffectTime times mastery");
-    check(cc_mode::BuffDelayMs(3, 150, 320) == 576000, "reference delay cannot outlast server refresh window");
-    check(cc_mode::BuffDelayMs(3, INT_MAX, INT_MAX) == 576000, "delay multiplication cannot overflow");
-    check(cc_mode::BuffDelayMs(3, -1, 100) == 0 && cc_mode::BuffDelayMs(3, 150, -1) == 0,
-        "invalid catalog or mastery cannot create a huge unsigned delay");
+    check(field_interaction::PhysicalAttackTick(true, true, false, cc_mode::OwnsCombat(3), false,
+        2000, 1000) == field_interaction::PhysicalAttackAction::Retry,
+        "potions-only mode retains and retries a manual attack");
+    check(cc_mode::BuffNeedsRefresh(0) && !skill_cooldown::Active(13000, 10000, 3),
+        "a rejected rebuff retries at normal cooldown after the old affect expires");
+    check(cc_mode::BuffNeedsRefresh(2) && skill_cooldown::Active(12999, 10000, 3),
+        "early rebuff cannot bypass the skill cooldown");
     check(cc_mode::BuffDelayDue(1, 0, 576000), "unused buff does not wait for server uptime");
     check(!cc_mode::BuffDelayDue(29999, 10000, 20000), "mastery delay blocks an early repeat");
     check(cc_mode::BuffDelayDue(30000, 10000, 20000), "mastery delay opens at its exact boundary");
     check(cc_mode::BuffDelayDue(499, UINT_MAX - 500, 1000), "mastery delay survives timer wraparound");
-    for (int mastery = 0; mastery <= 320; ++mastery)
-        check(cc_mode::BuffDelayMs(44, 150, mastery) <= (38u + 37u * mastery / 320u - 3u) * 8000u,
-            "every server mastery preserves the pre-expiry refresh window");
     check(cc_mode::ShouldReportInsufficientMana(false, true, 10, 10),
         "manual casts keep the native per-attempt warning");
     check(cc_mode::ShouldReportInsufficientMana(true, false, 10, 0),

@@ -44,3 +44,6 @@ AAFFAA * Only applies to players that joined the kingdom
 33FFFF /king
 AAFFAA Teleport players to the side of the king
 AAFFAA * Only Applies to Whoever wants to join a kingdom
+FFFFFF [BeastMaster Summons]
+33FFFF /unsummon or /dispensar
+AAFFAA Dismiss your BeastMaster summons to summon another family.

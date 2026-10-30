@@ -52,6 +52,10 @@ func (w *World) queueBasicConsumable(p *Player, slot byte, rule model.VolatileRu
 		ch.LearnedSkill |= uint32(1) << bit
 		filterShortSkills(ch)
 	case "restore":
+		// MODERNIZACAO_COMPATIVEL: enforce Cancellation before persistence admission.
+		if activePlayerAffectAt(p.Char, affectCancellation, now) != nil {
+			return reject("")
+		}
 		if !oldPotion.IsZero() && now.Sub(oldPotion) < potionCooldown {
 			return reject("")
 		}

@@ -17,6 +17,7 @@ const (
 	nativeServicePendingMessage = 449
 	zakumEmptyMessage           = 450
 	zakumPopulationMessage      = 451
+	crystalWeaponBuffUnits      = 20 // 160 seconds in the eight-second affect format.
 )
 
 // Limit recovered services to verified identities. Merchant
@@ -230,9 +231,9 @@ func (w *World) useOfficialCrystalService(p *Player) {
 		}
 	}
 	removePlayerAffectTypes(p.Char, 23)
-	// SetAffect(44, 200, 200): double the catalog counter, level 200. Use the
-	// existing eight-second affect contract and stronger/longer recast guard.
-	setAffectAt(p.Char, byte(skill.AffectType), skill.AffectValue, 200, skill.AffectTime*2, w.now())
+	// MODERNIZACAO_COMPATIVEL: the owner requires a fixed 160-second crystal buff.
+	// Keep its power and recast guard independent of ordinary skill duration.
+	setAffectAt(p.Char, byte(skill.AffectType), skill.AffectValue, 200, crystalWeaponBuffUnits, w.now())
 	w.recalcPlayer(p.Char)
 	w.commitOfficialNPCService(p, images, "Native crystal weapon conversion", true, crystalSuccessMessage)
 }

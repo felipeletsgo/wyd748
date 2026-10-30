@@ -279,9 +279,11 @@ func TestVolatilesRealConfigDifferentiatesByItemIndex(t *testing.T) {
 	if r, _, _ := vc.Rule(787); r.Action != "buff" || r.AffectType != 4 || r.AffectValue == 0 {
 		t.Fatalf("Kappa (787) did not resolve a scaled Type 4 buff: %+v", r)
 	}
-	// Fairy Dust uses the next native level threshold, never fixed EXP.
-	if r, _, _ := vc.Rule(414); r.Action != "grant_next_level" {
-		t.Fatalf("Fairy_Dust (414) did not resolve grant_next_level: %+v", r)
+	// Both Fairy Dust variants use the evolution's next threshold, never fixed EXP.
+	for _, item := range []uint16{414, 4142} {
+		if r, code, _ := vc.Rule(item); code != 7 || r.Action != "grant_next_level" || r.MortalOnly || !r.Consume {
+			t.Fatalf("Fairy Dust %d must allow every evolution: %+v code=%d", item, r, code)
+		}
 	}
 	// Star Gem / Warp (12/13) and EXP chest (198) resolve their intended actions.
 	if vc.Rules[12].Action != "save_position" {
