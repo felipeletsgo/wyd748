@@ -36,10 +36,29 @@ int RunInstanceQuestionTests(int& checks)
         check(!received_packet::CanDispatch({p.Header.Type, reinterpret_cast<char*>(&p), size}), "reject truncated receive frame");
     }
     auto invalid = p;
-    invalid.Version = 2;
+    invalid.Version = 3;
     check(!instance_question::Parse(&invalid, sizeof(invalid), parsed), "reject unknown version");
-    invalid = p; invalid.Reserved = 1;
-    check(!instance_question::Parse(&invalid, sizeof(invalid), parsed), "reject reserved bits");
+    invalid = p; invalid.TextIndex = 1;
+    check(!instance_question::Parse(&invalid, sizeof(invalid), parsed), "reject a v1 text index");
+    {
+        auto localized = p;
+        localized.Version = 2;
+        localized.TextIndex = 3;
+        check(instance_question::Parse(&localized, sizeof(localized), parsed), "valid v2 localized question");
+        char rows[4][128]{};
+        std::memcpy(rows[3], "Pergunta?", 10);
+        check(std::strcmp(instance_question::DisplayText(parsed, rows, 4), "Pergunta?") == 0,
+            "v2 shows the localized row");
+        rows[3][0] = 0;
+        check(std::strcmp(instance_question::DisplayText(parsed, rows, 4), "Question?") == 0,
+            "v2 falls back to the server text when the row is empty");
+        check(std::strcmp(instance_question::DisplayText(parsed, rows, 2), "Question?") == 0,
+            "v2 falls back when the row is outside the table");
+        localized.TextIndex = 0;
+        check(!instance_question::Parse(&localized, sizeof(localized), parsed), "reject v2 without a row");
+        localized.TextIndex = instance_question::MaxTextRows;
+        check(!instance_question::Parse(&localized, sizeof(localized), parsed), "reject v2 row beyond the table");
+    }
     invalid = p; invalid.DurationMs = 10001;
     check(!instance_question::Parse(&invalid, sizeof(invalid), parsed), "reject excessive lifetime");
     invalid = p; std::memset(invalid.Question, 'A', sizeof(invalid.Question));

@@ -89,6 +89,22 @@ int RunResourceBarProjectionTests(int& checks)
     check(true, "missing native HP visual is safe");
     resource_ui::Project(static_cast<Bar*>(nullptr), 10, 20);
     check(true, "missing optional control is safe");
+    {
+        char bar[20]{};
+        check(!death_motion::CanOfferResurrectionPrompt(0, true, false, false, false, bar, 20),
+            "no Resurrection on the bar keeps the recall prompt");
+        bar[13] = death_motion::ResurrectionSkill;
+        check(death_motion::CanOfferResurrectionPrompt(0, true, false, false, false, bar, 20),
+            "a dead player with Resurrection on the bar is offered it");
+        check(!death_motion::CanOfferResurrectionPrompt(500, false, false, false, false, bar, 20),
+            "a living player is not offered Resurrection");
+        check(!death_motion::CanOfferResurrectionPrompt(0, true, true, false, false, bar, 20),
+            "a pending Resurrection is not offered again");
+        check(!death_motion::CanOfferResurrectionPrompt(0, true, false, true, false, bar, 20),
+            "Ctrl + right click keeps its native meaning");
+        check(!death_motion::CanOfferResurrectionPrompt(0, true, false, false, true, bar, 20),
+            "a visible prompt is not replaced");
+    }
     check(death_motion::MayEnterTravelAnimation(82, false, false), "living character may enter travel animation");
     check(!death_motion::MayEnterTravelAnimation(0, false, false), "zero HP prevents travel before death confirmation");
     check(!death_motion::MayEnterTravelAnimation(0, true, false), "death confirmation cannot resume a running route");

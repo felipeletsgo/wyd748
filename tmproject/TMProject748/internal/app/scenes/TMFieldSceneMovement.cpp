@@ -248,6 +248,22 @@ bool TMFieldScene::OfferRespawnPrompt(bool playerAction)
 	return true;
 }
 
+// Native FUN_004625DA: right click while dead opens message 227 with event 99
+// when Resurrection is on the short-skill bar. Event 99 starts the 5 s request.
+bool TMFieldScene::OfferResurrectionPrompt(unsigned int wParam)
+{
+	if (!m_pMyHuman || !m_pMessageBox || !g_pObjectManager)
+		return false;
+	if (!death_motion::CanOfferResurrectionPrompt(g_pObjectManager->m_stMobData.CurrentScore.CurHP,
+		m_pMyHuman->m_cDie == 1, m_cResurrect != 0, (wParam & MK_CONTROL) != 0,
+		m_pMessageBox->IsVisible() != 0, g_pObjectManager->m_cShortSkill,
+		static_cast<int>(sizeof(g_pObjectManager->m_cShortSkill))))
+		return false;
+	m_pMessageBox->SetMessage(g_pMessageStringTable[227], death_motion::ResurrectionSkill, 0);
+	m_pMessageBox->SetVisible(1);
+	return true;
+}
+
 void TMFieldScene::SetRunMode()
 {
 	if (m_pMyHuman->m_cMount == 1 &&

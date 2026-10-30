@@ -1,5 +1,31 @@
 # Current project state
 
+## Organized player reports — 2026-10-30, local candidate 12
+
+Not published or activated. CLIENT-TESTED is pending for every item.
+
+- Hold display (`MODERNIZACAO_COMPATIVEL`): player attack and skill packets
+  carry the attacker's Hold in FakeExp (@40). Heal and other casts no longer
+  clear the displayed PvP EXP debt; durable Hold was already intact.
+- BM summons (`PARIDADE_NATIVA`, W2PP `GetFunc.cpp` PvP attribute rule): a
+  player with PvP permission against the owner can damage and kill another
+  player's BM or contract summon when both stand in a PK cell (0x40, no
+  0x01). Owners and party members cannot. A killed summon grants no EXP,
+  loot or quest progress. Summons attack players only when both cells allow
+  PvP. The native 30% player/summon damage factor is not applied (gap).
+- Ethereal Explosion visual (`PARIDADE_NATIVA`, native `FUN_00489A3E` 0x5E):
+  the arrow burst belongs to skill 94, not Golden Shield 86. Another
+  Huntress renewing Golden Shield no longer shows the explosion.
+- Sephira Resurrection (`PARIDADE_NATIVA`, native `FUN_004625DA`): a dead
+  player's right click opens message 227 with event 99 when skill 99 is on
+  the short-skill bar. Event 99 sends the existing five-second request.
+- Cube questions (`EXTENSAO_COORDENADA`): question packet version 2 sends a
+  strdef row; the 25 questions have EN and PT rows. See
+  [instance questions](protocol/instance-question.md).
+
+Not reproduced: Rapid Hit (95) applies all six hits; no fixed 500 summon
+damage cap exists; Critical Armor visuals and assets are present.
+
 ## Player reports — 2026-10-29, local candidate 12
 
 The local client retains continuous manual attack in auxiliary C.C. mode.

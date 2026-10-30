@@ -2463,7 +2463,7 @@
     "UI/mix4desc.txt": "936fe8dca727f5af0814ce5fc6093a395ca7119560019c766c66f4c05563e580",
     "UI/mix6desc.txt": "5566b73b3e90d1137443a89d28f8463baae245545608764b9d1c8c76a12a8512",
     "UI/PotalPos.txt": "d7507ecbea2eab433ba188a94f11341599e10cf879b0fbc4eaa7cb2f95f21885",
-    "UI/strdef.bin": "52be127369d7bd9c5eed8aabcb8393b4fed34a72b43d56954afd638669442f67"
+    "UI/strdef.bin": "a7e531e8560a81c423cd6f7153da742bd56671871bd21885e12c467abc719ff2"
   },
   "canonical_itemname_sha256": "a22d0cf5045813731420ea1305414ece3af97a10baee56280d2cde166aa60de7",
   "english_item_names": {
@@ -2550,6 +2550,106 @@
     "458": {
       "EN": "The exchange could not be saved. Your equipment was preserved.",
       "PT": "Nao foi possivel salvar a troca. Seus equipamentos foram preservados."
+    },
+    "459": {
+      "EN": "The M key shows the minimap in the lower-right corner.",
+      "PT": "A tecla M mostra o minimapa no canto inferior direito."
+    },
+    "460": {
+      "EN": "The M key shows the minimap in the upper-right corner.",
+      "PT": "A tecla M mostra o minimapa no canto superior direito."
+    },
+    "461": {
+      "EN": "Foema starts walking with her right foot.",
+      "PT": "A Foema começa a andar com o pé direito."
+    },
+    "462": {
+      "EN": "The two-castle WYD Society quest grants an IMP.",
+      "PT": "A quest da Sociedade WYD dos dois castelos dá um IMP."
+    },
+    "463": {
+      "EN": "The two-castle WYD Society quest grants Nyerdes.",
+      "PT": "A quest da Sociedade WYD dos dois castelos dá Nyerdes."
+    },
+    "464": {
+      "EN": "A guild medal costs 8000000 before taxes.",
+      "PT": "Uma Medalha da Guilda custa 8000000 antes dos impostos."
+    },
+    "465": {
+      "EN": "WYD's maximum resolution is 1600x1200 at 32 bits.",
+      "PT": "A resolução máxima do WYD é 1600x1200 em 32 bits."
+    },
+    "466": {
+      "EN": "WYD's minimum resolution is 640x480 at 16 bits.",
+      "PT": "A resolução mínima do WYD é 640x480 em 16 bits."
+    },
+    "467": {
+      "EN": "There are seven types of crystals.",
+      "PT": "Existem sete tipos de cristais."
+    },
+    "468": {
+      "EN": "The Star Gem can memorize any location.",
+      "PT": "A Gema Estelar pode memorizar qualquer local."
+    },
+    "469": {
+      "EN": "+9 items cannot receive options.",
+      "PT": "Itens +9 não podem receber adicionais."
+    },
+    "470": {
+      "EN": "Skill points are required to learn skills.",
+      "PT": "São necessários pontos de skill para aprender skills."
+    },
+    "471": {
+      "EN": "A complete set grants a defense bonus.",
+      "PT": "Um set completo concede bônus de defesa."
+    },
+    "472": {
+      "EN": "Athena's Touch increases skill learning.",
+      "PT": "O Toque de Athena aumenta o aprendizado de skills."
+    },
+    "473": {
+      "EN": "Sapphire is sold by the Royal Merchant.",
+      "PT": "A Safira é vendida pelo Mercador Real."
+    },
+    "474": {
+      "EN": "An account can have five characters.",
+      "PT": "Uma conta pode ter cinco personagens."
+    },
+    "475": {
+      "EN": "Total experience is greater in a party.",
+      "PT": "A experiência total é maior em grupo."
+    },
+    "476": {
+      "EN": "Fairy's Voice is used on targeted monsters.",
+      "PT": "O Som das Fadas é usado em monstros alvo."
+    },
+    "477": {
+      "EN": "Skill points are obtained only by leveling.",
+      "PT": "Pontos de skill são obtidos apenas subindo de nível."
+    },
+    "478": {
+      "EN": "Foema uses a flamethrower for Fire Attack.",
+      "PT": "A Foema usa um lança-chamas no Ataque de Fogo."
+    },
+    "479": {
+      "EN": "Potions are sold by the Royal Merchant.",
+      "PT": "As poções são vendidas pelo Mercador Real."
+    },
+    "480": {
+      "EN": "Successful composition always resets the options.",
+      "PT": "Uma composição bem-sucedida sempre zera os adicionais."
+    },
+    "481": {
+      "EN": "There is no Cargo Guard in Erion.",
+      "PT": "Não existe Guarda do Cargo em Erion."
+    },
+    "482": {
+      "EN": "A +9 shield receives additional defense and resistances.",
+      "PT": "Um escudo +9 recebe defesa e resistências adicionais."
+    },
+    "483": {
+      "EN": "Pressing A shows the minimap in the lower-right corner.",
+      "PT": "Pressionar A mostra o minimapa no canto inferior direito."
     }
   }
 }

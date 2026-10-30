@@ -1,11 +1,13 @@
 package game
 
 import (
+	"encoding/binary"
 	"fmt"
 	"testing"
 	"time"
 
 	"wydgo/internal/model"
+	"wydgo/internal/wire"
 )
 
 // Official TMSRVIN InstanceType 6: Heal and Recovery without the old x1.4
@@ -195,5 +197,50 @@ func TestCancellationBreaksImmunityOrBlocksPotions(t *testing.T) {
 	w.executePlayerSkill(caster, []*Player{target}, skill, 100, 0)
 	if activePlayerAffectAt(target.Char, affectCancellation, now) == nil {
 		t.Fatal("Cancellation did not apply affect 32 without Immunity")
+	}
+}
+
+// Heal sends the caster's own attack packet; FakeExp must carry the durable
+// Hold so the client keeps showing the PvP EXP debt.
+func TestHealKeepsCasterHoldInAttackPacket(t *testing.T) {
+	caster, _ := networkedTestPlayer(1, "Foema", 2100, 2100)
+	target, _ := networkedTestPlayer(2, "Target", 2101, 2100)
+	w := worldWithNetworkedPlayers(caster, target)
+	w.rng = fixedRNG{value: 0}
+	caster.Char.Class = 1
+	caster.Char.LearnedSkill = 1 << (27 - 24)
+	caster.Char.Hold = 12345
+	party := &Party{Members: []*Player{caster, target}}
+	caster.Party, target.Party = party, party
+	setPlayerCurHP(target.Char, 100)
+	w.skills = map[int]model.SkillDef{27: {
+		Index: 27, Name: "Heal", InstanceType: 6, InstanceValue: 100,
+		ManaSpent: 10, Range: 6, MaxTarget: 1,
+	}}
+	drainPackets(caster)
+	w.onSkillAttack(caster, skillCastRequest{Skill: 27, TargetID: target.ID, Motion: 5})
+	found := false
+	for {
+		pkt, ok := caster.Session.DequeuePacketForTest()
+		if !ok {
+			break
+		}
+		if !wire.Decrypt(pkt) {
+			t.Fatal("undecodable packet")
+		}
+		h := wire.ParseHeader(pkt)
+		if (h.Type == wire.OpAttackOne || h.Type == wire.OpAttackTwo || h.Type == wire.OpAttackMulti) &&
+			binary.LittleEndian.Uint16(pkt[12:]) == caster.ID {
+			found = true
+			if got := binary.LittleEndian.Uint32(pkt[40:]); got != 12345 {
+				t.Fatalf("Heal FakeExp=%d, want Hold 12345", got)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("Heal sent no attack packet to the caster")
+	}
+	if caster.Char.Hold != 12345 {
+		t.Fatalf("Heal changed durable Hold to %d", caster.Char.Hold)
 	}
 }

@@ -2497,8 +2497,8 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 					if member := w.playersByID[id]; member != nil && member.InWorld && member.Session != nil && !member.Session.IsClosed() {
 						member.Session.Send(wire.StandardParm(
 							wire.OpInstanceTime, instanceSignalID, uint32(instanceQuestionDuration/time.Second)))
-						member.Session.Send(wire.InstanceQuestion(member.ID,
-							strings.ReplaceAll(quiz.Question, "_", " "), uint32(instanceQuestionDuration/time.Millisecond)))
+						member.Session.Send(instanceQuestionPacket(member.ID,
+							quiz, uint32(instanceQuestionDuration/time.Millisecond)))
 					}
 				}
 				w.markInstanceStateDirty()

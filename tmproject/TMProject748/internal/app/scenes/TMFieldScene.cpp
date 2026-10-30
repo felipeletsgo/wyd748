@@ -4183,9 +4183,11 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 		m_dwLastDeadTime = 0;
 	};
 	// The compact 7.48 path returns before the regular HUD tick. Close a stale
-	// respawn prompt for both paths as soon as authoritative HP is restored.
+	// respawn or Resurrection prompt (native FUN_004625DA) as soon as
+	// authoritative HP is restored.
 	if (m_pMessageBox && g_pObjectManager &&
-		m_pMessageBox->m_dwMessage == 11 && m_pMessageBox->IsVisible() == 1 &&
+		(m_pMessageBox->m_dwMessage == 11 || m_pMessageBox->m_dwMessage == 99) &&
+		m_pMessageBox->IsVisible() == 1 &&
 		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0)
 	{
 		m_pMessageBox->SetVisible(0);

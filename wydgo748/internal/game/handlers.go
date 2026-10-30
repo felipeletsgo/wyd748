@@ -1975,7 +1975,10 @@ func specialSkillLearned(ch *model.Char, skillIndex int) bool {
 	return ch != nil && ok && ch.LearnedSkill&(uint32(1)<<bit) != 0
 }
 
-func spectralPacket(ch *model.Char, packet []byte) []byte {
+// playerAttackPacket stamps a player attacker's Hold into FakeExp and adds the
+// Spectral visual bit. The client copies FakeExp into its displayed Hold.
+func playerAttackPacket(ch *model.Char, packet []byte) []byte {
+	packet = wire.AttackerHold(packet, ch.Hold)
 	if specialSkillLearned(ch, 101) {
 		return wire.SpectralVisual(packet)
 	}
@@ -2147,12 +2150,12 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 			}
 			w.sendToPlayerView(target, func() []byte {
 				if secondary.ok {
-					return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, target.X, target.Y,
+					return playerAttackPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, target.X, target.Y,
 						p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
 							{ID: target.ID, Miss: true, MaxHP: playerMaxHP(target.Char)}, secondary.target,
 						}))
 				}
-				return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID,
+				return playerAttackPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID,
 					p.X, p.Y, target.X, target.Y, 0, playerMaxHP(target.Char), p.Char.Exp,
 					playerCombatMP(p.Char), 0, true))
 			})
@@ -2187,16 +2190,16 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		// authoritative health decreases only by actual available HP.
 		w.sendToPlayerView(target, func() []byte {
 			if secondary.ok {
-				return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, target.X, target.Y,
+				return playerAttackPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, target.X, target.Y,
 					p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
 						{ID: target.ID, Damage: calculated, MaxHP: playerMaxHP(target.Char)}, secondary.target,
 					}))
 			}
 			if hit.Flank > 0 {
-				return spectralPacket(p.Char, wire.AttackHitWideFlankResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
+				return playerAttackPacket(p.Char, wire.AttackHitWideFlankResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
 					calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), hit.Flank))
 			}
-			return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
+			return playerAttackPacket(p.Char, wire.AttackHitWideResult(p.ID, target.ID, p.X, p.Y, target.X, target.Y,
 				calculated, playerMaxHP(target.Char), p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 		})
 		w.syncPlayerVitals(target)
@@ -2233,12 +2236,12 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		}
 		w.sendToMobView(m, func() []byte {
 			if secondary.ok {
-				return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, m.X, m.Y,
+				return playerAttackPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, m.X, m.Y,
 					p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
 						{ID: m.ID, Miss: true, MaxHP: m.Def.Score.MaxHP}, secondary.target,
 					}))
 			}
-			return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+			return playerAttackPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 				0, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
 		})
 		w.finalizeIronSpearSecondary(p, secondary)
@@ -2274,16 +2277,16 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// let a client observe an encounter it could not target).
 	w.sendToMobView(m, func() []byte {
 		if secondary.ok {
-			return spectralPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, m.X, m.Y,
+			return playerAttackPacket(p.Char, wire.AttackHitsWideTwoResult(p.ID, p.X, p.Y, m.X, m.Y,
 				p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), []wire.SkillTarget{
 					{ID: m.ID, Damage: dmg, MaxHP: m.Def.Score.MaxHP}, secondary.target,
 				}))
 		}
 		if hit.Flank > 0 {
-			return spectralPacket(p.Char, wire.AttackHitWideFlankResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+			return playerAttackPacket(p.Char, wire.AttackHitWideFlankResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 				dmg, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), hit.Flank))
 		}
-		return spectralPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
+		return playerAttackPacket(p.Char, wire.AttackHitWideResult(p.ID, m.ID, p.X, p.Y, m.X, m.Y,
 			dmg, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), hit.visualFlags(), false))
 	})
 	w.finalizeIronSpearSecondary(p, secondary)

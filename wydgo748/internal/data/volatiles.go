@@ -735,7 +735,7 @@ func loadVolatileData(file volatileDataFile, items map[uint16]model.ItemDef,
 					}
 					if stage.Quiz != nil {
 						q := stage.Quiz
-						if strings.TrimSpace(q.Question) == "" || q.DurationSeconds <= 0 ||
+						if strings.TrimSpace(q.Question) == "" || q.DurationSeconds <= 0 || q.TextIndex >= 2000 ||
 							q.TrueX == 0 || q.TrueY == 0 || q.FalseX == 0 || q.FalseY == 0 {
 							return rule, fmt.Errorf(
 								"data: %s instance_ticket stages[%d] has quiz incomplete",

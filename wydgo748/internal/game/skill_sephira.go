@@ -31,8 +31,9 @@ func (w *World) thornWallAt(x, y uint16, space string) bool {
 	return false
 }
 
-// destroyThornWall removes a wall killed by damage. It grants no reward.
-func (w *World) destroyThornWall(m *Mob, killerID uint16) {
+// destroyPlayerSummon removes a thorn wall or combat summon killed by damage.
+// It grants no reward.
+func (w *World) destroyPlayerSummon(m *Mob, killerID uint16) {
 	if m == nil || m.Dead {
 		return
 	}
@@ -96,7 +97,7 @@ func (w *World) castThornWall(p *Player, req skillCastRequest, skill model.Skill
 	w.appendMobInstance(m)
 	w.publishMobSpawn(m)
 	w.sendToPlayerView(p, func() []byte {
-		return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, m.X, m.Y, p.Char.Exp, playerCombatMP(p.Char),
+		return playerAttackPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, m.X, m.Y, p.Char.Exp, playerCombatMP(p.Char),
 			int16(skill.Index), motion, skillVisualLevel(mastery), 1,
 			[]wire.SkillTarget{{ID: m.ID}}))
 	})

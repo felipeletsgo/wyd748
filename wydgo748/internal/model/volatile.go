@@ -407,7 +407,9 @@ type VolatileHellGateQuadrant struct {
 // answers exit. TrueX/TrueY identify O (Yes), FalseX/FalseY identify X (No).
 // The names refer to statement truth, not platform artwork.
 type VolatileInstanceQuiz struct {
-	Question        string `json:"question"`
+	Question string `json:"question"`
+	// TextIndex is the UI/strdef.bin row with the EN/PT question text.
+	TextIndex       uint16 `json:"textIndex,omitempty"`
 	Answer          bool   `json:"answer"`
 	TrueX           uint16 `json:"trueX"`
 	TrueY           uint16 `json:"trueY"`

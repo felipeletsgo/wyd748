@@ -797,6 +797,15 @@ func SkillHit(attackerID, targetID, attackerX, attackerY, targetX, targetY uint1
 		[]SkillTarget{{ID: targetID, Damage: damage, MaxHP: targetMaxHP}})
 }
 
+// AttackerHold writes the attacker's Hold into FakeExp (@40). The client reads
+// FakeExp for its own attacks and replaces the displayed Hold with it.
+func AttackerHold(packet []byte, hold uint32) []byte {
+	if len(packet) >= 44 {
+		putU32(packet, 40, hold)
+	}
+	return packet
+}
+
 // SpectralVisual sets DoubleCritical bit 3. The client uses that bit to render
 // the Spectral Force effect on the weapon during the attack.
 func SpectralVisual(packet []byte) []byte {

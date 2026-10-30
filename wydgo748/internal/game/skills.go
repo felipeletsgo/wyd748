@@ -744,7 +744,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			}
 		}
 		w.sendToPlayerView(p, func() []byte {
-			return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
+			return playerAttackPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 				p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
 				skill.MaxTarget, wireTargets))
 		})
@@ -860,11 +860,11 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	primary := targets[0]
 	w.sendToMobView(primary, func() []byte {
 		if directDamage {
-			return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
+			return playerAttackPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 				p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
 				offensiveSkillWireMaxTargets(p.Char, skill), wireTargets))
 		}
-		return spectralPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
+		return playerAttackPacket(p.Char, wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y,
 			p.Char.Exp, playerCombatMP(p.Char), int16(skillIndex), motion, skillVisualLevel(mastery),
 			offensiveSkillWireMaxTargets(p.Char, skill), wireTargets))
 	})

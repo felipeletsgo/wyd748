@@ -263,5 +263,8 @@ int RunFieldViewContractTests(int& checks)
         "int TMHuman::OnPacketSetHpMp(MSG_SetHpMp* pStd)");
     check(hpMp.find("hp == 0") != std::string::npos && hpMp.find("mp == 0") == std::string::npos,
         "a mob HP/MP update releases the retained target only at zero HP, not at zero MP");
+    check(physicalPackets.find("SkillIndex == 94) // Ethereal Explosion") != std::string::npos &&
+        physicalPackets.find("SkillIndex == 86) // Ethereal Explosion") == std::string::npos,
+        "Ethereal Explosion arrows belong to skill 94, not Golden Shield 86");
     return failures;
 }

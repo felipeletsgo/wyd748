@@ -1852,7 +1852,7 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			}
 		}
 	}
-	else if (pAttack->SkillIndex == 86) // Ethereal Explosion
+	else if (pAttack->SkillIndex == 94) // Ethereal Explosion (native FUN_00489A3E, 0x5E)
 	{
 		if (pAttacker)
 		{

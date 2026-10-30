@@ -348,7 +348,7 @@ func TestThornWallBlocksPlayerRoute(t *testing.T) {
 		t.Fatalf("player crossed the Thorn Wall vine: position=(%d,%d)", p.X, p.Y)
 	}
 
-	w.destroyThornWall(wall, p.ID)
+	w.destroyPlayerSummon(wall, p.ID)
 	now = w.now()
 	w.beginPlayerMovement(p, 2101, 2100, 2103, 2100, []byte("66"), []byte("66"), 0, now)
 	w.advancePlayerMovement(p, now.Add(10*time.Second))

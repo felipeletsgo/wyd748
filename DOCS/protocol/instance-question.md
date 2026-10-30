@@ -60,6 +60,15 @@ unterminated text and empty active questions. The field scene also requires
 the recipient ID to match its own character. Duration zero closes the panel.
 This packet is sent privately to admitted members, never to bystanders.
 
+### Version 2: localized question (2026-10-30)
+
+Version 2 reuses offset 14 as `TextIndex`, a `UI/strdef.bin` row from 1 to 1999.
+The client shows that row in its selected language. Offset 20 keeps the
+English text as the fallback for an empty or missing row. Version 1 requires
+`TextIndex=0`. Close packets stay version 1. Each quiz in `instances.json` names
+its row with `textIndex`; rows 459..483 hold the 25 EN/PT Cube questions.
+The server never infers the player's language.
+
 ## Lifecycle and authority
 
 ### Automatic public OX

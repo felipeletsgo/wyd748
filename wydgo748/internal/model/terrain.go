@@ -49,6 +49,19 @@ func (m TerrainMap) NewbieZone(x, y uint16) bool {
 	return m.Attribute[(int(y)/4)*AttributeWidth+int(x)/4]&0x80 != 0
 }
 
+// PvPZone mirrors W2PP GetFunc player/summon damage: PvP needs attribute 0x40
+// and no 0x01 at the cell. Unloaded test terrain allows PvP everywhere.
+func (m TerrainMap) PvPZone(x, y uint16) bool {
+	if !m.Loaded() {
+		return true
+	}
+	if int(x) >= TerrainWidth || int(y) >= TerrainHeight {
+		return false
+	}
+	attribute := m.Attribute[(int(y)/4)*AttributeWidth+int(x)/4]
+	return attribute&0x40 != 0 && attribute&0x01 == 0
+}
+
 func (m TerrainMap) heightCompatible(fromX, fromY, toX, toY uint16, limit int) bool {
 	if !m.Walkable(toX, toY) {
 		return false

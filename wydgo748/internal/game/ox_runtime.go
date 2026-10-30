@@ -2,7 +2,6 @@ package game
 
 import (
 	"fmt"
-	"strings"
 	"time"
 
 	"wydgo/internal/control"
@@ -218,7 +217,7 @@ func (w *World) tickOXEvent(now time.Time) {
 		o.phase, o.deadline = "question", now.Add(instanceQuestionDuration)
 		for p := range o.members {
 			p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, 10))
-			p.Session.Send(wire.InstanceQuestion(p.ID, strings.ReplaceAll(o.questions[o.round].Question, "_", " "), 10000))
+			p.Session.Send(instanceQuestionPacket(p.ID, &o.questions[o.round], 10000))
 		}
 	case "question":
 		correct := o.questions[o.round].Answer

@@ -265,6 +265,7 @@ func (w *World) summonTarget(owner *Player, id uint16) summonCombatTarget {
 	}
 	p := w.playerByID(id)
 	if !w.canInitiatePvP(owner, p) || !validMobTargetAt(p, w.now()) || p == owner ||
+		!w.terrain.PvPZone(owner.X, owner.Y) || !w.terrain.PvPZone(p.X, p.Y) ||
 		!w.playersShareGameplaySpace(owner, p) ||
 		p.Party != nil && p.Party == owner.Party ||
 		chebyshev(owner.X, owner.Y, p.X, p.Y) > summonCommandRange {
@@ -438,6 +439,10 @@ func (w *World) tickSummonCombat(now time.Time) {
 			if target.mob.HP == 0 {
 				w.killMobState(owner, target.mob, damage, minU32(damage, oldHP))
 			}
+			continue
+		}
+		// W2PP GetFunc: no summon PvP damage unless both cells allow PvP.
+		if !w.terrain.PvPZone(summon.X, summon.Y) || !w.terrain.PvPZone(target.user.X, target.user.Y) {
 			continue
 		}
 		hit := mobPhysicalHitPlayerAt(summon, target.user.Char, w.intn, now)

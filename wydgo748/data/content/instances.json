@@ -317,6 +317,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The M key shows the minimap in the lower-right corner.",
+            "textIndex": 459,
             "answer": false,
             "trueX": 1689,
             "trueY": 4081,
@@ -340,6 +341,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The M key shows the minimap in the upper-right corner.",
+            "textIndex": 460,
             "answer": true,
             "trueX": 1711,
             "trueY": 4081,
@@ -363,6 +365,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Foema starts walking with her right foot.",
+            "textIndex": 461,
             "answer": true,
             "trueX": 1733,
             "trueY": 4081,
@@ -386,6 +389,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The two-castle WYD Society quest grants an IMP.",
+            "textIndex": 462,
             "answer": true,
             "trueX": 1755,
             "trueY": 4081,
@@ -409,6 +413,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The two-castle WYD Society quest grants Nyerdes.",
+            "textIndex": 463,
             "answer": false,
             "trueX": 1777,
             "trueY": 4081,
@@ -432,6 +437,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A guild medal costs 8000000 before taxes.",
+            "textIndex": 464,
             "answer": true,
             "trueX": 1775,
             "trueY": 4049,
@@ -455,6 +461,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "WYD's maximum resolution is 1600x1200 at 32 bits.",
+            "textIndex": 465,
             "answer": true,
             "trueX": 1775,
             "trueY": 4027,
@@ -478,6 +485,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "WYD's minimum resolution is 640x480 at 16 bits.",
+            "textIndex": 466,
             "answer": true,
             "trueX": 1775,
             "trueY": 4005,
@@ -501,6 +509,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "There are seven types of crystals.",
+            "textIndex": 467,
             "answer": true,
             "trueX": 1767,
             "trueY": 3983,
@@ -524,6 +533,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The Star Gem can memorize any location.",
+            "textIndex": 468,
             "answer": false,
             "trueX": 1743,
             "trueY": 3985,
@@ -547,6 +557,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "+9 items cannot receive options.",
+            "textIndex": 469,
             "answer": false,
             "trueX": 1721,
             "trueY": 3985,
@@ -570,6 +581,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Skill points are required to learn skills.",
+            "textIndex": 470,
             "answer": true,
             "trueX": 1699,
             "trueY": 3985,
@@ -593,6 +605,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A complete set grants a defense bonus.",
+            "textIndex": 471,
             "answer": true,
             "trueX": 1677,
             "trueY": 3985,
@@ -616,6 +629,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Athena's Touch increases skill learning.",
+            "textIndex": 472,
             "answer": true,
             "trueX": 1679,
             "trueY": 4017,
@@ -639,6 +653,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Sapphire is sold by the Royal Merchant.",
+            "textIndex": 473,
             "answer": true,
             "trueX": 1679,
             "trueY": 4039,
@@ -662,6 +677,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "An account can have five characters.",
+            "textIndex": 474,
             "answer": false,
             "trueX": 1679,
             "trueY": 4061,
@@ -685,6 +701,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Total experience is greater in a party.",
+            "textIndex": 475,
             "answer": true,
             "trueX": 1711,
             "trueY": 4059,
@@ -708,6 +725,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Fairy's Voice is used on targeted monsters.",
+            "textIndex": 476,
             "answer": false,
             "trueX": 1733,
             "trueY": 4059,
@@ -731,6 +749,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Skill points are obtained only by leveling.",
+            "textIndex": 477,
             "answer": false,
             "trueX": 1755,
             "trueY": 4059,
@@ -754,6 +773,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Foema uses a flamethrower for Fire Attack.",
+            "textIndex": 478,
             "answer": false,
             "trueX": 1753,
             "trueY": 4027,
@@ -777,6 +797,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Potions are sold by the Royal Merchant.",
+            "textIndex": 479,
             "answer": false,
             "trueX": 1753,
             "trueY": 4005,
@@ -800,6 +821,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Successful composition always resets the options.",
+            "textIndex": 480,
             "answer": false,
             "trueX": 1721,
             "trueY": 4007,
@@ -823,6 +845,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "There is no Cargo Guard in Erion.",
+            "textIndex": 481,
             "answer": false,
             "trueX": 1699,
             "trueY": 4007,
@@ -846,6 +869,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A +9 shield receives additional defense and resistances.",
+            "textIndex": 482,
             "answer": true,
             "trueX": 1701,
             "trueY": 4039,
@@ -889,6 +913,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The M key shows the minimap in the lower-right corner.",
+            "textIndex": 459,
             "answer": false,
             "trueX": 1817,
             "trueY": 3953,
@@ -912,6 +937,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The M key shows the minimap in the upper-right corner.",
+            "textIndex": 460,
             "answer": true,
             "trueX": 1839,
             "trueY": 3953,
@@ -935,6 +961,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Foema starts walking with her right foot.",
+            "textIndex": 461,
             "answer": true,
             "trueX": 1861,
             "trueY": 3953,
@@ -958,6 +985,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The two-castle WYD Society quest grants an IMP.",
+            "textIndex": 462,
             "answer": true,
             "trueX": 1883,
             "trueY": 3953,
@@ -981,6 +1009,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The two-castle WYD Society quest grants Nyerdes.",
+            "textIndex": 463,
             "answer": false,
             "trueX": 1905,
             "trueY": 3953,
@@ -1004,6 +1033,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A guild medal costs 8000000 before taxes.",
+            "textIndex": 464,
             "answer": true,
             "trueX": 1903,
             "trueY": 3921,
@@ -1027,6 +1057,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "WYD's maximum resolution is 1600x1200 at 32 bits.",
+            "textIndex": 465,
             "answer": true,
             "trueX": 1903,
             "trueY": 3899,
@@ -1050,6 +1081,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "WYD's minimum resolution is 640x480 at 16 bits.",
+            "textIndex": 466,
             "answer": true,
             "trueX": 1903,
             "trueY": 3877,
@@ -1073,6 +1105,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "There are seven types of crystals.",
+            "textIndex": 467,
             "answer": true,
             "trueX": 1895,
             "trueY": 3855,
@@ -1096,6 +1129,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The Star Gem can memorize any location.",
+            "textIndex": 468,
             "answer": false,
             "trueX": 1871,
             "trueY": 3857,
@@ -1119,6 +1153,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "+9 items cannot receive options.",
+            "textIndex": 469,
             "answer": false,
             "trueX": 1849,
             "trueY": 3857,
@@ -1142,6 +1177,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Skill points are required to learn skills.",
+            "textIndex": 470,
             "answer": true,
             "trueX": 1827,
             "trueY": 3857,
@@ -1165,6 +1201,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A complete set grants a defense bonus.",
+            "textIndex": 471,
             "answer": true,
             "trueX": 1805,
             "trueY": 3857,
@@ -1188,6 +1225,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Athena's Touch increases skill learning.",
+            "textIndex": 472,
             "answer": true,
             "trueX": 1807,
             "trueY": 3889,
@@ -1211,6 +1249,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Sapphire is sold by the Royal Merchant.",
+            "textIndex": 473,
             "answer": true,
             "trueX": 1807,
             "trueY": 3911,
@@ -1234,6 +1273,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "An account can have five characters.",
+            "textIndex": 474,
             "answer": false,
             "trueX": 1807,
             "trueY": 3933,
@@ -1257,6 +1297,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Total experience is greater in a party.",
+            "textIndex": 475,
             "answer": true,
             "trueX": 1839,
             "trueY": 3931,
@@ -1280,6 +1321,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Fairy's Voice is used on targeted monsters.",
+            "textIndex": 476,
             "answer": false,
             "trueX": 1861,
             "trueY": 3931,
@@ -1303,6 +1345,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Skill points are obtained only by leveling.",
+            "textIndex": 477,
             "answer": false,
             "trueX": 1883,
             "trueY": 3931,
@@ -1326,6 +1369,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Foema uses a flamethrower for Fire Attack.",
+            "textIndex": 478,
             "answer": false,
             "trueX": 1881,
             "trueY": 3899,
@@ -1349,6 +1393,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Potions are sold by the Royal Merchant.",
+            "textIndex": 479,
             "answer": false,
             "trueX": 1881,
             "trueY": 3877,
@@ -1372,6 +1417,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Successful composition always resets the options.",
+            "textIndex": 480,
             "answer": false,
             "trueX": 1849,
             "trueY": 3879,
@@ -1395,6 +1441,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "There is no Cargo Guard in Erion.",
+            "textIndex": 481,
             "answer": false,
             "trueX": 1827,
             "trueY": 3879,
@@ -1418,6 +1465,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A +9 shield receives additional defense and resistances.",
+            "textIndex": 482,
             "answer": true,
             "trueX": 1829,
             "trueY": 3911,
@@ -1461,6 +1509,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The M key shows the minimap in the lower-right corner.",
+            "textIndex": 459,
             "answer": false,
             "trueX": 1945,
             "trueY": 4081,
@@ -1484,6 +1533,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The M key shows the minimap in the upper-right corner.",
+            "textIndex": 460,
             "answer": true,
             "trueX": 1967,
             "trueY": 4081,
@@ -1507,6 +1557,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Foema starts walking with her right foot.",
+            "textIndex": 461,
             "answer": true,
             "trueX": 1989,
             "trueY": 4081,
@@ -1530,6 +1581,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The two-castle WYD Society quest grants an IMP.",
+            "textIndex": 462,
             "answer": true,
             "trueX": 2011,
             "trueY": 4081,
@@ -1553,6 +1605,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The two-castle WYD Society quest grants Nyerdes.",
+            "textIndex": 463,
             "answer": false,
             "trueX": 2033,
             "trueY": 4081,
@@ -1576,6 +1629,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A guild medal costs 8000000 before taxes.",
+            "textIndex": 464,
             "answer": true,
             "trueX": 2031,
             "trueY": 4049,
@@ -1599,6 +1653,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "WYD's maximum resolution is 1600x1200 at 32 bits.",
+            "textIndex": 465,
             "answer": true,
             "trueX": 2031,
             "trueY": 4027,
@@ -1622,6 +1677,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "WYD's minimum resolution is 640x480 at 16 bits.",
+            "textIndex": 466,
             "answer": true,
             "trueX": 2031,
             "trueY": 4005,
@@ -1645,6 +1701,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "There are seven types of crystals.",
+            "textIndex": 467,
             "answer": true,
             "trueX": 2023,
             "trueY": 3983,
@@ -1668,6 +1725,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "The Star Gem can memorize any location.",
+            "textIndex": 468,
             "answer": false,
             "trueX": 1999,
             "trueY": 3985,
@@ -1691,6 +1749,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "+9 items cannot receive options.",
+            "textIndex": 469,
             "answer": false,
             "trueX": 1977,
             "trueY": 3985,
@@ -1714,6 +1773,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Skill points are required to learn skills.",
+            "textIndex": 470,
             "answer": true,
             "trueX": 1955,
             "trueY": 3985,
@@ -1737,6 +1797,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A complete set grants a defense bonus.",
+            "textIndex": 471,
             "answer": true,
             "trueX": 1933,
             "trueY": 3985,
@@ -1760,6 +1821,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Athena's Touch increases skill learning.",
+            "textIndex": 472,
             "answer": true,
             "trueX": 1935,
             "trueY": 4017,
@@ -1783,6 +1845,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Sapphire is sold by the Royal Merchant.",
+            "textIndex": 473,
             "answer": true,
             "trueX": 1935,
             "trueY": 4039,
@@ -1806,6 +1869,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "An account can have five characters.",
+            "textIndex": 474,
             "answer": false,
             "trueX": 1935,
             "trueY": 4061,
@@ -1829,6 +1893,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Total experience is greater in a party.",
+            "textIndex": 475,
             "answer": true,
             "trueX": 1967,
             "trueY": 4059,
@@ -1852,6 +1917,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Fairy's Voice is used on targeted monsters.",
+            "textIndex": 476,
             "answer": false,
             "trueX": 1989,
             "trueY": 4059,
@@ -1875,6 +1941,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Skill points are obtained only by leveling.",
+            "textIndex": 477,
             "answer": false,
             "trueX": 2011,
             "trueY": 4059,
@@ -1898,6 +1965,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Foema uses a flamethrower for Fire Attack.",
+            "textIndex": 478,
             "answer": false,
             "trueX": 2009,
             "trueY": 4027,
@@ -1921,6 +1989,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Potions are sold by the Royal Merchant.",
+            "textIndex": 479,
             "answer": false,
             "trueX": 2009,
             "trueY": 4005,
@@ -1944,6 +2013,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "Successful composition always resets the options.",
+            "textIndex": 480,
             "answer": false,
             "trueX": 1977,
             "trueY": 4007,
@@ -1967,6 +2037,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "There is no Cargo Guard in Erion.",
+            "textIndex": 481,
             "answer": false,
             "trueX": 1955,
             "trueY": 4007,
@@ -1990,6 +2061,7 @@
           "areaRadius": 10,
           "quiz": {
             "question": "A +9 shield receives additional defense and resistances.",
+            "textIndex": 482,
             "answer": true,
             "trueX": 1957,
             "trueY": 4039,
@@ -2056,6 +2128,7 @@
           "spawns": [],
           "quiz": {
             "question": "Pressing A shows the minimap in the lower-right corner.",
+            "textIndex": 483,
             "answer": false,
             "trueX": 1316,
             "trueY": 1500,

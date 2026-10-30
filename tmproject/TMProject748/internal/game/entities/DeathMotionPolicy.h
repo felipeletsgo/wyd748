@@ -9,6 +9,21 @@ constexpr bool MayOfferRespawnPrompt(bool alreadyOffered, bool playerAction, boo
     return !channeling && (playerAction || !alreadyOffered);
 }
 
+// Native FUN_004625DA: a dead player's right click offers Resurrection (99)
+// when the skill sits on any of the 20 short-skill slots and none is pending.
+constexpr int ResurrectionSkill = 99;
+
+constexpr bool CanOfferResurrectionPrompt(int currentHp, bool dead, bool resurrectPending,
+    bool controlHeld, bool promptVisible, const char* shortSkills, int slotCount)
+{
+    if (!(currentHp <= 0 || dead) || resurrectPending || controlHeld || promptVisible || !shortSkills)
+        return false;
+    for (int i = 0; i < slotCount; ++i)
+        if (shortSkills[i] == ResurrectionSkill)
+            return true;
+    return false;
+}
+
 // An unfinished route must not replace a death animation with travel motion.
 constexpr bool MayEnterTravelAnimation(int currentHp, bool dead, bool sliding)
 {

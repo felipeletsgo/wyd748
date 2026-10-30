@@ -39,6 +39,8 @@ int TMFieldScene::OnMouseEventCompat(unsigned int dwFlags, unsigned int wParam, 
 	}
 	if (!m_pMyHuman || !m_pGround)
 		return 0;
+	if (dwFlags == WM_RBUTTONDOWN && OfferResurrectionPrompt(wParam))
+		return 1;
 	if ((dwFlags == WM_LBUTTONDOWN || dwFlags == WM_RBUTTONDOWN) && OfferRespawnPrompt(true))
 		return 1;
 	if (dwFlags == 512)

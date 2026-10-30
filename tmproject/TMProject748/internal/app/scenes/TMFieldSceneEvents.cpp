@@ -742,7 +742,8 @@ int TMFieldScene::OnPacketInstanceQuestion(MSG_STANDARD* packet)
 		packet->ID != g_pObjectManager->m_dwCharID ||
 		!instance_question::Parse(packet, packet->Size, question)) return 0;
 	m_instanceQuestion.Apply(question, GetTickCount());
-	m_pInstanceQuestionPanel->SetMessage(question.Question, 0);
+	m_pInstanceQuestionPanel->SetMessage(instance_question::DisplayText(question,
+		g_pMessageStringTable, MAX_STRING), 0);
 	m_pInstanceQuestionPanel->SetVisible(m_instanceQuestion.Visible(GetTickCount()) ? 1 : 0, 1);
 	return 1;
 }

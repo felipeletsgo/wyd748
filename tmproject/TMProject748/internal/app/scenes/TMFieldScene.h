@@ -277,6 +277,7 @@ public:
 
 	void GameAuto();
 	bool OfferRespawnPrompt(bool playerAction);
+	bool OfferResurrectionPrompt(unsigned int wParam);
 
 private:
 	// Helpers extracted from TMFieldScene::FrameMove.

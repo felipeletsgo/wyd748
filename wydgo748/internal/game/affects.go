@@ -1379,8 +1379,8 @@ func (w *World) tickAreaDamageAffect(p *Player, affect *model.Affect, skillIndex
 	primary := targets[0]
 	w.sendToMobView(primary, func() []byte {
 		visualSkill, motion := tickAreaVisual(skillIndex)
-		return wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y, p.Char.Exp,
-			playerCombatMP(p.Char), int16(visualSkill), motion, skillVisualLevel(affect.Level), 13, wireTargets)
+		return wire.AttackerHold(wire.SkillHits(p.ID, p.X, p.Y, primary.X, primary.Y, p.Char.Exp,
+			playerCombatMP(p.Char), int16(visualSkill), motion, skillVisualLevel(affect.Level), 13, wireTargets), p.Char.Hold)
 	})
 	batchAccounts := uniqueKillAccounts(p, w.partyExpShares(p, 1, w.gameplay.PartyEXPBonusPercent))
 	killPlans := make([]*killRewardPlan, 0, len(targets))

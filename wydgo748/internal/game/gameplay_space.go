@@ -23,8 +23,8 @@ func (w *World) hostileMob(m *Mob) bool {
 
 // playerCanInteractWithMob is the single combat/skill boundary for hostile
 // mobs. A public monster is targetable only from the public world; an event
-// monster is targetable only by a member of that exact runtime. NPCs and
-// player summons are intentionally excluded from this predicate.
+// monster is targetable only by a member of that exact runtime. NPCs are
+// excluded; another player's combat summon follows playerCanAttackSummon.
 func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 	if w.criticalGuildMobReserved(m) {
 		return false
@@ -34,7 +34,7 @@ func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 	}
 	// The thorn wall is a player summon, but native Vinha is an ordinary mob
 	// that any player can damage and destroy.
-	if p == nil || !w.hostileMob(m) && !isThornWall(m) {
+	if p == nil || !w.hostileMob(m) && !isThornWall(m) && !w.playerCanAttackSummon(p, m) {
 		return false
 	}
 	// A few pure targeting helpers intentionally use a zero-value Player in
@@ -64,7 +64,7 @@ func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 // visible/targetable in one path while still attacking across a runtime wall
 // in another path.
 func (w *World) mobCanTargetPlayer(m *Mob, p *Player) bool {
-	return !isThornWall(m) && !w.criticalPlayerReserved(p) && w.playerCanInteractWithMob(p, m) &&
+	return !isThornWall(m) && m.SummonerID == 0 && !w.criticalPlayerReserved(p) && w.playerCanInteractWithMob(p, m) &&
 		(p.Char == nil || !hasActiveAffectAt(p.Char, 28, w.now()))
 }
 
@@ -202,4 +202,25 @@ func (w *World) affectOwnerPlayer(a *model.Affect) *Player {
 
 func affectHasPlayerOwner(a *model.Affect) bool {
 	return a != nil && (strings.TrimSpace(a.OwnerCharacterUID) != "" || a.OwnerID != 0)
+}
+
+// isCombatSummon reports a BM or contract summon that fights for its owner.
+func isCombatSummon(m *Mob) bool {
+	return m != nil && m.SummonerID != 0 && !m.Dead &&
+		(m.SummonKind == summonKindBM || m.SummonKind == summonKindContract)
+}
+
+// playerCanAttackSummon follows W2PP GetFunc: damage between a player and a
+// summon is PvP. The attacker needs PvP permission against the owner, and
+// both must stand in a PK cell. Owners and party members cannot hit it.
+func (w *World) playerCanAttackSummon(p *Player, m *Mob) bool {
+	if p == nil || p.Char == nil || !isCombatSummon(m) {
+		return false
+	}
+	owner := w.playerByID(m.SummonerID)
+	if owner == nil || owner == p || owner.Party != nil && owner.Party == p.Party {
+		return false
+	}
+	return w.canInitiatePvP(p, owner) &&
+		w.terrain.PvPZone(p.X, p.Y) && w.terrain.PvPZone(m.X, m.Y)
 }

@@ -34,3 +34,18 @@ func TestInstanceQuestionContract(t *testing.T) {
 		}
 	}
 }
+
+func TestInstanceQuestionTextUsesVersion2(t *testing.T) {
+	p := InstanceQuestionText(17, 470, "Question?", 10000)
+	if binary.LittleEndian.Uint16(p[12:14]) != 2 || binary.LittleEndian.Uint16(p[14:16]) != 470 ||
+		string(p[20:29]) != "Question?" {
+		t.Fatalf("invalid v2 question packet: %x", p)
+	}
+	closed := InstanceQuestionText(17, 470, "", 0)
+	if binary.LittleEndian.Uint16(closed[12:14]) != 1 || binary.LittleEndian.Uint16(closed[14:16]) != 0 {
+		t.Fatal("close packet must stay version 1")
+	}
+	if v1 := InstanceQuestionText(17, 0, "Question?", 10000); binary.LittleEndian.Uint16(v1[12:14]) != 1 {
+		t.Fatal("question without a row must stay version 1")
+	}
+}
