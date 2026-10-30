@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.012",
+  "feedVersion": 48012,
+  "status": "PUBLISHED_AND_ACTIVE",
+  "authorization": {
+    "scope": "User requested publish and restart.",
+    "restart": true,
+    "publication": true,
+    "workingTree": false
+  },
+  "source": {
+    "clientHead": "41db2d0ea7efd54aa9d067cbbc4188fc75337ead",
+    "serverHead": "58d11abaa889ec5d41f24d53605124a584c81be7",
+    "mode": "tracked-working-tree",
+    "note": "58d11aba only adds config.txt and site content on top of the client head.",
+    "serverSourceFiles": 2199,
+    "serverManifest": "build/deploy/wyd-deploy-20261030-748012/release-manifest.json"
+  },
+  "changes": [
+    "Macros keep continuous attack; buffs renew on cooldown; Ethereal Explosion 1 s delay and skill-94 visual.",
+    "Server PvP needs PK cells; BM summons follow PvP rules and deal 30% AI damage; /dispensar.",
+    "Hold kept in attack packets; W2PP Resurrection with dead right-click prompt.",
+    "Cube questions and notices in EN/PT; green cape exchange with Recall Scroll; Fairy Dust, Arch stones, crystals 160 s, reset routes, Anubis face."
+  ],
+  "clientPatch": {
+    "mode": "committed",
+    "from": "11985532",
+    "zip": {
+      "path": "build/patch/patch-48012.zip",
+      "size": 938967,
+      "sha256": "065d2bb04c2692390aebcbb24de6dda551bed004526e8d82df7ed298994feb9b"
+    },
+    "entries": {
+      "WYD.exe": {
+        "size": 2071552,
+        "sha256": "65b28644d6a2434cfeb67c838c66cb010b9e693d4b110518b7c773760fb2bb11"
+      },
+      "EN/UI/command.txt": {
+        "size": 2090,
+        "sha256": "78404ba7a675d3c9c9a063292bb589cca4d14a3d90d7c9d55bdfa96d04189e41"
+      },
+      "EN/UI/strdef.bin": {
+        "size": 63492,
+        "sha256": "76423289d86ba80f39f2f661e386d0987d5718ca2896a6139f852b60d160b554"
+      },
+      "PT/UI/command.txt": {
+        "size": 1884,
+        "sha256": "acf196984c51dcfcfa3bc1dcc90ea10161c2f37937754f8db1b2475d0e55c0d2"
+      },
+      "PT/UI/strdef.bin": {
+        "size": 63492,
+        "sha256": "613cbb399491a14d8b15feccdbb2c4ed0b5d72510ca3dd6cb2fa7a8fd364dafc"
+      },
+      "SkillData.bin": {
+        "size": 9984,
+        "sha256": "c0a6fe95e7c8cc9ab29df8c2ff33dd983e9ab170704fecca9315d5a3592daad5"
+      },
+      "UI/command.txt": {
+        "size": 2090,
+        "sha256": "78404ba7a675d3c9c9a063292bb589cca4d14a3d90d7c9d55bdfa96d04189e41"
+      },
+      "UI/strdef.bin": {
+        "size": 63492,
+        "sha256": "76423289d86ba80f39f2f661e386d0987d5718ca2896a6139f852b60d160b554"
+      }
+    },
+    "dependencyClosure": "WYD.exe with root/EN/PT strdef.bin and command.txt and SkillData.bin; no new mesh, texture or library."
+  },
+  "revision": {
+    "clientBuildContract": 12,
+    "serverMinimum": 12,
+    "previousPublished": 11
+  },
+  "serverArchive": {
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 25713086,
+      "sha256": "51602f23bde7882d87c990baa62869446aece76b26251a1a2e590ee3d50e3e41"
+    },
+    "inspection": {
+      "payloadFiles": 7721,
+      "sourceFiles": 2199,
+      "runtimeDataFiles": 1074,
+      "archive": {
+        "path": "release.tar.gz",
+        "size": 25713086,
+        "sha256": "51602f23bde7882d87c990baa62869446aece76b26251a1a2e590ee3d50e3e41"
+      },
+      "head": "58d11abaa889ec5d41f24d53605124a584c81be7",
+      "allHashesMatch": true,
+      "mode": "tracked-working-tree"
+    }
+  },
+  "preflight": {
+    "at": "2026-10-30T04:29:18.571767+00:00",
+    "release": "/srv/wyd-go/releases/20261029T203701Z",
+    "connections": "",
+    "schema": "14"
+  },
+  "publication": {
+    "at": "2026-10-30T04:34:37.067783+00:00",
+    "results": [
+      {
+        "scheme": "http",
+        "feedStatus": 200,
+        "zipStatus": 200,
+        "zipBytes": 938967,
+        "zipSHA256": "065d2bb04c2692390aebcbb24de6dda551bed004526e8d82df7ed298994feb9b",
+        "contentType": "application/zip",
+        "entriesVerified": [
+          "WYD.exe",
+          "EN/UI/command.txt",
+          "EN/UI/strdef.bin",
+          "PT/UI/command.txt",
+          "PT/UI/strdef.bin",
+          "SkillData.bin",
+          "UI/command.txt",
+          "UI/strdef.bin"
+        ],
+        "previousFeedPreserved": true
+      },
+      {
+        "scheme": "https",
+        "feedStatus": 200,
+        "zipStatus": 200,
+        "zipBytes": 938967,
+        "zipSHA256": "065d2bb04c2692390aebcbb24de6dda551bed004526e8d82df7ed298994feb9b",
+        "contentType": "application/zip",
+        "entriesVerified": [
+          "WYD.exe",
+          "EN/UI/command.txt",
+          "EN/UI/strdef.bin",
+          "PT/UI/command.txt",
+          "PT/UI/strdef.bin",
+          "SkillData.bin",
+          "UI/command.txt",
+          "UI/strdef.bin"
+        ],
+        "previousFeedPreserved": true
+      }
+    ]
+  },
+  "activation": {
+    "utc": "2026-10-30T04:36:30.238299+00:00",
+    "activeRelease": "/srv/wyd-go/releases/20261030T043606Z",
+    "rollback": "/srv/wyd-go/releases/20261029T203701Z",
+    "installedFilesVerified": 7721,
+    "runtimeDataFiles": 1074,
+    "configurationFilesPreserved": 12,
+    "services": {
+      "wyd-game": {
+        "MainPID": "2535465",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Fri 2026-10-30 04:36:09 UTC",
+        "ExecMainStatus": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "executable": "/srv/wyd-go/releases/20261030T043606Z/game/wyd-server",
+        "sha256": "e1d4991fcfb1d5c76157b03c79c16fb8a262fa5dc2bae0ee3200daf14975a81a"
+      },
+      "wyd-player": {
+        "MainPID": "2535477",
+        "Result": "success",
+        "NRestarts": "0",
+        "ExecMainStartTimestamp": "Fri 2026-10-30 04:36:09 UTC",
+        "ExecMainStatus": "0",
+        "ActiveState": "active",
+        "SubState": "running",
+        "executable": "/srv/wyd-go/releases/20261030T043606Z/game/wyd-player-api",
+        "sha256": "33c4e6ea0dcf40061002e589b75ac356e7b8ae1420d1e403f94913495a918450"
+      }
+    },
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    },
+    "channelListeners": [
+      8281,
+      8282
+    ],
+    "backup": {
+      "at": "2026-10-30T04:36:06Z",
+      "archive": "wydgo-20261030T043606Z.dump",
+      "bytes": 487305,
+      "sha256": "53edf9d39ccfa51390967b904933541c9d7ba7c935d678467a24315843902319"
+    },
+    "logReader": {
+      "MainPID": "2535551",
+      "Result": "success",
+      "NRestarts": "0",
+      "ExecMainStartTimestamp": "Fri 2026-10-30 04:36:10 UTC",
+      "ExecMainStatus": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    }
+  },
+  "admission": {
+    "at": "2026-10-30T04:36:39.778642+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 11,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8281,
+        "revision": 12,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      },
+      {
+        "port": 8282,
+        "revision": 11,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 12,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "siteVerification": {
+    "at": "2026-10-30T04:36:54.649149+00:00",
+    "clientManifestFeedVersion": 48012,
+    "patchHashesMatch": true,
+    "routes": {
+      "/": 200,
+      "/download/": 200,
+      "/news/client-7-48-012/": 200
+    }
+  },
+  "validation": {
+    "go": "Full Go suite and vet PASS.",
+    "race": "Focused combat, summon, OX and Resurrection race batches PASS.",
+    "client": "Release/x86 -NoDeploy at clean HEAD PASS; architecture 3176827, socket 281, crash capture 200, launcher 58.",
+    "portal": "Astro check, build and 115 tests PASS.",
+    "logs": "No CRITICAL, fatal or panic after restart; shutdown 0 failures."
+  },
+  "delivery": {
+    "source": "COMMITTED",
+    "automatedTested": "PASS",
+    "published": "CLIENT PATCH 48012 VERIFIED",
+    "activeServer": "VERIFIED",
+    "clientTested": "PENDING"
+  },
+  "cleanup": {
+    "remoteStaging": "Deployment, patch and verification staging removed.",
+    "preserved": [
+      "build/patch/patch-48012.zip",
+      "build/deploy/wyd-deploy-20261030-748012",
+      "build/release-748012",
+      "/srv/wyd-go/releases/20261029T203701Z"
+    ]
+  }
+}

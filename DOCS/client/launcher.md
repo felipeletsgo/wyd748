@@ -734,6 +734,19 @@ native 7.47 launcher, compatible with the 7.48 `config.txt`, `Music.txt` and
 `MODERNIZACAO_COMPATIVEL` adaptation. Game wire, assets and `WYD.exe` are
 unchanged.
 
+## Published patch 48012 (2026-10-30)
+
+Mandatory client 7.48.012 contains `WYD.exe`, root, EN and PT `UI/strdef.bin` and
+`UI/command.txt`, and `SkillData.bin`. The committed ZIP is 938,967 bytes,
+SHA-256 `065D2BB04C2692390AEBCBB24DE6DDA551BED004526E8D82DF7ED298994FEB9B`. HTTP/HTTPS downloads matched the ZIP and all eight
+entry hashes; the feed kept every earlier entry and appended 48012 once.
+
+Client revision and server minimum are both 12. Server release
+`20261030T043606Z` was activated after patch verification and a
+database backup. Both channels reject revision 11 and allow revision 12.
+Rollback is `/srv/wyd-go/releases/20261029T203701Z`. Gameplay acceptance remains pending.
+See the [release receipt](../../.agents/research/release-748012.json).
+
 ## Published patch 48011 (2026-10-29)
 
 Mandatory client 7.48.011 contains `WYD.exe`, `skillhelp.dat`,

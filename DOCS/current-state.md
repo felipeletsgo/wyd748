@@ -1,8 +1,14 @@
 # Current project state
 
-## Organized player reports — 2026-10-30, local candidate 12
+## Release 7.48.012 — 2026-10-30, published and activated
 
-Not published or activated. CLIENT-TESTED is pending for every item.
+Mandatory patch 48012 and server release `20261030T043606Z` are live.
+Both channels reject revision 11 and admit revision 12; rollback remains
+`/srv/wyd-go/releases/20261029T203701Z`. See the [release receipt](../.agents/research/release-748012.json).
+It contains the organized report fixes below and the 2026-10-29 player
+report batch. CLIENT-TESTED is pending for every item.
+
+## Organized player reports — 2026-10-30, included in release 7.48.012
 
 - Server PvP authority (`PARIDADE_NATIVA`, W2PP `GetFunc.cpp`): every PvP
   attack, skill, area hit and summon attack needs both players in a PK cell
@@ -46,7 +52,7 @@ Not published or activated. CLIENT-TESTED is pending for every item.
 Not reproduced: Rapid Hit (95) applies all six hits; no fixed 500 summon
 damage cap exists; Critical Armor visuals and assets are present.
 
-## Player reports — 2026-10-29, local candidate 12
+## Player reports — 2026-10-29, included in release 7.48.012
 
 The local client retains continuous manual attack in auxiliary C.C. mode.
 Buff renewal now uses the current affect and normal skill cooldown.
