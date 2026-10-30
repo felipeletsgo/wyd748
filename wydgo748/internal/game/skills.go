@@ -750,6 +750,11 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		})
 		for _, result := range affected {
 			target := result.player
+			if result.recall {
+				// W2PP DoRecall: the Resurrection caster revives in the bound city.
+				w.recallPlayer(target, "resurrection")
+				continue
+			}
 			// The owner needs both 0x181 and 0x336 to populate the HUD's wide
 			// sidecar. With only 0x336 the bars used a scaled WORD against wide
 			// MaxHP (29,322 / 1,202,183, about 2.4%). The extra update may flicker

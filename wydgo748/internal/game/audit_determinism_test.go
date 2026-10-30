@@ -86,20 +86,27 @@ func TestResurrectionUsesInjectedRNG(t *testing.T) {
 		ch := &model.Char{Name: "dead", Score: testScore(model.Score{
 			Level: 399, MaxHP: 1_000, MaxMP: 500,
 		})}
-		ch.Score.CurHP = 0
+		(&World{}).recalcPlayer(ch)
+		setPlayerCurHP(ch, 0)
+		setPlayerCurMP(ch, 0)
 		return &Player{ID: 1, InWorld: true, Char: ch, Session: &net.Session{ID: 1}}
 	}
 	skill := model.SkillDef{Index: 99, MaxTarget: 1}
 
-	success := newDeadPlayer()
-	wSuccess := &World{rng: fixedRNG{value: 0}, playersByID: map[uint16]*Player{1: success}}
-	if got := wSuccess.applySupportSkill(success, skillCastRequest{TargetID: success.ID}, skill, 0); len(got) != 1 || playerCurHP(success.Char) == 0 {
-		t.Fatalf("fixed success RNG did not resurrect: results=%v hp=%d", got, playerCurHP(success.Char))
+	// W2PP: rev < 40 revives in place with (rand%50+1) * (MaxHp+1)/100 HP.
+	inPlace := newDeadPlayer()
+	wInPlace := &World{rng: fixedRNG{value: 0}, playersByID: map[uint16]*Player{1: inPlace}}
+	got := wInPlace.applySupportSkill(inPlace, skillCastRequest{TargetID: inPlace.ID}, skill, 0)
+	if wantHP := (playerMaxHP(inPlace.Char) + 1) / 100; len(got) != 1 ||
+		got[0].recall || playerCurHP(inPlace.Char) != wantHP || playerCurMP(inPlace.Char) != 0 {
+		t.Fatalf("in-place Resurrection: results=%v hp=%d mp=%d", got, playerCurHP(inPlace.Char), playerCurMP(inPlace.Char))
 	}
 
-	failure := newDeadPlayer()
-	wFailure := &World{rng: fixedRNG{value: 99}, playersByID: map[uint16]*Player{1: failure}}
-	if got := wFailure.applySupportSkill(failure, skillCastRequest{TargetID: failure.ID}, skill, 0); len(got) != 0 || playerCurHP(failure.Char) != 0 {
-		t.Fatalf("fixed failure RNG resurrected unexpectedly: results=%v hp=%d", got, playerCurHP(failure.Char))
+	// rev >= 40 never fails: it asks for a recall and leaves the corpse to it.
+	recalled := newDeadPlayer()
+	wRecall := &World{rng: fixedRNG{value: 99}, playersByID: map[uint16]*Player{1: recalled}}
+	if got := wRecall.applySupportSkill(recalled, skillCastRequest{TargetID: recalled.ID}, skill, 0); len(got) != 1 ||
+		!got[0].recall || playerCurHP(recalled.Char) != 0 {
+		t.Fatalf("recall Resurrection: results=%v hp=%d", got, playerCurHP(recalled.Char))
 	}
 }

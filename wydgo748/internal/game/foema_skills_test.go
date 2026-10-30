@@ -244,3 +244,46 @@ func TestHealKeepsCasterHoldInAttackPacket(t *testing.T) {
 		t.Fatalf("Heal changed durable Hold to %d", caster.Char.Hold)
 	}
 }
+
+func TestResurrectionFollowsW2PPRule(t *testing.T) {
+	recalls := 0
+	for rev := 0; rev < 115; rev++ {
+		if resurrectionRecalls(func(int) int { return rev }) {
+			recalls++
+		}
+	}
+	// rand()%115 folded above 100: values 40..114 recall (75 of 115).
+	if recalls != 75 {
+		t.Fatalf("recall outcomes=%d of 115, want 75", recalls)
+	}
+	if got := resurrectionHP(10_000, func(int) int { return 49 }); got != 5000 {
+		t.Fatalf("max Resurrection HP=%d, want 50%%", got)
+	}
+	if got := resurrectionHP(50, func(int) int { return 0 }); got != 1 {
+		t.Fatalf("low MaxHP Resurrection HP=%d, want 1", got)
+	}
+}
+
+// W2PP rev >= 40: the dead caster is recalled to the bound city alive.
+func TestResurrectionRecallBranchRevivesInBoundCity(t *testing.T) {
+	w, p, _ := handlerTestWorld(t)
+	w.rng = fixedRNG{value: 99}
+	bit, ok := specialSkillBit(99)
+	if !ok {
+		t.Fatal("skill 99 has no special bit")
+	}
+	p.Char.LearnedSkill |= 1 << bit
+	p.X, p.Y = 1058, 1725 // Noatum
+	p.Char.X, p.Char.Y = p.X, p.Y
+	w.updatePlayerSpatial(p)
+	setPlayerCurHP(p.Char, 0)
+	p.DeadAt = w.now()
+	w.skills = map[int]model.SkillDef{99: {Index: 99, Name: "Resurrect", MaxTarget: 1}}
+	w.onSkillAttack(p, skillCastRequest{Skill: 99, TargetID: p.ID, Motion: 5})
+	if playerCurHP(p.Char) == 0 || !p.DeadAt.IsZero() {
+		t.Fatalf("Resurrection recall left the caster dead: hp=%d", playerCurHP(p.Char))
+	}
+	if p.X == 1058 && p.Y == 1725 {
+		t.Fatal("Resurrection recall branch did not move the caster to town")
+	}
+}

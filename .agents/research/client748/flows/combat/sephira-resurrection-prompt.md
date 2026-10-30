@@ -122,9 +122,11 @@ players. The `+0xEF5` write only refreshes the bar highlight and is omitted.
 
 ## Gaps
 
-The server success chance `(level + 1) / 5` percent has no located source.
-W2PP `_MSG_Attack.cpp` always revives with 1..50% HP and may recall. TMSRVIN
-has three `== 99` checks without the full rule. Owner decision is pending.
+On 2026-10-30 the owner selected the W2PP `_MSG_Attack.cpp` server rule: it
+always revives, recalls on `rev >= 40`, or revives in place with 1..50% HP.
+It replaces the unsourced `(level + 1) / 5` percent chance. TMSRVIN has three
+`== 99` checks without the full rule. The recall branch uses the existing
+recall HP instead of the W2PP random HP.
 
 ## Validation
 

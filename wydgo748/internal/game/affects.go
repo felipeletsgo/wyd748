@@ -363,6 +363,27 @@ type supportSkillResult struct {
 	player  *Player
 	hpDelta uint32
 	revived bool
+	// recall asks the caller to recall a still-dead Resurrection caster.
+	recall bool
+}
+
+// W2PP _MSG_Attack.cpp skill 99: Resurrection always succeeds. rev is
+// rand()%115, folded above 100; rev >= 40 recalls the caster to town first.
+func resurrectionRecalls(intn func(int) int) bool {
+	rev := intn(115)
+	if rev > 100 {
+		rev -= 15
+	}
+	return rev >= 40
+}
+
+// resurrectionHP is W2PP (rand()%50 + 1) * ((MaxHp + 1) / 100), at least 1.
+func resurrectionHP(maxHP uint32, intn func(int) int) uint32 {
+	hp := uint32(intn(50)+1) * ((maxHP + 1) / 100)
+	if hp == 0 {
+		return 1
+	}
+	return hp
 }
 
 // foemaHealAmount follows the official TMSRVIN InstanceType 6 branch.
@@ -502,20 +523,17 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				}
 				applied = true
 			}
-		case 99: // Sephira Resurrection: dead caster's self-cast only (WYD 7.48).
+		case 99: // Sephira Resurrection: dead caster's self-cast only.
 			if target == p && playerCurHP(target.Char) == 0 {
-				chance := clampInt((int(playerLevel(target.Char))+1)/5, 0, 100)
-				if w.intn(100) < chance {
-					halfHP := playerMaxHP(target.Char) / 2
-					if halfHP == 0 {
-						halfHP = 1
-					}
-					setPlayerCurHP(target.Char, halfHP)
-					setPlayerCurMP(target.Char, playerMaxMP(target.Char)/2)
-					target.DeadAt = time.Time{}
-					target.LastAttackerID, target.CombatTargetID = 0, 0
-					applied = true
+				if resurrectionRecalls(w.intn) {
+					// The caller recalls the corpse to the bound city.
+					changed = append(changed, supportSkillResult{player: target, recall: true})
+					continue
 				}
+				setPlayerCurHP(target.Char, resurrectionHP(playerMaxHP(target.Char), w.intn))
+				target.DeadAt = time.Time{}
+				target.LastAttackerID, target.CombatTargetID = 0, 0
+				applied = true
 			}
 		case 42: // Teleport brings the selected member next to the caster.
 			// Official TMSRVIN: the target's level may exceed the caster's

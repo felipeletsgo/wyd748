@@ -28,7 +28,12 @@ Not published or activated. CLIENT-TESTED is pending for every item.
   player's right click opens message 227 with event 99 when skill 99 is on
   the short-skill bar. Event 99 sends the existing five-second request. See
   [the record](../.agents/research/client748/flows/combat/sephira-resurrection-prompt.md).
-  The server success chance `(level + 1) / 5`% has no located source.
+  Server rule (`PARIDADE_NATIVA`, W2PP `_MSG_Attack.cpp`, owner choice):
+  Resurrection always succeeds. With `rev = rand()%115` folded above 100,
+  `rev >= 40` (75 of 115) recalls the caster alive to the bound city through
+  the normal recall; otherwise it revives in place with
+  `(rand()%50 + 1) * ((MaxHP + 1) / 100)` HP. MP is unchanged. The recall
+  branch uses the recall HP (200, capped at MaxHP), not the random HP.
 - Cube questions (`EXTENSAO_COORDENADA`): question packet version 2 sends a
   strdef row; the 25 questions have EN and PT rows. See
   [instance questions](protocol/instance-question.md). Cube stage names, the
