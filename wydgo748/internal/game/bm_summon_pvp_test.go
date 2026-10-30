@@ -120,3 +120,22 @@ func TestPhysicalAttackDamagesOpponentBMSummon(t *testing.T) {
 		t.Fatal("physical attack did not damage the opponent's summon")
 	}
 }
+
+// Native AI attacks between players and summons deal 30% (TMSRVIN sub_4DECC0).
+func TestBMSummonPvPHitUsesNativeThirtyPercent(t *testing.T) {
+	w, owner, attacker, summon := bmSummonPvPWorld(t, 2000)
+	w.rng = fixedRNG{value: 0}
+	summon.Def.Score.Attack, summon.Def.Score.Accuracy = 2000, 1000
+	summon.X, summon.Y = attacker.X, attacker.Y+1
+	w.registerMobSpatial(summon)
+	owner.CombatTargetID = attacker.ID
+	full := mobPhysicalHitPlayerAt(summon, attacker.Char, fixedRNG{value: 0}.Intn, w.now()).Damage
+	if full < 10 {
+		t.Fatalf("fixture damage too small: %d", full)
+	}
+	hp := playerCurHP(attacker.Char)
+	w.tickSummonCombat(w.now())
+	if got := hp - playerCurHP(attacker.Char); got != full*3/10 {
+		t.Fatalf("summon PvP damage=%d, want 30%% of %d", got, full)
+	}
+}

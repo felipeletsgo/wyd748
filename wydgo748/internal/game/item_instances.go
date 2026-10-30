@@ -1228,7 +1228,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 		[]*Player{p}, stages[0].X, stages[0].Y, nil, inst.RuntimeID)
 	if !ok {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("The Cube entrance is blocked."))
+		s.Send(wire.MessageIndexed(msgCubeEntranceBlocked - 1000))
 		return
 	}
 
@@ -1267,7 +1267,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 	if name == "" {
 		name = inst.Config.Name
 	}
-	p.Session.Send(wire.MessagePanel(name))
+	p.Session.Send(instanceStageNamePacket(name))
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	log.Printf("[#%d] INSTANCE %q individual entry members=%d",
 		s.ID, cfg.ID, len(inst.MemberIDs))
@@ -1945,7 +1945,7 @@ func (w *World) sendItemInstanceStageStatus(inst *ItemInstance) {
 			if name == "" {
 				name = inst.Config.Name
 			}
-			member.Session.Send(wire.MessagePanel(name))
+			member.Session.Send(instanceStageNamePacket(name))
 		}
 	}
 }
@@ -2652,7 +2652,7 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 					wire.OpInstanceTime, instanceSignalID, 0))
 				p.Session.Send(wire.StandardParm(
 					wire.OpInstanceMobs, instanceSignalID, 0))
-				p.Session.Send(wire.MessagePanel("Wrong answer. You left the Cube."))
+				p.Session.Send(wire.MessageIndexed(msgCubeWrong - 1000))
 				continue
 			}
 			w.syncPlayerVitals(p)
@@ -2666,8 +2666,7 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 				w.refreshAppearance(p)
 			}
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf(
-				"Correct! +%d EXP.", result.exp)))
+			p.Session.Send(quizCorrectPacket(result.exp))
 		}
 	}, nil)
 }

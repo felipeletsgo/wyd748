@@ -18,16 +18,25 @@ Not published or activated. CLIENT-TESTED is pending for every item.
   player's BM or contract summon when both stand in a PK cell (0x40, no
   0x01). Owners and party members cannot. A killed summon grants no EXP,
   loot or quest progress. Summons attack players only when both cells allow
-  PvP. The native 30% player/summon damage factor is not applied (gap).
+  PvP. Summon AI hits on players or other summons deal 30% (TMSRVIN
+  `sub_4DECC0`, W2PP `GetAttack`). Player-driven PvP has no native 1/4
+  factor (W2PP `_MSG_Attack.cpp`); that balance change is an owner decision.
 - Ethereal Explosion visual (`PARIDADE_NATIVA`, native `FUN_00489A3E` 0x5E):
   the arrow burst belongs to skill 94, not Golden Shield 86. Another
   Huntress renewing Golden Shield no longer shows the explosion.
 - Sephira Resurrection (`PARIDADE_NATIVA`, native `FUN_004625DA`): a dead
   player's right click opens message 227 with event 99 when skill 99 is on
-  the short-skill bar. Event 99 sends the existing five-second request.
+  the short-skill bar. Event 99 sends the existing five-second request. See
+  [the record](../.agents/research/client748/flows/combat/sephira-resurrection-prompt.md).
+  The server success chance `(level + 1) / 5`% has no located source.
 - Cube questions (`EXTENSAO_COORDENADA`): question packet version 2 sends a
   strdef row; the 25 questions have EN and PT rows. See
-  [instance questions](protocol/instance-question.md).
+  [instance questions](protocol/instance-question.md). Cube stage names, the
+  Big Cube and OX notices and the quiz results use rows 484..495 through the
+  indexed 0x105/0x106 notices. Other instance stage names stay English.
+- Green cape (`PARIDADE_NATIVA`, TMSRV `24_350Quest_TS_Leader.c`): the
+  exchange also grants Recall Scroll (10), item 411, and needs a free slot.
+- PT accents restored in messages 452..458 and the `/dispensar` help.
 
 Not reproduced: Rapid Hit (95) applies all six hits; no fixed 500 summon
 damage cap exists; Critical Armor visuals and assets are present.

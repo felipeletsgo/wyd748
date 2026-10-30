@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"strings"
 	"time"
 
@@ -185,7 +184,7 @@ func (w *World) publishBigCubeAnswer(inst *ItemInstance, results []bigCubeResult
 			w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
 			p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, 0))
 			p.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, 0))
-			p.Session.Send(wire.MessagePanel("Wrong answer. You left Big Cube."))
+			p.Session.Send(wire.MessageIndexed(msgBigCubeWrong - 1000))
 			continue
 		}
 		w.syncPlayerVitals(p)
@@ -195,7 +194,7 @@ func (w *World) publishBigCubeAnswer(inst *ItemInstance, results []bigCubeResult
 			w.syncPlayerChaos(p)
 		}
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-		p.Session.Send(wire.MessagePanel(fmt.Sprintf("Correct! +%d EXP.", current.exp)))
+		p.Session.Send(quizCorrectPacket(current.exp))
 	}
 	if len(survivors) == 0 {
 		return true

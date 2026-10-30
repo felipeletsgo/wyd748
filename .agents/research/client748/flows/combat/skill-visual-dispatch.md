@@ -4,7 +4,7 @@ title: Sequencia de animacao e despacho visual das skills
 subsystem: combat
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-15
+updated: 2026-10-30
 ---
 
 # Sequência de animação e despacho visual das skills
@@ -100,6 +100,7 @@ prova identidade de todos os parâmetros dos efeitos.
 | Posição Bash/Portal/Shield | X,Y,Z | eixos trocados ou Z sem owner | PARIDADE_NATIVA: corrigir coordenadas |
 | Ausência de mesh ID 89 | acesso dependente do ator | dereferência sem guarda | MODERNIZACAO_COMPATIVEL: guarda local |
 | Término ID 90 | Haste, não projétil | exceção moderna de projétil | MODERNIZACAO_COMPATIVEL: retirar exceção obsoleta |
+| Ethereal Explosion arrows | `FUN_00489a3e` branch 0x5E (94): `TMArrow(2, 0x98)` per target; no 0x56 branch | burst under ID 86 (Golden Shield) | PARIDADE_NATIVA: route to 94 (2026-10-30) |
 
 ## Decisões
 

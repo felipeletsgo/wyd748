@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 223.
+Markdown documents: 224.
 
 | Document | Type |
 | --- | --- |
@@ -19,6 +19,7 @@ Markdown documents: 223.
 | [.agents/handoffs/tmproject-architecture.md](<../.agents/handoffs/tmproject-architecture.md>) | Historical continuity |
 | [.agents/research/client748/flows/combat/persistent-buff-visuals.md](<../.agents/research/client748/flows/combat/persistent-buff-visuals.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Research evidence |
+| [.agents/research/client748/flows/combat/sephira-resurrection-prompt.md](<../.agents/research/client748/flows/combat/sephira-resurrection-prompt.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/skill-visual-dispatch.md](<../.agents/research/client748/flows/combat/skill-visual-dispatch.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/transknight-native-buffs.md](<../.agents/research/client748/flows/combat/transknight-native-buffs.md>) | Research evidence |
 | [.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md](<../.agents/research/client748/flows/gameplay/citizenship-cape-emblems.md>) | Research evidence |

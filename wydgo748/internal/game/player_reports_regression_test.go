@@ -144,6 +144,10 @@ func TestApprenticeCapeExchangeSettlement(t *testing.T) {
 					if p.Char.Equip[13].Index != 0 || p.Char.Equip[15].Index != 4006 || p.Char.Equip[15].UID == "" {
 						t.Fatal("cape exchange did not consume the equipped emblem and grant the cape")
 					}
+					if slot := firstFreeVisibleInventorySlot(&model.Char{Inv: before.Chars[p.CharSlot].Inv}); slot < 0 ||
+						p.Char.Inv[slot].Index != apprenticeRecallReward || p.Char.Inv[slot].UID == "" {
+						t.Fatal("cape exchange did not grant the Recall Scroll (10) reward")
+					}
 					appearance, ok := observer.Session.DequeuePacketForTest()
 					if !ok || !wire.Decrypt(appearance) || wire.ParseHeader(appearance).Type != wire.OpUpdateEquip ||
 						!reflect.DeepEqual(appearance[12:], playerAppearancePacket(p)[12:]) {
@@ -195,7 +199,7 @@ func TestArchStoneConversionSaveRejectionPreservesItems(t *testing.T) {
 
 func TestApprenticeCapeRejectsInvalidRequests(t *testing.T) {
 	catalog, _ := fairyDustCatalog(t)
-	for _, invalid := range []string{"level-low", "level-high", "arch", "missing-emblem", "worn-cape", "unconfirmed", "dead", "hidden", "distant", "missing-reward"} {
+	for _, invalid := range []string{"level-low", "level-high", "arch", "missing-emblem", "worn-cape", "unconfirmed", "dead", "hidden", "distant", "missing-reward", "missing-scroll", "full-inventory"} {
 		t.Run(invalid, func(t *testing.T) {
 			w, p, store := handlerTestWorld(t)
 			w.items = make(map[uint16]model.ItemDef, len(catalog.Items))
@@ -233,6 +237,12 @@ func TestApprenticeCapeRejectsInvalidRequests(t *testing.T) {
 				m.X += 100
 			case "missing-reward":
 				delete(w.items, 4006)
+			case "missing-scroll":
+				delete(w.items, apprenticeRecallReward)
+			case "full-inventory":
+				for slot := 0; slot < model.PlayerCarrySlots; slot++ {
+					p.Char.Inv[slot] = model.Item{Index: 412, UID: fmt.Sprintf("filler-%d", slot)}
+				}
 			}
 			before := accountStateSnapshot(p.Account)
 			w.onUseNPC(p.Session, packet)

@@ -1,7 +1,7 @@
 package game
 
 import (
-	"fmt"
+	"strconv"
 	"time"
 
 	"wydgo/internal/control"
@@ -56,7 +56,7 @@ func (w *World) startOXEvent() string {
 	w.oxQuizMode = true
 	w.setOXDoors(false)
 	w.broadcast(func() []byte {
-		return wire.MessagePanel("OX enrollment is open for 60 seconds. Use an Entrance Ticket in the Big Cube lobby.")
+		return wire.MessageIndexed(msgOXEnrollmentOpen - 1000)
 	})
 	return "ok"
 }
@@ -105,7 +105,7 @@ func (w *World) oxEntryRejection(p *Player, item model.Item) string {
 
 func (w *World) admitOXMember(p *Player) {
 	w.ox.members[p] = oxMember{session: p.Session, char: p.Char, uid: p.Char.UID, slot: p.CharSlot}
-	w.sendOXCountdown(p, w.ox.deadline, "OX enrollment closes")
+	w.sendOXCountdown(p, w.ox.deadline, msgOXEnrollmentCloses)
 }
 
 func clearOXHUD(p *Player) {
@@ -116,10 +116,11 @@ func clearOXHUD(p *Player) {
 	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, 0))
 }
 
-func (w *World) sendOXCountdown(p *Player, deadline time.Time, label string) {
+// sendOXCountdown names the countdown with a strdef row that takes seconds.
+func (w *World) sendOXCountdown(p *Player, deadline time.Time, message int16) {
 	seconds := uint32(max(0, int(deadline.Sub(w.now()).Seconds()+0.999)))
 	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, seconds))
-	p.Session.Send(wire.MessagePanel(fmt.Sprintf("%s in %d seconds.", label, seconds)))
+	p.Session.Send(wire.MessageParameterized(message-1000, strconv.FormatUint(uint64(seconds), 10)))
 }
 
 // Only ticket-admitted players may enter the public arena. Position packets,
@@ -185,7 +186,7 @@ func (w *World) guardOXArena() {
 		}
 		w.moveOutOfArenaWithAck(p, x, y, func() {
 			clearOXHUD(p)
-			p.Session.Send(wire.MessagePanel("Enter OX with an Entrance Ticket during enrollment."))
+			p.Session.Send(wire.MessageIndexed(msgOXEnterDuringEnrollment - 1000))
 		})
 	}
 }
@@ -374,7 +375,7 @@ func (w *World) settleOXRound(correctO bool) bool {
 				w.publishPlayerTeleport(p)
 				w.syncPlayerVitals(p)
 				clearOXHUD(p)
-				p.Session.Send(wire.MessagePanel("Wrong answer. You left OX without a reward."))
+				p.Session.Send(wire.MessageIndexed(msgOXWrong - 1000))
 			} else {
 				w.syncPlayerVitals(p)
 				w.updatePartyMember(p)
@@ -383,7 +384,7 @@ func (w *World) settleOXRound(correctO bool) bool {
 					w.syncPlayerChaos(p)
 				}
 				p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-				p.Session.Send(wire.MessagePanel(fmt.Sprintf("Correct! +%d EXP.", r.exp)))
+				p.Session.Send(quizCorrectPacket(r.exp))
 			}
 		}
 		o.round++
@@ -396,7 +397,7 @@ func (w *World) settleOXRound(correctO bool) bool {
 		o.phase, o.deadline = "waiting", w.now().Add(oxQuestionCadence-instanceQuestionDuration)
 		w.setOXDoors(false)
 		for p := range o.members {
-			w.sendOXCountdown(p, o.deadline, "Next OX question")
+			w.sendOXCountdown(p, o.deadline, msgOXNextQuestion)
 		}
 	}, rejected, func() error {
 		for tile, owner := range tiles {

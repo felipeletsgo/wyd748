@@ -359,7 +359,7 @@ func (w *World) publishCriticalInstanceEntryStatus(inst *ItemInstance) {
 		if name == "" {
 			name = inst.Config.Name
 		}
-		member.Session.Send(wire.MessagePanel(name))
+		member.Session.Send(instanceStageNamePacket(name))
 		if isBigCubeInstance(inst) && stage.Quiz != nil && inst.QuizDeadline.After(now) {
 			member.Session.Send(instanceQuestionPacket(member.ID, stage.Quiz,
 				uint32(inst.QuizDeadline.Sub(now)/time.Millisecond)))

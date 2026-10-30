@@ -40,7 +40,7 @@ func TestOXUnauthorizedMovementTeleportAndIllusion(t *testing.T) {
 			// A forged/stale occupancy is also evicted by the world loop.
 			placeOXTest(w, p, 1310, 1500)
 			w.tickOXEvent(clock.Now())
-			if oxArena.contains(p.X, p.Y) || !oxNoticeContains(p, "Entrance Ticket") {
+			if oxArena.contains(p.X, p.Y) || !oxIndexedNotice(p, msgOXEnterDuringEnrollment, "") {
 				t.Fatal("unregistered arena occupant was not evicted")
 			}
 		})

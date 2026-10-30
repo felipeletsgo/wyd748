@@ -132,6 +132,26 @@ func oxNoticeContains(p *Player, text string) bool {
 	}
 }
 
+// oxIndexedNotice finds a localized strdef notice and, when given, its parameter.
+func oxIndexedNotice(p *Player, row int16, param string) bool {
+	found := false
+	for {
+		packet, ok := p.Session.DequeuePacketForTest()
+		if !ok {
+			return found
+		}
+		if !wire.Decrypt(packet) || len(packet) < 16 {
+			continue
+		}
+		h := wire.ParseHeader(packet)
+		if (h.Type == wire.OpMessageIndexed || h.Type == wire.OpMessageParameterized) &&
+			int16(binary.LittleEndian.Uint16(packet[14:16])) == row-1000 &&
+			strings.Contains(string(packet[16:]), param) {
+			found = true
+		}
+	}
+}
+
 func TestOXAutomaticEnrollmentAnswerAndNextQuestionCadence(t *testing.T) {
 	w, clock := colosseumWorld(t, time.Date(2026, 10, 22, 12, 0, 0, 0, time.UTC))
 	a := oxTestPlayer(w, 1, 1340, 1460)
@@ -184,7 +204,7 @@ func TestOXAutomaticEnrollmentAnswerAndNextQuestionCadence(t *testing.T) {
 	if w.ox.phase != "waiting" || !w.ox.deadline.Equal(clock.Now().Add(50*time.Second)) {
 		t.Fatal("next-question wait is not 50 seconds")
 	}
-	if !oxNoticeContains(a, "50 seconds") {
+	if !oxIndexedNotice(a, msgOXNextQuestion, "50") {
 		t.Fatal("missing next-question countdown")
 	}
 	drainPlayerPackets(a)

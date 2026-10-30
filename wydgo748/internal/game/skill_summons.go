@@ -425,6 +425,9 @@ func (w *World) tickSummonCombat(now time.Time) {
 				continue
 			}
 			damage := mobPhysicalHitMobAt(summon, target.mob, w.intn, now)
+			if isCombatSummon(target.mob) {
+				damage = summonPvPDamage(damage)
+			}
 			oldHP := target.mob.HP
 			if damage >= target.mob.HP {
 				target.mob.HP = 0
@@ -453,7 +456,7 @@ func (w *World) tickSummonCombat(now time.Time) {
 			})
 			continue
 		}
-		damage := hit.Damage
+		damage := summonPvPDamage(hit.Damage)
 		damage = uint32(w.absorbMountDamage(target.user, int(damage)))
 		damage = absorbManaControlDamageAt(target.user.Char, damage, now)
 		w.cancelTrade(target.user, "character was attacked")
@@ -478,4 +481,10 @@ func (w *World) tickSummonCombat(now time.Time) {
 			w.publishPlayerDeath(target.user, summon.ID)
 		}
 	}
+}
+
+// summonPvPDamage applies the native AI attack factor between players and
+// summons: 30% (TMSRVIN sub_4DECC0, W2PP GetAttack, Clan 4).
+func summonPvPDamage(damage uint32) uint32 {
+	return damage * 3 / 10
 }
