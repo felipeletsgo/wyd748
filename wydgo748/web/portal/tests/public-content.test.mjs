@@ -27,27 +27,27 @@ test('public content ships real static routes with valid internal links and no i
     }
   }
 });
-test('download receipt pairs update 7.48.011 with the existing full-client baseline', () => {
+test('download receipt pairs update 7.48.012 with the existing full-client baseline', () => {
   const receipt = JSON.parse(html('client-manifest.json'));
-  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.011');
-  assert.equal(receipt.feedVersion, 48011);
-  assert.equal(receipt.patch.url, '/patch/patch-48011.zip');
-  assert.equal(receipt.patch.sizeBytes, 929053);
-  assert.equal(receipt.patch.sha256, '362682032FCCEA7C3A6F96CE4F80DAF146D047CE4407D5335AE10EE8DAB71806');
-  assert.equal(receipt.patch.executableSha256, '3C68615BCA0DCEDD73ACF7309C04690B5B6303A1630533FB6978EE50F7ADE8A8');
+  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.012');
+  assert.equal(receipt.feedVersion, 48012);
+  assert.equal(receipt.patch.url, '/patch/patch-48012.zip');
+  assert.equal(receipt.patch.sizeBytes, 938967);
+  assert.equal(receipt.patch.sha256, '065D2BB04C2692390AEBCBB24DE6DDA551BED004526E8D82DF7ED298994FEB9B');
+  assert.equal(receipt.patch.executableSha256, '65B28644D6A2434CFEB67C838C66CB010B9E693D4B110518B7C773760FB2BB11');
   assert.equal(receipt.fullClient.clientVersion, '7.48.001');
   assert.equal(receipt.updateFeed, '/patch/update.htm');
   assert.equal(receipt.fullClient.sha256, null); assert.equal(receipt.fullClient.sizeBytes, null);
   assert.equal(receipt.minimumLauncherVersion, null);
   assert.equal(receipt.fullClient.url, 'https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view?usp=drive_link');
   assert.ok(html('download/index.html').includes('1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk'), 'download page does not link the full client');
-  assert.match(html('index.html'), /Client 7\.48\.011/);
+  assert.match(html('index.html'), /Client 7\.48\.012/);
   assert.match(html('download/index.html'), /Full installation: 7\.48\.001/);
-  assert.match(html('download/index.html'), /href="\/patch\/patch-48011\.zip"/);
+  assert.match(html('download/index.html'), /href="\/patch\/patch-48012\.zip"/);
   assert.match(html('download/index.html'), /Earlier patches are no longer offered/);
   assert.equal(/patch-1\d{4}\.zip/.test(html('download/index.html')), false, 'retired patch ZIP still linked');
   assert.match(html('changelog/index.html'), /Client 7\.48\.001 — new full client/);
-  assert.match(html('changelog/index.html'), /Client 7\.48\.011/);
+  assert.match(html('changelog/index.html'), /Client 7\.48\.012/);
   assert.match(html('news/client-7-48-002/index.html'), /Every client update is mandatory/);
   assert.equal(/Patch 100\d\d/.test(html('changelog/index.html')), false, 'retired patch history still listed');
   assert.match(html('news/client-7-48-001/index.html'), /choose the game language/);

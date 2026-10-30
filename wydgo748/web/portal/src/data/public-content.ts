@@ -2,10 +2,10 @@
 // Do not fill unknown values with estimates or describe planned systems as live.
 export const clientRelease = {
   version: 2,
-  // Release line 7.48: the launcher's [VERSION] 48011 is shown as 7.48.011.
-  clientVersion: '7.48.011',
-  feedVersion: 48011,
-  publishedAt: '2026-10-29' as string | null,
+  // Release line 7.48: the launcher's [VERSION] 48012 is shown as 7.48.012.
+  clientVersion: '7.48.012',
+  feedVersion: 48012,
+  publishedAt: '2026-10-30' as string | null,
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
@@ -16,10 +16,10 @@ export const clientRelease = {
     sha256: null as string | null,
   },
   patch: {
-    url: '/patch/patch-48011.zip',
-    sizeBytes: 929053,
-    sha256: '362682032FCCEA7C3A6F96CE4F80DAF146D047CE4407D5335AE10EE8DAB71806',
-    executableSha256: '3C68615BCA0DCEDD73ACF7309C04690B5B6303A1630533FB6978EE50F7ADE8A8',
+    url: '/patch/patch-48012.zip',
+    sizeBytes: 938967,
+    sha256: '065D2BB04C2692390AEBCBB24DE6DDA551BED004526E8D82DF7ED298994FEB9B',
+    executableSha256: '65B28644D6A2434CFEB67C838C66CB010B9E693D4B110518B7C773760FB2BB11',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -29,6 +29,15 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-30', category: 'Client and server', title: 'Client 7.48.012 — player report corrections', entries: [
+    'Potion and ration macros keep continuous attack; automatic buffs renew on the normal cooldown; Ethereal Explosion uses a one-second delay.',
+    'The server blocks PvP outside PvP areas. Another player can damage a BeastMaster summon only under PvP rules; /dispensar removes your summons.',
+    'Heal keeps the displayed Hold. Sephira Resurrection is offered on a right click while dead and always revives.',
+    'Cube questions and notices follow the selected language. The green cape exchange returns with its Recall Scroll reward.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Corrige macros, Explosão Etérea, evocações do BM, PvP em área segura, Hold após Curar, Ressurreição, Cubo em português e a capa verde.',
+    'Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
   { date: '2026-10-29', category: 'Client and server', title: 'Client 7.48.011 — skills and combat corrections', entries: [
     'Update class skills, passives and English/Brazilian Portuguese descriptions to the reviewed server rules.',
     'Correct BeastMaster form switching, Thorn Wall collisions and damage, Rapid Hit targeting and continuous attack.',
