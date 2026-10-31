@@ -117,7 +117,8 @@ def help_records(data):
 
 
 def encode_help(records):
-    return b"\r\n".join(line for key, rows in records.items() for line in [str(key).encode(), *rows]) + b"\r\n"
+    # The loader accepts the eight-byte color prefix for empty prose rows.
+    return b"\r\n".join(line.rstrip() for key, rows in records.items() for line in [str(key).encode(), *rows]) + b"\r\n"
 
 
 def format_tokens(raw):
@@ -176,6 +177,8 @@ def build(runtime, source, overrides):
     current_help = help_records(current_help_data)
     old_help = help_records((source / "itemhelp.dat").read_bytes())
     current_skills = help_records((runtime / "skillhelp.dat").read_bytes())
+    for key, rows in overrides.get('skill_help_en', {}).items():
+        current_skills[int(key)] = [row.encode('cp1252') for row in rows]
     for language in ["EN", "PT"]:
         records = dict(current_help)
         if language == "PT":

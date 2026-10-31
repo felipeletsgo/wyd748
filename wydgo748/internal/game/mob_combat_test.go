@@ -32,12 +32,27 @@ func TestNearestLivingPlayerIgnoresDeadAndOutOfRange(t *testing.T) {
 	}
 }
 
-func TestMobLeashUsesGeneratorOrigin(t *testing.T) {
-	m := &Mob{Segments: [model.MaxGenerSegments]model.GenerSegment{{X: 100, Y: 100}}}
-	_, near := livingPlayer(1, 116, 100)
-	_, far := livingPlayer(2, 117, 100)
-	if !m.insideLeash(near) || m.insideLeash(far) {
-		t.Fatal("limite de perseguicao nao respeitou os 16 tiles")
+// Mystic Land generator 2309 patrols 24 tiles, beyond the 16-tile leash. The
+// AI leash follows the route, and a player can attack the mob from anywhere.
+func TestMobLeashFollowsPatrolRoute(t *testing.T) {
+	w := newZoneTestWorld()
+	m := combatMob(1000, 2404, 1560)
+	m.Segments = [model.MaxGenerSegments]model.GenerSegment{{X: 2380, Y: 1560}, {X: 2404, Y: 1560}}
+	_, farPlayer := livingPlayer(1, 2440, 1600)
+	if !m.insideHomeLeash() {
+		t.Fatal("patrol destination is outside the leash")
+	}
+	if !w.playerCanInteractWithMob(farPlayer, m) {
+		t.Fatal("a player far from the mob route cannot attack it")
+	}
+	m.X, m.Y = 2400, 1580
+	if x, y, distance, ok := m.leashAnchor(m.X, m.Y); m.insideHomeLeash() || !ok ||
+		y != 1560 || x < 2380 || x > 2404 || distance != 20 {
+		t.Fatalf("off-route mob anchor=(%d,%d) distance=%d ok=%v", x, y, distance, ok)
+	}
+	m.X, m.Y = 2410, 1566
+	if x, y, distance, _ := m.leashAnchor(m.X, m.Y); x != 2404 || y != 1560 || distance != 6 {
+		t.Fatalf("mob beyond the destination anchor=(%d,%d) distance=%d", x, y, distance)
 	}
 }
 

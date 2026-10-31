@@ -262,6 +262,13 @@ func (w *World) tickTimedItems(now time.Time) {
 			continue
 		}
 		seenAccounts[p.Account] = struct{}{}
+		// Refresh the presentation-only remaining time without changing the UID
+		// or submitting an account write. Expiration keeps its durable path.
+		for slot, item := range p.Char.Equip {
+			if item.ExpiresUnix > now.Unix() && item.PausedUnix == 0 {
+				p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(slot), item))
+			}
+		}
 		if w.criticalWrites != nil {
 			if err := w.queueTimedItemExpiry(p, now); err != nil {
 				log.Printf("[#%d] failed to submit timed item expiry: %v", p.ID, err)

@@ -306,12 +306,12 @@ int RunUiModeContractTests(int& checks)
         "Magic Weapon visual 9 does not set the Invisibility flag");
     const auto skillAmpContract = [&](const std::string& body) {
         const auto code = buffCode(body);
-        return code.find("kSkillAmpGroundOffset=0.4f;") != std::string::npos &&
+        return code.find("kSkillAmpGroundOffset=0.05f;") != std::string::npos &&
             code.find("newTMEffectBillBoard2(93,0,1.5f,1.5f,1.5f,0.0f,5000)") != std::string::npos &&
             code.find("m_pSkillAmp->m_nFade=3;") != std::string::npos &&
             code.find("m_pSkillAmp->SetColor(0x88888800);") != std::string::npos;
     };
-    check(skillAmpContract(frameEffect), "Skill Amp preserves the native plane scale, height, fade and color");
+    check(skillAmpContract(frameEffect), "Skill Amp keeps the native plane scale, fade and color at the owner-selected foot height");
     auto reducedAura = frameEffect;
     const auto nativeAura = reducedAura.find("93, 0, 1.5f, 1.5f, 1.5f");
     if (nativeAura != std::string::npos)

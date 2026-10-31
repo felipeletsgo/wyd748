@@ -309,6 +309,7 @@ type generState struct {
 	follower     *model.NPCDef
 	current      int
 	nextGenerate time.Time
+	respawns     []generatorRespawn
 }
 
 type GroundItem struct {
@@ -973,6 +974,10 @@ func (w *World) scheduleGenerator(g *generState, now time.Time) {
 	if generatorReservedForGuildWar(g.def) {
 		return
 	}
+	if g.def.RespawnSeconds > 0 {
+		g.nextGenerate = time.Time{}
+		return
+	}
 	if g.def.MinuteGenerate > 0 {
 		g.nextGenerate = now.Add(time.Duration(g.def.MinuteGenerate) * npcGenerMinute)
 	}
@@ -1003,41 +1008,14 @@ func (w *World) spawnGroup(g *generState) {
 		if i > 0 {
 			def = g.follower
 		}
-		pos := g.def.Segments[0]
-		requestedX, requestedY := w.scatter(pos.X, pos.Y, pos.Range)
-		x, y := requestedX, requestedY
-		x, y = w.findFreePosition(x, y, pos.Range)
-		if x != requestedX || y != requestedY {
-			w.npcGenerLog.relocations++
-			if w.npcGenerLogMode == npcGenerLogVerbose {
-				log.Printf("NPCGener[%d]: spawn %q relocated (%d,%d)->(%d,%d): blocked/occupied terrain",
-					g.def.Index, def.Name, requestedX, requestedY, x, y)
-			}
-		}
-		segments := g.def.Segments
-		for si := range segments {
-			if segments[si].X != 0 && segments[si].Y != 0 {
-				segments[si].X, segments[si].Y = w.scatter(segments[si].X, segments[si].Y, segments[si].Range)
-				segments[si].X, segments[si].Y = w.findWalkablePosition(segments[si].X, segments[si].Y, segments[si].Range)
-			}
-		}
-		mobID := w.allocMobID()
-		if mobID == 0 {
-			log.Printf("NPCGener[%d]: spawn stopped: mob ID range exhausted", g.def.Index)
+		m := w.spawnGeneratorMob(g, def, leaderID)
+		if m == nil {
 			break
 		}
-		m := &Mob{ID: mobID, Def: def, X: x, Y: y, HP: def.Score.MaxHP,
-			GenerIndex: g.def.Index, generator: g, Segments: segments, RouteType: g.def.RouteType,
-			WaitUntil: w.now().Add(time.Duration(g.def.Segments[0].Wait) * time.Second)}
 		if i == 0 {
 			leaderID = m.ID
-		} else {
-			m.LeaderID = leaderID
 		}
-		w.appendMobInstance(m)
-		g.current++
 		spawned++
-		w.publishMobSpawn(m)
 	}
 	if spawned == 0 {
 		return
@@ -2008,6 +1986,10 @@ func (w *World) tick() {
 	}
 	for i := range w.generators {
 		g := &w.generators[i]
+		if g.def.RespawnSeconds > 0 {
+			w.tickGeneratorRespawns(g, now)
+			continue
+		}
 		if !g.nextGenerate.IsZero() && !now.Before(g.nextGenerate) {
 			w.spawnGroup(g)
 			w.scheduleGenerator(g, now)

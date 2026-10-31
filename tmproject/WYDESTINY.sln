@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TMProject748", "TMProject74
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WYDLauncher", "WYDLauncher\WYDLauncher.vcxproj", "{C983E1CB-7B58-45CD-BD6C-8CE60E30C95D}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "WydCrashReporter", "TMProject748\WerCrashReporter.vcxproj", "{840446DA-A762-4AF8-9B9A-219F3414BE36}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Servidor", "Servidor", "{43A208F9-AF69-402B-A602-EF1AF608C7CA}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{63B26FD9-3F2C-4F64-9F73-B80ECE5BF23A}"
@@ -19,6 +21,10 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{840446DA-A762-4AF8-9B9A-219F3414BE36}.Debug|x86.ActiveCfg = Debug|Win32
+		{840446DA-A762-4AF8-9B9A-219F3414BE36}.Debug|x86.Build.0 = Debug|Win32
+		{840446DA-A762-4AF8-9B9A-219F3414BE36}.Release|x86.ActiveCfg = Release|Win32
+		{840446DA-A762-4AF8-9B9A-219F3414BE36}.Release|x86.Build.0 = Release|Win32
 		{34096901-E987-4241-A00A-6A0E448ED3BE}.Debug|x86.ActiveCfg = Debug|Win32
 		{34096901-E987-4241-A00A-6A0E448ED3BE}.Debug|x86.Build.0 = Debug|Win32
 		{34096901-E987-4241-A00A-6A0E448ED3BE}.Release|x86.ActiveCfg = Release|Win32

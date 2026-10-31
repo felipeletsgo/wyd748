@@ -142,7 +142,7 @@ func TestEveryVolatileItemHasTestShop(t *testing.T) {
 	covered := itemsInShops(shops, func(name string) bool {
 		return strings.HasPrefix(name, "ShopVol") || name == "ShopFairy" ||
 			name == "ShopUseItem" || name == "ShopUse20A" || name == "ShopUse20B" ||
-			name == "ShopPhaseD" || name == "ShopWater" || name == "ShopArch"
+			name == "ShopPhaseD" || name == "ShopWater" || name == "ShopArch" || name == "ShopAmulet"
 	})
 	for item := range volatileItems {
 		// Wyden coins hold donate and are sold only by the premium shop.

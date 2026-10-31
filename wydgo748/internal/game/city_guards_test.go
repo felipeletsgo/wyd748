@@ -9,8 +9,8 @@ import (
 	"wydgo/internal/model"
 )
 
-func TestCityGuardAndCompounderDefinitions(t *testing.T) {
-	for _, name := range []string{"Compounder", "Guard", "Guard_"} {
+func TestCityGuardAndComposerDefinitions(t *testing.T) {
+	for _, name := range []string{"Aylinde", "Guard", "Guard_"} {
 		t.Run(name, func(t *testing.T) {
 			raw, err := os.ReadFile("../../data/npcs/" + name + ".json")
 			if err != nil {
@@ -20,7 +20,7 @@ func TestCityGuardAndCompounderDefinitions(t *testing.T) {
 			if err := json.Unmarshal(raw, &def); err != nil {
 				t.Fatal(err)
 			}
-			if def.IsMonster() || def.IsCityGuard() != (name != "Compounder") {
+			if def.IsMonster() || def.IsCityGuard() != (name != "Aylinde") {
 				t.Fatalf("unexpected NPC role: %+v", def)
 			}
 		})

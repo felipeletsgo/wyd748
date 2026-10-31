@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.016-server-20261031",
+  "feedVersion": 48016,
+  "status": "PUBLISHED_AND_ACTIVATED",
+  "date": "2026-10-31",
+  "authorization": {
+    "request": "publique as atualizacoes no servidor e reinicie; Yes, disconnect",
+    "clientPublication": false,
+    "serverActivation": true,
+    "serviceRestart": true,
+    "playerDisconnect": true
+  },
+  "source": {
+    "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+    "mode": "working-tree",
+    "gameOnly": true,
+    "serverManifest": "build/deploy/wyd-deploy-20261031-leash-respawn/release-manifest.json",
+    "archiveSha256": "d753e78c2ed199def7ef7bc4d426aea180d34ba649d7da1d25fee34c2ed2e817",
+    "serverInputsChangedSince748016": [
+      "wydgo748/data/spawns/NPCGener.txt",
+      "wydgo748/internal/data/npcgener.go",
+      "wydgo748/internal/game/celestial.go",
+      "wydgo748/internal/game/critical_persistence_celestial.go",
+      "wydgo748/internal/game/gameplay_space.go",
+      "wydgo748/internal/game/kill_rewards.go",
+      "wydgo748/internal/game/mob_combat.go",
+      "wydgo748/internal/game/skill_passives.go",
+      "wydgo748/internal/game/world.go",
+      "wydgo748/internal/model/model.go",
+      "wydgo748/internal/game/generator_respawn.go"
+    ]
+  },
+  "changes": [
+    "Players can target public mobs anywhere; the mob AI leash follows the nearest point of its generator route.",
+    "Mystic Land generators 2306-2312 replace each committed death after 5 seconds (RespawnSeconds).",
+    "Also included from the working tree: Mysterious Stone shortcut synchronization (server side) and Huntress two-weapon passive recalculation."
+  ],
+  "active": {
+    "release": "/srv/wyd-go/releases/20261031T002436Z",
+    "services": {
+      "wyd-game": {
+        "MainPID": "2732484",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261031T002436Z/game/wyd-server",
+        "sha256": "789b2076de2bb7aac5524e10e64cffe6f578d19924a13e25d77075f9f696bafc"
+      },
+      "wyd-player": {
+        "MainPID": "2714295",
+        "restarted": false
+      }
+    },
+    "backup": {
+      "at": "2026-10-31T00:24:36Z",
+      "archive": "wydgo-20261031T002436Z.dump",
+      "bytes": 496638,
+      "sha256": "db0454c7a2f9af2b8e0f5ac2ba4f75b13cebf696013b54f79a16ba30e5df53f2",
+      "verified": true
+    },
+    "schema": "14",
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    }
+  },
+  "rollback": "/srv/wyd-go/releases/20261030T223403Z",
+  "rollbackReceipt": ".agents/research/release-748016.json",
+  "admission": "build/release-20261031-leash-respawn/admission-probes.json: 8281 and 8282 reject revision 15; revision 16 reaches credential validation",
+  "validation": {
+    "goSuite": "PASS: go vet ./... and go test -count=1 ./... on the packaged working tree",
+    "archive": "PASS: game binary and data only, no links, 7 RespawnSeconds generators, remote checksum and game-only layout check",
+    "activeProcessHash": "PASS: running wyd-server matches the packaged binary",
+    "journal": "PASS: no error-priority wyd-game entries after activation",
+    "generators": "5098 loaded; initial population 7112 mobs",
+    "settings": "PASS: server.txt, staff.json and service units match byte-for-byte; player API and web untouched",
+    "gameplay": "PENDING: in-game Mystic Land hits, 5-second respawn and long-route patrol pursuit"
+  },
+  "notes": [
+    "The first activation stopped safely before backup because one player was connected; the owner then authorized the disconnect.",
+    "The pipe's trailing CR returned 127 after every command completed; status was verified independently.",
+    "A first admission probe timed out; TCP reachability was confirmed from the VPS and locally, and the second probe passed.",
+    "No client patch, feed, website, commit or push. The Cube notice/question client fix remains unpublished.",
+    "Task remote staging was removed after verification."
+  ]
+}

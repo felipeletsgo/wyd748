@@ -87,6 +87,7 @@ function render(){
  $('items').replaceChildren();
  for(const item of items){
   const card=document.createElement('article');card.className='card';
+  card.title=[item.name,...(item.details||[])].join('\n');
   const seal=document.createElement('div');seal.className='seal';seal.setAttribute('aria-hidden','true');const icon=document.createElement('img');icon.alt='';icon.referrerPolicy='no-referrer';
   if(Number.isInteger(item.id)&&item.id>0&&item.id<6500)icon.src='https://wydmisc.raidhut.com/icons/global_prod/'+item.id+'.gif';
   icon.onerror=()=>{seal.textContent='#'+(item.id||0);};seal.append(icon);

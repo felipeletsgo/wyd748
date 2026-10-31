@@ -2,6 +2,29 @@ package game
 
 import "wydgo/internal/model"
 
+// The 7.48 Discount book reduces public merchant prices by 6 + Trade/10,
+// capped at 26 percent. Apply it before the city tax calculation.
+func passiveMerchantPurchasePrice(ch *model.Char, price uint64) uint64 {
+	if ch == nil || ch.Class != 3 || !learnedLocal(ch, 83-72) {
+		return price
+	}
+	discount := minInt(26, 6+int(playerMastery(ch, 2))/10)
+	return price * uint64(100-discount) / 100
+}
+
+func applyHuntressLifeDrain(ch *model.Char, mob *Mob) bool {
+	if ch == nil || ch.Class != 3 || !learnedLocal(ch, 90-72) || playerCurHP(ch) == 0 ||
+		mob == nil || mob.Def == nil || mob.Def.Score == nil {
+		return false
+	}
+	if mob.Def.Tipo != model.TipoMonstro {
+		return false
+	}
+	before := playerCurHP(ch)
+	restorePlayerHP(ch, mob.Def.Score.MaxHP/50+playerMastery(ch, 3))
+	return before != playerCurHP(ch)
+}
+
 func learnedLocal(ch *model.Char, local int) bool {
 	return ch != nil && local >= 0 && local < 24 && ch.LearnedSkill&(uint32(1)<<local) != 0
 }
@@ -58,23 +81,16 @@ func (w *World) applyPassiveSkills(ch *model.Char) {
 				e.Defense = extendedValue(int64(e.Defense) * 105 / 100)
 			}
 		}
-	case 3: // Huntress; official TMSRVIN bits mapped to 7.48 skills by name.
-		// Two Weapon Fighting (server bit 2, sub_4BB4C0): a slot-6 weapon of
-		// Unique 42 or 43 adds Special[1]/5 + 10, or + 320 with Rapid Hit.
+	case 3: // Huntress; preserve the 7.48 learned bits and weapon gate.
+		// Owner rule: bow/claw attack gains 10 + Trade/20 percent, up to 26.
+		// Scale by 2000 to retain each Trade point's 0.05 percent contribution.
 		if learnedLocal(ch, 82-72) && ch.Equip[6].Index != 0 {
 			if def, ok := w.items[ch.Equip[6].Index]; ok && (def.Unique == 42 || def.Unique == 43) {
-				bonus := int(playerMastery(ch, 1))/5 + 10
-				if learnedLocal(ch, 95-72) {
-					bonus = int(playerMastery(ch, 1))/5 + 320
-				}
-				e.Attack = extendedValue(int64(e.Attack) + int64(bonus))
+				trade := minU32(playerMastery(ch, 2), 320)
+				e.Attack = extendedValue(int64(e.Attack) * int64(2200+trade) / 2000)
 			}
 		}
-		// Hunter's Vision (server bit 18, sub_4CE1C0): base DEX/20, in tenths
-		// of a percent.
-		if learnedLocal(ch, 91-72) && ch.Score != nil {
-			e.Critical = addCritical(e.Critical, int(ch.Score.Dex)/20)
-		}
+		// Hunter's Vision increases drops in 7.48; see dropBonusFor.
 		// Improved Range (server bit 19, sub_4BA690): range at least 2.
 		if learnedLocal(ch, 92-72) {
 			e.Range = uint32(maxInt(2, int(e.Range)))

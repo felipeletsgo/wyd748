@@ -4,7 +4,7 @@ title: Persistent buff scales, particles, and material colors
 subsystem: combat
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-15
+updated: 2026-10-31
 ---
 
 # Persistent buff visuals
@@ -208,6 +208,25 @@ AUTOMATED TESTED: `Build-Client.ps1 -NoDeploy` Release/x86; ArchitectureTests
 3,177,024 checks with two new `UiModeContractTests` assertions. No client was
 launched; CLIENT-TESTED is pending. Revision 11 was published and activated
 as [release 7.48.011](../../../release-748011.json).
+
+## Skill Amp foot height (2026-10-31)
+
+The owner reported the Skill Amp plane at mid-shin and selected foot height.
+Classification: `MODERNIZACAO_COMPATIVEL`. The plane keeps its native texture,
+1.5 scale, fade, color and terrain anchor, including mounts. Its lift changes
+from the native `0.4` to `0.05`, the lift of the existing field ground decals.
+No packet, affect or server state changes. Visual acceptance remains pending.
+
+## Transformed player buff visuals (2026-10-31)
+
+The owner reported that Magic Shield was invisible during a transformation.
+`TMHuman::InitObject` creates the Magic Shield, Rescue, element-stream and
+Cancelation objects only for classes 1..8. A transformation rebuilds the skin
+with its form class (Wolf and Bear 26, Astaroth 33, Titan 40), so the pointers
+stayed null and every restart was skipped. Players (ID 1..999) now keep these
+objects in every form; monsters keep the native class gate. Classification:
+`MODERNIZACAO_COMPATIVEL`. No packet, affect or server state changes. Visual
+acceptance remains pending.
 
 ## Gaps
 

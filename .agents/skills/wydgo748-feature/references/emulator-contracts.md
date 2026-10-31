@@ -88,6 +88,10 @@ rules live only in the root `AGENTS.md`.
   sources.
 - Mobs outside activation range sleep. Active mobs acquire targets within
   radius 4, retain them through radius 7, and respect leash 16.
+- Measure the leash from the nearest point of the generator route.
+  It limits mob pursuit only; players can target a public mob anywhere.
+- A generator with `RespawnSeconds` replaces each committed death after that
+  delay instead of the `MinuteGenerate` cycle.
 - Perception may tick at 1 s; the attack deadline separately controls DPS.
 - Every attack path revalidates `Def.IsMonster()`. `activeMobs` evicts NPCs,
   merchants, dead entities, and invalid entities.

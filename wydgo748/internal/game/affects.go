@@ -614,6 +614,10 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 		if playerCurHP(target.Char) > oldHP {
 			hpDelta = playerCurHP(target.Char) - oldHP
 		}
+		// Display the calculated heal while the authoritative HP remains capped.
+		if skill.Index == 27 || skill.Index == 29 {
+			hpDelta = uint32(maxInt(0, foemaHealAmount(p.Char, skill.Index, mastery, skill.InstanceValue)))
+		}
 		changed = append(changed, supportSkillResult{
 			player: target, hpDelta: hpDelta, revived: oldHP == 0 && playerCurHP(target.Char) > 0,
 		})
@@ -675,6 +679,9 @@ func setMobOwnedMobAffectAt(m *Mob, owner *Mob, affectType byte, value, level, d
 }
 
 func (w *World) applySkillMobEffects(owner *Player, m *Mob, skill model.SkillDef, mastery int) {
+	if skill.Index == 40 { // Requested poison lifetime: four eight-second ticks.
+		skill.AffectTime = 4
+	}
 	changed := false
 	now := w.now()
 	if skill.AffectType > 0 {
@@ -684,6 +691,13 @@ func (w *World) applySkillMobEffects(owner *Player, m *Mob, skill model.SkillDef
 		changed = setPlayerOwnedMobAffectAt(m, owner, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime, now) || changed
 	}
 	if changed {
+		if skill.Index == 40 {
+			for i := range m.Affects {
+				if m.Affects[i].Type == 20 {
+					m.Affects[i].FinalTickAtExpiry = true
+				}
+			}
+		}
 		w.publishMobAffects(m)
 	}
 }
@@ -1005,7 +1019,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			}
 		case 21: // Transfer Armor Class; official TMSRVIN sub_4BB4C0.
 			bonus := a.Level/10 + a.Value
-			if ch.Class == 3 && learnedLocal(ch, 95-72) { // Rapid Hit, server bit 7.
+			if ch.Class == 3 && learnedLocal(ch, 79-72) { // Survival finisher, 7.48 bit 7.
 				bonus += 5
 			}
 			e.Defense = add(e.Defense, int64(-(a.Level/3 + 10)))
@@ -1129,7 +1143,7 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 			}
 			e.MaxHP = mul(e.MaxHP, 100+bonus)
 		case 37:
-			e.Attack = add(e.Attack, int64(playerMastery(ch, 2)))
+			e.Attack = add(e.Attack, int64(playerMastery(ch, 1)))
 		case 38: // Spirit Change; official TMSRVIN sub_4BB4C0.
 			special := int64(playerMastery(ch, 2))
 			level := int64(playerLevel(ch))
@@ -1182,15 +1196,19 @@ func (w *World) applyExtendedAffectStats(ch *model.Char) int {
 func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 	accountsToSave := make(map[*model.Account]struct{})
 	killPlans := make([]*killRewardPlan, 0)
-	for _, m := range w.activeMobs {
-		if w.criticalGuildMobReserved(m) {
-			continue
+	tick := func(m *Mob) {
+		if m == nil || m.Dead || m.HP == 0 || w.criticalGuildMobReserved(m) {
+			return
 		}
 		if shardCount > 1 && int(m.ID)%shardCount != shard {
-			continue
+			return
 		}
-		if m == nil || m.Dead || m.HP == 0 {
-			continue
+		if isCombatSummon(m) {
+			owner := w.playerByID(m.SummonerID)
+			if owner == nil || !owner.InWorld || owner.Char == nil || w.criticalPlayerReserved(owner) ||
+				w.gameplaySpaceForPlayer(owner) != mobGameplaySpace(m) {
+				return
+			}
 		}
 		expired := false
 		for i := range m.Affects {
@@ -1209,7 +1227,7 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 				expired = true
 				continue
 			}
-			if !a.ExpiresAt.After(now) {
+			if !a.ExpiresAt.After(now) && !(a.FinalTickAtExpiry && !a.NextTick.After(a.ExpiresAt) && !now.Before(a.NextTick)) {
 				*a = model.Affect{}
 				expired = true
 				continue
@@ -1220,13 +1238,35 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			if a.Type == 20 && playerOwner != nil && w.criticalKillParticipantsReserved(playerOwner) {
 				continue
 			}
-			a.NextTick = now.Add(8 * time.Second)
+			if a.FinalTickAtExpiry {
+				a.NextTick = a.NextTick.Add(8 * time.Second)
+			} else {
+				a.NextTick = now.Add(8 * time.Second)
+			}
 			if a.Type != 20 { // Poison/bleeding.
 				continue
 			}
+			if isCombatSummon(m) && (playerOwner == nil || !w.playerCanInteractWithMob(playerOwner, m)) {
+				continue // A prior cast cannot bypass current summon PvP permissions.
+			}
 			damage := uint32(clampInt(a.Level/2+a.Value, 1, int(m.HP)))
+			if a.FinalTickAtExpiry && a.NextTick.After(a.ExpiresAt) {
+				*a = model.Affect{}
+				expired = true
+			}
+			if playerOwner != nil {
+				w.sendToMobViewProtocol(m, func(observer *Player) []byte {
+					return playerAttackPacket(playerOwner.Char, wire.AttackHitWideResult(playerOwner.ID, m.ID,
+						playerOwner.X, playerOwner.Y, m.X, m.Y, damage, m.Def.Score.MaxHP,
+						playerOwner.Char.Exp, playerCombatMP(playerOwner.Char), 0, false))
+				})
+			}
 			m.HP -= damage
 			if m.HP == 0 {
+				if isCombatSummon(m) {
+					w.destroyPlayerSummon(m, playerOwner.ID)
+					break // No EXP, loot, quest progress or account write.
+				}
 				if playerOwner != nil {
 					owner := playerOwner
 					for _, account := range uniqueKillAccounts(owner,
@@ -1251,12 +1291,22 @@ func (w *World) tickMobAffects(now time.Time, shard, shardCount int) {
 			w.publishMobAffects(m)
 		}
 	}
+	for _, m := range w.activeMobs {
+		tick(m)
+	}
 	if len(killPlans) > 0 {
 		accounts := make([]*model.Account, 0, len(accountsToSave))
 		for account := range accountsToSave {
 			accounts = append(accounts, account)
 		}
 		w.commitKillRewardBatch(nil, killPlans, accounts, "affect kills")
+	}
+	// MODERNIZACAO_COMPATIVEL: summons share effects, not hostile-mob AI.
+	// Admit normal rewards first; summon packets must not expose pending EXP.
+	for _, m := range w.summons {
+		if isCombatSummon(m) && w.activeMobs[m.ID] != m {
+			tick(m)
+		}
 	}
 }
 
@@ -1296,7 +1346,10 @@ func (w *World) tickPlayerAffects(now time.Time) {
 			if a.Type == 17 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
 				oldHP := playerCurHP(p.Char)
 				heal := a.Level/2 + a.Value
-				restorePlayerHP(p.Char, uint32(maxInt(0, heal)))
+				// Aura of Life restores living characters; it cannot resurrect.
+				if oldHP > 0 {
+					restorePlayerHP(p.Char, uint32(maxInt(0, heal)))
+				}
 				a.NextTick = now.Add(8 * time.Second)
 				hpChanged = oldHP != playerCurHP(p.Char)
 			}
@@ -1306,7 +1359,7 @@ func (w *World) tickPlayerAffects(now time.Time) {
 				}
 				areaDue = append(areaDue, i)
 			}
-			if a.Type == 20 && a.ExpiresAt.After(now) && !now.Before(a.NextTick) {
+			if a.Type == 20 && (a.ExpiresAt.After(now) || a.FinalTickAtExpiry && !a.NextTick.After(a.ExpiresAt)) && !now.Before(a.NextTick) {
 				// A DoT may outlive a teleport or an instance transition. Never
 				// let an affect created in one private gameplay space damage a
 				// character in another; remove the stale cross-runtime affect.
@@ -1320,15 +1373,19 @@ func (w *World) tickPlayerAffects(now time.Time) {
 					hpChanged = true
 					if owner != nil {
 						w.sendToPlayerView(p, func() []byte {
-							return wire.AttackerHold(wire.AttackHit(owner.ID, p.ID, owner.X, owner.Y, p.X, p.Y,
+							return playerAttackPacket(owner.Char, wire.AttackHitWideResult(owner.ID, p.ID, owner.X, owner.Y, p.X, p.Y,
 								damage, playerMaxHP(p.Char), owner.Char.Exp,
-								playerCombatMP(owner.Char)), owner.Char.Hold)
+								playerCombatMP(owner.Char), 0, false))
 						})
 					}
 				}
-				a.NextTick = now.Add(8 * time.Second)
+				if a.FinalTickAtExpiry {
+					a.NextTick = a.NextTick.Add(8 * time.Second)
+				} else {
+					a.NextTick = now.Add(8 * time.Second)
+				}
 			}
-			if a.Type != 0 && !a.ExpiresAt.After(now) {
+			if a.Type != 0 && !a.ExpiresAt.After(now) && !(a.FinalTickAtExpiry && !a.NextTick.After(a.ExpiresAt)) {
 				*a = model.Affect{}
 				expired = true
 			}

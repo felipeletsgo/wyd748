@@ -15,6 +15,7 @@
 #include "ClientDiagnostics.h"
 #include "SellConfirmationText.h"
 #include "NativeSaleQuote.h"
+#include "HuntressMerchantQuote.h"
 #include "SGridSupport.h"
 #include "SkillRequirementPresentation.h"
 #include "ItemHelpText.h"
@@ -610,8 +611,13 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 
 
 	const int itemIndex = pItem->m_pItem->sIndex;
-	const int nItemPrice = WYD748_IsValidItemIndex(static_cast<short>(itemIndex))
+	int nItemPrice = WYD748_IsValidItemIndex(static_cast<short>(itemIndex))
 		? g_pItemList[itemIndex].nPrice : 0;
+	if (!pFScene->m_premiumShop.Open && pFScene->m_nIsMP == 0) {
+		const auto& character = g_pObjectManager->m_stMobData;
+		nItemPrice = huntress_merchant_quote::PurchaseBase(nItemPrice, character.Class,
+			character.LearnedSkill[0], character.CurrentScore.Mastery[2]);
+	}
 	char szText[128]{};
 
 	// FUN_00418828 in WYD.exe 7.48 has exactly three shop-price modes: the
@@ -885,6 +891,11 @@ ExtractedFlow SGridControl::DescribeItem3444(TMFieldScene*& pFScene, SGridContro
 		int nPrice = 0;
 		if (nItemId > 0 && nItemId < 6500)
 			nPrice = g_pItemList[nItemId].nPrice;
+		if (!pFScene->m_premiumShop.Open && pFScene->m_nIsMP == 0) {
+			const auto& character = g_pObjectManager->m_stMobData;
+			nPrice = huntress_merchant_quote::PurchaseBase(nPrice, character.Class,
+				character.LearnedSkill[0], character.CurrentScore.Mastery[2]);
+		}
 
 		auto vecPos = pFScene->m_pMyHuman->m_vecPosition;
 

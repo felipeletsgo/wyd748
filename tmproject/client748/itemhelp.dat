@@ -3389,3 +3389,33 @@ FFFFFFFF earrings, which never break)
 FFFFFFFF 
 FFFFFFFF 
 FFFF0000 > Drag onto equipped item
+6016
+CC9900FF All four masteries: +300.
+CC9900FF Effective mastery remains capped at 320.
+CC9900FF Available to Mortals and advanced forms.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+6017
+CC9900FF Replaces both armor bonus options.
+CC9900FF Bonus: two effects of 160 (total 320).
+CC9900FF Refinement scales the bonus normally.
+CC9900FF Preserves refinement and dye.
+CC9900FF Drag onto an equipped armor set piece.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+6018
+CC9900FF Replaces both armor bonus options.
+CC9900FF Bonus: two effects of 160 (total 320).
+CC9900FF Refinement scales the bonus normally.
+CC9900FF Preserves refinement and dye.
+CC9900FF Drag onto an equipped armor set piece.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF

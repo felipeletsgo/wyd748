@@ -24,6 +24,41 @@ class ClientLocalesTests(unittest.TestCase):
     def read(self, language, relative):
         return (self.runtime / language / relative).read_bytes()
 
+    def test_poison_duration_and_timer_units_are_readable_in_both_locales(self):
+        for language in ('EN', 'PT'):
+            records = locales.help_records(self.read(language, 'skillhelp.dat'))
+            rows = records[5040]
+            self.assertIn(b'32', b' '.join(rows))
+            self.assertIn(b'4 ', b' '.join(rows[3:]))
+            self.assertTrue(all(len(row[9:]) <= 42 for row in rows))
+            messages = self.read(language, 'UI/strdef.bin')
+            for index in (291, 292, 293):
+                row = bytes(x ^ 0x5a for x in messages[index*128:(index+1)*128]).split(b'\0', 1)[0]
+                self.assertTrue(row.startswith(b'%d '), (language, index, row))
+
+    def test_huntress_reported_regressions_use_reviewed_formulas(self):
+        for language, field in [('', 'skill_help_en'), ('EN', 'skill_help_en'), ('PT', 'skill_help')]:
+            records = locales.help_records(self.read(language, 'skillhelp.dat'))
+            for key in (5075, 5077, 5079, 5082, 5083, 5090, 5091, 5094):
+                expected = [row.encode('cp1252') for row in self.policy[field][str(key)]]
+                self.assertEqual(records[key], expected, (language, key))
+                self.assertTrue(all(len(row[9:]) <= 42 for row in expected))
+        en = locales.help_records(self.read('EN', 'skillhelp.dat'))
+        self.assertIn(b'Trade/10', b' '.join(en[5083]))
+        self.assertIn(b'monster maximum HP/50 + Capture', b' '.join(en[5090]))
+        self.assertIn(b'Capture', b' '.join(en[5094]))
+        self.assertNotIn(b'Trade', b' '.join(en[5094]))
+
+    def test_two_weapon_percent_matches_the_owner_selected_rule(self):
+        for language, mastery in (('', b'Trade'), ('EN', b'Trade'), ('PT', b'Troca')):
+            rows = locales.help_records(self.read(language, 'skillhelp.dat'))[5082]
+            text = b' '.join(rows)
+            self.assertIn(b'(10 + ' + mastery + b'/20)%', text)
+            self.assertIn(b'+26%', text)
+            self.assertIn(b'320', text)
+            self.assertNotIn(mastery + b'/5', text)
+            self.assertNotIn(b'120', text)
+
     def test_only_translation_resources_are_distributed(self):
         expected = {*locales.TEXT_FILES, 'ItemList.bin', 'Itemname.bin',
                     'itemhelp.dat', 'skillhelp.dat', 'UI/captions.txt'}

@@ -1128,7 +1128,11 @@ int TMHuman::InitObject()
         m_pCancelation = 0;
     }
 
-    if (m_nClass <= 8)
+    // Native creates these buff visuals for base classes 1..8 only. A player
+    // transformation (Wolf/Bear 26, Astaroth 33, Titan 40) rebuilds the skin
+    // with its form class, which hid Magic Shield and the other buffs.
+    // Players (ID < 1000) keep them in every form; monsters stay excluded.
+    if (m_nClass <= 8 || (m_dwID > 0 && m_dwID < 1000))
     {
         m_pMagicShield = new TMSkillMagicShield(this, 0);
         m_pRescue = new TMSkillMagicShield(this, 1);

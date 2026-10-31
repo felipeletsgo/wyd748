@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 224.
+Markdown documents: 226.
 
 | Document | Type |
 | --- | --- |
@@ -18,6 +18,7 @@ Markdown documents: 224.
 | [.agents/handoffs/TEMPLATE.md](<../.agents/handoffs/TEMPLATE.md>) | Historical continuity |
 | [.agents/handoffs/tmproject-architecture.md](<../.agents/handoffs/tmproject-architecture.md>) | Historical continuity |
 | [.agents/research/client748/flows/combat/persistent-buff-visuals.md](<../.agents/research/client748/flows/combat/persistent-buff-visuals.md>) | Research evidence |
+| [.agents/research/client748/flows/combat/player-reported-skill-effects.md](<../.agents/research/client748/flows/combat/player-reported-skill-effects.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md](<../.agents/research/client748/flows/combat/pvp-death-held-exp-lifecycle.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/sephira-resurrection-prompt.md](<../.agents/research/client748/flows/combat/sephira-resurrection-prompt.md>) | Research evidence |
 | [.agents/research/client748/flows/combat/skill-visual-dispatch.md](<../.agents/research/client748/flows/combat/skill-visual-dispatch.md>) | Research evidence |
@@ -218,6 +219,7 @@ Markdown documents: 224.
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Product documentation |
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
 | [DOCS/server/data-layout.md](<server/data-layout.md>) | Product documentation |
+| [DOCS/server/drop-item-bonus.md](<server/drop-item-bonus.md>) | Product documentation |
 | [DOCS/server/ground-items.md](<server/ground-items.md>) | Product documentation |
 | [DOCS/server/hidden-valley-access.md](<server/hidden-valley-access.md>) | Product documentation |
 | [DOCS/server/kibita-soul.md](<server/kibita-soul.md>) | Product documentation |

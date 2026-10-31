@@ -269,8 +269,8 @@ func TestHuntressIronSpearSecondaryPhysicalHit(t *testing.T) {
 		}
 	})
 
-	t.Run("secondary outside exact behind tile is ignored", func(t *testing.T) {
-		w, attacker, primary, secondary := setup(t, 3, 0x40, 2102, 2101)
+	t.Run("secondary outside radius one is ignored", func(t *testing.T) {
+		w, attacker, primary, secondary := setup(t, 3, 0x40, 2103, 2102)
 		primaryBefore, secondaryBefore := primary.HP, secondary.HP
 
 		w.onAttack(attacker.Session, physicalAttackTwoPacket(1000, primary.ID, primary.X, primary.Y, secondary.ID))
@@ -304,17 +304,23 @@ func TestHuntressIronSpearSecondaryPhysicalHit(t *testing.T) {
 		})
 	}
 
-	t.Run("non 0x39E packet cannot nominate secondary", func(t *testing.T) {
-		w, attacker, primary, secondary := setup(t, 3, 0x40, 2102, 2100)
+	t.Run("single target intention selects one adjacent enemy without nomination", func(t *testing.T) {
+		w, attacker, primary, secondary := setup(t, 3, 0x40, 2101, 2101)
 		pkt := physicalAttackTwoPacket(1000, primary.ID, primary.X, primary.Y, secondary.ID)
 		binary.LittleEndian.PutUint16(pkt[4:6], wire.OpAttackOne)
+		pkt = pkt[:48]
+		binary.LittleEndian.PutUint16(pkt[:2], uint16(len(pkt)))
+		extra := &Mob{ID: 1002, X: 2102, Y: 2101, HP: 10000,
+			Def: testNPCDef(model.Score{MaxHP: 10000, CurHP: 10000})}
+		w.mobs = append(w.mobs, extra)
+		w.registerMobSpatial(extra)
 		secondaryBefore := secondary.HP
 
 		w.onAttack(attacker.Session, pkt)
 
-		if secondary.HP != secondaryBefore {
-			t.Fatalf("physical packet other than 0x39E activated Iron Spear: hp=%d/%d",
-				secondary.HP, secondaryBefore)
+		if secondary.HP >= secondaryBefore || extra.HP != 10000 {
+			t.Fatalf("Iron Spear must hit exactly one extra enemy: hp=%d/%d extra=%d",
+				secondary.HP, secondaryBefore, extra.HP)
 		}
 	})
 

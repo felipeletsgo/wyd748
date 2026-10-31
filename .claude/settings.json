@@ -1,5 +1,8 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
   "permissions": {
     "deny": [
       "Bash(git reset --hard)",
@@ -9,6 +12,10 @@
       "Bash(git push *-f *)",
       "Bash(git push *-f)",
       "Bash(git clean *)",
+      "Bash(git checkout -b *)",
+      "Bash(git switch -c *)",
+      "Bash(git worktree add *)",
+      "Bash(gh pr create *)",
       "PowerShell(git reset --hard)",
       "PowerShell(git reset --hard *)",
       "PowerShell(git checkout -- *)",
@@ -16,7 +23,15 @@
       "PowerShell(git push *-f *)",
       "PowerShell(git push *-f)",
       "PowerShell(git clean *)",
-      "Edit(references/**)"
+      "PowerShell(git checkout -b *)",
+      "PowerShell(git switch -c *)",
+      "PowerShell(git worktree add *)",
+      "PowerShell(gh pr create *)",
+      "PowerShell(*Start-Process*WYD*)",
+      "PowerShell(*Start-Process*project.exe*)",
+      "PowerShell(*Invoke-Item*WYD*)",
+      "EnterWorktree",
+      "Edit(/references/**)"
     ]
   }
 }

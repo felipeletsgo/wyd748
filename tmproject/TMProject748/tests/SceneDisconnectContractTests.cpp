@@ -824,6 +824,26 @@ int RunSceneDisconnectContractTests(int& checks)
         "if (pSendItem->Item.sIndex < 0 || pSendItem->Item.sIndex >= MAX_ITEMLIST)");
     const auto bagView = sendItemHandler.find("pFScene->Bag_View();");
     const auto firstModelWrite = sendItemHandler.find("memcpy(&pMobData->Equip[");
+    for (int previousClass = 0; previousClass < 4; ++previousClass)
+    {
+        for (int nextClass = 0; nextClass < 4; ++nextClass)
+            check(SkillClassFromFace(1 << nextClass, previousClass) == nextClass,
+                "authoritative player faces select all four skill classes across repeated form changes");
+        for (int ability : {0, 3, 7, 15, 26, 33, 40, 63, -1})
+            check(SkillClassFromFace(ability, previousClass) == previousClass,
+                "invalid and transformed faces preserve the skill class");
+    }
+    const auto faceClass = sendItemHandler.find("pMobData->Class = SkillClassFromFace(");
+    check(faceClass != std::string::npos && firstModelWrite < faceClass &&
+        sendItemHandler.find("if (pSendItem->DestPos == 0)", firstModelWrite) < faceClass &&
+        faceClass < sendItemHandler.find("pFScene->UpdateScoreUI(0);", faceClass),
+        "local face updates install skill class before rebuilding class-dependent UI");
+    const auto updateEtc = source_contract::Method(packetSource,
+        "int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)");
+    check(updateEtc.find("SendPacket(") == std::string::npos &&
+        updateEtc.find("m_cShortSkill[") == std::string::npos &&
+        updateEtc.find("1 << nBit") == std::string::npos,
+        "learned-skill snapshots never overwrite form shortcuts or shift by invalid slot values");
     const auto applyAppearance = sendItemHandler.find("SetPacketMOBItem(pMobData);");
     for (const int type : {-32768, -1, 0, 1, 2, 3, 32767})
         for (const int position : {-32768, -1, 0, 17, 18, 63, 64, 127, 128, 32767})
@@ -2768,8 +2788,16 @@ int RunSceneDisconnectContractTests(int& checks)
         check(baseDevice.find("->GetBackBuffer(") == std::string::npos && capture.find("device_back_buffer::Capture(") != std::string::npos &&
             capture.find("if (FAILED(result))") != std::string::npos && capture.find("LOG_WRITELOG(") != std::string::npos &&
             capture.find("ScreenShot\\\\Capture%04d.jpg") != std::string::npos &&
-            capture.find("D3DXIMAGE_FILEFORMAT::D3DXIFF_JPG, surface, 0, 0") != std::string::npos,
+            capture.find("ReadBackBufferBgr24(m_pd3dDevice, surface, width, height, pixels)") != std::string::npos &&
+            capture.find("SaveBgr24Jpeg(") > capture.find("device_back_buffer::Capture(") &&
+            capture.find("D3DXSaveSurfaceToFile") == std::string::npos &&
+            LoadSource("TMProject748/internal/platform/windows/ScreenshotJpeg.cpp").find("GUID_ContainerFormatJpeg") != std::string::npos &&
+            baseDevice.find("GetRenderTargetData(source, copy.value)") != std::string::npos,
             "all base-device back-buffers are checked and capture keeps numbered JPG and failure logging");
+        check(capture.find("CreateDirectoryA(\"ScreenShot\", nullptr)") != std::string::npos &&
+            capture.find("ERROR_ALREADY_EXISTS") != std::string::npos &&
+            capture.find("CreateDirectoryA(") < capture.find("ScreenShot\\\\Capture%04d.jpg"),
+            "capture creates a missing ScreenShot folder before it selects the file name");
         const std::string retainFactory = "device_back_buffer::CleanupForRetry(m_pD3D, [this] { Cleanup3DEnvironment(); });";
         check(initialize.find(retainFactory) != std::string::npos && toggle.find(retainFactory) != std::string::npos &&
             initialize.find(retainFactory) < initialize.find("// If that failed, fall back"),
@@ -2875,6 +2903,10 @@ int RunSceneDisconnectContractTests(int& checks)
         check(!retire.empty() && retire.find("actor_lifetime::MayDelayDelete(this, m_pParentScene, ESCENE_TYPE::ESCENE_FIELD)") <
             retire.find("m_dwDelayDel =") && retire.find("m_pMyHuman = nullptr") == std::string::npos,
             "production retirement protects the local field actor before mutating lifetime state");
+        const auto buffGate = human.find("if (m_nClass <= 8 || (m_dwID > 0 && m_dwID < 1000))");
+        check(buffGate != std::string::npos && human.find("new TMSkillMagicShield(this, 0)") > buffGate &&
+            human.find("new TMSkillMagicShield(this, 4)") > buffGate,
+            "transformed players keep Magic Shield, Rescue, element and Cancelation visuals; monsters stay excluded");
         const auto tree = LoadSource("TMProject748/internal/core/TreeNode.cpp");
         const auto detach = source_contract::Method(tree, "void TreeNode::DeleteOwner(TMObject* pOwner)");
         check(detach.find("tree_attachment::ClearOwner(this, pOwner)") != std::string::npos,

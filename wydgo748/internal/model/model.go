@@ -307,10 +307,11 @@ type Affect struct {
 	OwnerCharacterUID string `json:"ownerCharacterUid,omitempty"`
 	// SourceItem identifies the economic instance that created or extended the
 	// buff; the index helps human audits without replacing the authoritative UID.
-	SourceItemUID   string    `json:"sourceItemUid,omitempty"`
-	SourceItemIndex uint16    `json:"sourceItemIndex,omitempty"`
-	ExpiresAt       time.Time `json:"expiresAt,omitempty"`
-	NextTick        time.Time `json:"nextTick,omitempty"`
+	SourceItemUID     string    `json:"sourceItemUid,omitempty"`
+	SourceItemIndex   uint16    `json:"sourceItemIndex,omitempty"`
+	ExpiresAt         time.Time `json:"expiresAt,omitempty"`
+	NextTick          time.Time `json:"nextTick,omitempty"`
+	FinalTickAtExpiry bool      `json:"finalTickAtExpiry,omitempty"`
 }
 
 // CelestialForm holds only the INACTIVE form of the Celestial/SubCelestial
@@ -1161,6 +1162,9 @@ type NPCGener struct {
 	Label          int
 	Enabled        bool
 	MinuteGenerate int
+	// RespawnSeconds replaces periodic generation with a deadline per death.
+	// Zero retains the native MinuteGenerate schedule.
+	RespawnSeconds int
 	MaxNumMob      int
 	MinGroup       int
 	MaxGroup       int

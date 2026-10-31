@@ -28,12 +28,34 @@ parity, missing pointers, and orphan pointers.
 ## Shared guardrails
 
 `.claude/settings.json` denies actions that `AGENTS.md` already forbids:
-`git reset --hard`, `git checkout --`, forced pushes, `git clean`, and edits
-under the read-only `references/` evidence collection (`Edit` rules also cover
-file writes). It does not pin a model or effort level; choose those in the
-client. Deny rules are skipped in Claude Code's bypass-permissions mode, so
-they are a safety net, not a substitute for the rules. Codex has no tracked
-equivalent; its local configuration stays untracked.
+`git reset --hard`, `git checkout --`, forced pushes, `git clean`, new
+branches, worktrees, and pull requests, client launches through
+`Start-Process` or `Invoke-Item`, and edits under the read-only `references/`
+evidence collection (`Edit` rules also cover file writes). It sets
+`PYTHONDONTWRITEBYTECODE=1` for every command, as the Python rule requires.
+It does not pin a model or effort level; choose those in the client. Deny
+rules are a safety net, not a substitute for the rules: shell patterns cannot
+catch every equivalent command. Codex has no tracked equivalent; its local
+configuration stays untracked.
+
+## Claude Code tool mapping
+
+The rules name generic actions. Use these Claude Code tools for them:
+
+| Rule or skill wording | Claude Code tool |
+| --- | --- |
+| Search with `rg` | `Grep` tool (ripgrep); use `rg` in a shell only for pipelines |
+| PowerShell 7 commands | `PowerShell` tool (`pwsh` 7); the `Bash` tool is Git Bash |
+| Agent temporary storage | The session scratchpad directory |
+| Bounded reads of large files | `Read` with `offset` and `limit` after a `Grep` hit |
+| Broad corpus or REA search | `Explore` subagent; keep only its conclusion in context |
+| Skill authoring and validation | `skill-creator` skill, then the layout validator |
+| Task progress | The app task list; handoffs remain the only durable continuity |
+| Work on `main` | Never enter a worktree; `EnterWorktree` is denied |
+
+Claude Code auto memory is personal to the user and machine. It records user
+preferences, not repository rules. Move a durable repository rule into
+`AGENTS.md` or a canonical skill, then delete the duplicate memory.
 
 ## Working conventions for either agent
 
@@ -46,9 +68,10 @@ equivalent; its local configuration stays untracked.
   `%TEMP%\codex-wyd748-lifecycle-149205b7` in research records and handoffs are
   historical evidence locations, not a required naming scheme.
   Root `build/<task>/` holds generated staging, audit reports, logs, and temporary databases.
-  The client may write crash-monitor logs and dumps to
-  `tmproject/client748/dumps/`. Retain them until the incident closes, or for
-  30 days when no incident exists. Never commit or package them.
+  The client may write `client-debug.log` beside its executable and crash
+  dumps to `tmproject/client748/dumps/`. Older clients may leave
+  `crash-monitor-*.log` files there. Retain these files until the incident
+  closes, or for 30 days when no incident exists. Never commit or package them.
   Retain `tmproject/client748.zip` only while its matching build or receipt is
   under review. Remove it after publication verification.
   Cleanup examples include staging, verification downloads, stopped temporary

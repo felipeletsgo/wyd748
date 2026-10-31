@@ -4,6 +4,51 @@
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "PerfTrace.h"
+#include "ScreenshotPixels.h"
+#include "ScreenshotJpeg.h"
+#include <vector>
+
+namespace {
+// Copies the back buffer to system memory as tightly packed 24-bit BGR rows.
+HRESULT ReadBackBufferBgr24(IDirect3DDevice9* device, IDirect3DSurface9* backBuffer,
+	UINT& width, UINT& height, std::vector<std::uint8_t>& pixels)
+{
+	D3DSURFACE_DESC desc{};
+	HRESULT hr = backBuffer->GetDesc(&desc);
+	if (FAILED(hr)) return hr;
+	const auto layout = screenshot_pixels::FromFormat(desc.Format);
+	if (layout == screenshot_pixels::Layout::Unsupported || !desc.Width || !desc.Height) return E_NOTIMPL;
+
+	// GetRenderTargetData requires a single-sample source.
+	device_back_buffer::OwnedSurface<IDirect3DSurface9> resolved;
+	IDirect3DSurface9* source = backBuffer;
+	if (desc.MultiSampleType != D3DMULTISAMPLE_NONE)
+	{
+		hr = device->CreateRenderTarget(desc.Width, desc.Height, desc.Format, D3DMULTISAMPLE_NONE, 0, FALSE, &resolved.value, nullptr);
+		if (FAILED(hr)) return hr;
+		hr = device->StretchRect(backBuffer, nullptr, resolved.value, nullptr, D3DTEXF_NONE);
+		if (FAILED(hr)) return hr;
+		source = resolved.value;
+	}
+	device_back_buffer::OwnedSurface<IDirect3DSurface9> copy;
+	hr = device->CreateOffscreenPlainSurface(desc.Width, desc.Height, desc.Format, D3DPOOL_SYSTEMMEM, &copy.value, nullptr);
+	if (FAILED(hr)) return hr;
+	hr = device->GetRenderTargetData(source, copy.value);
+	if (FAILED(hr)) return hr;
+	D3DLOCKED_RECT locked{};
+	hr = copy.value->LockRect(&locked, nullptr, D3DLOCK_READONLY);
+	if (FAILED(hr)) return hr;
+	std::vector<std::uint8_t> rows(static_cast<size_t>(desc.Width) * desc.Height * 3);
+	for (UINT y = 0; y < desc.Height; ++y)
+		screenshot_pixels::RowToBgr24(layout, static_cast<const std::uint8_t*>(locked.pBits) + static_cast<size_t>(y) * locked.Pitch,
+			desc.Width, rows.data() + static_cast<size_t>(y) * desc.Width * 3);
+	copy.value->UnlockRect();
+	width = desc.Width;
+	height = desc.Height;
+	pixels.swap(rows);
+	return S_OK;
+}
+}
 
 int D3DDevice::m_bDxt = 1;
 int D3DDevice::m_nMipMap = 20;
@@ -953,6 +998,18 @@ void D3DDevice::CaptureScreen()
 	int nCount = 0;
 	TCHAR szFileName[128];
 
+	// A patch cannot ship an empty folder, so an installed client may lack
+	// ScreenShot. Create it on demand; an existing folder is not an error.
+	if (!CreateDirectoryA("ScreenShot", nullptr))
+	{
+		const DWORD error = GetLastError();
+		if (error != ERROR_ALREADY_EXISTS)
+		{
+			LOG_WRITELOG("Can't create ScreenShot folder: %lu\r\n", error);
+			return;
+		}
+	}
+
 	sprintf((char*)szFileName, "ScreenShot\\Capture%04d.jpg", 0);
 
 	do
@@ -965,12 +1022,18 @@ void D3DDevice::CaptureScreen()
 		sprintf((char*)szFileName, "ScreenShot\\Capture%04d.jpg", ++nCount);
 	} while (nCount <= 9999);
 
-	// The 7.48 contract exposes only the numbered JPG; D3DX can produce it
-	// directly without the native client's temporary BMP conversion step.
-	const HRESULT result = device_back_buffer::Capture(m_pd3dDevice,
+	// The 7.48 contract exposes only the numbered JPG. The linked static D3DX9
+	// JPEG writer swaps width and height (1024x768 became 768x1024), so copy the
+	// back buffer to system memory and encode it through WIC.
+	UINT width = 0;
+	UINT height = 0;
+	std::vector<std::uint8_t> pixels;
+	HRESULT result = device_back_buffer::Capture(m_pd3dDevice,
 		[&](IDirect3DSurface9* surface) {
-			return D3DXSaveSurfaceToFile(szFileName, D3DXIMAGE_FILEFORMAT::D3DXIFF_JPG, surface, 0, 0);
+			return ReadBackBufferBgr24(m_pd3dDevice, surface, width, height, pixels);
 		});
+	if (SUCCEEDED(result))
+		result = SaveBgr24Jpeg((const char*)szFileName, width, height, pixels);
 	if (FAILED(result))
-		LOG_WRITELOG("Can't capture screen\r\n");
+		LOG_WRITELOG("Can't capture screen: 0x%08lX\r\n", static_cast<unsigned long>(result));
 }

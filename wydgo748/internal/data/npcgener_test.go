@@ -48,6 +48,49 @@ DestAction: voltar
 	}
 }
 
+func TestLoadNPCGenerRespawnSeconds(t *testing.T) {
+	for _, value := range []string{"0", "5", "-1", "999999999999999999"} {
+		t.Run(value, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "NPCGener.txt")
+			if err := os.WriteFile(path, []byte("#[1]\nLeader: Test\nRespawnSeconds: "+value+"\nStartX: 100\nStartY: 100\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			generators, err := LoadNPCGener(path)
+			if value == "-1" || value == "999999999999999999" {
+				if err == nil {
+					t.Fatal("invalid respawn duration was accepted")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := 0
+			if value == "5" {
+				want = 5
+			}
+			if generators[0].RespawnSeconds != want {
+				t.Fatal("respawn duration was not retained")
+			}
+		})
+	}
+}
+
+func TestGeneralNPCGenerContainsOnlyUsableEntries(t *testing.T) {
+	groups, err := LoadChannelNPCGener("../../data/spawns/NPCGener.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(groups) == 0 {
+		t.Fatal("general population is empty")
+	}
+	for _, group := range groups {
+		if !group.Enabled {
+			t.Errorf("general generator %d (%s) is disabled or outside usable terrain; remove the inactive entry", group.Label, group.Leader)
+		}
+	}
+}
+
 // TestLoadNPCGenerRealWorldQuirks cobre as tolerancias necessarias para carregar
 // NPCGener.txt editados a mao (como o do WYD 7.48): linhas fora do vocabulario
 // (ex.: comentario malformado com uma barra so) sao ignoradas, e MaxGroup abaixo

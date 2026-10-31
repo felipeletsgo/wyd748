@@ -10,17 +10,30 @@ constexpr bool IsNativeMixReceptacle(int gridType)
     return gridType >= 12 && gridType <= 22 && gridType % 2 == 0;
 }
 
-// The elite catalog offsets precede their intended blue/red/white textures
-// in the active 7.48 model directory. Correct only grid presentation: world
-// capes, kingdom identity and the shared item catalog remain unchanged.
+// Cape catalog offsets do not identify the intended blue/red/white icons in
+// the active 7.48 model directory. Master capes reuse their elite icons.
+// Correct grid presentation only; world capes, kingdom identity and the
+// shared item catalog remain unchanged.
 constexpr int IconTexture(int itemIndex, int catalogTexture)
 {
     switch (itemIndex) {
     case 3191: return 25; // Elite Of Hekalotia: mt010128.wys, blue.
     case 3192: return 26; // Elite Of Akeronia: mt010129.wys, red.
     case 3193: return 27; // Elite Of Adventurer: mt010130.wys, white.
+    case 3197: return 25; // Master Of Hekalotia reuses the blue elite icon.
+    case 3198: return 26; // Master Of Akeronia reuses the red elite icon.
+    case 3199: return 27; // Master Of Adventurer reuses the white elite icon.
+    case 4006: return 17; // Apprentice Mantle: native mesh-27 grid maps 19 to 17.
+    case 4148: return 8; // Mysterious Stone reuses Lactolerium 100% (3022).
     default: return catalogTexture;
     }
+}
+
+constexpr int IconMesh(int itemIndex, int catalogMesh)
+{
+    if (itemIndex == 4148)
+        return 2874; // Lactolerium 100%: secretst.msa, not idealst.msa.
+    return itemIndex >= 3197 && itemIndex <= 3199 ? 27 : catalogMesh;
 }
 
 // FUN_0040E6AA/FUN_0040E817 apply the same fit at insertion, including

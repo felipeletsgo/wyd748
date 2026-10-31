@@ -23,7 +23,18 @@ func applyPlayerRegen(ch *model.Char) bool {
 	}
 	oldHP, oldMP := playerCurHP(ch), playerCurMP(ch)
 	e := effectiveScore(ch)
-	restorePlayerHP(ch, regenAmount(playerMaxHP(ch), int(e.RegenHP)))
+	heal := regenAmount(playerMaxHP(ch), int(e.RegenHP))
+	// Hide multiplies the normal HP recovery, not maximum HP. Expired
+	// affects are removed by the World before its regeneration tick.
+	if ch.Class == 3 {
+		for _, affect := range ch.Affects {
+			if affect.Type == 28 {
+				heal = uint32(min(uint64(maxScoreValue), uint64(heal)*uint64(110+playerMastery(ch, 1)/10)/100))
+				break
+			}
+		}
+	}
+	restorePlayerHP(ch, heal)
 	restorePlayerMP(ch, regenAmount(playerMaxMP(ch), int(e.RegenMP)))
 	return oldHP != playerCurHP(ch) || oldMP != playerCurMP(ch)
 }

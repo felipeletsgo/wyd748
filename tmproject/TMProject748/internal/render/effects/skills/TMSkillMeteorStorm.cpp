@@ -51,10 +51,10 @@ TMSkillMeteorStorm::TMSkillMeteorStorm(TMVector3 vecStart, TMVector3 vecTarget, 
 		{
 		case 1:
 		{
-			int nRand = 1; // this is 0x86C050... maybe a scoped static var but never changes... sooo...
-			nRand %= 5; // yes... 
-
-			m_dwLifeTime = 30 * nRand * static_cast<unsigned int>(m_fLength); // yes... we use the value that never changes
+			// Native FUN_004e9cf0 advances the five-projectile Blizzard cadence.
+			static unsigned int sequence = 0;
+			sequence = (sequence + 1) % 5;
+			m_dwLifeTime = 30 * sequence * static_cast<unsigned int>(m_fLength);
 		}
 		break;
 		case 2:
@@ -103,21 +103,33 @@ TMSkillMeteorStorm::TMSkillMeteorStorm(TMVector3 vecStart, TMVector3 vecTarget, 
 	if (m_dwLifeTime > 5000)
 		m_dwLifeTime = 5000;
 
-	if (m_nLevel && m_nLevel != 4 && m_nLevel == 6)
+	// FUN_004e9cf0 creates a ground light for both native fire variants.
+	if (m_nLevel == 0 || m_nLevel == 4)
 	{
-		m_pCenterLight = new TMEffectBillBoard(56, 0, 2.5f, 2.5f, 2.5f, 0.0f, 1, 80);
+		m_pLightMap = new TMShade(m_nLevel == 0 ? 3 : 1, 7, 1.0f);
+		m_pLightMap->SetColor(m_nLevel == 0 ? 0x33881100 : 0xFF5555AA);
+		m_pLightMap->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+		g_pCurrentScene->m_pEffectContainer->AddChild(m_pLightMap);
+	}
+
+	// Native 7.48 creates the luminous core for Meteor Storm and Inferno too.
+	if (m_nLevel == 0 || m_nLevel == 4 || m_nLevel == 6)
+	{
+		const float coreScale = m_nLevel == 6 ? 2.5f : 1.0f;
+		const float innerScale = m_nLevel == 6 ? 1.5f : 0.5f;
+		m_pCenterLight = new TMEffectBillBoard(56, 0, coreScale, coreScale, coreScale, 0.0f, 1, 80);
 		if (m_pCenterLight)
 		{
 			m_pCenterLight->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
 			m_pCenterLight->m_nFade = 0;
 			m_pCenterLight->m_vecPosition = m_vecPosition;
 			m_pCenterLight->m_vecPosition.y -= 0.5f;
-			m_pCenterLight->SetColor(0xFFFF7711);
+			m_pCenterLight->SetColor(m_nLevel == 0 ? 0xFFFF7711 : 0xFF5555AA);
 
 			g_pCurrentScene->m_pEffectContainer->AddChild(m_pCenterLight);
 		}
 
-		m_pCenterLight2 = new TMEffectBillBoard(2, 0, 1.5f, 1.5f, 1.5f, 0.0f, 1, 80);
+		m_pCenterLight2 = new TMEffectBillBoard(2, 0, innerScale, innerScale, innerScale, 0.0f, 1, 80);
 		if (m_pCenterLight2)
 		{
 			m_pCenterLight2->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
@@ -134,7 +146,7 @@ TMSkillMeteorStorm::TMSkillMeteorStorm(TMVector3 vecStart, TMVector3 vecTarget, 
 			m_pCenterFlare->m_nFade = 0;
 			m_pCenterFlare->m_vecPosition = m_vecPosition;
 			m_pCenterFlare->m_vecPosition.y -= 0.5f;
-			m_pCenterFlare->SetColor(0xFFFF7711);
+			m_pCenterFlare->SetColor(m_nLevel == 0 ? 0x33881100 : 0xFF5555AA);
 
 			g_pCurrentScene->m_pEffectContainer->AddChild(m_pCenterFlare);
 		}

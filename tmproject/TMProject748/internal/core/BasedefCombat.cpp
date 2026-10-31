@@ -166,7 +166,7 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
                     dam = mob->CurrentScore.Int / 30 + mob->CurrentScore.Int / 3 + level / 2 + special + base;
                     break;
                 case 3:
-                    if (skillnum == 79)
+                    if (skillnum == 95)
                         dam = mob->CurrentScore.Attack;
                     else
                         dam = 3 * weapondamage + 3 * mob->CurrentScore.Str + level / 2 + special + base;
@@ -191,7 +191,7 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
                 dam = mob->CurrentScore.Int / 30 + mob->CurrentScore.Int / 3 + level + base + 2 * special;
                 break;
             case 3:
-                if (skillnum == 79)
+                if (skillnum == 95)
                     dam = mob->CurrentScore.Attack;
                 else
                     dam = 3 * weapondamage + 3 * mob->CurrentScore.Str + level / 2 + special + base;
@@ -209,7 +209,7 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
             dam = 120 * dam / 100;
         if (skillnum != 97)
         {
-            if (skillnum == 79)
+            if (skillnum == 95)
                 return dam;
             if (!mob->Class && skind == 1 || mob->Class == 3)
                 dam = 5 * dam / 4;
@@ -231,7 +231,7 @@ int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weaponda
                 }
             }
         }
-        if ((1 << (8 * skillclass)) & mob->LearnedSkill[0])
+        if ((1 << (8 * skillclass + (mob->Class == 3 ? 7 : 0))) & mob->LearnedSkill[0])
         {
             switch (mob->Class)
             {

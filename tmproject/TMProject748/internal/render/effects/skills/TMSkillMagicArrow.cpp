@@ -238,6 +238,11 @@ int TMSkillMagicArrow::FrameMove(unsigned int dwServerTime)
 	if (m_fProgress < 1.0f)
 	{
 		m_vecPosition = (m_vecStartPos * (1.0f - m_fProgress)) + (m_vecTargetPos * m_fProgress);
+		// Update every projectile each frame. Only particle emission is throttled;
+		// sharing its timer must not leave a Phoenix mesh at the world origin.
+		m_pEffectMesh->m_fAngle = m_fAngle;
+		m_pEffectMesh->m_vecPosition = m_vecPosition;
+		m_pEffectMesh->FrameMove(dwServerTime);
 
 		if (m_nType == 3)
 		{

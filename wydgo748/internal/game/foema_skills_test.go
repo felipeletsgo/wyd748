@@ -186,6 +186,7 @@ func TestCancellationBreaksImmunityOrBlocksPotions(t *testing.T) {
 	caster, _ := networkedTestPlayer(1, "Caster", 2200, 2200)
 	target, _ := networkedTestPlayer(2, "Target", 2201, 2200)
 	w := testSpatialWorld(nil, caster, target)
+	w.rng = fixedRNG{} // Test the successful effect path, independently of evasion.
 	skill := model.SkillDef{Index: cancellationSkill, TargetType: 1, Aggressive: 1,
 		AffectType: affectCancellation, AffectTime: 1, MaxTarget: 1}
 	now := w.now()
@@ -197,6 +198,26 @@ func TestCancellationBreaksImmunityOrBlocksPotions(t *testing.T) {
 	w.executePlayerSkill(caster, []*Player{target}, skill, 100, 0)
 	if activePlayerAffectAt(target.Char, affectCancellation, now) == nil {
 		t.Fatal("Cancellation did not apply affect 32 without Immunity")
+	}
+}
+
+func TestCancellationMissPreservesTargetAffects(t *testing.T) {
+	for _, immune := range []bool{false, true} {
+		caster, _ := networkedTestPlayer(1, "Caster", 2200, 2200)
+		target, _ := networkedTestPlayer(2, "Target", 2201, 2200)
+		w := testSpatialWorld(nil, caster, target)
+		w.rng = fixedRNG{value: 99}
+		skill := model.SkillDef{Index: cancellationSkill, TargetType: 1, Aggressive: 1,
+			AffectType: affectCancellation, AffectTime: 1, MaxTarget: 1}
+		now := w.now()
+		if immune {
+			target.Char.Affects[0] = model.Affect{Type: 19, ExpiresAt: now.Add(time.Minute)}
+		}
+		w.executePlayerSkill(caster, []*Player{target}, skill, 100, 0)
+		if (activePlayerAffectAt(target.Char, 19, now) != nil) != immune ||
+			activePlayerAffectAt(target.Char, affectCancellation, now) != nil {
+			t.Fatal("a missed Cancellation removed immunity or applied potion blocking")
+		}
 	}
 }
 

@@ -112,6 +112,7 @@
     <ClCompile Include="ClientLanguageAssetTests.cpp" />
     <ClCompile Include="TerrainTileMapReaderTests.cpp" />
     <ClCompile Include="CharacterTransferResponseTests.cpp" />
+    <ClCompile Include="..\internal\platform\windows\ScreenshotJpeg.cpp" />
     <ClCompile Include="..\internal\core\WYD748Assets.cpp">
       <PreprocessorDefinitions>_WYDCLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <DisableSpecificWarnings>4201;%(DisableSpecificWarnings)</DisableSpecificWarnings>

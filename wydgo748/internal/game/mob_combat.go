@@ -2,6 +2,7 @@ package game
 
 import (
 	"log"
+	"math"
 	"strings"
 	"time"
 
@@ -80,9 +81,8 @@ func (w *World) tickMobCombat(now time.Time, shard, shardCount int, allowMovemen
 		}
 		if !m.insideHomeLeash() {
 			m.TargetID = 0
-			home := m.Segments[0]
-			if allowMovement && home.X != 0 && home.Y != 0 {
-				w.moveMobToward(m, home.X, home.Y, 0, now)
+			if x, y, _, ok := m.leashAnchor(m.X, m.Y); allowMovement && ok {
+				w.moveMobToward(m, x, y, 0, now)
 			}
 			continue
 		}
@@ -210,27 +210,49 @@ func (m *Mob) insideHomeLeash() bool {
 	if m == nil {
 		return false
 	}
+	_, _, distance, ok := m.leashAnchor(m.X, m.Y)
+	return !ok || distance <= mobLeashRange
+}
+
+// leashAnchor returns the point of the generator route nearest to (x, y) and
+// its Chebyshev distance. The leash follows the whole patrol route: a route
+// leg can be longer than mobLeashRange, and a patrolling mob must stay a valid
+// target at its destination. ok is false when the mob has no home.
+func (m *Mob) leashAnchor(x, y uint16) (ax, ay uint16, distance int, ok bool) {
 	home := m.Segments[0]
 	if home.X == 0 || home.Y == 0 {
-		return true
+		return 0, 0, 0, false
 	}
-	return chebyshev(home.X, home.Y, m.X, m.Y) <= mobLeashRange
+	ax, ay, distance = home.X, home.Y, chebyshev(home.X, home.Y, x, y)
+	from := home
+	for _, to := range m.Segments[1:] {
+		if to.X == 0 || to.Y == 0 {
+			continue
+		}
+		px, py := nearestPointOnLeg(from.X, from.Y, to.X, to.Y, x, y)
+		if d := chebyshev(px, py, x, y); d < distance {
+			ax, ay, distance = px, py, d
+		}
+		from = to
+	}
+	return ax, ay, distance, true
+}
+
+// nearestPointOnLeg projects (x, y) onto the leg (x0, y0)-(x1, y1).
+func nearestPointOnLeg(x0, y0, x1, y1, x, y uint16) (uint16, uint16) {
+	dx, dy := float64(x1)-float64(x0), float64(y1)-float64(y0)
+	length := dx*dx + dy*dy
+	if length == 0 {
+		return x0, y0
+	}
+	t := ((float64(x)-float64(x0))*dx + (float64(y)-float64(y0))*dy) / length
+	t = min(max(t, 0), 1)
+	return uint16(math.Round(float64(x0) + t*dx)), uint16(math.Round(float64(y0) + t*dy))
 }
 
 func validMobTargetAt(p *Player, now time.Time) bool {
 	return p != nil && p.InWorld && p.Char != nil && playerCurHP(p.Char) > 0 &&
 		!hasActiveAffectAt(p.Char, 28, now)
-}
-
-func (m *Mob) insideLeash(p *Player) bool {
-	if p == nil {
-		return false
-	}
-	home := m.Segments[0]
-	if home.X == 0 || home.Y == 0 {
-		return true
-	}
-	return chebyshev(home.X, home.Y, p.X, p.Y) <= mobLeashRange
 }
 
 func (w *World) playerByID(id uint16) *Player {

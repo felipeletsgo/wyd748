@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"wydgo/internal/model"
 )
@@ -131,7 +132,7 @@ func setGenerFieldValue(g *model.NPCGener, key, value string, strictTerrain bool
 	isSegInt := isSeg && (strings.HasSuffix(key, "X:") || strings.HasSuffix(key, "Y:") ||
 		strings.HasSuffix(key, "Range:") || strings.HasSuffix(key, "Wait:"))
 	switch key {
-	case "MinuteGenerate:", "MaxNumMob:", "MinGroup:", "MaxGroup:", "RouteType:", "Formation:":
+	case "MinuteGenerate:", "RespawnSeconds:", "MaxNumMob:", "MinGroup:", "MaxGroup:", "RouteType:", "Formation:":
 	default:
 		if !isSegInt {
 			return nil // Ignore unknown lines.
@@ -145,6 +146,11 @@ func setGenerFieldValue(g *model.NPCGener, key, value string, strictTerrain bool
 	switch key {
 	case "MinuteGenerate:":
 		g.MinuteGenerate = n
+	case "RespawnSeconds:":
+		if n < 0 || int64(n) > int64((1<<63-1)/time.Second) {
+			return fmt.Errorf("%s invalid duration: %d", key, n)
+		}
+		g.RespawnSeconds = n
 	case "MaxNumMob:":
 		g.MaxNumMob = n
 	case "MinGroup:":

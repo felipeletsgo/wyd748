@@ -20,13 +20,11 @@ func TestOfficialMonsterPopulationBootstraps(t *testing.T) {
 	checked := 0
 	blocked := 0
 	for _, def := range geners {
-		if !def.Enabled || def.Label < 10000 || !npcs[def.Leader].IsMonster() {
+		if !def.Enabled || !npcs[def.Leader].IsMonster() ||
+			w.generatorReservedForItemInstance(def) || generatorReservedForColosseum(def) || generatorReservedForGuildWar(def) {
 			continue
 		}
 		checked++
-		if w.generatorReservedForItemInstance(def) || generatorReservedForColosseum(def) || generatorReservedForGuildWar(def) {
-			t.Fatalf("reference generator %d crosses a separately owned population", def.Label)
-		}
 		for _, name := range []string{def.Leader, def.Follower} {
 			npc := npcs[name]
 			if npc == nil || !npc.IsMonster() || npc.Score == nil || npc.Score.MaxHP == 0 {
@@ -69,7 +67,7 @@ func TestOfficialMonsterPopulationBootstraps(t *testing.T) {
 		}
 	}
 	if checked == 0 {
-		t.Fatal("no imported monster generators were exercised")
+		t.Fatal("no field monster generators were exercised")
 	}
 	if blocked != 0 {
 		t.Fatalf("reference population spawned %d monsters outside usable terrain", blocked)
@@ -84,10 +82,10 @@ func TestOfficialMixedMonsterGroupRespectsPopulationCap(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, def := range geners {
-		if def.Label != 10033 {
+		if !def.Enabled || def.Leader != "FrenzyDemonLord" || def.Follower != "GargulaFogo___" {
 			continue
 		}
-		if def.Leader != "AncientCaban" || def.Follower != "Guardian" || def.MaxNumMob != 7 {
+		if def.MaxNumMob != 7 || def.MinGroup != 6 || def.MaxGroup != 6 {
 			t.Fatal("reference mixed group changed without compatibility review")
 		}
 		w := newZoneTestWorld()

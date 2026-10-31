@@ -1,11 +1,10 @@
 #include "pch.h"
 #include "ClientDiagnostics.h"
 #include "CrashCapture.h"
-#include "CrashMonitor.h"
+#include "WerCrashCapture.h"
 #include "SControlContainer.h"
 #include "SControl.h"
 
-#include <DbgHelp.h>
 #include <algorithm>
 #include <cstdarg>
 #include <string>
@@ -274,11 +273,6 @@ void WYD748_LayoutProbe(SControlContainer* container, unsigned int screenWidth,
     }
 }
 
-int WYD748_RunCrashMonitor()
-{
-    return wyd_crash_monitor::RunFromCommandLine();
-}
-
 void WYD748_InstallDiagnostics()
 {
     char executable[MAX_PATH]{};
@@ -297,12 +291,9 @@ void WYD748_InstallDiagnostics()
     if (!CreateDirectoryA(directory, nullptr) && GetLastError() != ERROR_ALREADY_EXISTS)
         WYD748_DiagnosticsLog("CRASH dump directory creation failed error=%lu\r\n", GetLastError());
     const bool installed = wyd_crash::Install(directory, AppendLine);
-    static bool monitorAttempted = false;
-    if (!monitorAttempted)
-    {
-        monitorAttempted = true;
-        wyd_crash_monitor::Start(directory, AppendLine);
-    }
+    const HRESULT wer = wyd_wer::Install(directory);
+    WYD748_DiagnosticsLog("CRASH fastfail reporter=%s result=0x%08lX\r\n",
+        SUCCEEDED(wer) ? "ready" : "unavailable", static_cast<unsigned long>(wer));
     WYD748_DiagnosticsLog("SESSION diagnostics=%s exe=%s module_base=%p build=%s %s\r\n",
         installed ? "ready" : "unavailable", executable,
         static_cast<void*>(GetModuleHandleW(nullptr)), __DATE__, __TIME__);

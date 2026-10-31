@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.017",
+  "feedVersion": 48017,
+  "clientRevision": 17,
+  "status": "PUBLISHED_AND_ACTIVATED",
+  "date": "2026-10-31",
+  "authorization": {
+    "request": "publique o client também; Yes, activate now",
+    "clientPublication": true,
+    "serverActivation": true,
+    "serviceRestart": true,
+    "playerDisconnect": true
+  },
+  "source": {
+    "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+    "mode": "working-tree",
+    "serverManifest": "build/deploy/wyd-deploy-748017/release-manifest.json",
+    "clientBuildLog": "build/release-748017-client-build.log"
+  },
+  "clientPatch": {
+    "mode": "explicit-working-tree-payload",
+    "entries": [
+      {
+        "path": "WYD.exe",
+        "source": "tmproject/build/TMProject748/Release/WYD.exe",
+        "size": 2066432,
+        "sha256": "c65f7099ae7a0b34d9bfe5ee12a78c5ec81a16ddb9a69bdfa950909999cb7c08"
+      },
+      {
+        "path": "WydCrashReporter.dll",
+        "source": "tmproject/build/TMProject748/Release/WydCrashReporter.dll",
+        "size": 564224,
+        "sha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6"
+      },
+      {
+        "path": "ItemList.bin",
+        "source": "tmproject/client748/ItemList.bin",
+        "size": 910004,
+        "sha256": "334e1023448d3c34630496b6e67ac8ec7bebee9058dc6d5305df299bfe2482e2"
+      },
+      {
+        "path": "Itemname.bin",
+        "source": "tmproject/client748/Itemname.bin",
+        "size": 196248,
+        "sha256": "eadd22c7ce1f166ec9aaaa656c04b9f17f159f9c022c3cb21ddad2bda50fdbdf"
+      },
+      {
+        "path": "itemhelp.dat",
+        "source": "tmproject/client748/itemhelp.dat",
+        "size": 82459,
+        "sha256": "555f19b63bf6badceb8da8596336b6e63ea44b49a17935f1d3de2f357bfd6e67"
+      },
+      {
+        "path": "skillhelp.dat",
+        "source": "tmproject/client748/skillhelp.dat",
+        "size": 21297,
+        "sha256": "f7e1cfe4a96f4bdfec422ce9848080ce10dce82af44485a4778d659b138b448b"
+      },
+      {
+        "path": "UI/strdef.bin",
+        "source": "tmproject/client748/UI/strdef.bin",
+        "size": 63492,
+        "sha256": "2fd8fd69be4a92e21fb981954ec0fe9983d2eaf9b23150e4a8df9d22eecd3eb9"
+      },
+      {
+        "path": "EN/ItemList.bin",
+        "source": "tmproject/client748/EN/ItemList.bin",
+        "size": 910004,
+        "sha256": "171c6168c7ed605efbf72a89d2ef2624587de25cb269aa871c3ddee17aa0afb8"
+      },
+      {
+        "path": "EN/Itemname.bin",
+        "source": "tmproject/client748/EN/Itemname.bin",
+        "size": 442000,
+        "sha256": "a27deb93f6ddf9d285eb4fe5995a37bf7339cf3b55a2630c58fa2933fd13b998"
+      },
+      {
+        "path": "EN/itemhelp.dat",
+        "source": "tmproject/client748/EN/itemhelp.dat",
+        "size": 71418,
+        "sha256": "c490476c3bac943bbeb16e76f612dd539f0b064bddb382e07ec52a39eb5ee1d1"
+      },
+      {
+        "path": "EN/skillhelp.dat",
+        "source": "tmproject/client748/EN/skillhelp.dat",
+        "size": 21297,
+        "sha256": "f7e1cfe4a96f4bdfec422ce9848080ce10dce82af44485a4778d659b138b448b"
+      },
+      {
+        "path": "EN/UI/strdef.bin",
+        "source": "tmproject/client748/EN/UI/strdef.bin",
+        "size": 63492,
+        "sha256": "2fd8fd69be4a92e21fb981954ec0fe9983d2eaf9b23150e4a8df9d22eecd3eb9"
+      },
+      {
+        "path": "PT/ItemList.bin",
+        "source": "tmproject/client748/PT/ItemList.bin",
+        "size": 910004,
+        "sha256": "a147e05fc8564638841abc0119dd3b6e02ebefdea506f45eedf06a58642e58d8"
+      },
+      {
+        "path": "PT/Itemname.bin",
+        "source": "tmproject/client748/PT/Itemname.bin",
+        "size": 442000,
+        "sha256": "3cd55234dfd8e0de9083b42733cb229ae1b0f0e88208fc6e94365a6eea71df5f"
+      },
+      {
+        "path": "PT/itemhelp.dat",
+        "source": "tmproject/client748/PT/itemhelp.dat",
+        "size": 78184,
+        "sha256": "87632bc3ab66b8f4424b7daa5462361d2c073eab27bc1e1a60b325f0f828c6fd"
+      },
+      {
+        "path": "PT/skillhelp.dat",
+        "source": "tmproject/client748/PT/skillhelp.dat",
+        "size": 22299,
+        "sha256": "9bcecccdf5265a33dcbb8df836700a31798a17c6a0e9641fa769f871f6791d6c"
+      },
+      {
+        "path": "PT/UI/strdef.bin",
+        "source": "tmproject/client748/PT/UI/strdef.bin",
+        "size": 63492,
+        "sha256": "3f2f6f940ce98926c596c217250c6870cb234a064b98c6ae6e0c4d67455514ac"
+      }
+    ],
+    "sha256": "DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676",
+    "size": 1449518,
+    "zip": "build/patch/patch-48017.zip",
+    "provenance": {
+      "command": "pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release -NoDeploy",
+      "identity": "0x02EC0011",
+      "prepare": "build/release-748017/prepare.py"
+    }
+  },
+  "active": {
+    "release": "/srv/wyd-go/releases/20261031T004445Z",
+    "payloadFilesVerified": 7737,
+    "services": {
+      "wyd-game": {
+        "MainPID": "2736592",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261031T004445Z/game/wyd-server",
+        "sha256": "12e8931374f84f4389846c01d766d3a7ef506703ead9ff834b2986a881c0dfb1"
+      },
+      "wyd-player": {
+        "MainPID": "2736604",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261031T004445Z/game/wyd-player-api",
+        "sha256": "4f227e25a29bf2755472dcbeef16319d35dbf50d5d27926dbbb262adc4dad5de"
+      }
+    },
+    "backup": {
+      "at": "2026-10-31T00:44:45Z",
+      "archive": "wydgo-20261031T004444Z.dump",
+      "bytes": 499306,
+      "sha256": "c66da9958c20a36abe5337150bc7c3a39697b29ee780caa24ed525cdad7ad02b",
+      "verified": true
+    },
+    "schema": "14",
+    "rollback": "/srv/wyd-go/releases/20261031T002436Z",
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    }
+  },
+  "admission": "build/release-748017/admission-probes.json: 8281 and 8282 reject revision 16; revision 17 reaches credential validation",
+  "publicVerification": [
+    {
+      "scheme": "http",
+      "feedLines": 18,
+      "feedLast": "48017 patch-48017.zip",
+      "patchSha256": "DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676",
+      "entriesVerified": 17,
+      "previousPatchUnchanged": true
+    },
+    {
+      "scheme": "https",
+      "feedLines": 18,
+      "feedLast": "48017 patch-48017.zip",
+      "patchSha256": "DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676",
+      "entriesVerified": 17,
+      "previousPatchUnchanged": true
+    }
+  ],
+  "websiteVerification": "build/release-748017/website-verification.json: HTTP and HTTPS receipt, home, news post 56, download and changelog match 48017",
+  "rollback": "/srv/wyd-go/releases/20261031T002436Z",
+  "rollbackReceipt": ".agents/research/release-748016-server-20261031.json",
+  "validation": {
+    "client": "PASS: Release build; ArchitectureTests 3183478, SocketReceiveTests 281, CrashCaptureTests 147, Launcher 58",
+    "locales": "PASS: generated resources current (--check) and 22 locale tests",
+    "nell": "PASS: 10 Premium Nell page tests",
+    "wireAndAdmission": "PASS: internal/wire and game admission tests at revision 17",
+    "go": "PASS: go vet ./... and go test -count=1 ./...",
+    "portal": "PASS: production build (3310 pages) and 115 tests",
+    "installedPayload": "PASS: all 7737 files",
+    "activeProcessHashes": "PASS: game and player API run from the new release",
+    "readiness": "PASS: HTTP 200 on 8082 and 8083",
+    "journal": "PASS: no error-priority entries after activation",
+    "settings": "PASS: server.txt, staff.json, Caddy and service units matched before activation",
+    "gameplay": "PENDING: launcher extraction, Cube notice/question layout, Mystic Land hits and respawn, Mysterious Stone shortcuts and icon; no real account authenticated"
+  },
+  "notes": [
+    "Patch content since 48016: Cube notice duration and question panel, Mysterious Stone shortcut and icon presentation, Two Weapon Fighting help text, revision 17.",
+    "Three connected players were disconnected under explicit authorization.",
+    "The updater removed the staging directory; post-verification reran from an uploaded manifest copy. Task helper files were removed.",
+    "No commit, push, local game installation or host reboot occurred."
+  ]
+}

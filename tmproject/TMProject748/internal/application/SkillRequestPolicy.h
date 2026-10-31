@@ -38,7 +38,7 @@ constexpr bool AimsAtPrimaryTarget(int skillIndex)
 {
     return skillIndex == 0 || skillIndex == 16 || skillIndex == 7 ||
         skillIndex == 17 || skillIndex == 23 || skillIndex == 35 ||
-        skillIndex == 39 || skillIndex == 51 || skillIndex == 55;
+        skillIndex == 39 || skillIndex == 51 || skillIndex == 55 || skillIndex == 30;
 }
 
 // Rapid Hit is skill 95 in 7.48 (79 is Another_Soul, a buff). Both

@@ -2,6 +2,7 @@ package game
 
 import (
 	"log"
+	"time"
 
 	"wydgo/internal/model"
 	"wydgo/internal/wire"
@@ -31,6 +32,8 @@ type killRewardPlan struct {
 	bossState          *bossSpawnState
 	generator          *generState
 	mobHPBeforeDeath   uint32
+	lifeDrained        bool
+	diedAt             time.Time
 }
 
 type clientExperienceState struct {
@@ -80,6 +83,7 @@ func (w *World) killMobWithoutPlayer(m *Mob) {
 	w.onKefraKilled(nil, m)
 	if g := w.mobGenerator(m); g != nil && g.current > 0 {
 		g.current--
+		w.scheduleGeneratorRespawn(g, m, w.now())
 	}
 	w.removeMobInstance(m)
 	w.respawnKefraGuard(m)
@@ -101,7 +105,7 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 	baseReward = w.nightmareExperience(m, baseReward)
 	shares := w.partyExpShares(p, baseReward, w.gameplay.PartyEXPBonusPercent)
 	plan := &killRewardPlan{
-		killer: p, mob: m, calculatedDamage: calculatedDamage, appliedDamage: appliedDamage,
+		killer: p, mob: m, calculatedDamage: calculatedDamage, appliedDamage: appliedDamage, diedAt: w.now(),
 		shares: shares, accounts: uniqueKillAccounts(p, shares),
 		progressByPlayer:   make(map[*Player]clientExperienceState, len(shares)),
 		leveledUp:          make(map[*Player]bool, len(shares)),
@@ -166,6 +170,8 @@ func (w *World) planMobKill(p *Player, m *Mob, calculatedDamage, appliedDamage u
 			}
 		}
 	}
+	// Include the heal in the existing kill snapshot and durable proposal.
+	plan.lifeDrained = applyHuntressLifeDrain(p.Char, m)
 	plan.bossState = w.bossSpawnStateForMob(m.ID)
 	// Leveling-instance kills are EXP-only, including events and boss loot.
 	// Skip planning entirely: planners can mutate inventory or reserve event drops.
@@ -353,6 +359,10 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 	}
 	w.publishMobDeath(m, p.ID, progressByPlayer)
 	if rewardCommitted {
+		if plan.lifeDrained && publishState {
+			w.syncPlayerVitals(p)
+			w.updatePartyMember(p)
+		}
 		if plan.mysticLandProgress {
 			circleServiceMessage(p, mysticLandReadyMessage)
 		}
@@ -385,6 +395,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 	}
 	if plan.generator != nil && plan.generator.current > 0 {
 		plan.generator.current--
+		w.scheduleGeneratorRespawn(plan.generator, m, plan.diedAt)
 	}
 	w.notifyBossAddDied(m.ID)
 	w.finishBossMobKilled(m, rewardCommitted)
@@ -416,9 +427,15 @@ func (w *World) publishKillBatchPlayerState(plans []*killRewardPlan) {
 		cythera      bool
 	}
 	states := make(map[*Player]*state)
+	healed := make(map[*Player]bool)
 	for _, plan := range plans {
 		if plan == nil {
 			continue
+		}
+		if plan.lifeDrained && !healed[plan.killer] {
+			w.syncPlayerVitals(plan.killer)
+			w.updatePartyMember(plan.killer)
+			healed[plan.killer] = true
 		}
 		for _, share := range plan.shares {
 			receiver := share.player

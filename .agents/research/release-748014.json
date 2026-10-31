@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.014",
+  "feedVersion": 48014,
+  "status": "CLIENT_PATCH_PUBLISHED_SERVER_SITE_STAGED",
+  "authorization": {
+    "request": "Correct the Apprentice Mantle icon and citizenship color, then upload the correction to the VPS.",
+    "clientPatchPublication": true,
+    "serverActivation": false,
+    "serviceRestart": false,
+    "playerDisconnect": false,
+    "microsoftSubmission": false
+  },
+  "source": {
+    "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+    "branch": "main",
+    "mode": "working-tree",
+    "dirtyPathCountAtServerBuild": 31,
+    "serverManifest": "build/deploy/wyd-deploy-748014/release-manifest.json",
+    "serverManifestSHA256": "099109a186ab71aac00bda0b7b0e3f7f987aa5569995d1fd77614e7390f6bc01"
+  },
+  "changes": [
+    "Map item 4006 grid texture 19 to native icon texture 17 for mesh 27.",
+    "Keep native apprentice citizenship cape textures 40..49 and tint only mantle mesh 85 green.",
+    "Raise the client revision and staged server minimum to 14; no packet layout changes."
+  ],
+  "classification": {
+    "icon": "PARIDADE_NATIVA",
+    "citizenshipAppearance": "MODERNIZACAO_COMPATIVEL",
+    "admissionRevision": "EXTENSAO_COORDENADA"
+  },
+  "revision": {
+    "clientBuildContract": 14,
+    "stagedServerMinimum": 14,
+    "activeServerMinimum": 12,
+    "previousPublished": 13
+  },
+  "clientPatch": {
+    "mode": "explicit-working-tree-payload",
+    "path": "build/patch/patch-48014.zip",
+    "sizeBytes": 943846,
+    "sha256": "1c33ba73357d37fd1123c86ad3fd0ad672be185725f8e1ab59e2559d8c424f44",
+    "entries": [
+      {
+        "path": "WYD.exe",
+        "sizeBytes": 2063360,
+        "sha256": "2015df7ef6e69c5705544cbd232600ac355bdbba141c4ff88aab052838e201d3"
+      }
+    ],
+    "build": {
+      "command": "tmproject/Build-Client.ps1 -Configuration Release -NoDeploy",
+      "configuration": "Release/x86",
+      "candidatePath": "tmproject/build/TMProject748/Release/WYD.exe",
+      "status": "PASS",
+      "architectureChecks": 3177007,
+      "socketChecks": 281,
+      "crashCaptureChecks": 105,
+      "launcherChecks": 58,
+      "localRuntimeInstalled": false,
+      "gameLaunched": false
+    }
+  },
+  "portal": {
+    "buildCommand": "npm run build",
+    "buildStatus": "PASS",
+    "staticPages": 3304,
+    "testCommand": "npm test",
+    "testStatus": "PASS",
+    "tests": 115,
+    "clientManifestSHA256": "5046b65050a543b52efbfdb4cdbdb042ffe67bbeb1960e553493f22dc184abd1"
+  },
+  "publication": {
+    "date": "2026-10-30",
+    "feedAppend": "48014 patch-48014.zip",
+    "previousFeedEntriesPreserved": true,
+    "patchStagingRemoved": true,
+    "publicVerification": [
+      {
+        "scheme": "http",
+        "feedStatus": 200,
+        "patchStatus": 200,
+        "patchBytes": 943846,
+        "patchSHA256": "1c33ba73357d37fd1123c86ad3fd0ad672be185725f8e1ab59e2559d8c424f44",
+        "entrySHA256": "2015df7ef6e69c5705544cbd232600ac355bdbba141c4ff88aab052838e201d3"
+      },
+      {
+        "scheme": "https",
+        "feedStatus": 200,
+        "patchStatus": 200,
+        "patchBytes": 943846,
+        "patchSHA256": "1c33ba73357d37fd1123c86ad3fd0ad672be185725f8e1ab59e2559d8c424f44",
+        "entrySHA256": "2015df7ef6e69c5705544cbd232600ac355bdbba141c4ff88aab052838e201d3"
+      }
+    ]
+  },
+  "serverStage": {
+    "releaseId": "wyd-deploy-748014",
+    "remotePath": "/tmp/wyd-deploy-748014",
+    "uploaded": true,
+    "activated": false,
+    "archiveBytes": 25717591,
+    "archiveSHA256": "db09d6fbc0ea73f23a4173055b2b5420f01da09a796ea8a1e92ef16daf7fc147",
+    "manifestSHA256": "099109a186ab71aac00bda0b7b0e3f7f987aa5569995d1fd77614e7390f6bc01",
+    "payloadFiles": 7725,
+    "remoteChecksum": "PASS"
+  },
+  "activeState": {
+    "release": "/srv/wyd-go/releases/20261030T062404Z",
+    "gameState": "active",
+    "gameMainPID": 2553426,
+    "gameRestartCount": 0,
+    "playerAPIState": "active",
+    "playerAPIMainPID": 2535477,
+    "playerAPIRestartCount": 0,
+    "readiness": {
+      "staff": 200,
+      "playerAPI": 200
+    },
+    "establishedGameConnectionsAtLastCheck": 1,
+    "websiteManifestVersion": "7.48.012",
+    "serviceRestart": false,
+    "playerDisconnect": false
+  },
+  "cleanup": {
+    "remoteServerStage": "Retained at /tmp/wyd-deploy-748014 for authorized activation.",
+    "patchVerificationDownloads": "Retained at build/deploy/verify-client-748014."
+  },
+  "pending": [
+    "Activate the staged server/site release only with explicit restart authority; one game-channel connection was active at the last check.",
+    "The public website still advertises 7.48.012 until the staged server/site release is activated.",
+    "Actual launcher extraction and in-game Apprentice Mantle color and emblem acceptance remain pending; this is not CLIENT-TESTED.",
+    "The full Microsoft client submission remains pending the owner's complete version and request."
+  ]
+}

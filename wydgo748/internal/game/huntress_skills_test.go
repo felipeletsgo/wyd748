@@ -15,29 +15,26 @@ func huntressSkillChar(learned uint32) *model.Char {
 	return ch
 }
 
-// Official TMSRVIN BASE_GetSkillDamage (sub_4C3DE0) uses the server skill
-// order. Huntress 7.48 skills map to it by name.
-func TestHuntressSkillDamageUsesServerSkillOrder(t *testing.T) {
+// The active 7.48 books define mastery and finisher ownership.
+func TestHuntressSkillDamageUses748TreeOrder(t *testing.T) {
 	w := &World{}
 	knife := model.SkillDef{Index: 94, InstanceType: 1, InstanceValue: 35}
-	// Throwing Knife is server skill 86: tree 1, Special[2].
-	// (3*0 + 3*100 + 100/2 + 60 + 35) * 5/4 = 556.
-	if got := w.baseSkillDamage(huntressSkillChar(0), knife); got != 556 {
-		t.Fatalf("Throwing Knife damage=%d, want 556", got)
+	// Capture mastery is 90, distinct from Trade 60 and Survival 30.
+	if got := w.baseSkillDamage(huntressSkillChar(0), knife); got != 593 {
+		t.Fatalf("Throwing Knife damage=%d, want 593", got)
 	}
-	// Tree 1 finisher is Spirit Change (87), not 7.48 skill 95.
-	if got := w.baseSkillDamage(huntressSkillChar(1<<(87-72)), knife); got != 611 {
-		t.Fatalf("Throwing Knife with Spirit Change=%d, want 611", got)
+	if got := w.baseSkillDamage(huntressSkillChar(1<<(87-72)), knife); got != 593 {
+		t.Fatalf("Trade finisher changed Capture damage=%d", got)
 	}
-	if got := w.baseSkillDamage(huntressSkillChar(1<<(95-72)), knife); got != 556 {
-		t.Fatalf("Rapid Hit incorrectly boosted tree 1: %d", got)
+	if got := w.baseSkillDamage(huntressSkillChar(1<<(95-72)), knife); got != 711 {
+		t.Fatalf("Capture finisher damage=%d, want 711", got)
 	}
 
-	// Snick Attack is tree 2; its finisher is Hide in Shadow (75).
+	// Snick Attack is Capture; Hide in Shadow cannot boost it.
 	snick := model.SkillDef{Index: 88, InstanceType: 1, InstanceValue: 12}
 	plain := w.baseSkillDamage(huntressSkillChar(0), snick)
-	if got := w.baseSkillDamage(huntressSkillChar(1<<(75-72)), snick); got != plain*120/100 {
-		t.Fatalf("Snick Attack with Hide in Shadow=%d, want %d", got, plain*120/100)
+	if got := w.baseSkillDamage(huntressSkillChar(1<<(75-72)), snick); got != plain {
+		t.Fatalf("Snick Attack with Hide in Shadow=%d, want %d", got, plain)
 	}
 
 	// Rapid Hit (7.48 skill 95) is server skill 79 and uses the attack score.
@@ -61,13 +58,16 @@ func TestHuntressAffectsFollowOfficialServer(t *testing.T) {
 	}
 
 	// Transfer Armor Class: AC - (Level/3 + 10); attack + Level/10 + Value,
-	// plus 5 with Rapid Hit (server bit 7).
+	// plus 5 with the Survival finisher (7.48 bit 7).
 	transfer := model.Affect{Type: 21, Level: 40}
 	if e := apply(0, transfer); e.Attack != 104 || e.Defense != 77 {
 		t.Fatalf("Transfer Armor Class=%+v", e)
 	}
-	if e := apply(1<<(95-72), transfer); e.Attack != 109 {
-		t.Fatalf("Transfer Armor Class with Rapid Hit attack=%d, want 109", e.Attack)
+	if e := apply(1<<(79-72), transfer); e.Attack != 109 {
+		t.Fatalf("Meditation with Survival finisher attack=%d, want 109", e.Attack)
+	}
+	if e := apply(1<<(95-72), transfer); e.Attack != 104 {
+		t.Fatalf("Capture finisher changed Meditation attack=%d", e.Attack)
 	}
 
 	// Coin Armor: AC + Level/10 + Value, plus 100 with Spirit Change.

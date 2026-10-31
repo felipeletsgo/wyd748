@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -374,6 +374,8 @@
     <ClInclude Include="internal\platform\windows\RenderStateCache.h" />
     <ClInclude Include="internal\platform\windows\DeviceRestore.h" />
     <ClInclude Include="internal\platform\windows\DeviceBackBuffer.h" />
+    <ClInclude Include="internal\platform\windows\ScreenshotPixels.h" />
+    <ClInclude Include="internal\platform\windows\ScreenshotJpeg.h" />
     <ClInclude Include="internal\platform\windows\DeviceFrame.h" />
     <ClInclude Include="internal\platform\windows\ShaderResources.h" />
     <ClInclude Include="internal\platform\windows\TMFont3.h" />
@@ -449,6 +451,10 @@
     <ClCompile Include="internal\render\mesh\CMesh.cpp" />
     <ClCompile Include="internal\platform\windows\CPSock.cpp" />
     <ClCompile Include="internal\platform\windows\D3DDevice.cpp" />
+    <ClCompile Include="internal\platform\windows\ScreenshotJpeg.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="internal\platform\windows\D3DEnumeration.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">NotUsing</PrecompiledHeader>
@@ -644,6 +650,9 @@
   <Target Name="InitializeWebView2" BeforeTargets="ClCompile" Condition="!Exists('$(WebView2SdkRoot)\build\native\include\WebView2.h') Or !Exists('$(WebView2SdkRoot)\build\native\x86\WebView2LoaderStatic.lib')">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(ProjectDir)..\..\tools\client-assets\Initialize-WebView2.ps1&quot;" />
   </Target>
+  <ItemGroup>
+    <ProjectReference Include="WerCrashReporter.vcxproj"><Project>{840446DA-A762-4AF8-9B9A-219F3414BE36}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -234,6 +234,9 @@ func (w *World) syncCelestialPlayer(p *Player) {
 	markCelestialFace(&p.Char.Equip[0], p.Char.Evolution)
 	w.recalcPlayer(p.Char)
 	filterShortSkills(p.Char)
+	// The client must install the authoritative face/class before learned skills
+	// and class-relative shortcuts. Visual equipment alone does not update Class.
+	p.Session.Send(wire.SendItem(p.ID, placeEquip, 0, wire.CharacterFaceItem(*p.Char)))
 	p.Session.Send(playerScorePacket(p))
 	p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	p.Session.Send(playerAffectsPacket(p))
@@ -377,7 +380,7 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	ch.RuntimeScore = nil
 	ch.LearnedSkill = celestialSoulBit
 	ch.SecondaryLearnedSkill = 0
-	ch.ShortSkill = [20]byte{}
+	ch.ShortSkill = emptyShortSkills()
 	ch.Affects = itemBuffsOnly(ch.Affects) // potion buffs survive the conversion
 	ch.Equip[1] = cythera
 	kingdom := model.KingdomFromCape(snapshot.Equip[model.CapeSlot].Index)
@@ -464,6 +467,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		Evolution: "subcelestial", Class: byte(subClass), Face: subFace,
 		Score:        newCelestialScore(byte(subClass), ch.Score),
 		LearnedSkill: celestialSoulBit,
+		ShortSkill:   emptyShortSkills(),
 	}
 	ch.AlternateCelestial.Score.Defense = celestialBaseDefense(ch.ArchCrystals)
 	consumeOne(item)
@@ -539,7 +543,6 @@ func (w *World) useMysteriousStone(s *net.Session, p *Player, item *model.Item, 
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	s.Send(wire.SendItem(p.ID, placeEquip, 0, ch.Equip[0]))
 	w.syncCelestialPlayer(p)
 	s.Send(wire.MessagePanel("Celestial form changed."))
 	log.Printf("[#%d] active form=%s class=%d level=%d", s.ID, ch.Evolution, ch.Class, ch.Score.Level)

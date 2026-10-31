@@ -31,6 +31,7 @@ $candidate = Join-Path $PSScriptRoot 'client748\WYD.exe'
 $wideItemCatalog = Join-Path $PSScriptRoot 'client748\ItemListWide.csv'
 $targetName = if ($Configuration -eq 'Release') { 'WYD.exe' } else { 'WYDestiny.exe' }
 $artifact = Join-Path $PSScriptRoot "build\TMProject748\$Configuration\$targetName"
+$reporter = Join-Path (Split-Path $artifact -Parent) 'WydCrashReporter.dll'
 
 if (-not (Test-Path -LiteralPath $wideItemCatalog -PathType Leaf)) {
     throw "Required client contract asset is missing: $wideItemCatalog"
@@ -96,12 +97,15 @@ if ($LASTEXITCODE -ne 0) { throw 'Launcher tests failed; candidate not updated.'
 & $MSBuildPath $solution "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=x86' /m /nologo /v:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE; candidate not updated." }
 if (-not (Test-Path -LiteralPath $artifact -PathType Leaf)) { throw "Build artifact is missing: $artifact" }
+if (-not (Test-Path -LiteralPath $reporter -PathType Leaf)) { throw 'Crash reporter artifact is missing.' }
 
 if ($NoDeploy) {
     [pscustomobject]@{
         Configuration = $Configuration
         Artifact = $artifact
         SHA256 = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash
+        Reporter = $reporter
+        ReporterSHA256 = (Get-FileHash -LiteralPath $reporter -Algorithm SHA256).Hash
         Validation = 'BUILD_VERIFIED; deployment and in-game testing pending'
     }
     return
@@ -113,6 +117,11 @@ if (-not (Test-Path -LiteralPath (Split-Path $candidate -Parent) -PathType Conta
 
 # Synchronous copy: a locked file causes failure; never terminate the game process.
 $sourceHash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash
+$reporterHash = (Get-FileHash -LiteralPath $reporter -Algorithm SHA256).Hash
+Copy-Item -LiteralPath $reporter -Destination (Split-Path $candidate -Parent) -Force
+if ((Get-FileHash -LiteralPath (Join-Path (Split-Path $candidate -Parent) 'WydCrashReporter.dll') -Algorithm SHA256).Hash -ne $reporterHash) {
+    throw 'Installed crash reporter differs from the build artifact.'
+}
 Copy-Item -LiteralPath $artifact -Destination $candidate -Force
 $candidateHash = (Get-FileHash -LiteralPath $candidate -Algorithm SHA256).Hash
 if ($sourceHash -ne $candidateHash) { throw 'Candidate hash differs from the build artifact.' }

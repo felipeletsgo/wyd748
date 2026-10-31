@@ -368,9 +368,13 @@ func TestOfficialServiceKindsReserveOnlyVerifiedIdentities(t *testing.T) {
 			t.Fatalf("quest may shadow %s service", name)
 		}
 	}
-	for _, name := range []string{"Helena", "Juli", "Trainer6", "Carbunkle_Anct"} {
+	for _, name := range []string{"Helena", "Juli", "Trainer6"} {
 		if _, ok := officialNPCServiceKind(npcs[name]); ok {
 			t.Fatalf("unverified identity %s enabled", name)
 		}
+	}
+	if _, ok := officialNPCServiceKind(&model.NPCDef{Name: "Carbunkle_Anct", Tipo: model.TipoNPC,
+		Score: &model.Score{Merchant: 30}}); ok {
+		t.Fatal("removed Ancient Carbuncle identity enables an unverified service")
 	}
 }

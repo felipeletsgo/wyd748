@@ -247,10 +247,6 @@ var huntressServerSkill = map[int]int{
 	91: 90, 92: 91, 93: 93, 94: 86, 95: 79,
 }
 
-// huntressTreeFinisher holds the 7.48 skill for each server tree's eighth
-// skill: Rapid Hit, Spirit Change and Hide in Shadow.
-var huntressTreeFinisher = [3]int{95, 87, 75}
-
 // The official server swaps these TransKnight skills relative to 7.48.
 // Speed Up (9) has no server entry; server skill 9 is Two-Hand Master,
 // which 7.48 does not have.
@@ -301,10 +297,14 @@ func serverSkillLearned(ch *model.Char, serverLocal int) bool {
 
 // baseSkillDamage adapts the historical 7.59 BASE_GetSkillDamage algorithm,
 // including its weather modifiers for the caster's position (weather.go).
-// TransKnight and Huntress trees, mastery and finisher bonuses follow the
-// server skill order.
+// TransKnight uses server name mapping. Huntress retains the 7.48 books.
 func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	serverIndex := serverSkillIndex(ch, skill.Index)
+	// The active 7.48 books define Huntress mastery and finisher ownership.
+	// Name mapping to the 7.59 catalog must not move a skill to another tree.
+	if ch.Class == 3 {
+		serverIndex = skill.Index
+	}
 	local := serverIndex % 24
 	kind := local/8 + 1
 	special := int(playerMastery(ch, kind))
@@ -372,7 +372,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 				damage += special
 			}
 		case 3:
-			if serverIndex == 79 { // Rapid Hit (7.48 skill 95) uses the attack score.
+			if skill.Index == 95 { // Rapid Hit uses the attack score in 7.48.
 				return maxInt(1, playerAttack(ch))
 			}
 			damage = 3*weapon + 3*playerStr(ch) + level/2 + special + base
@@ -393,9 +393,6 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 	}
 	branch := local / 8
 	finisher := branch*8 + 7
-	if ch.Class == 3 {
-		finisher = huntressTreeFinisher[branch] - 72
-	}
 	if int(ch.Class) < 4 && ch.LearnedSkill&(uint32(1)<<finisher) != 0 {
 		multipliers := [4][3]int{{115, 120, 115}, {110, 115, 115}, {110, 100, 100}, {110, 110, 120}}
 		damage = damage * multipliers[ch.Class][branch] / 100
@@ -639,6 +636,24 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			playerTargets = w.skillPlayerTargets(p, req, skill)
 			if len(playerTargets) == 0 {
 				targets = w.skillMonsterTargets(p, req, skill)
+			} else if skillIndex == 23 {
+				// Freeze Spiral includes enemy summons around a player impact.
+				// Player and mob lookups previously made the cast exclusive.
+				primary := playerTargets[0]
+				area := offensiveSkillAreaRadius(p.Char, skill)
+				candidates := w.nearbyMobs(p.X, p.Y, area)
+				sort.Slice(candidates, func(i, j int) bool { return candidates[i].ID < candidates[j].ID })
+				for _, candidate := range candidates {
+					if len(targets)+len(playerTargets) >= offensiveSkillTargetLimit(p.Char, skill) {
+						break
+					}
+					if isCombatSummon(candidate) && !candidate.Dead && candidate.HP > 0 &&
+						w.playerCanInteractWithMob(p, candidate) &&
+						skillAreaContains(p.X, p.Y, primary.X, primary.Y, candidate.X, candidate.Y, skill, area) &&
+						w.combatLineOfSight(p.X, p.Y, candidate.X, candidate.Y) {
+						targets = append(targets, candidate)
+					}
+				}
 			}
 			if len(targets) == 0 && len(playerTargets) == 0 {
 				return
@@ -653,9 +668,16 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			return
 		}
 	}
-	if skillIndex == 97 && (w.groundCannonAt(p.X, p.Y) == nil || len(targets) == 0 ||
-		chebyshev(p.X, p.Y, targets[0].X, targets[0].Y) < 4) {
-		return
+	if skillIndex == 97 {
+		x, y := req.TargetX, req.TargetY
+		if len(targets) > 0 {
+			x, y = targets[0].X, targets[0].Y
+		} else if len(playerTargets) > 0 {
+			x, y = playerTargets[0].X, playerTargets[0].Y
+		}
+		if w.groundCannonAt(p.X, p.Y) == nil || len(targets)+len(playerTargets) == 0 || chebyshev(p.X, p.Y, x, y) < 4 {
+			return
+		}
 	}
 	if len(targets) > 0 && w.criticalKillParticipantsReserved(p) {
 		return
@@ -779,9 +801,13 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 	if len(playerTargets) > 0 {
 		p.CombatTargetID = playerTargets[0].ID
 		w.executePlayerSkill(p, playerTargets, skill, mastery, motion)
-		return
+		if len(targets) == 0 || w.criticalPlayerReserved(p) {
+			return
+		}
 	}
-	p.CombatTargetID = targets[0].ID
+	if len(playerTargets) == 0 {
+		p.CombatTargetID = targets[0].ID
+	}
 	type skillResult struct {
 		mob        *Mob
 		calculated uint32

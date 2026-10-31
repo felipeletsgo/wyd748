@@ -4,7 +4,7 @@ title: Native skill descriptions and isolated tooltip presentation
 subsystem: ui
 status: CONTRACT
 native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
-updated: 2026-10-15
+updated: 2026-10-30
 ---
 
 ## Question
@@ -132,6 +132,74 @@ White Magic name is `Magia Sagrada`.
 Other classes' damage records keep native prose.
 
 ## Gaps
+
+### Huntress regression correction (2026-10-30)
+
+The 2026-10-29 Huntress update above used 7.59 skill-name mapping for 7.48
+tree rules. This correction supersedes those eight affected descriptions:
+5075, 5077, 5079, 5082, 5083, 5090, 5091, and 5094.
+Classification: `MODERNIZACAO_COMPATIVEL`; descriptions match the corrected
+Go behavior. This is not a blanket native combat-parity claim.
+
+Static 7.48 evidence remains in `tmproject/build/native-research/decompiled/`:
+`FUN_00557aff.c` selects mastery from the original skill index, uses the eighth
+skill of that tree, and identifies Rapid Hit as 95. `FUN_0054fdb9.c` uses
+Trade for bow/claw attack, bit 15 for its finisher, and bit 7 for Meditation.
+The original PT `references/client748/WYD 7.48 PORTUGUES/itemhelp.dat`
+places Life Drain and Hunter's Vision in Capture, with kill healing and drops.
+The player suggestion to move Hunter's Vision into Trade is not supported.
+
+English overrides now have a durable `skill_help_en` policy beside the PT
+`skill_help` records. All eight descriptions have nine rows, at most 42 text
+bytes per row, CP1252 encoding, and preserved resource IDs. Canonical help,
+EN, and PT are changed together. The source hash guard was updated only after
+reviewing these translations. Locale tests cover both policies and formulas.
+Actual rendering and server/client gameplay acceptance remain pending.
+
+### Owner-selected Two Weapon Fighting percentage (2026-10-30)
+
+Classification: `EXTENSAO_COORDENADA`. The owner explicitly replaced the
+fixed bow/claw attack bonus with `10 + Trade/20` percent, capped at 26 percent.
+This rule supersedes book 5082 in the earlier regression correction. It does
+not claim native combat parity.
+
+- USED: preserved PT item help 5082 and native `FUN_0054fdb9`, lines 243..253.
+  Both establish the old flat `10 + Trade/5` bonus and the weapon/learned-bit
+  boundary. The native finisher branch uses `120 + Trade/5`.
+- USED: explicit owner selection of a 10..26 percent attack bonus.
+- USED: server `skill_passives.go`, `equipment.go`, `equipment_test.go`,
+  `huntress_two_weapon_test.go`, and locale generator/policy tests.
+- NOT APPLICABLE: 7.59 balance coefficients. No coefficient from that version
+  defines the new owner-selected rule.
+
+The server keeps skill 82, learned bit 10, main-hand Unique 42/43, and Trade
+mastery ownership. Clamp effective Trade to 320. Calculate physical attack as
+`floor(attack * (2200 + Trade) / 2000)`, then apply the normal score cap.
+This retains each mastery point's 0.05 percent contribution without floats.
+Apply the passive after equipment/attribute/mount calculation and before
+timed affects. Spirit Change and the Capture finisher add no second passive
+bonus. The existing ten-point increase to the second weapon's damage share
+remains a separate rule.
+
+The passive changes only derived attack. Recalculate from persisted base on
+equipment, mastery, learned-skill, scene and login flows. Repetition must not
+compound the percentage. Invalid weapon, class or learned bit gives no bonus.
+No state is consumed or persisted by this calculation; the existing owner
+publishes score snapshots and uses the same attack in physical hits and Rapid
+Hit. Existing account persistence, rejection and rollback paths stay intact.
+
+No opcode, ABI, skill identity or persisted value changes. Book 5082 retains
+nine CP1252 rows and the existing help overlay. Root/EN/PT `skillhelp.dat` and
+the guarded canonical hash change together. Every other help record is
+byte-preserved. English remains the fallback. The next publication needs a
+mandatory client patch and matching server admission revision under the
+release procedure; this implementation does not publish or activate it.
+
+STATICALLY VERIFIED: native flat rule versus the explicit coordinated delta;
+unchanged loader, IDs and resource format. AUTOMATED TESTED: percentage
+boundaries, eligibility, cap, equipment mastery, repeated recalculation,
+runtime reload and Rapid Hit consumption; locale formulas and complete
+generation checks. CLIENT-TESTED: pending for the tooltip and gameplay.
 
 The inspected native asset has no prose for 5096, 5103, 5104, or advanced books
 5400..5447. Their existing calculated requirements/passive captions remain.

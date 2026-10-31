@@ -1,5 +1,106 @@
 # WYD launcher and client patches
 
+## Published patch 7.48.016 (2026-10-30); server activated
+
+Mandatory patch **48016** contains 17 files: `WYD.exe`, `WydCrashReporter.dll`,
+and root/EN/PT item catalogs, names, item help, skill help and UI string tables.
+The cumulative feed retains every previous entry. Patch 48015 remains unchanged.
+
+ZIP size: **1,449,800 bytes**.
+ZIP SHA-256: `C5BE1C2F3F28CC9DEA68F976D6CE97438454602EC6882BBA224684CC2349F93F`.
+Executable SHA-256: `1AB06967DFD18648C9A9B2E7B2C15F1CD408B2149BEEC46C0EC685F9F6FCDAC7`.
+HTTP/HTTPS downloads and all archive entry hashes passed independent checks
+before activation. The portal receipt, news and changelog announce 7.48.016.
+
+The game and player API restarted. Both channels require revision 16; readiness
+and active process hashes passed. Rollback remains release
+`/srv/wyd-go/releases/20261030T194406Z`. Actual launcher extraction and gameplay
+acceptance remain pending. The local installed executable was not replaced.
+See [receipt](../../.agents/research/release-748016.json).
+
+## Published patch 7.48.015 (2026-10-30); server activated
+
+Mandatory patch **48015** ships 14 files: `WYD.exe`, `WydCrashReporter.dll`,
+and root/EN/PT item lists, names, item help and skill help. It includes both
+October 30 report batches. Existing patches remain in the feed.
+
+ZIP SHA-256: `89D7BBAFA966ADEAEA26F1CF1387F856F130E4E08CF337EBBBEE1C2D7FDBBE30`.
+Executable SHA-256: `48655AA6EF273FD6B6BE297EA0199D4CC07386199609B5BD22BA0D1C1DEF9D17`.
+HTTP/HTTPS downloads and all archive entries were independently verified.
+The server requires revision 15 on both channels. Actual launcher extraction
+and gameplay acceptance remain pending. See [receipt](../../.agents/research/release-748015.json).
+
+## Published patch 7.48.014 (2026-10-30); server/site release staged
+
+Patch **48014** corrects the Apprentice Mantle icon and preserves citizenship
+texture variants 40–49. The render path tints only this mantle green. The
+player may still receive the citizenship emblem. Item identity, stats,
+ownership, packets and other cape variants remain unchanged. The icon maps
+mesh 27, texture 19 to native inventory texture 17.
+
+The Release/x86 build passed: 3,177,007 architecture checks, 281 socket checks,
+105 crash-capture checks, 58 launcher checks and costume/shader gates. The
+portal built 3,304 static pages; all 115 portal tests passed.
+
+- Feed: **48014**, mandatory update; sole ZIP entry `WYD.exe`.
+- ZIP: **943,846 bytes**, SHA-256
+  `1C33BA73357D37FD1123C86AD3FD0AD672BE185725F8E1AB59E2559D8C424F44`.
+- Executable: **2,063,360 bytes**, SHA-256
+  `2015DF7EF6E69C5705544CBD232600AC355BDBBA141C4FF88AAB052838E201D3`.
+- Public HTTP and HTTPS feed and patch downloads returned 200. Both downloads
+  match the archive hash; its entry matches the executable hash.
+- The server/site archive is **25,717,591 bytes**, SHA-256
+  `DB09D6FBC0EA73F23A4173055B2B5420F01DA09A796EA8A1E92EF16DAF7FC147`.
+  Its manifest SHA-256 is
+  `099109A186AB71AAC00BDA0B7B0E3F7F987AA5569995D1FD77614E7390F6BC01`.
+  It is staged at `/tmp/wyd-deploy-748014`.
+
+The staged server raises the minimum client revision to **14** and includes
+the website receipt and bilingual News page. It is not active. The live server
+remains `/srv/wyd-go/releases/20261030T062404Z` at minimum revision 12. The
+website still advertises 7.48.012. At the last check, one game-channel
+connection was active; services had zero restarts and readiness returned 200.
+No player was disconnected and no local runtime executable was replaced.
+
+Actual launcher extraction and the in-game green shade and emblem remain
+pending, not `CLIENT-TESTED`. Microsoft has not received a submission. See the
+[release receipt](../../.agents/research/release-748014.json).
+
+## Published patch 7.48.013 (2026-10-30); server release staged
+
+Patch **48013** fixes the Master cape icons and removes the separate process
+that attached to the game for crash monitoring. The in-process crash capture
+remains. Master items 3197, 3198 and 3199 now reuse icon textures 25, 26 and 27,
+matching their Elite kingdom capes. This is `MODERNIZACAO_COMPATIVEL`; item
+identity, world appearance and shared catalogs do not change.
+
+The Release build and client gates passed: 3,176,827 architecture checks,
+281 socket checks, 105 crash-capture checks and 58 launcher checks. The portal
+build succeeded and all 115 portal tests passed.
+
+- Feed: **48013**, mandatory update; sole ZIP entry `WYD.exe`.
+- ZIP: **943,742 bytes**, SHA-256
+  `87FC18525F2FB621591C8883A9476ACBC91CD6B0140B01C9C86415C65E7E780A`.
+- Executable: **2,062,848 bytes**, SHA-256
+  `621FC4306968B5549ED7980F7C24418FD216B842E498B4E5BA1E43636D11FF78`.
+- The patch and executable hashes match public HTTP and HTTPS downloads; the
+  feed preserves all earlier entries.
+- The matching server/site archive is **25,716,589 bytes**, SHA-256
+  `5CEA9D8FB697425BE2C39247953AB98F96A9DFF4DC4D654497D8A92E8AE86121`.
+  It is staged at `/tmp/wyd-deploy-748013`; its manifest SHA-256 is
+  `0748BC6F6B0AB28D478891F441C2C5F32321AE072C074C9F59B4BCEBF7D60BBB`.
+
+The server/site release raises the minimum client revision to **13** and adds
+the bilingual release page. It is not active. The live server remains at
+`/srv/wyd-go/releases/20261030T062404Z`, and the live website still advertises
+7.48.012. Activation needs an authorized service restart. The deployment script
+also refuses activation while game-channel connections remain; two established
+connections were present at the last check. No service restarted and no player
+was disconnected. The patch is live now; real-client icon and Defender results
+remain pending. Microsoft has not received a submission.
+
+See [the release receipt](../../.agents/research/release-748013.json) for provenance and verification.
+
 ## Published patch 7.48.009 (2026-10-27)
 
 The revision-8 transport gate rejected the 160-byte categorized catalog before

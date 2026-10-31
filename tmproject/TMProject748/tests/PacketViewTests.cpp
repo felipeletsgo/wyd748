@@ -532,6 +532,8 @@ int main()
         "custom firework must not send ordinary UseItem");
     check(native_volatile::Resolve(0, 4003) == native_volatile::Route::Direct,
         "catalogued box overrides non-direct volatile zero");
+    check(native_volatile::Resolve(16, 2400) == native_volatile::Route::Direct,
+        "mount essence uses right click while the server selects the equipped mount");
     check(native_volatile::Resolve(206, 3455) == native_volatile::Route::Interaction,
         "sealed item is not an extraction capsule");
     check(native_volatile::Resolve(-1, -1) == native_volatile::Route::Unknown &&

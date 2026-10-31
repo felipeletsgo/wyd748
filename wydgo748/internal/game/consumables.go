@@ -923,6 +923,27 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 }
 
 func (w *World) applyRepliction(dest *model.Item, def model.ItemDef, sourceID uint16) (model.ReplictionBonus, error) {
+	if sourceID == 6017 || sourceID == 6018 {
+		if !isArmorSetPiece(def) || dest.Index >= 3500 && dest.Index <= 3507 {
+			return model.ReplictionBonus{}, clientError("Repliction works only on defensive equipment.")
+		}
+		// Two existing byte effects store 320 without changing STRUCT_ITEM.
+		// Replace options, as Repliction does, and preserve refinement/tint.
+		effect := byte(2)
+		if sourceID == 6018 {
+			effect = 60
+		}
+		sancEffect, sancValue := byte(43), byte(0)
+		for i := 0; i < 3; i++ {
+			code := dest.Eff[2*i]
+			if code == 43 || code >= 116 && code <= 125 {
+				sancEffect, sancValue = code, dest.Eff[2*i+1]
+				break
+			}
+		}
+		dest.Eff = [6]byte{sancEffect, sancValue, effect, 160, effect, 160}
+		return model.ReplictionBonus{Effect1: int(effect), Value1: 160, Effect2: int(effect), Value2: 160}, nil
+	}
 	rule, ok := w.volatiles.Repliction.Items[sourceID]
 	if !ok {
 		return model.ReplictionBonus{}, clientError("This repliction is not configured.")

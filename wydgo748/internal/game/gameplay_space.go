@@ -56,7 +56,9 @@ func (w *World) playerCanInteractWithMob(p *Player, m *Mob) bool {
 		// hidden-target rule here would reject the attack before that break.
 		return instanceMemberInStage(w.instanceForMob(m), p)
 	}
-	return m.insideLeash(p)
+	// A public mob is a valid target wherever it walks. Its AI leash limits
+	// only the mob's own pursuit, and many generators patrol long routes.
+	return true
 }
 
 // mobCanTargetPlayer mirrors playerCanInteractWithMob for AI and boss action

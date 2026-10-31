@@ -1,0 +1,5 @@
+LIBRARY WydCrashReporter
+EXPORTS
+    OutOfProcessExceptionEventCallback=_OutOfProcessExceptionEventCallback@24
+    OutOfProcessExceptionEventSignatureCallback=_OutOfProcessExceptionEventSignatureCallback@28
+    OutOfProcessExceptionEventDebuggerLaunchCallback=_OutOfProcessExceptionEventDebuggerLaunchCallback@24

@@ -4,7 +4,7 @@ title: Citizenship metadata and cape emblems
 subsystem: appearance
 status: CONTRACT
 native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
-updated: 2026-10-15
+updated: 2026-10-30
 ---
 
 # Citizenship metadata and cape emblems
@@ -20,7 +20,7 @@ Native evidence: read-only `references/client748/WYD.exe`, hash above verified
 against the existing Ghidra export in `tmproject/build/native-research/decompiled/`.
 The project is `tmproject/build/native-research/WYD748.gpr`. Reused the located
 appearance functions rather than importing or cataloguing the executable again.
-Native textures and the existing `SetCitizenMantle` mapping were not changed.
+Native textures remain unchanged. A reported beginner-cape exception is recorded below.
 
 ## Native 7.48 flow
 
@@ -296,3 +296,39 @@ Release/x86 build. `STATICALLY VERIFIED` and `AUTOMATED TESTED`, not
 `CLIENT_TESTED`. Publication, actual grid color acceptance in inventory,
 equipment and shops, and re-equipping/relogin remain pending. No local runtime
 install, account change, server restart, commit or push was performed.
+
+### Apprentice Mantle icon and citizenship appearance — 2026-10-30
+
+The 7.48 catalog row for item 4006 is mesh 27, texture 19. Both full mob
+snapshots and equipment updates pass cape texture 19 through
+`SetCitizenMantle`; the native mapping changes it to citizenship variants
+40..49. These variants carry the citizenship emblem, but their pale material
+would turn the green Apprentice Mantle white. Keep the native mapping and tint
+only mesh 85 with skin 40..49 green in `CMesh::SetMaterial`. Other cape
+textures and materials remain unchanged. This is a `MODERNIZACAO_COMPATIVEL`
+visual correction; it changes no item, persisted field, packet or asset.
+
+Native grid constructor `FUN_0040d13e` normalizes mesh-27 texture 19 to 17
+before creating the item icon. `GridItemPresentation::IconTexture` now
+reproduces that rule for item 4006. This is `PARIDADE_NATIVA`; it changes only
+the icon texture index.
+
+`NativeScoreHudTests` checks all native citizenship skin mappings.
+`GridInsertionTests` checks the icon mapping. Actual in-game color and emblem
+acceptance remain pending.
+
+### Review corrections — 2026-10-30
+
+The Master icon override must replace geometry as well as texture. Catalog
+rows 3197..3199 use mesh 2880 (`mant.msa`), while Elite uses mesh 27
+(`mantua.msa`). `IconMesh` now selects 27 only for the three Master icons.
+The grid constructor applies both overrides before the existing scale path.
+The world cape mesh and item catalog are unchanged.
+
+`ApplyGreen` now multiplies the already computed Diffuse, Specular, and
+Emissive RGB channels. It preserves alpha, Ambient, Power, zero emission,
+map light intensity, and status color variation. Fixed material assignments
+previously erased those inputs. Classification: `MODERNIZACAO_COMPATIVEL`
+for both review corrections. Tests cover all item IDs for mesh selection,
+production constructor wiring, light levels, and the frozen blue material.
+Actual visual acceptance remains pending.

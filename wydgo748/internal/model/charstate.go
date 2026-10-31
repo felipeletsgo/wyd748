@@ -31,6 +31,9 @@ type PersistedAffect struct {
 	SourceItemUID   string `json:"sourceItemUid,omitempty"`
 	SourceItemIndex uint16 `json:"sourceItemIndex,omitempty"`
 	ExpiresUnix     int64  `json:"expiresUnix"`
+	// Poison Mist retains its four scheduled ticks across reconnects.
+	FinalTickAtExpiry bool  `json:"finalTickAtExpiry,omitempty"`
+	NextTickUnix      int64 `json:"nextTickUnix,omitempty"`
 }
 
 // CharStateVersion identifies the sidecar contract version. Additive optional

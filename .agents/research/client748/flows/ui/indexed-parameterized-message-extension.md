@@ -4,7 +4,7 @@ title: Aviso indexado e parametrizado da source
 subsystem: ui
 status: UNMAPPED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-01
+updated: 2026-10-30
 ---
 
 # Aviso indexado e parametrizado da source
@@ -156,9 +156,10 @@ fallback para erros da loja sem índice coordenado.
 Os opcodes receberam nomes explícitos de extensão. O parser passou a validar
 tamanho, ID, seletor, índice e painel; lê o `int16` sem cast desalinhado, não
 muta a tabela global, copia somente os 96 bytes realmente presentes no packet
-e substitui apenas `%s`/`%%` em buffers limitados. As durações especiais dos
-índices efetivos `465`, `466`, `484` e `485` continuam em 600 segundos; as
-demais permanecem em quatro segundos.
+e substitui apenas `%s`/`%%` em buffers limitados. Every indexed notice
+closes after four seconds. The 600-second rows `465`, `466`, `484`, and `485`
+came from the later client; `484`/`485` now name a Cube room and must not
+cover the timed instance question (2026-10-30).
 
 ### WYD-Go
 

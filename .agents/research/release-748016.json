@@ -1,0 +1,427 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.016",
+  "feedVersion": 48016,
+  "status": "PUBLISHED_AND_ACTIVATED",
+  "date": "2026-10-30",
+  "authorization": {
+    "request": "suba tudo para o vps e reinicie",
+    "clientPublication": true,
+    "serverActivation": true,
+    "serviceRestart": true
+  },
+  "source": {
+    "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+    "mode": "working-tree",
+    "serverManifest": "build/deploy/wyd-deploy-748016/release-manifest.json",
+    "clientInputs": "build/release-748016/client-build-inputs.json"
+  },
+  "clientPatch": {
+    "mode": "explicit-working-tree-payload",
+    "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+    "dirty": [
+      " M .agents/research/client748/flows/combat/sephira-resurrection-prompt.md",
+      " M .agents/research/client748/flows/gameplay/citizenship-cape-emblems.md",
+      " M .agents/research/client748/flows/ui/skill-description-text.md",
+      " M .agents/research/release-748012.json",
+      " M DOCS/agent-environments.md",
+      " M DOCS/bug-register.md",
+      " M DOCS/client/launcher.md",
+      " M DOCS/client/port-748.md",
+      " M DOCS/current-state.md",
+      " M DOCS/documentation-map.md",
+      " M tmproject/Build-Client.ps1",
+      " M tmproject/TMProject748/Resources/PremiumNell.html",
+      " M tmproject/TMProject748/TMProject748.vcxproj",
+      " M tmproject/TMProject748/internal/app/scenes/NewApp.cpp",
+      " M tmproject/TMProject748/internal/app/scenes/TMFieldSceneCombatPackets.cpp",
+      " M tmproject/TMProject748/internal/app/scenes/TMFieldSceneMerchant.cpp",
+      " M tmproject/TMProject748/internal/app/scenes/TMFieldSceneSkills.cpp",
+      " M tmproject/TMProject748/internal/application/AttackAttackerState.h",
+      " M tmproject/TMProject748/internal/application/NativeVolatileRoutes.h",
+      " M tmproject/TMProject748/internal/application/SkillRequestPolicy.h",
+      " M tmproject/TMProject748/internal/core/BasedefCombat.cpp",
+      " M tmproject/TMProject748/internal/game/entities/TMHumanAppearance.cpp",
+      " M tmproject/TMProject748/internal/platform/diagnostics/ClientDiagnostics.cpp",
+      " M tmproject/TMProject748/internal/platform/diagnostics/ClientDiagnostics.h",
+      " M tmproject/TMProject748/internal/platform/diagnostics/CrashCapture.h",
+      " D tmproject/TMProject748/internal/platform/diagnostics/CrashMonitor.h",
+      " M tmproject/TMProject748/internal/render/effects/skills/TMSkillJudgement.cpp",
+      " M tmproject/TMProject748/internal/render/effects/skills/TMSkillMagicArrow.cpp",
+      " M tmproject/TMProject748/internal/render/effects/skills/TMSkillMeteorStorm.cpp",
+      " M tmproject/TMProject748/internal/render/mesh/CMesh.cpp",
+      " M tmproject/TMProject748/internal/ui/CapePresentation748.h",
+      " M tmproject/TMProject748/internal/ui/GridItemPresentation.h",
+      " M tmproject/TMProject748/internal/ui/SGridItem.cpp",
+      " M tmproject/TMProject748/internal/ui/SGridTooltip.cpp",
+      " M tmproject/TMProject748/internal/wire/ClientBuildContract.h",
+      " M tmproject/TMProject748/internal/wire/SkillAttackRequest.h",
+      " M tmproject/TMProject748/tests/AttackAttackerStateTests.cpp",
+      " M tmproject/TMProject748/tests/CrashCaptureTests.cpp",
+      " M tmproject/TMProject748/tests/CrashCaptureTests.vcxproj",
+      " M tmproject/TMProject748/tests/GridInsertionTests.cpp",
+      " M tmproject/TMProject748/tests/NativeScoreHudTests.cpp",
+      " M tmproject/TMProject748/tests/PacketViewTests.cpp",
+      " M tmproject/TMProject748/tests/PremiumNellPageTests.mjs",
+      " M tmproject/TMProject748/tests/SkillAttackRequestTests.cpp",
+      " M tmproject/WYDESTINY.sln",
+      " M tmproject/client748/EN/ItemList.bin",
+      " M tmproject/client748/EN/Itemname.bin",
+      " M tmproject/client748/EN/UI/strdef.bin",
+      " M tmproject/client748/EN/itemhelp.dat",
+      " M tmproject/client748/EN/skillhelp.dat",
+      " M tmproject/client748/ItemList.bin",
+      " M tmproject/client748/Itemname.bin",
+      " M tmproject/client748/PT/ItemList.bin",
+      " M tmproject/client748/PT/Itemname.bin",
+      " M tmproject/client748/PT/UI/strdef.bin",
+      " M tmproject/client748/PT/itemhelp.dat",
+      " M tmproject/client748/PT/skillhelp.dat",
+      " M tmproject/client748/UI/strdef.bin",
+      " M tmproject/client748/config.txt",
+      " M tmproject/client748/itemhelp.dat",
+      " M tmproject/client748/skillhelp.dat",
+      " M tools/client-assets/build_client_locales.py",
+      " M tools/client-assets/client_locale_overrides.json",
+      " M tools/client-assets/test_client_locales.py",
+      " M wydgo748/data/catalog/Itemname.csv",
+      " M wydgo748/data/catalog/itemlist.csv",
+      " M wydgo748/data/content/volatiles.json",
+      " M wydgo748/data/npcs/ShopAmulet.json",
+      " M wydgo748/internal/data/test_shop_coverage_test.go",
+      " M wydgo748/internal/data/volatile_client_routes_test.go",
+      " M wydgo748/internal/data/volatile_coverage_test.go",
+      " M wydgo748/internal/game/affects.go",
+      " M wydgo748/internal/game/celestial.go",
+      " M wydgo748/internal/game/celestial_test.go",
+      " M wydgo748/internal/game/charstate.go",
+      " M wydgo748/internal/game/consumables.go",
+      " M wydgo748/internal/game/critical_persistence_celestial.go",
+      " M wydgo748/internal/game/drops.go",
+      " M wydgo748/internal/game/equipment.go",
+      " M wydgo748/internal/game/equipment_test.go",
+      " M wydgo748/internal/game/handlers.go",
+      " M wydgo748/internal/game/handlers_lifecycle_integration_test.go",
+      " M wydgo748/internal/game/huntress_skills_test.go",
+      " M wydgo748/internal/game/kill_rewards.go",
+      " M wydgo748/internal/game/regen.go",
+      " M wydgo748/internal/game/skill_passives.go",
+      " M wydgo748/internal/game/skill_pvp.go",
+      " M wydgo748/internal/game/skill_summons.go",
+      " M wydgo748/internal/game/skills.go",
+      " M wydgo748/internal/game/timed_items.go",
+      " M wydgo748/internal/model/charstate.go",
+      " M wydgo748/internal/model/model.go",
+      " M wydgo748/internal/store/postgres_test.go",
+      " M wydgo748/internal/wire/client_build.go",
+      " M wydgo748/internal/wire/client_build_test.go",
+      " M wydgo748/web/portal/src/data/public-content.ts",
+      " M wydgo748/web/portal/tests/news-content.test.mjs",
+      " M wydgo748/web/portal/tests/public-content.test.mjs",
+      "?? .agents/research/client748/flows/combat/player-reported-skill-effects.md",
+      "?? .agents/research/release-748013.json",
+      "?? .agents/research/release-748014.json",
+      "?? .agents/research/release-748015.json",
+      "?? tmproject/TMProject748/WerCrashReporter.vcxproj",
+      "?? tmproject/TMProject748/internal/application/CannonTargeting.h",
+      "?? tmproject/TMProject748/internal/platform/diagnostics/WerCrashCapture.h",
+      "?? tmproject/TMProject748/internal/platform/diagnostics/WerCrashModule.cpp",
+      "?? tmproject/TMProject748/internal/platform/diagnostics/WerCrashModule.def",
+      "?? tmproject/TMProject748/internal/render/mesh/ApprenticeMantleTint.h",
+      "?? tmproject/TMProject748/internal/ui/HuntressMerchantQuote.h",
+      "?? tmproject/client748/WydCrashReporter.dll",
+      "?? wydgo748/internal/game/combat_summon_extended_test.go",
+      "?? wydgo748/internal/game/combat_summon_regression_test.go",
+      "?? wydgo748/internal/game/player_report_regressions_test.go",
+      "?? wydgo748/internal/game/player_report_second_test.go",
+      "?? wydgo748/internal/game/player_report_third_test.go",
+      "?? wydgo748/web/portal/src/content/news/client-7-48-013.md",
+      "?? wydgo748/web/portal/src/content/news/client-7-48-014.md",
+      "?? wydgo748/web/portal/src/content/news/client-7-48-015.md"
+    ],
+    "entries": [
+      {
+        "path": "WYD.exe",
+        "source": "tmproject\\build\\TMProject748\\Release\\WYD.exe",
+        "size": 2066944,
+        "sha256": "1ab06967dfd18648c9a9b2e7b2c15f1cd408b2149beec46c0ec685f9f6fcdac7"
+      },
+      {
+        "path": "WydCrashReporter.dll",
+        "source": "tmproject\\build\\TMProject748\\Release\\WydCrashReporter.dll",
+        "size": 564224,
+        "sha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6"
+      },
+      {
+        "path": "ItemList.bin",
+        "source": "tmproject\\client748\\ItemList.bin",
+        "size": 910004,
+        "sha256": "334e1023448d3c34630496b6e67ac8ec7bebee9058dc6d5305df299bfe2482e2"
+      },
+      {
+        "path": "Itemname.bin",
+        "source": "tmproject\\client748\\Itemname.bin",
+        "size": 196248,
+        "sha256": "eadd22c7ce1f166ec9aaaa656c04b9f17f159f9c022c3cb21ddad2bda50fdbdf"
+      },
+      {
+        "path": "itemhelp.dat",
+        "source": "tmproject\\client748\\itemhelp.dat",
+        "size": 82459,
+        "sha256": "555f19b63bf6badceb8da8596336b6e63ea44b49a17935f1d3de2f357bfd6e67"
+      },
+      {
+        "path": "skillhelp.dat",
+        "source": "tmproject\\client748\\skillhelp.dat",
+        "size": 21298,
+        "sha256": "daacc53dda7d3bddcc3c64bc923a7d891428d5d135c653fd212b58ed44d028aa"
+      },
+      {
+        "path": "UI/strdef.bin",
+        "source": "tmproject\\client748\\UI\\strdef.bin",
+        "size": 63492,
+        "sha256": "2fd8fd69be4a92e21fb981954ec0fe9983d2eaf9b23150e4a8df9d22eecd3eb9"
+      },
+      {
+        "path": "EN/ItemList.bin",
+        "source": "tmproject\\client748\\EN\\ItemList.bin",
+        "size": 910004,
+        "sha256": "171c6168c7ed605efbf72a89d2ef2624587de25cb269aa871c3ddee17aa0afb8"
+      },
+      {
+        "path": "EN/Itemname.bin",
+        "source": "tmproject\\client748\\EN\\Itemname.bin",
+        "size": 442000,
+        "sha256": "a27deb93f6ddf9d285eb4fe5995a37bf7339cf3b55a2630c58fa2933fd13b998"
+      },
+      {
+        "path": "EN/itemhelp.dat",
+        "source": "tmproject\\client748\\EN\\itemhelp.dat",
+        "size": 71418,
+        "sha256": "c490476c3bac943bbeb16e76f612dd539f0b064bddb382e07ec52a39eb5ee1d1"
+      },
+      {
+        "path": "EN/skillhelp.dat",
+        "source": "tmproject\\client748\\EN\\skillhelp.dat",
+        "size": 21298,
+        "sha256": "daacc53dda7d3bddcc3c64bc923a7d891428d5d135c653fd212b58ed44d028aa"
+      },
+      {
+        "path": "EN/UI/strdef.bin",
+        "source": "tmproject\\client748\\EN\\UI\\strdef.bin",
+        "size": 63492,
+        "sha256": "2fd8fd69be4a92e21fb981954ec0fe9983d2eaf9b23150e4a8df9d22eecd3eb9"
+      },
+      {
+        "path": "PT/ItemList.bin",
+        "source": "tmproject\\client748\\PT\\ItemList.bin",
+        "size": 910004,
+        "sha256": "a147e05fc8564638841abc0119dd3b6e02ebefdea506f45eedf06a58642e58d8"
+      },
+      {
+        "path": "PT/Itemname.bin",
+        "source": "tmproject\\client748\\PT\\Itemname.bin",
+        "size": 442000,
+        "sha256": "3cd55234dfd8e0de9083b42733cb229ae1b0f0e88208fc6e94365a6eea71df5f"
+      },
+      {
+        "path": "PT/itemhelp.dat",
+        "source": "tmproject\\client748\\PT\\itemhelp.dat",
+        "size": 78184,
+        "sha256": "87632bc3ab66b8f4424b7daa5462361d2c073eab27bc1e1a60b325f0f828c6fd"
+      },
+      {
+        "path": "PT/skillhelp.dat",
+        "source": "tmproject\\client748\\PT\\skillhelp.dat",
+        "size": 22303,
+        "sha256": "d3a092dd0721e0cdec6352c910fe38daab3c7bf9d44ba32dec61856aeba6a599"
+      },
+      {
+        "path": "PT/UI/strdef.bin",
+        "source": "tmproject\\client748\\PT\\UI\\strdef.bin",
+        "size": 63492,
+        "sha256": "3f2f6f940ce98926c596c217250c6870cb234a064b98c6ae6e0c4d67455514ac"
+      }
+    ],
+    "sha256": "C5BE1C2F3F28CC9DEA68F976D6CE97438454602EC6882BBA224684CC2349F93F",
+    "size": 1449800,
+    "provenance": {
+      "clientBuildInputs": "build/release-748016/client-build-inputs.json",
+      "clientBuildLog": "build/player-report-third-client-final.log",
+      "command": "pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release -NoDeploy",
+      "dependencyClosure": "Executable and reporter plus root/EN/PT item catalogs, names, item help, skill help and UI string tables. Embedded Premium Nell page is compiled into WYD.exe. Existing meshes, textures and launcher stay at their cumulative feed versions.",
+      "clientSourceNewerThanCandidate": []
+    }
+  },
+  "active": {
+    "release": "/srv/wyd-go/releases/20261030T223403Z",
+    "payloadFilesVerified": 7735,
+    "services": {
+      "wyd-game": {
+        "MainPID": "2714282",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261030T223403Z/game/wyd-server",
+        "sha256": "988e1ba300702d0914f22c34423b9b0ee678e988ed96d4a54ee47a4a2eaa9972"
+      },
+      "wyd-player": {
+        "MainPID": "2714295",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261030T223403Z/game/wyd-player-api",
+        "sha256": "1a696eff2efe992518e406dd76d6707de2d508ffc288204b65ec16f41c815f3a"
+      }
+    },
+    "backup": {
+      "at": "2026-10-30T22:34:03Z",
+      "archive": "wydgo-20261030T223403Z.dump",
+      "bytes": 497083,
+      "sha256": "cc86ae03a44279675471b8c11ab77fd3e4e3d0805994722327aa32e0caf0cd21",
+      "verified": true
+    },
+    "schema": "14",
+    "rollback": "/srv/wyd-go/releases/20261030T194406Z",
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    }
+  },
+  "admission": {
+    "at": "2026-10-30T22:34:38.277443+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 15,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8281,
+        "revision": 16,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      },
+      {
+        "port": 8282,
+        "revision": 15,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 16,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "publicVerification": [
+    {
+      "scheme": "http",
+      "feed": "all previous entries preserved; 48016 appended",
+      "patchSha256": "C5BE1C2F3F28CC9DEA68F976D6CE97438454602EC6882BBA224684CC2349F93F",
+      "entriesVerified": 17,
+      "previousPatchUnchanged": true
+    },
+    {
+      "scheme": "https",
+      "feed": "all previous entries preserved; 48016 appended",
+      "patchSha256": "C5BE1C2F3F28CC9DEA68F976D6CE97438454602EC6882BBA224684CC2349F93F",
+      "entriesVerified": 17,
+      "previousPatchUnchanged": true
+    }
+  ],
+  "websiteVerification": [
+    {
+      "scheme": "http",
+      "receipt": {
+        "version": 2,
+        "clientVersion": "7.48.016",
+        "feedVersion": 48016,
+        "publishedAt": "2026-10-30",
+        "launcherVersion": null,
+        "minimumLauncherVersion": null,
+        "fullClient": {
+          "clientVersion": "7.48.001",
+          "url": "https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view?usp=drive_link",
+          "sizeBytes": null,
+          "sha256": null
+        },
+        "patch": {
+          "url": "/patch/patch-48016.zip",
+          "sizeBytes": 1449800,
+          "sha256": "C5BE1C2F3F28CC9DEA68F976D6CE97438454602EC6882BBA224684CC2349F93F",
+          "executableSha256": "1AB06967DFD18648C9A9B2E7B2C15F1CD408B2149BEEC46C0EC685F9F6FCDAC7"
+        },
+        "updateFeed": "/patch/update.htm"
+      },
+      "routes": "news, news post, download and changelog verified"
+    },
+    {
+      "scheme": "https",
+      "receipt": {
+        "version": 2,
+        "clientVersion": "7.48.016",
+        "feedVersion": 48016,
+        "publishedAt": "2026-10-30",
+        "launcherVersion": null,
+        "minimumLauncherVersion": null,
+        "fullClient": {
+          "clientVersion": "7.48.001",
+          "url": "https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view?usp=drive_link",
+          "sizeBytes": null,
+          "sha256": null
+        },
+        "patch": {
+          "url": "/patch/patch-48016.zip",
+          "sizeBytes": 1449800,
+          "sha256": "C5BE1C2F3F28CC9DEA68F976D6CE97438454602EC6882BBA224684CC2349F93F",
+          "executableSha256": "1AB06967DFD18648C9A9B2E7B2C15F1CD408B2149BEEC46C0EC685F9F6FCDAC7"
+        },
+        "updateFeed": "/patch/update.htm"
+      },
+      "routes": "news, news post, download and changelog verified"
+    }
+  ],
+  "rollback": "/srv/wyd-go/releases/20261030T194406Z",
+  "rollbackReceipt": ".agents/research/release-748015.json",
+  "validation": {
+    "installedPayload": "PASS: all 7735 files",
+    "activeProcessHashes": "PASS: game and player API match candidate manifest",
+    "readiness": "PASS: HTTP 200 on 8082 and 8083 with configured Host",
+    "channels": "PASS: 8281 and 8282; revision 15 rejected, 16 reaches credential validation",
+    "portal": "PASS: 115 tests and production build; public news, changelog, download and receipt match 48016",
+    "wireAndAdmission": "PASS: fresh wire and game admission tests",
+    "reusedCandidate": "PASS: full Go suite, vet, focused race and persistence payload tests; Release C++ build, Architecture 3183423, Socket 281, Crash 147, locales 21 and Nell page 10",
+    "candidateLogs": "build/player-report-third-*",
+    "activationLog": "build/release-748016/activation.log",
+    "stabilityLog": "build/release-748016/stability.log",
+    "database": "Schema remains 14; final backup size, SHA-256 and pg_restore listing verified; no live database integration suite rerun in this batch",
+    "settings": "PASS: game/player environments, server, staff, Caddy and service units preserved byte-for-byte",
+    "serviceStability": "PASS: both processes active with NRestarts=0; no error-priority journal entries since activation",
+    "gameplay": "PENDING: actual launcher extraction, visual acceptance and exact reported return packet sequence; no real account authenticated",
+    "repository": "PASS: layout and documentation links (225 documents), git diff --check, and unchanged packaged source inputs"
+  },
+  "notes": [
+    "All implemented report batches are distributed through the cumulative mandatory feed. No client packet layout changed.",
+    "The first publisher connection timed out after staging upload. HTTPS proved 48016 absent. The same staged files were checksum-verified and published after access recovered.",
+    "The resumed publication succeeded before a trailing CR from the local pipe returned 127. Independent HTTP/HTTPS feed, ZIP and all entry checks passed before server activation. The activation pipe removed CR and returned zero.",
+    "The standard updater restarted the game and player API. No host reboot, commit, push, local game installation or Microsoft submission occurred.",
+    "Task remote staging and helper files were removed only after hashes matched. Keep local release artifacts, active release, previous release and backups."
+  ],
+  "deliveryFiles": {
+    "changed": [
+      "wydgo748/web/portal/src/data/public-content.ts",
+      "wydgo748/web/portal/tests/public-content.test.mjs",
+      "wydgo748/web/portal/tests/news-content.test.mjs",
+      "DOCS/current-state.md",
+      "DOCS/client/launcher.md"
+    ],
+    "added": [
+      "wydgo748/web/portal/src/content/news/client-7-48-016.md",
+      ".agents/research/release-748016.json"
+    ],
+    "removed": []
+  }
+}

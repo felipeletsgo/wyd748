@@ -29,7 +29,7 @@ inline constexpr Entry CodeRoutes[] = {
     {12, 12, Route::Direct},
     {13, 13, Route::Recall},
     {15, 15, Route::Direct},
-    {16, 16, Route::Target},
+    {16, 16, Route::Direct}, // Essence targets the equipped mount on the server.
     {18, 19, Route::Direct},
     {20, 20, Route::Direct},
     {21, 28, Route::Direct},

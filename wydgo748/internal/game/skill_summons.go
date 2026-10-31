@@ -409,6 +409,11 @@ func (w *World) tickSummonCombat(now time.Time) {
 		if now.Before(summon.NextMove) {
 			continue
 		}
+		// MODERNIZACAO_COMPATIVEL: validate both cells for every PvP target.
+		if (target.user != nil || isCombatSummon(target.mob)) &&
+			(!w.terrain.PvPZone(summon.X, summon.Y) || !w.terrain.PvPZone(target.x, target.y)) {
+			continue
+		}
 		if now.Before(summon.NextAttack) {
 			continue
 		}
@@ -441,10 +446,6 @@ func (w *World) tickSummonCombat(now time.Time) {
 			if target.mob.HP == 0 {
 				w.killMobState(owner, target.mob, damage, minU32(damage, oldHP))
 			}
-			continue
-		}
-		// W2PP GetFunc: no summon PvP damage unless both cells allow PvP.
-		if !w.terrain.PvPZone(summon.X, summon.Y) || !w.terrain.PvPZone(target.user.X, target.user.Y) {
 			continue
 		}
 		hit := mobPhysicalHitPlayerAt(summon, target.user.Char, w.intn, now)
@@ -486,5 +487,5 @@ func (w *World) tickSummonCombat(now time.Time) {
 // summonPvPDamage applies the native AI attack factor between players and
 // summons: 30% (TMSRVIN sub_4DECC0, W2PP GetAttack, Clan 4).
 func summonPvPDamage(damage uint32) uint32 {
-	return damage * 3 / 10
+	return uint32(uint64(damage) * 3 / 10)
 }

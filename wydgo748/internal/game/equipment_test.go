@@ -32,7 +32,7 @@ func TestItemMetadataIsNeverRefined(t *testing.T) {
 	}
 }
 
-func TestDualWieldPassivesFollowOfficialServer(t *testing.T) {
+func TestDualWieldPassivesFollow748Books(t *testing.T) {
 	w := &World{items: map[uint16]model.ItemDef{
 		100: {Index: 100, Unique: 7, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 100}}},
 		101: {Index: 101, Unique: 7, StaticEffects: []model.StaticEffect{{Name: "EF_DAMAGE", Value: 80}}},
@@ -44,15 +44,14 @@ func TestDualWieldPassivesFollowOfficialServer(t *testing.T) {
 	if got := w.equipmentDamage(ch); got != 140 {
 		t.Fatalf("dual wield TK with Speed Up=%d, want 140", got)
 	}
-	// Official TMSRVIN: Huntress Life Drain (7.48 skill 90, server bit 10)
-	// adds 10 points to the 50% same-type share: 100 + 80*60/100.
-	ch.Class, ch.LearnedSkill = 3, 1<<(90-72)
+	// Two Weapon Fighting adds ten points to the second weapon share.
+	ch.Class, ch.LearnedSkill = 3, 1<<(82-72)
 	if got := w.equipmentDamage(ch); got != 148 {
 		t.Fatalf("dual wield HT=%d, want 148", got)
 	}
-	ch.LearnedSkill = 1 << (82 - 72)
+	ch.LearnedSkill = 1 << (90 - 72)
 	if got := w.equipmentDamage(ch); got != 140 {
-		t.Fatalf("Two Weapon Fighting incorrectly changed the dual-weapon share: %d", got)
+		t.Fatalf("Life Drain incorrectly changed the dual-weapon share: %d", got)
 	}
 }
 
@@ -62,14 +61,14 @@ func TestHuntressPassivesUseCorrectSkillBits(t *testing.T) {
 		101: {Index: 101, Unique: 7},
 	}}
 	ch := &model.Char{Class: 3, Score: testScore(model.Score{
-		Attack: 100, Dex: 150, Critical: 2, Range: 1, Mastery: [4]uint32{0, 52, 0, 99},
+		Attack: 100, Dex: 150, Critical: 2, Range: 1, Mastery: [4]uint32{0, 52, 100, 99},
 	})}
-	// Hunter's Vision is 7.48 skill 91 (server bit 18): base DEX/20 = 7.
+	// Hunter's Vision affects drops, not critical, in 7.48.
 	ch.RuntimeScore = testScore(*ch.Score)
 	ch.LearnedSkill = 1 << (91 - 72)
 	w.applyPassiveSkills(ch)
-	if got := effectiveScore(ch).Critical; got != 9 {
-		t.Fatalf("Hunter's Vision critical=%d, want 9", got)
+	if got := effectiveScore(ch).Critical; got != 2 {
+		t.Fatalf("Hunter's Vision changed critical=%d, want 2", got)
 	}
 	if got := effectiveScore(ch).Attack; got != 100 {
 		t.Fatalf("Hunter's Vision changed attack directly: %d", got)
@@ -89,14 +88,15 @@ func TestHuntressPassivesUseCorrectSkillBits(t *testing.T) {
 		t.Fatalf("Improved Range range=%d, want 2", got)
 	}
 
-	// Two Weapon Fighting (82): Special[1]/5 + 10, or + 320 with Rapid Hit (95).
+	// The owner-selected bow/claw percentage uses Trade. Finishers do not stack it.
 	ch.Equip[6] = model.Item{Index: 100}
 	for _, tc := range []struct {
 		learned uint32
 		want    uint32
 	}{
-		{1 << (82 - 72), 120},
-		{1<<(82-72) | 1<<(95-72), 430},
+		{1 << (82 - 72), 115},
+		{1<<(82-72) | 1<<(87-72), 115},
+		{1<<(82-72) | 1<<(95-72), 115},
 	} {
 		ch.RuntimeScore = testScore(*ch.Score)
 		ch.LearnedSkill = tc.learned

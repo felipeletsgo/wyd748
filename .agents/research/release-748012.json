@@ -258,5 +258,234 @@
       "build/release-748012",
       "/srv/wyd-go/releases/20261029T203701Z"
     ]
-  }
+  },
+  "serverFollowups": [
+    {
+      "id": "summon-fixes-20261030",
+      "status": "ACTIVE_VERIFIED",
+      "classification": "MODERNIZACAO_COMPATIVEL",
+      "scope": "Game server only; client patch and minimum revision remain 48012 and 12.",
+      "authorization": {
+        "request": "reinicie o vps",
+        "context": "Activate the tested local corrections.",
+        "workingTree": true,
+        "gameRestart": true,
+        "hostReboot": false,
+        "commit": false,
+        "push": false
+      },
+      "changes": [
+        "Validate both cells before every summon PvP hit, including enemy summons.",
+        "Process BM and contract summon affects, expiration and poison without ordinary hostile AI or kill rewards.",
+        "Preserve participant-write ownership and admit normal kill rewards before summon effects.",
+        "Use a uint64 intermediate for the 30 percent summon PvP damage factor."
+      ],
+      "source": {
+        "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+        "mode": "working-tree",
+        "dirtyAtBuild": [
+          " M DOCS/current-state.md",
+          " M wydgo748/internal/game/affects.go",
+          " M wydgo748/internal/game/skill_summons.go",
+          "?? wydgo748/internal/game/combat_summon_extended_test.go",
+          "?? wydgo748/internal/game/combat_summon_regression_test.go"
+        ],
+        "manifest": "build/deploy/wyd-deploy-20261030-summon-fixes/release-manifest.json",
+        "manifestSHA256": "1c0d4c7b8ac829a996283529bc63a29d5e66eb360ad48edce0bdcc912ec129f2",
+        "sourceFiles": 2201,
+        "affectedInputs": [
+          {
+            "path": "wydgo748/go.mod",
+            "size": 370,
+            "sha256": "a1c1c8663854c63a51b5d7c921d2915d481b53d16490b07cdf9b7b20a1c40e35"
+          },
+          {
+            "path": "wydgo748/go.sum",
+            "size": 2472,
+            "sha256": "1214515799eb2e9b0562a1a2a85fede09f07884f857aad56d8679c85e9f2df86"
+          },
+          {
+            "path": "wydgo748/internal/game/affects.go",
+            "size": 51427,
+            "sha256": "178d00ef02c6b573f64454c3fe4a8f651785dc12c7dc3f30088bb8bc13e36f91"
+          },
+          {
+            "path": "wydgo748/internal/game/combat_summon_extended_test.go",
+            "size": 7621,
+            "sha256": "07450cda8874c019bb17b8263cd6ea229b127a3b92dc7f69280fc0052cc6eae9"
+          },
+          {
+            "path": "wydgo748/internal/game/combat_summon_regression_test.go",
+            "size": 9764,
+            "sha256": "ede8e3e5afd49a3eda8f30422e5c6a6023345a2a66f02f6ee3d750e61bcf47ad"
+          },
+          {
+            "path": "wydgo748/internal/game/skill_summons.go",
+            "size": 16626,
+            "sha256": "7fda48ad300a17580840b5872218023533a55b04dbe87ce76e2584223b1d2fdf"
+          }
+        ],
+        "build": {
+          "go": "go version go1.26.5 windows/amd64",
+          "os": "linux",
+          "arch": "amd64",
+          "cgo": "0",
+          "trimpath": true,
+          "portal": null
+        }
+      },
+      "archive": {
+        "archive": {
+          "path": "release.tar.gz",
+          "size": 13806717,
+          "sha256": "80acc42a4248dfd1c6e5b958c6937c2f6cc58f14d8b2936414f36ff9455af4c9"
+        },
+        "payloadFiles": 1076,
+        "runtimeDataFiles": 1074,
+        "sourceFiles": 2201,
+        "allHashesMatch": true,
+        "runtimeDataMatchesPriorRelease": true,
+        "server": {
+          "path": "game/wyd-server",
+          "size": 26634492,
+          "sha256": "f366eae2692fbbb47a583ca969aea472282d8691e7ba461ee4e19efea67e3bfe"
+        }
+      },
+      "validation": {
+        "automatedTested": "PASS",
+        "report": "build/combat-summon-expanded-tests-20261030/report.md",
+        "fullRace": {
+          "gameSeconds": 241.953,
+          "storeSeconds": 3.748,
+          "isolatedPostgreSQL": true
+        },
+        "shuffledTests": 29,
+        "shuffledIterations": 20,
+        "fuzzInputs": 5098741,
+        "fuzzCoverageGuidance": false,
+        "clientTested": "PENDING"
+      },
+      "activation": {
+        "at": "2026-10-30T06:25:14.223247+00:00",
+        "activeRelease": "/srv/wyd-go/releases/20261030T062404Z",
+        "rollback": "/srv/wyd-go/releases/20261030T043606Z",
+        "services": {
+          "wyd-game": {
+            "MainPID": "2553426",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Fri 2026-10-30 06:24:07 UTC",
+            "ExecMainStatus": "0",
+            "ActiveState": "active",
+            "SubState": "running",
+            "executable": "/srv/wyd-go/releases/20261030T062404Z/game/wyd-server",
+            "sha256": "f366eae2692fbbb47a583ca969aea472282d8691e7ba461ee4e19efea67e3bfe"
+          },
+          "wyd-player": {
+            "MainPID": "2535477",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Fri 2026-10-30 04:36:09 UTC",
+            "ExecMainStatus": "0",
+            "ActiveState": "active",
+            "SubState": "running",
+            "executable": "/srv/wyd-go/releases/20261030T043606Z/game/wyd-player-api",
+            "sha256": "33c4e6ea0dcf40061002e589b75ac356e7b8ae1420d1e403f94913495a918450"
+          },
+          "wyd-log-reader": {
+            "MainPID": "2535551",
+            "Result": "success",
+            "NRestarts": "0",
+            "ExecMainStartTimestamp": "Fri 2026-10-30 04:36:10 UTC",
+            "ExecMainStatus": "0",
+            "ActiveState": "active",
+            "SubState": "running",
+            "executable": "/srv/wyd-go/releases/20261030T043606Z/game/wyd-log-reader",
+            "sha256": "1877edac96036516a131200206a0c80a9f8396fa64f60316c0b1d98971ff760f"
+          }
+        },
+        "installedFilesVerified": 1076,
+        "configurationFilesPreserved": 12,
+        "readiness": {
+          "8082": 200,
+          "8083": 200
+        },
+        "channelListeners": [
+          8281,
+          8282
+        ],
+        "schema": "14",
+        "backup": {
+          "at": "2026-10-30T06:24:04Z",
+          "archive": "wydgo-20261030T062404Z.dump",
+          "bytes": 487961,
+          "sha256": "23cd02d708570e237566548ebc1a4aaebe772f65c97ae7a26e91dfadacb8f5c1"
+        },
+        "backupArchiveVerified": true,
+        "publishedFeedPreserved": true,
+        "shutdown": [
+          "2026/10/30 06:24:07 received signal terminated: persisting state before exit",
+          "2026/10/30 06:24:07 shutdown: 0 accounts persisted, 0 failures",
+          "2026/10/30 06:24:07 shutdown: 0 accounts persisted, 0 failures",
+          "2026/10/30 06:24:07 shutdown complete"
+        ],
+        "severeDiagnostics": []
+      },
+      "admission": {
+        "at": "2026-10-30T06:25:10.481756+00:00",
+        "results": [
+          {
+            "port": 8281,
+            "revision": 11,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8281,
+            "revision": 12,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          },
+          {
+            "port": 8282,
+            "revision": 11,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8282,
+            "revision": 12,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          }
+        ],
+        "realAccountAuthenticated": false
+      },
+      "publicVerification": {
+        "at": "2026-10-30T06:25:56.089467+00:00",
+        "results": [
+          {
+            "scheme": "http",
+            "feedPreserved": true,
+            "patchStatus": 200,
+            "patchSHA256": "065d2bb04c2692390aebcbb24de6dda551bed004526e8d82df7ed298994feb9b",
+            "patchBytes": 938967
+          },
+          {
+            "scheme": "https",
+            "feedPreserved": true,
+            "patchStatus": 200,
+            "patchSHA256": "065d2bb04c2692390aebcbb24de6dda551bed004526e8d82df7ed298994feb9b",
+            "patchBytes": 938967
+          }
+        ],
+        "websiteStatus": 200
+      },
+      "cleanup": {
+        "remoteStaging": "Removed and absence verified.",
+        "localEvidence": "build/summon-deploy-20261030",
+        "rollbackPreserved": "/srv/wyd-go/releases/20261030T043606Z"
+      }
+    }
+  ]
 }

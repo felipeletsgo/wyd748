@@ -5,6 +5,7 @@
 #include "SControlContainer.h"
 #include "TMGlobal.h"
 #include "../../application/CCModePolicy.h"
+#include "../../application/CannonTargeting.h"
 #include "TMGround.h"
 #include "TMUtil.h"
 #include "TMItem.h"
@@ -171,8 +172,6 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 	if ((unsigned char)cSkillIndex > 104)
 		cSkillIndex += 95;
 
-	if (pOver && cSkillIndex == 6 && pOver->m_nClass == 66)
-		return 0;
 
 	/*if ( m_pMyHuman->m_sCostume >= 4150 && m_pMyHuman->m_sCostume < 4200 || m_pMyHuman->m_sCostume >= 4300 && m_pMyHuman->m_sCostume < 4320 && (cSkillIndex == 64 || cSkillIndex == 66 || cSkillIndex == 68 || cSkillIndex == 70 || cSkillIndex == 71))
 		return 0;*/
@@ -643,6 +642,9 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 			{ extractedResult = 1; return ExtractedFlow::Return; }
 
 		float fMyAngle = atan2f(vec.x - m_pMyHuman->m_vecPosition.x, vec.z - m_pMyHuman->m_vecPosition.y);
+		if (cSkillIndex == 94)
+			m_pMyHuman->SetWantAngle(skill_attack::Facing(m_pMyHuman->m_fWantAngle,
+				vec.x - m_pMyHuman->m_vecPosition.x, vec.z - m_pMyHuman->m_vecPosition.y));
 
 		int nMastery = m_pMyHuman->m_stScore.Mastery[3] / 75;
 		if (nMastery > 3)
@@ -683,7 +685,7 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 			if (nDistanceFromMe <= nMastery + 3)
 			{
 				float fNodeAngle = atan2f(pNode->m_vecPosition.x - m_pMyHuman->m_vecPosition.x,	pNode->m_vecPosition.y - m_pMyHuman->m_vecPosition.y);
-				if (fabsf(fNodeAngle - fMyAngle) > 0.7853982f)
+				if (skill_attack::InForwardCone(fMyAngle, fNodeAngle))
 				{
 					int nDTX = nDX;
 					int nDTY = nDY;
@@ -1010,11 +1012,7 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 					auto pCannon = (TMItem*)g_pObjectManager->GetItemByID(nCannonIndex);
 					float fAngle = atan2f((float)(nSX - (int)m_pMyHuman->m_vecPosition.x), (float)(nSY - (int)m_pMyHuman->m_vecPosition.y));
 
-					if (fAngle < 0.0f)
-						fAngle = fAngle + D3DXToRadian(360);
-					if (pCannon->m_fAngle - D3DXToRadian(90) > fAngle)
-						{ extractedResult = 1; return ExtractedFlow::Return; }
-					if (fAngle > pCannon->m_fAngle + D3DXToRadian(90))
+					if (!pCannon || !cannon_targeting::InFiringArc(pCannon->m_fAngle, fAngle))
 						{ extractedResult = 1; return ExtractedFlow::Return; }
 				}
 				if (cSkillIndex == 35)
@@ -1703,8 +1701,6 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		if (pTarget->m_dwID > 0 && pTarget->m_dwID < 1000)
 			return 0;
 	}
-	if (cSkillIndex == 6 && pOver->m_nClass == 66)
-		return 0;
 
 	if (pTarget->m_dwID > 0 && pTarget->m_dwID < 1000 == 1 && cSkillIndex != 27 && cSkillIndex != 29 && cSkillIndex != 44)
 		return 0;
@@ -1997,6 +1993,9 @@ ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned
 
 		float fMyAngle = atan2f(vec.x - m_pMyHuman->m_vecPosition.x,
 			vec.z - m_pMyHuman->m_vecPosition.y);
+		if (cSkillIndex == 94)
+			m_pMyHuman->SetWantAngle(skill_attack::Facing(m_pMyHuman->m_fWantAngle,
+				vec.x - m_pMyHuman->m_vecPosition.x, vec.z - m_pMyHuman->m_vecPosition.y));
 
 		int nMastery = m_pMyHuman->m_stScore.Mastery[3] / 75;
 		if (nMastery > 3)
@@ -2039,7 +2038,7 @@ ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned
 				float fNodeAngle = atan2f(pNode->m_vecPosition.x - m_pMyHuman->m_vecPosition.x,
 					pNode->m_vecPosition.y - m_pMyHuman->m_vecPosition.y);
 
-				if (fabsf(fNodeAngle - fMyAngle) >= 0.78539819f)
+				if (skill_attack::InForwardCone(fMyAngle, fNodeAngle))
 				{
 					int nDTX = nDX;
 					int nDTY = nDY;

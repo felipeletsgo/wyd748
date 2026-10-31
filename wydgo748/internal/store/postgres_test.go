@@ -150,7 +150,8 @@ func TestPostgresCharStatePayloadPreservesBuffSourceAndAbsoluteDeadline(t *testi
 		Version: model.CharStateVersion,
 		Affects: []model.PersistedAffect{{
 			Type: 39, SourceItemUID: itemUID, SourceItemIndex: 4140,
-			ExpiresUnix: 2_000_007_200,
+			ExpiresUnix:       2_000_007_200,
+			FinalTickAtExpiry: true, NextTickUnix: 2_000_007_192,
 		}},
 	})
 	if err != nil {
@@ -161,7 +162,8 @@ func TestPostgresCharStatePayloadPreservesBuffSourceAndAbsoluteDeadline(t *testi
 		t.Fatal(err)
 	}
 	if len(got.Affects) != 1 || got.Affects[0].SourceItemUID != itemUID ||
-		got.Affects[0].SourceItemIndex != 4140 || got.Affects[0].ExpiresUnix != 2_000_007_200 {
+		got.Affects[0].SourceItemIndex != 4140 || got.Affects[0].ExpiresUnix != 2_000_007_200 ||
+		!got.Affects[0].FinalTickAtExpiry || got.Affects[0].NextTickUnix != 2_000_007_192 {
 		t.Fatalf("payload PostgreSQL perdeu origem/prazo do buff: %+v", got)
 	}
 }

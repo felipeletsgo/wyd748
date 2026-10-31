@@ -146,12 +146,10 @@ namespace
 		}
 	}
 
-	DWORD IndexedMessageDuration(int tableIndex)
-	{
-		return tableIndex == 465 || tableIndex == 466 || tableIndex == 484 || tableIndex == 485
-			? 600000
-			: 4000;
-	}
+	// Every indexed notice closes after four seconds. The 600-second rows came
+	// from the later client; here 484/485 name a Cube room and must not cover
+	// the timed instance question.
+	constexpr DWORD kIndexedMessageDurationMs = 4000;
 }
 
 TMScene::TMScene() : TreeNode(0)
@@ -734,7 +732,7 @@ int TMScene::OnIndexedSceneMessage(MSG_STANDARD*& pStd)
 				messageText[sizeof(messageText) - 1] = '\0';
 			}
 
-			m_pMessagePanel->SetMessage(messageText, IndexedMessageDuration(tableIndex));
+			m_pMessagePanel->SetMessage(messageText, kIndexedMessageDurationMs);
 			m_pMessagePanel->SetVisible(1, 1);
 		}
 	}

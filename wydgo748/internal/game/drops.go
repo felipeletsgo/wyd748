@@ -32,8 +32,12 @@ func (w *World) dropBonusFor(p *Player) int {
 	if p == nil || p.Char == nil {
 		return 0
 	}
-	return model.CitizenDropBonus(p.Char.Citizenship, w.channel, p.Char.Exp) +
+	bonus := model.CitizenDropBonus(p.Char.Citizenship, w.channel, p.Char.Exp) +
 		w.equipmentGemBonuses(p.Char).dropPercent
+	if p.Char.Class == 3 && learnedLocal(p.Char, 91-72) {
+		bonus += 10 + int(playerMastery(p.Char, 3))/10
+	}
+	return bonus
 }
 
 // applyDropBonus converts a percentage bonus to a one-in-N rate.
@@ -74,6 +78,8 @@ func (w *World) planMobDrops(p *Player, m *Mob) []plannedDrop {
 		if !guaranteed && rate > 0 && w.intn(rate) != 0 {
 			continue // Drop when rand()%rate == 0.
 		}
+		// MobKilled runs SetItemBonus on each carry drop before PutItem.
+		item = w.applyDropItemBonus(item, lvl, w.dropBonusFor(p))
 		if slot := addToInv(p.Char, item); slot >= 0 {
 			planned = append(planned, plannedDrop{player: p, inventoryPos: slot,
 				item: p.Char.Inv[slot], source: m.Def.Name, sourceSlot: i})

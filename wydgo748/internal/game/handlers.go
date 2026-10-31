@@ -1205,7 +1205,7 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		s.Send(wire.MessagePanel("That item is unavailable on this server."))
 		return
 	}
-	basePrice := uint64(def.Price)
+	basePrice := passiveMerchantPurchasePrice(p.Char, uint64(def.Price))
 	totalPrice, treasury, city, _ := w.cityPriceForNPC(m, basePrice)
 	if totalPrice > uint64(maxCharacterGold) || uint64(p.Char.Gold) < totalPrice {
 		log.Printf("[#%d] insufficient gold: item %d costs %d (base=%d), available=%d", s.ID, it.Index, totalPrice, basePrice, p.Char.Gold)
@@ -1838,6 +1838,13 @@ func (w *World) onSetShortSkill(s *net.Session, pkt []byte) {
 // filterShortSkills separates the learned-skill mask from visual shortcuts.
 // Clients may send global (class*24 + skill) or local indices;
 // remove shortcuts without a corresponding LearnedSkill bit.
+func emptyShortSkills() (slots [20]byte) {
+	for i := range slots {
+		slots[i] = 0xFF
+	}
+	return slots
+}
+
 func filterShortSkills(ch *model.Char) {
 	for i, value := range ch.ShortSkill {
 		if value == 0xFF {
@@ -2118,7 +2125,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 	// attacker position, and other values are not authoritative.
 	attackTwo := len(pkt) == 52 && wire.ParseHeader(pkt).Type == wire.OpAttackTwo
 	airBladeEligible := attackTwo
-	ironSpearEligible := attackTwo && p.Char.Class == 3 && p.Char.LearnedSkill&0x40 != 0
+	ironSpearEligible := p.Char.Class == 3 && p.Char.LearnedSkill&0x40 != 0
 	maxRange := w.physicalAttackRange(p.Char)
 	m := w.mobByID(req.TargetID)
 	if m == nil {
@@ -2316,26 +2323,35 @@ type ironSpearSecondaryResult struct {
 }
 
 func ironSpearBehindTile(attackerX, attackerY, primaryX, primaryY, x, y uint16) bool {
-	dx, dy := 0, 0
-	if primaryX > attackerX {
-		dx = 1
-	} else if primaryX < attackerX {
-		dx = -1
-	}
-	if primaryY > attackerY {
-		dy = 1
-	} else if primaryY < attackerY {
-		dy = -1
-	}
-	return int(x) == int(primaryX)+dx && int(y) == int(primaryY)+dy
+	return (x != primaryX || y != primaryY) && chebyshev(primaryX, primaryY, x, y) <= 1
 }
 
-// applyHuntressIronSpearSecondary implements Iron Spear (skill 78). The
-// client only nominates the entity occupying the tile immediately behind the
-// primary target; the server revalidates that geometry and recalculates damage.
+// applyHuntressIronSpearSecondary hits one authorized enemy within one tile of
+// the primary target. The server selects the target and recalculates damage.
 func (w *World) applyHuntressIronSpearSecondary(attacker *Player, req skillCastRequest,
 	primaryID, primaryX, primaryY uint16, double, critical bool, now time.Time) ironSpearSecondaryResult {
-	id := req.SecondaryTargetID
+	// Select one authorized neighbour on the server; a client nomination is
+	// neither required nor trusted. Stable ID order prevents map-order changes.
+	id := uint16(0)
+	if attacker != nil && attacker.Char != nil {
+		eligible := func(candidateID, x, y uint16) bool {
+			return candidateID != primaryID && candidateID != attacker.ID &&
+				ironSpearBehindTile(attacker.X, attacker.Y, primaryX, primaryY, x, y) &&
+				w.combatLineOfSight(attacker.X, attacker.Y, x, y) && (id == 0 || candidateID < id)
+		}
+		for _, m := range w.nearbyMobs(primaryX, primaryY, 1) {
+			if !m.Dead && m.HP > 0 && w.playerCanInteractWithMob(attacker, m) && eligible(m.ID, m.X, m.Y) {
+				id = m.ID
+			}
+		}
+		for _, p := range w.nearbyWorldPlayers(primaryX, primaryY, 1) {
+			if p.Char != nil && p.InWorld && playerCurHP(p.Char) > 0 &&
+				!w.criticalPlayerReserved(p) && w.playersShareGameplaySpace(attacker, p) &&
+				w.canInitiatePvP(attacker, p) && !sameSupportGroup(attacker, p) && eligible(p.ID, p.X, p.Y) {
+				id = p.ID
+			}
+		}
+	}
 	if attacker == nil || attacker.Char == nil || w.criticalPlayerReserved(attacker) ||
 		id == 0 || id == attacker.ID || id == primaryID {
 		return ironSpearSecondaryResult{}

@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.015",
+  "feedVersion": 48015,
+  "status": "PUBLISHED_AND_ACTIVATED",
+  "date": "2026-10-30",
+  "authorization": {
+    "request": "suba todas as correcoes pro vps e reinicie",
+    "clientPublication": true,
+    "serverActivation": true,
+    "serviceRestart": true
+  },
+  "source": {
+    "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+    "mode": "working-tree",
+    "serverManifest": "build/deploy/wyd-deploy-748015/release-manifest.json"
+  },
+  "clientPatch": {
+    "mode": "explicit-working-tree-payload",
+    "entries": [
+      {
+        "path": "WYD.exe",
+        "size": 2065920,
+        "sha256": "48655aa6ef273fd6b6be297ea0199d4cc07386199609b5bd22ba0d1c1def9d17"
+      },
+      {
+        "path": "WydCrashReporter.dll",
+        "size": 564224,
+        "sha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6"
+      },
+      {
+        "path": "ItemList.bin",
+        "size": 910004,
+        "sha256": "334e1023448d3c34630496b6e67ac8ec7bebee9058dc6d5305df299bfe2482e2"
+      },
+      {
+        "path": "Itemname.bin",
+        "size": 196248,
+        "sha256": "eadd22c7ce1f166ec9aaaa656c04b9f17f159f9c022c3cb21ddad2bda50fdbdf"
+      },
+      {
+        "path": "itemhelp.dat",
+        "size": 82459,
+        "sha256": "555f19b63bf6badceb8da8596336b6e63ea44b49a17935f1d3de2f357bfd6e67"
+      },
+      {
+        "path": "skillhelp.dat",
+        "size": 20306,
+        "sha256": "59250f7cd4889f9e0b78694234861bba97dd974205693eedffd5b08fc9239683"
+      },
+      {
+        "path": "EN/ItemList.bin",
+        "size": 910004,
+        "sha256": "171c6168c7ed605efbf72a89d2ef2624587de25cb269aa871c3ddee17aa0afb8"
+      },
+      {
+        "path": "EN/Itemname.bin",
+        "size": 442000,
+        "sha256": "a27deb93f6ddf9d285eb4fe5995a37bf7339cf3b55a2630c58fa2933fd13b998"
+      },
+      {
+        "path": "EN/itemhelp.dat",
+        "size": 82331,
+        "sha256": "2f2848465380c0834d5eeb0f1719b59aa7cef275140bd9f207afb5c404a35e8b"
+      },
+      {
+        "path": "EN/skillhelp.dat",
+        "size": 20792,
+        "sha256": "88526901059eac52400515208a45cb3fd9f4a7b4e8a005eecf289056b63bfafb"
+      },
+      {
+        "path": "PT/ItemList.bin",
+        "size": 910004,
+        "sha256": "a147e05fc8564638841abc0119dd3b6e02ebefdea506f45eedf06a58642e58d8"
+      },
+      {
+        "path": "PT/Itemname.bin",
+        "size": 442000,
+        "sha256": "3cd55234dfd8e0de9083b42733cb229ae1b0f0e88208fc6e94365a6eea71df5f"
+      },
+      {
+        "path": "PT/itemhelp.dat",
+        "size": 79798,
+        "sha256": "a40eb2f2f1369b2f88dcb1c6ee766bfb7862dfa977f52506613a97a6a674aa0b"
+      },
+      {
+        "path": "PT/skillhelp.dat",
+        "size": 21843,
+        "sha256": "b12e874d5c805288c604df14b0a7cc34de1434ae847363408915b33dedd99333"
+      }
+    ],
+    "sha256": "89D7BBAFA966ADEAEA26F1CF1387F856F130E4E08CF337EBBBEE1C2D7FDBBE30",
+    "size": 1432167
+  },
+  "active": {
+    "release": "/srv/wyd-go/releases/20261030T194406Z",
+    "payloadFilesVerified": 7733,
+    "services": {
+      "wyd-game": {
+        "MainPID": "2685834",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261030T194406Z/game/wyd-server",
+        "sha256": "e5c72e350be6a1c575c02ed490a71eeb81b6b371155dcb72ae8a74b9590b27cf"
+      },
+      "wyd-player": {
+        "MainPID": "2685850",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261030T194406Z/game/wyd-player-api",
+        "sha256": "d2316bc8f19c104a8401668eb42cdc34c9579e4fdfeb3e6138b2217482b2f31e"
+      }
+    },
+    "backup": {
+      "at": "2026-10-30T19:44:06Z",
+      "archive": "wydgo-20261030T194405Z.dump",
+      "bytes": 494996,
+      "sha256": "d304a8c6e40a318bdbf0732657eedb7bc289b97a5ee4c730014e895f3cbbb093"
+    },
+    "schema": "14"
+  },
+  "admission": {
+    "at": "2026-10-30T19:44:34.282868+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 14,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8281,
+        "revision": 15,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      },
+      {
+        "port": 8282,
+        "revision": 14,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 15,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "rollback": "/srv/wyd-go/releases/20261030T062404Z",
+  "validation": {
+    "publicHTTPAndHTTPS": "PASS: feed, ZIP and all entry hashes",
+    "installedPayload": "PASS: 7733 files",
+    "portalTests": "PASS: 115",
+    "wireTests": "PASS",
+    "clientBuild": "Reused validated candidate 15; executable SHA-256 verified",
+    "gameplay": "PENDING: no real client or account used"
+  },
+  "notes": [
+    "The activation wrapper returned 22 only for its final readiness request without Host. Independent requests with the configured Host returned 200 on both listeners. Activation and process hashes passed.",
+    "Configuration preflight matched server, staff, Caddy and service files. No host reboot or Microsoft submission.",
+    "The package includes the reporter DLL and root/EN/PT item catalogs and help."
+  ]
+}

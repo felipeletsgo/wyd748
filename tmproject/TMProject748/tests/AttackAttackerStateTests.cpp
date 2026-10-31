@@ -24,12 +24,6 @@ int LegacySwingForce(int meshType, int actorClass, int leftWeaponType)
     return 1;
 }
 
-bool LegacyAppliesMana(bool localAttacker, char flagLocal, short skillIndex)
-{
-    return (!localAttacker || !flagLocal && localAttacker) &&
-        skillIndex >= 0 && skillIndex < 104;
-}
-
 bool LegacyDispatchesVisuals(bool localAttacker, char flagLocal, char motion)
 {
     return !localAttacker || flagLocal == 1 && localAttacker ||
@@ -87,9 +81,9 @@ int RunAttackAttackerStateTests(int& checks)
     for (int local = 0; local < 2; ++local) {
         for (char flag : flags) {
             for (int skill = -2; skill <= 160; ++skill) {
-                const bool expected = LegacyAppliesMana(local != 0, flag, static_cast<short>(skill));
+                const bool expected = !local && skill >= 0 && skill < 104;
                 check(attack_attacker::ShouldApplyMana(local != 0, flag, skill) == expected,
-                    "mana gate matches legacy condition");
+                    "local wide mana cannot be replaced by compact attack mana");
 
                 const unsigned short received = 0xFFFFu;
                 unsigned int actorMana = 7u;
@@ -108,9 +102,10 @@ int RunAttackAttackerStateTests(int& checks)
 
     // Callback order: the actor value must already be applied when the local
     // UI/snapshot update runs, because that update reads the actor score.
-    unsigned int actorMana = 0u;
+    unsigned int actorMana = 322670u;
     attack_attacker::ApplyMana(true, 0, 10, 321, actorMana,
-        [&](unsigned short) { check(actorMana == 321u, "actor mana precedes local update"); });
+        [&](unsigned short) { check(false, "compact attack must not update local mana"); });
+    check(actorMana == 322670u, "wide mana survives compact echo after return teleport");
 
     for (int local = 0; local < 2; ++local)
         for (char flag : flags)

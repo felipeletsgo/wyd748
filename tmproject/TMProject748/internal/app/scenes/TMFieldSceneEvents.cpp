@@ -664,12 +664,10 @@ void TMFieldScene::InitializeQuizEventControls()
 {
 	if (!m_pControlContainer || !g_pDevice || m_pQuizBG) return;
 	// Keep timed instance questions independent of confirmations and notices.
-	m_pInstanceQuestionPanel = new SMessagePanel("", 0.0f, 0.0f, 680.0f, 24.0f, 0);
+	// Use the TMScene notice geometry: the constructor centres the scaled width.
+	m_pInstanceQuestionPanel = new SMessagePanel("", 150.0f, 80.0f, 480.0f, 28.0f, 0);
 	m_pInstanceQuestionPanel->SetControlID(-1);
 	m_pInstanceQuestionPanel->m_bSelectEnable = 0;
-	m_pInstanceQuestionPanel->SetPos(
-		(static_cast<float>(g_pDevice->m_dwScreenWidth) - 680.0f) * 0.5f,
-		64.0f * RenderDevice::m_fUIScaleY);
 	m_pInstanceQuestionPanel->SetVisible(0, 1);
 	m_pControlContainer->AddItem(m_pInstanceQuestionPanel);
 	// Keep the 7.48 runtime control IDs (896..900), but render the extension with
@@ -744,7 +742,11 @@ int TMFieldScene::OnPacketInstanceQuestion(MSG_STANDARD* packet)
 	m_instanceQuestion.Apply(question, GetTickCount());
 	m_pInstanceQuestionPanel->SetMessage(instance_question::DisplayText(question,
 		g_pMessageStringTable, MAX_STRING), 0);
-	m_pInstanceQuestionPanel->SetVisible(m_instanceQuestion.Visible(GetTickCount()) ? 1 : 0, 1);
+	const bool visible = m_instanceQuestion.Visible(GetTickCount());
+	// The question uses the notice position; close an older notice under it.
+	if (visible && m_pMessagePanel)
+		m_pMessagePanel->SetVisible(0, 0);
+	m_pInstanceQuestionPanel->SetVisible(visible ? 1 : 0, 1);
 	return 1;
 }
 

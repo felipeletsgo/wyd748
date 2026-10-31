@@ -372,6 +372,9 @@ func TestIdealCreatesCelestialWithoutCrystalPrerequisite(t *testing.T) {
 	packetsBefore := p.Session.QueuedPacketsForTest()
 	w.useCelestialIdeal(p.Session, p, &p.Char.Inv[0], 0)
 	ch := &p.Account.Chars[0]
+	if ch.ShortSkill != emptyShortSkills() {
+		t.Fatal("new Celestial received phantom shortcuts")
+	}
 
 	if st.saves != 1 || ch.Evolution != "celestial" ||
 		ch.Score.Level != 0 || ch.Exp != 0 ||

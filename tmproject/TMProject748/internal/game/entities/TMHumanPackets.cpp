@@ -902,6 +902,10 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
 
             memcpy(&pMobData->Equip[pSendItem->DestPos], &pSendItem->Item, sizeof(STRUCT_ITEM));
 
+            if (pSendItem->DestPos == 0)
+                pMobData->Class = SkillClassFromFace(
+                    BASE_GetItemAbility(&pMobData->Equip[0], EF_CLASS), pMobData->Class);
+
             // The selection cache is auxiliary: a character sentinel must not
             // prevent the authoritative equipment update in the world.
             const int characterSlot = g_pObjectManager->m_cCharacterSlot;
@@ -1966,43 +1970,9 @@ int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)
                     pSoundData->Play(0, 0);
             }
 
-            bool bChange{ false };
-
-            for (int i = 0; i < 20; ++i)
-            {
-                int nBit = (unsigned char)g_pObjectManager->m_cShortSkill[i] - 24 * g_pObjectManager->m_stMobData.Class;
-
-                if ((unsigned char)g_pObjectManager->m_cShortSkill[i] >= 96)
-                    nBit = g_pObjectManager->m_cShortSkill[i] - 72;
-
-                if (((1 << nBit) & pUpdateEtc->LearnedSkill) != 1 << nBit)
-                {
-                    if ((unsigned char)g_pObjectManager->m_cShortSkill[i] < 24)
-                    {
-                        g_pObjectManager->m_cShortSkill[i] = -1;
-                        bChange = true;
-                    }
-                }
-            }
-
-            if (bChange)
-            {
-                MSG_SetShortSkill stSetShortSkill{};
-                stSetShortSkill.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
-                stSetShortSkill.Header.Type = MSG_SetShortSkill_Opcode;
-
-                memcpy(stSetShortSkill.Skill, g_pObjectManager->m_cShortSkill, sizeof(stSetShortSkill.Skill));
-
-                for (int j = 0; j < 20; ++j)
-                {
-                    if (stSetShortSkill.Skill[j] >= 0 && stSetShortSkill.Skill[j] < 96)
-                        stSetShortSkill.Skill[j] -= 24 * g_pObjectManager->m_stMobData.Class;
-
-                    else if (stSetShortSkill.Skill[j] >= 105 && stSetShortSkill.Skill[j] < 153)
-                        stSetShortSkill.Skill[j] -= 12 * g_pObjectManager->m_stMobData.Class;
-                }
-                SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSetShortSkill)->Type, reinterpret_cast<char*>(&stSetShortSkill), sizeof(stSetShortSkill)});
-            }
+            // SetShortSkill owns the authoritative twenty-slot snapshot.
+            // Echoing old shortcuts here can overwrite the newly loaded form
+            // before its snapshot arrives. Empty slots also made nBit invalid.
         }
         // The 7.48 server has one learned-skill DWORD. The imported second
         // mask occupied the same bytes as point counters and corrupted both.

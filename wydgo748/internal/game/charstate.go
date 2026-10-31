@@ -35,12 +35,18 @@ func buildCharState(p *Player, now time.Time) *model.CharState {
 			if a.Type == 0 || !a.ExpiresAt.After(now) {
 				continue
 			}
+			nextTickUnix := int64(0)
+			if a.FinalTickAtExpiry {
+				nextTickUnix = a.NextTick.Unix()
+			}
 			state.Affects = append(state.Affects, model.PersistedAffect{
 				Type: a.Type, ClientType: a.ClientType, Value: a.Value, Level: a.Level,
 				OwnerID: a.OwnerID, OwnerCharacterUID: a.OwnerCharacterUID,
 				// The sidecar links absolute expiry to the consumed item's UID.
 				SourceItemUID: a.SourceItemUID, SourceItemIndex: a.SourceItemIndex,
-				ExpiresUnix: a.ExpiresAt.Unix(),
+				ExpiresUnix:       a.ExpiresAt.Unix(),
+				FinalTickAtExpiry: a.FinalTickAtExpiry,
+				NextTickUnix:      nextTickUnix,
 			})
 		}
 	}
@@ -106,6 +112,10 @@ func (w *World) applyCharState(p *Player, state *model.CharState, now time.Time)
 			SourceItemUID: pa.SourceItemUID, SourceItemIndex: pa.SourceItemIndex,
 			ExpiresAt: time.Unix(pa.ExpiresUnix, 0),
 			NextTick:  now.Add(8 * time.Second),
+		}
+		if pa.Type == 20 && pa.FinalTickAtExpiry && pa.NextTickUnix > 0 && pa.NextTickUnix <= pa.ExpiresUnix {
+			p.Char.Affects[slot].FinalTickAtExpiry = true
+			p.Char.Affects[slot].NextTick = time.Unix(pa.NextTickUnix, 0)
 		}
 		slot++
 	}

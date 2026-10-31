@@ -1,6 +1,7 @@
 #include "../internal/ui/GridInsertion.h"
 #include "../internal/ui/GridItemPresentation.h"
 #include "../internal/ui/NativeSaleQuote.h"
+#include "../internal/ui/HuntressMerchantQuote.h"
 #include "../internal/core/NativeSalePrice.h"
 #include <array>
 #include <climits>
@@ -18,14 +19,14 @@
 #endif
 
 namespace {
-std::string ReadGridSource()
+std::string ReadGridSource(const char* filename = "SGrid.cpp")
 {
     wchar_t executable[MAX_PATH]{};
     const auto length = GetModuleFileNameW(nullptr, executable, MAX_PATH);
     if (!length || length == MAX_PATH) return {};
     auto directory = std::filesystem::path(executable).parent_path();
     for (int depth = 0; depth < 8 && !directory.empty(); ++depth) {
-        std::ifstream input(directory / "tmproject/TMProject748/internal/ui/SGrid.cpp", std::ios::binary);
+        std::ifstream input(directory / "tmproject/TMProject748/internal/ui" / filename, std::ios::binary);
         if (input) return {std::istreambuf_iterator<char>(input), {}};
         directory = directory.parent_path();
     }
@@ -43,6 +44,16 @@ int RunGridInsertionTests(int& checks)
         if (!ok) { ++failures; std::fprintf(stderr, "FAIL: %s\n", name); }
     };
     const auto source = ReadGridSource();
+    const auto itemSource = ReadGridSource("SGridItem.cpp");
+    check(itemSource.find("m_GCObj.n3DObjIndex = grid_item_presentation::IconMesh(") != std::string::npos,
+        "production grid constructor applies the cape mesh mapping before item scaling");
+    check(huntress_merchant_quote::PurchaseBase(8000, 3, 1u << 11, 100) == 6720,
+        "merchant quote applies Trade discount before city tax");
+    check(huntress_merchant_quote::PurchaseBase(8000, 3, 1u << 11, 255) == 5920,
+        "merchant discount is capped at 26 percent");
+    check(huntress_merchant_quote::PurchaseBase(8000, 0, 1u << 11, 100) == 8000 &&
+        huntress_merchant_quote::PurchaseBase(8000, 3, 1u << 10, 100) == 8000,
+        "merchant discount requires the Huntress Discount book");
     for (int type = -1; type <= 30; ++type) {
         const bool expected = type == 12 || type == 14 || type == 16 ||
             type == 18 || type == 20 || type == 22;
@@ -64,8 +75,28 @@ int RunGridInsertionTests(int& checks)
         "Elite Of Akeronia uses the red cape icon");
     check(grid_item_presentation::IconTexture(3193, 26) == 27,
         "Elite Of Adventurer uses the white cape icon");
+    check(grid_item_presentation::IconTexture(3197, 31) == 25,
+        "Master Of Hekalotia reuses the blue elite cape icon");
+    check(grid_item_presentation::IconTexture(3198, 32) == 26,
+        "Master Of Akeronia reuses the red elite cape icon");
+    check(grid_item_presentation::IconTexture(3199, 33) == 27,
+        "Master Of Adventurer reuses the white elite cape icon");
+    check(grid_item_presentation::IconTexture(4006, 19) == 17,
+        "Apprentice Mantle uses the native mesh-27 grid texture offset");
+    check(grid_item_presentation::IconMesh(4148, 2875) ==
+            grid_item_presentation::IconMesh(3022, 2874) &&
+        grid_item_presentation::IconTexture(4148, 0) ==
+            grid_item_presentation::IconTexture(3022, 8),
+        "Mysterious Stone uses both the mesh and texture of Lactolerium 100 percent");
+    check(grid_item_presentation::IconMesh(5338, 2875) == 2875 &&
+        grid_item_presentation::IconTexture(5338, 0) == 0,
+        "Ideal Stone retains its distinct catalog icon");
     for (int index = 0; index < 6500; ++index) {
-        if (index >= 3191 && index <= 3193) continue;
+        check(grid_item_presentation::IconMesh(index, 2880) ==
+            (index == 4148 ? 2874 : index >= 3197 && index <= 3199 ? 27 : 2880),
+            "cape and stone icon overrides preserve all other meshes");
+        if ((index >= 3191 && index <= 3193) || (index >= 3197 && index <= 3199) ||
+            index == 4006 || index == 4148) continue;
         check(grid_item_presentation::IconTexture(index, 17) == 17,
             "all other item icons retain their catalog texture");
     }

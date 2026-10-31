@@ -1,69 +1,69 @@
 5000
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataques_de_energia_sagrada_são
 CC9900FF lançados_na_área_de_3m_x_3m.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: 5 + (Confiança/4) x 5 + INT/4.
-FFFFFFFF 
+FFFFFFFF
 5001
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Diminui_a_velocidade_dos adversários.
 CC9900FF Movimento: -2.
-CC9900FF Redução na Velocidade de Ataque: 
+CC9900FF Redução na Velocidade de Ataque:
 CC9900FF Vs. Jogador: 10% + (Confiança/10)%.
 CC9900FF Vs. Monstro: 20% + (Confiança/10)%.
 5002
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Diminui_a_imunidade_dos_inimigos_que
 CC9900FF estão_na_área_de_3m_x_3m_do_alvo.
 CC9900FF Vs. Jogador: -25%.
 CC9900FF Vs. Monstro: -50%.
-FFFFFFFF 
+FFFFFFFF
 5003
 CC9900FF Aumenta a defesa durante certo tempo.
 CC9900FF Defesa: + Fé.
 CC9900FF Com escudo: defesa +30% e todas as
 CC9900FF resistências +30.
 CC9900FF Com Armadura Crítica: defesa +10%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5004
 CC9900FF Desfere um ataque poderoso contra um alvo.
 CC9900FF Dano: 75 + (Fé/4) x 5.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5005
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Durante_o_tempo_definido,_recupera
 CC9900FF HP_a_cada_8_segundos.
-CC9900FF 
+CC9900FF
 CC9900FF Regeneração: 75 + (Confiança/2).
 5006
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Puxa_um_inimigo_alvo_para_sua_frente.
 CC9900FF Probabilidade de sucesso:
 CC9900FF Vs. Jogador: 50% + (Confiança/10)%
@@ -73,87 +73,87 @@ CC9900FF Ataque_de_lanças_sagradas_nos_inimigos
 CC9900FF que_estão_dentro_da_área_de_3m_x_3m.
 CC9900FF Dano: 190 + (Confiança/4) x 5 + INT/4.
 CC9900FF Aprendida: resistência sagrada +20.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5008
 CC9900FF Desfere um ataque poderoso contra um alvo.
 CC9900FF Dano: 15 + (Trans/4) x 5 + FOR/4.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5009
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Durante_o_tempo_definido 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Durante_o_tempo_definido
 CC9900FF aumenta_a_velocidade_de_ataque.
-CC9900FF 
+CC9900FF
 CC9900FF Velocidade: 110% + (Trans/10)%.
 5010
 CC9900FF Desfere um ataque poderoso contra um alvo.
 CC9900FF Dano: 40 + (Trans/4) x 5 + FOR/4.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5011
 CC9900FF Durante certo tempo reduz o HP máximo em 10%
 CC9900FF para aumentar o ataque físico.
 CC9900FF Bônus de Ataque: 7% + (Trans/10)%.
 CC9900FF Com Armadura Crítica: ataque +5%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5012
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Perfura_o_inimigo_alvo_e o_que_estiver  
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Perfura_o_inimigo_alvo_e o_que_estiver
 CC9900FF atrás_dele_em_até_1m_de distância.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: 60 + (Trans/4) x 5 + FOR/4.
 5013
 CC9900FF Durante certo tempo aumenta CONS e HP.
 CC9900FF Bônus em CONS: 10 + Trans + Lvl x 4/3.
 CC9900FF Com Destino: Bônus em CONS + Trans.
 CC9900FF Bônus em HP: 2 por ponto de CONS ganho.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5014
 CC9900FF Aumenta de forma passiva o dano mínimo.
 CC9900FF Skills: +(Trans/20)%, até 15%.
 CC9900FF Ataque físico: +(Trans/40)%, até 7%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5015
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Durante tempo definido_aumenta_a
 CC9900FF porcentagem_de_defesa_e_ataque_crítico.
 CC9900FF Bônus em Crítico: 3% +(Trans/50)%.
@@ -162,18 +162,18 @@ CC9900FF Bônus em Defesa: 7% +(Trans/50)%.
 CC9900FF Perfura o inimigo alvo e o que estiver atrás
 CC9900FF dele em até 1m de distância.
 CC9900FF Dano: Ataque + 13 + (Fé/4) x 5 + INT/4.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5017
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_fogo_no_inimigo_alvo_e ao redor do
 CC9900FF personagem_numa distância_de_3m.
 CC9900FF (-10% de dano se estiver chovendo):
@@ -182,122 +182,122 @@ CC9900FF Dano: Ataque + 25 + (E. Mágica/4) x 5 + INT/4.
 CC9900FF Desfere um ataque poderoso contra um alvo.
 CC9900FF Dano: Ataque + 35 + (Espada Mágica/4) x
 CC9900FF 5 + INT/4.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5019
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_gelo_em_um_inimigo_alvo.
 CC9900FF Em_caso_de_sucesso,_o_alvo_perde velocidade.
 CC9900FF Velocidade: -13% (Jogador) ou -20% (Monstro).
 CC9900FF Dano: Ataque + 50 + (E. Mágica/4) x 5 + INT/4.
 5020
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_no_oponente_selecionado.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 65 + (E. Mágica/4) x 5 + INT/4.
 CC9900FF Dano extra: 2% do HP do inimigo.
 5021
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque venenoso em um único alvo.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 80 + (E. Mágica/4) x 5 + INT/4.
 CC9900FF Dano extra: 10% do HP do inimigo a cada 8 seg.
 5022
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_fogo_no_alvo_gastando_toda mana.
 CC9900FF (-10% de dano se estiver chovendo):
 CC9900FF Dano: Ataque + 90 + (E. Mágica/4) x 5 + INT/4.
 CC9900FF Dano extra = Mana utilizada + (INT/4) x 3.
 5023
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_gelo_contra_o_alvo_e_todos os
 CC9900FF inimigos_ao_redor_do_alvo_em_3m_x_3m.
 CC9900FF Velocidade do alvo: -1.
 CC9900FF Dano: Ataque + 210 + (E. Mágica/4) x 5 + INT/4.
 5024
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_sagrado_de_longo_alcance_em_um_único
 CC9900FF alvo.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 15 + (M. Sagrada/4) x 5 + INT/3.
 5025
 CC9900FF Remove lentidão, veneno e redução de
 CC9900FF resistência, DES, ataque e defesa.
 CC9900FF Com Renascimento: também remove
 CC9900FF Cancelamento.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5026
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF 
-CC9900FF Bloqueia_a_visualização_de_todos_inimigos 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF
+CC9900FF Bloqueia_a_visualização_de_todos_inimigos
 CC9900FF ao_seu_redor_(3m_x_3m)_durante_4_segundos.
-CC9900FF 
+CC9900FF
 5027
 CC9900FF Recupera o HP do alvo, ou o seu HP
 CC9900FF se nenhum alvo estiver selecionado.
 CC9900FF Recuperação de HP: 100 + Magia Sagrada x 2.
 CC9900FF Celestial com Renascimento: + Lvl.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5028
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Ataque_que_perfura_o_inimigo_alvo_e o_que  
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Ataque_que_perfura_o_inimigo_alvo_e o_que
 CC9900FF estiver_atrás_dele_em_até_1m_de distância.
-CC9900FF 
-CC9900FF Dano: Ataque + 155 + (M. Sagrada/4) x 5 + INT/3. 
+CC9900FF
+CC9900FF Dano: Ataque + 155 + (M. Sagrada/4) x 5 + INT/3.
 5029
 CC9900FF Recupera o seu HP e o HP do grupo.
 CC9900FF Recuperação de HP: 150 + Magia Sagrada x 3/2.
 CC9900FF Com Renascimento: x 120%.
 CC9900FF Celestial com Renascimento: + Lvl.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5030
 CC9900FF Gasta HP para atacar inimigos em uma
 CC9900FF área de 5m x 5m com energia sagrada.
@@ -305,9 +305,9 @@ CC9900FF Dano: Ataque + 200 + (Magia Sagrada/4) x
 CC9900FF 5 + INT/3 + o seu HP atual.
 CC9900FF Com Renascimento: parte do HP +10%.
 CC9900FF Você mantém 2/3 do seu HP.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5031
 CC9900FF Ressuscita um membro morto do grupo ou
 CC9900FF da guilda ao seu lado.
@@ -315,67 +315,67 @@ CC9900FF Chance de sucesso: 30% + (Magia Sagrada/15)
 CC9900FF x 2%, até 90%.
 CC9900FF O alvo volta com metade do HP e do MP.
 CC9900FF O sucesso gasta 10% do seu MP base.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5032
 CC9900FF Ataca um alvo com fogo.
 CC9900FF Dano reduzido em 10% na chuva.
 CC9900FF Dano: Ataque + 20 + (Magia Negra/4) x
 CC9900FF 5 + INT/3.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5033
 CC9900FF Ataca um alvo com relâmpago.
 CC9900FF Dano aumentado em 50% na chuva.
 CC9900FF Dano: 65 + (Magia Negra/4) x 5 +
 CC9900FF INT/3.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5034
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Ataque_de_gelo_no_alvo_escolhido. Congela caso 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Ataque_de_gelo_no_alvo_escolhido. Congela caso
 CC9900FF o_ataque_tenha sucesso (movimento -1).
 CC9900FF (+20% de dano se estiver nevando)
 CC9900FF Velocidade de Ataque do alvo: -10% a -50%.
 CC9900FF Dano: Ataque + 95 + (M. Negra/4) x 5 + INT/4.
 5035
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_fogo_na_área_de_5m_x_5m_ao redor
 CC9900FF do_alvo (-10% de dano se estiver chovendo).
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 55 + (M. Negra/4) x 5 + INT/3.
 5036
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_gelo_no_alvo_escolhido. Congela caso
 CC9900FF o_ataque_tenha sucesso (movimento -1). (Dano +20%
 CC9900FF na neve). Vel. de Ataque do alvo: -10% a -50%.
 CC9900FF Dano: Ataque + 200 + (M. Negra/4) x 5 + INT/4.
 5037
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Durante_o_tempo_determinado_ataca os_inimigos
-CC9900FF ao_seu_redor_a_cada 8_segundos. 
+CC9900FF ao_seu_redor_a_cada 8_segundos.
 CC9900FF (+50% de dano se estiver chovendo)
 CC9900FF Dano: 65 + (M. Negra/4) x 5 + INT/3.
 5038
@@ -383,257 +383,257 @@ CC9900FF Ataca um alvo com fogo.
 CC9900FF Dano reduzido em 10% na chuva.
 CC9900FF Dano: Ataque + 350 + (Magia Negra/4) x
 CC9900FF 5 + INT/3.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5039
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_fogo_na_área_de_7m_x_7m do_alvo.
 CC9900FF (-10% de dano se estiver chovendo)
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 340 + (M. Negra/4) x 5 + INT/3.
 5040
 CC9900FF Envenena o alvo.
 CC9900FF Dano: Ataque + 20 + (Magia Especial/4)
 CC9900FF x 5 + INT/3.
-CC9900FF Dano adicional durante 8 segundos:
-CC9900FF 10% do HP do alvo.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Duração do veneno: 32 segundos.
+CC9900FF Dano a cada 8 segundos; total: 4 hits.
+CC9900FF Dano periódico: 10 + (Magia Especial/2).
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5041
 CC9900FF Aumenta a velocidade de movimento.
 CC9900FF Bônus de movimento: +1.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5042
 CC9900FF Teleporta até um membro do grupo ou da
 CC9900FF guilda, ou o invoca.
 CC9900FF Limite de nível do alvo:
 CC9900FF Seu nível + 100 + Magia Especial.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5043
 CC9900FF Aumenta a defesa durante certo tempo.
 CC9900FF Bônus de defesa: 15 + Magia Especial/3.
 CC9900FF Foema com Concentração: +100.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5044
 CC9900FF Aumenta o ataque seu e do grupo.
 CC9900FF Ataque: + 15 + Magia Especial/3, e +5%.
 CC9900FF Foema que aprendeu: (15 + Magia
 CC9900FF Especial/3) x 5, e +20%.
 CC9900FF Com Concentração: +27% no lugar.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5045
 CC9900FF Aumenta todas as maestrias por um tempo.
 CC9900FF Bônus de maestria: 7 + Magia Especial/10.
 CC9900FF Foema com Concentração: x 120%.
 CC9900FF Maestria máxima: 320.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5046
 CC9900FF Protege o HP com o MP por um tempo.
 CC9900FF Dano recebido: 90% no MP, 10% no HP.
 CC9900FF Sem MP, o HP recebe o restante.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5047
 CC9900FF Aumenta a precisão de forma passiva.
 CC9900FF Chance de acerto: +15%; mínimo 35%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5048
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_fogo_no_oponente selecionado.
 CC9900FF (-10% de dano se estiver chovendo)
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 25 + (Elemental/4) x 5 + INT/3.
 5049
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Com_uma_certa_probabilidade, transforma_o
 CC9900FF monstro alvo_em_membro do_seu_grupo.
 CC9900FF Se o seu lvl for maior que o lvl do monstro
 CC9900FF há maior probabilidade de sucesso.
 5050
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_magia_no_inimigo selecionado.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 115 + (Elemental/4) x 5 + INT/3.
-CC9900FF 
+CC9900FF
 5051
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Diminui_o_ataque_dos inimigos_numa_área de
 CC9900FF 3m_x_3m_do alvo_durante_um_certo_tempo.
-CC9900FF 
+CC9900FF
 CC9900FF Redução de dano: 10 + (Elemental/5).
 5052
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_de_magia_no_inimigo selecionado.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 220 + (Elemental/4) x 5 + INT/3.
-CC9900FF 
+CC9900FF
 5053
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Aumenta_sua defesa durante_certo_tempo.
-CC9900FF 
+CC9900FF
 CC9900FF Bônus de defesa: 10 + (Elemental/4).
-CC9900FF 
+CC9900FF
 5054
 CC9900FF Ataca todos os inimigos em uma área
 CC9900FF de 3m x 3m com magia a cada 8 segundos.
 CC9900FF Dano: Ataque + 160 + (Elemental/4) x 5
 CC9900FF + INT/3.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5055
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Ataque_de_magia_poderosa_nos_inimigos ao 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Ataque_de_magia_poderosa_nos_inimigos ao
 CC9900FF redor_do_alvo,_área_de_3m_x_3m.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 140 + (Elemental/4) x 5 + INT/3.
 5056
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Evoca um Condor. 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Evoca um Condor.
 CC9900FF Ataque: 35 + INT + Evocação x 3.
 CC9900FF Defesa: 15 + INT/2 + (Evocação/4) x 3.
 CC9900FF HP: 60 + INT + Evocação x 4.
 5057
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Evoca um Javali Selvagem.
 CC9900FF Ataque: 35 + INT + (Evocação/2) x 5.
 CC9900FF Defesa: 20 + INT/2 + (Evocação/2) x 3.
 CC9900FF HP: 100 + (INT/4) x 5 + Evocação x 4.
 5058
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Evoca um Lobo.
 CC9900FF Ataque: 70 + INT + Evocação x 4.
 CC9900FF Defesa: 40 + INT/2 + (Evocação/4) x 5.
 CC9900FF HP: 80 + (INT/4) x 5 + Evocação x 4.
 5059
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Evoca um Urso Selvagem.
 CC9900FF Ataque: 70 + INT + (Evocação/2) x 7.
 CC9900FF Defesa: 60 + INT/2 + Evocação x 2.
 CC9900FF HP: 150 + (INT/2) x 3 + Evocação x 4.
 5060
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Evoca um Grande Tigre.
 CC9900FF Ataque: 75 + INT + Evocação x 5.
 CC9900FF Defesa: 50 + INT/2 + (Evocação/4) x 7.
 CC9900FF HP: 100 + (INT/2) x 3 + Evocação x 4.
 5061
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Evoca um Gorila Gigante.
 CC9900FF Ataque: 50 + INT + Evocação x 4.
 CC9900FF Defesa: 40 + INT/2 + (Evocação/2) x 5.
 CC9900FF HP: 200 + (INT/4) x 7 + Evocação x 4.
 5062
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Evoca um Dragão Negro.
 CC9900FF Ataque: 100 + INT + Evocação x 5.
 CC9900FF Defesa: 80 + INT/2 + (Evocação/2) x 5.
 CC9900FF HP: 350 + (INT/4) x 7 + Evocação x 4.
 5063
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Evoca um Succubus.
 CC9900FF Ataque: 350 + (INT/5) x 9 + (Evocação/2) x 11.
 CC9900FF Defesa: 650 + (INT/2) x 3 + Evocação x 4.
@@ -644,50 +644,50 @@ CC9900FF Ataque: 110% + (Natureza/10)%.
 CC9900FF Defesa: 95% + (Natureza/20)% + 5.
 CC9900FF HP: 95% + (Natureza/20)%.
 CC9900FF Movimento +1; Vel de Ataque +20%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5065
 CC9900FF Sem efeito direto. Os bônus do
 CC9900FF Lobisomem vêm de Asas do Inferno.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5066
 CC9900FF Transforme-se em Homem Urso.
 CC9900FF Ataque: 95% + (Natureza/20)%.
 CC9900FF Defesa: 105% + (Natureza/20)%.
 CC9900FF HP: 110% + (Natureza x 3/20)%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5067
 CC9900FF Passiva. Com escudo equipado:
 CC9900FF defesa +5%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5068
 CC9900FF Transforme-se em Astaroth.
 CC9900FF Ataque: 110% + (Natureza/20)%.
 CC9900FF Defesa: 90% + (Natureza/10)%.
 CC9900FF HP: 100% + (Natureza/10)%.
 CC9900FF Movimento +1; Vel de Ataque +20%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5069
 CC9900FF Melhora as transformações.
 CC9900FF Lobisomem: ataque +10%, resistência +5,
@@ -697,17 +697,17 @@ CC9900FF resistência +20.
 CC9900FF Astaroth: ataque +10%, defesa +5%,
 CC9900FF HP +5%, Vel de Ataque +20%,
 CC9900FF resistência +5.
-FFFFFFFF 
+FFFFFFFF
 5070
 CC9900FF Transforme-se em Titã.
 CC9900FF Ataque: 115% + (Natureza/20)%.
 CC9900FF Defesa: 115% + (Natureza/20)%.
 CC9900FF HP: 105% + (Natureza/20)%.
 CC9900FF Vel de Ataque +20%; resistência +20.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5071
 CC9900FF Transforme-se em Éden.
 CC9900FF Ataque: 118% + (Natureza x 3/40)%.
@@ -717,304 +717,304 @@ CC9900FF Movimento +2; Vel de Ataque +30%;
 CC9900FF resistência +17.
 CC9900FF Aprendida: toda forma ataque +5%,
 CC9900FF defesa +2%.
-FFFFFFFF 
+FFFFFFFF
 5072
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_no_inimigo_selecionado.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 15 + (Sobrevivência/4) x 5 + FOR/4.
-CC9900FF 
+CC9900FF
 5073
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF
 CC9900FF Cria_uma_cópia_de_si_para_confundir o_inimigo e
 CC9900FF move-se_com_agilidade para_o_local_selecionado.
-CC9900FF 
+CC9900FF
 5074
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Atribui_poder_de_congelamento_nas suas_armas,
 CC9900FF ataques_podem_causar lentidão_nos_inimigos.
 CC9900FF Movimento do alvo: -1.
-CC9900FF Velocidade de Ataque: -10% a -50%.  
+CC9900FF Velocidade de Ataque: -10% a -50%.
 5075
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Esconde-se nas sombras, escapando de ataques
-CC9900FF inimigos e regenerando suas forças.
-CC9900FF 
-CC9900FF Taxa de regeneração: 110% + (Sobrevivência/10)%.
+CC9900FF Oculta o personagem dos inimigos próximos.
+CC9900FF Recupera HP usando a regeneração normal.
+CC9900FF Multiplicador: 110% + (Sobrevivência/10)%.
+CC9900FF Não é uma porcentagem do HP máximo.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5076
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Campo_de_energia_que_defende_contra 
-CC9900FF congelamento,_veneno,_lentidão_e 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Campo_de_energia_que_defende_contra
+CC9900FF congelamento,_veneno,_lentidão_e
 CC9900FF ataques físicos_durante_certo_tempo.
 CC9900FF Efeito adicional: Evasão +5%.
 5077
-CC9900FF Transfere_uma_parte_da_sua_defesa para
-CC9900FF ataque_durante_certo_tempo.
-CC9900FF Aumento de dano: 10% + (Sobrevivência/10)%.
-CC9900FF Redução da defesa: 10 + (Sobrevivência/3).
-CC9900FF Com Tempestade de Raios: dano +5%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Troca defesa por ataque temporariamente.
+CC9900FF Ataque: +(10 + Sobrevivência/10)%.
+CC9900FF Defesa: -(10 + Sobrevivência/3).
+CC9900FF Com a 8ª de Sobrevivência: ataque +5%.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5078
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Habilidade de perfurar o inimigo, atingindo
 CC9900FF também criaturas que estejam diretamente atrás
 CC9900FF do alvo, até_uma distância_de_1m.
 5079
-CC9900FF Aumenta o ataque físico durante certo tempo.
-CC9900FF Bônus de Ataque: + Troca.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Aumenta o ataque físico temporariamente.
+CC9900FF Bônus de ataque: +Sobrevivência.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5080
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_no_inimigo_selecionado.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 15 + (Troca/4) x 5 + FOR/4.
 5081
 CC9900FF Vende_itens_na_loja_com_preço 6% superior
 CC9900FF ao_preço_padrão.
 CC9900FF Preço de Venda: 106% + (Troca/10)%, até 126%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5082
 CC9900FF Aumenta o ataque com arcos e garras.
-CC9900FF Bônus de Ataque: 10 + (Troca/5).
-CC9900FF Com Tempestade de Raios: 320 + (Troca/5).
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Ataque: +(10 + Troca/20)%.
+CC9900FF Máximo: +26% com 320 pontos em Troca.
+CC9900FF Segunda arma: parcela de dano +10 pontos.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5083
-CC9900FF Não tem efeito neste servidor.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Reduz preços nas lojas de NPCs públicos.
+CC9900FF Desconto: (6 + Troca/10)%, máximo de 26%.
+CC9900FF O imposto usa o preço com desconto.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5084
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Possibilita_transformar_os_items_do inventário
 CC9900FF em_Gold, pelo mesmo_preço padrão de venda nas
 CC9900FF lojas.
 5085
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Possibilita_abrir_e_guardar_items_no 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Possibilita_abrir_e_guardar_items_no
 CC9900FF banco,_onde quer que você esteja.
-FFFFFFFF 
+FFFFFFFF
 5086
 CC9900FF Gasta_o_seu_Gold_em_troca_de_maior defesa.
 CC9900FF Aumento de Defesa: Troca/10.
 CC9900FF Consumo de Gold: Troca x 100.
 CC9900FF Com Troca de Espírito: defesa +100.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5087
 CC9900FF Converte MP em HP durante certo tempo.
 CC9900FF Mortal: MP - (MP/4 + (Lvl + Troca)/4);
 CC9900FF HP + 750 + o MP removido.
 CC9900FF Arch: MP - MP/4; HP + 750 + MP/4 +
 CC9900FF Troca/2 + Lvl x 2.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5088
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Ataque_no_inimigo_selecionado.
-CC9900FF 
+CC9900FF
 CC9900FF Dano: Ataque + 12 + (Captura/4) x 5 + FOR/4.
 5089
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 CC9900FF Aumenta_a_capacidade_de_evasão durante
 CC9900FF certo_tempo.
-CC9900FF 
+CC9900FF
 CC9900FF Aumento de Evasão: 10%.
 5090
-CC9900FF Melhora o ataque com duas armas.
-CC9900FF Dano da segunda arma: +10%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Recupera HP ao derrotar um monstro.
+CC9900FF HP: HP máximo do monstro/50 + Captura.
+CC9900FF Não recupera além do seu HP máximo.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5091
-CC9900FF Aumenta de forma passiva o crítico.
-CC9900FF Crítico: +(DES/200)%.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Aumenta a chance de obter itens no drop.
+CC9900FF Bônus de drop: +(10 + Captura/10)%.
+CC9900FF Esta passiva pertence à árvore de Captura.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5092
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Aumenta_em +1_a_distância_de_alcance 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Aumenta_em +1_a_distância_de_alcance
 CC9900FF das_armas_com_alcance_1.
-CC9900FF 
+CC9900FF
 5093
 CC9900FF Pode causar um acerto adicional.
 CC9900FF Dano adicional: (FOR + Captura -
 CC9900FF defesa/2)/2, mínimo 60.
 CC9900FF Chance: 25% por ataque.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5094
-CC9900FF Joga várias facas para frente, atingindo
-CC9900FF múltiplos inimigos ao mesmo tempo.
-CC9900FF Alcance: de 2m a 4m.
-CC9900FF Dano: Ataque + 35 + (Troca/4) x 5 + FOR.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+CC9900FF Lança facas nos inimigos à sua frente.
+CC9900FF Base: 3 x (ataque das armas + FOR)
+CC9900FF + Nível/2 + Captura + 35.
+CC9900FF Multiplicador do dano base: 125%.
+CC9900FF Com a 8ª de Captura: dano +20%.
+CC9900FF Alcance: 3 + min(3, Captura/75) quadrados.
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5095
 CC9900FF Ataque contínuo com flechas invisíveis.
 CC9900FF Número de ataques: 6.
 CC9900FF Dano a cada acerto: ataque físico.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5097
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Possibilita_usar_o_Canhão_Guardião_do 
-CC9900FF castelo_de_Noatun._Somente_possível 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Possibilita_usar_o_Canhão_Guardião_do
+CC9900FF castelo_de_Noatun._Somente_possível
 CC9900FF de_usar_na_guerra_de_castelos.
-CC9900FF 
+CC9900FF
 5098
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Convoca_plantas_com_espinhos._Estas 
-CC9900FF podem_ser_eliminadas_com_ataques, 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Convoca_plantas_com_espinhos._Estas
+CC9900FF podem_ser_eliminadas_com_ataques,
 CC9900FF ou_desaparecem_após_certo_tempo.
-CC9900FF 
+CC9900FF
 5099
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Skill_que_possibilita_a_ressucitação 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Skill_que_possibilita_a_ressucitação
 CC9900FF no_local_onde_morreu.
-CC9900FF 
+CC9900FF
 5100
 CC9900FF Impede o alvo de usar poções de HP e MP
 CC9900FF durante certo tempo.
 CC9900FF Contra um alvo com Imunidade, remove
 CC9900FF uma Imunidade no lugar.
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 5101
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-CC9900FF Adiciona_+1_de_alcance 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+CC9900FF Adiciona_+1_de_alcance
 CC9900FF em_todas_armas_e_Skills.
-FFFFFFFF 
+FFFFFFFF
 5102
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
-FFFFFFFF 
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
+FFFFFFFF
 cc9900ff Dependendo_da_oitava_skill_aprendida,_durante_o_tempo
 cc9900ff exibido,_seus_stats_receberão_ótimos_bônus.
-FFFFFFFF 
+FFFFFFFF

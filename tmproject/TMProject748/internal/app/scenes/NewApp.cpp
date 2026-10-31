@@ -808,8 +808,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_ LPWSTR    lpCmdLine,
 	_In_ int       nCmdShow)
 {
-	const int monitorResult = WYD748_RunCrashMonitor();
-	if (monitorResult >= 0) return monitorResult;
 	// Install before any bootstrap work and install again after device/UI setup:
 	// third-party initialization may replace the process-wide top-level filter.
 	WYD748_InstallDiagnostics();

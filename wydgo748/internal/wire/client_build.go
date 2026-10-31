@@ -11,7 +11,7 @@ const (
 	AccountLoginSize                  = 116
 	ClientProtocolVersion      uint32 = 748
 	ClientBuildPrefix          uint32 = 0x02EC0000
-	MinimumClientBuildRevision uint32 = 12
+	MinimumClientBuildRevision uint32 = 17
 	CurrentClientBuild                = ClientBuildPrefix | MinimumClientBuildRevision
 )
 

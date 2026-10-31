@@ -1,7 +1,7 @@
 #include "../internal/platform/diagnostics/CrashCapture.h"
-#include "../internal/platform/diagnostics/CrashMonitor.h"
-#include "../internal/ui/RenderControlList.h"
+#include "../internal/platform/diagnostics/WerCrashCapture.h"
 #include <intrin.h>
+#include "../internal/ui/RenderControlList.h"
 #include <cstdlib>
 #include <fstream>
 #include <iterator>
@@ -13,6 +13,38 @@ namespace
     std::string logPath;
     int checks = 0;
     int failures = 0;
+
+    // Preserve this test module's previous registration. Do not change WER
+    // policy, other applications, or a machine-wide registry key.
+    struct ReporterRegistryScope {
+        wchar_t path[MAX_PATH]{};
+        std::vector<BYTE> previous;
+        DWORD type = 0;
+        bool existed = false;
+        ReporterRegistryScope() {
+            GetModuleFileNameW(nullptr, path, MAX_PATH);
+            wchar_t* slash = std::wcsrchr(path, L'\\');
+            if (!slash) return;
+            *++slash = L'\0';
+            wcscat_s(path, wyd_wer::ModuleName);
+            HKEY key = nullptr;
+            if (RegOpenKeyExW(HKEY_CURRENT_USER, wyd_wer::RegistryPath, 0, KEY_QUERY_VALUE, &key) != ERROR_SUCCESS) return;
+            DWORD size = 0;
+            existed = RegQueryValueExW(key, path, nullptr, &type, nullptr, &size) == ERROR_SUCCESS;
+            if (existed) {
+                previous.resize(size);
+                RegQueryValueExW(key, path, nullptr, &type, previous.data(), &size);
+            }
+            RegCloseKey(key);
+        }
+        ~ReporterRegistryScope() {
+            HKEY key = nullptr;
+            if (RegOpenKeyExW(HKEY_CURRENT_USER, wyd_wer::RegistryPath, 0, KEY_SET_VALUE, &key) != ERROR_SUCCESS) return;
+            if (existed) RegSetValueExW(key, path, 0, type, previous.data(), static_cast<DWORD>(previous.size()));
+            else RegDeleteValueW(key, path);
+            RegCloseKey(key);
+        }
+    };
 
     void Check(bool condition, const char* message)
     {
@@ -142,15 +174,9 @@ namespace
         Check(exitCode == expected, "child retains the original exception exit code");
         CloseHandle(child.hThread);
         CloseHandle(child.hProcess);
+        const bool external = std::strcmp(mode, "fastfail") == 0 || std::strcmp(mode, "heap-corruption") == 0;
         std::string log = Read(directory + "\\capture.log");
-        const bool external = std::strncmp(mode, "external-", 9) == 0;
-        if (external)
-        {
-            Check(log.find("CRASH monitor started=1") != std::string::npos, "external monitor attached before fault");
-            log += Read(directory + "\\crash-monitor-p" + std::to_string(child.dwProcessId) + ".log");
-            if (expected != 0)
-                Check(log.find("capture_pid=") != std::string::npos, "exception captured outside the damaged process");
-        }
+        if (external) log += Read(directory + "\\wer-crash.log");
         Check(log.find("CRASH capture ready") != std::string::npos, "worker initialized before the fault");
         Check((log.find("CRASH code=") != std::string::npos) == (expected != 0), "only unhandled exceptions are captured");
 
@@ -186,10 +212,9 @@ namespace
         FindClose(search);
         Check(bytes.size() >= sizeof(MINIDUMP_HEADER), "dump is not empty");
         if (bytes.size() < sizeof(MINIDUMP_HEADER)) return;
-        // Real faults for both writers. The synthetic heap-status context comes
-        // from RtlCaptureContext, which on x86 without frame pointers reports
-        // an outer frame, so main's locals lie outside its dumped stack.
-        if (std::strcmp(mode, "access") == 0 || std::strcmp(mode, "external-access") == 0)
+        // This real access violation verifies the in-process writer retained
+        // heap memory referenced only by the faulting thread's stack.
+        if (std::strcmp(mode, "access") == 0)
             Check(bytes.find(ReferencedMarker(child.dwProcessId)) != std::string::npos,
                 "dump keeps heap memory referenced from the faulting stack");
         // Copy to aligned writable storage for the Windows minidump reader.
@@ -213,7 +238,8 @@ namespace
             const auto workerMarker = log.find("capture_tid=");
             const DWORD workerTid = workerMarker == std::string::npos ? 0 :
                 std::strtoul(log.c_str() + workerMarker + std::strlen("capture_tid="), nullptr, 10);
-            Check(workerTid != 0 && workerTid != faultTid, "dump written on a separate healthy thread");
+            Check(external ? log.find("capture_pid=") != std::string::npos :
+                workerTid != 0 && workerTid != faultTid, "dump written outside the faulting thread");
             const auto location = exception->ThreadContext;
             const bool contextValid = location.DataSize >= sizeof(CONTEXT) &&
                 static_cast<unsigned long long>(location.Rva) + location.DataSize <= bytes.size();
@@ -230,15 +256,13 @@ namespace
         Check(MiniDumpReadDumpStream(dump, ThreadListStream, &streamDirectory, &stream, &length) != FALSE,
             "thread stacks available for analysis");
         Check(log.find("dump written=1 error=0") != std::string::npos, "successful durable capture logged");
-        Check(log.find("module=") != std::string::npos && log.find("rva=0x") != std::string::npos,
+        Check(external || (log.find("module=") != std::string::npos && log.find("rva=0x") != std::string::npos),
             "ASLR module and relative address logged");
     }
 }
 
 int main(int argc, char** argv)
 {
-    const int monitorResult = wyd_crash_monitor::RunFromCommandLine();
-    if (monitorResult >= 0) return monitorResult;
     SetErrorMode(SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX);
     if (argc == 4 && std::strcmp(argv[1], "--child") == 0)
     {
@@ -246,9 +270,16 @@ int main(int argc, char** argv)
         const bool failure = std::strcmp(argv[3], "write-failure") == 0;
         const std::string output = failure ? std::string(argv[2]) + "\\missing\\nested" : argv[2];
         if (!wyd_crash::Install(output.c_str(), Log)) return 2;
-        // Installation is idempotent and does not start another worker.
+        // A later library can replace the filter. Re-arm the same worker.
+        SetUnhandledExceptionFilter(nullptr);
         if (!wyd_crash::Install(output.c_str(), Log)) return 3;
-        if (std::strncmp(argv[3], "external-", 9) == 0 && !wyd_crash_monitor::Start(output.c_str(), Log)) return 15;
+        if (std::strcmp(argv[3], "fastfail") == 0 || std::strcmp(argv[3], "heap-corruption") == 0) {
+            // WER must receive the failure; SEM_NOGPFAULTERRORBOX suppresses it.
+            SetErrorMode(SEM_FAILCRITICALERRORS);
+            WerSetFlags(WER_FAULT_REPORTING_NO_UI);
+            const HRESULT registered = wyd_wer::Install(output.c_str());
+            if (FAILED(registered)) { std::printf("WER registration=0x%08lX\n", registered); return 21; }
+        }
         if (std::strcmp(argv[3], "dump-failure") == 0)
             wyd_crash::state.writeDump = RejectDump;
         if (std::strcmp(argv[3], "thread-overflow") == 0)
@@ -263,32 +294,27 @@ int main(int argc, char** argv)
         Log(line);
         char* volatile referenced = PlantReferencedMarker();
         if (!referenced) return 20;
-        if (std::strcmp(argv[3], "external-handled") == 0)
+        if (std::strcmp(argv[3], "handled") == 0)
         {
             HandledException();
             return 0;
         }
         if (std::strcmp(argv[3], "geometry-lifecycle") == 0) return GuardedGeometryLifecycle();
-        if (std::strcmp(argv[3], "external-normal") == 0) return 0;
-        if (std::strcmp(argv[3], "overflow") == 0 || std::strcmp(argv[3], "external-overflow") == 0) Overflow(0);
-        if (std::strcmp(argv[3], "external-fastfail") == 0) __fastfail(7);
-        if (std::strcmp(argv[3], "external-heap-status") == 0)
+        if (std::strcmp(argv[3], "normal") == 0) return 0;
+        if (std::strcmp(argv[3], "overflow") == 0) Overflow(0);
+        if (std::strcmp(argv[3], "fastfail") == 0) __fastfail(FAST_FAIL_FATAL_APP_EXIT);
+        if (std::strcmp(argv[3], "heap-corruption") == 0)
         {
-            // Exercise the exact fatal status and bypass path. This is not a
-            // claim to reproduce the game's still-unidentified heap write.
-            CONTEXT context{};
-            RtlCaptureContext(&context);
             EXCEPTION_RECORD record{};
             record.ExceptionCode = 0xC0000374;
-            record.ExceptionFlags = EXCEPTION_NONCONTINUABLE;
-            record.ExceptionAddress = reinterpret_cast<void*>(context.Eip);
-            RaiseFailFastException(&record, &context, 0);
+            RaiseFailFastException(&record, nullptr, FAIL_FAST_GENERATE_EXCEPTION_ADDRESS);
         }
         volatile ULONG_PTR badAddress = 1;
         *reinterpret_cast<volatile int*>(badAddress) = 42;
         return 6;
     }
     char executable[MAX_PATH]{};
+    ReporterRegistryScope registryScope;
     GetModuleFileNameA(nullptr, executable, MAX_PATH);
     std::string root = executable;
     root.resize(root.find_last_of('\\'));
@@ -297,14 +323,12 @@ int main(int argc, char** argv)
     RunChild(executable, root + "\\overflow", "overflow", EXCEPTION_STACK_OVERFLOW);
     RunChild(executable, root + "\\thread-overflow", "thread-overflow", EXCEPTION_STACK_OVERFLOW);
     RunChild(executable, root + "\\access", "access", EXCEPTION_ACCESS_VIOLATION);
+    RunChild(executable, root + "\\fastfail", "fastfail", 0xC0000409);
+    RunChild(executable, root + "\\heap-corruption", "heap-corruption", 0xC0000374);
     RunChild(executable, root + "\\write-failure", "write-failure", EXCEPTION_ACCESS_VIOLATION);
     RunChild(executable, root + "\\dump-failure", "dump-failure", EXCEPTION_ACCESS_VIOLATION);
-    RunChild(executable, root + "\\external-access", "external-access", EXCEPTION_ACCESS_VIOLATION);
-    RunChild(executable, root + "\\external-overflow", "external-overflow", EXCEPTION_STACK_OVERFLOW);
-    RunChild(executable, root + "\\external-fastfail", "external-fastfail", 0xC0000409);
-    RunChild(executable, root + "\\external-heap-status", "external-heap-status", 0xC0000374);
-    RunChild(executable, root + "\\external-normal", "external-normal", 0);
-    RunChild(executable, root + "\\external-handled", "external-handled", 0);
+    RunChild(executable, root + "\\normal", "normal", 0);
+    RunChild(executable, root + "\\handled", "handled", 0);
     RunChild(executable, root + "\\geometry-lifecycle", "geometry-lifecycle", 0);
     std::printf("CrashCaptureTests: %d checks, %d failures; evidence=%s\n", checks, failures, root.c_str());
     return failures == 0 ? 0 : 1;

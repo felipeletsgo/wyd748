@@ -91,6 +91,8 @@ TMSkillJudgement::TMSkillJudgement(TMVector3 vecPosition, int nType, float fSetS
 			m_pEffect2->SetColor(dwColor2);
 			g_pCurrentScene->m_pEffectContainer->AddChild(m_pEffect2);
 		}
+		// Finite children belong to the scene and expire on their own clocks.
+		m_pEffect1 = m_pEffect2 = nullptr;
 		return;
 	case 7:
 		dwColor = 0xFFAAAAAA;
@@ -233,6 +235,10 @@ TMSkillJudgement::TMSkillJudgement(TMVector3 vecPosition, int nType, float fSetS
         if (pSoundData)
             pSoundData->Play(0, 0);
     }
+    // The 300 ms controller must not cut the 1.5-10 second effects short.
+    // Type 1 uses infinite children, so retain those for explicit cleanup.
+    if (m_nType != 1)
+        m_pEffect1 = m_pEffect2 = nullptr;
 }
 
 TMSkillJudgement::~TMSkillJudgement()
@@ -248,10 +254,7 @@ int TMSkillJudgement::FrameMove(unsigned int dwServerTime)
 {
     dwServerTime = g_pTimerManager->GetServerTime();
 
-    if (!IsVisible())
-        return 0;
-
-    if (static_cast<float>((dwServerTime - m_dwStartTime) / m_dwLifeTime) > 1.0f)
+    if (dwServerTime - m_dwStartTime > m_dwLifeTime)
         g_pObjectManager->DeleteObject(this);
 
     return 1;

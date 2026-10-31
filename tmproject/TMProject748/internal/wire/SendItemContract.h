@@ -8,6 +8,19 @@
 constexpr auto MSG_SendItem_Opcode = 0x182;
 constexpr std::size_t kSendItemPacketSize = 24;
 
+// Only an authoritative face item can change the local skill class.
+// Transformation and monster abilities must retain the existing class.
+constexpr int SkillClassFromFace(int ability, int currentClass)
+{
+    switch (ability) {
+    case 1: return 0;
+    case 2: return 1;
+    case 4: return 2;
+    case 8: return 3;
+    default: return currentClass;
+    }
+}
+
 // Reject unsupported storage types as well as out-of-range signed positions.
 // Callers supply their real array capacities, including reserved local slots.
 constexpr bool IsSendItemDestination(int type, int position,

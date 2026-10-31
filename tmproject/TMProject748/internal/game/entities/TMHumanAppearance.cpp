@@ -1908,51 +1908,7 @@ int TMHuman::SetCitizenMantle(int BaseSkin)
 {
     if (m_citizen < 0 || m_citizen > 10)
         m_citizen = 0;
-    if (!m_citizen)
-        return BaseSkin;
-
-    switch (BaseSkin)
-    {
-    case 34:
-    case 35:
-    case 36:
-        return BaseSkin;
-    case 19:
-        return m_citizen + 39;
-    case 3:
-        return m_citizen + 49;
-    case 2:
-        return m_citizen + 59;
-    case 6:
-        return m_citizen + 69;
-    case 1:
-        return m_citizen + 79;
-    case 0:
-        return m_citizen + 89;
-    case 7:
-        return m_citizen + 99;
-    case 25:
-        return m_citizen + 109;
-    case 24:
-        return m_citizen + 119;
-    case 26:
-        return m_citizen + 129;
-    case 28:
-        return m_citizen + 139;
-    case 27:
-        return m_citizen + 149;
-    case 29:
-        return m_citizen + 159;
-    case 32:
-        return m_citizen + 169;
-    case 31:
-        return m_citizen + 179;
-    case 33:
-        BaseSkin = m_citizen + 189;
-        break;
-    }
-
-    return BaseSkin;
+    return cape_presentation_748::CitizenMantleSkin(BaseSkin, m_citizen);
 }
 
 int TMHuman::UnSetCitizenMantle(int BaseSkin)

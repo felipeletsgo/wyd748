@@ -402,9 +402,9 @@ FFFFFFFF
 CC9900FF Poisons the target.
 CC9900FF Damage: Attack + 20 + (Special Magic/4)
 CC9900FF x 5 + INT/3.
-CC9900FF Additional damage over 8 seconds:
-CC9900FF 10% of the target's HP.
-FFFFFFFF
+CC9900FF Poison duration: 32 seconds.
+CC9900FF Damage every 8 seconds; total: 4 ticks.
+CC9900FF Damage per tick: 10 + (Special Magic/2).
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -749,10 +749,10 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5075
-CC9900FF Hides in the shadows, evades attacks and
-CC9900FF restores HP.
-CC9900FF HP recovery: 110% + (Survival/10)%.
-FFFFFFFF
+CC9900FF Hides the character from nearby enemies.
+CC9900FF HP recovery uses normal regeneration.
+CC9900FF HP multiplier: 110% + (Survival/10)%.
+CC9900FF This is not a percentage of maximum HP.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -770,9 +770,9 @@ FFFFFFFF
 FFFFFFFF
 5077
 CC9900FF Temporarily trades defense for attack.
-CC9900FF Damage bonus: 10% + (Survival/10)%.
-CC9900FF Defense reduction: 10 + Survival/3.
-CC9900FF With Rapid Hit: damage +5%.
+CC9900FF Attack: +(10 + Survival/10)%.
+CC9900FF Defense: -(10 + Survival/3).
+CC9900FF With the 8th Survival skill: attack +5%.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -790,7 +790,7 @@ FFFFFFFF
 FFFFFFFF
 5079
 CC9900FF Temporarily increases physical attack.
-CC9900FF Attack bonus: + Trade.
+CC9900FF Attack bonus: +Survival.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -819,19 +819,19 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5082
-CC9900FF Increases attack with bows and claws.
-CC9900FF Attack bonus: 10 + Trade/5.
-CC9900FF With Rapid Hit: 320 + Trade/5.
-FFFFFFFF
+CC9900FF Increases bow and claw attack.
+CC9900FF Attack: +(10 + Trade/20)%.
+CC9900FF Maximum: +26% at 320 Trade points.
+CC9900FF Also: second weapon share +10 points.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5083
-CC9900FF Has no effect on this server.
-FFFFFFFF
-FFFFFFFF
+CC9900FF Reduces prices at public NPC shops.
+CC9900FF Discount: (6 + Trade/10)%, up to 26%.
+CC9900FF City tax uses the discounted base price.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -899,9 +899,9 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5090
-CC9900FF Improves dual-weapon attacks.
-CC9900FF Second weapon damage share: +10%.
-FFFFFFFF
+CC9900FF Restores HP when you kill a monster.
+CC9900FF HP: monster maximum HP/50 + Capture.
+CC9900FF Recovery cannot exceed your maximum HP.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -909,9 +909,9 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5091
-CC9900FF Passively raises the critical rate.
-CC9900FF Critical rate: +(DEX/200)%.
-FFFFFFFF
+CC9900FF Increases monster item drop chance.
+CC9900FF Drop bonus: +(10 + Capture/10)%.
+CC9900FF This passive belongs to the Capture tree.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF
@@ -939,12 +939,12 @@ FFFFFFFF
 FFFFFFFF
 FFFFFFFF
 5094
-CC9900FF Throws knives at several enemies in
-CC9900FF front of you. Range: 2m to 4m.
-CC9900FF Damage: Attack + 35 + (Trade/4) x 5 +
-CC9900FF STR.
-FFFFFFFF
-FFFFFFFF
+CC9900FF Throws knives at enemies in front of you.
+CC9900FF Base: 3 x (weapon attack + STR)
+CC9900FF + Level/2 + Capture + 35.
+CC9900FF Base damage multiplier: 125%.
+CC9900FF With the 8th Capture skill: damage +20%.
+CC9900FF Range: 3 + min(3, Capture/75) tiles.
 FFFFFFFF
 FFFFFFFF
 FFFFFFFF

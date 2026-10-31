@@ -85,7 +85,7 @@ func expectedVolatileClientRoute(t *testing.T, rule model.VolatileRule) string {
 	case "refine", "ore_upgrade", "refine_equipped", "equipment_gem", "tint", "untint", "repliction":
 		return "Target"
 	case "mount":
-		if rule.MountAction == "feed" {
+		if rule.MountAction == "feed" || rule.MountAction == "essence" {
 			return "Direct"
 		}
 		return "Target"

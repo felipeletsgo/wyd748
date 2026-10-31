@@ -138,3 +138,30 @@ CrashCaptureTests (83) and LauncherTests (56) passed. Release/Win32 build with
 Candidate: `tmproject/build/TMProject748/Release/WYD.exe`. Assets, installed
 runtime, launcher feed and VPS were not changed. Real client: not run; Odin
 placement, removal, closure/reopen and relogin still require visual acceptance.
+
+## Mysterious Stone icon correction — 2026-10-30
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The owner selected the Lactolerium
+100% icon for Mysterious Stone. Server catalog item 4148 and Ideal Stone 5338
+both declare `2875.0`; Lactolerium 100% item 3022 declares `2874.8`.
+`MeshList.txt` maps mesh 2874 to `secretst.msa` and 2875 to `idealst.msa`.
+`BASE_GetMeshIndex` retains these mesh indices for these unequipped items.
+
+`GridItemPresentation.h` overrides both mesh and texture for item 4148 only:
+2874 and 8. The shared `SGridControlItem` constructor applies the pair before
+grid fitting. Item identity, footprint, effects, tooltip, Ehre recipe and
+server state retain their existing paths. No resource, loader, wire or locale
+content changes. This is a selected presentation correction, not a native
+parity claim.
+
+`STATICALLY VERIFIED`: catalog rows, mesh list and existing mesh files.
+`AUTOMATED TESTED`: paired icon regression, Ideal Stone preservation and
+fallback coverage; ArchitectureTests passed 3,183,424 checks. Socket (281),
+crash capture (147) and launcher (58) checks passed. Incremental Release build
+through `Build-Client.ps1 -NoDeploy` passed. Log:
+`build/mysterious-stone-icon/client-build.log`. Candidate SHA-256:
+`063631E1ADF531F5E56CCFD14BCC429CEA26599C682089168DEB8C5CCB296AAA`.
+
+`CLIENT-TESTED`: pending for Ehre output, inventory and cursor presentation.
+The local correction is not installed or published. Allocate the next mandatory
+client revision with its matching server minimum during release preparation.

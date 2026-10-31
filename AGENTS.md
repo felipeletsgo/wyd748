@@ -128,4 +128,8 @@ Report changed and removed files, checks, and pending requirements.
 Work directly on `main`.
 Do not create branches, worktrees, or PRs for ordinary repository work.
 Do not use `git reset --hard`, `git checkout --`, or broad deletion.
+When the user asks for a commit, commit the whole pending working tree on `main`.
+Do not limit a commit to the files of the current task.
+Never commit secrets, credentials, environment files, private runtime state, or prohibited generated outputs.
+Scan the staged diff for these files before each commit.
 Use handoffs only for continuation or an independent blocker.

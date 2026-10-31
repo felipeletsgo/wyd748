@@ -10,6 +10,7 @@
 #include "DyeTextureStages.h"
 #include "RefinementGlowTexture.h"
 #include "NativeMountGlow.h"
+#include "ApprenticeMantleTint.h"
 #include "SkinMeshLoad.h"
 #include <memory>
 #include <new>
@@ -958,6 +959,9 @@ void CMesh::SetMaterial(char cAlpha)
     {
         D3DMATERIAL9 materials;
         memcpy(&materials, &m_pParentSkin->m_materials, sizeof(materials));
+        if (apprentice_mantle_tint_748::IsCitizenApprenticeMantle(
+            m_pParentSkin->m_nBoneAniIndex, m_pParentSkin->m_Look.Skin0))
+            apprentice_mantle_tint_748::ApplyGreen(materials);
         g_pDevice->m_pd3dDevice->SetMaterial(&materials);
 
         unsigned int dwTime = g_pTimerManager->GetServerTime();

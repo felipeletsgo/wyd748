@@ -53,7 +53,8 @@ SGridControlItem::SGridControlItem(SGridControl* pParent, STRUCT_ITEM* pItem, fl
 			// FUN_0040d13e resolves mesh-backed rows through FUN_0040cea0. The
 			// source-side equivalent is BASE_GetMeshIndex; using nIndexMesh raw
 			// produced generic spheres/rocks in the active client.
-			m_GCObj.n3DObjIndex = BASE_GetMeshIndex(pItem->sIndex);
+			m_GCObj.n3DObjIndex = grid_item_presentation::IconMesh(
+                pItem->sIndex, BASE_GetMeshIndex(pItem->sIndex));
 			m_GCObj.nTextureSetIndex = grid_item_presentation::IconTexture(
 				pItem->sIndex, itemDef.nIndexTexture);
 		}

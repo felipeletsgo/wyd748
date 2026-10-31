@@ -4,7 +4,9 @@
 #include "../internal/ui/ItemHelpText.h"
 #include "../internal/ui/GuildNameDirectory.h"
 #include "../internal/ui/CapePresentation748.h"
+#include "../internal/render/mesh/ApprenticeMantleTint.h"
 #include "../internal/application/PremiumMountMagic.h"
+#include "../internal/application/CannonTargeting.h"
 #include <cstdio>
 #include <cstring>
 #include <initializer_list>
@@ -46,6 +48,40 @@ int RunNativeScoreHudTests(int& checks)
         ++checks;
         if (!condition) { ++failures; std::printf("FAIL native score HUD: %s\n", name); }
     };
+
+    const auto reportedSkillSource = ReadNameColorSource("internal/app/scenes/TMFieldSceneSkills.cpp");
+    check(reportedSkillSource.find("cSkillIndex == 6 && pOver->m_nClass == 66") == std::string::npos,
+        "Pursuit does not reject all player targets before PvP checks");
+    const auto reportedVisuals = ReadNameColorSource("internal/app/scenes/TMFieldSceneCombatPackets.cpp");
+    const auto resurrection = reportedVisuals.find("if (pAttack->SkillIndex == 99) // Resurrection in 7.48.");
+    check(resurrection != std::string::npos &&
+        reportedVisuals.find("new TMEffectLevelUp",resurrection) != std::string::npos &&
+        reportedVisuals.find("pTarget->m_vecPosition.y), 1)",resurrection) != std::string::npos,
+        "Resurrection uses its 7.48 ID and the yellow effect palette");
+    constexpr float pi = 3.14159265358979323846f;
+    check(cannon_targeting::InFiringArc(0.0f, -0.1f) &&
+        cannon_targeting::InFiringArc(2 * pi - 0.1f, 0.1f) &&
+        cannon_targeting::InFiringArc(0.0f, pi / 2) &&
+        !cannon_targeting::InFiringArc(0.0f, pi),
+        "cannon accepts both sides of zero and rejects the rear half-plane");
+
+    struct Color { float r, g, b, a; };
+    struct Material { Color Diffuse, Specular, Emissive, Ambient; float Power; };
+    for (float light : {0.0f, 0.25f, 1.0f}) {
+        Material material{{light, light, light, 0.8f}, {light, light, light, 0.6f},
+            {0, 0, 0, 0.4f}, {0.1f, 0.2f, 0.3f, 1}, 32};
+        apprentice_mantle_tint_748::ApplyGreen(material);
+        check(std::fabs(material.Diffuse.g - light * 0.42f) < 0.00001f &&
+            std::fabs(material.Specular.r - light * 0.14f) < 0.00001f &&
+            material.Emissive.g == 0, "green cape preserves light intensity and zero emission");
+        check(material.Diffuse.a == 0.8f && material.Specular.a == 0.6f &&
+            material.Emissive.a == 0.4f && material.Ambient.b == 0.3f && material.Power == 32,
+            "cape tint preserves alpha, ambient light and material power");
+    }
+    Material frozen{{0, 0.4f, 0.9f, 1}, {0, 0.4f, 0.9f, 1}, {0, 0, 0, 1}, {}, 0};
+    apprentice_mantle_tint_748::ApplyGreen(frozen);
+    check(frozen.Diffuse.r == 0 && frozen.Diffuse.b > frozen.Diffuse.g,
+        "frozen cape retains the blue status variation");
 
     struct MountEffect { short sEffect; short sValue; };
     struct MountDefinition { MountEffect stEffect[12]{}; };
@@ -90,9 +126,9 @@ int RunNativeScoreHudTests(int& checks)
     check(physicalBranch != std::string::npos && magicBranch != std::string::npos
         && mountProjection != std::string::npos
         && skillDamage.find("if (skillnum != 97)") < physicalBranch
-        && skillDamage.find("if (skillnum == 79)") < physicalBranch
+        && skillDamage.find("if (skillnum == 95)") < physicalBranch
         && skillDamage.find("dam = 5 * (dam *", magicBranch) < mountProjection
-        && mountProjection < skillDamage.find("if ((1 << (8 * skillclass))")
+        && mountProjection < skillDamage.find("if ((1 << (8 * skillclass +")
         && skillDamage.find("mob->Equip[14].sIndex", magicBranch) < mountProjection,
         "production magic branch reads live slot 14 after amplification, before passives, excluding physical and fixed skills");
 
@@ -288,6 +324,10 @@ int RunNativeScoreHudTests(int& checks)
         "void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)");
     const auto packedCape = source_contract::Method(appearance,
         "void TMHuman::SetPacketEquipItem(unsigned short* sEquip)");
+    const auto citizenMantle = source_contract::Method(appearance,
+        "int TMHuman::SetCitizenMantle(int BaseSkin)");
+    check(citizenMantle.find("cape_presentation_748::CitizenMantleSkin(BaseSkin, m_citizen)") != std::string::npos,
+        "production cape mapper uses the tested citizenship mantle policy");
     check(fullCape.find("BASE_GetItemSanc(&pMobData->Equip[15])") != std::string::npos
         && fullCape.find("cape_presentation_748::Refinement") != std::string::npos
         && fullCape.find("m_nTotalKill") == std::string::npos,
@@ -300,6 +340,20 @@ int RunNativeScoreHudTests(int& checks)
             "unequipping the cape clears its previous refinement");
 
     constexpr int capeBases[] = {19, 3, 2, 6, 1, 0, 7, 25, 24, 26, 28, 27, 29, 32, 31, 33};
+    constexpr int citizenOffsets[] = {39, 49, 59, 69, 79, 89, 99, 109, 119, 129, 139, 149, 159, 169, 179, 189};
+    for (int branch = 0; branch < 16; ++branch) {
+        for (int citizenship = 1; citizenship <= 10; ++citizenship) {
+            const int expected = citizenship + citizenOffsets[branch];
+            check(cape_presentation_748::CitizenMantleSkin(capeBases[branch], citizenship) == expected,
+                "citizenship policy preserves native emblem variants for every cape");
+        }
+        check(cape_presentation_748::CitizenMantleSkin(capeBases[branch], 0) == capeBases[branch]
+            && cape_presentation_748::CitizenMantleSkin(capeBases[branch], 11) == capeBases[branch],
+            "zero and invalid citizenship keep each cape at its base texture");
+    }
+    for (int skin : {34, 35, 36})
+        check(cape_presentation_748::CitizenMantleSkin(skin, 1) == skin,
+            "native fixed cape textures remain unchanged");
     for (int branch = 0; branch < 16; ++branch) {
         for (int channel = 0; channel < 10; ++channel) {
             const int skin = 40 + branch * 10 + channel;

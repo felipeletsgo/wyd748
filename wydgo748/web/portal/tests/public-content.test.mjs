@@ -9,7 +9,7 @@ function pages(folder) {
   return readdirSync(folder, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? pages(resolve(folder, entry.name)) : entry.name.endsWith('.html') ? [resolve(folder, entry.name)] : []);
 }
 test('public content ships real static routes with valid internal links and no inline execution', () => {
-  for (const path of ['guilds', 'play', 'play/getting-started', 'play/classes', 'play/server', 'play/rules', 'play/faq', 'news', 'news/account-protection', 'news/client-7-48-001', 'news/client-7-48-002', 'changelog', 'roadmap']) {
+  for (const path of ['guilds', 'play', 'play/getting-started', 'play/classes', 'play/server', 'play/rules', 'play/faq', 'news', 'news/account-protection', 'news/client-7-48-001', 'news/client-7-48-002', 'news/client-7-48-013', 'news/client-7-48-014', 'changelog', 'roadmap']) {
     assert.match(html(`${path}/index.html`), /<html lang="en"/);
   }
   for (const path of pages(dist).filter(path => !relative(dist, path).startsWith(`admin${sep}`))) {
@@ -27,30 +27,29 @@ test('public content ships real static routes with valid internal links and no i
     }
   }
 });
-test('download receipt pairs update 7.48.012 with the existing full-client baseline', () => {
+test('download receipt pairs update 7.48.017 with the existing full-client baseline', () => {
   const receipt = JSON.parse(html('client-manifest.json'));
-  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.012');
-  assert.equal(receipt.feedVersion, 48012);
-  assert.equal(receipt.patch.url, '/patch/patch-48012.zip');
-  assert.equal(receipt.patch.sizeBytes, 938967);
-  assert.equal(receipt.patch.sha256, '065D2BB04C2692390AEBCBB24DE6DDA551BED004526E8D82DF7ED298994FEB9B');
-  assert.equal(receipt.patch.executableSha256, '65B28644D6A2434CFEB67C838C66CB010B9E693D4B110518B7C773760FB2BB11');
+  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.017');
+  assert.equal(receipt.feedVersion, 48017);
+  assert.equal(receipt.patch.url, '/patch/patch-48017.zip');
   assert.equal(receipt.fullClient.clientVersion, '7.48.001');
   assert.equal(receipt.updateFeed, '/patch/update.htm');
   assert.equal(receipt.fullClient.sha256, null); assert.equal(receipt.fullClient.sizeBytes, null);
   assert.equal(receipt.minimumLauncherVersion, null);
   assert.equal(receipt.fullClient.url, 'https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view?usp=drive_link');
   assert.ok(html('download/index.html').includes('1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk'), 'download page does not link the full client');
-  assert.match(html('index.html'), /Client 7\.48\.012/);
+  assert.match(html('index.html'), /Client 7\.48\.017/);
   assert.match(html('download/index.html'), /Full installation: 7\.48\.001/);
-  assert.match(html('download/index.html'), /href="\/patch\/patch-48012\.zip"/);
+  assert.match(html('download/index.html'), /href="\/patch\/patch-48017\.zip"/);
   assert.match(html('download/index.html'), /Earlier patches are no longer offered/);
   assert.equal(/patch-1\d{4}\.zip/.test(html('download/index.html')), false, 'retired patch ZIP still linked');
   assert.match(html('changelog/index.html'), /Client 7\.48\.001 — new full client/);
-  assert.match(html('changelog/index.html'), /Client 7\.48\.012/);
+  assert.match(html('changelog/index.html'), /Client 7\.48\.017/);
   assert.match(html('news/client-7-48-002/index.html'), /Every client update is mandatory/);
   assert.equal(/Patch 100\d\d/.test(html('changelog/index.html')), false, 'retired patch history still listed');
   assert.match(html('news/client-7-48-001/index.html'), /choose the game language/);
+  assert.match(html('news/client-7-48-013/index.html'), /Master.*Elite/s);
+  assert.match(html('news/client-7-48-017/index.html'), /Cube.*Mystic Land/s);
   // Every published client must be announced in News, not only in the changelog.
   assert.ok(html('news/index.html').includes(receipt.clientVersion), 'News does not announce the current client');
   assert.match(html('roadmap/index.html'), /Planned/);

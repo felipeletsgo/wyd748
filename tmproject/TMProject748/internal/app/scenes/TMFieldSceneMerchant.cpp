@@ -262,6 +262,15 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			const int amount = BASE_GetItemAmount(&displayedItem);
 			entry.Quantity = amount > 0 ? amount : 1;
 			entry.Refinement = BASE_GetItemSanc(&displayedItem);
+			for (const auto& help : g_pItemHelp[item.sIndex].Help)
+			{
+				const int bytes = static_cast<int>(strnlen_s(help, sizeof(help)));
+				if (!bytes) continue;
+				const int count = MultiByteToWideChar(1252, 0, help, bytes, nullptr, 0);
+				std::wstring text(count, L'\0');
+				if (count) MultiByteToWideChar(1252, 0, help, bytes, text.data(), count);
+				entry.Details.push_back(text);
+			}
 			item_bonus_text::ForEach(&displayedItem, [&](unsigned int, int, int, const char* text) {
 				const int bytes = static_cast<int>(strlen(text));
 				const int characters = MultiByteToWideChar(1252, 0, text, bytes, nullptr, 0);

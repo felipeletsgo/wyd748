@@ -4,7 +4,7 @@ title: Snapshot autoritativo da barra de vinte skills
 subsystem: transport
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-21
+updated: 2026-10-30
 ---
 
 # Snapshot autoritativo da barra de vinte skills
@@ -155,6 +155,52 @@ mesmo builder.
   cauda, mantendo o snapshot indivisivel.
 - Nao alterar a normalizacao de indices, os controles das paginas nem a
   filtragem autoritativa do servidor neste corte.
+
+## Celestial form shortcut synchronization — 2026-10-30
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Reuse the recorded 0x378 envelope
+and two-page ownership. This correction claims no new native parity.
+Static inspection found two causes when Mysterious Stone changes the class:
+the client retained its login class, and UpdateEtc could send old shortcuts
+back while the new form snapshot was arriving. Its local filter also shifted
+by invalid bit indices for empty or foreign-class slots.
+
+The server now sends the committed face item before score, learned skills,
+affects and shortcuts. Existing S->C 0x182 remains 24 bytes: equipment type 0
+at +12, slot 0 at +14, item at +16. `CharacterFaceItem` retains the cosmetic
+emblem projection. The local SendItem consumer maps the catalog face ability
+1/2/4/8 to skill class 0/1/2/3 before class-dependent UI updates. Other face
+abilities retain the current class; observer and invalid-item guards remain
+before mutation. Visual-only equipment packets do not change the skill class.
+
+UpdateEtc still installs learned skills and counters. It no longer changes or
+echoes shortcuts. The following 0x378 replaces all twenty slots and rebuilds
+both pages using the new class. User shortcut edits retain their existing
+request path. No wire sizes, resources, persisted fields or locale content change.
+
+Each Celestial form retains its own learned mask and shortcut array. The
+critical path prepares a detached account and publishes only after commit.
+Its inventory refresh now follows form synchronization, so its additional
+UpdateEtc cannot precede the class. Rejection or save failure retains both
+forms, shortcut arrays and stone amount. Scene ownership, teardown and shutdown
+remain unchanged; relogin uses the existing class and shortcut snapshots.
+
+Regression cases cover all sixteen class pairs, four repeated switches, both
+pages, local/global skill IDs, empty slots, special skills and account snapshot
+reconstruction. Critical commit tests cover detached state and failed saves.
+Client tests cover all class mappings, transformed/invalid abilities, owner-only
+ordering and removal of the stale UpdateEtc echo. Real-client switching,
+selection, casting and relogin acceptance remain pending.
+
+`STATICALLY VERIFIED`: face/catalog class binding, owner-only mutation and
+publication order. `AUTOMATED TESTED`: full Go suite, vet and focused race
+checks pass. ArchitectureTests passed 3,183,478 checks; socket (281), crash
+capture (147) and launcher (58) checks pass. Incremental Release build through
+`Build-Client.ps1 -NoDeploy` passes. Logs: `build/celestial-shortcuts/`.
+Candidate SHA-256:
+`3F14E9759B624782895346DD8E981FA85C18B73F28867A67DC7D9031B36C0E86`.
+`CLIENT-TESTED`: pending. No installation or publication occurred. Allocate
+the next mandatory client revision and server minimum during release preparation.
 
 ## Lacunas
 

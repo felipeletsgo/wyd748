@@ -36,5 +36,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup><ClCompile Include="CrashCaptureTests.cpp" /></ItemGroup>
+  <ItemGroup><ProjectReference Include="..\WerCrashReporter.vcxproj"><Project>{840446DA-A762-4AF8-9B9A-219F3414BE36}</Project><LinkLibraryDependencies>false</LinkLibraryDependencies></ProjectReference></ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <Target Name="CopyReporter" AfterTargets="Build"><Copy SourceFiles="$(MSBuildThisFileDirectory)..\..\build\TMProject748\$(Configuration)\WydCrashReporter.dll" DestinationFolder="$(OutDir)" /></Target>
 </Project>

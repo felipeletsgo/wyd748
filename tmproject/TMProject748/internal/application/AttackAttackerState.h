@@ -26,9 +26,11 @@ void ApplySwing(Swing* first, Swing* second, int force, unsigned int startTime)
     }
 }
 
-constexpr bool ShouldApplyMana(bool localAttacker, int localFlag, int skillIndex)
+constexpr bool ShouldApplyMana(bool localAttacker, int /*localFlag*/, int skillIndex)
 {
-    return (!localAttacker || localFlag == 0) && skillIndex >= 0 && skillIndex < 104;
+    // Local mana is authoritative only in the uint32 score/vitals packets.
+    // The compact attack WORD cannot represent the active resource pool.
+    return !localAttacker && skillIndex >= 0 && skillIndex < 104;
 }
 
 // The callback borrows its inputs only until return. It updates the local player

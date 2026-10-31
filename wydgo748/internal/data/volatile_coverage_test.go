@@ -77,7 +77,7 @@ func TestVolatileCatalogKeepsAuthoritativeCount(t *testing.T) {
 		t.Fatal(err)
 	}
 	volatiles := loadRealVolatiles(t, root, catalog)
-	if got, want := len(volatiles.ItemCodes), 356; got != want {
+	if got, want := len(volatiles.ItemCodes), 358; got != want {
 		t.Fatalf("items with EF_VOLATILE=%d, want %d", got, want)
 	}
 	if got, want := len(volatiles.Codes), 124; got != want {

@@ -1,5 +1,362 @@
 # Current project state
 
+## Drop audit and source cleanup — local changes
+
+The drop audit rechecked the recovered 7.59 option switches and roll thresholds.
+The option port and its documented grade-5 table guard remain in place.
+New regressions cover exact roll counts, committed publication, rollback and
+full-inventory ground fallback. See
+[drop options](server/drop-item-bonus.md#audit-follow-up).
+
+The active general generator file no longer stores 16 inactive entries:
+11 outside installed terrain, two with nonpositive capacity and three explicitly
+disabled legacy groups. All 4,823 retained entries preserve their runtime values.
+The unused Compounder and Ancient Carbuncle aliases are removed from NPC data.
+Classification: `MODERNIZACAO_COMPATIVEL`; usable population values remain unchanged.
+Negative identity tests use explicit fixtures; active composer and guard profiles
+remain covered. General-population tests reject inactive entries.
+
+Two unused root binaries are removed from tracked source. Their exact originals
+and SHA-256 manifest are preserved in ignored `references/legacy-root-tools/`.
+The layout validator rejects binary and generated artifacts at repository root.
+The generated crash-reporter DLL is ignored beside the installed client,
+with a matching layout allowance. Its runtime file remains unchanged.
+Audit and cleanup receipts are in `build/claude-continuation-review/`.
+Publication, restart and real-client acceptance remain pending.
+
+The full validation exposed a nondeterministic Cancellation effect test.
+Its effect path now fixes a successful hit; a separate test fixes a miss and
+checks that target affects remain unchanged. Production skill behavior is unchanged.
+
+`STATICALLY VERIFIED`: native switches, drop publication order, removed-entry
+dependencies and identical runtime fields for all retained generators.
+`AUTOMATED TESTED`: full Go suite, vet, focused race checks, 100 Cancellation
+repetitions, layout, root-artifact rejection and diff checks pass. The isolated
+PostgreSQL configuration was available. The local server build also passes.
+`CLIENT-TESTED`: pending; no client or production service was started.
+
+## Release 7.48.017 — 2026-10-31, published and activated
+
+The owner authorized client publication, activation and the disconnect of
+three players. Mandatory patch 48017 carries client revision 17, and server
+release `20261031T004445Z` enforces minimum 17. The patch adds the Cube notice
+and question layout, the Mysterious Stone shortcut and icon corrections, and
+the Two Weapon Fighting help text. The website announces 7.48.017.
+
+Client, Go, locale, portal and admission gates passed. The feed, ZIP entries,
+active hashes, backup, readiness and website were verified over HTTP and HTTPS.
+Gameplay acceptance remains pending. See
+[release receipt](../.agents/research/release-748017.json).
+
+## Server release 2026-10-31 — published and activated
+
+The owner authorized server publication, a game restart and one player
+disconnect. Game-only release `20261031T002436Z` is active; the player API,
+web, feed and client remain at 7.48.016. Players can target public mobs
+anywhere, and the mob AI leash follows its generator route. Mystic Land
+generators 2306–2312 respawn each committed death after five seconds. The
+working-tree package also activated the server side of the Mysterious Stone
+shortcut synchronization and the Huntress two-weapon recalculation.
+
+The full Go suite and vet passed. The running binary hash, backup, readiness
+and channel admission were verified. Gameplay acceptance remains pending. See
+[release receipt](../.agents/research/release-748016-server-20261031.json).
+
+## Celestial form skill bar — 2026-10-30, local correction
+
+Mysterious Stone now synchronizes the committed face and class before learned
+skills and shortcuts. The client no longer echoes the previous form's shortcuts
+from UpdateEtc. Both pages retain each form's own layout and evolution marker.
+No reload is required by the corrected synchronization path.
+
+All sixteen class pairs and repeated switches pass regression checks, including
+empty slots, special skills, account snapshots and failed critical saves. The
+full Go suite, vet and focused race checks pass. The Release client build with
+`-NoDeploy` and all four client test gates pass. Real-client visual acceptance
+remains pending. No installation, publication or restart occurred. See
+[shortcut contract](../.agents/research/client748/flows/transport/short-skill-snapshot-contract.md#celestial-form-shortcut-synchronization--2026-10-30).
+
+## Mysterious Stone icon — 2026-10-30, local correction
+
+Mysterious Stone item 4148 now uses the Lactolerium 100% mesh and texture in
+item grids. Ideal Stone keeps its own icon. Item identity, Ehre output and
+server state remain unchanged. The incremental Release client build and all
+four client test gates pass. Visual acceptance remains pending. No installation,
+publication or restart occurred. See
+[icon evidence](../.agents/research/client748/flows/ui/grid-item-mesh-scale.md#mysterious-stone-icon-correction--2026-10-30).
+
+## Two Weapon Fighting percentage — 2026-10-30, local correction
+
+The owner selected `10 + Trade/20` percent for Empunhar Duas Armas, capped at
+26 percent with effective Trade 320. Classification: `EXTENSAO_COORDENADA`.
+It replaces the fixed bow/claw bonus, including its old finisher override.
+The learned bit, weapon gate and second-weapon share rule stay unchanged.
+
+Apply the percentage once to derived physical attack. Retain fractional
+mastery contributions, cap the result and rebuild from persisted base on
+recalculation. Root/EN/PT help record 5082 now states the selected rule.
+No other help record changes. No wire layout or persisted state changes.
+
+The full Go suite, vet, focused race checks and 22 locale tests pass.
+Research, layout, links and diff checks pass. Logs are in
+`build/ht-two-weapon/`. Gameplay and tooltip acceptance remain pending.
+This correction has no publication, server activation or restart. The next
+release must allocate its mandatory client revision before packaging.
+See [skill contract](../.agents/research/client748/flows/ui/skill-description-text.md#owner-selected-two-weapon-fighting-percentage-2026-10-30).
+
+## Release 7.48.016 — 2026-10-30, published and activated
+
+The owner authorized all corrections and a restart. Mandatory patch 48016
+contains 17 files: the validated client, crash reporter, and root/EN/PT item
+catalogs, names, item help, skill help and UI strings. HTTP and HTTPS downloads
+match every entry hash. Previous feed entries and patch 48015 remain unchanged.
+All implemented report batches are distributed through the cumulative feed.
+
+Release `/srv/wyd-go/releases/20261030T223403Z` is active. The game and player
+API restarted; all 7,735 installed payload hashes match. Both readiness listeners
+return 200. Both channels reject revision 15 and admit 16 to credential validation.
+Both processes remain active with zero automatic restarts. The portal announces 16.
+
+Schema remains 14. The final database backup passed size, SHA-256 and archive
+listing checks. Settings remain byte-identical. The previous release at
+`/srv/wyd-go/releases/20261030T194406Z` remains available for rollback.
+
+`STATICALLY VERIFIED` and `AUTOMATED TESTED`: reused candidate checks below,
+fresh wire and admission tests, 115 portal tests, archive and public download
+checks, active process hashes and post-restart stability checks.
+`CLIENT-TESTED`: pending for launcher extraction, changed visuals and the exact
+reported return sequence. No real account was authenticated. The local installed
+client was not replaced. See [release receipt](../.agents/research/release-748016.json).
+
+## Third player report batch — 2026-10-30, candidate 16 validation
+
+This batch was validated locally before release 7.48.016. The client revision
+and server minimum agree. Publication and activation are recorded above;
+the following table retains the correction evidence and its acceptance limits.
+
+| Report | Correction and evidence limit |
+| --- | --- |
+| Foema MP becomes 65,535 after return | Reject local MP updates from compact attack WORDs; retain uint32 score/vitals. Return-scroll server test preserves 322,670 MP. The exact reported packet sequence was not captured. |
+| Phoenix | Update each projectile mesh every frame; throttle only particle emission. |
+| Meteor Storm / Inferno | Restore luminous cores for levels 0 and 4 from the native constructor. |
+| Blizzard | Restore the native five-projectile lifetime sequence. |
+| Guardian Cannon | Fix the firing arc across zero radians and accept authorized player targets on the server. Map cannon and minimum range remain required. |
+| Resurrection | Restore the native fading character effect alongside the existing yellow aura. |
+| Premium Nell | Show localized item help and bonuses on hover; identical Divine Circle names retain distinct descriptions. |
+| Heal / Recover at full HP | Report calculated recovery in floating text while authoritative HP remains capped. |
+| Divine Judgment | Let finite scene-owned billboards complete their lifetimes; the short controller no longer deletes them early. |
+| Poison Mist | Four ticks at 8/16/24/32 seconds, floating hits, delayed-tick handling, and reconnect cadence. Update EN/PT help. |
+| Fairy timer | Put values before localized units; refresh equipped countdown data once per minute without persistence writes. |
+| Iron Spear | Select one authorized enemy among the primary target's eight adjacent tiles on the server. Publish both hits; ignore client secondary nominations. |
+
+`STATICALLY VERIFIED`: native constructor and dispatch comparison; see
+[visual investigation](../.agents/research/client748/flows/combat/player-reported-skill-effects.md).
+`AUTOMATED TESTED`: full Go suite and vet, focused race tests, Release C++ build,
+Nell page tests, and locale checks. Logs are under `build/player-report-third-*`.
+`CLIENT-TESTED`: pending for every changed visual and the reported return sequence.
+Candidate executable SHA256:
+`1AB06967DFD18648C9A9B2E7B2C15F1CD408B2149BEEC46C0EC685F9F6FCDAC7`.
+
+## Release 7.48.015 — 2026-10-30, published and activated
+
+The owner authorized all corrections and a restart. Mandatory patch 48015
+contains the validated candidate executable, `WydCrashReporter.dll`, and
+root/EN/PT item catalogs and help. HTTP and HTTPS downloads match all hashes.
+This release includes both report batches described below; their local-only
+labels record the earlier state and no longer describe distribution.
+
+Release `/srv/wyd-go/releases/20261030T194406Z` is active. The game and player
+API restarted; all 7,733 payload hashes match. Both readiness listeners return
+200 with the configured Host. Both channels reject revision 14 and admit 15
+to credential validation. Schema remains 14. Backup verification passed;
+rollback is `/srv/wyd-go/releases/20261030T062404Z`. The portal advertises 15.
+
+`STATICALLY VERIFIED` and `AUTOMATED TESTED`: reused candidate checks, wire
+tests, 115 portal tests, archive inspection and active process hashes.
+`CLIENT-TESTED`: pending; no real account was authenticated. No machine reboot
+or Microsoft submission occurred. See [release receipt](../.agents/research/release-748015.json).
+
+## Second player report review — 2026-10-30, local candidate 15
+
+This candidate includes the first report batch below. It remains unpublished.
+Its current executable hash is recorded in `build/player-report-second/`.
+The earlier build hash below identifies the first batch only.
+
+Corrections are `MODERNIZACAO_COMPATIVEL`, except the three test items,
+which are `EXTENSAO_COORDENADA`. No packet layout or admission revision changed
+from the unpublished candidate 15. Existing published patches stay unchanged.
+
+| Report | Finding and action |
+| --- | --- |
+| Sephira Resurrection aura | Visual IDs still used the later catalog. Bind Wall to 98 and Resurrection to 99; use the existing yellow palette for the self-cast preview. |
+| In-place revival after mob death | Aura of Life restored HP on dead characters. Block its periodic recovery at zero HP. Keep ordinary living recovery. |
+| Critical and DEX | Current critical uses explicit critical bonuses; DEX feeds other combat formulas. No new DEX-to-critical coefficient was specified or proven. Keep this balance rule unchanged. |
+| Holy Judgement | Include skill 30 in target-centered area requests and range checks for manual and automatic use. |
+| Barganhar | PT item 5084 is Craft Gold Piece, not Mercenary 5081 or Discount 5083. Its later crafting window is disabled in the 7.48 client. Conversion to Extraction is possible, but remains a feature decision. No rename or recipe change was made. |
+| Pursuit | The server already pulls authorized players. Remove the client's unconditional rejection of class 66 targets; keep server PvP validation. |
+| Eighth skills versus summons | Direct enemy-summon hits pass for 95 and 23 under PvP rules. Rapid Hit 95 concentrates six hits on one target. Fix Freeze Spiral 23 skipping nearby summons when its primary target is a player. |
+| New Celestial skill bar | Use 0xFF empty slots in Celestial and SubCelestial creation, in both durable and synchronous paths. Zero identifies a skill. |
+| Mount essence right click | Route volatile 16 to direct use. The server still selects and validates the equipped mount and species. |
+| BM elemental mana | Skill 55 has base mana 280, scaled by mastery and SaveMana. This is not a fixed 200. No arbitrary reduction was made. |
+| Celestial eighth-skill gold | Current server policy is 100,000,000 gold, not 300,000,000. Keep this established value. |
+| Test amulet | Add item 6016 to ShopAmulet: all four masteries +300, with the existing effective cap 320. Level requirement zero; Mortals can equip it. |
+| Damage and magic test crystals | Add 6017 and 6018 to ShopAmulet. The owner selected value 320. Each replaces both options with two existing 160-point effects, preserving refinement, tint, index, and UID. |
+
+Test crystals use existing byte effects instead of overflowing one byte.
+Refinement scales the raw 320 normally. They require equipped armor set pieces
+and reject accessories and Cythera. They do not require Ancient weapons or an
+advanced evolution. Existing Repliction transactions own consumption, account
+commit, rollback, replay rejection, and equipment publication.
+
+The saved native 7.48 `FUN_00555911.c` reads the critical byte at mob offset
+0x2E6; it does not read DEX in the roll. This does not establish every producer
+of that byte or a DEX coefficient. Keep the DEX report unconfirmed rather than
+inventing a balance formula. The first batch already corrected alternate
+equipment critical replacing, rather than duplicating, the catalog effect.
+
+All three items have matching server catalog rows, root/EN/PT client catalogs,
+names, and nine-row help. The locale hash guard was updated after this review.
+ShopAmulet has 21 entries, within the native 27-cell shop capacity.
+
+`STATICALLY VERIFIED`: unchanged wire layouts, identified skill/resource IDs,
+palette selection, empty-slot encoding, test-item formats, and locale coverage.
+`AUTOMATED TESTED`: full Go suite and vet; complete game/store race suites
+with isolated PostgreSQL (363.910s / 4.880s); 20 locale tests; layout and
+research validation; and `git diff --check`. The Release/x86 build passed
+3,183,526 architecture checks, 281 socket checks, 147 crash-capture checks,
+and 58 launcher checks. Later focused race checks cover Pursuit and crystal
+commit, rejection, and repeat handling.
+
+Current candidate executable SHA-256:
+`48655AA6EF273FD6B6BE297EA0199D4CC07386199609B5BD22BA0D1C1DEF9D17`.
+`WydCrashReporter.dll` is still required beside it; its hash is unchanged.
+`CLIENT-TESTED`: pending. No game launch, installed executable replacement,
+publication, account edit on the VPS, or service restart was performed.
+
+## Player reports and review corrections — 2026-10-30, local candidate
+
+Classification: `MODERNIZACAO_COMPATIVEL`. These corrections are local and
+are not part of the published patches below. Candidate admission is revision
+15 in both client and server source. Publish the mandatory client payload
+before activating this server candidate. No publication or restart occurred.
+
+Armor alternate critical now replaces catalog critical, as the active client
+query requires. The seven reported refinement cases have regression coverage,
+including repeated score calculation and unequip. Magic additions now use the
+client's weapon eligibility rule. Existing magic amplification tests remain.
+
+Huntress damage uses the 7.48 books for mastery and eighth-skill ownership.
+Meditation uses the Survival finisher; Spectral Link uses Survival mastery.
+Two Weapon Fighting uses Trade and its finisher, and owns the second weapon
+share. Life Drain heals the killer inside the existing durable kill proposal.
+Hunter's Vision remains in Capture and increases drops. Discount reduces
+public NPC gold prices before city tax; both shop tooltip paths use that rule.
+Invisibility multiplies normal HP recovery instead of maximum HP.
+Eight EN/PT help records now describe these implemented rules.
+
+Ethereal Explosion selects the forward cone across the angle boundary.
+Manual and automatic casts set facing, and responses preserve or recover
+facing when the first target has left the scene. Packet layouts are unchanged.
+
+Master cape grid icons now reuse mesh 27 and the Elite texture together.
+The green apprentice tint multiplies computed material colors and preserves
+lighting, status variations, alpha, ambient light, and zero emission.
+
+`WydCrashReporter.dll` restores fast-fail capture through Windows Error
+Reporting. The application registers its module for the current user. Windows
+loads it outside the failed process. It saves local dumps and preserves the
+Windows report and consent policy. It does not attach a debugger.
+Ship the DLL beside the candidate executable in full clients and patches.
+Build-only output remains under `tmproject/build/TMProject748/Release/`.
+
+`STATICALLY VERIFIED`: tree ownership, unchanged packet layouts, resource
+IDs, mesh identity, reviewed EN/PT formulas, and synchronized revision 15.
+`AUTOMATED TESTED`: full Go suite and vet; complete game/store race suites,
+also with an isolated PostgreSQL fixture; 20 locale tests; repository layout
+and local links; research records; and `git diff --check`.
+The Release/x86 client build passed with 3,183,523 architecture checks,
+281 socket checks, 147 crash-capture checks, and 58 launcher checks.
+Crash tests use console subprocesses, including real `__fastfail` and an
+injected heap-failure status. Dumps preserve the exception and thread context.
+The test restores its own per-user reporter registry entry.
+
+Candidate `WYD.exe` SHA-256:
+`696D9DEE5537532632BEB6ED9403B94E9DBB571D692AD7925C78A3FD8AE5ED31`.
+Reporter DLL SHA-256:
+`67AFF89970B16CD9CA8B9EA7FDAFF2DD12C4EDE6C3E4EA46E9722976BF3E47F6`.
+Gameplay acceptance remains pending for the skill visuals, capes, shop prices,
+kill healing, and relogin. The installed client was not replaced or launched.
+
+## Client patch 7.48.014 — published; server/site staged
+
+Patch 48014 is public and contains one `WYD.exe`. It corrects the Apprentice
+Mantle icon and keeps the citizenship texture variant while tinting only the
+green beginner mantle. The feed preserves patches 48001–48013. HTTP and HTTPS
+downloads match the ZIP and executable hashes in the
+[release record](client/launcher.md#published-patch-748014-2026-10-30-server-site-staged).
+
+The matching server/site package is staged at `/tmp/wyd-deploy-748014`; its
+minimum client revision is 14. It is not active. The active server remains
+`/srv/wyd-go/releases/20261030T062404Z` at minimum revision 12, and the public
+website still advertises 7.48.012. The game and player API stayed active with
+zero restarts; readiness returned 200. One game-channel connection was present
+at the last check. No player was disconnected and no Microsoft submission was
+sent.
+
+`STATICALLY VERIFIED` and `AUTOMATED TESTED`; actual launcher extraction and
+cape color/emblem presentation remain pending, not `CLIENT-TESTED`. See the
+[release receipt](../.agents/research/release-748014.json).
+
+## Client patch 7.48.013 — published; server release staged
+
+Patch 48013 is available from the launcher feed and contains client build
+revision 13. It fixes Master cape icons and removes the external crash-monitor
+process. Public HTTP and HTTPS downloads match the packaged hashes.
+
+The current server remains at minimum revision 12 and release
+`20261030T062404Z`; the website still advertises 7.48.012. The matching server
+and portal release, including minimum revision 13 and the bilingual news page,
+is staged at `/tmp/wyd-deploy-748013`. It has not been activated. Activation
+requires service-restart authority, and the release script refuses a restart
+while game-channel connections are active. Two established connections were
+present at the last check. No server service restarted and no player was
+disconnected. See the [client release record](client/launcher.md#published-patch-748013-2026-10-30-server-release-staged)
+and [release receipt](../.agents/research/release-748013.json).
+
+## Combat summon follow-up — 2026-10-30, active
+
+Three audit corrections are `MODERNIZACAO_COMPATIVEL` and are active.
+Summon AI checks both entity cells before a PvP hit against a player or summon.
+Rejected hits preserve the attack clock; ordinary PvE remains available.
+The 30% factor uses a 64-bit intermediate across the accepted damage range.
+
+BM and contract summons now share periodic affect processing and expiration.
+They remain outside ordinary hostile-mob AI. Poison revalidates PvP permissions,
+source identity, gameplay space and pending participant writes.
+Death removes the summon without EXP, loot, quest progress or account writes.
+Owner and observer HP, effect removal and view reentry have regression coverage.
+The full Go suite, vet and focused race checks passed. Final game-package
+checks also cover reward admission before summon effects in the same tick.
+
+Additional tests cover actual Poison packets, replay rejection, private-runtime
+exit, delayed ticks, simultaneous summon deaths and rejected or uncertain writes.
+Twenty shuffled runs of 29 selected tests passed. A 15-second random fuzz
+campaign passed 5,098,741 damage inputs; coverage guidance was unavailable.
+The complete game and store suites passed with the race detector and the
+isolated PostgreSQL fixture. Vet, repository layout and local links also passed.
+
+No client asset, packet layout or admission revision changes are required.
+The owner authorized activation of the tested working tree and a game restart.
+Release `20261030T062404Z` started at 06:24:07 UTC; rollback is `20261030T043606Z`.
+Backup verification, all 1,076 payload hashes and 12 configuration hashes passed.
+Shutdown completed with zero failures; both readiness endpoints returned 200.
+Both channels rejected revision 11 and admitted revision 12 to authentication.
+No real account was used. The public patch 48012 and feed remained unchanged.
+The API and log reader retained their processes; the host was not rebooted.
+The game remains active with zero automatic restarts. Source remains uncommitted.
+See the [release receipt](../.agents/research/release-748012.json), `serverFollowups`.
+Actual client acceptance remains pending.
+
 ## Release 7.48.012 — 2026-10-30, published and activated
 
 Mandatory patch 48012 and server release `20261030T043606Z` are live.

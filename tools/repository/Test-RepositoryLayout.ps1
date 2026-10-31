@@ -11,6 +11,11 @@ Set-StrictMode -Version Latest
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 $mapPath = Join-Path $repoRoot 'DOCS/documentation-map.md'
 $issues = [Collections.Generic.List[string]]::new()
+foreach ($file in Get-ChildItem -LiteralPath $repoRoot -File) {
+    if ($file.Extension -in @('.exe', '.dll', '.pdb', '.obj', '.lib', '.zip', '.7z', '.log', '.dmp', '.pyc', '.tmp', '.bak')) {
+        $issues.Add("Artifact at repository root: $($file.Name). Use build/ for outputs or references/ for preserved inputs.")
+    }
+}
 $documents = @(Get-ChildItem -LiteralPath $repoRoot -File -Filter '*.md')
 foreach ($directory in @('DOCS', '.agents', '.claude')) {
     $documents += @(Get-ChildItem -LiteralPath (Join-Path $repoRoot $directory) -File -Recurse -Filter '*.md')
@@ -240,7 +245,7 @@ foreach ($entry in @(Get-ChildItem -LiteralPath $dataRoot -Force)) {
 # Client crash evidence, the local client ZIP, and the legacy runtime log have
 # explicit names and retention rules in DOCS/agent-environments.md.
 $allowedIgnored = '^(?:references/|build/|tmproject/build/|\.codex/|\.venv/|\.claude/settings\.local\.json$' +
-    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|dumps/(?:crash-monitor-p\d+\.log|client-crash-[^/]+\.dmp)$|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
+    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|WydCrashReporter\.dll$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|dumps/(?:crash-monitor-p\d+\.log|client-crash-[^/]+\.dmp)$|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
     '|tmproject/client748/dumps/$|tmproject/client748\.zip$|tmproject/WYD 7\.48 PORTUGUES/WYD\.log$' +
     '|wydgo748/data/catalog/SkillData\.bin$|wydgo748/runtime/' +
     '|wydgo748/web/portal/(?:node_modules/|dist/|\.astro/|src/data/catalog\.generated\.json$|\.env))'

@@ -117,6 +117,19 @@ event 99 boxes after revival.
 
 ## Decisions
 
+### Visual follow-up, 2026-10-30
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The preview already emits skill
+99 with FlagLocal 1; `ShouldDispatchVisuals` accepts that local preview.
+The visual dispatcher retained later-version labels: 99 selected Wall of
+Thorns and 100 selected Resurrection. The active 7.48 catalog defines Wall
+as 98, Resurrection as 99, and Cancellation as 100. Bind these transitions
+to the active IDs. The Resurrection branch creates the existing
+`TMEffectLevelUp` palette 1, whose RGB values select yellow, and plays sound
+156. Scene ownership, normal effect lifetime, and cleanup remain unchanged.
+No visual path restores HP. The authoritative response still owns revival.
+Source-contract tests verify the ID and palette. Visual acceptance is pending.
+
 Restore the native input branch only. Keep `SkillUse` rejecting 99 for living
 players. The `+0xEF5` write only refreshes the bar highlight and is omitted.
 

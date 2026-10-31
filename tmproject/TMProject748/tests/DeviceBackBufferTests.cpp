@@ -1,4 +1,7 @@
 #include "../internal/platform/windows/DeviceBackBuffer.h"
+#include "../internal/platform/windows/ScreenshotPixels.h"
+#include "../internal/platform/windows/ScreenshotJpeg.h"
+#include <vector>
 #include <cstdio>
 
 namespace {
@@ -137,5 +140,60 @@ int RunDeviceBackBufferTests(int& checks)
     int cleanups = 0;
     device_back_buffer::CleanupForRetry(published, [&] { ++cleanups; });
     check(!published && cleanups == 1, "missing factory still permits final device cleanup");
+
+    using screenshot_pixels::Layout;
+    check(screenshot_pixels::FromFormat(D3DFMT_X8R8G8B8) == Layout::Xrgb8888 &&
+        screenshot_pixels::FromFormat(D3DFMT_A8R8G8B8) == Layout::Xrgb8888 &&
+        screenshot_pixels::FromFormat(D3DFMT_R5G6B5) == Layout::Rgb565 &&
+        screenshot_pixels::FromFormat(D3DFMT_X1R5G5B5) == Layout::Xrgb1555 &&
+        screenshot_pixels::FromFormat(D3DFMT_A2R10G10B10) == Layout::Unsupported,
+        "screenshot accepts the 32-bit and 16-bit back-buffer formats only");
+    const std::uint8_t xrgb[8] = { 0x10, 0x20, 0x30, 0xFF, 0x40, 0x50, 0x60, 0x00 };
+    std::uint8_t bgr[6] = {};
+    check(screenshot_pixels::RowToBgr24(Layout::Xrgb8888, xrgb, 2, bgr) &&
+        bgr[0] == 0x10 && bgr[1] == 0x20 && bgr[2] == 0x30 && bgr[3] == 0x40 && bgr[4] == 0x50 && bgr[5] == 0x60,
+        "32-bit rows keep blue, green and red order and drop the X byte");
+    const std::uint8_t rgb565[4] = { 0x00, 0xF8, 0xE0, 0x07 }; // pure red, pure green
+    check(screenshot_pixels::RowToBgr24(Layout::Rgb565, rgb565, 2, bgr) &&
+        bgr[0] == 0 && bgr[1] == 0 && bgr[2] == 0xFF && bgr[3] == 0 && bgr[4] == 0xFF && bgr[5] == 0,
+        "565 rows expand red and green to full intensity");
+    const std::uint8_t rgb555[2] = { 0x1F, 0x00 }; // pure blue
+    check(screenshot_pixels::RowToBgr24(Layout::Xrgb1555, rgb555, 1, bgr) && bgr[0] == 0xFF && bgr[1] == 0 && bgr[2] == 0,
+        "1555 rows expand blue to full intensity");
+    check(!screenshot_pixels::RowToBgr24(Layout::Unsupported, xrgb, 1, bgr) &&
+        !screenshot_pixels::RowToBgr24(Layout::Xrgb8888, nullptr, 1, bgr), "unsupported layouts and missing rows fail");
+
+    // The static D3DX9 writer produced 768x1024 from a 1024x768 back buffer.
+    // The WIC encoder must keep the landscape frame header.
+    char directory[MAX_PATH]{};
+    const DWORD length = GetTempPathA(MAX_PATH, directory);
+    char jpegPath[MAX_PATH]{};
+    std::snprintf(jpegPath, sizeof(jpegPath), "%swyd-screenshot-test-%lu.jpg", directory, GetCurrentProcessId());
+    std::vector<std::uint8_t> frame(1024u * 768u * 3u);
+    for (size_t i = 0; i < frame.size(); ++i) frame[i] = static_cast<std::uint8_t>(i * 7);
+    const HRESULT saved = length ? SaveBgr24Jpeg(jpegPath, 1024, 768, frame) : E_FAIL;
+    std::vector<std::uint8_t> encoded;
+    FILE* file = nullptr;
+    if (fopen_s(&file, jpegPath, "rb") == 0 && file) {
+        std::uint8_t buffer[4096];
+        for (size_t read; (read = std::fread(buffer, 1, sizeof(buffer), file)) > 0;)
+            encoded.insert(encoded.end(), buffer, buffer + read);
+        std::fclose(file);
+    }
+    DeleteFileA(jpegPath);
+    unsigned frameWidth = 0, frameHeight = 0;
+    for (size_t i = 2; i + 9 < encoded.size() && encoded[i] == 0xFF;) {
+        const std::uint8_t marker = encoded[i + 1];
+        if (marker >= 0xC0 && marker <= 0xC2) {
+            frameHeight = (encoded[i + 5] << 8) | encoded[i + 6];
+            frameWidth = (encoded[i + 7] << 8) | encoded[i + 8];
+            break;
+        }
+        i += 2 + ((encoded[i + 2] << 8) | encoded[i + 3]);
+    }
+    check(SUCCEEDED(saved) && encoded.size() > 2 && encoded[0] == 0xFF && encoded[1] == 0xD8 &&
+        frameWidth == 1024 && frameHeight == 768, "screenshot JPEG keeps the 1024x768 frame size");
+    check(SaveBgr24Jpeg(jpegPath, 1024, 768, std::vector<std::uint8_t>(10)) == E_INVALIDARG &&
+        GetFileAttributesA(jpegPath) == INVALID_FILE_ATTRIBUTES, "short pixel data is rejected without a file");
     return failures;
 }

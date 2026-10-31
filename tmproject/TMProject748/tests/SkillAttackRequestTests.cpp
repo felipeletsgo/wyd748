@@ -55,6 +55,14 @@ int RunSkillAttackRequestTests(int& checks)
             std::fprintf(stderr, "FAIL skill attack request: %s\n", message);
         }
     };
+    check(skill_attack::InForwardCone(3.13f, -3.13f), "cone crosses the angle wrap boundary");
+    check(skill_attack::InForwardCone(0, 0.7f) && !skill_attack::InForwardCone(0, 1.0f),
+        "area targets lie inside the forward cone");
+    check(!skill_attack::InForwardCone(0, 3.14159f), "targets behind the caster are excluded");
+    check(skill_attack::Facing(0.6f, 0, 0) == 0.6f, "self-centered packet preserves facing");
+    check(std::fabs(skill_attack::Facing(0, 1, 0) - 3.14159265f) < 0.0001f &&
+        std::fabs(skill_attack::Facing(0, -1, 0)) < 0.0001f,
+        "area response faces targets on both sides of the caster");
     const unsigned int ids[]{0, 1, 999, 1000, 65535, 65536,
         (std::numeric_limits<unsigned int>::max)()};
     const int coordinates[][4]{
@@ -125,14 +133,14 @@ int RunSkillAttackRequestTests(int& checks)
     for (int skill = -256; skill <= 256; ++skill) {
         const bool primaryAim = skill == 0 || skill == 7 || skill == 16 ||
             skill == 17 || skill == 23 || skill == 35 || skill == 39 ||
-            skill == 51 || skill == 55;
+            skill == 51 || skill == 55 || skill == 30;
         // Rapid Hit (95) checks range in both paths; 97 stays manual-only.
         const bool manualRange = skill == 0 || skill == 7 || skill == 16 ||
             skill == 17 || skill == 23 || skill == 35 || skill == 39 ||
-            skill == 51 || skill == 55 || skill == 95 || skill == 97;
+            skill == 51 || skill == 55 || skill == 30 || skill == 95 || skill == 97;
         const bool automaticRange = skill == 0 || skill == 7 || skill == 16 ||
             skill == 17 || skill == 23 || skill == 35 || skill == 39 ||
-            skill == 51 || skill == 55 || skill == 95;
+            skill == 51 || skill == 55 || skill == 30 || skill == 95;
         check(skill_request::AimsAtPrimaryTarget(skill) == primaryAim,
             "primary aim retains the original nine skill indices");
         check(skill_request::ChecksPrimaryTargetRange(skill,

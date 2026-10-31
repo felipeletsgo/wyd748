@@ -166,6 +166,15 @@ func untintItem(item *model.Item) bool {
 // itemAbility ports BASE_GetItemAbility: it sums the item-list static effects
 // and the three persisted STRUCT_ITEM effects, applying refinement.
 func itemAbility(item model.Item, def model.ItemDef, effect string) int {
+	// 7.48 BASE_GetItemAbility selects the alternate critical effect. It
+	// replaces the catalog value instead of adding a second critical source.
+	if effect == "EF_CRITICAL" && (def.DynamicEffectNames[item.Eff[2]] == "EF_CRITICAL2" ||
+		def.DynamicEffectNames[item.Eff[4]] == "EF_CRITICAL2") {
+		effect = "EF_CRITICAL2"
+	}
+	if (effect == "EF_MAGICADD" || effect == "EF_DAMAGEADD") && (def.Unique < 41 || def.Unique > 50) {
+		return 0
+	}
 	value := 0
 	for _, e := range def.StaticEffects {
 		if e.Name == effect {
@@ -230,13 +239,11 @@ func (w *World) equipmentDamage(ch *model.Char) int {
 		if ldef.Unique == rdef.Unique {
 			multi = 50
 		}
-		// Official TMSRVIN sub_4BA690 adds 15 points for TransKnight server
-		// bit 9 (Two-Hand Master) and 10 for Huntress server bit 10 (Life
-		// Drain, 7.48 skill 90). 7.48 has no Two-Hand Master: its bit 9 is
-		// Speed Up, so serverSkillLearned never reports it.
+		// Keep the 7.48 Huntress bit 10 (Two Weapon Fighting). The 7.59
+		// name mapping assigned it to Life Drain by mistake.
 		if ch.Class == 0 && serverSkillLearned(ch, transKnightTwoHandMaster) {
 			multi += 15
-		} else if ch.Class == 3 && learnedLocal(ch, 90-72) {
+		} else if ch.Class == 3 && learnedLocal(ch, 82-72) {
 			multi += 10
 		}
 		return value + maxInt(ldam, rdam) + minInt(ldam, rdam)*multi/100
@@ -440,7 +447,7 @@ func (w *World) recalcExtendedPlayer(ch *model.Char) {
 	// panel and the roll in rollPhysicalHitFlags read the same unit, capped
 	// at 1000 (100%).
 	runtime.Critical = uint32(clampInt(int(base.Critical)+
-		int(total("EF_CRITICAL")+total("EF_CRITICAL2")), 0, maxCriticalPerMille))
+		int(total("EF_CRITICAL")), 0, maxCriticalPerMille))
 	// BASE_GetMobAbility/BASE_GetMaxAbility use the largest equipped EF_RANGE;
 	// summing accessories and every piece artificially inflated the range.
 	rangeValue := int(base.Range)

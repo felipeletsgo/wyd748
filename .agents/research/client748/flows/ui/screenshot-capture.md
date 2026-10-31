@@ -4,7 +4,7 @@ title: Captura de tela por Print Screen em JPG
 subsystem: ui-input
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-31
+updated: 2026-10-31
 ---
 
 # Captura de tela por Print Screen em JPG
@@ -161,8 +161,19 @@ ou enviado ao servidor.
   `MODERNIZACAO_COMPATIVEL`: preserva o contrato externo e remove apenas o BMP
   temporário e o conversor intermediário.
 - Manter input, pasta, contador, ownership e tratamento de erro existentes.
-- Não adicionar criação automática da pasta neste delta porque isso não é
-  necessário para corrigir a divergência comprovada e ampliaria o lifecycle.
+- Create a missing `ScreenShot` folder before name selection
+  (`MODERNIZACAO_COMPATIVEL`, 2026-10-31). A patch cannot ship an empty
+  folder, so installed clients lacked it. The installed client log recorded
+  `Can't capture screen` twice at 2026-10-30 21:47:30 without the folder. An
+  existing folder is not an error; another creation failure is logged and
+  stops the capture. Failure logs now include the error code.
+- Replace the `D3DXIFF_JPG` writer (`MODERNIZACAO_COMPATIVEL`, 2026-10-31).
+  The linked static D3DX9 library wrote a 1024x768 back buffer as a 768x1024
+  JPG: the left 768 columns, then undefined rows. The client now copies the
+  back buffer to a system-memory surface with `GetRenderTargetData`, converts
+  32-bit, 565 and 1555 rows to 24-bit BGR and encodes the JPG through WIC.
+  Multisampled back buffers are resolved first. An automated test writes a
+  1024x768 JPG through the same encoder and checks its frame header.
 
 ## Lacunas
 

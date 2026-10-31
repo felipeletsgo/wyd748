@@ -265,7 +265,18 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			}
 		}
 		if !blocked && skill.AffectType > 0 {
-			setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.AffectType), skill.AffectValue, mastery, skill.AffectTime, now)
+			duration := skill.AffectTime
+			if skill.Index == 40 {
+				duration = 4
+			}
+			applied := setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.AffectType), skill.AffectValue, mastery, duration, now)
+			if applied && skill.Index == 40 && skill.AffectType == 20 {
+				for i := range target.Char.Affects {
+					if target.Char.Affects[i].Type == 20 {
+						target.Char.Affects[i].FinalTickAtExpiry = true
+					}
+				}
+			}
 		}
 		if !blocked && skill.TickType > 0 {
 			setOwnedAffectForPlayerAt(target.Char, caster, byte(skill.TickType), skill.TickValue, mastery, skill.AffectTime, now)

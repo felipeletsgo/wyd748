@@ -48,7 +48,7 @@ The server minimum must match every published client patch that raises the revis
 - An explicitly authorized working-tree package may select dirty or ignored files.
 - For that path, record HEAD, dirty scope, entry paths, sizes, SHA-256, build inputs, dependencies, and provenance.
 - Mark it working-tree, inspect the archive, and do not pass it to the Git-revision builder.
-- Do not stage or commit silently or include unrelated dirty files.
+- Do not stage or commit silently; follow the commit scope in the AGENTS.md Git rules.
 - Inspect dependency closure: executable, descriptions, tables, meshes, textures, UI, shaders, and loaders.
 - Preserve path casing and launcher names; do not assume an executable-only ZIP includes required assets.
 - Exclude credentials, account state, local settings, unrelated files, launcher self-updates, and update.dat.

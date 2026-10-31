@@ -65,7 +65,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			ch.Score.Defense = celestialBaseDefense(ch.ArchCrystals)
 			ch.RuntimeScore = nil
 			ch.LearnedSkill, ch.SecondaryLearnedSkill = celestialSoulBit, 0
-			ch.ShortSkill, ch.Affects = [20]byte{}, itemBuffsOnly(ch.Affects) // potion buffs survive
+			ch.ShortSkill, ch.Affects = emptyShortSkills(), itemBuffsOnly(ch.Affects) // potion buffs survive
 			ch.Equip[1] = cythera
 			kingdom := model.KingdomFromCape(ch.Equip[model.CapeSlot].Index)
 			cape, _ := model.KingdomCapeAtTier(model.CapeTierMaster, kingdom)
@@ -114,6 +114,7 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 			ch.AlternateCelestial = &model.CelestialForm{
 				Evolution: "subcelestial", Class: byte(subClass), Face: subFace,
 				Score: newCelestialScore(byte(subClass), ch.Score), LearnedSkill: celestialSoulBit,
+				ShortSkill: emptyShortSkills(),
 			}
 			ch.AlternateCelestial.Score.Defense = celestialBaseDefense(ch.ArchCrystals)
 			consumeOne(item)
@@ -200,8 +201,8 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 		}
 	}}
 	publish := func() {
-		w.resendInventory(p)
 		w.syncCelestialPlayer(p)
+		w.resendInventory(p)
 		p.Session.Send(wire.MessagePanel(message))
 	}
 	if selection {

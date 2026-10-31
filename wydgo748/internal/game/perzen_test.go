@@ -231,7 +231,7 @@ func TestPerzenDatasetAndServiceIdentity(t *testing.T) {
 		for _, expected := range []struct {
 			name string
 			x, y uint16
-		}{{"Perzen_Normal", 2463, 2009}, {"Perzen_Myst", 2133, 2080}, {"Perzen_Arc", 2133, 2082}} {
+		}{{"Perzen_Normal", 2463, 2009}, {"Perzen_Myst", 2133, 2080}, {"Perzen_Arc", 2480, 1705}} {
 			count := 0
 			for _, g := range geners {
 				if g.Enabled && g.Leader == expected.name {

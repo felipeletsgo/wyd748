@@ -593,9 +593,10 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         m_dwDodgeTime = dwServerTime;
     }
 
-    // FUN_00506f9d: affect 15 uses a 1.5-unit texture-93 plane, positioned
-    // 0.4 units above terrain (native float at 0x005A4154), not at head height.
-    constexpr float kSkillAmpGroundOffset = 0.4f;
+    // FUN_00506f9d: affect 15 uses a 1.5-unit texture-93 plane on terrain, not
+    // at head height. Native lifts it 0.4 units (0x005A4154), which reads as
+    // shin height; the owner chose the 0.05 ground-decal lift at the feet.
+    constexpr float kSkillAmpGroundOffset = 0.05f;
     if (m_cSKillAmp == 1)
     {
         if (m_pSkillAmp)

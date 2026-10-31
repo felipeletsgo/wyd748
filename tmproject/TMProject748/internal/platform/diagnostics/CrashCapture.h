@@ -155,7 +155,10 @@ namespace wyd_crash
     inline bool Install(const char* directory, LogSink log)
     {
         if (state.installed)
+        {
+            SetUnhandledExceptionFilter(Filter);
             return true;
+        }
         state.log = log;
         if (!directory || std::strlen(directory) >= sizeof(state.directory))
         {

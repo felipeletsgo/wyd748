@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TMFieldScene.h"
+#include "SkillAttackRequest.h"
 #include "TMCamera.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
@@ -1445,7 +1446,10 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 		pAttacker->m_bDoubleAttack = (pAttack->DoubleCritical & 1) != 0;
 
 	if (!pTarget)
+	{
 		pAttacker->Attack((ECHAR_MOTION)pAttack->Motion, TMVector2((float)pAttack->TargetX, (float)pAttack->TargetY), static_cast<char>(pAttack->SkillIndex));
+		fAngle = pAttacker->m_fWantAngle;
+	}
 	else if ((unsigned char)pAttack->Motion != 254)
 	{
 		if (pAttacker->m_sHeadIndex <= 50)
@@ -1459,7 +1463,21 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			fAngle = atan2f(pTarget->m_vecPosition.x - pAttacker->m_vecPosition.x, pTarget->m_vecPosition.y - pAttacker->m_vecPosition.y) + D3DXToRadian(90);
 	}
 
-	if (pAttack->SkillIndex == 98) // Superior Cannon
+	if (pAttack->SkillIndex == 94 && (!pTarget || pTarget == pAttacker))
+	{
+		// Area packet coordinates are the caster's center. Use a live hit
+		// target for facing when the first target has left the scene.
+		for (int i = 0; i < targetCount; ++i)
+		{
+			auto* target = g_pObjectManager->GetHumanByID(pAttack->Dam[i].TargetID);
+			if (!target || target == pAttacker) continue;
+			fAngle = skill_attack::Facing(fAngle,
+				target->m_vecPosition.x - pAttacker->m_vecPosition.x,
+				target->m_vecPosition.y - pAttacker->m_vecPosition.y);
+			break;
+		}
+	}
+	if (pAttack->SkillIndex == 97) // Conjure Cannon in 7.48.
 		fAngle = atan2f((float)pAttack->TargetX - pAttacker->m_vecPosition.x, (float)pAttack->TargetY - pAttacker->m_vecPosition.y) + D3DXToRadian(90);
 	if (pAttacker->m_nClass != 44)
 		pAttacker->SetWantAngle(fAngle);
@@ -1950,8 +1968,9 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			}
 		}
 	}
-	else if (pAttack->SkillIndex == 99) // Wall of Thorns
+	else if (pAttack->SkillIndex == 98 || pAttack->SkillIndex == 99)
 	{
+		// Native FUN_00489a3e also creates the fading character for Resurrection.
 		if (pTarget)
 		{
 			bool bExpand = false;
@@ -1994,7 +2013,8 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			}
 			else
 			{
-				pEffectSkinMesh->m_pSkinMesh->SetAnimation(g_MobAniTable[pEffectSkinMesh->m_nSkinMeshType].dwAniTable[0]);
+				if (pEffectSkinMesh->m_pSkinMesh)
+					pEffectSkinMesh->m_pSkinMesh->SetAnimation(g_MobAniTable[pEffectSkinMesh->m_nSkinMeshType].dwAniTable[0]);
 			}
 
 			pEffectSkinMesh->m_fStartAngle = pTarget->m_fAngle;
@@ -2002,6 +2022,14 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			pEffectSkinMesh->m_nMotionType = 8;
 
 			m_pEffectContainer->AddChild(pEffectSkinMesh);
+		}
+		if (pAttack->SkillIndex == 99) // Resurrection in 7.48.
+		{
+			if (pTarget && m_pEffectContainer)
+				m_pEffectContainer->AddChild(new TMEffectLevelUp(TMVector3(
+					pTarget->m_vecPosition.x, pTarget->m_fHeight, pTarget->m_vecPosition.y), 1));
+			GetSoundAndPlay(156, 0, 0);
+			return ExtractedFlow::Next;
 		}
 
 		unsigned int dwColor = 0xAAAAAAAA;
@@ -2031,10 +2059,6 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 		m_pEffectContainer->AddChild(pShade);
 
 		GetSoundAndPlay(1, 0, 0);
-	}
-	else if (pAttack->SkillIndex == 100) // Resurrection
-	{
-		GetSoundAndPlay(156, 0, 0);
 	}
 	else if (pAttack->SkillIndex == 106 || pAttack->SkillIndex == 108)
 	{

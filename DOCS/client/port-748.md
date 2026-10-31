@@ -117,28 +117,19 @@ Other overflow-prone application threads must reserve their own exception
 stack at thread entry. The test covers both main-thread and secondary-thread
 overflow; it does not establish that every application thread is instrumented.
 
-`CrashMonitor.h` adds an external collector because fail-fast termination can
-bypass in-process exception handlers. Startup launches the same executable in
-`--wyd-crash-monitor` mode before normal application initialization. This mode
-validates its actual parent and matching executable path, attaches only to
-that parent and exits without loading game assets, Direct3D or networking.
-It passes ordinary exceptions through, captures unhandled second-chance
-exceptions and lets the original fatal termination continue. It is not a
-recovery mechanism. Normal and handled-exception exits produce no dump.
-The helper uses `DebugSetProcessKillOnExit(FALSE)` so its own exit does not
-kill an otherwise healthy game. An existing debugger skips helper startup;
-attachment failures are logged and retain the in-process fallback. Startup
-waits at most five seconds for readiness. Storage failures, external process
-termination or a stuck dump writer can still prevent capture; neither path
-guarantees a dump for every possible termination.
+The source candidate for client 7.48.013 retires the external
+`CrashMonitor.h` collector in response to the Defender report. Published
+clients through 7.48.012 launched the same executable with
+`--wyd-crash-monitor` and attached to the game using `DebugActiveProcess`.
+The candidate starts no helper and keeps only the in-process filter and worker
+above. A fail-fast termination can bypass that filter and may not produce a
+dump.
 
-Captures use UTC time, milliseconds, PID and the faulting thread ID in their
-names, under `dumps/` beside the executable. External collector records are
-written to `dumps/crash-monitor-p<PID>.log`. Dumps are created exclusively as
-`.dmp.partial`, checked for nonempty
-output and flushed before being renamed to `.dmp`. Failures retain partial
-evidence and report Windows error codes; they never report an empty file as
-a successful dump.
+In-process captures use UTC time, milliseconds, PID and the faulting thread ID
+in names under `dumps/` beside the executable. Dumps are created exclusively
+as `.dmp.partial`, checked for nonempty output and flushed before being renamed
+to `.dmp`. Failures retain partial evidence and report Windows error codes;
+they never report an empty file as a successful dump.
 
 `client-debug.log`, beside the executable, prefixes records with UTC time,
 PID, thread ID and elapsed milliseconds. Startup records identify the loaded
@@ -2905,6 +2896,10 @@ packet. Never add protocol-variant selection during authentication or
 elsewhere; this source implements only the 7.48 contract.
 
 ## Heap failure in chat list, patch 10042 (2026-10-23)
+
+This incident and the hardening notes below describe older clients that used
+the external collector. The 7.48.013 source candidate removes that collector;
+its historical dumps and logs remain evidence for the original incident.
 
 Evidence: `tmproject/client748/dumps/client-crash-20261023-001533-597-p22476-t34116.dmp`
 and `crash-monitor-p22476.log`, written by the external collector for the

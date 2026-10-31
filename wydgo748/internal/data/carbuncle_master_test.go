@@ -30,28 +30,21 @@ func TestCarbMastersUseBuffNPCProfile(t *testing.T) {
 	}
 }
 
-func TestArchRemovedAndAncientCarbuncleDisabled(t *testing.T) {
+func TestInactiveNPCDefinitionsAndGeneratorsAreRemoved(t *testing.T) {
 	root := filepath.Join("..", "..", "data")
-	if _, err := os.Stat(filepath.Join(root, "npcs", "Arch.json")); !os.IsNotExist(err) {
-		t.Fatalf("template Arch deveria ter sido removido, stat err=%v", err)
+	removed := map[string]bool{"Arch": true, "Compounder": true, "Carbunkle_Anct": true}
+	for name := range removed {
+		if _, err := os.Stat(filepath.Join(root, "npcs", name+".json")); !os.IsNotExist(err) {
+			t.Fatalf("inactive NPC definition %s remains: %v", name, err)
+		}
 	}
 	geners, err := LoadChannelNPCGener(filepath.Join(root, "spawns", "NPCGener.txt"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	ancientSections := 0
 	for _, gener := range geners {
-		if gener.Leader == "Arch" || gener.Follower == "Arch" {
-			t.Fatalf("gerador residual do NPC Arch: %+v", gener)
+		if removed[gener.Leader] || removed[gener.Follower] {
+			t.Fatalf("inactive NPC generator remains: %+v", gener)
 		}
-		if gener.Leader == "Carbunkle_Anct" {
-			ancientSections++
-			if gener.Enabled {
-				t.Errorf("Carbunkle_Anct continua ativo: %+v", gener)
-			}
-		}
-	}
-	if ancientSections != 2 {
-		t.Fatalf("secoes preservadas de Carbunkle_Anct=%d, esperado 2", ancientSections)
 	}
 }

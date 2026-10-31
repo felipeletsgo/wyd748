@@ -2,9 +2,9 @@
 // Do not fill unknown values with estimates or describe planned systems as live.
 export const clientRelease = {
   version: 2,
-  // Release line 7.48: the launcher's [VERSION] 48012 is shown as 7.48.012.
-  clientVersion: '7.48.012',
-  feedVersion: 48012,
+  // Release line 7.48: the launcher's [VERSION] 48017 is shown as 7.48.017.
+  clientVersion: '7.48.017',
+  feedVersion: 48017,
   publishedAt: '2026-10-30' as string | null,
   launcherVersion: null,
   minimumLauncherVersion: null,
@@ -16,10 +16,10 @@ export const clientRelease = {
     sha256: null as string | null,
   },
   patch: {
-    url: '/patch/patch-48012.zip',
-    sizeBytes: 938967,
-    sha256: '065D2BB04C2692390AEBCBB24DE6DDA551BED004526E8D82DF7ED298994FEB9B',
-    executableSha256: '65B28644D6A2434CFEB67C838C66CB010B9E693D4B110518B7C773760FB2BB11',
+    url: '/patch/patch-48017.zip',
+    sizeBytes: 1449518,
+    sha256: 'DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676',
+    executableSha256: 'C65F7099AE7A0B34D9BFE5EE12A78C5EC81A16DDB9A69BDFA950909999CB7C08',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -29,6 +29,47 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-10-31', category: 'Client and server', title: 'Client 7.48.017 — Cube questions and Mystic Land', entries: [
+    'Cube: the room name closes after four seconds, and each question appears alone in a panel of the same size.',
+    'Mystic Land: hits on patrolling monsters register along their whole route, and each monster returns five seconds after death.',
+    'Mysterious Stone keeps the skill bar of each form and uses the Lactolerium icon. Two Weapon Fighting adds 10% + Trade/20, up to 26%.',
+    'Cubo: o nome da sala some após quatro segundos, e cada pergunta aparece sozinha num painel do mesmo tamanho.',
+    'Terra Mística: os golpes nos monstros que patrulham contam em toda a rota, e cada monstro volta cinco segundos após morrer.',
+    'A Pedra Misteriosa mantém a barra de skills de cada forma e usa o ícone do Lactolerium. Empunhar Duas Armas soma 10% + Trade/20, até 26%.',
+    'Every client update is mandatory. Atualização obrigatória pelo launcher. Gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-30', category: 'Client and server', title: 'Client 7.48.016 — mana, spell effects and item timers', entries: [
+    'Preserve high mana values in compact combat updates and correct Phoenix, Inferno, Meteor Storm, Blizzard, Resurrection and Holy Judgement effects.',
+    'Correct Guardian Cannon targeting, Premium Nell item tooltips, full heal numbers and fairy timer labels and updates.',
+    'Poison Mist applies four hits over 32 seconds. Iron Spear can hit one additional authorized enemy within one tile of its target.',
+    'Preserva valores altos de mana e corrige efeitos de Fênix de Fogo, Inferno, Tempestade de Meteoro, Nevasca, Ressuscitar e Julgamento Divino.',
+    'Corrige Canhão Guardião, tooltips no Premium Nell, números de cura e unidades e atualização do temporizador das fadas.',
+    'Névoa Venenosa aplica quatro hits em 32 segundos. Lança de Ferro pode acertar um inimigo extra a até uma célula do alvo.',
+    'Every client update is mandatory. Atualização obrigatória pelo launcher. Gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-30', category: 'Client and server', title: 'Client 7.48.015 — equipment, skills and player reports', entries: [
+    'Correct equipment critical stacking, Huntress skills, cape icons and lighting, Resurrection, Holy Judgement, Pursuit and summon area hits.',
+    'Clear new Celestial skill bars, enable mount essence right click and add test amulets and 320-point crystals to ShopAmulet.',
+    'Restore fast-fail crash dumps through Windows Error Reporting. Every client update is mandatory.',
+    'Corrige crítico dos equipamentos, habilidades da HT, capas, Ressurreição, Julgamento Divino, Perseguição e ataques de área contra evocações.',
+    'Corrige a barra do Celestial, permite âmagos com botão direito e adiciona amuletos e cristais de 320 ao ShopAmulet.',
+    'Atualização obrigatória pelo launcher. Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-30', category: 'Client', title: 'Client 7.48.014 — Apprentice Mantle icon and color', entries: [
+    'Correct the Apprentice Mantle inventory icon and keep its green appearance after citizenship.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'Corrige o ícone do Manto do Aprendiz e mantém a aparência verde depois da cidadania.',
+    'Atualização obrigatória: feche o jogo, abra o launcher e aguarde antes de se conectar.',
+    'Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
+  { date: '2026-10-30', category: 'Client', title: 'Client 7.48.013 — master cape icons and crash reporting', entries: [
+    'Master Hekalotia, Akeronia and Adventurer capes now reuse their matching Elite cape icons in item grids. World appearance and item identity stay unchanged.',
+    'Crash diagnostics no longer launch a second process to attach to the game; in-process crash capture remains enabled.',
+    'Every client update is mandatory. Close the game and run the launcher before connecting.',
+    'As capas Mestre de Hekalotia, Akeronia e Aventureiro reutilizam o ícone correspondente das capas Elite no inventário e nos equipamentos.',
+    'O diagnóstico de falhas não inicia mais um segundo processo anexado ao jogo; a captura de falhas dentro do cliente continua ativa.',
+    'Automated checks passed; actual gameplay acceptance remains pending.',
+  ] },
   { date: '2026-10-30', category: 'Client and server', title: 'Client 7.48.012 — player report corrections', entries: [
     'Potion and ration macros keep continuous attack; automatic buffs renew on the normal cooldown; Ethereal Explosion uses a one-second delay.',
     'The server blocks PvP outside PvP areas. Another player can damage a BeastMaster summon only under PvP rules; /dispensar removes your summons.',

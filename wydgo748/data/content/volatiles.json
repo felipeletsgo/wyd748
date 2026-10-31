@@ -1547,6 +1547,16 @@
         }
       ],
       "description": "Love Candy: same event family as the Chocolate, with the full affect package."
+    },
+    "6017": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Test crystal: replaces both armor options with two 160-point effects; preserves refinement and tint."
+    },
+    "6018": {
+      "action": "repliction",
+      "consume": true,
+      "description": "Test crystal: replaces both armor options with two 160-point effects; preserves refinement and tint."
     }
   }
 }

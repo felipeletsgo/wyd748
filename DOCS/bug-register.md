@@ -31,7 +31,7 @@ in progress. No publication or restart is authorized by this register.
 | BUG-003 | P1 | Hell Gate has no visible monsters after entry | Version-3 historical populations, march, Dionys shop and Sand Lich selection published in server release 20261018T171412Z; gameplay pending |
 | BUG-004 | P2 | Blood Foema incoming damage reduction appears incorrect | Owner confirmed current behavior is correct; no change requested |
 | BUG-005 | P2 | Blood Foema mana consumption/control appears inconsistent | Owner confirmed current behavior is correct; no change requested |
-| BUG-006 | P2 | Divine Judgment deals damage without its visual effect | Client effect lifecycle investigation started; no fix yet |
+| BUG-006 | P2 | Divine Judgment deals damage without its visual effect | Candidate 16 keeps scene-owned finite billboards alive beyond the 300 ms controller; Release build passed; visual acceptance pending |
 | BUG-007 | P2 | Nightmare party entry and identification are not synchronized | Shared-zone party relocation corrected; automated checks passed, gameplay pending |
 | BUG-008 | P1 | Nightmare reconnect loses party and encounter HUD state | Server recovery implemented; automated checks passed, gameplay pending |
 | BUG-009 | P1 | Magic Chamber monsters disappear or remain untargetable | Party relocation and independent-run isolation corrected in source; automated checks passed, gameplay pending |

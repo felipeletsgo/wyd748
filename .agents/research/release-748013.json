@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "release": "7.48.013",
+  "feedVersion": 48013,
+  "status": "CLIENT_PATCH_PUBLISHED_SERVER_SITE_STAGED",
+  "authorization": {
+    "request": "Fix the client issue and upload the correction to the VPS.",
+    "clientPatchPublication": true,
+    "serverActivation": false,
+    "serviceRestart": false,
+    "playerDisconnect": false,
+    "microsoftSubmission": false
+  },
+  "source": {
+    "head": "bb2eebc4e10e58c7f5339d4a69bbcd3ee5abcbf0",
+    "branch": "main",
+    "mode": "working-tree",
+    "dirtyPathCountAtServerBuild": 22,
+    "serverManifest": "build/deploy/wyd-deploy-748013/release-manifest.json",
+    "serverManifestSHA256": "0748bc6f6b0ab28d478891f441c2c5f32321ae072c074c9f59b4bcebf7d60bbb"
+  },
+  "changes": [
+    "Remove the second crash-monitor process that attached to the game; retain in-process crash capture.",
+    "Map Master cape item IDs 3197, 3198 and 3199 to existing blue, red and white Elite cape icons 25, 26 and 27.",
+    "Keep world cape rendering, item identity and server catalog data unchanged.",
+    "Raise client build revision and staged server minimum to 13, one above published revision 12."
+  ],
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "revision": {
+    "clientBuildContract": 13,
+    "stagedServerMinimum": 13,
+    "activeServerMinimum": 12,
+    "previousPublished": 12
+  },
+  "clientPatch": {
+    "mode": "explicit-working-tree-payload",
+    "path": "build/patch/patch-48013.zip",
+    "sizeBytes": 943742,
+    "sha256": "87fc18525f2fb621591c8883a9476acbc91cd6b0140b01c9c86415c65e7e780a",
+    "entries": [
+      {
+        "path": "WYD.exe",
+        "sizeBytes": 2062848,
+        "sha256": "621fc4306968b5549ed7980f7c24418fd216b842e498b4e5ba1e43636d11ff78"
+      }
+    ],
+    "build": {
+      "command": "tmproject/Build-Client.ps1 -Configuration Release -NoDeploy",
+      "configuration": "Release/x86",
+      "candidatePath": "tmproject/build/TMProject748/Release/WYD.exe",
+      "workingTreeInputs": [
+        "tmproject/TMProject748/internal/app/scenes/NewApp.cpp",
+        "tmproject/TMProject748/internal/platform/diagnostics/ClientDiagnostics.cpp",
+        "tmproject/TMProject748/internal/platform/diagnostics/ClientDiagnostics.h",
+        "tmproject/TMProject748/internal/ui/GridItemPresentation.h",
+        "tmproject/TMProject748/internal/wire/ClientBuildContract.h"
+      ],
+      "removedInputs": [
+        "tmproject/TMProject748/internal/platform/diagnostics/CrashMonitor.h"
+      ],
+      "validationInputs": [
+        "tmproject/TMProject748/tests/CrashCaptureTests.cpp",
+        "tmproject/TMProject748/tests/GridInsertionTests.cpp"
+      ]
+    },
+    "dependencyClosure": "No new assets. The Master cape icons reuse textures already used by Elite capes.",
+    "crashMonitorArgumentPresent": false,
+    "debugActiveProcessImportPresent": false,
+    "localRuntimeInstalled": false
+  },
+  "validation": {
+    "client": {
+      "command": "tmproject/Build-Client.ps1 -Configuration Release -NoDeploy",
+      "status": "PASS",
+      "architectureChecks": 3176827,
+      "socketChecks": 281,
+      "crashCaptureChecks": 105,
+      "launcherChecks": 58,
+      "skinAndCostumeData": "PASS"
+    },
+    "go": {
+      "fullSuite": "PASS",
+      "vet": "PASS",
+      "note": "The server sources did not change after these checks; the cape icon change is client-only."
+    },
+    "portal": {
+      "build": "PASS",
+      "tests": 115,
+      "failures": 0,
+      "news": "Bilingual release article 52 included."
+    },
+    "serverArchive": {
+      "mode": "working-tree",
+      "payloadFiles": 7723,
+      "sizeBytes": 25716589,
+      "sha256": "5cea9d8fb697425be2c39247953ab98f96a9dff4dc4d654497d8a92e8ae86121",
+      "allPayloadPathsMatchManifest": true,
+      "archiveChecksumVerifiedOnVPS": true
+    },
+    "automatedTestDiagnostics": [
+      "The first portal build rejected the missing opening news front-matter delimiter; the delimiter was added.",
+      "The next portal test run found the newest-post assertion still expected 7.48.012; it was updated to 7.48.013.",
+      "The final portal build and all 115 tests passed."
+    ]
+  },
+  "publication": {
+    "date": "2026-10-30",
+    "feedAppend": "48013 patch-48013.zip",
+    "previousFeedEntriesPreserved": true,
+    "patchStagingRemoved": true,
+    "publicVerification": [
+      {
+        "scheme": "http",
+        "feedStatus": 200,
+        "patchStatus": 200,
+        "contentType": "application/zip",
+        "patchBytes": 943742,
+        "patchSHA256": "87fc18525f2fb621591c8883a9476acbc91cd6b0140b01c9c86415c65e7e780a",
+        "entrySHA256": "621fc4306968b5549ed7980f7c24418fd216b842e498b4e5ba1e43636d11ff78"
+      },
+      {
+        "scheme": "https",
+        "feedStatus": 200,
+        "patchStatus": 200,
+        "contentType": "application/zip",
+        "patchBytes": 943742,
+        "patchSHA256": "87fc18525f2fb621591c8883a9476acbc91cd6b0140b01c9c86415c65e7e780a",
+        "entrySHA256": "621fc4306968b5549ed7980f7c24418fd216b842e498b4e5ba1e43636d11ff78"
+      }
+    ]
+  },
+  "serverStage": {
+    "releaseId": "wyd-deploy-748013",
+    "remotePath": "/tmp/wyd-deploy-748013",
+    "uploaded": true,
+    "activated": false,
+    "archiveSHA256": "5cea9d8fb697425be2c39247953ab98f96a9dff4dc4d654497d8a92e8ae86121",
+    "manifestSHA256": "0748bc6f6b0ab28d478891f441c2c5f32321ae072c074c9f59b4bcebf7d60bbb",
+    "binaries": {
+      "wyd-server": "7d9dddbbb5fbdec8e72bec5447953738bc21e1438a4dc3852e2874a0c41dd305",
+      "wyd-player-api": "d2316bc8f19c104a8401668eb42cdc34c9579e4fdfeb3e6138b2217482b2f31e",
+      "wyd-log-reader": "744e79b5c4e707bf1d4d35817fddbad9c8a0a1267d5059a69bca09082bafdb1c"
+    }
+  },
+  "cleanup": {
+    "remotePatchStaging": "Removed by the publisher and verified absent.",
+    "publicDownloadVerification": "Retained at build/deploy/verify-client-748013 because automatic review blocked recursive deletion after the exact workspace path was verified.",
+    "serverReleaseStaging": "Intentionally retained on the VPS pending activation authority."
+  },
+  "activeState": {
+    "release": "/srv/wyd-go/releases/20261030T062404Z",
+    "gameSHA256": "f366eae2692fbbb47a583ca969aea472282d8691e7ba461ee4e19efea67e3bfe",
+    "playerAPISHA256": "33c4e6ea0dcf40061002e589b75ac356e7b8ae1420d1e403f94913495a918450",
+    "logReaderSHA256": "1877edac96036516a131200206a0c80a9f8396fa64f60316c0b1d98971ff760f",
+    "gameState": "active; zero automatic restarts",
+    "playerAPIState": "active; zero automatic restarts",
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    },
+    "establishedGameConnectionsAtLastCheck": 2,
+    "websiteManifest": "7.48.012"
+  },
+  "pending": [
+    "Activate the staged server and portal release only with explicit service-restart authority and no active game-channel connections; the updater refuses to restart with established connections.",
+    "The public website still advertises 7.48.012 until the staged release is activated.",
+    "Real-client icon acceptance and the players' Defender result remain pending.",
+    "No Microsoft submission was made."
+  ]
+}

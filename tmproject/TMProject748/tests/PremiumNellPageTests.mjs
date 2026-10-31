@@ -40,6 +40,14 @@ function fixture(online = true) {
   return { node, commands, update, buy, handlers, document, context };
 }
 
+test('hover tooltip distinguishes equal-name items with localized help', () => {
+ const f=fixture();
+ f.update({items:[{slot:0,id:1,name:'Divine Circle',price:1,details:['Reset Survival']},{slot:1,id:2,name:'Divine Circle',price:1,details:['Reset Trade']}]});
+ const cards=f.node('items').children;
+ assert.match(cards[0].title,/Reset Survival/);
+ assert.match(cards[1].title,/Reset Trade/);
+});
+
 test('page shares complete locale keys, falls back to English and escapes catalog text', () => {
   const f = fixture();
   assert.deepEqual(f.commands, ['ready']);

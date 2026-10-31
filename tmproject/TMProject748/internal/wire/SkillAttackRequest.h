@@ -1,12 +1,23 @@
 #pragma once
 
 #include "AttackFrameContract.h"
+#include <cmath>
 
 // Request preparation only: no transport, entity lookup, prediction or UI.
 // Packet is the existing MSG_Attack, not a new wire layout. The scene retains
 // target population and the different manual/automatic send/preview ordering.
 namespace skill_attack
 {
+inline bool InForwardCone(float facing, float target)
+{
+    const float delta = std::atan2(std::sin(target - facing), std::cos(target - facing));
+    return std::fabs(delta) <= 0.7853982f;
+}
+
+inline float Facing(float current, float dx, float dy)
+{
+    return dx == 0.0f && dy == 0.0f ? current : std::atan2(dx, dy) + 1.570796327f;
+}
 template<class Packet>
 Packet Base(unsigned int actorId, unsigned char skillIndex)
 {
