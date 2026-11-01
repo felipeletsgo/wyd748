@@ -22,6 +22,18 @@ resolved by the exact transaction status instead of being reported as rejected. 
 readiness, both channels, admission and backup `wydgo-20261101T064639Z.dump` were verified. Rollback:
 `20261101T050356Z`.
 
+## Channel processes R5 — activated 2026-11-01
+
+Release `20261101T165857Z` (full) is active since 16:58 UTC, and the game runs as one process per
+channel since 16:59 UTC: `wyd-game@1` (port 8281, Portuguese, staff panel) and `wyd-game@2` (port 8282,
+English). Both derive their configuration from `/etc/wyd-go/server.txt` through `wyd-channel-configs`.
+The owner approved the separation; no player was connected. Both run the packaged hash, readiness and
+the player API return 200, and each channel admits revision 17 and rejects revision 16 in its language.
+Production isolation check: killing channel 2 with SIGKILL left channel 1 on the same process, and
+channel 1 admitted a new login during the outage; systemd restarted channel 2. Rollback:
+`wyd-channel-processes disable` returns to `wyd-game.service`; release rollback `20261101T145133Z`.
+See the [release receipt](../.agents/research/release-748017.json).
+
 ## Server corrections R4 (W8 and W9) — activated 2026-11-01
 
 Game-only release `20261101T145133Z` is active since 14:51 UTC. The owner authorized publication
@@ -31,8 +43,8 @@ process for account leases. The running hash matches the package, both channels 
 is unchanged, and revision 16 is rejected while revision 17 reaches the credential check in each
 channel's language. Backup `wydgo-20261101T145133Z.dump` passed archive validation. Rollback:
 `20261101T064639Z` (the rollback script resets the v15–v20 markers; the exported singleton rows
-stay current for the older binary). The process runs as one process for both channels; the
-channel-process mode (`channel_peers`) is not configured. No News post: no player-visible change.
+stay current for the older binary). R5 then switched the game to one process per channel. No News
+post: no player-visible change.
 `CLIENT-TESTED`: pending. See the [release receipt](../.agents/research/release-748017.json).
 
 ## Participant rows W8 and account leases W9 phase 1 — source only, 2026-11-01

@@ -898,6 +898,113 @@
         "remoteStaging": "/tmp/wyd-deploy-r4-20261101 removed"
       },
       "evidenceDirectory": "build/r4-20261101/"
+    },
+    {
+      "id": "channel-processes-r5-20261101",
+      "classification": "MODERNIZACAO_COMPATIVEL",
+      "authorization": {
+        "request": "o restante esta aprovado (channel-process separation, client test, commit)",
+        "publication": true,
+        "gameRestart": true,
+        "channelCutover": true,
+        "disconnectedPlayers": 0
+      },
+      "source": {
+        "head": "e4f72a35c42663591e1829e405b5272a90f50d27",
+        "mode": "tracked-working-tree",
+        "gameOnly": false,
+        "manifest": "build/deploy/wyd-deploy-r5-20261101/release-manifest.json",
+        "scope": "Full release: channel-configs.py, wyd-channel-processes, wyd-game@.service, channel-mode update-release.sh, log reader reads every game unit. Then the game switched from wyd-game.service to wyd-game@1 and wyd-game@2."
+      },
+      "package": {
+        "releaseId": "wyd-deploy-r5-20261101",
+        "archiveSha256": "154066cb476f95a87379feaef552c577e79e2a1ccc73cdc4d625b2a194c25b9d",
+        "wydServerSha256": "f2d81c6ad028304f803cf9c3cedb439e0fb12a280bfafc964fb9d19c28807846"
+      },
+      "active": {
+        "release": "/srv/wyd-go/releases/20261101T165857Z",
+        "rollback": "/srv/wyd-go/releases/20261101T145133Z",
+        "rollbackChannelMode": "wyd-channel-processes disable restores wyd-game.service",
+        "services": {
+          "wyd-game": "inactive, disabled",
+          "wyd-game@1": {
+            "listen": 8281,
+            "language": "pt",
+            "staffPanel": true,
+            "restarts": 0
+          },
+          "wyd-game@2": {
+            "listen": 8282,
+            "language": "en",
+            "staffPanel": false,
+            "restartsAfterIsolationTest": 1
+          }
+        },
+        "processes": [
+          "wydgo-game/ch1/4f9e369e0be12fad",
+          "wydgo-game/ch2/96457411e7487077"
+        ],
+        "backups": [
+          "wydgo-20261101T165857Z release backup",
+          "/var/backups/wyd-go/wydgo-20261101T165917Z.dump (switch, 0 restore-list errors)"
+        ],
+        "schema": 20,
+        "readiness": {
+          "staffPanel": 200,
+          "playerApi": 200
+        },
+        "logReader": "journalctl --unit=wyd-game*.service reads both units"
+      },
+      "admission": {
+        "at": "2026-11-01T16:59:46.547687+00:00",
+        "results": [
+          {
+            "port": 8281,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+          },
+          {
+            "port": 8281,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Conta ou senha incorreta."
+          },
+          {
+            "port": 8282,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8282,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          }
+        ],
+        "realAccountAuthenticated": false
+      },
+      "isolation": {
+        "method": "systemctl kill -s KILL wyd-game@2 with no player connected",
+        "duringOutage": "port 8282 closed; wyd-game@1 kept PID 3126727 and answered a new revision-17 login with the credential check",
+        "recovery": "systemd restarted wyd-game@2 (NRestarts=1); port 8282 listening; only the channel 2 process registration changed; channel 1 kept its 5 database backends"
+      },
+      "journal": {
+        "panics": 0,
+        "errors": 0
+      },
+      "validation": {
+        "loadSimulation": "600 players in two channel processes, production limits (build/w9-load-20261101/)",
+        "localIsolation": "build/w9-isolation-20261101/",
+        "logreaderTests": "PASS",
+        "clientGameplay": "Approved by the owner"
+      },
+      "news": "No post: no gameplay change.",
+      "cleanup": {
+        "remoteStaging": "/tmp/wyd-deploy-r5-20261101 removed"
+      },
+      "evidenceDirectory": "build/r5-20261101/"
     }
   ]
 }

@@ -767,6 +767,24 @@ the future recovery workflow, not an executable recovery recipe. The
 track that work; the [October 7 audit](s2-closure-audit-2026-10-07.md)
 records automated coverage and its limitations.
 
+## Channel processes on the VPS
+
+Since 2026-11-01 each channel runs in its own process: `wyd-game@1` (port 8281, staff panel) and
+`wyd-game@2` (port 8282). Both read configurations that `wyd-channel-configs` derives from
+`/etc/wyd-go/server.txt`; edit only `server.txt`. A full release regenerates both files and restarts
+both units; a game-only release restarts both units. Each command refuses while a player is connected.
+
+| Task | Command (root) |
+| --- | --- |
+| Switch to channel processes | `wyd-channel-processes enable` |
+| Return to one process for both channels | `wyd-channel-processes disable` |
+| Restart one channel | `systemctl restart wyd-game@2` |
+| Read the logs of both channels | `journalctl -u 'wyd-game*.service'` |
+
+A failure or restart of one channel process keeps the other channel's sessions and admission. The
+staff panel of channel 1 lists the players of both channels and routes kick and teleport to the
+process that holds the session.
+
 ## Stop, backup, and restore
 
 Press Ctrl+C on Windows or send SIGTERM on Linux. The signal handler stops the

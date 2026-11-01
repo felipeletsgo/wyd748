@@ -1,6 +1,6 @@
 # Server correction plan
 
-Updated: 2026-11-01. Status: W0–W7 active since release `20261101T050356Z` (R1–R3); W8 and W9 active in release `20261101T145133Z` (R4) in single-process mode; the channel-process cutover needs separate authorization; G is closed by the owner's client confirmation.
+Updated: 2026-11-01. Status: W0–W7 active since release `20261101T050356Z` (R1–R3); W8 and W9 active since release `20261101T145133Z` (R4); one process per channel since release `20261101T165857Z` (R5); G is closed by the owner's client confirmation.
 The [bug register](../bug-register.md#w6-activation-cost--source-2026-10-31) records W0–W6 evidence.
 
 ## Scope and ownership
@@ -87,8 +87,8 @@ R1–R3 (W0–W7) are active in release `20261101T050356Z` since 2026-11-01. Evi
 | W5 | Done in source | VPS resource measurements (P6); systemd restart-budget test |
 | W6 | Done | Production confirmation of the movement cost on the VPS |
 | W7 | Done in source | Slow-autosave matrix on the VPS; command-delay percentiles under load (acceptance) |
-| W8 | Active in R4 (release `20261101T145133Z`, schema v15/v16) | VPS skip rate and latency with players |
-| W9 | Phases 1–5 active in R4 in single-process mode (schema v17–v20); local isolation acceptance passed | Channel-process cutover: configuration, unit, VPS measurement and separate authorization |
+| W8 | Done: active in R4 (release `20261101T145133Z`, schema v15/v16); 600-player simulation without skipped instance ticks | None |
+| W9 | Done: phases 1–5 active (R4, schema v17–v20); one process per channel since R5; VPS isolation check passed | None |
 | G | Closed | The owner confirmed BUG-001–BUG-011 fixed in the client on 2026-11-01 |
 
 W7–W9 change durable ordering, the schema or the process model. Start each as its own reviewed
