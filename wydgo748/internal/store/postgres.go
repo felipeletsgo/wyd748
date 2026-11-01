@@ -50,7 +50,7 @@ var postgresNPCDefinitionsSchema string
 var postgresNPCExactNamesSchema string
 
 const postgresWriteQueueSize = 2048
-const postgresSchemaVersion = 14
+const postgresSchemaVersion = 20
 const postgresOperationTimeout = 10 * time.Second
 const postgresStartupTimeout = 30 * time.Second
 const postgresAutosaveBatchSize = 64
@@ -92,6 +92,10 @@ type PostgresConfig struct {
 	// FenceGameInstance marks this pool as the authoritative game server and
 	// ends a previous instance's backends before use (postgres_instance_fence.go).
 	FenceGameInstance bool
+	// FenceChannel limits the fence to one channel's previous process when
+	// each channel runs in its own process (W9 phase 5). 0 fences every game
+	// process.
+	FenceChannel byte
 }
 
 type postgresItem struct {
@@ -163,6 +167,17 @@ type PostgresStore struct {
 	writeSeq         atomic.Uint64
 	coalesced        atomic.Uint64
 	guildExportGen   atomic.Uint64
+	// instanceExportGen coalesces rollback exports of the instance rows (W8).
+	instanceExportGen atomic.Uint64
+	// guildStateExportGen coalesces exports of the guild rows (W8).
+	guildStateExportGen atomic.Uint64
+	// gameInstance names this process for instance fencing and account
+	// leases (W9). It is empty for tools and panels. leaseProcess is set once
+	// the process registers for leases; account writes are then fenced.
+	gameInstance     string
+	leaseProcess     atomic.Pointer[string]
+	fenceChannel     byte
+	guildSync        atomic.Bool
 	closeOnce        sync.Once
 	closed           bool
 	readOnly         bool
@@ -238,7 +253,7 @@ func (s *PostgresStore) Ping(ctx context.Context) error {
 func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, error) {
 	instance := ""
 	if cfg.FenceGameInstance {
-		name, err := newGameInstanceName()
+		name, err := newGameInstanceName(cfg.FenceChannel)
 		if err != nil {
 			return nil, fmt.Errorf("store: game instance name: %w", err)
 		}
@@ -249,7 +264,7 @@ func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, 
 		return nil, err
 	}
 	if instance != "" {
-		if _, err := fencePreviousGameInstances(ctx, pool, instance); err != nil {
+		if _, err := fencePreviousGameInstances(ctx, pool, instance, cfg.FenceChannel); err != nil {
 			pool.Close()
 			return nil, err
 		}
@@ -261,6 +276,7 @@ func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, 
 		return nil, fmt.Errorf("store: apply PostgreSQL schema: %w", err)
 	}
 	s := newPostgresStore(pool, cfg)
+	s.gameInstance, s.fenceChannel = instance, cfg.FenceChannel
 	publishPrimaryPool(pool)
 	go s.persistLoop()
 	return s, nil
@@ -405,6 +421,70 @@ func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
 	}
 	if currentVersion < 14 {
 		if _, err := conn.Exec(ctx, postgresNPCExactNamesSchema); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 15 {
+		// W8: split the instance aggregate into participant rows atomically.
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		if err := migrateInstanceRows(ctx, tx); err != nil {
+			_ = tx.Rollback(context.Background())
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO schema_migrations(version) VALUES (15) ON CONFLICT (version) DO NOTHING`); err != nil {
+			_ = tx.Rollback(context.Background())
+			return err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 16 {
+		// W8: split the guild registry into participant rows atomically.
+		tx, err := conn.Begin(ctx)
+		if err != nil {
+			return err
+		}
+		if err := migrateGuildRows(ctx, tx); err != nil {
+			_ = tx.Rollback(context.Background())
+			return err
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO schema_migrations(version) VALUES (16) ON CONFLICT (version) DO NOTHING`); err != nil {
+			_ = tx.Rollback(context.Background())
+			return err
+		}
+		if err := tx.Commit(ctx); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 17 {
+		// W9 phase 1: account ownership leases shared by game processes.
+		if _, err := conn.Exec(ctx, postgresAccountLeasesSchema+`
+			INSERT INTO schema_migrations(version) VALUES (17) ON CONFLICT (version) DO NOTHING;`); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 18 {
+		// W9 phase 2: durable channel transfer tickets.
+		if _, err := conn.Exec(ctx, postgresChannelTicketsSchema+`
+			INSERT INTO schema_migrations(version) VALUES (18) ON CONFLICT (version) DO NOTHING;`); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 19 {
+		// W9 phase 4: cross-process channel messages.
+		if _, err := conn.Exec(ctx, postgresChannelMessagesSchema+`
+			INSERT INTO schema_migrations(version) VALUES (19) ON CONFLICT (version) DO NOTHING;`); err != nil {
+			return err
+		}
+	}
+	if currentVersion < 20 {
+		// W9 phase 5: guild names stay unique across game processes.
+		if _, err := conn.Exec(ctx, postgresGuildNamesSchema+`
+			INSERT INTO schema_migrations(version) VALUES (20) ON CONFLICT (version) DO NOTHING;`); err != nil {
 			return err
 		}
 	}
@@ -1044,7 +1124,7 @@ func (s *PostgresStore) withSerializableTx(run func(context.Context, pgx.Tx) err
 	return fmt.Errorf("store: concurrent PostgreSQL transaction exceeded retries: %w", last)
 }
 
-func persistAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accountSnapshot, createOnly bool) error {
+func writeAccountSnapshots(ctx context.Context, tx pgx.Tx, snapshots []*accountSnapshot, createOnly bool) error {
 	for _, snapshot := range snapshots {
 		var err error
 		if createOnly {
@@ -1514,7 +1594,7 @@ func validDirectoryKey(value string, allowEmpty bool) bool {
 func (s *PostgresStore) saveSnapshots(snapshots []*accountSnapshot) error {
 	s.forgetUnchanged(accountSnapshotKeys(snapshots), nil)
 	return s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		return persistAccountSnapshots(ctx, tx, snapshots, false)
+		return s.persistAccountSnapshots(ctx, tx, snapshots, false)
 	})
 }
 
@@ -1583,7 +1663,7 @@ func (s *PostgresStore) CreateAccount(acc *model.Account) error {
 	}
 	s.fenceAccountSnapshots(seq, []*accountSnapshot{snapshot})
 	err = s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		return persistAccountSnapshots(ctx, tx, []*accountSnapshot{snapshot}, true)
+		return s.persistAccountSnapshots(ctx, tx, []*accountSnapshot{snapshot}, true)
 	})
 	if isUniqueViolation(err) {
 		return ErrAccountExists
@@ -1633,53 +1713,25 @@ func (s *PostgresStore) CharacterNames() (map[string]struct{}, error) {
 func (s *PostgresStore) LoadGuilds() (*model.GuildRegistry, error) {
 	ctx, cancel := s.postgresReadContext()
 	defer cancel()
-	var payload []byte
-	err := s.pool.QueryRow(ctx,
-		`SELECT payload FROM guild_state WHERE singleton=true`).Scan(&payload)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return &model.GuildRegistry{Version: model.GuildRegistryVersion}, nil
-	}
+	// Participant rows are authoritative since schema v16 (W8).
+	registry, ok, err := loadGuildRows(ctx, s.pool)
 	if err != nil {
 		return nil, err
 	}
-	var registry model.GuildRegistry
-	decoder := json.NewDecoder(bytes.NewReader(payload))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&registry); err != nil {
-		return nil, fmt.Errorf("store: corrupt guild state: %w", err)
-	}
-	if err := decoder.Decode(&struct{}{}); err != io.EOF {
-		return nil, errors.New("store: guild state contains trailing JSON")
+	if !ok {
+		return &model.GuildRegistry{Version: model.GuildRegistryVersion}, nil
 	}
 	if err := registry.Validate(); err != nil {
 		return nil, err
 	}
-	return &registry, nil
+	return registry, nil
 }
 
 func (s *PostgresStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
 	ctx, cancel := s.postgresReadContext()
 	defer cancel()
-	var payload []byte
-	err := s.pool.QueryRow(ctx,
-		`SELECT payload FROM instance_state WHERE singleton=true`).Scan(&payload)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return &model.InstanceStateSnapshot{Version: model.InstanceStateVersion}, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	var state model.InstanceStateSnapshot
-	decoder := json.NewDecoder(bytes.NewReader(payload))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&state); err != nil {
-		return nil, fmt.Errorf("store: corrupt instance state: %w", err)
-	}
-	if state.Version != model.InstanceStateVersion {
-		return nil, fmt.Errorf("store: instance state version %d; expected %d",
-			state.Version, model.InstanceStateVersion)
-	}
-	return &state, nil
+	// Participant rows are authoritative since schema v15 (W8).
+	return loadInstanceRows(ctx, s.pool)
 }
 
 func (s *PostgresStore) SaveInstanceState(state *model.InstanceStateSnapshot) error {
@@ -1693,24 +1745,18 @@ func (s *PostgresStore) SaveInstanceState(state *model.InstanceStateSnapshot) er
 		return fmt.Errorf("store: instance state version %d; expected %d",
 			state.Version, model.InstanceStateVersion)
 	}
-	b, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
 	release, err := s.beginPostgresWrite()
 	if err != nil {
 		return err
 	}
 	defer release()
-	return s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		_, err := tx.Exec(ctx, `
-			INSERT INTO instance_state(singleton,payload) VALUES(true,$1)
-			ON CONFLICT(singleton) DO UPDATE SET
-				payload=EXCLUDED.payload,
-				version=instance_state.version+1,
-				updated_at=now()`, b)
+	if err := s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
+		return writeInstanceRows(ctx, tx, state, nil)
+	}); err != nil {
 		return err
-	})
+	}
+	s.scheduleInstanceExport()
+	return nil
 }
 
 func (s *PostgresStore) SaveGameState(guilds *model.GuildRegistry, accounts ...*model.Account) error {
@@ -1740,21 +1786,9 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 		return fmt.Errorf("store: instance state version %d; expected %d",
 			state.Version, model.InstanceStateVersion)
 	}
-	var guildPayload []byte
 	if guilds != nil {
 		if err := guilds.Validate(); err != nil {
 			return fmt.Errorf("store: invalid guilds: %w", err)
-		}
-		guildPayload, err = json.Marshal(guilds)
-		if err != nil {
-			return err
-		}
-	}
-	var instancePayload []byte
-	if state != nil {
-		instancePayload, err = json.Marshal(state)
-		if err != nil {
-			return err
 		}
 	}
 	unlockFences := s.accountFences.lock(accountModelKeys(accounts...)...)
@@ -1765,39 +1799,31 @@ func (s *PostgresStore) saveGameStateWithInstanceState(state *model.InstanceStat
 	}
 	s.fenceAccountSnapshots(seq, snapshots)
 	err = s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
+		if err := s.persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
 		}
 		if guilds != nil {
-			_, err := tx.Exec(ctx, `
-				INSERT INTO guild_state(singleton,payload) VALUES(true,$1)
-				ON CONFLICT(singleton) DO UPDATE SET
-					payload=EXCLUDED.payload,
-					version=guild_state.version+1,
-					updated_at=now()`, guildPayload)
-			if err != nil {
+			if err := s.persistGuildRows(ctx, tx, guilds, nil); err != nil {
 				return err
 			}
 		}
 		if state != nil {
-			_, err := tx.Exec(ctx, `
-				INSERT INTO instance_state(singleton,payload) VALUES(true,$1)
-				ON CONFLICT(singleton) DO UPDATE SET
-					payload=EXCLUDED.payload,
-					version=instance_state.version+1,
-					updated_at=now()`, instancePayload)
-			return err
+			return writeInstanceRows(ctx, tx, state, nil)
 		}
 		return nil
 	})
 	if err != nil {
 		return err
 	}
+	if state != nil {
+		s.scheduleInstanceExport()
+	}
 	if guilds != nil && s.guildsTxtPath != "" {
 		// Guilds.txt is a derived artifact: the PostgreSQL commit above is the
 		// truth. An export failure is retried and never reaches the handler as
 		// if the authoritative transaction had failed.
 		s.scheduleGuildExport(guilds)
+		s.scheduleGuildStateExport()
 	}
 	return nil
 }
@@ -1836,20 +1862,15 @@ func (s *PostgresStore) SavePlayerState(guilds *model.GuildRegistry, account *mo
 	if err != nil {
 		return err
 	}
-	var guildPayload []byte
 	if guilds != nil {
 		if err := guilds.Validate(); err != nil {
 			return fmt.Errorf("store: invalid guilds: %w", err)
-		}
-		guildPayload, err = json.Marshal(guilds)
-		if err != nil {
-			return err
 		}
 	}
 	s.fenceAccountSnapshots(seq, snapshots)
 	s.fenceCharStates(seq, stateKey)
 	if err := s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
+		if err := s.persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
 		}
 		if statePayload == nil {
@@ -1865,13 +1886,7 @@ func (s *PostgresStore) SavePlayerState(guilds *model.GuildRegistry, account *mo
 			return err
 		}
 		if guilds != nil {
-			_, err := tx.Exec(ctx, `
-				INSERT INTO guild_state(singleton,payload) VALUES(true,$1)
-				ON CONFLICT(singleton) DO UPDATE SET
-					payload=EXCLUDED.payload,
-					version=guild_state.version+1,
-					updated_at=now()`, guildPayload)
-			return err
+			return s.persistGuildRows(ctx, tx, guilds, nil)
 		}
 		return nil
 	}); err != nil {
@@ -1879,6 +1894,7 @@ func (s *PostgresStore) SavePlayerState(guilds *model.GuildRegistry, account *mo
 	}
 	if guilds != nil && s.guildsTxtPath != "" {
 		s.scheduleGuildExport(guilds)
+		s.scheduleGuildStateExport()
 	}
 	return nil
 }

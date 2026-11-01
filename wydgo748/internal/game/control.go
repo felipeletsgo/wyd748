@@ -13,6 +13,9 @@ import (
 type controlRequest struct {
 	ctx   context.Context
 	query control.Query
+	// all returns every matching player without a page, for merging the
+	// players of other channel processes.
+	all   bool
 	reply chan control.Overview
 }
 
@@ -34,7 +37,8 @@ func (w *World) Overview(ctx context.Context, q control.Query) (control.Overview
 	if !w.controlPending.CompareAndSwap(false, true) {
 		return control.Overview{}, control.ErrBusy
 	}
-	req := &controlRequest{ctx: ctx, query: q, reply: make(chan control.Overview, 1)}
+	remote := w.remotePeers() > 0
+	req := &controlRequest{ctx: ctx, query: q, all: remote, reply: make(chan control.Overview, 1)}
 	select {
 	case w.commands <- command{control: req, queuedAt: time.Now()}:
 	default:
@@ -43,6 +47,9 @@ func (w *World) Overview(ctx context.Context, q control.Query) (control.Overview
 	}
 	select {
 	case result := <-req.reply:
+		if remote {
+			result = w.mergeRemoteOverview(ctx, q, result)
+		}
 		return result, nil
 	case <-ctx.Done():
 		return control.Overview{}, ctx.Err()
@@ -93,6 +100,9 @@ func (w *World) AccountPresence(ctx context.Context, accounts []string) (map[str
 	}
 	select {
 	case result := <-req.reply:
+		if w.remotePeers() > 0 {
+			w.mergeRemotePresence(ctx, requested, result)
+		}
 		return result, nil
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -104,10 +114,17 @@ func (w *World) handleControl(req *controlRequest) {
 	if req.ctx.Err() != nil {
 		return
 	}
+	// Buffered reply remains non-blocking after a disconnected/timed-out caller.
+	req.reply <- w.buildOverview(req.query, req.all)
+}
+
+// buildOverview reads the staff overview on the actor. all keeps every
+// matching player instead of one page.
+func (w *World) buildOverview(query control.Query, all bool) control.Overview {
 	result := control.Overview{Version: 1, ModerationEpoch: w.moderationEpoch(), AsOf: time.Now().UTC(), State: "running",
 		QueueDepth: 0,
 		TickMicros: metricTickDurationMicros.Value(), LagMicros: metricLoopLagMicros.Value(),
-		Players: make([]control.Player, 0), Offset: req.query.Offset}
+		Players: make([]control.Player, 0), Offset: query.Offset}
 	if w.shuttingDown {
 		result.State = "maintenance"
 	}
@@ -116,7 +133,7 @@ func (w *World) handleControl(req *controlRequest) {
 		result.Mobs += len(channel.mobsByID)
 		result.QueueDepth += channel.commandQueueDepth()
 	}
-	search := strings.ToLower(req.query.Search)
+	search := strings.ToLower(query.Search)
 	for _, p := range w.channelPlayers() {
 		if p == nil || !p.InWorld || p.Char == nil || p.Account == nil {
 			continue
@@ -139,7 +156,7 @@ func (w *World) handleControl(req *controlRequest) {
 			row.HP, row.MaxHP = score.CurHP, score.MaxHP
 			row.MP, row.MaxMP = score.CurMP, score.MaxMP
 		}
-		if !overviewFilterMatches(req.query, row) {
+		if !overviewFilterMatches(query, row) {
 			continue
 		}
 		if p.Session != nil {
@@ -152,12 +169,14 @@ func (w *World) handleControl(req *controlRequest) {
 	}
 	sort.Slice(result.Players, func(i, j int) bool { return result.Players[i].UID < result.Players[j].UID })
 	result.Matched = len(result.Players)
-	start := min(req.query.Offset, result.Matched)
+	if all {
+		return result
+	}
+	start := min(query.Offset, result.Matched)
 	end := min(start+control.PageSize, result.Matched)
 	result.HasMore = end < result.Matched
 	result.Players = result.Players[start:end]
-	// Buffered reply remains non-blocking after a disconnected/timed-out caller.
-	req.reply <- result
+	return result
 }
 
 // overviewFilterMatches applies the optional overview filters to a row built

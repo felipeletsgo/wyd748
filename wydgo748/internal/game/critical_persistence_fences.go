@@ -1,6 +1,9 @@
 package game
 
-import "wydgo/internal/model"
+import (
+	"wydgo/internal/model"
+	"wydgo/internal/store"
+)
 
 // These queries belong to the World actor, just like coordinator admission.
 // They protect persistence/readmission boundaries, not all gameplay consumers.
@@ -61,7 +64,29 @@ func (w *World) criticalPlayerInputReserved(p *Player) bool {
 }
 
 func (w *World) criticalGuildReserved() bool {
+	if w.criticalWrites == nil {
+		return false
+	}
+	q := w.criticalWrites.queue
+	return q.guilds != 0 || q.failedGuilds != 0 || len(q.guildKeys) > 0 || len(q.failedGuildKeys) > 0
+}
+
+// criticalGuildWholeReserved reports a pending or failed whole-registry write.
+func (w *World) criticalGuildWholeReserved() bool {
 	return w.criticalWrites != nil && (w.criticalWrites.queue.guilds != 0 || w.criticalWrites.queue.failedGuilds != 0)
+}
+
+// criticalGuildIDReserved reports a write that owns this guild (W8), through
+// its key or the whole registry. ID 0 is the registry participant.
+func (w *World) criticalGuildIDReserved(id uint16) bool {
+	if w.criticalGuildWholeReserved() {
+		return true
+	}
+	if w.criticalWrites == nil {
+		return false
+	}
+	q, name := w.criticalWrites.queue, guildRowKey(store.GuildParticipant{GuildID: id})
+	return q.guildKeys[name] != 0 || q.failedGuildKeys[name] != 0
 }
 
 // Tower captures and Kefra deaths retain the mob as well as the registry.
@@ -74,10 +99,16 @@ func (w *World) criticalGuildMobReserved(m *Mob) bool {
 // Check before any guild, invitation or account mutation. A save-time check is
 // too late: even a rolled-back mutation can invalidate another retained plan.
 func (w *World) criticalGuildMutationReserved(players ...*Player) bool {
-	if w.criticalGuildReserved() {
+	// A pending write of the registry header or of a player's own guild holds
+	// the command (W8); writes of unrelated guilds do not. The queue still
+	// refuses any proposal whose participants are reserved.
+	if w.criticalGuildIDReserved(0) {
 		return true
 	}
 	for _, p := range players {
+		if p != nil && p.Char != nil && p.Char.GuildID != 0 && w.criticalGuildIDReserved(p.Char.GuildID) {
+			return true
+		}
 		if w.criticalTradeReserved(p) {
 			return true
 		}

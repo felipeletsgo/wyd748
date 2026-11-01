@@ -168,5 +168,5 @@ func (w *World) recordNightmarePartyRun(key string) {
 		w.nightmarePartyRuns = make(map[string]int)
 	}
 	w.nightmarePartyRuns[key]++
-	w.markInstanceStateDirty()
+	w.markInstanceGlobalsDirty()
 }

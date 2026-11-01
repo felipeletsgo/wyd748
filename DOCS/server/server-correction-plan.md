@@ -1,6 +1,6 @@
 # Server correction plan
 
-Updated: 2026-11-01. Status: W0–W7 active in release `20261101T050356Z` (R1–R3); W8 and W9 wait for production measurements; G waits for client tests.
+Updated: 2026-11-01. Status: W0–W7 active since release `20261101T050356Z` (R1–R3); W8 and W9 active in release `20261101T145133Z` (R4) in single-process mode; the channel-process cutover needs separate authorization; G is closed by the owner's client confirmation.
 The [bug register](../bug-register.md#w6-activation-cost--source-2026-10-31) records W0–W6 evidence.
 
 ## Scope and ownership
@@ -79,17 +79,17 @@ R1–R3 (W0–W7) are active in release `20261101T050356Z` since 2026-11-01. Evi
 
 | Package | Status | Remaining |
 | --- | --- | --- |
-| W0 | Done | Real network load test on the VPS candidate |
+| W0 | Done | Load under real players in production (local real network load passed 2026-11-01) |
 | W1 | Done | Activation; COMMIT loss moves to W4 |
 | W2 | Done | VPS measurement of pool size and hash slots |
-| W3 | Done | Real TCP arrival, slow-reader and blackhole tests; client check of progressive scenes |
-| W4 | Done in source | VPS COMMIT-loss and crash acceptance; shared objects recover by restart |
+| W3 | Done | None in source; local real-network and slow-link load passed 2026-11-01 |
+| W4 | Done | Real-TCP COMMIT loss and process-crash acceptance passed locally 2026-11-01; closed-connection hotfix pending activation |
 | W5 | Done in source | VPS resource measurements (P6); systemd restart-budget test |
 | W6 | Done | Production confirmation of the movement cost on the VPS |
 | W7 | Done in source | Slow-autosave matrix on the VPS; command-delay percentiles under load (acceptance) |
-| W8 | Measured; source not started | Per-runtime and per-guild rows with a versioned migration (R4), justified by the VPS skip rate |
-| W9 | Items 1 and P1 measurement done | Cross-process ownership, outbox and process supervision (items 2–8, R5) |
-| G | Blocked | Needs the installed candidate and the owner's client tests |
+| W8 | Active in R4 (release `20261101T145133Z`, schema v15/v16) | VPS skip rate and latency with players |
+| W9 | Phases 1–5 active in R4 in single-process mode (schema v17–v20); local isolation acceptance passed | Channel-process cutover: configuration, unit, VPS measurement and separate authorization |
+| G | Closed | The owner confirmed BUG-001–BUG-011 fixed in the client on 2026-11-01 |
 
 W7–W9 change durable ordering, the schema or the process model. Start each as its own reviewed
 release candidate after R1–R3 run on the VPS, as the release table below requires.
@@ -434,6 +434,56 @@ Measurement (2026-11-01, local PostgreSQL): a two-channel aggregate of 100 runti
 2.6 ms p50 (3.3 ms max), so a reservation lasts milliseconds. `world_instance_tick_skipped_total` divided
 by the tick count gives the production share of skipped instance ticks; use it to size R4.
 
+#### W8 design (2026-11-01)
+
+The owner chose to deliver W8 and W9 for failure isolation, after the R1–R3 validations.
+The participant map is: 28 instance reservation checks in 21 files, 22 guild mutation checks,
+19 guild registry checks, 13 war-mob checks and 8 producers that write instances.
+
+1. Participants. An instance participant is `(channel, runtime ID)`. Each channel also has one
+   globals participant: Nightmare party-run counters and the Gamble jackpot and pool. A guild
+   participant is the guild ID; each channel's war state, ID allocation and name index form one
+   registry participant. Accounts keep their existing keys.
+2. Storage (schema v7). `instance_runtime_state(channel, runtime_id)`,
+   `instance_channel_state(channel)`, `guild_rows(guild_id)` and `guild_registry_state(singleton)`
+   each hold a versioned JSON payload. A write commits only its declared rows; the store
+   rejects a write whose rows are not declared.
+3. Migration. On the first start of a v7 binary, one transaction splits the singleton rows into
+   participant rows. It then rebuilds the aggregates from those rows, requires them to equal the
+   originals, and records version 7. The singleton rows stay unchanged as the rollback source.
+4. Rollback. A v7 binary keeps the singleton payloads current through a background export that
+   runs after each committed participant write. A v6 binary therefore reads at most one export
+   interval of staleness, in game-recoverable lifecycle state only, never account economy.
+   `update-release.sh` exports before it starts an older binary.
+5. Reservations. The queue holds per-participant keys instead of the instance and guild
+   holders. Multi-owner writes take keys in sorted order. Checks with a runtime, mob, player or
+   guild in scope narrow to that key; the remaining whole-aggregate checks reserve every key.
+6. Retained checks compare only the declared participants instead of the whole aggregate.
+7. Ticks skip only reserved runtimes and wars; the rest progress during a write.
+
+Deliver W8 in three reviewed steps, each with its own validation: instance storage and
+reservations, then guild storage and reservations, then the migration release candidate (R4).
+
+W8 source status (2026-11-01): steps 1 and 2 are implemented.
+- Storage: schema v15 adds `instance_runtime_state` and `instance_channel_state`; schema v16 adds
+  `guild_rows` and `guild_registry_state`. Each migration runs in one transaction, rebuilds the
+  aggregate from the new rows and refuses to finish unless it equals the original. The old
+  singleton rows stay and are exported after every committed write; the public guild view and
+  an older binary read them. `update-release.sh` removes the v16 and v15 markers before starting a
+  v14 binary.
+- Instances: transitions, departures, rewards and room-exit writes declare the runtimes and
+  globals that differ between their detached before and after states. Reservations, retained
+  checks and installs cover only that scope. Rooms tick unless their own runtime is reserved;
+  dirt is tracked per runtime and flushed as keyed writes. Entry stays whole-aggregate because
+  it reads exclusive groups and other rooms; Gamble and Nightmare kill rewards also stay whole.
+- Guilds: calendar changes, membership changes and joins declare their changed guilds and, when
+  needed, the registry header. A guild referenced by a changed alliance or war joins the scope.
+  Guild creation, treasury collection, kingdom capes and Kefra kills stay whole-registry.
+  Commands of a player whose guild and the registry are free proceed during other guilds' writes.
+- Evidence: on PostgreSQL, one runtime committed while another runtime's row was locked; keyed
+  rows leave undeclared rows untouched; eight runtimes wrote concurrently without conflict;
+  both migrations rebuilt equal aggregates and refused a second run.
+
 ## W9 — P1 channel execution and final panic isolation
 
 Target: separately supervised channel processes with one gameplay actor per process.
@@ -459,6 +509,188 @@ This package cannot close until missing shared-ownership contracts are implement
 P1 measurement (2026-11-01, local): one channel's full cycle, which the other channel's commands wait
 behind on the shared goroutine, is 2/6/12 ms p50 and 7/11/22 ms p99 at 50/150/300 active players. Latency
 alone does not require the split at that scale; fatal-failure isolation (D5) still does.
+
+#### W9 delivery phases (2026-11-01)
+
+The owner chose W9 for availability: a fatal failure of one channel must not disconnect the other.
+A Go fatal error (concurrent map write, out of memory) ends the whole process, so only separate
+processes isolate it. Each phase is a reviewed release; the single-process mode stays the default
+until phase 5 passes.
+
+1. Account ownership in PostgreSQL. A lease row per signed-in account names the channel and
+   process generation; login claims it in one statement, logout and settlement release it, and a
+   process start ends the leases of its previous generation. Login stays single across processes.
+2. Durable channel tickets. Transfers write a single-use ticket with an expiry; the target channel
+   consumes it in the same transaction that claims the account lease.
+3. Shared guild state. Keyed guild writes (W8) carry the row versions they read; a stale version is
+   a certified rejection. Each process refreshes changed guild rows from a change notification and
+   on version conflicts.
+4. Cross-channel messages. A transactional outbox carries global chat, whispers, guild chat,
+   sanction application and staff kick or teleport to the owning channel; delivery is idempotent
+   and notifications are only wake-up hints.
+5. Process split. One systemd unit per channel with its own listener, actor, coordinator and
+   resource budget. Acceptance: one account cannot sign in on both channels, transfers, guild
+   operations across channels, both languages, and ending one channel process keeps the other
+   channel's sessions and new connections.
+
+#### W9 phase 1 status — account leases (2026-11-01, source only)
+
+Schema v17 adds `game_processes(process, started_at, heartbeat_at)` and
+`account_leases(account_key, process, channel, session, claimed_at)`. Older binaries ignore both
+tables; the rollback script resets the v17 marker.
+
+- Login: the entry-read worker claims the lease before it reloads the account. A lease of another
+  live process refuses the login with the native "already playing" reply. A failed claim asks the
+  player to retry. A lease of a process without a heartbeat for 30 s is taken over.
+- Release: the lease ends with the account claim, but only after the account's critical writes
+  settle. A quarantined account keeps its lease until verified recovery. A refused or cancelled
+  admission ends the lease that its worker claimed.
+- Liveness: each process renews its heartbeat every 10 s. Each minute the first channel removes
+  this process's leases for accounts that it no longer holds and that are older than 30 s.
+- Restart: a process that fenced the previous game instances (W4) removes every other process and
+  its leases, so reconnecting players are not refused. A complete shutdown releases its leases; an
+  incomplete drain keeps them until they are stale.
+- Write fence: in a registered game process, every account write locks the accounts' lease rows
+  in its transaction. A lease of another live process rejects the write with a certified rejection
+  (W1 then closes the participant). The shared lock makes a takeover wait for the write, so the new
+  owner reads the committed state. Tools, panels and the player API do not register and are not fenced.
+- Metrics: `world_account_lease_total` (`claimed`, `claim_refused`, `claim_failed`,
+  `release_failed`, `reconcile_failed`, `heartbeat_failed`) and `postgres_account_lease_fenced_total`.
+
+With one process the behavior is unchanged: the in-memory claim still decides first.
+
+Validation: store tests on PostgreSQL (single owner across processes, stale-session release,
+takeover of a stopped process, one winner of four concurrent claims, reconcile, exclusive restart,
+write fence by a live owner and not by a stopped one)
+and game tests (refusal, claim failure, release after settled writes, cancelled reload). A two-process
+PostgreSQL test refuses the account on process B while process A holds it, and admits it after A ends
+the session.
+
+Pending before phase 5:
+
+- Offline writes: an account without a lease is written without a fence. Before two processes
+  can write, a process must lease an offline account it changes, or route the change to its owner
+  (phase 4).
+- Replacement across processes: a login on another process is refused, not replaced. Phase 4 delivers
+  the kick message that a replacement needs.
+- The W4 startup fence and the exclusive registration end every other game process. Phase 5 must
+  scope both to the process's channels.
+
+#### W9 phase 2 status — durable channel tickets (2026-11-01, source only)
+
+Schema v18 adds `channel_tickets(token_hash, account_key, channel, slot, expires_at, consumed_by,
+consumed_session)` with one pending ticket per account. Only the SHA-256 hash of the token is stored.
+The cluster mode keeps its in-memory tickets; durable tickets apply to a World without a cluster that
+names its other channels with `WithRemoteChannels` (phase 5 configuration).
+
+- Source: the actor makes the token; a worker stores the ticket. The actor then rechecks the player
+  and submits the final account and character write. The client receives the token only after that
+  write commits, so the target cannot read the account earlier. A player who leaves during the issue,
+  a rejected final write or a closed source cancels the ticket; an uncancelled ticket expires in 30 s.
+- Target: the login worker checks the ticket instead of the password. The lease claim consumes the
+  ticket in the same transaction and takes the lease from the source even while the source is alive.
+  The player enters the ticket's character slot. A replayed, expired or other-channel ticket is refused
+  with the native "transfer expired" panel.
+- While a ticket waits, a plain login of the account is refused with "try again shortly", and a second
+  transfer of the player reports "busy".
+- Metrics: `world_account_lease_total` adds `ticket_claimed` and `ticket_refused`.
+
+Validation: store tests on PostgreSQL (lease move with a live source, replay, other account and
+channel, expiry, cancel, one consumer of four) and game tests (cancel when the player leaves or the
+final write fails, busy on a pending ticket). A two-process PostgreSQL test moves a player from
+channel 1 to channel 2 with the committed gold, refuses a plain login during the transfer, refuses
+the replayed token and keeps the target's lease after the source's late release.
+
+#### W9 phase 3 status — versioned guild rows (2026-11-01, source only)
+
+No schema change: the W8 guild rows already hold a version. `WithGuildRowVersions` enables the
+contract for a World without a cluster (phase 5 configuration); the cluster mode keeps one registry
+in one process and does not use it.
+
+- Boot: the World reads every guild row with its version and the registry header with its version
+  in the same rows, so no version is newer than its content.
+- Write: each guild write names its rows with the version that this process read: a positive version
+  must match, -1 expects no row (a new guild, or a guild absent on both sides), and 0 leaves the header
+  unchecked when it was never read. A whole-registry write names every known guild. A changed row is
+  a certified rejection (`ErrGuildRowConflict`); the producer's rejection path runs as for any other
+  rejection. A commit advances the local versions.
+- Notification: with `EnableGuildRowSync`, a committed guild write sends `wyd_guild_rows` with the
+  process name and the guild IDs. `ListenGuildRows` ignores its own process and reports the IDs; after
+  a lost connection it reconnects and reloads every row.
+- Reload: a notification or a rejected write reads the rows off the actor. A newer row replaces the
+  local guild, a removed row removes it, and a row with a write in flight is reloaded after that write.
+- Metrics: `world_guild_sync_total` (`conflicts`, `installed`, `removed`).
+
+Validation: store tests on PostgreSQL (create once, stale update, stale and current removal, absent
+copy of a created guild, row states with versions, notification to another process and not to the
+writer) and a two-process PostgreSQL test: process A commits a change that reaches process B, a write
+of B from its stale copy is rejected without changing the row, B reloads the row, and B's retry
+commits and reaches A.
+
+Pending before phase 5:
+
+- Guild name uniqueness and the display of connected members are resolved in phase 5.
+
+#### W9 phase 4 status — channel messages (2026-11-01, source only)
+
+Schema v19 adds `channel_messages(id, source, target, kind, payload, created_at)`. `WithChannelOutbox`
+enables it for a World without a cluster (phase 5 configuration); without it nothing is sent.
+
+- Send: the actor queues a message without waiting (capacity 1,024); one worker stores batches of up
+  to 100 in one transaction and sends `wyd_channel_messages` as a wake-up hint. A full queue or a
+  failed store drops the batch and counts it.
+- Receive: one reader per process starts at the database time of its start, reads on each hint and
+  every second, and delivers each message ID once. It also reads the last 10 s again, so a message that
+  commits after a newer one still arrives. Messages older than ten minutes are removed.
+- Kinds: global chat (`=`), citizenship chat (`@@`), guild chat (`-`), whisper and letter (`!`) to a
+  character that is not on this channel, staff broadcast notices, and sanction changes. The receiver of
+  a sanction change reads the stored sanction state and applies it to its players; a lost message is
+  repaired at the next login, which reads the state too.
+- Metric: `world_channel_outbox_total` (`queued`, `published`, `delivered`, `dropped_full`,
+  `dropped_store`, `invalid`, `unknown_kind`).
+
+Validation: a store test on PostgreSQL (target channel filter, own messages skipped, late-commit window,
+new reader start, cleanup) and a two-process PostgreSQL test: a whisper, a guild line, a global line and a
+staff notice from channel 1 reach the right players of channel 2 once, and a player of another guild
+receives no private line.
+
+Staff overview, presence, kick and teleport, and the whisper offline notice, use requests with replies
+on the same outbox (phase 5 status).
+
+#### W9 phase 5 status — channel processes (2026-11-01, source and local acceptance)
+
+- Configuration: `channel_peers` (for example `2` in the channel 1 file) makes the process serve only
+  `channel_id`. It excludes `channel2_enabled`. The process then enables account leases, durable
+  tickets for the peers, versioned guild rows with notifications, and the channel outbox.
+- Fence: a channel process is named `wydgo-game/ch<N>/<id>`. Its W4 startup fence and its exclusive
+  registration end only the previous process of its channel and a previous whole-server process; a
+  whole-server process still ends every game process.
+- Names: character names were already unique in `character_names`. Schema v20 makes guild names unique
+  in `guild_rows` with the same rule as the server (trimmed ASCII, case-insensitive).
+- Service: `tools/deployment/vps/wyd-game@.service` runs channel `%i` from `/etc/wyd-go/server-ch%i.txt`
+  with 800 MB and one CPU each. The release scripts do not install it.
+- Staff: the panel process adds the other processes' players to its overview and account presence,
+  through requests on the channel outbox with a 3 s reply bound. A kick or teleport whose session is not
+  on the panel's channel goes to the other processes; the process that holds the session checks UID,
+  account and session, runs the command, keeps the receipt and returns the result.
+- Whisper: a whisper to a character that is not on this channel is offered to the other processes; when
+  none delivers it, the sender receives the native "not connected" notice.
+- Guilds: invitation, expulsion and promotion act only on members connected to the same channel, as
+  with one native TMSrv per channel; a member on another channel gets the existing "not connected" or
+  "online members only" notice, and no process writes an account it does not hold. A reloaded guild
+  repairs the guild fields of connected members and sends their new guild identity.
+
+Local acceptance (2026-11-01, `wydgo_test`): two processes with 10 bots each. Killing the channel 1
+process left channel 2 with its 10 sessions, and channel 2 admitted 5 new bots during the outage.
+The restarted channel 1 readmitted its bots in 3 s and refused 2 logins of accounts held by channel 2.
+Store tests also show that a restarted channel 1 ends only channel 1's old backends and leases.
+
+Not done (cutover requirements):
+
+- Publication and cutover are not authorized. The cutover needs a release with schema v15–v20, two
+  configuration files, the unit template, a proxy route from the staff panel to one channel process,
+  and an authorized restart that stops `wyd-game.service` first.
+- VPS measurements of two processes (memory, CPU, database connections) are pending.
 
 #### W9 item 1 — shared ownership inventory (2026-10-31)
 

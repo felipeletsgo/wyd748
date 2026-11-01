@@ -219,7 +219,7 @@ func (s *PostgresStore) SaveDonateAccount(account *model.Account, credits []int6
 	key := snapshots[0].key
 	writeStarted = true
 	return s.withCertifiedSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
+		if err := s.persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
 		}
 		if len(credits) > 0 {

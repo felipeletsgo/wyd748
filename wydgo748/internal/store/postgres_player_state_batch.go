@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -66,14 +65,9 @@ func (s *PostgresStore) SavePlayerStateBatch(guilds *model.GuildRegistry,
 	if err != nil {
 		return err
 	}
-	var guildPayload []byte
 	if guilds != nil {
 		if err := guilds.Validate(); err != nil {
 			return fmt.Errorf("store: invalid guilds: %w", err)
-		}
-		guildPayload, err = json.Marshal(guilds)
-		if err != nil {
-			return err
 		}
 	}
 	if guilds == nil && s.unchangedBatch(snapshots, stateKey, statePayload) {
@@ -88,7 +82,7 @@ func (s *PostgresStore) SavePlayerStateBatch(guilds *model.GuildRegistry,
 	s.fenceCharStates(seq, stateKey)
 	writeStarted = true
 	if err := s.withCertifiedSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
+		if err := s.persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
 		}
 		if statePayload == nil {
@@ -102,11 +96,7 @@ func (s *PostgresStore) SavePlayerStateBatch(guilds *model.GuildRegistry,
 			return err
 		}
 		if guilds != nil {
-			_, err := tx.Exec(ctx, `
-				INSERT INTO guild_state(singleton,payload) VALUES(true,$1)
-				ON CONFLICT(singleton) DO UPDATE SET
-					payload=EXCLUDED.payload,version=guild_state.version+1,updated_at=now()`, guildPayload)
-			return err
+			return s.persistGuildRows(ctx, tx, guilds, nil)
 		}
 		return nil
 	}); err != nil {
@@ -115,6 +105,7 @@ func (s *PostgresStore) SavePlayerStateBatch(guilds *model.GuildRegistry,
 	s.rememberUnchanged(snapshots, stateKey, statePayload)
 	if guilds != nil && s.guildsTxtPath != "" {
 		s.scheduleGuildExport(guilds)
+		s.scheduleGuildStateExport()
 	}
 	return nil
 }

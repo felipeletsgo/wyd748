@@ -149,7 +149,7 @@ func (w *World) handleHellGatePortal(p *Player) bool {
 			return true
 		}
 	}
-	if w.criticalInstanceReserved() {
+	if w.criticalInstanceRuntimeReserved(inst.RuntimeID) {
 		return true
 	}
 

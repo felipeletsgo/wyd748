@@ -634,8 +634,30 @@ func (w *World) markInstanceStateDirty() {
 	}
 }
 
+// markInstanceRuntimeDirty records a change confined to one runtime (W8).
+// The next flush writes only that row instead of the whole aggregate.
+func (w *World) markInstanceRuntimeDirty(runtimeID string) {
+	if w == nil {
+		return
+	}
+	if w.instanceDirtyRuntimes == nil {
+		w.instanceDirtyRuntimes = make(map[string]uint64)
+	}
+	w.instanceDirtySeq++
+	w.instanceDirtyRuntimes[runtimeID] = w.instanceDirtySeq
+	w.criticalInstanceGeneration = &criticalInstanceGeneration{}
+}
+
+// markInstanceGlobalsDirty records a change of the channel globals.
+func (w *World) markInstanceGlobalsDirty() { w.markInstanceRuntimeDirty("") }
+
+// instanceStateDirtyAny reports whole-aggregate or per-runtime dirt.
+func (w *World) instanceStateDirtyAny() bool {
+	return w != nil && (w.instanceStateDirty || len(w.instanceDirtyRuntimes) > 0)
+}
+
 func (w *World) flushInstanceStateIfDirty() {
-	if w == nil || !w.instanceStateDirty {
+	if w == nil || !w.instanceStateDirtyAny() {
 		return
 	}
 	if w.criticalWrites != nil {
@@ -650,4 +672,5 @@ func (w *World) flushInstanceStateIfDirty() {
 		return
 	}
 	w.instanceStateDirty = false
+	clear(w.instanceDirtyRuntimes)
 }

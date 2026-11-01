@@ -193,9 +193,10 @@ func (w *World) queueGuildJoin(actor, target *Player, guild *model.Guild, cost, 
 	accounts[targetIndex].Chars[target.CharSlot].GuildID = id
 	accounts[targetIndex].Chars[target.CharSlot].GuildRank = rank
 	(&World{guilds: proposedGuilds}).pruneGuildWarReferences()
+	plan := newCriticalGuildPlan(registry, retained, proposedGuilds, true)
 	inviteFrom, inviteUntil, cooldown := target.GuildInviteFrom, target.GuildInviteUntil, actor.NextGuildInvite
 	checkRetained := func() error {
-		if w.guilds != registry || !reflect.DeepEqual(w.criticalGuildSnapshot(), retained) ||
+		if !plan.unchanged(w) ||
 			target.GuildInviteFrom != inviteFrom || target.GuildInviteUntil != inviteUntil || actor.NextGuildInvite != cooldown {
 			return errCriticalPersistenceIdentity
 		}
@@ -208,12 +209,13 @@ func (w *World) queueGuildJoin(actor, target *Player, guild *model.Guild, cost, 
 		}
 		return nil
 	}
-	_, err := w.submitCriticalWriteWithRejection(criticalWrite{guilds: proposedGuilds, accounts: accounts}, participants, false,
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{guilds: proposedGuilds, guildKeys: plan.keys(), accounts: accounts},
+		participants, false,
 		func(criticalPersistenceResult) error {
 			if err := checkRetained(); err != nil {
 				return err
 			}
-			*w.guilds = *proposedGuilds
+			plan.install(w)
 			actor.Char.Gold -= cost
 			target.Char.GuildID, target.Char.GuildRank = id, rank
 			if acceptance {

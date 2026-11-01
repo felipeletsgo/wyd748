@@ -18,7 +18,9 @@ func (w *World) queueCriticalInstanceAccounts(actor *Player, members []*Player,
 	if w.criticalWrites == nil || actor == nil || plan == nil || apply == nil {
 		return errCriticalPersistenceIdentity
 	}
-	if w.criticalInstanceReserved() {
+	// A keyed plan waits only for a whole write here; the queue refuses one
+	// whose own runtime is reserved (W8).
+	if w.criticalInstanceWholeReserved() || plan.whole && w.criticalInstanceReserved() {
 		return errCriticalPersistenceBusy
 	}
 	if err := plan.proposed.validateInstanceStateOwnership(); err != nil {
@@ -115,7 +117,7 @@ func (w *World) queueCriticalInstanceAccounts(actor *Player, members []*Player,
 	if err := check(); err != nil {
 		return err
 	}
-	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: accounts, instances: plan.snapshot()}, participants, false,
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: accounts, instances: plan.snapshot(), instanceKeys: plan.writeKeys(w)}, participants, false,
 		func(criticalPersistenceResult) error {
 			if err := check(); err != nil {
 				return err

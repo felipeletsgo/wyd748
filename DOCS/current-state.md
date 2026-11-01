@@ -17,6 +17,36 @@ through credential validation in their own language. Backup
 [release receipt](../.agents/research/release-748017.json).
 `CLIENT-TESTED`: pending. VPS load measurements need real players.
 
+Hotfix `20261101T064639Z` (game only) is active since 06:46 UTC: a connection closed at COMMIT is
+resolved by the exact transaction status instead of being reported as rejected. The running hash,
+readiness, both channels, admission and backup `wydgo-20261101T064639Z.dump` were verified. Rollback:
+`20261101T050356Z`.
+
+## Server corrections R4 (W8 and W9) — activated 2026-11-01
+
+Game-only release `20261101T145133Z` is active since 14:51 UTC. The owner authorized publication
+and the restart with no player connected; none was. The game migrated schema v14 to v20 at start
+(2 instance channel rows, 6 guild rows, 1 registry row, 6 unique guild names) and registered its
+process for account leases. The running hash matches the package, both channels listen, readiness
+is unchanged, and revision 16 is rejected while revision 17 reaches the credential check in each
+channel's language. Backup `wydgo-20261101T145133Z.dump` passed archive validation. Rollback:
+`20261101T064639Z` (the rollback script resets the v15–v20 markers; the exported singleton rows
+stay current for the older binary). The process runs as one process for both channels; the
+channel-process mode (`channel_peers`) is not configured. No News post: no player-visible change.
+`CLIENT-TESTED`: pending. See the [release receipt](../.agents/research/release-748017.json).
+
+## Participant rows W8 and account leases W9 phase 1 — source only, 2026-11-01
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Instance runtimes and guilds are stored and reserved
+as separate rows (schema v15 and v16), so a slow write of one runtime or guild no longer delays
+the others. Login now also claims an account lease in PostgreSQL (schema v17), which keeps one
+account on one game process once channels run as separate processes. Transfers, guild rows, chat,
+staff notices and sanctions work between processes (W9, schema v17–v20), and `channel_peers` runs one
+channel per process. A local run showed that killing one channel process keeps the other channel's
+sessions and admission. With one process the player-visible behavior is unchanged. See the
+[correction plan](server/server-correction-plan.md#w9-phase-1-status--account-leases-2026-11-01-source-only).
+Published and active as R4 (see above); the channel-process mode is not activated.
+
 ## W4–W9 follow-up — source only, 2026-10-31
 
 Classification: `MODERNIZACAO_COMPATIVEL`. A new game process now ends the old

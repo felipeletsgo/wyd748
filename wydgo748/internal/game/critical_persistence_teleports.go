@@ -126,7 +126,8 @@ func (w *World) queuePlayerTeleportSnapshot(p *Player, proposed *model.Account, 
 			}
 		},
 	}
-	returnErr := w.queueCriticalAccountWrite(p, proposed, criticalWrite{instances: departure.snapshot(), character: character}, operation,
+	returnErr := w.queueCriticalAccountWrite(p, proposed, criticalWrite{instances: departure.snapshot(),
+		instanceKeys: departure.keyed(w), character: character}, operation,
 		"The teleport could not be completed.", func() {
 			departure.install(w)
 			p.Char.Gold, p.Char.Inv = ch.Gold, ch.Inv

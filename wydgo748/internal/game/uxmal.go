@@ -350,7 +350,7 @@ func (w *World) grantUxmalRewards(inst *ItemInstance, now time.Time) bool {
 // fallback, without completing the other parties sharing its room.
 func (w *World) grantRuneRewards(inst *ItemInstance, now time.Time, memberIDs []uint16,
 	leaderID uint16, runes []uint16, gold uint32, complete func()) bool {
-	if len(runes) == 0 || w.criticalInstanceReserved() {
+	if len(runes) == 0 || w.criticalInstanceRuntimeReserved(inst.RuntimeID) {
 		return false
 	}
 	leader := w.playersByID[leaderID]

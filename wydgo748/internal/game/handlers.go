@@ -157,7 +157,12 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	}
 	w.authPending[s] = true
 	var transfer *channelTicket
-	if len(pkt) >= 100 && pkt[48] != 0 {
+	var durable []byte
+	if len(pkt) >= 100 && pkt[48] != 0 && w.durableTickets() {
+		// W9 phase 2: the ticket is checked off the actor and consumed with
+		// the account lease.
+		durable = channelTicketHash(cstr(pkt[48:100]))
+	} else if len(pkt) >= 100 && pkt[48] != 0 {
 		var valid bool
 		transfer, valid = w.consumeTicket(cstr(pkt[48:100]), accountName, s)
 		if !valid {
@@ -168,16 +173,26 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 		}
 	}
 	sanctionVersion := w.staffOps.sanctionVersions[accountSessionKey(accountName)]
+	leases, channel := w.leases, w.channel
 	go func() {
 		defer func() { <-w.authSlots }()
 		var acc *model.Account
 		var err error
-		if transfer != nil {
+		if durable != nil {
+			var valid bool
+			if valid, err = leases.tickets.ChannelTicketValid(durable, accountName, channel); err == nil && !valid {
+				err = errChannelTicketInvalid
+			}
+			if err == nil {
+				acc, err = w.store.LoadAccount(accountName)
+			}
+		} else if transfer != nil {
 			acc, err = w.store.LoadAccount(accountName)
 		} else {
 			acc, err = account.AuthenticateGated(w.store, accountName, password, w.hashGate(s))
 		}
-		result := &loginResult{accountName: accountName, account: acc, err: err, sanctionVersion: sanctionVersion, transfer: transfer}
+		result := &loginResult{accountName: accountName, account: acc, err: err, sanctionVersion: sanctionVersion,
+			transfer: transfer, durableTicket: durable}
 		if backend, ok := w.sanctionBackend(); ok && err == nil {
 			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 			result.sanctions, result.sanctionErr = backend.ActiveSanctionState(ctx, acc.Name)
@@ -199,6 +214,11 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	// maintenance cutoff or the final persistence snapshot.
 	if w.shuttingDown || w.shutdownLoginsBlocked(w.now()) {
 		s.Send(wire.MessagePanel(w.msg("_NN_ServerReboot_Cant_Connect")))
+		return
+	}
+	if errors.Is(result.err, errChannelTicketInvalid) {
+		log.Printf("[#%d] LOGIN rejected account=%q: channel ticket is not valid", s.ID, result.accountName)
+		s.RejectAdmission(wire.MessagePanel(w.msg("_WG_Channel_Transfer_Expired_Sign_Again")))
 		return
 	}
 	if result.err != nil {
@@ -331,6 +351,10 @@ func (w *World) completeLogin(s *net.Session, result *loginResult, acc *model.Ac
 		delete(w.cluster.transfers, result.transfer.account)
 		entry := make([]byte, characterLoginPacketSize)
 		binary.LittleEndian.PutUint32(entry[12:16], uint32(result.transfer.slot))
+		w.onEnterWorld(s, entry)
+	} else if result.durableTicket != nil {
+		entry := make([]byte, characterLoginPacketSize)
+		binary.LittleEndian.PutUint32(entry[12:16], uint32(result.durableSlot))
 		w.onEnterWorld(s, entry)
 	}
 }
@@ -2821,6 +2845,10 @@ func (w *World) releaseAccountSession(s *net.Session, acc *model.Account) {
 	key := accountSessionKey(acc.Name)
 	if w.accountSessions[key] == s {
 		delete(w.accountSessions, key)
+		if w.leaseHolders[key] == s {
+			delete(w.leaseHolders, key)
+			w.releaseAccountLease(s, key)
+		}
 	}
 }
 

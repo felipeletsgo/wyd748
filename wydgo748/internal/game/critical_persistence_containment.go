@@ -28,7 +28,7 @@ func (w *World) recoverCommittedAccountFailure(result criticalPersistenceResult,
 	queue := owner.queue
 	pending, continuation := queue.pending[result.id], owner.continuations[result.id]
 	if pending == nil || !pending.completed || continuation == nil || !continuation.delivered ||
-		continuation.err == nil || continuation.sharedWorld || queue.instances == result.id || queue.guilds == result.id ||
+		continuation.err == nil || continuation.sharedWorld || pending.instances || pending.guilds ||
 		len(pending.keys) == 0 || len(continuation.bindings) != len(pending.keys) {
 		return false
 	}
@@ -114,11 +114,23 @@ func (w *World) containCriticalFailureLocally(id uint64, err error) bool {
 	for _, uid := range pending.uids {
 		queue.failedCharacters[uid] = id
 	}
-	if pending.instances {
+	if pending.instances && len(pending.instanceKeys) == 0 {
 		queue.failedInstances = id
 	}
-	if pending.guilds {
+	for _, name := range pending.instanceKeys {
+		if queue.failedInstanceKeys == nil {
+			queue.failedInstanceKeys = make(map[string]uint64)
+		}
+		queue.failedInstanceKeys[name] = id
+	}
+	if pending.guilds && len(pending.guildKeys) == 0 {
 		queue.failedGuilds = id
+	}
+	for _, name := range pending.guildKeys {
+		if queue.failedGuildKeys == nil {
+			queue.failedGuildKeys = make(map[string]uint64)
+		}
+		queue.failedGuildKeys[name] = id
 	}
 	isolated := 0
 	worlds := []*World{w}

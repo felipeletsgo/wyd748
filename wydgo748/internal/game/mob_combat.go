@@ -177,7 +177,7 @@ func (w *World) tickActiveMobActions(now time.Time) {
 		if guardian := w.retainedNightmareProtector(m, mobAttackRange); guardian != nil {
 			// A protected death changes the retained instance aggregate. Do not
 			// damage it behind an unsettled entry/departure or snapshot write.
-			if w.criticalInstanceReserved() {
+			if w.criticalInstanceRuntimeReserved(m.InstanceID) {
 				continue
 			}
 			if w.combatLineOfSight(m.X, m.Y, guardian.X, guardian.Y) {

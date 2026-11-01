@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -17,7 +16,15 @@ import (
 // reserve every included aggregate until the actor acknowledges the result.
 func (s *PostgresStore) SaveCriticalGameState(guilds *model.GuildRegistry,
 	instances *model.InstanceStateSnapshot, characterUID string, state *model.CharState,
-	accounts ...*model.Account) (err error) {
+	accounts ...*model.Account) error {
+	return s.SaveCriticalGameStateRows(guilds, nil, instances, nil, characterUID, state, accounts...)
+}
+
+// SaveCriticalGameStateRows is SaveCriticalGameState with declared instance
+// participants (W8). Nil keys write every instance participant.
+func (s *PostgresStore) SaveCriticalGameStateRows(guilds *model.GuildRegistry, guildKeys []GuildParticipant,
+	instances *model.InstanceStateSnapshot, instanceKeys []InstanceParticipant, characterUID string,
+	state *model.CharState, accounts ...*model.Account) (err error) {
 	writeStarted := false
 	defer func() {
 		if err != nil && !writeStarted {
@@ -35,23 +42,15 @@ func (s *PostgresStore) SaveCriticalGameState(guilds *model.GuildRegistry,
 			return errors.New("store: critical game-state write has a nil participant")
 		}
 	}
-	var guildPayload, instancePayload, statePayload []byte
+	var statePayload []byte
 	if guilds != nil {
 		if err := guilds.Validate(); err != nil {
 			return fmt.Errorf("store: invalid guild registry: %w", err)
-		}
-		guildPayload, err = json.Marshal(guilds)
-		if err != nil {
-			return err
 		}
 	}
 	if instances != nil {
 		if instances.Version != model.InstanceStateVersion {
 			return fmt.Errorf("store: instance state version %d; expected %d", instances.Version, model.InstanceStateVersion)
-		}
-		instancePayload, err = json.Marshal(instances)
-		if err != nil {
-			return err
 		}
 	}
 	var stateKey string
@@ -114,7 +113,7 @@ func (s *PostgresStore) SaveCriticalGameState(guilds *model.GuildRegistry,
 	}
 	writeStarted = true
 	if err := s.withCertifiedSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
+		if err := s.persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
 		}
 		if stateKey != "" {
@@ -130,27 +129,23 @@ func (s *PostgresStore) SaveCriticalGameState(guilds *model.GuildRegistry,
 			}
 		}
 		if guilds != nil {
-			if _, err := tx.Exec(ctx, `
-				INSERT INTO guild_state(singleton,payload) VALUES(true,$1)
-				ON CONFLICT(singleton) DO UPDATE SET
-					payload=EXCLUDED.payload,version=guild_state.version+1,updated_at=now()`, guildPayload); err != nil {
+			if err := s.persistGuildRows(ctx, tx, guilds, guildKeys); err != nil {
 				return err
 			}
 		}
 		if instances != nil {
-			if _, err := tx.Exec(ctx, `
-				INSERT INTO instance_state(singleton,payload) VALUES(true,$1)
-				ON CONFLICT(singleton) DO UPDATE SET
-					payload=EXCLUDED.payload,version=instance_state.version+1,updated_at=now()`, instancePayload); err != nil {
-				return err
-			}
+			return writeInstanceRows(ctx, tx, instances, instanceKeys)
 		}
 		return nil
 	}); err != nil {
 		return err
 	}
+	if instances != nil {
+		s.scheduleInstanceExport()
+	}
 	if guilds != nil {
 		s.scheduleGuildExport(guilds)
+		s.scheduleGuildStateExport()
 	}
 	return nil
 }

@@ -402,6 +402,7 @@ func (w *World) ApplySanction(ctx context.Context, actor string, cmd control.San
 		notify = ""
 	}
 	live := w.pushSanctionState(ctx, backend, cmd.Account, notify)
+	w.outbox.publish(outboxSanction, outboxPayload{Account: cmd.Account, Notify: notify})
 	log.Printf("[web-admin] sanction actor=%q account=%q kind=%s minutes=%d id=%d replayed=%t live=%s reason=%q",
 		actor, cmd.Account, cmd.Kind, cmd.DurationMinutes, sanction.ID, duplicate, live, cmd.Reason)
 	return control.SanctionResult{Code: "ok", Replayed: duplicate, Live: live, Sanction: sanction}, nil
@@ -428,6 +429,7 @@ func (w *World) RevokeSanction(ctx context.Context, actor string, id int64, cmd 
 	// Refresh even for a repeated revoke: it repairs a live state that a
 	// previous attempt could not confirm.
 	live := w.pushSanctionState(ctx, backend, cmd.Account, "revoke")
+	w.outbox.publish(outboxSanction, outboxPayload{Account: cmd.Account, Notify: "revoke"})
 	log.Printf("[web-admin] sanction revoke actor=%q account=%q id=%d changed=%t live=%s reason=%q",
 		actor, cmd.Account, id, changed, live, cmd.Reason)
 	return control.SanctionResult{Code: "ok", Replayed: !changed, Live: live, Sanction: sanction}, nil
@@ -437,6 +439,7 @@ func (w *World) RevokeSanction(ctx context.Context, actor string, id int64, cmd 
 
 // staffBroadcast delivers staff-authored text unchanged to every channel.
 func (w *World) staffBroadcast(message string) int {
+	w.outbox.publish(outboxStaffNotice, outboxPayload{Message: message})
 	return w.staffNotice(func(*World) string { return message })
 }
 

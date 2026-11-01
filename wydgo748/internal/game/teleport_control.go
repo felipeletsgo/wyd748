@@ -14,6 +14,10 @@ type teleportReceipt struct {
 	result  control.TeleportResult
 }
 type teleportRequest struct {
+	// remote marks a request of another channel process, which checked the
+	// epoch; unmatched reports that no session here matched (W9).
+	remote    bool
+	unmatched bool
 	ctx       context.Context
 	actor     string
 	command   control.TeleportCommand
@@ -40,6 +44,9 @@ func (w *World) TeleportCommand(ctx context.Context, actor string, c control.Tel
 	}
 	select {
 	case result := <-req.reply:
+		if req.unmatched && w.remotePeers() > 0 {
+			result = w.remoteTeleport(ctx, actor, c, result)
+		}
 		return result, nil
 	case <-ctx.Done():
 		return control.TeleportResult{}, ctx.Err()
@@ -47,7 +54,9 @@ func (w *World) TeleportCommand(ctx context.Context, actor string, c control.Tel
 }
 
 func (w *World) handleTeleport(req *teleportRequest) {
-	defer w.teleportPending.Store(false)
+	if !req.remote {
+		defer w.teleportPending.Store(false)
+	}
 	if req.ctx.Err() != nil {
 		return
 	}
@@ -65,7 +74,7 @@ func (w *World) handleTeleport(req *teleportRequest) {
 	if req.ctx.Err() != nil {
 		return
 	}
-	if c.Epoch != w.moderationEpoch() {
+	if !req.remote && c.Epoch != w.moderationEpoch() {
 		finish("stale_target")
 		return
 	}
@@ -148,6 +157,12 @@ func (w *World) handleTeleport(req *teleportRequest) {
 		} else {
 			execute()
 		}
+		return
+	}
+	req.unmatched = true
+	if !req.remote && w.remotePeers() > 0 {
+		// Nothing happened here; the owner process keeps the receipt.
+		req.reply <- r
 		return
 	}
 	settle(r.Code, r.X, r.Y)

@@ -27,6 +27,19 @@ func (s *criticalHeldTreasuryPostgresStore) SaveCriticalGameState(guilds *model.
 	return s.PostgresStore.SaveCriticalGameState(guilds, instances, uid, state, accounts...)
 }
 
+// SaveCriticalGameStateRows holds keyed guild writes (W8) the same way.
+func (s *criticalHeldTreasuryPostgresStore) SaveCriticalGameStateRows(guilds *model.GuildRegistry,
+	guildKeys []store.GuildParticipant, instances *model.InstanceStateSnapshot, instanceKeys []store.InstanceParticipant,
+	uid string, state *model.CharState, accounts ...*model.Account) error {
+	s.attempts++
+	s.entered <- criticalWrite{accounts: accountStateSnapshotsForTest(accounts), guilds: guilds, guildKeys: guildKeys}
+	<-s.release
+	if s.attempts == 1 && s.foreign.Index != 0 {
+		accounts[0].Chars[0].Inv[0] = s.foreign
+	}
+	return s.PostgresStore.SaveCriticalGameStateRows(guilds, guildKeys, instances, instanceKeys, uid, state, accounts...)
+}
+
 // Run with -p 1: the isolated guild singleton is shared with store fixtures.
 func TestCriticalCityTreasuryPostgresCommitAndRejection(t *testing.T) {
 	url := os.Getenv("WYD_TEST_POSTGRES_URL")

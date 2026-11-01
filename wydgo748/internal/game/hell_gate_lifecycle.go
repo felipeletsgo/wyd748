@@ -33,7 +33,7 @@ func (w *World) failHellGate(inst *ItemInstance, now time.Time) {
 	inst.State = "failed"
 	inst.HardDeadline = now
 	setInstanceCombatDeadline(inst, now)
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(inst.RuntimeID)
 }
 
 // Return false only when the generic engine should perform durable cleanup.
@@ -69,7 +69,7 @@ func (w *World) tickHellGate(inst *ItemInstance, now time.Time) bool {
 			w.failHellGate(inst, now)
 			return false
 		}
-		w.markInstanceStateDirty()
+		w.markInstanceRuntimeDirty(inst.RuntimeID)
 	}
 	if inst.State == "protection" && hellGatePopulation(inst) != nil && w.hellGateDionysAlive(inst) {
 		w.replenishHellGateAttackers(inst)
@@ -180,7 +180,7 @@ func (w *World) onHellGateVersion2Killed(inst *ItemInstance, mob *Mob, quadrant 
 			w.failHellGate(inst, now)
 		}
 	}
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(inst.RuntimeID)
 }
 
 func (w *World) hellGateDionysAlive(inst *ItemInstance) bool {

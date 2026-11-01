@@ -17,7 +17,7 @@ func (w *World) queueCriticalInstanceReward(inst *ItemInstance, now time.Time) e
 	if w.criticalWrites == nil || inst == nil || w.shuttingDown {
 		return errCriticalPersistenceIdentity
 	}
-	if w.criticalInstanceReserved() {
+	if w.criticalInstanceWholeReserved() || w.criticalInstanceRuntimeReserved(inst.RuntimeID) {
 		return errCriticalPersistenceBusy
 	}
 	id := inst.RuntimeID
@@ -52,7 +52,7 @@ func (w *World) queueCriticalInstanceReward(inst *ItemInstance, now time.Time) e
 		if err := check(); err != nil {
 			return err
 		}
-		_, err := w.criticalWrites.submitWithRejection(criticalWrite{instances: plan.snapshot()},
+		_, err := w.criticalWrites.submitWithRejection(criticalWrite{instances: plan.snapshot(), instanceKeys: plan.writeKeys(w)},
 			func(result criticalPersistenceResult) error {
 				if result.err != nil {
 					return result.err

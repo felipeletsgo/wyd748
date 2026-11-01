@@ -296,7 +296,9 @@ func main() {
 			OperationTimeout: time.Duration(cfg.CriticalPersistenceTimeoutMS) * time.Millisecond,
 			ReadTimeout:      time.Duration(cfg.DatabaseReadTimeoutMS) * time.Millisecond,
 			// The authoritative server ends a previous instance's backends first.
+			// A process of one channel ends only its channel's previous process.
 			FenceGameInstance: true,
+			FenceChannel:      channelProcess(cfg),
 		})
 		if err != nil {
 			log.Fatalf("open PostgreSQL: %v", err)
@@ -344,7 +346,27 @@ func main() {
 			}
 		}),
 	}
+	var leases *game.AccountLeases
+	var outbox *game.ChannelOutbox
 	if postgresStore != nil {
+		// W9 phase 1: login claims a process lease in PostgreSQL, so an
+		// account is owned by one game process at a time.
+		leases, err = game.NewAccountLeases(postgresStore)
+		if err != nil {
+			log.Fatalf("register game process for account leases: %v", err)
+		}
+		go leases.Run(context.Background())
+		worldOptions = append(worldOptions, game.WithAccountLeases(leases))
+		if len(cfg.ChannelPeers) > 0 {
+			// W9 phase 5: this process serves one channel; the peers serve
+			// the others. Guild rows carry versions, transfers use durable
+			// tickets, and chat and staff messages use the channel outbox.
+			postgresStore.EnableGuildRowSync()
+			outbox = game.NewChannelOutbox(postgresStore, leases.Process(), byte(cfg.ChannelID))
+			worldOptions = append(worldOptions, game.WithRemoteChannels(cfg.ChannelPeers...),
+				game.WithGuildRowVersions(), game.WithChannelOutbox(outbox))
+			log.Printf("channel process: channel %d, peers %v", cfg.ChannelID, cfg.ChannelPeers)
+		}
 		// Production persistence never blocks the World goroutine: gameplay
 		// writes run on a bounded worker pool, and an unknown account-only
 		// outcome isolates its participants instead of stopping the world.
@@ -409,6 +431,10 @@ func main() {
 	} else {
 		go world.Run()
 	}
+	if outbox != nil {
+		go outbox.Run(context.Background(), world)
+		go postgresStore.ListenGuildRows(context.Background(), leases.Process(), world.NotifyGuildRows)
+	}
 	stopWebAdmin, webErr := startWebAdmin(cfg, world, postgresStore, panelInputs)
 	if webErr != nil {
 		log.Printf("staff panel failed to start: %v; game server remains active", webErr)
@@ -454,6 +480,9 @@ func main() {
 			shutdown = cluster.Shutdown
 		}
 		if shutdown(shutdownTimeout) {
+			// Every account is saved: end this process's leases. After an
+			// incomplete drain they stay until the process is stale.
+			leases.Close()
 			log.Print("shutdown complete")
 			os.Exit(exitCode)
 		}
@@ -486,4 +515,13 @@ func main() {
 	if err := <-listenerErrors; err != nil {
 		log.Fatalf("channel listener: %v", err)
 	}
+}
+
+// channelProcess returns the channel that this process serves alone, or 0
+// when it serves the whole server.
+func channelProcess(cfg data.ServerConfig) byte {
+	if len(cfg.ChannelPeers) == 0 {
+		return 0
+	}
+	return byte(cfg.ChannelID)
 }

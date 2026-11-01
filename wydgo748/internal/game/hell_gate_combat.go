@@ -100,7 +100,7 @@ func (w *World) castHistoricalSkillAtProtector(m, target *Mob, skill model.Skill
 	target.HP -= damage
 	if inst := w.instanceForMob(target); hellGateVersion2(inst) {
 		inst.HellGateDionysHP = target.HP
-		w.markInstanceStateDirty()
+		w.markInstanceRuntimeDirty(inst.RuntimeID)
 	}
 	w.sendToMobView(m, func() []byte {
 		return wire.SkillHitExtended(m.ID, target.ID, m.X, m.Y, target.X, target.Y,

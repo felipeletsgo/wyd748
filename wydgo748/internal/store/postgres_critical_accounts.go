@@ -45,6 +45,6 @@ func (s *PostgresStore) SaveCriticalAccounts(accounts ...*model.Account) (err er
 	s.fenceAccountSnapshots(seq, snapshots)
 	writeStarted = true
 	return s.withCertifiedSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		return persistAccountSnapshots(ctx, tx, snapshots, false)
+		return s.persistAccountSnapshots(ctx, tx, snapshots, false)
 	})
 }

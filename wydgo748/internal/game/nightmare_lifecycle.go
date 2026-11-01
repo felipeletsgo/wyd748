@@ -167,7 +167,7 @@ func (w *World) nightmareProtectorKilled(inst *ItemInstance, m *Mob) bool {
 	inst.NightmareLostMask |= 1 << index
 	delete(inst.NightmareProtectors, m.ID)
 	delete(inst.NPCIDs, m.ID)
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(inst.RuntimeID)
 	for _, id := range inst.MemberIDs {
 		if member := w.playersByID[id]; member != nil && member.InWorld && member.Session != nil {
 			member.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, instanceDisplayedMobCount(inst)))
@@ -224,7 +224,7 @@ func (w *World) mobAttackNightmareProtector(m, target *Mob, now time.Time) {
 	target.HP -= damage
 	if inst := w.instanceForMob(target); hellGateVersion2(inst) {
 		inst.HellGateDionysHP = target.HP
-		w.markInstanceStateDirty()
+		w.markInstanceRuntimeDirty(inst.RuntimeID)
 	}
 	w.sendToMobView(m, func() []byte {
 		return wire.AttackHitWide(m.ID, target.ID, m.X, m.Y, target.X, target.Y,
@@ -245,7 +245,7 @@ func (w *World) respawnNightmareMob(inst *ItemInstance, dead *Mob, now time.Time
 		inst.NightmareBossID = 0
 		inst.NightmareBossKilled = true
 		inst.Remaining = len(inst.MobIDs)
-		w.markInstanceStateDirty()
+		w.markInstanceRuntimeDirty(inst.RuntimeID)
 		return
 	}
 	spawn, configured := inst.NightmareSpawns[dead.ID]
@@ -323,6 +323,6 @@ func (w *World) spawnNightmareBoss(inst *ItemInstance, now time.Time, publish bo
 	} else {
 		w.registerMobSpatial(mob)
 	}
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(inst.RuntimeID)
 	return true
 }

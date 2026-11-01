@@ -47,6 +47,9 @@ func (w *World) startCriticalPersistence() error {
 		return fmt.Errorf("critical persistence: %w", err)
 	}
 	w.criticalWrites = newCriticalPersistenceOwner(queue)
+	if w.guildVersioning && w.cluster == nil {
+		w.criticalWrites.versioned = w
+	}
 	if w.cluster != nil {
 		w.cluster.owner = w.criticalWrites
 		w.cluster.enter(w)

@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -13,7 +12,14 @@ import (
 // SaveCriticalInstanceState commits the global instance aggregate and optional
 // account participants atomically. Definite rejection is certified only before
 // writing or after a proven abort; a lost commit response remains unknown.
-func (s *PostgresStore) SaveCriticalInstanceState(state *model.InstanceStateSnapshot, accounts ...*model.Account) (err error) {
+func (s *PostgresStore) SaveCriticalInstanceState(state *model.InstanceStateSnapshot, accounts ...*model.Account) error {
+	return s.SaveCriticalInstanceRows(state, nil, accounts...)
+}
+
+// SaveCriticalInstanceRows commits only the declared instance participants
+// and the accounts atomically. Nil keys write every participant of state.
+func (s *PostgresStore) SaveCriticalInstanceRows(state *model.InstanceStateSnapshot, keys []InstanceParticipant,
+	accounts ...*model.Account) (err error) {
 	writeStarted := false
 	defer func() {
 		if err != nil && !writeStarted {
@@ -34,10 +40,6 @@ func (s *PostgresStore) SaveCriticalInstanceState(state *model.InstanceStateSnap
 			return errors.New("store: critical instance write has a nil participant")
 		}
 	}
-	payload, err := json.Marshal(state)
-	if err != nil {
-		return err
-	}
 	seq := s.writeSeq.Add(1)
 	release, err := s.beginPostgresWrite()
 	if err != nil {
@@ -52,16 +54,14 @@ func (s *PostgresStore) SaveCriticalInstanceState(state *model.InstanceStateSnap
 	}
 	s.fenceAccountSnapshots(seq, snapshots)
 	writeStarted = true
-	return s.withCertifiedSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
-		if err := persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
+	if err := s.withCertifiedSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
+		if err := s.persistAccountSnapshots(ctx, tx, snapshots, false); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, `
-			INSERT INTO instance_state(singleton,payload) VALUES(true,$1)
-			ON CONFLICT(singleton) DO UPDATE SET
-				payload=EXCLUDED.payload,
-				version=instance_state.version+1,
-				updated_at=now()`, payload)
+		return writeInstanceRows(ctx, tx, state, keys)
+	}); err != nil {
 		return err
-	})
+	}
+	s.scheduleInstanceExport()
+	return nil
 }

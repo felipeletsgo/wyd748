@@ -164,6 +164,7 @@ func (w *World) sendGuildChat(sender *Player, message string) {
 		member.Session.Send(wire.MessageWhisper(0, sender.Char.Name, message, 3))
 		delivered++
 	}
+	w.outbox.publish(outboxGuildChat, outboxPayload{Sender: sender.Char.Name, Message: message, GuildID: guild.ID})
 	// Record delivery count; the sender's local line alone does not prove delivery.
 	log.Printf("[#%d] GUILD chat %q -> guild %d (%d online member(s) excluding sender)",
 		sender.Session.ID, sender.Char.Name, guild.ID, delivered)

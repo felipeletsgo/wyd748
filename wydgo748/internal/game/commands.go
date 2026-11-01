@@ -242,6 +242,7 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 			}
 			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
 		}
+		w.outbox.publish(outboxGlobalChat, outboxPayload{Sender: p.Char.Name, Message: message})
 	case chatChannelCitizenship:
 		// '@@' reaches every online character holding the sender's citizenship.
 		// Neutral citizenship 0 forms its own audience across both channels.
@@ -255,6 +256,8 @@ func (w *World) onMessageWhisper(s *net.Session, pkt []byte) {
 			}
 			observer.Session.Send(wire.MessageWhisper(0, p.Char.Name, message, 3))
 		}
+		w.outbox.publish(outboxCitizenshipChat, outboxPayload{Sender: p.Char.Name, Message: message,
+			Citizenship: p.Char.Citizenship})
 	case chatChannelServer:
 		// '@' reaches everyone on this channel. One World is one channel, so
 		// the audience is every character in the world.
@@ -544,6 +547,13 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 		return
 	}
 	recipientWorld, recipient := w.globalPlayerByName(target)
+	if recipient == nil && w.remotePeers() > 0 {
+		// The recipient may be on a channel of another process; the sender
+		// learns "not connected" when no process delivers it (W9).
+		w.remoteWhisper(s, p.Char.Name, target, message)
+		log.Printf("[#%d] WHISPER %q -> %q: offered to other channels", s.ID, p.Char.Name, target)
+		return
+	}
 	if recipient == nil {
 		s.Send(wire.MessagePanel(w.msg("_NN_Not_Connected")))
 		log.Printf("[#%d] WHISPER %q -> %q: offline", s.ID, p.Char.Name, target)

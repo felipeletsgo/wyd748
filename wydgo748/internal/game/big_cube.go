@@ -49,7 +49,7 @@ func (w *World) startBigCubeQuestion(inst *ItemInstance, now time.Time) bool {
 				uint32(instanceQuestionDuration/time.Millisecond)))
 		}
 	}
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(inst.RuntimeID)
 	return true
 }
 
@@ -111,7 +111,7 @@ func (w *World) resolveBigCubeQuestion(inst *ItemInstance, now time.Time) bool {
 		inst.QuizAt = time.Time{}
 		inst.QuizDeadline = time.Time{}
 		setInstanceCombatDeadline(inst, now)
-		w.markInstanceStateDirty()
+		w.markInstanceRuntimeDirty(inst.RuntimeID)
 		return true
 	}
 

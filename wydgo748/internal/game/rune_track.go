@@ -124,7 +124,7 @@ func (w *World) runeTrackPartyFor(inst *ItemInstance, p *Player) int {
 // The coordinator deep-clones RuneTrack and restores public RAM during I/O.
 func (w *World) runeTrackMutation(inst *ItemInstance, members []*Player, operation string,
 	mutate func(), publish func()) bool {
-	if w.criticalInstanceReserved() {
+	if w.criticalInstanceRuntimeReserved(inst.RuntimeID) {
 		return false
 	}
 	before := cloneRuneInstance(inst)

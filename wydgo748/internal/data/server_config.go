@@ -68,6 +68,9 @@ type ServerConfig struct {
 	ChannelID                    uint32
 	Channel2Enabled              bool
 	Channel2Address              string
+	// ChannelPeers names the channels that other game processes serve. When
+	// set, this process serves only channel_id (W9 phase 5).
+	ChannelPeers []byte
 	// LanguageDir holds en.txt and pt.txt; ChannelLanguage and
 	// Channel2Language select the message language of each channel.
 	LanguageDir            string
@@ -294,6 +297,7 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"channel_id":                       setUint32(&cfg.ChannelID),
 		"channel2_enabled":                 func(v string) error { b, err := strconv.ParseBool(v); cfg.Channel2Enabled = b; return err },
 		"channel2_address":                 func(v string) error { cfg.Channel2Address = v; return nil },
+		"channel_peers":                    func(v string) error { return parseChannelPeers(v, &cfg.ChannelPeers) },
 		"language_dir":                     func(v string) error { cfg.LanguageDir = v; return nil },
 		"channel_language":                 func(v string) error { cfg.ChannelLanguage = v; return nil },
 		"channel2_language":                func(v string) error { cfg.Channel2Language = v; return nil },
@@ -471,6 +475,16 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 			return ServerConfig{}, fmt.Errorf("%s: channel2_address: %w", path, err)
 		}
 	}
+	if len(cfg.ChannelPeers) > 0 {
+		if cfg.Channel2Enabled {
+			return ServerConfig{}, fmt.Errorf("%s: channel_peers and channel2_enabled exclude each other", path)
+		}
+		for _, peer := range cfg.ChannelPeers {
+			if uint32(peer) == cfg.ChannelID {
+				return ServerConfig{}, fmt.Errorf("%s: channel_peers must not name channel_id %d", path, cfg.ChannelID)
+			}
+		}
+	}
 	if cfg.DebugAddress != "" {
 		if err := ValidateDebugAddress(cfg.DebugAddress); err != nil {
 			return ServerConfig{}, fmt.Errorf("%s: debug_address: %w", path, err)
@@ -584,6 +598,28 @@ func validateListenAddress(address string) error {
 	port, err := strconv.Atoi(portText)
 	if err != nil || port < 1 || port > 65535 {
 		return fmt.Errorf("invalid port %q", portText)
+	}
+	return nil
+}
+
+// parseChannelPeers reads a comma-separated list of distinct channels 1..255.
+func parseChannelPeers(value string, peers *[]byte) error {
+	*peers = nil
+	seen := map[byte]bool{}
+	for _, part := range strings.Split(value, ",") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		channel, err := strconv.ParseUint(part, 10, 8)
+		if err != nil || channel == 0 {
+			return fmt.Errorf("channel_peers: invalid channel %q", part)
+		}
+		if seen[byte(channel)] {
+			return fmt.Errorf("channel_peers: channel %d repeats", channel)
+		}
+		seen[byte(channel)] = true
+		*peers = append(*peers, byte(channel))
 	}
 	return nil
 }

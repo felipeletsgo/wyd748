@@ -90,7 +90,7 @@ func (w *World) hellGateRewardProposal(inst *ItemInstance, plan *criticalInstanc
 	if w == nil || w.criticalWrites == nil || inst == nil || plan == nil || w.shuttingDown {
 		return errCriticalPersistenceIdentity
 	}
-	if w.criticalInstanceReserved() {
+	if w.criticalInstanceWholeReserved() || w.criticalInstanceRuntimeReserved(inst.RuntimeID) {
 		return errCriticalPersistenceBusy
 	}
 	if !hellGateVersion2(inst) {
@@ -135,7 +135,7 @@ func (w *World) hellGateRewardProposal(inst *ItemInstance, plan *criticalInstanc
 		if err := check(); err != nil {
 			return err
 		}
-		_, err := w.criticalWrites.submitWithRejection(criticalWrite{instances: plan.snapshot()},
+		_, err := w.criticalWrites.submitWithRejection(criticalWrite{instances: plan.snapshot(), instanceKeys: plan.writeKeys(w)},
 			func(result criticalPersistenceResult) error {
 				if result.err != nil {
 					return result.err

@@ -44,7 +44,7 @@ func (w *World) accountSettling(key string) bool {
 // waitForAccountSettlement parks one login per account. A channel transfer
 // keeps its own ticket flow and never waits here.
 func (w *World) waitForAccountSettlement(s *net.Session, result *loginResult, key string) bool {
-	if result.transfer != nil {
+	if result.transfer != nil || result.durableTicket != nil {
 		return false
 	}
 	if existing := w.waitingLogins[key]; existing != nil && existing.session != s && !existing.session.IsClosed() {

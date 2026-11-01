@@ -200,13 +200,14 @@ func (w *World) persistShutdownState() {
 	}
 	log.Printf("shutdown: %d final account write(s) took %s with %d worker(s)",
 		len(saves), time.Since(started).Round(time.Millisecond), max(w.shutdownSaveWorkers, 1))
-	if w.instanceStateDirty {
+	if w.instanceStateDirtyAny() {
 		if err := w.persistInstanceState(); err != nil {
 			failed++
 			failures = append(failures, fmt.Errorf("instance state: %w", err))
 			log.Printf("shutdown: save instance state: %v", err)
 		} else {
 			w.instanceStateDirty = false
+			clear(w.instanceDirtyRuntimes)
 		}
 	}
 

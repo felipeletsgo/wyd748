@@ -42,8 +42,13 @@ type command struct {
 	login           *loginResult
 	quarantine      []quarantineStatus
 	loginReload     *loginReloadResult
-	entryRead       *entryReadResult
-	queuedAt        time.Time
+	channelTicket   *channelTicketIssued
+	guildSync       *guildSyncEvent
+	channelMessage  *store.ChannelMessage
+	// apply runs on the actor; it carries a worker's result back.
+	apply     func()
+	entryRead *entryReadResult
+	queuedAt  time.Time
 	// replayDeferred marks an inbound packet that already passed validation and
 	// waited behind its player's persistence reservation.
 	replayDeferred bool
@@ -60,10 +65,14 @@ type commandBatchQueue struct {
 const commandBatchEnd = int16(-1)
 
 type loginResult struct {
-	transfer    *channelTicket
-	accountName string
-	account     *model.Account
-	err         error
+	transfer *channelTicket
+	// durableTicket is the hash of a durable channel ticket (W9 phase 2);
+	// durableSlot is its character slot once the lease claim consumed it.
+	durableTicket []byte
+	durableSlot   int
+	accountName   string
+	account       *model.Account
+	err           error
 	// sanctions is the durable state read with authentication; sanctionErr
 	// rejects the login because a ban cannot be ruled out.
 	sanctions   store.SanctionState
@@ -676,6 +685,27 @@ type World struct {
 	asyncEntryReads bool
 	loginReloads    map[*net.Session]*loginReload
 	entryReadSlots  chan struct{}
+	// leases is this process's account lease client (account_leases.go, W9).
+	leases           *AccountLeases
+	leaseReconcileAt time.Time
+	// leaseHolders maps an account key to the admitted session that holds
+	// its lease; leaseReleases holds ended sessions whose account writes
+	// have not settled: account key to session ID.
+	leaseHolders  map[string]*net.Session
+	leaseReleases map[string]int64
+	// remoteChannels are served by other processes; remoteTransfers holds
+	// durable ticket issues in flight (channel_migration.go, W9 phase 2).
+	remoteChannels  map[byte]bool
+	remoteTransfers map[*net.Session]*remoteTransfer
+	// Guild row versions between processes (guild_sync.go, W9 phase 3).
+	// outbox carries messages to channels of other processes
+	// (channel_outbox.go, W9 phase 4).
+	outbox               *ChannelOutbox
+	guildVersioning      bool
+	guildVersions        map[uint16]int64
+	guildRefreshPending  map[uint16]bool
+	guildRefreshAll      bool
+	guildRefreshInFlight bool
 	// shutdownSaveWorkers bounds concurrent terminal saves (shutdown.go).
 	shutdownSaveWorkers int
 	// panicRestart requests a supervised restart after a contained panic.
@@ -725,6 +755,10 @@ type World struct {
 	gambleJackpot      uint32
 	gamblePool         uint64
 	instanceStateDirty bool
+	// Per-runtime dirt (W8): runtime ID, or "" for channel globals, to the
+	// version that last changed it. A keyed flush persists only these rows.
+	instanceDirtyRuntimes map[string]uint64
+	instanceDirtySeq      uint64
 	// Dirty generations are actor-only tokens, never persisted or sent. An older
 	// instance completion must not erase a mutation made after its snapshot.
 	criticalInstanceGeneration   *criticalInstanceGeneration
@@ -897,6 +931,14 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 			return nil, fmt.Errorf("load guilds: %w", err)
 		}
 		w.guilds = registry
+	}
+	// A cluster shares one registry in one process; versions are for
+	// separate processes.
+	w.guildVersioning = w.guildVersioning && w.cluster == nil
+	if w.guildVersioning {
+		if err := w.loadGuildRowVersions(); err != nil {
+			return nil, fmt.Errorf("load guild row versions: %w", err)
+		}
 	}
 	// In-memory character-name index prevents 0x20F scan amplification. A store
 	// without index support leaves charNames nil and falls back to a disk scan.
@@ -1880,6 +1922,18 @@ func commandLabel(cmd command) string {
 	if cmd.loginReload != nil {
 		return "login.reload"
 	}
+	if cmd.channelTicket != nil {
+		return "channel.ticket"
+	}
+	if cmd.guildSync != nil {
+		return "guild.sync"
+	}
+	if cmd.channelMessage != nil {
+		return "channel.message"
+	}
+	if cmd.apply != nil {
+		return "actor.apply"
+	}
 	if cmd.quarantine != nil {
 		return "quarantine.status"
 	}
@@ -2024,6 +2078,10 @@ func (w *World) tick() {
 		return
 	}
 	w.mobTickCounter++
+	w.reconcileAccountLeases(time.Now())
+	if w.guildVersioning {
+		w.startGuildRefresh() // retry rows whose writes were in flight
+	}
 	// Server position follows the visual route, but only due steps become
 	// authoritative for AI and interactions.
 	w.advanceAllPlayerMovement(now)
@@ -2058,7 +2116,7 @@ func (w *World) tick() {
 	w.tickChaosRecovery(now)
 	w.tickPlayerMounts(now)
 	w.tickGroundItems(now)
-	if !w.criticalInstanceReserved() {
+	if !w.criticalInstanceWholeReserved() {
 		w.tickItemInstances(now)
 		w.tickNightmarePartyReturns()
 	} else {
@@ -2282,6 +2340,9 @@ func (w *World) handle(cmd command) {
 			cmd.s.CloseWithCause(net.CloseCauseShutdown, nil)
 			if cmd.loginReload != nil {
 				w.cancelLoginReload(cmd.s)
+			} else if cmd.channelTicket != nil {
+				delete(w.remoteTransfers, cmd.s)
+				w.leases.cancelTicket(cmd.channelTicket.transfer.hash)
 			} else if cmd.pkt == nil && cmd.login == nil && cmd.entryRead == nil && !w.shutdownStarted {
 				w.onDisconnect(cmd.s)
 			} else if cmd.login != nil {
@@ -2302,8 +2363,24 @@ func (w *World) handle(cmd command) {
 		w.onLoginReload(cmd.s, cmd.loginReload)
 		return
 	}
+	if cmd.channelTicket != nil {
+		w.onChannelTicketIssued(cmd.s, cmd.channelTicket)
+		return
+	}
 	if cmd.quarantine != nil {
 		w.onQuarantineStatus(cmd.quarantine)
+		return
+	}
+	if cmd.guildSync != nil {
+		w.onGuildSync(cmd.guildSync)
+		return
+	}
+	if cmd.channelMessage != nil {
+		w.onChannelMessage(cmd.channelMessage)
+		return
+	}
+	if cmd.apply != nil {
+		cmd.apply()
 		return
 	}
 	if cmd.entryRead != nil {

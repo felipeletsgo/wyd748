@@ -255,7 +255,7 @@ func (w *World) resumeCriticalDisconnects(limit int) {
 				}
 				w.detachPlayerFromItemInstances(player.ID, w.now())
 				retained.instancesDetached = true
-				if !w.instanceStateDirty && !w.criticalInstanceReserved() {
+				if !w.instanceStateDirtyAny() && !w.criticalInstanceReserved() {
 					retained.instancesSaved = true
 				} else {
 					// Even a no-op detachment arriving behind an older snapshot

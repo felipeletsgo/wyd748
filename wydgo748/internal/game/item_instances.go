@@ -2386,7 +2386,7 @@ func (w *World) completeItemInstance(inst *ItemInstance, now time.Time) {
 	if !ok {
 		return
 	}
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(inst.RuntimeID)
 	w.tryWaterAutoAdvance(inst, receipt, now)
 }
 
@@ -2408,7 +2408,7 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 		w.onUxmalMobKilled(m, now)
 		return
 	}
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(inst.RuntimeID)
 	combatExpired := !instanceCombatDeadline(inst).IsZero() && !now.Before(instanceCombatDeadline(inst))
 	if !instanceAdmissionOnlySchedule(inst) &&
 		!inst.ScheduleEnd.IsZero() && !now.Before(inst.ScheduleEnd) {
@@ -2455,7 +2455,7 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 			if ok, _ := w.spawnItemInstanceStage(inst, inst.CurrentStage, now, false, true); !ok {
 				setInstanceCombatDeadline(inst, now)
 			}
-			w.markInstanceStateDirty()
+			w.markInstanceRuntimeDirty(inst.RuntimeID)
 			return
 		}
 		if policy == "finish_on_timeout" {
@@ -2471,14 +2471,14 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 		if stage := stages[inst.CurrentStage]; len(stage.CompletionSpawns) > 0 && !inst.BossSpawned {
 			if ok := w.spawnItemInstanceCompletionWave(inst, stage, now); ok {
 				inst.BossSpawned = true
-				w.markInstanceStateDirty()
+				w.markInstanceRuntimeDirty(inst.RuntimeID)
 				return
 			}
 			setInstanceCombatDeadline(inst, now)
 			return
 		}
 		if w.spawnMagicChamberRuneBonus(inst, stages[inst.CurrentStage], now) {
-			w.markInstanceStateDirty()
+			w.markInstanceRuntimeDirty(inst.RuntimeID)
 			return
 		}
 		if inst.CurrentStage+1 < len(stages) {
@@ -2501,7 +2501,7 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 							quiz, uint32(instanceQuestionDuration/time.Millisecond)))
 					}
 				}
-				w.markInstanceStateDirty()
+				w.markInstanceRuntimeDirty(inst.RuntimeID)
 				return
 			}
 			delay := inst.Config.TransitionSeconds
@@ -2518,7 +2518,7 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 					member.Session.Send(wire.MessagePanel(w.msgFor(member, "_WG_Next_Room_Will_Open_Shortly")))
 				}
 			}
-			w.markInstanceStateDirty()
+			w.markInstanceRuntimeDirty(inst.RuntimeID)
 		} else {
 			w.completeItemInstance(inst, now)
 		}
@@ -2601,7 +2601,7 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 		inst.QuizAt = time.Time{}
 		inst.QuizDeadline = time.Time{}
 		setInstanceCombatDeadline(inst, now)
-		w.markInstanceStateDirty()
+		w.markInstanceRuntimeDirty(inst.RuntimeID)
 		return true
 	}
 	// The answer changes characters and instance state together. Persist the
@@ -2672,18 +2672,23 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 }
 
 func (w *World) tickItemInstances(now time.Time) {
-	if w.criticalInstanceReserved() {
+	// Only a whole-aggregate write stops every room (W8). A room whose own
+	// write is pending waits; the other rooms keep their timers.
+	if w.criticalInstanceWholeReserved() {
 		return
 	}
 	for id, inst := range w.itemInstances {
+		if w.criticalInstanceRuntimeReserved(id) {
+			continue
+		}
 		if w.tickRuneTrack(inst, now) {
-			if w.criticalInstanceReserved() {
+			if w.criticalInstanceWholeReserved() {
 				return
 			}
 			continue
 		}
 		if w.tickHellGate(inst, now) {
-			if w.criticalInstanceReserved() {
+			if w.criticalInstanceWholeReserved() {
 				return
 			}
 			continue
@@ -2701,14 +2706,14 @@ func (w *World) tickItemInstances(now time.Time) {
 				inst.HardDeadline = now
 				hardExpired = true
 			}
-			w.markInstanceStateDirty()
+			w.markInstanceRuntimeDirty(inst.RuntimeID)
 		}
 		if !hardExpired && !scheduleExpired && !w.spawnNightmareBoss(inst, now, true) {
 			log.Printf("INSTANCE %q: Nightmare boss creation failed", inst.Config.ID)
 			inst.HardDeadline = now
 			setInstanceCombatDeadline(inst, now)
 			hardExpired = true
-			w.markInstanceStateDirty()
+			w.markInstanceRuntimeDirty(inst.RuntimeID)
 		}
 		quizDeadline := inst.QuizDeadline
 		if quizDeadline.IsZero() {
@@ -2780,8 +2785,11 @@ func (w *World) tickItemInstances(now time.Time) {
 		if (hellGateAcceptsFinalState(inst) || linearCompletion) && inst.Remaining == 0 && inst.TransitionAt.IsZero() && inst.QuizAt.IsZero() &&
 			inst.ExitAt.IsZero() && (hellGateAcceptsFinalState(inst) || now.Before(combatDeadline)) {
 			w.completeItemInstance(inst, now)
-			if w.criticalInstanceReserved() {
+			if w.criticalInstanceWholeReserved() {
 				return
+			}
+			if w.criticalInstanceRuntimeReserved(id) {
+				continue
 			}
 		}
 		expired := hardExpired || scheduleExpired
@@ -2798,7 +2806,7 @@ func (w *World) tickItemInstances(now time.Time) {
 			// a pending kill still owns its unpublished mob until acknowledgement.
 			// A rejected or busy exit retries next tick without changing the room.
 			w.queueCriticalInstanceExit(id, inst)
-			if w.criticalInstanceReserved() {
+			if w.criticalInstanceWholeReserved() {
 				return
 			}
 			continue
@@ -2879,7 +2887,7 @@ func (w *World) closeItemInstance(id string) {
 	delete(w.pendingInstanceMembers, id)
 	delete(w.pendingInstanceLeaders, id)
 	delete(w.magicChamberRunes, id)
-	w.markInstanceStateDirty()
+	w.markInstanceRuntimeDirty(id)
 	log.Printf("INSTANCE %q closed", id)
 }
 

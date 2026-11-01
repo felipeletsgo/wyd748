@@ -88,7 +88,7 @@ func (w *World) tickRunePortals(inst *ItemInstance) {
 			}
 			// One durable move per tick; subsequent parties retain their powder
 			// and are processed on the next portal pulse.
-			if w.criticalInstanceReserved() {
+			if w.criticalInstanceRuntimeReserved(inst.RuntimeID) {
 				return
 			}
 			break

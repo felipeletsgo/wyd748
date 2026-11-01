@@ -117,8 +117,9 @@ func (w *World) queueGuildAccountChange(actor *Player, seeds []*Player, proposed
 		}
 	}
 	registry, retained := w.guilds, w.criticalGuildSnapshot()
+	plan := newCriticalGuildPlan(registry, retained, proposed, true)
 	checkRetained := func() error {
-		if w.guilds != registry || !reflect.DeepEqual(w.criticalGuildSnapshot(), retained) {
+		if !plan.unchanged(w) {
 			return errCriticalPersistenceIdentity
 		}
 		for _, before := range retainedMembers {
@@ -140,12 +141,13 @@ func (w *World) queueGuildAccountChange(actor *Player, seeds []*Player, proposed
 	if err := checkRetained(); err != nil {
 		return err
 	}
-	_, err := w.submitCriticalWriteWithRejection(criticalWrite{guilds: proposed, accounts: accounts}, participants, false,
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{guilds: proposed, guildKeys: plan.keys(), accounts: accounts},
+		participants, false,
 		func(criticalPersistenceResult) error {
 			if err := checkRetained(); err != nil {
 				return err
 			}
-			*w.guilds = *proposed
+			plan.install(w)
 			if apply != nil {
 				apply()
 			}

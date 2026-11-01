@@ -3,7 +3,6 @@ package game
 import (
 	"fmt"
 	"log"
-	"reflect"
 	"time"
 
 	"wydgo/internal/model"
@@ -29,11 +28,12 @@ func (w *World) queueScheduledGuildChange(change func(*model.GuildRegistry) erro
 	// Calendar changes edit the active Wars view. Match the worker's detached
 	// snapshot, including ChannelWars, before retaining the post-ack identity.
 	proposed = proposed.Clone()
+	plan := newCriticalGuildPlan(registry, retained, proposed, true)
 	check := func() error {
 		if w.shutdownErr != nil {
 			return fmt.Errorf("critical persistence: maintenance prevents guild publication")
 		}
-		if w.guilds != registry || !reflect.DeepEqual(w.criticalGuildSnapshot(), retained) {
+		if !plan.unchanged(w) {
 			return errCriticalPersistenceIdentity
 		}
 		for _, hook := range hooks {
@@ -48,7 +48,7 @@ func (w *World) queueScheduledGuildChange(change func(*model.GuildRegistry) erro
 	if err := check(); err != nil {
 		return err
 	}
-	_, err := w.criticalWrites.submitWithRejection(criticalWrite{guilds: proposed},
+	_, err := w.criticalWrites.submitWithRejection(criticalWrite{guilds: proposed, guildKeys: plan.keys()},
 		func(result criticalPersistenceResult) error {
 			if result.err != nil {
 				return result.err
@@ -56,10 +56,10 @@ func (w *World) queueScheduledGuildChange(change func(*model.GuildRegistry) erro
 			if err := check(); err != nil {
 				return err
 			}
-			*w.guilds = *proposed
+			plan.install(w)
 			return nil
 		}, func(criticalPersistenceResult) error {
-			if w.shutdownErr != nil || w.guilds != registry || !reflect.DeepEqual(w.criticalGuildSnapshot(), proposed) {
+			if w.shutdownErr != nil || !plan.installed(w) {
 				return errCriticalPersistenceIdentity
 			}
 			if publish != nil {

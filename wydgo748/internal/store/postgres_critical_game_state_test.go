@@ -175,12 +175,12 @@ func TestPostgresCriticalGameStateLateRejectionRollsBackEveryAggregate(t *testin
 	// Force a SQL rejection in the last aggregate write, after accounts, ledger,
 	// sidecar and guild have all been written inside the same transaction.
 	constraint := "critical_game_state_test_failure"
-	if _, err := st.pool.Exec(context.Background(), `ALTER TABLE instance_state ADD CONSTRAINT `+constraint+
+	if _, err := st.pool.Exec(context.Background(), `ALTER TABLE instance_channel_state ADD CONSTRAINT `+constraint+
 		` CHECK ((payload->>'gamblePool') IS DISTINCT FROM '987654321') NOT VALID`); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() {
-		if _, err := st.pool.Exec(context.Background(), "ALTER TABLE instance_state DROP CONSTRAINT "+constraint); err != nil {
+		if _, err := st.pool.Exec(context.Background(), "ALTER TABLE instance_channel_state DROP CONSTRAINT "+constraint); err != nil {
 			t.Errorf("remove isolated rejection constraint: %v", err)
 		}
 	})

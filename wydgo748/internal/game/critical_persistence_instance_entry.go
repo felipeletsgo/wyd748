@@ -54,9 +54,10 @@ func (w *World) queueCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 		return errors.New("This ticket cannot be used from here.")
 	}
 	at := w.now()
+	// Entry reads exclusive groups and members' other rooms: whole aggregate.
 	plan := &criticalInstanceDeparture{at: at, generation: w.criticalInstanceGeneration,
 		before: cloneCriticalInstanceMembership(w), proposed: cloneCriticalInstanceMembership(w),
-		originals: maps.Clone(w.itemInstances)}
+		originals: maps.Clone(w.itemInstances), whole: true}
 	if plan.proposed.itemInstances == nil {
 		plan.proposed.itemInstances = make(map[string]*ItemInstance)
 	}

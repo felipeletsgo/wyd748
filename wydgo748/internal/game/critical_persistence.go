@@ -34,7 +34,16 @@ type criticalWrite struct {
 	accounts  []*model.Account
 	character *criticalCharacterState
 	instances *model.InstanceStateSnapshot
-	guilds    *model.GuildRegistry
+	// instanceKeys declares the instance participants this write changes
+	// (W8). Nil reserves and writes the whole instance aggregate.
+	instanceKeys []store.InstanceParticipant
+	guilds       *model.GuildRegistry
+	// guildKeys declares the guild participants this write changes (W8);
+	// GuildID 0 is the registry. Nil reserves and writes the whole registry.
+	guildKeys []store.GuildParticipant
+	// guildVersionKeys are the rows that a versioned guild write changes,
+	// each with the version this process read (W9 phase 3).
+	guildVersionKeys []store.GuildParticipant
 	// donate marks a premium balance write: one account, the credits it
 	// applies and its ledger rows, committed in the same transaction.
 	donate *criticalDonateWrite
@@ -80,13 +89,35 @@ type criticalGameStateStore interface {
 	SaveCriticalGameState(*model.GuildRegistry, *model.InstanceStateSnapshot, string, *model.CharState, ...*model.Account) error
 }
 
+// Keyed adapters commit only the declared instance participants (W8).
+type criticalInstanceRowsStore interface {
+	SaveCriticalInstanceRows(*model.InstanceStateSnapshot, []store.InstanceParticipant, ...*model.Account) error
+}
+
+type criticalGameStateRowsStore interface {
+	SaveCriticalGameStateRows(*model.GuildRegistry, []store.GuildParticipant, *model.InstanceStateSnapshot,
+		[]store.InstanceParticipant, string, *model.CharState, ...*model.Account) error
+}
+
+func guildRowKey(key store.GuildParticipant) string {
+	return fmt.Sprintf("guild/%d", key.GuildID)
+}
+
+func instanceRowKey(key store.InstanceParticipant) string {
+	return fmt.Sprintf("%d/%s", key.Channel, key.RuntimeID)
+}
+
 type criticalPersistencePending struct {
-	keys        []string
-	uids        []string
-	completed   bool
-	instances   bool
-	guilds      bool
-	quarantined bool
+	keys      []string
+	uids      []string
+	completed bool
+	instances bool
+	// instanceKeys holds the reserved participant keys of a keyed write;
+	// a whole-aggregate instance write leaves it empty.
+	instanceKeys []string
+	guilds       bool
+	guildKeys    []string
+	quarantined  bool
 	// submittedAt is real time for diagnostics, never a gameplay deadline.
 	submittedAt time.Time
 	// background marks a detached autosave snapshot (W7). It holds no gameplay
@@ -130,6 +161,12 @@ type criticalPersistence struct {
 	failedCharacters map[string]uint64
 	failedInstances  uint64
 	failedGuilds     uint64
+	// Keyed instance writes reserve participant keys instead of the whole
+	// aggregate holder (W8). Either form excludes the other.
+	instanceKeys       map[string]uint64
+	failedInstanceKeys map[string]uint64
+	guildKeys          map[string]uint64
+	failedGuildKeys    map[string]uint64
 }
 
 func newCriticalPersistence(backend store.Store, workers, capacity int) (*criticalPersistence, error) {
@@ -220,8 +257,26 @@ func (q *criticalPersistence) submitOrdered(write criticalWrite, background bool
 		}
 	}
 	combined := write.guilds != nil || write.instances != nil && write.character != nil
-	if write.guilds != nil && (q.guilds != 0 || q.failedGuilds != 0) {
-		return 0, errCriticalPersistenceBusy
+	if write.guilds != nil {
+		keyed := write.guildKeys != nil
+		if keyed {
+			_, keyed = q.store.(criticalGameStateRowsStore)
+		}
+		if !keyed {
+			write.guildKeys = nil // an adapter without rows writes the whole registry
+		}
+		if q.guilds != 0 || q.failedGuilds != 0 {
+			return 0, errCriticalPersistenceBusy
+		}
+		if !keyed && (len(q.guildKeys) > 0 || len(q.failedGuildKeys) > 0) {
+			return 0, errCriticalPersistenceBusy
+		}
+		for _, key := range write.guildKeys {
+			name := guildRowKey(key)
+			if q.guildKeys[name] != 0 || q.failedGuildKeys[name] != 0 {
+				return 0, errCriticalPersistenceBusy
+			}
+		}
 	}
 	if combined {
 		if _, ok := q.store.(criticalGameStateStore); !ok {
@@ -229,8 +284,26 @@ func (q *criticalPersistence) submitOrdered(write criticalWrite, background bool
 		}
 	}
 	if write.instances != nil {
+		keyed := write.instanceKeys != nil
+		if keyed && combined {
+			_, keyed = q.store.(criticalGameStateRowsStore)
+		} else if keyed {
+			_, keyed = q.store.(criticalInstanceRowsStore)
+		}
+		if !keyed {
+			write.instanceKeys = nil // an adapter without rows writes the whole aggregate
+		}
 		if q.instances != 0 || q.failedInstances != 0 {
 			return 0, errCriticalPersistenceBusy
+		}
+		if !keyed && (len(q.instanceKeys) > 0 || len(q.failedInstanceKeys) > 0) {
+			return 0, errCriticalPersistenceBusy
+		}
+		for _, key := range write.instanceKeys {
+			name := instanceRowKey(key)
+			if q.instanceKeys[name] != 0 || q.failedInstanceKeys[name] != 0 {
+				return 0, errCriticalPersistenceBusy
+			}
 		}
 		if combined {
 			// The combined adapter covers the instance aggregate too.
@@ -323,9 +396,12 @@ func (q *criticalPersistence) submitOrdered(write criticalWrite, background bool
 	}
 	if write.guilds != nil {
 		snapshot.guilds = write.guilds.Clone()
+		snapshot.guildKeys = slices.Clone(write.guildKeys)
+		snapshot.guildVersionKeys = slices.Clone(write.guildVersionKeys)
 	}
 	if write.instances != nil {
 		snapshot.instances = write.instances.Clone()
+		snapshot.instanceKeys = slices.Clone(write.instanceKeys)
 	}
 	if write.character != nil {
 		character := *write.character
@@ -358,11 +434,27 @@ func (q *criticalPersistence) submitOrdered(write criticalWrite, background bool
 	}
 	q.lastID = id
 	q.pending[id] = pending
-	if write.instances != nil {
+	if write.instances != nil && write.instanceKeys == nil {
 		q.instances = id
 	}
-	if write.guilds != nil {
+	for _, key := range write.instanceKeys {
+		name := instanceRowKey(key)
+		if q.instanceKeys == nil {
+			q.instanceKeys = make(map[string]uint64)
+		}
+		q.instanceKeys[name] = id
+		pending.instanceKeys = append(pending.instanceKeys, name)
+	}
+	if write.guilds != nil && write.guildKeys == nil {
 		q.guilds = id
+	}
+	for _, key := range write.guildKeys {
+		name := guildRowKey(key)
+		if q.guildKeys == nil {
+			q.guildKeys = make(map[string]uint64)
+		}
+		q.guildKeys[name] = id
+		pending.guildKeys = append(pending.guildKeys, name)
 	}
 	// A parked write takes over each key from its background predecessor.
 	for _, key := range keys {
@@ -503,8 +595,18 @@ func (q *criticalPersistence) acknowledge(id uint64) error {
 	if q.instances == id {
 		q.instances = 0
 	}
+	for _, name := range pending.instanceKeys {
+		if q.instanceKeys[name] == id {
+			delete(q.instanceKeys, name)
+		}
+	}
 	if q.guilds == id {
 		q.guilds = 0
+	}
+	for _, name := range pending.guildKeys {
+		if q.guildKeys[name] == id {
+			delete(q.guildKeys, name)
+		}
 	}
 	delete(q.pending, id)
 	q.releaseSuccessors(pending)
@@ -546,10 +648,21 @@ func (q *criticalPersistence) execute(job criticalPersistenceJob) (result critic
 		if write.character != nil {
 			uid, state = write.character.uid, write.character.state
 		}
-		result.err = q.store.(criticalGameStateStore).SaveCriticalGameState(write.guilds,
-			write.instances, uid, state, write.accounts...)
+		if write.guildVersionKeys != nil {
+			result.err = q.store.(criticalGameStateRowsStore).SaveCriticalGameStateRows(write.guilds,
+				write.guildVersionKeys, write.instances, write.instanceKeys, uid, state, write.accounts...)
+		} else if write.instanceKeys != nil || write.guildKeys != nil {
+			result.err = q.store.(criticalGameStateRowsStore).SaveCriticalGameStateRows(write.guilds,
+				write.guildKeys, write.instances, write.instanceKeys, uid, state, write.accounts...)
+		} else {
+			result.err = q.store.(criticalGameStateStore).SaveCriticalGameState(write.guilds,
+				write.instances, uid, state, write.accounts...)
+		}
 	} else if write.instances != nil {
-		if certified, ok := q.store.(criticalInstanceStore); ok {
+		if write.instanceKeys != nil {
+			result.err = q.store.(criticalInstanceRowsStore).SaveCriticalInstanceRows(write.instances,
+				write.instanceKeys, write.accounts...)
+		} else if certified, ok := q.store.(criticalInstanceStore); ok {
 			result.err = certified.SaveCriticalInstanceState(write.instances, write.accounts...)
 		} else if len(write.accounts) == 0 {
 			result.err = q.store.(instanceRuntimeStore).SaveInstanceState(write.instances)

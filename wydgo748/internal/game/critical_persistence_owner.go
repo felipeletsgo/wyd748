@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"slices"
 
 	"wydgo/internal/net"
 	"wydgo/internal/store"
@@ -14,7 +15,10 @@ const criticalCompletionBatchLimit = 8
 // criticalPersistenceOwner retains gameplay continuations on the World actor.
 // NewWorld initializes it when the backend certifies the required atomic writes.
 type criticalPersistenceOwner struct {
-	activeWorld   *World
+	activeWorld *World
+	// versioned is the World whose guild writes carry row versions (W9
+	// phase 3); it runs without a cluster.
+	versioned     *World
 	queue         *criticalPersistence
 	continuations map[uint64]*criticalContinuation
 }
@@ -71,6 +75,9 @@ func (owner *criticalPersistenceOwner) submitWrite(write criticalWrite, backgrou
 	if w != nil && write.instances != nil {
 		write.instances = w.persistedChannelInstances(write.instances)
 	}
+	if v := owner.versioned; v != nil && write.guilds != nil {
+		write.guildVersionKeys = v.versionedGuildKeys(write)
+	}
 	var id uint64
 	var err error
 	if background {
@@ -83,13 +90,34 @@ func (owner *criticalPersistenceOwner) submitWrite(write criticalWrite, backgrou
 		return 0, err
 	}
 	if w != nil && write.instances != nil {
-		saved := write.instances.Clone()
+		saved, keys := write.instances.Clone(), slices.Clone(write.instanceKeys)
 		next := apply
 		apply = func(result criticalPersistenceResult) error {
 			if result.err == nil {
-				w.committedChannelInstances(saved)
+				if keys != nil {
+					w.mergeCommittedChannelInstances(saved, keys)
+				} else {
+					w.committedChannelInstances(saved)
+				}
 			}
 			return next(result)
+		}
+	}
+	if v := owner.versioned; v != nil && write.guildVersionKeys != nil {
+		versioned, next, nextReject := write, apply, reject
+		apply = func(result criticalPersistenceResult) error {
+			if result.err == nil {
+				v.advanceGuildVersions(versioned)
+			} else {
+				v.guildConflict(versioned, result.err)
+			}
+			return next(result)
+		}
+		if nextReject != nil {
+			reject = func(result criticalPersistenceResult) error {
+				v.guildConflict(versioned, result.err)
+				return nextReject(result)
+			}
 		}
 	}
 	owner.continuations[id] = &criticalContinuation{world: w, reservation: owner.queue.pending[id],

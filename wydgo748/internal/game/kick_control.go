@@ -20,6 +20,10 @@ type kickRequest struct {
 	command   control.KickCommand
 	authorize func() bool
 	reply     chan control.KickResult
+	// remote marks a request of another channel process, which checked the
+	// epoch; unmatched reports that no session here matched (W9).
+	remote    bool
+	unmatched bool
 }
 
 // Only called on the World goroutine. A new process invalidates old targets.
@@ -53,6 +57,9 @@ func (w *World) KickCommand(ctx context.Context, actor string, c control.KickCom
 	}
 	select {
 	case result := <-req.reply:
+		if req.unmatched && w.remotePeers() > 0 {
+			result = w.remoteKick(ctx, actor, c, result)
+		}
 		return result, nil
 	case <-ctx.Done():
 		return control.KickResult{}, ctx.Err()
@@ -60,7 +67,9 @@ func (w *World) KickCommand(ctx context.Context, actor string, c control.KickCom
 }
 
 func (w *World) handleKick(req *kickRequest) {
-	defer w.kickPending.Store(false)
+	if !req.remote {
+		defer w.kickPending.Store(false)
+	}
 	if req.ctx.Err() != nil {
 		return
 	}
@@ -78,7 +87,7 @@ func (w *World) handleKick(req *kickRequest) {
 	if req.ctx.Err() != nil {
 		return
 	}
-	if c.Epoch != w.moderationEpoch() {
+	if !req.remote && c.Epoch != w.moderationEpoch() {
 		finish("stale_target")
 		return
 	}
@@ -122,6 +131,12 @@ func (w *World) handleKick(req *kickRequest) {
 			r.Code = "disconnected_persistence_failed"
 		}
 		break
+	}
+	req.unmatched = r.Code == "stale_target"
+	if req.unmatched && !req.remote && w.remotePeers() > 0 {
+		// Nothing happened here; the owner process keeps the receipt.
+		req.reply <- r
+		return
 	}
 	if w.kickReceipts == nil {
 		w.kickReceipts = make(map[string]kickReceipt)

@@ -103,7 +103,10 @@ func certifiedTransactionAttempt(ctx context.Context, tx pgx.Tx,
 	if errors.Is(err, pgx.ErrTxCommitRollback) || isRetryablePostgres(err) {
 		return rejectWrite(err) // pgx/server explicitly reports an aborted commit.
 	}
-	if pgconn.SafeToRetry(err) {
+	// pgconn reports a closed connection as safe to retry even when it closed
+	// after COMMIT was sent (receiveMessage on an asynchronously closed
+	// connection). Only the transaction's exact status can settle that case.
+	if pgconn.SafeToRetry(err) && !errors.Is(err, pgconn.ErrConnClosed) {
 		// pgconn certifies that COMMIT never reached the server, for example
 		// after the operation deadline expired. pgx closes that connection.
 		return rejectWrite(fmt.Errorf("store: commit not sent: %w", err))

@@ -12,7 +12,7 @@ func (w *World) runeTrackCombatActor(m *Mob, now time.Time) bool {
 	inst := w.instanceForMob(m)
 	if inst == nil || inst.RuneTrack == nil || inst.State != "combat" || inst.RuneTrack.Settled ||
 		now.Before(inst.RuneTrack.Start.Add(31*time.Second)) || !now.Before(inst.RuneTrack.Start.Add(15*time.Minute)) ||
-		w.criticalInstanceReserved() || m.Dead || m.HP == 0 || m.Def == nil || m.Def.Score == nil ||
+		w.criticalInstanceRuntimeReserved(inst.RuntimeID) || m.Dead || m.HP == 0 || m.Def == nil || m.Def.Score == nil ||
 		!m.Def.IsMonster() || w.mobsByID[m.ID] != m {
 		return false
 	}

@@ -48,7 +48,8 @@ W1 changes the certified transaction contract (source only, 2026-10-31). COMMIT
 is the only durable boundary. Callbacks use only their transaction, so any
 failure before COMMIT certifies rejection, including a failed rollback; pgx
 then discards the connection. Rollback uses a separate one-second context.
-A COMMIT error that pgconn marks as unsent is a rejection. Any other COMMIT
+A COMMIT error that pgconn marks as unsent is a rejection, except "conn closed": pgconn
+also returns that lock error after COMMIT was sent, so it is reconciled by XID (2026-11-01). Any other COMMIT
 error stays unknown and keeps its precedence over nested rejections. Earlier
 records below that call a failed rollback unknown describe the previous policy.
 W4 then resolves an unknown COMMIT on the worker with `pg_xact_status` for the

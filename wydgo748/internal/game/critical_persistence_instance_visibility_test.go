@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"wydgo/internal/model"
+	"wydgo/internal/store"
 )
 
 func TestCriticalInstanceMutationHidesProvisionalState(t *testing.T) {
@@ -113,9 +114,12 @@ func TestCriticalInstanceMutationRejectsChangedPreimage(t *testing.T) {
 				t.Cleanup(release)
 				w.criticalWrites = newCriticalPersistenceOwner(q)
 				p.Char.Gold += 10
+				// The transition changes this runtime, so the runtime is in the
+				// write's scope and later changes to it must be detected (W8).
+				inst.CurrentStage++
 				published, rejected := 0, 0
 				if !w.commitInstanceMutation("changed preimage test", []*model.Account{p.Account},
-					func() { installAccountInPlace(p.Account, before) },
+					func() { installAccountInPlace(p.Account, before); inst.CurrentStage-- },
 					func() { published++ }, func() { rejected++ }) {
 					t.Fatal("transition was not admitted")
 				}
@@ -145,4 +149,51 @@ func TestCriticalInstanceMutationRejectsChangedPreimage(t *testing.T) {
 			})
 		}
 	}
+}
+
+// W8: a transition of one runtime does not reserve or check another runtime.
+// The unrelated runtime may change while the write is pending.
+func TestCriticalInstanceMutationIgnoresUnrelatedRuntime(t *testing.T) {
+	w, _, p, _, _ := instanceTestWorld()
+	claimCriticalTestPlayers(t, w, p)
+	w.indexPlayerCharacter(p)
+	inst := &ItemInstance{Config: *instanceTestRule().Instance, RuntimeID: "water-normal-1",
+		LeaderID: p.ID, MemberIDs: []uint16{p.ID}}
+	other := &ItemInstance{Config: *instanceTestRule().Instance, RuntimeID: "water-normal-2"}
+	w.itemInstances[inst.RuntimeID], w.itemInstances[other.RuntimeID] = inst, other
+	gate, release := criticalGate(t)
+	base := &criticalTestStore{entered: make(chan criticalWrite, 1), release: gate}
+	q := newCriticalTestQueue(t, &criticalInstanceRowsTestStore{&criticalInstanceAtomicTestStore{&criticalInstanceTestStore{base}}}, 1, 2)
+	t.Cleanup(release)
+	w.criticalWrites = newCriticalPersistenceOwner(q)
+	inst.CurrentStage++
+	published := 0
+	if !w.commitInstanceMutation("unrelated runtime test", nil, func() { inst.CurrentStage-- },
+		func() { published++ }, nil) {
+		t.Fatal("transition was not admitted")
+	}
+	write := awaitCriticalWrite(t, base.entered)
+	if len(write.instanceKeys) != 1 || write.instanceKeys[0].RuntimeID != inst.RuntimeID {
+		t.Fatalf("write keys %+v, want only %s", write.instanceKeys, inst.RuntimeID)
+	}
+	if !w.criticalInstanceRuntimeReserved(inst.RuntimeID) || w.criticalInstanceRuntimeReserved(other.RuntimeID) {
+		t.Fatal("reservation is not scoped to the changed runtime")
+	}
+	other.Remaining++ // unrelated runtime progresses during the write
+	release()
+	awaitReadyCriticalResults(t, q, 1)
+	w.processCriticalCompletions(1)
+	if w.shuttingDown || published != 1 || inst.CurrentStage != 1 || other.Remaining != 1 || len(q.pending) != 0 {
+		t.Fatalf("scoped transition failed: maintenance=%t published=%d stage=%d", w.shuttingDown, published, inst.CurrentStage)
+	}
+}
+
+// criticalInstanceRowsTestStore adds the keyed instance adapter (W8).
+type criticalInstanceRowsTestStore struct {
+	*criticalInstanceAtomicTestStore
+}
+
+func (s *criticalInstanceRowsTestStore) SaveCriticalInstanceRows(state *model.InstanceStateSnapshot,
+	keys []store.InstanceParticipant, accounts ...*model.Account) error {
+	return s.record(criticalWrite{accounts: accounts, instances: state, instanceKeys: keys})
 }

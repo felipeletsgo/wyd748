@@ -19,6 +19,10 @@ Gameplay acceptance remains pending.
 
 ## Queue
 
+All eleven reports are closed. On 2026-11-01 the owner confirmed BUG-001 to
+BUG-011 fixed in the client (`CLIENT-TESTED` by the owner's report; no session
+log or capture is attached). Reopen an ID only for a new concrete reproduction.
+
 Priority is provisional: P1 blocks an encounter or loses essential session
 state; P2 affects feedback, presentation, or behavior requiring diagnosis.
 The rows are grouped by affected flow, not permission to abandon work already
@@ -26,17 +30,17 @@ in progress. No publication or restart is authorized by this register.
 
 | ID | Priority | Issue | Current status |
 | --- | --- | --- | --- |
-| BUG-001 | P2 | HIT/MISS feedback missing for the attacker | Initial diagnosis; no confirmed cause |
-| BUG-002 | P1 | Noatun gate closes unexpectedly and blocks return | Client-local target-distance close removed in source; gameplay pending |
-| BUG-003 | P1 | Hell Gate has no visible monsters after entry | Version-3 historical populations, march, Dionys shop and Sand Lich selection published in server release 20261018T171412Z; gameplay pending |
-| BUG-004 | P2 | Blood Foema incoming damage reduction appears incorrect | Owner confirmed current behavior is correct; no change requested |
-| BUG-005 | P2 | Blood Foema mana consumption/control appears inconsistent | Owner confirmed current behavior is correct; no change requested |
-| BUG-006 | P2 | Divine Judgment deals damage without its visual effect | Candidate 16 keeps scene-owned finite billboards alive beyond the 300 ms controller; Release build passed; visual acceptance pending |
-| BUG-007 | P2 | Nightmare party entry and identification are not synchronized | Shared-zone party relocation corrected; automated checks passed, gameplay pending |
-| BUG-008 | P1 | Nightmare reconnect loses party and encounter HUD state | Server recovery implemented; automated checks passed, gameplay pending |
-| BUG-009 | P1 | Magic Chamber monsters disappear or remain untargetable | Party relocation and independent-run isolation corrected in source; automated checks passed, gameplay pending |
-| BUG-010 | P2 | Magic Chamber entrance floor runes are missing | Rune slates and the 7.59 rune bonus boss implemented in source; automated checks passed, gameplay pending |
-| BUG-011 | P1 | Compounder and city guards attack players | Friendly roles and monster-only guard combat implemented; automated checks passed, gameplay pending |
+| BUG-001 | P2 | HIT/MISS feedback missing for the attacker | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-002 | P1 | Noatun gate closes unexpectedly and blocks return | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-003 | P1 | Hell Gate has no visible monsters after entry | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-004 | P2 | Blood Foema incoming damage reduction appears incorrect | Closed: owner confirmed current behavior is correct |
+| BUG-005 | P2 | Blood Foema mana consumption/control appears inconsistent | Closed: owner confirmed current behavior is correct |
+| BUG-006 | P2 | Divine Judgment deals damage without its visual effect | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-007 | P2 | Nightmare party entry and identification are not synchronized | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-008 | P1 | Nightmare reconnect loses party and encounter HUD state | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-009 | P1 | Magic Chamber monsters disappear or remain untargetable | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-010 | P2 | Magic Chamber entrance floor runes are missing | Closed: owner confirmed fixed in the client, 2026-11-01 |
+| BUG-011 | P1 | Compounder and city guards attack players | Closed: owner confirmed fixed in the client, 2026-11-01 |
 
 ## Disconnect and performance audit — 2026-10-31
 
@@ -59,20 +63,20 @@ recovery work. These priorities do not certify occurrence in production.
 | --- | --- | --- | --- |
 | D1 | P1 | A certified autosave rejection closes the participant and retains the account fence | Active (release 20261101T050356Z) from W1 for autosave and 15 detached producers |
 | D2 | P1 | Pre-COMMIT timeout cleanup uses the expired operation context and can report an unknown outcome | Active (release 20261101T050356Z) from W1 and W4 (exact XID reconciliation, startup fence, staff recheck); VPS COMMIT-loss acceptance pending |
-| D3 | P1 | The default 256-packet output queue closes on overflow without a cause-specific diagnostic | Active (release 20261101T050356Z) from W0 (causes) and W3 (batching, byte bound, deferred scene); real TCP acceptance pending |
+| D3 | P1 | The default 256-packet output queue closes on overflow without a cause-specific diagnostic | Active (release 20261101T050356Z) from W0 (causes) and W3 (batching, byte bound, deferred scene). Real TCP accepted: local slow links (0 server closes, peak 77/256) and VPS play over a 250 ms link (peak 0–1/256, send queue at most 1 KB, no overflow close); load with many players pending |
 | D4 | P2 | A blackholed socket can retain account ownership until transport detection and actor cleanup finish | Active (release 20261101T050356Z) from W4 (keepalive, TCP_USER_TIMEOUT, bounded wait for a settling owner); loopback blackhole and VPS Linux 6.8 kernel `TCP_USER_TIMEOUT` tests passed |
-| D5 | P1 | Handler panic leaves one World in maintenance while readiness can stay 200; tick panic can terminate the shared process | Active (release 20261101T050356Z) from W5 (tick recovery, readiness); process isolation remains W9 |
+| D5 | P1 | Handler panic leaves one World in maintenance while readiness can stay 200; tick panic can terminate the shared process | Active (release 20261101T050356Z) from W5 (tick recovery, readiness). W9 channel-process mode is active in R4 code but not configured; locally, killing channel 1 kept channel 2 sessions and admission. Cutover needs separate authorization |
 | D8 | P1 | The configured critical-write deadline also bounds account reads; initial authentication storage errors use the invalid-credentials panel | Active (release 20261101T050356Z) from W2; pool sizing awaits VPS measurement |
 | D9 | P2 | Four shared authentication slots reject excess concurrent logins; password hashing competes for process CPU | Active (release 20261101T050356Z) from W2; hash concurrency tuning awaits VPS measurement |
 | D10 | P2 | The tracked game unit requires the PostgreSQL instance; explicit database stop/restart propagates to the game | Active (release 20261101T050356Z): `Wants=` unit installed and store recovery from W5 |
 | D11 | P2 | Terminal player saves are sequential across the shared actor, within one 20-second process shutdown budget | Active (release 20261101T050356Z) from W5 (bounded workers); 300 populated accounts drain in 191 ms locally; VPS measurement pending |
-| P1 | P2 | Both channels share one serialized gameplay actor | Measured: 300 active players on one channel add 12 ms (p50) / 22 ms (p99) per 500 ms cycle to the other; ownership inventory recorded (W9 item 1). R1–R3 are active; the split (W9) waits for production evidence |
+| P1 | P2 | Both channels share one serialized gameplay actor | Measured: 300 active players on one channel add 12 ms (p50) / 22 ms (p99) per 500 ms cycle to the other; ownership inventory recorded (W9 item 1). R1–R3 are active; W9 phases 1–5 (schema v17–v20) are active in R4 in single-process mode and passed a local two-process isolation run; the channel-process cutover needs separate authorization |
 | P2 | P2 | Autosave submits a full account snapshot and fences that account during persistence settlement | Active (release 20261101T050356Z) from W7 (unchanged writes skipped; autosave holds no input; later writes ordered behind it); VPS latency percentiles pending |
 | P3 | P2 | The final login account reload and character-state entry read run on the shared gameplay actor | Active (release 20261101T050356Z) from W2 |
 | P6 metrics | P2 | Staff metrics omit pool statistics and detailed critical-write state; transport closes lack cause counters | Active (release 20261101T050356Z) from W0; VPS observation pending |
 | P7 / P4 | P2 | Mob activation repeats expensive target and runtime checks before exact distance rejection on movement | Active (release 20261101T050356Z) from W6 (distance first; one neighborhood read per recompute pass, about −48% per step at 300 players); VPS confirmation pending |
-| P8 | P2 | Several routine PvP, missed-attack and pickup logs bypass gameplay summary mode on the actor | Active (release 20261101T050356Z) from W0 |
-| P10 | P2 | Guild and instance snapshots each use a singleton row and shared reservation; an instance reservation skips instance lifecycle work | Measured: 100 active runtimes give a 76 KB aggregate written in 2.6 ms (p50), 3.3 ms max; `world_instance_tick_skipped_total` observes skips. R1–R3 are active; per-runtime rows (W8) wait for the production skip rate |
+| P8 | P2 | Several routine PvP, missed-attack and pickup logs bypass gameplay summary mode on the actor | Closed: active since release 20261101T050356Z; VPS play on 2026-11-01 logged one GAMEPLAY summary per minute (skills, kills, drops) and no per-event line |
+| P10 | P2 | Guild and instance snapshots each use a singleton row and shared reservation; an instance reservation skips instance lifecycle work | Measured: 100 active runtimes give a 76 KB aggregate written in 2.6 ms (p50), 3.3 ms max; `world_instance_tick_skipped_total` observes skips. R1–R3 are active; W8 per-runtime and per-guild rows and reservations are active in R4 (release 20261101T145133Z, schema v15/v16); VPS skip rate with players pending |
 
 ### Evidence and acceptance boundaries
 
@@ -648,6 +652,74 @@ reader that stops reading (closed with `write_timeout`), five race repetitions.
 On the VPS (Linux 6.8.0, temporary directory removed afterwards) the same TCP
 tests and the kernel `TCP_USER_TIMEOUT` check passed.
 `CLIENT-TESTED`: none.
+
+### COMMIT-loss acceptance and closed-connection fix — 2026-11-01
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Found by the new real-TCP acceptance
+test, after release `20261101T050356Z` activated W1.
+
+- A proxy between the game store and PostgreSQL recognizes the frontend
+  COMMIT message and drops the connection before or after PostgreSQL receives
+  it. World, coordinator, store reconciliation and quarantine run unmodified.
+- Defect: when the connection closed after COMMIT was sent, pgconn returned
+  its "conn closed" lock error, which claims to be safe to retry. W1 trusted
+  it and certified a rejection although PostgreSQL had committed. A producer
+  with a rejection continuation could then undo committed effects in memory.
+- Fix: "conn closed" no longer certifies an unsent COMMIT. The worker asks
+  PostgreSQL for the exact transaction status: `committed` is success,
+  `aborted` is a rejection, anything else stays unknown and quarantined.
+
+`AUTOMATED TESTED` (local PostgreSQL, real TCP): an acknowledgement lost after
+COMMIT reconciles as committed with no rejection; a COMMIT that never arrives
+becomes a rejection and the next autosave writes the retained state; a lost
+acknowledgement with the database unreachable quarantines the account by XID
+and releases it on `committed`, and the durable state is the committed one.
+A store test fails without the fix. Game-only hotfix release `20261101T064639Z` is active since
+2026-11-01 06:46 UTC (owner-authorized restart, no player online; schema unchanged at v14).
+
+Local acceptance run (`build/acceptance-20261101/acceptance-summary.md`): the
+real server with production queue and persistence limits ran 60 direct bots
+and 20 bots behind a 150 ms, 16 KB/s link for three minutes with no session
+closed by the server, a peak output queue of 77/256 and 1,298 committed
+critical writes with none rejected or unknown. A forced process kill under
+load left no open transaction; all 80 accounts loaded and validated, and all
+80 signed in again after the restart.
+
+### VPS observation — 2026-11-01 08:23 UTC, read-only
+
+Active hotfix release `20261101T064639Z` since 06:46:41 UTC: 0 restarts, 160 MB resident memory,
+load average 0.05, two idle game backends. Since activation the journal shows no panic, no
+indeterminate or quarantined write, no output overflow, an output queue high water of 1/256, and only
+the four post-activation admission checks (revision 16 rejected twice, two credential checks). No
+player entered the world after activation; the previous 14 days had 182 character-list deliveries.
+
+A second sample at 14:44 UTC (7 h 58 min active) is unchanged: 0 restarts, 164 MB, no panic or failed
+write, three handshake closes from unauthenticated connections, and still no player in the world. With
+no player online, the owner then authorized R4, which is active since 14:51 UTC (release
+`20261101T145133Z`, schema v20, no panic or error at start).
+
+The pending VPS measurements of D2, D3, D8, D9, D11, P2, P6 and P7/P4 need real player traffic.
+Repeat this read-only inspection after players return; it needs no restart.
+
+### VPS measurement with the owner online — 2026-11-01 15:01–15:05 UTC, read-only
+
+R4 release `20261101T145133Z`, one player (the owner) in the world over a 250 ms round trip, eight
+30-second samples (evidence: `build/r4-20261101/live-sample.log`):
+
+| Measure | Result |
+| --- | --- |
+| Game process | 0.6–0.9% CPU, 166–176 MB resident, 0 restarts |
+| PostgreSQL | 1.5–1.8 commits/s, 0 rollbacks; 5–10 account and 1–6 character-state row writes per 30 s |
+| Transport | Send queue at most 1 KB; output queue high water 0–1/256; no overflow or timeout close |
+| Ownership | One account lease (the owner's); process heartbeat age 3–6 s |
+| Journal since R4 | 1 login, 0 panics, 0 indeterminate, quarantined or failed critical writes; one GAMEPLAY summary per minute |
+
+What one player proves: R4 serves play with the W1–W9 write paths, leases and per-row writes, with
+no failure and a small footprint. What it cannot prove: pool sizing (D8), hash concurrency (D9),
+shutdown drain with players (D11), autosave latency percentiles under load (P2), activation cost at
+many players (P7/P4) and the instance skip rate (P10); these need more players. Loop lag, tick, pool
+and critical-queue values are in the staff panel's Runtime metrics, which need a staff session; this
+inspection used none.
 
 ## Reports and acceptance checks
 

@@ -689,6 +689,215 @@
         "Grant game.persistence.recovery to staff accounts that need it"
       ],
       "evidenceDirectory": "build/server-final-20261101/"
+    },
+    {
+      "id": "hotfix-commit-closed-connection-20261101",
+      "classification": "MODERNIZACAO_COMPATIVEL",
+      "authorization": {
+        "request": "Sim, ativar hotfix",
+        "publication": true,
+        "gameRestart": true,
+        "disconnectedPlayers": 0
+      },
+      "source": {
+        "head": "ae5bbb15a14e56a6d6991b7888204bb34121f57c",
+        "mode": "working-tree",
+        "gameOnly": true,
+        "manifest": "build/deploy/wyd-deploy-hotfix-commit-20261101/release-manifest.json",
+        "scope": "A closed connection at COMMIT is reconciled by transaction status instead of certified as unsent. Only wyd-server changed; W8 code is not included; schema stays v14."
+      },
+      "package": {
+        "releaseId": "wyd-deploy-hotfix-commit-20261101",
+        "archiveSha256": "2ae56e18a0fb7a3a909351835139cf835f3378cc92b7980393c177ef2d3bf09d",
+        "payloadFiles": 1076
+      },
+      "active": {
+        "release": "/srv/wyd-go/releases/20261101T064639Z",
+        "rollback": "/srv/wyd-go/releases/20261101T050356Z",
+        "services": {
+          "wyd-game": {
+            "MainPID": 3026255,
+            "NRestarts": 0,
+            "ActiveState": "active",
+            "sha256": "4953082f43d0e12ff4dbc73329a2ef33d0676b262382c248e04917a4ae90ee07"
+          }
+        },
+        "backup": {
+          "archive": "wydgo-20261101T064639Z.dump",
+          "verified": true
+        },
+        "schema": 14
+      },
+      "admission": {
+        "at": "2026-11-01T06:47:02.269268+00:00",
+        "results": [
+          {
+            "port": 8281,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+          },
+          {
+            "port": 8281,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Conta ou senha incorreta."
+          },
+          {
+            "port": 8282,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8282,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          }
+        ],
+        "realAccountAuthenticated": false
+      },
+      "shutdown": {
+        "previousProcess": "Graceful: 0 accounts persisted, 0 failures; no players online"
+      },
+      "validation": {
+        "fullGoSuite": "PASS",
+        "vet": "PASS",
+        "race": "PASS: store, game",
+        "acceptance": "Real-TCP COMMIT loss (acknowledgement lost, unsent, unresolved then released) on local PostgreSQL; store regression fails without the fix",
+        "clientGameplay": "PENDING"
+      },
+      "evidenceDirectory": "build/hotfix-commit-closed-20261101/"
+    },
+    {
+      "id": "server-corrections-r4-w8-w9-20261101",
+      "classification": "MODERNIZACAO_COMPATIVEL",
+      "authorization": {
+        "request": "se nao ha jogadores publique entao",
+        "publication": true,
+        "gameRestart": true,
+        "condition": "no player connected",
+        "disconnectedPlayers": 0
+      },
+      "source": {
+        "head": "ae5bbb15a14e56a6d6991b7888204bb34121f57c",
+        "mode": "working-tree",
+        "gameOnly": true,
+        "manifest": "build/deploy/wyd-deploy-r4-20261101/release-manifest.json",
+        "scope": "W8 participant rows and reservations (schema v15-v16) and W9 phases 1-5 (schema v17-v20): account leases with write fence, durable channel tickets, versioned guild rows, channel outbox, channel-process mode and unique guild names. Single-process mode stays active; channel_peers is not configured. No client, configuration, portal or data change."
+      },
+      "package": {
+        "releaseId": "wyd-deploy-r4-20261101",
+        "archiveSha256": "247a9fd4eaaa6c3b81f05576ebf38d549c41801a220cde9dda6c436185523aa1",
+        "wydServerSha256": "1f4bc65fa6fd4842e2d26981b109b9a8caba4ce6dfb0157db337096b39a52f11",
+        "archiveEntries": 1088
+      },
+      "preflight": {
+        "playersConnected": 0,
+        "schema": 14,
+        "duplicateGuildNames": 0,
+        "guilds": 6,
+        "freeDisk": "23G"
+      },
+      "active": {
+        "release": "/srv/wyd-go/releases/20261101T145133Z",
+        "rollback": "/srv/wyd-go/releases/20261101T064639Z",
+        "services": {
+          "wyd-game": {
+            "MainPID": 3104698,
+            "NRestarts": 0,
+            "ActiveState": "active",
+            "activeSince": "2026-11-01T14:51:39Z",
+            "sha256": "1f4bc65fa6fd4842e2d26981b109b9a8caba4ce6dfb0157db337096b39a52f11"
+          }
+        },
+        "backup": {
+          "archive": "/var/backups/wyd-go/wydgo-20261101T145133Z.dump",
+          "bytes": 508959,
+          "tableDataEntries": 18,
+          "verified": true
+        },
+        "schema": 20,
+        "schemaVersions": [
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "migratedRows": {
+          "instanceRuntime": 0,
+          "instanceChannel": 2,
+          "guildRows": 6,
+          "guildRegistry": 1,
+          "uniqueGuildNames": 6
+        },
+        "guildSingletonExportCurrent": true,
+        "gameProcess": "wydgo-game/8fb0e40aa8ad15e2",
+        "gameBackends": 5
+      },
+      "admission": {
+        "at": "2026-11-01T14:55:59.405092+00:00",
+        "results": [
+          {
+            "port": 8281,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+          },
+          {
+            "port": 8281,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Conta ou senha incorreta."
+          },
+          {
+            "port": 8282,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8282,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          }
+        ],
+        "realAccountAuthenticated": false
+      },
+      "shutdown": {
+        "previousProcess": "Graceful: 0 accounts persisted, 0 failures; no players online"
+      },
+      "journal": {
+        "panics": 0,
+        "errors": 0,
+        "listeners": [
+          "8281",
+          "8282"
+        ]
+      },
+      "validation": {
+        "fullGoSuite": "PASS (23 packages)",
+        "vet": "PASS",
+        "race": "PASS: store, game, data, cmd/server",
+        "postgresAcceptance": "Two-process lease, ticket, guild, outbox and staff tests; local channel-process isolation run (build/w9-isolation-20261101/)",
+        "migrationDryRun": "Production v14 dry run for v15-v16 passed earlier; v17-v20 dry run on the local development database",
+        "clientGameplay": "PENDING"
+      },
+      "news": "No post: no player-visible change, as for the 2026-11-01 hotfix.",
+      "pending": [
+        "CLIENT-TESTED gameplay after R4",
+        "VPS measurements with real players",
+        "Channel-process cutover (separate authorization)"
+      ],
+      "cleanup": {
+        "remoteStaging": "/tmp/wyd-deploy-r4-20261101 removed"
+      },
+      "evidenceDirectory": "build/r4-20261101/"
     }
   ]
 }

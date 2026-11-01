@@ -18,6 +18,11 @@ type criticalInstanceDeparture struct {
 	before     *World
 	proposed   *World
 	originals  map[string]*ItemInstance
+	// scope is set when the plan writes only its participants (W8).
+	scope *criticalInstanceScope
+	// whole marks a plan that reads other runtimes to decide; it reserves
+	// and writes the whole aggregate.
+	whole bool
 }
 
 func cloneCriticalInstanceMembership(w *World) *World {
@@ -67,7 +72,9 @@ func (w *World) prepareCriticalInstanceDeparture(p *Player) (*criticalInstanceDe
 		}
 		return nil, nil
 	}
-	if w.criticalInstanceReserved() {
+	// The queue refuses a write whose runtime is reserved (W8); only a
+	// whole-aggregate write blocks every departure here.
+	if w.criticalInstanceWholeReserved() {
 		return nil, errCriticalPersistenceBusy
 	}
 	plan := &criticalInstanceDeparture{
@@ -82,6 +89,9 @@ func (w *World) prepareCriticalInstanceDeparture(p *Player) (*criticalInstanceDe
 func (plan *criticalInstanceDeparture) check(w *World) error {
 	if plan == nil {
 		return nil
+	}
+	if plan.scope != nil {
+		return plan.checkScoped(w)
 	}
 	current := cloneCriticalInstanceMembership(w)
 	if w.criticalInstanceGeneration != plan.generation || !maps.Equal(w.itemInstances, plan.originals) ||
@@ -105,6 +115,10 @@ func (plan *criticalInstanceDeparture) snapshot() *model.InstanceStateSnapshot {
 
 func (plan *criticalInstanceDeparture) install(w *World) {
 	if plan == nil {
+		return
+	}
+	if plan.scope != nil {
+		plan.installScoped(w)
 		return
 	}
 	// Preserve runtime pointer identities held by mobs and other actor consumers.

@@ -708,6 +708,10 @@ account containment=true`. Through the private diagnostic endpoint
 | `world_critical_parked_total` | Writes that waited behind a background autosave of a participant instead of holding that player's input |
 | `world_instance_tick_skipped_total` | Ticks that skipped instance lifecycle work because an instance write was in flight; compare with two ticks per second per channel |
 | `world_login_replacement_total` | Logins that waited for a closed previous session to settle (`waiting`), then entered (`admitted`), gave up at five seconds (`timed_out`) or closed while waiting (`abandoned`) |
+| `world_account_lease_total` | Account leases (W9): `claimed`, `claim_refused` (another live game process owns the account, or a channel transfer is pending), `claim_failed` (database error; the player retries), `ticket_claimed` and `ticket_refused` (durable channel tickets), and failed `release`, `reconcile` or `heartbeat` work |
+| `world_guild_sync_total` | Guild rows between game processes (W9): `conflicts` (a write from a stale copy was rejected), `installed` and `removed` (rows reloaded from another process), `members_repaired` (connected members updated) |
+| `world_channel_outbox_total` | Messages to channels of other processes (W9): `queued`, `published`, `delivered`, `request_timeout` (a staff or whisper request missed a reply), and `dropped_full`, `dropped_store`, `invalid` or `unknown_kind` failures |
+| `postgres_account_lease_fenced_total` | Account writes rejected because another live game process owns the account; any nonzero value with one process is a defect |
 | `postgres_pool_*` | Game store pool connections, acquisitions, empty-pool waits and cancellations |
 | `CRITICAL: persistence completion ... admission remains open; verified reconciliation required` | Affected accounts disconnect; account, UID, shared-object and aggregate fences remain held; unrelated admission and persistence continue |
 | `CRITICAL: persistence completion ... entering maintenance` | Historical policy, or a coordinator constructed without containment; the production entry point enables operation containment |

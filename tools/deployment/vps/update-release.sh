@@ -148,7 +148,11 @@ rollback() {
     # Versions 6-11 add counter/staff tables and read-only views, not account
     # transformations. Keep these additions, but restore the expected marker
     # before starting an older binary. Never rewind an unknown migration.
-    for version in 11 10 9; do
+    # Versions 15-16 add instance and guild participant rows; the exported singleton rows
+    # stay current and are what a v14 binary reads (W8). Versions 17-20 add
+    # lease, ticket and message tables and a guild name index that an older
+    # binary ignores (W9).
+    for version in 20 19 18 17 16 15 11 10 9; do
         if [ "$game_touched" = true ] && [ -n "$previous_schema" ] && [ "$previous_schema" -ge 8 ] && [ "$previous_schema" -lt "$version" ]; then
             runuser -u postgres -- psql -X -p 5433 -d wydgo -v ON_ERROR_STOP=1 -c                 "DELETE FROM schema_migrations WHERE version=$version AND (SELECT max(version) FROM schema_migrations)=$version" || true
         fi

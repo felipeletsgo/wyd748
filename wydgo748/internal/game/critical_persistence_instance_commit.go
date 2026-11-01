@@ -38,7 +38,9 @@ func (w *World) commitInstanceMutation(operation string, accounts []*model.Accou
 		log.Printf("%s: admission rejected: %v", operation, err)
 		return false
 	}
-	if w.criticalInstanceReserved() {
+	// The queue refuses a write whose runtime is reserved (W8); only a
+	// whole-aggregate write blocks every transition here.
+	if w.criticalInstanceWholeReserved() {
 		return fail(errCriticalPersistenceBusy)
 	}
 	if len(accounts) > 0 {
@@ -97,7 +99,7 @@ func (w *World) commitInstanceMutation(operation string, accounts []*model.Accou
 		}
 		return plan.check(w)
 	}
-	write := criticalWrite{accounts: proposals, instances: snapshot}
+	write := criticalWrite{accounts: proposals, instances: snapshot, instanceKeys: plan.keyed(w)}
 	apply := func(result criticalPersistenceResult) error {
 		if result.err != nil {
 			return result.err
