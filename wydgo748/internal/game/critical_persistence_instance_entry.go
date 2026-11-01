@@ -19,7 +19,7 @@ func (w *World) admitCriticalInstanceTicket(p *Player, slot byte, rule model.Vol
 	if err != nil && p != nil && p.Char != nil && p.Session != nil && !p.Session.IsClosed() && int(slot) < model.PlayerCarrySlots {
 		resyncUsedItem(p.Session, p, slot)
 		if !errors.Is(err, errCriticalPersistenceBusy) && !errors.Is(err, errCriticalPersistenceFull) {
-			p.Session.Send(wire.MessagePanel(err.Error()))
+			p.Session.Send(wire.MessagePanel(w.trFor(p, err.Error())))
 		}
 	}
 	return err == nil
@@ -359,9 +359,9 @@ func (w *World) publishCriticalInstanceEntryStatus(inst *ItemInstance) {
 		if name == "" {
 			name = inst.Config.Name
 		}
-		member.Session.Send(instanceStageNamePacket(name))
+		member.Session.Send(w.instanceStageNamePacket(name))
 		if isBigCubeInstance(inst) && stage.Quiz != nil && inst.QuizDeadline.After(now) {
-			member.Session.Send(instanceQuestionPacket(member.ID, stage.Quiz,
+			member.Session.Send(w.instanceQuestionPacket(member.ID, stage.Quiz,
 				uint32(inst.QuizDeadline.Sub(now)/time.Millisecond)))
 		}
 	}

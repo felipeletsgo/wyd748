@@ -140,18 +140,23 @@ func (w *World) queueInventoryComposition(p *Player, req combineRequest, resultI
 		participants = append(participants, peer)
 		accounts = append(accounts, peerBefore)
 	}
-	_, err := w.submitCriticalWritePhased(criticalWrite{accounts: accounts}, participants, false,
+	check := func() error {
+		// Validate the same economic and trade preimage on commit or rollback.
+		if skill && (p.Char.Score == nil || skillInputs != [4]uint32{uint32(p.Char.Class),
+			p.Char.LearnedSkill, p.Char.SecondaryLearnedSkill, uint32(playerMastery(p.Char, 2))}) {
+			return errCriticalPersistenceIdentity
+		}
+		if p.Char.Inv != oldInv || p.Char.Gold != oldGold || p.Trade != trade ||
+			(trade != nil && (*trade != offer || peer.Trade != peerTrade || *peerTrade != peerOffer ||
+				!reflect.DeepEqual(accountStateSnapshot(peer.Account), peerBefore))) {
+			return errCriticalPersistenceIdentity
+		}
+		return nil
+	}
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: accounts}, participants, false,
 		func(criticalPersistenceResult) error {
-			// Validate retained economic and shared contexts before installing any
-			// field. Account/session generations are checked by the owner binding.
-			if skill && (p.Char.Score == nil || skillInputs != [4]uint32{uint32(p.Char.Class),
-				p.Char.LearnedSkill, p.Char.SecondaryLearnedSkill, uint32(playerMastery(p.Char, 2))}) {
-				return errCriticalPersistenceIdentity
-			}
-			if p.Char.Inv != oldInv || p.Char.Gold != oldGold || p.Trade != trade ||
-				(trade != nil && (*trade != offer || peer.Trade != peerTrade || *peerTrade != peerOffer ||
-					!reflect.DeepEqual(accountStateSnapshot(peer.Account), peerBefore))) {
-				return errCriticalPersistenceIdentity
+			if err := check(); err != nil {
+				return err
 			}
 			for _, pos := range positions {
 				p.Char.Inv[pos] = prepared.Inv[pos]
@@ -185,6 +190,18 @@ func (w *World) queueInventoryComposition(p *Player, req combineRequest, resultI
 				log.Printf("[#%d] CRAFT Compositor success=%t roll=%d/%d (base %d + %s)",
 					p.Session.ID, roll.Success, roll.Roll, roll.Chance, w.gameplay.CompositorBaseChance, breakdown)
 			}
+			return nil
+		}, func(result criticalPersistenceResult) error {
+			if err := check(); err != nil {
+				return err
+			}
+			// No ingredient, gold or trade change was published. Cancel the
+			// prepared roll and restore the client's original inventory view.
+			if !p.Session.IsClosed() {
+				w.resendInventory(p)
+				w.sendCombineResultMessage(p, 0, "Save failed. The inventory was not changed.")
+			}
+			log.Printf("[#%d] %s composition canceled after certified rejection: %v", p.Session.ID, artisan, result.err)
 			return nil
 		})
 	return err

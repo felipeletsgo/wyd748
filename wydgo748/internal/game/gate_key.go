@@ -71,9 +71,9 @@ func (w *World) useGateKey(s *net.Session, p *Player, item *model.Item, slot byt
 	gate, alreadyOpen := w.gateByKeyID(p, keyID)
 	if gate == nil {
 		if alreadyOpen {
-			s.Send(wire.MessagePanel("This door is already open."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Door_Already_Open")))
 		} else {
-			s.Send(wire.MessagePanel("There is no door for this key here."))
+			s.Send(wire.MessagePanel(w.msg("_WG_There_No_Door_Key_Here")))
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
@@ -182,7 +182,7 @@ func (w *World) onUpdateGroundItem(s *net.Session, pkt []byte) {
 	}
 	slot := w.gateKeySlot(p, keyID)
 	if slot < 0 {
-		s.Send(wire.MessagePanel("You do not have the required key."))
+		s.Send(wire.MessagePanel(w.msg("_NN_No_Key")))
 		s.Send(groundItemUpdatePacket(gate))
 		return
 	}

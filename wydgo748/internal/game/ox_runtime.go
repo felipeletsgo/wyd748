@@ -56,7 +56,7 @@ func (w *World) startOXEvent() string {
 	w.oxQuizMode = true
 	w.setOXDoors(false)
 	w.broadcast(func() []byte {
-		return wire.MessageIndexed(msgOXEnrollmentOpen - 1000)
+		return w.projectMessage(msgOXEnrollmentOpen)
 	})
 	return "ok"
 }
@@ -120,7 +120,7 @@ func clearOXHUD(p *Player) {
 func (w *World) sendOXCountdown(p *Player, deadline time.Time, message int16) {
 	seconds := uint32(max(0, int(deadline.Sub(w.now()).Seconds()+0.999)))
 	p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, seconds))
-	p.Session.Send(wire.MessageParameterized(message-1000, strconv.FormatUint(uint64(seconds), 10)))
+	p.Session.Send(w.projectMessage(message, strconv.FormatUint(uint64(seconds), 10)))
 }
 
 // Only ticket-admitted players may enter the public arena. Position packets,
@@ -186,7 +186,7 @@ func (w *World) guardOXArena() {
 		}
 		w.moveOutOfArenaWithAck(p, x, y, func() {
 			clearOXHUD(p)
-			p.Session.Send(wire.MessageIndexed(msgOXEnterDuringEnrollment - 1000))
+			p.Session.Send(w.projectMessage(msgOXEnterDuringEnrollment))
 		})
 	}
 }
@@ -218,7 +218,7 @@ func (w *World) tickOXEvent(now time.Time) {
 		o.phase, o.deadline = "question", now.Add(instanceQuestionDuration)
 		for p := range o.members {
 			p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, 10))
-			p.Session.Send(instanceQuestionPacket(p.ID, &o.questions[o.round], 10000))
+			p.Session.Send(w.instanceQuestionPacket(p.ID, &o.questions[o.round], 10000))
 		}
 	case "question":
 		correct := o.questions[o.round].Answer
@@ -375,7 +375,7 @@ func (w *World) settleOXRound(correctO bool) bool {
 				w.publishPlayerTeleport(p)
 				w.syncPlayerVitals(p)
 				clearOXHUD(p)
-				p.Session.Send(wire.MessageIndexed(msgOXWrong - 1000))
+				p.Session.Send(w.projectMessage(msgOXWrong))
 			} else {
 				w.syncPlayerVitals(p)
 				w.updatePartyMember(p)
@@ -384,7 +384,7 @@ func (w *World) settleOXRound(correctO bool) bool {
 					w.syncPlayerChaos(p)
 				}
 				p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-				p.Session.Send(quizCorrectPacket(r.exp))
+				p.Session.Send(w.quizCorrectPacket(r.exp))
 			}
 		}
 		o.round++

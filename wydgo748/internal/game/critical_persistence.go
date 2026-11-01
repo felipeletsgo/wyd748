@@ -3,10 +3,12 @@ package game
 import (
 	"errors"
 	"fmt"
+	"log"
 	"maps"
 	"slices"
 	"sort"
 	"sync"
+	"time"
 
 	"wydgo/internal/model"
 	"wydgo/internal/store"
@@ -79,12 +81,28 @@ type criticalGameStateStore interface {
 }
 
 type criticalPersistencePending struct {
-	keys      []string
-	uids      []string
-	completed bool
+	keys        []string
+	uids        []string
+	completed   bool
+	instances   bool
+	guilds      bool
+	quarantined bool
+	// submittedAt is real time for diagnostics, never a gameplay deadline.
+	submittedAt time.Time
+	// background marks a detached autosave snapshot (W7). It holds no gameplay
+	// input: a later write of its participants is parked behind it instead.
+	background bool
+	successors []uint64
+	// A parked job goes to a worker only after every predecessor it waits for
+	// is acknowledged, so an older snapshot can never commit after it.
+	parked *criticalPersistenceJob
+	waits  int
+	// waited records that this job parked; its predecessor may still be
+	// pending, unacknowledged, when this job settles.
+	waited bool
 }
 
-// criticalPersistence is the staged S2 coordinator, not yet enabled by World.
+// criticalPersistence coordinates detached writes for the World actor.
 // submit, poll, acknowledge and closeAdmission belong to one actor goroutine.
 // Workers only access the store, channels and detached job snapshots. Account
 // fences stay held until the owner has applied a completion and acknowledged it.
@@ -93,6 +111,10 @@ type criticalPersistence struct {
 	capacity   int
 	lastID     uint64
 	stopping   bool
+	jobsClosed bool
+	// parked counts accepted jobs waiting for a background predecessor. The
+	// job channel stays open while any remain, even after admission closes.
+	parked     int
 	jobs       chan criticalPersistenceJob
 	results    chan criticalPersistenceResult
 	stopped    chan struct{}
@@ -101,6 +123,13 @@ type criticalPersistence struct {
 	characters map[string]uint64
 	instances  uint64
 	guilds     uint64
+	// Failed operations retain ownership, but no longer occupy worker capacity.
+	// Separate fences also cover failures after publication released admission.
+	quarantined      int
+	failedAccounts   map[string]uint64
+	failedCharacters map[string]uint64
+	failedInstances  uint64
+	failedGuilds     uint64
 }
 
 func newCriticalPersistence(backend store.Store, workers, capacity int) (*criticalPersistence, error) {
@@ -122,7 +151,12 @@ func newCriticalPersistence(backend store.Store, workers, capacity int) (*critic
 		go func() {
 			defer running.Done()
 			for job := range q.jobs {
-				q.results <- q.execute(job)
+				metricCriticalRunning.Add(1)
+				started := time.Now()
+				result := q.execute(job)
+				observeCriticalOutcome(result.err, time.Since(started))
+				metricCriticalRunning.Add(-1)
+				q.results <- result
 			}
 		}()
 	}
@@ -134,16 +168,48 @@ func newCriticalPersistence(backend store.Store, workers, capacity int) (*critic
 }
 
 // submit is nonblocking. Rejections retain no fence and cause no store writes.
-// Capacity includes completed work not yet applied by the owning actor.
+// Capacity includes completed work awaiting the actor, but excludes quarantine.
+// A participant held only by a background snapshot does not refuse the write:
+// the job is parked and starts after that snapshot is acknowledged.
 func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
+	return q.submitOrdered(write, false)
+}
+
+// submitBackground accepts one account snapshot only when none of its
+// participants has pending work. It never waits behind another write.
+func (q *criticalPersistence) submitBackground(write criticalWrite) (uint64, error) {
+	if len(write.accounts) != 1 || write.instances != nil || write.guilds != nil || write.donate != nil {
+		return 0, errors.New("critical persistence: a background snapshot has exactly one account")
+	}
+	return q.submitOrdered(write, true)
+}
+
+// backgroundHolder reports whether a later write may park behind id.
+func (q *criticalPersistence) backgroundHolder(id uint64) bool {
+	pending := q.pending[id]
+	return pending != nil && pending.background && !pending.quarantined
+}
+
+func (q *criticalPersistence) submitOrdered(write criticalWrite, background bool) (uint64, error) {
 	if q.stopping {
 		return 0, errCriticalPersistenceStopping
 	}
-	if len(q.pending) >= q.capacity {
+	if len(q.pending)-q.quarantined >= q.capacity {
 		return 0, errCriticalPersistenceFull
 	}
 	if (len(write.accounts) == 0 && write.instances == nil && write.guilds == nil) || len(write.accounts) > criticalPersistenceMaxAccounts {
 		return 0, errors.New("critical persistence: invalid participant count")
+	}
+	var predecessors map[uint64]bool
+	waitFor := func(holder uint64) bool {
+		if background || !q.backgroundHolder(holder) {
+			return false
+		}
+		if predecessors == nil {
+			predecessors = make(map[uint64]bool, 1)
+		}
+		predecessors[holder] = true
+		return true
 	}
 	if write.donate != nil {
 		if len(write.accounts) != 1 || write.character != nil || write.instances != nil || write.guilds != nil {
@@ -154,7 +220,7 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 		}
 	}
 	combined := write.guilds != nil || write.instances != nil && write.character != nil
-	if write.guilds != nil && q.guilds != 0 {
+	if write.guilds != nil && (q.guilds != 0 || q.failedGuilds != 0) {
 		return 0, errCriticalPersistenceBusy
 	}
 	if combined {
@@ -163,7 +229,7 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 		}
 	}
 	if write.instances != nil {
-		if q.instances != 0 {
+		if q.instances != 0 || q.failedInstances != 0 {
 			return 0, errCriticalPersistenceBusy
 		}
 		if combined {
@@ -189,7 +255,7 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 			return 0, errors.New("critical persistence: duplicate account identity")
 		}
 		seen[key] = true
-		if _, reserved := q.accounts[key]; reserved {
+		if holder := q.accounts[key]; q.failedAccounts[key] != 0 || holder != 0 && !waitFor(holder) {
 			return 0, errCriticalPersistenceBusy
 		}
 		keys = append(keys, key)
@@ -242,7 +308,7 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 	}
 	characterKeys := make([]string, 0, len(uids))
 	for uid := range uids {
-		if _, reserved := q.characters[uid]; reserved {
+		if holder := q.characters[uid]; q.failedCharacters[uid] != 0 || holder != 0 && !waitFor(holder) {
 			return 0, errCriticalPersistenceBusy
 		}
 		characterKeys = append(characterKeys, uid)
@@ -273,25 +339,133 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 	}
 	sort.Strings(keys)
 	id := q.lastID + 1
+	job := criticalPersistenceJob{id: id, write: snapshot}
+	pending := &criticalPersistencePending{keys: keys, uids: characterKeys, instances: write.instances != nil,
+		guilds: write.guilds != nil, submittedAt: time.Now(), background: background}
+	if len(predecessors) > 0 {
+		pending.parked, pending.waits, pending.waited = &job, len(predecessors), true
+		for holder := range predecessors {
+			q.pending[holder].successors = append(q.pending[holder].successors, id)
+		}
+		q.parked++
+		metricCriticalParked.Add(1)
+	} else {
+		select {
+		case q.jobs <- job:
+		default:
+			return 0, errCriticalPersistenceFull
+		}
+	}
+	q.lastID = id
+	q.pending[id] = pending
+	if write.instances != nil {
+		q.instances = id
+	}
+	if write.guilds != nil {
+		q.guilds = id
+	}
+	// A parked write takes over each key from its background predecessor.
+	for _, key := range keys {
+		q.accounts[key] = id
+	}
+	for _, uid := range characterKeys {
+		q.characters[uid] = id
+	}
+	return id, nil
+}
+
+// returnKey releases key from id, or hands it back to a predecessor of a
+// parked job that is still pending. Only a parked job scans the pending set.
+func (q *criticalPersistence) returnKey(holders map[string]uint64, pending *criticalPersistencePending, id uint64, key string, character bool) {
+	if pending.waited {
+		if other := q.pendingHolding(id, key, character, false); other != 0 {
+			holders[key] = other
+			return
+		}
+	}
+	delete(holders, key)
+}
+
+// pendingHolding returns another pending operation that covers key. The
+// pending set is bounded by capacity plus retained quarantine.
+func (q *criticalPersistence) pendingHolding(id uint64, key string, character, quarantinedOnly bool) uint64 {
+	for other, pending := range q.pending {
+		if other == id || quarantinedOnly && !pending.quarantined {
+			continue
+		}
+		keys := pending.keys
+		if character {
+			keys = pending.uids
+		}
+		if slices.Contains(keys, key) {
+			return other
+		}
+	}
+	return 0
+}
+
+// releaseSuccessors starts parked jobs whose last predecessor was just
+// acknowledged. Accepted work holds a slot, so the job channel has room.
+func (q *criticalPersistence) releaseSuccessors(pending *criticalPersistencePending) {
+	successors := pending.successors
+	pending.successors = nil
+	for _, id := range successors {
+		next := q.pending[id]
+		if next == nil || next.parked == nil {
+			continue
+		}
+		if next.waits--; next.waits > 0 {
+			continue
+		}
+		job := *next.parked
+		next.parked = nil
+		q.parked--
+		select {
+		case q.jobs <- job:
+		default:
+			q.deliverUnsent(id, "worker queue full")
+		}
+	}
+	q.closeJobsIfDrained()
+}
+
+// rejectSuccessors refuses every job parked behind a predecessor that failed.
+// That predecessor may still commit later, so no newer write may follow it.
+func (q *criticalPersistence) rejectSuccessors(id uint64) {
+	pending := q.pending[id]
+	if pending == nil {
+		return
+	}
+	successors := pending.successors
+	pending.successors = nil
+	for _, next := range successors {
+		parked := q.pending[next]
+		if parked == nil || parked.parked == nil {
+			continue
+		}
+		parked.parked = nil
+		q.parked--
+		q.deliverUnsent(next, fmt.Sprintf("background write %d did not settle", id))
+	}
+	q.closeJobsIfDrained()
+}
+
+// deliverUnsent completes a parked job that no adapter received. The result
+// channel holds one slot per accepted job, so the send cannot block.
+func (q *criticalPersistence) deliverUnsent(id uint64, reason string) {
+	err := store.RejectUnsentWrite(reason)
+	observeCriticalOutcome(err, 0)
 	select {
-	case q.jobs <- criticalPersistenceJob{id: id, write: snapshot}:
-		q.lastID = id
-		q.pending[id] = &criticalPersistencePending{keys: keys, uids: characterKeys}
-		if write.instances != nil {
-			q.instances = id
-		}
-		if write.guilds != nil {
-			q.guilds = id
-		}
-		for _, key := range keys {
-			q.accounts[key] = id
-		}
-		for _, uid := range characterKeys {
-			q.characters[uid] = id
-		}
-		return id, nil
+	case q.results <- criticalPersistenceResult{id: id, err: err}:
 	default:
-		return 0, errCriticalPersistenceFull
+		log.Printf("CRITICAL: persistence result channel full; parked write %d stays pending", id)
+	}
+}
+
+func (q *criticalPersistence) closeJobsIfDrained() {
+	if q.stopping && !q.jobsClosed && q.parked == 0 {
+		q.jobsClosed = true
+		close(q.jobs)
 	}
 }
 
@@ -300,7 +474,9 @@ func (q *criticalPersistence) submit(write criticalWrite) (uint64, error) {
 func (q *criticalPersistence) poll() (criticalPersistenceResult, bool) {
 	select {
 	case result := <-q.results:
-		q.pending[result.id].completed = true
+		if pending := q.pending[result.id]; pending != nil {
+			pending.completed = true
+		}
 		return result, true
 	default:
 		return criticalPersistenceResult{}, false
@@ -309,14 +485,20 @@ func (q *criticalPersistence) poll() (criticalPersistenceResult, bool) {
 
 func (q *criticalPersistence) acknowledge(id uint64) error {
 	pending := q.pending[id]
-	if pending == nil || !pending.completed {
+	if pending == nil || !pending.completed || pending.quarantined {
 		return errors.New("critical persistence: completion not delivered or already acknowledged")
 	}
+	// A parked successor may already own a key; release only this job's keys.
+	// A failed predecessor still pending keeps the keys this job took over.
 	for _, key := range pending.keys {
-		delete(q.accounts, key)
+		if q.accounts[key] == id {
+			q.returnKey(q.accounts, pending, id, key, false)
+		}
 	}
 	for _, uid := range pending.uids {
-		delete(q.characters, uid)
+		if q.characters[uid] == id {
+			q.returnKey(q.characters, pending, id, uid, true)
+		}
 	}
 	if q.instances == id {
 		q.instances = 0
@@ -325,6 +507,7 @@ func (q *criticalPersistence) acknowledge(id uint64) error {
 		q.guilds = 0
 	}
 	delete(q.pending, id)
+	q.releaseSuccessors(pending)
 	return nil
 }
 
@@ -332,11 +515,10 @@ func (q *criticalPersistence) acknowledge(id uint64) error {
 // result capacity equals the total accepted-but-unacknowledged capacity. The
 // stopped channel means workers exited, not that World applied all completions.
 // A store call that hangs remains pending; callers must report drain timeout.
+// Parked jobs keep the job channel open until they start or are refused.
 func (q *criticalPersistence) closeAdmission() {
-	if !q.stopping {
-		q.stopping = true
-		close(q.jobs)
-	}
+	q.stopping = true
+	q.closeJobsIfDrained()
 }
 
 func (q *criticalPersistence) execute(job criticalPersistenceJob) (result criticalPersistenceResult) {

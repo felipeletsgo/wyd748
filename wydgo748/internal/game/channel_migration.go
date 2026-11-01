@@ -127,8 +127,9 @@ func (w *World) requestChannelTransfer(p *Player, argument string) {
 	if w.criticalWrites != nil {
 		write := criticalWrite{accounts: []*model.Account{accountPersistenceSnapshot(p.Account)},
 			character: &criticalCharacterState{uid: p.Char.UID, state: buildCharState(p, w.now())}}
-		_, err = w.submitCriticalWritePhased(write, []*Player{p}, false,
-			func(criticalPersistenceResult) error { return nil }, func(criticalPersistenceResult) error { return publish() })
+		_, err = w.submitCriticalWriteWithRejection(write, []*Player{p}, false,
+			func(criticalPersistenceResult) error { return nil }, func(criticalPersistenceResult) error { return publish() },
+			w.rejectDetachedProposal("channel transfer", "", func(p *Player) { w.sendChannelMessage(p, "transfer_failed") }, p))
 		if err != nil {
 			w.sendChannelMessage(p, "transfer_failed")
 		}
@@ -146,20 +147,17 @@ func (w *World) channelWarParticipant(p *Player) bool {
 	return city || towerWarArena.contains(p.X, p.Y)
 }
 
-var channelMessages = map[string][2]string{
-	"transfer_destination": {"Use srv 1 or srv 2 to select another available channel.", "Use srv 1 ou srv 2 para selecionar outro canal disponivel."},
-	"transfer_busy":        {"Leave the battle, instance, trade or shop before changing channels.", "Saia da batalha, instancia, troca ou loja antes de mudar de canal."},
-	"transfer_failed":      {"Channel transfer failed. Try again shortly.", "Falha na troca de canal. Tente novamente em instantes."},
-	"leave_guild_first":    {"Leave your guild before leaving citizenship.", "Saia da sua guilda antes de abandonar a cidadania."},
+// channelMessages maps channel-transfer results to catalog keys.
+var channelMessages = map[string]string{
+	"transfer_destination": "_WG_Channel_Transfer_Destination",
+	"transfer_busy":        "_WG_Channel_Transfer_Busy",
+	"transfer_failed":      "_WG_Channel_Transfer_Failed",
+	"leave_guild_first":    "_WG_Leave_Guild_Before_Citizenship",
 }
 
 func (w *World) sendChannelMessage(p *Player, key string) {
 	if p == nil || p.Session == nil {
 		return
 	}
-	text := channelMessages[key][0]
-	if w.channel == 1 && channelMessages[key][1] != "" {
-		text = channelMessages[key][1]
-	}
-	p.Session.Send(wire.MessagePanel(text))
+	w.panel(p.Session, channelMessages[key])
 }

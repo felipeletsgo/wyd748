@@ -206,47 +206,47 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 		return
 	}
 	if playerCurHP(p.Char) == 0 {
-		s.Send(wire.MessagePanel("Dead characters cannot choose a kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Dead_Characters_Cannot_Choose_Kingdom")))
 		return
 	}
 	current := characterKingdom(p.Char)
 	if !w.guildKingdomChangeAllowed(p.Char, kingdom) {
-		s.Send(wire.MessagePanel("Only the guild leader can change the guild's kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_Guild_Leader_Can_Change_Guilds")))
 		return
 	}
 	change, err := kingdomCapeForJoin(p.Char, kingdom)
 	if err != nil {
 		switch err {
 		case errKingdomAlready:
-			s.Send(wire.MessagePanel("You already have the proper cape of " + model.KingdomName(kingdom) + "."))
+			w.panel(s, "_WG_Already_Have_Kingdom_Cape", w.kingdomName(kingdom))
 		case errKingdomWrongRealm:
-			s.Send(wire.MessagePanel("Leave your current kingdom before choosing another."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Leave_Current_Kingdom_Before_Choosing_Another")))
 		case errKingdomNeedLevel220:
-			s.Send(wire.MessagePanel("You must be level 220 to choose a kingdom."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Must_Level_Choose_Kingdom")))
 		case errKingdomNeedLevel256:
-			s.Send(wire.MessagePanel("You must be level 256 to receive this cape."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Must_Level_Receive_Cape")))
 		case errKingdomNeedCelestial:
-			s.Send(wire.MessagePanel("The Master cape requires a Celestial character."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Master_Cape_Requires_Celestial_Character")))
 		default:
-			s.Send(wire.MessagePanel("Your current cape cannot receive the kingdom medal."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Current_Cape_Cannot_Receive_Kingdom_Medal")))
 		}
 		return
 	}
 	cost := kingdomJoinCost(kingdom)
 	useEmblem := kingdomUsesEmblem(p.Char)
 	if !useEmblem && sapphireCount(p.Char) < cost {
-		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d Sapphires.", cost)))
+		s.Send(wire.MessagePanel(w.msg("_DN_Need_D_Sapphire", cost)))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueKingdomCape(p, kingdom, change, cost, useEmblem, func() {
 			if current == kingdom {
-				s.Send(wire.MessagePanel("Your " + model.KingdomName(kingdom) + " cape was promoted."))
+				w.panel(s, "_WG_Kingdom_Cape_Promoted", w.kingdomName(kingdom))
 			} else {
-				s.Send(wire.MessagePanel("You now belong to " + model.KingdomName(kingdom) + "."))
+				w.panel(s, "_WG_Now_Belong_To_Kingdom", w.kingdomName(kingdom))
 			}
 		}); err != nil {
-			s.Send(wire.MessagePanel("Save failed. The kingdom was not changed."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Kingdom_Was_Not_Changed")))
 		}
 		return
 	}
@@ -256,7 +256,7 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 		p.Char.Equip[13] = model.Item{}
 	} else if !consumeSapphires(p.Char, cost) {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("The Sapphires could not be consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Sapphires_Could_Not_Consumed")))
 		return
 	}
 	if change.Preserve {
@@ -271,15 +271,15 @@ func (w *World) joinKingdom(s *net.Session, p *Player, kingdom byte) {
 	w.ensureCapeEmblem(p.Char)
 	w.recalcPlayer(p.Char)
 	if err := w.commitKingdomChange(p, snapshot, kingdom); err != nil {
-		s.Send(wire.MessagePanel("Save failed. The kingdom was not changed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Kingdom_Was_Not_Changed")))
 		log.Printf("[#%d] KINGDOM join save: %v", s.ID, err)
 		return
 	}
 	w.syncKingdomChange(p)
 	if current == kingdom {
-		s.Send(wire.MessagePanel("Your " + model.KingdomName(kingdom) + " cape was promoted."))
+		w.panel(s, "_WG_Kingdom_Cape_Promoted", w.kingdomName(kingdom))
 	} else {
-		s.Send(wire.MessagePanel("You now belong to " + model.KingdomName(kingdom) + "."))
+		w.panel(s, "_WG_Now_Belong_To_Kingdom", w.kingdomName(kingdom))
 	}
 	payment := fmt.Sprintf("%d Sapphires", cost)
 	if useEmblem {
@@ -294,36 +294,36 @@ func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 		return
 	}
 	if playerCurHP(p.Char) == 0 {
-		s.Send(wire.MessagePanel("Dead characters cannot leave a kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Dead_Characters_Cannot_Leave_Kingdom")))
 		return
 	}
 	kingdom := characterKingdom(p.Char)
 	if !w.guildKingdomChangeAllowed(p.Char, model.KingdomNeutral) {
-		s.Send(wire.MessagePanel("Only the guild leader can change the guild's kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_Guild_Leader_Can_Change_Guilds")))
 		return
 	}
 	if kingdom == model.KingdomNeutral {
-		s.Send(wire.MessagePanel("You do not belong to a kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Do_Not_Belong_Kingdom")))
 		return
 	}
 	// The native broker does not remove kingdom membership on Sunday.
 	if now.Weekday() == time.Sunday {
-		s.Send(wire.MessagePanel("You cannot leave the kingdom on Sunday."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Cannot_Leave_Kingdom_Sunday")))
 		return
 	}
 	neutral, ok := model.NeutralCape(p.Char.Equip[model.CapeSlot].Index)
 	if !ok {
-		s.Send(wire.MessagePanel("The broker cannot convert your kingdom cape."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Broker_Cannot_Convert_Kingdom_Cape")))
 		return
 	}
 	if sapphireCount(p.Char) < kingdomLeaveCost {
-		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d Sapphires.", kingdomLeaveCost)))
+		s.Send(wire.MessagePanel(w.msg("_DN_Need_D_Sapphire", kingdomLeaveCost)))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueKingdomCape(p, model.KingdomNeutral, kingdomCapeChange{Index: neutral, Preserve: true},
-			kingdomLeaveCost, false, func() { s.Send(wire.MessagePanel("You left " + model.KingdomName(kingdom) + ".")) }); err != nil {
-			s.Send(wire.MessagePanel("Save failed. You are still in the kingdom."))
+			kingdomLeaveCost, false, func() { w.panel(s, "_NN_Leaving_kingdom", w.kingdomName(kingdom)) }); err != nil {
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Still_Kingdom")))
 		}
 		return
 	}
@@ -331,18 +331,18 @@ func (w *World) leaveKingdom(s *net.Session, p *Player, now time.Time) {
 	snapshot := cloneCharacterState(p.Char)
 	if !consumeSapphires(p.Char, kingdomLeaveCost) {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("The Sapphires could not be consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Sapphires_Could_Not_Consumed")))
 		return
 	}
 	p.Char.Equip[model.CapeSlot].Index = neutral
 	w.recalcPlayer(p.Char)
 	if err := w.commitKingdomChange(p, snapshot, model.KingdomNeutral); err != nil {
-		s.Send(wire.MessagePanel("Save failed. You are still in the kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Still_Kingdom")))
 		log.Printf("[#%d] KINGDOM leave save: %v", s.ID, err)
 		return
 	}
 	w.syncKingdomChange(p)
-	s.Send(wire.MessagePanel("You left " + model.KingdomName(kingdom) + "."))
+	w.panel(s, "_NN_Leaving_kingdom", w.kingdomName(kingdom))
 	log.Printf("[#%d] KINGDOM %q left %s for %d Sapphires", s.ID, p.Char.Name,
 		model.KingdomName(kingdom), kingdomLeaveCost)
 }
@@ -409,12 +409,12 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 		return
 	}
 	if playerCurHP(p.Char) == 0 {
-		s.Send(wire.MessagePanel("Dead characters cannot use this teleport."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Dead_Characters_Cannot_Use_Teleport")))
 		return
 	}
 	now := w.now()
 	if now.Before(p.NextKingdomTeleport) {
-		s.Send(wire.MessagePanel("Wait before using the kingdom teleport again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Wait_Before_Using_Kingdom_Teleport_Again")))
 		return
 	}
 	kingdom := characterKingdom(p.Char)
@@ -426,7 +426,7 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 		case model.KingdomAkelonia:
 			x, y = 1748, 1880
 		default:
-			s.Send(wire.MessagePanel("Choose a kingdom before visiting the king."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Choose_Kingdom_Before_Visiting_King")))
 			return
 		}
 	} else {
@@ -446,7 +446,7 @@ func (w *World) kingdomCommandTeleport(s *net.Session, p *Player, king bool) {
 		p.NextKingdomTeleport = w.now().Add(kingdomWarpCooldown)
 		log.Printf("[#%d] KINGDOM command %q -> (%d,%d)", s.ID, p.Char.Name, p.X, p.Y)
 	}, nil) {
-		s.Send(wire.MessagePanel("The kingdom teleport could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Kingdom_Teleport_Could_Not_Completed")))
 		return
 	}
 }

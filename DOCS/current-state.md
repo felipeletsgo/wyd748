@@ -1,6 +1,163 @@
 # Current project state
 
-## Drop audit and source cleanup — local changes
+## Server corrections R1–R3 — activated 2026-11-01
+
+Release `20261101T050356Z` is active with correction packages W0–W7 of the
+[server correction plan](server/server-correction-plan.md). The owner
+authorized publication and the game restart; no player was online. The
+release also activates the staff panel metrics and Quarantine section, the
+`Wants=` game unit with a restart limit, and News post 57. Client revision 17
+is unchanged and there is no schema change.
+
+The game, player API and log reader run the packaged hashes. Readiness returns
+200, both channels listen, and both reject revision 16 and accept revision 17
+through credential validation in their own language. Backup
+`wydgo-20261101T050356Z.dump` passed archive validation. Rollback:
+`20261031T201414Z`. See the
+[release receipt](../.agents/research/release-748017.json).
+`CLIENT-TESTED`: pending. VPS load measurements need real players.
+
+## W4–W9 follow-up — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. A new game process now ends the old
+process's database connections before admission, a contained panic requests a
+supervised restart, unchanged autosaves skip SQL on the worker, and a verified
+quarantine releases its accounts. An autosave in flight no longer holds the
+player's input; later writes of the account wait behind it (W7). The channel-split
+inventory is recorded. See the
+[bug register](bug-register.md#w4w9-follow-up--source-2026-10-31).
+This change is not published or active.
+
+## Activation cost W6 — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Mob activation and target search
+check distance before the costly validity and instance lookups. Results are
+unchanged; movement work at 300 players fell about a third in a paired probe.
+See the [bug register](bug-register.md#w6-activation-cost--source-2026-10-31).
+This change is not published or active.
+
+## Health and service lifecycle W5 — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. A tick panic no longer ends the
+process; readiness reports a stalled or failed channel; the game unit template
+no longer stops with PostgreSQL; final saves use bounded workers.
+See the [bug register](bug-register.md#w5-health-and-service-lifecycle--source-2026-10-31).
+This change is not published or active, and the VPS unit is unchanged.
+
+## COMMIT reconciliation and dead sockets W4 — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. A lost COMMIT reply is now resolved
+by the exact transaction ID instead of isolating the player. Dead game sockets
+are detected within about a minute (keepalive and Linux TCP_USER_TIMEOUT), and
+a login behind a closing session is asked to retry.
+See the [bug register](bug-register.md#w4-commit-reconciliation-and-stale-sessions--source-2026-10-31).
+This change is not published or active.
+
+## Output pressure W3 — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The socket writer joins queued
+packets into one write, output is bounded by bytes too, and a crowded arrival
+fills the view over a few ticks instead of overflowing the 256-packet queue.
+See the [bug register](bug-register.md#w3-output-pressure--source-2026-10-31).
+This change is not published or active.
+
+## Login and entry capacity W2 — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Reads have their own 3-second
+budget, storage failures no longer show "wrong password", entry reads leave
+the game actor and password hashing alone uses the hash slots. A missing
+account now costs the same hash as a wrong password, as intended.
+See the [bug register](bug-register.md#w2-login-and-entry-capacity--source-2026-10-31).
+This change is not published or active.
+
+## Certified rejection W1 — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. A database failure before COMMIT
+now cancels only the affected action. The player stays connected, sees the
+unchanged state and can retry; autosave retries a fresh snapshot with backoff.
+See the [bug register](bug-register.md#w1-certified-rejection--source-2026-10-31).
+This change is not published or active.
+
+## Server diagnostics W0 — source only, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The game server now records one
+first close cause per session and publishes transport, pool, critical
+persistence and per-channel actor metrics through the staff endpoint.
+Routine PvP, miss and pickup lines use gameplay summary mode.
+A cluster metrics defect is fixed: channels overwrote each other's gauges and lag.
+See the [bug register](bug-register.md#w0-diagnostics--source-2026-10-31).
+This change is not published or active. Packets and client revision are unchanged.
+
+## Persistence failure admission isolation — activated 2026-10-31
+
+Release `20261031T061042Z` entered maintenance at 17:36:03 UTC after
+completion 2318 rejected a changed participant identity for account `todoloco`.
+The live process kept listening and returned readiness 200 while closing new
+connections. The journal does not identify the producer or changed binding field.
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Production persistence containment
+now retains failed account, character, object and aggregate reservations without
+stopping unrelated players or admission across channels. Post-acknowledgement
+failures restore failure fences. Quarantined completions no longer consume live
+worker capacity. Explicit shutdown still reports unresolved failures and avoids
+overwriting their durable state. Packets and client admission revisions stay unchanged.
+
+Certified inventory deletion/split and composition failures now cancel their
+detached proposal and resend the original inventory. Ingredients, gold and
+trade offers stay unchanged; the player stays connected and can retry.
+Existing ground and kill rejection handlers retain their operation rollback.
+Unknown commit outcomes remain isolated pending verified reconciliation.
+
+`STATICALLY VERIFIED`: retained failure fences, channel ownership, shutdown
+failure reporting, and unchanged packets and client revision.
+`AUTOMATED TESTED`: full Go suite with local PostgreSQL, vet, server build,
+game/store race suites, and five shuffled focused race runs on the final changes.
+New regressions cover fresh login and character entry on both channels,
+post-acknowledgement failure, duplicate completion, queue capacity, and rollback
+without disconnecting the affected inventory/composition player.
+Release `20261031T201414Z` is active. All 1,076 payload hashes match, and both
+channels admit revision 17 through credential validation. Backup
+`wydgo-20261031T201414Z.dump` passed checksum and archive validation.
+Rollback: `20261031T061042Z`. Readiness returns 200, with no new process
+failures or automatic restarts observed after activation.
+`CLIENT-TESTED`: pending. No real account or gameplay was tested. See
+[critical persistence operations](server/operations.md#critical-persistence-operation).
+
+## Server messages by channel language — activated 2026-10-31
+
+Channel 1 now sends server messages in Brazilian Portuguese and channel 2 in
+English. The text moved from source literals to the external
+`data/content/language/en.txt` and `pt.txt` files. Native `_NN_` names are
+reused where the message has a native equivalent. Classification:
+`MODERNIZACAO_COMPATIVEL`; packets and the client are unchanged. See
+[server messages](server/server-messages.md) for the contract and the
+remaining content-data scope.
+
+Content text from quests, bosses, instance and stage names and Cube/OX
+questions is translated at the send point. WYD-Go client rows 440–495 are
+imported and sent as channel-language text; native client rows keep their index.
+
+`AUTOMATED TESTED`: language package tests, the source key and content
+coverage contracts, Portuguese world tests, the full Go suite and vet.
+`CLIENT-TESTED`: pending.
+Release `20261031T201414Z` includes both required language files. Live admission
+probes confirm Portuguese on channel 1 and English on channel 2. The player API,
+log reader, website and private configuration were preserved. See the server
+follow-up in [release receipt](../.agents/research/release-748017.json).
+
+## Drop audit and source cleanup — activated 2026-10-31
+
+Commit `e0ae4abc` is active in game release `20261031T061042Z`.
+The owner authorized publication and restart. All 1,074 packaged files and
+the running game executable match their hashes. All 32 selected Arch set
+drops now carry `EF_GRADE0`. Rollback: `20261031T004445Z`.
+The graceful shutdown saved one account with zero failures; the verified
+database backup is `wydgo-20261031T061042Z.dump`.
+Readiness returns 200 on 8082 and 8083. Both channels reject revision 16
+and accept revision 17 through credential validation. The public patch 48017
+and its 17 entries pass HTTP/HTTPS verification. Other service processes,
+configuration and 6,662 non-game files are preserved. See the server follow-up
+in [release receipt](../.agents/research/release-748017.json).
 
 The drop audit rechecked the recovered 7.59 option switches and roll thresholds.
 The option port and its documented grade-5 table guard remain in place.
@@ -22,7 +179,7 @@ The layout validator rejects binary and generated artifacts at repository root.
 The generated crash-reporter DLL is ignored beside the installed client,
 with a matching layout allowance. Its runtime file remains unchanged.
 Audit and cleanup receipts are in `build/claude-continuation-review/`.
-Publication, restart and real-client acceptance remain pending.
+Publication and the game restart are verified. Real-client acceptance remains pending.
 
 The full validation exposed a nondeterministic Cancellation effect test.
 Its effect path now fixes a successful hit; a separate test fixes a miss and
@@ -33,7 +190,7 @@ dependencies and identical runtime fields for all retained generators.
 `AUTOMATED TESTED`: full Go suite, vet, focused race checks, 100 Cancellation
 repetitions, layout, root-artifact rejection and diff checks pass. The isolated
 PostgreSQL configuration was available. The local server build also passes.
-`CLIENT-TESTED`: pending; no client or production service was started.
+`CLIENT-TESTED`: pending; no real client was launched or authenticated.
 
 ## Release 7.48.017 — 2026-10-31, published and activated
 

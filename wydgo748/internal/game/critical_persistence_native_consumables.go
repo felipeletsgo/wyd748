@@ -111,12 +111,12 @@ func (w *World) admitNativeConsumable(p *Player, item *model.Item, slot byte, ru
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			return
 		}
 		log.Printf("[#%d] %s admission rejected: %v", p.Session.ID, rule.Action, err)
-		p.Session.Send(wire.MessagePanel("Item use is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Item_Use_Unavailable_Please_Try_Again")))
 	}
 }
 
@@ -204,7 +204,7 @@ func (w *World) queueNativeConsumable(p *Player, item *model.Item, slot byte, ru
 				session.Send(wire.UpdateEtc(p.ID, *ch))
 				w.syncPlayerVitalsToObservers(p)
 				if ch.ArchCrystals == archCrystalCount {
-					session.Send(wire.MessagePanel("The four oaths are complete."))
+					session.Send(wire.MessagePanel(w.msg("_WG_Four_Oaths_Complete")))
 				}
 				log.Printf("[#%d] Arch crystal oath=%d/%d item=%d volatile=%d experience=%d", session.ID,
 					ch.ArchCrystals, archCrystalCount, before.Chars[p.CharSlot].Inv[slot].Index, code, ch.Exp)
@@ -213,16 +213,16 @@ func (w *World) queueNativeConsumable(p *Player, item *model.Item, slot byte, ru
 				session.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))
 				session.Send(playerScorePacket(p))
 				w.refreshAppearance(p)
-				session.Send(wire.MessagePanel("Refine successful!"))
+				session.Send(wire.MessagePanel(w.msg("_NN_Refine_Success")))
 			case "nightmare_ticket":
 				session.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))
-				session.Send(wire.MessagePanel(fmt.Sprintf("%d Nightmare entries received.", rule.Amount)))
+				session.Send(wire.MessagePanel(w.msg("_WG_D_Nightmare_Entries_Received", rule.Amount)))
 			case "mastery_reset":
 				session.Send(playerScorePacketForChar(p, ch))
 				session.Send(wire.UpdateEtc(p.ID, *ch))
 				session.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
 				session.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))
-				session.Send(wire.MessagePanel("Skills initialized."))
+				session.Send(wire.MessagePanel(w.msg("_NN_Initialize_Skill")))
 			}
 			return nil
 		}, func(result criticalPersistenceResult) error {
@@ -234,7 +234,7 @@ func (w *World) queueNativeConsumable(p *Player, item *model.Item, slot byte, ru
 			// a new intention after actor acknowledgement. Never replay this one.
 			if !p.Session.IsClosed() {
 				resyncUsedItem(p.Session, p, slot)
-				p.Session.Send(wire.MessagePanel("Item use could not be saved. Please try again later."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Item_Use_Could_Not_Saved_Please")))
 			}
 			log.Printf("[#%d] %s persistence rejected: %v", p.Session.ID, rule.Action, result.err)
 			return nil

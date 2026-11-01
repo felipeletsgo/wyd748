@@ -1,0 +1,18 @@
+<section id="persistence-recovery" class="panel bosses-panel" aria-labelledby="persistence-recovery-title">
+  <div class="panel-heading">
+    <div><span class="eyebrow">PERSISTENCE</span><h2 id="persistence-recovery-title">Quarantined writes</h2></div>
+    <button id="persistence-recovery-refresh" class="button subtle" type="button">Refresh list</button>
+  </div>
+  <div class="event-body">
+    <p class="muted">A write whose database outcome is unknown keeps its players disconnected and their accounts fenced. The server checks the exact transaction every 10 seconds; a final status releases the accounts. Shared objects, guilds and instances stay fenced until a restart. A check never unlocks an account without a final status.</p>
+    <p><strong>Quarantined:</strong> <span id="persistence-recovery-count">Not queried</span> · <strong>Released since startup:</strong> <span id="persistence-recovery-released">–</span></p>
+    <ul id="persistence-recovery-list" class="muted"></ul>
+    <div class="bosses-toolbar">
+      <label for="persistence-recovery-reason">Reason for check</label>
+      <input id="persistence-recovery-reason" minlength="3" maxlength="200" required placeholder="E.g. player support ticket" />
+      <button id="persistence-recovery-check" class="button subtle" type="button" disabled>Check now</button>
+    </div>
+    <p id="persistence-recovery-message" class="form-message" role="status" aria-live="polite"></p>
+    <p id="persistence-recovery-asof" class="muted">No automatic refresh.</p>
+  </div>
+</section>

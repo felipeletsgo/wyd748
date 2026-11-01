@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"wydgo/internal/net"
 	"wydgo/internal/store"
 )
 
@@ -20,6 +21,8 @@ type criticalPersistenceOwner struct {
 
 type criticalContinuation struct {
 	world *World
+	// Retain the original fences if post-acknowledgement publication fails.
+	reservation *criticalPersistencePending
 	// Shared gameplay ownership is independent of the durable aggregate type.
 	// Ground objects and pending mob deaths cannot be discarded per account.
 	sharedWorld bool
@@ -51,6 +54,16 @@ func (owner *criticalPersistenceOwner) submitPhased(write criticalWrite, apply, 
 // and settle only failure effects; it cannot assume an ordinary error rejected
 // the durable write. Workers never receive any of these actor callbacks.
 func (owner *criticalPersistenceOwner) submitWithRejection(write criticalWrite, apply, afterAck, reject func(criticalPersistenceResult) error) (uint64, error) {
+	return owner.submitWrite(write, false, apply, afterAck, reject)
+}
+
+// submitBackground registers a background account snapshot (W7). Later
+// writes of its participants park behind it rather than refuse admission.
+func (owner *criticalPersistenceOwner) submitBackground(write criticalWrite, apply, reject func(criticalPersistenceResult) error) (uint64, error) {
+	return owner.submitWrite(write, true, apply, nil, reject)
+}
+
+func (owner *criticalPersistenceOwner) submitWrite(write criticalWrite, background bool, apply, afterAck, reject func(criticalPersistenceResult) error) (uint64, error) {
 	if owner == nil || owner.queue == nil || apply == nil {
 		return 0, errors.New("critical persistence: missing owner, queue or continuation")
 	}
@@ -58,8 +71,15 @@ func (owner *criticalPersistenceOwner) submitWithRejection(write criticalWrite, 
 	if w != nil && write.instances != nil {
 		write.instances = w.persistedChannelInstances(write.instances)
 	}
-	id, err := owner.queue.submit(write)
+	var id uint64
+	var err error
+	if background {
+		id, err = owner.queue.submitBackground(write)
+	} else {
+		id, err = owner.queue.submit(write)
+	}
 	if err != nil {
+		observeCriticalAdmission(err)
 		return 0, err
 	}
 	if w != nil && write.instances != nil {
@@ -72,17 +92,29 @@ func (owner *criticalPersistenceOwner) submitWithRejection(write criticalWrite, 
 			return next(result)
 		}
 	}
-	owner.continuations[id] = &criticalContinuation{world: w, apply: apply, afterAck: afterAck, reject: reject}
+	owner.continuations[id] = &criticalContinuation{world: w, reservation: owner.queue.pending[id],
+		apply: apply, afterAck: afterAck, reject: reject}
 	return id, nil
 }
 
 // complete applies a result once on the actor. Only an adapter-certified
 // rejection with a successful explicit rejection continuation can settle a
 // failed write. Other store or pre-ack failures retain every account fence and
-// pending capacity. A post-ack failure has
-// already released persistence fences and requires World-wide containment
-// before delivery yields. Neither failure permits automatic replay/rollback.
-func (owner *criticalPersistenceOwner) complete(result criticalPersistenceResult) error {
+// pending capacity until containment. A post-ack failure has already released
+// admission; containment restores its failure fences before delivery yields.
+// Neither failure permits automatic replay or rollback.
+func (owner *criticalPersistenceOwner) complete(result criticalPersistenceResult) (err error) {
+	defer func() {
+		if err != nil {
+			// The failed write may still commit later. A parked newer write
+			// must never follow it, so refuse each one before it starts. A
+			// failed background snapshot then holds input like any write.
+			owner.queue.rejectSuccessors(result.id)
+			if pending := owner.queue.pending[result.id]; pending != nil {
+				pending.background = false
+			}
+		}
+	}()
 	pending := owner.queue.pending[result.id]
 	continuation := owner.continuations[result.id]
 	if pending == nil || continuation == nil || continuation.delivered {
@@ -190,7 +222,7 @@ func (w *World) applyCriticalCompletion(result criticalPersistenceResult) {
 					if p != nil {
 						p.PersistencePoisoned = true
 						if p.Session != nil {
-							p.Session.Close()
+							p.Session.CloseWithCause(net.CloseCausePersistence, nil)
 						}
 					}
 				}
@@ -200,7 +232,7 @@ func (w *World) applyCriticalCompletion(result criticalPersistenceResult) {
 			if player != nil {
 				player.PersistencePoisoned = true
 				if player.Session != nil {
-					player.Session.Close()
+					player.Session.CloseWithCause(net.CloseCausePersistence, nil)
 				}
 			}
 		}

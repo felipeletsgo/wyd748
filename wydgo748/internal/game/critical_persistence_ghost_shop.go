@@ -22,7 +22,7 @@ func (w *World) queueGhostShopPurchase(buyer, seller *Player, shop *GhostShop, p
 	buyerAccount, sellerAccount := accountStateSnapshot(buyer.Account), accountStateSnapshot(seller.Account)
 	buyerAccount.Chars[buyer.CharSlot].Inv, buyerAccount.Chars[buyer.CharSlot].Gold = buyerInv, buyerGold
 	sellerAccount.Cargo, sellerAccount.CargoGold = sellerCargo, sellerCargoGold
-	_, err := w.submitCriticalWritePhased(criticalWrite{accounts: []*model.Account{buyerAccount, sellerAccount}},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{buyerAccount, sellerAccount}},
 		[]*Player{buyer, seller}, false, func(criticalPersistenceResult) error {
 			if seller.GhostShop != shop || w.ghostShops[context.ID] != shop || *shop != context ||
 				buyer.BrowsingGhostShopID != context.ID {
@@ -35,6 +35,6 @@ func (w *World) queueGhostShopPurchase(buyer, seller *Player, shop *GhostShop, p
 		}, func(criticalPersistenceResult) error {
 			w.finishGhostShopPurchase(buyer, seller, shop, pos, item, price, storageSlot, buyerSlot)
 			return nil
-		})
+		}, w.rejectDetachedProposal("personal shop purchase", "Save failed. The purchase was not applied.", w.resendInventory, buyer))
 	return err
 }

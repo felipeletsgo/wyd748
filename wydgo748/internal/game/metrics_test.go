@@ -9,12 +9,12 @@ import (
 
 func TestObserveTickRecordsLagOnlyWhenLate(t *testing.T) {
 	start := time.Date(2026, 7, 24, 12, 0, 0, 0, time.UTC)
-	lastTickAt.Store(0)
+	w := &World{channel: 250}
 	metricLoopLagMicros.Set(0)
 	metricLoopLagMaxMicros.Set(0)
 
 	// Primeiro tick: sem intervalo anterior, nao ha lag a calcular.
-	observeTick(start, 3*time.Millisecond)
+	w.observeTick(start, 3*time.Millisecond)
 	if got := metricLoopLagMicros.Value(); got != 0 {
 		t.Fatalf("primeiro tick nao deveria reportar lag, veio %d", got)
 	}
@@ -23,14 +23,14 @@ func TestObserveTickRecordsLagOnlyWhenLate(t *testing.T) {
 	}
 
 	// Tick pontual (exatamente o intervalo nominal): lag zero.
-	observeTick(start.Add(worldTickInterval), time.Millisecond)
+	w.observeTick(start.Add(worldTickInterval), time.Millisecond)
 	if got := metricLoopLagMicros.Value(); got != 0 {
 		t.Fatalf("tick pontual reportou lag=%d", got)
 	}
 
 	// Tick atrasado 200 ms alem do intervalo nominal.
 	late := start.Add(worldTickInterval).Add(worldTickInterval + 200*time.Millisecond)
-	observeTick(late, time.Millisecond)
+	w.observeTick(late, time.Millisecond)
 	if got := metricLoopLagMicros.Value(); got != 200_000 {
 		t.Fatalf("lag=%d micros, quer 200000", got)
 	}
@@ -39,7 +39,7 @@ func TestObserveTickRecordsLagOnlyWhenLate(t *testing.T) {
 	}
 
 	// Um tick pontual depois nao pode APAGAR o pior caso observado.
-	observeTick(late.Add(worldTickInterval), time.Millisecond)
+	w.observeTick(late.Add(worldTickInterval), time.Millisecond)
 	if got := metricLoopLagMaxMicros.Value(); got != 200_000 {
 		t.Fatalf("lag maximo foi perdido: %d", got)
 	}

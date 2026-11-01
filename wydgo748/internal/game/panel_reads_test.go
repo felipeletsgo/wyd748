@@ -86,8 +86,9 @@ func TestLoopLagIsBucketed(t *testing.T) {
 		before = v.Value()
 	}
 	start := time.Now()
-	lastTickAt.Store(start.Add(-worldTickInterval - 40*time.Millisecond).UnixNano())
-	observeTick(start, time.Millisecond)
+	w := &World{channel: 250}
+	w.lastTickStart = start.Add(-worldTickInterval - 40*time.Millisecond)
+	w.observeTick(start, time.Millisecond)
 	if v, ok := buckets.Get("<=50ms").(*expvar.Int); !ok || v.Value() != before+1 {
 		t.Fatal("lag not recorded in its bucket")
 	}

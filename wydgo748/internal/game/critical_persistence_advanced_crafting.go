@@ -204,7 +204,7 @@ func (w *World) admitAdvancedComposition(p *Player, req combineRequest, artisan 
 			return
 		}
 		log.Printf("[#%d] %s composition admission rejected: %v", p.Session.ID, artisan, err)
-		p.Session.Send(wire.MessagePanel("Composition is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Composition_Unavailable_Please_Try_Again_Later")))
 	}
 }
 
@@ -260,7 +260,7 @@ func (w *World) queueAdvancedComposition(p *Player, req combineRequest, artisan 
 		positions = append(positions, pos)
 	}
 	slices.Sort(positions)
-	_, err = w.submitCriticalWritePhased(write, participants, false,
+	_, err = w.submitCriticalWriteWithRejection(write, participants, false,
 		func(criticalPersistenceResult) error {
 			ch := p.Char
 			if ch.Score == nil || ch.Inv != old.Inv || ch.Equip != old.Equip || ch.Gold != old.Gold || ch.Exp != old.Exp ||
@@ -300,6 +300,9 @@ func (w *World) queueAdvancedComposition(p *Player, req combineRequest, artisan 
 				w.sendCombineResultMessage(p, plan.code, plan.message)
 			}
 			return nil
-		})
+		}, w.rejectDetachedProposal("advanced composition", "", func(p *Player) {
+			w.resendInventory(p)
+			w.sendCombineResultMessage(p, 0, "Save failed. The inventory was not changed.")
+		}, p))
 	return err
 }

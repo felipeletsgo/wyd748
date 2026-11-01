@@ -67,7 +67,7 @@ func (w *World) warNotice(message string) {
 	// Native MessagePanel holds 95 bytes and replaces the previous four-second
 	// notice. Queue the four city results so they do not overwrite one another.
 	log.Printf("guild wars: %s", message)
-	for _, part := range splitWarNotice(message) {
+	for _, part := range splitWarNotice(w.tr(message)) {
 		// Keep every result in chat as well, even when another game notice
 		// replaces the panel or a burst fills its bounded presentation queue.
 		w.broadcast(func() []byte { return wire.MessageWhisper(0, "[WAR]", part, 7) })
@@ -101,7 +101,7 @@ func (w *World) flushWarNotices(now time.Time) {
 	w.warNotices[0] = ""
 	w.warNotices = w.warNotices[1:]
 	w.warNoticeNext = now.Add(5 * time.Second)
-	w.broadcast(func() []byte { return wire.MessagePanel(message) })
+	w.broadcast(func() []byte { return wire.MessagePanel(w.tr(message)) })
 }
 
 func (w *World) warGuildName(id uint16) string {
@@ -707,7 +707,7 @@ func (w *World) guildWarCommand(p *Player, command, arg string) {
 		return
 	}
 	send := func(s string) {
-		for _, part := range splitWarNotice(s) {
+		for _, part := range splitWarNotice(w.tr(s)) {
 			p.Session.Send(wire.MessageWhisper(0, "[WAR]", part, 7))
 		}
 	}
@@ -766,7 +766,9 @@ func (w *World) guildWarStepAllowed(p *Player, x, y uint16) bool {
 	if !w.warConfig.Enabled || w.guilds == nil || w.gameplaySpaceForPlayer(p) != "" {
 		return true
 	}
-	if towerWarArena.contains(x, y) && !w.channelWarEligible(p) { return false }
+	if towerWarArena.contains(x, y) && !w.channelWarEligible(p) {
+		return false
+	}
 	for i, z := range cityWarZones {
 		if !z.arena.contains(x, y) {
 			continue

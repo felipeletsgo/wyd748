@@ -1,6 +1,6 @@
 # Gameplay bug register
 
-Updated: 2026-10-20. This is the active queue for the current player reports,
+Updated: 2026-10-31. This is the active queue for the current player reports,
 not an inventory of every historical defect. Release receipts remain in
 [current state](current-state.md). Registration does not mean that a cause has
 been reproduced, a fix implemented, or gameplay validated.
@@ -37,6 +37,617 @@ in progress. No publication or restart is authorized by this register.
 | BUG-009 | P1 | Magic Chamber monsters disappear or remain untargetable | Party relocation and independent-run isolation corrected in source; automated checks passed, gameplay pending |
 | BUG-010 | P2 | Magic Chamber entrance floor runes are missing | Rune slates and the 7.59 rune bonus boss implemented in source; automated checks passed, gameplay pending |
 | BUG-011 | P1 | Compounder and city guards attack players | Friendly roles and monster-only guard combat implemented; automated checks passed, gameplay pending |
+
+## Disconnect and performance audit — 2026-10-31
+
+This section reviews the owner's D1–D5, D8–D11, P1–P4/P6–P8 and P10 reports
+against the working tree at HEAD `e0ae4abc`, including pending persistence changes. Keep
+these report IDs distinct from the gameplay BUG IDs above. These are failure
+mechanisms and capacity limits, not a ranking of measured production causes.
+This audit did not inspect the VPS or change product code, settings or services.
+The reported transient connection timeout is not attributed to these findings.
+
+Execution order, dependencies and per-item acceptance are in the
+[server correction plan](server/server-correction-plan.md). This register remains the status queue.
+
+### Accepted correction backlog
+
+P1 means availability or retained-session risk; P2 means latency, capacity or
+recovery work. These priorities do not certify occurrence in production.
+
+| Report ID | Priority | Verified finding | Pending correction |
+| --- | --- | --- | --- |
+| D1 | P1 | A certified autosave rejection closes the participant and retains the account fence | Active (release 20261101T050356Z) from W1 for autosave and 15 detached producers |
+| D2 | P1 | Pre-COMMIT timeout cleanup uses the expired operation context and can report an unknown outcome | Active (release 20261101T050356Z) from W1 and W4 (exact XID reconciliation, startup fence, staff recheck); VPS COMMIT-loss acceptance pending |
+| D3 | P1 | The default 256-packet output queue closes on overflow without a cause-specific diagnostic | Active (release 20261101T050356Z) from W0 (causes) and W3 (batching, byte bound, deferred scene); real TCP acceptance pending |
+| D4 | P2 | A blackholed socket can retain account ownership until transport detection and actor cleanup finish | Active (release 20261101T050356Z) from W4 (keepalive, TCP_USER_TIMEOUT, bounded wait for a settling owner); loopback blackhole and VPS Linux 6.8 kernel `TCP_USER_TIMEOUT` tests passed |
+| D5 | P1 | Handler panic leaves one World in maintenance while readiness can stay 200; tick panic can terminate the shared process | Active (release 20261101T050356Z) from W5 (tick recovery, readiness); process isolation remains W9 |
+| D8 | P1 | The configured critical-write deadline also bounds account reads; initial authentication storage errors use the invalid-credentials panel | Active (release 20261101T050356Z) from W2; pool sizing awaits VPS measurement |
+| D9 | P2 | Four shared authentication slots reject excess concurrent logins; password hashing competes for process CPU | Active (release 20261101T050356Z) from W2; hash concurrency tuning awaits VPS measurement |
+| D10 | P2 | The tracked game unit requires the PostgreSQL instance; explicit database stop/restart propagates to the game | Active (release 20261101T050356Z): `Wants=` unit installed and store recovery from W5 |
+| D11 | P2 | Terminal player saves are sequential across the shared actor, within one 20-second process shutdown budget | Active (release 20261101T050356Z) from W5 (bounded workers); 300 populated accounts drain in 191 ms locally; VPS measurement pending |
+| P1 | P2 | Both channels share one serialized gameplay actor | Measured: 300 active players on one channel add 12 ms (p50) / 22 ms (p99) per 500 ms cycle to the other; ownership inventory recorded (W9 item 1). R1–R3 are active; the split (W9) waits for production evidence |
+| P2 | P2 | Autosave submits a full account snapshot and fences that account during persistence settlement | Active (release 20261101T050356Z) from W7 (unchanged writes skipped; autosave holds no input; later writes ordered behind it); VPS latency percentiles pending |
+| P3 | P2 | The final login account reload and character-state entry read run on the shared gameplay actor | Active (release 20261101T050356Z) from W2 |
+| P6 metrics | P2 | Staff metrics omit pool statistics and detailed critical-write state; transport closes lack cause counters | Active (release 20261101T050356Z) from W0; VPS observation pending |
+| P7 / P4 | P2 | Mob activation repeats expensive target and runtime checks before exact distance rejection on movement | Active (release 20261101T050356Z) from W6 (distance first; one neighborhood read per recompute pass, about −48% per step at 300 players); VPS confirmation pending |
+| P8 | P2 | Several routine PvP, missed-attack and pickup logs bypass gameplay summary mode on the actor | Active (release 20261101T050356Z) from W0 |
+| P10 | P2 | Guild and instance snapshots each use a singleton row and shared reservation; an instance reservation skips instance lifecycle work | Measured: 100 active runtimes give a 76 KB aggregate written in 2.6 ms (p50), 3.3 ms max; `world_instance_tick_skipped_total` observes skips. R1–R3 are active; per-runtime rows (W8) wait for the production skip rate |
+
+### Evidence and acceptance boundaries
+
+**D1 — certified autosave rejection.**
+[queueAccountAutoSave](../wydgo748/internal/game/critical_persistence_autosave.go)
+uses `submitCriticalWrite` without a rejection callback. The
+[owner](../wydgo748/internal/game/critical_persistence_owner.go) therefore
+retains even an adapter-certified rejection, and production containment closes
+the affected session. An audit overlay reproduced
+`sessionClosed=true accountFenced=true quarantined=1`.
+
+Accounts rotate across six 500 ms buckets, giving a nominal three-second
+per-account cadence. The next eligible bucket can retry a fresh snapshot;
+the next global slice need not contain that account. Do not simply ignore all
+errors: settle only certified rejection with current bindings, preserve live
+state, and retain uncertain outcomes. Acceptance must cover fresh-state retry,
+duplicate completions, concurrent commands, disconnect and unknown COMMIT.
+
+**D2 — deadline and outcome classification.**
+[certifiedTransactionAttempt](../wydgo748/internal/store/postgres_critical_transaction.go)
+passes the same context to the callback, rollback and deferred cleanup. The
+overlay reproduced `rollback outcome unknown: context deadline exceeded`,
+with zero COMMIT calls and both rollback attempts using an expired context.
+The configured 500 ms is the total operation budget, not a guaranteed time
+spent in PostgreSQL or proof that COMMIT was attempted.
+
+Use a separate bounded cleanup context. Prove that a pre-COMMIT callback cannot
+commit independently or publish external effects before certifying rejection;
+dispose of an unusable connection. A transport error during COMMIT requires a
+different recovery path. PostgreSQL's
+[pg_xact_status(xid8)](https://www.postgresql.org/docs/18/functions-info.html#FUNCTIONS-PG-SNAPSHOT)
+can help reconcile a known transaction, but needs the correct top-level XID
+for the exact attempt. It may return `in progress` or `NULL`; neither permits
+unlock. A confirmed result still needs identity checks, durable-state reload
+and coordinated account/shared-object cleanup before releasing fences.
+Test real connection loss before, during and after COMMIT, late results,
+repetition, crash/restart and later writes. The audit deadline probe uses a
+context-aware test transaction; it is not PostgreSQL fault-injection evidence.
+
+**D3 — output pressure and diagnostics.**
+[Session.Send and writeLoop](../wydgo748/internal/net/session.go) close on queue
+overflow, write error, short write or deadline-setup failure. These branches
+do not log the initiating cause; the reader may subsequently log closure.
+The default queue size comes from
+[listener.go](../wydgo748/internal/net/listener.go), with 256 also selected in
+the tracked deployment configuration. The overlay filled 256 slots and
+confirmed closure on packet 257.
+
+The expansion's arrival probe was rerun with the current map and generators:
+50, 100 and 200 nearby synthetic players produced 220, 370 and 670 packets
+for the arriving session. The probe uses a 65,536-packet queue without a TCP
+writer. These counts confirm an oversized burst, not the queue depth with a
+concurrent writer or a guaranteed disconnection threshold. Spawn randomness
+also changes the counts slightly. Ranking this as the main production cause
+still requires close-cause telemetry and real network load evidence.
+
+The [October 26 investigation](current-state.md#individual-disconnect-investigation--2026-10-26-channel-2-teleport)
+already reproduced overflow during a 664-packet visibility transition with a
+healthy loopback reader. Its historical population is not the current world.
+War, Hell Gate and slow-link triggers remain plausible scenarios to test,
+not separately reproduced causes. The writer calls `Conn.Write` per packet;
+an exact syscall count has not been measured. Increasing capacity alone is
+not a validated remedy. Acceptance must retain packet order and complete
+entity create/update/removal, including large teleports and slow receivers.
+
+**D4 — delayed dead-peer detection.** Authenticated reads have no idle
+deadline. Go enables TCP keepalive by default, and the writer has a ten-second
+write deadline; neither proves immediate detection while small writes still
+fit the kernel buffer. No explicit `TCP_USER_TIMEOUT` is configured. Linux
+[TCP documentation](https://man7.org/linux/man-pages/man7/tcp.7.html)
+describes this option's bound for unacknowledged or unsent data. Exact detection
+time and the VPS TCP settings were not measured in this audit.
+
+[claimAccountSession](../wydgo748/internal/game/handlers.go) retains account
+ownership until actor disconnect cleanup; an existing test requires this even
+when `Session.IsClosed()` is true. Network client-slot pruning is separate
+from account ownership. Do not replace an existing session merely because a
+new socket requests login. Any takeover must authenticate first, fence the old
+owner, settle persistence/trade/instance cleanup and reject uncertain outcomes.
+Test abrupt loss, network blackholes, slow legitimate links and repeated login.
+
+**D5 — panic and readiness.**
+[safeHandle](../wydgo748/internal/game/world.go) recovers command-handler panic,
+poisons online accounts in that World and sets `shuttingDown`. The process
+stays alive, so `Restart=on-failure` does not act. The
+[readiness callback](../wydgo748/cmd/server/web_admin.go) only checks database
+ping; it can therefore report success while gameplay admission is closed.
+`ChannelCluster.run` calls `tick` without a panic recovery boundary, so an
+unhandled tick panic terminates the process that hosts both channels.
+The existing handler-panic test passed in the focused race run; tick process
+termination is statically verified, not reproduced by crashing a live service.
+Acceptance must check both channels, actor heartbeat, readiness failure,
+partial-state suppression and the selected recovery policy. Do not resume a
+partially mutated actor simply by recovering the panic.
+
+**P1–P3 — actor and persistence latency.**
+[ChannelCluster.run](../wydgo748/internal/game/channel_cluster.go) serializes
+both channels' command batches and ticks. Networking, authentication, HTTP,
+persistence workers and Go runtime work can use other threads; saying the
+whole server uses one core is inaccurate. `CPUQuota=150%` is a process CPU
+ceiling, not a way to parallelize this actor. Shared account/guild ownership
+must remain valid under any proposed channel split.
+
+Autosave clones the account and character-state snapshot before worker
+persistence. Reserved player commands wait until actor acknowledgement.
+[PostgreSQL persistence](../wydgo748/internal/store/postgres.go) writes account
+JSON, character/name projections and an incremental item ledger. It does not
+rewrite every unchanged item. The claimed 20–30 sequential SQL statements and
+periodic visible stutters were not measured here; query count depends on
+character count, changed items and projection state. Acceptance needs SQL
+counts and command-latency percentiles with realistic populated accounts.
+
+Initial account loading and password verification already run in an
+authentication goroutine. P3 concerns the later `onLoginResult` account reload
+after session reservation and
+[loadCharStateInto](../wydgo748/internal/game/charstate.go) during character
+entry. These synchronous reads block the shared actor. Worker conversion must
+preserve the fresh reload that prevents stale authentication snapshots from
+restoring pre-trade items or gold.
+
+### Expansion review and acceptance boundaries
+
+**D8 — read deadline and login error mapping.**
+[main.go](../wydgo748/cmd/server/main.go) passes the critical timeout into the
+whole PostgreSQL store. The tracked defaults select 500 ms and eight pool
+connections. [LoadAccount](../wydgo748/internal/store/postgres.go) uses that
+same context for account reads, including pool acquisition and queries.
+This is not a separate 500 ms allowance for each query. Four persistence
+workers and four authentication slots can contend with other store users;
+eight connections alone do not prove exhaustion.
+
+An injected `context deadline exceeded` in the initial authentication result
+reproduced the invalid-credentials panel. A later account reload and sanction
+check already have different failure panels. Acceptance must cover each phase,
+pool wait, database delay, retry and fresh-state admission. Pool increases and
+longer read deadlines require measurements, not fixed untested values.
+
+**D9 — authentication admission and CPU.**
+[password.go](../wydgo748/internal/account/password.go) creates hashes with
+600,000 PBKDF2-SHA256 iterations. Verification uses the stored iteration count.
+Unknown valid account names also run a hash to reduce account enumeration.
+[onLogin](../wydgo748/internal/game/handlers.go) rejects excess work when its
+four shared slots are occupied; authentication already runs outside the actor.
+The slots also cover account reads and sanction checks, not only hashing.
+A local verification benchmark reproduced 132.8–133.5 ms per hash across three
+runs. This is local elapsed time, not VPS throughput or a measured attack cost.
+
+[Operational limits](../wydgo748/internal/game/operational.go) already enforce
+30 attempts per IP/minute and ten per account/minute with bounded key storage.
+A burst can receive the busy panel; its production duration and CPU impact
+remain unmeasured. Distributed attempts remain a capacity risk, not a proven
+production attack. The report's ten-IP saturation claim is not established:
+at 133 ms/hash, 300 attempts/minute consume about 0.67 CPU core on average,
+before other work. Do not weaken password hashing or add unbounded queues.
+
+**D10 — database service dependency.**
+The tracked [unit](../tools/deployment/vps/wyd-game.service) has both `After=`
+and `Requires=postgresql@18-main.service`. Explicit database stop/restart
+propagates to the game according to the
+[systemd dependency contract](https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html#Requires=).
+`Requires=` does not propagate every unexpected database exit as `BindsTo=`
+would. This is a template finding, not a verified effective VPS configuration.
+Changing the dependency requires tested persistence-outage handling; merely
+keeping the process alive does not resolve D1 or D2.
+
+**D11 — final-save throughput.**
+[persistShutdownState](../wydgo748/internal/game/shutdown.go) saves eligible
+account/character pairs one at a time, after accepted critical writes settle.
+The cluster shares a deadline, and the process exits after the configured
+20-second shutdown wait fails. The service's 30-second stop limit does not
+extend that application budget. Unsaved terminal state is possible if total
+drain time exceeds it. No safe player count or maximum loss window was measured;
+the three-second autosave cadence does not bound the age of the last successful
+save. Preserve pending-write ordering and uncertain outcomes in any new drain.
+
+**P7 / P4 — activation hot path and measurements.**
+The supplied 600-mob same-cell benchmark reproduced 450.5 microseconds per
+`updatePlayerSpatial` call, with zero allocations, on an i5-12500H. It measures
+activation maintenance, not a full movement handler or a visibility full scan.
+The load probe reproduced a 300-player movement average of 327.2 microseconds,
+with tick p50 6.65 ms and p99 21.93 ms. Movement runs before the measured tick;
+these tick percentiles exclude that movement time, database work and real TCP.
+
+A separate CPU profile attributed 52.1% cumulative samples to
+`hasNearbyPlayerInGameplaySpace` in the load probe. The supplied predicate-order
+overlay reduced the 300-player movement average to 161.0 microseconds in a
+separate run. However, the compact 600-mob benchmark rose to 498.9 microseconds;
+the improvement is workload-dependent. These are nondeterministic spawn/map
+runs, not identical-state timing guarantees or VPS measurements.
+
+The overlay changes only the predicate order in
+[spatial.go](../wydgo748/internal/game/spatial.go). Existing spatial boundary
+and target-selection tests passed. Preserve an explicit nil guard: the prototype
+reads `p.X` before `validMobTargetAt`, which previously rejected nil entries.
+Target score validation and runtime-index lookup also have observable failure
+or cache-repair behavior. Further acceptance must cover dead/hidden targets,
+expired affects, public/private runtimes and index invariants before adoption.
+
+**P8 — synchronous routine logging.**
+[handlers.go](../wydgo748/internal/game/handlers.go) directly logs ordinary
+PvP hits, misses and pickups; [skill_pvp.go](../wydgo748/internal/game/skill_pvp.go)
+also bypasses [gameplay summary mode](../wydgo748/internal/game/gameplay_logging.go).
+These standard logger writes occur on the actor. They can add output latency
+and log volume even when gameplay logging is quiet. Actual stalls or lost VPS
+logs were not measured. Journald can drop a service's excess messages under
+its [rate-limit settings](https://www.freedesktop.org/software/systemd/man/latest/journald.conf.html#RateLimitIntervalSec=);
+the effective limit also depends on overrides and available journal disk space.
+
+**P10 — aggregate reservation scope.**
+[PostgreSQL storage](../wydgo748/internal/store/postgres.go) writes complete
+JSON snapshots to singleton `guild_state` and `instance_state` rows.
+The [shared coordinator](../wydgo748/internal/game/critical_persistence.go)
+admits one write per corresponding aggregate through actor acknowledgement.
+`criticalInstanceReserved` gates `tickItemInstances` and party-return processing
+in [World.tick](../wydgo748/internal/game/world.go); competing aggregate writes
+return busy. Other gameplay ticks continue. The reservation can span several
+ticks, not necessarily one, and a failed aggregate fence can retain it.
+Absolute deadlines can be checked when lifecycle processing resumes; skipped
+processing does not imply every timer is extended. Test both channels and
+unrelated rooms, slow writes, rejection, unknown outcomes and concurrent guild
+or account settlement before splitting aggregates.
+
+**P6 metrics — corrected scope.**
+[ReadRuntime](../wydgo748/internal/control/runtime.go) already supplies staff
+with lag, tick, command queue, transaction duration and async-store counters.
+Some critical counters also exist in expvar, including quarantine and deferred
+commands. The missing work is pool statistics, detailed critical queue/outcome
+and latency coverage, staff exposure, and cause-specific transport counters.
+This audit does not independently certify the deployed panel or sampler.
+
+### Claims awaiting evidence or rejected as stated
+
+| Report ID | Review | Required next evidence |
+| --- | --- | --- |
+| P4 | The expansion supplied the missing benchmark; the local cost is now reproduced and tracked with P7. Ordinary movement already uses spatial edge deltas | Keep activation maintenance distinct from visibility refresh; measure full movement and teleport paths separately |
+| P6 | Tracked deployment sets `MemoryMax=1200M`, `CPUQuota=150%` and `TasksMax=128`; no explicit `GOMEMLIMIT` is present in tracked configuration. Private environment/drop-ins may differ. No memory/thread exhaustion was demonstrated | Inspect effective VPS settings, peak RSS/Go memory, thread counts and load before choosing limits |
+| P6 metrics | The claim that metrics are invisible without `debug_address` is false. The authenticated staff sampler uses `control.ReadRuntime`, atomic counters and `runtime/metrics` independently | Use the existing staff metrics endpoint; enable loopback-only pprof/expvar only if deeper profiling is needed |
+
+### Audit validation
+
+`STATICALLY VERIFIED`: the paths above and tracked configuration; no new wire,
+economy or gameplay rule. Existing unrelated dirty work was preserved.
+`AUTOMATED TESTED`: focused `go test -race -count=1` passed in game, net and
+store. Temporary overlays reproduced D1, D2 and D3; existing outcome/retry,
+writer, closed-session and handler-panic cases passed. Probes and logs remain
+under ignored `build/disconnect-report-audit-20261031/`; product source was
+not edited. The report's full-suite, vet and 23-package claim was not rerun or
+independently certified here. No real database fault injection, VPS setting
+inspection or client execution was performed. Fixes remain pending.
+
+The expansion's supplied arrival, load and spatial benchmark probes were rerun
+with temporary overlays. Logs, CPU profile and review probes remain under
+ignored `build/server-audit-review-20261031/`. The supplied report's full-suite,
+vet and broad race claims remain external results; its named full-test logs
+were not present in the supplied artifact directory. No disposable database,
+network load run, vulnerability download or client heartbeat test was added.
+Focused race tests passed in game and store, including the injected login
+failure, shared context budget, admission limits, instance serialization,
+shutdown deadline and spatial boundaries. Account and control had no tests
+matching that focused selection; their passing command status adds no coverage.
+The password benchmark ran separately without the race detector.
+
+### W0 diagnostics — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Packets, client revision, gameplay
+rules, persisted formats and the staff authentication contract are unchanged.
+The [correction plan](server/server-correction-plan.md#w0--diagnostics-and-reproducible-acceptance)
+defines the scope. Nothing was published, installed or restarted.
+
+- Transport: each session records its first close cause once. Reader, writer,
+  overflow, admission and explicit server closes share the record. The
+  [operations guide](server/operations.md#diagnose-a-disconnect) lists causes.
+  Output rates, queue fill at enqueue, queue wait and refusals are published.
+- Persistence: the game store pool, critical queue state, oldest pending age,
+  worker outcomes and admission refusals are published. Panic, containment,
+  maintenance and shutdown closes use their own causes.
+- Actor: each channel publishes heartbeat age and lag, tick, command and
+  queue-age distributions. The staff endpoint and Overview expose these groups.
+- New defect fixed: both cluster channels shared one previous-tick time and
+  overwrote the player, mob, queue and deferred gauges. Staff saw only the last
+  ticked channel, and half the lag samples were near zero. Each channel now
+  keeps its own values; process gauges are sums.
+- P8: PvP hits and skills, misses, pickups, Illusion and summons use summary
+  mode; verbose mode still writes each line. Player ground drops, admission
+  rejections, invalid packets and persistence failures remain unconditional.
+- Probes: `TestLoadProbe*` runs with `WYD_LOAD_PROBE=1`, a fixed seed, clock
+  and tie order. Two runs queued 75, 225, 375 and 675 arrival packets for 0,
+  50, 100 and 200 nearby players. These are actor counts, not TCP evidence.
+
+`STATICALLY VERIFIED`: closed label sets, no account or session labels,
+unchanged wire builders, and one close record per served session.
+`AUTOMATED TESTED`: full `go test ./...` and `go vet ./...` with local PostgreSQL;
+race runs for net, control, store, webadmin, game and cmd/server. The game race
+run needs `-timeout 30m`; it took 605 s and exceeds the 10-minute default.
+New tests cover each close cause, first-cause precedence, write timeout, pool
+lifetime, critical outcomes, cluster lag and gauges, summary logging and charts.
+`CLIENT-TESTED`: none. Pending: real network load test with a disposable
+database, VPS inspection, bounded operation-ID records (W0 item 7) and activation.
+
+### W1 certified rejection — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Packets, client revision and the
+durable formats are unchanged. Nothing was published, installed or restarted.
+
+- D2: rollback uses its own one-second cleanup context, never the expired
+  operation context. COMMIT is the only durable boundary: a failure before it,
+  including a failed rollback, is a certified rejection because callbacks use
+  only their transaction. pgx discards the broken connection. A COMMIT error
+  that pgconn marks as unsent is also a rejection. A COMMIT transport error
+  stays unknown for W4. The total operation deadline still spans all retries.
+- D1: autosave settles a certified rejection without closing the session.
+  Live RAM stays current and the next eligible slice writes a fresh snapshot.
+  Consecutive rejections wait 0, 6, 12, 24 and then 30 seconds per account.
+- Producers: shops, Hell Store, cargo gold and items, skill learning, trade,
+  equipment, personal shop, Lindy, advanced composition, character entry and
+  channel transfer now resend the authoritative view and an existing EN/PT
+  failure message. Trade closes both offers. CP recovery, egg incubation and
+  timed expiry keep their state and retry later without a message.
+- Unknown outcomes keep the existing containment and fences.
+
+`STATICALLY VERIFIED`: every detached producer installs state only after
+COMMIT; rejection continuations restore nothing and publish no success.
+`AUTOMATED TESTED`: real PostgreSQL faults before COMMIT (callback error,
+deadline during SQL, terminated backend, expired admission and exhausted
+serialization retries) leave no row, no held lock and a clean pool. Game tests
+cover autosave backoff and fresh retry, trade, cargo, merchant sale, Hell Store
+and CP rejection. The updated equipment test keeps unknown outcomes contained.
+Race runs passed for store and the critical game tests.
+`CLIENT-TESTED`: none. Pending: W4 COMMIT-loss reconciliation and activation.
+
+### W2 login and entry capacity — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Packets, client revision, password
+strength and rate limits are unchanged. Nothing was published or restarted.
+
+- D8: account and state reads use `database_read_timeout_ms` (default 3000),
+  including pool acquisition, apart from the 500 ms critical write deadline.
+  Read timeouts count in `postgres_read_failures_total`. Only invalid
+  credentials or a missing account show the password error; storage failures
+  show the temporary-unavailable message in the channel language.
+- P3: the final account reload and the character sidecar read run on bounded
+  workers. The actor keeps the account claim and pending state, then installs
+  a result only for the same session, claim, sanction version and selection.
+  Disconnect, shutdown and stale results release or ignore the read once.
+  Repeated entry requests start no second read. Production enables this with
+  `WithAsyncEntryReads`; direct handler tests run the same path inline.
+- D9: `auth_hash_concurrency` now bounds PBKDF2 work only. Account and sanction
+  reads run without a hash slot. A waiting attempt stops after two seconds or
+  when its session closes and shows the busy message. Up to 16 attempts, or
+  four per hash slot, may be in flight. The value 4 still awaits VPS tuning.
+- Found and fixed: `account.Authenticate` used `os.IsNotExist`, which does not
+  match the wrapped PostgreSQL not-found error. Missing accounts skipped the
+  dummy hash, so response time revealed whether an account exists. The staff
+  persistent-player read had the same check and reported a generic error.
+
+`STATICALLY VERIFIED`: unchanged hash parameters and enumeration-equal work
+for missing accounts; one claim release path for every reload outcome.
+`AUTOMATED TESTED`: read budget with a held pool and an exhausted pool on
+PostgreSQL; PT and EN login messages; async reload and entry with disconnect,
+sanction change, replaced character, removed player and duplicate requests;
+hash slot held only for hashing, refusal and session-close cancellation.
+`CLIENT-TESTED`: none. Pending: VPS measurement of pool size and hash slots.
+
+### W3 output pressure — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Packet contents, order and client
+revision are unchanged; the 256-packet capacity stays the default.
+
+- The writer joins packets already queued into one socket write of at most
+  64 KiB. It never waits to fill a batch. `net_output_writes_total` counts
+  socket writes next to `net_output_packets_total`.
+- Each session also bounds retained output at 512 KiB; overflow by bytes or
+  packets still closes with `output_overflow`.
+- A full view refresh creates an entity only while more than a quarter of the
+  receiver's queue is free. Otherwise the entity stays unpublished and the
+  next tick refreshes the view again. Removals and updates are never deferred,
+  and updates only reach created entities. A teleport recomputes the view,
+  so stale creations are dropped. `world_scene_deferred_total` counts views
+  that waited.
+- Probe with the 256-packet queue and a writer that drains between ticks:
+  0, 50, 100 and 200 nearby players completed in 0, 1, 1 and 3 ticks with a
+  peak of 75, 192, 192 and 216 queued packets and no closure. Before W3 the
+  200-player arrival queued 675 packets at once.
+
+`STATICALLY VERIFIED`: removal and update paths unchanged; each direction of
+a player pair is created independently. A failed enqueue still finalizes
+before closing; no retryable payload is kept (the session closes).
+`AUTOMATED TESTED`: coalesced writes keep order and frames over TCP; the byte
+bound closes and releases retained bytes; a 120-mob arrival on a 64-packet
+queue completes over ticks without an update to an uncreated entity; a
+teleport drops pending creations and removes published ones.
+`CLIENT-TESTED`: none. Pending: real TCP arrival, slow reader, blackhole and
+guild-war traffic tests, and client confirmation of progressive scenes.
+
+### W4 COMMIT reconciliation and stale sessions — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Packets, client revision and the
+schema are unchanged. Nothing was published or restarted.
+
+- D2: each certified attempt first reads `pg_current_xact_id()`. When COMMIT
+  may have reached PostgreSQL but its reply was lost, the worker asks
+  `pg_xact_status` for that exact transaction for up to three seconds before
+  delivering the result. `committed` becomes success and `aborted` a certified
+  rejection; `in progress`, NULL and read errors keep the unknown outcome and
+  its containment. `postgres_commit_reconciled_total` counts each result.
+- D4: game sockets use keepalive after 15 seconds idle, probing every five
+  seconds up to four times, and `TCP_USER_TIMEOUT` of 30 seconds on Linux.
+  Keys: `tcp_keepalive_idle_seconds`, `tcp_keepalive_interval_seconds`,
+  `tcp_keepalive_count` and `tcp_user_timeout_seconds` (0 disables it).
+  Before, Go and Linux defaults allowed about 150 seconds for an idle dead peer
+  and about 15 minutes with unacknowledged data.
+- D4: when the account's previous transport is already closed but its writes
+  are still settling, a new login gets the temporary-unavailable message
+  instead of "already playing". The duplicate-session policy is unchanged.
+
+Not done: durable intent records and startup recovery for a process crash
+during an unresolved write (items 3, 4 and 10). After a restart every account
+and aggregate reloads from PostgreSQL, so only a COMMIT still running in the
+old backend at that moment remains a narrow risk.
+
+`STATICALLY VERIFIED`: an unresolved status never releases fences; the unknown
+cause is quoted, not wrapped, so it cannot hide a reconciled rejection.
+`AUTOMATED TESTED`: on PostgreSQL, a lost acknowledgement after a real commit
+returns success and keeps the row; after a real abort it returns a certified
+rejection with no row; an open transaction stays unknown. TCP options compile
+for Linux and report "unsupported" on Windows; settling and live previous
+sessions get distinct login answers.
+`CLIENT-TESTED`: none. Pending: Linux kernel check of TCP_USER_TIMEOUT,
+cable-loss and blackhole tests, durable crash recovery.
+
+### W5 health and service lifecycle — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Packets and client revision are
+unchanged. The effective VPS unit was not changed; only the tracked template.
+
+- D5: a tick panic is now recovered like a handler panic. That World enters
+  maintenance, poisons its RAM against saves and closes its sessions with the
+  `panic` cause; the other channel keeps running. Before, a tick panic ended
+  the process and both channels. `/readyz` now also returns 503 when any live
+  channel is in maintenance or shutdown, or its actor heartbeat is older than
+  five seconds. `/healthz` stays a process liveness check.
+- D10: the game unit template uses `Wants=` and `After=` for PostgreSQL and
+  stops retrying after five failed starts in five minutes. A fault proxy test
+  drops every database connection: reads fail, writes are certified
+  rejections, and the pool serves again when PostgreSQL returns.
+- D11: final account saves are prepared on the actor as detached snapshots
+  and written by bounded workers (`critical_persistence_workers`). Errors are
+  still collected per account and reported as an incomplete shutdown.
+  Locally, 24 saves of 10 ms took 255 ms sequentially and 63 ms on four workers.
+- P6: no limit changed; `GOMEMLIMIT`, `TasksMax` and CPU quota still need VPS
+  measurements.
+
+`STATICALLY VERIFIED`: poisoned accounts are excluded before any final write;
+readiness reads only atomics and never waits for World.
+`AUTOMATED TESTED`: contained tick panic with the panic close cause; readiness
+for live, stalled and maintenance channels; database outage and recovery through
+a TCP proxy; bounded terminal-save concurrency.
+`CLIENT-TESTED`: none. Pending: systemd restart budget and the real database
+restart on a disposable service, populated-account drain measurement.
+
+### W6 activation cost — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. No target rule, activation radius,
+runtime boundary or packet changed.
+
+- Mob activation and nearest-target search now reject by exact distance (and,
+  for targets, by the current best candidate) before the validity and runtime
+  checks. The runtime lookup scans every item instance for a player outside
+  instances; its index update is a cache recomputed from authoritative
+  membership, so calling it less often does not change any result.
+- Oracle: 20 seeded worlds with dead, hidden and instanced players, 200 queries
+  each, match the previous filter order for activation and for nearest-target
+  selection with and without an acceptance filter.
+- Paired probe, five alternating runs at 300 players on the official map:
+  movement cost 174–175 µs with the previous order, 115–118 µs with the new
+  one (about −33%). Tick p50 stayed near 4 ms; tick p99 varied from 13 to 16 ms
+  in both orders, with no consistent change. Local Windows timings only.
+
+`AUTOMATED TESTED`: the oracle and the existing spatial and combat suites.
+`CLIENT-TESTED`: none. Not started: cached eligibility or narrower invalidation,
+which needs a defined invalidation contract first.
+
+### W4–W9 follow-up — source, 2026-10-31
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Nothing was published or restarted.
+
+- W4: the game store names its connections `wydgo-game/<instance>`. At startup
+  it ends every backend of a previous game instance in the same database and
+  waits until PostgreSQL removes them. An open transaction of the old process
+  aborts; a finished COMMIT is visible before any account is read. Tools and
+  panels use other names and are never ended.
+- W4: an account-only quarantine whose store result names its transaction is
+  checked every ten seconds with `pg_xact_status`. `committed` or `aborted`
+  releases its account and character fences (`world_critical_quarantine_released_total`);
+  the discarded RAM is never saved and the player signs in to the stored state.
+  `in progress`, unknown and read errors keep every fence. Shared objects,
+  guilds and instances stay fenced until restart.
+- W5: with the production option a contained handler or tick panic requests
+  one supervised restart (exit 75, the staff restart path). The unit template
+  stops after five failed starts in five minutes.
+- W7: measured on a populated account, a JSON fingerprint on the actor took
+  757 µs and a snapshot DeepEqual 129 µs, too costly for the shared actor. The
+  worker now skips a player-state batch identical to what this process last
+  committed (`postgres_unchanged_writes_skipped_total`). Any other write of the
+  account or sidecar clears the mark first; after 19 skips one write happens.
+- W7 (items 2–6): the autosave is a background snapshot. It keeps the
+  persistence boundary (disconnect, login, final save) but no longer defers
+  the player's packets or stops mobs and kills against that player. A later
+  critical write of a participant parks behind the snapshot and goes to a
+  worker only after the snapshot is acknowledged (`world_critical_parked_total`),
+  so writes of one account commit in submission order. A failed snapshot
+  refuses its parked writes as certified rejections that never reached the
+  store; a parked write that settles hands its fences back to the failed
+  snapshot. A never-sent write that ends in containment is released at once;
+  a released quarantine keeps the failed fence of another unresolved one.
+  Identity changes during the snapshot (leaving the world, character change)
+  no longer isolate the player.
+- W8: not changed. Running skipped instance work inside completion delivery
+  broke the instance-entry ordering test and was reverted.
+- W9: the shared-ownership inventory is in the
+  [correction plan](server/server-correction-plan.md#w9-item-1--shared-ownership-inventory-2026-10-31).
+- G: blocked on the installed candidate and the owner's client tests.
+
+`AUTOMATED TESTED`: on PostgreSQL, a new instance aborts the previous
+instance's open transaction and leaves an unrelated pool backend alive; an
+unchanged batch is skipped, a changed one and one after another write are
+written, and the skip bound forces a write. Game tests cover one restart
+request for two panicking Worlds, and a quarantine
+kept while in progress and released for committed and aborted outcomes.
+`CLIENT-TESTED`: none.
+
+### W4/W5/W7 completion — 2026-11-01, active
+
+Classification: `MODERNIZACAO_COMPATIVEL`. W0–W7 are active in release
+`20261101T050356Z` (owner-authorized publication and restart, no player
+online); see [current state](current-state.md).
+
+- W4 item 10: staff with the new `game.persistence.recovery` capability read
+  `GET /api/v1/staff/persistence/quarantine` (ID, channel, accounts, shared,
+  checkable, last status) and request `POST` checks with a reason; the panel
+  has a Quarantine section. The check uses the periodic final-status rule and
+  is audited. The capability is not granted to any staff account by default.
+- W4 items 1–4: recorded as satisfied by the per-attempt XID, PostgreSQL's
+  commit status and the startup fence; see the
+  [decision](server/critical-persistence-plan.md#w4-durable-record-decision-2026-11-01).
+- W4/D4 items 4–6: a login behind a closed previous owner waits up to five
+  seconds and then claims the account (`world_login_replacement_total`). An
+  open previous session still gets the duplicate-login reply; a quarantined
+  account gets the temporary-unavailable reply instead of "already playing".
+- W5/D11: measured on the local PostgreSQL with populated accounts (see the
+  correction plan). A first probe with items lacking UIDs produced
+  serialization failures under four workers: each save created new item
+  identities. Live items always carry a UID, and the realistic probe passed.
+- W7: background autosave and parked writes, as recorded above.
+- P1 measurement: the load probe records each channel's full cycle (moves
+  plus tick), which is the wait it adds to the other channel on the shared
+  goroutine: 2/6/12 ms p50 and 7/11/22 ms p99 at 50/150/300 players.
+- P10 measurement: a two-channel instance aggregate of 10/50/100 runtimes
+  (8 members each) is 7.7/37.9/75.7 KB and writes in 0.7/1.5/2.6 ms p50 on
+  the local PostgreSQL. The reservation therefore lasts milliseconds; the new
+  counter gives the production skip rate before W8 changes the schema.
+- W6 item 5: one neighborhood read per recompute pass replaces one cell-map
+  scan per mob. Oracle tests match the old scan; three paired probe runs at
+  300 players moved from 112–114 µs to 59–60 µs per step.
+
+`AUTOMATED TESTED`: queue parking, multiple predecessors, closed admission,
+failed-snapshot refusal and fence hand-back; a trade parked behind a partner
+autosave; the double fault; identity change during autosave; PostgreSQL row-lock
+ordering (durable gold equals the newer write); staff status/recheck in the World
+and over HTTP (capability, CSRF, revocation, audit); login wait, release, timeout
+and quarantine replies; loopback TCP slow reader (1,500 ordered packets) and a
+reader that stops reading (closed with `write_timeout`), five race repetitions.
+On the VPS (Linux 6.8.0, temporary directory removed afterwards) the same TCP
+tests and the kernel `TCP_USER_TIMEOUT` check passed.
+`CLIENT-TESTED`: none.
 
 ## Reports and acceptance checks
 

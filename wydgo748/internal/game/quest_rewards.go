@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"log"
 
 	"wydgo/internal/model"
@@ -142,7 +141,7 @@ func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot
 	}
 	if !questRewardAllowed(p.Char, rule) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("This reward cannot be used at this level or evolution."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Reward_Cannot_Used_Level_Or_Evolution")))
 		return
 	}
 
@@ -150,7 +149,7 @@ func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot
 	if reward == 0 {
 		// A disabled rate must preserve both the box and its accompanying gold.
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("Experience gain is disabled."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Experience_Gain_Disabled")))
 		return
 	}
 
@@ -159,11 +158,11 @@ func (w *World) useQuestReward(s *net.Session, p *Player, item *model.Item, slot
 	if !res.OK {
 		if res.Err != nil {
 			log.Printf("[#%d] failed to save quest reward item=%d: %v", s.ID, oldItemIndex, res.Err)
-			s.Send(wire.MessagePanel("Save failed. The reward was not consumed."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Reward_Was_Not_Consumed")))
 		}
 		return
 	}
-	s.Send(wire.MessagePanel(fmt.Sprintf("Reward received: +%d EXP and +%d gold.", res.Exp, res.Gold)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Reward_Received_D_EXP_D_Gold", res.Exp, res.Gold)))
 	log.Printf("[#%d] QUEST-REWARD item=%d volatile=%d exp=+%d gold=+%d level=%d +%d",
 		s.ID, oldItemIndex, code, res.Exp, res.Gold, p.Char.Score.Level, res.Levels)
 }

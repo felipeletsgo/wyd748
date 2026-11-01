@@ -52,6 +52,7 @@ func (s *metricsSampler) observe(r control.RuntimeReading) {
 	}
 	seconds := r.At.Sub(previous.At).Seconds()
 	delta := func(current, before int64) int64 { return max(current-before, 0) }
+	transport, pool, critical, channels := control.IntervalDiagnostics(previous, r)
 	s.ring[s.next] = control.MetricsPoint{
 		At: r.At, Players: r.Players, Mobs: r.Mobs, QueueDepth: r.QueueDepth,
 		LoopLagP99Micros: control.BucketP99(previous.LoopLag, r.LoopLag), TickP99Micros: control.BucketP99(previous.Tick, r.Tick),
@@ -60,7 +61,8 @@ func (s *metricsSampler) observe(r control.RuntimeReading) {
 		BudgetExceeded:    delta(r.BudgetExceeded, previous.BudgetExceeded), Panics: delta(r.Panics, previous.Panics),
 		PostgresQueueDepth: r.PostgresQueueDepth, PostgresFailures: delta(r.PostgresFailures, previous.PostgresFailures),
 		PostgresTxMicros: r.PostgresTxMicros, HeapBytes: r.HeapBytes, Goroutines: r.Goroutines,
-		GCCycles: delta(r.GCCycles, previous.GCCycles),
+		GCCycles:  delta(r.GCCycles, previous.GCCycles),
+		Transport: transport, Pool: pool, Critical: critical, Channels: channels,
 	}
 	s.next = (s.next + 1) % len(s.ring)
 	s.count = min(s.count+1, len(s.ring))
@@ -108,6 +110,7 @@ func (s *metricsSampler) window(since time.Time) []control.MetricsPoint {
 			out.GCCycles += p.GCCycles
 			out.CommandsPerSecond += p.CommandsPerSecond / float64(len(part))
 		}
+		out.Transport, out.Pool, out.Critical, out.Channels = control.MergeDiagnostics(part)
 		merged = append(merged, out)
 	}
 	return merged

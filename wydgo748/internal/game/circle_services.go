@@ -43,11 +43,12 @@ func (w *World) handleCircleServiceNPC(s *net.Session, p *Player, m *Mob) bool {
 	return true
 }
 
-// Keep errors in the client's existing EN/PT message table. The native 7.59
-// server's dialogue numbers are a different table and cannot be sent as indices.
-func circleServiceMessage(p *Player, index int16) {
+// Native rows stay in the client's message table; WYD-Go rows use the channel
+// language. The native 7.59 server's dialogue numbers are a different table
+// and cannot be sent as indices.
+func (w *World) circleServiceMessage(p *Player, index int16) {
 	if p.Session != nil && !p.Session.IsClosed() {
-		p.Session.Send(wire.MessageIndexed(index - 1000))
+		p.Session.Send(w.projectMessage(index))
 	}
 }
 
@@ -56,7 +57,7 @@ func (w *World) commitCircleService(p *Player, images []criticalPreimage, operat
 	// score copies are excluded by the persistence representation.
 	w.recalcPlayer(p.Char)
 	rejected := func() {
-		circleServiceMessage(p, 188) // Failed to save.
+		w.circleServiceMessage(p, 188) // Failed to save.
 		w.resendInventory(p)
 	}
 	publish := func() {
@@ -102,12 +103,12 @@ func (w *World) useJeffi(p *Player) {
 	}
 	if first != 0 {
 		if p.Char.Gold < price {
-			circleServiceMessage(p, 155)
+			w.circleServiceMessage(p, 155)
 			return
 		}
 		result := first + uint16(w.intn(3))
 		if _, ok := w.items[result]; !ok {
-			circleServiceMessage(p, 190)
+			w.circleServiceMessage(p, 190)
 			return
 		}
 		images := criticalPreimages(p)
@@ -128,11 +129,11 @@ func (w *World) useJeffi(p *Player) {
 		}
 	}
 	if scraps < 10 && powder < 10 && stones < 3 {
-		circleServiceMessage(p, 274)
+		w.circleServiceMessage(p, 274)
 		return
 	}
 	if p.Char.Gold < 1_000_000 {
-		circleServiceMessage(p, 155)
+		w.circleServiceMessage(p, 155)
 		return
 	}
 	proposed := p.Char.Inv
@@ -147,11 +148,11 @@ func (w *World) useJeffi(p *Player) {
 	}
 	for _, conversion := range conversions {
 		if _, ok := w.items[conversion[1]]; !ok {
-			circleServiceMessage(p, 190)
+			w.circleServiceMessage(p, 190)
 			return
 		}
 		if !convertJeffiIngredients(&proposed, conversion[0], conversion[1], uint32(conversion[2])) {
-			circleServiceMessage(p, 1)
+			w.circleServiceMessage(p, 1)
 			return
 		}
 	}
@@ -242,7 +243,7 @@ func (w *World) useShamanCircle(p *Player) {
 	case index >= 693 && index <= 695:
 		variant, recovery = int(index-693), 100
 	default:
-		circleServiceMessage(p, 274)
+		w.circleServiceMessage(p, 274)
 		return
 	}
 	images := criticalPreimages(p)

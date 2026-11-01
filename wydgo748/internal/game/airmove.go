@@ -102,7 +102,7 @@ func (w *World) onAirMove(s *net.Session, pkt []byte) {
 	}
 	dest := airMoveDestinations[route]
 	if !w.requestPlayerTeleport(p, dest.x, dest.y, nil, nil) {
-		s.Send(wire.MessagePanel("The flight could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Flight_Could_Not_Completed")))
 		w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
 	}
 }

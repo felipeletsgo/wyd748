@@ -357,6 +357,34 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/PvPDoorResult' }
         default: { $ref: '#/components/responses/Error' }
+  /api/v1/staff/persistence/quarantine:
+    get:
+      summary: List quarantined critical writes (game.persistence.recovery capability)
+      security: [{ staffSession: [] }]
+      responses:
+        '200':
+          description: Quarantined operations of every channel and the released count since startup
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersistenceRecoveryStatus' }
+        default: { $ref: '#/components/responses/Error' }
+    post:
+      summary: Check the exact outcome of quarantined writes now; only a final PostgreSQL status releases accounts
+      security: [{ staffSession: [] }]
+      parameters:
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PersistenceRecheckCommand' }
+      responses:
+        '200':
+          description: Receipt that checks started; read the list again for released operations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PersistenceRecheckResult' }
+        default: { $ref: '#/components/responses/Error' }
   /api/v1/staff/events/ox:
     get:
       summary: Inspect the OX quiz arena (game.event.ox capability)
@@ -1735,6 +1763,41 @@ components:
         operationId: { type: string }
         code: { type: string, enum: [ok, unchanged, door_unavailable, invalid_command, capability_required, server_maintenance] }
         status: { $ref: '#/components/schemas/PvPDoorStatus' }
+    QuarantinedOperation:
+      type: object
+      required: [id, channel, since, accounts, shared, checkable]
+      properties:
+        id: { type: integer }
+        channel: { type: integer }
+        since: { type: string, format: date-time }
+        accounts: { type: array, items: { type: string }, maxItems: 64 }
+        shared: { type: boolean, description: Ground objects, mobs, guilds or instances; released only by a restart }
+        checkable: { type: boolean, description: The exact transaction is known; a final status releases the accounts }
+        lastStatus: { type: string, enum: [committed, aborted, in progress, unknown, read_error] }
+    PersistenceRecoveryStatus:
+      type: object
+      required: [version, asOf, quarantined, released]
+      properties:
+        version: { type: integer, const: 1 }
+        asOf: { type: string, format: date-time }
+        quarantined: { type: array, items: { $ref: '#/components/schemas/QuarantinedOperation' } }
+        released: { type: integer }
+    PersistenceRecheckCommand:
+      type: object
+      additionalProperties: false
+      required: [version, operationId, reason]
+      properties:
+        version: { type: integer, const: 1 }
+        operationId: { type: string, minLength: 16, maxLength: 64, pattern: '^[a-zA-Z0-9-]+$' }
+        reason: { type: string, minLength: 3, maxLength: 200 }
+    PersistenceRecheckResult:
+      type: object
+      required: [operationId, code, started, status]
+      properties:
+        operationId: { type: string }
+        code: { type: string, enum: [ok, nothing_to_check, check_running, check_unavailable, invalid_command, capability_required] }
+        started: { type: integer }
+        status: { $ref: '#/components/schemas/PersistenceRecoveryStatus' }
     OXEventCommand:
       type: object
       additionalProperties: false
@@ -2089,7 +2152,7 @@ components:
         nextBefore: { type: integer, minimum: 0, description: Zero when there is no older page }
     MetricsPoint:
       type: object
-      required: [at, players, mobs, queueDepth, loopLagP99Micros, tickP99Micros, queueAgeP99Micros, commandsPerSecond, budgetExceeded, panics, postgresQueueDepth, postgresFailures, postgresTxMicros, heapBytes, goroutines, gcCycles]
+      required: [at, players, mobs, queueDepth, loopLagP99Micros, tickP99Micros, queueAgeP99Micros, commandsPerSecond, budgetExceeded, panics, postgresQueueDepth, postgresFailures, postgresTxMicros, heapBytes, goroutines, gcCycles, transport, pool, critical, channels]
       description: P99 values are the upper bound of the fixed bucket holding the interval's 99th percentile (0 = no observation, 1000001 = above one second). Counts are per interval.
       properties:
         at: { type: string, format: date-time }
@@ -2108,6 +2171,76 @@ components:
         heapBytes: { type: integer, minimum: 0 }
         goroutines: { type: integer, minimum: 0 }
         gcCycles: { type: integer, minimum: 0 }
+        transport: { $ref: '#/components/schemas/TransportPoint' }
+        pool: { $ref: '#/components/schemas/PoolPoint' }
+        critical: { $ref: '#/components/schemas/CriticalPoint' }
+        channels:
+          type: array
+          maxItems: 255
+          items: { $ref: '#/components/schemas/ChannelPoint' }
+    TransportPoint:
+      type: object
+      required: [closes, refused, outputPacketsPerSecond, outputBytesPerSecond, queueP99Percent, queueMaxPercent, waitP99Micros]
+      description: Game socket diagnostics for the interval. Queue percentages are fixed bucket bounds of the session output queue at enqueue (25, 50, 75, 99 = below full, 100 = full).
+      properties:
+        closes:
+          type: object
+          description: Sessions that ended in the interval, by first recorded cause.
+          propertyNames: { enum: [handshake, peer_closed, read_timeout, read_error, protocol, inbound_flood, output_overflow, write_timeout, write_error, invalid_outbound, admission, server, persistence, shutdown, panic] }
+          additionalProperties: { type: integer, minimum: 0 }
+        refused: { type: integer, minimum: 0, description: Connections refused before the handshake by origin or connection limits. }
+        outputPacketsPerSecond: { type: number, minimum: 0 }
+        outputBytesPerSecond: { type: number, minimum: 0 }
+        queueP99Percent: { type: integer, minimum: 0, maximum: 100 }
+        queueMaxPercent: { type: integer, minimum: 0, maximum: 100 }
+        waitP99Micros: { type: integer, minimum: 0, description: Time a packet waited in the session queue before its write started. }
+    PoolPoint:
+      type: object
+      required: [acquired, idle, total, max, acquireMeanMicros, emptyAcquires, emptyWaitMicros, canceled]
+      description: Game store PostgreSQL pool. Connection counts are current gauges; the other values cover the interval.
+      properties:
+        acquired: { type: integer, minimum: 0 }
+        idle: { type: integer, minimum: 0 }
+        total: { type: integer, minimum: 0 }
+        max: { type: integer, minimum: 0 }
+        acquireMeanMicros: { type: integer, minimum: 0 }
+        emptyAcquires: { type: integer, minimum: 0, description: Acquisitions that waited because no connection was idle. }
+        emptyWaitMicros: { type: integer, minimum: 0 }
+        canceled: { type: integer, minimum: 0 }
+    CriticalPoint:
+      type: object
+      required: [pending, queued, running, quarantined, deferred, oldestMicros, durationP99Micros, outcomes, admissionRejected]
+      description: Critical persistence. Pending, queued, running, quarantined, deferred and oldest age are current gauges; the other values cover the interval.
+      properties:
+        pending: { type: integer, minimum: 0 }
+        queued: { type: integer, minimum: 0 }
+        running: { type: integer, minimum: 0 }
+        quarantined: { type: integer, minimum: 0 }
+        deferred: { type: integer, minimum: 0, description: Player packets waiting behind their own persistence reservation. }
+        oldestMicros: { type: integer, minimum: 0 }
+        durationP99Micros: { type: integer, minimum: 0 }
+        outcomes:
+          type: object
+          propertyNames: { enum: [committed, rejected, indeterminate] }
+          additionalProperties: { type: integer, minimum: 0 }
+        admissionRejected:
+          type: object
+          propertyNames: { enum: [busy, full, stopping, unsupported, invalid] }
+          additionalProperties: { type: integer, minimum: 0 }
+    ChannelPoint:
+      type: object
+      required: [channel, players, queueDepth, deferred, loopLagP99Micros, tickP99Micros, commandP99Micros, queueAgeP99Micros, heartbeatAgeMicros]
+      description: One channel actor. Channels share one goroutine, so a stalled actor ages every heartbeat.
+      properties:
+        channel: { type: integer, minimum: 0, maximum: 255 }
+        players: { type: integer, minimum: 0 }
+        queueDepth: { type: integer, minimum: 0 }
+        deferred: { type: integer, minimum: 0 }
+        loopLagP99Micros: { type: integer, minimum: 0 }
+        tickP99Micros: { type: integer, minimum: 0 }
+        commandP99Micros: { type: integer, minimum: 0 }
+        queueAgeP99Micros: { type: integer, minimum: 0 }
+        heartbeatAgeMicros: { type: integer, minimum: 0, description: Age at sampling of the last completed tick or command batch. }
     BreakerState:
       type: object
       required: [open, reason]

@@ -881,6 +881,71 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/staff/persistence/quarantine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List quarantined critical writes (game.persistence.recovery capability) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Quarantined operations of every channel and the released count since startup */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PersistenceRecoveryStatus"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        put?: never;
+        /** Check the exact outcome of quarantined writes now; only a final PostgreSQL status releases accounts */
+        post: {
+            parameters: {
+                query?: never;
+                header: {
+                    /** @description Token from session endpoint. POST also requires exact Origin and session cookie. */
+                    "X-CSRF-Token": components["parameters"]["CSRF"];
+                };
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["PersistenceRecheckCommand"];
+                };
+            };
+            responses: {
+                /** @description Receipt that checks started; read the list again for released operations */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PersistenceRecheckResult"];
+                    };
+                };
+                default: components["responses"]["Error"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/staff/events/ox": {
         parameters: {
             query?: never;
@@ -3133,6 +3198,40 @@ export interface components {
             code: "ok" | "unchanged" | "door_unavailable" | "invalid_command" | "capability_required" | "server_maintenance";
             status: components["schemas"]["PvPDoorStatus"];
         };
+        QuarantinedOperation: {
+            id: number;
+            channel: number;
+            /** Format: date-time */
+            since: string;
+            accounts: string[];
+            /** @description Ground objects */
+            shared: boolean;
+            /** @description The exact transaction is known; a final status releases the accounts */
+            checkable: boolean;
+            /** @enum {string} */
+            lastStatus?: "committed" | "aborted" | "in progress" | "unknown" | "read_error";
+        };
+        PersistenceRecoveryStatus: {
+            /** @constant */
+            version: 1;
+            /** Format: date-time */
+            asOf: string;
+            quarantined: components["schemas"]["QuarantinedOperation"][];
+            released: number;
+        };
+        PersistenceRecheckCommand: {
+            /** @constant */
+            version: 1;
+            operationId: string;
+            reason: string;
+        };
+        PersistenceRecheckResult: {
+            operationId: string;
+            /** @enum {string} */
+            code: "ok" | "nothing_to_check" | "check_running" | "check_unavailable" | "invalid_command" | "capability_required";
+            started: number;
+            status: components["schemas"]["PersistenceRecoveryStatus"];
+        };
         /** @description start and mode_on begin 60 seconds of enrollment followed by automatic Cube questions (10 seconds to answer, 50 seconds between questions); mode_off stops and evacuates; doors_lock/doors_open drive the six gates; result_x/result_o select the losing east X/west O side for evaluation at the current answer deadline, never before it. */
         OXEventCommand: {
             /** @constant */
@@ -3502,6 +3601,67 @@ export interface components {
             heapBytes: number;
             goroutines: number;
             gcCycles: number;
+            transport: components["schemas"]["TransportPoint"];
+            pool: components["schemas"]["PoolPoint"];
+            critical: components["schemas"]["CriticalPoint"];
+            channels: components["schemas"]["ChannelPoint"][];
+        };
+        /** @description Game socket diagnostics for the interval. Queue percentages are fixed bucket bounds of the session output queue at enqueue (25, 50, 75, 99 = below full, 100 = full). */
+        TransportPoint: {
+            /** @description Sessions that ended in the interval, by first recorded cause. */
+            closes: {
+                [key: string]: number;
+            };
+            /** @description Connections refused before the handshake by origin or connection limits. */
+            refused: number;
+            outputPacketsPerSecond: number;
+            outputBytesPerSecond: number;
+            queueP99Percent: number;
+            queueMaxPercent: number;
+            /** @description Time a packet waited in the session queue before its write started. */
+            waitP99Micros: number;
+        };
+        /** @description Game store PostgreSQL pool. Connection counts are current gauges; the other values cover the interval. */
+        PoolPoint: {
+            acquired: number;
+            idle: number;
+            total: number;
+            max: number;
+            acquireMeanMicros: number;
+            /** @description Acquisitions that waited because no connection was idle. */
+            emptyAcquires: number;
+            emptyWaitMicros: number;
+            canceled: number;
+        };
+        /** @description Critical persistence. Pending, queued, running, quarantined, deferred and oldest age are current gauges; the other values cover the interval. */
+        CriticalPoint: {
+            pending: number;
+            queued: number;
+            running: number;
+            quarantined: number;
+            /** @description Player packets waiting behind their own persistence reservation. */
+            deferred: number;
+            oldestMicros: number;
+            durationP99Micros: number;
+            outcomes: {
+                [key: string]: number;
+            };
+            admissionRejected: {
+                [key: string]: number;
+            };
+        };
+        /** @description One channel actor. Channels share one goroutine, so a stalled actor ages every heartbeat. */
+        ChannelPoint: {
+            channel: number;
+            players: number;
+            queueDepth: number;
+            deferred: number;
+            loopLagP99Micros: number;
+            tickP99Micros: number;
+            commandP99Micros: number;
+            queueAgeP99Micros: number;
+            /** @description Age at sampling of the last completed tick or command batch. */
+            heartbeatAgeMicros: number;
         };
         BreakerState: {
             open: boolean;

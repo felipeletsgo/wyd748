@@ -27,5 +27,5 @@ func (w *World) onStoreGoldRequestUnavailable(s *net.Session, pkt []byte) {
 	if w.donateRuneTrackGold(p, pkt) {
 		return
 	}
-	s.Send(wire.MessagePanel(storeGoldUnavailableMessage))
+	s.Send(wire.MessagePanel(w.tr(storeGoldUnavailableMessage)))
 }

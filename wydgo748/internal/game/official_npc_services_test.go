@@ -270,8 +270,8 @@ func TestOfficialZakumPopulationUsesInclusiveAreaAndLastPlayerID(t *testing.T) {
 	before := accountStateSnapshot(p.Account)
 	w.onUseNPC(p.Session, packet)
 	message, ok := p.Session.DequeuePacketForTest()
-	if !ok || !wire.Decrypt(message) || wire.ParseHeader(message).Type != wire.OpMessageIndexed ||
-		int16(binary.LittleEndian.Uint16(message[14:16])) != zakumEmptyMessage-1000 {
+	if !ok || !wire.Decrypt(message) || wire.ParseHeader(message).Type != wire.OpMessagePanel ||
+		strings.TrimRight(string(message[12:107]), "\x00") != "There are no players in the Zakum area." {
 		t.Fatal("empty area did not use localized message")
 	}
 	for i, pos := range [][2]uint16{{2180, 1160}, {2296, 1270}, {2297, 1270}, {2180, 1159}, {2180, 1271}} {
@@ -286,9 +286,8 @@ func TestOfficialZakumPopulationUsesInclusiveAreaAndLastPlayerID(t *testing.T) {
 	}
 	w.onUseNPC(p.Session, packet)
 	message, ok = p.Session.DequeuePacketForTest()
-	if !ok || !wire.Decrypt(message) || wire.ParseHeader(message).Type != wire.OpMessageParameterized ||
-		int16(binary.LittleEndian.Uint16(message[14:16])) != zakumPopulationMessage-1000 ||
-		strings.TrimRight(string(message[16:107]), "\x00") != "PopulationB,1" {
+	if !ok || !wire.Decrypt(message) || wire.ParseHeader(message).Type != wire.OpMessagePanel ||
+		strings.TrimRight(string(message[12:107]), "\x00") != "Zakum area: PopulationB and 1 other player(s)." {
 		t.Fatal("population query did not preserve inclusive bounds or highest-ID name")
 	}
 	if !reflect.DeepEqual(before, accountStateSnapshot(p.Account)) || st.saves != 0 {
@@ -298,7 +297,7 @@ func TestOfficialZakumPopulationUsesInclusiveAreaAndLastPlayerID(t *testing.T) {
 	w.itemInstances = map[string]*ItemInstance{"private-zakum": {MemberIDs: []uint16{3}}}
 	w.onUseNPC(p.Session, packet)
 	message, ok = p.Session.DequeuePacketForTest()
-	if !ok || !wire.Decrypt(message) || strings.TrimRight(string(message[16:107]), "\x00") != "PopulationA,0" {
+	if !ok || !wire.Decrypt(message) || strings.TrimRight(string(message[12:107]), "\x00") != "Zakum area: PopulationA and 0 other player(s)." {
 		t.Fatal("population query leaked a private participant or omitted a solo player")
 	}
 }

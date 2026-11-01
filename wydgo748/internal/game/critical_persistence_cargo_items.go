@@ -23,7 +23,7 @@ func (w *World) queueCargoItemSwap(p *Player, st, sp, dt, dp byte, targetID uint
 	plannedSrc, plannedDst := playerSlotOf(planned, st, sp), playerSlotOf(planned, dt, dp)
 	*plannedSrc, *plannedDst = *plannedDst, *plannedSrc
 	sourceItem, destinationItem := *plannedSrc, *plannedDst
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			// Actor-only pointers stay fenced through identity-checked delivery.
 			// Never replace the live aggregate with a normalized worker snapshot.
@@ -33,6 +33,8 @@ func (w *World) queueCargoItemSwap(p *Player, st, sp, dt, dp byte, targetID uint
 			}
 			log.Printf("[#%d] SWAP ok %d/%d <-> %d/%d", p.Session.ID, st, sp, dt, dp)
 			return nil
-		})
+		}, nil, w.rejectDetachedProposal("cargo item move", "Save failed. The inventory was not changed.", func(p *Player) {
+			resendSlots(p, st, sp, dt, dp)
+		}, p))
 	return err
 }

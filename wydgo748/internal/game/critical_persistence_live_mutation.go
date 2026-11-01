@@ -19,7 +19,7 @@ func (w *World) commitPlayerMutation(p *Player, images []criticalPreimage, opera
 	sidecar bool, publish func()) bool {
 	failed := func() {
 		if p.Session != nil && !p.Session.IsClosed() {
-			p.Session.Send(wire.MessagePanel(failure))
+			p.Session.Send(wire.MessagePanel(w.trFor(p, failure)))
 			w.resendInventory(p)
 		}
 	}

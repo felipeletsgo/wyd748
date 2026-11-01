@@ -9,7 +9,8 @@ import (
 type criticalInstanceGeneration struct{ marker byte }
 
 func (w *World) criticalInstanceReserved() bool {
-	return w != nil && w.criticalWrites != nil && w.criticalWrites.queue.instances != 0
+	return w != nil && w.criticalWrites != nil && (w.criticalWrites.queue.instances != 0 ||
+		w.criticalWrites.queue.failedInstances != 0)
 }
 
 // queueInstanceState is the non-confirming background instance producer. Dirty

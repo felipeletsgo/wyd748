@@ -107,12 +107,12 @@ func clearInventory(ch *model.Char) int {
 
 func (w *World) executeClearInventory(s *net.Session, p *Player) {
 	if p.GhostShop != nil {
-		s.Send(wire.MessagePanel("Close Auto Trade before clearing your inventory."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Close_Auto_Trade_Before_Clearing_Inventory")))
 		return
 	}
 	for i := 0; i < model.PlayerCarrySlots; i++ {
 		if _, filled := model.CelestialSealID(p.Char.Inv[i]); filled {
-			s.Send(wire.MessagePanel("Extract or move the filled Spirit's Seal before clearing inventory."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Extract_Or_Move_Filled_Spirits_Seal")))
 			return
 		}
 	}
@@ -121,13 +121,13 @@ func (w *World) executeClearInventory(s *net.Session, p *Player) {
 	removed := clearInventory(p.Char)
 	failed := func() {
 		if !s.IsClosed() {
-			s.Send(wire.MessagePanel("Save failed. The inventory was not changed."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Inventory_Was_Not_Changed")))
 		}
 	}
 	publish := func() {
 		if !s.IsClosed() {
 			s.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
-			s.Send(wire.MessagePanel("Inventory cleared."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Cleared")))
 		}
 		log.Printf("[#%d] /limparinv removed %d item(s) from account %q",
 			s.ID, removed, p.Account.Name)
@@ -379,15 +379,15 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		w.requestChannelTransfer(p, arg)
 	case "time":
 		// Manual command: display host date/time in the upper panel.
-		s.Send(wire.MessagePanel(w.now().Format("15:04:05 | 02-01-2006")))
+		s.Send(wire.MessagePanel(w.tr(w.now().Format("15:04:05 | 02-01-2006"))))
 	case "cp":
 		// CP is the character's signed Chaos/PK Point (-75..+75). It is not
 		// the EXP Hold in 0x337 and must never be formatted as XP.
-		s.Send(wire.MessagePanel(chaosPointMessage(p.Char.CP)))
+		s.Send(wire.MessagePanel(w.tr(chaosPointMessage(p.Char.CP))))
 	case "fame":
 		// Fame is a per-character counter (charstate), separate from CP,
 		// EXP Hold, and Special Points. Looking it up never changes state.
-		s.Send(wire.MessagePanel(fameMessage(p)))
+		s.Send(wire.MessagePanel(w.tr(fameMessage(p))))
 	case "parry":
 		w.sendParryMatchup(s, p, arg)
 	case "balance", "medals":
@@ -397,7 +397,7 @@ func (w *World) dispatchChatCommand(s *net.Session, p *Player, name, arg string)
 		// (SGrid.cpp): it expects !!HHMMSS to update the instance's local clock.
 		// This is not a nickname; treating it as a /nig lookup produced the
 		// false "nig is not online." message.
-		s.Send(wire.MessagePanel(nightmareTimeMessage(w.now())))
+		s.Send(wire.MessagePanel(w.tr(nightmareTimeMessage(w.now()))))
 	case "clearinv":
 		w.executeClearInventory(s, p)
 	case "spk":
@@ -442,20 +442,19 @@ func (w *World) sendParryMatchup(s *net.Session, p *Player, targetName string) {
 	}
 	targetName = strings.TrimSpace(targetName)
 	if targetName == "" {
-		s.Send(wire.MessagePanel("Usage: /parry <player>"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Usage_Parry_Player")))
 		return
 	}
 	target := w.playerByCharacterName(targetName)
 	if target == nil || target.Char == nil || !target.InWorld {
-		s.Send(wire.MessagePanel("That player is not online."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Connected")))
 		return
 	}
 	accuracy := playerVersusPlayerAccuracy(p.Char, target.Char)
 	evasion := combatEvasionPercent(playerDex(p.Char), playerEvasionBonusPoints(p.Char),
 		playerAccuracyBonusPoints(target.Char),
 		playerHasConcentration(target.Char))
-	s.Send(wire.MessagePanel(fmt.Sprintf("[Accuracy: %d%% | Evasion: %d%%] against %s",
-		accuracy, evasion, target.Char.Name)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Accuracy_D_Evasion_D_Against_S", accuracy, evasion, target.Char.Name)))
 }
 
 // sendCharacterInfo answers "/nick" without a message with a character
@@ -469,7 +468,7 @@ func (w *World) sendCharacterInfo(s *net.Session, p *Player, target string) {
 	}
 	found := w.playerByCharacterName(target)
 	if found == nil || found.Char == nil {
-		s.Send(wire.MessagePanel(fmt.Sprintf("%s is not online.", target)))
+		s.Send(wire.MessagePanel(w.msg("_WG_S_Not_Online", target)))
 		return
 	}
 	ch := found.Char
@@ -477,11 +476,11 @@ func (w *World) sendCharacterInfo(s *net.Session, p *Player, target string) {
 	// window (0x324) was tested in-game, but the 7.48 client opens nothing;
 	// it is a later 759 addition. Multiple lines also fail because each new
 	// notice replaces the previous one in the panel.
-	s.Send(wire.MessagePanel(w.characterInfoLine(ch)))
+	s.Send(wire.MessagePanel(w.tr(w.characterInfoLine(ch))))
 	if found.StatusMessage != "" {
 		// Native SND is a status returned by an empty-body /player lookup,
 		// not an automatic reply to ordinary whispers. The final notice wins.
-		s.Send(wire.MessagePanel("Status: " + found.StatusMessage))
+		w.panel(s, "_WG_Status_Line", found.StatusMessage)
 	}
 	log.Printf("[#%d] INFO %q queried %q", s.ID, p.Char.Name, ch.Name)
 }
@@ -501,40 +500,40 @@ func (w *World) characterInfoLine(ch *model.Char) string {
 	parts := []string{fmt.Sprintf("%s  Lv.%d", ch.Name, displayLevel(ch))}
 
 	if guild, member := w.guildOf(ch); guild != nil {
-		role := "Member"
+		role := w.msg("_WG_Guild_Role_Member")
 		switch {
 		case member.Rank == model.GuildRankLeader:
-			role = "Leader"
+			role = w.msg("_WG_Guild_Role_Leader")
 		case model.IsSubLeader(member.Rank):
-			role = "Sub-leader"
+			role = w.msg("_WG_Guild_Role_Sub_Leader")
 		}
-		guildPart := fmt.Sprintf("Guild: %s (%s)", guild.Name, role)
+		guildPart := w.msg("_WG_Guild", guild.Name, role)
 		if ally := w.guilds.FindByID(guild.Ally); ally != nil {
-			guildPart += fmt.Sprintf(" allied with %s", ally.Name)
+			guildPart += w.msg("_WG_Guild_Allied_With", ally.Name)
 		}
 		parts = append(parts, guildPart)
 	} else {
-		parts = append(parts, "No guild")
+		parts = append(parts, w.msg("_WG_No_Guild"))
 	}
 
 	// Citizenship is granted by NPC Kibita. Until that system exists,
 	// characterCitizenship returns empty and the field is omitted.
-	if citizenship := characterCitizenship(ch); citizenship != "" {
-		parts = append(parts, "Citizenship: "+citizenship)
+	if citizenship := w.characterCitizenship(ch); citizenship != "" {
+		parts = append(parts, w.msg("_WG_Citizenship", citizenship))
 	}
 	if kingdom := characterKingdom(ch); kingdom != model.KingdomNeutral {
-		parts = append(parts, "Kingdom: "+model.KingdomName(kingdom))
+		parts = append(parts, w.msg("_NN_Kingdom", w.kingdomName(kingdom)))
 	}
 	return strings.Join(parts, " | ")
 }
 
 // characterCitizenship describes citizenship. The stored value is the
 // CHANNEL NUMBER (citizenship 1 = channel 1), as in the native client.
-func characterCitizenship(ch *model.Char) string {
+func (w *World) characterCitizenship(ch *model.Char) string {
 	if ch == nil || ch.Citizenship == 0 {
 		return ""
 	}
-	return fmt.Sprintf("Channel %d", ch.Citizenship)
+	return w.msg("_WG_Channel", ch.Citizenship)
 }
 
 func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string) {
@@ -546,7 +545,7 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 	}
 	recipientWorld, recipient := w.globalPlayerByName(target)
 	if recipient == nil {
-		s.Send(wire.MessagePanel("That player is not online."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Connected")))
 		log.Printf("[#%d] WHISPER %q -> %q: offline", s.ID, p.Char.Name, target)
 		return
 	}
@@ -560,7 +559,9 @@ func (w *World) deliverWhisper(s *net.Session, p *Player, target, message string
 	// Mirror TMSrv/WYD 7.48: /nick message arrives as 0x334; the server sets
 	// MobName to the sender, preserves String without prefixes, and uses its ID.
 	senderID := p.ID
-	if recipientWorld != w { senderID = 0 }
+	if recipientWorld != w {
+		senderID = 0
+	}
 	recipient.Session.Send(wire.MessageWhisper(senderID, p.Char.Name, message, 0))
 	log.Printf("[#%d] WHISPER %q -> %q", s.ID, p.Char.Name, recipient.Char.Name)
 }
@@ -618,7 +619,7 @@ func (w *World) sendPartyChat(sender *Player, message string) {
 // committed, preventing an unpaid announcement.
 func (w *World) executeShout(s *net.Session, p *Player, message string) {
 	if message == "" {
-		s.Send(wire.MessagePanel("Usage: /spk message"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Usage_Spk_Message")))
 		return
 	}
 	if len(message) > 120 {
@@ -632,7 +633,7 @@ func (w *World) executeShout(s *net.Session, p *Player, message string) {
 		}
 	}
 	if slot < 0 {
-		s.Send(wire.MessagePanel("You need a Shout to announce."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Need_Shout_Announce")))
 		return
 	}
 	images := criticalPreimages(p)
@@ -640,7 +641,7 @@ func (w *World) executeShout(s *net.Session, p *Player, message string) {
 	p.Char.Inv[slot] = model.Item{}
 	failed := func() {
 		if !s.IsClosed() {
-			s.Send(wire.MessagePanel("Failed to consume the Shout. No announcement was sent."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Failed_Consume_Shout_No_Announcement_Was")))
 		}
 	}
 	publish := func() {

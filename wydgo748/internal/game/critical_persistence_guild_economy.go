@@ -124,7 +124,7 @@ func (w *World) queueCityTreasury(p *Player, city int) error {
 				if units != 0 {
 					message = fmt.Sprintf("Collected %d billion-gold cheque(s) from the city treasury.", units)
 				}
-				p.Session.Send(wire.MessagePanel(message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 			}
 			log.Printf("[#%d] collected city treasury %s: gold=%d cheques=%d remaining=%d", p.Session.ID,
 				cityWarZones[city].name, amount, units, remaining)
@@ -134,7 +134,7 @@ func (w *World) queueCityTreasury(p *Player, city int) error {
 				return err
 			}
 			if !p.Session.IsClosed() {
-				p.Session.Send(wire.MessagePanel("The city treasury collection could not be completed."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_City_Treasury_Collection_Could_Not_Completed")))
 			}
 			log.Printf("[#%d] city treasury persistence rejected: %v", p.Session.ID, result.err)
 			return nil

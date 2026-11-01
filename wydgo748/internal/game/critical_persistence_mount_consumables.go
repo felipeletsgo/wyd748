@@ -121,10 +121,10 @@ func (w *World) queueMountConsumable(p *Player, slot byte, rule model.VolatileRu
 				if i > 0 {
 					text = roll.namedMessage("Penalty")
 				}
-				p.Session.Send(wire.MessagePanel(text))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, text)))
 			}
 			if message != "" {
-				p.Session.Send(wire.MessagePanel(message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 			}
 		}, true, criticalAccountMutationHooks{check: func() error {
 			if p.EggIncubationUID != eggUID || p.NextEggIncubationTick != eggTick {
@@ -144,11 +144,11 @@ func (w *World) admitMountConsumable(p *Player, slot byte, rule model.VolatileRu
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			return
 		}
-		p.Session.Send(wire.MessagePanel("Mount item use is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Mount_Item_Use_Unavailable_Please_Try")))
 		log.Printf("[#%d] mount consumable admission rejected: %v", p.Session.ID, err)
 	}
 }

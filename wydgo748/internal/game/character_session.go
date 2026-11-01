@@ -187,7 +187,7 @@ func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 		}, criticalLiveMutationOptions{sidecar: true})
 		if err != nil {
 			log.Printf("[#%d] character logout admission rejected for %q: %v", s.ID, name, err)
-			s.Send(wire.MessagePanel("The character could not be saved. Try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Saved_Try_Again")))
 		}
 		return
 	}
@@ -196,7 +196,7 @@ func (w *World) onCharacterLogout(s *net.Session, pkt []byte) {
 	// relog and falsely tell the client that the transition completed.
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		log.Printf("[#%d] failed to save %q during character logout: %v", s.ID, name, err)
-		s.Send(wire.MessagePanel("The character could not be saved. Try again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Saved_Try_Again")))
 		return
 	}
 	w.removePlayerFromWorld(p, "return to character selection")
@@ -223,7 +223,7 @@ func (w *World) onCharacterTransferUnavailable(s *net.Session, pkt []byte) {
 		return
 	}
 	s.Send(wire.CharacterTransferUnavailable(slot))
-	s.Send(wire.MessagePanel(characterTransferUnavailableMessage))
+	s.Send(wire.MessagePanel(w.tr(characterTransferUnavailableMessage)))
 }
 
 const characterTransferUnavailableMessage = "Character transfer is not available on this server."
@@ -239,13 +239,13 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	name, password := cstr(pkt[16:32]), cstr(pkt[32:44])
 	if slot < 0 || slot >= len(p.Account.Chars) || p.Account.Chars[slot].Name == "" ||
 		!strings.EqualFold(name, p.Account.Chars[slot].Name) || p.Account.PasswordHash == "" {
-		s.Send(wire.MessagePanel("The character could not be deleted."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Deleted")))
 		return
 	}
 	ok, err := account.VerifyPassword(p.Account.PasswordHash, password)
 	if err != nil || !ok {
 		log.Printf("[#%d] deletion denied for %q: invalid password", s.ID, name)
-		s.Send(wire.MessagePanel("Wrong password."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Wrong_Password")))
 		return
 	}
 	previous := p.Account.Chars[slot]
@@ -254,7 +254,7 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 		p.Account.Chars[slot] = model.Char{}
 		options := criticalLiveMutationOptions{reject: func() {
 			if !s.IsClosed() {
-				s.Send(wire.MessagePanel("The deletion could not be saved."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Deletion_Could_Not_Saved")))
 			}
 		}}
 		if previous.UID != "" {
@@ -272,7 +272,7 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 		}, options)
 		if err != nil {
 			log.Printf("[#%d] character deletion %q admission rejected: %v", s.ID, name, err)
-			s.Send(wire.MessagePanel("The deletion could not be saved."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Deletion_Could_Not_Saved")))
 		}
 		return
 	}
@@ -280,7 +280,7 @@ func (w *World) onDeleteCharacter(s *net.Session, pkt []byte) {
 	if err := w.saveAccount(p.Account); err != nil {
 		p.Account.Chars[slot] = previous
 		log.Printf("[#%d] failed to delete character %q: %v", s.ID, name, err)
-		s.Send(wire.MessagePanel("The deletion could not be saved."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Deletion_Could_Not_Saved")))
 		return
 	}
 	// PostgreSQL removes this through ON DELETE CASCADE; the JSON adapter needs

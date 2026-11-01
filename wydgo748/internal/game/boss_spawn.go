@@ -216,7 +216,7 @@ func (w *World) announceBoss(x, y uint16, message string) {
 		return
 	}
 	for _, p := range w.nearbyWorldPlayers(x, y, bossAnnounceRadius) {
-		p.Session.Send(wire.MessagePanel(message))
+		p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 	}
 }
 

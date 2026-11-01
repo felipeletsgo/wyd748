@@ -1,14 +1,12 @@
 package game
 
-import "wydgo/internal/wire"
-
 // EXTENSAO_COORDENADA: the existing chat packet dismisses only owned BM summons.
 func (w *World) dismissBMSummons(p *Player) {
 	if p == nil || p.Char == nil || p.Session == nil || !p.InWorld || w.players[p.Session] != p {
 		return
 	}
 	if w.shuttingDown || w.criticalPlayerReserved(p) {
-		p.Session.Send(wire.MessageIndexed(453 - 1000))
+		p.Session.Send(w.projectMessage(453))
 		return
 	}
 	var owned []*Mob
@@ -24,5 +22,5 @@ func (w *World) dismissBMSummons(p *Player) {
 		m.Dead = true
 		w.removeMobInstance(m)
 	}
-	p.Session.Send(wire.MessageIndexed(452 - 1000))
+	p.Session.Send(w.projectMessage(452))
 }

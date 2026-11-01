@@ -242,20 +242,21 @@ func playerAppearancePacket(subject *Player) []byte {
 }
 
 func (w *World) showPlayerPair(a, b *Player) {
-	if a == nil || b == nil || a == b || !a.InWorld || !b.InWorld ||
-		a.Char == nil || b.Char == nil || !w.playersVisibleTogether(a, b) {
+	w.showPlayerTo(a, b)
+	w.showPlayerTo(b, a)
+}
+
+// showPlayerTo creates subject on observer's client once. Each direction of a
+// pair is independent, so one side may wait for scene room (scene.go).
+func (w *World) showPlayerTo(observer, subject *Player) {
+	if observer == nil || subject == nil || observer == subject || !observer.InWorld || !subject.InWorld ||
+		observer.Char == nil || subject.Char == nil || !w.playersVisibleTogether(observer, subject) ||
+		observer.hasVisible(subject.ID) {
 		return
 	}
-	if !a.hasVisible(b.ID) {
-		sendPlayerEnterView(a, b)
-		a.show(b.ID)
-		w.sendRemainingPlayerMove(a, b)
-	}
-	if !b.hasVisible(a.ID) {
-		sendPlayerEnterView(b, a)
-		b.show(a.ID)
-		w.sendRemainingPlayerMove(b, a)
-	}
+	sendPlayerEnterView(observer, subject)
+	observer.show(subject.ID)
+	w.sendRemainingPlayerMove(observer, subject)
 }
 
 func (w *World) hidePlayerPair(a, b *Player) {
@@ -310,7 +311,7 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			continue
 		}
 		nearMobIDs[m.ID] = struct{}{}
-		if !p.hasVisible(m.ID) {
+		if !p.hasVisible(m.ID) && w.sceneRoom(p) {
 			w.showMob(p, m)
 		}
 	}
@@ -332,7 +333,7 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			continue
 		}
 		nearShopIDs[shop.ID] = struct{}{}
-		if !p.hasVisible(shop.ID) {
+		if !p.hasVisible(shop.ID) && w.sceneRoom(p) {
 			w.showGhostShop(p, shop)
 		}
 	}
@@ -352,7 +353,11 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			continue
 		}
 		nearPlayerIDs[other.ID] = struct{}{}
-		w.showPlayerPair(p, other)
+		// The other player always learns about p; p's own view may wait.
+		w.showPlayerTo(other, p)
+		if p.hasVisible(other.ID) || w.sceneRoom(p) {
+			w.showPlayerTo(p, other)
+		}
 	}
 	for id := range p.Visible {
 		other := w.playersByID[id]
@@ -370,7 +375,7 @@ func (w *World) refreshPlayerVisibility(p *Player) {
 			continue
 		}
 		nearGroundIDs[g.ID] = struct{}{}
-		if !p.hasVisible(g.ID) {
+		if !p.hasVisible(g.ID) && w.sceneRoom(p) {
 			p.Session.Send(w.groundItemCreatePacketFor(p, g))
 			p.show(g.ID)
 		}

@@ -364,7 +364,7 @@ func (w *World) finalizeKillRewardWithState(plan *killRewardPlan, rewardCommitte
 			w.updatePartyMember(p)
 		}
 		if plan.mysticLandProgress {
-			circleServiceMessage(p, mysticLandReadyMessage)
+			w.circleServiceMessage(p, mysticLandReadyMessage)
 		}
 		for _, share := range plan.shares {
 			receiver := share.player

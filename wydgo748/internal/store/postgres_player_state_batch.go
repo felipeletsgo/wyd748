@@ -76,6 +76,14 @@ func (s *PostgresStore) SavePlayerStateBatch(guilds *model.GuildRegistry,
 			return err
 		}
 	}
+	if guilds == nil && s.unchangedBatch(snapshots, stateKey, statePayload) {
+		// The database already holds exactly this content from this process.
+		// Keep ordering against older queued snapshots; skip the transaction.
+		s.orderAccountSnapshots(seq, snapshots)
+		s.orderCharStates(seq, stateKey)
+		metricPostgresUnchangedSkipped.Add(1)
+		return nil
+	}
 	s.fenceAccountSnapshots(seq, snapshots)
 	s.fenceCharStates(seq, stateKey)
 	writeStarted = true
@@ -104,6 +112,7 @@ func (s *PostgresStore) SavePlayerStateBatch(guilds *model.GuildRegistry,
 	}); err != nil {
 		return err
 	}
+	s.rememberUnchanged(snapshots, stateKey, statePayload)
 	if guilds != nil && s.guildsTxtPath != "" {
 		s.scheduleGuildExport(guilds)
 	}

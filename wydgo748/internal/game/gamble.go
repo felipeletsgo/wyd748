@@ -195,23 +195,23 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	kind := binary.LittleEndian.Uint32(pkt[12:16])
 	bet := binary.LittleEndian.Uint32(pkt[16:20])
 	if (kind != 1 && kind != 2) || bet < gambleMinBet || bet > gambleMaxBet || bet%gambleMinBet != 0 {
-		s.Send(wire.MessagePanel("Invalid Gamble bet."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Invalid_Gamble_Bet")))
 		return
 	}
 	if p.Char.Gold < bet {
-		s.Send(wire.MessagePanel("You do not have enough gold."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Enough_Money")))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueGamble(p, kind, bet); err != nil {
 			log.Printf("[#%d] Gamble admission rejected: %v", s.ID, err)
-			s.Send(wire.MessagePanel("Gamble is temporarily unavailable."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Gamble_Temporarily_Unavailable")))
 		}
 		return
 	}
 	if _, ok := w.store.(instanceRuntimeTransactionStore); !ok {
 		log.Printf("[#%d] Gamble unavailable: store lacks account+state transactions", s.ID)
-		s.Send(wire.MessagePanel("Gamble is temporarily unavailable."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Gamble_Temporarily_Unavailable")))
 		return
 	}
 
@@ -247,7 +247,7 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 	if _, err := materializeGamblePayout(p.Char, payoutIndexes); err != nil {
 		p.Char.Gold, p.Char.Inv = oldGold, oldInv
 		w.gambleJackpot, w.gamblePool = oldJackpot, oldPool
-		s.Send(wire.MessagePanel("Free more inventory slots before playing Gamble."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Free_More_Inventory_Slots_Before_Playing")))
 		return
 	}
 
@@ -255,7 +255,7 @@ func (w *World) onDoJackpotBet(s *gameNet.Session, pkt []byte) {
 		p.Char.Gold, p.Char.Inv = oldGold, oldInv
 		w.gambleJackpot, w.gamblePool = oldJackpot, oldPool
 		log.Printf("[#%d] Failed to persist Gamble: %v", s.ID, err)
-		s.Send(wire.MessagePanel("The Gamble bet could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Gamble_Bet_Could_Not_Completed")))
 		return
 	}
 

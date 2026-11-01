@@ -105,7 +105,7 @@ func (w *World) deliverWarMedal() error {
 		}
 		publish := func() {
 			p.Session.Send(wire.SendItem(p.ID, placeInv, byte(slot), item))
-			p.Session.Send(wire.MessagePanel("Tower war reward: one random green, gold or red medal. Each color has equal chance."))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Tower_War_Reward_One_Random_Green")))
 		}
 		if w.criticalWrites != nil {
 			proposed, account := w.criticalGuildSnapshot(), accountStateSnapshot(p.Account)

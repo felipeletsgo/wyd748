@@ -61,7 +61,7 @@ func (c *ChannelCluster) attach(w *World) error {
 	if len(c.worlds) > 0 {
 		first := c.worlds[0]
 		w.guilds, w.accountSessions, w.charNames = first.guilds, first.accountSessions, first.charNames
-		w.authSlots = first.authSlots
+		w.authSlots, w.hashSlots = first.authSlots, first.hashSlots
 		w.authClientsByIP, w.authClientsByNetwork = first.authClientsByIP, first.authClientsByNetwork
 		w.authRateByIP, w.authRateByAccount = first.authRateByIP, first.authRateByAccount
 		w.chatRateByAccount = first.chatRateByAccount

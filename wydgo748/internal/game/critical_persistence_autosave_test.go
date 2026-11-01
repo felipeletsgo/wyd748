@@ -100,8 +100,9 @@ func TestCriticalAutosaveDetachedAtomicSnapshotAndFreshNextSave(t *testing.T) {
 			release()
 			awaitReadyCriticalResults(t, queue, 1)
 			runCriticalAutosaveSlice(w, p, now)
-			if !w.criticalPlayerReserved(p) || len(queue.pending) != 1 || len(backend.entered) != 0 {
-				t.Fatal("completed autosave released ownership before acknowledgement")
+			// W7: the snapshot holds the persistence boundary, not player input.
+			if !w.criticalPlayerWriteReserved(p) || w.criticalPlayerReserved(p) || len(queue.pending) != 1 || len(backend.entered) != 0 {
+				t.Fatal("completed autosave released ownership before acknowledgement or held input")
 			}
 			w.processCriticalCompletions(1)
 			if p.Account != account || p.Char != character || !reflect.DeepEqual(accountStateSnapshot(p.Account), newLive) ||
@@ -242,13 +243,13 @@ func TestCriticalAutosaveAccountOnlyAdapterUsesCoordinator(t *testing.T) {
 	runCriticalAutosaveSlice(w, p, w.now())
 	write := awaitCriticalWrite(t, backend.entered)
 	if write.character != nil || !reflect.DeepEqual(write.accounts[0], accountPersistenceSnapshot(p.Account)) ||
-		fallback.saves != 0 || !w.criticalPlayerReserved(p) {
-		t.Fatal("account-only autosave used an inline fallback or lost its reservation")
+		fallback.saves != 0 || !w.criticalPlayerWriteReserved(p) || w.criticalPlayerReserved(p) {
+		t.Fatal("account-only autosave used an inline fallback, lost its reservation or held input")
 	}
 	release()
 	awaitReadyCriticalResults(t, queue, 1)
 	w.processCriticalCompletions(1)
-	if w.criticalPlayerReserved(p) || !reflect.DeepEqual(accountStateSnapshot(p.Account), before) || p.Session.QueuedPacketsForTest() != 0 {
+	if w.criticalPlayerWriteReserved(p) || !reflect.DeepEqual(accountStateSnapshot(p.Account), before) || p.Session.QueuedPacketsForTest() != 0 {
 		t.Fatal("account-only autosave acknowledgement mutated, published or leaked ownership")
 	}
 }
@@ -342,7 +343,9 @@ func TestCriticalAutosaveDisconnectRetainsOwnershipUntilFinalAtomicAcknowledgeme
 }
 
 func TestCriticalAutosaveUnknownOutcomeRetainsFencesAndPreventsOldShutdownSave(t *testing.T) {
-	for _, reason := range []string{"error", "panic", "identity"} {
+	// A background autosave ignores identity changes (W7): see
+	// TestCriticalBackgroundAutosaveSettlesAfterIdentityChange.
+	for _, reason := range []string{"error", "panic"} {
 		t.Run(reason, func(t *testing.T) {
 			w, p, fallback, backend, queue, release := criticalAutosaveFixture(t, 0)
 			if reason == "error" {
@@ -352,9 +355,6 @@ func TestCriticalAutosaveUnknownOutcomeRetainsFencesAndPreventsOldShutdownSave(t
 			before := accountStateSnapshot(p.Account)
 			runCriticalAutosaveSlice(w, p, w.now())
 			awaitCriticalWrite(t, backend.entered)
-			if reason == "identity" {
-				p.criticalLifecycle = &criticalPlayerLifecycle{}
-			}
 			release()
 			awaitReadyCriticalResults(t, queue, 1)
 			w.processCriticalCompletions(1)
@@ -478,5 +478,66 @@ func TestCriticalAutosaveActualDueTickKeepsUnrelatedWorldProgress(t *testing.T) 
 				}
 			}
 		})
+	}
+}
+
+// W1/D1: a certified autosave rejection settles only that operation. The
+// session stays open, live RAM is kept, the fence is released and a later
+// slice writes a fresh snapshot after a bounded per-account delay.
+func TestCriticalAutosaveCertifiedRejectionKeepsSessionAndRetriesFresh(t *testing.T) {
+	w, p, fallback, backend, queue, release := criticalAutosaveFixture(t, 0)
+	release()
+	start := w.now()
+	backend.failure = criticalCertifiedRejection(t)
+	settle := func(at time.Time) criticalWrite {
+		t.Helper()
+		runCriticalAutosaveSlice(w, p, at)
+		write := awaitCriticalWrite(t, backend.entered)
+		awaitReadyCriticalResults(t, queue, 1)
+		w.processCriticalCompletions(1)
+		return write
+	}
+	live := accountStateSnapshot(p.Account)
+	settle(start)
+	if p.Session.IsClosed() || p.Session.CloseCause() != gameNet.CloseCauseNone || w.shuttingDown ||
+		p.PersistencePoisoned || w.criticalPlayerReserved(p) || len(queue.pending) != 0 || queue.quarantined != 0 {
+		t.Fatalf("rejected autosave closed=%t maintenance=%t poisoned=%t reserved=%t pending=%d quarantined=%d",
+			p.Session.IsClosed(), w.shuttingDown, p.PersistencePoisoned, w.criticalPlayerReserved(p), len(queue.pending), queue.quarantined)
+	}
+	if !reflect.DeepEqual(accountStateSnapshot(p.Account), live) || p.Session.QueuedPacketsForTest() != 0 ||
+		fallback.saves != 0 || fallback.batchSaves != 0 {
+		t.Fatal("rejected autosave changed live state, sent packets or fell back to an inline save")
+	}
+
+	// The first rejection retries on the next cycle; the second backs off.
+	rejectedAt := w.now()
+	settle(start.Add(accountAutoSaveInterval))
+	if wait := p.autoSaveRetryAt.Sub(rejectedAt); p.autoSaveRejections != 2 ||
+		wait < 2*accountAutoSaveInterval || wait > 2*accountAutoSaveInterval+time.Second {
+		t.Fatalf("rejections=%d retry wait=%s", p.autoSaveRejections, wait)
+	}
+	runCriticalAutosaveSlice(w, p, p.autoSaveRetryAt.Add(-time.Millisecond))
+	if len(queue.pending) != 0 || len(backend.entered) != 0 {
+		t.Fatal("autosave retried before its backoff")
+	}
+
+	backend.failure = nil
+	p.Char.Gold += 7
+	fresh := settle(p.autoSaveRetryAt)
+	if !reflect.DeepEqual(fresh.accounts[0], accountPersistenceSnapshot(p.Account)) {
+		t.Fatal("retry reused the rejected snapshot instead of current live state")
+	}
+	if p.autoSaveRejections != 0 || !p.autoSaveRetryAt.IsZero() || w.criticalPlayerReserved(p) || p.Session.IsClosed() {
+		t.Fatal("committed retry did not clear the backoff or release ownership")
+	}
+}
+
+func TestAutosaveRetryDelayIsBounded(t *testing.T) {
+	for rejections, want := range map[uint8]time.Duration{
+		0: 0, 1: 0, 2: 6 * time.Second, 3: 12 * time.Second, 4: 24 * time.Second, 5: autoSaveRetryMaxDelay, 255: autoSaveRetryMaxDelay,
+	} {
+		if got := autoSaveRetryDelay(rejections); got != want {
+			t.Fatalf("delay(%d) = %s, want %s", rejections, got, want)
+		}
 	}
 }

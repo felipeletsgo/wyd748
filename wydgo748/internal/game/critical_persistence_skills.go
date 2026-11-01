@@ -15,7 +15,7 @@ func (w *World) queueSkillLearning(p *Player, proposed *model.Account, globalSki
 	gold, learned, shortcuts := ch.Gold, ch.LearnedSkill, ch.ShortSkill
 	score, runtime := *ch.Score, *ch.RuntimeScore
 	attackSpeed := ch.RuntimeAttackSpeedPercent
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			p.Char.Gold, p.Char.LearnedSkill, p.Char.ShortSkill = gold, learned, shortcuts
 			*p.Char.Score = score // Keep the retained live score identity.
@@ -30,6 +30,10 @@ func (w *World) queueSkillLearning(p *Player, proposed *model.Account, globalSki
 			log.Printf("[#%d] learned skill=%d %q cost=%d remaining points=%d", p.Session.ID,
 				globalSkill, skill.Name, skill.SkillPoint, playerSkillPoints(p.Char))
 			return nil
-		})
+		}, nil, w.rejectDetachedProposal("skill learning", "The skill could not be saved. Please try again.", func(p *Player) {
+			p.Session.Send(playerScorePacket(p))
+			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+			p.Session.Send(wire.SetShortSkill(p.ID, p.Char.ShortSkill))
+		}, p))
 	return err
 }

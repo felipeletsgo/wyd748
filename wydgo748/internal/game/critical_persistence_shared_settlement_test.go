@@ -137,7 +137,7 @@ func TestCriticalGroundCertifiedRejectionResync(t *testing.T) {
 	}
 }
 
-func TestCriticalGroundRejectionIdentityMismatchStaysGlobal(t *testing.T) {
+func TestCriticalGroundRejectionIdentityMismatchStaysIsolated(t *testing.T) {
 	for _, operation := range []string{"pickup", "drop"} {
 		for _, changed := range []string{"object", "reservation", "context", "source", "character", "lifecycle", "account-owner"} {
 			t.Run(operation+"/"+changed, func(t *testing.T) {
@@ -181,8 +181,8 @@ func TestCriticalGroundRejectionIdentityMismatchStaysGlobal(t *testing.T) {
 				awaitReadyCriticalResults(t, queue, 1)
 				w.processCriticalCompletions(1)
 				w.tick()
-				if !w.shuttingDown || w.shutdownErr == nil || !queue.stopping || len(queue.pending) != 1 ||
-					len(w.criticalQuarantine) != 0 || !p.PersistencePoisoned || !p.Session.IsClosed() ||
+				if w.shuttingDown || w.shutdownErr != nil || queue.stopping || len(queue.pending) != 1 ||
+					len(w.criticalQuarantine) != 1 || !p.PersistencePoisoned || !p.Session.IsClosed() ||
 					*w.groundItems[g.ID] != objectBefore || !reflect.DeepEqual(accountStateSnapshot(p.Account), before) ||
 					p.Session.QueuedPacketsForTest() != 0 {
 					t.Fatal("failed rejection check settled a replacement or released shared ownership")
@@ -241,15 +241,16 @@ func TestCriticalSharedUnknownPreservesFencesThroughShutdown(t *testing.T) {
 				result := awaitCriticalResult(t, queue)
 				w.applyCriticalCompletion(result)
 				w.handle(command{s: p.Session})
+				w.nextAutoSave = w.now().Add(48 * time.Hour)
 				w.tick()
 				retained := w.criticalWrites.continuations[id]
-				if !w.shuttingDown || w.shutdownErr == nil || !queue.stopping || queue.pending[id] == nil ||
-					!w.criticalAccountReserved(p.Account.Name) || len(w.criticalQuarantine) != 0 ||
+				if w.shuttingDown || w.shutdownErr != nil || queue.stopping || queue.pending[id] == nil ||
+					!w.criticalAccountReserved(p.Account.Name) || len(w.criticalQuarantine) != 1 ||
 					retained == nil || !retained.sharedWorld || !retained.delivered || retained.err == nil ||
 					retained.apply != nil || retained.reject != nil || retained.afterAck != nil ||
-					!observer.PersistencePoisoned || !observer.Session.IsClosed() || !p.PersistencePoisoned ||
+					observer.PersistencePoisoned || observer.Session.IsClosed() || !p.PersistencePoisoned ||
 					!reflect.DeepEqual(accountStateSnapshot(p.Account), before) {
-					t.Fatal("shared uncertainty was treated as timed account-local containment")
+					t.Fatal("shared uncertainty lost ownership or stopped an unrelated session")
 				}
 				if g != nil {
 					w.expireGroundItems(w.now().Add(24 * time.Hour))
@@ -259,10 +260,14 @@ func TestCriticalSharedUnknownPreservesFencesThroughShutdown(t *testing.T) {
 				} else if w.mobsByID[mob.ID] != mob || !mob.Dead {
 					t.Fatal("unknown kill was finalized or resurrected")
 				}
+				backend.failure = nil
 				if _, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{accountStateSnapshot(observer.Account)}},
-					[]*Player{observer}, func(criticalPersistenceResult) error { return nil }); !errors.Is(err, errCriticalPersistenceStopping) {
-					t.Fatalf("maintenance admitted another durable mutation: %v", err)
+					[]*Player{observer}, func(criticalPersistenceResult) error { return nil }); err != nil {
+					t.Fatalf("quarantine stopped an unrelated durable mutation: %v", err)
 				}
+				awaitCriticalWrite(t, backend.entered)
+				awaitReadyCriticalResults(t, queue, 1)
+				w.processCriticalCompletions(1)
 				if err := w.criticalWrites.complete(result); err == nil {
 					t.Fatal("unknown completion was replayed")
 				}

@@ -1,0 +1,1120 @@
+# WYD-Go server messages: Brazilian Portuguese (pt).
+# Keys and fmt verbs match en.txt. A missing key uses the English text.
+
+# airmove.go
+_WG_Flight_Could_Not_Completed	Não foi possível concluir o voo.
+
+# arch_crystals.go
+_WG_Only_God_Can_Use_Crystal	Somente um Deus pode usar este cristal.
+_WG_Must_Reach_Level_Take_Oath	Você precisa atingir o nível 355 para fazer este juramento.
+_NN_Youve_Done_It_Already	Você já fez isso.
+_WG_Must_Take_Oaths_Order	Você precisa fazer os juramentos em ordem.
+_WG_Need_Million_Experience_Oath	Você precisa de 100 milhões de experiência para este juramento.
+_WG_Save_Failed_Oath_Was_Not_Taken	Falha ao salvar. O juramento não foi feito.
+_WG_Four_Oaths_Complete	Os quatro juramentos foram concluídos.
+
+# ascension.go
+_NN_Need_8_Sephera	Traga as oito pedras Sephira.
+_WG_Eight_Sephira_Stones_Gold_Required	São necessárias oito pedras Sephira e 30.000.000 de gold.
+_NN_CarryFull	O inventário está cheio.
+_NN_Sepherot_created	O Sefirot foi criado.
+_WG_Place_Unicons_Spirit_Phoenixs_Spirit_Side	Coloque o Espírito do Unicórnio e o Espírito da Fênix lado a lado, nessa ordem.
+_WG_Sapphires_Required	São necessárias 10 Safiras.
+_WG_Sapphires_Could_Not_Consumed	Não foi possível consumir as Safiras.
+_WG_Eternal_Stone_Has_Been_Forged	A Pedra Eterna foi forjada.
+_WG_Only_Mortal_Can_Ascend	Somente um Mortal pode ascender.
+_WG_Must_Level_Ascend	Você precisa ter nível 371 para ascender.
+_WG_There_No_Room_New_Character_Account	Não há espaço para um novo personagem nesta conta.
+_WG_Arch_Could_Not_Created	Não foi possível criar o Arch.
+_WG_Arch_Has_Been_Created_Awaits_Character	Seu Arch foi criado. Ele aguarda na seleção de personagem.
+_WG_Save_Failed_Ascension_Was_Not_Completed	Falha ao salvar. A ascensão não foi concluída.
+
+# carbuncle_master.go
+_WG_Only_Mortal_Characters_Can_Receive_Blessing	Somente personagens Mortais podem receber esta bênção.
+_WG_Level_Too_High_Beginner_Blessing	Seu nível é alto demais para a bênção de iniciante.
+_WG_Beginner_Blessing_Could_Not_Applied	Não foi possível aplicar a bênção de iniciante.
+_WG_Beginner_Blessing_Has_Been_Applied	A bênção de iniciante foi aplicada.
+
+# celestial.go
+_WG_Ideal_Stone_Could_Not_Created	Não foi possível criar a Pedra Ideal.
+_WG_Inventory_Full_Nothing_Was_Consumed	O inventário está cheio. Nada foi consumido.
+_WG_Save_Failed_Nothing_Was_Consumed	Falha ao salvar. Nada foi consumido.
+_WG_Ideal_Stone_Was_Created_Successfully	A Pedra Ideal foi criada com sucesso.
+_WG_Ideal_Stone_Cannot_Used_While_Transformed	A Pedra Ideal não pode ser usada enquanto transformado.
+_WG_There_No_Celestial_Quest_Available_Character	Não há quest Celestial disponível para este personagem.
+_WG_Arch_Must_Level_Or_Higher	O Arch precisa ter nível 356 ou superior.
+_WG_Respective_Mortal_Must_Level	O Mortal correspondente precisa ter nível 400.
+_WG_Cythera_Could_Not_Created	Não foi possível criar a Cythera.
+_WG_Save_Failed_Ideal_Stone_Was_Not	Falha ao salvar. A Pedra Ideal não foi consumida.
+_WG_Character_Now_Celestial_Re_Enter_From	Seu personagem agora é Celestial. Entre novamente pela seleção de personagem.
+_WG_SubCelestial_Has_Already_Been_Created	O SubCelestial já foi criado.
+_WG_Celestial_Must_Level_Or_Higher	O Celestial precisa ter nível 121 ou superior.
+_WG_Fame_Required_Create_SubCelestial	São necessários 100 de Fama para criar um SubCelestial.
+_WG_Equip_SubCelestial_Class_Sefirot	Equipe o Sefirot da classe do SubCelestial.
+_WG_Celestial_Face_Invalid	A face do Celestial é inválida.
+_WG_SubCelestial_Has_Been_Created_Use_Mysterious	Seu SubCelestial foi criado. Use a Pedra Misteriosa para alternar.
+_WG_Character_Has_No_Alternate_Celestial_Form	Este personagem não tem forma Celestial alternativa.
+_WG_Mysterious_Stone_Can_Only_Used_Inside	A Pedra Misteriosa só pode ser usada dentro de uma cidade.
+_WG_Save_Failed_Form_Was_Not_Changed	Falha ao salvar. A forma não foi alterada.
+_WG_Celestial_Form_Changed	Forma Celestial alterada.
+_WG_Fame_Required	São necessários 500 de Fama.
+_WG_Unlock_Only_Available_Celestial_Level	Este desbloqueio só está disponível no nível Celestial 90.
+_WG_Free_One_Inventory_Slot_Second_Cythera	Libere um espaço no inventário para a segunda Cythera.
+_WG_Celestial_Level_Has_Been_Unlocked	O nível Celestial 90 foi desbloqueado.
+_WG_Equip_Mystic_Cythera_Or_Higher	Equipe uma Cythera Mística +11 ou superior.
+_WG_Four_Secret_Stones_Required	As quatro Pedras Secretas são necessárias.
+_WG_Arcana_Cythera_Was_Created	A Cythera Arcana foi criada.
+_NN_CombineFailed	A composição Arcana falhou.
+
+# celestial_capsule.go
+_WG_Only_Celestial_Can_Use_Empty_Spirits	Somente um Celestial pode usar um Selo do Espírito vazio.
+_WG_Character_Already_Sealed	Este personagem já está selado.
+_WG_No_Capsule_Identifiers_Available	Não há identificadores de cápsula disponíveis.
+_WG_Cargo_Full	Seu Baú está cheio.
+_WG_Celestial_Character_Sealed_Successfully	Personagem Celestial selado com sucesso.
+_WG_Character_Could_Not_Sealed	Não foi possível selar o personagem.
+_WG_Open_Cargo_Near_Cargo_Keeper_First	Abra primeiro seu Baú perto de um Guardião do Baú.
+_WG_Not_Spirits_Seal	Isto não é um Selo do Espírito.
+_WG_Spirits_Seal_Empty_Or_Invalid	O Selo do Espírito está vazio ou é inválido.
+_WG_Spirits_Seal_Data_Unavailable	Os dados do Selo do Espírito estão indisponíveis.
+_WG_Invalid_Character_Name	Nome de personagem inválido.
+_WG_Character_Name_Already_Use	Esse nome de personagem já está em uso.
+_NN_NoEmptySlot	Não há espaço livre para personagem.
+_WG_Celestial_Character_Extracted_Successfully	Personagem Celestial extraído com sucesso.
+_WG_Character_Could_Not_Extracted	Não foi possível extrair o personagem.
+
+# character_session.go
+_WG_Character_Could_Not_Saved_Try_Again	Não foi possível salvar o personagem. Tente novamente.
+_WG_Character_Could_Not_Deleted	Não foi possível apagar o personagem.
+_NN_Wrong_Password	Senha incorreta.
+_WG_Deletion_Could_Not_Saved	Não foi possível salvar a exclusão.
+
+# chat_labels.go
+_WG_Mortal_Characters_Need_Level_Set_Tab	Personagens Mortais precisam de nível 70 para definir uma tab.
+_WG_Status_Message_Cleared	Mensagem de status apagada.
+
+# colosseum.go
+_NN_Need_Elixer	Você precisa de um Aviso de Elixir para entrar no Coliseu.
+
+# commands.go
+_WG_Close_Auto_Trade_Before_Clearing_Inventory	Feche a Loja Automática antes de limpar o inventário.
+_WG_Extract_Or_Move_Filled_Spirits_Seal	Extraia ou mova o Selo do Espírito preenchido antes de limpar o inventário.
+_WG_Save_Failed_Inventory_Was_Not_Changed	Falha ao salvar. O inventário não foi alterado.
+_WG_Inventory_Cleared	Inventário limpo.
+_WG_Usage_Parry_Player	Uso: /parry <jogador>
+_NN_Not_Connected	Esse jogador não está online.
+_WG_Accuracy_D_Evasion_D_Against_S	[Precisão: %d%% | Esquiva: %d%%] contra %s
+_WG_S_Not_Online	%s não está online.
+_WG_Usage_Spk_Message	Uso: /spk mensagem
+_WG_Need_Shout_Announce	Você precisa de um Grito para anunciar.
+_WG_Failed_Consume_Shout_No_Announcement_Was	Falha ao consumir o Grito. Nenhum anúncio foi enviado.
+
+# consumables.go
+_WG_Position_Saved	Posição salva.
+_WG_No_Position_Saved	Nenhuma posição salva.
+_WG_Drag_Dye_Onto_Item	Arraste a tinta sobre um item.
+_WG_Dye_Refined_Item_One_Glow	Tinja um item refinado (com brilho de +).
+_WG_Drag_Onto_Colored_Item	Arraste-o sobre um item colorido.
+_WG_Use_Colored_Items	Use-o em itens coloridos.
+_WG_Repliction_Can_Only_Used_Equipped_Defensive	A Repliction só pode ser usada em equipamento defensivo equipado.
+_WG_Item_Gained_New_Bonus	O item recebeu um novo bônus!
+_WG_Item_Exclusive_Mortals	Este item é exclusivo para Mortais.
+_WG_Item_Cannot_Used_By_Evolution	Este item não pode ser usado por esta evolução.
+_WG_Item_Only_Available_Between_Levels	Este item só está disponível entre os níveis 201 e 205.
+_WG_Have_Already_Completed_Quest	Você já concluiu esta quest.
+_WG_Cythera_Cannot_Refined_By_Quest	A Cythera não pode ser refinada por esta quest.
+_WG_No_Armor_Piece_Refine	Nenhuma peça de armadura para refinar.
+_WG_Set_Refined	Conjunto refinado!
+_WG_Equip_Item_Refine	Equipe o item para refiná-lo.
+_WG_Item_Cannot_Refined	Esse item não pode ser refinado.
+_NN_Cant_Refine_More	Esse item não pode ser mais refinado.
+_WG_Save_Failed_Reconnect_Reload_Authoritative_State	Falha ao salvar. Reconecte para recarregar o estado do servidor.
+_WG_Refinement_Failed_Earring_Broke	O refinamento falhou e o brinco quebrou.
+
+# consumables_native.go
+_WG_Pass_Does_Not_Belong_Evolution	Este passe não pertence à sua evolução.
+_NN_Refine_Success	Refinamento bem-sucedido!
+_WG_Nightmare_Letter_Available_S	Carta do Pesadelo disponível em %s.
+_WG_Nightmare_Ticket_Limit_Reached	Limite de entradas do Pesadelo atingido.
+_WG_D_Nightmare_Entries_Received	%d entradas do Pesadelo recebidas.
+_NN_Initialize_Skill	Skills reiniciadas.
+
+# consumables_remaining.go
+_WG_Inventory_Full_2	Inventário cheio.
+_WG_Received_S	Você recebeu %s.
+_WG_Equip_Wounded_Mount_First	Equipe primeiro uma montaria ferida.
+_WG_Not_Enough_Gold_Revive_Mount	Gold insuficiente para reviver a montaria.
+_WG_Mount_Could_Not_Revived_Was_Lost	Não foi possível reviver a montaria e ela foi perdida.
+_NN_Cured	Montaria revivida.
+_WG_Access_Already_Active_S	Este acesso já está ativo por %s.
+_WG_Access_Enabled_Until_S	Acesso liberado até %s.
+
+# counters.go
+_WG_Unlock_Already_Active	Este desbloqueio já está ativo.
+_WG_Event_Access_Enabled	Acesso ao evento liberado.
+_WG_Received_Elite_Cape	Você recebeu a capa Elite.
+
+# cp.go
+_WG_Chaos_Point_Increased_D	Chaos Point aumentou para %d.
+
+# crafting.go
+_WG_Composition_Unavailable_Please_Try_Again_Later	A composição está indisponível. Tente novamente mais tarde.
+
+# crafting_simple.go
+_WG_Wait_Second_Before_Trying_Again	Aguarde um segundo antes de tentar novamente.
+_WG_Aylin_Charges_Gold	Aylin cobra 50.000.000 de gold.
+_WG_Two_Laktorerium_Packages_Units_Each_One	São necessários dois pacotes de Laktorerium (10 unidades cada) e um Pergaminho Selado.
+_WG_Four_Laktorerium_Powders_Required	São necessários quatro pós de Laktorerium.
+_WG_Need_Fame_Point	Você precisa de 1 ponto de fama.
+_WG_Level_Limit_Has_Been_Lifted	Seu limite de nível foi removido.
+
+# critical_persistence_basic_consumables.go
+_WG_Item_Use_Unavailable_Please_Try_Again	O uso de itens está indisponível. Tente novamente mais tarde.
+
+# critical_persistence_celestial.go
+_WG_Celestial_Item_Use_Unavailable_Please_Try	O uso de itens Celestiais está indisponível. Tente novamente mais tarde.
+_WG_Ideal_Stone_Composition_Unavailable_Please_Try	A composição da Pedra Ideal está indisponível. Tente novamente mais tarde.
+
+# critical_persistence_equipment_consumables.go
+_WG_S_Unavailable_Please_Try_Again_Later	%s está indisponível. Tente novamente mais tarde.
+
+# critical_persistence_gamble.go
+_WG_Free_More_Inventory_Slots_Before_Playing	Libere mais espaços no inventário antes de jogar no Gamble.
+_WG_Gamble_Bet_Could_Not_Completed	Não foi possível concluir a aposta do Gamble.
+
+# critical_persistence_ground.go
+_WG_Save_Failed_Item_Was_Not_Picked	Falha ao salvar. O item não foi pego.
+_WG_Save_Failed_Item_Was_Not_Dropped	Falha ao salvar. O item não foi largado.
+
+# critical_persistence_guild_commands.go
+_WG_Guild_Q_Created	Guilda %q criada.
+_WG_Save_Failed_Guild_Was_Not_Created	Falha ao salvar. A guilda não foi criada.
+_WG_Joined_Guild_S	Você entrou na guilda %s.
+_WG_S_Joined_Guild	%s entrou na guilda.
+
+# critical_persistence_guild_economy.go
+_WG_City_Treasury_Collection_Could_Not_Completed	Não foi possível concluir a coleta do tesouro da cidade.
+
+# critical_persistence_guild_membership.go
+_WG_Guild_Persistence_Unavailable_Try_Again_Later	O salvamento da guilda está indisponível. Tente novamente mais tarde.
+_WG_Left_Guild_S	Você saiu da guilda %s.
+_WG_S_Was_Expelled_From_Guild	%s foi expulso da guilda.
+_WG_Were_Expelled_From_Guild	Você foi expulso da guilda.
+_WG_S_Now_Sub_Leader	%s agora é sub-líder.
+_WG_Were_Promoted_Sub_Leader	Você foi promovido a sub-líder.
+
+# critical_persistence_instance_accounts.go
+_WG_Instance_Change_Could_Not_Saved_Items	Não foi possível salvar a mudança de instância. Seus itens não foram alterados.
+
+# critical_persistence_instance_reward.go
+_WG_Inventory_Full_Next_Water_Scroll_Was	Inventário cheio: o próximo Pergaminho da Água caiu no chão.
+_WG_Received_Next_Water_Scroll	Você recebeu o próximo Pergaminho da Água.
+
+# critical_persistence_item_experience.go
+_WG_Reward_Received_D_EXP_D_Gold	Recompensa recebida: +%d EXP e +%d gold.
+_WG_Reward_Use_Unavailable_Please_Try_Again	O uso de recompensas está indisponível. Tente novamente mais tarde.
+
+# critical_persistence_mount_consumables.go
+_WG_Mount_Item_Use_Unavailable_Please_Try	O uso de itens de montaria está indisponível. Tente novamente mais tarde.
+
+# critical_persistence_native_consumables.go
+_WG_Item_Use_Could_Not_Saved_Please	Não foi possível salvar o uso do item. Tente novamente mais tarde.
+
+# critical_persistence_quiz.go
+_WG_Quiz_Correct_Answer_Reward_Delivered	Quiz: resposta correta! Recompensa entregue.
+_WG_Quiz_Reward_Delivery_Busy_Please_Try	Quiz: a entrega da recompensa está ocupada. Tente novamente antes do prazo.
+
+# gamble.go
+_WG_Invalid_Gamble_Bet	Aposta do Gamble inválida.
+_NN_Not_Enough_Money	Você não tem gold suficiente.
+_WG_Gamble_Temporarily_Unavailable	O Gamble está temporariamente indisponível.
+
+# gate_key.go
+_WG_Door_Already_Open	Esta porta já está aberta.
+_WG_There_No_Door_Key_Here	Não há porta para esta chave aqui.
+_NN_No_Key	Você não tem a chave necessária.
+
+# ghost_shop.go
+_WG_Auto_Trade_Closed	Loja Automática fechada.
+_WG_Finish_Current_Trade_Before_Opening_Shop	Termine a troca atual antes de abrir a loja.
+_WG_Auto_Trade_Can_Only_Opened_Armia	A Loja Automática só pode ser aberta em Armia.
+_WG_There_No_Free_Space_Shop_Area	Não há espaço livre para a loja nesta área.
+_WG_Shop_ID_Already_Use_Try_Again	Esse ID de loja já está em uso. Tente novamente.
+_WG_Auto_Trade_Opened_Armia_Free_Play	Loja Automática aberta em Armia. Você está livre para jogar.
+_WG_Purchase_Could_Not_Saved_No_Items	Não foi possível salvar a compra. Nenhum item ou gold foi transferido.
+_WG_Save_Failed_Purchase_Was_Not_Applied	Falha ao salvar. A compra não foi aplicada.
+_WG_Item_D_Purchased_D_Gold	Item %d comprado por %d de gold.
+_WG_Item_D_Sold_D_Gold	Item %d vendido por %d de gold.
+_WG_Auto_Trade_Closed_Stock_Sold_Out	Loja Automática fechada: estoque esgotado.
+
+# guild.go
+_WG_Do_Not_Belong_Guild	Você não pertence a uma guilda.
+_WG_Usage_Create_Guild_Name	Uso: /create <nome da guilda>
+_WG_Invalid_Guild_Name	Nome de guilda inválido.
+_WG_Already_Belong_Guild	Você já pertence a uma guilda.
+_WG_Guild_Name_Already_Exists	Já existe uma guilda com esse nome.
+_WG_Guild_Limit_Reached	Limite de guildas atingido.
+_WG_Usage_Invite_Name	Uso: /invite <nome>
+_WG_Already_Guild	Você já está na guilda.
+_WG_Player_Already_Belongs_Guild	Esse jogador já pertence a uma guilda.
+_WG_Player_Belongs_Another_Kingdom	Esse jogador pertence a outro reino.
+_WG_S_Invited_Guild_S_Type_Accept	%s convidou você para a guilda %s. Digite /accept.
+_WG_Invitation_Sent_S	Convite enviado para %s.
+_WG_Have_No_Valid_Guild_Invitation	Você não tem convite de guilda válido.
+_WG_Guild_No_Longer_Exists	Essa guilda não existe mais.
+_WG_Do_Not_Belong_Guilds_Kingdom	Você não pertence ao reino desta guilda.
+_WG_Save_Failed_Did_Not_Join_Guild	Falha ao salvar. Você não entrou na guilda.
+_WG_Save_Failed_Still_Guild	Falha ao salvar. Você continua na guilda.
+_WG_Usage_Expel_Name	Uso: /expel <nome>
+_WG_Type_Leave_Leave_Guild	Digite /leave para sair da guilda.
+_WG_Player_Not_Guild	Esse jogador não está na sua guilda.
+_WG_Can_Only_Expel_Members_Who_Online	Você só pode expulsar membros que estão online.
+_WG_Cannot_Expel_Member	Você não pode expulsar esse membro.
+_WG_Save_Failed_Nobody_Was_Expelled	Falha ao salvar. Ninguém foi expulso.
+_WG_Usage_Subcreate_Name	Uso: /subcreate <nome>
+_WG_Member_Already_Holds_Rank	Esse membro já tem um cargo.
+_WG_Guild_Already_Has_Three_Sub_Leaders	A guilda já tem três sub-líderes.
+_WG_Save_Failed_Promotion_Was_Not_Applied	Falha ao salvar. A promoção não foi aplicada.
+_NN_Cant_Declare_Ally	Uma guilda não pode se aliar a si mesma.
+_WG_Allied_Guild_Not_Found	Guilda aliada não encontrada.
+_WG_Save_Failed_Alliance_Was_Not_Changed	Falha ao salvar. A aliança não foi alterada.
+_NN_Ally_Stop	Aliança desfeita.
+_WG_Alliance_Formed	Aliança formada.
+_NN_Cant_Declare_War	Uma guilda não pode declarar guerra a si mesma.
+_WG_Target_Guild_Not_Found	Guilda alvo não encontrada.
+_WG_Guild_Already_Has_War_Declaration	Sua guilda já tem uma declaração de guerra.
+_WG_Save_Failed_War_Declaration_Was_Not	Falha ao salvar. A declaração de guerra não foi aplicada.
+_WG_Save_Failed_War_Declaration_Was_Not_2	Falha ao salvar. A declaração de guerra não foi cancelada.
+
+# guild_economy.go
+_WG_Collected_D_Gold_From_City_Treasury	Coletados %d de gold do tesouro da cidade.
+_WG_Collected_D_Billion_Gold_Cheque_S	Coletados %d cheque(s) de um bilhão de gold do tesouro da cidade.
+
+# guild_protocol.go
+_WG_Wait_Before_Trying_Another_Recruitment	Aguarde antes de tentar outro recrutamento.
+_WG_Cannot_Recruit_Yourself	Você não pode recrutar a si mesmo.
+_WG_Only_Guild_Leader_Or_Sub_Leader	Somente o líder ou um sub-líder da guilda pode recrutar.
+_WG_Only_Guild_Leader_Can_Use_Recruitment	Somente o líder da guilda pode usar este tipo de recrutamento.
+_WG_Guild_Has_Reached_Its_Member_Limit	Sua guilda atingiu o limite de membros.
+_WG_Sub_Leader_Slot_D_Already_Taken	A vaga de sub-líder %d já está ocupada.
+_WG_Guild_Recruitment_Unavailable_Sunday	O recrutamento de guilda não está disponível no domingo.
+_WG_Need_D_Gold_Recruit	Você precisa de %d de gold para recrutar.
+_WG_Save_Failed_Recruitment_Was_Not_Applied	Falha ao salvar. O recrutamento não foi aplicado.
+
+# guild_war_medals.go
+_WG_Tower_War_Reward_One_Random_Green	Prêmio da Guerra da Torre: medalha verde, dourada ou vermelha. Cada cor tem a mesma chance.
+
+# handlers.go
+_NN_ServerReboot_Cant_Connect	Servidor entrando em manutenção. Tente novamente em breve.
+_WG_Connections_From_Network_Not_Allowed	Conexões desta rede não são permitidas.
+_NN_Version_Not_Match_Rerun	Atualização necessária. Feche o jogo e abra o launcher para atualizar.
+_WG_Too_Many_Login_Attempts_Try_Again	Tentativas de login demais. Tente novamente mais tarde.
+_WG_Login_Server_Busy_Try_Again	Servidor de login ocupado. Tente novamente.
+_WG_Channel_Transfer_Expired_Sign_Again	A troca de canal expirou. Entre novamente.
+_WG_Wrong_Account_Or_Password	Conta ou senha incorreta.
+_WG_Login_Temporarily_Unavailable_Try_Again_Shortly	Login temporariamente indisponível. Tente novamente em breve.
+_WG_Error_Loading_Account_Try_Again	Erro ao carregar a conta. Tente novamente.
+_WG_Character_Already_Connected_Try_Again_After	Este personagem já está conectado. Tente de novo após a desconexão.
+_WG_Character_Could_Not_Prepared_Try_Again	Não foi possível preparar o personagem. Tente novamente.
+_WG_Character_State_Could_Not_Loaded_Try	Não foi possível carregar o estado do personagem. Tente novamente.
+_WG_Timed_Equipment_Could_Not_Validated_Try	Não foi possível validar o equipamento temporário. Tente novamente.
+_WG_Cape_Emblem_Could_Not_Saved_Try	Não foi possível salvar o emblema da capa. Tente novamente.
+_WG_World_Full_Please_Try_Again_Later	O mundo está cheio. Tente novamente mais tarde.
+_WG_Item_Locked_While_Listed_Auto_Trade	O item fica bloqueado enquanto estiver anunciado na Loja Automática.
+_WG_Move_Closer_Warehouse_Move_Cargo	Aproxime-se do Baú para mover itens do Baú.
+_WG_Move_Item_Through_Inventory_Before_Equipping	Passe o item pelo inventário antes de equipá-lo.
+_WG_Item_Move_Could_Not_Submitted_Please	Não foi possível enviar a movimentação do item. Tente novamente.
+_WG_Timed_Item_Has_Expired	Este item temporário expirou.
+_WG_Timed_Item_Could_Not_Activated	Não foi possível ativar este item temporário.
+_WG_Save_Failed_Item_Move_Was_Cancelled	Falha ao salvar. A movimentação do item foi cancelada.
+_NN_Cant_Deposit_That_Much	Não foi possível depositar esse valor.
+_NN_Cant_Withdraw_That_Much	Não foi possível sacar esse valor.
+_WG_Transfer_Could_Not_Submitted_Please_Try	Não foi possível enviar a transferência. Tente novamente.
+_WG_Save_Failed_Transfer_Was_Not_Applied	Falha ao salvar. A transferência não foi aplicada.
+_WG_Character_Has_Nothing_Right_Now	Este personagem não tem nada para você agora.
+_WG_Open_Merchant_Before_Buying_Item	Abra um mercador antes de comprar um item.
+_WG_Merchant_No_Longer_Available	Esse mercador não está mais disponível.
+_WG_Merchant_No_Longer_Available_2	O mercador não está mais disponível.
+_NN_He_Is_Not_Merchant	Esse personagem não é um mercador.
+_WG_Shop_Item_No_Longer_Available	Esse item da loja não está mais disponível.
+_WG_Item_Unavailable_Server	Esse item está indisponível neste servidor.
+_WG_Inventory_Full_3	Seu inventário está cheio.
+_WG_Purchase_Could_Not_Submitted_Please_Try	Não foi possível enviar a compra. Tente novamente.
+_WG_Purchase_Could_Not_Completed	Não foi possível concluir a compra.
+_WG_Open_Merchant_Before_Buying_TOTO_Ticket	Abra um mercador antes de comprar um bilhete TOTO.
+_WG_Shop_Item_Not_TOTO_Ticket	Esse item da loja não é um bilhete TOTO.
+_WG_Choose_Empty_Inventory_Slot	Escolha um espaço vazio no inventário.
+_WG_Invalid_TOTO_Match_Or_Score	Partida ou placar TOTO inválido.
+_WG_TOTO_Tickets_Unavailable_Server	Bilhetes TOTO estão indisponíveis neste servidor.
+_WG_TOTO_Ticket_Could_Not_Created	Não foi possível criar o bilhete TOTO.
+_WG_TOTO_Purchase_Could_Not_Submitted_Please	Não foi possível enviar a compra do TOTO. Tente novamente.
+_WG_TOTO_Purchase_Could_Not_Completed	Não foi possível concluir a compra do TOTO.
+_WG_Filled_Spirits_Seal_Cannot_Sold	Um Selo do Espírito preenchido não pode ser vendido.
+_NN_Cant_get_more_than_2G	Você não pode carregar mais gold.
+_WG_Sale_Could_Not_Submitted_Please_Try	Não foi possível enviar a venda. Tente novamente.
+_WG_Move_Closer_Warehouse_Drop_Cargo_Items	Aproxime-se do Baú para largar itens do Baú.
+_WG_Item_Can_No_Longer_Dropped	Esse item não pode mais ser largado.
+_WG_Filled_Spirits_Seal_Cannot_Dropped	Um Selo do Espírito preenchido não pode ser largado.
+_NN_Cant_Drop_Here	Não há espaço para largar esse item aqui.
+
+# hell_store.go
+_WG_Character_Not_Hell_Gate_Merchant	Esse personagem não é o mercador do Hell Gate.
+_WG_Choose_Item_Category_First	Escolha primeiro uma categoria de item.
+_WG_Hell_Gate_Store_Has_Nothing_Sell	A loja do Hell Gate não tem nada para vender.
+
+# hidden_valley.go
+_WG_Hidden_Ruins_Access_Expired_Returning_Home	O acesso às Ruínas Ocultas expirou. Voltando à sua cidade.
+
+# indexed_use_items.go
+_WG_Gem_Applied_Successfully	Gema aplicada com sucesso.
+_WG_Equipment_Became_Legendary	O equipamento se tornou Lendário!
+
+# inventory_handlers.go
+_WG_Filled_Spirits_Seal_Cannot_Deleted	Um Selo do Espírito preenchido não pode ser apagado.
+
+# item_instances.go
+_WG_Instance_Not_Configured	Esta instância não está configurada.
+_WG_Another_Instance_Type_Already_Active	Outra instância deste tipo já está ativa.
+_WG_Only_Next_Water_Scroll_Can_Used	Somente o próximo Pergaminho da Água pode ser usado durante a janela de saída.
+_WG_Instance_Already_Occupied	Esta instância já está ocupada.
+_WG_Ticket_Cannot_Used_From_Here	Este bilhete não pode ser usado daqui.
+_WG_Room_Scroll_Requires_Completed_Water_Boss	Este Pergaminho da Sala 1 exige um chefe da Água derrotado.
+_WG_Instance_Not_Open_Right_Now	Esta instância não está aberta agora.
+_WG_Party_Limit_Nightmare_Tier_Was_Reached	O limite de grupos deste nível do Pesadelo foi atingido.
+_NN_Party_Leader_Only	Somente o líder do grupo pode iniciar esta instância.
+_WG_Party_Required_Enter_Instance	É necessário um grupo para entrar nesta instância.
+_WG_No_Eligible_Party_Member_Available	Nenhum membro do grupo elegível está disponível.
+_WG_Or_Party_Member_Already_Inside_Another	Você ou um membro do grupo já está em outra instância.
+_WG_Room_Already_Occupied	Esta sala já está ocupada.
+_WG_Big_Cube_Has_No_Configured_Questions	Este Big Cube não tem perguntas configuradas.
+_WG_Instance_Has_No_Configured_Monsters	Esta instância não tem monstros configurados.
+_WG_Instance_Accepts_Most_D_Players	Esta instância aceita no máximo %d jogadores.
+_WG_Party_Member_Cannot_Enter_Instance	Um membro do grupo não pode entrar nesta instância.
+_WG_Instance_Entrance_Not_Walkable	A entrada da instância não é transitável.
+_WG_Instance_Quiz_Area_Not_Walkable	A área do quiz da instância não é transitável.
+_WG_Instance_Monster_Area_Not_Walkable	A área de monstros da instância não é transitável.
+_WG_Instance_Monster_Q_Not_Configured	O monstro de instância %q não está configurado.
+_WG_Instance_Entrance_Blocked	A entrada da instância está bloqueada.
+_WG_Instance_Content_Could_Not_Created	Não foi possível criar o conteúdo da instância.
+_WG_Next_Room_Will_Open_Shortly	A próxima sala abrirá em breve.
+
+# kefra_access.go
+_WG_Teleport_Could_Not_Completed	Não foi possível concluir o teleporte.
+_WG_Not_Enough_Gold_Teleport	Gold insuficiente para o teleporte.
+
+# kibita.go
+_WG_Speak_Kibita_Citizenship_Channel	Fale com Kibita no canal da sua cidadania.
+_WG_Soul_Exchange_Only_Available_Mortal_Characters	Esta troca de Alma só está disponível para personagens Mortais.
+_WG_Lac_Soul_Exchange_Opens_Monday_Through	A troca de Alma por Lac abre de segunda a sexta às 21:00 do servidor, até 22:00.
+_WG_Soul_Effect_Already_Active	Seu efeito de Alma já está ativo.
+_WG_Learning_Soul_Requires_Mortal_Level_Without	Aprender a Alma exige um Mortal de nível 371 sem a skill Alma.
+_WG_There_No_Room_Another_Effect	Não há espaço para outro efeito.
+_WG_Save_Failed_Soul_Exchange_Was_Not	Falha ao salvar. A troca de Alma não foi concluída.
+
+# kingdom.go
+_WG_Dead_Characters_Cannot_Choose_Kingdom	Personagens mortos não podem escolher um reino.
+_WG_Only_Guild_Leader_Can_Change_Guilds	Somente o líder da guilda pode mudar o reino da guilda.
+_WG_Leave_Current_Kingdom_Before_Choosing_Another	Saia do seu reino atual antes de escolher outro.
+_WG_Must_Level_Choose_Kingdom	Você precisa ter nível 220 para escolher um reino.
+_WG_Must_Level_Receive_Cape	Você precisa ter nível 256 para receber esta capa.
+_WG_Master_Cape_Requires_Celestial_Character	A capa Master exige um personagem Celestial.
+_WG_Current_Cape_Cannot_Receive_Kingdom_Medal	Sua capa atual não pode receber a medalha do reino.
+_DN_Need_D_Sapphire	Você precisa de %d Safiras.
+_WG_Save_Failed_Kingdom_Was_Not_Changed	Falha ao salvar. O reino não foi alterado.
+_WG_Dead_Characters_Cannot_Leave_Kingdom	Personagens mortos não podem sair de um reino.
+_WG_Do_Not_Belong_Kingdom	Você não pertence a um reino.
+_WG_Cannot_Leave_Kingdom_Sunday	Você não pode sair do reino no domingo.
+_WG_Broker_Cannot_Convert_Kingdom_Cape	O agente não pode converter a capa do seu reino.
+_WG_Save_Failed_Still_Kingdom	Falha ao salvar. Você continua no reino.
+_WG_Dead_Characters_Cannot_Use_Teleport	Personagens mortos não podem usar este teleporte.
+_WG_Wait_Before_Using_Kingdom_Teleport_Again	Aguarde antes de usar o teleporte do reino novamente.
+_WG_Choose_Kingdom_Before_Visiting_King	Escolha um reino antes de visitar o rei.
+_WG_Kingdom_Teleport_Could_Not_Completed	Não foi possível concluir o teleporte do reino.
+
+# magic_chamber_runes.go
+_WG_Runes_Awaken_Hidden_Guardian	As runas despertam um guardião oculto!
+
+# mount.go
+_NN_You_need_feeding_mount	Sua montaria está faminta e parou de ajudar você.
+_WG_Incubation_Complete_Apply_Ori_Lac_Again	A incubação terminou. Aplique Ori/Lac de novo para continuar a chocar.
+_WG_Egg_Incubation_D_Hour_S_Remaining	Incubação do ovo: %d hora(s) restante(s).
+_WG_Egg_Still_Incubating_D_Hour_S	O ovo ainda está incubando (%d hora(s) restante(s)).
+_WG_Egg_Has_No_Free_Effect_Slot	O ovo não tem espaço de efeito livre para a incubação.
+_WG_Egg_Hatched_Hatchling_Was_Born	O ovo chocou! Um filhote nasceu.
+_WG_Egg_Incubation_Advanced_D_Wait_D	A incubação do ovo avançou (+%d). Aguarde %d hora(s).
+_WG_Refinement_Failed_Wait_D_Hour_S	O refinamento falhou. Aguarde %d hora(s) antes de tentar novamente.
+_WG_Use_Hatch_Accelerator_Equipped_Egg	Use o acelerador de choco em um ovo equipado.
+_WG_Save_Failed_Accelerator_Was_Not_Consumed	Falha ao salvar. O acelerador não foi consumido.
+_WG_Hatch_Accelerator_Transformed_Egg_Into_Hatchling	O acelerador de choco transformou o ovo em um filhote.
+_WG_Hatchling_Grew_Next_Stage	Seu filhote cresceu para o próximo estágio!
+_WG_Hatchling_Reached_Level_D	Seu filhote atingiu o nível %d.
+_WG_Mount_Was_Wounded	Sua montaria foi ferida!
+_WG_Equip_Mount_Use	Equipe a montaria para usar isto nela.
+
+# mount_master.go
+_WG_Mount_Not_Registered_By_Server	Esta montaria não está registrada no servidor.
+
+# operational.go
+_WG_Sending_Messages_Too_Quickly	Você está enviando mensagens rápido demais.
+
+# party.go
+_WG_Player_Unavailable_Or_Out_Range	Jogador indisponível ou fora de alcance.
+_NN_Have_Own_Party_Already	Esse jogador já está em um grupo.
+_WG_Only_Leader_Can_Invite	Somente o líder pode convidar.
+_NN_Partys_Full	O grupo está cheio.
+_WG_Party_Invitation_Expired	O convite para o grupo expirou.
+_WG_Could_Not_Join_Party	Você não conseguiu entrar nesse grupo.
+_WG_Only_Leader_Can_Remove_Members	Somente o líder pode remover membros.
+
+# premium_shop.go
+_WG_Received_D_Donate_Balance_D	Você recebeu %d de donate. Saldo: %d.
+
+# protocol_misc.go
+_WG_Selected_Player_No_Longer_Nearby	O jogador selecionado não está mais por perto.
+_WG_Player_Challenge_Expired	O desafio entre jogadores expirou.
+_WG_Player_Challenge_No_Longer_Valid	O desafio entre jogadores não é mais válido.
+
+# quest.go
+_WG_Quest_Destination_Unavailable	O destino da quest está indisponível.
+_WG_Do_Not_Have_Required_Items	Você não tem os itens necessários.
+_WG_Do_Not_Have_Enough_Entries	Você não tem entradas suficientes.
+_WG_Have_Nothing_Equipped_Improve	Você não tem nada equipado para melhorar.
+_WG_Save_Failed_Quest_Was_Not_Completed	Falha ao salvar. A quest não foi concluída.
+
+# quest_rewards.go
+_WG_Reward_Cannot_Used_Level_Or_Evolution	Esta recompensa não pode ser usada neste nível ou evolução.
+_WG_Experience_Gain_Disabled	O ganho de experiência está desativado.
+_WG_Save_Failed_Reward_Was_Not_Consumed	Falha ao salvar. A recompensa não foi consumida.
+
+# quiz_round.go
+_WG_Quiz_Incorrect_Answer	Quiz: resposta incorreta.
+_WG_Quiz_Reward_Could_Not_Prepared_Contact	Quiz: não foi possível preparar a recompensa. Contate a equipe.
+_WG_Quiz_Correct_But_Inventory_Full_Make	Quiz: correto, mas seu inventário está cheio. Libere espaço antes da próxima pergunta.
+
+# skill_master_reset.go
+_WG_Resetting_Attributes_Requires_Sapphires_Or_Return	Reiniciar atributos exige 30 Safiras ou Return Of Ability.
+_NN_Cant_with_armor	Desequipe primeiro sua armadura e suas armas.
+_WG_Character_Class_Cannot_Reset	A classe deste personagem não pode ser reiniciada.
+_WG_Need_Sapphires_Or_Return_Ability	Você precisa de 30 Safiras ou Return Of Ability.
+_WG_Attribute_Reset_Unavailable_Please_Try_Again	A reinicialização de atributos está indisponível. Tente novamente mais tarde.
+_WG_Reset_Material_Could_Not_Consumed	Não foi possível consumir o material de reinicialização.
+_NN_Stat_Initialized	Pontos de atributo reiniciados com sucesso.
+
+# skills.go
+_WG_Coin_Armor_Requires_D_Gold	Coin Armor exige %d de gold.
+
+# stack_merge.go
+_WG_Item_Stacking_Unavailable_Please_Try_Again	O agrupamento de itens está indisponível. Tente novamente mais tarde.
+
+# staff_goto.go
+_WG_Usage_Goto_X_Y_D	Uso: /goto X Y (1..%d).
+_WG_Goto_Unavailable_While_Dead_Trading_Or	/goto está indisponível enquanto morto, em troca ou salvando.
+_WG_Leave_Instance_Before_Using_Goto	Saia da instância antes de usar /goto.
+_WG_Goto_Unavailable_During_City_War	/goto está indisponível durante uma guerra de cidades.
+_WG_No_Free_Walkable_Tile_Near_D	Nenhum espaço livre e transitável perto de %d,%d.
+_WG_Teleported_D_D	Teleportado para %d,%d.
+_WG_Teleport_Could_Not_Saved_Try_Again	Não foi possível salvar o teleporte; tente novamente.
+_WG_Teleport_Busy_Try_Again	O teleporte está ocupado; tente novamente.
+
+# staff_ops.go
+_NN_Chat_Free	Seu bloqueio de chat foi removido.
+
+# switch_stones.go
+_WG_Name_Exchange_Could_Not_Saved	Não foi possível salvar a troca de nomes.
+
+# teleports.go
+_WG_Teleport_Unavailable_From_Position	Teleporte indisponível nesta posição.
+_WG_Activate_Hidden_Ruins_Map_Before_Entering	Ative um mapa das Ruínas Ocultas antes de entrar no Vale Oculto.
+_WG_Bid_Citywar_D_Total_Guild_Fame	Dê o lance com /citywar %d <fama total da guilda>. Sem gold ou taxa de entrada.
+
+# timed_items.go
+_WG_One_Or_More_Timed_Items_Have	Um ou mais itens temporários expiraram.
+
+# trade.go
+_NN_Already_Trading	Esse jogador já está em uma troca.
+_WG_Other_Players_Spirits_Seal_Invalid	O Selo do Espírito do outro jogador é inválido.
+_WG_No_Space_Invalid_Gold_Or_Offer	Sem espaço, gold inválido ou a oferta mudou.
+_WG_Trade_Could_Not_Saved_No_Items	Não foi possível salvar a troca. Nenhum item ou gold foi transferido.
+_WG_Spirits_Seal_Could_Not_Transferred	Não foi possível transferir o Selo do Espírito.
+_WG_Save_Failed_Trade_Was_Not_Applied	Falha ao salvar. A troca não foi aplicada.
+
+# uxmal.go
+_WG_Rune_Track_Closed_Return_Minutes_Or	A Rune Track está fechada. Volte nos minutos 16, 36 ou 56.
+_WG_Leader_Every_Member_Must_Rune_Track	O líder e todos os membros precisam estar na entrada da Rune Track.
+_WG_Rune_Track_Accepts_Most_Players	A Rune Track aceita no máximo 13 jogadores.
+_WG_Already_Inside_Rune_Track	Você já está dentro de uma Rune Track.
+_WG_Do_Not_Have_Rune_Track_Ticket	Você não tem um bilhete da Rune Track.
+_WG_Quest_Currently_Occupied	A quest está ocupada no momento.
+_WG_Rune_Track_Room_Not_Configured	A sala da Rune Track não está configurada.
+_WG_Rune_Track_Room_Cannot_Opened_Right	A sala da Rune Track não pode ser aberta agora.
+_WG_Rune_Track_Completed_Rune_Received	Rune Track concluída: runa recebida.
+
+# Formatted messages
+_WG_Client_Network_Limit	Somente %d clientes do jogo são permitidos na mesma rede.
+_WG_Status_Message_Saved	Mensagem de status salva. Outros podem lê-la com /%s.
+_WG_Status_Line	Status: %s
+_WG_Shop_Open_Failed	Não foi possível abrir a loja: %s
+_WG_Already_Have_Kingdom_Cape	Você já tem a capa correta de %s.
+_WG_Kingdom_Cape_Promoted	Sua capa de %s foi promovida.
+_WG_Now_Belong_To_Kingdom	Agora você pertence a %s.
+_NN_Leaving_kingdom	Você saiu de %s.
+_NN_Kingdom	Reino: %s
+_NN_KINGDOM_RED	Hekalotia
+_NN_KINGDOM_BLUE	Akelonia
+_WG_Kingdom_Neutral	Neutro
+_WG_Exchange_Stones_Swapped	As Pedras de Troca trocaram %s e %s.
+_WG_Sanction_Permanent	permanentemente
+_WG_Sanction_Until	até %s UTC
+_NN_No_Speak	Você está silenciado %s.
+_SN_Blocked_Account	Esta conta está suspensa %s.
+_NN_Chat_Prohibition	Você foi silenciado %s.
+_WG_Countdown_One_Minute	1 minuto
+_WG_Countdown_Minutes	%d minutos
+_WG_Countdown_One_Second	1 segundo
+_WG_Countdown_Seconds	%d segundos
+_WG_Server_Restart_In	Reinício do servidor em %s. Saia do jogo com segurança.
+_WG_Server_Maintenance_In	Manutenção do servidor em %s. Saia do jogo com segurança.
+_WG_Maintenance_Cancelled	A manutenção agendada do servidor foi cancelada.
+_NN_ServerReboot_Now	O servidor está desligando para manutenção agora.
+
+# Notices and letters
+_WG_Colosseum_Starts_In	O Coliseu %c começa em %d %s. Os portões de entrada fecham às %s.
+_WG_Unit_Minutes	minutos
+_WG_Unit_Minute	minuto
+_WG_Colosseum_Next_Wave	Próxima onda: %d/5. Contagem: %d segundos.
+_WG_Colosseum_Wave_Begun	Coliseu %c: a onda %d/5 começou.
+_WG_Colosseum_Started	O Coliseu %c começou. Os portões de entrada estão fechados.
+_WG_Colosseum_Combat_Begun	Coliseu %c: o combate começou! A onda 1/5 está ativa.
+_WG_Killer_Mob	monstro
+_WG_Killer_Player	jogador
+_WG_Killed_By	!Você foi morto pelo %s %q.
+_WG_Honor_Sender	Honra
+_WG_Honor_Letter	!Você recebeu 1 de honra.
+
+# Channel transfer
+_WG_Channel_Transfer_Destination	Use srv 1 ou srv 2 para selecionar outro canal disponível.
+_WG_Channel_Transfer_Busy	Saia da batalha, instância, troca ou loja antes de mudar de canal.
+_WG_Channel_Transfer_Failed	Falha na troca de canal. Tente novamente em instantes.
+_WG_Leave_Guild_Before_Citizenship	Saia da sua guilda antes de abandonar a cidadania.
+
+# Messages built in shared helpers (matched at the send point)
+_WG_Character_Has_Become_God	O personagem %s se tornou um Deus!
+_WG_Usage_Balance_Or_Saldo_Own_Balances	Uso: /balance ou /saldo (somente os seus saldos).
+_WG_Usage_Medals_Or_Medalhas_Own_Medals	Uso: /medals ou /medalhas (somente as suas medalhas).
+_WG_Donate_Fame_Honor_Pass_Kefra	Donate:%d Fama:%d Honra:%s Passe:%d Kefra:%d
+_WG_Medals_Gold_Red_Blue	Medalhas - Ouro:%d Vermelha:%d Azul:%d
+_WG_Save_Failed_Blessing_Was_Not_Applied	Falha ao salvar. A bênção não foi aplicada.
+_WG_Character_Has_Become_Celestial	O personagem %s se tornou Celestial!
+_WG_Character_Transfer_Not_Available_Server	A transferência de personagem não está disponível neste servidor.
+_WG_Citizenship_Departure_Unavailable_Server	Abandonar a cidadania não está disponível neste servidor.
+_WG_Guild_Rank_Handover_Unavailable_Server	A passagem de cargo da guilda não está disponível neste servidor.
+_WG_Legacy_Guild_War_Command_Unavailable_Use	O comando antigo de guerra está indisponível. Use /citywar ou /tower.
+_WG_Legacy_Item_Lock_Command_Unavailable_Server	O comando antigo de trava de item está indisponível neste servidor.
+_WG_Colosseum_Entry_Could_Not_Saved	Não foi possível salvar a entrada no Coliseu.
+_WG_Chaos_Point_Range	Chaos Point: %d (faixa -75..+75)
+_WG_Fame	Fama: %d
+_WG_Guild	Guilda: %s (%s)
+_WG_No_Guild	Sem guilda
+_WG_Channel	Canal %d
+_WG_Item_Cannot_Used_Because_Buff_Already	Este item não pode ser usado porque o buff já está ativo.
+_WG_Buff_Cannot_Applied_Right_Now	Este buff não pode ser aplicado agora.
+_WG_Repliction_Works_Only_Defensive_Equipment	A Repliction só funciona em equipamento defensivo.
+_WG_Repliction_Not_Configured	Esta Repliction não está configurada.
+_WG_Repliction_Cannot_Used_Cythera	A Repliction não pode ser usada na Cythera.
+_WG_Refinement_Level_Too_High_Repliction	O refinamento é alto demais para esta Repliction.
+_WG_Item_Type_Cannot_Receive_Repliction	Este tipo de item não pode receber Repliction.
+_WG_Repliction_Grade_Does_Not_Match_Item	O grau da Repliction não corresponde ao item.
+_WG_EF_SANC_Missing_From_ItemEffect	EF_SANC está ausente do ItemEffect.
+_WG_Item_Used_By_Its_Corresponding_NPC	Este item é usado pelo NPC ou comando correspondente.
+_NN_Wrong_Combination	Combinação incorreta.
+_NN_Processing_Complete	Processamento concluído.
+_WG_Combination_Failed	A combinação falhou.
+_WG_Place_Two_Identical_Items	Coloque dois itens +9 idênticos.
+_WG_Both_Items_Must_Refined	Os dois itens precisam estar refinados em +9.
+_WG_Only_Ancient_Weapons_Can_Composed	Somente armas Anciãs podem ser compostas para +10.
+_WG_Light_Stone_Required	É necessária uma Pedra da Luz.
+_WG_Ancient_Item_Requires_Four_Gems	Este item Ancião exige quatro gemas %s.
+_WG_Four_Equal_Gems_Required	São necessárias quatro gemas iguais.
+_WG_Item_Cannot_Composed	Este item não pode ser composto.
+_WG_Gold_Limit_Reached	Limite de gold atingido.
+_WG_Drag_Item_Onto_Valid_Target	Arraste o item sobre um alvo válido.
+_WG_Now_Leads_Guild	%s agora lidera a guilda.
+_WG_War_Declaration_Canceled	Declaração de guerra cancelada.
+_WG_War_Canceled	Guerra cancelada.
+_WG_War_Started_Against_Guild	Guerra iniciada contra a guilda %s.
+_WG_War_Declared_Against_Guild	Guerra declarada contra a guilda %s.
+_WG_Guild_Declared_War_Guild	A guilda %s declarou guerra à sua guilda.
+_WG_Save_Failed_Tower_Was_Not_Captured	Falha ao salvar. A torre não foi capturada.
+_WG_Guild_Brought_Tower_Down_New_Defender	%s da guilda %s derrubou a torre! Novo defensor: %s.
+_WG_Tower_War_Starts_Within_Minutes_Enter	A Guerra da Torre começa em até 5 minutos! Entre com /tower em Erion.
+_WG_Tower_War_Starts_Minute	A Guerra da Torre começa em 1 minuto!
+_WG_Tower_War_Ends_Minutes_Guild_Fame	A Guerra da Torre termina em 5 minutos! Fama de guilda só se o reino mudar.
+_WG_Tower_War_Ends_Minute	A Guerra da Torre termina em 1 minuto!
+_WG_Tower_War_Started_Use_Tower_Erion	A Guerra da Torre começou! Use /tower em Erion. Duração: 60 minutos.
+_WG_City_War_Interrupted_Owners_Kept_Only	Guerra de cidades interrompida; donos mantidos. Só lances da semana atual são devolvidos.
+_WG_Saturday_Bids_Open_Until_Citywar_Total	Lances de sábado abertos até 23:59:59! /citywar <1..4> <fama total>. Sem taxa.
+_WG_City_War_Applications_Closed_Check_Owners	Inscrições da guerra de cidades encerradas. Veja donos e desafiantes com /citywar.
+_WG_City_War_Starts_Minutes_Gather_Contested	A guerra de cidades começa em 5 minutos! Reúnam-se na cidade; convocação 3 min após o início.
+_WG_City_War_Starts_Minute_Limit_Per	A guerra de cidades começa em 1 minuto! Limite: 26 por guilda. Erion: só mortais.
+_WG_City_War_Combat_Opens_Minute	O combate da guerra de cidades abre em 1 minuto!
+_WG_City_Wars_End_Minutes_Surviving_Forces	As guerras de cidades terminam em 5 minutos! As forças sobreviventes vencem.
+_WG_City_Wars_End_Minute	As guerras de cidades terminam em 1 minuto!
+_WG_City_War_Started_Summons_Minutes_Combat	A guerra de cidades começou! Convocação em +3 min; combate em +6; resultado em +31.
+_WG_Guilds_Summoned_Minutes_Preparation_Combat_Still	Guildas convocadas! 3 minutos de preparação; o combate ainda está bloqueado.
+_WG_Combat_Open_Four_Cities_Duration_Minutes	Combate aberto nas quatro cidades! Duração: 25 minutos; o empate favorece o defensor.
+_WG_Item_Use_Could_Not_Saved	Não foi possível salvar o uso do item.
+_WG_Use_Item_Equipped_Egg	Use este item em um ovo equipado.
+_WG_Quiz_Reward_Could_Not_Saved_Contact	Quiz: não foi possível salvar a recompensa. Contate a equipe.
+_WG_Merchant_Transaction_Could_Not_Completed	Não foi possível concluir a transação com o mercador.
+_WG_Invalid_Counter_Reward	Recompensa de contador inválida.
+_WG_OX_Entry_Could_Not_Saved_Entrance	Não foi possível salvar a entrada no OX. Seu Bilhete de Entrada não foi consumido.
+_WG_Door_Could_Not_Opened	Não foi possível abrir a porta.
+_WG_Summon_Could_Not_Created	Não foi possível criar a invocação.
+_WG_Dye_Can_Only_Used_Armor_Set	A tinta só pode ser usada em peças de conjunto de armadura.
+_NN_Havent_Money_So_Much	Gold insuficiente.
+_WG_Account_Unavailable	Conta indisponível.
+_WG_Item_No_Longer_Sale	Este item não está mais à venda.
+_WG_Listed_Item_Changed_Purchase_Canceled	O item anunciado mudou. Compra cancelada.
+_WG_Sellers_Cargo_Has_Reached_Its_Gold	O Baú do vendedor atingiu o limite de gold.
+_WG_Item_Belongs_Another_Player_Now	Este item pertence a outro jogador por enquanto.
+_WG_Only_Leader_Can	Somente o líder pode %s.
+_WG_Legacy_City_Applications_Refunded_Submit_Explicit	Inscrições antigas de cidade devolvidas. Faça um lance explícito de fama da guilda.
+_WG_Saturday_Bidding_Closed_Unspent_Guild_Fame	Lances de sábado encerrados. Fama não gasta zerada; lances aceitos mantidos.
+_WG_Tower_War_Over_Without_Winning_Kingdom	A Guerra da Torre terminou sem reino vencedor.
+_WG_Tower_War_Over_Kingdom_Won_Guild	Fim da Guerra da Torre! Reino %d venceu; guilda %s ganha 100 de fama. Medalha aos elegíveis.
+_WG_Tower_War_Over_Kingdom_Defended_No	Fim da Guerra da Torre! Reino %d defendeu; sem fama de guilda. Medalha aos elegíveis.
+_WG_Medal_Delivery_Could_Not_Saved_Reward	Não foi possível salvar a entrega da medalha. Sua recompensa continua pendente.
+_WG_Winner_Points_Defense_X_Attack_Ownership	%s: vencedor %s. Pontos defesa %d x ataque %d. Posse salva; defesas: %d.
+_WG_City_War_Application_Could_Not_Saved	Não foi possível salvar a inscrição na guerra de cidades.
+_WG_Guild_Registry_Unavailable	Registro de guildas indisponível.
+_WG_Guild_Fame	Guilda %s: %d de fama.
+_WG_Tower_Entry_Requires_Kingdom_Guild_Living	A entrada na Torre exige guilda de reino, personagem vivo em Erion e guerra ativa.
+_WG_Tower_Entry_Failed	Falha ao entrar na Torre.
+_WG_Use_Citywar_Total_Guild_Fame_Bid	Use /citywar <1..4> <lance total de fama>. Só o aumento é cobrado.
+_WG_City_Must_Total_Bid_Must_Unsigned	A cidade deve ser 1..4; o lance total deve ser um valor positivo de 32 bits.
+_WG_City_Bid_Saved_Guild_Fame_Highest	Lance da cidade %d salvo: %d de fama. O maior desafia; empate mantém o líder.
+_WG_Return_City_Could_Not_Saved	Não foi possível salvar sua cidade de retorno.
+_WG_Use_Gem_Equipped_Gear_Or_Ancient	Use a gema em equipamento +10 equipado ou em uma arma Anciã.
+_WG_Item_Cannot_Receive_Gem	Este item não pode receber essa gema.
+_WG_Armor_Must_Refined_Or_Higher	A armadura precisa estar refinada em +10 ou mais.
+_WG_Weapon_Cannot_Receive_Gem	Esta arma não pode receber essa gema.
+_WG_Weapon_Variant_Missing_From_Server_Catalog	A variante da arma não está no catálogo do servidor.
+_WG_Equipment_Has_No_Refinement_Effect	O equipamento não tem efeito de refinamento.
+_WG_Use_Adamantite_Compatible_Equipment	Use Adamantita em equipamento compatível.
+_WG_Equipment_Cannot_Become_Legendary	Este equipamento não pode se tornar Lendário.
+_WG_Legendary_Result_Missing_From_Server_Catalog	O resultado Lendário não está no catálogo do servidor.
+_WG_Instance_Does_Not_Accept_Individual_Entries	Esta instância não aceita entradas individuais.
+_WG_Already_Inside_Instance	Você já está dentro desta instância.
+_WG_Already_Inside_Another_Instance	Você já está dentro de outra instância.
+_WG_Instance_Already_Progress	Esta instância já está em andamento.
+_WG_Instance_No_Longer_Accepting_Players	Esta instância não está mais aceitando jogadores.
+_WG_Instance_Full	Esta instância está cheia.
+_WG_Evolution_Cannot_Enter_Instance	Sua evolução não pode entrar nesta instância.
+_WG_Instance_Has_No_Configured_Rooms	Esta instância não tem salas configuradas.
+_WG_Instance_Not_Configured_Shared_Entry	Esta instância não está configurada para entrada compartilhada.
+_WG_Instance_No_Longer_Open	Esta instância não está mais aberta.
+_WG_Entry_Mode_Not_Configured	Este modo de entrada não está configurado.
+_WG_Only_Party_Leader_Can_Enter_Instance	Somente o líder do grupo pode entrar nesta instância.
+_WG_Or_Party_Member_Already_Inside_Instance	Você ou um membro do grupo já está em uma instância.
+_WG_Shared_Instance_Has_No_Active_Room	A instância compartilhada não tem sala ativa.
+_WG_Instance_Could_Not_Saved	Não foi possível salvar a instância.
+_WG_Kefra_Still_Guards_Passage	Kefra ainda guarda a passagem.
+_WG_Kefra_Has_Been_Defeated_Way_Uxmal	Kefra foi derrotado. O caminho para Uxmal está aberto.
+_WG_Guild_Has_Defeated_Kefra_Way_Uxmal	A guilda %s derrotou Kefra. O caminho para Uxmal está aberto.
+_WG_Have_No_Kefra_Entries_Left_Bring	Você não tem mais entradas do Kefra. Leve um Selo Trancado ao Survivor.
+_WG_Bring_One_Secret_Stone_Class_Learn	Traga uma Pedra Secreta da sua classe para aprender a Alma.
+_WG_Bring_One_Lac_Scrap_One_Hour	Traga um fragmento de Lac para o efeito de Alma de uma hora.
+_WG_Soul_Learned_Can_Now_Use_Soul	Alma aprendida. Agora você pode usar o Limite da Alma.
+_WG_Soul_Granted_One_Hour_STR_INT	Alma concedida por uma hora: 2.000 STR, 2.000 INT e 10.000 de HP máximo.
+_WG_Sapphires	%d Safiras
+_WG_WYD_Lottery_Not_Available_Server	A Loteria WYD não está disponível neste servidor.
+_WG_Essence_Does_Not_Match_Mount	Esta essência não corresponde à montaria.
+_WG_Mount_Already_Maximum_Level	A montaria já está no nível máximo.
+_WG_Failure_Mount_Lost_Level	Falha: a montaria perdeu um nível.
+_WG_Mount_Evolution_Failed	A evolução da montaria falhou.
+_NN_Mount_Growth	Sua montaria cresceu para o próximo estágio!
+_NN_Mount_Level	Sua montaria ganhou um nível.
+_WG_Feed_Does_Not_Match_Mount	Esta ração não corresponde à montaria.
+_WG_Mount_Lost_Its_Longevity_Cannot_Revived	A montaria perdeu a longevidade e não pode ser revivida.
+_WG_Mount_Revived_HP_Food	Montaria revivida (100 HP, 5 de ração).
+_WG_Mount_Fed	Montaria alimentada.
+_WG_Mount_Longevity_Already_Maximum	A longevidade da montaria já está no máximo.
+_WG_Mount_Longevity_Restored	Longevidade da montaria restaurada.
+_WG_Potion_Can_Only_Used_Adult_Mount	Esta poção só pode ser usada em uma montaria adulta.
+_WG_Mount_Has_No_Remaining_Life_Points	Esta montaria não tem pontos de vida restantes.
+_WG_Mount_Life_Points_Already_Maximum	Os pontos de vida da montaria já estão no máximo.
+_WG_Mount_Recovered_Life_Point	A montaria recuperou 1 ponto de vida.
+_WG_Catalyst_Can_Only_Used_Adult_Mount	Este catalisador só pode ser usado em uma montaria adulta.
+_WG_Mount_Does_Not_Meet_Catalyst_Requirements	Esta montaria não atende aos requisitos do catalisador.
+_WG_Mount_Reached_Level	A montaria atingiu o nível %d.
+_WG_Potion_Does_Not_Match_Mount	Esta poção não corresponde à montaria.
+_WG_Bring_Me_Injured_Mount_I_Can	Traga-me uma montaria ferida e eu posso curá-la.
+_WG_Reviving_Costs_Gold	Reviver %s custa %d de Gold.
+_WG_Save_Failed_Mount_Was_Not_Changed	Falha ao salvar. A montaria não foi alterada.
+_WG_Treatment_Failed_Mount_Was_Lost	O tratamento falhou e a montaria foi perdida.
+_WG_Training_Field_Only_Mortals_Below_Level	O campo de treino é só para mortais abaixo do nível 35.
+_WG_Move_Closer_Interact	Aproxime-se para interagir.
+_WG_Character_Not_Visible	Esse personagem não está visível.
+_WG_Character_Not_Available	Esse personagem não está disponível.
+_WG_OX_Event_Inactive_Entrance_Ticket_Was	O evento OX está inativo. Seu Bilhete de Entrada não foi consumido.
+_WG_OX_Enrollment_Closed_Entrance_Ticket_Was	As inscrições do OX estão encerradas. Seu Bilhete de Entrada não foi consumido.
+_WG_Have_Already_Entered_OX_Event	Você já entrou no evento OX.
+_WG_Leave_Current_Instance_Before_Entering_OX	Saia da sua instância atual antes de entrar no OX.
+_WG_Use_Entrance_Ticket_Big_Cube_Entry	Use o Bilhete de Entrada na área de entrada do Big Cube.
+_WG_Firework_Use_Could_Not_Saved	Não foi possível salvar o uso dos fogos.
+_WG_Premium_Shop_Not_Available_Server	A loja premium não está disponível neste servidor.
+_WG_Shop_Changed_Please_Open_Again	A loja mudou. Abra-a novamente.
+_WG_Do_Not_Have_Enough_Donate	Você não tem donate suficiente.
+_WG_Please_Wait_Last_Action_Finish	Aguarde sua última ação terminar.
+_WG_Open_Premium_Shop_Before_Buying	Abra a loja premium antes de comprar.
+_WG_Donate_Not_Available_Server	Donate não está disponível neste servidor.
+_WG_Donate_Balance_Full	Seu saldo de donate está cheio.
+_WG_Player_Challenge_Accepted	Desafio entre jogadores aceito.
+_WG_All_Vs_All_Challenge_Accepted	Desafio todos contra todos aceito.
+_WG_Available_Only_Mortal_Characters	Disponível somente para personagens Mortais.
+_WG_Must_Level	Você precisa ter nível %d.
+_WG_Available_Only_Up_Level	Disponível somente até o nível %d.
+_WG_Cannot_Take_Quest_Yet	Você ainda não pode fazer esta quest.
+_WG_Already_Have_Citizenship	Você já tem cidadania.
+_WG_Do_Not_Meet_Requirements_Yet	Você ainda não atende aos requisitos.
+_WG_No_Entries_Left	Você não tem mais entradas.
+_WG_Rune_Track_Registration_Opens_Minutes_Except	Inscrição na Rune Track abre nos minutos 16, 36 e 56, exceto no fechamento diário.
+_WG_Party_Leader_Least_One_Member_Must	O líder e ao menos um membro do grupo precisam estar vivos na entrada.
+_WG_Party_Member_Unavailable_Or_Already_Another	Um membro do grupo está indisponível ou já em outra instância.
+_WG_Party_Member_Already_Registered	Um membro do grupo já está inscrito.
+_WG_Need_Rune_Track_Ticket_First_Inventory	Você precisa de um bilhete da Rune Track nos primeiros 60 espaços do inventário.
+_WG_Rune_Track_Refinement_Invalid	Esse refinamento da Rune Track é inválido.
+_WG_Rune_Track_Room_Full_Or_Already	Essa sala da Rune Track está cheia ou já em andamento.
+_WG_Rune_Track_Registration_Confirmed_Remain_Entrance	Inscrição confirmada. Fique na entrada com o grupo até o próximo ciclo de 20 minutos.
+_WG_Rune_Track	Rune Track: %d / %d
+_WG_Server_War_Not_Available_Server	A guerra entre servidores não está disponível neste servidor.
+_WG_Character_Could_Not_Validated_Learn_Skill	Não foi possível validar o personagem para aprender esta skill.
+_WG_Invalid_Skill_Master	Mestre de skills inválido.
+_WG_Open_Valid_Skill_Master_First	Abra primeiro um mestre de skills válido.
+_WG_Skill_Not_Available_From_Master	Esta skill não está disponível com este mestre.
+_WG_Skill_Belongs_Another_Class	Esta skill pertence a outra classe.
+_WG_Skills_Data_Unavailable	Os dados desta skill estão indisponíveis.
+_WG_Skill_Has_Already_Been_Learned	Esta skill já foi aprendida.
+_WG_Insufficient_Skill_Points_Learn_Skill	Pontos de skill insuficientes para aprender esta skill.
+_WG_Insufficient_Level_Learn_Skill	Nível insuficiente para aprender esta skill.
+_WG_Insufficient_Mastery_Learn_Skill	Maestria insuficiente para aprender esta skill.
+_WG_Have_Already_Learned_Ultimate_Skill_From	Você já aprendeu a skill final de outro ramo.
+_WG_Learn_All_Previous_Skills_Branch_First	Aprenda primeiro todas as skills anteriores deste ramo.
+_WG_Insufficient_Gold_Learn_Ultimate_Skill	Gold insuficiente para aprender a skill final.
+_WG_Skill_Could_Not_Saved_Please_Try	Não foi possível salvar a skill. Tente novamente.
+_WG_Save_Failed_Items_Were_Not_Stacked	Falha ao salvar. Os itens não foram agrupados.
+_WG_Service_Not_Available_Server	Esse serviço não está disponível neste servidor.
+_WG_Only_One_Character_May_Equip_Greater	Somente um personagem pode equipar a Pedra de Troca Maior.
+_WG_Only_One_Character_May_Equip_Lesser	Somente um personagem pode equipar a Pedra de Troca Menor.
+_WG_Leave_Guild_Before_Exchanging_Names	Saia da sua guilda antes de trocar os nomes.
+_WG_These_Characters_Share_Their_Name_Another	Estes personagens compartilham o nome com outro personagem.
+_WG_PK_Mode_Disabled	Modo PK desativado.
+_WG_PK_Mode_Enabled	Modo PK ativado.
+_WG_Invalid_City_War_Request	Pedido de guerra de cidades inválido.
+_WG_Invalid_City_War_Request_Size	Tamanho do pedido de guerra de cidades inválido.
+_WG_Invalid_City_War_NPC	NPC de guerra de cidades inválido.
+_WG_Character_Not_City_War_Collector	Esse personagem não é um coletor da guerra de cidades.
+_WG_City_War_Registration_Open_Saturday_Only	A inscrição na guerra de cidades só abre no sábado.
+_WG_Invalid_City_War_Confirmation	Confirmação de guerra de cidades inválida.
+_WG_City_War_Request_Expired_Speak_Collector	O pedido de guerra de cidades expirou. Fale de novo com o coletor.
+_WG_City_War_Target_Changed_Speak_Collector	O alvo da guerra de cidades mudou. Fale de novo com o coletor.
+_WG_Unknown_Item_Cannot_Traded	Um item desconhecido não pode ser trocado.
+_NN_NOT_TRANSITEM	Este item não pode ser trocado.
+_WG_Spirits_Seal_Has_No_Valid_Identity	O Selo do Espírito não tem identidade válida.
+_WG_Same_Spirits_Seal_Was_Offered_More	O mesmo Selo do Espírito foi oferecido mais de uma vez.
+
+# Imported WYD-Go rows 440-495 of client UI/strdef.bin
+_WG_Mystic_Land_Hunt	Terra Mística: derrote monstros Basilisk ou Dracorich até liberar a recompensa.
+_WG_Mystic_Land_Complete	Terra Mística concluída. Fale com Exploit_Leader para receber seu amuleto.
+_WG_Mystic_Land_Start	Fale com Knights_Leader para iniciar a quest da Terra Mística.
+_WG_Mystic_Land_Claimed	Você já recebeu sua recompensa da Terra Mística.
+_WG_Mystic_Land_Reward	Você recebeu um amuleto com dois adicionais aleatórios.
+_WG_Crystal_Weapon_Requirements	Traga um cristal de cada um dos sete tipos e equipe uma arma.
+_WG_Crystal_Weapon_Rejected	Esta arma não pode receber adicionais dos cristais.
+_WG_Crystal_Weapon_Success	Sua arma recebeu novos adicionais aleatórios. Os cristais foram consumidos.
+_WG_Map_Fragments_Converted	Seus fragmentos de mapa do tesouro incompleto foram convertidos.
+_WG_Service_Not_Available_Yet	Este serviço ainda não está disponível. Seus itens foram preservados.
+_WG_Zakum_Area_Empty	Não há jogadores na área do Zakum.
+_WG_Zakum_Area_Population	Área do Zakum: %s e mais %s jogador(es).
+_WG_BeastMaster_Summons_Dismissed	Suas evocações de BeastMaster foram dispensadas.
+_WG_Finish_Current_Action	Conclua sua ação atual e tente novamente.
+_WG_Equip_Apprentice_Emblem	Equipe o Emblema da Aprendizagem para receber o manto verde.
+_WG_Apprentice_Level_Range	Esta quest exige um Mortal entre os níveis 101 e 150.
+_WG_Remove_Current_Cape	Retire seu manto atual antes desta troca.
+_WG_Apprentice_Cape_Received	Você recebeu o Manto do Aprendiz.
+_WG_Exchange_Not_Saved	Não foi possível salvar a troca. Seus equipamentos foram preservados.
+_WG_Quiz_459	A tecla M mostra o minimapa no canto inferior direito.
+_WG_Quiz_460	A tecla M mostra o minimapa no canto superior direito.
+_WG_Quiz_461	A Foema começa a andar com o pé direito.
+_WG_Quiz_462	A quest da Sociedade WYD dos dois castelos dá um IMP.
+_WG_Quiz_463	A quest da Sociedade WYD dos dois castelos dá Nyerdes.
+_WG_Quiz_464	Uma Medalha da Guilda custa 8000000 antes dos impostos.
+_WG_Quiz_465	A resolução máxima do WYD é 1600x1200 em 32 bits.
+_WG_Quiz_466	A resolução mínima do WYD é 640x480 em 16 bits.
+_WG_Quiz_467	Existem sete tipos de cristais.
+_WG_Quiz_468	A Gema Estelar pode memorizar qualquer local.
+_WG_Quiz_469	Itens +9 não podem receber adicionais.
+_WG_Quiz_470	São necessários pontos de skill para aprender skills.
+_WG_Quiz_471	Um set completo concede bônus de defesa.
+_WG_Quiz_472	O Toque de Athena aumenta o aprendizado de skills.
+_WG_Quiz_473	A Safira é vendida pelo Mercador Real.
+_WG_Quiz_474	Uma conta pode ter cinco personagens.
+_WG_Quiz_475	A experiência total é maior em grupo.
+_WG_Quiz_476	O Som das Fadas é usado em monstros alvo.
+_WG_Quiz_477	Pontos de skill são obtidos apenas subindo de nível.
+_WG_Quiz_478	A Foema usa um lança-chamas no Ataque de Fogo.
+_WG_Quiz_479	As poções são vendidas pelo Mercador Real.
+_WG_Quiz_480	Uma composição bem-sucedida sempre zera os adicionais.
+_WG_Quiz_481	Não existe Guarda do Cargo em Erion.
+_WG_Quiz_482	Um escudo +9 recebe defesa e resistências adicionais.
+_WG_Quiz_483	Pressionar A mostra o minimapa no canto inferior direito.
+_WG_Cube_Room	Cubo da Maldade %s
+_WG_Cube_Final	Cubo da Maldade - Final
+_WG_Big_Cube	Grande Cubo
+_WG_Big_Cube_Wrong	Resposta errada. Você saiu do Grande Cubo.
+_WG_Quiz_Correct_Exp	Correto! +%s EXP.
+_WG_OX_Enrollment_Open	A inscrição do OX está aberta por 60 segundos. Use um Ingresso no saguão do Grande Cubo.
+_WG_OX_Enter_During_Enrollment	Entre no OX com um Ingresso durante a inscrição.
+_WG_OX_Wrong_Answer	Resposta errada. Você saiu do OX sem recompensa.
+_WG_OX_Enrollment_Closes	A inscrição do OX termina em %s segundos.
+_WG_OX_Next_Question	Próxima pergunta do OX em %s segundos.
+_WG_Cube_Entrance_Blocked	A entrada do Cubo está bloqueada.
+_NN_Incorrect_kicked	Resposta errada. Você saiu do Cubo.
+
+# Content data text: quests, bosses and instances (matched at the send point)
+_WG_Entrance_Gravedigger_Area	Entrada para a área do Coveiro.
+_WG_Have_Entered_Gravedigger_Area	Você entrou na área do Coveiro.
+_WG_Level_Or_Evolution_Does_Not_Allow	Seu nível ou evolução não permite entrar na área do Coveiro.
+_WG_Dead_Do_Not_Rest_Here_I	Os mortos não descansam aqui. Abrirei o caminho enquanto sua força servir a esta prova.
+_WG_Something_Stirs_Beneath_Graves_Worshipper_Calls	Algo se mexe sob as covas. Um adorador o chama. Depressa.
+_WG_Do_Not_Pity_Spirits_Friend_Pity	Não tenha pena dos espíritos, amigo. Tenha pena de quem os desperta.
+_WG_Kibita_Citizenship_Costs_Gold	Kibita: a cidadania custa 400.000 de gold.
+_WG_Now_Citizen_Drop_Bonus_Active	Agora você é cidadão. Bônus de drop ativo.
+_WG_Kibita_Cannot_Become_Citizen_Right_Now	Kibita: você não pode se tornar cidadão agora.
+_WG_Citizen_Kingdom_Never_Stranger_Anywhere	Um cidadão deste reino nunca é estranho em parte alguma dele.
+_WG_Gold_Buys_Many_Things_Belonging_One	O gold compra muitas coisas. Pertencer é a única que vale o preço.
+_WG_Entrance_Carbuncle_Area	Entrada para a área do Carbuncle.
+_WG_Have_Entered_Carbuncle_Area	Você entrou na área do Carbuncle.
+_WG_Level_Or_Evolution_Does_Not_Allow_2	Seu nível ou evolução não permite entrar na área do Carbuncle.
+_WG_Garden_Grows_Wild_Hungry_Step_Through	O jardim cresce selvagem e faminto. Entre enquanto estiver pronto para a prova.
+_WG_Carbuncles_Guard_Beds_Now_They_Were	Os Carbuncles guardam os canteiros agora. Já foram mansos, eu juro.
+_WG_Mind_Roots_Traveller_Some_Them_Mind	Cuidado com as raízes, viajante. Algumas também cuidam de você.
+_WG_Entrance_Kaizen_Area	Entrada para a área do Kaizen.
+_WG_Have_Entered_Kaizen_Area	Você entrou na área do Kaizen.
+_WG_Level_Or_Evolution_Does_Not_Allow_3	Seu nível ou evolução não permite entrar na área do Kaizen.
+_WG_Dark_Knight_Walks_Again_I_Have	O Cavaleiro Negro caminha de novo. Vi os estandartes do alto da colina.
+_WG_I_Will_Send_Where_Scouts_Do	Vou enviá-lo para onde os batedores não voltam. Esteja pronto.
+_WG_Kaizen_Took_My_Brother_Take_My	Kaizen levou meu irmão. Siga minhas instruções e tenha sua vingança.
+_WG_Entrance_Hydra_Area	Entrada para a área da Hidra.
+_WG_Have_Entered_Hydra_Area	Você entrou na área da Hidra.
+_WG_Level_Or_Evolution_Does_Not_Allow_4	Seu nível ou evolução não permite entrar na área da Hidra.
+_WG_Come_Closer_Hydras_Drown_Valley_I	Chegue mais perto. As hidras afogam este vale e não consigo detê-las sozinho.
+_WG_Cut_One_Head_Two_Answer_Enter	Corte uma cabeça e duas respondem. Entre e veja você mesmo.
+_WG_Immortal_They_Call_Nothing_Bleeds_Immortal	Chamam-na de imortal. Nada que sangra é imortal.
+_WG_Entrance_Elf_Area	Entrada para a área dos Elfos.
+_WG_Have_Entered_Elf_Area	Você entrou na área dos Elfos.
+_WG_Level_Or_Evolution_Does_Not_Allow_5	Seu nível ou evolução não permite entrar na área dos Elfos.
+_WG_Elves_Closed_Their_Borders_What_They	Os elfos fecharam suas fronteiras. O que escondem lá começou nossa tristeza.
+_WG_Forest_Road_Open_While_Strength_Suits	A estrada da floresta está aberta enquanto sua força servir a esta prova.
+_WG_Go_Softly_Elves_Hear_Sword_Drawn	Vá com cuidado. Os elfos ouvem uma espada sendo sacada a uma milha.
+_WG_Entrance_Royal_Cape_Trial	Entrada para a prova da Capa Real.
+_WG_Have_Entered_Kingdom_Area	Você entrou na área do reino.
+_WG_Royal_Cape_Trial_Requires_Mortal_Between	A prova da Capa Real exige um Mortal entre os níveis 200 e 254.
+_WG_Cape_Cloth_Knight_What_Do_While	Uma capa é pano. Cavaleiro é o que você faz enquanto a veste.
+_WG_Trial_Short_Surviving_Long_Part	A prova é curta. Sobreviver a ela é a parte longa.
+_WG_Hand_Over_Balances_Piece	Entregue a Peça do Equilíbrio.
+_WG_Ameria_Turned_Fragment_Into_Balances_Compound	Ameria transformou o fragmento no Composto do Equilíbrio.
+_WG_Ameria_Needs_Mortal_Between_Levels_Carrying	Ameria precisa de um Mortal entre os níveis 120 e 124 com a Peça do Equilíbrio.
+_WG_Bring_Me_Piece_I_Will_Bind	Traga-me a peça e eu a unirei. O equilíbrio não se acha, se faz.
+_WG_Power_Without_Balance_Just_Faster_Way	Poder sem equilíbrio é só um jeito mais rápido de cair.
+_WG_Trolls_Beyond_Gate_Carry_What_I	Os trolls além do portão carregam o que preciso. Tome deles.
+_WG_Show_Me_First_Gate_Key_I	Mostre-me a Chave do Primeiro Portão e eu o recompensarei.
+_WG_Well_Done_Take_These_Potions	Muito bem! Pegue estas poções.
+_WG_Come_Back_As_Mortal_Below_Level	Volte como Mortal abaixo do nível 41, com a Chave do Primeiro Portão.
+_WG_New_Blood_Stand_Straight_Show_Me	Sangue novo! Fique em pé. Mostre a chave e eu encho sua bolsa.
+_WG_Potions_First_Glory_Later_Order_Keeps	Poções primeiro, glória depois. É essa ordem que mantém você respirando.
+_WG_Every_Knight_I_Trained_Started_Exactly	Todo cavaleiro que treinei começou exatamente onde você está.
+_WG_Entrance_Bless_God_Area	Entrada para a área da Bênção do Deus.
+_WG_Have_Entered_Bless_God_Area	Você entrou na área da Bênção do Deus.
+_WG_Bless_God_Mortal_Between_Levels	A Bênção do Deus é para um Mortal entre os níveis 70 e 74.
+_WG_Kneel_God_Will_Look_East_Trolls	Ajoelhe-se, e o deus olhará para o leste com você. Os trolls esperam lá.
+_WG_Blessing_Not_Given_Survived	A bênção não é dada. É sobrevivida.
+_WG_Seventy_Summers_No_More_Come_Now	Setenta verões e nada mais. Venha agora, ou não venha.
+_WG_Entrance_Path_Knighthood_Trial	Entrada para a prova do Caminho do Cavaleiro.
+_WG_Have_Entered_Path_Knighthood_Area	Você entrou na área do Caminho do Cavaleiro.
+_WG_Path_Knighthood_Mortal_Between_Levels	O Caminho do Cavaleiro é para um Mortal entre os níveis 100 e 150.
+_WG_Green_Cape_Marks_Squire_Earn_Training	A capa verde marca um escudeiro. Conquiste-a no campo de treino, não aqui.
+_WG_Every_Knight_Realm_Crossed_Line_First	Todo cavaleiro deste reino cruzou esta linha primeiro. A maioria voltou.
+_WG_Report_Squad_Leader_Tell_Him_Gate	Apresente-se ao Líder do Esquadrão. Diga que o guarda do portão o enviou.
+_WG_Entrance_Balance_Power_Area	Entrada para a área do Equilíbrio do Poder.
+_WG_Have_Entered_Balance_Power_Area	Você entrou na área do Equilíbrio do Poder.
+_WG_Balance_Power_Mortal_Between_Levels	O Equilíbrio do Poder é para um Mortal entre os níveis 121 e 125.
+_WG_Trolls_Beyond_Hold_Shard_Old_Balance	Os trolls adiante guardam um fragmento do antigo equilíbrio. Tome deles.
+_WG_Two_Forces_Pull_Land_Apart_Someone	Duas forças dividem esta terra. Alguém precisa ficar no meio.
+_WG_Step_Through_Do_Not_Look_Back	Atravesse e não olhe para trás. Dá azar.
+_WG_Entrance_Gargoyles_Molar_Tooth_Area	Entrada para a área do Molar da Gárgula.
+_WG_Have_Entered_Gargoyles_Molar_Tooth_Area	Você entrou na área do Molar da Gárgula.
+_WG_Gargoyles_Molar_Tooth_Mortal_Between_Levels	O Molar da Gárgula é para um Mortal entre os níveis 201 e 205.
+_WG_Gargoyles_Wake_Dusk_Dusk_Somewhere_So	As gárgulas acordam ao anoitecer. Anoitece em algum lugar, então erga o escudo.
+_WG_One_Tooth_All_I_Ask_Prying	Um dente. É só o que peço. Arrancá-lo é a parte difícil.
+_WG_Stone_Does_Not_Bleed_But_Does	Pedra não sangra, mas quebra. Lembre-se disso lá dentro.
+_WG_Hand_Over_Opportunitys_Piece	Entregue a Peça da Oportunidade.
+_WG_Kruno_Turned_Fragment_Into_Opportunitys_Compound	Kruno transformou o fragmento no Composto da Oportunidade.
+_WG_Kruno_Needs_Mortal_Between_Levels_Carrying	Kruno precisa de um Mortal entre os níveis 70 e 74 com a Peça da Oportunidade.
+_WG_Found_Piece_Give_Here_I_Will	Você achou a peça. Entregue-a e eu a tornarei inteira.
+_WG_Trolls_Carry_Without_Knowing_What_Lucky	Os trolls a carregam sem saber o que é. Sorte de nós dois.
+_WG_Compounded_Restores_What_Years_Took_From	Composta, ela restaura o que os anos tiraram das suas skills.
+_WG_Show_Me_Second_Gate_Key_I	Mostre-me a Chave do Segundo Portão e eu temperarei sua arma.
+_WG_Weapon_Has_Been_Tempered	Sua arma foi temperada.
+_WG_Clear_First_Gate_Bring_Me_Second	Vença o primeiro portão e traga-me a Chave do Segundo Portão.
+_WG_Second_Gate_Second_Lesson_Dull_Blade	Segundo portão, segunda lição: lâmina cega só mata o próprio dono.
+_WG_Bring_Key_I_Will_Put_Edge	Traga a chave e eu afio essa sua arma.
+_WG_One_Reward_Per_Recruit_Spend_Weapon	Uma recompensa por recruta. Use-a na arma que pretende manter.
+_WG_Show_Me_Final_Gate_Key_I	Mostre-me a Chave do Portão Final e eu abençoo todo o seu equipamento.
+_WG_Equipment_Has_Been_Blessed_Go_Earn	Seu equipamento foi abençoado. Vá e faça por merecer.
+_WG_Clear_Second_Gate_Bring_Me_Final	Vença o segundo portão e traga-me a Chave do Portão Final.
+_WG_Final_Gate_Past_There_No_Trainers	Portão final. Depois dele não há treinadores, só monstros.
+_WG_Give_Me_Key_I_Will_Harden	Dê-me a chave e eu fortaleço cada peça que você veste.
+_WG_Came_Recruit_Leave_Camp_Soldier	Você chegou recruta. Sai deste acampamento soldado.
+_WG_Bring_Me_Orc_Emblem_From_Beyond	Traga-me o Emblema Orc de além do portão final.
+_WG_Cleared_Camp_Armia_Has_One_More	Você limpou o acampamento. Armia tem mais um defensor.
+_WG_Clear_Three_Gates_Take_Orc_Emblem	Vença os três portões, tome o Emblema Orc do chefe e volte.
+_WG_Three_Gates_Three_Guards_Orc_Chief	Três portões, três guardas e um chefe orc atrás do último.
+_WG_Bring_Me_His_Emblem_I_Will	Traga-me o emblema dele e eu o chamarei de soldado, não de recruta.
+_WG_Every_Knight_Armia_Stood_Where_Stand	Todo cavaleiro de Armia esteve onde você está. A maioria voltou.
+_WG_Entrance_Kefra	Entrada para Kefra.
+_WG_Welcome_Kefra	Bem-vindo a Kefra!
+_WG_Have_No_Entries_Left_Bring_Locked	Você não tem mais entradas. Traga um Selo Trancado.
+_WG_I_Am_Only_One_Who_Came	Sou o único que voltou de Kefra. Isso já deve dizer o bastante.
+_WG_One_Locked_Seal_Grants_Entries_Each	Um Selo Trancado concede 50 entradas. Cada visita usa uma entrada.
+_WG_Step_Through_When_Ready_I_Will	Atravesse quando estiver pronto. Não vou segui-lo lá dentro.
+_WG_Entrance_Black_Archmage	Entrada para o Arquimago Negro.
+_WG_Have_Reached_Black_Archmage	Você chegou ao Arquimago Negro.
+_WG_Cannot_Reach_Black_Archmage_Right_Now	Você não pode chegar ao Arquimago Negro agora.
+_WG_Black_Archmage_Awaits_Beyond_Gate_Prepare	O Arquimago Negro aguarda além deste portão. Prepare-se.
+_WG_His_Storms_Answer_Every_Blow_Keep	As tempestades dele respondem a cada golpe. Mantenha distância e as poções à mão.
+_WG_Many_Went_Face_His_Spells_Few	Muitos foram enfrentar os feitiços dele. Poucos voltaram por aqui.
+_WG_Entrance_Guardian_Ruins	Entrada para o Guardião das Ruínas.
+_WG_Have_Reached_Guardian_Ruins	Você chegou ao Guardião das Ruínas.
+_WG_Cannot_Reach_Guardian_Ruins_Right_Now	Você não pode chegar ao Guardião das Ruínas agora.
+_WG_Guardian_Ruins_Awaits_Beyond_Gate_Prepare	O Guardião das Ruínas aguarda além deste portão. Prepare-se.
+_WG_Never_Tires_Never_Stops_Chasing_Do	Ele nunca cansa e nunca para de perseguir. Não corra sozinho.
+_WG_Ruins_Were_Quiet_Once_Then_Woke	As ruínas já foram silenciosas. Então ele acordou.
+_WG_Entrance_Demon_Lord	Entrada para o Lorde Demônio.
+_WG_Have_Reached_Demon_Lord	Você chegou ao Lorde Demônio.
+_WG_Cannot_Reach_Demon_Lord_Right_Now	Você não pode chegar ao Lorde Demônio agora.
+_WG_Demon_Lord_Awaits_Beyond_Gate_Prepare	O Lorde Demônio aguarda além deste portão. Prepare-se.
+_WG_When_His_Shield_Rises_Strike_His	Quando o escudo dele subir, ataque primeiro os guardas.
+_WG_Hold_Nerve_When_He_Rages_When	Mantenha a calma quando ele se enfurecer. É quando ele está mais fraco.
+_WG_Entrance_Ancient_Necromancer	Entrada para o Necromante Ancestral.
+_WG_Have_Reached_Ancient_Necromancer	Você chegou ao Necromante Ancestral.
+_WG_Cannot_Reach_Ancient_Necromancer_Right_Now	Você não pode chegar ao Necromante Ancestral agora.
+_WG_Ancient_Necromancer_Awaits_Beyond_Gate_Prepare	O Necromante Ancestral aguarda além deste portão. Prepare-se.
+_WG_His_Servants_Rise_Faster_Than_Can	Os servos dele se erguem mais rápido do que você os enterra. Continue andando.
+_WG_Strike_Master_Not_Dead_Dead_Never	Ataque o mestre, não os mortos. Os mortos nunca acabam.
+_WG_Black_Archmage_Summons_Ice_Storm	O Arquimago Negro invoca uma tempestade de gelo!
+_WG_Black_Archmage_Unleashes_His_Fury	O Arquimago Negro liberta sua fúria!
+_WG_Black_Archmage_Rises_From_Shadows	O Arquimago Negro surge das sombras!
+_WG_Black_Archmage_Has_Been_Silenced	O Arquimago Negro foi silenciado.
+_WG_Guardian_Ruins_Awakens	O Guardião das Ruínas desperta!
+_WG_Guardian_Ruins_Has_Been_Defeated	O Guardião das Ruínas foi derrotado.
+_WG_Demon_Lord_Casts_Storm	O Lorde Demônio lança uma tempestade!
+_WG_Demon_Lord_Summons_His_Guardians	O Lorde Demônio invoca seus guardiões!
+_WG_Demon_Lord_Flies_Into_Rage	O Lorde Demônio entra em fúria!
+_WG_Demon_Lord_Emerges_From_Abyss	O Lorde Demônio emerge do abismo!
+_WG_Demon_Lord_Has_Been_Defeated	O Lorde Demônio foi derrotado!
+_WG_Ancient_Necromancer_Calls_Dead	O Necromante Ancestral chama os mortos!
+_WG_Ancient_Necromancer_Rises	O Necromante Ancestral se ergue!
+_WG_Ancient_Necromancer_Returns_Dust	O Necromante Ancestral volta ao pó.
+_WG_Rune_Track_Lich	Rune Track +0 - Lich
+_WG_Rune_Track_Tower_Defense	Rune Track +1 - Defesa da Torre
+_WG_Rune_Track_Amon	Rune Track +2 - Amon
+_WG_Rune_Track_Sulrang	Rune Track +3 - Sulrang
+_WG_Rune_Track_Labyrinth	Rune Track +4 - Labirinto
+_WG_Rune_Track_Balrog	Rune Track +5 - Balrog
+_WG_Rune_Track_Golden_Rabbits	Rune Track +6 - Coelhos Dourados
+_WG_Cube	Cubo da Maldade
+_WG_Cube_Mystic	Cubo da Maldade Místico
+_WG_Cube_Arcane	Cubo da Maldade Arcano
+_WG_Hell_Gate_Entrance	Hell Gate - Entrada
+_WG_Mystic_Water_Room	Água Mística - Sala 1
+_WG_Mystic_Water_Room_2	Água Mística - Sala 2
+_WG_Mystic_Water_Room_3	Água Mística - Sala 3
+_WG_Mystic_Water_Room_4	Água Mística - Sala 4
+_WG_Mystic_Water_Room_5	Água Mística - Sala 5
+_WG_Mystic_Water_Room_6	Água Mística - Sala 6
+_WG_Mystic_Water_Room_7	Água Mística - Sala 7
+_WG_Mystic_Water_Room_8	Água Mística - Sala 8
+_WG_Mystic_Water_Nessus	Água Mística - Nessus
+_WG_Arcane_Magic_Chamber	Câmara Mágica Arcana
+_WG_Arcane_Room	Sala Arcana 1
+_WG_Arcane_Room_2	Sala Arcana 2
+_WG_Arcane_Room_3	Sala Arcana 3
+_WG_Arcane_Room_4	Sala Arcana 4
+_WG_Mystic_Magic_Chamber	Câmara Mágica Mística
+_WG_Mystic_Room	Sala Mística 1
+_WG_Mystic_Room_2	Sala Mística 2
+_WG_Mystic_Room_3	Sala Mística 3
+_WG_Mystic_Room_4	Sala Mística 4
+_WG_Normal_Magic_Chamber	Câmara Mágica Normal
+_WG_Normal_Room	Sala Normal 1
+_WG_Normal_Room_2	Sala Normal 2
+_WG_Normal_Room_3	Sala Normal 3
+_WG_Normal_Room_4	Sala Normal 4
+_WG_Normal_Water_Room	Água Normal - Sala 1
+_WG_Normal_Water_Room_2	Água Normal - Sala 2
+_WG_Normal_Water_Room_3	Água Normal - Sala 3
+_WG_Normal_Water_Room_4	Água Normal - Sala 4
+_WG_Normal_Water_Room_5	Água Normal - Sala 5
+_WG_Normal_Water_Room_6	Água Normal - Sala 6
+_WG_Normal_Water_Room_7	Água Normal - Sala 7
+_WG_Normal_Water_Room_8	Água Normal - Sala 8
+_WG_Normal_Water_Nessus	Água Normal - Nessus
+_WG_Arcane_Water_Room	Água Arcana - Sala 1
+_WG_Arcane_Water_Room_2	Água Arcana - Sala 2
+_WG_Arcane_Water_Room_3	Água Arcana - Sala 3
+_WG_Arcane_Water_Room_4	Água Arcana - Sala 4
+_WG_Arcane_Water_Room_5	Água Arcana - Sala 5
+_WG_Arcane_Water_Room_6	Água Arcana - Sala 6
+_WG_Arcane_Water_Room_7	Água Arcana - Sala 7
+_WG_Arcane_Water_Room_8	Água Arcana - Sala 8
+_WG_Arcane_Water_Nessus	Água Arcana - Nessus
+_WG_Nightmare_Normal	Pesadelo Normal
+_WG_Nightmare_Mystic	Pesadelo Místico
+_WG_Nightmare_Arcane	Pesadelo Arcano
+_WG_Nightmare_Normal_Personal	Pesadelo Normal Individual
+_WG_Nightmare_Mystic_Personal	Pesadelo Místico Individual
+_WG_Nightmare_Arcane_Personal	Pesadelo Arcano Individual
+
+# Content data text: quests, bosses and instances (matched at the send point)
+_WG_Rune_Track_2	Rune Track
+_WG_Hell_Gate	Hell Gate
+
+# Character information line
+_WG_Guild_Role_Member	Membro
+_WG_Guild_Role_Leader	Líder
+_WG_Guild_Role_Sub_Leader	Sub-líder
+_WG_Guild_Allied_With	 aliada de %s
+_WG_Citizenship	Cidadania: %s
+
+# Errors returned by shared helpers (matched at the send point)
+_WG_Mount_Item_Use_Could_Not_Saved	Não foi possível salvar o uso do item de montaria. Tente novamente mais tarde.
+_WG_Eligible_Party_Leader_Start_Instance	Somente um líder de grupo elegível pode iniciar esta instância.
+_WG_Instance_No_Configured_Content	Esta instância não tem conteúdo configurado.
+_WG_Instance_Content_Area_Not_Walkable	A área de conteúdo da instância não é transitável.
+_WG_Instance_Monster_Not_Configured	Um monstro da instância não está configurado.
+_WG_Instance_Monster_Area_Blocked	A área de monstros da instância está bloqueada.
+_WG_No_Instance_Monster_ID_Available	Nenhum ID de monstro de instância está disponível.
+_WG_Instance_Question_Not_Configured	A pergunta da instância não está configurada.
+_WG_Nightmare_Eight_Protected_NPCs	O Pesadelo aceita no máximo oito NPCs protegidos.
+_WG_Nightmare_Boss_Not_Configured	O chefe do Pesadelo não está configurado.
+_WG_Nightmare_Boss_Ordinary_Respawn	O chefe do Pesadelo não pode ser um respawn comum.
+_WG_Nightmare_Protected_NPC_Not_Configured	Um NPC protegido do Pesadelo não está configurado.
+_WG_Nightmare_Protected_NPC_Position_Blocked	A posição de um NPC protegido do Pesadelo está bloqueada.
+_WG_No_Nightmare_Protected_NPC_ID	Nenhum ID de NPC protegido do Pesadelo está disponível.
+_WG_Nightmare_Protected_NPC_ID_Twice	Um ID de NPC protegido do Pesadelo foi alocado duas vezes.
+_WG_City_War_Status	%d %s: dono=%d desafiante=%d lance=%d vitórias=%d
+_WG_Roll_Success	Sucesso: %d/%d
+_WG_Roll_Fail	Falha: %d/%d
+_WG_Roll_Penalty_Success	Penalidade - Sucesso: %d/%d
+_WG_Roll_Penalty_Fail	Penalidade - Falha: %d/%d

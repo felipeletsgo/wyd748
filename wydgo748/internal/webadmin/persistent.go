@@ -114,7 +114,7 @@ func (r *accountPersistentReader) Player(ctx context.Context, accountName, uid s
 	}
 	character, err := r.store.ReadPersistentPlayer(ctx, accountName, normalizedUID)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if errors.Is(err, os.ErrNotExist) { // the store wraps its not-found error
 			return PersistentPlayer{}, ErrPersistentPlayerNotFound
 		}
 		return PersistentPlayer{}, err

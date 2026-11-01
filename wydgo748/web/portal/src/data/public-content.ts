@@ -29,6 +29,15 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-11-01', category: 'Server', title: 'Server update — fewer disconnects and smoother play', entries: [
+    'A short database delay cancels only the failed action instead of disconnecting the player.',
+    'Crowded areas load over a few moments instead of overflowing the connection; the periodic save no longer pauses commands or nearby monsters.',
+    'A lost connection is detected in about a minute, and a new sign-in waits for the previous session to close.',
+    'Um atraso curto do banco cancela só a ação que falhou, sem desconectar o jogador.',
+    'Áreas cheias carregam em alguns instantes, sem estourar a conexão; o salvamento periódico não pausa mais comandos nem monstros próximos.',
+    'Uma conexão perdida é detectada em cerca de um minuto, e um novo login espera a sessão anterior fechar.',
+    'No client update is needed. Não é preciso atualizar o cliente. Gameplay acceptance remains pending.',
+  ] },
   { date: '2026-10-31', category: 'Client and server', title: 'Client 7.48.017 — Cube questions and Mystic Land', entries: [
     'Cube: the room name closes after four seconds, and each question appears alone in a panel of the same size.',
     'Mystic Land: hits on patrolling monsters register along their whole route, and each monster returns five seconds after death.',

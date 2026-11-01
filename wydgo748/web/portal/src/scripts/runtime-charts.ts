@@ -5,13 +5,23 @@ type API = <T>(path: string, method?: string, body?: unknown) => Promise<T>;
 
 const overflowMicros = 1000001;
 const milliseconds = (micros: number) => micros >= overflowMicros ? '>1000 ms' : `${(micros / 1000).toLocaleString('en-US', { maximumFractionDigits: 1 })} ms`;
+const count = (v: number) => v.toLocaleString('en-US');
+// Points sampled before a server upgrade can lack the diagnostic groups.
+const closes = (p: Point) => Object.values(p.transport?.closes ?? {}).reduce((sum, v) => sum + v, 0);
+const heartbeat = (p: Point) => Math.max(0, ...(p.channels ?? []).map(c => c.heartbeatAgeMicros));
 export const charts: { title: string; value: (p: Point) => number; format: (v: number) => string }[] = [
-  { title: 'Online players', value: p => p.players, format: v => v.toLocaleString('en-US') },
+  { title: 'Online players', value: p => p.players, format: count },
   { title: 'Loop lag p99', value: p => p.loopLagP99Micros, format: milliseconds },
   { title: 'Tick duration p99', value: p => p.tickP99Micros, format: milliseconds },
   { title: 'Command queue age p99', value: p => p.queueAgeP99Micros, format: milliseconds },
-  { title: 'PostgreSQL queue', value: p => p.postgresQueueDepth, format: v => v.toLocaleString('en-US') },
+  { title: 'PostgreSQL queue', value: p => p.postgresQueueDepth, format: count },
   { title: 'Heap memory', value: p => p.heapBytes, format: v => `${(v / 1048576).toFixed(0)} MiB` },
+  { title: 'Disconnects', value: closes, format: count },
+  { title: 'Output queue overflows', value: p => p.transport?.closes?.output_overflow ?? 0, format: count },
+  { title: 'Output queue wait p99', value: p => p.transport?.waitP99Micros ?? 0, format: milliseconds },
+  { title: 'Database pool wait (mean)', value: p => p.pool?.acquireMeanMicros ?? 0, format: milliseconds },
+  { title: 'Critical writes pending', value: p => p.critical?.pending ?? 0, format: count },
+  { title: 'Game loop heartbeat age', value: heartbeat, format: milliseconds },
 ];
 const breakerReasons: Record<string, string> = {
   loop_lag: 'the game loop is running late',

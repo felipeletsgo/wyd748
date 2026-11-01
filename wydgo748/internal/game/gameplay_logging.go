@@ -24,9 +24,12 @@ const gameplayLogSummaryInterval = time.Minute
 type gameplayLogStats struct {
 	Skills  uint64
 	Attacks uint64
+	PvP     uint64
+	Misses  uint64
 	Kills   uint64
 	Drops   uint64
 	Gold    uint64
+	Pickups uint64
 	Batches uint64
 }
 
@@ -54,12 +57,18 @@ func (w *World) gameplayLogf(kind, format string, args ...interface{}) {
 		w.gameplayLog.Skills++
 	case "attack":
 		w.gameplayLog.Attacks++
+	case "pvp":
+		w.gameplayLog.PvP++
+	case "miss":
+		w.gameplayLog.Misses++
 	case "kill":
 		w.gameplayLog.Kills++
 	case "drop":
 		w.gameplayLog.Drops++
 	case "gold":
 		w.gameplayLog.Gold++
+	case "pickup":
+		w.gameplayLog.Pickups++
 	case "batch":
 		w.gameplayLog.Batches++
 	}
@@ -79,8 +88,8 @@ func (w *World) flushGameplayLog(now time.Time, initial bool) {
 	}
 	stats := w.gameplayLog
 	if initial || stats != (gameplayLogStats{}) {
-		log.Printf("GAMEPLAY summary: skills=%d attacks=%d kills=%d drops=%d gold=%d batches=%d",
-			stats.Skills, stats.Attacks, stats.Kills, stats.Drops, stats.Gold, stats.Batches)
+		log.Printf("GAMEPLAY summary: skills=%d attacks=%d pvp=%d misses=%d kills=%d drops=%d gold=%d pickups=%d batches=%d",
+			stats.Skills, stats.Attacks, stats.PvP, stats.Misses, stats.Kills, stats.Drops, stats.Gold, stats.Pickups, stats.Batches)
 	}
 	w.gameplayLog = gameplayLogStats{}
 	w.nextGameplayLog = now.Add(gameplayLogSummaryInterval)

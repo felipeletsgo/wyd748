@@ -214,9 +214,14 @@ func WithProcessDiagnostics(result Overview, started time.Time) Overview {
 }
 
 func expvarInt(name string) int64 {
-	v := expvar.Get(name)
-	if metric, ok := v.(*expvar.Int); ok {
+	switch metric := expvar.Get(name).(type) {
+	case *expvar.Int:
 		return metric.Value()
+	case expvar.Func:
+		// Functions publish values sampled from other owners, such as the pool.
+		if value, ok := metric.Value().(int64); ok {
+			return value
+		}
 	}
 	return 0
 }

@@ -1,0 +1,1123 @@
+# WYD-Go server messages: English (en).
+# Format: <key><TAB><text>, as in the native server Language.txt table.
+# _NN_/_DN_ keys reuse the native server message names; _WG_ keys are WYD-Go messages.
+# Text uses Go fmt verbs (%d, %s, %q). Keep the same verbs in every language.
+# Text is Windows-1252, at most 127 bytes; the top notice shows 94 bytes.
+
+# airmove.go
+_WG_Flight_Could_Not_Completed	The flight could not be completed.
+
+# arch_crystals.go
+_WG_Only_God_Can_Use_Crystal	Only a God can use this crystal.
+_WG_Must_Reach_Level_Take_Oath	You must reach level 355 to take this oath.
+_NN_Youve_Done_It_Already	You have already done it.
+_WG_Must_Take_Oaths_Order	You must take the oaths in order.
+_WG_Need_Million_Experience_Oath	You need 100 million experience for this oath.
+_WG_Save_Failed_Oath_Was_Not_Taken	Save failed. The oath was not taken.
+_WG_Four_Oaths_Complete	The four oaths are complete.
+
+# ascension.go
+_NN_Need_8_Sephera	Bring the eight Sephira stones.
+_WG_Eight_Sephira_Stones_Gold_Required	Eight Sephira stones and 30,000,000 gold are required.
+_NN_CarryFull	Inventory is full.
+_NN_Sepherot_created	The Sefirot has been created.
+_WG_Place_Unicons_Spirit_Phoenixs_Spirit_Side	Place Unicon's Spirit and Phoenix's Spirit side by side, in that order.
+_WG_Sapphires_Required	10 Sapphires are required.
+_WG_Sapphires_Could_Not_Consumed	The Sapphires could not be consumed.
+_WG_Eternal_Stone_Has_Been_Forged	The Eternal Stone has been forged.
+_WG_Only_Mortal_Can_Ascend	Only a Mortal can ascend.
+_WG_Must_Level_Ascend	You must be level 371 to ascend.
+_WG_There_No_Room_New_Character_Account	There is no room for a new character on this account.
+_WG_Arch_Could_Not_Created	The Arch could not be created.
+_WG_Arch_Has_Been_Created_Awaits_Character	Your Arch has been created. It awaits at character selection.
+_WG_Save_Failed_Ascension_Was_Not_Completed	Save failed. The ascension was not completed.
+
+# carbuncle_master.go
+_WG_Only_Mortal_Characters_Can_Receive_Blessing	Only Mortal characters can receive this blessing.
+_WG_Level_Too_High_Beginner_Blessing	Your level is too high for the beginner blessing.
+_WG_Beginner_Blessing_Could_Not_Applied	The beginner blessing could not be applied.
+_WG_Beginner_Blessing_Has_Been_Applied	The beginner blessing has been applied.
+
+# celestial.go
+_WG_Ideal_Stone_Could_Not_Created	The Ideal Stone could not be created.
+_WG_Inventory_Full_Nothing_Was_Consumed	Inventory is full. Nothing was consumed.
+_WG_Save_Failed_Nothing_Was_Consumed	Save failed. Nothing was consumed.
+_WG_Ideal_Stone_Was_Created_Successfully	The Ideal Stone was created successfully.
+_WG_Ideal_Stone_Cannot_Used_While_Transformed	The Ideal Stone cannot be used while transformed.
+_WG_There_No_Celestial_Quest_Available_Character	There is no Celestial quest available for this character.
+_WG_Arch_Must_Level_Or_Higher	The Arch must be level 356 or higher.
+_WG_Respective_Mortal_Must_Level	The respective Mortal must be level 400.
+_WG_Cythera_Could_Not_Created	The Cythera could not be created.
+_WG_Save_Failed_Ideal_Stone_Was_Not	Save failed. The Ideal Stone was not consumed.
+_WG_Character_Now_Celestial_Re_Enter_From	Your character is now Celestial. Re-enter it from character selection.
+_WG_SubCelestial_Has_Already_Been_Created	The SubCelestial has already been created.
+_WG_Celestial_Must_Level_Or_Higher	The Celestial must be level 121 or higher.
+_WG_Fame_Required_Create_SubCelestial	100 Fame is required to create a SubCelestial.
+_WG_Equip_SubCelestial_Class_Sefirot	Equip the SubCelestial class Sefirot.
+_WG_Celestial_Face_Invalid	The Celestial face is invalid.
+_WG_SubCelestial_Has_Been_Created_Use_Mysterious	Your SubCelestial has been created. Use the Mysterious Stone to switch.
+_WG_Character_Has_No_Alternate_Celestial_Form	This character has no alternate Celestial form.
+_WG_Mysterious_Stone_Can_Only_Used_Inside	The Mysterious Stone can only be used inside a city.
+_WG_Save_Failed_Form_Was_Not_Changed	Save failed. The form was not changed.
+_WG_Celestial_Form_Changed	Celestial form changed.
+_WG_Fame_Required	500 Fame is required.
+_WG_Unlock_Only_Available_Celestial_Level	This unlock is only available at Celestial level 90.
+_WG_Free_One_Inventory_Slot_Second_Cythera	Free one inventory slot for the second Cythera.
+_WG_Celestial_Level_Has_Been_Unlocked	Celestial level 90 has been unlocked.
+_WG_Equip_Mystic_Cythera_Or_Higher	Equip a Mystic Cythera +11 or higher.
+_WG_Four_Secret_Stones_Required	The four Secret Stones are required.
+_WG_Arcana_Cythera_Was_Created	The Arcana Cythera was created.
+_NN_CombineFailed	The Arcana composition failed.
+
+# celestial_capsule.go
+_WG_Only_Celestial_Can_Use_Empty_Spirits	Only a Celestial can use an empty Spirit's Seal.
+_WG_Character_Already_Sealed	This character is already sealed.
+_WG_No_Capsule_Identifiers_Available	No capsule identifiers are available.
+_WG_Cargo_Full	Your Cargo is full.
+_WG_Celestial_Character_Sealed_Successfully	Celestial character sealed successfully.
+_WG_Character_Could_Not_Sealed	The character could not be sealed.
+_WG_Open_Cargo_Near_Cargo_Keeper_First	Open your Cargo near a Cargo Keeper first.
+_WG_Not_Spirits_Seal	This is not a Spirit's Seal.
+_WG_Spirits_Seal_Empty_Or_Invalid	The Spirit's Seal is empty or invalid.
+_WG_Spirits_Seal_Data_Unavailable	The Spirit's Seal data is unavailable.
+_WG_Invalid_Character_Name	Invalid character name.
+_WG_Character_Name_Already_Use	That character name is already in use.
+_NN_NoEmptySlot	There is no empty character slot.
+_WG_Celestial_Character_Extracted_Successfully	Celestial character extracted successfully.
+_WG_Character_Could_Not_Extracted	The character could not be extracted.
+
+# character_session.go
+_WG_Character_Could_Not_Saved_Try_Again	The character could not be saved. Try again.
+_WG_Character_Could_Not_Deleted	The character could not be deleted.
+_NN_Wrong_Password	Wrong password.
+_WG_Deletion_Could_Not_Saved	The deletion could not be saved.
+
+# chat_labels.go
+_WG_Mortal_Characters_Need_Level_Set_Tab	Mortal characters need level 70 to set a tab.
+_WG_Status_Message_Cleared	Status message cleared.
+
+# colosseum.go
+_NN_Need_Elixer	You need an Elixir Notice to enter the Colosseum.
+
+# commands.go
+_WG_Close_Auto_Trade_Before_Clearing_Inventory	Close Auto Trade before clearing your inventory.
+_WG_Extract_Or_Move_Filled_Spirits_Seal	Extract or move the filled Spirit's Seal before clearing inventory.
+_WG_Save_Failed_Inventory_Was_Not_Changed	Save failed. The inventory was not changed.
+_WG_Inventory_Cleared	Inventory cleared.
+_WG_Usage_Parry_Player	Usage: /parry <player>
+_NN_Not_Connected	That player is not online.
+_WG_Accuracy_D_Evasion_D_Against_S	[Accuracy: %d%% | Evasion: %d%%] against %s
+_WG_S_Not_Online	%s is not online.
+_WG_Usage_Spk_Message	Usage: /spk message
+_WG_Need_Shout_Announce	You need a Shout to announce.
+_WG_Failed_Consume_Shout_No_Announcement_Was	Failed to consume the Shout. No announcement was sent.
+
+# consumables.go
+_WG_Position_Saved	Position saved.
+_WG_No_Position_Saved	No position saved.
+_WG_Drag_Dye_Onto_Item	Drag the dye onto an item.
+_WG_Dye_Refined_Item_One_Glow	Dye a refined item (one with a + glow).
+_WG_Drag_Onto_Colored_Item	Drag it onto a colored item.
+_WG_Use_Colored_Items	Use it on colored items.
+_WG_Repliction_Can_Only_Used_Equipped_Defensive	Repliction can only be used on equipped defensive equipment.
+_WG_Item_Gained_New_Bonus	The item gained a new bonus!
+_WG_Item_Exclusive_Mortals	This item is exclusive to Mortals.
+_WG_Item_Cannot_Used_By_Evolution	This item cannot be used by this evolution.
+_WG_Item_Only_Available_Between_Levels	This item is only available between levels 201 and 205.
+_WG_Have_Already_Completed_Quest	You have already completed this quest.
+_WG_Cythera_Cannot_Refined_By_Quest	Cythera cannot be refined by this quest.
+_WG_No_Armor_Piece_Refine	No armor piece to refine.
+_WG_Set_Refined	Set refined!
+_WG_Equip_Item_Refine	Equip the item to refine it.
+_WG_Item_Cannot_Refined	That item cannot be refined.
+_NN_Cant_Refine_More	That item cannot be refined any further.
+_WG_Save_Failed_Reconnect_Reload_Authoritative_State	Save failed. Reconnect to reload the authoritative state.
+_WG_Refinement_Failed_Earring_Broke	The refinement failed and the earring broke.
+
+# consumables_native.go
+_WG_Pass_Does_Not_Belong_Evolution	This pass does not belong to your evolution.
+_NN_Refine_Success	Refine successful!
+_WG_Nightmare_Letter_Available_S	Nightmare Letter available in %s.
+_WG_Nightmare_Ticket_Limit_Reached	Nightmare ticket limit reached.
+_WG_D_Nightmare_Entries_Received	%d Nightmare entries received.
+_NN_Initialize_Skill	Skills initialized.
+
+# consumables_remaining.go
+_WG_Inventory_Full_2	Inventory full.
+_WG_Received_S	You received %s.
+_WG_Equip_Wounded_Mount_First	Equip a wounded mount first.
+_WG_Not_Enough_Gold_Revive_Mount	Not enough gold to revive the mount.
+_WG_Mount_Could_Not_Revived_Was_Lost	The mount could not be revived and was lost.
+_NN_Cured	Mount revived.
+_WG_Access_Already_Active_S	This access is already active for %s.
+_WG_Access_Enabled_Until_S	Access enabled until %s.
+
+# counters.go
+_WG_Unlock_Already_Active	This unlock is already active.
+_WG_Event_Access_Enabled	Event access enabled.
+_WG_Received_Elite_Cape	You received the Elite cape.
+
+# cp.go
+_WG_Chaos_Point_Increased_D	Chaos Point increased to %d.
+
+# crafting.go
+_WG_Composition_Unavailable_Please_Try_Again_Later	Composition is unavailable. Please try again later.
+
+# crafting_simple.go
+_WG_Wait_Second_Before_Trying_Again	Wait a second before trying again.
+_WG_Aylin_Charges_Gold	Aylin charges 50,000,000 gold.
+_WG_Two_Laktorerium_Packages_Units_Each_One	Two Laktorerium packages (10 units each) and one Sealed Scroll are required.
+_WG_Four_Laktorerium_Powders_Required	Four Laktorerium powders are required.
+_WG_Need_Fame_Point	You need 1 fame point.
+_WG_Level_Limit_Has_Been_Lifted	Your level limit has been lifted.
+
+# critical_persistence_basic_consumables.go
+_WG_Item_Use_Unavailable_Please_Try_Again	Item use is unavailable. Please try again later.
+
+# critical_persistence_celestial.go
+_WG_Celestial_Item_Use_Unavailable_Please_Try	Celestial item use is unavailable. Please try again later.
+_WG_Ideal_Stone_Composition_Unavailable_Please_Try	Ideal Stone composition is unavailable. Please try again later.
+
+# critical_persistence_equipment_consumables.go
+_WG_S_Unavailable_Please_Try_Again_Later	%s is unavailable. Please try again later.
+
+# critical_persistence_gamble.go
+_WG_Free_More_Inventory_Slots_Before_Playing	Free more inventory slots before playing Gamble.
+_WG_Gamble_Bet_Could_Not_Completed	The Gamble bet could not be completed.
+
+# critical_persistence_ground.go
+_WG_Save_Failed_Item_Was_Not_Picked	Save failed. The item was not picked up.
+_WG_Save_Failed_Item_Was_Not_Dropped	Save failed. The item was not dropped.
+
+# critical_persistence_guild_commands.go
+_WG_Guild_Q_Created	Guild %q created.
+_WG_Save_Failed_Guild_Was_Not_Created	Save failed. The guild was not created.
+_WG_Joined_Guild_S	You joined the guild %s.
+_WG_S_Joined_Guild	%s joined the guild.
+
+# critical_persistence_guild_economy.go
+_WG_City_Treasury_Collection_Could_Not_Completed	The city treasury collection could not be completed.
+
+# critical_persistence_guild_membership.go
+_WG_Guild_Persistence_Unavailable_Try_Again_Later	Guild persistence is unavailable. Try again later.
+_WG_Left_Guild_S	You left the guild %s.
+_WG_S_Was_Expelled_From_Guild	%s was expelled from the guild.
+_WG_Were_Expelled_From_Guild	You were expelled from the guild.
+_WG_S_Now_Sub_Leader	%s is now a sub-leader.
+_WG_Were_Promoted_Sub_Leader	You were promoted to sub-leader.
+
+# critical_persistence_instance_accounts.go
+_WG_Instance_Change_Could_Not_Saved_Items	The instance change could not be saved. Your items were not changed.
+
+# critical_persistence_instance_reward.go
+_WG_Inventory_Full_Next_Water_Scroll_Was	Inventory full: the next Water Scroll was dropped.
+_WG_Received_Next_Water_Scroll	You received the next Water Scroll.
+
+# critical_persistence_item_experience.go
+_WG_Reward_Received_D_EXP_D_Gold	Reward received: +%d EXP and +%d gold.
+_WG_Reward_Use_Unavailable_Please_Try_Again	Reward use is unavailable. Please try again later.
+
+# critical_persistence_mount_consumables.go
+_WG_Mount_Item_Use_Unavailable_Please_Try	Mount item use is unavailable. Please try again later.
+
+# critical_persistence_native_consumables.go
+_WG_Item_Use_Could_Not_Saved_Please	Item use could not be saved. Please try again later.
+
+# critical_persistence_quiz.go
+_WG_Quiz_Correct_Answer_Reward_Delivered	Quiz: correct answer! Reward delivered.
+_WG_Quiz_Reward_Delivery_Busy_Please_Try	Quiz: reward delivery is busy. Please try again before the deadline.
+
+# gamble.go
+_WG_Invalid_Gamble_Bet	Invalid Gamble bet.
+_NN_Not_Enough_Money	You do not have enough gold.
+_WG_Gamble_Temporarily_Unavailable	Gamble is temporarily unavailable.
+
+# gate_key.go
+_WG_Door_Already_Open	This door is already open.
+_WG_There_No_Door_Key_Here	There is no door for this key here.
+_NN_No_Key	You do not have the required key.
+
+# ghost_shop.go
+_WG_Auto_Trade_Closed	Auto Trade closed.
+_WG_Finish_Current_Trade_Before_Opening_Shop	Finish the current trade before opening the shop.
+_WG_Auto_Trade_Can_Only_Opened_Armia	Auto Trade can only be opened in Armia.
+_WG_There_No_Free_Space_Shop_Area	There is no free space for the shop in this area.
+_WG_Shop_ID_Already_Use_Try_Again	That shop ID is already in use. Try again.
+_WG_Auto_Trade_Opened_Armia_Free_Play	Auto Trade opened in Armia. You are free to play.
+_WG_Purchase_Could_Not_Saved_No_Items	The purchase could not be saved. No items or gold were transferred.
+_WG_Save_Failed_Purchase_Was_Not_Applied	Save failed. The purchase was not applied.
+_WG_Item_D_Purchased_D_Gold	Item %d purchased for %d gold.
+_WG_Item_D_Sold_D_Gold	Item %d sold for %d gold.
+_WG_Auto_Trade_Closed_Stock_Sold_Out	Auto Trade closed: stock sold out.
+
+# guild.go
+_WG_Do_Not_Belong_Guild	You do not belong to a guild.
+_WG_Usage_Create_Guild_Name	Usage: /create <guild name>
+_WG_Invalid_Guild_Name	Invalid guild name.
+_WG_Already_Belong_Guild	You already belong to a guild.
+_WG_Guild_Name_Already_Exists	A guild with that name already exists.
+_WG_Guild_Limit_Reached	Guild limit reached.
+_WG_Usage_Invite_Name	Usage: /invite <name>
+_WG_Already_Guild	You are already in the guild.
+_WG_Player_Already_Belongs_Guild	That player already belongs to a guild.
+_WG_Player_Belongs_Another_Kingdom	That player belongs to another kingdom.
+_WG_S_Invited_Guild_S_Type_Accept	%s invited you to the guild %s. Type /accept.
+_WG_Invitation_Sent_S	Invitation sent to %s.
+_WG_Have_No_Valid_Guild_Invitation	You have no valid guild invitation.
+_WG_Guild_No_Longer_Exists	That guild no longer exists.
+_WG_Do_Not_Belong_Guilds_Kingdom	You do not belong to this guild's kingdom.
+_WG_Save_Failed_Did_Not_Join_Guild	Save failed. You did not join the guild.
+_WG_Save_Failed_Still_Guild	Save failed. You are still in the guild.
+_WG_Usage_Expel_Name	Usage: /expel <name>
+_WG_Type_Leave_Leave_Guild	Type /leave to leave the guild.
+_WG_Player_Not_Guild	That player is not in your guild.
+_WG_Can_Only_Expel_Members_Who_Online	You can only expel members who are online.
+_WG_Cannot_Expel_Member	You cannot expel that member.
+_WG_Save_Failed_Nobody_Was_Expelled	Save failed. Nobody was expelled.
+_WG_Usage_Subcreate_Name	Usage: /subcreate <name>
+_WG_Member_Already_Holds_Rank	That member already holds a rank.
+_WG_Guild_Already_Has_Three_Sub_Leaders	The guild already has three sub-leaders.
+_WG_Save_Failed_Promotion_Was_Not_Applied	Save failed. The promotion was not applied.
+_NN_Cant_Declare_Ally	A guild cannot ally with itself.
+_WG_Allied_Guild_Not_Found	Allied guild not found.
+_WG_Save_Failed_Alliance_Was_Not_Changed	Save failed. The alliance was not changed.
+_NN_Ally_Stop	Alliance broken.
+_WG_Alliance_Formed	Alliance formed.
+_NN_Cant_Declare_War	A guild cannot declare war on itself.
+_WG_Target_Guild_Not_Found	Target guild not found.
+_WG_Guild_Already_Has_War_Declaration	Your guild already has a war declaration.
+_WG_Save_Failed_War_Declaration_Was_Not	Save failed. The war declaration was not applied.
+_WG_Save_Failed_War_Declaration_Was_Not_2	Save failed. The war declaration was not canceled.
+
+# guild_economy.go
+_WG_Collected_D_Gold_From_City_Treasury	Collected %d gold from the city treasury.
+_WG_Collected_D_Billion_Gold_Cheque_S	Collected %d billion-gold cheque(s) from the city treasury.
+
+# guild_protocol.go
+_WG_Wait_Before_Trying_Another_Recruitment	Wait before trying another recruitment.
+_WG_Cannot_Recruit_Yourself	You cannot recruit yourself.
+_WG_Only_Guild_Leader_Or_Sub_Leader	Only a guild leader or sub-leader can recruit.
+_WG_Only_Guild_Leader_Can_Use_Recruitment	Only the guild leader can use this recruitment type.
+_WG_Guild_Has_Reached_Its_Member_Limit	Your guild has reached its member limit.
+_WG_Sub_Leader_Slot_D_Already_Taken	Sub-leader slot %d is already taken.
+_WG_Guild_Recruitment_Unavailable_Sunday	Guild recruitment is unavailable on Sunday.
+_WG_Need_D_Gold_Recruit	You need %d gold to recruit.
+_WG_Save_Failed_Recruitment_Was_Not_Applied	Save failed. The recruitment was not applied.
+
+# guild_war_medals.go
+_WG_Tower_War_Reward_One_Random_Green	Tower war reward: one random green, gold or red medal. Each color has equal chance.
+
+# handlers.go
+_NN_ServerReboot_Cant_Connect	Server going into maintenance. Try again shortly.
+_WG_Connections_From_Network_Not_Allowed	Connections from this network are not allowed.
+_NN_Version_Not_Match_Rerun	Client update required. Close the game and run the launcher to update.
+_WG_Too_Many_Login_Attempts_Try_Again	Too many login attempts. Try again later.
+_WG_Login_Server_Busy_Try_Again	Login server busy. Try again.
+_WG_Channel_Transfer_Expired_Sign_Again	Channel transfer expired. Sign in again.
+_WG_Wrong_Account_Or_Password	Wrong account or password.
+_WG_Login_Temporarily_Unavailable_Try_Again_Shortly	Login temporarily unavailable. Try again shortly.
+_WG_Error_Loading_Account_Try_Again	Error loading the account. Try again.
+_WG_Character_Already_Connected_Try_Again_After	This character is already connected. Try again after it disconnects.
+_WG_Character_Could_Not_Prepared_Try_Again	The character could not be prepared. Try again.
+_WG_Character_State_Could_Not_Loaded_Try	The character state could not be loaded. Try again.
+_WG_Timed_Equipment_Could_Not_Validated_Try	Timed equipment could not be validated. Try again.
+_WG_Cape_Emblem_Could_Not_Saved_Try	The cape emblem could not be saved. Try again.
+_WG_World_Full_Please_Try_Again_Later	The world is full. Please try again later.
+_WG_Item_Locked_While_Listed_Auto_Trade	The item is locked while it is listed on Auto Trade.
+_WG_Move_Closer_Warehouse_Move_Cargo	Move closer to the Warehouse to move Cargo.
+_WG_Move_Item_Through_Inventory_Before_Equipping	Move the item through your inventory before equipping it.
+_WG_Item_Move_Could_Not_Submitted_Please	The item move could not be submitted. Please try again.
+_WG_Timed_Item_Has_Expired	This timed item has expired.
+_WG_Timed_Item_Could_Not_Activated	This timed item could not be activated.
+_WG_Save_Failed_Item_Move_Was_Cancelled	Save failed. The item move was cancelled.
+_NN_Cant_Deposit_That_Much	That amount could not be deposited.
+_NN_Cant_Withdraw_That_Much	That amount could not be withdrawn.
+_WG_Transfer_Could_Not_Submitted_Please_Try	The transfer could not be submitted. Please try again.
+_WG_Save_Failed_Transfer_Was_Not_Applied	Save failed. The transfer was not applied.
+_WG_Character_Has_Nothing_Right_Now	This character has nothing for you right now.
+_WG_Open_Merchant_Before_Buying_Item	Open a merchant before buying an item.
+_WG_Merchant_No_Longer_Available	That merchant is no longer available.
+_WG_Merchant_No_Longer_Available_2	The merchant is no longer available.
+_NN_He_Is_Not_Merchant	That character is not a merchant.
+_WG_Shop_Item_No_Longer_Available	That shop item is no longer available.
+_WG_Item_Unavailable_Server	That item is unavailable on this server.
+_WG_Inventory_Full_3	Your inventory is full.
+_WG_Purchase_Could_Not_Submitted_Please_Try	The purchase could not be submitted. Please try again.
+_WG_Purchase_Could_Not_Completed	The purchase could not be completed.
+_WG_Open_Merchant_Before_Buying_TOTO_Ticket	Open a merchant before buying a TOTO ticket.
+_WG_Shop_Item_Not_TOTO_Ticket	That shop item is not a TOTO ticket.
+_WG_Choose_Empty_Inventory_Slot	Choose an empty inventory slot.
+_WG_Invalid_TOTO_Match_Or_Score	Invalid TOTO match or score.
+_WG_TOTO_Tickets_Unavailable_Server	TOTO tickets are unavailable on this server.
+_WG_TOTO_Ticket_Could_Not_Created	The TOTO ticket could not be created.
+_WG_TOTO_Purchase_Could_Not_Submitted_Please	The TOTO purchase could not be submitted. Please try again.
+_WG_TOTO_Purchase_Could_Not_Completed	The TOTO purchase could not be completed.
+_WG_Filled_Spirits_Seal_Cannot_Sold	A filled Spirit's Seal cannot be sold.
+_NN_Cant_get_more_than_2G	You cannot carry any more gold.
+_WG_Sale_Could_Not_Submitted_Please_Try	The sale could not be submitted. Please try again.
+_WG_Move_Closer_Warehouse_Drop_Cargo_Items	Move closer to the Warehouse to drop Cargo items.
+_WG_Item_Can_No_Longer_Dropped	That item can no longer be dropped.
+_WG_Filled_Spirits_Seal_Cannot_Dropped	A filled Spirit's Seal cannot be dropped.
+_NN_Cant_Drop_Here	There is no room to drop that item here.
+
+# hell_store.go
+_WG_Character_Not_Hell_Gate_Merchant	That character is not the Hell Gate merchant.
+_WG_Choose_Item_Category_First	Choose an item category first.
+_WG_Hell_Gate_Store_Has_Nothing_Sell	The Hell Gate store has nothing to sell.
+
+# hidden_valley.go
+_WG_Hidden_Ruins_Access_Expired_Returning_Home	Hidden Ruins access expired. Returning to your home city.
+
+# indexed_use_items.go
+_WG_Gem_Applied_Successfully	Gem applied successfully.
+_WG_Equipment_Became_Legendary	The equipment became Legendary!
+
+# inventory_handlers.go
+_WG_Filled_Spirits_Seal_Cannot_Deleted	A filled Spirit's Seal cannot be deleted.
+
+# item_instances.go
+_WG_Instance_Not_Configured	This instance is not configured.
+_WG_Another_Instance_Type_Already_Active	Another instance of this type is already active.
+_WG_Only_Next_Water_Scroll_Can_Used	Only the next Water Scroll can be used during the exit window.
+_WG_Instance_Already_Occupied	This instance is already occupied.
+_WG_Ticket_Cannot_Used_From_Here	This ticket cannot be used from here.
+_WG_Room_Scroll_Requires_Completed_Water_Boss	This Room 1 Scroll requires a completed Water boss.
+_WG_Instance_Not_Open_Right_Now	This instance is not open right now.
+_WG_Party_Limit_Nightmare_Tier_Was_Reached	The party limit for this Nightmare tier was reached.
+_NN_Party_Leader_Only	Only the party leader can start this instance.
+_WG_Party_Required_Enter_Instance	A party is required to enter this instance.
+_WG_No_Eligible_Party_Member_Available	No eligible party member is available.
+_WG_Or_Party_Member_Already_Inside_Another	You or a party member is already inside another instance.
+_WG_Room_Already_Occupied	This room is already occupied.
+_WG_Big_Cube_Has_No_Configured_Questions	This Big Cube has no configured questions.
+_WG_Instance_Has_No_Configured_Monsters	This instance has no configured monsters.
+_WG_Instance_Accepts_Most_D_Players	This instance accepts at most %d players.
+_WG_Party_Member_Cannot_Enter_Instance	A party member cannot enter this instance.
+_WG_Instance_Entrance_Not_Walkable	The instance entrance is not walkable.
+_WG_Instance_Quiz_Area_Not_Walkable	The instance quiz area is not walkable.
+_WG_Instance_Monster_Area_Not_Walkable	The instance monster area is not walkable.
+_WG_Instance_Monster_Q_Not_Configured	The instance monster %q is not configured.
+_WG_Instance_Entrance_Blocked	The instance entrance is blocked.
+_WG_Instance_Content_Could_Not_Created	The instance content could not be created.
+_WG_Next_Room_Will_Open_Shortly	The next room will open shortly.
+
+# kefra_access.go
+_WG_Teleport_Could_Not_Completed	The teleport could not be completed.
+_WG_Not_Enough_Gold_Teleport	Not enough gold for the teleport.
+
+# kibita.go
+_WG_Speak_Kibita_Citizenship_Channel	Speak to Kibita in your citizenship channel.
+_WG_Soul_Exchange_Only_Available_Mortal_Characters	This Soul exchange is only available to Mortal characters.
+_WG_Lac_Soul_Exchange_Opens_Monday_Through	The Lac Soul exchange opens Monday through Friday at 21:00 server time, until 22:00.
+_WG_Soul_Effect_Already_Active	Your Soul effect is already active.
+_WG_Learning_Soul_Requires_Mortal_Level_Without	Learning Soul requires a Mortal at level 371 without the Soul skill.
+_WG_There_No_Room_Another_Effect	There is no room for another effect.
+_WG_Save_Failed_Soul_Exchange_Was_Not	Save failed. The Soul exchange was not completed.
+
+# kingdom.go
+_WG_Dead_Characters_Cannot_Choose_Kingdom	Dead characters cannot choose a kingdom.
+_WG_Only_Guild_Leader_Can_Change_Guilds	Only the guild leader can change the guild's kingdom.
+_WG_Leave_Current_Kingdom_Before_Choosing_Another	Leave your current kingdom before choosing another.
+_WG_Must_Level_Choose_Kingdom	You must be level 220 to choose a kingdom.
+_WG_Must_Level_Receive_Cape	You must be level 256 to receive this cape.
+_WG_Master_Cape_Requires_Celestial_Character	The Master cape requires a Celestial character.
+_WG_Current_Cape_Cannot_Receive_Kingdom_Medal	Your current cape cannot receive the kingdom medal.
+_DN_Need_D_Sapphire	You need %d Sapphires.
+_WG_Save_Failed_Kingdom_Was_Not_Changed	Save failed. The kingdom was not changed.
+_WG_Dead_Characters_Cannot_Leave_Kingdom	Dead characters cannot leave a kingdom.
+_WG_Do_Not_Belong_Kingdom	You do not belong to a kingdom.
+_WG_Cannot_Leave_Kingdom_Sunday	You cannot leave the kingdom on Sunday.
+_WG_Broker_Cannot_Convert_Kingdom_Cape	The broker cannot convert your kingdom cape.
+_WG_Save_Failed_Still_Kingdom	Save failed. You are still in the kingdom.
+_WG_Dead_Characters_Cannot_Use_Teleport	Dead characters cannot use this teleport.
+_WG_Wait_Before_Using_Kingdom_Teleport_Again	Wait before using the kingdom teleport again.
+_WG_Choose_Kingdom_Before_Visiting_King	Choose a kingdom before visiting the king.
+_WG_Kingdom_Teleport_Could_Not_Completed	The kingdom teleport could not be completed.
+
+# magic_chamber_runes.go
+_WG_Runes_Awaken_Hidden_Guardian	The runes awaken a hidden guardian!
+
+# mount.go
+_NN_You_need_feeding_mount	Your mount is starving and stopped helping you.
+_WG_Incubation_Complete_Apply_Ori_Lac_Again	Incubation is complete. Apply Ori/Lac again to continue hatching.
+_WG_Egg_Incubation_D_Hour_S_Remaining	Egg incubation: %d hour(s) remaining.
+_WG_Egg_Still_Incubating_D_Hour_S	The egg is still incubating (%d hour(s) remaining).
+_WG_Egg_Has_No_Free_Effect_Slot	The egg has no free effect slot for incubation.
+_WG_Egg_Hatched_Hatchling_Was_Born	The egg hatched! A hatchling was born.
+_WG_Egg_Incubation_Advanced_D_Wait_D	Egg incubation advanced (+%d). Wait %d hour(s).
+_WG_Refinement_Failed_Wait_D_Hour_S	Refinement failed. Wait %d hour(s) before trying again.
+_WG_Use_Hatch_Accelerator_Equipped_Egg	Use the hatch accelerator on an equipped egg.
+_WG_Save_Failed_Accelerator_Was_Not_Consumed	Save failed. The accelerator was not consumed.
+_WG_Hatch_Accelerator_Transformed_Egg_Into_Hatchling	The hatch accelerator transformed the egg into a hatchling.
+_WG_Hatchling_Grew_Next_Stage	Your hatchling grew to the next stage!
+_WG_Hatchling_Reached_Level_D	Your hatchling reached level %d.
+_WG_Mount_Was_Wounded	Your mount was wounded!
+_WG_Equip_Mount_Use	Equip the mount to use this on it.
+
+# mount_master.go
+_WG_Mount_Not_Registered_By_Server	This mount is not registered by the server.
+
+# operational.go
+_WG_Sending_Messages_Too_Quickly	You are sending messages too quickly.
+
+# party.go
+_WG_Player_Unavailable_Or_Out_Range	Player unavailable or out of range.
+_NN_Have_Own_Party_Already	That player is already in a party.
+_WG_Only_Leader_Can_Invite	Only the leader can invite.
+_NN_Partys_Full	The party is full.
+_WG_Party_Invitation_Expired	The party invitation expired.
+_WG_Could_Not_Join_Party	You could not join that party.
+_WG_Only_Leader_Can_Remove_Members	Only the leader can remove members.
+
+# premium_shop.go
+_WG_Received_D_Donate_Balance_D	You received %d donate. Balance: %d.
+
+# protocol_misc.go
+_WG_Selected_Player_No_Longer_Nearby	The selected player is no longer nearby.
+_WG_Player_Challenge_Expired	The player challenge expired.
+_WG_Player_Challenge_No_Longer_Valid	The player challenge is no longer valid.
+
+# quest.go
+_WG_Quest_Destination_Unavailable	The quest destination is unavailable.
+_WG_Do_Not_Have_Required_Items	You do not have the required items.
+_WG_Do_Not_Have_Enough_Entries	You do not have enough entries.
+_WG_Have_Nothing_Equipped_Improve	You have nothing equipped to improve.
+_WG_Save_Failed_Quest_Was_Not_Completed	Save failed. The quest was not completed.
+
+# quest_rewards.go
+_WG_Reward_Cannot_Used_Level_Or_Evolution	This reward cannot be used at this level or evolution.
+_WG_Experience_Gain_Disabled	Experience gain is disabled.
+_WG_Save_Failed_Reward_Was_Not_Consumed	Save failed. The reward was not consumed.
+
+# quiz_round.go
+_WG_Quiz_Incorrect_Answer	Quiz: incorrect answer.
+_WG_Quiz_Reward_Could_Not_Prepared_Contact	Quiz: the reward could not be prepared. Contact staff.
+_WG_Quiz_Correct_But_Inventory_Full_Make	Quiz: correct, but your inventory is full. Make room before the next question.
+
+# skill_master_reset.go
+_WG_Resetting_Attributes_Requires_Sapphires_Or_Return	Resetting attributes requires 30 Sapphires or Return Of Ability.
+_NN_Cant_with_armor	Unequip your armor and weapons first.
+_WG_Character_Class_Cannot_Reset	This character class cannot be reset.
+_WG_Need_Sapphires_Or_Return_Ability	You need 30 Sapphires or Return Of Ability.
+_WG_Attribute_Reset_Unavailable_Please_Try_Again	Attribute reset is unavailable. Please try again later.
+_WG_Reset_Material_Could_Not_Consumed	The reset material could not be consumed.
+_NN_Stat_Initialized	Attribute points reset successfully.
+
+# skills.go
+_WG_Coin_Armor_Requires_D_Gold	Coin Armor requires %d gold.
+
+# stack_merge.go
+_WG_Item_Stacking_Unavailable_Please_Try_Again	Item stacking is unavailable. Please try again later.
+
+# staff_goto.go
+_WG_Usage_Goto_X_Y_D	Usage: /goto X Y (1..%d).
+_WG_Goto_Unavailable_While_Dead_Trading_Or	/goto is unavailable while dead, trading or saving.
+_WG_Leave_Instance_Before_Using_Goto	Leave the instance before using /goto.
+_WG_Goto_Unavailable_During_City_War	/goto is unavailable during a city war.
+_WG_No_Free_Walkable_Tile_Near_D	No free walkable tile near %d,%d.
+_WG_Teleported_D_D	Teleported to %d,%d.
+_WG_Teleport_Could_Not_Saved_Try_Again	Teleport could not be saved; try again.
+_WG_Teleport_Busy_Try_Again	Teleport is busy; try again.
+
+# staff_ops.go
+_NN_Chat_Free	Your chat mute has been lifted.
+
+# switch_stones.go
+_WG_Name_Exchange_Could_Not_Saved	The name exchange could not be saved.
+
+# teleports.go
+_WG_Teleport_Unavailable_From_Position	Teleport unavailable from this position.
+_WG_Activate_Hidden_Ruins_Map_Before_Entering	Activate a Hidden Ruins map before entering Hidden Valley.
+_WG_Bid_Citywar_D_Total_Guild_Fame	Bid with /citywar %d <total guild fame>. No gold or entry fee.
+
+# timed_items.go
+_WG_One_Or_More_Timed_Items_Have	One or more timed items have expired.
+
+# trade.go
+_NN_Already_Trading	That player is already trading.
+_WG_Other_Players_Spirits_Seal_Invalid	The other player's Spirit's Seal is invalid.
+_WG_No_Space_Invalid_Gold_Or_Offer	No space, invalid gold, or the offer changed.
+_WG_Trade_Could_Not_Saved_No_Items	The trade could not be saved. No items or gold were transferred.
+_WG_Spirits_Seal_Could_Not_Transferred	The Spirit's Seal could not be transferred.
+_WG_Save_Failed_Trade_Was_Not_Applied	Save failed. The trade was not applied.
+
+# uxmal.go
+_WG_Rune_Track_Closed_Return_Minutes_Or	Rune Track is closed. Return at minutes 16, 36, or 56.
+_WG_Leader_Every_Member_Must_Rune_Track	The leader and every member must be at the Rune Track entrance.
+_WG_Rune_Track_Accepts_Most_Players	Rune Track accepts at most 13 players.
+_WG_Already_Inside_Rune_Track	You are already inside a Rune Track.
+_WG_Do_Not_Have_Rune_Track_Ticket	You do not have a Rune Track ticket.
+_WG_Quest_Currently_Occupied	The quest is currently occupied.
+_WG_Rune_Track_Room_Not_Configured	The Rune Track room is not configured.
+_WG_Rune_Track_Room_Cannot_Opened_Right	The Rune Track room cannot be opened right now.
+_WG_Rune_Track_Completed_Rune_Received	Rune Track completed: rune received.
+
+# Formatted messages
+_WG_Client_Network_Limit	Only %d game clients are allowed from the same network.
+_WG_Status_Message_Saved	Status message saved. Others can read it with /%s.
+_WG_Status_Line	Status: %s
+_WG_Shop_Open_Failed	Could not open the shop: %s
+_WG_Already_Have_Kingdom_Cape	You already have the proper cape of %s.
+_WG_Kingdom_Cape_Promoted	Your %s cape was promoted.
+_WG_Now_Belong_To_Kingdom	You now belong to %s.
+_NN_Leaving_kingdom	You left %s.
+_NN_Kingdom	Kingdom: %s
+_NN_KINGDOM_RED	Hekalotia
+_NN_KINGDOM_BLUE	Akelonia
+_WG_Kingdom_Neutral	Neutral
+_WG_Exchange_Stones_Swapped	The Exchange Stones swapped %s and %s.
+_WG_Sanction_Permanent	permanently
+_WG_Sanction_Until	until %s UTC
+_NN_No_Speak	You are muted %s.
+_SN_Blocked_Account	This account is suspended %s.
+_NN_Chat_Prohibition	You have been muted %s.
+_WG_Countdown_One_Minute	1 minute
+_WG_Countdown_Minutes	%d minutes
+_WG_Countdown_One_Second	1 second
+_WG_Countdown_Seconds	%d seconds
+_WG_Server_Restart_In	Server restart in %s. Please log out safely.
+_WG_Server_Maintenance_In	Server maintenance in %s. Please log out safely.
+_WG_Maintenance_Cancelled	The scheduled server maintenance was cancelled.
+_NN_ServerReboot_Now	The server is shutting down for maintenance now.
+
+# Notices and letters
+_WG_Colosseum_Starts_In	Colosseum %c starts in %d %s. Entrance gates close at %s.
+_WG_Unit_Minutes	minutes
+_WG_Unit_Minute	minute
+_WG_Colosseum_Next_Wave	Next wave: %d/5. Countdown: %d seconds.
+_WG_Colosseum_Wave_Begun	Colosseum %c: wave %d/5 has begun.
+_WG_Colosseum_Started	Colosseum %c has started. Entrance gates are now closed.
+_WG_Colosseum_Combat_Begun	Colosseum %c: combat has begun! Wave 1/5 is now active.
+_WG_Killer_Mob	mob
+_WG_Killer_Player	player
+_WG_Killed_By	!You were killed by %s %q.
+_WG_Honor_Sender	Honor
+_WG_Honor_Letter	!You received 1 honor.
+
+# Channel transfer
+_WG_Channel_Transfer_Destination	Use srv 1 or srv 2 to select another available channel.
+_WG_Channel_Transfer_Busy	Leave the battle, instance, trade or shop before changing channels.
+_WG_Channel_Transfer_Failed	Channel transfer failed. Try again shortly.
+_WG_Leave_Guild_Before_Citizenship	Leave your guild before leaving citizenship.
+
+# Messages built in shared helpers (matched at the send point)
+_WG_Character_Has_Become_God	The character %s has become a God!
+_WG_Usage_Balance_Or_Saldo_Own_Balances	Usage: /balance or /saldo (your own balances only).
+_WG_Usage_Medals_Or_Medalhas_Own_Medals	Usage: /medals or /medalhas (your own medals only).
+_WG_Donate_Fame_Honor_Pass_Kefra	Donate:%d Fame:%d Honor:%s Pass:%d Kefra:%d
+_WG_Medals_Gold_Red_Blue	Medals - Gold:%d Red:%d Blue:%d
+_WG_Save_Failed_Blessing_Was_Not_Applied	Save failed. The blessing was not applied.
+_WG_Character_Has_Become_Celestial	The character %s has become Celestial!
+_WG_Character_Transfer_Not_Available_Server	Character transfer is not available on this server.
+_WG_Citizenship_Departure_Unavailable_Server	Citizenship departure is unavailable on this server.
+_WG_Guild_Rank_Handover_Unavailable_Server	Guild rank handover is unavailable on this server.
+_WG_Legacy_Guild_War_Command_Unavailable_Use	The legacy guild war command is unavailable. Use /citywar or /tower for war information.
+_WG_Legacy_Item_Lock_Command_Unavailable_Server	The legacy item lock command is unavailable on this server.
+_WG_Colosseum_Entry_Could_Not_Saved	The Colosseum entry could not be saved.
+_WG_Chaos_Point_Range	Chaos Point: %d (range -75..+75)
+_WG_Fame	Fame: %d
+_WG_Guild	Guild: %s (%s)
+_WG_No_Guild	No guild
+_WG_Channel	Channel %d
+_WG_Item_Cannot_Used_Because_Buff_Already	This item cannot be used because the buff is already active.
+_WG_Buff_Cannot_Applied_Right_Now	This buff cannot be applied right now.
+_WG_Repliction_Works_Only_Defensive_Equipment	Repliction works only on defensive equipment.
+_WG_Repliction_Not_Configured	This repliction is not configured.
+_WG_Repliction_Cannot_Used_Cythera	Repliction cannot be used on Cythera.
+_WG_Refinement_Level_Too_High_Repliction	The refinement level is too high for this repliction.
+_WG_Item_Type_Cannot_Receive_Repliction	This item type cannot receive Repliction.
+_WG_Repliction_Grade_Does_Not_Match_Item	The repliction grade does not match the item.
+_WG_EF_SANC_Missing_From_ItemEffect	EF_SANC is missing from ItemEffect.
+_WG_Item_Used_By_Its_Corresponding_NPC	This item is used by its corresponding NPC or command.
+_NN_Wrong_Combination	Wrong combination.
+_NN_Processing_Complete	Processing complete.
+_WG_Combination_Failed	The combination failed.
+_WG_Place_Two_Identical_Items	Place two identical +9 items.
+_WG_Both_Items_Must_Refined	Both items must be refined to +9.
+_WG_Only_Ancient_Weapons_Can_Composed	Only Ancient weapons can be composed to +10.
+_WG_Light_Stone_Required	A Light Stone is required.
+_WG_Ancient_Item_Requires_Four_Gems	This Ancient item requires four %s gems.
+_WG_Four_Equal_Gems_Required	Four equal gems are required.
+_WG_Item_Cannot_Composed	This item cannot be composed.
+_WG_Gold_Limit_Reached	Gold limit reached.
+_WG_Drag_Item_Onto_Valid_Target	Drag the item onto a valid target.
+_WG_Now_Leads_Guild	%s now leads the guild.
+_WG_War_Declaration_Canceled	War declaration canceled.
+_WG_War_Canceled	War canceled.
+_WG_War_Started_Against_Guild	War started against guild %s.
+_WG_War_Declared_Against_Guild	War declared against guild %s.
+_WG_Guild_Declared_War_Guild	Guild %s declared war on your guild.
+_WG_Save_Failed_Tower_Was_Not_Captured	Save failed. The tower was not captured.
+_WG_Guild_Brought_Tower_Down_New_Defender	%s of guild %s brought the tower down! New defender: %s.
+_WG_Tower_War_Starts_Within_Minutes_Enter	Tower war starts within 5 minutes! Enter with /tower in Erion.
+_WG_Tower_War_Starts_Minute	Tower war starts in 1 minute!
+_WG_Tower_War_Ends_Minutes_Guild_Fame	Tower war ends in 5 minutes! Guild fame is awarded only on a kingdom change.
+_WG_Tower_War_Ends_Minute	Tower war ends in 1 minute!
+_WG_Tower_War_Started_Use_Tower_Erion	Tower war started! Use /tower in Erion. Duration: 60 minutes.
+_WG_City_War_Interrupted_Owners_Kept_Only	City war interrupted; owners kept. Only bids from the current fame week can be refunded.
+_WG_Saturday_Bids_Open_Until_Citywar_Total	Saturday bids open until 23:59:59! /citywar <1..4> <total guild fame>. No entry fee.
+_WG_City_War_Applications_Closed_Check_Owners	City war applications closed. Check owners and challengers with /citywar.
+_WG_City_War_Starts_Minutes_Gather_Contested	City war starts in 5 minutes! Gather in the contested city; summons 3 minutes after the start.
+_WG_City_War_Starts_Minute_Limit_Per	City war starts in 1 minute! Limit: 26 per guild. Erion: mortals only.
+_WG_City_War_Combat_Opens_Minute	City war combat opens in 1 minute!
+_WG_City_Wars_End_Minutes_Surviving_Forces	City wars end in 5 minutes! The surviving forces win.
+_WG_City_Wars_End_Minute	City wars end in 1 minute!
+_WG_City_War_Started_Summons_Minutes_Combat	City war started! Summons at +3 minutes; combat at +6; result at +31.
+_WG_Guilds_Summoned_Minutes_Preparation_Combat_Still	Guilds summoned! 3 minutes of preparation; combat still locked.
+_WG_Combat_Open_Four_Cities_Duration_Minutes	Combat open in the four cities! Duration: 25 minutes; a tie favors the defender.
+_WG_Item_Use_Could_Not_Saved	Item use could not be saved.
+_WG_Use_Item_Equipped_Egg	Use this item on an equipped egg.
+_WG_Quiz_Reward_Could_Not_Saved_Contact	Quiz: the reward could not be saved. Contact staff.
+_WG_Merchant_Transaction_Could_Not_Completed	The merchant transaction could not be completed.
+_WG_Invalid_Counter_Reward	Invalid counter reward.
+_WG_OX_Entry_Could_Not_Saved_Entrance	OX entry could not be saved. Your Entrance Ticket was not consumed.
+_WG_Door_Could_Not_Opened	The door could not be opened.
+_WG_Summon_Could_Not_Created	The summon could not be created.
+_WG_Dye_Can_Only_Used_Armor_Set	Dye can only be used on armor set pieces.
+_NN_Havent_Money_So_Much	Not enough gold.
+_WG_Account_Unavailable	Account unavailable.
+_WG_Item_No_Longer_Sale	This item is no longer for sale.
+_WG_Listed_Item_Changed_Purchase_Canceled	The listed item changed. Purchase canceled.
+_WG_Sellers_Cargo_Has_Reached_Its_Gold	The seller's Cargo has reached its gold limit.
+_WG_Item_Belongs_Another_Player_Now	This item belongs to another player for now.
+_WG_Only_Leader_Can	Only the leader can %s.
+_WG_Legacy_City_Applications_Refunded_Submit_Explicit	Legacy city applications refunded. Submit an explicit guild-fame bid.
+_WG_Saturday_Bidding_Closed_Unspent_Guild_Fame	Saturday bidding closed. Unspent guild fame reset; accepted city bids retained.
+_WG_Tower_War_Over_Without_Winning_Kingdom	Tower war over without a winning kingdom.
+_WG_Tower_War_Over_Kingdom_Won_Guild	Tower war over! Kingdom %d won; guild %s receives 100 fame. Eligible players receive a random medal.
+_WG_Tower_War_Over_Kingdom_Defended_No	Tower war over! Kingdom %d defended; no guild fame awarded. Eligible players receive a random medal.
+_WG_Medal_Delivery_Could_Not_Saved_Reward	Medal delivery could not be saved. Your reward remains pending.
+_WG_Winner_Points_Defense_X_Attack_Ownership	%s: winner %s. Points defense %d x attack %d. Ownership saved; defenses: %d.
+_WG_City_War_Application_Could_Not_Saved	The city-war application could not be saved.
+_WG_Guild_Registry_Unavailable	Guild registry unavailable.
+_WG_Guild_Fame	Guild %s: %d fame.
+_WG_Tower_Entry_Requires_Kingdom_Guild_Living	Tower entry requires a kingdom guild, a living character in Erion and an active tower war.
+_WG_Tower_Entry_Failed	Tower entry failed.
+_WG_Use_Citywar_Total_Guild_Fame_Bid	Use /citywar <1..4> <total guild fame bid>. Only increases are charged.
+_WG_City_Must_Total_Bid_Must_Unsigned	City must be 1..4; the total bid must be an unsigned 32-bit amount.
+_WG_City_Bid_Saved_Guild_Fame_Highest	City %d bid saved: %d guild fame. Highest total challenges; ties retain the leader.
+_WG_Return_City_Could_Not_Saved	Your return city could not be saved.
+_WG_Use_Gem_Equipped_Gear_Or_Ancient	Use the gem on equipped +10 gear or an Ancient weapon.
+_WG_Item_Cannot_Receive_Gem	This item cannot receive that gem.
+_WG_Armor_Must_Refined_Or_Higher	Armor must be refined to +10 or higher.
+_WG_Weapon_Cannot_Receive_Gem	This weapon cannot receive that gem.
+_WG_Weapon_Variant_Missing_From_Server_Catalog	The weapon variant is missing from the server catalog.
+_WG_Equipment_Has_No_Refinement_Effect	The equipment has no refinement effect.
+_WG_Use_Adamantite_Compatible_Equipment	Use Adamantite on compatible equipment.
+_WG_Equipment_Cannot_Become_Legendary	This equipment cannot become Legendary.
+_WG_Legendary_Result_Missing_From_Server_Catalog	The Legendary result is missing from the server catalog.
+_WG_Instance_Does_Not_Accept_Individual_Entries	This instance does not accept individual entries.
+_WG_Already_Inside_Instance	You are already inside this instance.
+_WG_Already_Inside_Another_Instance	You are already inside another instance.
+_WG_Instance_Already_Progress	This instance is already in progress.
+_WG_Instance_No_Longer_Accepting_Players	This instance is no longer accepting players.
+_WG_Instance_Full	This instance is full.
+_WG_Evolution_Cannot_Enter_Instance	Your evolution cannot enter this instance.
+_WG_Instance_Has_No_Configured_Rooms	This instance has no configured rooms.
+_WG_Instance_Not_Configured_Shared_Entry	This instance is not configured for shared entry.
+_WG_Instance_No_Longer_Open	This instance is no longer open.
+_WG_Entry_Mode_Not_Configured	This entry mode is not configured.
+_WG_Only_Party_Leader_Can_Enter_Instance	Only the party leader can enter this instance.
+_WG_Or_Party_Member_Already_Inside_Instance	You or a party member is already inside an instance.
+_WG_Shared_Instance_Has_No_Active_Room	The shared instance has no active room.
+_WG_Instance_Could_Not_Saved	The instance could not be saved.
+_WG_Kefra_Still_Guards_Passage	Kefra still guards the passage.
+_WG_Kefra_Has_Been_Defeated_Way_Uxmal	Kefra has been defeated. The way to Uxmal is open.
+_WG_Guild_Has_Defeated_Kefra_Way_Uxmal	Guild %s has defeated Kefra. The way to Uxmal is open.
+_WG_Have_No_Kefra_Entries_Left_Bring	You have no Kefra entries left. Bring a Locked Seal to Survivor.
+_WG_Bring_One_Secret_Stone_Class_Learn	Bring one Secret Stone for your class to learn Soul.
+_WG_Bring_One_Lac_Scrap_One_Hour	Bring one Lac scrap for the one-hour Soul effect.
+_WG_Soul_Learned_Can_Now_Use_Soul	Soul learned. You can now use Soul Limit.
+_WG_Soul_Granted_One_Hour_STR_INT	Soul granted for one hour: 2,000 STR, 2,000 INT and 10,000 maximum HP.
+_WG_Sapphires	%d Sapphires
+_WG_WYD_Lottery_Not_Available_Server	The WYD Lottery is not available on this server.
+_WG_Essence_Does_Not_Match_Mount	This essence does not match the mount.
+_WG_Mount_Already_Maximum_Level	The mount is already at maximum level.
+_WG_Failure_Mount_Lost_Level	Failure: the mount lost a level.
+_WG_Mount_Evolution_Failed	The mount evolution failed.
+_NN_Mount_Growth	Your mount grew to the next stage!
+_NN_Mount_Level	Your mount gained a level.
+_WG_Feed_Does_Not_Match_Mount	This feed does not match the mount.
+_WG_Mount_Lost_Its_Longevity_Cannot_Revived	The mount lost its longevity and cannot be revived.
+_WG_Mount_Revived_HP_Food	Mount revived (100 HP, 5 food).
+_WG_Mount_Fed	Mount fed.
+_WG_Mount_Longevity_Already_Maximum	Mount longevity is already at maximum.
+_WG_Mount_Longevity_Restored	Mount longevity restored.
+_WG_Potion_Can_Only_Used_Adult_Mount	This potion can only be used on an adult mount.
+_WG_Mount_Has_No_Remaining_Life_Points	This mount has no remaining life points.
+_WG_Mount_Life_Points_Already_Maximum	Mount life points are already at maximum.
+_WG_Mount_Recovered_Life_Point	The mount recovered 1 life point.
+_WG_Catalyst_Can_Only_Used_Adult_Mount	This catalyst can only be used on an adult mount.
+_WG_Mount_Does_Not_Meet_Catalyst_Requirements	This mount does not meet the catalyst requirements.
+_WG_Mount_Reached_Level	The mount reached level %d.
+_WG_Potion_Does_Not_Match_Mount	This potion does not match the mount.
+_WG_Bring_Me_Injured_Mount_I_Can	Bring me an injured mount and I can heal it.
+_WG_Reviving_Costs_Gold	Reviving %s costs %d Gold.
+_WG_Save_Failed_Mount_Was_Not_Changed	Save failed. The mount was not changed.
+_WG_Treatment_Failed_Mount_Was_Lost	The treatment failed and the mount was lost.
+_WG_Training_Field_Only_Mortals_Below_Level	The training field is only for mortals below level 35.
+_WG_Move_Closer_Interact	Move closer to interact.
+_WG_Character_Not_Visible	That character is not visible.
+_WG_Character_Not_Available	That character is not available.
+_WG_OX_Event_Inactive_Entrance_Ticket_Was	The OX event is inactive. Your Entrance Ticket was not consumed.
+_WG_OX_Enrollment_Closed_Entrance_Ticket_Was	OX enrollment is closed. Your Entrance Ticket was not consumed.
+_WG_Have_Already_Entered_OX_Event	You have already entered the OX event.
+_WG_Leave_Current_Instance_Before_Entering_OX	Leave your current instance before entering OX.
+_WG_Use_Entrance_Ticket_Big_Cube_Entry	Use the Entrance Ticket in the Big Cube entry area.
+_WG_Firework_Use_Could_Not_Saved	Firework use could not be saved.
+_WG_Premium_Shop_Not_Available_Server	The premium shop is not available on this server.
+_WG_Shop_Changed_Please_Open_Again	The shop changed. Please open it again.
+_WG_Do_Not_Have_Enough_Donate	You do not have enough donate.
+_WG_Please_Wait_Last_Action_Finish	Please wait for your last action to finish.
+_WG_Open_Premium_Shop_Before_Buying	Open the premium shop before buying.
+_WG_Donate_Not_Available_Server	Donate is not available on this server.
+_WG_Donate_Balance_Full	Your donate balance is full.
+_WG_Player_Challenge_Accepted	Player challenge accepted.
+_WG_All_Vs_All_Challenge_Accepted	All vs all challenge accepted.
+_WG_Available_Only_Mortal_Characters	Available only to Mortal characters.
+_WG_Must_Level	You must be level %d.
+_WG_Available_Only_Up_Level	Available only up to level %d.
+_WG_Cannot_Take_Quest_Yet	You cannot take this quest yet.
+_WG_Already_Have_Citizenship	You already have citizenship.
+_WG_Do_Not_Meet_Requirements_Yet	You do not meet the requirements yet.
+_WG_No_Entries_Left	You have no entries left.
+_WG_Rune_Track_Registration_Opens_Minutes_Except	Rune Track registration opens at minutes 16, 36 and 56, except during the daily closure.
+_WG_Party_Leader_Least_One_Member_Must	The party leader and at least one member must be alive at the entrance.
+_WG_Party_Member_Unavailable_Or_Already_Another	A party member is unavailable or already in another instance.
+_WG_Party_Member_Already_Registered	A party member is already registered.
+_WG_Need_Rune_Track_Ticket_First_Inventory	You need a Rune Track ticket in the first 60 inventory slots.
+_WG_Rune_Track_Refinement_Invalid	That Rune Track refinement is invalid.
+_WG_Rune_Track_Room_Full_Or_Already	That Rune Track room is full or already running.
+_WG_Rune_Track_Registration_Confirmed_Remain_Entrance	Rune Track registration confirmed. Remain at the entrance with your party until the next 20-minute cycle.
+_WG_Rune_Track	Rune Track: %d / %d
+_WG_Server_War_Not_Available_Server	Server war is not available on this server.
+_WG_Character_Could_Not_Validated_Learn_Skill	The character could not be validated to learn this skill.
+_WG_Invalid_Skill_Master	Invalid skill master.
+_WG_Open_Valid_Skill_Master_First	Open a valid skill master first.
+_WG_Skill_Not_Available_From_Master	This skill is not available from this master.
+_WG_Skill_Belongs_Another_Class	This skill belongs to another class.
+_WG_Skills_Data_Unavailable	This skill's data is unavailable.
+_WG_Skill_Has_Already_Been_Learned	This skill has already been learned.
+_WG_Insufficient_Skill_Points_Learn_Skill	Insufficient Skill Points to learn this skill.
+_WG_Insufficient_Level_Learn_Skill	Insufficient level to learn this skill.
+_WG_Insufficient_Mastery_Learn_Skill	Insufficient mastery to learn this skill.
+_WG_Have_Already_Learned_Ultimate_Skill_From	You have already learned the ultimate skill from another branch.
+_WG_Learn_All_Previous_Skills_Branch_First	Learn all previous skills in this branch first.
+_WG_Insufficient_Gold_Learn_Ultimate_Skill	Insufficient gold to learn the ultimate skill.
+_WG_Skill_Could_Not_Saved_Please_Try	The skill could not be saved. Please try again.
+_WG_Save_Failed_Items_Were_Not_Stacked	Save failed. The items were not stacked.
+_WG_Service_Not_Available_Server	That service is not available on this server.
+_WG_Only_One_Character_May_Equip_Greater	Only one character may equip the Greater Exchange Stone.
+_WG_Only_One_Character_May_Equip_Lesser	Only one character may equip the Lesser Exchange Stone.
+_WG_Leave_Guild_Before_Exchanging_Names	Leave your guild before exchanging names.
+_WG_These_Characters_Share_Their_Name_Another	These characters share their name with another character.
+_WG_PK_Mode_Disabled	PK mode disabled.
+_WG_PK_Mode_Enabled	PK mode enabled.
+_WG_Invalid_City_War_Request	Invalid city-war request.
+_WG_Invalid_City_War_Request_Size	Invalid city-war request size.
+_WG_Invalid_City_War_NPC	Invalid city-war NPC.
+_WG_Character_Not_City_War_Collector	That character is not a city-war collector.
+_WG_City_War_Registration_Open_Saturday_Only	City-war registration is open on Saturday only.
+_WG_Invalid_City_War_Confirmation	Invalid city-war confirmation.
+_WG_City_War_Request_Expired_Speak_Collector	The city-war request expired. Speak to the collector again.
+_WG_City_War_Target_Changed_Speak_Collector	The city-war target changed. Speak to the collector again.
+_WG_Unknown_Item_Cannot_Traded	An unknown item cannot be traded.
+_NN_NOT_TRANSITEM	This item cannot be traded.
+_WG_Spirits_Seal_Has_No_Valid_Identity	The Spirit's Seal has no valid identity.
+_WG_Same_Spirits_Seal_Was_Offered_More	The same Spirit's Seal was offered more than once.
+
+# Imported WYD-Go rows 440-495 of client UI/strdef.bin
+_WG_Mystic_Land_Hunt	Mystic Land: defeat Basilisk or Dracorich monsters until your quest is ready.
+_WG_Mystic_Land_Complete	Mystic Land complete. Visit Exploit_Leader to receive your amulet.
+_WG_Mystic_Land_Start	Speak to Knights_Leader to start the Mystic Land quest.
+_WG_Mystic_Land_Claimed	You have already received your Mystic Land reward.
+_WG_Mystic_Land_Reward	You received an amulet with two random bonuses.
+_WG_Crystal_Weapon_Requirements	Bring one crystal of each of the seven types and equip a weapon.
+_WG_Crystal_Weapon_Rejected	This weapon cannot receive crystal bonuses.
+_WG_Crystal_Weapon_Success	Your weapon received new random bonuses. The crystals were consumed.
+_WG_Map_Fragments_Converted	Your incomplete treasure map fragments were converted.
+_WG_Service_Not_Available_Yet	This service is not available yet. Your items have been preserved.
+_WG_Zakum_Area_Empty	There are no players in the Zakum area.
+_WG_Zakum_Area_Population	Zakum area: %s and %s other player(s).
+_WG_BeastMaster_Summons_Dismissed	Your BeastMaster summons have been dismissed.
+_WG_Finish_Current_Action	Please finish your current action and try again.
+_WG_Equip_Apprentice_Emblem	Equip the Apprentice Emblem to receive the green cape.
+_WG_Apprentice_Level_Range	This quest requires a Mortal between levels 101 and 150.
+_WG_Remove_Current_Cape	Remove your current cape before this exchange.
+_WG_Apprentice_Cape_Received	You received the Apprentice Cape.
+_WG_Exchange_Not_Saved	The exchange could not be saved. Your equipment was preserved.
+_WG_Quiz_459	The M key shows the minimap in the lower-right corner.
+_WG_Quiz_460	The M key shows the minimap in the upper-right corner.
+_WG_Quiz_461	Foema starts walking with her right foot.
+_WG_Quiz_462	The two-castle WYD Society quest grants an IMP.
+_WG_Quiz_463	The two-castle WYD Society quest grants Nyerdes.
+_WG_Quiz_464	A guild medal costs 8000000 before taxes.
+_WG_Quiz_465	WYD's maximum resolution is 1600x1200 at 32 bits.
+_WG_Quiz_466	WYD's minimum resolution is 640x480 at 16 bits.
+_WG_Quiz_467	There are seven types of crystals.
+_WG_Quiz_468	The Star Gem can memorize any location.
+_WG_Quiz_469	+9 items cannot receive options.
+_WG_Quiz_470	Skill points are required to learn skills.
+_WG_Quiz_471	A complete set grants a defense bonus.
+_WG_Quiz_472	Athena's Touch increases skill learning.
+_WG_Quiz_473	Sapphire is sold by the Royal Merchant.
+_WG_Quiz_474	An account can have five characters.
+_WG_Quiz_475	Total experience is greater in a party.
+_WG_Quiz_476	Fairy's Voice is used on targeted monsters.
+_WG_Quiz_477	Skill points are obtained only by leveling.
+_WG_Quiz_478	Foema uses a flamethrower for Fire Attack.
+_WG_Quiz_479	Potions are sold by the Royal Merchant.
+_WG_Quiz_480	Successful composition always resets the options.
+_WG_Quiz_481	There is no Cargo Guard in Erion.
+_WG_Quiz_482	A +9 shield receives additional defense and resistances.
+_WG_Quiz_483	Pressing A shows the minimap in the lower-right corner.
+_WG_Cube_Room	Cube %s
+_WG_Cube_Final	Cube Final
+_WG_Big_Cube	Big Cube
+_WG_Big_Cube_Wrong	Wrong answer. You left Big Cube.
+_WG_Quiz_Correct_Exp	Correct! +%s EXP.
+_WG_OX_Enrollment_Open	OX enrollment is open for 60 seconds. Use an Entrance Ticket in the Big Cube lobby.
+_WG_OX_Enter_During_Enrollment	Enter OX with an Entrance Ticket during enrollment.
+_WG_OX_Wrong_Answer	Wrong answer. You left OX without a reward.
+_WG_OX_Enrollment_Closes	OX enrollment closes in %s seconds.
+_WG_OX_Next_Question	Next OX question in %s seconds.
+_WG_Cube_Entrance_Blocked	The Cube entrance is blocked.
+_NN_Incorrect_kicked	Wrong answer. You left the Cube.
+
+# Content data text: quests, bosses and instances (matched at the send point)
+_WG_Entrance_Gravedigger_Area	Entrance to the Gravedigger area.
+_WG_Have_Entered_Gravedigger_Area	You have entered the Gravedigger area.
+_WG_Level_Or_Evolution_Does_Not_Allow	Your level or evolution does not allow entrance to the Gravedigger area.
+_WG_Dead_Do_Not_Rest_Here_I	The dead do not rest here. I will open the way while your strength suits this trial.
+_WG_Something_Stirs_Beneath_Graves_Worshipper_Calls	Something stirs beneath the graves. A worshipper calls to it. Hurry.
+_WG_Do_Not_Pity_Spirits_Friend_Pity	Do not pity the spirits, friend. Pity whoever wakes them.
+_WG_Kibita_Citizenship_Costs_Gold	Kibita: citizenship costs 400,000 gold.
+_WG_Now_Citizen_Drop_Bonus_Active	You are now a citizen. Drop bonus active.
+_WG_Kibita_Cannot_Become_Citizen_Right_Now	Kibita: you cannot become a citizen right now.
+_WG_Citizen_Kingdom_Never_Stranger_Anywhere	A citizen of this kingdom is never a stranger anywhere in it.
+_WG_Gold_Buys_Many_Things_Belonging_One	Gold buys many things. Belonging is the one worth the price.
+_WG_Entrance_Carbuncle_Area	Entrance to the Carbuncle area.
+_WG_Have_Entered_Carbuncle_Area	You have entered the Carbuncle area.
+_WG_Level_Or_Evolution_Does_Not_Allow_2	Your level or evolution does not allow entrance to the Carbuncle area.
+_WG_Garden_Grows_Wild_Hungry_Step_Through	The garden grows wild and hungry. Step through while you are ready for its trial.
+_WG_Carbuncles_Guard_Beds_Now_They_Were	Carbuncles guard the beds now. They were tame once, I swear it.
+_WG_Mind_Roots_Traveller_Some_Them_Mind	Mind the roots, traveller. Some of them mind you back.
+_WG_Entrance_Kaizen_Area	Entrance to the Kaizen area.
+_WG_Have_Entered_Kaizen_Area	You have entered the Kaizen area.
+_WG_Level_Or_Evolution_Does_Not_Allow_3	Your level or evolution does not allow entrance to the Kaizen area.
+_WG_Dark_Knight_Walks_Again_I_Have	The Dark Knight walks again. I have seen the banners from the ridge.
+_WG_I_Will_Send_Where_Scouts_Do	I will send you where the scouts do not return from. Be ready.
+_WG_Kaizen_Took_My_Brother_Take_My	Kaizen took my brother. Take my directions, and take your revenge.
+_WG_Entrance_Hydra_Area	Entrance to the Hydra area.
+_WG_Have_Entered_Hydra_Area	You have entered the Hydra area.
+_WG_Level_Or_Evolution_Does_Not_Allow_4	Your level or evolution does not allow entrance to the Hydra area.
+_WG_Come_Closer_Hydras_Drown_Valley_I	Come closer. The hydras drown this valley and I cannot hold it alone.
+_WG_Cut_One_Head_Two_Answer_Enter	Cut one head and two answer. Enter and see for yourself.
+_WG_Immortal_They_Call_Nothing_Bleeds_Immortal	Immortal, they call it. Nothing that bleeds is immortal.
+_WG_Entrance_Elf_Area	Entrance to the Elf area.
+_WG_Have_Entered_Elf_Area	You have entered the Elf area.
+_WG_Level_Or_Evolution_Does_Not_Allow_5	Your level or evolution does not allow entrance to the Elf area.
+_WG_Elves_Closed_Their_Borders_What_They	The elves closed their borders. What they hide there began our sorrow.
+_WG_Forest_Road_Open_While_Strength_Suits	The forest road is open while your strength suits this trial.
+_WG_Go_Softly_Elves_Hear_Sword_Drawn	Go softly. The elves hear a sword drawn from a mile off.
+_WG_Entrance_Royal_Cape_Trial	Entrance to the Royal Cape trial.
+_WG_Have_Entered_Kingdom_Area	You have entered the kingdom area.
+_WG_Royal_Cape_Trial_Requires_Mortal_Between	The Royal Cape trial requires a Mortal between levels 200 and 254.
+_WG_Cape_Cloth_Knight_What_Do_While	A cape is cloth. A knight is what you do while wearing it.
+_WG_Trial_Short_Surviving_Long_Part	The trial is short. Surviving it is the long part.
+_WG_Hand_Over_Balances_Piece	Hand over Balance's Piece.
+_WG_Ameria_Turned_Fragment_Into_Balances_Compound	Ameria turned the fragment into Balance's Compound.
+_WG_Ameria_Needs_Mortal_Between_Levels_Carrying	Ameria needs a Mortal between levels 120 and 124 carrying Balance's Piece.
+_WG_Bring_Me_Piece_I_Will_Bind	Bring me the piece and I will bind it. Balance is not found, it is made.
+_WG_Power_Without_Balance_Just_Faster_Way	Power without balance is just a faster way to fall.
+_WG_Trolls_Beyond_Gate_Carry_What_I	The trolls beyond the gate carry what I need. Take it from them.
+_WG_Show_Me_First_Gate_Key_I	Show me the First Gate Key and I will reward you.
+_WG_Well_Done_Take_These_Potions	Well done! Take these potions.
+_WG_Come_Back_As_Mortal_Below_Level	Come back as a Mortal below level 41, with the First Gate Key.
+_WG_New_Blood_Stand_Straight_Show_Me	New blood! Stand straight. Show me the key and I will fill your bag.
+_WG_Potions_First_Glory_Later_Order_Keeps	Potions first, glory later. That is the order that keeps you breathing.
+_WG_Every_Knight_I_Trained_Started_Exactly	Every knight I trained started exactly where you are standing.
+_WG_Entrance_Bless_God_Area	Entrance to the Bless of the God area.
+_WG_Have_Entered_Bless_God_Area	You have entered the Bless of the God area.
+_WG_Bless_God_Mortal_Between_Levels	Bless of the God is for a Mortal between levels 70 and 74.
+_WG_Kneel_God_Will_Look_East_Trolls	Kneel, and the god will look east with you. The trolls wait there.
+_WG_Blessing_Not_Given_Survived	The blessing is not given. It is survived.
+_WG_Seventy_Summers_No_More_Come_Now	Seventy summers and no more. Come now, or do not come at all.
+_WG_Entrance_Path_Knighthood_Trial	Entrance to the Path to Knighthood trial.
+_WG_Have_Entered_Path_Knighthood_Area	You have entered the Path to Knighthood area.
+_WG_Path_Knighthood_Mortal_Between_Levels	Path to Knighthood is for a Mortal between levels 100 and 150.
+_WG_Green_Cape_Marks_Squire_Earn_Training	The green cape marks a squire. Earn it on the training ground, not here.
+_WG_Every_Knight_Realm_Crossed_Line_First	Every knight of this realm crossed this line first. Most crossed back.
+_WG_Report_Squad_Leader_Tell_Him_Gate	Report to the Squad Leader. Tell him the gate guard sent you.
+_WG_Entrance_Balance_Power_Area	Entrance to the Balance of Power area.
+_WG_Have_Entered_Balance_Power_Area	You have entered the Balance of Power area.
+_WG_Balance_Power_Mortal_Between_Levels	Balance of Power is for a Mortal between levels 121 and 125.
+_WG_Trolls_Beyond_Hold_Shard_Old_Balance	The trolls beyond hold a shard of the old balance. Take it from them.
+_WG_Two_Forces_Pull_Land_Apart_Someone	Two forces pull this land apart. Someone must stand in the middle.
+_WG_Step_Through_Do_Not_Look_Back	Step through, and do not look back at me. It is bad luck.
+_WG_Entrance_Gargoyles_Molar_Tooth_Area	Entrance to the Gargoyle's Molar Tooth area.
+_WG_Have_Entered_Gargoyles_Molar_Tooth_Area	You have entered the Gargoyle's Molar Tooth area.
+_WG_Gargoyles_Molar_Tooth_Mortal_Between_Levels	Gargoyle's Molar Tooth is for a Mortal between levels 201 and 205.
+_WG_Gargoyles_Wake_Dusk_Dusk_Somewhere_So	The gargoyles wake at dusk. It is dusk somewhere, so keep your shield up.
+_WG_One_Tooth_All_I_Ask_Prying	One tooth. That is all I ask. Prying it loose is the hard part.
+_WG_Stone_Does_Not_Bleed_But_Does	Stone does not bleed, but it does break. Remember that inside.
+_WG_Hand_Over_Opportunitys_Piece	Hand over Opportunity's Piece.
+_WG_Kruno_Turned_Fragment_Into_Opportunitys_Compound	Kruno turned the fragment into Opportunity's Compound.
+_WG_Kruno_Needs_Mortal_Between_Levels_Carrying	Kruno needs a Mortal between levels 70 and 74 carrying Opportunity's Piece.
+_WG_Found_Piece_Give_Here_I_Will	You found the piece. Give it here and I will make it whole.
+_WG_Trolls_Carry_Without_Knowing_What_Lucky	The trolls carry it without knowing what it is. Lucky for us both.
+_WG_Compounded_Restores_What_Years_Took_From	Compounded, it restores what the years took from your skills.
+_WG_Show_Me_Second_Gate_Key_I	Show me the Second Gate Key and I will temper your weapon.
+_WG_Weapon_Has_Been_Tempered	Your weapon has been tempered.
+_WG_Clear_First_Gate_Bring_Me_Second	Clear the first gate and bring me the Second Gate Key.
+_WG_Second_Gate_Second_Lesson_Dull_Blade	Second gate, second lesson: a dull blade kills nobody but its owner.
+_WG_Bring_Key_I_Will_Put_Edge	Bring the key and I will put an edge on that weapon of yours.
+_WG_One_Reward_Per_Recruit_Spend_Weapon	One reward per recruit. Spend it on the weapon you mean to keep.
+_WG_Show_Me_Final_Gate_Key_I	Show me the Final Gate Key and I will bless your whole kit.
+_WG_Equipment_Has_Been_Blessed_Go_Earn	Your equipment has been blessed. Go and earn it.
+_WG_Clear_Second_Gate_Bring_Me_Final	Clear the second gate and bring me the Final Gate Key.
+_WG_Final_Gate_Past_There_No_Trainers	Final gate. Past it there are no trainers, only monsters.
+_WG_Give_Me_Key_I_Will_Harden	Give me the key and I will harden every piece you are wearing.
+_WG_Came_Recruit_Leave_Camp_Soldier	You came in a recruit. You leave this camp a soldier.
+_WG_Bring_Me_Orc_Emblem_From_Beyond	Bring me the Orc Emblem from beyond the final gate.
+_WG_Cleared_Camp_Armia_Has_One_More	You cleared the camp. Armia has one more defender.
+_WG_Clear_Three_Gates_Take_Orc_Emblem	Clear the three gates, take the Orc Emblem from their chief, then return.
+_WG_Three_Gates_Three_Guards_Orc_Chief	Three gates, three guards, and an orc chief behind the last one.
+_WG_Bring_Me_His_Emblem_I_Will	Bring me his emblem and I will call you a soldier, not a recruit.
+_WG_Every_Knight_Armia_Stood_Where_Stand	Every knight in Armia stood where you stand. Most of them came back.
+_WG_Entrance_Kefra	Entrance to Kefra.
+_WG_Welcome_Kefra	Welcome to Kefra!
+_WG_Have_No_Entries_Left_Bring_Locked	You have no entries left. Bring a Locked Seal.
+_WG_I_Am_Only_One_Who_Came	I am the only one who came back from Kefra. That should tell you enough.
+_WG_One_Locked_Seal_Grants_Entries_Each	One Locked Seal grants 50 entries. Each visit uses one entry.
+_WG_Step_Through_When_Ready_I_Will	Step through when you are ready. I will not follow you in.
+_WG_Entrance_Black_Archmage	Entrance to the Black Archmage.
+_WG_Have_Reached_Black_Archmage	You have reached the Black Archmage.
+_WG_Cannot_Reach_Black_Archmage_Right_Now	You cannot reach the Black Archmage right now.
+_WG_Black_Archmage_Awaits_Beyond_Gate_Prepare	The Black Archmage awaits beyond this gate. Prepare yourself.
+_WG_His_Storms_Answer_Every_Blow_Keep	His storms answer every blow. Keep your distance and your potions close.
+_WG_Many_Went_Face_His_Spells_Few	Many went to face his spells. Few walked back through here.
+_WG_Entrance_Guardian_Ruins	Entrance to the Guardian of the Ruins.
+_WG_Have_Reached_Guardian_Ruins	You have reached the Guardian of the Ruins.
+_WG_Cannot_Reach_Guardian_Ruins_Right_Now	You cannot reach the Guardian of the Ruins right now.
+_WG_Guardian_Ruins_Awaits_Beyond_Gate_Prepare	The Guardian of the Ruins awaits beyond this gate. Prepare yourself.
+_WG_Never_Tires_Never_Stops_Chasing_Do	It never tires and never stops chasing. Do not run alone.
+_WG_Ruins_Were_Quiet_Once_Then_Woke	The ruins were quiet once. Then it woke.
+_WG_Entrance_Demon_Lord	Entrance to the Demon Lord.
+_WG_Have_Reached_Demon_Lord	You have reached the Demon Lord.
+_WG_Cannot_Reach_Demon_Lord_Right_Now	You cannot reach the Demon Lord right now.
+_WG_Demon_Lord_Awaits_Beyond_Gate_Prepare	The Demon Lord awaits beyond this gate. Prepare yourself.
+_WG_When_His_Shield_Rises_Strike_His	When his shield rises, strike his guards first.
+_WG_Hold_Nerve_When_He_Rages_When	Hold your nerve when he rages. That is when he is weakest.
+_WG_Entrance_Ancient_Necromancer	Entrance to the Ancient Necromancer.
+_WG_Have_Reached_Ancient_Necromancer	You have reached the Ancient Necromancer.
+_WG_Cannot_Reach_Ancient_Necromancer_Right_Now	You cannot reach the Ancient Necromancer right now.
+_WG_Ancient_Necromancer_Awaits_Beyond_Gate_Prepare	The Ancient Necromancer awaits beyond this gate. Prepare yourself.
+_WG_His_Servants_Rise_Faster_Than_Can	His servants rise faster than you can bury them. Keep moving.
+_WG_Strike_Master_Not_Dead_Dead_Never	Strike the master, not the dead. The dead never end.
+_WG_Black_Archmage_Summons_Ice_Storm	The Black Archmage summons an ice storm!
+_WG_Black_Archmage_Unleashes_His_Fury	The Black Archmage unleashes his fury!
+_WG_Black_Archmage_Rises_From_Shadows	The Black Archmage rises from the shadows!
+_WG_Black_Archmage_Has_Been_Silenced	The Black Archmage has been silenced.
+_WG_Guardian_Ruins_Awakens	The Guardian of the Ruins awakens!
+_WG_Guardian_Ruins_Has_Been_Defeated	The Guardian of the Ruins has been defeated.
+_WG_Demon_Lord_Casts_Storm	The Demon Lord casts a storm!
+_WG_Demon_Lord_Summons_His_Guardians	The Demon Lord summons his guardians!
+_WG_Demon_Lord_Flies_Into_Rage	The Demon Lord flies into a rage!
+_WG_Demon_Lord_Emerges_From_Abyss	The Demon Lord emerges from the abyss!
+_WG_Demon_Lord_Has_Been_Defeated	The Demon Lord has been defeated!
+_WG_Ancient_Necromancer_Calls_Dead	The Ancient Necromancer calls the dead!
+_WG_Ancient_Necromancer_Rises	The Ancient Necromancer rises!
+_WG_Ancient_Necromancer_Returns_Dust	The Ancient Necromancer returns to dust.
+_WG_Rune_Track_Lich	Rune Track +0 - Lich
+_WG_Rune_Track_Tower_Defense	Rune Track +1 - Tower Defense
+_WG_Rune_Track_Amon	Rune Track +2 - Amon
+_WG_Rune_Track_Sulrang	Rune Track +3 - Sulrang
+_WG_Rune_Track_Labyrinth	Rune Track +4 - Labyrinth
+_WG_Rune_Track_Balrog	Rune Track +5 - Balrog
+_WG_Rune_Track_Golden_Rabbits	Rune Track +6 - Golden Rabbits
+_WG_Cube	Cube
+_WG_Cube_Mystic	Cube Mystic
+_WG_Cube_Arcane	Cube Arcane
+_WG_Hell_Gate_Entrance	Hell Gate - Entrance
+_WG_Mystic_Water_Room	Mystic Water Room 1
+_WG_Mystic_Water_Room_2	Mystic Water Room 2
+_WG_Mystic_Water_Room_3	Mystic Water Room 3
+_WG_Mystic_Water_Room_4	Mystic Water Room 4
+_WG_Mystic_Water_Room_5	Mystic Water Room 5
+_WG_Mystic_Water_Room_6	Mystic Water Room 6
+_WG_Mystic_Water_Room_7	Mystic Water Room 7
+_WG_Mystic_Water_Room_8	Mystic Water Room 8
+_WG_Mystic_Water_Nessus	Mystic Water Nessus
+_WG_Arcane_Magic_Chamber	Arcane Magic Chamber
+_WG_Arcane_Room	Arcane Room 1
+_WG_Arcane_Room_2	Arcane Room 2
+_WG_Arcane_Room_3	Arcane Room 3
+_WG_Arcane_Room_4	Arcane Room 4
+_WG_Mystic_Magic_Chamber	Mystic Magic Chamber
+_WG_Mystic_Room	Mystic Room 1
+_WG_Mystic_Room_2	Mystic Room 2
+_WG_Mystic_Room_3	Mystic Room 3
+_WG_Mystic_Room_4	Mystic Room 4
+_WG_Normal_Magic_Chamber	Normal Magic Chamber
+_WG_Normal_Room	Normal Room 1
+_WG_Normal_Room_2	Normal Room 2
+_WG_Normal_Room_3	Normal Room 3
+_WG_Normal_Room_4	Normal Room 4
+_WG_Normal_Water_Room	Normal Water Room 1
+_WG_Normal_Water_Room_2	Normal Water Room 2
+_WG_Normal_Water_Room_3	Normal Water Room 3
+_WG_Normal_Water_Room_4	Normal Water Room 4
+_WG_Normal_Water_Room_5	Normal Water Room 5
+_WG_Normal_Water_Room_6	Normal Water Room 6
+_WG_Normal_Water_Room_7	Normal Water Room 7
+_WG_Normal_Water_Room_8	Normal Water Room 8
+_WG_Normal_Water_Nessus	Normal Water Nessus
+_WG_Arcane_Water_Room	Arcane Water Room 1
+_WG_Arcane_Water_Room_2	Arcane Water Room 2
+_WG_Arcane_Water_Room_3	Arcane Water Room 3
+_WG_Arcane_Water_Room_4	Arcane Water Room 4
+_WG_Arcane_Water_Room_5	Arcane Water Room 5
+_WG_Arcane_Water_Room_6	Arcane Water Room 6
+_WG_Arcane_Water_Room_7	Arcane Water Room 7
+_WG_Arcane_Water_Room_8	Arcane Water Room 8
+_WG_Arcane_Water_Nessus	Arcane Water Nessus
+_WG_Nightmare_Normal	Nightmare Normal
+_WG_Nightmare_Mystic	Nightmare Mystic
+_WG_Nightmare_Arcane	Nightmare Arcane
+_WG_Nightmare_Normal_Personal	Nightmare Normal Personal
+_WG_Nightmare_Mystic_Personal	Nightmare Mystic Personal
+_WG_Nightmare_Arcane_Personal	Nightmare Arcane Personal
+
+# Content data text: quests, bosses and instances (matched at the send point)
+_WG_Rune_Track_2	Rune Track
+_WG_Hell_Gate	Hell Gate
+
+# Character information line
+_WG_Guild_Role_Member	Member
+_WG_Guild_Role_Leader	Leader
+_WG_Guild_Role_Sub_Leader	Sub-leader
+_WG_Guild_Allied_With	 allied with %s
+_WG_Citizenship	Citizenship: %s
+
+# Errors returned by shared helpers (matched at the send point)
+_WG_Mount_Item_Use_Could_Not_Saved	Mount item use could not be saved. Please try again later.
+_WG_Eligible_Party_Leader_Start_Instance	Only an eligible party leader can start this instance.
+_WG_Instance_No_Configured_Content	This instance has no configured content.
+_WG_Instance_Content_Area_Not_Walkable	The instance content area is not walkable.
+_WG_Instance_Monster_Not_Configured	An instance monster is not configured.
+_WG_Instance_Monster_Area_Blocked	The instance monster area is blocked.
+_WG_No_Instance_Monster_ID_Available	No instance monster ID is available.
+_WG_Instance_Question_Not_Configured	The instance question is not configured.
+_WG_Nightmare_Eight_Protected_NPCs	Nightmare supports at most eight protected NPCs.
+_WG_Nightmare_Boss_Not_Configured	The Nightmare boss is not configured.
+_WG_Nightmare_Boss_Ordinary_Respawn	The Nightmare boss cannot be an ordinary respawn.
+_WG_Nightmare_Protected_NPC_Not_Configured	A Nightmare protected NPC is not configured.
+_WG_Nightmare_Protected_NPC_Position_Blocked	A Nightmare protected NPC position is blocked.
+_WG_No_Nightmare_Protected_NPC_ID	No Nightmare protected NPC ID is available.
+_WG_Nightmare_Protected_NPC_ID_Twice	A Nightmare protected NPC ID was allocated twice.
+_WG_City_War_Status	%d %s: owner=%d challenger=%d bid=%d victories=%d
+_WG_Roll_Success	Success: %d/%d
+_WG_Roll_Fail	Fail: %d/%d
+_WG_Roll_Penalty_Success	Penalty Success: %d/%d
+_WG_Roll_Penalty_Fail	Penalty Fail: %d/%d

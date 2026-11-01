@@ -79,7 +79,8 @@ func ReadStaff(path string) (map[string]Staff, error) {
 				cap != control.PvPDoorCapability && cap != control.OXEventCapability && cap != control.ColosseumCapability &&
 				cap != control.BanCapability && cap != control.MuteCapability && cap != control.NoticeCapability &&
 				cap != control.ShutdownCapability && cap != control.AuditReadCapability &&
-				cap != control.AccountIPCapability && cap != control.LogsCapability {
+				cap != control.AccountIPCapability && cap != control.LogsCapability &&
+				cap != control.PersistenceRecoveryCapability {
 				return nil, errors.New("unsupported capability")
 			}
 		}

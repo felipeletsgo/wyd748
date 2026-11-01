@@ -293,14 +293,20 @@ func (w *World) nearestPlayerMatching(x, y uint16, maxDistance int, space string
 				continue
 			}
 			for _, p := range w.playerCells[uint32(xx)<<16|uint32(yy)] {
+				if p == nil {
+					continue
+				}
+				// Reject by distance and current best first (W6/P7); the order of
+				// the remaining filters does not change the selected player.
+				distance := chebyshev(x, y, p.X, p.Y)
+				if distance > maxDistance || distance > bestDistance ||
+					distance == bestDistance && best != nil && p.ID >= best.ID {
+					continue
+				}
 				if !validMobTargetAt(p, now) || w.gameplaySpaceForPlayer(p) != space || accept != nil && !accept(p) {
 					continue
 				}
-				distance := chebyshev(x, y, p.X, p.Y)
-				if distance <= maxDistance && (distance < bestDistance ||
-					distance == bestDistance && (best == nil || p.ID < best.ID)) {
-					best, bestDistance = p, distance
-				}
+				best, bestDistance = p, distance
 			}
 		}
 	}

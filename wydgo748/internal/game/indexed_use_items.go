@@ -44,7 +44,7 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 	resend := func(message string) {
 		s.Send(wire.SendItem(p.ID, placeInv, sourceSlot, *source))
 		if message != "" {
-			s.Send(wire.MessagePanel(message))
+			s.Send(wire.MessagePanel(w.tr(message)))
 		}
 	}
 	if req.dstType != placeEquip || req.dstPos >= 9 || req.dstPos == 0 {
@@ -104,7 +104,7 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 			w.syncPlayerVitalsToObservers(p)
 			w.refreshAppearance(p)
 			w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 3) })
-			s.Send(wire.MessagePanel("Gem applied successfully."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Gem_Applied_Successfully")))
 		}); err != nil {
 			resend("Item use is unavailable. Please try again later.")
 			log.Printf("[#%d] equipment gem admission: %v", s.ID, err)
@@ -139,7 +139,7 @@ func (w *World) useEquipmentGem(s *net.Session, p *Player, source *model.Item,
 	w.syncPlayerVitalsToObservers(p)
 	w.refreshAppearance(p)
 	w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 3) })
-	s.Send(wire.MessagePanel("Gem applied successfully."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Gem_Applied_Successfully")))
 	log.Printf("[#%d] gem item=%d applied target=%d->%d refinement_raw=%d", s.ID,
 		oldSource.Index, oldTarget.Index, target.Index, newRaw)
 }
@@ -176,7 +176,7 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 			s.Send(wire.SendItem(p.ID, byte(targetType), byte(targetPos), *target))
 		}
 		if message != "" {
-			s.Send(wire.MessagePanel(message))
+			s.Send(wire.MessagePanel(w.tr(message)))
 		}
 	}
 	target, targetType, targetPos := w.destItemTarget(p, req)
@@ -219,9 +219,9 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 			} else {
 				w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 0) })
 			}
-			s.Send(wire.MessagePanel(roll.message()))
+			s.Send(wire.MessagePanel(w.tr(roll.message())))
 			if success {
-				s.Send(wire.MessagePanel("The equipment became Legendary!"))
+				s.Send(wire.MessagePanel(w.msg("_WG_Equipment_Became_Legendary")))
 			}
 		}); err != nil {
 			resend(target, targetType, targetPos, "Item use is unavailable. Please try again later.")
@@ -240,7 +240,7 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 		*p.Char = snapshot
 		resend(target, targetType, targetPos, "")
 		log.Printf("[#%d] save Adamantite item=%d: %v", s.ID, oldSource.Index, err)
-		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Reconnect_Reload_Authoritative_State")))
 		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "adamantite upgrade", err)
 		return
 	}
@@ -256,9 +256,9 @@ func (w *World) useOreUpgrade(s *net.Session, p *Player, source *model.Item,
 	} else {
 		w.sendToPlayerView(p, func() []byte { return wire.Motion(p.ID, 14, 0) })
 	}
-	s.Send(wire.MessagePanel(roll.message()))
+	s.Send(wire.MessagePanel(w.tr(roll.message())))
 	if success {
-		s.Send(wire.MessagePanel("The equipment became Legendary!"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Equipment_Became_Legendary")))
 	}
 	log.Printf("[#%d] Adamantite target=%d result=%d success=%v roll=%d/%d",
 		s.ID, oldTarget.Index, target.Index, success, roll.Roll, roll.Chance)

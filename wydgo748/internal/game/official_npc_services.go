@@ -80,7 +80,7 @@ func (w *World) handleOfficialNPCService(s *net.Session, p *Player, m *Mob) bool
 func (w *World) useSilverDragon(p *Player) {
 	const price = 2_000_000
 	if p.Char.Gold < price {
-		circleServiceMessage(p, 155)
+		w.circleServiceMessage(p, 155)
 		return
 	}
 	// Recovered NPC dispatcher, case 62: eighteen occupied slots, not stack
@@ -99,12 +99,12 @@ func (w *World) useSilverDragon(p *Player) {
 	}
 	for _, missing := range remaining {
 		if missing != 0 {
-			circleServiceMessage(p, 274)
+			w.circleServiceMessage(p, 274)
 			return
 		}
 	}
 	if _, known := w.items[1726]; !known {
-		circleServiceMessage(p, 190)
+		w.circleServiceMessage(p, 190)
 		return
 	}
 	// The native result explicitly overrides the catalog's default +3 with
@@ -112,7 +112,7 @@ func (w *World) useSilverDragon(p *Player) {
 	reward, err := materializeItem(model.Item{Index: 1726, Eff: [6]byte{43, byte(w.intn(4))}})
 	if err != nil {
 		log.Printf("[#%d] Grewpain creation identity: %v", p.ID, err)
-		circleServiceMessage(p, 190)
+		w.circleServiceMessage(p, 190)
 		return
 	}
 	for slot, item := range inventory[:circleCarrySlots] {
@@ -147,10 +147,10 @@ func (w *World) reportZakumPopulation(p *Player, m *Mob) {
 		}
 	}
 	if count == 0 {
-		circleServiceMessage(p, zakumEmptyMessage)
+		w.circleServiceMessage(p, zakumEmptyMessage)
 		return
 	}
-	p.Session.Send(wire.MessageParameterized(zakumPopulationMessage-1000, last.Char.Name, strconv.Itoa(count-1)))
+	p.Session.Send(w.projectMessage(zakumPopulationMessage, last.Char.Name, strconv.Itoa(count-1)))
 }
 
 // A completed map invokes an external database event in the recovered server.
@@ -175,7 +175,7 @@ func (w *World) useOfficialCrystalService(p *Player) {
 	if p.Char.Equip[circleSlot].Index == 4060 || completeNativeTreasureMap(&p.Char.Inv) {
 		// Jewel 4060 and its temporary-soul state are absent from the active
 		// catalog/contract. Neither branch may consume items without its result.
-		circleServiceMessage(p, nativeServicePendingMessage)
+		w.circleServiceMessage(p, nativeServicePendingMessage)
 		return
 	}
 	fragments := false
@@ -184,7 +184,7 @@ func (w *World) useOfficialCrystalService(p *Player) {
 	}
 	if fragments {
 		if _, ok := w.items[485]; !ok {
-			circleServiceMessage(p, nativeServicePendingMessage)
+			w.circleServiceMessage(p, nativeServicePendingMessage)
 			return
 		}
 		images := criticalPreimages(p)
@@ -206,7 +206,7 @@ func (w *World) useOfficialCrystalService(p *Player) {
 	}
 	for _, present := range crystals {
 		if !present {
-			circleServiceMessage(p, crystalRequirementsMessage)
+			w.circleServiceMessage(p, crystalRequirementsMessage)
 			return
 		}
 	}
@@ -215,12 +215,12 @@ func (w *World) useOfficialCrystalService(p *Player) {
 	mobType := itemAbility(weapon, def, "EF_MOBTYPE")
 	if !known || weapon.Index == 0 || weapon.Index >= 3000 && weapon.Index < 3200 ||
 		(def.Pos != 64 && def.Pos != 192) || mobType == 1 || mobType == 3 {
-		circleServiceMessage(p, crystalWeaponMessage)
+		w.circleServiceMessage(p, crystalWeaponMessage)
 		return
 	}
 	skill, ok := w.skills[44]
 	if !ok || skill.AffectType != 9 || skill.TickType != 0 || skill.AffectTime <= 0 {
-		circleServiceMessage(p, nativeServicePendingMessage)
+		w.circleServiceMessage(p, nativeServicePendingMessage)
 		return
 	}
 	images := criticalPreimages(p)
@@ -285,7 +285,7 @@ func (w *World) rollOfficialCrystalWeapon(item model.Item, def model.ItemDef) mo
 
 func (w *World) commitOfficialNPCService(p *Player, images []criticalPreimage, operation string, weapon bool, message int16) {
 	rejected := func() {
-		circleServiceMessage(p, 188)
+		w.circleServiceMessage(p, 188)
 		w.resendInventory(p)
 	}
 	publish := func() {
@@ -296,7 +296,7 @@ func (w *World) commitOfficialNPCService(p *Player, images []criticalPreimage, o
 				p.Session.Send(playerScorePacket(p))
 			}
 			if message > 0 {
-				circleServiceMessage(p, message)
+				w.circleServiceMessage(p, message)
 			}
 		}
 		if weapon {

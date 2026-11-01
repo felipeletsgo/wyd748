@@ -69,22 +69,22 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 		return
 	}
 	if !isArch(ch) {
-		s.Send(wire.MessagePanel("Only a God can use this crystal."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_God_Can_Use_Crystal")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if ch.Score.Level < archCrystalMinLevel {
-		s.Send(wire.MessagePanel("You must reach level 355 to take this oath."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Must_Reach_Level_Take_Oath")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if ch.ArchCrystals >= passo {
-		s.Send(wire.MessagePanel("You have already done it."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Youve_Done_It_Already")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if ch.ArchCrystals != passo-1 {
-		s.Send(wire.MessagePanel("You must take the oaths in order."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Must_Take_Oaths_Order")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -92,7 +92,7 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 	// violates the usual minimum-level experience assumptions. Wrapping a
 	// uint32 subtraction would reward experience instead of charging it.
 	if ch.Exp < archCrystalExpCost {
-		s.Send(wire.MessagePanel("You need 100 million experience for this oath."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Need_Million_Experience_Oath")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -115,7 +115,7 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 		ch.Score.Level, ch.ArchCrystals = anteriorNivel, anteriorCristais
 		syncProgression(ch)
 		w.recalcPlayer(ch)
-		s.Send(wire.MessagePanel("Save failed. The oath was not taken."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Oath_Was_Not_Taken")))
 		log.Printf("[#%d] ERROR saving crystal %d: %v", s.ID, anteriorItem.Index, err)
 		return
 	}
@@ -126,7 +126,7 @@ func (w *World) useArchCrystal(s *net.Session, p *Player, item *model.Item, slot
 	s.Send(wire.UpdateEtc(p.ID, *ch))
 	w.syncPlayerVitalsToObservers(p)
 	if ch.ArchCrystals == archCrystalCount {
-		s.Send(wire.MessagePanel("The four oaths are complete."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Four_Oaths_Complete")))
 	}
 	log.Printf("[#%d] CRYSTAL %d (%d/%d) item=%d volatile=%d exp=%d->%d level=%d->%d",
 		s.ID, passo, ch.ArchCrystals, archCrystalCount, anteriorItem.Index, code,

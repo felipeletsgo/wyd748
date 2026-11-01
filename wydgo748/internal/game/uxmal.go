@@ -243,20 +243,20 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 	}
 	now := w.now()
 	if !uxmalScheduleAllowed(w.uxmal, now) {
-		s.Send(wire.MessagePanel("Rune Track is closed. Return at minutes 16, 36, or 56."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Rune_Track_Closed_Return_Minutes_Or")))
 		return
 	}
 	members, ok := w.uxmalMembers(p)
 	if !ok {
-		s.Send(wire.MessagePanel("The leader and every member must be at the Rune Track entrance."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Leader_Every_Member_Must_Rune_Track")))
 		return
 	}
 	if len(members) > w.uxmal.MaxPlayers && w.uxmal.MaxPlayers > 0 {
-		s.Send(wire.MessagePanel("Rune Track accepts at most 13 players."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Rune_Track_Accepts_Most_Players")))
 		return
 	}
 	if w.itemInstanceForPlayer(p.ID) != nil {
-		s.Send(wire.MessagePanel("You are already inside a Rune Track."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Already_Inside_Rune_Track")))
 		return
 	}
 	room := uxmalTicketRoom(model.Item{})
@@ -268,23 +268,23 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 		}
 	}
 	if ticketSlot < 0 {
-		s.Send(wire.MessagePanel("You do not have a Rune Track ticket."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Do_Not_Have_Rune_Track_Ticket")))
 		return
 	}
 	for _, member := range members {
 		if w.itemInstanceForPlayer(member.ID) != nil {
-			s.Send(wire.MessagePanel("You or a party member is already inside another instance."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Or_Party_Member_Already_Inside_Another")))
 			return
 		}
 	}
 	partySlot := w.uxmalFreeSlot(room)
 	if partySlot < 0 {
-		s.Send(wire.MessagePanel("The quest is currently occupied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Quest_Currently_Occupied")))
 		return
 	}
 	stage, ok := w.uxmalStage(room, partySlot)
 	if !ok {
-		s.Send(wire.MessagePanel("The Rune Track room is not configured."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Rune_Track_Room_Not_Configured")))
 		return
 	}
 	oldTicket := p.Char.Inv[ticketSlot]
@@ -310,7 +310,7 @@ func (w *World) startUxmal(s *net.Session, p *Player) {
 		p.Char.Inv[ticketSlot] = oldTicket
 		if !s.IsClosed() {
 			s.Send(wire.SendItem(p.ID, placeInv, byte(ticketSlot), oldTicket))
-			s.Send(wire.MessagePanel("The Rune Track room cannot be opened right now."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Rune_Track_Room_Cannot_Opened_Right")))
 		}
 	}
 	opened := func() {
@@ -513,7 +513,7 @@ func (w *World) grantRuneRewards(inst *ItemInstance, now time.Time, memberIDs []
 					}
 				}
 				member.Session.Send(wire.UpdateEtc(member.ID, *member.Char))
-				member.Session.Send(wire.MessagePanel("Rune Track completed: rune received."))
+				member.Session.Send(wire.MessagePanel(w.msgFor(member, "_WG_Rune_Track_Completed_Rune_Received")))
 			}
 		}
 	}, func() {

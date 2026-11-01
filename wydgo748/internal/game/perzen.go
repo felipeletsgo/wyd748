@@ -36,11 +36,11 @@ func perzenExchangeFor(def *model.NPCDef) (perzenExchange, bool) {
 
 func (w *World) usePerzen(p *Player, exchange perzenExchange) {
 	if exchange.maxLevel != 0 && p.Char.Score.Level >= exchange.maxLevel {
-		circleServiceMessage(p, 190)
+		w.circleServiceMessage(p, 190)
 		return
 	}
 	if _, ok := w.items[exchange.reward]; !ok {
-		circleServiceMessage(p, 190)
+		w.circleServiceMessage(p, 190)
 		return
 	}
 	// Keep the recovered sixty-slot search boundary. Consume one sphere,
@@ -55,7 +55,7 @@ func (w *World) usePerzen(p *Player, exchange perzenExchange) {
 		}
 	}
 	if source == -1 {
-		circleServiceMessage(p, 303) // Item is not suitable (existing EN/PT text).
+		w.circleServiceMessage(p, 303) // Item is not suitable (existing EN/PT text).
 		return
 	}
 	if amount := itemStackAmount(inventory[source]); amount > 1 {
@@ -71,13 +71,13 @@ func (w *World) usePerzen(p *Player, exchange perzenExchange) {
 		}
 	}
 	if destination == -1 {
-		circleServiceMessage(p, 1) // Not enough space for items.
+		w.circleServiceMessage(p, 1) // Not enough space for items.
 		return
 	}
 	reward, err := materializeItem(model.Item{Index: exchange.reward})
 	if err != nil {
 		log.Printf("[#%d] Perzen reward identity: %v", p.ID, err)
-		circleServiceMessage(p, 190)
+		w.circleServiceMessage(p, 190)
 		return
 	}
 	// Use the existing premium-mount lifecycle: the 30-day duration starts

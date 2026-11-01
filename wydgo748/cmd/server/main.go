@@ -23,6 +23,7 @@ import (
 	"wydgo/internal/control"
 	"wydgo/internal/data"
 	"wydgo/internal/game"
+	"wydgo/internal/lang"
 	"wydgo/internal/model"
 	"wydgo/internal/net"
 	"wydgo/internal/staffcontent"
@@ -180,6 +181,16 @@ func main() {
 	}
 	log.Printf("client integrity: %d probes loaded", len(clientIntegrity.Probes))
 
+	messages, err := lang.Load(cfg.LanguageDir)
+	if err != nil {
+		log.Fatalf("load server messages (%s): %v", cfg.LanguageDir, err)
+	}
+	// LoadServerConfig already validated both language codes.
+	channelLanguage, _ := lang.Parse(cfg.ChannelLanguage)
+	channel2Language, _ := lang.Parse(cfg.Channel2Language)
+	log.Printf("server messages: %d keys; channel 1 %s, channel 2 %s",
+		len(messages.Keys(lang.English)), channelLanguage.Code(), channel2Language.Code())
+
 	catalog, err := data.LoadCatalog(*itemPath, *itemNamePath, *itemEffectPath, *skillPath)
 	if err != nil {
 		log.Fatalf("load catalog: %v", err)
@@ -283,6 +294,9 @@ func main() {
 		postgresStore, err = store.NewPostgresStore(context.Background(), store.PostgresConfig{
 			URL: databaseURL, MaxConns: int32(cfg.DatabaseMaxConns), GuildsTxtPath: *guildsTxtPath,
 			OperationTimeout: time.Duration(cfg.CriticalPersistenceTimeoutMS) * time.Millisecond,
+			ReadTimeout:      time.Duration(cfg.DatabaseReadTimeoutMS) * time.Millisecond,
+			// The authoritative server ends a previous instance's backends first.
+			FenceGameInstance: true,
 		})
 		if err != nil {
 			log.Fatalf("open PostgreSQL: %v", err)
@@ -313,6 +327,7 @@ func main() {
 		game.WithNetworkAdmission(networkAdmission),
 		game.WithClientIntegrity(clientIntegrity),
 		game.WithOperationalConfig(operational),
+		game.WithMessages(messages), game.WithLanguage(channelLanguage),
 		game.WithQuests(quests), game.WithQuestZones(questZones), game.WithMounts(mounts),
 		game.WithBossCatalog(bosses), game.WithInitItems(initItems),
 		game.WithColosseum(cfg.Colosseum, colosseum),
@@ -335,7 +350,8 @@ func main() {
 		// outcome isolates its participants instead of stopping the world.
 		worldOptions = append(worldOptions,
 			game.WithCriticalPersistence(int(cfg.CriticalPersistenceWorkers), int(cfg.CriticalPersistenceCapacity)),
-			game.WithCriticalAccountContainment())
+			game.WithCriticalAccountContainment(), game.WithAsyncEntryReads(),
+			game.WithShutdownSaveWorkers(int(cfg.CriticalPersistenceWorkers)), game.WithPanicRestart())
 	}
 	if uxmal, ok := volatiles.Instances["uxmal"]; ok && uxmal.Uxmal != nil {
 		worldOptions = append(worldOptions, game.WithUxmal(uxmal))
@@ -360,7 +376,8 @@ func main() {
 		secondOptions := append([]game.WorldOption(nil), worldOptions...)
 		secondOperational := operational
 		secondOperational.ChannelID = 2
-		secondOptions = append(secondOptions, game.WithOperationalConfig(secondOperational))
+		secondOptions = append(secondOptions, game.WithOperationalConfig(secondOperational),
+			game.WithLanguage(channel2Language))
 		second, createErr := game.NewWorld(st, npcs, geners, catalog, dropRates, volatiles,
 			characterTemplates, terrain, secondOptions...)
 		if createErr != nil {
@@ -454,6 +471,10 @@ func main() {
 		FrameReadTimeout:     time.Duration(cfg.FrameReadTimeoutSecs) * time.Second,
 		InboundPacketsPerSec: int(cfg.InboundPacketsPerSec),
 		InboundBytesPerSec:   int(cfg.InboundBytesPerSec),
+		KeepAliveIdle:        time.Duration(cfg.TCPKeepAliveIdleSecs) * time.Second,
+		KeepAliveInterval:    time.Duration(cfg.TCPKeepAliveIntervalSecs) * time.Second,
+		KeepAliveCount:       int(cfg.TCPKeepAliveCount),
+		TCPUserTimeout:       time.Duration(cfg.TCPUserTimeoutSecs) * time.Second,
 	}
 	listenerErrors := make(chan error, len(worlds))
 	for i, channelWorld := range worlds {

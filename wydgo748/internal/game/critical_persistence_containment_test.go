@@ -88,8 +88,8 @@ func TestCriticalAccountContainmentIsolatesOnlyUnknownParticipants(t *testing.T)
 	}
 }
 
-func TestCriticalAccountContainmentKeepsSharedAggregatesGlobal(t *testing.T) {
-	world, held, _, queue, backend, _, release := containedCriticalWorld(t,
+func TestCriticalAccountContainmentKeepsSharedAggregatesFenced(t *testing.T) {
+	world, held, bystander, queue, backend, _, release := containedCriticalWorld(t,
 		errors.New("instance commit acknowledgement lost"))
 	world.criticalWrites.queue.store = &criticalInstanceAtomicTestStore{&criticalInstanceTestStore{backend}}
 	snapshot := world.instanceStateSnapshot()
@@ -101,7 +101,8 @@ func TestCriticalAccountContainmentKeepsSharedAggregatesGlobal(t *testing.T) {
 	release()
 	awaitReadyCriticalResults(t, queue, 1)
 	world.processCriticalCompletions(1)
-	if !world.shuttingDown || world.shutdownErr == nil {
-		t.Fatal("unknown shared instance outcome did not enter global maintenance")
+	if world.shuttingDown || world.shutdownErr != nil || queue.stopping || !world.criticalInstanceReserved() ||
+		!held.PersistencePoisoned || !held.Session.IsClosed() || bystander.Session.IsClosed() || bystander.PersistencePoisoned {
+		t.Fatal("shared instance failure lost its fences or stopped unrelated players")
 	}
 }

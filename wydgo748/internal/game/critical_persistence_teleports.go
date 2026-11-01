@@ -166,7 +166,7 @@ func (w *World) admitTeleportConsumable(p *Player, slot byte, rule model.Volatil
 	fail := func(message string) {
 		resyncUsedItem(p.Session, p, slot)
 		if message != "" {
-			p.Session.Send(wire.MessagePanel(message))
+			p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 		}
 	}
 	switch rule.Action {

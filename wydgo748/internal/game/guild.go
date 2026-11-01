@@ -151,7 +151,7 @@ func (w *World) sendGuildChat(sender *Player, message string) {
 	}
 	guild, _ := w.guildOf(sender.Char)
 	if guild == nil {
-		sender.Session.Send(wire.MessagePanel("You do not belong to a guild."))
+		sender.Session.Send(wire.MessagePanel(w.msgFor(sender, "_WG_Do_Not_Belong_Guild")))
 		log.Printf("[#%d] guild chat rejected: %q does not belong to a guild",
 			sender.Session.ID, sender.Char.Name)
 		return
@@ -179,31 +179,31 @@ func (w *World) guildCommandCreate(s *net.Session, p *Player, arg string) {
 	}
 	name := strings.TrimSpace(arg)
 	if name == "" {
-		s.Send(wire.MessagePanel("Usage: /create <guild name>"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Usage_Create_Guild_Name")))
 		return
 	}
 	if err := model.ValidateGuildName(name); err != nil {
-		s.Send(wire.MessagePanel("Invalid guild name."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Invalid_Guild_Name")))
 		log.Printf("[#%d] /create rejected: %v", s.ID, err)
 		return
 	}
 	if guild, _ := w.guildOf(p.Char); guild != nil {
-		s.Send(wire.MessagePanel("You already belong to a guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Already_Belong_Guild")))
 		return
 	}
 	if w.guilds.FindByName(name) != nil {
-		s.Send(wire.MessagePanel("A guild with that name already exists."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Guild_Name_Already_Exists")))
 		return
 	}
 	id, err := w.guilds.NextGuildID()
 	if err != nil {
-		s.Send(wire.MessagePanel("Guild limit reached."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Guild_Limit_Reached")))
 		log.Printf("[#%d] /create: %v", s.ID, err)
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueGuildCreate(p, name); err != nil {
-			s.Send(wire.MessagePanel("Save failed. The guild was not created."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Guild_Was_Not_Created")))
 			log.Printf("[#%d] ERROR /create admission %q: %v", s.ID, name, err)
 		}
 		return
@@ -229,11 +229,11 @@ func (w *World) guildCommandCreate(s *net.Session, p *Player, arg string) {
 	if err := w.saveGuildState(p.Account); err != nil {
 		w.guilds.Guilds = previousGuilds
 		p.Char.GuildID, p.Char.GuildRank = oldID, oldRank
-		s.Send(wire.MessagePanel("Save failed. The guild was not created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Guild_Was_Not_Created")))
 		log.Printf("[#%d] ERROR /create %q: %v", s.ID, name, err)
 		return
 	}
-	s.Send(wire.MessagePanel(fmt.Sprintf("Guild %q created.", name)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Guild_Q_Created", name)))
 	w.publishGuildIdentity(p)
 	log.Printf("[#%d] GUILD created id=%d %q by %q", s.ID, id, name, p.Char.Name)
 }
@@ -244,41 +244,40 @@ func (w *World) guildCommandInvite(s *net.Session, p *Player, arg string) {
 	}
 	target := strings.TrimSpace(arg)
 	if target == "" {
-		s.Send(wire.MessagePanel("Usage: /invite <name>"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Usage_Invite_Name")))
 		return
 	}
 	guild, err := w.requireGuildLeader(p.Char)
 	if err != nil {
-		s.Send(wire.MessagePanel(guildAuthMessage(err, "invite")))
+		s.Send(wire.MessagePanel(w.tr(guildAuthMessage(err, "invite"))))
 		return
 	}
 	if strings.EqualFold(target, p.Char.Name) {
-		s.Send(wire.MessagePanel("You are already in the guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Already_Guild")))
 		return
 	}
 	// Without a character/account index, only online players can be invited.
 	// Offline invitations would require scanning every account.
 	invited := w.guildPlayerByName(target)
 	if invited == nil || invited.Char == nil {
-		s.Send(wire.MessagePanel("That player is not online."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Connected")))
 		return
 	}
 	if other, _ := w.guildOf(invited.Char); other != nil {
-		s.Send(wire.MessagePanel("That player already belongs to a guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Already_Belongs_Guild")))
 		return
 	}
 	if w.criticalGuildMutationReserved(invited) {
 		return
 	}
 	if characterKingdom(invited.Char) != guild.Kingdom {
-		s.Send(wire.MessagePanel("That player belongs to another kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Belongs_Another_Kingdom")))
 		return
 	}
 	invited.GuildInviteFrom = guild.ID
 	invited.GuildInviteUntil = w.now().Add(guildInviteTTL)
-	invited.Session.Send(wire.MessagePanel(fmt.Sprintf(
-		"%s invited you to the guild %s. Type /accept.", p.Char.Name, guild.Name)))
-	s.Send(wire.MessagePanel(fmt.Sprintf("Invitation sent to %s.", invited.Char.Name)))
+	invited.Session.Send(wire.MessagePanel(w.msgFor(invited, "_WG_S_Invited_Guild_S_Type_Accept", p.Char.Name, guild.Name)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Invitation_Sent_S", invited.Char.Name)))
 	log.Printf("[#%d] GUILD invitation %q -> %q (guild %d)", s.ID, p.Char.Name, invited.Char.Name, guild.ID)
 }
 
@@ -288,28 +287,28 @@ func (w *World) guildCommandAccept(s *net.Session, p *Player, _ string) {
 	}
 	if p.GuildInviteFrom == 0 || w.now().After(p.GuildInviteUntil) {
 		p.GuildInviteFrom = 0
-		s.Send(wire.MessagePanel("You have no valid guild invitation."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Have_No_Valid_Guild_Invitation")))
 		return
 	}
 	if guild, _ := w.guildOf(p.Char); guild != nil {
 		p.GuildInviteFrom = 0
-		s.Send(wire.MessagePanel("You already belong to a guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Already_Belong_Guild")))
 		return
 	}
 	guild := w.guilds.FindByID(p.GuildInviteFrom)
 	if guild == nil {
 		p.GuildInviteFrom = 0
-		s.Send(wire.MessagePanel("That guild no longer exists."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Guild_No_Longer_Exists")))
 		return
 	}
 	if characterKingdom(p.Char) != guild.Kingdom {
 		p.GuildInviteFrom = 0
-		s.Send(wire.MessagePanel("You do not belong to this guild's kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Do_Not_Belong_Guilds_Kingdom")))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueGuildJoin(p, p, guild, 0, 0, true); err != nil {
-			s.Send(wire.MessagePanel("Guild persistence is unavailable. Try again later."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Guild_Persistence_Unavailable_Try_Again_Later")))
 			log.Printf("[#%d] ERROR /accept admission: %v", s.ID, err)
 		}
 		return
@@ -328,13 +327,13 @@ func (w *World) guildCommandAccept(s *net.Session, p *Player, _ string) {
 	if err := w.saveGuildState(p.Account); err != nil {
 		guild.Members = previousMembers
 		p.Char.GuildID, p.Char.GuildRank = oldID, oldRank
-		s.Send(wire.MessagePanel("Save failed. You did not join the guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Did_Not_Join_Guild")))
 		log.Printf("[#%d] ERROR /accept: %v", s.ID, err)
 		return
 	}
 	p.GuildInviteFrom = 0
 	w.publishGuildIdentity(p)
-	s.Send(wire.MessagePanel(fmt.Sprintf("You joined the guild %s.", guild.Name)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Joined_Guild_S", guild.Name)))
 	w.announceToGuild(guild.ID, fmt.Sprintf("%s joined the guild.", p.Char.Name), p)
 	log.Printf("[#%d] GUILD %q joined guild %d", s.ID, p.Char.Name, guild.ID)
 }
@@ -386,7 +385,7 @@ func (w *World) guildCommandLeave(s *net.Session, p *Player, _ string) {
 	}
 	guild, _ := w.guildOf(p.Char)
 	if guild == nil {
-		s.Send(wire.MessagePanel("You do not belong to a guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Do_Not_Belong_Guild")))
 		return
 	}
 	// Succession updates the first remaining member's account, not just the
@@ -432,11 +431,11 @@ func (w *World) guildCommandLeave(s *net.Session, p *Player, _ string) {
 		if promotedPlayer != nil {
 			w.repairGuildState(promotedPlayer.Char)
 		}
-		s.Send(wire.MessagePanel("Save failed. You are still in the guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Still_Guild")))
 		log.Printf("[#%d] ERROR /leave: %v", s.ID, err)
 		return
 	}
-	s.Send(wire.MessagePanel(fmt.Sprintf("You left the guild %s.", guildName)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Left_Guild_S", guildName)))
 	w.publishGuildIdentity(p)
 	if promoted != "" {
 		w.publishGuildIdentity(promotedPlayer)
@@ -451,33 +450,33 @@ func (w *World) guildCommandExpel(s *net.Session, p *Player, arg string) {
 	}
 	target := strings.TrimSpace(arg)
 	if target == "" {
-		s.Send(wire.MessagePanel("Usage: /expel <name>"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Usage_Expel_Name")))
 		return
 	}
 	guild, err := w.requireGuildLeader(p.Char)
 	if err != nil {
-		s.Send(wire.MessagePanel(guildAuthMessage(err, "expel")))
+		s.Send(wire.MessagePanel(w.tr(guildAuthMessage(err, "expel"))))
 		return
 	}
 	if strings.EqualFold(target, p.Char.Name) {
-		s.Send(wire.MessagePanel("Type /leave to leave the guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Type_Leave_Leave_Guild")))
 		return
 	}
 	victim := guild.Member(target)
 	if victim == nil {
-		s.Send(wire.MessagePanel("That player is not in your guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Not_Guild")))
 		return
 	}
 	// Only online members can be expelled without a character/account index
 	// for updating the persisted account of an offline member.
 	victimPlayer := w.guildPlayerByName(victim.Character)
 	if victimPlayer == nil || victimPlayer.Char == nil {
-		s.Send(wire.MessagePanel("You can only expel members who are online."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Can_Only_Expel_Members_Who_Online")))
 		return
 	}
 	// The native packet requires a strictly higher rank.
 	if _, actor := w.guildOf(p.Char); actor != nil && !model.CanDeprivate(actor.Rank, victim.Rank) {
-		s.Send(wire.MessagePanel("You cannot expel that member."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Cannot_Expel_Member")))
 		return
 	}
 	w.expelGuildMember(s, p, guild, victimPlayer)
@@ -498,26 +497,26 @@ func (w *World) onGuildDeprivate(s *net.Session, pkt []byte) {
 	targetID := uint16(binary.LittleEndian.Uint32(pkt[12:16]))
 	guild, actor := w.guildOf(p.Char)
 	if guild == nil {
-		s.Send(wire.MessagePanel("You do not belong to a guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Do_Not_Belong_Guild")))
 		return
 	}
 	target := w.playerByID(targetID)
 	if target == nil || target.Char == nil || !w.playersShareGameplaySpace(p, target) {
-		s.Send(wire.MessagePanel("That player is not online."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Connected")))
 		log.Printf("[#%d] 0x28C target %d not found", s.ID, targetID)
 		return
 	}
 	if target == p {
-		s.Send(wire.MessagePanel("Type /leave to leave the guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Type_Leave_Leave_Guild")))
 		return
 	}
 	victim := guild.Member(target.Char.Name)
 	if victim == nil {
-		s.Send(wire.MessagePanel("That player is not in your guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Not_Guild")))
 		return
 	}
 	if !model.CanDeprivate(actor.Rank, victim.Rank) {
-		s.Send(wire.MessagePanel("You cannot expel that member."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Cannot_Expel_Member")))
 		log.Printf("[#%d] 0x28C rejected: rank %d cannot expel rank %d",
 			s.ID, actor.Rank, victim.Rank)
 		return
@@ -555,12 +554,12 @@ func (w *World) expelGuildMember(s *net.Session, actor *Player, guild *model.Gui
 		if promotedPlayer != nil {
 			w.repairGuildState(promotedPlayer.Char)
 		}
-		s.Send(wire.MessagePanel("Save failed. Nobody was expelled."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Nobody_Was_Expelled")))
 		log.Printf("[#%d] ERROR expelling %q: %v", s.ID, victimName, err)
 		return
 	}
-	s.Send(wire.MessagePanel(fmt.Sprintf("%s was expelled from the guild.", victimName)))
-	victim.Session.Send(wire.MessagePanel("You were expelled from the guild."))
+	s.Send(wire.MessagePanel(w.msg("_WG_S_Was_Expelled_From_Guild", victimName)))
+	victim.Session.Send(wire.MessagePanel(w.msgFor(victim, "_WG_Were_Expelled_From_Guild")))
 	w.publishGuildIdentity(victim)
 	w.publishGuildIdentity(promotedPlayer)
 	log.Printf("[#%d] GUILD %q expelled %q from guild %d", s.ID, actor.Char.Name, victimName, guildID)
@@ -574,17 +573,17 @@ func (w *World) guildCommandSubLeader(s *net.Session, p *Player, arg string) {
 	}
 	target := strings.TrimSpace(arg)
 	if target == "" {
-		s.Send(wire.MessagePanel("Usage: /subcreate <name>"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Usage_Subcreate_Name")))
 		return
 	}
 	guild, err := w.requireGuildLeader(p.Char)
 	if err != nil {
-		s.Send(wire.MessagePanel(guildAuthMessage(err, "promote")))
+		s.Send(wire.MessagePanel(w.tr(guildAuthMessage(err, "promote"))))
 		return
 	}
 	promoted := w.guildPlayerByName(target)
 	if promoted == nil || promoted.Char == nil {
-		s.Send(wire.MessagePanel("That player is not online."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Connected")))
 		return
 	}
 	member := guild.Member(promoted.Char.Name)
@@ -592,16 +591,16 @@ func (w *World) guildCommandSubLeader(s *net.Session, p *Player, arg string) {
 		return
 	}
 	if member == nil {
-		s.Send(wire.MessagePanel("That player is not in your guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Not_Guild")))
 		return
 	}
 	if member.Rank != model.GuildRankMember {
-		s.Send(wire.MessagePanel("That member already holds a rank."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Member_Already_Holds_Rank")))
 		return
 	}
 	rank, ok := guild.FreeSubLeaderRank()
 	if !ok {
-		s.Send(wire.MessagePanel("The guild already has three sub-leaders."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Guild_Already_Has_Three_Sub_Leaders")))
 		return
 	}
 	if w.criticalWrites != nil {
@@ -621,12 +620,12 @@ func (w *World) guildCommandSubLeader(s *net.Session, p *Player, arg string) {
 	if err := w.saveGuildState(accounts...); err != nil {
 		w.restoreGuilds(snapshot)
 		promoted.Char.GuildRank = oldRank
-		s.Send(wire.MessagePanel("Save failed. The promotion was not applied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Promotion_Was_Not_Applied")))
 		log.Printf("[#%d] ERROR /subcreate: %v", s.ID, err)
 		return
 	}
-	s.Send(wire.MessagePanel(fmt.Sprintf("%s is now a sub-leader.", promoted.Char.Name)))
-	promoted.Session.Send(wire.MessagePanel("You were promoted to sub-leader."))
+	s.Send(wire.MessagePanel(w.msg("_WG_S_Now_Sub_Leader", promoted.Char.Name)))
+	promoted.Session.Send(wire.MessagePanel(w.msgFor(promoted, "_WG_Were_Promoted_Sub_Leader")))
 	w.publishGuildIdentity(promoted)
 	log.Printf("[#%d] GUILD %q promoted to sub-leader (rank %d) in guild %d",
 		s.ID, promoted.Char.Name, rank, guild.ID)
@@ -646,7 +645,7 @@ func (w *World) onGuildAlly(s *net.Session, pkt []byte) {
 	allyID := uint16(binary.LittleEndian.Uint32(pkt[16:20]))
 	guild, err := w.requireGuildLeader(p.Char)
 	if err != nil {
-		s.Send(wire.MessagePanel(guildAuthMessage(err, "ally")))
+		s.Send(wire.MessagePanel(w.tr(guildAuthMessage(err, "ally"))))
 		return
 	}
 	// The client claims its own guild in the first field; do not trust it.
@@ -655,11 +654,11 @@ func (w *World) onGuildAlly(s *net.Session, pkt []byte) {
 	}
 	if w.criticalWrites != nil {
 		if allyID == guild.ID {
-			s.Send(wire.MessagePanel("A guild cannot ally with itself."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Cant_Declare_Ally")))
 			return
 		}
 		if allyID != 0 && w.guilds.FindByID(allyID) == nil {
-			s.Send(wire.MessagePanel("Allied guild not found."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Allied_Guild_Not_Found")))
 			return
 		}
 		w.guildChangeAdmission(p, w.queueGuildAlliance(p, guild, allyID))
@@ -672,11 +671,11 @@ func (w *World) onGuildAlly(s *net.Session, pkt []byte) {
 		guild.Ally = 0
 	} else {
 		if allyID == guild.ID {
-			s.Send(wire.MessagePanel("A guild cannot ally with itself."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Cant_Declare_Ally")))
 			return
 		}
 		if w.guilds.FindByID(allyID) == nil {
-			s.Send(wire.MessagePanel("Allied guild not found."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Allied_Guild_Not_Found")))
 			return
 		}
 		guild.Ally = allyID
@@ -684,14 +683,14 @@ func (w *World) onGuildAlly(s *net.Session, pkt []byte) {
 
 	if err := w.saveGuildState(p.Account); err != nil {
 		w.restoreGuilds(snapshot)
-		s.Send(wire.MessagePanel("Save failed. The alliance was not changed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Alliance_Was_Not_Changed")))
 		log.Printf("[#%d] ERROR 0xE12: %v", s.ID, err)
 		return
 	}
 	if guild.Ally == 0 {
-		s.Send(wire.MessagePanel("Alliance broken."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Ally_Stop")))
 	} else {
-		s.Send(wire.MessagePanel("Alliance formed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Alliance_Formed")))
 	}
 	log.Printf("[#%d] GUILD %d alliance -> %d", s.ID, guild.ID, guild.Ally)
 }
@@ -713,7 +712,7 @@ func (w *World) onGuildWar(s *net.Session, pkt []byte) {
 	}
 	guild, err := w.requireGuildLeader(p.Char)
 	if err != nil {
-		s.Send(wire.MessagePanel(guildAuthMessage(err, "declare war")))
+		s.Send(wire.MessagePanel(w.tr(guildAuthMessage(err, "declare war"))))
 		return
 	}
 	claimed := binary.LittleEndian.Uint32(pkt[12:16])
@@ -727,11 +726,11 @@ func (w *World) onGuildWar(s *net.Session, pkt []byte) {
 	}
 	targetID := uint16(targetRaw)
 	if targetID == guild.ID {
-		s.Send(wire.MessagePanel("A guild cannot declare war on itself."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Cant_Declare_War")))
 		return
 	}
 	if targetID != 0 && w.guilds.FindByID(targetID) == nil {
-		s.Send(wire.MessagePanel("Target guild not found."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Target_Guild_Not_Found")))
 		return
 	}
 	if targetID == 0 {
@@ -739,7 +738,7 @@ func (w *World) onGuildWar(s *net.Session, pkt []byte) {
 		return
 	}
 	if guild.WarTarget != 0 {
-		s.Send(wire.MessagePanel("Your guild already has a war declaration."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Guild_Already_Has_War_Declaration")))
 		return
 	}
 	if w.criticalWrites != nil {
@@ -753,7 +752,7 @@ func (w *World) onGuildWar(s *net.Session, pkt []byte) {
 	guild.WarTarget = targetID
 	if err := w.saveGuildState(); err != nil {
 		w.restoreGuilds(snapshot)
-		s.Send(wire.MessagePanel("Save failed. The war declaration was not applied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_War_Declaration_Was_Not")))
 		log.Printf("[#%d] ERROR 0xE0E declaring war guild=%d target=%d: %v", s.ID, guild.ID, targetID, err)
 		return
 	}
@@ -791,7 +790,7 @@ func (w *World) cancelGuildWar(s *net.Session, guild *model.Guild) {
 	}
 	if err := w.saveGuildState(); err != nil {
 		w.restoreGuilds(snapshot)
-		s.Send(wire.MessagePanel("Save failed. The war declaration was not canceled."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_War_Declaration_Was_Not_2")))
 		log.Printf("[#%d] ERROR 0xE0E canceling war guild=%d target=%d: %v", s.ID, guild.ID, targetID, err)
 		return
 	}
@@ -813,7 +812,7 @@ func (w *World) announceToGuild(guildID uint16, message string, skip *Player) {
 		if member == skip {
 			continue
 		}
-		member.Session.Send(wire.MessagePanel(message))
+		member.Session.Send(wire.MessagePanel(w.trFor(member, message)))
 	}
 }
 

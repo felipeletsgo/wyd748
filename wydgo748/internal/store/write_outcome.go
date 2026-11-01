@@ -28,6 +28,23 @@ func rejectWrite(err error) error {
 	return &rejectedWrite{cause: err}
 }
 
+// unsentWrite marks a write that the coordinator never handed to an adapter.
+type unsentWrite struct{ reason string }
+
+func (e *unsentWrite) Error() string { return "write never sent: " + e.reason }
+
+// RejectUnsentWrite certifies that no adapter received the write. It takes a
+// reason, not an error, so a caller cannot relabel an ambiguous store result.
+func RejectUnsentWrite(reason string) error {
+	return &rejectedWrite{cause: &unsentWrite{reason: reason}}
+}
+
+// IsUnsentWrite reports a certified rejection of a write that never started.
+func IsUnsentWrite(err error) bool {
+	var unsent *unsentWrite
+	return IsWriteRejected(err) && errors.As(err, &unsent)
+}
+
 // IsWriteRejected distinguishes adapter-certified rejection from an unknown
 // commit outcome. It does not authorize replay, rollback or releasing resources;
 // the operation owner must separately verify its rejection continuation.

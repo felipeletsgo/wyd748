@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"encoding/binary"
 	"encoding/json"
 	"errors"
@@ -240,7 +241,7 @@ func TestMysticLandProgressCommitsWithTheKill(t *testing.T) {
 				if !wire.Decrypt(packet) {
 					t.Fatal("invalid response encryption")
 				}
-				if wire.ParseHeader(packet).Type == wire.OpMessageIndexed && int16(binary.LittleEndian.Uint16(packet[14:16])) == mysticLandReadyMessage-1000 {
+				if wire.ParseHeader(packet).Type == wire.OpMessagePanel && bytes.Equal(packet[12:107], w.projectMessage(mysticLandReadyMessage)[12:107]) {
 					ready = true
 				}
 			}

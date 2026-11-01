@@ -19,7 +19,7 @@ func (w *World) admitQuizReward(e *quizState, participant *quizParticipant, p *P
 		e.status.Correct++
 		e.status.DeliveryFailures++
 		p.Session.Send(wire.QuizClose(p.ID, participant.token))
-		p.Session.Send(wire.MessagePanel(message))
+		p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 	}
 	for i := 0; i < e.status.RewardQuantity; i++ {
 		item, err := materializeItem(model.Item{Index: e.status.ItemID})
@@ -63,12 +63,12 @@ func (w *World) admitQuizReward(e *quizState, participant *quizParticipant, p *P
 		}, func() {
 			p.Session.Send(wire.QuizClose(p.ID, token))
 			w.publishPlannedDrops(drops)
-			p.Session.Send(wire.MessagePanel("Quiz: correct answer! Reward delivered."))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Quiz_Correct_Answer_Reward_Delivered")))
 			log.Printf("[event] quiz reward event=%q round=%d account=%q item=%d quantity=%d",
 				e.status.EventID, round, participant.account, e.status.ItemID, e.status.RewardQuantity)
 		}, false, hooks)
 	if err != nil {
-		p.Session.Send(wire.MessagePanel("Quiz: reward delivery is busy. Please try again before the deadline."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Quiz_Reward_Delivery_Busy_Please_Try")))
 		log.Printf("[event] quiz reward admission rejected event=%q round=%d account=%q error=%v",
 			e.status.EventID, round, participant.account, err)
 		return

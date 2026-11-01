@@ -153,7 +153,7 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		if !w.newbieZoneDestinationAllowed(p, nextX, nextY) {
 			w.publishPlayerStop(p)
 			if p.Session != nil {
-				p.Session.Send(wire.MessagePanel(newbieZoneMessage))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, newbieZoneMessage)))
 			}
 			break
 		}

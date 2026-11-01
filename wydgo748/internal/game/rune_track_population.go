@@ -218,7 +218,7 @@ func (w *World) tickRunePopulation(inst *ItemInstance, now time.Time) {
 		for i, g := range rt.Parties {
 			for _, p := range w.runeTrackMembers(inst, &g) {
 				if p.Session != nil {
-					p.Session.Send(wire.MessagePanel(fmtRuneProgress(rt.Collected[i], rt.Targets[i])))
+					p.Session.Send(wire.MessagePanel(w.trFor(p, fmtRuneProgress(rt.Collected[i], rt.Targets[i]))))
 				}
 			}
 		}

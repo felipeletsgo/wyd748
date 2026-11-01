@@ -147,7 +147,7 @@ func (w *World) queueCriticalInstanceAccounts(actor *Player, members []*Player,
 				release()
 			}
 			if !actor.Session.IsClosed() {
-				actor.Session.Send(wire.MessagePanel("The instance change could not be saved. Your items were not changed."))
+				actor.Session.Send(wire.MessagePanel(w.msgFor(actor, "_WG_Instance_Change_Could_Not_Saved_Items")))
 				w.resendInventory(actor)
 			}
 			return nil

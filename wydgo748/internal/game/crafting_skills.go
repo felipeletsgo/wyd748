@@ -33,7 +33,7 @@ func (w *World) beginSkillCraft(s *net.Session, skillIndex int) (*Player, bool) 
 	}
 	now := w.now()
 	if !p.LastCraft.IsZero() && now.Sub(p.LastCraft) < 800*time.Millisecond {
-		s.Send(wire.MessagePanel("Wait a second before trying again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Wait_Second_Before_Trying_Again")))
 		return p, false
 	}
 	p.LastCraft = now
@@ -137,7 +137,7 @@ func (w *World) onCombineExtracao(s *net.Session, pkt []byte) {
 			p.Session.Send(wire.SendItem(p.ID, placeInv, byte(changedPos), p.Char.Inv[changedPos]))
 		}
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-		p.Session.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Save_Failed_Reconnect_Reload_Authoritative_State")))
 		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "skill Extracao", err)
 		return
 	}

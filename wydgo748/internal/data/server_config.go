@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"wydgo/internal/lang"
 	"wydgo/internal/model"
 )
 
@@ -50,6 +51,10 @@ type ServerConfig struct {
 	HandshakeTimeoutSecs         uint32
 	SessionIdleTimeoutSecs       uint32
 	FrameReadTimeoutSecs         uint32
+	TCPUserTimeoutSecs           uint32 // 0 disables TCP_USER_TIMEOUT
+	TCPKeepAliveIdleSecs         uint32
+	TCPKeepAliveIntervalSecs     uint32
+	TCPKeepAliveCount            uint32
 	InboundPacketsPerSec         uint32
 	InboundBytesPerSec           uint32
 	AuthAttemptsPerMinIP         uint32
@@ -59,33 +64,39 @@ type ServerConfig struct {
 	ChatWhisperPer10Secs         uint32
 	ChatGlobalPer10Secs          uint32
 	CriticalPersistenceTimeoutMS uint32
+	DatabaseReadTimeoutMS        uint32 // reads incl. pool wait; apart from write deadlines
 	ChannelID                    uint32
 	Channel2Enabled              bool
 	Channel2Address              string
-	NPCPath                      string
-	GeneratorPath                string
-	GuildsTxtPath                string
-	QuestsPath                   string
-	QuestZonesPath               string
-	InitItemsPath                string
-	BossPath                     string
-	ItemPath                     string
-	ItemNamePath                 string
-	ItemEffectPath               string
-	SkillPath                    string
-	DropRatePath                 string
-	VolatilePath                 string
-	InstancesPath                string
-	InstanceGeneratorsPath       string
-	ReplictionPath               string
-	MountPath                    string
-	CharacterTemplatePath        string
-	HeightMapPath                string
-	AttributeMapPath             string
-	TeleportPath                 string
-	NetworkAdmissionPath         string
-	ClientIntegrityPath          string
-	NPCGenerLog                  string
+	// LanguageDir holds en.txt and pt.txt; ChannelLanguage and
+	// Channel2Language select the message language of each channel.
+	LanguageDir            string
+	ChannelLanguage        string
+	Channel2Language       string
+	NPCPath                string
+	GeneratorPath          string
+	GuildsTxtPath          string
+	QuestsPath             string
+	QuestZonesPath         string
+	InitItemsPath          string
+	BossPath               string
+	ItemPath               string
+	ItemNamePath           string
+	ItemEffectPath         string
+	SkillPath              string
+	DropRatePath           string
+	VolatilePath           string
+	InstancesPath          string
+	InstanceGeneratorsPath string
+	ReplictionPath         string
+	MountPath              string
+	CharacterTemplatePath  string
+	HeightMapPath          string
+	AttributeMapPath       string
+	TeleportPath           string
+	NetworkAdmissionPath   string
+	ClientIntegrityPath    string
+	NPCGenerLog            string
 	// GameplayLog controls hot-path diagnostics (skills, attacks, deaths and
 	// drops): quiet, summary or verbose. Summary avoids per-event I/O on World.
 	GameplayLog string
@@ -123,6 +134,10 @@ func DefaultServerConfig() ServerConfig {
 		HandshakeTimeoutSecs:         5,
 		SessionIdleTimeoutSecs:       600,
 		FrameReadTimeoutSecs:         10,
+		TCPUserTimeoutSecs:           30,
+		TCPKeepAliveIdleSecs:         15,
+		TCPKeepAliveIntervalSecs:     5,
+		TCPKeepAliveCount:            4,
 		InboundPacketsPerSec:         256,
 		InboundBytesPerSec:           512 * 1024,
 		AuthAttemptsPerMinIP:         30,
@@ -132,8 +147,12 @@ func DefaultServerConfig() ServerConfig {
 		ChatWhisperPer10Secs:         8,
 		ChatGlobalPer10Secs:          2,
 		CriticalPersistenceTimeoutMS: 500,
+		DatabaseReadTimeoutMS:        3000,
 		ChannelID:                    1,
 		Channel2Address:              "0.0.0.0:8282",
+		LanguageDir:                  "data/content/language",
+		ChannelLanguage:              "pt",
+		Channel2Language:             "en",
 		NPCPath:                      "data/npcs",
 		GeneratorPath:                "data/spawns/NPCGener.txt",
 		GuildsTxtPath:                "runtime/Guilds.txt",
@@ -258,6 +277,10 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"handshake_timeout_seconds":        setUint32(&cfg.HandshakeTimeoutSecs),
 		"session_idle_timeout_seconds":     setUint32(&cfg.SessionIdleTimeoutSecs),
 		"frame_read_timeout_seconds":       setUint32(&cfg.FrameReadTimeoutSecs),
+		"tcp_user_timeout_seconds":         setUint32(&cfg.TCPUserTimeoutSecs),
+		"tcp_keepalive_idle_seconds":       setUint32(&cfg.TCPKeepAliveIdleSecs),
+		"tcp_keepalive_interval_seconds":   setUint32(&cfg.TCPKeepAliveIntervalSecs),
+		"tcp_keepalive_count":              setUint32(&cfg.TCPKeepAliveCount),
 		"inbound_packets_per_second":       setUint32(&cfg.InboundPacketsPerSec),
 		"inbound_bytes_per_second":         setUint32(&cfg.InboundBytesPerSec),
 		"auth_attempts_per_minute_ip":      setUint32(&cfg.AuthAttemptsPerMinIP),
@@ -267,9 +290,13 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 		"chat_whisper_per_10_seconds":      setUint32(&cfg.ChatWhisperPer10Secs),
 		"chat_global_per_10_seconds":       setUint32(&cfg.ChatGlobalPer10Secs),
 		"critical_persistence_timeout_ms":  setUint32(&cfg.CriticalPersistenceTimeoutMS),
+		"database_read_timeout_ms":         setUint32(&cfg.DatabaseReadTimeoutMS),
 		"channel_id":                       setUint32(&cfg.ChannelID),
 		"channel2_enabled":                 func(v string) error { b, err := strconv.ParseBool(v); cfg.Channel2Enabled = b; return err },
 		"channel2_address":                 func(v string) error { cfg.Channel2Address = v; return nil },
+		"language_dir":                     func(v string) error { cfg.LanguageDir = v; return nil },
+		"channel_language":                 func(v string) error { cfg.ChannelLanguage = v; return nil },
+		"channel2_language":                func(v string) error { cfg.Channel2Language = v; return nil },
 		"npcs":                             func(v string) error { cfg.NPCPath = v; return nil },
 		"npcgener":                         func(v string) error { cfg.GeneratorPath = v; return nil },
 		"guilds_txt":                       func(v string) error { cfg.GuildsTxtPath = v; return nil },
@@ -401,6 +428,11 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	if cfg.FrameReadTimeoutSecs == 0 || cfg.FrameReadTimeoutSecs > 60 {
 		return ServerConfig{}, fmt.Errorf("%s: frame_read_timeout_seconds must be between 1 and 60", path)
 	}
+	if cfg.TCPUserTimeoutSecs > 600 || cfg.TCPKeepAliveIdleSecs < 5 || cfg.TCPKeepAliveIdleSecs > 600 ||
+		cfg.TCPKeepAliveIntervalSecs == 0 || cfg.TCPKeepAliveIntervalSecs > 120 ||
+		cfg.TCPKeepAliveCount == 0 || cfg.TCPKeepAliveCount > 20 {
+		return ServerConfig{}, fmt.Errorf("%s: TCP keepalive or user timeout outside its supported range", path)
+	}
 	if cfg.InboundPacketsPerSec < 16 || cfg.InboundPacketsPerSec > 4096 {
 		return ServerConfig{}, fmt.Errorf("%s: inbound_packets_per_second must be between 16 and 4096", path)
 	}
@@ -419,8 +451,17 @@ func LoadServerConfig(path string) (ServerConfig, error) {
 	if cfg.CriticalPersistenceTimeoutMS < 100 || cfg.CriticalPersistenceTimeoutMS > 10000 {
 		return ServerConfig{}, fmt.Errorf("%s: critical_persistence_timeout_ms must be between 100 and 10000", path)
 	}
+	if cfg.DatabaseReadTimeoutMS < 100 || cfg.DatabaseReadTimeoutMS > 30000 {
+		return ServerConfig{}, fmt.Errorf("%s: database_read_timeout_ms must be between 100 and 30000", path)
+	}
 	if cfg.ChannelID == 0 || cfg.ChannelID > 255 {
 		return ServerConfig{}, fmt.Errorf("%s: channel_id must be between 1 and 255", path)
+	}
+	if _, err := lang.Parse(cfg.ChannelLanguage); err != nil {
+		return ServerConfig{}, fmt.Errorf("%s: channel_language: %w", path, err)
+	}
+	if _, err := lang.Parse(cfg.Channel2Language); err != nil {
+		return ServerConfig{}, fmt.Errorf("%s: channel2_language: %w", path, err)
 	}
 	if cfg.Channel2Enabled {
 		if cfg.ChannelID != 1 || cfg.Channel2Address == cfg.ListenAddress {

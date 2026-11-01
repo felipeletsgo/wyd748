@@ -146,11 +146,11 @@ func (w *World) queueCriticalInstanceReward(inst *ItemInstance, now time.Time) e
 			if ground != nil {
 				w.publishItemSpawn(ground)
 				if !leader.Session.IsClosed() {
-					leader.Session.Send(wire.MessagePanel("Inventory full: the next Water Scroll was dropped."))
+					leader.Session.Send(wire.MessagePanel(w.msgFor(leader, "_WG_Inventory_Full_Next_Water_Scroll_Was")))
 				}
 			} else if !leader.Session.IsClosed() {
 				leader.Session.Send(wire.SendItem(leader.ID, placeInv, byte(slot), reward))
-				leader.Session.Send(wire.MessagePanel("You received the next Water Scroll."))
+				leader.Session.Send(wire.MessagePanel(w.msgFor(leader, "_WG_Received_Next_Water_Scroll")))
 			}
 			log.Printf("[#%d] committed instance reward instance=%q item=%d slot=%d", leader.Session.ID, id, reward.Index, slot)
 			// A second admission is allowed only after the grant's account and

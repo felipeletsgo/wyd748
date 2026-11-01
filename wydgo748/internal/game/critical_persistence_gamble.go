@@ -89,7 +89,7 @@ func (w *World) queueGamble(p *Player, kind, bet uint32) error {
 	gold, payout := gamblePayoutItems(uint64(prepared.Gold-bet) + uint64(outcome.prize))
 	prepared.Gold = gold
 	if _, err := materializeGamblePayout(prepared, payout); err != nil {
-		p.Session.Send(wire.MessagePanel("Free more inventory slots before playing Gamble."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Free_More_Inventory_Slots_Before_Playing")))
 		return nil // Domain rejection already delivered; nothing was admitted.
 	}
 	checkRetained := func() error {
@@ -131,7 +131,7 @@ func (w *World) queueGamble(p *Player, kind, bet uint32) error {
 				return err
 			}
 			if !p.Session.IsClosed() {
-				p.Session.Send(wire.MessagePanel("The Gamble bet could not be completed."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Gamble_Bet_Could_Not_Completed")))
 			}
 			log.Printf("[#%d] Gamble persistence rejected: %v", p.Session.ID, result.err)
 			return nil

@@ -25,7 +25,7 @@ func TestAdmissionRejectionDeliversMessageAndClosesSocket(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	session := &Session{ID: 1, conn: server, out: make(chan []byte, 8), done: make(chan struct{})}
+	session := &Session{ID: 1, conn: server, out: make(chan outboundPacket, 8), done: make(chan struct{})}
 	defer session.Close()
 	go session.writeLoop()
 	const message = "Client update required. Close the game and run the launcher to update."

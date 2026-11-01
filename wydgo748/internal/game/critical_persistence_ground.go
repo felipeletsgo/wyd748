@@ -108,7 +108,7 @@ func (w *World) queueGroundPickup(p *Player, g *GroundItem, requestedSlot int, g
 				} else {
 					p.Session.Send(wire.SendItem(p.ID, placeInv, byte(slot), beforeItem))
 				}
-				p.Session.Send(wire.MessagePanel("Save failed. The item was not picked up."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Save_Failed_Item_Was_Not_Picked")))
 			}
 			log.Printf("[#%d] ground pickup object=%d certified rejection: %v", p.Session.ID, context.ID, result.err)
 			return nil
@@ -192,7 +192,7 @@ func (w *World) queueGroundDrop(p *Player, g *GroundItem, req dropItemRequest, i
 			w.unregisterGroundItem(g)
 			if !p.Session.IsClosed() {
 				p.Session.Send(wire.SendItem(p.ID, req.srcType, req.srcPos, item))
-				p.Session.Send(wire.MessagePanel("Save failed. The item was not dropped."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Save_Failed_Item_Was_Not_Dropped")))
 			}
 			log.Printf("[#%d] ground drop object=%d certified rejection: %v", p.Session.ID, context.ID, result.err)
 			return nil

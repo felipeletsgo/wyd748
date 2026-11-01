@@ -55,7 +55,7 @@ func (w *World) queueEquipmentSwap(p *Player, st, sp, dt, dp byte, targetID uint
 	promoted := w.promoteOffhandWeapon(planned.Char)
 	mainWeapon, offhandWeapon := planned.Char.Equip[6], planned.Char.Equip[7]
 	mountItem := planned.Char.Equip[mountSlot]
-	_, err := w.submitCriticalWritePhased(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			*src, *dst = sourceItem, destinationItem
 			if promoted {
@@ -97,6 +97,8 @@ func (w *World) queueEquipmentSwap(p *Player, st, sp, dt, dp byte, targetID uint
 			w.refreshAppearance(p)
 			log.Printf("[#%d] SWAP ok %d/%d <-> %d/%d", p.Session.ID, st, sp, dt, dp)
 			return nil
-		})
+		}, w.rejectDetachedProposal("equipment move", "Save failed. The inventory was not changed.", func(p *Player) {
+			resendSlots(p, st, sp, dt, dp)
+		}, p))
 	return err
 }

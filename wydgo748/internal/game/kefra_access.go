@@ -18,7 +18,7 @@ func isKefraHallEntrance(portal model.Teleport) bool {
 // Survivor alone exchanges Locked Seals. Stepping on the hall portal spends an
 // existing entry; carrying a seal is not permission to bypass that exchange.
 func (w *World) enterKefraHall(p *Player, portal model.Teleport) {
-	fail := func() { p.Session.Send(wire.MessagePanel("The teleport could not be completed.")) }
+	fail := func() { p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Teleport_Could_Not_Completed"))) }
 	if p.Account == nil || p.Char.UID == "" || p.CharSlot < 0 || p.CharSlot >= len(p.Account.Chars) {
 		fail()
 		return
@@ -27,11 +27,11 @@ func (w *World) enterKefraHall(p *Player, portal model.Teleport) {
 	ch := &proposed.Chars[p.CharSlot]
 	entry := &Player{SpecialCoins: copyCounters(p)}
 	if !spendCounters(entry, map[string]uint32{kefraTicketCounter: 1}) {
-		p.Session.Send(wire.MessagePanel(kefraEntriesRequired))
+		p.Session.Send(wire.MessagePanel(w.trFor(p, kefraEntriesRequired)))
 		return
 	}
 	if ch.Gold < portal.Price {
-		p.Session.Send(wire.MessagePanel("Not enough gold for the teleport."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Not_Enough_Gold_Teleport")))
 		return
 	}
 	ch.Gold -= portal.Price
@@ -39,7 +39,7 @@ func (w *World) enterKefraHall(p *Player, portal model.Teleport) {
 	publish := func() {
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		if portal.Name != "" {
-			p.Session.Send(wire.MessagePanel(portal.Name))
+			p.Session.Send(wire.MessagePanel(w.trFor(p, portal.Name)))
 		}
 		log.Printf("[#%d] TELEPORT %q @(%d,%d)->(%d,%d) gold=-%d Kefra entries=%d",
 			p.Session.ID, portal.Name, oldX, oldY, p.X, p.Y, portal.Price, counterBalance(p, kefraTicketCounter))

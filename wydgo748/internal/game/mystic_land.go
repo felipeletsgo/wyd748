@@ -36,7 +36,7 @@ func (w *World) handleMysticLandNPC(s *net.Session, p *Player, m *Mob, clickOK i
 		return true
 	}
 	if p.Char.MysticLandRewardClaimed {
-		circleServiceMessage(p, mysticLandClaimedMessage)
+		w.circleServiceMessage(p, mysticLandClaimedMessage)
 		return true
 	}
 	if merchant == mysticLandStartMerchant {
@@ -45,13 +45,13 @@ func (w *World) handleMysticLandNPC(s *net.Session, p *Player, m *Mob, clickOK i
 			if p.Char.MysticLandEligible {
 				message = mysticLandReadyMessage
 			}
-			circleServiceMessage(p, message)
+			w.circleServiceMessage(p, message)
 			return true
 		}
 		images := criticalPreimages(p)
 		p.Char.MysticLandStarted = true
 		w.commitMysticLand(p, images, "Mystic Land start", func() {
-			circleServiceMessage(p, mysticLandHuntMessage)
+			w.circleServiceMessage(p, mysticLandHuntMessage)
 		})
 		return true
 	}
@@ -60,7 +60,7 @@ func (w *World) handleMysticLandNPC(s *net.Session, p *Player, m *Mob, clickOK i
 		if p.Char.MysticLandStarted {
 			message = mysticLandHuntMessage
 		}
-		circleServiceMessage(p, message)
+		w.circleServiceMessage(p, message)
 		return true
 	}
 	w.claimMysticLandReward(p)
@@ -109,18 +109,18 @@ func (w *World) rollMysticLandAmulet(level uint32) model.Item {
 func (w *World) claimMysticLandReward(p *Player) {
 	slot := firstFreeVisibleInventorySlot(p.Char)
 	if slot < 0 {
-		circleServiceMessage(p, 1)
+		w.circleServiceMessage(p, 1)
 		return
 	}
 	item := w.rollMysticLandAmulet(p.Char.Score.Level)
 	if _, ok := w.items[item.Index]; !ok {
-		circleServiceMessage(p, 190)
+		w.circleServiceMessage(p, 190)
 		return
 	}
 	item, err := materializeItem(item)
 	if err != nil {
 		log.Printf("[#%d] Mystic Land item identity: %v", p.ID, err)
-		circleServiceMessage(p, 188)
+		w.circleServiceMessage(p, 188)
 		return
 	}
 	images := criticalPreimages(p)
@@ -128,12 +128,12 @@ func (w *World) claimMysticLandReward(p *Player) {
 	p.Char.MysticLandRewardClaimed = true
 	w.commitMysticLand(p, images, "Mystic Land reward", func() {
 		p.Session.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-		circleServiceMessage(p, mysticLandRewardMessage)
+		w.circleServiceMessage(p, mysticLandRewardMessage)
 	})
 }
 
 func (w *World) commitMysticLand(p *Player, images []criticalPreimage, operation string, publish func()) {
-	rejected := func() { circleServiceMessage(p, 188) }
+	rejected := func() { w.circleServiceMessage(p, 188) }
 	committed := func() {
 		if p.Session != nil && !p.Session.IsClosed() {
 			publish()

@@ -117,7 +117,7 @@ func (w *World) queueBasicConsumable(p *Player, slot byte, rule model.VolatileRu
 			case "gold":
 				p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 			case "save_position":
-				p.Session.Send(wire.MessagePanel("Position saved."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Position_Saved")))
 			}
 			resyncUsedItem(p.Session, p, slot)
 		}, true, criticalAccountMutationHooks{check: func() error {
@@ -134,14 +134,14 @@ func (w *World) admitBasicConsumable(p *Player, slot byte, rule model.VolatileRu
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			if rule.Action == "gold" {
 				p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 			}
 			return
 		}
-		p.Session.Send(wire.MessagePanel("Item use is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Item_Use_Unavailable_Please_Try_Again")))
 		log.Printf("[#%d] %s admission rejected: %v", p.Session.ID, rule.Action, err)
 	}
 }

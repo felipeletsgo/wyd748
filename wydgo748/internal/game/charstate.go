@@ -148,12 +148,18 @@ func (w *World) loadCharStateInto(p *Player) error {
 	}
 	// Clear only after a successful read. Otherwise autosave could persist
 	// the loss of authoritative buffs and counters after a failed load.
+	w.installCharState(p, state)
+	return nil
+}
+
+// installCharState replaces the session sidecar with a successfully read one.
+// A nil state means the character has no stored buffs or counters.
+func (w *World) installCharState(p *Player, state *model.CharState) {
 	p.Char.Affects = [16]model.Affect{}
 	p.SpecialCoins = nil
 	if state != nil {
 		w.applyCharState(p, state, w.now())
 	}
-	return nil
 }
 
 // saveCharState synchronously persists buffs and currencies on logout or
@@ -194,25 +200,35 @@ func (w *World) saveAccountAndCharStateResult(p *Player) error {
 // replaces or removes Player.Char, such as Celestial sealing or extraction.
 // PostgreSQL can delete the sidecar in the same transaction as the cleared slot.
 func (w *World) saveAccountAndCharStateForUID(account *model.Account, uid string, state *model.CharState) error {
+	save, err := w.prepareAccountAndCharStateSave(account, uid, state)
+	if err != nil || save == nil {
+		return err
+	}
+	return save()
+}
+
+// prepareAccountAndCharStateSave checks ownership and detaches the snapshot on
+// the actor. The returned write touches no live state and may run elsewhere.
+func (w *World) prepareAccountAndCharStateSave(account *model.Account, uid string, state *model.CharState) (func() error, error) {
 	if account == nil {
-		return nil
+		return nil, nil
 	}
 	if w.criticalAccountStateReserved(account) || w.criticalCharacterReserved(uid) {
-		return errCriticalPersistenceBusy
+		return nil, errCriticalPersistenceBusy
 	}
 	if err := w.syncPersistenceAllowed("account and character state"); err != nil {
-		return err
+		return nil, err
 	}
 	snapshot := accountPersistenceSnapshot(account)
 	if transactional, ok := w.store.(playerStateStore); ok {
-		return transactional.SavePlayerState(nil, snapshot, uid, state)
+		return func() error { return transactional.SavePlayerState(nil, snapshot, uid, state) }, nil
 	}
 	if _, ok := w.store.(charStateStore); ok && uid != "" {
 		// Separate writes cannot be made atomic by ordering or compensating:
 		// a crash can occur between them. Reject before writing either state.
-		return errors.New("store does not support atomic account and character state persistence")
+		return nil, errors.New("store does not support atomic account and character state persistence")
 	}
-	return w.store.SaveAccount(snapshot)
+	return func() error { return w.store.SaveAccount(snapshot) }, nil
 }
 
 // asyncCharStateStore exposes asynchronous character-state autosave.

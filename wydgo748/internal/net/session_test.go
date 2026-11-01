@@ -12,7 +12,7 @@ import (
 func pipeSession() (*Session, stdnet.Conn) {
 	server, client := stdnet.Pipe()
 	return &Session{
-		ID: 1, conn: server, out: make(chan []byte, 8), done: make(chan struct{}),
+		ID: 1, conn: server, out: make(chan outboundPacket, 8), done: make(chan struct{}),
 	}, client
 }
 

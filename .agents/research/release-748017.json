@@ -207,5 +207,488 @@
     "Three connected players were disconnected under explicit authorization.",
     "The updater removed the staging directory; post-verification reran from an uploaded manifest copy. Task helper files were removed.",
     "No commit, push, local game installation or host reboot occurred."
+  ],
+  "serverFollowups": [
+    {
+      "id": "drop-options-grade0-cleanup-e0ae4abc-20261031",
+      "classification": "MODERNIZACAO_COMPATIVEL",
+      "authorization": {
+        "request": "ok. suba tudo para o vps e reinicie",
+        "publication": true,
+        "gameRestart": true
+      },
+      "source": {
+        "head": "e0ae4abc8b3d4154193701225773d242c7724e40",
+        "dirty": [],
+        "mode": "tracked-working-tree"
+      },
+      "scope": "Game binary and complete runtime data; other 6662 installed files and configuration preserved.",
+      "changes": [
+        "Restore monster drop option rolls.",
+        "Force EF_GRADE0 for all 32 selected Arch set drops.",
+        "Remove 16 inactive generator sections and two obsolete NPC definitions."
+      ],
+      "package": {
+        "releaseId": "wyd-deploy-e0ae4abc-20261031",
+        "archiveSha256": "af500af5b078377936bda30d65c85b9d74e238e8e4eb562c9685b3569c104fd1",
+        "payloadFiles": 1074,
+        "manifest": "build/deploy/wyd-deploy-e0ae4abc-20261031/release-manifest.json"
+      },
+      "active": {
+        "at": "2026-10-31T06:10:52.532450+00:00",
+        "release": "/srv/wyd-go/releases/20261031T061042Z",
+        "rollback": "/srv/wyd-go/releases/20261031T004445Z",
+        "head": "e0ae4abc8b3d4154193701225773d242c7724e40",
+        "payloadFilesVerified": 1074,
+        "services": {
+          "wyd-game": {
+            "MainPID": "2788498",
+            "NRestarts": "0",
+            "ActiveState": "active",
+            "executable": "/srv/wyd-go/releases/20261031T061042Z/game/wyd-server",
+            "sha256": "5b288466c1df635f2956c3df847e3110061a0353ab5ba1a6304f560fce32f84e"
+          },
+          "wyd-player": {
+            "MainPID": "2736604",
+            "NRestarts": "0",
+            "ActiveState": "active",
+            "executable": "/srv/wyd-go/releases/20261031T004445Z/game/wyd-player-api",
+            "sha256": "4f227e25a29bf2755472dcbeef16319d35dbf50d5d27926dbbb262adc4dad5de"
+          },
+          "wyd-log-reader": {
+            "MainPID": "2685938",
+            "NRestarts": "0",
+            "ActiveState": "active",
+            "executable": "/srv/wyd-go/releases/20261030T194406Z/game/wyd-log-reader",
+            "sha256": "744e79b5c4e707bf1d4d35817fddbad9c8a0a1267d5059a69bca09082bafdb1c"
+          }
+        },
+        "backup": {
+          "at": "2026-10-31T06:10:42Z",
+          "archive": "wydgo-20261031T061042Z.dump",
+          "bytes": 504293,
+          "sha256": "de3785ee6caf9f2587c0bbecf7ed8068c55b70c6c1d00b85a7dca9cb6fa2292c",
+          "verified": true
+        },
+        "readiness": {
+          "8082": 200,
+          "8083": 200
+        },
+        "gradeZeroEntriesVerified": 32,
+        "otherFilesPreserved": 6662,
+        "configurationPreserved": true,
+        "schema": "14"
+      },
+      "runtimeDelta": {
+        "changed": [
+          "game/data/npcs/PerAmon.json",
+          "game/data/npcs/PerBear.json",
+          "game/data/npcs/PerBerserker.json",
+          "game/data/npcs/PerEnt.json",
+          "game/data/npcs/PerValkyrie.json",
+          "game/data/npcs/PerWolf.json",
+          "game/data/npcs/PreKalintz_M.json",
+          "game/data/npcs/PreKalintz_W.json",
+          "game/data/spawns/NPCGener.txt",
+          "game/wyd-server"
+        ],
+        "removed": [
+          "game/data/npcs/Compounder.json",
+          "game/data/npcs/Carbunkle_Anct.json"
+        ]
+      },
+      "shutdown": {
+        "accountsPersisted": 1,
+        "failures": 0,
+        "completed": true
+      },
+      "admission": {
+        "at": "2026-10-31T06:12:37.377177+00:00",
+        "results": [
+          {
+            "port": 8281,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8281,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          },
+          {
+            "port": 8282,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8282,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          }
+        ],
+        "realAccountAuthenticated": false
+      },
+      "publicVerification": [
+        {
+          "scheme": "http",
+          "feedLines": 18,
+          "feedLast": "48017 patch-48017.zip",
+          "patchSha256": "DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676",
+          "entriesVerified": 17,
+          "previousPatchUnchanged": true
+        },
+        {
+          "scheme": "https",
+          "feedLines": 18,
+          "feedLast": "48017 patch-48017.zip",
+          "patchSha256": "DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676",
+          "entriesVerified": 17,
+          "previousPatchUnchanged": true
+        }
+      ],
+      "validation": {
+        "checks": "Prior full suite, vet and focused race checks; updated NPC data and drop tests pass.",
+        "installedPayload": "PASS: every packaged file and the running executable hash match.",
+        "unchangedComponents": "PASS: player API, log reader, web files and configuration preserved.",
+        "journal": "PASS: no error-priority entries after activation; graceful save completed.",
+        "gameplay": "PENDING: no real client authenticated or gameplay tested."
+      },
+      "evidenceDirectory": "build/deploy-e0ae4abc/",
+      "finalPublicReadiness": {
+        "at": "2026-10-31T06:13:24.023458+00:00",
+        "url": "https://wyd.forjago.com/readyz",
+        "httpStatus": 200,
+        "body": {
+          "status": "ready",
+          "version": 1
+        }
+      },
+      "cleanup": {
+        "staging": "Removed by update-release.sh after successful activation.",
+        "status": "PENDING: two subsequent SSH connections timed out on port 22 before cleanup started. Public readiness and both game channels still pass.",
+        "remainingRemotePaths": [
+          "/tmp/wyd-e0ae4abc-verify.py",
+          "/tmp/wyd-e0ae4abc-activate.sh",
+          "/tmp/wyd-e0ae4abc-before.json",
+          "/tmp/wyd-e0ae4abc-after.json",
+          "/tmp/wyd-e0ae4abc-manifest.json",
+          "/tmp/wyd-e0ae4abc-started.txt"
+        ],
+        "security": "No authentication, host verification, or firewall setting changed."
+      }
+    },
+    {
+      "id": "persistence-admission-isolation-and-language-20261031",
+      "classification": "MODERNIZACAO_COMPATIVEL",
+      "authorization": {
+        "request": "suba tudo para o vps e reinicie",
+        "publication": true,
+        "gameRestart": true
+      },
+      "source": {
+        "head": "e0ae4abc8b3d4154193701225773d242c7724e40",
+        "mode": "working-tree",
+        "manifest": "build/deploy/wyd-deploy-persistence-20261031T2010Z/release-manifest.json",
+        "scope": "All pending server source and runtime inputs. Client revision 17 is unchanged."
+      },
+      "active": {
+        "at": "2026-10-31T20:14:24.231302+00:00",
+        "release": "/srv/wyd-go/releases/20261031T201414Z",
+        "rollback": "/srv/wyd-go/releases/20261031T061042Z",
+        "head": "e0ae4abc8b3d4154193701225773d242c7724e40",
+        "payloadFilesVerified": 1076,
+        "services": {
+          "wyd-game": {
+            "MainPID": "2923896",
+            "NRestarts": "0",
+            "ActiveState": "active",
+            "executable": "/srv/wyd-go/releases/20261031T201414Z/game/wyd-server",
+            "sha256": "2163d86e91e67476409ba20e8249fb8d12671b2c965bf50bfa8fc26a9584a813"
+          },
+          "wyd-player": {
+            "MainPID": "2736604",
+            "NRestarts": "0",
+            "ActiveState": "active",
+            "executable": "/srv/wyd-go/releases/20261031T004445Z/game/wyd-player-api",
+            "sha256": "4f227e25a29bf2755472dcbeef16319d35dbf50d5d27926dbbb262adc4dad5de"
+          },
+          "wyd-log-reader": {
+            "MainPID": "2685938",
+            "NRestarts": "0",
+            "ActiveState": "active",
+            "executable": "/srv/wyd-go/releases/20261030T194406Z/game/wyd-log-reader",
+            "sha256": "744e79b5c4e707bf1d4d35817fddbad9c8a0a1267d5059a69bca09082bafdb1c"
+          }
+        },
+        "backup": {
+          "at": "2026-10-31T20:14:14Z",
+          "archive": "wydgo-20261031T201414Z.dump",
+          "bytes": 507769,
+          "sha256": "a3dd1a73681ee72ba705ae435c4b514871df5b522c6d2d3d5d238359a418cda5",
+          "verified": true
+        },
+        "readiness": {
+          "8082": 200,
+          "8083": 200
+        },
+        "gradeZeroEntriesVerified": 32,
+        "otherFilesPreserved": 6662,
+        "configurationPreserved": true,
+        "schema": "14"
+      },
+      "runtimeDelta": {
+        "changed": [
+          "game/data/content/language/en.txt",
+          "game/data/content/language/pt.txt",
+          "game/wyd-server"
+        ],
+        "removed": []
+      },
+      "admission": {
+        "at": "2026-10-31T20:14:46.584966+00:00",
+        "results": [
+          {
+            "port": 8281,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+          },
+          {
+            "port": 8281,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Conta ou senha incorreta."
+          },
+          {
+            "port": 8282,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8282,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          }
+        ],
+        "realAccountAuthenticated": false
+      },
+      "publicVerification": {
+        "readiness": {
+          "status": 200,
+          "body": {
+            "status": "ready",
+            "version": 1
+          }
+        },
+        "patch": [
+          {
+            "feedLast": "48017 patch-48017.zip",
+            "patchStatus": 200,
+            "scheme": "http",
+            "feedStatus": 200,
+            "patchBytes": "1449518"
+          },
+          {
+            "feedLast": "48017 patch-48017.zip",
+            "patchStatus": 200,
+            "scheme": "https",
+            "feedStatus": 200,
+            "patchBytes": "1449518"
+          }
+        ],
+        "at": "2026-10-31T20:15:07.8274594Z",
+        "readinessVerification": "PASS: local curl and remote HTTPS returned 200 after an initial local HTTP client timeout."
+      },
+      "stability": {
+        "at": "2026-10-31T20:15:45.275593+00:00",
+        "services": {
+          "MainPID": "2923896",
+          "NRestarts": "0",
+          "ActiveState": "active"
+        },
+        "postStartErrors": [],
+        "publicReadiness": {
+          "status": 200,
+          "body": {
+            "status": "ready",
+            "version": 1
+          }
+        },
+        "cleanup": {
+          "stagingRemoved": true,
+          "helperFilesRemoved": [
+            "/tmp/wyd-persistence-20261031-verify.py",
+            "/tmp/wyd-persistence-20261031-activate.sh",
+            "/tmp/wyd-persistence-20261031-before.json",
+            "/tmp/wyd-persistence-20261031-after.json",
+            "/tmp/wyd-persistence-20261031-manifest.json",
+            "/tmp/wyd-persistence-20261031-started.txt"
+          ]
+        }
+      },
+      "validation": {
+        "classification": "MODERNIZACAO_COMPATIVEL",
+        "automated": {
+          "fullGoSuite": "PASS: final full suite with loopback PostgreSQL",
+          "vet": "PASS",
+          "race": "PASS: full admission isolation game/store; five shuffled final focused rollback and database runs",
+          "runtimeInventory": "PASS; Windows file-symbolic-link cases skipped because local privilege is unavailable; directory-link checks passed",
+          "linuxBuild": "PASS: working-tree linux/amd64, CGO_ENABLED=0, trimpath",
+          "archive": "PASS: all 1076 payload hashes, language catalogs, safe paths and no private state"
+        },
+        "priorEvidence": "build/offline-diagnosis-20261031/report.md",
+        "clientRevision": 17,
+        "clientGameplay": "PENDING: no real account login or gameplay test"
+      },
+      "shutdown": {
+        "previousProcessExitStatus": 1,
+        "previousProcessState": "Existing global persistence maintenance; old shutdown returned failure. No claim of a successful final account save. Database backup passed before activation.",
+        "newProcessErrors": []
+      },
+      "transport": {
+        "status": "Resolved",
+        "notes": [
+          "One verifier-upload SSH connection timed out. Remote payload was inspected before continuing.",
+          "The completed preflight had a trailing PowerShell carriage-return shell error. All preflight assertions passed; activation used the verified remote script."
+        ]
+      },
+      "evidenceDirectory": "build/persistence-release-20261031/"
+    },
+    {
+      "id": "server-corrections-r1-r3-20261101",
+      "classification": "MODERNIZACAO_COMPATIVEL",
+      "authorization": {
+        "request": "continue. esta autorizado a publicar; Sim, reiniciar",
+        "publication": true,
+        "gameRestart": true,
+        "disconnectedPlayers": 0
+      },
+      "source": {
+        "head": "e0ae4abc8b3d4154193701225773d242c7724e40",
+        "mode": "working-tree",
+        "manifest": "build/deploy/wyd-deploy-r1r3-20261101/release-manifest.json",
+        "scope": "Correction packages W0-W7 (R1-R3 of DOCS/server/server-correction-plan.md), the staff panel and News post 57, with all other pending source. Client revision 17 is unchanged; no schema change."
+      },
+      "package": {
+        "releaseId": "wyd-deploy-r1r3-20261101",
+        "archiveSha256": "11ec95e94411458e8e9b6d02482b51427e73350f6e45f85b1630f7d425104f77",
+        "payloadFiles": 7739,
+        "payloadHashMismatches": 0
+      },
+      "active": {
+        "release": "/srv/wyd-go/releases/20261101T050356Z",
+        "rollback": "/srv/wyd-go/releases/20261031T201414Z",
+        "services": {
+          "wyd-game": {
+            "MainPID": 3009115,
+            "NRestarts": 0,
+            "ActiveState": "active",
+            "sha256": "932e0d908c5643d9d161387fd045e016bd943c36d5ff5429969e39e09bf5e434"
+          },
+          "wyd-player": {
+            "MainPID": 3009127,
+            "NRestarts": 0,
+            "ActiveState": "active",
+            "sha256": "643d2d919c47a8e71c28bddc47652c6561d7720d21af982159df580809ee6fcf"
+          },
+          "wyd-log-reader": {
+            "MainPID": 3009203,
+            "NRestarts": 0,
+            "ActiveState": "active",
+            "sha256": "aa5922fc783bc4cad796b24254236dd5bb276a72d2dea9165a770ae234637e65"
+          }
+        },
+        "backup": {
+          "archive": "wydgo-20261101T050356Z.dump",
+          "bytes": 503713,
+          "sha256": "455daa123d3a2f835c002e4c41269453082e8c07559b4d661edfe0093cbf3a6d",
+          "verified": true
+        },
+        "configuration": {
+          "wyd-game.service": "Wants=postgresql@18-main.service; StartLimitIntervalSec=300; StartLimitBurst=5",
+          "server.txt": "Same content; the installed CRLF copy was replaced by the LF template"
+        }
+      },
+      "admission": {
+        "at": "2026-11-01T05:06:11.335133+00:00",
+        "results": [
+          {
+            "port": 8281,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+          },
+          {
+            "port": 8281,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Conta ou senha incorreta."
+          },
+          {
+            "port": 8282,
+            "revision": 16,
+            "opcode": "0x101",
+            "message": "Client update required. Close the game and run the launcher to update."
+          },
+          {
+            "port": 8282,
+            "revision": 17,
+            "opcode": "0x101",
+            "message": "Wrong account or password."
+          }
+        ],
+        "realAccountAuthenticated": false
+      },
+      "publicVerification": {
+        "readiness": {
+          "status": 200,
+          "body": {
+            "status": "ready",
+            "version": 1
+          }
+        },
+        "https": [
+          "/news/server-stability-2026-11-01/ 200",
+          "/changelog/ 200",
+          "/news/ 200",
+          "/readyz 200"
+        ]
+      },
+      "stability": {
+        "at": "2026-11-01T05:06:34Z",
+        "NRestarts": 0,
+        "postStartErrors": 0,
+        "cleanup": {
+          "stagingRemoved": true,
+          "helperFilesRemoved": [
+            "/tmp/wyd-activation-r1r3.log",
+            "/tmp/wyd-nettest-20261101"
+          ]
+        }
+      },
+      "shutdown": {
+        "previousProcess": "Graceful: 0 accounts persisted, 0 failures; no players online"
+      },
+      "validation": {
+        "fullGoSuite": "PASS with local PostgreSQL",
+        "vet": "PASS (Windows and linux/amd64)",
+        "race": "PASS: net, control, store, webadmin, game, cmd/server",
+        "portal": "PASS: production build (3311 pages) and 116 tests",
+        "linuxKernel": "PASS on the VPS kernel 6.8.0: TCP_USER_TIMEOUT and real TCP tests",
+        "clientGameplay": "PENDING: no real account login or gameplay test"
+      },
+      "pending": [
+        "VPS load and resource measurements under real players (P6, W3, W7)",
+        "W8 and W9 decisions from production metrics",
+        "Grant game.persistence.recovery to staff accounts that need it"
+      ],
+      "evidenceDirectory": "build/server-final-20261101/"
+    }
   ]
 }

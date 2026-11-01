@@ -147,8 +147,8 @@ func TestCriticalSharedPostgresSettlement(t *testing.T) {
 				if unknown {
 					w.handle(command{s: p.Session})
 					w.tick()
-					if !w.shuttingDown || w.shutdownErr == nil || !queue.stopping || len(queue.pending) != 1 ||
-						!w.criticalAccountReserved(p.Account.Name) || len(w.criticalQuarantine) != 0 || !p.PersistencePoisoned ||
+					if w.shuttingDown || w.shutdownErr != nil || queue.stopping || len(queue.pending) != 1 ||
+						!w.criticalAccountReserved(p.Account.Name) || len(w.criticalQuarantine) != 1 || !p.PersistencePoisoned ||
 						!reflect.DeepEqual(accountStateSnapshot(p.Account), before) || p.Session.QueuedPacketsForTest() != 0 {
 						t.Fatal("lost acknowledgement released ownership, changed RAM or published success")
 					}

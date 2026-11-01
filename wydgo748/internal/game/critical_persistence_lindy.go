@@ -96,7 +96,7 @@ func (w *World) queueLindyCraft(p *Player, req combineRequest, cape model.Item) 
 		participants = append(participants, peer)
 		write.accounts = append(write.accounts, peerBefore)
 	}
-	_, err := w.submitCriticalWritePhased(write, participants, false,
+	_, err := w.submitCriticalWriteWithRejection(write, participants, false,
 		func(criticalPersistenceResult) error {
 			if p.Char.Inv != oldInv || p.Char.Equip[15] != oldCape || p.Char.Gold != oldGold ||
 				p.Char.ArchLevel355 != old355 || p.Char.ArchLevel370 != old370 || p.Char.Evolution != oldEvolution ||
@@ -128,10 +128,13 @@ func (w *World) queueLindyCraft(p *Player, req combineRequest, cape model.Item) 
 					w.syncPlayerScoreAndVitals(p)
 				}
 				w.sendCombineResult(p, 1)
-				p.Session.Send(wire.MessagePanel("Your level limit has been lifted."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Level_Limit_Has_Been_Lifted")))
 			}
 			log.Printf("[#%d] ARCH unlocked level %d (fame=%d)", p.Session.ID, level+1, counterBalance(p, fameCounter))
 			return nil
-		})
+		}, w.rejectDetachedProposal("Lindy composition", "", func(p *Player) {
+			w.resendInventory(p)
+			w.sendCombineResultMessage(p, 0, "Save failed. The inventory was not changed.")
+		}, p))
 	return err
 }

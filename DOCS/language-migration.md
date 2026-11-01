@@ -194,6 +194,11 @@ release blocker.
   reservation and actual-World-loop tests are in English; this does not close
   the scoped engineering-prose migration or establish a global release gate.
 
+- Server messages sent to players moved to `data/content/language/en.txt` and
+  `pt.txt`. Channel 1 sends Portuguese and channel 2 sends English; see
+  [server messages](server/server-messages.md). Content data text, indexed
+  client messages and operation labels inside sentences remain pending.
+
 ## Remaining work
 
 1. Audit client-visible strings, resource text, and error paths in

@@ -200,7 +200,7 @@ func (w *World) tickPlayerMounts(now time.Time) {
 			if p.Session != nil {
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
 				p.Session.Send(playerScorePacket(p))
-				p.Session.Send(wire.MessagePanel("Your mount is starving and stopped helping you."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_NN_You_need_feeding_mount")))
 			}
 			w.refreshAppearance(p)
 		} else if p.Session != nil {
@@ -326,7 +326,7 @@ func (w *World) tickEquippedEggIncubation(p *Player, now time.Time) {
 		w.startEggIncubationClock(p, egg, now)
 		return
 	}
-	if now.Before(p.NextEggIncubationTick) {
+	if now.Before(p.NextEggIncubationTick) || p.backgroundPersistenceDeferred(now) {
 		return
 	}
 	hours := int(now.Sub(p.NextEggIncubationTick)/eggIncubationHour) + 1
@@ -370,7 +370,7 @@ func (w *World) submitEggIncubationHours(p *Player, hours int) {
 	}
 	proposal.Chars[p.CharSlot].Equip[mountSlot] = newEgg
 	next := p.NextEggIncubationTick.Add(time.Duration(hours) * eggIncubationHour)
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposal}}, []*Player{p},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposal}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			p.Char.Equip[mountSlot] = newEgg
 			p.NextEggIncubationTick = next
@@ -382,7 +382,7 @@ func (w *World) submitEggIncubationHours(p *Player, hours int) {
 			}
 			w.publishEggIncubationHours(p)
 			return nil
-		})
+		}, nil, w.rejectBackgroundProposal(p))
 	if err != nil {
 		log.Printf("Egg incubation admission rejected: %v", err)
 	}
@@ -393,9 +393,9 @@ func (w *World) publishEggIncubationHours(p *Player) {
 	if p.Session != nil && !p.Session.IsClosed() {
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, mountSlot, *egg))
 		if eggDelay(*egg) == 0 {
-			p.Session.Send(wire.MessagePanel("Incubation is complete. Apply Ori/Lac again to continue hatching."))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Incubation_Complete_Apply_Ori_Lac_Again")))
 		} else {
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Egg incubation: %d hour(s) remaining.", eggDelay(*egg))))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Egg_Incubation_D_Hour_S_Remaining", eggDelay(*egg))))
 		}
 	}
 }
@@ -426,7 +426,7 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 	resend := func() { s.Send(wire.SendItem(p.ID, placeInv, powderSlot, *powder)) }
 	if eggDelay(*egg) > 0 {
 		resend()
-		s.Send(wire.MessagePanel(fmt.Sprintf("The egg is still incubating (%d hour(s) remaining).", eggDelay(*egg))))
+		s.Send(wire.MessagePanel(w.msg("_WG_Egg_Still_Incubating_D_Hour_S", eggDelay(*egg))))
 		return
 	}
 	def, ok := w.items[egg.Index]
@@ -452,14 +452,14 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 		if success && !setEggProgress(egg, progressBefore+1) {
 			*egg = oldEgg
 			resend()
-			s.Send(wire.MessagePanel("The egg has no free effect slot for incubation."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Egg_Has_No_Free_Effect_Slot")))
 			return
 		}
 		delay := eggHatchDelayMinHours + w.intn(eggHatchDelayMaxHours-eggHatchDelayMinHours+1)
 		if !setEggDelay(egg, delay) {
 			*egg = oldEgg
 			resend()
-			s.Send(wire.MessagePanel("The egg has no free effect slot for incubation."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Egg_Has_No_Free_Effect_Slot")))
 			return
 		}
 	}
@@ -469,27 +469,26 @@ func (w *World) incubateEgg(p *Player, s *net.Session, powder *model.Item, powde
 		log.Printf("[#%d] save incubation: %v", s.ID, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
-		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Reconnect_Reload_Authoritative_State")))
 		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "egg incubation", err)
 		return
 	}
 	resend()
 	s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
-	s.Send(wire.MessagePanel(roll.message()))
+	s.Send(wire.MessagePanel(w.tr(roll.message())))
 	switch {
 	case hatched:
 		w.resetEggIncubationClock(p)
 		w.recalcPlayer(p.Char)
 		w.syncCriaPet(p)
 		w.refreshAppearance(p)
-		s.Send(wire.MessagePanel("The egg hatched! A hatchling was born."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Egg_Hatched_Hatchling_Was_Born")))
 	case success:
 		w.startEggIncubationClock(p, egg, w.now())
-		s.Send(wire.MessagePanel(fmt.Sprintf("Egg incubation advanced (+%d). Wait %d hour(s).",
-			eggProgress(*egg), eggDelay(*egg))))
+		s.Send(wire.MessagePanel(w.msg("_WG_Egg_Incubation_Advanced_D_Wait_D", eggProgress(*egg), eggDelay(*egg))))
 	default:
 		w.startEggIncubationClock(p, egg, w.now())
-		s.Send(wire.MessagePanel(fmt.Sprintf("Refinement failed. Wait %d hour(s) before trying again.", eggDelay(*egg))))
+		s.Send(wire.MessagePanel(w.msg("_WG_Refinement_Failed_Wait_D_Hour_S", eggDelay(*egg))))
 	}
 	log.Printf("[#%d] incubation vol=%d egg->%d progress=+%d threshold=%d wait=%dh hatched=%v roll=%d/%d",
 		s.ID, vol, egg.Index, eggProgress(*egg), threshold, eggDelay(*egg), hatched, roll.Roll, roll.Chance)
@@ -510,7 +509,7 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 	egg, eggType, eggSlot := w.destEggTarget(p, req)
 	if egg == nil {
 		resend()
-		s.Send(wire.MessagePanel("Use the hatch accelerator on an equipped egg."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Use_Hatch_Accelerator_Equipped_Egg")))
 		return
 	}
 	oldItem, oldEgg := *item, *egg
@@ -523,7 +522,7 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 		log.Printf("[#%d] save egg %d hatch accelerator: %v", s.ID, oldEgg.Index, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, byte(eggType), byte(eggSlot), *egg))
-		s.Send(wire.MessagePanel("Save failed. The accelerator was not consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Accelerator_Was_Not_Consumed")))
 		return
 	}
 	w.resetEggIncubationClock(p)
@@ -533,7 +532,7 @@ func (w *World) accelerateHatch(p *Player, s *net.Session, item *model.Item, inv
 	s.Send(playerScorePacket(p))
 	w.syncCriaPet(p)
 	w.refreshAppearance(p)
-	s.Send(wire.MessagePanel("The hatch accelerator transformed the egg into a hatchling."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Hatch_Accelerator_Transformed_Egg_Into_Hatchling")))
 	log.Printf("[#%d] accelerator hatched egg %d -> hatchling %d", s.ID, oldEgg.Index, egg.Index)
 }
 
@@ -703,9 +702,9 @@ func (w *World) publishMountHuntUpdate(result mountHuntUpdate) {
 		p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(result.slot), *mount))
 		p.Session.Send(playerScorePacket(p))
 		if result.evolved {
-			p.Session.Send(wire.MessagePanel("Your hatchling grew to the next stage!"))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Hatchling_Grew_Next_Stage")))
 		} else if result.level > 0 {
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Your hatchling reached level %d.", result.level)))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Hatchling_Reached_Level_D", result.level)))
 		}
 	}
 	w.refreshAppearance(p)
@@ -771,7 +770,7 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 			target.Session.Send(wire.SendItem(target.ID, placeEquip, byte(mslot), *mount))
 			target.Session.Send(playerScorePacket(target))
 			w.refreshAppearance(target)
-			target.Session.Send(wire.MessagePanel("Your mount was wounded!"))
+			target.Session.Send(wire.MessagePanel(w.msgFor(target, "_WG_Mount_Was_Wounded")))
 		}
 	}
 	return rider
@@ -827,7 +826,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	mount, mslot := equippedMount(p.Char)
 	if mount == nil {
 		resend()
-		s.Send(wire.MessagePanel("Equip the mount to use this on it."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Equip_Mount_Use")))
 		return
 	}
 
@@ -859,7 +858,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 	if !ok {
 		resend()
 		if msg != "" {
-			s.Send(wire.MessagePanel(msg))
+			s.Send(wire.MessagePanel(w.tr(msg)))
 		}
 		return
 	}
@@ -871,7 +870,7 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		log.Printf("[#%d] save mount %s: %v", s.ID, rule.MountAction, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, placeEquip, byte(mslot), *mount))
-		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Reconnect_Reload_Authoritative_State")))
 		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "mount item", err)
 		return
 	}
@@ -887,10 +886,10 @@ func (w *World) applyMountItem(p *Player, s *net.Session, item *model.Item, invS
 		if i > 0 {
 			message = roll.namedMessage("Penalty")
 		}
-		s.Send(wire.MessagePanel(message))
+		s.Send(wire.MessagePanel(w.tr(message)))
 	}
 	if msg != "" {
-		s.Send(wire.MessagePanel(msg))
+		s.Send(wire.MessagePanel(w.tr(msg)))
 	}
 	log.Printf("[#%d] mount %s item=%d mount=%d lvl=%d hp=%d food=%d longevity=%d",
 		s.ID, rule.MountAction, usedIndex, mount.Index, mount.MountLevel(), mount.MountHP(), mount.MountFood(), mount.MountLongev())

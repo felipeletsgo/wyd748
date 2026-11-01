@@ -22,19 +22,19 @@ func (w *World) handleApprenticeCape(s *net.Session, p *Player, m *Mob, clickOK 
 		return true
 	}
 	if w.shuttingDown || w.criticalTradeReserved(p) {
-		s.Send(wire.MessageIndexed(453 - 1000))
+		s.Send(w.projectMessage(453))
 		return true
 	}
 	if !matchesEvolution(p.Char, "mortal") || playerLevel(p.Char) < 100 || playerLevel(p.Char) > 149 {
-		s.Send(wire.MessageIndexed(455 - 1000))
+		s.Send(w.projectMessage(455))
 		return true
 	}
 	if clickOK != 1 || p.Char.Equip[13].Index != 4080 {
-		s.Send(wire.MessageIndexed(454 - 1000))
+		s.Send(w.projectMessage(454))
 		return true
 	}
 	if p.Char.Equip[model.CapeSlot].Index != 0 {
-		s.Send(wire.MessageIndexed(456 - 1000))
+		s.Send(w.projectMessage(456))
 		return true
 	}
 	rewardSlot := firstFreeVisibleInventorySlot(p.Char)
@@ -43,11 +43,11 @@ func (w *World) handleApprenticeCape(s *net.Session, p *Player, m *Mob, clickOK 
 		return true
 	}
 	if _, ok := w.items[apprenticeRecallReward]; !ok {
-		s.Send(wire.MessageIndexed(449 - 1000))
+		s.Send(w.projectMessage(449))
 		return true
 	}
 	if _, ok := w.items[4006]; !ok {
-		s.Send(wire.MessageIndexed(449 - 1000))
+		s.Send(w.projectMessage(449))
 		return true
 	}
 	cape, err := materializeItem(model.Item{Index: 4006})
@@ -69,14 +69,14 @@ func (w *World) handleApprenticeCape(s *net.Session, p *Player, m *Mob, clickOK 
 			s.Send(wire.SendItem(p.ID, placeInv, byte(rewardSlot), p.Char.Inv[rewardSlot]))
 		}
 	}
-	failed := func() { resync(); s.Send(wire.MessageIndexed(458 - 1000)) }
+	failed := func() { resync(); s.Send(w.projectMessage(458)) }
 	publish := func() {
 		resync()
 		s.Send(playerScorePacket(p))
 		w.refreshAppearance(p)
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
-		s.Send(wire.MessageIndexed(457 - 1000))
+		s.Send(w.projectMessage(457))
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueCriticalLiveMutation("apprentice cape", images, publish, criticalLiveMutationOptions{reject: failed}); err != nil {

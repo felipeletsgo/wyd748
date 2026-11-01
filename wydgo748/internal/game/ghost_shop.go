@@ -202,23 +202,23 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	if p.GhostShop != nil {
 		w.closeGhostShop(p, "closed by player")
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("Auto Trade closed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Auto_Trade_Closed")))
 		return
 	}
 	if p.Trade != nil {
-		s.Send(wire.MessagePanel("Finish the current trade before opening the shop."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Finish_Current_Trade_Before_Opening_Shop")))
 		return
 	}
 	if w.gameplaySpaceForPlayer(p) != "" || !inArmiaCity(p.X, p.Y) {
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("Auto Trade can only be opened in Armia."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Auto_Trade_Can_Only_Opened_Armia")))
 		return
 	}
 	req, err := parseAutoTradeRequest(pkt, p.Account, p.ID)
 	if err != nil {
 		log.Printf("[#%d] GHOST SHOP rejected: %v", s.ID, err)
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("Could not open the shop: " + err.Error()))
+		w.panel(s, "_WG_Shop_Open_Failed", w.tr(err.Error()))
 		return
 	}
 	for _, item := range req.Items {
@@ -227,14 +227,14 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 		}
 		if err := w.validateTradableItem(item); err != nil {
 			s.Send(wire.CloseTrade(p.ID))
-			s.Send(wire.MessagePanel(err.Error()))
+			s.Send(wire.MessagePanel(w.tr(err.Error())))
 			return
 		}
 	}
 	x, y, ok := w.findGhostShopPosition(p.X, p.Y)
 	if !ok {
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("There is no free space for the shop in this area."))
+		s.Send(wire.MessagePanel(w.msg("_WG_There_No_Free_Space_Shop_Area")))
 		return
 	}
 	shop := &GhostShop{
@@ -254,7 +254,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 	w.applyGhostShopLook(shop)
 	if _, exists := w.ghostShops[shop.ID]; exists {
 		s.Send(wire.CloseTrade(p.ID))
-		s.Send(wire.MessagePanel("That shop ID is already in use. Try again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Shop_ID_Already_Use_Try_Again")))
 		return
 	}
 	p.GhostShop = shop
@@ -268,7 +268,7 @@ func (w *World) onAutoTrade(s *net.Session, pkt []byte) {
 		s.Send(packet)
 	}
 	w.publishGhostShopSpawn(shop)
-	s.Send(wire.MessagePanel("Auto Trade opened in Armia. You are free to play."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Auto_Trade_Opened_Armia_Free_Play")))
 	log.Printf("[#%d] GHOST SHOP opened id=%d owner=%s @(%d,%d) items=%d",
 		s.ID, shop.ID, p.Char.Name, shop.X, shop.Y, shopItemCount(shop))
 }
@@ -371,14 +371,14 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 		if err.Error() == "Not enough gold." {
 			s.Send(wire.MessageIndexed(-845))
 		} else {
-			s.Send(wire.MessagePanel(err.Error()))
+			s.Send(wire.MessagePanel(w.tr(err.Error())))
 		}
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueGhostShopPurchase(buyer, seller, shop, req.Pos, buyerInv, sellerCargo, buyerGold, sellerCargoGold, buyerSlot); err != nil {
 			log.Printf("GHOST SHOP submit accounts %q/%q: %v", buyer.Account.Name, seller.Account.Name, err)
-			s.Send(wire.MessagePanel("The purchase could not be saved. No items or gold were transferred."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Purchase_Could_Not_Saved_No_Items")))
 		}
 		return
 	}
@@ -391,7 +391,7 @@ func (w *World) onReqBuyAutoTrade(s *net.Session, pkt []byte) {
 		buyer.Char.Inv, seller.Account.Cargo = oldBuyerInv, oldSellerCargo
 		buyer.Char.Gold, seller.Account.CargoGold = oldBuyerGold, oldSellerCargoGold
 		log.Printf("GHOST SHOP save accounts %q/%q: %v", buyer.Account.Name, seller.Account.Name, err)
-		s.Send(wire.MessagePanel("Save failed. The purchase was not applied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Purchase_Was_Not_Applied")))
 		return
 	}
 
@@ -415,17 +415,17 @@ func (w *World) finishGhostShopPurchase(buyer, seller *Player, shop *GhostShop, 
 	// Only acknowledge the buyer after the atomic account save succeeded; a
 	// rejected or rolled-back purchase must never display a false success.
 	if !buyer.Session.IsClosed() {
-		buyer.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d purchased for %d gold.", item.Index, price)))
+		buyer.Session.Send(wire.MessagePanel(w.msgFor(buyer, "_WG_Item_D_Purchased_D_Gold", item.Index, price)))
 	}
 	if !seller.Session.IsClosed() {
-		seller.Session.Send(wire.MessagePanel(fmt.Sprintf("Item %d sold for %d gold.", item.Index, price)))
+		seller.Session.Send(wire.MessagePanel(w.msgFor(seller, "_WG_Item_D_Sold_D_Gold", item.Index, price)))
 	}
 	log.Printf("[#%d] GHOST SHOP purchase owner=%s buyer=%s item=%d price=%d inv[%d]",
 		buyer.Session.ID, seller.Char.Name, buyer.Char.Name, item.Index, price, buyerSlot)
 	if shopItemCount(shop) == 0 {
 		w.closeGhostShop(seller, "stock sold out")
 		if !seller.Session.IsClosed() {
-			seller.Session.Send(wire.MessagePanel("Auto Trade closed: stock sold out."))
+			seller.Session.Send(wire.MessagePanel(w.msgFor(seller, "_WG_Auto_Trade_Closed_Stock_Sold_Out")))
 		}
 	}
 }

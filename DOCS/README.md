@@ -16,6 +16,7 @@ documentation, research evidence, and continuity records.
 | --- | --- |
 | Resume work and distinguish local changes from the deployed release | [Current state](current-state.md) and [continuation record](../.agents/handoffs/project-continuation.md) |
 | Track current player-reported gameplay defects and acceptance checks | [Gameplay bug register](bug-register.md) |
+| Execute the disconnect, persistence, performance and gameplay correction queue | [Server correction plan](server/server-correction-plan.md) |
 | Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
 | Use or extend the staff panel: sanctions, notices, maintenance, audit and the next work packages | [Staff operations](server/staff-operations.md) and [staff panel roadmap](server/admin-panel-roadmap.md) |
 | Edit active NPC JSON definitions in PostgreSQL and apply them live | [Live NPC definition management](protocol/npc-definitions.md) |
@@ -54,6 +55,7 @@ documentation, research evidence, and continuity records.
 | Maintain documentation organization | [Repository rules](../AGENTS.md) and [inventory](documentation-map.md) |
 | Work with Codex or Claude Code | [Agent environments](agent-environments.md) |
 | Track the scoped language migration | [Language migration](language-migration.md) |
+| Edit server messages or the channel message language | [Server messages](server/server-messages.md) |
 | Reduce agent context/token costs and evaluate Jev | [Agent token efficiency](agent-token-efficiency.md) |
 
 The schedule, rewards, commands, and open guild-war work are documented in

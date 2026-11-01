@@ -20,6 +20,24 @@ var DurationBucketMicros = [...]int64{1000, 5000, 10000, 25000, 50000, 100000, 2
 
 const OverflowMicros = 1000001
 
+// ChannelMetricsName is the expvar function that publishes ChannelReading
+// values keyed by channel number. Bucket arrays follow DurationBucketLabels.
+const ChannelMetricsName = "world_channels"
+
+// ChannelReading is one channel's actor state. Both channels share one
+// goroutine, so a stalled actor ages every channel heartbeat together.
+type ChannelReading struct {
+	Players            int64
+	Mobs               int64
+	QueueDepth         int64
+	DeferredCommands   int64
+	HeartbeatAgeMicros int64
+	LoopLag            [len(DurationBucketLabels)]int64
+	Tick               [len(DurationBucketLabels)]int64
+	Command            [len(DurationBucketLabels)]int64
+	QueueAge           [len(DurationBucketLabels)]int64
+}
+
 // RuntimeReading is one read of the process counters. Counters and buckets
 // are cumulative since process start.
 type RuntimeReading struct {
@@ -39,6 +57,10 @@ type RuntimeReading struct {
 	LoopLag            [len(DurationBucketLabels)]int64
 	Tick               [len(DurationBucketLabels)]int64
 	QueueAge           [len(DurationBucketLabels)]int64
+	Transport          TransportReading
+	Pool               PoolReading
+	Critical           CriticalReading
+	Channels           map[string]ChannelReading
 }
 
 func expvarBuckets(name string) (out [len(DurationBucketLabels)]int64) {
@@ -80,7 +102,8 @@ func ReadRuntime() RuntimeReading {
 		PostgresFailures: expvarInt("postgres_async_failures_total"),
 		HeapBytes:        runtimeValue(samples[0]), Goroutines: runtimeValue(samples[1]), GCCycles: runtimeValue(samples[2]),
 		LoopLag: expvarBuckets("world_loop_lag_buckets"), Tick: expvarBuckets("world_tick_duration_buckets"),
-		QueueAge: expvarBuckets("world_command_age_buckets"),
+		QueueAge:  expvarBuckets("world_command_age_buckets"),
+		Transport: readTransport(), Pool: readPool(), Critical: readCritical(), Channels: readChannels(),
 	}
 }
 
@@ -88,22 +111,26 @@ func ReadRuntime() RuntimeReading {
 // bound of the bucket holding the 99th percentile of that interval (0 when
 // nothing was observed); deltas count events inside the interval.
 type MetricsPoint struct {
-	At                 time.Time `json:"at"`
-	Players            int64     `json:"players"`
-	Mobs               int64     `json:"mobs"`
-	QueueDepth         int64     `json:"queueDepth"`
-	LoopLagP99Micros   int64     `json:"loopLagP99Micros"`
-	TickP99Micros      int64     `json:"tickP99Micros"`
-	QueueAgeP99Micros  int64     `json:"queueAgeP99Micros"`
-	CommandsPerSecond  float64   `json:"commandsPerSecond"`
-	BudgetExceeded     int64     `json:"budgetExceeded"`
-	Panics             int64     `json:"panics"`
-	PostgresQueueDepth int64     `json:"postgresQueueDepth"`
-	PostgresFailures   int64     `json:"postgresFailures"`
-	PostgresTxMicros   int64     `json:"postgresTxMicros"`
-	HeapBytes          int64     `json:"heapBytes"`
-	Goroutines         int64     `json:"goroutines"`
-	GCCycles           int64     `json:"gcCycles"`
+	At                 time.Time      `json:"at"`
+	Players            int64          `json:"players"`
+	Mobs               int64          `json:"mobs"`
+	QueueDepth         int64          `json:"queueDepth"`
+	LoopLagP99Micros   int64          `json:"loopLagP99Micros"`
+	TickP99Micros      int64          `json:"tickP99Micros"`
+	QueueAgeP99Micros  int64          `json:"queueAgeP99Micros"`
+	CommandsPerSecond  float64        `json:"commandsPerSecond"`
+	BudgetExceeded     int64          `json:"budgetExceeded"`
+	Panics             int64          `json:"panics"`
+	PostgresQueueDepth int64          `json:"postgresQueueDepth"`
+	PostgresFailures   int64          `json:"postgresFailures"`
+	PostgresTxMicros   int64          `json:"postgresTxMicros"`
+	HeapBytes          int64          `json:"heapBytes"`
+	Goroutines         int64          `json:"goroutines"`
+	GCCycles           int64          `json:"gcCycles"`
+	Transport          TransportPoint `json:"transport"`
+	Pool               PoolPoint      `json:"pool"`
+	Critical           CriticalPoint  `json:"critical"`
+	Channels           []ChannelPoint `json:"channels"`
 }
 
 type BreakerState struct {

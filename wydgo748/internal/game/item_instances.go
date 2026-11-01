@@ -1166,7 +1166,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 	now := w.now()
 	reject := func(reason string) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel(reason))
+		s.Send(wire.MessagePanel(w.tr(reason)))
 	}
 	if cfg == nil || inst == nil {
 		reject("This instance is not configured.")
@@ -1228,7 +1228,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 		[]*Player{p}, stages[0].X, stages[0].Y, nil, inst.RuntimeID)
 	if !ok {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessageIndexed(msgCubeEntranceBlocked - 1000))
+		s.Send(w.projectMessage(msgCubeEntranceBlocked))
 		return
 	}
 
@@ -1267,7 +1267,7 @@ func (w *World) joinSharedItemInstance(s *net.Session, p *Player, item *model.It
 	if name == "" {
 		name = inst.Config.Name
 	}
-	p.Session.Send(instanceStageNamePacket(name))
+	p.Session.Send(w.instanceStageNamePacket(name))
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	log.Printf("[#%d] INSTANCE %q individual entry members=%d",
 		s.ID, cfg.ID, len(inst.MemberIDs))
@@ -1281,7 +1281,7 @@ func (w *World) joinSharedTimedItemInstance(s *net.Session, p *Player, item *mod
 	cfg := rule.Instance
 	reject := func(reason string) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel(reason))
+		s.Send(wire.MessagePanel(w.tr(reason)))
 	}
 	if cfg == nil || inst == nil || !sharedTimedInstance(*cfg) {
 		reject("This instance is not configured for shared entry.")
@@ -1422,7 +1422,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	cfg := rule.Instance
 	if cfg == nil {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("This instance is not configured."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Instance_Not_Configured")))
 		return
 	}
 	now := w.now()
@@ -1433,7 +1433,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 				continue
 			}
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Another instance of this type is already active."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Another_Instance_Type_Already_Active")))
 			log.Printf("[#%d] instance rejected exclusiveGroup=%q active=%s", s.ID, group, activeID)
 			return
 		}
@@ -1462,7 +1462,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		if itemInstanceInExitGraceAt(inst, now) {
 			if !w.itemInstanceExitGraceAllowsItem(p.ID, item.Index) {
 				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-				s.Send(wire.MessagePanel("Only the next Water Scroll can be used during the exit window."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Only_Next_Water_Scroll_Can_Used")))
 				return
 			}
 			if itemInstanceHasMember(inst, p.ID) {
@@ -1472,7 +1472,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		} else {
 			if !cfg.SharedEntry {
 				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-				s.Send(wire.MessagePanel("This instance is already occupied."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Instance_Already_Occupied")))
 				return
 			}
 			w.joinSharedItemInstance(s, p, item, slot, rule, inst, req)
@@ -1481,51 +1481,51 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	}
 	if !instanceTargetAllowedAt(cfg, p.X, p.Y) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("This ticket cannot be used from here."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Ticket_Cannot_Used_From_Here")))
 		return
 	}
 	if isDurablePrivateWaterConfig(*cfg) && cfg.ChainStart {
 		if area, _ := instanceEntryAreaAt(cfg, p.X, p.Y); area.RequiresChain && graceSource == nil {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("This Room 1 Scroll requires a completed Water boss."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Room_Scroll_Requires_Completed_Water_Boss")))
 			return
 		}
 	}
 	scheduleEnd, scheduleOK := instanceScheduleEnd(cfg, now)
 	if !scheduleOK {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("This instance is not open right now."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Instance_Not_Open_Right_Now")))
 		return
 	}
 	runKey, runAllowed := w.nightmarePartyRunAllowed(cfg, rule.PartyMode, now)
 	if !runAllowed {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("The party limit for this Nightmare tier was reached."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Party_Limit_Nightmare_Tier_Was_Reached")))
 		return
 	}
 	members, ok := instancePartyMembers(p, rule.PartyMode)
 	if !ok {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		if p.Party != nil && len(p.Party.Members) > 0 && p.Party.Members[0] != p {
-			s.Send(wire.MessagePanel("Only the party leader can start this instance."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Party_Leader_Only")))
 		} else if rule.PartyMode == "party" {
-			s.Send(wire.MessagePanel("A party is required to enter this instance."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Party_Required_Enter_Instance")))
 		} else {
-			s.Send(wire.MessagePanel("No eligible party member is available."))
+			s.Send(wire.MessagePanel(w.msg("_WG_No_Eligible_Party_Member_Available")))
 		}
 		return
 	}
 	eligibleMembers, nightmareErr := nightmareEligibleMembers(members, cfg)
 	if nightmareErr != nil {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel(nightmareErr.Error()))
+		s.Send(wire.MessagePanel(w.tr(nightmareErr.Error())))
 		return
 	}
 	members = eligibleMembers
 	for _, member := range members {
 		if member != nil && !w.itemInstanceExitGraceAllowsItem(member.ID, item.Index) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Only the next Water Scroll can be used during the exit window."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Only_Next_Water_Scroll_Can_Used")))
 			return
 		}
 	}
@@ -1536,14 +1536,14 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	for _, member := range members {
 		if active := w.itemInstanceForPlayer(member.ID); active != nil {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("You or a party member is already inside another instance."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Or_Party_Member_Already_Inside_Another")))
 			return
 		}
 	}
 	if !sharedTimedInstance(*cfg) && !independentPrivateInstance(*cfg) &&
 		w.instanceAreaOccupied(cfg, runtimeID, members...) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("This room is already occupied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Room_Already_Occupied")))
 		return
 	}
 	stages := instanceStages(cfg)
@@ -1551,47 +1551,47 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 	if len(stages) == 0 || (totalMobs <= 0 && !isBigCubeConfig(cfg)) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		if isBigCubeConfig(cfg) {
-			s.Send(wire.MessagePanel("This Big Cube has no configured questions."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Big_Cube_Has_No_Configured_Questions")))
 		} else {
-			s.Send(wire.MessagePanel("This instance has no configured monsters."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Instance_Has_No_Configured_Monsters")))
 		}
 		return
 	}
 	if cfg.MaxPlayers > 0 && len(members) > cfg.MaxPlayers {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel(fmt.Sprintf("This instance accepts at most %d players.", cfg.MaxPlayers)))
+		s.Send(wire.MessagePanel(w.msg("_WG_Instance_Accepts_Most_D_Players", cfg.MaxPlayers)))
 		return
 	}
 	for _, member := range members {
 		if !instanceAllowsEvolution(member.Char, cfg.AllowedEvolutions) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("A party member cannot enter this instance."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Party_Member_Cannot_Enter_Instance")))
 			return
 		}
 	}
 	for _, stage := range stages {
 		if !w.terrain.Walkable(stage.SpawnX, stage.SpawnY) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("The instance entrance is not walkable."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Instance_Entrance_Not_Walkable")))
 			return
 		}
 		if stage.Quiz != nil &&
 			(!w.terrain.Walkable(stage.Quiz.TrueX, stage.Quiz.TrueY) ||
 				!w.terrain.Walkable(stage.Quiz.FalseX, stage.Quiz.FalseY)) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("The instance quiz area is not walkable."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Instance_Quiz_Area_Not_Walkable")))
 			return
 		}
 		for _, spawn := range stage.Spawns {
 			if spawn.X != 0 && spawn.Y != 0 && !w.terrain.Walkable(spawn.X, spawn.Y) {
 				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-				s.Send(wire.MessagePanel("The instance monster area is not walkable."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Instance_Monster_Area_Not_Walkable")))
 				return
 			}
 			def := w.npcDefByName(spawn.NPC)
 			if def == nil || !def.IsMonster() || def.Score == nil {
 				s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-				s.Send(wire.MessagePanel(fmt.Sprintf("The instance monster %q is not configured.", spawn.NPC)))
+				s.Send(wire.MessagePanel(w.msg("_WG_Instance_Monster_Q_Not_Configured", spawn.NPC)))
 				return
 			}
 		}
@@ -1605,7 +1605,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 		members, firstStage.X, firstStage.Y, nil, placementInstanceID)
 	if !positionsOK {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("The instance entrance is blocked."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Instance_Entrance_Blocked")))
 		return
 	}
 
@@ -1672,7 +1672,7 @@ func (w *World) useInstanceTicket(s *net.Session, p *Player, item *model.Item, s
 			old.p.Char.X, old.p.Char.Y = old.x, old.y
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("The instance content could not be created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Instance_Content_Could_Not_Created")))
 		return
 	}
 	// Publish the runtime record to the World before the atomic commit. It is
@@ -1945,7 +1945,7 @@ func (w *World) sendItemInstanceStageStatus(inst *ItemInstance) {
 			if name == "" {
 				name = inst.Config.Name
 			}
-			member.Session.Send(instanceStageNamePacket(name))
+			member.Session.Send(w.instanceStageNamePacket(name))
 		}
 	}
 }
@@ -2339,7 +2339,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 				inst.Config.ID, inst.Config.RewardItem, err)
 			return itemInstanceRewardReceipt{}, false
 		}
-		leader.Session.Send(wire.MessagePanel("Inventory full: the next Water Scroll was dropped."))
+		leader.Session.Send(wire.MessagePanel(w.msgFor(leader, "_WG_Inventory_Full_Next_Water_Scroll_Was")))
 		return itemInstanceRewardReceipt{}, true
 	}
 
@@ -2355,7 +2355,7 @@ func (w *World) grantItemInstanceReward(inst *ItemInstance, now time.Time) (item
 		return itemInstanceRewardReceipt{}, false
 	}
 	leader.Session.Send(wire.SendItem(leader.ID, placeInv, byte(slot), reward))
-	leader.Session.Send(wire.MessagePanel("You received the next Water Scroll."))
+	leader.Session.Send(wire.MessagePanel(w.msgFor(leader, "_WG_Received_Next_Water_Scroll")))
 	log.Printf("[#%d] INSTANCE %q completed: item %d -> inv[%d]",
 		leader.Session.ID, inst.Config.ID, inst.Config.RewardItem, slot)
 	return itemInstanceRewardReceipt{
@@ -2497,7 +2497,7 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 					if member := w.playersByID[id]; member != nil && member.InWorld && member.Session != nil && !member.Session.IsClosed() {
 						member.Session.Send(wire.StandardParm(
 							wire.OpInstanceTime, instanceSignalID, uint32(instanceQuestionDuration/time.Second)))
-						member.Session.Send(instanceQuestionPacket(member.ID,
+						member.Session.Send(w.instanceQuestionPacket(member.ID,
 							quiz, uint32(instanceQuestionDuration/time.Millisecond)))
 					}
 				}
@@ -2515,7 +2515,7 @@ func (w *World) onItemInstanceMobKilled(m *Mob, now time.Time) {
 				if member := w.playersByID[id]; member != nil && member.InWorld {
 					member.Session.Send(wire.StandardParm(
 						wire.OpInstanceTime, instanceSignalID, uint32(delay)))
-					member.Session.Send(wire.MessagePanel("The next room will open shortly."))
+					member.Session.Send(wire.MessagePanel(w.msgFor(member, "_WG_Next_Room_Will_Open_Shortly")))
 				}
 			}
 			w.markInstanceStateDirty()
@@ -2652,7 +2652,7 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 					wire.OpInstanceTime, instanceSignalID, 0))
 				p.Session.Send(wire.StandardParm(
 					wire.OpInstanceMobs, instanceSignalID, 0))
-				p.Session.Send(wire.MessageIndexed(msgCubeWrong - 1000))
+				p.Session.Send(w.projectMessage(msgCubeWrong))
 				continue
 			}
 			w.syncPlayerVitals(p)
@@ -2666,7 +2666,7 @@ func (w *World) resolveItemInstanceQuiz(inst *ItemInstance, now time.Time) bool 
 				w.refreshAppearance(p)
 			}
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-			p.Session.Send(quizCorrectPacket(result.exp))
+			p.Session.Send(w.quizCorrectPacket(result.exp))
 		}
 	}, nil)
 }

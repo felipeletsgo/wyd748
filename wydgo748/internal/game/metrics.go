@@ -1,11 +1,16 @@
 package game
 
 import (
+	"errors"
 	"expvar"
+	"fmt"
 	"strconv"
+	"sync"
 	"sync/atomic"
 	"time"
 
+	"wydgo/internal/control"
+	"wydgo/internal/store"
 	"wydgo/internal/wire"
 )
 
@@ -68,7 +73,212 @@ var (
 	// than zero deserves investigation: it means ONE command left potentially
 	// partial state.
 	metricPanicsTotal = expvar.NewInt("world_panics_total")
+	// Critical persistence state (W0). The actor tick samples the queue gauges;
+	// workers update running, outcomes and execution time atomically.
+	metricCriticalPending         = expvar.NewInt("world_critical_pending")
+	metricCriticalQueuedJobs      = expvar.NewInt("world_critical_queued_jobs")
+	metricCriticalRunning         = expvar.NewInt("world_critical_running")
+	metricCriticalResultsWaiting  = expvar.NewInt("world_critical_results_waiting")
+	metricCriticalQuarantinedNow  = expvar.NewInt("world_critical_quarantined_now")
+	metricCriticalOldestMicros    = expvar.NewInt("world_critical_oldest_pending_micros")
+	metricCriticalOutcomes        = expvar.NewMap("world_critical_outcomes_total")
+	metricCriticalAdmission       = expvar.NewMap("world_critical_admission_rejected_total")
+	metricCriticalDurationBuckets = expvar.NewMap("world_critical_duration_buckets")
+	// Views whose optional creations waited for output queue room (scene.go).
+	metricSceneDeferred = expvar.NewInt("world_scene_deferred_total")
+	// Account-only quarantines released after their exact outcome was final.
+	metricCriticalQuarantineReleased = expvar.NewInt("world_critical_quarantine_released_total")
+	// Writes parked behind a background autosave instead of holding input (W7).
+	metricCriticalParked = expvar.NewInt("world_critical_parked_total")
+	// Ticks that skipped instance lifecycle work behind an instance write.
+	metricInstanceTickSkipped = expvar.NewInt("world_instance_tick_skipped_total")
 )
+
+// Closed label sets for critical persistence outcomes and admission refusals.
+var (
+	criticalOutcomeLabels   = control.CriticalOutcomeLabels
+	criticalAdmissionLabels = control.CriticalAdmissionLabels
+)
+
+func init() {
+	for _, label := range criticalOutcomeLabels {
+		metricCriticalOutcomes.Add(label, 0)
+	}
+	for _, label := range criticalAdmissionLabels {
+		metricCriticalAdmission.Add(label, 0)
+	}
+	expvar.Publish(control.ChannelMetricsName, expvar.Func(func() any { return readChannelMetrics(time.Now()) }))
+}
+
+// observeCriticalOutcome classifies one worker result before actor delivery.
+func observeCriticalOutcome(err error, duration time.Duration) {
+	label := criticalOutcomeLabels[0]
+	switch {
+	case err == nil:
+	case store.IsWriteRejected(err) && !errors.Is(err, errCriticalPersistenceIndeterminate):
+		label = criticalOutcomeLabels[1]
+	default:
+		label = criticalOutcomeLabels[2]
+	}
+	metricCriticalOutcomes.Add(label, 1)
+	observeBucket(metricCriticalDurationBuckets, duration)
+}
+
+// observeCriticalAdmission counts a submission refused before queue admission.
+func observeCriticalAdmission(err error) {
+	label := criticalAdmissionLabels[4]
+	switch {
+	case errors.Is(err, errCriticalPersistenceBusy):
+		label = criticalAdmissionLabels[0]
+	case errors.Is(err, errCriticalPersistenceFull):
+		label = criticalAdmissionLabels[1]
+	case errors.Is(err, errCriticalPersistenceStopping):
+		label = criticalAdmissionLabels[2]
+	case errors.Is(err, errCriticalPersistenceUnsupported):
+		label = criticalAdmissionLabels[3]
+	}
+	metricCriticalAdmission.Add(label, 1)
+}
+
+// observeCriticalQueue samples the actor-owned queue state. The pending map is
+// bounded by capacity plus retained quarantine, so one scan per tick is cheap.
+func observeCriticalQueue(q *criticalPersistence, now time.Time) {
+	if q == nil {
+		return
+	}
+	var oldest time.Time
+	for _, pending := range q.pending {
+		if pending.quarantined || pending.submittedAt.IsZero() {
+			continue
+		}
+		if oldest.IsZero() || pending.submittedAt.Before(oldest) {
+			oldest = pending.submittedAt
+		}
+	}
+	age := time.Duration(0)
+	if !oldest.IsZero() {
+		age = max(now.Sub(oldest), 0)
+	}
+	metricCriticalPending.Set(int64(len(q.pending) - q.quarantined))
+	metricCriticalQueuedJobs.Set(int64(len(q.jobs)))
+	metricCriticalResultsWaiting.Set(int64(len(q.results)))
+	metricCriticalQuarantinedNow.Set(int64(q.quarantined))
+	metricCriticalOldestMicros.Set(age.Microseconds())
+}
+
+// channelMetrics holds one channel's actor readings. The cluster runs every
+// channel on one goroutine, so process-wide gauges are sums across channels.
+// Labels are channel numbers only; nothing is indexed by player or session.
+type channelMetrics struct {
+	players, mobs, queueDepth, deferred atomic.Int64
+	// heartbeat is the UnixNano end of the last tick or command batch.
+	heartbeat atomic.Int64
+	// maintenance mirrors World.shuttingDown for readiness (W5/D5).
+	maintenance                      atomic.Bool
+	loopLag, tick, command, queueAge durationBuckets
+}
+
+type durationBuckets [len(control.DurationBucketLabels)]atomic.Int64
+
+func (b *durationBuckets) observe(duration time.Duration) { b[durationBucketIndex(duration)].Add(1) }
+
+func (b *durationBuckets) read() (out [len(control.DurationBucketLabels)]int64) {
+	for i := range b {
+		out[i] = b[i].Load()
+	}
+	return out
+}
+
+var channelMetricsRegistry = struct {
+	sync.Mutex
+	channels map[byte]*channelMetrics
+}{channels: make(map[byte]*channelMetrics)}
+
+func channelMetricsFor(channel byte) *channelMetrics {
+	channelMetricsRegistry.Lock()
+	defer channelMetricsRegistry.Unlock()
+	m := channelMetricsRegistry.channels[channel]
+	if m == nil {
+		m = &channelMetrics{}
+		channelMetricsRegistry.channels[channel] = m
+	}
+	return m
+}
+
+// channelMetrics resolves after NewWorld assigns the configured channel.
+func (w *World) channelMetrics() *channelMetrics {
+	if w.metrics == nil {
+		w.metrics = channelMetricsFor(w.channel)
+	}
+	return w.metrics
+}
+
+func readChannelMetrics(now time.Time) map[string]control.ChannelReading {
+	channelMetricsRegistry.Lock()
+	defer channelMetricsRegistry.Unlock()
+	out := make(map[string]control.ChannelReading, len(channelMetricsRegistry.channels))
+	for channel, m := range channelMetricsRegistry.channels {
+		reading := control.ChannelReading{
+			Players: m.players.Load(), Mobs: m.mobs.Load(), QueueDepth: m.queueDepth.Load(),
+			DeferredCommands: m.deferred.Load(), LoopLag: m.loopLag.read(), Tick: m.tick.read(),
+			Command: m.command.read(), QueueAge: m.queueAge.read(),
+		}
+		if beat := m.heartbeat.Load(); beat != 0 {
+			reading.HeartbeatAgeMicros = max(now.Sub(time.Unix(0, beat)), 0).Microseconds()
+		}
+		out[strconv.Itoa(int(channel))] = reading
+	}
+	return out
+}
+
+// publishChannelSums keeps the established process-wide gauges as totals.
+func publishChannelSums() {
+	channelMetricsRegistry.Lock()
+	defer channelMetricsRegistry.Unlock()
+	var players, mobs, queue, deferred int64
+	for _, m := range channelMetricsRegistry.channels {
+		players += m.players.Load()
+		mobs += m.mobs.Load()
+		queue += m.queueDepth.Load()
+		deferred += m.deferred.Load()
+	}
+	metricActivePlayers.Set(players)
+	metricActiveMobs.Set(mobs)
+	metricCommandQueueDepth.Set(queue)
+	metricCriticalDeferredCommands.Set(deferred)
+}
+
+func (w *World) observeDeferredCommands() {
+	w.channelMetrics().deferred.Store(int64(w.criticalDeferredCount))
+	publishChannelSums()
+}
+
+func (w *World) observeHeartbeat(at time.Time) {
+	m := w.channelMetrics()
+	m.heartbeat.Store(at.UnixNano())
+	m.maintenance.Store(w.shuttingDown)
+}
+
+// ChannelsReady reports whether every running channel actor is responsive and
+// open for play. It reads only atomics and never waits for World. A channel
+// in maintenance, shutdown or with a heartbeat older than maxAge is not ready.
+func ChannelsReady(now time.Time, maxAge time.Duration) error {
+	channelMetricsRegistry.Lock()
+	defer channelMetricsRegistry.Unlock()
+	for channel, m := range channelMetricsRegistry.channels {
+		beat := m.heartbeat.Load()
+		if beat == 0 {
+			continue // never ran: not a live channel of this process
+		}
+		if m.maintenance.Load() {
+			return fmt.Errorf("channel %d is in maintenance", channel)
+		}
+		if age := now.Sub(time.Unix(0, beat)); age > maxAge {
+			return fmt.Errorf("channel %d actor heartbeat is %s old", channel, age.Round(time.Millisecond))
+		}
+	}
+	return nil
+}
 
 // Observe committed revisions only; channel labels are bounded to uint8.
 func observeNPCDefinitionApply(channel uint8, updatedAt, now time.Time) {
@@ -195,55 +405,70 @@ func inboundCommandMetricLabel(opcode uint16) (string, bool) {
 	return label, ok
 }
 
-func durationBucketLabel(duration time.Duration) string {
+// durationBucketIndex returns the fixed bucket; the last index is +Inf.
+func durationBucketIndex(duration time.Duration) int {
 	for i, limit := range metricDurationBucketLimits {
 		if duration <= limit {
-			return metricDurationBucketLabels[i]
+			return i
 		}
+	}
+	return len(metricDurationBucketLimits)
+}
+
+func durationBucketLabel(duration time.Duration) string {
+	if i := durationBucketIndex(duration); i < len(metricDurationBucketLabels) {
+		return metricDurationBucketLabels[i]
 	}
 	return "+Inf"
 }
 
-var lastTickAt atomic.Int64
-
 // observeTick records the tick duration and the delay against the nominal
-// interval. Called by the tick itself, with its start time.
-func observeTick(start time.Time, duration time.Duration) {
+// interval. Each World keeps its own previous start: the cluster ticks both
+// channels back to back, and a shared value would hide the real lag.
+func (w *World) observeTick(start time.Time, duration time.Duration) {
+	m := w.channelMetrics()
 	metricTickDurationMicros.Set(duration.Microseconds())
 	observeBucket(metricTickDurationBuckets, duration)
+	m.tick.observe(duration)
+	m.heartbeat.Store(start.Add(duration).UnixNano())
+	m.maintenance.Store(w.shuttingDown)
 
-	previous := lastTickAt.Swap(start.UnixNano())
-	if previous == 0 {
+	previous := w.lastTickStart
+	w.lastTickStart = start
+	if previous.IsZero() {
 		return // first tick: there is no previous interval to compare
 	}
 	// Lag = how much the real interval exceeded the nominal 500 ms. A negative
 	// value (early tick) becomes zero: only the delay matters.
-	lag := start.Sub(time.Unix(0, previous)) - worldTickInterval
+	lag := start.Sub(previous) - worldTickInterval
 	if lag < 0 {
 		lag = 0
 	}
 	micros := lag.Microseconds()
 	metricLoopLagMicros.Set(micros)
 	observeBucket(metricLoopLagBuckets, lag)
+	m.loopLag.observe(lag)
 	if micros > metricLoopLagMaxMicros.Value() {
 		metricLoopLagMaxMicros.Set(micros)
 	}
 }
 
 // observeCommand records the duration of ONE command, labeled by opcode.
-func observeCommand(label string, duration time.Duration) {
+func (w *World) observeCommand(label string, duration time.Duration) {
 	metricCommandsTotal.Add(1)
 	metricCommandsByType.Add(label, 1)
 	metricCommandDurationMicros.Add(label, duration.Microseconds())
 	observeBucket(metricCommandDurationBuckets, duration)
+	w.channelMetrics().command.observe(duration)
 }
 
-func observeCommandQueueAge(age time.Duration) {
+func (w *World) observeCommandQueueAge(age time.Duration) {
 	if age < 0 {
 		age = 0
 	}
 	metricCommandQueueAgeMicros.Set(age.Microseconds())
 	observeBucket(metricCommandAgeBuckets, age)
+	w.channelMetrics().queueAge.observe(age)
 }
 
 // observeBucket publishes fixed distributions. The operator can derive p50,
@@ -261,7 +486,10 @@ func observeCommandBatch(size int, budgetExceeded bool) {
 }
 
 // observeWorldGauges publishes the sizes the tick already knows.
-func observeWorldGauges(players, activeMobs int) {
-	metricActivePlayers.Set(int64(players))
-	metricActiveMobs.Set(int64(activeMobs))
+func (w *World) observeWorldGauges(players, activeMobs, queueDepth int) {
+	m := w.channelMetrics()
+	m.players.Store(int64(players))
+	m.mobs.Store(int64(activeMobs))
+	m.queueDepth.Store(int64(queueDepth))
+	publishChannelSums()
 }

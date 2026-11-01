@@ -13,13 +13,13 @@ func (w *World) queueHellStorePurchase(p *Player, item model.Item, dst int, pric
 	character.Inv[dst] = item
 	character.Gold -= uint32(price)
 	gold := character.Gold
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			// The actor holds this account/character through acknowledgement.
 			// Preserve all unrelated live state and the already materialized UID.
 			p.Char.Inv[dst], p.Char.Gold = item, gold
 			publishHellStorePurchase(p, option, item, price, dst)
 			return nil
-		})
+		}, nil, w.rejectDetachedProposal("Hell Store purchase", "Save failed. The purchase was not applied.", w.resendInventory, p))
 	return err
 }

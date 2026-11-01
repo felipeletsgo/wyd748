@@ -71,20 +71,20 @@ func (w *World) onPartyRequest(s *net.Session, pkt []byte) {
 	if target == nil || target == inviter || !target.InWorld || target.Char == nil ||
 		!w.playersShareGameplaySpace(inviter, target) ||
 		!inView(inviter.X, inviter.Y, target.X, target.Y) {
-		s.Send(wire.MessagePanel("Player unavailable or out of range."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Unavailable_Or_Out_Range")))
 		return
 	}
 	if target.Party != nil {
-		s.Send(wire.MessagePanel("That player is already in a party."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Have_Own_Party_Already")))
 		return
 	}
 	if inviter.Party != nil {
 		if inviter.Party.leader() != inviter {
-			s.Send(wire.MessagePanel("Only the leader can invite."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Only_Leader_Can_Invite")))
 			return
 		}
 		if len(inviter.Party.Members) >= maxPartyMembers {
-			s.Send(wire.MessagePanel("The party is full."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Partys_Full")))
 			return
 		}
 	}
@@ -129,7 +129,7 @@ func (w *World) onPartyAccept(s *net.Session, pkt []byte) {
 		!w.playersShareGameplaySpace(member, leader) {
 		member.InviteFrom = 0
 		member.InviteUntil = time.Time{}
-		s.Send(wire.MessagePanel("The party invitation expired."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Party_Invitation_Expired")))
 		return
 	}
 
@@ -139,7 +139,7 @@ func (w *World) onPartyAccept(s *net.Session, pkt []byte) {
 		leader.Party = party
 	}
 	if party.leader() != leader || len(party.Members) >= maxPartyMembers {
-		s.Send(wire.MessagePanel("You could not join that party."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Could_Not_Join_Party")))
 		return
 	}
 	party.Members = append(party.Members, member)
@@ -165,7 +165,7 @@ func (w *World) onPartyRemove(s *net.Session, pkt []byte) {
 	target := requester
 	if targetID != 0 && targetID != requester.ID {
 		if requester.Party.leader() != requester {
-			s.Send(wire.MessagePanel("Only the leader can remove members."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Only_Leader_Can_Remove_Members")))
 			return
 		}
 		target = w.playerByID(targetID)

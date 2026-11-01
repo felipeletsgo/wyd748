@@ -36,7 +36,7 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	}
 	now := w.now()
 	if !p.NextGuildInvite.IsZero() && now.Before(p.NextGuildInvite) {
-		s.Send(wire.MessagePanel("Wait before trying another recruitment."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Wait_Before_Trying_Another_Recruitment")))
 		return
 	}
 	targetIDRaw := binary.LittleEndian.Uint32(pkt[12:16])
@@ -52,42 +52,42 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	p.NextGuildInvite = now.Add(guildInviteCooldown)
 	if target == nil || !target.InWorld || target.Char == nil || target.Account == nil ||
 		!w.playersShareGameplaySpace(p, target) {
-		s.Send(wire.MessagePanel("That player is not online."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Connected")))
 		return
 	}
 	if target == p {
-		s.Send(wire.MessagePanel("You cannot recruit yourself."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Cannot_Recruit_Yourself")))
 		return
 	}
 	guild, actorMember := w.guildOf(p.Char)
 	if guild == nil || actorMember == nil || actorMember.Rank == model.GuildRankMember {
-		s.Send(wire.MessagePanel("Only a guild leader or sub-leader can recruit."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_Guild_Leader_Or_Sub_Leader")))
 		return
 	}
 	if inviteTypeRaw != 0 && actorMember.Rank != model.GuildRankLeader {
-		s.Send(wire.MessagePanel("Only the guild leader can use this recruitment type."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_Guild_Leader_Can_Use_Recruitment")))
 		return
 	}
 	if len(guild.Members) >= guildMaxMembers {
-		s.Send(wire.MessagePanel("Your guild has reached its member limit."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Guild_Has_Reached_Its_Member_Limit")))
 		return
 	}
 	rank, rankFree := guildInviteRank(guild, inviteTypeRaw)
 	if !rankFree {
-		s.Send(wire.MessagePanel(fmt.Sprintf("Sub-leader slot %d is already taken.", inviteTypeRaw)))
+		s.Send(wire.MessagePanel(w.msg("_WG_Sub_Leader_Slot_D_Already_Taken", inviteTypeRaw)))
 		return
 	}
 	if existing, _ := w.guildOf(target.Char); existing != nil || target.Char.GuildID != 0 {
-		s.Send(wire.MessagePanel("That player already belongs to a guild."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Already_Belongs_Guild")))
 		return
 	}
 	if characterKingdom(p.Char) != characterKingdom(target.Char) ||
 		characterKingdom(target.Char) != guild.Kingdom {
-		s.Send(wire.MessagePanel("That player belongs to another kingdom."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Belongs_Another_Kingdom")))
 		return
 	}
 	if now.Weekday() == time.Sunday {
-		s.Send(wire.MessagePanel("Guild recruitment is unavailable on Sunday."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Guild_Recruitment_Unavailable_Sunday")))
 		return
 	}
 	cost := guildInviteCost
@@ -95,12 +95,12 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 		cost = guildSubInviteCost
 	}
 	if p.Char.Gold < cost {
-		s.Send(wire.MessagePanel(fmt.Sprintf("You need %d gold to recruit.", cost)))
+		s.Send(wire.MessagePanel(w.msg("_WG_Need_D_Gold_Recruit", cost)))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueGuildJoin(p, target, guild, cost, inviteTypeRaw, false); err != nil {
-			s.Send(wire.MessagePanel("Guild persistence is unavailable. Try again later."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Guild_Persistence_Unavailable_Try_Again_Later")))
 			log.Printf("[#%d] ERROR 0x3D5 admission: %v", s.ID, err)
 		}
 		return
@@ -121,7 +121,7 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 		w.restoreGuilds(guildSnapshot)
 		*p.Char, *target.Char = actorChar, targetChar
 		p.Char.Gold = oldGold
-		s.Send(wire.MessagePanel("Save failed. The recruitment was not applied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Recruitment_Was_Not_Applied")))
 		log.Printf("[#%d] ERROR 0x3D5 recruiting %q: %v", s.ID, target.Char.Name, err)
 		return
 	}
@@ -131,9 +131,9 @@ func (w *World) onInviteGuild(s *net.Session, pkt []byte) {
 	w.syncPlayerChaos(target)
 	target.Session.Send(playerScorePacket(target))
 	target.Session.Send(wire.UpdateEtc(target.ID, *target.Char))
-	target.Session.Send(wire.MessagePanel(fmt.Sprintf("You joined the guild %s.", guild.Name)))
+	target.Session.Send(wire.MessagePanel(w.msgFor(target, "_WG_Joined_Guild_S", guild.Name)))
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
-	s.Send(wire.MessagePanel(fmt.Sprintf("%s joined the guild.", target.Char.Name)))
+	s.Send(wire.MessagePanel(w.msg("_WG_S_Joined_Guild", target.Char.Name)))
 	w.announceToGuild(guild.ID, fmt.Sprintf("%s joined the guild.", target.Char.Name), target)
 	log.Printf("[#%d] 0x3D5 guild=%d recruited %q type=%d cost=%d", s.ID, guild.ID, target.Char.Name, inviteTypeRaw, cost)
 }

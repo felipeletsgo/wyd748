@@ -5,13 +5,12 @@ import (
 	"time"
 
 	gameNet "wydgo/internal/net"
+	"wydgo/internal/store"
 )
 
-// WithCriticalAccountContainment selects account-local containment: an
-// unknown or unverifiable account-only outcome isolates only its participants
-// instead of putting the whole World into maintenance. Shared guild and
-// instance aggregates and shared gameplay objects still fail globally, because
-// their RAM cannot be reconciled per account.
+// WithCriticalAccountContainment isolates failed persistence operations.
+// Accounts and shared objects retain their fences until reconciliation.
+// Unrelated players and login admission remain available across channels.
 func WithCriticalAccountContainment() WorldOption {
 	return func(w *World) { w.criticalAccountContainment = true }
 }
@@ -60,7 +59,7 @@ func (w *World) recoverCommittedAccountFailure(result criticalPersistenceResult,
 	}
 	for _, p := range participants {
 		p.PersistencePoisoned = true
-		p.Session.Close()
+		p.Session.CloseWithCause(gameNet.CloseCausePersistence, nil)
 		delete(w.authPending, p.Session)
 		delete(w.security, p.Session)
 		w.releaseAuthenticatedClientSlot(p.Session)
@@ -79,46 +78,84 @@ func (w *World) recoverCommittedAccountFailure(result criticalPersistenceResult,
 	return true
 }
 
-// containCriticalFailureLocally discards the RAM of every participant of a
-// failed account-only operation: they are poisoned and disconnected without a
-// final save. Fences and queue capacity remain held for verified reconciliation,
-// never elapsed time. It returns false when containment must be global.
+// containCriticalFailureLocally fences failed accounts and shared aggregates.
+// Existing object reservations remain held; callbacks never replay or roll back
+// an uncertain transaction. Quarantine does not stop admission or healthy ticks.
 func (w *World) containCriticalFailureLocally(id uint64, err error) bool {
 	if !w.criticalAccountContainment || w.criticalWrites == nil {
 		return false
 	}
 	queue := w.criticalWrites.queue
-	pending := queue.pending[id]
 	continuation := w.criticalWrites.continuations[id]
-	if pending == nil || continuation == nil || continuation.sharedWorld || queue.instances == id || queue.guilds == id {
-		// Post-acknowledgement failures, unclassified ownership and shared
-		// state stay global. An account timer cannot reconcile a ground object
-		// or finalize/resurrect an unpublished mob death.
-		return false
+	if continuation == nil || continuation.reservation == nil {
+		// A late or duplicate result has no new authority over live state.
+		log.Printf("critical persistence: ignored unowned completion %d: %v", id, err)
+		return true
+	}
+	pending := continuation.reservation
+	if pending.quarantined {
+		return true
+	}
+	// Publication can fail after acknowledge released its original fences.
+	// Restore ownership without overwriting a successor admitted by publication.
+	// Failure fences survive that successor's acknowledgement as well.
+	queue.pending[id] = pending
+	pending.quarantined = true
+	queue.quarantined++
+	if queue.failedAccounts == nil {
+		queue.failedAccounts = make(map[string]uint64)
+		queue.failedCharacters = make(map[string]uint64)
 	}
 	keys := make(map[string]bool, len(pending.keys))
 	for _, key := range pending.keys {
 		keys[key] = true
+		queue.failedAccounts[key] = id
+	}
+	for _, uid := range pending.uids {
+		queue.failedCharacters[uid] = id
+	}
+	if pending.instances {
+		queue.failedInstances = id
+	}
+	if pending.guilds {
+		queue.failedGuilds = id
 	}
 	isolated := 0
-	for _, p := range w.players {
-		if p == nil || p.Account == nil || !keys[accountSessionKey(p.Account.Name)] {
-			continue
+	worlds := []*World{w}
+	if w.cluster != nil {
+		worlds = w.cluster.worlds
+	}
+	bound := make(map[*Player]bool, len(continuation.bindings))
+	for _, binding := range continuation.bindings {
+		bound[binding.player] = true
+	}
+	for _, world := range worlds {
+		for _, p := range world.players {
+			if p == nil || !bound[p] && (p.Account == nil || !keys[accountSessionKey(p.Account.Name)]) {
+				continue
+			}
+			p.PersistencePoisoned = true
+			if p.Session != nil {
+				p.Session.CloseWithCause(gameNet.CloseCausePersistence, nil)
+			}
+			isolated++
 		}
-		p.PersistencePoisoned = true
-		if p.Session != nil {
-			p.Session.Close()
-		}
-		isolated++
 	}
 	if w.criticalQuarantine == nil {
 		w.criticalQuarantine = make(map[uint64]time.Time)
 	}
-	// This timestamp is diagnostic, not a release deadline. A lost COMMIT can
-	// still finish after the worker returns; a new login/write must not race it.
+	// Time never releases ownership. Completed failures consume no worker slot,
+	// so repeated unrelated faults cannot fill the live persistence queue.
 	w.criticalQuarantine[id] = w.now()
+	accountOnly := !continuation.sharedWorld && !pending.instances && !pending.guilds
+	w.noteQuarantineTransaction(id, err, accountOnly)
 	metricCriticalQuarantined.Add(1)
-	log.Printf("CRITICAL: persistence completion %d failed; isolated %d player(s) of %d account(s); verified reconciliation required: %v",
-		id, isolated, len(pending.keys), err)
+	log.Printf("CRITICAL: persistence completion %d failed; isolated %d player(s) of %d account(s); shared=%t instances=%t guilds=%t; admission remains open; verified reconciliation required: %v",
+		id, isolated, len(pending.keys), continuation.sharedWorld, pending.instances, pending.guilds, err)
+	if accountOnly && store.IsUnsentWrite(err) {
+		// No adapter received this write, so its outcome is a known abort. The
+		// players are isolated above; a failed predecessor keeps its own fence.
+		w.releaseVerifiedQuarantine(id, "unsent")
+	}
 	return true
 }

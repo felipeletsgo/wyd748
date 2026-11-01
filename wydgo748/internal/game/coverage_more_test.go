@@ -329,15 +329,15 @@ func TestWhisperMailPartyChatAndCharacterInfo(t *testing.T) {
 	if senderSession.QueuedPacketsForTest() != 2 {
 		t.Fatalf("character lookup did not respond: %d", senderSession.QueuedPacketsForTest())
 	}
-	if displayLevel(recipient.Char) != 11 || characterCitizenship(recipient.Char) != "Channel 2" {
+	if displayLevel(recipient.Char) != 11 || (&World{}).characterCitizenship(recipient.Char) != "Channel 2" {
 		t.Fatalf("incorrect info: level=%d citizenship=%q",
-			displayLevel(recipient.Char), characterCitizenship(recipient.Char))
+			displayLevel(recipient.Char), (&World{}).characterCitizenship(recipient.Char))
 	}
 	if info := w.characterInfoLine(recipient.Char); !strings.Contains(info, "No guild") ||
 		!strings.Contains(info, "Citizenship: Channel 2") {
 		t.Fatalf("character information is not in English: %q", info)
 	}
-	if displayLevel(nil) != 1 || characterCitizenship(nil) != "" {
+	if displayLevel(nil) != 1 || (&World{}).characterCitizenship(nil) != "" {
 		t.Fatal("incorrect nil-info fallback")
 	}
 }

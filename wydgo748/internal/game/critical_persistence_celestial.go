@@ -203,16 +203,16 @@ func (w *World) queueCelestialConsumable(p *Player, slot byte, action string) er
 	publish := func() {
 		w.syncCelestialPlayer(p)
 		w.resendInventory(p)
-		p.Session.Send(wire.MessagePanel(message))
+		p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 	}
 	if selection {
 		publish = nil
 		hooks.afterAck = func() {
 			if !p.Session.IsClosed() {
-				p.Session.Send(wire.MessagePanel(message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 			}
 			announcement := fmt.Sprintf("The character %s has become Celestial!", p.Char.Name)
-			w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
+			w.broadcast(func() []byte { return wire.MessagePanel(w.tr(announcement)) })
 			w.returnToCharacterSelectionAfterCommittedChange(p, "Celestial creation")
 		}
 	}
@@ -236,11 +236,11 @@ func (w *World) admitCelestialConsumable(p *Player, slot byte, action string) {
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			return
 		}
-		p.Session.Send(wire.MessagePanel("Celestial item use is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Celestial_Item_Use_Unavailable_Please_Try")))
 		log.Printf("[#%d] celestial admission rejected: %v", p.Session.ID, err)
 	}
 }
@@ -260,11 +260,11 @@ func (w *World) admitIdealStoneCraft(p *Player) {
 	consumeOne(&ch.Equip[sefirotSlot])
 	ideal, err := materializeItem(model.Item{Index: idealStoneItem})
 	if err != nil {
-		p.Session.Send(wire.MessagePanel("The Ideal Stone could not be created."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Ideal_Stone_Could_Not_Created")))
 		return
 	}
 	if addToInv(ch, ideal) < 0 {
-		p.Session.Send(wire.MessagePanel("Inventory is full. Nothing was consumed."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Inventory_Full_Nothing_Was_Consumed")))
 		return
 	}
 	err = w.queueCriticalAccountMutation(p, proposed, "Ideal Stone composition",
@@ -274,10 +274,10 @@ func (w *World) admitIdealStoneCraft(p *Player) {
 			w.resendInventory(p)
 			p.Session.Send(wire.SendItem(p.ID, placeEquip, 10, p.Char.Equip[10]))
 			p.Session.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
-			p.Session.Send(wire.MessagePanel("The Ideal Stone was created successfully."))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Ideal_Stone_Was_Created_Successfully")))
 		}, true)
 	if err != nil {
-		p.Session.Send(wire.MessagePanel("Ideal Stone composition is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Ideal_Stone_Composition_Unavailable_Please_Try")))
 		log.Printf("[#%d] Ideal Stone composition admission rejected: %v", p.Session.ID, err)
 	}
 }

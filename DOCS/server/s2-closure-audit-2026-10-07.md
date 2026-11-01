@@ -5,13 +5,18 @@
 The production entry point enables S2; the previous staged-only status no
 longer applies. The initial audit reproduced three shared-object lifecycle
 defects. The subsequent user-authorized S2 correction settles certified ground
-rejections and retains global containment for uncertain ground/mob outcomes.
+rejections and initially retained global containment for uncertain ground/mob outcomes.
 All 11 original acceptance cases now pass without weakened assertions. A
 follow-up correction reproduces and removes the timed account release and
 speculative instance-reader exposure described below. Verified recovery of an
 unknown outcome remains a separate outstanding requirement.
 The successful activation and client-session evidence recorded on October 6
 remains historical evidence for the flows it actually exercised.
+
+The October 31 source correction supersedes the global containment policy below.
+Failed operations retain their account, object and aggregate fences while
+unrelated admission remains available. See [operations](operations.md#critical-persistence-operation)
+for the current source behavior and pending activation.
 
 The initial audit examined the working tree on `main`, based on `34b7dcae`,
 not every change in the large batch. The corrected source, tests and records

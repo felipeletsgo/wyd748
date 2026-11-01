@@ -41,7 +41,7 @@ func (w *World) onDeleteItem(s *net.Session, pkt []byte) {
 		return
 	}
 	if _, filled := model.CelestialSealID(current); filled {
-		s.Send(wire.MessagePanel("A filled Spirit's Seal cannot be deleted."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Filled_Spirits_Seal_Cannot_Deleted")))
 		s.Send(wire.SendItem(p.ID, placeInv, byte(slot), current))
 		return
 	}
@@ -120,7 +120,7 @@ func (w *World) onSplitItem(s *net.Session, pkt []byte) {
 	}
 	destSlot := firstFreeVisibleInventorySlot(p.Char)
 	if destSlot < 0 {
-		s.Send(wire.MessagePanel("Your inventory is full."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_3")))
 		s.Send(wire.SendItem(p.ID, placeInv, byte(sourceSlot), source))
 		return
 	}

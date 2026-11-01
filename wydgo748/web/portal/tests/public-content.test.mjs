@@ -50,6 +50,8 @@ test('download receipt pairs update 7.48.017 with the existing full-client basel
   assert.match(html('news/client-7-48-001/index.html'), /choose the game language/);
   assert.match(html('news/client-7-48-013/index.html'), /Master.*Elite/s);
   assert.match(html('news/client-7-48-017/index.html'), /Cube.*Mystic Land/s);
+  assert.match(html('news/server-stability-2026-11-01/index.html'), /database delay.*No client update is needed/s);
+  assert.match(html('changelog/index.html'), /Server update — fewer disconnects/);
   // Every published client must be announced in News, not only in the changelog.
   assert.ok(html('news/index.html').includes(receipt.clientVersion), 'News does not announce the current client');
   assert.match(html('roadmap/index.html'), /Planned/);

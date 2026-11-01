@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"wydgo/internal/model"
@@ -17,7 +16,7 @@ func (w *World) useNoDirectItem(s *net.Session, p *Player, item *model.Item, slo
 	if message == "" {
 		message = "This item is used by its corresponding NPC or command."
 	}
-	s.Send(wire.MessagePanel(message))
+	s.Send(wire.MessagePanel(w.tr(message)))
 }
 
 func (w *World) useLootBox(s *net.Session, p *Player, item *model.Item, slot byte,
@@ -51,7 +50,7 @@ func (w *World) useLootBox(s *net.Session, p *Player, item *model.Item, slot byt
 	if rewardSlot < 0 {
 		*p.Char = snapshot
 		s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
-		s.Send(wire.MessagePanel("Inventory full."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_2")))
 		return
 	}
 	p.Char.Inv[rewardSlot] = reward
@@ -64,7 +63,7 @@ func (w *World) useLootBox(s *net.Session, p *Player, item *model.Item, slot byt
 	if rewardSlot != int(slot) {
 		s.Send(wire.SendItem(p.ID, placeInv, byte(rewardSlot), reward))
 	}
-	s.Send(wire.MessagePanel(fmt.Sprintf("You received %s.", w.items[rewardID].Name)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Received_S", w.items[rewardID].Name)))
 }
 
 func (w *World) useMountRevive(s *net.Session, p *Player, item *model.Item, slot byte,
@@ -79,13 +78,13 @@ func (w *World) useMountRevive(s *net.Session, p *Player, item *model.Item, slot
 	mount, mountPos := equippedMount(p.Char)
 	if mount == nil || mount.MountHP() > 0 || mount.MountLongev() <= 0 {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("Equip a wounded mount first."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Equip_Wounded_Mount_First")))
 		return
 	}
 	def, exists := w.items[mount.Index]
 	if !exists || def.Price > p.Char.Gold {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("Not enough gold to revive the mount."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Not_Enough_Gold_Revive_Mount")))
 		return
 	}
 
@@ -122,9 +121,9 @@ func (w *World) useMountRevive(s *net.Session, p *Player, item *model.Item, slot
 	w.refreshAppearance(p)
 	w.syncCriaPet(p)
 	if mount.Index == 0 {
-		s.Send(wire.MessagePanel("The mount could not be revived and was lost."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Mount_Could_Not_Revived_Was_Lost")))
 	} else {
-		s.Send(wire.MessagePanel("Mount revived."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Cured")))
 	}
 }
 
@@ -143,7 +142,7 @@ func (w *World) useTimedAccess(s *net.Session, p *Player, item *model.Item, slot
 	if current > uint32(now.Unix()) {
 		remaining := time.Unix(int64(current), 0).Sub(now).Round(time.Minute)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel(fmt.Sprintf("This access is already active for %s.", remaining)))
+		s.Send(wire.MessagePanel(w.msg("_WG_Access_Already_Active_S", remaining)))
 		return
 	}
 	expires := now.Add(time.Duration(rule.DurationSeconds) * time.Second)
@@ -166,6 +165,5 @@ func (w *World) useTimedAccess(s *net.Session, p *Player, item *model.Item, slot
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	s.Send(wire.MessagePanel(fmt.Sprintf("Access enabled until %s.",
-		expires.Local().Format("2006-01-02 15:04"))))
+	s.Send(wire.MessagePanel(w.msg("_WG_Access_Enabled_Until_S", expires.Local().Format("2006-01-02 15:04"))))
 }

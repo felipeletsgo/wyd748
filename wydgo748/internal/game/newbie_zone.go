@@ -41,7 +41,7 @@ func (w *World) tickNewbieZone(now time.Time) {
 		}
 		log.Printf("TRAINING FIELD: %q (level %d) returned to town", p.Char.Name, p.Char.Score.Level+1)
 		if w.recallPlayer(p, "training field level limit") {
-			p.Session.Send(wire.MessagePanel(newbieZoneMessage))
+			p.Session.Send(wire.MessagePanel(w.trFor(p, newbieZoneMessage)))
 		}
 	}
 }

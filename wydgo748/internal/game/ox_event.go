@@ -87,7 +87,7 @@ func (w *World) oxTicketRule(item model.Item) (model.VolatileRule, bool) {
 func (w *World) useOXTicket(s *net.Session, p *Player, item *model.Item, slot byte, rule model.VolatileRule) {
 	if message := w.oxEntryRejection(p, *item); message != "" {
 		resyncUsedItem(s, p, slot)
-		s.Send(wire.MessagePanel(message))
+		s.Send(wire.MessagePanel(w.tr(message)))
 		return
 	}
 	if _, known := w.items[item.Index]; !known {

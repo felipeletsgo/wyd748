@@ -1,17 +1,17 @@
 package game
 
 import (
-	"fmt"
-
 	"wydgo/internal/wire"
 )
 
-// receiveDeathLetter registra uma carta antes de confirmar a morte no client.
-// O limite impede que mortes repetidas façam o JSON da conta crescer sem fim.
+// receiveDeathLetter sends the death letter before the client confirms the death.
 func (w *World) receiveDeathLetter(victim *Player, killerName, killerKind string) {
 	if victim == nil || victim.Session == nil || killerName == "" {
 		return
 	}
-	victim.Session.Send(wire.MessageWhisper(0, killerName,
-		fmt.Sprintf("!You were killed by %s %q.", killerKind, killerName), 0))
+	kind := w.msg("_WG_Killer_Mob")
+	if killerKind == "player" {
+		kind = w.msg("_WG_Killer_Player")
+	}
+	victim.Session.Send(wire.MessageWhisper(0, killerName, w.msg("_WG_Killed_By", kind, killerName), 0))
 }

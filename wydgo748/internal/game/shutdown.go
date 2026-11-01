@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"wydgo/internal/model"
@@ -96,6 +97,12 @@ func (w *World) finishShutdownIfReady() {
 				return
 			}
 		}
+		for id, pending := range w.criticalWrites.queue.pending {
+			if pending.quarantined {
+				w.shutdownErr = errors.Join(w.shutdownErr, fmt.Errorf("critical completion %d: %w",
+					id, w.criticalWrites.continuations[id].err))
+			}
+		}
 	}
 	if w.shutdownErr == nil {
 		w.persistShutdownState()
@@ -137,6 +144,11 @@ func (w *World) persistShutdownState() {
 		uid     string
 	}
 	seen := make(map[playerStateKey]struct{}, len(w.players))
+	type terminalSave struct {
+		account string
+		write   func() error
+	}
+	var saves []terminalSave
 	for _, p := range w.players {
 		if p == nil || p.Account == nil || poisoned[accountSessionKey(p.Account.Name)] {
 			continue
@@ -153,15 +165,16 @@ func (w *World) persistShutdownState() {
 			continue
 		}
 		seen[key] = struct{}{}
-		// Save synchronously: the asynchronous queue may not drain in time.
-		// Shutdown prioritizes durability over latency.
+		// Detach each final snapshot on the actor; the writes then run on
+		// bounded workers. Gameplay is stopped, so no live state can change.
+		var write func() error
 		var err error
 		if accountOnly {
 			// A queue-rejected disconnect on the character-selection screen
 			// still owns an account; do not discard it during terminal shutdown.
-			err = w.saveAccount(p.Account)
+			write, err = w.prepareAccountSave(p.Account)
 		} else {
-			err = w.saveAccountAndCharStateResult(p)
+			write, err = w.prepareAccountAndCharStateSave(p.Account, p.Char.UID, buildCharState(p, w.now()))
 		}
 		if err != nil {
 			failed++
@@ -169,8 +182,24 @@ func (w *World) persistShutdownState() {
 			failures = append(failures, fmt.Errorf("account %q: %w", p.Account.Name, err))
 			continue
 		}
+		if write != nil {
+			saves = append(saves, terminalSave{account: p.Account.Name, write: write})
+		}
+	}
+	started := time.Now()
+	results := make([]error, len(saves))
+	runBounded(len(saves), max(w.shutdownSaveWorkers, 1), func(i int) { results[i] = saves[i].write() })
+	for i, err := range results {
+		if err != nil {
+			failed++
+			log.Printf("shutdown: save account %q: %v", saves[i].account, err)
+			failures = append(failures, fmt.Errorf("account %q: %w", saves[i].account, err))
+			continue
+		}
 		saved++
 	}
+	log.Printf("shutdown: %d final account write(s) took %s with %d worker(s)",
+		len(saves), time.Since(started).Round(time.Millisecond), max(w.shutdownSaveWorkers, 1))
 	if w.instanceStateDirty {
 		if err := w.persistInstanceState(); err != nil {
 			failed++
@@ -187,4 +216,37 @@ func (w *World) persistShutdownState() {
 	}
 	log.Printf("shutdown: %d accounts persisted, %d failures", saved, failed)
 	w.shutdownErr = errors.Join(failures...)
+}
+
+// WithShutdownSaveWorkers bounds concurrent terminal saves (W5/D11). The store
+// must be goroutine-safe; one worker keeps the sequential order.
+func WithShutdownSaveWorkers(workers int) WorldOption {
+	return func(w *World) { w.shutdownSaveWorkers = workers }
+}
+
+// runBounded calls work for every index with at most workers goroutines and
+// returns after all calls finish. One worker runs inline in index order.
+func runBounded(n, workers int, work func(int)) {
+	if workers <= 1 || n <= 1 {
+		for i := range n {
+			work(i)
+		}
+		return
+	}
+	next := make(chan int)
+	var running sync.WaitGroup
+	for range min(workers, n) {
+		running.Add(1)
+		go func() {
+			defer running.Done()
+			for i := range next {
+				work(i)
+			}
+		}()
+	}
+	for i := range n {
+		next <- i
+	}
+	close(next)
+	running.Wait()
 }

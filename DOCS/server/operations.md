@@ -584,7 +584,12 @@ idle and partial-frame timeouts, inbound packet/byte rates, login and chat
 limits, PostgreSQL critical-operation budget, `world_command_queue_capacity`,
 `auth_hash_concurrency`, and `channel_id`. Defaults are
 safe for the stock 7.48 heartbeat; do not reduce the 600-second idle timeout
-without capturing the real client first.
+without capturing the real client first. `auth_hash_concurrency` bounds
+concurrent PBKDF2 hashes only; account and sanction reads do not hold a slot.
+An attempt that waits two seconds for a slot gets the busy message.
+
+Routine PvP hits and skills, misses, pickups, Illusion and summon lines also
+use the gameplay summary below; verbose mode still writes each line.
 
 `gameplay_log=summary` is the production-friendly mode: it aggregates combat
 and loot counters once per minute instead of synchronously writing one line per
@@ -663,7 +668,7 @@ or wire change.
 
 ## Critical persistence operation
 
-PostgreSQL startup enables the S2 coordinator and account-local containment in
+PostgreSQL startup enables the S2 coordinator and operation containment in
 `cmd/server`. `NewWorld` refuses activation if any required certified atomic
 adapter is missing. The explicit JSON development adapter does not enable this
 production path. There is no configuration switch to fall back to inline
@@ -676,8 +681,9 @@ changes, not as a way to clear an uncertain transaction:
 | --- | --- | --- |
 | `database_max_conns` | 8 | Pool limit, validated in `1..64`; the worker constraint below requires at least two connections for the activated configuration |
 | `critical_persistence_workers` | 4 | `1..database_max_conns-1`; leaves pool capacity for other database consumers |
-| `critical_persistence_capacity` | 1024 | `workers..65536`; includes queued, running and completed-but-unacknowledged operations, plus retained unknown outcomes |
-| `critical_persistence_timeout_ms` | 500 | `100..10000`; passed as `PostgresConfig.OperationTimeout`, including store reads that use this context. It is not an account-unlock timer or proof of rollback |
+| `critical_persistence_capacity` | 1024 | `workers..65536`; includes queued, running and completed operations awaiting settlement; quarantined failures retain fences outside live capacity |
+| `critical_persistence_timeout_ms` | 500 | `100..10000`; passed as `PostgresConfig.OperationTimeout` for writes. It is not an account-unlock timer or proof of rollback |
+| `database_read_timeout_ms` | 3000 | `100..30000`; account, name, guild, instance and character-state reads, including pool acquisition |
 
 Reserved sessions retain validated packets in arrival order, at most 512 per
 session. Another packet at that limit closes the transport rather than growing
@@ -695,23 +701,57 @@ account containment=true`. Through the private diagnostic endpoint
 | --- | --- |
 | `world_critical_deferred_commands` | Current packet backlog across reserved sessions; not the number of database writes |
 | `world_sync_persistence_rejected` | Cumulative refused legacy inline saves; investigate unexpected growth on migrated flows |
-| `world_critical_quarantined` | Cumulative account-only operations isolated since startup, not a current account-count gauge |
-| `CRITICAL: persistence completion ... verified reconciliation required` | Participants are poisoned/disconnected; account and UID fences, pending disconnect state and capacity remain held indefinitely |
-| `CRITICAL: persistence completion ... entering maintenance` | Shared guild/instance/ground/mob ownership, or a post-acknowledgement failure, requires World-wide containment; gameplay/write admission stops and sessions close |
+| `world_critical_quarantined` | Cumulative operations isolated since startup, not a current account-count gauge |
+| `world_critical_pending`, `_queued_jobs`, `_running`, `_quarantined_now`, `_oldest_pending_micros` | Current accepted, waiting, executing and quarantined operations, and the oldest unacknowledged age |
+| `world_critical_outcomes_total`, `world_critical_admission_rejected_total` | Worker results (`committed`, `rejected`, `indeterminate`) and refusals before queue admission |
+| `world_critical_quarantine_released_total` | Account-only quarantines released after PostgreSQL reported their exact transaction as committed or aborted |
+| `world_critical_parked_total` | Writes that waited behind a background autosave of a participant instead of holding that player's input |
+| `world_instance_tick_skipped_total` | Ticks that skipped instance lifecycle work because an instance write was in flight; compare with two ticks per second per channel |
+| `world_login_replacement_total` | Logins that waited for a closed previous session to settle (`waiting`), then entered (`admitted`), gave up at five seconds (`timed_out`) or closed while waiting (`abandoned`) |
+| `postgres_pool_*` | Game store pool connections, acquisitions, empty-pool waits and cancellations |
+| `CRITICAL: persistence completion ... admission remains open; verified reconciliation required` | Affected accounts disconnect; account, UID, shared-object and aggregate fences remain held; unrelated admission and persistence continue |
+| `CRITICAL: persistence completion ... entering maintenance` | Historical policy, or a coordinator constructed without containment; the production entry point enables operation containment |
 
 An adapter-certified rejection can settle only through its identity-checked
-failure continuation; it is not a committed success. A timeout, ordinary error
-or continuation mismatch does not itself certify rejection. Account-only
-containment lets unrelated accounts continue, but enough retained operations
-can exhaust capacity. Shared containment must not be bypassed to keep playing.
+failure continuation; it is not a committed success. Inventory deletion/split
+and composition cancel the detached proposal, resend the unchanged inventory,
+and keep the session connected. No ingredients or gold are consumed.
+Autosave, shops, cargo, skills, trade, equipment, personal shops, Lindy,
+advanced composition, character entry and channel transfer do the same.
+A rejected autosave retries a fresh snapshot with per-account backoff up to
+30 seconds. An autosave in flight does not hold the player's input: commands,
+mob attacks and kills continue. A critical write of the same account waits
+behind the snapshot and starts after it is acknowledged, so an older snapshot
+never commits after newer state. If the autosave outcome is unknown, every
+write parked behind it is refused before it reaches PostgreSQL.
+Staff with `game.persistence.recovery` see the quarantine list in the panel
+(Quarantine section, `GET /api/v1/staff/persistence/quarantine`) and may
+request an exact-outcome check with a reason (`POST`, audited as
+`persistence_recovery.recheck`). Only `committed` or `aborted` releases an
+account-only quarantine; shared objects, guilds and instances need a restart. Any failure before COMMIT is a rejection. A COMMIT that may have
+reached PostgreSQL is checked by its transaction ID for up to three seconds;
+only a still unresolved one stays uncertain (`postgres_commit_reconciled_total`).
+A timeout, ordinary error
+or continuation mismatch does not itself certify rejection. Failed ground,
+mob, guild and instance operations retain their shared ownership. A failure
+after acknowledgement restores failure fences before the actor yields.
+Quarantined completions do not consume live worker capacity. They cannot close
+global admission or disconnect unrelated players on another channel.
+
+Release `20261031T201414Z` activated these changes on October 31 at 20:14 UTC.
+Both channels pass revision 17 admission probes through credential validation.
+All 1,076 payload hashes and the database backup were verified. The rollback
+release is `20261031T061042Z`, which uses the historical global policy.
+Real-client gameplay acceptance remains pending. See the server follow-up in
+[release receipt](../../.agents/research/release-748017.json).
 
 ### Handle an uncertain outcome
 
 Preserve the completion ID, error, timestamp, build identity and affected-account
 context from private logs; keep credentials and account data out of public
 reports. Do not replay the economic intention, force a RAM snapshot, clear
-reservations, or unlock an account after a fixed delay. If containment is global,
-keep gameplay unavailable while investigating. Avoid restart/readmission of
+reservations, or unlock an account after a fixed delay. Keep unrelated admission
+available while investigating the retained operation. Avoid restart/readmission of
 affected accounts as a recovery shortcut: fences are process-local, and no
 restart-safe quarantine, durable operation ledger or supported unlock command
 exists yet. A reload or elapsed time does not prove that a late COMMIT stopped.
@@ -845,6 +885,16 @@ The source account is never used as a bot. Every clone receives independent
 CharacterUIDs and ItemUIDs. You can log in with the real source account while
 the test is active.
 
+The in-process actor probes use the official map and spawns with a fixed seed.
+They measure actor work only, not TCP capacity or disconnect thresholds:
+
+```powershell
+$env:WYD_LOAD_PROBE="1"; go test -run 'TestLoadProbe' -v ./internal/game
+```
+
+Each line records the Go build, platform, CPU count, seed, population and the
+measured function. Save the output under ignored root `build/<task>/`.
+
 ## Architecture
 
 ```text
@@ -890,6 +940,45 @@ already waiting. Incomplete frames remain bounded from their first byte, and
 authentication cannot clear that frame deadline. TCP keepalive and socket
 errors still detect disconnected peers; flood, handshake, connection and
 outbound queue limits remain active.
+
+### Diagnose a disconnect
+
+Each game socket writes one closing line with its first recorded cause:
+`[#id] disconnected: cause=<cause> detail="..." queue_high_water=<n>/<capacity> max_queue_wait=<d> sent=<n>`.
+Later failures caused by that closure never replace the cause.
+
+| Cause | Meaning |
+| --- | --- |
+| `handshake` | The InitCode did not arrive, was invalid or timed out |
+| `peer_closed` | The client or network closed the connection |
+| `read_timeout`, `read_error` | A frame or pre-authentication deadline expired, or the socket failed |
+| `protocol`, `inbound_flood` | Invalid frame size or checksum, or the inbound packet/byte limit |
+| `output_overflow` | The session output queue was full; the server could not send fast enough |
+| `write_timeout`, `write_error` | The peer did not read within the write deadline, or the write failed |
+| `invalid_outbound` | A server packet builder produced an invalid packet |
+| `admission`, `server` | Admission rejection, or an explicit server, staff or security decision |
+| `persistence`, `shutdown`, `panic` | Persistence containment, maintenance or shutdown, or handler panic containment |
+
+Output queues hold at most `session_queue_capacity` packets (default 256)
+and 512 KiB. The writer joins queued packets into one socket write. A crowded
+arrival creates entities only while a quarter of the queue is free and
+completes the view on later ticks (`world_scene_deferred_total`).
+
+Game sockets probe an idle peer after 15 seconds, every five seconds, four
+times, and on Linux close after 30 seconds of unacknowledged data
+(`tcp_keepalive_*`, `tcp_user_timeout_seconds`). A dead transport therefore
+ends with `read_error`, `read_timeout` or `write_error` within about a minute.
+
+`/readyz` returns 503 when the panel database does not answer, any live
+channel is in maintenance or shutdown, or a channel actor heartbeat is older
+than five seconds. `/healthz` reports only that the process answers. A tick
+or handler panic keeps that channel in maintenance until a restart.
+
+`net_session_close_causes_total` counts the same causes, and
+`net_connections_refused_total` counts pre-handshake refusals by
+`origin`, `total_limit` and `origin_limit`. The staff metrics endpoint shows
+interval deltas without `debug_address`; see
+[staff operations](staff-operations.md#load-history-and-protection).
 
 On the shared VPS, SSH bans must not block game or website ports. Run
 `sudo bash tools/deployment/vps/harden-ssh-jail.sh` with the adjacent

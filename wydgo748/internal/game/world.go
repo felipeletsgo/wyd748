@@ -12,7 +12,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"wydgo/internal/control"
 	"wydgo/internal/data"
+	"wydgo/internal/lang"
 	"wydgo/internal/model"
 	"wydgo/internal/net"
 	"wydgo/internal/store"
@@ -27,6 +29,7 @@ type command struct {
 	globalDrop      *globalDropRequest
 	quiz            *quizRequest
 	pvpDoor         *pvpDoorRequest
+	recovery        *persistenceRecoveryRequest
 	oxEvent         *oxEventRequest
 	colosseum       *colosseumRequest
 	premium         *premiumEvent
@@ -37,6 +40,9 @@ type command struct {
 	s               *net.Session
 	pkt             []byte
 	login           *loginResult
+	quarantine      []quarantineStatus
+	loginReload     *loginReloadResult
+	entryRead       *entryReadResult
 	queuedAt        time.Time
 	// replayDeferred marks an inbound packet that already passed validation and
 	// waited behind its player's persistence reservation.
@@ -88,13 +94,23 @@ func pinAccountEntryPositions(account *model.Account) {
 // leaving the live session intact. Reentry city comes from the hometown bits
 // persisted in Score.Merchant.
 func (w *World) saveAccount(account *model.Account) error {
-	if w.criticalAccountStateReserved(account) {
-		return errCriticalPersistenceBusy
-	}
-	if err := w.syncPersistenceAllowed("account"); err != nil {
+	save, err := w.prepareAccountSave(account)
+	if err != nil {
 		return err
 	}
-	return w.store.SaveAccount(accountPersistenceSnapshot(account))
+	return save()
+}
+
+// prepareAccountSave checks ownership and detaches the snapshot on the actor.
+func (w *World) prepareAccountSave(account *model.Account) (func() error, error) {
+	if w.criticalAccountStateReserved(account) {
+		return nil, errCriticalPersistenceBusy
+	}
+	if err := w.syncPersistenceAllowed("account"); err != nil {
+		return nil, err
+	}
+	snapshot := accountPersistenceSnapshot(account)
+	return func() error { return w.store.SaveAccount(snapshot) }, nil
 }
 
 // asyncSaveStore exposes asynchronous saves for autosave. Stores without this
@@ -139,7 +155,16 @@ type Player struct {
 	// Actor-only token invalidated by character reset, even when the same
 	// Player, character slot and numeric ID are reused.
 	criticalLifecycle *criticalPlayerLifecycle
-	X, Y              uint16 // current position tracked from movement packets 0x366
+	// Consecutive certified autosave rejections and the next eligible slice.
+	autoSaveRejections uint8
+	autoSaveRetryAt    time.Time
+	// persistenceRetryAt delays timer-driven writes after a certified rejection.
+	persistenceRetryAt time.Time
+	// entryRead is the pending sidecar read of this character selection.
+	entryRead *entryRead
+	// sceneIncomplete marks a view whose creations waited for queue room.
+	sceneIncomplete bool
+	X, Y            uint16 // current position tracked from movement packets 0x366
 	// QuestZoneEntry is the native QuestFlag: the quest zone this player was
 	// teleported into by its NPC. Runtime only; cleared by the zone reset.
 	QuestZoneEntry string
@@ -455,6 +480,7 @@ type World struct {
 	cluster            *ChannelCluster
 	bossesPending      atomic.Bool
 	pvpDoorPending     atomic.Bool
+	recoveryPending    atomic.Bool
 	oxEventPending     atomic.Bool
 	colosseumPending   atomic.Bool
 	kickPending        atomic.Bool
@@ -492,10 +518,19 @@ type World struct {
 	// snapshot; syncPersistenceRejected logs each unmigrated operation once.
 	terminalPersistence     bool
 	syncPersistenceRejected map[string]bool
-	// criticalAccountContainment isolates failed account-only writes; the
-	// quarantine holds their fences until the database outcome has settled.
+	// criticalAccountContainment isolates failed operations and participants.
+	// Quarantine retains their fences without stopping unrelated admission.
 	criticalAccountContainment bool
 	criticalQuarantine         map[uint64]time.Time
+	// Exact transactions of account-only quarantines and their status checks
+	// (critical_persistence_quarantine.go).
+	criticalQuarantineXID map[uint64]string
+	// Last final or unknown status read for each quarantine, for staff.
+	quarantineLastStatus map[uint64]string
+	// Logins waiting for a closed previous owner to settle (W4/D4).
+	waitingLogins          map[string]*waitingLogin
+	quarantineCheckAt      time.Time
+	quarantineCheckRunning bool
 	// criticalPersistenceWorkers > 0 enables the coordinator in NewWorld.
 	criticalPersistenceWorkers  int
 	criticalPersistenceCapacity int
@@ -516,12 +551,15 @@ type World struct {
 	authClientsByNetwork     map[string]map[*net.Session]struct{}
 	authPending              map[*net.Session]bool
 	authSlots                chan struct{}
-	operational              OperationalConfig
-	networkAdmission         compiledNetworkAdmission
-	networkAdmissionErr      error
-	authRateByIP             map[string]*fixedWindowRate
-	authRateByAccount        map[string]*fixedWindowRate
-	chatRateByAccount        map[string]*fixedWindowRate
+	// hashSlots bound PBKDF2 work only (auth_hash.go); authSlots bound the
+	// authentication goroutines in flight, including their storage reads.
+	hashSlots           chan struct{}
+	operational         OperationalConfig
+	networkAdmission    compiledNetworkAdmission
+	networkAdmissionErr error
+	authRateByIP        map[string]*fixedWindowRate
+	authRateByAccount   map[string]*fixedWindowRate
+	chatRateByAccount   map[string]*fixedWindowRate
 	// security aggregates violations per connection at every phase (including
 	// before login), without trusting packet-supplied identity fields.
 	security map[*net.Session]*securityState
@@ -567,6 +605,7 @@ type World struct {
 	nextAutoSave          time.Time
 	autoSaveBucket        uint8
 	autoSaveScratch       []*Player
+	activationScratch     activationNeighborhood // one recomputeMobsNearCell pass
 	nextTimedItemSweep    time.Time
 	dropRates             [model.MaxCarry]int // native drop rate by carry slot
 	volatiles             model.VolatileCatalog
@@ -629,6 +668,21 @@ type World struct {
 	// channel is the native ServerIndex+1. Citizenship is per channel; another
 	// channel's citizens receive no bonus here. A single instance uses channel 1.
 	channel byte
+	// metrics and lastTickStart are this channel's actor diagnostics (metrics.go).
+	metrics       *channelMetrics
+	lastTickStart time.Time
+	// Entry reads off the actor (entry_reads.go): pending login reloads and
+	// the bounded worker slots shared by reloads and sidecar reads.
+	asyncEntryReads bool
+	loginReloads    map[*net.Session]*loginReload
+	entryReadSlots  chan struct{}
+	// shutdownSaveWorkers bounds concurrent terminal saves (shutdown.go).
+	shutdownSaveWorkers int
+	// panicRestart requests a supervised restart after a contained panic.
+	panicRestart bool
+	// messages and language select the text of server messages (messages.go).
+	messages *lang.Catalog
+	language lang.Language
 	// Prevents informational packets not yet materialized from flooding logs
 	// when clients send them every frame.
 	lastProtocolNotice map[uint16]time.Time
@@ -806,7 +860,8 @@ func NewWorld(st store.Store, npcs []model.NPCDef, geners []model.NPCGener, cata
 	// No producer knows World before NewWorld returns. Instantiate the selected
 	// operational capacities here instead of retaining hidden 1024/4 defaults.
 	w.commands = make(chan command, w.operational.WorldCommandQueueCapacity)
-	w.authSlots = make(chan struct{}, w.operational.AuthHashConcurrency)
+	w.authSlots = make(chan struct{}, authInFlightCapacity(w.operational.AuthHashConcurrency))
+	w.hashSlots = make(chan struct{}, w.operational.AuthHashConcurrency)
 	w.channel = w.operational.ChannelID
 	// Initialize deadlines after options so an injected test clock starts them
 	// at the same instant as the world.
@@ -1709,6 +1764,7 @@ func (w *World) releaseCommandBatchScratch(batch []command, order []*net.Session
 // can interrupt the batch without losing remaining commands.
 func (w *World) processCommandBatch(first command, ticks <-chan time.Time) {
 	deadline := time.Now().Add(worldCommandBudget)
+	defer func() { w.observeHeartbeat(time.Now()) }()
 	w.processCriticalCompletions(criticalCompletionBatchLimit)
 	w.resumeCriticalDisconnects(criticalCompletionBatchLimit)
 	w.resumeCriticalDeferredCommands(criticalDeferredReplayLimit)
@@ -1800,6 +1856,9 @@ func commandLabel(cmd command) string {
 	if cmd.pvpDoor != nil {
 		return "control.pvp-door"
 	}
+	if cmd.recovery != nil {
+		return "control.persistence-recovery"
+	}
 	if cmd.oxEvent != nil {
 		return "control.ox-event"
 	}
@@ -1817,6 +1876,15 @@ func commandLabel(cmd command) string {
 	}
 	if cmd.control != nil {
 		return "control.read"
+	}
+	if cmd.loginReload != nil {
+		return "login.reload"
+	}
+	if cmd.quarantine != nil {
+		return "quarantine.status"
+	}
+	if cmd.entryRead != nil {
+		return "entry.read"
 	}
 	if cmd.pkt == nil {
 		return "login" // internal authentication-result command
@@ -1838,7 +1906,7 @@ func (w *World) safeHandle(cmd command) {
 	label := commandLabel(cmd)
 	start := time.Now()
 	if !cmd.queuedAt.IsZero() {
-		observeCommandQueueAge(start.Sub(cmd.queuedAt))
+		w.observeCommandQueueAge(start.Sub(cmd.queuedAt))
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -1851,7 +1919,7 @@ func (w *World) safeHandle(cmd command) {
 			w.failClosedAfterHandlerPanic()
 		}
 		// Measure in defer so a panicking command also appears in duration data.
-		observeCommand(label, time.Since(start))
+		w.observeCommand(label, time.Since(start))
 	}()
 	w.handle(cmd)
 }
@@ -1860,6 +1928,7 @@ func (w *World) safeHandle(cmd command) {
 // multiple players (trade, party, PvP), so poisoning only its source session
 // is insufficient. All online snapshots become unsavable and sockets close;
 // the process remains in maintenance for restart from the last sound commit.
+// With WithPanicRestart the process then requests a supervised restart.
 func (w *World) failClosedAfterHandlerPanic() {
 	if w == nil {
 		return
@@ -1872,9 +1941,29 @@ func (w *World) failClosedAfterHandlerPanic() {
 		}
 		p.PersistencePoisoned = true
 		if p.Session != nil {
-			p.Session.Close()
+			p.Session.CloseWithCause(net.CloseCausePanic, nil)
 		}
 	}
+	w.requestPanicRestart()
+}
+
+// panicRestartRequested is process-wide: both channels share one process, so
+// one supervised restart covers every World (W5/D5).
+var panicRestartRequested atomic.Bool
+
+// WithPanicRestart makes a contained panic request the same supervised
+// restart as a staff restart: final saves skip poisoned RAM, the process exits
+// with RestartExitCode and systemd starts it again within its start limit.
+func WithPanicRestart() WorldOption {
+	return func(w *World) { w.panicRestart = true }
+}
+
+func (w *World) requestPanicRestart() {
+	if !w.panicRestart || w.staffOps.request == nil || !panicRestartRequested.CompareAndSwap(false, true) {
+		return
+	}
+	log.Printf("CRITICAL: requesting a supervised restart after a contained panic")
+	go w.staffOps.request(control.ShutdownModeRestart)
 }
 
 // poisonAccountsAfterPersistenceFailure prevents a later save from partially
@@ -1899,7 +1988,7 @@ func (w *World) poisonAccountsAfterPersistenceFailure(accounts []*model.Account,
 		}
 		p.PersistencePoisoned = true
 		if p.Session != nil {
-			p.Session.Close()
+			p.Session.CloseWithCause(net.CloseCausePersistence, nil)
 		}
 	}
 	log.Printf("CRITICAL: %s was not persisted (%v); %d account(s) isolated", operation, err, len(affected))
@@ -1912,10 +2001,21 @@ func (w *World) tick() {
 	// Instrumentation uses real time to measure execution cost, not game time;
 	// a fake test clock must not distort observed duration.
 	tickStart := time.Now()
+	// A tick panic used to end the whole process, both channels included. It
+	// now fails this World closed exactly like a handler panic (W5/D5).
 	defer func() {
-		observeTick(tickStart, time.Since(tickStart))
-		observeWorldGauges(len(w.players), len(w.activeMobs))
-		metricCommandQueueDepth.Set(int64(w.commandQueueDepth()))
+		if r := recover(); r != nil {
+			metricPanicsTotal.Add(1)
+			log.Printf("tick PANIC on channel %d: %v\n%s", w.channel, r, debug.Stack())
+			w.failClosedAfterHandlerPanic()
+		}
+	}()
+	defer func() {
+		w.observeTick(tickStart, time.Since(tickStart))
+		w.observeWorldGauges(len(w.players), len(w.activeMobs), w.commandQueueDepth())
+		if w.criticalWrites != nil {
+			observeCriticalQueue(w.criticalWrites.queue, time.Now())
+		}
 	}()
 	w.processCriticalCompletions(criticalCompletionBatchLimit)
 	// Completion delivery remains active while draining, but no tick may mutate
@@ -1927,6 +2027,7 @@ func (w *World) tick() {
 	// Server position follows the visual route, but only due steps become
 	// authoritative for AI and interactions.
 	w.advanceAllPlayerMovement(now)
+	w.continueIncompleteScenes()
 	w.tickGlobalDrop(now)
 	w.tickGuildWars(now)
 	w.tickColosseum(now)
@@ -1960,6 +2061,10 @@ func (w *World) tick() {
 	if !w.criticalInstanceReserved() {
 		w.tickItemInstances(now)
 		w.tickNightmarePartyReturns()
+	} else {
+		// The ratio to world ticks estimates how often instance operations
+		// meet a reserved aggregate (P10 measurement for W8).
+		metricInstanceTickSkipped.Add(1)
 	}
 	w.tickTrades(now)
 	w.tickGhostShopHonor(now)
@@ -1968,6 +2073,8 @@ func (w *World) tick() {
 	w.tickQuiz(now)
 	w.tickOXEvent(now)
 	w.tickStaffOps(now)
+	w.checkQuarantinedCommits(now)
+	w.resumeWaitingLogins(now)
 	w.tickWeather(now)
 	w.tickPremium(now)
 	w.tickNPCDefinitionChanges(now)
@@ -2061,7 +2168,7 @@ func (w *World) autoSaveAccounts(now time.Time) {
 	active := w.autoSaveScratch[:0]
 	for _, p := range w.players {
 		if !p.InWorld || p.Account == nil || p.Char == nil || p.PersistencePoisoned ||
-			w.criticalPlayerReserved(p) ||
+			w.criticalPlayerReserved(p) || w.criticalPlayerWriteReserved(p) || now.Before(p.autoSaveRetryAt) ||
 			accountAutoSaveBucket(p.Account.Name) != bucket {
 			continue
 		}
@@ -2139,6 +2246,10 @@ func (w *World) handle(cmd command) {
 		w.handlePvPDoor(cmd.pvpDoor)
 		return
 	}
+	if cmd.recovery != nil {
+		w.handlePersistenceRecovery(cmd.recovery)
+		return
+	}
 	if cmd.premium != nil {
 		w.handlePremiumEvent(cmd.premium)
 		return
@@ -2168,8 +2279,10 @@ func (w *World) handle(cmd command) {
 	// without this barrier they would run after the final commit and vanish.
 	if w.shuttingDown {
 		if cmd.s != nil {
-			cmd.s.Close()
-			if cmd.pkt == nil && cmd.login == nil && !w.shutdownStarted {
+			cmd.s.CloseWithCause(net.CloseCauseShutdown, nil)
+			if cmd.loginReload != nil {
+				w.cancelLoginReload(cmd.s)
+			} else if cmd.pkt == nil && cmd.login == nil && cmd.entryRead == nil && !w.shutdownStarted {
 				w.onDisconnect(cmd.s)
 			} else if cmd.login != nil {
 				delete(w.authPending, cmd.s)
@@ -2183,6 +2296,18 @@ func (w *World) handle(cmd command) {
 	}
 	if cmd.login != nil {
 		w.onLoginResult(cmd.s, cmd.login)
+		return
+	}
+	if cmd.loginReload != nil {
+		w.onLoginReload(cmd.s, cmd.loginReload)
+		return
+	}
+	if cmd.quarantine != nil {
+		w.onQuarantineStatus(cmd.quarantine)
+		return
+	}
+	if cmd.entryRead != nil {
+		w.onEntryRead(cmd.s, cmd.entryRead)
 		return
 	}
 	if cmd.pkt == nil {

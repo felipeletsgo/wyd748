@@ -36,6 +36,7 @@ func TestCriticalPersistenceConfigRejectsInvalidBounds(t *testing.T) {
 		"critical_persistence_capacity=0", "critical_persistence_capacity=3",
 		"critical_persistence_capacity=65537", "critical_persistence_capacity=-1",
 		"critical_persistence_timeout_ms=99", "critical_persistence_timeout_ms=10001",
+		"database_read_timeout_ms=99", "database_read_timeout_ms=30001",
 	} {
 		t.Run(setting, func(t *testing.T) {
 			if _, err := LoadServerConfig(writeServerConfig(t, setting+"\n")); err == nil {
@@ -49,7 +50,15 @@ func TestCriticalPersistenceConfigRejectsInvalidBounds(t *testing.T) {
 			t.Fatalf("inclusive configuration boundary rejected: %v", err)
 		}
 	}
+	for _, timeout := range []int{100, 30000} {
+		if _, err := LoadServerConfig(writeServerConfig(t, fmt.Sprintf("database_read_timeout_ms=%d\n", timeout))); err != nil {
+			t.Fatalf("inclusive read timeout boundary rejected: %v", err)
+		}
+	}
 	defaults := DefaultServerConfig()
+	if defaults.DatabaseReadTimeoutMS != 3000 || defaults.DatabaseReadTimeoutMS <= defaults.CriticalPersistenceTimeoutMS {
+		t.Fatal("default read budget must exceed the critical write deadline")
+	}
 	if defaults.DatabaseDriver != "postgres" || defaults.CriticalPersistenceWorkers == 0 || defaults.CriticalPersistenceWorkers >= defaults.DatabaseMaxConns || defaults.CriticalPersistenceCapacity < defaults.CriticalPersistenceWorkers {
 		t.Fatal("production defaults cannot admit the critical coordinator safely")
 	}

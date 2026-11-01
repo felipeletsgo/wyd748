@@ -38,11 +38,11 @@ func (w *World) handleKibitaSoul(s *net.Session, p *Player, m *Mob, quest *model
 		return false
 	}
 	if p.Char.Citizenship != w.channel {
-		s.Send(wire.MessagePanel("Speak to Kibita in your citizenship channel."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Speak_Kibita_Citizenship_Channel")))
 		return true
 	}
 	if !mortalSoulCharacter(p.Char) {
-		s.Send(wire.MessagePanel("This Soul exchange is only available to Mortal characters."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Soul_Exchange_Only_Available_Mortal_Characters")))
 		return true
 	}
 	now := w.now()
@@ -51,16 +51,16 @@ func (w *World) handleKibitaSoul(s *net.Session, p *Player, m *Mob, quest *model
 	item := uint16(420)
 	if temporary {
 		if !kibitaLacWindow(now) {
-			s.Send(wire.MessagePanel("The Lac Soul exchange opens Monday through Friday at 21:00 server time, until 22:00."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Lac_Soul_Exchange_Opens_Monday_Through")))
 			return true
 		}
 		if activePlayerAffectAt(p.Char, 29, now) != nil {
-			s.Send(wire.MessagePanel("Your Soul effect is already active."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Soul_Effect_Already_Active")))
 			return true
 		}
 	} else {
 		if learned || playerLevel(p.Char) < kibitaSoulSkillLevel || p.Char.Class > 3 {
-			s.Send(wire.MessagePanel("Learning Soul requires a Mortal at level 371 without the Soul skill."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Learning_Soul_Requires_Mortal_Level_Without")))
 			return true
 		}
 		item = [...]uint16{5334, 5336, 5335, 5337}[p.Char.Class]
@@ -70,7 +70,7 @@ func (w *World) handleKibitaSoul(s *net.Session, p *Player, m *Mob, quest *model
 		if temporary {
 			message = "Bring one Lac scrap for the one-hour Soul effect."
 		}
-		s.Send(wire.MessagePanel(message))
+		s.Send(wire.MessagePanel(w.tr(message)))
 		return true
 	}
 	images := criticalPreimages(p)
@@ -80,7 +80,7 @@ func (w *World) handleKibitaSoul(s *net.Session, p *Player, m *Mob, quest *model
 		// Check affect capacity before payment. Keep the existing expiry-based
 		// sidecar and public/private affect channels; no new packet is needed.
 		if !setAffectAt(p.Char, 29, 0, 0, 450, now) {
-			s.Send(wire.MessagePanel("There is no room for another effect."))
+			s.Send(wire.MessagePanel(w.msg("_WG_There_No_Room_Another_Effect")))
 			return true
 		}
 	} else {
@@ -108,7 +108,7 @@ func (w *World) handleKibitaSoul(s *net.Session, p *Player, m *Mob, quest *model
 			if temporary {
 				message = "Soul granted for one hour: 2,000 STR, 2,000 INT and 10,000 maximum HP."
 			}
-			s.Send(wire.MessagePanel(message))
+			s.Send(wire.MessagePanel(w.tr(message)))
 		}
 		w.publishPlayerAffects(p)
 		w.syncPlayerVitals(p)
@@ -118,7 +118,7 @@ func (w *World) handleKibitaSoul(s *net.Session, p *Player, m *Mob, quest *model
 	}
 	failed := func() {
 		if !s.IsClosed() {
-			s.Send(wire.MessagePanel("Save failed. The Soul exchange was not completed."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Soul_Exchange_Was_Not")))
 		}
 	}
 	if w.criticalWrites != nil {

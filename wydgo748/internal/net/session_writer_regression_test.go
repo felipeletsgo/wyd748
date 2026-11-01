@@ -36,8 +36,8 @@ func (c *writerRegressionConn) SetWriteDeadline(deadline time.Time) error {
 
 func TestWriterFailureClosesConnectionAndLifetime(t *testing.T) {
 	for _, c := range []*writerRegressionConn{{}, {short: true}, {deadlineErr: true}} {
-		s := &Session{conn: c, out: make(chan []byte, 1), done: make(chan struct{})}
-		s.out <- []byte{1, 2}
+		s := &Session{conn: c, out: make(chan outboundPacket, 1), done: make(chan struct{})}
+		s.out <- outboundPacket{data: []byte{1, 2}}
 		s.writeLoop()
 		if !c.closed || !s.IsClosed() || c.deadline.IsZero() {
 			t.Fatal("writer failure did not set a deadline and close both lifetimes")
@@ -57,7 +57,7 @@ func TestBlockedWriterDeadlineReleasesReader(t *testing.T) {
 	})
 	// Reuse the established handshake helper; the peer then stops reading.
 	writeInitCode(t, peer)
-	s.out <- []byte{1}
+	s.out <- outboundPacket{data: []byte{1}}
 	select {
 	case <-ended:
 		if !s.IsClosed() {

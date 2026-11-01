@@ -31,7 +31,7 @@ func (w *World) queueShopPurchase(p *Player, item model.Item, total, treasury ui
 		return errShopInventoryFull
 	}
 	ch.Gold -= uint32(total)
-	return w.submitCriticalShopItem(p, proposed, dst, city, treasury, func() {
+	return w.submitCriticalShopItem(p, proposed, dst, city, treasury, "Save failed. The purchase was not applied.", func() {
 		p.Session.Send(wire.BuyItem(p.ID, merchant, sellSlot, uint16(dst), p.Char.Gold))
 		if p.ShopNPC != merchant {
 			// A live edit may invalidate the old grid while persistence runs.
@@ -53,7 +53,7 @@ func (w *World) queueTicketPurchase(p *Player, ticket model.Item, dst int, total
 		return fmt.Errorf("invalid ticket purchase")
 	}
 	ch.Inv[dst], ch.Gold = ticket, ch.Gold-uint32(total)
-	return w.submitCriticalShopItem(p, proposed, dst, city, treasury, func() {
+	return w.submitCriticalShopItem(p, proposed, dst, city, treasury, "Save failed. The purchase was not applied.", func() {
 		p.Session.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	})
@@ -70,7 +70,7 @@ func (w *World) queueShopSale(p *Player, src int, net, treasury uint64, city int
 		return fmt.Errorf("invalid shop sale")
 	}
 	ch.Inv[src], ch.Gold = model.Item{}, ch.Gold+uint32(net)
-	return w.submitCriticalShopItem(p, proposed, src, city, treasury, func() {
+	return w.submitCriticalShopItem(p, proposed, src, city, treasury, "Save failed. The inventory was not changed.", func() {
 		p.Session.Send(wire.SendItem(p.ID, placeInv, byte(src), p.Char.Inv[src]))
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 	})
@@ -78,7 +78,7 @@ func (w *World) queueShopSale(p *Player, src int, net, treasury uint64, city int
 
 // Publication is actor-owned and never included in the worker's snapshot.
 // Install just the economic fields, preserving live identity and positions.
-func (w *World) submitCriticalShopItem(p *Player, proposed *model.Account, slot, city int, treasury uint64, publish func()) error {
+func (w *World) submitCriticalShopItem(p *Player, proposed *model.Account, slot, city int, treasury uint64, rejected string, publish func()) error {
 	item, gold := proposed.Chars[p.CharSlot].Inv[slot], proposed.Chars[p.CharSlot].Gold
 	if treasury != 0 {
 		if w.guilds == nil || city < 0 || city >= len(cityWarZones) {
@@ -94,13 +94,13 @@ func (w *World) submitCriticalShopItem(p *Player, proposed *model.Account, slot,
 				p.Char.Inv[slot], p.Char.Gold = item, gold
 			}, publish)
 	}
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			p.Char.Inv[slot], p.Char.Gold = item, gold
 			if !p.Session.IsClosed() {
 				publish()
 			}
 			return nil
-		})
+		}, nil, w.rejectDetachedProposal("merchant transaction", rejected, w.resendInventory, p))
 	return err
 }

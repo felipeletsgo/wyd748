@@ -62,6 +62,10 @@ This packet is sent privately to admitted members, never to bystanders.
 
 ### Version 2: localized question (2026-10-30)
 
+Superseded on the server (2026-10-31): the server sends version 1 with the
+question already in the channel language, from the server catalog. The client
+still accepts version 2. See [server messages](../server/server-messages.md).
+
 Version 2 reuses offset 14 as `TextIndex`, a `UI/strdef.bin` row from 1 to 1999.
 The client shows that row in its selected language. Offset 20 keeps the
 English text as the fallback for an empty or missing row. Version 1 requires

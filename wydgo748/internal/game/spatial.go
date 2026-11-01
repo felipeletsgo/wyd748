@@ -140,8 +140,10 @@ func (w *World) hasNearbyPlayerInGameplaySpace(x, y uint16, radius int, space st
 				continue
 			}
 			for _, p := range w.playerCells[uint32(xx)<<16|uint32(yy)] {
-				if validMobTargetAt(p, now) && w.gameplaySpaceForPlayer(p) == space &&
-					chebyshev(x, y, p.X, p.Y) <= radius {
+				// Reject by exact distance first (W6/P7). The runtime lookup can
+				// scan every item instance; its index repair is only a cache.
+				if p != nil && chebyshev(x, y, p.X, p.Y) <= radius &&
+					validMobTargetAt(p, now) && w.gameplaySpaceForPlayer(p) == space {
 					return true
 				}
 			}
@@ -172,6 +174,12 @@ func (w *World) nearbyWorldPlayers(x, y uint16, radius int) []*Player {
 }
 
 func (w *World) recomputeMobActive(m *Mob) {
+	w.recomputeMobActiveIn(m, nil)
+}
+
+// recomputeMobActiveIn uses a pass neighborhood for public-world activation
+// when one is supplied; the result equals recomputeMobActive.
+func (w *World) recomputeMobActiveIn(m *Mob, neighborhood *activationNeighborhood) {
 	if w.criticalGuildMobReserved(m) {
 		return
 	}
@@ -190,6 +198,8 @@ func (w *World) recomputeMobActive(m *Mob) {
 		// and the room area, not just spatial proximity.
 		awake = w.instanceMobHasNearbyMember(m, mobActivationRange) ||
 			w.nightmareProtectorTarget(m, mobActivationRange) != nil || w.hellGateMarchTarget(m) != nil
+	} else if !awake && neighborhood != nil {
+		awake = w.hasNearbyPublicPlayer(neighborhood, m.X, m.Y, mobActivationRange)
 	} else if !awake {
 		awake = w.hasNearbyPlayerInGameplaySpace(m.X, m.Y, mobActivationRange, "")
 	}
@@ -209,13 +219,16 @@ func (w *World) recomputeMobActive(m *Mob) {
 func (w *World) recomputeMobsNearCell(key uint32, radius int) {
 	cx, cy := spatialCellXY(key)
 	cr := radius/spatialCellSize + 1
+	// One window covers every activation scan of a mob in these cells.
+	neighborhood := &w.activationScratch
+	neighborhood.reset(cx, cy, cr+mobActivationRange/spatialCellSize+1, w.now())
 	for yy := cy - cr; yy <= cy+cr; yy++ {
 		for xx := cx - cr; xx <= cx+cr; xx++ {
 			if xx < 0 || yy < 0 {
 				continue
 			}
 			for _, m := range w.mobCells[uint32(xx)<<16|uint32(yy)] {
-				w.recomputeMobActive(m)
+				w.recomputeMobActiveIn(m, neighborhood)
 			}
 		}
 	}

@@ -20,12 +20,17 @@ import (
 	"wydgo/internal/account"
 	"wydgo/internal/control"
 	"wydgo/internal/data"
+	"wydgo/internal/game"
 	"wydgo/internal/logreader"
 	"wydgo/internal/playerportal"
 	"wydgo/internal/staffcontent"
 	"wydgo/internal/store"
 	"wydgo/internal/webadmin"
 )
+
+// channelReadyHeartbeatAge is ten missed 500 ms ticks. An older heartbeat
+// means the shared actor is stalled, so readiness reports 503.
+const channelReadyHeartbeatAge = 5 * time.Second
 
 // MODERNIZACAO_COMPATIVEL: same read-only World queue, without a local HTTP hop.
 // Authentication, capabilities and actor auditing remain in the web handler.
@@ -137,6 +142,7 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 	quiz, _ := source.(control.QuizSource)
 	bosses, _ := source.(control.BossesSource)
 	pvpDoor, _ := source.(control.PvPDoorSource)
+	recovery, _ := source.(control.PersistenceRecoverySource)
 	oxEvent, _ := source.(control.OXEventSource)
 	colosseum, _ := source.(control.ColosseumSource)
 	kick, _ := source.(control.KickSource)
@@ -164,22 +170,29 @@ func startWebAdmin(cfg data.ServerConfig, source control.Source, registration ac
 		Origin: origin, DevHTTP: devHTTP, AdminAccessPIN: pin, TrustedProxies: trustedProxies,
 		RequireLoginProtection: !devHTTP, LoginVerifier: verification, AuthenticationLimiter: db.AuthenticationLimiter(),
 		Staff: staff, Accounts: db, Registration: registration, Control: localAdminControl{source: source, started: time.Now()},
-		Persistent: webadmin.NewAccountPersistentReader(db), Ready: db.Ping,
-		GlobalDrop:     events,
-		Quiz:           quiz,
-		Bosses:         bosses,
-		PvPDoor:        pvpDoor,
-		OXEvent:        oxEvent,
-		Colosseum:      colosseum,
-		Kick:           kick,
-		Teleport:       teleport,
-		Premium:        premium,
-		NPCDefinitions: npcDefinitions,
-		Sanctions:      sanctions,
-		Notices:        notices,
-		Shutdown:       shutdown,
-		AuditStore:     auditStore,
-		Metrics:        control.ReadRuntime,
+		Persistent: webadmin.NewAccountPersistentReader(db), Ready: func(ctx context.Context) error {
+			// Readiness covers the panel database and every live channel actor (W5/D5).
+			if err := db.Ping(ctx); err != nil {
+				return err
+			}
+			return game.ChannelsReady(time.Now(), channelReadyHeartbeatAge)
+		},
+		GlobalDrop:          events,
+		Quiz:                quiz,
+		Bosses:              bosses,
+		PvPDoor:             pvpDoor,
+		PersistenceRecovery: recovery,
+		OXEvent:             oxEvent,
+		Colosseum:           colosseum,
+		Kick:                kick,
+		Teleport:            teleport,
+		Premium:             premium,
+		NPCDefinitions:      npcDefinitions,
+		Sanctions:           sanctions,
+		Notices:             notices,
+		Shutdown:            shutdown,
+		AuditStore:          auditStore,
+		Metrics:             control.ReadRuntime,
 		// Login history and staff actions use the writer store like the audit;
 		// saved storage is read through the panel's read-only pool.
 		AccountHistory: accountHistory,

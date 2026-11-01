@@ -1,7 +1,6 @@
 package game
 
 import (
-	"log"
 	"sort"
 	"strings"
 	"time"
@@ -325,7 +324,7 @@ func (w *World) executePlayerSkill(caster *Player, targets []*Player, skill mode
 			w.publishPlayerDeath(target, caster.ID)
 		}
 	}
-	log.Printf("[#%d] executed PvP skill=%d %q targets=%d", caster.Session.ID, skill.Index, skill.Name, len(targets))
+	w.gameplayLogf("pvp", "[#%d] executed PvP skill=%d %q targets=%d", caster.Session.ID, skill.Index, skill.Name, len(targets))
 }
 
 // skillPvPFinalDamageWithRNG follows W2PP's PvP block: offensive skills use

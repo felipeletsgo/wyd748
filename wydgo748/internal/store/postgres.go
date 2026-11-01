@@ -68,7 +68,10 @@ var (
 	metricPostgresFenceWaitTotal = expvar.NewInt("postgres_fence_wait_total_micros")
 	metricPostgresFenceWaitMax   = expvar.NewInt("postgres_fence_wait_max_micros")
 	metricPostgresFenceWaitCount = expvar.NewInt("postgres_fence_wait_count")
-	postgresMetricMaxMu          sync.Mutex
+	metricPostgresReadFailures   = expvar.NewMap("postgres_read_failures_total")
+	// Unknown COMMIT outcomes resolved by exact transaction ID (W4).
+	metricPostgresCommitReconciled = expvar.NewMap("postgres_commit_reconciled_total")
+	postgresMetricMaxMu            sync.Mutex
 )
 
 // Private value of this project. The session lock stops the server and the
@@ -83,6 +86,12 @@ type PostgresConfig struct {
 	MaxConns         int32
 	GuildsTxtPath    string
 	OperationTimeout time.Duration
+	// ReadTimeout bounds reads, including pool acquisition. Zero uses the
+	// operation timeout, so read budgets never shrink below writes by default.
+	ReadTimeout time.Duration
+	// FenceGameInstance marks this pool as the authoritative game server and
+	// ends a previous instance's backends before use (postgres_instance_fence.go).
+	FenceGameInstance bool
 }
 
 type postgresItem struct {
@@ -158,6 +167,8 @@ type PostgresStore struct {
 	closed           bool
 	readOnly         bool
 	operationTimeout time.Duration
+	readTimeout      time.Duration
+	unchanged        unchangedMarks
 }
 
 // PersistentPlayerSnapshot is the narrow read model exposed to the staff web
@@ -225,9 +236,23 @@ func (s *PostgresStore) Ping(ctx context.Context) error {
 }
 
 func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, error) {
-	pool, err := openPostgresPool(ctx, cfg)
+	instance := ""
+	if cfg.FenceGameInstance {
+		name, err := newGameInstanceName()
+		if err != nil {
+			return nil, fmt.Errorf("store: game instance name: %w", err)
+		}
+		instance = name
+	}
+	pool, err := openPostgresPoolNamed(ctx, cfg, instance)
 	if err != nil {
 		return nil, err
+	}
+	if instance != "" {
+		if _, err := fencePreviousGameInstances(ctx, pool, instance); err != nil {
+			pool.Close()
+			return nil, err
+		}
 	}
 	startupContext, cancelStartup := context.WithTimeout(ctx, postgresStartupTimeout)
 	defer cancelStartup()
@@ -236,6 +261,7 @@ func NewPostgresStore(ctx context.Context, cfg PostgresConfig) (*PostgresStore, 
 		return nil, fmt.Errorf("store: apply PostgreSQL schema: %w", err)
 	}
 	s := newPostgresStore(pool, cfg)
+	publishPrimaryPool(pool)
 	go s.persistLoop()
 	return s, nil
 }
@@ -248,10 +274,16 @@ func NewPostgresReadOnlyStore(ctx context.Context, cfg PostgresConfig) (*Postgre
 	if err != nil {
 		return nil, err
 	}
-	return &PostgresStore{pool: pool, readOnly: true, operationTimeout: operationTimeout(cfg)}, nil
+	return &PostgresStore{pool: pool, readOnly: true, operationTimeout: operationTimeout(cfg), readTimeout: readTimeout(cfg)}, nil
 }
 
 func openPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, error) {
+	return openPostgresPoolNamed(ctx, cfg, "")
+}
+
+// openPostgresPoolNamed sets application_name when name is not empty, so a
+// later game instance can recognize this one's backends.
+func openPostgresPoolNamed(ctx context.Context, cfg PostgresConfig, name string) (*pgxpool.Pool, error) {
 	if strings.TrimSpace(cfg.URL) == "" {
 		return nil, errors.New("store: database URL is missing")
 	}
@@ -261,6 +293,9 @@ func openPostgresPool(ctx context.Context, cfg PostgresConfig) (*pgxpool.Pool, e
 	}
 	if cfg.MaxConns > 0 {
 		poolConfig.MaxConns = cfg.MaxConns
+	}
+	if name != "" {
+		poolConfig.ConnConfig.RuntimeParams["application_name"] = name
 	}
 	if poolConfig.ConnConfig.ConnectTimeout == 0 {
 		poolConfig.ConnConfig.ConnectTimeout = postgresOperationTimeout
@@ -287,6 +322,7 @@ func newPostgresStore(pool *pgxpool.Pool, cfg PostgresConfig) *PostgresStore {
 		overflowState:    make(map[string]postgresWriteJob),
 		overflowRuns:     make(map[string]postgresWriteJob),
 		operationTimeout: operationTimeout(cfg),
+		readTimeout:      readTimeout(cfg),
 	}
 }
 
@@ -295,6 +331,13 @@ func operationTimeout(cfg PostgresConfig) time.Duration {
 		return cfg.OperationTimeout
 	}
 	return postgresOperationTimeout
+}
+
+func readTimeout(cfg PostgresConfig) time.Duration {
+	if cfg.ReadTimeout > 0 {
+		return cfg.ReadTimeout
+	}
+	return operationTimeout(cfg)
 }
 
 func applyPostgresSchema(ctx context.Context, pool *pgxpool.Pool) error {
@@ -741,6 +784,7 @@ func (s *PostgresStore) Close() {
 		s.closed = true
 		close(s.writeQueue)
 		s.mu.Unlock()
+		unpublishPrimaryPool(s.pool)
 		s.pool.Close()
 	})
 }
@@ -904,6 +948,30 @@ func (s *PostgresStore) postgresContext() (context.Context, context.CancelFunc) 
 		timeout = postgresOperationTimeout
 	}
 	return context.WithTimeout(context.Background(), timeout)
+}
+
+// postgresReadContext bounds a read, including pool acquisition, with the read
+// budget. A slow read must not inherit the shorter critical write deadline.
+func (s *PostgresStore) postgresReadContext() (context.Context, context.CancelFunc) {
+	timeout := s.readTimeout
+	if timeout <= 0 {
+		timeout = s.operationTimeout
+	}
+	if timeout <= 0 {
+		timeout = postgresOperationTimeout
+	}
+	return context.WithTimeout(context.Background(), timeout)
+}
+
+// observePostgresRead counts read timeouts apart from other read failures.
+func observePostgresRead(err error) {
+	switch {
+	case err == nil, errors.Is(err, pgx.ErrNoRows):
+	case errors.Is(err, context.DeadlineExceeded):
+		metricPostgresReadFailures.Add("timeout", 1)
+	default:
+		metricPostgresReadFailures.Add("error", 1)
+	}
 }
 
 func setPostgresMetricMax(metric *expvar.Int, value int64) {
@@ -1214,11 +1282,12 @@ func currentUID(uid string) pgtype.UUID {
 }
 
 func (s *PostgresStore) LoadAccount(name string) (*model.Account, error) {
-	ctx, cancel := s.postgresContext()
+	ctx, cancel := s.postgresReadContext()
 	defer cancel()
 	var payload []byte
 	err := s.pool.QueryRow(ctx,
 		`SELECT payload FROM accounts WHERE name_key=$1`, strings.ToLower(name)).Scan(&payload)
+	observePostgresRead(err)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, fmt.Errorf("%w: account %q", os.ErrNotExist, name)
 	}
@@ -1443,6 +1512,7 @@ func validDirectoryKey(value string, allowEmpty bool) bool {
 }
 
 func (s *PostgresStore) saveSnapshots(snapshots []*accountSnapshot) error {
+	s.forgetUnchanged(accountSnapshotKeys(snapshots), nil)
 	return s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
 		return persistAccountSnapshots(ctx, tx, snapshots, false)
 	})
@@ -1522,7 +1592,7 @@ func (s *PostgresStore) CreateAccount(acc *model.Account) error {
 }
 
 func (s *PostgresStore) AccountNameExists(name string) (bool, error) {
-	ctx, cancel := s.postgresContext()
+	ctx, cancel := s.postgresReadContext()
 	defer cancel()
 	var exists bool
 	err := s.pool.QueryRow(ctx,
@@ -1532,7 +1602,7 @@ func (s *PostgresStore) AccountNameExists(name string) (bool, error) {
 }
 
 func (s *PostgresStore) CharacterNameExists(name string) (bool, error) {
-	ctx, cancel := s.postgresContext()
+	ctx, cancel := s.postgresReadContext()
 	defer cancel()
 	var exists bool
 	err := s.pool.QueryRow(ctx,
@@ -1542,7 +1612,7 @@ func (s *PostgresStore) CharacterNameExists(name string) (bool, error) {
 }
 
 func (s *PostgresStore) CharacterNames() (map[string]struct{}, error) {
-	ctx, cancel := s.postgresContext()
+	ctx, cancel := s.postgresReadContext()
 	defer cancel()
 	rows, err := s.pool.Query(ctx, `SELECT name_key FROM character_names`)
 	if err != nil {
@@ -1561,7 +1631,7 @@ func (s *PostgresStore) CharacterNames() (map[string]struct{}, error) {
 }
 
 func (s *PostgresStore) LoadGuilds() (*model.GuildRegistry, error) {
-	ctx, cancel := s.postgresContext()
+	ctx, cancel := s.postgresReadContext()
 	defer cancel()
 	var payload []byte
 	err := s.pool.QueryRow(ctx,
@@ -1588,7 +1658,7 @@ func (s *PostgresStore) LoadGuilds() (*model.GuildRegistry, error) {
 }
 
 func (s *PostgresStore) LoadInstanceState() (*model.InstanceStateSnapshot, error) {
-	ctx, cancel := s.postgresContext()
+	ctx, cancel := s.postgresReadContext()
 	defer cancel()
 	var payload []byte
 	err := s.pool.QueryRow(ctx,
@@ -1830,6 +1900,7 @@ func charStatePayload(uid string, state *model.CharState) ([]byte, error) {
 }
 
 func (s *PostgresStore) saveCharStatePayload(uid string, payload []byte) error {
+	s.forgetUnchanged(nil, []string{uid})
 	ctx, cancel := s.postgresContext()
 	defer cancel()
 	key, err := postgresUUID(uid)
@@ -1849,6 +1920,11 @@ func (s *PostgresStore) saveCharStatePayload(uid string, payload []byte) error {
 }
 
 func (s *PostgresStore) saveCharStateSnapshots(snapshots []*postgresCharStateSnapshot) error {
+	uids := make([]string, 0, len(snapshots))
+	for _, snapshot := range snapshots {
+		uids = append(uids, snapshot.uid)
+	}
+	s.forgetUnchanged(nil, uids)
 	return s.withSerializableTx(func(ctx context.Context, tx pgx.Tx) error {
 		for _, snapshot := range snapshots {
 			key, err := postgresUUID(snapshot.uid)
@@ -1925,7 +2001,7 @@ func (s *PostgresStore) SaveCharStateAsync(uid string, state *model.CharState) e
 }
 
 func (s *PostgresStore) LoadCharState(uid string) (*model.CharState, error) {
-	ctx, cancel := s.postgresContext()
+	ctx, cancel := s.postgresReadContext()
 	defer cancel()
 	key, err := postgresUUID(uid)
 	if err != nil {

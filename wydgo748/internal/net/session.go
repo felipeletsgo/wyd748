@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	stdnet "net"
@@ -26,17 +27,31 @@ const (
 	defaultSessionIdleTimeout  = 10 * time.Minute
 	defaultFrameReadTimeout    = 10 * time.Second
 	defaultFrameWriteTimeout   = 10 * time.Second
+	// defaultMaxQueuedBytes bounds retained output together with the packet
+	// capacity, so a few large packets cannot hold unbounded memory.
+	defaultMaxQueuedBytes = 512 * 1024
+	// writeBatchBytes bounds one coalesced write. The writer joins only packets
+	// already queued; it never waits to fill a batch.
+	writeBatchBytes = 64 * 1024
 )
 
 var (
-	serverStart = time.Now()
-	sendKey     atomic.Uint32
+	serverStart        = time.Now()
+	sendKey            atomic.Uint32
+	errInvalidChecksum = errors.New("invalid checksum")
 )
 
-// tick emulates server GetTickCount with a nonzero base. The client uses
+// tickAt emulates server GetTickCount with a nonzero base. The client uses
 // header ticks for animation and death decisions.
-func tick() uint32 {
-	return uint32(time.Since(serverStart)/time.Millisecond) + 60000
+func tickAt(elapsed time.Duration) uint32 {
+	return uint32(elapsed/time.Millisecond) + 60000
+}
+
+// outboundPacket keeps its enqueue time, measured from serverStart, so the
+// writer can observe queue wait without a second clock source.
+type outboundPacket struct {
+	data     []byte
+	queuedAt time.Duration
 }
 
 // Session represents one TCP client connection.
@@ -44,9 +59,17 @@ type Session struct {
 	ID                      int64
 	conn                    stdnet.Conn
 	remoteIP                string
-	out                     chan []byte
+	out                     chan outboundPacket
 	done                    chan struct{}
 	doneOnce                sync.Once
+	closeMu                 sync.Mutex
+	closeCause              CloseCause
+	closeDetail             string
+	queueHighWater          atomic.Int64
+	maxQueueWait            atomic.Int64
+	sentPackets             atomic.Int64
+	queuedBytes             atomic.Int64
+	maxQueuedBytes          int64
 	admissionRejected       atomic.Bool
 	readDeadlineMu          sync.Mutex
 	authenticated           bool
@@ -72,8 +95,7 @@ func (s *Session) MarkAuthenticated() {
 	s.authenticated = true
 	if s.conn != nil && !s.readingFrame {
 		if err := s.conn.SetReadDeadline(time.Time{}); err != nil {
-			log.Printf("[#%d] clear authenticated idle deadline: %v", s.ID, err)
-			s.Close()
+			s.CloseWithCause(CloseCauseReadError, fmt.Errorf("clear authenticated idle deadline: %w", err))
 		}
 	}
 }
@@ -120,6 +142,15 @@ func (s *Session) IsClosed() bool {
 	}
 }
 
+// Done is closed when the session lifetime ends. Workers waiting on behalf
+// of the session use it to stop promptly.
+func (s *Session) Done() <-chan struct{} {
+	if s == nil {
+		return nil
+	}
+	return s.done
+}
+
 // AdmissionRejected is terminal even while the final message is draining.
 func (s *Session) AdmissionRejected() bool {
 	return s.admissionRejected.Load()
@@ -131,6 +162,8 @@ func (s *Session) RejectAdmission(message []byte) {
 	if !s.admissionRejected.CompareAndSwap(false, true) {
 		return
 	}
+	// The grace period must not let a later peer close hide the decision.
+	s.recordClose(CloseCauseAdmission, nil)
 	s.Send(message)
 	time.AfterFunc(300*time.Millisecond, s.Close)
 }
@@ -150,34 +183,72 @@ func (s *Session) Send(pkt []byte) {
 		// A builder regression must not panic in the World goroutine.
 		// Fail closed; handler diagnostics identify the originating packet.
 		if s != nil {
-			log.Printf("[#%d] invalid outbound packet: %d bytes", s.ID, len(pkt))
-			s.Close()
+			s.CloseWithCause(CloseCauseInvalidOutbound, fmt.Errorf("invalid outbound packet: %d bytes", len(pkt)))
 		}
 		return
 	}
 	if s.IsClosed() {
 		return
 	}
-	binary.LittleEndian.PutUint32(pkt[8:12], tick())
+	size, limit := int64(len(pkt)), s.maxQueuedBytes
+	if limit <= 0 {
+		limit = defaultMaxQueuedBytes
+	}
+	if s.queuedBytes.Add(size) > limit {
+		s.queuedBytes.Add(-size)
+		s.CloseWithCause(CloseCauseOutputOverflow, fmt.Errorf("output queue holds more than %d bytes", limit))
+		return
+	}
+	elapsed := time.Since(serverStart)
+	binary.LittleEndian.PutUint32(pkt[8:12], tickAt(elapsed))
 	wire.FinishPacket(pkt, byte(sendKey.Add(1)))
 	select {
-	case s.out <- pkt:
+	case s.out <- outboundPacket{data: pkt, queuedAt: elapsed}:
+		depth := len(s.out)
+		raiseMax(&s.queueHighWater, int64(depth))
+		raiseMax(&outputHighWater, int64(depth))
+		metricOutputDepth.Add(outputDepthLabel(depth, cap(s.out)), 1)
 	default:
-		s.Close()
+		s.queuedBytes.Add(-size)
+		s.CloseWithCause(CloseCauseOutputOverflow, fmt.Errorf("output queue full at %d packets", cap(s.out)))
 	}
+}
+
+// QueueFree reports how many more packets fit in the output queue now. Scene
+// publication uses it to defer optional creations instead of overflowing.
+func (s *Session) QueueFree() int {
+	if s == nil || s.out == nil {
+		return 0
+	}
+	return cap(s.out) - len(s.out)
+}
+
+// QueueCapacity is the configured packet capacity of the output queue.
+func (s *Session) QueueCapacity() int {
+	if s == nil || s.out == nil {
+		return 0
+	}
+	return cap(s.out)
 }
 
 // NewTestSession queues packets for other packages without a real connection.
 // Tests choose bufSize to accommodate their expected outbound packets.
 func NewTestSession(id int64, bufSize int) *Session {
-	return &Session{ID: id, out: make(chan []byte, bufSize), done: make(chan struct{})}
+	return &Session{ID: id, out: make(chan outboundPacket, bufSize), done: make(chan struct{}),
+		maxQueuedBytes: testQueuedBytes(bufSize)}
+}
+
+// Test sessions bound memory by packet count only, as their callers size it.
+func testQueuedBytes(bufSize int) int64 {
+	return int64(max(bufSize, 1)) * wire.MaxPacketSize
 }
 
 // NewTestSessionWithRemoteIP supplies the origin recorded by the listener,
 // allowing IP-limit tests without trusting packet fields.
 func NewTestSessionWithRemoteIP(id int64, bufSize int, remoteIP string) *Session {
 	return &Session{
-		ID: id, remoteIP: remoteIP, out: make(chan []byte, bufSize), done: make(chan struct{}),
+		ID: id, remoteIP: remoteIP, out: make(chan outboundPacket, bufSize), done: make(chan struct{}),
+		maxQueuedBytes: testQueuedBytes(bufSize),
 	}
 }
 
@@ -199,7 +270,8 @@ func (s *Session) DequeuePacketForTest() ([]byte, bool) {
 	}
 	select {
 	case pkt := <-s.out:
-		return pkt, true
+		s.queuedBytes.Add(-int64(len(pkt.data)))
+		return pkt.data, true
 	default:
 		return nil, false
 	}
@@ -230,13 +302,64 @@ func (s *Session) RemoteIP() string {
 	return host
 }
 
-// Close ends the connection and its lifetime. Callers that want to drain an
-// authentication rejection before closing are responsible for that delay.
+// Close ends the connection and its lifetime as an explicit server decision.
+// Callers that want to drain an authentication rejection before closing are
+// responsible for that delay.
 func (s *Session) Close() {
+	s.CloseWithCause(CloseCauseServer, nil)
+}
+
+// CloseWithCause records cause only when no earlier cause exists, then closes.
+func (s *Session) CloseWithCause(cause CloseCause, detail error) {
+	if s == nil {
+		return
+	}
+	s.recordClose(cause, detail)
 	if s.conn != nil {
 		_ = s.conn.Close()
 	}
 	s.closeDone()
+}
+
+func (s *Session) recordClose(cause CloseCause, detail error) {
+	if s == nil || cause == CloseCauseNone {
+		return
+	}
+	if cause >= closeCauseCount {
+		cause = CloseCauseServer
+	}
+	s.closeMu.Lock()
+	defer s.closeMu.Unlock()
+	if s.closeCause == CloseCauseNone {
+		s.closeCause, s.closeDetail = cause, boundedCloseDetail(detail)
+	}
+}
+
+// CloseCause returns the first recorded cause, or CloseCauseNone while open.
+func (s *Session) CloseCause() CloseCause {
+	if s == nil {
+		return CloseCauseNone
+	}
+	s.closeMu.Lock()
+	defer s.closeMu.Unlock()
+	return s.closeCause
+}
+
+// finishCloseRecord publishes the single close record of a served session.
+func (s *Session) finishCloseRecord() {
+	s.closeMu.Lock()
+	cause, detail := s.closeCause, s.closeDetail
+	s.closeMu.Unlock()
+	if cause == CloseCauseNone {
+		cause = CloseCauseServer
+	}
+	metricSessionCloses.Add(cause.String(), 1)
+	if detail != "" {
+		detail = fmt.Sprintf(" detail=%q", detail)
+	}
+	log.Printf("[#%d] disconnected: cause=%s%s queue_high_water=%d/%d max_queue_wait=%s sent=%d",
+		s.ID, cause, detail, s.queueHighWater.Load(), cap(s.out),
+		time.Duration(s.maxQueueWait.Load())*time.Microsecond, s.sentPackets.Load())
 }
 
 // writeLoop drains outbound packets. Every exit closes the connection so a
@@ -247,17 +370,46 @@ func (s *Session) writeLoop() {
 	if timeout <= 0 {
 		timeout = defaultFrameWriteTimeout
 	}
+	var batch []byte
 	for {
 		select {
 		case pkt, ok := <-s.out:
 			if !ok || s.IsClosed() {
 				return
 			}
+			// Join the packets already queued into one write. Order is kept and
+			// the client reads a byte stream, so frame boundaries are unchanged.
+			batch = s.takeOutbound(batch[:0], pkt)
+			packets := int64(1)
+		coalesce:
+			for len(batch) < writeBatchBytes {
+				select {
+				case next := <-s.out:
+					batch = s.takeOutbound(batch, next)
+					packets++
+				default:
+					break coalesce
+				}
+			}
 			if err := s.conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
+				s.recordClose(CloseCauseWriteError, fmt.Errorf("set write deadline: %w", err))
 				return
 			}
-			if n, err := s.conn.Write(pkt); err != nil || n != len(pkt) {
+			n, err := s.conn.Write(batch)
+			if err != nil {
+				s.recordClose(writeFailureCause(err), err)
 				return
+			}
+			if n != len(batch) {
+				s.recordClose(CloseCauseWriteError, io.ErrShortWrite)
+				return
+			}
+			s.sentPackets.Add(packets)
+			metricOutputPackets.Add(packets)
+			metricOutputBytes.Add(int64(n))
+			metricOutputWrites.Add(1)
+			if cap(batch) > 2*writeBatchBytes {
+				batch = nil // Do not retain a buffer grown by one oversized burst.
 			}
 		case <-s.done:
 			return
@@ -265,14 +417,32 @@ func (s *Session) writeLoop() {
 	}
 }
 
+// takeOutbound records one dequeued packet and appends it to the batch.
+func (s *Session) takeOutbound(batch []byte, pkt outboundPacket) []byte {
+	s.queuedBytes.Add(-int64(len(pkt.data)))
+	wait := max(time.Since(serverStart)-pkt.queuedAt, 0)
+	micros := wait.Microseconds()
+	raiseMax(&s.maxQueueWait, micros)
+	raiseMax(&outputWaitMax, micros)
+	metricOutputWait.Add(outputWaitLabel(wait), 1)
+	return append(batch, pkt.data...)
+}
+
 // Serve performs InitCode and dispatches decrypted packets to handler.
 // handler(s, nil) signals disconnection when the read lifetime ends.
 func (s *Session) Serve(handler func(*Session, []byte)) {
+	// The reader's own exit reason applies only when no earlier cause exists.
+	var cause CloseCause
+	var detail error
+	defer s.finishCloseRecord()
 	defer s.conn.Close()
 	defer handler(s, nil)
 	// End the lifetime before notifying World so a retry can recognize a dead
 	// socket reservation even when the world command queue is full.
-	defer s.closeDone()
+	defer func() {
+		s.recordClose(cause, detail)
+		s.closeDone()
+	}()
 
 	r := bufio.NewReader(s.conn)
 	handshakeTimeout := s.handshakeTimeout
@@ -280,18 +450,18 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 		handshakeTimeout = defaultHandshakeTimeout
 	}
 	if err := s.conn.SetReadDeadline(time.Now().Add(handshakeTimeout)); err != nil {
-		log.Printf("[#%d] set InitCode deadline: %v", s.ID, err)
+		cause, detail = CloseCauseHandshake, fmt.Errorf("set InitCode deadline: %w", err)
 		return
 	}
 
 	// The handshake has four InitCode bytes before any packet.
 	var ic [4]byte
 	if _, err := io.ReadFull(r, ic[:]); err != nil {
-		log.Printf("[#%d] missing InitCode: %v", s.ID, err)
+		cause, detail = CloseCauseHandshake, fmt.Errorf("missing InitCode: %w", err)
 		return
 	}
 	if got := binary.LittleEndian.Uint32(ic[:]); got != uint32(wire.InitCode) {
-		log.Printf("[#%d] invalid InitCode: 0x%X", s.ID, got)
+		cause, detail = CloseCauseHandshake, fmt.Errorf("invalid InitCode: 0x%X", got)
 		return
 	}
 	log.Printf("[#%d] connected: %s (InitCode OK)", s.ID, s.RemoteAddr())
@@ -320,15 +490,12 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 		// Authenticated players may remain idle indefinitely. TCP keepalive and
 		// socket errors detect dead peers independently of gameplay activity.
 		if err := s.setPacketReadDeadline(true); err != nil {
-			log.Printf("[#%d] set read deadline: %v", s.ID, err)
+			cause, detail = CloseCauseReadError, fmt.Errorf("set read deadline: %w", err)
 			return
 		}
 		var sizeBytes [2]byte
 		if _, err := io.ReadFull(r, sizeBytes[:1]); err != nil {
-			if !errors.Is(err, io.EOF) {
-				log.Printf("[#%d] read: %v", s.ID, err)
-			}
-			log.Printf("[#%d] disconnected", s.ID)
+			cause, detail = readFailureCause(err), err
 			return
 		}
 		// Start the frame timeout at its first byte, including a stalled Size
@@ -337,27 +504,24 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 			log.Printf("[#%d] set frame deadline: %v", s.ID, err)
 		}
 		if _, err := io.ReadFull(r, sizeBytes[1:]); err != nil {
-			log.Printf("[#%d] incomplete frame header: %v", s.ID, err)
+			cause, detail = readFailureCause(err), fmt.Errorf("incomplete frame header: %w", err)
 			return
 		}
 		size := int(binary.LittleEndian.Uint16(sizeBytes[:]))
 		if size < wire.HeaderSize || size > wire.MaxPacketSize {
-			log.Printf("[#%d] read: %v", s.ID, wire.ErrBadSize)
+			cause, detail = CloseCauseProtocol, wire.ErrBadSize
 			return
 		}
 		buf := make([]byte, size)
 		copy(buf[:2], sizeBytes[:])
 		_, err := io.ReadFull(r, buf[2:])
 		if err != nil {
-			if !errors.Is(err, io.EOF) {
-				log.Printf("[#%d] read: %v", s.ID, err)
-			}
-			log.Printf("[#%d] disconnected", s.ID)
+			cause, detail = readFailureCause(err), err
 			return
 		}
 		checksumOK := wire.Decrypt(buf)
 		if !checksumOK {
-			log.Printf("[#%d] invalid checksum; connection closed", s.ID)
+			cause, detail = CloseCauseProtocol, errInvalidChecksum
 			return
 		}
 		now := time.Now()
@@ -367,7 +531,7 @@ func (s *Session) Serve(handler func(*Session, []byte)) {
 		packetCount++
 		byteCount += len(buf)
 		if packetCount > packetLimit || byteCount > byteLimit {
-			log.Printf("[#%d] inbound flood: packets=%d bytes=%d/s", s.ID, packetCount, byteCount)
+			cause, detail = CloseCauseInboundFlood, fmt.Errorf("inbound flood: packets=%d bytes=%d/s", packetCount, byteCount)
 			return
 		}
 		handler(s, buf)

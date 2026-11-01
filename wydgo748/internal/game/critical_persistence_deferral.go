@@ -31,7 +31,7 @@ func (w *World) deferCriticalCommand(cmd command) bool {
 		log.Printf("[#%d] persistence backlog exceeded %d packets; closing session",
 			cmd.s.ID, criticalDeferredCommandLimit)
 		w.dropCriticalDeferred(cmd.s)
-		cmd.s.Close()
+		cmd.s.CloseWithCause(net.CloseCausePersistence, nil)
 		return true
 	}
 	if w.criticalDeferred == nil {
@@ -39,7 +39,7 @@ func (w *World) deferCriticalCommand(cmd command) bool {
 	}
 	w.criticalDeferred[cmd.s] = append(queued, cmd)
 	w.criticalDeferredCount++
-	metricCriticalDeferredCommands.Set(int64(w.criticalDeferredCount))
+	w.observeDeferredCommands()
 	return true
 }
 
@@ -51,7 +51,7 @@ func (w *World) dropCriticalDeferred(s *net.Session) {
 	w.criticalDeferredCount -= len(queued)
 	clear(queued)
 	delete(w.criticalDeferred, s)
-	metricCriticalDeferredCommands.Set(int64(w.criticalDeferredCount))
+	w.observeDeferredCommands()
 }
 
 // resumeCriticalDeferredCommands replays waiting packets in arrival order for
@@ -94,5 +94,5 @@ func (w *World) resumeCriticalDeferredCommands(limit int) {
 			}
 		}
 	}
-	metricCriticalDeferredCommands.Set(int64(w.criticalDeferredCount))
+	w.observeDeferredCommands()
 }

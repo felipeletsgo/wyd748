@@ -30,6 +30,12 @@ func (tx *criticalOutcomeTx) Rollback(context.Context) error {
 	return tx.rollbackErr
 }
 
+// notSentErr models pgconn's certification that a statement never reached the server.
+type notSentErr struct{}
+
+func (notSentErr) Error() string     { return "context deadline exceeded before send" }
+func (notSentErr) SafeToRetry() bool { return true }
+
 func TestCertifiedTransactionAttemptOutcomes(t *testing.T) {
 	callbackErr := errors.New("ledger conflict")
 	transportErr := errors.New("connection lost")
@@ -43,8 +49,10 @@ func TestCertifiedTransactionAttemptOutcomes(t *testing.T) {
 	}{
 		{"committed", nil, nil, pgx.ErrTxClosed, false, 1},
 		{"rolled-back", callbackErr, nil, nil, true, 0},
-		{"rollback-unknown", callbackErr, nil, transportErr, false, 0},
-		{"nested-rejection-rollback-unknown", rejectWrite(callbackErr), nil, transportErr, false, 0},
+		// COMMIT was never sent: a failed rollback discards the connection only.
+		{"rollback-failed-before-commit", callbackErr, nil, transportErr, true, 0},
+		{"nested-rejection-rollback-failed", rejectWrite(callbackErr), nil, transportErr, true, 0},
+		{"commit-not-sent", nil, notSentErr{}, nil, true, 1},
 		{"commit-unknown", nil, transportErr, nil, false, 1},
 		{"aborted-commit", nil, pgx.ErrTxCommitRollback, pgx.ErrTxClosed, true, 1},
 		{"serialization-abort", nil, &pgconn.PgError{Code: "40001"}, pgx.ErrTxClosed, true, 1},
@@ -73,7 +81,7 @@ func TestCertifiedTransactionAttemptOutcomes(t *testing.T) {
 }
 
 func TestCertifiedSerializableTxRetriesOnlyCertifiedAborts(t *testing.T) {
-	for _, mode := range []string{"rollback", "commit", "wrapped-abort", "unknown-rollback", "unknown-commit"} {
+	for _, mode := range []string{"rollback", "commit", "wrapped-abort", "failed-rollback", "unknown-commit"} {
 		t.Run(mode, func(t *testing.T) {
 			attempts, callbacks := 0, 0
 			serializationErr := &pgconn.PgError{Code: "40001"}
@@ -88,7 +96,7 @@ func TestCertifiedSerializableTxRetriesOnlyCertifiedAborts(t *testing.T) {
 					switch mode {
 					case "commit":
 						tx.commitErr = serializationErr
-					case "unknown-rollback":
+					case "failed-rollback":
 						tx.rollbackErr = errors.New("rollback connection lost")
 					case "unknown-commit":
 						tx.commitErr = errors.New("commit acknowledgement lost")
@@ -100,17 +108,13 @@ func TestCertifiedSerializableTxRetriesOnlyCertifiedAborts(t *testing.T) {
 				return tx, nil
 			}, func(context.Context, pgx.Tx) error {
 				callbacks++
-				if callbacks == 1 && (mode == "rollback" || mode == "unknown-rollback") {
+				if callbacks == 1 && (mode == "rollback" || mode == "failed-rollback") {
 					return rejectWrite(serializationErr)
 				}
 				return nil
 			})
-			if mode == "unknown-rollback" || mode == "unknown-commit" {
-				wantCommits := 0
-				if mode == "unknown-commit" {
-					wantCommits = 1
-				}
-				if err == nil || IsWriteRejected(err) || attempts != 1 || callbacks != 1 || transactions[0].commits != wantCommits {
+			if mode == "unknown-commit" {
+				if err == nil || IsWriteRejected(err) || attempts != 1 || callbacks != 1 || transactions[0].commits != 1 {
 					t.Fatalf("uncertain outcome authorized retry: err=%v attempts=%d callbacks=%d", err, attempts, callbacks)
 				}
 			} else if err != nil || attempts != 2 || callbacks != 2 {

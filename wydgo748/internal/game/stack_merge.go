@@ -89,7 +89,7 @@ func (w *World) tryStackMerge(p *Player, st, sp, dt, dp byte, targetID uint16) b
 	// inline save whose uncertain outcome could publish or undo a committed merge.
 	if w.criticalWrites == nil {
 		resync()
-		p.Session.Send(wire.MessagePanel("Item stacking is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Item_Stacking_Unavailable_Please_Try_Again")))
 		return true
 	}
 	proposed := accountStateSnapshot(p.Account)
@@ -101,7 +101,7 @@ func (w *World) tryStackMerge(p *Player, st, sp, dt, dp byte, targetID uint16) b
 		}, publish, true, criticalAccountMutationHooks{reject: resync})
 	if err != nil {
 		resync()
-		p.Session.Send(wire.MessagePanel("Item stacking is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Item_Stacking_Unavailable_Please_Try_Again")))
 		log.Printf("[#%d] stack merge admission rejected: %v", p.Session.ID, err)
 	}
 	return true

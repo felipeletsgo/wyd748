@@ -18,7 +18,9 @@ const defaultOutputQueueSize = 256
 // ListenerConfig holds only operational transport protections. Gameplay and
 // authentication rules stay in the World.
 type ListenerConfig struct {
-	OutputQueueSize      int
+	OutputQueueSize int
+	// OutputQueueBytes bounds retained output bytes; zero uses the default.
+	OutputQueueBytes     int
 	MaxConnections       int
 	MaxConnectionsPerIP  int
 	HandshakeTimeout     time.Duration
@@ -26,6 +28,12 @@ type ListenerConfig struct {
 	FrameReadTimeout     time.Duration
 	InboundPacketsPerSec int
 	InboundBytesPerSec   int
+	// TCP failure detection (tcp_options.go). Zero keeps the Go and OS
+	// defaults for that option.
+	KeepAliveIdle     time.Duration
+	KeepAliveInterval time.Duration
+	KeepAliveCount    int
+	TCPUserTimeout    time.Duration
 }
 
 type connectionLimiter struct {
@@ -43,8 +51,12 @@ func newConnectionLimiter(maxTotal, maxPerIP int) *connectionLimiter {
 func (l *connectionLimiter) acquire(origin string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if (l.maxTotal > 0 && l.total >= l.maxTotal) ||
-		(l.maxPerIP > 0 && l.perOrigin[origin] >= l.maxPerIP) {
+	if l.maxTotal > 0 && l.total >= l.maxTotal {
+		metricConnectionsRefused.Add("total_limit", 1)
+		return false
+	}
+	if l.maxPerIP > 0 && l.perOrigin[origin] >= l.maxPerIP {
+		metricConnectionsRefused.Add("origin_limit", 1)
 		return false
 	}
 	l.total++
@@ -122,15 +134,20 @@ func ServeListenerWithConfig(ln stdnet.Listener, cfg ListenerConfig, onConn func
 		}
 		ip := remoteIP(c.RemoteAddr())
 		originKey, validOrigin := OriginLimitKey(ip)
+		if !validOrigin {
+			metricConnectionsRefused.Add("origin", 1)
+		}
 		if !validOrigin || !limiter.acquire(originKey) {
 			_ = c.Close()
 			continue
 		}
+		configureTCP(c, cfg)
 		s := &Session{
 			ID:                      connSeq.Add(1),
 			conn:                    c,
 			remoteIP:                ip,
-			out:                     make(chan []byte, cfg.OutputQueueSize),
+			out:                     make(chan outboundPacket, cfg.OutputQueueSize),
+			maxQueuedBytes:          int64(cfg.OutputQueueBytes),
 			done:                    make(chan struct{}),
 			handshakeTimeout:        cfg.HandshakeTimeout,
 			idleTimeout:             cfg.SessionIdleTimeout,

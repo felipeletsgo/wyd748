@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"math/rand/v2"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -118,7 +119,7 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	// After the final shutdown snapshot, admitting a login would create state
 	// that cannot be persisted.
 	if w.shuttingDown || w.shutdownLoginsBlocked(w.now()) {
-		s.Send(wire.MessagePanel("Server going into maintenance. Try again shortly."))
+		s.Send(wire.MessagePanel(w.msg("_NN_ServerReboot_Cant_Connect")))
 		return
 	}
 	accountName := cstr(pkt[12:28])
@@ -131,19 +132,19 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN rejected before authentication ip=%q: network policy (%s)",
 			s.ID, s.RemoteIP(), reason)
-		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Connections_From_Network_Not_Allowed")))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if !wire.CompatibleClientLogin(pkt) {
 		log.Printf("[#%d] LOGIN rejected before authentication: incompatible client protocol=%d build=0x%08X minimum_build_revision=%d",
 			s.ID, cliver, clientBuild, wire.MinimumClientBuildRevision)
-		s.RejectAdmission(wire.MessagePanel("Client update required. Close the game and run the launcher to update."))
+		s.RejectAdmission(wire.MessagePanel(w.msg("_NN_Version_Not_Match_Rerun")))
 		return
 	}
 	if !w.allowLoginAttempt(s.RemoteIP(), accountName, w.now()) {
 		log.Printf("[#%d] LOGIN rate limited account=%q ip=%q", s.ID, accountName, s.RemoteIP())
-		s.Send(wire.MessagePanel("Too many login attempts. Try again later."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Too_Many_Login_Attempts_Try_Again")))
 		return
 	}
 	log.Printf("[#%d] LOGIN account=%q cliver=%d build_revision=%d password_len=%d", s.ID, accountName, cliver,
@@ -151,7 +152,7 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 	select {
 	case w.authSlots <- struct{}{}:
 	default:
-		s.Send(wire.MessagePanel("Login server busy. Try again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Login_Server_Busy_Try_Again")))
 		return
 	}
 	w.authPending[s] = true
@@ -162,7 +163,7 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 		if !valid {
 			delete(w.authPending, s)
 			<-w.authSlots
-			s.RejectAdmission(wire.MessagePanel("Channel transfer expired. Sign in again."))
+			s.RejectAdmission(wire.MessagePanel(w.msg("_WG_Channel_Transfer_Expired_Sign_Again")))
 			return
 		}
 	}
@@ -174,7 +175,7 @@ func (w *World) onLogin(s *net.Session, pkt []byte) {
 		if transfer != nil {
 			acc, err = w.store.LoadAccount(accountName)
 		} else {
-			acc, err = account.Authenticate(w.store, accountName, password)
+			acc, err = account.AuthenticateGated(w.store, accountName, password, w.hashGate(s))
 		}
 		result := &loginResult{accountName: accountName, account: acc, err: err, sanctionVersion: sanctionVersion, transfer: transfer}
 		if backend, ok := w.sanctionBackend(); ok && err == nil {
@@ -197,16 +198,23 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	// Authentication runs outside the World loop and may finish after the
 	// maintenance cutoff or the final persistence snapshot.
 	if w.shuttingDown || w.shutdownLoginsBlocked(w.now()) {
-		s.Send(wire.MessagePanel("Server going into maintenance. Try again shortly."))
+		s.Send(wire.MessagePanel(w.msg("_NN_ServerReboot_Cant_Connect")))
 		return
 	}
 	if result.err != nil {
-		if errors.Is(result.err, account.ErrInvalidCredentials) {
+		// Only verified credentials or a missing account are a password error.
+		// Storage and decode failures are temporary for the player (W2/D8).
+		message := "_WG_Wrong_Account_Or_Password"
+		if errors.Is(result.err, account.ErrInvalidCredentials) || errors.Is(result.err, os.ErrNotExist) {
 			log.Printf("[#%d] LOGIN rejected account=%q", s.ID, result.accountName)
+		} else if errors.Is(result.err, account.ErrHashBusy) {
+			message = "_WG_Login_Server_Busy_Try_Again"
+			log.Printf("[#%d] LOGIN hash capacity busy account=%q", s.ID, result.accountName)
 		} else {
+			message = "_WG_Login_Temporarily_Unavailable_Try_Again_Shortly"
 			log.Printf("[#%d] LOGIN error account=%q: %v", s.ID, result.accountName, result.err)
 		}
-		s.Send(wire.MessagePanel("Wrong account or password."))
+		s.Send(wire.MessagePanel(w.msg(message)))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
@@ -219,41 +227,60 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	}
 	if sanctionErr != nil {
 		log.Printf("[#%d] LOGIN sanction check failed account=%q: %v", s.ID, acc.Name, sanctionErr)
-		s.Send(wire.MessagePanel("Login temporarily unavailable. Try again shortly."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Login_Temporarily_Unavailable_Try_Again_Shortly")))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if message, banned := w.admitSanctions(acc.Name, result.sanctions, w.now()); banned {
 		log.Printf("[#%d] LOGIN rejected account=%q: account suspended", s.ID, acc.Name)
-		s.Send(wire.MessagePanel(message))
+		s.Send(wire.MessagePanel(w.tr(message)))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if reason, rejected := w.networkRejected(s); rejected {
 		log.Printf("[#%d] LOGIN rejected account=%q ip=%q: network policy (%s)",
 			s.ID, acc.Name, s.RemoteIP(), reason)
-		s.Send(wire.MessagePanel("Connections from this network are not allowed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Connections_From_Network_Not_Allowed")))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if result.transfer != nil && (w.cluster == nil || !w.now().Before(result.transfer.expires) ||
 		result.transfer.session != s || result.transfer.channel != w.channel ||
 		result.transfer.account != accountSessionKey(acc.Name) || w.cluster.transfers[result.transfer.account] != result.transfer) {
-		s.RejectAdmission(wire.MessagePanel("Channel transfer expired. Sign in again."))
+		s.RejectAdmission(wire.MessagePanel(w.msg("_WG_Channel_Transfer_Expired_Sign_Again")))
+		return
+	}
+	w.admitAuthenticatedLogin(s, result, true)
+}
+
+// admitAuthenticatedLogin claims the account for a verified login. A first
+// attempt may wait behind a closed previous owner that is still settling its
+// writes (login_replacement.go); a retry rechecks the sanction version.
+func (w *World) admitAuthenticatedLogin(s *net.Session, result *loginResult, mayWait bool) {
+	acc := result.account
+	key := accountSessionKey(acc.Name)
+	if !mayWait && result.sanctionVersion != w.staffOps.sanctionVersions[key] {
+		log.Printf("[#%d] LOGIN rejected account=%q: sanction state changed while waiting", s.ID, acc.Name)
+		s.Send(wire.MessagePanel(w.msg("_WG_Login_Temporarily_Unavailable_Try_Again_Shortly")))
+		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
 	if !w.claimAccountSession(s, acc.Name) {
-		log.Printf("[#%d] LOGIN rejected account=%q: account already connected", s.ID, acc.Name)
-		s.Send(wire.AlreadyPlaying())
-		time.AfterFunc(300*time.Millisecond, s.Close)
+		if mayWait && w.accountSettling(key) && w.waitForAccountSettlement(s, result, key) {
+			log.Printf("[#%d] LOGIN waiting account=%q: previous session still settling", s.ID, acc.Name)
+			return
+		}
+		w.rejectLoginClaim(s, acc.Name, key)
 		return
+	}
+	if !mayWait {
+		metricLoginReplacement.Add("admitted", 1)
 	}
 	if !w.claimAuthenticatedClientSlot(s) {
 		w.releaseAccountSession(s, acc)
 		log.Printf("[#%d] LOGIN rejected account=%q ip=%q: limit of %d authenticated clients",
 			s.ID, acc.Name, s.RemoteIP(), w.authenticatedClientLimitFor(s))
-		s.Send(wire.MessagePanel("Only " + strconv.Itoa(w.authenticatedClientLimitFor(s)) +
-			" game clients are allowed from the same network."))
+		w.panel(s, "_WG_Client_Network_Limit", w.authenticatedClientLimitFor(s))
 		time.AfterFunc(300*time.Millisecond, s.Close)
 		return
 	}
@@ -262,16 +289,13 @@ func (w *World) onLoginResult(s *net.Session, result *loginResult) {
 	// or gold and saved/disconnected during verification. Admitting that copy
 	// could restore pre-trade state and duplicate items or gold. Authentication
 	// already checked the hash; gameplay comes from the latest stored snapshot.
-	if fresh, err := w.store.LoadAccount(acc.Name); err != nil {
-		w.releaseAccountSession(s, acc)
-		w.releaseAuthenticatedClientSlot(s)
-		log.Printf("[#%d] LOGIN failed to reload account %q: %v", s.ID, acc.Name, err)
-		s.Send(wire.MessagePanel("Error loading the account. Try again."))
-		time.AfterFunc(300*time.Millisecond, s.Close)
-		return
-	} else {
-		acc = fresh
-	}
+	// The read runs off the actor (entry_reads.go) and returns to completeLogin.
+	w.startLoginReload(s, result, acc.Name)
+}
+
+// completeLogin admits the freshly reloaded account. The session already owns
+// the account claim and authenticated client slot.
+func (w *World) completeLogin(s *net.Session, result *loginResult, acc *model.Account) {
 	pinAccountEntryPositions(acc)
 	// Arch stat bonuses follow the source Mortal's current level. Refresh them
 	// before syncProgression so this session starts with the correct budget.
@@ -484,13 +508,13 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		return
 	}
 	if owner := w.playerByCharacterUID(p.Account.Chars[slot].UID); owner != nil && owner != p {
-		s.Send(wire.MessagePanel("This character is already connected. Try again after it disconnects."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Already_Connected_Try_Again_After")))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.prepareCriticalCharacterEntry(p, slot); err != nil {
 			log.Printf("[#%d] failed to prepare character entry: %v", s.ID, err)
-			s.Send(wire.MessagePanel("The character could not be prepared. Try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Prepared_Try_Again")))
 		}
 		return
 	}
@@ -512,7 +536,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] failed to load character state for %q: %v", s.ID, ch.Name, err)
 		p.CharSlot = -1
 		p.Char = nil
-		s.Send(wire.MessagePanel("The character state could not be loaded. Try again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_State_Could_Not_Loaded_Try")))
 		return
 	}
 	w.migrateUnsupportedEquipment(p)
@@ -523,7 +547,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] failed to prepare timed equipment for %q: %v", s.ID, ch.Name, err)
 		p.CharSlot = -1
 		p.Char = nil
-		s.Send(wire.MessagePanel("Timed equipment could not be validated. Try again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Timed_Equipment_Could_Not_Validated_Try")))
 		return
 	}
 	previousEmblem := ch.CapeEmblem
@@ -531,7 +555,7 @@ func (w *World) onEnterWorld(s *net.Session, pkt []byte) {
 		if err := w.saveAccount(p.Account); err != nil {
 			ch.CapeEmblem = previousEmblem
 			p.CharSlot, p.Char = -1, nil
-			s.Send(wire.MessagePanel("The cape emblem could not be saved. Try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Cape_Emblem_Could_Not_Saved_Try")))
 			return
 		}
 	}
@@ -574,7 +598,7 @@ func (w *World) publishCharacterEntry(p *Player, slot int) {
 		p.Char = nil
 		p.InWorld = false
 		p.ID = 0
-		s.Send(wire.MessagePanel("The world is full. Please try again later."))
+		s.Send(wire.MessagePanel(w.msg("_WG_World_Full_Please_Try_Again_Later")))
 		log.Printf("[#%d] ENTER-WORLD rejected: 999-player limit reached", s.ID)
 		return
 	}
@@ -707,19 +731,19 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	}
 	if (st == placeStorage && p.ghostShopLocksCargoSlot(int(sp))) ||
 		(dt == placeStorage && p.ghostShopLocksCargoSlot(int(dp))) {
-		s.Send(wire.MessagePanel("The item is locked while it is listed on Auto Trade."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Locked_While_Listed_Auto_Trade")))
 		s.Send(wire.SendItem(p.ID, st, sp, *src))
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 		return
 	}
 	if (st == placeStorage || dt == placeStorage) && !w.validCargoAccess(p, pkt) {
-		s.Send(wire.MessagePanel("Move closer to the Warehouse to move Cargo."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Move_Closer_Warehouse_Move_Cargo")))
 		s.Send(wire.SendItem(p.ID, st, sp, *src))
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 		return
 	}
 	if (st == placeStorage && dt == placeEquip) || (st == placeEquip && dt == placeStorage) {
-		s.Send(wire.MessagePanel("Move the item through your inventory before equipping it."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Move_Item_Through_Inventory_Before_Equipping")))
 		s.Send(wire.SendItem(p.ID, st, sp, *src))
 		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 		return
@@ -733,7 +757,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		if err := w.queueCargoItemSwap(p, st, sp, dt, dp, targetID); err != nil {
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
-			s.Send(wire.MessagePanel("The item move could not be submitted. Please try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Item_Move_Could_Not_Submitted_Please")))
 			log.Printf("[#%d] submit Cargo item move: %v", s.ID, err)
 		}
 		return
@@ -744,9 +768,9 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 			if errors.Is(err, errTimedItemExpired) {
-				s.Send(wire.MessagePanel("This timed item has expired."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Timed_Item_Has_Expired")))
 			} else if !errors.Is(err, errEquipmentSwapEligibility) {
-				s.Send(wire.MessagePanel("The item move could not be submitted. Please try again."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Item_Move_Could_Not_Submitted_Please")))
 			}
 			log.Printf("[#%d] submit equipment move: %v", s.ID, err)
 		}
@@ -795,9 +819,9 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
 			if errors.Is(err, errTimedItemExpired) {
-				s.Send(wire.MessagePanel("This timed item has expired."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Timed_Item_Has_Expired")))
 			} else {
-				s.Send(wire.MessagePanel("This timed item could not be activated."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Timed_Item_Could_Not_Activated")))
 			}
 			log.Printf("[#%d] timed equip rejected %d: %v", s.ID, target.item.Index, err)
 			return
@@ -809,7 +833,7 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 			restore()
 			s.Send(wire.SendItem(p.ID, st, sp, *src))
 			s.Send(wire.SendItem(p.ID, dt, dp, *dst))
-			s.Send(wire.MessagePanel("Save failed. The item move was cancelled."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Item_Move_Was_Cancelled")))
 			log.Printf("[#%d] save item move: %v", s.ID, err)
 			return
 		}
@@ -937,19 +961,19 @@ func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
 	}
 	if deposit {
 		if p.Char.Gold < amount || p.Account.CargoGold > maxCharacterGold-amount {
-			s.Send(wire.MessagePanel("That amount could not be deposited."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Cant_Deposit_That_Much")))
 			return
 		}
 	} else {
 		if p.Account.CargoGold < amount || p.Char.Gold > maxCharacterGold-amount {
-			s.Send(wire.MessagePanel("That amount could not be withdrawn."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Cant_Withdraw_That_Much")))
 			return
 		}
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueCargoGoldTransfer(p, deposit, amount); err != nil {
 			log.Printf("[#%d] submit cargo transfer: %v", s.ID, err)
-			s.Send(wire.MessagePanel("The transfer could not be submitted. Please try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Transfer_Could_Not_Submitted_Please_Try")))
 		}
 		return
 	}
@@ -969,7 +993,7 @@ func (w *World) onCargoGold(s *net.Session, pkt []byte, deposit bool) {
 			p.Char.Gold -= amount
 		}
 		log.Printf("[#%d] save Cargo transfer: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. The transfer was not applied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Transfer_Was_Not_Applied")))
 		return
 	}
 	publishCargoGoldTransfer(p, deposit, amount)
@@ -1014,7 +1038,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 	m, err := w.resolveNPCInteraction(p, npcID)
 	if err != nil {
 		log.Printf("[#%d] 0x%X rejected id=%d clickOk=%d: %v", s.ID, opcode, npcID, clickOk, err)
-		s.Send(wire.MessagePanel(npcInteractionMessage(err)))
+		s.Send(wire.MessagePanel(w.tr(npcInteractionMessage(err))))
 		return
 	}
 	log.Printf("[#%d] 0x%X npc=%q id=%d clickOk=%d dist=%d size=%d",
@@ -1130,7 +1154,7 @@ func (w *World) onUseNPC(s *net.Session, pkt []byte) {
 		return
 	}
 	log.Printf("[#%d] click on %q without configured interaction", s.ID, m.Def.Name)
-	s.Send(wire.MessagePanel("This character has nothing for you right now."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Character_Has_Nothing_Right_Now")))
 }
 
 // onBuyItem: 0x379. Charge the catalog price for Vende[sellSlot], add the item
@@ -1152,14 +1176,14 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	sellSlot := binary.LittleEndian.Uint16(pkt[14:16]) // TargetCarryPos@14
 	if p.ShopNPC == 0 {
 		log.Printf("[#%d] purchase without an open shop", s.ID)
-		s.Send(wire.MessagePanel("Open a merchant before buying an item."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Open_Merchant_Before_Buying_Item")))
 		return
 	}
 	if targetID != p.ShopNPC {
 		// Do not trust the client target. Return a panel to finish the click
 		// visually instead of failing silently.
 		log.Printf("[#%d] purchase merchant mismatch packet=%d open=%d", s.ID, targetID, p.ShopNPC)
-		s.Send(wire.MessagePanel("That merchant is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Merchant_No_Longer_Available")))
 		return
 	}
 	m, interactionErr := w.resolveNPCInteraction(p, p.ShopNPC)
@@ -1167,7 +1191,7 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] invalid purchase shop=%d slot=%d", s.ID, p.ShopNPC, sellSlot)
 		p.ShopNPC = 0
 		// The 7.48 UI has no local fallback for a stale merchant interaction.
-		s.Send(wire.MessagePanel("The merchant is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Merchant_No_Longer_Available_2")))
 		return
 	}
 	// Resolve the client's grid slot against the same compacted 27-entry
@@ -1175,7 +1199,7 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant)
 	if !isShop {
 		log.Printf("[#%d] purchase from a non-shop NPC: %q", s.ID, m.Def.Name)
-		s.Send(wire.MessagePanel("That character is not a merchant."))
+		s.Send(wire.MessagePanel(w.msg("_NN_He_Is_Not_Merchant")))
 		return
 	}
 	display := shopDisplayList(m.Def.Vende, shopType)
@@ -1183,13 +1207,13 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	if !ok || index >= len(display) {
 		log.Printf("[#%d] invalid purchase shop=%d slot=%d -> index=%d (list has %d)",
 			s.ID, p.ShopNPC, sellSlot, index, len(display))
-		s.Send(wire.MessagePanel("That shop item is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Shop_Item_No_Longer_Available")))
 		return
 	}
 	it := display[index]
 	if it.Index == 0 {
 		// Empty visual cells are not purchasable and need a terminal UI response.
-		s.Send(wire.MessagePanel("That shop item is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Shop_Item_No_Longer_Available")))
 		return
 	}
 	// A skill-master purchase is a learning request. Items 5000..5095 never
@@ -1202,7 +1226,7 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	def, exists := w.items[it.Index]
 	if !exists {
 		log.Printf("[#%d] purchase rejected: item %d absent from the server catalog", s.ID, it.Index)
-		s.Send(wire.MessagePanel("That item is unavailable on this server."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Unavailable_Server")))
 		return
 	}
 	basePrice := passiveMerchantPurchasePrice(p.Char, uint64(def.Price))
@@ -1211,16 +1235,16 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] insufficient gold: item %d costs %d (base=%d), available=%d", s.ID, it.Index, totalPrice, basePrice, p.Char.Gold)
 		// The 7.48 client displays the server's 0x101 panel rather than
 		// synthesizing this error. Every expected rejection needs a response.
-		s.Send(wire.MessagePanel("You do not have enough gold."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Enough_Money")))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueShopPurchase(p, it, totalPrice, treasury, city, targetID, sellSlot); err != nil {
 			log.Printf("[#%d] submit merchant purchase item=%d: %v", s.ID, it.Index, err)
 			if errors.Is(err, errShopInventoryFull) {
-				s.Send(wire.MessagePanel("Your inventory is full."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_3")))
 			} else {
-				s.Send(wire.MessagePanel("The purchase could not be submitted. Please try again."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Purchase_Could_Not_Submitted_Please_Try")))
 			}
 		}
 		return
@@ -1229,19 +1253,19 @@ func (w *World) onBuyItem(s *net.Session, pkt []byte) {
 	if err != nil {
 		if errors.Is(err, errShopInventoryFull) {
 			log.Printf("[#%d] inventory full, purchase aborted", s.ID)
-			s.Send(wire.MessagePanel("Your inventory is full."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_3")))
 			return
 		}
 		log.Printf("[#%d] ERROR saving purchase item=%d: %v", s.ID, it.Index, err)
 		// After rollback, send a terminal result so the 7.48 UI does not appear
 		// to have ignored the purchase button.
-		s.Send(wire.MessagePanel("The purchase could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Purchase_Could_Not_Completed")))
 		return
 	}
 	if dst < 0 {
 		log.Printf("[#%d] inventory full, purchase aborted", s.ID)
 		// Explain the rejection without changing authoritative gold.
-		s.Send(wire.MessagePanel("Your inventory is full."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_3")))
 		return
 	}
 	// FUN_00487b92 copies the shop item to MyCarryPos and updates Coin from
@@ -1273,51 +1297,51 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 	scoreB := int32(binary.LittleEndian.Uint32(pkt[32:36]))
 
 	if p.ShopNPC == 0 {
-		s.Send(wire.MessagePanel("Open a merchant before buying a TOTO ticket."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Open_Merchant_Before_Buying_TOTO_Ticket")))
 		return
 	}
 	if targetID != p.ShopNPC {
-		s.Send(wire.MessagePanel("That merchant is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Merchant_No_Longer_Available")))
 		return
 	}
 	m, err := w.resolveNPCInteraction(p, p.ShopNPC)
 	if err != nil {
 		p.ShopNPC = 0
-		s.Send(wire.MessagePanel("The merchant is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Merchant_No_Longer_Available_2")))
 		return
 	}
 	shopType, isShop := shopTypeForMerchant(m.Def.Score.Merchant)
 	if !isShop {
-		s.Send(wire.MessagePanel("That character is not a merchant."))
+		s.Send(wire.MessagePanel(w.msg("_NN_He_Is_Not_Merchant")))
 		return
 	}
 	if shopSlot < 0 {
-		s.Send(wire.MessagePanel("That shop item is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Shop_Item_No_Longer_Available")))
 		return
 	}
 	display := shopDisplayList(m.Def.Vende, shopType)
 	index, ok := shopSlotFromClient(uint16(shopSlot))
 	if !ok || index >= len(display) || display[index].Index != 4147 {
-		s.Send(wire.MessagePanel("That shop item is not a TOTO ticket."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Shop_Item_Not_TOTO_Ticket")))
 		return
 	}
 	if dst < 0 || dst >= model.PlayerCarrySlots || p.Char.Inv[dst].Index != 0 {
-		s.Send(wire.MessagePanel("Choose an empty inventory slot."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Choose_Empty_Inventory_Slot")))
 		return
 	}
 	if match < 1 || match > 80 || scoreA < 0 || scoreA > 127 || scoreB < 0 || scoreB > 127 {
-		s.Send(wire.MessagePanel("Invalid TOTO match or score."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Invalid_TOTO_Match_Or_Score")))
 		return
 	}
 	def, exists := w.items[4147]
 	if !exists {
-		s.Send(wire.MessagePanel("TOTO tickets are unavailable on this server."))
+		s.Send(wire.MessagePanel(w.msg("_WG_TOTO_Tickets_Unavailable_Server")))
 		return
 	}
 	basePrice := uint64(def.Price)
 	totalPrice, treasury, city, _ := w.cityPriceForNPC(m, basePrice)
 	if totalPrice > uint64(maxCharacterGold) || uint64(p.Char.Gold) < totalPrice {
-		s.Send(wire.MessagePanel("You do not have enough gold."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Enough_Money")))
 		return
 	}
 
@@ -1327,19 +1351,19 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 	})
 	if err != nil {
 		log.Printf("[#%d] ERROR materializing TOTO ticket: %v", s.ID, err)
-		s.Send(wire.MessagePanel("The TOTO ticket could not be created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_TOTO_Ticket_Could_Not_Created")))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueTicketPurchase(p, ticket, int(dst), totalPrice, treasury, city); err != nil {
 			log.Printf("[#%d] submit TOTO purchase match=%d: %v", s.ID, match, err)
-			s.Send(wire.MessagePanel("The TOTO purchase could not be submitted. Please try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_TOTO_Purchase_Could_Not_Submitted_Please")))
 		}
 		return
 	}
 	if err := w.commitTicketPurchase(p, ticket, int(dst), totalPrice, city, treasury); err != nil {
 		log.Printf("[#%d] ERROR saving TOTO ticket match=%d: %v", s.ID, match, err)
-		s.Send(wire.MessagePanel("The TOTO purchase could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_TOTO_Purchase_Could_Not_Completed")))
 		return
 	}
 
@@ -1381,7 +1405,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	}
 	if !hellStore && targetID != p.ShopNPC {
 		log.Printf("[#%d] sale merchant mismatch packet=%d open=%d", s.ID, targetID, p.ShopNPC)
-		s.Send(wire.MessagePanel("That merchant is no longer available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Merchant_No_Longer_Available")))
 		return
 	}
 	if _, isShop := shopTypeForMerchant(m.Def.Score.Merchant); !hellStore && !isShop {
@@ -1406,7 +1430,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		return
 	}
 	if _, filled := model.CelestialSealID(*src); filled {
-		s.Send(wire.MessagePanel("A filled Spirit's Seal cannot be sold."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Filled_Spirits_Seal_Cannot_Sold")))
 		s.Send(wire.SendItem(p.ID, myType, myPos, *src))
 		return
 	}
@@ -1431,7 +1455,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 	// Sale credits must respect the two-billion gold cap like every other
 	// server-side gold source.
 	if uint64(p.Char.Gold) > uint64(maxCharacterGold) || netPrice > uint64(maxCharacterGold)-uint64(p.Char.Gold) {
-		s.Send(wire.MessagePanel("You cannot carry any more gold."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Cant_get_more_than_2G")))
 		s.Send(wire.SendItem(p.ID, myType, myPos, *src)) // Item unchanged.
 		return
 	}
@@ -1439,7 +1463,7 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		if err := w.queueShopSale(p, int(myPos), netPrice, treasury, city); err != nil {
 			log.Printf("[#%d] submit merchant sale item=%d: %v", s.ID, sold, err)
 			// The item is unchanged on admission rejection, not optimistically sold.
-			s.Send(wire.MessagePanel("The sale could not be submitted. Please try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Sale_Could_Not_Submitted_Please_Try")))
 			s.Send(wire.SendItem(p.ID, myType, myPos, *src))
 		}
 		return
@@ -1548,7 +1572,7 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 		return wire.IllusionMove(p.ID, fromX, fromY, targetX, targetY, speed)
 	})
 	w.syncPlayerVitals(p)
-	log.Printf("[#%d] used Illusion @(%d,%d)->(%d,%d) mp=-%d", p.Session.ID,
+	w.gameplayLogf("skill", "[#%d] used Illusion @(%d,%d)->(%d,%d) mp=-%d", p.Session.ID,
 		fromX, fromY, targetX, targetY, mana)
 }
 
@@ -2167,7 +2191,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 					playerCombatMP(p.Char), 0, true))
 			})
 			w.finalizeIronSpearSecondary(p, secondary)
-			log.Printf("[#%d] missed PvP attack against %q", s.ID, target.Char.Name)
+			w.gameplayLogf("miss", "[#%d] missed PvP attack against %q", s.ID, target.Char.Name)
 			return
 		}
 		hit = applyHuntressAirBlade(hit, p.Char, playerDefense(target.Char), airBladeEligible, w.intn)
@@ -2215,7 +2239,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 		if lethal {
 			w.publishPlayerDeath(target, p.ID)
 		}
-		log.Printf("[#%d] PvP attack against %q calculated_damage=%d applied=%d hp=%d",
+		w.gameplayLogf("pvp", "[#%d] PvP attack against %q calculated_damage=%d applied=%d hp=%d",
 			s.ID, target.Char.Name, calculated, applied, playerCurHP(target.Char))
 		return
 	}
@@ -2252,7 +2276,7 @@ func (w *World) onAttack(s *net.Session, pkt []byte) {
 				0, m.Def.Score.MaxHP, p.Char.Exp, playerCombatMP(p.Char), 0, true))
 		})
 		w.finalizeIronSpearSecondary(p, secondary)
-		log.Printf("[#%d] missed attack on mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
+		w.gameplayLogf("miss", "[#%d] missed attack on mob id=%d %q (accuracy=%d%%)", s.ID, m.ID, m.Def.Name,
 			playerVersusMobAccuracy(p.Char, m.Def))
 		return
 	}
@@ -2531,11 +2555,11 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	}
 	if req.srcType == placeStorage {
 		if p.Account == nil || !w.nearCargoNPC(p) {
-			s.Send(wire.MessagePanel("Move closer to the Warehouse to drop Cargo items."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Move_Closer_Warehouse_Drop_Cargo_Items")))
 			return
 		}
 		if p.ghostShopLocksCargoSlot(int(req.srcPos)) {
-			s.Send(wire.MessagePanel("The item is locked while it is listed on Auto Trade."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Item_Locked_While_Listed_Auto_Trade")))
 			return
 		}
 	}
@@ -2544,12 +2568,12 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	src := playerSlotOf(p, req.srcType, req.srcPos)
 	if src == nil || src.Index == 0 {
 		log.Printf("[#%d] invalid drop type=%d pos=%d", s.ID, req.srcType, req.srcPos)
-		s.Send(wire.MessagePanel("That item can no longer be dropped."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Can_No_Longer_Dropped")))
 		return
 	}
 	item := *src
 	if _, filled := model.CelestialSealID(item); filled {
-		s.Send(wire.MessagePanel("A filled Spirit's Seal cannot be dropped."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Filled_Spirits_Seal_Cannot_Dropped")))
 		return
 	}
 	// Reserve without publishing. Clients see the item only after
@@ -2558,7 +2582,7 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 	dropX, dropY := w.playerDropCell(p, req)
 	g := w.createGroundDropCell(dropX, dropY, item, false, w.gameplaySpaceForPlayer(p), ownerOf(p))
 	if g == nil {
-		s.Send(wire.MessagePanel("There is no room to drop that item here."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Cant_Drop_Here")))
 		return
 	}
 	if w.criticalWrites != nil {
@@ -2575,7 +2599,7 @@ func (w *World) onDropItem(s *net.Session, pkt []byte) {
 		*src = item
 		w.unregisterGroundItem(g)
 		log.Printf("[#%d] drop canceled after save failure: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. The item was not dropped."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Item_Was_Not_Dropped")))
 		return
 	}
 	w.publishItemSpawn(g)
@@ -2632,7 +2656,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 		return
 	}
 	if !groundItemClaimable(p, g, w.now()) {
-		s.Send(wire.MessagePanel(groundProtectedMessage))
+		s.Send(wire.MessagePanel(w.tr(groundProtectedMessage)))
 		return
 	}
 	if def, exists := w.items[g.Item.Index]; exists {
@@ -2659,7 +2683,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 			w.publishItemRemove(g)
 			w.unregisterGroundItem(g)
 			s.Send(wire.UpdateEtc(p.ID, *p.Char))
-			log.Printf("[#%d] picked up currency item=%d gold=+%d total=%d", s.ID, g.Item.Index, value, p.Char.Gold)
+			w.gameplayLogf("pickup", "[#%d] picked up currency item=%d gold=+%d total=%d", s.ID, g.Item.Index, value, p.Char.Gold)
 			return
 		}
 	}
@@ -2693,7 +2717,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 	// 0x171 acknowledges pickup; 0x182 fixes the authoritative slot.
 	s.Send(wire.CNFGetItem(uint32(placeInv), uint32(slot)))
 	s.Send(wire.SendItem(p.ID, placeInv, byte(slot), p.Char.Inv[slot]))
-	log.Printf("[#%d] picked up item %d from the ground -> inv[%d]", s.ID, g.Item.Index, slot)
+	w.gameplayLogf("pickup", "[#%d] picked up item %d from the ground -> inv[%d]", s.ID, g.Item.Index, slot)
 }
 
 // onDisconnect persists and removes players on the World loop.
@@ -2703,6 +2727,7 @@ func (w *World) onGetItem(s *net.Session, pkt []byte) {
 func (w *World) onDisconnect(s *net.Session) {
 	delete(w.authPending, s)
 	delete(w.security, s)
+	w.cancelLoginReload(s)
 	w.releaseAuthenticatedClientSlot(s)
 	if w.deferCriticalDisconnect(s) {
 		w.resumeCriticalDisconnects(criticalCompletionBatchLimit)

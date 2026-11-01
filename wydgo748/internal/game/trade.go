@@ -151,7 +151,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 		return
 	}
 	if !w.tradeRequestValid(p, opponent) {
-		s.Send(wire.MessagePanel("Player unavailable or out of range."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Unavailable_Or_Out_Range")))
 		w.cancelTrade(p, "opponent unavailable")
 		return
 	}
@@ -172,7 +172,7 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 			return
 		}
 		if opponent.Trade != nil {
-			s.Send(wire.MessagePanel("That player is already trading."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Already_Trading")))
 			return
 		}
 		// An initial invitation cannot include items, gold, or confirmation.
@@ -197,12 +197,12 @@ func (w *World) onTrade(s *net.Session, pkt []byte) {
 		return
 	}
 	if err := w.validateTradableItems(req.Items); err != nil {
-		s.Send(wire.MessagePanel(err.Error()))
+		s.Send(wire.MessagePanel(w.tr(err.Error())))
 		w.cancelTrade(p, "item cannot be traded")
 		return
 	}
 	if err := w.validateTradeCapsules(p.Account, req.Items); err != nil {
-		s.Send(wire.MessagePanel(err.Error()))
+		s.Send(wire.MessagePanel(w.tr(err.Error())))
 		w.cancelTrade(p, "invalid Celestial capsule")
 		return
 	}
@@ -336,21 +336,21 @@ func (w *World) commitTrade(a, b *Player) {
 		}
 		for _, p := range []*Player{a, b} {
 			if err := w.validateTradableItems(p.Trade.Items); err != nil {
-				p.Session.Send(wire.MessagePanel(err.Error()))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, err.Error())))
 				w.cancelTrade(a, "item cannot be traded at final validation")
 				return
 			}
 		}
 	}
 	if err := w.validateTradeCapsules(a.Account, a.Trade.Items); err != nil {
-		a.Session.Send(wire.MessagePanel(err.Error()))
-		b.Session.Send(wire.MessagePanel("The other player's Spirit's Seal is invalid."))
+		a.Session.Send(wire.MessagePanel(w.trFor(a, err.Error())))
+		b.Session.Send(wire.MessagePanel(w.msgFor(b, "_WG_Other_Players_Spirits_Seal_Invalid")))
 		w.cancelTrade(a, "invalid Celestial capsule at final validation")
 		return
 	}
 	if err := w.validateTradeCapsules(b.Account, b.Trade.Items); err != nil {
-		b.Session.Send(wire.MessagePanel(err.Error()))
-		a.Session.Send(wire.MessagePanel("The other player's Spirit's Seal is invalid."))
+		b.Session.Send(wire.MessagePanel(w.trFor(b, err.Error())))
+		a.Session.Send(wire.MessagePanel(w.msgFor(a, "_WG_Other_Players_Spirits_Seal_Invalid")))
 		w.cancelTrade(a, "invalid Celestial capsule at final validation")
 		return
 	}
@@ -359,16 +359,16 @@ func (w *World) commitTrade(a, b *Player) {
 	aGold, aGoldOK := tradeGold(a.Char.Gold, a.Trade.Gold, b.Trade.Gold)
 	bGold, bGoldOK := tradeGold(b.Char.Gold, b.Trade.Gold, a.Trade.Gold)
 	if !aOK || !bOK || !aGoldOK || !bGoldOK {
-		a.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
-		b.Session.Send(wire.MessagePanel("No space, invalid gold, or the offer changed."))
+		a.Session.Send(wire.MessagePanel(w.msgFor(a, "_WG_No_Space_Invalid_Gold_Or_Offer")))
+		b.Session.Send(wire.MessagePanel(w.msgFor(b, "_WG_No_Space_Invalid_Gold_Or_Offer")))
 		w.cancelTrade(a, "final validation failed")
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueTrade(a, b, aInv, bInv, aGold, bGold); err != nil {
 			log.Printf("TRADE submit accounts %q/%q: %v", a.Account.Name, b.Account.Name, err)
-			a.Session.Send(wire.MessagePanel("The trade could not be saved. No items or gold were transferred."))
-			b.Session.Send(wire.MessagePanel("The trade could not be saved. No items or gold were transferred."))
+			a.Session.Send(wire.MessagePanel(w.msgFor(a, "_WG_Trade_Could_Not_Saved_No_Items")))
+			b.Session.Send(wire.MessagePanel(w.msgFor(b, "_WG_Trade_Could_Not_Saved_No_Items")))
 			w.cancelTrade(a, "persistence admission rejected")
 		}
 		return
@@ -386,8 +386,8 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Account.CelestialCapsules = oldACapsules
 		b.Account.CelestialCapsules = oldBCapsules
 		log.Printf("TRADE transfer capsules %q/%q: %v", a.Account.Name, b.Account.Name, err)
-		a.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
-		b.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
+		a.Session.Send(wire.MessagePanel(w.msgFor(a, "_WG_Spirits_Seal_Could_Not_Transferred")))
+		b.Session.Send(wire.MessagePanel(w.msgFor(b, "_WG_Spirits_Seal_Could_Not_Transferred")))
 		w.cancelTrade(a, "Celestial capsule transfer failed")
 		return
 	}
@@ -397,8 +397,8 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Account.CelestialCapsules = oldACapsules
 		b.Account.CelestialCapsules = oldBCapsules
 		log.Printf("TRADE transfer capsules %q/%q: %v", b.Account.Name, a.Account.Name, err)
-		a.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
-		b.Session.Send(wire.MessagePanel("The Spirit's Seal could not be transferred."))
+		a.Session.Send(wire.MessagePanel(w.msgFor(a, "_WG_Spirits_Seal_Could_Not_Transferred")))
+		b.Session.Send(wire.MessagePanel(w.msgFor(b, "_WG_Spirits_Seal_Could_Not_Transferred")))
 		w.cancelTrade(a, "Celestial capsule transfer failed")
 		return
 	}
@@ -408,8 +408,8 @@ func (w *World) commitTrade(a, b *Player) {
 		a.Account.CelestialCapsules = oldACapsules
 		b.Account.CelestialCapsules = oldBCapsules
 		log.Printf("TRADE save accounts %q/%q: %v", a.Account.Name, b.Account.Name, err)
-		a.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
-		b.Session.Send(wire.MessagePanel("Save failed. The trade was not applied."))
+		a.Session.Send(wire.MessagePanel(w.msgFor(a, "_WG_Save_Failed_Trade_Was_Not_Applied")))
+		b.Session.Send(wire.MessagePanel(w.msgFor(b, "_WG_Save_Failed_Trade_Was_Not_Applied")))
 		w.cancelTrade(a, "persistence failed")
 		return
 	}

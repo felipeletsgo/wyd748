@@ -25,5 +25,5 @@ func (w *World) onLotteryTicketUnavailable(s *net.Session, pkt []byte) {
 		w.recordSecurityViolation(s, header.Type, "session id mismatch")
 		return
 	}
-	s.Send(wire.MessagePanel(lotteryUnavailableMessage))
+	s.Send(wire.MessagePanel(w.tr(lotteryUnavailableMessage)))
 }

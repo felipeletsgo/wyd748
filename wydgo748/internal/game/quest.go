@@ -262,7 +262,7 @@ func (w *World) speakQuestNPC(p *Player, m *Mob, quest *model.QuestDef) {
 	}
 	line := quest.Dialogue[w.intn(len(quest.Dialogue))]
 	for _, listener := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
-		listener.Session.Send(wire.MessageChat(m.ID, line))
+		listener.Session.Send(wire.MessageChat(m.ID, w.tr(line)))
 	}
 	_ = p
 }
@@ -276,7 +276,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	// confirmation arriving and then silence, and "already completed" cannot be
 	// told apart from a real failure.
 	if !quest.Repeatable && questCompleted(p.Char, quest.ID) {
-		s.Send(wire.MessagePanel("You have already completed this quest."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Have_Already_Completed_Quest")))
 		log.Printf("[#%d] QUEST %d rejected: already completed", s.ID, quest.ID)
 		return
 	}
@@ -284,7 +284,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	// rewards, only the NPC ID. Range and visibility were already validated in
 	// resolveNPCInteraction before this point.
 	if reason, ok := w.questRequirementsMet(p, quest); !ok {
-		s.Send(wire.MessagePanel(questBlockedMessage(quest, reason)))
+		s.Send(wire.MessagePanel(w.tr(questBlockedMessage(quest, reason))))
 		log.Printf("[#%d] QUEST %d rejected: %s", s.ID, quest.ID, reason)
 		return
 	}
@@ -304,7 +304,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 		var ok bool
 		teleportX, teleportY, ok = w.resolvePlayerTeleportDestination(p, target.X, target.Y)
 		if !ok {
-			s.Send(wire.MessagePanel("The quest destination is unavailable."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Quest_Destination_Unavailable")))
 			log.Printf("[#%d] QUEST %d rejected: teleport destination unavailable", s.ID, quest.ID)
 			return
 		}
@@ -313,7 +313,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	for _, item := range quest.Consumes {
 		if !consumeInventoryItem(p.Char, item.Index, item.Quantity()) {
 			rollback()
-			s.Send(wire.MessagePanel("You do not have the required items."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Do_Not_Have_Required_Items")))
 			log.Printf("[#%d] QUEST %d rejected: consuming item %d x%d failed",
 				s.ID, quest.ID, item.Index, item.Quantity())
 			return
@@ -324,7 +324,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	applyQuestRecharge(p, quest)
 	if !spendCounters(p, quest.ConsumeCounters) {
 		rollback()
-		s.Send(wire.MessagePanel("You do not have enough entries."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Do_Not_Have_Enough_Entries")))
 		log.Printf("[#%d] QUEST %d rejected: insufficient counter balance", s.ID, quest.ID)
 		return
 	}
@@ -335,7 +335,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	for _, item := range quest.Rewards.Items {
 		if !grantInventoryItem(p.Char, item) {
 			rollback()
-			s.Send(wire.MessagePanel("Your inventory is full."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_3")))
 			log.Printf("[#%d] QUEST %d rejected: no room for item %d",
 				s.ID, quest.ID, item.Index)
 			return
@@ -344,7 +344,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	if r := quest.Rewards.Refine; r != nil {
 		if !refineQuestReward(p.Char, r) {
 			rollback()
-			s.Send(wire.MessagePanel("You have nothing equipped to improve."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Have_Nothing_Equipped_Improve")))
 			log.Printf("[#%d] QUEST %d rejected: nothing to refine in slot %d",
 				s.ID, quest.ID, r.Slot)
 			return
@@ -419,14 +419,14 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 			w.publishPlayerTeleport(p)
 		}
 		if !s.IsClosed() {
-			s.Send(wire.MessagePanel(quest.Messages.Success))
+			s.Send(wire.MessagePanel(w.tr(quest.Messages.Success)))
 		}
 		log.Printf("[#%d] QUEST %d completed by %q", s.ID, quest.ID, p.Char.Name)
 	}
 	if w.criticalWrites != nil {
 		failed := func() {
 			if !s.IsClosed() {
-				s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Quest_Was_Not_Completed")))
 			}
 		}
 		if err := w.queueCriticalLiveMutation("quest", images, publish,
@@ -441,7 +441,7 @@ func (w *World) executeQuest(s *net.Session, p *Player, m *Mob, quest *model.Que
 	// items, gold, EXP, the completed quest and special counters.
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		rollback()
-		s.Send(wire.MessagePanel("Save failed. The quest was not completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Quest_Was_Not_Completed")))
 		log.Printf("[#%d] ERROR quest %d: %v", s.ID, quest.ID, err)
 		return
 	}

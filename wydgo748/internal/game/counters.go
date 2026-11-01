@@ -137,7 +137,7 @@ func (w *World) useCounterGrantOnce(s *net.Session, p *Player, item *model.Item,
 	for name, required := range rule.Counters {
 		if counterBalance(p, name) >= required {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("This unlock is already active."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Unlock_Already_Active")))
 			return
 		}
 	}
@@ -159,7 +159,7 @@ func (w *World) useCounterGrantOnce(s *net.Session, p *Player, item *model.Item,
 		if rewardSlot < 0 {
 			*p.Char, p.SpecialCoins = charBefore, countersBefore
 			s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
-			s.Send(wire.MessagePanel("Inventory full."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_2")))
 			return
 		}
 		p.Char.Inv[rewardSlot] = reward
@@ -176,7 +176,7 @@ func (w *World) useCounterGrantOnce(s *net.Session, p *Player, item *model.Item,
 		s.Send(wire.SendItem(
 			p.ID, placeInv, byte(rewardSlot), p.Char.Inv[rewardSlot]))
 	}
-	s.Send(wire.MessagePanel("Event access enabled."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Event_Access_Enabled")))
 }
 
 // rechargeCovers lets an NPC offer the exchange when its recharge can cover a
@@ -214,5 +214,5 @@ func (w *World) publishWarriorSealCape(p *Player) {
 	w.recalcPlayer(p.Char)
 	p.Session.Send(playerScorePacket(p))
 	w.refreshAppearance(p)
-	p.Session.Send(wire.MessagePanel("You received the Elite cape."))
+	p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Received_Elite_Cape")))
 }

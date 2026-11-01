@@ -74,27 +74,27 @@ func (w *World) handleAbilityResetMasterNPC(s *net.Session, p *Player, m *Mob, c
 		return true
 	}
 	if clickOk != 1 {
-		s.Send(wire.MessagePanel("Resetting attributes requires 30 Sapphires or Return Of Ability."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Resetting_Attributes_Requires_Sapphires_Or_Return")))
 		return true
 	}
 	if !abilityResetEquipmentEmpty(p.Char) {
-		s.Send(wire.MessagePanel("Unequip your armor and weapons first."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Cant_with_armor")))
 		return true
 	}
 	if _, ok := naturalStats(p.Char); !ok {
-		s.Send(wire.MessagePanel("This character class cannot be reset."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Class_Cannot_Reset")))
 		return true
 	}
 
 	usePremium := countInventoryItem(p.Char, abilityResetPremiumItem) != 0
 	if !usePremium && sapphireCount(p.Char) < abilityResetSapphireCost {
-		s.Send(wire.MessagePanel("You need 30 Sapphires or Return Of Ability."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Need_Sapphires_Or_Return_Ability")))
 		return true
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueAbilityReset(p, usePremium); err != nil {
 			log.Printf("[#%d] attribute reset admission: %v", s.ID, err)
-			s.Send(wire.MessagePanel("Attribute reset is unavailable. Please try again later."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Attribute_Reset_Unavailable_Please_Try_Again")))
 		}
 		return true
 	}
@@ -108,13 +108,13 @@ func (w *World) handleAbilityResetMasterNPC(s *net.Session, p *Player, m *Mob, c
 	}
 	if !consumed {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("The reset material could not be consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Reset_Material_Could_Not_Consumed")))
 		return true
 	}
 	recovered, ok := resetDistributedAttributes(p.Char)
 	if !ok {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("This character class cannot be reset."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Class_Cannot_Reset")))
 		return true
 	}
 	w.recalcPlayer(p.Char)
@@ -122,7 +122,7 @@ func (w *World) handleAbilityResetMasterNPC(s *net.Session, p *Player, m *Mob, c
 		*p.Char = snapshot
 		w.recalcPlayer(p.Char)
 		log.Printf("[#%d] save attribute reset at Skill_Master: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Nothing_Was_Consumed")))
 		return true
 	}
 
@@ -131,7 +131,7 @@ func (w *World) handleAbilityResetMasterNPC(s *net.Session, p *Player, m *Mob, c
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	w.syncPlayerVitalsToObservers(p)
 	w.updatePartyMember(p)
-	s.Send(wire.MessagePanel("Attribute points reset successfully."))
+	s.Send(wire.MessagePanel(w.msg("_NN_Stat_Initialized")))
 	log.Printf("[#%d] Skill_Master reset %d point(s) for %q (premium=%t)",
 		s.ID, recovered, p.Char.Name, usePremium)
 	return true
@@ -175,7 +175,7 @@ func (w *World) queueAbilityReset(p *Player, usePremium bool) error {
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		w.syncPlayerVitalsToObservers(p)
 		w.updatePartyMember(p)
-		p.Session.Send(wire.MessagePanel("Attribute points reset successfully."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_NN_Stat_Initialized")))
 		log.Printf("[#%d] Skill_Master reset %d point(s) for %q (premium=%t)",
 			p.Session.ID, recovered, p.Char.Name, usePremium)
 	})

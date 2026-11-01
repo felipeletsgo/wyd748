@@ -81,7 +81,7 @@ func (w *World) sendLoginCharacterList(s *net.Session, p *Player) {
 	if !ok {
 		s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
 		if reason != "" {
-			s.Send(wire.MessagePanel(reason))
+			s.Send(wire.MessagePanel(w.tr(reason)))
 		}
 		return
 	}
@@ -91,13 +91,13 @@ func (w *World) sendLoginCharacterList(s *net.Session, p *Player) {
 			return
 		}
 		s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
-		s.Send(wire.MessagePanel("The Exchange Stones swapped " + oldA + " and " + oldB + "."))
+		w.panel(s, "_WG_Exchange_Stones_Swapped", oldA, oldB)
 		log.Printf("[#%d] EXCHANGE STONES account=%s %q <-> %q", s.ID, acc.Name, oldA, oldB)
 	}
 	failed := func() {
 		if !s.IsClosed() {
 			s.Send(wire.CharList(acc.Name, acc.Chars, acc.Cargo[:], acc.CargoGold))
-			s.Send(wire.MessagePanel("The name exchange could not be saved."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Name_Exchange_Could_Not_Saved")))
 		}
 	}
 	if w.criticalWrites != nil {

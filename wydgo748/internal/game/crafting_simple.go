@@ -32,7 +32,7 @@ func (w *World) beginCombine(s *net.Session, pkt []byte, npc string) (*Player, c
 	}
 	now := w.now()
 	if !p.LastCraft.IsZero() && now.Sub(p.LastCraft) < 800*time.Millisecond {
-		s.Send(wire.MessagePanel("Wait a second before trying again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Wait_Second_Before_Trying_Again")))
 		return p, combineRequest{}, false
 	}
 	p.LastCraft = now
@@ -401,12 +401,12 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 	if !valid {
 		w.sendCombineResult(p, 0)
 		_, reason := w.aylinRecipeResult(req)
-		s.Send(wire.MessagePanel(reason))
+		s.Send(wire.MessagePanel(w.tr(reason)))
 		return
 	}
 	if p.Char.Gold < aylinGoldCost {
 		w.sendCombineResult(p, 0)
-		s.Send(wire.MessagePanel("Aylin charges 50,000,000 gold."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Aylin_Charges_Gold")))
 		return
 	}
 	if w.criticalWrites != nil {
@@ -437,7 +437,7 @@ func (w *World) onCombineAylin(s *net.Session, pkt []byte) {
 func (w *World) admitInventoryComposition(p *Player, req combineRequest, result model.Item, roll percentRoll, artisan string) {
 	if err := w.queueInventoryComposition(p, req, result, roll, artisan); err != nil {
 		log.Printf("[#%d] %s composition admission rejected: %v", p.Session.ID, artisan, err)
-		p.Session.Send(wire.MessagePanel("Composition is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Composition_Unavailable_Please_Try_Again_Later")))
 	}
 }
 
@@ -456,13 +456,13 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	if !lindyMaterialStack(req.Items[0]) || !lindyMaterialStack(req.Items[1]) ||
 		req.Items[2].Index != 4127 {
 		w.sendCombineResult(p, 0)
-		s.Send(wire.MessagePanel("Two Laktorerium packages (10 units each) and one Sealed Scroll are required."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Two_Laktorerium_Packages_Units_Each_One")))
 		return
 	}
 	for i := 3; i <= 6; i++ {
 		if req.Items[i].Index != 413 || itemStackAmount(req.Items[i]) > 1 {
 			w.sendCombineResult(p, 0)
-			s.Send(wire.MessagePanel("Four Laktorerium powders are required."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Four_Laktorerium_Powders_Required")))
 			return
 		}
 	}
@@ -478,7 +478,7 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	// Only unlocking 370 costs Fame, exactly one point.
 	const lindyLevel370FameCost = uint32(1)
 	if trava == archLockLevel370 && counterBalance(p, fameCounter) < lindyLevel370FameCost {
-		s.Send(wire.MessagePanel("You need 1 fame point."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Need_Fame_Point")))
 		w.sendCombineResult(p, 0)
 		return
 	}
@@ -505,7 +505,7 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 	if w.criticalWrites != nil {
 		if err := w.queueLindyCraft(p, req, cape); err != nil {
 			log.Printf("[#%d] Lindy composition admission rejected: %v", s.ID, err)
-			s.Send(wire.MessagePanel("Composition is unavailable. Please try again later."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Composition_Unavailable_Please_Try_Again_Later")))
 		}
 		return
 	}
@@ -550,7 +550,7 @@ func (w *World) onCombineLindy(s *net.Session, pkt []byte) {
 		w.recalcPlayer(p.Char)
 		return
 	}
-	s.Send(wire.MessagePanel("Your level limit has been lifted."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Level_Limit_Has_Been_Lifted")))
 	log.Printf("[#%d] ARCH unlocked level %d (fame=%d)", s.ID, trava+1, counterBalance(p, fameCounter))
 }
 

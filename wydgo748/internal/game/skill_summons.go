@@ -237,7 +237,7 @@ func (w *World) castSummon(owner *Player, skill model.SkillDef, mastery int) boo
 		current++
 		spawned++
 	}
-	log.Printf("[#%d] summoned %q count=%d/%d", owner.Session.ID, template.name, current, wanted)
+	w.gameplayLogf("skill", "[#%d] summoned %q count=%d/%d", owner.Session.ID, template.name, current, wanted)
 	return true
 }
 

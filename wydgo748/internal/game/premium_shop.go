@@ -83,7 +83,7 @@ func (w *World) premiumEntry(slot int) (store.PremiumCatalogEntry, bool) {
 
 func (w *World) openPremiumShop(s *net.Session, p *Player, m *Mob) {
 	if _, ok := w.premiumBackend(); !ok {
-		s.Send(wire.MessagePanel(premiumUnavailable))
+		s.Send(wire.MessagePanel(w.tr(premiumUnavailable)))
 		return
 	}
 	// An empty catalog still opens the (empty) window and shows the balance.
@@ -155,7 +155,7 @@ func (w *World) onPremiumBuy(s *net.Session, pkt []byte) {
 		if req.Version == wire.PremiumWebVersion {
 			completePremiumPurchase(p, req, code)
 		} else {
-			s.Send(wire.MessagePanel(message))
+			s.Send(wire.MessagePanel(w.tr(message)))
 		}
 	}
 	if playerCurHP(p.Char) == 0 {
@@ -245,7 +245,7 @@ func (w *World) queuePremiumPurchase(p *Player, entry store.PremiumCatalogEntry,
 		if req.Version == wire.PremiumWebVersion {
 			completePremiumPurchase(p, req, wire.PremiumResultFailed)
 		} else if !p.Session.IsClosed() {
-			p.Session.Send(wire.MessagePanel(premiumPurchaseError))
+			p.Session.Send(wire.MessagePanel(w.trFor(p, premiumPurchaseError)))
 		}
 		return nil
 	})
@@ -259,7 +259,7 @@ func (w *World) admitDonateCoin(p *Player, slot byte, rule model.VolatileRule) {
 	reject := func(message string) {
 		resyncUsedItem(s, p, slot)
 		if message != "" {
-			s.Send(wire.MessagePanel(message))
+			s.Send(wire.MessagePanel(w.tr(message)))
 		}
 	}
 	if _, ok := w.premiumBackend(); !ok {
@@ -296,14 +296,14 @@ func (w *World) admitDonateCoin(p *Player, slot byte, rule model.VolatileRule) {
 		if !s.IsClosed() {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, remaining))
 			s.Send(wire.PremiumBalance(p.ID, balance))
-			s.Send(wire.MessagePanel(fmt.Sprintf("You received %d donate. Balance: %d.", value, balance)))
+			s.Send(wire.MessagePanel(w.msg("_WG_Received_D_Donate_Balance_D", value, balance)))
 		}
 		log.Printf("[#%d] donate coin item=%d +%d balance=%d", s.ID, used.Index, value, balance)
 		return nil
 	}, nil, func(criticalPersistenceResult) error {
 		if !s.IsClosed() {
 			resyncUsedItem(s, p, slot)
-			s.Send(wire.MessagePanel("Item use is unavailable. Please try again later."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Item_Use_Unavailable_Please_Try_Again")))
 		}
 		return nil
 	})
@@ -435,7 +435,7 @@ func (w *World) applyDonateCredits(credits []store.DonateCredit) {
 			p.Account.Donate = balance
 			if !p.Session.IsClosed() {
 				p.Session.Send(wire.PremiumBalance(p.ID, balance))
-				p.Session.Send(wire.MessagePanel(fmt.Sprintf("You received %d donate. Balance: %d.", total, balance)))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Received_D_Donate_Balance_D", total, balance)))
 			}
 			log.Printf("[#%d] donate credits %v applied to %q: +%d balance=%d", p.Session.ID, ids, key, total, balance)
 			return nil

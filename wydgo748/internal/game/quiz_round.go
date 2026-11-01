@@ -154,7 +154,7 @@ func (w *World) onQuizAnswer(session *net.Session, pkt []byte) {
 	e.claimed[participant.account] = true
 	session.Send(wire.QuizClose(p.ID, participant.token))
 	if response.Choice != participant.correct {
-		session.Send(wire.MessagePanel("Quiz: incorrect answer."))
+		session.Send(wire.MessagePanel(w.msg("_WG_Quiz_Incorrect_Answer")))
 		return
 	}
 	e.status.Correct++
@@ -165,14 +165,14 @@ func (w *World) onQuizAnswer(session *net.Session, pkt []byte) {
 		if err != nil {
 			*p.Char = before
 			e.status.DeliveryFailures++
-			session.Send(wire.MessagePanel("Quiz: the reward could not be prepared. Contact staff."))
+			session.Send(wire.MessagePanel(w.msg("_WG_Quiz_Reward_Could_Not_Prepared_Contact")))
 			return
 		}
 		pos := addToInv(p.Char, item)
 		if pos < 0 {
 			*p.Char = before
 			e.status.DeliveryFailures++
-			session.Send(wire.MessagePanel("Quiz: correct, but your inventory is full. Make room before the next question."))
+			session.Send(wire.MessagePanel(w.msg("_WG_Quiz_Correct_But_Inventory_Full_Make")))
 			return
 		}
 		drops = append(drops, plannedDrop{player: p, inventoryPos: pos, item: item, source: "quiz", sourceSlot: -1})
@@ -186,6 +186,6 @@ func (w *World) onQuizAnswer(session *net.Session, pkt []byte) {
 	}
 	w.publishPlannedDrops(drops)
 	e.status.Rewarded++
-	session.Send(wire.MessagePanel("Quiz: correct answer! Reward delivered."))
+	session.Send(wire.MessagePanel(w.msg("_WG_Quiz_Correct_Answer_Reward_Delivered")))
 	log.Printf("[event] quiz reward event=%q round=%d account=%q item=%d quantity=%d", e.status.EventID, e.status.Rounds, participant.account, e.status.ItemID, e.status.RewardQuantity)
 }

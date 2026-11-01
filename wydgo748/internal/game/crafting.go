@@ -187,7 +187,7 @@ func (w *World) sendCombineResultMessage(p *Player, result uint32, message strin
 			message = combineResultMessage(result)
 		}
 		if message != "" {
-			p.Session.Send(wire.MessagePanel(message))
+			p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 		}
 		p.Session.Send(wire.StandardParm(wire.OpCombineComplete, wire.SceneField, result))
 	}
@@ -224,7 +224,7 @@ func (w *World) onCombineTiny(s *net.Session, pkt []byte) {
 		roll := w.rollPercent(chance)
 		if err := w.queueTinyCraft(p, req, resultItem, roll); err != nil {
 			log.Printf("[#%d] Tiny composition admission rejected: %v", s.ID, err)
-			s.Send(wire.MessagePanel("Composition is unavailable. Please try again later."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Composition_Unavailable_Please_Try_Again_Later")))
 		}
 		return // Rejected admission must never fall through to an inline save.
 	}

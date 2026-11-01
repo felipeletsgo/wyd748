@@ -189,11 +189,11 @@ func (w *World) rememberStaffReceipt(kind, actor, operation, fingerprint string,
 
 // ---- Sanctions ----
 
-func sanctionUntilText(until time.Time) string {
+func (w *World) sanctionUntilText(until time.Time) string {
 	if !until.Before(store.PermanentSanction) {
-		return "permanently"
+		return w.msg("_WG_Sanction_Permanent")
 	}
-	return "until " + until.UTC().Format("2006-01-02 15:04") + " UTC"
+	return w.msg("_WG_Sanction_Until", until.UTC().Format("2006-01-02 15:04"))
 }
 
 func activeUntil(entries map[string]time.Time, account string, now time.Time) (time.Time, bool) {
@@ -253,7 +253,7 @@ func (w *World) labelMuted(p *Player, text string, now time.Time) bool {
 func (w *World) muteBlocks(p *Player, now time.Time) bool {
 	until, muted := activeUntil(w.staffOps.mutes, accountSessionKey(p.Account.Name), now)
 	if muted && p.Session != nil {
-		p.Session.Send(wire.MessagePanel("You are muted " + sanctionUntilText(until) + "."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_NN_No_Speak", w.recipientWorld(p).sanctionUntilText(until))))
 	}
 	return muted
 }
@@ -266,7 +266,7 @@ func (w *World) admitSanctions(account string, state store.SanctionState, now ti
 	liveMute, _ := activeUntil(w.staffOps.mutes, key, now)
 	setSanctionEntry(&w.staffOps.mutes, key, laterTime(state.MuteUntil, liveMute), now)
 	if ban := laterTime(state.BanUntil, liveBan); ban.After(now) {
-		return "This account is suspended " + sanctionUntilText(ban) + ".", true
+		return w.msg("_SN_Blocked_Account", w.sanctionUntilText(ban)), true
 	}
 	return "", false
 }
@@ -314,9 +314,9 @@ func (w *World) applyLocalSanctionStateWithMute(account string, state store.Sanc
 		}
 		switch {
 		case notify == control.SanctionMute && state.MuteUntil.After(now):
-			s.Send(wire.MessagePanel("You have been muted " + sanctionUntilText(state.MuteUntil) + "."))
+			w.panel(s, "_NN_Chat_Prohibition", w.sanctionUntilText(state.MuteUntil))
 		case notify == "revoke" && wasMuted && !state.MuteUntil.After(now):
-			s.Send(wire.MessagePanel("Your chat mute has been lifted."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Chat_Free")))
 		}
 	}
 	return len(sessions)
@@ -435,10 +435,17 @@ func (w *World) RevokeSanction(ctx context.Context, actor string, id int64, cmd 
 
 // ---- Notices ----
 
+// staffBroadcast delivers staff-authored text unchanged to every channel.
 func (w *World) staffBroadcast(message string) int {
+	return w.staffNotice(func(*World) string { return message })
+}
+
+// staffNotice builds the notice in the language of each recipient's channel.
+func (w *World) staffNotice(text func(channel *World) string) int {
 	delivered := 0
 	for _, p := range w.globalPlayers() {
 		if p != nil && p.InWorld && p.Session != nil {
+			message := text(w.recipientWorld(p))
 			p.Session.Send(wire.MessagePanel(message))
 			p.Session.Send(wire.MessageWhisper(0, staffNoticeSender, message, 7))
 			delivered++
@@ -602,26 +609,26 @@ func (w *World) MessagePlayer(ctx context.Context, actor string, cmd control.Pla
 var shutdownMarks = []time.Duration{60 * time.Minute, 30 * time.Minute, 15 * time.Minute, 10 * time.Minute,
 	5 * time.Minute, 3 * time.Minute, 2 * time.Minute, time.Minute, 30 * time.Second, 10 * time.Second}
 
-func countdownText(left time.Duration) string {
+func (w *World) countdownText(left time.Duration) string {
 	if left >= time.Minute {
 		minutes := int((left + 30*time.Second) / time.Minute)
 		if minutes == 1 {
-			return "1 minute"
+			return w.msg("_WG_Countdown_One_Minute")
 		}
-		return strconv.Itoa(minutes) + " minutes"
+		return w.msg("_WG_Countdown_Minutes", minutes)
 	}
 	seconds := int((left + time.Second/2) / time.Second)
 	if seconds == 1 {
-		return "1 second"
+		return w.msg("_WG_Countdown_One_Second")
 	}
-	return strconv.Itoa(seconds) + " seconds"
+	return w.msg("_WG_Countdown_Seconds", seconds)
 }
 
-func shutdownNotice(mode string, left time.Duration) string {
+func (w *World) shutdownNotice(mode string, left time.Duration) string {
 	if mode == control.ShutdownModeRestart {
-		return "Server restart in " + countdownText(left) + ". Please log out safely."
+		return w.msg("_WG_Server_Restart_In", w.countdownText(left))
 	}
-	return "Server maintenance in " + countdownText(left) + ". Please log out safely."
+	return w.msg("_WG_Server_Maintenance_In", w.countdownText(left))
 }
 
 // shutdownLoginsBlocked runs on the World goroutine at login start and completion.
@@ -687,7 +694,7 @@ func (w *World) shutdownCommand(actor string, cmd control.ShutdownCommand, autho
 	case cmd.Action == "schedule":
 		delay := time.Duration(cmd.DelaySeconds) * time.Second
 		w.staffOps.shutdown = &shutdownPlan{mode: cmd.Mode, at: now.Add(delay), actor: actor, reason: cmd.Reason, lastMark: delay}
-		w.staffBroadcast(shutdownNotice(cmd.Mode, delay))
+		w.staffNotice(func(c *World) string { return c.shutdownNotice(cmd.Mode, delay) })
 		result.Code = "ok"
 	case plan == nil:
 		result.Code = "not_scheduled"
@@ -695,7 +702,7 @@ func (w *World) shutdownCommand(actor string, cmd control.ShutdownCommand, autho
 		result.Code = "already_started"
 	default:
 		w.staffOps.shutdown = nil
-		w.staffBroadcast("The scheduled server maintenance was cancelled.")
+		w.staffNotice(func(c *World) string { return c.msg("_WG_Maintenance_Cancelled") })
 		result.Code = "ok"
 	}
 	if result.Code != "capability_required" {
@@ -745,7 +752,7 @@ func (w *World) tickShutdownCountdown(now time.Time) bool {
 	left := plan.at.Sub(now)
 	if left <= 0 {
 		plan.requested = true
-		w.staffBroadcast("The server is shutting down for maintenance now.")
+		w.staffNotice(func(c *World) string { return c.msg("_NN_ServerReboot_Now") })
 		log.Printf("[web-admin] scheduled %s started actor=%q reason=%q", plan.mode, plan.actor, plan.reason)
 		// The hook calls World.Shutdown, which queues a command and waits:
 		// it must never run on the World goroutine.
@@ -763,6 +770,6 @@ func (w *World) tickShutdownCountdown(now time.Time) bool {
 		return false
 	}
 	plan.lastMark = crossed
-	w.staffBroadcast(shutdownNotice(plan.mode, left))
+	w.staffNotice(func(c *World) string { return c.shutdownNotice(plan.mode, left) })
 	return true
 }

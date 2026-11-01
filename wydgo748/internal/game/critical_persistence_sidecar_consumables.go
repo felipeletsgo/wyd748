@@ -134,13 +134,13 @@ func (w *World) queueSidecarConsumable(p *Player, slot byte, rule model.Volatile
 				}
 			}
 			if rule.Action == "grant_counter_once" {
-				p.Session.Send(wire.MessagePanel("Event access enabled."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Event_Access_Enabled")))
 			}
 			if eliteCape {
 				w.publishWarriorSealCape(p)
 			}
 			if rule.Action == "timed_access" {
-				p.Session.Send(wire.MessagePanel(fmt.Sprintf("Access enabled until %s.", accessExpiry.Local().Format("2006-01-02 15:04"))))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Access_Enabled_Until_S", accessExpiry.Local().Format("2006-01-02 15:04"))))
 			}
 		}, true, criticalAccountMutationHooks{})
 }
@@ -151,11 +151,11 @@ func (w *World) admitSidecarConsumable(p *Player, slot byte, rule model.Volatile
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			return
 		}
-		p.Session.Send(wire.MessagePanel("Item use is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Item_Use_Unavailable_Please_Try_Again")))
 		log.Printf("[#%d] %s admission rejected: %v", p.Session.ID, rule.Action, err)
 	}
 }

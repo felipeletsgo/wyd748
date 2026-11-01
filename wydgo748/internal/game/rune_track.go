@@ -165,7 +165,7 @@ func (w *World) runeTrackMutation(inst *ItemInstance, members []*Player, operati
 
 func (w *World) registerRuneTrack(s *net.Session, p *Player) {
 	now := w.now()
-	message := func(text string) { s.Send(wire.MessagePanel(text)) }
+	message := func(text string) { s.Send(wire.MessagePanel(w.tr(text))) }
 	if w.criticalInstanceReserved() || w.criticalPlayerReserved(p) {
 		return
 	}

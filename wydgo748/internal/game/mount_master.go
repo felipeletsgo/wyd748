@@ -29,7 +29,7 @@ func (w *World) speakMountMaster(m *Mob, message string) {
 	}
 	for _, listener := range w.nearbyWorldPlayers(m.X, m.Y, viewHalfX) {
 		if listener != nil && listener.InWorld && listener.Session != nil {
-			listener.Session.Send(wire.MessageChat(m.ID, message))
+			listener.Session.Send(wire.MessageChat(m.ID, w.tr(message)))
 		}
 	}
 }
@@ -53,7 +53,7 @@ func (w *World) handleMountMasterNPC(s *net.Session, p *Player, m *Mob, clickOk 
 	def, exists := w.items[mount.Index]
 	if !exists {
 		log.Printf("[#%d] Mount_Master rejected: mount %d is missing from the catalog", s.ID, mount.Index)
-		s.Send(wire.MessagePanel("This mount is not registered by the server."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Mount_Not_Registered_By_Server")))
 		return true
 	}
 	price := def.Price
@@ -66,7 +66,7 @@ func (w *World) handleMountMasterNPC(s *net.Session, p *Player, m *Mob, clickOk 
 		return true
 	}
 	if p.Char.Gold < price {
-		s.Send(wire.MessagePanel("Not enough gold to revive the mount."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Not_Enough_Gold_Revive_Mount")))
 		return true
 	}
 

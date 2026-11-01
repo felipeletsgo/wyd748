@@ -583,7 +583,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			return
 		}
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("Position saved."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Position_Saved")))
 		log.Printf("[#%d] Star Gem saved (%d,%d) item=%d volatile=%d",
 			s.ID, p.X, p.Y, oldItem.Index, code)
 
@@ -592,7 +592,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		// do not consume. Otherwise use the fixed-teleport flow.
 		if p.Char.SavedX == 0 || p.Char.SavedY == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("No position saved."))
+			s.Send(wire.MessagePanel(w.msg("_WG_No_Position_Saved")))
 			return
 		}
 		oldItem := *item
@@ -635,9 +635,9 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			// and neither consume nor persist the unit.
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			if buffResult == volatileBuffAlreadyActive {
-				s.Send(wire.MessagePanel(buffAlreadyActiveMessage))
+				s.Send(wire.MessagePanel(w.tr(buffAlreadyActiveMessage)))
 			} else {
-				s.Send(wire.MessagePanel(buffRejectedMessage))
+				s.Send(wire.MessagePanel(w.tr(buffRejectedMessage)))
 				log.Printf("[#%d] buff item=%d rejected: invalid configuration or affect slots full",
 					s.ID, item.Index)
 			}
@@ -763,18 +763,18 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Drag the dye onto an item."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Drag_Dye_Onto_Item")))
 			return
 		}
 		if def, ok := w.items[dest.Index]; !ok || !isArmorSetPiece(def) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel(tintSetOnlyMessage))
+			s.Send(wire.MessagePanel(w.tr(tintSetOnlyMessage)))
 			return
 		}
 		oldDest, oldItem := *dest, *item
 		if !tintItem(dest, rule.Color) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Dye a refined item (one with a + glow)."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Dye_Refined_Item_One_Glow")))
 			return
 		}
 		if rule.Consume {
@@ -803,13 +803,13 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Drag it onto a colored item."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Drag_Onto_Colored_Item")))
 			return
 		}
 		oldDest, oldItem := *dest, *item
 		if !untintItem(dest) {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Use it on colored items."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Use_Colored_Items")))
 			return
 		}
 		if rule.Consume {
@@ -839,7 +839,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		dest, destType, destPos := w.destItemTarget(p, req)
 		if destType != placeEquip || destPos >= 16 || dest == nil || dest.Index == 0 {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel("Repliction can only be used on equipped defensive equipment."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Repliction_Can_Only_Used_Equipped_Defensive")))
 			return
 		}
 		def, exists := w.items[dest.Index]
@@ -852,7 +852,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 		bonus, err := w.applyRepliction(dest, def, item.Index)
 		if err != nil {
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-			s.Send(wire.MessagePanel(err.Error()))
+			s.Send(wire.MessagePanel(w.tr(err.Error())))
 			return
 		}
 
@@ -890,7 +890,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 			w.syncPlayerVitalsToObservers(p)
 		}
 
-		s.Send(wire.MessagePanel("The item gained a new bonus!"))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Gained_New_Bonus")))
 
 		log.Printf(
 			"[#%d] repliction item=%d target=%d adds=ef%d/v%d+ef%d/v%d volatile=%d",
@@ -1073,24 +1073,24 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	// is separate from data-driven quests to prevent reward reuse.
 	if rule.MortalOnly && !matchesEvolution(p.Char, "mortal") {
 		resend()
-		s.Send(wire.MessagePanel("This item is exclusive to Mortals."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Exclusive_Mortals")))
 		return
 	}
 	if rule.RequiredEvolution != "" && !matchesEvolution(p.Char, rule.RequiredEvolution) {
 		resend()
-		s.Send(wire.MessagePanel("This item cannot be used by this evolution."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Cannot_Used_By_Evolution")))
 		return
 	}
 	playerLevel := p.Char.Score.Level
 	if (rule.MinLevel != 0 && playerLevel < rule.MinLevel) ||
 		(rule.MaxLevelExclusive != 0 && playerLevel >= rule.MaxLevelExclusive) {
 		resend()
-		s.Send(wire.MessagePanel("This item is only available between levels 201 and 205."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Only_Available_Between_Levels")))
 		return
 	}
 	if rule.OnceQuestID != 0 && questCompleted(p.Char, int(rule.OnceQuestID)) {
 		resend()
-		s.Send(wire.MessagePanel("You have already completed this quest."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Have_Already_Completed_Quest")))
 		return
 	}
 	// A Cythera occupies the first armor slot but is not a piece of the mortal
@@ -1098,7 +1098,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	// equipped, rather than silently refining another slot.
 	if cythera := p.Char.Equip[1].Index; cythera >= 3500 && cythera <= 3507 {
 		resend()
-		s.Send(wire.MessagePanel("Cythera cannot be refined by this quest."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Cythera_Cannot_Refined_By_Quest")))
 		return
 	}
 
@@ -1120,7 +1120,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	}
 	if changed == 0 {
 		resend()
-		s.Send(wire.MessagePanel("No armor piece to refine."))
+		s.Send(wire.MessagePanel(w.msg("_WG_No_Armor_Piece_Refine")))
 		return
 	}
 	if rule.OnceQuestID != 0 {
@@ -1148,7 +1148,7 @@ func (w *World) refineSet(p *Player, s *net.Session, powder *model.Item, powderS
 	w.syncPlayerVitalsToObservers(p)
 	// Incremental UpdateEquip carries the refinement glow/mesh.
 	w.refreshAppearance(p)
-	s.Send(wire.MessagePanel("Set refined!"))
+	s.Send(wire.MessagePanel(w.msg("_WG_Set_Refined")))
 	log.Printf("[#%d] refine_set code=%d powder=%d pieces=%d level=+%d",
 		s.ID, code, oldPowder.Index, changed, level)
 }
@@ -1210,7 +1210,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	if dest == nil {
 		// Reject non-equipment destinations: refinement requires an equipped item.
 		resend()
-		s.Send(wire.MessagePanel("Equip the item to refine it."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Equip_Item_Refine")))
 		return
 	}
 	if dest.Index == 0 {
@@ -1227,7 +1227,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	if def.Pos == 0 || refinementLocked(def) || itemAbility(*dest, def, "EF_VOLATILE") != 0 ||
 		itemAbility(*dest, def, "EF_NOSANC") != 0 {
 		resend()
-		s.Send(wire.MessagePanel("That item cannot be refined."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Item_Cannot_Refined")))
 		return
 	}
 	sanc := itemSanc(*dest)
@@ -1238,7 +1238,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 	}
 	if !allowed {
 		resend()
-		s.Send(wire.MessagePanel("That item cannot be refined any further."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Cant_Refine_More")))
 		return
 	}
 
@@ -1262,7 +1262,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 			// powder: do not penalize the player for an invalid target.
 			*dest = oldDest
 			resend()
-			s.Send(wire.MessagePanel("That item cannot be refined."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Item_Cannot_Refined")))
 			return
 		}
 	} else if breaks {
@@ -1279,7 +1279,7 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 			s.ID, oldPowder.Index, oldPowder.UID, oldDest.Index, oldDest.UID, err)
 		resend()
 		s.Send(wire.SendItem(p.ID, byte(destType), byte(destPos), *dest))
-		s.Send(wire.MessagePanel("Save failed. Reconnect to reload the authoritative state."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Reconnect_Reload_Authoritative_State")))
 		w.poisonAccountsAfterPersistenceFailure([]*model.Account{p.Account}, "refinement", err)
 		return
 	}
@@ -1293,9 +1293,9 @@ func (w *World) refineItem(p *Player, s *net.Session, powder *model.Item, powder
 		w.refreshAppearance(p)
 	}
 	if !success && breaks {
-		s.Send(wire.MessagePanel("The refinement failed and the earring broke."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Refinement_Failed_Earring_Broke")))
 	} else {
-		s.Send(wire.MessagePanel(roll.message()))
+		s.Send(wire.MessagePanel(w.tr(roll.message())))
 	}
 	result := "FAILED"
 	if success {

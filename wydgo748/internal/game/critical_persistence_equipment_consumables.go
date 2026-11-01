@@ -2,7 +2,6 @@ package game
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"wydgo/internal/model"
@@ -166,7 +165,7 @@ func (w *World) queueEquipmentConsumable(p *Player, slot byte, req useItemReques
 				w.refreshAppearance(p)
 			}
 			if message != "" {
-				p.Session.Send(wire.MessagePanel(message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 			}
 			log.Printf("[#%d] equipment consumable action=%s source=%d target=%d/%d",
 				p.Session.ID, rule.Action, slot, targetType, targetPos)
@@ -190,11 +189,11 @@ func (w *World) admitEquipmentConsumable(p *Player, slot byte, req useItemReques
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			return
 		}
-		p.Session.Send(wire.MessagePanel(fmt.Sprintf("%s is unavailable. Please try again later.", rule.Action)))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_S_Unavailable_Please_Try_Again_Later", rule.Action)))
 		log.Printf("[#%d] %s admission rejected: %v", p.Session.ID, rule.Action, err)
 	}
 }

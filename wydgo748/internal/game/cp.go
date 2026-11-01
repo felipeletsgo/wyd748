@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -23,7 +22,7 @@ func (w *World) tickChaosRecovery(now time.Time) {
 			p.NextCPRecovery = now.Add(chaosRecoveryInterval)
 			continue
 		}
-		if now.Before(p.NextCPRecovery) {
+		if now.Before(p.NextCPRecovery) || p.backgroundPersistenceDeferred(now) {
 			continue
 		}
 		if p.Char.CP >= 0 {
@@ -69,13 +68,13 @@ func (w *World) submitChaosRecovery(p *Player, now time.Time) {
 	}
 	newCP := model.ClampCP(int(p.Char.CP) + 1)
 	proposal.Chars[p.CharSlot].CP = newCP
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposal}}, []*Player{p},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposal}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			p.Char.CP = newCP
 			p.NextCPRecovery = now.Add(chaosRecoveryInterval)
 			w.publishChaosRecovery(p)
 			return nil
-		})
+		}, nil, w.rejectBackgroundProposal(p))
 	if err != nil {
 		log.Printf("CP recovery admission rejected: %v", err)
 	}
@@ -85,7 +84,7 @@ func (w *World) publishChaosRecovery(p *Player) {
 	if p.Session != nil && !p.Session.IsClosed() {
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 		w.syncPlayerChaos(p)
-		p.Session.Send(wire.MessagePanel(fmt.Sprintf("Chaos Point increased to %d.", p.Char.CP)))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Chaos_Point_Increased_D", p.Char.CP)))
 	}
 }
 

@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -69,21 +68,21 @@ func (w *World) staffGoto(s *net.Session, p *Player, arg string) bool {
 	}
 	x, y, ok := parseGotoCoordinates(arg)
 	if !ok {
-		s.Send(wire.MessagePanel(fmt.Sprintf("Usage: /goto X Y (1..%d).", model.TerrainWidth-1)))
+		s.Send(wire.MessagePanel(w.msg("_WG_Usage_Goto_X_Y_D", model.TerrainWidth-1)))
 		return true
 	}
 	if p.PersistencePoisoned || w.criticalTradeReserved(p) || playerCurHP(p.Char) == 0 ||
 		p.Trade != nil || p.GhostShop != nil {
-		s.Send(wire.MessagePanel("/goto is unavailable while dead, trading or saving."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Goto_Unavailable_While_Dead_Trading_Or")))
 		return true
 	}
 	if w.gameplaySpaceForPlayer(p) != "" || w.itemInstanceForPlayer(p.ID) != nil ||
 		w.itemInstanceExitGraceForPlayer(p.ID) != nil {
-		s.Send(wire.MessagePanel("Leave the instance before using /goto."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Leave_Instance_Before_Using_Goto")))
 		return true
 	}
 	if _, fighting := w.cityFighters[p]; fighting {
-		s.Send(wire.MessagePanel("/goto is unavailable during a city war."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Goto_Unavailable_During_City_War")))
 		return true
 	}
 	wx, wy, ok := w.nearestWalkable(x, y, gotoSearchRadius)
@@ -91,19 +90,19 @@ func (w *World) staffGoto(s *net.Session, p *Player, arg string) bool {
 		wx, wy, ok = w.resolvePlayerTeleportDestination(p, wx, wy)
 	}
 	if !ok || w.positionOccupiedExcept(wx, wy, nil, p) {
-		s.Send(wire.MessagePanel(fmt.Sprintf("No free walkable tile near %d,%d.", x, y)))
+		s.Send(wire.MessagePanel(w.msg("_WG_No_Free_Walkable_Tile_Near_D", x, y)))
 		return true
 	}
 	log.Printf("[#%d] STAFF goto account=%q char=%q (%d,%d)->(%d,%d) requested=(%d,%d)",
 		s.ID, p.Account.Name, p.Char.Name, p.X, p.Y, wx, wy, x, y)
 	admitted := w.requestPlayerTeleport(p, wx, wy, func() {
 		w.finishAdminTeleport(p)
-		s.Send(wire.MessagePanel(fmt.Sprintf("Teleported to %d,%d.", p.X, p.Y)))
+		s.Send(wire.MessagePanel(w.msg("_WG_Teleported_D_D", p.X, p.Y)))
 	}, func() {
-		s.Send(wire.MessagePanel("Teleport could not be saved; try again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Teleport_Could_Not_Saved_Try_Again")))
 	})
 	if !admitted {
-		s.Send(wire.MessagePanel("Teleport is busy; try again."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Teleport_Busy_Try_Again")))
 	}
 	return true
 }

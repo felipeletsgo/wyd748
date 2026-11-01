@@ -1,6 +1,7 @@
 package game
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -143,10 +144,13 @@ func oxIndexedNotice(p *Player, row int16, param string) bool {
 		if !wire.Decrypt(packet) || len(packet) < 16 {
 			continue
 		}
-		h := wire.ParseHeader(packet)
-		if (h.Type == wire.OpMessageIndexed || h.Type == wire.OpMessageParameterized) &&
-			int16(binary.LittleEndian.Uint16(packet[14:16])) == row-1000 &&
-			strings.Contains(string(packet[16:]), param) {
+		// WYD-Go strdef rows arrive as catalog text in the channel language.
+		var params []string
+		if param != "" {
+			params = append(params, param)
+		}
+		want := (&World{}).projectMessage(row, params...)
+		if wire.ParseHeader(packet).Type == wire.OpMessagePanel && bytes.Equal(packet[12:107], want[12:107]) {
 			found = true
 		}
 	}

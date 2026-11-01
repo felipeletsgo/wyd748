@@ -178,7 +178,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 	}
 	if !celestialEvolution(p.Char.Evolution) {
 		resend()
-		s.Send(wire.MessagePanel("Only a Celestial can use an empty Spirit's Seal."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_Celestial_Can_Use_Empty_Spirits")))
 		return
 	}
 	if p.Char.UID == "" || p.Char.Score == nil {
@@ -188,14 +188,14 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 	for _, capsule := range p.Account.CelestialCapsules {
 		if capsule.SourceUID == p.Char.UID {
 			resend()
-			s.Send(wire.MessagePanel("This character is already sealed."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Character_Already_Sealed")))
 			return
 		}
 	}
 	id, ok := nextCelestialCapsuleID(p.Account)
 	if !ok {
 		resend()
-		s.Send(wire.MessagePanel("No capsule identifiers are available."))
+		s.Send(wire.MessagePanel(w.msg("_WG_No_Capsule_Identifiers_Available")))
 		return
 	}
 	seal, err := materializeItem(model.NewCelestialSeal("", id))
@@ -206,7 +206,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 	cargoSlot := firstCargoSlot(p.Account)
 	if cargoSlot < 0 {
 		resend()
-		s.Send(wire.MessagePanel("Your Cargo is full."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Cargo_Full")))
 		return
 	}
 
@@ -247,7 +247,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 		if !s.IsClosed() {
 			s.Send(selectionUpdatePacket(s, wire.OpCNFDeleteCharacter, uint16(s.ID), p))
 			s.Send(characterListPacket(s, p))
-			s.Send(wire.MessagePanel("Celestial character sealed successfully."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Character_Sealed_Successfully")))
 		}
 		log.Printf("[#%d] Celestial %q sealed id=%d cargo=%d", s.ID, oldName, id, cargoSlot)
 	}
@@ -258,7 +258,7 @@ func (w *World) useCelestialCapsule(s *net.Session, p *Player, item *model.Item,
 			reject: func() {
 				if !s.IsClosed() {
 					resend()
-					s.Send(wire.MessagePanel("The character could not be sealed."))
+					s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Sealed")))
 				}
 			},
 		})
@@ -350,31 +350,31 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 		return
 	}
 	if req.sourceType == placeStorage && !w.nearCargoNPC(p) {
-		s.Send(wire.MessagePanel("Open your Cargo near a Cargo Keeper first."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Open_Cargo_Near_Cargo_Keeper_First")))
 		return
 	}
 	source := playerSlotOf(p, byte(req.sourceType), byte(req.sourcePos))
 	if source == nil || source.Index != model.CelestialSealItem {
-		s.Send(wire.MessagePanel("This is not a Spirit's Seal."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Not_Spirits_Seal")))
 		return
 	}
 	id, ok := model.CelestialSealID(*source)
 	if !ok || source.UID == "" {
-		s.Send(wire.MessagePanel("The Spirit's Seal is empty or invalid."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Spirits_Seal_Empty_Or_Invalid")))
 		return
 	}
 	capsule, capsuleIndex := w.capsuleByID(p.Account, id)
 	if capsule == nil || capsule.ItemUID != source.UID {
-		s.Send(wire.MessagePanel("The Spirit's Seal data is unavailable."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Spirits_Seal_Data_Unavailable")))
 		return
 	}
 	if !validCapsuleCharacterName(req.name) {
-		s.Send(wire.MessagePanel("Invalid character name."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Invalid_Character_Name")))
 		return
 	}
 	taken, err := w.characterNameTaken(req.name)
 	if err != nil || taken {
-		s.Send(wire.MessagePanel("That character name is already in use."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Name_Already_Use")))
 		return
 	}
 	newSlot := -1
@@ -385,7 +385,7 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 		}
 	}
 	if newSlot < 0 {
-		s.Send(wire.MessagePanel("There is no empty character slot."))
+		s.Send(wire.MessagePanel(w.msg("_NN_NoEmptySlot")))
 		return
 	}
 	newUID, err := model.NewCharacterUID()
@@ -442,7 +442,7 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 			if !s.IsClosed() {
 				s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
 				s.Send(characterListPacket(s, p))
-				s.Send(wire.MessagePanel("Celestial character extracted successfully."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Character_Extracted_Successfully")))
 			}
 			log.Printf("[#%d] Celestial capsule id=%d extracted as %q slot=%d", s.ID, id, req.name, newSlot)
 		}, criticalLiveMutationOptions{
@@ -450,14 +450,14 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 			reject: func() {
 				releaseName()
 				if !s.IsClosed() {
-					s.Send(wire.MessagePanel("The character could not be extracted."))
+					s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Extracted")))
 				}
 			},
 		})
 		if err != nil {
 			releaseName()
 			log.Printf("[#%d] Celestial extraction admission rejected: %v", s.ID, err)
-			s.Send(wire.MessagePanel("The character could not be extracted."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Extracted")))
 		}
 		return
 	}
@@ -493,7 +493,7 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 		p.Account.Cargo = oldCargo
 		p.Account.CelestialCapsules = oldCapsules
 		p.Char = &p.Account.Chars[p.CharSlot]
-		s.Send(wire.MessagePanel("The character could not be extracted."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Could_Not_Extracted")))
 		return
 	}
 	if w.charNames != nil {
@@ -503,6 +503,6 @@ func (w *World) onPutoutSeal(s *net.Session, pkt []byte) {
 	// Extraction follows the same source/stock selection boundary as creation.
 	s.Send(selectionUpdatePacket(s, wire.OpCNFNewCharacter, uint16(s.ID), p))
 	s.Send(characterListPacket(s, p))
-	s.Send(wire.MessagePanel("Celestial character extracted successfully."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Character_Extracted_Successfully")))
 	log.Printf("[#%d] Celestial capsule id=%d extracted as %q slot=%d", s.ID, id, req.name, newSlot)
 }

@@ -109,7 +109,14 @@ func accountSnapshotKeys(snapshots []*accountSnapshot) []string {
 	return keys
 }
 
+// fenceAccountSnapshots orders a new account write and drops the unchanged
+// marks of its accounts (postgres_unchanged_writes.go).
 func (s *PostgresStore) fenceAccountSnapshots(seq uint64, snapshots []*accountSnapshot) {
+	s.forgetUnchanged(accountSnapshotKeys(snapshots), nil)
+	s.orderAccountSnapshots(seq, snapshots)
+}
+
+func (s *PostgresStore) orderAccountSnapshots(seq uint64, snapshots []*accountSnapshot) {
 	if seq == 0 || len(snapshots) == 0 {
 		return
 	}
@@ -126,6 +133,11 @@ func (s *PostgresStore) fenceAccountSnapshots(seq uint64, snapshots []*accountSn
 }
 
 func (s *PostgresStore) fenceCharStates(seq uint64, uids ...string) {
+	s.forgetUnchanged(nil, uids)
+	s.orderCharStates(seq, uids...)
+}
+
+func (s *PostgresStore) orderCharStates(seq uint64, uids ...string) {
 	if seq == 0 || len(uids) == 0 {
 		return
 	}

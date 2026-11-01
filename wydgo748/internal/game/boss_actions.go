@@ -237,7 +237,7 @@ func (w *World) announceToMobView(m *Mob, message string) {
 	if message == "" {
 		return
 	}
-	w.sendToMobView(m, func() []byte { return wire.MessagePanel(message) })
+	w.sendToMobView(m, func() []byte { return wire.MessagePanel(w.tr(message)) })
 }
 
 // npcDefByName accepts catalog names and NPCGener underscore names.

@@ -99,7 +99,7 @@ func (w *World) queueCriticalAccountWrite(p *Player, proposed *model.Account, wr
 				hooks.reject()
 			}
 			if !p.Session.IsClosed() {
-				p.Session.Send(wire.MessagePanel(failure))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, failure)))
 				w.resendInventory(p)
 			}
 			log.Printf("[#%d] %s persistence rejected: %v", p.Session.ID, operation, result.err)

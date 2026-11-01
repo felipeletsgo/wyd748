@@ -63,7 +63,7 @@ func (w *World) queueGuildCreate(p *Player, name string) error {
 	now := w.now().UTC()
 	proposedGuilds.Guilds = append(proposedGuilds.Guilds, model.Guild{
 		Citizenship: p.Char.Citizenship,
-		ID: id, Name: name, Kingdom: characterKingdom(p.Char), CreatedAt: now,
+		ID:          id, Name: name, Kingdom: characterKingdom(p.Char), CreatedAt: now,
 		Members: []model.GuildMember{{Character: p.Char.Name, Account: p.Account.Name,
 			Rank: model.GuildRankLeader, JoinedAt: now}},
 	})
@@ -89,7 +89,7 @@ func (w *World) queueGuildCreate(p *Player, name string) error {
 			return nil
 		}, func(criticalPersistenceResult) error {
 			if !p.Session.IsClosed() {
-				p.Session.Send(wire.MessagePanel(fmt.Sprintf("Guild %q created.", name)))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Guild_Q_Created", name)))
 			}
 			// Visibility publication follows commit even if the initiating transport
 			// closed; Session.Send suppresses packets to closed recipients.
@@ -101,7 +101,7 @@ func (w *World) queueGuildCreate(p *Player, name string) error {
 				return err
 			}
 			if !p.Session.IsClosed() {
-				p.Session.Send(wire.MessagePanel("Save failed. The guild was not created."))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Save_Failed_Guild_Was_Not_Created")))
 			}
 			log.Printf("[#%d] ERROR /create persistence %q: %v", p.Session.ID, name, result.err)
 			return nil
@@ -222,10 +222,10 @@ func (w *World) queueGuildJoin(actor, target *Player, guild *model.Guild, cost, 
 			return nil
 		}, func(criticalPersistenceResult) error {
 			w.publishGuildIdentity(target)
-			target.Session.Send(wire.MessagePanel(fmt.Sprintf("You joined the guild %s.", name)))
+			target.Session.Send(wire.MessagePanel(w.msgFor(target, "_WG_Joined_Guild_S", name)))
 			if !acceptance {
 				actor.Session.Send(wire.UpdateEtc(actor.ID, *actor.Char))
-				actor.Session.Send(wire.MessagePanel(fmt.Sprintf("%s joined the guild.", target.Char.Name)))
+				actor.Session.Send(wire.MessagePanel(w.msgFor(actor, "_WG_S_Joined_Guild", target.Char.Name)))
 			}
 			w.announceToGuild(id, fmt.Sprintf("%s joined the guild.", target.Char.Name), target)
 			log.Printf("[#%d] GUILD join guild=%d character=%q acceptance=%t type=%d cost=%d",
@@ -239,7 +239,7 @@ func (w *World) queueGuildJoin(actor, target *Player, guild *model.Guild, cost, 
 			if acceptance {
 				message = "Save failed. You did not join the guild."
 			}
-			actor.Session.Send(wire.MessagePanel(message))
+			actor.Session.Send(wire.MessagePanel(w.trFor(actor, message)))
 			log.Printf("[#%d] ERROR guild join persistence: %v", actor.Session.ID, result.err)
 			return nil
 		})

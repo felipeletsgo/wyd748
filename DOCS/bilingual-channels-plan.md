@@ -420,6 +420,10 @@ for both channels before localization or public rollout acceptance.
 
 ## Phase 3: localize authoritative server text
 
+Status (2026-10-31): server messages are keyed in `en.txt`/`pt.txt` and follow
+the channel language. See [server messages](server/server-messages.md) for the
+contract and the remaining content-data scope.
+
 - Add keyed `pt-BR` and `en` catalogs for panels, errors, notices, NPC dialogue,
   quests and time-sensitive messages. Resolve messages using the receiving
   channel's configured locale, including pre-login errors.

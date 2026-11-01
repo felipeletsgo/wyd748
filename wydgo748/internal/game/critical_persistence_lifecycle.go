@@ -50,9 +50,9 @@ func (w *World) submitCriticalWritePhased(write criticalWrite, participants []*P
 	return w.submitCriticalWriteWithRejection(write, participants, disconnect, apply, afterAck, nil)
 }
 
-// Shared gameplay objects need global containment if settlement fails, even
-// when the database transaction only writes accounts. Record this on the actor,
-// before any completion can be delivered; workers receive no live-object data.
+// Shared gameplay objects must retain their reservations if settlement fails,
+// even when the transaction only writes accounts. Never recover these writes
+// by discarding account sessions alone.
 func (w *World) submitCriticalSharedWriteWithRejection(write criticalWrite, participants []*Player, apply, afterAck, reject func(criticalPersistenceResult) error) (uint64, error) {
 	id, err := w.submitCriticalWriteWithRejection(write, participants, false, apply, afterAck, reject)
 	if err == nil {

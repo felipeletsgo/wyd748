@@ -63,17 +63,17 @@ func (w *World) handleCarbMasterNPC(s *net.Session, p *Player, m *Mob) bool {
 		return true
 	}
 	if strings.TrimSpace(p.Char.Evolution) != "" {
-		s.Send(wire.MessagePanel("Only Mortal characters can receive this blessing."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_Mortal_Characters_Can_Receive_Blessing")))
 		return true
 	}
 	if playerLevel(p.Char) >= carbMasterLevelLimit {
-		s.Send(wire.MessagePanel("Your level is too high for the beginner blessing."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Level_Too_High_Beginner_Blessing")))
 		return true
 	}
 
 	images := criticalPreimages(p)
 	if !w.applyCarbMasterBuffs(p.Char) {
-		s.Send(wire.MessagePanel("The beginner blessing could not be applied."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Beginner_Blessing_Could_Not_Applied")))
 		return true
 	}
 	w.recalcPlayer(p.Char)
@@ -82,7 +82,7 @@ func (w *World) handleCarbMasterNPC(s *net.Session, p *Player, m *Mob) bool {
 		w.syncPlayerVitals(p)
 		w.updatePartyMember(p)
 		if !s.IsClosed() {
-			s.Send(wire.MessagePanel("The beginner blessing has been applied."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Beginner_Blessing_Has_Been_Applied")))
 		}
 		log.Printf("[#%d] %s applied beginner buffs to %q", s.ID, m.Def.Name, p.Char.Name)
 	})

@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/binary"
-	"fmt"
 	"log"
 	"time"
 
@@ -120,24 +119,24 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 	}
 	portal, ok := teleportAt(w.teleports, p.X, p.Y)
 	if !ok {
-		s.Send(wire.MessagePanel("Teleport unavailable from this position."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Teleport_Unavailable_From_Position")))
 		log.Printf("[#%d] teleport without a route @(%d,%d)", s.ID, p.X, p.Y)
 		return
 	}
 	if isKefraGate(portal) && !w.kefraDefeated() {
-		s.Send(wire.MessagePanel(kefraGateClosed))
+		s.Send(wire.MessagePanel(w.tr(kefraGateClosed)))
 		return
 	}
 	if isKefraHallEntrance(portal) && counterBalance(p, kefraTicketCounter) == 0 {
-		s.Send(wire.MessagePanel(kefraEntriesRequired))
+		s.Send(wire.MessagePanel(w.tr(kefraEntriesRequired)))
 		return
 	}
 	if !hiddenValleyDestinationAllowed(p, portal.DestX, portal.DestY, w.now()) {
-		s.Send(wire.MessagePanel("Activate a Hidden Ruins map before entering Hidden Valley."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Activate_Hidden_Ruins_Map_Before_Entering")))
 		return
 	}
 	if p.Char.Gold < portal.Price {
-		s.Send(wire.MessagePanel("Not enough gold for the teleport."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Not_Enough_Gold_Teleport")))
 		return
 	}
 	if isKefraHallEntrance(portal) {
@@ -154,11 +153,11 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 		if err := w.queuePlayerTeleport(p, proposed, portal.DestX, portal.DestY, "paid portal", func() {
 			s.Send(wire.UpdateEtc(p.ID, *p.Char))
 			if portal.Name != "" {
-				s.Send(wire.MessagePanel(portal.Name))
+				s.Send(wire.MessagePanel(w.tr(portal.Name)))
 			}
 			log.Printf("[#%d] TELEPORT %q @(%d,%d)->(%d,%d) gold=-%d", s.ID, portal.Name, oldX, oldY, p.X, p.Y, portal.Price)
 		}, nil, nil); err != nil {
-			s.Send(wire.MessagePanel("The teleport could not be completed."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Teleport_Could_Not_Completed")))
 		}
 		return
 	}
@@ -168,12 +167,12 @@ func (w *World) onReqTeleport(s *net.Session, pkt []byte) {
 	w.cancelTrade(p, "teleport")
 	if !w.teleportPlayer(p, portal.DestX, portal.DestY) {
 		p.Char.Gold = oldGold
-		s.Send(wire.MessagePanel("The teleport could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Teleport_Could_Not_Completed")))
 		return
 	}
 	s.Send(wire.UpdateEtc(p.ID, *p.Char))
 	if portal.Name != "" {
-		s.Send(wire.MessagePanel(portal.Name))
+		s.Send(wire.MessagePanel(w.tr(portal.Name)))
 	}
 	log.Printf("[#%d] TELEPORT %q @(%d,%d)->(%d,%d) gold=-%d",
 		s.ID, portal.Name, oldX, oldY, p.X, p.Y, portal.Price)
@@ -201,7 +200,7 @@ func (w *World) onPKMode(s *net.Session, pkt []byte) {
 	if enabled {
 		message = "PK mode enabled."
 	}
-	s.Send(wire.MessagePanel(message))
+	s.Send(wire.MessagePanel(w.tr(message)))
 	log.Printf("[#%d] PK mode=%t", s.ID, enabled)
 }
 
@@ -216,7 +215,7 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 	contextOwner, contextUntil := p.CityWarGuild, p.CityWarUntil
 	clearCityWarContext(p)
 	fail := func(message string) {
-		s.Send(wire.MessagePanel(message))
+		s.Send(wire.MessagePanel(w.tr(message)))
 	}
 	if len(pkt) != 16 && len(pkt) != 20 {
 		fail("Invalid city-war request.")
@@ -293,5 +292,5 @@ func (w *World) onGuildChallenge(s *net.Session, pkt []byte) {
 	}
 	// Native confirmation carries no amount. Never reinterpret its option as a
 	// bid or silently spend the guild's balance. The command supplies the total.
-	s.Send(wire.MessagePanel(fmt.Sprintf("Bid with /citywar %d <total guild fame>. No gold or entry fee.", city+1)))
+	s.Send(wire.MessagePanel(w.msg("_WG_Bid_Citywar_D_Total_Guild_Fame", city+1)))
 }

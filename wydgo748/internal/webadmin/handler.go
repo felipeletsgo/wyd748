@@ -46,6 +46,7 @@ type Config struct {
 	Quiz                  control.QuizSource
 	Bosses                control.BossesSource
 	PvPDoor               control.PvPDoorSource
+	PersistenceRecovery   control.PersistenceRecoverySource
 	OXEvent               control.OXEventSource
 	Colosseum             control.ColosseumSource
 	Kick                  control.KickSource
@@ -159,6 +160,8 @@ func New(cfg Config) (*Handler, error) {
 	h.mux.HandleFunc("POST /api/v1/staff/bosses", h.bosses)
 	h.mux.HandleFunc("GET /api/v1/staff/world/pvp-door", h.pvpDoor)
 	h.mux.HandleFunc("POST /api/v1/staff/world/pvp-door", h.pvpDoor)
+	h.mux.HandleFunc("GET /api/v1/staff/persistence/quarantine", h.persistenceRecovery)
+	h.mux.HandleFunc("POST /api/v1/staff/persistence/quarantine", h.persistenceRecovery)
 	h.mux.HandleFunc("GET /api/v1/staff/events/ox", h.oxEvent)
 	h.mux.HandleFunc("POST /api/v1/staff/events/ox", h.oxEvent)
 	h.mux.HandleFunc("GET /api/v1/staff/events/colosseum", h.colosseum)

@@ -303,7 +303,7 @@ func (w *World) publishTimedItemExpiry(p *Player, removals []timedItemRemoval) {
 				p.Session.Send(wire.SendItem(p.ID, removal.place, removal.slot, model.Item{}))
 			}
 		}
-		p.Session.Send(wire.MessagePanel("One or more timed items have expired."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_One_Or_More_Timed_Items_Have")))
 	}
 	if !activeEquipChanged {
 		return

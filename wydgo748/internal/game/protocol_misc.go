@@ -43,7 +43,7 @@ func (w *World) onPlayerChallenge(s *net.Session, pkt []byte) {
 	if target == nil || target == challenger || !target.InWorld || target.Char == nil ||
 		!w.playersShareGameplaySpace(challenger, target) || !challenger.hasVisible(target.ID) ||
 		!inView(challenger.X, challenger.Y, target.X, target.Y) {
-		s.Send(wire.MessagePanel("The selected player is no longer nearby."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Selected_Player_No_Longer_Nearby")))
 		return
 	}
 	target.ChallengeFrom = challenger.ID
@@ -59,7 +59,7 @@ func (w *World) acceptPlayerChallenge(s *net.Session, target *Player, challenger
 		target.ChallengeFrom = 0
 		target.ChallengeMode = 0
 		target.ChallengeUntil = time.Time{}
-		s.Send(wire.MessagePanel("The player challenge expired."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Challenge_Expired")))
 		return
 	}
 	challenger := w.playerByID(challengerID)
@@ -72,7 +72,7 @@ func (w *World) acceptPlayerChallenge(s *net.Session, target *Player, challenger
 	target.ChallengeMode = 0
 	target.ChallengeUntil = time.Time{}
 	if !valid {
-		s.Send(wire.MessagePanel("The player challenge is no longer valid."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Player_Challenge_No_Longer_Valid")))
 		return
 	}
 	message := "Player challenge accepted."
@@ -83,6 +83,6 @@ func (w *World) acceptPlayerChallenge(s *net.Session, target *Player, challenger
 	} else if mode == 3 {
 		message = "All vs all challenge accepted."
 	}
-	challenger.Session.Send(wire.MessagePanel(message))
-	target.Session.Send(wire.MessagePanel(message))
+	challenger.Session.Send(wire.MessagePanel(w.trFor(challenger, message)))
+	target.Session.Send(wire.MessagePanel(w.trFor(target, message)))
 }

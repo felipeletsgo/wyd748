@@ -2,7 +2,6 @@ package game
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"wydgo/internal/model"
@@ -89,7 +88,7 @@ func (w *World) queueItemExperience(p *Player, slot byte, rule model.VolatileRul
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
 			resyncUsedItem(p.Session, p, slot)
 			if rule.Action == "quest_reward" {
-				p.Session.Send(wire.MessagePanel(fmt.Sprintf("Reward received: +%d EXP and +%d gold.", applied, goldApplied)))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Reward_Received_D_EXP_D_Gold", applied, goldApplied)))
 			}
 			log.Printf("[#%d] %s item=%d volatile=%d experience=+%d gold=+%d levels=+%d",
 				p.Session.ID, rule.Action, index, code, applied, goldApplied, levels)
@@ -106,11 +105,11 @@ func (w *World) admitItemExperience(p *Player, slot byte, rule model.VolatileRul
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			return
 		}
-		p.Session.Send(wire.MessagePanel("Reward use is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Reward_Use_Unavailable_Please_Try_Again")))
 		log.Printf("[#%d] %s admission rejected: %v", p.Session.ID, rule.Action, err)
 	}
 }

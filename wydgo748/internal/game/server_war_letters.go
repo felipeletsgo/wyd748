@@ -54,7 +54,7 @@ func (w *World) onServerWarLetterUnavailable(s *net.Session, pkt []byte) {
 		w.recordSecurityViolation(s, header.Type, "war letter not in inventory")
 		return
 	}
-	s.Send(wire.MessagePanel(serverWarUnavailableMessage))
+	s.Send(wire.MessagePanel(w.tr(serverWarUnavailableMessage)))
 }
 
 func carriesItem(ch *model.Char, index uint16) bool {

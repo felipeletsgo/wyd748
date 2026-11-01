@@ -45,7 +45,7 @@ func (w *World) startBigCubeQuestion(inst *ItemInstance, now time.Time) bool {
 		if member := w.playersByID[id]; member != nil && member.InWorld && member.Session != nil && !member.Session.IsClosed() {
 			member.Session.Send(wire.StandardParm(
 				wire.OpInstanceTime, instanceSignalID, uint32(instanceQuestionDuration/time.Second)))
-			member.Session.Send(instanceQuestionPacket(member.ID, quiz,
+			member.Session.Send(w.instanceQuestionPacket(member.ID, quiz,
 				uint32(instanceQuestionDuration/time.Millisecond)))
 		}
 	}
@@ -184,7 +184,7 @@ func (w *World) publishBigCubeAnswer(inst *ItemInstance, results []bigCubeResult
 			w.sendToPlayerView(p, func() []byte { return wire.ActionStop(p.ID, p.X, p.Y) })
 			p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, 0))
 			p.Session.Send(wire.StandardParm(wire.OpInstanceMobs, instanceSignalID, 0))
-			p.Session.Send(wire.MessageIndexed(msgBigCubeWrong - 1000))
+			p.Session.Send(w.projectMessage(msgBigCubeWrong))
 			continue
 		}
 		w.syncPlayerVitals(p)
@@ -194,7 +194,7 @@ func (w *World) publishBigCubeAnswer(inst *ItemInstance, results []bigCubeResult
 			w.syncPlayerChaos(p)
 		}
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-		p.Session.Send(quizCorrectPacket(current.exp))
+		p.Session.Send(w.quizCorrectPacket(current.exp))
 	}
 	if len(survivors) == 0 {
 		return true
@@ -210,10 +210,4 @@ func (w *World) publishBigCubeAnswer(inst *ItemInstance, results []bigCubeResult
 		return !inst.ExitAt.IsZero()
 	}
 	return true
-}
-
-// instanceQuestionPacket sends the localized strdef row when the quiz names
-// one; the client falls back to the English question text.
-func instanceQuestionPacket(id uint16, quiz *model.VolatileInstanceQuiz, durationMS uint32) []byte {
-	return wire.InstanceQuestionText(id, quiz.TextIndex, strings.ReplaceAll(quiz.Question, "_", " "), durationMS)
 }

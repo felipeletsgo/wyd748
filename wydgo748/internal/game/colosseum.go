@@ -235,7 +235,7 @@ func (w *World) startColosseum(tier int, start time.Time) {
 		}
 	}
 	log.Printf("colosseum %c: started", "NMA"[tier])
-	w.colosseumNotice(fmt.Sprintf("Colosseum %c has started. Entrance gates are now closed.", "NMA"[tier]))
+	w.colosseumNotice(w.msg("_WG_Colosseum_Started", "NMA"[tier]))
 	w.syncColosseumCountdowns(w.now())
 }
 
@@ -250,9 +250,9 @@ func (w *World) spawnColosseumWave(tier, wave int) {
 			w.spawnGroup(g)
 		}
 	}
-	message := fmt.Sprintf("Colosseum %c: wave %d/5 has begun.", "NMA"[tier], wave+1)
+	message := w.msg("_WG_Colosseum_Wave_Begun", "NMA"[tier], wave+1)
 	if wave == 0 {
-		w.colosseumNotice(fmt.Sprintf("Colosseum %c: combat has begun! Wave 1/5 is now active.", "NMA"[tier]))
+		w.colosseumNotice(w.msg("_WG_Colosseum_Combat_Begun", "NMA"[tier]))
 	} else {
 		for _, p := range w.colosseumPlayers(colosseumArea) {
 			if w.gameplaySpaceForPlayer(p) == "" && p.Session != nil && !p.Session.IsClosed() {
@@ -321,7 +321,7 @@ func (w *World) chargeColosseumElixir(p *Player) {
 		}
 	}
 	if p.Session != nil {
-		p.Session.Send(wire.MessagePanel("You need an Elixir Notice to enter the Colosseum."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_NN_Need_Elixer")))
 	}
 	if w.recallPlayer(p, "colosseum elixir") && w.criticalWrites == nil {
 		delete(c.unpaid, p)

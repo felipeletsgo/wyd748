@@ -48,6 +48,7 @@ wydgo748/data/
 | | `droprate.json`, `repliction.json`, `mounts.json`, `character_templates.json` | key of the same name |
 | | `volatiles.json`, `instances.json` | `volatiles`, `instances` |
 | | `boss/*.lua` (one encounter per file) | `boss` |
+| | `language/en.txt`, `language/pt.txt` ([server messages](server-messages.md)) | `language_dir` |
 
 Generator references inside `content/instances.json` are file names relative to
 `instance_generators` (for example `"CartaA.txt"`). The Colosseum loads

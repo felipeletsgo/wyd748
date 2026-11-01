@@ -118,10 +118,22 @@ func TestCriticalOffhandPromotionSettlement(t *testing.T) {
 				if p.Session.QueuedPacketsForTest() != 0 {
 					t.Fatal("promotion published an extra equipment response")
 				}
+			} else if outcome == "rejection" {
+				assertCriticalCargoUnchanged(t, p, before, fallback)
+				// W1: a certified rejection keeps the session and releases only
+				// this operation; both slots are resent from live state.
+				if w.shuttingDown || p.PersistencePoisoned || p.Session.IsClosed() || w.criticalPlayerReserved(p) || len(queue.pending) != 0 {
+					t.Fatal("rejected promotion disconnected the player or kept its reservation")
+				}
+				assertCriticalPickupPacket(t, p, wire.SendItem(p.ID, placeEquip, 6, p.Char.Equip[6]))
+				assertCriticalPickupPacket(t, p, wire.SendItem(p.ID, placeInv, 0, p.Char.Inv[0]))
+				assertCriticalPickupPacket(t, p, wire.MessagePanel(w.trFor(p, "Save failed. The inventory was not changed.")))
+				if p.Session.QueuedPacketsForTest() != 0 {
+					t.Fatal("rejected promotion published an equipment success")
+				}
 			} else {
 				assertCriticalCargoUnchanged(t, p, before, fallback)
-				// Equipment writes retain the existing conservative containment
-				// policy for every failed acknowledgement, including rejections.
+				// An unknown outcome keeps the conservative containment policy.
 				if !w.shuttingDown || !p.PersistencePoisoned || !p.Session.IsClosed() || p.Session.QueuedPacketsForTest() != 0 {
 					t.Fatal("failed promotion was not contained without publication")
 				}

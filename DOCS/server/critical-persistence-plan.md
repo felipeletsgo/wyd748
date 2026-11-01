@@ -34,10 +34,52 @@ Operational containment and configuration are documented in
 
 | Gap | Current behavior | Required evidence before closure |
 | --- | --- | --- |
-| Durable operation identity and outcome reconciliation | Completion IDs and fences are process-local; an uncertain write is not replayed or released | A durable identity/outcome protocol that distinguishes committed, proven rejected and unresolved work; prove repeated reconciliation cannot duplicate rewards or overwrite a later commit |
-| Restart-safe containment | Unknown account outcomes retain fences indefinitely in the running process; shared outcomes stop the World. No persisted quarantine/recovery protocol exists | Crash/restart tests with unresolved and late commits, including account, UID and shared-object ownership; prevent new mutations until reconciliation is proven |
-| Verified account unlock and bounded recovery | A confirmed commit whose account-local continuation fails is recovered automatically ([October 12](#committed-continuation-recovery-2026-10-12)). Truly unknown outcomes still have no supported unlock command or timer, retain queue capacity and can eventually exhaust admission | An identity-checked, auditable recovery/unlock workflow, tested for concurrent login, repetition and saturation; never reclaim capacity merely because time passed |
+| Durable operation identity and outcome reconciliation | Closed in source (W4, 2026-11-01): every attempt records its top-level XID; PostgreSQL's commit status for that XID is the durable outcome record | VPS COMMIT-loss acceptance; see [W4 durable-record decision](#w4-durable-record-decision-2026-11-01) |
+| Restart-safe containment | Closed in source (W4): a new process ends every backend of the previous instance before admission, so each earlier transaction is final and all participant state reloads from the database | Crash/restart acceptance on the VPS candidate |
+| Verified account unlock and bounded recovery | Account-only quarantines release on a final XID status, periodically or by an audited staff check (`game.persistence.recovery`); nothing releases on time alone. Shared-object quarantines stay until restart | VPS observation; shared-object runtime recovery remains restart-based |
 | Real transport failure acceptance | The late-commit regression uses an injected adapter outcome followed by a real PostgreSQL write | Reproducible database connection-loss/COMMIT fault injection and crash recovery, checking durable state, publication, fences and terminal-save suppression |
+
+The [October 31 disconnect and performance audit](../bug-register.md#disconnect-and-performance-audit--2026-10-31)
+adds confirmed autosave rejection (D1), expired rollback context (D2), autosave
+latency (P2) and synchronous admission-read (P3) work. That backlog distinguishes
+reproduced failures, static findings and unverified performance claims.
+
+W1 changes the certified transaction contract (source only, 2026-10-31). COMMIT
+is the only durable boundary. Callbacks use only their transaction, so any
+failure before COMMIT certifies rejection, including a failed rollback; pgx
+then discards the connection. Rollback uses a separate one-second context.
+A COMMIT error that pgconn marks as unsent is a rejection. Any other COMMIT
+error stays unknown and keeps its precedence over nested rejections. Earlier
+records below that call a failed rollback unknown describe the previous policy.
+W4 then resolves an unknown COMMIT on the worker with `pg_xact_status` for the
+attempt's own `pg_current_xact_id()`. Only `committed` and `aborted` settle it;
+anything else keeps the unknown-outcome containment. Durable intent records
+for a process crash during that window are not implemented.
+
+### W4 durable-record decision (2026-11-01)
+
+Each critical write is one atomic transaction of complete participant state.
+PostgreSQL's commit log already stores the terminal result of that exact
+transaction, and `pg_xact_status` reads it by the attempt's XID. A separate
+operation table would add one row per potion, purchase or autosave without
+resolving any case the XID cannot. After a crash the startup fence ends the
+old instance's backends before admission: every earlier transaction is then
+committed or aborted, and no in-memory participant survives to recover.
+Therefore W4 items 1–4 use the XID, the startup fence and full reload instead
+of a durable intent table. Revisit this only if a write ever spans more than
+one transaction.
+
+Background autosave ordering (W7, 2026-11-01): an autosave holds no gameplay
+input. A later write of the same participant parks in the coordinator and is
+sent to a worker only after the snapshot is acknowledged. If the snapshot
+fails, each parked write is refused as a certified rejection that never
+reached the store (`store.RejectUnsentWrite`). A never-sent write that ends in
+containment is released at once; another unresolved quarantine of the same
+participant keeps its fence.
+
+The [server correction plan](server-correction-plan.md) sequences these fixes,
+durable recovery, network pressure and the remaining gameplay acceptance work.
+Keep this document as the persistence design source and the bug register as the status queue.
 
 ### Committed continuation recovery (2026-10-12)
 
@@ -660,10 +702,10 @@ sidecars without the atomic form must reject before either write. Never call
 the legacy asynchronous queues or synchronous fallback from this branch.
 
 Autosave has no economic success response and installs no old snapshot into
-live memory on completion. Bind the retained account/session/character identity
-and keep its account and UID fences through World acknowledgement. Existing
-gameplay guards pause affected participants while unrelated commands and ticks
-continue. Disconnect final saves wait behind an accepted autosave. Unknown
+live memory on completion. It keeps its account and UID fences through World
+acknowledgement for persistence and admission boundaries only. Since W7
+(2026-11-01) it holds no gameplay input and its completion does not require the
+bound identity to remain current; later writes park behind it. Disconnect final saves wait behind an accepted autosave. Unknown
 outcomes retain ownership and enter maintenance, without a stale terminal save.
 
 Keep the existing bucket cadence. Busy/full admission skips that account until

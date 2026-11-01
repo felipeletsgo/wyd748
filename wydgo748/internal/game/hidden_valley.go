@@ -37,7 +37,7 @@ func (w *World) tickHiddenValleyAccess(now time.Time) {
 			continue
 		}
 		if w.recallPlayer(p, "Hidden Ruins access expired") {
-			p.Session.Send(wire.MessagePanel("Hidden Ruins access expired. Returning to your home city."))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Hidden_Ruins_Access_Expired_Returning_Home")))
 		}
 	}
 }

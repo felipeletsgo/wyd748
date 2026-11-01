@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -52,7 +51,7 @@ func (w *World) useTerritoryPass(s *net.Session, p *Player, item *model.Item, sl
 	}
 	if !matchesEvolution(p.Char, rule.RequiredEvolution) {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("This pass does not belong to your evolution."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Pass_Does_Not_Belong_Evolution")))
 		return
 	}
 	oldItem := *item
@@ -114,7 +113,7 @@ func (w *World) useEquippedRefine(s *net.Session, p *Player, item *model.Item, s
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	s.Send(playerScorePacket(p))
 	w.refreshAppearance(p)
-	s.Send(wire.MessagePanel("Refine successful!"))
+	s.Send(wire.MessagePanel(w.msg("_NN_Refine_Success")))
 }
 
 func (w *World) useNightmareTicket(s *net.Session, p *Player, item *model.Item, slot byte,
@@ -128,13 +127,13 @@ func (w *World) useNightmareTicket(s *net.Session, p *Player, item *model.Item, 
 	if p.Char.LastNightmareUnix > 0 && now.Before(readyAt) {
 		remaining := readyAt.Sub(now).Round(time.Minute)
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel(fmt.Sprintf("Nightmare Letter available in %s.", remaining)))
+		s.Send(wire.MessagePanel(w.msg("_WG_Nightmare_Letter_Available_S", remaining)))
 		return
 	}
 	amount := uint32(rule.Amount)
 	if amount > math.MaxUint32-p.Char.NightmareTickets {
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-		s.Send(wire.MessagePanel("Nightmare ticket limit reached."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Nightmare_Ticket_Limit_Reached")))
 		return
 	}
 
@@ -152,7 +151,7 @@ func (w *World) useNightmareTicket(s *net.Session, p *Player, item *model.Item, 
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
-	s.Send(wire.MessagePanel(fmt.Sprintf("%d Nightmare entries received.", amount)))
+	s.Send(wire.MessagePanel(w.msg("_WG_D_Nightmare_Entries_Received", amount)))
 }
 
 // useMasteryReset handles Opportunity/Balance Compounds. The native restores
@@ -200,5 +199,5 @@ func (w *World) useMasteryReset(s *net.Session, p *Player, item *model.Item, slo
 	s.Send(wire.UpdateEtc(p.ID, *ch))
 	s.Send(wire.SetShortSkill(p.ID, ch.ShortSkill))
 	s.Send(wire.SendItem(p.ID, placeInv, slot, ch.Inv[slot]))
-	s.Send(wire.MessagePanel("Skills initialized."))
+	s.Send(wire.MessagePanel(w.msg("_NN_Initialize_Skill")))
 }

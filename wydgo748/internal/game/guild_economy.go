@@ -294,7 +294,7 @@ func (w *World) withdrawCityTreasury(p *Player, city int) error {
 		if p.Session != nil {
 			p.Session.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Collected %d gold from the city treasury.", amount)))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Collected_D_Gold_From_City_Treasury", amount)))
 		}
 		return nil
 	}
@@ -334,7 +334,7 @@ func (w *World) withdrawCityTreasury(p *Player, city int) error {
 		sessionID = p.Session.ID
 		p.Session.Send(wire.UpdateCarry(p.ID, p.Char.Inv[:], p.Char.Gold))
 		p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
-		p.Session.Send(wire.MessagePanel(fmt.Sprintf("Collected %d billion-gold cheque(s) from the city treasury.", len(items))))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Collected_D_Billion_Gold_Cheque_S", len(items))))
 	}
 	log.Printf("[#%d] collected %d cheque(s) from city %s; remaining=%d", sessionID, len(items), cityWarZones[city].name, t.Treasury)
 	return nil

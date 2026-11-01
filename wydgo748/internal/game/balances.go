@@ -25,7 +25,7 @@ func (w *World) sendBalanceNotice(s *net.Session, p *Player, arg, command string
 		if command == "medals" {
 			usage = "Usage: /medals or /medalhas (your own medals only)."
 		}
-		s.Send(wire.MessagePanel(usage))
+		s.Send(wire.MessagePanel(w.tr(usage)))
 		return
 	}
 	message := balanceMessage(p)
@@ -33,7 +33,7 @@ func (w *World) sendBalanceNotice(s *net.Session, p *Player, arg, command string
 		message = medalsMessage(p)
 	}
 	// Exactly one private top notice, with no chat copy, pages or delayed sends.
-	s.Send(wire.MessagePanel(message))
+	s.Send(wire.MessagePanel(w.tr(message)))
 }
 
 func balanceMessage(p *Player) string {

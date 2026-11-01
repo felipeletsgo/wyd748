@@ -195,7 +195,7 @@ func (w *World) allowChat(p *Player, channel string, now time.Time) bool {
 	key := p.Account.Name + "\x00" + channel
 	allowed, notify := allowFixedWindow(w.chatRateByAccount, key, now, 10*time.Second, limit, maxChatRateKeys)
 	if !allowed && notify && p.Session != nil {
-		p.Session.Send(wire.MessagePanel("You are sending messages too quickly."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Sending_Messages_Too_Quickly")))
 	}
 	return allowed
 }

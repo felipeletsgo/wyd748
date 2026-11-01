@@ -160,7 +160,7 @@ func TestCriticalUnknownCompletionCannotBeReclassifiedByDuplicateSuccess(t *test
 	}
 }
 
-func TestCriticalConfirmedSharedContinuationFailureStillStopsWorld(t *testing.T) {
+func TestCriticalConfirmedSharedContinuationFailureKeepsAdmissionOpen(t *testing.T) {
 	world, held, _, queue, backend, _, release := containedCriticalWorld(t, nil)
 	_, err := world.submitCriticalSharedWriteWithRejection(criticalWrite{accounts: []*model.Account{accountStateSnapshot(held.Account)}},
 		[]*Player{held}, func(criticalPersistenceResult) error { return errCriticalPersistenceIdentity }, nil, nil)
@@ -171,7 +171,8 @@ func TestCriticalConfirmedSharedContinuationFailureStillStopsWorld(t *testing.T)
 	release()
 	awaitReadyCriticalResults(t, queue, 1)
 	world.processCriticalCompletions(1)
-	if !world.shuttingDown || world.shutdownErr == nil || len(queue.pending) != 1 {
-		t.Fatal("confirmed account commit bypassed shared gameplay containment")
+	if world.shuttingDown || world.shutdownErr != nil || queue.stopping || len(queue.pending) != 1 ||
+		len(world.criticalQuarantine) != 1 || !world.criticalAccountReserved(held.Account.Name) || !held.Session.IsClosed() {
+		t.Fatal("confirmed shared failure lost ownership or stopped admission")
 	}
 }

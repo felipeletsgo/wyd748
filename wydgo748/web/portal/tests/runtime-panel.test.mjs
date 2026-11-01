@@ -30,3 +30,21 @@ test('Sparkline scales into the box and keeps flat zero series on the baseline',
   assert.equal(lag.format(1000001), '>1000 ms');
   assert.equal(lag.format(5000), '5 ms');
 });
+
+test('Diagnostic charts read transport, pool, persistence and channel groups', () => {
+  const { charts } = load('runtime-charts');
+  const value = title => charts.find(chart => chart.title === title).value;
+  const point = {
+    transport: { closes: { output_overflow: 2, peer_closed: 5 }, waitP99Micros: 25000 },
+    pool: { acquireMeanMicros: 900 }, critical: { pending: 3 },
+    channels: [{ heartbeatAgeMicros: 400 }, { heartbeatAgeMicros: 1200 }],
+  };
+  assert.equal(value('Disconnects')(point), 7);
+  assert.equal(value('Output queue overflows')(point), 2);
+  assert.equal(value('Output queue wait p99')(point), 25000);
+  assert.equal(value('Database pool wait (mean)')(point), 900);
+  assert.equal(value('Critical writes pending')(point), 3);
+  assert.equal(value('Game loop heartbeat age')(point), 1200);
+  // Points recorded before an upgrade have no diagnostic groups.
+  for (const chart of charts.slice(6)) assert.equal(chart.value({}), 0, chart.title);
+});

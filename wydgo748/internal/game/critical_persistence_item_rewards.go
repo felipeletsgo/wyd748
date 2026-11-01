@@ -2,7 +2,6 @@ package game
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"wydgo/internal/model"
@@ -92,7 +91,7 @@ func (w *World) queueItemReward(p *Player, slot byte, rule model.VolatileRule) e
 				if rewardSlot != int(slot) {
 					p.Session.Send(wire.SendItem(p.ID, placeInv, byte(rewardSlot), p.Char.Inv[rewardSlot]))
 				}
-				p.Session.Send(wire.MessagePanel(fmt.Sprintf("You received %s.", w.items[rewardID].Name)))
+				p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Received_S", w.items[rewardID].Name)))
 			} else {
 				mount := p.Char.Equip[mountPos]
 				p.Session.Send(wire.SendItem(p.ID, placeEquip, byte(mountPos), mount))
@@ -104,7 +103,7 @@ func (w *World) queueItemReward(p *Player, slot byte, rule model.VolatileRule) e
 				if mount.Index == 0 {
 					message = "The mount could not be revived and was lost."
 				}
-				p.Session.Send(wire.MessagePanel(message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, message)))
 			}
 		}, true)
 }
@@ -115,11 +114,11 @@ func (w *World) admitItemReward(p *Player, slot byte, rule model.VolatileRule) {
 		var rejection *nativeConsumableRejection
 		if errors.As(err, &rejection) {
 			if rejection.message != "" {
-				p.Session.Send(wire.MessagePanel(rejection.message))
+				p.Session.Send(wire.MessagePanel(w.trFor(p, rejection.message)))
 			}
 			return
 		}
-		p.Session.Send(wire.MessagePanel("Item use is unavailable. Please try again later."))
+		p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Item_Use_Unavailable_Please_Try_Again")))
 		log.Printf("[#%d] %s admission rejected: %v", p.Session.ID, rule.Action, err)
 	}
 }

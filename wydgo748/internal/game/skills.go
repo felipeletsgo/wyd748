@@ -2,7 +2,6 @@ package game
 
 import (
 	"encoding/binary"
-	"fmt"
 	"log"
 	"sort"
 	"time"
@@ -32,7 +31,7 @@ func (w *World) onLearnSkill(s *net.Session, p *Player, itemIndex int) {
 func (w *World) onLearnSkillAtMaster(s *net.Session, p *Player, itemIndex int, requestedMasterID uint16) {
 	reject := func(message string) {
 		if s != nil {
-			s.Send(wire.MessagePanel(message))
+			s.Send(wire.MessagePanel(w.tr(message)))
 		}
 	}
 	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 {
@@ -692,7 +691,7 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 			// The committed charge belongs to exactly this resumed cast.
 			p.goldenShieldPaid = false
 		} else if p.Char.Gold < cost {
-			p.Session.Send(wire.MessagePanel(fmt.Sprintf("Coin Armor requires %d gold.", cost)))
+			p.Session.Send(wire.MessagePanel(w.msgFor(p, "_WG_Coin_Armor_Requires_D_Gold", cost)))
 			return
 		} else if w.criticalWrites != nil {
 			// Commit the native gold charge first, then resume this same cast

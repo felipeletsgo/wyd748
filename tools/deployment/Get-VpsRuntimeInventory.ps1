@@ -16,6 +16,7 @@ function Get-VpsRuntimeInventory {
         'content/quest_zones.json', 'content/quests.json', 'content/droprate.json',
         'content/volatiles.json', 'content/instances.json', 'content/repliction.json',
         'content/mounts.json', 'content/character_templates.json',
+        'content/language/en.txt', 'content/language/pt.txt',
         'config/network_admission.json', 'config/client_integrity.json',
         'world/maps/HeightMap.dat', 'world/maps/AttributeMap.dat'
     )
@@ -33,6 +34,9 @@ function Get-VpsRuntimeInventory {
     }
     $included = [Collections.Generic.List[string]]::new()
     $removed = [Collections.Generic.List[string]]::new()
+    $repositoryRoot = (Get-Item -LiteralPath $Repository).FullName
+    $pathComparer = if ($IsWindows) { [StringComparer]::OrdinalIgnoreCase } else { [StringComparer]::Ordinal }
+    $checkedComponents = [Collections.Generic.HashSet[string]]::new($pathComparer)
     foreach ($file in @($files + $AdditionalRuntimeData | Sort-Object -Unique)) {
         if ($file -cnotmatch $allowed) { continue }
         $path = Join-Path $Repository $file
@@ -42,7 +46,13 @@ function Get-VpsRuntimeInventory {
             continue
         }
         $entry = Get-Item -LiteralPath $path
-        if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked runtime input is not allowed: $file" }
+        # MODERNIZACAO_COMPATIVEL: reject links in every runtime path component.
+        while ($null -ne $entry) {
+            if (!$checkedComponents.Add($entry.FullName)) { break }
+            if ($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) { throw "Linked runtime input is not allowed: $file" }
+            if ($pathComparer.Equals($entry.FullName, $repositoryRoot)) { break }
+            $entry = if ($entry -is [IO.FileInfo]) { $entry.Directory } else { $entry.Parent }
+        }
         $included.Add($file)
     }
     foreach ($file in $required) {

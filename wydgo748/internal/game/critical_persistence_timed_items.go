@@ -17,7 +17,8 @@ func (w *World) queueTimedItemExpiry(p *Player, now time.Time) error {
 	if len(removals) == 0 {
 		return nil
 	}
-	_, err := w.submitCriticalWritePhased(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
+	// A rejection keeps the items; the next sweep proposes their expiry again.
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			// Do not replace the live account or unrelated score/position fields.
 			for _, removal := range removals {
@@ -33,6 +34,6 @@ func (w *World) queueTimedItemExpiry(p *Player, now time.Time) error {
 		}, func(criticalPersistenceResult) error {
 			w.publishTimedItemExpiry(p, removals)
 			return nil
-		})
+		}, w.rejectDetachedProposal("", "", nil))
 	return err
 }

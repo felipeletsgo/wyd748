@@ -159,7 +159,7 @@ func (w *World) queueGuildAccountChange(actor *Player, seeds []*Player, proposed
 			if err := checkRetained(); err != nil {
 				return err
 			}
-			actor.Session.Send(wire.MessagePanel(failure))
+			actor.Session.Send(wire.MessagePanel(w.trFor(actor, failure)))
 			for _, hook := range hooks {
 				if hook.reject != nil {
 					hook.reject()
@@ -175,7 +175,7 @@ func (w *World) guildChangeAdmission(actor *Player, err error) {
 	if err == nil {
 		return
 	}
-	actor.Session.Send(wire.MessagePanel("Guild persistence is unavailable. Try again later."))
+	actor.Session.Send(wire.MessagePanel(w.msgFor(actor, "_WG_Guild_Persistence_Unavailable_Try_Again_Later")))
 	log.Printf("[#%d] ERROR guild registry admission: %v", actor.Session.ID, err)
 }
 
@@ -206,15 +206,15 @@ func (w *World) queueGuildDeparture(actor, victim *Player, guild *model.Guild, l
 	}
 	return w.queueGuildRegistryChange(actor, seeds, proposed, updates, failure, func() {
 		if leaving {
-			actor.Session.Send(wire.MessagePanel(fmt.Sprintf("You left the guild %s.", name)))
+			actor.Session.Send(wire.MessagePanel(w.msgFor(actor, "_WG_Left_Guild_S", name)))
 			w.publishGuildIdentity(victim)
 			if promoted != "" {
 				w.publishGuildIdentity(successor)
 				w.announceToGuild(id, fmt.Sprintf("%s now leads the guild.", promoted), nil)
 			}
 		} else {
-			actor.Session.Send(wire.MessagePanel(fmt.Sprintf("%s was expelled from the guild.", victimName)))
-			victim.Session.Send(wire.MessagePanel("You were expelled from the guild."))
+			actor.Session.Send(wire.MessagePanel(w.msgFor(actor, "_WG_S_Was_Expelled_From_Guild", victimName)))
+			victim.Session.Send(wire.MessagePanel(w.msgFor(victim, "_WG_Were_Expelled_From_Guild")))
 			w.publishGuildIdentity(victim)
 			w.publishGuildIdentity(successor)
 		}
@@ -227,8 +227,8 @@ func (w *World) queueGuildPromotion(actor, target *Player, guild *model.Guild, r
 	proposed.FindByID(guild.ID).Member(target.Char.Name).Rank = rank
 	return w.queueGuildRegistryChange(actor, []*Player{actor, target}, proposed,
 		[]criticalGuildMemberUpdate{{target, guild.ID, rank}}, "Save failed. The promotion was not applied.", func() {
-			actor.Session.Send(wire.MessagePanel(fmt.Sprintf("%s is now a sub-leader.", target.Char.Name)))
-			target.Session.Send(wire.MessagePanel("You were promoted to sub-leader."))
+			actor.Session.Send(wire.MessagePanel(w.msgFor(actor, "_WG_S_Now_Sub_Leader", target.Char.Name)))
+			target.Session.Send(wire.MessagePanel(w.msgFor(target, "_WG_Were_Promoted_Sub_Leader")))
 			w.publishGuildIdentity(target)
 			log.Printf("[#%d] GUILD promotion character=%q rank=%d", actor.Session.ID, target.Char.Name, rank)
 		})
@@ -243,7 +243,7 @@ func (w *World) queueGuildAlliance(actor *Player, guild *model.Guild, allyID uin
 		if allyID == 0 {
 			message = "Alliance broken."
 		}
-		actor.Session.Send(wire.MessagePanel(message))
+		actor.Session.Send(wire.MessagePanel(w.trFor(actor, message)))
 		log.Printf("[#%d] GUILD %d alliance -> %d", actor.Session.ID, id, allyID)
 	})
 }

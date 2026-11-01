@@ -143,18 +143,18 @@ func findSephiraStones(ch *model.Char) []int {
 func (w *World) craftSefirot(s *net.Session, p *Player, class int) {
 	stones := findSephiraStones(p.Char)
 	if stones == nil {
-		s.Send(wire.MessagePanel("Bring the eight Sephira stones."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Need_8_Sephera")))
 		return
 	}
 	if p.Char.Gold < sefirotGoldCost {
-		s.Send(wire.MessagePanel("Eight Sephira stones and 30,000,000 gold are required."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Eight_Sephira_Stones_Gold_Required")))
 		return
 	}
 	sefirot := model.Item{Index: uint16(sefirotFirstItem + class)}
 	// Check room BEFORE consuming: the stones free slots, so room is assured,
 	// but the check keeps the "validate everything, then mutate" order.
 	if freeInventorySlots(p.Char) == 0 && len(stones) == 0 {
-		s.Send(wire.MessagePanel("Inventory is full."))
+		s.Send(wire.MessagePanel(w.msg("_NN_CarryFull")))
 		return
 	}
 
@@ -166,7 +166,7 @@ func (w *World) craftSefirot(s *net.Session, p *Player, class int) {
 	target := addToInv(p.Char, sefirot)
 	if target < 0 {
 		w.restoreCriticalPreimages(images)
-		s.Send(wire.MessagePanel("Inventory is full."))
+		s.Send(wire.MessagePanel(w.msg("_NN_CarryFull")))
 		return
 	}
 	w.commitPlayerMutation(p, images, "Sefirot", "Save failed. Nothing was consumed.", false, func() {
@@ -176,7 +176,7 @@ func (w *World) craftSefirot(s *net.Session, p *Player, class int) {
 			}
 			s.Send(wire.SendItem(p.ID, placeInv, byte(target), p.Char.Inv[target]))
 			s.Send(wire.UpdateEtc(p.ID, *p.Char))
-			s.Send(wire.MessagePanel("The Sefirot has been created."))
+			s.Send(wire.MessagePanel(w.msg("_NN_Sepherot_created")))
 		}
 		log.Printf("[#%d] Sefirot created class=%d item=%d", s.ID, class, sefirot.Index)
 	})
@@ -199,18 +199,18 @@ func findAdjacentSpirits(ch *model.Char) (int, bool) {
 func (w *World) craftEternalStone(s *net.Session, p *Player) {
 	slot, ok := findAdjacentSpirits(p.Char)
 	if !ok {
-		s.Send(wire.MessagePanel("Place Unicon's Spirit and Phoenix's Spirit side by side, in that order."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Place_Unicons_Spirit_Phoenixs_Spirit_Side")))
 		return
 	}
 	if sapphireCount(p.Char) < eternalStoneSapphires {
-		s.Send(wire.MessagePanel("10 Sapphires are required."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Sapphires_Required")))
 		return
 	}
 
 	images := criticalPreimages(p)
 	if !consumeSapphires(p.Char, eternalStoneSapphires) {
 		w.restoreCriticalPreimages(images)
-		s.Send(wire.MessagePanel("The Sapphires could not be consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Sapphires_Could_Not_Consumed")))
 		return
 	}
 	p.Char.Inv[slot] = model.Item{}
@@ -218,13 +218,13 @@ func (w *World) craftEternalStone(s *net.Session, p *Player) {
 	target := addToInv(p.Char, model.Item{Index: eternalStoneItem})
 	if target < 0 {
 		w.restoreCriticalPreimages(images)
-		s.Send(wire.MessagePanel("Inventory is full."))
+		s.Send(wire.MessagePanel(w.msg("_NN_CarryFull")))
 		return
 	}
 	w.commitPlayerMutation(p, images, "Eternal Stone", "Save failed. Nothing was consumed.", false, func() {
 		if !s.IsClosed() {
 			w.resendInventory(p)
-			s.Send(wire.MessagePanel("The Eternal Stone has been forged."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Eternal_Stone_Has_Been_Forged")))
 		}
 		log.Printf("[#%d] Eternal Stone forged slot=%d", s.ID, target)
 	})
@@ -306,15 +306,15 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 	slot := freeCharacterSlot(p.Account)
 	requirements := model.EvaluateArchRequirements(p.Char.Evolution, level, stone.Index, sefirot.Index, slot >= 0)
 	if !requirements.Mortal {
-		s.Send(wire.MessagePanel("Only a Mortal can ascend."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Only_Mortal_Can_Ascend")))
 		return true
 	}
 	if !requirements.Level {
-		s.Send(wire.MessagePanel("You must be level 371 to ascend."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Must_Level_Ascend")))
 		return true
 	}
 	if !requirements.FreeSlot {
-		s.Send(wire.MessagePanel("There is no room for a new character on this account."))
+		s.Send(wire.MessagePanel(w.msg("_WG_There_No_Room_New_Character_Account")))
 		return true
 	}
 
@@ -323,7 +323,7 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 	arch, built := w.newCharacterFromTemplate(p.Char.Name, class)
 	if !built {
 		log.Printf("[#%d] missing class layout %d for ascension", s.ID, class)
-		s.Send(wire.MessagePanel("The Arch could not be created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Arch_Could_Not_Created")))
 		return true
 	}
 	arch.Evolution = archEvolution
@@ -352,10 +352,10 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 			if !s.IsClosed() {
 				s.Send(wire.SendItem(p.ID, placeEquip, eternalStoneSlot, p.Char.Equip[eternalStoneSlot]))
 				s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
-				s.Send(wire.MessagePanel("Your Arch has been created. It awaits at character selection."))
+				s.Send(wire.MessagePanel(w.msg("_WG_Arch_Has_Been_Created_Awaits_Character")))
 			}
 			announcement := fmt.Sprintf("The character %s has become a God!", arch.Name)
-			w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
+			w.broadcast(func() []byte { return wire.MessagePanel(w.tr(announcement)) })
 			log.Printf("[#%d] Arch created name=%q class=%d slot=%d face=%d (mortal level=%d)",
 				s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Score.Level)
 			w.returnToCharacterSelectionAfterCommittedChange(p, "Arch creation")
@@ -381,18 +381,18 @@ func (w *World) createArch(s *net.Session, p *Player) bool {
 		}
 		p.Char.Equip = previousEquip
 		log.Printf("[#%d] ERROR saving ascension of %q: %v", s.ID, p.Char.Name, err)
-		s.Send(wire.MessagePanel("Save failed. The ascension was not completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Ascension_Was_Not_Completed")))
 		return true
 	}
 
 	s.Send(wire.SendItem(p.ID, placeEquip, eternalStoneSlot, p.Char.Equip[eternalStoneSlot]))
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
-	s.Send(wire.MessagePanel("Your Arch has been created. It awaits at character selection."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Arch_Has_Been_Created_Awaits_Character")))
 	// World announcement AFTER the save: a failed ascension is never announced.
 	// Server announcements use the top notice, separate from paid green chat.
 	// "God" is the English term for the Arch used by the global client and sources.
 	announcement := fmt.Sprintf("The character %s has become a God!", arch.Name)
-	w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
+	w.broadcast(func() []byte { return wire.MessagePanel(w.tr(announcement)) })
 	log.Printf("[#%d] Arch created name=%q class=%d slot=%d face=%d (mortal level=%d)",
 		s.ID, arch.Name, class, slot, arch.Equip[0].Index, p.Char.Score.Level)
 	w.returnToCharacterSelectionAfterCommittedChange(p, "Arch creation")

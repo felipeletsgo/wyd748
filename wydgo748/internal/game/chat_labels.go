@@ -50,7 +50,7 @@ func (w *World) setPlayerTab(s *net.Session, p *Player, text string, color byte)
 	}
 	mortal := p.Char.Evolution == "" || strings.EqualFold(p.Char.Evolution, "mortal")
 	if text != "" && mortal && displayLevel(p.Char) < 70 {
-		s.Send(wire.MessagePanel("Mortal characters need level 70 to set a tab."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Mortal_Characters_Need_Level_Set_Tab")))
 		return
 	}
 	if text == "" || color > 8 {
@@ -77,8 +77,8 @@ func (w *World) setPlayerStatus(s *net.Session, p *Player, text string) {
 	}
 	p.StatusMessage = status
 	if p.StatusMessage == "" {
-		s.Send(wire.MessagePanel("Status message cleared."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Status_Message_Cleared")))
 	} else {
-		s.Send(wire.MessagePanel("Status message saved. Others can read it with /" + p.Char.Name + "."))
+		w.panel(s, "_WG_Status_Message_Saved", p.Char.Name)
 	}
 }

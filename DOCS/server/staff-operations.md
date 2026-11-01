@@ -29,6 +29,7 @@ maintainer accounts. Add it only to other authorized accounts. The installed
 | `server.shutdown` | Schedule and cancel maintenance shutdown or restart |
 | `staff.audit.read` | Read the persisted audit history |
 | `content.npc.shop` | Edit active NPC JSON definitions per channel; see [NPC definition management](../protocol/npc-definitions.md) |
+| `game.persistence.recovery` | List quarantined critical writes and request an audited exact-outcome check; see [server operations](operations.md#critical-persistence-operation). No staff file grants it by default |
 
 ## Sanctions (ban and mute)
 
@@ -136,10 +137,21 @@ maintainer accounts. Add it only to other authorized accounts. The installed
   means above one second), commands per second, budget overruns, panics,
   PostgreSQL queue depth, failures and transaction time, heap, goroutines and
   GC cycles.
+- Each point also holds diagnostic groups. `transport` has session closes by
+  first cause, refused connections, output packet/byte rates, output queue
+  p99/maximum fill (25/50/75/99/100 %) and queue-wait p99. `pool` has the game
+  store pool connections, mean acquisition time, empty-pool waits and
+  cancellations. `critical` has pending, queued, running, quarantined and
+  deferred work, the oldest pending age, execution p99, outcomes and admission
+  refusals. `channels` has each channel's players, queue, lag, tick, command,
+  queue-age p99 and actor heartbeat age. Process gauges sum both channels; each
+  channel keeps its own previous tick, so cluster ticks no longer hide lag.
 - `GET /api/v1/staff/metrics?window=15m|1h|6h|24h` (`server.status`) returns
   at most 360 points: longer windows merge groups keeping peaks and gauge
   maxima, summing interval counts and averaging the command rate. The Overview
-  draws six charts from it; there is no automatic refresh.
+  draws twelve charts from it, including disconnects, output queue overflows and
+  wait, pool wait, pending critical writes and actor heartbeat age; there is no
+  automatic refresh.
 - Circuit breaker: when the latest interval has loop-lag p99 above 100 ms,
   queue-age p99 above 250 ms or a PostgreSQL write queue above 1,024, optional
   World reads are refused with `503 temporarily_unavailable` and

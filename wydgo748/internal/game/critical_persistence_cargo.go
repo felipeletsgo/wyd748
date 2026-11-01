@@ -22,14 +22,17 @@ func (w *World) queueCargoGoldTransfer(p *Player, deposit bool, amount uint32) e
 		character.Gold += amount
 	}
 	gold, cargo := character.Gold, proposed.CargoGold
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p},
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{proposed}}, []*Player{p}, false,
 		func(criticalPersistenceResult) error {
 			// Install only the planned balances. The store copy uses persistence
 			// entry positions and must never replace live character identity/state.
 			p.Char.Gold, p.Account.CargoGold = gold, cargo
 			publishCargoGoldTransfer(p, deposit, amount)
 			return nil
-		})
+		}, nil, w.rejectDetachedProposal("cargo gold transfer", "Save failed. The inventory was not changed.", func(p *Player) {
+			p.Session.Send(wire.UpdateCargoGold(wire.SceneField, p.Account.CargoGold))
+			p.Session.Send(wire.UpdateEtc(p.ID, *p.Char))
+		}, p))
 	return err
 }
 

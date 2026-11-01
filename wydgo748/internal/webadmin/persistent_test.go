@@ -3,6 +3,7 @@ package webadmin
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -79,6 +80,11 @@ func TestAccountPersistentReaderRejectsInvalidAndMissingTargets(t *testing.T) {
 	reader = NewAccountPersistentReader(persistentAccounts{err: os.ErrNotExist})
 	if _, err := reader.Player(context.Background(), "fixture", uid); !errors.Is(err, ErrPersistentPlayerNotFound) {
 		t.Fatalf("missing account: %v", err)
+	}
+	// PostgreSQL wraps its not-found error with the account and character.
+	reader = NewAccountPersistentReader(persistentAccounts{err: fmt.Errorf("%w: character %q", os.ErrNotExist, uid)})
+	if _, err := reader.Player(context.Background(), "fixture", uid); !errors.Is(err, ErrPersistentPlayerNotFound) {
+		t.Fatalf("wrapped missing character: %v", err)
 	}
 }
 

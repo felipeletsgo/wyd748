@@ -29,7 +29,8 @@ func (w *World) queueTrade(a, b *Player, aInv, bInv [model.MaxCarry]model.Item, 
 	if err := w.transferTradeCapsules(bCopy, aCopy, bOffer.Items); err != nil {
 		return err
 	}
-	_, err := w.submitCriticalWrite(criticalWrite{accounts: []*model.Account{aAccount, bAccount}}, []*Player{a, b},
+	rejected := w.rejectDetachedProposal("trade", "Save failed. The inventory was not changed.", w.resendInventory, a, b)
+	_, err := w.submitCriticalWriteWithRejection(criticalWrite{accounts: []*model.Account{aAccount, bAccount}}, []*Player{a, b}, false,
 		func(criticalPersistenceResult) error {
 			// Identity binding protects accounts/characters; this separately binds
 			// the shared trade context before either economic result is installed.
@@ -52,6 +53,13 @@ func (w *World) queueTrade(a, b *Player, aInv, bInv [model.MaxCarry]model.Item, 
 			}
 			log.Printf("TRADE committed: %s(%d gold) <-> %s(%d gold)", a.Char.Name, aOffer.Gold, b.Char.Name, bOffer.Gold)
 			return nil
+		}, nil, func(result criticalPersistenceResult) error {
+			// Nothing moved. Close the confirmed offers so both players review
+			// a fresh trade instead of resubmitting the rejected one.
+			if a.Trade == aTrade && b.Trade == bTrade {
+				w.closeTradeContext(a, "save rejected")
+			}
+			return rejected(result)
 		})
 	return err
 }

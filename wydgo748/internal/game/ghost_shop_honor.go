@@ -59,7 +59,7 @@ func (w *World) tickGhostShopHonor(now time.Time) {
 				w.ghostShopHonorAt[id] = next.Add(ghostShopHonorInterval)
 			}
 			if !owner.Session.IsClosed() {
-				owner.Session.Send(wire.MessageWhisper(0, ghostShopHonorSender, ghostShopHonorLetter, 0))
+				owner.Session.Send(wire.MessageWhisper(0, w.tr(ghostShopHonorSender), w.tr(ghostShopHonorLetter), 0))
 			}
 			log.Printf("[#%d] GHOST SHOP honor +1 owner=%s total=%d", owner.Session.ID,
 				owner.Char.Name, counterBalance(owner, honorCounter))

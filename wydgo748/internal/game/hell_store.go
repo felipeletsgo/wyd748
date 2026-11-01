@@ -227,24 +227,24 @@ func (w *World) onHellStoreBuy(s *net.Session, pkt []byte) {
 
 	m, err := w.resolveNPCInteraction(p, targetID)
 	if err != nil {
-		s.Send(wire.MessagePanel(npcInteractionMessage(err)))
+		s.Send(wire.MessagePanel(w.tr(npcInteractionMessage(err))))
 		return
 	}
 	if !w.hellStoreAvailable(p, m) {
-		s.Send(wire.MessagePanel("That character is not the Hell Gate merchant."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Not_Hell_Gate_Merchant")))
 		return
 	}
 	price, ok := hellStorePrices[option]
 	if !ok {
-		s.Send(wire.MessagePanel("Choose an item category first."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Choose_Item_Category_First")))
 		return
 	}
 	if dst < 0 || dst >= model.PlayerCarrySlots || p.Char.Inv[dst].Index != 0 {
-		s.Send(wire.MessagePanel("Choose an empty inventory slot."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Choose_Empty_Inventory_Slot")))
 		return
 	}
 	if uint64(p.Char.Gold) < price {
-		s.Send(wire.MessagePanel("You do not have enough gold."))
+		s.Send(wire.MessagePanel(w.msg("_NN_Not_Enough_Money")))
 		return
 	}
 	var rolled model.Item
@@ -254,25 +254,25 @@ func (w *World) onHellStoreBuy(s *net.Session, pkt []byte) {
 		rolled, ok = w.rollHellStoreItem(option)
 	}
 	if !ok {
-		s.Send(wire.MessagePanel("The Hell Gate store has nothing to sell."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Hell_Gate_Store_Has_Nothing_Sell")))
 		return
 	}
 	item, err := materializeItem(rolled)
 	if err != nil {
 		log.Printf("[#%d] Hell Gate store item %d could not be created: %v", s.ID, rolled.Index, err)
-		s.Send(wire.MessagePanel("The purchase could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Purchase_Could_Not_Completed")))
 		return
 	}
 	if w.criticalWrites != nil {
 		if err := w.queueHellStorePurchase(p, item, dst, price, option); err != nil {
 			log.Printf("[#%d] submit Hell Gate store purchase of item %d: %v", s.ID, item.Index, err)
-			s.Send(wire.MessagePanel("The purchase could not be submitted. Please try again."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Purchase_Could_Not_Submitted_Please_Try")))
 		}
 		return
 	}
 	if err := w.commitTicketPurchase(p, item, dst, price, 0, 0); err != nil {
 		log.Printf("[#%d] Hell Gate store purchase of item %d failed: %v", s.ID, item.Index, err)
-		s.Send(wire.MessagePanel("The purchase could not be completed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Purchase_Could_Not_Completed")))
 		return
 	}
 	publishHellStorePurchase(p, option, item, price, dst)

@@ -1,7 +1,12 @@
 [Unit]
 Description=WYD authoritative native game server
 After=network.target postgresql@18-main.service
-Requires=postgresql@18-main.service
+# Wants, not Requires: a database restart must not stop the game. The server
+# rejects writes and reports readiness 503 until PostgreSQL returns (W5/D10).
+Wants=postgresql@18-main.service
+# Stop retrying after five failed starts in five minutes instead of looping.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple

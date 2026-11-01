@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 226.
+Markdown documents: 228.
 
 | Document | Type |
 | --- | --- |
@@ -227,6 +227,8 @@ Markdown documents: 226.
 | [DOCS/server/public-launch.md](<server/public-launch.md>) | Product documentation |
 | [DOCS/server/rune-track.md](<server/rune-track.md>) | Product documentation |
 | [DOCS/server/s2-closure-audit-2026-10-07.md](<server/s2-closure-audit-2026-10-07.md>) | Product documentation |
+| [DOCS/server/server-correction-plan.md](<server/server-correction-plan.md>) | Product documentation |
+| [DOCS/server/server-messages.md](<server/server-messages.md>) | Product documentation |
 | [DOCS/server/staff-operations.md](<server/staff-operations.md>) | Product documentation |
 | [DOCS/server/website-feature-status.md](<server/website-feature-status.md>) | Product documentation |
 | [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |

@@ -28,7 +28,7 @@ func (w *World) rejectUnavailableClientCommand(s *net.Session, p *Player, comman
 		return false
 	}
 	if s != nil {
-		s.Send(wire.MessagePanel(message))
+		s.Send(wire.MessagePanel(w.tr(message)))
 	}
 	return true
 }

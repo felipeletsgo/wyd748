@@ -284,25 +284,25 @@ func (w *World) craftIdealStoneAtKing(s *net.Session, p *Player) bool {
 	ideal, err := materializeItem(model.Item{Index: idealStoneItem})
 	if err != nil {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("The Ideal Stone could not be created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Ideal_Stone_Could_Not_Created")))
 		return true
 	}
 	target := addToInv(p.Char, ideal)
 	if target < 0 {
 		*p.Char = snapshot
-		s.Send(wire.MessagePanel("Inventory is full. Nothing was consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Inventory_Full_Nothing_Was_Consumed")))
 		return true
 	}
 	if err := w.saveAccount(p.Account); err != nil {
 		*p.Char = snapshot
 		log.Printf("[#%d] save Ideal Stone composition: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Nothing_Was_Consumed")))
 		return true
 	}
 	w.resendInventory(p)
 	s.Send(wire.SendItem(p.ID, placeEquip, 10, p.Char.Equip[10]))
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, p.Char.Equip[sefirotSlot]))
-	s.Send(wire.MessagePanel("The Ideal Stone was created successfully."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Ideal_Stone_Was_Created_Successfully")))
 	log.Printf("[#%d] Ideal Stone created inv[%d]", s.ID, target)
 	return true
 }
@@ -319,7 +319,7 @@ func (w *World) useCelestialIdeal(s *net.Session, p *Player, item *model.Item, s
 		return
 	}
 	if celestialTransformationActive(p.Char, w.now()) {
-		s.Send(wire.MessagePanel("The Ideal Stone cannot be used while transformed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Ideal_Stone_Cannot_Used_While_Transformed")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -330,7 +330,7 @@ func (w *World) useCelestialIdeal(s *net.Session, p *Player, item *model.Item, s
 	case "celestial":
 		w.createSubCelestial(s, p, item, slot)
 	default:
-		s.Send(wire.MessagePanel("There is no Celestial quest available for this character."))
+		s.Send(wire.MessagePanel(w.msg("_WG_There_No_Celestial_Quest_Available_Character")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	}
 }
@@ -345,12 +345,12 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	}
 	ch := p.Char
 	if ch.Score == nil || ch.Score.Level < model.CelestialMinimumArchLevel {
-		s.Send(wire.MessagePanel("The Arch must be level 356 or higher."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Arch_Must_Level_Or_Higher")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if ch.ArchMortalLevel < model.CelestialMinimumMortalLevel {
-		s.Send(wire.MessagePanel("The respective Mortal must be level 400."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Respective_Mortal_Must_Level")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -362,7 +362,7 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	}
 	cythera, err := materializeItem(model.Item{Index: cytheraIndex})
 	if err != nil {
-		s.Send(wire.MessagePanel("The Cythera could not be created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Cythera_Could_Not_Created")))
 		return
 	}
 	snapshot := cloneCharacterState(ch)
@@ -407,12 +407,12 @@ func (w *World) createCelestial(s *net.Session, p *Player, item *model.Item, slo
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch = snapshot
 		log.Printf("[#%d] save Celestial creation: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. The Ideal Stone was not consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Ideal_Stone_Was_Not")))
 		return
 	}
-	s.Send(wire.MessagePanel("Your character is now Celestial. Re-enter it from character selection."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Character_Now_Celestial_Re_Enter_From")))
 	announcement := fmt.Sprintf("The character %s has become Celestial!", ch.Name)
-	w.broadcast(func() []byte { return wire.MessagePanel(announcement) })
+	w.broadcast(func() []byte { return wire.MessagePanel(w.tr(announcement)) })
 	log.Printf("[#%d] Celestial created archTier=%d cythera=%d", s.ID, tier, cytheraIndex)
 	w.returnToCharacterSelectionAfterCommittedChange(p, "Celestial creation")
 }
@@ -427,23 +427,23 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 	}
 	ch := p.Char
 	if ch.AlternateCelestial != nil {
-		s.Send(wire.MessagePanel("The SubCelestial has already been created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_SubCelestial_Has_Already_Been_Created")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if ch.Score == nil || ch.Score.Level < model.SubCelestialMinimumLevel {
-		s.Send(wire.MessagePanel("The Celestial must be level 121 or higher."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Must_Level_Or_Higher")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if counterBalance(p, fameCounter) < subCelestialFameCost {
-		s.Send(wire.MessagePanel("100 Fame is required to create a SubCelestial."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Fame_Required_Create_SubCelestial")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	subClass, ok := archClassFromSefirot(ch.Equip[sefirotSlot])
 	if !ok {
-		s.Send(wire.MessagePanel("Equip the SubCelestial class Sefirot."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Equip_SubCelestial_Class_Sefirot")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -458,7 +458,7 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 	subFace := ch.Equip[0]
 	bodyBase := int(subFace.Index) - int(ch.Class)
 	if bodyBase < 0 {
-		s.Send(wire.MessagePanel("The Celestial face is invalid."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Face_Invalid")))
 		return
 	}
 	subFace.Index = uint16(bodyBase + subClass)
@@ -476,13 +476,13 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 	if target < 0 {
 		*ch = snapshot
 		p.SpecialCoins = oldCounters
-		s.Send(wire.MessagePanel("Inventory is full."))
+		s.Send(wire.MessagePanel(w.msg("_NN_CarryFull")))
 		return
 	}
 	if !spendCounters(p, map[string]uint32{fameCounter: subCelestialFameCost}) {
 		*ch = snapshot
 		p.SpecialCoins = oldCounters
-		s.Send(wire.MessagePanel("100 Fame is required to create a SubCelestial."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Fame_Required_Create_SubCelestial")))
 		return
 	}
 	syncProgression(ch) // Includes six points per alternate-form level.
@@ -491,14 +491,14 @@ func (w *World) createSubCelestial(s *net.Session, p *Player, item *model.Item, 
 		*ch = snapshot
 		p.SpecialCoins = oldCounters
 		log.Printf("[#%d] save SubCelestial creation: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Nothing_Was_Consumed")))
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	s.Send(wire.SendItem(p.ID, placeInv, byte(target), ch.Inv[target]))
 	s.Send(wire.SendItem(p.ID, placeEquip, sefirotSlot, ch.Equip[sefirotSlot]))
 	w.syncCelestialPlayer(p)
-	s.Send(wire.MessagePanel("Your SubCelestial has been created. Use the Mysterious Stone to switch."))
+	s.Send(wire.MessagePanel(w.msg("_WG_SubCelestial_Has_Been_Created_Use_Mysterious")))
 	log.Printf("[#%d] SubCelestial created class=%d", s.ID, subClass)
 }
 
@@ -515,12 +515,12 @@ func (w *World) useMysteriousStone(s *net.Session, p *Player, item *model.Item, 
 	}
 	ch := p.Char
 	if ch.AlternateCelestial == nil || !isCelestialEvolution(ch) {
-		s.Send(wire.MessagePanel("This character has no alternate Celestial form."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Character_Has_No_Alternate_Celestial_Form")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if !inNativeCity(p.X, p.Y) {
-		s.Send(wire.MessagePanel("The Mysterious Stone can only be used inside a city."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Mysterious_Stone_Can_Only_Used_Inside")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
@@ -539,12 +539,12 @@ func (w *World) useMysteriousStone(s *net.Session, p *Player, item *model.Item, 
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch = snapshot
 		log.Printf("[#%d] save Celestial switch: %v", s.ID, err)
-		s.Send(wire.MessagePanel("Save failed. The form was not changed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Form_Was_Not_Changed")))
 		return
 	}
 	s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 	w.syncCelestialPlayer(p)
-	s.Send(wire.MessagePanel("Celestial form changed."))
+	s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Form_Changed")))
 	log.Printf("[#%d] active form=%s class=%d level=%d", s.ID, ch.Evolution, ch.Class, ch.Score.Level)
 }
 
@@ -565,14 +565,14 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 	}
 	ch := p.Char
 	if counterBalance(p, fameCounter) < 500 {
-		s.Send(wire.MessagePanel("500 Fame is required."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Fame_Required")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	if ch.Score.Level < maxCelestialLevel {
 		if ch.Score.Level != 89 || ch.CelestialLevel90Unlocked ||
 			!advancedEvolution(ch, "celestial") {
-			s.Send(wire.MessagePanel("This unlock is only available at Celestial level 90."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Unlock_Only_Available_Celestial_Level")))
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
@@ -582,27 +582,27 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 		consumeOne(item)
 		if !grantLevel90Cythera(ch) {
 			*ch, p.SpecialCoins = snapshot, oldCounters
-			s.Send(wire.MessagePanel("Free one inventory slot for the second Cythera."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Free_One_Inventory_Slot_Second_Cythera")))
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
 		if err := w.saveAccountAndCharStateResult(p); err != nil {
 			*ch, p.SpecialCoins = snapshot, oldCounters
-			s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Nothing_Was_Consumed")))
 			return
 		}
 		w.resendInventory(p)
-		s.Send(wire.MessagePanel("Celestial level 90 has been unlocked."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Celestial_Level_Has_Been_Unlocked")))
 		return
 	}
 	if ch.CelestialArcana || ch.Equip[1].Index != 3502 || itemSanc(ch.Equip[1]) < 11 {
-		s.Send(wire.MessagePanel("Equip a Mystic Cythera +11 or higher."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Equip_Mystic_Cythera_Or_Higher")))
 		s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 		return
 	}
 	for stone := uint16(5334); stone <= 5337; stone++ {
 		if !celestialInventoryHasItem(ch, stone) {
-			s.Send(wire.MessagePanel("The four Secret Stones are required."))
+			s.Send(wire.MessagePanel(w.msg("_WG_Four_Secret_Stones_Required")))
 			s.Send(wire.SendItem(p.ID, placeInv, slot, *item))
 			return
 		}
@@ -621,16 +621,16 @@ func (w *World) useFuryStone(s *net.Session, p *Player, item *model.Item, slot b
 	w.recalcPlayer(ch)
 	if err := w.saveAccountAndCharStateResult(p); err != nil {
 		*ch, p.SpecialCoins = snapshot, oldCounters
-		s.Send(wire.MessagePanel("Save failed. Nothing was consumed."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Save_Failed_Nothing_Was_Consumed")))
 		return
 	}
 	w.resendInventory(p)
 	s.Send(wire.SendItem(p.ID, placeEquip, 1, ch.Equip[1]))
 	w.syncCelestialPlayer(p)
 	if success {
-		s.Send(wire.MessagePanel("The Arcana Cythera was created."))
+		s.Send(wire.MessagePanel(w.msg("_WG_Arcana_Cythera_Was_Created")))
 	} else {
-		s.Send(wire.MessagePanel("The Arcana composition failed."))
+		s.Send(wire.MessagePanel(w.msg("_NN_CombineFailed")))
 	}
 }
 

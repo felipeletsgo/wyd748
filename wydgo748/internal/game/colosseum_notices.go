@@ -1,7 +1,6 @@
 package game
 
 import (
-	"fmt"
 	"time"
 
 	"wydgo/internal/model"
@@ -16,6 +15,7 @@ type colosseumNoticeState struct {
 }
 
 func (w *World) colosseumNotice(message string) {
+	message = w.tr(message)
 	w.broadcast(func() []byte { return wire.MessagePanel(message) })
 	w.broadcast(func() []byte { return wire.MessageWhisper(0, "[Colosseum]", message, 7) })
 }
@@ -49,12 +49,11 @@ func (w *World) tickColosseumNotices(local time.Time) {
 		}
 		notice.mask |= bit
 		minutes := int((left + time.Minute - 1) / time.Minute)
-		unit := "minutes"
+		unit := "_WG_Unit_Minutes"
 		if minutes == 1 {
-			unit = "minute"
+			unit = "_WG_Unit_Minute"
 		}
-		w.colosseumNotice(fmt.Sprintf("Colosseum %c starts in %d %s. Entrance gates close at %s.",
-			"NMA"[tier], minutes, unit, start.Format("15:04")))
+		w.colosseumNotice(w.msg("_WG_Colosseum_Starts_In", "NMA"[tier], minutes, w.msg(unit), start.Format("15:04")))
 	}
 }
 
@@ -108,8 +107,7 @@ func (w *World) syncColosseumCountdowns(now time.Time) {
 		// shared HUD. The quest guard must not clear this newer countdown.
 		w.hideQuestZoneTimer(p)
 		p.Session.Send(wire.StandardParm(wire.OpInstanceTime, instanceSignalID, seconds))
-		p.Session.Send(wire.MessageWhisper(0, "[Colosseum]",
-			fmt.Sprintf("Next wave: %d/5. Countdown: %d seconds.", wave, seconds), 7))
+		p.Session.Send(wire.MessageWhisper(0, "[Colosseum]", w.msg("_WG_Colosseum_Next_Wave", wave, seconds), 7))
 		c.countdowns[p] = deadline
 	}
 }

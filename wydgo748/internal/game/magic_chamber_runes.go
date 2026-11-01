@@ -172,7 +172,7 @@ func (w *World) spawnMagicChamberRuneBonus(inst *ItemInstance, stage model.Volat
 	w.magicChamberRunes[key] = run
 	for _, id := range inst.MemberIDs {
 		if member := w.playersByID[id]; member != nil && member.InWorld && member.Session != nil {
-			member.Session.Send(wire.MessagePanel("The runes awaken a hidden guardian!"))
+			member.Session.Send(wire.MessagePanel(w.msgFor(member, "_WG_Runes_Awaken_Hidden_Guardian")))
 		}
 	}
 	log.Printf("INSTANCE %q rune bonus boss runes=%v", inst.Config.ID, run.Runes)

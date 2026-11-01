@@ -6,15 +6,62 @@ import "wydgo/internal/model"
 // They protect persistence/readmission boundaries, not all gameplay consumers.
 // Production activation still requires combat, resource and lifecycle coverage.
 func (w *World) criticalAccountReserved(name string) bool {
-	return w.criticalWrites != nil && w.criticalWrites.queue.accounts[accountSessionKey(name)] != 0
+	return w.criticalWrites != nil && (w.criticalWrites.queue.accounts[accountSessionKey(name)] != 0 ||
+		w.criticalWrites.queue.failedAccounts[accountSessionKey(name)] != 0)
 }
 
 func (w *World) criticalCharacterReserved(uid string) bool {
-	return w.criticalWrites != nil && w.criticalWrites.queue.characters[uid] != 0
+	return w.criticalWrites != nil && (w.criticalWrites.queue.characters[uid] != 0 ||
+		w.criticalWrites.queue.failedCharacters[uid] != 0)
+}
+
+// Input variants ignore a background autosave (W7). It carries a detached
+// snapshot, and any later write of the same participants parks behind it, so
+// gameplay may continue. Persistence and admission boundaries use the
+// variants above, which include every pending write.
+func (q *criticalPersistence) holdsInput(id uint64) bool {
+	if id == 0 {
+		return false
+	}
+	pending := q.pending[id]
+	return pending == nil || !pending.background || pending.quarantined
+}
+
+func (w *World) criticalAccountInputReserved(name string) bool {
+	if w.criticalWrites == nil {
+		return false
+	}
+	q, key := w.criticalWrites.queue, accountSessionKey(name)
+	return q.failedAccounts[key] != 0 || q.holdsInput(q.accounts[key])
+}
+
+func (w *World) criticalCharacterInputReserved(uid string) bool {
+	if w.criticalWrites == nil {
+		return false
+	}
+	q := w.criticalWrites.queue
+	return q.failedCharacters[uid] != 0 || q.holdsInput(q.characters[uid])
+}
+
+func (w *World) criticalPlayerInputReserved(p *Player) bool {
+	if p == nil || w.criticalWrites == nil {
+		return false
+	}
+	if p.Account != nil {
+		if w.criticalAccountInputReserved(p.Account.Name) {
+			return true
+		}
+		for _, character := range p.Account.Chars {
+			if w.criticalCharacterInputReserved(character.UID) {
+				return true
+			}
+		}
+	}
+	return p.Char != nil && w.criticalCharacterInputReserved(p.Char.UID)
 }
 
 func (w *World) criticalGuildReserved() bool {
-	return w.criticalWrites != nil && w.criticalWrites.queue.guilds != 0
+	return w.criticalWrites != nil && (w.criticalWrites.queue.guilds != 0 || w.criticalWrites.queue.failedGuilds != 0)
 }
 
 // Tower captures and Kefra deaths retain the mob as well as the registry.
@@ -64,13 +111,14 @@ func (w *World) criticalAccountWriteReserved(account *model.Account) bool {
 	return false
 }
 
+// criticalPlayerReserved gates gameplay input and interaction with p.
 func (w *World) criticalPlayerReserved(p *Player) bool {
 	if p != nil && !w.shuttingDown {
 		if retained := w.criticalDisconnects[p.Session]; retained != nil && retained.player == p {
 			return true
 		}
 	}
-	return w.criticalPlayerWriteReserved(p)
+	return w.criticalPlayerInputReserved(p)
 }
 
 // Pending disconnect intent also fences gameplay when the bounded queue is
