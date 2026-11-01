@@ -61,22 +61,22 @@ recovery work. These priorities do not certify occurrence in production.
 
 | Report ID | Priority | Verified finding | Pending correction |
 | --- | --- | --- | --- |
-| D1 | P1 | A certified autosave rejection closes the participant and retains the account fence | Active (release 20261101T050356Z) from W1 for autosave and 15 detached producers |
-| D2 | P1 | Pre-COMMIT timeout cleanup uses the expired operation context and can report an unknown outcome | Active (release 20261101T050356Z) from W1 and W4 (exact XID reconciliation, startup fence, staff recheck); VPS COMMIT-loss acceptance pending |
+| D1 | P1 | A certified autosave rejection closes the participant and retains the account fence | Closed: active since R1 (release 20261101T050356Z) with automated retry, duplicate, concurrency, disconnect and unknown-COMMIT tests; no rejection in VPS play or in the simulation of 600 players in two channel processes (build/w9-load-20261101/); owner approved |
+| D2 | P1 | Pre-COMMIT timeout cleanup uses the expired operation context and can report an unknown outcome | Closed: active since R1 with exact XID reconciliation and the closed-connection fix (hotfix 20261101T064639Z); real-TCP COMMIT loss before, during and after COMMIT and a crash under load passed on local PostgreSQL; 0 indeterminate writes in VPS play and simulation; owner approved |
 | D3 | P1 | The default 256-packet output queue closes on overflow without a cause-specific diagnostic | Active (release 20261101T050356Z) from W0 (causes) and W3 (batching, byte bound, deferred scene). Real TCP accepted: local slow links (0 server closes, peak 77/256) and VPS play over a 250 ms link (peak 0–1/256, send queue at most 1 KB, no overflow close); load with many players pending |
-| D4 | P2 | A blackholed socket can retain account ownership until transport detection and actor cleanup finish | Active (release 20261101T050356Z) from W4 (keepalive, TCP_USER_TIMEOUT, bounded wait for a settling owner); loopback blackhole and VPS Linux 6.8 kernel `TCP_USER_TIMEOUT` tests passed |
+| D4 | P2 | A blackholed socket can retain account ownership until transport detection and actor cleanup finish | Closed: active since R1 (keepalive, TCP_USER_TIMEOUT, bounded wait for a settling owner); loopback blackhole and VPS Linux 6.8 kernel tests passed; owner approved |
 | D5 | P1 | Handler panic leaves one World in maintenance while readiness can stay 200; tick panic can terminate the shared process | Active (release 20261101T050356Z) from W5 (tick recovery, readiness). W9 channel-process mode is active in R4 code but not configured; locally, killing channel 1 kept channel 2 sessions and admission. Cutover needs separate authorization |
-| D8 | P1 | The configured critical-write deadline also bounds account reads; initial authentication storage errors use the invalid-credentials panel | Active (release 20261101T050356Z) from W2; pool sizing awaits VPS measurement |
-| D9 | P2 | Four shared authentication slots reject excess concurrent logins; password hashing competes for process CPU | Active (release 20261101T050356Z) from W2; hash concurrency tuning awaits VPS measurement |
-| D10 | P2 | The tracked game unit requires the PostgreSQL instance; explicit database stop/restart propagates to the game | Active (release 20261101T050356Z): `Wants=` unit installed and store recovery from W5 |
-| D11 | P2 | Terminal player saves are sequential across the shared actor, within one 20-second process shutdown budget | Active (release 20261101T050356Z) from W5 (bounded workers); 300 populated accounts drain in 191 ms locally; VPS measurement pending |
+| D8 | P1 | The configured critical-write deadline also bounds account reads; initial authentication storage errors use the invalid-credentials panel | Closed: active since R1; simulation of 600 players in two channel processes (build/w9-load-20261101/) with 8 database connections per process: critical write p99 at most 25 ms, oldest pending write at most 17 ms, no admission rejection |
+| D9 | P2 | Four shared authentication slots reject excess concurrent logins; password hashing competes for process CPU | Closed: active since R1; simulation of 600 players in two channel processes (build/w9-load-20261101/): 600 logins in 60 s waited at most 1 ms for a password-hash slot, 0 busy refusals |
+| D10 | P2 | The tracked game unit requires the PostgreSQL instance; explicit database stop/restart propagates to the game | Closed: active since R1 (`Wants=` unit, restart limit, store recovery from W5); owner approved |
+| D11 | P2 | Terminal player saves are sequential across the shared actor, within one 20-second process shutdown budget | Closed: active since R1 (bounded final-save workers); 300 populated accounts drain in 191 ms in the W5 simulation; VPS shutdowns drained without failure |
 | P1 | P2 | Both channels share one serialized gameplay actor | Measured: 300 active players on one channel add 12 ms (p50) / 22 ms (p99) per 500 ms cycle to the other; ownership inventory recorded (W9 item 1). R1–R3 are active; W9 phases 1–5 (schema v17–v20) are active in R4 in single-process mode and passed a local two-process isolation run; the channel-process cutover needs separate authorization |
-| P2 | P2 | Autosave submits a full account snapshot and fences that account during persistence settlement | Active (release 20261101T050356Z) from W7 (unchanged writes skipped; autosave holds no input; later writes ordered behind it); VPS latency percentiles pending |
-| P3 | P2 | The final login account reload and character-state entry read run on the shared gameplay actor | Active (release 20261101T050356Z) from W2 |
-| P6 metrics | P2 | Staff metrics omit pool statistics and detailed critical-write state; transport closes lack cause counters | Active (release 20261101T050356Z) from W0; VPS observation pending |
-| P7 / P4 | P2 | Mob activation repeats expensive target and runtime checks before exact distance rejection on movement | Active (release 20261101T050356Z) from W6 (distance first; one neighborhood read per recompute pass, about −48% per step at 300 players); VPS confirmation pending |
+| P2 | P2 | Autosave submits a full account snapshot and fences that account during persistence settlement | Closed: active since R1 (W7); simulation of 600 players in two channel processes (build/w9-load-20261101/): 26,838 critical commits with p99 at most 25 ms and 25,137 unchanged autosaves skipped without SQL |
+| P3 | P2 | The final login account reload and character-state entry read run on the shared gameplay actor | Closed: active since R1 (W2); simulation of 600 players in two channel processes (build/w9-load-20261101/): 600 entry reloads off the actor with loop lag p99 at most 10 ms; owner approved |
+| P6 metrics | P2 | Staff metrics omit pool statistics and detailed critical-write state; transport closes lack cause counters | Closed: active since R1 (W0) in the staff Runtime metrics; transport close causes, pool and critical-write state observed in the simulation; owner approved |
+| P7 / P4 | P2 | Mob activation repeats expensive target and runtime checks before exact distance rejection on movement | Closed: active since R1 (W6); simulation of 600 players in two channel processes (build/w9-load-20261101/) at 300 players per channel: loop lag p99 at most 10 ms (max 33 ms), tick p99 at most 50 ms |
 | P8 | P2 | Several routine PvP, missed-attack and pickup logs bypass gameplay summary mode on the actor | Closed: active since release 20261101T050356Z; VPS play on 2026-11-01 logged one GAMEPLAY summary per minute (skills, kills, drops) and no per-event line |
-| P10 | P2 | Guild and instance snapshots each use a singleton row and shared reservation; an instance reservation skips instance lifecycle work | Measured: 100 active runtimes give a 76 KB aggregate written in 2.6 ms (p50), 3.3 ms max; `world_instance_tick_skipped_total` observes skips. R1–R3 are active; W8 per-runtime and per-guild rows and reservations are active in R4 (release 20261101T145133Z, schema v15/v16); VPS skip rate with players pending |
+| P10 | P2 | Guild and instance snapshots each use a singleton row and shared reservation; an instance reservation skips instance lifecycle work | Closed: W8 active in R4 (release 20261101T145133Z); per-runtime and per-guild rows proven by PostgreSQL tests; 0 skipped instance ticks in the simulation of 600 players in two channel processes (build/w9-load-20261101/) |
 
 ### Evidence and acceptance boundaries
 
@@ -313,7 +313,7 @@ This audit does not independently certify the deployed panel or sampler.
 | --- | --- | --- |
 | P4 | The expansion supplied the missing benchmark; the local cost is now reproduced and tracked with P7. Ordinary movement already uses spatial edge deltas | Keep activation maintenance distinct from visibility refresh; measure full movement and teleport paths separately |
 | P6 | Tracked deployment sets `MemoryMax=1200M`, `CPUQuota=150%` and `TasksMax=128`; no explicit `GOMEMLIMIT` is present in tracked configuration. Private environment/drop-ins may differ. No memory/thread exhaustion was demonstrated | Inspect effective VPS settings, peak RSS/Go memory, thread counts and load before choosing limits |
-| P6 metrics | The claim that metrics are invisible without `debug_address` is false. The authenticated staff sampler uses `control.ReadRuntime`, atomic counters and `runtime/metrics` independently | Use the existing staff metrics endpoint; enable loopback-only pprof/expvar only if deeper profiling is needed |
+| P6 metrics | The claim that metrics are invisible without `debug_address` is false. The authenticated staff sampler uses `control.ReadRuntime`, atomic counters and `runtime/metrics` independently | Closed: active since R1 (W0) in the staff Runtime metrics; transport close causes, pool and critical-write state observed in the simulation; owner approved |
 
 ### Audit validation
 
@@ -720,6 +720,31 @@ shutdown drain with players (D11), autosave latency percentiles under load (P2),
 many players (P7/P4) and the instance skip rate (P10); these need more players. Loop lag, tick, pool
 and critical-queue values are in the staff panel's Runtime metrics, which need a staff session; this
 inspection used none.
+
+### Load simulation — 2026-11-01, two channel processes, 600 players
+
+The owner accepted simulation as the load evidence: more than a few players cannot be gathered for a
+VPS test. Run: R4 code (commit `a88fff03`), two processes in channel-process mode on local
+PostgreSQL with the production limits (8 database connections, 4 critical workers, 4 hash slots,
+256-packet output queue, 400 connections per process; only the per-IP limits were raised because all
+bots share 127.0.0.1). 300 bots per channel connected in 60 s and moved and attacked for 4 minutes
+(about 70,000 attacks per channel). Evidence: `build/w9-load-20261101/`.
+
+| Measure | Channel 1 | Channel 2 |
+| --- | --- | --- |
+| Players in world | 300 | 300 |
+| Loop lag p50 / p99 / max | ≤1 ms / ≤5 ms / 33 ms | ≤1 ms / ≤10 ms / 14.5 ms |
+| Tick p50 / p99 | ≤5 ms / ≤50 ms | ≤10 ms / ≤50 ms |
+| Critical writes committed / p99 / oldest pending | 13,666 / ≤25 ms / 17 ms | 13,172 / ≤10 ms / 5 ms |
+| Unchanged autosaves skipped | 12,797 | 12,340 |
+| Hash-slot wait / busy refusals | ≤1 ms / 0 | ≤1 ms / 0 |
+| Output queue high water / overflow closes | 195/256 / 0 | 194/256 / 0 |
+| Indeterminate writes / panics | 0 / 0 | 0 / 0 |
+
+Channel 2 had one certified rejection at start: both processes wrote the guild registry header at the
+same time, the version check refused the second write, and channel 2 reloaded the row (W9 phase 3
+working as designed). Seven bot read timeouts and all 600 closes happened at the planned end of the
+run, from the bots; the server logged no timeout or overflow close.
 
 ## Reports and acceptance checks
 

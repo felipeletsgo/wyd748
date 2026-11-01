@@ -1,7 +1,7 @@
 [Unit]
-# One game process per channel (W9 phase 5). %i is the channel number. The
-# release scripts do not install this template; the cutover from wyd-game.service
-# is a separate authorized step (DOCS/server/server-correction-plan.md).
+# One game process per channel (W9 phase 5). %i is the channel number. A full
+# release installs this template; wyd-channel-processes enable switches from
+# wyd-game.service to wyd-game@1 and wyd-game@2 (DOCS/server/server-correction-plan.md).
 Description=WYD authoritative native game server, channel %i
 After=network.target postgresql@18-main.service
 # Wants, not Requires: a database restart must not stop the game. The server

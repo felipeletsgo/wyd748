@@ -23,6 +23,15 @@ test -L /srv/wyd-go/current
 test -f /etc/wyd-go/game.env
 test -f /etc/wyd-go/player.env
 previous_schema=$(runuser -u postgres -- psql -X -p 5433 -d wydgo -Atc 'SELECT max(version) FROM schema_migrations')
+# Channel-process mode (W9): the game runs as wyd-game@1 and wyd-game@2 with
+# configurations derived from server.txt by channel-configs.py.
+channel_processes=false
+if systemctl is-enabled --quiet wyd-game@1.service 2>/dev/null; then channel_processes=true; fi
+game_units() { if [ "$channel_processes" = true ]; then echo wyd-game@1 wyd-game@2; else echo wyd-game; fi; }
+game_active() {
+    local unit
+    for unit in $(game_units); do systemctl is-active --quiet "$unit" || return 1; done
+}
 cd "$stage"
 sha256sum --check --strict release.sha256
 if [ "$game_only" = true ]; then
@@ -64,18 +73,18 @@ if [ "$game_only" = true ]; then
         trap - ERR
         ln -sfn "$previous" /srv/wyd-go/current.new
         mv -Tf /srv/wyd-go/current.new /srv/wyd-go/current
-        systemctl restart wyd-game || true
+        systemctl restart $(game_units) || true
         echo "Game activation failed; restored $previous" >&2
     }
     trap rollback_game ERR
     test -z "$(ss -Htn state established '( sport = :8281 or sport = :8282 )')"
     ln -sfn "$release" /srv/wyd-go/current.new
     mv -Tf /srv/wyd-go/current.new /srv/wyd-go/current
-    systemctl restart wyd-game
+    systemctl restart $(game_units)
     ready=false
     for attempt in {1..30}; do
         if curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8083/readyz &&
-            systemctl is-active --quiet wyd-game &&
+            game_active &&
             ss -lnt '( sport = :8281 )' | grep -q LISTEN &&
             { ! grep -qx 'channel2_enabled=true' /etc/wyd-go/server.txt ||
                 ss -lnt '( sport = :8282 )' | grep -q LISTEN; }; then
@@ -121,7 +130,7 @@ restart_log_reader=false
 cmp -s "$previous/game/wyd-log-reader" "$release/game/wyd-log-reader" || restart_log_reader=true
 cmp -s "$previous/game/wyd-player-api" "$release/game/wyd-player-api" || restart_player=true
 cmp -s /etc/wyd-go/server.txt config/server.txt || restart_game=true
-for unit in wyd-game.service wyd-player.service wyd-backup.service wyd-backup.timer; do
+for unit in wyd-game.service wyd-game@.service wyd-player.service wyd-backup.service wyd-backup.timer; do
     if ! cmp -s "/etc/systemd/system/$unit" "config/$unit"; then
         restart_game=true
         restart_player=true
@@ -129,6 +138,11 @@ for unit in wyd-game.service wyd-player.service wyd-backup.service wyd-backup.ti
 done
 
 cp -p /etc/wyd-go/server.txt "/etc/wyd-go/server.txt.pre-$stamp"
+for channel in 1 2; do
+    if [ -e "/etc/wyd-go/server-ch$channel.txt" ]; then
+        cp -p "/etc/wyd-go/server-ch$channel.txt" "/etc/wyd-go/server-ch$channel.txt.pre-$stamp"
+    fi
+done
 cp -p /etc/wyd-go/game.env "/etc/wyd-go/game.env.pre-$stamp"
 cp -p /etc/wyd-go/player.env "/etc/wyd-go/player.env.pre-$stamp"
 cp -p /etc/wyd-go/staff.json "/etc/wyd-go/staff.json.pre-$stamp"
@@ -143,7 +157,7 @@ switch_to() {
 rollback() {
     trap - ERR
     echo "Restoring release $previous" >&2
-    if [ "$game_touched" = true ]; then systemctl stop wyd-game || true; fi
+    if [ "$game_touched" = true ]; then systemctl stop $(game_units) || true; fi
     if [ "$player_touched" = true ]; then systemctl stop wyd-player || true; fi
     # Versions 6-11 add counter/staff tables and read-only views, not account
     # transformations. Keep these additions, but restore the expected marker
@@ -171,13 +185,18 @@ rollback() {
     fi
     switch_to "$previous"
     cp -p "/etc/wyd-go/server.txt.pre-$stamp" /etc/wyd-go/server.txt
+    for channel in 1 2; do
+        if [ -e "/etc/wyd-go/server-ch$channel.txt.pre-$stamp" ]; then
+            cp -p "/etc/wyd-go/server-ch$channel.txt.pre-$stamp" "/etc/wyd-go/server-ch$channel.txt"
+        fi
+    done
     cp -p "/etc/wyd-go/game.env.pre-$stamp" /etc/wyd-go/game.env
     cp -p "/etc/wyd-go/player.env.pre-$stamp" /etc/wyd-go/player.env
     cp -p "/etc/wyd-go/staff.json.pre-$stamp" /etc/wyd-go/staff.json
     cp -p "/etc/caddy/wyd-site.caddy.pre-$stamp" /etc/caddy/wyd-site.caddy
     cp -p "/etc/systemd/system/.wyd-pre-$stamp/"* /etc/systemd/system/
     systemctl daemon-reload
-    if [ "$game_touched" = true ]; then systemctl restart wyd-game || true; fi
+    if [ "$game_touched" = true ]; then systemctl restart $(game_units) || true; fi
     if [ "$player_touched" = true ]; then systemctl restart wyd-player || true; fi
     systemctl reload caddy || true
 }
@@ -204,7 +223,15 @@ python3 config/set-turnstile-secret.py --from-player-env
 install -m 700 config/set-turnstile-secret.py /usr/local/sbin/wyd-set-turnstile-secret
 cmp -s "/etc/wyd-go/game.env.pre-$stamp" /etc/wyd-go/game.env || restart_game=true
 install -m 644 config/server.txt /etc/wyd-go/server.txt
-install -m 644 config/wyd-game.service config/wyd-player.service config/wyd-backup.service config/wyd-backup.timer /etc/systemd/system/
+install -m 755 config/channel-configs.py /usr/local/sbin/wyd-channel-configs
+install -m 700 config/channel-processes.sh /usr/local/sbin/wyd-channel-processes
+if [ "$channel_processes" = true ]; then
+    python3 config/channel-configs.py /etc/wyd-go/server.txt /etc/wyd-go
+    for channel in 1 2; do
+        cmp -s "/etc/wyd-go/server-ch$channel.txt.pre-$stamp" "/etc/wyd-go/server-ch$channel.txt" || restart_game=true
+    done
+fi
+install -m 644 config/wyd-game.service config/wyd-game@.service config/wyd-player.service config/wyd-backup.service config/wyd-backup.timer /etc/systemd/system/
 install -m 700 config/backup.sh /usr/local/sbin/wyd-backup
 install -m 644 config/wyd-site.caddy /etc/caddy/wyd-site.caddy
 # Staff panel log reader: its own user and socket. Each step only warns on
@@ -242,7 +269,7 @@ if [ "$restart_game" = true ]; then
     player_touched=true
     systemctl stop wyd-player
     game_touched=true
-    systemctl restart wyd-game
+    systemctl restart $(game_units)
 fi
 # The player role may write only security counters, never game account state.
 schema_ready=false
@@ -263,7 +290,7 @@ ready=false
 for attempt in {1..15}; do
     if curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8083/readyz &&
         curl --fail --silent -o /dev/null -H 'Host: wyd.forjago.com' http://127.0.0.1:8082/readyz &&
-        systemctl is-active --quiet wyd-game &&
+        game_active &&
         ss -lnt '( sport = :8281 )' | grep -q LISTEN &&
         { [ "$second_channel" = false ] || ss -lnt '( sport = :8282 )' | grep -q LISTEN; }; then
         ready=true

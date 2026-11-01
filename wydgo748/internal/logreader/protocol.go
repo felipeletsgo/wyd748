@@ -29,9 +29,10 @@ const (
 )
 
 // Sources maps the public source names to their fixed systemd units. Nothing
-// outside this map can be read.
+// outside this map can be read. The game pattern reads the single game
+// process and the channel processes wyd-game@N (W9).
 var Sources = map[string]string{
-	"game":   "wyd-game.service",
+	"game":   "wyd-game*.service",
 	"player": "wyd-player.service",
 	"backup": "wyd-backup.service",
 }

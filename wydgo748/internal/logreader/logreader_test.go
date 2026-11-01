@@ -126,7 +126,7 @@ func TestServerFiltersPagesAndAuthorizes(t *testing.T) {
 	r := validRequest()
 	r.Query = "login"
 	page, err := client.Do(context.Background(), r)
-	if err != nil || page.Error != "" || len(page.Entries) != 2 || page.Entries[1].Cursor != "c3" || page.NextCursor != "c3" || journal.unit != "wyd-game.service" {
+	if err != nil || page.Error != "" || len(page.Entries) != 2 || page.Entries[1].Cursor != "c3" || page.NextCursor != "c3" || journal.unit != "wyd-game*.service" {
 		t.Fatal(page, err)
 	}
 	r.Cursor = page.NextCursor
