@@ -27,8 +27,9 @@ struct GuildMarkRequest
 	DWORD size;
 };
 
-std::mutex g_guildMarkMutex;
-std::vector<GuildMarkRequest*> g_guildMarkDone;
+// C-12: the completion queue is process-lifetime, so a download thread that
+// finishes during shutdown never touches a destroyed mutex or vector.
+using GuildMarkQueue = guild_mark_download::CompletionQueue<GuildMarkRequest>;
 // Key of the request in flight per cache slot (0 = none) and the last failure,
 // so a missing mark is retried after guild_mark_download::RetryMs.
 int g_guildMarkPendingKey[64]{};
@@ -55,8 +56,7 @@ DWORD WINAPI DownloadGuildMark(void* pArg)
 		}
 		InternetCloseHandle(session);
 	}
-	std::lock_guard<std::mutex> lock(g_guildMarkMutex);
-	g_guildMarkDone.push_back(request);
+	GuildMarkQueue::Shared().Push(request);
 	return 0;
 }
 
@@ -81,11 +81,7 @@ void RequestGuildMark(int markIndex, int guildKey, const char* fileName)
 
 void TMFieldScene::PumpGuildMarkDownloads()
 {
-	std::vector<GuildMarkRequest*> done;
-	{
-		std::lock_guard<std::mutex> lock(g_guildMarkMutex);
-		done.swap(g_guildMarkDone);
-	}
+	const std::vector<GuildMarkRequest*> done = GuildMarkQueue::Shared().Drain();
 	for (auto request : done)
 	{
 		const int index = request->markIndex;

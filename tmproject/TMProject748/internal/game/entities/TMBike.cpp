@@ -39,9 +39,11 @@ int TMBike::FrameMove(unsigned int dwServerTime)
         else
             m_vecPosition.x = (3.0f * fProgress) + m_vecStartPosition.x;
 
-        if (fProgress < 0.1f)
+        // The camera has no focus while the local actor is gone from the scene.
+        TMObject* pFocused = g_pObjectManager->m_pCamera->GetFocusedObject();
+        if (fProgress < 0.1f && pFocused)
         {
-            float fDis = g_pObjectManager->m_pCamera->m_pFocusedObject->m_vecPosition.DistanceFrom(m_vecPosition);
+            float fDis = pFocused->m_vecPosition.DistanceFrom(m_vecPosition);
             if (fDis < 4.0f)
                 GetSoundAndPlay(9, 0, 0);
         }

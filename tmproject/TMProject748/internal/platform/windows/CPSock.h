@@ -22,7 +22,9 @@ public:
 	// Starts a fresh stream; connecting and blocked sends remain queued.
 	bool SendHandshake();
 	int Receive();
-	enum class EventResult { Ignored, ReadReady, Disconnected };
+	// ReadThenDisconnect: a graceful close left bytes in the receive window.
+	// The caller frames them, then closes the stream and reports one disconnect.
+	enum class EventResult { Ignored, ReadReady, Disconnected, ReadThenDisconnect };
 	EventResult HandleNetworkEvent(WPARAM socket, LPARAM notification);
 	// Serializes window notifications across modal message pumps. Packet storage
 	// remains borrowed until the callback returns; nested events are deferred.
@@ -65,6 +67,13 @@ public:
 	int ErrCount;
 
 private:
+	enum class ReceiveStatus { Appended, WouldBlock, Closed };
+	// One recv into the free receive window, after reclaiming consumed bytes.
+	ReceiveStatus ReceiveOnce();
+	// Reads bytes that remain after a graceful close notification. Returns
+	// true when the receive window holds bytes that still need framing.
+	bool DrainReceive();
+
 	struct PendingEvent {
 		WPARAM socket;
 		LPARAM notification;

@@ -245,7 +245,7 @@ foreach ($entry in @(Get-ChildItem -LiteralPath $dataRoot -Force)) {
 # Client crash evidence, the local client ZIP, and the legacy runtime log have
 # explicit names and retention rules in DOCS/agent-environments.md.
 $allowedIgnored = '^(?:references/|build/|tmproject/build/|\.codex/|\.venv/|\.claude/settings\.local\.json$' +
-    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|WydCrashReporter\.dll$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|dumps/(?:crash-monitor-p\d+\.log|client-crash-[^/]+\.dmp)$|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
+    '|tmproject/client748/(?:WYD\.exe|WYDLauncher\.exe|WYDLauncherLanguage\.dll$|WydCrashReporter\.dll$|prerequisites/(?:vc_redist\.x86\.exe)?$|update\.dat|guilds\.txt|lang\.txt$|SkillData\.csv|screenshot/|dumps/(?:crash-monitor-p\d+\.log|client-crash-[^/]+\.dmp)$|[^/]+\.log$|client-crash-[^/]+\.dmp$)' +
     '|tmproject/client748/dumps/$|tmproject/client748\.zip$|tmproject/WYD 7\.48 PORTUGUES/WYD\.log$' +
     '|wydgo748/data/catalog/SkillData\.bin$|wydgo748/runtime/' +
     '|wydgo748/web/portal/(?:node_modules/|dist/|\.astro/|src/data/catalog\.generated\.json$|\.env))'

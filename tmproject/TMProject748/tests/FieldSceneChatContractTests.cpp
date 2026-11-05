@@ -67,11 +67,11 @@ int RunFieldSceneChatContractTests(int& checks)
             "the native 7.48 channel selection keeps its polarity");
     }
     const auto party = source_contract::Method(chat, signatures[4]);
-    check(party.find("if (!pStd || !m_pChatList || !m_pPartyList || m_pPartyList->m_nNumItem <= 0)") <
-        party.find("GetHumanByID"), "party controls are guarded before use");
+    check(source_contract::InOrder(party.find("if (!pStd || !m_pChatList || !m_pPartyList || m_pPartyList->m_nNumItem <= 0)"),
+        party.find("GetHumanByID")), "party controls are guarded before use");
     const auto indexed = source_contract::Method(chat, signatures[5]);
-    check(indexed.find("if (!pStd || !m_pChatList || !m_pPartyList)") <
-        indexed.find("pStd->String[0]"), "indexed chat guards partial scene initialization");
+    check(source_contract::InOrder(indexed.find("if (!pStd || !m_pChatList || !m_pPartyList)"),
+        indexed.find("pStd->String")), "indexed chat guards partial scene initialization");
     // 0x106 is shown by TMScene::OnPacketEvent before the field dispatch; the
     // field scene's empty handler was removed with the other stubs.
     check(source_contract::Method(chat, "int TMFieldScene::OnPacketMessageChat_Param(MSG_STANDARD* pStd)").empty(),
@@ -93,8 +93,8 @@ int RunFieldSceneChatContractTests(int& checks)
         "int TMScene::OnMessagePanelPacket(MSG_STANDARD*& pStd)");
     check(noticeBody.find("m_pMessagePanel->SetVisible(1, 1)") != std::string::npos,
         "server message panels retain the top notice route");
-    check(whisper.find("if (!m_pPartyList)\n\t\t\treturn 1;") <
-        whisper.find("m_pPartyList->m_nNumItem"), "party whisper keeps its consumed early return");
+    check(source_contract::InOrder(whisper.find("if (!m_pPartyList)\n\t\t\treturn 1;"),
+        whisper.find("m_pPartyList->m_nNumItem")), "party whisper keeps its consumed early return");
     const auto dispatch = source_contract::Method(core,
         "int TMFieldScene::OnPacketEvent(unsigned int dwCode, char* buf)");
     for (const auto handler : {"OnPacketMessageChat(", "OnPacketMessageChat_Index(",
@@ -104,7 +104,8 @@ int RunFieldSceneChatContractTests(int& checks)
         "int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)", "TMFieldScene");
     const auto leaveStart = controls.find("if (idwControlID == 1864)");
     const auto closeStart = controls.find("if (idwControlID == 1865)");
-    const auto leave = leaveStart < closeStart ? controls.substr(leaveStart, closeStart - leaveStart) : std::string{};
+    const auto leave = source_contract::InOrder(leaveStart, closeStart)
+        ? controls.substr(leaveStart, closeStart - leaveStart) : std::string{};
     check(!leave.empty() && leave.find("MSG_RemoveParty message{}") != std::string::npos &&
         leave.find("message.Header.Type = MSG_RemoveParty_Opcode") != std::string::npos &&
         leave.find("message.Header.ID = m_pMyHuman->m_dwID") != std::string::npos &&

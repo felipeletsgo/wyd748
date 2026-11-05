@@ -6,6 +6,7 @@
 #include "SControlContainer.h"
 #include "TMUtil.h"
 #include "../../application/IndexedPartyMessage.h"
+#include "../../application/ChatListRows.h"
 
 void TMFieldScene::SetWhisper(char cOn)
 {
@@ -304,41 +305,27 @@ void TMFieldScene::InsertInChatList(SListBox* pChatList, STRUCT_MOB *pMobData, S
 
 	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgWhisper)->Type, reinterpret_cast<char*>(&stMsgWhisper), sizeof(stMsgWhisper)});
 
-	int len = strlen(stMsgWhisper.String) + strlen(pMobData->MobName);
+	// Rows are created only when the list exists and only for rows with text
+	// (the second row of a short message was allocated and never owned).
+	const size_t len = strlen(stMsgWhisper.String) + strlen(pMobData->MobName);
 	const size_t maxLen = 55;
+	char istrText[128]{};
+	const char* tail = "";
+	float rowWidth = 300.0f;
 	if (len <= maxLen)
 	{
-		char istrText[128]{};
 		sprintf(istrText, "[%s]> %s", pMobData->MobName, &stMsgWhisper.String[startId]);
-
-		auto ipNewItem = new SListBoxItem(istrText, dwColor, 0.0, 0.0, 300.0f, 16.0f, 0, 0x77777777, 1, 0);
-		if (ipNewItem && pChatList)
-			pChatList->AddItem(ipNewItem);
 	}
 	else
 	{
-		char dest[128]{};
-		char dest2[128]{};
-		if (IsClearString(stMsgWhisper.String, maxLen - 1))
-		{
-			strncpy(dest, stMsgWhisper.String, maxLen);
-			sprintf(dest2, "%s", &stMsgWhisper.String[maxLen]);
-		}
-		else
-		{
-			strncpy(dest, stMsgWhisper.String, maxLen - 1);
-			sprintf(dest2, "%s", &stMsgWhisper.String[maxLen - 1]);
-		}
-
-		char istrText[128]{};
-		sprintf(istrText, "[%s]> %s", g_pObjectManager->m_stMobData.MobName, &dest[startId]);
-
-		auto ipNewItem = new SListBoxItem(istrText, dwColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-		if (ipNewItem && pChatList)
-			pChatList->AddItem(ipNewItem);
-
-		auto ipNewItem2 = new SListBoxItem(dest2, dwColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-		if (dest2[0] && ipNewItem2 && pChatList)
-			pChatList->AddItem(ipNewItem2);
+		char head[128]{};
+		tail = chat_rows::Split(stMsgWhisper.String,
+			chat_rows::CutAt(maxLen, IsClearString(stMsgWhisper.String, maxLen - 1) != 0), head);
+		sprintf(istrText, "[%s]> %s", g_pObjectManager->m_stMobData.MobName, &head[startId]);
+		rowWidth = 280.0f;
 	}
+
+	chat_rows::Add(pChatList, istrText, tail, [&](const char* row) {
+		return new SListBoxItem(row, dwColor, 0.0f, 0.0f, rowWidth, 16.0f, 0, 0x77777777, 1, 0);
+	});
 }

@@ -5,6 +5,8 @@
 #include "Structures.h"
 #include "Basedef.h"
 #include "Enums.h"
+#include "../../application/PendingMoveTarget.h"
+#include "../../application/EffectEmissionClock.h"
 #include <mmsystem.h>
 #include <dsound.h> 
 
@@ -121,7 +123,7 @@ public:
     void MoveTo(TMVector2 vecPos);
     void MoveAttack(TMHuman* pTarget);
     void MoveGet(TMItem* pTarget);
-    void Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, char cSkillIndex);
+    void Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, short sSkillIndex);
     void Attack(ECHAR_MOTION eMotion, TMHuman* pTarget, short cSkillIndex);
     void Punched(int nDamage, TMVector2 vecFrom, short sSkillIndex = -1);
     void Fire(TMObject* pTarget, int nSkill);
@@ -157,6 +159,9 @@ public:
     int IAmkhepra();
 
     void SetMantua(int nTexture);
+    // Rebuilds only the cape mesh from the current cape state and the costume
+    // selected by the last InitObject (citizenship metadata refresh).
+    void RefreshMantua();
     int SetCitizenMantle(int BaseSkin);
     int UnSetCitizenMantle(int BaseSkin);
     int MAutoAttack(TMHuman* pTarget, int mode);
@@ -182,6 +187,8 @@ private:
 	void InitSkinLookInfo();
 	void InitEyeFireEffects();
 	void InitShadeEffects();
+	// Creates m_pMantua when the cape state and costume selector allow a cape.
+	void CreateMantua(int nCos);
     bool _locationCheck(TMVector2 vec2, int mapX, int mapY);
     int SetHumanCostume();
     void RenderEffect_RudolphCostume(unsigned int dwServerTime);
@@ -216,19 +223,20 @@ public:
     bool m_bImportedMountVisual = false;
     LOOK_INFO m_stMountLook;
     SANC_INFO m_stMountSanc;
-    SANC_INFO m_stOldMountSanc;
+    SANC_INFO m_stOldMountSanc{};
     HUMAN_LOOKINFO m_stLookInfo;
     SANC_INFO m_stSancInfo;
     SANC_INFO m_stColorInfo;
-    SANC_INFO m_stOldSancInfo;
-    SANC_INFO m_stOldColorInfo;
+    SANC_INFO m_stOldSancInfo{};
+    SANC_INFO m_stOldColorInfo{};
     unsigned int m_dwDelayDel;
     unsigned int m_BigHp;
     unsigned int m_MaxBigHp;
     unsigned int m_usHP;
-    unsigned int m_BigMp;
-    unsigned int m_MaxBigMp;
-    unsigned int m_usMP;
+    // UpdateScore and the vitals sync read the MP pool before any packet.
+    unsigned int m_BigMp = 0;
+    unsigned int m_MaxBigMp = 0;
+    unsigned int m_usMP = 0;
     float m_fMaxSpeed;
     float m_fMoveToAngle;
     float m_fCurrAng;
@@ -260,7 +268,7 @@ public:
     TMVector2 m_vecRouteBuffer[48];
     int m_nMaxRouteIndex;
     int m_nLastRouteIndex;
-    STRUCT_ITEM TempCarry[64];
+    STRUCT_ITEM TempCarry[64]{};
     SText* m_pNameLabel;
     SText* m_pKillLabel;
     SPanel* m_pAutoTradePanel;
@@ -318,6 +326,8 @@ public:
     unsigned int m_dwEdgeColor;
     int m_nLoop;
     unsigned int m_dwOldMovePacketTime;
+    PendingMoveTarget m_pendingMoveTarget;
+    effect_emission::Clock m_manaEmission, m_avatarEmission, m_attackEmission, m_monsterEmission, m_animationEmission;
     unsigned int m_dwMoveToTime;
     unsigned int m_dwStartMoveTime;
     unsigned int m_dwDeadTime;
@@ -328,7 +338,7 @@ public:
     unsigned int m_dwLastMagicShield;
     unsigned int m_dwLastCancelTime;
     unsigned int m_dwLastSpeedUp;
-    unsigned int m_dwLastLighten;
+    unsigned int m_dwLastLighten = 0;
     unsigned int m_dwChatDelayTime;
     unsigned int m_dwLastDummyTime;
     unsigned int m_dwLastWaste;
@@ -391,9 +401,11 @@ public:
     char m_cEnchant;
     char m_cHuntersVision;
     char m_cOverExp;
-    char m_bShield2;
-    char m_cCantMove;
-    char m_cCantAttk;
+    // CheckAffect owns these flags, but the local actor reads them before its
+    // first affect update.
+    char m_bShield2 = 0;
+    char m_cCantMove = 0;
+    char m_cCantAttk = 0;
     int m_bSkillBlack;
     char m_DilpunchJewel;
     char m_MoonlightJewel;
@@ -429,7 +441,10 @@ public:
     short m_sAttackLR;
     short m_sPunchLR;
     short m_sDelayDel;
-    short m_citizen;
+    short m_citizen = 0;
+    // Costume selector of the last InitObject; RestoreDeviceObjects and
+    // RefreshMantua rebuild the cape with it.
+    int m_nCapeCostume = 0;
 
     static TMVector2 m_vecPickSize[100];
     static DWORD m_dwNameColor[9];
@@ -437,18 +452,19 @@ public:
     TMScene* m_pParentScene;
     unsigned int m_dwLastPlayPunchedTime;
     unsigned int m_dwAttackEffectTime;
-    float m_fTargetHeight;
+    float m_fTargetHeight = 0.5f;
     bool m_bPunchEffect;
     unsigned int m_dwPunchEffectTime;
     unsigned int m_nAttackDestID;
     unsigned int m_dwAvatarEffTime;
     int m_bStartAvatarEffect;
     char m_c8thSkill;
-    stGuildMarkInfo m_stGuildMark;
+    stGuildMarkInfo m_stGuildMark{};
     int m_bUsed;
     int m_bIgnoreHeight;
     TMVector2 m_vecAirMove;
-    unsigned int _dwAttackDelay;
+    // Server time of the last portal; zero means no C.C. pause.
+    unsigned int _dwAttackDelay = 0;
     int m_bCritical;
 
    

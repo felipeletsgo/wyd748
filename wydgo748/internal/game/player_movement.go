@@ -136,6 +136,7 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 	}
 	oldX, oldY := p.X, p.Y
 	lastCity := -1
+	guildAreaDenied := false
 	for p.MoveAuthorityStep < due {
 		encoded := p.MoveAuthorityRoute[p.MoveAuthorityStep]
 		direction, ok := routeDirections[encoded]
@@ -145,6 +146,11 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 		}
 		nextX := uint16(int(p.X) + direction[0])
 		nextY := uint16(int(p.Y) + direction[1])
+		if !w.guildCityAreaStepAllowed(p, nextX, nextY) {
+			w.publishPlayerStop(p)
+			guildAreaDenied = true
+			break
+		}
 		if !w.oxStepAllowed(p, nextX, nextY) || !w.guildWarStepAllowed(p, nextX, nextY) ||
 			!hiddenValleyDestinationAllowed(p, nextX, nextY, now) {
 			w.publishPlayerStop(p)
@@ -189,6 +195,12 @@ func (w *World) advancePlayerMovement(p *Player, now time.Time) {
 	}
 	if p.X != oldX || p.Y != oldY {
 		w.refreshPlayerVisibilityAfterMove(p, oldX, oldY)
+	}
+	if guildAreaDenied {
+		// Recall owns the position write. Keep the existing hometown instead of
+		// queueing a second account mutation for this rejected route.
+		w.recallFromGuildCityArea(p)
+		return
 	}
 	// Persistence retains the full account and position until acknowledgement.
 	// Queue once after all accepted steps and their state updates are complete.

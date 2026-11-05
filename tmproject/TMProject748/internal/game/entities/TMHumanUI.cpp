@@ -12,6 +12,7 @@
 #include "TMFieldScene.h"
 #include "TMObjectContainer.h"
 #include "../../application/TabLabel.h"
+#include "HumanVisualPolicy.h"
 
 void TMHuman::SetTabLabel(const char* text, unsigned char color)
 {
@@ -41,7 +42,7 @@ int TMHuman::IsMouseOver()
         m_bMouseOver = 0;
         return 0;
     }
-    if (m_cHide || m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this && !g_pCurrentScene->m_pMyHuman->m_JewelGlasses)
+    if (m_cHide || m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this && (!g_pCurrentScene->m_pMyHuman || !g_pCurrentScene->m_pMyHuman->m_JewelGlasses))
     {
         m_bMouseOver = 0;
         return 0;
@@ -369,7 +370,7 @@ int TMHuman::IsMouseOver()
             if (pSoundManager)
             {
                 auto pSoundData = pSoundManager->GetSoundData(52);
-                if (pSoundData->IsSoundPlaying())
+                if (pSoundData && pSoundData->IsSoundPlaying())
                 {
                     pSoundData->Play();
                 }
@@ -400,7 +401,7 @@ void TMHuman::LabelPosition()
         return;
 
     if (m_cHide == 1 || m_cShadow == 1 && pFScene->m_pMyHuman != this &&
-        !pFScene->m_pMyHuman->m_JewelGlasses)
+        (!pFScene->m_pMyHuman || !pFScene->m_pMyHuman->m_JewelGlasses))
     {
         m_pNameLabel->SetVisible(0);
         m_pProgressBar->SetVisible(0);
@@ -577,19 +578,24 @@ void TMHuman::LabelPosition()
                         m_pNameLabel->SetTextColor(((unsigned int)(float)(fProgress * 255.0f) << 16) | 0xFF000000);
                     }
 
-                    long long sLevel = pFScene->m_pMyHuman->m_stScore.Level;
-                    if (pFScene->m_pMyHuman->Is2stClass() == 2)
-                        sLevel += 400;
+                    // The level tint compares with the local human, which can be
+                    // absent while the field scene tears down.
+                    if (pFScene->m_pMyHuman)
+                    {
+                        long long sLevel = pFScene->m_pMyHuman->m_stScore.Level;
+                        if (pFScene->m_pMyHuman->Is2stClass() == 2)
+                            sLevel += 400;
 
-                    if (sLevel - 40 >= static_cast<long long>(m_stScore.Level) &&
-                        m_sHeadIndex > 40 && m_stScore.Level < 350 && m_sHeadIndex > 40)
-                    {
-                        m_pTitleProgressBar->m_GCProgress.dwColor = 0xFF737373;
-                    }
-                    if (sLevel - 40 < static_cast<long long>(m_stScore.Level) &&
-                        m_sHeadIndex > 40 || m_stScore.Level >= 350 && m_sHeadIndex > 40)
-                    {
-                        m_pTitleProgressBar->m_GCProgress.dwColor = 0xFFFF0000;
+                        if (sLevel - 40 >= static_cast<long long>(m_stScore.Level) &&
+                            m_sHeadIndex > 40 && m_stScore.Level < 350 && m_sHeadIndex > 40)
+                        {
+                            m_pTitleProgressBar->m_GCProgress.dwColor = 0xFF737373;
+                        }
+                        if (sLevel - 40 < static_cast<long long>(m_stScore.Level) &&
+                            m_sHeadIndex > 40 || m_stScore.Level >= 350 && m_sHeadIndex > 40)
+                        {
+                            m_pTitleProgressBar->m_GCProgress.dwColor = 0xFFFF0000;
+                        }
                     }
                     m_pNameLabel->SetVisible(1);
                     if (m_pTitleProgressBar->m_bVisible == 1)
@@ -598,9 +604,11 @@ void TMHuman::LabelPosition()
                     if (m_stGuildMark.pGuildMark && m_stGuildMark.nGuild != -1 &&
                         m_stGuildMark.pGuildMark->m_GCPanel.nMarkIndex >= 0)
                     {
+                        // Show only a mark slot inside the 64-entry table that still
+                        // belongs to this guild; index 64 and above were shown before.
                         int nMark = m_stGuildMark.pGuildMark->m_GCPanel.nMarkIndex;
-                        if (nMark < 0 || nMark > 64 || m_stGuildMark.nGuild == (g_pTextureManager->m_stGuildMark[nMark].nGuild & 0xFFFF) &&
-                            g_pTextureManager->m_stGuildMark[nMark].nGuild >> 16 == m_stGuildMark.nGuildChannel)
+                        if (guild_mark_label::Shows(g_pTextureManager->m_stGuildMark, nMark,
+                            m_stGuildMark.nGuild, m_stGuildMark.nGuildChannel))
                         {
                             if (!m_stGuildMark.bHideGuildmark)
                                 m_stGuildMark.pGuildMark->SetVisible(1);
@@ -900,7 +908,7 @@ void TMHuman::LabelPosition2()
         return;
 
     if (m_cHide == 1 || m_cShadow == 1 && pFScene->m_pMyHuman != this &&
-        !pFScene->m_pMyHuman->m_JewelGlasses)
+        (!pFScene->m_pMyHuman || !pFScene->m_pMyHuman->m_JewelGlasses))
     {
         m_pNameLabel->SetVisible(0);
         m_pProgressBar->SetVisible(0);
@@ -1079,19 +1087,24 @@ void TMHuman::LabelPosition2()
                         m_pNameLabel->SetTextColor(((unsigned int)(float)(fProgress * 255.0f) << 16) | 0xFF000000);
                     }
 
-                    long long sLevel = pFScene->m_pMyHuman->m_stScore.Level;
-                    if (pFScene->m_pMyHuman->Is2stClass() == 2)
-                        sLevel += 400;
+                    // The level tint compares with the local human, which can be
+                    // absent while the field scene tears down.
+                    if (pFScene->m_pMyHuman)
+                    {
+                        long long sLevel = pFScene->m_pMyHuman->m_stScore.Level;
+                        if (pFScene->m_pMyHuman->Is2stClass() == 2)
+                            sLevel += 400;
 
-                    if (sLevel - 40 >= static_cast<long long>(m_stScore.Level) &&
-                        m_sHeadIndex > 40 && m_stScore.Level < 350 && m_sHeadIndex > 40)
-                    {
-                        m_pTitleProgressBar->m_GCProgress.dwColor = 0xFF737373;
-                    }
-                    if (sLevel - 40 < static_cast<long long>(m_stScore.Level) &&
-                        m_sHeadIndex > 40 || m_stScore.Level >= 350 && m_sHeadIndex > 40)
-                    {
-                        m_pTitleProgressBar->m_GCProgress.dwColor = 0xFFFF0000;
+                        if (sLevel - 40 >= static_cast<long long>(m_stScore.Level) &&
+                            m_sHeadIndex > 40 && m_stScore.Level < 350 && m_sHeadIndex > 40)
+                        {
+                            m_pTitleProgressBar->m_GCProgress.dwColor = 0xFF737373;
+                        }
+                        if (sLevel - 40 < static_cast<long long>(m_stScore.Level) &&
+                            m_sHeadIndex > 40 || m_stScore.Level >= 350 && m_sHeadIndex > 40)
+                        {
+                            m_pTitleProgressBar->m_GCProgress.dwColor = 0xFFFF0000;
+                        }
                     }
                     m_pNameLabel->SetVisible(1);
                     if (m_pTitleProgressBar->m_bVisible == 1)
@@ -1100,9 +1113,11 @@ void TMHuman::LabelPosition2()
                     if (m_stGuildMark.pGuildMark && m_stGuildMark.nGuild != -1 &&
                         m_stGuildMark.pGuildMark->m_GCPanel.nMarkIndex >= 0)
                     {
+                        // Show only a mark slot inside the 64-entry table that still
+                        // belongs to this guild; index 64 and above were shown before.
                         int nMark = m_stGuildMark.pGuildMark->m_GCPanel.nMarkIndex;
-                        if (nMark < 0 || nMark > 64 || m_stGuildMark.nGuild == (g_pTextureManager->m_stGuildMark[nMark].nGuild & 0xFFFF) &&
-                            g_pTextureManager->m_stGuildMark[nMark].nGuild >> 16 == m_stGuildMark.nGuildChannel)
+                        if (guild_mark_label::Shows(g_pTextureManager->m_stGuildMark, nMark,
+                            m_stGuildMark.nGuild, m_stGuildMark.nGuildChannel))
                         {
                             if (!m_stGuildMark.bHideGuildmark)
                                 m_stGuildMark.pGuildMark->SetVisible(1);
@@ -1434,10 +1449,11 @@ void TMHuman::SetInMiniMap(unsigned int dwCol)
 
             if (g_pCurrentScene->m_pMyHuman != this)
             {
-                m_pInMiniMap = new SPanel(-2, 0.0f, 0.0f, 4.0f, 4.0f, dwCol, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-
-                if (m_pInMiniMap)
+                // Control 289 can be absent; create the marker only when the
+                // minimap panel exists to own it.
+                if (pFScene->m_pMiniMapPanel)
                 {
+                    m_pInMiniMap = new SPanel(-2, 0.0f, 0.0f, 4.0f, 4.0f, dwCol, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
                     m_pInMiniMap->m_bSelectEnable = 0;
                     pFScene->m_pMiniMapPanel->AddChild(m_pInMiniMap);
                 }
@@ -1460,7 +1476,7 @@ void TMHuman::UpdateGuildName()
         else
         {
             m_stGuildMark.nSubGuild = BASE_GetSubGuild(m_sGuildLevel);
-            m_stGuildMark.nGuild = m_usGuild % 0xFFF;
+            m_stGuildMark.nGuild = m_usGuild & 0xFFF;
             m_stGuildMark.nGuildChannel = (m_usGuild >> 12) & 0xF;
             m_stGuildMark.sGuildIndex = m_sGuildLevel;
 

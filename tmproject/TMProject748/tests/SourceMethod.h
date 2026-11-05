@@ -6,6 +6,35 @@
 #include <vector>
 
 namespace source_contract {
+// Ordering contracts: true only when both positions exist and `first` comes
+// before `second`. A raw `find(a) < find(b)` stays true when `b` is deleted,
+// because a missing anchor gives npos, the largest position.
+inline bool InOrder(std::size_t first, std::size_t second)
+{
+    return first != std::string::npos && second != std::string::npos && first < second;
+}
+
+// Both anchors must exist in a non-empty text, `first` before `second`.
+inline bool Before(const std::string& text, const std::string& first, const std::string& second)
+{
+    return !text.empty() && InOrder(text.find(first), text.find(second));
+}
+
+// Negative contracts: an empty extraction (moved file, changed signature)
+// fails instead of proving that the text does not contain `needle`.
+inline bool Lacks(const std::string& text, const std::string& needle)
+{
+    return !text.empty() && text.find(needle) == std::string::npos;
+}
+
+// Text from the first `anchor` to the end, or empty when the anchor is
+// missing. Unlike substr(find(anchor)), this never throws std::out_of_range.
+inline std::string From(const std::string& text, const std::string& anchor)
+{
+    const auto at = text.find(anchor);
+    return at == std::string::npos ? std::string{} : text.substr(at);
+}
+
 // Keep offsets while masking non-code braces in comments and literals.
 inline std::string MaskCpp(const std::string& source)
 {

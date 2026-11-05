@@ -80,7 +80,7 @@ int RunRenderStateCacheTests(int& checks)
     check(native_inventory_lighting::AlphaReference(32) == 0xAA &&
         native_inventory_lighting::AlphaReference(16) == 0xFF,
         "native inventory transparency cutoff retains translucent texture detail");
-    check(native_inventory_lighting::Ambient == 0xFFFFFFFF && native_inventory_lighting::RenderBlock != 3,
+    static_assert(native_inventory_lighting::Ambient == 0xFFFFFFFF && native_inventory_lighting::RenderBlock != 3,
         "inventory ambient is native white without replacing the port's 2D block");
     Device device;
     Cache cache;

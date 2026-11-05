@@ -1,7 +1,9 @@
 #pragma once
+#include "../../../application/EffectEmissionClock.h"
 
 #include "TMEffect.h"
 #include "Structures.h"
+#include "EffectTiming.h"
 
 class TMEffectBillBoard;
 class TMSkinMesh;
@@ -40,6 +42,7 @@ static stSwingScale sSwingScale[22] =
 
 class TMEffectSWSwing : public TMEffect
 {
+    effect_emission::Clock m_emissionClock;
 public:
     TMEffectSWSwing();
     ~TMEffectSWSwing();
@@ -49,40 +52,43 @@ public:
     virtual void SetColor(unsigned int dwColor);
 
 public:
-    unsigned int m_dwStartTime;
-    TMSkinMesh* m_pParentSkin;
-    TMEffectBillBoard* m_pEnchant;
+    // Every scalar and pointer member has a default initializer: Render can
+    // run before the first timed FrameMove (an attack sets m_cSForce first).
+    unsigned int m_dwStartTime = 0;
+    TMSkinMesh* m_pParentSkin = nullptr;
+    TMEffectBillBoard* m_pEnchant = nullptr;
     RDLVERTEX m_vertex[32];
     D3DXMATRIX m_matTemp[48];
     D3DXMATRIX m_matCombine[48];
-    unsigned int m_dwIndices[48];
-    unsigned int m_dwNumIndex;
+    unsigned int m_dwIndices[48]{};
+    unsigned int m_dwNumIndex = 0;
     D3DXMATRIX m_matRot[48];
     D3DXMATRIX m_matEffectCombine;
     D3DXMATRIX m_matEffectMat;
-    int m_nNumTicks;
-    int m_nWeaponType;
-    int m_nCurrIndex;
-    int m_bDraw;
-    int m_nPrevIndex;
-    int m_nOldIndex;
-    float m_fEffectLength;
-    float m_fWeaponLength;
-    char m_cFireEffect;
-    char m_cMagicWeapon;
-    int m_bEnchant;
-    char m_cAssert;
-    char m_cGoldPiece;
-    char m_cArmorClass;
-    char m_cMixEffect;
-    char m_cSForce;
-    int m_nHandEffect;
-    unsigned int m_dwSwingID;
-    unsigned int m_dwSWTextureIndex;
-    int m_bHide;
-    unsigned int m_dwR;
-    unsigned int m_dwG;
-    unsigned int m_dwB;
-    unsigned int m_dwOldTime;
-    unsigned int m_dwOldMixTime;
+    int m_nNumTicks = 15;
+    int m_nWeaponType = 0;
+    int m_nCurrIndex = 0;
+    int m_bDraw = 0;
+    int m_nPrevIndex = 0;
+    int m_nOldIndex = 0;
+    float m_fEffectLength = 0.0f;
+    float m_fWeaponLength = 0.0f;
+    char m_cFireEffect = 0;
+    char m_cMagicWeapon = 0;
+    int m_bEnchant = 0;
+    char m_cAssert = 0;
+    char m_cGoldPiece = 0;
+    char m_cArmorClass = 0;
+    char m_cMixEffect = 0;
+    char m_cSForce = 0;
+    int m_nHandEffect = 0;
+    unsigned int m_dwSwingID = 0;
+    unsigned int m_dwSWTextureIndex = 221;
+    int m_bHide = 0;
+    unsigned int m_dwR = 255;
+    unsigned int m_dwG = 255;
+    unsigned int m_dwB = 255;
+    // One clock per weapon emitter family (see swing_emitter::Clock).
+    swing_emitter::Clock m_emitters;
+    unsigned int m_dwOldMixTime = 0;
 };

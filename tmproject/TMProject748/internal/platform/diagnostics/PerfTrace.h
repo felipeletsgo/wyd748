@@ -14,6 +14,7 @@ struct IDirect3DDevice9;
 namespace perf_trace {
 
 enum class Phase : int { FrameMove = 0, Render, Present, CleanUp, Count };
+enum class Emitter : int { ArrowTrail = 0, AvatarDust, Lava, Count };
 
 // Counters accumulated over one sample window.
 struct Interval
@@ -34,6 +35,13 @@ struct Interval
     std::uint32_t datLoads = 0;
     double trnMs = 0.0;
     double datMs = 0.0;
+    std::uint32_t channelQueries = 0;
+    double channelMs = 0.0;
+    double channelMaxMs = 0.0;
+    std::uint32_t assetOpens = 0;
+    std::uint32_t assetMisses = 0;
+    std::uint32_t repeatedAssetMisses = 0;
+    std::uint32_t emissions[static_cast<int>(Emitter::Count)]{};
 };
 
 // Scene and process state sampled at the end of a window.
@@ -61,7 +69,8 @@ inline const char* CsvHeader()
            "setrenderstate_per_frame,settransform_per_frame,effects_created,"
            "effects_destroyed,trn_loads,trn_ms,dat_loads,dat_ms,scene,nodes,"
            "deleted_nodes,effect_nodes,human_nodes,item_nodes,ground_object_nodes,"
-           "focused,minimized,working_set_mb,cpu_pct\n";
+           "focused,minimized,working_set_mb,cpu_pct,channel_queries,channel_ms,channel_max_ms,"
+           "asset_opens,asset_misses,repeated_asset_misses,arrow_trail,avatar_dust,lava\n";
 }
 
 // Formats one CSV row. Per-frame values are averages over the window;
@@ -78,7 +87,7 @@ inline int FormatRow(char* buffer, std::size_t capacity, double elapsedSeconds,
     const double fps = windowSeconds > 0.0 ? in.frames / windowSeconds : 0.0;
     return std::snprintf(buffer, capacity,
         "%.1f,%.1f,%.2f,%.1f,%u,%.3f,%.3f,%.3f,%.3f,%.0f,%.0f,%.0f,%.0f,%.0f,%u,%u,"
-        "%u,%.2f,%u,%.2f,%d,%u,%u,%u,%u,%u,%u,%d,%d,%.1f,%.1f\n",
+        "%u,%.2f,%u,%.2f,%d,%u,%u,%u,%u,%u,%u,%d,%d,%.1f,%.1f,%u,%.2f,%.2f,%u,%u,%u,%u,%u,%u\n",
         elapsedSeconds, fps, in.frameMs / frames, in.maxFrameMs, in.hitches,
         avg(Phase::FrameMove), render, present, avg(Phase::CleanUp),
         in.drawCalls / frames, in.primitives / frames, in.setTexture / frames,
@@ -86,7 +95,9 @@ inline int FormatRow(char* buffer, std::size_t capacity, double elapsedSeconds,
         in.effectsCreated, in.effectsDestroyed, in.trnLoads, in.trnMs,
         in.datLoads, in.datMs, s.sceneType, s.nodes, s.deletedNodes,
         s.effectNodes, s.humanNodes, s.itemNodes, s.groundObjectNodes,
-        s.focused, s.minimized, s.workingSetMb, s.cpuPercent);
+        s.focused, s.minimized, s.workingSetMb, s.cpuPercent, in.channelQueries,
+        in.channelMs, in.channelMaxMs, in.assetOpens, in.assetMisses, in.repeatedAssetMisses,
+        in.emissions[0], in.emissions[1], in.emissions[2]);
 }
 
 bool Enabled();
@@ -102,6 +113,22 @@ void AddTerrainLoad(double ms);
 void AddObjectLoad(double ms);
 // Writes a "#load,<kind>,<file>,<ms>" detail line for one field file load.
 void LogLoad(const char* kind, const char* file, double ms);
+void RecordIO(const char* kind, const char* file, bool success, double ms);
+void OnEmission(Emitter emitter);
+
+class ScopedIO
+{
+public:
+    ScopedIO(const char* kind, const char* file)
+        : kind_(kind), file_(file), start_(Enabled() ? NowMs() : -1.0) {}
+    void Complete(bool success) const {
+        if (start_ >= 0.0) RecordIO(kind_, file_, success, NowMs() - start_);
+    }
+private:
+    const char* kind_;
+    const char* file_;
+    double start_;
+};
 
 // Closes a frame. Returns true when a sample window has elapsed; the caller
 // then fills a Snapshot and calls WriteSample.

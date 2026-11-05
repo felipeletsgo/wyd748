@@ -6,11 +6,14 @@
 #include "TMEffectSkinMesh.h"
 #include "TMGround.h"
 #include "TMFieldScene.h"
+#include "HumanVisualPolicy.h"
 
 void TMHuman::UpdateMount()
 {
     TMFieldScene* pScene = (TMFieldScene*)g_pCurrentScene;
-    if (pScene->m_bAirMove == 1 && g_pCurrentScene->m_pMyHuman == this)
+    // Read the field-scene member only after the scene type and owner tests.
+    if (g_pCurrentScene && g_pCurrentScene->m_pMyHuman == this &&
+        g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && pScene->m_bAirMove == 1)
     {
         m_cMount = 1;
         m_nMountSkinMeshType = 40;
@@ -313,6 +316,11 @@ void  TMHuman::SetMountCostume(unsigned int  index)
 {
     int nSanc = 0, nSkin = 0;
     int curIndex = index;
+
+    // Unmapped selectors (empty cases and the default branch) previously reset
+    // the look and switched the rider to imported-mount rules before returning.
+    if (!mount_costume::HasVisual(index))
+        return;
 
     if (index >= 11 && index <= 200 && (!(m_stScore.Merchant & 2)))
     {

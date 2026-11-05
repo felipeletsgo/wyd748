@@ -28,4 +28,6 @@ public:
     float m_fProgress;
     int m_nType;
     float m_fVectorH;
+    // Per-instance color for the shared meshes, applied in Render.
+    unsigned int m_dwMeshColor = 0;
 };

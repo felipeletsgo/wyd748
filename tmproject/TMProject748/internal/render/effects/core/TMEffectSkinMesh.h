@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../application/EffectEmissionClock.h"
 
 #include "TMEffect.h"
 #include "Structures.h"
@@ -7,6 +8,7 @@
 
 class TMEffectSkinMesh : public TMObject
 {
+    effect_emission::Clock m_emissionClock;
 public:
     TMEffectSkinMesh(int nSkinMeshType, TMVector3 vecStart, TMVector3 vecTarget, int nLevel, TMObject* pOwner);
     ~TMEffectSkinMesh();
@@ -17,6 +19,11 @@ public:
     void RestoreDeviceObjects() override;
     void InvalidateDeviceObjects() override;
     void InitPosition(float fX, float fY, float fZ) override;
+
+private:
+    // Natural expiry spawns the follow-up effect. Destruction alone (scene
+    // teardown, owner removal) must not spawn effects with a stale owner.
+    void SpawnFollowUp();
 
 public:
     LOOK_INFO m_stLookInfo;

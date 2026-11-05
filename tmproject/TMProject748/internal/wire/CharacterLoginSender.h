@@ -4,16 +4,16 @@
 #include "../application/ports/ICharacterLoginSender.h"
 #include "../application/ports/ITransport.h"
 
-// Traduz a intencao de login para o contrato wire existente. Empresta a porta
-// de transporte e nao conhece socket, controles, timer ou estado de cena.
+// Encode login intent with the existing wire contract. Borrow the transport port.
+// This sender has no socket, control, timer or scene-state dependency.
 class CharacterLoginSender final : public ICharacterLoginSender
 {
 public:
     // transport precisa permanecer vivo enquanto este adaptador for utilizado.
     explicit CharacterLoginSender(ITransport& transport) : transport_(transport) {}
 
-    // Monta os 36 bytes zerados e preenche apenas opcode e slot, como a cena
-    // anterior. O transporte pode modificar o buffer ate o retorno, sem rete-lo.
+    // Build 36 zeroed bytes and fill only opcode and slot, as the previous scene did.
+    // The transport can modify the buffer until return but cannot retain it.
     bool SendCharacterLogin(int slot) override
     {
         if (slot < 0 || slot >= 4) return false;

@@ -18,12 +18,15 @@
 #include "../../ui/CapePresentation748.h"
 #include "../../platform/windows/SocketTransport.h"
 #include "../../application/RequestCharacterLogin.h"
+#include "../../application/SceneSafetyPolicy.h"
 #include "../../wire/CharacterLoginSender.h"
 
 namespace
 {
 	void ClearDeletePassword(SEditableText* edit)
 	{
+		if (!edit)
+			return;
 		char empty[] = "";
 		edit->SetText(empty);
 	}
@@ -70,11 +73,14 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		}
 		else if (m_pHuman[nSlot] && pSelChar->MobName[nSlot][0])
 		{
-			// The adapter is borrowed only for the send; the scene keeps its controls,
-			// timestamp and the legacy policy of advancing even if the send fails.
+			// Disable the controls only after the request enters the send queue.
 			SocketTransport<CPSock> socketTransport(*g_pSocketManager);
 			CharacterLoginSender loginSender(socketTransport);
-			RequestCharacterLogin(loginSender, nSlot);
+			if (!RequestCharacterLogin(loginSender, nSlot))
+			{
+				ShowCharacterOperationMessage(21);
+				return 1;
+			}
 			m_dwLastClickLoginBtnTime = dwServerTime;
 
 			m_pBtnLogin->SetEnable(0);
@@ -88,19 +94,22 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		SEditableText* pEditID = static_cast<SEditableText*>(m_pControlContainer->FindControl(4626));
 		if (strlen(pEditID->GetText()) < 4)
 		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[15], 2000);
+			m_pMessagePanel->SetMessage(ui_text::RowOr(g_UIString, ui_text::kCharacterNameTooShort,
+				"Use at least 4 letters."), 2000);
 			m_pMessagePanel->SetVisible(1, 1);
 			return 1;
 		}
-		if (strlen(pEditID->GetText()) > 12)
+		if (strlen(pEditID->GetText()) > 13)
 		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[16], 2000);
+			m_pMessagePanel->SetMessage(ui_text::RowOr(g_UIString, ui_text::kCharacterNameTooLong,
+				"Use no more than 13 letters."), 2000);
 			m_pMessagePanel->SetVisible(1, 1);
 			return 1;
 		}
-		if (!BASE_CheckValidString(pEditID->GetText()))
+		if (!character_name::HasOnlyAsciiLetters(pEditID->GetText()))
 		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[17], 2000);
+			m_pMessagePanel->SetMessage(ui_text::RowOr(g_UIString, ui_text::kCharacterNameLetters,
+				"Use only letters A-Z or a-z."), 2000);
 			m_pMessagePanel->SetVisible(1, 1);
 			return 1;
 		}
@@ -151,6 +160,9 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 	}
 	if (idwControlID == 4615)
 	{
+		const int slot = g_pObjectManager->m_cCharacterSlot;
+		if (slot < 0 || slot >= 4 || !pSelChar->MobName[slot][0])
+			return 1;
 		m_pMessageBox->SetMessage(g_pMessageStringTable[18], 4615, 0);
 		m_pMessageBox->SetVisible(1);
 		return 1;
@@ -217,7 +229,7 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		// The selection may have been cleared since the rename prompt opened. Never
 		// use the -1 sentinel (or an invalid received index) to read MobName.
 		const int characterSlot = g_pObjectManager->m_cCharacterSlot;
-		if (characterSlot < 0 || characterSlot >= 4)
+		if (characterSlot < 0 || characterSlot >= 4 || !pSelChar->MobName[characterSlot][0])
 			return 1;
 
 		const size_t size = strnlen_s(m_pEditRename->GetText(), sizeof(m_pEditRename->m_strText));
@@ -286,7 +298,7 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 		if (!m_pPWEdit || !m_pInputPWPanel)
 			return 1;
 		const int characterSlot = g_pObjectManager->m_cCharacterSlot;
-		if (characterSlot < 0 || characterSlot >= 4)
+		if (characterSlot < 0 || characterSlot >= 4 || !pSelChar->MobName[characterSlot][0])
 			return 1;
 		const char* password = m_pPWEdit->GetText();
 		if (strnlen_s(password, sizeof(m_pPWEdit->m_strText)) >= sizeof(MSG_DeleteCharacter::Password))
@@ -331,7 +343,8 @@ int TMSelectCharScene::OnControlEvent(unsigned int idwControlID, unsigned int id
 			g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTSERVER_STATE);
 			return 1;
 		}
-		if (m_pMessageBox->m_dwMessage == 4615 && characterSlot >= 0 && characterSlot < 4)
+		if (m_pMessageBox->m_dwMessage == 4615 && characterSlot >= 0 && characterSlot < 4 &&
+			pSelChar->MobName[characterSlot][0])
 		{
 			if (m_pInputPWPanel && m_pPWEdit)
 			{

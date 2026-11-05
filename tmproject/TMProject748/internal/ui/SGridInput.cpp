@@ -1,8 +1,10 @@
 #include "pch.h"
+#include "UnsupportedItemFeatures.h"
 // SGridControl split by responsibility; see SGrid.cpp for the grid model.
 #include "SGrid.h"
 #include "GridInsertion.h"
 #include "GridItemPresentation.h"
+#include "GridInputPolicy.h"
 #include "../application/NativeVolatileRoutes.h"
 #include "TMGlobal.h"
 #include "SControlContainer.h"
@@ -30,10 +32,12 @@ int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX
 	if (!m_bEnable)
 		return 0;
 
-	int nCellVWidth = (int)(m_nWidth / (float)m_nColumnGridCount);
-	int nCellVHeight = (int)(m_nHeight / (float)m_nRowGridCount);
-	int nCellX = (int)(((float)nX - m_nPosX) / (float)nCellVWidth);
-	int nCellY = (int)(((float)nY - m_nPosY) / (float)nCellVHeight);
+	// FrameMove2 draws cells with a float cell size; the hit test must use the
+	// same geometry or Carry (215 x 167, 9 x 7) clicks select the next cell (A26-02).
+	int nCellVWidth = grid_cell_geometry::LegacyCellSize(m_nWidth, m_nColumnGridCount);
+	int nCellVHeight = grid_cell_geometry::LegacyCellSize(m_nHeight, m_nRowGridCount);
+	int nCellX = grid_cell_geometry::CellAt((float)nX - m_nPosX, m_nWidth, m_nColumnGridCount);
+	int nCellY = grid_cell_geometry::CellAt((float)nY - m_nPosY, m_nHeight, m_nRowGridCount);
 	int bPtInRect = PointInRect(nX, nY, m_nPosX, m_nPosY, m_nWidth, m_nHeight);
 	bool bClick = false;
 
@@ -420,7 +424,7 @@ ExtractedFlow SGridControl::OnShiftLeftButtonDown(int& bPtInRect, int& nCellX, i
 
 	pFScene->m_nCoinMsgType = 12;
 	pFScene->m_nLastAutoTradePos = -1;
-	pText->SetText(const_cast<char*>(grid_item_presentation::SplitCaption(g_pMessageStringTable[408])), 0);
+	pText->SetText(const_cast<char*>(grid_item_presentation::SplitCaption(g_UIString[241])), 0);
 
 	pFScene->m_pControlContainer->SetFocusedControl(pEdit);
 
@@ -442,7 +446,8 @@ int SGridControl::OnKeyDownEvent(unsigned int iKeyCode)
 	if (iKeyCode == '.' && m_eGridType == TMEGRIDTYPE::GRID_SKILLB)
 	{
 		auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-		if (g_pCurrentScene->m_pControlContainer->m_pFocusControl)
+		if (!pScene || !pScene->m_pMyHuman || !pScene->m_pControlContainer ||
+			pScene->m_pControlContainer->m_pFocusControl)
 			return 0;
 
 		int nDelIndex = -1;
@@ -474,13 +479,16 @@ int SGridControl::OnKeyDownEvent(unsigned int iKeyCode)
 			}
 		}
 
-		if (pScene->m_pGridSkillBelt3->IsVisible() == 1)
-			nDelIndex += 10;
-		if (nDelIndex >= 0)
-			g_pObjectManager->m_cShortSkill[nDelIndex] = -1;
+		// The page comes from this grid, as in SellItemOnSkillBelt. A selection on
+		// the other page must not clear this page's tenth slot (A26-03).
+		const int nShortcut = skill_belt_delete::ShortcutIndex(nDelIndex,
+			this == pScene->m_pGridSkillBelt3);
+		if (nShortcut < 0)
+			return 0;
+		g_pObjectManager->m_cShortSkill[nShortcut] = -1;
 
 		MSG_SetShortSkill stSetShortSkill{};
-		stSetShortSkill.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
+		stSetShortSkill.Header.ID = pScene->m_pMyHuman->m_dwID;
 		stSetShortSkill.Header.Type = MSG_SetShortSkill_Opcode;
 		memcpy(stSetShortSkill.Skill, g_pObjectManager->m_cShortSkill, sizeof(stSetShortSkill.Skill));
 
@@ -643,9 +651,14 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 		// UseItem/DeleteItem requests and made inventory controls appear inert.
 		const short nativeCarryPos = static_cast<short>(pFScene->GetCarrySlotForCell(
 			pItem->m_pGridControl, pItem->m_nCellIndexX, pItem->m_nCellIndexY));
+		// Skill icons and other presentation grids share this grid type but have
+		// no Carry slot; never run a Carry item action for them (A26-01).
+		if (nativeCarryPos < 0)
+			return;
 
 		int nType = BASE_GetItemAbility(pItem->m_pItem, 38);
 		int nItemSIndex = pItem->m_pItem->sIndex;
+		if (unsupported_item_features::Reject(nItemSIndex, nType)) return;
 
 		int skillId = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
 		if (skillId >= 105)
@@ -653,7 +666,9 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 
 		if (skillId == 83 && pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 		{
-			if (pFScene->m_dwOldAttackTime + 1000 < g_pTimerManager->GetServerTime())
+			// The prompt names the catalog row; a malformed wire item has none (C-35).
+			if (pFScene->m_dwOldAttackTime + 1000 < g_pTimerManager->GetServerTime() &&
+				pItem->m_pItem && WYD748_IsValidItemIndex(pItem->m_pItem->sIndex))
 			{
 				char szMessage[128]{};
 				sprintf(szMessage, g_pMessageStringTable[149], g_pItemList[pItem->m_pItem->sIndex].Name);
@@ -677,16 +692,9 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			if (!pFScene->m_pCargoPanel->IsVisible())
 				pFScene->SetVisibleCargo(1);
 		}
-		if (nItemSIndex >= 3468 && nItemSIndex <= 3471)
-		{
-			return RButtonUseItems3468To3471(nCellX, nCellY, dwServerTime, nativeCarryPos, pFScene, pItem, pMyHuman);
-		}
-		if (nItemSIndex == 3467)
-		{
-			return RButtonUseItem3467(dwServerTime, nativeCarryPos, pFScene, pItem, pMyHuman);
-		}
 		if (nType == 14)
 		{
+			pFScene->m_pendingItemConfirmation.Capture(nativeCarryPos, pItem->m_pItem);
 			pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[175], 38, 0);
 			pFScene->m_pMessageBox->m_dwArg = nCellY | (nCellX << 16);
 			pFScene->m_pMessageBox->SetVisible(1);
@@ -744,10 +752,12 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			pFScene->m_stPotalItem.ItemID = 0;
 			pFScene->m_stPotalItem.GridX = static_cast<unsigned short>(vec.x);
 			pFScene->m_stPotalItem.GridY = static_cast<unsigned short>(vec.y);
+			pFScene->m_pendingPortalItem.Capture(SourPos, pItem->m_pItem);
 			return;
 		}
 		if (nType == 187 && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 		{
+			pFScene->m_pendingItemConfirmation.Capture(nativeCarryPos, pItem->m_pItem);
 
 			pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[300], 883, 0);
 			pFScene->m_pMessageBox->m_dwArg = nCellY | (nCellX << 16);
@@ -759,8 +769,8 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			if (pFScene->m_pMessageBox->IsVisible()) return;
 			pFScene->m_nEntranceTicketSlot = nativeCarryPos;
 			pFScene->m_stEntranceTicket = *pItem->m_pItem;
-			char prompt[] = "Use this Entrance Ticket to enter?";
-			pFScene->m_pMessageBox->SetMessage(prompt, 1737, nullptr);
+			pFScene->m_pMessageBox->SetMessage(const_cast<char*>(
+				grid_item_presentation::EntranceTicketCaption(g_UIString[242])), 1737, nullptr);
 			pFScene->m_pMessageBox->SetVisible(1);
 			return; // Send and optimistic consumption happen only after confirmation.
 		}
@@ -787,6 +797,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			}
 			else if (nType == 206)
 			{
+				pFScene->m_pendingItemConfirmation.Capture(nativeCarryPos, pItem->m_pItem);
 				pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[350], 883, 0);
 				pFScene->m_pMessageBox->m_dwArg = nCellY | (nCellX << 16);
 				pFScene->m_pMessageBox->SetVisible(1);
@@ -794,6 +805,7 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 			}
 			else if (nType == 211)
 			{
+				pFScene->m_pendingItemConfirmation.Capture(nativeCarryPos, pItem->m_pItem);
 				pFScene->m_pMessageBox->SetMessage(g_pMessageStringTable[356], 883, 0);
 				pFScene->m_pMessageBox->m_dwArg = nCellY | (nCellX << 16);
 				pFScene->m_pMessageBox->SetVisible(1);
@@ -814,11 +826,8 @@ void SGridControl::RButton(int nCellX, int nCellY, int bPtInRect)
 					pFScene->SetVisibleRefuseServerWar();
 					return;
 				}
-				else if (nItemSIndex != 4906 && (nItemSIndex < 4132 || nItemSIndex > 4139))
+				else if (nItemSIndex < 4132 || nItemSIndex > 4139)
 				{
-					if (nItemSIndex == 4907)
-						pFScene->m_pRPSGamePanel->SetVisible(1);
-
 					pFScene->UseItem(pItem, nType, nItemSIndex, nCellX, nCellY);
 				}
 			}
@@ -855,6 +864,8 @@ ExtractedFlow SGridControl::RButtonUseItemType11Or13(int& nCellX, int& nCellY, i
 		pFScene->m_stUseItem.GridX = (int)pMyHuman->m_vecPosition.x;
 		pFScene->m_stUseItem.GridY = (int)pMyHuman->m_vecPosition.y;
 
+		pFScene->m_pendingPortalItem.Capture(SourPos, pItem->m_pItem);
+
 		MSG_DelayStart stDelayStart{};
 		stDelayStart.Header.ID = pMyHuman->m_dwID;
 		stDelayStart.Header.Type = MSG_DelayStart_Opcode;
@@ -863,23 +874,6 @@ ExtractedFlow SGridControl::RButtonUseItemType11Or13(int& nCellX, int& nCellY, i
 	}
 
 	g_pEventTranslator->m_bRBtn = 1;
-
-	int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-	if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
-		nAmount = 0;
-	if (nAmount <= 1)
-	{
-		auto pPickedItem = PickupItem(nCellX, nCellY);
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-			g_pCursor->m_pAttachedItem = nullptr;
-		SAFE_DELETE(pPickedItem);
-	}
-	else
-	{
-		BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-		sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-		pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-	}
 
 	int nSoundIndex = 41;
 	if (nType >= 11 && nType <= 13)
@@ -895,104 +889,15 @@ ExtractedFlow SGridControl::RButtonUseItemType11Or13(int& nCellX, int& nCellY, i
 
 	if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 		pFScene->UpdateScoreUI(0);
-	if (nAmount <= 1)
-		memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 	return ExtractedFlow::Next;
 }
 
 
 // Extracted from SGridControl::RButton; behavior is unchanged.
-void SGridControl::RButtonUseItems3468To3471(int& nCellX, int& nCellY, unsigned int& dwServerTime, const short& nativeCarryPos, TMFieldScene*& pFScene, SGridControlItem*& pItem, TMHuman*& pMyHuman)
-{
-	if (pMyHuman->m_cCancel != 1 &&
-		(!pFScene->m_dwUseItemTime || dwServerTime - pFScene->m_dwUseItemTime >= 200))
-	{
-		short SourType = CheckType(pItem->m_pGridControl->m_eItemType,
-			pItem->m_pGridControl->m_eGridType);
-		short SourPos = CheckPos(pItem->m_pGridControl->m_eItemType);
-		if (SourPos == -1)
-			SourPos = nativeCarryPos;
 
-		auto vec = pMyHuman->m_vecPosition;
-
-		MSG_UseItem stUseItem{};
-		stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
-		stUseItem.Header.Type = MSG_UseItem_Opcode;
-		stUseItem.SourType = 1;
-		stUseItem.SourPos = SourPos;
-		stUseItem.ItemID = 0;
-		stUseItem.GridX = (int)vec.x;
-		stUseItem.GridY = (int)vec.y;
-		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
-
-		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-		if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
-			nAmount = 0;
-		if (nAmount <= 1)
-		{
-			auto pPickedItem = PickupItem(nCellX, nCellY);
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = nullptr;
-			SAFE_DELETE(pPickedItem);
-		}
-		else
-		{
-			BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-			sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-		}
-
-		if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-			pFScene->UpdateScoreUI(0);
-		if (nAmount <= 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
-
-		pFScene->m_dwUseItemTime = dwServerTime;
-	}
-	return;
-
-}
 
 // Extracted from SGridControl::RButton; behavior is unchanged.
-void SGridControl::RButtonUseItem3467(unsigned int& dwServerTime, const short& nativeCarryPos, TMFieldScene*& pFScene, SGridControlItem*& pItem, TMHuman*& pMyHuman)
-{
-	if (pMyHuman->m_cCancel != 1 &&
-		(!pFScene->m_dwUseItemTime || dwServerTime - pFScene->m_dwUseItemTime >= 200))
-	{
-		short SourType = CheckType(pItem->m_pGridControl->m_eItemType,
-			pItem->m_pGridControl->m_eGridType);
-		short SourPos = CheckPos(pItem->m_pGridControl->m_eItemType);
-		if (SourPos == -1)
-			SourPos = nativeCarryPos;
 
-		auto vec = pMyHuman->m_vecPosition;
-
-		MSG_UseItem stUseItem{};
-		stUseItem.Header.ID = g_pObjectManager->m_dwCharID;
-		stUseItem.Header.Type = MSG_UseItem_Opcode;
-		stUseItem.SourType = 1;
-		stUseItem.SourPos = SourPos;
-		stUseItem.ItemID = 0;
-		stUseItem.GridX = (int)vec.x;
-		stUseItem.GridY = (int)vec.y;
-		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
-
-		pFScene->m_dwUseItemTime = dwServerTime;
-
-		if (g_pObjectManager->m_stMobData.Carry[60].sIndex != 3467 ||
-			g_pObjectManager->m_stMobData.Carry[61].sIndex != 3467)
-		{
-			MSG_STANDARDPARM2 stDeleteItem{};
-			stDeleteItem.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
-			stDeleteItem.Header.Type = MSG_DeleteItem_Opcode;
-			stDeleteItem.Parm1 = SourPos;
-			stDeleteItem.Parm2 = 3467;
-			SendOneMessage((char*)&stDeleteItem, 20);
-		}
-	}
-	return;
-
-}
 
 
 char SGridControl::automove(int nCellX, int nCellY)
@@ -1027,6 +932,8 @@ char SGridControl::automove(int nCellX, int nCellY)
 			sDestPos = WYD748_ResolveWireSlot(pScene, pItem->m_pGridControl,
 				sDestType, pItem->m_nCellIndexX, pItem->m_nCellIndexY);
 		}
+		if (sDestPos < 0)
+			return 0;
 
 		IVector2 vecGrid;
 		if (Type == 1)

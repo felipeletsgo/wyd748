@@ -7,10 +7,18 @@
 #include "PerfTrace.h"
 #include "TMGround.h"
 #include "TerrainTileMapReader.h"
+#include "../../../application/CDataIntegrity.h"
 #include "TMCamera.h"
 #include "TMEffectBillBoard.h"
 #include "TMSkillFire.h"
 #include "TMUtil.h"
+
+#include <type_traits>
+
+static_assert(std::extent_v<decltype(TMGround::TileCoordList)> == TerrainFrontCoordRows,
+    "front tile coordinate rows must match the .trn validation");
+static_assert(std::extent_v<decltype(TMGround::BackTileCoordList)> == TerrainBackCoordRows,
+    "back tile coordinate rows must match the .trn validation");
 
 int TMGround::m_bFirst = 1;
 float TMGround::m_fMiniMapScale = 0.60f;
@@ -64,24 +72,17 @@ TMGround::TMGround()
 
         if (pFile)
         {
-            fread(&TMGround::m_nCheckSum, sizeof m_nCheckSum, 1u, pFile);
-
-            int nCDataCheckSum = 0;
-            for (int k = 0; k < 64; ++k)
-                for (int j = 0; j < 32; ++j)
-                    nCDataCheckSum += 8 * k + 4 * m_nCheckSum[j][j] * 16 * j;
-
-            if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD && nCDataCheckSum != 5855606140)
+            const bool complete = fread(&TMGround::m_nCheckSum, sizeof m_nCheckSum, 1u, pFile) == 1;
+            // Validate at first load, including selection scenes. The shipped
+            // 8192-byte file matches the native 7.48 checksum exactly.
+            if (!complete || cdata_integrity::Checksum(m_nCheckSum) != cdata_integrity::Expected)
             {
                 fclose(pFile);
-
-                LOG_WRITELOG("DataFile Error\r\n");
-                MessageBoxA(g_pApp->m_hWnd, "DataFile Error.", "File Error", 0);
-                PostMessageA(g_pApp->m_hWnd, WM_CLOSE, 0, 0);
-
+                if (!g_pCurrentScene->m_bCriticalError)
+                    g_pCurrentScene->LogMsgCriticalError(4, 0, 0, 0, 0);
+                g_pCurrentScene->m_bCriticalError = 1;
                 return;
             }
-
             fclose(pFile);
             m_bFirst = 0;
         }
@@ -166,8 +167,10 @@ int TMGround::LoadTileMap(const char* szFileName)
     {
         int bPosX = 0;
         int bPosY = 0;
+        // Texture coordinate rows index fixed static tables; reject a file whose
+        // bytes would read past them, like any malformed record (A25-07).
         const bool validRecord = ReadTerrainTileMapRecord(fp, m_MapName,
-            bPosX, bPosY, m_TileMapData);
+            bPosX, bPosY, m_TileMapData) && TerrainTileCoordinatesInRange(m_TileMapData);
         fclose(fp);
         if (!validRecord)
         {

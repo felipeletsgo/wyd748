@@ -5,6 +5,18 @@
 #include "TMGlobal.h"
 #include "SControlContainer.h"
 #include "TMFieldScene.h"
+#include "EditableTextBounds.h"
+
+namespace
+{
+// Effective text limit: the caller's m_nMaxStringLen bounded by the text and
+// display arrays, so runtime limits cannot overflow either buffer (C-39).
+std::size_t TextLimit(const SEditableText& edit)
+{
+	return editable_text_bounds::MaxTextLength(edit.m_nMaxStringLen,
+		sizeof(edit.m_strText), sizeof(edit.m_GCText.strString));
+}
+}
 
 SEditableText::SEditableText(int inTextureSetIndex, const char* istrText, size_t inMaxStringLen, int ibPasswd, unsigned int idwFontColor, float inX, float inY, float inWidth, float inHeight, int ibBorder, unsigned int idwBorderColor, unsigned int dwType, unsigned int dwAlignType)
 	: SText(inTextureSetIndex,
@@ -36,16 +48,7 @@ SEditableText::SEditableText(int inTextureSetIndex, const char* istrText, size_t
 			istrText = nullptr;
 	}
 
-	int nCopyLen = 0;
-	if (istrText != nullptr)
-	{
-		nCopyLen = strlen(istrText) <= inMaxStringLen ? strlen(istrText) : inMaxStringLen;
-		strncpy(m_strText, istrText, nCopyLen);
-	}
-	else
-		nCopyLen = 0;
-
-	m_strText[nCopyLen] = 0;
+	editable_text_bounds::CopyPrefix(m_strText, istrText, TextLimit(*this));
 	m_strComposeText[0] = 0;
 }
 
@@ -55,17 +58,14 @@ SEditableText::~SEditableText()
 
 void SEditableText::SetText(char* istrText)
 {
-	if (istrText[0] == 0)
+	if (!istrText || istrText[0] == 0)
 	{
 		memset(m_strText, 0, sizeof(m_strText));
 		Update();
 		return;
 	}
 
-	int nCopyLen = strlen(istrText) <= m_nMaxStringLen ? strlen(istrText) : m_nMaxStringLen;
-
-	strncpy(m_strText, istrText, nCopyLen);
-	m_strText[nCopyLen] = 0;
+	editable_text_bounds::CopyPrefix(m_strText, istrText, TextLimit(*this));
 	Update();
 }
 
@@ -151,7 +151,7 @@ int SEditableText::OnCharEvent(char iCharCode, int lParam)
 
 		return 1;
 	}
-	else if (m_nMaxStringLen > strlen(m_strText))
+	else if (TextLimit(*this) > strlen(m_strText))
 	{
 		if (m_cTempChar)
 			m_cTempChar = 0;
@@ -211,6 +211,11 @@ int SEditableText::OnKeyDownEvent(unsigned int iKeyCode)
 	if (m_bFocused != 1)
 		return 0;
 
+	// An edit line without a listener (SListBox) ignores the navigation keys,
+	// as Backspace already does (C-39).
+	if (m_pEventListener == nullptr)
+		return 0;
+
 	if (iKeyCode == VK_PRIOR)
 		return m_pEventListener->OnControlEvent(m_dwControlID, 2);
 	if (iKeyCode == VK_UP)
@@ -232,19 +237,18 @@ int SEditableText::OnKeyUpEvent(unsigned int iKeyCode)
 
 void SEditableText::Update()
 {
-	int nStringLen = strlen(m_strText);
-	int nComposeStringLen = strlen(m_strComposeText);
+	const std::size_t nStringLen = strlen(m_strText);
 
 	if (m_bPasswd == 0)
 	{
-		strcpy(m_GCText.strString, m_strText);
+		editable_text_bounds::CopyPrefix(m_GCText.strString, m_strText, nStringLen);
 	}
 	else
 	{
-		for (int nIndex = 0; nIndex < nComposeStringLen + nStringLen; ++nIndex)
-			m_GCText.strString[nIndex] = '*'; // ASCII mask: the 7.48 font has no bullet glyph and rendered byte 0xA2 as a stray symbol.
-
-		m_GCText.strString[nStringLen] = 0;
+		// ASCII mask: the 7.48 font has no bullet glyph and rendered byte 0xA2 as a
+		// stray symbol. The visible mask is the committed text length; it is now
+		// bounded by the display string instead of text plus composition (C-39).
+		editable_text_bounds::WriteMask(m_GCText.strString, nStringLen, '*');
 	}
 
 	m_GCText.pFont->SetText(m_GCText.strString, 0xFFFFFFFF, 0);
@@ -260,9 +264,14 @@ void SEditableText::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int
 
 		if (m_nCursorVisible == 10)
 		{
-			m_GCText.strString[nStringLen] = '|';
-			m_GCText.strString[nStringLen + 1] = 0;
-			m_GCText.pFont->SetText(m_GCText.strString, m_GCText.dwColor, 0);
+			// The caret and its terminator must fit in the display string (C-39).
+			if (editable_text_bounds::CaretFits(static_cast<std::size_t>(nStringLen),
+				sizeof(m_GCText.strString)))
+			{
+				m_GCText.strString[nStringLen] = '|';
+				m_GCText.strString[nStringLen + 1] = 0;
+				m_GCText.pFont->SetText(m_GCText.strString, m_GCText.dwColor, 0);
+			}
 		}
 		else if (m_nCursorVisible == 0)
 		{

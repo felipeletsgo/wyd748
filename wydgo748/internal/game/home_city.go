@@ -28,13 +28,13 @@ func (w *World) recallSpawn(ch *model.Char) (int, uint16, uint16) {
 	city := playerHomeCity(ch)
 	zone := homeCityZones[city]
 	x, y := zone.returnX+uint16(rand.IntN(15)), zone.returnY+uint16(rand.IntN(15))
-	if ch != nil && ch.GuildID != 0 && w.guilds != nil {
+	if guild, member := w.guildOf(ch); guild != nil && member != nil {
 		for i, zone := range homeCityZones {
 			owner := w.guilds.Wars.Castle.Owner
 			if i < len(w.guilds.Wars.Cities.Territories) {
 				owner = w.guilds.Wars.Cities.Territories[i].Owner
 			}
-			if owner == ch.GuildID {
+			if owner == guild.ID {
 				return city, zone.guildReturnX, zone.guildReturnY
 			}
 		}

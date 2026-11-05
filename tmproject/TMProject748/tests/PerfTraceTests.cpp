@@ -31,6 +31,15 @@ int RunPerfTraceTests(int& checks)
     in.phaseMs[static_cast<int>(Phase::Render)] = 30 * 10.0;
     in.phaseMs[static_cast<int>(Phase::Present)] = 30 * 4.0;
     in.drawCalls = 30 * 500;
+    in.channelQueries = 2;
+    in.channelMs = 421.5;
+    in.channelMaxMs = 400.25;
+    in.assetOpens = 9;
+    in.assetMisses = 3;
+    in.repeatedAssetMisses = 2;
+    in.emissions[0] = 7;
+    in.emissions[1] = 8;
+    in.emissions[2] = 9;
     Snapshot snapshot;
     snapshot.sceneType = 7;
     snapshot.nodes = 1200;
@@ -42,6 +51,8 @@ int RunPerfTraceTests(int& checks)
     check(std::strncmp(row, "12.0,30.0,33.00,70.0,1,2.000,6.000,4.000,", 41) == 0,
         "render time excludes Present and values are per-frame averages");
     check(std::string(row).find(",500,") != std::string::npos, "draw calls are per frame");
+    check(std::string(row).find(",2,421.50,400.25,9,3,2,7,8,9\n") != std::string::npos,
+        "IO and emitter measurements retain their sample totals");
 
     Interval empty;
     const int emptyLength = FormatRow(row, sizeof(row), 0.0, 0.0, empty, Snapshot{});

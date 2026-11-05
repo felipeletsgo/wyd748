@@ -1,5 +1,7 @@
 #include "pch.h"
+#include "../../application/SceneSafetyPolicy.h"
 #include "TMFieldScene.h"
+#include "FieldActionPolicy.h"
 #include "TMGround.h"
 #include "TMSkinMesh.h"
 #include "SGrid.h"
@@ -135,7 +137,10 @@ void TMFieldScene::SetVisibleShop(int bShow, bool showPanels)
 
 void TMFieldScene::SetVisibleHellGateStore(int bShow)
 {
-	if (m_pInputGoldPanel->IsVisible() == 1)
+	// Optional resources may omit the store; the shipped FieldScene2 binds 6185.
+	if (!m_pHellgateStore)
+		return;
+	if (m_pInputGoldPanel && m_pInputGoldPanel->IsVisible() == 1)
 		SetInVisibleInputCoin();
 	if (bShow == 1 && m_pSkillPanel && m_pSkillPanel->m_bVisible == 1)
 		SetVisibleSkill();
@@ -212,8 +217,13 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			auto pItemList = new STRUCT_ITEM;
 			memcpy(pItemList, &pShopList->List[i], sizeof(STRUCT_ITEM));
 
-			if (pShopList->List[i].sIndex <= 0)
+			// A04-05: a row outside the loaded catalog has no grid visual or
+			// font; skip it as the premium loop below does.
+			if (!field_action::IsCatalogItem(pShopList->List[i].sIndex, MAX_ITEMLIST))
 			{
+				if (pShopList->List[i].sIndex > 0)
+					WYD748_DiagnosticsLog("shop list row %d item %d outside catalog\r\n",
+						i, static_cast<int>(pShopList->List[i].sIndex));
 				delete pItemList;
 				continue;
 			}
@@ -241,7 +251,8 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			{
 				sprintf_s(pItem->m_GCText.strString, "%2d", nAmount);
 
-				pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
+				if (pItem->m_GCText.pFont)
+					pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
 			}
 		}
 
@@ -257,7 +268,15 @@ int TMFieldScene::OnPacketShopList(MSG_STANDARD* pStd)
 			const int count = MultiByteToWideChar(1252, 0, name, length, nullptr, 0);
 			entry.Name.resize(count);
 			if (count) MultiByteToWideChar(1252, 0, name, length, entry.Name.data(), count);
-			if (entry.Name.empty()) entry.Name = L"Item " + std::to_wstring(item.sIndex);
+			if (entry.Name.empty())
+			{
+				char fallback[64]{};
+				sprintf_s(fallback, ui_text::RowOr(g_UIString, ui_text::kCatalogItemFallback, "Item %d"), item.sIndex);
+				const int bytes = static_cast<int>(strlen(fallback));
+				const int characters = MultiByteToWideChar(1252, 0, fallback, bytes, nullptr, 0);
+				entry.Name.resize(characters);
+				if (characters) MultiByteToWideChar(1252, 0, fallback, bytes, entry.Name.data(), characters);
+			}
 			auto displayedItem = item;
 			const int amount = BASE_GetItemAmount(&displayedItem);
 			entry.Quantity = amount > 0 ? amount : 1;
@@ -434,6 +453,7 @@ int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)
 		pSell->MyType < 0 || pSell->MyType > 1 || pSell->MyPos < 0 ||
 		(pSell->MyType == 0 && pSell->MyPos >= MAX_EQUIPITEM) ||
 		(pSell->MyType == 1 && pSell->MyPos >= MAX_CARRY) ||
+		(pSell->MyType == 0 && pSell->MyPos == 0) ||
 		WYD748_IsUnsupportedCompatEquipSlot(
 		pSell->MyType == 0 ? pSell->MyPos : -1))
 		return 1;
@@ -452,7 +472,7 @@ int TMFieldScene::OnPacketSell(MSG_STANDARD* pStd)
 	{
 		SGridControl* pGridDest[MAX_EQUIPITEM]{};
 
-		pGridDest[0] = m_pGridInv;
+		pGridDest[0] = nullptr; // face slot: no grid (A04-03)
 		pGridDest[1] = m_pGridHelm;
 		pGridDest[2] = m_pGridCoat;
 		pGridDest[3] = m_pGridPants;
@@ -590,7 +610,7 @@ int TMFieldScene::OnPacketPremiumShopState(MSG_STANDARD* packet)
 	{
 		m_premiumNellResult = -1;
 		const bool portuguese = client_language::Read(L"lang.txt") == client_language::Language::Portuguese;
-		if (!g_pDevice || !m_premiumNell.Open(g_pDevice->m_hWnd, portuguese, g_pObjectManager->m_szAccountName))
+		if (!g_pDevice || !m_premiumNell.Open(g_pDevice->m_hWnd, portuguese, g_pObjectManager->m_szAccountDisplay))
 		{
 			SetVisibleShop(1);
 			WYD748_DiagnosticsLog("Premium Nell browser unavailable; using native shop\r\n");
@@ -623,10 +643,9 @@ int TMFieldScene::OnPacketPremiumBuyResult(MSG_STANDARD* packet)
 		SetVisibleShop(0); // A failed browser cannot invite a retry of an unresolved purchase.
 		if (m_pMessagePanel)
 		{
-			const bool pt = client_language::Read(L"lang.txt") == client_language::Language::Portuguese;
 			const char* message = result.Code == 0 ?
-				(pt ? "Nell: compra concluida. O item esta no inventario." : "Nell: purchase completed. The item is in your inventory.") :
-				(pt ? "Nell: compra nao realizada. Abra a loja novamente." : "Nell: purchase was not completed. Open the shop again.");
+				ui_text::RowOr(g_UIString, ui_text::kNellComplete, "Nell: purchase completed. The item is in your inventory.") :
+				ui_text::RowOr(g_UIString, ui_text::kNellRejected, "Nell: purchase was not completed. Open the shop again.");
 			m_pMessagePanel->SetMessage(message, 5000);
 			m_pMessagePanel->SetVisible(1, 1);
 		}
@@ -659,10 +678,9 @@ void TMFieldScene::TickPremiumNell()
 		WYD748_DiagnosticsLog("Premium Nell browser failed; pending=%d\r\n", static_cast<bool>(m_premiumNellPending));
 		if (m_pMessagePanel)
 		{
-			const bool pt = client_language::Read(L"lang.txt") == client_language::Language::Portuguese;
 			const char* message = m_premiumNellPending ?
-				(pt ? "Nell: aguardando a confirmacao da compra pelo servidor." : "Nell: waiting for the server to confirm your purchase.") :
-				(pt ? "Nell: interface web indisponivel. A loja padrao sera utilizada." : "Nell: web interface unavailable. The standard shop will be used.");
+				ui_text::RowOr(g_UIString, ui_text::kNellWaiting, "Nell: waiting for the server to confirm your purchase.") :
+				ui_text::RowOr(g_UIString, ui_text::kNellUnavailable, "Nell: web unavailable. The standard shop will be used.");
 			m_pMessagePanel->SetMessage(message, 5000);
 			m_pMessagePanel->SetVisible(1, 1);
 		}

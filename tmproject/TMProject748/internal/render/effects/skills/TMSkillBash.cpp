@@ -15,6 +15,13 @@ TMSkillBash::TMSkillBash(TMVector3 vecPosition, int nType)
 
 TMSkillBash::~TMSkillBash()
 {
+}
+
+void TMSkillBash::SpawnImpact()
+{
+	if (!g_pCurrentScene || !g_pCurrentScene->m_pEffectContainer)
+		return;
+
 	auto pSkillExplosion2 = new TMSkillExplosion2(m_vecPosition, 0, 0.5f, 250, 0xFFFFFFFF);
 
 	if (pSkillExplosion2 != nullptr)
@@ -35,6 +42,10 @@ int TMSkillBash::FrameMove(unsigned int dwServerTime)
 
     if (fProgress > 1.0f)
     {
+        // The impact belongs to natural expiry. A destructor during scene
+        // teardown would attach it to the next scene.
+        if (!m_cDeleted)
+            SpawnImpact();
         g_pObjectManager->DeleteObject(this);
     }
     else if ((dwServerTime - m_dwLastTime) > 250)

@@ -17,6 +17,8 @@
 #include "../../ui/GuildNameDirectory.h"
 #include "../../ui/CapePresentation748.h"
 #include "../../application/NativeSpecialSkills.h"
+#include "../../application/SceneSafetyPolicy.h"
+#include "../../game/entities/HumanPacketPolicy.h"
 #include "TMLog.h"
 #include "ClientDiagnostics.h"
 #include "TMGround.h"
@@ -351,7 +353,7 @@ void TMFieldScene::UpdateCompatScoreUI()
 	if (pMobData->Equip[0].sIndex >= 40)
 	{
 		// A non-player face shows the native "Monster" caption.
-		setCompatText(TMT_CI_CLASS, "Monster");
+		setCompatText(TMT_CI_CLASS, ui_text::RowOr(g_UIString, ui_text::kMonsterClass, "Monster"));
 		setCompatText(TMT_CI_CLASS2, "");
 	}
 	else
@@ -631,7 +633,11 @@ int TMFieldScene::InitializeCompatFieldScene()
 	// Record the exact legacy control tree before changing visibility.  This
 	// gives us the real 7.48 IDs and prevents future ports from guessing IDs
 	// from the newer TMProject resource.
-	WYD748_DumpControlTree(m_pControlContainer, "compat-field-before-hide");
+	// The full tree dump is an opt-in diagnostic (WYD748_UI_TREE_DUMP=1). It
+	// wrote about 1,700 log lines twice per field entry, synchronously (C-02).
+	const bool dumpControlTree = diagnostic_switch::IsEnabled("WYD748_UI_TREE_DUMP");
+	if (dumpControlTree)
+		WYD748_DumpControlTree(m_pControlContainer, "compat-field-before-hide");
 	// FieldScene2.bin stores feature panels as visible resources, while the
 	// native startup path hides them and opens each one only after a command or
 	// server response.  Reapply that initial state in compatibility mode so the
@@ -697,6 +703,9 @@ int TMFieldScene::InitializeCompatFieldScene()
 		// The native 7.48 handlers keep the teleport list bound even while its
 		// panel is closed.  Generic button handling consults this pointer, so the
 		// compact bootstrap must restore the binding rather than only hiding UI.
+		m_pHellgateStore = static_cast<SPanel*>(m_pControlContainer->FindControl(6185u));
+		m_pHellStoreDesc = static_cast<SListBox*>(m_pControlContainer->FindControl(6201u));
+		m_pGridHellStore = static_cast<SGridControl*>(m_pControlContainer->FindControl(6208u));
 		m_pPotalPanel = static_cast<SPanel*>(m_pControlContainer->FindControl(12544));
 		m_pPotalList = static_cast<SListBox*>(m_pControlContainer->FindControl(12545));
 		// FieldScene2.bin has title 12549 and three column labels 12550..12552.
@@ -1005,31 +1014,8 @@ int TMFieldScene::InitializeCompatFieldScene()
 			if (pNativeMiniMapButton)
 				pNativeMiniMapButton->SetSelected(0);
 
-			// The native initializer allocates one marker panel and one label for
-			// every g_MinimapPos entry before M can expose the map. FrameMove and
-			// FUN_0044ca65 both assume this complete 256-pair ownership contract.
-			for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
-			{
-				m_pInMiniMapPosPanel[markerIndex] = new SPanel(-2, 0.0f, 0.0f, 4.0f, 4.0f,
-					g_MinimapPos[markerIndex].dwColor, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
-				if (m_pInMiniMapPosPanel[markerIndex])
-				{
-					m_pInMiniMapPosPanel[markerIndex]->m_bSelectEnable = 0;
-					m_pInMiniMapPosPanel[markerIndex]->SetVisible(0);
-					m_pMiniMapPanel->AddChild(m_pInMiniMapPosPanel[markerIndex]);
-				}
+			// Actor markers are owned by TMHuman. Unused static markers need no controls.
 
-				m_pInMiniMapPosText[markerIndex] = new SText(-2,
-					g_MinimapPos[markerIndex].szTarget,
-					g_MinimapPos[markerIndex].dwColor,
-					0.0f, 0.0f, 8.0f, 12.0f, 0, 0x77777777u, 1u, 0);
-				if (m_pInMiniMapPosText[markerIndex])
-				{
-					m_pInMiniMapPosText[markerIndex]->m_bSelectEnable = 0;
-					m_pInMiniMapPosText[markerIndex]->SetVisible(0);
-					m_pMiniMapPanel->AddChild(m_pInMiniMapPosText[markerIndex]);
-				}
-			}
 		}
 		if (m_pMiniMapPanel && !m_pNetStatsText)
 		{
@@ -1372,7 +1358,8 @@ int TMFieldScene::InitializeCompatFieldScene()
 			m_pFadePanel->m_bSelectEnable = 0;
 			m_pFadePanel->SetVisible(0);
 		}
-		WYD748_DumpControlTree(m_pControlContainer, "compat-field-after-hide");
+		if (dumpControlTree)
+			WYD748_DumpControlTree(m_pControlContainer, "compat-field-after-hide");
 	}
 	g_pDevice->m_nHeightShift = 0;
 	// Keep bootstrap checkpoints in the client log; this separates resource,
@@ -1472,7 +1459,10 @@ int TMFieldScene::InitializeCompatFieldScene()
 	szName[15] = 0;
 	sprintf_s(m_pMyHuman->m_szName, "%s", szName);
 	m_pMyHuman->m_sGuildLevel = static_cast<unsigned char>(pMobData->GuildLevel);
-	m_pMyHuman->m_usGuild = g_pObjectManager->m_stSelCharData.Guild[g_pObjectManager->m_cCharacterSlot];
+	// m_cCharacterSlot is -1 without a selected character (A16-10).
+	const int selectedSlot = g_pObjectManager->m_cCharacterSlot;
+	m_pMyHuman->m_usGuild = selection_slot::IsValid(selectedSlot)
+		? g_pObjectManager->m_stSelCharData.Guild[selectedSlot] : 0;
 
 	LOG_WRITELOG("Compat Field Scene: player object allocated\r\n");
 	m_pMyHuman->SetPacketMOBItem(pMobData);

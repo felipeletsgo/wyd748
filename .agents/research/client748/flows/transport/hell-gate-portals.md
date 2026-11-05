@@ -137,7 +137,7 @@ change, so this record remains `CONTRACT` and does not claim `CLIENT_TESTED`.
 Subsequent publication delivered this exact candidate through patch 10034,
 paired with active server release `20261017T221343Z` after authorized restart.
 Public ZIP/executable hashes and active server identity/readiness passed. See
-[the publication receipt](../../../../../DOCS/current-state.md#active-release--2026-10-17-hell-gate-route-and-defense-patch-10034).
+[the publication receipt](../../../release-history.md#previous-release--2026-10-17-hell-gate-route-and-defense-patch-10034).
 Publication does not replace the pending client/gameplay checks above.
 
 ## Validation

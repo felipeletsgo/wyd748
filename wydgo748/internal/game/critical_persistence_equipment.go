@@ -71,6 +71,9 @@ func (w *World) queueEquipmentSwap(p *Player, st, sp, dt, dp byte, targetID uint
 				// this committed clock directly; ordinary clock helpers stay guarded.
 				p.EggIncubationUID = ""
 				p.NextEggIncubationTick = time.Time{}
+				if st != dt || sp != dp {
+					p.NextMountTick = time.Time{}
+				}
 			}
 			if p.Session.IsClosed() {
 				w.recalcPlayer(p.Char) // Final lifecycle saves see committed score.

@@ -3,6 +3,7 @@
 
 #include "TMScene.h"
 #include "Structures.h"
+#include "../../application/AccountLoginAttempt.h"
 
 class SPanel;
 class SButton;
@@ -38,6 +39,8 @@ private:
 	ExtractedFlow OnLoginOk(int& extractedResult);
 	int FrameMoveGameGrade(unsigned int dwServerTime);
 	void GameGradeScene();
+	AccountLoginAttempt m_loginAttempt;
+	unsigned long long m_channelStatusRevision = 0;
 
 public:
 	SPanel* m_GameGrade;

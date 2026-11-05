@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Frame C<->S do 7.48 para motions e efeitos pontuais. Emotes enviados pelo
-// jogador usam Parm/Direction zero; efeitos especiais sao publicados pelo servidor.
+// 7.48 C<->S frame for motions and discrete effects. Player emotes use zero Parm/Direction.
+// The server publishes special effects.
 constexpr auto MSG_Motion_Opcode = 0x36A;
 struct MSG_Motion
 {

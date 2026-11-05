@@ -1,6 +1,8 @@
 #include "pch.h"
 #include "../../application/BoundedText.h"
 #include "../../application/AttackTargetState.h"
+#include "../../application/ChatListRows.h"
+#include "../../application/MountHealthContract.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "SControl.h"
@@ -10,6 +12,8 @@
 #include "TMEffectSkinMesh.h"
 #include "TMShade.h"
 #include "DeathMotionPolicy.h"
+#include "HumanPacketPolicy.h"
+#include "HumanVisualPolicy.h"
 #include "../../ui/ResourceBarProjection.h"
 #include "SControlContainer.h"
 #include "ObjectManager.h"
@@ -150,6 +154,9 @@ int TMHuman::OnPacketMove(MSG_Action* pAction)
     m_fMaxSpeed = (float)pAction->Speed;
     if (pAction->Speed < 1)
         m_fMaxSpeed = 1.0f;
+    // BASE_GetSpeed range upper bound (ENTA-R1, A13-07).
+    if (pAction->Speed > 7)
+        m_fMaxSpeed = 7.0f;
 
     char szBuffer[48]{};
 
@@ -293,7 +300,11 @@ int TMHuman::OnPacketIllusion(MSG_STANDARD* pStd)
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (!m_cHide && pStd->Type == MSG_Action2_Opcode)
     {
-        g_pObjectManager->m_stMobData.CurrentScore.CurMP -= g_pSpell[73].ManaSpent;
+        // Observers receive the caster's 0x368 too; only the local caster's
+        // visual MP drops, saturating at zero until the server's vitals arrive.
+        auto& currentMp = g_pObjectManager->m_stMobData.CurrentScore.CurMP;
+        currentMp = illusion_mana::Apply(currentMp, g_pSpell[73].ManaSpent,
+            g_pCurrentScene && g_pCurrentScene->m_pMyHuman == this);
         bool bExpand = false;
         if (m_nClass == 4 || m_nClass == 8)
             bExpand = true;
@@ -321,16 +332,20 @@ int TMHuman::OnPacketIllusion(MSG_STANDARD* pStd)
         pEffect->m_dwLifeTime = 3000;
         pEffect->InitPosition(m_vecPosition.x, m_fHeight + 0.1f, m_vecPosition.y);
 
+        // Clips follow SetAnimation: the mount mesh uses its own table value and
+        // only skins 0..5 (except 3) go through m_sAnimationArray.
         if (m_cMount > 0 && m_pMount)
         {
             if (pEffect->m_pSkinMesh)
-                pEffect->m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nMountSkinMeshType].dwAniTable[(int)m_eMotion]]);
+                pEffect->m_pSkinMesh->SetAnimation(afterimage_clip::Mount(g_MobAniTable, m_nMountSkinMeshType, (int)m_eMotion));
             if (pEffect->m_pSkinMesh2)
-                pEffect->m_pSkinMesh2->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)m_eMotion + 28]]);
+                pEffect->m_pSkinMesh2->SetAnimation(afterimage_clip::Body(g_MobAniTable, MeshManager::m_sAnimationArray,
+                    m_nSkinMeshType, m_nWeaponTypeIndex, (int)m_eMotion + 28));
         }
-        else
+        else if (pEffect->m_pSkinMesh)
         {
-            pEffect->m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)m_eMotion]]);
+            pEffect->m_pSkinMesh->SetAnimation(afterimage_clip::Body(g_MobAniTable, MeshManager::m_sAnimationArray,
+                m_nSkinMeshType, m_nWeaponTypeIndex, (int)m_eMotion));
         }
 
         pEffect->m_fStartAngle = m_fAngle;
@@ -352,7 +367,8 @@ int TMHuman::OnPacketIllusion(MSG_STANDARD* pStd)
             m_fHeight + 0.050000001f, m_vecPosition.y), nType);
 
         g_pCurrentScene->m_pEffectContainer->AddChild(pPortal);
-        _dwAttackDelay = g_pTimerManager->GetRealTime();
+        // MAutoAttack compares this stamp with server time (ENTA-R2, A14-06).
+        _dwAttackDelay = g_pTimerManager->GetServerTime();
     }
     if (g_pCurrentScene->m_pMyHuman == this)
     {
@@ -657,8 +673,10 @@ int TMHuman::OnPacketRemoveMob(MSG_STANDARD* pStd)
 
     // Native WYD 7.48 FUN_00529bf8 first proves that both the tracked target
     // and its panel exist.  Removal packets also arrive for ordinary NPCs,
-    // where these optional UI pointers are null.
-    if (pFScene && pFScene->m_pPGTOver && pFScene->m_pPGTPanel &&
+    // where these optional UI pointers are null. Field members are read only
+    // after the scene type test.
+    if (pFScene && pFScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD &&
+        pFScene->m_pPGTOver && pFScene->m_pPGTPanel &&
         m_dwID == pFScene->m_pPGTOver->m_dwID &&
         pFScene->m_pPGTPanel->IsVisible() == 1)
         pFScene->m_pPGTPanel->SetVisible(0);
@@ -887,6 +905,41 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
     if (g_pCurrentScene->m_pMyHuman != this)
         return 1;
 
+    const auto updateMountHPBars = [&] {
+        if (m_cMount != 1)
+            return;
+        const int hp = BASE_GetItemAbility(&pMobData->Equip[14], EF_MOUNTHP);
+        if (m_pMountHPBar)
+            m_pMountHPBar->SetCurrentProgress(hp);
+        if (pFScene)
+        {
+            if (pFScene->m_pMHPBar)
+                pFScene->m_pMHPBar->SetCurrentProgress(hp);
+            char text[32]{};
+            sprintf_s(text, "%d", hp);
+            if (pFScene->m_pCurrentMHPText)
+                pFScene->m_pCurrentMHPText->SetText(text, 0);
+        }
+    };
+
+    if (pFScene && m_cMount == 1 && pSendItem->DestType == 0 && pSendItem->DestPos == 14 &&
+        mount_health::IsLiveHPUpdate(pMobData->Equip[14], pSendItem->Item))
+    {
+        // Combat HP snapshots must not recreate grids, models or animations.
+        // Keep the model, tooltip item and selection cache authoritative.
+        pMobData->Equip[14] = pSendItem->Item;
+        const int characterSlot = g_pObjectManager->m_cCharacterSlot;
+        if (characterSlot >= 0 && characterSlot < 4)
+            g_pObjectManager->m_stSelCharData.Equip[characterSlot][14] = pSendItem->Item;
+        if (pFScene->m_pGridDRing)
+            if (auto* icon = pFScene->m_pGridDRing->GetItem(0, 0))
+                if (auto* item = icon->GetItem())
+                    *item = pSendItem->Item;
+        updateMountHPBars();
+        SGridControl::m_sLastMouseOverIndex = -1;
+        return 1;
+    }
+
     if (pFScene)
         pFScene->Bag_View();
 
@@ -1053,27 +1106,7 @@ int TMHuman::OnPacketSendItem(MSG_STANDARD* pStd)
     CheckWeapon(pMobData->Equip[6].sIndex, pMobData->Equip[7].sIndex);
     InitAngle(0, m_fAngle, 0);
 
-    if (m_cMount == 1)
-    {
-        int nMountHP = BASE_GetItemAbility(&pMobData->Equip[14], EF_MOUNTHP);
-
-        if (m_pMountHPBar)
-            m_pMountHPBar->SetCurrentProgress(nMountHP);
-
-        if (pFScene)
-        {
-            // The 7.48 field resource legitimately omits the 7.59 mount-HUD
-            // controls. Mount materialization must not require those widgets.
-            if (pFScene->m_pMHPBar)
-                pFScene->m_pMHPBar->SetCurrentProgress(nMountHP);
-
-            char szMHP[32]{};
-            sprintf_s(szMHP, "%d", nMountHP);
-
-            if (pFScene->m_pCurrentMHPText)
-                pFScene->m_pCurrentMHPText->SetText(szMHP, 0);
-        }
-    }
+    updateMountHPBars();
 
     if (pFScene)
         pFScene->UpdateScoreUI(0);
@@ -1420,7 +1453,10 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
         auto pMobData = &g_pObjectManager->m_stMobData;
 
 
-        g_pObjectManager->m_stSelCharData.Guild[g_pObjectManager->m_cCharacterSlot] = usGuild;
+        // The selection cache is auxiliary; the -1 character sentinel must not
+        // index it (same guard as the 0x182 equipment cache).
+        if (selection_slot::IsValid(g_pObjectManager->m_cCharacterSlot))
+            g_pObjectManager->m_stSelCharData.Guild[g_pObjectManager->m_cCharacterSlot] = usGuild;
 
         if (!usGuild)
             g_pObjectManager->m_usWarGuild = -1;
@@ -1463,31 +1499,30 @@ int TMHuman::OnPacketUpdateScore(MSG_STANDARD* pStd)
 
     if (m_cMount && oldShaow != m_cShadow)
     {
-        D3DXVECTOR3 m_vOldAngle{ m_pMount->m_vAngle };
+        const bool bHadMount = m_pMount != nullptr;
+        D3DXVECTOR3 m_vOldAngle{};
+        if (bHadMount)
+            m_vOldAngle = m_pMount->m_vAngle;
 
+        // Shadow start clears the whole 16-byte cache, so its end restores the
+        // whole cache; byte copies of offsets 0/4/8/12 left 12 bytes zero.
         if (m_cShadow == 1)
-        {
             memset(&m_stMountSanc, 0, sizeof(m_stMountSanc));
-        }
         else
-        {
-            m_stMountSanc.Sanc0 = m_stOldMountSanc.Sanc0;
-            m_stMountSanc.Sanc4 = m_stOldMountSanc.Sanc4;
-            m_stMountSanc.Legend0 = m_stOldMountSanc.Legend0;
-            m_stMountSanc.Legend4 = m_stOldMountSanc.Legend4;
-        }
+            m_stMountSanc = m_stOldMountSanc;
         UpdateMount();
-        m_pMount->SetAngle(m_vOldAngle);
+        if (bHadMount && m_pMount)
+            m_pMount->SetAngle(m_vOldAngle);
     }
 
     m_c8thSkill = pUpdateScore->LearnedSkill;
 
     if (oldShaow == 1 && !m_cShadow)
     {
-        m_stSancInfo.Sanc0 = m_stOldSancInfo.Sanc0;
-        m_stSancInfo.Sanc4 = m_stOldSancInfo.Sanc4;
-        m_stSancInfo.Legend0 = m_stOldSancInfo.Legend0;
-        m_stSancInfo.Legend4 = m_stOldSancInfo.Legend4;
+        // InitObject clears the whole sanc cache while shadowed; restore all
+        // 16 bytes. Shadow changes only the face/body colours; restore those
+        // fields from the snapshot committed after SetColorItem.
+        m_stSancInfo = m_stOldSancInfo;
 
         m_stColorInfo.Sanc0 = m_stOldColorInfo.Sanc0;
         m_stColorInfo.Sanc4 = m_stOldColorInfo.Sanc4;
@@ -1740,11 +1775,15 @@ int TMHuman::OnPacketMessageChat(MSG_STANDARD* pStd)
     pMsgChat->String[sizeof(pMsgChat->String) - 2] = 0;
     pMsgChat->String[sizeof(pMsgChat->String) - 1] = 0;
 
+    // Only a field scene has TMFieldScene members; test the type before the
+    // first member read through the cast (A16-09).
+    if (!g_pCurrentScene || g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
+        return 0;
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
     if (!pScene->m_pChatGeneral)
         return 0;
-    if (pScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD && !pScene->m_pChatGeneral->m_bSelected)
+    if (!pScene->m_pChatGeneral->m_bSelected)
         return 1;
 
     float nStartXPos = 0;
@@ -1763,46 +1802,27 @@ int TMHuman::OnPacketMessageChat(MSG_STANDARD* pStd)
     else
         m_dwChatDelayTime = 3000;
 
+    // Shared chat_rows pattern (A16-03): a second row is created only when the
+    // 40-byte cut leaves text, and no row is created without a chat list.
     char szMsg[128]{};
+    const char* tail = "";
 
     if (strlen(pMsgChat->String) + strlen(m_szName) <= 50)
     {
         sprintf(szMsg, "[%s]> %s", m_szName, &pMsgChat->String[nIndex]);
-
-        auto ipNewItem = new SListBoxItem(szMsg, 0xFFFFFFFF, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777u, 1u, 0);
-
-        if (ipNewItem && pChatList)
-            pChatList->AddItem(ipNewItem);
     }
     else
     {
-        char szMsg3[128]{};
-        char szMsg2[128]{};
-        if (IsClearString(pMsgChat->String, 39))
-        {
-            strncpy(szMsg3, pMsgChat->String, 40);
-            sprintf(szMsg2, "%s", &pMsgChat->String[40]);
-        }
-        else
-        {
-            strncpy(szMsg3, pMsgChat->String, 39);
-            sprintf(szMsg2, "%s", &pMsgChat->String[39]);
-        }
-
-        sprintf(szMsg, "[%s]> %s", m_szName, &szMsg3[nIndex]);
-
-        auto ipNewItem = new SListBoxItem(szMsg, 0xFFFFFFFF, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
-
-        if (ipNewItem && pChatList)
-            pChatList->AddItem(ipNewItem);
-
-        auto ipNewItem2 = new SListBoxItem(szMsg2, 0xFFFFFFFF, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1u, 0);
-
-        if (strlen(pMsgChat->String) > 40 && ipNewItem2 && pChatList)
-            pChatList->AddItem(ipNewItem2);
+        char head[128]{};
+        tail = chat_rows::Split(pMsgChat->String,
+            chat_rows::CutAt(40, IsClearString(pMsgChat->String, 39) != 0), head);
+        sprintf(szMsg, "[%s]> %s", m_szName, &head[nIndex]);
     }
 
-    sprintf(szMsg, "[%s]> %s", m_szName, &pMsgChat->String[nIndex]);
+    chat_rows::Add(pChatList, szMsg, tail, [](const char* row) {
+        return new SListBoxItem(row, 0xFFFFFFFF, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777u, 1u, 0);
+    });
+
     pScene->m_dwChatTime = g_pTimerManager->GetServerTime();
 
     if (pMsgChat->String[0] != '=' && pMsgChat->String[0] != '-' && pMsgChat->String[0] != '@')
@@ -1994,7 +2014,8 @@ int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)
         g_pObjectManager->m_stMobData.Coin = pUpdateEtc->Coin;
         // Hold is the native PvP death EXP debt and is paid by combat EXP.
         g_pObjectManager->m_nFakeExp = pUpdateEtc->Hold;
-        g_pObjectManager->m_stSelCharData.Coin[g_pObjectManager->m_cCharacterSlot] = pUpdateEtc->Coin;
+        if (selection_slot::IsValid(g_pObjectManager->m_cCharacterSlot))
+            g_pObjectManager->m_stSelCharData.Coin[g_pObjectManager->m_cCharacterSlot] = pUpdateEtc->Coin;
 
         if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
             static_cast<TMFieldScene*>(g_pCurrentScene)->UpdateScoreUI(0);
@@ -2281,21 +2302,22 @@ int TMHuman::OnPacketSetClan(MSG_STANDARDPARM* pStd)
 
 int TMHuman::OnPacketReqRanking(MSG_STANDARDPARM2* pStd)
 {
+    if (!g_pCurrentScene || g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
+        return 1;
+
     auto pHuman = (TMHuman*)g_pObjectManager->GetHumanByID(pStd->Parm1);
-    if (pHuman)
+    auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+    if (pHuman && pScene->m_pMessageBox)
     {
-        const static char szVS[4][16] = {
-            "1 : 1",
-            "5 : 5",
-            "10 : 10",
-            "All : All"
-        };
+        // The mode label comes from the localized UIString challenge captions
+        // (rows 64..67, EN and PT); English is the fallback.
+        const auto challengeMode = static_cast<unsigned int>(pStd->Parm2) % challenge_label::kModes;
+        char szMode[64]{};
+        challenge_label::Format(g_UIString[challenge_label::kFirstUIString + challengeMode], challengeMode, szMode);
 
         char szTemp[128]{};
-        const auto challengeMode = static_cast<unsigned int>(pStd->Parm2) % 4;
-        sprintf(szTemp, g_pMessageStringTable[153], pHuman->m_szName, szVS[challengeMode]);
+        sprintf(szTemp, g_pMessageStringTable[153], pHuman->m_szName, szMode);
 
-        auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
         pScene->m_pMessageBox->SetMessage(szTemp, MSG_PlayerChallenge_Opcode, g_pMessageStringTable[154]);
         pScene->m_pMessageBox->SetVisible(1);
         pScene->m_pMessageBox->m_dwArg = pStd->Parm1;

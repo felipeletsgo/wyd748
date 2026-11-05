@@ -1,9 +1,13 @@
 #include "pch.h"
+#include "EffectVisualMath.h"
 #include "TMObject.h"
 #include "TMEffectBillBoard.h"
 #include "TMEffectMeshRotate.h"
 #include "TMMesh.h"
 #include "TMGlobal.h"
+#include "EffectGuards.h"
+#include "EffectRenderState.h"
+#include "EffectTiming.h"
 
 TMEffectMeshRotate::TMEffectMeshRotate(TMVector3 vecPosition, int nType, TMObject* pOwner, int bFire, int bCenter) :
 	m_vecStartPos{ vecPosition }
@@ -59,6 +63,8 @@ TMEffectMeshRotate::TMEffectMeshRotate(TMVector3 vecPosition, int nType, TMObjec
 		}
 	}
 
+	// Render can run once before the first FrameMove sets the yaw.
+	m_fAngle = 0.0f;
 	m_fAngle2 = 0.0f;
 	SetColor(0xFFFFFFFF);
 }
@@ -77,6 +83,7 @@ int TMEffectMeshRotate::Render()
 		return 0;
 
 	TMMesh* pMesh{};
+	const bool bBright = m_efAlphaType == EEFFECT_ALPHATYPE::EF_BRIGHT;
 
 	g_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
 	g_pDevice->SetRenderState(D3DRS_ALPHATESTENABLE, 0);
@@ -84,25 +91,20 @@ int TMEffectMeshRotate::Render()
 	g_pDevice->SetRenderState(D3DRS_LIGHTING, 0);
 	g_pDevice->SetRenderState(D3DRS_ALPHAFUNC, 8u);
 
-	if (m_efAlphaType == EEFFECT_ALPHATYPE::EF_BRIGHT)
+	if (bBright)
 	{
 		pMesh = g_pMeshManager->GetCommonMesh(m_nMeshIndex, 1, 180000);
 
 		if (pMesh == nullptr)
+		{
+			effect_render_state::RestoreDefaults(*g_pDevice, false);
 			return 0;
+		}
 
 		g_pDevice->SetRenderState(D3DRS_FOGENABLE, 0);
 		g_pDevice->SetRenderState(D3DRS_CULLMODE, 1u);
 		g_pDevice->SetRenderState(D3DRS_SRCBLEND, 5u);
 		g_pDevice->SetRenderState(D3DRS_DESTBLEND, 2u);
-
-		RDLVERTEX* pVertex;
-		D3DVERTEXBUFFER_DESC vDesc;
-
-		pMesh->m_pVB->GetDesc(&vDesc);
-		pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-		int nCount = vDesc.Size / 24;
 
 		float fAlpha = 1.0f;
 
@@ -117,17 +119,18 @@ int TMEffectMeshRotate::Render()
 		unsigned int dwB = (unsigned int)((float)m_dwB * fAlpha);
 		unsigned int dwColor = dwB | (dwG << 8) | (dwR << 16) | (dwA << 24);
 
-		for (int i = 0; i < nCount; ++i)
-			pVertex[i].diffuse = dwColor;
-
-		pMesh->m_pVB->Unlock();
+		// A failed load keeps a mesh without a VB, and Lock can fail.
+		effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh->m_pVB, dwColor);
 	}
 	else
 	{
 		pMesh = g_pMeshManager->GetCommonMesh(m_nMeshIndex, 0, 180000);
 
 		if (pMesh == nullptr)
+		{
+			effect_render_state::RestoreDefaults(*g_pDevice, false);
 			return 0;
+		}
 
 		g_pDevice->SetRenderState(D3DRS_SRCBLEND, 5u);
 		g_pDevice->SetRenderState(D3DRS_DESTBLEND, 6u);
@@ -136,9 +139,9 @@ int TMEffectMeshRotate::Render()
 		g_pDevice->SetRenderState(D3DRS_FOGENABLE, g_pDevice->m_bFog);
 
 		D3DCOLORVALUE color = g_pCurrentScene->GroundGetColor(TMVector2{ m_vecPosition.x, m_vecPosition.z });
-		color.r = (0.2f * color.r) + (g_pDevice->m_colorLight.r * 0.30000001f);
-		color.g = (0.2f * color.r) + (g_pDevice->m_colorLight.g * 0.30000001f);
-		color.b = (0.2f * color.r) + (g_pDevice->m_colorLight.b * 0.30000001f);
+		color.r = effect_visual::LitChannel(color.r, g_pDevice->m_colorLight.r, 0.2f, 0.30000001f);
+		color.g = effect_visual::LitChannel(color.g, g_pDevice->m_colorLight.g, 0.2f, 0.30000001f);
+		color.b = effect_visual::LitChannel(color.b, g_pDevice->m_colorLight.b, 0.2f, 0.30000001f);
 		color.a = 1.0f;
 
 		_D3DMATERIAL9 materials{};
@@ -160,9 +163,6 @@ int TMEffectMeshRotate::Render()
 		g_pDevice->m_pd3dDevice->SetMaterial(&materials);
 	}
 
-	if (pMesh == nullptr)
-		return 0;
-
 	pMesh->m_fScaleV = m_fScale;
 	pMesh->m_fScaleH = m_fScale;
 
@@ -171,6 +171,9 @@ int TMEffectMeshRotate::Render()
 	else
 		pMesh->Render(m_vecPosition.x, m_vecPosition.y, m_vecPosition.z, m_fAngle, 0, 1.5707964f, 0, 0);
 
+	// Restore the defaults every other effect restores, so the next node does
+	// not inherit additive, unlit, no-depth-write drawing.
+	effect_render_state::RestoreDefaults(*g_pDevice, !bBright);
 	return 1;
 }
 
@@ -185,7 +188,9 @@ int TMEffectMeshRotate::FrameMove(unsigned int dwServerTime)
 
 	IsVisible();
 
-	float fProgress = (float)((m_dwStartTime - dwServerTime) % m_dwRotateTime) / (float)m_dwRotateTime;
+	// Countdown phase without the jump of the unsigned subtraction when the
+	// server time passes the staggered start.
+	float fProgress = (float)effect_timing::CountdownPhase(m_dwStartTime, dwServerTime, m_dwRotateTime) / (float)m_dwRotateTime;
 	float fAngle = (fProgress * 3.1415927f) * 2.0f;
 
 	if (m_nType == 1 && m_pOwner)
@@ -199,6 +204,11 @@ int TMEffectMeshRotate::FrameMove(unsigned int dwServerTime)
 	}
 	if (m_nType == 2)
 		fProgress = (float)(dwServerTime - m_dwStartTime) / (float)m_dwLifeTime;
+	if ((m_nType == 2 || m_nType == 3) && fProgress > 1.0f)
+	{
+		g_pObjectManager->DeleteObject(this);
+		return 1;
+	}
 
 	if (m_pOwner)
 	{
@@ -239,100 +249,104 @@ int TMEffectMeshRotate::FrameMove(unsigned int dwServerTime)
 	}
 	if (m_bScale == 1)
 		m_fScale = (sinf(fAngle) * 0.1f) + 0.69999999f;
+	if (m_nType == 3) m_vecPosition.y -= 0.80000001f;
 	
-	switch (m_nType)
-	{
-	case 1:
-	{
-		int nRand = rand() % 5;
+    for (unsigned int emission = m_emissionClock.Steps(dwServerTime); emission; --emission)
+    {
+        switch (m_nType)
+        {
+        case 1:
+        {
+            int nRand = rand() % 5;
 
-		auto pEffect = new TMEffectBillBoard(
-			0,
-			800,
-			((float)nRand * 0.050000001f) + 0.02f,
-			((float)nRand * 0.1f) + 0.02f,
-			((float)nRand * 0.050000001f) + 0.02f,
-			0.00050000002f,
-			1,
-			80);
+            auto pEffect = new TMEffectBillBoard(
+                0,
+                800,
+                ((float)nRand * 0.050000001f) + 0.02f,
+                ((float)nRand * 0.1f) + 0.02f,
+                ((float)nRand * 0.050000001f) + 0.02f,
+                0.00050000002f,
+                1,
+                80);
 
-		if (pEffect)
-		{
-			pEffect->m_vecStartPos = pEffect->m_vecPosition = m_vecPosition;
-			pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-			pEffect->m_bStickGround = 0;
-			pEffect->m_nParticleType = 1;
-			pEffect->m_fParticleV = 0.0f;
-			pEffect->SetColor(0x0FF6688AA);
-			g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
-		}
-	}
-	break;
-	case 2:
-	{
-		if (fProgress > 1.0)
-		{
-			g_pObjectManager->DeleteObject(this);
-			return 1;
-		}
-		int nRand = rand() % 20 + 5;
+            if (pEffect)
+            {
+                pEffect->m_vecStartPos = pEffect->m_vecPosition = m_vecPosition;
+                pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                pEffect->m_bStickGround = 0;
+                pEffect->m_nParticleType = 1;
+                pEffect->m_fParticleV = 0.0f;
+                pEffect->SetColor(0x0FF6688AA);
+                g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+            }
+        }
+        break;
+        case 2:
+        {
+            if (fProgress > 1.0)
+            {
+                g_pObjectManager->DeleteObject(this);
+                return 1;
+            }
+            int nRand = rand() % 20 + 5;
 
-		auto pEffect = new TMEffectBillBoard(
-			0,
-			900,
-			(float)nRand * 0.2f,
-			(float)nRand * 0.2f,
-			(float)nRand * 0.2f,
-			0.00050000002f,
-			1,
-			80);
+            auto pEffect = new TMEffectBillBoard(
+                0,
+                900,
+                (float)nRand * 0.2f,
+                (float)nRand * 0.2f,
+                (float)nRand * 0.2f,
+                0.00050000002f,
+                1,
+                80);
 
-		if (pEffect)
-		{
-			pEffect->m_vecStartPos = pEffect->m_vecPosition = m_vecPosition;
-			pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-			pEffect->m_bStickGround = 0;
-			pEffect->m_nParticleType = 3;
-			pEffect->m_fParticleV = 2.0f;
-			pEffect->SetColor(0xFF6677CC);
-			g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
-		}
-	}
-	break;
-	case 3:
-	{
-		if (fProgress > 1.0)
-		{
-			g_pObjectManager->DeleteObject(this);
-			return 1;
-		}
-		int nRand = rand() % 20 + 3;
+            if (pEffect)
+            {
+                pEffect->m_vecStartPos = pEffect->m_vecPosition = m_vecPosition;
+                pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                pEffect->m_bStickGround = 0;
+                pEffect->m_nParticleType = 3;
+                pEffect->m_fParticleV = 2.0f;
+                pEffect->SetColor(0xFF6677CC);
+                g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+            }
+        }
+        break;
+        case 3:
+        {
+            if (fProgress > 1.0)
+            {
+                g_pObjectManager->DeleteObject(this);
+                return 1;
+            }
+            int nRand = rand() % 20 + 3;
 
-		auto pEffect = new TMEffectBillBoard(
-			0,
-			1500,
-			(float)nRand * 0.2f,
-			(float)nRand * 0.2f,
-			(float)nRand * 0.2f,
-			0.0000099999997f,
-			1,
-			80);
+            auto pEffect = new TMEffectBillBoard(
+                0,
+                1500,
+                (float)nRand * 0.2f,
+                (float)nRand * 0.2f,
+                (float)nRand * 0.2f,
+                0.0000099999997f,
+                1,
+                80);
 
-		if (pEffect)
-		{
-			m_vecPosition.y -= 0.80000001f;
-			pEffect->m_vecStartPos = pEffect->m_vecPosition = m_vecPosition;
-			pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-			pEffect->m_bStickGround = 0;
-			pEffect->m_nParticleType = 3;
-			pEffect->m_fParticleH = 1.0f;
-			pEffect->m_fParticleV = 5.0f;
-			pEffect->SetColor(0xFFFF0000);
-			g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
-		}
-	}
-	break;
-	}
+            if (pEffect)
+            {
+                pEffect->m_vecStartPos = pEffect->m_vecPosition = m_vecPosition;
+                pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                pEffect->m_bStickGround = 0;
+                pEffect->m_nParticleType = 3;
+                pEffect->m_fParticleH = 1.0f;
+                pEffect->m_fParticleV = 5.0f;
+                pEffect->SetColor(0xFFFF0000);
+                g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+            }
+        }
+        break;
+        }
+    }
+
 
 	return 1;
 }

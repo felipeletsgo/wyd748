@@ -9,6 +9,7 @@
 #include "TMObject.h"
 #include "TMObjectContainer.h"
 #include "TMLight.h"
+#include "EffectGuards.h"
 
 // NOTE: this is cleary not float values.
 D3DCOLORVALUE TMSky::m_LightVal[4] =
@@ -231,22 +232,18 @@ int TMSky::FrameMove(unsigned int dwServerTime)
     if (g_pCurrentScene->m_pSun != nullptr)
     {
         g_pCurrentScene->m_pSun->m_bHide = m_nState && m_nState < 10 ? 1 : 0;
-        if (m_nTextureIndex == 68 || pMesh->m_nTextureIndex[0] == 68)
+        // The sun state is still updated without a mesh; the mesh is read only
+        // when present (A24-S1 hardening; the loader normally keeps a mesh).
+        if (m_nTextureIndex == 68 || (pMesh != nullptr && pMesh->m_nTextureIndex[0] == 68))
             g_pCurrentScene->m_pSun->m_bHide = 1;
-    } 
-    
+    }
+
     if (pMesh == nullptr)
         return 0;
 
     if (pMesh->m_pVB == nullptr)
         return 0;
 
-    D3DVERTEXBUFFER_DESC vDesc;
-    RDLVERTEX* pVertex;
-
-    pMesh->m_pVB->GetDesc(&vDesc);
-    pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-    int nCount = vDesc.Size / 24;
     g_ClipFar = 70.0f;
     unsigned int dwAlpha = 0x00808080;
 
@@ -324,11 +321,14 @@ int TMSky::FrameMove(unsigned int dwServerTime)
         g_pDevice->m_dwClearColor = 0;
         g_pDevice->m_fFogStart = TMSky::FogList[5][0];
         g_pDevice->m_fFogEnd = TMSky::FogList[5][1];
-        g_pCurrentScene->m_pSun->m_bHide = 1;
+        if (g_pCurrentScene->m_pSun != nullptr)
+            g_pCurrentScene->m_pSun->m_bHide = 1;
 
-        TMVector2 vec = g_pObjectManager->m_pCamera->m_pFocusedObject->m_vecPosition;
+        // Without a camera focus the region light is skipped (C-23, ENTA-R5).
+        const auto pFocus = g_pObjectManager->m_pCamera->m_pFocusedObject;
+        const TMVector2 vec = pFocus ? pFocus->m_vecPosition : TMVector2(0.0f, 0.0f);
 
-        if (((int)vec.x >> 7 == 13 || (int)vec.x >> 7 == 14) && 
+        if (pFocus && ((int)vec.x >> 7 == 13 || (int)vec.x >> 7 == 14) &&
             (int)vec.y >> 7 == 28)
         {
             g_pDevice->m_colorLight.r = 0.8f;
@@ -389,9 +389,11 @@ int TMSky::FrameMove(unsigned int dwServerTime)
         }
         else
         {
+            // Without a camera focus the open-field profile applies (C-23, ENTA-R5).
             TMVector2 vec(0.0f, 0.0f);
-            if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-                vec = g_pObjectManager->m_pCamera->m_pFocusedObject->m_vecPosition;
+            const auto pFocus = g_pObjectManager->m_pCamera->m_pFocusedObject;
+            if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && pFocus)
+                vec = pFocus->m_vecPosition;
 
             if ((int)vec.x >> 7 > 26 && (int)vec.x >> 7 < 31 &&
                 (int)vec.y >> 7 > 20 && (int)vec.y >> 7 < 25)
@@ -409,7 +411,7 @@ int TMSky::FrameMove(unsigned int dwServerTime)
                 g_ClipFar = 90.0f;
                 g_pDevice->m_dwClearColor = 0xFFFFFFFF;
                 if (((int)vec.x >> 7 == 29 || (int)vec.x >> 7 == 30) &&
-                    (int)vec.y >> 7 == 22)
+                    (int)vec.y >> 7 == 22 && g_pCurrentScene->m_pSun != nullptr)
                 {
                     g_pCurrentScene->m_pSun->m_bHide = 1;
                 }
@@ -544,10 +546,9 @@ int TMSky::FrameMove(unsigned int dwServerTime)
     if (g_pDevice->m_bVoodoo == 1)
         dwAlpha = 0xFFFFFFFF;
 
-    for (int m = 0; m < nCount; ++m)
-        pVertex[m].diffuse = dwAlpha;
-
-    pMesh->m_pVB->Unlock();
+    // Lock only for the write. A failed GetDesc or Lock, or a null pointer,
+    // skips the update; only a successful Lock is unlocked (C-41 TMSky site).
+    effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh->m_pVB, dwAlpha);
 
     // NOTE: m_nTextIndex maybe [0]?
     if (m_nState == 3 ||m_nState == 13 || m_nState == 10 && pMesh->m_nTextureIndex[1] != 0)

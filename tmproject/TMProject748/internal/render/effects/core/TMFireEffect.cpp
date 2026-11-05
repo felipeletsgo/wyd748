@@ -4,9 +4,13 @@
 #include "TMGlobal.h"
 #include "TMUtil.h"
 #include "TMEffectBillBoard.h"
+#include "EffectTiming.h"
 
 TMFireEffect::TMFireEffect(TMVector3 vecStart, TMObject* pTarget, int nTextureIndex) : TreeNode(0)
 {
+    if (g_pTimerManager)
+        m_dwCreateTime = g_pTimerManager->GetServerTime();
+
     if (pTarget)
     {
         m_pOwner = 0;
@@ -40,7 +44,10 @@ int TMFireEffect::FrameMove(unsigned int dwServerTime)
 {
     dwServerTime = g_pTimerManager->GetServerTime();
     unsigned int dwTerm = dwServerTime - m_dwCreateTime;
-    if (m_dwLifeTime && m_dwLifeTime < dwTerm && dwServerTime > m_dwCreateTime)
+    // Wrap-safe expiry. The absolute "now > create" test kept an effect
+    // created just before the 2^32 tick wrap alive for another 49.7 days;
+    // a clock that stepped back still does not expire the effect.
+    if (effect_timing::LifetimeExceeded(dwServerTime, m_dwCreateTime, m_dwLifeTime))
     {
         g_pObjectManager->DeleteObject(this);
         return 1;

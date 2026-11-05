@@ -170,14 +170,19 @@ unsigned int BASE_GetItemTenColor(STRUCT_ITEM* pItem)
 
     unsigned char sanc{};
 
-    if (pItem->stEffect[0].cEffect == EF_SANC || (pItem->stEffect[0].cEffect >= 115 && pItem->stEffect[0].cEffect <= 126))
+    if (pItem->stEffect[0].cEffect == EF_SANC)
         sanc = pItem->stEffect[0].cValue;
-
-    else if (pItem->stEffect[1].cEffect == EF_SANC || (pItem->stEffect[1].cEffect >= 115 && pItem->stEffect[1].cEffect <= 126))
+    else if (pItem->stEffect[1].cEffect == EF_SANC)
         sanc = pItem->stEffect[1].cValue;
-
-    else if (pItem->stEffect[2].cEffect == EF_SANC || (pItem->stEffect[2].cEffect >= 115 && pItem->stEffect[2].cEffect <= 126))
+    else if (pItem->stEffect[2].cEffect == EF_SANC)
         sanc = pItem->stEffect[2].cValue;
+    else
+        for (int i = 0; i < 3; ++i)
+            if (pItem->stEffect[i].cEffect >= 115 && pItem->stEffect[i].cEffect <= 126)
+            {
+                sanc = pItem->stEffect[i].cValue;
+                break;
+            }
 
     return (sanc - 230) % 4 + 5;
 }
@@ -421,6 +426,9 @@ unsigned int BASE_GetOptionColor(int nPos, unsigned int dwParam, int nValue)
 
 int BASE_GetMeshIndex(short sIndex)
 {
+    // A09-10: callers bound the index today; reject catalog misses locally too.
+    if (sIndex < 0 || sIndex >= MAX_ITEMLIST)
+        return 0;
     if (costume_slot::IsCostume(g_pItemList[sIndex].nIndexMesh, g_pItemList[sIndex].nPos))
         return costume_slot::IconMesh;
 

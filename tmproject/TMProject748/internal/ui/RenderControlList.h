@@ -4,6 +4,14 @@
 // Non-owning per-frame geometry lists. Unlink before destroying a control.
 namespace render_control_list
 {
+    // Retired lists borrow nodes whose owners may already be destroyed.
+    // Never follow their links during terminal disposal.
+    template<class List>
+    void Discard(List& list)
+    {
+        list.pHeadGeom = list.pTailGeom = nullptr;
+    }
+
     template<class List>
     void Clear(List& list)
     {
@@ -71,6 +79,17 @@ namespace render_control_list
             for (Node* current = lists[i].pHeadGeom; current; current = current->m_pNextGeom)
                 if (current == node) return false;
         return Append(lists[layer], node);
+    }
+
+    // SControlContainer::FrameMove raises the layer on every descent and never
+    // lowers it. Layers past the table share its top layer, which keeps late
+    // controls drawn instead of rejected; lower layers are unchanged (A26-05).
+    constexpr int ClampTraversalLayer(int layer, std::size_t count)
+    {
+        return count == 0 ? -1
+            : layer < 0 ? 0
+            : static_cast<std::size_t>(layer) >= count ? static_cast<int>(count - 1)
+            : layer;
     }
 
     template<class List, class Node>

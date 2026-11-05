@@ -756,6 +756,7 @@ _WG_Reviving_Costs_Gold	Reviving %s costs %d Gold.
 _WG_Save_Failed_Mount_Was_Not_Changed	Save failed. The mount was not changed.
 _WG_Treatment_Failed_Mount_Was_Lost	The treatment failed and the mount was lost.
 _WG_Training_Field_Only_Mortals_Below_Level	The training field is only for mortals below level 35.
+_WG_City_Guild_Area_Restricted	Only members of the guild that owns this city may enter this area.
 _WG_Move_Closer_Interact	Move closer to interact.
 _WG_Character_Not_Visible	That character is not visible.
 _WG_Character_Not_Available	That character is not available.
@@ -1121,3 +1122,5 @@ _WG_Roll_Success	Success: %d/%d
 _WG_Roll_Fail	Fail: %d/%d
 _WG_Roll_Penalty_Success	Penalty Success: %d/%d
 _WG_Roll_Penalty_Fail	Penalty Fail: %d/%d
+
+_WG_Sale_Quote_Changed	The sale quote changed. Reopen the shop and check the price. Your item was not sold.

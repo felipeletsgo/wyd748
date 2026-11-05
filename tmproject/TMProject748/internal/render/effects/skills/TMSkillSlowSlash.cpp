@@ -62,7 +62,9 @@ int TMSkillSlowSlash::FrameMove(unsigned int dwServerTime)
 			{
 				auto nRand = rand();
 				int color = 0;
-				int pos = 0;
+				// Every known variant spreads over 5 cells; the default keeps
+				// the modulo below defined for any other variant.
+				int pos = 5;
 				float fSize = 0.0f;
 				float fParticleH = 0.0f;
 

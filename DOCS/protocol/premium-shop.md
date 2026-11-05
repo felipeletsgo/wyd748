@@ -12,6 +12,10 @@ Donate balance, validation and settlement remain on the game connection.
 No password, HTTP checkout or second catalog is introduced. The local page
 may display the account name supplied by the client; it is not sent to an
 official authentication endpoint.
+Known defect (A18-08, 2026-11-01): the current client passes the transformed
+login buffer (upper case, each byte offset by its index), not the account
+name, so the header shows wrong text. The contract stays the plain account
+name; correct the client, not this contract.
 The native shop remains the fallback when WebView2 is unavailable.
 Keep the native shop and inventory hidden while the embedded page loads.
 Prepare their contents without showing them. Show the native fallback only

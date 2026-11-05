@@ -27,6 +27,9 @@ int RunReceivedPacketDispatchEntitiesAndShopTests(int& checks)
     check(entity_reentry::Replace(false, -1, 0, true),
         "reentry replaces a marked deleted actor");
 
+    // CreateMob and CreateMobTrade share the coordinated entity prefix;
+    // the second adds a 24-byte title. Each format has a unique size
+    // so the handler cannot read missing or mixed blocks.
     for (unsigned int opcode : {MSG_CreateMob_Opcode, MSG_CreateMobTrade_Opcode})
     {
         const std::size_t length = opcode == MSG_CreateMob_Opcode

@@ -2,7 +2,8 @@
 
 The original patching and game-start machine code is retained byte for byte.
 A small PE entry shim calls a source-built DLL before the original entry point.
-The DLL subclasses only the marked main dialog and persists lang.txt. The only
+The DLL subclasses the marked main dialog, persists lang.txt and redirects the
+pinned WinINet import slots through HttpsTransport.h before the native entry runs. The only
 native data change is the status format, which shows [VERSION] 48001 as 7.48.001.
 """
 import argparse
@@ -178,6 +179,12 @@ def build(source, output):
     baseline = source.read_bytes()
     if digest(baseline) != BASE_SHA256:
         raise ValueError("source is not the pinned operational native launcher")
+    image = Image(baseline)
+    for name, rva in [(b"FtpGetFileA", 0x2e4f0), (b"HttpSendRequestA", 0x2e500),
+                      (b"HttpOpenRequestA", 0x2e504), (b"InternetOpenUrlA", 0x2e508),
+                      (b"InternetConnectA", 0x2e514)]:
+        if image.import_address(name) != image.base + rva:
+            raise ValueError(f"native HTTPS import slot changed: {name!r}")
     dialog = language_dialog(resource(baseline, 5, 102, 1042))
     expected = patch_version_format(baseline)
     with tempfile.TemporaryDirectory() as temporary:
@@ -204,7 +211,8 @@ def build(source, output):
                    preserved_native_sections=[".text", ".rdata", ".data except version format"],
                    version_format=VERSION_FORMAT_AFTER.rstrip(b"\0").decode(),
                    original_entry_rva=hex(before.entry), entry_rva=hex(after.entry),
-                   dependency=DLL_NAME.rstrip(b"\0").decode(), gameplay="not observed")
+                   dependency=DLL_NAME.rstrip(b"\0").decode(),
+                   transport="HTTPS via dependency; no HTTP/FTP fallback", gameplay="not observed")
     output.with_suffix(".json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(receipt, indent=2))
 

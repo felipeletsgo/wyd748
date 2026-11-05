@@ -33,8 +33,10 @@ constexpr bool ShouldApplyMana(bool localAttacker, int /*localFlag*/, int skillI
     return !localAttacker && skillIndex >= 0 && skillIndex < 104;
 }
 
-// The callback borrows its inputs only until return. It updates the local player
-// snapshot/UI after actor mana, and is never invoked for remote or rejected state.
+// The callback borrows its inputs only until return. ShouldApplyMana rejects
+// every local attacker, so the current policy never invokes it: local mana comes
+// only from the uint32 score/vitals packets (A08-04). The parameter remains so
+// a future wide-mana contract can update the local snapshot/UI after actor mana.
 template<class LocalApply>
 bool ApplyMana(bool localAttacker, int localFlag, int skillIndex,
     unsigned short receivedMana, unsigned int& actorMana, LocalApply&& applyLocal)

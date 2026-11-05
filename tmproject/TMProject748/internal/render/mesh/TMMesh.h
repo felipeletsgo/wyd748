@@ -26,7 +26,15 @@ public:
 	virtual int RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColor, int nMultiTex, int nTexOffset, short sLegend);
 
 	int LoadMsa(const char* szFileName);
+	// True when UV animation may lock and rewrite this mesh: a loaded RDVERTEX2
+	// buffer whose attribute ranges all fit inside it.
+	bool UvAnimatable();
+	// Valid model-texture row of the first attribute, or -1.
+	int FirstModelTexture() const;
 private:
+	// A failed load leaves no buffers, no attribute ranges and texture row 0,
+	// so a retained failed mesh draws nothing and never indexes row -1.
+	void ResetToEmpty();
 
 	// These two functions doesn't exist in the original version
 	HRESULT RenderDraw(int nTexOffset);

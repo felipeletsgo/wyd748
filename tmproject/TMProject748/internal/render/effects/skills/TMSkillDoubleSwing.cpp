@@ -159,7 +159,20 @@ int TMSkillDoubleSwing::Render()
     }
 
     if (m_nLevel != 3)
+    {
+        // Levels share mesh 702: apply this level's color just before its own
+        // draw instead of in FrameMove, where the last instance won.
+        unsigned int dwCol = 0xFFAAAAAA;
+        if (m_nLevel == 1)
+            dwCol = 0xFFFF0000;
+        if (m_nLevel == 4)
+            dwCol = 0xFFDD4400;
+        effect_vertex_color::TrySetDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(
+            pMesh->m_pVB, pMesh->m_sizeVertex,
+            D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1, dwCol);
+        pMesh->m_nTextureIndex[0] = 91;
         pMesh->Render(m_vecPosition.x, m_vecPosition.y, m_vecPosition.z, m_fAngle, m_fAngle2, D3DXToRadian(90), 0, 0);
+    }
 
     if (m_pLightMap)
         m_pLightMap->RenderUnder();
@@ -204,18 +217,6 @@ int TMSkillDoubleSwing::FrameMove(unsigned int dwServerTime)
         return 0;
     if (!IsVisible())
         return 0;
-    unsigned int dwCol = 0xFFAAAAAA;
-    if (m_nLevel == 1)
-        dwCol = 0xFFFF0000;
-    if (m_nLevel == 4)
-        dwCol = 0xFFDD4400;
-
-    if (!effect_vertex_color::TrySetDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(
-        pMesh->m_pVB, pMesh->m_sizeVertex,
-        D3DFVF_XYZ | D3DFVF_DIFFUSE | D3DFVF_TEX1, dwCol))
-        return 0;
-    pMesh->m_nTextureIndex[0] = 91;
-    IsVisible();
 
     if (m_fProgress > 0.5f && m_pOwner)
         m_pOwner = 0;

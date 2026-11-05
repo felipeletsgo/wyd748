@@ -2,8 +2,8 @@
 
 #include "MessageHeader.h"
 
-// Solicitacao C->S existente. Somente o servidor decide se o slot pode entrar.
-// Force e SecretCode permanecem presentes e zerados no fluxo atual da cena.
+// Existing C->S request. Only the server decides admission for the slot.
+// Force and SecretCode remain present and zero in the current scene flow.
 constexpr auto MSG_CharacterLogin_Opcode = 0x213;
 struct MSG_CharacterLogin
 {

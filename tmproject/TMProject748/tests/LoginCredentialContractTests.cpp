@@ -7,6 +7,7 @@
 #include "../internal/platform/windows/AdapterIdentity.h"
 #include "../internal/wire/ClientBuildContract.h"
 #include "SourceMethod.h"
+#include "../internal/application/AccountLoginAttempt.h"
 
 namespace {
 std::filesystem::path FindSource(const char* relativePath)
@@ -54,6 +55,19 @@ int RunLoginCredentialContractTests(int& checks)
     const std::string source = LoadSource(
         "TMProject748/internal/app/scenes/TMSelectServerScene.cpp");
     check(!source.empty(), "select-server source is available");
+    AccountLoginAttempt attempt;
+    check(!attempt.Resolve() && attempt.Begin() && attempt.Pending() && !attempt.Begin(),
+        "A07-03 one connection accepts only one outstanding login");
+    check(attempt.Resolve() && !attempt.Pending() && !attempt.Resolve(),
+        "A07-03 cancellation or failure consumes the pending attempt and rejects a late response");
+    check(attempt.Begin() && attempt.Resolve(), "A07-03 a resolved attempt permits a later login");
+    const auto response = source_contract::Method(source,
+        "int TMSelectServerScene::OnPacketEvent(unsigned int dwCode, char* buf)");
+    check(response.find("if (!m_loginAttempt.Resolve())") < response.find("TM_SELECTCHAR_STATE"),
+        "A07-03 a login response needs a pending attempt before entering character selection");
+    check(source.find("m_szAccountPass") == std::string::npos &&
+        source.find("SecureZeroMemory(&stAccountLogin, sizeof(stAccountLogin))") != std::string::npos,
+        "A07-04 the obsolete password proof is removed and the stack packet is wiped after send");
 
     // OnControlEvent routes B_LOGIN_OK to OnLoginOk; check that helper by its own boundaries.
     const auto routeStart = source.find("case B_LOGIN_OK:");
@@ -62,6 +76,8 @@ int RunLoginCredentialContractTests(int& checks)
         source.substr(routeStart, routeEnd - routeStart).find("= OnLoginOk(extractedResult);") != std::string::npos,
         "login handler is delimited");
     const std::string handler = source_contract::Method(source, "ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)");
+    // A renamed handler must fail the gate instead of skipping its checks.
+    check(!handler.empty(), "login handler method is found");
 
     if (!handler.empty()) {
         const auto minimum = handler.find("strlen(pEditPassword->GetText()) < 4");
@@ -77,8 +93,8 @@ int RunLoginCredentialContractTests(int& checks)
             "native password-too-long message is preserved");
         check(connect != std::string::npos && copy != std::string::npos,
             "connection and bounded packet copy remain present");
-        check(minimum < maximum && maximum < maximumMessage &&
-            maximumMessage < connect && connect < copy,
+        check(source_contract::InOrder(minimum, maximum) && source_contract::InOrder(maximum, maximumMessage) &&
+            source_contract::InOrder(maximumMessage, connect) && source_contract::InOrder(connect, copy),
             "invalid password is rejected before network and serialization");
     }
 
@@ -115,7 +131,7 @@ int RunLoginCredentialContractTests(int& checks)
     check(identify != std::string::npos && send != std::string::npos && identify < send,
         "initial login identifies compiled build before sending");
     const auto migrateIdentify = fieldSource.find("client_build::IdentifyLogin(stAccountLogin)");
-    check(migrateIdentify != std::string::npos && migrateIdentify < fieldSource.find("SendPacket("),
+    check(migrateIdentify != std::string::npos && source_contract::InOrder(migrateIdentify, fieldSource.find("SendPacket(")),
         "migration reconnect identifies the same compiled build");
     struct LoginIdentity {
         int ClientVersion = 0;
@@ -138,7 +154,7 @@ int RunLoginCredentialContractTests(int& checks)
     // from an imported bullet literal, drew a stray glyph in the 7.48 font.
     const std::string editSource = source_contract::Method(LoadSource(
         "TMProject748/internal/ui/controls/SEditableText.cpp"), "void SEditableText::Update()");
-    check(editSource.find("m_GCText.strString[nIndex] = '*';") != std::string::npos &&
+    check(editSource.find("editable_text_bounds::WriteMask(m_GCText.strString, nStringLen, '*')") != std::string::npos &&
         editSource.find("\\242") == std::string::npos,
         "password fields mask each character with an asterisk");
 

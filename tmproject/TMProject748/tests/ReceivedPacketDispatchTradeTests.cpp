@@ -210,7 +210,5 @@ int RunReceivedPacketDispatchTradeTests(int& checks)
         "WarInfo preserves receiver, guild, clan and ally");
     check(warInfo == warInfoBefore, "gate preserves every WarInfo byte");
 
-    // SetShortSkill is an authoritative echo: the legacy handler copies twenty bytes
-    // immediately, so no prefix can reach the consumer.
     return failures;
 }

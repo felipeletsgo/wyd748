@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Snapshot compacto S->C. Hold representa divida de EXP; CP/Chaos nao ocupa
-// este frame. Score completo continua pertencendo ao packet 0x336.
+// Compact S->C snapshot. Hold is EXP debt; CP/Chaos is absent.
+// The full score remains in packet 0x336.
 constexpr auto MSG_UpdateEtc_Opcode = 0x337;
 struct MSG_UpdateEtc
 {

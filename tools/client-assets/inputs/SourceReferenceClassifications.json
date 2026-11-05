@@ -1,0 +1,1327 @@
+{
+  "schemaVersion": 1,
+  "reviewed": "2026-11-02",
+  "sourceSha256": {
+    "internal/render/mesh/FallbackCostumeTable.h": "CF1E12A7C6E3C151E78A92413734398E90505472CC68BE832C5B7E612777BE8B",
+    "internal/render/mesh/TMSkinMesh.cpp": "1BC352D044138BC5B15022B29F6E4C32F4D344A3BE79B38B8C233205DF3CB0D0",
+    "internal/render/mesh/TMSkinMeshCostumes.cpp": "C5B97A92107578C99AB2227AB8C377BCEA6E6E2177C4D516820C7C01A8C639E9"
+  },
+  "references": [
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101129.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101130.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101131.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101132.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101133.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101140.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101151.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101152.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101158.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101159.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101160.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101161.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101162.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101166.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101167.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101167.wys",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101168.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101168.wys",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101169.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101171.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101173.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101175.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101176.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101177.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101182.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101183.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101184.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101185.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101194.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101195.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101199.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101200.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101208.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101209.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101210.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101213.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0101214.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102121.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102122.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102123.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102125.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102126.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102128.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102130.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102133.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102151.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102161.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102162.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102166.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102167.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102168.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102169.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102171.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102173.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102177.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102182.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102183.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102184.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102185.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102194.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102195.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102199.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102200.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102208.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102209.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102210.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102213.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0102214.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103129.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103130.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103131.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103132.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103133.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103140.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103151.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103152.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103158.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103159.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103160.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103161.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103162.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103166.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103167.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103168.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103169.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103171.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103173.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103175.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103176.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103177.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103182.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103183.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103184.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103185.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103194.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103195.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103199.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103200.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103208.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103209.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103210.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103213.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0103214.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104129.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104130.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104131.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104132.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104133.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104140.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104151.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104152.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104158.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104159.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104160.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104161.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104162.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104166.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104167.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104168.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104169.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104171.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104173.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104175.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104176.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104177.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104182.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104183.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104184.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104185.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104194.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104195.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104199.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104200.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104208.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104209.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104210.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104213.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0104214.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105129.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105130.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105131.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105132.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105133.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105140.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105151.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105152.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105158.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105159.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105160.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105161.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105162.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105166.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105167.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105168.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105169.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105171.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105173.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105175.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105176.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105177.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105182.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105183.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105184.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105185.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105194.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105195.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105199.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105200.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105208.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105209.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105210.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105213.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0105214.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106120.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106127.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106129.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106131.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106132.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106140.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106152.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106158.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106159.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106160.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106167.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106168.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106171.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106173.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106175.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106176.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106182.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106183.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106184.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106185.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106199.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106200.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106208.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106209.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106210.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106213.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0106214.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0201110.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0201111.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0201112.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0202110.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0202111.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0202112.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0203110.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0203111.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0203112.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0204110.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0204111.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0204112.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0205110.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0205111.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/FallbackCostumeTable.h",
+      "path": "mesh/ch0205112.msh",
+      "classification": "inactive-catalog-branch",
+      "reason": "Current catalog selects tagged CostumeTable renderers; legacy types 8..160 are not selected."
+    },
+    {
+      "source": "internal/render/mesh/TMSkinMesh.cpp",
+      "path": "mesh/bm010102.wyt",
+      "classification": "remapped-name",
+      "reason": "The source replaces this comparison key before texture loading.",
+      "replacement": "mesh/mi010105.wys"
+    },
+    {
+      "source": "internal/render/mesh/TMSkinMesh.cpp",
+      "path": "mesh/ch020315.wyt",
+      "classification": "remapped-name",
+      "reason": "The source replaces this comparison key before texture loading.",
+      "replacement": "mesh/ch020314.wys"
+    },
+    {
+      "source": "internal/render/mesh/TMSkinMeshCostumes.cpp",
+      "path": "mesh/newmt.msh",
+      "classification": "conditional-unavailable",
+      "reason": "Hardcore mantle uses this mesh for costume 100 and skeleton 85. Availability is unresolved; no gameplay acceptance."
+    }
+  ],
+  "evidenceSha256": {
+    "tmproject/TMProject748/internal/render/mesh/CostumeSelection.h": "3941353FE627DEEEA88EA0F0EE566AFD7E00BE7843A2CB97B154B20A668D2DD3",
+    "tmproject/TMProject748/internal/render/mesh/CostumeTable.generated.h": "4BF8AB1A7C1FD9D24E6427F309F85962A9CF824B3FB299DB10159900D0FAC868",
+    "tmproject/TMProject748/internal/game/entities/TMHuman.cpp": "A83B0F60F460E6115A750AFB80E638762C933E623A784F55B1A153F2079F461A",
+    "wydgo748/data/catalog/itemlist.csv": "FD9D12AAE0E95752AC91D7D11E5CD8475EE10BADB1E075411ADF5134D98D15E4"
+  }
+}

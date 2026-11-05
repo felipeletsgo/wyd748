@@ -18,6 +18,7 @@
 #include "SControlContainer.h"
 #include "WYD748Assets.h"
 #include "ClientDiagnostics.h"
+#include "DisplayModeQuery.h"
 
 void NewApp::OnCreate(HWND hWnd, DWORD wParam, int lParam)
 {
@@ -516,15 +517,6 @@ HRESULT NewApp::OnCloseMessage(HWND& hWnd)
 
 bool NewApp::CheckResolution(DWORD x, DWORD y, DWORD bpp)
 {
-	int iModeNum = 0;
-	DEVMODE devMode;
-	for (int bResult = EnumDisplaySettings(0, 0, &devMode); bResult; bResult = EnumDisplaySettings(0, iModeNum, &devMode))
-	{
-		if (devMode.dmPelsWidth == x && devMode.dmPelsHeight == y && devMode.dmBitsPerPel == bpp)
-			return true;
-
-		++iModeNum;
-	}
-
-	return false;
+	// Each query sets dmSize and clears dmDriverExtra, as the API requires.
+	return display_mode::HasMode<DEVMODEA>(display_mode::EnumeratePrimary, x, y, bpp);
 }

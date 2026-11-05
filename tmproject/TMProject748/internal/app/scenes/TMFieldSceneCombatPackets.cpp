@@ -6,6 +6,7 @@
 #include "SControlContainer.h"
 #include "TMGlobal.h"
 #include "TMGround.h"
+#include "../../render/world/terrain/TerrainQueryPolicy.h"
 #include "TMObjectContainer.h"
 #include "TMUtil.h"
 #include "TMSkinMesh.h"
@@ -39,6 +40,7 @@
 #include "../../application/AttackAttackerState.h"
 #include "../../application/AttackTargetState.h"
 #include "../../application/AttackVisualTiming.h"
+#include "FieldActionPolicy.h"
 #include "TMHuman.h"
 #include "TMEffectLevelUp.h"
 #include "TMFont3.h"
@@ -47,7 +49,8 @@ namespace
 {
 static int GetWYD748AttackVisualDamage(const MSG_Attack* pAttack, int index)
 {
-	if (!pAttack || index < 0 || index >= 13)
+	// A08-02: never read a slot beyond the opcode's frame (0x39D carries two).
+	if (!pAttack || index < 0 || index >= attack_visual::TargetSlotLimit(pAttack->Header.Type))
 		return 0;
 
 	const int legacyDamage = pAttack->Dam[index].Damage;
@@ -93,7 +96,8 @@ int TMFieldScene::OnPacketCNFMobKill(MSG_CNFMobKill* pStd)
 			SetMyHumanExp(pStd->Exp, pStd->FakeExp);
 		}
 
-		m_pEffectContainer->AddChild(new TMEffectCharge(pAttacker, 0, 0xFFFFFFFF));
+		if (m_pEffectContainer)
+			m_pEffectContainer->AddChild(new TMEffectCharge(pAttacker, 0, 0xFFFFFFFF));
 	}
 
 	auto pKilled = g_pObjectManager->GetHumanByID(pStd->KilledMob);
@@ -168,7 +172,7 @@ int TMFieldScene::OnPacketSetHpMode(MSG_SetHpMode* pStd)
 	}
 	else if (pStd->Mode != 22)
 	{
-		if (!m_pMessagePanel->m_bVisible)
+		if (m_pMessagePanel && !m_pMessagePanel->m_bVisible)
 		{
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[13], 2000);
 			m_pMessagePanel->SetVisible(1, 1);
@@ -179,7 +183,7 @@ int TMFieldScene::OnPacketSetHpMode(MSG_SetHpMode* pStd)
 	}
 	else if (pStd->Mode == 22)
 	{
-		if (m_pMyHuman->m_stScore.Level < 1000)
+		if (m_pMyHuman && m_pMyHuman->m_stScore.Level < 1000)
 			m_pMyHuman->Die();
 
 		return 1;
@@ -388,7 +392,12 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 			}
 			if (pAttacker != m_pMyHuman || pAttack->FlagLocal == 0 && pAttacker == m_pMyHuman)
 			{
-				if (pAttack->Dam[i].Damage == -3 || pAttack->Dam[i].Damage == -4)
+				// A08-03: a heal of 1..5 HP shares the -3/-4 miss WORD; the DMGX
+				// tail tells the two apart.
+				const bool smallHeal = attack_visual::IsTailConfirmedSmallHeal(
+					reinterpret_cast<const unsigned char*>(pAttack), pAttack->Header.Size,
+					pAttack->Header.Type, i, pAttack->Dam[i].Damage);
+				if (!smallHeal && (pAttack->Dam[i].Damage == -3 || pAttack->Dam[i].Damage == -4))
 				{
 					int nTX = 0;
 					int nTY = 0;
@@ -419,7 +428,7 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 				}
 				else if (pAttack->SkillIndex >= 0 && pAttack->SkillIndex < 104 &&
 					g_pSpell[pAttack->SkillIndex].InstanceType == 6 &&
-					(pAttack->Dam[i].Damage >= 0 || pAttack->Dam[i].Damage <= -6))
+					(pAttack->Dam[i].Damage >= 0 || pAttack->Dam[i].Damage <= -6 || smallHeal))
 				{
 					if (!pAttack->FlagLocal)
 					{
@@ -519,11 +528,10 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 					else
 						bInScreen = BASE_Get3DTo2DPos(pTargetHuman->m_vecPosition.x, pTargetHuman->m_fHeight + 1.0f, pTargetHuman->m_vecPosition.y, &nTX, &nTY);
 
-					if (bInScreen)
+					// A03-05: an unknown attacker skips only the floating numbers;
+					// the HP clamp, party bar and punch reaction of every target run.
+					if (bInScreen && pAttacker)
 					{
-						if (!pTargetHuman || !pAttacker)
-							{ extractedResult = 1; return ExtractedFlow::Return; }
-
 						attack_visual::DoubleHitNumbers numberTiming;
 						for (int bViewHalf = 0; bViewHalf < (pAttack->DoubleCritical & 1) + 1; bViewHalf++)
 						{
@@ -880,15 +888,16 @@ ExtractedFlow TMFieldScene::ApplyTargetedAttackHits(MSG_Attack*& pAttack, const 
 			if ((unsigned char)pAttack->Motion > 9)
 				pAttack->Motion = 9;
 
-			int nMotion = (unsigned char)pAttack->Motion - 4;
 			if (pAttack->SkillIndex == 151)
 				nClass = 5;
+			// A03-06: Motion 0..3 indexed before the table; clamp to 4..9.
+			const int nDelayIndex = field_action::PunchDelayIndex(nClass, (unsigned char)pAttack->Motion);
 			if (pAttacker != m_pMyHuman || !pAttack->FlagLocal && pAttacker == m_pMyHuman)
 			{
 				pTargetHuman->m_stPunchEvent.nDamage = pAttack->Dam[i].Damage / nDamageRate;
 				pTargetHuman->m_stPunchEvent.vecFrom = vecAttackerPos;
 				pTargetHuman->m_stPunchEvent.SkillIndex = pAttack->SkillIndex;
-				pTargetHuman->m_stPunchEvent.dwTime = 0 + dwDelayTable[6 * nClass + nMotion] + g_pTimerManager->GetServerTime();
+				pTargetHuman->m_stPunchEvent.dwTime = 0 + dwDelayTable[nDelayIndex] + g_pTimerManager->GetServerTime();
 			}
 		}
 	}
@@ -916,8 +925,12 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 			{
 				int nDamageRate = attack_target::SafeDamageRate(pTargetHuman->m_cDamageRate);
 				const int stateDamage = GetWYD748AttackStateDamage(pAttack, i);
+				// A08-03: the DMGX tail separates a 1..5 HP heal from a miss.
+				const bool smallHeal = attack_visual::IsTailConfirmedSmallHeal(
+					reinterpret_cast<const unsigned char*>(pAttack), pAttack->Header.Size,
+					pAttack->Header.Type, i, pAttack->Dam[i].Damage);
 
-				if (pAttack->Dam[i].Damage == -3 || pAttack->Dam[i].Damage == -4)
+				if (!smallHeal && (pAttack->Dam[i].Damage == -3 || pAttack->Dam[i].Damage == -4))
 				{
 					int pX = 0;
 					int pY = 0;
@@ -947,7 +960,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 				}
 				else if (pAttack->SkillIndex >= 0 && pAttack->SkillIndex < 104
 					&& g_pSpell[pAttack->SkillIndex].InstanceType == 6
-					&& (pAttack->Dam[i].Damage >= 0 || pAttack->Dam[i].Damage <= -6))
+					&& (pAttack->Dam[i].Damage >= 0 || pAttack->Dam[i].Damage <= -6 || smallHeal))
 				{
 					if (!pAttack->FlagLocal)
 					{
@@ -1041,11 +1054,9 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 					else
 						bInScreen = BASE_Get3DTo2DPos(pTargetHuman->m_vecPosition.x, pTargetHuman->m_fHeight + 1.0f, pTargetHuman->m_vecPosition.y, &nTX, &nTY);
 
-					if (bInScreen)
+					// A03-05: an unknown attacker skips only the floating numbers.
+					if (bInScreen && pAttacker)
 					{
-						if (!pTargetHuman || !pAttacker)
-							{ extractedResult = 1; return ExtractedFlow::Return; }
-
 						attack_visual::DoubleHitNumbers numberTiming;
 						for (int bViewHalf = 0; bViewHalf < (pAttack->DoubleCritical & 1) + 1; bViewHalf++)
 						{
@@ -1067,9 +1078,9 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 									sprintf(szStr, "%d", nValue);
 								}
 
-								// Rapid Hit (95) shows each of its hits in sequence.
-								if (pAttack->SkillIndex == 95)
-									dwDelay += 100 * i;
+								// A03-10: Rapid Hit (95) shows target i 100 ms after target
+								// i - 1; the old loop accumulated the offset per number.
+								const unsigned int dwNumberDelay = field_action::HitNumberDelay(dwDelay, pAttack->SkillIndex, i);
 
 								bool bDrawFront = false;
 								if (g_bHideEffect)
@@ -1097,10 +1108,10 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 											{
 												pFont = new TMFont3(szStr, nTX - 10 * i,
 													(int)(RenderDevice::m_fUIScaleY * 80.0f) +
-													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fUIScaleY),
+													(int)((float)nTY - (float)(20.0f * i) * RenderDevice::m_fUIScaleY),
 													dwColor,
 													fSize,
-													dwDelay,
+													dwNumberDelay,
 													1,
 													1200,
 													0,
@@ -1113,10 +1124,10 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 											{
 												pFont = new TMFont3(szStr, nTX - 10 * i,
 													(int)(RenderDevice::m_fUIScaleY * 80.0f) +
-													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fUIScaleY),
+													(int)((float)nTY - (float)(20.0f * i) * RenderDevice::m_fUIScaleY),
 													dwColor,
 													fSize,
-													dwDelay,
+													dwNumberDelay,
 													1,
 													1200,
 													0,
@@ -1126,10 +1137,10 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 											{
 												pFont = new TMFont3(szStr, nTX - 10 * i,
 													(int)(RenderDevice::m_fUIScaleY * 80.0f) +
-													(int)(((float)nTY - (float)(20.0f * i)) * RenderDevice::m_fUIScaleY),
+													(int)((float)nTY - (float)(20.0f * i) * RenderDevice::m_fUIScaleY),
 													dwColor,
 													fSize,
-													dwDelay,
+													dwNumberDelay,
 													1,
 													1200,
 													0,
@@ -1147,7 +1158,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 													(float)(RenderDevice::m_fUIScaleY * 80.0f)),
 												dwColor,
 												fSize,
-												dwDelay,
+												dwNumberDelay,
 												1,
 												1200,
 												0,
@@ -1161,7 +1172,7 @@ ExtractedFlow TMFieldScene::ApplyGroundAttackHits(MSG_Attack*& pAttack, const in
 													(float)(RenderDevice::m_fUIScaleY * 80.0f)),
 												dwColor,
 												fSize,
-												dwDelay,
+												dwNumberDelay,
 												1,
 												1200,
 												0,
@@ -1447,7 +1458,8 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 
 	if (!pTarget)
 	{
-		pAttacker->Attack((ECHAR_MOTION)pAttack->Motion, TMVector2((float)pAttack->TargetX, (float)pAttack->TargetY), static_cast<char>(pAttack->SkillIndex));
+		// A14-09: keep the short skill index; a char cast wraps skills above 127.
+		pAttacker->Attack((ECHAR_MOTION)pAttack->Motion, TMVector2((float)pAttack->TargetX, (float)pAttack->TargetY), pAttack->SkillIndex);
 		fAngle = pAttacker->m_fWantAngle;
 	}
 	else if ((unsigned char)pAttack->Motion != 254)
@@ -1505,7 +1517,11 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 		}
 		else
 		{
-			pAttacker->m_stEffectEvent.pTarget = pTarget;
+			// A03-03: the event fires 200-500 ms later. A delay-deleted actor can
+			// be freed (10 s expiry or immediate re-entry replacement) before
+			// that, so it is not bound; vecTo keeps its position.
+			pAttacker->m_stEffectEvent.pTarget = field_action::MayBindEffectTarget(
+				pTarget->m_dwDelayDel, pTarget->m_sDelayDel, pTarget->m_cDeleted) ? pTarget : nullptr;
 			if (pTarget && pAttacker && pTarget->m_nClass == 56 && !pTarget->m_stLookInfo.FaceMesh)
 			{
 				TMVector3 Len{ pTarget->m_vecPosition.x - pAttacker->m_vecPosition.x, pTarget->m_fHeight, pTarget->m_vecPosition.y - pAttacker->m_vecPosition.y };
@@ -2034,6 +2050,17 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 
 		unsigned int dwColor = 0xAAAAAAAA;
 
+		// An observer can see the caster without the wall: the server sends the
+		// hit to the caster's viewers and the wall spawn to the wall's viewers.
+		// Without a local wall, anchor the visual at the packet target tile.
+		TMVector2 vecAnchor{ (float)pAttack->TargetX + 0.5f, (float)pAttack->TargetY + 0.5f };
+		float fAnchorHeight = (float)GroundGetMask(vecAnchor) * 0.1f;
+		if (pTarget)
+		{
+			vecAnchor = TMVector2(pTarget->m_vecPosition.x, pTarget->m_vecPosition.y);
+			fAnchorHeight = pTarget->m_fHeight;
+		}
+
 		for(int i = -1; i < 2; i++)
 		{
 			auto pEffectMesh = new TMEffectMesh(506, dwColor, 0.0f, 0);
@@ -2044,7 +2071,7 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			pEffectMesh->m_dwLifeTime = 3000;
 			pEffectMesh->m_fScaleH = 1.5f;
 			pEffectMesh->m_fScaleV = 3.0f;
-			pEffectMesh->m_vecPosition = TMVector3(((float)i * 0.2f) + pTarget->m_vecPosition.x, pTarget->m_fHeight - 0.5f, ((float)i * 0.2f) + pTarget->m_vecPosition.y);
+			pEffectMesh->m_vecPosition = TMVector3(((float)i * 0.2f) + vecAnchor.x, fAnchorHeight - 0.5f, ((float)i * 0.2f) + vecAnchor.y);
 
 			m_pEffectContainer->AddChild(pEffectMesh);
 		}
@@ -2054,7 +2081,7 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 		pShade->m_dwLifeTime = 8000;
 		pShade->SetColor(dwColor);
 		pShade->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-		pShade->SetPosition(TMVector2(pTarget->m_vecPosition.x, pTarget->m_vecPosition.y));
+		pShade->SetPosition(vecAnchor);
 
 		m_pEffectContainer->AddChild(pShade);
 
@@ -2147,13 +2174,14 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			}
 		}
 
-		if (pAttacker->m_dwEarthQuakeTime + 1700 < g_pTimerManager->GetServerTime())
+		if (field_time::After(g_pTimerManager->GetServerTime(), pAttacker->m_dwEarthQuakeTime, 1700))
 		{
 			pAttacker->m_dwEarthQuakeTime = g_pTimerManager->GetServerTime() - 1000;
 
 			for (int i = -3; i < 3; i++)
 			{
-				for (int j = -3; i < 3; i++)
+				// A03-10: the inner loop advanced i, so only 6 of 36 were made.
+				for (int j = -3; j < 3; j++)
 				{
 					auto pBill = new TMEffectBillBoard(193, 4000, 2.0f, 2.0f, 2.0f, 0.001f, 1, 80);
 
@@ -2168,8 +2196,7 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 			auto pGround = m_pGround;
 			if (pGround)
 			{
-				pGround->m_dwEffStart = g_pTimerManager->GetServerTime();
-				pGround->m_vecEffset = pAttacker->m_vecPosition;
+				terrain_quake::Start(*pGround, g_pTimerManager->GetServerTime(), pAttacker->m_vecPosition);
 			}
 		}
 
@@ -2216,16 +2243,13 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 					else if (y >= 3935)
 						nMoveY = nLength;
 
-					int targetx = (int)((float)nMoveX + m_pMyHuman->m_vecPosition.x);
-					int targety = (int)((float)nMoveY + m_pMyHuman->m_vecPosition.y);
-					if (targetx < 2341)
-						targetx = 2341;
-					else if (targetx > 2391)
-						targetx = 2391;
-					if (targety < 3907)
-						targetx = 3907;
-					else if (targety > 3952)
-						targety = 3952;
+					// A03-10: clamp each axis to the arena; the Y underflow used
+					// to overwrite X with 3907 and route far outside the arena.
+					const auto pushCell = field_action::ClampKefraPush(
+						(int)((float)nMoveX + m_pMyHuman->m_vecPosition.x),
+						(int)((float)nMoveY + m_pMyHuman->m_vecPosition.y));
+					int targetx = pushCell.x;
+					int targety = pushCell.y;
 
 					char Route[48]{};
 					BASE_GetRoute(x, y, &targetx, &targety, Route, 12, (char*)m_HeightMapData, 8);
@@ -2483,7 +2507,7 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 
 		if (ran >= 6)
 		{
-			if (pAttacker->m_dwEarthQuakeTime + 4000 < g_pTimerManager->GetServerTime())
+			if (field_time::After(g_pTimerManager->GetServerTime(), pAttacker->m_dwEarthQuakeTime, 4000))
 			{
 				pAttacker->m_dwEarthQuakeTime = g_pTimerManager->GetServerTime() - 2000;
 
@@ -2513,8 +2537,7 @@ ExtractedFlow TMFieldScene::DispatchAttackSkillVisuals(MSG_Attack*& pAttack, con
 				auto pGround = m_pGround;
 				if (pGround)
 				{
-					pGround->m_dwEffStart = g_pTimerManager->GetServerTime();
-					pGround->m_vecOffset = pAttacker->m_vecPosition;
+					terrain_quake::Start(*pGround, g_pTimerManager->GetServerTime(), pAttacker->m_vecPosition);
 				}
 
 				auto pCamera = g_pObjectManager->GetCamera();

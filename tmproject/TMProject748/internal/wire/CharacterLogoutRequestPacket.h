@@ -2,8 +2,8 @@
 
 #include "MessageHeader.h"
 
-// Intent C->S do logout: o client envia apenas o ID local apos o timer nativo.
-// O servidor permanece autoritativo; este tipo nao e usado como resposta S->C.
+// C->S logout intent: send only the local ID after the native timer.
+// The server remains authoritative. This type is not an S->C response.
 constexpr auto MSG_CharacterLogout_Opcode = 0x215;
 using MSG_CharacterLogout = MSG_STANDARD;
 

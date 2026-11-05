@@ -26,6 +26,7 @@ void BASE_ReadItemPrice();
 void BASE_UnderBarToSpace(char* szStr);
 int BASE_InitializeServerList();
 int	BASE_GetHttpRequest(char* httpname, char* Request, int MaxBuffer);
+unsigned long long BASE_PollHttpRequests();
 int BASE_GetSum(char* p, int size);
 int BASE_GetWeekNumber();
 int BASE_GetItemSanc(STRUCT_ITEM* item);

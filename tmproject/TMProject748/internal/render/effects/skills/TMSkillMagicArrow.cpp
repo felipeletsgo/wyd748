@@ -111,8 +111,11 @@ TMSkillMagicArrow::~TMSkillMagicArrow()
 {
 	SAFE_DELETE(m_pLightMap);
 	SAFE_DELETE(m_pEffectMesh);
+}
 
-	if (g_bHideEffect != 1)
+void TMSkillMagicArrow::SpawnImpact()
+{
+	if (g_bHideEffect != 1 && g_pCurrentScene && g_pCurrentScene->m_pEffectContainer)
 	{
 		if (!m_nType)
 		{
@@ -135,6 +138,9 @@ TMSkillMagicArrow::~TMSkillMagicArrow()
 				pLightMap->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
 				pLightMap->SetPosition({ m_vecTargetPos.x, m_vecTargetPos.z });
 				pLightMap->m_dwLifeTime = 1500;
+				// Created during FrameMove, the shade renders once before its
+				// own first FrameMove: apply the start of its fade now.
+				pLightMap->FrameMove(0);
 
 				g_pCurrentScene->m_pEffectContainer->AddChild(pLightMap);
 			}
@@ -312,7 +318,13 @@ int TMSkillMagicArrow::FrameMove(unsigned int dwServerTime)
 		}
 	}
 	else
+	{
+		// The impact belongs to natural expiry. A destructor during scene
+		// teardown would attach it to the next scene.
+		if (!m_cDeleted)
+			SpawnImpact();
 		g_pObjectManager->DeleteObject(this);
+	}
 
 	return 1;
 }

@@ -6,6 +6,7 @@
 #include "TMEffectBillBoard.h"
 #include "TMSkillFire.h"
 #include "TMSkillPoison.h"
+#include "EffectTiming.h"
 
 TMEffectSkinMesh::TMEffectSkinMesh(int nSkinMeshType, TMVector3 vecStart, TMVector3 vecTarget, int nLevel, TMObject* pOwner)
 	: TMObject()
@@ -58,6 +59,12 @@ TMEffectSkinMesh::TMEffectSkinMesh(int nSkinMeshType, TMVector3 vecStart, TMVect
 TMEffectSkinMesh::~TMEffectSkinMesh()
 {
 	SAFE_DELETE(m_pSkinMesh2);
+}
+
+void TMEffectSkinMesh::SpawnFollowUp()
+{
+	if (g_pCurrentScene == nullptr || g_pCurrentScene->m_pEffectContainer == nullptr)
+		return;
 
 	if (!m_nLevel && m_nMotionType == 2)
 	{
@@ -77,9 +84,12 @@ TMEffectSkinMesh::~TMEffectSkinMesh()
 			pEffect->m_stLookInfo = m_stLookInfo;
 			pEffect->InitObject(0);
 			pEffect->m_dwLifeTime = 3000;
-			pEffect->m_pSkinMesh->m_vScale.x = 0.2f;
-			pEffect->m_pSkinMesh->m_vScale.y = 0.2f;
-			pEffect->m_pSkinMesh->m_vScale.z = 0.2f;
+			if (pEffect->m_pSkinMesh)
+			{
+				pEffect->m_pSkinMesh->m_vScale.x = 0.2f;
+				pEffect->m_pSkinMesh->m_vScale.y = 0.2f;
+				pEffect->m_pSkinMesh->m_vScale.z = 0.2f;
+			}
 			pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_DEFAULT;
 			pEffect->m_StartColor.r = 1.0f;
 			pEffect->m_StartColor.g = 1.0f;
@@ -105,10 +115,10 @@ int TMEffectSkinMesh::InitObject(int bExpand)
 			{
 				m_pSkinMesh->RestoreDeviceObjects();
 
-				// this is not a TMHuman object. We cannot use static_cast.
-				// Maybe this is wrong or some class was decompiled with the wrong inheritance
-				// This will crash...
-				m_pSkinMesh->m_pOwner = (TMHuman*)this;
+				// The skin writes TMObject fields (bone positions, alpha) of its
+				// owner. This effect is not a TMHuman: consumers that need human
+				// fields use TMSkinMesh::HumanOwner, which rejects this owner.
+				m_pSkinMesh->m_pOwner = reinterpret_cast<TMHuman*>(static_cast<TMObject*>(this));
 				m_pSkinMesh->m_dwFPS = 80;
 				m_pSkinMesh->m_bBaseMat = 0;
 			}
@@ -257,22 +267,21 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 	if (!m_dwStartTime)
 		m_dwStartTime = dwServerTime;
 
-	if (dwServerTime < m_dwStartTime)
+	// Wrap-safe: a future start (SpChange wings) still waits.
+	if (!effect_timing::HasStarted(dwServerTime, m_dwStartTime))
 		return 1;
 
-	if (m_dwLifeTime && m_dwLifeTime < dwServerTime - m_dwStartTime)
+	if (m_dwLifeTime && (m_dwLifeTime < dwServerTime - m_dwStartTime || dwServerTime - m_dwStartTime > 10000))
 	{
+		// Spawn once, while the owner and the scene are still current.
+		if (!m_cDeleted)
+			SpawnFollowUp();
 		g_pObjectManager->DeleteObject(this);
 
 		return 1;
 	}
-	if (m_dwLifeTime && dwServerTime - m_dwStartTime > 10000)
-	{
-		g_pObjectManager->DeleteObject(this);
 
-		return 1;
-	}
-
+	const auto emissions = m_emissionClock.Steps(dwServerTime, !g_bHideEffect && (!m_pOwner || m_pOwner->m_bVisible == 1));
 	const static unsigned int dwCol[3]{ 0xFFFFAA00, 0xFFFF0000, 0xFFFFAAFF };
 	float fProgress = 0.0f;
 
@@ -326,9 +335,13 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 				m_vecPosition = { vec.x, vec.z };
 				m_fHeight = vec.y;
 
-				auto pPoison = new TMSkillPoison({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, dwCol[m_nLevel], 2, 1, 0);
-				if (pPoison)
-					g_pCurrentScene->m_pEffectContainer->AddChild(pPoison);
+                for (unsigned int emission = emissions; emission; --emission)
+                {
+                    auto pPoison = new TMSkillPoison({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, dwCol[m_nLevel], 2, 1, 0);
+                    if (pPoison)
+                        g_pCurrentScene->m_pEffectContainer->AddChild(pPoison);
+
+                }
 			}
 
 			if (m_nLevel)
@@ -360,10 +373,13 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 				m_fHeight = (m_vecStartPos.y + m_vecTargetPos.y) / 2.0f;
 			}
 
-			auto pChild = new TMSkillPoison({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, 0xFFFF0000, 2, 1, 0);
+            for (unsigned int emission = emissions; emission; --emission)
+            {
+                auto pChild = new TMSkillPoison({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, 0xFFFF0000, 2, 1, 0);
+                if (pChild)
+                    g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
 
-			if (pChild)
-				g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
+            }
 
 			m_pSkinMesh->m_dwFPS = 5;
 			m_pSkinMesh->SetAnimation(g_MobAniTable[m_nSkinMeshType].dwAniTable[3]);
@@ -389,9 +405,13 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 				m_vecPosition = { cosf(positionAngle) * 0.2f + positionByProgress.x, (sinf(positionAngle) * 0.2f) + positionByProgress.z };
 				m_fHeight = positionByProgress.y;
 
-				auto pPoison = new TMSkillPoison({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, dwCol[m_nLevel], 2, 1, 0);
-				if (pPoison)
-					g_pCurrentScene->m_pEffectContainer->AddChild(pPoison);
+                for (unsigned int emission = emissions; emission; --emission)
+                {
+                    auto pPoison = new TMSkillPoison({ m_vecPosition.x, m_fHeight, m_vecPosition.y }, dwCol[m_nLevel], 2, 1, 0);
+                    if (pPoison)
+                        g_pCurrentScene->m_pEffectContainer->AddChild(pPoison);
+
+                }
 			}
 
 			m_pSkinMesh->m_dwFPS = 5;
@@ -439,75 +459,77 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 
 					m_pSkinMesh->SetAnimation(g_MobAniTable[m_nSkinMeshType].dwAniTable[2]);
 
-					if (!g_bHideEffect)
-					{
-						TMEffectBillBoard* mpBill = nullptr;
-						if (m_nLevel == 5)
-							mpBill = new TMEffectBillBoard(2, 2500u, 0.029999999f * fSize, 0.029999999f * fSize, 0.029999999f * fSize, 0.0f, 1, 80);
-						else if (m_nLevel == 6)
-							mpBill = new TMEffectBillBoard(200, 1500u, 0.02f * fSize, 0.02f * fSize, 0.02f * fSize, 0.0f, 1, 80);
-						else
-						{
-							mpBill = new TMEffectBillBoard(0, 1500,
-								(nRand * 0.00999998f) + (0.00999998f * fSize),
-								(nRand * 0.1f) + (0.00999998f * fSize),
-								(nRand * 0.00999998f) + (0.00999998f * fSize),
-								0.000099999997f,
-								1,
-								80);
-						}
+                    for (unsigned int emission = emissions; emission; --emission)
+                    {
+                        TMEffectBillBoard* mpBill = nullptr;
+                        if (m_nLevel == 5)
+                            mpBill = new TMEffectBillBoard(2, 2500u, 0.029999999f * fSize, 0.029999999f * fSize, 0.029999999f * fSize, 0.0f, 1, 80);
+                        else if (m_nLevel == 6)
+                            mpBill = new TMEffectBillBoard(200, 1500u, 0.02f * fSize, 0.02f * fSize, 0.02f * fSize, 0.0f, 1, 80);
+                        else
+                        {
+                            mpBill = new TMEffectBillBoard(0, 1500,
+                                (nRand * 0.00999998f) + (0.00999998f * fSize),
+                                (nRand * 0.1f) + (0.00999998f * fSize),
+                                (nRand * 0.00999998f) + (0.00999998f * fSize),
+                                0.000099999997f,
+                                1,
+                                80);
+                        }
 
-						if (mpBill)
-						{
-							float _Y = m_fHeight;
-							int v45 = rand();
+                        if (mpBill)
+                        {
+                            float _Y = m_fHeight;
+                            int v45 = rand();
 
-							mpBill->m_vecPosition = { (static_cast<float>((rand() % 10 - 5)) * 0.02f) + m_vecPosition.x, m_fHeight, (static_cast<float>((rand() % 10 - 5)) * 0.02f) + m_vecPosition.y };
-							mpBill->m_vecStartPos = mpBill->m_vecPosition;
-							mpBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-							mpBill->m_bStickGround = 0;
-							mpBill->m_nParticleType = 1;
+                            mpBill->m_vecPosition = { (static_cast<float>((rand() % 10 - 5)) * 0.02f) + m_vecPosition.x, m_fHeight, (static_cast<float>((rand() % 10 - 5)) * 0.02f) + m_vecPosition.y };
+                            mpBill->m_vecStartPos = mpBill->m_vecPosition;
+                            mpBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                            mpBill->m_bStickGround = 0;
+                            mpBill->m_nParticleType = 1;
 
-							if (m_nLevel == 5)
-								mpBill->m_fParticleV = -1.5f;
-							else
-								mpBill->m_fParticleV = -0.5f;
+                            if (m_nLevel == 5)
+                                mpBill->m_fParticleV = -1.5f;
+                            else
+                                mpBill->m_fParticleV = -0.5f;
 
-							if (m_nLevel == 3)
-								mpBill->SetColor(0xFFFFAAFF);
-							else if (m_nLevel == 4)
-								mpBill->SetColor(0xFFAAFFEE);
-							else if (m_nLevel == 5)
-								mpBill->SetColor(0xFFEEEEFF);
+                            if (m_nLevel == 3)
+                                mpBill->SetColor(0xFFFFAAFF);
+                            else if (m_nLevel == 4)
+                                mpBill->SetColor(0xFFAAFFEE);
+                            else if (m_nLevel == 5)
+                                mpBill->SetColor(0xFFEEEEFF);
 
-							g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
-						}
-					}
+                            g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
+                        }
+
+                    }
 				}
 				else
 				{
 					m_pSkinMesh->m_dwFPS = 4;
 					m_pSkinMesh->SetAnimation(g_MobAniTable[m_nSkinMeshType].dwAniTable[3]);
 
-					if (!g_bHideEffect)
-					{
-						auto pEffect = new TMEffectBillBoard(0, 1500u, nRand * 0.00999998f + 0.02f, 0.00999998f * 0.1f + 0.2f, nRand * 0.00999998f + 0.02f, 0.000099999997f, 1, 80);
-						if (pEffect)
-						{
-							pEffect->m_vecPosition = { (rand() % 10 - 5) * 0.02f + m_vecPosition.x, m_fHeight, static_cast<float>((rand() % 10 - 5)) * 0.02f + m_vecPosition.y };
-							pEffect->m_vecStartPos = pEffect->m_vecPosition;
+                    for (unsigned int emission = emissions; emission; --emission)
+                    {
+                        auto pEffect = new TMEffectBillBoard(0, 1500u, nRand * 0.00999998f + 0.02f, 0.00999998f * 0.1f + 0.2f, nRand * 0.00999998f + 0.02f, 0.000099999997f, 1, 80);
+                        if (pEffect)
+                        {
+                            pEffect->m_vecPosition = { (rand() % 10 - 5) * 0.02f + m_vecPosition.x, m_fHeight, static_cast<float>((rand() % 10 - 5)) * 0.02f + m_vecPosition.y };
+                            pEffect->m_vecStartPos = pEffect->m_vecPosition;
 
-							pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-							pEffect->m_bStickGround = 0;
-							pEffect->m_nParticleType = 1;
-							pEffect->m_fParticleV = 0.5f;
+                            pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                            pEffect->m_bStickGround = 0;
+                            pEffect->m_nParticleType = 1;
+                            pEffect->m_fParticleV = 0.5f;
 
-							if (m_nLevel == 3)
-								pEffect->SetColor(0xFFFF0000);
+                            if (m_nLevel == 3)
+                                pEffect->SetColor(0xFFFF0000);
 
-							g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
-						}
-					}
+                            g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+                        }
+
+                    }
 				}
 			}
 		}
@@ -531,25 +553,26 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 				m_fHeight = positionTo2D.y;
 			}
 
-			if (!g_bHideEffect)
-			{
-				int randScale = rand() % 5;
-				auto pEffect = new TMEffectBillBoard(0, 1500u, randScale * 0.05f + 0.02f, randScale * 0.1f + 0.02f, randScale * 0.05f + 0.02f);
+            for (unsigned int emission = emissions; emission; --emission)
+            {
+                int randScale = rand() % 5;
+                auto pEffect = new TMEffectBillBoard(0, 1500u, randScale * 0.05f + 0.02f, randScale * 0.1f + 0.02f, randScale * 0.05f + 0.02f);
 
-				if (pEffect)
-				{
-					pEffect->m_vecPosition = { static_cast<float>(rand() % 10 - 5) * 0.02f + m_vecPosition.x, m_fHeight, static_cast<float>(rand() % 10 - 5) * 0.02f + m_vecPosition.y };
-					pEffect->m_vecStartPos = pEffect->m_vecPosition;
+                if (pEffect)
+                {
+                    pEffect->m_vecPosition = { static_cast<float>(rand() % 10 - 5) * 0.02f + m_vecPosition.x, m_fHeight, static_cast<float>(rand() % 10 - 5) * 0.02f + m_vecPosition.y };
+                    pEffect->m_vecStartPos = pEffect->m_vecPosition;
 
-					pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-					pEffect->m_bStickGround = 0;
-					pEffect->m_nParticleType = 1;
-					pEffect->m_fParticleV = 1.0f;
-					pEffect->SetColor(0xFFAA8877);
+                    pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                    pEffect->m_bStickGround = 0;
+                    pEffect->m_nParticleType = 1;
+                    pEffect->m_fParticleV = 1.0f;
+                    pEffect->SetColor(0xFFAA8877);
 
-					g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
-				}
-			}
+                    g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+                }
+
+            }
 		}
 		break;
 		case 8:
@@ -568,7 +591,7 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 			{
 				m_vecPosition.x = (m_pOwner->m_vecTempPos[1].x + m_pOwner->m_vecTempPos[2].x) / 2.0f;
 				m_vecPosition.y = (m_pOwner->m_vecTempPos[1].z + m_pOwner->m_vecTempPos[2].z) / 2.0f;
-				m_fHeight = (m_pOwner->m_vecTempPos[1].y + m_pOwner->m_vecTempPos[1].y) / 2.0f;
+				m_fHeight = (m_pOwner->m_vecTempPos[1].y + m_pOwner->m_vecTempPos[2].y) / 2.0f;
 				m_fAngle = m_pOwner->m_fAngle;
 			}
 
@@ -613,13 +636,12 @@ int TMEffectSkinMesh::FrameMove(unsigned int dwServerTime)
 
 void TMEffectSkinMesh::RestoreDeviceObjects()
 {
+	// InvalidateDeviceObjects deletes the parts of both skins; rebuild both.
 	if (!m_pSkinMesh)
-	{
 		m_pSkinMesh = new TMSkinMesh(&m_stLookInfo, &m_stSancInfo, m_nSkinMeshType, 0, nullptr, 0, 0, 0);
 
-		if (m_pSkinMesh)
-			m_pSkinMesh->RestoreDeviceObjects();
-	}
+	if (m_pSkinMesh)
+		m_pSkinMesh->RestoreDeviceObjects();
 
 	if (m_nSkinMeshType2 > 0 && !m_pSkinMesh2)
 		m_pSkinMesh2 = new TMSkinMesh(&m_stLookInfo2, &m_stSancInfo, m_nSkinMeshType2, 0, nullptr, 0, 0, 0);

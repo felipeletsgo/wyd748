@@ -56,13 +56,9 @@ int g_HeightPosY = 2048;
 STRUCT_MIXHELP g_pItemMixHelp[11500];
 STRUCT_ITEMHELP g_pItemHelp[6500];
 
-unsigned int g_dwStartPlayTime;
 unsigned int g_dwPausedTime;
 unsigned int g_dwStartPacketTime;
-int g_nCurrentPos;
-int g_nDumpPacketSize;
 FILE* g_hPacketDump;
-char* g_pDumpPacket; 
 unsigned short g_usLastPacketType;
 int g_bLastStop;
 int g_bCastleWar;

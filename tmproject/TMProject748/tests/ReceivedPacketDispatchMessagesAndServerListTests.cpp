@@ -12,6 +12,7 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
         }
     };
 
+    // Go MessagePanel frame: zero ID, text at +12 and the final NUL at +107.
     std::array<char, 109> messagePanel{};
     messagePanel[0] = 108;
     messagePanel[4] = 0x01;
@@ -293,8 +294,9 @@ int RunReceivedPacketDispatchMessagesAndServerListTests(int& checks)
     check(visibleGroups.count == 10 && visibleGroups.slots[0] == 9 && visibleGroups.slots[9] == 0,
         "ten visible groups retain the last slot and descending order");
     serverGroups[9][0][0] = 0;
-    check(visibleGroups.count == 10 && visibleGroups.slots[0] == 9,
-        "row snapshot does not change when the aggregate clears status endpoints");
+    const auto refreshedGroups = VisibleServerGroupSlots(orderedGroups, serverGroups, 9);
+    check(refreshedGroups.count == 9 && refreshedGroups.slots[0] == 8,
+        "a group whose first endpoint is cleared is no longer visible");
     serverGroups[9][0][0] = 'a';
     orderedGroups[4] = 0;
     orderedGroups[7] = 2;

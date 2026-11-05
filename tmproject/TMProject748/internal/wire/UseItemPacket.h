@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intent C->S de uso de item. Posicoes e ItemID sao revalidados no servidor;
-// o client pode atualizar a UI otimisticamente e receber SendItem depois.
+// C->S item-use intent. The server validates positions and ItemID.
+// Inventory changes only when authoritative SendItem snapshots arrive.
 constexpr auto MSG_UseItem_Opcode = 0x373;
 struct MSG_UseItem
 {

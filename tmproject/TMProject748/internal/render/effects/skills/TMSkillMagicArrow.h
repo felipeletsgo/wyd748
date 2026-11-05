@@ -15,17 +15,23 @@ public:
     int IsVisible() override;
     int FrameMove(unsigned int dwServerTime) override;
 
+private:
+    // Creates the impact once, at natural expiry; never during teardown.
+    void SpawnImpact();
+
 public:
-    unsigned int m_dwStartTime;
+    // Types 3, 4 and 5 create no light map. Every scalar and pointer member
+    // has a default initializer, so no variant reads or deletes garbage.
+    unsigned int m_dwStartTime = 0;
     TMVector3 m_vecStartPos;
     TMVector3 m_vecTargetPos;
-    TMShade* m_pLightMap;
-    TMEffectMesh* m_pEffectMesh;
-    int m_nType;
-    float m_fAngle;
-    float m_fRotAngle;
-    float m_fProgress;
-    unsigned int m_dwLifeTime;
-    unsigned int m_dwColor;
-    unsigned int m_dwColor2;
+    TMShade* m_pLightMap = nullptr;
+    TMEffectMesh* m_pEffectMesh = nullptr;
+    int m_nType = 0;
+    float m_fAngle = 0.0f;
+    float m_fRotAngle = 0.0f;
+    float m_fProgress = 0.0f;
+    unsigned int m_dwLifeTime = 0;
+    unsigned int m_dwColor = 0;
+    unsigned int m_dwColor2 = 0;
 };

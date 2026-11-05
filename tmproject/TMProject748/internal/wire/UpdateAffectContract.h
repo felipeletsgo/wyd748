@@ -2,9 +2,8 @@
 
 #include <cstddef>
 
-// Snapshot S->C de affects consumido pelo source client. O handler 7.48
-// percorre 16 registros de oito bytes; Level/Value seguem o layout coordenado
-// da STRUCT_AFFECT compilada nesta arvore e do encoder WYD-Go.
+// S->C affect snapshot consumed by the source client. The 7.48 handler reads sixteen eight-byte records.
+// Level/Value use the coordinated STRUCT_AFFECT layout compiled here and the WYD-Go encoder.
 constexpr auto MSG_UpdateAffect_Opcode = 0x3B9;
 constexpr std::size_t kUpdateAffectPacketSize = 140;
 constexpr std::size_t kUpdateAffectArrayOffset = 12;

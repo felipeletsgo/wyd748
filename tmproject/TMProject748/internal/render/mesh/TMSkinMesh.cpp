@@ -11,6 +11,7 @@
 #include "CMesh.h"
 #include "TMLog.h"
 #include "../../application/SkinFrameValidation.h"
+#include "SkinAnimationIndex.h"
 
 int TMSkinMesh::m_nSmooth = 1;
 
@@ -45,7 +46,10 @@ TMSkinMesh::TMSkinMesh(LOOK_INFO* pLook, SANC_INFO* pSanc, int nBoneAniIndex, in
 	for (int i = 0; i < MAX_VALID_FRAME_TO_ANIMATE; ++i)
 		m_pframeToAnimate[i] = 0;
 
-	// This is setted to tree, grass, etc
+	// FrameMove reads both values for every skeleton. Characters start their
+	// cuts at frame 0; trees, grass and similar skins get a phase offset.
+	m_dwStartTime = 0;
+	m_dwTickLast = 0;
 	if (nBoneAniIndex >= MAX_ANI_TYPE)
 		m_dwStartTime = 500 * (((m_nBoneAniIndex >> 1) % 5) + rand() % 5);
 
@@ -113,9 +117,20 @@ void TMSkinMesh::ReleaseFrames()
 	m_pRoot = nullptr;
 }
 
+TMHuman* TMSkinMesh::HumanOwner() const
+{
+	// TMObject is the first base of every owner type, so its fields share the
+	// owner address. Only TMHuman sets object type 3.
+	if (m_pOwner == nullptr)
+		return nullptr;
+	return reinterpret_cast<const TMObject*>(m_pOwner)->m_dwObjType == 3 ? m_pOwner : nullptr;
+}
+
 HRESULT TMSkinMesh::RestoreDeviceObjects()
 {
 	m_bMeshGenerated = 0;
+	// Every restore pairs legacy costume parts from the first cycle position.
+	m_Cos = 1;
 	ReleaseFrames();
 	if (m_nBoneAniIndex < 0 || m_nBoneAniIndex >= MAX_BONE_ANIMATION_LIST)
 		return E_INVALIDARG;
@@ -457,12 +472,13 @@ void TMSkinMesh::FrameMove(unsigned int dwServerTime)
 	if (m_dwFPS == 0)
 		m_dwFPS = 30;
 
-	if (m_nBoneAniIndex >= 0 && m_nBoneAniIndex <= MAX_BONE_ANIMATION_LIST)
+	constexpr unsigned int cutCapacity = sizeof(stBoneAni::numAniCut) / sizeof(stBoneAni::numAniCut[0]);
+	if (skin_animation::ValidSkeleton(m_nBoneAniIndex, MAX_BONE_ANIMATION_LIST) &&
+		skin_animation::ValidCut(m_nAniIndex, cutCapacity, cutCapacity))
 	{
 		unsigned int dwOffset = dwServerTime / m_dwFPS;
-		unsigned int dwMod = MeshManager::m_BoneAnimationList[m_nBoneAniIndex].numAniCut[m_nAniIndex];
-		if (m_nBoneAniIndex == 49)
-			dwMod -= 2;
+		const unsigned int dwMod = skin_animation::PlayableTicks(m_nBoneAniIndex,
+			MeshManager::m_BoneAnimationList[m_nBoneAniIndex].numAniCut[m_nAniIndex]);
 
 		if (dwMod == 0)
 			return;
@@ -680,8 +696,9 @@ int TMSkinMesh::Render(float fLen, float fScale, float fLen2)
 		}
 
 		D3DXMatrixScaling(&matScale, m_vScale.x, m_vScale.y, m_vScale.z);
+		TMHuman* pHumanOwner = HumanOwner();
 		if (human_angle::MirrorBodyZ(m_nMeshType,
-			m_pOwner ? m_pOwner->m_nWeaponTypeL : 0, m_pOwner != nullptr))
+			pHumanOwner ? pHumanOwner->m_nWeaponTypeL : 0, pHumanOwner != nullptr))
 		{
 			D3DXMATRIX matFlip;
 			D3DXMatrixIdentity(&matFlip);
@@ -738,7 +755,9 @@ HRESULT TMSkinMesh::InvalidateDeviceObjects()
 
 int TMSkinMesh::SetAnimation(int nIndex)
 {
-	if (MeshManager::m_BoneAnimationList[m_nBoneAniIndex].numAniTypeCount <= static_cast<unsigned int>(nIndex))
+	constexpr unsigned int cutCapacity = sizeof(stBoneAni::numAniCut) / sizeof(stBoneAni::numAniCut[0]);
+	if (!skin_animation::ValidSkeleton(m_nBoneAniIndex, MAX_BONE_ANIMATION_LIST) ||
+		!skin_animation::ValidCut(nIndex, MeshManager::m_BoneAnimationList[m_nBoneAniIndex].numAniTypeCount, cutCapacity))
 		return 0;
 
 	if (m_nAniIndex == nIndex)
@@ -913,26 +932,27 @@ void TMSkinMesh::RenderEffect_HorseFireLeg()
 {
 	TMEffectBillBoard* mpBill[4];
 
-	for (int i = 0; i < 4; i++)
-	{
-		int j = rand() % 5;
+    for (unsigned int emission = m_fireLegEmission.Steps(g_pTimerManager->GetServerTime(), m_pOwner && m_pOwner->m_bVisible == 1); emission; --emission)
+    for (int i = 0; i < 4; i++){
+        int j = rand() % 5;
 
-		mpBill[i] = new TMEffectBillBoard(0, j + 500, 0.0f, 0.0f, 0.0f, 0.001f, 0, 80);
+        mpBill[i] = new TMEffectBillBoard(0, j + 500, 0.0f, 0.0f, 0.0f, 0.001f, 0, 80);
 
-		if (mpBill[i])
-		{
-			mpBill[i]->m_vecPosition = TMVector3(((rand() % 5 - 2) * 0.05f) + m_pOwner->m_vecTempPos[i].x,
-				m_pOwner->m_vecTempPos[i].y, ((rand() % 5 - 2) * 0.05f) + m_pOwner->m_vecTempPos[i].z);
+        if (mpBill[i])
+        {
+            mpBill[i]->m_vecPosition = TMVector3(((rand() % 5 - 2) * 0.05f) + m_pOwner->m_vecTempPos[i].x,
+                m_pOwner->m_vecTempPos[i].y, ((rand() % 5 - 2) * 0.05f) + m_pOwner->m_vecTempPos[i].z);
 
-			mpBill[i]->m_vecStartPos = mpBill[i]->m_vecPosition;
-			mpBill[i]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-			mpBill[i]->m_bStickGround = 1;
-			mpBill[i]->m_nParticleType = 1;
-			mpBill[i]->m_fParticleV = 0.05f;
+            mpBill[i]->m_vecStartPos = mpBill[i]->m_vecPosition;
+            mpBill[i]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+            mpBill[i]->m_bStickGround = 1;
+            mpBill[i]->m_nParticleType = 1;
+            mpBill[i]->m_fParticleV = 0.05f;
 
-			mpBill[i]->SetColor(j > 3 ? 0xFFFF1111 : 0xFFFFFFFF);
+            mpBill[i]->SetColor(j > 3 ? 0xFFFF1111 : 0xFFFFFFFF);
 
-			g_pCurrentScene->m_pEffectContainer->AddChild((TreeNode*)mpBill[i]);
-		}
-	}
+            g_pCurrentScene->m_pEffectContainer->AddChild((TreeNode*)mpBill[i]);
+        }
+
+    }
 }

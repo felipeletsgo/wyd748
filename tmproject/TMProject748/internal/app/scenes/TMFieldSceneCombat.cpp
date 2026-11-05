@@ -16,6 +16,8 @@
 #include "TMEffectDust.h"
 #include "../../application/FieldInteractionPolicy.h"
 #include "../../application/CCModePolicy.h"
+#include "../../application/SkillDamagePreview.h"
+#include "FieldActionPolicy.h"
 #include "TMHuman.h"
 #include "TMObjectContainer.h"
 #include "TMSkinMesh.h"
@@ -60,6 +62,11 @@ void TMFieldScene::UpdatePhysicalAttack(unsigned int dwServerTime)
 
 int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime, TMHuman* target)
 {
+	// A03-11: the local actor and object manager exist after field init;
+	// a teardown frame must not dereference them.
+	if (!m_pMyHuman || !g_pObjectManager)
+		return 0;
+
 	auto pOver = target ? target : m_pMouseOverHuman;
 	int nSpecForce = 0;
 	auto pMobData = &g_pObjectManager->m_stMobData;
@@ -179,7 +186,8 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 			// before reaching attack range. Manual movement/skills cancel it.
 			m_pTargetHuman = pOver;
 			unsigned int dwAddTime = 0;
-			if (dwServerTime <= m_dwOldAttackTime + 1000)
+			// A03-04: wrap-safe "now <= last attack + 1000".
+			if (field_time::NotAfter(dwServerTime, m_dwOldAttackTime, 1000))
 				return 1;
 
 			int nSX = (int)m_pMyHuman->m_vecPosition.x;
@@ -315,7 +323,9 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 				BASE_GetDoubleCritical(pMobData, 0, &TMFieldScene::m_usProgress, &stAttack.DoubleCritical);
 				stAttack.TargetX = (signed int)pOver->m_vecPosition.x;
 				stAttack.TargetY = (signed int)pOver->m_vecPosition.y;
-				if (pTarget->m_nClass == 66 && pTarget->m_cShadow == 1 && !m_pMyHuman->m_JewelGlasses)
+				// A03-11: an ID lookup can miss (ID 0); the clicked actor is the target.
+				const TMHuman* pShadowCheck = pTarget ? pTarget : pOver;
+				if (pShadowCheck->m_nClass == 66 && pShadowCheck->m_cShadow == 1 && !m_pMyHuman->m_JewelGlasses)
 					return 0;
 
 				int nSize = sizeof(MSG_AttackOne);
@@ -340,9 +350,11 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 					int TX = nDX + (int)pOver->m_vecPosition.x;
 					int TY = nDY + (int)pOver->m_vecPosition.y;
 
-					auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
+					// The local human is the oldest child and therefore the last node;
+					// the loop skips it either way.
+					auto pNode = m_pHumanContainer ? (TMHuman*)m_pHumanContainer->m_pDown : nullptr;
 
-					while (pNode->m_pNextLink != nullptr)
+					while (pNode && pNode->m_pNextLink != nullptr)
 					{
 						if (pNode == m_pMyHuman || pNode == pOver || (int)pNode->m_vecPosition.x != TX || (int)pNode->m_vecPosition.y != TY)
 						{
@@ -381,8 +393,10 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 						}
 						else
 						{
-							if (!TMFieldScene::m_bPK && pNode->m_cSummons == 1 && (g_pObjectManager->m_usWarGuild != pNode->m_usGuild && pNode->m_usGuild)
-								|| !pNode->m_usGuild)
+							// A03-10: skip only summons outside the war guild, as the
+							// primary-target filter does; ordinary monsters have no guild.
+							if (!TMFieldScene::m_bPK && pNode->m_cSummons == 1 &&
+								((g_pObjectManager->m_usWarGuild != pNode->m_usGuild && pNode->m_usGuild) || !pNode->m_usGuild))
 							{
 								pNode = (TMHuman*)pNode->m_pNextLink;
 								continue;
@@ -415,7 +429,8 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 					SendOneMessage((char*)&m_stMoveStop, sizeof(m_stMoveStop));
 				}
 
-				SendOneMessage((char*)&stAttack, nSize);
+				if (!SendOneMessage((char*)&stAttack, nSize))
+					return 0;
 
 				MSG_Attack stAttackLocal{};
 				memcpy((char*)&stAttackLocal, (char*)&stAttack, nSize);
@@ -431,13 +446,15 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 			{
 				if (m_pMyHuman->m_cCantMove)
 					return 0;
-				if ((int)m_pMyHuman->m_eMotion >= 4 && (int)m_pMyHuman->m_eMotion <= 9)
+				if ((int)m_pMyHuman->m_eMotion >= 4 && (int)m_pMyHuman->m_eMotion <= 9 && m_pMyHuman->m_pSkinMesh)
 				{
 					unsigned int dwMod = MeshManager::m_BoneAnimationList[m_pMyHuman->m_nSkinMeshType].numAniCut[m_pMyHuman->m_pSkinMesh->m_nAniIndex];
 					if (dwMod > 2)
 						dwMod -= 2;
 
-					if (g_pEventTranslator->button[0] && dwServerTime < m_pMyHuman->m_dwStartAnimationTime + 4 * dwMod * m_pMyHuman->m_pSkinMesh->m_dwFPS)
+					const unsigned int dwSwing = 4 * dwMod * m_pMyHuman->m_pSkinMesh->m_dwFPS;
+					if (g_pEventTranslator->button[0] && dwSwing &&
+						field_time::Before(dwServerTime, m_pMyHuman->m_dwStartAnimationTime, dwSwing))
 						return 1;
 				}
 
@@ -511,6 +528,9 @@ int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int d
 
 void TMFieldScene::SetMyHumanExp(long long unExp, int nFakeExp)
 {
+	// A03-11: a party kill can arrive while the local actor is not built.
+	if (!m_pMyHuman || !g_pObjectManager)
+		return;
 	auto pMobData = &g_pObjectManager->m_stMobData;
 
 	long long nExp = unExp - pMobData->Exp;
@@ -536,7 +556,8 @@ void TMFieldScene::SetMyHumanExp(long long unExp, int nFakeExp)
 		const unsigned int gainedExp = static_cast<unsigned int>(nExp);
 		sprintf(szStr, "Exp +%u", gainedExp);
 
-		m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFF8866, 0.5f, 0, 1, 1200, 0, 1));
+		if (m_pExtraContainer)
+			m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFF8866, 0.5f, 0, 1, 1200, 0, 1));
 
 		sprintf(szStr, g_pMessageStringTable[148], static_cast<int>(gainedExp));
 		if (!m_bShowExp)
@@ -550,7 +571,8 @@ void TMFieldScene::SetMyHumanExp(long long unExp, int nFakeExp)
 		char szStr[128]{};
 		sprintf(szStr, "Cp -%d", nFExp);
 
-		m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFF8866, 1.0f, 0, 1, 1500, 0, 1));
+		if (m_pExtraContainer)
+			m_pExtraContainer->AddChild(new TMFont3(szStr, nTX, nTY + (int)(RenderDevice::m_fUIScaleY * 80.0f), 0xFFFF8866, 1.0f, 0, 1, 1500, 0, 1));
 
 		sprintf(szStr, g_pMessageStringTable[305], nFExp);
 		if (!m_bShowExp)
@@ -586,46 +608,37 @@ void TMFieldScene::SetPK()
 
 int TMFieldScene::GetWeaponDamage()
 {
-	auto pMobData = &g_pObjectManager->m_stMobData;
-	int w1 = BASE_GetItemAbility(&g_pObjectManager->m_stMobData.Equip[6], 2);
-	int w2 = BASE_GetItemAbility(&pMobData->Equip[7], 2);
-	int idx1 = pMobData->Equip[6].sIndex;
-	int idx2 = pMobData->Equip[7].sIndex;
-	int t1 = idx1 >= 0 && idx1 < MAX_ITEMLIST ? g_pItemList[idx1].nUnique : 0;
-	int t2 = idx2 >= 0 && idx2 < MAX_ITEMLIST ? g_pItemList[idx2].nUnique : 0;
-
-	int nWeaponDamage = 0;
-	if (t1 == 47 && t2 == 45)
-		w2 = 0;
-	if (w1 <= w2)
-		nWeaponDamage = w2 + w1 / 3;
-	else
-		nWeaponDamage = w1 + w2 / 3;
-
-	if (idx1 >= 0 && idx1 < MAX_ITEMLIST)
+	if (!g_pObjectManager) return 0;
+	auto& mob = g_pObjectManager->m_stMobData;
+	int damage[16]{};
+	int unique[16]{};
+	long long other = 0;
+	for (int slot = 0; slot < 16; ++slot)
 	{
-		int nPos1 = g_pItemList[idx1].nPos;
-
-		if ((nPos1 == 64 || nPos1 == 192) && t1 != 44 && t2 != 47 && BASE_GetItemSanc(&pMobData->Equip[6]) >= 9)
+		if (slot == 14) continue; // The server applies mount bonuses separately.
+		auto& item = mob.Equip[slot];
+		const int index = item.sIndex;
+		if (index <= 0 || index >= MAX_ITEMLIST) continue;
+		const auto& definition = g_pItemList[index];
+		unique[slot] = definition.nUnique;
+		int refinement = index <= 40 ? 0 : BASE_GetItemSanc(&item);
+		if (refinement >= 9 && (definition.nPos & 0xF00)) ++refinement;
+		// Sum both raw effects as Go itemAbility does. The generic native item
+		// helper substitutes EF_DAMAGE2 on gloves and is unsuitable here.
+		for (const int effect : {EF_DAMAGE, EF_DAMAGE2})
 		{
-			int nu = g_pItemList[idx1].nUnique;
-			if (nu != 47 && nu != 44)
-				nWeaponDamage += 40;
+			int value = 0;
+			for (const auto& entry : definition.stEffect)
+				if (entry.sEffect == effect) value += entry.sValue;
+			for (const auto& entry : item.stEffect)
+				if (entry.cEffect == effect) value += entry.cValue;
+			damage[slot] = skill_damage_preview::Saturate(static_cast<long long>(damage[slot]) +
+				skill_damage_preview::RefinedDamage(value, refinement));
 		}
+		if (slot != 6 && slot != 7) other += damage[slot];
 	}
-
-	if (idx2 >= 0 && idx2 < MAX_ITEMLIST)
-	{
-		int nPos2 = g_pItemList[idx2].nPos;
-		if ((nPos2 == 64 || nPos2 == 192) && t1 != 44 && t2 != 47 && BASE_GetItemSanc(&pMobData->Equip[7]) >= 9)
-		{
-			int nux = g_pItemList[idx2].nUnique;
-			if (nux != 47 && nux != 44)
-				nWeaponDamage += 40;
-		}
-	}
-
-	return nWeaponDamage;
+	return skill_damage_preview::EquipmentDamage(skill_damage_preview::Saturate(other),
+		damage[6], damage[7], unique[6], unique[7], mob.Class, mob.LearnedSkill[0]);
 }
 
 void TMFieldScene::SetPosPKRun()

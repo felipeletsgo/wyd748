@@ -35,7 +35,7 @@ func TestAccessoryPositionRefinementBonus(t *testing.T) {
 	}
 
 	ordinary := model.ItemDef{Pos: 64, StaticEffects: []model.StaticEffect{{Name: "EF_CRITICAL", Value: 50}}}
-	if got := itemAbility(model.Item{Eff: [6]byte{43, 9}}, ordinary, "EF_CRITICAL"); got != 95 {
+	if got := itemAbility(model.Item{Index: 100, Eff: [6]byte{43, 9}}, ordinary, "EF_CRITICAL"); got != 95 {
 		t.Fatalf("ordinary +9 critical=%d, want 95", got)
 	}
 }

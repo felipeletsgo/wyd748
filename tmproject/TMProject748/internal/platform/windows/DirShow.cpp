@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "DirShow.h"
+#include "DirShowGraph.h"
 #include "TMGlobal.h"
 #include "../../application/AssetLoadValidation.h"
 #include <memory>
@@ -83,25 +84,25 @@ void ConvertBGM(const char* szFileName)
 		_unlink(temporary);
 }
 
+static_assert(dirshow_graph::kCompleteEvent == EC_COMPLETE,
+	"graph event drain must use the DirectShow completion code");
+
 DS_SOUND_CHANNEL::DS_SOUND_CHANNEL()
 {
-	basic_audio = nullptr;
-	media_seeking = nullptr;
-	media_control = nullptr;
-	graph_builder = nullptr;
-
-	CoInitialize(0);
-
+	// Every interface starts null (DirShow.h). A failed step leaves no
+	// indeterminate pointer for the destructor to release. The apartment
+	// member balances only a successful CoInitializeEx; an existing apartment
+	// of another model still permits the graph.
 	if (FAILED(CoCreateInstance(CLSID_FilterGraph, nullptr, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER, IID_IGraphBuilder, (LPVOID*)&graph_builder)))
+	{
+		graph_builder = nullptr;
 		init_flag = false;
-	else if (FAILED(graph_builder->QueryInterface(IID_IMediaControl, (void**)&media_control)))
+	}
+	else if (!graph_builder || !dirshow_graph::QueryAll(*graph_builder,
+		media_control, media_seeking, basic_audio, media_event))
+	{
 		init_flag = false;
-	else if (FAILED(graph_builder->QueryInterface(IID_IMediaSeeking, (void**)&media_seeking)))
-		init_flag = false;
-	else if (FAILED(graph_builder->QueryInterface(IID_IBasicAudio, (void**)&basic_audio)))
-		init_flag = false;
-	else if (FAILED(graph_builder->QueryInterface(IID_IMediaEventEx, (void**)&media_event)))
-		init_flag = false;
+	}
 	else
 	{
 		init_flag = SUCCEEDED(media_event->SetNotifyWindow((OAHWND)g_pApp->GetSafeHwnd(), 1125, 0));
@@ -111,65 +112,39 @@ DS_SOUND_CHANNEL::DS_SOUND_CHANNEL()
 DS_SOUND_CHANNEL::~DS_SOUND_CHANNEL()
 {
 	CleanGraph();
+	// The apartment member is released after this body.
+	ReleaseInterfaces();
+}
 
-	SAFE_RELEASE(media_event);
-	SAFE_RELEASE(basic_audio);
-	SAFE_RELEASE(media_seeking);
-	SAFE_RELEASE(media_control);
-	SAFE_RELEASE(graph_builder);
-
-	CoUninitialize();
+void DS_SOUND_CHANNEL::ReleaseInterfaces()
+{
+	init_flag = false;
+	dirshow_graph::ReleaseAll(media_event, basic_audio, media_seeking, media_control, graph_builder);
 }
 
 void DS_SOUND_CHANNEL::InitClass()
 {
+	// Not used. The apartment reference stays owned by the channel lifetime.
 	CleanGraph();
-
-	SAFE_RELEASE(media_event);
-	SAFE_RELEASE(basic_audio);
-	SAFE_RELEASE(media_seeking);
-	SAFE_RELEASE(media_control);
-	SAFE_RELEASE(graph_builder);
-
-	CoUninitialize();
+	ReleaseInterfaces();
 }
 
 char DS_SOUND_CHANNEL::CleanGraph()
 {
-	if (!init_flag)
+	if (!init_flag || !graph_builder)
 		return 0;
 
 	if (media_control)
 		media_control->Stop();
 
-	IEnumFilters* pFilterEnum;
-	if (FAILED(graph_builder->EnumFilters(&pFilterEnum)))
+	IEnumFilters* pFilterEnum = nullptr;
+	if (FAILED(graph_builder->EnumFilters(&pFilterEnum)) || !pFilterEnum)
 		return 0;
 
-	int iFiltCount = 0;
-	int iPos = 0;
-
-	while (SUCCEEDED(pFilterEnum->Skip(1u)))
-		++iFiltCount;
-
-	IBaseFilter** ppFilters = (IBaseFilter**)_malloca(sizeof(IBaseFilter*) * iFiltCount);
-
-	HRESULT nextFilterHR = S_OK;
-	IBaseFilter** nextFilter = nullptr;
-	pFilterEnum->Reset();
-
-	while (pFilterEnum->Next(1, &(ppFilters[iPos++]), NULL) == S_OK)
-		;
-
+	// Collect first: removing a filter during enumeration invalidates it.
+	auto filters = dirshow_graph::CollectFilters<IBaseFilter>(*pFilterEnum);
 	SAFE_RELEASE(pFilterEnum);
-
-	for (int iPos = 0; iPos < iFiltCount; ++iPos)
-	{
-		graph_builder->RemoveFilter(ppFilters[iPos]);
-
-		while (ppFilters[iPos]->Release())
-			;
-	}
+	dirshow_graph::RemoveAndRelease(*graph_builder, filters);
 
 	return 1;
 }
@@ -188,11 +163,9 @@ FILTER_STATE DS_SOUND_CHANNEL::GetState()
 
 void DS_SOUND_CHANNEL::OnEvent()
 {
-	LONG_PTR lParam1;
-	LONG_PTR lParam2;
-	long lEventCode;
-
-	if (!media_event->GetEvent(&lEventCode, &lParam1, &lParam2, 0) && lEventCode == 1)
+	// One notification can cover several queued events. Free each event and
+	// restart the loop once when playback completed.
+	if (media_event && dirshow_graph::DrainEvents(*media_event))
 	{
 		Stop();
 		SetPosition(0ll);
@@ -314,17 +287,22 @@ int DS_SOUND_MANAGER::PlaySoundA(const char* path, const bool BGM_flag)
 	if (!channels[channel].CleanGraph())
 		return -1;
 
-	IBaseFilter* temp_filter;
-	if(FAILED(graph_builder->AddSourceFilter(wFileName, wFileName, &temp_filter)))
+	IBaseFilter* temp_filter = nullptr;
+	if (FAILED(graph_builder->AddSourceFilter(wFileName, wFileName, &temp_filter)) || !temp_filter)
 		return -1;
 
-	IPin* pPin;
-	if (FAILED(temp_filter->FindPin(L"Output", &pPin)))
+	// The graph keeps its own filter reference; release this one on every path.
+	IPin* pPin = nullptr;
+	if (FAILED(temp_filter->FindPin(L"Output", &pPin)) || !pPin)
+	{
+		SAFE_RELEASE(temp_filter);
 		return -1;
+	}
 
 	if (graph_builder->Render(pPin))
 	{
 		SAFE_RELEASE(pPin);
+		SAFE_RELEASE(temp_filter);
 		return -1;
 	}
 
@@ -486,8 +464,11 @@ HRESULT DS_SOUND_MANAGER::SetVolume(const int which, const int vol)
 
 int DS_SOUND_MANAGER::GetVolume(const int which)
 {
-	long vol;
-	channels[which].GetVolume(&vol);
+	// A failed query reports full volume, so callers still apply the
+	// configured BGM volume instead of reading an indeterminate value.
+	long vol = 0;
+	if (FAILED(channels[which].GetVolume(&vol)))
+		return 0;
 
 	return vol;
 }

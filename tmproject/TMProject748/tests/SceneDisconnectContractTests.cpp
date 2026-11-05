@@ -145,8 +145,9 @@ std::string LoadBasedefSources()
 }
 }
 
-// The full scene depends on DirectX and Win32 UI state. This source contract
-// guards the ordering required by the native 7.48 FD_CLOSE lifecycle: the base
+// The full scene depends on DirectX and Win32 UI state. These checks read
+// production source text (code-shape evidence, not gameplay) across many
+// subsystems. They started with the native 7.48 FD_CLOSE lifecycle: the base
 // scene must receive the null payload before the derived scene returns.
 int RunSceneDisconnectContractTests(int& checks)
 {
@@ -184,6 +185,26 @@ int RunSceneDisconnectContractTests(int& checks)
             "method extractor rejects unterminated comments and literals");
     check(NormalizeLineEndings("case 12:\r\n\t\t\t{\r\n") == "case 12:\n\t\t\t{\n",
         "source contract normalizes CRLF checkout line endings");
+    // Ordering and negative helpers (A32-01, A30-03, A31-02): a deleted anchor or
+    // an empty extraction must fail instead of comparing with npos.
+    const std::string resetDeleted = "SendPacket(&msg, sizeof(msg));";
+    check(resetDeleted.find("SendPacket(") < resetDeleted.find("m_pSellItem = nullptr;") &&
+        !source_contract::Before(resetDeleted, "SendPacket(", "m_pSellItem = nullptr;"),
+        "a raw ordering check passes a deleted anchor; the ordering helper rejects it");
+    check(source_contract::InOrder(1, 2) && !source_contract::InOrder(2, 1) &&
+        !source_contract::InOrder(1, std::string::npos) && !source_contract::InOrder(std::string::npos, 2) &&
+        !source_contract::InOrder(std::string::npos, std::string::npos),
+        "ordering helper requires both positions and their order");
+    check(source_contract::Before("a(); b();", "a();", "b();") &&
+        !source_contract::Before("b(); a();", "a();", "b();") &&
+        !source_contract::Before("", "a();", "b();"),
+        "text ordering helper requires a non-empty text with both anchors in order");
+    check(source_contract::Lacks("a();", "b();") && !source_contract::Lacks("b();", "b();") &&
+        !source_contract::Lacks("", "b();"),
+        "negative helper fails on an empty extraction");
+    check(source_contract::From("a(); b();", "b();") == "b();" &&
+        source_contract::From("a();", "b();").empty(),
+        "anchor slice returns empty for a missing anchor instead of throwing");
     check(skin_motion::Remap(31, ECHAR_MOTION::ECMOTION_ATTACK01) == ECHAR_MOTION::ECMOTION_ATTACK04,
         "skin 31 remaps its first attack by value");
     check(skin_motion::Remap(31, ECHAR_MOTION::ECMOTION_ATTACK02) == ECHAR_MOTION::ECMOTION_ATTACK05,
@@ -482,13 +503,13 @@ int RunSceneDisconnectContractTests(int& checks)
     check(restoredHpGuard != std::string::npos && restoredHpCheck != std::string::npos &&
         closeRespawnPrompt != std::string::npos &&
         restoredHpGuard < restoredHpCheck && restoredHpCheck < closeRespawnPrompt &&
-        closeRespawnPrompt < compactTickStart &&
+        source_contract::InOrder(closeRespawnPrompt, compactTickStart) &&
         frameSource.substr(restoredHpGuard, closeRespawnPrompt - restoredHpGuard).find(
             "m_pMessageBox->m_dwMessage == 11") != std::string::npos,
         "the field lifecycle closes only the respawn prompt after authoritative HP recovery");
     const auto timeDelayStart = delaySource.find("int TMFieldScene::TimeDelay(unsigned int dwServerTime)");
-    const auto recallCountdownStart = delaySource.find("if (m_dwLastTown)", timeDelayStart);
-    const auto recallCountdownEnd = delaySource.find("if (m_dwLastResurrect)", recallCountdownStart);
+    const auto recallCountdownStart = delaySource.find("if (m_dwLastTown && m_pMyHuman)", timeDelayStart);
+    const auto recallCountdownEnd = delaySource.find("if (m_dwLastResurrect && m_pMyHuman)", recallCountdownStart);
     const auto recallCountdown = recallCountdownStart != std::string::npos &&
         recallCountdownEnd != std::string::npos
         ? delaySource.substr(recallCountdownStart, recallCountdownEnd - recallCountdownStart)
@@ -522,7 +543,7 @@ int RunSceneDisconnectContractTests(int& checks)
         if (start == std::string::npos || end == std::string::npos || start >= end)
             return false;
         const auto body = delaySource.substr(start, end - start);
-        const auto ownerGuard = body.find("if (m_pEffectContainer)");
+        const auto ownerGuard = body.find("if (m_pEffectContainer && m_pMyHuman)");
         const auto portalEffect = body.find("new TMSkillTownPortal(");
         return ownerGuard != std::string::npos && portalEffect != std::string::npos &&
             ownerGuard < portalEffect;
@@ -546,7 +567,7 @@ int RunSceneDisconnectContractTests(int& checks)
         "UpdateHumanFramePosition(m_vecPosition, vecCurrent, m_vecAirMove,");
     check(flightPositionUpdate != std::string::npos &&
         humanFrame.find("m_bIgnoreHeight != 0);", flightPositionUpdate) != std::string::npos &&
-        flightPositionUpdate < humanFrame.find("FrameMoveEffect(dwServerTime);") &&
+        source_contract::InOrder(flightPositionUpdate, humanFrame.find("FrameMoveEffect(dwServerTime);")) &&
         humanFrame.find("m_vecPosition = vecCurrent;") == std::string::npos &&
         humanFrame.find("ConsumeAirMoveDelta(") == std::string::npos,
         "human frames preserve flight progress before effects and consume the delta once");
@@ -617,7 +638,7 @@ int RunSceneDisconnectContractTests(int& checks)
         vitalsBody.find("memcpy(&g_pObjectManager->m_stMobData.CurrentScore") == std::string::npos,
         "air travel keeps all local vitals current without replacing unrelated score fields");
     check(lethalTransition != std::string::npos && localHpProjection != std::string::npos &&
-        localMaxMpCopy < lethalTransition && lethalTransition < airMoveVisualGuard &&
+        localMaxMpCopy < lethalTransition && source_contract::InOrder(lethalTransition, airMoveVisualGuard) &&
         airMoveVisualGuard < localHpProjection,
         "lethal vitals cancel flight before the local HP visual gate and redraw");
     const auto airMoveStartBody = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneMovement.cpp"),
@@ -665,8 +686,8 @@ int RunSceneDisconnectContractTests(int& checks)
         "death freezes unfinished movement at the current position");
     check(!dieBody.empty() &&
         dieBody.find("AirMove_End(TMFieldScene::AirMoveEndReason::Death);") != std::string::npos &&
-        dieBody.find("AirMove_End(TMFieldScene::AirMoveEndReason::Death);") <
-            dieBody.find("routePoint = m_vecPosition;"),
+        source_contract::InOrder(dieBody.find("AirMove_End(TMFieldScene::AirMoveEndReason::Death);"),
+            dieBody.find("routePoint = m_vecPosition;")),
         "death cancels visual flight before freezing the route even with positive HP");
     check(packetSource.find("AirMove_End(TMFieldScene::AirMoveEndReason::ExternalTeleport);") !=
         std::string::npos,
@@ -686,10 +707,10 @@ int RunSceneDisconnectContractTests(int& checks)
         "death skips orphaned cosmetic effects without suppressing sound or state");
     check(!dieBody.empty() &&
         dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);") != std::string::npos &&
-        dieBody.find("m_eMotion = ECHAR_MOTION::ECMOTION_DIE;") >
-            dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);") &&
-        dieBody.find("m_eMotion = ECHAR_MOTION::ECMOTION_DIE;") <
-            dieBody.find("m_nLoop = 0;", dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);")) &&
+        source_contract::InOrder(dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);"),
+            dieBody.find("m_eMotion = ECHAR_MOTION::ECMOTION_DIE;")) &&
+        source_contract::InOrder(dieBody.find("m_eMotion = ECHAR_MOTION::ECMOTION_DIE;"),
+            dieBody.find("m_nLoop = 0;", dieBody.find("SetAnimation(ECHAR_MOTION::ECMOTION_DIE, 0);"))) &&
         dieBody.find("m_nLoop = 0;") != std::string::npos &&
         dieBody.find("m_dwStartAnimationTime = g_pTimerManager->GetServerTime();") != std::string::npos,
         "death commits its logical state and one-shot completion when the mesh rejects its animation");
@@ -770,7 +791,7 @@ int RunSceneDisconnectContractTests(int& checks)
         "mounted human retains zero local rider angles independently of mount mesh presence");
     const auto initAngleBody = source_contract::Method(movementSource,
         "void TMHuman::InitAngle(float fYaw, float fPitch, float fRoll)");
-    check(initAngleBody.find("if (m_nClass == 44)") < initAngleBody.find("TMObject::InitAngle(fYaw, fPitch, fRoll);") &&
+    check(source_contract::InOrder(initAngleBody.find("if (m_nClass == 44)"), initAngleBody.find("TMObject::InitAngle(fYaw, fPitch, fRoll);")) &&
         initAngleBody.find("m_fWantAngle = m_fAngle;") != std::string::npos &&
         initAngleBody.find("m_fMoveToAngle = m_fAngle;") != std::string::npos,
         "angle initialization retains class-44 adjustment and logical movement targets");
@@ -791,9 +812,12 @@ int RunSceneDisconnectContractTests(int& checks)
         "int TMSkinMesh::Render(float fLen, float fScale, float fLen2)");
     const auto mirrorPolicy = skinRender.find("human_angle::MirrorBodyZ(m_nMeshType,");
     const auto mirrorMatrix = skinRender.find("matFlip._33 = -1.0f;");
+    // Effect skins store a non-human owner (A21-06); only a human owner's
+    // weapon type may be read.
+    const auto humanOwner = skinRender.find("TMHuman* pHumanOwner = HumanOwner();");
     check(mirrorPolicy != std::string::npos && mirrorMatrix != std::string::npos &&
-        mirrorPolicy < mirrorMatrix &&
-        skinRender.find("m_pOwner ? m_pOwner->m_nWeaponTypeL : 0, m_pOwner != nullptr)") != std::string::npos,
+        mirrorPolicy < mirrorMatrix && humanOwner != std::string::npos && humanOwner < mirrorPolicy &&
+        skinRender.find("pHumanOwner ? pHumanOwner->m_nWeaponTypeL : 0, pHumanOwner != nullptr)") != std::string::npos,
         "production body rendering gates Z reflection on the owner's current weapon ability");
     for (const int weaponType : {-1, 0, 100, 101, 102, (std::numeric_limits<int>::max)()}) {
         for (const float pitch : {-7.0f, -3.1415927410125732f, 0.0f, 3.1415927410125732f, 7.0f}) {
@@ -823,6 +847,18 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto itemIndexGuard = sendItemHandler.find(
         "if (pSendItem->Item.sIndex < 0 || pSendItem->Item.sIndex >= MAX_ITEMLIST)");
     const auto bagView = sendItemHandler.find("pFScene->Bag_View();");
+    const auto hpOnlyStart = sendItemHandler.find("if (pFScene && m_cMount == 1 && pSendItem->DestType == 0 && pSendItem->DestPos == 14 &&");
+    const auto hpOnly = source_contract::InOrder(hpOnlyStart, bagView)
+        ? sendItemHandler.substr(hpOnlyStart, bagView - hpOnlyStart) : std::string{};
+    check(source_contract::InOrder(localOnly, hpOnlyStart) &&
+        hpOnly.find("mount_health::IsLiveHPUpdate(") != std::string::npos &&
+        hpOnly.find("pMobData->Equip[14] = pSendItem->Item;") != std::string::npos &&
+        hpOnly.find("m_stSelCharData.Equip[characterSlot][14] = pSendItem->Item;") != std::string::npos &&
+        hpOnly.find("*item = pSendItem->Item;") != std::string::npos &&
+        hpOnly.find("updateMountHPBars();") != std::string::npos &&
+        hpOnly.find("return 1;") != std::string::npos &&
+        source_contract::Lacks(hpOnly, "InitObject(") && source_contract::Lacks(hpOnly, "new "),
+        "owner mount HP snapshots update C.C., tooltip, selection and bars without recreating models or grids");
     const auto firstModelWrite = sendItemHandler.find("memcpy(&pMobData->Equip[");
     for (int previousClass = 0; previousClass < 4; ++previousClass)
     {
@@ -836,7 +872,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto faceClass = sendItemHandler.find("pMobData->Class = SkillClassFromFace(");
     check(faceClass != std::string::npos && firstModelWrite < faceClass &&
         sendItemHandler.find("if (pSendItem->DestPos == 0)", firstModelWrite) < faceClass &&
-        faceClass < sendItemHandler.find("pFScene->UpdateScoreUI(0);", faceClass),
+        source_contract::InOrder(faceClass, sendItemHandler.find("pFScene->UpdateScoreUI(0);", faceClass)),
         "local face updates install skill class before rebuilding class-dependent UI");
     const auto updateEtc = source_contract::Method(packetSource,
         "int TMHuman::OnPacketUpdateEtc(MSG_STANDARD* pStd)");
@@ -960,11 +996,12 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto weaponDamageBody = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneCombat.cpp"),
         "int TMFieldScene::GetWeaponDamage()");
     check(!weaponDamageBody.empty() &&
-        weaponDamageBody.find("idx1 >= 0 && idx1 < MAX_ITEMLIST ? g_pItemList[idx1].nUnique : 0") != std::string::npos &&
-        weaponDamageBody.find("idx2 >= 0 && idx2 < MAX_ITEMLIST ? g_pItemList[idx2].nUnique : 0") != std::string::npos &&
-        weaponDamageBody.find("idx1 >= 0 || idx1 < MAX_ITEMLIST") == std::string::npos &&
-        weaponDamageBody.find("idx2 >= 0 || idx2 < MAX_ITEMLIST") == std::string::npos,
-        "weapon damage bounds both 7.48 ItemList uniqueness lookups");
+        source_contract::InOrder(weaponDamageBody.find("if (index <= 0 || index >= MAX_ITEMLIST) continue;"),
+            weaponDamageBody.find("g_pItemList[index]")) &&
+        weaponDamageBody.find("slot == 14") != std::string::npos &&
+        weaponDamageBody.find("{EF_DAMAGE, EF_DAMAGE2}") != std::string::npos &&
+        weaponDamageBody.find("skill_damage_preview::EquipmentDamage(") != std::string::npos,
+        "skill preview bounds every equipment lookup and uses the server equipment policy");
     const auto updateEquipHandler = source_contract::Method(packetSource,
         "int TMHuman::OnPacketUpdateEquip(MSG_STANDARD* pStd)");
     const auto transformationEffects = source_contract::Method(updateEquipHandler,
@@ -988,7 +1025,8 @@ int RunSceneDisconnectContractTests(int& checks)
             ordinaryEquipRefresh.find(update) != std::string::npos,
             "ordinary UpdateEquip still applies equipment, color, weapon and HUD state");
     check(!transformationEffects.empty() &&
-        transformationAt + transformationEffects.size() < updateEquipHandler.find("SetPacketEquipItem(pEquip->sEquip);"),
+        source_contract::InOrder(transformationAt + transformationEffects.size(),
+            updateEquipHandler.find("SetPacketEquipItem(pEquip->sEquip);")),
         "transformation guard ends before authoritative appearance is applied for owner and observers");
     const auto mountHudGuard = updateEquipHandler.find(
         "if (g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)");
@@ -1045,18 +1083,18 @@ int RunSceneDisconnectContractTests(int& checks)
         "Carry snapshot preserves all 64 items and Coin without an inventory grid");
     check(carryOpponentClear != std::string::npos && carryCheckClear != std::string::npos &&
         carryClose != std::string::npos && carryOpponentClear < carryClose && carryCheckClear < carryClose &&
-        carryClose < carryGridGuard,
+        source_contract::InOrder(carryClose, carryGridGuard),
         "Carry snapshot clears native trade flags before optional UI closure and the missing-grid return");
     check(carryBody.find("if (pScene->m_pControlContainer)") < carryClose &&
         carryBody.find("if (pScene->m_pTradePanel && pScene->m_pTradePanel->IsVisible() == 1)") == std::string::npos &&
         carryClose != std::string::npos && carryToggle != std::string::npos &&
-        carryClose < carryToggle && carryToggle < carryBody.find("pScene->UpdateScoreUI(0);") &&
-        carryToggle < carryGridGuard &&
+        carryClose < carryToggle && source_contract::InOrder(carryToggle, carryBody.find("pScene->UpdateScoreUI(0);")) &&
+        source_contract::InOrder(carryToggle, carryGridGuard) &&
         carryBody.find("SendPacket") == std::string::npos,
         "Carry snapshot closes even hidden trade state before the native inventory toggle and score projection");
     check(carryGridGuard != std::string::npos &&
-        carryGridGuard < carryBody.find("pScene->m_pGridInv->Empty();") &&
-        carryBody.find("pScene->m_pGridInv->Empty();") < carryBody.find("new STRUCT_ITEM") &&
+        source_contract::InOrder(carryGridGuard, carryBody.find("pScene->m_pGridInv->Empty();")) &&
+        source_contract::InOrder(carryBody.find("pScene->m_pGridInv->Empty();"), carryBody.find("new STRUCT_ITEM")) &&
         carryBody.find("nCarryIndex < 63") != std::string::npos &&
         carryBody.find("nCarryIndex % 9, nCarryIndex / 9") != std::string::npos &&
         carryBody.find("SAFE_DELETE(pGridItem);") != std::string::npos,
@@ -1074,29 +1112,29 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto inventoryClosing = inventoryCompat.find("if (!visible)");
     check(inventoryTarget != std::string::npos && inventoryAutoTrade != std::string::npos &&
         inventoryGamble != std::string::npos && inventoryTarget < inventoryAutoTrade &&
-        inventoryAutoTrade < inventoryGamble && inventoryGamble < inventoryClosing &&
-        inventoryCompat.find("m_pInvenPanel->SetVisible(!visible);") < inventoryClosing,
+        inventoryAutoTrade < inventoryGamble && source_contract::InOrder(inventoryGamble, inventoryClosing) &&
+        source_contract::InOrder(inventoryCompat.find("m_pInvenPanel->SetVisible(!visible);"), inventoryClosing),
         "native UI2 inventory captures the toggle target before closing AutoTrade and Gamble");
-    check(inventoryCompat.find("if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)") < inventoryTarget &&
-        inventoryCompat.find("m_pInvenPanel->m_bVisible = 0;") < inventoryTarget &&
-        inventoryCompat.find("if (m_pCPanel)") < inventoryTarget &&
-        inventoryCompat.find("m_pCPanel->m_bVisible = 0;") < inventoryTarget,
+    check(source_contract::InOrder(inventoryCompat.find("if (m_pGambleStore && m_pGambleStore->IsVisible() == 1)"), inventoryTarget) &&
+        source_contract::InOrder(inventoryCompat.find("m_pInvenPanel->m_bVisible = 0;"), inventoryTarget) &&
+        source_contract::InOrder(inventoryCompat.find("if (m_pCPanel)"), inventoryTarget) &&
+        source_contract::InOrder(inventoryCompat.find("m_pCPanel->m_bVisible = 0;"), inventoryTarget),
         "native Gamble visibility forces Inventory and Character hidden before deciding the inventory target");
     check(inventoryClosing != std::string::npos &&
         inventoryCompat.find("mixIndex <= 6") != std::string::npos &&
-        inventoryClosing < inventoryCompat.find("ClearNativeMix(mixIndex);") &&
+        source_contract::InOrder(inventoryClosing, inventoryCompat.find("ClearNativeMix(mixIndex);")) &&
         inventoryCompat.find("if (auto panel = GetNativeMixPanel(mixIndex))") != std::string::npos &&
         inventoryCompat.find("SetVisibleNativeMix(") == std::string::npos,
         "closing native inventory clears all six artisan packets and hides bound roots without recursive toggles");
     check(inventoryCompat.find("m_pCargoPanel, m_pShopPanel, m_pHellgateStore, m_pInputGoldPanel") != std::string::npos &&
         inventoryCompat.find("if (panel)") != std::string::npos &&
-        inventoryCompat.find("SetGridState();") < inventoryCompat.find("SetVisibleTrade(0);") &&
+        source_contract::InOrder(inventoryCompat.find("SetGridState();"), inventoryCompat.find("SetVisibleTrade(0);")) &&
         inventoryCompat.find("if (m_pTradePanel && m_pTradePanel->IsVisible() == 1)") != std::string::npos &&
-        inventoryCompat.find("if (g_pCursor)") < inventoryCompat.find("g_pCursor->DetachItem();"),
+        source_contract::InOrder(inventoryCompat.find("if (g_pCursor)"), inventoryCompat.find("g_pCursor->DetachItem();")),
         "inventory closure hides only bound native peers and restores grids, trade, and cursor state");
     check(inventoryCompat.find("FindControl(TMB_SKILL)") != std::string::npos &&
         inventoryCompat.find("skillButton->SetSelected(m_pSkillPanel && m_pSkillPanel->IsVisible());") != std::string::npos &&
-        inventoryCompat.find("m_pInvenPanel->SetVisible(visible);") > inventoryClosing &&
+        source_contract::InOrder(inventoryClosing, inventoryCompat.find("m_pInvenPanel->SetVisible(visible);")) &&
         inventoryCompat.find("m_ItemMixClass") == std::string::npos &&
         inventoryCompat.find("m_MissionClass") == std::string::npos,
         "native inventory finalizes its target and skill button without imported mix or mission topology");
@@ -1107,12 +1145,12 @@ int RunSceneDisconnectContractTests(int& checks)
     check(listingSoldModelClear != std::string::npos &&
         listingSoldHandler.find("pStd->Parm1 == m_stAutoTrade.TargetID") < listingSoldModelClear &&
         listingSoldHandler.find("pStd->Parm2 < autoTradeSlotCount") < listingSoldModelClear &&
-        listingSoldModelClear < listingSoldHandler.find("if (!pGrid)") &&
-        listingSoldHandler.find("pPrice->SetText(emptyPrice, 0);") < listingSoldPickup &&
-        listingSoldHandler.find("pPrice->SetVisible(0);") < listingSoldPickup &&
-        listingSoldHandler.find("pGrid->m_nTradeMoney = 0;") < listingSoldPickup,
+        source_contract::InOrder(listingSoldModelClear, listingSoldHandler.find("if (!pGrid)")) &&
+        source_contract::InOrder(listingSoldHandler.find("pPrice->SetText(emptyPrice, 0);"), listingSoldPickup) &&
+        source_contract::InOrder(listingSoldHandler.find("pPrice->SetVisible(0);"), listingSoldPickup) &&
+        source_contract::InOrder(listingSoldHandler.find("pGrid->m_nTradeMoney = 0;"), listingSoldPickup),
         "sold listing clears model independently of optional grids and hides its stale price");
-    check(listingSoldHandler.find("WYD748_CancelAutoTradePurchase(m_pMessageBox, pStd->Parm2);") < listingSoldPickup,
+    check(source_contract::InOrder(listingSoldHandler.find("WYD748_CancelAutoTradePurchase(m_pMessageBox, pStd->Parm2);"), listingSoldPickup),
         "sold listing cancels its confirmation even when its visual is already absent");
     const auto listingSoldRelease = listingSoldHandler.find("WYD748_ReleaseAutoTradeItem(pItem);");
     const auto listingSoldCleanup = source_contract::Method(LoadSource(
@@ -1136,26 +1174,26 @@ int RunSceneDisconnectContractTests(int& checks)
         listingSoldCleanup.find("g_pCursor->DetachItem();") != std::string::npos &&
         listingSoldHandler.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
         "sold listing resets the matching cursor through DetachItem without disrupting unrelated items");
-    check(listingSoldCleanup.find("if (!pItem)\n\t\t\treturn;") <
-        listingSoldCleanup.find("SGridControl::m_pLastMouseOverItem == pItem"),
+    check(source_contract::InOrder(listingSoldCleanup.find("if (!pItem)\n\t\t\treturn;"),
+        listingSoldCleanup.find("SGridControl::m_pLastMouseOverItem == pItem")),
         "empty auto-trade cleanup leaves unrelated interaction state unchanged");
     const auto listingSnapshot = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneTrade.cpp"),
         "int TMFieldScene::OnPacketAutoTrade(MSG_STANDARD* pStd)");
     const auto listingSnapshotRelease = listingSnapshot.find("WYD748_ReleaseAutoTradeItem(pItem);");
-    check(listingSnapshot.find("WYD748_CancelAutoTradePurchase(m_pMessageBox);") <
-        listingSnapshot.find("memcpy(&m_stAutoTrade, pAutoTrade, sizeof(m_stAutoTrade));"),
+    check(source_contract::InOrder(listingSnapshot.find("WYD748_CancelAutoTradePurchase(m_pMessageBox);"),
+        listingSnapshot.find("memcpy(&m_stAutoTrade, pAutoTrade, sizeof(m_stAutoTrade));")),
         "new shop snapshot cancels confirmation before replacing selected offer data");
     check(listingSnapshotRelease != std::string::npos &&
         listingSnapshot.find("pGrid->PickupAtItem(0, 0);") < listingSnapshotRelease &&
-        listingSnapshotRelease < listingSnapshot.find("auto pstItem = new STRUCT_ITEM();") &&
+        source_contract::InOrder(listingSnapshotRelease, listingSnapshot.find("auto pstItem = new STRUCT_ITEM();")) &&
         listingSnapshot.find("delete pItem;") == std::string::npos &&
         listingSnapshot.find("g_pCursor->m_pAttachedItem = nullptr;") == std::string::npos,
         "auto-trade snapshot releases previous interaction aliases before allocating replacement visuals");
     const auto listingClose = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneTrade.cpp"),
         "void TMFieldScene::SetVisibleAutoTrade(int bShow, int bCargo)");
     const auto nativeListingCloseRelease = listingClose.find("WYD748_ReleaseAutoTradeItem(pItem);");
-    check(listingClose.find("if (!bShow)\n\t\tWYD748_CancelAutoTradePurchase(m_pMessageBox);") <
-        listingClose.find("if (!m_pControlContainer || !m_pAutoTrade)"),
+    check(source_contract::InOrder(listingClose.find("if (!bShow)\n\t\tWYD748_CancelAutoTradePurchase(m_pMessageBox);"),
+        listingClose.find("if (!m_pControlContainer || !m_pAutoTrade)")),
         "closing the shop cancels purchase before optional-control early returns");
     check(nativeListingCloseRelease != std::string::npos &&
         listingClose.find("WYD748_ReleaseAutoTradeItem(pItem);", nativeListingCloseRelease + 1) == std::string::npos &&
@@ -1182,7 +1220,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto priceGuardEnd = controlSource.find("switch (m_nCoinMsgType)", priceGuard);
     const auto priceGuardBody = priceGuard != std::string::npos && priceGuardEnd != std::string::npos
         ? controlSource.substr(priceGuard, priceGuardEnd - priceGuard) : std::string{};
-    check(!priceGuardBody.empty() && priceGuardEnd < priceStart &&
+    check(!priceGuardBody.empty() && source_contract::InOrder(priceGuardEnd, priceStart) &&
         priceGuardBody.find("if (nInputValue <= 0)") != std::string::npos &&
         priceGuardBody.find("g_pMessageStringTable[34]") != std::string::npos &&
         priceGuardBody.find("g_pMessageStringTable[143]") != std::string::npos &&
@@ -1202,7 +1240,7 @@ int RunSceneDisconnectContractTests(int& checks)
         ? controlSource.substr(priceStart, priceEnd - priceStart) : std::string{};
     const auto cargoPayloadGuard = priceBody.find("if (!pCargoItem || !pCargoItem->m_pItem)");
     check(cargoPayloadGuard != std::string::npos &&
-        cargoPayloadGuard < priceBody.find("memcpy(&selectedItem, pCargoItem->m_pItem, sizeof(STRUCT_ITEM));"),
+        source_contract::InOrder(cargoPayloadGuard, priceBody.find("memcpy(&selectedItem, pCargoItem->m_pItem, sizeof(STRUCT_ITEM));")),
         "seller offer preparation rejects a missing cargo payload before copying it");
     const auto publishStart = controlSource.find("if (idwControlID == 667)");
     const auto publishSend = controlSource.find("SendOneMessage((char*)&m_stAutoTrade, sizeof(m_stAutoTrade));", publishStart);
@@ -1214,9 +1252,9 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto buyHandler = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneTrade.cpp"),
         "void TMFieldScene::SendReqBuy(unsigned int dwControlID)");
     check(buyHandler.find("field_interaction::AutoTradeSlotIndex(dwControlID)") != std::string::npos &&
-        buyHandler.find("if (slot < 0") < buyHandler.find("m_pGridAutoTrade[slot]") &&
+        source_contract::InOrder(buyHandler.find("if (slot < 0"), buyHandler.find("m_pGridAutoTrade[slot]")) &&
         buyHandler.find("!m_pMyHuman || !m_pAutoTrade || !m_pAutoTrade->IsVisible()") != std::string::npos &&
-        buyHandler.find("grid->GetAtItem(0, 0)") < buyHandler.find("MSG_ReqBuy stReqBuy{};") &&
+        source_contract::InOrder(buyHandler.find("grid->GetAtItem(0, 0)"), buyHandler.find("MSG_ReqBuy stReqBuy{};")) &&
         buyHandler.find("stReqBuy.Price = m_stAutoTrade.TradeMoney[slot];") != std::string::npos &&
         buyHandler.find("dwControlID - 653") == std::string::npos,
         "purchase sender rejects invalid control, absent scene and missing listing before reading arrays");
@@ -1482,7 +1520,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto closeSplit = source_contract::Method(LoadSource("TMProject748/internal/app/scenes/TMFieldSceneInventory.cpp"),
         "void TMFieldScene::SetInVisibleInputCoin()");
     check(!closeSplit.empty() && closeSplit.find("if (m_nCoinMsgType == 12)") != std::string::npos &&
-        closeSplit.find("field_interaction::FindOwnedItem(") < closeSplit.find("pSplitItem->m_GCObj.dwColor") &&
+        source_contract::InOrder(closeSplit.find("field_interaction::FindOwnedItem("), closeSplit.find("pSplitItem->m_GCObj.dwColor")) &&
         closeSplit.find("SGridControl::m_pSellItem = nullptr;") != std::string::npos &&
         closeSplit.find("m_nCoinMsgType = -1;") != std::string::npos,
         "closing a split clears its mode and alias and restores only a live item highlight");
@@ -1501,7 +1539,7 @@ int RunSceneDisconnectContractTests(int& checks)
         deleteHandler.find("!pSellItem ||") != std::string::npos &&
         deleteHandler.find("MSG_DeleteItem_Opcode") != std::string::npos &&
         deleteHandler.find("PickupAtItem(") == std::string::npos &&
-        deleteHandler.find("SendPacket(") < deleteHandler.find("m_pSellItem = nullptr;"),
+        source_contract::InOrder(deleteHandler.find("SendPacket("), deleteHandler.find("m_pSellItem = nullptr;")),
         "delete confirmation retains the grid-owned item until the server sends its authoritative slot");
 	const auto sellEnd = dialogSource.find("case 271:", sellConfirm);
 	const auto sellHandler = sellConfirm != std::string::npos && sellEnd != std::string::npos
@@ -1509,7 +1547,8 @@ int RunSceneDisconnectContractTests(int& checks)
 	check(!sellHandler.empty() &&
 		sellHandler.find("GetCarrySlotForCell(pSellItem->m_pGridControl") != std::string::npos &&
 		sellHandler.find("sDestType == 1") != std::string::npos &&
-		sellHandler.find("m_pGridShop->m_dwMerchantID") != std::string::npos,
+		sellHandler.find("? m_pGridHellStore : m_pGridShop") != std::string::npos &&
+		sellHandler.find("saleGrid->m_dwMerchantID") != std::string::npos,
 		"shop sell confirmation sends the native Carry slot and visible merchant");
 
     // SGridControl is split by responsibility; each checked range stays inside one method.
@@ -1528,12 +1567,12 @@ int RunSceneDisconnectContractTests(int& checks)
         != std::string::npos, "shift-click split prompt is routed to its helper");
     const auto splitControlsGuard = splitPrompt.find("if (!pText || !pEdit || !pInputGold)" + splitReturnZero);
     check(!splitPrompt.empty() && splitControlsGuard != std::string::npos &&
-        splitPrompt.find("if (!pFScene || !pFScene->m_pControlContainer)") < splitPrompt.find("SelectItem(") &&
-        splitPrompt.find("if (!pItem || !pItem->m_pItem)") < splitPrompt.find("BASE_GetItemAmount(") &&
-        splitControlsGuard < splitPrompt.find("pItem->m_GCObj.dwColor =") &&
-        splitControlsGuard < splitPrompt.find("m_nCoinMsgType = 12;") &&
-        splitControlsGuard < splitPrompt.find("SGridControl::m_pSellItem = pItem;") &&
-        splitControlsGuard < splitPrompt.find("pText->SetText("),
+        source_contract::InOrder(splitPrompt.find("if (!pFScene || !pFScene->m_pControlContainer)"), splitPrompt.find("SelectItem(")) &&
+        source_contract::InOrder(splitPrompt.find("if (!pItem || !pItem->m_pItem)"), splitPrompt.find("BASE_GetItemAmount(")) &&
+        source_contract::InOrder(splitControlsGuard, splitPrompt.find("pItem->m_GCObj.dwColor =")) &&
+        source_contract::InOrder(splitControlsGuard, splitPrompt.find("m_nCoinMsgType = 12;")) &&
+        source_contract::InOrder(splitControlsGuard, splitPrompt.find("SGridControl::m_pSellItem = pItem;")) &&
+        source_contract::InOrder(splitControlsGuard, splitPrompt.find("pText->SetText(")),
         "split prompt rejects missing controls before reserving or dereferencing dialog state");
     const auto splitSelection = splitPrompt.find("SelectItem(");
     const auto splitHitGuard = splitPrompt.find("if (!bPtInRect || this != pFScene->m_pGridInv)" + splitReturnZero);
@@ -1553,10 +1592,10 @@ int RunSceneDisconnectContractTests(int& checks)
         != std::string::npos, "trade item routes the auto-trade price prompt to its helper");
     check(!pricePrompt.empty() && priceControlsGuard != std::string::npos && priceSlotGuard != std::string::npos &&
         priceControlsGuard < priceSlotGuard &&
-        priceSlotGuard < pricePrompt.find("pItem->m_GCObj.dwColor = 0xFFFF00FF;") &&
-        priceSlotGuard < pricePrompt.find("m_nCoinMsgType = 4;") &&
-        priceSlotGuard < pricePrompt.find("m_nLastAutoTradePos = cargoSlot;") &&
-        priceSlotGuard < pricePrompt.find("pText->SetText("),
+        source_contract::InOrder(priceSlotGuard, pricePrompt.find("pItem->m_GCObj.dwColor = 0xFFFF00FF;")) &&
+        source_contract::InOrder(priceSlotGuard, pricePrompt.find("m_nCoinMsgType = 4;")) &&
+        source_contract::InOrder(priceSlotGuard, pricePrompt.find("m_nLastAutoTradePos = cargoSlot;")) &&
+        source_contract::InOrder(priceSlotGuard, pricePrompt.find("pText->SetText(")),
         "auto-trade price prompt validates controls and Cargo slot before committing selection");
     const auto cubeStart = gridSource.find("else if (m_eGridType == TMEGRIDTYPE::GRID_CUBEBOX)");
     const auto cubeEnd = gridSource.find("\n\telse\n\t{", cubeStart);
@@ -1592,7 +1631,7 @@ int RunSceneDisconnectContractTests(int& checks)
         static_cast<int>(sizeof(malformedName)), malformedName);
     check(copied == sizeof(malformedName) && boundedMessage[0] == '%' &&
         boundedMessage[1] == 's' && boundedMessage[sizeof(malformedName)] == '\0',
-        "delete prompt bounds unterminated names and preserves percent signs literally");
+        "CRT %.*s pattern used by the delete prompt bounds unterminated names and keeps percent signs");
 
     char sellMessage[128]{};
     check(wyd748::ui::FormatSellConfirmation(sellMessage, sizeof(sellMessage),
@@ -1659,13 +1698,13 @@ int RunSceneDisconnectContractTests(int& checks)
         const auto evictObjects = release.find("SAFE_DELETE(entry.objects);");
         const auto evictGround = release.find("SAFE_DELETE(entry.ground);");
         check(releaseGround != std::string::npos && deleteObjects != std::string::npos &&
-            deleteObjects < deleteGround && evictObjects != std::string::npos && evictObjects < evictGround,
+            source_contract::InOrder(deleteObjects, deleteGround) && evictObjects != std::string::npos && source_contract::InOrder(evictObjects, evictGround),
             "previous neighbor objects are released before their ground");
         const auto detachOld = release.find("if (other->m_pLeftGround == ground)");
-        check(detachOld != std::string::npos && detachOld < deleteObjects &&
-            release.find("other->m_pRightGround = nullptr;", detachOld) < deleteObjects &&
-            release.find("other->m_pUpGround = nullptr;", detachOld) < deleteObjects &&
-            release.find("other->m_pDownGround = nullptr;", detachOld) < deleteObjects &&
+        check(detachOld != std::string::npos && source_contract::InOrder(detachOld, deleteObjects) &&
+            source_contract::InOrder(release.find("other->m_pRightGround = nullptr;", detachOld), deleteObjects) &&
+            source_contract::InOrder(release.find("other->m_pUpGround = nullptr;", detachOld), deleteObjects) &&
+            source_contract::InOrder(release.find("other->m_pDownGround = nullptr;", detachOld), deleteObjects) &&
             release.find("objects->Unlink();") != std::string::npos &&
             release.find("ground->m_pLeftGround = nullptr;") != std::string::npos,
             "old neighbor links are cleared before its ground is released or cached");
@@ -1727,7 +1766,7 @@ int RunSceneDisconnectContractTests(int& checks)
         "RC preflight rejects malformed resources before any control is created");
     const auto transactionRC = sceneLoader.find("RCControlTransaction<TreeNode> transaction(", preflight);
     const auto commitRC = sceneLoader.find("transaction.Commit();", dispatchRC);
-    check(transactionRC < dispatchRC && commitRC != std::string::npos &&
+    check(source_contract::InOrder(transactionRC, dispatchRC) && commitRC != std::string::npos &&
         sceneLoader.find("catch (const std::bad_alloc&)", commitRC) != std::string::npos &&
         sceneLoader.find("return 0;", commitRC) != std::string::npos,
         "RC construction rolls back unsuccessful loads and converts heap exhaustion to failure");
@@ -1738,20 +1777,22 @@ int RunSceneDisconnectContractTests(int& checks)
         const auto owner = sceneLoader.find("controlOwner(new ", begin);
         const auto attach = sceneLoader.find("if (!AttachRCControl(", begin);
         const auto release = sceneLoader.find("controlOwner.release();", begin);
-        check(begin != std::string::npos && owner < attach && attach < release && release < end &&
-            sceneLoader.find("return ExtractedFlow::Return;", attach) < release,
+        check(begin != std::string::npos && source_contract::InOrder(owner, attach) && source_contract::InOrder(attach, release) && source_contract::InOrder(release, end) &&
+            source_contract::InOrder(sceneLoader.find("return ExtractedFlow::Return;", attach), release),
             "every RC widget remains locally owned until its parent accepts it");
-        check(sceneLoader.find("fclose(fpBinary);", begin) > end,
+        // Absence is the contract here: the delimited reader body must not close the file.
+        check(source_contract::InOrder(begin, end) &&
+            sceneLoader.substr(begin, end - begin).find("fclose(fpBinary);") == std::string::npos,
             "RC record readers leave file closure to the single load owner");
     }
     const auto rcAttachment = sceneLoader.find("bool AttachRCControl(");
     check(sceneLoader.find("container->FindControl(parentID)", rcAttachment) != std::string::npos &&
-        sceneLoader.find("if (!parent)", rcAttachment) < sceneLoader.find("parent->AddChild(control);", rcAttachment),
+        source_contract::InOrder(sceneLoader.find("if (!parent)", rcAttachment), sceneLoader.find("parent->AddChild(control);", rcAttachment)),
         "RC attachment rejects a missing parent instead of leaking an unattached widget");
     const auto rcGridSource = LoadSource("TMProject748/internal/ui/SGrid.cpp");
     check(rcGridSource.find("std::unique_ptr<int[]> filled(") != std::string::npos &&
         rcGridSource.find("std::unique_ptr<GeomControl[]> cells(") != std::string::npos &&
-        rcGridSource.find("filled.release();") > rcGridSource.find("memset(m_pbFilled"),
+        source_contract::InOrder(rcGridSource.find("memset(m_pbFilled"), rcGridSource.find("filled.release();")),
         "grid construction retains both allocation owners through initialization");
     const auto gridFrame = source_contract::MaskCpp(source_contract::Method(rcGridSource,
         "void SGridControl::FrameMove2(stGeomList* pDrawList, TMVector2 ivParentPos, int inParentLayer, int nFlag)"));
@@ -1770,8 +1811,8 @@ int RunSceneDisconnectContractTests(int& checks)
     check(markAddress.find("\"http://wyd.forjago.com/patch/guildmark/\"") != std::string::npos &&
         socialSource.find("meusite.com") == std::string::npos &&
         socialSource.find("void TMFieldScene::PumpGuildMarkDownloads()") != std::string::npos &&
-        socialSource.find("LoadGuildTexture", socialSource.find("void TMFieldScene::PumpGuildMarkDownloads()")) <
-            socialSource.find("int TMFieldScene::Guildmark_Create(") &&
+        source_contract::InOrder(socialSource.find("LoadGuildTexture", socialSource.find("void TMFieldScene::PumpGuildMarkDownloads()")),
+            socialSource.find("int TMFieldScene::Guildmark_Create(")) &&
         socialSource.find("if (header.bfOffBits != sizeof(BITMAPFILEHEADER) + sizeof(BITMAPINFOHEADER))") != std::string::npos &&
         markFieldSource.find("PumpGuildMarkDownloads();") != std::string::npos &&
         worldSource.find("Guildmark_Create(&pHuman->m_stGuildMark);") != std::string::npos,
@@ -1797,7 +1838,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto playerReturn = heightBody.find("return;", fixedPlayerScale);
     const auto mobScale = heightBody.find("m_fScale = monster_visual_scale::FromCon(fCon);");
     check(playerGuard != std::string::npos && fixedPlayerScale != std::string::npos &&
-        playerReturn != std::string::npos && playerReturn < mobScale,
+        playerReturn != std::string::npos && source_contract::InOrder(playerReturn, mobScale),
         "player height is fixed before mob Con scaling");
     check(mobScale != std::string::npos,
         "monster height uses the bounded Con policy");
@@ -1849,7 +1890,7 @@ int RunSceneDisconnectContractTests(int& checks)
         primitivesSource.substr(iconCase, iconMesh - iconCase).find("ALPHABLENDENABLE, 0") == std::string::npos &&
         primitivesSource.substr(iconCase, iconMesh - iconCase).find("ALPHATESTENABLE, 0") == std::string::npos &&
         uiPlain != std::string::npos &&
-        uiMeshSource.find("Render(0, nTexOffset);", uiPlain) < uiMeshSource.find("return 1;", uiPlain),
+        source_contract::InOrder(uiMeshSource.find("Render(0, nTexOffset);", uiPlain), uiMeshSource.find("return 1;", uiPlain)),
         "3D item icons use fixed native lighting and retain original texture and alpha paths");
     const auto deviceStates = LoadSource("TMProject748/internal/platform/windows/RenderDeviceState.cpp");
     const auto inventoryItems = LoadSource("TMProject748/internal/ui/SGridItem.cpp");
@@ -1880,7 +1921,7 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto importedWeapons = cmeshSource.find("if (nPartIndex >= 2889");
     const auto importedTexture = cmeshSource.find("refinement_glow::TextureBase(m_sLegendType)", importedWeapons);
     check(importedWeapons != std::string::npos && importedTexture != std::string::npos &&
-        importedTexture < cmeshSource.find("GetEffectTexture(nBaseIndex + m_sMultiType", importedWeapons),
+        source_contract::InOrder(importedTexture, cmeshSource.find("GetEffectTexture(nBaseIndex + m_sMultiType", importedWeapons)),
         "imported weapon meshes also select the refined gem texture");
     // FUN_004110f5 fills Aylin's four result grids from the staged pair once
     // a refinement gem occupies slot 3.
@@ -1888,19 +1929,19 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto odinRecipe = mixSource.find("else if (first == 4127)");
     const auto odinNext = mixSource.find("else if (first >= 5110", odinRecipe);
     const auto odinGuard = mixSource.find("valid = odin_composition::AcceptsSealRecipe(packet->Item);", odinRecipe);
-    check(odinRecipe != std::string::npos && odinGuard != std::string::npos && odinGuard < odinNext,
+    check(odinRecipe != std::string::npos && odinGuard != std::string::npos && source_contract::InOrder(odinGuard, odinNext),
         "Odin dispatch uses the tested cape and level-40 recipe guard");
     const auto preview = mixSource.find("void TMFieldScene::RefreshNativeMixPreview()");
     check(preview != std::string::npos &&
         mixSource.find("native_aylin::Build(packet->Item[0], packet->Item[1],", preview) != std::string::npos &&
         mixSource.find("packet->Item[3].sIndex, BASE_GetItemSanc(&packet->Item[0]), results)", preview) != std::string::npos &&
         mixSource.find("new STRUCT_ITEM(results[slot])", preview) != std::string::npos &&
-        mixSource.find("grid->PickupItem(0, 0)", preview) < mixSource.find("native_aylin::Build(", preview),
+        source_contract::InOrder(mixSource.find("grid->PickupItem(0, 0)", preview), mixSource.find("native_aylin::Build(", preview)),
         "Aylin installs the tested four-result builder after clearing stale clones");
     const auto rcButtonSource = LoadSource("TMProject748/internal/ui/controls/SButton.cpp");
     check(rcButtonSource.find("std::unique_ptr<TMFont2> fontOwner;") != std::string::npos &&
         rcButtonSource.find("std::unique_ptr<SText> altTextOwner;") != std::string::npos &&
-        rcButtonSource.find("fontOwner.release();") > rcButtonSource.find("altTextOwner.reset(new SText("),
+        source_contract::InOrder(rcButtonSource.find("altTextOwner.reset(new SText("), rcButtonSource.find("fontOwner.release();")),
         "button construction retains font ownership until alternate text is initialized");
     const auto rcScrollSource = LoadSource("TMProject748/internal/ui/controls/SScrollBar.cpp");
     check(rcScrollSource.find("const auto attachPanel = [this]") != std::string::npos &&
@@ -1917,18 +1958,19 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto nativeThumb = rcScrollSource.find("m_pBar = attachPanel(new SPanel(425, x + 1.0f, 0.0f, 10.0f - 2.0f, m_nBtnSize, 0xFFFFFFFF");
     const auto nativeTrack = rcScrollSource.find("m_pBackground1 = attachPanel(new SPanel(426, x, 0.0f, 10.0f, inHeight, 0xFFFFFFFF");
     check(rcScrollSource.find("if (m_dwStyle == 0 && g_UIVer == 2)") != std::string::npos &&
-        nativeUp != std::string::npos && nativeUp < nativeDown && nativeDown < nativeThumb && nativeThumb < nativeTrack,
+        nativeUp != std::string::npos && source_contract::InOrder(nativeUp, nativeDown) && source_contract::InOrder(nativeDown, nativeThumb) && source_contract::InOrder(nativeThumb, nativeTrack),
         "UI2 vertical scrollbars use the native 7.48 texture sets and child order");
     // Growing the chat with '+' must keep the UI2 geometry: the down arrow
     // follows the bottom and track 426 stretches to the new height.
-    const auto resizeBody = rcScrollSource.substr(rcScrollSource.find("void SScrollBar::SetSize("));
-    check(resizeBody.find("if (m_dwStyle == 0 && g_UIVer == 2)") < resizeBody.find("else if (m_dwStyle == 0)") &&
+    // From() returns empty for a missing signature; substr(npos) would throw and stop the runner.
+    const auto resizeBody = source_contract::From(rcScrollSource, "void SScrollBar::SetSize(");
+    check(source_contract::InOrder(resizeBody.find("if (m_dwStyle == 0 && g_UIVer == 2)"), resizeBody.find("else if (m_dwStyle == 0)")) &&
         resizeBody.find("scrollbar_layout::DownArrowY(m_nHeight, RenderDevice::m_fUIScaleY)") != std::string::npos &&
         resizeBody.find("m_pBackground1->SetSize(m_pBackground1->m_nWidth, m_nHeight);") != std::string::npos,
         "UI2 scrollbar resize stretches the track and moves the down arrow");
     const auto rcContainerSource = LoadSource("TMProject748/internal/ui/SControlContainer.cpp");
     check(rcContainerSource.find("std::unique_ptr<SCursor> cursor(") != std::string::npos &&
-        rcContainerSource.find("std::unique_ptr<SControl> root(") < rcContainerSource.find("m_pCursor = cursor.release();"),
+        source_contract::InOrder(rcContainerSource.find("std::unique_ptr<SControl> root("), rcContainerSource.find("m_pCursor = cursor.release();")),
         "control container construction owns the cursor when root allocation fails");
     for (const char* path : {"TMProject748/internal/ui/controls/SPanel.cpp",
         "TMProject748/internal/ui/controls/SProgressBar.cpp"}) {
@@ -1938,20 +1980,20 @@ int RunSceneDisconnectContractTests(int& checks)
     }
     const auto rcFontSource = LoadSource("TMProject748/internal/platform/windows/TMFont2.cpp");
     const auto seedSource = LoadSource("TMProject748/internal/platform/windows/FontTextureUpload.h");
-    check(seedSource.find("owner(file, &std::fclose)") < seedSource.find("new char[") &&
-        seedSource.find("std::fread(bytes.get(), 1, length, file) != length") <
-            seedSource.find("destination = std::move(bytes);"),
+    check(source_contract::InOrder(seedSource.find("owner(file, &std::fclose)"), seedSource.find("new char[")) &&
+        source_contract::InOrder(seedSource.find("std::fread(bytes.get(), 1, length, file) != length"),
+            seedSource.find("destination = std::move(bytes);")),
         "font seed file is owned through allocation and publishes only a complete read");
-    check(rcFontSource.find("font_texture::LoadSeed(MiniMap_Path, seed, payloadLength)") <
-        rcFontSource.find("TMFont2::m_pBuffer = seed.release();") &&
+    check(source_contract::InOrder(rcFontSource.find("font_texture::LoadSeed(MiniMap_Path, seed, payloadLength)"),
+        rcFontSource.find("TMFont2::m_pBuffer = seed.release();")) &&
         rcFontSource.find("if (FAILED(created) || !m_pTexture)") != std::string::npos &&
         rcFontSource.find("font_texture::UploadMask(m_pTexture, g_pDevice->m_pBitmapBits,") != std::string::npos &&
         rcFontSource.find("m_pTexture == nullptr || m_fRasterScale != m_fSize || m_bRasterMultiLine != m_bMultiLine) && !Rasterize()") != std::string::npos,
         "font creation and rendering propagate seed, creation and upload failure");
     for (const char* widget : {"pButton", "pText"}) {
         const auto ready = sceneLoader.find(std::string("if (!") + widget + "->IsCaptionReady())");
-        check(ready != std::string::npos && ready <
-            sceneLoader.find(std::string("AttachRCControl(m_pControlContainer, ") + widget),
+        check(ready != std::string::npos && source_contract::InOrder(ready,
+            sceneLoader.find(std::string("AttachRCControl(m_pControlContainer, ") + widget)),
             "RC caption failure returns while the new widget is still locally owned");
     }
     const auto rcTextHeader = LoadSource("TMProject748/internal/ui/controls/SText.h");
@@ -2018,7 +2060,7 @@ int RunSceneDisconnectContractTests(int& checks)
             "null payload returns the base-scene result");
         check(packetCast != std::string::npos,
             "payload cast remains present for non-null packets");
-        check(baseDispatch < nullGuard && nullGuard < nullReturn && nullReturn < packetCast,
+        check(source_contract::InOrder(baseDispatch, nullGuard) && source_contract::InOrder(nullGuard, nullReturn) && source_contract::InOrder(nullReturn, packetCast),
             "disconnect is dispatched before any payload access");
     }
 
@@ -2032,6 +2074,7 @@ int RunSceneDisconnectContractTests(int& checks)
     // The group-selection body lives in OnServerGroupList.
     const std::string handler = source_contract::Method(source,
         "ExtractedFlow TMSelectServerScene::OnServerGroupList(unsigned int& idwEvent, const int& nMaxGroupN, SListBoxServerItem* (&pServerItem)[11], int& extractedResult)");
+    check(!handler.empty(), "server group handler method is found");
     if (!handler.empty()) {
         const auto clearRows = handler.find("pServerList->Empty();");
         const auto clearSlots = handler.find("m_nVisibleChannelCount = 0;", clearRows);
@@ -2041,7 +2084,7 @@ int RunSceneDisconnectContractTests(int& checks)
             addRows != std::string::npos && clearRows < clearSelection &&
             clearSelection < addRows,
             "group switch clears stale channel selection before adding rows");
-        check(clearSlots != std::string::npos && clearSlots < addRows &&
+        check(clearSlots != std::string::npos && source_contract::InOrder(clearSlots, addRows) &&
             handler.find("m_nVisibleChannelSlots[m_nVisibleChannelCount++] = num;") !=
                 std::string::npos,
             "channel rows retain their configured endpoint slots");
@@ -2049,9 +2092,17 @@ int RunSceneDisconnectContractTests(int& checks)
 
     const auto eventStart = source.find("int TMSelectServerScene::OnControlEvent(");
     const auto uiStart = source.find("void TMSelectServerScene::InitializeUI()");
+    check(source_contract::InOrder(eventStart, uiStart),
+        "select-server control events precede the UI builder");
     if (eventStart != std::string::npos && uiStart != std::string::npos) {
         const std::string eventHandler = source.substr(eventStart, uiStart - eventStart);
         const std::string uiBuilder = source.substr(uiStart);
+        check(uiBuilder.find("m_nAdmitGroup = AggregateServerGroupFromOrder(") != std::string::npos &&
+            uiBuilder.find("--m_nAdmitGroup") == std::string::npos &&
+            uiBuilder.find("m_nAdmitGroup--") == std::string::npos,
+            "server UI keeps the zero-based aggregate group without a second decrement");
+        check(handler.find("g_pServerList[i][0][0] = 0;") == std::string::npos,
+            "opening an aggregate group preserves the shared status endpoints");
         check(eventHandler.find("VisibleServerGroupSlots(") == std::string::npos &&
             eventHandler.find("m_nVisibleGroupSlots[idwEvent]") != std::string::npos &&
             eventHandler.find("m_nVisibleGroupSlots[selectedGroup]") != std::string::npos &&
@@ -2126,7 +2177,9 @@ int RunSceneDisconnectContractTests(int& checks)
             "target HP projection is applied through the policy before snapshot copies");
         // Scores are 32-bit end to end; the local pending HP must not narrow them.
         const std::string fieldHeader = LoadSource("TMProject748/internal/app/scenes/TMFieldScene.h");
-        check(fieldHeader.find("unsigned int m_nReqHP;") != std::string::npos &&
+        // Accept the declaration with or without a default member initializer.
+        check((fieldHeader.find("unsigned int m_nReqHP;") != std::string::npos ||
+            fieldHeader.find("unsigned int m_nReqHP{};") != std::string::npos) &&
             attack.find("static_cast<unsigned short>(m_pMyHuman->m_stScore") == std::string::npos &&
             attack.find("Dam > 100000") == std::string::npos,
             "local pending HP keeps the 32-bit authoritative score");
@@ -2161,25 +2214,16 @@ int RunSceneDisconnectContractTests(int& checks)
         "channel status HTTP reader is available");
     if (httpStart != std::string::npos && httpEnd != std::string::npos) {
         const std::string reader = basedef.substr(httpStart, httpEnd - httpStart);
-        check(reader.find("MaxBuffer <= 0") != std::string::npos &&
-            reader.find("Request[0] = '\\0';") != std::string::npos &&
-            reader.find("MaxBuffer - 1") != std::string::npos &&
-            reader.find("Request[dwBytesRead] = 0;") != std::string::npos &&
-            reader.find("if (!readSucceeded)") != std::string::npos,
-            "channel status read leaves room for NUL and clears failed results");
-        const auto openUrl = reader.find("InternetOpenUrl(");
-        const auto connectTimeout = reader.find("INTERNET_OPTION_CONNECT_TIMEOUT");
-        const auto receiveTimeout = reader.find("INTERNET_OPTION_RECEIVE_TIMEOUT");
-        check(connectTimeout != std::string::npos &&
-            receiveTimeout != std::string::npos && openUrl != std::string::npos &&
-            connectTimeout < openUrl && receiveTimeout < openUrl,
-            "channel status configures connect and receive timeouts before HTTP");
+        check(reader.find("channel_status::StatusCache().Read(httpname, Request, MaxBuffer)") != std::string::npos &&
+            reader.find("channel_status::StatusCache().Poll(") != std::string::npos &&
+            reader.find("perf_trace::RecordIO(") != std::string::npos,
+            "channel status reads cached text and records worker completions on the UI thread");
     }
 
-    check(source.find("ParseServerStatus(szUserCount, nUserCount, 11);") != std::string::npos &&
+    check(source.find("ParseServerStatus(szUserCount, nUserCount, 11);") == std::string::npos &&
         source.find("ParseServerStatus(szUserCount, nUserCount2, 11);") != std::string::npos &&
         source.find("ParseServerStatus(szUserCount, statusValues, 12);") != std::string::npos,
-        "server selection uses the shared status parser");
+        "server selection parses requested status without the unused initial request");
 
     int counts[4]{-1, -1, -1, -1};
     check(ParseServerStatus("12\n34\r\n56\n78\n", counts, 4) == 4 &&
@@ -2225,7 +2269,10 @@ int RunSceneDisconnectContractTests(int& checks)
     const auto fixtureDirectory = std::filesystem::temp_directory_path() /
         ("wyd-serverlist-" + std::to_string(GetCurrentProcessId()) + "-" +
             std::to_string(GetTickCount64()));
-    const bool createdFixtureDirectory = std::filesystem::create_directory(fixtureDirectory);
+    // Use the error_code overloads: a fixture failure must fail a check, not
+    // throw out of the suite and stop the remaining suites.
+    std::error_code fixtureError;
+    const bool createdFixtureDirectory = std::filesystem::create_directory(fixtureDirectory, fixtureError);
     check(createdFixtureDirectory, "local serverlist fixture directory is created");
     if (createdFixtureDirectory) {
         const auto localPath = fixtureDirectory / "serverlist.local.bin";
@@ -2263,14 +2310,15 @@ int RunSceneDisconnectContractTests(int& checks)
             if (selected) std::fclose(selected);
             CloseHandle(lockedLocal);
         }
-        std::filesystem::remove(localPath);
+        std::filesystem::remove(localPath, fixtureError);
         selected = WYD748_OpenServerListAsset(localPath.string().c_str(),
             standardPath.string().c_str());
         check(selected && WYD748_ReadServerList(selected, servers) && servers[0][0][0] == 'S',
             "standard table is used when no local override exists");
         if (selected) std::fclose(selected);
-        std::filesystem::remove(standardPath);
-        std::filesystem::remove(fixtureDirectory);
+        std::filesystem::remove(standardPath, fixtureError);
+        std::filesystem::remove(fixtureDirectory, fixtureError);
+        check(!fixtureError, "local serverlist fixture directory is removed");
     }
 
     char payload[sizeof servers];
@@ -2435,7 +2483,7 @@ int RunSceneDisconnectContractTests(int& checks)
         check(executableLength > 0 && executableLength < MAX_PATH,
             "test executable path is available for preview fixtures");
         const auto fixturePath = std::filesystem::path(executable).parent_path() /
-            "selchar-invalid-test.txt";
+            ("selchar-invalid-test-" + std::to_string(GetCurrentProcessId()) + ".txt");
         const auto writeFixture = [&](const char* content) {
             std::ofstream output(fixturePath, std::ios::trunc);
             output << content;
@@ -2481,7 +2529,7 @@ int RunSceneDisconnectContractTests(int& checks)
             "test executable path is available for effect fixtures");
         if (length > 0 && length < MAX_PATH) {
             const auto fixturePath = std::filesystem::path(executable).parent_path() /
-                "effect-string-invalid-test.txt";
+                ("effect-string-invalid-test-" + std::to_string(GetCurrentProcessId()) + ".txt");
             const auto fixtureName = fixturePath.string();
             const auto rejected = [&](const char* content, const char* label) {
                 std::ofstream output(fixturePath, std::ios::trunc);
@@ -2518,7 +2566,8 @@ int RunSceneDisconnectContractTests(int& checks)
         check(std::strcmp(labels[1], "Connect") == 0 &&
             std::strcmp(labels[226], "C.C Mode(MC)") == 0 &&
             std::strcmp(labels[227], "C.C Mode(SC)") == 0 &&
-            std::strcmp(labels[228], "Lv") == 0 && labels[229][0] == '\0',
+            std::strcmp(labels[228], "Lv") == 0 && std::strcmp(labels[229], "Off") == 0 &&
+            labels[231][0] == '\0',
             "UI string indexes and embedded spaces survive parsing");
 
         wchar_t executable[MAX_PATH]{};
@@ -2527,7 +2576,7 @@ int RunSceneDisconnectContractTests(int& checks)
             "UI string fixture directory is available");
         if (length > 0 && length < MAX_PATH) {
             const auto fixturePath = std::filesystem::path(executable).parent_path() /
-                "ui-string-invalid-test.txt";
+                ("ui-string-invalid-test-" + std::to_string(GetCurrentProcessId()) + ".txt");
             const auto fixtureName = fixturePath.string();
             const auto rejected = [&](const std::string& content, const char* label) {
                 std::ofstream output(fixturePath, std::ios::trunc);
@@ -2585,7 +2634,7 @@ int RunSceneDisconnectContractTests(int& checks)
             "item-name fixture directory is available");
         if (length > 0 && length < MAX_PATH) {
             const auto fixturePath = std::filesystem::path(executable).parent_path() /
-                "item-name-invalid-test.bin";
+                ("item-name-invalid-test-" + std::to_string(GetCurrentProcessId()) + ".bin");
             const auto fixtureName = fixturePath.string();
             const auto encodeNameRecord = [](std::int32_t index, const char* name) {
                 std::string bytes(68, '\0');
@@ -2705,10 +2754,17 @@ int RunSceneDisconnectContractTests(int& checks)
         restore.find("[this] { return InitVertexShader(); }") != std::string::npos,
         "production restore gates texture unbinding, fonts, world state and shaders");
     const auto forget = invalidate.find("render_state_cache::ForgetTextures(m_pTexture);");
-    const auto releaseTextures = invalidate.find("m_pTextureManager->ReleaseTexture();");
-    check(forget != std::string::npos && releaseTextures != std::string::npos && forget < releaseTextures &&
+    // Device Reset releases only DEFAULT-pool targets. MANAGED textures,
+    // meshes and the scene parts that borrow cached meshes survive Reset
+    // (C-29 / A23-01), so invalidation no longer releases or rebuilds them.
+    const auto releaseTargets = invalidate.find("m_pTextureManager->ReleaseRenderTargetTexture();");
+    check(forget != std::string::npos && releaseTargets != std::string::npos && forget < releaseTargets &&
+        invalidate.find("->ReleaseTexture();") == std::string::npos &&
+        invalidate.find("->ReleaseMesh();") == std::string::npos &&
+        invalidate.find("g_pObjectManager->InvalidateDeviceObjects();") == std::string::npos &&
+        restore.find("m_pObjectManager->RestoreDeviceObjects();") == std::string::npos &&
         invalidate.find("SAFE_RELEASE(m_pVSEffect[i]);\n\t\tSAFE_RELEASE(m_pVDEffect[i]);") != std::string::npos,
-        "invalidation forgets non-owning bindings before texture release and releases effect declarations");
+        "invalidation forgets non-owning bindings, releases render targets only and releases effect declarations");
     for (const auto& binding : std::initializer_list<std::pair<const char*, const char*>>{
         {"void RenderDevice::SetRenderState(D3DRENDERSTATETYPE State, DWORD Value)", "render_state_cache::SetRender("},
         {"void RenderDevice::SetTextureStageState(DWORD dwStage, D3DTEXTURESTAGESTATETYPE type, DWORD Value)", "render_state_cache::SetStage("},
@@ -2738,10 +2794,10 @@ int RunSceneDisconnectContractTests(int& checks)
             shaders.find("_filelengthi64(handle)") != std::string::npos,
             "production shader file IO uses checked read helper and 64-bit lengths");
         const auto effectCreation = vertices.find("effects.Output(j)");
-        check(effectCreation != std::string::npos && vertices.find("skin.Publish(m_pVertexShader)") > effectCreation &&
-            vertices.find("skinDeclarations.Publish(m_pVertexDeclaration)") > effectCreation &&
-            vertices.find("effects.Publish(m_pVSEffect)") > effectCreation &&
-            vertices.find("effectDeclarations.Publish(m_pVDEffect)") > effectCreation &&
+        check(effectCreation != std::string::npos && source_contract::InOrder(effectCreation, vertices.find("skin.Publish(m_pVertexShader)")) &&
+            source_contract::InOrder(effectCreation, vertices.find("skinDeclarations.Publish(m_pVertexDeclaration)")) &&
+            source_contract::InOrder(effectCreation, vertices.find("effects.Publish(m_pVSEffect)")) &&
+            source_contract::InOrder(effectCreation, vertices.find("effectDeclarations.Publish(m_pVDEffect)")) &&
             vertices.find("FAILED(m_pd3dDevice->SetVertexShaderConstantF(2,") != std::string::npos &&
             vertices.find("&m_pVertexShader[") == std::string::npos &&
             vertices.find("&m_pVertexDeclaration[") == std::string::npos &&
@@ -2774,33 +2830,33 @@ int RunSceneDisconnectContractTests(int& checks)
         const auto toggle = source_contract::Method(baseDevice, "HRESULT D3DDevice::ToggleFullscreen()");
         const std::string checkedDescription = "hr = device_back_buffer::Describe(m_pd3dDevice, m_d3dsdBackBuffer);\n\t\t\tif (FAILED(hr)) return hr;";
         check(initialize.find(checkedDescription) != std::string::npos &&
-            initialize.find("device_back_buffer::Describe(") < initialize.find("hr = InitDeviceObjects();") &&
+            source_contract::InOrder(initialize.find("device_back_buffer::Describe("), initialize.find("hr = InitDeviceObjects();")) &&
             initialize.find("if (!m_pD3D) return E_POINTER;") != std::string::npos &&
             initialize.find("if (!m_pd3dDevice) return E_FAIL;") != std::string::npos &&
             initialize.find("GetDeviceCaps(&pendingCaps);\n\t\t\tif (FAILED(hr)) return hr;") != std::string::npos,
             "initialization rejects missing device, failed caps and failed back-buffer before object initialization");
         check(reset.find("if (!m_pd3dDevice) return E_POINTER;") != std::string::npos &&
             reset.find("hr = device_back_buffer::Describe(m_pd3dDevice, m_d3dsdBackBuffer);\n\tif (FAILED(hr)) return hr;") != std::string::npos &&
-            reset.find("->Reset(") < reset.find("device_back_buffer::Describe(") &&
-            reset.find("device_back_buffer::Describe(") < reset.find("hr = RestoreDeviceObjects();") &&
-            reset.find("m_bDeviceObjectsRestored = true;") > reset.find("hr = RestoreDeviceObjects();"),
+            source_contract::InOrder(reset.find("->Reset("), reset.find("device_back_buffer::Describe(")) &&
+            source_contract::InOrder(reset.find("device_back_buffer::Describe("), reset.find("hr = RestoreDeviceObjects();")) &&
+            source_contract::InOrder(reset.find("hr = RestoreDeviceObjects();"), reset.find("m_bDeviceObjectsRestored = true;")),
             "reset checks description before restore and only then publishes readiness");
         check(baseDevice.find("->GetBackBuffer(") == std::string::npos && capture.find("device_back_buffer::Capture(") != std::string::npos &&
             capture.find("if (FAILED(result))") != std::string::npos && capture.find("LOG_WRITELOG(") != std::string::npos &&
             capture.find("ScreenShot\\\\Capture%04d.jpg") != std::string::npos &&
             capture.find("ReadBackBufferBgr24(m_pd3dDevice, surface, width, height, pixels)") != std::string::npos &&
-            capture.find("SaveBgr24Jpeg(") > capture.find("device_back_buffer::Capture(") &&
+            source_contract::InOrder(capture.find("device_back_buffer::Capture("), capture.find("SaveBgr24Jpeg(")) &&
             capture.find("D3DXSaveSurfaceToFile") == std::string::npos &&
             LoadSource("TMProject748/internal/platform/windows/ScreenshotJpeg.cpp").find("GUID_ContainerFormatJpeg") != std::string::npos &&
             baseDevice.find("GetRenderTargetData(source, copy.value)") != std::string::npos,
             "all base-device back-buffers are checked and capture keeps numbered JPG and failure logging");
         check(capture.find("CreateDirectoryA(\"ScreenShot\", nullptr)") != std::string::npos &&
             capture.find("ERROR_ALREADY_EXISTS") != std::string::npos &&
-            capture.find("CreateDirectoryA(") < capture.find("ScreenShot\\\\Capture%04d.jpg"),
+            source_contract::InOrder(capture.find("CreateDirectoryA("), capture.find("ScreenShot\\\\Capture%04d.jpg")),
             "capture creates a missing ScreenShot folder before it selects the file name");
         const std::string retainFactory = "device_back_buffer::CleanupForRetry(m_pD3D, [this] { Cleanup3DEnvironment(); });";
         check(initialize.find(retainFactory) != std::string::npos && toggle.find(retainFactory) != std::string::npos &&
-            initialize.find(retainFactory) < initialize.find("// If that failed, fall back"),
+            source_contract::InOrder(initialize.find(retainFactory), initialize.find("// If that failed, fall back")),
             "initialization fallback and adapter recreation retain the Direct3D factory");
     }
     {
@@ -2818,7 +2874,7 @@ int RunSceneDisconnectContractTests(int& checks)
         const auto sea = LoadSource("TMProject748/internal/render/world/terrain/TMSea.cpp");
         const auto seaFrame = source_contract::Method(sea, "int TMSea::FrameMove(unsigned int dwServerTime)");
         check(seaFrame.find("FAILED(m_pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0)) || !pVertex)") != std::string::npos &&
-            seaFrame.find("FAILED(") < seaFrame.find("pVertex[nX + nY"),
+            source_contract::InOrder(seaFrame.find("FAILED("), seaFrame.find("pVertex[nX + nY")),
             "sea wave update skips the frame when the vertex buffer cannot be locked");
         const auto seaCreate = sea.substr(0, sea.find("int TMSea::FrameMove("));
         check(seaCreate.find("FAILED(m_pMesh->m_pVB->Lock(") != std::string::npos &&
@@ -2838,8 +2894,8 @@ int RunSceneDisconnectContractTests(int& checks)
             "production begin uses recovery/readiness helper and preserves clear semantics");
         check(begin.find("if (!m_pD3D || !adapter) return E_POINTER;") != std::string::npos &&
             begin.find("GetAdapterDisplayMode(adapter->AdapterOrdinal, &pendingMode);") != std::string::npos &&
-            begin.find("if (FAILED(result)) return result;") < begin.find("Windowed_DisplayMode = pendingMode;") &&
-            begin.find("Windowed_DisplayMode = pendingMode;") < begin.find("BackBufferFormat = pendingMode.Format;"),
+            source_contract::InOrder(begin.find("if (FAILED(result)) return result;"), begin.find("Windowed_DisplayMode = pendingMode;")) &&
+            source_contract::InOrder(begin.find("Windowed_DisplayMode = pendingMode;"), begin.find("BackBufferFormat = pendingMode.Format;")),
             "failed display query cannot replace the reset format");
         check(end.find("device_frame::End(m_pd3dDevice, m_bDeviceLost,") != std::string::npos &&
             end.find("if (!m_pd3dDevice) return 0;") != std::string::npos &&
@@ -2848,7 +2904,7 @@ int RunSceneDisconnectContractTests(int& checks)
             end.find("}) ? 1 : 0;") != std::string::npos,
             "production end propagates checked present and supports non-presenting segments");
         check(frame.find("device_frame::Scene<RenderDevice> frame(*m_pRenderDevice);") != std::string::npos &&
-            frame.find("if (!frame.Begin(1)) return S_FALSE;") < frame.find("m_pObjectManager->RenderObject();") &&
+            source_contract::InOrder(frame.find("if (!frame.Begin(1)) return S_FALSE;"), frame.find("m_pObjectManager->RenderObject();")) &&
             frame.find("!m_pRenderDevice->SetViewVector(") != std::string::npos &&
             frame.find("!m_pRenderDevice->SetRenderStateBlock(1)") != std::string::npos &&
             frame.find("!m_pRenderDevice->m_pd3dDevice") != std::string::npos &&
@@ -2862,7 +2918,7 @@ int RunSceneDisconnectContractTests(int& checks)
             present != std::string::npos && uiBegin < uiState && uiState < controls && controls < present &&
             frame.find("m_pRenderDevice->Lock(") == std::string::npos &&
             frame.find("m_pRenderDevice->Unlock(") == std::string::npos &&
-            frame.find("if (!frame.End(0)) return S_FALSE;") < frame.find("m_pObjectManager->RenderTargetObject("),
+            source_contract::InOrder(frame.find("if (!frame.End(0)) return S_FALSE;"), frame.find("m_pObjectManager->RenderTargetObject(")),
             "application routes all scene segments through ownership and checked UI/presentation gates");
     }
     {
@@ -2883,14 +2939,19 @@ int RunSceneDisconnectContractTests(int& checks)
         const auto buffs = ccModeScene.find("cc_mode::IsAutomaticBuff(idxSkill)", hunger);
         const auto support = ccModeScene.find("if (g_GameAuto == 3)", buffs);
         const auto physicalAttack = ccModeScene.find("if (g_GameAuto == 1)", support);
-        check(hpFeed != std::string::npos && hpFeed < hpPotion && hpPotion < mpPotion &&
-            mpPotion < hunger && hunger < buffs && buffs < support && support < physicalAttack &&
+        check(hpFeed != std::string::npos && source_contract::InOrder(hpFeed, hpPotion) && source_contract::InOrder(hpPotion, mpPotion) &&
+            source_contract::InOrder(mpPotion, hunger) && source_contract::InOrder(hunger, buffs) && source_contract::InOrder(buffs, support) && support < physicalAttack &&
             physicalAttack != std::string::npos,
             "reference order is mount HP, potions, hunger, buffs, support stop, attacks");
     }
-    check(ccModeScene.find("{\"Off\", \"Physical\", \"Magic\", \"Support\"}") != std::string::npos &&
-        ccModeScene.find("{\"Free\", \"Cycle\", \"Fixed\"}") != std::string::npos,
-        "7.48 compact combat controls use English labels");
+    check(ccModeScene.find("ui_text::RowOr(g_UIString, ui_text::kCombatOff, \"Off\")") != std::string::npos &&
+        ccModeScene.find("ui_text::RowOr(g_UIString, ui_text::kCombatPhysical, \"Physical\")") != std::string::npos &&
+        ccModeScene.find("ui_text::RowOr(g_UIString, ui_text::kCombatMagic, \"Magic\")") != std::string::npos &&
+        ccModeScene.find("ui_text::RowOr(g_UIString, ui_text::kCombatSupport, \"Support\")") != std::string::npos &&
+        ccModeScene.find("ui_text::RowOr(g_UIString, ui_text::kMoveFree, \"Free\")") != std::string::npos &&
+        ccModeScene.find("ui_text::RowOr(g_UIString, ui_text::kMoveCycle, \"Cycle\")") != std::string::npos &&
+        ccModeScene.find("ui_text::RowOr(g_UIString, ui_text::kMoveFixed, \"Fixed\")") != std::string::npos,
+        "7.48 compact combat controls use locale resources with English fallbacks");
 
     {
         const auto inventory = LoadSource("TMProject748/internal/app/scenes/TMFieldSceneInventoryPackets.cpp");
@@ -2900,12 +2961,12 @@ int RunSceneDisconnectContractTests(int& checks)
             "ground-item removal cannot select an actor with a colliding numeric ID");
         const auto human = LoadSource("TMProject748/internal/game/entities/TMHuman.cpp");
         const auto retire = source_contract::Method(human, "void TMHuman::DelayDelete()");
-        check(!retire.empty() && retire.find("actor_lifetime::MayDelayDelete(this, m_pParentScene, ESCENE_TYPE::ESCENE_FIELD)") <
-            retire.find("m_dwDelayDel =") && retire.find("m_pMyHuman = nullptr") == std::string::npos,
+        check(!retire.empty() && source_contract::InOrder(retire.find("actor_lifetime::MayDelayDelete(this, m_pParentScene, ESCENE_TYPE::ESCENE_FIELD)"),
+            retire.find("m_dwDelayDel =")) && retire.find("m_pMyHuman = nullptr") == std::string::npos,
             "production retirement protects the local field actor before mutating lifetime state");
         const auto buffGate = human.find("if (m_nClass <= 8 || (m_dwID > 0 && m_dwID < 1000))");
-        check(buffGate != std::string::npos && human.find("new TMSkillMagicShield(this, 0)") > buffGate &&
-            human.find("new TMSkillMagicShield(this, 4)") > buffGate,
+        check(buffGate != std::string::npos && source_contract::InOrder(buffGate, human.find("new TMSkillMagicShield(this, 0)")) &&
+            source_contract::InOrder(buffGate, human.find("new TMSkillMagicShield(this, 4)")),
             "transformed players keep Magic Shield, Rescue, element and Cancelation visuals; monsters stay excluded");
         const auto tree = LoadSource("TMProject748/internal/core/TreeNode.cpp");
         const auto detach = source_contract::Method(tree, "void TreeNode::DeleteOwner(TMObject* pOwner)");
@@ -2923,14 +2984,14 @@ int RunSceneDisconnectContractTests(int& checks)
     {
         const auto mesh = LoadSource("TMProject748/internal/render/mesh/CMesh.cpp");
         const auto load = source_contract::Method(mesh, "int CMesh::LoadMesh(char* file)");
-        check(!load.empty() && load.find("skin_mesh_load::Plan(") < load.find("malloc(") &&
-            load.find("skin_mesh_load::ReadBuffer(handle, payload.indices") < load.find("entry.pMesh = pending.release()"),
+        check(!load.empty() && source_contract::InOrder(load.find("skin_mesh_load::Plan("), load.find("malloc(")) &&
+            source_contract::InOrder(load.find("skin_mesh_load::ReadBuffer(handle, payload.indices"), load.find("entry.pMesh = pending.release()")),
             "production skin loader validates extents before allocation and publishes only after both uploads");
         check(load.find("malloc(160)") == std::string::npos && load.find("strnlen_s(file, pathCapacity)") != std::string::npos &&
             load.find("skin_mesh_load::Positions(") != std::string::npos && load.find("skin_mesh_load::Indices(") != std::string::npos,
             "production skin loader binds checked path, position, index and palette helpers");
         const auto render = source_contract::Method(mesh, "int CMesh::Render(int nBright)");
-        check(render.find("if (!m_pBoneOffset[i]) return 0") < render.find("GetModelTexture("),
+        check(source_contract::InOrder(render.find("if (!m_pBoneOffset[i]) return 0"), render.find("GetModelTexture(")),
             "unlinked bone palette is rejected before rendering");
     }
     return failures;

@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Snapshot S->C da morte: Hold/FakeExp e EXP pertencem ao destinatario
-// indicado pelo fluxo; o client apenas projeta estado persistido pelo servidor.
+// S->C death snapshot. Hold/FakeExp and EXP belong to the flow recipient.
+// The client displays state persisted by the server.
 constexpr auto MSG_CNFMobKill_Opcode = 0x338;
 struct MSG_CNFMobKill
 {

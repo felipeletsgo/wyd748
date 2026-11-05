@@ -1,8 +1,8 @@
 <#
 .SYNOPSIS
-Builds and locally installs the language extension for the production native launcher.
+Builds and locally installs the HTTPS and language extension for the native launcher.
 .DESCRIPTION
-Preserves the native update.htm/ZIP protocol and site integration. Does not
+Preserves the native update.htm/ZIP protocol; routes downloads through validated HTTPS. Does not
 publish, restart services, start the game, or execute the native update flow.
 The source-built extension and disposable bootstrap fixture are tested first.
 .PARAMETER BaseLauncher
@@ -44,7 +44,7 @@ $matches = @(& $vswhere -latest -products '*' -requires Microsoft.Component.MSBu
 if ($LASTEXITCODE -ne 0 -or $matches.Count -eq 0) { throw 'MSBuild discovery failed.' }
 $msbuild = $matches[0]
 foreach ($project in @('LanguageExtension', 'LanguageExtensionTests')) {
-    & $msbuild (Join-Path $repo "tmproject/WYDLauncher/native/$project.vcxproj") /p:Configuration=Release /p:Platform=Win32 /nologo /v:minimal
+    & $msbuild (Join-Path $repo "tmproject/NativeLauncher/$project.vcxproj") /p:Configuration=Release /p:Platform=Win32 /nologo /v:minimal
     if ($LASTEXITCODE -ne 0) { throw "$project build failed; runtime was not changed." }
 }
 $candidate = Join-Path $build 'Release/WYDLauncher.exe'
@@ -99,7 +99,8 @@ if (-not $NoDeploy) {
             $path = Join-Path $client $_
             @{ path = $path; sha256 = (Get-FileHash -LiteralPath $path).Hash; size = (Get-Item -LiteralPath $path).Length }
         }
-        native_sections_preserved = @('.text', '.rdata', '.data')
+        native_sections_preserved = @('.text', '.rdata', '.data except version format')
+        transport = 'HTTPS_ONLY; Windows certificate validation; redirects and FTP rejected'
         validation = 'BUILD_AND_AUTOMATED_TESTS_VERIFIED; actual native update UI and gameplay pending'
     } | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $receiptDirectory 'native-launcher-install.json') -Encoding utf8
 }

@@ -213,7 +213,7 @@ release blocker.
 3. Translate the remaining Portuguese engineering prose in
    `DOCS/GUIA/GUIAS_JOGABILIDADE.md`, `DOCS/w2pp-go-gap-analysis.md`, and
    `DOCS/WYD-WEB-PLATAFORM.md`, including headings and examples. The upstream
-   path `Source cliente/` in `DOCS/reference-upstream.md` is a preserved
+   path `Source cliente/` in [upstream provenance](architecture-map.md#upstream-provenance) is a preserved
    identifier, not prose to translate. Keep established paths stable unless
    every reference is updated.
 4. Translate engineering prose, diagnostics, and test descriptions in `tools/`,

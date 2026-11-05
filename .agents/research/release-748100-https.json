@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "dateLocal": "2026-11-02",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "authorization": "Owner: reinicie o servidor na nova vers\u00e3o com o novo launcher https",
+  "mode": "working-tree",
+  "head": "c2b5050353b228027a5eae737fec097dfeb36e6d",
+  "clientVersion": "7.48.100",
+  "minimumRevision": 100,
+  "feedVersion": 48100,
+  "nextRevision": 101,
+  "activeRelease": "/srv/wyd-go/releases/20261103T010701Z",
+  "rollback": "/srv/wyd-go/releases/20261102T233404Z",
+  "published": true,
+  "activated": true,
+  "serverInputVerification": {
+    "sourceInputsUnchanged": 2161,
+    "payloadVerified": 1076,
+    "archive": {
+      "path": "release.tar.gz",
+      "size": 14376890,
+      "sha256": "8f357852c99a16e1ddfa46550a9e806be362f907c360b651a361579c7debdd5f"
+    },
+    "server": {
+      "path": "game/wyd-server",
+      "size": 27808035,
+      "sha256": "baa9c86f1b12333ad06d23142e85e33536ac33e94872c71d73d2c12ba20a6ad4"
+    }
+  },
+  "postverification": {
+    "release": "/srv/wyd-go/releases/20261103T010701Z",
+    "rollback": "/srv/wyd-go/releases/20261102T233404Z",
+    "payloadFilesVerified": 1076,
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "3509167",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261103T010701Z/game/wyd-server",
+        "sha256": "baa9c86f1b12333ad06d23142e85e33536ac33e94872c71d73d2c12ba20a6ad4"
+      },
+      "wyd-game@2": {
+        "MainPID": "3509168",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261103T010701Z/game/wyd-server",
+        "sha256": "baa9c86f1b12333ad06d23142e85e33536ac33e94872c71d73d2c12ba20a6ad4"
+      },
+      "wyd-player": {
+        "MainPID": "3492238",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261102T233404Z/game/wyd-player-api",
+        "sha256": "f9719b6f86debbbd2c3553533eb1a9d3c23c95d530f7f91d4effa6de180c28f6"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261102T233404Z/game/wyd-log-reader",
+        "sha256": "281f54e19318dd58afa84e028c6d7b15e8fa20e5db3619e31d9550e0539f36a6"
+      }
+    },
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    },
+    "backup": {
+      "at": "2026-11-03T01:07:01Z",
+      "archive": "wydgo-20261103T010701Z.dump",
+      "bytes": 537392,
+      "sha256": "6d8e04f65f0642928057ab8873e141b53afbeb6af7fd2e8254bbbfaef0d0e27c"
+    },
+    "schema": "20",
+    "privateSettingsUnchanged": true,
+    "feed": "[WYD]\n48100 notice.txt\n",
+    "website": {
+      "version": 2,
+      "clientVersion": "7.48.100",
+      "feedVersion": 48100,
+      "publishedAt": "2026-11-02",
+      "launcherVersion": null,
+      "minimumLauncherVersion": null,
+      "fullClient": {
+        "clientVersion": "7.48.100",
+        "url": "https://drive.google.com/file/d/1btS9vjWqO71pGG9LWiJUrnVQkZmOgt0Q/view?usp=drive_link",
+        "sizeBytes": 317133132,
+        "sha256": "20d8fd9d50616b208796c1ec3c34628fb4e3638c6a9a91317c8b96118ef4fa35"
+      },
+      "patch": {
+        "url": null,
+        "sizeBytes": null,
+        "sha256": null,
+        "executableSha256": "2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4"
+      },
+      "updateFeed": "/patch/update.htm"
+    }
+  },
+  "admission": {
+    "at": "2026-11-03T01:07:37.307725+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 18,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 99,
+        "opcode": "0x101",
+        "message": "Atualiza\u00e7\u00e3o necess\u00e1ria. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 100,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 18,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 99,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 100,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "nativeLauncherReceipt": ".agents/research/native-launcher-https-20261102.json",
+  "externalClient": {
+    "viewUrl": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+    "sizeBytes": 260877805,
+    "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66",
+    "archiveEntries": 8529,
+    "fileEntries": 8502,
+    "directoryEntries": 27,
+    "requiredEntries": 8498,
+    "additionalEntries": [
+      "WYD-748100/client-debug.log",
+      "WYD-748100/clientlogs.log",
+      "WYD-748100/guilds.txt",
+      "WYD-748100/update.dat"
+    ],
+    "verifiedExecutableSha256": "2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4",
+    "httpsLauncherDllSha256": "4ba1a44a6df7884ca010cf5c5e08e49b19e7f848c684709b8f239eeae3886f04",
+    "websitePublication": {
+      "published": true,
+      "release": "/srv/wyd-go/releases/20261103T010701Z",
+      "pages": {
+        "download/index.html": "ef949a30a7cd793a983e4e6804bb8f22a7481058192826c7d5f27986520b6b7c",
+        "client-manifest.json": "ac14314614d35382d5f6a11595c85a4f869627c93978cceb1bc2a38bbd18a04c"
+      },
+      "feedUnchanged": true,
+      "allServiceProcessesUnchanged": true,
+      "backup": "/srv/wyd-go/backups/client-link-20261103"
+    },
+    "verification": "Public archive fully hash-compared with all 8,498 required entries. The launcher DLL and game executable hashes match the corrected local client."
+  },
+  "archivedFeedAndPatches": "/srv/wyd-go/patch-archive/20261103T010659Z",
+  "websiteFiles": {
+    "index.html": "34e4f20bccb75e10fbfdcb27c9660e14391391e3be36a7660f0edf657ce7be20",
+    "download/index.html": "fd558a5ee432016b0dc6b6e4c26a7a86907fbf31203af2f27db627d1405e82e6",
+    "changelog/index.html": "e9cf8d3dc7a7209f65dd5eab7b7ad774cc3243a24c206b9502fd891605d4e4ba",
+    "client-manifest.json": "9664d4f48badf4e70cf5f6bc05d258a5fd6bd551f640240125421c8ed8eeb071"
+  },
+  "scope": "Game-only activation. Both game channels restarted; player API, log reader and Caddy processes preserved. No host reboot.",
+  "news": "Review draft only; not published.",
+  "initialPreflight": "First preflight ran during the pending transfer and rejected the layout before stopping any channel. Full transfer completed, all three script/config hashes matched, and the read-only layout check then passed.",
+  "checks": {
+    "go": "Focused TestClientBuild cases passed in wire/game. Other game inputs unchanged from the staged build.",
+    "portal": "Astro check/build and 116 tests passed.",
+    "database": "Backup archive hash and pg_restore listing passed; schema remains 20.",
+    "privateSettings": "SHA-256 values unchanged.",
+    "journal": "No warning-level entries in the bounded activation interval."
+  },
+  "pending": [
+    "Owner gameplay acceptance of baseline 100 and native launcher UI."
+  ],
+  "evidenceDirectory": "build/release-748100-activation-20261102/",
+  "supersededExternalClient": {
+    "url": "https://drive.usercontent.google.com/download?id=1btS9vjWqO71pGG9LWiJUrnVQkZmOgt0Q&export=download&confirm=t",
+    "viewUrl": "https://drive.google.com/file/d/1btS9vjWqO71pGG9LWiJUrnVQkZmOgt0Q/view?usp=drive_link",
+    "sizeBytes": 317133132,
+    "sha256": "20d8fd9d50616b208796c1ec3c34628fb4e3638c6a9a91317c8b96118ef4fa35"
+  },
+  "websitePublication": {
+    "published": true,
+    "release": "/srv/wyd-go/releases/20261103T010701Z",
+    "pages": {
+      "download/index.html": "ef949a30a7cd793a983e4e6804bb8f22a7481058192826c7d5f27986520b6b7c",
+      "client-manifest.json": "ac14314614d35382d5f6a11595c85a4f869627c93978cceb1bc2a38bbd18a04c"
+    },
+    "feedUnchanged": true,
+    "allServiceProcessesUnchanged": true,
+    "backup": "/srv/wyd-go/backups/client-link-20261103"
+  }
+}

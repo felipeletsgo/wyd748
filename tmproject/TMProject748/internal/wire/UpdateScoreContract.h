@@ -2,9 +2,8 @@
 
 #include <cstddef>
 
-// Extensao coordenada do snapshot de score usado exclusivamente pelo source
-// client e WYD-Go. O layout e distinto do frame base de 92 bytes e da extensao
-// historica XSC2 de 236 bytes observados na decompilacao estudada.
+// Coordinated score snapshot for the source client and WYD-Go only.
+// Its layout differs from the 92-byte base frame and historical 236-byte XSC2 extension in the studied decompilation.
 constexpr auto MSG_UpdateScore_Opcode = 0x336;
 constexpr std::size_t kUpdateScorePacketSize = 232;
 constexpr std::size_t kUpdateScoreScoreOffset = 12;

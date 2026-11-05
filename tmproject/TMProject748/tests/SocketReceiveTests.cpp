@@ -4,7 +4,9 @@
 #include <array>
 #include <cstdio>
 #include <cstring>
+#include <malloc.h>
 #include "../internal/platform/windows/CPSock.h"
+#include "../internal/platform/network/ReceiveBuffer.h"
 
 // Only application-owned clocks, window, seed, and diagnostics are substituted.
 // Framing, buffering, decoding, and Winsock calls execute production CPSock.
@@ -204,6 +206,10 @@ int main()
             socket.nRecvPosition == RECV_BUFFER_SIZE &&
             socket.pRecvBuffer[RECV_BUFFER_SIZE - 1] == 'X',
             "read filling the remaining capacity is retained");
+        check(_msize(socket.pRecvBuffer) >= receive_buffer::AllocationSize(RECV_BUFFER_SIZE) &&
+            socket.pRecvBuffer[RECV_BUFFER_SIZE] == 0 &&
+            socket.pRecvBuffer[RECV_BUFFER_SIZE + receive_buffer::kConsumerSlack - 1] == 0,
+            "a frame that ends at the window end keeps zeroed slack inside the allocation");
 
         socket.nProcPosition = RECV_BUFFER_SIZE - 1;
         check(send(sender, "Y", 1, 0) == 1 && socket.Receive() == 1 &&
@@ -431,6 +437,26 @@ int main()
         socket.nSendPosition = 1;
         check(socket.HandleNetworkEvent(handle, notification) == CPSock::EventResult::Disconnected &&
             socket.Sock == 0, "close, packed errors, and failed write retries disconnect");
+    }
+    {
+        // A reused handle value can still receive queued messages of a closed
+        // socket while the new connection is pending; only FD_CONNECT applies.
+        CPSock socket;
+        const SOCKET handle = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        check(handle != INVALID_SOCKET, "connecting fixture creates a socket");
+        if (handle != INVALID_SOCKET) {
+            socket.Sock = static_cast<unsigned int>(handle);
+            socket.Connecting = true;
+            for (const auto stale : {WSAMAKESELECTREPLY(FD_CLOSE, 0), WSAMAKESELECTREPLY(FD_READ, 0),
+                WSAMAKESELECTREPLY(FD_WRITE, 0), WSAMAKESELECTREPLY(FD_CLOSE, WSAECONNRESET)}) {
+                check(socket.HandleNetworkEvent(handle, stale) == CPSock::EventResult::Ignored &&
+                    socket.Sock == handle && socket.Connecting,
+                    "connecting stream ignores stale read, write and close notifications");
+            }
+            check(socket.HandleNetworkEvent(handle, WSAMAKESELECTREPLY(FD_CONNECT, WSAECONNREFUSED)) ==
+                CPSock::EventResult::Disconnected && socket.Sock == 0,
+                "failed connection completion still disconnects");
+        }
     }
     if (ready) {
         // No window exists in this console test. Registration must fail instead
@@ -693,6 +719,47 @@ int main()
             if (replacementPeer != INVALID_SOCKET) closesocket(replacementPeer);
             closesocket(peer);
         }
+    }
+    if (ready) {
+        // Winsock can report FD_CLOSE before a re-enabled FD_READ. The final
+        // frame must still reach the scene once, followed by one disconnect.
+        SOCKET client = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        const bool connected = client != INVALID_SOCKET &&
+            connect(client, reinterpret_cast<sockaddr*>(&address), sizeof(address)) == 0;
+        SOCKET peer = connected ? acceptPeer() : INVALID_SOCKET;
+        check(connected && peer != INVALID_SOCKET, "close-drain fixture connects");
+        if (connected && peer != INVALID_SOCKET) {
+            CPSock socket;
+            socket.Sock = static_cast<unsigned int>(client);
+            socket.Init = 1;
+            u_long nonblocking = 1;
+            check(ioctlsocket(client, FIONBIO, &nonblocking) == 0, "close-drain stream is nonblocking");
+            check(send(peer, reinterpret_cast<const char*>(encrypted.data()),
+                static_cast<int>(encrypted.size()), 0) == static_cast<int>(encrypted.size()),
+                "peer sends a final frame");
+            check(closesocket(peer) == 0, "peer closes after the final frame");
+            peer = INVALID_SOCKET;
+            fd_set readable;
+            FD_ZERO(&readable);
+            FD_SET(client, &readable);
+            timeval wait{2, 0};
+            check(select(0, &readable, nullptr, nullptr, &wait) == 1, "final frame is readable");
+            int packets = 0, disconnects = 0;
+            socket.DispatchNetworkEvent(client, WSAMAKESELECTREPLY(FD_CLOSE, 0),
+                [&](const PacketView& packet) {
+                    ++packets;
+                    check(disconnects == 0 && packet.size == plain.size() &&
+                        std::memcmp(packet.data, plain.data(), plain.size()) == 0,
+                        "drained final frame decodes before the disconnect");
+                    return true;
+                },
+                [&] { ++disconnects; });
+            check(packets == 1 && disconnects == 1 && socket.Sock == 0,
+                "close-first ordering dispatches the final frame once, then disconnects once");
+        } else if (client != INVALID_SOCKET) {
+            closesocket(client);
+        }
+        if (peer != INVALID_SOCKET) closesocket(peer);
     }
     if (sender != INVALID_SOCKET) closesocket(sender);
     if (receiver != INVALID_SOCKET) closesocket(receiver);

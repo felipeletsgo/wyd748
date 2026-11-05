@@ -31,6 +31,19 @@ inline bool ObjectFileIntegerCoordinateIsSafe(float coordinate)
 		value < static_cast<double>((std::numeric_limits<int>::max)()) + 1.0;
 }
 
+// TMSea::InitObject builds an (X + 1) x (Y + 1) vertex grid from a sea record:
+// X = nMaskIndex / 2 and Y = nTextureSetIndex / 2. Grids in [1, 255] keep every
+// vertex index in 16 bits and the buffer size products far from overflow; the
+// shipped seas use 4..64 x 4..56 (A25-07).
+constexpr int kSeaGridMin = 1;
+constexpr int kSeaGridMax = 255;
+
+constexpr bool SeaGridIsValid(int gridX, int gridY)
+{
+	return gridX >= kSeaGridMin && gridX <= kSeaGridMax &&
+		gridY >= kSeaGridMin && gridY <= kSeaGridMax;
+}
+
 // Preserve the two 16-bit grid lanes while avoiding a signed left shift.
 inline std::uint32_t ObjectFileSpatialKey(int x, int y)
 {

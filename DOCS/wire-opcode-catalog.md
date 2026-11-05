@@ -64,8 +64,9 @@ indexing `g_pServerList`. The ticket suffix remains opaque.
 `0x334` (whisper/channel/mail, 128 bytes) uses
 `WhisperMessagePacket.h`, with the name at offset 12, text at 28, and color
 at 124. `ReceivedPacketDispatch` validates the envelope before the existing
-handlers; prefixes and filters remain in those handlers. Extracting this
-contract does not add a gate for shout opcode `0xD1D`.
+handlers; prefixes and filters remain in those handlers. Shout opcode
+`0xD1D` has its own exact gate: `ReceivedPacketDispatch.h` requires
+`sizeof(MSG_MessageShout)` (108 bytes) before the shout handler.
 
 `0x3AE` uses `DelayStartPacket.h` for the shared 16-byte ABI. SysQuit names
 `Parm=0` in the System/close paths; DelayStart retains values `1/2` for
@@ -258,8 +259,10 @@ calculation and publication remain authoritative in WYD-Go.
 carries source/destination at `+12..+15` and TargetID at `+16`; Buy carries
 the merchant at `+12`, sparse shop cell at `+14`, Carry at `+16`, and Coin at
 `+20`. Beyond envelope validation, the client applies the same domains as
-WYD-Go: Equip `0..15` except 9, Carry `0..62`, Cargo `0..119`, and shop cells
-`0..8`, `27..35`, or `54..62`. A successful swap is completed by `0x376`;
+WYD-Go: Equip `0..15`, Carry `0..62`, Cargo `0..119`, and shop cells
+`0..8`, `27..35`, or `54..62`. WYD-Go also rejects the face slot (Equip 0) as
+a swap endpoint; client face-slot handling is tracked separately (A04-03).
+A successful swap is completed by `0x376`;
 `0x182` resynchronizes cells after rejection. A successful purchase is
 confirmed by `0x379` itself.
 
@@ -384,17 +387,20 @@ item, position, and cooldown.
   traced; the current server does not emit this response and continues using
   authoritative item/gold snapshots. Full native sale UI/price parity and
   executable-client validation are not claimed.
-  The response's quarter-price reduction bands are now proven from retained
-  instructions and shared with the quote through `NativeSalePrice.h`, without
-  intermediate float32 rounding or quote-only exceptions in the response;
-  Go currently omits those bands. The native grid-type-3 quote and
-  special-item overrides are now traced and implemented in the client without
-  a wire change. The shared core type-38 lookup also implements the proven
+  The response's quarter-price reduction bands are proven from retained
+  instructions and retained in `NativeSalePrice.h`, without intermediate
+  float32 rounding. `NativeSaleQuote.h` retains the historical grid-type-3
+  quote and special-item overrides. The shared core type-38 lookup implements the proven
   signed effects, special-domain exclusion, and catalog-only mount paths, with
   automated fixtures. Only `EF_VOLATILE` in `BASE_GetItemAbility` delegates to
   it; other ability types and full consumer lifecycles are not approved by this evidence.
-  Authoritative special-item/passive/tax policy, including the item-412
-  quote/payment mismatch, remains open before changing the server economy.
+  Current integrated sale displays use `ServerSaleQuote.h` to follow Go's
+  existing merchant, passive and tax policy. Item 412 has no display-only
+  override. New `0x7F40` version-1 intentions carry 32 bytes, including the
+  expected net price and complete item value. Go rejects stale quotes before
+  persistence; committed sales publish item/gold snapshots. This coordinated
+  extension preserves the current economy. See the
+  [versioned contract](client/port-748.md#authoritative-item-use-and-merchant-display-2026-11-02).
 
 ## Migration rules
 
@@ -403,3 +409,30 @@ item, position, and cooldown.
 - Do not infer semantics from the opcode name alone.
 - Record the caller, consumer, and fallback for each migrated entry.
 - Add a truncated-packet test before moving a handler.
+
+<a id="packet-fixtures"></a>
+## Shared packet fixtures
+
+<a id="packet-fixtures-748-packet-corpus"></a>
+
+The shared canonical corpus is in `../../testdata/protocol/`. It contains only
+plaintext frames whose origin and layout have been confirmed for the tested
+boundary, or explicitly versioned coordinated extensions. Consumers strip
+comments and whitespace before decoding the hex.
+
+- `send_item_0x182_24.hex`: a 24-byte `MSG_SendItem` frame validated against
+  the native 7.48 contract and consumed by Go and C++ tests to prevent drift.
+- `kefra_portal_0x7f30_alive.hex` and `kefra_portal_0x7f30_defeated.hex`:
+  16-byte [Kefra portal v1](protocol/kefra-portal.md) snapshots, consumed by both
+  implementations. These are coordinated-extension fixtures, not native
+  captures. They normalize the transport keyword, checksum and tick to zero.
+
+The movement-capture corpus, which still has a server-only consumer, remains
+in `wydgo748/internal/game/testdata/packets/` until that consumer migrates.
+Do not duplicate a fixture in both source trees.
+
+Do not add dumps taken after a `PacketProtocolV754` bridge as though they
+were raw client wire. In particular, native `MSG_AttackOne` and `p39D_754`
+use different offsets in some reference trees. Add a new combat capture only
+after comparing it with the constructor in the currently distributed
+`WYD.exe`.

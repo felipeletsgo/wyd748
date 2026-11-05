@@ -172,8 +172,8 @@ int RunReceivedPacketDispatchSelectionTests(int& checks)
             static_cast<unsigned char>(frame.data[kPlayerChallengeModeOffset]) == 3,
             "challenge preserves player and mode at the contract offsets");
     };
-    check(received_packet::ExpectedSize(MSG_PlayerChallenge_Opcode) ==
-        kPlayerChallengePacketSize, "challenge has an exact size in the dispatcher");
+    check(received_packet::ExpectedSize(MSG_PlayerChallenge_Opcode) == 20 &&
+        kPlayerChallengePacketSize == 20, "challenge has an exact 20-byte size in the dispatcher");
     for (std::size_t size = 0; size < kPlayerChallengePacketSize; ++size)
         check(!received_packet::Dispatch({MSG_PlayerChallenge_Opcode,
             playerChallenge.data(), size}, receivePlayerChallenge),
@@ -287,11 +287,12 @@ int RunReceivedPacketDispatchSelectionTests(int& checks)
     check(delivered == 1, "mismatches run neither the callback nor a retry");
 
     int otherDelivered = 0;
+    bytes[0] = 12;
     check(received_packet::Dispatch({0x119, bytes, 12}, [&](const PacketView& frame) {
         ++otherDelivered;
         check(frame.data == bytes && frame.size == 12 && frame.opcode == 0x119,
-            "another opcode preserves the legacy path view");
-    }) && otherDelivered == 1, "an opcode outside this batch keeps the fallback");
+            "a named legacy consumer preserves its packet view");
+    }) && otherDelivered == 1, "a named header-only consumer requires a coherent frame");
 
     // The native city-war prompt is only the MSG_STANDARD (0x18D).
     std::array<char, sizeof(MSG_STANDARD) + 1> challengePrompt{};

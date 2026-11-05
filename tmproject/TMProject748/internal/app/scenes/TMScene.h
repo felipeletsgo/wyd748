@@ -108,54 +108,54 @@ public:
     void LogMsgCriticalError(int Type, int ID, int nMesh, int X, int Y);
 
 public:
-    ESCENE_TYPE m_eSceneType; // 36
-    SControlContainer* m_pControlContainer; // 40
-    TreeNode* m_pEffectContainer; // 44
-    TreeNode* m_pShadeContainer;
-    TreeNode* m_pHumanContainer;
-    TreeNode* m_pItemContainer;
-    TreeNode* m_pExtraContainer;
-    TMGround* m_pGround;
-    TMSky* m_pSky;
-    TMSun* m_pSun;
-    TMHuman* m_pMyHuman;
-    int m_bShowNameLabel;
-    int m_bCriticalError;
-    SControl* m_pDescPanel;
-    SText* m_pTextCandidate[10];
-    SText* m_pTextCompose;
-    SText* m_pTextComposeB;
-    SText* m_pTextReadCompose;
-    SText* m_pTextReadComposeB;
-    SText* m_pTextIMEDesc;
-    SText* m_pAlphaNative;
-    unsigned short m_TargetAffect[32];
-    TreeNode* m_pGroundObjectContainer;
-    TMGround* m_pGroundList[2];
-    TMObjectContainer* m_pObjectContainerList[2];
-    int m_nCurrentGroundIndex;
-    TMHuman* m_pMouseOverHuman;
-    TMItem* m_pMouseOverItem;
-    SMessagePanel* m_pMessagePanel;
-    SText* m_pTextBillMsg;
-    SMessageBox* m_pMessageBox;
-    SMessageBox* m_pMessageBox2;
-    char m_HeightMapData[256][256];
-    char m_GateMapData[256][256];
-    int n_bPrtScreen;
-    short m_sPlayDemo;
-    unsigned int m_dwStartCamTime;
-    int m_bAutoRun;
-    int m_bReverse;
-    unsigned int m_dwInitTime;
-    int m_nAdjustTime;
-    int m_nCameraLoop;
-    stCameraTick m_stCameraTick[1000];
-    unsigned int m_dwDelayDisconnectTime;
-    int m_bMsgRemoveServer;
+    ESCENE_TYPE m_eSceneType{}; // 36
+    SControlContainer* m_pControlContainer{}; // 40
+    TreeNode* m_pEffectContainer{}; // 44
+    TreeNode* m_pShadeContainer{};
+    TreeNode* m_pHumanContainer{};
+    TreeNode* m_pItemContainer{};
+    TreeNode* m_pExtraContainer{};
+    TMGround* m_pGround{};
+    TMSky* m_pSky{};
+    TMSun* m_pSun{};
+    TMHuman* m_pMyHuman{};
+    int m_bShowNameLabel{};
+    int m_bCriticalError{};
+    SControl* m_pDescPanel{};
+    SText* m_pTextCandidate[10]{};
+    SText* m_pTextCompose{};
+    SText* m_pTextComposeB{};
+    SText* m_pTextReadCompose{};
+    SText* m_pTextReadComposeB{};
+    SText* m_pTextIMEDesc{};
+    SText* m_pAlphaNative{};
+    unsigned short m_TargetAffect[32]{};
+    TreeNode* m_pGroundObjectContainer{};
+    TMGround* m_pGroundList[2]{};
+    TMObjectContainer* m_pObjectContainerList[2]{};
+    int m_nCurrentGroundIndex{};
+    TMHuman* m_pMouseOverHuman{};
+    TMItem* m_pMouseOverItem{};
+    SMessagePanel* m_pMessagePanel{};
+    SText* m_pTextBillMsg{};
+    SMessageBox* m_pMessageBox{};
+    SMessageBox* m_pMessageBox2{};
+    char m_HeightMapData[256][256]{};
+    char m_GateMapData[256][256]{};
+    int n_bPrtScreen{};
+    short m_sPlayDemo{};
+    unsigned int m_dwStartCamTime{};
+    int m_bAutoRun{};
+    int m_bReverse{};
+    unsigned int m_dwInitTime{};
+    int m_nAdjustTime{};
+    int m_nCameraLoop{};
+    stCameraTick m_stCameraTick[1000]{};
+    unsigned int m_dwDelayDisconnectTime{};
+    int m_bMsgRemoveServer{};
 
     // Released terrain fields kept for revisits (ClientSettings FieldCache).
-    field_cache::Entry<TMGround, TMObjectContainer> m_fieldCache[field_cache::kMaxEntries];
+    field_cache::Entry<TMGround, TMObjectContainer> m_fieldCache[field_cache::kMaxEntries]{};
     unsigned int m_fieldCacheClock = 0;
     // Moves the field of a ground slot to the cache, or deletes it when the
     // cache is disabled. The remaining slot's neighbor links are cleared.

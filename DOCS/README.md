@@ -1,14 +1,16 @@
 # WYD-Go documentation
 
 This is the entry point for the repository's durable documentation. The code
-has two source trees: [`../tmproject/`](../tmproject/) is the client and
-[`../wydgo748/`](../wydgo748/) is the authoritative server.
+has two source trees: [`../tmproject/`](../tmproject) is the client and
+[`../wydgo748/`](../wydgo748) is the authoritative server.
 
 ## Map
 
 The inventory by topic and location is in
 [`documentation-map.md`](documentation-map.md). It distinguishes active product
 documentation, research evidence, and continuity records.
+
+The current summaries, contracts and dated evidence have different owners. Start with [current state](current-state.md); consult the [release history](../.agents/research/release-history.md) for past receipts.
 
 ## Where to start
 
@@ -18,7 +20,7 @@ documentation, research evidence, and continuity records.
 | Track current player-reported gameplay defects and acceptance checks | [Gameplay bug register](bug-register.md) |
 | Execute the disconnect, persistence, performance and gameplay correction queue | [Server correction plan](server/server-correction-plan.md) |
 | Check implemented website features and remaining product-plan gaps | [Website feature status](server/website-feature-status.md) |
-| Use or extend the staff panel: sanctions, notices, maintenance, audit and the next work packages | [Staff operations](server/staff-operations.md) and [staff panel roadmap](server/admin-panel-roadmap.md) |
+| Operate or extend the staff panel | [Staff operations and implementation plan](server/staff-operations.md) |
 | Edit active NPC JSON definitions in PostgreSQL and apply them live | [Live NPC definition management](protocol/npc-definitions.md) |
 | Enter Hidden Valley using an activated Hidden Ruins map | [Hidden Valley access contract](server/hidden-valley-access.md) |
 | Review Rune Track rooms +0 through +6 and their independent event monsters | [Rune Track](server/rune-track.md) |
@@ -26,7 +28,7 @@ documentation, research evidence, and continuity records.
 | Check how monster drops roll refinement and additional options | [Monster drop item options](server/drop-item-bonus.md) |
 | Understand native server functions or logic | [REA server research index](<../references/decompilacao server/dlls/rea-analysis/README.md>) |
 | Compare the supplied server 7.59 decompilation with current Go systems | [Server 7.59 map and gap analysis](<../references/decompilacao server/dlls/rea-analysis/maps/server-759-gap-analysis.md>) |
-| Set up Windows development | [Windows environment](windows-development-environment.md) |
+| Set up Windows development | [Windows environment](build-and-integration.md#windows-setup) |
 | Start the server for the first time | [Root README](../README.md#quick-start-on-windows) |
 | Operate the database, accounts, panel, network, and backups | [Server operations](server/operations.md) |
 | Find, add, or move a server data file | [Server data layout](server/data-layout.md) |
@@ -42,12 +44,10 @@ documentation, research evidence, and continuity records.
 | Handle persistence containment without unsafe replay/unlock | [Critical persistence operation](server/operations.md#critical-persistence-operation) |
 | Check stack quantities, Shift-split, merging and CP/name policy | [Inventory stacks and CP contract v1](client/inventory-stack-and-cp-contract.md) |
 | Check open 7.48 adaptation work | [Client port](client/port-748.md), [opcode catalog](wire-opcode-catalog.md), and the flow records in `.agents/research/client748/` |
+| Review client architecture, transport boundaries and upstream provenance | [Architecture map](architecture-map.md) |
 | Adapt the 7.48 client | [Client port](client/port-748.md) |
 | Understand C.C. buff scheduling and the supplied TMProject reference | [Combat Control](client/combat-control.md) |
-| Plan the TMHuman source separation | [TMHuman separation plan](client/tmhuman-separation-plan.md) |
-| Plan the TMFieldScene refactoring | [TMFieldScene refactoring plan](client/tmfieldscene-refactoring-plan.md) |
-| Find where client code lives after the source split | [TMProject source organization plan](client/tmproject-source-organization-plan.md) |
-| Review the Claude refactoring batch and proposed corrections | [Refactoring batch audit — 2026-10-03](client/refactoring-batch-audit-2026-10-03.md) |
+| Find client source and review TMFieldScene/TMHuman refactoring | [TMProject source organization plan](client/tmproject-source-organization-plan.md) |
 | Review the client and Go server source audit | [Full-source audit — 2026-10-03](client/full-source-audit-2026-10-03.md) |
 | Look up known protocols | [Opcode catalog](wire-opcode-catalog.md) |
 | Check Cube question visibility, Big Cube ticket entry and return portal | [Instance question v1](protocol/instance-question.md) |
@@ -93,7 +93,22 @@ snapshot, not the current work queue.
   TMProject literals against materialized assets in `tmproject/client748/`.
   Dependencies explicitly marked unavailable in manifests are known debt and
   remain diagnostic; `-FailOnMissing` fails only for missing required
-  references, unclassified source gaps, or casing mismatches.
+  references, unclassified source gaps, or casing mismatches. It reads product
+  sources only (not `tests/`) and accepts a `.wyt`/`.wys` model texture whose
+  sibling ships, as the runtime lookup does. Status 2026-11-02: the gate
+  passes and runs in `Build-Client.ps1`. All 218 source gaps are classified in
+  `tools/client-assets/inputs/SourceReferenceClassifications.json`:
+  - 215 references belong to `FallbackCostumeTable.h`; the current catalog
+    does not select these legacy costume branches.
+  - Two references in `TMSkinMesh.cpp` are comparison keys, replaced before
+    loading. Both replacement textures ship through the `.wyt`/`.wys` alias.
+  - `mesh/newmt.msh` is absent. The Hardcore mantle branch selects it when
+    costume type is 100 and skeleton index is 85; gameplay exposure remains
+    unverified.
+  No required manifest assets or casing mismatches are reported. Source and
+  evidence hashes require renewed classification after affected inputs change.
+  The conditional mantle gap remains visible; a passing gate does not prove
+  its availability or gameplay acceptance.
 
 ## Product principles
 

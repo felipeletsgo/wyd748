@@ -6,6 +6,7 @@
 #include "TMCamera.h"
 #include "TMEffectBillBoard.h"
 #include "TMShade.h"
+#include "EffectTiming.h"
 
 TMTree::TMTree(int nType) 
 	: TMObject()
@@ -123,7 +124,9 @@ int TMTree::FrameMove(unsigned int dwServerTime)
         const static float fHeight[3]{ 1.6f, 1.4f, 1.4f };
         const static unsigned int dwColor[3]{ 0x00008822, 0x00884400, 0x00770000 };
 
-        if (m_dwLastTime - dwServerTime > 1000)
+        // One billboard per second. The reversed unsigned difference was
+        // true on every frame once time advanced (C-22 family, EFFECTS R2).
+        if (effect_timing::IntervalElapsed(dwServerTime, m_dwLastTime, 1000))
         {
             auto mpBill = new TMEffectBillBoard(0, 1500, 0.0099999998f, 0.1f, 0.0099999998f, 0.001f, 1, 80);;
 

@@ -161,6 +161,9 @@ const static unsigned int dwEFParam[49] =
   83u
 };
 
+// Celestial (second-class) EXP thresholds: entry i is i * 20,000,000, as in
+// wydgo748/internal/game/progression.go celestialNextLevel. A09-03: the
+// former entries 199..400 skipped 3,980,000,000 and were one level ahead.
 const static long long g_pNextLevel_G2[401] =
 {
   0,
@@ -362,6 +365,7 @@ const static long long g_pNextLevel_G2[401] =
   3920000000,
   3940000000,
   3960000000,
+  3980000000,
   4000000000,
   4020000000,
   4040000000,
@@ -562,8 +566,7 @@ const static long long g_pNextLevel_G2[401] =
   7940000000,
   7960000000,
   7980000000,
-  8000000000,
-  8200000000
+  8000000000
 };
 
 const static long long g_pNextLevel[403] =

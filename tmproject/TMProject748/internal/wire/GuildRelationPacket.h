@@ -4,9 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Intencoes C->S para guerra e alianca entre guilds. O client informa a guild
-// local e a guild alvo; o servidor revalida lideranca e usa seus proprios
-// registros antes de alterar ou persistir a relacao.
+// C->S guild-war/alliance intents. The client supplies local and target guilds.
+// The server validates leadership and its own records before changing or persisting the relation.
 constexpr auto MSG_GuildWar_Opcode = 0xE0E;
 constexpr auto MSG_GuildAlly_Opcode = 0xE12;
 struct MSG_GuildRelation

@@ -3,9 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Confirmacao C->S da disputa de zona. Os dois DWORDs sao mantidos com os
-// nomes wire nativos porque o significado completo da disputa pertence ao
-// TMSrv; a source 7.48 usa Parm1 para o alvo e Parm2=0 neste caminho.
+// C->S zone-challenge confirmation. Keep the native DWORD names; TMSrv owns the full challenge meaning.
+// This 7.48 path sends the target in Parm1 and zero in Parm2.
 constexpr auto MSG_ChallengeConfirm_Opcode = 0x28F;
 struct MSG_ChallengeConfirm
 {

@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../application/EffectEmissionClock.h"
 
 #include "TMEffect.h"
 #include "Structures.h"
@@ -10,6 +11,7 @@ class TMEffectBillBoard;
 // um proprietário. O efeito é visual e não altera estado autoritativo do jogo.
 class TMEffectMeshRotate : public TMEffect
 {
+    effect_emission::Clock m_emissionClock;
 public:
     // pOwner é uma referência observada durante a animação e pode deixar de
     // estar disponível no teardown; a classe não assume ownership do objeto.

@@ -245,6 +245,11 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 		!IsSwapPlacePosition(static_cast<unsigned char>(pSwapItem->DestType),
 			static_cast<unsigned char>(pSwapItem->DestPos)))
 		return 1;
+	// Equip slot 0 is the character face; it has no grid and is never a swap
+	// endpoint. Ignore a confirmation that names it (A04-03).
+	if ((pSwapItem->SourType == kSwapPlaceEquip && pSwapItem->SourPos == 0) ||
+		(pSwapItem->DestType == kSwapPlaceEquip && pSwapItem->DestPos == 0))
+		return 1;
 
 	// The server confirms positions, not item payloads. Resolve the cached
 	// slots independently of the optional visual controls.
@@ -291,7 +296,7 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 
 	if (!pSwapItem->SourType)
 	{
-		pGridSrc[0] = m_pGridInv;
+		pGridSrc[0] = nullptr; // face slot: no grid
 		pGridSrc[1] = m_pGridHelm;
 		pGridSrc[2] = m_pGridCoat;
 		pGridSrc[3] = m_pGridPants;
@@ -338,7 +343,7 @@ int TMFieldScene::OnPacketSwapItem(MSG_STANDARD* pStd)
 	SGridControl* pGridDest[MAX_EQUIPITEM]{};
 	if (!pSwapItem->DestType)
 	{
-		pGridDest[0] = m_pGridInv;
+		pGridDest[0] = nullptr; // face slot: no grid
 		pGridDest[1] = m_pGridHelm;
 		pGridDest[2] = m_pGridCoat;
 		pGridDest[3] = m_pGridPants;

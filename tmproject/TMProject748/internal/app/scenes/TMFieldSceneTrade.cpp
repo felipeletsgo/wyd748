@@ -211,26 +211,14 @@ void TMFieldScene::SetVisibleTrade(int bShow)
 			if (pGridOp[l])
 				pPickedItem = pGridOp[l]->PickupItem(0, 0);
 
-			if (g_pCursor && g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = nullptr;
-
-			if (pPickedItem)
-			{
-				delete pPickedItem;
-
-				pPickedItem = nullptr;
-			}
+			WYD748_ReleaseAutoTradeItem(pPickedItem);
 
 			pGridMy[l] = static_cast<SGridControl*>(m_pControlContainer->FindControl(l + TMG_TRADE_MY1));
 
 			if (pGridMy[l])
 				pPickedItem = pGridMy[l]->PickupItem(0, 0);
 
-			if (g_pCursor && g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = nullptr;
-
-			if (pPickedItem)
-				delete pPickedItem;
+			WYD748_ReleaseAutoTradeItem(pPickedItem);
 		}
 
 		auto pOpCheckButton = static_cast<SButton*>(m_pControlContainer->FindControl(TMB_TRADE_OPCHECK));

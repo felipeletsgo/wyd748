@@ -107,7 +107,9 @@ int TMDrop::FrameMove(unsigned int dwServerTime)
                     pEffect->m_vecPosition.y = (fHeight * 0.1f) + 0.25f;
                     g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
 
-                    float fDis = g_pObjectManager->m_pCamera->m_pFocusedObject->m_vecPosition.DistanceFrom(vec);
+                    // Same focus guard as the respawn position below.
+                    TMObject* pFocused = g_pObjectManager->m_pCamera->GetFocusedObject();
+                    float fDis = pFocused ? pFocused->m_vecPosition.DistanceFrom(vec) : 4.0f;
 
                     if (fDis < 4.0f && g_pSoundManager != nullptr)
                     {

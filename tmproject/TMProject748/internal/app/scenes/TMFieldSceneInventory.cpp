@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "TMFieldScene.h"
+#include "InventoryCellSlots.h"
+#include "FieldActionPolicy.h"
 #include "ClientDiagnostics.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
@@ -200,24 +202,24 @@ void TMFieldScene::GetCargoCellForSlot(int slot, int& cellX, int& cellY) const
 
 int TMFieldScene::GetCarrySlotForCell(const SGridControl* grid, int cellX, int cellY) const
 {
-	// Ghidra FUN_0052a737 addresses native Carry as x + 9*y; the control pointer
-	// is intentionally ignored because 7.48 has no inventory pages.
-	(void)grid;
-	return cellX + 9 * cellY;
+	// Ghidra FUN_0052a737 addresses native Carry as x + 9*y. Only the single
+	// 7.48 Carry control maps to Carry slots; other grids yield -1 (A26-01).
+	return inventory_cell_slots::CarrySlot(grid && grid == m_pGridInv, cellX, cellY);
 }
 
 int TMFieldScene::GetCargoSlotForCell(const SGridControl* grid, int cellX, int cellY) const
 {
-	// The 7.48 Cargo surface uses the same nine-column linearization. Cargo page
-	// IDs from later clients must never alter the packet slot sent to this server.
-	(void)grid;
-	return cellX + 9 * cellY;
+	// The 7.48 Cargo surface uses the same nine-column linearization. Only the
+	// Cargo control maps to Cargo slots; other grids yield -1.
+	return inventory_cell_slots::CargoSlot(grid && grid == m_pCargoGrid, cellX, cellY);
 }
 
 void TMFieldScene::DropItem(unsigned int dwServerTime)
 {
+	if (!g_pCursor || !m_pMyHuman)
+		return;
 	auto pAttachItem = g_pCursor->m_pAttachedItem;
-	if (!pAttachItem)
+	if (!pAttachItem || !pAttachItem->m_pGridControl)
 		return;
 
 	static int dwLastDropTime = 0;
@@ -236,18 +238,22 @@ void TMFieldScene::DropItem(unsigned int dwServerTime)
 
 	if (stDrop.SourType)
 	{
+		// A04-09: Carry/Cargo slots come only from the owning grid; a shop,
+		// trade, skill or mix icon with the default item type yields -1.
 		if (stDrop.SourType == 1)
 		{
 			// Drop from native Carry uses its single 9-column row-major slot.
-			stDrop.SourPos = nAX + 9 * nAY;
+			stDrop.SourPos = GetCarrySlotForCell(pAttachItem->m_pGridControl, nAX, nAY);
 		}
 		else if (stDrop.SourType == 2)
 		{
 			// Native Cargo also uses nine columns (Ghidra FUN_0052a737).
-			stDrop.SourPos = nAX + 9 * nAY;
+			stDrop.SourPos = GetCargoSlotForCell(pAttachItem->m_pGridControl, nAX, nAY);
 		}
 		else
 			stDrop.SourPos = pAttachItem->m_pGridControl->CheckPos(pAttachItem->m_pGridControl->m_eItemType);
+		if (stDrop.SourPos < 0)
+			return;
 
 		stDrop.GridX = (int)m_pMyHuman->m_vecPosition.x;
 		stDrop.GridY = (int)m_pMyHuman->m_vecPosition.y;
@@ -265,7 +271,11 @@ int TMFieldScene::GetItem(TMItem* pItem)
 	for (int i = 0; i < carryPages; ++i)
 	{
 		auto pGrid = m_pGridInv;
-		int nGridIndex = BASE_GetItemAbility(&pItem->m_stItem, 33);
+		if (!pGrid || !pItem || !m_pMyHuman)
+			return 0;
+		// A04-09: EF_GRID outside the eight footprints is footprint 0, as in
+		// SGridControlItem; the table has exactly eight rows.
+		const int nGridIndex = field_action::ItemGridShape(BASE_GetItemAbility(&pItem->m_stItem, 33));
 		vecGrid = pGrid->CanAddItemInEmpty(g_pItemGridXY[nGridIndex][0], g_pItemGridXY[nGridIndex][1]);
 		if (vecGrid.x > -1 && vecGrid.y > -1 || BASE_GetItemAbility(&pItem->m_stItem, 38) == 2)
 		{
@@ -274,10 +284,8 @@ int TMFieldScene::GetItem(TMItem* pItem)
 		}
 	}
 
-	auto pListBox = m_pChatList;
-	auto pBoxItem = new SListBoxItem(g_pMessageStringTable[1], 0xFFFFAAAA, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0);
-
-	pListBox->AddItem(pBoxItem);
+	if (auto pListBox = m_pChatList)
+		pListBox->AddItem(new SListBoxItem(g_pMessageStringTable[1], 0xFFFFAAAA, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1, 0));
 
 	GetSoundAndPlay(33, 0, 0);
 	m_dwGetItemTime = g_pTimerManager->GetServerTime();
@@ -495,7 +503,8 @@ int TMFieldScene::GetItemFromGround(unsigned int dwServerTime)
 	auto pOverItem = m_pMouseOverItem;
 	if (!pOverItem)
 		return 0;
-	if (dwServerTime <= m_dwGetItemTime + 1000)
+	// A03-04 family: wrap-safe "now <= last pickup + 1000".
+	if (field_time::NotAfter(dwServerTime, m_dwGetItemTime, 1000))
 		return 0;
 	if (!pOverItem->m_bMouseOver)
 		return 0;
@@ -576,7 +585,7 @@ char TMFieldScene::UseHPotion()
 
 	if (BASE_GetItemAbility(pItem->m_pItem, 38) == 1)
 	{
-		if (m_pMyHuman->m_cCancel == 1)
+		if (!m_pMyHuman || m_pMyHuman->m_cCancel == 1)
 			return 0;
 
 		unsigned int dwServerTime = g_pTimerManager->GetServerTime();
@@ -607,30 +616,7 @@ char TMFieldScene::UseHPotion()
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 		m_dwUseItemTime = dwServerTime;
 
-		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-
-		if (nAmount <= 1)
-		{
-			// Remove the consumed potion from the exact native slot sent on the wire.
-			int carryX = 0;
-			int carryY = 0;
-			GetCarryCellForSlot(SourPos, carryX, carryY);
-			auto pCarryGrid = GetCarryGridForSlot(SourPos);
-			auto pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = 0;
-
-			SAFE_DELETE(pPickedItem);
-			g_pCursor->DetachItem();
-		}
-		else
-		{
-			BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-			sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-		}
-		if (nAmount <= 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
+		// Inventory and stack counts change only through server snapshots.
 
 		GetSoundAndPlay(41, 0, 0);
 	}
@@ -672,7 +658,7 @@ char TMFieldScene::UseMPotion()
 
 	if (BASE_GetItemAbility(pItem->m_pItem, 38) == 1)
 	{
-		if (m_pMyHuman->m_cCancel == 1)
+		if (!m_pMyHuman || m_pMyHuman->m_cCancel == 1)
 			return 0;
 
 		unsigned int dwServerTime = g_pTimerManager->GetServerTime();
@@ -702,30 +688,7 @@ char TMFieldScene::UseMPotion()
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 		m_dwUseItemTime = dwServerTime;
 
-		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-
-		if (nAmount <= 1)
-		{
-			// Keep the visual removal and server Carry index on one ABI mapping.
-			int carryX = 0;
-			int carryY = 0;
-			GetCarryCellForSlot(SourPos, carryX, carryY);
-			auto pCarryGrid = GetCarryGridForSlot(SourPos);
-			auto pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = 0;
-
-			SAFE_DELETE(pPickedItem);
-			g_pCursor->DetachItem();
-		}
-		else
-		{
-			BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-			sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-		}
-		if (nAmount <= 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
+		// Inventory and stack counts change only through server snapshots.
 
 		GetSoundAndPlay(41, 0, 0);
 	}
@@ -785,31 +748,7 @@ void TMFieldScene::UsePPotion()
 	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 	m_dwUseItemTime = dwServerTime;
 
-	// This shortcut is one of the native optimistic-consumption paths. Once the
-	// server resolves a valid occupied slot, rejected uses republish that slot.
-	int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-	if (nAmount <= 1)
-	{
-		int carryX = 0;
-		int carryY = 0;
-		GetCarryCellForSlot(SourPos, carryX, carryY);
-		auto* pCarryGrid = GetCarryGridForSlot(SourPos);
-		auto* pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
-		if (g_pCursor && g_pCursor->m_pAttachedItem == pPickedItem)
-			g_pCursor->m_pAttachedItem = nullptr;
-
-		SAFE_DELETE(pPickedItem);
-		if (g_pCursor)
-			g_pCursor->DetachItem();
-		memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
-	}
-	else
-	{
-		BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-		sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-		if (pItem->m_GCText.pFont)
-			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-	}
+		// Inventory and stack counts change only through server snapshots.
 
 	GetSoundAndPlay(41, 0, 0);
 	UpdateScoreUI(16);
@@ -891,6 +830,8 @@ char TMFieldScene::FeedMount()
 
 		if (m_dwUseItemTime && dwServerTime - m_dwUseItemTime < 200)
 			return 0;
+		if (!m_pMyHuman)
+			return 0;
 
 		pGridInv->CheckType(pItem->m_pGridControl->m_eItemType,
 			pItem->m_pGridControl->m_eGridType);
@@ -916,29 +857,8 @@ char TMFieldScene::FeedMount()
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 		m_dwUseItemTime = dwServerTime;
 
-		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-		if (nAmount <= 1)
-		{
-			// Remove food by its real 7.48 Carry coordinate.
-			int carryX = 0;
-			int carryY = 0;
-			GetCarryCellForSlot(SourPos, carryX, carryY);
-			auto pCarryGrid = GetCarryGridForSlot(SourPos);
-			auto pPickedItem = pCarryGrid ? pCarryGrid->PickupItem(carryX, carryY) : nullptr;
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = 0;
+		// Inventory and stack counts change only through server snapshots.
 
-			SAFE_DELETE(pPickedItem);
-			g_pCursor->DetachItem();
-		}
-		else
-		{
-			BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-			sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-		}
-		if (nAmount <= 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 	}
 
 	UpdateScoreUI(0);
@@ -950,7 +870,7 @@ void TMFieldScene::UseTicket(int nCellX, int nCellY)
 	// FUN_0045061f resolves EF_VOLATILE 14 directly against FieldScene2 Carry;
 	// control 65554 and page arithmetic belong to a later client resource.
 	auto pGrid = m_pGridInv;
-	if (!pGrid)
+	if (!pGrid || !m_pMyHuman)
 		return;
 	auto pItem = pGrid->GetItem(nCellX, nCellY);
 	if (!pItem)
@@ -982,33 +902,11 @@ void TMFieldScene::UseTicket(int nCellX, int nCellY)
 	m_dwUseItemTime = dwServerTime;
 	g_pEventTranslator->m_bRBtn = 1;
 
-	int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-	if (pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex < 2390)
-		nAmount = 0;
-
-	if (nAmount > 1)
-	{
-		BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-		sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-		pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-	}
-	else
-	{
-		int carryX = 0;
-		int carryY = 0;
-		GetCarryCellForSlot(SourPos, carryX, carryY);
-		auto pPickedItem = pGrid->PickupItem(carryX, carryY);
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-			g_pCursor->m_pAttachedItem = 0;
-
-		SAFE_DELETE(pPickedItem);
-	}
+		// Inventory and stack counts change only through server snapshots.
 
 	GetSoundAndPlay(47, 0, 0);
 
 	UpdateScoreUI(0);
-	if (nAmount <= 1)
-		memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 }
 
 void TMFieldScene::VisibleInputCharName(SGridControlItem* pItem, int nCellX, int nCellY)
@@ -1095,36 +993,7 @@ void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, 
 		m_dwUseItemTime = dwServerTime;
 		g_pEventTranslator->m_bRBtn = 1;
 
-		int delAmountCnt = 1;
-
-		if (pItem->m_pItem->sIndex == 4049)
-			delAmountCnt = 10;
-
-		int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-
-		if (nItemSIndex >= 2330 && nItemSIndex < 2390)
-			nAmount = 0;
-
-		if (nAmount > delAmountCnt)
-		{
-			BASE_SetItemAmount(pItem->m_pItem, nAmount - delAmountCnt);
-			sprintf_s(pItem->m_GCText.strString, "%2d", nAmount - delAmountCnt);
-			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-		}
-		else
-		{
-			// Optimistic removal must target the exact slot encoded in the packet.
-			int carryX = 0;
-			int carryY = 0;
-			GetCarryCellForSlot(SourPos, carryX, carryY);
-			SGridControlItem* pPickedItem = m_pGridInv->PickupItem(carryX, carryY);
-
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = nullptr;
-
-			if (pPickedItem)
-				delete pPickedItem;
-		}
+		// Inventory and stack counts change only through server snapshots.
 
 		int nSoundIndex = 41;
 
@@ -1141,8 +1010,6 @@ void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, 
 
 		UpdateScoreUI(0);
 
-		if (nAmount <= delAmountCnt)
-			memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
 	}
 }
 
@@ -1207,14 +1074,8 @@ bool TMFieldScene::SendCapsuleItem()
 	m_dwUseItemTime = dwServerTime;
 	g_pEventTranslator->m_bRBtn = 1;
 
-	auto pPickedItem = m_pGridInv->PickupItem(nCellX, nCellY);
-	if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-		g_pCursor->m_pAttachedItem = nullptr;
+	// The server publishes the capsule result after validation and persistence.
 
-	SAFE_DELETE(pPickedItem);
-
-	UpdateScoreUI(0);
-	memset(&g_pObjectManager->m_stMobData.Carry[m_stCapsuleItem.SourPos], 0, sizeof(STRUCT_ITEM));
 	m_stCapsuleItem.SourPos = -1;
 	return true;
 }

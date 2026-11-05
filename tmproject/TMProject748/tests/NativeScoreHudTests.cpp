@@ -6,6 +6,7 @@
 #include "../internal/ui/CapePresentation748.h"
 #include "../internal/render/mesh/ApprenticeMantleTint.h"
 #include "../internal/application/PremiumMountMagic.h"
+#include "../internal/application/SkillDamagePreview.h"
 #include "../internal/application/CannonTargeting.h"
 #include <cstdio>
 #include <cstring>
@@ -50,7 +51,7 @@ int RunNativeScoreHudTests(int& checks)
     };
 
     const auto reportedSkillSource = ReadNameColorSource("internal/app/scenes/TMFieldSceneSkills.cpp");
-    check(reportedSkillSource.find("cSkillIndex == 6 && pOver->m_nClass == 66") == std::string::npos,
+    check(source_contract::Lacks(reportedSkillSource, "cSkillIndex == 6 && pOver->m_nClass == 66"),
         "Pursuit does not reject all player targets before PvP checks");
     const auto reportedVisuals = ReadNameColorSource("internal/app/scenes/TMFieldSceneCombatPackets.cpp");
     const auto resurrection = reportedVisuals.find("if (pAttack->SkillIndex == 99) // Resurrection in 7.48.");
@@ -120,17 +121,22 @@ int RunNativeScoreHudTests(int& checks)
         "wide multiplication cannot wrap a projected damage into healing");
     const auto skillDamage = source_contract::Method(ReadNameColorSource("internal/core/BasedefCombat.cpp"),
         "int BASE_GetSkillDamage(int skillnum, STRUCT_MOB* mob, int weather, int weapondamage, int OriginalFace)");
-    const auto physicalBranch = skillDamage.find("if (!mob->Class && skind == 1 || mob->Class == 3)");
-    const auto magicBranch = skillDamage.find("else\n            {", physicalBranch);
-    const auto mountProjection = skillDamage.find("premium_mount_magic::Apply", magicBranch);
-    check(physicalBranch != std::string::npos && magicBranch != std::string::npos
-        && mountProjection != std::string::npos
-        && skillDamage.find("if (skillnum != 97)") < physicalBranch
-        && skillDamage.find("if (skillnum == 95)") < physicalBranch
-        && skillDamage.find("dam = 5 * (dam *", magicBranch) < mountProjection
-        && mountProjection < skillDamage.find("if ((1 << (8 * skillclass +")
-        && skillDamage.find("mob->Equip[14].sIndex", magicBranch) < mountProjection,
-        "production magic branch reads live slot 14 after amplification, before passives, excluding physical and fixed skills");
+    check(source_contract::InOrder(skillDamage.find("mob->Equip[14].sIndex"),
+            skillDamage.find("premium_mount_magic::Percent")) &&
+        skillDamage.find("skill_damage_preview::Damage(") != std::string::npos &&
+        skillDamage.find("mob->LearnedSkill[0], premium") != std::string::npos,
+        "production damage projection reads the live mount and uses the tested damage policy");
+    const skill_damage_preview::Caster mage{1, 120, 50, 200, 300, 900, 400};
+    check(skill_damage_preview::Damage(24, 2, 30, 0, 0, 11, mage, 25, 0, 0x80, 40) == 962,
+        "magic mount percent follows amplification and precedes finisher truncation");
+    check(skill_damage_preview::Damage(97, 2, 30, 0, 0, 11, mage, 25, 0, 0x80, 40) == 2013,
+        "Conjure Cannon ignores magic amplification and mount percent");
+    check(skill_damage_preview::Damage(8, 2, 30, 0, 0, 1, {0, 120, 50, 200, 300, 900, 400},
+        25, 0, 0x8000, 40) == 2910,
+        "physical damage ignores magic mount percent");
+    check(skill_damage_preview::Damage(95, 2, 30, 0, 1, 31, {3, 120, 50, 200, 300, 900, 400},
+        25, 0, 0x800000, 40) == 900,
+        "Rapid Hit keeps the authoritative attack score without weather or mount multiplication");
 
     for (int characterClass = 0; characterClass < 4; ++characterClass) {
         for (int lineage = 0; lineage < 3; ++lineage) {
@@ -262,12 +268,12 @@ int RunNativeScoreHudTests(int& checks)
         descHeight.find("y += lineStep;") != std::string::npos &&
         descHeight.find("text->m_Font.m_FontSize + 4.0f") == std::string::npos,
         "skill tooltip rows use the native row pitch, not unrendered font metrics");
-    check(descHeight.find("text->SetPos(pFScene->m_vecDescParamPos[i].x + offset, y);") <
-            descHeight.find("text->SetPos(0, y);"),
+    check(source_contract::InOrder(descHeight.find("text->SetPos(pFScene->m_vecDescParamPos[i].x + offset, y);"),
+            descHeight.find("text->SetPos(0, y);")),
         "skill tooltip lists calculated data before the description prose");
     const auto gridInput = source_contract::Method(ReadNameColorSource("internal/ui/SGridInput.cpp"),
         "int SGridControl::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)");
-    check(gridInput.find("MouseOver(nCellX, nCellY, bPtInRect)") < gridInput.find("UpdateDescPanelHeight()"),
+    check(source_contract::InOrder(gridInput.find("MouseOver(nCellX, nCellY, bPtInRect)"), gridInput.find("UpdateDescPanelHeight()")),
         "current hover is populated before measuring and positioning the tooltip");
     const auto sceneUi = ReadNameColorSource("internal/app/scenes/TMFieldSceneUI.cpp");
     check(sceneUi.find("LoadMsgText(m_pSkillMDesc, (char*)\"UI\\\\descskillm.txt\")") != std::string::npos,

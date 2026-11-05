@@ -4,6 +4,7 @@
 #include "TMEffectBillBoard3.h"
 #include "TMEffectSpark.h"
 #include "TMGlobal.h"
+#include "EffectGuards.h"
 
 TMEffectSpark::TMEffectSpark(TMVector3 vecStart, TMObject* pTarget, TMVector3 vecEnd, unsigned int dwColor, unsigned int dwColor2, unsigned int dwLifeTime, float fWidth, int nSparkCount, float fProgress) :
 	TMEffect(),
@@ -16,17 +17,18 @@ TMEffectSpark::TMEffectSpark(TMVector3 vecStart, TMObject* pTarget, TMVector3 ve
 	m_fWidth = fWidth;
 	m_dwColor = dwColor;
 	m_dwColor2 = dwColor2;
-	if (m_nSparkCount <= 5)
-		m_nSparkCount = nSparkCount;
-	else
-		m_nSparkCount = 5;
+	// Clamp the argument (not the unset member) to the five child slots.
+	m_nSparkCount = effect_spark::ClampCount(nSparkCount);
 
 	m_vecPosition = vecStart;
 
 	if (m_pOwner)
 		m_vecEndPos = TMVector3{ m_pOwner->m_vecPosition.x, m_pOwner->m_fHeight + 1.0f, m_pOwner->m_vecPosition.y };
 
-	m_dwLifeTime = dwLifeTime - 100;
+	// Expire no later than the children: FrameMove moves them through raw
+	// pointers. A lifetime of 100 ms or less no longer wraps or becomes
+	// infinite.
+	m_dwLifeTime = effect_spark::ParentLifetime(dwLifeTime);
 
 	TMVector3 vecTemp1{ m_vecStartPos };
 

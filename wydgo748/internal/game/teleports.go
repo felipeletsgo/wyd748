@@ -82,12 +82,13 @@ func (w *World) resolvePlayerTeleportDestination(p *Player, x, y uint16) (uint16
 		x == 0 || y == 0 || !w.terrain.Walkable(x, y) ||
 		!w.oxDestinationAllowed(p, x, y) ||
 		!hiddenValleyDestinationAllowed(p, x, y, w.now()) ||
-		!w.newbieZoneDestinationAllowed(p, x, y) {
+		!w.newbieZoneDestinationAllowed(p, x, y) || !w.guildCityAreaAllowed(p.Char, x, y) {
 		return 0, 0, false
 	}
 	x, y = w.findFreePlayerPosition(x, y, 3, p)
 	return x, y, w.terrain.Walkable(x, y) && hiddenValleyDestinationAllowed(p, x, y, w.now()) &&
-		w.newbieZoneDestinationAllowed(p, x, y) && w.oxDestinationAllowed(p, x, y)
+		w.newbieZoneDestinationAllowed(p, x, y) && w.oxDestinationAllowed(p, x, y) &&
+		w.guildCityAreaAllowed(p.Char, x, y)
 }
 
 func (w *World) publishPlayerTeleport(p *Player) {

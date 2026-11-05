@@ -226,3 +226,40 @@
 226	Modo_C.C(MC)
 227	Modo_C.C(SC)
 228	Nv
+240	Abates
+241	Digite a quantidade para dividir.
+242	Usar este ingresso para entrar?
+229	Desligado
+230	Auxiliar
+232	Fixo
+233	Livre
+234	Ciclo
+235	Controle de combate
+236	Combate
+237	Poção HP/MP: clique para ajustar a porcentagem
+238	Ração: clique para ajustar ou desligar
+239	Movimento
+243	Exibir EXP: LIGADO
+244	Exibir EXP: DESLIGADO
+245	FPS e ping visíveis abaixo do minimapa.
+246	FPS e ping ocultos.
+247	Monstro
+248	Erro crítico nos dados.
+249	Arquivo de dados não encontrado.
+250	Arquivo ausente
+251	C.C. - configurar combate automático
+252	Corpo a corpo
+253	Magia
+254 Use pelo menos 4 letras.
+255 Use no máximo 13 letras.
+256 Use apenas letras A-Z ou a-z.
+257	%s  (10 segundos)
+258	Partida %d
+259	Time A
+260	Time B
+261	Restam %d
+262	Item %d
+263	Nell: compra concluída. O item está no inventário.
+264	Nell: compra não realizada. Abra a loja novamente.
+265	Nell: aguardando a confirmação da compra pelo servidor.
+266	Nell: interface web indisponível. A loja padrão será utilizada.

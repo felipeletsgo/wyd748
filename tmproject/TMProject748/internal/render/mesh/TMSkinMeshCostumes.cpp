@@ -5,6 +5,7 @@
 #include "TMEffectSWSwing.h"
 #include "TMSkinMesh.h"
 #include "FallbackCostumeTable.h"
+#include "SkinAnimationIndex.h"
 #include "CostumeSelection.h"
 #include "TMGlobal.h"
 #include "TMEffectBillBoard.h"
@@ -356,6 +357,8 @@ int TMSkinMesh::MantleException(char* texture)
 
 BOOL TMSkinMesh::God2Exception(int i)
 {
+	if (!skin_animation::ValidSkeleton(m_nBoneAniIndex, MAX_BONE_ANIMATION_LIST))
+		return FALSE;
 	return MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName[5] == 'g'
 		|| MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName[5] == 'o'
 		|| MeshManager::m_BoneAnimationList[m_nBoneAniIndex].szAniName[5] == 'd'

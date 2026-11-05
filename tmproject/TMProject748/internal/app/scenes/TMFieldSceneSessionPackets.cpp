@@ -2,6 +2,8 @@
 #include "TMFieldScene.h"
 #include "ServerEndpoint.h"
 #include "../../application/FieldInteractionPolicy.h"
+#include "../../application/CatalogItemSlots.h"
+#include "../../game/entities/HumanPacketPolicy.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
 #include "TMGlobal.h"
@@ -13,13 +15,20 @@ int TMFieldScene::OnPacketCNFCharacterLogout(MSG_STANDARD* pStd)
 {
 	if (pStd->ID == g_pObjectManager->m_dwCharID)
 	{
-		g_pDevice->m_nWidthShift = 0;
+		if (g_pDevice)
+			g_pDevice->m_nWidthShift = 0;
 
-		int nSlot = g_pObjectManager->m_cCharacterSlot;
+		// C-40: m_cCharacterSlot is -1 until a selection happens in this
+		// process. Score[-1] lies before the selection cache, so refresh the
+		// cache only for a selected slot 0..3 and a live local human.
+		const int nSlot = g_pObjectManager->m_cCharacterSlot;
 		auto pSelChar = &g_pObjectManager->m_stSelCharData;
 
-		memcpy(&g_pObjectManager->m_stSelCharData.Score[nSlot], &m_pMyHuman->m_stScore, sizeof(m_pMyHuman->m_stScore));
-		memcpy(pSelChar->Equip[nSlot], g_pObjectManager->m_stMobData.Equip, sizeof(g_pObjectManager->m_stMobData.Equip));
+		if (selection_slot::IsValid(nSlot) && m_pMyHuman)
+		{
+			memcpy(&pSelChar->Score[nSlot], &m_pMyHuman->m_stScore, sizeof(m_pMyHuman->m_stScore));
+			memcpy(pSelChar->Equip[nSlot], g_pObjectManager->m_stMobData.Equip, sizeof(g_pObjectManager->m_stMobData.Equip));
+		}
 
 		g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTCHAR_STATE);
 	}
@@ -128,6 +137,9 @@ int TMFieldScene::OnPacketCNFCharacterLogin(MSG_CNFCharacterLogin* pStd)
 	g_pTimerManager->SetServerTime(pStd->Header.Tick);
 	g_pObjectManager->m_dwCharID = pStd->ClientID;
 	memcpy(&g_pObjectManager->m_stMobData, &pStd->MOB, sizeof(pStd->MOB));
+	// A09-10: later readers index g_pItemList with these slots unchecked.
+	catalog_item_slots::ClearOutOfCatalog(g_pObjectManager->m_stMobData.Equip, MAX_ITEMLIST);
+	catalog_item_slots::ClearOutOfCatalog(g_pObjectManager->m_stMobData.Carry, MAX_ITEMLIST);
 	// The complete canonical Score is embedded in STRUCT_MOB. No legacy point
 	// sidecars are copied here; doing so used stale offsets and zeroed live data.
 	g_pObjectManager->m_nFakeExp = pStd->Ext1.Data[0];

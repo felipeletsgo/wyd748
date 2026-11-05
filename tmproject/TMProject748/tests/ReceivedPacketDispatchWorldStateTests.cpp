@@ -12,6 +12,9 @@ int RunReceivedPacketDispatchWorldStateTests(int& checks)
         }
     };
 
+    // Both instance counters use MSG_STANDARDPARM: a 16-byte envelope
+    // with the integer value at offset 12. The callback receives the same
+    // buffer, so the test also guards against normalization/copying.
     for (unsigned int opcode : {MSG_InstanceTime_Opcode, MSG_InstanceMobs_Opcode})
     {
         std::array<char, kInstanceCounterPacketSize + 1> counter{};
@@ -256,7 +259,9 @@ int RunReceivedPacketDispatchWorldStateTests(int& checks)
 
     // The active 0x336 snapshot is 232 bytes. The markers cover each structural
     // block without depending on the C++ constructor and tell the current frame
-    // apart from the 92-byte base and the historical 236-byte XSC2.
+    // apart from the 92-byte base and the historical 236-byte XSC2. They are
+    // written and read at the same constants; the production static_asserts in
+    // BasedefPackets.h pin those offsets.
     std::array<char, kUpdateScorePacketSize + 5> updateScore{};
     updateScore[0] = static_cast<char>(kUpdateScorePacketSize);
     updateScore[4] = static_cast<char>(MSG_UpdateScore_Opcode & 0xFF);
@@ -437,9 +442,9 @@ int RunReceivedPacketDispatchWorldStateTests(int& checks)
     check(updateEquip == updateEquipBefore,
         "gate preserves every UpdateEquip byte");
 
-    // The 7.48 consumer walks exactly 16 eight-byte affects. The markers
-    // of the first and last record pin every offset used by the coordinated
-    // STRUCT_AFFECT layout.
+    // The 7.48 consumer walks exactly 16 eight-byte affects. The markers of
+    // the first and last record cover the coordinated STRUCT_AFFECT layout;
+    // the production static_asserts in BasedefStructs.h pin the offsets.
     std::array<char, kUpdateAffectPacketSize + 1> updateAffect{};
     updateAffect[0] = static_cast<char>(kUpdateAffectPacketSize);
     updateAffect[4] = static_cast<char>(MSG_UpdateAffect_Opcode & 0xFF);
@@ -503,8 +508,5 @@ int RunReceivedPacketDispatchWorldStateTests(int& checks)
     check(updateAffect == updateAffectBefore,
         "gate preserves every UpdateAffect byte");
 
-    // CreateMob and CreateMobTrade share the coordinated entity prefix;
-    // the second adds a 24-byte title. Each format has a unique size
-    // so the handler cannot read missing or mixed blocks.
     return failures;
 }

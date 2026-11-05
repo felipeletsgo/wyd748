@@ -7,7 +7,8 @@
 #include <initializer_list>
 
 namespace {
-// Mirror SProgressBar's current-to-max clamp to expose ordering regressions.
+// Simplified stand-in for SProgressBar: it clamps current to the maximum only.
+// The real bar also clamps negative values to 0 and turns a maximum <= 0 into 1.
 struct Bar {
     int maximum = 100;
     int current = 50;
@@ -54,7 +55,8 @@ int RunResourceBarProjectionTests(int& checks)
     }
     Bar stale;
     stale.SetCurrentProgress(150);
-    check(stale.current == 100 && stale.maximum == 100, "old current-only path loses increased resource");
+    // Fixture behavior only: it shows why Project sets the maximum before the current value.
+    check(stale.current == 100 && stale.maximum == 100, "fixture: a current-only update loses an increased resource");
     const int snapshots[][2] = {
         {150, 200}, {15, 20}, {0, 20}, {20, 20}, {32768, 65536},
         {65536, 131072}, {1000000000, 2000000000}, {2000000000, 2000000000}
@@ -85,10 +87,9 @@ int RunResourceBarProjectionTests(int& checks)
     resource_ui::ProjectNativeHpVisual(&overlay, 41, 82);
     check(overlay.current == 41 && overlay.visible,
         "revival restores the native HP visual");
+    // Null controls: returning normally is the result; a dereference stops the runner.
     resource_ui::ProjectNativeHpVisual(static_cast<Bar*>(nullptr), 0, 82);
-    check(true, "missing native HP visual is safe");
     resource_ui::Project(static_cast<Bar*>(nullptr), 10, 20);
-    check(true, "missing optional control is safe");
     {
         char bar[20]{};
         check(!death_motion::CanOfferResurrectionPrompt(0, true, false, false, false, bar, 20),

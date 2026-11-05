@@ -5,6 +5,7 @@
 #include "TMObject.h"
 #include "TMHuman.h"
 #include "TMCamera.h"
+#include "EffectTiming.h"
 
 TMEffectBillBoard::TMEffectBillBoard(int nTextureIndex, unsigned int dwLifeTime, float fScaleX, float fScaleY, float fScaleZ, float fVelocity, int nCycleCount, int nCycleTime) :
 	TMEffect(),
@@ -386,7 +387,7 @@ int TMEffectBillBoard::FrameMove(unsigned int dwServerTime)
 					m_vecPosition = m_pOwner->m_vecSkinPos;
 					m_vecPosition.y = ((1.0f - m_fProgress) * m_vecStartPos.y) + ((m_pOwner->m_vecSkinPos.y + 1.0f) * m_fProgress);
 					m_vecPosition.x = ((1.0f - m_fProgress) * m_vecStartPos.x) + (m_pOwner->m_vecSkinPos.x * m_fProgress);
-					m_vecPosition.z = ((1.0f - m_fProgress) * m_vecStartPos.z) + (m_pOwner->m_vecSkinPos.y * m_fProgress);
+					m_vecPosition.z = ((1.0f - m_fProgress) * m_vecStartPos.z) + (m_pOwner->m_vecSkinPos.z * m_fProgress);
 				}
 				else
 				{
@@ -545,9 +546,12 @@ int TMEffectBillBoard::FrameMove(unsigned int dwServerTime)
 
 			if (m_dwLifeTime)
 			{
-				vecScale.x = (((float)dwServerTime - m_dwCreateTime) * m_fScaleVelX) + m_vecScale.x;
-				vecScale.y = (((float)dwServerTime - m_dwCreateTime) * m_fScaleVelY) + m_vecScale.y;
-				vecScale.z = (((float)dwServerTime - m_dwCreateTime) * m_fScaleVelZ) + m_vecScale.z;
+				// Subtract the ticks before the float conversion: absolute
+				// ticks lose whole milliseconds after hours of uptime.
+				const float fElapsed = effect_timing::ElapsedFloat(dwServerTime, m_dwCreateTime);
+				vecScale.x = (fElapsed * m_fScaleVelX) + m_vecScale.x;
+				vecScale.y = (fElapsed * m_fScaleVelY) + m_vecScale.y;
+				vecScale.z = (fElapsed * m_fScaleVelZ) + m_vecScale.z;
 			}
 
 			D3DXMatrixIdentity(&m_matEffect);

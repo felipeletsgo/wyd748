@@ -5,6 +5,7 @@
 #include "TMGround.h"
 #include "TMCamera.h"
 #include "TMUtil.h"
+#include "TerrainQueryPolicy.h"
 
 D3DXVECTOR3 TMGround::GetPickPos()
 {
@@ -112,19 +113,22 @@ D3DXVECTOR3 TMGround::GetPickPos()
                     if (k >= 0 && k <= 64)
                     {
                         D3DXVECTOR3 vec[4]{};
-                        if (k < 64 && j < 64)
+                        // The last row and column repeat their own samples instead
+                        // of reading the next row or past the tile map (A25-03).
+                        terrain_tile_samples::Quad quad{};
+                        if (terrain_tile_samples::Resolve(k, j, 1, 1, quad))
                         {
                             vec[0] = D3DXVECTOR3((float)((float)k * 2.0f) + m_vecOffset.x,
-                                (float)m_TileMapData[k + (j << 6)].cHeight * 0.1f,
+                                (float)m_TileMapData[quad.i00].cHeight * 0.1f,
                                 (float)((float)j * 2.0f) + m_vecOffset.y);
                             vec[1] = D3DXVECTOR3((float)((float)k * 2.0f) + m_vecOffset.x,
-                                (float)m_TileMapData[k + ((j + 1) << 6)].cHeight * 0.1f,
+                                (float)m_TileMapData[quad.i01].cHeight * 0.1f,
                                 (float)((float)(j + 1) * 2.0f) + m_vecOffset.y);
                             vec[2] = D3DXVECTOR3((float)((float)(k + 1) * 2.0f) + m_vecOffset.x,
-                                (float)m_TileMapData[k + (j << 6) + 1].cHeight * 0.1f,
+                                (float)m_TileMapData[quad.i10].cHeight * 0.1f,
                                 (float)((float)j * 2.0f) + m_vecOffset.y);
                             vec[3] = D3DXVECTOR3((float)((float)(k + 1) * 2.0f) + m_vecOffset.x,
-                                (float)m_TileMapData[k + ((j + 1) << 6) + 1].cHeight * 0.1f,
+                                (float)m_TileMapData[quad.i11].cHeight * 0.1f,
                                 (float)((float)(j + 1) * 2.0f) + m_vecOffset.y);
 
                             if (fabsf((((float)m_pMaskData[j][k] * 0.1f) - ((((vec[0].y + vec[1].y) + vec[2].y) + vec[3].y) / 4.0f))) > 1.0f)
@@ -229,71 +233,33 @@ float TMGround::GetHeight(TMVector2 vecPosition)
     int nX = static_cast<int>((vecPosition.x - m_vecOffset.x) / 2.0f);
     int nY = static_cast<int>((vecPosition.y - m_vecOffset.y) / 2.0f);
 
-    if (nX < 0 || nY < 0 || nX > 64 || nY > 64)
+    // A position outside this block's 64 x 64 tiles belongs to a neighbor and
+    // returns -10000 like every other neighbor position. The legacy guard let
+    // direct callers pass tile 64, and the (63, 63) corner read index 4159
+    // past m_TileMapData (C-05, A25-03). Edge tiles repeat their own row or
+    // column; interior tiles keep the same four samples.
+    terrain_tile_samples::Quad quad{};
+    if (!terrain_tile_samples::Resolve(nX, nY, 1, 1, quad))
         return -10000.0f;
 
-    D3DXVECTOR3 vPickPos{ 0.0, -10000.0f, 0.0f };
     D3DXVECTOR3 vPickRayDir{ 0.0f, -1.0f, 0.0f };
     D3DXVECTOR3 vPickRayOrig{ vecPosition.x, 100.0f, vecPosition.y };
-    D3DXVECTOR3 v0{};
-    D3DXVECTOR3 v2{};
-    D3DXVECTOR3 v6{};
-    D3DXVECTOR3 v8{};
 
-    if (nX < 63 && nY < 63 && nX >= 0 && nY >= 0)
-    {
-        v0 = D3DXVECTOR3((float)((float)nX * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + (nY << 6)].cHeight * 0.1f,
-            (float)((float)nY * 2.0f) + m_vecOffset.y);
+    const D3DXVECTOR3 v0((float)((float)nX * 2.0f) + m_vecOffset.x,
+        (float)m_TileMapData[quad.i00].cHeight * 0.1f,
+        (float)((float)nY * 2.0f) + m_vecOffset.y);
 
-        v2 = D3DXVECTOR3((float)((float)(nX + 1) * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + (nY << 6) + 1].cHeight * 0.1f,
-            (float)((float)nY * 2.0f) + m_vecOffset.y);
+    const D3DXVECTOR3 v2((float)((float)(nX + 1) * 2.0f) + m_vecOffset.x,
+        (float)m_TileMapData[quad.i10].cHeight * 0.1f,
+        (float)((float)nY * 2.0f) + m_vecOffset.y);
 
-        v6 = D3DXVECTOR3((float)((float)nX * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + ((nY + 1) << 6)].cHeight * 0.1f,
-            (float)((float)(nY + 1) * 2.0f) + m_vecOffset.y);
+    const D3DXVECTOR3 v6((float)((float)nX * 2.0f) + m_vecOffset.x,
+        (float)m_TileMapData[quad.i01].cHeight * 0.1f,
+        (float)((float)(nY + 1) * 2.0f) + m_vecOffset.y);
 
-        v8 = D3DXVECTOR3((float)((float)(nX + 1) * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + ((nY + 1) << 6) + 1].cHeight * 0.1f,
-            (float)((float)(nY + 1) * 2.0f) + m_vecOffset.y);
-    }
-    if (nX == 63)
-    {
-        v0 = D3DXVECTOR3((float)((float)63 * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[(nY << 6) + 63].cHeight * 0.1f,
-            (float)((float)nY * 2.0f) + m_vecOffset.y);
-
-        v2 = D3DXVECTOR3((float)((float)64 * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[(nY << 6) + 63].cHeight * 0.1f,
-            (float)((float)nY * 2.0f) + m_vecOffset.y);
-
-        v6 = D3DXVECTOR3((float)((float)63 * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[((nY + 1) << 6) + 63].cHeight * 0.1f,
-            (float)((float)(nY + 1) * 2.0f) + m_vecOffset.y);
-
-        v8 = D3DXVECTOR3((float)((float)64 * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[((nY + 1) << 6) + 63].cHeight * 0.1f,
-            (float)((float)(nY + 1) * 2.0f) + m_vecOffset.y);
-    }
-    else if (nY == 63)
-    {
-        v0 = D3DXVECTOR3((float)((float)nX * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + 4032].cHeight * 0.1f,
-            (float)((float)63 * 2.0f) + m_vecOffset.y);
-
-        v2 = D3DXVECTOR3((float)((float)(nX + 1) * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + 4033].cHeight * 0.1f,
-            (float)((float)63 * 2.0f) + m_vecOffset.y);
-
-        v6 = D3DXVECTOR3((float)((float)nX * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + 4032].cHeight * 0.1f,
-            (float)((float)64 * 2.0f) + m_vecOffset.y);
-
-        v8 = D3DXVECTOR3((float)((float)(nX + 1) * 2.0f) + m_vecOffset.x,
-            (float)m_TileMapData[nX + 4033].cHeight * 0.1f,
-            (float)((float)64 * 2.0f) + m_vecOffset.y);
-    }
+    const D3DXVECTOR3 v8((float)((float)(nX + 1) * 2.0f) + m_vecOffset.x,
+        (float)m_TileMapData[quad.i11].cHeight * 0.1f,
+        (float)((float)(nY + 1) * 2.0f) + m_vecOffset.y);
 
     float fU = 0.0;
     float fV = 0.0;
@@ -305,30 +271,10 @@ float TMGround::GetHeight(TMVector2 vecPosition)
     if (D3DXIntersectTri(&v8, &v6, &v2, &vPickRayOrig, &vPickRayDir, &fU, &fV, &fDis) == 1)
         return (100.0f - fDis);
 
-    if (nX < 0 || nY < 0 || nX > 63 || nY > 63)
-        return -10000.0f;
-
-    if (nX >= 0 && nX < 63 && nY >= 0 && nY < 63)
-    {
-        fHeight += m_TileMapData[nX + (nY << 6)].cHeight;
-        fHeight += m_TileMapData[nX + (nY << 6) + 1].cHeight;
-        fHeight += m_TileMapData[nX + ((nY + 1) << 6)].cHeight;
-        fHeight += m_TileMapData[nX + ((nY + 1) << 6) + 1].cHeight;
-    }
-    else if (nX == 63)
-    {
-        fHeight += m_TileMapData[(nY << 6) + 63].cHeight;
-        fHeight += m_TileMapData[(nY << 6) + 63].cHeight;
-        fHeight += m_TileMapData[((nY + 1) << 6) + 63].cHeight;
-        fHeight += m_TileMapData[((nY + 1) << 6) + 63].cHeight;
-    }
-    else if (nY == 63)
-    {
-        fHeight += m_TileMapData[nX + 4032].cHeight;
-        fHeight += m_TileMapData[nX + 4033].cHeight;
-        fHeight += m_TileMapData[nX + 4032].cHeight;
-        fHeight += m_TileMapData[nX + 4033].cHeight;
-    }
+    fHeight += m_TileMapData[quad.i00].cHeight;
+    fHeight += m_TileMapData[quad.i10].cHeight;
+    fHeight += m_TileMapData[quad.i01].cHeight;
+    fHeight += m_TileMapData[quad.i11].cHeight;
 
     return (fHeight * 0.1f) / 4.0f;
 }
@@ -338,27 +284,17 @@ D3DCOLORVALUE TMGround::GetColor(TMVector2 vecPosition)
     int nX = static_cast<int>((vecPosition.x - m_vecOffset.x) / 2);
     int nY = static_cast<int>((vecPosition.y - m_vecOffset.y) / 2);
 
+    // The legacy second edge branch repeated `nX == 63`, so the last row was
+    // black and the (63, 63) corner and out-of-block columns read past the
+    // tile map (C-05, A25-03). Outside the block the colour stays black.
     int dwColor[4]{ 0 };
-    if (nX >= 0 && nX < 63 && nY >= 0 && nY < 63)
+    terrain_tile_samples::Quad quad{};
+    if (terrain_tile_samples::Resolve(nX, nY, 1, 1, quad))
     {
-        dwColor[0] = m_TileMapData[nX + (nY << 6)].dwColor;
-        dwColor[1] = m_TileMapData[nX + (nY << 6) + 1].dwColor;
-        dwColor[2] = m_TileMapData[nX + ((nY + 1) << 6)].dwColor;
-        dwColor[3] = m_TileMapData[nX + ((nY + 1) << 6) + 1].dwColor;
-    }
-    else if (nX == 63)
-    {
-        dwColor[0] = m_TileMapData[(nY << 6) + 63].dwColor;
-        dwColor[1] = m_TileMapData[(nY << 6) + 63].dwColor;
-        dwColor[2] = m_TileMapData[((nY + 1) << 6) + 63].dwColor;
-        dwColor[3] = m_TileMapData[((nY + 1) << 6) + 63].dwColor;
-    }
-    else if (nX == 63)
-    {
-        dwColor[0] = m_TileMapData[nX + 4032].dwColor;
-        dwColor[1] = m_TileMapData[nX + 4033].dwColor;
-        dwColor[2] = m_TileMapData[nX + 4032].dwColor;
-        dwColor[3] = m_TileMapData[nX + 4033].dwColor;
+        dwColor[0] = m_TileMapData[quad.i00].dwColor;
+        dwColor[1] = m_TileMapData[quad.i10].dwColor;
+        dwColor[2] = m_TileMapData[quad.i01].dwColor;
+        dwColor[3] = m_TileMapData[quad.i11].dwColor;
     }
 
     D3DCOLORVALUE color[4]{};
@@ -392,19 +328,7 @@ int TMGround::GetTileType(TMVector2 vecPosition)
 
     int nIndex = m_TileMapData[nX / 2 + (nY / 2 << 6)].wTileIndex + TerrainFrontTextureBase;
 
-    if (nIndex >= 14 && nIndex <= 17 && nIndex >= 38 && nIndex <= 77 && nIndex >= 86 && nIndex <= 101 && nIndex >= 130 && nIndex <= 149)
-        return 0;
-
-    if (nIndex >= 186 && nIndex <= 193)
-        return 11;
-
-    if (nIndex >= 202 && nIndex <= 205)
-        return 8;
-
-    if (nIndex < 230 || nIndex > 231)
-        return 3;
-
-    return 9;
+    return terrain_walk_type::ForTexture(nIndex);
 }
 
 void TMGround::SetColor(TMVector2 vecPosition, unsigned int dwColor)

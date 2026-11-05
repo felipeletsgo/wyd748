@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "../../application/MountHealthContract.h"
+#include "../../application/EquipmentAppearanceContract.h"
 #include "../../application/NativeCostumeSlot.h"
 #include "../../ui/CapePresentation748.h"
 #include "TMHuman.h"
@@ -6,6 +8,7 @@
 #include "HumanCostumeRefinement.h"
 #include "WeaponPoseRefresh.h"
 #include "MonsterVisualScale.h"
+#include "EntitySafetyPolicy.h"
 #include "SControl.h"
 #include "TMScene.h"
 #include "TMEffectSkinMesh.h"
@@ -51,18 +54,21 @@ void TMHuman::CheckWeapon(short sIndexL, short sIndexR)
     STRUCT_ITEM itemL{};
     STRUCT_ITEM itemR{};
 
-    m_sLeftIndex = sIndexL;
-    itemL.sIndex = sIndexL;
-    m_sRightIndex = sIndexR;
-    itemR.sIndex = sIndexR;
+    // Validate before storing: PlayAttackSound and the attack frame index
+    // g_pItemList with m_sLeftIndex/m_sRightIndex without another check.
+    const bool bValid = human_equipment::IsCatalogIndex(sIndexL) && human_equipment::IsCatalogIndex(sIndexR);
+    m_sLeftIndex = human_equipment::CatalogIndex(sIndexL);
+    itemL.sIndex = m_sLeftIndex;
+    m_sRightIndex = human_equipment::CatalogIndex(sIndexR);
+    itemR.sIndex = m_sRightIndex;
     m_nWeaponTypeL = BASE_GetItemAbility(&itemL, 21);
     m_nWeaponTypeR = BASE_GetItemAbility(&itemR, 21);
     unsigned int nWeaponPosL = BASE_GetItemAbility(&itemL, 17);
 	unsigned int nWeaponPosR = BASE_GetItemAbility(&itemR, 17);
 
-    if (itemR.sIndex < 0 || itemL.sIndex < 0 || itemR.sIndex >= 6500 || itemL.sIndex >= 6500)
+    if (!bValid)
     {
-        LOG_WRITELOG("Check Weapon : L = %d R = %d", itemL.sIndex, itemR.sIndex);
+        LOG_WRITELOG("Check Weapon : L = %d R = %d", sIndexL, sIndexR);
         return;
     }
     if (g_pItemList[itemR.sIndex].nIndexMesh >= 0 && g_pItemList[itemL.sIndex].nIndexMesh >= 0)
@@ -717,41 +723,48 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
 {
     if (!m_dwDelayDel)
     {
-        m_sHeadIndex = pMobData->Equip[0].sIndex;
-        m_sHelmIndex = pMobData->Equip[1].sIndex;
-        m_citizen = static_cast<unsigned char>(pMobData->Equip[0].stEffect[2].cValue);
-        m_cLegend = static_cast<char>(g_pItemList[pMobData->Equip[0].sIndex].nGrade);
-        m_stLookInfo.FaceMesh = g_pItemList[pMobData->Equip[0].sIndex].nIndexMesh;
-        m_stLookInfo.FaceSkin = g_pItemList[pMobData->Equip[0].sIndex].nIndexTexture;
+        // 0x114 and 0x182 copy STRUCT_MOB verbatim. An index outside the
+        // catalog draws as an empty slot instead of reading past g_pItemList.
+        short sItem[8]{};
+        for (int i = 0; i < 8; ++i)
+            sItem[i] = human_equipment::CatalogIndex(pMobData->Equip[i].sIndex);
+        const short sCapeIndex = human_equipment::CatalogIndex(pMobData->Equip[15].sIndex);
 
-        if (pMobData->Equip[1].sIndex >= 3500 && (pMobData->Equip[1].sIndex <= 3502 || pMobData->Equip[1].sIndex == 3507))
+        m_sHeadIndex = sItem[0];
+        m_sHelmIndex = sItem[1];
+        m_citizen = static_cast<unsigned char>(pMobData->Equip[0].stEffect[2].cValue);
+        m_cLegend = static_cast<char>(g_pItemList[sItem[0]].nGrade);
+        m_stLookInfo.FaceMesh = g_pItemList[sItem[0]].nIndexMesh;
+        m_stLookInfo.FaceSkin = g_pItemList[sItem[0]].nIndexTexture;
+
+        if (human_equipment::IsCirclet(sItem[1]))
         {
             m_stLookInfo.HelmMesh = 0;
             m_stLookInfo.HelmSkin = 0;
         }
         else
         {
-            m_stLookInfo.HelmMesh = g_pItemList[pMobData->Equip[1].sIndex].nIndexMesh;
-            m_stLookInfo.HelmSkin = g_pItemList[pMobData->Equip[1].sIndex].nIndexTexture;
+            m_stLookInfo.HelmMesh = g_pItemList[sItem[1]].nIndexMesh;
+            m_stLookInfo.HelmSkin = g_pItemList[sItem[1]].nIndexTexture;
         }
 
-        m_stLookInfo.CoatMesh = g_pItemList[pMobData->Equip[2].sIndex].nIndexMesh;
-        m_stLookInfo.CoatSkin = g_pItemList[pMobData->Equip[2].sIndex].nIndexTexture;
-        m_stLookInfo.PantsMesh = g_pItemList[pMobData->Equip[3].sIndex].nIndexMesh;
-        m_stLookInfo.PantsSkin = g_pItemList[pMobData->Equip[3].sIndex].nIndexTexture;
-        m_stLookInfo.GlovesMesh = g_pItemList[pMobData->Equip[4].sIndex].nIndexMesh;
-        m_stLookInfo.GlovesSkin = g_pItemList[pMobData->Equip[4].sIndex].nIndexTexture;
-        m_stLookInfo.BootsMesh = g_pItemList[pMobData->Equip[5].sIndex].nIndexMesh;
-        m_stLookInfo.BootsSkin = g_pItemList[pMobData->Equip[5].sIndex].nIndexTexture;
-        m_stLookInfo.LeftMesh = g_pItemList[pMobData->Equip[6].sIndex].nIndexMesh;
-        m_stLookInfo.LeftSkin = g_pItemList[pMobData->Equip[6].sIndex].nIndexTexture;
-        m_stLookInfo.RightMesh = g_pItemList[pMobData->Equip[7].sIndex].nIndexMesh;
-        m_stLookInfo.RightSkin = g_pItemList[pMobData->Equip[7].sIndex].nIndexTexture;
+        m_stLookInfo.CoatMesh = g_pItemList[sItem[2]].nIndexMesh;
+        m_stLookInfo.CoatSkin = g_pItemList[sItem[2]].nIndexTexture;
+        m_stLookInfo.PantsMesh = g_pItemList[sItem[3]].nIndexMesh;
+        m_stLookInfo.PantsSkin = g_pItemList[sItem[3]].nIndexTexture;
+        m_stLookInfo.GlovesMesh = g_pItemList[sItem[4]].nIndexMesh;
+        m_stLookInfo.GlovesSkin = g_pItemList[sItem[4]].nIndexTexture;
+        m_stLookInfo.BootsMesh = g_pItemList[sItem[5]].nIndexMesh;
+        m_stLookInfo.BootsSkin = g_pItemList[sItem[5]].nIndexTexture;
+        m_stLookInfo.LeftMesh = g_pItemList[sItem[6]].nIndexMesh;
+        m_stLookInfo.LeftSkin = g_pItemList[sItem[6]].nIndexTexture;
+        m_stLookInfo.RightMesh = g_pItemList[sItem[7]].nIndexMesh;
+        m_stLookInfo.RightSkin = g_pItemList[sItem[7]].nIndexTexture;
 
-        if (pMobData->Equip[15].sIndex > 0)
+        if (sCapeIndex > 0)
         {
-            m_sMantuaIndex = pMobData->Equip[15].sIndex;
-            m_wMantuaSkin = g_pItemList[pMobData->Equip[15].sIndex].nIndexTexture;
+            m_sMantuaIndex = sCapeIndex;
+            m_wMantuaSkin = g_pItemList[sCapeIndex].nIndexTexture;
             SetMantua(m_wMantuaSkin);
             // FUN_00524ded maps the cape texture to its citizenship variant
             // (server emblem on the back) right after reading it.
@@ -771,14 +784,14 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
 		SetFamiliarItem(pMobData->Equip[costume_slot::FamiliarSlot].sIndex);
 		m_sFamCount = 0;
 		m_sCostume = pMobData->Equip[costume_slot::CostumeSlot].sIndex;
-        m_stSancInfo.Sanc0 = BASE_GetItemSanc(pMobData->Equip);
-        m_stSancInfo.Sanc1 = BASE_GetItemSanc(&pMobData->Equip[1]);
-        m_stSancInfo.Sanc2 = BASE_GetItemSanc(&pMobData->Equip[2]);
-        m_stSancInfo.Sanc3 = BASE_GetItemSanc(&pMobData->Equip[3]);
-        m_stSancInfo.Sanc4 = BASE_GetItemSanc(&pMobData->Equip[4]);
-        m_stSancInfo.Sanc5 = BASE_GetItemSanc(&pMobData->Equip[5]);
-        m_stSancInfo.Sanc7 = BASE_GetItemSanc(&pMobData->Equip[6]);
-        m_stSancInfo.Sanc6 = BASE_GetItemSanc(&pMobData->Equip[7]);
+        m_stSancInfo.Sanc0 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(pMobData->Equip));
+        m_stSancInfo.Sanc1 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(&pMobData->Equip[1]));
+        m_stSancInfo.Sanc2 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(&pMobData->Equip[2]));
+        m_stSancInfo.Sanc3 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(&pMobData->Equip[3]));
+        m_stSancInfo.Sanc4 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(&pMobData->Equip[4]));
+        m_stSancInfo.Sanc5 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(&pMobData->Equip[5]));
+        m_stSancInfo.Sanc7 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(&pMobData->Equip[6]));
+        m_stSancInfo.Sanc6 = equipment_appearance::VisualRefinement(BASE_GetItemSanc(&pMobData->Equip[7]));
         m_stColorInfo.Sanc0 = BASE_GetItemColorEffect(pMobData->Equip);
         m_stColorInfo.Sanc1 = BASE_GetItemColorEffect(&pMobData->Equip[1]);
         m_stColorInfo.Sanc2 = BASE_GetItemColorEffect(&pMobData->Equip[2]);
@@ -1005,45 +1018,14 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
                     m_cLastMount = m_cMount;
                 }
 
-                int nMountMaxHPIndex = sIndex - 315;
-                if (sIndex - 315 < 0)
-                    nMountMaxHPIndex = 0;
-                switch (_nEquipIdx)
-                {
-                case 2378:
-                    nMountMaxHPIndex = 18;
-                    break;
-                case 2379:
-                    nMountMaxHPIndex = 19;
-                    break;
-                case 2380:
-                    nMountMaxHPIndex = 21;
-                    break;
-                case 2381:
-                    nMountMaxHPIndex = 20;
-                    break;
-                case 2382:
-                case 2383:
-                case 2384:
-                case 2385:
-                case 2386:
-                    break;
-                case 2387:
-                    nMountMaxHPIndex = 20;
-                    break;
-                case 2388:
-                    nMountMaxHPIndex = 21;
-                    break;
-                case 2389:
-                    nMountMaxHPIndex = 22;
-                    break;
-                }
+                const int nMountMaxHP = mount_health::Maximum(tempIndex);
+
                 // The 7.48 compatibility field does not create the optional
                 // mount progress control; keep materializing the character
                 // and mount mesh even when that HUD bar is unavailable.
                 if (m_pMountHPBar)
                 {
-                    m_pMountHPBar->SetMaxProgress(g_nMountHPTable[nMountMaxHPIndex]);
+                    m_pMountHPBar->SetMaxProgress(nMountMaxHP);
                     m_pMountHPBar->SetCurrentProgress(nMountHP);
                 }
 
@@ -1053,11 +1035,11 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
                 // are absent, so each control is checked before it is updated.
                 if (pFSCene && pFSCene->m_pMHPBar && pFSCene->m_pMaxMHPText && pFSCene->m_pCurrentMHPText)
                 {
-                    pFSCene->m_pMHPBar->SetMaxProgress(g_nMountHPTable[nMountMaxHPIndex]);
+                    pFSCene->m_pMHPBar->SetMaxProgress(nMountMaxHP);
                     pFSCene->m_pMHPBar->SetCurrentProgress(nMountHP);
 
                     char szMHP[32]{};
-                    sprintf(szMHP, "%d", g_nMountHPTable[nMountMaxHPIndex]);
+                    sprintf(szMHP, "%d", nMountMaxHP);
                     pFSCene->m_pMaxMHPText->SetText(szMHP, 0);
 
                     sprintf(szMHP, "%d", nMountHP);
@@ -1093,87 +1075,46 @@ void TMHuman::SetPacketMOBItem(STRUCT_MOB* pMobData)
         }
 
         pMobData->Equip[14].sIndex = tempIndex;
-        m_stSancInfo.Legend0 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[0].sIndex].nGrade);
-        m_stSancInfo.Legend1 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[1].sIndex].nGrade);
-        m_stSancInfo.Legend2 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[2].sIndex].nGrade);
-        m_stSancInfo.Legend3 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[3].sIndex].nGrade);
-        m_stSancInfo.Legend4 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[4].sIndex].nGrade);
-        m_stSancInfo.Legend5 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[5].sIndex].nGrade);
-        m_stSancInfo.Legend7 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[6].sIndex].nGrade);
-        m_stSancInfo.Legend6 = static_cast<unsigned char>(g_pItemList[pMobData->Equip[7].sIndex].nGrade);
+        m_stSancInfo.Legend0 = static_cast<unsigned char>(g_pItemList[sItem[0]].nGrade);
+        m_stSancInfo.Legend1 = static_cast<unsigned char>(g_pItemList[sItem[1]].nGrade);
+        m_stSancInfo.Legend2 = static_cast<unsigned char>(g_pItemList[sItem[2]].nGrade);
+        m_stSancInfo.Legend3 = static_cast<unsigned char>(g_pItemList[sItem[3]].nGrade);
+        m_stSancInfo.Legend4 = static_cast<unsigned char>(g_pItemList[sItem[4]].nGrade);
+        m_stSancInfo.Legend5 = static_cast<unsigned char>(g_pItemList[sItem[5]].nGrade);
+        m_stSancInfo.Legend7 = static_cast<unsigned char>(g_pItemList[sItem[6]].nGrade);
+        m_stSancInfo.Legend6 = static_cast<unsigned char>(g_pItemList[sItem[7]].nGrade);
 
-        if ((unsigned char)m_stSancInfo.Legend0 <= 4
-            && (unsigned char)m_stSancInfo.Sanc0 > 9)
-        {
-            m_stSancInfo.Legend0 = BASE_GetItemTenColor(pMobData->Equip) + 4;
+        if (m_stSancInfo.Sanc0 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[0]) - 4) << 4);
+            m_stSancInfo.Legend0 = equipment_appearance::Legend(m_stSancInfo.Legend0, m_stSancInfo.Sanc0, gem);
         }
-        else if (m_stSancInfo.Legend0 == 4 && (unsigned char)m_stSancInfo.Sanc0 > 9)
-        {
-            m_stSancInfo.Legend0 = BASE_GetItemTenColor(pMobData->Equip);
+        if (m_stSancInfo.Sanc1 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[1]) - 4) << 4);
+            m_stSancInfo.Legend1 = equipment_appearance::Legend(m_stSancInfo.Legend1, m_stSancInfo.Sanc1, gem);
         }
-        if ((unsigned char)m_stSancInfo.Legend1 <= 4
-            && (unsigned char)m_stSancInfo.Sanc1 > 9)
-        {
-            m_stSancInfo.Legend1 = BASE_GetItemTenColor(&pMobData->Equip[1]) + 4;
+        if (m_stSancInfo.Sanc2 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[2]) - 4) << 4);
+            m_stSancInfo.Legend2 = equipment_appearance::Legend(m_stSancInfo.Legend2, m_stSancInfo.Sanc2, gem);
         }
-        else if (m_stSancInfo.Legend1 == 4 && (unsigned char)m_stSancInfo.Sanc1 > 9)
-        {
-            m_stSancInfo.Legend1 = BASE_GetItemTenColor(&pMobData->Equip[1]);
+        if (m_stSancInfo.Sanc3 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[3]) - 4) << 4);
+            m_stSancInfo.Legend3 = equipment_appearance::Legend(m_stSancInfo.Legend3, m_stSancInfo.Sanc3, gem);
         }
-
-        if ((unsigned char)m_stSancInfo.Legend2 <= 4
-            && (unsigned char)m_stSancInfo.Sanc2 > 9)
-        {
-            m_stSancInfo.Legend2 = BASE_GetItemTenColor(&pMobData->Equip[2]) + 4;
+        if (m_stSancInfo.Sanc4 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[4]) - 4) << 4);
+            m_stSancInfo.Legend4 = equipment_appearance::Legend(m_stSancInfo.Legend4, m_stSancInfo.Sanc4, gem);
         }
-        else if (m_stSancInfo.Legend2 == 4 && (unsigned char)m_stSancInfo.Sanc2 > 9)
-        {
-            m_stSancInfo.Legend2 = BASE_GetItemTenColor(&pMobData->Equip[2]);
+        if (m_stSancInfo.Sanc5 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[5]) - 4) << 4);
+            m_stSancInfo.Legend5 = equipment_appearance::Legend(m_stSancInfo.Legend5, m_stSancInfo.Sanc5, gem);
         }
-        if ((unsigned char)m_stSancInfo.Legend3 <= 4
-            && (unsigned char)m_stSancInfo.Sanc3 > 9)
-        {
-            m_stSancInfo.Legend3 = BASE_GetItemTenColor(&pMobData->Equip[3]) + 4;
+        if (m_stSancInfo.Sanc7 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[6]) - 4) << 4);
+            m_stSancInfo.Legend7 = equipment_appearance::Legend(m_stSancInfo.Legend7, m_stSancInfo.Sanc7, gem);
         }
-        else if (m_stSancInfo.Legend3 == 4 && (unsigned char)m_stSancInfo.Sanc3 > 9)
-        {
-            m_stSancInfo.Legend3 = BASE_GetItemTenColor(&pMobData->Equip[3]);
-        }
-        if ((unsigned char)m_stSancInfo.Legend4 <= 4
-            && (unsigned char)m_stSancInfo.Sanc4 > 9)
-        {
-            m_stSancInfo.Legend4 = BASE_GetItemTenColor(&pMobData->Equip[4]) + 4;
-        }
-        else if (m_stSancInfo.Legend4 == 4 && (unsigned char)m_stSancInfo.Sanc4 > 9)
-        {
-            m_stSancInfo.Legend4 = BASE_GetItemTenColor(&pMobData->Equip[4]);
-        }
-        if ((unsigned char)m_stSancInfo.Legend5 <= 4
-            && (unsigned char)m_stSancInfo.Sanc5 > 9)
-        {
-            m_stSancInfo.Legend5 = BASE_GetItemTenColor(&pMobData->Equip[5]) + 4;
-        }
-        else if (m_stSancInfo.Legend5 == 4 && (unsigned char)m_stSancInfo.Sanc5 > 9)
-        {
-            m_stSancInfo.Legend5 = BASE_GetItemTenColor(&pMobData->Equip[5]);
-        }
-        if ((unsigned char)m_stSancInfo.Legend7 <= 4
-            && (unsigned char)m_stSancInfo.Sanc7 > 9)
-        {
-            m_stSancInfo.Legend7 = BASE_GetItemTenColor(&pMobData->Equip[6]) + 4;
-        }
-        else if (m_stSancInfo.Legend7 == 4 && (unsigned char)m_stSancInfo.Sanc7 > 9)
-        {
-            m_stSancInfo.Legend7 = BASE_GetItemTenColor(&pMobData->Equip[6]);
-        }
-        if ((unsigned char)m_stSancInfo.Legend6 <= 4
-            && (unsigned char)m_stSancInfo.Sanc6 > 9)
-        {
-            m_stSancInfo.Legend6 = BASE_GetItemTenColor(&pMobData->Equip[7]) + 4;
-        }
-        else if (m_stSancInfo.Legend6 == 4 && (unsigned char)m_stSancInfo.Sanc6 > 9)
-        {
-            m_stSancInfo.Legend6 = BASE_GetItemTenColor(&pMobData->Equip[7]);
+        if (m_stSancInfo.Sanc6 > 9) {
+            const auto gem = static_cast<unsigned char>((BASE_GetItemTenColor(&pMobData->Equip[7]) - 4) << 4);
+            m_stSancInfo.Legend6 = equipment_appearance::Legend(m_stSancInfo.Legend6, m_stSancInfo.Sanc6, gem);
         }
 
         TMFieldScene* pFScene = nullptr;
@@ -1204,10 +1145,17 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
         m_cLegend = static_cast<char>(g_pItemList[sEquip[0] & 0xFFF].nGrade);
         m_stLookInfo.FaceMesh = g_pItemList[sEquip[0] & 0xFFF].nIndexMesh;
         m_stLookInfo.FaceSkin = g_pItemList[sEquip[0] & 0xFFF].nIndexTexture;
-        if ((sEquip[1] & 0xFFF) < 3500 || (sEquip[1] & 0xFFF) > 3502 && (sEquip[1] & 0xFFF) != 3507)
+        // A circlet hides the helmet, as in SetPacketMOBItem; without the else
+        // branch observers kept the previous helmet mesh.
+        if (!human_equipment::IsCirclet(sEquip[1] & 0xFFF))
         {
             m_stLookInfo.HelmMesh = g_pItemList[sEquip[1] & 0xFFF].nIndexMesh;
             m_stLookInfo.HelmSkin = g_pItemList[sEquip[1] & 0xFFF].nIndexTexture;
+        }
+        else
+        {
+            m_stLookInfo.HelmMesh = 0;
+            m_stLookInfo.HelmSkin = 0;
         }
         m_stLookInfo.CoatMesh = g_pItemList[sEquip[2] & 0xFFF].nIndexMesh;
         m_stLookInfo.CoatSkin = g_pItemList[sEquip[2] & 0xFFF].nIndexTexture;
@@ -1460,7 +1408,7 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
 
             m_fMountScale = BASE_GetMountScale(m_nMountSkinMeshType, m_stMountLook.Mesh0);
             if (sIndex == 333)
-                m_fMountScale = 1.0f;
+                m_fMountScale = 1.1f;
         }
         else
             m_cMount = 0;
@@ -1482,189 +1430,26 @@ void TMHuman::SetPacketEquipItem(unsigned short* sEquip)
 
 void TMHuman::SetColorItem(char* sEquip2)
 {
-    char sEquipType = 0;
-    char sEquipTypea = 0;
-    char sEquipTypeb = 0;
-    char sEquipTypec = 0;
-    char sEquipTyped = 0;
-    char sEquipTypee = 0;
-    char sEquipTypef = 0;
-    char sEquipTypeg = 0;
-    if (!m_dwDelayDel)
-    {
-        if (m_stSancInfo.Sanc0 > 9)
-        {
-            m_stColorInfo.Sanc0 = *sEquip2 & 0xF;
-            if (m_stColorInfo.Sanc0)
-                m_stColorInfo.Sanc0 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc0 = *sEquip2;
-        }
-        if (m_stSancInfo.Sanc1 > 9)
-        {
-            m_stColorInfo.Sanc1 = sEquip2[1] & 0xF;
-            if (m_stColorInfo.Sanc1)
-                m_stColorInfo.Sanc1 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc1 = sEquip2[1];
-        }
-        if (m_stSancInfo.Sanc2 > 9)
-        {
-            m_stColorInfo.Sanc2 = sEquip2[2] & 0xF;
-            if (m_stColorInfo.Sanc2)
-                m_stColorInfo.Sanc2 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc2 = sEquip2[2];
-        }
-        if (m_stSancInfo.Sanc3 > 9)
-        {
-            m_stColorInfo.Sanc3 = sEquip2[3] & 0xF;
-            if (m_stColorInfo.Sanc3)
-                m_stColorInfo.Sanc3 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc3 = sEquip2[3];
-        }
-        if (m_stSancInfo.Sanc4 > 9)
-        {
-            m_stColorInfo.Sanc4 = sEquip2[4] & 0xF;
-            if (m_stColorInfo.Sanc4)
-                m_stColorInfo.Sanc4 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc4 = sEquip2[4];
-        }
-        if (m_stSancInfo.Sanc5 > 9)
-        {
-            m_stColorInfo.Sanc5 = sEquip2[5] & 0xF;
-            if (m_stColorInfo.Sanc5)
-                m_stColorInfo.Sanc5 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc5 = sEquip2[5];
-        }
-        if (m_stSancInfo.Sanc7 > 9)
-        {
-            m_stColorInfo.Sanc7 = sEquip2[6] & 0xF;
-            if (m_stColorInfo.Sanc7)
-                m_stColorInfo.Sanc7 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc7 = sEquip2[6];
-        }
-        if (m_stSancInfo.Sanc6 > 9)
-        {
-            m_stColorInfo.Sanc6 = sEquip2[7] & 0xF;
-            if (m_stColorInfo.Sanc6)
-                m_stColorInfo.Sanc6 += 115;
-        }
-        else
-        {
-            m_stColorInfo.Sanc6 = sEquip2[7];
-        }
-        sEquipType = *sEquip2 >> 4;
-        if (!sEquipType || m_stSancInfo.Legend0 > 4 || m_stSancInfo.Sanc0 <= 9)
-        {
-            if (sEquipType && m_stSancInfo.Legend0 == 4 && m_stSancInfo.Sanc0 > 9)
-                m_stSancInfo.Legend0 = sEquipType + 4;
-        }
-        else
-        {
-            m_stSancInfo.Legend0 = sEquipType + 8;
-        }
-        sEquipTypea = sEquip2[1] >> 4;
-        if (!sEquipTypea || m_stSancInfo.Legend1 > 4 || m_stSancInfo.Sanc1 <= 9)
-        {
-            if (sEquipTypea && m_stSancInfo.Legend1 == 4 && m_stSancInfo.Sanc1 > 9)
-                m_stSancInfo.Legend1 = sEquipTypea + 4;
-        }
-        else
-        {
-            m_stSancInfo.Legend1 = sEquipTypea + 8;
-        }
-        sEquipTypeb = sEquip2[2] >> 4;
-        if (!sEquipTypeb || m_stSancInfo.Legend2 > 4 || m_stSancInfo.Sanc2 <= 9)
-        {
-            if (sEquipTypeb && m_stSancInfo.Legend2 == 4 && m_stSancInfo.Sanc2 > 9)
-                m_stSancInfo.Legend2 = sEquipTypeb + 4;
-        }
-        else
-        {
-            m_stSancInfo.Legend2 = sEquipTypeb + 8;
-        }
-        sEquipTypec = sEquip2[3] >> 4;
-        if (!sEquipTypec || m_stSancInfo.Legend3 > 4 || m_stSancInfo.Sanc3 <= 9)
-        {
-            if (sEquipTypec && m_stSancInfo.Legend3 == 4 && m_stSancInfo.Sanc3 > 9)
-                m_stSancInfo.Legend3 = sEquipTypec + 4;
-        }
-        else
-        {
-            m_stSancInfo.Legend3 = sEquipTypec + 8;
-        }
-        sEquipTyped = sEquip2[4] >> 4;
-        if (!sEquipTyped || m_stSancInfo.Legend4 > 4 || m_stSancInfo.Sanc4 <= 9)
-        {
-            if (sEquipTyped && m_stSancInfo.Legend4 == 4 && m_stSancInfo.Sanc4 > 9)
-                m_stSancInfo.Legend4 = sEquipTyped + 4;
-        }
-        else
-        {
-            m_stSancInfo.Legend4 = sEquipTyped + 8;
-        }
-        sEquipTypee = sEquip2[5] >> 4;
-        if (!sEquipTypee || m_stSancInfo.Legend5 > 4 || m_stSancInfo.Sanc5 <= 9)
-        {
-            if (sEquipTypee && m_stSancInfo.Legend5 == 4 && m_stSancInfo.Sanc5 > 9)
-                m_stSancInfo.Legend5 = sEquipTypee + 4;
-        }
-        else
-        {
-            m_stSancInfo.Legend5 = sEquipTypee + 8;
-        }
-        sEquipTypef = sEquip2[6] >> 4;
-        if (m_stSancInfo.Legend7 > 4 || m_stSancInfo.Sanc7 <= 9)
-        {
-            if (sEquipTypef && m_stSancInfo.Legend7 == 4 && m_stSancInfo.Sanc7 > 9)
-                m_stSancInfo.Legend7 = sEquipTypef + 4;
-        }
-        else
-        {
-            m_stSancInfo.Legend7 = sEquipTypef + 8;
-        }
-        sEquipTypeg = sEquip2[7] >> 4;
-        int result = m_stSancInfo.Legend6;
-        if (result > 4 || m_stSancInfo.Sanc6 <= 9)
-        {
-            if (sEquipTypeg)
-            {
-                if (m_stSancInfo.Legend6 == 4)
-                {
-                    result = m_stSancInfo.Sanc6;
-                    if (result > 9)
-                    {
-                        result = sEquipTypeg;
-                        m_stSancInfo.Legend6 += sEquipTypeg + 4;
-                    }
-                }
-            }
-        }
-        else
-        {
-            result = sEquipTypeg + 8;
-            m_stSancInfo.Legend6 = result;
-        }
-    }
+    if (m_dwDelayDel || !sEquip2) return;
+    m_stColorInfo.Sanc0 = equipment_appearance::Color(m_stSancInfo.Sanc0, static_cast<unsigned char>(sEquip2[0]));
+    m_stSancInfo.Legend0 = equipment_appearance::Legend(m_stSancInfo.Legend0, m_stSancInfo.Sanc0, static_cast<unsigned char>(sEquip2[0]));
+    m_stColorInfo.Sanc1 = equipment_appearance::Color(m_stSancInfo.Sanc1, static_cast<unsigned char>(sEquip2[1]));
+    m_stSancInfo.Legend1 = equipment_appearance::Legend(m_stSancInfo.Legend1, m_stSancInfo.Sanc1, static_cast<unsigned char>(sEquip2[1]));
+    m_stColorInfo.Sanc2 = equipment_appearance::Color(m_stSancInfo.Sanc2, static_cast<unsigned char>(sEquip2[2]));
+    m_stSancInfo.Legend2 = equipment_appearance::Legend(m_stSancInfo.Legend2, m_stSancInfo.Sanc2, static_cast<unsigned char>(sEquip2[2]));
+    m_stColorInfo.Sanc3 = equipment_appearance::Color(m_stSancInfo.Sanc3, static_cast<unsigned char>(sEquip2[3]));
+    m_stSancInfo.Legend3 = equipment_appearance::Legend(m_stSancInfo.Legend3, m_stSancInfo.Sanc3, static_cast<unsigned char>(sEquip2[3]));
+    m_stColorInfo.Sanc4 = equipment_appearance::Color(m_stSancInfo.Sanc4, static_cast<unsigned char>(sEquip2[4]));
+    m_stSancInfo.Legend4 = equipment_appearance::Legend(m_stSancInfo.Legend4, m_stSancInfo.Sanc4, static_cast<unsigned char>(sEquip2[4]));
+    m_stColorInfo.Sanc5 = equipment_appearance::Color(m_stSancInfo.Sanc5, static_cast<unsigned char>(sEquip2[5]));
+    m_stSancInfo.Legend5 = equipment_appearance::Legend(m_stSancInfo.Legend5, m_stSancInfo.Sanc5, static_cast<unsigned char>(sEquip2[5]));
+    m_stColorInfo.Sanc7 = equipment_appearance::Color(m_stSancInfo.Sanc7, static_cast<unsigned char>(sEquip2[6]));
+    m_stSancInfo.Legend7 = equipment_appearance::Legend(m_stSancInfo.Legend7, m_stSancInfo.Sanc7, static_cast<unsigned char>(sEquip2[6]));
+    m_stColorInfo.Sanc6 = equipment_appearance::Color(m_stSancInfo.Sanc6, static_cast<unsigned char>(sEquip2[7]));
+    m_stSancInfo.Legend6 = equipment_appearance::Legend(m_stSancInfo.Legend6, m_stSancInfo.Sanc6, static_cast<unsigned char>(sEquip2[7]));
+    m_stOldSancInfo = m_stSancInfo;
+    m_stOldColorInfo = m_stColorInfo;
+    m_stOldMountSanc = m_stMountSanc;
 }
 
 void TMHuman::GetLegType()

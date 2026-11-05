@@ -3,9 +3,8 @@
 #include <cstddef>
 #include "CharacterLoginConfirmContract.h"
 
-// Contratos S->C consumidos pelas telas de login e selecao. Estes valores sao
-// independentes das structs legadas para que a fronteira de transporte possa
-// rejeitar frames incompletos antes de qualquer cast da cena.
+// S->C contracts for login and selection screens. Values are independent of legacy structs.
+// The transport boundary can reject incomplete frames before any scene cast.
 constexpr auto MSG_CNFAccountLogin_Opcode = 0x10A;
 constexpr auto MSG_CNFNewCharacter_Opcode = 0x110;
 constexpr auto MSG_CNFDeleteCharacter_Opcode = 0x112;
@@ -27,8 +26,7 @@ enum class LoginPacketKind
 	AlreadyPlaying
 };
 
-// Maps the legacy wire opcode to a semantic packet kind; unknown opcodes are
-// intentionally preserved for the existing generic dispatch path.
+// Map login opcodes. The receive gate checks the remaining consumer contracts.
 inline LoginPacketKind ClassifyLoginPacket(unsigned int opcode)
 {
 	if (opcode == MSG_CNFAccountLogin_Opcode) return LoginPacketKind::AccountLogin;

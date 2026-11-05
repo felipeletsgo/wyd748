@@ -18,9 +18,24 @@
 #include "TMObjectContainer.h"
 #include "ItemEffect.h"
 #include "../../application/AttackVisualTiming.h"
+#include "EntitySafetyPolicy.h"
+
+static_assert(human_animation::kSkinTypes == MAX_ANI_TYPE &&
+    human_animation::kTableColumns == MAX_ANI_MOTION &&
+    human_animation::kMotionCount == static_cast<int>(ECHAR_MOTION::ECMOTION_PUNEND) + 1 &&
+    sizeof(g_MobAniTableEx) == sizeof(stAniSoundTable2) * human_animation::kExtendedClasses * human_animation::kExtendedSkins,
+    "animation bounds follow MeshManager tables");
 
 void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
 {
+    // A malformed 0x36A motion, spell Act value or skin type would index past
+    // the 28-column halves and 60 rows of the animation tables.
+    if (!human_animation::IsMotion(static_cast<int>(eMotion)) || !human_animation::IsSkinType(m_nSkinMeshType))
+        return;
+
+    // A mount skin outside the table keeps the rider animated without a mount clip.
+    const bool bMountTable = human_animation::IsSkinType(m_nMountSkinMeshType);
+
     if (!m_dwDelayDel && eMotion != ECHAR_MOTION::ECMOTION_NONE && m_pSkinMesh)
     {
         if (eMotion == ECHAR_MOTION::ECMOTION_LEVELUP && (m_nClass == 34 || m_nClass == 38))
@@ -71,9 +86,11 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
         if (m_nSkinMeshType == 0 || m_nSkinMeshType == 1 || m_nSkinMeshType == 2 || m_nSkinMeshType == 3
          || m_nSkinMeshType == 4 || m_nSkinMeshType == 5)
         {
+            // Extended class tables exist only for skins 0 and 1.
+            const int nExtClass = human_animation::ExtendedClass(m_sHeadIndex, m_nSkinMeshType);
             if (m_cMount == 1)
             {
-                if (m_pMount)
+                if (m_pMount && bMountTable)
                 {
                     if (m_nMountSkinMeshType == 20 && (eMotion == ECHAR_MOTION::ECMOTION_WALK || eMotion == ECHAR_MOTION::ECMOTION_RUN) && m_pMount->m_Look.Mesh0 == 7)
                         m_pMount->SetAnimation(g_MobAniTable[m_nMountSkinMeshType].dwAniTable[2]);
@@ -82,35 +99,25 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
                     else
                         m_pMount->SetAnimation(g_MobAniTable[m_nMountSkinMeshType].dwAniTable[(int)eMotion]);
                 }
-                if (m_sHeadIndex < 40 && (m_sHeadIndex % 10 == 1 || m_sHeadIndex % 10 > 5))
+                if (nExtClass >= 0)
                 {
-                    int nClass = 0;
-                    if (m_sHeadIndex % 10 == 1)
-                        nClass = m_sHeadIndex / 10;
-                    else
-                        nClass = m_sHeadIndex % 10 - 6;
-                    if (nClass > 3)
-                        nClass = 0;
-                    m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTableEx[nClass][m_nSkinMeshType].dwAniTable[(int)eMotion + 28]]);
+                    m_pSkinMesh->SetAnimation(human_animation::HumanClip(MeshManager::m_sAnimationArray, m_nSkinMeshType, m_nWeaponTypeIndex,
+                        g_MobAniTableEx[nExtClass][m_nSkinMeshType].dwAniTable[(int)eMotion + 28]));
                 }
                 else if (m_nSkinMeshType == 3)
                     m_pSkinMesh->SetAnimation(g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion + 28]);
                 else
-                    m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion + 28]]);
+                    m_pSkinMesh->SetAnimation(human_animation::HumanClip(MeshManager::m_sAnimationArray, m_nSkinMeshType, m_nWeaponTypeIndex,
+                        g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion + 28]));
             }
             else
             {
                 int bExt = 0;
-                if (m_sHeadIndex < 40 && (m_sHeadIndex % 10 == 1 || m_sHeadIndex % 10 > 5))
+                if (nExtClass >= 0)
                 {
-                    int nClass = 0;
-                    if (m_sHeadIndex % 10 == 1)
-                        nClass = m_sHeadIndex / 10;
-                    else
-                        nClass = m_sHeadIndex % 10 - 6;
-                    if (nClass > 3)
-                        nClass = 0;
-                    if (!m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTableEx[nClass][m_nSkinMeshType].dwAniTable[(int)eMotion]])
+                    const int nClass = nExtClass;
+                    if (!m_pSkinMesh->SetAnimation(human_animation::HumanClip(MeshManager::m_sAnimationArray, m_nSkinMeshType, m_nWeaponTypeIndex,
+                            g_MobAniTableEx[nClass][m_nSkinMeshType].dwAniTable[(int)eMotion]))
                         && !g_MobAniTableEx[nClass][m_nSkinMeshType].dwAniTable[(int)eMotion])
                     {
                         m_eMotion = eMotion;
@@ -131,7 +138,8 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
                         return;
                     }
                 }
-                else if (!m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion]])
+                else if (!m_pSkinMesh->SetAnimation(human_animation::HumanClip(MeshManager::m_sAnimationArray, m_nSkinMeshType, m_nWeaponTypeIndex,
+                        g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion]))
                     && !g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)eMotion])
                 {
                     m_eMotion = eMotion;
@@ -232,22 +240,13 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
                 }
 
                 unsigned int dwSpeedTemp = 0;
-                if (m_sHeadIndex >= 40 || m_sHeadIndex % 10 != 1 && m_sHeadIndex % 10 <= 5)
+                if (nExtClass < 0)
                     dwSpeedTemp = g_MobAniTable[m_nSkinMeshType].dwSpeed[(int)eMotion];
                 else
-                {
-                    int nClass = 0;
-                    if (m_sHeadIndex % 10 == 1)
-                        nClass = m_sHeadIndex / 10;
-                    else
-                        nClass = m_sHeadIndex % 10 - 6;
-                    if (nClass > 3)
-                        nClass = 0;
-                    dwSpeedTemp = g_MobAniTableEx[nClass][m_nSkinMeshType].dwSpeed[(int)eMotion];
-                }
+                    dwSpeedTemp = g_MobAniTableEx[nExtClass][m_nSkinMeshType].dwSpeed[(int)eMotion];
 
                 m_pSkinMesh->m_dwFPS = (unsigned int)((float)dwSpeedTemp * 1.0f);
-                if (m_cMount == 1 && m_pMount)
+                if (m_cMount == 1 && m_pMount && bMountTable)
                     m_pMount->m_dwFPS = (unsigned int)((float)g_MobAniTable[m_nMountSkinMeshType].dwSpeed[(int)eMotion] * 1.0f);
             }
 
@@ -258,19 +257,10 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
                     fEffectLen = 1.2f;
 
                 unsigned int dwSpeedTemp = 0;
-                if (m_sHeadIndex >= 40 || m_sHeadIndex % 10 != 1 && m_sHeadIndex % 10 <= 5)
+                if (nExtClass < 0)
                     dwSpeedTemp = g_MobAniTable[m_nSkinMeshType].dwSpeed[(int)eMotion];
                 else
-                {
-                    int nClass = 0;
-                    if (m_sHeadIndex % 10 == 1)
-                        nClass = m_sHeadIndex / 10;
-                    else
-                        nClass = m_sHeadIndex % 10 - 6;
-                    if (nClass > 3)
-                        nClass = 0;
-                    dwSpeedTemp = g_MobAniTableEx[nClass][m_nSkinMeshType].dwSpeed[(int)eMotion];
-                }
+                    dwSpeedTemp = g_MobAniTableEx[nExtClass][m_nSkinMeshType].dwSpeed[(int)eMotion];
 
                 m_pSkinMesh->m_dwFPS = (unsigned int)(float)((float)dwSpeedTemp * 1.0f);
                 if (m_bSwordShadow[0] == 1)
@@ -401,7 +391,7 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
             }
             if (m_cMount == 1)
             {
-                if (m_pMount)
+                if (m_pMount && bMountTable)
                 {
                     m_pMount->m_dwFPS = m_pSkinMesh->m_dwFPS;
                     m_pMount->SetAnimation(g_MobAniTable[m_nMountSkinMeshType].dwAniTable[(int)eMotion]);
@@ -421,7 +411,7 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
 
             m_eMotion = eMotion;
             m_pSkinMesh->m_dwFPS = g_MobAniTable[m_nSkinMeshType].dwSpeed[(int)eMotion];
-            if (m_cMount == 1 && m_pMount)
+            if (m_cMount == 1 && m_pMount && bMountTable)
                 m_pMount->m_dwFPS = g_MobAniTable[m_nMountSkinMeshType].dwSpeed[(int)eMotion];
         }
 
@@ -435,7 +425,8 @@ void TMHuman::SetAnimation(ECHAR_MOTION eMotion, int nLoop)
 
 void TMHuman::AnimationFrame(int nWalkSndIndex)
 {
-    if (m_dwDelayDel || !m_pSkinMesh)
+    // Frame sounds index g_MobAniTable by skin type.
+    if (m_dwDelayDel || !m_pSkinMesh || !human_animation::IsSkinType(m_nSkinMeshType))
         return;
 
     if (m_pShade)
@@ -497,7 +488,7 @@ ExtractedFlow TMHuman::PlayWalkFrame(int& nWalkSndIndex)
         unsigned int dwOffset = m_pSkinMesh->m_dwOffset;
         int nSkinMeshType = m_nSkinMeshType;
         int nHeadMesh = m_stLookInfo.HelmMesh;
-        if (m_cMount == 1 && m_pMount)
+        if (m_cMount == 1 && m_pMount && human_animation::IsSkinType(m_nMountSkinMeshType))
         {
             dwOffset = m_pMount->m_dwOffset;
             nSkinMeshType = m_nMountSkinMeshType;
@@ -770,6 +761,7 @@ void TMHuman::PlayNonAttackFrame()
 // Extracted from TMHuman::AnimationFrame; behavior is unchanged.
 void TMHuman::PlayAttackFrame()
 {
+    const auto animationEmissions = m_animationEmission.Steps(g_pTimerManager->GetServerTime(), m_bVisible == 1);
         if (m_pSkinMesh->m_dwOffset >= 6 && m_pSkinMesh->m_dwOffset < 8)
         {
             if (m_nSkinMeshType == 4 || m_nSkinMeshType == 2)
@@ -822,7 +814,7 @@ void TMHuman::PlayAttackFrame()
 
         if (m_pSkinMesh->m_dwOffset >= 8 && m_pSkinMesh->m_dwOffset < 11)
         {
-            if (m_nClass == 68 && (m_eMotion == ECHAR_MOTION::ECMOTION_ATTACK02 || m_eMotion == ECHAR_MOTION::ECMOTION_ATTACK05))
+            for (unsigned int emission = (m_nClass == 68 && (m_eMotion == ECHAR_MOTION::ECMOTION_ATTACK02 || m_eMotion == ECHAR_MOTION::ECMOTION_ATTACK05)) ? animationEmissions : 0; emission; --emission)
             {
                 for (int i = -3; i < 3; ++i)
                 {
@@ -844,6 +836,7 @@ void TMHuman::PlayAttackFrame()
                         g_pCurrentScene->m_pEffectContainer->AddChild(pBillEffect2);
                     }
                 }
+
             }
         }
 
@@ -872,7 +865,7 @@ void TMHuman::PlayAttackFrame()
                         fLevel = 1.0f;
                     TMVector3 vec{ m_vecAttTargetPos.x, (m_fHeight + 0.89999998f) + (0.30000001f * fLevel), m_vecAttTargetPos.y };
 
-                    if (m_dwAttackEffectTime && g_pTimerManager->GetServerTime() > (m_dwAttackEffectTime + 100))
+                    if (m_dwAttackEffectTime && human_timer::Elapsed(g_pTimerManager->GetServerTime(), m_dwAttackEffectTime, 100))
                     {
                         D3DXVECTOR3 vecAxis{ 0.0f, 0.0f, -1.0f };
                         D3DXVECTOR3 vecMyToTarget{ m_vecAttTargetPos.x - m_vecPosition.x, 0.0f, m_vecAttTargetPos.y - m_vecPosition.y };
@@ -1133,7 +1126,7 @@ void TMHuman::PlayAttackFrame()
 
                 TMVector3 other{ m_vecAttTargetPos.x, (m_fHeight + 0.89999998f) + (0.30000001f * fLevel), m_vecAttTargetPos.y };
 
-                if (m_dwAttackEffectTime && g_pTimerManager->GetServerTime() > (m_dwAttackEffectTime + 100))
+                if (m_dwAttackEffectTime && human_timer::Elapsed(g_pTimerManager->GetServerTime(), m_dwAttackEffectTime, 100))
                 {
                     D3DXVECTOR3 pV1{ 0.0f, 0.0f, -1.0f };
                     D3DXVECTOR3 pV2{
@@ -1255,9 +1248,9 @@ void TMHuman::PlayAttackFrame()
             }
         }
 
-        if (m_nSkinMeshType == 20 && (!m_stLookInfo.HelmMesh || m_stLookInfo.HelmMesh == 2) && !(m_pSkinMesh->m_dwOffset % 5) &&
+        for (unsigned int emission = (m_nSkinMeshType == 20 && (!m_stLookInfo.HelmMesh || m_stLookInfo.HelmMesh == 2) && !(m_pSkinMesh->m_dwOffset % 5) &&
             m_eMotion == ECHAR_MOTION::ECMOTION_ATTACK02 &&
-            (m_vecOldFire.x != m_vecTempPos[0].x || m_vecOldFire.y != m_vecTempPos[0].y || m_vecOldFire.z != m_vecTempPos[0].z))
+            (m_vecOldFire.x != m_vecTempPos[0].x || m_vecOldFire.y != m_vecTempPos[0].y || m_vecOldFire.z != m_vecTempPos[0].z)) ? animationEmissions : 0; emission; --emission)
         {
             auto pBill = new TMEffectBillBoard(44, 2000, 0.5f, 0.5f, 0.5f, 0.00050000002f, 1, 80);
             if (pBill)
@@ -1267,6 +1260,7 @@ void TMHuman::PlayAttackFrame()
                 g_pCurrentScene->m_pEffectContainer->AddChild(pBill);
             }
             m_vecOldFire = m_vecTempPos[0];
+
         }
 
 }

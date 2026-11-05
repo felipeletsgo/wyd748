@@ -20,12 +20,13 @@ public:
     int FrameMove(unsigned int dwServerTime) override;
 
 public:
+    // Defaults keep a null-target instance defined: it expires after 1 ms.
     TMVector3 m_vecStartPos;
     TMVector3 m_vecTargetPos;
     TMVector3 m_vecDistance;
-    unsigned int m_dwCreateTime;
-    unsigned int m_dwLifeTime;
-    int m_nEntity;
-    int m_nTextureIndex;
-    float m_fLen;
+    unsigned int m_dwCreateTime = 0;
+    unsigned int m_dwLifeTime = 1;
+    int m_nEntity = 0;
+    int m_nTextureIndex = 0;
+    float m_fLen = 0.0f;
 };

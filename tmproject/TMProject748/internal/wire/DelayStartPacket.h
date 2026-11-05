@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intencao C->S sobrecarregada do 7.48. Parm zero cobre System/fechamento;
-// valores 1 e 2 distinguem transicoes locais. O servidor nao confia no Parm.
+// Overloaded 7.48 C->S intent. Parm zero covers System/close; values 1 and 2 distinguish local transitions.
+// The server does not trust Parm.
 constexpr auto MSG_DelayStart_Opcode = 0x3AE;
 constexpr auto MSG_SysQuit_Opcode = MSG_DelayStart_Opcode;
 struct MSG_DelayStart
@@ -13,7 +13,7 @@ struct MSG_DelayStart
 	int Parm;
 };
 
-// O nome SysQuit documenta os callers de System sem duplicar o mesmo ABI.
+// SysQuit names the System callers without duplicating the ABI.
 using MSG_SysQuit = MSG_DelayStart;
 
 static_assert(sizeof(MSG_DelayStart) == 16, "WYD 7.48 DelayStart packet must be 16 bytes");

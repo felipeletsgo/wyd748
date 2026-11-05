@@ -4,6 +4,27 @@
 #include <cmath>
 #include "AirMoveRoutes.h"
 
+namespace air_move_motion
+{
+constexpr float kReferenceFrameMilliseconds = 1000.0f / 30.0f;
+constexpr unsigned int kMaximumFrameDeltaMilliseconds = 100;
+
+// Scale frame steps to the legacy 30-FPS update and bound a stalled frame to
+// three reference steps. Unsigned subtraction handles server-tick wrap.
+inline float FrameScale(unsigned int now, unsigned int previous)
+{
+    const unsigned int elapsed = now - previous;
+    const unsigned int bounded = elapsed < kMaximumFrameDeltaMilliseconds
+        ? elapsed : kMaximumFrameDeltaMilliseconds;
+    return static_cast<float>(bounded) / kReferenceFrameMilliseconds;
+}
+
+inline float ScaleStep(float step, float frameScale)
+{
+    return step * frameScale;
+}
+}
+
 // AirMove stores only the displacement pending for the current frame.  Once
 // committed to the client's position it must not be applied again. The server
 // remains authoritative for the destination.

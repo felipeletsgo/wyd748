@@ -157,7 +157,7 @@ func TestMagicAdditionMatchesClientEligibilityAndRefinement(t *testing.T) {
 	for _, unique := range []int{0, 40, 41, 45, 50, 51} {
 		def := model.ItemDef{Unique: unique, DynamicEffectNames: map[byte]string{68: "EF_MAGICADD"},
 			StaticEffects: []model.StaticEffect{{Name: "EF_MAGIC", Value: 20}}}
-		item := model.Item{Eff: [6]byte{43, 9, 68, 12}}
+		item := model.Item{Index: 100, Eff: [6]byte{43, 9, 68, 12}}
 		want := 0
 		if unique >= 41 && unique <= 50 {
 			want = 22

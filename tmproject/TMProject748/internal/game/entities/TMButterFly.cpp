@@ -49,8 +49,12 @@ TMButterFly::TMButterFly(int nType, int nBD, TMObject* pOwner)
 		m_stLookInfo.Skin0 = rand() % 3;
 
 	m_fCircleSpeed = static_cast<float>(nRand) * 0.1f + 1.0f;
-	m_fParticleH = static_cast<float>(nRand) * 0.5f + 3.0f;
+	// The legacy constructor assigned m_fParticleH twice (nRand * 0.5f + 3.0f,
+	// then the value below) and never set m_fParticleV. Keep the effective
+	// horizontal radius; the vertical amplitude stays zero until native
+	// evidence defines it.
 	m_fParticleH = static_cast<float>(nRand) * 0.05f + 0.2f;
+	m_fParticleV = 0.0f;
 }
 
 TMButterFly::~TMButterFly()

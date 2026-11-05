@@ -8,11 +8,11 @@
 #include "TMMesh.h"
 #include "TMEffectBillBoard.h"
 #include "TMEffectSpark2.h"
+#include "EffectGuards.h"
 
 TMEffectSWSwing::TMEffectSWSwing()
     : TMEffect()
 {
-    m_dwOldTime = 0;
     m_dwOldMixTime = 0;
     m_dwStartTime = 0;
     m_pParentSkin = 0;
@@ -225,16 +225,9 @@ int TMEffectSWSwing::Render()
                         if (i > 1)
                             pMesh->m_nTextureIndex[0] = nTexIndex[i];
 
-                        D3DVERTEXBUFFER_DESC vDesc;
-                        pMesh->m_pVB->GetDesc(&vDesc);
-
-                        RDLVERTEX* pVertex;
-                        pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-                        int nCount = vDesc.Size / 24;
-                        for (int j = 0; j < nCount; ++j)
-                            pVertex[j].diffuse = dwB | (dwG << 8) | (dwR << 16);
-
-                        pMesh->m_pVB->Unlock();
+                        // A failed load keeps a mesh without a VB, and Lock can fail.
+                        effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(
+                            pMesh->m_pVB, dwB | (dwG << 8) | (dwR << 16));
                         pMesh->Render(0, 0);
                     }
                 }               
@@ -265,6 +258,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
     if (!m_pParentSkin->m_pOwner->m_bVisible)
         return 0;
 
+    const auto emissions = m_emissionClock.Steps(dwServerTime);
     D3DXVECTOR4 vecStartOut;
     D3DXVECTOR3 vecStartIn{ 0.0f, 0.0f, 0.0f };
     D3DXVECTOR3 vecIn{ 0.0f, 0.0f, m_fEffectLength * 1.5f };
@@ -274,9 +268,10 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
     m_vertex[0].position = TMVector3(vecStartOut.x, vecStartOut.y, vecStartOut.z);
     m_vecPosition = m_vertex[0].position;
 
+    // Each weapon emitter family has its own clock and advances it on emission.
     if (m_nHandEffect == 1 && !g_bHideEffect)
     {
-        if (dwServerTime - m_dwOldTime > 100 && !g_bHideEffect)
+        if (m_emitters.TryEmit(swing_emitter::Berserk, dwServerTime))
         {
             float fRand = (float)(rand() % 5);
            
@@ -300,7 +295,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
             }
         }
     }
-    else if (m_nHandEffect == 4 && !g_bHideEffect && dwServerTime - m_dwOldTime > 30)
+    else if (m_nHandEffect == 4 && !g_bHideEffect && m_emitters.TryEmit(swing_emitter::HandFour, dwServerTime))
     {
         D3DXVec3Transform(&vecStartOut, &vecIn, &m_matEffect);
         if (!g_bHideEffect)
@@ -327,9 +322,8 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
                 g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
             }
         }
-        m_dwOldTime = dwServerTime;
     }
-    if (m_cFireEffect == 1 && !g_bHideEffect)
+    for (unsigned int emission = (m_cFireEffect == 1 && !g_bHideEffect) ? emissions : 0; emission; --emission)
     {
         D3DXVec3Transform(&vecStartOut, &vecIn, &m_matEffect);
         if (!g_bHideEffect)
@@ -356,8 +350,9 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
                 g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
             }
         }
+
     }
-    if (m_cAssert == 1 && !g_bHideEffect && !g_bHideSkillBuffEffect2 && dwServerTime - m_dwOldTime > 50)
+    if (m_cAssert == 1 && !g_bHideEffect && !g_bHideSkillBuffEffect2 && m_emitters.TryEmit(swing_emitter::Assert, dwServerTime))
     {
         float fRand = (float)(rand() % 5);
 
@@ -392,11 +387,9 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
             pFire2->m_vecPosition = TMVector3(vecStartOut.x, vecStartOut.y + 0.2f, vecStartOut.z);
             g_pCurrentScene->m_pEffectContainer->AddChild(pFire2);
         }
-
-        m_dwOldTime = dwServerTime;
     }
     // Native FUN_004da607: three pairs of particles per emission.
-    if (m_cMagicWeapon == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 50)
+    if (m_cMagicWeapon == 1 && !g_bHideEffect && m_emitters.TryEmit(swing_emitter::MagicWeapon, dwServerTime))
     {
         unsigned int dwColor[3];
         dwColor[0] = 0xFF550088;
@@ -448,9 +441,8 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
                 g_pCurrentScene->m_pEffectContainer->AddChild(pChild2);
             }
         }
-        m_dwOldTime = dwServerTime;
     }
-    if (m_cArmorClass == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 100)
+    if (m_cArmorClass == 1 && !g_bHideEffect && m_emitters.TryEmit(swing_emitter::ArmorClass, dwServerTime))
     {
         for (int k = 0; k < 1; ++k)
         {
@@ -500,11 +492,10 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
                 g_pCurrentScene->m_pEffectContainer->AddChild(pChild2);
             }
         }
-        m_dwOldTime = dwServerTime;
     }
     if (m_bEnchant)
     {
-        if (!g_bHideEffect)
+        for (unsigned int emission = !g_bHideEffect ? emissions : 0; emission; --emission)
         {
             int nRand = rand() % 5;
 
@@ -531,6 +522,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
                 mpBill->SetColor(0xFF55AAFF);
                 g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
             }
+
         }
 
         vecIn = D3DXVECTOR3(0.0f, 0.0f, m_fEffectLength);
@@ -557,7 +549,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
         m_pEnchant = 0;
     }
 
-    if (m_cGoldPiece == 1 && !g_bHideEffect)
+    for (unsigned int emission = (m_cGoldPiece == 1 && !g_bHideEffect) ? emissions : 0; emission; --emission)
     {
         float fRand = (float)(rand() % 5);
         TMEffectBillBoard* pChild = new TMEffectBillBoard(
@@ -582,6 +574,7 @@ int TMEffectSWSwing::FrameMove(unsigned int dwServerTime)
             pChild->SetColor(0xFFFFFF55);
             g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
         }
+
     }
 
     if (m_dwStartTime)

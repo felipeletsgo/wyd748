@@ -1,11 +1,27 @@
 #include "pch.h"
+#include "AssetFileOpen.h"
+#include "../diagnostics/PerfTrace.h"
 #include "dsutil.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "../../application/AssetLoadValidation.h"
 #include "../../application/OwnedSoundBuffers.h"
+#include "SoundPlayback.h"
+#include "WaveFormatChunk.h"
 #include <memory>
 #include <new>
+
+static_assert(sizeof(WAVEFORMATEX) == wave_format::HeaderBytes, "WAVEFORMATEX layout");
+static_assert(DSBSTATUS_PLAYING == sound_playback::PlayingStatus, "DirectSound playing status bit");
+
+namespace {
+// ReadMMIO allocates the format with its trailing extra bytes as a byte array.
+void FreeWaveFormat(WAVEFORMATEX*& format)
+{
+	delete[] reinterpret_cast<BYTE*>(format);
+	format = nullptr;
+}
+}
 
 CSoundManager::CSoundManager()
 {
@@ -248,12 +264,22 @@ CSound* CSoundManager::GetSoundData(int nIndex)
 
 	if (!m_stSoundDataList[nIndex].pSoundData)
 	{
-		if (FAILED(Create(&m_stSoundDataList[nIndex].pSoundData,
+        const char* path = m_stSoundDataList[nIndex].szFileName;
+        if (!asset_file::Misses().ShouldTry(path, GetTickCount64())) return nullptr;
+		perf_trace::ScopedIO timing("sound", path);
+		const HRESULT loadResult = Create(&m_stSoundDataList[nIndex].pSoundData,
 			m_stSoundDataList[nIndex].szFileName,
 			DSBCAPS_CTRLVOLUME,
 			GUID_NULL,
-			m_stSoundDataList[nIndex].nChannel)))
+			m_stSoundDataList[nIndex].nChannel);
+		timing.Complete(SUCCEEDED(loadResult));
+		if (FAILED(loadResult))
 		{
+            if (GetFileAttributesA(path) == INVALID_FILE_ATTRIBUTES) {
+                const DWORD error = GetLastError();
+                if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+                    asset_file::Misses().Missing(path, GetTickCount64());
+            }
 			LOG_WRITELOG("Load Sound Error %d : %s\n", nIndex, m_stSoundDataList[nIndex].szFileName);
 
 			return nullptr;
@@ -534,22 +560,9 @@ HRESULT CSound::Reset()
 
 BOOL CSound::IsSoundPlaying()
 {
-	if (!m_apDSBuffer)
-		return DDERR_NOTINITIALIZED;
-
-	int bIsPlaying = 0;
-	for (DWORD i = 0; i < m_dwNumBuffers; ++i)
-	{
-		if (m_apDSBuffer[i])
-		{
-			DWORD dwStatus = 0;
-			m_apDSBuffer[i]->GetStatus(&dwStatus);
-			
-			bIsPlaying |= ((dwStatus % 1) != 0);
-		}
-	}
-
-	return bIsPlaying;
+	// Test DSBSTATUS_PLAYING. The previous "status % 1" was always zero, and
+	// a missing buffer returned an HRESULT that callers read as TRUE.
+	return sound_playback::AnyPlaying(m_apDSBuffer, m_dwNumBuffers) ? TRUE : FALSE;
 }
 
 CStreamingSound::CStreamingSound(LPDIRECTSOUNDBUFFER pDSBuffer, DWORD dwDSBufferSize, CWaveFile* pWaveFile, DWORD dwNotifySize)
@@ -707,43 +720,38 @@ HRESULT CWaveFile::ReadMMIO()
 	if (mmioRead(m_hmmio, (HPSTR)&pcmWaveFormat, 16) != 16)
 		return E_FAIL;
 
-	if (pcmWaveFormat.wf.wFormatTag == 1)
-	{
-		m_pwfx = new tWAVEFORMATEX();
-		if (!m_pwfx)
-			return E_FAIL;
-
-		memcpy((char*)m_pwfx, (char*)&pcmWaveFormat, 0x10u);
-		m_pwfx->cbSize = 0;
-
-		if (!mmioAscend(m_hmmio, &ckIn, 0))
-			return S_OK;
-
-		SAFE_DELETE(m_pwfx);
+	// Non-PCM formats carry cbSize extra bytes after WAVEFORMATEX. Allocate
+	// them with the structure and require them to fit inside the fmt chunk.
+	const WORD formatTag = pcmWaveFormat.wf.wFormatTag;
+	WORD cbExtraBytes = 0;
+	if (wave_format::HasExtraSize(formatTag, ckIn.cksize) &&
+		mmioRead(m_hmmio, (HPSTR)&cbExtraBytes, 2) != 2)
 		return E_FAIL;
-	}
+	if (formatTag == wave_format::PcmTag)
+		cbExtraBytes = 0;
 
-	unsigned short cbExtraBytes = 0;
-	if (mmioRead(m_hmmio, (HPSTR)&cbExtraBytes, 2) != 2)
+	const size_t formatBytes = wave_format::AllocationBytes(formatTag, ckIn.cksize, cbExtraBytes);
+	if (formatBytes == 0)
 		return E_FAIL;
 
-	m_pwfx = new tWAVEFORMATEX();
-	if (!m_pwfx)
+	BYTE* storage = new (std::nothrow) BYTE[formatBytes]();
+	if (!storage)
 		return E_FAIL;
-
-	memcpy((char*)m_pwfx, (char*)&pcmWaveFormat, 0x10u);
+	m_pwfx = reinterpret_cast<WAVEFORMATEX*>(storage);
+	memcpy(storage, &pcmWaveFormat, 0x10u);
 	m_pwfx->cbSize = cbExtraBytes;
 
-	if (mmioRead(m_hmmio, (HPSTR)&m_pwfx[1], cbExtraBytes) == cbExtraBytes)
+	if (cbExtraBytes != 0 &&
+		mmioRead(m_hmmio, (HPSTR)(storage + sizeof(WAVEFORMATEX)), cbExtraBytes) != cbExtraBytes)
 	{
-		if (!mmioAscend(m_hmmio, &ckIn, 0))
-			return S_OK;
-
-		SAFE_DELETE(m_pwfx);
+		FreeWaveFormat(m_pwfx);
 		return E_FAIL;
 	}
 
-	SAFE_DELETE(m_pwfx);
+	if (!mmioAscend(m_hmmio, &ckIn, 0))
+		return S_OK;
+
+	FreeWaveFormat(m_pwfx);
 	return E_FAIL;
 }
 
@@ -798,7 +806,7 @@ CWaveFile::~CWaveFile()
 	Close();
 
 	if (!m_bIsReadingFromMemory)
-		SAFE_DELETE(m_pwfx);
+		FreeWaveFormat(m_pwfx);
 }
 
 HRESULT CWaveFile::Open(LPTSTR strFileName, WAVEFORMATEX* pwfx, DWORD dwFlags)
@@ -811,7 +819,7 @@ HRESULT CWaveFile::Open(LPTSTR strFileName, WAVEFORMATEX* pwfx, DWORD dwFlags)
 		if (!strFileName)
 			return E_INVALIDARG;
 
-		SAFE_DELETE(m_pwfx);
+		FreeWaveFormat(m_pwfx);
 
 		m_hmmio = mmioOpenA(strFileName, 0, MMIO_ALLOCBUF);
 

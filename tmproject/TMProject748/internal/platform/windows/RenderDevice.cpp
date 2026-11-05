@@ -7,6 +7,7 @@
 #include "RenderStateCache.h"
 #include "DeviceRestore.h"
 #include "DeviceFrame.h"
+#include "DisplayModeQuery.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
 #include "PerfTrace.h"
@@ -155,8 +156,10 @@ int RenderDevice::Initialize(HWND hWnd)
 	if (D3DDevice::Initialize(hWnd) != S_OK)
 		return 0;
 
-	if (m_bFull)
-		ToggleFullscreen();
+	// A failed toggle has already reported its fatal error and posted the
+	// close request. Return before any further member access.
+	if (m_bFull && FAILED(ToggleFullscreen()))
+		return 0;
 
 	if (m_pTextureManager == nullptr)
 	{
@@ -170,8 +173,9 @@ int RenderDevice::Initialize(HWND hWnd)
 
 		if (m_pMeshManager != nullptr)
 			m_pMeshManager->RestoreDeviceObjects();
-		if (m_pTextureManager != nullptr)
-			m_pTextureManager->RestoreRenderTargetTexture();
+		// No renderer reads the imported bloom and accumulation targets. They
+		// were the only DEFAULT-pool textures and made every Reset fail, so
+		// the client no longer creates them.
 	}
 
 	if (m_pFont == nullptr)
@@ -309,15 +313,8 @@ void RenderDevice::Finalize()
 	if (m_pd3dDevice != nullptr)
 		m_pd3dDevice->SetGammaRamp(0, 0, &gamma);
 
-	if (m_pd3dDevice != nullptr && m_d3dpp.Windowed && g_pApp != nullptr && g_pApp->m_hWnd != nullptr)
-	{
-		HDC hdc = GetDC(g_pApp->m_hWnd);
-		if (hdc != nullptr)
-		{
-			SetDeviceGammaRamp(hdc, &gamma);
-			ReleaseDC(g_pApp->m_hWnd, hdc);
-		}
-	}
+	// Return the user's own desktop ramp, not a linear ramp.
+	RestoreDesktopGamma();
 
 	SAFE_DELETE(m_pTextureManager);
 	SAFE_DELETE(m_pMeshManager);
@@ -370,7 +367,7 @@ void RenderDevice::SetViewPort(int nStartX, int nStartY, int nWidth, int nHeight
 
 int RenderDevice::Lock(int bClear)
 {
-	return device_frame::Begin(m_pd3dDevice, m_bDeviceLost, m_bDeviceObjectsRestored,
+	const int begun = device_frame::Begin(m_pd3dDevice, m_bDeviceLost, m_bDeviceObjectsRestored, m_deviceRecovery,
 		[this]() -> HRESULT {
 			if (!m_bWindowed) return S_OK;
 			D3DAdapterInfo* adapter = m_d3dSettings.PAdapterInfo();
@@ -400,7 +397,20 @@ int RenderDevice::Lock(int bClear)
 			}
 
 			return m_pd3dDevice->Clear(0, nullptr, D3DCLEAR_ZBUFFER | D3DCLEAR_TARGET, m_dwActualClearColor, 1.0f, 0);
-		}) ? 1 : 0;
+		},
+		[]() -> DWORD { return timeGetTime(); }) ? 1 : 0;
+
+	// The device cannot be recreated. Request one orderly close instead of
+	// keeping a frozen frame; the close message runs after this frame returns.
+	if (!begun && m_deviceRecovery.fatal && !m_bRecoveryExitRequested)
+	{
+		m_bRecoveryExitRequested = true;
+		LOG_WRITELOG("Direct3D device recovery failed: 0x%08lX\r\n",
+			static_cast<unsigned long>(m_deviceRecovery.lastFailure));
+		if (m_hWnd != nullptr)
+			PostMessage(m_hWnd, WM_CLOSE, 0, 0);
+	}
+	return begun;
 }
 
 int RenderDevice::Unlock(int bEnd)
@@ -408,26 +418,19 @@ int RenderDevice::Unlock(int bEnd)
 	if (!m_pd3dDevice) return 0;
 	if (bEnd == 1 && m_pFont != nullptr)
 	{
-		float fTime = timeGetTime() * 0.001f;
-
-		static DWORD dwFrames = 0;
-		++dwFrames;
 		static char szString[256];
 
-		static float fLastTime = 0.0f;
-		if ((fTime - fLastTime) > 2.0f)
+		if (m_frameRate.Frame(timeGetTime(), m_fFPS))
 		{
-			m_fFPS = dwFrames / (fTime - fLastTime);
-			fLastTime = fTime;
-			dwFrames = 0;
-			
 #ifdef _DEBUG
 			sprintf(szString, "FPS: %4.3f | Objects: %d | EN: %d | Effects2: %d ", m_fFPS, g_objectnumber, g_effectnumber/*, g_totaleffect*/, m_bShowEffects);
 #endif
 		}
 
 		m_bShowEffects = 0;
-		if (g_bDebugMsg == 1)
+		// Release builds never fill the statistics text. Skip the empty
+		// rasterization and texture upload instead of repeating it each frame.
+		if (g_bDebugMsg == 1 && szString[0] != '\0')
 		{
 			m_pFont->SetText(szString, 0xFFFFFFFF, 0);
 			m_pFont->Render(10, m_dwScreenHeight - 15, 0);
@@ -465,8 +468,10 @@ void RenderDevice::RestoreWindowMode()
 
 int RenderDevice::ChangeDisplay(DWORD x, DWORD y, DWORD bpp, DWORD ref)
 {
-	DEVMODE mode;
-	GetCurrentDisplayMode(&mode);
+	DEVMODE mode{};
+	// A failed lookup leaves no defined mode; never pass it to a global change.
+	if (!GetCurrentDisplayMode(&mode))
+		return 0;
 
 	mode.dmPelsWidth = x;
 	mode.dmPelsHeight = y;
@@ -487,15 +492,12 @@ HRESULT RenderDevice::GetCurrentDisplayMode(PDEVMODE devMode)
 	GetDeviceCaps(hDC, VREFRESH);
 	DeleteDC(hDC);
 
-	int iModeNum = 0;
-	for (int bResult = EnumDisplaySettings(0, 0, devMode); bResult; bResult = EnumDisplaySettings(0, iModeNum, devMode))
+	for (DWORD index = 0; display_mode::Query(display_mode::EnumeratePrimary, index, *devMode); ++index)
 	{
-		if (devMode->dmPelsWidth == iOrgX && devMode->dmPelsHeight == iOrgY && devMode->dmBitsPerPel == iOrgBpp)
+		if (devMode->dmPelsWidth == static_cast<DWORD>(iOrgX) && devMode->dmPelsHeight == static_cast<DWORD>(iOrgY) &&
+			devMode->dmBitsPerPel == static_cast<DWORD>(iOrgBpp))
 			return 1;
-
-		++iModeNum;
 	}
-
 	return 0;
 }
 
@@ -544,8 +546,8 @@ HRESULT RenderDevice::RestoreDeviceObjects()
 			return hr;
 	}
 
-	if (g_pApp != nullptr && g_pApp->m_pObjectManager != nullptr)
-		g_pApp->m_pObjectManager->RestoreDeviceObjects();
+	// Scene objects keep their MANAGED meshes and textures across Reset, so
+	// device recovery neither rebuilds nor reloads them.
 
 	if (m_hDC == nullptr || m_hbmBitmap == nullptr || m_hFont == nullptr || m_pBitmapBits == nullptr)
 	{
@@ -598,12 +600,11 @@ HRESULT RenderDevice::InvalidateDeviceObjects()
 {
 	render_state_cache::ForgetTextures(m_pTexture);
 	m_dyePixelShader.Reset();
+	// Reset requires only DEFAULT-pool objects and swap-chain references to be
+	// released. Textures, meshes and the skin parts that borrow cached meshes
+	// are MANAGED and stay valid; the managers release them at shutdown.
 	if (m_pTextureManager != nullptr)
-		m_pTextureManager->ReleaseTexture();
-	if (m_pMeshManager != nullptr)
-		m_pMeshManager->ReleaseMesh();
-	if (g_pObjectManager != nullptr)
-		g_pObjectManager->InvalidateDeviceObjects();
+		m_pTextureManager->ReleaseRenderTargetTexture();
 
 	for (int iInfl = 0; iInfl < 8; ++iInfl)
 	{

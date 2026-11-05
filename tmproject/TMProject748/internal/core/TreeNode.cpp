@@ -27,6 +27,7 @@ TreeNode::TreeNode(unsigned int id)
 
 TreeNode::~TreeNode()
 {
+	++s_destructionCount;
 	TreeNode* pNext;
 
 	for (TreeNode* pCurrent = m_pDown; pCurrent; pCurrent = pNext)

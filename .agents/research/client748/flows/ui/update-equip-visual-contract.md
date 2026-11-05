@@ -4,7 +4,7 @@ title: Equipment appearance snapshot and transformation effects
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-10-15
+updated: 2026-11-02
 ---
 
 # Equipment appearance snapshot
@@ -27,6 +27,7 @@ play transformation effects rather than interrupting ordinary buff casts?
 - USED: WYD-Go `wire.SelfEquip`, `VisualEquip`, `bodyMesh`, `bodyAncient`,
   `clientEquipProjection`, appearance publisher and existing contract tests.
   The October correction does not change server source or packet emission.
+  The November correction changes the full and compact projections together.
 - USED: C++ packet contract tests and source-scope regression checks in
   `SceneDisconnectContractTests.cpp`.
 - NOT APPLICABLE: no new asset, resource binding or later-client algorithm
@@ -99,6 +100,29 @@ bounds each block to sixteen entries. `visibility.go :: refreshAppearance`
 publishes this snapshot to the player view. The server zeros unsupported slots
 before building it; the client keeps the received visual/color bytes.
 
+### Full and compact appearance correction (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Native `FUN_00524ded` materializes
+full equipment; `FUN_00526140` and `FUN_00527032` apply compact visuals and
+colors. Reuse these inputs and the parallel-array contract above.
+TMSRVIN `0x4B97F0` supplies refinement decoding, not the rendering algorithm.
+Core.dll candidates did not resolve an independent appearance implementation.
+
+The Go producer now selects explicit effect 43 before color effects 115–126.
+High refinement retains its decoded value in both projections; the compact
+four-bit field clamps at 15, while authoritative item statistics remain separate.
+Color bytes encode the high-refinement gem variant and dye without replacing
+the refinement with +9. The full client path uses the same visual clamp and
+legend-grade rule as the compact path. `SetColorItem` decodes the color after
+the base grade and commits the previous-appearance snapshot after color changes.
+Wild Fenrir scale is 1.1 in both paths. The original mount ID supplies max HP
+before full-snapshot mesh substitutions. No packet size, offset or item byte changes.
+
+Creation, owner/observer updates, visibility re-entry and relogin consume these
+two projections. Scene ownership and effect teardown remain unchanged.
+Automated checks cover 240 dyed projections, mount tables and client policies;
+two-client rendering, transformations and shadow transitions remain pending.
+
 ## Delta matrix
 
 | Claim | Native 7.48 | Previous source | Current behavior | Classification |
@@ -138,9 +162,15 @@ and require equipment/color/object/weapon/HUD updates outside it. Existing
 packet fixtures cover truncated/oversized/null/mismatched frames and arrays.
 Historical Go packet coverage is reused, not rerun for this client-only scope.
 
-Candidate `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256:
+Historical October 15 candidate `tmproject/build/TMProject748/Release/WYD.exe`, SHA-256:
 `BBCF4B139CC89B4A732E1461FC3CD85BA02D891270C3A04960DF94AC63F2D7BA`.
-Installed runtime remains
+The installed runtime recorded on October 15 was
 `0B0EB676E192DB1626B03EC38E8FA06DE1F6235CF5EC9F4B4557F12E21CB7DD6`.
 Real client: pending. No runtime replacement, public patch, VPS deployment
 or restart; this flow remains CONTRACT, not CLIENT_TESTED.
+
+AUTOMATED TESTED, November 2: Release/x86 passed 3,201,550 architecture checks,
+295 socket checks, 148 crash checks, 66 launcher checks and 120 updater checks.
+The full Go suite, vet and focused race batch passed. The current candidate
+and installed hashes are recorded in `build/client-native-corrections-20261102/REPORT.md`.
+The current appearance changes remain pending real-client acceptance.

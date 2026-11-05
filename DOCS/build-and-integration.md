@@ -112,16 +112,23 @@ Requirements: Windows, Visual Studio with C++ x86 and toolset v145, and the
 Windows SDK. DirectX dependencies are in the client tree.
 
 ```powershell
-pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release
+pwsh -NoProfile -File tmproject/Build-Client.ps1 -Configuration Release -NoDeploy
 ```
 
-The script builds and runs the architecture, socket and launcher tests, builds
-the solution (client and [launcher](client/launcher.md)), and copies
+The script builds and runs architecture, socket and crash-capture tests, builds
+the game and crash reporter, and copies
 `tmproject/build/TMProject748/Release/WYD.exe` to
 `tmproject/client748/WYD.exe`, the executable players run through the
 launcher, verifying SHA-256. It neither starts nor
 stops the game. The installed executable is a product, not the native
 reference.
+
+The adapted native launcher remains separate from the game solution. Validate
+its language extension with `Build-NativeLauncherLanguage.ps1 -NoDeploy`.
+Its source is in `tmproject/NativeLauncher/`. The alternative launcher is removed.
+Use the [native packaging route](client/launcher.md#native-full-client-packaging-2026-11-02)
+for a full installation with the native launcher and signed runtime installer.
+Keep the resulting full-client ZIP on the owner's external file host, not the VPS.
 
 To validate without replacing the installed executable, add `-NoDeploy`.
 In this mode, the artifact and its SHA-256 remain in `tmproject/build/`; no
@@ -158,3 +165,64 @@ content-only changes do not require regenerating the map.
 
 The `references/client748/` collection is evidence; its patchers are
 historical, not active development tools.
+
+<a id="windows-setup"></a>
+## Windows checkout setup
+
+<a id="windows-setup-windows-development-environment-for-wyd-go"></a>
+
+This guide covers setup of the current checkout on Windows. For dependency
+versions, consult `wydgo748/go.mod`, `wydgo748/web/portal/package.json`, and
+the `.vcxproj` projects first. Do not reuse paths, executables, or credentials
+from earlier installations.
+
+<a id="windows-setup-tools"></a>
+### Tools
+
+- Git and PowerShell 7 (`pwsh`);
+- the Go version declared in `wydgo748/go.mod`;
+- Node.js compatible with `wydgo748/web/portal/package.json`, and `npm`;
+- Visual Studio with MSBuild, x86 C++ tools, and the toolset specified in
+  `tmproject/TMProject748/TMProject748.vcxproj`;
+- PostgreSQL and `psql` for server persistence;
+- Python and Java only when native/Ghidra research requires them.
+
+The client uses the DirectX dependencies already present in
+`tmproject/TMProject748/Dependencies/Directx`. Docker, CMake, and Ninja are
+not requirements of the current architecture. Keep the Ghidra project and
+its data outside the repository; `references/client748/` contains read-only
+historical evidence.
+
+<a id="windows-setup-prepare-the-checkout"></a>
+### Prepare the checkout
+
+Run from the repository root:
+
+```powershell
+git status --short
+git rev-parse HEAD
+pwsh -NoProfile -File .\tools\repository\Test-RepositoryLayout.ps1
+go version
+node --version
+npm --version
+psql --version
+```
+
+Preserve local changes before updating or moving the checkout. A fresh clone
+does not replace untracked or ignored files, Ghidra projects, or secrets.
+Keep credentials out of Git. See [Server operations](server/operations.md) for
+`WYD_DATABASE_URL`, database setup, and backups.
+
+<a id="windows-setup-build-and-validate"></a>
+### Local client connection
+
+Use the [client build procedure](#client) and [integration gates](#boundary-between-projects) above.
+
+Run the server with `wydgo748/` as its working directory. To connect the
+client locally, run `tools/client-assets/New-LocalServerList.ps1` from the
+repository root. It writes the ignored `serverlist.local.bin` loopback override
+without modifying the shipped public `serverlist.bin`. Move the override out
+of the runtime before connecting to the VPS; launcher patches do not remove
+local overrides. Run `WYD.exe` or `WYDLauncher.exe` from
+`tmproject/client748/`, because it resolves assets relative to the runtime
+directory. See [server operations](server/operations.md) for operating steps.

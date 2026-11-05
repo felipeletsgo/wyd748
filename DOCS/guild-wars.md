@@ -39,6 +39,52 @@ repair, rejection/rollback, held writes, unknown outcomes and trade closure.
 The full Go suite, `go vet ./...` and focused guild-kingdom race tests passed
 on 2026-10-15. These changes are local only and not CLIENT-TESTED.
 
+## Private guild areas inside cities
+
+The 2026-11-01 correction is `MODERNIZACAO_COMPATIVEL`. Attribute bit `0x20`
+marks private cells in Armia, Azran, Erion, Nippleheim and Noatum. The server
+checks the current world's city owner and canonical guild membership. The
+first four cities use `Wars.Cities.Territories`; Noatum uses `Wars.Castle`.
+Allied guilds receive no ownership exemption. A cached `Char.GuildID` cannot
+grant access after guild membership ends.
+
+The predicate follows the supplied native 7.59 movement gate at
+`0x51D302..0x51D3A1`. Raw `Score.Level >= 400` bypasses that gate. Displayed
+level 400 has raw level 399 and remains restricted. Native equality also
+allows a guildless character when the city's owner is zero. Missing guild
+state does not count as an unowned city. These exceptions remain deliberate.
+
+Movement checks each authoritative route step, including intermediate cells
+when the route ends outside the private area. A rejected step stops the route
+and requests recall through the existing hometown/guild return policy.
+Teleport admission checks the requested cell and the selected free cell.
+Illusion checks access before spending mana or cooldown. Combat jumps,
+revival pulls and the Teleport support skill use the displaced character's
+membership. Private event runtimes retain their separate movement rules;
+their exits into public space still require public destination access.
+
+A per-second guard recalls public players after ownership or membership
+changes. It waits for pending critical account writes to settle. Ownership
+changes cannot invalidate a committed teleport during acknowledgement; the
+next guard tick starts a separate durable recall. A certified rejection keeps
+the prior state and permits a later guard tick to retry. Session coordinates
+remain volatile; durable entry still uses the established hometown contract.
+Login does not restore saved private coordinates.
+
+The same movement predicate protects existing Go displacement paths as a
+compatible extension. Native human summon has a separate raw-level-1000
+branch; no equivalent command was implemented by this change. This evidence
+does not establish unavailable native 7.48 server parity. No client packet,
+asset, admission revision or database schema changed.
+
+Native evidence remains local-only under
+`references/decompilacao server/dlls/rea-analysis/results/guild-city-areas-20261101/`.
+The implementation and test receipt is in ignored
+`build/guild-city-areas-20261101/REPORT.md`. Real-client acceptance remains
+pending for owner, outsider, ally, boundary crossing, skill displacement,
+guild exit and city ownership transfer. Publication and activation were authorized
+and completed in release `20261102T233404Z`; see the [receipt](../.agents/research/release-748018.json).
+
 ## Default schedule
 
 The configured timezone is explicitly `America/Sao_Paulo`, independent of

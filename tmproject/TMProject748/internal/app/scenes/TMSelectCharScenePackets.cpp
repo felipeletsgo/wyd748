@@ -18,6 +18,7 @@
 #include "../../platform/windows/SocketTransport.h"
 #include "../../application/RequestCharacterLogin.h"
 #include "../../application/BoundedText.h"
+#include "../../application/CatalogItemSlots.h"
 #include "../../wire/CharacterLoginSender.h"
 
 bool TMSelectCharScene::HandleJudgementEffect(char* buf)
@@ -53,6 +54,8 @@ void TMSelectCharScene::HandleCharacterLogin(char* buf)
 
 	g_pObjectManager->m_dwCharID = login->ClientID;
 	memcpy(&g_pObjectManager->m_stMobData, &login->MOB, sizeof(login->MOB));
+	catalog_item_slots::ClearOutOfCatalog(g_pObjectManager->m_stMobData.Equip, MAX_ITEMLIST);
+	catalog_item_slots::ClearOutOfCatalog(g_pObjectManager->m_stMobData.Carry, MAX_ITEMLIST);
 	// The 7.48 packet already carries the canonical Score; later sidecars
 	// would reinterpret bytes that belong to other fields.
 	g_pObjectManager->m_nFakeExp = login->Ext1.Data[0];
@@ -87,6 +90,7 @@ void TMSelectCharScene::HandleCharacterDeleted(char* buf)
 	MSG_CNFDeleteCharacter* pDeleteCharacter = reinterpret_cast<MSG_CNFDeleteCharacter*>(buf);
 	m_pMessagePanel->SetVisible(0, 1);
 	memcpy(&g_pObjectManager->m_stSelCharData, &pDeleteCharacter->SelChar, sizeof(pDeleteCharacter->SelChar));
+	g_pObjectManager->m_cCharacterSlot = -1;
 	OnControlEvent(4616, 0);
 	ReloadCharList(RELOAD_CHARLIST_TYPE::DELETE_CHARACTER);
 }
@@ -205,6 +209,8 @@ int TMSelectCharScene::OnPacketEvent(unsigned int dwCode, char* buf)
 			memset(g_pObjectManager->m_stSelCharData.Equip[pReqTransper->Slot], 0, sizeof(g_pObjectManager->m_stSelCharData.Equip[pReqTransper->Slot]));
 			memset(&g_pObjectManager->m_stSelCharData.Score[pReqTransper->Slot], 0, sizeof(g_pObjectManager->m_stSelCharData.Score[pReqTransper->Slot]));
 
+			if (m_pHuman[pReqTransper->Slot])
+				m_pHuman[pReqTransper->Slot]->DelayDelete();
 			g_pObjectManager->DeleteObject(m_pHuman[pReqTransper->Slot]);
 			m_pHuman[pReqTransper->Slot] = nullptr;
 			g_pObjectManager->m_cCharacterSlot = -1;

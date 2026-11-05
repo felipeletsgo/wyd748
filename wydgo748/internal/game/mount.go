@@ -757,6 +757,9 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 		return rider // Affect 51 prevents mount HP loss.
 	}
 	absorbed := incoming - rider
+	if absorbed <= 0 {
+		return rider
+	}
 	hp := mount.MountHP() - absorbed
 	if hp < 0 {
 		hp = 0
@@ -772,6 +775,10 @@ func (w *World) absorbMountDamage(target *Player, incoming int) int {
 			w.refreshAppearance(target)
 			target.Session.Send(wire.MessagePanel(w.msgFor(target, "_WG_Mount_Was_Wounded")))
 		}
+	} else if target.Session != nil {
+		// C.C. and the HUD read Equip[14]. Combat packets contain rider HP,
+		// so publish each accepted mount HP change to its owner as well.
+		target.Session.Send(wire.SendItem(target.ID, placeEquip, byte(mslot), *mount))
 	}
 	return rider
 }

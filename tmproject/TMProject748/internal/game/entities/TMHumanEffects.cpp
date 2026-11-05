@@ -43,6 +43,53 @@
 #include "TMArrow.h"
 #include "TMSkillThunderBolt.h"
 #include "TMEffectDust.h"
+#include "HumanVisualPolicy.h"
+
+namespace
+{
+// UpdateHiddenEffects and the chat Effects toggles only clear m_bShow. Restore
+// it when their condition ends; persistent members are not recreated.
+void RestoreShownEffects(TMHuman& human, bool buffsHidden)
+{
+    using effect_visibility::Show;
+    Show(human.m_pRescue);
+    Show(human.m_pCancelation);
+    Show(human.m_pShadow);
+    Show(human.m_pHuntersVision);
+    Show(human.m_pOverExp);
+    Show(human.m_pBraveOverExp);
+    Show(human.m_pbomb);
+    Show(human.m_pLifeDrain);
+    for (int i = 0; i < 7; ++i)
+    {
+        Show(human.m_pEyeFire[i]);
+        Show(human.m_pEyeFire2[i]);
+        Show(human.m_pRotateBone[i]);
+    }
+    for (int i = 0; i < 5; ++i)
+        Show(human.m_pImmunity[i]);
+
+    if (buffsHidden)
+        return;
+
+    Show(human.m_pMagicShield);
+    Show(human.m_pEleStream);
+    Show(human.m_pEleStream2);
+    Show(human.m_pLightenStorm[0]);
+    Show(human.m_pLightenStorm[1]);
+    Show(human.m_pAurora);
+    Show(human.m_pSkillAmp);
+    Show(human.m_pChargeEnergy);
+    Show(human.m_pCriticalArmor);
+    for (int i = 0; i < 2; ++i)
+    {
+        if (!human.m_pSoul[i])
+            continue;
+        Show(human.m_pSoul[i]);
+        Show(human.m_pSoul[i]->m_pBillBoard);
+    }
+}
+}
 
 void TMHuman::RenderEffect()
 {
@@ -104,23 +151,26 @@ void TMHuman::RenderEffect()
     }
     else if (m_nClass == 18 && m_eMotion == ECHAR_MOTION::ECMOTION_ATTACK02)
     {
-        for (int i = 0; i < 2; ++i)
+        for (unsigned int emission = m_attackEmission.Steps(dwServerTime); emission; --emission)
         {
-            auto pEffect = new TMEffectBillBoard(0, 400 * i + 1500, 0.1f, 0.1f, 0.1f, 0.001f, 1, 80);
-
-            if (pEffect != nullptr)
+            for (int i = 0; i < 2; ++i)
             {
-                pEffect->m_vecPosition = TMVector3{
-                    ((float)(rand() % 10 - 5) * 0.050000001f) + m_vecTempPos[i].x,
-                    m_vecTempPos[i].y,
-                    ((float)(rand() % 10 - 5) * 0.050000001f) + m_vecTempPos[i].z };
+                auto pEffect = new TMEffectBillBoard(0, 400 * i + 1500, 0.1f, 0.1f, 0.1f, 0.001f, 1, 80);
 
-                pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                pEffect->SetColor(0xFFFF6666);
-                g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+                if (pEffect != nullptr)
+                {
+                    pEffect->m_vecPosition = TMVector3{
+                        ((float)(rand() % 10 - 5) * 0.050000001f) + m_vecTempPos[i].x,
+                        m_vecTempPos[i].y,
+                        ((float)(rand() % 10 - 5) * 0.050000001f) + m_vecTempPos[i].z };
+
+                    pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                    pEffect->SetColor(0xFFFF6666);
+                    g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
+                }
             }
         }
-    }
+}
     else if (m_nClass == 25 && m_stLookInfo.FaceMesh == 3 && m_fScale > 1.1751f || m_nClass == 30)
     {
         unsigned int dwColor = 0xFFFF6666;
@@ -306,14 +356,19 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         m_pFamiliar = nullptr;
     }
 
-    if (m_cHide || m_cShadow == 1)
+    // Observers hide a Shadow actor's effects; the local player keeps its own,
+    // including the Shadow indicator plane created below.
+    if (effect_visibility::HidesActorEffects(m_cHide, m_cShadow, g_pCurrentScene->m_pMyHuman == this))
     {
         const ExtractedFlow extractedFlow = UpdateHiddenEffects();
         if (extractedFlow == ExtractedFlow::Return)
             return;
     }
 
-    if (g_bHideSkillBuffEffect == 1 || g_bHideSkillBuffEffect2 == 1)
+    const bool buffsHidden = effect_visibility::HidesBuffEffects(g_bHideSkillBuffEffect, g_bHideSkillBuffEffect2);
+    RestoreShownEffects(*this, buffsHidden);
+
+    if (buffsHidden)
     {
         if (m_pAurora)
             m_pAurora->m_bShow = 0;
@@ -448,7 +503,9 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
     if (m_cWaste == 1 && dwServerTime - m_dwLastWaste > 1000)
     {
         TMVector3 vec{ m_vecPosition.x, m_fHeight, m_vecPosition.y };
-        auto pSlow = new TMSkillSlowSlash(vec, vec, 1, m_stEffectEvent.pTarget);
+        // Waste belongs to this actor, like Elemental below; a pending attack
+        // target is another actor and may already be released.
+        auto pSlow = new TMSkillSlowSlash(vec, vec, 1, this);
         g_pCurrentScene->m_pEffectContainer->AddChild(pSlow);
         m_dwLastWaste = dwServerTime;
     }
@@ -581,7 +638,8 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         pEffect->m_fStartAngle = m_fAngle;
         pEffect->m_fAngle = pEffect->m_fStartAngle;
         pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-        pEffect->m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)m_eMotion]]);
+        pEffect->m_pSkinMesh->SetAnimation(afterimage_clip::Body(g_MobAniTable, MeshManager::m_sAnimationArray,
+            m_nSkinMeshType, m_nWeaponTypeIndex, (int)m_eMotion));
         if (m_cMount > 0 && m_pMount && pEffect->m_pSkinMesh)
         {
             pEffect->m_pSkinMesh->SetAnimation(g_MobAniTable[m_nMountSkinMeshType].dwAniTable[3]);
@@ -755,9 +813,9 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             m_pBraveOverExp->m_vecPosition = { m_vecPosition.x, (float)(TMHuman::m_vecPickSize[m_nSkinMeshType].y * m_fScale) + m_fHeight, m_vecPosition.y };
     }
 
-    if (!g_bHideSkillBuffEffect && m_cManaControl == 1)
+    for (unsigned int emission = m_manaEmission.Steps(dwServerTime, !g_bHideSkillBuffEffect && m_cManaControl == 1 && m_bVisible == 1); emission; --emission)
     {
-        // FUN_00506f9d emits two finite-lived particles per visible frame.
+        // Keep FUN_00506f9d particle parameters at the 30-Hz visual reference.
         const int nRand = rand() % 5;
         auto mpBill = new TMEffectBillBoard(56, 1500,
             (float)nRand * 0.02f + 0.02f,
@@ -795,6 +853,7 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
             mpBill2->SetColor(0xFFFF0000);
             g_pCurrentScene->m_pEffectContainer->AddChild(mpBill2);
         }
+
     }
 
     if (!g_bHideSkillBuffEffect2 && m_cProtector == 1 && !m_pProtector)
@@ -916,7 +975,8 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
 
     if (m_sFamiliar == 753 && !m_pFamiliar)
     {
-        TMVector3 vec{ m_vecPosition.x, (float)(TMHuman::m_vecPickSize[m_nSkinMeshType].y + 0.3f) * m_fScale, m_vecPosition.y };
+        // Anchor at the owner's height, like the other familiars below.
+        TMVector3 vec{ m_vecPosition.x, (float)((TMHuman::m_vecPickSize[m_nSkinMeshType].y + 0.3f) * m_fScale) + m_fHeight, m_vecPosition.y };
         if (!m_pFamiliar)
         {
             m_pFamiliar = new TMEffectSkinMesh(20, vec, vec, 3, this);
@@ -1095,17 +1155,22 @@ void TMHuman::FrameMoveEffect(unsigned int dwServerTime)
         pEffect->m_fAngle = pEffect->m_fStartAngle;
         pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
 
+        // Clips follow SetAnimation: the mount mesh uses its own table value and
+        // only skins 0..5 (except 3) go through m_sAnimationArray. The rider
+        // row offset 24 is retained; its native value is not established.
         if (m_cMount > 0 && m_pMount)
         {
             if (pEffect->m_pSkinMesh)
-                pEffect->m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nMountSkinMeshType].dwAniTable[(int)m_eMotion]]);
+                pEffect->m_pSkinMesh->SetAnimation(afterimage_clip::Mount(g_MobAniTable, m_nMountSkinMeshType, (int)m_eMotion));
             if (pEffect->m_pSkinMesh2)
-                pEffect->m_pSkinMesh2->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)m_eMotion + 24]]);
+                pEffect->m_pSkinMesh2->SetAnimation(afterimage_clip::Body(g_MobAniTable, MeshManager::m_sAnimationArray,
+                    m_nSkinMeshType, m_nWeaponTypeIndex, (int)m_eMotion + 24));
         }
         else
         {
             if (pEffect->m_pSkinMesh)
-                pEffect->m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)m_eMotion]]);
+                pEffect->m_pSkinMesh->SetAnimation(afterimage_clip::Body(g_MobAniTable, MeshManager::m_sAnimationArray,
+                    m_nSkinMeshType, m_nWeaponTypeIndex, (int)m_eMotion));
         }
         if (pEffect->m_pSkinMesh)
             pEffect->m_pSkinMesh->m_dwFPS = m_pSkinMesh->m_dwFPS;
@@ -1412,7 +1477,10 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                     auto pEffect = new TMEffectSkinMesh(m_stEffectEvent.pTarget->m_nSkinMeshType,
                         { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0 }, 0, 0);
 
-                    if (!m_stEffectEvent.pTarget || m_stEffectEvent.pTarget->m_cMount <= 0 || !m_stEffectEvent.pTarget->m_pMount)
+                    // The mesh composition and its clips follow the target's mount
+                    // state; the caster's mount does not shape the target's after-image.
+                    const bool bTargetMounted = m_stEffectEvent.pTarget->m_cMount > 0 && m_stEffectEvent.pTarget->m_pMount;
+                    if (!bTargetMounted)
                     {
                         memcpy(&pEffect->m_stLookInfo, &m_stEffectEvent.pTarget->m_stLookInfo, sizeof(pEffect->m_stLookInfo));
                     }
@@ -1434,7 +1502,7 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                     pEffect->InitPosition(m_stEffectEvent.pTarget->m_vecPosition.x,
                         m_stEffectEvent.pTarget->m_fHeight + 0.1f, m_stEffectEvent.pTarget->m_vecPosition.y);
 
-                    if (m_cMount > 0 && m_pMount)
+                    if (bTargetMounted)
                     {
                         if (pEffect->m_pSkinMesh)
                             pEffect->m_pSkinMesh->SetAnimation(g_MobAniTable[pEffect->m_nSkinMeshType].dwAniTable[0]);
@@ -1508,7 +1576,10 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                     auto pEffect = new TMEffectSkinMesh(m_stEffectEvent.pTarget->m_nSkinMeshType,
                         { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0 }, 0, 0);
 
-                    if (!m_stEffectEvent.pTarget || m_stEffectEvent.pTarget->m_cMount <= 0 || !m_stEffectEvent.pTarget->m_pMount)
+                    // The mesh composition and its clips follow the target's mount
+                    // state; the caster's mount does not shape the target's after-image.
+                    const bool bTargetMounted = m_stEffectEvent.pTarget->m_cMount > 0 && m_stEffectEvent.pTarget->m_pMount;
+                    if (!bTargetMounted)
                     {
                         memcpy(&pEffect->m_stLookInfo, &m_stEffectEvent.pTarget->m_stLookInfo, sizeof(pEffect->m_stLookInfo));
                     }
@@ -1530,7 +1601,7 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                     pEffect->InitPosition(m_stEffectEvent.pTarget->m_vecPosition.x,
                         m_stEffectEvent.pTarget->m_fHeight + 0.1f, m_stEffectEvent.pTarget->m_vecPosition.y);
 
-                    if (m_cMount > 0 && m_pMount)
+                    if (bTargetMounted)
                     {
                         if (pEffect->m_pSkinMesh)
                             pEffect->m_pSkinMesh->SetAnimation(g_MobAniTable[pEffect->m_nSkinMeshType].dwAniTable[0]);
@@ -2011,7 +2082,7 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                         pEffect->m_fStartAngle = m_fAngle;
                         pEffect->m_fAngle = pEffect->m_fStartAngle;
                         pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                        pEffect->m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)m_eMotion]]);
+                        pEffect->m_pSkinMesh->SetAnimation(afterimage_clip::Body(g_MobAniTable, MeshManager::m_sAnimationArray, m_nSkinMeshType, m_nWeaponTypeIndex, (int)m_eMotion));
                         pEffect->m_pSkinMesh->m_dwFPS = m_pSkinMesh->m_dwFPS;
                         pEffect->m_nMotionType = 6;
                         g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
@@ -2057,7 +2128,7 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                     pEffect->m_fStartAngle = m_fAngle;
                     pEffect->m_fAngle = pEffect->m_fStartAngle;
                     pEffect->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                    pEffect->m_pSkinMesh->SetAnimation(MeshManager::m_sAnimationArray[m_nSkinMeshType][m_nWeaponTypeIndex][g_MobAniTable[m_nSkinMeshType].dwAniTable[(int)m_eMotion]]);
+                    pEffect->m_pSkinMesh->SetAnimation(afterimage_clip::Body(g_MobAniTable, MeshManager::m_sAnimationArray, m_nSkinMeshType, m_nWeaponTypeIndex, (int)m_eMotion));
                     if (m_cMount > 0 && m_pMount && pEffect->m_pSkinMesh)
                     {
                         pEffect->m_pSkinMesh->SetAnimation(g_MobAniTable[m_nMountSkinMeshType].dwAniTable[3]);
@@ -2173,12 +2244,14 @@ void TMHuman::PlayEffectEvent(unsigned int& dwServerTime, TMFieldScene*& pScene)
                 }
                 else
                 {
-                    auto pMobData = &g_pObjectManager->m_stMobData;
-                    int left = g_pObjectManager->m_stMobData.Equip[6].sIndex;
-                    if (left == 1010)
-                        m_stEffectEvent.sEffectLevel = 99;
+                    // Item 1010 in this archer's own left hand (CheckWeapon keeps it
+                    // for every actor) selects arrow level 99. Keep the event's
+                    // level unchanged for the double-attack re-fire.
+                    int nArrowLevel = m_stEffectEvent.sEffectLevel;
+                    if (m_sLeftIndex == 1010)
+                        nArrowLevel = 99;
 
-                    auto pArrow = new TMArrow(vecStart, vecTempDest, m_stEffectEvent.sEffectLevel, m_stEffectEvent.sEffectIndex,
+                    auto pArrow = new TMArrow(vecStart, vecTempDest, nArrowLevel, m_stEffectEvent.sEffectIndex,
                         m_cAvatar, m_stSancInfo.Legend7, m_nAttackDestID);
                     g_pCurrentScene->m_pEffectContainer->AddChild(pArrow);
                     m_stEffectEvent.dwTime += m_bDoubleAttack == 1 ?
@@ -2542,9 +2615,11 @@ void TMHuman::SetHandEffect(int nHandEffect)
 
 int TMHuman::StartKhepraDieEffect()
 {
-    if (!g_pCurrentScene)
+    if (!g_pCurrentScene || g_pCurrentScene->GetSceneType() != ESCENE_TYPE::ESCENE_FIELD)
         return 0;
 
+    // The portal pointer is borrowed from a ground object container; its
+    // owner must clear it when field streaming deletes that container.
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
     if (!pScene->m_pKhepraPortalEff1)
         return 0;
@@ -2596,7 +2671,8 @@ int TMHuman::StartKhepraDieEffect()
     auto pDust3 = new TMEffectDust({ MyX + 0.3f, MyY, MyZ + 0.3f }, 50.0f, 0);
     pScene->m_pEffectContainer->AddChild(pDust3);
 
-    if ((int)pScene->m_pMyHuman->m_vecPosition.x >> 7 == 18 && (int)pScene->m_pMyHuman->m_vecPosition.y >> 7 == 30)
+    if (pScene->m_pMyHuman &&
+        (int)pScene->m_pMyHuman->m_vecPosition.x >> 7 == 18 && (int)pScene->m_pMyHuman->m_vecPosition.y >> 7 == 30)
     {
         auto pGround = pScene->m_pGround;
         if (pGround)
@@ -2634,7 +2710,9 @@ void TMHuman::RenderEffect_RudolphCostume(unsigned int dwServerTime)
 }
 
 void TMHuman::RenderEffect_Khepra(unsigned int dwServerTime)
+{for (unsigned int emission = m_monsterEmission.Steps(dwServerTime, m_bVisible == 1); emission; --emission)
 {
+
     if (m_pCancelation && !m_cCancel)
     {
         m_cCancel = 1;
@@ -2666,10 +2744,14 @@ void TMHuman::RenderEffect_Khepra(unsigned int dwServerTime)
         pEffect->SetColor(0xFFFF7777);
         g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
     }
+
+}
 }
 
 void TMHuman::RenderEffect_LegendBerielKeeper(unsigned int dwServerTime)
+{for (unsigned int emission = m_monsterEmission.Steps(dwServerTime, m_bVisible == 1); emission; --emission)
 {
+
     // The darkness aura (boss light, dungeon light, no weather) only reaches a
     // local player near this guard; TMFieldScene::FrameMove restores the scene
     // once no guard refreshes it.
@@ -2735,10 +2817,14 @@ void TMHuman::RenderEffect_LegendBerielKeeper(unsigned int dwServerTime)
         mpBill->SetColor(0xFFAAAAFF);
         g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
     }
+
+}
 }
 
 void TMHuman::RenderEffect_LegendBeriel(unsigned int dwServerTime)
+{for (unsigned int emission = m_monsterEmission.Steps(dwServerTime, m_bVisible == 1); emission; --emission)
 {
+
     int nRand = rand() % 20;
     float fSize = 0.40000001f;
 
@@ -2853,10 +2939,14 @@ void TMHuman::RenderEffect_LegendBeriel(unsigned int dwServerTime)
         mpBill5->SetColor(0xFFFFAAAA);
         g_pCurrentScene->m_pEffectContainer->AddChild(mpBill5);
     }
+
+}
 }
 
 void TMHuman::RenderEffect_Pig_Wolf(unsigned int dwServerTime)
+{for (unsigned int emission = m_monsterEmission.Steps(dwServerTime, m_bVisible == 1); emission; --emission)
 {
+
     int nRand = rand() % 5;
 
     auto pEffect = new TMEffectBillBoard(
@@ -2884,6 +2974,8 @@ void TMHuman::RenderEffect_Pig_Wolf(unsigned int dwServerTime)
 
         g_pCurrentScene->m_pEffectContainer->AddChild(pEffect);
     }
+
+}
 }
 
 void TMHuman::RenderEffect_DungeonBear(unsigned int dwServerTime)

@@ -1,0 +1,371 @@
+{
+  "schemaVersion": 1,
+  "currentDistributionPolicy": {
+    "sourceLauncherAndPublicFullArchivesRemoved": true,
+    "fullClientsUseOwnerExternalHosting": true,
+    "oldPublicationFieldsAreDatedEvidence": true,
+    "retirementReceipt": ".agents/research/native-launcher-retirement-20261102.json",
+    "preparedLocalBaseline": ".agents/research/client-baseline-748100-20261102.json",
+    "activeServerAndPatchRemainRevision18": true
+  },
+  "clientVersion": "7.48.018",
+  "feedVersion": 48018,
+  "clientRevision": 18,
+  "minimumClientRevision": 18,
+  "updatedUtc": "2026-11-02T23:36:12.341231+00:00",
+  "authorization": {
+    "deployment": "Owner: suba tudo para o vps e vamos reiniciar",
+    "workingTree": true,
+    "restart": "Graceful channel and affected service restarts authorized; no host reboot",
+    "news": "Owner: Deixar a notícia pronta para revisão; not published"
+  },
+  "source": {
+    "head": "c2b5050353b228027a5eae737fec097dfeb36e6d",
+    "mode": "working-tree",
+    "sourceRecordsVerifiedAfterActivation": 2328,
+    "manifest": "build/deploy/wyd-deploy-748018/release-manifest.json",
+    "manifestSha256": "b4993472c367d8614b2576e564b27c8beb98e408b5df05903e516f6cb1b9ec71",
+    "clientCorrectionReceipt": "tmproject/build/mount-crash-20261102/correction-receipt.json",
+    "gitCommitCreated": false
+  },
+  "classification": {
+    "existingWireAndClientSafety": "MODERNIZACAO_COMPATIVEL",
+    "quotedSalesV1": "EXTENSAO_COORDENADA",
+    "httpsLauncherAndRuntime": "MODERNIZACAO_COMPATIVEL",
+    "nativeEvidence": "7.59 arithmetic and separately recorded 7.48 boundaries; no broad parity claim"
+  },
+  "patch": {
+    "archive": "C:\\Users\\xereca\\Documents\\PROJETOS\\wyd-go\\build\\patch\\patch-48018.zip",
+    "size": 1422484,
+    "sha256": "c891c952983ff1c61b17c4f1e9bd94e983e6f743ae45337f6b4eb00fd88bfe97",
+    "entries": [
+      {
+        "path": "EN/ItemList.bin",
+        "size": 910004,
+        "sha256": "171c6168c7ed605efbf72a89d2ef2624587de25cb269aa871c3ddee17aa0afb8"
+      },
+      {
+        "path": "EN/Itemname.bin",
+        "size": 442000,
+        "sha256": "a27deb93f6ddf9d285eb4fe5995a37bf7339cf3b55a2630c58fa2933fd13b998"
+      },
+      {
+        "path": "EN/UI/UIString.txt",
+        "size": 4095,
+        "sha256": "b3d75e22a8189604e633f5ed7d4763309e0cc12001c4e5e7227e0e8f0d928a7c"
+      },
+      {
+        "path": "EN/UI/strdef.bin",
+        "size": 63492,
+        "sha256": "2fd8fd69be4a92e21fb981954ec0fe9983d2eaf9b23150e4a8df9d22eecd3eb9"
+      },
+      {
+        "path": "EN/itemhelp.dat",
+        "size": 71418,
+        "sha256": "c490476c3bac943bbeb16e76f612dd539f0b064bddb382e07ec52a39eb5ee1d1"
+      },
+      {
+        "path": "EN/skillhelp.dat",
+        "size": 21297,
+        "sha256": "f7e1cfe4a96f4bdfec422ce9848080ce10dce82af44485a4778d659b138b448b"
+      },
+      {
+        "path": "ItemList.bin",
+        "size": 910004,
+        "sha256": "334e1023448d3c34630496b6e67ac8ec7bebee9058dc6d5305df299bfe2482e2"
+      },
+      {
+        "path": "ItemListWide.csv",
+        "size": 225,
+        "sha256": "4e777cf0c799525527226b0d8e39446ad70927c52fd044f2cb81c4e880e6837b"
+      },
+      {
+        "path": "Itemname.bin",
+        "size": 196248,
+        "sha256": "eadd22c7ce1f166ec9aaaa656c04b9f17f159f9c022c3cb21ddad2bda50fdbdf"
+      },
+      {
+        "path": "PT/ItemList.bin",
+        "size": 910004,
+        "sha256": "a147e05fc8564638841abc0119dd3b6e02ebefdea506f45eedf06a58642e58d8"
+      },
+      {
+        "path": "PT/Itemname.bin",
+        "size": 442000,
+        "sha256": "3cd55234dfd8e0de9083b42733cb229ae1b0f0e88208fc6e94365a6eea71df5f"
+      },
+      {
+        "path": "PT/UI/UIString.txt",
+        "size": 4421,
+        "sha256": "10fad1db2a81caad598f24fcbc78327468653fc297cf21b4722fe686ba92e4a1"
+      },
+      {
+        "path": "PT/UI/strdef.bin",
+        "size": 63492,
+        "sha256": "3f2f6f940ce98926c596c217250c6870cb234a064b98c6ae6e0c4d67455514ac"
+      },
+      {
+        "path": "PT/itemhelp.dat",
+        "size": 78184,
+        "sha256": "87632bc3ab66b8f4424b7daa5462361d2c073eab27bc1e1a60b325f0f828c6fd"
+      },
+      {
+        "path": "PT/skillhelp.dat",
+        "size": 22299,
+        "sha256": "9bcecccdf5265a33dcbb8df836700a31798a17c6a0e9641fa769f871f6791d6c"
+      },
+      {
+        "path": "UI/UIString.txt",
+        "size": 4095,
+        "sha256": "b3d75e22a8189604e633f5ed7d4763309e0cc12001c4e5e7227e0e8f0d928a7c"
+      },
+      {
+        "path": "UI/strdef.bin",
+        "size": 63492,
+        "sha256": "2fd8fd69be4a92e21fb981954ec0fe9983d2eaf9b23150e4a8df9d22eecd3eb9"
+      },
+      {
+        "path": "WYD.exe",
+        "size": 2072576,
+        "sha256": "f8e4f9a2d73458c0b72072f9ef5f53f110c2efd0a6d7cc9eb03fb3587dbcc3b8"
+      },
+      {
+        "path": "WydCrashReporter.dll",
+        "size": 564224,
+        "sha256": "67aff89970b16cd9ca8b9ea7fdaff2dd12c4ede6c3e4ea46e9722976bf3e47f6"
+      },
+      {
+        "path": "itemhelp.dat",
+        "size": 82459,
+        "sha256": "555f19b63bf6badceb8da8596336b6e63ea44b49a17935f1d3de2f357bfd6e67"
+      },
+      {
+        "path": "skillhelp.dat",
+        "size": 21297,
+        "sha256": "f7e1cfe4a96f4bdfec422ce9848080ce10dce82af44485a4778d659b138b448b"
+      }
+    ],
+    "provenance": "build/release-748018/client-patch.json",
+    "publicVerification": [
+      {
+        "scheme": "http",
+        "feedLast": "48018 patch-48018.zip",
+        "feedLines": 19,
+        "patchSha256": "c891c952983ff1c61b17c4f1e9bd94e983e6f743ae45337f6b4eb00fd88bfe97",
+        "entriesVerified": 21,
+        "previousPatchUnchanged": true
+      },
+      {
+        "scheme": "https",
+        "feedLast": "48018 patch-48018.zip",
+        "feedLines": 19,
+        "patchSha256": "c891c952983ff1c61b17c4f1e9bd94e983e6f743ae45337f6b4eb00fd88bfe97",
+        "entriesVerified": 21,
+        "previousPatchUnchanged": true
+      }
+    ]
+  },
+  "httpsClient": {
+    "release": "748018-20261102",
+    "manifestFiles": 8493,
+    "uniqueBlobs": 8095,
+    "launcherSha256": "b6eff0b0e8df0a984a8e7bd309db8c606621473cdf242df9189142e24fa78e94",
+    "runtimeVersion": "14.51.36247.0",
+    "runtimeSha256": "F0BAB33A302B3CDB2E11113760D016F54FD3D2632C65BA7834FAC4F0ABD7F1A3",
+    "runtimeSignature": "Valid",
+    "publicVerification": {
+      "at": "2026-11-02T23:33:56.458389+00:00",
+      "publicTLS": true,
+      "manifestSha256": "4cc76375b89b90ad4250cfedb735c7335dad1c3c2d0b5aed53b93bac4894997e",
+      "manifestCache": "no-store",
+      "publicBlobsVerified": [
+        "EN/UI/UIString.txt",
+        "prerequisites/vc_redist.x86.exe",
+        "PT/UI/UIString.txt",
+        "WYD.exe",
+        "WydCrashReporter.dll",
+        "WYDLauncher.exe"
+      ],
+      "archiveBytes": 316487458,
+      "archiveSha256": "5b8cce9b5b48b27c2ae42c77e1ecb84cad7c4f0adf0d54a7bc1bac9d34a5ee3c",
+      "archiveEntriesVerified": 8494,
+      "gameLaunched": false
+    },
+    "manifestUrl": "https://wyd.forjago.com/patch/manifest.txt",
+    "archiveUrl": "https://wyd.forjago.com/downloads/WYD-client-https-748018-20261102.zip",
+    "provenance": "build/release-748018/https/release.json",
+    "legacyHttpFeedRetained": true,
+    "caddyBackup": "/etc/caddy/wyd-site.caddy.pre-748018-https"
+  },
+  "serverArchive": {
+    "path": "release.tar.gz",
+    "size": 26347317,
+    "sha256": "5ff838f47ef6e68c90f94138139da19019298c546bfeee7f293f936ce642cbe6"
+  },
+  "active": {
+    "release": "/srv/wyd-go/releases/20261102T233404Z",
+    "payloadFilesVerified": 7739,
+    "services": {
+      "wyd-game@1": {
+        "MainPID": "3492222",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261102T233404Z/game/wyd-server",
+        "sha256": "0aac75e8a6ae8899324122e59a8c7027ed63ebfb955301779aa1a0b5f96d3c4f"
+      },
+      "wyd-game@2": {
+        "MainPID": "3492223",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261102T233404Z/game/wyd-server",
+        "sha256": "0aac75e8a6ae8899324122e59a8c7027ed63ebfb955301779aa1a0b5f96d3c4f"
+      },
+      "wyd-player": {
+        "MainPID": "3492238",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261102T233404Z/game/wyd-player-api",
+        "sha256": "f9719b6f86debbbd2c3553533eb1a9d3c23c95d530f7f91d4effa6de180c28f6"
+      },
+      "wyd-log-reader": {
+        "MainPID": "3492336",
+        "NRestarts": "0",
+        "ActiveState": "active",
+        "executable": "/srv/wyd-go/releases/20261102T233404Z/game/wyd-log-reader",
+        "sha256": "281f54e19318dd58afa84e028c6d7b15e8fa20e5db3619e31d9550e0539f36a6"
+      }
+    },
+    "backup": {
+      "at": "2026-11-02T23:34:04Z",
+      "archive": "wydgo-20261102T233404Z.dump",
+      "bytes": 535953,
+      "sha256": "154bdcd11423f2285eee86de0f1a00f57c398e2d977708161ff73a185088a22b",
+      "verified": true
+    },
+    "privateSettingsUnchanged": true,
+    "schema": "20",
+    "rollback": "/srv/wyd-go/releases/20261101T165857Z",
+    "readiness": {
+      "8082": 200,
+      "8083": 200
+    }
+  },
+  "admission": {
+    "at": "2026-11-02T23:34:25.506078+00:00",
+    "results": [
+      {
+        "port": 8281,
+        "revision": 17,
+        "opcode": "0x101",
+        "message": "Atualização necessária. Feche o jogo e abra o launcher para atualizar."
+      },
+      {
+        "port": 8281,
+        "revision": 18,
+        "opcode": "0x101",
+        "message": "Conta ou senha incorreta."
+      },
+      {
+        "port": 8282,
+        "revision": 17,
+        "opcode": "0x101",
+        "message": "Client update required. Close the game and run the launcher to update."
+      },
+      {
+        "port": 8282,
+        "revision": 18,
+        "opcode": "0x101",
+        "message": "Wrong account or password."
+      }
+    ],
+    "realAccountAuthenticated": false
+  },
+  "website": {
+    "receipt": {
+      "version": 2,
+      "clientVersion": "7.48.018",
+      "feedVersion": 48018,
+      "publishedAt": "2026-11-02",
+      "launcherVersion": null,
+      "minimumLauncherVersion": null,
+      "fullClient": {
+        "clientVersion": "7.48.018",
+        "url": "https://wyd.forjago.com/downloads/WYD-client-https-748018-20261102.zip",
+        "sizeBytes": 316487458,
+        "sha256": "5b8cce9b5b48b27c2ae42c77e1ecb84cad7c4f0adf0d54a7bc1bac9d34a5ee3c"
+      },
+      "patch": {
+        "url": "/patch/patch-48018.zip",
+        "sizeBytes": 1422484,
+        "sha256": "c891c952983ff1c61b17c4f1e9bd94e983e6f743ae45337f6b4eb00fd88bfe97",
+        "executableSha256": "F8E4F9A2D73458C0B72072F9EF5F53F110C2EFD0A6D7CC9EB03FB3587DBCC3B8"
+      },
+      "updateFeed": "/patch/update.htm"
+    },
+    "pagesVerified": [
+      "/",
+      "/download/",
+      "/changelog/",
+      "/news/"
+    ],
+    "newsDraftPublished": false,
+    "newsDraftStatus": 404
+  },
+  "checks": {
+    "static": "Source and archive records match final packaged inputs. All 21 patch entries, 8494 full-client entries, 7739 live payload files and four live process hashes verified.",
+    "automated": "Final client Release gates, Go suite/vet/focused race and PostgreSQL cases reused for unchanged product inputs; portal check: zero diagnostics; portal tests: 116 passed.",
+    "runtime": "Both channel revision gates and PT/EN credential-validation responses verified. No real account authenticated. Both readiness endpoints returned 200. No error-priority service journal entries at activation; zero shutdown persistence failures.",
+    "clientTested": "Earlier owner farming acceptance covers the previous local build only; final mount/crash corrections and new launcher acceptance remain pending.",
+    "documentation": "Layout and local links passed: 221 indexed documents; git diff --check passed."
+  },
+  "news": {
+    "draft": "build/release-748018/news-draft.md",
+    "languages": [
+      "PT",
+      "EN"
+    ],
+    "published": false
+  },
+  "rollback": {
+    "previousRelease": "/srv/wyd-go/releases/20261101T165857Z",
+    "backup": {
+      "at": "2026-11-02T23:34:04Z",
+      "archive": "wydgo-20261102T233404Z.dump",
+      "bytes": 535953,
+      "sha256": "154bdcd11423f2285eee86de0f1a00f57c398e2d977708161ff73a185088a22b",
+      "verified": true
+    },
+    "compatibility": "Previous server predates revision-18 coordinated contracts. Assess compatibility before rollback; never rewind feed, lower minimum, or reuse revision 18.",
+    "previousClientPatchPreserved": true
+  },
+  "pending": [
+    "Real launcher update and extraction",
+    "Clean Windows VC++ installation and reboot path",
+    "Repeated field/server/account transitions",
+    "Unicorn HP and C.C. 50% under combat",
+    "One-hour equipped mount food and accepted/rejected mount swap",
+    "Targeted guild, quoted sale, special skill and observer acceptance",
+    "Matched 30/60/144 FPS and missing-file measurements",
+    "Legacy HTTP launcher retirement after migration acceptance"
+  ],
+  "evidenceDirectory": "build/release-748018/",
+  "cleanup": {
+    "remoteDeploymentStage": "Removed by verified release updater",
+    "remoteHttpsStage": "Removed after exact realpath and published-state checks",
+    "privateReceipt": "/srv/wyd-go/deploy-receipts/748018",
+    "rollbackArtifacts": "Preserved",
+    "localTaskEvidence": "Retained under build/release-748018"
+  },
+  "sourceLauncherWithdrawal": {
+    "at": "2026-11-03T00:19:58.642179+00:00",
+    "status": "Superseded: alternative launcher source, generated programs and public archives removed at owner request. Prior delivery fields are dated evidence.",
+    "currentReceipt": ".agents/research/native-launcher-retirement-20261102.json",
+    "currentNativeClient": {
+      "clientVersion": "7.48.018",
+      "url": "https://wyd.forjago.com/downloads/WYD-client-native-748018-20261102.zip",
+      "sizeBytes": 317136062,
+      "sha256": "1f155e9140e065e5ca4d0dd0f4bf19691c6e92a9d727e9c8f962a231d12f204a"
+    },
+    "gamePatchAndServerUnchanged": true
+  }
+}

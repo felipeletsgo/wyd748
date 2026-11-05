@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intent C->S de bonus/skill. BonusType, Detail e TargetID sao revalidados
-// pelo servidor; o client nao publica skill, custo ou pre-requisitos.
+// C->S bonus/skill intent. The server validates BonusType, Detail and TargetID.
+// The client does not publish skills, costs or prerequisites.
 constexpr auto MSG_ApplyBonus_Opcode = 0x277;
 struct MSG_ApplyBonus
 {

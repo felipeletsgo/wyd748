@@ -11,6 +11,7 @@
 #include "TMEffectBillBoard2.h"
 #include "TMSkillTownPortal.h"
 #include "../../application/FieldInteractionPolicy.h"
+#include "FieldActionPolicy.h"
 #include "../../game/entities/AirMoveMotion.h"
 #include "ClientDiagnostics.h"
 #include "TMObjectContainer.h"
@@ -23,7 +24,8 @@ void TMFieldScene::UpdateAutoRun()
 		return;
 	if (!field_interaction::CanAutoRun(m_bAutoRun != 0,
 		g_pObjectManager->m_stMobData.CurrentScore.CurHP > 0 && !m_pMyHuman->m_cDie,
-		m_bAirMove != 0 || m_nAirMove_State != 0, m_pMyHuman->m_cCantMove != 0,
+		// A05-04: a completed flight leaves state -1, which is not a transition.
+		field_action::AirMoveBlocksAutoRun(m_bAirMove != 0, m_nAirMove_State), m_pMyHuman->m_cCantMove != 0,
 		m_stAutoTrade.TargetID == m_pMyHuman->m_dwID ||
 			(m_pMessageBox && m_pMessageBox->IsVisible()), m_pMyHuman->m_fProgressRate))
 		return;
@@ -266,6 +268,9 @@ bool TMFieldScene::OfferResurrectionPrompt(unsigned int wParam)
 
 void TMFieldScene::SetRunMode()
 {
+	// A05-10: Kefra pushes and keys can arrive before the local actor exists.
+	if (!m_pMyHuman)
+		return;
 	if (m_pMyHuman->m_cMount == 1 &&
 		(m_pMyHuman->m_nMountSkinMeshType == 31 || m_pMyHuman->m_nMountSkinMeshType == 40 || m_pMyHuman->m_nMountSkinMeshType == 20 &&
 		 m_pMyHuman->m_stMountLook.Mesh0 != 7 || m_pMyHuman->m_nMountSkinMeshType == 39))
@@ -277,6 +282,8 @@ void TMFieldScene::SetRunMode()
 
 void TMFieldScene::MobStop(D3DXVECTOR3 vec)
 {
+	if (!m_pMyHuman || !g_pCurrentScene)
+		return;
 	int nTX = static_cast<int>(vec.x);
 	int nTY = static_cast<int>(vec.z);
 	int nX = static_cast<int>(m_pMyHuman->m_vecPosition.x);
@@ -391,6 +398,8 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 	// TODO: change the state to enum
 	if (m_nAirMove_State && m_pMyHuman)
 	{
+		const float frameScale = air_move_motion::FrameScale(dwServerTime, m_dwAirMove_FrameTickTime);
+		m_dwAirMove_FrameTickTime = dwServerTime;
 		if (m_pMyHuman->m_cDie == 1 || m_pMyHuman->m_stScore.CurHP <= 0)
 		{
 			if (m_bAirMove)
@@ -411,7 +420,8 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 		break;
 		case 2:
 		{
-			if (dwServerTime > m_dwAirMove_TickTime + 2800)
+			// A03-04 family: wrap-safe phase timers.
+			if (field_time::After(dwServerTime, m_dwAirMove_TickTime, 2800))
 			{
 				m_nAirMove_State = 3;
 				m_dwAirMove_TickTime = dwServerTime;
@@ -426,13 +436,13 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 
 			if (m_pMyHuman->m_pMount)
 				m_pMyHuman->m_pMount->m_dwFPS = 15;
-			m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight + fVal;
+			m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight + air_move_motion::ScaleStep(fVal, frameScale);
 		}
 		break;
 		case 3:
 		{
 			int nRnd = rand() % 300;
-			if (dwServerTime >= m_dwAirMove_TickTime + nRnd + 1000)
+			if (!field_time::Before(dwServerTime, m_dwAirMove_TickTime, static_cast<unsigned int>(nRnd) + 1000))
 			{
 				m_dwAirMove_TickTime = dwServerTime;
 				m_bAirMove_Wing = m_bAirMove_Wing == 0;
@@ -442,13 +452,14 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 			if (m_bAirMove_Wing || m_pMyHuman->m_fHeight >= 14.0)
 			{
 				if (m_pMyHuman->m_fHeight > 8.0)
-					m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight - fVal;
+				m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight - air_move_motion::ScaleStep(fVal, frameScale);
 			}
 			else
-				m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight + fVal;
+				m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight + air_move_motion::ScaleStep(fVal, frameScale);
 
 			const auto delta = AirMoveWaypointDelta(m_pMyHuman->m_vecPosition,
-				g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex], m_fAirMove_Speed);
+				g_pAirMoveRoute[m_nAirMove_Index][m_nAirMove_RouteIndex],
+				air_move_motion::ScaleStep(m_fAirMove_Speed, frameScale));
 			const float AddX = delta.x;
 			const float AddY = delta.y;
 			if (AddX != 0.0f || AddY != 0.0f)
@@ -463,10 +474,12 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 					&& !HasNextAirMoveWaypoint(g_pAirMoveRoute[m_nAirMove_Index], m_nAirMove_RouteIndex))
 				{
 					if (m_fAirMove_Speed >= 0.2f)
-						m_fAirMove_Speed = m_fAirMove_Speed - sinf((m_fAirMove_Speed * 0.0023f) * D3DXToRadian(180));
+						m_fAirMove_Speed -= air_move_motion::ScaleStep(
+							sinf((m_fAirMove_Speed * 0.0023f) * D3DXToRadian(180)), frameScale);
 				}
 				else if (m_fAirMove_Speed <= 0.69999999f)
-					m_fAirMove_Speed = sinf((m_fAirMove_Speed * 0.0049999999f) * D3DXToRadian(180)) + m_fAirMove_Speed;
+					m_fAirMove_Speed += air_move_motion::ScaleStep(
+						sinf((m_fAirMove_Speed * 0.0049999999f) * D3DXToRadian(180)), frameScale);
 
 				if (m_pMyHuman->m_pMount)
 					m_pMyHuman->m_pMount->m_dwFPS = 15 - (int)(m_fAirMove_Speed * 2.0f);
@@ -491,7 +504,7 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 		{
 			float fHeight = m_pMyHuman->m_fWantHeight;
 			float fDiff = m_pMyHuman->m_fHeight - fHeight;
-			if (dwServerTime > m_dwAirMove_TickTime + 2800)
+			if (field_time::After(dwServerTime, m_dwAirMove_TickTime, 2800))
 			{
 				m_pMyHuman->m_fHeight = fHeight;
 				m_nAirMove_State = 5;
@@ -503,7 +516,7 @@ void TMFieldScene::AirMove_Main(unsigned int dwServerTime)
 			if (m_pMyHuman->m_pMount)
 				m_pMyHuman->m_pMount->m_dwFPS = 15;
 			if ((float)(m_pMyHuman->m_fHeight - fVal) > 0.0f)
-				m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight - fVal;
+				m_pMyHuman->m_fHeight = m_pMyHuman->m_fHeight - air_move_motion::ScaleStep(fVal, frameScale);
 		}
 		break;
 		case 5:
@@ -527,10 +540,14 @@ void TMFieldScene::AirMove_Start(int nIndex)
 	m_eOldMotion = m_pMyHuman->m_eMotion;
 	m_nOldMountSkinMeshType = m_pMyHuman->m_nMountSkinMeshType;
 	m_stOldAirMoveMountLook = m_pMyHuman->m_stMountLook;
+	// A15-11: UpdateMount forces m_cMount = 1 for the flight mesh; keep the
+	// rider state so a dismounted rider does not end the flight mounted.
+	m_cOldAirMoveMount = m_pMyHuman->m_cMount;
 
 	m_pMyHuman->UpdateMount();
 	m_pMyHuman->m_bIgnoreHeight = 1;
 	m_dwAirMove_TickTime = g_pTimerManager->GetServerTime();
+	m_dwAirMove_FrameTickTime = m_dwAirMove_TickTime;
 	m_pMyHuman->m_vecAirMove.x = 0.0f;
 	m_pMyHuman->m_vecAirMove.y = 0.0f;
 
@@ -583,11 +600,15 @@ void TMFieldScene::AirMove_End(AirMoveEndReason reason)
 				m_pMyHuman->m_stMountLook, m_nOldMountSkinMeshType,
 				m_stOldAirMoveMountLook);
 			m_nOldMountSkinMeshType = -1;
+			// m_bAirMove is already 0, so UpdateMount rebuilds the saved rider
+			// state; with m_cMount 0 it deletes the flight mesh only (A15-11).
+			m_pMyHuman->m_cMount = m_cOldAirMoveMount;
 			m_pMyHuman->UpdateMount();
 		}
 
 		m_pMyHuman->m_bIgnoreHeight = 0;
 		m_dwAirMove_TickTime = 0;
+		m_dwAirMove_FrameTickTime = 0;
 		if (interruptedByDeath)
 		{
 			const auto& origin = m_pMyHuman->m_vecPosition;
@@ -753,78 +774,6 @@ int TMFieldScene::AirMove_ShowUI(bool bShow)
 		pPotalPanel->SetVisible(0);
 
 	m_bAirmove_ShowUI = bShow;
-	if (!bShow)
-	{
-		auto pCharPanel = m_pCPanel;
-		auto pInvPanel = m_pInvenPanel;
-		auto pSkillPanel = m_pSkillPanel;
-		auto pPartyPanel = m_pPartyPanel;
-		auto pTradePanel = m_pTradePanel;
-		auto pAutoTradePanel = m_pAutoTrade;
-		auto pShopPanel = m_pShopPanel;
-		auto pCargoPanel = m_pCargoPanel;
-		auto pCargoPanel1 = m_pCargoPanel1;
-		auto pMinimapPanel = m_pMiniMapPanel;
-		auto pInputGoldPanel = m_pInputGoldPanel;
-		auto pPGTPanel = m_pPGTPanel;
-		auto pSystemPanel = m_pSystemPanel;
-		auto pGambleStore = m_pGambleStore;
-		auto pServerPanel = m_pServerPanel;
-		auto pPotalPanel = m_pPotalPanel;
-		if (pAutoTradePanel && pAutoTradePanel->IsVisible() == 1)
-			SetVisibleAutoTrade(0, 0);
-		else if (pPGTPanel && pPGTPanel->IsVisible() == 1)
-			pPGTPanel->SetVisible(0);
-		else if (m_pQuestPanel && m_pQuestPanel->IsVisible() == 1)
-		{
-			SetQuestPanelVisible(false);
-		}
-		else if (m_pFireWorkPanel && m_pFireWorkPanel->IsVisible() == 1)
-			m_pFireWorkPanel->SetVisible(0);
-		else if (m_pTotoPanel && m_pTotoPanel->IsVisible() == 1)
-			TotoClose();
-		else if (pInvPanel && pInvPanel->IsVisible() == 1)
-			OnControlEvent(65562, 0);
-		else if (pSkillPanel && pSkillPanel->IsVisible() == 1)
-			OnControlEvent(65568, 0);
-		else if (pCharPanel && pCharPanel->IsVisible() == 1)
-			OnControlEvent(65769, 0);
-		else if (pTradePanel && pTradePanel->IsVisible() == 1)
-			SetVisibleTrade(0);
-		else if (pPartyPanel && pPartyPanel->IsVisible() == 1)
-			SetVisibleParty();
-		else if (pShopPanel && pShopPanel->IsVisible()== 1)
-			SetVisibleShop(0);
-		else if (pCargoPanel && pCargoPanel->IsVisible() == 1)
-			SetVisibleCargo(0);
-		else if (pCargoPanel1 && pCargoPanel1->IsVisible() == 1)
-			SetVisibleCargo(0);
-		else if (pGambleStore && pGambleStore->IsVisible() == 1)
-			SetVisibleGamble(0, 0);
-		else if (pInputGoldPanel && pInputGoldPanel->IsVisible() == 1)
-			pInputGoldPanel->SetVisible(0);
-		else if (m_pMsgPanel && m_pMsgPanel->IsVisible() == 1)
-		{
-			m_pMsgPanel->SetVisible(0);
-			if (m_pControlContainer)
-				m_pControlContainer->SetFocusedControl(0);
-		}
-		else if (m_pHelpPanel && m_pHelpPanel->IsVisible() == 1)
-		{
-			m_pHelpPanel->SetVisible(0);
-			// Keep Esc usable even if the 314 Help button was omitted by a damaged
-			// resource; the 7.48 panel itself is still safe to close independently.
-			if (m_pHelpBtn)
-				m_pHelpBtn->SetSelected(0);
-			GetSoundAndPlay(51, 0, 0);
-		}
-		else if (pServerPanel && pServerPanel->IsVisible() == 1)
-			pServerPanel->SetVisible(0);
-		else if (pPotalPanel && pPotalPanel->IsVisible() == 1)
-			pPotalPanel->SetVisible(0);
-		else if (m_pMessageBox && m_pMessageBox->IsVisible() == 1)
-			m_pMessageBox->SetVisible(0);
-	}
 
 	return 1;
 }

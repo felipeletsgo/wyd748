@@ -2,6 +2,7 @@
 #include "TMUtil.h"
 #include "PacketSendBoundary.h"
 #include "AttackFrameContract.h"
+#include "../../application/ClientSendCadence.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
 #include <climits>
@@ -28,23 +29,26 @@ TMVector3 TMVector3Cross(const TMVector3* pV1, const TMVector3* pV2)
     return v;
 }
 
-void SendOneMessage(char* Msg, int Size)
+bool SendOneMessage(char* Msg, int Size)
 {
     if (Msg == nullptr || Size < static_cast<int>(sizeof(MSG_STANDARD)))
-        return;
+        return false;
 
     MSG_STANDARD* pMsgStandard = (MSG_STANDARD*)Msg;
     if (IsAttackOpcode(pMsgStandard->Type) &&
         !IsClientToServerAttackPacketSize(pMsgStandard->Type, static_cast<std::size_t>(Size)))
-        return;
+        return false;
 
-    if ((LastSendTime + 1000 < CurrentTime || pMsgStandard->Type != MSG_Action_Opcode || g_usLastPacketType != MSG_Action_Opcode)
-        && (LastSendTime + 1000 <= CurrentTime || pMsgStandard->Type != MSG_Attack_Multi_Opcode && pMsgStandard->Type != MSG_Attack_One_Opcode
-        && pMsgStandard->Type != MSG_Attack_Two_Opcode || g_usLastPacketType != MSG_Attack_Multi_Opcode && g_usLastPacketType != MSG_Attack_One_Opcode && g_usLastPacketType != MSG_Attack_Two_Opcode))
+    if (client_send_cadence::Allows(CurrentTime, LastSendTime,
+        pMsgStandard->Type == MSG_Action_Opcode, g_usLastPacketType == MSG_Action_Opcode,
+        IsAttackOpcode(pMsgStandard->Type), IsAttackOpcode(g_usLastPacketType)))
     {
-        g_pSocketManager->SendOneMessage(Msg, Size);
+        if (!g_pSocketManager || !g_pSocketManager->SendOneMessage(Msg, Size))
+            return false;
         g_usLastPacketType = pMsgStandard->Type;
+        return true;
     }
+    return false;
 }
 
 void SendPacket(const MutablePacketView& packet)
@@ -53,9 +57,7 @@ void SendPacket(const MutablePacketView& packet)
     // Transitional facade: AddMessage edits Size/KeyWord/CheckSum/Tick in the
     // original buffer. Senders must provide writable storage.
     SendValidatedPacket(packet, sizeof(MSG_STANDARD), [](char* data, int size) {
-        SendOneMessage(data, size);
-        // The global API reports neither delivery nor rejection by the limiter.
-        return true;
+        return SendOneMessage(data, size);
     });
 }
 

@@ -2,6 +2,8 @@
 #include "../../application/NativeCostumeSlot.h"
 #include "WeatherPacket.h"
 #include "TMFieldScene.h"
+#include "FieldActionPolicy.h"
+#include "../../game/entities/HumanPacketPolicy.h"
 #include "ItemEffect.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
@@ -127,28 +129,28 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 {
 	DWORD dwServerTime = g_pTimerManager->GetServerTime();
 
-	if (dwServerTime < g_dwStartQuitGameTime + 6000)
+	if (field_time::Before(dwServerTime, g_dwStartQuitGameTime, 6000))
 		return 1;
 
-	if (dwServerTime < m_dwLastLogout + 6000)
+	if (field_time::Before(dwServerTime, m_dwLastLogout, 6000))
 		return 1;
 
-	if (dwServerTime < m_dwLastSelServer + 6000)
+	if (field_time::Before(dwServerTime, m_dwLastSelServer, 6000))
 		return 1;
 
-	if (dwServerTime < m_dwLastTown + 6000)
+	if (field_time::Before(dwServerTime, m_dwLastTown, 6000))
 		return 1;
 
-	if (dwServerTime < m_dwLastResurrect + 6000)
+	if (field_time::Before(dwServerTime, m_dwLastResurrect, 6000))
 		return 1;
 
-	if (dwServerTime < m_dwLastTeleport + 6000)
+	if (field_time::Before(dwServerTime, m_dwLastTeleport, 6000))
 		return 1;
 
-	if (dwServerTime < m_dwLastRelo + 6000)
+	if (field_time::Before(dwServerTime, m_dwLastRelo, 6000))
 		return 1;
 
-	if (dwServerTime < m_dwLastWhisper + 6000)
+	if (field_time::Before(dwServerTime, m_dwLastWhisper, 6000))
 		return 1;
 
 	if (TMScene::OnKeyDownEvent(iKeyCode) == 1)
@@ -170,10 +172,13 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 
 	if (iKeyCode == VK_F11)
 	{
-		if (dwServerTime < m_dwKeyTime + 500 || m_bAirMove == 1)
+		// A03-04 family: wrap-safe "now < last key + 500".
+		if (field_time::Before(dwServerTime, m_dwKeyTime, 500) || m_bAirMove == 1)
 			return 1;
 
-		if (m_pMyHuman && m_pMyHuman->m_fProgressRate > 0.0f && m_pMyHuman->m_fProgressRate < 0.89999998f)
+		if (!m_pMyHuman || !m_pGridInv)
+			return 1;
+		if (m_pMyHuman->m_fProgressRate > 0.0f && m_pMyHuman->m_fProgressRate < 0.89999998f)
 			return 1;
 
 		int page{};
@@ -239,29 +244,7 @@ int TMFieldScene::OnKeyDownEvent(unsigned int iKeyCode)
 				m_stUseItem.GridX = static_cast<unsigned short>(m_pMyHuman->m_vecPosition.x);
 				m_stUseItem.GridY = static_cast<unsigned short>(m_pMyHuman->m_vecPosition.y);
 
-				int nAmount = BASE_GetItemAmount(pItem->m_pItem);
-
-				if (nAmount > 1)
-				{
-					BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
-
-					sprintf_s(pItem->m_GCText.strString, "%2d", nAmount - 1);
-
-					pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-				}
-				else
-				{
-					auto pPickedItem = pGridInv->PickupItem(nX, nY);
-
-					if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-						g_pCursor->m_pAttachedItem = nullptr;
-
-					if (pPickedItem)
-						delete pPickedItem;
-				}
-
-				if (nAmount <= 1)
-					memset(&g_pObjectManager->m_stMobData.Carry[SourPos], 0, sizeof(STRUCT_ITEM));
+				m_pendingPortalItem.Capture(m_stUseItem.SourPos, pItem->m_pItem);
 
 				if (g_pSoundManager)
 				{
@@ -445,7 +428,8 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 {
 	auto pOver = m_pMouseOverHuman;
 
-	if (m_pAutoTrade->m_bVisible)
+	// A04-07: CheckMerchant already treats the auto-trade panel as optional.
+	if (!m_pMyHuman || (m_pAutoTrade && m_pAutoTrade->m_bVisible))
 		return 1;
 
 	m_bTeleportMsg = 0;
@@ -503,7 +487,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 
 	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 1)
 	{
-		if (!m_pShopPanel->IsVisible())
+		if (m_pShopPanel && m_pGridShop && !m_pShopPanel->IsVisible())
 		{
 			if (pOver->m_sHeadIndex == 58 && pOver->m_sHelmIndex == 1110)
 				m_nIsMP = 1;
@@ -537,7 +521,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 	}
 	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 3)
 	{
-		if (!m_pShopPanel->IsVisible())
+		if (m_pShopPanel && m_pGridShop && !m_pShopPanel->IsVisible())
 		{
 			if (pOver->m_sHeadIndex == 58 && pOver->m_sHelmIndex == 1110)
 				m_nIsMP = 1;
@@ -567,7 +551,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 
 	if (pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 2 && pOver->m_sHeadIndex != 51)
 	{
-		if (!m_pCargoPanel->IsVisible())
+		if (m_pCargoPanel && !m_pCargoPanel->IsVisible())
 		{
 			SetVisibleCargo(1);
 			TMFieldScene::m_dwCargoID = pOver->m_dwID;
@@ -628,7 +612,7 @@ int TMFieldScene::MouseClick_NPC(int nX, int nY, D3DXVECTOR3 vec, unsigned int d
 		return 1;
 	}
 
-	if (!m_pMessageBox->IsVisible())
+	if (m_pMessageBox && !m_pMessageBox->IsVisible())
 	{
 		m_pMessageBox->SetMessage(g_pMessageStringTable[437], pOver->m_sHeadIndex, 0);
 		m_pMessageBox->m_dwArg = pOver->m_dwID;
@@ -1116,10 +1100,10 @@ int TMFieldScene::OnKeyQuestLog(char iCharCode, int lParam)
 
 int TMFieldScene::OnKeyAutoRun(char iCharCode, int lParam)
 {
-	if (m_pMyHuman->m_cCantMove)
+	if (iCharCode != ']' && iCharCode != '}')
 		return 0;
 
-	if (iCharCode != ']' && iCharCode != '}')
+	if (!m_pMyHuman || !m_pGround || m_pMyHuman->m_cCantMove)
 		return 0;
 
 	if (m_pGround->m_vecOffsetIndex.x == 13 && m_pGround->m_vecOffsetIndex.y == 31
@@ -1268,9 +1252,10 @@ int TMFieldScene::SelectShortSkill(int slot)
 		}
 	};
 
-	int cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
-	if (cSkillIndex >= 105)
-		cSkillIndex += 95;
+	const int selectedSlot = g_pObjectManager->m_cSelectShortSkill;
+	const int cSkillIndex = field_action::ValidShortSkillSlot(selectedSlot)
+		? field_action::ResolveShortSkill(static_cast<unsigned char>(g_pObjectManager->m_cShortSkill[selectedSlot]))
+		: -1;
 	if (cSkillIndex >= 0 && cSkillIndex < 248 && m_pMyHuman)
 	{
 		SetMyHumanMagic();
@@ -1280,8 +1265,9 @@ int TMFieldScene::SelectShortSkill(int slot)
 		const int nWeather = SkillDamageWeather(g_nWeather,
 			(int)m_pMyHuman->m_vecPosition.x >> 7, (int)m_pMyHuman->m_vecPosition.y >> 7);
 
-		int nSkillDam = BASE_GetSkillDamage(cSkillIndex, pMobData, nWeather, GetWeaponDamage(),
-			g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex);
+		// The live face includes transformations received after character selection.
+		const short face = pMobData->Equip[0].sIndex;
+		int nSkillDam = BASE_GetSkillDamage(cSkillIndex, pMobData, nWeather, GetWeaponDamage(), face);
 		char szStr[128]{};
 		// Healing is shown as its absolute value in green, damage in blue; 65735
 		// is a 7.59 Character control absent from FieldScene2.bin 7.48.
@@ -1421,6 +1407,9 @@ int TMFieldScene::OnKeyNumPad(unsigned int iKeyCode)
 
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
 
+	if (!m_pControlContainer || !m_pMyHuman)
+		return 1;
+
 	if (m_pControlContainer->m_pFocusControl &&
 		m_pControlContainer->m_pFocusControl->m_eCtrlType == CONTROL_TYPE::CTRL_TYPE_EDITABLETEXT && !g_nKeyType)
 	{
@@ -1433,7 +1422,7 @@ int TMFieldScene::OnKeyNumPad(unsigned int iKeyCode)
 	if (m_pMyHuman->m_cDie == 1)
 		return 1;
 
-	if (dwServerTime < m_dwKeyTime + 500)
+	if (field_time::Before(dwServerTime, m_dwKeyTime, 500))
 		return 1;
 
 	if (m_pMyHuman->m_SendeMotion != ECHAR_MOTION::ECMOTION_NONE)

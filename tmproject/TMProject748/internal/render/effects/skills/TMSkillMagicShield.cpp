@@ -4,6 +4,7 @@
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "TMMesh.h"
+#include "EffectGuards.h"
 
 TMSkillMagicShield::TMSkillMagicShield(TMObject* pParent, int nType)
 	:TMEffect()
@@ -54,6 +55,8 @@ int TMSkillMagicShield::Render()
 
 		pMesh2->m_nTextureIndex[0] = 202;
 		pMesh1->m_nTextureIndex[0] = 202;
+		effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh1->m_pVB, m_dwMeshColor);
+		effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh2->m_pVB, m_dwMeshColor);
 
 		g_pDevice->SetRenderState(D3DRS_FOGENABLE, 0);
 		g_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
@@ -134,6 +137,8 @@ int TMSkillMagicShield::Render()
 			pMesh2->m_nTextureIndex[0] = 57;
 			pMesh1->m_nTextureIndex[0] = 57;
 		}
+		effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh1->m_pVB, m_dwMeshColor);
+		effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh2->m_pVB, m_dwMeshColor);
 
 		g_pDevice->SetRenderState(D3DRS_FOGENABLE, 0);
 		g_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
@@ -341,57 +346,27 @@ int TMSkillMagicShield::FrameMove(unsigned int dwServerTime)
 		if (m_nType == 3)
 			m_vecPosition.y = m_vecPosition.y + fDif;
 
-		auto nIndex1 = 704;
-		auto nIndex2 = 705;
+		if (m_nType == 4)
+			fDif *= 0.5f;
 
+		// Both meshes are shared with other shields and TMEffectCharge, so
+		// Render applies this instance's color just before its own draws.
 		if (m_nType == 4)
 		{
-			nIndex1 = 501;
-			nIndex2 = 502;
+			auto dwA = static_cast<unsigned int>(static_cast<float>(m_dwA) * fDif) << 24;
+			auto dwR = static_cast<unsigned int>(static_cast<float>(m_dwR) * fDif) << 16;
+			auto dwG = static_cast<unsigned int>(static_cast<float>(m_dwG) * fDif) << 8;
+			auto dwB = static_cast<unsigned int>(static_cast<float>(m_dwB) * fDif);
 
-			fDif *= 0.5f;
+			m_dwMeshColor = dwB | dwG | dwR | dwA;
 		}
-
-		for (int i = 0; i < 2; ++i) // this loop is not original ok
+		else
 		{
-			int nMeshIndex = nIndex1;
-			if (i == 1)
-				nMeshIndex = nIndex2;
+			auto dwR = static_cast<unsigned int>(static_cast<float>(m_dwR) * fDif) << 16;
+			auto dwG = static_cast<unsigned int>(static_cast<float>(m_dwG) * fDif) << 8;
+			auto dwB = static_cast<unsigned int>(static_cast<float>(m_dwB) * fDif);
 
-			auto pMesh = g_pMeshManager->GetCommonMesh(nMeshIndex, 1, 180000u);
-			if (!pMesh || !pMesh->m_pVB)
-				return 0;
-
-			D3DVERTEXBUFFER_DESC vDesc;
-			RDLVERTEX* pVertex;
-
-			pMesh->m_pVB->GetDesc(&vDesc);
-			pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-			auto nCount = vDesc.Size / sizeof RDLVERTEX;
-
-			for (size_t i = 0; i < nCount; ++i)
-			{
-				if (m_nType == 4)
-				{
-					auto dwA = static_cast<unsigned int>(static_cast<float>(m_dwA) * fDif) << 24;
-					auto dwR = static_cast<unsigned int>(static_cast<float>(m_dwR) * fDif) << 16;
-					auto dwG = static_cast<unsigned int>(static_cast<float>(m_dwG) * fDif) << 8;
-					auto dwB = static_cast<unsigned int>(static_cast<float>(m_dwB) * fDif);
-
-					pVertex[i].diffuse = dwB | dwG | dwR | dwA;
-				}
-				else
-				{
-					auto dwR = static_cast<unsigned int>(static_cast<float>(m_dwR) * fDif) << 16;
-					auto dwG = static_cast<unsigned int>(static_cast<float>(m_dwG) * fDif) << 8;
-					auto dwB = static_cast<unsigned int>(static_cast<float>(m_dwB) * fDif);
-
-					pVertex[i].diffuse = dwB | dwG | dwR;
-				}
-			}
-
-			pMesh->m_pVB->Unlock();
+			m_dwMeshColor = dwB | dwG | dwR;
 		}
 
 		m_fAngle = (float)(m_fProgress * D3DXToRadian(180)) * 2.0f;

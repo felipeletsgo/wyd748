@@ -7,6 +7,8 @@
 
 #pragma comment(lib, "psapi.lib")
 #include <string>
+#include <unordered_set>
+#include <cstring>
 
 namespace perf_trace {
 namespace {
@@ -23,6 +25,7 @@ struct State
     double lastCpuMs = -1.0;
     double lastCpuWallMs = 0.0;
     Interval interval;
+    std::unordered_set<std::string> missingAssets;
 };
 
 State& GetState()
@@ -288,6 +291,36 @@ void LogLoad(const char* kind, const char* file, double ms)
         return;
     State& state = GetState();
     std::fprintf(state.file, "#load,%s,%s,%.2f\n", kind ? kind : "", file ? file : "", ms);
+}
+
+void RecordIO(const char* kind, const char* file, bool success, double ms)
+{
+    if (!Enabled()) return;
+    auto& state = GetState();
+    auto& in = state.interval;
+    if (std::strcmp(kind, "channel-status") == 0) {
+        ++in.channelQueries;
+        in.channelMs += ms;
+        if (ms > in.channelMaxMs) in.channelMaxMs = ms;
+        std::fprintf(state.file, "#channel,%d,%.2f\n", success ? 1 : 0, ms);
+        return;
+    }
+    ++in.assetOpens;
+    if (!success) {
+        ++in.assetMisses;
+        const std::string path = file ? file : "";
+        if (state.missingAssets.find(path) != state.missingAssets.end())
+            ++in.repeatedAssetMisses;
+        else if (state.missingAssets.size() < 4096) {
+            state.missingAssets.insert(path);
+            std::fprintf(state.file, "#missing,%s,%.2f\n", path.c_str(), ms);
+        }
+    }
+}
+
+void OnEmission(Emitter emitter)
+{
+    if (Enabled()) ++GetState().interval.emissions[static_cast<int>(emitter)];
 }
 
 bool EndFrame()

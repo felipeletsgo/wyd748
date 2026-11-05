@@ -2,7 +2,7 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Mensagens S->C opacas: a cena consome sem interpretar o payload.
+// Opaque S->C messages: the scene consumes them without interpreting the payload.
 constexpr auto MSG_LegacySceneMessage102_Opcode = 0x102;
 struct MSG_LegacySceneMessage102
 {

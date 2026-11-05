@@ -25,4 +25,7 @@ public:
     unsigned int m_dwR;
     unsigned int m_dwG;
     unsigned int m_dwB;
+    // Per-instance state for the shared mesh 703, applied in Render.
+    unsigned int m_dwMeshColor = 0;
+    float m_fMeshScale = 1.0f;
 };

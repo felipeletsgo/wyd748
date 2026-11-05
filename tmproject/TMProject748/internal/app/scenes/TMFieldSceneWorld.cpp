@@ -28,6 +28,7 @@
 #include "../../ui/MiniMapLayout.h"
 #include "TMHuman.h"
 #include "../../game/entities/EntityReentryPolicy.h"
+#include "../../application/SceneSafetyPolicy.h"
 #include "TMEffectStart.h"
 #include "TMSkillJudgement.h"
 #include "TMSkillTownPortal.h"
@@ -181,14 +182,6 @@ void TMFieldScene::SetVisibleMiniMap()
 		static_cast<float>(g_pDevice->m_dwScreenHeight) / uiScale);
 	const float mapSize = layout.size * uiScale;
 	auto px = [uiScale](float value) { return value * uiScale; };
-	for (int markerIndex = 0; markerIndex < 256; ++markerIndex)
-	{
-		if (m_pInMiniMapPosPanel[markerIndex])
-			m_pInMiniMapPosPanel[markerIndex]->SetVisible(0);
-		if (m_pInMiniMapPosText[markerIndex])
-			m_pInMiniMapPosText[markerIndex]->SetVisible(0);
-	}
-
 	TMGround::m_fMiniMapScale = layout.scale;
 	m_pMiniMapPanel->SetPos(px(layout.x), px(layout.y));
 	m_pMiniMapPanel->SetSize(mapSize, mapSize);
@@ -294,9 +287,12 @@ void TMFieldScene::SetCameraView()
 
 	if (m_nCameraMode == 0)
 	{
-		TMVector2 Pos = g_pObjectManager->m_pCamera->GetFocusedObject()->m_vecPosition;
-		if ((int)Pos.x >> 7 > 26 && (int)Pos.x >> 7 < 31 &&
-			(int)Pos.y >> 7 > 20 && (int)Pos.y >> 7 < 25)
+		// Without a focused object (field transition) use the ordinary angles
+		// instead of reading its position (ENTA-R5, C-09/C-23).
+		const auto pFocus = g_pObjectManager->m_pCamera->GetFocusedObject();
+		if (pFocus &&
+			(int)pFocus->m_vecPosition.x >> 7 > 26 && (int)pFocus->m_vecPosition.x >> 7 < 31 &&
+			(int)pFocus->m_vecPosition.y >> 7 > 20 && (int)pFocus->m_vecPosition.y >> 7 < 25)
 		{
 			pCamera->m_fVerticalAngle = -0.64114136f;
 			pCamera->m_fHorizonAngle = 1.013417f;
@@ -317,9 +313,12 @@ void TMFieldScene::SetCameraView()
 	}
 	else if (m_nCameraMode == 1)
 	{
-		TMVector2 Pos = g_pObjectManager->m_pCamera->GetFocusedObject()->m_vecPosition;
-		if ((int)Pos.x >> 7 > 26 && (int)Pos.x >> 7 < 31 &&
-			(int)Pos.y >> 7 > 20 && (int)Pos.y >> 7 < 25)
+		// Without a focused object (field transition) use the ordinary angles
+		// instead of reading its position (ENTA-R5, C-09/C-23).
+		const auto pFocus = g_pObjectManager->m_pCamera->GetFocusedObject();
+		if (pFocus &&
+			(int)pFocus->m_vecPosition.x >> 7 > 26 && (int)pFocus->m_vecPosition.x >> 7 < 31 &&
+			(int)pFocus->m_vecPosition.y >> 7 > 20 && (int)pFocus->m_vecPosition.y >> 7 < 25)
 		{
 			pCamera->m_fVerticalAngle = -0.64114136f;
 			pCamera->m_fHorizonAngle = 1.013417f;
@@ -420,6 +419,10 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	// Trade packets reuse byte 327 as shop-title text, never as tab color.
 	const unsigned char tabColor = pStd->Type == MSG_CreateMob_Opcode
 		? pCreateMob->TabColor : 0;
+	// Trade packets also reuse byte 326 (Server in 0x364) for the shop title;
+	// their citizenship is MSG_CreateMobTrade::Server at byte 350.
+	const char citizen = static_cast<char>(create_mob_view::Citizen(
+		reinterpret_cast<const unsigned char*>(pStd), pStd->Size, pStd->Type));
 	auto pExisting = pCreateMob->MobID == g_pObjectManager->m_dwCharID
 		? m_pMyHuman : g_pObjectManager->GetHumanByID(pCreateMob->MobID);
 	if (pExisting && entity_reentry::Replace(pExisting == m_pMyHuman,
@@ -435,10 +438,13 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 	{
 		// A metadata refresh must not respawn the entity or interrupt movement.
 		pExisting->SetTabLabel(pCreateMob->Nick, tabColor);
-		if (pExisting->m_citizen != pCreateMob->Server)
+		if (pExisting->m_citizen != citizen)
 		{
-			pExisting->m_citizen = pCreateMob->Server;
+			pExisting->m_citizen = citizen;
 			pExisting->SetPacketEquipItem(pCreateMob->Equip);
+			// Rebuild the cape with the new emblem and its colors (ENTA-R4, A14-08).
+			pExisting->SetColorItem(reinterpret_cast<char*>(pCreateMob->Equip2));
+			pExisting->RefreshMantua();
 		}
 		if (pCreateMob->MobID < 1000)
 			pExisting->m_ucChaosLevel = static_cast<unsigned char>(pCreateMob->MobName[12]);
@@ -454,7 +460,7 @@ int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)
 
 	pHuman->m_dwID = pCreateMob->MobID;
 	pHuman->m_usGuild = pCreateMob->Guild;
-	pHuman->m_citizen = pCreateMob->Server;
+	pHuman->m_citizen = citizen;
 	pHuman->m_nCurrentKill = 0;
 	pHuman->m_nTotalKill = 0;
 	pHuman->m_ucChaosLevel = pCreateMob->MobID < 1000
@@ -680,12 +686,20 @@ int TMFieldScene::OnPacketCreateItem(MSG_CreateItem* pMsg)
 int TMFieldScene::OnPacketEnvEffect(MSG_STANDARD* pStd)
 {
 	auto pEnvEffect = reinterpret_cast<MSG_EnvEffect*>(pStd);
-	if (pEnvEffect->x1 > pEnvEffect->x2 || pEnvEffect->y1 > pEnvEffect->y2)
+	if (pEnvEffect->x1 > pEnvEffect->x2 || pEnvEffect->y1 > pEnvEffect->y2 || !m_pEffectContainer)
 		return 1;
 
-	for (int nY = pEnvEffect->y1; nY < pEnvEffect->y2; nY += 3)
+	// The server rectangle has no size bound. Only the height window around
+	// the player has terrain, so clip the 4 x 3 grid to it (same grid phase)
+	// before allocating one effect per point.
+	const auto spanY = env_effect_area::Clip(pEnvEffect->y1, pEnvEffect->y2, 3,
+		g_HeightPosY, g_HeightPosY + env_effect_area::kHeightWindow);
+	const auto spanX = env_effect_area::Clip(pEnvEffect->x1 + 1, pEnvEffect->x2, 4,
+		g_HeightPosX, g_HeightPosX + env_effect_area::kHeightWindow);
+
+	for (int nY = spanY.first; nY < spanY.end; nY += 3)
 	{
-		for (int nX = pEnvEffect->x1 + 1; nX < pEnvEffect->x2; nX += 4)
+		for (int nX = spanX.first; nX < spanX.end; nX += 4)
 		{
 			unsigned int dwColor = 0x44444444;
 

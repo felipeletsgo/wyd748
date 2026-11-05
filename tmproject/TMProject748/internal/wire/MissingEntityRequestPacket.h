@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intencao C->S que pede a rematerializacao de uma entidade referenciada por
-// Action/Attack. O WORD final permanece zero porque o frame nativo e zerado.
+// C->S intent requests an entity referenced by Action/Attack.
+// The final WORD remains zero, as the native frame is zero-initialized.
 constexpr auto MSG_REQMobByID_Opcode = 0x369;
 struct MSG_REQMobByID
 {

@@ -4,8 +4,8 @@
 #include <cstdint>
 #include <limits>
 
-// As cartas 4030/4031 abrem o prompt nativo e so entao enviam um
-// MSG_STANDARDPARM com o canal digitado. O clique no item nao envia Parm=0.
+// Letters 4030/4031 open the native prompt, then send MSG_STANDARDPARM with the entered channel.
+// The item click does not send Parm=0.
 constexpr auto MSG_UseDeclarationOfWar_Opcode = 0xED7;
 constexpr auto MSG_UseRefuseServerWar_Opcode = 0xED8;
 

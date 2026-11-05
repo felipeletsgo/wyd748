@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../../platform/diagnostics/PerfTrace.h"
 // TMGround split by responsibility; terrain lifecycle and loading stay in TMGround.cpp.
 #include "TMSea.h"
 #include "TMGlobal.h"
@@ -6,6 +7,7 @@
 #include "TMCamera.h"
 #include "TMEffectBillBoard.h"
 #include "TMSkillFire.h"
+#include "TerrainQueryPolicy.h"
 
 int TMGround::Render()
 {
@@ -22,6 +24,7 @@ int TMGround::Render()
     if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR)
         return 1;
 
+    m_lavaSteps = m_lavaEmission.Steps(g_pTimerManager->GetServerTime(), !g_bHideEffect);
     int nXList[3]{};
     int nYList[3]{};
     unsigned int dwColor[4]{};
@@ -219,14 +222,13 @@ int TMGround::Render()
                 }
 
                 BuildTileVertices(nTickX, nTickY, nX, nY);
-                if (m_dwEffStart && m_dwServertime < (m_dwEffStart + 2000))
+                // Signed elapsed time: the unsigned form raised every vertex by
+                // about 1.7e6 world units for two seconds after a quake (A25-01).
+                float Height = 0.0f;
+                if (terrain_quake::Amplitude(m_dwServertime, m_dwEffStart, m_fEffHeight, Height))
                 {
-                    float Height = (float)((4.0f * m_fEffHeight) * (float)(m_dwServertime - m_dwEffStart - 2000) / 2000.0f);
-
                     for (int j = 0; j < 4; j++)
                     {
-                        auto vecCalc = (float)((float)(m_vecEffset.x - m_vertex[j].position.x) * (float)(m_vecEffset.y - m_vertex[j].position.z)) / 10.0f;
-
                         float fCos = cosf(((m_vecEffset.x - m_vertex[j].position.x)
                             * (m_vecEffset.y - m_vertex[j].position.z))
                             / 10.0f + (float)((float)m_dwServertime / 300.0f));
@@ -371,14 +373,11 @@ ExtractedFlow TMGround::BuildVoodooTileVertices(char& bCoordIndex, unsigned int 
                         m_vertexVoodoo[3].position = TMVector3((float)(nTickX + nX), m_TileMapData[(nY << 6) + nTickX + nX].cHeight, (float)(nTickY + nY));
                     }
 
-                    if (m_dwEffStart && m_dwServertime < (m_dwEffStart + 2000))
+                    float Height = 0.0f;
+                    if (terrain_quake::Amplitude(m_dwServertime, m_dwEffStart, m_fEffHeight, Height))
                     {
-                        auto Height = (float)(((4.0f * m_fEffHeight) * (float)(m_dwServertime - m_dwEffStart - 2000)) / 2000.0f);
-
                         for (int j = 0; j < 4; j++)
                         {
-                            auto vecCalc = (float)((float)(m_vecEffset.x - m_vertexVoodoo[j].position.x) * (float)(m_vecEffset.y - m_vertexVoodoo[j].position.z)) / 10.0f;
-
                             float fCos = cosf(((m_vecEffset.x - m_vertexVoodoo[j].position.x) * (m_vecEffset.y - m_vertexVoodoo[j].position.z))
                                 / 10.0f + ((float)m_dwServertime / 300.0f));
                             m_vertexVoodoo[j].position.y = (float)(fCos * Height) + m_vertexVoodoo[j].position.y;
@@ -414,94 +413,100 @@ ExtractedFlow TMGround::SetTileTextureCoordinates(char& bCoordBackIndex, char& b
                             if (g_bHideEffect)
                                 return ExtractedFlow::Continue;
 
-                            int nRandV = rand();
-
-                            TMVector3 vecPos = TMVector3((float)((float)((float)nX * 2.0f) + m_vecOffset.x) + 0.5f,
-                                (float)((float)m_TileMapData[nX + (nY << 6)].cHeight * 0.1f) + 1.5f,
-                                (float)((float)((float)nY * 2.0f) + m_vecOffset.y) + 0.5f);
-
-                            if (nRandV % 200 < 2)
+                            for (unsigned int emission = m_lavaSteps; emission; --emission)
                             {
-                                int nRand = rand() % 10;
+                                int nRandV = rand();
 
-                                TMEffectBillBoard* mpBill = new TMEffectBillBoard(0, 1000,
-                                    (float)((float)nRand * 0.19f) + 0.02f,
-                                    (float)((float)nRand * 0.60000002f) + 0.02f,
-                                    (float)((float)nRand * 0.19f) + 0.02f,
-                                    0.000099999997f, 1, 80);
+                                TMVector3 vecPos = TMVector3((float)((float)((float)nX * 2.0f) + m_vecOffset.x) + 0.5f,
+                                    (float)((float)m_TileMapData[nX + (nY << 6)].cHeight * 0.1f) + 1.5f,
+                                    (float)((float)((float)nY * 2.0f) + m_vecOffset.y) + 0.5f);
 
-                                if (mpBill)
+                                if (nRandV % 200 < 2)
                                 {
-                                    vecPos.x = (float)((float)(rand() % 10 - 5) * 0.02f) + vecPos.x;
-                                    vecPos.z = (float)((float)(rand() % 10 - 5) * 0.02f) + vecPos.z;
+                                    int nRand = rand() % 10;
 
-                                    mpBill->m_vecPosition = vecPos;
-                                    mpBill->m_vecStartPos = vecPos;
+                                    perf_trace::OnEmission(perf_trace::Emitter::Lava);
+                                    TMEffectBillBoard* mpBill = new TMEffectBillBoard(0, 1000,
+                                        (float)((float)nRand * 0.19f) + 0.02f,
+                                        (float)((float)nRand * 0.60000002f) + 0.02f,
+                                        (float)((float)nRand * 0.19f) + 0.02f,
+                                        0.000099999997f, 1, 80);
 
-                                    mpBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                                    mpBill->m_bStickGround = 0;
-                                    mpBill->m_nParticleType = 1;
-                                    mpBill->m_fParticleV = 0.69999999f;
-                                    mpBill->SetColor(0xFFFFAA00);
+                                    if (mpBill)
+                                    {
+                                        vecPos.x = (float)((float)(rand() % 10 - 5) * 0.02f) + vecPos.x;
+                                        vecPos.z = (float)((float)(rand() % 10 - 5) * 0.02f) + vecPos.z;
 
-                                    g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
+                                        mpBill->m_vecPosition = vecPos;
+                                        mpBill->m_vecStartPos = vecPos;
+
+                                        mpBill->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                                        mpBill->m_bStickGround = 0;
+                                        mpBill->m_nParticleType = 1;
+                                        mpBill->m_fParticleV = 0.69999999f;
+                                        mpBill->SetColor(0xFFFFAA00);
+
+                                        g_pCurrentScene->m_pEffectContainer->AddChild(mpBill);
+                                    }
                                 }
-                            }
-                            if (m_dwServertime - m_dwLastEffectTime > 2000
-                                && !(nX % 2)
-                                && !(nY % 3)
-                                && (nRandV % 100 < 1))
-                            {
-                                int glowRand = (rand() % 7);
-
-                                auto pGlow = new TMEffectBillBoard(56, 20000, 0.2f, 0.2f, 0.2f, 0.0f, 1, 80);
-
-                                if (pGlow)
+                                if (m_dwServertime - m_dwLastEffectTime > 2000
+                                    && !(nX % 2)
+                                    && !(nY % 3)
+                                    && (nRandV % 100 < 1))
                                 {
-                                    pGlow->m_vecPosition = TMVector3(
-                                        vecPos.x,
-                                        (float)(vecPos.y + 1.5f) + (float)((float)glowRand * 0.2f),
-                                        vecPos.z);
+                                    int glowRand = (rand() % 7);
 
-                                    pGlow->m_vecStartPos = pGlow->m_vecPosition;
+                                    perf_trace::OnEmission(perf_trace::Emitter::Lava);
+                                    auto pGlow = new TMEffectBillBoard(56, 20000, 0.2f, 0.2f, 0.2f, 0.0f, 1, 80);
 
-                                    pGlow->m_fCircleSpeed = (float)((float)glowRand * 0.1f) + 1.5f;
-                                    pGlow->m_fParticleH = (float)((float)glowRand * 0.30000001f) + 3.0f;
-                                    pGlow->m_fParticleV = (float)((float)glowRand * 0.050000001f) + 0.2f;
-                                    pGlow->m_nParticleType = glowRand % 3 + 6;
-                                    pGlow->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                                    pGlow->SetColor(0xFFFFAA00);
+                                    if (pGlow)
+                                    {
+                                        pGlow->m_vecPosition = TMVector3(
+                                            vecPos.x,
+                                            (float)(vecPos.y + 1.5f) + (float)((float)glowRand * 0.2f),
+                                            vecPos.z);
 
-                                    g_pCurrentScene->m_pEffectContainer->AddChild(pGlow);
-                                }
+                                        pGlow->m_vecStartPos = pGlow->m_vecPosition;
 
-                                pGlow = new TMEffectBillBoard(60, 20000, 0.07f, 0.07f, 0.07f, 0.0f, 1, 80);
+                                        pGlow->m_fCircleSpeed = (float)((float)glowRand * 0.1f) + 1.5f;
+                                        pGlow->m_fParticleH = (float)((float)glowRand * 0.30000001f) + 3.0f;
+                                        pGlow->m_fParticleV = (float)((float)glowRand * 0.050000001f) + 0.2f;
+                                        pGlow->m_nParticleType = glowRand % 3 + 6;
+                                        pGlow->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                                        pGlow->SetColor(0xFFFFAA00);
 
-                                if (pGlow)
-                                {
-                                    pGlow->m_vecPosition = TMVector3(
-                                        vecPos.x,
-                                        (float)(vecPos.y + 1.5f) + (float)((float)glowRand * 0.2f),
-                                        vecPos.z);
+                                        g_pCurrentScene->m_pEffectContainer->AddChild(pGlow);
+                                    }
 
-                                    pGlow->m_vecStartPos = pGlow->m_vecPosition;
+                                    perf_trace::OnEmission(perf_trace::Emitter::Lava);
+                                    pGlow = new TMEffectBillBoard(60, 20000, 0.07f, 0.07f, 0.07f, 0.0f, 1, 80);
 
-                                    pGlow->m_fCircleSpeed = (float)((float)glowRand * 0.1f) + 1.5f;
-                                    pGlow->m_fParticleH = (float)((float)glowRand * 0.30000001f) + 3.0f;
-                                    pGlow->m_fParticleV = (float)((float)glowRand * 0.050000001f) + 0.2f;
-                                    pGlow->m_nParticleType = glowRand % 3 + 6;
-                                    pGlow->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                                    pGlow->SetColor(0xFFFFFF00);
+                                    if (pGlow)
+                                    {
+                                        pGlow->m_vecPosition = TMVector3(
+                                            vecPos.x,
+                                            (float)(vecPos.y + 1.5f) + (float)((float)glowRand * 0.2f),
+                                            vecPos.z);
 
-                                    g_pCurrentScene->m_pEffectContainer->AddChild((TreeNode*)pGlow);
-                                }
+                                        pGlow->m_vecStartPos = pGlow->m_vecPosition;
 
-                                if (glowRand < 3)
-                                {
-                                    auto pFire = new TMSkillFire(vecPos, 1, 0, 0xFFFFFFFF, 0x22331100);
+                                        pGlow->m_fCircleSpeed = (float)((float)glowRand * 0.1f) + 1.5f;
+                                        pGlow->m_fParticleH = (float)((float)glowRand * 0.30000001f) + 3.0f;
+                                        pGlow->m_fParticleV = (float)((float)glowRand * 0.050000001f) + 0.2f;
+                                        pGlow->m_nParticleType = glowRand % 3 + 6;
+                                        pGlow->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                                        pGlow->SetColor(0xFFFFFF00);
 
-                                    if (pFire)
-                                        g_pCurrentScene->m_pEffectContainer->AddChild(pFire);
+                                        g_pCurrentScene->m_pEffectContainer->AddChild((TreeNode*)pGlow);
+                                    }
+
+                                    if (glowRand < 3)
+                                    {
+                                        auto pFire = new TMSkillFire(vecPos, 1, 0, 0xFFFFFFFF, 0x22331100);
+
+                                        if (pFire)
+                                            g_pCurrentScene->m_pEffectContainer->AddChild(pFire);
+                                    }
                                 }
                             }
                         }
@@ -546,77 +551,36 @@ ExtractedFlow TMGround::SetTileTextureCoordinates(char& bCoordBackIndex, char& b
 }
 
 
-// Extracted from TMGround::Render; behavior is unchanged.
+// Extracted from TMGround::Render.
 void TMGround::BuildTileVertices(int& nTickX, int& nTickY, int& nX, int& nY)
 {
-                if (nX < 63 && nY < 63)
-                {
-                    m_vertex[0].diffuse = m_TileMapData[nX + (nY << 6)].dwColor;
-                    m_vertex[1].diffuse = m_TileMapData[nX + ((nTickY + nY) << 6)].dwColor;
-                    m_vertex[2].diffuse = m_TileMapData[(nY << 6) + nTickX + nX].dwColor;
-                    m_vertex[3].diffuse = m_TileMapData[((nTickY + nY) << 6) + nTickX + nX].dwColor;
+                // One rule for interior, edge and corner tiles: a corner past the
+                // last row or column repeats that row or column. The legacy
+                // branches omitted (63, 63), which redrew the previous quad there
+                // (A25-06); every other tile keeps the same samples.
+                terrain_tile_samples::Quad quad{};
+                if (!terrain_tile_samples::Resolve(nX, nY, nTickX, nTickY, quad))
+                    return;
 
-                    m_vertex[0].normal = m_TileNormalVector[64 * nY + nX];
-                    m_vertex[1].normal = m_TileNormalVector[64 * (nTickY + nY) + nX];
-                    m_vertex[2].normal = m_TileNormalVector[64 * nY + nTickX + nX];
-                    m_vertex[3].normal = m_TileNormalVector[64 * (nTickY + nY) + nTickX + nX];
+                m_vertex[0].diffuse = m_TileMapData[quad.i00].dwColor;
+                m_vertex[1].diffuse = m_TileMapData[quad.i01].dwColor;
+                m_vertex[2].diffuse = m_TileMapData[quad.i10].dwColor;
+                m_vertex[3].diffuse = m_TileMapData[quad.i11].dwColor;
 
-                    m_vertex[0].position = TMVector3((float)nX, (float)m_TileMapData[nX + (nY << 6)].cHeight, (float)nY);
-                    m_vertex[1].position = TMVector3((float)nX,
-                        (float)m_TileMapData[nX + ((nTickY + nY) << 6)].cHeight,
-                        (float)(nTickY + nY));
-                    m_vertex[2].position = TMVector3((float)(nTickX + nX),
-                        (float)m_TileMapData[(nY << 6) + nTickX + nX].cHeight,
-                        (float)nY);
-                    m_vertex[3].position = TMVector3((float)(nTickX + nX),
-                        (float)m_TileMapData[((nTickY + nY) << 6) + nTickX + nX].cHeight,
-                        (float)(nTickY + nY));
-                }
-                else if (nX == 63 && nY < 63)
-                {
-                    m_vertex[0].diffuse = m_TileMapData[nX + (nY << 6)].dwColor;
-                    m_vertex[1].diffuse = m_TileMapData[nX + ((nTickY + nY) << 6)].dwColor;
-                    m_vertex[2].diffuse = m_TileMapData[nX + (nY << 6)].dwColor;
-                    m_vertex[3].diffuse = m_TileMapData[nX + ((nTickY + nY) << 6)].dwColor;
+                m_vertex[0].normal = m_TileNormalVector[quad.i00];
+                m_vertex[1].normal = m_TileNormalVector[quad.i01];
+                m_vertex[2].normal = m_TileNormalVector[quad.i10];
+                m_vertex[3].normal = m_TileNormalVector[quad.i11];
 
-                    m_vertex[0].normal = m_TileNormalVector[64 * nY + nX];
-                    m_vertex[1].normal = m_TileNormalVector[64 * (nTickY + nY) + nX];
-                    m_vertex[2].normal = m_TileNormalVector[64 * nY + nX];
-                    m_vertex[3].normal = m_TileNormalVector[64 * (nTickY + nY) + nX];
-
-                    m_vertex[0].position = TMVector3((float)nX, (float)m_TileMapData[nX + (nY << 6)].cHeight, (float)nY);
-                    m_vertex[1].position = TMVector3((float)nX,
-                        (float)m_TileMapData[nX + ((nTickY + nY) << 6)].cHeight,
-                        (float)(nTickY + nY));
-                    m_vertex[2].position = TMVector3((float)(nTickX + nX),
-                        (float)m_TileMapData[nX + (nY << 6)].cHeight,
-                        (float)nY);
-                    m_vertex[3].position = TMVector3((float)(nTickX + nX),
-                        (float)m_TileMapData[nX + ((nTickY + nY) << 6)].cHeight,
-                        (float)(nTickY + nY));
-                }
-                else if (nY == 63 && nX < 63)
-                {
-                    m_vertex[0].diffuse = m_TileMapData[nX + (nY << 6)].dwColor;
-                    m_vertex[1].diffuse = m_TileMapData[nX + (nY << 6)].dwColor;
-                    m_vertex[2].diffuse = m_TileMapData[(nY << 6) + nTickX + nX].dwColor;
-                    m_vertex[3].diffuse = m_TileMapData[(nY << 6) + nTickX + nX].dwColor;
-
-                    m_vertex[0].normal = m_TileNormalVector[64 * nY + nX];
-                    m_vertex[1].normal = m_TileNormalVector[64 * nY + nX];
-                    m_vertex[2].normal = m_TileNormalVector[64 * nY + nTickX + nX];
-                    m_vertex[3].normal = m_TileNormalVector[64 * nY + nTickX + nX];
-
-                    m_vertex[0].position = TMVector3((float)nX, (float)m_TileMapData[nX + (nY << 6)].cHeight, (float)nY);
-                    m_vertex[1].position = TMVector3((float)nX,
-                        (float)m_TileMapData[nX + (nY << 6)].cHeight,
-                        (float)(nTickY + nY));
-                    m_vertex[2].position = TMVector3((float)(nTickX + nX),
-                        (float)m_TileMapData[(nY << 6) + nTickX + nX].cHeight,
-                        (float)nY);
-                    m_vertex[3].position = TMVector3((float)(nTickX + nX),
-                        (float)m_TileMapData[(nY << 6) + nTickX + nX].cHeight,
-                        (float)(nTickY + nY));
-                }
+                m_vertex[0].position = TMVector3((float)nX, (float)m_TileMapData[quad.i00].cHeight, (float)nY);
+                m_vertex[1].position = TMVector3((float)nX,
+                    (float)m_TileMapData[quad.i01].cHeight,
+                    (float)(nTickY + nY));
+                m_vertex[2].position = TMVector3((float)(nTickX + nX),
+                    (float)m_TileMapData[quad.i10].cHeight,
+                    (float)nY);
+                m_vertex[3].position = TMVector3((float)(nTickX + nX),
+                    (float)m_TileMapData[quad.i11].cHeight,
+                    (float)(nTickY + nY));
 }
 

@@ -753,6 +753,7 @@ _WG_Reviving_Costs_Gold	Reviver %s custa %d de Gold.
 _WG_Save_Failed_Mount_Was_Not_Changed	Falha ao salvar. A montaria não foi alterada.
 _WG_Treatment_Failed_Mount_Was_Lost	O tratamento falhou e a montaria foi perdida.
 _WG_Training_Field_Only_Mortals_Below_Level	O campo de treino é só para mortais abaixo do nível 35.
+_WG_City_Guild_Area_Restricted	Apenas membros da guild dona desta cidade podem entrar nesta área.
 _WG_Move_Closer_Interact	Aproxime-se para interagir.
 _WG_Character_Not_Visible	Esse personagem não está visível.
 _WG_Character_Not_Available	Esse personagem não está disponível.
@@ -1118,3 +1119,5 @@ _WG_Roll_Success	Sucesso: %d/%d
 _WG_Roll_Fail	Falha: %d/%d
 _WG_Roll_Penalty_Success	Penalidade - Sucesso: %d/%d
 _WG_Roll_Penalty_Fail	Penalidade - Falha: %d/%d
+
+_WG_Sale_Quote_Changed	O preço de venda mudou. Reabra a loja e confira o valor. Seu item não foi vendido.

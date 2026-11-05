@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "UnsupportedItemFeatures.h"
 // SGridControl split by responsibility; see SGrid.cpp for the grid model.
 #include "SGrid.h"
 #include "GridInsertion.h"
@@ -390,6 +391,8 @@ int SGridControl::TradeItemOnTradeInv6(int& nCellX, int& nCellY, TMFieldScene*& 
 
 	int SourPos = pFScene->GetCarrySlotForCell(this,
 		pItem->m_nCellIndexX, pItem->m_nCellIndexY);
+	if (SourPos < 0)
+		return 2;
 
 	SGridControl* pGridMyItem[3];
 	for (size_t i = 0; i < 3; i++)
@@ -825,6 +828,14 @@ ExtractedFlow SGridControl::SellItemOnShop(TMFieldScene*& pScene, int& extracted
 		SGridControl::m_pSellItem = nullptr;
 		{ extractedResult = 1; return ExtractedFlow::Return; }
 	}
+	short sSellType = 0;
+	short sSellPos = -1;
+	if (!WYD748_ResolveItemEndpoint(pScene, SGridControl::m_pSellItem, sSellType, sSellPos))
+	{
+		// A skill icon or another presentation item has no wire slot (A26-01).
+		SGridControl::m_pSellItem = nullptr;
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
 
 	if (g_pEventTranslator->m_bCtrl)
 	{
@@ -838,12 +849,14 @@ ExtractedFlow SGridControl::SellItemOnShop(TMFieldScene*& pScene, int& extracted
 				SGridControl::m_pSellItem->m_nCellIndexX,
 				SGridControl::m_pSellItem->m_nCellIndexY);
 
-		MSG_Sell stSell{};
-		stSell.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
-		stSell.Header.Type = MSG_Sell_Opcode;
-		stSell.TargetID = m_dwMerchantID;
-		stSell.MyType = sDestType;
-		stSell.MyPos = sDestPos;
+		MSG_QuotedSale stSell{};
+		if (!WYD748_BuildQuotedSale(pScene, SGridControl::m_pSellItem,
+			m_dwMerchantID, sDestType, sDestPos, stSell))
+		{
+			SGridControl::m_pSellItem = nullptr;
+			extractedResult = 1;
+			return ExtractedFlow::Return;
+		}
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSell)->Type, reinterpret_cast<char*>(&stSell), sizeof(stSell)});
 		SGridControl::m_pSellItem = 0;
 	}
@@ -936,25 +949,25 @@ ExtractedFlow SGridControl::SellItemOnOtherGrid(int& nCellX, int& nCellY, unsign
 {
 	auto pItem = GetItem(nCellX, nCellY);
 	int nVolatile = BASE_GetItemAbility(g_pCursor->m_pAttachedItem->m_pItem, 38);
+	if (unsupported_item_features::Reject(g_pCursor->m_pAttachedItem->m_pItem->sIndex, nVolatile))
+		{ extractedResult = 1; return ExtractedFlow::Return; }
 	int nDestVolatile = -1;
-	int itemidx = -1;
 	short sDestType = CheckType(m_eItemType, m_eGridType);
 	short sDestPos = CheckPos(m_eItemType);
 	if (pItem)
 	{
 	nDestVolatile = BASE_GetItemAbility(pItem->m_pItem, 38);
-	itemidx = pItem->m_pItem->sIndex;
+	if (unsupported_item_features::Reject(pItem->m_pItem->sIndex, nDestVolatile))
+		{ extractedResult = 1; return ExtractedFlow::Return; }
 	}
 
 	if ((((nVolatile >= 4 && nVolatile <= 6 || nVolatile == 9 || nVolatile == 15 || nVolatile == 16 || nVolatile >= 180 && nVolatile <= 183 ||
-	nVolatile >= 235 && nVolatile <= 238 || nVolatile >= 239 && nVolatile <= 240 || nVolatile >= 90 && nVolatile < 95 || nVolatile == 179 ||
+	nVolatile >= 90 && nVolatile < 95 || nVolatile == 179 ||
 	nVolatile == 186 || nVolatile == 196) &&
 	!sDestType || nVolatile == 190 && !sDestType && m_dwEnableColor == 0x330000FF) &&
-	!nDestVolatile || nVolatile == 241 && sDestType == 1 && nDestVolatile == 16 ||
+	!nDestVolatile ||
 	(nVolatile == 4 || nVolatile == 5) && sDestType == 1 && m_dwEnableColor == 0x3300FF00 ||
-	g_pCursor->m_pAttachedItem->m_pItem->sIndex == 3465 || (nVolatile == 4 || nVolatile == 5) &&
-	(sDestType >= 1901 && sDestType <= 1910 || sDestType >= 1234 && sDestType <= 1237 || sDestType >= 1369 && sDestType <= 1372 ||
-		sDestType >= 1519 && sDestType <= 1522 || sDestType >= 1669 && sDestType <= 1672 || sDestType == 1714)) && pItem)
+	g_pCursor->m_pAttachedItem->m_pItem->sIndex == 3465) && pItem)
 	{
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
 
@@ -974,21 +987,11 @@ ExtractedFlow SGridControl::SellItemOnOtherGrid(int& nCellX, int& nCellY, unsign
 	if (sDestPos == -1)
 		sDestPos = WYD748_ResolveWireSlot(pScene, pItem->m_pGridControl,
 			sDestType, pItem->m_nCellIndexX, pItem->m_nCellIndexY);
-
+	if (sSrcPos < 0 || sDestPos < 0)
+		{ extractedResult = 1; return ExtractedFlow::Return; }
 
 	if (sSrcType == 2)
 		{ extractedResult = 0; return ExtractedFlow::Return; }
-
-	if (nVolatile >= 239 && nVolatile <= 240)
-	{
-		_nCellX = nCellX;
-		_nCellY = nCellY;
-		_dwFlags = dwFlags;
-		_wParam = wParam;
-		pScene->m_pitemPassGrid = this;
-		pScene->VisibleInputPass();
-		{ extractedResult = 1; return ExtractedFlow::Return; }
-	}
 
 	MSG_UseItem stUseItem{};
 	// Native 7.48 validates the resolved Carry slot directly; modern bag-key
@@ -1006,46 +1009,8 @@ ExtractedFlow SGridControl::SellItemOnOtherGrid(int& nCellX, int& nCellY, unsign
 	SendPacket({reinterpret_cast<MSG_STANDARD*>(&stUseItem)->Type, reinterpret_cast<char*>(&stUseItem), sizeof(stUseItem)});
 
 	pScene->m_dwUseItemTime = dwServerTime;
-	int nCellTempX = g_pCursor->m_pAttachedItem->m_nCellIndexX;
-	int nCellTempY = g_pCursor->m_pAttachedItem->m_nCellIndexY;
-	auto pGrid = g_pCursor->m_pAttachedItem->m_pGridControl;
-	auto pPickedItem = pGrid->GetItem(nCellTempX, nCellTempY);
-
-	int nAmount = 0;
-
-	if (pPickedItem)
-	{
-		nAmount = BASE_GetItemAmount(pPickedItem->m_pItem);
-
-		if (pPickedItem->m_pItem->sIndex >= 2330 && pPickedItem->m_pItem->sIndex < 2390)
-			nAmount = 0;
-		if (nAmount <= 1)
-		{
-			pGrid->PickupItem(nCellTempX, nCellTempY);
-			if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-				g_pCursor->m_pAttachedItem = nullptr;
-
-			SAFE_DELETE(pPickedItem);
-		}
-		else
-		{
-			BASE_SetItemAmount(pPickedItem->m_pItem, nAmount - 1);
-			auto pGItem = pPickedItem;
-			sprintf(pPickedItem->m_GCText.strString, "%2d", nAmount - 1);
-			pGItem->m_GCText.pFont->SetText(pGItem->m_GCText.strString, pGItem->m_GCText.dwColor, 0);
-		}
-	}
-
+	// Keep both items until the authoritative source/target snapshots arrive.
 	g_pCursor->DetachItem();
-	if (nAmount <= 1)
-	{
-		if (!sSrcType)
-			memset(&g_pObjectManager->m_stMobData.Equip[sSrcPos], 0, sizeof(STRUCT_ITEM));
-		else if (sSrcType == 1)
-			memset(&g_pObjectManager->m_stMobData.Carry[sSrcPos], 0, sizeof(STRUCT_ITEM));
-		else if (sSrcType == 2)
-			memset(&g_pObjectManager->m_stItemCargo[sSrcPos], 0, sizeof(STRUCT_ITEM));
-	}
 	}
 	else if (nVolatile == 190 && !sDestType && m_dwEnableColor != 0x330000FF && pItem)
 	{
@@ -1070,226 +1035,9 @@ ExtractedFlow SGridControl::SellItemOnOtherGrid(int& nCellX, int& nCellY, unsign
 
 int SGridControl::SellItem2()
 {
-	int nCellX = _nCellX;
-	int nCellY = _nCellY;
-	unsigned int dwFlags = _dwFlags;
-	int wParam = _wParam;
-
-	auto pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-	if (m_eGridType == TMEGRIDTYPE::GRID_SHOP)
-	{
-		auto pScene = g_pCurrentScene;
-		SGridControl::m_pSellItem = g_pCursor ? g_pCursor->m_pAttachedItem : nullptr;
-		if (!SGridControl::m_pSellItem || !SGridControl::m_pSellItem->m_pItem ||
-			!WYD748_IsValidItemIndex(SGridControl::m_pSellItem->m_pItem->sIndex))
-		{
-			SGridControl::m_pSellItem = nullptr;
-			return 1;
-		}
-
-		if (!g_pEventTranslator->m_bCtrl)
-		{
-			char szMessage[128]{};
-			if (!WYD748_FormatSellConfirmation(szMessage, SGridControl::m_pSellItem))
-			{
-				SGridControl::m_pSellItem = nullptr;
-				return 1;
-			}
-			pScene->m_pMessageBox->SetMessage(szMessage, 890, g_pMessageStringTable[343]);
-			pScene->m_pMessageBox->SetVisible(1);
-			g_pCursor->m_pAttachedItem = 0;
-		}
-		else
-		{
-			short sDestType = CheckType(SGridControl::m_pSellItem->m_pGridControl->m_eItemType,
-				SGridControl::m_pSellItem->m_pGridControl->m_eGridType);
-			short sDestPos = CheckPos(SGridControl::m_pSellItem->m_pGridControl->m_eItemType);
-			if (sDestPos == -1)
-				sDestPos = WYD748_ResolveWireSlot(pFScene,
-					SGridControl::m_pSellItem->m_pGridControl, sDestType,
-					SGridControl::m_pSellItem->m_nCellIndexX,
-					SGridControl::m_pSellItem->m_nCellIndexY);
-
-			MSG_Sell stSell{};
-			stSell.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
-			stSell.Header.Type = MSG_Sell_Opcode;
-			stSell.TargetID = m_dwMerchantID;
-			stSell.MyType = sDestType;
-			stSell.MyPos = sDestPos;
-			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSell)->Type, reinterpret_cast<char*>(&stSell), sizeof(stSell)});
-			SGridControl::m_pSellItem = 0;
-		}
-		m_dwEnableColor = 0;
-		return 2;
-	}
-	if (m_eGridType == TMEGRIDTYPE::GRID_SKILLB)
-	{
-		if (!g_pCursor || !g_pCursor->m_pAttachedItem ||
-			!g_pCursor->m_pAttachedItem->m_pItem || nCellX < 0 || nCellX >= 10 || nCellY != 0)
-			return 1;
-		if (!IsSkill(g_pCursor->m_pAttachedItem->m_pItem->sIndex))
-			return 1;
-
-		// Deferred confirmation uses the same page as the direct drag.
-		const int nSeg = this == pFScene->m_pGridSkillBelt3 ? 10 : 0;
-
-		SGridControlItem* pReturnItem = nullptr;
-
-		auto pNewItem = new STRUCT_ITEM;
-		memcpy(pNewItem, g_pCursor->m_pAttachedItem->m_pItem, sizeof(STRUCT_ITEM));
-
-		auto pNewControlItem = new SGridControlItem(0, pNewItem, 0.0, 0.0);
-		if (!WYD748_ReplaceGridVisual(this, pNewControlItem, nCellX, nCellY, pReturnItem))
-		{
-			SAFE_DELETE(pNewControlItem);
-			return 1;
-		}
-
-		if (g_pObjectManager->m_cSelectShortSkill - nSeg == nCellX)
-			pNewControlItem->m_GCObj.nTextureSetIndex = 200;
-
-		g_pCursor->DetachItem();
-
-		SAFE_DELETE(pReturnItem);
-
-		g_pObjectManager->m_cShortSkill[nSeg + nCellX] = static_cast<char>(g_pItemList[pNewItem->sIndex].nIndexTexture);
-
-		MSG_SetShortSkill stSetShortSkill{};
-		stSetShortSkill.Header.ID = g_pCurrentScene->m_pMyHuman->m_dwID;
-		stSetShortSkill.Header.Type = MSG_SetShortSkill_Opcode;
-		memcpy(stSetShortSkill.Skill, g_pObjectManager->m_cShortSkill, sizeof(stSetShortSkill.Skill));
-
-		for (int i = 0; i < 20; ++i)
-		{
-			if (stSetShortSkill.Skill[i] >= 0 && stSetShortSkill.Skill[i] < 96)
-			{
-				stSetShortSkill.Skill[i] -= 24 * g_pObjectManager->m_stMobData.Class;
-			}
-			else if (stSetShortSkill.Skill[i] >= 105 && stSetShortSkill.Skill[i] < 153)
-			{
-				stSetShortSkill.Skill[i] -= 12 * g_pObjectManager->m_stMobData.Class;
-			}
-		}
-
-		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSetShortSkill)->Type, reinterpret_cast<char*>(&stSetShortSkill), sizeof(stSetShortSkill)});
-
-		auto pSoundManager = g_pSoundManager;
-		if (pSoundManager)
-		{
-			auto pSoundData = pSoundManager->GetSoundData(31);
-			if(pSoundData)
-				pSoundData->Play(0, 0);
-		}
-
-		pFScene->UpdateScoreUI(0);
-		pFScene->UpdateSkillBelt();
-		return 2;
-	}
-
-	auto pItem = GetItem(nCellX, nCellY);
-	int nVolatile = BASE_GetItemAbility(g_pCursor->m_pAttachedItem->m_pItem, 38);
-	int nDestVolatile = -1;
-	if (pItem)
-		nDestVolatile = BASE_GetItemAbility(pItem->m_pItem, 38);
-
-	short sDestType = CheckType(m_eItemType, m_eGridType);
-	short sDestPos = CheckPos(m_eItemType);
-	if (((nVolatile >= 4 && nVolatile <= 6
-		|| nVolatile == 9
-		|| nVolatile == 15
-		|| nVolatile == 16
-		|| nVolatile >= 180 && nVolatile <= 183
-		|| nVolatile >= 235 && nVolatile <= 238
-		|| nVolatile >= 239 && nVolatile <= 240
-		|| nVolatile >= 90 && nVolatile < 95
-		|| nVolatile == 179
-		|| nVolatile == 186
-		|| nVolatile == 196)
-		&& !sDestType
-		|| nVolatile == 190 && !sDestType && m_dwEnableColor == 0x330000FF)
-		&& !nDestVolatile
-		&& pItem)
-	{
-		unsigned int dwServerTime = g_pTimerManager->GetServerTime();
-		if (pFScene->m_dwUseItemTime && dwServerTime - pFScene->m_dwUseItemTime < 200)
-			return 1;
-
-		short sSrcType = CheckType(g_pCursor->m_pAttachedItem->m_pGridControl->m_eItemType,
-			g_pCursor->m_pAttachedItem->m_pGridControl->m_eGridType);
-
-		short sSrcPos = CheckPos(g_pCursor->m_pAttachedItem->m_pGridControl->m_eItemType);
-
-		if (sSrcPos == -1)
-			sSrcPos = WYD748_ResolveWireSlot(pFScene,
-				g_pCursor->m_pAttachedItem->m_pGridControl, sSrcType,
-				g_pCursor->m_pAttachedItem->m_nCellIndexX,
-				g_pCursor->m_pAttachedItem->m_nCellIndexY);
-
-		if (sDestPos == -1)
-		{
-			// WYD748: item-on-item actions use the same native slot resolver as
-			// drag, right-click and swap packets so all controls agree on identity.
-			sDestPos = WYD748_ResolveWireSlot(pFScene, pItem->m_pGridControl,
-				sDestType, pItem->m_nCellIndexX, pItem->m_nCellIndexY);
-		}
-
-		pFScene->m_dwUseItemTime = dwServerTime;
-		int nCellTempX = g_pCursor->m_pAttachedItem->m_nCellIndexX;
-		int nCellTempY = g_pCursor->m_pAttachedItem->m_nCellIndexY;
-		auto pGrid = g_pCursor->m_pAttachedItem->m_pGridControl;
-		auto pPickedItem = pGrid->GetItem(nCellTempX, nCellTempY);
-		int nAmount = 0;
-
-		if (pPickedItem)
-		{
-			nAmount = BASE_GetItemAmount(pPickedItem->m_pItem);
-			if (pPickedItem->m_pItem->sIndex >= 2330 && pPickedItem->m_pItem->sIndex < 2390)
-				nAmount = 0;
-			if (nAmount <= 1)
-			{
-				pGrid->PickupItem(nCellTempX, nCellTempY);
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-					g_pCursor->m_pAttachedItem = 0;
-
-				SAFE_DELETE(pPickedItem);
-			}
-			else
-			{
-				BASE_SetItemAmount(pPickedItem->m_pItem, nAmount - 1);
-				auto pGItem = pPickedItem;
-				sprintf(pPickedItem->m_GCText.strString, "%2d", nAmount - 1);
-				pGItem->m_GCText.pFont->SetText(pGItem->m_GCText.strString, pGItem->m_GCText.dwColor, 0);
-			}
-		}
-
-		g_pCursor->DetachItem();
-		if (nAmount <= 1)
-		{
-			if (!sSrcType)
-				memset(&g_pObjectManager->m_stMobData.Equip[sSrcPos], 0, sizeof(STRUCT_ITEM));
-			else if (sSrcType == 1)
-				memset(&g_pObjectManager->m_stMobData.Carry[sSrcPos], 0, sizeof(STRUCT_ITEM));
-			else if (sSrcType == 2)
-				memset(&g_pObjectManager->m_stItemCargo[sSrcPos], 0, sizeof(STRUCT_ITEM));
-		}
-	}
-	else if (nVolatile == 190 && !sDestType && m_dwEnableColor != 0x330000FF && pItem)
-	{
-		pFScene->m_pMessagePanel->SetMessage(g_pMessageStringTable[303], 3000);
-		pFScene->m_pMessagePanel->SetVisible(1, 1);
-	}
-	else if (CanChangeItem(g_pCursor->m_pAttachedItem, nCellX, nCellY, 0))
-	{
-		ScopedReentry dispatch(commerceMouseDispatch);
-		if (dispatch)
-		{
-			SGridControl::m_pLastAttachedItem = g_pCursor->m_pAttachedItem;
-			auto vecPos = g_pCursor->GetPos();
-			pFScene->OnMouseEvent(dwFlags, wParam, (int)vecPos.x, (int)vecPos.y);
-		}
-	}
-
-	return 2;
+    // The later-client password transaction has no server contract.
+    // A stale callback must neither consume an item nor send a deletion.
+    return 0;
 }
 
 void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVHeight, STRUCT_ITEM* pItem)
@@ -1341,8 +1089,9 @@ void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVH
 			stSwapItem.DestPos = static_cast<char>(sDestPos);
 			stSwapItem.TargetID = TMFieldScene::m_dwCargoID;
 
-			if (stSwapItem.DestPos != stSwapItem.SourPos ||
-				stSwapItem.SourType != stSwapItem.DestType)
+			if (sSourcePos >= 0 && sDestPos >= 0 &&
+				(stSwapItem.DestPos != stSwapItem.SourPos ||
+				stSwapItem.SourType != stSwapItem.DestType))
 			{
 				SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSwapItem)->Type, reinterpret_cast<char*>(&stSwapItem), sizeof(stSwapItem)});
 			}
@@ -1382,8 +1131,9 @@ void SGridControl::SwapItem(int nCellX, int nCellY, int nCellVWidth, int nCellVH
 				else
 					stSwapItem.DestPos = static_cast<char>(sDestPos);
 
-				if (stSwapItem.DestPos != stSwapItem.SourPos ||
-					stSwapItem.SourType != stSwapItem.DestType)
+				if (sSrcPos >= 0 && sDestPos >= 0 &&
+					(stSwapItem.DestPos != stSwapItem.SourPos ||
+					stSwapItem.SourType != stSwapItem.DestType))
 				{
 					SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSwapItem)->Type, reinterpret_cast<char*>(&stSwapItem), sizeof(stSwapItem)});
 				}

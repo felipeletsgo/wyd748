@@ -17,6 +17,7 @@
 #include "TMFireEffect.h"
 #include "TMEffectSpark.h"
 #include "ItemEffect.h"
+#include "EntitySafetyPolicy.h"
 
 void TMHuman::MoveAttack(TMHuman* pTarget)
 {
@@ -93,7 +94,7 @@ void TMHuman::MoveAttack(TMHuman* pTarget)
         nSpecForce = 1;
     }
 
-    if (dwServerTime <= pScene->m_dwOldAttackTime + 1000)
+    if (!human_timer::Elapsed(dwServerTime, pScene->m_dwOldAttackTime, 1000))
         return;
 
     int nSX = (int)m_vecPosition.x;
@@ -306,7 +307,8 @@ void TMHuman::MoveAttack(TMHuman* pTarget)
                 }
             }
 
-            SendOneMessage((char*)&stAttack, nSize);
+            if (!SendOneMessage((char*)&stAttack, nSize))
+                return;
 
             MSG_Attack stAttackLocal{};
             memcpy((char*)&stAttackLocal, (char*)&stAttack, nSize);
@@ -323,7 +325,7 @@ void TMHuman::MoveAttack(TMHuman* pTarget)
     }
     else if (pScene->m_cAutoAttack == 1 &&
         (m_eMotion == ECHAR_MOTION::ECMOTION_STAND01 || m_eMotion == ECHAR_MOTION::ECMOTION_STAND02) && !m_cCantMove &&
-        (int)GetKeyState(16) >> 8 <= 0)
+        !human_combat::IsKeyDown(GetKeyState(VK_SHIFT)))
     {
         int nMoveSX = (int)m_vecPosition.x;
         int nMoveSY = (int)m_vecPosition.y;
@@ -377,7 +379,7 @@ void TMHuman::MoveGet(TMItem* pTarget)
     unsigned int dwServerTime = g_pTimerManager->GetServerTime();
     pScene->m_pTargetItem = pTarget;
 
-    if (dwServerTime <= pScene->m_dwGetItemTime + 1000)
+    if (!human_timer::Elapsed(dwServerTime, pScene->m_dwGetItemTime, 1000))
         return;
 
     int nSX = (int)m_vecPosition.x;
@@ -402,8 +404,8 @@ void TMHuman::MoveGet(TMItem* pTarget)
     {
         if (m_eMotion == ECHAR_MOTION::ECMOTION_STAND01 || m_eMotion == ECHAR_MOTION::ECMOTION_STAND02)
         {
-            short sVal = GetKeyState(16);
-            if ((sVal >> 8) <= 0)
+            // Holding Shift keeps the actor in place.
+            if (!human_combat::IsKeyDown(GetKeyState(VK_SHIFT)))
             {
                 pScene->m_vecMyNext.x = (int)pTarget->m_vecPosition.x;
                 pScene->m_vecMyNext.y = (int)pTarget->m_vecPosition.y;
@@ -445,7 +447,7 @@ void TMHuman::MoveGet(TMItem* pTarget)
     pScene->m_dwGetItemTime = dwServerTime;
 }
 
-void TMHuman::Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, char cSkillIndex)
+void TMHuman::Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, short sSkillIndex)
 {
     if (m_dwDelayDel)
         return;
@@ -458,16 +460,18 @@ void TMHuman::Attack(ECHAR_MOTION eMotion, TMVector2 vecTarget, char cSkillIndex
     if (m_nClass != 44)
         m_fWantAngle = atan2f(dPosition.x, dPosition.y) + D3DXToRadian(90);
 
-    if (cSkillIndex >= 0 && cSkillIndex < 248)
+    // A char parameter turned skills 128..247 negative; the target overload
+    // uses the same range check.
+    if (human_combat::UsesSpellMotion(sSkillIndex))
     {
         m_bSkill = 1;
         m_nMotionIndex = 0;
         for (int i = 0; i < 4; ++i)
         {
             if (m_nSkinMeshType == 1)
-                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[cSkillIndex].Act2[i + (m_cMount == 1 ? 3 : 0)] - 1);
+                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[sSkillIndex].Act2[i + (m_cMount == 1 ? 3 : 0)] - 1);
             else
-                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[cSkillIndex].Act1[i + (m_cMount == 1 ? 3 : 0)] - 1);
+                m_eMotionBuffer[i] = (ECHAR_MOTION)(g_pSpell[sSkillIndex].Act1[i + (m_cMount == 1 ? 3 : 0)] - 1);
         }
 
         m_eMotionBuffer[3] = ECHAR_MOTION::ECMOTION_NONE;
@@ -505,7 +509,7 @@ void TMHuman::Attack(ECHAR_MOTION eMotion, TMHuman* pTarget, short cSkillIndex)
 
     m_nSkillIndex = cSkillIndex;
 
-    if (cSkillIndex >= 0 && cSkillIndex <= 103 || cSkillIndex >= 200 && cSkillIndex < 248)
+    if (human_combat::UsesSpellMotion(cSkillIndex))
     {
         m_bSkill = 1;
         m_nMotionIndex = 0;
@@ -901,7 +905,8 @@ void TMHuman::PlayAttackSound(ECHAR_MOTION eMotion, int nLR)
 
     if (m_nWeaponTypeL == 1 && !nLR || m_nWeaponTypeR == 1 && nLR == 1)
     {
-        if (g_pItemList[m_sLeftIndex].nReqLvl > 90 && !nLR || g_pItemList[m_sRightIndex].nReqLvl > 90 && !nLR)
+        // Each hand selects its own heavy-weapon swing sound.
+        if (g_pItemList[m_sLeftIndex].nReqLvl > 90 && !nLR || g_pItemList[m_sRightIndex].nReqLvl > 90 && nLR == 1)
         {
             if (!((int)eMotion % 2))
                 nSoundIndex = 124;
@@ -1007,7 +1012,7 @@ void TMHuman::PlayPunchedSound(int nType, int nLR)
         if (g_pSoundManager)
         {
             auto pSoundData = g_pSoundManager->GetSoundData(nSoundIndex);
-            if (pSoundData && (!pSoundData->IsSoundPlaying() || m_sPunchLR != nLR || dwServerTime > m_dwLastPlayPunchedTime + 400))
+            if (pSoundData && (!pSoundData->IsSoundPlaying() || m_sPunchLR != nLR || human_timer::Elapsed(dwServerTime, m_dwLastPlayPunchedTime, 400)))
             {
                 pSoundData->Play(0, 0);
                 m_dwLastPlayPunchedTime = dwServerTime;
@@ -1040,7 +1045,7 @@ void TMHuman::PlayPunchedSound(int nType, int nLR)
         if (nSoundIndex != 24)
         {
             auto pSoundData = g_pSoundManager->GetSoundData(nSoundIndex);
-            if (pSoundData && (!pSoundData->IsSoundPlaying() || m_sPunchLR != nLR || dwServerTime > m_dwLastPlayPunchedTime + 400))
+            if (pSoundData && (!pSoundData->IsSoundPlaying() || m_sPunchLR != nLR || human_timer::Elapsed(dwServerTime, m_dwLastPlayPunchedTime, 400)))
             {
                 pSoundData->Play(0, 0);
                 m_dwLastPlayPunchedTime = dwServerTime;
@@ -1052,9 +1057,10 @@ void TMHuman::PlayPunchedSound(int nType, int nLR)
 
 int TMHuman::MAutoAttack(TMHuman* pTarget, int mode)
 {
+    // _dwAttackDelay holds the server time of the last portal (zero: none).
     if (_dwAttackDelay)
     {
-        if (g_pTimerManager->GetServerTime() - _dwAttackDelay > 2000)
+        if (human_timer::Elapsed(g_pTimerManager->GetServerTime(), _dwAttackDelay, 2000))
             _dwAttackDelay = 0;
         return 0;
     }
@@ -1096,7 +1102,8 @@ int TMHuman::MAutoAttack(TMHuman* pTarget, int mode)
     int nSpecForce = 0;
     if (pMobData && pMobData->LearnedSkill[0] & 0x20000000)
         nSpecForce = 1;
-    if (dwServerTime < pScene->m_dwOldAttackTime + 1000)
+    // At least 1000 ms since the last attack (inclusive, as before).
+    if (!human_timer::Elapsed(dwServerTime, pScene->m_dwOldAttackTime, 999))
         return 0;
 
     int nSX = (int)m_vecPosition.x;
@@ -1311,7 +1318,8 @@ int TMHuman::MAutoAttack(TMHuman* pTarget, int mode)
             }
         }
 
-        SendOneMessage((char*)&stAttack, nSize);
+        if (!SendOneMessage((char*)&stAttack, nSize))
+            return 0;
 
         MSG_Attack stAttackLocal{};
         memcpy((char*)&stAttackLocal, (char*)&stAttack, nSize);
@@ -1326,7 +1334,8 @@ int TMHuman::MAutoAttack(TMHuman* pTarget, int mode)
 
     if (!mode)
         return 0;
-    if ((GetKeyState(VK_SHIFT) >> 8) > 0)
+    // Holding Shift stops automatic pursuit.
+    if (human_combat::IsKeyDown(GetKeyState(VK_SHIFT)))
         return 0;
 
     int nMoveSX = (int)m_vecPosition.x;

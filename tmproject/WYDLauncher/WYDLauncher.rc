@@ -1,3 +1,0 @@
-#include "src/resource.h"
-
-IDI_LAUNCHER ICON "../TMProject748/TMProject.ico"

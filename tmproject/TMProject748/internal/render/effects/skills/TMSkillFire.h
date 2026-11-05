@@ -19,15 +19,16 @@ public:
     int FrameMove(unsigned int dwServerTime) override;
 
 public:
-    unsigned int m_dwStartTime;
-    unsigned int m_dwLifeTime;
-    unsigned int m_dwLastTime;
-    unsigned int m_dwColor;
-    unsigned int m_dwColor2;
-    float m_fAngle;
-    int m_nType;
+    unsigned int m_dwStartTime = 0;
+    unsigned int m_dwLifeTime = 0;
+    unsigned int m_dwLastTime = 0;
+    unsigned int m_dwColor = 0;
+    unsigned int m_dwColor2 = 0;
+    float m_fAngle = 0.0f;
+    int m_nType = 0;
 
-    // Sombra luminosa registrada no contêiner global de efeitos. A classe
-    // conserva apenas a referencia para acompanhar a posicao.
-    TMShade* m_pLightMap;
+    // Light map registered in the scene effect container. The class keeps
+    // only a reference to move it. Types 7 and 8 create none, so the pointer
+    // must default to null.
+    TMShade* m_pLightMap = nullptr;
 };

@@ -103,7 +103,7 @@ int CFrame::Render()
 				m_pParentSkin->m_pSwingEffect[0]->m_matEffectCombine = m_pParentSkin->m_pRoot->m_matRot;
 				m_pParentSkin->m_pSwingEffect[0]->m_dwSwingID = m_dwID;
 
-				TMHuman* pHuman = (TMHuman*)m_pParentSkin->m_pOwner;
+				TMHuman* pHuman = m_pParentSkin->HumanOwner();
 				if (pHuman)
 					m_pParentSkin->m_pSwingEffect[0]->m_nWeaponType = pHuman->m_nWeaponTypeR;
 			}
@@ -158,15 +158,15 @@ int CFrame::Render()
 				m_pParentSkin->m_pSwingEffect[1]->m_matEffectCombine = m_pParentSkin->m_pRoot->m_matRot;
 				m_pParentSkin->m_pSwingEffect[1]->m_dwSwingID = m_dwID;
 
-				TMHuman* pHuman = (TMHuman*)m_pParentSkin->m_pOwner;
+				TMHuman* pHuman = m_pParentSkin->HumanOwner();
 				if (pHuman)
 					m_pParentSkin->m_pSwingEffect[1]->m_nWeaponType = pHuman->m_nWeaponTypeL;
 			}
 		}
-		if (m_pParentSkin->m_pOwner != nullptr &&
+		if (m_pParentSkin->HumanOwner() != nullptr &&
 			(m_pParentSkin->m_nBoneAniIndex == 0 || m_pParentSkin->m_nBoneAniIndex == 1 ||
 			 m_pParentSkin->m_nBoneAniIndex == 2 || m_pParentSkin->m_nBoneAniIndex == 4) 
-			&& m_pParentSkin->m_pOwner->m_cWeapon == 1 
+			&& m_pParentSkin->HumanOwner()->m_cWeapon == 1
 			&& (m_pMesh->m_dwID == g_dwHandIndex[m_pParentSkin->m_nBoneAniIndex][0] ||
 				m_pMesh->m_dwID == g_dwHandIndex[m_pParentSkin->m_nBoneAniIndex][1]))
 		{

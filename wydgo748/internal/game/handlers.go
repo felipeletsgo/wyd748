@@ -753,6 +753,14 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 		log.Printf("[#%d] invalid SWAP %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
 		return
 	}
+	// Equip slot 0 is the character face. No client action moves it, and an
+	// empty or inventory item must never replace it.
+	if isFaceSlotEndpoint(st, sp) || isFaceSlotEndpoint(dt, dp) {
+		s.Send(wire.SendItem(p.ID, st, sp, *src))
+		s.Send(wire.SendItem(p.ID, dt, dp, *dst))
+		log.Printf("[#%d] SWAP face slot rejected %d/%d -> %d/%d", s.ID, st, sp, dt, dp)
+		return
+	}
 	if (st == placeStorage && p.ghostShopLocksCargoSlot(int(sp))) ||
 		(dt == placeStorage && p.ghostShopLocksCargoSlot(int(dp))) {
 		s.Send(wire.MessagePanel(w.msg("_WG_Item_Locked_While_Listed_Auto_Trade")))
@@ -881,6 +889,10 @@ func (w *World) onSwapItem(s *net.Session, pkt []byte) {
 	}
 	if st == placeEquip || dt == placeEquip {
 		if (st == placeEquip && sp == mountSlot) || (dt == placeEquip && dp == mountSlot) {
+			// Reset on the accepted slot move, even between two world ticks.
+			if st != dt || sp != dp {
+				p.NextMountTick = time.Time{}
+			}
 			w.resetEggIncubationClock(p)
 		}
 		// A newly equipped zero-state mount starts alive (HP/food/longevity).
@@ -1401,7 +1413,7 @@ func (w *World) onBuyToto(s *net.Session, pkt []byte) {
 
 // onSellItem: 0x37A. Ordinary sales require the open shop context. The native
 // Hell Store panel opens locally, so its target is validated independently.
-func (w *World) onSellItem(s *net.Session, pkt []byte) {
+func (w *World) onSellItem(s *net.Session, pkt []byte, expected ...saleExpectation) {
 	p := w.players[s]
 	if p == nil || p.Char == nil || p.Account == nil || !p.InWorld || w.shuttingDown ||
 		p.PersistencePoisoned || s.IsClosed() || w.criticalPlayerReserved(p) || playerCurHP(p.Char) == 0 || len(pkt) != 20 {
@@ -1475,6 +1487,13 @@ func (w *World) onSellItem(s *net.Session, pkt []byte) {
 		tax := basePrice * uint64(taxRate) / 100
 		netPrice -= tax
 		treasury = tax / 4
+	}
+	// Persistent UID is server-only. Compare the complete eight-byte wire value.
+	if len(expected) != 0 && (expected[0].item.Index != src.Index || expected[0].item.Eff != src.Eff ||
+		uint64(expected[0].price) != netPrice) {
+		s.Send(wire.SendItem(p.ID, myType, myPos, *src))
+		s.Send(wire.MessagePanel(w.msg("_WG_Sale_Quote_Changed")))
+		return
 	}
 	// Sale credits must respect the two-billion gold cap like every other
 	// server-side gold source.
@@ -1572,6 +1591,7 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 	targetY := binary.LittleEndian.Uint16(pkt[26:28])
 	if targetX == 0 || targetY == 0 || chebyshev(p.X, p.Y, targetX, targetY) > 8 ||
 		!w.terrain.Walkable(targetX, targetY) ||
+		!w.guildCityAreaStepAllowed(p, targetX, targetY) ||
 		!w.oxStepAllowed(p, targetX, targetY) ||
 		w.isOXMember(p) && w.ox.phase == "question" && !now.Before(w.ox.deadline) {
 		return
@@ -1583,7 +1603,7 @@ func (w *World) onIllusionMove(p *Player, pkt []byte) {
 	}
 	fromX, fromY := p.X, p.Y
 	targetX, targetY = w.findFreePlayerPosition(targetX, targetY, 2, p)
-	if !w.oxStepAllowed(p, targetX, targetY) {
+	if !w.oxStepAllowed(p, targetX, targetY) || !w.guildCityAreaStepAllowed(p, targetX, targetY) {
 		return
 	}
 	spendPlayerMP(p.Char, uint32(mana))
@@ -2905,6 +2925,10 @@ func slotOf(ch *model.Char, typ, pos byte) *model.Item {
 // clientEquipSlotSupported maintains the WYD-Go 7.48 projection.
 // Equip retains 16 positions for historical data and wire compatibility.
 // Native necklace slot 9 is supported; later NewSlot/Belt entries are not.
+func isFaceSlotEndpoint(place, pos byte) bool {
+	return place == placeEquip && pos == 0
+}
+
 func clientEquipSlotSupported(pos byte) bool {
 	return pos < model.MaxEquipSlots
 }

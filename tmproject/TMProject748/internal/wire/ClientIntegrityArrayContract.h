@@ -4,8 +4,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Probe S->C e resposta C->S usam o mesmo envelope de 24 bytes. O valor e
-// int32: o handler le o byte como signed char e o promove com sinal.
+// The S->C probe and C->S response share a 24-byte envelope.
+// Value is int32: the handler reads a signed char and sign-extends it.
 constexpr auto MSG_REQArray_Opcode = 0x1C1;
 constexpr auto MSG_CNFArray_Opcode = 0x2C2;
 

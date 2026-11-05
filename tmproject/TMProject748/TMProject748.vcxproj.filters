@@ -729,9 +729,6 @@
     <ClInclude Include="internal\render\mesh\CostumeTable.generated.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
-    <ClInclude Include="internal\platform\diagnostics\StackWalker.h">
-      <Filter>Header Files\Internal\Platform</Filter>
-    </ClInclude>
     <ClInclude Include="internal\ui\SGrid.h">
       <Filter>Header Files\Engine\UI</Filter>
     </ClInclude>
@@ -789,9 +786,6 @@
     <ClInclude Include="internal\platform\windows\RenderDevice.h">
       <Filter>Header Files\Engine\Core</Filter>
     </ClInclude>
-    <ClInclude Include="internal\game\quest\Quest.h">
-      <Filter>Header Files\Internal\Game</Filter>
-    </ClInclude>
     <ClInclude Include="internal\core\ObjectManager.h">
       <Filter>Header Files\Engine</Filter>
     </ClInclude>
@@ -803,12 +797,6 @@
     </ClInclude>
     <ClInclude Include="internal\render\mesh\MeshManager.h">
       <Filter>Header Files\Engine</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\wire\crypto\MD5Checksum.h">
-      <Filter>Header Files\Internal\Wire</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\wire\crypto\md5.h">
-      <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
     <ClInclude Include="internal\core\EventTranslator.h">
       <Filter>Header Files</Filter>
@@ -822,23 +810,11 @@
     <ClInclude Include="internal\platform\windows\DirShow.h">
       <Filter>Header Files\Util</Filter>
     </ClInclude>
-    <ClInclude Include="internal\wire\crypto\desbase64.h">
-      <Filter>Header Files\Internal\Wire</Filter>
-    </ClInclude>
     <ClInclude Include="internal\platform\windows\D3DSettings.h">
       <Filter>Header Files\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="internal\platform\windows\D3DDevice.h">
       <Filter>Header Files\Engine\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\game\input\BlockKeyBoard.h">
-      <Filter>Header Files\Internal\Game</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\wire\crypto\Base64.h">
-      <Filter>Header Files\Internal\Wire</Filter>
-    </ClInclude>
-    <ClInclude Include="internal\wire\crypto\AES.h">
-      <Filter>Header Files\Internal\Wire</Filter>
     </ClInclude>
     <ClInclude Include="internal\ui\UIBinary.h">
       <Filter>Header Files\Engine\UI</Filter>
@@ -1538,5 +1514,58 @@
     <None Include="Resources\CursorGroup164.cur">
       <Filter>Resource Files</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="internal\app\scenes\FieldActionPolicy.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\app\scenes\InventoryCellSlots.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\app\scenes\PartySkillTargets.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\AccountLoginAttempt.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\CatalogItemSlots.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\ChatListRows.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\ClientSendCadence.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\ImeContextBinding.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\ItemPriceOverride.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\MixHelpRecord.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\RetiredScenes.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\SceneSafetyPolicy.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\SkillDamagePreview.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\SkillValidityPolicy.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\application\SlotItemConfirmation.h"><Filter>Header Files\Internal\App</Filter></ClInclude>
+    <ClInclude Include="internal\core\BaseChecksum.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="internal\game\entities\EntitySafetyPolicy.h"><Filter>Header Files\Internal\Game</Filter></ClInclude>
+    <ClInclude Include="internal\game\entities\GroundItemPresentation.h"><Filter>Header Files\Internal\Game</Filter></ClInclude>
+    <ClInclude Include="internal\game\entities\HumanMovementPolicy.h"><Filter>Header Files\Internal\Game</Filter></ClInclude>
+    <ClInclude Include="internal\game\entities\HumanPacketPolicy.h"><Filter>Header Files\Internal\Game</Filter></ClInclude>
+    <ClInclude Include="internal\game\entities\HumanVisualPolicy.h"><Filter>Header Files\Internal\Game</Filter></ClInclude>
+    <ClInclude Include="internal\platform\diagnostics\LegacyLogFile.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\diagnostics\ModuleSiblingPath.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\network\SocketEventPolicy.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\AdapterQuirks.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\ComApartment.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\DesktopGamma.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\DeviceModeFamily.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\DeviceReset.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\DirShowGraph.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\DisplayModeQuery.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\FrameRateSampler.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\SoundPlayback.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\platform\windows\WaveFormatChunk.h"><Filter>Header Files\Internal\Platform</Filter></ClInclude>
+    <ClInclude Include="internal\render\effects\core\EffectGuards.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\effects\core\EffectRenderState.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\effects\core\EffectTiming.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\mesh\MsaLoad.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\mesh\ScopeRestore.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\mesh\SkinAnimationIndex.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\world\objects\HallPortalLinks.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\world\terrain\HeightWindowBounds.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\render\world\terrain\TerrainQueryPolicy.h"><Filter>Header Files\Internal\Render</Filter></ClInclude>
+    <ClInclude Include="internal\ui\EditableTextBounds.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="internal\ui\GridInputPolicy.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="internal\ui\TooltipPolicy.h"><Filter>Header Files</Filter></ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="internal\core\TreeCleanup.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="internal\render\effects\core\EffectVisualMath.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="internal\ui\UnsupportedItemFeatures.h"><Filter>Header Files</Filter></ClInclude>
   </ItemGroup>
 </Project>

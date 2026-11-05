@@ -7,6 +7,17 @@
 #include "TMHuman.h"
 #include <cstddef>
 
+namespace
+{
+// Win32 adapter for ime_context::Binding.
+struct ImeApi
+{
+    HIMC Create() { return ImmCreateContext(); }
+    HIMC Associate(HWND window, HIMC context) { return ImmAssociateContext(window, context); }
+    void Destroy(HIMC context) { ImmDestroyContext(context); }
+};
+}
+
 EventTranslator::EventTranslator()
 {
     m_lpCandList = 0;
@@ -48,12 +59,10 @@ int EventTranslator::InitializeIME()
     if (m_lpCandList == nullptr)
         m_lpCandList = (LPCANDIDATELIST)GlobalAlloc(64, 28);
 
-    HIMC hIMC = ImmCreateContext();
-    m_hOldIMC = ImmAssociateContext(m_hWnd, hIMC);
-
-    SetWindowLong(m_hWnd, 0, (LONG)m_hOldIMC);
-
-    ImmReleaseContext(m_hWnd, hIMC);
+    // C-26: keep the replaced context in this object. The window class reserves
+    // no extra bytes, and ImmReleaseContext applies only to ImmGetContext.
+    ImeApi api;
+    m_imeBinding.Install(api, m_hWnd);
     SendMessage(g_pApp->m_hWnd, 641, 0, 0x8000000E);
 
     HWND hWndIME = ImmGetDefaultIMEWnd(m_hWnd);
@@ -96,10 +105,10 @@ void EventTranslator::FinalizeIME()
 {
     GlobalFree(m_lpCandList);
     m_lpCandList = nullptr;
-    m_hOldIMC = (HIMC)GetWindowLong(m_hWnd, 0);
 
-    HIMC hIMC = ImmAssociateContext(m_hWnd, m_hOldIMC);
-    ImmDestroyContext(hIMC);
+    // Restore the replaced context; destroy only the context created here.
+    ImeApi api;
+    m_imeBinding.Restore(api);
 }
 
 BOOL EventTranslator::IsNative()
@@ -515,7 +524,9 @@ void EventTranslator::OnLMousePressed()
 {
     if (g_pCursor != nullptr)
     {
-        if (g_pCursor->m_nPosX > 0.0f && (float)g_pDevice->m_dwScreenWidth > g_pCursor->m_nPosX
+        // C-24: a failed scene initialization leaves no current scene.
+        if (g_pCurrentScene && g_pDevice &&
+            g_pCursor->m_nPosX > 0.0f && (float)g_pDevice->m_dwScreenWidth > g_pCursor->m_nPosX
             && g_pCursor->m_nPosY > 0.0f && (float)g_pDevice->m_dwScreenHeight > g_pCursor->m_nPosY)
         {
             g_pCurrentScene->OnMouseEvent(               
@@ -531,7 +542,8 @@ void EventTranslator::OnRMousePressed()
 {
     if (g_pCursor != nullptr)
     {
-        if (g_pCursor->m_nPosX > 0.0f && (float)(g_pDevice->m_dwScreenWidth - g_pDevice->m_nWidthShift) > g_pCursor->m_nPosX
+        if (g_pCurrentScene && g_pDevice &&
+            g_pCursor->m_nPosX > 0.0f && (float)(g_pDevice->m_dwScreenWidth - g_pDevice->m_nWidthShift) > g_pCursor->m_nPosX
             && g_pCursor->m_nPosY > 0.0f && (float)(g_pDevice->m_dwScreenHeight - g_pDevice->m_nHeightShift) > g_pCursor->m_nPosY)
         {
             g_pCurrentScene->OnMouseEvent(

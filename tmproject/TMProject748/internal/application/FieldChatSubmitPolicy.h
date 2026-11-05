@@ -29,21 +29,46 @@ inline bool RecordSubmission(unsigned int (&times)[4], unsigned int now)
 
 // Recent-entry recall list. Fills every row on first use; otherwise shifts
 // complete rows down and stores the entry only when it differs from row zero.
-// The caller guarantees that the text fits the row, as the original copy did.
+// Text longer than a row is truncated and terminated inside the row.
 template<std::size_t Rows, std::size_t Width>
 void Remember(char (&history)[Rows][Width], const char* text)
 {
-    const std::size_t size = std::strlen(text) + 1;
+    static_assert(Rows > 0 && Width > 0, "history needs at least one row");
+    std::size_t length = std::strlen(text);
+    if (length >= Width)
+        length = Width - 1;
+    const auto store = [&](char (&row)[Width]) {
+        std::memcpy(row, text, length);
+        row[length] = '\0';
+    };
     if (history[0][0]) {
-        if (std::strcmp(history[0], text)) {
+        if (std::strncmp(history[0], text, Width) || text[length]) {
             for (std::size_t row = Rows - 1; row > 0; --row)
                 std::memcpy(history[row], history[row - 1], Width);
-            std::memcpy(history[0], text, size);
+            store(history[0]);
         }
         return;
     }
     for (std::size_t row = 0; row < Rows; ++row)
-        std::memcpy(history[row], text, size);
+        store(history[row]);
+}
+
+// Copies one recalled row into the edit buffer as literal text and returns the
+// next recall index. History rows are user input: they must never become a
+// printf format. An index outside the list restarts at row zero.
+template<std::size_t Rows, std::size_t Width, std::size_t OutWidth>
+int Recall(const char (&history)[Rows][Width], int index, char (&out)[OutWidth])
+{
+    static_assert(Rows > 0 && OutWidth > 0, "recall needs a row and an output");
+    if (index < 0 || static_cast<std::size_t>(index) >= Rows)
+        index = 0;
+    const char* row = history[index];
+    std::size_t length = 0;
+    while (length < Width && length + 1 < OutWidth && row[length])
+        ++length;
+    std::memcpy(out, row, length);
+    out[length] = '\0';
+    return static_cast<int>((static_cast<std::size_t>(index) + 1) % Rows);
 }
 
 enum class LocalCommand { None, Clear, Help, Effects, Fps, Effects2, EffectOld, Exp };

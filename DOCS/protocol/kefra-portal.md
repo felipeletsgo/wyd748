@@ -104,7 +104,7 @@ players update their client. No publication is implied by local test success.
 ## Validation limits
 
 Automated tests and an incremental Release build are recorded in
-[current state](../current-state.md#published-combat-cape-and-kefra-batch--2026-10-14).
+[current state](../../.agents/research/release-history.md#published-combat-cape-and-kefra-batch--2026-10-14).
 No visual game run was performed. Manual acceptance still needs a living boss
 with no mirror/effects, a committed kill revealing them, use of the passage,
 relogin/region return after defeat, and a reset hiding the passage again.
@@ -125,4 +125,4 @@ route file; it reproduces the failure before the fix. Existing server tests
 cover closed/open/reset admission and charging. The client build is published
 as patch 10020, paired with release `20261014T184657Z`, but actual passage use
 has not yet been tested in game; see the
-[repair receipt](../current-state.md#published-kefra-passage-activation-repair--2026-10-14).
+[repair receipt](../../.agents/research/release-history.md#published-kefra-passage-activation-repair--2026-10-14).

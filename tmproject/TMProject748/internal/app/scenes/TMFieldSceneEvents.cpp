@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "TMFieldScene.h"
+#include "FieldActionPolicy.h"
 #include "DirShow.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
@@ -16,6 +17,7 @@
 #include "TMObjectContainer.h"
 #include "TMSkinMesh.h"
 #include "../../application/InstanceTimerProjection.h"
+#include "../../application/SceneSafetyPolicy.h"
 
 namespace
 {
@@ -52,10 +54,12 @@ void TMFieldScene::PGTVisible(unsigned int dwServerTime)
 		return;
 
 	auto pOver = m_pMouseOverHuman;
-	if (pOver && (pOver->m_dwID <= 0 || pOver->m_dwID > 1000))
+	// A04-09: players are IDs 1..999; NPC tests elsewhere use ">= 1000".
+	if (pOver && (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000))
 		return;
 
-	if (!pOver || pOver->m_bMouseOver != 1 || dwServerTime < m_dwPGTTime + 500)
+	// A03-04 family: wrap-safe "now < last menu + 500".
+	if (!pOver || pOver->m_bMouseOver != 1 || field_time::Before(dwServerTime, m_dwPGTTime, 500))
 		return;
 
 	m_dwOpID = pOver->m_dwID;
@@ -294,7 +298,8 @@ void TMFieldScene::UseFireWork()
 	{
 		BASE_SetItemAmount(pItem->m_pItem, nAmount - 1);
 		sprintf(pItem->m_GCText.strString, "%2d", nAmount - 1);
-		pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
+		if (pItem->m_GCText.pFont)
+			pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
 	}
 	else
 	{
@@ -302,10 +307,8 @@ void TMFieldScene::UseFireWork()
 		int carryY = 0;
 		GetCarryCellForSlot(SourPos, carryX, carryY);
 		auto pPickedItem = m_pGridInv->PickupItem(carryX, carryY);
-		if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickedItem)
-			g_pCursor->m_pAttachedItem = 0;
-
-		SAFE_DELETE(pPickedItem);
+		// A04-01: clear the sell/delete prompt aliases before deleting.
+		grid_item_release::Release<SGridControl>(pPickedItem, g_pCursor);
 	}
 
 	int nSoundIndex = 41;
@@ -344,11 +347,14 @@ void TMFieldScene::TotoSelect()
 	}
 
 	STRUCT_TOTOLIST& toto = g_pTOTOList[totoNumber - 1];
-	char matchFallback[32]{};
-	sprintf_s(matchFallback, "Match %d", totoNumber);
+	char matchFallback[96]{};
+	sprintf_s(matchFallback, ui_text::RowOr(g_UIString, ui_text::kTotoMatch, "Match %d"), totoNumber);
 	m_pTotoTime_Txt->SetText(toto.szTime[0] ? toto.szTime : matchFallback, 0);
-	m_pTotoTeamA_Txt->SetText(toto.szTeamA[0] ? toto.szTeamA : (char*)"Team A", 0);
-	m_pTotoTeamB_Txt->SetText(toto.szTeamB[0] ? toto.szTeamB : (char*)"Team B", 0);
+	char teamA[64]{}, teamB[64]{};
+	strcpy_s(teamA, toto.szTeamA[0] ? toto.szTeamA : ui_text::RowOr(g_UIString, ui_text::kTotoTeamA, "Team A"));
+	strcpy_s(teamB, toto.szTeamB[0] ? toto.szTeamB : ui_text::RowOr(g_UIString, ui_text::kTotoTeamB, "Team B"));
+	m_pTotoTeamA_Txt->SetText(teamA, 0);
+	m_pTotoTeamB_Txt->SetText(teamB, 0);
 	m_nTotoNum = totoNumber;
 }
 
@@ -521,7 +527,7 @@ int TMFieldScene::OnPacketRemainCount(MSG_STANDARDPARM* pStd)
 	char szText[128]{};
 	// Native 7.48 FUN_00489260 formats 0x3B0 as "%d Left". Nightmare
 	// sends protected NPC survivors here, not a hostile-monster kill quota.
-	sprintf(szText, "%d Left", pStd->Parm);
+	sprintf(szText, ui_text::RowOr(g_UIString, ui_text::kTotoRemaining, "%d Left"), pStd->Parm);
 	m_dwRemainTime = g_pTimerManager->GetServerTime();
 	m_bInstanceRemainOn = 1;
 	if (m_pRemainText)
@@ -720,7 +726,7 @@ int TMFieldScene::OnPacketQuizEvent(MSG_STANDARD* packet)
 	if (m_quizEvent.Active)
 	{
 		char question[128]{};
-		sprintf_s(question, "%s  (10 seconds)", challenge.Question);
+		sprintf_s(question, ui_text::RowOr(g_UIString, ui_text::kQuizCountdown, "%s  (10 seconds)"), challenge.Question);
 		m_pQuizQuestion->SetText(question, 0);
 		for (int i = 0; i < 4; ++i)
 		{
@@ -830,6 +836,10 @@ int TMFieldScene::OnPacketRunQuest12Count(MSG_STANDARDPARM2* pStd)
 
 int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 {
+	// A04-07: TMScene always builds the message box and panel; the actor and
+	// the container can be absent during teardown.
+	if (!pOver || !m_pMyHuman || !m_pMessageBox || !m_pMessagePanel || !m_pControlContainer)
+		return 0;
 	if ((pOver->m_stScore.Merchant & 0xF) == 15 && !m_pMyHuman->IsInTown())
 	{
 		if (pOver->m_cMantua > 0 && m_pMyHuman->m_cMantua > 0 && pOver->m_cMantua != m_pMyHuman->m_cMantua && m_pMyHuman->m_cMantua != 3)
@@ -913,7 +923,8 @@ int TMFieldScene::MouseClick_QuestNPC(unsigned int dwServerTime, TMHuman* pOver)
 
 	if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && (pOver->m_stScore.Merchant & 0xF) == 9 && pOver->m_sHeadIndex == 51)
 	{
-		m_pInputGoldPanel->SetVisible(1);
+		if (m_pInputGoldPanel)
+			m_pInputGoldPanel->SetVisible(1);
 		auto pText = (SText*)m_pControlContainer->FindControl(65888);
 		if (pText)
 		{

@@ -10,11 +10,24 @@ replaces only the identity at byte 44:
 - upper 16 bits: release line `748` (`0x02EC`), equal to the protocol word;
 - lower 16 bits: the line's revision, shown to players as three digits.
 
-The compiled client sends `0x02EC0001`, which is **7.48.001**, and the server
-requires prefix `0x02EC` with revision >= 1. The launcher counter in
-`config.txt` is `[VERSION] 48001`, displayed by the launcher as 7.48.001
-([launcher](client/launcher.md#release-line-748)); revision N pairs with
-`[VERSION] 48000 + N`. Every retired v1 identity (`0x5747xxxx`, last published
+The reset started at `0x02EC0001`, which is **7.48.001**, with server prefix
+`0x02EC` and minimum revision 1 and launcher counter `[VERSION] 48001`
+([launcher](client/launcher.md#release-line-748)). Revision N pairs with
+`[VERSION] 48000 + N`.
+
+Current state (2026-11-01):
+
+- Last published and activated client: **7.48.017**, revision 17
+  (`0x02EC0011`), `config.txt` `[VERSION] 48017`
+  (`.agents/research/release-748017.json`).
+- Source candidate: `ClientBuildContract.h` `Revision` and Go
+  `MinimumClientBuildRevision` are 18 (`0x02EC0012`, 7.48.018).
+  This candidate is not published and not activated.
+  `config.txt` stays `[VERSION] 48017` until that release.
+- Do not activate a server with minimum 18 before the 7.48.018 patch is
+  published and verified.
+
+Every retired v1 identity (`0x5747xxxx`, last published
 revision 3 with patch 10045) fails the prefix check and receives the update
 message, so the reset admits no older executable: it is a new lineage, not a
 lowered gate. Tests reject `0x57470001`, `0x57470003`, `0x5747FFFF` and the

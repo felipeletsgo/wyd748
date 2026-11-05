@@ -490,6 +490,9 @@ bool WYD748_LoadSkillData(
     for (std::size_t index = 0; index < payloadSize; ++index)
         bytes[index] ^= 0x5A;
 
+    // C-28: each modern row is copied whole into one runtime record.
+    static_assert(sizeof(STRUCT_SPELL) == ModernSpellRecordSize,
+        "Modern SkillData rows must match STRUCT_SPELL");
     for (std::size_t index = 0; index < sourceCount; ++index)
         memcpy(&destination[index], bytes.data() + index * ModernSpellRecordSize, sizeof(STRUCT_SPELL));
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../application/EffectEmissionClock.h"
 #include "ExtractedFlow.h"
 
 #include "TreeNode.h"
@@ -35,6 +36,8 @@ public:
     static float TileCoordList[8][4][2];
     static float BackTileCoordList[32][4][2];
     static int m_nCheckSum[64][32];
+    effect_emission::Clock m_lavaEmission;
+    unsigned int m_lavaSteps = 0;
     static int m_bFirst;
     static float m_fMiniMapScale;
 

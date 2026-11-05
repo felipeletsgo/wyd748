@@ -2,6 +2,8 @@
 #include "../internal/ui/GridItemPresentation.h"
 #include "../internal/ui/NativeSaleQuote.h"
 #include "../internal/ui/HuntressMerchantQuote.h"
+#include "../internal/ui/ServerSaleQuote.h"
+#include "../internal/wire/QuotedSalePacket.h"
 #include "../internal/core/NativeSalePrice.h"
 #include <array>
 #include <climits>
@@ -45,6 +47,37 @@ int RunGridInsertionTests(int& checks)
     };
     const auto source = ReadGridSource();
     const auto itemSource = ReadGridSource("SGridItem.cpp");
+    MSG_QuotedSale quote{};
+    quote.Version = 1; quote.TargetID = 1100; quote.MyType = 1; quote.MyPos = 5;
+    quote.ExpectedPrice = 250; quote.ExpectedItem[0] = 0x90; quote.ExpectedItem[1] = 1;
+    quote.ExpectedItem[2] = 61; quote.ExpectedItem[3] = 3;
+    const unsigned char expectedQuote[] = {1, 0, 0x4C, 4, 1, 0, 5, 0, 250, 0, 0, 0, 0x90, 1, 61, 3, 0, 0, 0, 0};
+    check(!memcmp(reinterpret_cast<const unsigned char*>(&quote) + 12, expectedQuote, sizeof expectedQuote),
+        "quoted sale v1 payload matches the Go decoder byte for byte");
+    check(ReadGridSource("SGridCommerce.cpp").find("WYD748_BuildQuotedSale(") != std::string::npos &&
+        ReadGridSource("../app/scenes/TMFieldScene.cpp").find("WYD748_BuildQuotedSale(") != std::string::npos,
+        "Ctrl-sale and confirmation use the versioned expected-item and price contract");
+    struct SaleCase { int item, price, cls; unsigned int learned; int trade, tax; bool dionys; int expected; };
+    const SaleCase sales[] = {
+        {400, 20004, 0, 0, 0, 0, false, 5001},
+        {400, 20004, 0, 0, 0, 0, true, 3334},
+        {400, 40004, 0, 0, 0, 0, false, 10001},
+        {400, 40004, 0, 0, 0, 0, true, 5000},
+        {412, 1000000, 0, 0, 0, 0, false, 250000},
+        {412, 1000000, 3, 1u << 9, 255, 10, false, 283500},
+        {693, 10000, 3, 1u << 9, 255, 10, false, 2250},
+        {400, 4000, 3, 1u << 9, 255, 5, false, 950},
+        {400, 4004, 3, 1u << 9, 0, 0, false, 1061},
+        {400, 16777223, 0, 0, 0, 10, false, 3774875},
+        {400, INT_MAX, 3, 1u << 9, 255, 100, false, 0},
+    };
+    for (const auto& sale : sales)
+        check(server_sale_quote::Calculate(sale.item, sale.price, sale.cls, sale.learned,
+            sale.trade, sale.tax, sale.dionys) == sale.expected,
+            "sale display matches Go quarter price, Dionys, passive, tax and special-item policy");
+    check(ReadGridSource("SGridTooltip.cpp").find("WYD748_MerchantSalePrice(") != std::string::npos &&
+        source.find("server_sale_quote::Calculate(") != std::string::npos,
+        "merchant tooltip uses server policy instead of the historical native quote");
     check(itemSource.find("m_GCObj.n3DObjIndex = grid_item_presentation::IconMesh(") != std::string::npos,
         "production grid constructor applies the cape mesh mapping before item scaling");
     check(huntress_merchant_quote::PurchaseBase(8000, 3, 1u << 11, 100) == 6720,

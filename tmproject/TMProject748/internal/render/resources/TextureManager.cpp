@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "AssetFileOpen.h"
+#include "../../platform/diagnostics/PerfTrace.h"
 #include "TextureManager.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
@@ -8,6 +10,7 @@
 #include "../../application/CCModePolicy.h"
 #include "../../application/WrappedTexture.h"
 #include "../../application/TextureRegionCopy.h"
+#include "DeviceReset.h"
 
 int TextureManager::DYNAMIC_TEXTURE_WIDTH = 256;
 int TextureManager::DYNAMIC_TEXTURE_HEIGHT = 256;
@@ -90,6 +93,7 @@ TextureManager::TextureManager()
 
 TextureManager::~TextureManager()
 {
+	ReleaseRenderTargetTexture();
 	ReleaseTexture();
 	ReleaseUITextureSetList();
 	Release_GuildMarkList();
@@ -215,11 +219,26 @@ void TextureManager::ReleaseNotUsingTexture()
 
 int TextureManager::RestoreRenderTargetTexture()
 {
+	// Recreate the whole chain; a partial chain stays released.
+	ReleaseRenderTargetTexture();
 	if (InitRenderTargetTexture())
 		return 1;
 
+	ReleaseRenderTargetTexture();
 	LOG_WRITELOG("Error in Init Render Target Texture\r\n");
 	return 0;
+}
+
+void TextureManager::ReleaseRenderTargetTexture()
+{
+	device_reset::ReleaseTarget(m_pOriginTexture, m_pOriginSurface);
+	device_reset::Release(m_pOriginRTT);
+	device_reset::ReleaseTarget(m_pOriginGlowTexture, m_pOriginGlowSurface);
+	device_reset::ReleaseTarget(m_pAccumTexture, m_pAccumSurface);
+	device_reset::ReleaseTarget(m_pRenderTexture, m_pRenderSurface);
+	device_reset::ReleaseTargets(m_pBloomTexture, m_pBloomSurface);
+	device_reset::ReleaseTargets(m_pBloomTexture1, m_pBloomSurface1);
+	device_reset::ReleaseTargets(m_pGlowTexture, m_pGlowSurface);
 }
 
 int TextureManager::InitUITextureList()
@@ -269,7 +288,7 @@ int TextureManager::LoadUITexture(int nIndex, int nSrcIndex)
 		}
 	}
 
-	int handle = _open(m_stUITextureList[nSrcIndex].szFileName, _O_BINARY);
+	int handle = asset_file::Open("texture", m_stUITextureList[nSrcIndex].szFileName);
 	if (handle == -1)
 		return 0;
 
@@ -499,21 +518,9 @@ ControlTextureSet* TextureManager::GetUITextureSet(int nIndex)
 
 int TextureManager::GetUITextureIndex(char* szTextureName)
 {
-	if (szTextureName == nullptr)
-		return -1;
-
-	int nStrLen = strlen(szTextureName);
-	for (int i = 0; i < MAX_UI_TEXTURE; i++)
-	{
-		int nStrLen2 = strlen(m_stUITextureList[i].szFileName);
-		sprintf((char*)&szTextureName[nStrLen - 3], 
-			(char*)&m_stUITextureList[i].szFileName[nStrLen2 - 3]);
-
-		if (!strcmp(szTextureName, m_stUITextureList[i].szFileName))
-			return i;
-	}
-
-	return -1;
+	// Compare names without their 3-character extension. Table data is never
+	// a format string, and empty or short rows never match.
+	return model_texture_748::Find(szTextureName, m_stUITextureList, MAX_UI_TEXTURE);
 }
 
 int TextureManager::InitEffectTextureList()
@@ -555,7 +562,7 @@ int TextureManager::LoadEffectTexture(int nIndex)
 
 	int PlusLength = 18;
 	int ColorKey = 0xFF000000;
-	int handle = _open(m_stEffectTextureList[nIndex].szFileName, _O_BINARY, 0);
+	int handle = asset_file::Open("texture", m_stEffectTextureList[nIndex].szFileName);
 	if (handle == -1)
 		return 0;
 
@@ -692,21 +699,8 @@ IDirect3DTexture9* TextureManager::GetEffectTexture(int nIndex, DWORD showTime)
 
 int TextureManager::GetEffectTextureIndex(char* szTextureName)
 {
-	if (szTextureName == nullptr)
-		return -1;
-
-	int nStrLen = strlen(szTextureName);
-	for (int i = 0; i < MAX_EFFECT_TEXTURE; i++)
-	{
-		int nStrLen2 = strlen(m_stEffectTextureList[i].szFileName);
-		sprintf((char*)&szTextureName[nStrLen - 3],
-			(char*)&m_stEffectTextureList[i].szFileName[nStrLen2 - 3]);
-
-		if (!strcmp(szTextureName, m_stEffectTextureList[i].szFileName))
-			return i;
-	}
-
-	return -1;
+	// Same stem comparison as the UI and model tables.
+	return model_texture_748::Find(szTextureName, m_stEffectTextureList, MAX_EFFECT_TEXTURE);
 }
 
 int TextureManager::InitModelTextureList()
@@ -758,7 +752,7 @@ int TextureManager::LoadModelTexture(int nIndex)
 		}
 	}
 
-	int handle = _open(m_stModelTextureList[nIndex].szFileName, _O_BINARY, 0);
+	int handle = asset_file::Open("texture", m_stModelTextureList[nIndex].szFileName);
 	if (handle == -1)
 		return 0;
 
@@ -952,7 +946,7 @@ int TextureManager::LoadEnvTexture(int nIndex)
 		}
 	}
 
-	int handle = _open(m_stEnvTextureList[nIndex].szFileName, _O_BINARY, 0);
+	int handle = asset_file::Open("texture", m_stEnvTextureList[nIndex].szFileName);
 	if (handle == -1)
 		return 0;
 

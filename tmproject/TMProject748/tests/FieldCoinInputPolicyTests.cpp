@@ -7,6 +7,11 @@
 namespace
 {
 // Independent oracle copied from the original B_IG_OK validation sequence.
+// Deliberate deviation (A08-01): the original accepted any non-negative amount
+// for modes 1, 2 and 7. An 11-digit trade amount then overflowed the 11-byte
+// "%10lld" buffer and terminated the client, and every such amount was
+// truncated by the 32-bit wire cast. The oracle keeps the legacy order and
+// coin reads but rejects amounts above INT32_MAX for the narrowing modes.
 coin_input::Rejection LegacyValidate(int mode, std::size_t length, bool bFind,
     long long nInputValue, int coin, int& coinReads)
 {
@@ -15,6 +20,9 @@ coin_input::Rejection LegacyValidate(int mode, std::size_t length, bool bFind,
         return coin_input::Rejection::Empty;
     if (mode != 12 && mode != 11 && mode != 8 && mode != 3 && mode != 6) {
         if (bFind == true || nInputValue < 0 || nInputValue > readCoin() && !mode)
+            return coin_input::Rejection::InvalidAmount;
+        const bool narrowsToWire = mode == 0 || mode == 1 || mode == 2 || mode == 7;
+        if (narrowsToWire && nInputValue > 2147483647LL) // A08-01 deviation.
             return coin_input::Rejection::InvalidAmount;
     }
     if (bFind == true && mode == 12)

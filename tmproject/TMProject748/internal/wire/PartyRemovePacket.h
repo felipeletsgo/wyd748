@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intencao/snapshot C<->S de remocao Party. Zero dissolve/limpa a lista;
-// valor diferente de zero identifica o membro removido.
+// C<->S party-removal intent/snapshot. Zero dissolves or clears the list.
+// Other values identify the removed member.
 constexpr auto MSG_RemoveParty_Opcode = 0x37E;
 struct MSG_RemoveParty
 {

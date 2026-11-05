@@ -75,26 +75,11 @@ Do not combine transport changes, schema partitioning and channel separation int
 
 ### Implementation status — 2026-11-01
 
-R1–R3 (W0–W7) are active in release `20261101T050356Z` since 2026-11-01. Evidence is in the bug register.
-
-| Package | Status | Remaining |
-| --- | --- | --- |
-| W0 | Done | Load under real players in production (local real network load passed 2026-11-01) |
-| W1 | Done | Activation; COMMIT loss moves to W4 |
-| W2 | Done | VPS measurement of pool size and hash slots |
-| W3 | Done | None in source; local real-network and slow-link load passed 2026-11-01 |
-| W4 | Done | Real-TCP COMMIT loss and process-crash acceptance passed locally 2026-11-01; closed-connection hotfix pending activation |
-| W5 | Done in source | VPS resource measurements (P6); systemd restart-budget test |
-| W6 | Done | Production confirmation of the movement cost on the VPS |
-| W7 | Done in source | Slow-autosave matrix on the VPS; command-delay percentiles under load (acceptance) |
-| W8 | Done: active in R4 (release `20261101T145133Z`, schema v15/v16); 600-player simulation without skipped instance ticks | None |
-| W9 | Done: phases 1–5 active (R4, schema v17–v20); one process per channel since R5; VPS isolation check passed | None |
-| G | Closed | The owner confirmed BUG-001–BUG-011 fixed in the client on 2026-11-01 |
-
-W7–W9 change durable ordering, the schema or the process model. Start each as its own reviewed
-release candidate after R1–R3 run on the VPS, as the release table below requires.
-G needs the exact installed candidate and the owner's visual client tests; no source change is
-justified before a concrete reproduction.
+The [bug register](../bug-register.md#accepted-correction-backlog) owns the per-report status and owner acceptance.
+The [current state](../current-state.md) records the latest release baseline.
+W0–W7 were activated in R1–R3, W8–W9 in R4, and channel processes in R5.
+The sections below retain implementation decisions, acceptance criteria and dated results; their older pending statements are historical.
+Shared-object quarantine recovery remains restart-based, as defined in the [persistence plan](critical-persistence-plan.md#current-gaps-and-acceptance-criteria).
 
 ## W0 — diagnostics and reproducible acceptance
 
@@ -566,7 +551,7 @@ and game tests (refusal, claim failure, release after settled writes, cancelled 
 PostgreSQL test refuses the account on process B while process A holds it, and admits it after A ends
 the session.
 
-Pending before phase 5:
+Historical prerequisites before phase 5 (completed by later phases and R5):
 
 - Offline writes: an account without a lease is written without a fence. Before two processes
   can write, a process must lease an offline account it changes, or route the change to its owner
@@ -627,7 +612,7 @@ writer) and a two-process PostgreSQL test: process A commits a change that reach
 of B from its stale copy is rejected without changing the row, B reloads the row, and B's retry
 commits and reaches A.
 
-Pending before phase 5:
+Historical prerequisites before phase 5 (completed by phase 5 and R5):
 
 - Guild name uniqueness and the display of connected members are resolved in phase 5.
 
@@ -719,9 +704,12 @@ Worlds directly; each caller needs a delivery path through the transactional out
 
 Use the exact scenario and evidence in the [bug register](../bug-register.md#reports-and-acceptance-checks).
 Reconcile the candidate, installed binary, published patch and active server before changing already-correct source.
-The table defines remaining work; it does not certify any new gameplay result.
+All eleven reports are closed by the owner's 2026-11-01 client confirmation.
+The [bug register](../bug-register.md#queue) owns that acceptance. The table
+below preserves the earlier scenario definitions; it is not an open work queue
+or a new agent-executed gameplay result. Reopen an ID only for a new reproduction.
 
-| ID | Remaining work | Closure evidence |
+| ID | Historical acceptance scenario | Closure criterion |
 | --- | --- | --- |
 | BUG-001 | Capture one concrete missing HIT/MISS result across server packet, target lookup and floating-text rendering; fix only the reproduced boundary | Attacker, defender and nearby observer receive correct results without duplicate feedback or changed damage |
 | BUG-002 | Test the exact gate candidate, distant movement click, view exit/reentry, relogin and legitimate war close; investigate only a remaining mismatch | Gate state, rendering and collision agree with authoritative open/closed state |
@@ -735,9 +723,9 @@ The table defines remaining work; it does not certify any new gameplay result.
 | BUG-010 | Reconcile the summary with the detailed native floor-effect evidence; confirm synthetic-generator removal and identify the actual random trigger/assets | Only the proven native effect appears at the correct location and lifecycle; do not invent random timing |
 | BUG-011 | Approach Compounder and each affected guard with two players; introduce an eligible hostile monster and repeat after reconnect | Passive Compounder, monster-only guard combat, no player damage or guard-kill rewards |
 
-For BUG-010, explicit supplied index/data findings do not prove an unidentified native floor effect.
-If native behavior remains unknown, keep that acceptance item open and identify the next smallest static query.
-Follow the native research skills only when that work starts; do not rerun the entire corpus.
+For BUG-010, supplied index/data findings do not prove an unidentified native
+floor effect. Preserve that research limit without reopening the owner-accepted
+report. A new mismatch needs its own reproduction and focused evidence query.
 
 Client-source corrections require the current client skill, focused tests and an affected-target build with `-NoDeploy`.
 Published client changes require a new mandatory revision, coordinated server minimum and patch verification before server activation.

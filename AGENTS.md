@@ -73,7 +73,9 @@ Do not turn a one-off failure into a permanent procedure.
 - Reuse evidence and results; rerun only for changed inputs, failures, coverage gaps, or integration needs.
 - After two attempts without new evidence, change the method or report the blocker.
 - Preserve bounded failure diagnostics with exit status and causal error.
-- Treat diagnosis and review as inspection-only.
+- Keep diagnosis and review read-only for product code; correct verified documentation drift.
+- Update outdated documentation when found, including during reviews; use verified evidence.
+- Preserve dated evidence; mark superseded status and link the current record.
 - A correction does not authorize publication, restart, commit, push, or security changes.
 - Use `wyd-release` for deployment, SSH, publication, and authorized restart diagnosis.
 - Never guess credentials, disable host verification, or change firewalls to bypass refusal.

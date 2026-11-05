@@ -378,7 +378,13 @@ int TMObject::IsInTown()
 
 	LOG_WRITELOG("\nWrong Position [X:%d Y:%d]\n", nX4, nY4);
 
-	TMVector2 vec = g_pObjectManager->m_pCamera->GetFocusedObject()->m_vecPosition;
+	// During a scene transition the camera can have no focus; the critical
+	// error report below compares against the focused position.
+	TMObject* pFocused = g_pObjectManager->m_pCamera ? g_pObjectManager->m_pCamera->GetFocusedObject() : nullptr;
+	if (pFocused == nullptr)
+		return 0;
+
+	TMVector2 vec = pFocused->m_vecPosition;
 
 	int nMyX128 = (int)vec.x / 128;
 	int nMyY128 = (int)vec.y / 128;
@@ -695,6 +701,8 @@ int TMObject::isCamPos()
 		return 0;
 
 	TMCamera* pCamera = g_pObjectManager->m_pCamera;
+	if (pCamera == nullptr || pCamera->m_pFocusedObject == nullptr)
+		return 0;
 
 	D3DXVECTOR3 VecCam = D3DXVECTOR3(pCamera->m_cameraPos.x, pCamera->m_cameraPos.z, pCamera->m_cameraPos.y);
 	D3DXVECTOR3 VecCenter = D3DXVECTOR3(pCamera->m_pFocusedObject->m_vecPosition.x, pCamera->m_pFocusedObject->m_vecPosition.y, pCamera->m_pFocusedObject->m_fHeight);
@@ -785,9 +793,10 @@ void TMObject::ResetObject()
 	m_nTextureSetIndex = -1;
 	m_nMaskIndex = -1;
 
-	for (int i = 0; i < 10; ++i)
+	// CFrame writes all eleven bone positions, including entry 10.
+	for (auto& vecTempPos : m_vecTempPos)
 	{
-		m_vecTempPos[i] = TMVector3(0.0f, 0.0, 0.0f);
+		vecTempPos = TMVector3(0.0f, 0.0, 0.0f);
 	}
 
 	m_nAlpha = 0;

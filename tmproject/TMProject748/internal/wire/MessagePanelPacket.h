@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Aviso textual S->C da cena base. O receptor usa somente frames com ID zero
-// e encerra o corpo de 96 bytes antes de interpretar os prefixos do texto.
+// Base-scene S->C notice. Accept only ID zero and terminate the 96-byte body
+// before interpreting text prefixes.
 constexpr auto MSG_MessagePanel_Opcode = 0x101;
 struct MSG_MessagePanel
 {

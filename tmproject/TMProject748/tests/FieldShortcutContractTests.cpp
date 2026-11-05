@@ -68,20 +68,20 @@ int RunFieldShortcutContractTests(int& checks)
         "accelerator high word is not mistaken for the command ID");
     const auto input = read("TMFieldSceneInput.cpp");
     const auto accel = source_contract::Method(input, "int TMFieldScene::OnAccel(int nMsg)");
-    check(!accel.empty() && accel.find("g_nKeyType != 1") < accel.find("switch (nMsg)"),
+    check(!accel.empty() && source_contract::InOrder(accel.find("g_nKeyType != 1"), accel.find("switch (nMsg)")),
         "gameplay accelerator dispatch requires mode 1");
     for (const auto entry : {"OnKeyHPotion('q', 0)", "OnKeyMPotion('w', 0)", "OnKeyPPotion('e', 0)"})
-        check(accel.find("CurrentScore.CurHP > 0") < accel.find(entry),
+        check(source_contract::InOrder(accel.find("CurrentScore.CurHP > 0"), accel.find(entry)),
             "potion accelerator retains the native alive gate");
-    check(accel.find("OnKeyAuto('f', 0)") < accel.find("CurrentScore.CurHP > 0"),
+    check(source_contract::InOrder(accel.find("OnKeyAuto('f', 0)"), accel.find("CurrentScore.CurHP > 0")),
         "F consumable retains its original dispatch position");
     const auto core = read("TMFieldScene.cpp");
     const auto frame = source_contract::Method(core, "int TMFieldScene::FrameMove(unsigned int dwServerTime)");
     check(!frame.empty() && frame.find("UpdateAutoRun();") != std::string::npos,
         "the frame loop consumes the autorun flag");
     const auto movement = source_contract::Method(read("TMFieldSceneMovement.cpp"), "void TMFieldScene::UpdateAutoRun()");
-    check(!movement.empty() && movement.find("CanAutoRun(") < movement.find("GetRoute(") &&
-        movement.find("AutoRunCellAllowed(target.x, target.y, 0)") < movement.find("BASE_GetAttr(") &&
+    check(!movement.empty() && source_contract::InOrder(movement.find("CanAutoRun("), movement.find("GetRoute(")) &&
+        source_contract::InOrder(movement.find("AutoRunCellAllowed(target.x, target.y, 0)"), movement.find("BASE_GetAttr(")) &&
         movement.find("GetCameraLookatDir()") != std::string::npos,
         "autorun checks state and coordinates before using the normal route");
     check(core.find("m_pBtnGuildOnOff = nullptr") != std::string::npos &&
@@ -90,7 +90,7 @@ int RunFieldShortcutContractTests(int& checks)
         "guild intent uses confirmed state and has no uninitialized button");
     const auto guildAck = source_contract::Method(read("TMFieldSceneSocial.cpp"),
         "int TMFieldScene::OnPacketGuildDisable(MSG_STANDARDPARM* pStd)");
-    check(guildAck.find("!pStd") < guildAck.find("m_cGuildOnOff = pStd->Parm == 0") &&
+    check(source_contract::InOrder(guildAck.find("!pStd"), guildAck.find("m_cGuildOnOff = pStd->Parm == 0")) &&
         guildAck.find("SetSelected(pStd->Parm == 1 ? 1 : 0)") != std::string::npos,
         "guild acknowledgement updates both keyboard state and button polarity");
     const auto ui = read("TMFieldSceneUI.cpp");

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../platform/diagnostics/PerfTrace.h"
 #include "TMEffectBillBoard3.h"
 #include "TMEffectMesh.h"
 #include "TMArrow.h"
@@ -13,6 +14,7 @@
 #include "TMScene.h"
 #include "TMHuman.h"
 #include "TMEffectParticle.h"
+#include "EntitySafetyPolicy.h"
 
 TMArrow::TMArrow(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, int nType, char cAvatar, int nColor, int nDestID) 
 	: TreeNode(0),
@@ -31,6 +33,11 @@ TMArrow::TMArrow(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, int nType,
 	m_nType = nType;
 	m_dwStartTime = g_pTimerManager->GetServerTime();
 	m_pEffectMesh = 0;
+	// Type 10000, unknown types and unlisted levels of 153 set no mesh or
+	// lifetime below; -1 makes GetCommonMesh return no mesh.
+	m_nMeshIndex = -1;
+	m_dwLifeTime = 0;
+	m_bVisible = 0;
 	m_vecRotatePos1.x = 0.0f;
 	m_vecRotatePos1.y = 0.0f;
 	m_vecRotatePos2.x = 0.0f;
@@ -50,7 +57,7 @@ TMArrow::TMArrow(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, int nType,
         if (nLevel > 0)
         {
             const static unsigned int dwColor[3]{ 0x00885522, 0x0AA00, 0x00AA00FF };
-            m_pEffectMesh = new TMEffectMesh(28, dwColor[(nLevel % 3) - 1], m_fRotAngle, 1);;
+            m_pEffectMesh = new TMEffectMesh(28, dwColor[entity_arrow::EffectColorIndex(nLevel)], m_fRotAngle, 1);
             if (m_pEffectMesh)
             {
                 m_pEffectMesh->m_fScaleH = 1.3f;
@@ -208,6 +215,9 @@ TMArrow::TMArrow(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, int nType,
 
 TMArrow::~TMArrow()
 {
+    // The arrow owns m_pEffectMesh (never added to a container). ReleaseEffect
+    // frees it on impact; scene teardown deletes the arrow without impact.
+    SAFE_DELETE(m_pEffectMesh);
 }
 
 int TMArrow::Render()
@@ -542,8 +552,10 @@ int TMArrow::FrameMove(unsigned int dwServerTime)
         dwColor = 0xFF00AA00;
 
     int nRand = rand() % 5;
-    if (m_nType != 10000)
+    const unsigned int emissions = m_trailEmission.Steps(dwServerTime, m_bVisible && !g_bHideEffect);
+    for (unsigned int emission = m_nType != 10000 ? emissions : 0; emission; --emission)
     {
+        perf_trace::OnEmission(perf_trace::Emitter::ArrowTrail);
         auto pBill = new TMEffectBillBoard(0,
             1000,
             ((float)nRand * 0.2f) + 0.2f,
@@ -558,8 +570,9 @@ int TMArrow::FrameMove(unsigned int dwServerTime)
         pBill->m_bStickGround = 1;
         pBill->SetColor(dwColor);
         g_pCurrentScene->m_pEffectContainer->AddChild(pBill);
+
     }
-    if (m_nMeshIndex == 919 && fProgress > 0.2)
+    for (unsigned int emission = m_nMeshIndex == 919 && fProgress > 0.2 ? emissions : 0; emission; --emission)
     {
         float fRand = (float)(rand() % 5);
         float fBase = 0.3f;
@@ -580,6 +593,7 @@ int TMArrow::FrameMove(unsigned int dwServerTime)
         pFire->m_vecPosition = { m_vecCurrentPos.x, m_vecCurrentPos.y, m_vecCurrentPos.z };
         pFire->m_vecStartPos = pFire->m_vecPosition;
         g_pCurrentScene->m_pEffectContainer->AddChild(pFire);
+
     }
     if (m_pBeam && fProgress > 0.2f && m_dwStartTime + m_dwLifeTime + 2000 > dwServerTime)
     {
@@ -684,6 +698,9 @@ void TMArrow::ReleaseEffect()
     D3DXVECTOR3 vecMyToTarget{ m_vecTargetPos.x - m_vecCurrentPos.x, 0.0f, m_vecTargetPos.z - m_vecCurrentPos.z };
     D3DXVec3Normalize(&vecMyToTarget, &vecMyToTarget);
     
+    // The local critical flag colors every impact (parity unproven); a scene
+    // without a local actor has no critical state.
+    const bool bLocalCritical = g_pCurrentScene->m_pMyHuman && g_pCurrentScene->m_pMyHuman->m_bCritical;
     unsigned int dwCenterColor = 0x80FFFFFF;
     unsigned int dwOtherColor = 0x0052A9E5;
     unsigned int dwLightColor = 0x00334388;
@@ -736,7 +753,7 @@ void TMArrow::ReleaseEffect()
     g_pCurrentScene->m_pEffectContainer->AddChild(pMeshEffect);
 
     auto pLightMap = new TMShade(7, 118, 1.0f);
-    if (g_pCurrentScene->m_pMyHuman->m_bCritical)
+    if (bLocalCritical)
         pLightMap->SetColor(0x00883333);
     else
         pLightMap->SetColor(dwLightColor);
@@ -756,7 +773,7 @@ void TMArrow::ReleaseEffect()
     }
 
     TMVector3 vecDir = *reinterpret_cast<TMVector3*>(&vecMyToTarget);
-    if (g_pCurrentScene->m_pMyHuman->m_bCritical)
+    if (bLocalCritical)
     {
         auto pParticle = new TMEffectParticle({ vec + (vecDir * 0.3f) }, 5, 50, 1.0f, 0x00883333, 0, 231, 1.0f, 1, vecDir, 300);
         g_pCurrentScene->m_pEffectContainer->AddChild(pParticle);
@@ -772,7 +789,7 @@ void TMArrow::ReleaseEffect()
         pBill1->m_fScaleVelX = 0.001f;
         pBill1->m_fScaleVelY = 0.001f;
         pBill1->m_fScaleVelZ = 0.001f;
-        if (g_pCurrentScene->m_pMyHuman->m_bCritical)
+        if (bLocalCritical)
         {
             pBill1->m_fScaleVelX = 0.002f;
             pBill1->m_fScaleVelY = 0.002f;
@@ -794,7 +811,7 @@ void TMArrow::ReleaseEffect()
         pBill2->m_fScaleVelX = 0.001f;
         pBill2->m_fScaleVelY = 0.001f;
         pBill2->m_fScaleVelZ = 0.001f;
-        if (g_pCurrentScene->m_pMyHuman->m_bCritical)
+        if (bLocalCritical)
         {
             pBill2->m_fScaleVelX = 0.002f;
             pBill2->m_fScaleVelY = 0.002f;

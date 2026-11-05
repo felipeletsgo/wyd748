@@ -6,6 +6,7 @@
 // RenderDevice split by responsibility; device lifecycle stays in RenderDevice.cpp.
 #include "RenderDevice.h"
 #include "TMGlobal.h"
+#include "TMLog.h"
 #include "TMFieldScene.h"
 #include "TMCamera.h"
 
@@ -51,13 +52,37 @@ void RenderDevice::SetGamma()
 
 		m_pd3dDevice->SetGammaRamp(0, 0, &gamma);
 
-		if (m_d3dpp.Windowed)
+		// Windowed mode changes the ramp of the whole display. Capture the
+		// user's ramp first and never change a ramp that cannot be restored.
+		if (m_d3dpp.Windowed && g_pApp != nullptr && g_pApp->m_hWnd != nullptr)
 		{
 			HDC hdc = GetDC(g_pApp->m_hWnd);
-			SetDeviceGammaRamp(hdc, &gamma);
-			ReleaseDC(g_pApp->m_hWnd, hdc);
+			if (hdc != nullptr)
+			{
+				if (m_desktopGamma.Capture([hdc](D3DGAMMARAMP& ramp) { return GetDeviceGammaRamp(hdc, &ramp) != FALSE; }))
+					SetDeviceGammaRamp(hdc, &gamma);
+				ReleaseDC(g_pApp->m_hWnd, hdc);
+			}
 		}
 	}
+	else
+	{
+		// The neutral setting returns the display to the user's own ramp.
+		RestoreDesktopGamma();
+	}
+}
+
+void RenderDevice::RestoreDesktopGamma()
+{
+	if (!m_desktopGamma.Captured() || g_pApp == nullptr || g_pApp->m_hWnd == nullptr)
+		return;
+	HDC hdc = GetDC(g_pApp->m_hWnd);
+	if (hdc == nullptr)
+		return;
+	if (!m_desktopGamma.Restore([hdc](const D3DGAMMARAMP& ramp) {
+			return SetDeviceGammaRamp(hdc, const_cast<D3DGAMMARAMP*>(&ramp)) != FALSE; }))
+		LOG_WRITELOG("Desktop gamma restoration failed\r\n");
+	ReleaseDC(g_pApp->m_hWnd, hdc);
 }
 
 int RenderDevice::InitializeRenderingState()

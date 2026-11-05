@@ -1,9 +1,11 @@
 #include "pch.h"
+#include "EffectVisualMath.h"
 #include "TMObject.h"
 #include "TMEffectCharge.h"
 #include "TMGlobal.h"
 #include "TMMesh.h"
 #include "TMHuman.h"
+#include "EffectGuards.h"
 
 TMEffectCharge::TMEffectCharge(TMObject* pParent, int nType, unsigned int dwColor) : 
 	TMEffect()
@@ -84,6 +86,13 @@ int TMEffectCharge::Render()
                 pMesh2->m_nTextureIndex[0] = 99;
         }
 
+        // Apply this instance's color just before its own draws: other
+        // charges and Magic Shield write the same shared meshes.
+        if (pMesh1)
+            effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh1->m_pVB, m_dwMeshColor);
+        if (pMesh2)
+            effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh2->m_pVB, m_dwMeshColor);
+
         if (pMesh1)
             pMesh1->Render(m_vecPosition.x, m_vecPosition.y, m_vecPosition.z, -m_fAngle, 0, D3DXToRadian(90), 0, 0);
         if (pMesh2)
@@ -149,47 +158,8 @@ int TMEffectCharge::FrameMove(unsigned int dwServerTime)
             m_vecPosition.y += fLoc;
         }
 
-        auto pMesh = g_pMeshManager->GetCommonMesh(704, 1, 180000);
-        if (!pMesh)
-            return 0;
-
-        D3DVERTEXBUFFER_DESC vDesc;
-        pMesh->m_pVB->GetDesc(&vDesc);
-
-        RDLVERTEX* pVertex;
-        pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-        int nCount = vDesc.Size / sizeof(RDLVERTEX);
-        for (int i = 0; i < nCount; ++i)
-        {
-            unsigned int dwA = (unsigned int)((float)m_dwA * fDif) << 24;
-            unsigned int dwR = (unsigned int)((float)m_dwR * fDif) << 16;
-            unsigned int dwG = (unsigned int)((float)m_dwG * fDif) << 8;
-            unsigned int dwB = (unsigned int)((float)m_dwB * fDif);
-            pVertex[i].diffuse = dwB | dwG | dwR;
-        }
-        pMesh->m_pVB->Unlock();
-
-        pMesh = g_pMeshManager->GetCommonMesh(705, 1, 180000);
-        if (!pMesh)
-            return 0;
-
-        pMesh->m_pVB->GetDesc(&vDesc);
-        pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-        nCount = vDesc.Size / sizeof(RDLVERTEX);
-        for (int i = 0; i < nCount; ++i)
-        {
-            unsigned int dwA = (unsigned int)((float)m_dwA * fDif) << 24;
-            unsigned int dwR = (unsigned int)((float)m_dwR * fDif) << 16;
-            unsigned int dwG = (unsigned int)((float)m_dwG * fDif) << 8;
-            unsigned int dwB = (unsigned int)((float)m_dwB * fDif);
-            pVertex[i].diffuse = dwB | dwG | dwR;
-        }
-        pMesh->m_pVB->Unlock();
-
-        if (m_nType)
-            pMesh->m_nTextureIndex[0] = 99;
-        else
-            pMesh->m_nTextureIndex[0] = 57;
+        // Keep the instance alpha when fading the shared mesh color.
+        m_dwMeshColor = effect_visual::FadeArgb(m_dwA, m_dwR, m_dwG, m_dwB, fDif);
 
         if (m_nType == 1)
             m_vecPosition.y = m_vecPosition.y + m_fProgress;

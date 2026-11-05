@@ -35,4 +35,7 @@ public:
     int m_nType3;                // Variante de rotacao e escala.
     int m_nMeshIndex;            // Malha compartilhada escolhida no construtor.
     int m_bNext;                 // Impede criar o proximo segmento mais de uma vez.
+    // Per-instance blade color (types 0 and 1), applied in Render because the
+    // mesh is shared by every blade of the same type.
+    unsigned int m_dwMeshColor = 0x55113366;
 };

@@ -37,6 +37,28 @@ int RunNativeRefinementPresentationTests(int& checks)
             std::fprintf(stderr, "FAIL refinement presentation: %s\n", description);
         }
     };
+    STRUCT_ITEM refinement[8]{};
+    refinement[0].sIndex = refinement[1].sIndex = 4043;
+    refinement[2].sIndex = 1000;
+    for (int level = 10; level <= 15; ++level)
+        check(odin_composition::AcceptsBlessedRefinementRecipe(refinement, level) ==
+            (level >= 11 && level <= 14), "Blessed Refinement accepts only +11 through +14");
+    for (int slot = 0; slot < 8; ++slot) {
+        const auto original = refinement[slot];
+        refinement[slot].sIndex = 4146;
+        check(odin_composition::AcceptsBlessedRefinementRecipe(refinement, 11) == (slot == 2),
+            "Blessed Refinement rejects a wrong stone, catalyst or nonempty tail");
+        refinement[slot] = original;
+    }
+    refinement[2].sIndex = 0;
+    check(!odin_composition::AcceptsBlessedRefinementRecipe(refinement, 11),
+        "Blessed Refinement requires a target");
+    refinement[2].sIndex = 1000;
+    for (int slot = 3; slot <= 6; ++slot) {
+        refinement[slot].sIndex = 3338;
+        check(odin_composition::AcceptsBlessedRefinementRecipe(refinement, 14),
+            "Blessed Refinement accepts zero through four supported catalysts");
+    }
     STRUCT_ITEM odin[8]{};
     constexpr short unlock[] = {4127, 4127, 5135, 5113, 5129, 5112, 5110};
     for (int slot = 0; slot < 7; ++slot)

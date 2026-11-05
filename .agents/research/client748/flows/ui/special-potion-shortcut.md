@@ -4,10 +4,27 @@ title: Use special potion through E shortcut
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-31
+updated: 2026-11-02
 ---
 
 # Use special potion through E shortcut
+
+## Current implementation override (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The native optimistic consumption
+documented below remains historical evidence. Current `UsePPotion` sends the
+same 36-byte intention but retains the stack and visual until an authoritative
+item snapshot arrives. The same rule covers HP/MP, food, tickets, generic use,
+portal confirmation, targeted use, and capsule requests. Cursor detachment
+does not remove inventory ownership. Cooldown and selection remain unchanged.
+
+The server resends a valid source snapshot on early dead-player, empty-slot,
+and invalid-destination rejection. A reserved critical transaction publishes
+nothing until durable completion. Malformed envelopes and invalid source slots
+remain rejected. This section supersedes optimistic-consumption implementation
+and decision statements below; it does not change native evidence or promote
+the record to `CLIENT_TESTED`. See
+[the current contract](../../../../../DOCS/client/port-748.md#authoritative-item-use-and-merchant-display-2026-11-02).
 
 ## Pergunta
 

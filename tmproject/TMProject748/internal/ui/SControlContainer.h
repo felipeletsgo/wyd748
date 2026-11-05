@@ -14,6 +14,7 @@ class SControlContainer : public TreeNode, public IEventListener
 public:
     SControlContainer(TMScene* pScene);
     ~SControlContainer();
+    void DiscardFrameReferences();
     int OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY) override;
     int OnKeyDownEvent(unsigned int iKeyCode) override;
     int OnKeyUpEvent(unsigned int iKeyCode) override;

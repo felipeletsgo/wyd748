@@ -1,4 +1,5 @@
 #pragma once
+#include "../../application/EffectEmissionClock.h"
 
 #include "TreeNode.h"
 
@@ -9,6 +10,7 @@ class TMEffectMesh;
 // Não representa dano: o servidor continua autoritativo sobre o combate.
 class TMArrow : public TreeNode
 {
+effect_emission::Clock m_trailEmission;
 public:
     // nDestID apenas associa o visual ao destino; os ponteiros de efeitos são
     // criados/liberados pelo lifecycle da seta, conforme ReleaseEffect.

@@ -45,7 +45,9 @@ func TestRecallGuildTerritoryPriority(t *testing.T) {
 			w, p, st := handlerTestWorld(t)
 			p.Char.GuildID = 9
 			p.Char.Score.Merchant, p.Char.RuntimeScore.Merchant = 0x185, 0x187
-			w.guilds = &model.GuildRegistry{}
+			w.guilds = &model.GuildRegistry{Guilds: []model.Guild{
+				guildWithMembers(9, "Owner", member(p.Char.Name, p.Account.Name, model.GuildRankMember)),
+			}}
 			if territory < 4 {
 				w.guilds.Wars.Cities.Territories[territory].Owner = 9
 			} else {

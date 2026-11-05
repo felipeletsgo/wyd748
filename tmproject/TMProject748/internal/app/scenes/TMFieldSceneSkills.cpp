@@ -1,5 +1,7 @@
 #include "pch.h"
 #include "TMFieldScene.h"
+#include "PartySkillTargets.h"
+#include "FieldActionPolicy.h"
 #include "DirShow.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
@@ -37,6 +39,7 @@
 #include "TMCannon.h"
 #include "TMSkinMesh.h"
 #include "../../application/SkillCooldownPolicy.h"
+#include "../../application/SkillDamagePreview.h"
 #include "../../application/FieldInteractionPolicy.h"
 #include "../../application/SkillRequestPolicy.h"
 #include "../../wire/SkillAttackRequest.h"
@@ -100,7 +103,7 @@ int TMFieldScene::GetSkillDelay(int skillIndex) const
 {
 	if (skillIndex < 0 || skillIndex >= 248)
 		return 1;
-	return skill_cooldown::DelaySeconds(g_pSpell[skillIndex].Delay,
+	return skill_cooldown::DelaySeconds(skill_damage_preview::CooldownSeconds(skillIndex, g_pSpell[skillIndex].Delay),
 		true, m_nMySanc,
 		m_pMyHuman && m_pMyHuman->m_DilpunchJewel == 1);
 }
@@ -168,9 +171,16 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 
 	m_pTargetHuman = nullptr;
 
-	char cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
-	if ((unsigned char)cSkillIndex > 104)
-		cSkillIndex += 95;
+	// A05-02: an empty belt slot (raw 255) must not wrap to skill 94, and a
+	// selection outside the 20 belt slots names no skill.
+	const int selectedSlot = g_pObjectManager->m_cSelectShortSkill;
+	if (!field_action::ValidShortSkillSlot(selectedSlot))
+		return 0;
+	const int resolvedSkill = field_action::ResolveShortSkill(
+		static_cast<unsigned char>(g_pObjectManager->m_cShortSkill[selectedSlot]));
+	if (resolvedSkill < 0)
+		return 0;
+	char cSkillIndex = static_cast<char>(resolvedSkill);
 
 
 	/*if ( m_pMyHuman->m_sCostume >= 4150 && m_pMyHuman->m_sCostume < 4200 || m_pMyHuman->m_sCostume >= 4300 && m_pMyHuman->m_sCostume < 4320 && (cSkillIndex == 64 || cSkillIndex == 66 || cSkillIndex == 68 || cSkillIndex == 70 || cSkillIndex == 71))
@@ -302,7 +312,8 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 		(int)m_pMyHuman->m_vecPosition.y >= 3927 && (int)m_pMyHuman->m_vecPosition.y <= 3935)
 		return 0;
 
-	if (dwServerTime > m_dwOldAttackTime + 1000 &&
+	// A03-04: wrap-safe "now > last attack + 1000".
+	if (field_time::After(dwServerTime, m_dwOldAttackTime, 1000) &&
 		skill_request::UsesAreaRequest(g_pSpell[(unsigned char)cSkillIndex].TargetType))
 	{
 		int extractedResult{};
@@ -338,7 +349,7 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 	if ((unsigned char)cSkillIndex < 96)
 		Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, static_cast<int>((std::min)(99u, g_pObjectManager->m_stMobData.CurrentScore.SaveMana)), Special) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
 	{
 		ReportInsufficientMana(dwServerTime);
 		return 1;
@@ -413,7 +424,9 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 	}
 	if (!g_pSpell[(unsigned char)cSkillIndex].Aggressive)
 	{
-		if (pOver->m_dwID <= 0 && pOver->m_dwID >= 1000 && !pOver->m_bParty && !pOver->m_cSummons)
+		// A05-03: the old "ID <= 0 && ID >= 1000" test was never true, so a
+		// support skill on a monster was echoed although WYD-Go ignores it.
+		if (field_action::IsNonPlayerTarget(pOver->m_dwID, pOver->m_bParty != 0, pOver->m_cSummons != 0))
 			return 1;
 	}
 	if (pOver
@@ -432,9 +445,9 @@ int TMFieldScene::SkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwServe
 			return 1;
 	}
 
-	if (pOver->m_dwID <= 0 && pOver->m_dwID >= 1000 && !pOver->m_bParty && !pOver->m_cSummons && pOver->IsMerchant()
+	if (field_action::IsNonPlayerTarget(pOver->m_dwID, pOver->m_bParty != 0, pOver->m_cSummons != 0) && pOver->IsMerchant()
 		|| pOver->m_TradeDesc[0]
-		|| dwServerTime <= m_dwOldAttackTime + 1000)
+		|| field_time::NotAfter(dwServerTime, m_dwOldAttackTime, 1000))
 	{
 		return GetItemFromGround(dwServerTime);
 	}
@@ -599,8 +612,7 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 	if ((unsigned char)cSkillIndex < 96)
 		nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	auto pChatList = m_pChatList;
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, nSpecial) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, static_cast<int>((std::min)(99u, g_pObjectManager->m_stMobData.CurrentScore.SaveMana)), nSpecial) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
 	{
 		ReportInsufficientMana(dwServerTime);
 		{ extractedResult = 0; return ExtractedFlow::Return; }
@@ -608,20 +620,8 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 	if ((unsigned char)cSkillIndex == skill_request::CoinArmorSkill &&
 		(100LL * m_pMyHuman->m_stScore.Mastery[2]) > g_pObjectManager->m_stMobData.Coin)
 	{
-		auto ipNewItem = new SListBoxItem(g_pMessageStringTable[155],
-			0xFFFFAAAA,
-			0.0f,
-			0.0f,
-			300.0f,
-			16.0f,
-			0,
-			0x77777777,
-			1,
-			0);
-
-		pChatList->AddItem(ipNewItem);
-
-		GetSoundAndPlay(33, 0, 0);
+		// A05-07: shares the cast-failure throttle of the mana warning.
+		ReportCastFailure(155, dwServerTime);
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 	}
 	if (m_pMyHuman->IsInTown() == 1	&& g_pSpell[(unsigned char)cSkillIndex].Aggressive == 1)
@@ -696,7 +696,9 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 						nDTY = nDY;
 					}
 
-					if (nDTX != nDX && nDTY != nDY)
+					// A05-03: the hit position must reach the target cell on both
+					// axes, as in the automatic cone path.
+					if (nDTX != nDX || nDTY != nDY)
 					{
 						pNode = static_cast<TMHuman*>(pNode->m_pNextLink);
 						continue;
@@ -930,15 +932,16 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 					if (!bHit)
 						{ extractedResult = 0; return ExtractedFlow::Return; }
 
-					if ((int)m_pMyHuman->m_eMotion >= 4 && (int)m_pMyHuman->m_eMotion <= 9)
+					if ((int)m_pMyHuman->m_eMotion >= 4 && (int)m_pMyHuman->m_eMotion <= 9 && m_pMyHuman->m_pSkinMesh)
 					{
 						unsigned int dwMod = MeshManager::m_BoneAnimationList[m_pMyHuman->m_nSkinMeshType].numAniCut[m_pMyHuman->m_pSkinMesh->m_nAniIndex];
 						if (dwMod > 2)
 							dwMod -= 2;
 
-						if (g_pEventTranslator->button[0])
+						const unsigned int dwSwing = 4 * dwMod * m_pMyHuman->m_pSkinMesh->m_dwFPS;
+						if (g_pEventTranslator->button[0] && dwSwing)
 						{
-							if (dwServerTime < m_pMyHuman->m_dwStartAnimationTime + 4 * dwMod * m_pMyHuman->m_pSkinMesh->m_dwFPS)
+							if (field_time::Before(dwServerTime, m_pMyHuman->m_dwStartAnimationTime, dwSwing))
 								{ extractedResult = 1; return ExtractedFlow::Return; }
 						}
 					}
@@ -1258,13 +1261,10 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 	{
 		if (m_pMyHuman->m_bParty == 1)
 		{
-			int nIndex = 0;
-			int nIndexCount = 0;
-
-			stIDDis stPartys[12]{};
+			party_skill_targets::Collector targets;
 
 			auto pPartyList = m_pPartyList;
-			for (int k = 0; k < pPartyList->m_nNumItem; ++k)
+			for (int k = 0; pPartyList && k < pPartyList->m_nNumItem; ++k)
 			{
 				auto pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[k];
 				auto pHuman = (TMHuman*)g_pObjectManager->GetHumanByID(pPartyItem->m_dwCharID);
@@ -1281,47 +1281,14 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 
 					int nDistanceFromMe = BASE_GetDistance(nMX, nMY, (int)pHuman->m_vecPosition.x, (int)pHuman->m_vecPosition.y);
 					if (nDistanceFromMe < nSpecForce + g_pSpell[(unsigned char)cSkillIndex].Range)
-					{
-						stPartys[nIndex].dwID = pPartyItem->m_dwCharID;
-						stPartys[nIndex++].nLen = nDistanceFromMe;
-					}
-				}
-
-				nIndexCount = nIndex;
-				if (nIndex >= 12)
-					nIndexCount = 12;
-
-				int nMaxIndex = 0;
-
-				for (int nIndex = 0; nIndex < nIndexCount; ++nIndex)
-				{
-					nMaxIndex = nIndex;
-
-					stIDDis stMax{};
-					stMax.dwID = stPartys[nIndex].dwID;
-					stMax.nLen = stPartys[nIndex].nLen;
-					for (int j = nIndex + 1; j < nIndexCount; ++j)
-					{
-						if (stMax.nLen > stPartys[j].nLen)
-						{
-							stMax.dwID = stPartys[j].dwID;
-							stMax.nLen = stPartys[j].nLen;
-							nMaxIndex = j;
-						}
-					}
-
-					stPartys[nMaxIndex].dwID = stPartys[nIndex].dwID;
-					stPartys[nMaxIndex].nLen = stPartys[nIndex].nLen;
-					stPartys[nIndex].dwID = stMax.dwID;
-					stPartys[nIndex].nLen = stMax.nLen;
-				}
-				int nTargetI = 0;
-				for (nIndex = 0; nIndex < nIndexCount && g_pSpell[(unsigned char)cSkillIndex].MaxTarget > nTargetI && nTargetI < 13; ++nIndex)
-				{
-					stAttack.Dam[nTargetI].TargetID = stPartys[nIndex].dwID;
-					stAttack.Dam[nTargetI++].Damage = -1;
+						targets.Add(pPartyItem->m_dwCharID, nDistanceFromMe);
 				}
 			}
+			targets.Emit(g_pSpell[(unsigned char)cSkillIndex].MaxTarget, _countof(stAttack.Dam),
+				[&](std::size_t nTarget, unsigned int dwTargetID) {
+					stAttack.Dam[nTarget].TargetID = dwTargetID;
+					stAttack.Dam[nTarget].Damage = -1;
+				});
 		}
 		else
 		{
@@ -1333,12 +1300,15 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 	{
 		if (cSkillIndex == 42)
 		{
-			if (m_pMyHuman->m_bParty == 1)
-				m_pMessagePanel->SetMessage(g_pMessageStringTable[31], 1000);
-			else
-				m_pMessagePanel->SetMessage(g_pMessageStringTable[32], 1000);
+			if (m_pMessagePanel)
+			{
+				if (m_pMyHuman->m_bParty == 1)
+					m_pMessagePanel->SetMessage(g_pMessageStringTable[31], 1000);
+				else
+					m_pMessagePanel->SetMessage(g_pMessageStringTable[32], 1000);
 
-			m_pMessagePanel->SetVisible(1, 1);
+				m_pMessagePanel->SetVisible(1, 1);
+			}
 			{ extractedResult = 1; return ExtractedFlow::Return; }
 		}
 		if (cSkillIndex == 73)
@@ -1450,8 +1420,11 @@ ExtractedFlow TMFieldScene::SendAreaSkillRequest(int& bMoving, char& cSkillIndex
 		int nCls = m_pMyHuman->m_sHeadIndex % 10;
 		if (!IsValidSkill(31) && !IsValidSkill(39) && !IsValidSkill(47))
 		{
-			m_pMessagePanel->SetMessage(g_pMessageStringTable[357], 1000);
-			m_pMessagePanel->SetVisible(1, 1);
+			if (m_pMessagePanel)
+			{
+				m_pMessagePanel->SetMessage(g_pMessageStringTable[357], 1000);
+				m_pMessagePanel->SetVisible(1, 1);
+			}
 			{ extractedResult = 1; return ExtractedFlow::Return; }
 		}
 	}
@@ -1489,12 +1462,14 @@ ExtractedFlow TMFieldScene::MoveIntoSkillRange(int& bMoving, char& cSkillIndex, 
 {
 	if (bMoving == 1 && nDistance >= nMobAttackRange && nDX == nTX && nDY == nTY)
 	{
-		if ((signed int)m_pMyHuman->m_eMotion >= 4 && (signed int)m_pMyHuman->m_eMotion <= 9)
+		if ((signed int)m_pMyHuman->m_eMotion >= 4 && (signed int)m_pMyHuman->m_eMotion <= 9 && m_pMyHuman->m_pSkinMesh)
 		{
 			unsigned int dwMod = MeshManager::m_BoneAnimationList[m_pMyHuman->m_nSkinMeshType].numAniCut[m_pMyHuman->m_pSkinMesh->m_nAniIndex];
 			if (dwMod > 2)
 				dwMod -= 2;
-			if (g_pEventTranslator->button[0] && dwServerTime < m_pMyHuman->m_dwStartAnimationTime + 4 * dwMod * m_pMyHuman->m_pSkinMesh->m_dwFPS)
+			const unsigned int dwSwing = 4 * dwMod * m_pMyHuman->m_pSkinMesh->m_dwFPS;
+			if (g_pEventTranslator->button[0] && dwSwing &&
+				field_time::Before(dwServerTime, m_pMyHuman->m_dwStartAnimationTime, dwSwing))
 			{
 				{ extractedResult = 1; return ExtractedFlow::Return; }
 			}
@@ -1579,9 +1554,10 @@ void TMFieldScene::AddPartySkillTargets(int& nDX, int& nDY, int& nTargetIndex, T
 
 	int TX = nDX + (int)pTarget->m_vecPosition.x;
 	int TY = nDY + (int)pTarget->m_vecPosition.y;
-	TMHuman* pNode = (TMHuman*)m_pHumanContainer->m_pDown;
+	// Examine every node; the local human is excluded by identity below.
+	TMHuman* pNode = m_pHumanContainer ? (TMHuman*)m_pHumanContainer->m_pDown : nullptr;
 
-	while (pNode->m_pNextLink)
+	while (pNode)
 	{
 		if (pNode == m_pMyHuman	|| pNode == pTarget
 			|| (int)pNode->m_vecPosition.x != TX
@@ -1693,9 +1669,15 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 	if (pOver->m_cShadow == 1 && pOver->m_nClass == 66 && !m_pMyHuman->m_JewelGlasses)
 		return 0;
 
-	char cSkillIndex = g_pObjectManager->m_cShortSkill[g_pObjectManager->m_cSelectShortSkill];
-	if ((unsigned char)cSkillIndex > 104)
-		cSkillIndex += 95;
+	// A05-02: same belt resolution as SkillUse; an empty slot casts nothing.
+	const int selectedSlot = g_pObjectManager->m_cSelectShortSkill;
+	if (!field_action::ValidShortSkillSlot(selectedSlot))
+		return 0;
+	const int resolvedSkill = field_action::ResolveShortSkill(
+		static_cast<unsigned char>(g_pObjectManager->m_cShortSkill[selectedSlot]));
+	if (resolvedSkill < 0)
+		return 0;
+	char cSkillIndex = static_cast<char>(resolvedSkill);
 	if (cSkillIndex == 86)
 	{
 		if (pTarget->m_dwID > 0 && pTarget->m_dwID < 1000)
@@ -1711,7 +1693,8 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 	if (!IsValidClassSkill((unsigned char)cSkillIndex))
 		return 0;
 
-	if (dwServerTime < m_dwOldAttackTime + 1000)
+	// A03-04: wrap-safe "now < last attack + 1000".
+	if (field_time::Before(dwServerTime, m_dwOldAttackTime, 1000))
 		return 0;
 	if (IsSkillCoolingDown((unsigned char)cSkillIndex, dwServerTime))
 		return 0;
@@ -1749,7 +1732,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 	if ((unsigned char)cSkillIndex < 96)
 		Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, static_cast<int>((std::min)(99u, g_pObjectManager->m_stMobData.CurrentScore.SaveMana)), Special) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
 	{
 		// Nothing was cast: report (throttled under CC) and let the caller
 		// retry later instead of treating the attempt as a successful attack.
@@ -1795,7 +1778,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 
 	if (!g_pSpell[(unsigned char)cSkillIndex].Aggressive)
 	{
-		if (pOver->m_dwID <= 0 || pOver->m_dwID >= 1000 && !pOver->m_bParty && !pOver->m_cSummons)
+		if (field_action::IsNonPlayerTarget(pOver->m_dwID, pOver->m_bParty != 0, pOver->m_cSummons != 0))
 			return 0;
 	}
 
@@ -1808,7 +1791,7 @@ int TMFieldScene::AutoSkillUse(int nX, int nY, D3DXVECTOR3 vec, unsigned int dwS
 		return 0;
 	}
 
-	if (pOver->m_dwID <= 0 && pOver->m_dwID >= 1000 && !pOver->m_bParty && !pOver->m_cSummons && pOver->IsMerchant())
+	if (field_action::IsNonPlayerTarget(pOver->m_dwID, pOver->m_bParty != 0, pOver->m_cSummons != 0) && pOver->IsMerchant())
 		return 0;
 	if (pOver->m_TradeDesc[0])
 		return 0;
@@ -1971,7 +1954,7 @@ ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned
 	if ((unsigned char)cSkillIndex < 96)
 		nSpecial = g_pObjectManager->m_stMobData.CurrentScore.Mastery[((unsigned char)cSkillIndex - 24 * (unsigned char)g_pObjectManager->m_stMobData.Class) / 8 + 1];
 
-	if (BASE_GetManaSpent((unsigned char)cSkillIndex, (unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana, nSpecial) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
+	if (BASE_GetManaSpent((unsigned char)cSkillIndex, static_cast<int>((std::min)(99u, g_pObjectManager->m_stMobData.CurrentScore.SaveMana)), nSpecial) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
 	{
 		ReportInsufficientMana(dwServerTime);
 		{ extractedResult = 0; return ExtractedFlow::Return; }
@@ -2404,13 +2387,10 @@ ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned
 	{
 		if (m_pMyHuman->m_bParty == 1)
 		{
-			int nIndex = 0;
-			int nIndexCount = 0;
-
-			stIDDis stPartys[12]{};
+			party_skill_targets::Collector targets;
 
 			auto pPartyList = m_pPartyList;
-			for (int k = 0; k < pPartyList->m_nNumItem; ++k)
+			for (int k = 0; pPartyList && k < pPartyList->m_nNumItem; ++k)
 			{
 				auto pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[k];
 				auto pHuman = (TMHuman*)g_pObjectManager->GetHumanByID(pPartyItem->m_dwCharID);
@@ -2427,47 +2407,14 @@ ExtractedFlow TMFieldScene::SendAreaAutoSkillRequest(char& cSkillIndex, unsigned
 
 					int nDistanceFromMe = BASE_GetDistance(nMX, nMY, (int)pHuman->m_vecPosition.x, (int)pHuman->m_vecPosition.y);
 					if (nDistanceFromMe < nSpecForce + g_pSpell[(unsigned char)cSkillIndex].Range)
-					{
-						stPartys[nIndex].dwID = pPartyItem->m_dwCharID;
-						stPartys[nIndex++].nLen = nDistanceFromMe;
-					}
-				}
-
-				nIndexCount = nIndex;
-				if (nIndex >= 12)
-					nIndexCount = 12;
-
-				int nMaxIndex = 0;
-
-				for (int nIndex = 0; nIndex < nIndexCount; ++nIndex)
-				{
-					nMaxIndex = nIndex;
-
-					stIDDis stMax{};
-					stMax.dwID = stPartys[nIndex].dwID;
-					stMax.nLen = stPartys[nIndex].nLen;
-					for (int j = nIndex + 1; j < nIndexCount; ++j)
-					{
-						if (stMax.nLen > stPartys[j].nLen)
-						{
-							stMax.dwID = stPartys[j].dwID;
-							stMax.nLen = stPartys[j].nLen;
-							nMaxIndex = j;
-						}
-					}
-
-					stPartys[nMaxIndex].dwID = stPartys[nIndex].dwID;
-					stPartys[nMaxIndex].nLen = stPartys[nIndex].nLen;
-					stPartys[nIndex].dwID = stMax.dwID;
-					stPartys[nIndex].nLen = stMax.nLen;
-				}
-				int nTargetI = 0;
-				for (nIndex = 0; nIndex < nIndexCount && g_pSpell[(unsigned char)cSkillIndex].MaxTarget > nTargetI && nTargetI < 13; ++nIndex)
-				{
-					stAttack.Dam[nTargetI].TargetID = stPartys[nIndex].dwID;
-					stAttack.Dam[nTargetI++].Damage = -1;
+						targets.Add(pPartyItem->m_dwCharID, nDistanceFromMe);
 				}
 			}
+			targets.Emit(g_pSpell[(unsigned char)cSkillIndex].MaxTarget, _countof(stAttack.Dam),
+				[&](std::size_t nTarget, unsigned int dwTargetID) {
+					stAttack.Dam[nTarget].TargetID = dwTargetID;
+					stAttack.Dam[nTarget].Damage = -1;
+				});
 		}
 		else
 		{
@@ -2620,9 +2567,10 @@ void TMFieldScene::AddAutoPartySkillTargets(int& nDX, int& nDY, int& nTargetInde
 
 	int TX = nDX + (int)pTarget->m_vecPosition.x;
 	int TY = nDY + (int)pTarget->m_vecPosition.y;
-	TMHuman* pNode = (TMHuman*)m_pHumanContainer->m_pDown;
+	// Examine every node; the local human is excluded by identity below.
+	TMHuman* pNode = m_pHumanContainer ? (TMHuman*)m_pHumanContainer->m_pDown : nullptr;
 
-	while (pNode->m_pNextLink)
+	while (pNode)
 	{
 		if (pNode == m_pMyHuman || pNode == pTarget
 			|| (int)pNode->m_vecPosition.x != TX
@@ -2905,6 +2853,9 @@ void TMFieldScene::UpdateSkillBelt()
 
 void TMFieldScene::IncSkillSel()
 {
+	// A05-10: both belt pages come from optional resource controls.
+	if (!m_pGridSkillBelt2 || !m_pGridSkillBelt3)
+		return;
 	int nMax = 10;
 	if (m_pGridSkillBelt3->m_bVisible)
 		nMax = 20;
@@ -3080,7 +3031,8 @@ void TMFieldScene::SetShortSkill(int nIndex, SGridControlItem* pGridItem)
 
 void TMFieldScene::SetSkillColor(TMHuman* pAttacker, char cSkillIndex)
 {
-	if (!pAttacker)
+	// A03-11: only the swing effects of the skin mesh change here.
+	if (!pAttacker || !pAttacker->m_pSkinMesh)
 		return;
 
 	unsigned int dwIndex = 221;
@@ -3238,7 +3190,10 @@ int TMFieldScene::OnPacketSetShortSkill(MSG_SetShortSkill* pStd)
 
 int TMFieldScene::MouseClick_SkillMasterNPC(unsigned int dwServerTime, TMHuman* pOver)
 {
-	if (g_pObjectManager->m_stMobData.Equip[10].sIndex == 1742 && !m_pMessageBox->IsVisible())
+	// A05-10: the NPC, the local actor and the skill-master controls are optional.
+	if (!pOver || !m_pMyHuman || !m_pShopPanel || !m_pGridSkillMaster)
+		return 0;
+	if (g_pObjectManager->m_stMobData.Equip[10].sIndex == 1742 && m_pMessageBox && !m_pMessageBox->IsVisible())
 	{
 		m_pMessageBox->SetMessage(g_pMessageStringTable[152], 1742, 0);
 		m_pMessageBox->m_dwArg = pOver->m_dwID;
@@ -3286,16 +3241,24 @@ long long TMFieldScene::SkillManaCost(unsigned char cSkillIndex)
 			return 0; // another class: the cast path rejects the skill itself
 		special = score.Mastery[mastery];
 	}
-	return BASE_GetManaSpent(cSkillIndex, static_cast<unsigned char>(score.SaveMana), special);
+	return BASE_GetManaSpent(cSkillIndex, static_cast<int>((std::min)(99u, score.SaveMana)), special);
 }
 
 void TMFieldScene::ReportInsufficientMana(unsigned int dwServerTime)
 {
-	if (!cc_mode::ShouldReportInsufficientMana(g_GameAuto != 0, m_bManaWarned, dwServerTime, m_dwLastManaWarning))
+	ReportCastFailure(30, dwServerTime);
+}
+
+void TMFieldScene::ReportCastFailure(int messageIndex, unsigned int dwServerTime)
+{
+	// A05-07: a held right button re-sends the cast on every frame. Report a
+	// failed cast at most once per second manually and every 3 s under C.C.
+	if (!field_action::ShouldReportCastFailure(g_GameAuto != 0, m_bManaWarned, dwServerTime, m_dwLastManaWarning))
 		return;
 	m_bManaWarned = true;
 	m_dwLastManaWarning = dwServerTime;
-	m_pChatList->AddItem(new SListBoxItem(g_pMessageStringTable[30],
-		0xFFFFAAAA, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1u, 0));
+	if (m_pChatList)
+		m_pChatList->AddItem(new SListBoxItem(g_pMessageStringTable[messageIndex],
+			0xFFFFAAAA, 0.0f, 0.0f, 300.0f, 16.0f, 0, 0x77777777, 1u, 0));
 	GetSoundAndPlay(33, 0, 0);
 }

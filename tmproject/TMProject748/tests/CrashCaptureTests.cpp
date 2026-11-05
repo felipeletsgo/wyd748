@@ -3,6 +3,7 @@
 #include <intrin.h>
 #include "../internal/ui/RenderControlList.h"
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iterator>
 #include <string>
@@ -330,6 +331,14 @@ int main(int argc, char** argv)
     RunChild(executable, root + "\\normal", "normal", 0);
     RunChild(executable, root + "\\handled", "handled", 0);
     RunChild(executable, root + "\\geometry-lifecycle", "geometry-lifecycle", 0);
-    std::printf("CrashCaptureTests: %d checks, %d failures; evidence=%s\n", checks, failures, root.c_str());
+    // Keep the dumps only as failure evidence; repeated passing gates must not
+    // accumulate minidumps next to the executable.
+    if (failures == 0) {
+        std::error_code error;
+        std::filesystem::remove_all(root, error);
+        Check(!error, "remove the passing run's test artifact root");
+    }
+    std::printf("CrashCaptureTests: %d checks, %d failures; evidence=%s\n", checks, failures,
+        failures == 0 ? "removed after pass" : root.c_str());
     return failures == 0 ? 0 : 1;
 }

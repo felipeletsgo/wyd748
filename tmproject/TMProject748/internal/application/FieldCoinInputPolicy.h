@@ -45,8 +45,22 @@ constexpr bool SkipsAmountCheck(int mode)
     return mode == 12 || mode == 11 || mode == 8 || mode == 3 || mode == 6;
 }
 
+// Largest amount that the 32-bit signed Parm/TradeMoney wire fields carry.
+constexpr long long kMaxWireAmount = 2147483647LL;
+
+// Currency modes whose action narrows the amount to a 32-bit wire field with no
+// later bound: Cargo deposit (0), trade gold (1), Cargo withdraw (2) and store
+// gold (7). Modes 4, 9, 10 and 12 have their own later bounds.
+constexpr bool NarrowsToWireAmount(int mode)
+{
+    return mode == 0 || mode == 1 || mode == 2 || mode == 7;
+}
+
 // Checks run in the original order. The carried coin is read only where the
 // scene read it: after the non-digit and negative tests, before the mode test.
+// A08-01: an amount above the wire domain is an invalid amount. Without this
+// bound, a trade amount with 11 or more digits overflowed the 11-byte
+// "%10lld" display buffer in B_IG_OK and terminated the client.
 template<class CarriedCoin>
 Rejection Validate(int mode, std::size_t length, bool nonDigit, long long value,
     CarriedCoin&& carriedCoin)
@@ -54,7 +68,8 @@ Rejection Validate(int mode, std::size_t length, bool nonDigit, long long value,
     if (length == 0)
         return Rejection::Empty;
     if (!SkipsAmountCheck(mode) &&
-        (nonDigit || value < 0 || (value > carriedCoin() && !mode)))
+        (nonDigit || value < 0 || (value > carriedCoin() && !mode) ||
+            (NarrowsToWireAmount(mode) && value > kMaxWireAmount)))
         return Rejection::InvalidAmount;
     if (nonDigit && mode == 12)
         return Rejection::InvalidName;

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -111,8 +111,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CommonFiles\SharedStructs.h" />
-    <ClInclude Include="internal\wire\crypto\AES.h" />
-    <ClInclude Include="internal\wire\crypto\Base64.h" />
     <ClInclude Include="internal\core\Basedef.h" />
     <ClInclude Include="internal\core\ExtractedFlow.h" />
     <ClInclude Include="internal\core\BasedefLimits.h" />
@@ -258,14 +256,12 @@
     <ClInclude Include="internal\app\scenes\FieldCachePolicy.h" />
     <ClInclude Include="internal\app\scenes\GroundNeighborPolicy.h" />
     <ClInclude Include="internal\core\WYD748Assets.h" />
-    <ClInclude Include="internal\game\input\BlockKeyBoard.h" />
     <ClInclude Include="internal\render\animation\skeleton\CFrame.h" />
     <ClInclude Include="internal\render\mesh\CMesh.h" />
     <ClInclude Include="internal\platform\windows\CPSock.h" />
     <ClInclude Include="internal\platform\windows\D3DDevice.h" />
     <ClInclude Include="internal\platform\windows\D3DEnumeration.h" />
     <ClInclude Include="internal\platform\windows\D3DSettings.h" />
-    <ClInclude Include="internal\wire\crypto\desbase64.h" />
     <ClInclude Include="internal\platform\windows\DirShow.h" />
     <ClInclude Include="internal\platform\windows\dsutil.h" />
     <ClInclude Include="internal\platform\windows\DXUtil.h" />
@@ -278,14 +274,11 @@
     <ClInclude Include="features\macro\MacroFactory.h" />
     <ClInclude Include="internal\core\MacroLevel.h" />
     <ClInclude Include="features\macro\MacroMsg.h" />
-    <ClInclude Include="internal\wire\crypto\md5.h" />
-    <ClInclude Include="internal\wire\crypto\MD5Checksum.h" />
     <ClInclude Include="internal\render\mesh\MeshManager.h" />
     <ClInclude Include="internal\app\scenes\NewApp.h" />
     <ClInclude Include="internal\app\compat\NewClientB.h" />
     <ClInclude Include="internal\core\ObjectManager.h" />
     <ClInclude Include="internal\core\pch.h" />
-    <ClInclude Include="internal\game\quest\Quest.h" />
     <ClInclude Include="internal\platform\windows\RenderDevice.h" />
     <ClInclude Include="internal\core\Resource.h" />
     <ClInclude Include="internal\core\ResourceControl.h" />
@@ -309,7 +302,6 @@
     <ClInclude Include="internal\ui\SGridSupport.h" />
     <ClInclude Include="internal\ui\ItemBonusText.h" />
     <ClInclude Include="internal\core\singleton.h" />
-    <ClInclude Include="internal\platform\diagnostics\StackWalker.h" />
     <ClInclude Include="internal\core\Structures.h" />
     <ClInclude Include="internal\platform\windows\targetver.h" />
     <ClInclude Include="internal\render\resources\TextureManager.h" />
@@ -656,4 +648,57 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClInclude Include="internal\app\scenes\FieldActionPolicy.h" />
+    <ClInclude Include="internal\app\scenes\InventoryCellSlots.h" />
+    <ClInclude Include="internal\app\scenes\PartySkillTargets.h" />
+    <ClInclude Include="internal\application\AccountLoginAttempt.h" />
+    <ClInclude Include="internal\application\CatalogItemSlots.h" />
+    <ClInclude Include="internal\application\ChatListRows.h" />
+    <ClInclude Include="internal\application\ClientSendCadence.h" />
+    <ClInclude Include="internal\application\ImeContextBinding.h" />
+    <ClInclude Include="internal\application\ItemPriceOverride.h" />
+    <ClInclude Include="internal\application\MixHelpRecord.h" />
+    <ClInclude Include="internal\application\RetiredScenes.h" />
+    <ClInclude Include="internal\application\SceneSafetyPolicy.h" />
+    <ClInclude Include="internal\application\SkillDamagePreview.h" />
+    <ClInclude Include="internal\application\SkillValidityPolicy.h" />
+    <ClInclude Include="internal\application\SlotItemConfirmation.h" />
+    <ClInclude Include="internal\core\BaseChecksum.h" />
+    <ClInclude Include="internal\game\entities\EntitySafetyPolicy.h" />
+    <ClInclude Include="internal\game\entities\GroundItemPresentation.h" />
+    <ClInclude Include="internal\game\entities\HumanMovementPolicy.h" />
+    <ClInclude Include="internal\game\entities\HumanPacketPolicy.h" />
+    <ClInclude Include="internal\game\entities\HumanVisualPolicy.h" />
+    <ClInclude Include="internal\platform\diagnostics\LegacyLogFile.h" />
+    <ClInclude Include="internal\platform\diagnostics\ModuleSiblingPath.h" />
+    <ClInclude Include="internal\platform\network\SocketEventPolicy.h" />
+    <ClInclude Include="internal\platform\windows\AdapterQuirks.h" />
+    <ClInclude Include="internal\platform\windows\ComApartment.h" />
+    <ClInclude Include="internal\platform\windows\DesktopGamma.h" />
+    <ClInclude Include="internal\platform\windows\DeviceModeFamily.h" />
+    <ClInclude Include="internal\platform\windows\DeviceReset.h" />
+    <ClInclude Include="internal\platform\windows\DirShowGraph.h" />
+    <ClInclude Include="internal\platform\windows\DisplayModeQuery.h" />
+    <ClInclude Include="internal\platform\windows\FrameRateSampler.h" />
+    <ClInclude Include="internal\platform\windows\SoundPlayback.h" />
+    <ClInclude Include="internal\platform\windows\WaveFormatChunk.h" />
+    <ClInclude Include="internal\render\effects\core\EffectGuards.h" />
+    <ClInclude Include="internal\render\effects\core\EffectRenderState.h" />
+    <ClInclude Include="internal\render\effects\core\EffectTiming.h" />
+    <ClInclude Include="internal\render\mesh\MsaLoad.h" />
+    <ClInclude Include="internal\render\mesh\ScopeRestore.h" />
+    <ClInclude Include="internal\render\mesh\SkinAnimationIndex.h" />
+    <ClInclude Include="internal\render\world\objects\HallPortalLinks.h" />
+    <ClInclude Include="internal\render\world\terrain\HeightWindowBounds.h" />
+    <ClInclude Include="internal\render\world\terrain\TerrainQueryPolicy.h" />
+    <ClInclude Include="internal\ui\EditableTextBounds.h" />
+    <ClInclude Include="internal\ui\GridInputPolicy.h" />
+    <ClInclude Include="internal\ui\TooltipPolicy.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="internal\core\TreeCleanup.h" />
+    <ClInclude Include="internal\render\effects\core\EffectVisualMath.h" />
+    <ClInclude Include="internal\ui\UnsupportedItemFeatures.h" />
+  </ItemGroup>
 </Project>

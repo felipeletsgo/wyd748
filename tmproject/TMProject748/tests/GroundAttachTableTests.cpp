@@ -14,6 +14,9 @@ struct Flags
 
 // Literal copy of the original TMGround::SetAttatchEnable branch chain, kept as
 // the oracle for the generated table. Only member access was qualified.
+// Evidence class: this chain comes from the imported newer-base source, not
+// from native 7.48. Equality proves refactor equivalence with that source, not
+// 7.48 parity; add native 7.48 rows only from native evidence.
 void LegacySetAttatchEnable(Flags& flags, int nX, int nY)
 {
     if (nX == 1 && nY == 1)
@@ -738,7 +741,7 @@ int RunGroundAttachTableTests(int& checks)
                 legacy.m_cRightEnable == table.m_cRightEnable &&
                 legacy.m_cUpEnable == table.m_cUpEnable &&
                 legacy.m_cDownEnable == table.m_cDownEnable,
-                "table matches the original branch chain");
+                "table matches the newer-base branch chain (refactor equivalence)");
         }
     }
 

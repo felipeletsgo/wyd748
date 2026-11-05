@@ -2,6 +2,7 @@
 #include "TMSkillHaste.h"
 #include "TMEffectBillBoard.h"
 #include "TMGlobal.h"
+#include "EffectGuards.h"
 
 TMSkillHaste::TMSkillHaste(TMVector3 vecPosition, int nType)
 {
@@ -15,6 +16,8 @@ TMSkillHaste::TMSkillHaste(TMVector3 vecPosition, int nType)
     int nCount = 15;
 
     static unsigned int dwCol[5]{ 0xFFFF0000, 0xFFAA00FF, 0xFF00AA00, 0xFFFFEEFF, 0xFFFFAA00 };
+    // Callers pass 0-4; any other type keeps the first row inside the table.
+    const int nColor = effect_bounds::RowOr(nType, 5, 0);
   
     if (!g_bHideEffect)
     {
@@ -45,7 +48,7 @@ TMSkillHaste::TMSkillHaste(TMVector3 vecPosition, int nType)
                     ((float)(nRand % 5 - 3) * 0.1f) + vecPosition.z };
 
                 pParticle->m_vecPosition = pParticle->m_vecStartPos;
-                pParticle->SetColor(dwCol[nType]);
+                pParticle->SetColor(dwCol[nColor]);
                 g_pCurrentScene->m_pEffectContainer->AddChild(pParticle);
             }
         }
@@ -68,7 +71,7 @@ TMSkillHaste::TMSkillHaste(TMVector3 vecPosition, int nType)
         pRay->m_vecPosition = pRay->m_vecStartPos = { vecPosition.x, vecPosition.y + 2.0f, vecPosition.z };
 
         if (nType == 2 || nType == 3 || nType == 4)
-            pRay->SetColor(dwCol[nType]);
+            pRay->SetColor(dwCol[nColor]);
 
         g_pCurrentScene->m_pEffectContainer->AddChild(pRay);
     }

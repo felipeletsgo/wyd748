@@ -1,4 +1,5 @@
 #pragma once
+#include "../../application/EffectEmissionClock.h"
 
 #include "Structures.h"
 #include <vector>
@@ -37,6 +38,7 @@ public:
 private:
 	void RenderSkinMeshEffect();
 	void RenderEffect_HorseFireLeg();
+    effect_emission::Clock m_fireLegEmission;
 	void SetHardcoreMantle(char* szTexture, char* szName);
 	void SetOldCostume(int costype, char* szTexture, char* szName);
 	void SetRenewOldCostume(int costype, char* szTexture, char* szName);
@@ -70,7 +72,10 @@ public:
 	unsigned int m_dwStartOffset;
 	unsigned int m_dwLastUsedTime;
 	unsigned int m_dwShowTime;
+	// Effect skins also store a non-human owner here (TMEffectSkinMesh). Read
+	// TMHuman fields only through HumanOwner, which checks the object type.
 	TMHuman* m_pOwner;
+	TMHuman* HumanOwner() const;
 	TMEffectSWSwing* m_pSwingEffect[2];
 	float m_fLenDetail;
 

@@ -47,7 +47,7 @@ func assertCriticalEquipmentPublication(t *testing.T, p *Player, request []byte,
 }
 
 func TestCriticalEquipmentSwapDetachedDeadlineAndMountPublication(t *testing.T) {
-	for _, scenario := range []string{"fairy", "fresh-mount", "initialized-mount", "unequip", "same-slot", "existing-deadline", "untimed"} {
+	for _, scenario := range []string{"fairy", "fresh-mount", "initialized-mount", "unequip", "same-slot", "same-mount-slot", "existing-deadline", "untimed"} {
 		t.Run(scenario, func(t *testing.T) {
 			w, p, fallback, backend, queue, release := criticalCargoFixture(t)
 			seedCriticalEquipment(w, p)
@@ -75,6 +75,10 @@ func TestCriticalEquipmentSwapDetachedDeadlineAndMountPublication(t *testing.T) 
 			case "same-slot":
 				p.Char.Equip[fairySlot], p.Char.Inv[3] = p.Char.Inv[3], model.Item{}
 				st, sp, dt, dp = placeEquip, fairySlot, placeEquip, fairySlot
+			case "same-mount-slot":
+				p.Char.Equip[mountSlot] = criticalBabyMount()
+				p.Char.Equip[mountSlot].UID = "equipped-mount"
+				st, sp, dt, dp = placeEquip, mountSlot, placeEquip, mountSlot
 			case "existing-deadline":
 				p.Char.Inv[3].ActivatedUnix, p.Char.Inv[3].ExpiresUnix = w.now().Add(-time.Hour).Unix(), w.now().Add(time.Hour).Unix()
 			case "untimed":
@@ -83,6 +87,8 @@ func TestCriticalEquipmentSwapDetachedDeadlineAndMountPublication(t *testing.T) 
 				w.items[4300] = def
 			}
 			p.EggIncubationUID, p.NextEggIncubationTick = "previous-egg", w.now().Add(time.Hour)
+			foodDeadline := w.now().Add(time.Second)
+			p.NextMountTick = foodDeadline
 			before := accountStateSnapshot(p.Account)
 			account, character := p.Account, p.Char
 			request := criticalCargoSwapRequest(p, st, sp, dt, dp)
@@ -114,7 +120,7 @@ func TestCriticalEquipmentSwapDetachedDeadlineAndMountPublication(t *testing.T) 
 				w.syncCriaPet(p)
 				assertCriticalCargoUnchanged(t, p, before, fallback)
 				if p.Session.QueuedPacketsForTest() != 0 || len(queue.pending) != 1 || len(backend.entered) != 0 ||
-					p.EggIncubationUID != "previous-egg" || w.findCriaPet(p.ID) != previousPet {
+					p.EggIncubationUID != "previous-egg" || !p.NextMountTick.Equal(foodDeadline) || w.findCriaPet(p.ID) != previousPet {
 					t.Fatalf("%s changed mount effects, published or repeated the write", phase)
 				}
 			}
@@ -126,11 +132,20 @@ func TestCriticalEquipmentSwapDetachedDeadlineAndMountPublication(t *testing.T) 
 				t.Fatal("equipment completion failed to apply exactly the committed slots")
 			}
 			if dp == mountSlot || sp == mountSlot {
+				if (st != dt || sp != dp) && !p.NextMountTick.IsZero() {
+					t.Fatal("committed mount move inherited the previous food deadline")
+				}
+				if st == dt && sp == dp && !p.NextMountTick.Equal(foodDeadline) {
+					t.Fatal("same-slot mount move postponed the food clock")
+				}
 				if p.EggIncubationUID != "" || !p.NextEggIncubationTick.IsZero() {
 					t.Fatal("committed mount move did not clear the egg clock")
 				}
 			} else if p.EggIncubationUID != "previous-egg" {
 				t.Fatal("unrelated equipment move reset the egg clock")
+			}
+			if dp != mountSlot && sp != mountSlot && !p.NextMountTick.Equal(foodDeadline) {
+				t.Fatal("unrelated equipment move reset the food clock")
 			}
 			pet := w.findCriaPet(p.ID)
 			if scenario == "fresh-mount" || scenario == "initialized-mount" {

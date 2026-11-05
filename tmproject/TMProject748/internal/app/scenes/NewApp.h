@@ -1,5 +1,6 @@
 #pragma once
 #include "ExtractedFlow.h"
+#include "ComApartment.h"
 
 class EventTranslator;
 class RenderDevice;
@@ -70,6 +71,12 @@ public:
     int china_Playtime;
 
 private:
+	// The UI thread's single-threaded apartment for the application lifetime.
+	// Initialized before ShellExecute, DirectShow and WebView2; released after
+	// Finalize and the destructor body. A store window close therefore never
+	// drops the last apartment reference while WebView2 work can be pending.
+	com_apartment::Reference m_comApartment{COINIT_APARTMENTTHREADED};
+
 	// Helpers extracted from NewApp::MsgProc.
 	void OnInputLanguageChange(HWND& hWnd);
 	ExtractedFlow OnKeyDownMessage(DWORD& wParam);

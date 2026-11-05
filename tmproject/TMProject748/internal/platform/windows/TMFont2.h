@@ -16,6 +16,10 @@ public:
     // Returns zero on invalid input or resource failure. Resource failure releases
     // the texture; Render may retry but never draws a failed upload.
     int SetText(const char* szString, unsigned int dwColor, int bCheckZero);
+    // Stores the text and color like SetText but creates no texture. Use it
+    // when the caller draws GetText through other glyphs. Returns zero on
+    // invalid input.
+    int StoreText(const char* szString, unsigned int dwColor, int bCheckZero);
     // Returns a mutable pointer to the internal buffer; valid only while this
     // instance exists and receives no other text.
     char* GetText();

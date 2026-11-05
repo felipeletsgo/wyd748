@@ -181,6 +181,6 @@ nonzero closed/temporary heights keep their previous semantics. Executable
 C++ tests cover this exact mask and negative floor, slopes, unmasked walls,
 closed/open/repeated transitions, bounds and the legacy no-base path. The Go
 CSV regression proves the doorway remains walkable with the open fixture.
-See the [local candidate receipt](../../../../../DOCS/current-state.md#local-combat-cape-and-kefra-candidate--2026-10-14)
+See the [local candidate receipt](../../../release-history.md#published-combat-cape-and-kefra-batch--2026-10-14)
 for the integrated build and test results. No asset was changed and no
 real-client movement was performed; this is not `CLIENT_TESTED`.

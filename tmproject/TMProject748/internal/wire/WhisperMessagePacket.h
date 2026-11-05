@@ -2,8 +2,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Envelope bidirecional de whisper/canal/mail; prefixos definidos nos handlers.
-// Nome e texto sao inline; receptor recebe buffer emprestado e gravavel.
+// Bidirectional whisper/channel/mail envelope with handler-defined prefixes.
+// Inline name and text arrive in borrowed writable storage.
 constexpr auto MSG_MessageWhisper_Opcode = 0x334;
 struct MSG_MessageWhisper
 {

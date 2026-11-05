@@ -25,6 +25,7 @@
 #include "TMLog.h"
 #include "ObjectFileRecordLayout.h"
 #include "KefraPortalVisual.h"
+#include "HallPortalLinks.h"
 
 #include <cstddef>
 #include <memory>
@@ -61,6 +62,18 @@ TMObjectContainer::TMObjectContainer(TMGround* pGround)
 
 TMObjectContainer::~TMObjectContainer()
 {
+	// Field-cache eviction and load-failure paths delete this container while
+	// the field scene still borrows its hall portal nodes. The subtree is still
+	// alive here; clear only the slots that name this container's nodes, so a
+	// newer container's portal or another scene is never touched (A15-03).
+	if (g_pCurrentScene && g_pCurrentScene->GetSceneType() == ESCENE_TYPE::ESCENE_FIELD)
+	{
+		auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
+		hall_portal_links::ClearIfPublished(pScene->m_pKhepraPortalEff1, m_pHallPortalEffect[0]);
+		hall_portal_links::ClearIfPublished(pScene->m_pKhepraPortalEff2, m_pHallPortalEffect[1]);
+		hall_portal_links::ClearIfPublished(pScene->m_pKhepraPortal, m_pHallPortalObject);
+	}
+
 	for (int i = 0; i < MAX_LIGHT_CONTAINER; ++i)
 	{
 		SAFE_DELETE(m_pLightContainer[i]);
@@ -132,7 +145,11 @@ int TMObjectContainer::Load(const char* szFileName)
 		if (dwObjType == 2)
 		{
 			TMGround* pGround = m_pGround;
-			if (pGround != nullptr)
+			// ValidateObjectFileRecords caps seas per file; the ground never resets
+			// m_nSeaIndex, so a second Load on one ground must not write past the
+			// ten-entry registry (A25-10).
+			if (pGround != nullptr && pGround->m_nSeaIndex >= 0 &&
+				pGround->m_nSeaIndex < static_cast<int>(std::extent_v<decltype(TMGround::m_pSeaList)>))
 			{
 				pGround->m_pSeaList[pGround->m_nSeaIndex] = new TMSea();
 				if (pGround->m_pSeaList[pGround->m_nSeaIndex] != nullptr)
@@ -678,6 +695,8 @@ int TMObjectContainer::Load(const char* szFileName)
 			{
 				pScene->m_pKhepraPortalEff1 = pEffect1;
 				pScene->m_pKhepraPortalEff2 = pEffect2;
+				m_pHallPortalEffect[0] = pEffect1;
+				m_pHallPortalEffect[1] = pEffect2;
 			}
 
 			m_pObjectList[m_nObjectIndex] = hallPortal
@@ -969,6 +988,7 @@ int TMObjectContainer::Load(const char* szFileName)
 		{
 			TMFieldScene* pScene = (TMFieldScene*)g_pCurrentScene;
 			pScene->m_pKhepraPortal = m_pObjectList[m_nObjectIndex];
+			m_pHallPortalObject = m_pObjectList[m_nObjectIndex];
 		}
 
 		m_pObjectList[m_nObjectIndex]->RegisterMask(m_pGround, vecPosition.x, vecPosition.y);

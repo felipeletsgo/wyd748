@@ -12,6 +12,8 @@ int RunReceivedPacketDispatchFeaturesTests(int& checks)
         }
     };
 
+    // AutoTrade writes terminators into the description, copies the whole frame and
+    // walks the twelve items/prices; none of these accesses accepts truncation.
     std::array<char, kAutoTradePacketSize + 1> autoTrade{};
     autoTrade[0] = static_cast<char>(kAutoTradePacketSize);
     autoTrade[4] = static_cast<char>(MSG_AutoTrade_Opcode & 0xFF);
@@ -281,6 +283,5 @@ int RunReceivedPacketDispatchFeaturesTests(int& checks)
     check(resultGamble == resultGambleBefore,
         "gate preserves every ResultGamble byte");
 
-    // Go MessagePanel frame: zero ID, text at +12 and the final NUL at +107.
     return failures;
 }

@@ -1,5 +1,160 @@
 # WYD launcher and client patches
 
+## Active baseline 7.48.100 (2026-11-02)
+
+The owner authorized restart and activation. Release `20261103T010701Z` now runs
+minimum revision 100 on both channels. The feed is `[WYD]` plus `48100 notice.txt`.
+Earlier feeds and ZIPs remain in `/srv/wyd-go/patch-archive/20261103T010659Z/`.
+The website requires the verified Google Drive full client with native HTTPS.
+Subsequent patches start at 48101. Older clients must install the new full client.
+
+The database backup, 1,076 payload hashes, running game hashes, readiness and
+version admission passed. Revisions 18 and 99 are rejected; 100 reaches credential
+validation in PT and EN. Only game processes restarted. Private settings and
+schema v20 remain unchanged. News remains an unpublished review draft. Actual
+gameplay and native UI acceptance remain pending.
+See the [activation receipt](../../.agents/research/release-748100-https.json).
+
+## Native HTTPS transport distributed externally (2026-11-02)
+
+The adapted native launcher now has an HTTPS transport in its existing language
+extension. Classification: `MODERNIZACAO_COMPATIVEL`. Its original window, settings,
+feed parser, ZIP extractor and Start handler remain unchanged. No alternate launcher
+was restored. The builder pins the native baseline and validates five WinINet IAT slots.
+Initialization replaces those slots before the original entry point executes.
+
+`InternetOpenUrlA` upgrades the feed URL before network access. `InternetConnectA`
+uses port 443 for the fixed update host. `HttpOpenRequestA` enables TLS and removes
+certificate-ignore flags. The Windows certificate store validates the server.
+Both download paths reject redirects and non-200 responses. FTP fails closed.
+The native data still contains HTTP strings; the mandatory initializer upgrades
+them in memory. Failure to install the adapter exits before native patching.
+
+The extension and bootstrap tests passed. A read-only WinINet probe downloaded
+the live feed, guild list and patch 48018 through the production adapter. Its ZIP
+hash matched the published patch. No ZIP was extracted and no game was launched.
+The real expired-certificate fixture failed with WinINet error 12037, even when
+the caller requested certificate-ignore flags. Visual acceptance and a complete
+native UI update remain pending.
+
+Local `client748` contains the new extension. The current full client package is
+available from [Google Drive](https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link).
+It is 260,877,805 bytes, SHA-256
+`7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66`.
+All 8,498 required package entries are present, including the corrected native
+launcher extension and baseline-100 game executable. The package also contains
+`client-debug.log`, `clientlogs.log`, `guilds.txt` and `update.dat` from the
+uploaded folder; the logs and update cache are not required by a clean client.
+`WYD-native-launcher-https.zip` in the same folder contains only the two launcher
+files and EN/PT installation instructions. The package has the corrected HTTPS
+extension and its Google Drive copy is linked above. Client build identity remains 100;
+the game executable, server and live feed were not changed by this adaptation.
+See [transport evidence](../../.agents/research/native-launcher-https-20261102.json).
+
+## Original baseline preparation (2026-11-02, superseded by activation above)
+
+The owner selected a consolidated baseline **7.48.100**. Local `client748`
+now has `[VERSION] 48100` and the compiled identity `0x02EC0064` (revision 100).
+This is an authorized forward jump from 18 to 100, not a revision reset or reuse.
+The protocol and prefix remain 748 and `0x02EC0000`. The next update is
+**7.48.101**, feed 48101 and compiled revision 101.
+
+The final Release gate passed. The game executable SHA-256 is
+`2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4`.
+The clean local folder is `tmproject/build/distribution/client748-748100-native/`.
+The verified ZIP is
+`build/client-baseline-748100-20261102/native-client/WYD-client-native-748100-20261102.zip`,
+317,136,058 bytes, SHA-256
+`ba9666e73fbeae5a91a15d9419db77c027001f09ac45575f42e3b12655544f8a`.
+All 8,498 entries match the reviewed inputs, including generated fresh-install
+settings, both locales and the signed Microsoft x86 runtime installer.
+The installed native launcher and its language DLL remain unchanged.
+
+The matching Linux game-only release was built under
+`build/deploy/wyd-deploy-748100-baseline/` and is now active as recorded above.
+A synthetic revision-100 login reaches credential validation on both channels;
+no real account was authenticated. Actual baseline gameplay is pending.
+See [baseline receipt](../../.agents/research/client-baseline-748100-20261102.json).
+
+The earlier HTTP-extension archive above is retained as dated evidence. The
+current external package is the HTTPS revision described in the first section.
+The live feed and server now use baseline 48100 and minimum revision 100.
+The baseline feed is `[WYD]` plus `48100 notice.txt`.
+The reset script accepts an explicit baseline:
+`sudo bash reset-patch-feed.sh <prepared-update.htm> 48100`.
+It archives the old feed and patches; it does not delete them. Activate only
+with owner restart authority and the matching minimum-100 server. Never rewind
+or reuse 100. New incremental patch packages start at 48101.
+
+## Native launcher retained (2026-11-02)
+
+The owner requires the adapted native OnGame launcher. The replacement source
+launcher and its projects, tests, manifest/blob tools and generated programs
+have been removed. The native language extension remains under
+`tmproject/NativeLauncher/`; its PE adapter and validation scripts remain supported.
+`Build-Client.ps1` builds the game and crash reporter without the removed project.
+Native launcher SHA-256:
+`85C9C648B389BE91CA348351590FCBEFA6752A4D4E849AFBBCB1F054CA12FDE2`.
+
+The owner requires external full-client hosting. The site links to the verified
+Google Drive baseline 7.48.100, with its archive size and SHA-256. No complete
+client archive remains served by the VPS. Caddy retains only native patches,
+guild resources and the portal. The earlier source-launcher and native full-ZIP
+VPS downloads were withdrawn. Their dated verification receipts are historical.
+
+The native feed now starts at 48100; patch 48018 is archived. The site points
+to the external host, and the news is not published. The native launcher has
+no automatic VC++ installation; the prepared local full client includes the
+signed installer for manual use. See the
+[retirement receipt](../../.agents/research/native-launcher-retirement-20261102.json).
+
+## Published patch 7.48.018 and HTTPS full client (2026-11-02)
+
+Mandatory patch **48018** contains 21 reviewed files: `WYD.exe`, crash reporter,
+item catalogs and root/EN/PT descriptions and UI strings. The cumulative HTTP
+and HTTPS feed retains its earlier entries; patch 48017 remains unchanged.
+
+- ZIP: **1,422,484 bytes**, SHA-256 `c891c952983ff1c61b17c4f1e9bd94e983e6f743ae45337f6b4eb00fd88bfe97`.
+- Executable: SHA-256 `F8E4F9A2D73458C0B72072F9EF5F53F110C2EFD0A6D7CC9EB03FB3587DBCC3B8`.
+- Full client: [HTTPS download](https://wyd.forjago.com/downloads/WYD-client-https-748018-20261102.zip), **316,487,458 bytes**.
+- Full-client SHA-256: `5b8cce9b5b48b27c2ae42c77e1ecb84cad7c4f0adf0d54a7bc1bac9d34a5ee3c`.
+- Format-1 manifest: SHA-256 `4cc76375b89b90ad4250cfedb735c7335dad1c3c2d0b5aed53b93bac4894997e`.
+
+The full ZIP includes the HTTPS launcher, both locales and the signed Microsoft
+x86 VC++ 14.51.36247.0 installer. Its 8,494 entries passed checks after a public
+TLS download. Manifest, executable, reporter, launcher, runtime and locale blob
+downloads passed verification. Caddy serves the manifest with `no-store` and
+immutable blobs/ZIPs; HTTP requests for the new endpoints redirect to HTTPS.
+The legacy patch and guild routes remain available during migration.
+
+Server/site release `20261102T233404Z` is active. Both channel processes use
+the packaged server and reject revision 17; revision 18 reaches credential
+validation in PT/EN. All 7,739 installed payload files and four process hashes
+passed verification. Backup `wydgo-20261102T233404Z.dump` is validated.
+The site advertises the verified version and download hashes. The requested
+EN/PT news remains a draft in `build/release-748018/news-draft.md`; it is not published.
+
+Packaging uses the explicitly authorized working tree at HEAD `c2b50503`,
+not a new commit. See the [release receipt](../../.agents/research/release-748018.json).
+Real launcher extraction, clean-machine VC++ installation, scene-transition,
+mount C.C., timed food and other targeted gameplay acceptance remain pending.
+
+## Published patch 7.48.017 (2026-10-31); server activated
+
+Mandatory patch **48017** contains 17 files: `WYD.exe`, `WydCrashReporter.dll`,
+and root/EN/PT item catalogs, names, item help, skill help and UI string tables.
+The cumulative feed retains every previous entry. Patch 48016 remains unchanged.
+
+ZIP size: **1,449,518 bytes**.
+ZIP SHA-256: `DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676`.
+Executable SHA-256: `C65F7099AE7A0B34D9BFE5EE12A78C5EC81A16DDB9A69BDFA950909999CB7C08`.
+HTTP and HTTPS feeds end with `48017 patch-48017.zip`; all 17 archive entries
+passed independent checks. Both channels reject revision 16 and send revision 17
+to credential validation. Launcher extraction and gameplay acceptance remain
+pending. See [receipt](../../.agents/research/release-748017.json).
+
+This dated receipt is superseded by the published revision 18 above.
+
 ## Published patch 7.48.016 (2026-10-30); server activated
 
 Mandatory patch **48016** contains 17 files: `WYD.exe`, `WydCrashReporter.dll`,
@@ -490,7 +645,7 @@ from the previous release with the same executable hash as the new archive.
 Both readiness checks passed, services are active and no error-priority
 Game/API journal entries appeared. Configuration and private environment
 identities were preserved. Backup/rollback and actual process hashes are in
-[current state](../current-state.md#release-748003--2026-10-24-published-and-activated).
+[current state](../../.agents/research/release-history.md#release-748003--2026-10-24-published-and-activated).
 Remote deployment staging was removed; no host reboot occurred.
 
 At 21:11:04 UTC, production probes rejected `0x02EC0002` with the update-required
@@ -768,7 +923,7 @@ launcher or local version marker are included.
 - `WYD.exe`: 1,917,952 bytes, SHA-256
   `7F8C10E433E97526525FBDE42DA5458C93F31359CCC686CB01D35E89EDE033A9`
   (built after the last client product-source edit; gates recorded in
-  [current state](../current-state.md#local-source--2026-10-21-big-cube-ticket-and-return-portal)).
+  [current state](../../.agents/research/release-history.md#local-source--2026-10-21-big-cube-ticket-and-return-portal)).
 - `Env/AttributeMap.dat`: 1,048,580 bytes, SHA-256
   `3D56C0E1EA4AC286EF74D9A7AB764B02AF77964D904F9A3D21AD0B83444465F4`.
 - Both public HTTP/HTTPS feeds append 10042; fresh HTTP and HTTPS downloads
@@ -825,9 +980,9 @@ acceptance remain open. No global language/release-readiness claim is made.
 
 `tmproject/client748/WYDLauncher.exe` is the OnGame 7.47 launcher adapted to
 this client. It downloads incremental patches from the VPS, keeps
-`config.txt` and `guilds.txt` current and starts `WYD.exe`. The full client
-is distributed outside the VPS (Google Drive) so that its outbound traffic
-stays limited to small patches.
+`config.txt` and `guilds.txt` current and starts `WYD.exe`. Existing installations
+can still receive game corrections through this launcher. The current full client
+is hosted on the VPS over HTTPS; the historical Google Drive distribution is superseded.
 
 Classification: `PARIDADE_NATIVA` for the patch protocol (traced in the
 native 7.47 launcher, compatible with the 7.48 `config.txt`, `Music.txt` and
@@ -912,6 +1067,19 @@ remain Korean; they are not Portuguese and appear only on MFC failures.
 The launcher cannot delete files, replace itself while running, or verify
 downloads beyond HTTP and ZIP CRCs. Patches travel over plain HTTP.
 
+The adapted game has a separate `SwapLauncher()` path in
+`TMSelectServerScene.cpp`. Server-selection initialization checks for
+`TMPWYDLauncher.exe`, copies it over `WYDLauncher.exe` and removes the temporary
+file only after a successful copy. This path does not authenticate the temporary
+file, retain a backup or retry after the old launcher exits. It has static source
+evidence only; no migration patch or runtime acceptance is recorded.
+
+Downloading the full client is not a technical requirement for launcher migration.
+A small migration can preserve installed assets and settings. Before publication,
+it needs authenticated HTTPS delivery, running-process handling, verified replacement,
+failure recovery and client acceptance. The existing HTTP ZIP route alone does
+not authenticate the first launcher or migration helper it delivers.
+
 ## Server feed
 
 Caddy serves `/patch/` on both `http://` (no redirect, for the launcher) and
@@ -955,6 +1123,73 @@ and run `sudo bash reset-patch-feed.sh <uploaded update.htm>`. It moves the
 current list and every `patch-*.zip` to `/srv/wyd-go/patch-archive/<UTC>/`
 (nothing is deleted) and installs the baseline list last. Then activate the
 server release carrying contract v2 and deploy the portal.
+
+## Player runtime prerequisite
+
+`WYD.exe` requires the dynamic x86 Visual C++ runtime. The native full client
+includes the signed Microsoft installer at `prerequisites/vc_redist.x86.exe`.
+The installer version is 14.51.36247.0; the game toolset requires 14.51.36244.0.
+`tools/deployment/Stage-ClientRuntime.ps1` verifies its Microsoft signature,
+version and hash before packaging. It does not install software.
+
+The native launcher does not provide the removed launcher's automatic runtime
+check or installer button. If Windows reports a missing runtime, run the included
+Microsoft installer and follow its prompts. Clean-machine installation and any
+required reboot remain pending acceptance.
+
+## HTTPS launcher migration decision (2026-11-02)
+
+Superseded by the owner's explicit native-launcher requirement on November 2.
+The alternative C++ launcher, self-update implementation, format-1 feed builder,
+publisher and tests were removed. Existing native settings, language selection,
+site integration and `update.htm`/ZIP updates remain the supported product.
+
+The full-client ZIP is downloaded through the HTTPS portal. This does not change
+the native launcher's HTTP patch transport. HTTPS updating and automatic VC++
+installation remain unresolved for the native launcher; they are not delivered
+by retaining the installer in the full-client archive.
+
+The earlier publication evidence remains in
+[release 748018](../../.agents/research/release-748018.json), marked superseded.
+The source-launcher manifest and blob endpoints are withdrawn. Do not reintroduce
+that launcher or its protocol as a substitute for the native product.
+
+<a id="local-https-packaging-and-verification-2026-11-02"></a>
+## Native full-client packaging (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Game packets, revision 18 and native
+patching remain unchanged. Use a new output directory and immutable download name.
+
+```powershell
+pwsh -NoProfile -File tools/deployment/Build-NativeClientRelease.ps1 `
+  -Release '<new-release-id>' -Version 48018 -OutputDirectory 'build/<task>/native-client'
+python -B tools/deployment/build_native_client_release.py verify --output 'build/<task>/native-client'
+```
+
+The builder checks the pinned native image, required launcher DLL and artwork,
+reviewed asset roots, runtime receipt, source hashes and every archive entry.
+It rejects linked paths, collisions, unexpected binaries and output overwrite.
+It excludes logs, dumps, screenshots and private settings. Generated defaults
+apply only to fresh full installations; incremental patches preserve user settings.
+The full ZIP includes the Microsoft installer, with manual installation guidance.
+No alternate launcher, manifest/blob feed or self-update executable is generated.
+
+Keep `release.json` private; it contains local paths and source provenance.
+Build and verify the portal before publishing its new download metadata.
+Archive checks, native extension tests and client builds do not establish visual
+launcher acceptance or a fresh Windows installation.
+
+## Crash reporter registration (maintenance)
+
+Each start of `WYD.exe` writes a per-user value for its own crash reporter:
+`HKCU\Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules`,
+value name `<install path>\WydCrashReporter.dll`, `REG_DWORD` 0
+(`WerCrashCapture.h`, `wyd_wer::Install`). Exit unregisters only the runtime
+module; the registry value stays. A moved or removed client folder therefore
+leaves a stale value for that user. Removal at exit would drop crash capture for
+another client that still runs from the same folder. Cleanup (none, or removal
+by the launcher or an uninstaller of values whose path no longer exists) is an
+open owner decision (audit C-07).
 
 ## Publishing a patch
 
@@ -1763,7 +1998,7 @@ Full Go tests/vet, Linux cross-build, portal build, all 60 tests and Astro check
 passed. Local installation and in-game confirmation remain pending.
 
 Use `WYDLauncher.exe` with the game closed. See
-[current state](../current-state.md#previous-release--2026-10-17-hell-gate-route-and-defense-patch-10034)
+[current state](../../.agents/research/release-history.md#previous-release--2026-10-17-hell-gate-route-and-defense-patch-10034)
 for active-process hashes, rollback, backup and cleanup. This is not
 `CLIENT_TESTED` evidence or global release certification.
 
@@ -1836,9 +2071,9 @@ still required and remain available in the existing feed.
 - Server release `/srv/wyd-go/releases/20261018T152826Z` was activated. The owner
   authorized game/API restart and player disconnection. Running binary paths,
   all 7,346 payload checksums, readiness, backup and configuration-preservation
-  checks passed. The [activation receipt](../current-state.md#previous-release--2026-10-18-client-stability-safeguards-patch-10035)
+  checks passed. The [activation receipt](../../.agents/research/release-history.md#previous-release--2026-10-18-client-stability-safeguards-patch-10035)
   records exact hashes, remaining gameplay validation and blocked local cleanup.
-  The subsequent [server-only Hell Gate release](../current-state.md#active-release--2026-10-18-historical-hell-gate-version-3)
+  The subsequent [server-only Hell Gate release](../../.agents/research/release-history.md#previous-release--2026-10-18-historical-hell-gate-version-3)
   supersedes its server process without changing patch 10035 or the public site.
 
 Close the client and run `WYDLauncher.exe` to install this patch. Publication

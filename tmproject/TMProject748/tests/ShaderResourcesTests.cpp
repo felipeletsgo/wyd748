@@ -12,6 +12,9 @@ namespace {
 struct Resource {
     int& live;
     explicit Resource(int& count) : live(count) { ++live; }
+    // Release deletes a Buffer through Resource*; the virtual destructor makes
+    // that delete defined and runs ~Buffer, so the buffer storage is freed.
+    virtual ~Resource() = default;
     void Release() { --live; delete this; }
 };
 struct Buffer : Resource {

@@ -28,6 +28,10 @@ public:
     // Interpola a trajetoria e encerra o acompanhamento do owner.
     int FrameMove(unsigned int dwServerTime) override;
 
+private:
+    // Creates the impact once, at natural expiry; never during teardown.
+    void SpawnImpact();
+
 public:
     unsigned int m_dwStartTime; // Inicio da animacao no relogio do servidor.
     TMVector3 m_vecStartPos;    // Origem imutavel da interpolacao.

@@ -2,6 +2,7 @@
 #include "WeatherPacket.h"
 #include "TMFieldScene.h"
 #include "SGrid.h"
+#include "../../ui/SGridSupport.h"
 #include "SControlContainer.h"
 #include "TMGlobal.h"
 #include "TMUtil.h"
@@ -9,6 +10,7 @@
 #include "WYD748Assets.h"
 #include "DirShow.h"
 #include "FieldSceneInventorySupport.h"
+#include "FieldActionPolicy.h"
 #include "FieldSceneTradeSupport.h"
 #include "FieldSceneWorldSupport.h"
 #include "../../application/FieldInteractionPolicy.h"
@@ -42,6 +44,8 @@
 #include "TMSkillMagicArrow.h"
 #include "TMSkillTownPortal.h"
 #include "TMEffectLevelUp.h"
+#include "../../application/ChatListRows.h"
+#include "../../application/SceneSafetyPolicy.h"
 
 // TMFieldScene remains the orchestration boundary for the live field scene.
 // Domain members can use private state from independent translation units
@@ -305,11 +309,6 @@ TMFieldScene::TMFieldScene()
 	m_pMiniMapZoomOut = nullptr;
 	m_pMiniMapServerPanel = nullptr;
 	m_pMiniMapServerText = nullptr;
-	// Both initializers create the 256 legacy marker pairs only after the map
-	// panel has been resolved. Deterministic nulls keep partial initialization
-	// and allocation failure from turning the first M shortcut into stale access.
-	memset(m_pInMiniMapPosPanel, 0, sizeof(m_pInMiniMapPosPanel));
-	memset(m_pInMiniMapPosText, 0, sizeof(m_pInMiniMapPosText));
 	m_pFadePanel = nullptr;
 	m_pEditChat = nullptr;
 	m_pInputBG2 = nullptr;
@@ -651,6 +650,9 @@ TMFieldScene::~TMFieldScene()
 int TMFieldScene::InitializeScene()
 {
 	m_kefraPortal.Reset();
+	// A quit countdown belongs to the field scene that started it. A stamp
+	// left by a lost connection would close this scene or block its input.
+	g_dwStartQuitGameTime = 0;
 	LOG_WRITELOG(">> Init Field Scene::Start\r\n");
 	if (!LoadRC("UI\\FieldScene2.txt"))
 	{
@@ -667,23 +669,17 @@ int TMFieldScene::InitializeScene()
 
 int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEvent)
 {
+	if (!m_pMyHuman || !m_pControlContainer)
+		return 1;
 	unsigned int dwServerTime = g_pTimerManager->GetServerTime();
-	if (dwServerTime < g_dwStartQuitGameTime + 6000)
-		return 1;
-	if (dwServerTime < m_dwLastLogout + 6000)
-		return 1;
-	if (dwServerTime < m_dwLastSelServer + 6000)
-		return 1;
-	if (dwServerTime < m_dwLastTown + 6000)
-		return 1;
-	if (dwServerTime < m_dwLastResurrect + 6000)
-		return 1;
-	if (dwServerTime < m_dwLastTeleport + 6000)
-		return 1;
-	if (dwServerTime < m_dwLastRelo + 6000)
-		return 1;
-	if (dwServerTime < m_dwLastWhisper + 6000)
-		return 1;
+	// Elapsed-time gates: an unset (zero) stamp never blocks input, and a
+	// server-tick wrap cannot close the gate (absolute `stamp + 6000` did).
+	for (const unsigned int stamp : { g_dwStartQuitGameTime, m_dwLastLogout, m_dwLastSelServer,
+		m_dwLastTown, m_dwLastResurrect, m_dwLastTeleport, m_dwLastRelo, m_dwLastWhisper })
+	{
+		if (scene_countdown::IsGateClosed(dwServerTime, stamp, 6000))
+			return 1;
+	}
 	const bool isChatEdit = idwControlID == TME_CHAT;
 
 	int extractedResult{};
@@ -775,11 +771,10 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 	if (isChatEdit && (idwEvent == 2 || idwEvent == 3))
 	{
 		char szText[128]{};
-		sprintf_s(szText, m_szLastChatList[m_sChatIndex]);
+		m_sChatIndex = static_cast<short>(
+			chat_submit::Recall(m_szLastChatList, m_sChatIndex, szText));
 
 		m_pEditChat->SetText(szText);
-		++m_sChatIndex;
-		m_sChatIndex %= 5;
 		return 0;
 	}
 	if (isChatEdit && (idwEvent == 4 || idwEvent == 5))
@@ -832,6 +827,8 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 			if (pText && pEdit && m_pCargoPanel && m_pCargoPanel->IsVisible() == 1)
 			{
+				// Currency prompt: ten digits at most (A08-01).
+				static_cast<SEditableText*>(pEdit)->m_nMaxStringLen = 10;
 				m_nCoinMsgType = 2;
 				pText->SetText(g_pMessageStringTable[138], 0);
 				m_pControlContainer->SetFocusedControl(pEdit);
@@ -928,6 +925,11 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 				break;
 			}
 
+			// Deposit, withdraw, trade gold, war and quest requests name the local
+			// human; it is absent only during a field transition.
+			if (!m_pMyHuman)
+				return 1;
+
 			switch (m_nCoinMsgType)
 			{
 			case 2:
@@ -976,7 +978,9 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 
 				auto pMyGold = static_cast<SText*>(m_pControlContainer->FindControl(619u));
 
-				char szText[11]{};
+				// Wide enough for any long long; coin_input::Validate already
+				// bounds the value (A08-01 defense in depth).
+				char szText[24]{};
 
 				sprintf_s(szText, "%10lld", nInputValue);
 
@@ -1129,9 +1133,28 @@ int TMFieldScene::OnControlEvent(unsigned int idwControlID, unsigned int idwEven
 			break;
 			case 8:
 			{
+				// The interaction target can leave view (its destructor clears
+				// m_pPGTOver) or change while this prompt is open. Use the
+				// player captured when the prompt opened, if it is still known.
+				const char* targetName = guild_prompt::ResolveTarget(m_dwGuildPromptTargetID,
+					m_szGuildPromptTarget, [](unsigned int targetID) -> const char* {
+						TMHuman* pTarget = g_pObjectManager->GetHumanByID(targetID);
+						return pTarget ? pTarget->m_szName : nullptr;
+					});
+				if (!targetName)
+				{
+					m_pMessagePanel->SetMessage(g_pMessageStringTable[370], 2000);
+					m_pMessagePanel->SetVisible(1, 1);
+					if (m_pInputGoldPanel)
+						m_pInputGoldPanel->SetVisible(0);
+					pInputText->SetText((char*)"");
+					m_pControlContainer->SetFocusedControl(nullptr);
+					return 1;
+				}
+
 				char str2[128]{};
 
-				sprintf_s(str2, "%s %s", m_pPGTOver->m_szName, inputText);
+				sprintf_s(str2, "%s %s", targetName, inputText);
 
 				MSG_MessageWhisper stMessageWhisper{};
 
@@ -2481,6 +2504,10 @@ ExtractedFlow TMFieldScene::OnHellStoreSelect(unsigned int& idwControlID, int& e
 
 	m_nHellStoreValue = idwControlID;
 	auto pHellgateStore = m_pHellgateStore;
+	// The selection buttons are children of panel 6185; without the bound
+	// panel there is no selection state to show.
+	if (!pHellgateStore || !m_pControlContainer)
+		{ extractedResult = 1; return ExtractedFlow::Return; }
 	SButton* pHellSelect = nullptr;
 	for (int i = 0; i < 4; ++i)
 	{
@@ -2636,11 +2663,13 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 	case chat_submit::LocalCommand::Exp:
 	{
 		m_bShowExp = m_bShowExp == 0;
+		// m_bShowExp set means the Exp notices are hidden (the consumer emits
+		// them only while it is zero), so "OFF" is correct here. The text comes
+		// from UIString rows with the English fallback.
 		char str[128]{};
-		if (m_bShowExp)
-			sprintf(str, "Show Exp : OFF");
-		else
-			sprintf(str, "Show Exp : ON");
+		snprintf(str, sizeof(str), "%s", m_bShowExp
+			? ui_text::RowOr(g_UIString, ui_text::kShowExpOff, "Show Exp : OFF")
+			: ui_text::RowOr(g_UIString, ui_text::kShowExpOn, "Show Exp : ON"));
 
 		SysMsgChat(str);
 		{ extractedResult = 1; return ExtractedFlow::Return; }
@@ -2710,8 +2739,9 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 			if (m_pNetStatsText)
 				m_pNetStatsText->SetVisible(m_bShowNetStats && m_pMiniMapPanel && m_pMiniMapPanel->IsVisible());
 			if (m_pChatList)
-				m_pChatList->AddItem(new SListBoxItem(
-					m_bShowNetStats ? "FPS and ping shown under the minimap." : "FPS and ping hidden.",
+				m_pChatList->AddItem(new SListBoxItem(m_bShowNetStats
+					? ui_text::RowOr(g_UIString, ui_text::kNetStatsShown, "FPS and ping shown under the minimap.")
+					: ui_text::RowOr(g_UIString, ui_text::kNetStatsHidden, "FPS and ping hidden."),
 					0xFFAAFFAA, 0.0f, 0.0f, 280.0f, 16.0f, 0, 0x77777777, 1, 0));
 			pEditChat->SetText((char*)"");
 			{ extractedResult = 1; return ExtractedFlow::Return; }
@@ -2835,47 +2865,33 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 			break;
 		}
 
-		if (chat_submit::IsReplyAlias(str1))
-		{
-			sprintf(str1, g_pMessageStringTable[61]);
-			sprintf(istrText, "[%s] [%s]> %s", g_pObjectManager->m_stMobData.MobName, str1, stMsgWhisper.String);
-		}
-		else
-		{
-			sprintf(istrText, "[%s] : %s> %s", g_pObjectManager->m_stMobData.MobName, str1, stMsgWhisper.String);
-		}
-
-		int len = strlen(istrText) + strlen(pMobData->MobName);
-		const size_t maxLen = 55;
-		if (len <= maxLen)
-		{
-			auto ipNewItem = new SListBoxItem(istrText, idwFontColor, 0.0, 0.0, 300.0f, 16.0f, 0, 0x77777777, 1, 0);
-			if (ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
-		}
-		else
-		{
-			char dest[128]{};
-			char dest2[128]{};
-			if (IsClearString(stMsgWhisper.String, maxLen - 1))
-			{
-				strncpy(dest, stMsgWhisper.String, maxLen);
-				sprintf(dest2, "%s", &stMsgWhisper.String[maxLen]);
-			}
+		const bool isReply = chat_submit::IsReplyAlias(str1);
+		if (isReply)
+			snprintf(str1, sizeof(str1), "%s", g_pMessageStringTable[61]); // a resource row is text, not a format
+		const auto formatWhisperRow = [&](const char* body) {
+			if (isReply)
+				sprintf(istrText, "[%s] [%s]> %s", g_pObjectManager->m_stMobData.MobName, str1, body);
 			else
-			{
-				strncpy(dest, stMsgWhisper.String, maxLen - 1);
-				sprintf(dest2, "%s", &stMsgWhisper.String[maxLen - 1]);
-			}
+				sprintf(istrText, "[%s] : %s> %s", g_pObjectManager->m_stMobData.MobName, str1, body);
+		};
+		formatWhisperRow(stMsgWhisper.String);
 
-			auto ipNewItem = new SListBoxItem(istrText, idwFontColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-			if (ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
-
-			auto ipNewItem2 = new SListBoxItem(dest2, idwFontColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-			if (dest2[0] && ipNewItem2 && pChatList)
-				pChatList->AddItem(ipNewItem2);
+		// The first row shows the head of the message and the second row only
+		// the rest, each as one owned item (no unowned or repeated row).
+		const size_t len = strlen(istrText) + strlen(pMobData->MobName);
+		const size_t maxLen = 55;
+		const char* tail = "";
+		char head[128]{};
+		if (len > maxLen)
+		{
+			tail = chat_rows::Split(stMsgWhisper.String,
+				chat_rows::CutAt(maxLen, IsClearString(stMsgWhisper.String, maxLen - 1) != 0), head);
+			formatWhisperRow(head);
 		}
+		const float rowWidth = len <= maxLen ? 300.0f : 280.0f;
+		chat_rows::Add(pChatList, istrText, tail, [&](const char* row) {
+			return new SListBoxItem(row, idwFontColor, 0.0f, 0.0f, rowWidth, 16.0f, 0, 0x77777777, 1, 0);
+		});
 	}
 	break;
 	default:
@@ -2893,44 +2909,27 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 
 		SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgChat)->Type, reinterpret_cast<char*>(&stMsgChat), sizeof(stMsgChat)});
 
-		size_t len = strlen(stMsgChat.String) + strlen(pMobData->MobName);
+		// A long line is a head row and a tail row. The second row was built
+		// from the tail but the head item was added again: the list rejected
+		// the duplicate and the tail item (with its font texture) leaked.
+		const size_t len = strlen(stMsgChat.String) + strlen(pMobData->MobName);
 		const size_t maxLen = 40;
+		const char* tail = "";
 		if (len <= maxLen)
 		{
 			sprintf(istrText, "[%s]> %s", pMobData->MobName, stMsgChat.String);
-
-			auto ipNewItem = new SListBoxItem(istrText, idwFontColor, 0.0, 0.0, 300.0f, 16.0f, 0, 0x77777777, 1, 0);
-			if (ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
 		}
 		else
 		{
-			char dest[128]{};
-			char dest2[128]{};
-			if (IsClearString(stMsgChat.String, maxLen - 1))
-			{
-				strncpy(dest, stMsgChat.String, maxLen);
-				dest[maxLen] = 0;
-				dest[maxLen + 1] = 0;
-				sprintf(dest2, "%s", &stMsgChat.String[maxLen]);
-			}
-			else
-			{
-				strncpy(dest, stMsgChat.String, maxLen - 1);
-				dest2[maxLen - 1] = 0;
-				sprintf(dest2, "%s", &stMsgChat.String[maxLen - 1]);
-			}
-
-			sprintf(istrText, "[%s]> %s", g_pObjectManager->m_stMobData.MobName, dest);
-
-			auto ipNewItem = new SListBoxItem(istrText, idwFontColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-			if (ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
-
-			auto ipNewItem2 = new SListBoxItem(dest2, idwFontColor, 0.0, 0.0, 280.0f, 16.0f, 0, 0x77777777, 1, 0);
-			if (strlen(stMsgChat.String) > maxLen && ipNewItem && pChatList)
-				pChatList->AddItem(ipNewItem);
+			char head[128]{};
+			tail = chat_rows::Split(stMsgChat.String,
+				chat_rows::CutAt(maxLen, IsClearString(stMsgChat.String, maxLen - 1) != 0), head);
+			sprintf(istrText, "[%s]> %s", g_pObjectManager->m_stMobData.MobName, head);
 		}
+		const float rowWidth = len <= maxLen ? 300.0f : 280.0f;
+		chat_rows::Add(pChatList, istrText, tail, [&](const char* row) {
+			return new SListBoxItem(row, idwFontColor, 0.0f, 0.0f, rowWidth, 16.0f, 0, 0x77777777, 1, 0);
+		});
 
 		sprintf(istrText, "%s", stMsgChat.String);
 		if (stMsgChat.String[0] == '*')
@@ -2956,7 +2955,7 @@ ExtractedFlow TMFieldScene::OnChatEditSubmit(unsigned int& dwServerTime, STRUCT_
 // Extracted from TMFieldScene::OnControlEvent; behavior is unchanged.
 ExtractedFlow TMFieldScene::OnMoneyButton(int& extractedResult)
 {
-	if (m_pMyHuman->m_cDie == 1)
+	if (!m_pMyHuman || m_pMyHuman->m_cDie == 1)
 		{ extractedResult = 1; return ExtractedFlow::Return; }
 
 	auto pText = static_cast<SText*>(m_pControlContainer->FindControl(
@@ -2965,6 +2964,10 @@ ExtractedFlow TMFieldScene::OnMoneyButton(int& extractedResult)
 		TME_INPUT_GOLD);
 	if (!pText || !pEdit || !m_pInputGoldPanel)
 		{ extractedResult = 1; return ExtractedFlow::Return; }
+
+	// Currency prompts (modes 0 and 1) take at most ten digits; a previous
+	// name or title prompt on the same edit set a longer limit (A08-01).
+	static_cast<SEditableText*>(pEdit)->m_nMaxStringLen = 10;
 
 	// The native 7.48 layout has no imported second Cargo page, so the shared
 	// money button may inspect it only when a newer resource actually bound it.
@@ -3220,7 +3223,14 @@ ExtractedFlow TMFieldScene::OnPgtGuildChiefButton(int& extractedResult)
 	if (!g_pCurrentScene || !m_pMessagePanel || !m_pMyHuman || !g_pObjectManager || !m_pPGTPanel)
 		{ extractedResult = 0; return ExtractedFlow::Return; }
 
-	if (m_pPGTOver != nullptr)
+	// The sub-guild prompt names this target. Without a target there is no
+	// player to name: close the menu instead of opening an unusable prompt.
+	if (m_pPGTOver == nullptr)
+	{
+		m_pPGTPanel->SetVisible(0);
+		{ extractedResult = 0; return ExtractedFlow::Return; }
+	}
+
 	{
 		if (!m_pPGTOver->m_usGuild)
 		{
@@ -3247,6 +3257,10 @@ ExtractedFlow TMFieldScene::OnPgtGuildChiefButton(int& extractedResult)
 			{ extractedResult = 0; return ExtractedFlow::Return; }
 		}
 	}
+
+	// B_IG_OK mode 8 resolves this identity again before it sends.
+	m_dwGuildPromptTargetID = m_pPGTOver->m_dwID;
+	strncpy_s(m_szGuildPromptTarget, m_pPGTOver->m_szName, _TRUNCATE);
 
 	VisibleInputGuildName();
 	m_pPGTPanel->SetVisible(0);
@@ -3487,7 +3501,8 @@ ExtractedFlow TMFieldScene::OnPartyListSelect(int& cktrans, unsigned int& dwServ
 		stCNFParty2.Header.Type = MSG_CNFParty2_Opcode;
 		stCNFParty2.LeaderID = pPartyItem->m_dwCharID;
 
-		sprintf(stCNFParty2.LeaderName, pPartyItem->GetText());
+		// Server text is data, never a format, and LeaderName has 16 bytes.
+		strncpy_s(stCNFParty2.LeaderName, pPartyItem->GetText(), _TRUNCATE);
 
 		auto pHuman = (TMHuman*)g_pObjectManager->GetHumanByID(pPartyItem->m_dwCharID);
 		if (pHuman)
@@ -3502,7 +3517,7 @@ ExtractedFlow TMFieldScene::OnPartyListSelect(int& cktrans, unsigned int& dwServ
 		if (charId >= 0 && charId < 1000)
 		{
 			char szText[128]{};
-			sprintf(szText, pPartyItem->GetText());
+			snprintf(szText, sizeof(szText), "%s", pPartyItem->GetText());
 			m_pMessageBox->SetMessage(szText, 50001u, 0);
 			m_pMessageBox->m_dwArg = pPartyItem->m_dwCharID;
 			m_pMessageBox->SetVisible(1);
@@ -3515,9 +3530,11 @@ ExtractedFlow TMFieldScene::OnPartyListSelect(int& cktrans, unsigned int& dwServ
 			{ extractedResult = 1; return ExtractedFlow::Return; }
 
 		int Special = m_pMyHuman->m_stScore.Level;
-		int classId = skillId - 24 * g_pObjectManager->m_stMobData.Class;
-		if (skillId < 96)
-			Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[classId / 8 + 1];
+		// Mastery[4] has a slot only for the character's own class skills; a
+		// belt skill of another class keeps the level instead of reading past it.
+		const int masterySlot = mastery_index::ForSkill(skillId, g_pObjectManager->m_stMobData.Class);
+		if (masterySlot >= 0)
+			Special = g_pObjectManager->m_stMobData.CurrentScore.Mastery[masterySlot];
 
 		if (BASE_GetManaSpent(skillId, g_pObjectManager->m_stMobData.CurrentScore.SaveMana, Special) > static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
 		{
@@ -3721,6 +3738,8 @@ ExtractedFlow TMFieldScene::OnAutoTradeRun(int& extractedResult)
 // Extracted from TMFieldScene::OnControlEvent; behavior is unchanged.
 ExtractedFlow TMFieldScene::OnPortalButton(int& extractedResult)
 {
+	if (!m_pPotalList || !m_pMyHuman)
+		{ extractedResult = 1; return ExtractedFlow::Return; }
 	if (m_bAirmove_ShowUI == 1)
 	{
 		auto pItem = m_pPotalList->GetSelectedIndex();
@@ -3734,6 +3753,8 @@ ExtractedFlow TMFieldScene::OnPortalButton(int& extractedResult)
 
 	if (!m_stPotalItem.ItemID)
 	{
+		if (m_pPotalList->GetSelectedIndex() < 0)
+			{ extractedResult = 1; return ExtractedFlow::Return; }
 		m_stPotalItem.ItemID = m_pPotalList->GetSelectedIndex() + 1;
 	}
 	if (m_stPotalItem.Header.ID)
@@ -3750,39 +3771,6 @@ ExtractedFlow TMFieldScene::OnPortalButton(int& extractedResult)
 
 		if (pItem)
 		{
-			int amount = BASE_GetItemAmount(pItem->m_pItem);
-			if (amount > 1)
-			{
-				BASE_SetItemAmount(pItem->m_pItem, amount - 1);
-				sprintf(pItem->m_GCText.strString, "%2d", amount - 1);
-				pItem->m_GCText.pFont->SetText(pItem->m_GCText.strString, pItem->m_GCText.dwColor, 0);
-			}
-			else
-			{
-				auto pPickItem = pGridInvList->PickupItem(nSourRes, nSourDiv);
-
-				if (g_pCursor->m_pAttachedItem && g_pCursor->m_pAttachedItem == pPickItem)
-					g_pCursor->m_pAttachedItem = nullptr;
-
-				SAFE_DELETE(pPickItem);
-			}
-
-			if (amount <= 1)
-			{
-				if (!m_stPotalItem.SourType)
-				{
-					memset(&g_pObjectManager->m_stMobData.Equip[m_stPotalItem.SourPos], 0, sizeof(STRUCT_ITEM));
-				}
-				else if (m_stPotalItem.SourType == 1)
-				{
-					memset(&g_pObjectManager->m_stMobData.Carry[m_stPotalItem.SourPos], 0, sizeof(STRUCT_ITEM));
-				}
-				else if (m_stPotalItem.SourType == 2)
-				{
-					memset(&g_pObjectManager->m_stItemCargo[m_stPotalItem.SourPos], 0, sizeof(STRUCT_ITEM));
-				}
-			}
-
 			m_dwGetItemTime = g_pTimerManager->GetServerTime();
 			m_dwLastTeleport = m_dwGetItemTime;
 			m_cLastTeleport = 1;
@@ -3816,34 +3804,20 @@ ExtractedFlow TMFieldScene::OnPortalButton(int& extractedResult)
 
 int TMFieldScene::OnCharEvent(char iCharCode, int lParam)
 {
+	if (!m_pMyHuman || !m_pControlContainer)
+		return 0;
 	if (m_bAirMove == 1)
 		return 0;
 
 	DWORD dwServerTime = g_pTimerManager->GetServerTime();
 
-	if (dwServerTime < g_dwStartQuitGameTime + 6000)
-		return 1;
-
-	if (dwServerTime < m_dwLastLogout + 6000)
-		return 1;
-
-	if (dwServerTime < m_dwLastSelServer + 6000)
-		return 1;
-
-	if (dwServerTime < m_dwLastTown + 6000)
-		return 1;
-
-	if (dwServerTime < m_dwLastResurrect + 6000)
-		return 1;
-
-	if (dwServerTime < m_dwLastTeleport + 6000)
-		return 1;
-
-	if (dwServerTime < m_dwLastRelo + 6000)
-		return 1;
-
-	if (dwServerTime < m_dwLastWhisper + 6000)
-		return 1;
+	// Same elapsed-time gates as OnControlEvent (wrap-safe, zero is unset).
+	for (const unsigned int stamp : { g_dwStartQuitGameTime, m_dwLastLogout, m_dwLastSelServer,
+		m_dwLastTown, m_dwLastResurrect, m_dwLastTeleport, m_dwLastRelo, m_dwLastWhisper })
+	{
+		if (scene_countdown::IsGateClosed(dwServerTime, stamp, 6000))
+			return 1;
+	}
 
 	// FieldScene2 does not create the full message-box graph used by the
 	// newer source tree.  Keyboard input must remain safe while compatibility
@@ -4251,6 +4225,17 @@ int TMFieldScene::FrameMove(unsigned int dwServerTime)
 	}
 	TMScene::FrameMove(dwServerTime);
 	UpdateGambleRequestTimeout();
+	const auto statusRevision = BASE_PollHttpRequests();
+	if (statusRevision != m_channelStatusRevision)
+	{
+		m_channelStatusRevision = statusRevision;
+		if (m_pServerPanel && m_pServerPanel->IsVisible() && !m_dwLastSelServer)
+		{
+			const int selected = m_pServerList ? m_pServerList->GetSelectedIndex() : -1;
+			OpenNativeServerPanel();
+			if (m_pServerList) m_pServerList->SetSelectedIndex(selected);
+		}
+	}
 	UpdateInstanceTimerHud(dwServerTime);
 	if (m_pInstanceQuestionPanel && !m_instanceQuestion.Visible(GetTickCount()))
 		m_pInstanceQuestionPanel->SetVisible(0, 1);
@@ -4305,15 +4290,17 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 		m_quizEvent.Active = false;
 		if (m_pQuizBG) m_pQuizBG->SetVisible(0);
 	}
+	// Countdowns compare elapsed server time (scene_countdown): a deadline near
+	// the 32-bit tick wrap no longer fires at once or stalls.
 	if (g_dwStartQuitGameTime)
 	{
-		if (dwServerTime > g_dwStartQuitGameTime + 5000)
+		if (scene_countdown::IsPast(dwServerTime, g_dwStartQuitGameTime, 5000))
 		{
 			PostMessage(g_pApp->m_hWnd, 16, 0, 0);
 			return 1;
 		}
 
-		unsigned int dwRemain = (g_dwStartQuitGameTime + 5000 - dwServerTime) / 1000;
+		unsigned int dwRemain = scene_countdown::Remaining(dwServerTime, g_dwStartQuitGameTime, 5000, 1000);
 		if (m_dwLastRemain != dwRemain)
 		{
 			m_bAutoRun = 0;
@@ -4328,7 +4315,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 	}
 	if (m_dwLastLogout)
 	{
-		if (dwServerTime > m_dwLastLogout + 5000)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastLogout, 5000))
 		{
 			MSG_CharacterLogout stStandard{};
 			stStandard.ID = g_pObjectManager->m_dwCharID;
@@ -4338,7 +4325,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			return 1;
 		}
 
-		unsigned int dwRemain = (m_dwLastLogout + 5000 - dwServerTime) / 1000;
+		unsigned int dwRemain = scene_countdown::Remaining(dwServerTime, m_dwLastLogout, 5000, 1000);
 		if (m_dwLastRemain != dwRemain)
 		{
 			m_bAutoRun = 0;
@@ -4353,14 +4340,14 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 	}
 	if (m_dwLastSelServer)
 	{
-		if (dwServerTime > m_dwLastSelServer + 5000)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastSelServer, 5000))
 		{
 			m_dwLastSelServer = 0;
 			g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTSERVER_STATE);
 			return 1;
 		}
 
-		unsigned int dwRemain = (m_dwLastSelServer + 5000 - dwServerTime) / 1000;
+		unsigned int dwRemain = scene_countdown::Remaining(dwServerTime, m_dwLastSelServer, 5000, 1000);
 		if (m_dwLastRemain != dwRemain)
 		{
 			m_bAutoRun = 0;
@@ -4373,11 +4360,13 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			m_pMessagePanel->SetVisible(1, 1);
 		}
 	}
-	if (m_dwLastTown)
+	// The recall request and its portal effect need the local human; while it
+	// is absent (field transition) the countdown waits instead of faulting.
+	if (m_dwLastTown && m_pMyHuman)
 	{
-		if (dwServerTime > m_dwLastTown + 6000 && !m_cLastTown)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastTown, 6000) && !m_cLastTown)
 			m_dwLastTown = 0;
-		else if (dwServerTime > m_dwLastTown + 5000 && m_cLastTown == 1)
+		else if (scene_countdown::IsPast(dwServerTime, m_dwLastTown, 5000) && m_cLastTown == 1)
 		{
 			MSG_STANDARD stRecall{};
 			stRecall.ID = m_pMyHuman->m_dwID;
@@ -4416,7 +4405,9 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			}
 		}
 	}
-	if (m_dwLastResurrect)
+	// The resurrect packet is built from the local human every frame of the
+	// countdown; skip the frame while the local human is absent.
+	if (m_dwLastResurrect && m_pMyHuman)
 	{
 		MSG_AttackOne stAttack{};
 		stAttack.Header.Type = MSG_Attack_One_Opcode;
@@ -4440,9 +4431,9 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 		stAttack.SkillParm = 0;
 		stAttack.Motion = -1;
 
-		if (dwServerTime > m_dwLastResurrect + 6000 && !m_cResurrect)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastResurrect, 6000) && !m_cResurrect)
 			m_dwLastResurrect = 0;
-		else if (dwServerTime > m_dwLastResurrect + 5000 && m_cResurrect == 1)
+		else if (scene_countdown::IsPast(dwServerTime, m_dwLastResurrect, 5000) && m_cResurrect == 1)
 		{
 			m_cResurrect = 0;
 			stAttack.FlagLocal = 0;
@@ -4450,7 +4441,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 		}
 		else
 		{
-			unsigned int dwRemain = (m_dwLastResurrect + 5000 - dwServerTime) / 2000;
+			unsigned int dwRemain = scene_countdown::Remaining(dwServerTime, m_dwLastResurrect, 5000, 2000);
 			if (m_dwLastRemain != dwRemain)
 			{
 				m_bAutoRun = 0;
@@ -4463,9 +4454,9 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 	}
 	if (m_dwLastTeleport)
 	{
-		if (dwServerTime > m_dwLastTeleport + 6000 && !m_cLastTeleport)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastTeleport, 6000) && !m_cLastTeleport)
 			m_dwLastTeleport = 0;
-		else if (dwServerTime > m_dwLastTeleport + 5000 && m_cLastTeleport == 1)
+		else if (scene_countdown::IsPast(dwServerTime, m_dwLastTeleport, 5000) && m_cLastTeleport == 1)
 		{
 			if (m_nServerMove)
 			{
@@ -4481,21 +4472,31 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			}
 			else
 			{
-				SendOneMessage((char*)&m_stUseItem, sizeof(m_stUseItem));
+				const int slot = m_stUseItem.SourPos;
+				auto grid = m_stUseItem.SourType == 1 ? GetCarryGridForSlot(slot) : nullptr;
+				int x = 0, y = 0;
+				GetCarryCellForSlot(slot, x, y);
+				auto item = grid ? grid->GetItem(x, y) : nullptr;
+				if (m_pendingPortalItem.Take(slot, item ? item->m_pItem : nullptr) &&
+					SendOneMessage((char*)&m_stUseItem, sizeof(m_stUseItem)))
+				{
+					// Consume only the server-confirmed inventory snapshot.
+					m_dwUseItemTime = dwServerTime;
+					UpdateScoreUI(0);
+				}
 				memset(&m_stUseItem, 0, sizeof(m_stUseItem));
-				m_dwUseItemTime = dwServerTime;
 			}
 			m_cLastTeleport = 0;
 		}
 		else
 		{
-			unsigned int dwRemain = (m_dwLastTeleport + 5000 - dwServerTime) / 1000;
+			unsigned int dwRemain = scene_countdown::Remaining(dwServerTime, m_dwLastTeleport, 5000, 1000);
 			if (m_dwLastRemain != dwRemain)
 			{
 				m_bAutoRun = 0;
 				m_dwLastRemain = dwRemain;
 
-				if (m_pEffectContainer)
+				if (m_pEffectContainer && m_pMyHuman)
 					m_pEffectContainer->AddChild(new TMSkillTownPortal(
 						TMVector3(m_pMyHuman->m_vecPosition.x,
 							m_pMyHuman->m_fHeight + 0.05f,
@@ -4505,9 +4506,9 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 	}
 	if (m_dwLastRelo)
 	{
-		if (dwServerTime > m_dwLastRelo + 6000 && !m_cLastRelo)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastRelo, 6000) && !m_cLastRelo)
 			m_dwLastRelo = 0;
-		else if (dwServerTime > m_dwLastRelo + 5000 && m_cLastRelo == 1)
+		else if (scene_countdown::IsPast(dwServerTime, m_dwLastRelo, 5000) && m_cLastRelo == 1)
 		{
 			MSG_MessageWhisper stMsgImp{};
 			stMsgImp.Header.ID = g_pObjectManager->m_dwCharID;
@@ -4517,7 +4518,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stMsgImp)->Type, reinterpret_cast<char*>(&stMsgImp), sizeof(stMsgImp)});
 			m_cLastRelo = 0;
 		}
-		else if (dwServerTime > m_dwLastRelo + 5000 && m_cLastRelo == 2)
+		else if (scene_countdown::IsPast(dwServerTime, m_dwLastRelo, 5000) && m_cLastRelo == 2)
 		{
 			MSG_MessageWhisper stMsgImp{};
 			stMsgImp.Header.ID = g_pObjectManager->m_dwCharID;
@@ -4529,13 +4530,13 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 		}
 		else
 		{
-			unsigned int dwRemain = (m_dwLastRelo + 5000 - dwServerTime) / 1000;
+			unsigned int dwRemain = scene_countdown::Remaining(dwServerTime, m_dwLastRelo, 5000, 1000);
 			if (m_dwLastRemain != dwRemain)
 			{
 				m_bAutoRun = 0;
 				m_dwLastRemain = dwRemain;
 
-				if (m_pEffectContainer)
+				if (m_pEffectContainer && m_pMyHuman)
 					m_pEffectContainer->AddChild(new TMSkillTownPortal(
 						TMVector3(m_pMyHuman->m_vecPosition.x,
 							m_pMyHuman->m_fHeight + 0.05f,
@@ -4546,12 +4547,12 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 
 	if (m_dwLastWhisper)
 	{
-		if (dwServerTime > m_dwLastWhisper + 6000 && !m_cLastWhisper)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastWhisper, 6000) && !m_cLastWhisper)
 		{
 			m_dwLastWhisper = 0;
 			return 0;
 		}
-		if (dwServerTime > m_dwLastWhisper + 5000 && m_cLastWhisper == 1)
+		if (scene_countdown::IsPast(dwServerTime, m_dwLastWhisper, 5000) && m_cLastWhisper == 1)
 		{
 			SendOneMessage((char*)&m_stLastWhisper, sizeof(m_stLastWhisper));
 			memset((char*)&m_stLastWhisper, 0, sizeof(m_stLastWhisper));
@@ -4560,7 +4561,7 @@ int TMFieldScene::TimeDelay(unsigned int dwServerTime)
 		}
 		// Continue to the button handling below.
 
-		unsigned int dwRemain = (m_dwLastWhisper + 5000 - dwServerTime) / 1000;
+		unsigned int dwRemain = scene_countdown::Remaining(dwServerTime, m_dwLastWhisper, 5000, 1000);
 
 		if (m_dwLastRemain != dwRemain)
 		{
@@ -4828,9 +4829,9 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 		int nCellX = m_pMessageBox->m_dwArg >> 16;
 		int nCellY = m_pMessageBox->m_dwArg & 0xFFFF;
 
-		SGridControlItem* pItem = m_pGridInv->GetItem(nCellX, nCellY);
+		SGridControlItem* pItem = m_pGridInv ? m_pGridInv->GetItem(nCellX, nCellY) : nullptr;
 
-		if (pItem)
+		if (m_pendingItemConfirmation.Take(GetCarrySlotForCell(m_pGridInv, nCellX, nCellY), pItem ? pItem->m_pItem : nullptr))
 		{
 			int nType = BASE_GetItemAbility(pItem->m_pItem, EF_VOLATILE);
 
@@ -4873,7 +4874,9 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	{
 		int nCellX = (m_pMessageBox->m_dwArg & 0xFFFF0000) >> 16;
 		int nCellY = m_pMessageBox->m_dwArg & 0xFFFF;
-		UseTicket(nCellX, nCellY);
+		auto item = m_pGridInv ? m_pGridInv->GetItem(nCellX, nCellY) : nullptr;
+		if (m_pendingItemConfirmation.Take(GetCarrySlotForCell(m_pGridInv, nCellX, nCellY), item ? item->m_pItem : nullptr))
+			UseTicket(nCellX, nCellY);
 	}
 	break;
 	case 99:
@@ -4960,7 +4963,9 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 	break;
 	case 890:
 	{
-		if (m_pGridInv == nullptr || m_pGridShop == nullptr || m_pMyHuman == nullptr)
+		auto saleGrid = m_pHellgateStore && m_pHellgateStore->IsVisible()
+			? m_pGridHellStore : m_pGridShop;
+		if (m_pGridInv == nullptr || saleGrid == nullptr || m_pMyHuman == nullptr)
 		{
 			SGridControl::m_pSellItem = nullptr;
 			return 1;
@@ -4977,25 +4982,32 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 			short sDestPos = m_pGridInv->CheckPos(pSellItem->m_pGridControl->m_eItemType);
 			if (sDestPos == -1)
 			{
-				// Use the same native Carry projection as the Ctrl-sell path.
-				sDestPos = sDestType == 1
-					? GetCarrySlotForCell(pSellItem->m_pGridControl,
-						pSellItem->m_nCellIndexX, pSellItem->m_nCellIndexY)
-					: pSellItem->m_nCellIndexX + 5 * pSellItem->m_nCellIndexY;
+				// Use the same grid-aware projection as the Ctrl-sell path: only
+				// the Carry and Cargo controls resolve a slot (A26-01).
+				if (sDestType == 1)
+					sDestPos = static_cast<short>(GetCarrySlotForCell(pSellItem->m_pGridControl,
+						pSellItem->m_nCellIndexX, pSellItem->m_nCellIndexY));
+				else if (sDestType == 2)
+					sDestPos = static_cast<short>(GetCargoSlotForCell(pSellItem->m_pGridControl,
+						pSellItem->m_nCellIndexX, pSellItem->m_nCellIndexY));
+			}
+			if (sDestPos < 0)
+			{
+				SGridControl::m_pSellItem = nullptr;
+				return 1;
 			}
 
 			int DestPage = 0;
 			if (DestPage < 0 || DestPage > 45)
 				DestPage = 0;
 
-			MSG_Sell stSell{};
-
-			stSell.Header.ID = m_pMyHuman->m_dwID;
-			stSell.Header.Type = MSG_Sell_Opcode;
-			stSell.TargetID = m_pGridShop->m_dwMerchantID;
-			stSell.MyType = sDestType;
-			stSell.MyPos = DestPage + sDestPos;
-
+			MSG_QuotedSale stSell{};
+			if (!WYD748_BuildQuotedSale(this, SGridControl::m_pSellItem,
+				saleGrid->m_dwMerchantID, sDestType, DestPage + sDestPos, stSell))
+			{
+				SGridControl::m_pSellItem = nullptr;
+				return 1;
+			}
 			SendPacket({reinterpret_cast<MSG_STANDARD*>(&stSell)->Type, reinterpret_cast<char*>(&stSell), sizeof(stSell)});
 		}
 		SGridControl::m_pSellItem = nullptr;
@@ -5020,13 +5032,21 @@ int TMFieldScene::OnMsgBoxEvent(unsigned int idwControlID, unsigned int idwEvent
 
 		if ((dwServerTime - m_dwOldAttackTime) < 1000)
 			return 1;
+		// Extraction names a Carry item; the prompt producer stores its slot.
+		// Never send the cast or 0x2D4 without a resolved Carry slot (A26-01).
+		if (m_sDestType != 1 || m_sDestPos < 0 || m_sDestPos >= MAX_VISIBLE_CARRY)
+			return 1;
 
-		int nSkill = 83 - 24 * g_pObjectManager->m_stMobData.Class;
+		// Skill 83 has a Mastery[] slot only for its own class; other classes
+		// use zero instead of reading past Mastery[4].
+		const int masterySlot = mastery_index::ForSkill(83, g_pObjectManager->m_stMobData.Class);
+		const int nMastery = masterySlot >= 0
+			? g_pObjectManager->m_stMobData.CurrentScore.Mastery[masterySlot] : 0;
 
 		if (BASE_GetManaSpent(
 			83,
 			(unsigned char)g_pObjectManager->m_stMobData.CurrentScore.SaveMana,
-			g_pObjectManager->m_stMobData.CurrentScore.Mastery[nSkill / 8 + 1]) <= static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
+			nMastery) <= static_cast<long long>(g_pObjectManager->m_stMobData.CurrentScore.CurMP))
 		{
 			MSG_AttackOne stAttack{};
 

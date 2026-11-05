@@ -949,7 +949,22 @@ func (e Equip) Items() [16]Item {
 	}
 }
 
-// VisualItemCode ports GetItemIDEF from PacketProtocolV754.
+// RefinementEffect applies native explicit-SANC priority to visual and stat paths.
+func (item Item) RefinementEffect() (byte, byte) {
+	for i := 0; i < 3; i++ {
+		if item.Eff[i*2] == 43 {
+			return 43, item.Eff[i*2+1]
+		}
+	}
+	for i := 0; i < 3; i++ {
+		if code := item.Eff[i*2]; code >= 115 && code <= 126 {
+			return code, item.Eff[i*2+1]
+		}
+	}
+	return 0, 0
+}
+
+// VisualItemCode projects refinement into the four native visual bits.
 func VisualItemCode(item Item, mount bool) uint16 {
 	if item.Index == 0 {
 		return 0
@@ -964,51 +979,33 @@ func VisualItemCode(item Item, mount bool) uint16 {
 		return uint16(uint32(item.Index) + uint32(item.Eff[2]/10)*0x1000)
 	}
 
-	value, colored := 0, false
-	for i := 0; i < 3; i++ {
-		effect, effectValue := item.Eff[i*2], item.Eff[i*2+1]
-		if effect >= 116 && effect <= 125 {
-			value, colored = int(effectValue), true
-			break
-		}
-	}
-	if !colored {
-		for i := 0; i < 3; i++ {
-			if item.Eff[i*2] == 43 {
-				value = int(item.Eff[i*2+1])
-				break
-			}
-		}
-	}
+	_, raw := item.RefinementEffect()
+	value := int(raw)
 	if value == 0 {
 		return item.Index
 	}
-	if colored {
-		if value > 9 {
-			value = 9
-		}
-	} else if value < 230 {
+	if value < 230 {
 		value %= 10
 	} else {
 		value = (value-230)/4 + 10
-		if value > 16 {
-			value = 16
-		}
+		if value > 15 {
+			value = 15
+		} // The visual WORD has four refinement bits.
 	}
 	return uint16(uint32(item.Index) + uint32(value)*0x1000)
 }
 
 // AncientCode ports GetAnctCode from PacketProtocolV754.
 func AncientCode(item Item) byte {
-	value := 0
-	for i := 0; i < 3; i++ {
-		effect, effectValue := item.Eff[i*2], item.Eff[i*2+1]
-		if effect >= 116 && effect <= 125 {
-			return effect
+	effect, raw := item.RefinementEffect()
+	value := int(raw)
+	if effect >= 115 && effect <= 126 {
+		if raw >= 230 {
+			// 7.48 SetColorItem decodes the low nibble as dye - 115
+			// when the visual refinement exceeds nine.
+			return byte(((value-230)%4+1)<<4) | (effect - 115)
 		}
-		if effect == 43 {
-			value = int(effectValue)
-		}
+		return effect
 	}
 	if value == 0 {
 		return 0

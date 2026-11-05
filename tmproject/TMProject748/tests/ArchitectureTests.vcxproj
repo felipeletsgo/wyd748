@@ -112,6 +112,18 @@
     <ClCompile Include="ClientLanguageAssetTests.cpp" />
     <ClCompile Include="TerrainTileMapReaderTests.cpp" />
     <ClCompile Include="CharacterTransferResponseTests.cpp" />
+    <ClCompile Include="CriticalFlowTests.cpp" />
+    <ClCompile Include="FieldSceneSafetyTests.cpp" />
+    <ClCompile Include="FieldActionSafetyTests.cpp" />
+    <ClCompile Include="UiGridSafetyTests.cpp" />
+    <ClCompile Include="EntitySafetyTests.cpp" />
+    <ClCompile Include="EffectSafetyTests.cpp" />
+    <ClCompile Include="DeviceResourceSafetyTests.cpp" />
+    <ClCompile Include="CoreDataSafetyTests.cpp" />
+    <ClCompile Include="HumanStateSafetyTests.cpp" />
+    <ClCompile Include="PlatformSafetyTests.cpp" />
+    <ClCompile Include="WorldTerrainSafetyTests.cpp" />
+    <ClCompile Include="RemediationImprovementsTests.cpp" />
     <ClCompile Include="..\internal\platform\windows\ScreenshotJpeg.cpp" />
     <ClCompile Include="..\internal\core\WYD748Assets.cpp">
       <PreprocessorDefinitions>_WYDCLIENT;%(PreprocessorDefinitions)</PreprocessorDefinitions>

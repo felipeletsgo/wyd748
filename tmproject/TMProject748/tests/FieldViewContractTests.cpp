@@ -56,10 +56,10 @@ int RunFieldViewContractTests(int& checks)
     const auto fieldScene = ReadClientSource("internal/app/scenes/TMFieldScene.cpp");
     const auto characters = source_contract::Method(fieldScene,
         "int TMFieldScene::OnCharEvent(char iCharCode, int lParam)");
-    check(characters.find("TMScene::OnCharEvent(iCharCode, lParam)") <
-        characters.find("OnKeySkill(iCharCode, lParam)") &&
-        characters.find("OnKeySkill(iCharCode, lParam)") <
-        characters.find("OnKeyShortSkill(iCharCode, lParam)"),
+    check(source_contract::InOrder(characters.find("TMScene::OnCharEvent(iCharCode, lParam)"),
+        characters.find("OnKeySkill(iCharCode, lParam)")) &&
+        source_contract::InOrder(characters.find("OnKeySkill(iCharCode, lParam)"),
+        characters.find("OnKeyShortSkill(iCharCode, lParam)")),
         "focused text input precedes assignment and number-key selection");
     const auto assignment = source_contract::Method(fieldInput,
         "int TMFieldScene::OnKeySkill(char iCharCode, int lParam)");
@@ -198,9 +198,9 @@ int RunFieldViewContractTests(int& checks)
     const auto ui = ReadClientSource("internal/app/scenes/TMFieldSceneUI.cpp");
     const auto initialize = source_contract::Method(ui, "int TMFieldScene::InitializeCompatFieldScene()");
     const auto ground = ReadClientSource("internal/app/scenes/TMSceneGround.cpp");
-    check(initialize.find("UpdateWeatherEffects();") > initialize.find("m_pSnow2 = new TMSnow(2.0f);") &&
+    check(source_contract::InOrder(initialize.find("m_pSnow2 = new TMSnow(2.0f);"), initialize.find("UpdateWeatherEffects();")) &&
         initialize.find("UpdateWeatherEffects();") != std::string::npos &&
-        frame.find("UpdateWeatherEffects();") < frame.find("TMScene::FrameMove(dwServerTime);") &&
+        source_contract::InOrder(frame.find("UpdateWeatherEffects();"), frame.find("TMScene::FrameMove(dwServerTime);")) &&
         ground.find("pFieldScene->UpdateWeatherEffects();") != std::string::npos &&
         ground.find("SetWeather(g_nWeather)") == std::string::npos &&
         ground.find("g_nWeather = 0;") == std::string::npos,
@@ -227,15 +227,19 @@ int RunFieldViewContractTests(int& checks)
         "both equipment paths apply the native citizenship cape mapping");
     const auto selection = ReadClientSource("internal/app/scenes/TMSelectCharScene.cpp");
     const auto citizenAssignment = selection.find("m_citizen = static_cast<unsigned char>(pSelChar->Equip[i][0].stEffect[2].cValue)");
-    check(citizenAssignment != std::string::npos && citizenAssignment < selection.find("m_pHuman[i]->SetCitizenMantle"),
+    check(citizenAssignment != std::string::npos && source_contract::InOrder(citizenAssignment, selection.find("m_pHuman[i]->SetCitizenMantle")),
         "selection reads face citizenship before mapping the cape");
     const auto refresh = source_contract::Method(world, "int TMFieldScene::OnPacketCreateMobCompat(MSG_STANDARD* pStd)");
     const auto existingBegin = refresh.find("if (pExisting)");
     const auto existingEnd = refresh.find("return 1;", existingBegin);
     const auto existing = existingBegin == std::string::npos ? std::string{} :
         refresh.substr(existingBegin, existingEnd - existingBegin);
-    check(existing.find("m_citizen = pCreateMob->Server") != std::string::npos &&
+    // A06-02: the citizenship byte comes from create_mob_view::Citizen (byte 350
+    // in 0x363, byte 326 in 0x364). A14-08: the refresh also rebuilds the cape.
+    check(refresh.find("create_mob_view::Citizen(") != std::string::npos &&
+        existing.find("m_citizen = citizen") != std::string::npos &&
         existing.find("SetPacketEquipItem(pCreateMob->Equip)") != std::string::npos &&
+        existing.find("RefreshMantua()") != std::string::npos &&
         existing.find("InitObject") == std::string::npos && existing.find("InitPosition") == std::string::npos,
         "live citizenship refresh keeps the existing entity and movement");
     const auto physicalSource = ReadClientSource("internal/app/scenes/TMFieldSceneCombat.cpp");
@@ -244,12 +248,13 @@ int RunFieldViewContractTests(int& checks)
     const auto physicalClick = source_contract::Method(physicalSource,
         "int TMFieldScene::MobAttack(unsigned int wParam, D3DXVECTOR3 vec, unsigned int dwServerTime, TMHuman* target)");
     check(frame.find("UpdatePhysicalAttack(dwServerTime);") != std::string::npos &&
-        frame.find("UpdatePhysicalAttack(dwServerTime);") > frame.find("UpdateTeleportPrompt()") &&
+        source_contract::InOrder(frame.find("UpdateTeleportPrompt()"), frame.find("UpdatePhysicalAttack(dwServerTime);")) &&
         physicalTick.find("field_interaction::PhysicalAttackTick(") != std::string::npos &&
         physicalTick.find("cc_mode::OwnsCombat(g_GameAuto)") != std::string::npos &&
         physicalTick.find("MobAttack(0, position, dwServerTime, target)") != std::string::npos,
         "the field retries the retained enemy through click validation after transition gates");
-    check(physicalClick.find("m_pTargetHuman = pOver;") < physicalClick.find("dwServerTime <= m_dwOldAttackTime + 1000") &&
+    check(source_contract::InOrder(physicalClick.find("m_pTargetHuman = pOver;"),
+        physicalClick.find("field_time::NotAfter(dwServerTime, m_dwOldAttackTime, 1000)")) &&
         physicalClick.find("target || pOver->m_bMouseOver == 1") != std::string::npos &&
         physicalClick.find("if (m_cAutoAttack == 1)") == std::string::npos,
         "physical clicks retain targets during cooldown without hover or CC dependency");
@@ -266,5 +271,17 @@ int RunFieldViewContractTests(int& checks)
     check(physicalPackets.find("SkillIndex == 94) // Ethereal Explosion") != std::string::npos &&
         physicalPackets.find("SkillIndex == 86) // Ethereal Explosion") == std::string::npos,
         "Ethereal Explosion arrows belong to skill 94, not Golden Shield 86");
+    const auto inventory = ReadClientSource("internal/app/scenes/TMFieldSceneInventory.cpp");
+    for (const auto signature : {"char TMFieldScene::UseHPotion()", "char TMFieldScene::UseMPotion()",
+        "void TMFieldScene::UsePPotion()", "char TMFieldScene::FeedMount()",
+        "void TMFieldScene::UseTicket(int nCellX, int nCellY)",
+        "void TMFieldScene::UseItem(SGridControlItem* pItem, int nType, int nItemSIndex, int nCellX, int nCellY)",
+        "bool TMFieldScene::SendCapsuleItem()"}) {
+        const auto intent = source_contract::Method(inventory, signature);
+        check(!intent.empty() && intent.find("BASE_SetItemAmount(") == std::string::npos &&
+            intent.find("PickupItem(") == std::string::npos &&
+            intent.find("memset(&g_pObjectManager->m_stMobData.Carry") == std::string::npos,
+            "an item-use intent cannot consume inventory before the server response");
+    }
     return failures;
 }

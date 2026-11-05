@@ -34,6 +34,15 @@ struct TMVector2
 
 	TMVector2* operator=(TMVector2* other)
 	{
+		// A11-S1: `vector = {}` binds to this pointer overload with a null
+		// source. Treat it as a zero vector, as TMVector3 does.
+		if (!other)
+		{
+			x = 0.0f;
+			y = 0.0f;
+			return this;
+		}
+
 		*this = *other;
 		return this;
 	}
@@ -216,6 +225,15 @@ struct IVector2
 
 	IVector2* operator=(IVector2* other)
 	{
+		// A11-S1: `vector = {}` binds to this pointer overload with a null
+		// source. Treat it as a zero vector, as TMVector3 does.
+		if (!other)
+		{
+			x = 0;
+			y = 0;
+			return this;
+		}
+
 		*this = *other;
 		return this;
 	}

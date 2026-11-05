@@ -4,6 +4,7 @@
 
 class TMGround;
 class TMLight;
+class TMEffectBillBoard;
 
 // Fixed limits kept from the legacy contract of the regional container.
 constexpr auto MAX_OBJECT_LIST = 4096;
@@ -26,6 +27,10 @@ public:
     TreeNode* m_pGroundEffectContainer; // Child owned by the scene tree.
     int m_nObjectIndex;
     TMObject* m_pObjectList[MAX_OBJECT_LIST]; // Non-owning index of the children.
+    // Kefra hall portal nodes published to TMFieldScene; owned by the subtree.
+    // The destructor clears the scene slots that still name them (A15-03).
+    TMEffectBillBoard* m_pHallPortalEffect[2]{};
+    TMObject* m_pHallPortalObject{};
 
 public:
     /** Creates the aggregate for `pGround` without taking ownership of it. */

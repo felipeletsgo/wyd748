@@ -1,8 +1,7 @@
 # Website feature status
 
-Reconciled against source and the deployment ledger on 2026-10-13. This is the
-current implementation matrix for the dated [WYD Web Platform plan](../WYD-WEB-PLATAFORM.md),
-not a claim that every proposed feature or browser acceptance test is complete.
+This matrix groups implemented surfaces and remaining scope from October 2026 source reviews and the dated [product plan](../WYD-WEB-PLATAFORM.md).
+Browser acceptance remains separate from source implementation.
 Deployment identities and validation limits are in [current state](../current-state.md).
 
 ## Implemented surfaces
@@ -17,18 +16,17 @@ Deployment identities and validation limits are in [current state](../current-st
 | Progression advice | Saved-state Arch, Celestial and SubCelestial advice | Advisory only; no web ascension or guaranteed live eligibility |
 | Ranking | Persisted character ranking and supported filters | No separate competitive/event ladder projections |
 | Guilds | Searchable name directory and public saved profiles: kingdom, Fame, members/roles, allies and war target; signed-in guild section on `/player` where the leader uploads or removes the guild mark | No member administration or war-history UI; nonempty production rendering remains manual |
-| Downloads and updates | External full-client link, launcher patches, changelog and manifest advertising 10005 | Full package size/hash receipt and actual launcher extraction remain acceptance gaps |
+| Downloads and updates | External full-client link, launcher patches, changelog and versioned manifest | Use the launcher guide and current release receipt for versions, hashes and installation evidence |
 | News and roadmap | News posts as validated Markdown files in `web/portal/src/content/news` (plain paragraphs, no HTML); roadmap and changelog in versioned static content; optional build-time site banner (`PUBLIC_SITE_BANNER`) | Publishing is a Git change plus build and release by decision; there is no panel editor |
 | Game reference content | Read-only item, skill and quest catalogues with detail URLs | Catalogue presence is not proof that every listed game mechanic is implemented |
-| Staff panel | Authenticated, capability-gated account lookup/actions, existing game controls, persistent bans and chat mutes, scheduled notices and staff messages, scheduled maintenance shutdown/restart, a persisted audit history, runtime charts, account login/action history and storage, server logs and backup receipts, live map, instance list, content index and case notes ([staff operations](staff-operations.md), [roadmap](admin-panel-roadmap.md)) | Six-digit PIN supplements staff authorization; it is not an anonymous write credential. Stages 0–3 are local source, not yet on the VPS; staff operations await real-client and browser acceptance |
+| Staff panel | Authenticated, capability-gated account lookup/actions, existing game controls, persistent bans and chat mutes, scheduled notices and staff messages, scheduled maintenance shutdown/restart, a persisted audit history, runtime charts, account login/action history and storage, server logs and backup receipts, live map, instance list, content index and case notes ([staff operations and plan](staff-operations.md)) | Six-digit PIN supplements staff authorization; it is not an anonymous write credential. Use the latest release receipt for activation; source tests do not establish browser or gameplay acceptance |
 
 The current public service is `cmd/player-api`, behind Caddy with a loopback
 listener, and the integrated staff panel remains on the game process's private
 HTTP listener. Do not deploy `cmd/account-api` as an equivalent replacement.
 OpenAPI and generated types are the HTTP contract, not the historical product
-plan. Current source API version is `0.14.0` (staff panel stages 0–3);
-response contracts use version `1`. Source migrates the database to schema
-`11`; the VPS stays at schema `8` until that release is activated.
+plan. Consult `wydgo748/api/openapi.yaml` for the source API version.
+Use [current state](../current-state.md) for the recorded active schema and release; avoid copying their versions into this feature matrix.
 
 ## Colosseum and OX controls — 2026-10-21
 

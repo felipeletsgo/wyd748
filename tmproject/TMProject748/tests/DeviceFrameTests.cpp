@@ -219,5 +219,38 @@ int RunDeviceFrameTests(int& checks)
     check(render_control_list::AppendUnique(layers, 2, 1, &survivor),
         "next frame does not traverse destroyed control from aborted frame");
     render_control_list::Clear(layers[1]);
+    {
+        // A retired scene can contain pointers to controls already freed by
+        // a derived destructor. An inaccessible page makes traversal fail.
+        auto* inaccessible = static_cast<Geometry*>(VirtualAlloc(nullptr, 4096,
+            MEM_RESERVE | MEM_COMMIT, PAGE_NOACCESS));
+        check(inaccessible != nullptr, "allocate inaccessible retired geometry");
+        if (inaccessible) {
+            GeometryList retired{inaccessible, inaccessible};
+            render_control_list::Discard(retired);
+            render_control_list::Discard(retired);
+            check(!retired.pHeadGeom && !retired.pTailGeom,
+                "terminal disposal never dereferences retired geometry and is repeatable");
+            VirtualFree(inaccessible, 0, MEM_RELEASE);
+        }
+    }
+    {
+        Geometry firstNode, secondNode;
+        GeometryList oldScene{}, newScene{};
+        render_control_list::Append(oldScene, &firstNode);
+        render_control_list::Append(newScene, &secondNode);
+        GeometryList* current = &oldScene;
+        GeometryList* const frameOwner = current;
+        {
+            render_control_list::FrameCleanup cleanup([frameOwner] {
+                render_control_list::Clear(*frameOwner);
+            });
+            render_control_list::Discard(oldScene);
+            current = &newScene;
+        }
+        check(!oldScene.pHeadGeom && current->pHeadGeom == &secondNode,
+            "retirement and frame cleanup cannot clear a replacement scene's lists");
+        render_control_list::Clear(newScene);
+    }
     return failures;
 }

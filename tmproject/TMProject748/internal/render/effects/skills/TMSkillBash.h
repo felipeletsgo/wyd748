@@ -14,6 +14,10 @@ public:
 	// Avanca a animacao usando o tempo do servidor.
 	int FrameMove(unsigned int dwServerTime) override;
 
+private:
+	// Creates the impact once, at natural expiry; never during teardown.
+	void SpawnImpact();
+
 public:
 	unsigned int m_dwStartTime; // Inicio do lifecycle visual.
 	unsigned int m_dwLifeTime;  // Duracao total do efeito.

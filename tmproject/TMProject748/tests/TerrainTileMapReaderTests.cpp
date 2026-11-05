@@ -99,5 +99,39 @@ int RunTerrainTileMapReaderTests(int& checks)
     } else {
         check(false, "Field1616.trn asset is available");
     }
+
+    // Every shipped terrain file, not only the Field1616 sample: each one must
+    // load as one complete KR record with no trailing bytes and in-range indices.
+    int terrainFiles = 0;
+    if (!path.empty()) {
+        std::error_code error;
+        for (const auto& entry : std::filesystem::directory_iterator(path.parent_path(), error)) {
+            if (!entry.is_regular_file() || entry.path().extension() != ".trn")
+                continue;
+            ++terrainFiles;
+            std::FILE* terrain = nullptr;
+            if (fopen_s(&terrain, entry.path().string().c_str(), "rb") != 0 || !terrain) {
+                check(false, "every shipped .trn file opens");
+                continue;
+            }
+            char mapName[128]{};
+            static FileTileInfo terrainTiles[4096]{};
+            int posX = -1;
+            int posY = -1;
+            const bool loaded = ReadTerrainTileMapRecord(terrain, mapName, posX, posY, terrainTiles);
+            const bool complete = loaded && std::fgetc(terrain) == EOF;
+            bool fits = loaded;
+            for (const auto& tile : terrainTiles) {
+                if (tile.wTileIndex + TerrainFrontTextureBase >= TerrainBackTextureBase ||
+                    tile.wBackTileIndex + TerrainBackTextureBase >= 2048)
+                    fits = false;
+            }
+            std::fclose(terrain);
+            check(complete, "every shipped .trn file is one complete KR record without trailing bytes");
+            check(fits, "every shipped .trn file keeps tile indices inside the texture ranges");
+        }
+        check(!error, "terrain directory can be enumerated");
+    }
+    check(terrainFiles > 0, "shipped .trn files are found");
     return failures;
 }

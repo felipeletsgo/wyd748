@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Confirmacao S->C do logout de personagem. O nativo 7.48 consome somente
-// o header e valida o ID antes de copiar Score/Equip e mudar para SelectChar.
+// S->C character-logout confirmation. Native 7.48 reads only the header and validates ID
+// before copying Score/Equip and entering SelectChar.
 constexpr auto MSG_CNFCharacterLogout_Opcode = 0x116;
 using MSG_CNFCharacterLogout = MSG_STANDARD;
 

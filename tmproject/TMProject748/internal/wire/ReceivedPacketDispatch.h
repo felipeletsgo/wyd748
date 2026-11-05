@@ -59,9 +59,8 @@
 #include "../application/ports/PacketDispatch.h"
 #include <cstring>
 
-// Incremental boundary between transport frames and legacy callbacks.
-// ExpectedSize lists migrated contracts; other opcodes remain subject to
-// consumer-specific guards. Local events do not pass through this entry.
+// Admit only documented receive consumers before legacy callbacks.
+// Local events do not pass through this entry.
 namespace received_packet
 {
     // Zero identifies an unmigrated contract, never an empty frame.
@@ -73,6 +72,8 @@ namespace received_packet
 
         switch (opcode)
         {
+        case 0x7DB: return sizeof(MSG_STANDARD) + sizeof(int); // China playtime
+        case 0xBFF: return sizeof(MSG_STANDARD) + 42 * sizeof(int); // MSG_Encode
         case quiz_event::ChallengeOpcode: return sizeof(quiz_event::Challenge);
         case instance_question::Opcode: return sizeof(instance_question::Packet);
         case premium_shop::ResultOpcode: return sizeof(premium_shop::Result);
@@ -144,8 +145,8 @@ namespace received_packet
     // Unmigrated legacy consumers without a proven exact 7.48 size. The value
     // is the end of the last field each handler reads or rewrites in place, so a
     // shorter frame can no longer make it touch the next frame or the end of the
-    // receive block. Zero means the consumer reads only the header or is
-    // unlisted. Longer frames remain accepted: these are minimums, not contracts.
+    // receive block. Zero means the consumer is unlisted. Longer frames remain
+    // accepted for these named consumers: these are minimums, not exact sizes.
     inline std::size_t ConsumerMinimumSize(unsigned int opcode)
     {
         constexpr std::size_t header = sizeof(MSG_STANDARD);
@@ -153,6 +154,11 @@ namespace received_packet
         constexpr std::size_t twoParameters = header + 2 * sizeof(int);
         switch (opcode)
         {
+        // These named consumers read only the header. No exact legacy size is proven.
+        case 0x119: case 0x11B: case 0x11D: case 0x196:
+        case 0x19C: case 0x301: case 0x3B3: case 0x7A9:
+            return header;
+        case 0xFBC: case 0x13BD: case 0x7BE: return header;           // opaque encode no-ops
         case 0x7B1: return header + 2 * sizeof(short) + 4 * 128;     // long message panel: Parm1, Parm2, Line[4][128]
         case 0x3B2: return header + sizeof(int) + 16;                // summon request: Result, Name[16]
         case 0x1D0: return kShopListPacketSize;                      // alternate shop list uses MSG_ShopList
@@ -224,7 +230,7 @@ namespace received_packet
             return packet.opcode == header.Type &&
                 header.Size == packet.size && packet.size >= minimum;
         }
-        return true;
+        return false;
     }
 
     // True means one delivery, not success of the character operation.

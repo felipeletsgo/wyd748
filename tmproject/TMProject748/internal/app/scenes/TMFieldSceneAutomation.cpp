@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../application/MountHealthContract.h"
 #include "TMFieldScene.h"
 #include "SGrid.h"
 #include "SControlContainer.h"
@@ -8,7 +9,9 @@
 #include "WYD748Assets.h"
 #include "features/macro/MacroMsg.h"
 #include "../../application/CCModePolicy.h"
+#include "../../application/SceneSafetyPolicy.h"
 #include "../../application/FieldInteractionPolicy.h"
+#include "FieldActionPolicy.h"
 #include "TMHuman.h"
 #include "TMObjectContainer.h"
 
@@ -34,7 +37,7 @@ void TMFieldScene::InitializeCompatCCControls()
 		m_pccmode->AddChild(label);
 		return label;
 	};
-	addText(0, "Combat Control", 4.0f, 2.0f, 150.0f);
+	addText(0, ui_text::RowOr(g_UIString, ui_text::kCombatTitle, "Combat Control"), 4.0f, 2.0f, 150.0f);
 	m_pCCModeHpSte = addText(T_CCMODE_HPSTE, "", 46.0f, 46.0f, 44.0f);
 	m_pCCModeMountSte = addText(T_CCMODE_MOUNTSTE, "", 90.0f, 46.0f, 44.0f);
 	addText(T_CCMODE_COMPAT_MODE, "", 2.0f, 46.0f, 44.0f);
@@ -51,18 +54,23 @@ void TMFieldScene::InitializeCompatCCControls()
 		m_pccmode->AddChild(button);
 		return button;
 	};
-	m_pMGameAutoBtn = addButton(B_CCMODE_DLG_MODE, 550, 11.0f, "Combat");
-	m_pCCPotionBtn = addButton(B_CCMODE_DLG_HP, 554, 55.0f, "HP/MP potion: click to adjust the percentage");
-	m_pCCFeedBtn = addButton(B_CCMODE_DLG_MOUNT, 555, 99.0f, "Mount feed: click to adjust or turn off");
-	m_pSetType = addButton(P_CCMODE_DLG_PONT, 556, 143.0f, "Movement");
+	m_pMGameAutoBtn = addButton(B_CCMODE_DLG_MODE, 550, 11.0f,
+		ui_text::RowOr(g_UIString, ui_text::kCombatHint, "Combat"));
+	m_pCCPotionBtn = addButton(B_CCMODE_DLG_HP, 554, 55.0f,
+		ui_text::RowOr(g_UIString, ui_text::kPotionHint, "HP/MP potion: click to adjust the percentage"));
+	m_pCCFeedBtn = addButton(B_CCMODE_DLG_MOUNT, 555, 99.0f,
+		ui_text::RowOr(g_UIString, ui_text::kMountFeedHint, "Mount feed: click to adjust or turn off"));
+	m_pSetType = addButton(P_CCMODE_DLG_PONT, 556, 143.0f,
+		ui_text::RowOr(g_UIString, ui_text::kMovementHint, "Movement"));
 	char closeText[] = "X";
 	auto close = new SButton(-2, 160.0f, 2.0f, 16.0f, 16.0f, 0xFFFFFFFF, 1, closeText);
 	close->SetControlID(B_CCMODE_COMPAT_CLOSE);
 	close->SetEventListener(m_pControlContainer);
 	m_pccmode->AddChild(close);
 
-	char caption[] = "C.C. - configure automatic combat";
-	m_pCC_Btn = new SButton(559, 0.0f, 0.0f, 30.0f, 30.0f, 0xFFFFFFFF, 1, caption);
+	m_pCC_Btn = new SButton(559, 0.0f, 0.0f, 30.0f, 30.0f, 0xFFFFFFFF, 1,
+		const_cast<char*>(ui_text::RowOr(g_UIString, ui_text::kCombatConfigHint,
+			"C.C. - configure automatic combat")));
 	m_pCC_Btn->SetControlID(B_CCMODE_SYSTEM);
 	m_pCC_Btn->SetEventListener(m_pControlContainer);
 	m_pControlContainer->AddItem(m_pCC_Btn);
@@ -255,43 +263,7 @@ void TMFieldScene::GameAuto()
 	else if (_nEquipIdx >= 3986 && _nEquipIdx <= 3988)
 		sIndex = _nEquipIdx - 3644;
 
-	int nMountMaxHPIndex = sIndex - 315;
-	if (sIndex - 315 < 0)
-		nMountMaxHPIndex = 0;
-
-	switch (g_pObjectManager->m_stMobData.Equip[14].sIndex - 2378)
-	{
-	case 0:
-		nMountMaxHPIndex = 18;
-		break;
-	case 1:
-		nMountMaxHPIndex = 19;
-		break;
-	case 2:
-		nMountMaxHPIndex = 21;
-		break;
-	case 3:
-		nMountMaxHPIndex = 20;
-		break;
-	case 4:
-	case 5:
-	case 6:
-	case 7:
-	case 8:
-		break;
-	case 9:
-		nMountMaxHPIndex = 20;
-		break;
-	case 10:
-		nMountMaxHPIndex = 21;
-		break;
-	case 11:
-		nMountMaxHPIndex = 22;
-		break;
-	}
-
-	int nMountMaxHp = nMountMaxHPIndex >= 0 && nMountMaxHPIndex < _countof(g_nMountHPTable)
-		? g_nMountHPTable[nMountMaxHPIndex] : 0;
+	int nMountMaxHp = mount_health::Maximum(_nEquipIdx);
 	CharMaxHp = g_GameAuto_hpValue * CharMaxHp / 100;
 	CharMaxMp = g_GameAuto_hpValue * CharMaxMp / 100;
 
@@ -446,7 +418,8 @@ void TMFieldScene::GameAuto()
 			auto pTarget = (TMHuman*)m_pHumanContainer->m_pDown;
 			while (pTarget && pTarget->m_pNextLink)
 			{
-				if (pTarget == m_pMyHuman)
+				// A03-09: an actor that left the view (delay-deleted) is no target.
+				if (pTarget == m_pMyHuman || pTarget->m_sDelayDel || pTarget->m_dwDelayDel)
 					pTarget = (TMHuman*)pTarget->m_pNextLink;
 				else
 				{
@@ -464,9 +437,9 @@ void TMFieldScene::GameAuto()
 				return;
 
 			auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
-			while (pNode && pNode->m_pNextLink)
+			while (pNode)
 			{
-				if (pNode == m_pMyHuman)
+				if (pNode == m_pMyHuman || pNode->m_sDelayDel || pNode->m_dwDelayDel)
 				{
 					pNode = (TMHuman*)pNode->m_pNextLink;
 					continue;
@@ -511,27 +484,14 @@ void TMFieldScene::GameAuto()
 			return;
 		}
 
-		int rnt = 0;
-		auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
-		while (pNode && pNode->m_pNextLink)
-		{
-			if (pNode == m_pMyHuman)
-			{
-				pNode = (TMHuman*)pNode->m_pNextLink;
-				continue;
-			}
-
-			if (pNode == m_pAutoTarget)
-			{
-				rnt = m_pMyHuman->MAutoAttack(m_pAutoTarget, m_AutoPostionUse == 2 ? 0 : 1);
-				if (m_pAutoTarget->m_cShadow == 1 && m_pAutoTarget->m_nClass == 66)
-					m_pAutoTarget = nullptr;
-			}
-
-			pNode = (TMHuman*)pNode->m_pNextLink;
-			if (!rnt)
-				m_pAutoTarget = nullptr;
-		}
+		cc_mode::UseRetainedTarget(static_cast<TMHuman*>(m_pHumanContainer->m_pDown), m_pAutoTarget,
+			[this](TMHuman* target) {
+				return target != m_pMyHuman && !target->m_sDelayDel && !target->m_dwDelayDel &&
+					!target->m_cDeleted && !target->m_cDie && target->m_nWillDie == -1 &&
+					!(target->m_cShadow == 1 && target->m_nClass == 66);
+			}, [this](TMHuman* target) {
+				return m_pMyHuman->MAutoAttack(target, m_AutoPostionUse == 2 ? 0 : 1);
+			});
 
 		return;
 	}
@@ -561,7 +521,8 @@ void TMFieldScene::GameAuto()
 			m_pAutoTarget = nullptr;
 			return;
 		}
-		if (dwServerTime < m_dwOldAttackTime + 1000 || IsSkillCoolingDown(attackSkill, dwServerTime))
+		// A03-04: wrap-safe "now < last attack + 1000".
+		if (field_time::Before(dwServerTime, m_dwOldAttackTime, 1000) || IsSkillCoolingDown(attackSkill, dwServerTime))
 			return;
 
 		if (!m_pAutoTarget)
@@ -569,9 +530,9 @@ void TMFieldScene::GameAuto()
 			m_pAutoTarget = nullptr;
 
 			auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
-			while (pNode && pNode->m_pNextLink)
+			while (pNode)
 			{
-				if (pNode == m_pMyHuman)
+				if (pNode == m_pMyHuman || pNode->m_sDelayDel || pNode->m_dwDelayDel)
 				{
 					pNode = (TMHuman*)pNode->m_pNextLink;
 					continue;
@@ -592,34 +553,16 @@ void TMFieldScene::GameAuto()
 			return;
 		}
 
-		int CheckAtt = 0;
-		auto pNode = (TMHuman*)m_pHumanContainer->m_pDown;
-		while (pNode && pNode->m_pNextLink)
-		{
-			if (pNode == m_pMyHuman)
-			{
-				pNode = (TMHuman*)pNode->m_pNextLink;
-				continue;
-			}
-
-			if (pNode == m_pAutoTarget)
-			{
-				int itx = (int)m_pAutoTarget->m_vecPosition.x;
-				int ity = (int)m_pAutoTarget->m_vecPosition.y;
-
-				if (!AutoSkillUse(itx, ity, D3DXVECTOR3(m_pAutoTarget->m_vecPosition.x, m_pAutoTarget->m_fHeight, m_pAutoTarget->m_vecPosition.y), 0, 0, m_pAutoTarget))
-				{
-					m_pAutoTarget = 0;
-					CheckAtt = 1;
-					break;
-				}
-			}
-
-			pNode = (TMHuman*)pNode->m_pNextLink;
-		}
-
-		if (!CheckAtt)
-			m_pAutoTarget = 0;
+		cc_mode::UseRetainedTarget(static_cast<TMHuman*>(m_pHumanContainer->m_pDown), m_pAutoTarget,
+			[this](TMHuman* target) {
+				return target != m_pMyHuman && !target->m_sDelayDel && !target->m_dwDelayDel &&
+					!target->m_cDeleted && !target->m_cDie && target->m_nWillDie == -1;
+			}, [this](TMHuman* target) {
+				return AutoSkillUse(static_cast<int>(target->m_vecPosition.x),
+					static_cast<int>(target->m_vecPosition.y),
+					D3DXVECTOR3(target->m_vecPosition.x, target->m_fHeight, target->m_vecPosition.y),
+					0, 0, target);
+			});
 	}
 }
 
@@ -686,13 +629,20 @@ void TMFieldScene::NewCCMode(bool bResetCombat, bool bCapturePosition)
 
 	if (m_pccmode)
 	{
-		const char* modes[] = {"Off", "Physical", "Magic", "Support"};
-		const char* positions[] = {"Free", "Cycle", "Fixed"};
+		const char* modes[] = {
+			ui_text::RowOr(g_UIString, ui_text::kCombatOff, "Off"),
+			ui_text::RowOr(g_UIString, ui_text::kCombatPhysical, "Physical"),
+			ui_text::RowOr(g_UIString, ui_text::kCombatMagic, "Magic"),
+			ui_text::RowOr(g_UIString, ui_text::kCombatSupport, "Support")};
+		const char* positions[] = {
+			ui_text::RowOr(g_UIString, ui_text::kMoveFree, "Free"),
+			ui_text::RowOr(g_UIString, ui_text::kMoveCycle, "Cycle"),
+			ui_text::RowOr(g_UIString, ui_text::kMoveFixed, "Fixed")};
 		const int positionTextures[] = {556, 557, 558};
 		SetButtonState(m_pMGameAutoBtn, 550 + g_GameAuto, const_cast<char*>(modes[g_GameAuto]));
 		SetButtonState(m_pSetType, positionTextures[m_AutoPostionUse], const_cast<char*>(positions[m_AutoPostionUse]));
 		if (auto modeText = static_cast<SText*>(m_pControlContainer->FindControl(T_CCMODE_COMPAT_MODE)))
-			modeText->SetText(const_cast<char*>(g_GameAuto == 0 ? "Off" : modes[g_GameAuto]), 0);
+			modeText->SetText(const_cast<char*>(modes[g_GameAuto]), 0);
 		if (auto moveText = static_cast<SText*>(m_pControlContainer->FindControl(T_CCMODE_COMPAT_MOVE)))
 			moveText->SetText(const_cast<char*>(positions[m_AutoPostionUse]), 0);
 		char threshold[16]{};

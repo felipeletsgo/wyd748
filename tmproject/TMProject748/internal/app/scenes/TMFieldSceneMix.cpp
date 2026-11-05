@@ -246,11 +246,12 @@ void TMFieldScene::DoNativeMix(int mixIndex)
 				for (int slot = 0; slot < 7; ++slot)
 					valid = valid && packet->Item[slot].sIndex == 421 + slot;
 			}
-			else if (first == 4146)
+			else if (first == 4043)
 			{
-				valid = packet->Item[1].sIndex == 4146 && packet->Item[2].sIndex == 5135;
-				for (int slot = 3; slot < 7; ++slot)
-					valid = valid && packet->Item[slot].sIndex >= 5110 && packet->Item[slot].sIndex <= 5133;
+				const int targetIndex = packet->Item[2].sIndex;
+				const int targetLevel = targetIndex > 0 && targetIndex < MAX_ITEMLIST
+					? BASE_GetItemSanc(&packet->Item[2]) : -1;
+				valid = odin_composition::AcceptsBlessedRefinementRecipe(packet->Item, targetLevel);
 			}
 			else
 				valid = false;

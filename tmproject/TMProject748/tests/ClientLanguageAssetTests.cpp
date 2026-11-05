@@ -58,6 +58,18 @@ int RunClientLanguageAssetTests(int& checks)
     if (!created) return failures;
     const auto previous = std::filesystem::current_path();
     std::filesystem::current_path(root);
+    // Restore the working directory and remove the fixture also when a later
+    // statement throws; the normal path below repeats both and checks removal.
+    struct FixtureScope {
+        std::filesystem::path previous;
+        std::filesystem::path root;
+        ~FixtureScope()
+        {
+            std::error_code ignored;
+            std::filesystem::current_path(previous, ignored);
+            std::filesystem::remove_all(root, ignored);
+        }
+    } fixtureScope{previous, root};
     const auto preference = root / "lang.txt";
     check(Read(preference.wstring()) == Language::English, "missing preference reads English");
     check(Save(preference.wstring(), Language::Portuguese) && Read(preference.wstring()) == Language::Portuguese,

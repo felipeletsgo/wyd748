@@ -27,7 +27,7 @@ int TMHuman::Render()
     if (!m_pSkinMesh)
         return 0;
 
-    if (!IsVisible() || m_cHide == 1 || m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this && !g_pCurrentScene->m_pMyHuman->m_JewelGlasses)
+    if (!IsVisible() || m_cHide == 1 || m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this && (!g_pCurrentScene->m_pMyHuman || !g_pCurrentScene->m_pMyHuman->m_JewelGlasses))
     {
         for (int i = 0; i < 7; ++i)
         {
@@ -93,7 +93,7 @@ int TMHuman::Render()
             g_pDevice->SetRenderState(D3DRS_ALPHAREF, 0xFFu);
 
         if (m_cHide == 1 && (TMHuman*)g_pObjectManager->m_pCamera->m_pFocusedObject != this
-            || m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this  && !g_pCurrentScene->m_pMyHuman->m_JewelGlasses)
+            || m_cShadow == 1 && g_pCurrentScene->m_pMyHuman != this  && (!g_pCurrentScene->m_pMyHuman || !g_pCurrentScene->m_pMyHuman->m_JewelGlasses))
         {
             return 1;
         }
@@ -185,7 +185,7 @@ int TMHuman::Render()
             || m_cCoinArmor == 1
             || m_cShadow == 1
             && g_pCurrentScene->m_pMyHuman != this
-            && !g_pCurrentScene->m_pMyHuman->m_JewelGlasses)
+            && (!g_pCurrentScene->m_pMyHuman || !g_pCurrentScene->m_pMyHuman->m_JewelGlasses))
         {
             g_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, 0);
             g_pDevice->SetRenderState(D3DRS_DESTBLEND, 6u);
@@ -465,7 +465,7 @@ void TMHuman::SetColorMaterial()
                     m_dwEdgeColor = 0x8800FF00;
                 else if (m_bParty == 1)
                     m_dwEdgeColor = 0x88FF00FF;
-                else if (m_usGuild && (m_usGuild == pFocused->m_usGuild || g_pObjectManager->m_usAllyGuild == m_usGuild))
+                else if (m_usGuild && ((pFocused && m_usGuild == pFocused->m_usGuild) || g_pObjectManager->m_usAllyGuild == m_usGuild))
                     m_dwEdgeColor = 0x8800FFFF;
                 else
                 {
@@ -481,7 +481,7 @@ void TMHuman::SetColorMaterial()
                 m_dwEdgeColor = 0x8800FF00;
             }
 
-            if ((m_stScore.Merchant & 0xF) == 15 && pFocused->m_cMantua && pFocused->m_cMantua != 3 && m_pMantua && pFocused->m_pMantua
+            if ((m_stScore.Merchant & 0xF) == 15 && pFocused && pFocused->m_cMantua && pFocused->m_cMantua != 3 && m_pMantua && pFocused->m_pMantua
                 && m_cMantua != pFocused->m_cMantua)
             {
                 m_dwEdgeColor = 0x88FF0000;

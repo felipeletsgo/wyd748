@@ -37,6 +37,13 @@ TMFont2::~TMFont2()
 
 int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 {
+	if (!StoreText(szString, dwColor, bCheckZero))
+		return 0;
+	return Rasterize();
+}
+
+int TMFont2::StoreText(const char* szString, unsigned int dwColor, int bCheckZero)
+{
 	if (!szString)
 		return 0;
 	const auto nStrLength = strnlen_s(szString, MAX_STRLENGTH);
@@ -70,7 +77,7 @@ int TMFont2::SetText(const char* szString, unsigned int dwColor, int bCheckZero)
 	m_szString[83] = 0;
 	m_szString[82] = 0;
 	m_bCheckZero = bCheckZero;
-	return Rasterize();
+	return 1;
 }
 
 int TMFont2::Rasterize()

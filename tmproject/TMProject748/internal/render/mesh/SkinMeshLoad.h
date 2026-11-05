@@ -41,6 +41,19 @@ inline bool Plan(const Header& header, std::uint64_t fileBytes,
     return true;
 }
 
+// The skinning shaders (Shader\skinmesh*.bin) read bone matrices from c9 in
+// three-register steps and the inverse view from c92, so 27 bones fit. Their
+// declarations use 32 bytes plus 4 bytes per influence. A rigid part
+// (palette 0) must have no influences; RenderMesh does not draw it.
+constexpr std::uint32_t ShaderPaletteBudget = (92 - 9) / 3;
+
+inline bool ShaderCompatible(const Header& header)
+{
+    if (header.palette == 0) return header.influences == 0;
+    return header.palette <= ShaderPaletteBudget &&
+        header.stride == 32 + 4 * header.influences;
+}
+
 inline bool ReadExact(FILE* file, void* destination, std::size_t bytes)
 {
     return file && (!bytes || (destination && std::fread(destination, 1, bytes, file) == bytes));

@@ -3,6 +3,7 @@
 #include "Structures.h"
 #include "Basedef.h"
 #include "../application/ports/PacketView.h"
+#include "../application/RetiredScenes.h"
 
 
 class TreeNode;
@@ -113,7 +114,9 @@ public:
 	int m_nServerGroupIndex;
 	int m_nServerIndex;
 	char m_szAccountName[16];
-	char m_szAccountPass[16];
+	// Plain login as typed, for display only (Premium Nell header).
+	// m_szAccountName holds the transformed legacy account proof.
+	char m_szAccountDisplay[16]{};
 	char m_szGuildName[12];
 	char m_strErrorMessage[256];
 	TreeNode* m_pRoot;
@@ -127,5 +130,7 @@ public:
 	int m_bTvControl;
 	stPlayTime m_stPlayTime[64];
 	int m_bPlayTime;
+	// Scenes replaced before m_pPreviousScene was deleted (C-13).
+	RetiredScenes<TMScene> m_retiredScenes;
 
 };

@@ -20,6 +20,7 @@
 #include "TMRain.h"
 #include "WYD748Assets.h"
 #include "UiLayout.h"
+#include "../../application/SceneSafetyPolicy.h"
 
 
 namespace
@@ -398,8 +399,8 @@ TMScene::~TMScene()
 
 	SAFE_DELETE(m_pControlContainer);
 
-	g_pObjectManager->m_pPreviousScene = nullptr;
-	g_pObjectManager->CleanUp();
+	// The owner sweeps and retires scenes. Reentry here traverses a scene
+	// whose derived destructor and containers have already been destroyed.
 
 	m_pGround = nullptr;
 
@@ -468,6 +469,10 @@ int TMScene::OnPacketEvent(unsigned int dwCode, char* pSBuffer)
 			m_pMessagePanel->SetMessage(g_pMessageStringTable[13], 4000u);
 			m_pMessagePanel->SetVisible(1, 1);
 		}
+
+		// A quit countdown ends with its connection. A stale stamp would
+		// close the next field scene or block its input after relogin.
+		g_dwStartQuitGameTime = 0;
 
 		if (m_eSceneType != ESCENE_TYPE::ESCENE_LOGIN)
 			g_pObjectManager->SetCurrentState(ObjectManager::TM_GAME_STATE::TM_SELECTSERVER_STATE);
@@ -584,6 +589,7 @@ int TMScene::OnMessagePanelPacket(MSG_STANDARD*& pStd)
 	// The imported newer client used a 128-byte body and wrote past the
 	// canonical packet, corrupting the next receive-buffer frame.
 	pMsgPanel->String[sizeof(pMsgPanel->String) - 1] = 0;
+	nightmare_clock::Time nightmareTime{};
 
 	if (m_eSceneType == ESCENE_TYPE::ESCENE_SELCHAR && pMsgPanel->String[0] == '^')
 	{
@@ -644,27 +650,17 @@ int TMScene::OnMessagePanelPacket(MSG_STANDARD*& pStd)
 				pMsgPanel->String[iSt] = '_';
 		}
 	}
-	else if (pMsgPanel->String[0] == '!' || pMsgPanel->String[1] == '!')
+	else if (nightmare_clock::Parse(pMsgPanel->String, nightmareTime))
 	{
 		if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 		{
-			for (int n = 2; n < 8; ++n)
-			{
-				if (pMsgPanel->String[n] < '0' || pMsgPanel->String[n] > '9')
-					pMsgPanel->String[n] = '0';
-			}
-
 			TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-			pFScene->m_NightmareTime.wHour = pMsgPanel->String[3] - 48 + 10 * (pMsgPanel->String[2] - 48);
-			pFScene->m_NightmareTime.wMonth = pMsgPanel->String[5] - 48 + 10 * (pMsgPanel->String[4] - 48);
-			pFScene->m_NightmareTime.wSecond = pMsgPanel->String[7] - 48 + 10 * (pMsgPanel->String[6] - 48);
+			pFScene->m_NightmareTime.wHour = nightmareTime.hour;
+			pFScene->m_NightmareTime.wMonth = nightmareTime.minute;
+			pFScene->m_NightmareTime.wSecond = nightmareTime.second;
 			pFScene->m_dwLastNightmareTime = g_pTimerManager->GetServerTime();
-			return 1;
 		}
-	}
-	else if (pMsgPanel->String[0] == '!')
-	{
-		ShowSmsMessage(pMsgPanel);
+		return 1;
 	}
 	else if (pMsgPanel->String[0] == '2' && pMsgPanel->String[1] == '0' && pMsgPanel->String[2] == '0')
 	{
@@ -829,46 +825,29 @@ void TMScene::AppendMessagePanelToChat(MSG_MessagePanel*& pMsgPanel)
 	if (strlen(pMsgPanel->String) > 50 || g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD)
 		return;
 
+	// The newer source rewrote the 96-byte panel text with strdef rows 446-451
+	// before the toggle. In the 7.48 strdef those rows are unrelated server
+	// messages, and six of the eight concatenations overflow the buffer
+	// (CRT fail-fast). Nothing reads the rewritten text: apply only the toggle.
 	TMFieldScene* pFScene = static_cast<TMFieldScene*>(g_pCurrentScene);
-	if (!strcmp(pMsgPanel->String, "Whisper : Off"))
+	const auto toggle = channel_notice::Classify(pMsgPanel->String);
+	const char on = toggle.on ? 1 : 0;
+	switch (toggle.channel)
 	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[447]);
-		pFScene->SetWhisper(0);
-	}
-	if (!strcmp(pMsgPanel->String, "Whisper : On"))
-	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[448], g_pMessageStringTable[446]);
-		pFScene->SetWhisper(1);
-	}
-	if (!strcmp(pMsgPanel->String, "Citizen Chatting : Off"))
-	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[447]);
-		pFScene->SetPartyChat(0);
-	}
-	if (!strcmp(pMsgPanel->String, "Citizen Chatting : On"))
-	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[449], g_pMessageStringTable[446]);
-		pFScene->SetPartyChat(1);
-	}
-	if (!strcmp(pMsgPanel->String, "Guild Chatting : Off"))
-	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[447]);
-		pFScene->SetGuildChat(0);
-	}
-	if (!strcmp(pMsgPanel->String, "Guild Chatting : On"))
-	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[450], g_pMessageStringTable[446]);
-		pFScene->SetGuildChat(1);
-	}
-	if (!strcmp(pMsgPanel->String, "Kingdom Chatting : On"))
-	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[446]);
-		pFScene->SetKingDomChat(1);
-	}
-	if (!strcmp(pMsgPanel->String, "Kingdom Chatting : Off"))
-	{
-		sprintf_s(pMsgPanel->String, "%s%s", g_pMessageStringTable[451], g_pMessageStringTable[447]);
-		pFScene->SetKingDomChat(0);
+	case channel_notice::Channel::Whisper:
+		pFScene->SetWhisper(on);
+		break;
+	case channel_notice::Channel::Citizen:
+		pFScene->SetPartyChat(on);
+		break;
+	case channel_notice::Channel::Guild:
+		pFScene->SetGuildChat(on);
+		break;
+	case channel_notice::Channel::Kingdom:
+		pFScene->SetKingDomChat(on);
+		break;
+	case channel_notice::Channel::None:
+		break;
 	}
 }
 
@@ -1036,7 +1015,7 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 
 		if (dX >= 0.0f && (float)nShold > dX)
 		{
-			needX = { dX, m_pGround->m_pLeftGround != nullptr };
+			needX = ground_side::Demand(dX, m_pGround->m_pLeftGround != nullptr, m_pGround->m_cLeftEnable == 1);
 			dirX = EDirection::EDIR_LEFT;
 		}
 		else if (dX < 0.0f && dX > (float)-nShold)
@@ -1052,7 +1031,8 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 		}
 		else if (dX > (float)(128 - nShold) && dX < 128.0f)
 		{
-			needX = { 128.0f - dX, m_pGround->m_pRightGround != nullptr };
+			needX = ground_side::Demand(128.0f - dX, m_pGround->m_pRightGround != nullptr,
+				m_pGround->m_cRightEnable == 1);
 			dirX = EDirection::EDIR_RIGHT;
 		}
 		else if (dX >= 128.0f && (float)(nShold + 128) > dX && m_pGround->m_pRightGround)
@@ -1066,7 +1046,7 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 
 		if (dY >= 0.0f && (float)nShold > dY)
 		{
-			needY = { dY, m_pGround->m_pUpGround != nullptr };
+			needY = ground_side::Demand(dY, m_pGround->m_pUpGround != nullptr, m_pGround->m_cUpEnable == 1);
 			dirY = EDirection::EDIR_UP;
 		}
 		else if (dY < 0.0f && dY > (float)-nShold)
@@ -1082,7 +1062,8 @@ int TMScene::FrameMove(unsigned int dwServerTime)
 		}
 		else if (dY > (float)(128 - nShold) && (float)128 > dY)
 		{
-			needY = { 128.0f - dY, m_pGround->m_pDownGround != nullptr };
+			needY = ground_side::Demand(128.0f - dY, m_pGround->m_pDownGround != nullptr,
+				m_pGround->m_cDownEnable == 1);
 			dirY = EDirection::EDIR_DOWN;
 		}
 		else if (dY >= (float)128 && (float)(nShold + 128) > dY && m_pGround->m_pDownGround)
@@ -1135,7 +1116,9 @@ void TMScene::Cleanup()
 
 void TMScene::CameraAction()
 {
-	if (m_dwStartCamTime == 0)
+	// An empty or unreadable camera path has no record to read; the final-pose
+	// branch below indexes m_nCameraLoop - 1.
+	if (m_dwStartCamTime == 0 || m_nCameraLoop < 1)
 		return;
 
 	DWORD dwTick = (g_pTimerManager->GetServerTime() - m_dwStartCamTime) + 100;
@@ -1224,18 +1207,25 @@ void TMScene::ReadCameraPos(const char* szFileName)
 
 	FILE* fpBin = nullptr;
 
-	fopen_s(&fpBin, szBinFileName, "rb");
+	if (fopen_s(&fpBin, szBinFileName, "rb") != 0 || !fpBin)
+	{
+		LOG_WRITELOG("Camera path not loaded [%s]\r\n", szBinFileName);
+		return;
+	}
 
-	fread(&m_nCameraLoop, 1, 4, fpBin);
+	// Use only complete records: a missing count or a short file leaves no
+	// record beyond the data that was actually read.
+	static_assert(sizeof(stCameraTick) == camera_path::kRecordBytes, "camera record layout changed");
+	int nDeclared = 0;
+	if (fread(&nDeclared, sizeof(nDeclared), 1, fpBin) != 1)
+		nDeclared = 0;
 
-	if (m_nCameraLoop > 1000)
-		m_nCameraLoop = 1000;
-
-	else if (m_nCameraLoop < 0)
-		m_nCameraLoop = 0;
-
-	fread(m_stCameraTick, 1, 28 * m_nCameraLoop, fpBin);
+	const int nRequested = camera_path::RequestedRecords(nDeclared, static_cast<int>(_countof(m_stCameraTick)));
+	const size_t nRead = nRequested > 0
+		? fread(m_stCameraTick, sizeof(stCameraTick), static_cast<size_t>(nRequested), fpBin) : 0;
 	fclose(fpBin);
+
+	m_nCameraLoop = camera_path::UsableRecords(nRequested, nRead);
 }
 
 void TMScene::CheckPKNonePK(int nServerIndex)

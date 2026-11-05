@@ -4,10 +4,22 @@ title: Uso de volatiles na Field nativa e rotas do catalogo integrado
 subsystem: ui
 status: CONTRACT
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-13
+updated: 2026-11-02
 ---
 
 # Uso de volatiles no TMProject 7.48
+
+## Authoritative inventory follow-up (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Keep the item routing described
+below. Remove optimistic inventory and stack mutation after `0x373` and
+capsule intention sends. Authoritative snapshots now own removal and quantity
+updates. The server also resends valid sources on early dead-player,
+empty-slot, and invalid-destination rejection. Reserved durable transactions
+publish only after completion. Native routing evidence remains valid;
+optimistic-consumption implementation descriptions below are historical.
+See [the current contract](../../../../../DOCS/client/port-748.md#authoritative-item-use-and-merchant-display-2026-11-02).
+Real-client acceptance remains pending.
 
 ## Pergunta
 

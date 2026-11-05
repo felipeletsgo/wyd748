@@ -4,12 +4,14 @@
 #include "TMScene.h"
 #include "TMEffectSkinMesh.h"
 #include "HumanAnglePolicy.h"
+#include "HumanMovementPolicy.h"
 #include "TMFieldScene.h"
 #include "TMUtil.h"
 #include "TMObjectContainer.h"
 
 void TMHuman::InitPosition(float fX, float fY, float fZ)
 {
+    m_pendingMoveTarget.Clear();
     if (m_dwDelayDel != 0)
         return;
 
@@ -135,6 +137,9 @@ void TMHuman::SetWantAngle(float fAngle)
 
 void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
 {
+    if (g_pCurrentScene && this == g_pCurrentScene->m_pMyHuman &&
+        (bStop == 2 || (vecTarget.x == m_LastSendTargetPos.x && vecTarget.y == m_LastSendTargetPos.y)))
+        m_pendingMoveTarget.Clear();
     if (!m_dwDelayDel && (vecTarget.x != m_LastSendTargetPos.x || vecTarget.y != m_LastSendTargetPos.y))
     {
         int nStartRouteIndex = m_nLastRouteIndex;
@@ -157,15 +162,28 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
         unsigned int dwTime = g_pTimerManager->GetServerTime();
         TMFieldScene* pFScene = (TMFieldScene*)g_pCurrentScene;
 
+        // Elapsed comparisons keep these transition gates working across a
+        // server-tick wrap; absolute `stamp + 6000` deadlines did not.
         if ((this != g_pCurrentScene->m_pMyHuman || g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_FIELD ||
-            (dwTime >= g_dwStartQuitGameTime + 6000
-            && dwTime >= pFScene->m_dwLastLogout + 6000
-            && dwTime >= pFScene->m_dwLastSelServer + 6000
-            && dwTime >= pFScene->m_dwLastTown + 6000
-            && dwTime >= pFScene->m_dwLastTeleport + 6000)))
+            (transition_gate::HasElapsed(dwTime, g_dwStartQuitGameTime, 6000)
+            && transition_gate::HasElapsed(dwTime, pFScene->m_dwLastLogout, 6000)
+            && transition_gate::HasElapsed(dwTime, pFScene->m_dwLastSelServer, 6000)
+            && transition_gate::HasElapsed(dwTime, pFScene->m_dwLastTown, 6000)
+            && transition_gate::HasElapsed(dwTime, pFScene->m_dwLastTeleport, 6000))))
         {
+            const bool localField = this == g_pCurrentScene->m_pMyHuman &&
+                g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD;
+            if (localField && bStop != 2 && dwServerTime - m_dwOldMovePacketTime <= 1000)
+            {
+                    // Native FUN_00520216 has a one-second send gate. Keep
+                    // the latest intent until that gate opens; never apply
+                    // a local route which the authoritative server did not get.
+                m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
+                return;
+            }
             if (dwServerTime - m_dwOldMovePacketTime > dwDealyTime || bStop)
             {
+                if (localField) m_pendingMoveTarget.Clear();
                 char* pHeightMapData = (char*)g_pCurrentScene->m_HeightMapData;
                 int nTX = vecTarget.x;
                 int nTY = vecTarget.y;
@@ -211,16 +229,12 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                     {
                         if (bStop && (m_LastSendTargetPos.x != vecTarget.x || m_LastSendTargetPos.y != vecTarget.y))
                         {
-                            m_cLastMoveStop = 1;
                             TMHuman* pObj = g_pCurrentScene->m_pMyHuman;
 
                             if (pObj == this
                                 && g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_SELECT_SERVER
                                 && g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_DEMO)
                             {
-                                m_LastSendTargetPos.x = vecTarget.x;
-                                m_LastSendTargetPos.y = vecTarget.y;
-
                                 MSG_Action dst{};
 
                                 dst.Header.ID = m_dwID;
@@ -232,17 +246,23 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                                 dst.TargetX = vecTarget.x;
                                 dst.TargetY = vecTarget.y;
 
-                                g_pCurrentScene->OnPacketEvent(MSG_Action_Opcode, (char*)&dst);
-
                                 if (bStop != 2)
                                 {
+                                    if (!SendOneMessage(reinterpret_cast<char*>(&dst), sizeof(dst)))
+                                    {
+                                        m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
+                                        return;
+                                    }
                                     pFScene->m_stMoveStop.LastX = dst.PosX;
                                     pFScene->m_stMoveStop.LastY = dst.PosY;
                                     pFScene->m_stMoveStop.NextX = dst.TargetX;
                                     pFScene->m_stMoveStop.NextY = dst.TargetY;
-                                    SendOneMessage((char*)&dst, 52);
                                     g_bLastStop = dst.Header.Type;
                                 }
+                                m_cLastMoveStop = 1;
+                                m_LastSendTargetPos.x = vecTarget.x;
+                                m_LastSendTargetPos.y = vecTarget.y;
+                                g_pCurrentScene->OnPacketEvent(MSG_Action_Opcode, (char*)&dst);
 
                                 for (int i = 0; i < 48; ++i)
                                 {
@@ -293,14 +313,8 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                             vecRouteTable[k].y = 0.0f;
                         }
 
-                        if (g_pCurrentScene->m_pMyHuman == this && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-                            pFScene->m_vecMyNext = vecTarget;
-
                         if ((vecTarget.x != nSX || vecTarget.y != nSY) && (vecTarget.x != m_vecTargetPos.x || vecTarget.y != m_vecTargetPos.y || bStop))
                         {
-                            memset(m_cRouteBuffer, 0, sizeof(m_cRouteBuffer));
-                            memcpy(m_cRouteBuffer, cRouteBuffer, nRouteIndex);
-
                             MSG_Action stAction{};
                             stAction.Header.ID = m_dwID;
                             stAction.PosX = nSX;
@@ -321,33 +335,36 @@ void TMHuman::GetRoute(IVector2 vecTarget, int nCount, int bStop)
                             stAction.TargetY = vecTarget.y;
 
                             for (int j = 0; j < 23; ++j)
-                                stAction.Route[j] = m_cRouteBuffer[j % 24];
+                                stAction.Route[j] = j < nRouteIndex ? cRouteBuffer[j] : 0;
 
                             if (m_LastSendTargetPos.x != vecTarget.x || m_LastSendTargetPos.y != vecTarget.y)
                             {
-                                if (m_cLastMoveStop == bStop && bStop == 1)
-                                    return;
-
-                                m_cLastMoveStop = bStop;
                                 if (g_pCurrentScene->m_pMyHuman == this
                                     && g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_SELECT_SERVER
                                     && g_pCurrentScene->m_eSceneType != ESCENE_TYPE::ESCENE_DEMO
                                     && dwServerTime - m_dwOldMovePacketTime > 1000
                                     && bStop != 2)
                                 {
+                                    if (!SendOneMessage(reinterpret_cast<char*>(&stAction), sizeof(stAction)))
+                                    {
+                                        m_pendingMoveTarget.Set(vecTarget.x, vecTarget.y, nCount, bStop);
+                                        return;
+                                    }
                                     pFScene->m_stMoveStop.LastX = stAction.PosX;
                                     pFScene->m_stMoveStop.LastY = stAction.PosY;
                                     pFScene->m_stMoveStop.NextX = stAction.TargetX;
                                     pFScene->m_stMoveStop.NextY = stAction.TargetY;
-                                    SendPacket({reinterpret_cast<MSG_STANDARD*>(&stAction)->Type, reinterpret_cast<char*>(&stAction), sizeof(stAction)});
                                     g_bLastStop = stAction.Header.Type;
 
                                     m_dwOldMovePacketTime = g_pTimerManager->GetServerTime();
                                     m_LastSendTargetPos.x = stAction.TargetX;
                                     m_LastSendTargetPos.y = stAction.TargetY;
                                 }
+                                m_cLastMoveStop = bStop;
                             }
-
+                            memset(m_cRouteBuffer, 0, sizeof(m_cRouteBuffer));
+                            memcpy(m_cRouteBuffer, cRouteBuffer, nRouteIndex);
+                            if (localField) pFScene->m_vecMyNext = vecTarget;
                             OnPacketEvent(MSG_Action_Opcode, (char*)&stAction);
                             return;
                         }
@@ -411,11 +428,16 @@ void TMHuman::GenerateRouteTable(int nSX, int nSY, char* pRouteBuffer, TMVector2
 
 int TMHuman::ChangeRouteBuffer(int nSX, int nSY, TMVector2* pRouteTable, int* pMaxRouteIndex)
 {
-    char* pHeightMapData = (char*)g_pCurrentScene->m_HeightMapData;
-    int nRoutCount = 0;
+    if (!g_pCurrentScene || !pRouteTable)
+        return 0;
 
-    int i;
-    for (i = 46; i >= 0; --i)
+    char* pHeightMapData = (char*)g_pCurrentScene->m_HeightMapData;
+    int nRoutCount = -1;
+    // Keep the bridge from the actor's cell to the furthest reachable route
+    // cell; a second, empty buffer made the actor jump to that cell.
+    char szBridge[48]{};
+
+    for (int i = 46; i >= 0; --i)
     {
         if (pRouteTable[i].x != pRouteTable[i + 1].x ||
             pRouteTable[i].y != pRouteTable[i + 1].y)
@@ -429,37 +451,28 @@ int TMHuman::ChangeRouteBuffer(int nSX, int nSY, TMVector2* pRouteTable, int* pM
             if (tX == (int)pRouteTable[i].x && tY == (int)pRouteTable[i].y)
             {
                 nRoutCount = i;
+                memcpy(szBridge, szBuffer, sizeof(szBridge));
                 break;
             }
         }
     }
 
-    if (i < 0 || i > 46)
-        return 0;
-
     if (nRoutCount < 0 || nRoutCount > 46)
         return 0;
 
-    TMVector2 vecRouteBuffer[48]{};
-    TMVector2 vecCurrent;
-    int nMaxRouteIndex;
-    char szBuffer[48]{};
-    GenerateRouteTable(nSX, nSY, szBuffer, vecRouteBuffer, &nMaxRouteIndex);
+    TMVector2 vecBridge[48]{};
+    int nBridgeMaxIndex = 0;
+    GenerateRouteTable(nSX, nSY, szBridge, vecBridge, &nBridgeMaxIndex);
 
-    if (nMaxRouteIndex - 2 < 0)
+    TMVector2 vecRouteBuffer[48]{};
+    const int nMaxRouteIndex = route_bridge::Compose(vecBridge, nBridgeMaxIndex, pRouteTable, nRoutCount,
+        pMaxRouteIndex ? *pMaxRouteIndex : 0, vecRouteBuffer);
+    if (nMaxRouteIndex <= 0)
         return 0;
 
-    vecCurrent = vecRouteBuffer[nMaxRouteIndex - 2];
-    for (i = nMaxRouteIndex - 2; i < 48; ++i)
-    {
-        vecRouteBuffer[i] = vecCurrent;
-        if (i + nRoutCount - (nMaxRouteIndex - 2) < 48)
-           vecRouteBuffer[i] = pRouteTable[i + nRoutCount - (nMaxRouteIndex - 2)];
-
-        vecCurrent = vecRouteBuffer[i];
-    }
-
     memcpy(pRouteTable, vecRouteBuffer, sizeof(vecRouteBuffer));
+    if (pMaxRouteIndex)
+        *pMaxRouteIndex = nMaxRouteIndex;
     return 1;
 }
 

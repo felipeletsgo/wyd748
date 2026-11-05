@@ -226,6 +226,40 @@
 226	C.C Mode(MC)
 227	C.C Mode(SC)
 228	Lv
-
-
-
+240	Kills
+241	Enter the quantity to split.
+242	Use this Entrance Ticket to enter?
+229	Off
+230	Support
+232	Fixed
+233	Free
+234	Cycle
+235	Combat Control
+236	Combat
+237	HP/MP potion: click to adjust the percentage
+238	Mount feed: click to adjust or turn off
+239	Movement
+243	Show Exp : ON
+244	Show Exp : OFF
+245	FPS and ping shown under the minimap.
+246	FPS and ping hidden.
+247	Monster
+248	Critical data error.
+249	Data file not found.
+250	Missing file
+251	C.C. - configure automatic combat
+252	Physical
+253	Magic
+254 Use at least 4 letters.
+255 Use no more than 13 letters.
+256 Use only letters A-Z or a-z.
+257	%s  (10 seconds)
+258	Match %d
+259	Team A
+260	Team B
+261	%d Left
+262	Item %d
+263	Nell: purchase completed. The item is in your inventory.
+264	Nell: purchase was not completed. Open the shop again.
+265	Nell: waiting for the server to confirm your purchase.
+266	Nell: web unavailable. The standard shop will be used.

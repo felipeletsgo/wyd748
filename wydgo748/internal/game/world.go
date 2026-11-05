@@ -1341,7 +1341,11 @@ func (w *World) positionOccupiedExceptPlayers(x, y uint16, exceptMob *Mob,
 // findFreePlayerPosition tries adjacent tiles first, then expands in rings.
 // It ignores the player, who may already occupy the recall tile while reviving.
 func (w *World) findFreePlayerPosition(x, y uint16, radius int, player *Player) (uint16, uint16) {
-	if !w.positionOccupiedExcept(x, y, nil, player) {
+	var ch *model.Char
+	if player != nil {
+		ch = player.Char
+	}
+	if !w.positionOccupiedExcept(x, y, nil, player) && w.guildCityAreaAllowed(ch, x, y) {
 		return x, y
 	}
 	if radius < 1 {
@@ -1365,6 +1369,7 @@ func (w *World) findFreePlayerPosition(x, y uint16, radius int, player *Player) 
 				continue
 			}
 			if w.terrain.HeightCompatible(x, y, uint16(nx), uint16(ny)) &&
+				w.guildCityAreaAllowed(ch, uint16(nx), uint16(ny)) &&
 				!w.positionOccupiedExcept(uint16(nx), uint16(ny), nil, player) {
 				return uint16(nx), uint16(ny)
 			}
@@ -1424,7 +1429,15 @@ func (w *World) findFreeGameplayPosition(spaceOwner, exceptPlayer *Player,
 			return w.findFreePlayerPositionInInstance(x, y, int(radius), exceptPlayer, runtimeID)
 		}
 	}
-	return w.findFreePositionExcept(x, y, radius, exceptPlayer)
+	// Pulls and combat jumps use the displaced player's access, not the caster's.
+	if exceptPlayer != nil && !w.guildCityAreaAllowed(exceptPlayer.Char, x, y) {
+		return exceptPlayer.X, exceptPlayer.Y
+	}
+	x, y = w.findFreePositionExcept(x, y, radius, exceptPlayer)
+	if exceptPlayer != nil && !w.guildCityAreaAllowed(exceptPlayer.Char, x, y) {
+		return exceptPlayer.X, exceptPlayer.Y
+	}
+	return x, y
 }
 
 // findFreeMobPosition allocates a tile in the mob's gameplay space before the
@@ -2140,6 +2153,7 @@ func (w *World) tick() {
 		w.tickQuestZoneGuard(now)
 		w.tickHiddenValleyAccess(now)
 		w.tickNewbieZone(now)
+		w.tickGuildCityAreas(now)
 		w.nextQuestZoneGuard = now.Add(questZoneGuardInterval)
 	}
 	if !now.Before(w.nextQuestZoneReset) {
@@ -2479,6 +2493,8 @@ func (w *World) handle(cmd command) {
 		w.onDoJackpotBet(cmd.s, cmd.pkt)
 	case wire.OpSellItem:
 		w.onSellItem(cmd.s, cmd.pkt)
+	case wire.OpQuotedSellItem:
+		w.onQuotedSellItem(cmd.s, cmd.pkt)
 	case wire.OpApplyBonus:
 		w.onApplyBonus(cmd.s, cmd.pkt)
 	case wire.OpPartyRequest:

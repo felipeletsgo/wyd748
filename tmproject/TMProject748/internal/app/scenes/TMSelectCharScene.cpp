@@ -16,6 +16,7 @@
 #include "WYD748Assets.h"
 #include "../../platform/windows/SocketTransport.h"
 #include "../../application/RequestCharacterLogin.h"
+#include "../../application/SceneSafetyPolicy.h"
 #include "../../wire/CharacterLoginSender.h"
 
 TMSelectCharScene::TMSelectCharScene() :
@@ -78,6 +79,15 @@ int TMSelectCharScene::InitializeScene()
 		LOG_WRITELOG("Can't load SelCharScene2 resource\r\n");
 		return 0;
 	}
+	const unsigned int missing = required_controls::FirstMissing(
+		required_controls::kCharacterSelection,
+		[this](unsigned int id) { return m_pControlContainer->FindControl(id); });
+	if (missing)
+	{
+		LOG_WRITELOG("Missing character selection control: %u\r\n", missing);
+		return 0;
+	}
+	static_cast<SEditableText*>(m_pControlContainer->FindControl(4626u))->m_nMaxStringLen = 13;
 
 	g_pDevice->m_dwClearColor = 0x444433;
 	g_pDevice->m_nHeightShift = 0;
@@ -401,7 +411,8 @@ int TMSelectCharScene::FrameMove(unsigned int dwServerTime)
 
 	if (m_bCriticalError == 1)
 	{
-		m_pMessagePanel->SetMessage("Critical Data Error In Client", 0);
+		m_pMessagePanel->SetMessage(ui_text::RowOr(g_UIString, ui_text::kCriticalDataError,
+			"Critical Data Error In Client"), 0);
 		m_pMessagePanel->SetVisible(1, 0);
 	}
 
@@ -640,6 +651,8 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 				if (m_pHuman[i] && m_pHuman[i]->m_pFamiliar)
 					m_pHuman[i]->m_pFamiliar->m_pOwner = 0;
 
+				if (m_pHuman[i])
+					m_pHuman[i]->DelayDelete();
 				g_pObjectManager->DeleteObject(m_pHuman[i]);
 				m_pHuman[i] = nullptr;
 				continue;
@@ -652,6 +665,8 @@ void TMSelectCharScene::ReloadCharList(RELOAD_CHARLIST_TYPE type)
 		if (m_pHuman[i] && m_pHuman[i]->m_pFamiliar)
 			m_pHuman[i]->m_pFamiliar->m_pOwner = 0;
 
+		if (m_pHuman[i])
+			m_pHuman[i]->DelayDelete();
 		g_pObjectManager->DeleteObject(m_pHuman[i]);
 		m_pHuman[i] = nullptr;
 

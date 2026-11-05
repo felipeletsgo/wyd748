@@ -155,7 +155,7 @@ int TMSkillSpChange::FrameMove(unsigned int dwServerTime)
                 g_pCurrentScene->m_pEffectContainer->AddChild(m_pParticle);
         }
 
-        if (m_nType == 1)
+        for (unsigned int emission = m_emissionClock.Steps(dwServerTime, m_nType == 1); emission; --emission)
         {
             m_pParticle = new TMEffectParticle(
                 m_vecPosition,
@@ -172,6 +172,7 @@ int TMSkillSpChange::FrameMove(unsigned int dwServerTime)
 
             if (m_pParticle != nullptr)
                 g_pCurrentScene->m_pEffectContainer->AddChild(m_pParticle);
+
         }
     }
     return 1;

@@ -74,3 +74,55 @@ func TestMountFoodClockPausesWhileUnequipped(t *testing.T) {
 		t.Fatalf("reequipped food after a complete hour=%d, want 9", got)
 	}
 }
+
+func TestMountSwapBetweenTicksStartsAFullFoodHour(t *testing.T) {
+	w, p, _, session := newTimedSwapWorld(t, nil)
+	now := w.now()
+	old, replacement := equippedAdultMount(10), equippedAdultMount(20)
+	old.UID, replacement.UID = "old-mount", "replacement-mount"
+	p.Char.Equip[mountSlot], p.Char.Inv[0] = old, replacement
+	w.items[old.Index] = premiumTestDef(old.Index, mountSlot)
+	p.NextMountTick = now.Add(time.Second)
+	w.onSwapItem(session, timedSwapPacket(placeInv, 0, placeEquip, mountSlot))
+	if p.Char.Equip[mountSlot].UID != replacement.UID || !p.NextMountTick.IsZero() {
+		t.Fatal("accepted mount swap did not reset the previous mount's food clock")
+	}
+	w.tickPlayerMounts(now)
+	for _, elapsed := range []time.Duration{time.Second, time.Minute, time.Hour - time.Nanosecond} {
+		w.tickPlayerMounts(now.Add(elapsed))
+		if got := p.Char.Equip[mountSlot].MountFood(); got != 20 {
+			t.Fatalf("replacement food=%d before its first equipped hour", got)
+		}
+	}
+	w.tickPlayerMounts(now.Add(time.Hour))
+	for range 100 {
+		w.tickPlayerMounts(now.Add(time.Hour))
+	}
+	if got := p.Char.Equip[mountSlot].MountFood(); got != 19 {
+		t.Fatalf("replacement food=%d after one hour and repeated ticks, want 19", got)
+	}
+}
+
+func TestRejectedMountSwapPreservesFoodClock(t *testing.T) {
+	w, p, _, session := newTimedSwapWorld(t, nil)
+	p.Char.Equip[mountSlot] = equippedAdultMount(10)
+	p.NextMountTick = w.now().Add(time.Second)
+	deadline, mount := p.NextMountTick, p.Char.Equip[mountSlot]
+	// A fairy is not eligible for the mount slot.
+	w.onSwapItem(session, timedSwapPacket(placeInv, 0, placeEquip, mountSlot))
+	if p.Char.Equip[mountSlot] != mount || !p.NextMountTick.Equal(deadline) {
+		t.Fatal("rejected mount move changed the food clock or mount")
+	}
+}
+
+func TestSameMountSlotRequestCannotPostponeFoodClock(t *testing.T) {
+	w, p, _, session := newTimedSwapWorld(t, nil)
+	p.Char.Equip[mountSlot] = equippedAdultMount(10)
+	w.items[model.MountAdultBase] = premiumTestDef(model.MountAdultBase, mountSlot)
+	p.NextMountTick = w.now().Add(time.Second)
+	deadline := p.NextMountTick
+	w.onSwapItem(session, timedSwapPacket(placeEquip, mountSlot, placeEquip, mountSlot))
+	if !p.NextMountTick.Equal(deadline) {
+		t.Fatal("same-slot request postponed the equipped mount's food deadline")
+	}
+}

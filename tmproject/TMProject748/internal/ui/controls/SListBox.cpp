@@ -7,6 +7,7 @@
 #include "SControlContainer.h"
 #include "TMFieldScene.h"
 #include "ListBoxItems.h"
+#include "EditableTextBounds.h"
 
 namespace
 {
@@ -96,9 +97,10 @@ SListBoxPartyItem::SListBoxPartyItem(char* iStrText, unsigned int idwFontColor, 
 
 	if (pDest != nullptr)
 	{
+		// The name before '^' comes from the server; keep it inside the buffer (C-39).
 		char szMyMob[64]{};
-		memset(szMyMob, 0, 64);
-		memcpy(szMyMob, iStrText, pDest - iStrText);
+		editable_text_bounds::CopyPrefix(szMyMob, iStrText,
+			static_cast<std::size_t>(pDest - iStrText));
 		SetText(szMyMob, 0);
 	}
 	else

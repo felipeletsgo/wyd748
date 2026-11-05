@@ -100,9 +100,8 @@ func applyRestore(ch *model.Char, item model.Item, def model.ItemDef, rule model
 	return hp, mp
 }
 
-// resyncUsedItem reverses the 7.48 client's optimistic MSG_UseItem decrement.
-// Rejections and persistence failures must republish the authoritative slot,
-// even when server-side state has already been restored.
+// resyncUsedItem publishes the authoritative result of an item-use intent.
+// Rejections and persistence failures keep the source unchanged.
 func resyncUsedItem(s *net.Session, p *Player, slot byte) {
 	s.Send(wire.SendItem(p.ID, placeInv, slot, p.Char.Inv[slot]))
 }
@@ -118,12 +117,32 @@ func resyncUsedItemTarget(s *net.Session, p *Player, slot, destType, destPos byt
 // definitions. Never trust the item ID or effect claimed by the client.
 func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	p := w.players[s]
-	if p == nil || p.Char == nil || !p.InWorld || playerCurHP(p.Char) == 0 || w.criticalTradeReserved(p) {
+	if p == nil || p.Char == nil || !p.InWorld {
 		return
+	}
+	// A reserved operation publishes only after its durable completion.
+	// Repeated intents cannot publish an intermediate state or start another use.
+	if w.criticalTradeReserved(p) {
+		return
+	}
+	// Resolve only a bounded Carry source before state and destination checks.
+	// A rejected request must restore a stale visual, including an empty slot.
+	rejectSource := func() {
+		if len(pkt) == 36 && binary.LittleEndian.Uint32(pkt[12:16]) == placeInv {
+			source := binary.LittleEndian.Uint32(pkt[16:20])
+			if source < model.PlayerCarrySlots {
+				resyncUsedItem(s, p, byte(source))
+			}
+		}
 	}
 	req, ok := parseUseItemRequest(pkt)
 	if !ok {
 		log.Printf("[#%d] invalid item-use packet", s.ID)
+		rejectSource()
+		return
+	}
+	if playerCurHP(p.Char) == 0 {
+		rejectSource()
 		return
 	}
 	slot := byte(req.srcPos)
@@ -250,6 +269,7 @@ func (w *World) onUseItem(s *net.Session, pkt []byte) {
 	}
 	w.cancelTrade(p, "item consumed")
 	if item.Index == 0 {
+		resyncUsedItem(s, p, slot)
 		return
 	}
 	def, ok := w.items[item.Index]

@@ -4,6 +4,7 @@
 #include <dsound.h> 
 #include <strmif.h>
 #include <control.h>
+#include "ComApartment.h"
 
 class DS_SOUND_CHANNEL
 {
@@ -27,12 +28,18 @@ public:
     HRESULT SetPosition(long long pos);
 
 protected:
-    IGraphBuilder* graph_builder;
-    IMediaControl* media_control;
-    IMediaSeeking* media_seeking;
-    IBasicAudio* basic_audio;
-    IMediaEventEx* media_event;
-    bool init_flag;
+    // Declared first: the apartment reference outlives every interface below.
+    com_apartment::Reference apartment{COINIT_APARTMENTTHREADED};
+    IGraphBuilder* graph_builder = nullptr;
+    IMediaControl* media_control = nullptr;
+    IMediaSeeking* media_seeking = nullptr;
+    IBasicAudio* basic_audio = nullptr;
+    IMediaEventEx* media_event = nullptr;
+    bool init_flag = false;
+
+private:
+    // Releases each held interface once and disables the channel.
+    void ReleaseInterfaces();
 };
 
 class DS_SOUND_MANAGER

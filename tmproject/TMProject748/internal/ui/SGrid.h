@@ -144,8 +144,6 @@ private:
 	ExtractedFlow SellItemOnSkillBelt(int& nCellX, int& nCellY, TMFieldScene*& pScene, int& extractedResult);
 	ExtractedFlow SellItemOnOtherGrid(int& nCellX, int& nCellY, unsigned int& dwFlags, unsigned int& wParam, TMFieldScene*& pScene, int& extractedResult);
 	// Helpers extracted from SGridControl::RButton.
-	void RButtonUseItems3468To3471(int& nCellX, int& nCellY, unsigned int& dwServerTime, const short& nativeCarryPos, TMFieldScene*& pFScene, SGridControlItem*& pItem, TMHuman*& pMyHuman);
-	void RButtonUseItem3467(unsigned int& dwServerTime, const short& nativeCarryPos, TMFieldScene*& pFScene, SGridControlItem*& pItem, TMHuman*& pMyHuman);
 	// Helpers extracted from SGridControl::TradeItem.
 	int TradeItemOnTradeInv(int& nCellX, int& nCellY, TMFieldScene*& pFScene);
 	int TradeItemOnTradeInv2(int& nCellX, int& nCellY, TMFieldScene*& pFScene);

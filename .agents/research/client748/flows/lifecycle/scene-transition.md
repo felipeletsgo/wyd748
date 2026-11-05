@@ -4,10 +4,43 @@ title: Criar e substituir a cena ativa no lifecycle 7.48
 subsystem: lifecycle
 status: LOCATED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-08-30
+updated: 2026-11-02
 ---
 
 # Criar e substituir a cena ativa no lifecycle 7.48
+
+## Compatible cleanup correction (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The existing native collector evidence
+below remains the boundary; this change does not promote the broad flow status.
+`TMScene::~TMScene` no longer calls `ObjectManager::CleanUp` during deletion.
+The main loop remains the cleanup owner. The manager detaches previous and
+retired scenes, clears its borrowed current-scene pointer, then deletes roots.
+`TMItem` and `SCursor` destructors handle an absent current scene during teardown.
+No callback, packet layout or scene ID changes. Retired-scene re-entry fixtures
+and source-wiring checks pass. Repeated transitions, partial initialization,
+logout/relogin and process exit remain real-client acceptance requirements.
+TMSRVIN and Core.dll do not establish local C++ scene ownership.
+
+### Adapted-client crash follow-up (2026-11-02)
+
+The October 30 dump matches the adapted image in `build/patch/patch-48016.zip`:
+SHA-256 `1AB06967DFD18648C9A9B2E7B2C15F1CD408B2149BEEC46C0EC685F9F6FCDAC7`.
+This image is not the native 7.48 reference above. RSDS age 502, timestamp and
+image size match. Static calls connect RVA `0x13E3A0` (deleting destructor),
+`0x13E3D0` (destructor) and `0x78270` (collector). The saved stack repeats their
+return RVAs 14,303 times and retains a deleted scene at `0x2489E080`.
+Its vtable maps to RTTI `.?AVTMScene@@`. This confirms recursive destruction;
+the current destructor no longer calls the collector, which excludes its root.
+No mismatched current PDB was used to name historical frames.
+
+The November 2 dump matches its preserved EXE/PDB pair. It confirms invalid
+traversal inside terminal `render_control_list::Clear`. Retirement now discards
+borrowed geometry before deletion; terminal disposal never follows node links or
+dereferences borrowed focus. Frame cleanup retains its original scene until the
+main loop collects retired scenes. Inaccessible-page and collector-root regressions
+pass. Real-client acceptance remains pending. Detailed local evidence and symbol
+copies remain in `tmproject/build/mount-crash-20261102/`.
 
 ## Pergunta
 
@@ -773,6 +806,11 @@ inventário, observers e persistência continuam sendo validados no servidor.
   estar fechado.
 
 ## Validação
+
+The following bullets preserve August 30 evidence. The November 2 correction
+above has a passing Release gate and automated collector checks. Its current
+receipt is `build/client-native-corrections-20261102/REPORT.md`. No real-client
+acceptance is claimed for that correction.
 
 - Pesquisa: SHA-256 da referência reconferido em 2026-08-30; funções, vtables,
   instruções e helpers foram exportados em modo headless/read-only pelo Ghidra.

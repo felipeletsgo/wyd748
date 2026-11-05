@@ -30,6 +30,9 @@ $solution = Join-Path $PSScriptRoot 'WYDESTINY.sln'
 $candidate = Join-Path $PSScriptRoot 'client748\WYD.exe'
 $wideItemCatalog = Join-Path $PSScriptRoot 'client748\ItemListWide.csv'
 $targetName = if ($Configuration -eq 'Release') { 'WYD.exe' } else { 'WYDestiny.exe' }
+
+# New source gaps fail the build; reviewed conditional gaps remain diagnostic.
+& (Join-Path $PSScriptRoot '../tools/client-assets/Audit-ClientAssets.ps1') -FailOnMissing
 $artifact = Join-Path $PSScriptRoot "build\TMProject748\$Configuration\$targetName"
 $reporter = Join-Path (Split-Path $artifact -Parent) 'WydCrashReporter.dll'
 
@@ -83,16 +86,6 @@ $crashTestExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\Crash
 if (-not (Test-Path -LiteralPath $crashTestExecutable -PathType Leaf)) { throw 'Crash capture test executable is missing.' }
 & $crashTestExecutable
 if ($LASTEXITCODE -ne 0) { throw 'Crash capture tests failed; candidate not updated.' }
-
-# Validate the source launcher's manifest, path and cache rules without replacing
-# the separately distributed launcher, which uses a different production feed.
-$launcherTestProject = Join-Path $PSScriptRoot 'WYDLauncher\tests\LauncherTests.vcxproj'
-& $MSBuildPath $launcherTestProject "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=Win32' /m /nologo /v:minimal
-if ($LASTEXITCODE -ne 0) { throw 'Launcher tests failed to build; candidate not updated.' }
-$launcherTestExecutable = Join-Path $PSScriptRoot "build\tests\$Configuration\LauncherTests.exe"
-if (-not (Test-Path -LiteralPath $launcherTestExecutable -PathType Leaf)) { throw 'Launcher test executable is missing.' }
-& $launcherTestExecutable
-if ($LASTEXITCODE -ne 0) { throw 'Launcher tests failed; candidate not updated.' }
 
 & $MSBuildPath $solution "/t:$buildTarget" "/p:Configuration=$Configuration" '/p:Platform=x86' /m /nologo /v:minimal
 if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE; candidate not updated." }

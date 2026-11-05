@@ -27,20 +27,25 @@ test('public content ships real static routes with valid internal links and no i
     }
   }
 });
-test('download receipt pairs update 7.48.017 with the existing full-client baseline', () => {
+test('download receipt preserves the native launcher and unpublished news', () => {
   const receipt = JSON.parse(html('client-manifest.json'));
-  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.017');
-  assert.equal(receipt.feedVersion, 48017);
-  assert.equal(receipt.patch.url, '/patch/patch-48017.zip');
-  assert.equal(receipt.fullClient.clientVersion, '7.48.001');
+  assert.equal(receipt.version, 2); assert.equal(receipt.clientVersion, '7.48.100');
+  assert.equal(receipt.feedVersion, 48100);
+  assert.equal(receipt.patch.url, null);
+  assert.equal(receipt.fullClient.clientVersion, '7.48.100');
   assert.equal(receipt.updateFeed, '/patch/update.htm');
-  assert.equal(receipt.fullClient.sha256, null); assert.equal(receipt.fullClient.sizeBytes, null);
+  assert.equal(receipt.fullClient.sha256, '7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66');
+  assert.equal(receipt.fullClient.sizeBytes, 260877805);
   assert.equal(receipt.minimumLauncherVersion, null);
-  assert.equal(receipt.fullClient.url, 'https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view?usp=drive_link');
-  assert.ok(html('download/index.html').includes('1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk'), 'download page does not link the full client');
-  assert.match(html('index.html'), /Client 7\.48\.017/);
-  assert.match(html('download/index.html'), /Full installation: 7\.48\.001/);
-  assert.match(html('download/index.html'), /href="\/patch\/patch-48017\.zip"/);
+  assert.equal(receipt.fullClient.url, 'https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link');
+  assert.equal(new URL(receipt.fullClient.url).hostname, 'drive.google.com');
+  assert.match(html('download/index.html'), /adapted native launcher/);
+  assert.match(html('download/index.html'), /launcher nativo adaptado/);
+  assert.equal(html('download/index.html').includes('HTTPS launcher'), false);
+  assert.ok(html('download/index.html').includes(receipt.fullClient.url), 'download page does not link the full client');
+  assert.match(html('index.html'), /Client 7\.48\.100/);
+  assert.match(html('download/index.html'), /Full installation: 7\.48\.100/);
+  assert.equal(html('download/index.html').includes('href="/patch/patch-48018.zip"'), false);
   assert.match(html('download/index.html'), /Earlier patches are no longer offered/);
   assert.equal(/patch-1\d{4}\.zip/.test(html('download/index.html')), false, 'retired patch ZIP still linked');
   assert.match(html('changelog/index.html'), /Client 7\.48\.001 — new full client/);
@@ -52,8 +57,9 @@ test('download receipt pairs update 7.48.017 with the existing full-client basel
   assert.match(html('news/client-7-48-017/index.html'), /Cube.*Mystic Land/s);
   assert.match(html('news/server-stability-2026-11-01/index.html'), /database delay.*No client update is needed/s);
   assert.match(html('changelog/index.html'), /Server update — fewer disconnects/);
-  // Every published client must be announced in News, not only in the changelog.
-  assert.ok(html('news/index.html').includes(receipt.clientVersion), 'News does not announce the current client');
+  assert.ok(html('changelog/index.html').includes(receipt.clientVersion));
+  assert.equal(existsSync(resolve(dist, 'news/client-7-48-018/index.html')), false, 'review draft must not be published');
+  assert.equal(html('news/index.html').includes('client-7-48-018'), false);
   assert.match(html('roadmap/index.html'), /Planned/);
   assert.match(html('player/index.html'), /id="profile-panel" hidden/);
   assert.match(html('player/index.html'), /id="sessions-revoke-all"/);

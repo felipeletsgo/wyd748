@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <type_traits>
 #include <windows.h>
 
 namespace {
@@ -41,28 +42,57 @@ struct TransactionNode
     }
 };
 
-template<typename T>
+// Only allocations of `Budgeted` (the checkpoint storage) use the failure
+// budget and the counters. Debug STL containers (_ITERATOR_DEBUG_LEVEL 2)
+// rebind the allocator to their container proxy; those allocations use the
+// plain allocator, so Release and Debug inject the same failures.
+template<typename T, typename Budgeted = T>
 struct FailingCheckpointAllocator
 {
     using value_type = T;
     int* remaining;
     int* allocations;
     int* releases;
+    FailingCheckpointAllocator(int* remainingBudget, int* allocationCount, int* releaseCount) noexcept
+        : remaining(remainingBudget), allocations(allocationCount), releases(releaseCount) {}
+    template<typename U>
+    FailingCheckpointAllocator(const FailingCheckpointAllocator<U, Budgeted>& other) noexcept
+        : remaining(other.remaining), allocations(other.allocations), releases(other.releases) {}
     T* allocate(std::size_t count)
     {
-        if (*remaining == 0)
-            throw std::bad_alloc();
-        --*remaining;
-        T* memory = std::allocator<T>{}.allocate(count);
-        ++*allocations;
-        return memory;
+        if constexpr (!std::is_same_v<T, Budgeted>) {
+            return std::allocator<T>{}.allocate(count);
+        } else {
+            if (*remaining == 0)
+                throw std::bad_alloc();
+            --*remaining;
+            T* memory = std::allocator<T>{}.allocate(count);
+            ++*allocations;
+            return memory;
+        }
     }
     void deallocate(T* memory, std::size_t count) noexcept
     {
-        ++*releases;
+        if constexpr (std::is_same_v<T, Budgeted>)
+            ++*releases;
         std::allocator<T>{}.deallocate(memory, count);
     }
 };
+
+template<typename T, typename U, typename Budgeted>
+bool operator==(const FailingCheckpointAllocator<T, Budgeted>& left,
+    const FailingCheckpointAllocator<U, Budgeted>& right) noexcept
+{
+    return left.remaining == right.remaining && left.allocations == right.allocations &&
+        left.releases == right.releases;
+}
+
+template<typename T, typename U, typename Budgeted>
+bool operator!=(const FailingCheckpointAllocator<T, Budgeted>& left,
+    const FailingCheckpointAllocator<U, Budgeted>& right) noexcept
+{
+    return !(left == right);
+}
 
 template<typename Check>
 void TestRCTransactions(Check check)

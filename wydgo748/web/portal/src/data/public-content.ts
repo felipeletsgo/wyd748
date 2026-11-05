@@ -2,24 +2,24 @@
 // Do not fill unknown values with estimates or describe planned systems as live.
 export const clientRelease = {
   version: 2,
-  // Release line 7.48: the launcher's [VERSION] 48017 is shown as 7.48.017.
-  clientVersion: '7.48.017',
-  feedVersion: 48017,
-  publishedAt: '2026-10-30' as string | null,
+  // Owner-selected full-client baseline; subsequent patches start at 48101.
+  clientVersion: '7.48.100',
+  feedVersion: 48100,
+  publishedAt: '2026-11-02' as string | null,
   launcherVersion: null,
   minimumLauncherVersion: null,
   fullClient: {
-    clientVersion: '7.48.001',
-    url: 'https://drive.google.com/file/d/1ouCjq-A8JOnHRXpO0m8fEhRm2NuGgmFk/view?usp=drive_link' as string | null,
-    // Size and checksum of the uploaded archive are not recorded yet.
-    sizeBytes: null as number | null,
-    sha256: null as string | null,
+    clientVersion: '7.48.100',
+    url: 'https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link' as string | null,
+    // Size and digest identify the current owner-hosted Google Drive archive.
+    sizeBytes: 260877805 as number | null,
+    sha256: '7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66' as string | null,
   },
   patch: {
-    url: '/patch/patch-48017.zip',
-    sizeBytes: 1449518,
-    sha256: 'DBC5003B495C97C21287392866C95424A62322742BE3E7DA56A9E0379418A676',
-    executableSha256: 'C65F7099AE7A0B34D9BFE5EE12A78C5EC81A16DDB9A69BDFA950909999CB7C08',
+    url: null,
+    sizeBytes: null,
+    sha256: null,
+    executableSha256: '2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4',
   },
   // This is a website receipt, not a replacement for the legacy launcher feed.
   updateFeed: '/patch/update.htm',
@@ -29,6 +29,14 @@ export const clientRelease = {
 export { news } from './news';
 
 export const changelog = [
+  { date: '2026-11-02', category: 'Client and server', title: 'Client 7.48.100 — native HTTPS baseline', entries: [
+    'Download the new full client from Google Drive. The native launcher uses HTTPS with certificate validation. Subsequent updates start at 7.48.101.',
+    'Baixe o novo cliente completo pelo Google Drive. O launcher nativo usa HTTPS com validação de certificado. Os próximos updates começam em 7.48.101.',
+  ] },
+  { date: '2026-11-02', category: 'Client and server', title: 'Client 7.48.018 — mandatory update', entries: [
+    'Close the game and update through the adapted native launcher before connecting. Existing installations do not need the full-client download.',
+    'Feche o jogo e atualize pelo launcher nativo adaptado antes de conectar. Quem já tem o cliente não precisa baixar a instalação completa.',
+  ] },
   { date: '2026-11-01', category: 'Server', title: 'Server update — fewer disconnects and smoother play', entries: [
     'A short database delay cancels only the failed action instead of disconnecting the player.',
     'Crowded areas load over a few moments instead of overflowing the connection; the periodic save no longer pauses commands or nearby monsters.',

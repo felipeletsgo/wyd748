@@ -11,13 +11,24 @@
 #include "TMCamera.h"
 #include "TMMesh.h"
 #include "Structures.h"
+#include "GroundItemPresentation.h"
+#include "HumanVisualPolicy.h"
 
-TMItem::TMItem() 
+TMItem::TMItem()
 	: TMObject()
 {
 	m_pEffectSpecial = 0;
 	m_pNameLabel = 0;
 	m_stItem = {};
+	// Render can run before the first visible FrameMove computes the material.
+	m_Materials = {};
+	m_bCannot = 0;
+	m_bMouseOver = 0;
+	m_nItemType = 0;
+	m_sMultiTexture = 0;
+	m_sLegendType = 0;
+	m_bHPotion = 0;
+	m_bBonusEffect = 0;
 	memset(m_pEffectBill, 0, sizeof(m_pEffectBill));
 	m_stGuildMark.pGuildMark = 0;
 	m_stGuildMark.nSubGuild = 0;
@@ -32,7 +43,7 @@ TMItem::TMItem()
 
 TMItem::~TMItem()
 {
-	if (g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTargetItem == this)
+	if (g_pCurrentScene && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD && static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTargetItem == this)
 		static_cast<TMFieldScene*>(g_pCurrentScene)->m_pTargetItem = nullptr;
 
 	if (m_pNameLabel)
@@ -67,7 +78,7 @@ void TMItem::InitItem(STRUCT_ITEM stItem)
     m_nItemType = 0;
     m_stItem = stItem;
 
-    if (m_stItem.sIndex >= 0 && m_stItem.sIndex <= 6500)
+    if (m_stItem.sIndex >= 0 && m_stItem.sIndex < MAX_ITEMLIST)
     {
         m_dwObjType = BASE_GetMeshIndex(this->m_stItem.sIndex);
         m_sMultiTexture = BASE_GetItemSanc(&stItem);
@@ -137,7 +148,9 @@ void TMItem::InitItem(STRUCT_ITEM stItem)
             m_sLegendType = (unsigned char)BASE_GetItemTenColor(&stItem);
         }
 
-        m_stGuildMark.pGuildMark = nullptr;
+        // A repeated create for the same object replaces its panel; the old
+        // panel is released exactly as the destructor releases it.
+        SAFE_DELETE(m_stGuildMark.pGuildMark);
         if (g_pCurrentScene && g_pCurrentScene->m_pControlContainer)
         {
             m_stGuildMark.pGuildMark = new SPanel(-2, 0.0, 0.0, 10.0, 10.0, 0x77777777u, RENDERCTRLTYPE::RENDER_IMAGE_STRETCH);
@@ -163,9 +176,10 @@ int TMItem::InitObject()
     int usGuild = BASE_GetItemAbility(&m_stItem, 57) | BASE_GetItemAbility(&m_stItem, 56) << 8;
     if (m_nItemType == 2)
     {
-        unsigned char coin = (unsigned char)BASE_GetItemAbility(&m_stItem, 36) << 8;
-        char tempb = BASE_GetItemAbility(&m_stItem, 37);
-        coin += (unsigned char)tempb;
+        // EF_HWORDCOIN (36) and EF_LWORDCOIN (37) form one amount; a byte
+        // accumulator kept only the low word.
+        const int coin = ground_item_view::CoinAmount(BASE_GetItemAbility(&m_stItem, 36),
+            BASE_GetItemAbility(&m_stItem, 37));
 
         char szValue[64]{};
         sprintf(szValue, g_pMessageStringTable[65], coin);
@@ -419,6 +433,11 @@ int TMItem::InitObject()
             }
         }
     }
+    // Branches without a special effect (for example items 3914/3915 and
+    // 1744..1751) never attach the node; the destructor only queues attached
+    // nodes, so release an unattached one here.
+    if (m_pEffectSpecial && !m_pEffectSpecial->m_pTop)
+        SAFE_DELETE(m_pEffectSpecial);
     if (m_stItem.sIndex == 1727)
     {
         for (int i = 0; i < 28; ++i)
@@ -803,22 +822,23 @@ int TMItem::Render()
     g_pDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, 1u);
 
     auto pMesh = g_pMeshManager->GetCommonMesh(nMeshIndex, 1, 180000);
-    if (pMesh)
+    if (pMesh && pMesh->m_pVB)
     {
         const static unsigned int dwColor[3]{ 0xFFFF4400, 0xFF3366FF, 0xFF00FF00 };
 
-        D3DVERTEXBUFFER_DESC vDesc;
-        pMesh->m_pVB->GetDesc(&vDesc);
-        RDLVERTEX* pVertex;
-        pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-        int nCount = vDesc.Size / sizeof(RDLVERTEX);
-        // Native FUN_004f59b4 tints every vertex of meshes 737..739 with
-        // dwColor[mesh - 737]; the 7.69 offset 2980 read outside the table.
-        for (int i = 0; i < nCount; ++i)
-            pVertex[i].diffuse = dwColor[nMeshIndex - 737];
-
-        pMesh->m_pVB->Unlock();
+        // A failed GetDesc or Lock leaves the buffer untouched instead of
+        // writing through an unset vertex pointer (C-41).
+        D3DVERTEXBUFFER_DESC vDesc{};
+        if (SUCCEEDED(pMesh->m_pVB->GetDesc(&vDesc)))
+        {
+            ground_item_view::WithLockedVertices<RDLVERTEX>(pMesh->m_pVB, vDesc.Size,
+                [&](RDLVERTEX* pVertex, int nCount) {
+                    // Native FUN_004f59b4 tints every vertex of meshes 737..739 with
+                    // dwColor[mesh - 737]; the 7.69 offset 2980 read outside the table.
+                    for (int i = 0; i < nCount; ++i)
+                        pVertex[i].diffuse = dwColor[nMeshIndex - 737];
+                });
+        }
         pMesh->m_nTextureIndex[0] = 204;
         pMesh->Render(
             m_vecPosition.x,
@@ -916,18 +936,19 @@ int TMItem::FrameMove(unsigned int dwServerTime)
     if (!m_stItem.sIndex)
         return 1;
 
-    m_stGuildMark.pGuildMark->SetVisible(0);
-    m_pNameLabel->SetVisible(0);
+    if (m_stGuildMark.pGuildMark)
+        m_stGuildMark.pGuildMark->SetVisible(0);
+    if (m_pNameLabel)
+        m_pNameLabel->SetVisible(0);
+    // WYD-Go keeps a ground item in the player's view up to 32 cells from the
+    // actual position, removes it only with 0x16F, and never resends an item
+    // it still considers visible. A distant movement target must not delete it.
     auto pFocused = (TMHuman*)g_pObjectManager->m_pCamera->GetFocusedObject();
-    if (pFocused && 
-        ((float)(pFocused->m_vecTargetPos.x - 18) > m_vecPosition.x || m_vecPosition.x > (float)(pFocused->m_vecTargetPos.x + 18) || 
-         (float)(pFocused->m_vecTargetPos.y - 18) > m_vecPosition.y || m_vecPosition.y > (float)(pFocused->m_vecTargetPos.y + 18)))
+    if (pFocused && ground_item_view::IsOutsideTargetHoverRange(pFocused->m_vecTargetPos.x,
+        pFocused->m_vecTargetPos.y, m_vecPosition.x, m_vecPosition.y))
     {
         if (g_pCurrentScene->m_pMouseOverItem == this)
             g_pCurrentScene->m_pMouseOverItem = nullptr;
-
-        if (m_dwObjType != 405 && m_dwObjType != 1607 && (m_dwObjType < 2723 || m_dwObjType > 2727))
-            g_pObjectManager->DeleteObject(this);
     }
 
     if (m_bVisible == 1)
@@ -981,12 +1002,15 @@ int TMItem::FrameMove(unsigned int dwServerTime)
 
 void TMItem::LabelPosition()
 {
+    // Guildmark_DeleteIdleGuildmark can reuse a slot for another guild; show
+    // the mark only while the slot still belongs to this item's guild.
+    const bool ownsMark = m_stGuildMark.pGuildMark && m_stGuildMark.nGuild != -1 &&
+        guild_mark_label::Shows(g_pTextureManager->m_stGuildMark,
+            m_stGuildMark.pGuildMark->m_GCPanel.nMarkIndex, m_stGuildMark.nGuild, m_stGuildMark.nGuildChannel);
     if (m_pNameLabel)
     {
-        if (m_pNameLabel->IsVisible() != 1 || m_stGuildMark.pGuildMark->m_GCPanel.nMarkIndex == -1)
-            m_stGuildMark.pGuildMark->SetVisible(0);
-        else
-            m_stGuildMark.pGuildMark->SetVisible(1);
+        if (m_stGuildMark.pGuildMark)
+            m_stGuildMark.pGuildMark->SetVisible(m_pNameLabel->IsVisible() == 1 && ownsMark ? 1 : 0);
 
         m_pNameLabel->SetTextColor(m_dwNameColor);
         if (m_bMouseOver != 1 && g_pEventTranslator->m_bCtrl != 1)
@@ -1021,14 +1045,14 @@ void TMItem::LabelPosition()
                     {
                          m_stGuildMark.pGuildMark->SetPos(m_pNameLabel->m_nPosX + 10.0f,
                             m_pNameLabel->m_nPosY + 3.0f);
-                        m_stGuildMark.pGuildMark->SetVisible(1);
+                        m_stGuildMark.pGuildMark->SetVisible(ownsMark ? 1 : 0);
                     }
                 }
             }
         }
     }
 
-    if (m_stGuildMark.nGuild == -1)
+    if (m_stGuildMark.nGuild == -1 && m_stGuildMark.pGuildMark)
         m_stGuildMark.pGuildMark->SetVisible(0);
 
 }

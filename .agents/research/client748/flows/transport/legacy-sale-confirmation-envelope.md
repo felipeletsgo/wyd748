@@ -4,10 +4,23 @@ title: Native sale confirmation reaches the field receiver with a 20-byte envelo
 subsystem: transport
 status: CONTRACT
 native_sha256: 8aa2f918844bce3afe21f1204f69757a443e32eb2f2f616936b1d9bfe215f593
-updated: 2026-10-15
+updated: 2026-11-02
 ---
 
 # Native sale confirmation envelope
+
+## Coordinated quote follow-up (2026-11-02)
+
+Classification: `EXTENSAO_COORDENADA`. New merchant sale intentions use
+`0x7F40`, version 1, 32 bytes. They contain the source, merchant, displayed
+net price, and complete eight-byte item value. Go compares the quote with
+authoritative inventory and price before persistence. A mismatch rejects
+the sale and returns the current slot. Existing durable settlement publishes
+the committed slot and gold. The historical `0x37A` 20-byte envelope and
+native response evidence below remain unchanged. `NativeSaleQuote.h` now
+documents historical arithmetic; current integrated merchant displays use
+`ServerSaleQuote.h`. No new native-parity claim or `CLIENT_TESTED` promotion
+is made. See [the versioned contract](../../../../../DOCS/client/port-748.md#authoritative-item-use-and-merchant-display-2026-11-02).
 
 ## Equipment posture lifecycle follow-up (2026-10-15)
 

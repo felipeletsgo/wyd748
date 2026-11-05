@@ -14,6 +14,10 @@ SButton::SButton(int inTextureSetIndex, float inX, float inY, float inWidth, flo
 	m_bSelected = 0;
 	m_cAlwaysAlt = 0;
 	m_cBlink = 0;
+	// A release without a press on this button must not fire it (A28-01).
+	m_cBlink1 = 0;
+	m_cBlink2 = 0;
+	m_bPressed = 0;
 	m_pAltText = 0;
 	m_dwColor = idwColor;
 	m_bSound = bSound;
@@ -37,7 +41,8 @@ SButton::SButton(int inTextureSetIndex, float inX, float inY, float inWidth, flo
 			fontOwner.reset(new TMFont2());
 			m_GCPanel.pFont = fontOwner.get();
 
-			sprintf(m_GCPanel.strString, "%s", istrText);
+			// Captions are bounded by the display string (C-39).
+			snprintf(m_GCPanel.strString, sizeof(m_GCPanel.strString), "%s", istrText);
 
 			if (m_GCPanel.pFont != nullptr)
 				m_GCPanel.pFont->SetText(m_GCPanel.strString, 0xFFFFFFFF, 0);
@@ -77,8 +82,9 @@ void SButton::SetText(char* istrText)
 	if (m_pAltText != nullptr)
 		m_pAltText->SetText(istrText, 0);
 
-	sprintf(m_GCPanel.strString, "%s", istrText);
-	m_GCPanel.pFont->SetText(m_GCPanel.strString, 0xFFFFFFFF, 0);
+	snprintf(m_GCPanel.strString, sizeof(m_GCPanel.strString), "%s", istrText ? istrText : "");
+	if (m_GCPanel.pFont != nullptr)
+		m_GCPanel.pFont->SetText(m_GCPanel.strString, 0xFFFFFFFF, 0);
 }
 
 int SButton::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)

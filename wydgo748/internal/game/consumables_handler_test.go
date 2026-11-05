@@ -1286,6 +1286,38 @@ func TestOnUseItemRejectsInvalidStateAndCooldown(t *testing.T) {
 	}
 }
 
+func TestItemUseEarlyRejectionPublishesSource(t *testing.T) {
+	for _, name := range []string{"dead", "empty", "invalid_destination", "wide_source", "truncated"} {
+		t.Run(name, func(t *testing.T) {
+			w, p, st := useItemWorld(model.VolatileRule{Action: "restore", Consume: true, HP: 100})
+			packet := useItemPacket(0, 0)
+			wantPackets := 1
+			switch name {
+			case "dead":
+				setPlayerCurHP(p.Char, 0)
+			case "empty":
+				p.Char.Inv[0] = model.Item{}
+			case "invalid_destination":
+				binary.LittleEndian.PutUint32(packet[24:28], ^uint32(0))
+			case "wide_source":
+				binary.LittleEndian.PutUint32(packet[16:20], 256)
+				wantPackets = 0
+			case "truncated":
+				packet = packet[:35]
+				wantPackets = 0
+			}
+			before := p.Char.Inv[0]
+			w.onUseItem(p.Session, packet)
+			if p.Char.Inv[0] != before || st.saves != 0 {
+				t.Fatal("rejection changed or persisted inventory")
+			}
+			if got := p.Session.QueuedPacketsForTest(); got != wantPackets {
+				t.Fatalf("snapshots=%d, want %d", got, wantPackets)
+			}
+		})
+	}
+}
+
 func TestRefineTargetResolvers(t *testing.T) {
 	p, _ := networkedTestPlayer(1, "Refiner", 1, 1)
 	p.Char.Equip[6] = model.Item{Index: 200}

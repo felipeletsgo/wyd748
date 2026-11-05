@@ -146,7 +146,7 @@ The client prefers `serverlist.local.bin` when present. Move that override out
 of the runtime before connecting to the VPS; launcher updates do not remove
 it. Use `tools/client-assets/Set-ServerListEndpoints.ps1` for reviewed endpoint
 changes, and never edit a server-list binary as text. See the
-[Windows setup guide](DOCS/windows-development-environment.md) for the full
+[Windows setup guide](DOCS/build-and-integration.md#windows-setup) for the full
 procedure.
 
 ## Quick troubleshooting
@@ -172,7 +172,7 @@ are documented in [Build and integration](DOCS/build-and-integration.md).
 - [Current state](DOCS/current-state.md)
 - [Website feature status](DOCS/server/website-feature-status.md)
 - [Hidden Valley ticket access](DOCS/server/hidden-valley-access.md)
-- [Windows environment](DOCS/windows-development-environment.md)
+- [Windows environment](DOCS/build-and-integration.md#windows-setup)
 - [Complete documentation map](DOCS/documentation-map.md)
 - [Server operations](DOCS/server/operations.md)
 - [Open 7.48 adaptation work](DOCS/client/port-748.md)

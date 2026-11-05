@@ -3,6 +3,8 @@
 #include "TMEffectMesh.h"
 #include "TMGlobal.h"
 #include "TMCamera.h"
+#include "EffectGuards.h"
+#include "EffectTiming.h"
 
 TMEffectMesh::TMEffectMesh(int nMeshIndex, unsigned int dwColor, float fAngle, int nType)
 	: TMEffect()
@@ -138,14 +140,6 @@ int TMEffectMesh::Render()
 				if (!pMesh->m_pVB)
 					return 0;
 
-				RDLVERTEX* pVertex{};
-				D3DVERTEXBUFFER_DESC vDesc{};
-
-				pMesh->m_pVB->GetDesc(&vDesc);
-				pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-				int nCount = vDesc.Size / 0x18;
-
 				DWORD dwColor = m_dwColor;
 
 				if (m_cShine == 1)
@@ -172,34 +166,39 @@ int TMEffectMesh::Render()
 					dwColor = dwB | (dwG << 8) | (dwR << 16) | (dwA << 24);
 				}
 
-				for (int i = 0; i < nCount; ++i)
-				{
-					pVertex[i].diffuse = dwColor;
+				// A failed Lock skips the update instead of writing through
+				// a null pointer.
+				effect_vertex_lock::TryWrite<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh->m_pVB,
+					[&](RDLVERTEX* pVertex, unsigned int nCount) {
+						for (unsigned int i = 0; i < nCount; ++i)
+						{
+							pVertex[i].diffuse = dwColor;
 
-					if (m_cUScroll == 1)
-						pVertex[i].tu += (m_fProgress * 0.001f);
+							if (m_cUScroll == 1)
+								pVertex[i].tu += (m_fProgress * 0.001f);
 
-					if (m_cUScroll == 2)
-					{
-						DWORD dwServerTime = g_pTimerManager->GetServerTime();
+							if (m_cUScroll == 2)
+							{
+								DWORD dwServerTime = g_pTimerManager->GetServerTime();
 
-						float fPro = (float)(dwServerTime % 100) / 100.0f;
+								float fPro = (float)(dwServerTime % 100) / 100.0f;
 
-						pVertex[i].tv += (fPro * 0.1f);
-					}
-				}
-
-				pMesh->m_pVB->Unlock();
+								pVertex[i].tv += (fPro * 0.1f);
+							}
+						}
+					});
 			}
 
 			pMesh->m_fScaleH = m_fScaleH;
 			pMesh->m_fScaleV = m_fScaleV;
 
+			// Types 1, 4 and 5 draw with the instance texture (default -1) and
+			// restore the cached mesh texture afterwards for its other users.
+			effect_mesh_state::TextureOverride<TMMesh> texture(pMesh,
+				m_nType == 1 || m_nType == 4 || m_nType == 5, m_nTextureIndex);
+
 			switch (m_nType)
 			{
-			case 1:
-				pMesh->m_nTextureIndex[0] = m_nTextureIndex;
-				break;
 			case 2:
 				pMesh->m_fScaleV = (m_fScaleH * m_fProgress) * 3.0f;
 				m_fAngle = m_fProgress * 3.1415927f;
@@ -208,8 +207,6 @@ int TMEffectMesh::Render()
 				m_fAngle = m_fProgress * 3.1415927f;
 				break;
 			case 4:
-				pMesh->m_nTextureIndex[0] = m_nTextureIndex;
-
 				if (m_fProgress >= 0.2)
 				{
 					float fSin = sinf(((m_fProgress - 0.2f) * 3.1415927f) * 0.5f);
@@ -222,9 +219,6 @@ int TMEffectMesh::Render()
 					pMesh->m_fScaleH = ((m_fProgress * 5.0f) + 0.5f) * m_fScaleH;
 					pMesh->m_fScaleV = ((m_fProgress * 5.0f) + 0.5f) * m_fScaleV;
 				}
-				break;
-			case 5:
-				pMesh->m_nTextureIndex[0] = m_nTextureIndex;
 				break;
 			}
 
@@ -269,7 +263,8 @@ int TMEffectMesh::FrameMove(unsigned int dwServerTime)
 
 	IsVisible(); // ?
 
-	m_fProgress = (float)((dwServerTime - m_dwCreateTime) % m_dwCycleTime) / (float)m_dwCycleTime;
+	// A zero cycle gives progress 0 instead of a division by zero.
+	m_fProgress = effect_timing::CycleProgress(dwServerTime, m_dwCreateTime, m_dwCycleTime);
 
 	if (m_dwLifeTime)
 	{

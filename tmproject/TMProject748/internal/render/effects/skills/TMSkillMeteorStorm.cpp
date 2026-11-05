@@ -9,6 +9,7 @@
 #include "TMMesh.h"
 #include "TMGlobal.h"
 #include "TMShade.h"
+#include "EffectGuards.h"
 
 TMSkillMeteorStorm::TMSkillMeteorStorm(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, TMObject* pOwner)
 	: TMEffect()
@@ -44,6 +45,9 @@ TMSkillMeteorStorm::TMSkillMeteorStorm(TMVector3 vecStart, TMVector3 vecTarget, 
 
 	auto vecD = vecTarget - vecStart;
 	m_fLength = vecD.Length();
+
+	// Levels 7 to 10 have no case below; level 10 is the skill 104 bomb.
+	m_dwLifeTime = 100 * static_cast<unsigned int>(m_fLength);
 
 	if (m_nLevel)
 	{
@@ -159,6 +163,12 @@ TMSkillMeteorStorm::~TMSkillMeteorStorm()
 	g_pObjectManager->DeleteObject(m_pCenterLight2);
 	g_pObjectManager->DeleteObject(m_pCenterFlare);
 	g_pObjectManager->DeleteObject(m_pLightMap);
+}
+
+void TMSkillMeteorStorm::SpawnImpact()
+{
+	if (!g_pCurrentScene || !g_pCurrentScene->m_pEffectContainer)
+		return;
 
 	TMEffectBillBoard* pEffect = nullptr;
 
@@ -290,6 +300,9 @@ TMSkillMeteorStorm::~TMSkillMeteorStorm()
 		pLightMap->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
 		pLightMap->SetPosition({ m_vecTargetPos.x, m_vecTargetPos.z });
 		pLightMap->m_dwLifeTime = 1500;
+		// Created during FrameMove, the shade renders once before its own
+		// first FrameMove: apply the start of its fade now.
+		pLightMap->FrameMove(0);
 
 		g_pCurrentScene->m_pEffectContainer->AddChild(pLightMap);
 	}
@@ -396,7 +409,7 @@ TMSkillMeteorStorm::~TMSkillMeteorStorm()
 			g_pCurrentScene->m_pEffectContainer->AddChild(pExplosion3);
 
 		auto pBill3 = new TMEffectBillBoard(59, 2500u, 1.2f, 1.2f, 1.2f, 0.003f, 1, 80);
-		if (pBill2)
+		if (pBill3)
 		{
 			pBill3->m_vecPosition = { m_vecTargetPos.x + 3.0f, m_vecTargetPos.y + 1.0f, m_vecPosition.z + 3.0f };
 			pBill3->m_vecStartPos = pBill3->m_vecPosition;
@@ -552,7 +565,12 @@ int TMSkillMeteorStorm::FrameMove(unsigned int dwServerTime)
 		return 1;
 
 	if (m_nLevel == 9 || m_nLevel == 10)
+	{
+		// Instant variants expire on their first frame.
+		if (!m_cDeleted)
+			SpawnImpact();
 		g_pObjectManager->DeleteObject(this);
+	}
 
 	if (m_pOwner)
 	{
@@ -566,21 +584,13 @@ int TMSkillMeteorStorm::FrameMove(unsigned int dwServerTime)
 
 	if (m_nLevel == 1)
 	{
+		// A missing mesh must not stop the lifetime: the meteor still expires.
 		auto pMesh = g_pMeshManager->GetCommonMesh(708, 1, 180000u);
-		if (!pMesh)
-			return 0;
-		D3DVERTEXBUFFER_DESC vDesc;
-		RDLVERTEX* pVertex;
-		pMesh->m_pVB->GetDesc(&vDesc);
-		pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-		int nCount = vDesc.Size / sizeof RDLVERTEX;
-
-		for (int i = 0; i < nCount; ++i)
-			pVertex[i].diffuse = -1;
-
-		pMesh->m_pVB->Unlock();
-		pMesh->m_nTextureIndex[0] = 19;
+		if (pMesh)
+		{
+			effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh->m_pVB, 0xFFFFFFFFu);
+			pMesh->m_nTextureIndex[0] = 19;
+		}
 
 		auto result = m_vecTargetPos - m_vecStartPos;
 		m_fAngle = atan2f(result.x, result.z) - D3DXToRadian(90);
@@ -656,13 +666,7 @@ int TMSkillMeteorStorm::FrameMove(unsigned int dwServerTime)
 			break;
 		}
 
-		int nTotalEffects = 4; // v67
-		static unsigned int dwOldTime_1 = 0; // 2B42A04 kkkkkkkkkkkkkkkkkkkkk
-		if (dwServerTime - dwOldTime_1 < 20)
-			nTotalEffects = 1;
-		else if (dwServerTime - dwOldTime_1 < 30)
-			nTotalEffects = 2;
-
+        const int nTotalEffects = 4 * static_cast<int>(m_emissionClock.Steps(dwServerTime));
 		for (int j = 0; j < nTotalEffects; ++j)
 		{
 			int nRand = rand() % 5;
@@ -706,7 +710,7 @@ int TMSkillMeteorStorm::FrameMove(unsigned int dwServerTime)
 
 				g_pCurrentScene->m_pEffectContainer->AddChild(pBill);
 
-				if (j == 3 && m_nLevel == 2)
+				if (j % 4 == 3 && m_nLevel == 2)
 				{
 					auto pChild = new TMEffectBillBoard(59, 800, fRand * 0.1f + 0.40f, fRand * 0.1f + 0.40f, fRand * 0.1f + 0.40f, 0.001f, 1, 80);
 					if (pChild)
@@ -737,7 +741,7 @@ int TMSkillMeteorStorm::FrameMove(unsigned int dwServerTime)
 
 						pChild->m_bStickGround = 1;
 
-						if (j == 3)
+						if (j % 4 == 3)
 						{
 							pChild->m_efAlphaType = EEFFECT_ALPHATYPE::EF_NONEBRIGHT;
 							pChild->SetColor(0xFFFFFF28);
@@ -754,10 +758,15 @@ int TMSkillMeteorStorm::FrameMove(unsigned int dwServerTime)
 			}
 		}
 
-		dwOldTime_1 = dwServerTime;
 	}
 	else
+	{
+		// The impact belongs to natural expiry. A destructor during scene
+		// teardown would attach it to the next scene.
+		if (!m_cDeleted)
+			SpawnImpact();
 		g_pObjectManager->DeleteObject(this);
+	}
 
 	return 1;
 }

@@ -33,8 +33,8 @@ Missing, malformed or oversized preferences default to English. Surrounding
 ASCII whitespace is accepted. Arbitrary preference values never become paths.
 A save failure preserves the previous preference, restores the selector and
 blocks Start with an error. Updates preserve `lang.txt`: it is excluded from
-native patch generation. The older source launcher's unused manifest parser
-also rejects this preference as a replace target.
+native patch generation. The alternative source launcher and its manifest parser
+were removed at the owner's request; the native extension remains supported.
 
 The operational `WYDLauncher.exe` remains the adapted OnGame native launcher.
 Its main dialog now includes a language dropdown below the original controls.
@@ -142,10 +142,9 @@ client, not a patch; the 100xx patch history is retired.
 
 Use `tmproject/client748/WYDLauncher.exe` with its adjacent
 `WYDLauncherLanguage.dll`. The native update entry point and site feed remain
-unchanged. The language selector previously added to the obsolete source
-launcher's `Main.cpp` has been removed. That launcher's separate
-`manifest.txt` protocol is not part of this delivery. There is no alternate
-multilingual launcher executable in the runtime folder. Direct launches of
+unchanged. The alternative launcher and its separate `manifest.txt` protocol
+have been removed. The native extension sources are in `tmproject/NativeLauncher/`.
+There is no alternate multilingual launcher executable in the runtime folder. Direct launches of
 `WYD.exe` still read `lang.txt`.
 
 The previous executables are retained for rollback under
@@ -344,7 +343,7 @@ gate are now active, as recorded in the
 [launcher release receipt](launcher.md#published-patch-748002-2026-10-24). The legacy patch
 installer cannot replace its own running executable or loaded DLL, and the
 patch builder refuses both files. The obsolete source launcher's separate
-manifest/self-update flow remains outside the operational launcher contract.
+manifest/self-update implementation was removed at the owner's request.
 
 ## October 23 audit corrections
 

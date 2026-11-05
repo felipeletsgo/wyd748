@@ -5,7 +5,7 @@ Paths are normalized for the current architecture. Evidence records and handoffs
 preserve historical validation state; they do not prove current completion.
 Assets and binary dumps are not documents. Optional native evidence in `references/` is local-only and ignored by Git.
 
-Markdown documents: 228.
+Markdown documents: 221.
 
 | Document | Type |
 | --- | --- |
@@ -32,6 +32,7 @@ Markdown documents: 228.
 | [.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md](<../.agents/research/client748/flows/lifecycle/character-logout-selectchar-relogin.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md](<../.agents/research/client748/flows/lifecycle/field-scene-rebuild-after-server-move.md>) | Research evidence |
 | [.agents/research/client748/flows/lifecycle/scene-transition.md](<../.agents/research/client748/flows/lifecycle/scene-transition.md>) | Research evidence |
+| [.agents/research/client748/flows/movement/deferred-route-intent.md](<../.agents/research/client748/flows/movement/deferred-route-intent.md>) | Research evidence |
 | [.agents/research/client748/flows/TEMPLATE.md](<../.agents/research/client748/flows/TEMPLATE.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/account-login-credential-bounds.md](<../.agents/research/client748/flows/transport/account-login-credential-bounds.md>) | Research evidence |
 | [.agents/research/client748/flows/transport/action-frame-contract.md](<../.agents/research/client748/flows/transport/action-frame-contract.md>) | Research evidence |
@@ -135,6 +136,7 @@ Markdown documents: 228.
 | [.agents/research/client748/flows/ui/trade-slot-receptacle.md](<../.agents/research/client748/flows/ui/trade-slot-receptacle.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/update-equip-visual-contract.md](<../.agents/research/client748/flows/ui/update-equip-visual-contract.md>) | Research evidence |
 | [.agents/research/client748/flows/ui/volatile-item-use-routing.md](<../.agents/research/client748/flows/ui/volatile-item-use-routing.md>) | Research evidence |
+| [.agents/research/client748/flows/world/cdata-load-integrity.md](<../.agents/research/client748/flows/world/cdata-load-integrity.md>) | Research evidence |
 | [.agents/research/client748/inventory/costume-native-contract.md](<../.agents/research/client748/inventory/costume-native-contract.md>) | Research evidence |
 | [.agents/research/client748/inventory/light-source-batch-01.md](<../.agents/research/client748/inventory/light-source-batch-01.md>) | Research evidence |
 | [.agents/research/client748/inventory/light-source-batch-02.md](<../.agents/research/client748/inventory/light-source-batch-02.md>) | Research evidence |
@@ -143,6 +145,7 @@ Markdown documents: 228.
 | [.agents/research/client748/inventory/set-my-human-magic-noop.md](<../.agents/research/client748/inventory/set-my-human-magic-noop.md>) | Research evidence |
 | [.agents/research/client748/README.md](<../.agents/research/client748/README.md>) | Research evidence |
 | [.agents/research/native-combat-audit-2026-10-21.md](<../.agents/research/native-combat-audit-2026-10-21.md>) | Research evidence |
+| [.agents/research/release-history.md](<../.agents/research/release-history.md>) | Research evidence |
 | [.agents/research/source-audit-2026-10-03.md](<../.agents/research/source-audit-2026-10-03.md>) | Research evidence |
 | [.agents/skills/repo-architecture/SKILL.md](<../.agents/skills/repo-architecture/SKILL.md>) | Active skill |
 | [.agents/skills/wyd-client748-assets/SKILL.md](<../.agents/skills/wyd-client748-assets/SKILL.md>) | Active skill |
@@ -174,7 +177,6 @@ Markdown documents: 228.
 | [DOCS/basedef-documentation.md](<basedef-documentation.md>) | Product documentation |
 | [DOCS/bilingual-channels-plan.md](<bilingual-channels-plan.md>) | Product documentation |
 | [DOCS/bug-register.md](<bug-register.md>) | Product documentation |
-| [DOCS/BUGS.md](<BUGS.md>) | Product documentation |
 | [DOCS/build-and-integration.md](<build-and-integration.md>) | Product documentation |
 | [DOCS/client/classic-ui-assets.md](<client/classic-ui-assets.md>) | Product documentation |
 | [DOCS/client/combat-control.md](<client/combat-control.md>) | Product documentation |
@@ -186,16 +188,12 @@ Markdown documents: 228.
 | [DOCS/client/multilingual-client.md](<client/multilingual-client.md>) | Product documentation |
 | [DOCS/client/performance-and-visuals-plan.md](<client/performance-and-visuals-plan.md>) | Product documentation |
 | [DOCS/client/port-748.md](<client/port-748.md>) | Product documentation |
-| [DOCS/client/refactoring-batch-audit-2026-10-03.md](<client/refactoring-batch-audit-2026-10-03.md>) | Product documentation |
 | [DOCS/client/resource-compatibility-matrix.md](<client/resource-compatibility-matrix.md>) | Product documentation |
-| [DOCS/client/tmfieldscene-refactoring-plan.md](<client/tmfieldscene-refactoring-plan.md>) | Product documentation |
-| [DOCS/client/tmhuman-separation-plan.md](<client/tmhuman-separation-plan.md>) | Product documentation |
 | [DOCS/client/tmproject-source-organization-plan.md](<client/tmproject-source-organization-plan.md>) | Product documentation |
 | [DOCS/client/ui-compatibility-matrix.md](<client/ui-compatibility-matrix.md>) | Product documentation |
 | [DOCS/client/ui-windows.md](<client/ui-windows.md>) | Product documentation |
 | [DOCS/current-state.md](<current-state.md>) | Product documentation |
 | [DOCS/documentation-map.md](<documentation-map.md>) | Product documentation |
-| [DOCS/features-macro.md](<features-macro.md>) | Product documentation |
 | [DOCS/GUIA/GUIAS_JOGABILIDADE.md](<GUIA/GUIAS_JOGABILIDADE.md>) | Product documentation |
 | [DOCS/GUIA/ITENS_REFERENCIA.md](<GUIA/ITENS_REFERENCIA.md>) | Product documentation |
 | [DOCS/GUIA/MAPA_DE_URLS.md](<GUIA/MAPA_DE_URLS.md>) | Product documentation |
@@ -210,12 +208,9 @@ Markdown documents: 228.
 | [DOCS/protocol/kefra-portal.md](<protocol/kefra-portal.md>) | Product documentation |
 | [DOCS/protocol/npc-definitions.md](<protocol/npc-definitions.md>) | Product documentation |
 | [DOCS/protocol/opcode-compatibility-matrix.md](<protocol/opcode-compatibility-matrix.md>) | Product documentation |
-| [DOCS/protocol/packet-fixtures.md](<protocol/packet-fixtures.md>) | Product documentation |
 | [DOCS/protocol/premium-shop.md](<protocol/premium-shop.md>) | Product documentation |
 | [DOCS/README.md](<README.md>) | Product documentation |
-| [DOCS/reference-upstream.md](<reference-upstream.md>) | Product documentation |
 | [DOCS/SCORE.md](<SCORE.md>) | Product documentation |
-| [DOCS/server/admin-panel-roadmap.md](<server/admin-panel-roadmap.md>) | Product documentation |
 | [DOCS/server/boss-data.md](<server/boss-data.md>) | Product documentation |
 | [DOCS/server/critical-persistence-plan.md](<server/critical-persistence-plan.md>) | Product documentation |
 | [DOCS/server/data-layout.md](<server/data-layout.md>) | Product documentation |
@@ -231,9 +226,7 @@ Markdown documents: 228.
 | [DOCS/server/server-messages.md](<server/server-messages.md>) | Product documentation |
 | [DOCS/server/staff-operations.md](<server/staff-operations.md>) | Product documentation |
 | [DOCS/server/website-feature-status.md](<server/website-feature-status.md>) | Product documentation |
-| [DOCS/target-architecture.md](<target-architecture.md>) | Product documentation |
 | [DOCS/w2pp-go-gap-analysis.md](<w2pp-go-gap-analysis.md>) | Product documentation |
-| [DOCS/windows-development-environment.md](<windows-development-environment.md>) | Product documentation |
 | [DOCS/wire-opcode-catalog.md](<wire-opcode-catalog.md>) | Product documentation |
 | [DOCS/WYD-WEB-PLATAFORM.md](<WYD-WEB-PLATAFORM.md>) | Product documentation |
 | [README.md](<../README.md>) | Product documentation |

@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intent C->S do fogo premium desenhavel. Parm carrega 100 bits validos;
-// item, posicao, reserva e cooldown sao revalidados pelo servidor.
+// C->S drawable premium-firework intent. Parm carries 100 valid bits.
+// The server validates item, position, reservation and cooldown.
 constexpr auto MSG_UseItem2_Opcode = 0x3C9;
 struct MSG_UseItem2
 {

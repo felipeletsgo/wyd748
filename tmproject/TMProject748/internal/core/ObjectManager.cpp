@@ -1,6 +1,8 @@
 #include "pch.h"
+#include "TreeCleanup.h"
 #include "ObjectManager.h"
 #include "../application/AssetLoadValidation.h"
+#include "../application/ActorLifetime.h"
 #include "../wire/ReceivedPacketDispatch.h"
 #include "../application/ApplyCargoSlot.h"
 #include "../platform/diagnostics/ClientDiagnostics.h"
@@ -86,8 +88,11 @@ ObjectManager::ObjectManager()
 
 ObjectManager::~ObjectManager()
 {
-	SAFE_DELETE(m_pRoot);
+	// The root owns every scene. Clear the borrowed scene before destruction.
+	m_retiredScenes.Forget();
+	m_pPreviousScene = nullptr;
 	g_pCurrentScene = nullptr;
+	SAFE_DELETE(m_pRoot);
 }
 
 void ObjectManager::Finalize()
@@ -97,7 +102,7 @@ void ObjectManager::Finalize()
 
 void ObjectManager::OnPacketView(const PacketView& packet)
 {
-	// Validate migrated frame contracts while the frame length is still available.
+	// Validate receive contracts while the frame length is still available.
 	// Keep the legacy path, including early consumption of MSG_SendItem.
 	// Local events without frames still enter directly through OnPacketEvent.
 	received_packet::Dispatch(packet, [this](const PacketView& frame)
@@ -810,6 +815,14 @@ void ObjectManager::SetCurrentState(TM_GAME_STATE ieNewState)
 
 void ObjectManager::SetCurrentScene(TMScene* pScene)
 {
+	// A replaced scene will not render again. Detach its borrowed geometry
+	// before any derived destructor can destroy the controls that own it.
+	if (g_pCurrentScene && g_pCurrentScene->m_pControlContainer)
+		g_pCurrentScene->m_pControlContainer->DiscardFrameReferences();
+
+	// C-13: a second transition before CleanUp keeps the older replaced scene
+	// for deletion instead of overwriting its only reference.
+	m_retiredScenes.Retire(m_pPreviousScene);
 	m_pPreviousScene = g_pCurrentScene;
 	g_pCurrentScene = pScene;
 
@@ -843,6 +856,11 @@ void ObjectManager::DeleteObject(TreeNode* pNode)
 	if (pNode == nullptr)
 		return;
 
+	if (g_pCurrentScene && g_pCurrentScene->m_pHumanContainer &&
+		pNode->m_pTop == g_pCurrentScene->m_pHumanContainer)
+		actor_lifetime::ClearPendingEffectTargets(static_cast<TMHuman*>(pNode),
+			g_pCurrentScene->m_pHumanContainer);
+
 	pNode->m_cDeleted = 1;
 	m_bCleanUp = 1;
 
@@ -858,8 +876,10 @@ void ObjectManager::DeleteObject(unsigned int dwID)
 
 void ObjectManager::DisconnectEffectFromMob(TMHuman* pMob)
 {
-	if (pMob == nullptr)
+	if (pMob == nullptr || pMob->m_pParentScene == nullptr)
 		return;
+
+	actor_lifetime::ClearPendingEffectTargets(pMob, pMob->m_pParentScene->m_pHumanContainer);
 
 	if (pMob->m_pParentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
 	{
@@ -983,42 +1003,20 @@ TMCamera* ObjectManager::GetCamera()
 
 void ObjectManager::CleanUp()
 {
-	TreeNode* pCurrentNode = g_pCurrentScene;
-	TreeNode* pRootNode = pCurrentNode;
-
 	if (g_pCurrentScene != nullptr)
 	{
-		do
-		{
-			TreeNode* pTopNode = pCurrentNode->m_pTop;
-
-			if (pCurrentNode->m_cDeleted)
-			{
-				SAFE_DELETE(pCurrentNode);
-				pCurrentNode = pTopNode;
-				continue;
-			}
-			else
-			{
-				if (pCurrentNode->m_pDown)
-				{
-					pCurrentNode = pCurrentNode->m_pDown;
-					continue;
-				}
-			}
-			do
-			{
-				if (pCurrentNode->m_pNextLink != nullptr)
-				{
-					pCurrentNode = pCurrentNode->m_pNextLink;
-					break;
-				}
-
-				pCurrentNode = pCurrentNode->m_pTop;
-			} while (pCurrentNode != pRootNode && pCurrentNode != nullptr);
-		} while (pCurrentNode != pRootNode && pCurrentNode != nullptr);
-
-		SAFE_DELETE(m_pPreviousScene);
+		// A destructor may retire an already visited peer. Keep that cleanup scheduled.
 		m_bCleanUp = 0;
+		tree_cleanup::Sweep(static_cast<TreeNode*>(g_pCurrentScene),
+			[] { return TreeNode::DestructionCount(); },
+			[](TreeNode* node) { delete node; });
+
+		// The manager alone owns retirement and cleanup of replaced scenes.
+		std::vector<TMScene*> retired = m_retiredScenes.TakeAll();
+		TMScene* pPreviousScene = m_pPreviousScene;
+		m_pPreviousScene = nullptr;
+		SAFE_DELETE(pPreviousScene);
+		for (TMScene* pRetiredScene : retired)
+			delete pRetiredScene;
 	}
 }

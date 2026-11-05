@@ -2,6 +2,7 @@
 #include "ClientDiagnostics.h"
 #include "CrashCapture.h"
 #include "WerCrashCapture.h"
+#include "ModuleSiblingPath.h"
 #include "SControlContainer.h"
 #include "SControl.h"
 
@@ -33,26 +34,13 @@ namespace
 
     void BuildModuleSiblingPath(const char* fileName, char (&path)[MAX_PATH])
     {
-        path[0] = '\0';
-        const DWORD length = GetModuleFileNameA(nullptr, path, MAX_PATH);
-        if (length == 0 || length >= MAX_PATH)
-        {
+        // An executable path near MAX_PATH cannot hold the sibling name. Use
+        // the bare name (current directory) instead of a CRT fail-fast.
+        char module[MAX_PATH]{};
+        const DWORD length = GetModuleFileNameA(nullptr, module, MAX_PATH);
+        if (length == 0 || length >= MAX_PATH ||
+            !diagnostics_path::ReplaceFileName(module, fileName, path, MAX_PATH))
             strcpy_s(path, fileName);
-            return;
-        }
-
-        char* slash = strrchr(path, '\\');
-        char* forwardSlash = strrchr(path, '/');
-        if (!slash || forwardSlash > slash)
-            slash = forwardSlash;
-        if (!slash)
-        {
-            strcpy_s(path, fileName);
-            return;
-        }
-
-        slash[1] = '\0';
-        strcat_s(path, fileName);
     }
 
     const char* ControlTypeName(const CONTROL_TYPE type)

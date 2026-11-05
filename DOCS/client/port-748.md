@@ -20,6 +20,169 @@ drop-list packet paths. This is not evidence that an already installed
 separates retired paths from incomplete server integrations; in particular,
 war letters, alternate mix, and account transfer are not supported end to end.
 
+### Eight native-source corrections (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Packet layouts remain unchanged.
+These corrections shipped in revision 18 and are retained in the prepared baseline 100. Existing coordinated skill-book and MagicAttack policies remain.
+Native 7.59 TMSRVIN supplies server arithmetic; it does not establish 7.48 parity.
+Core.dll evidence was consulted without resolving an independent gameplay root.
+Native receipts remain under `references/decompilacao server/dlls/rea-analysis/results/audit-eight-corrections-20261102/`.
+
+| Audit IDs | Implemented behavior | Remaining acceptance |
+| --- | --- | --- |
+| A09-09 | Two workers fetch channel status; the UI reads a bounded cache and applies completed revisions | Selection and field channel changes, delayed/unavailable endpoint, scene changes |
+| A09-01, A05-08 | C++ and Go share damage/mana/cooldown fixtures; live face, mastery, equipment and mount data feed the preview | All classes, transformation, weather, special skills and authoritative rejections |
+| A15-02 | Queue the latest movement intent; predict only after socket enqueue succeeds; retain the native one-second send gate | Speeds 1–7, repeated clicks, stop, failed sends, teleport, death and relogin |
+| A09-07, A09-06, A09-08 | Apply native offhand 130% requirements and refinement rules; match mount HP to the original catalog ID | Requirement boundaries, refined tooltips, feeding and mount remaps |
+| A14-05 | Align full/compact dyed refinement, legend grades, post-color snapshots and Wild Fenrir scale | Owner/observer, dye +9/+10/+15, transformation, visibility re-entry and relogin |
+| C-22 family | Use elapsed-time 30 Hz cosmetic emission with bounded catch-up | Matched 30/60/144 FPS captures, density, audio and allocation counts |
+| C-31 | Cache confirmed missing paths for five seconds; bound the cache to 1,024 entries | Loader fallback and assets added during a session |
+| C-13, A25-09 | Remove cleanup re-entry from scene destruction; clear borrowed scene pointers; validate native cdata checksum on first load | Repeated transitions, logout, field exit and corrupt-file startup |
+
+TMSRVIN roots: `0x4C3DE0` damage, `0x4C1190` mana, `0x4B7FD0` item ability,
+`0x4B97F0` refinement and `0x4BE6D0` requirements. Native 7.48 evidence resolves
+[movement](../../.agents/research/client748/flows/movement/deferred-route-intent.md),
+[ground integrity](../../.agents/research/client748/flows/world/cdata-load-integrity.md)
+and [appearance](../../.agents/research/client748/flows/ui/update-equip-visual-contract.md).
+The 30 Hz emitter policy is a compatible correction, not a recovered server frequency.
+The preview estimates base damage; target defense, resistance, critical rolls and
+server rejection still determine the applied result.
+
+STATICALLY VERIFIED and AUTOMATED TESTED are recorded in
+`build/client-native-corrections-20261102/REPORT.md`. The owner reported several
+minutes of farming without apparent failures: partial OWNER-REPORTED CLIENT-TESTED.
+The field-to-server-selection crash and mount incidents reported later that day
+now have tested source corrections. See BUG-012–BUG-015 in the
+[bug register](../bug-register.md#queue). New gameplay acceptance remains pending.
+Evidence: `tmproject/build/mount-crash-20261102/REPORT.md`.
+The owner authorized local installation on November 2; the installed hash matches the validated build.
+Patch 48018 and server release `20261102T233404Z` are published and active.
+The prepared native-launcher baseline 7.48.100 includes these corrections.
+Its local installation is updated; external upload and baseline activation remain pending.
+The alternative source launcher was removed at the owner's request; see
+the [retirement receipt](../../.agents/research/native-launcher-retirement-20261102.json).
+See the [release receipt](../../.agents/research/release-748018.json).
+
+### Mount and scene-retirement corrections (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Revision 18 and existing wire layouts remain.
+The server publishes Equip[14] after each accepted nonlethal mount HP change.
+The client updates HP, tooltip and selection state without rebuilding the living
+mount's appearance. Death, revival and non-HP changes keep the full projection path.
+C.C. therefore reads authoritative intermediate HP through its existing threshold logic.
+
+Food consumes one point per complete eligible equipped hour. Accepted mount-slot
+moves reset the previous deadline after commit; rejected and same-slot requests
+preserve it. Unequipped, dead and protected time remains excluded. Feed items can
+also heal combat HP, independently of the hourly food-point decrease.
+
+Scene retirement discards borrowed draw lists before destruction. Terminal list
+disposal and focus cleanup do not dereference destroyed controls. Render cleanup
+retains its original scene until deferred retirement. The October 30 exact-image
+investigation confirms the recursive destruction already removed by the earlier batch.
+
+The published revision-18 client SHA-256 is
+`F8E4F9A2D73458C0B72072F9EF5F53F110C2EFD0A6D7CC9EB03FB3587DBCC3B8`.
+The local baseline-100 installation is recorded in the
+[baseline receipt](../../.agents/research/client-baseline-748100-20261102.json).
+Release checks and Go full/vet/focused race checks pass. The server artifact is
+`build/mount-crash-20261102/wyd-game.exe`. The matching Linux server is active
+in release `20261102T233404Z`; all installed payload and running process hashes passed verification.
+Real-client acceptance requires repeated account/server transitions, C.C. 50%
+under combat, and a timed one-hour food test after server activation.
+
+### Authoritative item use and merchant display (2026-11-02)
+
+Item-use classification: `MODERNIZACAO_COMPATIVEL`. Existing item-use packets
+and server payment rules are unchanged. Native optimistic presentation is
+deliberately superseded. Quoted sales use `EXTENSAO_COORDENADA` v1.
+
+HP, MP, special potions, mount food, tickets, direct use, portal confirmation,
+targeted use and capsule confirmation keep inventory unchanged until server
+snapshots arrive. Rejection and send failure cannot remove a visual item.
+The existing 200 ms request cooldown remains. Repeated requests during a
+critical reservation remain silent until its durable completion publishes state.
+Bounded malformed destinations, dead players and empty sources now receive
+their authoritative source slot. Invalid source addresses are never truncated.
+
+Sale tooltips now follow current Go payment rules: quarter catalog price,
+Dionys-only price bands, Huntress passive, then integer city tax. Items 412
+and ability-185 items no longer display unsupported native quote overrides.
+The server retains all permission, persistence, inventory and gold-cap checks.
+The historical `NativeSaleQuote.h` records native arithmetic; it no longer
+defines this integrated tooltip. Ctrl-sale and confirmation send opcode
+`0x7F40`, version 1, exactly 32 bytes. All integers are little-endian:
+
+| Offset | Size | Field |
+| --- | --- | --- |
+| 0 | 12 | Existing message header |
+| 12 | 2 | Version, must be 1 |
+| 14 | 2 | Merchant ID |
+| 16 | 2 | Source place, must be Carry 1 |
+| 18 | 2 | Source slot, 0..62 |
+| 20 | 4 | Expected net payment |
+| 24 | 8 | Expected item index and all six effect bytes |
+
+The server recalculates payment and compares the item before persistence.
+A changed tax, catalog price, passive or slot causes rejection, never a
+different silent payment. Rejection sends the authoritative item and an EN/PT
+notice. Reopen the shop to refresh its quote. Confirmed sales retain the
+existing persisted `SendItem`/`UpdateEtc` publication and replay protection.
+Critical reservations publish only after durable completion; uncertain results
+keep their existing fences. The item UID remains server-owned and off-wire.
+
+Admission revision 18 gates the coordinated client/server candidate. Revision
+17 is the last published revision, so no second revision is allocated here.
+The legacy 20-byte `0x37A` handler remains for compatibility; the current UI
+does not fall back to it. Its native response envelope is unchanged.
+Publish the client patch before activating this server minimum. Rollback
+requires the previously verified compatible client/server pair.
+
+Source: `ServerSaleQuote.h`, `SGridTooltip.cpp`, item-use scene handlers and
+`wydgo748/internal/game/consumables.go`. Validation and remaining runtime gates:
+`build/client-pending-corrections-20261102/REPORT.md`. Earlier dated receipts
+remain historical. The later eight-correction candidate is now installed locally.
+
+### Current build gates (2026-11-02)
+
+Dated sections below keep the counts and results of their own builds. Do not
+read them as the current gate.
+
+- Latest Release candidate (revision 18, including the eight corrections above):
+  ArchitectureTests 3,201,550 checks, SocketReceiveTests 295,
+  CrashCaptureTests 148 and launcher tests 66 passed.
+  Updater integration passed 120 checks. Asset classification passed all 218 references.
+  Evidence: `build/client-native-corrections-20261102/REPORT.md`.
+- The eight-correction executable is installed locally with a verified backup.
+  Its hash is `295570C073626424B2E04FD37DF11FE038C76859C05AD4D04B9FA005FE80A683`.
+  The owner reported several minutes of farming without apparent failures.
+  Targeted acceptance remains pending; see `owner-farm-acceptance.json` in the task receipt directory.
+  Evidence: `build/client-native-corrections-20261102/local-installation.json`.
+- The last published client remains revision 17 in the
+  [release receipt](../../.agents/research/release-748017.json). Its older gate
+  counts and the 198 crash checks from October 17-18 describe those builds.
+- Check counts include enumerated loops. They are not a coverage measure.
+  Source-text contract checks are code-shape evidence (`STATICALLY VERIFIED`),
+  not gameplay or pixel acceptance. Executed fixtures and behavior tests are
+  `AUTOMATED TESTED`.
+- Debug: the initial C2440 allocator failure in `UIBinaryTests.cpp` was fixed.
+  The official `Build-Client.ps1 -Configuration Debug -NoDeploy` gate then
+  passed, with 3,188,907 architecture checks, 295 socket checks, 148 crash checks
+  and 58 launcher checks. The later improvement batch also passed Debug.
+  These Debug artifacts predate the final channel-list correction. Evidence:
+  `build/tmproject748-remediation-20261101/verification-continuation.json` and
+  `build/tmproject748-improvements-20261101/REPORT.md`.
+- The asset audit now runs inside `Build-Client.ps1`; see the
+  [asset audit status](../README.md#organization).
+
+The owner subsequently accepted the fifteen supplied manual stages and two
+special scenarios on the installed Release candidate. The receipt is
+`build/tmproject748-channel-list-20261101/owner-client-acceptance.json`.
+This is owner-reported client acceptance, not closure of every native evidence,
+measurement or partial-contract limit below. See the
+[current state](../current-state.md#local-candidate-after-r5) for local versus
+published status.
+
 ## Recent integrated contracts and validation limits
 
 The October 7 source/tests and documentation are published in
@@ -315,6 +478,13 @@ or remove supported legacy behavior.
    test seams do not prove all scene-transition or render-resource lifetimes.
    Render-target/default-pool ownership, borrowed meshes and gameplay recovery
    remain pending.
+
+   **Status 2026-11-01:** the source audit found a concrete blocker (C-29).
+   `TextureManager` creates unused `D3DPOOL_DEFAULT` render targets at startup
+   and never releases them, so every `Reset` fails while they exist. Device
+   recovery remains pending: freeing borrowed managed meshes (A23-01) and other
+   recovery lifecycle issues (A21-09) must be corrected together with C-29. No
+   device-loss test has run.
 4. **P1 — Actor, effect and scene lifetime.** Trace delayed deletion through
    lookup, packet delivery, effect creation and final owner detachment;
    include nested effect containers, delayed actors after device recovery,
@@ -2192,7 +2362,9 @@ retains the full unread suffix, including a read that exactly fills the
 remaining capacity. A stale asynchronous notification returning
 `WSAEWOULDBLOCK` preserves the connection; orderly shutdown still reports
 disconnection. Framing validates the size and waits for the entire packet
-before consuming a configured rolling receive key.
+before it consumes a rolling receive key. Production never configures that
+key: `CPSock` zeroes `RecvQueue` and has no setter, so only the socket tests
+exercise the rolling receive path.
 
 This is `MODERNIZACAO_COMPATIVEL`: packet sizes, encryption, opcodes, and
 server behavior are unchanged. It is independent of the user's resolved
@@ -2234,8 +2406,15 @@ cursor data loss, then cover bounded real TCP backpressure, exact-byte retry
 delivery, synthetic event dispatch, fatal retry errors, and failed event
 registration without creating a window. Actual Windows message delivery and
 scene behavior in the game remain untested; synthetic notifications do not
-establish those gates. Socket identity filtering covers different handles,
-not reuse of an identical handle by Winsock. Both login connection paths now
+establish those gates. Socket identity filtering covers different handles.
+While a new stream connects, only `FD_CONNECT` is accepted, so queued read,
+write or close messages of a closed socket with a reused handle value are
+ignored; a stale `FD_CONNECT` or a synchronously completed connect remains
+indistinguishable. A graceful `FD_CLOSE` first drains bytes still in the
+socket, delivers complete frames, then disconnects once. The receive
+allocation has 64 KiB of zeroed slack after the 128 KiB window. These three
+items are source changes from 2026-11-01 (A18-03, A18-04, A18-05); the
+`SocketReceiveTests` gate and client acceptance are pending. Both login connection paths now
 queue the raw four-byte `InitCode` through the same output buffer as encrypted
 frames. A short send or `WSAEWOULDBLOCK` retains the unsent handshake prefix
 before the first frame; a definitive send error closes the socket. Loopback

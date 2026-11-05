@@ -1,12 +1,12 @@
 #pragma once
 
-// Porta semantica de selecao de personagem: nao expoe structs nem opcode.
-// O implementador codifica a intencao e nao altera UI ou estado da sessao.
+// Character-selection port without wire structs or opcodes.
+// The implementation encodes intent without changing UI or session state.
 class ICharacterLoginSender
 {
 public:
     virtual ~ICharacterLoginSender() = default;
-    // slot deve estar entre 0 e 3. Chamada sincrona, sem ownership transferido;
-    // true indica aceite local do envio, nunca confirmacao de login remoto.
+    // The slot must be 0..3. This synchronous call transfers no ownership.
+    // True means local send acceptance, not remote login confirmation.
     virtual bool SendCharacterLogin(int slot) = 0;
 };

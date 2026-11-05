@@ -1,0 +1,151 @@
+{
+  "dateLocal": "2026-11-02",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "scope": "Native launcher HTTPS transport only; game identity remains 100; server and feed unchanged.",
+  "nativeEvidence": {
+    "originalOnGameLauncherSha256": "6cd8b16f15794e87cd9ffaec32d3e33ab90c98eb96303ba2ddf799dd8144da75",
+    "operationalBaselineSha256": "a60dca35b68dbe36ece57541917a433f48282518561e2f7e89282c50f3e2e901",
+    "boundary": "Existing adapted OnGame 7.47 launcher, not a claim of native 7.48 HTTPS parity.",
+    "used": [
+      "DOCS/client/launcher.md traced protocol",
+      "Pinned PE imports independently decoded; builder checks each IAT RVA"
+    ],
+    "notApplicable": [
+      "Native server binaries and game packet contracts; no server logic change"
+    ],
+    "iatRvas": {
+      "FtpGetFileA": "0x2e4f0",
+      "HttpSendRequestA": "0x2e500",
+      "HttpOpenRequestA": "0x2e504",
+      "InternetOpenUrlA": "0x2e508",
+      "InternetConnectA": "0x2e514"
+    }
+  },
+  "contract": {
+    "initialization": "Mandatory existing DLL bootstrap; validate all import slots before mutation; exit before native entry on failure.",
+    "transport": "Fixed wyd.forjago.com host, port 443, TLS with Windows certificate validation; remove certificate-ignore flags.",
+    "failures": "Reject redirects, non-200 responses, foreign hosts and FTP. No downgrade. Keep native error UI.",
+    "lifecycle": "Initialize before original entry; hooks belong to main executable only, remain for process lifetime. Close failed URL handles.",
+    "preserved": "Original machine code, feed grammar, ZIP extraction, artwork, Settings, Start and locale control.",
+    "rollback": "C:\\Users\\xereca\\Documents\\PROJETOS\\wyd-go\\tmproject\\build\\native-launcher\\rollback-20261103T004927354Z",
+    "unchanged": {
+      "WYD.exe": "2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4",
+      "lang.txt": "B01AA4A138A392E02009B21DAFDFD89E8B920D4774BC1AA8EE8B456822E6239C",
+      "config.txt": "FC8ABBC2C4827447FC779727B0C86A5E6D327FE7300110900B7477F47FB83690"
+    }
+  },
+  "local": {
+    "installed": true,
+    "files": {
+      "WYDLauncher.exe": "85c9c648b389be91ca348351590fcbefa6752a4d4e849afbbcb1f054ca12fde2",
+      "WYDLauncherLanguage.dll": "4be648566932362d6d7440db234f31cd33c19fe60f91c757ee69e0e5df129af5",
+      "WYD.exe": "2287425438fc995d740205be53280c0931aba7e5876bebed39552a28d64223c4"
+    },
+    "fullPackage": {
+      "path": "WYD-client-native-native-https-748100-20261102.zip",
+      "size": 317133132,
+      "sha256": "20d8fd9d50616b208796c1ec3c34628fb4e3638c6a9a91317c8b96118ef4fa35"
+    },
+    "fullPackageDirectory": "build\\client-native-https-748100-20261102",
+    "launcherOnlyZip": "build\\client-native-https-748100-20261102\\WYD-native-launcher-https.zip",
+    "launcherOnlyZipSha256": "f2d50aadfcccbdc0db6a95b8a0229107ffd3eaef6dde7df57f3052911f9206ad"
+  },
+  "validation": {
+    "static": "Five import names/RVAs checked against pinned executable; code/data and unchanged resources retained.",
+    "automated": "x86 DLL/control/transport tests passed; seven PE/bootstrap tests passed.",
+    "liveNetwork": "Production WinINet feed, guild and ZIP downloads succeeded; ZIP SHA matches published patch.",
+    "expiredCertificate": "Real expired.badssl.com fixture rejected with error 12037 despite caller ignore flags.",
+    "probeZipSha256": "c891c952983ff1c61b17c4f1e9bd94e983e6f743ae45337f6b4eb00fd88bfe97",
+    "gameplay": "Not run. Full native updater UI and Start/Settings/locale acceptance pending.",
+    "skipped": "Go and game builds: no game, packet or server changes.",
+    "logs": [
+      "tmproject/build/native-launcher/https-build.log",
+      "tmproject/build/native-launcher/https-install.log",
+      "tmproject/build/native-launcher/https-probe/probe.log",
+      "tmproject/build/native-launcher/https-package.log"
+    ],
+    "portal": "Astro check/build and 116 tests passed."
+  },
+  "published": true,
+  "publicDriveArchive": {
+    "viewUrl": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+    "sizeBytes": 260877805,
+    "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66",
+    "archiveEntries": 8529,
+    "fileEntries": 8502,
+    "directoryEntries": 27,
+    "requiredEntries": 8498,
+    "additionalEntries": [
+      "WYD-748100/client-debug.log",
+      "WYD-748100/clientlogs.log",
+      "WYD-748100/guilds.txt",
+      "WYD-748100/update.dat"
+    ],
+    "verifiedExecutableSha256": "2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4",
+    "httpsLauncherDllSha256": "4ba1a44a6df7884ca010cf5c5e08e49b19e7f848c684709b8f239eeae3886f04",
+    "websitePublication": {
+      "published": true,
+      "release": "/srv/wyd-go/releases/20261103T010701Z",
+      "pages": {
+        "download/index.html": "ef949a30a7cd793a983e4e6804bb8f22a7481058192826c7d5f27986520b6b7c",
+        "client-manifest.json": "ac14314614d35382d5f6a11595c85a4f869627c93978cceb1bc2a38bbd18a04c"
+      },
+      "feedUnchanged": true,
+      "allServiceProcessesUnchanged": true,
+      "backup": "/srv/wyd-go/backups/client-link-20261103"
+    },
+    "verification": "Public archive fully hash-compared with all 8,498 required entries. The launcher DLL and game executable hashes match the corrected local client."
+  },
+  "news": "Review draft only; not published.",
+  "pending": [
+    "Owner visual acceptance of native update UI, Settings, Start and EN/PT selection."
+  ],
+  "publicationScope": "Full client and download page/manifest updated to the owner-provided Drive archive. Server feed and game processes unchanged.",
+  "websitePublication": {
+    "published": true,
+    "release": "/srv/wyd-go/releases/20261103T010701Z",
+    "pages": {
+      "download/index.html": "ef949a30a7cd793a983e4e6804bb8f22a7481058192826c7d5f27986520b6b7c",
+      "client-manifest.json": "ac14314614d35382d5f6a11595c85a4f869627c93978cceb1bc2a38bbd18a04c"
+    },
+    "feedUnchanged": true,
+    "allServiceProcessesUnchanged": true,
+    "backup": "/srv/wyd-go/backups/client-link-20261103"
+  },
+  "activationReceipt": ".agents/research/release-748100-https.json",
+  "supersededPublicDriveArchive": {
+    "url": "https://drive.usercontent.google.com/download?id=1btS9vjWqO71pGG9LWiJUrnVQkZmOgt0Q&export=download&confirm=t",
+    "viewUrl": "https://drive.google.com/file/d/1btS9vjWqO71pGG9LWiJUrnVQkZmOgt0Q/view?usp=drive_link",
+    "sizeBytes": 317133132,
+    "sha256": "20d8fd9d50616b208796c1ec3c34628fb4e3638c6a9a91317c8b96118ef4fa35"
+  },
+  "currentPublicDriveArchive": {
+    "viewUrl": "https://drive.google.com/file/d/1Q0tx4tz73Yqp9xbNntZR6jGXoPXiIgvh/view?usp=drive_link",
+    "sizeBytes": 260877805,
+    "sha256": "7f5f720a51c6ff592b0c805ad50a5bfa0878393613d6a7b1e6fff18cac509c66",
+    "archiveEntries": 8529,
+    "fileEntries": 8502,
+    "directoryEntries": 27,
+    "requiredEntries": 8498,
+    "additionalEntries": [
+      "WYD-748100/client-debug.log",
+      "WYD-748100/clientlogs.log",
+      "WYD-748100/guilds.txt",
+      "WYD-748100/update.dat"
+    ],
+    "verifiedExecutableSha256": "2287425438FC995D740205BE53280C0931ABA7E5876BEBED39552A28D64223C4",
+    "httpsLauncherDllSha256": "4ba1a44a6df7884ca010cf5c5e08e49b19e7f848c684709b8f239eeae3886f04",
+    "websitePublication": {
+      "published": true,
+      "release": "/srv/wyd-go/releases/20261103T010701Z",
+      "pages": {
+        "download/index.html": "ef949a30a7cd793a983e4e6804bb8f22a7481058192826c7d5f27986520b6b7c",
+        "client-manifest.json": "ac14314614d35382d5f6a11595c85a4f869627c93978cceb1bc2a38bbd18a04c"
+      },
+      "feedUnchanged": true,
+      "allServiceProcessesUnchanged": true,
+      "backup": "/srv/wyd-go/backups/client-link-20261103"
+    },
+    "verification": "Public archive fully hash-compared with all 8,498 required entries. The launcher DLL and game executable hashes match the corrected local client."
+  }
+}

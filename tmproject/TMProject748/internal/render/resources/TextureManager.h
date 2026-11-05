@@ -42,6 +42,8 @@ public:
 	void ReleaseTexture();
 	void ReleaseNotUsingTexture();
 	int RestoreRenderTargetTexture();
+	// Releases every DEFAULT-pool render target. Device Reset requires it.
+	void ReleaseRenderTargetTexture();
 
 	int InitUITextureList();
 	int LoadUITexture(int nIndex, int nSrcIndex);

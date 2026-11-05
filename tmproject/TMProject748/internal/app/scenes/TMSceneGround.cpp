@@ -25,7 +25,6 @@
 char heightMapData[128][128]{};
 int TMScene::GroundNewAttach(EDirection eDir)
 {
-	memset(heightMapData, 0, sizeof(heightMapData));
 	if (m_bCriticalError == 1 || !m_pGround)
 		return 0;
 
@@ -64,6 +63,10 @@ int TMScene::GroundNewAttach(EDirection eDir)
 		x = m_pGround->m_vecOffsetIndex.x;
 		y = m_pGround->m_vecOffsetIndex.y + 1;
 	}
+
+	// Clear the scratch height map only for an attach that can proceed; a
+	// present or disabled neighbor returns above without the 16 KB clear.
+	memset(heightMapData, 0, sizeof(heightMapData));
 
 	char fileNameTrn[128]{};
 	char fileNameDat[128]{};

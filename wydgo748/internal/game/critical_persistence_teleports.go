@@ -70,6 +70,8 @@ func (w *World) queuePlayerTeleportSnapshot(p *Player, proposed *model.Account, 
 	if !ok || w.positionOccupiedExcept(x, y, nil, p) {
 		return errors.New("critical teleport: no available destination")
 	}
+	// Access is fixed at admission. The zone guard handles later ownership
+	// changes after settlement, without invalidating a committed account write.
 	ch := &proposed.Chars[p.CharSlot]
 	ch.X, ch.Y = x, y
 	if !preserveHomeCity {

@@ -24,6 +24,8 @@ public:
     float m_fAngle;
     float m_fProgress;
     int m_nType;
+    // Per-instance color for the shared meshes 704 and 705, applied in Render.
+    unsigned int m_dwMeshColor = 0;
 
 private:
     unsigned int m_dwRand;

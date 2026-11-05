@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "TMEffectBillBoard3.h"
 #include "TMGlobal.h"
+#include "EffectTiming.h"
 
 TMEffectBillBoard3::TMEffectBillBoard3(TMVector3 vecStart, TMVector3 vecEnd, int nTextureIndex, unsigned int dwColor, unsigned int dwLifeTime, float fScaleH, float fScaleV) :
 	m_vecStartPos{},
@@ -153,7 +154,9 @@ int TMEffectBillBoard3::FrameMove(unsigned int dwServerTime)
 
 	if (m_dwShortTime)
 	{
-		float fShort = (float)(dwServerTime - m_dwShortTime) / (float)(m_dwLifeTime + m_dwCreateTime - m_dwShortTime);
+		// A short time at or after the expiry gives a complete window instead
+		// of a division by zero or a wrapped denominator.
+		float fShort = effect_timing::ShortWindowProgress(dwServerTime, m_dwShortTime, m_dwCreateTime, m_dwLifeTime);
 		
 		TMVector3 vecStartPos{ m_vecPosition.x, m_vecPosition.y + m_fScaleV, m_vecPosition.z };
 		TMVector3 vecEndPos

@@ -25,7 +25,7 @@ SCursor::~SCursor()
 {
 	if (m_eStyle == ECursorStyle::TMC_CURSOR_PICKUP)
 	{
-		SControlContainer* pControlContainer = g_pCurrentScene->m_pControlContainer;
+		SControlContainer* pControlContainer = g_pCurrentScene ? g_pCurrentScene->m_pControlContainer : nullptr;
 		if (pControlContainer != nullptr)
 		{
 			if(m_GeomItem.nLayer >= 0)

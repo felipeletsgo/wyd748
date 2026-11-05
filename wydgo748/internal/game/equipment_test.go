@@ -392,10 +392,12 @@ func TestRecalcPlayerIncludesNativeNecklaceSlot(t *testing.T) {
 		Str: 8, Int: 4, Dex: 7, Con: 6,
 	})}
 	ch.Equip[0] = model.Item{Index: 1}
-	ch.Equip[9] = model.Item{Index: 100, Eff: [6]byte{47, 3, 48, 4}}
+	// Native 0x4B7FD0 multiplies regeneration by effective refinement.
+	// Face indices do not receive refinement or regeneration bonuses.
+	ch.Equip[9] = model.Item{Index: 100, Eff: [6]byte{47, 3, 48, 4, 43, 1}}
 	w.recalcPlayer(ch)
-	if effectiveScore(ch).RegenHP != 5 || effectiveScore(ch).RegenMP != 6 {
-		t.Fatalf("necklace regen HP/MP=%d/%d, want 5/6",
+	if effectiveScore(ch).RegenHP != 3 || effectiveScore(ch).RegenMP != 4 {
+		t.Fatalf("necklace regen HP/MP=%d/%d, want 3/4",
 			effectiveScore(ch).RegenHP, effectiveScore(ch).RegenMP)
 	}
 	if bodyMesh(ch)[9] == 0 || clientEquipProjection(ch)[9] != ch.Equip[9] {

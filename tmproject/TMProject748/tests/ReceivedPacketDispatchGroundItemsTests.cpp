@@ -330,8 +330,5 @@ int RunReceivedPacketDispatchGroundItemsTests(int& checks)
         "RemoveItem preserves the ID at the native offset");
     check(removeItem == removeItemBefore, "gate preserves every RemoveItem byte");
 
-    // Both instance counters use MSG_STANDARDPARM: a 16-byte envelope
-    // with the integer value at offset 12. The callback receives the same
-    // buffer, so the test also guards against normalization/copying.
     return failures;
 }

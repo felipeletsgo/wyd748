@@ -3,7 +3,7 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intent C->S de alternancia PK; Parm aceita somente 0 ou 1 no servidor.
+// C->S PK-toggle intent. The server accepts only Parm 0 or 1.
 constexpr auto MSG_SetPKMode_Opcode = 0x399;
 struct MSG_SetPKMode
 {

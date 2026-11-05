@@ -342,7 +342,7 @@ func (w *World) baseSkillDamage(ch *model.Char, skill model.SkillDef) int {
 		return maxInt(1, damage)
 	}
 
-	adc := special%10 > 5
+	adc := ch.Equip[0].Index%10 > 5
 	levelPart := level / 2
 	if adc {
 		levelPart = level
@@ -403,7 +403,7 @@ func skillUsesMagic(ch *model.Char, skill model.SkillDef) bool {
 	if ch == nil || skill.InstanceType < 1 || skill.InstanceType > 5 {
 		return false
 	}
-	return ch.Class != 3 && (ch.Class != 0 || !tkTransformationSkill(skill.Index))
+	return ch.Class != 3 && (ch.Class != 0 || !tkTransformationSkill(serverSkillIndex(ch, skill.Index)))
 }
 
 func resistanceForInstance(instance int, resist model.ElementalResists) int {
@@ -623,6 +623,9 @@ func (w *World) onSkillAttack(p *Player, req skillCastRequest) {
 		kind = 4
 	}
 	mastery := int(playerMastery(p.Char, kind))
+	if special {
+		mastery = int(playerLevel(p.Char))
+	}
 	var targets []*Mob
 	var playerTargets []*Player
 	var supportTargets []*Player

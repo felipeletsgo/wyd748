@@ -3,9 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intencao C->S enviada quando o personagem entra ou troca de cidade. O
-// servidor continua decidindo o estado persistido; Village apenas identifica
-// a regiao calculada pelo client para manter a sessao informada.
+// C->S intent on city entry or change. The server owns persisted state.
+// Village identifies the client-computed region for session notification.
 constexpr auto MSG_ChangeCity_Opcode = 0x291;
 struct MSG_ChangeCity
 {

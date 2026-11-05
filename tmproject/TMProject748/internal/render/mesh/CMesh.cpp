@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "AssetFileOpen.h"
+#include "../../platform/diagnostics/PerfTrace.h"
 #include "TMMesh.h"
 #include "TMSkinMesh.h"
 #include "CMesh.h"
@@ -12,6 +14,8 @@
 #include "NativeMountGlow.h"
 #include "ApprenticeMantleTint.h"
 #include "SkinMeshLoad.h"
+#include "ScopeRestore.h"
+#include "TMLog.h"
 #include <memory>
 #include <new>
 
@@ -113,6 +117,10 @@ int CMesh::Render(int nBright)
         g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_ALPHATESTENABLE, 0);
 
         TMMesh* pMesh = g_pMeshManager->GetCommonMesh(nPartIndex, 0, 20_min);
+        // A failed load keeps an empty mesh. Draw nothing instead of locking
+        // a missing buffer or writing UVs outside it.
+        if (!pMesh || !pMesh->m_pIB || !pMesh->UvAnimatable() || pMesh->FirstModelTexture() < 0)
+            return 1;
         if (g_pDevice->m_pd3dDevice->SetStreamSource(0, pMesh->m_pVB, 0, pMesh->m_sizeVertex) < 0)
             return 1;
         if (g_pDevice->m_pd3dDevice->SetIndices(pMesh->m_pIB) < 0)
@@ -158,7 +166,7 @@ int CMesh::Render(int nBright)
         float fProgress = (float)(dwTime % 10000) / 10000.0f;
         RDVERTEX2* pVertex = nullptr;
 
-        if (pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0) < 0)
+        if (pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0) < 0 || !pVertex)
             return 1;
 
         for (size_t k = 0; k < pMesh->m_dwAttCount; ++k)
@@ -194,6 +202,8 @@ int CMesh::Render(int nBright)
     {
         g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_ALPHATESTENABLE, 0);
         TMMesh* pMesh = g_pMeshManager->GetCommonMesh(nPartIndex, 0, 20_min);
+        if (!pMesh || !pMesh->m_pIB || !pMesh->UvAnimatable() || pMesh->FirstModelTexture() < 0)
+            return 1;
         if (g_pDevice->m_pd3dDevice->SetStreamSource(0, pMesh->m_pVB, 0, pMesh->m_sizeVertex) < 0)
             return 1;
         if (g_pDevice->m_pd3dDevice->SetIndices(pMesh->m_pIB) < 0)
@@ -228,7 +238,7 @@ int CMesh::Render(int nBright)
         float fProgress = (float)(dwTime % 10000) / 10000.0f;
         RDVERTEX2* pVertex = nullptr;
 
-        if (pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0) < 0)
+        if (pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0) < 0 || !pVertex)
             return 1;
 
         for (size_t k = 0; k < pMesh->m_dwAttCount; ++k)
@@ -570,6 +580,14 @@ int CMesh::RenderMesh(char cAlpha)
         g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_FOGVERTEXMODE, D3DFOGMODE::D3DFOG_NONE);
         if (g_pDevice->m_bUseSW)
             g_pDevice->m_pd3dDevice->SetSoftwareVertexProcessing(1);
+        // Early failure returns must not leave the skinning pipeline bound for
+        // the next fixed-function draw.
+        scope_restore::Guard skinPipeline([] {
+            if (g_pDevice->m_bUseSW)
+                g_pDevice->m_pd3dDevice->SetSoftwareVertexProcessing(0);
+            g_pDevice->m_pd3dDevice->SetVertexShader(nullptr);
+            g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_CULLMODE, D3DCULL::D3DCULL_CCW);
+        });
 
         if (g_pDevice->m_pd3dDevice->SetStreamSource(0, m_pMesh->m_pVB, 0, m_pMesh->m_sizeVertex) < 0)
             return 0;
@@ -750,6 +768,7 @@ int CMesh::RenderMesh(char cAlpha)
             g_pDevice->m_pd3dDevice->SetSoftwareVertexProcessing(0);
 
         g_pDevice->m_pd3dDevice->SetVertexShader(0);
+        skinPipeline.Dismiss();
 
         if (m_sMultiType > 0)
         {
@@ -797,10 +816,19 @@ int CMesh::LoadMesh(char* file)
         m_nSkinMeshIndex = g_pMeshManager->GetAvailableSkinMeshIndex();
 
         if (m_nSkinMeshIndex < 0 || m_nSkinMeshIndex >= MAX_SKIN_MESH_LIST)
+        {
+            // The cache never evicts. Report exhaustion once instead of
+            // dropping parts silently.
+            static bool s_bCacheFullReported = false;
+            if (!s_bCacheFullReported)
+            {
+                s_bCacheFullReported = true;
+                LOG_WRITELOG("Skin mesh cache full (%d entries); %s not loaded\r\n", MAX_SKIN_MESH_LIST, file);
+            }
             return 0;
+        }
 
-        FILE* handle = nullptr;
-        fopen_s(&handle, file, "rb");
+        FILE* handle = asset_file::OpenFile("mesh", file);
         if (handle == nullptr)
             return 0;
         std::unique_ptr<FILE, decltype(&fclose)> input(handle, &fclose);
@@ -811,7 +839,8 @@ int CMesh::LoadMesh(char* file)
         skin_mesh_load::Payload payload;
         if (!skin_mesh_load::ReadExact(handle, &header, sizeof(header)) ||
             !skin_mesh_load::Plan(header, static_cast<std::uint64_t>(fileBytes),
-                sizeof(m_pBoneOffset) / sizeof(m_pBoneOffset[0]), payload))
+                sizeof(m_pBoneOffset) / sizeof(m_pBoneOffset[0]), payload) ||
+            !skin_mesh_load::ShaderCompatible(header))
             return 0;
 
         std::unique_ptr<TMMesh> pending(new (std::nothrow) TMMesh());
@@ -906,7 +935,11 @@ int CMesh::LoadMesh(char* file)
 
 int CMesh::InitEffect()
 {
-    if (!m_pParentSkin->m_pOwner)
+    // Swing trails follow human weapons only, and an effect that no scene
+    // container owns would never be attached or freed.
+    if (!m_pParentSkin || !m_pParentSkin->HumanOwner())
+        return 1;
+    if (g_pCurrentScene == nullptr || g_pCurrentScene->m_pEffectContainer == nullptr)
         return 1;
 
     for (int i = 0; i < 2; i++)

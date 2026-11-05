@@ -116,6 +116,9 @@ func (w *World) validateInboundCommand(s *net.Session, pkt []byte) bool {
 	if header.Type == wire.OpSellItem && !validSaleInventorySource(pkt) {
 		return w.rejectInboundCommand(s, pkt, header.Type, "invalid sale inventory source")
 	}
+	if header.Type == wire.OpQuotedSellItem && !validQuotedSaleSource(pkt) {
+		return w.rejectInboundCommand(s, pkt, header.Type, "invalid quoted sale version or inventory source")
+	}
 	w.relaxLearnedSkillIngressThrottle(s, pkt, header.Type)
 	return true
 }
@@ -246,6 +249,8 @@ func exactInboundPacketSize(opcode uint16) (int, bool) {
 		return 24, true
 	case wire.OpSellItem:
 		return 20, true
+	case wire.OpQuotedSellItem:
+		return 32, true
 	case wire.OpApplyBonus:
 		// Header(12) + BonusType(2) + Detail(2) + TargetID(2), rounded to
 		// 20 bytes by the native layout. Skill purchases use TargetID.

@@ -10,10 +10,15 @@ namespace
 {
 // Independent oracle for the original scene helper's byte-reading algorithm.
 // Literal offsets, capacities and signature deliberately do not use the policy.
+// Deliberate deviation (A08-02): the original bounded every opcode by 13 slots,
+// so the compact physical 0x39D/52 returned its single DWORD for any index and
+// a one-target flank (slot 1) equalled the hit. Slots beyond the opcode's own
+// capacity (1, 2 or 13) now project no damage.
 int LegacyDamage(const unsigned char* bytes, unsigned int size,
     unsigned int opcode, int index, int legacy)
 {
-    if (!bytes || index < 0 || index >= 13)
+    const int slots = opcode == 0x39D ? 1 : opcode == 0x39E ? 2 : 13; // A08-02 deviation.
+    if (!bytes || index < 0 || index >= slots)
         return 0;
     if (legacy < 0)
         return legacy;
@@ -84,8 +89,9 @@ int RunAttackVisualDamageTests(int& checks)
     std::memcpy(physical.data() + 48, &wide, sizeof(wide));
     check(attack_visual::ReadDamage(physical.data(), 52, 0x39D, 0, 32767) == 60000,
         "compact physical hit reads the DWORD without requiring a DMGX header");
-    check(attack_visual::ReadDamage(physical.data(), 52, 0x39D, 12, 32767) == 60000,
-        "compact physical branch retains the original index behavior");
+    check(attack_visual::ReadDamage(physical.data(), 52, 0x39D, 1, 32767) == 0 &&
+        attack_visual::ReadDamage(physical.data(), 52, 0x39D, 12, 32767) == 0,
+        "A08-02: compact physical hit has one slot; a flank slot projects no damage");
     check(attack_visual::ReadDamage(physical.data(), 52, 0x39D, 0, -1) == -1,
         "negative legacy damage precedes a valid physical extension");
     check(attack_visual::ReadDamage(physical.data(), 0, 0x39D, 0, 32767) == 32767,

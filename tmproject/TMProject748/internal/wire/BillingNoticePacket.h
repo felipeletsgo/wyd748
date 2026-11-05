@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Notificacao S->C de billing. O handler nativo apenas marca o estado e
-// apresenta a mensagem; os quatro bytes apos o header permanecem opacos.
+// S->C billing notice. The native handler marks state and displays a message.
+// The four bytes after the header remain opaque.
 constexpr auto MSG_BillingNotice_Opcode = 0x194;
 struct MSG_BillingNotice
 {

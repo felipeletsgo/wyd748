@@ -8,11 +8,14 @@
 #include "NativeItemVolatile.h"
 #include "WYD748Assets.h"
 #include "ServerListAsset.h"
+#include "../../render/world/terrain/HeightWindowBounds.h"
 #include <WinInet.h>
 
 // Navigation, terrain, and coordinate projection.
 int BASE_GetRoute(int x, int y, int* targetx, int* targety, char* Route, int distance, char* pHeight, int MH)
 {
+    if (!targetx || !targety || !Route || !pHeight)
+        return 0;
     int lastx = x;
     int lasty = y;
     int tx = *targetx;
@@ -268,7 +271,8 @@ int BASE_GetVillage(int x, int y)
 {
     for (int i = 0; i < 5; ++i)
     {
-        if (x >= g_pGuildZone[i].vx1 && g_pGuildZone[i].vx2 && g_pGuildZone[i].vy1 && g_pGuildZone[i].vy2)
+        if (world_zone::Contains(x, y, g_pGuildZone[i].vx1, g_pGuildZone[i].vy1,
+            g_pGuildZone[i].vx2, g_pGuildZone[i].vy2))
             return i;
     }
 
@@ -277,11 +281,19 @@ int BASE_GetVillage(int x, int y)
 
 char BASE_GetAttr(int nX, int nY)
 {
-    return g_pAttribute[nY / 4 % 1024][nX / 4 % 1024];
+    const int column = attribute_map::Cell(nX);
+    const int row = attribute_map::Cell(nY);
+    return column >= 0 && row >= 0 ? g_pAttribute[row][column] : 0;
 }
 
 void BASE_GetHitPosition(int sx, int sy, int* tx, int* ty, char* pHeight, int MH)
 {
+    if (!tx || !ty)
+        return;
+    const auto sample = [pHeight](int x, int y) {
+        return height_window::Sample(pHeight, x, y, g_HeightPosX, g_HeightPosY,
+            g_HeightWidth, g_HeightHeight);
+    };
     if ((sx == *tx && sy == *ty) || !sx || !sy || !*tx || !*ty)
         return;
 
@@ -308,7 +320,7 @@ void BASE_GetHitPosition(int sx, int sy, int* tx, int* ty, char* pHeight, int MH
         int dir = sx >= *tx ? -1 : 1;
 
         int sxa = dir + sx;
-        int This = pHeight[sxa + g_HeightWidth * ((b + sxa * a) / 1000 - g_HeightPosY) - g_HeightPosX];
+        int This = sample(sxa, (b + sxa * a) / 1000);
         if (This == 127)
         {
             *tx = 0;
@@ -322,7 +334,7 @@ void BASE_GetHitPosition(int sx, int sy, int* tx, int* ty, char* pHeight, int MH
             if (x != sxa)
             {
                 int Last = This;
-                This = pHeight[x + g_HeightWidth * ((b + x * a) / 1000 - g_HeightPosY) - g_HeightPosX];
+                This = sample(x, (b + x * a) / 1000);
                 if (This == 127)
                 {
                     *tx = 0;
@@ -354,7 +366,7 @@ void BASE_GetHitPosition(int sx, int sy, int* tx, int* ty, char* pHeight, int MH
 
         int sya = dir + sy;
 
-        int This = pHeight[(b + sya * a) / 1000 + g_HeightWidth * (sya - g_HeightPosY) - g_HeightPosX];
+        int This = sample((b + sya * a) / 1000, sya);
         if (This == 127)
         {
             *tx = 0;
@@ -369,7 +381,7 @@ void BASE_GetHitPosition(int sx, int sy, int* tx, int* ty, char* pHeight, int MH
             {
                 int xp = (b + y * a) / 1000;
                 int Last = This;
-                This = pHeight[xp + g_HeightWidth * (y - g_HeightPosY) - g_HeightPosX];
+                This = sample(xp, y);
                 if (This == 127)
                 {
                     *tx = 0;
@@ -429,11 +441,23 @@ int BASE_Get3DTo2DPos(float fX, float fY, float fZ, int* pX, int* pY)
 
 void BASE_GetHitPosition2(int sx, int sy, int* tx, int* ty, char* pHeight, int MH)
 {
+    if (!tx || !ty)
+        return;
+    const auto sample = [pHeight](int x, int y) {
+        return height_window::Sample(pHeight, x, y, g_HeightPosX, g_HeightPosY,
+            g_HeightWidth, g_HeightHeight);
+    };
     if ((sx != *tx || sy != *ty) && sx && sy && *tx && *ty)
     {
         int dx = sx <= *tx ? *tx - sx : sx - *tx;
         int dy = sy <= *ty ? *ty - sy : sy - *ty;
-        int This = pHeight[sx + g_HeightWidth * (sy - g_HeightPosY) - g_HeightPosX];
+        int This = sample(sx, sy);
+        if (This == 127)
+        {
+            *tx = 0;
+            *ty = 0;
+            return;
+        }
 
         if (dx > dy)
         {
@@ -451,8 +475,8 @@ void BASE_GetHitPosition2(int sx, int sy, int* tx, int* ty, char* pHeight, int M
 
                 int Last = This;
                 int a = 1000 * (*ty - sy) / (*tx - sx);
-                This = pHeight[x + g_HeightWidth * ((1000 * sy - sx * a + x * a) / 1000 - g_HeightPosY) - g_HeightPosX];
-                if (This > MH + Last || This < Last - MH)
+                This = sample(x, (1000 * sy - sx * a + x * a) / 1000);
+                if (This == 127 || This > MH + Last || This < Last - MH)
                 {
                     *tx = 0;
                     *ty = 0;
@@ -481,21 +505,22 @@ void BASE_GetHitPosition2(int sx, int sy, int* tx, int* ty, char* pHeight, int M
             int xt = 1000 * (*tx - sx) / (*ty - sy);
             int xp = (1000 * sx - sy * xt + y * xt) / 1000;
             int Last = This;
-            if (y - g_HeightPosY < 0 || y - g_HeightPosY >= 256 || xp - g_HeightPosX < 0 || xp - g_HeightPosX >= 256)
+            if (height_window::Index(xp, y, g_HeightPosX, g_HeightPosY,
+                g_HeightWidth, g_HeightHeight) < 0)
             {
                 *tx = 0;
                 *ty = 0;
                 return;
             }
 
-            This = pHeight[xp + g_HeightWidth * (y - g_HeightPosY) - g_HeightPosX];
+            This = sample(xp, y);
             if (y == sy)
             {
                 --leng;
                 continue;
             }
 
-            if (This > MH + Last || This < Last - MH)
+            if (This == 127 || This > MH + Last || This < Last - MH)
             {
                 *tx = 0;
                 *ty = 0;

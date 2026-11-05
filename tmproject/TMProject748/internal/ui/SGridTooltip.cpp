@@ -16,10 +16,34 @@
 #include "SellConfirmationText.h"
 #include "NativeSaleQuote.h"
 #include "HuntressMerchantQuote.h"
+#include "ServerSaleQuote.h"
 #include "SGridSupport.h"
 #include "SkillRequirementPresentation.h"
 #include "ItemHelpText.h"
 #include "ItemBonusText.h"
+#include "TooltipPolicy.h"
+
+namespace
+{
+// Every computed tooltip row goes through this bound. FieldScene2 has twelve
+// rows; guild, grade and refine rows after a full description are dropped
+// instead of writing the m_pSkillHelpText controls that follow (A27-03).
+bool SetTooltipRow(TMFieldScene* scene, int row, char* text, unsigned int color)
+{
+	SText* control = scene ? tooltip_rows::At(scene->m_pParamText, row) : nullptr;
+	if (!control)
+		return false;
+	control->SetText(text, 0);
+	control->SetTextColor(color);
+	return true;
+}
+
+// Catalog row of a hovered item, or null for an index outside ItemList (C-35).
+const STRUCT_ITEMLIST* CatalogRow(int itemIndex)
+{
+	return itemIndex >= 0 && itemIndex < MAX_ITEMLIST ? &g_pItemList[itemIndex] : nullptr;
+}
+}
 
 
 void SGridControl::UpdateDescPanelHeight()
@@ -126,8 +150,18 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	auto pParamText = pFScene->m_pParamText[11];
 	pParamText->SetTextColor(0xFFFFFFFF);
 
-	if (!pItem || !pDescPanel)
+	if (!pItem || !pDescPanel || !pItem->m_pItem)
 		return 2;
+	// SGridItem keeps a malformed wire item in its grid without drawing it. The
+	// description reads ItemList rows, so only catalog items and the mix-help
+	// rows (10000..11499) have a tooltip (C-35).
+	{
+		const int hoveredIndex = pItem->m_pItem->sIndex;
+		const bool mixHelpRow = hoveredIndex >= 10000 &&
+			hoveredIndex < static_cast<int>(_countof(g_pItemMixHelp));
+		if (!mixHelpRow && !CatalogRow(hoveredIndex))
+			return 2;
+	}
 
 	if (!IsSkill(pItem->m_pItem->sIndex))
 	{
@@ -172,7 +206,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	{
 		if (pItem->m_pItem->sIndex != 3324 && pItem->m_pItem->sIndex != 3325 && pItem->m_pItem->sIndex != 3326)
 			return 1;
-		if (pFScene->m_dwNightmareTime > dwServerTime - 1000)
+		if (dwServerTime - pFScene->m_dwNightmareTime < 1000)
 			return 1;
 	}
 	else if (pItem->m_pItem->sIndex >= 10000 && pItem->m_pItem->sIndex < 11500)
@@ -339,14 +373,21 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 		pItem->m_pItem->sIndex == 3390 || pItem->m_pItem->sIndex == 3391 || pItem->m_pItem->sIndex == 3392 ||
 		pItem->m_pItem->sIndex == 3328 || pItem->m_pItem->sIndex == 3329)
 	{
-		if (pFScene->m_dwLastNightmareTime || dwServerTime > pFScene->m_dwLastNightmareTime + 60000)
+		// Only the clock request is throttled; the countdown is drawn on every
+		// refresh from the last known server time (A27-01).
+		if (nightmare_tooltip::ShouldRequestTime(pFScene->m_dwLastNightmareTime, dwServerTime,
+			pFScene->m_dwNightmareRequestTime, pFScene->m_hasNightmareRequest))
 		{
 			MSG_MessageWhisper Msg{};
 			Msg.Header.ID = g_pObjectManager->m_dwCharID;
 			Msg.Header.Type = MSG_MessageWhisper_Opcode;
 			sprintf(Msg.MobName, "nig");
+			// A delayed or absent reply must not re-send on every refresh.
+			pFScene->m_dwNightmareRequestTime = dwServerTime;
+			pFScene->m_hasNightmareRequest = true;
 			SendOneMessage((char*)& Msg, sizeof(Msg));
-
+		}
+		{
 			if (!pFScene->m_dwLastNightmareTime)
 			{
 				pFScene->m_dwLastNightmareTime = dwServerTime;
@@ -382,29 +423,26 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 				min = 30;
 			}
 
+			// Both branches arm the one-second refresh guard of MouseOver.
+			pFScene->m_dwNightmareTime = dwServerTime;
 			if (min - 4 <= ((leftTime - nightTime) / 60 % min))
 			{
 				sprintf(szDesc, "0 : 0");
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFAA);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFAA);
 				++nLineId;
 
 				sprintf(szDesc, g_pMessageStringTable[280]);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 				++nLineId;
 			}
 			else
 			{
 				sprintf(szDesc, "%02d : %02d", (leftTime - nightTime) / 60 % min, (leftTime - nightTime) % 60);
-				pFScene->m_dwNightmareTime = dwServerTime;
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFAAFFAA);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFAAFFAA);
 				++nLineId;
 
 				sprintf(szDesc, g_pMessageStringTable[281]);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFAAFFAA);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFAAFFAA);
 			}
 		}
 		++nLineId;
@@ -455,8 +493,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 		sprintf(szDesc, "%s %s %s %s 0%s", g_pMessageStringTable[299], formattedYear, formattedMonth, formattedDate, timeTypeStr);
 
 		pFScene->m_dwNightmareTime = dwServerTime;
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFAA);
+		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFAA);
 		++nLineId;
 
 		for (int i = 1; i < 49; ++i)
@@ -465,8 +502,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 			if (dwEFParam[i] == 2 && BASE_GetItemAbility(pItem->m_pItem, 17) != 32)
 			{
 				sprintf(szDesc, "%s : %d", SGridControl::m_szParamString[i], add);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 				++nLineId;
 			}
 		}
@@ -492,16 +528,14 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 	if (hGuild > 0)
 	{
 		sprintf(szDesc, g_pMessageStringTable[439], hGuild / 10, hGuild % 10);
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFF00);
+		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFF00);
 		++nLineId;
 	}
 	hGuild = BASE_GetItemAbility(pItem->m_pItem, 57);
 	if (hGuild > 0)
 	{
 		sprintf(szDesc, g_pMessageStringTable[440], hGuild / 10, hGuild % 10);
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFF00);
+		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFF00);
 		++nLineId;
 	}
 
@@ -571,8 +605,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 			break;
 		case 22:
 			sprintf(szDesc, "%s : %d", g_pMessageStringTable[196], otherSancCalc + sancCalc);
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+			SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 			++nLineId;
 			sprintf(szDesc, "%s : %d", g_pMessageStringTable[198], otherSancCalc + sancCalc);
 			break;
@@ -581,22 +614,19 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 			break;
 		case 25:
 			sprintf(szDesc, "%s : %d", g_pMessageStringTable[196], otherSancCalc + sancCalc);
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+			SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 			++nLineId;
 			sprintf(szDesc, "%s : %d", g_pMessageStringTable[198], otherSancCalc + sancCalc);
 			break;
 		case 26:
 			sprintf(szDesc, "%s : %d", g_pMessageStringTable[196], otherSancCalc + sancCalc);
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+			SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 			++nLineId;
 			sprintf(szDesc, "%s : %d", g_pMessageStringTable[198], otherSancCalc + sancCalc);
 			break;
 		}
 
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+		SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 		++nLineId;
 	}
 
@@ -634,7 +664,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 		(itemIndex >= 4026 && itemIndex <= 4029))
 	{
 		sprintf(szText, g_pMessageStringTable[57], nItemPrice + nItemPrice / 100);
-		sprintf(szText, "%s (%s:%d%%)", szText, g_pMessageStringTable[146], 1);
+		tooltip_text::Append(szText, " (%s:%d%%)", g_pMessageStringTable[146], 1);
 	}
 	else if (pFScene->m_nIsMP == 1)
 	{
@@ -645,7 +675,7 @@ int SGridControl::MouseOver(int nCellX, int nCellY, int bPtInRect)
 		const int taxPrice = static_cast<int>(static_cast<float>(nItemPrice)
 			* (static_cast<float>(g_pObjectManager->m_nTax) / 100.0f));
 		sprintf(szText, g_pMessageStringTable[57], nItemPrice + taxPrice);
-		sprintf(szText, "%s (%s:%d%%)", szText, g_pMessageStringTable[146],
+		tooltip_text::Append(szText, " (%s:%d%%)", g_pMessageStringTable[146],
 			g_pObjectManager->m_nTax);
 	}
 
@@ -706,11 +736,14 @@ int SGridControl::MouseOverWithoutHandCursor(const ECursorStyle& eCursorStyle, i
 			int nGrade = 0;
 			int nUnique = 0;
 
-			if (pItem)
+			if (pItem && pItem->m_pItem)
 			{
 				nSanc = BASE_GetItemSanc(pItem->m_pItem);
-				nGrade = g_pItemList[pItem->m_pItem->sIndex].nGrade;
-				nUnique = g_pItemList[pItem->m_pItem->sIndex].nUnique;
+				if (const auto row = CatalogRow(pItem->m_pItem->sIndex))
+				{
+					nGrade = row->nGrade;
+					nUnique = row->nUnique;
+				}
 			}
 
 			int nDstVolatile = -1;
@@ -864,7 +897,10 @@ ExtractedFlow SGridControl::DescribeItem3444(TMFieldScene*& pFScene, SGridContro
 	unsigned char nEFV2 = (unsigned char)pItem->m_pItem->stEffect[1].cValue;
 
 	int nItemId = nEFV2 + (nEFV1 << 8);
-	if (nItemId)
+	// The packed item ID comes from item effect bytes (0..65535). An ID outside
+	// ItemList keeps the ordinary 3444 description (A27-04).
+	const STRUCT_ITEMLIST* pPackedRow = nItemId ? CatalogRow(nItemId) : nullptr;
+	if (pPackedRow)
 	{
 		auto pDescNameText = pFScene->m_pDescNameText;
 
@@ -875,7 +911,7 @@ ExtractedFlow SGridControl::DescribeItem3444(TMFieldScene*& pFScene, SGridContro
 		pDescNameText->SetTextColor(0x0FFFFFFAA);
 
 		int nId = 0;
-		pFScene->m_pParamText[nId]->SetText(g_pItemList[nItemId].Name, 0);
+		pFScene->m_pParamText[nId]->SetText(const_cast<char*>(pPackedRow->Name), 0);
 		pFScene->m_pParamText[nId]->SetTextColor(0x0FFFFBBFF);
 		++nId;
 
@@ -888,9 +924,7 @@ ExtractedFlow SGridControl::DescribeItem3444(TMFieldScene*& pFScene, SGridContro
 
 		// The native 7.48 tooltip reserves its final row for the item price.
 		nId = NUM_ITEM_DESC_PARAMS - 1;
-		int nPrice = 0;
-		if (nItemId > 0 && nItemId < 6500)
-			nPrice = g_pItemList[nItemId].nPrice;
+		int nPrice = pPackedRow->nPrice;
 		if (!pFScene->m_premiumShop.Open && pFScene->m_nIsMP == 0) {
 			const auto& character = g_pObjectManager->m_stMobData;
 			nPrice = huntress_merchant_quote::PurchaseBase(nPrice, character.Class,
@@ -903,7 +937,7 @@ ExtractedFlow SGridControl::DescribeItem3444(TMFieldScene*& pFScene, SGridContro
 		if (nItemId == 4010 || nItemId == 4011 || nItemId >= 4026 && nItemId <= 4029)
 		{
 			sprintf(szStrPrice, g_pMessageStringTable[57], nPrice + nPrice / 100);
-			sprintf(szStrPrice, "%s (%s:%d%%)", szStrPrice, g_pMessageStringTable[146], 1);
+			tooltip_text::Append(szStrPrice, " (%s:%d%%)", g_pMessageStringTable[146], 1);
 		}
 		else
 		{
@@ -913,17 +947,15 @@ ExtractedFlow SGridControl::DescribeItem3444(TMFieldScene*& pFScene, SGridContro
 			if (pFScene->m_nIsMP == 2)
 			{
 				sprintf(szStrPrice, g_pMessageStringTable[487], nPrice);
-				sprintf(szStrPrice, "%s", szStrPrice);
 			}
 			else if (pFScene->m_nIsMP == 1)
 			{
 				sprintf(szStrPrice, g_pMessageStringTable[385], nPrice);
-				sprintf(szStrPrice, "%s", szStrPrice);
 			}
 			else
 			{
 				sprintf(szStrPrice, g_pMessageStringTable[57], nPrice + (int)fFinalPrice);
-				sprintf(szStrPrice, "%s (%s:%d%%)", szStrPrice, g_pMessageStringTable[146], g_pObjectManager->m_nTax);
+				tooltip_text::Append(szStrPrice, " (%s:%d%%)", g_pMessageStringTable[146], g_pObjectManager->m_nTax);
 			}
 		}
 
@@ -965,20 +997,17 @@ int SGridControl::DescribeItem4147(int& nLineId, TMFieldScene*& pFScene, SGridCo
 	if (match > 0 && nLineId < NUM_ITEM_DESC_PARAMS)
 	{
 		sprintf_s(szDesc, "Match: %d", match);
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId++]->SetTextColor(0xFFFFFFAA);
+		SetTooltipRow(pFScene, nLineId++, szDesc, 0xFFFFFFAA);
 	}
 	if (match > 0 && nLineId < NUM_ITEM_DESC_PARAMS)
 	{
 		sprintf_s(szDesc, "Team A score: %d", scoreA);
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId++]->SetTextColor(0xFFFFFFFF);
+		SetTooltipRow(pFScene, nLineId++, szDesc, 0xFFFFFFFF);
 	}
 	if (match > 0 && nLineId < NUM_ITEM_DESC_PARAMS)
 	{
 		sprintf_s(szDesc, "Team B score: %d", scoreB);
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId++]->SetTextColor(0xFFFFFFFF);
+		SetTooltipRow(pFScene, nLineId++, szDesc, 0xFFFFFFFF);
 	}
 	return 1;
 
@@ -989,23 +1018,13 @@ int SGridControl::DescribeOutsideShop(SGridControlItem*& pItem, SText*& pParamTe
 {
 	if (m_eGridType == TMEGRIDTYPE::GRID_SELL)
 	{
-		const int itemIndex = pItem->m_pItem->sIndex;
-		int catalogPrice = 0;
-		int volatileAbility = 0;
-		if (native_sale_quote::IsValidCatalogIndex(itemIndex))
-		{
-			catalogPrice = g_pItemList[itemIndex].nPrice;
-			volatileAbility = native_sale_quote::GetVolatileAbility(itemIndex,
-				g_pItemList[itemIndex].stEffect, pItem->m_pItem->stEffect);
-		}
-		const int nPrice = native_sale_quote::Calculate(itemIndex, catalogPrice, volatileAbility);
+		const auto scene = static_cast<TMFieldScene*>(g_pCurrentScene);
+		const bool hellStore = scene && scene->m_pHellgateStore && scene->m_pHellgateStore->IsVisible();
+		const auto shop = scene ? (hellStore ? scene->m_pGridHellStore : scene->m_pGridShop) : nullptr;
+		const int nPrice = WYD748_MerchantSalePrice(scene, *pItem->m_pItem, shop ? shop->m_dwMerchantID : 0);
 		char szText[128]{};
 		sprintf(szText, g_pMessageStringTable[58], nPrice);
 		pParamText->SetText(szText, 0);
-		if (native_sale_quote::HasUnavailablePrice(itemIndex, catalogPrice))
-		{
-			pParamText->SetText(g_pMessageStringTable[340], 0);
-		}
 	}
 	else if (m_eGridType == TMEGRIDTYPE::GRID_SKILLM)
 	{
@@ -1074,14 +1093,16 @@ void SGridControl::DescribeItemName(SGridControlItem*& pItem, SText*& pDescNameT
 
 		int nRefLevel = BASE_GetItemAbility(pItem->m_pItem, 87) + 64;
 		if (nRefLevel >= 65)
-			sprintf(szText, "%s [%c]", szText, nRefLevel);
+			tooltip_text::Append(szText, " [%c]", nRefLevel);
 
 		pDescNameText->SetText(szText, 0);
 		pDescNameText->SetTextColor(BASE_GetItemColor(pItem->m_pItem));
 	}
 	else if (nSanc > 0 && nItemPos > 0)
 	{
-		int nSancSuccess = BASE_GetItemSancSuccess(pItem->m_pItem) * g_pSuccessRate[nSanc + 1];
+		// g_pSuccessRate has ten entries; +9 and higher show no invented percentage (A27-02).
+		int nSancSuccess = refine_tooltip::SuccessPercent(
+			BASE_GetItemSancSuccess(pItem->m_pItem), nSanc, g_pSuccessRate);
 		int nRefLevel = BASE_GetItemAbility(pItem->m_pItem, 87) + 64;
 
 		if (nRefLevel >= 65)
@@ -1147,16 +1168,14 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 	int SkillNumber = GetSkillIndex(pItem->m_pItem->sIndex);
 
 	sprintf(szDesc, g_pMessageStringTable[49], g_pSpell[SkillNumber].Range);
-	pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-	pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+	SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 	++nLineId;
 
 	auto mob = &g_pObjectManager->m_stMobData;
 	if (SkillNumber == 22 || SkillNumber == 31)
 	{
 		sprintf(szDesc, g_pMessageStringTable[231]);
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+		SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 		++nLineId;
 	}
 	else
@@ -1176,8 +1195,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 		else
 			sprintf(szDesc, "%s", szText);
 
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+		SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 		++nLineId;
 	}
 
@@ -1189,7 +1207,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 		weather = SkillDamageWeather(g_nWeather, (int)vecPos.x >> 7, (int)vecPos.y >> 7);
 	}
 
-	int faceId = g_pObjectManager->m_stSelCharData.Equip[g_pObjectManager->m_cCharacterSlot][0].sIndex;
+	const int faceId = mob->Equip[0].sIndex;
 	int nSkillDamage = BASE_GetSkillDamage(SkillNumber, mob, weather, pFScene->GetWeaponDamage(), faceId);
 
 	char szText[128]{};
@@ -1200,8 +1218,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 	else
 		sprintf(szDesc, "%s", szText);
 
-	pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-	pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+	SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 	++nLineId;
 
 	int attribute = 0;
@@ -1224,8 +1241,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 
 	sprintf(szDesc, g_pMessageStringTable[52], attributes[attribute]);
 
-	pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-	pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+	SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 	++nLineId;
 
 	static const char* requirements[12] = {
@@ -1257,8 +1273,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 
 			sprintf(szDesc, g_pMessageStringTable[53], requirements[caption], reqScore);
 
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+			SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 			++nLineId;
 		}
 	}
@@ -1295,8 +1310,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 				}
 			}
 
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+			SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 			++nLineId;
 		}
 		else if (l == 1 && m_eGridType == TMEGRIDTYPE::GRID_SKILLM)
@@ -1307,8 +1321,7 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 				dwColor = 0xFFFF0000;
 
 			sprintf(szDesc, g_pMessageStringTable[54], ++req);
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+			SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 			++nLineId;
 		}
 		else if (l == 2 && m_eGridType == TMEGRIDTYPE::GRID_SKILLM && req)
@@ -1319,16 +1332,14 @@ void SGridControl::DescribeSkillItem(SGridControlItem*& pItem, TMFieldScene*& pF
 				continue;
 			sprintf(szDesc, g_pMessageStringTable[55], requirements[itemId], req);
 
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+			SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 			++nLineId;
 		}
 	}
 	if (IsPassiveSkill(pItem->m_pItem->sIndex) == 1)
 	{
 		sprintf(szDesc, g_pMessageStringTable[139]);
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(0xFFAAFFAA);
+		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFAAFFAA);
 		++nLineId;
 	}
 
@@ -1380,8 +1391,7 @@ void SGridControl::DescribeTimedItem(SGridControlItem*& pItem, TMFieldScene*& pF
 	// projected by the server); the "0 hour" suffix belongs to the date branch.
 	sprintf(szDesc, "%s %s %s", formattedDate, formattedHour, formattedMin);
 
-	pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-	pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFAA);
+	SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFAA);
 	++nLineId;
 
 }
@@ -1435,8 +1445,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 		sprintf(szDesc, "%s %s %s %s 0%s", g_pMessageStringTable[299], formattedYear, formattedMonth, formattedDate, timeTypeStr);
 
 		pFScene->m_dwNightmareTime = dwServerTime;
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFAA);
+		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFAA);
 		++nLineId;
 	}
 	// Imported KR costumes beyond 4420 share the costume expiry projection.
@@ -1489,8 +1498,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 		sprintf(szDesc, "%s %s %s %s 0%s", g_pMessageStringTable[299], formattedYear, formattedMonth, formattedDate, timeTypeStr);
 
 		pFScene->m_dwNightmareTime = dwServerTime;
-		pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFAA);
+		SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFAA);
 		++nLineId;
 	}
 
@@ -1516,8 +1524,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 		if (dwEFParam[l] == 80 && add <= 0 && pItem->m_pItem->sIndex >= 2330 && pItem->m_pItem->sIndex <= 2389)
 		{
 			sprintf(szDesc, "%s", g_pMessageStringTable[168]);
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+			SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 			++nLineId;
 		}
 		else if (add && nLineId < NUM_ITEM_DESC_PARAMS)
@@ -1545,8 +1552,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 							strcat(szDesc, reqs[mm]);
 					}
 
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(req.Class ? 0xFFFFFFFF : 0xFFFF0000);
+					SetTooltipRow(pFScene, nLineId, szDesc, req.Class ? 0xFFFFFFFF : 0xFFFF0000);
 					++nLineId;
 				}
 			}
@@ -1574,29 +1580,25 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 					strcat(szDesc, szText);
 				}
 
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(req.Class ? 0xFFFFFFFF : 0xFFFF0000);
+				SetTooltipRow(pFScene, nLineId, szDesc, req.Class ? 0xFFFFFFFF : 0xFFFF0000);
 				++nLineId;
 			}
 			else if (dwEFParam[l] == 2 && BASE_GetItemAbility(pItem->m_pItem, 17) != 32)
 			{
 				sprintf(szDesc, "%s : %d", SGridControl::m_szParamString[l], add);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 				++nLineId;
 			}
 			else if (dwEFParam[l] == 3)
 			{
 				sprintf(szDesc, "%s : %d", SGridControl::m_szParamString[l], add);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 				++nLineId;
 			}
 			else if (dwEFParam[l] == 60)
 			{
 				sprintf(szDesc, "%s : %d%%", SGridControl::m_szParamString[l], add);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 				++nLineId;
 			}
 			else if ((dwEFParam[l] != 2 || BASE_GetItemAbility(pItem->m_pItem, 17) != 32)
@@ -1608,15 +1610,13 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 				if (dwEFParam[l] == 26 || dwEFParam[l] == 45 || dwEFParam[l] == 46)
 				{
 					sprintf(szDesc, "%s : %d%%", SGridControl::m_szParamString[l], add);
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+					SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 					++nLineId;
 				}
 				else if (dwEFParam[l] >= 64 && dwEFParam[l] <= 66)
 				{
 					sprintf(szDesc, "%s", SGridControl::m_szParamString[l]);
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFF00);
+					SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFF00);
 					++nLineId;
 				}
 				else if (dwEFParam[l] == 81)
@@ -1645,8 +1645,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 						sprintf(szDesc, "%s : %u/%d", SGridControl::m_szParamString[l], add, growth);
 					}
 
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+					SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 					++nLineId;
 				}
 				else if (dwEFParam[l] == 83)
@@ -1667,8 +1666,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 						growth = 75;
 
 					sprintf(szDesc, "%s : %d/%d", SGridControl::m_szParamString[l], add, nMountSanc + growth);
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+					SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 					++nLineId;
 				}
 				else if (dwEFParam[l] == 80)
@@ -1677,22 +1675,19 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 						sprintf(szDesc, "%s : %d", SGridControl::m_szParamString[l], add);
 					else
 						sprintf(szDesc, "%s", g_pMessageStringTable[168]);
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+					SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 					++nLineId;
 				}
 				else if (dwEFParam[l] == 40)
 				{
 					sprintf(szDesc, "%s : %d.%d%%", SGridControl::m_szParamString[l], add / 10, add % 10);
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(dwColor);
+					SetTooltipRow(pFScene, nLineId, szDesc, dwColor);
 					++nLineId;
 				}
 				else if (dwEFParam[l] == 84 && pItem->m_pItem->sIndex >= 2300 && pItem->m_pItem->sIndex < 2330 && add <= 0)
 				{
 					sprintf(szDesc, "%s", g_pMessageStringTable[170]);
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-					pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
+					SetTooltipRow(pFScene, nLineId, szDesc, 0xFFFFFFFF);
 					++nLineId;
 				}
 				else if (add)
@@ -1719,26 +1714,25 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 						strcat(szDesc, szText);
 					}
 
-					pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-
+					unsigned int dwRowColor = 0xFFFFFFFF;
 					switch (l)
 					{
 					case 2:
-						pFScene->m_pParamText[nLineId]->SetTextColor(req.Str ? 0xFFFFFFFF : 0xFFFF0000);
+						dwRowColor = req.Str ? 0xFFFFFFFF : 0xFFFF0000;
 						break;
 					case 3:
-						pFScene->m_pParamText[nLineId]->SetTextColor(req.Int ? 0xFFFFFFFF : 0xFFFF0000);
+						dwRowColor = req.Int ? 0xFFFFFFFF : 0xFFFF0000;
 						break;
 					case 4:
-						pFScene->m_pParamText[nLineId]->SetTextColor(req.Dex ? 0xFFFFFFFF : 0xFFFF0000);
+						dwRowColor = req.Dex ? 0xFFFFFFFF : 0xFFFF0000;
 						break;
 					case 5:
-						pFScene->m_pParamText[nLineId]->SetTextColor(req.Con ? 0xFFFFFFFF : 0xFFFF0000);
+						dwRowColor = req.Con ? 0xFFFFFFFF : 0xFFFF0000;
 						break;
 					default:
-						pFScene->m_pParamText[nLineId]->SetTextColor(0xFFFFFFFF);
 						break;
 					}
+					SetTooltipRow(pFScene, nLineId, szDesc, dwRowColor);
 
 					++nLineId;
 				}
@@ -1748,8 +1742,7 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 
 	item_bonus_text::ForEach(pItem->m_pItem, [&](unsigned int position, int effect, int value, char* text) {
 		if (nLineId >= NUM_ITEM_DESC_PARAMS) return;
-		pFScene->m_pParamText[nLineId]->SetText(text, 0);
-		pFScene->m_pParamText[nLineId]->SetTextColor(BASE_GetOptionColor(position, effect, value));
+		SetTooltipRow(pFScene, nLineId, text, BASE_GetOptionColor(position, effect, value));
 		++nLineId;
 	});
 	// Optional lines stop at the final FieldScene2 row; the 7.59 tooltip's
@@ -1760,15 +1753,13 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 		if (nPos == 4 || nPos == 8 || nPos == 128)
 		{
 			sprintf(szDesc, "%s : 25", g_pMessageStringTable[80]);
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+			SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 			++nLineId;
 		}
 		else if (nPos == 16)
 		{
 			sprintf(szDesc, "%s : 1", g_pMessageStringTable[151]);
-			pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-			pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+			SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 			++nLineId;
 		}
 		else if (nPos == 64 || nPos == 192)
@@ -1777,15 +1768,13 @@ void SGridControl::DescribeGeneralItem(SGridControlItem*& pItem, TMFieldScene*& 
 			if (nUnique == 47 || nUnique == 44)
 			{
 				sprintf(szDesc, "%s : 8%%", g_pMessageStringTable[104]);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 				++nLineId;
 			}
 			else
 			{
 				sprintf(szDesc, "%s : 40", g_pMessageStringTable[79]);
-				pFScene->m_pParamText[nLineId]->SetText(szDesc, 0);
-				pFScene->m_pParamText[nLineId]->SetTextColor(0xFF88AAFF);
+				SetTooltipRow(pFScene, nLineId, szDesc, 0xFF88AAFF);
 				++nLineId;
 			}
 		}

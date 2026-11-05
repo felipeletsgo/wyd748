@@ -1730,7 +1730,7 @@ production account backfill or manual schema rewrite was performed.
 - Public feed, fresh patch download and contained executable hashes matched;
   the home page, News and changelog returned 200. Portal build and 60 tests
   passed. Prior Go/client evidence is recorded in
-  [current state](../current-state.md#published-combat-cape-and-kefra-batch--2026-10-14).
+  [current state](../../.agents/research/release-history.md#published-combat-cape-and-kefra-batch--2026-10-14).
 
 The previous release `20261014T162737Z` and previous patch artifacts remain for
 recovery, subject to existing persisted-field compatibility constraints. Remote
@@ -1775,7 +1775,7 @@ The previous release `20261014T181536Z` and earlier patch artifacts remain for
 rollback. Remote release and patch staging were removed by the deployment
 scripts. Linux cross-build, portal build, Astro check (72 files with no
 diagnostics) and all 60 portal tests passed. Unchanged Go/client evidence was
-reused from [current state](../current-state.md#published-kefra-passage-activation-repair--2026-10-14),
+reused from [current state](../../.agents/research/release-history.md#published-kefra-passage-activation-repair--2026-10-14),
 including persistence failures, weekly lifecycle and the red/green table
 regression. No schema, player API or persistence contract changed, so the
 prior isolated PostgreSQL/restore evidence was not rerun as a publication ritual.

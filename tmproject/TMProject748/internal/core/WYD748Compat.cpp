@@ -102,7 +102,7 @@ static_assert(offsetof(MSG_PremiumFirework, Bitmap) == 20, "7.48 premium-firewor
 static_assert(sizeof(Particle) == 0x40, "7.48 firework particle layout changed");
 static_assert(sizeof(TMEffectFireWork) == 0x1EAC, "7.48 firework effect layout changed");
 static_assert(sizeof(MSG_Buy) == 24, "7.48 buy request must remain 24 bytes");
-static_assert(sizeof(MSG_Sell) == 20, "7.48 sell request must remain 20 bytes");
+static_assert(sizeof(MSG_Sell) == 20, "Legacy 7.48 sale envelope must remain 20 bytes");
 static_assert(sizeof(MSG_ApplyBonus) == 20, "7.48 apply-bonus request must remain 20 bytes");
 static_assert(sizeof(MSG_REQParty) == 44, "7.48 party request must remain 44 bytes");
 static_assert(sizeof(MSG_Trade) == 156, "7.48 trade request must remain 156 bytes");

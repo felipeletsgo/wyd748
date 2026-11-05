@@ -26,7 +26,7 @@ opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_f
 0x182	MSG_SendItem_Opcode, OpSendItem	24	2	0		FUN_004b263e FUN_0052eaa9		True	False			False		True	U
 0x185	MSG_UpdateCarry_Opcode, OpUpdateCarry	528	1	0		FUN_0052eaa9		True	False			False		True	U
 0x18A	-	16	1	0		FUN_0052eaa9		True	False			False		False	U
-0x18B	-	16	1	0		FUN_00492e7d		True	False			False		False	U
+0x18B	MSG_Weather_Opcode, OpWeather	16	1	0		FUN_00492e7d		True	False			False		True	U
 0x18D	MSG_ReqChallenge_Opcode, OpReqChallenge	12	1	0		FUN_00492e7d		True	False	12		False		True	
 0x193	-	16	1	0		FUN_0052eaa9		True	False			False		False	U
 0x194	MSG_BillingNotice_Opcode	16	1	0		FUN_0049889a		True	False	16		False		False	
@@ -35,8 +35,8 @@ opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_f
 0x1BF	MSG_ResultGamble_Opcode, OpResultGamble	36	1	0		FUN_00492e7d		True	False	36		False		True	
 0x1C1	MSG_REQArray_Opcode, OpClientIntegrityChallenge	24	1	0		FUN_00492e7d		True	False	24		False		True	
 0x1C2	-		1	0		FUN_00492e7d		True	False			False		False	U
-0x1C5	-		1	0		FUN_00492e7d		True	False			False		False	U
-0x1C6	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x1C5	-		1	0		FUN_00492e7d		False	False			False		False	C
+0x1C6	-		1	0		FUN_00492e7d		False	False			False		False	C
 0x1CF	-		0	0				True	False			False		False	BU
 0x1D0	-		0	0				True	False			False		False	BU
 0x1D6	MSG_InitGuldName_Opcode		1	0		FUN_004a626e		True	False			False		False	U
@@ -67,7 +67,7 @@ opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_f
 0x2C3	MSG_CombineItemLindy_Opcode, OpCombineLindy	84	0	0	84		FUN_00435b13 FUN_00448fde FUN_00463aa8	False	True			True	84	False	
 0x2C4	MSG_CombineItemLindyAlt_Opcode	84	0	0			FUN_00463aa8	False	False			False		False	AC
 0x2C7	-	16	0	1	16		FUN_004662c5	False	False			False		False	AC
-0x2C8	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x2C8	-		1	0		FUN_00492e7d		False	False			False		False	C
 0x2CB	OpMoveStop		0	0			FUN_0046087b	False	True			True	36	False	
 0x2CD	MSG_RequestCapsuleInfo_Opcode, OpCapsuleInfo		0	1	16		FUN_00418828	False	True		16	True	16	False	
 0x2D2	MSG_CombineItemOdin_Opcode, OpCombineOdin		0	0			FUN_00463aa8	False	True			True	84	False	
@@ -97,9 +97,9 @@ opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_f
 0x376	MSG_SwapItem_Opcode, OpSwapItem	20	1	3	20	FUN_00492e7d	FUN_0040ede0 FUN_00416e8a FUN_004209fc	True	True		20	True	20	True	U
 0x378	MSG_SetShortSkill_Opcode, OpSetShortSkill	32	1	4	32	FUN_00492e7d	FUN_004107c1 FUN_00416196 FUN_0044e494 FUN_0052d93d	True	True		32	True	32	True	U
 0x379	MSG_Buy_Opcode, OpBuyItem	24	1	1	24	FUN_00492e7d	FUN_00410a91	True	True		24	True	24	True	U
-0x37A	MSG_Sell_Opcode, OpSellItem	20	1	2	20	FUN_00492e7d	FUN_00416196 FUN_004640e5	True	True	20	20	True	20	False	
+0x37A	MSG_Sell_Opcode, OpSellItem	20	1	2	20	FUN_00492e7d	FUN_00416196 FUN_004640e5	True	False	20		True	20	False	C
 0x37D	MSG_AddParty_Opcode, OpPartyAdd	40	1	0		FUN_00492e7d		True	False	40		False		True	
-0x37E	MSG_RemoveParty_Opcode, OpPartyRemove	16	1	2	16	FUN_00492e7d	FUN_004640e5 FUN_004662c5	True	True	16		True	16	True	
+0x37E	MSG_RemoveParty_Opcode, OpPartyRemove	16	1	2	16	FUN_00492e7d	FUN_004640e5 FUN_004662c5	True	True	16	16	True	16	True	
 0x37F	MSG_REQParty_Opcode, OpPartyRequest	44	1	1	44	FUN_00492e7d	FUN_004662c5	True	True	44	44	True	44	True	
 0x380	-	16	0	0				False	False			False		False	
 0x383	MSG_Trade_Opcode, OpTrade	156	1	1	156	FUN_0052eaa9	FUN_004110f5 FUN_0044b890 FUN_004640e5 FUN_004662c5	True	True		156	True	156	True	U
@@ -119,7 +119,7 @@ opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_f
 0x3A1	MSG_InstanceTime_Opcode, OpInstanceTime		1	0		FUN_00492e7d		True	False			False		True	U
 0x3A2	-		1	0		FUN_00492e7d		True	False			False		False	U
 0x3A3	-		1	0		FUN_00492e7d		True	False			False		False	U
-0x3A4	-		1	0		FUN_00492e7d		True	False			False		False	U
+0x3A4	OpGuildDisable		1	0		FUN_00492e7d		True	False			False		True	U
 0x3A5	-		1	0		FUN_00492e7d		False	False			False		False	C
 0x3A6	MSG_CombineItem_Opcode, OpCombineCompositor		0	0	84		FUN_00435b13 FUN_004487e2	False	True			True	84	False	
 0x3A7	MSG_CombineComplete_Opcode, OpCombineComplete		1	0		FUN_00492e7d		True	False			False		True	U
@@ -188,7 +188,7 @@ opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_f
 0xADA	-		0	0				True	False			False		False	BU
 0xBBF	-	180	1	0		FUN_0049889a		False	False			False		False	C
 0xBFF	MSG_Encode_Opcode		0	0				True	False			False		False	BU
-0xD1D	MSG_MessageShout_Opcode		1	0		FUN_0049889a		True	False			False		False	U
+0xD1D	MSG_MessageShout_Opcode		1	0		FUN_0049889a		True	False	108		False		False	
 0xDC3	MSG_CapsuleInfo_Opcode, OpCNFCapsuleInfo		1	0		FUN_00492e7d		True	False			False		True	U
 0xE0E	MSG_GuildWar_Opcode, OpGuildWar	20	0	1	20		FUN_004640e5	False	True		20	True	20	False	
 0xE12	MSG_GuildAlly_Opcode, OpGuildAlly		0	1	20		FUN_004640e5	False	True		20	True	20	False	
@@ -212,3 +212,9 @@ opcode	names	native_size	native_recv	native_send	native_send_sizes	native_recv_f
 0x5000	-		0	0				True	False			False		False	BU
 0x7F10	ChallengeOpcode, OpQuizChallenge		0	0				True	False	148		False		True	B
 0x7F11	AnswerOpcode, OpQuizAnswer		0	0				False	True			True	36	False	B
+0x7F12	OpInstanceQuestion, Opcode		0	0				True	False	116		False		True	B
+0x7F20	OpPremiumShopState, StateOpcode		0	0				True	False	16		False		True	B
+0x7F21	BuyOpcode, OpPremiumBuy		0	0				False	True			True	28	True	BE
+0x7F22	OpPremiumBuyResult, ResultOpcode		0	0				True	False	24		False		True	B
+0x7F30	OpKefraPortalState		0	0				False	False			False		True	BE
+0x7F40	MSG_QuotedSale_Opcode, OpQuotedSellItem		0	0				False	True			True	32	False	B

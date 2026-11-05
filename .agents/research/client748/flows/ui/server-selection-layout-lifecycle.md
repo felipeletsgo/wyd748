@@ -4,7 +4,7 @@ title: Posicionamento e lifecycle da selecao de servidor 7.48
 subsystem: ui-layout
 status: TRACED
 native_sha256: 8AA2F918844BCE3AFE21F1204F69757A443E32EB2F2F616936B1D9BFE215F593
-updated: 2026-09-22
+updated: 2026-11-01
 ---
 
 # Posicionamento e lifecycle da selecao de servidor 7.48
@@ -527,3 +527,44 @@ Teste em jogo obrigatorio:
    hitboxes acompanham o frame;
 3. selecionar canal, voltar do login e confirmar que a posicao nao muda;
 4. entrar no mundo, executar logout/relogin e confirmar a nova instancia.
+
+## Validation: channel-list regression on 2026-11-01
+
+Classification: `MODERNIZACAO_COMPATIVEL`. The existing native layout evidence
+remains unchanged. Current source, runtime diagnostics and shipped assets were
+USED. Server gameplay and new native research were NOT APPLICABLE: this change
+corrects a local index conversion and preserves the existing resource contract.
+
+The owner reported a visible WYD-Go group with an empty channel column.
+Runtime diagnostics recorded clicks on native control 4618, translated to
+65542, with visible row zero. The launched executable was
+`tmproject/client748/WYD.exe`, SHA-256
+`319D8A304B1DBB2FC6CFBB2F66D79C02F912CDFFE5F11B98F5F3A549CB405471`.
+
+`sn.bin` defines public order 1 and hidden featured order 2. The public server
+table contains channels 1 and 2. `AggregateServerGroupFromOrder` returns the
+zero-based featured index 1. `InitializeUI` then decremented it again to zero.
+`OnServerGroupList` therefore treated the public group as the aggregate. Its
+aggregate loop skipped every channel because `aggregateGroup - num` was negative.
+The same branch also cleared shared status endpoints.
+
+Remove the second decrement and the destructive status-endpoint clearing loop.
+Keep the existing special-group mapping, resource IDs, channel endpoints and
+wire unchanged. The aggregate endpoint-mapping gap documented above stays open.
+
+The asset-backed regression check failed before the correction: configured
+channels `[1, 2]`, emitted channels `[]`, aggregate index `0`. It passes after
+the correction: emitted channels `[1, 2]`, aggregate index `1`, no status clear.
+Add two source-integration assertions to `SceneDisconnectContractTests` so the
+scene cannot silently reconvert the helper index or erase shared status cells.
+The previous helper-only tests did not cover this call-site conversion.
+
+`Build-Client.ps1 -Configuration Release -NoDeploy` passed 3,201,003 architecture
+checks, 295 socket checks, 148 crash checks and 58 launcher checks. The corrected
+Release artifact SHA-256 is
+`43E261CDCE54CD5546615AC61086973ED8883DA96485BF08270D6294C4315CF3`.
+Logs and the before/after fixture are in
+`build/tmproject748-channel-list-20261101/`.
+
+Evidence: `STATICALLY VERIFIED` and `AUTOMATED TESTED`. Installation and
+`CLIENT-TESTED` acceptance of the corrected build remain pending.

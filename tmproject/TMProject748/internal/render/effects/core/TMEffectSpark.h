@@ -22,15 +22,15 @@ public:
 public:
     // Array entries are optional; the valid count is limited by
     // m_nSparkCount and by the fixed capacity of five elements.
-    float m_fWidth;
-    float m_fRange;
-    TMEffectBillBoard3* m_pSpark[5];
-    TMShade* m_pShade[5];
-    unsigned int m_dwColor;
-    unsigned int m_dwColor2;
-    unsigned int m_dwCreateTime;
-    unsigned int m_dwLifeTime;
+    float m_fWidth = 0.0f;
+    float m_fRange = 1.0f;
+    TMEffectBillBoard3* m_pSpark[5]{};
+    TMShade* m_pShade[5]{};
+    unsigned int m_dwColor = 0;
+    unsigned int m_dwColor2 = 0;
+    unsigned int m_dwCreateTime = 0;
+    unsigned int m_dwLifeTime = 0;
     TMVector3 m_vecStartPos;
     TMVector3 m_vecEndPos;
-    int m_nSparkCount;
+    int m_nSparkCount = 0;
 };

@@ -22,7 +22,12 @@ TMFont3::TMFont3(char* szText, int nStartX, int nStartY, unsigned int dwColor, f
 	m_sDir = sDir;
 	m_dwLifeTime = dwLifeTime;
 	m_dwCreateTime = dwDelay + g_pTimerManager->GetServerTime();
-	m_Font2.SetText(szText, dwColor, 0);
+	// Typed numbers draw UI digit glyphs from GetText; only type 0 draws the
+	// font texture, so only type 0 rasterizes and uploads one.
+	if (m_nType > 0)
+		m_Font2.StoreText(szText, dwColor, 0);
+	else
+		m_Font2.SetText(szText, dwColor, 0);
 	m_Font2.m_fSize = fSize;
 	m_dwDelay = dwDelay;
 	m_bVisible = 0;

@@ -189,9 +189,13 @@ SGridControlItem::~SGridControlItem()
 				m_GCObj.nLayer = -1;
 			}
 		}
-		if (pControlContainer && m_GCEnable.nLayer >= 0)
-			RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCEnable, m_GCEnable.nLayer);
-
+	}
+	// SGridControl::FrameMove2 queues the blocked-item overlay for any red item,
+	// including a malformed one, so detach it regardless of the catalog index (C-35).
+	if (pControlContainer && m_GCEnable.nLayer >= 0)
+	{
+		RemoveRenderControlItem(pControlContainer->m_pDrawControl, &m_GCEnable, m_GCEnable.nLayer);
+		m_GCEnable.nLayer = -1;
 	}
 
 	// S3DObj owns m_GCObj and releases it in its base destructor.  Keeping that

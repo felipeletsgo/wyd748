@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "AssetFileOpen.h"
+#include "../../platform/diagnostics/PerfTrace.h"
 #include "TreeNode.h"
 #include "TMMesh.h"
 #include "TMGlobal.h"
@@ -7,7 +9,9 @@
 #include "DyePixelShader.h"
 #include "RefinementGlowTexture.h"
 #include "NativeMountGlow.h"
+#include "MsaLoad.h"
 #include <cfloat>
+#include <memory>
 
 TMMesh::TMMesh()
 {
@@ -20,6 +24,9 @@ TMMesh::TMMesh()
 	m_dwAttCount = 0;
 	m_nMeshType = 0;
 	m_dwLastUsedTime = 0;
+	// SetTexture reads the retention time; meshes built outside GetCommonMesh
+	// (for example TMSea) never receive one.
+	m_dwShowTime = 0;
 
 	m_fScaleV = 1.0f;
 	m_fScaleH = 1.0f;
@@ -74,6 +81,8 @@ int TMMesh::Render(char cMulti, int nTexOffset)
 	g_pDevice->SetRenderState(D3DRENDERSTATETYPE::D3DRS_FOGVERTEXMODE, 3);
 
 	if (!cMulti || m_dwFVF != 530)
+		return RenderDraw(nTexOffset);
+	if (!UvAnimatable())
 		return RenderDraw(nTexOffset);
 
 	DWORD dwTime = g_pTimerManager->GetServerTime();
@@ -321,7 +330,8 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 
 	g_pDevice->m_pd3dDevice->SetTransform(D3DTS_WORLDMATRIX(0), &mat);
 
-	char cAlpha = g_pTextureManager->m_stModelTextureList[m_nTextureIndex[0]].cAlpha;
+	const int nFirstTexture = FirstModelTexture();
+	char cAlpha = nFirstTexture >= 0 ? g_pTextureManager->m_stModelTextureList[nFirstTexture].cAlpha : 'N';
 
 	D3DCOLORVALUE color{};
 	color.r = (float)((dwColor >> 16) & 0xFF) / 256.0f;
@@ -511,33 +521,104 @@ int TMMesh::RenderForUI(int nX, int nY, float fAngle, float fScale, DWORD dwColo
 	return 1;
 }
 
+bool TMMesh::UvAnimatable()
+{
+	if (!msa_load::UvAnimatable(m_pVB != nullptr, m_dwFVF, m_sizeVertex, m_dwAttCount))
+		return false;
+	D3DVERTEXBUFFER_DESC desc{};
+	if (FAILED(m_pVB->GetDesc(&desc)))
+		return false;
+	// Index limits are not needed here: only vertex ranges are rewritten.
+	return msa_load::RangesFit(reinterpret_cast<const msa_load::Range*>(m_AttRange), m_dwAttCount,
+		desc.Size / m_sizeVertex, 0xFFFFFFFFu);
+}
+
+int TMMesh::FirstModelTexture() const
+{
+	return m_nTextureIndex[0] >= 0 && m_nTextureIndex[0] < MAX_MODEL_TEXTURE ? m_nTextureIndex[0] : -1;
+}
+
+void TMMesh::ResetToEmpty()
+{
+	SAFE_RELEASE(m_pVB);
+	SAFE_RELEASE(m_pIB);
+	m_dwFVF = 0;
+	m_sizeVertex = 0;
+	m_dwAttCount = 0;
+	memset(m_AttRange, 0, sizeof(m_AttRange));
+	memset(m_nTextureIndex, 0, sizeof(m_nTextureIndex));
+}
+
+namespace {
+// Resolves one texture stem through the effect or model table.
+int FindMeshTexture(bool effect, const char* stem, char (&path)[64])
+{
+	sprintf_s(path, effect ? EffectTexture_FileFormat_Path : MeshTexture_FileFormat_Path, stem);
+	return effect ? g_pTextureManager->GetEffectTextureIndex(path)
+		: g_pTextureManager->GetModelTextureIndex(path);
+}
+}
+
 int TMMesh::LoadMsa(const char* szFileName)
 {
-	if (!strlen(szFileName))
+	static_assert(sizeof(D3DXATTRIBUTERANGE) == sizeof(msa_load::Range), "attribute range layout");
+	static_assert(sizeof(RDVERTEX2) == msa_load::UvAnimatedStride, "UV animation vertex layout");
+	static_assert(sizeof(m_AttRange) / sizeof(m_AttRange[0]) == msa_load::MaxAttributes, "attribute capacity");
+
+	if (!szFileName || !szFileName[0])
 		return 0;
 
-	FILE* fp = nullptr;
-	fopen_s(&fp, szFileName, "rb");
-	if (!fp)
+	FILE* handle = asset_file::OpenFile("msa", szFileName);
+	if (!handle)
 	{
 		LOG_WRITELOG("ReadingError : %s\n", szFileName);
 		return 0;
 	}
+	std::unique_ptr<FILE, decltype(&fclose)> input(handle, &fclose);
+	const auto fail = [&](const char* reason) {
+		LOG_WRITELOG("Invalid mesh %s: %s\r\n", szFileName, reason);
+		ResetToEmpty();
+		return 0;
+	};
 
-	fread(&m_dwFVF, 4, 1, fp);
-	fread(&m_sizeVertex, 4, 1, fp);
-	fread(&m_dwAttCount, 4, 1, fp);
-	fread(m_AttRange, sizeof(D3DXATTRIBUTERANGE), m_dwAttCount, fp);
+	if (_fseeki64(handle, 0, SEEK_END) != 0)
+		return fail("size");
+	const __int64 fileBytes = _ftelli64(handle);
+	if (fileBytes < 0 || _fseeki64(handle, 0, SEEK_SET) != 0)
+		return fail("size");
+	const auto remaining = [&]() -> std::uint64_t {
+		const __int64 position = _ftelli64(handle);
+		return position < 0 || position > fileBytes ? 0 : static_cast<std::uint64_t>(fileBytes - position);
+	};
 
-	int len = strlen(szFileName);
+	std::uint32_t header[3]{};
+	if (fread(header, sizeof(header), 1, handle) != 1)
+		return fail("header");
+	if (!msa_load::ValidHeader(header[0], header[1], header[2]))
+		return fail("header limits");
+	m_dwFVF = header[0];
+	m_sizeVertex = header[1];
+	m_dwAttCount = header[2];
+	if (fread(m_AttRange, sizeof(D3DXATTRIBUTERANGE), m_dwAttCount, handle) != m_dwAttCount)
+		return fail("attribute ranges");
 
+	// MeshList names are "<folder>\\<file>.msa"; the folder selects the table.
+	const size_t len = strlen(szFileName);
 	char szPathName[24] = { 0, };
-	int nIndex = 0;
-	for (nIndex = 0; nIndex < len && szFileName[nIndex] != '\\'; ++nIndex)
-		szPathName[nIndex] = szFileName[nIndex];
+	size_t nSeparator = 0;
+	for (; nSeparator < len && szFileName[nSeparator] != '\\'; ++nSeparator)
+	{
+		if (nSeparator + 1 >= sizeof(szPathName))
+			return fail("folder name");
+		szPathName[nSeparator] = szFileName[nSeparator];
+	}
+	if (nSeparator + 2 > len)
+		return fail("file name");
 
-	char szTmpFileName[24];
-	sprintf_s(szTmpFileName, "%s", &szFileName[nIndex + 2]);
+	char szTmpFileName[24] = { 0, };
+	if (strncpy_s(szTmpFileName, &szFileName[nSeparator + 2], _TRUNCATE) != 0)
+		return fail("file name length");
+	const bool bEffectFolder = !_stricmp(szPathName, "effect");
 
 	char szTextureName[24] = { 0, };
 	char szTemp[24] = { 0, };
@@ -545,167 +626,113 @@ int TMMesh::LoadMsa(const char* szFileName)
 
 	for (size_t i = 0; i < m_dwAttCount; ++i)
 	{
+		memset(szTemp, 0, sizeof(szTemp));
+		if (fread(szTemp, msa_load::TextureFieldBytes, 1, handle) != 1)
+			return fail("texture name");
+
 		if (szTmpFileName[0] != 'a' || szTmpFileName[1] != 'a')
 		{
-			memset(szTextureName, 0, sizeof szTextureName);
-			fread(szTemp, 11, 1, fp);
-			len = strlen(szTemp);
-
-			for (nIndex = len - 1; nIndex > 0; --nIndex)
+			// Keep the text after the last backslash, then its stem.
+			const char* name = szTemp;
+			for (int nIndex = static_cast<int>(strlen(szTemp)) - 1; nIndex > 0; --nIndex)
 			{
 				if (szTemp[nIndex] == '\\')
 				{
-					sprintf_s(szTextureName, "%s", &szTemp[nIndex + 1]);
+					name = &szTemp[nIndex + 1];
 					break;
 				}
 			}
-			if (!nIndex)
-				sprintf_s(szTextureName, "%s", szTemp);
-
-			sprintf_s(szTemp, "%s", szTextureName);
-			memset(szTextureName, 0, 24);
-			len = strlen(szTemp);
-
-			for (nIndex = 0; nIndex < len && szTemp[nIndex] != '.'; ++nIndex)
-				szTextureName[nIndex] = szTemp[nIndex];
-
-			if (!_stricmp(szPathName, "effect"))
-			{
-				sprintf_s(szTex, EffectTexture_FileFormat_Path, szTextureName);
-				m_nTextureIndex[i] = g_pTextureManager->GetEffectTextureIndex(szTex);
-			}
-			else
-			{
-				sprintf_s(szTex, MeshTexture_FileFormat_Path, szTextureName);
-				m_nTextureIndex[i] = g_pTextureManager->GetModelTextureIndex(szTex);
-			}
+			if (!msa_load::CopyStem(szTextureName, sizeof(szTextureName), name, sizeof(szTemp)))
+				return fail("texture name length");
 		}
-		else
-		{
-			fread(szTextureName, 11, 1, fp);
-			memset(szTextureName, 0, 24);
-			for (nIndex = 0; nIndex < len && szTmpFileName[nIndex] != '.'; ++nIndex)
-				szTextureName[nIndex] = szTmpFileName[nIndex];
+		else if (!msa_load::CopyStem(szTextureName, sizeof(szTextureName), szTmpFileName, sizeof(szTmpFileName)))
+			return fail("texture name length");
 
-			if (!_stricmp(szPathName, "effect"))
-			{
-				sprintf_s(szTex, EffectTexture_FileFormat_Path, szTextureName);
-				m_nTextureIndex[i] = g_pTextureManager->GetEffectTextureIndex(szTex);
-			}
-			else
-			{
-				sprintf_s(szTex, MeshTexture_FileFormat_Path, szTextureName);
-				m_nTextureIndex[i] = g_pTextureManager->GetModelTextureIndex(szTex);
-			}
-		}
+		m_nTextureIndex[i] = FindMeshTexture(bEffectFolder, szTextureName, szTex);
 		if (m_nTextureIndex[i] == -1)
 		{
-			len = strlen(szTmpFileName);
-			memset(szTextureName, 0, 24);
-
-			for (nIndex = 0; nIndex < len && szTmpFileName[nIndex] != '.'; ++nIndex)
-				szTextureName[nIndex] = szTmpFileName[nIndex];
-
-			if (!_stricmp(szPathName, "effect"))
-			{
-				sprintf_s(szTex, EffectTexture_FileFormat_Path, szTextureName);
-				m_nTextureIndex[i] = g_pTextureManager->GetEffectTextureIndex(szTex);
-			}
-			else
-			{
-				sprintf_s(szTex, MeshTexture_FileFormat_Path, szTextureName);
-				m_nTextureIndex[i] = g_pTextureManager->GetModelTextureIndex(szTex);
-			}
-
+			// Fall back to the mesh file stem.
+			if (!msa_load::CopyStem(szTextureName, sizeof(szTextureName), szTmpFileName, sizeof(szTmpFileName)))
+				return fail("texture name length");
+			m_nTextureIndex[i] = FindMeshTexture(bEffectFolder, szTextureName, szTex);
 			if (m_nTextureIndex[i] == -1)
 			{
 				LOG_WRITELOG("%s , %s \r\n", szFileName, szTex);
-				if (fp)
-				{
-					fclose(fp);
-
-					fp = nullptr;
-					return 0;
-				}
+				ResetToEmpty();
+				return 0;
 			}
 		}
 	}
 
-	char* pIndex = nullptr;
-	D3DINDEXBUFFER_DESC iDesc{};
-	fread(&iDesc.Size, 4, 1, fp);
+	std::uint32_t indexBytes = 0;
+	if (fread(&indexBytes, sizeof(indexBytes), 1, handle) != 1 ||
+		!msa_load::ValidIndexBytes(indexBytes, remaining()))
+		return fail("index buffer size");
+	if (FAILED(g_pDevice->m_pd3dDevice->CreateIndexBuffer(
+		indexBytes,
+		8,
+		D3DFORMAT::D3DFMT_INDEX16,
+		D3DPOOL::D3DPOOL_MANAGED,
+		&m_pIB,
+		nullptr)) || !m_pIB)
+		return fail("index buffer");
 
-	if (iDesc.Size)
-	{
-		g_pDevice->m_pd3dDevice->CreateIndexBuffer(
-			iDesc.Size,
-			8,
-			D3DFORMAT::D3DFMT_INDEX16,
-			D3DPOOL::D3DPOOL_MANAGED,
-			&m_pIB,
-			nullptr);
+	void* pIndex = nullptr;
+	if (FAILED(m_pIB->Lock(0, 0, &pIndex, 0)) || !pIndex)
+		return fail("index lock");
+	const bool indicesRead = fread(pIndex, indexBytes, 1, handle) == 1;
+	if (FAILED(m_pIB->Unlock()) || !indicesRead)
+		return fail("index data");
 
-		if (!m_pIB)
-			return 0;
+	std::uint32_t vertexBytes = 0;
+	msa_load::VertexPlan plan;
+	if (fread(&vertexBytes, sizeof(vertexBytes), 1, handle) != 1 ||
+		!msa_load::PlanVertices(m_dwFVF, m_sizeVertex, vertexBytes, remaining(), plan))
+		return fail("vertex buffer size");
+	if (!msa_load::RangesFit(reinterpret_cast<const msa_load::Range*>(m_AttRange), m_dwAttCount,
+		plan.vertices, indexBytes / sizeof(std::uint16_t)))
+		return fail("attribute range");
 
-		m_pIB->Lock(0, 0, (void**)&pIndex, 0);
-		fread(pIndex, iDesc.Size, 1, fp);
-		m_pIB->Unlock();
-	}
+	const int nFloatCount = static_cast<int>(m_sizeVertex >> 2);
+	const int nNumVertex = static_cast<int>(plan.vertices);
+	const unsigned int storedStride = m_sizeVertex;
+	m_dwFVF = msa_load::LoadedFvf(m_dwFVF);
+	if (FAILED(g_pDevice->m_pd3dDevice->CreateVertexBuffer(
+		plan.bufferBytes,
+		8,
+		m_dwFVF,
+		D3DPOOL::D3DPOOL_MANAGED,
+		&m_pVB,
+		nullptr)) || !m_pVB)
+		return fail("vertex buffer");
 
 	float* pVertex = nullptr;
-	char* pVertexB = nullptr;
+	if (FAILED(m_pVB->Lock(0, 0, (void**)&pVertex, 0)) || !pVertex)
+		return fail("vertex lock");
 
-	D3DVERTEXBUFFER_DESC vDesc;
-	fread(&vDesc.Size, 4, 1, fp);
-
-	int nFloatCount = m_sizeVertex >> 2;
-	int nNumVertex = vDesc.Size / m_sizeVertex;
-
-	if (m_dwFVF == 322)
+	bool verticesRead = true;
+	if (!plan.addUv)
 	{
-		g_pDevice->m_pd3dDevice->CreateVertexBuffer(
-			vDesc.Size,
-			8,
-			m_dwFVF,
-			D3DPOOL::D3DPOOL_MANAGED,
-			&m_pVB,
-			nullptr);
+		verticesRead = fread(pVertex, plan.readBytes, 1u, handle) == 1;
 	}
 	else
 	{
-		m_dwFVF += 256;
-		g_pDevice->m_pd3dDevice->CreateVertexBuffer(
-			vDesc.Size + 8 * nNumVertex,
-			8,
-			m_dwFVF,
-			D3DPOOL::D3DPOOL_MANAGED,
-			&m_pVB,
-			nullptr);
+		char* pVertexB = (char*)pVertex;
+		for (int i = 0; i < nNumVertex && verticesRead; ++i)
+			verticesRead = fread(&pVertexB[i * (storedStride + msa_load::AddedUvBytes)], storedStride, 1u, handle) == 1;
+		m_sizeVertex = plan.loadedStride;
 	}
-
-	if (!m_pVB)
-		return 0;
-
-	m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-	if (m_dwFVF == 322)
+	if (!verticesRead)
 	{
-		fread(pVertex, vDesc.Size, 1u, fp);
-	}
-	else
-	{
-		pVertexB = (char*)pVertex;
-		for (int i = 0; i < nNumVertex; ++i)
-			fread(&pVertexB[i * (m_sizeVertex + 8)], m_sizeVertex, 1u, fp);
-
-		m_sizeVertex += 8;
+		m_pVB->Unlock();
+		return fail("vertex data");
 	}
 
 	int nAddedFloatNum = 0;
-	if (m_dwFVF != 322)
+	if (m_dwFVF != msa_load::ColorFvf)
 		nAddedFloatNum = 2;
 
+	// The native bounds scan seeds from the second vertex.
 	m_fMinX = pVertex[nAddedFloatNum + nFloatCount];
 	m_fMaxX = m_fMinX;
 	m_fMinY = *(&pVertex[nAddedFloatNum + 1] + nFloatCount);
@@ -715,7 +742,7 @@ int TMMesh::LoadMsa(const char* szFileName)
 
 	for (int i = 0; i < nNumVertex - 1; ++i)
 	{
-		if (m_dwFVF == 530)
+		if (m_dwFVF == msa_load::UvAnimatedFvf)
 		{
 			pVertex[i * (nAddedFloatNum + nFloatCount) + 8] = pVertex[i * (nAddedFloatNum + nFloatCount) + 6];
 			pVertex[i * (nAddedFloatNum + nFloatCount) + 9] = pVertex[i * (nAddedFloatNum + nFloatCount) + 7];
@@ -754,8 +781,8 @@ int TMMesh::LoadMsa(const char* szFileName)
 		(float)(m_fMaxY + m_fMinY) * 0.5f,
 		(float)(m_fMaxZ + m_fMinZ) * 0.5f);
 
-	m_pVB->Unlock();
+	if (FAILED(m_pVB->Unlock()))
+		return fail("vertex unlock");
 
-	fclose(fp);
 	return 1;
 }

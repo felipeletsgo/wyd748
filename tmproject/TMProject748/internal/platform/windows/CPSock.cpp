@@ -2,6 +2,7 @@
 #include "CPSock.h"
 #include "../network/SendBuffer.h"
 #include "../network/ReceiveBuffer.h"
+#include "../network/SocketEventPolicy.h"
 #include "../diagnostics/ClientDiagnostics.h"
 #include "PacketSendBoundary.h"
 #include "../../application/ScopedReentry.h"
@@ -33,8 +34,16 @@ unsigned char pKeyWord[512] = { // 7.xx keys
 	0xd7, 0x8f, 0x05, 0x7d, 0x0d, 0x34, 0x8f, 0x7d, 0xad, 0x87, 0xe9, 0x7c, 0x85, 0x80, 0x85, 0x79, 0x8a, 0xc3, 0xe7, 0xa5, 0xe8, 0x6b, 0x0d, 0x74, 0x10, 0x73, 0x33, 0x17, 0x0d, 0x37, 0x21, 0x19
 };
 
+static_assert(socket_event::kRead == FD_READ && socket_event::kWrite == FD_WRITE &&
+	socket_event::kConnect == FD_CONNECT && socket_event::kClose == FD_CLOSE,
+	"socket event policy must use the Winsock notification values");
+
 namespace
 {
+	// Each drain read fills the free receive window or empties the socket.
+	// The bound only stops a peer that stays readable without progress.
+	constexpr int kMaxCloseDrainReads = 64;
+
 	bool WYD748_HasRollingEncodeSeed()
 	{
 		// Ghidra FUN_00424c2c/FUN_00424642 test the four EncodeByte bytes as one
@@ -78,10 +87,15 @@ CPSock::CPSock()
 	Connecting = false;
 	Init = 0;
 	pSendBuffer = (char*)malloc(SEND_BUFFER_SIZE);
-	pRecvBuffer = (char*)malloc(RECV_BUFFER_SIZE);
+	// recv fills only RECV_BUFFER_SIZE bytes. The zeroed slack after the window
+	// keeps an over-read of a frame that ends at the window end in this block.
+	const std::size_t recvAllocation = receive_buffer::AllocationSize(RECV_BUFFER_SIZE);
+	pRecvBuffer = (char*)malloc(recvAllocation);
 
-	memset(pSendBuffer, 0, SEND_BUFFER_SIZE);
-	memset(pRecvBuffer, 0, RECV_BUFFER_SIZE);
+	if (pSendBuffer)
+		memset(pSendBuffer, 0, SEND_BUFFER_SIZE);
+	if (pRecvBuffer)
+		memset(pRecvBuffer, 0, recvAllocation);
 
 	nSendPosition = 0;
 	nSentPosition = 0;
@@ -197,28 +211,46 @@ bool CPSock::SendHandshake()
 	return true;
 }
 
-int CPSock::Receive()
+CPSock::ReceiveStatus CPSock::ReceiveOnce()
 {
 	if (!Sock || !pRecvBuffer || !receive_buffer::HasValidWindow(
 		nProcPosition, nRecvPosition, RECV_BUFFER_SIZE))
-		return 0;
+		return ReceiveStatus::Closed;
 
 	// Reclaim consumed bytes while preserving an incomplete trailing frame.
 	RefreshRecvBuffer();
 	if (nRecvPosition >= RECV_BUFFER_SIZE)
-		return 0;
+		return ReceiveStatus::Closed;
 
 	int Rest = RECV_BUFFER_SIZE - nRecvPosition;
 	int tReceiveSize = recv(Sock, &pRecvBuffer[nRecvPosition], Rest, 0);
 	// Zero means orderly peer shutdown. A stale asynchronous notification may
 	// find no bytes available; that is not a disconnect.
 	if (tReceiveSize == SOCKET_ERROR && WSAGetLastError() == WSAEWOULDBLOCK)
-		return 1;
+		return ReceiveStatus::WouldBlock;
 	if (tReceiveSize <= 0)
-		return 0;
+		return ReceiveStatus::Closed;
 
 	nRecvPosition += tReceiveSize;
-	return 1;
+	return ReceiveStatus::Appended;
+}
+
+int CPSock::Receive()
+{
+	return ReceiveOnce() == ReceiveStatus::Closed ? 0 : 1;
+}
+
+bool CPSock::DrainReceive()
+{
+	// WSAAsyncSelect can report FD_CLOSE before a re-enabled FD_READ. Read the
+	// bytes that are still in the socket so their frames are not discarded.
+	for (int read = 0; read < kMaxCloseDrainReads; ++read)
+	{
+		if (ReceiveOnce() != ReceiveStatus::Appended)
+			break;
+	}
+	return pRecvBuffer && receive_buffer::HasValidWindow(
+		nProcPosition, nRecvPosition, RECV_BUFFER_SIZE) && nRecvPosition > nProcPosition;
 }
 
 char* CPSock::ReadMessage(int* ErrorCode, int* ErrorType)
@@ -497,25 +529,34 @@ bool CPSock::SendMessageA()
 CPSock::EventResult CPSock::HandleNetworkEvent(WPARAM socket, LPARAM notification)
 {
 	// Messages already queued for a different socket must not affect this one.
-	if (!Sock || socket != Sock)
-		return EventResult::Ignored;
-
-	const int event = WSAGETSELECTEVENT(notification);
-	if (WSAGETSELECTERROR(notification) == 0 && event != FD_CLOSE)
+	// While connecting, a reused handle value can still receive queued read,
+	// write or close messages of the closed socket; only FD_CONNECT is current.
+	const auto step = socket_event::Classify(Sock != 0, socket == Sock, Connecting,
+		WSAGETSELECTEVENT(notification), WSAGETSELECTERROR(notification));
+	switch (step)
 	{
-		if (event == FD_CONNECT)
-		{
-			Connecting = false;
-			if (SendMessageA())
-				return EventResult::Ignored;
-		}
-		else if (event == FD_READ)
-		{
-			if (Receive())
-				return EventResult::ReadReady;
-		}
-		else if (event != FD_WRITE || SendMessageA())
+	case socket_event::Step::Ignore:
+		return EventResult::Ignored;
+	case socket_event::Step::Connected:
+		Connecting = false;
+		if (SendMessageA())
 			return EventResult::Ignored;
+		break;
+	case socket_event::Step::Read:
+		if (Receive())
+			return EventResult::ReadReady;
+		break;
+	case socket_event::Step::Write:
+		if (SendMessageA())
+			return EventResult::Ignored;
+		break;
+	case socket_event::Step::DrainThenClose:
+		// Keep the stream open until the dispatcher frames the drained bytes.
+		if (DrainReceive())
+			return EventResult::ReadThenDisconnect;
+		break;
+	case socket_event::Step::Close:
+		break;
 	}
 
 	CloseSocket();
@@ -545,7 +586,7 @@ void CPSock::DispatchNetworkEvent(WPARAM socket, LPARAM notification,
 			onDisconnected();
 			continue;
 		}
-		if (result != EventResult::ReadReady)
+		if (result != EventResult::ReadReady && result != EventResult::ReadThenDisconnect)
 			continue;
 
 		const auto stream = generation_;
@@ -561,6 +602,13 @@ void CPSock::DispatchNetworkEvent(WPARAM socket, LPARAM notification,
 			}
 			if (!packet.data || !onPacket(packet))
 				break;
+		}
+		// A graceful close delivers its drained frames first, then disconnects
+		// once. A callback that closed or replaced the stream owns that change.
+		if (result == EventResult::ReadThenDisconnect && Sock && stream == generation_)
+		{
+			CloseSocket();
+			onDisconnected();
 		}
 	}
 }

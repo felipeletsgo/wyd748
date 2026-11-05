@@ -2,6 +2,7 @@
 
 #include <dinput.h>
 #include "../application/ModalInputPolicy.h"
+#include "../application/ImeContextBinding.h"
 
 class IEventListener
 {
@@ -66,7 +67,8 @@ public:
 	HWND m_hWnd;
 	int m_bLock;
 	unsigned int m_wParam;
-	HIMC m_hOldIMC;
+	// The created IME context and the one it replaced (C-26).
+	ime_context::Binding<HWND, HIMC> m_imeBinding;
 	char m_strComp[512];
 	char m_szResultStr[512];
 	char m_bCompAttr[512];

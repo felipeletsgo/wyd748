@@ -85,13 +85,9 @@ extern HINSTANCE g_hInstance;
 extern STRUCT_MIXHELP g_pItemMixHelp[11500];
 extern STRUCT_ITEMHELP g_pItemHelp[6500];
 
-extern unsigned int g_dwStartPlayTime;
 extern unsigned int g_dwPausedTime;
 extern unsigned int g_dwStartPacketTime;
-extern int g_nCurrentPos;
-extern int g_nDumpPacketSize;
 extern FILE* g_hPacketDump;
-extern char* g_pDumpPacket;
 extern unsigned short g_usLastPacketType;
 extern int g_bLastStop;
 extern int g_bCastleWar;

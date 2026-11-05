@@ -6,6 +6,7 @@
 #include "TMFieldScene.h"
 #include "TMMesh.h"
 #include "TMCamera.h"
+#include "EntitySafetyPolicy.h"
 
 TMGate::TMGate()
 	: TMItem()
@@ -32,7 +33,8 @@ void TMGate::InitGate(STRUCT_ITEM stItem)
     m_StdPlus = 2.0f;
     m_RotMinus = 0.0f;
     m_RotPlus = 2.0f;
-    if (m_stItem.sIndex >= 0 && m_stItem.sIndex <= 6500)
+    // Check the new item, not the previous m_stItem; 6500 is past the catalog.
+    if (human_equipment::IsCatalogIndex(stItem.sIndex))
     {
         m_sItemIndex = stItem.sIndex;
         m_nLeftIndex = g_pItemList[m_sItemIndex].nIndexMesh;

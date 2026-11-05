@@ -126,7 +126,7 @@ duplicates and persistence failures, with critical commit/rejection/unknown
 outcome coverage on both transitions. The C++ test instantiates the actual
 adapter for a mesh and two effects without starting the game. The final local
 build/test receipt is in
-[current state](../../../../../DOCS/current-state.md#published-combat-cape-and-kefra-batch--2026-10-14).
+[current state](../../../release-history.md#published-combat-cape-and-kefra-batch--2026-10-14).
 
 The added table regression fails before the missing row is added and passes
 afterward. It checks a unique Uxmal entry and fee, the movement lookup's grid,
@@ -135,4 +135,4 @@ Focused Go tests preserve rejection before defeat, passage/charging after
 defeat and closure at weekly reset. These are automated/static checks, not an
 actual game run. Patch 10020 publishes the exact validated executable without
 promoting this record to `CLIENT_TESTED`. The publication receipt is in
-[current state](../../../../../DOCS/current-state.md#published-kefra-passage-activation-repair--2026-10-14).
+[current state](../../../release-history.md#published-kefra-passage-activation-repair--2026-10-14).

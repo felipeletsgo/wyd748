@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "currentExternalHostingPolicy": {
+    "ownerRequiresExternalFullClientHosting": true,
+    "allVpsFullClientArchivesWithdrawn": true,
+    "temporaryNativeUploadRemoved": true,
+    "siteUsesPreviousGoogleDriveBaselineUntilNewUrlIsProvided": true,
+    "priorDistributionAndWebsiteFieldsAreDatedVerificationEvidence": true,
+    "currentLocalBaseline": ".agents/research/client-baseline-748100-20261102.json",
+    "verification": "build/client-baseline-748100-20261102/stage-verification.json",
+    "cleanup": "build/remove-source-launcher-20261102/final-vps.log"
+  },
+  "updatedUtc": "2026-11-03T00:19:58.642179+00:00",
+  "authority": "Owner requires the adapted native launcher and removal of the alternative compiled launcher and its code.",
+  "classification": "MODERNIZACAO_COMPATIVEL",
+  "head": "c2b5050353b228027a5eae737fec097dfeb36e6d",
+  "mode": "working-tree",
+  "removedSourceFiles": [
+    "tmproject\\WYDLauncher\\WYDLauncher.rc",
+    "tmproject\\WYDLauncher\\WYDLauncher.vcxproj",
+    "tmproject\\WYDLauncher\\src\\LauncherText.h",
+    "tmproject\\WYDLauncher\\src\\Main.cpp",
+    "tmproject\\WYDLauncher\\src\\PatchCache.h",
+    "tmproject\\WYDLauncher\\src\\PatchManifest.h",
+    "tmproject\\WYDLauncher\\src\\resource.h",
+    "tmproject\\WYDLauncher\\src\\RuntimePrerequisite.h",
+    "tmproject\\WYDLauncher\\src\\Updater.cpp",
+    "tmproject\\WYDLauncher\\src\\Updater.h",
+    "tmproject\\WYDLauncher\\tests\\LauncherTests.cpp",
+    "tmproject\\WYDLauncher\\tests\\LauncherTests.vcxproj",
+    "tmproject\\WYDLauncher\\tests\\UpdaterIntegrationTests.cpp"
+  ],
+  "removedSourceHelpers": [
+    "tools/deployment/Build-HttpsClientRelease.ps1",
+    "tools/deployment/build_https_client_release.py",
+    "tools/deployment/test_https_client_release.py",
+    "tools/deployment/vps/publish-https-client.sh"
+  ],
+  "retainedNativeSource": "tmproject/NativeLauncher/",
+  "nativeExtension": "Language selection only; native patcher, settings, site and Start remain owned by the original executable.",
+  "removedArtifacts": {
+    "localCount": 90,
+    "localInventory": "build/remove-source-launcher-20261102/removed-artifacts.json",
+    "vps": "Verified standalone launcher blob and both hard-linked copies of its ZIP and blob removed; old current link removed. Non-launcher asset blobs and dated JSON evidence retained privately."
+  },
+  "nativeInstallation": {
+    "unchanged": true,
+    "files": [
+      {
+        "Algorithm": "SHA256",
+        "Hash": "85C9C648B389BE91CA348351590FCBEFA6752A4D4E849AFBBCB1F054CA12FDE2",
+        "Path": "C:\\Users\\xereca\\Documents\\PROJETOS\\wyd-go\\tmproject\\client748\\WYDLauncher.exe"
+      },
+      {
+        "Algorithm": "SHA256",
+        "Hash": "003134ABA581FD9802FD0DDFA8D2048D7EA834E14043ED6B8878377E8666BF59",
+        "Path": "C:\\Users\\xereca\\Documents\\PROJETOS\\wyd-go\\tmproject\\client748\\WYDLauncherLanguage.dll"
+      },
+      {
+        "Algorithm": "SHA256",
+        "Hash": "F8E4F9A2D73458C0B72072F9EF5F53F110C2EFD0A6D7CC9EB03FB3587DBCC3B8",
+        "Path": "C:\\Users\\xereca\\Documents\\PROJETOS\\wyd-go\\tmproject\\client748\\WYD.exe"
+      }
+    ]
+  },
+  "distribution": {
+    "at": "2026-11-03T00:18:24.075540+00:00",
+    "url": "https://wyd.forjago.com/downloads/WYD-client-native-748018-20261102.zip",
+    "sha256": "1f155e9140e065e5ca4d0dd0f4bf19691c6e92a9d727e9c8f962a231d12f204a",
+    "bytes": 317136062,
+    "entriesVerified": 8498,
+    "launcher": "native-adapted",
+    "withdrawn": {
+      "/patch/manifest.txt": 404,
+      "/patch/files/b6eff0b0e8df0a984a8e7bd309db8c606621473cdf242df9189142e24fa78e94": 404,
+      "/downloads/WYD-client-https-748018-20261102.zip": 404
+    },
+    "gameLaunched": false
+  },
+  "website": {
+    "version": 2,
+    "clientVersion": "7.48.018",
+    "feedVersion": 48018,
+    "publishedAt": "2026-11-02",
+    "launcherVersion": null,
+    "minimumLauncherVersion": null,
+    "fullClient": {
+      "clientVersion": "7.48.018",
+      "url": "https://wyd.forjago.com/downloads/WYD-client-native-748018-20261102.zip",
+      "sizeBytes": 317136062,
+      "sha256": "1f155e9140e065e5ca4d0dd0f4bf19691c6e92a9d727e9c8f962a231d12f204a"
+    },
+    "patch": {
+      "url": "/patch/patch-48018.zip",
+      "sizeBytes": 1422484,
+      "sha256": "c891c952983ff1c61b17c4f1e9bd94e983e6f743ae45337f6b4eb00fd88bfe97",
+      "executableSha256": "F8E4F9A2D73458C0B72072F9EF5F53F110C2EFD0A6D7CC9EB03FB3587DBCC3B8"
+    },
+    "updateFeed": "/patch/update.htm"
+  },
+  "server": {
+    "release": "20261102T233404Z",
+    "processesUnchanged": true,
+    "revision": 18,
+    "gameBinaryUnchanged": true,
+    "readiness": "200 on game admin and player API",
+    "privateSettingsUnchanged": true,
+    "legacyHttpAndHttpsFeedAndPatchUnchanged": [
+      "http",
+      "https"
+    ],
+    "websiteOverlay": "download/index.html, changelog/index.html and client-manifest.json only"
+  },
+  "validation": {
+    "native": "Build-NativeLauncherLanguage.ps1 -NoDeploy: compiled control tests and seven PE/bootstrap tests passed; installed native EXE/DLL preserved.",
+    "client": "Build-Client.ps1 -Configuration Release -NoDeploy passed; game and reporter hashes match published version.",
+    "portal": "check: zero diagnostics; build passed; all 116 tests passed.",
+    "packaging": "All 8498 public ZIP entries match reviewed files; pinned native image and generated fresh config verified. Existing output rejection passed.",
+    "clientTested": false
+  },
+  "deployment": {
+    "caddySha256": "c64e5b9ed087ca4555c0053b110ea2b0fcee1408ca01ee02e8e6a140a874f560",
+    "caddyBackup": "/etc/caddy/wyd-site.caddy.pre-native-748018",
+    "websiteBackup": "/srv/wyd-go/backups/native-launcher-20261102/previous-pages.tar.gz",
+    "evidenceDirectory": "build/remove-source-launcher-20261102/"
+  },
+  "pending": [
+    "Native HTTP transport remains unchanged; native HTTPS support is unresolved.",
+    "VC++ installer is included for manual use; native automatic detection/installation is not implemented.",
+    "Fresh Windows and visual native launcher acceptance remain pending."
+  ],
+  "news": {
+    "draft": "build/release-748018/news-draft.md",
+    "published": false
+  },
+  "approvalReview": {
+    "initialCombinedRecursiveCommand": "Blocked before execution; explicit per-file source edits and bounded artifact removal succeeded instead."
+  }
+}

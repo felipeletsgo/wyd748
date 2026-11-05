@@ -6,6 +6,7 @@ class TreeNode
 {
 public:
 	TreeNode(unsigned int id);
+	static unsigned long long DestructionCount() { return s_destructionCount; }
 	virtual ~TreeNode();
 	virtual int OnPacketEvent(unsigned int dwCode, char* buf);
 	virtual int OnMouseEvent(unsigned int Flags, unsigned int wParam, int xp, int yp);
@@ -51,4 +52,6 @@ public:
 	static int m_VisualKey7;
 	static int m_VisualKey8;
 	static int m_VisualKey9;
+private:
+	inline static unsigned long long s_destructionCount = 0;
 };

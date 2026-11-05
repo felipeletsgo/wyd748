@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "../../platform/diagnostics/PerfTrace.h"
 #include "TMHuman.h"
 #include "TMGlobal.h"
 #include "SControl.h"
@@ -15,6 +16,7 @@
 #include "TMShade.h"
 #include "AirMoveMotion.h"
 #include "DeathMotionPolicy.h"
+#include "EntitySafetyPolicy.h"
 #include "BaseCostumeLook.h"
 #include "../../render/mesh/CostumeSelection.h"
 #include "../../ui/ResourceBarProjection.h"
@@ -31,6 +33,12 @@
 #include "TMLight.h"
 #include "ItemEffect.h"
 #include "../../application/ActorLifetime.h"
+
+// InitObject, DelayDelete and the effect renderers bound every eye-fire loop
+// at seven entries; the Emerald Dragon pair lives in m_pEyeFire2[1..2].
+static_assert(sizeof(TMHuman::m_pEyeFire) == 7 * sizeof(TMEffectBillBoard*) &&
+    sizeof(TMHuman::m_pEyeFire2) == 7 * sizeof(TMEffectBillBoard*),
+    "eye-fire loops assume seven entries per array");
 
 TMVector2 TMHuman::m_vecPickSize[100] = {
   { 0.40000001f, 2.0f },
@@ -715,51 +723,8 @@ int TMHuman::InitObject()
 
     SetHandEffect(m_nHandEffect);
     SAFE_DELETE(m_pMantua);
-
-    if (m_cMantua > 0
-        && (!m_nSkinMeshType
-            || m_nSkinMeshType == 1
-            || m_nSkinMeshType == 8
-            || m_nSkinMeshType == 3
-            || m_nSkinMeshType == 2))
-    {
-        LOOK_INFO stLook{};
-        SANC_INFO stSanc{};
-
-        if (!nCos)
-        {
-            stLook.Skin0 = m_wMantuaSkin;
-            stSanc.Sanc0 = m_ucMantuaSanc;
-            stSanc.Legend0 = m_ucMantuaLegend;
-
-            m_pMantua = new TMSkinMesh(&stLook, &stSanc, 85, 0, 0, 1, 0, 0);
-        }
-        else if (nCos == 100)
-        {
-            if (m_sMantuaIndex == 545 || m_sMantuaIndex == 3197 || m_sMantuaIndex >= 1766 && m_sMantuaIndex <= 1768)
-                stLook.Skin0 = 0;
-            if (m_sMantuaIndex == 546 || m_sMantuaIndex == 3198 || m_sMantuaIndex == 1770 || m_sMantuaIndex == 1769)
-                stLook.Skin0 = 1;
-            if (m_sMantuaIndex == 548 || m_sMantuaIndex == 3199 || m_sMantuaIndex >= 572 && m_sMantuaIndex <= 574)
-                stLook.Skin0 = 2;
-
-            stSanc.Sanc0 = static_cast<char>(m_citizen);
-            stSanc.Legend0 = m_ucMantuaLegend;
-
-            m_pMantua = new TMSkinMesh(&stLook, &stSanc, 85, 0, 0, 1, nCos, 0);
-        }
-
-        if (m_pMantua != nullptr)
-        {
-            m_pMantua->m_pOwner = 0;
-            m_pMantua->RestoreDeviceObjects();
-            m_pMantua->m_dwFPS = 40;
-            m_pMantua->m_vScale.x = m_fScale;
-            m_pMantua->m_vScale.y = m_fScale;
-            m_pMantua->m_vScale.z = m_fScale;
-            m_pMantua->SetVecMantua(1, m_nMountSkinMeshType);
-        }
-    }
+    m_nCapeCostume = nCos;
+    CreateMantua(nCos);
 
     UpdateMount();
     if (m_stScore.CurHP <= 0)
@@ -933,16 +898,19 @@ int TMHuman::InitObject()
     }
     if (m_nClass == 16 && !m_stLookInfo.FaceMesh && m_stLookInfo.FaceSkin == 1 && m_cLegend != 4)
     {
+        // The legacy loop wrote m_pEyeFire[8..9] past the seven-entry array; in
+        // the observed layout those slots were m_pEyeFire2[1..2], which
+        // RenderEffect_EmeraldDragon reads with m_vecTempPos[slot + 7].
         float fSize = 0.4f;
-        for (int i = 8; i < 10; ++i)
+        for (int slot = 1; slot <= 2; ++slot)
         {
-            if (m_pEyeFire[i])
+            if (m_pEyeFire2[slot])
             {
-                g_pObjectManager->DeleteObject(m_pEyeFire[i]);
-                m_pEyeFire[i] = 0;
+                g_pObjectManager->DeleteObject(m_pEyeFire2[slot]);
+                m_pEyeFire2[slot] = 0;
             }
 
-            m_pEyeFire[i] = new TMEffectBillBoard(
+            m_pEyeFire2[slot] = new TMEffectBillBoard(
                 101,
                 0,
                 fSize * m_fScale,
@@ -952,14 +920,14 @@ int TMHuman::InitObject()
                 8,
                 80);
 
-            if (m_pEyeFire[i])
+            if (m_pEyeFire2[slot])
             {
-                m_pEyeFire[i]->SetColor(0x0FF88FFAA);
-                m_pEyeFire[i]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                m_pEyeFire[i]->m_nFade = 0;
-                m_pEyeFire[i]->m_vecPosition = m_vecTempPos[i];
-                m_pEyeFire[i]->m_bFrameMove = 0;
-                g_pCurrentScene->m_pEffectContainer->AddChild(m_pEyeFire[i]);
+                m_pEyeFire2[slot]->SetColor(0x0FF88FFAA);
+                m_pEyeFire2[slot]->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                m_pEyeFire2[slot]->m_nFade = 0;
+                m_pEyeFire2[slot]->m_vecPosition = m_vecTempPos[slot + 7];
+                m_pEyeFire2[slot]->m_bFrameMove = 0;
+                g_pCurrentScene->m_pEffectContainer->AddChild(m_pEyeFire2[slot]);
             }
         }
     }
@@ -1153,6 +1121,61 @@ int TMHuman::InitObject()
         g_pCurrentScene->m_pEffectContainer->AddChild(m_pEleStream2);
 
     return 1;
+}
+
+// Extracted from TMHuman::InitObject so RestoreDeviceObjects and the
+// citizenship refresh apply the same skin and costume rules.
+void TMHuman::CreateMantua(int nCos)
+{
+    if (m_pMantua != nullptr || !human_cape::MayCarryCape(m_cMantua, m_nSkinMeshType) ||
+        !human_cape::CostumeKeepsCape(nCos))
+        return;
+
+    LOOK_INFO stLook{};
+    SANC_INFO stSanc{};
+
+    if (!nCos)
+    {
+        stLook.Skin0 = m_wMantuaSkin;
+        stSanc.Sanc0 = m_ucMantuaSanc;
+        stSanc.Legend0 = m_ucMantuaLegend;
+
+        m_pMantua = new TMSkinMesh(&stLook, &stSanc, 85, 0, 0, 1, 0, 0);
+    }
+    else
+    {
+        if (m_sMantuaIndex == 545 || m_sMantuaIndex == 3197 || m_sMantuaIndex >= 1766 && m_sMantuaIndex <= 1768)
+            stLook.Skin0 = 0;
+        if (m_sMantuaIndex == 546 || m_sMantuaIndex == 3198 || m_sMantuaIndex == 1770 || m_sMantuaIndex == 1769)
+            stLook.Skin0 = 1;
+        if (m_sMantuaIndex == 548 || m_sMantuaIndex == 3199 || m_sMantuaIndex >= 572 && m_sMantuaIndex <= 574)
+            stLook.Skin0 = 2;
+
+        stSanc.Sanc0 = static_cast<char>(m_citizen);
+        stSanc.Legend0 = m_ucMantuaLegend;
+
+        m_pMantua = new TMSkinMesh(&stLook, &stSanc, 85, 0, 0, 1, nCos, 0);
+    }
+
+    if (m_pMantua != nullptr)
+    {
+        m_pMantua->m_pOwner = 0;
+        m_pMantua->RestoreDeviceObjects();
+        m_pMantua->m_dwFPS = 40;
+        m_pMantua->m_vScale.x = m_fScale;
+        m_pMantua->m_vScale.y = m_fScale;
+        m_pMantua->m_vScale.z = m_fScale;
+        m_pMantua->SetVecMantua(1, m_nMountSkinMeshType);
+    }
+}
+
+void TMHuman::RefreshMantua()
+{
+    if (m_dwDelayDel)
+        return;
+
+    SAFE_DELETE(m_pMantua);
+    CreateMantua(m_nCapeCostume);
 }
 
 // Extracted from TMHuman::InitObject; behavior is unchanged.
@@ -1477,7 +1500,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
 
     if (m_dwDelayDel && m_cDeleted != 1)
     {
-        if (m_dwDelayDel + 10000 < g_pTimerManager->GetServerTime())
+        if (human_timer::Elapsed(g_pTimerManager->GetServerTime(), m_dwDelayDel, 10000))
         {
             m_dwDelayDel = 0;
             g_pObjectManager->DeleteObject(this);
@@ -1490,7 +1513,19 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
 
     dwServerTime = g_pTimerManager->GetServerTime();
 
-    if (dwServerTime > m_dwPunchEffectTime + 100)
+    if (g_pCurrentScene && this == g_pCurrentScene->m_pMyHuman &&
+        g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
+    {
+        if (m_cDie || m_cCantMove) m_pendingMoveTarget.Clear();
+        else if (m_pendingMoveTarget.Due(dwServerTime, m_dwOldMovePacketTime))
+        {
+            const auto target = m_pendingMoveTarget;
+            m_pendingMoveTarget.Clear();
+            GetRoute(IVector2(target.x, target.y), target.count, target.stop);
+        }
+    }
+
+    if (human_timer::Elapsed(dwServerTime, m_dwPunchEffectTime, 100))
         m_bPunchEffect = 0;
     if (m_bVisible == 1)
     {
@@ -1557,7 +1592,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
     unsigned int dwWillDieTime = 10000;
     if (m_nClass == 56 && !m_stLookInfo.FaceMesh)
         dwWillDieTime = 600000;
-    if (m_dwDeadTime && dwServerTime > dwWillDieTime + m_dwDeadTime && (m_nWillDie == 1 || m_nWillDie == 2))
+    if (m_dwDeadTime && human_timer::Elapsed(dwServerTime, m_dwDeadTime, dwWillDieTime) && (m_nWillDie == 1 || m_nWillDie == 2))
     {
         m_dwDeadTime = 0;
         DelayDelete();
@@ -1582,7 +1617,7 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
             fDieHeight = 0.0;
     }
 
-    if (m_stPunchEvent.dwTime && dwServerTime > m_stPunchEvent.dwTime + 200)
+    if (m_stPunchEvent.dwTime && human_timer::Elapsed(dwServerTime, m_stPunchEvent.dwTime, 200))
     {
         Punched(m_stPunchEvent.nDamage, m_stPunchEvent.vecFrom, m_stPunchEvent.SkillIndex);
         memset(&m_stPunchEvent, 0, sizeof(m_stPunchEvent));
@@ -1607,17 +1642,10 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
         }
     }
 
-    unsigned int dwUnitTime = 1000;
-    if (m_fMaxSpeed > 0.0f)
-        dwUnitTime = (unsigned int)(1000.0f / m_fMaxSpeed);
-
+    // Never zero: an out-of-range speed no longer freezes the actor or prints
+    // the untranslated debug notice of the newer base.
+    const unsigned int dwUnitTime = human_motion::UnitTime(m_fMaxSpeed);
     unsigned int dwElapsedStartTime = dwServerTime - m_dwStartMoveTime;
-    if (!dwUnitTime)
-    {
-        pScene->m_pMessagePanel->SetMessage("Crashed Character Unit Time", 0);
-        pScene->m_pMessagePanel->SetVisible(1, 1);
-        return 1;
-    }
 
     int nRouteIndex = (int)(dwElapsedStartTime / dwUnitTime);
     float fProgressRate = (float)(dwElapsedStartTime - (nRouteIndex * dwUnitTime)) / (float)dwUnitTime;
@@ -1760,29 +1788,8 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
 
     SetPosition(m_vecPosition.x, m_fHeight, m_vecPosition.y);
 
-    TMHuman* pFocused = nullptr;
-    if(pScene)
-        pFocused = g_pCurrentScene->m_pMyHuman;
-
-    if (pFocused != this && g_pCurrentScene->m_eSceneType == ESCENE_TYPE::ESCENE_FIELD)
-    {
-        TMFieldScene* pFieldScene = (TMFieldScene*)g_pCurrentScene;
-        SListBox* pPartyList = pFieldScene->m_pPartyList;
-
-        TMVector2 vecD;
-        if (pPartyList)
-        {
-            for (int j = 0; j < pPartyList->m_nNumItem; ++j)
-            {
-                SListBoxPartyItem* pPartyItem = (SListBoxPartyItem*)pPartyList->m_pItemList[j];
-                if (pPartyItem->m_dwCharID == m_dwID)
-                {
-                    vecD = pFocused->m_vecPosition - m_vecPosition;
-                    break;
-                }
-            }
-        }
-    }
+    // The inherited party-distance scan computed an unused vector and read a
+    // null local actor before field initialization; it had no effect.
 
     TMVector2 vecNow = TMVector2(m_vecRouteBuffer[nRouteIndex].x, m_vecRouteBuffer[nRouteIndex].y);
     TMVector2 vecNext = TMVector2(m_vecRouteBuffer[nRouteIndex + 1].x, m_vecRouteBuffer[nRouteIndex + 1].y);
@@ -1850,31 +1857,36 @@ int TMHuman::FrameMove(unsigned int dwServerTime)
                 nDust = 0;
         }
 
+        const auto avatarEmissions = m_avatarEmission.Steps(dwServerTime, m_cAvatar == 1 && !m_cDie && m_bVisible == 1);
         if (m_cAvatar == 1 && !m_cDie)
         {
-            int nTextureIndex = 0;
-            if (nWalkSndIndex == 8)
-                nTextureIndex = 193;
-
-            float fSpeed = 0.0392f;
-            fSpeed = (float)(m_fScale * TMHuman::m_vecPickSize[m_nSkinMeshType].x) * 0.0392f;
-            if (!m_cMount && m_nSkinMeshType != 40 || m_cMount && m_nMountSkinMeshType != 40)
+            for (unsigned int emission = avatarEmissions; emission; --emission)
             {
-                TMEffectBillBoard* pChild = new TMEffectBillBoard(10, 450, 0.1f, 0.1f, 0.1f, fSpeed, 1, 80);
+                int nTextureIndex = 0;
+                if (nWalkSndIndex == 8)
+                    nTextureIndex = 193;
 
-                if (pChild)
+                float fSpeed = 0.0392f;
+                fSpeed = (float)(m_fScale * TMHuman::m_vecPickSize[m_nSkinMeshType].x) * 0.0392f;
+                if (!m_cMount && m_nSkinMeshType != 40 || m_cMount && m_nMountSkinMeshType != 40)
                 {
-                    pChild->m_bStickGround = 1;
-                    pChild->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
-                    pChild->m_vecPosition = TMVector3(m_vecPosition.x,
-                        m_fHeight - 0.89999998f,
-                        m_vecPosition.y);
+                    perf_trace::OnEmission(perf_trace::Emitter::AvatarDust);
+                    TMEffectBillBoard* pChild = new TMEffectBillBoard(10, 450, 0.1f, 0.1f, 0.1f, fSpeed, 1, 80);
 
-                    g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
-                    m_dwLastDustTime = dwServerTime;
+                    if (pChild)
+                    {
+                        pChild->m_bStickGround = 1;
+                        pChild->m_efAlphaType = EEFFECT_ALPHATYPE::EF_BRIGHT;
+                        pChild->m_vecPosition = TMVector3(m_vecPosition.x,
+                            m_fHeight - 0.89999998f,
+                            m_vecPosition.y);
+
+                        g_pCurrentScene->m_pEffectContainer->AddChild(pChild);
+                        m_dwLastDustTime = dwServerTime;
+                    }
+
+                    pChild->SetColor(0x30101010);
                 }
-
-                pChild->SetColor(0x30101010);
             }
         }
         else if (nDust && (!g_pDevice->m_bSavage && !g_pDevice->m_bIntel && m_eMotion == ECHAR_MOTION::ECMOTION_RUN && !m_cHide
@@ -2197,7 +2209,7 @@ void TMHuman::FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex)
             int nAniIndex = m_pSkinMesh->m_nAniIndex;
             unsigned int dwMod = MeshManager::m_BoneAnimationList[nSkinMeshType].numAniCut[nAniIndex];
 
-            if (dwServerTime > m_dwStartAnimationTime + 4 * dwMod * dwFPS)
+            if (human_timer::Elapsed(dwServerTime, m_dwStartAnimationTime, 4 * dwMod * dwFPS))
             {
                 if (m_nLoop == 0)
                 {
@@ -2208,7 +2220,7 @@ void TMHuman::FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex)
                 {
                     if ((int)m_eMotion < 4 || (int)m_eMotion > 9)
                         m_bDoubleAttack = 0;
-                    else if (!g_pEventTranslator->button[0] && dwServerTime > m_dwStartAnimationTime + 4 * dwMod * m_pSkinMesh->m_dwFPS)
+                    else if (!g_pEventTranslator->button[0] && human_timer::Elapsed(dwServerTime, m_dwStartAnimationTime, 4 * dwMod * m_pSkinMesh->m_dwFPS))
                     {
                         SetAnimation(ECHAR_MOTION::ECMOTION_STAND02, 1);
                         m_bDoubleAttack = 0;
@@ -2248,7 +2260,7 @@ void TMHuman::FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex)
             if ((m_dwID > 0 && m_dwID < 1000) && m_bDoubleAttack == 1 && m_eMotion == ECHAR_MOTION::ECMOTION_RUN)
                 m_bDoubleAttack = 0;
 
-            if (dwServerTime > m_dwStartAnimationTime + 4 * dwMod * dwFPS)
+            if (human_timer::Elapsed(dwServerTime, m_dwStartAnimationTime, 4 * dwMod * dwFPS))
             {
                 if (m_nLoop == 0)
                 {
@@ -2380,7 +2392,7 @@ void TMHuman::FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex)
                             m_pSkinMesh->m_pSwingEffect[1]->m_fEffectLength = m_fSowrdLength[1] * fEffectLen;
                             m_pSkinMesh->m_pSwingEffect[1]->m_dwStartTime = dwServerTime;
                         }
-                        if (!g_pEventTranslator->button[0] && dwServerTime > m_dwStartAnimationTime + 4 * dwMod * m_pSkinMesh->m_dwFPS)
+                        if (!g_pEventTranslator->button[0] && human_timer::Elapsed(dwServerTime, m_dwStartAnimationTime, 4 * dwMod * m_pSkinMesh->m_dwFPS))
                         {
                             SetAnimation(ECHAR_MOTION::ECMOTION_STAND02, 1);
                             m_bDoubleAttack = 0;
@@ -2410,7 +2422,7 @@ void TMHuman::FrameMoveSkinMesh(unsigned int& dwServerTime, int& nWalkSndIndex)
                             if (m_pSkinMesh->m_pSwingEffect[1])
                                 m_pSkinMesh->m_pSwingEffect[1]->m_dwStartTime = dwServerTime;
                         }
-                        if (!g_pEventTranslator->button[1] && dwServerTime > m_dwStartAnimationTime + 4 * dwMod * m_pSkinMesh->m_dwFPS)
+                        if (!g_pEventTranslator->button[1] && human_timer::Elapsed(dwServerTime, m_dwStartAnimationTime, 4 * dwMod * m_pSkinMesh->m_dwFPS))
                         {
                             SetAnimation(ECHAR_MOTION::ECMOTION_STAND02, 1);
                             m_bDoubleAttack = 0;
@@ -2520,27 +2532,14 @@ void TMHuman::RestoreDeviceObjects()
         m_pSkinMesh->m_vScale.z = m_fScale;
     }
 
-    if (m_cMantua > 0 && !m_nSkinMeshType || m_nSkinMeshType == 1 || m_nSkinMeshType == 8 || m_nSkinMeshType == 3 || m_nSkinMeshType == 2)
+    // The legacy predicate lacked parentheses and built an empty cape for every
+    // skin 1/2/3/8 actor; InitObject's rule also excludes costume renderers.
+    if (human_cape::MayCarryCape(m_cMantua, m_nSkinMeshType))
     {
         if (!m_pMantua)
-        {
-            LOOK_INFO stLook{};
-            stLook.Skin0 = m_wMantuaSkin;
-
-            SANC_INFO stSanc{};
-            stSanc.Sanc0 = m_ucMantuaSanc;
-            stSanc.Legend0 = m_ucMantuaLegend;
-
-            m_pMantua = new TMSkinMesh(&stLook, &stSanc, 85, 0, 0, 1, 0, 0);
-
-            m_pMantua->m_pOwner = 0;
-            m_pMantua->m_dwFPS = 40;
-            m_pMantua->m_vScale.x = m_fScale;
-            m_pMantua->m_vScale.y = m_fScale;
-            m_pMantua->m_vScale.z = m_fScale;
-            m_pMantua->SetVecMantua(1, m_nMountSkinMeshType);
-        }
-        m_pMantua->RestoreDeviceObjects();
+            CreateMantua(m_nCapeCostume);
+        else
+            m_pMantua->RestoreDeviceObjects();
     }
 
     UpdateMount();
@@ -2819,7 +2818,9 @@ void TMHuman::UpdateScore(int nGuildLevel)
                     if (isInPos == 1 ? pScene->m_pMyHuman == this : 1)
                     {
                         char szTemp[128] = { 0 };
-                        sprintf_s(szTemp, "Kill's(%d)", m_nTotalKill);
+                        // UIString row 240 holds the localized label; it is text, never a format.
+                        const char* killLabel = g_UIString[240][0] ? g_UIString[240] : "Kills";
+                        sprintf_s(szTemp, "%s(%d)", killLabel, m_nTotalKill);
 
                         if (m_pKillLabel)
                             m_pKillLabel->SetText(szTemp, 0);
@@ -3305,7 +3306,7 @@ void TMHuman::DelayDelete()
         g_pObjectManager->DeleteObject(m_pRescue);
         m_pRescue = nullptr;
     }
-    if (m_pMagicShield)//skill da foema
+    if (m_pMagicShield) // Foema Magic Shield visual
     {
         g_pObjectManager->DeleteObject(m_pMagicShield);
         m_pMagicShield = nullptr;

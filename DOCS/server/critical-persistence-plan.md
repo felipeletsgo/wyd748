@@ -5,16 +5,16 @@ identity. The [current-state record](../current-state.md) separates the live
 VPS release from later local changes. S2 is enabled in production; old staging-only
 notes must not be used as current activation status.
 
-Status as of 2026-10-07: the producer migration is implemented, enabled for
-PostgreSQL, and published in
+The producer migration was enabled for PostgreSQL and published on 2026-10-07 in
 [`83a94da7`](https://github.com/felipeletsgo/wyd748/commit/83a94da7c531ebdebe2ccc2faedbc35b3bbffd0a).
 `cmd/server` passes `WithCriticalPersistence` and
 `WithCriticalAccountContainment`. Gameplay commands and ticks no longer write
 inline on the World goroutine; see [Activation](#activation-2026-10-06).
-The October 7 corrections passed the full Go race suite with the isolated
-PostgreSQL fixture. Migration and containment are delivered; verified recovery
-of unknown outcomes remains open. The October 6 closure claim does not certify
-those recovery requirements. Tracks S2 in the
+The October 7 corrections passed the full Go race suite with isolated
+PostgreSQL. Later W4 corrections added exact-XID account recovery and startup
+fencing; W8-W9 and R5 added participant ownership and channel processes.
+Shared-object runtime recovery remains restart-based. The current queue below
+supersedes older staging and blanket recovery-open statements. Tracks S2 in the
 [source audit](../../.agents/research/source-audit-2026-10-03.md).
 Classification: `MODERNIZACAO_COMPATIVEL`; preserve existing packet formats,
 authoritative validation, durable transactions and save-before-confirm ordering.
@@ -34,17 +34,18 @@ Operational containment and configuration are documented in
 
 | Gap | Current behavior | Required evidence before closure |
 | --- | --- | --- |
-| Durable operation identity and outcome reconciliation | Closed in source (W4, 2026-11-01): every attempt records its top-level XID; PostgreSQL's commit status for that XID is the durable outcome record | VPS COMMIT-loss acceptance; see [W4 durable-record decision](#w4-durable-record-decision-2026-11-01) |
-| Restart-safe containment | Closed in source (W4): a new process ends every backend of the previous instance before admission, so each earlier transaction is final and all participant state reloads from the database | Crash/restart acceptance on the VPS candidate |
+| Durable operation identity and outcome reconciliation | Implemented and active (W4): each attempt uses its top-level XID as the durable outcome record; D2 is owner-accepted | Local real-TCP COMMIT-loss acceptance passed. No separate VPS COMMIT-loss receipt is attached; see [W4 decision](#w4-durable-record-decision-2026-11-01). Reopen accepted D2 only for a new reproduction |
+| Restart-safe containment | Active W4 startup fencing ends the replaced process's backends before admission and reloads durable participants; R5 scopes ownership to channel processes | R5 VPS process-isolation acceptance passed. A VPS crash with an in-flight transaction needs its own receipt if required; process-kill isolation alone does not prove that case |
 | Verified account unlock and bounded recovery | Account-only quarantines release on a final XID status, periodically or by an audited staff check (`game.persistence.recovery`); nothing releases on time alone. Shared-object quarantines stay until restart | VPS observation; shared-object runtime recovery remains restart-based |
-| Real transport failure acceptance | The late-commit regression uses an injected adapter outcome followed by a real PostgreSQL write | Reproducible database connection-loss/COMMIT fault injection and crash recovery, checking durable state, publication, fences and terminal-save suppression |
+| Real transport failure acceptance | Local PostgreSQL tests use a real-TCP proxy to lose COMMIT delivery or acknowledgement, including unreachable-database quarantine and final-XID recovery | Completed local acceptance is recorded in the [COMMIT-loss receipt](../bug-register.md#commit-loss-acceptance-and-closed-connection-fix--2026-11-01). Keep local evidence separate from unrecorded VPS fault injection |
 
 The [October 31 disconnect and performance audit](../bug-register.md#disconnect-and-performance-audit--2026-10-31)
-adds confirmed autosave rejection (D1), expired rollback context (D2), autosave
-latency (P2) and synchronous admission-read (P3) work. That backlog distinguishes
-reproduced failures, static findings and unverified performance claims.
+records autosave rejection (D1), rollback/COMMIT handling (D2), autosave latency
+(P2) and admission reads (P3). Their later corrections and owner acceptance
+are recorded in the bug register; the original findings are not a new open queue.
 
-W1 changes the certified transaction contract (source only, 2026-10-31). COMMIT
+W1 introduced the certified transaction contract on 2026-10-31 and was activated
+in R1 on 2026-11-01. COMMIT
 is the only durable boundary. Callbacks use only their transaction, so any
 failure before COMMIT certifies rejection, including a failed rollback; pgx
 then discards the connection. Rollback uses a separate one-second context.

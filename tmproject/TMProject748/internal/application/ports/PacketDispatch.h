@@ -4,15 +4,14 @@
 
 namespace packet_dispatch
 {
-    // O dispatcher so entrega frames com armazenamento e envelope completos.
+    // Dispatch only frames with complete storage and envelopes.
     inline bool CanDispatch(const PacketView& packet, std::size_t minimumSize)
     {
         return packet.HasAtLeast(minimumSize);
     }
 
-    // Entrega sincrona e unica, sem copia, retencao ou retry. O receptor recebe
-    // o tamanho original; true indica entrega, nao aceite semantico do handler.
-    // O chamador garante armazenamento vivo durante todo o callback.
+    // Deliver once, synchronously, without copying, retention or retry. Pass the original size.
+    // True means delivery to the handler, not semantic acceptance. The caller keeps storage alive throughout the callback.
     template <typename Receiver>
     bool Dispatch(const PacketView& packet, std::size_t minimumSize, Receiver&& receive)
     {

@@ -9,6 +9,7 @@
 
 #include <d3dx9.h>
 #include "D3DEnumeration.h"
+#include "DeviceModeFamily.h"
 
 //-----------------------------------------------------------------------------
 // Name: class CD3DSettings
@@ -17,31 +18,35 @@
 class CD3DSettings
 {
 public:
-	bool IsWindowed;
+	bool IsWindowed = true;
 
-	D3DAdapterInfo* pWindowed_AdapterInfo;
-	D3DDeviceInfo* pWindowed_DeviceInfo;
-	D3DDeviceCombo* pWindowed_DeviceCombo;
+	D3DAdapterInfo* pWindowed_AdapterInfo = nullptr;
+	D3DDeviceInfo* pWindowed_DeviceInfo = nullptr;
+	D3DDeviceCombo* pWindowed_DeviceCombo = nullptr;
 
-	D3DDISPLAYMODE Windowed_DisplayMode; // not changable by the user
-	D3DFORMAT Windowed_DepthStencilBufferFormat;
-	D3DMULTISAMPLE_TYPE Windowed_MultisampleType;
-	DWORD Windowed_MultisampleQuality;
-	VertexProcessingType Windowed_VertexProcessingType;
-	UINT Windowed_PresentInterval;
-	int Windowed_Width;
-	int Windowed_Height;
+	D3DDISPLAYMODE Windowed_DisplayMode{}; // not changable by the user
+	D3DFORMAT Windowed_DepthStencilBufferFormat{};
+	D3DMULTISAMPLE_TYPE Windowed_MultisampleType{};
+	DWORD Windowed_MultisampleQuality{};
+	VertexProcessingType Windowed_VertexProcessingType{};
+	UINT Windowed_PresentInterval{};
+	int Windowed_Width{};
+	int Windowed_Height{};
 
-	D3DAdapterInfo* pFullscreen_AdapterInfo;
-	D3DDeviceInfo* pFullscreen_DeviceInfo;
-	D3DDeviceCombo* pFullscreen_DeviceCombo;
+	D3DAdapterInfo* pFullscreen_AdapterInfo = nullptr;
+	D3DDeviceInfo* pFullscreen_DeviceInfo = nullptr;
+	D3DDeviceCombo* pFullscreen_DeviceCombo = nullptr;
 
-	D3DDISPLAYMODE Fullscreen_DisplayMode; // changable by the user
-	D3DFORMAT Fullscreen_DepthStencilBufferFormat;
-	D3DMULTISAMPLE_TYPE Fullscreen_MultisampleType;
-	DWORD Fullscreen_MultisampleQuality;
-	VertexProcessingType Fullscreen_VertexProcessingType;
-	UINT Fullscreen_PresentInterval;
+	D3DDISPLAYMODE Fullscreen_DisplayMode{}; // changable by the user
+	D3DFORMAT Fullscreen_DepthStencilBufferFormat{};
+	D3DMULTISAMPLE_TYPE Fullscreen_MultisampleType{};
+	DWORD Fullscreen_MultisampleQuality{};
+	VertexProcessingType Fullscreen_VertexProcessingType{};
+	UINT Fullscreen_PresentInterval{};
+
+	// True when the enumeration selected a complete device combination for
+	// the windowed (true) or fullscreen (false) family.
+	bool HasFamily(bool windowed) const { return device_mode_family::Has(*this, windowed); }
 
 	D3DAdapterInfo* PAdapterInfo() { return IsWindowed ? pWindowed_AdapterInfo : pFullscreen_AdapterInfo; }
 	D3DDeviceInfo* PDeviceInfo() { return IsWindowed ? pWindowed_DeviceInfo : pFullscreen_DeviceInfo; }

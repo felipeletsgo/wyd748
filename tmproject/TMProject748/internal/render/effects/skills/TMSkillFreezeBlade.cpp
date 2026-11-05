@@ -8,6 +8,8 @@
 #include "TMMesh.h"
 #include "TMEffectBillBoard2.h"
 #include "TMEffectBillBoard.h"
+#include "EffectGuards.h"
+#include "EffectTiming.h"
 
 TMSkillFreezeBlade::TMSkillFreezeBlade(TMVector3 vecPosition, int nType, int nType2, int nType3) : 
 	TMEffect()
@@ -90,6 +92,13 @@ int TMSkillFreezeBlade::Render()
         g_pDevice->SetRenderState(D3DRS_CULLMODE, 1u);
     }
 
+    if (m_nType2 != 1 && m_nType < 2)
+    {
+        // Apply this blade's fade to the shared mesh just before its own draw.
+        effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh->m_pVB, m_dwMeshColor);
+        pMesh->m_nTextureIndex[0] = 19;
+    }
+
     if (m_nType3 == 1)
         pMesh->Render(m_vecPosition.x, m_vecPosition.y, m_vecPosition.z, (m_fProgress * 5.0f) + D3DXToRadian(90), 0, (m_fProgress * 5.0f) + D3DXToRadian(90), 0, 0);
     else
@@ -121,8 +130,19 @@ int TMSkillFreezeBlade::FrameMove(unsigned int dwServerTime)
 {
     dwServerTime = g_pTimerManager->GetServerTime();
 
-    if (((float)dwServerTime - (float)m_dwStartTime) < 0.0f)
+    // Compare the tick difference: float absolute ticks round to equal
+    // values after hours of uptime, and a start up to 500 ms ahead then gave
+    // a wrapped elapsed time that deleted the segment at once.
+    if (!effect_timing::HasStarted(dwServerTime, m_dwStartTime))
         return 1;
+
+    // The lifetime advances even when the mesh failed to load.
+    m_fProgress = (float)(dwServerTime - m_dwStartTime) / (float)m_dwLifeTime;
+    if (m_fProgress >= 1.0f)
+    {
+        g_pObjectManager->DeleteObject(this);
+        return 1;
+    }
 
     auto pMesh = g_pMeshManager->GetCommonMesh(m_nMeshIndex, m_nType >= 2 ? 0 : 1, 180000);
     if (!pMesh)
@@ -130,13 +150,6 @@ int TMSkillFreezeBlade::FrameMove(unsigned int dwServerTime)
 
     if (!IsVisible())
         return 0;
-
-    m_fProgress = (float)(dwServerTime - m_dwStartTime) / (float)m_dwLifeTime;
-    if (m_fProgress >= 1.0f)
-    {
-        g_pObjectManager->DeleteObject(this);
-        return 1;
-    }
 
     auto pScene = static_cast<TMFieldScene*>(g_pCurrentScene);
 
@@ -158,19 +171,8 @@ int TMSkillFreezeBlade::FrameMove(unsigned int dwServerTime)
                 unsigned int dwB = (unsigned int)(fAlpha * 102.0f);
                 dwColor = dwB | (dwG << 8) | (dwR << 16) | (dwA << 24);
             }
-            
-            D3DVERTEXBUFFER_DESC vDesc;
-            pMesh->m_pVB->GetDesc(&vDesc);
-
-            RDLVERTEX* pVertex;
-            pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-            size_t nCount = vDesc.Size / sizeof(RDLVERTEX);
-            for (size_t i = 0; i < nCount; ++i)
-                pVertex[i].diffuse = dwColor;
-
-            pMesh->m_pVB->Unlock();
-            pMesh->m_nTextureIndex[0] = 19;
+            // Render writes the color and texture into the shared mesh.
+            m_dwMeshColor = dwColor;
         }
         else
         {

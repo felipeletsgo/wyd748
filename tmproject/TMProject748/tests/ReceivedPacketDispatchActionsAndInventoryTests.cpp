@@ -12,6 +12,8 @@ int RunReceivedPacketDispatchActionsAndInventoryTests(int& checks)
         }
     };
 
+    // SetShortSkill is an authoritative echo: the legacy handler copies twenty bytes
+    // immediately, so no prefix can reach the consumer.
     std::array<char, kShortSkillSnapshotPacketSize + 1> shortSkills{};
     shortSkills[0] = static_cast<char>(kShortSkillSnapshotPacketSize);
     shortSkills[4] = static_cast<char>(MSG_SetShortSkill_Opcode & 0xFF);
@@ -374,7 +376,5 @@ int RunReceivedPacketDispatchActionsAndInventoryTests(int& checks)
             "Attack family preserves the prefix and the first damage entry");
     }
 
-    // AutoTrade writes terminators into the description, copies the whole frame and
-    // walks the twelve items/prices; none of these accesses accepts truncation.
     return failures;
 }

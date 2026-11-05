@@ -1020,3 +1020,19 @@ struct MSG_GetItem
 	unsigned short GridX;
 	unsigned short GridY;
 };
+
+// A09-10: client-to-server layouts that WYD-Go parses at fixed offsets
+// (ghost_shop.go, handlers.go, hell_store.go, celestial_capsule.go).
+static_assert(sizeof(MSG_ReqBuy) == 36 && offsetof(MSG_ReqBuy, TargetID) == 16 &&
+    offsetof(MSG_ReqBuy, Price) == 20 && offsetof(MSG_ReqBuy, Tax) == 24 &&
+    offsetof(MSG_ReqBuy, item) == 28, "0x398 buy request layout changed");
+static_assert(sizeof(MSG_DropItem) == 32 && offsetof(MSG_DropItem, Rotate) == 20 &&
+    offsetof(MSG_DropItem, GridX) == 24 && offsetof(MSG_DropItem, ItemID) == 28,
+    "0x272 drop request layout changed");
+static_assert(sizeof(MSG_GetItem) == 28 && offsetof(MSG_GetItem, ItemID) == 20,
+    "0x270 pickup request layout changed");
+static_assert(sizeof(MSG_HellBuy) == 24 && offsetof(MSG_HellBuy, Coin) == 20,
+    "Hell store buy request layout changed");
+static_assert(sizeof(MSG_CAPSULEUSEITEM) == 52 && offsetof(MSG_CAPSULEUSEITEM, GridX) == 28 &&
+    offsetof(MSG_CAPSULEUSEITEM, ItemID) == 32 && offsetof(MSG_CAPSULEUSEITEM, NewMobname) == 34,
+    "0x3CC capsule use request layout changed");

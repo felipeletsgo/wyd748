@@ -42,10 +42,14 @@ W2PP foi redistribuída no Go entre `game`, `data`, `store`, `wire`, `control` e
 
 Os fluxos de composição **Alquimia** e **Extração**, inicialmente ausentes,
 foram implementados e testados em 2026-09-15; falta validar a interação no
-client. Eventos específicos como **Arena Real**,
-**Coliseu N/M/A** e **Castle Zakum** também não têm a mesma máquina de estados no
-Go, porém sua necessidade e origem 7.48 ainda devem ser comprovadas antes de
-serem promovidas a requisito de paridade.
+client.
+
+Update, 2026-11-01: Colosseum N/M/A now has a Go runtime, schedule, waves,
+gates, tier rules and staff controls. Its implementation is not absent;
+see [Colosseum controls](server/website-feature-status.md#colosseum-and-ox-controls--2026-10-21).
+Exact W2PP or native 7.48 equivalence remains a separate evidence question.
+Arena Real and the complete Castle Zakum event retain their optional,
+unverified scope. Do not promote W2PP-specific behavior to a 7.48 requirement.
 
 Não são lacunas: recompra desativada, visibilidade, ChangeCity/home city,
 desafios entre jogadores, Cubo, guerras de guilda/torre, mounts básicos,
@@ -173,7 +177,7 @@ aplicam-se apenas aos checks descritos; não declarar todas as skills corretas.
 | Evento | W2PP | WYD-Go | Estado | Impacto / recomendação |
 | --- | --- | --- | --- | --- |
 | Arena Real | `ArenaReal.cpp` contém scheduler/estado específico | existe infraestrutura genérica de PvP/eventos, mas não a mesma Arena Real | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Prioridade média/opcional até comprovar que o comportamento pertence ao alvo desejado. |
-| Coliseu N/M/A | classes `CColiseu*` com máquinas de estados próprias | engine de instância/waves existe, mas não os eventos específicos | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Implementar somente após definir regras e proveniência. |
+| Colosseum N/M/A | `CColiseu*` event state machines | Go runtime, schedule, waves, gates, tier restrictions and staff controls exist | `DIFERENTE` + `NAO_VERIFICADO` | Validate any claimed W2PP/native equivalence separately; use the current feature contract. |
 | Castle Zakum | `CCastleZakum.cpp` | há gates, chaves, party, timers e bosses genéricos, não o evento Zakum completo | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | A infraestrutura reduz o custo, mas o evento continua específico e opcional. |
 | Cubo | `CCubo.cpp` | `big_cube.go` + `item_instances.go`: estágios, instância isolada, timers, contagem de mobs, quiz, EXP, persistência e recompensas | `DIFERENTE` / `GO_ONLY/MODERNIZADO` | Não tratar como ausência. Comparar regras pontuais somente se houver bug ou requisito concreto. |
 | Drop global | extensão atual do projeto Go | `global_drop.go` + WebAdmin e testes | `GO_ONLY/MODERNIZADO` | Feature já implementada no modelo autoritativo do projeto. |
@@ -270,7 +274,7 @@ eliminados para aproximar artificialmente os projetos:
 | Alta | Alquimia | `GO_ONLY/MODERNIZADO` | Validar UI, receitas, falha e resultado persistido in-game com o candidato. |
 | Alta | Extração (crafting W2PP) | `GO_ONLY/MODERNIZADO` | Validar seleção, catalisador, sucesso/falha e resultado persistido in-game. |
 | Média/opcional | Arena Real | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Confirmar se pertence ao produto e ao alvo 7.48; então modelar scheduler/estado. |
-| Média/opcional | Coliseu N/M/A | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Confirmar regras e proveniência; reutilizar engine de instâncias somente depois disso. |
+| Evidence review | Colosseum N/M/A | `DIFERENTE` + `NAO_VERIFICADO` | The event is implemented. Compare exact rules only for a named requirement or reproduction. |
 | Média/opcional | Castle Zakum | `AUSENTE_NO_GO` + `NAO_VERIFICADO` | Confirmar requisito/proveniência antes de montar o evento sobre gates/party/timers existentes. |
 
 ## Itens que exigem evidência nativa antes de decisão
@@ -283,7 +287,7 @@ existem no W2PP:
 - NewCompositor;
 - NewJephi;
 - Arena Real;
-- Coliseu N/M/A;
+- Exact W2PP/native equivalence for the implemented Colosseum N/M/A;
 - Castle Zakum;
 - ItemLevel staged rewards;
 - qualquer branch ainda não comparado de `_MSG_Quest.cpp`;
@@ -352,7 +356,7 @@ feita por domínio e handlers menores.
 | `ArenaReal.cpp` | `AUSENTE_NO_GO` + `NAO_VERIFICADO` |
 | `CBatalhaReal.cpp` | Stub sem implementação significativa encontrada. |
 | `CCastleZakum.cpp` | `NAO_VERIFICADO` / evento específico. |
-| `CColiseuN/M/A.cpp` | `AUSENTE_NO_GO` + `NAO_VERIFICADO` |
+| `CColiseuN/M/A.cpp` | `DIFERENTE` + `NAO_VERIFICADO`; Go Colosseum is implemented, exact equivalence is unproven. |
 | `CCubo.cpp` | `DIFERENTE`; Go possui instância moderna. |
 | `CWarTower.cpp` | `DIFERENTE`; guerras de torre existem no Go com outro lifecycle. |
 | `BattlePass.cpp` | `W2PP_CUSTOM` |

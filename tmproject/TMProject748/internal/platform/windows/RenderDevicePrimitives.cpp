@@ -1052,7 +1052,8 @@ ExtractedFlow RenderDevice::RenderTexturedGeomRect(GeomControl*& ipControl)
 void RenderDevice::RenderGuildMarkImage(GeomControl*& ipControl)
 {
 	int nMarkIndex = ipControl->nMarkIndex;
-	if (nMarkIndex >= 0 && nMarkIndex <= 64)
+	// m_stGuildMark has MAX_GUILD_MARK (64) entries; index 64 is outside it.
+	if (nMarkIndex >= 0 && nMarkIndex < MAX_GUILD_MARK)
 	{
 		if (g_pTextureManager->m_stGuildMark[nMarkIndex].pTexture)
 		{
@@ -1269,15 +1270,17 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 				float fScale = RenderDevice::m_fUIScaleX / RenderDevice::m_fWidthRatio;
 				TMMesh* pMesh = g_pMeshManager->GetCommonMesh(ipControl->n3DObjIndex, 1, 3_min);
 
-				if (pMesh)
+				// A failed load keeps an empty mesh without a vertex buffer. The
+				// tint loop writes RDLVERTEX colors, so require that layout.
+				D3DVERTEXBUFFER_DESC vDesc{};
+				RDLVERTEX* pVertex = nullptr;
+				if (pMesh && pMesh->m_pVB && pMesh->m_sizeVertex == sizeof(RDLVERTEX)
+					&& SUCCEEDED(pMesh->m_pVB->GetDesc(&vDesc))
+					&& SUCCEEDED(pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0)))
 				{
-					D3DVERTEXBUFFER_DESC vDesc;
-					if (SUCCEEDED(pMesh->m_pVB->GetDesc(&vDesc)))
+					if (pVertex)
 					{
-						RDLVERTEX* pVertex;
-						pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-						int nCount = vDesc.Size / 24;
+						int nCount = vDesc.Size / sizeof(RDLVERTEX);
 						// Native FUN_0042e8a1, as FUN_004f59b4 for ground items: ankh
 						// meshes 737..739 (Justice, Eternity, Glory) tint every vertex
 						// with dwColor[mesh - 737]. The decompiled stack offset 2964
@@ -1306,6 +1309,10 @@ void RenderDevice::RenderGeomControl(GeomControl* ipControl)
 						SetTextureStageState(0, D3DTSS_COLOROP, previousColorOp);
 						SetTextureStageState(0, D3DTSS_COLORARG1, previousColorArg1);
 						SetTextureStageState(0, D3DTSS_COLORARG2, previousColorArg2);
+					}
+					else
+					{
+						pMesh->m_pVB->Unlock();
 					}
 				}
 

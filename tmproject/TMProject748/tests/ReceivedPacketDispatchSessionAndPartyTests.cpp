@@ -1,4 +1,6 @@
 #include "ReceivedPacketDispatchTestSupport.h"
+#include <cstddef>
+#include <type_traits>
 
 // ReceivedPacketDispatch tests: SessionAndParty. Split from ReceivedPacketDispatchTests.cpp.
 int RunReceivedPacketDispatchSessionAndPartyTests(int& checks)
@@ -81,9 +83,8 @@ int RunReceivedPacketDispatchSessionAndPartyTests(int& checks)
     request.ID = 0x1234;
     request.Type = MSG_CharacterLogout_Opcode;
     request.Size = sizeof(request);
-    check(sizeof(request) == 12 && request.ID == 0x1234 &&
-        request.Type == 0x215 && request.Size == 12,
-        "C-S logout request preserves ID, opcode and size");
+    check(sizeof(request) == 12 && MSG_CharacterLogout_Opcode == 0x215 && request.Size == 12,
+        "C-S logout request keeps the 12-byte ABI and opcode 0x215");
     std::array<char, 2105> loginConfirm{};
     loginConfirm[0] = static_cast<char>(2104 & 0xFF);
     loginConfirm[1] = static_cast<char>((2104 >> 8) & 0xFF);
@@ -165,8 +166,9 @@ int RunReceivedPacketDispatchSessionAndPartyTests(int& checks)
     MSG_REQArray response = decodedArray;
     response.Header.Type = MSG_CNFArray_Opcode;
     response.Value = -128;
-    check(response.Header.Type == 0x2C2 && response.Value == -128 && sizeof(response) == 24,
-        "array response preserves opcode, signedness and size");
+    check(MSG_CNFArray_Opcode == 0x2C2 && std::is_signed_v<decltype(response.Value)> &&
+        sizeof(response) == 24,
+        "array response keeps opcode 0x2C2, a signed value and the 24-byte ABI");
     std::array<char, 17> delayStart{};
     delayStart[0] = 16;
     delayStart[4] = static_cast<char>(0xAE);
@@ -209,8 +211,8 @@ int RunReceivedPacketDispatchSessionAndPartyTests(int& checks)
     sysQuit.Header.Type = MSG_SysQuit_Opcode;
     sysQuit.Header.Size = sizeof(sysQuit);
     sysQuit.Header.ID = 0x1234;
-    check(sizeof(sysQuit) == 16 && sysQuit.Header.Type == 0x3AE && sysQuit.Parm == 0,
-        "SysQuit shares the ABI and preserves a zero Parm");
+    check(sizeof(sysQuit) == 16 && MSG_SysQuit_Opcode == 0x3AE && offsetof(MSG_SysQuit, Parm) == 12,
+        "SysQuit shares the 16-byte ABI with Parm at offset 12");
     check(delayStart == delayBefore, "gate preserves every DelayStart byte");
     std::array<char, 17> billing{};
     billing[0] = 16;
@@ -381,10 +383,6 @@ int RunReceivedPacketDispatchSessionAndPartyTests(int& checks)
     std::memcpy(&decodedRemove, partyRemove.data(), sizeof(decodedRemove));
     check(decodedRemove.Header.ID == 0x1234 && decodedRemove.Parm == 0x5678,
         "PartyRemove preserves the sender and the removed member");
-    MSG_RemoveParty clearParty{};
-    clearParty.Header.Type = MSG_RemoveParty_Opcode;
-    clearParty.Header.Size = sizeof(clearParty);
-    check(clearParty.Parm == 0, "PartyRemove preserves zero as clearing the party");
     check(partyRemove == removeBefore, "gate preserves every PartyRemove byte");
     std::array<char, 45> partyRequest{};
     partyRequest[0] = 44;

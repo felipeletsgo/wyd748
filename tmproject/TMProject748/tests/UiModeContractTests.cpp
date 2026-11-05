@@ -171,8 +171,8 @@ int RunUiModeContractTests(int& checks)
     check(poll.find("m_hasMouseSample = PollCameraMouse(m_pMouseDevice, dims2);") != std::string::npos &&
         poll.find("dx = dy = wheel = viewchange = 0;") != std::string::npos,
         "the input translator uses the tested polling path and clears transient deltas");
-    check(camera.find("if (!m_hasMouseSample)") < camera.find("TMCamera* pCamera") &&
-        camera.find("m_hasMouseSample = false;") < camera.find("TMCamera* pCamera") &&
+    check(source_contract::InOrder(camera.find("if (!m_hasMouseSample)"), camera.find("TMCamera* pCamera")) &&
+        source_contract::InOrder(camera.find("m_hasMouseSample = false;"), camera.find("TMCamera* pCamera")) &&
         camera.find("CameraZoomDistance(") != std::string::npos,
         "camera updates require and consume a fresh sample before accessing camera state");
     for (const int view : {0, 1})
@@ -300,9 +300,15 @@ int RunUiModeContractTests(int& checks)
     const auto checkAffect = buffCode(source_contract::Method(human, "void TMHuman::CheckAffect()"));
     const auto berserk = checkAffect.find("case8:");
     check(berserk != std::string::npos &&
-        checkAffect.find("m_cSpeedUp=1;", berserk) < checkAffect.find("case9:", berserk),
+        source_contract::InOrder(checkAffect.find("m_cSpeedUp=1;", berserk), checkAffect.find("case9:", berserk)),
         "Berserk visual 8 enables the native Speed Up weapon effect");
-    check(checkAffect.find("m_cShadow=1;") > checkAffect.find("case28:"),
+    // Scope the negative check to the case 9 statements (up to its first break),
+    // so an absent or reordered assignment cannot satisfy it.
+    const auto magicWeapon = checkAffect.find("case9:");
+    const auto magicWeaponEnd = checkAffect.find("break;", magicWeapon);
+    check(source_contract::InOrder(magicWeapon, magicWeaponEnd) &&
+        checkAffect.substr(magicWeapon, magicWeaponEnd - magicWeapon).find("m_cShadow=1;") == std::string::npos &&
+        source_contract::InOrder(checkAffect.find("case28:"), checkAffect.find("m_cShadow=1;")),
         "Magic Weapon visual 9 does not set the Invisibility flag");
     const auto skillAmpContract = [&](const std::string& body) {
         const auto code = buffCode(body);
@@ -325,7 +331,7 @@ int RunUiModeContractTests(int& checks)
         amp.find("m_vecSkinPos") == std::string::npos,
         "Skill Amp creation and subsequent frames both follow terrain, including mounts");
     const auto ampRelease = buffCode(source_contract::Method(frameEffect, "else if (m_pSkillAmp)"));
-    check(ampRelease.find("DeleteObject(m_pSkillAmp)") < ampRelease.find("m_pSkillAmp=nullptr;"),
+    check(source_contract::InOrder(ampRelease.find("DeleteObject(m_pSkillAmp)"), ampRelease.find("m_pSkillAmp=nullptr;")),
         "removing Skill Amp releases its persistent plane before clearing the pointer");
     const auto hidden = buffCode(source_contract::Method(effects, "ExtractedFlow TMHuman::UpdateHiddenEffects()"));
     check(hidden.find("m_pSkillAmp->m_bShow=0;") != std::string::npos,
@@ -338,7 +344,7 @@ int RunUiModeContractTests(int& checks)
         code.find("dwServerTime-m_dwElimental>500") != std::string::npos,
         "Immunity rotation and Elemental emission use native periods");
     const auto mana = buffCode(source_contract::Method(frameEffect,
-        "if (!g_bHideSkillBuffEffect && m_cManaControl == 1)"));
+        "for (unsigned int emission = m_manaEmission.Steps(dwServerTime, !g_bHideSkillBuffEffect && m_cManaControl == 1 && m_bVisible == 1); emission; --emission)"));
     check(mana.find("newTMEffectBillBoard(56,1500,") != std::string::npos &&
         mana.find("newTMEffectBillBoard(0,1500,") != std::string::npos &&
         mana.find("AddChild(mpBill);") != std::string::npos &&
@@ -370,12 +376,12 @@ int RunUiModeContractTests(int& checks)
         "the neighboring Aurora and Shadow planes keep their native scales and cycles");
     const auto slowSlash = buffCode(source_contract::Method(humanRender, "else if(m_cSlowSlash == 1)"));
     check(slowSlash.find("color.r=fR/2.0f;") != std::string::npos &&
-        slowSlash.find("m_materials.Specular=color;") < slowSlash.find("color.r=fR;") &&
-        slowSlash.find("color.r=fR;") < slowSlash.find("m_materials.Diffuse=color;"),
+        source_contract::InOrder(slowSlash.find("m_materials.Specular=color;"), slowSlash.find("color.r=fR;")) &&
+        source_contract::InOrder(slowSlash.find("color.r=fR;"), slowSlash.find("m_materials.Diffuse=color;")),
         "Slow Slash retains half-strength emission and full-strength diffuse red");
     const auto swings = ReadAppSource("internal/render/effects/core/TMEffectSWSwing.cpp");
     const auto magic = buffCode(source_contract::Method(swings,
-        "if (m_cMagicWeapon == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 50)"));
+        "if (m_cMagicWeapon == 1 && !g_bHideEffect && m_emitters.TryEmit(swing_emitter::MagicWeapon, dwServerTime))"));
     check(magic.find("j<3;") != std::string::npos && magic.find("rand()%5") != std::string::npos &&
         magic.find("newTMEffectBillBoard(56,500,") != std::string::npos &&
         magic.find("newTMEffectBillBoard(60,500,") != std::string::npos,
@@ -392,10 +398,11 @@ int RunUiModeContractTests(int& checks)
         "Magic Weapon retains its native colored cores and secondary rotation");
     check(magic.find("if(pChild)") != std::string::npos && magic.find("if(pChild2)") != std::string::npos &&
         magic.find("AddChild(pChild);") != std::string::npos && magic.find("AddChild(pChild2);") != std::string::npos &&
-        magic.find("vecStartOut.y+0.2f") != std::string::npos && magic.find("m_dwOldTime=dwServerTime;") != std::string::npos,
-        "weapon emissions keep allocation guards, scene ownership, height and clock advancement");
+        magic.find("vecStartOut.y+0.2f") != std::string::npos &&
+        magic.find("m_emitters.TryEmit(swing_emitter::MagicWeapon,dwServerTime)") != std::string::npos,
+        "weapon emissions keep allocation guards, scene ownership, height and their own clock");
     const auto armor = buffCode(source_contract::Method(swings,
-        "if (m_cArmorClass == 1 && !g_bHideEffect && dwServerTime - m_dwOldTime > 100)"));
+        "if (m_cArmorClass == 1 && !g_bHideEffect && m_emitters.TryEmit(swing_emitter::ArmorClass, dwServerTime))"));
     check(armor.find("(float)(fRand*0.01f)+0.1f,(float)(fRand*0.01f)+0.1f,(float)(fRand*0.01f)+0.1f") != std::string::npos &&
         armor.find("0.009f") == std::string::npos,
         "Armor Class secondary particles retain native spread");
@@ -495,7 +502,7 @@ int RunUiModeContractTests(int& checks)
     const auto inventoryScene = ReadAppSource("internal/app/scenes/TMFieldSceneInventoryPackets.cpp");
     std::size_t reapplied = 0;
     for (auto at = sceneGround.find("memcpy(m_GateMapData"); at != std::string::npos; at = sceneGround.find("memcpy(m_GateMapData", at + 1))
-        if (sceneGround.find("RefreshGroundObjects();", at) < sceneGround.find("SaveHeightMap(", at))
+        if (source_contract::InOrder(sceneGround.find("RefreshGroundObjects();", at), sceneGround.find("SaveHeightMap(", at)))
             ++reapplied;
     check(reapplied == 2 &&
         worldScene.find("pItem->m_nMaskHeight = static_cast<unsigned char>(pMsg->Height);") != std::string::npos &&

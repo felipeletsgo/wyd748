@@ -3,6 +3,23 @@
 // Compatible CC extension: only schedules existing 7.48 item/attack intentions.
 namespace cc_mode
 {
+    // Resolve membership before reading a retained target. A missing target
+    // can name retired storage; an unrelated earlier node must not clear it.
+    template<class Actor, class Usable, class Attack>
+    bool UseRetainedTarget(Actor* first, Actor*& target, Usable usable, Attack attack)
+    {
+        for (Actor* node = first; node; node = static_cast<Actor*>(node->m_pNextLink))
+        {
+            if (node != target)
+                continue;
+            if (!usable(node) || !attack(node))
+                target = nullptr;
+            return target != nullptr;
+        }
+        target = nullptr;
+        return false;
+    }
+
     constexpr int TextureSlot = 511;
     constexpr int FirstTextureSet = 550;
     constexpr int Fixed = 2;

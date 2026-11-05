@@ -127,6 +127,9 @@ namespace premium_nell
         ~Window();
         Window(const Window&) = delete;
         Window& operator=(const Window&) = delete;
+        // account: the plain login as the player typed it (CP1252, at most 16
+        // bytes), shown in the page header only. Never pass the transformed
+        // legacy account proof; pass nullptr when no plain login is retained.
         bool Open(void* owner, bool portuguese, const char* account = nullptr);
         void Close();
         Action Poll();

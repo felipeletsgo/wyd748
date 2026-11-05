@@ -607,30 +607,7 @@ DWORD NewApp::Run()
 					m_pObjectManager->FrameMove(dwServerTime);
 				}
 
-				if (g_dwStartPlayTime != 0 && g_dwPausedTime == 0)
-				{
-					if (g_nDumpPacketSize > g_nCurrentPos)
-					{
-						unsigned int dwTermTime = 0;
-						memcpy((char*)&dwTermTime, &g_pDumpPacket[g_nCurrentPos], 4);
-						if (dwServerTime > g_dwStartPlayTime + dwTermTime)
-						{
-							g_nCurrentPos += 4;
-							MSG_STANDARD* pStd = (MSG_STANDARD*)&g_pDumpPacket[g_nCurrentPos];
-							m_pObjectManager->OnPacketEvent(
-								*(unsigned short*)&g_pDumpPacket[g_nCurrentPos + 4],
-								&g_pDumpPacket[g_nCurrentPos]);
-							g_nCurrentPos += pStd->Size;
-						}
-					}
-					else
-					{
-						g_dwStartPlayTime = 0;
-						g_pCurrentScene->m_pMessagePanel->SetMessage("End Replay", 4000);
-						g_pCurrentScene->m_pMessagePanel->SetVisible(1, 1);
-						g_pCurrentScene->m_pMyHuman->m_cHide = 0;
-					}
-				}
+
 				{
 					perf_trace::ScopedPhase phase(perf_trace::Phase::Render);
 					RenderScene();
@@ -722,8 +699,11 @@ HRESULT NewApp::RenderScene()
 {
 	// Discard this frame's non-owning UI references on every return path,
 	// including device loss and frames where RenderControl is skipped.
-	render_control_list::FrameCleanup clearControls([this] {
-		TMScene* scene = m_pObjectManager ? m_pObjectManager->GetCurrentScene() : nullptr;
+	TMScene* frameScene = m_pObjectManager ? m_pObjectManager->GetCurrentScene() : nullptr;
+	// Scene retirement runs after RenderScene. Keep the scene that owns this
+	// frame instead of resolving a replacement scene on scope exit.
+	render_control_list::FrameCleanup clearControls([frameScene] {
+		TMScene* scene = frameScene;
 		if (scene && scene->m_pControlContainer)
 			for (auto& list : scene->m_pControlContainer->m_pDrawControl)
 				render_control_list::Clear(list);

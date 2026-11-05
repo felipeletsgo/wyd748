@@ -12,11 +12,44 @@
 #include "NativeSaleQuote.h"
 #include "SGridSupport.h"
 #include "GridItemPresentation.h"
+#include "ServerSaleQuote.h"
+#include "TMHuman.h"
 #include <memory>
 
 
 static_assert(EF_VOLATILE == native_sale_quote::VolatileEffect,
 	"Native sale quote requires ability type 38");
+
+int WYD748_MerchantSalePrice(TMFieldScene* scene, const STRUCT_ITEM& item, unsigned int merchantID)
+{
+    if (!scene || !g_pObjectManager || !WYD748_IsValidItemIndex(item.sIndex)) return 0;
+    const auto merchant = g_pObjectManager->GetHumanByID(merchantID);
+    const bool hellStore = scene->m_pHellgateStore && scene->m_pHellgateStore->IsVisible();
+    const auto& character = g_pObjectManager->m_stMobData;
+    return server_sale_quote::Calculate(item.sIndex, g_pItemList[item.sIndex].nPrice,
+        character.Class, character.LearnedSkill[0], character.CurrentScore.Mastery[2],
+        hellStore ? 0 : g_pObjectManager->m_nTax,
+        merchant && !strncmp(merchant->m_szName, "HG_Dionys", sizeof merchant->m_szName));
+}
+
+bool WYD748_BuildQuotedSale(TMFieldScene* scene, const SGridControlItem* item,
+    unsigned int merchantID, int place, int slot, MSG_QuotedSale& packet)
+{
+    if (!scene || !scene->m_pMyHuman || !item || !item->m_pItem || !merchantID ||
+        merchantID > 0xFFFF || place != 1 || slot < 0 || slot >= MAX_VISIBLE_CARRY ||
+        !WYD748_IsValidItemIndex(item->m_pItem->sIndex)) return false;
+    packet = {};
+    packet.Header.ID = static_cast<unsigned short>(scene->m_pMyHuman->m_dwID);
+    packet.Header.Type = MSG_QuotedSale_Opcode;
+    packet.Version = 1;
+    packet.TargetID = static_cast<unsigned short>(merchantID);
+    packet.MyType = 1;
+    packet.MyPos = static_cast<unsigned short>(slot);
+    packet.ExpectedPrice = WYD748_MerchantSalePrice(scene, *item->m_pItem, merchantID);
+    static_assert(sizeof(STRUCT_ITEM) == sizeof packet.ExpectedItem, "Item fingerprint size");
+    memcpy(packet.ExpectedItem, item->m_pItem, sizeof packet.ExpectedItem);
+    return true;
+}
 
 // Local shortcut replacement: the caller retains the new visual if AddItem
 // rejects it. Remove the old visual only after insertion succeeds; the caller
@@ -70,14 +103,31 @@ int WYD748_ResolveWireSlot(TMFieldScene* scene, const SGridControl* grid,
 	short wireType, int cellX, int cellY)
 {
 	// Central 7.48 interaction projection: Carry and Cargo are nine-column
-	// linear aggregates on the native wire.  Non-aggregate feature grids keep
-	// their own column count, so trade/shop/mix layouts are not accidentally
-	// rewritten while removing every duplicated 7.59 inventory-page formula.
-	if (scene && wireType == 1)
-		return scene->GetCarrySlotForCell(grid, cellX, cellY);
-	if (scene && wireType == 2)
-		return scene->GetCargoSlotForCell(grid, cellX, cellY);
+	// linear aggregates on the native wire. CheckType reports wire type 1 for
+	// every default-item grid, so only the Carry and Cargo controls themselves
+	// resolve a slot; skill, trade, shop and mix grids return -1 and callers
+	// must not send the request (A26-01).
+	if (wireType == 1)
+		return scene ? scene->GetCarrySlotForCell(grid, cellX, cellY) : -1;
+	if (wireType == 2)
+		return scene ? scene->GetCargoSlotForCell(grid, cellX, cellY) : -1;
 	return cellX + (grid ? grid->m_nColumnGridCount : 5) * cellY;
+}
+
+bool WYD748_ResolveItemEndpoint(TMFieldScene* scene, SGridControlItem* item,
+	short& wireType, short& wirePos)
+{
+	wireType = 0;
+	wirePos = -1;
+	if (!item || !item->m_pGridControl)
+		return false;
+	auto grid = item->m_pGridControl;
+	wireType = grid->CheckType(grid->m_eItemType, grid->m_eGridType);
+	wirePos = grid->CheckPos(grid->m_eItemType);
+	if (wirePos == -1)
+		wirePos = static_cast<short>(WYD748_ResolveWireSlot(scene, grid, wireType,
+			item->m_nCellIndexX, item->m_nCellIndexY));
+	return wirePos >= 0;
 }
 
 bool WYD748_IsCenteredSingleCellGrid(const TMEGRIDTYPE gridType)
@@ -601,6 +651,8 @@ int SGridControl::CanChangeItem(SGridControlItem* ipNewItem, int inCellIndexX, i
 						if (sDestPos == -1)
 							sDestPos = WYD748_ResolveWireSlot(pFScene, ipNewItem->m_pGridControl,
 								sDestType, ipNewItem->m_nCellIndexX, ipNewItem->m_nCellIndexY);
+						if (sDestPos < 0)
+							return 0;
 
 						MSG_SwapItem stSwapItem{};
 						stSwapItem.Header.ID = g_pObjectManager->m_dwCharID;
@@ -643,7 +695,7 @@ int SGridControl::CanChangeItem(SGridControlItem* ipNewItem, int inCellIndexX, i
 
 		STRUCT_ITEM stCargo[128]{};
 		memcpy(stCargo, g_pObjectManager->m_stItemCargo, sizeof(stCargo));
-		if (ipNewItem->m_pGridControl->m_eGridType == TMEGRIDTYPE::GRID_CARGO)
+		if (ipNewItem->m_pGridControl->m_eGridType == TMEGRIDTYPE::GRID_CARGO && nPos >= 0)
 			memset(&stCargo[nPos], 0, sizeof(STRUCT_ITEM));
 
 		return 1;

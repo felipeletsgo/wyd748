@@ -25,7 +25,9 @@
 #include <type_traits>
 #include <climits>
 #include <cstdio>
+#include <exception>
 #include <limits>
+#include <stdexcept>
 #include "../internal/platform/network/SendBuffer.h"
 #include "../internal/platform/network/ReceiveBuffer.h"
 
@@ -93,6 +95,18 @@ int RunClientConfigAssetTests(int& checks);
 int RunClientLanguageAssetTests(int& checks);
 int RunTerrainTileMapReaderTests(int& checks);
 int RunCharacterTransferResponseTests(int& checks);
+int RunCriticalFlowTests(int& checks);
+int RunFieldSceneSafetyTests(int& checks);
+int RunFieldActionSafetyTests(int& checks);
+int RunUiGridSafetyTests(int& checks);
+int RunEntitySafetyTests(int& checks);
+int RunEffectSafetyTests(int& checks);
+int RunDeviceResourceSafetyTests(int& checks);
+int RunRemediationImprovementsTests(int& checks);
+int RunCoreDataSafetyTests(int& checks);
+int RunHumanStateSafetyTests(int& checks);
+int RunPlatformSafetyTests(int& checks);
+int RunWorldTerrainSafetyTests(int& checks);
 
 // Socket-free backend: records metadata and uses the production guard.
 // Does not retain the buffer; mutation simulates synchronous header filling.
@@ -136,9 +150,23 @@ struct RecordingTransport final : ITransport
     }
 };
 
+// Contain an exception from one suite: report the suite, count one failure,
+// and continue, so later suites still run and the gate exits nonzero.
+static int RunSuite(const char* name, int (*suite)(int&), int& checks, std::FILE* diagnostics = stderr)
+{
+    try {
+        return suite(checks);
+    } catch (const std::exception& error) {
+        if (diagnostics) std::fprintf(diagnostics, "FAIL: %s threw: %s\n", name, error.what());
+    } catch (...) {
+        if (diagnostics) std::fprintf(diagnostics, "FAIL: %s threw a non-standard exception\n", name);
+    }
+    return 1;
+}
+
 // Local size-boundary tests without sockets, Win32 or DirectX.
 // Do not use assert: checks must remain active in Release.
-int main()
+static int RunArchitectureTests()
 {
     char storage[16] = {};
     int failures = 0;
@@ -150,6 +178,16 @@ int main()
             ++failures;
         }
     };
+
+    // Runner self-test: a throwing suite counts one failure without stopping the next suite.
+    {
+        int probeChecks = 0;
+        const int thrown = RunSuite("RunnerProbe", [](int&) -> int { throw std::out_of_range("probe"); },
+            probeChecks, nullptr);
+        const int next = RunSuite("RunnerProbeNext", [](int& count) { ++count; return 0; }, probeChecks, nullptr);
+        check(thrown == 1 && next == 0 && probeChecks == 1,
+            "runner contains a throwing suite and still runs the next suite");
+    }
 
     check(!PacketView{}.HasAtLeast(0), "empty view has no buffer");
     check(!PacketView{0, nullptr, 16}.HasSizeBetween(12, INT_MAX), "null buffer with size");
@@ -255,14 +293,13 @@ int main()
         }
     }
     struct AirMoveLook { short mesh; short skin; };
-    int bodySkin = 12;
     int mountSkin = 40;
     AirMoveLook mountLook{};
     const AirMoveLook savedMountLook{7, 3};
     RestoreAirMoveMountVisual(mountSkin, mountLook, 20, savedMountLook);
-    check(bodySkin == 12 && mountSkin == 20 && mountLook.mesh == 7 &&
-        mountLook.skin == 3,
-        "AirMove restores mount appearance without changing the body mesh");
+    // The helper receives only mount state, so it cannot change the body mesh.
+    check(mountSkin == 20 && mountLook.mesh == 7 && mountLook.skin == 3,
+        "AirMove restores the mount skin and the saved mount appearance");
     struct AirMoveWaypoint { int nX; int nY; };
     AirMoveWaypoint airRoute[10]{{100, 200}, {300, 400}, {0, 0}};
     check(HasNextAirMoveWaypoint(airRoute, 0) &&
@@ -547,7 +584,7 @@ int main()
         native_volatile::Route::Portal, native_volatile::Route::CustomFirework})
         check(!native_volatile::AllowsRightClick(route), "specialized route is not direct consumption");
 
-    failures += RunCharacterLoginUseCaseTests(checks);
+    failures += RunSuite("CharacterLoginUseCaseTests", RunCharacterLoginUseCaseTests, checks);
     // Queue limits without signed addition or dependence on a real socket.
     check(send_buffer::CanAppendPacket(12, 0, 131072, 12), "queue accepts header");
     check(send_buffer::CanAppendPacket(65535, 0, 131072, 12), "queue accepts WORD limit");
@@ -631,68 +668,92 @@ int main()
         !field_interaction::AutoRunCellAllowed(200, -1, 0) &&
         !field_interaction::AutoRunCellAllowed(200, 4096, 0), "autorun rejects out of bounds before attribute lookup");
     check(!field_interaction::AutoRunCellAllowed(200, 200, 0x80), "autorun rejects native restricted terrain");
-    failures += RunReceivedPacketDispatchTests(checks);
-    failures += RunInstanceQuestionTests(checks);
-    failures += RunCargoSlotTests(checks);
-    failures += RunItemShortcutPolicyTests(checks);
-    failures += RunGridInsertionTests(checks);
-    failures += RunListBoxItemsTests(checks);
-    failures += RunSummonVisualScaleTests(checks);
-    failures += RunAnkhInventoryTintTests(checks);
-    failures += RunCostumeSelectionTests(checks);
-    failures += RunHumanCostumeRefinementTests(checks);
-    failures += RunNativeRefinementPresentationTests(checks);
-    failures += RunFieldSceneChatContractTests(checks);
-    failures += RunFieldShortcutContractTests(checks);
-    failures += RunFieldChatControlTests(checks);
-    failures += RunFieldChatSubmitPolicyTests(checks);
-    failures += RunFieldCoinInputPolicyTests(checks);
-    failures += RunMusicListLineTests(checks);
-    failures += RunAuditSafetyTests(checks);
-    failures += RunHellStoreClickContractTests(checks);
-    failures += RunUiModeContractTests(checks);
-    failures += RunFieldViewContractTests(checks);
-    failures += RunSkillAttackRequestTests(checks);
-    failures += RunAttackVisualDamageTests(checks);
-    failures += RunAttackAttackerStateTests(checks);
-    failures += RunAttackTargetStateTests(checks);
-    failures += RunGroundAttachTableTests(checks);
-    failures += RunFallbackCostumeTableTests(checks);
-    failures += RunResourceBarProjectionTests(checks);
-    failures += RunNativeScoreHudTests(checks);
-    failures += RunMountRiderOffsetTests(checks);
-    failures += RunPerfTraceTests(checks);
-    failures += RunClientSettingsTests(checks);
-    failures += RunWeatherPacketTests(checks);
-    failures += RunLightingProfileTests(checks);
-    failures += RunMantuaLengthTests(checks);
-    failures += RunPremiumShopPacketTests(checks);
-    failures += RunKefraPortalTests(checks);
-    failures += RunGroundNeighborPolicyTests(checks);
-    failures += RunFieldCachePolicyTests(checks);
-    failures += RunWeatherParticlesTests(checks);
-    failures += RunRuntimeAssetLimitsTests(checks);
-    failures += RunObservedAffectProjectionTests(checks);
-    failures += RunCCModePolicyTests(checks);
-    failures += RunEffectVertexColorTests(checks);
-    failures += RunSceneDisconnectContractTests(checks);
-    failures += RunUIBinaryTests(checks);
-    failures += RunFontTextureUploadTests(checks);
-    failures += RunSingleLineTextLayoutTests(checks);
-    failures += RunLocaleBoundaryTests(checks);
-    failures += RunFontGdiResourcesTests(checks);
-    failures += RunRenderStateCacheTests(checks);
-    failures += RunDeviceRestoreTests(checks);
-    failures += RunDeviceBackBufferTests(checks);
-    failures += RunDeviceFrameTests(checks);
-    failures += RunShaderResourcesTests(checks);
-    failures += RunUITextureSetListTests(checks);
-    failures += RunLoginCredentialContractTests(checks);
-    failures += RunServerNameAssetTests(checks);
-    failures += RunClientConfigAssetTests(checks);
-    failures += RunClientLanguageAssetTests(checks);
-    failures += RunTerrainTileMapReaderTests(checks);
-    failures += RunCharacterTransferResponseTests(checks);
+    failures += RunSuite("ReceivedPacketDispatchTests", RunReceivedPacketDispatchTests, checks);
+    failures += RunSuite("InstanceQuestionTests", RunInstanceQuestionTests, checks);
+    failures += RunSuite("CargoSlotTests", RunCargoSlotTests, checks);
+    failures += RunSuite("ItemShortcutPolicyTests", RunItemShortcutPolicyTests, checks);
+    failures += RunSuite("GridInsertionTests", RunGridInsertionTests, checks);
+    failures += RunSuite("ListBoxItemsTests", RunListBoxItemsTests, checks);
+    failures += RunSuite("SummonVisualScaleTests", RunSummonVisualScaleTests, checks);
+    failures += RunSuite("AnkhInventoryTintTests", RunAnkhInventoryTintTests, checks);
+    failures += RunSuite("CostumeSelectionTests", RunCostumeSelectionTests, checks);
+    failures += RunSuite("HumanCostumeRefinementTests", RunHumanCostumeRefinementTests, checks);
+    failures += RunSuite("NativeRefinementPresentationTests", RunNativeRefinementPresentationTests, checks);
+    failures += RunSuite("FieldSceneChatContractTests", RunFieldSceneChatContractTests, checks);
+    failures += RunSuite("FieldShortcutContractTests", RunFieldShortcutContractTests, checks);
+    failures += RunSuite("FieldChatControlTests", RunFieldChatControlTests, checks);
+    failures += RunSuite("FieldChatSubmitPolicyTests", RunFieldChatSubmitPolicyTests, checks);
+    failures += RunSuite("FieldCoinInputPolicyTests", RunFieldCoinInputPolicyTests, checks);
+    failures += RunSuite("MusicListLineTests", RunMusicListLineTests, checks);
+    failures += RunSuite("AuditSafetyTests", RunAuditSafetyTests, checks);
+    failures += RunSuite("HellStoreClickContractTests", RunHellStoreClickContractTests, checks);
+    failures += RunSuite("UiModeContractTests", RunUiModeContractTests, checks);
+    failures += RunSuite("FieldViewContractTests", RunFieldViewContractTests, checks);
+    failures += RunSuite("SkillAttackRequestTests", RunSkillAttackRequestTests, checks);
+    failures += RunSuite("AttackVisualDamageTests", RunAttackVisualDamageTests, checks);
+    failures += RunSuite("AttackAttackerStateTests", RunAttackAttackerStateTests, checks);
+    failures += RunSuite("AttackTargetStateTests", RunAttackTargetStateTests, checks);
+    failures += RunSuite("GroundAttachTableTests", RunGroundAttachTableTests, checks);
+    failures += RunSuite("FallbackCostumeTableTests", RunFallbackCostumeTableTests, checks);
+    failures += RunSuite("ResourceBarProjectionTests", RunResourceBarProjectionTests, checks);
+    failures += RunSuite("NativeScoreHudTests", RunNativeScoreHudTests, checks);
+    failures += RunSuite("MountRiderOffsetTests", RunMountRiderOffsetTests, checks);
+    failures += RunSuite("PerfTraceTests", RunPerfTraceTests, checks);
+    failures += RunSuite("ClientSettingsTests", RunClientSettingsTests, checks);
+    failures += RunSuite("WeatherPacketTests", RunWeatherPacketTests, checks);
+    failures += RunSuite("LightingProfileTests", RunLightingProfileTests, checks);
+    failures += RunSuite("MantuaLengthTests", RunMantuaLengthTests, checks);
+    failures += RunSuite("PremiumShopPacketTests", RunPremiumShopPacketTests, checks);
+    failures += RunSuite("KefraPortalTests", RunKefraPortalTests, checks);
+    failures += RunSuite("GroundNeighborPolicyTests", RunGroundNeighborPolicyTests, checks);
+    failures += RunSuite("FieldCachePolicyTests", RunFieldCachePolicyTests, checks);
+    failures += RunSuite("WeatherParticlesTests", RunWeatherParticlesTests, checks);
+    failures += RunSuite("RuntimeAssetLimitsTests", RunRuntimeAssetLimitsTests, checks);
+    failures += RunSuite("ObservedAffectProjectionTests", RunObservedAffectProjectionTests, checks);
+    failures += RunSuite("CCModePolicyTests", RunCCModePolicyTests, checks);
+    failures += RunSuite("EffectVertexColorTests", RunEffectVertexColorTests, checks);
+    failures += RunSuite("SceneDisconnectContractTests", RunSceneDisconnectContractTests, checks);
+    failures += RunSuite("UIBinaryTests", RunUIBinaryTests, checks);
+    failures += RunSuite("FontTextureUploadTests", RunFontTextureUploadTests, checks);
+    failures += RunSuite("SingleLineTextLayoutTests", RunSingleLineTextLayoutTests, checks);
+    failures += RunSuite("LocaleBoundaryTests", RunLocaleBoundaryTests, checks);
+    failures += RunSuite("FontGdiResourcesTests", RunFontGdiResourcesTests, checks);
+    failures += RunSuite("RenderStateCacheTests", RunRenderStateCacheTests, checks);
+    failures += RunSuite("DeviceRestoreTests", RunDeviceRestoreTests, checks);
+    failures += RunSuite("DeviceBackBufferTests", RunDeviceBackBufferTests, checks);
+    failures += RunSuite("DeviceFrameTests", RunDeviceFrameTests, checks);
+    failures += RunSuite("ShaderResourcesTests", RunShaderResourcesTests, checks);
+    failures += RunSuite("UITextureSetListTests", RunUITextureSetListTests, checks);
+    failures += RunSuite("LoginCredentialContractTests", RunLoginCredentialContractTests, checks);
+    failures += RunSuite("ServerNameAssetTests", RunServerNameAssetTests, checks);
+    failures += RunSuite("ClientConfigAssetTests", RunClientConfigAssetTests, checks);
+    failures += RunSuite("ClientLanguageAssetTests", RunClientLanguageAssetTests, checks);
+    failures += RunSuite("TerrainTileMapReaderTests", RunTerrainTileMapReaderTests, checks);
+    failures += RunSuite("CharacterTransferResponseTests", RunCharacterTransferResponseTests, checks);
+    failures += RunSuite("CriticalFlowTests", RunCriticalFlowTests, checks);
+    failures += RunSuite("FieldSceneSafetyTests", RunFieldSceneSafetyTests, checks);
+    failures += RunSuite("FieldActionSafetyTests", RunFieldActionSafetyTests, checks);
+    failures += RunSuite("UiGridSafetyTests", RunUiGridSafetyTests, checks);
+    failures += RunSuite("EntitySafetyTests", RunEntitySafetyTests, checks);
+    failures += RunSuite("EffectSafetyTests", RunEffectSafetyTests, checks);
+    failures += RunSuite("DeviceResourceSafetyTests", RunDeviceResourceSafetyTests, checks);
+    failures += RunSuite("RemediationImprovementsTests", RunRemediationImprovementsTests, checks);
+    failures += RunSuite("CoreDataSafetyTests", RunCoreDataSafetyTests, checks);
+    failures += RunSuite("HumanStateSafetyTests", RunHumanStateSafetyTests, checks);
+    failures += RunSuite("PlatformSafetyTests", RunPlatformSafetyTests, checks);
+    failures += RunSuite("WorldTerrainSafetyTests", RunWorldTerrainSafetyTests, checks);
     if (failures == 0) std::printf("ArchitectureTests: %d checks PASS; static assertions PASS\n", checks);
     return failures == 0 ? 0 : 1;
+}
+
+int main()
+{
+    try {
+        return RunArchitectureTests();
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "FAIL: ArchitectureTests runner threw: %s\n", error.what());
+    } catch (...) {
+        std::fprintf(stderr, "FAIL: ArchitectureTests runner threw a non-standard exception\n");
+    }
+    return 1;
 }

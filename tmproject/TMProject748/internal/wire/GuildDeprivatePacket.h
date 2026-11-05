@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intencao C->S do lider para remover um membro da guild. O servidor revalida
-// cargo, alvo e persistencia; TargetID e somente a identidade solicitada.
+// C->S leader intent to remove a guild member. The server validates rank, target and persistence.
+// TargetID is only the requested identity.
 constexpr auto MSG_GuildDeprivate_Opcode = 0x28C;
 struct MSG_GuildDeprivate
 {

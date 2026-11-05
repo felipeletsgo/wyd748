@@ -1,5 +1,6 @@
 #include "../internal/core/WYD748Assets.h"
 #include "../internal/core/Basedef.h"
+#include "../internal/core/BaseChecksum.h"
 #include "../internal/core/ServerChannelLabel.h"
 #include "../internal/application/PremiumMountMagic.h"
 
@@ -13,29 +14,10 @@
 #include <vector>
 #include <windows.h>
 
-// Match the legacy checksum used by Basedef.cpp so asset tests can exercise
-// the real message-table loader without linking the entire game runtime.
+// Link the production checksum without the remaining game runtime.
 int BASE_GetSum(char* bytes, int size)
 {
-    int sum = 0;
-    for (int index = 0; index < size; ++index) {
-        const int mod = index % 7;
-        if (mod == 0)
-            sum += bytes[index] / 2;
-        if (mod == 1)
-            sum += bytes[index] ^ 0xFF;
-        if (mod == 2)
-            sum += 3 * bytes[index];
-        if (mod == 3)
-            sum += 2 * bytes[index];
-        if (mod == 4)
-            sum -= bytes[index] / 7;
-        if (mod == 5)
-            sum -= bytes[index];
-        else
-            sum += bytes[index] / 3;
-    }
-    return sum;
+    return base_checksum::Sum(bytes, size);
 }
 
 namespace {
@@ -130,7 +112,7 @@ int RunServerNameAssetTests(int& checks)
     std::vector<char> bytes{std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
     check(bytes.size() == 143, "localized 7.48 file keeps the fixed 143-byte layout");
     if (bytes.size() == 143) {
-        const auto fixture = ExecutablePath().parent_path() / "sn-invalid-test.bin";
+        const auto fixture = ExecutablePath().parent_path() / ("sn-invalid-test-" + std::to_string(GetCurrentProcessId()) + ".bin");
         const auto writeFixture = [&](const std::vector<char>& contents) {
             std::ofstream output(fixture, std::ios::binary | std::ios::trunc);
             output.write(contents.data(), static_cast<std::streamsize>(contents.size()));

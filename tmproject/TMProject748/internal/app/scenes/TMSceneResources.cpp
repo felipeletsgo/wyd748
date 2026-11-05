@@ -17,6 +17,7 @@
 #include "TMLog.h"
 #include "TMScene.h"
 #include "QuestSubjectLevel.h"
+#include "../../application/SceneSafetyPolicy.h"
 #include "TMFieldScene.h"
 #include "TMEffectFirework.h"
 #include "TMSnow.h"
@@ -741,6 +742,8 @@ int TMScene::FindID(char* szID)
 
 int TMScene::LoadMsgText(SListBox* pListBox, const char* szFileName)
 {
+	if (!pListBox || !szFileName)
+		return 0;
 	FILE* fp{};
 
 	const auto textPath = WYD748_TextPath(szFileName);
@@ -749,30 +752,31 @@ int TMScene::LoadMsgText(SListBox* pListBox, const char* szFileName)
 	if (!fp)
 		return 0;
 
-	if (!pListBox)
-		return 0;
-
 	char szText[256]{};
 	char szTemp[256]{};
 
 	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
 	{
+		char* body = message_text::LineBody(szTemp, 6);
+		if (!body)
+			continue;
 		char szCol[7]{};
 
 		strncpy(szCol, szTemp, 6);
 
 		DWORD dwCol{};
 
-		sscanf(szCol, "%x", &dwCol);
+		if (sscanf_s(szCol, "%x", &dwCol) != 1)
+			continue;
 
 		char* szRet = strstr(szTemp, "\n");
 
 		if (szRet)
 			*szRet = 0;
 
-		if (szTemp[6] == 32)
+		if (body)
 		{
-			sprintf_s(szText, "%s", &szTemp[6]);
+			sprintf_s(szText, "%s", body);
 
 			pListBox->AddItem(new SListBoxItem(
 				szText,
@@ -797,15 +801,14 @@ int TMScene::LoadMsgText(SListBox* pListBox, const char* szFileName)
 
 int TMScene::LoadMsgText2(SListBox* pListBox, const char* szFileName, int nStartLine, int nEndLine)
 {
+	if (!pListBox || !szFileName)
+		return 0;
 	FILE* fp{};
 
 	const auto textPath = WYD748_TextPath(szFileName);
 	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
-		return 0;
-
-	if (!pListBox)
 		return 0;
 
 	char szText[256]{};
@@ -817,22 +820,26 @@ int TMScene::LoadMsgText2(SListBox* pListBox, const char* szFileName, int nStart
 
 	for (int i = 0; i < 560 && fgets(szTemp, 256, fp); ++i)
 	{
+		char* body = message_text::LineBody(szTemp, 6);
+		if (!body)
+			continue;
 		char szCol[7]{};
 
 		strncpy(szCol, szTemp, 6);
 
 		DWORD dwCol{};
 
-		sscanf(szCol, "%x", &dwCol);
+		if (sscanf_s(szCol, "%x", &dwCol) != 1)
+			continue;
 
 		char* szRet = strstr(szTemp, "\n");
 
 		if (szRet)
 			*szRet = 0;
 
-		if (szTemp[6] == 32 && i >= nStartLine && i <= nEndLine)
+		if (i >= nStartLine && i <= nEndLine)
 		{
-			sprintf_s(szText, "%s", &szTemp[6]);
+			sprintf_s(szText, "%s", body);
 
 			pListBox->AddItem(new SListBoxItem(
 				szText,
@@ -860,15 +867,14 @@ int TMScene::LoadMsgText2(SListBox* pListBox, const char* szFileName, int nStart
 
 int TMScene::LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, int ntrans)
 {
+	if (!pListBox || !szFileName)
+		return 0;
 	FILE* fp{};
 
 	const auto textPath = WYD748_TextPath(szFileName);
 	fopen_s(&fp, textPath.c_str(), "rt");
 
 	if (!fp)
-		return 0;
-
-	if (!pListBox)
 		return 0;
 
 	char szText[256]{};
@@ -880,13 +886,17 @@ int TMScene::LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, i
 
 	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
 	{
+		char* body = message_text::LineBody(szTemp, 10);
+		if (!body)
+			continue;
 		char szCol[11]{};
 
 		strncpy(szCol, szTemp, 10);
 
 		DWORD dwCol{};
 
-		sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol);
+		if (sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol) != 2)
+			continue;
 
 		if (nLvLimit > nLv)
 			dwCol = 0xFF777777;
@@ -894,7 +904,7 @@ int TMScene::LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, i
 		if (nLvLimit > 350 && ntrans < 6)
 			dwCol = 0xFF777777;
 
-		if (g_pCurrentScene)
+		if (m_pMyHuman)
 		{
 			if (m_pMyHuman->Is2stClass() == 2)
 				dwCol = 0xFF777777;
@@ -908,9 +918,9 @@ int TMScene::LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, i
 		if (szRet)
 			*szRet = 0;
 
-		if (szTemp[10] == 32)
+		if (body)
 		{
-			sprintf(szText, "%s", &szTemp[10]);
+			sprintf_s(szText, "%s", body);
 
 			pListBox->AddItem(new SListBoxItem(
 				szText,
@@ -935,6 +945,9 @@ int TMScene::LoadMsgText3(SListBox* pListBox, const char* szFileName, int nLv, i
 
 unsigned int TMScene::LoadMsgText4(char* pStr, int dwStrSize, const char* szFileName, int nLv, int ntrans)
 {
+	if (!pStr || dwStrSize <= 0 || !szFileName)
+		return 0;
+	pStr[0] = '\0';
 	FILE* fp{};
 
 	const auto textPath = WYD748_TextPath(szFileName);
@@ -950,11 +963,15 @@ unsigned int TMScene::LoadMsgText4(char* pStr, int dwStrSize, const char* szFile
 
 	for (int i = 0; i < 100 && fgets(szTemp, 256, fp); ++i)
 	{
+		char* body = message_text::LineBody(szTemp, 10);
+		if (!body)
+			continue;
 		char szCol[11]{};
 
 		strncpy(szCol, szTemp, 10);
 
-		sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol);
+		if (sscanf_s(szCol, "%d %x", &nLvLimit, &dwCol) != 2)
+			continue;
 
 		if (nLvLimit == nLv)
 		{
@@ -969,8 +986,7 @@ unsigned int TMScene::LoadMsgText4(char* pStr, int dwStrSize, const char* szFile
 				if (szRet)
 					*szRet = 0;
 
-				if (szTemp[10] == 32)
-					sprintf_s(pStr, dwStrSize, "%s", &szTemp[10]);
+				snprintf(pStr, static_cast<std::size_t>(dwStrSize), "%s", body);
 			}
 			else
 			{

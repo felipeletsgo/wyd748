@@ -8,6 +8,8 @@ var nonRefinableEffects = map[string]bool{
 	"EF_REQ_DEX": true, "EF_REQ_CON": true, "EF_VOLATILE": true,
 	"EF_INCUBATE": true, "EF_INCUDELAY": true, "EF_PREVBONUS": true,
 	"EF_MOBTYPE": true, "EF_ITEMTYPE": true, "EF_ITEMLEVEL": true,
+	"EF_REGENHP": true, "EF_REGENMP": true, "EF_TRANS": true,
+	"EF_REFLEVEL": true, "EF_GAMEROOM": true, "EF_FAME": true,
 	"EF_NOTRADE": true, "EF_NOSANC": true, "EF_DONATE": true, "EF_HONRA": true,
 }
 
@@ -29,6 +31,10 @@ func refineAbility(value, sanc int) int {
 	case 16:
 		return value * 400 / 100
 	default:
+		if sanc > 10 {
+			// Native switch fallback includes effective +17 accessories.
+			return value * (sanc - 10) / 100
+		}
 		return value * (sanc + 10) / 10
 	}
 }
@@ -92,29 +98,20 @@ func refinementLocked(def model.ItemDef) bool {
 		cape && tier == model.CapeTierMaster
 }
 
+// itemSanc follows TMSRVIN 0x4B97F0, including explicit SANC priority.
 func itemSanc(item model.Item) int {
-	for i := 0; i < 3; i++ {
-		effect, value := item.Eff[i*2], int(item.Eff[i*2+1])
-		if effect == 43 || effect >= 116 && effect <= 125 {
-			switch {
-			case value >= 230 && value <= 233:
-				return 10
-			case value >= 234 && value <= 237:
-				return 11
-			case value >= 238 && value <= 241:
-				return 12
-			case value >= 242 && value <= 245:
-				return 13
-			case value >= 246 && value <= 249:
-				return 14
-			case value >= 250 && value <= 253:
-				return 15
-			default:
-				return value % 10
-			}
-		}
+	if item.Index >= 2330 && item.Index < 2390 || item.Index >= 3200 && item.Index < 3300 || item.Index >= 3980 && item.Index < 4000 {
+		return 0
 	}
-	return 0
+	_, value := item.RefinementEffect()
+	raw := int(value)
+	if item.Index == 786 || item.Index == 1936 || item.Index == 1937 {
+		return raw
+	}
+	if raw < 230 {
+		return raw % 10
+	}
+	return (raw-230)/4 + 10
 }
 
 // tintItem applies a color (dye) to the item's sanc pair: it changes the CODE
@@ -195,20 +192,25 @@ func itemAbility(item model.Item, def model.ItemDef, effect string) int {
 		}
 	}
 	sanc := itemSanc(item)
+	if item.Index <= 40 {
+		sanc = 0
+	}
+	if sanc >= 9 && def.Pos&0xF00 != 0 {
+		sanc++
+	}
 	if !nonRefinableEffects[effect] {
-		effectiveSanc := sanc
-		if sanc >= 9 && def.Pos&0xF00 != 0 {
-			effectiveSanc++
-		}
-		value = refineAbility(value, effectiveSanc)
+		value = refineAbility(value, sanc)
 	}
 	if effect == "EF_RUNSPEED" {
 		if value >= 3 {
 			value = 2
 		}
-		if value > 0 && sanc == 9 {
+		if value > 0 && sanc >= 9 {
 			value++
 		}
+	}
+	if effect == "EF_REGENHP" || effect == "EF_REGENMP" {
+		value *= sanc
 	}
 	return value
 }
@@ -598,11 +600,20 @@ func (w *World) canEquip(ch *model.Char, item model.Item, pos byte) bool {
 	if advanced {
 		return true
 	}
-	levelReq := def.ReqLevel + staticAbility(def, "EF_LEVEL")
-	strReq := def.ReqStr + staticAbility(def, "EF_REQ_STR")
-	intReq := def.ReqInt + staticAbility(def, "EF_REQ_INT")
-	dexReq := def.ReqDex + staticAbility(def, "EF_REQ_DEX")
-	conReq := def.ReqCon + staticAbility(def, "EF_REQ_CON")
+	levelReq := def.ReqLevel + itemAbility(item, def, "EF_LEVEL")
+	strReq := def.ReqStr + itemAbility(item, def, "EF_REQ_STR")
+	intReq := def.ReqInt + itemAbility(item, def, "EF_REQ_INT")
+	dexReq := def.ReqDex + itemAbility(item, def, "EF_REQ_DEX")
+	conReq := def.ReqCon + itemAbility(item, def, "EF_REQ_CON")
+	// TMSRVIN 0x4BE6D0: WTYPE is reduced modulo ten before the multiplier.
+	// The native 150% branch is unreachable; do not activate it here.
+	if pos == 7 && itemAbility(item, def, "EF_WTYPE")%10 > 1 {
+		levelReq = levelReq * 130 / 100
+		strReq = strReq * 130 / 100
+		intReq = intReq * 130 / 100
+		dexReq = dexReq * 130 / 100
+		conReq = conReq * 130 / 100
+	}
 	return int(playerLevel(ch)) >= levelReq && playerStr(ch) >= strReq &&
 		playerInt(ch) >= intReq && playerDex(ch) >= dexReq && playerCon(ch) >= conReq
 }

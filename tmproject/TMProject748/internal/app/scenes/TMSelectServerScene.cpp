@@ -16,6 +16,7 @@
 #include "ServerChannelLabel.h"
 #include "AdapterIdentity.h"
 #include "WYD748Assets.h"
+#include "../../application/SceneSafetyPolicy.h"
 
 void SwapLauncher()
 {
@@ -90,6 +91,7 @@ TMSelectServerScene::~TMSelectServerScene()
 	{
 		if (m_pCheckHumanList[nPerson] != nullptr)
 		{
+			m_pCheckHumanList[nPerson]->DelayDelete();
 			g_pObjectManager->DeleteObject(m_pCheckHumanList[nPerson]);
 			m_pCheckHumanList[nPerson] = nullptr;
 		}
@@ -244,18 +246,6 @@ int TMSelectServerScene::InitializeScene()
 		m_pMessageBox->SetVisible(1);
 	}
 
-	int nAspGetweek = -1;
-	int nAspGetday = -1;
-	int nUserCount[MAX_SERVERNUMBER]{ 0 };
-	char szUserCount[1024]{ 0 };
-	for (int i = 0; i < MAX_SERVERNUMBER; ++i)
-		nUserCount[i] = -1;
-
-	char szStatusEndpoint[64]{};
-	if (CopyServerEndpoint(szStatusEndpoint, g_pServerList[0][0]))
-		BASE_GetHttpRequest(szStatusEndpoint, szUserCount, sizeof szUserCount);
-
-	ParseServerStatus(szUserCount, nUserCount, 11);
 
 	m_cLogin = 0;
 
@@ -404,7 +394,9 @@ int TMSelectServerScene::InitializeScene()
 	else
 	{
 		LOG_WRITELOG("DataFile Not Found");
-		MessageBoxA(g_pApp->m_hWnd, "DataFile NotFound.", "File Lost", 0);
+		MessageBoxA(g_pApp->m_hWnd,
+			ui_text::RowOr(g_UIString, ui_text::kDataFileNotFound, "Data file not found."),
+			ui_text::RowOr(g_UIString, ui_text::kFileLostTitle, "Missing file"), 0);
 		PostMessageA(g_pApp->m_hWnd, 0x10u, 0, 0);
 	}
 
@@ -428,8 +420,6 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 			return extractedResult;
 	}
 
-	SwapLauncher();
-
 	break;
 	case B_SERVER_SEL_OK:
 	{
@@ -443,6 +433,8 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 		{
 			if (m_cLogin == 1)
 			{
+				m_loginAttempt.Resolve();
+				g_pSocketManager->CloseSocket();
 				m_pNServerSelect->SetVisible(1);
 				for (int i = 0; i < 3; ++i)
 					m_pLoginBtns[i]->SetVisible(0);
@@ -491,6 +483,8 @@ int TMSelectServerScene::OnControlEvent(unsigned int idwControlID, unsigned int 
 // Extracted from TMSelectServerScene::OnControlEvent; behavior is unchanged.
 ExtractedFlow TMSelectServerScene::OnServerGroupList(unsigned int& idwEvent, const int& nMaxGroupN, SListBoxServerItem* (&pServerItem)[11], int& extractedResult)
 {
+	if (m_loginAttempt.Pending())
+		{ extractedResult = 1; return ExtractedFlow::Return; }
 	// The list event is a zero-based visible-row index.  Native 7.48 stores
 	// groups in reverse display order, so validate before indexing the table.
 	if (idwEvent >= static_cast<unsigned int>(nMaxGroupN))
@@ -517,9 +511,6 @@ ExtractedFlow TMSelectServerScene::OnServerGroupList(unsigned int& idwEvent, con
 
 	if (m_bAdmit == 1 && nIndexN == m_nAdmitGroup)
 	{
-		for (int i = m_nAdmitGroup; i < 10; ++i)
-			g_pServerList[i][0][0] = 0;
-
 		for (int i = 0; i < m_nAdmitGroup; ++i)
 		{
 			memset(nUserCount2, -1, sizeof nUserCount2);
@@ -694,6 +685,8 @@ int statusValues[12];
 // Extracted from TMSelectServerScene::OnControlEvent; behavior is unchanged.
 int TMSelectServerScene::OnServerSelectOk(const int& nMaxGroupN)
 {
+	if (m_loginAttempt.Pending())
+		return 1;
 	if (!m_pNServerGroupList || !m_pNServerList)
 		return 1;
 
@@ -770,7 +763,8 @@ int TMSelectServerScene::OnServerSelectOk(const int& nMaxGroupN)
 ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
 {
 	unsigned int LiveTime = g_pTimerManager->GetServerTime();
-	if (LastSendMsgTime + 1500 > LiveTime)
+	if (m_cLogin != 1 || m_loginAttempt.Pending() ||
+		scene_countdown::IsGateClosed(LiveTime, LastSendMsgTime, 1500))
 		{ extractedResult = 1; return ExtractedFlow::Return; }
 
 	auto pLoginOK = m_pLoginBtns[0];
@@ -810,6 +804,8 @@ ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
 		{ extractedResult = 1; return ExtractedFlow::Return; }
 	}
 
+	if (!m_loginAttempt.Begin())
+		{ extractedResult = 1; return ExtractedFlow::Return; }
 	pLoginOK->SetEnable(0);
 	pEditPassword->SetEnable(0);
 	m_dwLastClickLoginBtnTime = g_pTimerManager->GetServerTime();
@@ -823,7 +819,9 @@ ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
 	if (!ResolveGameEndpoint(g_pApp->m_szServerIP, gameHost, gamePort) ||
 		!g_pSocketManager->ConnectServer(gameHost, gamePort, 0, 1124))
 	{
+		m_loginAttempt.Resolve();
 		pLoginOK->SetEnable(1);
+		pEditPassword->SetEnable(1);
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);
 		m_pMessagePanel->SetVisible(1, 1);
 		{ extractedResult = 1; return ExtractedFlow::Return; }
@@ -844,31 +842,31 @@ ExtractedFlow TMSelectServerScene::OnLoginOk(int& extractedResult)
 	// edit value from silently changing either field before encryption.
 	strncpy_s(stAccountLogin.AccountName, pEditID->GetText(), _TRUNCATE);
 	strncpy_s(stAccountLogin.AccountPassword, pEditPassword->GetText(), _TRUNCATE);
-	sprintf_s(g_pObjectManager->m_szAccountName, "%s", stAccountLogin.AccountName);
-	g_pObjectManager->m_szAccountPass[0] = stAccountLogin.AccountPassword[0];
-	g_pObjectManager->m_szAccountPass[1] = stAccountLogin.AccountPassword[1];
-	for (int mm = 2; mm < 16; ++mm)
-		g_pObjectManager->m_szAccountPass[mm] = rand() % 10 + 48;
-
-	g_pObjectManager->m_szAccountPass[15] = '\0';
-
-	sprintf_s(g_pObjectManager->m_szAccountName, "%s", _strupr(g_pObjectManager->m_szAccountName));
-	sprintf_s(g_pObjectManager->m_szAccountPass, "%s", _strupr(g_pObjectManager->m_szAccountPass));
+	strncpy_s(g_pObjectManager->m_szAccountDisplay, stAccountLogin.AccountName, _TRUNCATE);
+	strncpy_s(g_pObjectManager->m_szAccountName, stAccountLogin.AccountName, _TRUNCATE);
+	_strupr_s(g_pObjectManager->m_szAccountName);
 
 	int nLen1 = strlen(g_pObjectManager->m_szAccountName);
-	int nLen2 = strlen(g_pObjectManager->m_szAccountPass);
 
 	for (int i = 0; i < nLen1; ++i)
 		g_pObjectManager->m_szAccountName[i] += i;
 
-	// Account and generated local proof have independent lengths. Reusing the
-	// account length here truncated or overran the password-derived proof even
-	// though the plaintext login packet itself was already correct.
-	for (int i = 0; i < nLen2; ++i)
-		g_pObjectManager->m_szAccountPass[i] += i;
-
-	g_pSocketManager->SendPacket({MSG_AccountLogin_Opcode,
+	const bool sent = g_pSocketManager->SendPacket({MSG_AccountLogin_Opcode,
 		reinterpret_cast<char*>(&stAccountLogin), sizeof MSG_AccountLogin});
+	SecureZeroMemory(&stAccountLogin, sizeof(stAccountLogin));
+	if (!sent)
+	{
+		m_loginAttempt.Resolve();
+		g_pSocketManager->CloseSocket();
+		pLoginOK->SetEnable(1);
+		pEditPassword->SetEnable(1);
+		m_pMessagePanel->SetMessage(g_pMessageStringTable[8], 4000);
+		m_pMessagePanel->SetVisible(1, 1);
+		{ extractedResult = 1; return ExtractedFlow::Return; }
+	}
+	char empty[] = "";
+	SecureZeroMemory(pEditPassword->m_strText, sizeof(pEditPassword->m_strText));
+	pEditPassword->SetText(empty);
 	LastSendMsgTime = g_pTimerManager->GetServerTime();
 	return ExtractedFlow::Next;
 }
@@ -915,11 +913,17 @@ int TMSelectServerScene::OnPacketEvent(unsigned int dwCode, char* buf)
 {
 	const int sceneResult = TMScene::OnPacketEvent(dwCode, buf);
 	if (!buf)
+	{
+		m_loginAttempt.Resolve();
 		return sceneResult;
+	}
 
 	auto packet = reinterpret_cast<MSG_STANDARD*>(buf);
 	if (sceneResult == 1)
 	{
+		if (!m_loginAttempt.Pending() || packet->Type != 0x101)
+			return 1;
+		m_loginAttempt.Resolve();
 		if (packet->Type == 0x101)
 			m_pLoginPanel->SetVisible(1);
 
@@ -933,6 +937,8 @@ int TMSelectServerScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	}
 	if (packet->Type == MSG_CNFAccountLogin_Opcode)
 	{
+		if (!m_loginAttempt.Resolve())
+			return 1;
 		m_pMessagePanel->SetVisible(0, 1);
 		g_pTimerManager->SetServerTime(packet->Tick);
 
@@ -958,12 +964,13 @@ int TMSelectServerScene::OnPacketEvent(unsigned int dwCode, char* buf)
 	}
 	if (packet->Type == 0x11D || packet->Type == MSG_AlreadyPlaying_Opcode)
 	{
-		if (packet->Type == 0x101)
-			m_pLoginPanel->SetVisible(1);
+		if (!m_loginAttempt.Resolve())
+			return 1;
 
 		m_pMessagePanel->SetMessage(g_pMessageStringTable[12], 4000);
 		m_pMessagePanel->SetVisible(1, 1);
 		m_pLoginBtns[0]->SetEnable(1);
+		m_pEditPW->SetEnable(1);
 		m_pLoginPanel->SetVisible(1);
 		return 1;
 	}
@@ -981,6 +988,25 @@ int TMSelectServerScene::OnPacketEvent(unsigned int dwCode, char* buf)
 int TMSelectServerScene::FrameMove(unsigned int dwServerTime)
 {
 	TMScene::FrameMove(dwServerTime);
+	const auto statusRevision = BASE_PollHttpRequests();
+	if (statusRevision != m_channelStatusRevision && !m_loginAttempt.Pending())
+	{
+		m_channelStatusRevision = statusRevision;
+		if (m_pNServerGroupList && m_pNServerList && m_pNServerSelect && m_pNServerSelect->IsVisible())
+		{
+			const int group = m_pNServerGroupList->GetSelectedIndex();
+			const int channel = m_pNServerList->GetSelectedIndex();
+			if (group >= 0 && group < m_nVisibleGroupCount)
+			{
+				unsigned int event = static_cast<unsigned int>(group);
+				SListBoxServerItem* items[11]{};
+				int result = 0;
+				OnServerGroupList(event, m_nVisibleGroupCount, items, result);
+				if (channel >= 0 && channel < m_nVisibleChannelCount)
+					m_pNServerList->SetSelectedIndex(channel);
+			}
+		}
+	}
 
 	dwServerTime = g_pTimerManager->GetServerTime();
 
@@ -1077,7 +1103,7 @@ int TMSelectServerScene::FrameMove(unsigned int dwServerTime)
 		m_cStartRun = 2;
 	}
 
-	if ((int)(dwServerTime - m_dwStartCamTime) > 6000)
+	if (!m_loginAttempt.Pending() && scene_countdown::IsPast(dwServerTime, m_dwStartCamTime, 6000))
 	{
 		auto pEditPassword = m_pEditPW;
 		m_pLoginBtns[0]->SetEnable(1);
@@ -1093,6 +1119,7 @@ void TMSelectServerScene::ResetDemoPlayer()
 	{
 		if (m_pCheckHumanList[nPerson])
 		{
+			m_pCheckHumanList[nPerson]->DelayDelete();
 			g_pObjectManager->DeleteObject(m_pCheckHumanList[nPerson]);
 			m_pCheckHumanList[nPerson] = nullptr;
 		}
@@ -1295,6 +1322,7 @@ void TMSelectServerScene::RemoveHuman()
 	{
 		if (m_pCheckHumanList[nPerson])
 		{
+			m_pCheckHumanList[nPerson]->DelayDelete();
 			g_pObjectManager->DeleteObject(m_pCheckHumanList[nPerson]);
 			m_pCheckHumanList[nPerson] = 0;
 		}
@@ -1304,6 +1332,7 @@ void TMSelectServerScene::RemoveHuman()
 	{
 		if (m_pCheckHumanList[nPerson])
 		{
+			m_pCheckHumanList[nPerson]->DelayDelete();
 			g_pObjectManager->DeleteObject(m_pCheckHumanList[nPerson]);
 			m_pCheckHumanList[nPerson] = 0;
 		}
@@ -1472,18 +1501,15 @@ void TMSelectServerScene::InitializeUI()
 			}
 		}
 
-		m_nAdmitGroup = 0;
+		// The helper already returns the zero-based physical group.
+		m_nAdmitGroup = AggregateServerGroupFromOrder(g_nServerCountList, MAX_SERVERGROUP);
 
 		for (int nCount = 0; nCount < 11; ++nCount)
 		{
-			if (m_nAdmitGroup <= g_nServerCountList[nCount])
-				m_nAdmitGroup = g_nServerCountList[nCount];
-
 			if (g_nServerCountList[nCount] > m_nMaxGroup)
 				m_nMaxGroup = g_nServerCountList[nCount];
 		}
 
-		--m_nAdmitGroup;
 		if (m_nMaxGroup >= MAX_SERVERGROUP)
 			m_nMaxGroup = MAX_SERVERGROUP - 1;
 

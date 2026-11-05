@@ -6,6 +6,7 @@
 #include "PerfTrace.h"
 #include "ScreenshotPixels.h"
 #include "ScreenshotJpeg.h"
+#include "AdapterQuirks.h"
 #include <vector>
 
 namespace {
@@ -266,9 +267,11 @@ HRESULT D3DDevice::DisplayErrorMsg(HRESULT hr, unsigned int dwType)
 		_tcscat(strMsg, _T("\n\nThis sample will now exit."));
 		MessageBox(NULL, strMsg, "Error", MB_ICONERROR | MB_OK);
 
-		// Close the window, which shuts down the app
+		// Close the window after the caller unwinds. A synchronous close ran
+		// the full application teardown inside this object's own method and
+		// deleted the device that the caller still used.
 		if (m_hWnd)
-			SendMessage(m_hWnd, WM_CLOSE, 0, 0);
+			PostMessage(m_hWnd, WM_CLOSE, 0, 0);
 	}
 	else
 	{
@@ -594,32 +597,18 @@ HRESULT D3DDevice::Initialize3DEnvironment()
 	D3DAdapterInfo* pAdapterInfo = m_d3dSettings.PAdapterInfo();
 	D3DDeviceInfo* pDeviceInfo = m_d3dSettings.PDeviceInfo();
 
-	char* vgaUP = _strupr(pAdapterInfo->AdapterIdentifier.Description);
+	if (!pAdapterInfo || !pDeviceInfo || !m_d3dSettings.PDeviceCombo()) return E_POINTER;
 
-	char strVGA[256];
-	sprintf(strVGA, "%s", vgaUP);
-
-	if (strstr(strVGA, "NVIDIA"))
-	{
-		if (strstr(strVGA, "MX"))
-			m_iVGAID = 0;
-		else
-			m_iVGAID = 1;
-	}
-	if (strstr(strVGA, "RADEON"))
-		m_iVGAID = 2;
-	if (strstr(strVGA, "NVIDIA"))
-	{
-		m_bNVIDIA = 1;
-		if (strstr(strVGA, "RIVA") || strstr(strVGA, "TNT") || strstr(strVGA, "TNT2"))
-			m_bTNT = 1;
-	}
-	if (strstr(strVGA, "SAVAGA"))
-		m_bSavage = 1;
-	if (strstr(strVGA, "MATROX") && strstr(strVGA, "G4"))
-		m_bG400 = 1;
-	if (strstr(strVGA, "INTEL") || strstr(strVGA, "810"))
-		m_bIntel = 1;
+	// Classify the bounded description and PCI vendor before applying workarounds.
+	const adapter_quirks::Detected quirks = adapter_quirks::Classify(
+		pAdapterInfo->AdapterIdentifier.Description, sizeof(pAdapterInfo->AdapterIdentifier.Description),
+		pAdapterInfo->AdapterIdentifier.VendorId);
+	m_iVGAID = quirks.vgaId;
+	m_bNVIDIA = quirks.nvidia;
+	m_bTNT = quirks.tnt;
+	m_bSavage = quirks.savage;
+	m_bG400 = quirks.g400;
+	m_bIntel = quirks.intel;
 
 	m_bWindowed = m_d3dSettings.IsWindowed;
 	AdjustWindowForChange();
@@ -819,6 +808,13 @@ HRESULT D3DDevice::Reset3DEnvironment()
 HRESULT D3DDevice::ToggleFullscreen()
 {
 	HRESULT hr;
+	// Enumeration may find only one mode family. Keep the current mode
+	// instead of reading a device combination that was never selected.
+	if (!device_mode_family::CanToggle(m_d3dSettings, m_bWindowed))
+	{
+		LOG_WRITELOG("Display mode toggle skipped: no %s device\r\n", m_bWindowed ? "fullscreen" : "windowed");
+		return S_FALSE;
+	}
 	int AdapterOrdinalOld = m_d3dSettings.AdapterOrdinal();
 	D3DDEVTYPE DevTypeOld = m_d3dSettings.DevType();
 

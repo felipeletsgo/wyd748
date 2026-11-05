@@ -4,6 +4,7 @@
 #include "TMGlobal.h"
 #include "TMGround.h"
 #include "../../../application/ShadeGrid.h"
+#include "EffectGuards.h"
 #include <memory>
 
 TMShade::TMShade(int nGridNum, int nTextureIndex, float fScale)
@@ -13,6 +14,12 @@ TMShade::TMShade(int nGridNum, int nTextureIndex, float fScale)
 
     m_nFade = 0;
     m_fAngle = 0.0f;
+    // FrameMove fades these channels when a lifetime is set; match the
+    // initial white vertices until SetColor runs.
+    m_dwA = 255;
+    m_dwR = 255;
+    m_dwG = 255;
+    m_dwB = 255;
     m_nGridNum = nGridNum;
     m_nVertexNum = shade_grid::VertexCount(m_nGridNum);
     m_nIndexNum = shade_grid::IndexCount(m_nGridNum);
@@ -119,24 +126,16 @@ int TMShade::SetPosition(TMVector2 vecPosition)
 
                 if (nResX >= 0 && nResX < 64 && nResY >= 0 && nResY < 64)
                 {
+                    // The tile check above covers this grid vertex, not the
+                    // owner: an owner in a neighbor block gives mask
+                    // coordinates outside this block's 128 x 128 map. Such a
+                    // sample is skipped and the tile height is used.
                     int nMaskY = (int)(vecPosition.y - (float)(pGround->m_vecOffsetIndex.y << 7));
                     int nMaskX = (int)(vecPosition.x - (float)(pGround->m_vecOffsetIndex.x << 7));
-                    int nMaskHeight = pGround->m_pMaskData[nMaskY][nMaskX];
-                    if (nMaskHeight >= 11)
-                    {
-                        if (pGround->m_pMaskData[nMaskY + 1][nMaskX] < 10)
-                            nMaskHeight = pGround->m_pMaskData[nMaskY + 1][nMaskX];
+                    int nMaskHeight = 0;
+                    const bool bMask = shade_mask::Sample(pGround->m_pMaskData, nMaskX, nMaskY, nMaskHeight);
 
-                        else if (pGround->m_pMaskData[nMaskY - 1][nMaskX] < 10)
-                            nMaskHeight = pGround->m_pMaskData[nMaskY - 1][nMaskX];
-
-                        else if (pGround->m_pMaskData[nMaskY][nMaskX + 1] < 10)
-                            nMaskHeight = pGround->m_pMaskData[nMaskY][nMaskX + 1];
-                        else if (pGround->m_pMaskData[nMaskY][nMaskX - 1] < 10)
-                            nMaskHeight = pGround->m_pMaskData[nMaskY][nMaskX - 1];
-                    }
-
-                    if ((((float)nMaskHeight * 0.1f) - ((float)pTileMapData[nResX + (nResY << 6)].cHeight * 0.1f)) >= 0.299999f)
+                    if (bMask && (((float)nMaskHeight * 0.1f) - ((float)pTileMapData[nResX + (nResY << 6)].cHeight * 0.1f)) >= 0.299999f)
                         m_pVertex[x + y * (m_nGridNum + 1)].position.y = ((float)nMaskHeight * 0.1f) + 0.05f;
                     else
                         m_pVertex[x + y * (m_nGridNum + 1)].position.y = ((float)pTileMapData[nResX + (nResY << 6)].cHeight * 0.1f) + 0.05f;

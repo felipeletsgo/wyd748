@@ -3,6 +3,8 @@
 #include "TMMesh.h"
 #include "TMEffectBillBoard2.h"
 #include "TMGlobal.h"
+#include "EffectGuards.h"
+#include "EffectTiming.h"
 
 TMSkillTownPortal::TMSkillTownPortal(TMVector3 vecPosition, int nType) : 
     TMEffect()
@@ -55,6 +57,11 @@ int TMSkillTownPortal::Render()
         g_pDevice->SetRenderState(D3DRS_ZWRITEENABLE, 0);
         g_pDevice->SetRenderState(D3DRS_LIGHTING, 0);
 
+        // Mesh 703 is shared with TMEffectStart and other portals: apply this
+        // instance's color, texture and scale just before its own draw.
+        effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh->m_pVB, m_dwMeshColor);
+        pMesh->m_nTextureIndex[0] = 58;
+        pMesh->m_fScaleH = m_fMeshScale;
         pMesh->m_fScaleV = m_fAngle;
         pMesh->Render(m_vecPosition.x, m_vecPosition.y, m_vecPosition.z, 0, 0, 1.5707964f, 0, 0);
 
@@ -93,32 +100,17 @@ int TMSkillTownPortal::FrameMove(unsigned int dwServerTime)
         return 1;
     }
 
-    TMMesh* pMesh = g_pMeshManager->GetCommonMesh(703, 1, 180000);
-
-    if (!pMesh)
-        return 0;
-
-    RDLVERTEX* pVertex;
-    D3DVERTEXBUFFER_DESC vDesc;
-
-    pMesh->m_pVB->GetDesc(&vDesc);
-    pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-    int nCount = vDesc.Size / 24;
     float fDif = fabsf(sinf(m_fProgress * D3DXToRadian(180)));
-
-    for (int i = 0; i < nCount; ++i)
     {
         unsigned int dwR = (unsigned int)((float)m_dwR * fDif) << 16;
         unsigned int dwG = (unsigned int)((float)m_dwG * fDif) << 8;
         unsigned int dwB = (unsigned int)((float)m_dwB * fDif);
-        pVertex[i].diffuse = dwB | dwG | dwR;
+        m_dwMeshColor = dwB | dwG | dwR;
     }
 
-    pMesh->m_pVB->Unlock();
-    pMesh->m_nTextureIndex[0] = 58;
-
-    if ((int)(dwServerTime - m_dwLastTime) > 100)
+    // Unsigned interval: a signed cast stops every emission once the server
+    // tick has its high bit set (24.8 days of uptime) and m_dwLastTime is 0.
+    if (effect_timing::IntervalElapsed(dwServerTime, m_dwLastTime, 100))
     {
         auto pEffect2 = new TMEffectBillBoard2(94, 700, 1.5f, 1.5f, 1.5f, 0.0f, 0);
 
@@ -134,16 +126,11 @@ int TMSkillTownPortal::FrameMove(unsigned int dwServerTime)
         m_dwLastTime = dwServerTime;
     }
 
+    // Render keeps the established vertical scale m_fAngle.
     if (m_nType == 1)
-    {
-        pMesh->m_fScaleV = (float)(m_fProgress * 0.69999999f) + 0.2f;
-        pMesh->m_fScaleH = (float)(m_fProgress * 0.69999999f) + 0.2f;
-    }
+        m_fMeshScale = (float)(m_fProgress * 0.69999999f) + 0.2f;
     else
-    {
-        pMesh->m_fScaleV = (fDif * 0.5f) + 0.5f;
-        pMesh->m_fScaleH = (fDif * 0.5f) + 0.5f;
-    }
+        m_fMeshScale = (fDif * 0.5f) + 0.5f;
 
     m_fAngle = m_fProgress * D3DXToRadian(180);
 

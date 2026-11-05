@@ -7,6 +7,7 @@
 #include "TMShade.h"
 #include "TMSkillFreezeBlade.h"
 #include "TMMesh.h"
+#include "EffectGuards.h"
 
 TMSkillIceSpear::TMSkillIceSpear(TMVector3 vecStart, TMVector3 vecTarget, int nLevel, TMObject* pOwner) : 
 	TMEffect()
@@ -43,8 +44,11 @@ TMSkillIceSpear::TMSkillIceSpear(TMVector3 vecStart, TMVector3 vecTarget, int nL
 TMSkillIceSpear::~TMSkillIceSpear()
 {
     SAFE_DELETE(m_pLightMap);
+}
 
-    if (!g_bHideEffect)
+void TMSkillIceSpear::SpawnImpact()
+{
+    if (!g_bHideEffect && g_pCurrentScene && g_pCurrentScene->m_pEffectContainer)
         g_pCurrentScene->m_pEffectContainer->AddChild(new TMSkillFreezeBlade({ m_vecPosition.x, m_vecPosition.y - 1.0f, m_vecPosition.z }, 1, 0, 0));
 }
 
@@ -102,17 +106,8 @@ int TMSkillIceSpear::FrameMove(unsigned int dwServerTime)
 
     if (pMesh)
     {
-        D3DVERTEXBUFFER_DESC vDesc;
-        pMesh->m_pVB->GetDesc(&vDesc);
-
-        RDLVERTEX* pVertex;
-        pMesh->m_pVB->Lock(0, 0, (void**)&pVertex, 0);
-
-        int nCount = vDesc.Size / sizeof(RDLVERTEX);
-        for (int i = 0; i < nCount; ++i)
-            pVertex[i].diffuse = 0xFFFFFFFF;
-
-        pMesh->m_pVB->Unlock();
+        // A failed load keeps a mesh without a VB, and Lock can fail.
+        effect_vertex_lock::TryFillDiffuse<RDLVERTEX, D3DVERTEXBUFFER_DESC>(pMesh->m_pVB, 0xFFFFFFFFu);
         pMesh->m_nTextureIndex[0] = 19;
     }
 
@@ -136,7 +131,13 @@ int TMSkillIceSpear::FrameMove(unsigned int dwServerTime)
             m_pLightMap->SetPosition({ m_vecPosition.x, m_vecPosition.z });
     }
     else
+    {
+        // The impact belongs to natural expiry. A destructor during scene
+        // teardown would attach it to the next scene.
+        if (!m_cDeleted)
+            SpawnImpact();
         g_pObjectManager->DeleteObject(this);
+    }
 
     return 1;
 }

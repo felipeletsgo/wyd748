@@ -3,18 +3,17 @@
 #include "MessageHeader.h"
 #include <cstring>
 
-// Contrato existente de transferencia/renomeacao na selecao de personagem.
-// O emissor nativo 004A32DD envia 52 bytes; 004A626E consome Result e Slot.
-// Extraido de Basedef sem trocar tipos, packing ou ordem dos campos.
+// Existing character-selection transfer/rename contract. Native sender 004A32DD sends 52 bytes; 004A626E reads Result and Slot.
+// Extracted from Basedef without changing types, packing or field order.
 constexpr auto MSG_ReqTransper_Opcode = 0xFAA;
 struct MSG_ReqTransper
 {
     MSG_STANDARD Header;
-    // Zero solicita/confirma sucesso; demais valores sao resultados do servidor.
+    // Zero requests or confirms success. Other values are server results.
     int Result;
     // Indice signed: a cena valida [0,4) antes de consultar seus arrays.
     int Slot;
-    // Campos wire fixos; receber 16 bytes nao garante terminacao nula.
+    // Fixed wire fields: receiving 16 bytes does not guarantee null termination.
     char OldName[16];
     char NewName[16];
 };

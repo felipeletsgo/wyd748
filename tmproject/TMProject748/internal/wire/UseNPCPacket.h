@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intencao C->S para interagir com um NPC. TargetID identifica o NPC e
-// ClickOk distingue o primeiro clique da confirmacao da caixa nativa.
+// C->S NPC interaction intent. TargetID identifies the NPC.
+// ClickOk distinguishes the first click from native-dialog confirmation.
 constexpr auto MSG_UseNPC_Opcode = 0x28B;
 struct MSG_UseNPC
 {

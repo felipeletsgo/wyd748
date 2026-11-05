@@ -59,6 +59,11 @@ int RunHellStoreClickContractTests(int& checks)
         "the clicked NPC becomes the purchase target");
     check(branch.find("SetVisibleHellGateStore(m_pHellgateStore->IsVisible() == 0);") != std::string::npos,
         "the click toggles the store panel");
+    const auto ui = ReadSceneUnit("TMFieldSceneUI.cpp");
+    check(ui.find("m_pHellgateStore = static_cast<SPanel*>(m_pControlContainer->FindControl(6185u))") != std::string::npos &&
+        ui.find("m_pHellStoreDesc = static_cast<SListBox*>(m_pControlContainer->FindControl(6201u))") != std::string::npos &&
+        ui.find("m_pGridHellStore = static_cast<SGridControl*>(m_pControlContainer->FindControl(6208u))") != std::string::npos,
+        "A02-06 the live store owns its existing panel, description and grid bindings");
 
     const auto scene = ReadSceneUnit("TMFieldScene.cpp");
     check(scene.find("stHellBuy.Header.Type = 701;") != std::string::npos &&

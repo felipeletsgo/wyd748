@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Basedef.h"
+#include "BaseChecksum.h"
 
 // Client global tables and their loaders. BASE_* queries live in the domain
 // units BasedefItems, BasedefAppearance, BasedefCombat, BasedefWorld,
@@ -10,6 +11,7 @@
 #include "NativeItemVolatile.h"
 #include "WYD748Assets.h"
 #include "ServerListAsset.h"
+#include "../application/ItemPriceOverride.h"
 #include <WinInet.h>
 
 namespace
@@ -100,9 +102,10 @@ void BASE_InitializeHitRate()
     g_pHitRate[0] = 512;
 }
 
-/** Loads g_pAttribute from Env/AttributeMap.dat, falling back to TMSRV/Run.
+/** Loads g_pAttribute from Env/AttributeMap.dat inside the installation.
  * Closes the opened file. Returns 0 for a missing or truncated map and leaves
- * the existing table unchanged when the selected file is truncated. */
+ * the existing table unchanged when the file is truncated. A09-11: the former
+ * development fallback read ../../TMSRV/Run outside the installation. */
 int BASE_InitializeAttribute()
 {
     char FileName[256]{};
@@ -110,8 +113,6 @@ int BASE_InitializeAttribute()
 
     FILE* fp = nullptr;
     fopen_s(&fp, FileName, "rb");
-    if (fp == nullptr)
-        fopen_s(&fp, "../../TMSRV/Run/AttributeMap.dat", "rb");
 
     if (fp == nullptr)
     {
@@ -219,41 +220,14 @@ int BASE_ReadSkillBin()
     return TRUE;
 }
 
-/** Overrides local prices at g_pItemList indexes 412, 413, 419, and 420.
- * Run after table loading so the overrides remain. Does not persist values
- * or change server authority over transactions. */
 /** Computes the legacy sum over p[0..size), alternating by index modulo 7.
  * p is borrowed and read-only, and must cover size bytes when size > 0.
  * Returns 0 for size <= 0. Preserves char/int arithmetic; this is not a secure hash. */
 int BASE_GetSum(char* p, int size)
 {
-	int sum = 0;
-	for (int i = 0; i < size; ++i)
-	{
-		int mod = i % 7;
-		if (!(i % 7))
-			sum += p[i] / 2;
-		if (mod == 1)
-			sum += p[i] ^ 0xFF;
-		if (mod == 2)
-			sum += 3 * p[i];
-		if (mod == 3)
-			sum += 2 * p[i];
-		if (mod == 4)
-			sum -= p[i] / 7;
-		// The else belongs only to mod == 5, not to the earlier conditions.
-		if (mod == 5)
-			sum -= p[i];
-		else
-			sum += p[i] / 3;
-	}
-
-	return sum;
+	return base_checksum::Sum(p, size);
 }
 
-/** Legacy-sum variant with a modulo-9 cycle; returns 0 for size <= 0.
- * p is read-only and must cover size bytes when size > 0.
- * Does not replace BASE_GetSum: its factors and complementary division differ. */
 /** Delegates loading Strdef_Path into the global message table.
  * Supplies row count and capacity and forwards the loader result without a
  * dialog or a second interpretation of the file. */
@@ -295,8 +269,8 @@ int BASE_InitializeBaseDef()
 
 /*
  * Data, rules, and geometry API below:
- * - loaders (`BASE_ReadItemPrice`, `BASE_ReadTOTOList`, language, and filters)
- *   mutate only global tables and return legacy status;
+ * - loaders (`BASE_ReadItemPrice`, language, and filters) mutate only global
+ *   tables and return legacy status;
  * - BASE_Get..., Is..., and Check... queries do not own their pointers or
  *   persist server-side state;
  * - item/equipment routines write only when given a destination pointer;
@@ -307,25 +281,30 @@ int BASE_InitializeBaseDef()
  * Individual comments cover exceptions; this common contract avoids repeating
  * the same explanation across small functions.
  */
+/** Applies the optional local ItemPrice.bin display overrides. The server owns
+ * prices. A09-02: the file is validated as a whole (row size, row count and
+ * catalog indexes) before any g_pItemList write; a malformed file changes
+ * nothing. An absent file is the shipped case and is a no-op. */
 void BASE_ReadItemPrice()
 {
-    int itemprice[MAX_ITEM_PRICE_REPLACE][2]{};
-
     FILE* fp = nullptr;
     fopen_s(&fp, ItemPrice_Path, "rb");
+    if (!fp)
+        return;
 
-    if (fp)
-    {
-        fread(itemprice, sizeof(itemprice), 1, fp);
-        fclose(fp);
-    }
+    // One byte more than the largest valid file, so an oversized file fails.
+    unsigned char bytes[MAX_ITEM_PRICE_REPLACE * item_price_override::kRowBytes + 1]{};
+    const std::size_t size = fread(bytes, 1, sizeof(bytes), fp);
+    const bool readFailed = ferror(fp) != 0;
+    fclose(fp);
+    if (readFailed)
+        return;
 
-    for (int k = 0; k < MAX_ITEM_PRICE_REPLACE && itemprice[k][0]; ++k)
-    {
-        int idx = itemprice[k][0];
-        int bufprice = g_pItemList[idx].nPrice;
-        g_pItemList[idx].nPrice = itemprice[k][1];   
-    }
+    item_price_override::Entry entries[MAX_ITEM_PRICE_REPLACE]{};
+    const int count = item_price_override::Parse(bytes, size, MAX_ITEM_PRICE_REPLACE,
+        MAX_ITEMLIST, entries);
+    for (int k = 0; k < count; ++k)
+        g_pItemList[entries[k].index].nPrice = entries[k].price;
 }
 
 void ReadItemName()
@@ -386,13 +365,17 @@ int BASE_GetLanguage()
         char szTemp[256]{};
         fgets(szTemp, 256, fpFont);
         sscanf(szTemp, "%d", &g_nLangIndex);
-        if (g_nFontBold < 0 || g_nLangIndex > 4)
-            g_nFontBold = 0;
+        // A09-11: clamp the index that was read, not the font weight.
+        if (g_nLangIndex < 0 || g_nLangIndex > 4)
+            g_nLangIndex = 0;
 
         fclose(fpFont);
         return 1;
     }
-    // The 7.48 client has no Lang.txt; language zero is its implicit default.
+    // Without lang.txt, keep index zero. The distribution's lang.txt holds a
+    // locale code (EN or PT) that client_language::Read interprets; the numeric
+    // parse above fails for it and also keeps index zero. g_nLangIndex has no
+    // consumer.
     g_nLangIndex = 0;
     return 1;
 }

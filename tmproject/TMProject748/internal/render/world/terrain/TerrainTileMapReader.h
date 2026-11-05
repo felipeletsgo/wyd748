@@ -23,6 +23,23 @@ struct FileTileInfo
 };
 static_assert(sizeof(FileTileInfo) == 12, "KR terrain tile record must be 12 bytes");
 
+// TMGround::TileCoordList has 8 rows and BackTileCoordList 32. The coordinate
+// bytes select a row; the shipped .trn files use 0..7 and 0..31 (A25-07).
+constexpr int TerrainFrontCoordRows = 8;
+constexpr int TerrainBackCoordRows = 32;
+
+template <std::size_t TileCount>
+bool TerrainTileCoordinatesInRange(const FileTileInfo (&tiles)[TileCount])
+{
+    for (const FileTileInfo& tile : tiles)
+    {
+        if (static_cast<unsigned char>(tile.byTileCoord) >= TerrainFrontCoordRows ||
+            static_cast<unsigned char>(tile.byBackTileCoord) >= TerrainBackCoordRows)
+            return false;
+    }
+    return true;
+}
+
 // A .trn record is a byte-sized name, that many name bytes, two byte-sized
 // coordinates, then 4096 twelve-byte tile records. A failed read leaves the
 // output arrays unusable; callers must stop scene initialization.

@@ -22,7 +22,8 @@ public:
 
 protected:
     int m_bValue;
-    int m_bOver;
+    // Hover state uses SControl::m_bOver; a second member here hid it from
+    // IsOver() and the other base readers (A28-02).
     unsigned int m_dwSelectedColor;
     unsigned int m_dwUnSelectedColor;
 };

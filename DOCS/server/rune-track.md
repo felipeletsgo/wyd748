@@ -18,7 +18,7 @@ After explicit owner authorization to publish and restart, release
 `20261018T234132Z` activated at 23:41:35 UTC, disconnecting three established
 game connections. Game/API processes, all 7,385 payload hashes, readiness and
 unchanged private configuration were verified. See the
-[delivery receipt](../current-state.md#active-release--2026-10-18-hell-gate-and-rune-track).
+[delivery receipt](../../.agents/research/release-history.md#previous-release--2026-10-18-hell-gate-and-rune-track).
 The existing launcher patch remains 10035; no client executable was changed.
 Actual client/gameplay validation remains pending. This document does not
 declare a global client/server release ready.

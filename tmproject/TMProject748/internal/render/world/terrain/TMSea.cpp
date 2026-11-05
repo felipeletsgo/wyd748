@@ -4,6 +4,7 @@
 #include "TMCamera.h"
 #include "TMGlobal.h"
 #include "TMLog.h"
+#include "ObjectFileRecordLayout.h"
 
 TMSea::TMSea()
     : TMObject()
@@ -179,6 +180,17 @@ int TMSea::InitObject()
     m_nGridNumX = m_nMaskIndex / 2;
     m_nGridNumY = m_nTextureSetIndex / 2;
     m_nMaskIndex = 0;
+
+    // Both grid sizes come from Field*.dat. An out-of-range grid would wrap the
+    // vertex buffer size and the 16-bit indices (A25-07): keep no mesh and an
+    // empty water range for that sea; the other objects still load.
+    if (!SeaGridIsValid(m_nGridNumX, m_nGridNumY))
+    {
+        LOG_WRITELOG("Invalid sea grid %d x %d\r\n", m_nGridNumX, m_nGridNumY);
+        m_nGridNumX = 0;
+        m_nGridNumY = 0;
+        return 0;
+    }
 
     if (m_pMesh != nullptr)
         return 0;

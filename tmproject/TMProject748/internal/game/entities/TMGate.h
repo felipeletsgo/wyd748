@@ -38,9 +38,10 @@ public:
     float m_fOpenAngle;
     EGATE_STATE m_eState;
     unsigned int m_dwLastSetTime;
-    short m_sItemIndex;
-    int m_nLeftIndex;
-    int m_nRightIndex;
+    // InitGate skips an item outside the catalog; -1 loads no mesh.
+    short m_sItemIndex = 0;
+    int m_nLeftIndex = -1;
+    int m_nRightIndex = -1;
     float m_fWidth;
     short m_sAuth;
     short m_sType;

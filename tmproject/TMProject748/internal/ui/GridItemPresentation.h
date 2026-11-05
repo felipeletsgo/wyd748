@@ -58,14 +58,24 @@ inline float WeaponMeshScale(float maxZ, float slotHeight, float uiScaleY)
     return maxZ > target ? target / maxZ : 1.0f;
 }
 
-inline const char* SplitCaption(const char* resource)
+inline const char* CaptionOrFallback(const char* resource, const char* fallback)
 {
     if (resource) {
         for (const char* p = resource; *p; ++p)
             if (*p != ' ' && *p != '\t' && *p != '\r' && *p != '\n')
                 return resource;
     }
-    return "Enter the quantity to split.";
+    return fallback;
+}
+
+inline const char* SplitCaption(const char* resource)
+{
+    return CaptionOrFallback(resource, "Enter the quantity to split.");
+}
+
+inline const char* EntranceTicketCaption(const char* resource)
+{
+    return CaptionOrFallback(resource, "Use this Entrance Ticket to enter?");
 }
 
 // The item visual and its text are separate draw-list nodes in 7.48.

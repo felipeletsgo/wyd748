@@ -2,27 +2,26 @@
 
 #include <cstring>
 
-// Operacoes locais da fila de saida, independentes de WinSock e criptografia.
-// Os buffers sao emprestados; o chamador garante a capacidade real informada.
+// Local output-queue operations without WinSock or encryption dependencies.
+// Buffers are borrowed; the caller guarantees the specified capacity.
 namespace send_buffer
 {
-    // Caminho raw aceita exatamente o espaco restante; nao possui cabecalho.
+    // The raw path accepts exactly the remaining space and has no header.
     inline bool CanAppendRaw(int size, int queued, int capacity)
     {
         return size >= 0 && queued >= 0 && queued <= capacity &&
             size <= capacity - queued;
     }
-// Mantem o limite estrito da fila legada e o tamanho WORD do enquadramento.
-// A subtracao so ocorre depois de validar os indices, evitando overflow signed.
+// Preserve the strict legacy queue limit and WORD frame size.
+// Validate indices before subtraction to avoid signed overflow.
 inline bool CanAppendPacket(int size, int queued, int capacity, int headerSize)
 {
     return headerSize > 0 && size >= headerSize && size <= 0xFFFF &&
         queued >= 0 && queued < capacity && size < capacity - queued;
 }
 
-// Descarta somente o prefixo ja enviado. memmove admite sobreposicao; os bytes
-// restantes ja estao cifrados e nao podem ser buscados na fila de recepcao.
-// Estado invalido retorna false sem acessar memoria nem modificar os indices.
+// Discard only the sent prefix. memmove permits overlap. Remaining bytes are encrypted; never read them from the receive queue.
+// Invalid state returns false without accessing memory or changing indices.
 inline bool Compact(char* buffer, int capacity, int& queued, int& sent)
 {
     if (!buffer || capacity <= 0 || queued < 0 || queued > capacity ||
@@ -37,9 +36,8 @@ inline bool Compact(char* buffer, int capacity, int& queued, int& sent)
     return true;
 }
 
-// Preserva a tentativa final de flush mesmo se o enqueue falhar, para nao
-// bloquear mensagens anteriores. Sucesso exige aceite do pacote E do flush;
-// nao significa entrega remota. Os callbacks sao sincronos e chamados uma vez.
+// Attempt the final flush even when enqueue fails, so earlier messages can proceed.
+// Success requires both enqueue and flush acceptance, not remote delivery. Call each callback once, synchronously.
 template <typename Enqueue, typename Flush>
 bool EnqueueAndFlush(Enqueue enqueue, Flush flush)
 {

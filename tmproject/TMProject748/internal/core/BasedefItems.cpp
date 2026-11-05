@@ -945,7 +945,9 @@ int BASE_GetItemAbilityNosanc(STRUCT_ITEM* item, char type)
 
             int tvalue = g_pItemList[itemId].stEffect[i].sValue;
 
-            if (itemId == EF_ATTSPEED && tvalue == 1)
+            // A09-10: compare the ability type, as the other helpers do; the
+            // item index matched item 26 instead of the attack-speed ability.
+            if (type == EF_ATTSPEED && tvalue == 1)
                 tvalue = 10;
 
             value += tvalue;

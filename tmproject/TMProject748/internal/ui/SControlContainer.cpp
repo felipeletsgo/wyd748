@@ -29,18 +29,21 @@ SControlContainer::SControlContainer(TMScene* pScene)
 
 SControlContainer::~SControlContainer()
 {
-	for (auto& list : m_pDrawControl)
-		render_control_list::Clear(list);
-
-	if (m_pFocusControl != nullptr)
-		m_pFocusControl->SetFocused(0);
-
+	DiscardFrameReferences();
+	// Focus, pick and modal pointers borrow controls owned by scene objects.
+	// Their owners can be gone before the container destructor runs.
 	m_pFocusControl = nullptr;
 	m_pPickedControl = nullptr;
 	memset(m_pModalControl, 0, sizeof m_pModalControl);
 
 	SAFE_DELETE(m_pControlRoot);
 	SAFE_DELETE(m_pCursor);
+}
+
+void SControlContainer::DiscardFrameReferences()
+{
+	for (auto& list : m_pDrawControl)
+		render_control_list::Discard(list);
 }
 
 int SControlContainer::OnMouseEvent(unsigned int dwFlags, unsigned int wParam, int nX, int nY)
@@ -324,7 +327,8 @@ int SControlContainer::FrameMove(unsigned int dwServerTime)
 		{
 			if (pCurrentControl->m_bVisible == 1)
 			{
-				pCurrentControl->FrameMove2(m_pDrawControl, vParentPos, vControlLayer, 0);
+				pCurrentControl->FrameMove2(m_pDrawControl, vParentPos,
+					render_control_list::ClampTraversalLayer(vControlLayer, MAX_DRAW_CONTROL), 0);
 
 				if (pCurrentControl->m_pDown)
 				{

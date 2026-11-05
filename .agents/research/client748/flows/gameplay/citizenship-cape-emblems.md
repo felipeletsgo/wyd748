@@ -255,7 +255,7 @@ do not by themselves prove this glow behavior, so this adds no parity claim.
 
 `NativeScoreHudTests` exercises every 0..15 full/packed refinement value for
 representative cape IDs, clamping and the two source entry paths. The
-[local candidate receipt](../../../../../DOCS/current-state.md#local-combat-cape-and-kefra-candidate--2026-10-14)
+[local candidate receipt](../../../release-history.md#published-combat-cape-and-kefra-batch--2026-10-14)
 records the incremental Release build and automated gates. No game was
 launched; visible brightness at each refinement, owner/observer agreement,
 equipment changes and relogin remain manual acceptance gates.

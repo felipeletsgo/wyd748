@@ -1,5 +1,9 @@
 # WYD Web Platform
 
+Historical product proposal. Use [website feature status](server/website-feature-status.md) for scope,
+[staff operations](server/staff-operations.md) for controls, and [public deployment](server/public-launch.md) for operations.
+Version numbers, pending claims and examples below describe their recorded snapshots.
+
 ## Estado e decisões desta revisão — 20/09/2026
 
 Plano arquitetural em implementação. Base inspecionada:

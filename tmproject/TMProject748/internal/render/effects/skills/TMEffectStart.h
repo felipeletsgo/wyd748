@@ -32,4 +32,7 @@ public:
     float m_fAngle;             // Rotacao corrente da animacao.
     float m_fProgress;          // Progresso normalizado ou fase do ciclo.
     int m_nType;                // Variante visual solicitada.
+    // Per-instance state for the shared mesh 703, applied in Render.
+    unsigned int m_dwMeshColor = 0;
+    float m_fMeshScaleH = 1.0f;
 };

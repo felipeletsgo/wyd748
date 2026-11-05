@@ -2,9 +2,8 @@
 
 #include <cstddef>
 
-// Cabecalho wire existente, extraido sem mudar os tipos subjacentes de
-// WORD/BYTE/DWORD no alvo Windows. Nao depende dos headers Win32 ou de Basedef.
-// O transporte preenche Size/KeyWord/CheckSum/Tick no armazenamento do caller.
+// Existing wire header extracted without changing Windows WORD/BYTE/DWORD base types.
+// It has no Win32-header or Basedef dependency. The transport fills Size/KeyWord/CheckSum/Tick in caller storage.
 typedef struct
 {
     unsigned short Size;
@@ -15,8 +14,8 @@ typedef struct
     unsigned long Tick;
 } MSG_STANDARD;
 
-// Falhar explicitamente em plataformas onde unsigned long nao tem 32 bits:
-// nao permitir que uma troca de toolchain altere o contrato silenciosamente.
+// Fail explicitly when unsigned long is not 32 bits.
+// A toolchain change must not silently alter the contract.
 static_assert(sizeof(unsigned short) == 2 && sizeof(unsigned long) == 4,
     "Wire header requires Windows integer widths");
 static_assert(sizeof(MSG_STANDARD) == 12, "Wire header size changed");

@@ -6,11 +6,11 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | Gap | Meaning | Rows |
 | --- | --- | --- |
 | A | sent by a client, no server handler | 2 |
-| B | unknown to the native client | 19 |
-| C | native, missing in TMProject | 7 |
+| B | unknown to the native client | 25 |
+| C | native, missing in TMProject | 11 |
 | D | size mismatch | 0 |
-| E | server emits, TMProject does not handle | 0 |
-| U | received with an unknown size (size not compared) | 90 |
+| E | server emits, TMProject does not handle | 2 |
+| U | received with an unknown size (size not compared) | 86 |
 
 | Opcode | Names | Native size | Native recv/send sites | TMProject recv | TMProject send | TMProject sizes (gate/send) | Server recv (size) | Server send | Gaps |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -41,7 +41,7 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | 0x182 | MSG_SendItem_Opcode, OpSendItem | 24 | 2/0 | yes | - | ?/- | - | yes | U |
 | 0x185 | MSG_UpdateCarry_Opcode, OpUpdateCarry | 528 | 1/0 | yes | - | ?/- | - | yes | U |
 | 0x18A | - | 16 | 1/0 | yes | - | ?/- | - | - | U |
-| 0x18B | - | 16 | 1/0 | yes | - | ?/- | - | - | U |
+| 0x18B | MSG_Weather_Opcode, OpWeather | 16 | 1/0 | yes | - | ?/- | - | yes | U |
 | 0x18D | MSG_ReqChallenge_Opcode, OpReqChallenge | 12 | 1/0 | yes | - | 12/- | - | yes | - |
 | 0x193 | - | 16 | 1/0 | yes | - | ?/- | - | - | U |
 | 0x194 | MSG_BillingNotice_Opcode | 16 | 1/0 | yes | - | 16/- | - | - | - |
@@ -50,8 +50,8 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | 0x1BF | MSG_ResultGamble_Opcode, OpResultGamble | 36 | 1/0 | yes | - | 36/- | - | yes | - |
 | 0x1C1 | MSG_REQArray_Opcode, OpClientIntegrityChallenge | 24 | 1/0 | yes | - | 24/- | - | yes | - |
 | 0x1C2 | - | - | 1/0 | yes | - | ?/- | - | - | U |
-| 0x1C5 | - | - | 1/0 | yes | - | ?/- | - | - | U |
-| 0x1C6 | - | - | 1/0 | yes | - | ?/- | - | - | U |
+| 0x1C5 | - | - | 1/0 | - | - | -/- | - | - | C |
+| 0x1C6 | - | - | 1/0 | - | - | -/- | - | - | C |
 | 0x1CF | - | - | 0/0 | yes | - | ?/- | - | - | BU |
 | 0x1D0 | - | - | 0/0 | yes | - | ?/- | - | - | BU |
 | 0x1D6 | MSG_InitGuldName_Opcode | - | 1/0 | yes | - | ?/- | - | - | U |
@@ -82,7 +82,7 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | 0x2C3 | MSG_CombineItemLindy_Opcode, OpCombineLindy | 84 | 0/0 | - | yes | -/- | yes (84) | - | - |
 | 0x2C4 | MSG_CombineItemLindyAlt_Opcode | 84 | 0/0 | - | - | -/- | - | - | AC |
 | 0x2C7 | - | 16 | 0/1 | - | - | -/- | - | - | AC |
-| 0x2C8 | - | - | 1/0 | yes | - | ?/- | - | - | U |
+| 0x2C8 | - | - | 1/0 | - | - | -/- | - | - | C |
 | 0x2CB | OpMoveStop | - | 0/0 | - | yes | -/- | yes (36) | - | - |
 | 0x2CD | MSG_RequestCapsuleInfo_Opcode, OpCapsuleInfo | - | 0/1 | - | yes | -/16 | yes (16) | - | - |
 | 0x2D2 | MSG_CombineItemOdin_Opcode, OpCombineOdin | - | 0/0 | - | yes | -/- | yes (84) | - | - |
@@ -112,9 +112,9 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | 0x376 | MSG_SwapItem_Opcode, OpSwapItem | 20 | 1/3 | yes | yes | ?/20 | yes (20) | yes | U |
 | 0x378 | MSG_SetShortSkill_Opcode, OpSetShortSkill | 32 | 1/4 | yes | yes | ?/32 | yes (32) | yes | U |
 | 0x379 | MSG_Buy_Opcode, OpBuyItem | 24 | 1/1 | yes | yes | ?/24 | yes (24) | yes | U |
-| 0x37A | MSG_Sell_Opcode, OpSellItem | 20 | 1/2 | yes | yes | 20/20 | yes (20) | - | - |
+| 0x37A | MSG_Sell_Opcode, OpSellItem | 20 | 1/2 | yes | - | 20/- | yes (20) | - | C |
 | 0x37D | MSG_AddParty_Opcode, OpPartyAdd | 40 | 1/0 | yes | - | 40/- | - | yes | - |
-| 0x37E | MSG_RemoveParty_Opcode, OpPartyRemove | 16 | 1/2 | yes | yes | 16/- | yes (16) | yes | - |
+| 0x37E | MSG_RemoveParty_Opcode, OpPartyRemove | 16 | 1/2 | yes | yes | 16/16 | yes (16) | yes | - |
 | 0x37F | MSG_REQParty_Opcode, OpPartyRequest | 44 | 1/1 | yes | yes | 44/44 | yes (44) | yes | - |
 | 0x380 | - | 16 | 0/0 | - | - | -/- | - | - | - |
 | 0x383 | MSG_Trade_Opcode, OpTrade | 156 | 1/1 | yes | yes | ?/156 | yes (156) | yes | U |
@@ -134,7 +134,7 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | 0x3A1 | MSG_InstanceTime_Opcode, OpInstanceTime | - | 1/0 | yes | - | ?/- | - | yes | U |
 | 0x3A2 | - | - | 1/0 | yes | - | ?/- | - | - | U |
 | 0x3A3 | - | - | 1/0 | yes | - | ?/- | - | - | U |
-| 0x3A4 | - | - | 1/0 | yes | - | ?/- | - | - | U |
+| 0x3A4 | OpGuildDisable | - | 1/0 | yes | - | ?/- | - | yes | U |
 | 0x3A5 | - | - | 1/0 | - | - | -/- | - | - | C |
 | 0x3A6 | MSG_CombineItem_Opcode, OpCombineCompositor | - | 0/0 | - | yes | -/- | yes (84) | - | - |
 | 0x3A7 | MSG_CombineComplete_Opcode, OpCombineComplete | - | 1/0 | yes | - | ?/- | - | yes | U |
@@ -203,7 +203,7 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | 0xADA | - | - | 0/0 | yes | - | ?/- | - | - | BU |
 | 0xBBF | - | 180 | 1/0 | - | - | -/- | - | - | C |
 | 0xBFF | MSG_Encode_Opcode | - | 0/0 | yes | - | ?/- | - | - | BU |
-| 0xD1D | MSG_MessageShout_Opcode | - | 1/0 | yes | - | ?/- | - | - | U |
+| 0xD1D | MSG_MessageShout_Opcode | - | 1/0 | yes | - | 108/- | - | - | - |
 | 0xDC3 | MSG_CapsuleInfo_Opcode, OpCNFCapsuleInfo | - | 1/0 | yes | - | ?/- | - | yes | U |
 | 0xE0E | MSG_GuildWar_Opcode, OpGuildWar | 20 | 0/1 | - | yes | -/20 | yes (20) | - | - |
 | 0xE12 | MSG_GuildAlly_Opcode, OpGuildAlly | - | 0/1 | - | yes | -/20 | yes (20) | - | - |
@@ -227,8 +227,46 @@ Native client `references/client748/WYD.exe` (SHA-256 `8aa2f918844b...`); native
 | 0x5000 | - | - | 0/0 | yes | - | ?/- | - | - | BU |
 | 0x7F10 | ChallengeOpcode, OpQuizChallenge | - | 0/0 | yes | - | 148/- | - | yes | B |
 | 0x7F11 | AnswerOpcode, OpQuizAnswer | - | 0/0 | - | yes | -/- | yes (36) | - | B |
+| 0x7F12 | OpInstanceQuestion, Opcode | - | 0/0 | yes | - | 116/- | - | yes | B |
+| 0x7F20 | OpPremiumShopState, StateOpcode | - | 0/0 | yes | - | 16/- | - | yes | B |
+| 0x7F21 | BuyOpcode, OpPremiumBuy | - | 0/0 | - | yes | -/- | yes (28) | yes | BE |
+| 0x7F22 | OpPremiumBuyResult, ResultOpcode | - | 0/0 | yes | - | 24/- | - | yes | B |
+| 0x7F30 | OpKefraPortalState | - | 0/0 | - | - | -/- | - | yes | BE |
+| 0x7F40 | MSG_QuotedSale_Opcode, OpQuotedSellItem | - | 0/0 | - | yes | -/- | yes (32) | - | B |
 
 <!-- Decisions below are maintained by hand and kept on regeneration. -->
+
+## Current quote contract (2026-11-02)
+
+`0x7F40` is a coordinated client-to-server extension, version 1, exactly
+32 bytes. C++ size/offset assertions and Go ingress tests validate the format;
+the generator does not infer its client send size through the helper.
+`0x37A` remains accepted by Go and received by the client. Its client send
+path was deliberately replaced. See [the contract](../client/port-748.md#authoritative-item-use-and-merchant-display-2026-11-02).
+
+## Known generator gaps (updated 2026-11-02)
+
+The table above is incomplete. Do not read its gap counts as proof of
+compatibility. The 2026-11-01 audit (D-10, D-16) found input gaps. The current
+regeneration includes later source changes but retains these limits:
+
+- The generator does not read named size constants or
+  `LoginPacketContract.h`. Of the 70 received opcodes with an exact gate,
+  45 show `?` (for example `0x10A`, `0x114`, `0x181`, `0x336` and `0xD1D`,
+  which requires exactly `sizeof(MSG_MessageShout)`, 108 bytes).
+- Regeneration now includes coordinated extensions `0x7F12`, `0x7F20`,
+  `0x7F21`, `0x7F22`, `0x7F30` and `0x7F40`. Their native B flags are expected;
+  they do not establish end-to-end coverage or native parity.
+- The server-send column omits Go emitters for `0x52A`, `0xD1D` and `0x3A2`.
+- Gap D shows 0 because these sizes were not compared. Six received sizes
+  differ from native 7.48 as coordinated extensions that the Go builders also
+  use: `0x110` and `0x112` (1288, native 756), `0x114` (2104, native 1244),
+  `0x181` (28, native 20), `0x336` (232, native 92) and `0x364` (328, native
+  176). Matching client and Go sizes do not prove native compatibility.
+- Gap E now shows two rows. The send/receive detectors remain incomplete;
+  inspect the actual dispatcher and builders before treating a row as a defect.
+
+Improve the generator before using gap totals as a completion gate.
 
 ## How to regenerate
 
@@ -320,7 +358,7 @@ and the server sizes. The matrix now compares receive contracts only.
 | 0x105 / 0x106 | server sends, client receives (indexed messages) | Keep: superior to fixed text (indexed and parameterized); document and test both sides |
 | 0x10A | server sends the character list (2,360 bytes, 32-bit Score), client receives | Keep: wider Score than native 0x10E; document as a coordinated extension |
 | 0x7F10 / 0x7F11 | quiz challenge/answer extension, both sides | Keep as a documented coordinated extension (already versioned) |
-| 0x7F20 / 0x7F21 | premium shop state (132 bytes, S->C) and purchase (28 bytes, C->S); 0x17C with ShopType 4 | Coordinated extension v1, 2026-10-07: [premium-shop.md](premium-shop.md) |
+| 0x7F20 / 0x7F21 | premium shop state (S->C: 132-byte balance state and 160-byte categorized v4 opening state) and purchase (C->S: v1 28 bytes or v3 32 bytes); 0x17C with ShopType 4 | Coordinated extension, v1 2026-10-07 and categorized v4 2026-10-26: [premium-shop.md](premium-shop.md) |
 | 0x2E4 / 0x2E5 | client sends delete/split item, server handles | Keep: working features on both sides; document and test |
 | 0x2D4 / 0x2E1 | server handles extraction / alchemy; client sends 0x2D4 | Keep if the skills work end to end; add the client sender for 0x2E1 or retire it from the server |
 | 0x3D1 | client sends, server handles the scoped gold prompt | Native, not B (2026-10-03): `FUN_004662c5` sends it from gold prompt mode 7 with `PUSH 0x10` (the census missed the call because it has no visible arguments), `Parm@12` = amount. Mode 7 opens for an NPC with merchant type 9 and head 51 (`FUN_0045ee28`), text strdef row 136 "Enter the amount of gold to store." The TMProject matches. As of 2026-10-18, `store_gold_request.go` accepts this existing envelope for [Rune Track +6 donations](../server/rune-track.md) only, with authoritative leader, runtime, proximity, phase and balance validation. Other contexts still report that the service is unavailable. The donation algorithm comes from the supplied 7.59 server, not a claim of native 7.48 gameplay parity |

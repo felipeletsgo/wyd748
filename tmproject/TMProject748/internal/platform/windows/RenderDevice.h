@@ -4,6 +4,9 @@
 #include "D3DDevice.h"
 #include "Structures.h"
 #include "../../render/mesh/DyePixelShader.h"
+#include "DeviceFrame.h"
+#include "DesktopGamma.h"
+#include "FrameRateSampler.h"
 
 class TMFont2;
 class TextureManager;
@@ -38,6 +41,8 @@ public:
 	void SetTexture(DWORD Stage, IDirect3DBaseTexture9* pTexture);
 	void SetSamplerState(DWORD dwStage, D3DSAMPLERSTATETYPE State, DWORD Value);
 	void SetGamma();
+	// Restores the desktop ramp captured before the first windowed change.
+	void RestoreDesktopGamma();
 	int InitMeshManager();
 	int InitVertexShader();
 	int InitPixelShader();
@@ -164,6 +169,12 @@ public:
 	static int m_bDungeon;
 
 	int m_bDrawFPS;
+
+	// Lost-device recovery state; a terminal state requests one orderly exit.
+	device_frame::Recovery m_deviceRecovery;
+	bool m_bRecoveryExitRequested = false;
+	desktop_gamma::Saved<D3DGAMMARAMP> m_desktopGamma;
+	frame_rate::Sampler m_frameRate;
 
 	static int m_bCameraRot;
 

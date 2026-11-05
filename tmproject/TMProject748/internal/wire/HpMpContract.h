@@ -2,9 +2,8 @@
 
 #include <cstddef>
 
-// Extensao coordenada do source client com o WYD-Go. O frame publica os
-// quatro recursos em uint32 e substitui, neste ecossistema, os envelopes
-// historicos de 20/36 bytes ligados ao mesmo opcode.
+// Coordinated source-client/WYD-Go extension. Publish four uint32 resources.
+// In this system, this replaces the historical 20/36-byte envelopes sharing this opcode.
 constexpr auto MSG_SetHpMp_Opcode = 0x181;
 constexpr std::size_t kHpMpPacketSize = 28;
 constexpr std::size_t kHpMpCurrentHpOffset = 12;

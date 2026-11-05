@@ -536,6 +536,9 @@ func (w *World) applySupportSkillToTargets(p *Player, targets []*Player, skill m
 				applied = true
 			}
 		case 42: // Teleport brings the selected member next to the caster.
+			if target != p && !w.guildCityAreaStepAllowed(target, p.X, p.Y) {
+				continue
+			}
 			// Official TMSRVIN: the target's level may exceed the caster's
 			// level + mastery by at most 100.
 			if target != p && int(playerLevel(target.Char)) > int(playerLevel(p.Char))+mastery+100 {

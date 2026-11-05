@@ -3,8 +3,8 @@
 #include "MessageHeader.h"
 #include <cstddef>
 
-// Intencao C->S do 7.48 que aceita um convite Party. O servidor revalida o
-// lider e o nome; o WORD final pertence ao frame nativo e permanece reservado.
+// 7.48 C->S party acceptance intent. The server validates the leader and name.
+// The final native WORD remains reserved.
 constexpr auto MSG_CNFParty2_Opcode = 0x3AB;
 struct MSG_CNFParty2
 {

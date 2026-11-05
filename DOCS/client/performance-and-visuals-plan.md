@@ -1,8 +1,10 @@
 # Client performance and visuals plan
 
-Status: items 1-5 implemented 2026-10-07 (plan approved by the user);
-item 6 waits for field measurements. Measurements come from the instrumented
-client (`perf_trace`). Only weather (item 5) touches the wire and gameplay.
+Status: items 1-5 were implemented on 2026-10-07. The cleanup traversal in
+item 6 was corrected on 2026-11-01; effect accumulation still needs field data.
+Measurements come from the instrumented client (`perf_trace`). Only weather
+(item 5) touches the wire and gameplay. See [current state](../current-state.md)
+for later build, owner acceptance and publication records.
 
 ## Product constraints
 
@@ -33,6 +35,75 @@ state, working set and process CPU (percent of one core). Each `.trn` and
 $env:WYD_PERF_LOG = "C:\temp\wyd-perf-{pid}.csv"
 Start-Process .\WYD.exe -WorkingDirectory .\tmproject\client748
 ```
+
+## IO and emitter measurements (2026-11-02)
+
+Classification: `MODERNIZACAO_COMPATIVEL`. Trace channel requests, asset open
+attempts, repeated failures, arrow trails, avatar dust, and lava allocations.
+The CSV adds interval totals and maximum channel duration. Detail lines use
+`#channel` and `#missing`; failed paths use a bounded 4,096-entry diagnostic set.
+This diagnostic set remains separate from the new negative asset cache.
+
+The initial `ClientIoProbe` executed the synchronous WinINet helper,
+against an isolated loopback server. It also repeats 10,000 `fopen` calls for
+the absent `mesh/newmt.msh`. The probe does not launch the game or exercise D3D.
+
+| Isolated response delay | Request wall time | 10,000 missing opens |
+| --- | --- | --- |
+| 0 ms | 19.998 ms | 127.611 ms |
+| 200 ms | 221.585 ms | 112.338 ms |
+| 4,000 ms | 4,018.632 ms | 206.356 ms |
+
+The 1,500 ms WinINet options are not a total request deadline. The delayed
+response succeeded after four seconds. This table records the earlier baseline.
+Missing-open timings exclude mesh parsing, texture decoding, and D3D work;
+they do not establish the retry frequency in a real session.
+
+The later correction uses two process-owned workers and a 32-URL cache.
+Pending requests are deduplicated; cached responses expire after five seconds.
+Workers own copied strings and never borrow scenes or controls. Selection and
+field scenes poll a revision and preserve selection when applying fresh rows.
+Shutdown does not wait for a blocked WinINet request. A failed completion clears
+the old response; the existing parser displays unavailable status.
+
+The updated probe used the production cache and a four-second loopback response:
+
+| Measurement | Result |
+| --- | --- |
+| Worker request completion | 4,059.005 ms |
+| 10,000 UI-side cache reads, total | 2.858 ms |
+| Maximum single cache read | 0.037 ms |
+| Completions for those pending reads | 1 |
+| Missing path: 10,000 loader attempts | 1 actual open |
+| File created after cache expiry | Recovered |
+
+The asset cache stores only confirmed file/path absence, up to 1,024 normalized
+paths for five seconds. Successful loads, decode errors, permissions and device
+failures do not enter this cache. Texture, mesh, animation and sound loaders use
+the policy; existing fallbacks remain available.
+
+Per-emitter elapsed-time clocks now drive arrow trails, human dust and selected
+attack emitters, rotating and skin-mesh effects, sword trails, transformation,
+meteor, horse-leg and lava effects. The policy uses 30 Hz with one initial tick
+and at most three catch-up ticks. Hidden/inactive clocks reset; long stalls do
+not create unbounded bursts. Lifetime tests remain outside emission gates.
+Thirty Hz is a compatible cosmetic policy, not a TMSRVIN/Core.dll timing claim.
+Existing probability thresholds, particle parameters and lifetimes remain.
+
+The owner authorized local client execution and will perform visual tests.
+An isolated selection-screen launch does not establish field FPS measurements.
+The new emitter cadence still needs matched sessions at 30, 60, and 144 FPS.
+Keep actors, scene, visible tiles, and test duration constant.
+Compare `arrow_trail`, `avatar_dust`, and `lava` per second with frame times
+and live effect counts. These counters count allocation attempts, not GPU cost.
+Other emitter families need separate hooks before a complete coverage claim.
+Clock tests at 15/30/60/144/500 FPS produce the same emission count for equal
+elapsed time; they do not measure visual density, audio repetition or GPU cost.
+
+Baseline receipt: `build/client-pending-corrections-20261102/REPORT.md` and
+`io-measurements.json`. Correction receipt:
+`build/client-native-corrections-20261102/REPORT.md`. Gameplay and multi-client
+FPS measurements remain pending. Isolated timings are machine-specific.
 
 ## Baseline (2026-10-06)
 
@@ -188,10 +259,16 @@ this batch changes only client presentation and documentation.
 
 ### 6. Accumulation check - pending field data
 
-With the counters, confirm or rule out: effects with lifetime 0 whose owner is
-cleared by `DisconnectEffectFromMob` (no effect deletes itself when its owner
-disappears); `ObjectManager::CleanUp` restarting at the parent after every
-deletion (quadratic in large wars). Fix the source, never by clearing lists.
+The parent-restart cleanup defect was corrected under C-14 on 2026-11-01.
+The isolated alternating-leaf fixture reduced visits from 2,102,272 to 4,096,
+with identical survivors and order. Destructor side effects retain a
+conservative rescan; this is not a universal linear-complexity or game-FPS claim.
+Evidence: `build/tmproject748-improvements-20261101/REPORT.md`.
+
+Use field counters to check the remaining lifetime-zero effects after
+`DisconnectEffectFromMob` clears their owner. Measure emission counts,
+lifetimes and frame times at 30/60/144 FPS to validate the corrected C-22
+emitters and identify any remaining family. Do not treat completed cleanup as pending work.
 
 ### 7. Interface scale, native anchors and weather area - implemented 2026-10-07
 
